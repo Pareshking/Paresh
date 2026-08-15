@@ -28,7 +28,9 @@ def run_daily_sync() -> None:
     # 1. Sync official index constituents
     print("\n--- 1. Syncing Official NSE Index Constituents ---")
     sync_res = sync_official_nse_indices(force=True)
-    print(f"Synced {sync_res.get('total_stocks', 0)} total unique stocks across indices.")
+    print(
+        f"Synced {sync_res.get('total_stocks', 0)} total unique stocks across indices."
+    )
 
     # 2. Load universe
     print("\n--- 2. Loading Market Universe ---")
@@ -59,7 +61,9 @@ def run_daily_sync() -> None:
     deliv = fetch_delivery_data(force_refresh=FORCE_FULL)
     print(f"Delivery archive cache updated with {len(deliv)} records.")
 
-    print(f"\n[{datetime.now():%Y-%m-%d %H:%M:%S}] All daily sync tasks completed successfully!")
+    print(
+        f"\n[{datetime.now():%Y-%m-%d %H:%M:%S}] All daily sync tasks completed successfully!"
+    )
 
 
 if __name__ == "__main__":

@@ -27,7 +27,9 @@ def compute_signals(
         rank_df_tmp["_delta_1m"] = rank_df_tmp["Rank (-1M)"] - rank_df_tmp["Rank"]
 
         # Fresh entries into top 50
-        fresh = rank_df_tmp[(rank_df_tmp["Rank"] <= 50) & (rank_df_tmp["Rank (-1M)"] > 50)]
+        fresh = rank_df_tmp[
+            (rank_df_tmp["Rank"] <= 50) & (rank_df_tmp["Rank (-1M)"] > 50)
+        ]
         if len(fresh) > 0:
             syms = ", ".join(fresh.sort_values("Rank")["Symbol"].tolist())
             signals.append(
@@ -40,7 +42,9 @@ def compute_signals(
             )
 
         # Exited top 50
-        fallen = rank_df_tmp[(rank_df_tmp["Rank"] > 50) & (rank_df_tmp["Rank (-1M)"] <= 50)]
+        fallen = rank_df_tmp[
+            (rank_df_tmp["Rank"] > 50) & (rank_df_tmp["Rank (-1M)"] <= 50)
+        ]
         if len(fallen) > 0:
             syms = ", ".join(fallen.sort_values("Rank")["Symbol"].tolist())
             signals.append(
@@ -67,9 +71,23 @@ def compute_signals(
                 )
 
     # Qualified count check (Safely parse boolean or string icons)
-    ab_ema = rank_df["Above 50 EMA"].map(lambda x: x is True or str(x).strip() in ["✅", "True", "1"]) if "Above 50 EMA" in rank_df.columns else pd.Series(True, index=rank_df.index)
-    nr_hi = rank_df["Near 52W High"].map(lambda x: x is True or str(x).strip() in ["✅", "True", "1"]) if "Near 52W High" in rank_df.columns else pd.Series(True, index=rank_df.index)
-    rk_col = rank_df.get("Composite Rank", rank_df.get("Rank", pd.Series(1, index=rank_df.index)))
+    ab_ema = (
+        rank_df["Above 50 EMA"].map(
+            lambda x: x is True or str(x).strip() in ["✅", "True", "1"]
+        )
+        if "Above 50 EMA" in rank_df.columns
+        else pd.Series(True, index=rank_df.index)
+    )
+    nr_hi = (
+        rank_df["Near 52W High"].map(
+            lambda x: x is True or str(x).strip() in ["✅", "True", "1"]
+        )
+        if "Near 52W High" in rank_df.columns
+        else pd.Series(True, index=rank_df.index)
+    )
+    rk_col = rank_df.get(
+        "Composite Rank", rank_df.get("Rank", pd.Series(1, index=rank_df.index))
+    )
     qualified = rank_df[ab_ema & nr_hi & rk_col.notna()]
     if len(qualified) < 15:
         signals.append(
@@ -126,7 +144,7 @@ def render_ticker_ribbon(rank_df: pd.DataFrame, regime: RegimeData) -> None:
         f'<span style="font-weight: 700; color: #0f172a;">NIFTY 500</span>'
         f'<span style="color: #475569;">₹{regime.current_price:,.0f}</span>'
         f'<span style="font-weight: 700; color: {border_clr};">{regime.distance_pct:+.1f}% (200D)</span>'
-        f'</div>'
+        f"</div>"
     )
 
     for _, row in top_picks.iterrows():
@@ -143,10 +161,13 @@ def render_ticker_ribbon(rank_df: pd.DataFrame, regime: RegimeData) -> None:
             f'<span style="font-weight: 800; color: #0f172a;">{sym}</span>'
             f'<span style="color: #334155;">₹{cmp_val:,.0f}</span>'
             f'<span style="font-weight: 700; color: {ret_clr};">{ret_str}</span>'
-            f'</div>'
+            f"</div>"
         )
 
-    st.markdown(clean_html(f'<div class="ticker-ribbon">{items_html}</div>'), unsafe_allow_html=True)
+    st.markdown(
+        clean_html(f'<div class="ticker-ribbon">{items_html}</div>'),
+        unsafe_allow_html=True,
+    )
 
 
 def render_header_kpi_bar(
@@ -203,9 +224,9 @@ def render_signal_alerts(signals: list[SignalAlert]) -> None:
         esc_text = html.escape(str(s.text))
         chips_html += (
             f'<div style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 6px; '
-            f'background-color: {s.color}0D; border: 1px solid {s.color}25; font-family: \'JetBrains Mono\', monospace; '
+            f"background-color: {s.color}0D; border: 1px solid {s.color}25; font-family: 'JetBrains Mono', monospace; "
             f'font-size: 0.72rem; color: {s.color}; font-weight: 600; white-space: nowrap; flex-shrink: 0;">'
-            f'<span>{s.icon}</span><span>{esc_text}</span></div>'
+            f"<span>{s.icon}</span><span>{esc_text}</span></div>"
         )
     ribbon_html = f"""
     <div style="display: flex; align-items: center; gap: 8px; overflow-x: auto; padding: 4px 8px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; scrollbar-width: none;">
@@ -227,13 +248,15 @@ def stat_pill(label: str, value: Any, color: str = "indigo") -> str:
     bg, fg, bdr = color_map.get(color, color_map["indigo"])
     return (
         f'<span style="display: inline-flex; align-items: center; gap: 6px; border-radius: 6px; '
-        f'padding: 3px 10px; font-family: \'IBM Plex Mono\', monospace; font-size: 0.76rem; '
+        f"padding: 3px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 0.76rem; "
         f'background-color: {bg}; color: {fg}; border: 1px solid {bdr}; font-weight: 500; margin: 2px 4px 2px 0;">'
         f'{label}: <strong style="font-weight: 700;">{value}</strong></span>'
     )
 
 
-def render_data_quality_footer(total_stocks: int, gap_count: int, short_count: int) -> None:
+def render_data_quality_footer(
+    total_stocks: int, gap_count: int, short_count: int
+) -> None:
     """Renders clean data quality footer bar."""
     footer_html = f"""
     <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 10px 16px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; margin-top: 24px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #64748b;">

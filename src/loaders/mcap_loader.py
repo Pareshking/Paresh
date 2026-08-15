@@ -5,12 +5,15 @@ Market Capitalization loader with 3-tier fallback architecture:
 3. Multi-threaded live yfinance scraper with multiple fallbacks
 """
 
+from __future__ import annotations
+
 import concurrent.futures
 import io
 import os
 import time
 import zipfile
 from datetime import datetime, timedelta
+from typing import Sequence
 
 import numpy as np
 import pandas as pd
@@ -25,7 +28,9 @@ def _fetch_mcap_from_pr_zip(target_date: datetime) -> dict[str, float]:
     """Download NSE Bhavcopy PR zip and extract mcap*.csv."""
     zip_date = target_date.strftime("%d%m%y")
     csv_date = target_date.strftime("%d%m%Y")
-    zip_url = f"https://archives.nseindia.com/archives/equities/bhavcopy/pr/PR{zip_date}.zip"
+    zip_url = (
+        f"https://archives.nseindia.com/archives/equities/bhavcopy/pr/PR{zip_date}.zip"
+    )
     csv_filename = f"mcap{csv_date}.csv"
 
     try:
@@ -60,8 +65,10 @@ def _fetch_mcap_from_pr_zip(target_date: datetime) -> dict[str, float]:
         )
         df = df[df[col_mcap].notna() & (df[col_mcap] > 0)]
 
-        result = df.set_index(col_sym)[col_mcap].to_dict()
-        logger.info(f"Loaded NSE PR market cap: {len(result)} stocks for {target_date.date()}")
+        result: dict[str, float] = df.set_index(col_sym)[col_mcap].to_dict()
+        logger.info(
+            f"Loaded NSE PR market cap: {len(result)} stocks for {target_date.date()}"
+        )
         return result
     except Exception as e:
         logger.debug(f"PR mcap fetch failed for {target_date.date()}: {e}")
@@ -82,8 +89,8 @@ def _is_mcap_cache_fresh() -> bool:
 
 
 def _fetch_single_mcap(symbol: str) -> tuple[str, float]:
-    """Single ticker market cap fetcher with 3 fallbacks."""
-    time.sleep(0.04)
+    """Single ticker market cap fetcher with fast_info and info fallbacks."""
+    time.sleep(0.03)
     ticker_name = symbol + ".NS" if not symbol.endswith(".NS") else symbol
     tkr = yf.Ticker(ticker_name)
 
@@ -115,13 +122,13 @@ def _fetch_single_mcap(symbol: str) -> tuple[str, float]:
     return symbol, np.nan
 
 
-def _fetch_mcaps_yfinance(symbols: list[str]) -> dict[str, float]:
+def _fetch_mcaps_yfinance(symbols: Sequence[str]) -> dict[str, float]:
     """Multi-threaded yfinance market cap scraper."""
     if not symbols:
         return {}
 
-    result = {}
-    failed = []
+    result: dict[str, float] = {}
+    failed: list[str] = []
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
         futs = {pool.submit(_fetch_single_mcap, s): s for s in symbols}
@@ -146,7 +153,7 @@ def _fetch_mcaps_yfinance(symbols: list[str]) -> dict[str, float]:
     return result
 
 
-def fetch_market_caps(symbols: list[str], force_refresh: bool = False) -> pd.Series:
+def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd.Series:
     """
     Fetches market caps in Rs for requested symbols.
     """
@@ -173,10 +180,12 @@ def fetch_market_caps(symbols: list[str], force_refresh: bool = False) -> pd.Ser
             if nse_map:
                 master.update(nse_map)
                 try:
-                    cache_df = pd.DataFrame([
-                        {"Symbol": k, "MarketCap": v, "LastUpdated": datetime.now()}
-                        for k, v in nse_map.items()
-                    ])
+                    cache_df = pd.DataFrame(
+                        [
+                            {"Symbol": k, "MarketCap": v, "LastUpdated": datetime.now()}
+                            for k, v in nse_map.items()
+                        ]
+                    )
                     cache_df.to_parquet(MCAP_PR_FILE, compression="snappy")
                 except Exception:
                     pass
@@ -207,10 +216,12 @@ def fetch_market_caps(symbols: list[str], force_refresh: bool = False) -> pd.Ser
 
         if yf_map:
             try:
-                new_rows = pd.DataFrame([
-                    {"Symbol": k, "MarketCap": v, "LastUpdated": datetime.now()}
-                    for k, v in yf_map.items()
-                ])
+                new_rows = pd.DataFrame(
+                    [
+                        {"Symbol": k, "MarketCap": v, "LastUpdated": datetime.now()}
+                        for k, v in yf_map.items()
+                    ]
+                )
                 if os.path.exists(MCAPS_FILE):
                     existing = pd.read_parquet(MCAPS_FILE)
                     existing = existing[~existing["Symbol"].isin(yf_map.keys())]
@@ -222,4 +233,4 @@ def fetch_market_caps(symbols: list[str], force_refresh: bool = False) -> pd.Ser
                 pass
 
     vmap = {s: master[s] for s in symbols if s in master}
-    return pd.Series(vmap)
+    return pd.Series(vmap, dtype=float)

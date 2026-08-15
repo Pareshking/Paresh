@@ -29,7 +29,11 @@ def render_portfolio_view(
 
     selected_method = c_wm.segmented_control(
         "Weighting Scheme",
-        [WeightMethod.EQUAL_WEIGHT.value, WeightMethod.INVERSE_VOLATILITY.value, WeightMethod.MEAN_VARIANCE.value],
+        [
+            WeightMethod.EQUAL_WEIGHT.value,
+            WeightMethod.INVERSE_VOLATILITY.value,
+            WeightMethod.MEAN_VARIANCE.value,
+        ],
         default=WeightMethod.EQUAL_WEIGHT.value,
         key="port_weight_method_seg",
         label_visibility="collapsed",
@@ -49,16 +53,26 @@ def render_portfolio_view(
     )
 
     if stock_cap > sector_cap:
-        st.error(f"⛔ Stock cap ({stock_cap:.0%}) cannot exceed sector cap ({sector_cap:.0%}). Adjust in Config.")
+        st.error(
+            f"⛔ Stock cap ({stock_cap:.0%}) cannot exceed sector cap ({sector_cap:.0%}). Adjust in Config."
+        )
         return
 
-    ab_ema = rank_df["Above 50 EMA"].map(lambda x: x is True or str(x).strip() in ["✅", "True", "1"]) if "Above 50 EMA" in rank_df.columns else pd.Series(True, index=rank_df.index)
-    nr_hi = rank_df["Near 52W High"].map(lambda x: x is True or str(x).strip() in ["✅", "True", "1"]) if "Near 52W High" in rank_df.columns else pd.Series(True, index=rank_df.index)
-    port_universe = (
-        rank_df[ab_ema & nr_hi]
-        .sort_values("Rank")
-        .head(port_n)
+    ab_ema = (
+        rank_df["Above 50 EMA"].map(
+            lambda x: x is True or str(x).strip() in ["✅", "True", "1"]
+        )
+        if "Above 50 EMA" in rank_df.columns
+        else pd.Series(True, index=rank_df.index)
     )
+    nr_hi = (
+        rank_df["Near 52W High"].map(
+            lambda x: x is True or str(x).strip() in ["✅", "True", "1"]
+        )
+        if "Near 52W High" in rank_df.columns
+        else pd.Series(True, index=rank_df.index)
+    )
+    port_universe = rank_df[ab_ema & nr_hi].sort_values("Rank").head(port_n)
 
     if port_universe.empty:
         st.info("No stocks currently pass filters for portfolio construction.")
@@ -79,11 +93,15 @@ def render_portfolio_view(
             n_univ = len(rank_df)
             rank_s = rank_df.set_index("Symbol")["Rank"]
             mu = rank_s.map(lambda r: (n_univ + 1 - r) / n_univ if pd.notna(r) else 0.5)
-            raw_w = pc.mean_variance(port_syms, mu, stock_cap=stock_cap, sector_cap=sector_cap)
+            raw_w = pc.mean_variance(
+                port_syms, mu, stock_cap=stock_cap, sector_cap=sector_cap
+            )
 
     # Apply constraints
     try:
-        constrained_w = pc.apply_constraints(raw_w, sector_cap=sector_cap, stock_cap=stock_cap)
+        constrained_w = pc.apply_constraints(
+            raw_w, sector_cap=sector_cap, stock_cap=stock_cap
+        )
     except ValueError as e:
         st.error(f"Constraint error: {e}")
         return
@@ -93,12 +111,20 @@ def render_portfolio_view(
     scale = 1.0
     if vol_target_on:
         try:
-            constrained_w, scale, real_vol = pc.volatility_target(constrained_w, target_vol=vol_target_val)
+            constrained_w, scale, real_vol = pc.volatility_target(
+                constrained_w, target_vol=vol_target_val
+            )
             cash_pct = (1.0 - scale) * 100
             c1, c2, c3 = st.columns(3)
             c1.metric("Realized Portfolio Vol (Ann.)", f"{real_vol:.1%}")
             c2.metric("Target Volatility", f"{vol_target_val:.0%}")
-            c3.metric("Invested Allocation", f"{scale:.0%}", delta=f"{cash_pct:.0f}% cash buffer" if cash_pct > 1 else "Fully invested")
+            c3.metric(
+                "Invested Allocation",
+                f"{scale:.0%}",
+                delta=(
+                    f"{cash_pct:.0f}% cash buffer" if cash_pct > 1 else "Fully invested"
+                ),
+            )
             st.divider()
         except ValueError as e:
             st.error(f"Volatility target error: {e}")
@@ -114,8 +140,14 @@ def render_portfolio_view(
     sl_map = rank_df.set_index("Symbol")["Stop Loss"].to_dict()
 
     summary["CMP"] = summary["Symbol"].map(cmp_map)
-    summary["Target Value (₹)"] = (summary["Weight %"] / 100.0 * portfolio_capital).round(0)
-    summary["Shares to Buy"] = (summary["Target Value (₹)"] / summary["CMP"].replace(0, np.nan)).fillna(0).astype(int)
+    summary["Target Value (₹)"] = (
+        summary["Weight %"] / 100.0 * portfolio_capital
+    ).round(0)
+    summary["Shares to Buy"] = (
+        (summary["Target Value (₹)"] / summary["CMP"].replace(0, np.nan))
+        .fillna(0)
+        .astype(int)
+    )
     summary["Actual Value (₹)"] = (summary["Shares to Buy"] * summary["CMP"]).round(0)
     summary["Stop Loss"] = summary["Symbol"].map(sl_map)
 
@@ -123,7 +155,11 @@ def render_portfolio_view(
     unallocated_cash = max(0, portfolio_capital - total_allocated)
 
     # ── Executive KPI Cards ──────────────────────────────────────────────────
-    top_sec = summary.groupby("Industry")["Weight %"].sum().max() if "Industry" in summary.columns else 0.0
+    top_sec = (
+        summary.groupby("Industry")["Weight %"].sum().max()
+        if "Industry" in summary.columns
+        else 0.0
+    )
 
     kpi_port_html = f"""
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px;">
@@ -157,21 +193,38 @@ def render_portfolio_view(
     ca, cb = st.columns([1.5, 1], gap="medium")
     with ca:
         st.markdown("##### Capital Sized Rebalance Order Sheet")
-        disp_cols = ["Symbol", "Weight %", "CMP", "Shares to Buy", "Target Value (₹)", "Actual Value (₹)", "Stop Loss", "Industry"]
-        render_saas_table(summary[[c for c in disp_cols if c in summary.columns]], key="order_sheet_table", max_height=320)
+        disp_cols = [
+            "Symbol",
+            "Weight %",
+            "CMP",
+            "Shares to Buy",
+            "Target Value (₹)",
+            "Actual Value (₹)",
+            "Stop Loss",
+            "Industry",
+        ]
+        render_saas_table(
+            summary[[c for c in disp_cols if c in summary.columns]],
+            key="order_sheet_table",
+            max_height=320,
+        )
 
     with cb:
         st.markdown("##### Sector Allocation")
         if "Industry" in summary.columns:
-            sec_agg = summary.groupby("Industry").agg(
-                Weight=("Weight %", "sum"),
-                Count=("Symbol", "count"),
-            ).sort_values("Weight", ascending=False).reset_index()
+            sec_agg = (
+                summary.groupby("Industry")
+                .agg(
+                    Weight=("Weight %", "sum"),
+                    Count=("Symbol", "count"),
+                )
+                .sort_values("Weight", ascending=False)
+                .reset_index()
+            )
 
             ind_items_html = []
             for _, r in sec_agg.iterrows():
-                ind_items_html.append(
-                    f"""
+                ind_items_html.append(f"""
                     <div style="margin-bottom: 9px;">
                         <div style="display: flex; justify-content: space-between; font-size: 0.76rem; font-family: 'Plus Jakarta Sans', sans-serif; margin-bottom: 3px;">
                             <span style="font-weight: 600; color: #0f172a;">{r['Industry']}</span>
@@ -181,8 +234,7 @@ def render_portfolio_view(
                             <div style="width: {min(100, r['Weight'])}%; height: 100%; background: linear-gradient(90deg, #4f46e5, #06b6d4); border-radius: 99px;"></div>
                         </div>
                     </div>
-                    """
-                )
+                    """)
             breakdown_html = f"""
             <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); max-height: 320px; overflow-y: auto;">
                 {''.join(ind_items_html)}
@@ -194,22 +246,26 @@ def render_portfolio_view(
 
     # ── Zerodha Kite Basket Orders Hub ───────────────────────────────────────
     st.markdown("##### Zerodha Kite Basket Orders")
-    st.caption("One-click rebalance execution directly formatted for Zerodha Kite Basket Orders.")
+    st.caption(
+        "One-click rebalance execution directly formatted for Zerodha Kite Basket Orders."
+    )
 
     # Zerodha Kite Basket CSV Format
     kite_rows = []
     for _, r in summary.iterrows():
         if r["Shares to Buy"] > 0:
-            kite_rows.append({
-                "Instrument": r["Symbol"],
-                "Exchange": "NSE",
-                "Order Type": "MARKET",
-                "Action": "BUY",
-                "Quantity": int(r["Shares to Buy"]),
-                "Price": 0,
-                "ProductType": "CNC",
-                "TriggerPrice": 0,
-            })
+            kite_rows.append(
+                {
+                    "Instrument": r["Symbol"],
+                    "Exchange": "NSE",
+                    "Order Type": "MARKET",
+                    "Action": "BUY",
+                    "Quantity": int(r["Shares to Buy"]),
+                    "Price": 0,
+                    "ProductType": "CNC",
+                    "TriggerPrice": 0,
+                }
+            )
     kite_df = pd.DataFrame(kite_rows)
 
     zc1, zc2 = st.columns([1.5, 2.5], vertical_alignment="center")
@@ -225,7 +281,9 @@ def render_portfolio_view(
         )
 
     with zc2:
-        st.caption(f"Ready to import into **Zerodha Kite > Orders > Baskets**: `{len(kite_df)}` CNC Market orders · Total execution value: **₹{total_allocated:,.0f}**")
+        st.caption(
+            f"Ready to import into **Zerodha Kite > Orders > Baskets**: `{len(kite_df)}` CNC Market orders · Total execution value: **₹{total_allocated:,.0f}**"
+        )
 
     with st.expander("Inspect Zerodha Kite Basket Schema", expanded=False):
         render_saas_table(kite_df, key="zerodha_basket_preview_table", max_height=240)

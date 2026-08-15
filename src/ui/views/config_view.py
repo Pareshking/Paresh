@@ -29,7 +29,9 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
     sync_meta = get_sync_metadata()
     last_sync = sync_meta.get("last_synced", "Never synced")
     tot_stk = sync_meta.get("total_stocks", len(rank_df))
-    mode_label = "Streamlit Cloud" if STORAGE_MODE == "streamlit-cloud" else "Local Production"
+    mode_label = (
+        "Streamlit Cloud" if STORAGE_MODE == "streamlit-cloud" else "Local Production"
+    )
 
     # ── Top Hero / System Status Bar ─────────────────────────────────────────
     st.markdown(
@@ -60,25 +62,29 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
 
     # ── Section 1: Data Synchronization & Constituents ───────────────────────
     st.markdown("##### 1. Official NSE Constituent Synchronization")
-    st.caption("Synchronize constituent baskets directly with official CSV feeds on `niftyindices.com`.")
+    st.caption(
+        "Synchronize constituent baskets directly with official CSV feeds on `niftyindices.com`."
+    )
 
     sync_c1, sync_c2 = st.columns([1.8, 1.2], vertical_alignment="center")
     with sync_c1:
-        st.html(
-            f"""
+        st.html(f"""
             <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                 <div style="font-size: 0.84rem; font-weight: 700; color: #0f172a;">Official NSE Constituents Cache</div>
                 <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; color: #64748b; margin-top: 4px;">
                     Last Synced: <strong style="color: #0f172a;">{last_sync}</strong> &nbsp;·&nbsp; Total Universe: <strong style="color: #4f46e5;">{tot_stk} stocks</strong>
                 </div>
             </div>
-            """
-        )
+            """)
     with sync_c2:
         btn_c1, btn_c2 = st.columns(2)
         with btn_c1:
-            if st.button("Sync NSE CSVs", type="primary", width="stretch", key="btn_sync_indices"):
-                with st.spinner("Downloading official index CSVs from niftyindices.com…"):
+            if st.button(
+                "Sync NSE CSVs", type="primary", width="stretch", key="btn_sync_indices"
+            ):
+                with st.spinner(
+                    "Downloading official index CSVs from niftyindices.com…"
+                ):
                     res = sync_official_nse_indices(force=True)
                     st.session_state["force_refresh"] = True
                     st.session_state.pop("data_loaded_key", None)
@@ -86,7 +92,12 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
                     st.success(f"Synced {res['total_stocks']} constituents!")
                     st.rerun()
         with btn_c2:
-            if st.button("Purge Cache", type="secondary", width="stretch", key="btn_force_sync_top"):
+            if st.button(
+                "Purge Cache",
+                type="secondary",
+                width="stretch",
+                key="btn_force_sync_top",
+            ):
                 st.session_state["force_refresh"] = True
                 st.session_state.pop("data_loaded_key", None)
                 st.cache_data.clear()
@@ -96,10 +107,14 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
         for idx_name, path in INDICES_LOCAL.items():
             if os.path.exists(path):
                 size = os.path.getsize(path)
-                mtime = datetime.fromtimestamp(os.path.getmtime(path)).strftime("%d %b %Y, %H:%M")
+                mtime = datetime.fromtimestamp(os.path.getmtime(path)).strftime(
+                    "%d %b %Y, %H:%M"
+                )
                 with open(path, "r", encoding="utf-8") as f:
                     lines = sum(1 for _ in f) - 1
-                st.caption(f"**{idx_name}**: `{lines}` constituents ({size/1024:.1f} KB) · Modified: {mtime}")
+                st.caption(
+                    f"**{idx_name}**: `{lines}` constituents ({size/1024:.1f} KB) · Modified: {mtime}"
+                )
             else:
                 st.caption(f"**{idx_name}**: File missing at `{path}`")
 
@@ -107,7 +122,9 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
 
     # ── Section 2: Active Index Universe ─────────────────────────────────────
     st.markdown("##### 2. Active Screening Universe")
-    st.caption("Select which index constituent baskets are merged into the real-time screening pipeline.")
+    st.caption(
+        "Select which index constituent baskets are merged into the real-time screening pipeline."
+    )
 
     available_indices = list(INDICES_URLS.keys())
     curr_indices = st.session_state.get("cfg_indices", ["NIFTY TOTAL MARKET"])
@@ -158,7 +175,14 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
         ("12M (252D)", "cfg_w5", 0.10),
     ]
     for col, (label, key, default) in zip(wc, windows):
-        val = col.slider(label, 0.0, 1.0, float(st.session_state.get(key, default)), 0.05, key=f"slider_{key}")
+        val = col.slider(
+            label,
+            0.0,
+            1.0,
+            float(st.session_state.get(key, default)),
+            0.05,
+            key=f"slider_{key}",
+        )
         if val != st.session_state.get(key, default):
             st.session_state[key] = val
 
@@ -166,7 +190,9 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
 
     # ── Section 4: Portfolio Allocation & Risk Constraints ───────────────────
     st.markdown("##### 4. Portfolio Allocation & Risk Constraints")
-    st.caption("Configure single-sector exposure limits, individual stock position caps, and dynamic volatility targeting.")
+    st.caption(
+        "Configure single-sector exposure limits, individual stock position caps, and dynamic volatility targeting."
+    )
 
     p_card1, p_card2 = st.columns(2, gap="medium")
     with p_card1:
@@ -179,8 +205,22 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
             """,
             unsafe_allow_html=True,
         )
-        new_sc = st.slider("Sector Exposure Cap (%)", 15, 50, int(st.session_state.get("cfg_sc", 30)), 5, key="slider_sc")
-        new_stc = st.slider("Individual Stock Cap (%)", 2, 15, int(st.session_state.get("cfg_stc", 8)), 1, key="slider_stc")
+        new_sc = st.slider(
+            "Sector Exposure Cap (%)",
+            15,
+            50,
+            int(st.session_state.get("cfg_sc", 30)),
+            5,
+            key="slider_sc",
+        )
+        new_stc = st.slider(
+            "Individual Stock Cap (%)",
+            2,
+            15,
+            int(st.session_state.get("cfg_stc", 8)),
+            1,
+            key="slider_stc",
+        )
         if new_sc != st.session_state.get("cfg_sc"):
             st.session_state["cfg_sc"] = new_sc
         if new_stc != st.session_state.get("cfg_stc"):
@@ -199,8 +239,20 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
             """,
             unsafe_allow_html=True,
         )
-        new_vt = st.checkbox("Enable Dynamic Volatility Targeting", value=st.session_state.get("cfg_vt", False), key="check_vt")
-        new_vtv = st.slider("Target Portfolio Volatility (%)", 10, 40, int(st.session_state.get("cfg_vtv", 25)), 5, key="slider_vtv", disabled=not new_vt)
+        new_vt = st.checkbox(
+            "Enable Dynamic Volatility Targeting",
+            value=st.session_state.get("cfg_vt", False),
+            key="check_vt",
+        )
+        new_vtv = st.slider(
+            "Target Portfolio Volatility (%)",
+            10,
+            40,
+            int(st.session_state.get("cfg_vtv", 25)),
+            5,
+            key="slider_vtv",
+            disabled=not new_vt,
+        )
         if new_vt != st.session_state.get("cfg_vt"):
             st.session_state["cfg_vt"] = new_vt
         if new_vtv != st.session_state.get("cfg_vtv"):
@@ -221,28 +273,38 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
     ]:
         if os.path.exists(path):
             size = os.path.getsize(path)
-            sz = f"{size/(1024*1024):.1f} MB" if size >= 1024 * 1024 else f"{size/1024:.0f} KB"
-            mod = datetime.fromtimestamp(os.path.getmtime(path)).strftime("%d %b %Y, %H:%M")
+            sz = (
+                f"{size/(1024*1024):.1f} MB"
+                if size >= 1024 * 1024
+                else f"{size/1024:.0f} KB"
+            )
+            mod = datetime.fromtimestamp(os.path.getmtime(path)).strftime(
+                "%d %b %Y, %H:%M"
+            )
             extra = ""
             if label == "Delivery Bhavcopy Parquet":
                 meta = _read_meta()
                 if meta:
                     extra = f"{meta.get('n_days', '?')} days / {meta.get('n_symbols', '?')} tickers"
-            cache_records.append({
-                "Dataset": label,
-                "File Size": sz,
-                "Records / Detail": extra or "Active",
-                "Last Modified": mod,
-                "Status": "🟢 Cached",
-            })
+            cache_records.append(
+                {
+                    "Dataset": label,
+                    "File Size": sz,
+                    "Records / Detail": extra or "Active",
+                    "Last Modified": mod,
+                    "Status": "🟢 Cached",
+                }
+            )
         else:
-            cache_records.append({
-                "Dataset": label,
-                "File Size": "—",
-                "Records / Detail": "Missing",
-                "Last Modified": "—",
-                "Status": "⚪ Not Cached",
-            })
+            cache_records.append(
+                {
+                    "Dataset": label,
+                    "File Size": "—",
+                    "Records / Detail": "Missing",
+                    "Last Modified": "—",
+                    "Status": "⚪ Not Cached",
+                }
+            )
 
     cache_df = pd.DataFrame(cache_records)
     st.dataframe(

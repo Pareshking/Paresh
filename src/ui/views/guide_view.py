@@ -27,7 +27,13 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
 
     section_tab = st.segmented_control(
         "Handbook Sections",
-        ["Methodology Framework", "Strategy Comparison Matrix", "Mathematical Deep Dives", "Market Regime Playbooks", "Execution & FAQ"],
+        [
+            "Methodology Framework",
+            "Strategy Comparison Matrix",
+            "Mathematical Deep Dives",
+            "Market Regime Playbooks",
+            "Execution & FAQ",
+        ],
         default="Methodology Framework",
         key="guide_main_nav",
         label_visibility="collapsed",
@@ -356,8 +362,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
         )
 
         if strat_choice == "Composite Sharpe × R²":
-            st.markdown(
-                r"""
+            st.markdown(r"""
                 ##### 1. Composite Multi-Window Momentum ($\text{Sharpe} \times R^2$)
                 
                 **Mathematical Formulation:**
@@ -372,12 +377,10 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 * **Config Weights Integration**: Uses active weights configured in the **Configuration** tab (e.g. 10/30/30/20/10).
                 * **Multi-Horizon Defense**: Requires consistent compounding across both short-term (1M/3M) and long-term (6M/9M/12M) horizons, preventing speculative short-term whipsaws.
                 * **Optimal Regime**: Steady secular bull runs and core compounder portfolios.
-                """
-            )
+                """)
 
         elif strat_choice == "Single-Window Sharpe × R²":
-            st.markdown(
-                r"""
+            st.markdown(r"""
                 ##### 2. Single-Window Momentum ($\text{Sharpe} \times R^2$)
                 
                 **Mathematical Formulation:**
@@ -389,12 +392,10 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 * **Key Difference vs Composite**: Does not blend other horizons. Evaluates performance strictly within the specified window.
                 * **Sensitivity & Trade-off**: Higher responsiveness to quarterly moves, but more sensitive to single-month reversals.
                 * **Optimal Regime**: Quarterly tactical rebalancing and short-to-medium term swing trading.
-                """
-            )
+                """)
 
         elif strat_choice == "Multi-Window Pure Sharpe":
-            st.markdown(
-                r"""
+            st.markdown(r"""
                 ##### 3. Multi-Window Pure Sharpe Momentum (No $R^2$)
                 
                 **Mathematical Formulation:**
@@ -405,12 +406,10 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 * **Config Weights Integration**: Uses custom factor weights across 1M, 3M, 6M, 9M, 12M windows.
                 * **Difference vs $\text{Sharpe} \times R^2$**: Allows explosive, high-curvature parabolic winners to score at the top without penalty.
                 * **Optimal Regime**: Aggressive expansion bull markets where leaders accelerate rapidly.
-                """
-            )
+                """)
 
         elif strat_choice == "Residual (α) Momentum":
-            st.markdown(
-                r"""
+            st.markdown(r"""
                 ##### 4. Residual ($\alpha$) Idiosyncratic Momentum
                 
                 **Mathematical Formulation:**
@@ -422,12 +421,10 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 * **Config Weights Integration**: Independent CAPM regression engine.
                 * **Why it works**: Strips out broad market beta, isolating stocks with genuine company-specific outperformance.
                 * **Optimal Regime**: Narrow rallies, choppy indices, and consolidation phases.
-                """
-            )
+                """)
 
         elif strat_choice == "Industry-Relative Momentum":
-            st.markdown(
-                r"""
+            st.markdown(r"""
                 ##### 5. Industry-Relative Momentum
                 
                 **Mathematical Formulation:**
@@ -438,12 +435,10 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 * **Config Weights Integration**: Uses the multi-window composite score as the base.
                 * **Why it works**: Isolates the single strongest leader inside every sector, providing sector-neutral alpha regardless of macro cycles.
                 * **Optimal Regime**: Active sector rotation environments and market inflections.
-                """
-            )
+                """)
 
         elif strat_choice == "Momentum Acceleration":
-            st.markdown(
-                r"""
+            st.markdown(r"""
                 ##### 6. Momentum Acceleration (Velocity Derivative)
                 
                 **Mathematical Formulation:**
@@ -455,12 +450,10 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 * **Config Weights Integration**: Fixed derivative weights.
                 * **Why it works**: Detects early-stage breakouts weeks before they show up in 12M tables.
                 * **Optimal Regime**: Market regime turning points and early bull market recoveries.
-                """
-            )
+                """)
 
         elif strat_choice == "Consensus Ensemble":
-            st.markdown(
-                r"""
+            st.markdown(r"""
                 ##### 7. Multi-Strategy Consensus Ensemble
                 
                 **Mathematical Formulation:**
@@ -470,12 +463,10 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 * **Config Weights Integration**: Ensemble cross-validation.
                 * **Why it works**: Requires multiple orthogonal models to agree, filtering out high-volatility false breakouts and lowering maximum drawdowns.
                 * **Optimal Regime**: Core capital allocation where capital preservation is paramount.
-                """
-            )
+                """)
 
         elif strat_choice == "Relative Rotation Graph":
-            st.markdown(
-                r"""
+            st.markdown(r"""
                 ##### 8. Relative Rotation Graph (RRG)
                 
                 **Mathematical Formulation (Julius de Kempenaer Algorithm):**
@@ -490,12 +481,10 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                   * **Weakening (>100, <100)**: Relative strength remains high, but momentum is fading.
                   * **Lagging (<100, <100)**: Underperforming the benchmark.
                   * **Improving (<100, >100)**: Momentum inflecting upward; watchlist for early entry.
-                """
-            )
+                """)
 
         elif strat_choice == "Delivery Surge Factor":
-            st.markdown(
-                r"""
+            st.markdown(r"""
                 ##### 9. Institutional Delivery Volume Surge Factor
                 
                 **Mathematical Formulation:**
@@ -506,12 +495,10 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
 
                 * **Threshold Rules**: High delivery flagged at $\text{Del \%} \ge 50\%$ with $\text{Delivery Surge} \ge 1.5\times$.
                 * **Optimal Regime**: Validating that price momentum is backed by genuine long-term institutional buying.
-                """
-            )
+                """)
 
         elif strat_choice == "Risk & Stop-Loss Engine":
-            st.markdown(
-                r"""
+            st.markdown(r"""
                 ##### 10. Quantitative Risk, Volatility & Stop-Loss Engine
                 
                 **Mathematical Formulation:**
@@ -525,8 +512,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                    $$\text{Chandelier Exit}_t = \max_{i \in [0, 21]} \left(H_{t-i}\right) - 3.0 \times \text{ATR}_{14, t}$$
 
                 * **Execution Rule**: If current market price breaches the Chandelier trailing stop, exit the position at next open ($T+1$) with 0 hesitation.
-                """
-            )
+                """)
 
     # ── TAB 4: Market Regime Playbooks ───────────────────────────────────────
     elif section_tab == "Market Regime Playbooks":

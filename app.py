@@ -13,6 +13,8 @@ import streamlit as st
 # Suppress runtime noise
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="numpy")
 warnings.filterwarnings("ignore", message=".*use_container_width.*")
+warnings.filterwarnings("ignore", message=".*replace.*st\\.components\\.v1\\.html.*")
+warnings.filterwarnings("ignore", message=".*st\\.components\\.v1\\.html.*")
 
 # Core & Loaders
 from src.engine.momentum import MomentumEngine
@@ -61,15 +63,19 @@ inject_custom_css()
 if "cfg_indices" not in st.session_state:
     st.session_state["cfg_indices"] = ["NIFTY TOTAL MARKET"]
 if "cfg_w1" not in st.session_state:
-    st.session_state.update({
-        "cfg_w1": 0.10,
-        "cfg_w2": 0.30,
-        "cfg_w3": 0.30,
-        "cfg_w4": 0.20,
-        "cfg_w5": 0.10,
-    })
+    st.session_state.update(
+        {
+            "cfg_w1": 0.10,
+            "cfg_w2": 0.30,
+            "cfg_w3": 0.30,
+            "cfg_w4": 0.20,
+            "cfg_w5": 0.10,
+        }
+    )
 if "cfg_sc" not in st.session_state:
-    st.session_state.update({"cfg_sc": 30, "cfg_stc": 5, "cfg_vt": False, "cfg_vtv": 25})
+    st.session_state.update(
+        {"cfg_sc": 30, "cfg_stc": 5, "cfg_vt": False, "cfg_vtv": 25}
+    )
 
 selected_indices = st.session_state["cfg_indices"]
 raw_w = [st.session_state[f"cfg_w{i}"] for i in range(1, 6)]
@@ -98,7 +104,9 @@ def _symbols_hash(symbols: list[str]) -> str:
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def load_prices_cached(sym_key: str, _symbols: list[str], period: str = "2y") -> pd.DataFrame:
+def load_prices_cached(
+    sym_key: str, _symbols: list[str], period: str = "2y"
+) -> pd.DataFrame:
     return fetch_price_history(list(_symbols), period=period, force_refresh=False)
 
 
@@ -181,7 +189,10 @@ def load_all_data(indices: list[str]):
         win_6m = min(126, len(close_p))
         roll_max_6m = close_p.iloc[-win_6m:].cummax()
         dd_6m = ((close_p.iloc[-win_6m:] - roll_max_6m) / roll_max_6m).min() * 100
-        dd_6m_dict = {str(k).replace(".NS", "").strip().upper(): v for k, v in dd_6m.to_dict().items()}
+        dd_6m_dict = {
+            str(k).replace(".NS", "").strip().upper(): v
+            for k, v in dd_6m.to_dict().items()
+        }
         rank_df["Max DD 6M"] = rank_df["Symbol"].map(dd_6m_dict)
 
     return {
@@ -202,7 +213,9 @@ with st.spinner("Loading market data & executing quantitative momentum engine…
     data = load_all_data(selected_indices)
 
 if not data:
-    st.error("❌ Failed to initialize market data. Please verify your internet connection or reload.")
+    st.error(
+        "❌ Failed to initialize market data. Please verify your internet connection or reload."
+    )
     st.stop()
 
 calc = data["calc"]
@@ -216,8 +229,12 @@ regime_data = data["regime_data"]
 # Merge TradingView granular classification
 tv_map = load_tv_classification()
 if tv_map:
-    rank_df["TV_Sector"] = rank_df["Symbol"].map(lambda s: tv_map.get(s, {}).get("TV_Sector", ""))
-    rank_df["TV_Industry"] = rank_df["Symbol"].map(lambda s: tv_map.get(s, {}).get("TV_Industry", ""))
+    rank_df["TV_Sector"] = rank_df["Symbol"].map(
+        lambda s: tv_map.get(s, {}).get("TV_Sector", "")
+    )
+    rank_df["TV_Industry"] = rank_df["Symbol"].map(
+        lambda s: tv_map.get(s, {}).get("TV_Industry", "")
+    )
 else:
     rank_df["TV_Sector"] = ""
     rank_df["TV_Industry"] = rank_df.get("Industry", "")
@@ -225,7 +242,13 @@ else:
 
 # ── Top Header KPI Bar & Alerts ──────────────────────────────────────────────
 total_stocks = len(rank_df)
-is_above_ema = rank_df["Above 50 EMA"].map(lambda x: x is True or str(x).strip() in ["✅", "True", "1"]) if "Above 50 EMA" in rank_df.columns else pd.Series(False, index=rank_df.index)
+is_above_ema = (
+    rank_df["Above 50 EMA"].map(
+        lambda x: x is True or str(x).strip() in ["✅", "True", "1"]
+    )
+    if "Above 50 EMA" in rank_df.columns
+    else pd.Series(False, index=rank_df.index)
+)
 above_ema = int(is_above_ema.sum())
 pct_above_ema = (above_ema / total_stocks * 100) if total_stocks > 0 else 0.0
 gap_count = int((rank_df.get("Data Gap", pd.Series()) == "🔴").sum())
@@ -261,20 +284,22 @@ render_signal_alerts(signals)
     tab_backtest,
     tab_config,
     tab_guide,
-) = st.tabs([
-    "Screener",
-    "Qualified",
-    "Sectors",
-    "RRG",
-    "Multi-Strategy",
-    "Portfolio",
-    "Delivery",
-    "Watchlist",
-    "Market Breadth",
-    "Backtest",
-    "Configuration",
-    "Guide",
-])
+) = st.tabs(
+    [
+        "Screener",
+        "Qualified",
+        "Sectors",
+        "RRG",
+        "Multi-Strategy",
+        "Portfolio",
+        "Delivery",
+        "Watchlist",
+        "Market Breadth",
+        "Backtest",
+        "Configuration",
+        "Guide",
+    ]
+)
 
 with tab_rank:
     render_ranking_view(rank_df, adj_close, high_prices, low_prices, volume_data)

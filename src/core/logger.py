@@ -1,13 +1,18 @@
 """
 Structured logger for NSE Momentum Dashboard.
+Standardized timestamped format for high-throughput quantitative pipelines.
 """
+
+from __future__ import annotations
 
 import logging
 import sys
 
 
-def setup_logger(name: str = "nse_momentum", level: int = logging.INFO) -> logging.Logger:
-    """Configures and returns a structured logger."""
+def setup_logger(
+    name: str = "nse_momentum", level: int = logging.INFO
+) -> logging.Logger:
+    """Configures and returns a thread-safe structured logger."""
     logger = logging.getLogger(name)
     if not logger.handlers:
         logger.setLevel(level)
@@ -22,4 +27,5 @@ def setup_logger(name: str = "nse_momentum", level: int = logging.INFO) -> loggi
         logger.propagate = False
     return logger
 
-logger = setup_logger()
+
+logger: logging.Logger = setup_logger()

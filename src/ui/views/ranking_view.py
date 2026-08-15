@@ -17,15 +17,32 @@ from src.ui.theme import (
 )
 
 DISPLAY_COLS = [
-    "Rank", "Symbol", "Industry", "Indices",
-    "Rank Δ 1M", "Rank Δ 3M",
+    "Rank",
+    "Symbol",
+    "Industry",
+    "Indices",
+    "Rank Δ 1M",
+    "Rank Δ 3M",
     "CMP",
-    "3M Return", "3M Sharpe", "3M R2",
-    "6M Return", "6M Sharpe", "6M R2",
-    "% High", "Max DD 3M", "Max DD 6M", "% 50 EMA",
-    "Volume", "Stop Loss", "Chand Exit",
-    "Market Cap (Cr)", "Above 50 EMA", "Near 52W High",
-    "Short History", "FFill %", "Data Gap",
+    "3M Return",
+    "3M Sharpe",
+    "3M R2",
+    "6M Return",
+    "6M Sharpe",
+    "6M R2",
+    "% High",
+    "Max DD 3M",
+    "Max DD 6M",
+    "% 50 EMA",
+    "Volume",
+    "Stop Loss",
+    "Chand Exit",
+    "Market Cap (Cr)",
+    "Above 50 EMA",
+    "Near 52W High",
+    "Short History",
+    "FFill %",
+    "Data Gap",
 ]
 
 
@@ -126,13 +143,39 @@ def render_ranking_view(
             for sub in str(item).split(","):
                 if sub.strip():
                     idx_set.add(sub.strip())
-    for co in ["NIFTY 50", "NIFTY 500", "NIFTY TOTAL MARKET", "NIFTY MIDCAP 150", "NIFTY SMALLCAP 250", "NIFTY MICROCAP 250"]:
+    for co in [
+        "NIFTY 50",
+        "NIFTY 500",
+        "NIFTY TOTAL MARKET",
+        "NIFTY MIDCAP 150",
+        "NIFTY SMALLCAP 250",
+        "NIFTY MICROCAP 250",
+    ]:
         idx_set.add(co)
 
     idx_opts = sorted([f"[INDEX] {i}" for i in idx_set])
-    ind_opts = sorted([f"[INDUSTRY] {i}" for i in rank_df["Industry"].dropna().unique() if str(i).strip()]) if "Industry" in rank_df.columns else []
-    sec_opts = sorted([f"[SECTOR] {s}" for s in rank_df.get("TV_Sector", pd.Series()).dropna().unique() if str(s).strip()])
-    stock_opts = [f"[STOCK] {row['Symbol']} — {row.get('Industry', '')}" for _, row in rank_df.sort_values("Rank").iterrows()]
+    ind_opts = (
+        sorted(
+            [
+                f"[INDUSTRY] {i}"
+                for i in rank_df["Industry"].dropna().unique()
+                if str(i).strip()
+            ]
+        )
+        if "Industry" in rank_df.columns
+        else []
+    )
+    sec_opts = sorted(
+        [
+            f"[SECTOR] {s}"
+            for s in rank_df.get("TV_Sector", pd.Series()).dropna().unique()
+            if str(s).strip()
+        ]
+    )
+    stock_opts = [
+        f"[STOCK] {row['Symbol']} — {row.get('Industry', '')}"
+        for _, row in rank_df.sort_values("Rank").iterrows()
+    ]
 
     search_options = stock_opts + idx_opts + ind_opts + sec_opts
 
@@ -150,7 +193,13 @@ def render_ranking_view(
 
     filt = c_pills.pills(
         "Universe Filter Presets",
-        ["All Universe", "Top 50 Qualified", "Passed Filters", "Momentum Movers", "High Volume"],
+        [
+            "All Universe",
+            "Top 50 Qualified",
+            "Passed Filters",
+            "Momentum Movers",
+            "High Volume",
+        ],
         default="All Universe",
         key="rank_quick_pills",
         label_visibility="collapsed",
@@ -171,7 +220,10 @@ def render_ranking_view(
             view = view[view["Industry"].str.upper() == target_ind.upper()]
         elif s_val.startswith("[SECTOR] "):
             target_sec = s_val.replace("[SECTOR] ", "").strip()
-            view = view[view.get("TV_Sector", pd.Series("", index=view.index)).str.upper() == target_sec.upper()]
+            view = view[
+                view.get("TV_Sector", pd.Series("", index=view.index)).str.upper()
+                == target_sec.upper()
+            ]
         elif s_val.startswith("[INDEX] "):
             target_idx = s_val.replace("[INDEX] ", "").strip()
             view = view[view["Indices"].str.contains(target_idx, case=False, na=False)]
@@ -184,8 +236,12 @@ def render_ranking_view(
                 view["Symbol"].str.contains(s_val, case=False, na=False)
                 | view["Industry"].str.contains(s_val, case=False, na=False)
                 | view["Indices"].str.contains(s_val, case=False, na=False)
-                | view.get("TV_Industry", pd.Series("", index=view.index)).str.contains(s_val, case=False, na=False)
-                | view.get("TV_Sector", pd.Series("", index=view.index)).str.contains(s_val, case=False, na=False)
+                | view.get("TV_Industry", pd.Series("", index=view.index)).str.contains(
+                    s_val, case=False, na=False
+                )
+                | view.get("TV_Sector", pd.Series("", index=view.index)).str.contains(
+                    s_val, case=False, na=False
+                )
             )
             view = view[mask]
 
@@ -196,12 +252,16 @@ def render_ranking_view(
         view = view[view["Above 50 EMA"] & view["Near 52W High"]]
     elif filt == "Momentum Movers":
         if "Rank Δ 1M" in view.columns:
-            view = view[view["Rank Δ 1M"].abs() >= 15].sort_values("Rank Δ 1M", ascending=False)
+            view = view[view["Rank Δ 1M"].abs() >= 15].sort_values(
+                "Rank Δ 1M", ascending=False
+            )
     elif filt == "High Volume":
         view = view[view.get("Volume", "") == "High"]
 
     # ── Tier 2: Refinement, Column Density & View Toolbar ────────────────────
-    c_info, c_sort, c_density, c_view = st.columns([1.8, 0.9, 1.3, 0.6], vertical_alignment="center")
+    c_info, c_sort, c_density, c_view = st.columns(
+        [1.8, 0.9, 1.3, 0.6], vertical_alignment="center"
+    )
 
     n_total = len(rank_df)
     n_view = len(view)
@@ -247,12 +307,24 @@ def render_ranking_view(
             low_prices=low_prices,
             volume_data=volume_data,
         )
-        curr_ind = rank_df.loc[rank_df["Symbol"] == single_stock_drill, "Industry"].iloc[0] if "Industry" in rank_df.columns else None
+        curr_ind = (
+            rank_df.loc[rank_df["Symbol"] == single_stock_drill, "Industry"].iloc[0]
+            if "Industry" in rank_df.columns
+            else None
+        )
         if curr_ind:
             peers = rank_df[rank_df["Industry"] == curr_ind].sort_values("Rank").head(8)
             if len(peers) > 1:
                 st.markdown(f"**Top Industry Peers in {curr_ind}**")
-                p_cols = ["Rank", "Symbol", "CMP", "3M Return", "6M Return", "3M Sharpe", "Volume"]
+                p_cols = [
+                    "Rank",
+                    "Symbol",
+                    "CMP",
+                    "3M Return",
+                    "6M Return",
+                    "3M Sharpe",
+                    "Volume",
+                ]
                 p_cols = [c for c in p_cols if c in peers.columns]
                 render_saas_table(peers[p_cols], key=f"peers_{single_stock_drill}")
         st.markdown("---")
@@ -265,7 +337,9 @@ def render_ranking_view(
     active_cols = [c for c in DISPLAY_COLS if c in view.columns]
 
     if view_mode in ["Table", "📊 Table"] or not view_mode:
-        render_master_screener_table(view, prices_df=adj_close, key="rank_master_table", density=density_mode)
+        render_master_screener_table(
+            view, prices_df=adj_close, key="rank_master_table", density=density_mode
+        )
     else:
         # Screener Card Grid View (Tickerboom style)
         card_items = view.head(48).reset_index(drop=True)
@@ -306,7 +380,9 @@ def render_rank_movers_section(rank_df: pd.DataFrame) -> None:
         imp = m_df[m_df["Rank Δ 1M"] > 0].nlargest(10, "Rank Δ 1M")
         if not imp.empty:
             imp_cols = ["Rank", "Symbol", "Rank Δ 1M", "Rank (-1M)", "CMP", "3M Return"]
-            render_styled_table(imp[[c for c in imp_cols if c in imp.columns]], key="rank_improvers")
+            render_styled_table(
+                imp[[c for c in imp_cols if c in imp.columns]], key="rank_improvers"
+            )
         else:
             st.info("No stocks improved ranks.")
 
@@ -315,6 +391,8 @@ def render_rank_movers_section(rank_df: pd.DataFrame) -> None:
         fal = m_df[m_df["Rank Δ 1M"] < 0].nsmallest(10, "Rank Δ 1M")
         if not fal.empty:
             fal_cols = ["Rank", "Symbol", "Rank Δ 1M", "Rank (-1M)", "CMP", "3M Return"]
-            render_styled_table(fal[[c for c in fal_cols if c in fal.columns]], key="rank_fallers")
+            render_styled_table(
+                fal[[c for c in fal_cols if c in fal.columns]], key="rank_fallers"
+            )
         else:
             st.info("No stocks dropped ranks.")

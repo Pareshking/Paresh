@@ -3,7 +3,6 @@ Light-themed interactive Plotly visualizations for NSE Momentum Dashboard.
 Includes Candlestick + Volume + RSI, Chandelier Exits, RRG with trails, and Sector Treemaps.
 """
 
-
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -228,7 +227,11 @@ def render_candlestick_drilldown(
             _vol = volume_data[symbol].dropna().iloc[-_n_days:]
             _vol_avg = _vol.rolling(20, min_periods=10).mean()
             _vol_colors = [
-                "rgba(5, 150, 105, 0.6)" if (pd.notna(a) and v > a) else "rgba(225, 29, 72, 0.4)"
+                (
+                    "rgba(5, 150, 105, 0.6)"
+                    if (pd.notna(a) and v > a)
+                    else "rgba(225, 29, 72, 0.4)"
+                )
                 for v, a in zip(_vol.values, _vol_avg.values)
             ]
             fig.add_trace(
@@ -271,18 +274,43 @@ def render_candlestick_drilldown(
                 row=3,
                 col=1,
             )
-            fig.add_hline(y=70, line_color="#e11d48", line_dash="dot", line_width=1, opacity=0.7, row=3, col=1)
-            fig.add_hline(y=30, line_color="#059669", line_dash="dot", line_width=1, opacity=0.7, row=3, col=1)
+            fig.add_hline(
+                y=70,
+                line_color="#e11d48",
+                line_dash="dot",
+                line_width=1,
+                opacity=0.7,
+                row=3,
+                col=1,
+            )
+            fig.add_hline(
+                y=30,
+                line_color="#059669",
+                line_dash="dot",
+                line_width=1,
+                opacity=0.7,
+                row=3,
+                col=1,
+            )
 
         fig.update_layout(
             template="plotly_white",
             paper_bgcolor="#ffffff",
             plot_bgcolor="#ffffff",
-            font={"family": "Plus Jakarta Sans, sans-serif", "size": 10, "color": "#334155"},
+            font={
+                "family": "Plus Jakarta Sans, sans-serif",
+                "size": 10,
+                "color": "#334155",
+            },
             xaxis_rangeslider_visible=False,
             yaxis={"title": "Price (₹)", "gridcolor": "#f1f5f9", "zeroline": False},
             yaxis2={"title": "Volume", "gridcolor": "#f1f5f9", "zeroline": False},
-            yaxis3={"title": "RSI (14)", "range": [0, 100], "gridcolor": "#f1f5f9", "zeroline": False},
+            yaxis3={
+                "title": "RSI (14)",
+                "range": [0, 100],
+                "gridcolor": "#f1f5f9",
+                "zeroline": False,
+            },
             xaxis2={"gridcolor": "#f1f5f9"},
             xaxis3={"gridcolor": "#f1f5f9"},
             legend={
@@ -303,24 +331,56 @@ def render_candlestick_drilldown(
 
     with c_spec:
         sl_raw = row_s.get("Stop Loss")
-        sl_str = f"₹{float(sl_raw):,.0f}" if pd.notna(sl_raw) and isinstance(sl_raw, (int, float)) else "—"
+        sl_str = (
+            f"₹{float(sl_raw):,.0f}"
+            if pd.notna(sl_raw) and isinstance(sl_raw, (int, float))
+            else "—"
+        )
 
         ch_raw = row_s.get("Chand Exit")
-        ch_str = f"₹{float(ch_raw):,.0f}" if pd.notna(ch_raw) and isinstance(ch_raw, (int, float)) else "—"
+        ch_str = (
+            f"₹{float(ch_raw):,.0f}"
+            if pd.notna(ch_raw) and isinstance(ch_raw, (int, float))
+            else "—"
+        )
 
         hi_raw = row_s.get("52W High")
-        hi_str = f"₹{float(hi_raw):,.0f}" if pd.notna(hi_raw) and isinstance(hi_raw, (int, float)) else "—"
+        hi_str = (
+            f"₹{float(hi_raw):,.0f}"
+            if pd.notna(hi_raw) and isinstance(hi_raw, (int, float))
+            else "—"
+        )
 
         pct_hi_raw = row_s.get("% High")
-        pct_hi_str = f"{float(pct_hi_raw):+.1f}%" if pd.notna(pct_hi_raw) and isinstance(pct_hi_raw, (int, float)) else "—"
-        pct_hi_clr = "#059669" if (pd.notna(pct_hi_raw) and float(pct_hi_raw) >= -10) else "#d97706"
+        pct_hi_str = (
+            f"{float(pct_hi_raw):+.1f}%"
+            if pd.notna(pct_hi_raw) and isinstance(pct_hi_raw, (int, float))
+            else "—"
+        )
+        pct_hi_clr = (
+            "#059669"
+            if (pd.notna(pct_hi_raw) and float(pct_hi_raw) >= -10)
+            else "#d97706"
+        )
 
         pct_ema_raw = row_s.get("% 50 EMA")
-        pct_ema_str = f"{float(pct_ema_raw):+.1f}%" if pd.notna(pct_ema_raw) and isinstance(pct_ema_raw, (int, float)) else "—"
-        pct_ema_clr = "#059669" if (pd.notna(pct_ema_raw) and float(pct_ema_raw) >= 0) else "#e11d48"
+        pct_ema_str = (
+            f"{float(pct_ema_raw):+.1f}%"
+            if pd.notna(pct_ema_raw) and isinstance(pct_ema_raw, (int, float))
+            else "—"
+        )
+        pct_ema_clr = (
+            "#059669"
+            if (pd.notna(pct_ema_raw) and float(pct_ema_raw) >= 0)
+            else "#e11d48"
+        )
 
         pers_raw = row_s.get("Persistence")
-        pers_str = f"{float(pers_raw):.0f}%" if pd.notna(pers_raw) and isinstance(pers_raw, (int, float)) else "—"
+        pers_str = (
+            f"{float(pers_raw):.0f}%"
+            if pd.notna(pers_raw) and isinstance(pers_raw, (int, float))
+            else "—"
+        )
 
         vol_sig = row_s.get("Volume", "Normal") or "Normal"
         gap_stat = row_s.get("Data Gap", "Clean") or "Clean"
@@ -377,7 +437,9 @@ def render_sector_treemap(
     """Renders Finviz-style 2-Level Hierarchical Treemap Heatmap with dynamic box sizing and return colors."""
     valid_df = rank_df.dropna(subset=[taxonomy_col, return_col, "Symbol"]).copy()
     valid_df[taxonomy_col] = valid_df[taxonomy_col].astype(str).str.strip()
-    valid_df = valid_df[valid_df[taxonomy_col].ne("") & valid_df[taxonomy_col].ne("nan")]
+    valid_df = valid_df[
+        valid_df[taxonomy_col].ne("") & valid_df[taxonomy_col].ne("nan")
+    ]
 
     if valid_df.empty:
         st.info("Insufficient sector data for Treemap.")
@@ -385,18 +447,24 @@ def render_sector_treemap(
 
     # Color mapping: Cap outliers for clean color dynamic range (-30% to +30%)
     valid_df["Ret_Capped"] = valid_df[return_col].clip(lower=-0.30, upper=0.30)
-    valid_df["Ret_Pct_Str"] = valid_df[return_col].map(lambda x: f"{x:+.1%}" if pd.notna(x) else "—")
+    valid_df["Ret_Pct_Str"] = valid_df[return_col].map(
+        lambda x: f"{x:+.1%}" if pd.notna(x) else "—"
+    )
 
     # Dynamic Tile Sizing: Proportional to Market Cap, 3M Return, 6M Return, or Momentum
     if size_by == "3M Return":
         min_r = valid_df["3M Return"].min()
         offset = abs(min_r) + 0.10 if min_r < 0 else 0.10
-        valid_df["Tile_Weight"] = ((valid_df["3M Return"] + offset) * 1000).clip(lower=10)
+        valid_df["Tile_Weight"] = ((valid_df["3M Return"] + offset) * 1000).clip(
+            lower=10
+        )
         size_label = "3M Return"
     elif size_by == "6M Return":
         min_r = valid_df["6M Return"].min() if "6M Return" in valid_df.columns else 0
         offset = abs(min_r) + 0.10 if min_r < 0 else 0.10
-        valid_df["Tile_Weight"] = ((valid_df.get("6M Return", valid_df["3M Return"]) + offset) * 1000).clip(lower=10)
+        valid_df["Tile_Weight"] = (
+            (valid_df.get("6M Return", valid_df["3M Return"]) + offset) * 1000
+        ).clip(lower=10)
         size_label = "6M Return"
     elif size_by == "Momentum":
         # Sized by Momentum: #1 ranked top momentum stocks get the largest tiles
@@ -404,16 +472,22 @@ def render_sector_treemap(
         if "Rank" in valid_df.columns:
             valid_df["Tile_Weight"] = (n_stocks - valid_df["Rank"] + 1).clip(lower=1)
         elif "Composite Rank" in valid_df.columns:
-            valid_df["Tile_Weight"] = (n_stocks - valid_df["Composite Rank"] + 1).clip(lower=1)
+            valid_df["Tile_Weight"] = (n_stocks - valid_df["Composite Rank"] + 1).clip(
+                lower=1
+            )
         elif "Score" in valid_df.columns:
             s_min = valid_df["Score"].min()
-            valid_df["Tile_Weight"] = (valid_df["Score"] - s_min + 0.5).clip(lower=0.1) * 100
+            valid_df["Tile_Weight"] = (valid_df["Score"] - s_min + 0.5).clip(
+                lower=0.1
+            ) * 100
         else:
             valid_df["Tile_Weight"] = 100
         size_label = "Momentum Rank"
     else:
         # Sized by Market Cap (Default)
-        valid_df["Tile_Weight"] = valid_df["Market Cap (Cr)"].fillna(1000).clip(lower=100)
+        valid_df["Tile_Weight"] = (
+            valid_df["Market Cap (Cr)"].fillna(1000).clip(lower=100)
+        )
         size_label = "Market Cap (Cr)"
 
     # Hierarchical Finviz-style Treemap
@@ -466,15 +540,24 @@ def render_sector_treemap(
         margin={"l": 4, "r": 4, "t": 4, "b": 4},
         height=680,
         coloraxis_colorbar={
-            "title": {"text": f"{return_col}", "font": {"family": "IBM Plex Mono", "size": 10, "color": "#475569"}},
+            "title": {
+                "text": f"{return_col}",
+                "font": {"family": "IBM Plex Mono", "size": 10, "color": "#475569"},
+            },
             "tickformat": "+.0%",
             "thickness": 12,
             "len": 0.7,
             "tickfont": {"family": "IBM Plex Mono", "size": 9},
         },
-        font={"family": "Plus Jakarta Sans, sans-serif", "size": 11, "color": "#0f172a"},
+        font={
+            "family": "Plus Jakarta Sans, sans-serif",
+            "size": 11,
+            "color": "#0f172a",
+        },
     )
-    st.plotly_chart(fig, width="stretch", key=f"sector_treemap_{taxonomy_col}_{size_by}")
+    st.plotly_chart(
+        fig, width="stretch", key=f"sector_treemap_{taxonomy_col}_{size_by}"
+    )
 
 
 def render_rrg_chart(
@@ -489,13 +572,17 @@ def render_rrg_chart(
 
     # Extract dynamic bounds to ensure background rectangles fill 100% of data area
     all_r = [float(x) for x in rrg_df["RS_Ratio"].dropna().tolist()]
-    t_r_col = rrg_df["Trail_R"] if "Trail_R" in rrg_df.columns else rrg_df.get("trail_r", [])
+    t_r_col = (
+        rrg_df["Trail_R"] if "Trail_R" in rrg_df.columns else rrg_df.get("trail_r", [])
+    )
     for trails in t_r_col:
         if isinstance(trails, (list, np.ndarray)):
             all_r.extend([float(x) for x in trails])
 
     all_m = [float(x) for x in rrg_df["RS_Momentum"].dropna().tolist()]
-    t_m_col = rrg_df["Trail_M"] if "Trail_M" in rrg_df.columns else rrg_df.get("trail_m", [])
+    t_m_col = (
+        rrg_df["Trail_M"] if "Trail_M" in rrg_df.columns else rrg_df.get("trail_m", [])
+    )
     for trails in t_m_col:
         if isinstance(trails, (list, np.ndarray)):
             all_m.extend([float(x) for x in trails])
@@ -528,13 +615,49 @@ def render_rrg_chart(
 
     # ── 1. Sharpely Pastel Quadrant Shading ──────────────────────────────────
     # Top-Left: Improving (Soft Lavender-Blue)
-    fig.add_shape(type="rect", x0=min_x, x1=100, y0=100, y1=max_y, fillcolor="rgba(224, 231, 255, 0.45)", line_width=0, layer="below")
+    fig.add_shape(
+        type="rect",
+        x0=min_x,
+        x1=100,
+        y0=100,
+        y1=max_y,
+        fillcolor="rgba(224, 231, 255, 0.45)",
+        line_width=0,
+        layer="below",
+    )
     # Top-Right: Leading (Soft Mint Green)
-    fig.add_shape(type="rect", x0=100, x1=max_x, y0=100, y1=max_y, fillcolor="rgba(220, 252, 231, 0.45)", line_width=0, layer="below")
+    fig.add_shape(
+        type="rect",
+        x0=100,
+        x1=max_x,
+        y0=100,
+        y1=max_y,
+        fillcolor="rgba(220, 252, 231, 0.45)",
+        line_width=0,
+        layer="below",
+    )
     # Bottom-Left: Lagging (Soft Peach-Pink)
-    fig.add_shape(type="rect", x0=min_x, x1=100, y0=min_y, y1=100, fillcolor="rgba(254, 226, 226, 0.45)", line_width=0, layer="below")
+    fig.add_shape(
+        type="rect",
+        x0=min_x,
+        x1=100,
+        y0=min_y,
+        y1=100,
+        fillcolor="rgba(254, 226, 226, 0.45)",
+        line_width=0,
+        layer="below",
+    )
     # Bottom-Right: Weakening (Soft Pale Yellow)
-    fig.add_shape(type="rect", x0=100, x1=max_x, y0=min_y, y1=100, fillcolor="rgba(254, 249, 195, 0.45)", line_width=0, layer="below")
+    fig.add_shape(
+        type="rect",
+        x0=100,
+        x1=max_x,
+        y0=min_y,
+        y1=100,
+        fillcolor="rgba(254, 249, 195, 0.45)",
+        line_width=0,
+        layer="below",
+    )
 
     # ── 2. Sharpely Quadrant Watermark Annotations ───────────────────────────
     # Improving (Top-Left)
@@ -545,7 +668,11 @@ def render_rrg_chart(
         showarrow=False,
         xanchor="left",
         yanchor="top",
-        font={"size": 14, "color": "#3b82f6", "family": "Plus Jakarta Sans, sans-serif"},
+        font={
+            "size": 14,
+            "color": "#3b82f6",
+            "family": "Plus Jakarta Sans, sans-serif",
+        },
         opacity=0.9,
     )
     # Leading (Top-Right)
@@ -556,7 +683,11 @@ def render_rrg_chart(
         showarrow=False,
         xanchor="right",
         yanchor="top",
-        font={"size": 14, "color": "#15803d", "family": "Plus Jakarta Sans, sans-serif"},
+        font={
+            "size": 14,
+            "color": "#15803d",
+            "family": "Plus Jakarta Sans, sans-serif",
+        },
         opacity=0.9,
     )
     # Lagging (Bottom-Left)
@@ -567,7 +698,11 @@ def render_rrg_chart(
         showarrow=False,
         xanchor="left",
         yanchor="bottom",
-        font={"size": 14, "color": "#dc2626", "family": "Plus Jakarta Sans, sans-serif"},
+        font={
+            "size": 14,
+            "color": "#dc2626",
+            "family": "Plus Jakarta Sans, sans-serif",
+        },
         opacity=0.9,
     )
     # Weakening (Bottom-Right)
@@ -578,7 +713,11 @@ def render_rrg_chart(
         showarrow=False,
         xanchor="right",
         yanchor="bottom",
-        font={"size": 14, "color": "#ca8a04", "family": "Plus Jakarta Sans, sans-serif"},
+        font={
+            "size": 14,
+            "color": "#ca8a04",
+            "family": "Plus Jakarta Sans, sans-serif",
+        },
         opacity=0.9,
     )
 
@@ -590,7 +729,11 @@ def render_rrg_chart(
         showarrow=False,
         xanchor="center",
         yanchor="middle",
-        font={"size": 12, "color": "#94a3b8", "family": "Plus Jakarta Sans, sans-serif"},
+        font={
+            "size": 12,
+            "color": "#94a3b8",
+            "family": "Plus Jakarta Sans, sans-serif",
+        },
         opacity=0.35,
     )
 
@@ -612,7 +755,12 @@ def render_rrg_chart(
                         x=t_r,
                         y=t_m,
                         mode="lines",
-                        line={"color": "#cbd5e1", "width": 1, "shape": "spline", "smoothing": 1.3},
+                        line={
+                            "color": "#cbd5e1",
+                            "width": 1,
+                            "shape": "spline",
+                            "smoothing": 1.3,
+                        },
                         opacity=0.25,
                         showlegend=False,
                         hoverinfo="skip",
@@ -646,7 +794,12 @@ def render_rrg_chart(
                     x=trail_r,
                     y=trail_m,
                     mode="lines+markers",
-                    line={"color": sec_clr, "width": 2.5, "shape": "spline", "smoothing": 1.3},
+                    line={
+                        "color": sec_clr,
+                        "width": 2.5,
+                        "shape": "spline",
+                        "smoothing": 1.3,
+                    },
                     marker={"size": 6, "color": sec_clr, "symbol": "circle"},
                     opacity=0.90,
                     showlegend=False,
@@ -664,10 +817,18 @@ def render_rrg_chart(
                 x=[row["RS_Ratio"]],
                 y=[row["RS_Momentum"]],
                 mode="markers+text",
-                marker={"size": 12, "color": sec_clr, "line": {"width": 2, "color": "#ffffff"}},
+                marker={
+                    "size": 12,
+                    "color": sec_clr,
+                    "line": {"width": 2, "color": "#ffffff"},
+                },
                 text=[f" <b>{row['Industry']}</b>"],
                 textposition="top center",
-                textfont={"size": 10.5, "color": sec_clr, "family": "Plus Jakarta Sans, sans-serif"},
+                textfont={
+                    "size": 10.5,
+                    "color": sec_clr,
+                    "family": "Plus Jakarta Sans, sans-serif",
+                },
                 name=f"{row['Industry']}",
                 showlegend=True,
                 hovertemplate=(
@@ -684,7 +845,11 @@ def render_rrg_chart(
         template="plotly_white",
         paper_bgcolor="#ffffff",
         plot_bgcolor="#ffffff",
-        font={"family": "Plus Jakarta Sans, sans-serif", "size": 11, "color": "#334155"},
+        font={
+            "family": "Plus Jakarta Sans, sans-serif",
+            "size": 11,
+            "color": "#334155",
+        },
         xaxis={
             "title": "<b>JdK RS-Ratio</b>",
             "range": [min_x, max_x],
@@ -735,16 +900,32 @@ def render_breadth_chart(breadth_df: pd.DataFrame, ma_type: str = "SMA") -> None
 
     fig.add_hrect(y0=60, y1=80, fillcolor="rgba(5, 150, 105, 0.05)", line_width=0)
     fig.add_hrect(y0=20, y1=40, fillcolor="rgba(225, 29, 72, 0.05)", line_width=0)
-    fig.add_hline(y=60, line_color="#059669", line_dash="dot", line_width=1, opacity=0.7)
-    fig.add_hline(y=40, line_color="#e11d48", line_dash="dot", line_width=1, opacity=0.7)
+    fig.add_hline(
+        y=60, line_color="#059669", line_dash="dot", line_width=1, opacity=0.7
+    )
+    fig.add_hline(
+        y=40, line_color="#e11d48", line_dash="dot", line_width=1, opacity=0.7
+    )
 
     fig.update_layout(
         template="plotly_white",
         paper_bgcolor="#ffffff",
         plot_bgcolor="#ffffff",
-        font={"family": "Plus Jakarta Sans, sans-serif", "size": 11, "color": "#334155"},
-        title={"text": f"<b>Market Breadth (% Stocks Above {ma_type})</b>", "font": {"size": 14, "color": "#0f172a"}},
-        yaxis={"title": "% Stocks Above MA", "range": [0, 100], "gridcolor": "#f1f5f9", "ticksuffix": "%"},
+        font={
+            "family": "Plus Jakarta Sans, sans-serif",
+            "size": 11,
+            "color": "#334155",
+        },
+        title={
+            "text": f"<b>Market Breadth (% Stocks Above {ma_type})</b>",
+            "font": {"size": 14, "color": "#0f172a"},
+        },
+        yaxis={
+            "title": "% Stocks Above MA",
+            "range": [0, 100],
+            "gridcolor": "#f1f5f9",
+            "ticksuffix": "%",
+        },
         xaxis={"gridcolor": "#f1f5f9"},
         legend={
             "orientation": "h",
@@ -762,7 +943,9 @@ def render_breadth_chart(breadth_df: pd.DataFrame, ma_type: str = "SMA") -> None
     st.plotly_chart(fig, width="stretch", key="breadth_chart_view")
 
 
-def render_hl_timeseries_chart(hl_df: pd.DataFrame, window_label: str = "52W", is_pct: bool = True) -> None:
+def render_hl_timeseries_chart(
+    hl_df: pd.DataFrame, window_label: str = "52W", is_pct: bool = True
+) -> None:
     """Renders Daily New Highs / New Lows area charts."""
     h_col = "% New Highs" if is_pct else "New Highs"
     l_col = "% New Lows" if is_pct else "New Lows"
@@ -793,14 +976,28 @@ def render_hl_timeseries_chart(hl_df: pd.DataFrame, window_label: str = "52W", i
     )
     fig.add_hline(y=0, line_color="#94a3b8", line_width=1)
 
-    y_max = max(hl_df[h_col].max(), hl_df[l_col].max()) * 1.15 if not hl_df.empty else 10
+    y_max = (
+        max(hl_df[h_col].max(), hl_df[l_col].max()) * 1.15 if not hl_df.empty else 10
+    )
     fig.update_layout(
         template="plotly_white",
         paper_bgcolor="#ffffff",
         plot_bgcolor="#ffffff",
-        font={"family": "Plus Jakarta Sans, sans-serif", "size": 11, "color": "#334155"},
-        title={"text": f"<b>Daily New {window_label} Highs & Lows</b>", "font": {"size": 14, "color": "#0f172a"}},
-        yaxis={"title": "% of Universe" if is_pct else "Stock Count", "gridcolor": "#f1f5f9", "ticksuffix": y_suf, "range": [-y_max, y_max]},
+        font={
+            "family": "Plus Jakarta Sans, sans-serif",
+            "size": 11,
+            "color": "#334155",
+        },
+        title={
+            "text": f"<b>Daily New {window_label} Highs & Lows</b>",
+            "font": {"size": 14, "color": "#0f172a"},
+        },
+        yaxis={
+            "title": "% of Universe" if is_pct else "Stock Count",
+            "gridcolor": "#f1f5f9",
+            "ticksuffix": y_suf,
+            "range": [-y_max, y_max],
+        },
         xaxis={"gridcolor": "#f1f5f9"},
         legend={
             "orientation": "h",
@@ -847,8 +1044,15 @@ def render_backtest_equity_chart(equity_curve: pd.Series, benchmark: pd.Series) 
         template="plotly_white",
         paper_bgcolor="#ffffff",
         plot_bgcolor="#ffffff",
-        font={"family": "Plus Jakarta Sans, sans-serif", "size": 11, "color": "#334155"},
-        title={"text": "<b>Cumulative Return: Strategy (Net) vs Benchmark</b>", "font": {"size": 14, "color": "#0f172a"}},
+        font={
+            "family": "Plus Jakarta Sans, sans-serif",
+            "size": 11,
+            "color": "#334155",
+        },
+        title={
+            "text": "<b>Cumulative Return: Strategy (Net) vs Benchmark</b>",
+            "font": {"size": 14, "color": "#0f172a"},
+        },
         yaxis={"title": "Return %", "gridcolor": "#f1f5f9", "ticksuffix": "%"},
         xaxis={"gridcolor": "#f1f5f9"},
         legend={
@@ -900,9 +1104,20 @@ def render_multi_strategy_growth_chart(strat_curves: dict[str, pd.Series]) -> No
         template="plotly_white",
         paper_bgcolor="#ffffff",
         plot_bgcolor="#ffffff",
-        font={"family": "Plus Jakarta Sans, sans-serif", "size": 11, "color": "#334155"},
-        title={"text": "<b>6-Month Cumulative Growth: Strategy Engines vs Benchmark</b>", "font": {"size": 14, "color": "#0f172a"}},
-        yaxis={"title": "Cumulative Return %", "gridcolor": "#f1f5f9", "ticksuffix": "%"},
+        font={
+            "family": "Plus Jakarta Sans, sans-serif",
+            "size": 11,
+            "color": "#334155",
+        },
+        title={
+            "text": "<b>6-Month Cumulative Growth: Strategy Engines vs Benchmark</b>",
+            "font": {"size": 14, "color": "#0f172a"},
+        },
+        yaxis={
+            "title": "Cumulative Return %",
+            "gridcolor": "#f1f5f9",
+            "ticksuffix": "%",
+        },
         xaxis={"gridcolor": "#f1f5f9"},
         legend={
             "orientation": "h",

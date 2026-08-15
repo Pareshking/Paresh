@@ -8,7 +8,9 @@ Features:
   4. Full Performance Attribution (CAGR, Sharpe, Sortino, Calmar, Max DD, Turnover)
 """
 
-from typing import Any
+from __future__ import annotations
+
+from typing import Any, Sequence
 
 import numpy as np
 import pandas as pd
@@ -28,7 +30,7 @@ def run_backtest(
     high_pct: float = 0.80,
     ranking_method: str = "Composite (Config Weights)",
     weight_method: str = "Equal Weight",
-    config_weights: tuple[float, ...] = (0.10, 0.30, 0.30, 0.20, 0.10),
+    config_weights: Sequence[float] = (0.10, 0.30, 0.30, 0.20, 0.10),
     stock_cap: float = 0.05,
     sector_cap: float = 0.30,
     sector_map: dict[str, str] | None = None,
@@ -41,7 +43,11 @@ def run_backtest(
     WINDOWS = MOMENTUM_WINDOWS
     prices = _adj_close.dropna(axis=1, how="all").copy()
 
-    is_composite = "Composite" in ranking_method or "Multi-Window" in ranking_method or "Industry-Relative" in ranking_method
+    is_composite = (
+        "Composite" in ranking_method
+        or "Multi-Window" in ranking_method
+        or "Industry-Relative" in ranking_method
+    )
     if is_composite:
         w_total = sum(config_weights)
         norm_w = [cw / w_total for cw in config_weights] if w_total > 0 else [0.2] * 5
@@ -56,7 +62,7 @@ def run_backtest(
         return None
 
     daily_ret = prices.pct_change(fill_method=None)
-    log_ret = np.log(prices / prices.shift(1))
+    log_ret = np.log(prices / prices.shift(1).replace(0, np.nan))
 
     ema = prices.ewm(span=ema_period).mean()
     high_52w = prices.rolling(252, min_periods=126).max()
@@ -95,7 +101,11 @@ def run_backtest(
         valid = above_ema & near_high & (_p > 0)
 
         # ── Compute Causal Signal at Day T ───────────────────────────────────
-        if is_composite or "Multi-Window" in ranking_method or "Composite" in ranking_method:
+        if (
+            is_composite
+            or "Multi-Window" in ranking_method
+            or "Composite" in ranking_method
+        ):
             use_r2 = "No R²" not in ranking_method
             composite_score = pd.Series(0.0, index=prices.columns)
             for w_period, cw in zip(WINDOWS, norm_w if norm_w else [0.2] * 5):
@@ -107,21 +117,27 @@ def run_backtest(
                 if len(p_w) < mp:
                     continue
 
-                log_ret_period = np.log(p_w.iloc[-1].clip(lower=0.01) / p_w.iloc[0].clip(lower=0.01))
+                log_ret_period = np.log(
+                    p_w.iloc[-1].clip(lower=0.01) / p_w.iloc[0].clip(lower=0.01)
+                )
                 vol = log_ret.iloc[sl : start_idx + 1].std() * np.sqrt(w_period)
                 sharpe = log_ret_period / vol.replace(0, np.nan)
 
                 if use_r2:
                     log_p = np.log(p_w.clip(lower=0.01))
                     t_arr = np.arange(len(log_p))
-                    r2 = log_p.corrwith(pd.Series(t_arr, index=log_p.index)) ** 2
+                    r2 = log_p.corrwith(pd.Series(t_arr, index=log_p.index, dtype=float)) ** 2
                     raw_mom = sharpe * r2.fillna(0)
                 else:
                     raw_mom = sharpe
 
-                mu_cs = raw_mom.mean()
-                sig_cs = raw_mom.std()
-                z = ((raw_mom - mu_cs) / sig_cs).clip(-3.0, 3.0) if sig_cs > 0 else raw_mom * 0
+                mu_cs = float(raw_mom.mean())
+                sig_cs = float(raw_mom.std())
+                z = (
+                    ((raw_mom - mu_cs) / sig_cs).clip(-3.0, 3.0)
+                    if sig_cs > 0
+                    else raw_mom * 0
+                )
                 composite_score += z.fillna(0) * cw
             score = composite_score[valid & composite_score.notna()]
 
@@ -131,9 +147,9 @@ def run_backtest(
             mkt_ret = daily_ret.iloc[sl : start_idx + 1].mean(axis=1)
             stk_ret = daily_ret.iloc[sl : start_idx + 1]
             cov_m = stk_ret.apply(lambda col: col.cov(mkt_ret))
-            var_m = mkt_ret.var()
+            var_m = float(mkt_ret.var())
             beta = cov_m / max(var_m, 1e-8)
-            alpha_res = (stk_ret.mean() * 252) - (beta * (mkt_ret.mean() * 252))
+            alpha_res = (stk_ret.mean() * 252) - (beta * (float(mkt_ret.mean()) * 252))
             score = alpha_res[valid & alpha_res.notna()]
 
         elif "Industry-Relative" in ranking_method:
@@ -144,22 +160,28 @@ def run_backtest(
                 p_w = prices.iloc[sl : start_idx + 1]
                 if len(p_w) < 10:
                     continue
-                log_ret_p = np.log(p_w.iloc[-1].clip(lower=0.01) / p_w.iloc[0].clip(lower=0.01))
+                log_ret_p = np.log(
+                    p_w.iloc[-1].clip(lower=0.01) / p_w.iloc[0].clip(lower=0.01)
+                )
                 vol = log_ret.iloc[sl : start_idx + 1].std() * np.sqrt(w_period)
                 sharpe = log_ret_p / vol.replace(0, np.nan)
                 log_p = np.log(p_w.clip(lower=0.01))
                 t_arr = np.arange(len(log_p))
-                r2 = log_p.corrwith(pd.Series(t_arr, index=log_p.index)) ** 2
+                r2 = log_p.corrwith(pd.Series(t_arr, index=log_p.index, dtype=float)) ** 2
                 raw_mom = sharpe * r2.fillna(0)
-                z = ((raw_mom - raw_mom.mean()) / max(raw_mom.std(), 1e-8)).clip(-3.0, 3.0)
+                z = ((raw_mom - raw_mom.mean()) / max(raw_mom.std(), 1e-8)).clip(
+                    -3.0, 3.0
+                )
                 composite_score += z.fillna(0) * cw
 
             ind_map = sec_map
-            ind_scores = {}
+            ind_scores: dict[str, list[float]] = {}
             for sym, sc in composite_score.items():
                 ind_scores.setdefault(ind_map.get(sym, "Other"), []).append(sc)
             ind_means = {k: np.nanmean(v) for k, v in ind_scores.items()}
-            ind_rel = composite_score - composite_score.index.map(lambda s: ind_means.get(ind_map.get(s, "Other"), 0))
+            ind_rel = composite_score - composite_score.index.map(
+                lambda s: ind_means.get(ind_map.get(s, "Other"), 0)
+            )
             score = ind_rel[valid & ind_rel.notna()]
 
         elif "Acceleration" in ranking_method or "Accel" in ranking_method:
@@ -182,28 +204,32 @@ def run_backtest(
             p_w = prices.iloc[sl : start_idx + 1]
 
             if ranking_method == "Sharpe":
-                log_ret_period = np.log(p_w.iloc[-1].clip(lower=0.01) / p_w.iloc[0].clip(lower=0.01))
+                log_ret_period = np.log(
+                    p_w.iloc[-1].clip(lower=0.01) / p_w.iloc[0].clip(lower=0.01)
+                )
                 vol = log_ret.iloc[sl : start_idx + 1].std() * np.sqrt(252)
                 score = log_ret_period / vol.replace(0, np.nan)
             elif "R²" in ranking_method:
-                log_ret_period = np.log(p_w.iloc[-1].clip(lower=0.01) / p_w.iloc[0].clip(lower=0.01))
+                log_ret_period = np.log(
+                    p_w.iloc[-1].clip(lower=0.01) / p_w.iloc[0].clip(lower=0.01)
+                )
                 vol = log_ret.iloc[sl : start_idx + 1].std() * np.sqrt(252)
                 sharpe = log_ret_period / vol.replace(0, np.nan)
                 log_p = np.log(p_w.clip(lower=0.01))
                 t_arr = np.arange(len(log_p))
-                r2 = log_p.corrwith(pd.Series(t_arr, index=log_p.index)) ** 2
+                r2 = log_p.corrwith(pd.Series(t_arr, index=log_p.index, dtype=float)) ** 2
                 score = sharpe * r2.fillna(0)
             elif ranking_method == "Exp Regression":
                 log_p = np.log(p_w.clip(lower=0.01))
                 t_s = pd.Series(np.arange(len(log_p)), index=log_p.index, dtype=float)
                 r = log_p.corrwith(t_s)
                 sy = log_p.std()
-                sx = t_s.std()
+                sx = float(t_s.std())
                 beta = r * (sy / max(sx, 1e-8))
-                r2 = r ** 2
+                r2 = r**2
                 score = (np.exp(beta * 252) - 1) * r2
             else:
-                score = (p_w.iloc[-1] / p_w.iloc[0] - 1)
+                score = p_w.iloc[-1] / p_w.iloc[0] - 1
 
             score = score[valid & score.notna()]
 
@@ -212,7 +238,9 @@ def run_backtest(
             for j in range(fwd_start, fwd_end):
                 strat_net_daily.append(0.0)
                 strat_gross_daily.append(0.0)
-                bench_daily.append(daily_ret.iloc[j].mean() if j < len(daily_ret) else 0.0)
+                bench_daily.append(
+                    float(daily_ret.iloc[j].mean()) if j < len(daily_ret) else 0.0
+                )
             continue
 
         # ── Buffer Zone Selection (Turnover Reduction) ───────────────────────
@@ -241,21 +269,34 @@ def run_backtest(
             vol_w = log_ret[holdings].iloc[max(start_idx - 63, 0) : start_idx + 1].std()
             inv = (1.0 / vol_w.replace(0, np.nan)).fillna(0)
             t_w = inv.sum()
-            wts = (inv / t_w) if t_w > 0 else pd.Series(1.0 / len(holdings), index=holdings)
+            wts = (
+                (inv / t_w)
+                if t_w > 0
+                else pd.Series(1.0 / len(holdings), index=holdings)
+            )
 
         elif weight_method == "MVO (Mean-Variance)":
             try:
-                _cov_data = log_ret[holdings].iloc[max(start_idx - 126, 0) : start_idx + 1].fillna(0.0)
+                _cov_data = (
+                    log_ret[holdings]
+                    .iloc[max(start_idx - 126, 0) : start_idx + 1]
+                    .fillna(0.0)
+                )
                 if len(_cov_data) < 30:
                     raise ValueError("Insufficient covariance history")
                 from sklearn.covariance import ledoit_wolf
+
                 cov_mat, _ = ledoit_wolf(_cov_data)
                 eps = 1e-6 * np.trace(cov_mat) / max(len(cov_mat), 1)
                 cov_mat = cov_mat * 252 + np.eye(len(cov_mat)) * eps
 
                 _mu = full_ranked[holdings].values.astype(float)
                 _mu_range = _mu.max() - _mu.min()
-                mu = (_mu - _mu.min()) / _mu_range * 0.50 if _mu_range > 1e-8 else np.ones(len(holdings)) * 0.25
+                mu = (
+                    (_mu - _mu.min()) / _mu_range * 0.50
+                    if _mu_range > 1e-8
+                    else np.ones(len(holdings)) * 0.25
+                )
 
                 n_h = len(holdings)
                 eff_cap = max(stock_cap, 1.0 / n_h + 1e-4)
@@ -272,20 +313,43 @@ def run_backtest(
                     for idxs in _sec_idx.values():
                         a = np.zeros(n_h)
                         a[idxs] = 1.0
-                        _constraints.append({"type": "ineq", "fun": lambda w, a=a, c=sector_cap: c - a @ w})
+                        _constraints.append(
+                            {
+                                "type": "ineq",
+                                "fun": lambda w, a=a, c=sector_cap: c - a @ w,
+                            }
+                        )
 
                 _bounds = [(0, eff_cap)] * n_h
                 _opts = {"maxiter": 500}
 
-                res = minimize(_obj, x0=np.ones(n_h) / n_h, method="SLSQP", bounds=_bounds, constraints=_constraints, options=_opts)
+                res = minimize(
+                    _obj,
+                    x0=np.ones(n_h) / n_h,
+                    method="SLSQP",
+                    bounds=_bounds,
+                    constraints=_constraints,
+                    options=_opts,
+                )
                 if res.success:
                     wts_arr = np.maximum(res.x, 0)
                     wts = pd.Series(wts_arr / wts_arr.sum(), index=holdings)
                 else:
-                    _vol_w = log_ret[holdings].iloc[max(start_idx - 63, 0) : start_idx + 1].std()
+                    _vol_w = (
+                        log_ret[holdings]
+                        .iloc[max(start_idx - 63, 0) : start_idx + 1]
+                        .std()
+                    )
                     _inv = (1.0 / _vol_w.replace(0, np.nan)).fillna(0)
                     _inv_sum = _inv.sum()
-                    wts = pd.Series((_inv / _inv_sum).values if _inv_sum > 0 else np.ones(n_h) / n_h, index=holdings)
+                    wts = pd.Series(
+                        (
+                            (_inv / _inv_sum).values
+                            if _inv_sum > 0
+                            else np.ones(n_h) / n_h
+                        ),
+                        index=holdings,
+                    )
             except Exception:
                 wts = pd.Series(1.0 / len(holdings), index=holdings)
         else:
@@ -310,11 +374,19 @@ def run_backtest(
 
         p_start_dt = prices.index[fwd_start] if fwd_start < len(prices) else None
         p_end_dt = prices.index[min(fwd_end - 1, len(prices) - 1)]
-        period_lbl = f"{p_start_dt:%d %b %Y} → {p_end_dt:%d %b %Y}" if p_start_dt else f"Period {i+1}"
+        period_lbl = (
+            f"{p_start_dt:%d %b %Y} → {p_end_dt:%d %b %Y}"
+            if p_start_dt
+            else f"Period {i+1}"
+        )
 
         # Record Exits & Closed Round-Trip Returns
         for s in exits:
-            p_exit = float(prices[s].iloc[fwd_start]) if (fwd_start < len(prices) and s in prices.columns) else float(prices[s].iloc[start_idx])
+            p_exit = (
+                float(prices[s].iloc[fwd_start])
+                if (fwd_start < len(prices) and s in prices.columns)
+                else float(prices[s].iloc[start_idx])
+            )
             if s in full_ranked.index:
                 rk = full_ranked.index.get_loc(s) + 1
                 reason = f"Rank Dropped (#{rk} > Buffer {effective_buffer})"
@@ -330,40 +402,52 @@ def run_backtest(
                 p_entry = pos["entry_price"]
                 entry_dt = pos["entry_date"]
                 ret_pct = ((p_exit / p_entry) - 1) if p_entry > 0 else 0.0
-                h_days = (p_start_dt - entry_dt).days if (p_start_dt and entry_dt) else rebal_freq
+                h_days = (
+                    (p_start_dt - entry_dt).days
+                    if (p_start_dt and entry_dt)
+                    else rebal_freq
+                )
             else:
                 p_entry = p_exit
                 entry_dt = p_start_dt
                 ret_pct = 0.0
                 h_days = rebal_freq
 
-            closed_trades.append({
-                "Month": f"{p_start_dt:%b-%Y}" if p_start_dt else "—",
-                "Symbol": s,
-                "Entry Date": f"{entry_dt:%d %b %Y}" if entry_dt else "—",
-                "Entry Price": p_entry,
-                "Exit Date": f"{p_start_dt:%d %b %Y}" if p_start_dt else "—",
-                "Exit Price": p_exit,
-                "Return %": ret_pct,
-                "Holding (Days)": h_days,
-                "Reason for Exit": reason,
-                "Status": "Closed",
-            })
+            closed_trades.append(
+                {
+                    "Month": f"{p_start_dt:%b-%Y}" if p_start_dt else "—",
+                    "Symbol": s,
+                    "Entry Date": f"{entry_dt:%d %b %Y}" if entry_dt else "—",
+                    "Entry Price": p_entry,
+                    "Exit Date": f"{p_start_dt:%d %b %Y}" if p_start_dt else "—",
+                    "Exit Price": p_exit,
+                    "Return %": ret_pct,
+                    "Holding (Days)": h_days,
+                    "Reason for Exit": reason,
+                    "Status": "Closed",
+                }
+            )
 
-            trade_records.append({
-                "Period": period_lbl,
-                "Period Start": p_start_dt,
-                "Action": "🔴 SELL (Exit)",
-                "Symbol": s,
-                "Price": p_exit,
-                "Return %": ret_pct,
-                "Weight %": 0.0,
-                "Reason / Signal": reason,
-            })
+            trade_records.append(
+                {
+                    "Period": period_lbl,
+                    "Period Start": p_start_dt,
+                    "Action": "🔴 SELL (Exit)",
+                    "Symbol": s,
+                    "Price": p_exit,
+                    "Return %": ret_pct,
+                    "Weight %": 0.0,
+                    "Reason / Signal": reason,
+                }
+            )
 
         # Record Entries
         for s in entries:
-            p_entry = float(prices[s].iloc[fwd_start]) if (fwd_start < len(prices) and s in prices.columns) else float(prices[s].iloc[start_idx])
+            p_entry = (
+                float(prices[s].iloc[fwd_start])
+                if (fwd_start < len(prices) and s in prices.columns)
+                else float(prices[s].iloc[start_idx])
+            )
             rk = full_ranked.index.get_loc(s) + 1 if s in full_ranked.index else 1
             w_val = float(wts.get(s, 0.0)) * 100
 
@@ -375,73 +459,87 @@ def run_backtest(
                 "entry_rank": rk,
             }
 
-            trade_records.append({
-                "Period": period_lbl,
-                "Period Start": p_start_dt,
-                "Action": "🟢 BUY (Entry)",
-                "Symbol": s,
-                "Price": p_entry,
-                "Return %": 0.0,
-                "Weight %": w_val,
-                "Reason / Signal": f"New Momentum Leader (Rank #{rk})",
-            })
+            trade_records.append(
+                {
+                    "Period": period_lbl,
+                    "Period Start": p_start_dt,
+                    "Action": "🟢 BUY (Entry)",
+                    "Symbol": s,
+                    "Price": p_entry,
+                    "Return %": 0.0,
+                    "Weight %": w_val,
+                    "Reason / Signal": f"New Momentum Leader (Rank #{rk})",
+                }
+            )
 
         # Record Holds
         for s in holds:
-            p_curr = float(prices[s].iloc[fwd_start]) if (fwd_start < len(prices) and s in prices.columns) else float(prices[s].iloc[start_idx])
+            p_curr = (
+                float(prices[s].iloc[fwd_start])
+                if (fwd_start < len(prices) and s in prices.columns)
+                else float(prices[s].iloc[start_idx])
+            )
             rk = full_ranked.index.get_loc(s) + 1 if s in full_ranked.index else "—"
             w_val = float(wts.get(s, 0.0)) * 100
             pos = open_positions.get(s)
             p_entry = pos["entry_price"] if pos else p_curr
             unrealized_ret = ((p_curr / p_entry) - 1) if p_entry > 0 else 0.0
-            trade_records.append({
-                "Period": period_lbl,
-                "Period Start": p_start_dt,
-                "Action": "⚪ HOLD (Retained)",
-                "Symbol": s,
-                "Price": p_curr,
-                "Return %": unrealized_ret,
-                "Weight %": w_val,
-                "Reason / Signal": f"Buffer Zone Retention (Rank #{rk})",
-            })
+            trade_records.append(
+                {
+                    "Period": period_lbl,
+                    "Period Start": p_start_dt,
+                    "Action": "⚪ HOLD (Retained)",
+                    "Symbol": s,
+                    "Price": p_curr,
+                    "Return %": unrealized_ret,
+                    "Weight %": w_val,
+                    "Reason / Signal": f"Buffer Zone Retention (Rank #{rk})",
+                }
+            )
 
         prev_holdings = holdings
 
         # ── Measure Forward Daily Returns (T+1 to T') ────────────────────────
-        period_strat_rets = []
+        period_strat_rets: list[float] = []
         for d_idx, j in enumerate(range(fwd_start, fwd_end)):
             if j >= len(daily_ret):
                 break
             _dr = daily_ret.iloc[j]
             avail = [s for s in holdings if s in _dr.index and pd.notna(_dr[s])]
-            gross_r = (_dr[avail] * wts[avail]).sum() if avail else 0.0
+            gross_r = float((_dr[avail] * wts[avail]).sum()) if avail else 0.0
 
             # Deduct friction on the first rebalance day
             net_r = gross_r - (friction_drag if d_idx == 0 else 0.0)
-            bench_r = _dr.mean()
+            bench_r = float(_dr.mean())
 
-            strat_gross_daily.append(float(gross_r) if pd.notna(gross_r) else 0.0)
-            strat_net_daily.append(float(net_r) if pd.notna(net_r) else 0.0)
-            bench_daily.append(float(bench_r) if pd.notna(bench_r) else 0.0)
-            period_strat_rets.append(float(net_r) if pd.notna(net_r) else 0.0)
+            strat_gross_daily.append(gross_r)
+            strat_net_daily.append(net_r)
+            bench_daily.append(bench_r)
+            period_strat_rets.append(net_r)
 
         if period_strat_rets:
-            s_ret_c = np.prod([1 + r for r in period_strat_rets]) - 1
-            b_rets = [float(daily_ret.iloc[j].mean()) for j in range(fwd_start, min(fwd_end, len(daily_ret))) if j < len(daily_ret)]
-            b_ret_c = np.prod([1 + r for r in b_rets]) - 1 if b_rets else 0.0
-            period_records.append({
-                "Period": period_lbl,
-                "Period Start": p_start_dt,
-                "Period End": p_end_dt,
-                "Strategy Net": s_ret_c,
-                "Benchmark": b_ret_c,
-                "Alpha vs Benchmark": s_ret_c - b_ret_c,
-                "Turnover %": turnover_period * 100,
-                "Cost Drag %": friction_drag * 100,
-                "Holdings": len(holdings),
-                "Buys": len(entries),
-                "Sells": len(exits),
-            })
+            s_ret_c = float(np.prod([1 + r for r in period_strat_rets]) - 1)
+            b_rets = [
+                float(daily_ret.iloc[j].mean())
+                for j in range(fwd_start, min(fwd_end, len(daily_ret)))
+                if j < len(daily_ret)
+            ]
+            b_ret_c = float(np.prod([1 + r for r in b_rets]) - 1) if b_rets else 0.0
+            period_records.append(
+                {
+                    "Period": period_lbl,
+                    "Period Start": p_start_dt,
+                    "Period End": p_end_dt,
+                    "Strategy Net": s_ret_c,
+                    "Benchmark": b_ret_c,
+                    "Alpha vs Benchmark": s_ret_c - b_ret_c,
+                    "Turnover %": turnover_period * 100,
+                    "Cost Drag %": friction_drag * 100,
+                    "Holdings": len(holdings),
+                    "Buys": len(entries),
+                    "Sells": len(exits),
+                }
+            )
 
     if not strat_net_daily:
         return None
@@ -465,52 +563,64 @@ def run_backtest(
     # Append remaining active open positions
     last_dt = prices.index[-1]
     for s, pos in open_positions.items():
-        p_curr = float(prices[s].iloc[-1]) if s in prices.columns else pos["entry_price"]
+        p_curr = (
+            float(prices[s].iloc[-1]) if s in prices.columns else pos["entry_price"]
+        )
         p_entry = pos["entry_price"]
         entry_dt = pos["entry_date"]
         unrealized_ret = ((p_curr / p_entry) - 1) if p_entry > 0 else 0.0
         h_days = (last_dt - entry_dt).days if (last_dt and entry_dt) else 0
-        closed_trades.append({
-            "Month": f"🟢 Active ({last_dt:%b-%Y})",
-            "Symbol": s,
-            "Entry Date": f"{entry_dt:%d %b %Y}" if entry_dt else "—",
-            "Entry Price": p_entry,
-            "Exit Date": f"Active ({last_dt:%d %b %Y})",
-            "Exit Price": p_curr,
-            "Return %": unrealized_ret,
-            "Holding (Days)": h_days,
-            "Reason for Exit": "🟢 Currently Held (Open Position)",
-            "Status": "Open",
-        })
+        closed_trades.append(
+            {
+                "Month": f"🟢 Active ({last_dt:%b-%Y})",
+                "Symbol": s,
+                "Entry Date": f"{entry_dt:%d %b %Y}" if entry_dt else "—",
+                "Entry Price": p_entry,
+                "Exit Date": f"Active ({last_dt:%d %b %Y})",
+                "Exit Price": p_curr,
+                "Return %": unrealized_ret,
+                "Holding (Days)": h_days,
+                "Reason for Exit": "🟢 Currently Held (Open Position)",
+                "Status": "Open",
+            }
+        )
 
     closed_trades_df = pd.DataFrame(closed_trades)
 
-    total_s_net = eq_strat_net.iloc[-1] / eq_strat_net.iloc[0] - 1
-    total_s_gross = eq_strat_gross.iloc[-1] / eq_strat_gross.iloc[0] - 1
-    total_b = eq_bench.iloc[-1] / eq_bench.iloc[0] - 1
+    total_s_net = float(eq_strat_net.iloc[-1] / eq_strat_net.iloc[0] - 1)
+    total_s_gross = float(eq_strat_gross.iloc[-1] / eq_strat_gross.iloc[0] - 1)
+    total_b = float(eq_bench.iloc[-1] / eq_bench.iloc[0] - 1)
 
     n_days = len(dates)
     ann_factor = 252.0 / max(n_days, 1)
-    cagr_net = (1 + total_s_net) ** ann_factor - 1 if (1 + total_s_net) > 0 else -1.0
-    cagr_gross = (1 + total_s_gross) ** ann_factor - 1 if (1 + total_s_gross) > 0 else -1.0
-    cagr_bench = (1 + total_b) ** ann_factor - 1 if (1 + total_b) > 0 else -1.0
+    cagr_net = float((1 + total_s_net) ** ann_factor - 1) if (1 + total_s_net) > 0 else -1.0
+    cagr_gross = (
+        float((1 + total_s_gross) ** ann_factor - 1) if (1 + total_s_gross) > 0 else -1.0
+    )
+    cagr_bench = float((1 + total_b) ** ann_factor - 1) if (1 + total_b) > 0 else -1.0
 
     strat_daily_s = pd.Series(strat_net_daily)
-    strat_vol = strat_daily_s.std() * np.sqrt(252)
-    strat_sharpe = ((cagr_net - 0.065) / strat_vol) if strat_vol > 0 else 0.0
+    strat_vol = float(strat_daily_s.std() * np.sqrt(252))
+    strat_sharpe = float(((cagr_net - 0.065) / strat_vol)) if strat_vol > 0 else 0.0
 
     dd_series = eq_strat_net / eq_strat_net.cummax() - 1
-    max_dd = dd_series.min()
+    max_dd = float(dd_series.min())
 
     n_periods = len(monthly_df)
-    win_rate = (monthly_df["Alpha vs Benchmark"] > 0).mean() if not monthly_df.empty and "Alpha vs Benchmark" in monthly_df.columns else 0.0
+    win_rate = (
+        float((monthly_df["Alpha vs Benchmark"] > 0).mean())
+        if not monthly_df.empty and "Alpha vs Benchmark" in monthly_df.columns
+        else 0.0
+    )
 
     downside_rets = strat_daily_s[strat_daily_s < 0]
-    downside_vol = downside_rets.std() * np.sqrt(252) if len(downside_rets) > 5 else strat_vol
-    strat_sortino = ((cagr_net - 0.065) / downside_vol) if downside_vol > 0 else 0.0
+    downside_vol = (
+        float(downside_rets.std() * np.sqrt(252)) if len(downside_rets) > 5 else strat_vol
+    )
+    strat_sortino = float(((cagr_net - 0.065) / downside_vol)) if downside_vol > 0 else 0.0
 
-    calmar_ratio = (cagr_net / abs(max_dd)) if abs(max_dd) > 0 else 0.0
-    avg_turnover = monthly_df["Turnover %"].mean() if not monthly_df.empty else 0.0
+    calmar_ratio = float((cagr_net / abs(max_dd))) if abs(max_dd) > 0 else 0.0
+    avg_turnover = float(monthly_df["Turnover %"].mean()) if not monthly_df.empty else 0.0
     tot_cost_drag = total_s_gross - total_s_net
 
     return {

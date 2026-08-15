@@ -19,7 +19,9 @@ def render_delivery_view(rank_df: pd.DataFrame) -> None:
         raw_deliv = fetch_delivery_data()
 
     if raw_deliv.empty:
-        st.error("❌ Unable to load NSE delivery data. Please check network connection.")
+        st.error(
+            "❌ Unable to load NSE delivery data. Please check network connection."
+        )
         return
 
     deliv_df = compute_delivery_metrics(raw_deliv)
@@ -39,9 +41,9 @@ def render_delivery_view(rank_df: pd.DataFrame) -> None:
     c_hdr, c_mode = st.columns([2, 1], vertical_alignment="center")
     with c_hdr:
         st.markdown(
-            f'<div style="font-family: \'IBM Plex Mono\', monospace; font-size: 0.8rem; color: #475569;">'
+            f"<div style=\"font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; color: #475569;\">"
             f'Institutional Accumulation (Del & Vol ≥ 1.25×) · Archive: <strong style="color: #4f46e5;">{data_date}</strong>'
-            f'</div>',
+            f"</div>",
             unsafe_allow_html=True,
         )
 
@@ -55,8 +57,16 @@ def render_delivery_view(rank_df: pd.DataFrame) -> None:
     if not dual_mode:
         dual_mode = SurgeMode.DAILY_VS_20D.value
 
-    dual_del_col = "Del_Surge_Daily" if dual_mode == SurgeMode.DAILY_VS_20D.value else "Del_Surge_20D"
-    dual_vol_col = "Vol_Surge_Daily" if dual_mode == SurgeMode.DAILY_VS_20D.value else "Vol_Surge_20D"
+    dual_del_col = (
+        "Del_Surge_Daily"
+        if dual_mode == SurgeMode.DAILY_VS_20D.value
+        else "Del_Surge_20D"
+    )
+    dual_vol_col = (
+        "Vol_Surge_Daily"
+        if dual_mode == SurgeMode.DAILY_VS_20D.value
+        else "Vol_Surge_20D"
+    )
 
     if all(c in merged.columns for c in [dual_del_col, dual_vol_col, "Del %"]):
         dual = merged[
@@ -91,7 +101,17 @@ def render_delivery_view(rank_df: pd.DataFrame) -> None:
         st.markdown(kpi_deliv_html, unsafe_allow_html=True)
 
         if not dual.empty:
-            d_cols = ["SYMBOL", "CMP", "Day Chg %", "Del %", dual_del_col, dual_vol_col, "Industry", "Market Cap (Cr)", "Rank"]
+            d_cols = [
+                "SYMBOL",
+                "CMP",
+                "Day Chg %",
+                "Del %",
+                dual_del_col,
+                dual_vol_col,
+                "Industry",
+                "Market Cap (Cr)",
+                "Rank",
+            ]
             active_d = [c for c in d_cols if c in dual.columns]
             render_saas_table(
                 dual[active_d],
@@ -113,10 +133,26 @@ def render_delivery_view(rank_df: pd.DataFrame) -> None:
     st.markdown("#### 📋 Full Delivery Surge Explorer")
 
     f1, f2, f3, f4 = st.columns(4)
-    surge_mode = f1.selectbox("Surge Mode", [SurgeMode.DAILY_VS_20D.value, SurgeMode.TREND_20D_VS_PREV.value], key="full_del_mode")
-    mcap_filter = f2.selectbox("Market Cap Filter", ["All", "Large (>₹20K Cr)", "Mid (₹5K–₹20K Cr)", "Small (₹500–₹5K Cr)", "Micro (<₹500 Cr)"], key="full_del_mcap")
+    surge_mode = f1.selectbox(
+        "Surge Mode",
+        [SurgeMode.DAILY_VS_20D.value, SurgeMode.TREND_20D_VS_PREV.value],
+        key="full_del_mode",
+    )
+    mcap_filter = f2.selectbox(
+        "Market Cap Filter",
+        [
+            "All",
+            "Large (>₹20K Cr)",
+            "Mid (₹5K–₹20K Cr)",
+            "Small (₹500–₹5K Cr)",
+            "Micro (<₹500 Cr)",
+        ],
+        key="full_del_mcap",
+    )
     min_del_pct = f3.slider("Min Delivery %", 20, 80, 40, 5, key="full_del_min_pct")
-    min_surge = f4.slider("Min Delivery Surge Ratio", 1.0, 3.0, 1.2, 0.1, key="full_del_min_surge")
+    min_surge = f4.slider(
+        "Min Delivery Surge Ratio", 1.0, 3.0, 1.2, 0.1, key="full_del_min_surge"
+    )
 
     view = merged.copy()
 
@@ -125,19 +161,46 @@ def render_delivery_view(rank_df: pd.DataFrame) -> None:
         if "Large" in mcap_filter:
             view = view[view["Market Cap (Cr)"] >= 20000]
         elif "Mid" in mcap_filter:
-            view = view[(view["Market Cap (Cr)"] >= 5000) & (view["Market Cap (Cr)"] < 20000)]
+            view = view[
+                (view["Market Cap (Cr)"] >= 5000) & (view["Market Cap (Cr)"] < 20000)
+            ]
         elif "Small" in mcap_filter:
-            view = view[(view["Market Cap (Cr)"] >= 500) & (view["Market Cap (Cr)"] < 5000)]
+            view = view[
+                (view["Market Cap (Cr)"] >= 500) & (view["Market Cap (Cr)"] < 5000)
+            ]
         elif "Micro" in mcap_filter:
             view = view[view["Market Cap (Cr)"] < 500]
 
     view = view[view["Del %"] >= min_del_pct]
-    s_col = "Del_Surge_Daily" if surge_mode == SurgeMode.DAILY_VS_20D.value else "Del_Surge_20D"
-    v_col = "Vol_Surge_Daily" if surge_mode == SurgeMode.DAILY_VS_20D.value else "Vol_Surge_20D"
+    s_col = (
+        "Del_Surge_Daily"
+        if surge_mode == SurgeMode.DAILY_VS_20D.value
+        else "Del_Surge_20D"
+    )
+    v_col = (
+        "Vol_Surge_Daily"
+        if surge_mode == SurgeMode.DAILY_VS_20D.value
+        else "Vol_Surge_20D"
+    )
 
-    view = view[view[s_col] >= min_surge].sort_values(s_col, ascending=False).reset_index(drop=True)
+    view = (
+        view[view[s_col] >= min_surge]
+        .sort_values(s_col, ascending=False)
+        .reset_index(drop=True)
+    )
 
-    disp_cols = ["SYMBOL", "CMP", "Day Chg %", "Del %", "Del% 20D Avg", s_col, v_col, "Industry", "Market Cap (Cr)", "Rank"]
+    disp_cols = [
+        "SYMBOL",
+        "CMP",
+        "Day Chg %",
+        "Del %",
+        "Del% 20D Avg",
+        s_col,
+        v_col,
+        "Industry",
+        "Market Cap (Cr)",
+        "Rank",
+    ]
     active_disp = [c for c in disp_cols if c in view.columns]
     top_surge_str = f"{view[s_col].iloc[0]:.2f}×" if not view.empty else "—"
     avg_del_str = f"{view['Del %'].mean():.1f}%" if not view.empty else "—"
@@ -173,7 +236,9 @@ def render_delivery_view(rank_df: pd.DataFrame) -> None:
             key="dl_deliv_full_csv",
         )
     else:
-        st.info("No stocks match the selected delivery criteria. Try lowering the thresholds.")
+        st.info(
+            "No stocks match the selected delivery criteria. Try lowering the thresholds."
+        )
 
     render_data_quality_footer(
         total_stocks=len(rank_df),

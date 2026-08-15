@@ -3,7 +3,6 @@ Qualified Momentum Picks View Controller.
 Contains Top 30 Qualified Composite Momentum and Top 30 Qualified Residual Momentum sections.
 """
 
-
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -37,7 +36,9 @@ def _render_qualified_section(
     )
 
     if df_subset.empty:
-        st.info("No stocks currently satisfy both the 50 EMA and 52W High criteria for this strategy.")
+        st.info(
+            "No stocks currently satisfy both the 50 EMA and 52W High criteria for this strategy."
+        )
         return
 
     # Metrics
@@ -81,7 +82,9 @@ def _render_qualified_section(
     """
     st.markdown(kpi_html, unsafe_allow_html=True)
 
-    render_master_screener_table(df_subset, prices_df=adj_close, key=f"{key_prefix}_table")
+    render_master_screener_table(
+        df_subset, prices_df=adj_close, key=f"{key_prefix}_table"
+    )
 
     st.markdown(" ")
     ca, cb = st.columns([1, 1.35], gap="medium")
@@ -94,8 +97,7 @@ def _render_qualified_section(
 
         ind_items_html = []
         for _, r in alloc.iterrows():
-            ind_items_html.append(
-                f"""
+            ind_items_html.append(f"""
                 <div style="margin-bottom: 9px;">
                     <div style="display: flex; justify-content: space-between; font-size: 0.76rem; font-family: 'Plus Jakarta Sans', sans-serif; margin-bottom: 3px;">
                         <span style="font-weight: 600; color: #0f172a;">{r['Industry']}</span>
@@ -105,8 +107,7 @@ def _render_qualified_section(
                         <div style="width: {r['Pct']}%; height: 100%; background: linear-gradient(90deg, {theme_color}, #06b6d4); border-radius: 99px;"></div>
                     </div>
                 </div>
-                """
-            )
+                """)
         breakdown_html = f"""
         <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
             {''.join(ind_items_html)}
@@ -131,7 +132,7 @@ def _render_qualified_section(
 
         if corr_df is not None and len(syms) > 1:
             try:
-                disp_syms = syms[:int(n_disp)]
+                disp_syms = syms[: int(n_disp)]
                 sub_corr = corr_df.loc[disp_syms, disp_syms]
 
                 z_vals = sub_corr.values
@@ -153,12 +154,20 @@ def _render_qualified_section(
                         zmax=1.0,
                         text=text_vals,
                         texttemplate="%{text:.2f}",
-                        textfont={"family": "JetBrains Mono, monospace", "size": 10.5, "color": "#0f172a"},
+                        textfont={
+                            "family": "JetBrains Mono, monospace",
+                            "size": 10.5,
+                            "color": "#0f172a",
+                        },
                         hovertemplate="<b>%{x}</b> × <b>%{y}</b><br>Correlation: <b>%{z:.2f}</b><extra></extra>",
                         colorbar={
                             "thickness": 10,
                             "len": 0.9,
-                            "tickfont": {"family": "JetBrains Mono, monospace", "size": 9, "color": "#64748b"},
+                            "tickfont": {
+                                "family": "JetBrains Mono, monospace",
+                                "size": 9,
+                                "color": "#64748b",
+                            },
                             "outlinewidth": 0,
                         },
                     )
@@ -169,17 +178,27 @@ def _render_qualified_section(
                     paper_bgcolor="#ffffff",
                     plot_bgcolor="#ffffff",
                     xaxis={
-                        "tickfont": {"family": "Outfit, sans-serif", "size": 10, "color": "#0f172a"},
+                        "tickfont": {
+                            "family": "Outfit, sans-serif",
+                            "size": 10,
+                            "color": "#0f172a",
+                        },
                         "tickangle": -45,
                         "showgrid": False,
                     },
                     yaxis={
-                        "tickfont": {"family": "Outfit, sans-serif", "size": 10, "color": "#0f172a"},
+                        "tickfont": {
+                            "family": "Outfit, sans-serif",
+                            "size": 10,
+                            "color": "#0f172a",
+                        },
                         "showgrid": False,
                         "autorange": "reversed",
                     },
                 )
-                st.plotly_chart(fig_corr, width="stretch", config={"displayModeBar": False})
+                st.plotly_chart(
+                    fig_corr, width="stretch", config={"displayModeBar": False}
+                )
             except Exception:
                 st.info("Unable to render correlation heatmap.")
         else:
@@ -191,23 +210,36 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> Non
     c_filt, c_ctrl = st.columns([3, 1], vertical_alignment="center")
     with c_filt:
         st.markdown(
-            '<div style="font-family: \'Plus Jakarta Sans\', sans-serif; font-size: 0.85rem; color: #475569; padding-top: 4px;">'
+            "<div style=\"font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.85rem; color: #475569; padding-top: 4px;\">"
             'Institutional Strict Filter: <strong style="color: #059669;">Price > 50 EMA</strong> &nbsp;·&nbsp; <strong style="color: #4f46e5;">Within 20% of 52W High</strong>'
-            '</div>',
+            "</div>",
             unsafe_allow_html=True,
         )
-    top_n = c_ctrl.selectbox("Show Top N", [10, 15, 20, 25, 30], index=4, key="qual_top_n", label_visibility="collapsed")
+    top_n = c_ctrl.selectbox(
+        "Show Top N",
+        [10, 15, 20, 25, 30],
+        index=4,
+        key="qual_top_n",
+        label_visibility="collapsed",
+    )
 
-    ab_ema = rank_df["Above 50 EMA"].map(lambda x: x is True or str(x).strip() in ["✅", "True", "1"]) if "Above 50 EMA" in rank_df.columns else pd.Series(True, index=rank_df.index)
-    nr_hi = rank_df["Near 52W High"].map(lambda x: x is True or str(x).strip() in ["✅", "True", "1"]) if "Near 52W High" in rank_df.columns else pd.Series(True, index=rank_df.index)
+    ab_ema = (
+        rank_df["Above 50 EMA"].map(
+            lambda x: x is True or str(x).strip() in ["✅", "True", "1"]
+        )
+        if "Above 50 EMA" in rank_df.columns
+        else pd.Series(True, index=rank_df.index)
+    )
+    nr_hi = (
+        rank_df["Near 52W High"].map(
+            lambda x: x is True or str(x).strip() in ["✅", "True", "1"]
+        )
+        if "Near 52W High" in rank_df.columns
+        else pd.Series(True, index=rank_df.index)
+    )
 
     # ── Section 1: Standard / Composite Momentum Qualified (Top 30) ──────────
-    qualified_composite = (
-        rank_df[ab_ema & nr_hi]
-        .sort_values("Rank")
-        .head(top_n)
-        .copy()
-    )
+    qualified_composite = rank_df[ab_ema & nr_hi].sort_values("Rank").head(top_n).copy()
 
     _render_qualified_section(
         title=f"🏆 Top {top_n} Qualified Momentum Stocks",
@@ -223,10 +255,7 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> Non
     # ── Section 2: Residual Momentum Qualified (Top 30) ──────────────────────
     if "Residual Rank" in rank_df.columns:
         qualified_residual = (
-            rank_df[ab_ema & nr_hi]
-            .sort_values("Residual Rank")
-            .head(top_n)
-            .copy()
+            rank_df[ab_ema & nr_hi].sort_values("Residual Rank").head(top_n).copy()
         )
     else:
         qualified_residual = pd.DataFrame()

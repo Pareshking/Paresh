@@ -2,6 +2,9 @@
 Market Breadth analytics: Moving Average Breadth and 52W High/Low Time Series.
 """
 
+from __future__ import annotations
+
+from typing import Sequence
 
 import numpy as np
 import pandas as pd
@@ -12,7 +15,7 @@ import streamlit as st
 def compute_ma_breadth(
     prices_hash: str,
     _prices: pd.DataFrame,
-    sel_mas: tuple[str, ...],
+    sel_mas: Sequence[str],
     lookback: int = 126,
     ma_type: str = "SMA",
 ) -> pd.DataFrame:
@@ -21,7 +24,7 @@ def compute_ma_breadth(
         return pd.DataFrame()
 
     ma_periods = {"10D": 10, "20D": 20, "50D": 50, "100D": 100, "200D": 200}
-    results = {}
+    results: dict[str, pd.Series] = {}
 
     for label in sel_mas:
         period = ma_periods.get(label, 50)
@@ -62,14 +65,16 @@ def compute_hl_timeseries(
     daily_highs = is_high.sum(axis=1)
     daily_lows = is_low.sum(axis=1)
 
-    df = pd.DataFrame({
-        "New Highs": daily_highs,
-        "New Lows": daily_lows,
-        "Total Stocks": n_stocks,
-        "% New Highs": (daily_highs / n_stocks * 100).round(2),
-        "% New Lows": (daily_lows / n_stocks * 100).round(2),
-        "Net New Highs": daily_highs - daily_lows,
-    })
+    df = pd.DataFrame(
+        {
+            "New Highs": daily_highs,
+            "New Lows": daily_lows,
+            "Total Stocks": n_stocks,
+            "% New Highs": (daily_highs / n_stocks.replace(0, np.nan) * 100).round(2).fillna(0),
+            "% New Lows": (daily_lows / n_stocks.replace(0, np.nan) * 100).round(2).fillna(0),
+            "Net New Highs": daily_highs - daily_lows,
+        }
+    )
     return df.iloc[-lookback:]
 
 
@@ -88,14 +93,16 @@ def compute_industry_breadth(
     else:
         ma = prices_df.rolling(period, min_periods=max(int(period * 0.8), 5)).mean()
 
-    above_ma = (prices_df.iloc[-1] > ma.iloc[-1])
+    above_ma = prices_df.iloc[-1] > ma.iloc[-1]
     ind_breadth: dict[str, list[float]] = {}
     for sym, val in above_ma.items():
-        ind = industry_map.get(sym)
+        ind = industry_map.get(str(sym))
         if ind:
             ind_breadth.setdefault(ind, []).append(float(val))
 
-    return pd.Series({k: np.mean(v) * 100 for k, v in ind_breadth.items()}).sort_values(ascending=False)
+    return pd.Series({k: np.mean(v) * 100 for k, v in ind_breadth.items()}).sort_values(
+        ascending=False
+    )
 
 
 def get_recent_hl_events(
@@ -113,44 +120,64 @@ def get_recent_hl_events(
     low_w = prices_df.rolling(window, min_periods=min_p).min()
 
     tol = prices_df * 0.001
-    is_high = (prices_df >= high_w - tol)
-    is_low = (prices_df <= low_w + tol)
+    is_high = prices_df >= high_w - tol
+    is_low = prices_df <= low_w + tol
 
     sub_high = is_high.iloc[-lookback:]
     sub_low = is_low.iloc[-lookback:]
 
-    ind_map = rank_df.set_index("Symbol")["Industry"].to_dict() if "Industry" in rank_df.columns else {}
-    ret_map = rank_df.set_index("Symbol")["3M Return"].to_dict() if "3M Return" in rank_df.columns else {}
-    rk_map = rank_df.set_index("Symbol")["Rank"].to_dict() if "Rank" in rank_df.columns else {}
+    ind_map = (
+        rank_df.set_index("Symbol")["Industry"].to_dict()
+        if "Industry" in rank_df.columns
+        else {}
+    )
+    ret_map = (
+        rank_df.set_index("Symbol")["3M Return"].to_dict()
+        if "3M Return" in rank_df.columns
+        else {}
+    )
+    rk_map = (
+        rank_df.set_index("Symbol")["Rank"].to_dict()
+        if "Rank" in rank_df.columns
+        else {}
+    )
 
-    records = []
+    records: list[dict[str, Any]] = []
     for dt in reversed(sub_high.index):
         dt_str = pd.to_datetime(dt).strftime("%d %b %Y")
         # Highs
         h_series = sub_high.loc[dt]
         for sym in h_series[h_series].index:
-            cmp_val = float(prices_df.loc[dt, sym]) if sym in prices_df.columns else np.nan
-            records.append({
-                "Date": dt_str,
-                "Event": "🟢 52W High",
-                "Symbol": sym,
-                "Industry": ind_map.get(sym, "—"),
-                "CMP": cmp_val,
-                "3M Return": ret_map.get(sym, np.nan),
-                "Rank": rk_map.get(sym, np.nan),
-            })
+            cmp_val = (
+                float(prices_df.loc[dt, sym]) if sym in prices_df.columns else np.nan
+            )
+            records.append(
+                {
+                    "Date": dt_str,
+                    "Event": "🟢 52W High",
+                    "Symbol": sym,
+                    "Industry": ind_map.get(sym, "—"),
+                    "CMP": cmp_val,
+                    "3M Return": ret_map.get(sym, np.nan),
+                    "Rank": rk_map.get(sym, np.nan),
+                }
+            )
         # Lows
         l_series = sub_low.loc[dt]
         for sym in l_series[l_series].index:
-            cmp_val = float(prices_df.loc[dt, sym]) if sym in prices_df.columns else np.nan
-            records.append({
-                "Date": dt_str,
-                "Event": "🔴 52W Low",
-                "Symbol": sym,
-                "Industry": ind_map.get(sym, "—"),
-                "CMP": cmp_val,
-                "3M Return": ret_map.get(sym, np.nan),
-                "Rank": rk_map.get(sym, np.nan),
-            })
+            cmp_val = (
+                float(prices_df.loc[dt, sym]) if sym in prices_df.columns else np.nan
+            )
+            records.append(
+                {
+                    "Date": dt_str,
+                    "Event": "🔴 52W Low",
+                    "Symbol": sym,
+                    "Industry": ind_map.get(sym, "—"),
+                    "CMP": cmp_val,
+                    "3M Return": ret_map.get(sym, np.nan),
+                    "Rank": rk_map.get(sym, np.nan),
+                }
+            )
 
     return pd.DataFrame(records)

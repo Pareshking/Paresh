@@ -3,15 +3,19 @@ Quantitative Multi-System Momentum Engine — Hardened Production Core.
 
 Systems:
   1. Multi-Window Sharpe & Sortino Momentum (Winsorized Z(Sharpe × R²) across 5 lookbacks)
-  2. Vectorized Exponential Regression (OLS slope annualized × R²)
+  2. Vectorized Exponential Regression (OLS slope annualized × R² with analytical 1D convolution)
   3. Residual / Idiosyncratic Alpha (Market-beta stripped alpha)
   4. Industry-Relative Momentum (Sector-neutral outperformance)
   5. Momentum Acceleration (Short-term velocity vs long-term baseline)
 """
 
+from __future__ import annotations
+
+from typing import Sequence
 
 import numpy as np
 import pandas as pd
+from scipy.ndimage import convolve1d
 
 from src.core.config import DEFAULT_LOOKBACK_WEIGHTS, MOMENTUM_WINDOWS
 from src.core.logger import logger
@@ -25,7 +29,7 @@ def clean_holidays(df: pd.DataFrame | None) -> pd.DataFrame:
     limit = max(int(n_cols * 0.70), 1)
     count = df.isna().sum(axis=1)
     holidays = count > limit
-    n_dropped = holidays.sum()
+    n_dropped = int(holidays.sum())
     if n_dropped > 0:
         logger.debug(f"Holiday cleanup: dropped {n_dropped} rows")
     cleaned = df.loc[~holidays]
@@ -44,14 +48,17 @@ def compute_ffill_pct(raw_df: pd.DataFrame | None) -> pd.Series:
         return pd.Series(dtype=float)
     n_rows = len(cleaned)
     nan_per_col = cleaned.isna().sum()
-    return (nan_per_col / n_rows * 100).round(1)
+    return (nan_per_col / max(n_rows, 1) * 100).round(1)
 
 
 def winsorize_series(s: pd.Series, std_limit: float = 3.0) -> pd.Series:
     """Winsorizes cross-sectional series to +/- std_limit standard deviations."""
-    if s.empty or s.std() == 0 or s.isna().all():
+    if s.empty or s.isna().all():
         return s
-    mean, std = s.mean(), s.std()
+    clean = s.dropna()
+    if len(clean) < 3 or clean.std() == 0:
+        return s
+    mean, std = float(clean.mean()), float(clean.std())
     lower, upper = mean - std_limit * std, mean + std_limit * std
     return s.clip(lower=lower, upper=upper)
 
@@ -65,7 +72,9 @@ def zscore_series(s: pd.Series, winsorize: bool = True) -> pd.Series:
         return pd.Series(0.0, index=s.index)
     if winsorize:
         clean = winsorize_series(clean, std_limit=3.0)
-    z = (clean - clean.mean()) / (clean.std() + 1e-12)
+    mean_val = float(clean.mean())
+    std_val = float(clean.std())
+    z = (clean - mean_val) / (std_val + 1e-12)
     return z.reindex(s.index)
 
 
@@ -83,8 +92,8 @@ class MomentumEngine:
     Vectorized calculations across 5 lookback windows with zero look-ahead bias.
     """
 
-    WINDOWS = MOMENTUM_WINDOWS
-    DEFAULT_WEIGHTS = DEFAULT_LOOKBACK_WEIGHTS
+    WINDOWS: list[int] = MOMENTUM_WINDOWS
+    DEFAULT_WEIGHTS: list[float] = DEFAULT_LOOKBACK_WEIGHTS
 
     def __init__(
         self,
@@ -94,23 +103,44 @@ class MomentumEngine:
         low_df: pd.DataFrame | None = None,
         close_df: pd.DataFrame | None = None,
         volume_df: pd.DataFrame | None = None,
-        weights: list[float] | None = None,
+        weights: Sequence[float] | None = None,
         market_cap_weights: pd.Series | None = None,
     ):
-        self.ffill_pct = compute_ffill_pct(prices_df)
+        self.ffill_pct: pd.Series = compute_ffill_pct(prices_df)
 
-        self.prices = _normalize_ticker_cols(clean_holidays(prices_df))
-        self.high = _normalize_ticker_cols(clean_holidays(high_df)) if high_df is not None else self.prices
-        self.low = _normalize_ticker_cols(clean_holidays(low_df)) if low_df is not None else self.prices
-        self.close = _normalize_ticker_cols(clean_holidays(close_df)) if close_df is not None else self.prices
-        self.volume = _normalize_ticker_cols(clean_holidays(volume_df)) if volume_df is not None else None
+        cleaned_p = clean_holidays(prices_df)
+        norm_p = _normalize_ticker_cols(cleaned_p)
+        self.prices: pd.DataFrame = norm_p if norm_p is not None else pd.DataFrame()
+        
+        if high_df is not None:
+            norm_h = _normalize_ticker_cols(clean_holidays(high_df))
+            self.high: pd.DataFrame = norm_h if norm_h is not None else self.prices
+        else:
+            self.high = self.prices
 
-        self.weights = weights or self.DEFAULT_WEIGHTS
-        self._mcap_weights = market_cap_weights
+        if low_df is not None:
+            norm_l = _normalize_ticker_cols(clean_holidays(low_df))
+            self.low: pd.DataFrame = norm_l if norm_l is not None else self.prices
+        else:
+            self.low = self.prices
 
-        # Pre-calculate log returns
-        self.log_ret = np.log(self.prices / self.prices.shift(1))
-        self._valid_counts = self.prices.notna().sum()
+        if close_df is not None:
+            norm_c = _normalize_ticker_cols(clean_holidays(close_df))
+            self.close: pd.DataFrame = norm_c if norm_c is not None else self.prices
+        else:
+            self.close = self.prices
+
+        if volume_df is not None:
+            self.volume: pd.DataFrame | None = _normalize_ticker_cols(clean_holidays(volume_df))
+        else:
+            self.volume = None
+
+        self.weights: list[float] = list(weights) if weights is not None else list(self.DEFAULT_WEIGHTS)
+        self._mcap_weights: pd.Series | None = market_cap_weights
+
+        # Pre-calculate daily log returns
+        self.log_ret: pd.DataFrame = np.log(self.prices / self.prices.shift(1).replace(0, np.nan))
+        self._valid_counts: pd.Series = self.prices.notna().sum()
 
         self.momentum_scores: pd.DataFrame | None = None
         self.exp_reg_scores: pd.DataFrame | None = None
@@ -126,7 +156,7 @@ class MomentumEngine:
     def _rolling_r2(self, window: int) -> pd.DataFrame:
         """Vectorized rolling Pearson correlation squared against linear time."""
         log_p = np.log(self.prices.clip(lower=0.01))
-        t = pd.Series(np.arange(len(log_p)), index=log_p.index)
+        t = pd.Series(np.arange(len(log_p)), index=log_p.index, dtype=float)
         return log_p.rolling(window, min_periods=self._mp(window)).corr(t) ** 2
 
     def _annualized_sharpe_r2(self, w: int) -> pd.DataFrame:
@@ -140,8 +170,7 @@ class MomentumEngine:
         ).replace([np.inf, -np.inf], np.nan)
 
         daily_vol_w = (
-            self.log_ret.rolling(w, min_periods=mp).std()
-            * np.sqrt(w)
+            self.log_ret.rolling(w, min_periods=mp).std() * np.sqrt(w)
         ).replace(0, np.nan)
 
         sharpe_w = (log_ret_w / daily_vol_w).replace([np.inf, -np.inf], np.nan)
@@ -160,8 +189,7 @@ class MomentumEngine:
 
         downside_log = self.log_ret.clip(upper=0)
         downside_vol_w = (
-            np.sqrt((downside_log ** 2).rolling(w, min_periods=mp).mean())
-            * np.sqrt(w)
+            np.sqrt((downside_log**2).rolling(w, min_periods=mp).mean()) * np.sqrt(w)
         ).replace(0, np.nan)
 
         sortino_w = (log_ret_w / downside_vol_w).replace([np.inf, -np.inf], np.nan)
@@ -171,7 +199,7 @@ class MomentumEngine:
     # ── System 1: Multi-Window Sharpe Momentum ───────────────────────────────
     def calculate_sharpe_momentum(self) -> pd.DataFrame:
         """Computes weighted Z-scored composite momentum across 5 windows."""
-        scores_by_w = {}
+        scores_by_w: dict[int, pd.DataFrame] = {}
         for w in self.WINDOWS:
             raw_score = self._annualized_sharpe_r2(w)
             # Mask short-history tickers
@@ -188,30 +216,38 @@ class MomentumEngine:
 
             # Store latest period diagnostics
             if not self.prices.empty:
-                ret_w = (
-                    (self.prices.iloc[-1] / self.prices.iloc[-min(w, len(self.prices))]) - 1
+                idx_prev = max(0, len(self.prices) - 1 - min(w, len(self.prices) - 1))
+                ret_w = (self.prices.iloc[-1] / self.prices.iloc[idx_prev].replace(0, np.nan)) - 1
+                daily_vol_latest = (self.log_ret.iloc[-w:].std() * np.sqrt(w)).replace(
+                    0, np.nan
                 )
-                daily_vol_latest = (
-                    self.log_ret.iloc[-w:].std() * np.sqrt(w)
-                ).replace(0, np.nan)
-                sharpe_latest = (
-                    np.log((1 + ret_w).clip(lower=0.001)) / daily_vol_latest
+                sharpe_latest = np.log((1 + ret_w).clip(lower=0.001)) / daily_vol_latest
+                r2_latest = (
+                    self._rolling_r2(w).iloc[-1]
+                    if len(self.prices) >= w
+                    else pd.Series(0.0, index=self.prices.columns)
                 )
-                r2_latest = self._rolling_r2(w).iloc[-1] if len(self.prices) >= w else pd.Series(0, index=self.prices.columns)
                 self.period_metrics[w] = {
                     "return": ret_w,
                     "sharpe": sharpe_latest,
                     "r2": r2_latest,
-                    "score": z_score.iloc[-1] if not z_score.empty else pd.Series(0, index=self.prices.columns),
+                    "score": (
+                        z_score.iloc[-1]
+                        if not z_score.empty
+                        else pd.Series(0.0, index=self.prices.columns)
+                    ),
                 }
 
         # Weighted combination
         tot_w = sum(self.weights)
-        norm_weights = [w / tot_w for w in self.weights]
+        norm_weights = [w / tot_w for w in self.weights] if tot_w > 0 else [0.2] * 5
 
-        composite = pd.DataFrame(0.0, index=self.prices.index, columns=self.prices.columns)
+        composite = pd.DataFrame(
+            0.0, index=self.prices.index, columns=self.prices.columns
+        )
         for w, weight in zip(self.WINDOWS, norm_weights):
-            composite = composite.add(scores_by_w[w].fillna(0.0) * weight)
+            if w in scores_by_w:
+                composite = composite.add(scores_by_w[w].fillna(0.0) * weight)
 
         self.momentum_scores = composite
         return self.momentum_scores
@@ -219,22 +255,29 @@ class MomentumEngine:
     # ── System 2: Vectorized Exponential Regression ──────────────────────────
     def calculate_exp_regression(self, window: int = 126) -> pd.DataFrame:
         """
-        Vectorized rolling exponential regression:
+        Fast analytical rolling exponential regression via 1D convolution:
         Score = (exp(beta * 252) - 1) * R^2
+        Calculated in milliseconds with zero Python loop bottlenecks.
         """
         log_p = np.log(self.prices.clip(lower=0.01))
-        mp = self._mp(window)
         n = window
         sum_t = (n - 1) * n / 2.0
         sum_t2 = (n - 1) * n * (2 * n - 1) / 6.0
-        var_t = sum_t2 - (sum_t ** 2) / n
+        var_t = sum_t2 - (sum_t**2) / n
         t_weights = np.arange(n) - (sum_t / n)
 
-        roll_t_y = log_p.rolling(n, min_periods=mp).apply(
-            lambda y: np.dot(t_weights[:len(y)], y - y.mean()), raw=True
+        # Vectorized 1D convolution along time axis
+        conv_vals = convolve1d(
+            log_p.fillna(0.0).values,
+            t_weights[::-1],
+            axis=0,
+            mode="constant",
+            cval=0.0,
+            origin=-(n // 2),
         )
+        roll_t_y = pd.DataFrame(conv_vals, index=log_p.index, columns=log_p.columns)
 
-        slope_daily = roll_t_y / var_t
+        slope_daily = roll_t_y / max(var_t, 1e-8)
         ann_return = np.exp(slope_daily * 252) - 1
         r2 = self._rolling_r2(window)
         score = ann_return * r2
@@ -263,9 +306,9 @@ class MomentumEngine:
             mkt_ret = benchmark_returns.reindex(daily_ret.index).ffill()
 
         mkt_ret_w = mkt_ret.iloc[-window:]
-        mkt_var = mkt_ret_w.var()
+        mkt_var = float(mkt_ret_w.var())
 
-        if mkt_var == 0 or np.isnan(mkt_var) or len(mkt_ret_w) < 30:
+        if mkt_var <= 1e-12 or np.isnan(mkt_var) or len(mkt_ret_w) < 30:
             ranks = pd.Series(np.nan, index=self.prices.columns)
             self.residual_ranks = ranks
             return ranks
@@ -275,7 +318,7 @@ class MomentumEngine:
         betas = covs / mkt_var
 
         stock_mean = ret_w.mean()
-        mkt_mean = mkt_ret_w.mean()
+        mkt_mean = float(mkt_ret_w.mean())
         alpha_ann = (stock_mean - betas * mkt_mean) * 252
 
         alpha_ann = alpha_ann.where(self._valid_counts >= min(window, 63), np.nan)
@@ -293,14 +336,16 @@ class MomentumEngine:
         if self.momentum_scores is None or self.momentum_scores.empty:
             self.calculate_sharpe_momentum()
 
-        latest_scores = self.momentum_scores.iloc[-1]
-        ind_map = rank_df.set_index("Symbol")[industry_col].to_dict()
+        latest_scores = self.momentum_scores.iloc[-1] if self.momentum_scores is not None else pd.Series()
+        ind_map = rank_df.set_index("Symbol")[industry_col].to_dict() if industry_col in rank_df.columns else {}
 
-        score_df = pd.DataFrame({
-            "Symbol": latest_scores.index,
-            "Score": latest_scores.values,
-            "Industry": [ind_map.get(s, "Other") for s in latest_scores.index],
-        })
+        score_df = pd.DataFrame(
+            {
+                "Symbol": latest_scores.index,
+                "Score": latest_scores.values,
+                "Industry": [ind_map.get(s, "Other") for s in latest_scores.index],
+            }
+        )
 
         ind_avg = score_df.groupby("Industry")["Score"].transform("mean")
         rel_score = score_df["Score"] - ind_avg
@@ -318,84 +363,43 @@ class MomentumEngine:
         Accel = (0.10*1M + 0.35*3M + 0.55*6M) - (0.45*9M + 0.55*12M)
         """
         zero_s = pd.Series(0.0, index=self.prices.columns)
-        s_1m = self._annualized_sharpe_r2(21).iloc[-1] if len(self.prices) >= 21 else zero_s
-        s_3m = self._annualized_sharpe_r2(63).iloc[-1] if len(self.prices) >= 63 else zero_s
-        s_6m = self._annualized_sharpe_r2(126).iloc[-1] if len(self.prices) >= 126 else zero_s
-        s_9m = self._annualized_sharpe_r2(189).iloc[-1] if len(self.prices) >= 189 else zero_s
-        s_12m = self._annualized_sharpe_r2(252).iloc[-1] if len(self.prices) >= 252 else zero_s
+        s_1m = (
+            self._annualized_sharpe_r2(21).iloc[-1]
+            if len(self.prices) >= 21
+            else zero_s
+        )
+        s_3m = (
+            self._annualized_sharpe_r2(63).iloc[-1]
+            if len(self.prices) >= 63
+            else zero_s
+        )
+        s_6m = (
+            self._annualized_sharpe_r2(126).iloc[-1]
+            if len(self.prices) >= 126
+            else zero_s
+        )
+        s_9m = (
+            self._annualized_sharpe_r2(189).iloc[-1]
+            if len(self.prices) >= 189
+            else zero_s
+        )
+        s_12m = (
+            self._annualized_sharpe_r2(252).iloc[-1]
+            if len(self.prices) >= 252
+            else zero_s
+        )
 
-        short_term = 0.10 * zscore_series(s_1m) + 0.35 * zscore_series(s_3m) + 0.55 * zscore_series(s_6m)
+        short_term = (
+            0.10 * zscore_series(s_1m)
+            + 0.35 * zscore_series(s_3m)
+            + 0.55 * zscore_series(s_6m)
+        )
         long_term = 0.45 * zscore_series(s_9m) + 0.55 * zscore_series(s_12m)
         accel = short_term - long_term
 
         accel = accel.where(self._valid_counts >= 63, np.nan)
         ranks = accel.rank(ascending=False, na_option="bottom")
         return ranks
-
-    # ── Multi-Factor Alpha Expansion (Multi-System Composite) ────────────────
-    def calculate_multi_factor_composite(
-        self,
-        rank_df: pd.DataFrame,
-        weights_dict: dict[str, float] | None = None,
-    ) -> pd.Series:
-        """
-        Combines 5 orthogonalized quantitative alpha factors into a unified master score:
-          1. Multi-Window Sharpe x R2 (Trend Quality) - Default 35%
-          2. Idiosyncratic Residual Alpha (Beta-stripped) - Default 25%
-          3. Industry-Relative Outperformance - Default 15%
-          4. Momentum Acceleration - Default 15%
-          5. Frog-in-the-Pan Persistence - Default 10%
-        """
-        default_w = {
-            "sharpe_r2": 0.35,
-            "residual_alpha": 0.25,
-            "industry_rel": 0.15,
-            "acceleration": 0.15,
-            "persistence": 0.10,
-        }
-        w_map = weights_dict or default_w
-
-        if self.momentum_scores is None or self.momentum_scores.empty:
-            self.calculate_sharpe_momentum()
-
-        s_sharpe = zscore_series(self.momentum_scores.iloc[-1])
-        s_residual = zscore_series(self.calculate_residual_momentum(window=126))
-        s_ind_rel = zscore_series(self.calculate_industry_relative(rank_df, "Industry"))
-        s_accel = zscore_series(self.calculate_momentum_acceleration())
-        s_pers = zscore_series(self.compute_persistence(126))
-
-        # Composite multi-factor score
-        composite = (
-            w_map.get("sharpe_r2", 0.35) * s_sharpe.fillna(0)
-            + w_map.get("residual_alpha", 0.25) * s_residual.fillna(0)
-            + w_map.get("industry_rel", 0.15) * s_ind_rel.fillna(0)
-            + w_map.get("acceleration", 0.15) * s_accel.fillna(0)
-            + w_map.get("persistence", 0.10) * s_pers.fillna(0)
-        )
-        return composite.rank(ascending=False, na_option="bottom")
-
-    @staticmethod
-    def get_dynamic_regime_allocation(
-        benchmark_price: float,
-        benchmark_200_dma: float,
-        benchmark_50_ema: float,
-        breadth_pct_above_ema: float,
-    ) -> tuple[float, float, str]:
-        """
-        Computes dynamic capital allocation based on dual-trend market regime gates:
-        Returns: (equity_allocation_pct, cash_allocation_pct, regime_label)
-        """
-        above_200 = benchmark_price >= benchmark_200_dma
-        above_50 = benchmark_price >= benchmark_50_ema
-
-        if above_200 and above_50 and breadth_pct_above_ema >= 50.0:
-            return 1.0, 0.0, "BULLISH (Aggressive 100% Equity Allocation)"
-        elif above_200 and (not above_50 or breadth_pct_above_ema < 50.0):
-            return 0.70, 0.30, "NEUTRAL (Cautious 70% Equity / 30% Cash Buffer)"
-        elif not above_200 and above_50:
-            return 0.50, 0.50, "TRANSITIONAL (Balanced 50% Equity / 50% Cash)"
-        else:
-            return 0.25, 0.75, "BEARISH (Defensive 25% High-Conviction / 75% Cash Preservation)"
 
     # ── ATR Volatility & Dual Trailing Stops ──────────────────────────────────
     def compute_atr_and_stops(
@@ -419,12 +423,14 @@ class MomentumEngine:
         hi_22 = self.high.iloc[-22:].max()
         chand_exit = (hi_22 - chand_mult * latest_atr).clip(lower=0)
 
-        return pd.DataFrame({
-            "ATR": latest_atr.round(2),
-            "ATR %": atr_pct.round(1),
-            "Stop Loss": stop_loss.round(2),
-            "Chand Exit": chand_exit.round(2),
-        })
+        return pd.DataFrame(
+            {
+                "ATR": latest_atr.round(2),
+                "ATR %": atr_pct.round(1),
+                "Stop Loss": stop_loss.round(2),
+                "Chand Exit": chand_exit.round(2),
+            }
+        )
 
     # ── Frog-in-the-Pan Persistence ──────────────────────────────────────────
     def compute_persistence(self, window: int = 126) -> pd.Series:
@@ -447,7 +453,11 @@ class MomentumEngine:
         if self.momentum_scores is None:
             self.calculate_sharpe_momentum()
 
-        latest_scores = self.momentum_scores.iloc[-1]
+        latest_scores = (
+            self.momentum_scores.iloc[-1]
+            if self.momentum_scores is not None
+            else pd.Series(dtype=float)
+        )
         valid_mask = self._valid_counts >= 63
         latest_scores_valid = latest_scores.where(valid_mask, np.nan)
 
@@ -455,12 +465,14 @@ class MomentumEngine:
         sym_to_score = latest_scores_valid.to_dict()
         rank_df["Score"] = rank_df["Symbol"].map(sym_to_score)
         rank_df = rank_df.dropna(subset=["Score"]).copy()
-        rank_df["Rank"] = rank_df["Score"].rank(ascending=False, method="min").astype(int)
+        rank_df["Rank"] = (
+            rank_df["Score"].rank(ascending=False, method="min").astype(int)
+        )
         rank_df["Composite Rank"] = rank_df["Rank"]
 
         # Historical Ranks (-1M: 21D ago, -3M: 63D ago)
-        n_rows = len(self.momentum_scores)
-        if n_rows > 21:
+        n_rows = len(self.momentum_scores) if self.momentum_scores is not None else 0
+        if n_rows > 21 and self.momentum_scores is not None:
             s_1m = self.momentum_scores.iloc[-22].where(valid_mask, np.nan)
             r_1m = s_1m.rank(ascending=False, method="min")
             rank_df["Rank (-1M)"] = rank_df["Symbol"].map(r_1m)
@@ -469,7 +481,7 @@ class MomentumEngine:
             rank_df["Rank (-1M)"] = np.nan
             rank_df["Rank Δ 1M"] = np.nan
 
-        if n_rows > 63:
+        if n_rows > 63 and self.momentum_scores is not None:
             s_3m = self.momentum_scores.iloc[-64].where(valid_mask, np.nan)
             r_3m = s_3m.rank(ascending=False, method="min")
             rank_df["Rank (-3M)"] = rank_df["Symbol"].map(r_3m)
@@ -479,18 +491,24 @@ class MomentumEngine:
             rank_df["Rank Δ 3M"] = np.nan
 
         # CMP & Technical Signals
-        close_src = (close_prices_df if close_prices_df is not None else self.close).ffill()
+        close_src = (
+            close_prices_df if close_prices_df is not None else self.close
+        ).ffill()
         high_src = (high_prices_df if high_prices_df is not None else self.high).ffill()
 
         # Normalize column names to uppercase stripped tickers
-        close_src.columns = [str(c).replace(".NS", "").strip().upper() for c in close_src.columns]
-        high_src.columns = [str(c).replace(".NS", "").strip().upper() for c in high_src.columns]
+        close_src.columns = [
+            str(c).replace(".NS", "").strip().upper() for c in close_src.columns
+        ]
+        high_src.columns = [
+            str(c).replace(".NS", "").strip().upper() for c in high_src.columns
+        ]
 
         # Drop any trailing rows that are all NaN
         valid_close_idx = close_src.dropna(how="all").index
         if not valid_close_idx.empty:
-            close_src = close_src.loc[:valid_close_idx[-1]]
-            high_src = high_src.loc[:valid_close_idx[-1]]
+            close_src = close_src.loc[: valid_close_idx[-1]]
+            high_src = high_src.loc[: valid_close_idx[-1]]
 
         latest_close = close_src.iloc[-1]
         rank_df["CMP"] = rank_df["Symbol"].map(latest_close.to_dict())
@@ -498,11 +516,20 @@ class MomentumEngine:
         # 50 EMA
         ema_50 = close_src.ewm(span=50, min_periods=30).mean().iloc[-1]
         rank_df["Above 50 EMA"] = rank_df["Symbol"].map(
-            lambda s: (latest_close.get(s, 0) > ema_50.get(s, 0)) if pd.notna(ema_50.get(s)) and pd.notna(latest_close.get(s)) else False
+            lambda s: (
+                (latest_close.get(s, 0) > ema_50.get(s, 0))
+                if pd.notna(ema_50.get(s)) and pd.notna(latest_close.get(s))
+                else False
+            )
         )
         rank_df["% 50 EMA"] = rank_df["Symbol"].map(
-            lambda s: ((latest_close.get(s, 0) - ema_50.get(s, 0)) / ema_50.get(s, 1) * 100)
-            if pd.notna(ema_50.get(s)) and pd.notna(latest_close.get(s)) and ema_50.get(s, 0) > 0 else np.nan
+            lambda s: (
+                ((latest_close.get(s, 0) - ema_50.get(s, 0)) / ema_50.get(s, 1) * 100)
+                if pd.notna(ema_50.get(s))
+                and pd.notna(latest_close.get(s))
+                and ema_50.get(s, 0) > 0
+                else np.nan
+            )
         )
 
         # 52W High
@@ -511,7 +538,9 @@ class MomentumEngine:
         pct_high = ((latest_close - high_52w) / high_52w.replace(0, np.nan)) * 100
         rank_df["52W High"] = rank_df["Symbol"].map(high_52w.to_dict())
         rank_df["% High"] = rank_df["Symbol"].map(pct_high.to_dict())
-        rank_df["Near 52W High"] = rank_df["% High"].map(lambda x: x >= -20.0 if pd.notna(x) else False)
+        rank_df["Near 52W High"] = rank_df["% High"].map(
+            lambda x: x >= -20.0 if pd.notna(x) else False
+        )
 
         # 3M & 6M Metrics
         for w, label in [(63, "3M"), (126, "6M")]:
@@ -524,12 +553,12 @@ class MomentumEngine:
         # 3M & 6M Drawdowns
         win_3m = min(63, len(close_src))
         roll_max_3m = close_src.iloc[-win_3m:].cummax()
-        dd_3m = ((close_src.iloc[-win_3m:] - roll_max_3m) / roll_max_3m).min() * 100
+        dd_3m = ((close_src.iloc[-win_3m:] - roll_max_3m) / roll_max_3m.replace(0, np.nan)).min() * 100
         rank_df["Max DD 3M"] = rank_df["Symbol"].map(dd_3m.to_dict())
 
         win_6m = min(126, len(close_src))
         roll_max_6m = close_src.iloc[-win_6m:].cummax()
-        dd_6m = ((close_src.iloc[-win_6m:] - roll_max_6m) / roll_max_6m).min() * 100
+        dd_6m = ((close_src.iloc[-win_6m:] - roll_max_6m) / roll_max_6m.replace(0, np.nan)).min() * 100
         rank_df["Max DD 6M"] = rank_df["Symbol"].map(dd_6m.to_dict())
 
         # ATR & Stops
@@ -544,19 +573,29 @@ class MomentumEngine:
         # Volume Signal
         if self.volume is not None and not self.volume.empty:
             vol_df = self.volume.ffill()
-            vol_df.columns = [str(c).replace(".NS", "").strip().upper() for c in vol_df.columns]
+            vol_df.columns = [
+                str(c).replace(".NS", "").strip().upper() for c in vol_df.columns
+            ]
             vol_20_avg = vol_df.rolling(20, min_periods=10).mean().iloc[-1]
             vol_latest = vol_df.iloc[-1]
             vol_ratio = vol_latest / vol_20_avg.replace(0, np.nan)
             rank_df["Volume"] = rank_df["Symbol"].map(
-                lambda s: "High" if vol_ratio.get(s, 0) >= 1.5 else ("Low" if vol_ratio.get(s, 0) < 0.7 else "Normal")
+                lambda s: (
+                    "High"
+                    if vol_ratio.get(s, 0) >= 1.5
+                    else ("Low" if vol_ratio.get(s, 0) < 0.7 else "Normal")
+                )
             )
         else:
             rank_df["Volume"] = "Normal"
 
         # Market Caps & Flags
         rank_df["Market Cap (Cr)"] = rank_df["Symbol"].map(
-            lambda s: (market_caps.get(s, 0) / 1e7) if pd.notna(market_caps.get(s)) else np.nan
+            lambda s: (
+                (market_caps.get(s, 0) / 1e7)
+                if pd.notna(market_caps.get(s))
+                else np.nan
+            )
         )
         rank_df["Short History"] = rank_df["Symbol"].map(
             lambda s: "Yes" if self._valid_counts.get(s, 0) < 126 else "No"
@@ -581,29 +620,44 @@ class MomentumEngine:
         industry_col: str = "Industry",
     ) -> pd.DataFrame:
         """Aggregates stock ranks into institutional industry rankings."""
+        if industry_col not in rank_df.columns:
+            return pd.DataFrame()
+
         groups = rank_df.groupby(industry_col)
-        rows = []
+        rows: list[dict[str, Any]] = []
         for ind_name, grp in groups:
             if len(grp) < 2 or not ind_name or str(ind_name).strip() in ("", "nan"):
                 continue
             sorted_g = grp.sort_values("Rank")
             top_syms = sorted_g["Symbol"].tolist()
-            rows.append({
-                "Industry": ind_name,
-                "Stocks": len(grp),
-                "Avg Score": grp["Score"].mean() if "Score" in grp.columns else 0.0,
-                "3M Return": grp["3M Return"].median() if "3M Return" in grp.columns else 0.0,
-                "6M Return": grp["6M Return"].median() if "6M Return" in grp.columns else 0.0,
-                "Top 1": top_syms[0] if len(top_syms) > 0 else "—",
-                "Top 2": top_syms[1] if len(top_syms) > 1 else "—",
-                "Top 3": top_syms[2] if len(top_syms) > 2 else "—",
-            })
+            rows.append(
+                {
+                    "Industry": ind_name,
+                    "Stocks": len(grp),
+                    "Avg Score": grp["Score"].mean() if "Score" in grp.columns else 0.0,
+                    "3M Return": (
+                        grp["3M Return"].median() if "3M Return" in grp.columns else 0.0
+                    ),
+                    "6M Return": (
+                        grp["6M Return"].median() if "6M Return" in grp.columns else 0.0
+                    ),
+                    "Top 1": top_syms[0] if len(top_syms) > 0 else "—",
+                    "Top 2": top_syms[1] if len(top_syms) > 1 else "—",
+                    "Top 3": top_syms[2] if len(top_syms) > 2 else "—",
+                }
+            )
 
         ind_df = pd.DataFrame(rows)
         if ind_df.empty:
             return ind_df
-        ind_df["Rank"] = ind_df["Avg Score"].rank(ascending=False, method="min").astype(int)
-        return ind_df.sort_values("Rank").drop(columns=["Avg Score"]).reset_index(drop=True)
+        ind_df["Rank"] = (
+            ind_df["Avg Score"].rank(ascending=False, method="min").astype(int)
+        )
+        return (
+            ind_df.sort_values("Rank")
+            .drop(columns=["Avg Score"])
+            .reset_index(drop=True)
+        )
 
     # ── Multi-Strategy Overlay ───────────────────────────────────────────────
     def get_multi_strategy_overlay(
@@ -611,12 +665,22 @@ class MomentumEngine:
         rank_df: pd.DataFrame,
         top_n: int = 50,
     ) -> pd.DataFrame:
-        """Finds high-conviction consensus picks across all 5 alternative momentum systems."""
+        """Finds high-conviction consensus picks across alternative momentum systems."""
         res_ranks = self.calculate_residual_momentum(window=126)
         ind_ranks = self.calculate_industry_relative(rank_df, "Industry")
         acc_ranks = self.calculate_momentum_acceleration()
 
-        overlay = rank_df[["Rank", "Symbol", "Industry", "CMP", "3M Return", "6M Return", "Persistence", "ATR %"]].copy()
+        cols = [
+            "Rank",
+            "Symbol",
+            "Industry",
+            "CMP",
+            "3M Return",
+            "6M Return",
+            "Persistence",
+            "ATR %",
+        ]
+        overlay = rank_df[[c for c in cols if c in rank_df.columns]].copy()
         overlay.rename(columns={"Rank": "Composite Rank"}, inplace=True)
         overlay["Sharpe Rank"] = overlay["Composite Rank"]
         overlay["Residual Rank"] = overlay["Symbol"].map(res_ranks.to_dict())

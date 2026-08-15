@@ -2,12 +2,15 @@
 NSE Delivery & Bhavcopy Volume Loader with institutional accumulation surge metrics.
 """
 
+from __future__ import annotations
+
 import concurrent.futures
 import io
 import json
 import os
 from datetime import datetime, timedelta
 from threading import Semaphore
+from typing import Any, Final
 
 import numpy as np
 import pandas as pd
@@ -22,30 +25,44 @@ from src.core.config import (
 )
 from src.core.logger import logger
 
-_MAX_WORKERS = 4
-_RATE_LIMIT = Semaphore(_MAX_WORKERS)
-KEEP_COLS = ["SYMBOL", "DATE1", "CLOSE_PRICE", "PREV_CLOSE", "TTL_TRD_QNTY", "DELIV_PER", "DELIV_QTY"]
+_MAX_WORKERS: Final[int] = 4
+_RATE_LIMIT: Final[Semaphore] = Semaphore(_MAX_WORKERS)
+KEEP_COLS: Final[list[str]] = [
+    "SYMBOL",
+    "DATE1",
+    "CLOSE_PRICE",
+    "PREV_CLOSE",
+    "TTL_TRD_QNTY",
+    "DELIV_PER",
+    "DELIV_QTY",
+]
 
 
 def _write_meta(last_date_str: str, n_days: int, n_symbols: int) -> None:
     try:
-        with open(DELIVERY_META_FILE, "w") as f:
-            json.dump({
-                "last_date": last_date_str,
-                "n_days": n_days,
-                "n_symbols": n_symbols,
-                "saved_at": datetime.now().isoformat(),
-            }, f)
+        os.makedirs(os.path.dirname(DELIVERY_META_FILE), exist_ok=True)
+        with open(DELIVERY_META_FILE, "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "last_date": last_date_str,
+                    "n_days": n_days,
+                    "n_symbols": n_symbols,
+                    "saved_at": datetime.now().isoformat(),
+                },
+                f,
+            )
     except Exception as e:
         logger.warning(f"Delivery meta write error: {e}")
 
 
-def _read_meta() -> dict | None:
+def _read_meta() -> dict[str, Any] | None:
     try:
-        with open(DELIVERY_META_FILE, "r") as f:
-            return json.load(f)
+        if os.path.exists(DELIVERY_META_FILE):
+            with open(DELIVERY_META_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
     except Exception:
-        return None
+        pass
+    return None
 
 
 def is_delivery_cache_fresh() -> bool:
@@ -79,7 +96,13 @@ def _fetch_single_day(target_date: datetime) -> tuple[datetime, pd.DataFrame | N
             if df.empty:
                 return target_date, None
 
-            num_cols = ["CLOSE_PRICE", "PREV_CLOSE", "TTL_TRD_QNTY", "DELIV_PER", "DELIV_QTY"]
+            num_cols = [
+                "CLOSE_PRICE",
+                "PREV_CLOSE",
+                "TTL_TRD_QNTY",
+                "DELIV_PER",
+                "DELIV_QTY",
+            ]
             for col in num_cols:
                 if col in df.columns:
                     df[col] = df[col].astype(str).str.replace(",", "").str.strip()
@@ -87,7 +110,8 @@ def _fetch_single_day(target_date: datetime) -> tuple[datetime, pd.DataFrame | N
 
             df["SYMBOL"] = df["SYMBOL"].astype(str).str.strip().str.upper()
             df["DATE1"] = target_date.date()
-            df["Price_Chg_%"] = ((df["CLOSE_PRICE"] - df["PREV_CLOSE"]) / df["PREV_CLOSE"]) * 100
+            prev_close_clean = df["PREV_CLOSE"].replace(0, np.nan)
+            df["Price_Chg_%"] = ((df["CLOSE_PRICE"] - df["PREV_CLOSE"]) / prev_close_clean) * 100
 
             keep = [c for c in KEEP_COLS + ["Price_Chg_%"] if c in df.columns]
             return target_date, df[keep]
@@ -96,7 +120,9 @@ def _fetch_single_day(target_date: datetime) -> tuple[datetime, pd.DataFrame | N
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def fetch_delivery_data(lookback_calendar_days: int = 65, force_refresh: bool = False) -> pd.DataFrame:
+def fetch_delivery_data(
+    lookback_calendar_days: int = 65, force_refresh: bool = False
+) -> pd.DataFrame:
     """Fetches and consolidates NSE bhavcopy daily archives."""
     if not force_refresh and is_delivery_cache_fresh():
         try:
@@ -109,7 +135,9 @@ def fetch_delivery_data(lookback_calendar_days: int = 65, force_refresh: bool = 
         except Exception as e:
             logger.warning(f"Delivery cache read failed: {e}")
 
-    logger.info(f"Downloading {lookback_calendar_days} calendar days of delivery archives from NSE…")
+    logger.info(
+        f"Downloading {lookback_calendar_days} calendar days of delivery archives from NSE…"
+    )
     today = datetime.now()
     target_dates = [
         today - timedelta(days=i)
@@ -117,13 +145,13 @@ def fetch_delivery_data(lookback_calendar_days: int = 65, force_refresh: bool = 
         if (today - timedelta(days=i)).weekday() < 5
     ]
 
-    all_data = []
+    all_data: list[pd.DataFrame] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=_MAX_WORKERS) as pool:
         futures = {pool.submit(_fetch_single_day, d): d for d in target_dates}
         for fut in concurrent.futures.as_completed(futures):
             try:
                 _, day_df = fut.result(timeout=20)
-                if day_df is not None:
+                if day_df is not None and not day_df.empty:
                     all_data.append(day_df)
             except Exception:
                 pass
@@ -133,7 +161,9 @@ def fetch_delivery_data(lookback_calendar_days: int = 65, force_refresh: bool = 
         if os.path.exists(DELIVERY_FILE):
             try:
                 df = pd.read_parquet(DELIVERY_FILE)
-                logger.warning("Delivery data fetch failed; using stale cached data as fallback.")
+                logger.warning(
+                    "Delivery data fetch failed; using stale cached data as fallback."
+                )
                 return df
             except Exception as e_fallback:
                 logger.error(f"Failed to load fallback delivery cache: {e_fallback}")
@@ -144,8 +174,14 @@ def fetch_delivery_data(lookback_calendar_days: int = 65, force_refresh: bool = 
 
     try:
         master.to_parquet(DELIVERY_FILE, compression="snappy")
-        _write_meta(str(master["DATE1"].max()), master["DATE1"].nunique(), master["SYMBOL"].nunique())
-        logger.info(f"Delivery cached: {master['DATE1'].nunique()} trading days, {master['SYMBOL'].nunique()} stocks")
+        _write_meta(
+            str(master["DATE1"].max()),
+            master["DATE1"].nunique(),
+            master["SYMBOL"].nunique(),
+        )
+        logger.info(
+            f"Delivery cached: {master['DATE1'].nunique()} trading days, {master['SYMBOL'].nunique()} stocks"
+        )
     except Exception as e:
         logger.warning(f"Delivery cache write failed: {e}")
 
@@ -174,10 +210,16 @@ def compute_delivery_metrics(_master_df: pd.DataFrame) -> pd.DataFrame:
     df = _master_df.sort_values(["SYMBOL", "DATE1"]).copy()
 
     grp = df.groupby("SYMBOL")
-    df["Del%_20D"] = grp["DELIV_PER"].transform(lambda x: x.rolling(20, min_periods=15).mean())
-    df["Vol_20D"] = grp["TTL_TRD_QNTY"].transform(lambda x: x.rolling(20, min_periods=15).mean())
+    df["Del%_20D"] = grp["DELIV_PER"].transform(
+        lambda x: x.rolling(20, min_periods=15).mean()
+    )
+    df["Vol_20D"] = grp["TTL_TRD_QNTY"].transform(
+        lambda x: x.rolling(20, min_periods=15).mean()
+    )
     if "DELIV_QTY" in df.columns:
-        df["DelQty_20D"] = grp["DELIV_QTY"].transform(lambda x: x.rolling(20, min_periods=15).mean())
+        df["DelQty_20D"] = grp["DELIV_QTY"].transform(
+            lambda x: x.rolling(20, min_periods=15).mean()
+        )
 
     df["Del%_Prev20D"] = grp["Del%_20D"].transform(lambda x: x.shift(20))
     df["Vol_Prev20D"] = grp["Vol_20D"].transform(lambda x: x.shift(20))
@@ -187,20 +229,30 @@ def compute_delivery_metrics(_master_df: pd.DataFrame) -> pd.DataFrame:
     if latest.empty:
         return pd.DataFrame()
 
-    latest["Del_Surge_Daily"] = (latest["DELIV_PER"] / latest["Del%_20D"].replace(0, np.nan)).round(2)
-    latest["Vol_Surge_Daily"] = (latest["TTL_TRD_QNTY"] / latest["Vol_20D"].replace(0, np.nan)).round(2)
-    latest["Del_Surge_20D"] = (latest["Del%_20D"] / latest["Del%_Prev20D"].replace(0, np.nan)).round(2)
-    latest["Vol_Surge_20D"] = (latest["Vol_20D"] / latest["Vol_Prev20D"].replace(0, np.nan)).round(2)
+    latest["Del_Surge_Daily"] = (
+        latest["DELIV_PER"] / latest["Del%_20D"].replace(0, np.nan)
+    ).round(2)
+    latest["Vol_Surge_Daily"] = (
+        latest["TTL_TRD_QNTY"] / latest["Vol_20D"].replace(0, np.nan)
+    ).round(2)
+    latest["Del_Surge_20D"] = (
+        latest["Del%_20D"] / latest["Del%_Prev20D"].replace(0, np.nan)
+    ).round(2)
+    latest["Vol_Surge_20D"] = (
+        latest["Vol_20D"] / latest["Vol_Prev20D"].replace(0, np.nan)
+    ).round(2)
 
-    latest = latest.rename(columns={
-        "CLOSE_PRICE": "CMP",
-        "TTL_TRD_QNTY": "Volume",
-        "DELIV_PER": "Del %",
-        "Price_Chg_%": "Day Chg %",
-        "Del%_20D": "Del% 20D Avg",
-        "Vol_20D": "Vol 20D Avg",
-        "Del%_Prev20D": "Del% Prev20D",
-    })
+    latest = latest.rename(
+        columns={
+            "CLOSE_PRICE": "CMP",
+            "TTL_TRD_QNTY": "Volume",
+            "DELIV_PER": "Del %",
+            "Price_Chg_%": "Day Chg %",
+            "Del%_20D": "Del% 20D Avg",
+            "Vol_20D": "Vol 20D Avg",
+            "Del%_Prev20D": "Del% Prev20D",
+        }
+    )
 
     latest["Data Date"] = latest_date
     if nse_mcap:

@@ -4,6 +4,9 @@ Weighting schemes: Equal Weight, Inverse Volatility, Equal Risk Contribution (Ri
 Constraints: Stock Cap, Sector Cap, Volatility Targeting.
 """
 
+from __future__ import annotations
+
+from typing import Sequence
 
 import numpy as np
 import pandas as pd
@@ -21,7 +24,9 @@ def _shrunk_cov(returns_df: pd.DataFrame) -> pd.DataFrame:
     T, N = X.shape
 
     if T < 2 or N == 0:
-        return pd.DataFrame(np.eye(max(N, 1)), index=clean.columns, columns=clean.columns)
+        return pd.DataFrame(
+            np.eye(max(N, 1)), index=clean.columns, columns=clean.columns
+        )
 
     mean = np.mean(X, axis=0)
     X_c = X - mean
@@ -34,12 +39,12 @@ def _shrunk_cov(returns_df: pd.DataFrame) -> pd.DataFrame:
         diag_var = np.diag(sample_cov)
 
     # Shrinkage target: diagonal matrix with average variance
-    var_mean = np.mean(diag_var)
+    var_mean = float(np.mean(diag_var))
     target = np.eye(N) * var_mean
 
     # Ledoit-Wolf optimal asymptotic shrinkage intensity (delta)
-    y = X_c ** 2
-    phi_mat = (y.T @ y) / max(T, 1) - sample_cov ** 2
+    y = X_c**2
+    phi_mat = (y.T @ y) / max(T, 1) - sample_cov**2
     phi = float(np.sum(phi_mat))
 
     gamma = float(np.linalg.norm(sample_cov - target, "fro") ** 2)
@@ -56,29 +61,31 @@ def _shrunk_cov(returns_df: pd.DataFrame) -> pd.DataFrame:
 class PortfolioOptimizer:
     """Constructs and optimizes multi-asset portfolios with institutional risk management."""
 
-    def __init__(self, log_returns_df: pd.DataFrame, sector_map: dict[str, str] | None = None):
-        self.returns = log_returns_df
-        self.sector_map = sector_map or {}
+    def __init__(
+        self, log_returns_df: pd.DataFrame, sector_map: dict[str, str] | None = None
+    ):
+        self.returns: pd.DataFrame = log_returns_df
+        self.sector_map: dict[str, str] = sector_map or {}
 
-    def equal_weight(self, symbols: list[str]) -> pd.Series:
+    def equal_weight(self, symbols: Sequence[str]) -> pd.Series:
         n = len(symbols)
         if n == 0:
             return pd.Series(dtype=float)
-        return pd.Series(1.0 / n, index=symbols)
+        return pd.Series(1.0 / n, index=list(symbols))
 
-    def inverse_volatility(self, symbols: list[str], window: int = 63) -> pd.Series:
+    def inverse_volatility(self, symbols: Sequence[str], window: int = 63) -> pd.Series:
         valid = [s for s in symbols if s in self.returns.columns]
         if not valid:
             return self.equal_weight(symbols)
         vol = self.returns[valid].iloc[-window:].std() * np.sqrt(252)
         inv = 1.0 / vol.replace(0, np.nan)
         inv = inv.fillna(0)
-        total = inv.sum()
+        total = float(inv.sum())
         return (inv / total) if total > 0 else self.equal_weight(valid)
 
     def equal_risk_contribution(
         self,
-        symbols: list[str],
+        symbols: Sequence[str],
         window: int = 126,
     ) -> pd.Series:
         """
@@ -114,10 +121,17 @@ class PortfolioOptimizer:
             x0 = np.ones(n) / n
             opts = {"ftol": 1e-9, "maxiter": 500}
 
-            res = minimize(risk_budget_obj, x0=x0, method="SLSQP", bounds=bounds, constraints=constraints, options=opts)
+            res = minimize(
+                risk_budget_obj,
+                x0=x0,
+                method="SLSQP",
+                bounds=bounds,
+                constraints=constraints,
+                options=opts,
+            )
             if res.success:
                 w = np.maximum(res.x, 0.0)
-                tot = np.sum(w)
+                tot = float(np.sum(w))
                 return pd.Series(w / tot if tot > 0 else np.ones(n) / n, index=valid)
             else:
                 return self.inverse_volatility(valid)
@@ -127,7 +141,7 @@ class PortfolioOptimizer:
 
     def mean_variance(
         self,
-        symbols: list[str],
+        symbols: Sequence[str],
         expected_returns: pd.Series,
         risk_aversion: float = 1.0,
         stock_cap: float = 0.10,
@@ -138,7 +152,11 @@ class PortfolioOptimizer:
         min  0.5 * w'Σw - (1 / λ) * μ'w
         s.t. sum(w) = 1, 0 <= w_i <= eff_stock_cap, sum(w_sector) <= eff_sector_cap
         """
-        valid = [s for s in symbols if s in self.returns.columns and s in expected_returns.index]
+        valid = [
+            s
+            for s in symbols
+            if s in self.returns.columns and s in expected_returns.index
+        ]
         n = len(valid)
         if n == 0:
             return pd.Series(dtype=float)
@@ -160,11 +178,8 @@ class PortfolioOptimizer:
         else:
             mu = np.full(n, 0.15)
 
-        # Dynamic feasibility caps: ensure bounds do not mathematically lock or break the solver
-        # For N stocks, stock_cap must be >= 1/N to have a feasible sum to 1.0
         eff_stock_cap = max(float(stock_cap), 1.25 / n, 0.06)
 
-        # Sector feasibility: if K sectors, max sector cannot be less than 1/K
         sec_indices: dict[str, list[int]] = {}
         if self.sector_map:
             for idx, sym in enumerate(valid):
@@ -177,7 +192,9 @@ class PortfolioOptimizer:
             from scipy.optimize import minimize
 
             def objective(w):
-                return float(0.5 * (w @ cov @ w) - (1.0 / max(risk_aversion, 0.1)) * (mu @ w))
+                return float(
+                    0.5 * (w @ cov @ w) - (1.0 / max(risk_aversion, 0.1)) * (mu @ w)
+                )
 
             constraints = [{"type": "eq", "fun": lambda w: float(np.sum(w) - 1.0)}]
 
@@ -185,17 +202,28 @@ class PortfolioOptimizer:
                 for sec_idx_list in sec_indices.values():
                     a = np.zeros(n)
                     a[sec_idx_list] = 1.0
-                    constraints.append({
-                        "type": "ineq",
-                        "fun": lambda w, _a=a, _c=eff_sector_cap: float(_c - np.dot(_a, w)),
-                    })
+                    constraints.append(
+                        {
+                            "type": "ineq",
+                            "fun": lambda w, _a=a, _c=eff_sector_cap: float(
+                                _c - np.dot(_a, w)
+                            ),
+                        }
+                    )
 
             bounds = [(0.005, eff_stock_cap)] * n
             x0 = np.ones(n) / n
             opts = {"ftol": 1e-9, "maxiter": 500}
 
             # Attempt 1: SLSQP with equal weight starting point
-            res = minimize(objective, x0=x0, method="SLSQP", bounds=bounds, constraints=constraints, options=opts)
+            res = minimize(
+                objective,
+                x0=x0,
+                method="SLSQP",
+                bounds=bounds,
+                constraints=constraints,
+                options=opts,
+            )
 
             # Attempt 2: Inverse vol starting point if attempt 1 failed
             if not res.success:
@@ -203,17 +231,28 @@ class PortfolioOptimizer:
                 x0_iv = iv.reindex(valid).fillna(1.0 / n).values
                 x0_iv = np.clip(x0_iv, 0.005, eff_stock_cap)
                 x0_iv = x0_iv / np.sum(x0_iv)
-                res = minimize(objective, x0=x0_iv, method="SLSQP", bounds=bounds, constraints=constraints, options=opts)
+                res = minimize(
+                    objective,
+                    x0=x0_iv,
+                    method="SLSQP",
+                    bounds=bounds,
+                    constraints=constraints,
+                    options=opts,
+                )
 
             if res.success:
                 w = np.maximum(res.x, 0.0)
-                tot = np.sum(w)
+                tot = float(np.sum(w))
                 return pd.Series(w / tot if tot > 0 else np.ones(n) / n, index=valid)
             else:
-                logger.debug("SLSQP didn't converge cleanly — using inverse volatility fallback")
+                logger.debug(
+                    "SLSQP didn't converge cleanly — using inverse volatility fallback"
+                )
                 return self.inverse_volatility(valid)
         except Exception as e:
-            logger.warning(f"MVO solver exception: {e} — fallback to inverse volatility")
+            logger.warning(
+                f"MVO solver exception: {e} — fallback to inverse volatility"
+            )
             return self.inverse_volatility(valid)
 
     def apply_constraints(
@@ -256,19 +295,19 @@ class PortfolioOptimizer:
             # 2. Clip sector caps
             if sec_groups:
                 for sec_syms in sec_groups.values():
-                    sec_total = w[sec_syms].sum()
+                    sec_total = float(w[sec_syms].sum())
                     if sec_total > eff_sector_cap + 1e-8:
                         w[sec_syms] *= eff_sector_cap / sec_total
 
             # 3. Renormalize to 1.0
-            tot = w.sum()
+            tot = float(w.sum())
             if tot > 1e-8:
                 w = w / tot
 
-            if (w - prev_w).abs().max() < 1e-6:
+            if float((w - prev_w).abs().max()) < 1e-6:
                 break
 
-        tot_final = w.sum()
+        tot_final = float(w.sum())
         return (w / tot_final) if tot_final > 0 else self.equal_weight(list(w.index))
 
     def volatility_target(
@@ -286,10 +325,14 @@ class PortfolioOptimizer:
         sub = self.returns[valid].iloc[-window:].fillna(0.0)
         port = (sub * weights[valid]).sum(axis=1)
         realised = float(port.std() * np.sqrt(252))
-        scale = float(np.clip(target_vol / realised, 0.10, 1.0)) if realised > 0 else 1.0
+        scale = (
+            float(np.clip(target_vol / realised, 0.10, 1.0)) if realised > 0 else 1.0
+        )
         return weights * scale, scale, realised
 
-    def summary(self, weights: pd.Series, rank_df: pd.DataFrame | None = None) -> pd.DataFrame:
+    def summary(
+        self, weights: pd.Series, rank_df: pd.DataFrame | None = None
+    ) -> pd.DataFrame:
         """Constructs human-readable portfolio allocation summary."""
         s = weights[weights > 1e-6].sort_values(ascending=False)
         tbl = pd.DataFrame({"Symbol": s.index, "Weight %": (s.values * 100).round(2)})

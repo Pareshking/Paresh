@@ -47,7 +47,9 @@ def _save_persisted_watchlist(text: str) -> None:
     try:
         os.makedirs(DATA_DIR, exist_ok=True)
         with open(WATCHLIST_FILE, "w", encoding="utf-8") as f:
-            json.dump({"watchlist_text": text, "updated_at": datetime.now().isoformat()}, f)
+            json.dump(
+                {"watchlist_text": text, "updated_at": datetime.now().isoformat()}, f
+            )
     except Exception:
         pass
 
@@ -66,7 +68,10 @@ def render_watchlist_view(rank_df: pd.DataFrame) -> None:
         unsafe_allow_html=True,
     )
 
-    if "watchlist_text" not in st.session_state or not st.session_state["watchlist_text"]:
+    if (
+        "watchlist_text" not in st.session_state
+        or not st.session_state["watchlist_text"]
+    ):
         st.session_state["watchlist_text"] = _load_persisted_watchlist()
 
     w1, w2 = st.columns([4, 1], vertical_alignment="center")
@@ -77,7 +82,9 @@ def render_watchlist_view(rank_df: pd.DataFrame) -> None:
         key="wl_input_main",
         label_visibility="collapsed",
     )
-    if w2.button("Update Watchlist", width="stretch", type="primary", key="wl_update_btn"):
+    if w2.button(
+        "Update Watchlist", width="stretch", type="primary", key="wl_update_btn"
+    ):
         st.session_state["watchlist_text"] = wl_input
         _save_persisted_watchlist(wl_input)
         st.rerun()
@@ -86,22 +93,32 @@ def render_watchlist_view(rank_df: pd.DataFrame) -> None:
     user_symbols: list[str] = []
     if raw_text:
         parts = raw_text.replace("\n", ",").split(",")
-        user_symbols = [s.strip().upper().replace(".NS", "") for s in parts if s.strip()]
+        user_symbols = [
+            s.strip().upper().replace(".NS", "") for s in parts if s.strip()
+        ]
 
     if not user_symbols:
-        st.info("Enter comma-separated stock symbols above to monitor their momentum rankings, return metrics, and stop losses.")
+        st.info(
+            "Enter comma-separated stock symbols above to monitor their momentum rankings, return metrics, and stop losses."
+        )
         return
 
     matched = rank_df[rank_df["Symbol"].isin(user_symbols)].sort_values("Rank").copy()
     missing = set(user_symbols) - set(rank_df["Symbol"])
 
     if missing:
-        st.warning(f"{len(missing)} symbol(s) not found in loaded index universe: {', '.join(sorted(missing))}")
+        st.warning(
+            f"{len(missing)} symbol(s) not found in loaded index universe: {', '.join(sorted(missing))}"
+        )
 
     if not matched.empty:
         st.html(
             stat_pill("Tracking", f"{len(matched)} stocks", "indigo")
-            + (stat_pill("Missing", f"{len(missing)} stocks", "amber") if missing else "")
+            + (
+                stat_pill("Missing", f"{len(missing)} stocks", "amber")
+                if missing
+                else ""
+            )
         )
         st.markdown(" ")
 
@@ -115,7 +132,9 @@ def render_watchlist_view(rank_df: pd.DataFrame) -> None:
             key="dl_wl_csv",
         )
     else:
-        st.info("None of the specified symbols match the currently selected market index universe.")
+        st.info(
+            "None of the specified symbols match the currently selected market index universe."
+        )
 
     render_data_quality_footer(
         total_stocks=len(rank_df),

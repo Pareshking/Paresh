@@ -23,7 +23,9 @@ def render_backtest_view(
     """Renders the Walk-Forward Historical Strategy Backtesting Interface."""
     # ── Aligned Controls Grid ────────────────────────────────────────────────
     c1, c2, c3 = st.columns(3, vertical_alignment="center")
-    bt_n = c1.selectbox("Holdings Count", [10, 15, 20, 30, 50], index=2, key="bt_holdings_n")
+    bt_n = c1.selectbox(
+        "Holdings Count", [10, 15, 20, 30, 50], index=2, key="bt_holdings_n"
+    )
     bt_rebal = c2.selectbox(
         "Rebalancing Interval",
         [5, 10, 21, 42, 63],
@@ -61,7 +63,15 @@ def render_backtest_view(
         index=0,
         key="bt_weight_scheme",
     )
-    cost_drag_bps = c5.slider("Transaction Cost Drag (bps)", 0.0, 100.0, 30.0, 5.0, help="Round-trip cost (STT + Stamp Duty + Brokerage + Slippage). Standard NSE equity is ~25-35 bps.", key="bt_cost_bps")
+    cost_drag_bps = c5.slider(
+        "Transaction Cost Drag (bps)",
+        0.0,
+        100.0,
+        30.0,
+        5.0,
+        help="Round-trip cost (STT + Stamp Duty + Brokerage + Slippage). Standard NSE equity is ~25-35 bps.",
+        key="bt_cost_bps",
+    )
     buffer_mult = c6.selectbox(
         "Persistence Buffer",
         [1.0, 1.5, 2.0],
@@ -74,16 +84,32 @@ def render_backtest_view(
     # Dynamic Lookback Controls for Backtest
     if "Composite" in bt_ranking or "Multi-Window" in bt_ranking:
         with st.expander("🎛️ Customize Lookback Weights for Backtest", expanded=False):
-            st.caption("Adjust the relative weighting across 5 windows to test factor sensitivities.")
+            st.caption(
+                "Adjust the relative weighting across 5 windows to test factor sensitivities."
+            )
             bw = st.columns(5)
-            w1 = bw[0].slider("1M (21D)", 0.0, 1.0, float(weights[0]), 0.05, key="btw_1")
-            w2 = bw[1].slider("3M (63D)", 0.0, 1.0, float(weights[1]), 0.05, key="btw_2")
-            w3 = bw[2].slider("6M (126D)", 0.0, 1.0, float(weights[2]), 0.05, key="btw_3")
-            w4 = bw[3].slider("9M (189D)", 0.0, 1.0, float(weights[3]), 0.05, key="btw_4")
-            w5 = bw[4].slider("12M (252D)", 0.0, 1.0, float(weights[4]), 0.05, key="btw_5")
+            w1 = bw[0].slider(
+                "1M (21D)", 0.0, 1.0, float(weights[0]), 0.05, key="btw_1"
+            )
+            w2 = bw[1].slider(
+                "3M (63D)", 0.0, 1.0, float(weights[1]), 0.05, key="btw_2"
+            )
+            w3 = bw[2].slider(
+                "6M (126D)", 0.0, 1.0, float(weights[2]), 0.05, key="btw_3"
+            )
+            w4 = bw[3].slider(
+                "9M (189D)", 0.0, 1.0, float(weights[3]), 0.05, key="btw_4"
+            )
+            w5 = bw[4].slider(
+                "12M (252D)", 0.0, 1.0, float(weights[4]), 0.05, key="btw_5"
+            )
             active_weights = (w1, w2, w3, w4, w5)
             lb_val = 126
-    elif "Single Window" in bt_ranking or "Exp Regression" in bt_ranking or "Classic Momentum" in bt_ranking:
+    elif (
+        "Single Window" in bt_ranking
+        or "Exp Regression" in bt_ranking
+        or "Classic Momentum" in bt_ranking
+    ):
         with st.expander("⏱️ Single-Window Lookback Period", expanded=False):
             lb_val = st.selectbox(
                 "Lookback Window",
@@ -104,7 +130,11 @@ def render_backtest_view(
         lb_val = 126
 
     ph = f"{adj_close.index[-1]}_{adj_close.shape[0]}x{adj_close.shape[1]}"
-    sec_map = rank_df.set_index("Symbol")["Industry"].to_dict() if "Industry" in rank_df.columns else {}
+    sec_map = (
+        rank_df.set_index("Symbol")["Industry"].to_dict()
+        if "Industry" in rank_df.columns
+        else {}
+    )
 
     with st.spinner("Running walk-forward backtest with friction & turnover modeling…"):
         bt_res = run_backtest(
@@ -124,7 +154,9 @@ def render_backtest_view(
         )
 
     if bt_res is None:
-        st.warning("Insufficient price history to execute backtest. At least 1.5 years of continuous daily data is required.")
+        st.warning(
+            "Insufficient price history to execute backtest. At least 1.5 years of continuous daily data is required."
+        )
         return
 
     stats = bt_res["stats"]
@@ -204,7 +236,11 @@ def render_backtest_view(
         c_sub, c_dl = st.columns([2, 1], vertical_alignment="center")
         sub_view = c_sub.segmented_control(
             "Backtest Detail View",
-            ["📊 Monthly Performance & Alpha", "📋 Realized Trades & Returns", "🔄 Rebalance Log"],
+            [
+                "📊 Monthly Performance & Alpha",
+                "📋 Realized Trades & Returns",
+                "🔄 Rebalance Log",
+            ],
             default="📋 Realized Trades & Returns",
             key="bt_detail_sub_view",
             label_visibility="collapsed",
@@ -220,11 +256,26 @@ def render_backtest_view(
             if not monthly.empty:
                 m_df = monthly.copy()
                 if "Period Start" in m_df.columns:
-                    m_df["Period Start"] = pd.to_datetime(m_df["Period Start"]).dt.strftime("%d %b %Y")
+                    m_df["Period Start"] = pd.to_datetime(
+                        m_df["Period Start"]
+                    ).dt.strftime("%d %b %Y")
                 if "Period End" in m_df.columns:
-                    m_df["Period End"] = pd.to_datetime(m_df["Period End"]).dt.strftime("%d %b %Y")
+                    m_df["Period End"] = pd.to_datetime(m_df["Period End"]).dt.strftime(
+                        "%d %b %Y"
+                    )
 
-                disp_cols = ["Period Start", "Period End", "Strategy Net", "Benchmark", "Alpha vs Benchmark", "Turnover %", "Cost Drag %", "Buys", "Sells", "Holdings"]
+                disp_cols = [
+                    "Period Start",
+                    "Period End",
+                    "Strategy Net",
+                    "Benchmark",
+                    "Alpha vs Benchmark",
+                    "Turnover %",
+                    "Cost Drag %",
+                    "Buys",
+                    "Sells",
+                    "Holdings",
+                ]
                 active_cols = [c for c in disp_cols if c in m_df.columns]
 
                 render_saas_table(m_df[active_cols], key="bt_monthly_table")
@@ -241,21 +292,37 @@ def render_backtest_view(
         elif sub_view == "📋 Realized Trades & Returns":
             if not closed_trades.empty:
                 ct_df = closed_trades.copy()
-                
+
                 # Trade KPI summary metrics
-                closed_only = ct_df[ct_df["Status"] == "Closed"] if "Status" in ct_df.columns else ct_df
+                closed_only = (
+                    ct_df[ct_df["Status"] == "Closed"]
+                    if "Status" in ct_df.columns
+                    else ct_df
+                )
                 if not closed_only.empty and "Return %" in closed_only.columns:
                     n_closed = len(closed_only)
                     wins = closed_only[closed_only["Return %"] > 0]
                     losses = closed_only[closed_only["Return %"] < 0]
                     win_rate_pct = (len(wins) / n_closed * 100) if n_closed > 0 else 0.0
                     avg_win = (wins["Return %"].mean() * 100) if not wins.empty else 0.0
-                    avg_loss = (losses["Return %"].mean() * 100) if not losses.empty else 0.0
+                    avg_loss = (
+                        (losses["Return %"].mean() * 100) if not losses.empty else 0.0
+                    )
                     tot_gain = wins["Return %"].sum() if not wins.empty else 0.0
-                    tot_loss = abs(losses["Return %"].sum()) if not losses.empty else 0.001
+                    tot_loss = (
+                        abs(losses["Return %"].sum()) if not losses.empty else 0.001
+                    )
                     profit_factor = (tot_gain / tot_loss) if tot_loss > 0 else 0.0
-                    best_tr = (closed_only["Return %"].max() * 100) if not closed_only.empty else 0.0
-                    worst_tr = (closed_only["Return %"].min() * 100) if not closed_only.empty else 0.0
+                    best_tr = (
+                        (closed_only["Return %"].max() * 100)
+                        if not closed_only.empty
+                        else 0.0
+                    )
+                    worst_tr = (
+                        (closed_only["Return %"].min() * 100)
+                        if not closed_only.empty
+                        else 0.0
+                    )
 
                     trade_kpi_html = f"""
                     <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 12px;">
@@ -284,9 +351,13 @@ def render_backtest_view(
                     st.html(trade_kpi_html)
 
                 tf1, tf2 = st.columns([1.5, 1], vertical_alignment="center")
-                all_months = ["🌟 All Months"] + [m for m in ct_df["Month"].unique() if m]
-                sel_m = tf1.selectbox("Filter Month", all_months, index=0, key="bt_ct_month_filter")
-                
+                all_months = ["🌟 All Months"] + [
+                    m for m in ct_df["Month"].unique() if m
+                ]
+                sel_m = tf1.selectbox(
+                    "Filter Month", all_months, index=0, key="bt_ct_month_filter"
+                )
+
                 tr_filter = tf2.pills(
                     "Filter Outcome",
                     ["All", "🟢 Winners (>0%)", "🔴 Losers (<0%)", "🌟 Active Open"],
@@ -305,8 +376,15 @@ def render_backtest_view(
                     ct_df = ct_df[ct_df["Status"] == "Open"]
 
                 disp_trade_cols = [
-                    "Month", "Symbol", "Entry Date", "Entry Price",
-                    "Exit Date", "Exit Price", "Return %", "Holding (Days)", "Reason for Exit"
+                    "Month",
+                    "Symbol",
+                    "Entry Date",
+                    "Entry Price",
+                    "Exit Date",
+                    "Exit Price",
+                    "Return %",
+                    "Holding (Days)",
+                    "Reason for Exit",
                 ]
                 active_ct_cols = [c for c in disp_trade_cols if c in ct_df.columns]
 
@@ -325,9 +403,16 @@ def render_backtest_view(
             # ── Rebalance Log View ───────────────────────────────────────────
             if not tradebook.empty:
                 t1, t2 = st.columns([1.5, 1], vertical_alignment="center")
-                all_periods = ["🌟 All Rebalance Periods"] + [p for p in tradebook["Period"].unique() if p]
-                selected_period = t1.selectbox("Filter Rebalance Period", all_periods, index=0, key="bt_tb_period_filter")
-                
+                all_periods = ["🌟 All Rebalance Periods"] + [
+                    p for p in tradebook["Period"].unique() if p
+                ]
+                selected_period = t1.selectbox(
+                    "Filter Rebalance Period",
+                    all_periods,
+                    index=0,
+                    key="bt_tb_period_filter",
+                )
+
                 action_filter = t2.pills(
                     "Filter Action",
                     ["All", "🟢 BUY", "🔴 SELL", "⚪ HOLD"],
@@ -346,7 +431,15 @@ def render_backtest_view(
                 elif action_filter == "⚪ HOLD":
                     tb_view = tb_view[tb_view["Action"].str.contains("HOLD")]
 
-                tb_disp_cols = ["Period", "Action", "Symbol", "Price", "Return %", "Weight %", "Reason / Signal"]
+                tb_disp_cols = [
+                    "Period",
+                    "Action",
+                    "Symbol",
+                    "Price",
+                    "Return %",
+                    "Weight %",
+                    "Reason / Signal",
+                ]
                 active_tb_cols = [c for c in tb_disp_cols if c in tb_view.columns]
 
                 render_saas_table(tb_view[active_tb_cols], key="bt_tradebook_table")
@@ -359,7 +452,9 @@ def render_backtest_view(
                     key="dl_bt_tradebook_csv",
                 )
             else:
-                st.info("No tradebook records available for this backtest configuration.")
+                st.info(
+                    "No tradebook records available for this backtest configuration."
+                )
 
     with st.expander("ℹ️ Backtest Methodology & Mathematical Assumptions"):
         st.markdown(

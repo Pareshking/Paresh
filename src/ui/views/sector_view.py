@@ -112,7 +112,10 @@ def render_sector_view(
             "TV Sector (20)": "TV_Sector",
         }[ind_choice]
     else:
-        c_tax.markdown("<span style='font-family:IBM Plex Mono;font-size:0.8rem;color:#475569;'>Classification: <strong>NSE Industry</strong></span>", unsafe_allow_html=True)
+        c_tax.markdown(
+            "<span style='font-family:IBM Plex Mono;font-size:0.8rem;color:#475569;'>Classification: <strong>NSE Industry</strong></span>",
+            unsafe_allow_html=True,
+        )
         ind_col = "Industry"
 
     sort_metric = c_metric.segmented_control(
@@ -147,7 +150,9 @@ def render_sector_view(
     ind_52w, ind_ema, ind_mcap = {}, {}, {}
     for ind_name, grp in work_df.groupby("Industry"):
         grp_syms = [s for s in grp["Symbol"] if s in adj_close.columns]
-        ind_mcap[ind_name] = grp["Market Cap (Cr)"].sum() if "Market Cap (Cr)" in grp.columns else 0.0
+        ind_mcap[ind_name] = (
+            grp["Market Cap (Cr)"].sum() if "Market Cap (Cr)" in grp.columns else 0.0
+        )
         if not grp_syms:
             ind_52w[ind_name] = 0.0
             ind_ema[ind_name] = 0.0
@@ -168,24 +173,50 @@ def render_sector_view(
 
         # Sort strictly according to selected metric
         if sort_metric == "Market Cap":
-            ind_rank_df = ind_rank_df.sort_values("Total MCap (Cr)", ascending=False).reset_index(drop=True)
+            ind_rank_df = ind_rank_df.sort_values(
+                "Total MCap (Cr)", ascending=False
+            ).reset_index(drop=True)
         elif sort_metric == "3M Return":
-            ind_rank_df = ind_rank_df.sort_values("3M Return", ascending=False).reset_index(drop=True)
+            ind_rank_df = ind_rank_df.sort_values(
+                "3M Return", ascending=False
+            ).reset_index(drop=True)
         elif sort_metric == "6M Return":
-            ind_rank_df = ind_rank_df.sort_values("6M Return", ascending=False).reset_index(drop=True)
+            ind_rank_df = ind_rank_df.sort_values(
+                "6M Return", ascending=False
+            ).reset_index(drop=True)
         else:
-            ind_rank_df = ind_rank_df.sort_values("Rank", ascending=True).reset_index(drop=True)
+            ind_rank_df = ind_rank_df.sort_values("Rank", ascending=True).reset_index(
+                drop=True
+            )
 
         ind_rank_df["Rank"] = range(1, len(ind_rank_df) + 1)
 
     # ── Render Selected Layout ───────────────────────────────────────────────
     if layout_choice == "Treemap":
         ret_col = "6M Return" if sort_metric == "6M Return" else "3M Return"
-        render_sector_treemap(rank_df, taxonomy_col=ind_col, return_col=ret_col, size_by=sort_metric)
+        render_sector_treemap(
+            rank_df, taxonomy_col=ind_col, return_col=ret_col, size_by=sort_metric
+        )
 
     elif layout_choice == "Table":
-        disp_ind_cols = ["Rank", "Industry", "Stocks", "Total MCap (Cr)", "3M Return", "6M Return", "% 52W High", "% 20 EMA", "Top 1", "Top 2", "Top 3"]
-        render_saas_table(ind_rank_df[[c for c in disp_ind_cols if c in ind_rank_df.columns]], key="sector_table_view", max_height=520)
+        disp_ind_cols = [
+            "Rank",
+            "Industry",
+            "Stocks",
+            "Total MCap (Cr)",
+            "3M Return",
+            "6M Return",
+            "% 52W High",
+            "% 20 EMA",
+            "Top 1",
+            "Top 2",
+            "Top 3",
+        ]
+        render_saas_table(
+            ind_rank_df[[c for c in disp_ind_cols if c in ind_rank_df.columns]],
+            key="sector_table_view",
+            max_height=520,
+        )
 
     else:
         # Cards View

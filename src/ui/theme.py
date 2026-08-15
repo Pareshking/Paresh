@@ -10,6 +10,7 @@ def clean_html(html_str: str) -> str:
     """Strips leading whitespace from every line to ensure Markdown NEVER interprets HTML as code blocks."""
     return re.sub(r"^[ \t]+", "", html_str, flags=re.MULTILINE).strip()
 
+
 FORMAT_MAP: dict[str, str] = {
     # Currency & Prices (Integer rounded with commas)
     "CMP": "{:,.0f}",
@@ -24,7 +25,6 @@ FORMAT_MAP: dict[str, str] = {
     "Market Cap (Cr)": "{:,.0f}",
     "Total MCap (Cr)": "{:,.0f}",
     "Total_MCap_Cr": "{:,.0f}",
-
     # Quantities & Counts (Integer)
     "Shares to Buy": "{:,.0f}",
     "Stocks": "{:,.0f}",
@@ -43,7 +43,6 @@ FORMAT_MAP: dict[str, str] = {
     "Accel Rank": "{:.0f}",
     "Sharpe Rank": "{:.0f}",
     "Composite Rank": "{:.0f}",
-
     # Decimal Ratios (1 decimal place with % sign)
     "3M Return": "{:+.1%}",
     "6M Return": "{:+.1%}",
@@ -57,7 +56,6 @@ FORMAT_MAP: dict[str, str] = {
     "CAGR": "{:+.1%}",
     "Max Drawdown": "{:.1%}",
     "Win Rate": "{:.0%}",
-
     # Pre-calculated Percentages (already multiplied by 100)
     "% High": "{:.1f}%",
     "% 50 EMA": "{:+.1f}%",
@@ -75,7 +73,6 @@ FORMAT_MAP: dict[str, str] = {
     "Cost Drag %": "{:.2f}%",
     "Day Chg %": "{:+.1f}%",
     "Price_Chg_%": "{:+.1f}%",
-
     # Ratios & Alpha Scores (2 decimal places)
     "3M Sharpe": "{:.2f}",
     "6M Sharpe": "{:.2f}",
@@ -96,7 +93,12 @@ FORMAT_MAP: dict[str, str] = {
 }
 
 BOOL_ICONS = {True: "🟢", False: "⚪"}
-VOL_ICONS = {"High": "🟢 High", "Surge": "🟢 Surge", "Normal": "⚪ Normal", "Low": "🔴 Low"}
+VOL_ICONS = {
+    "High": "🟢 High",
+    "Surge": "🟢 Surge",
+    "Normal": "⚪ Normal",
+    "Low": "🔴 Low",
+}
 
 
 def inject_custom_css() -> None:
@@ -604,6 +606,7 @@ def inject_custom_css() -> None:
             text-overflow: ellipsis;
             margin-bottom: 12px;
         }
+        .stock-card-price {
             color: #0f172a !important;
             font-size: 1.35rem !important;
             font-weight: 800 !important;
@@ -723,7 +726,20 @@ def render_styled_table(
 ) -> None:
     """Renders high-density financial table with dynamic tight height, smart auto-formatting, and zero blank rows."""
     active_fmt = {}
-    MONTH_NAMES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+    MONTH_NAMES = [
+        "jan",
+        "feb",
+        "mar",
+        "apr",
+        "may",
+        "jun",
+        "jul",
+        "aug",
+        "sep",
+        "oct",
+        "nov",
+        "dec",
+    ]
     for col in df.columns:
         if custom_formats and col in custom_formats:
             active_fmt[col] = custom_formats[col]
@@ -731,13 +747,41 @@ def render_styled_table(
             active_fmt[col] = FORMAT_MAP[col]
         elif pd.api.types.is_float_dtype(df[col]):
             col_l = col.lower()
-            if any(m in col_l for m in MONTH_NAMES) or "return" in col_l or "rate" in col_l or "yield" in col_l or "alpha" in col_l:
+            if (
+                any(m in col_l for m in MONTH_NAMES)
+                or "return" in col_l
+                or "rate" in col_l
+                or "yield" in col_l
+                or "alpha" in col_l
+            ):
                 active_fmt[col] = "{:+.1%}"
             elif "%" in col or "pct" in col_l:
                 active_fmt[col] = "{:.1f}%"
-            elif any(w in col_l for w in ["sharpe", "sortino", "ratio", "beta", "score", "r2", "surge"]):
+            elif any(
+                w in col_l
+                for w in ["sharpe", "sortino", "ratio", "beta", "score", "r2", "surge"]
+            ):
                 active_fmt[col] = "{:.2f}"
-            elif any(w in col_l for w in ["value", "price", "cmp", "cap", "target", "actual", "stop", "exit", "qty", "quantity", "shares", "amount", "volume", "stocks", "count"]):
+            elif any(
+                w in col_l
+                for w in [
+                    "value",
+                    "price",
+                    "cmp",
+                    "cap",
+                    "target",
+                    "actual",
+                    "stop",
+                    "exit",
+                    "qty",
+                    "quantity",
+                    "shares",
+                    "amount",
+                    "volume",
+                    "stocks",
+                    "count",
+                ]
+            ):
                 active_fmt[col] = "{:,.0f}"
             else:
                 valid = df[col].dropna()
@@ -747,7 +791,7 @@ def render_styled_table(
                     active_fmt[col] = "{:.2f}"
         elif pd.api.types.is_integer_dtype(df[col]):
             active_fmt[col] = "{:,.0f}"
-    
+
     # Calculate tight height: exactly fit small tables, scrollable for large datasets
     if height is None:
         n_rows = len(df)
@@ -764,34 +808,48 @@ def render_styled_table(
         # Clean white styling with soft return color fills
         if "3M Return" in df.columns:
             s = s.map(
-                lambda x: "background-color: #ecfdf5; color: #065f46; font-weight: 600;"
-                if pd.notna(x) and x > 0
-                else ("background-color: #fff1f2; color: #9f1239; font-weight: 600;" if pd.notna(x) and x < 0 else ""),
+                lambda x: (
+                    "background-color: #ecfdf5; color: #065f46; font-weight: 600;"
+                    if pd.notna(x) and x > 0
+                    else (
+                        "background-color: #fff1f2; color: #9f1239; font-weight: 600;"
+                        if pd.notna(x) and x < 0
+                        else ""
+                    )
+                ),
                 subset=["3M Return"],
             )
         if "6M Return" in df.columns:
             s = s.map(
-                lambda x: "background-color: #ecfdf5; color: #065f46; font-weight: 600;"
-                if pd.notna(x) and x > 0
-                else ("background-color: #fff1f2; color: #9f1239; font-weight: 600;" if pd.notna(x) and x < 0 else ""),
+                lambda x: (
+                    "background-color: #ecfdf5; color: #065f46; font-weight: 600;"
+                    if pd.notna(x) and x > 0
+                    else (
+                        "background-color: #fff1f2; color: #9f1239; font-weight: 600;"
+                        if pd.notna(x) and x < 0
+                        else ""
+                    )
+                ),
                 subset=["6M Return"],
             )
         # Rank Delta Color Highlights (Green for advancement, Rose for drops)
         for d_col in ["Rank Δ 1M", "Rank Δ 3M"]:
             if d_col in df.columns:
                 s = s.map(
-                    lambda x: "background-color: #d1fae5; color: #065f46; font-weight: 700;"
-                    if pd.notna(x) and x >= 30
-                    else (
-                        "background-color: #ecfdf5; color: #059669; font-weight: 600;"
-                        if pd.notna(x) and x > 0
+                    lambda x: (
+                        "background-color: #d1fae5; color: #065f46; font-weight: 700;"
+                        if pd.notna(x) and x >= 30
                         else (
-                            "background-color: #fee2e2; color: #991b1b; font-weight: 700;"
-                            if pd.notna(x) and x <= -30
+                            "background-color: #ecfdf5; color: #059669; font-weight: 600;"
+                            if pd.notna(x) and x > 0
                             else (
-                                "background-color: #fff1f2; color: #e11d48; font-weight: 600;"
-                                if pd.notna(x) and x < 0
-                                else ""
+                                "background-color: #fee2e2; color: #991b1b; font-weight: 700;"
+                                if pd.notna(x) and x <= -30
+                                else (
+                                    "background-color: #fff1f2; color: #e11d48; font-weight: 600;"
+                                    if pd.notna(x) and x < 0
+                                    else ""
+                                )
                             )
                         )
                     ),
@@ -808,34 +866,39 @@ def render_styled_table(
             }
         )
 
-        s = s.set_table_styles([
-            {
-                "selector": "th",
-                "props": [
-                    ("background-color", "#f8fafc"),
-                    ("color", "#475569"),
-                    ("font-size", "11px"),
-                    ("font-weight", "700"),
-                    ("text-transform", "uppercase"),
-                    ("letter-spacing", "0.05em"),
-                    ("border-bottom", "1.5px solid #cbd5e1"),
-                    ("border-left", "none"),
-                    ("border-right", "none"),
-                    ("padding", "8px 10px"),
-                    ("font-family", "'Plus Jakarta Sans', sans-serif"),
-                ],
-            },
-            {
-                "selector": "td",
-                "props": [
-                    ("padding", "6px 10px"),
-                    ("border-bottom", "1px solid #f1f5f9"),
-                    ("border-left", "none"),
-                    ("border-right", "none"),
-                ],
-            },
-            {"selector": "tr:hover td", "props": [("background-color", "#f8fafc !important")]},
-        ])
+        s = s.set_table_styles(
+            [
+                {
+                    "selector": "th",
+                    "props": [
+                        ("background-color", "#f8fafc"),
+                        ("color", "#475569"),
+                        ("font-size", "11px"),
+                        ("font-weight", "700"),
+                        ("text-transform", "uppercase"),
+                        ("letter-spacing", "0.05em"),
+                        ("border-bottom", "1.5px solid #cbd5e1"),
+                        ("border-left", "none"),
+                        ("border-right", "none"),
+                        ("padding", "8px 10px"),
+                        ("font-family", "'Plus Jakarta Sans', sans-serif"),
+                    ],
+                },
+                {
+                    "selector": "td",
+                    "props": [
+                        ("padding", "6px 10px"),
+                        ("border-bottom", "1px solid #f1f5f9"),
+                        ("border-left", "none"),
+                        ("border-right", "none"),
+                    ],
+                },
+                {
+                    "selector": "tr:hover td",
+                    "props": [("background-color", "#f8fafc !important")],
+                },
+            ]
+        )
         st.dataframe(s, width="stretch", height=calc_height, key=key, hide_index=True)
     except Exception:
         st.dataframe(df, width="stretch", height=calc_height, key=key, hide_index=True)
@@ -891,16 +954,22 @@ def render_master_screener_table(
             if sym in sub_prices.columns:
                 spark_map[sym] = generate_sparkline_svg(sub_prices[sym].values)
             else:
-                spark_map[sym] = '<span style="color:#cbd5e1;font-size:0.75rem;">—</span>'
+                spark_map[sym] = (
+                    '<span style="color:#cbd5e1;font-size:0.75rem;">—</span>'
+                )
 
     # Build HTML Rows for All Records (Continuous Scrollable)
     rows_html = []
     for _, row in df.iterrows():
         rk = row.get("Rank", "—")
         sym = row.get("Symbol", "—")
-        
+
         cmp_val = row.get("CMP")
-        cmp_str = f"₹{float(cmp_val):,.0f}" if pd.notna(cmp_val) and isinstance(cmp_val, (int, float)) else "—"
+        cmp_str = (
+            f"₹{float(cmp_val):,.0f}"
+            if pd.notna(cmp_val) and isinstance(cmp_val, (int, float))
+            else "—"
+        )
 
         # Rank moves
         d1m = row.get("Rank Δ 1M")
@@ -908,7 +977,9 @@ def render_master_screener_table(
             if d1m > 0:
                 d1m_html = f"<span class='badge-pill badge-green'>▲ {int(d1m)}</span>"
             elif d1m < 0:
-                d1m_html = f"<span class='badge-pill badge-red'>▼ {abs(int(d1m))}</span>"
+                d1m_html = (
+                    f"<span class='badge-pill badge-red'>▼ {abs(int(d1m))}</span>"
+                )
             else:
                 d1m_html = "<span class='badge-pill badge-neutral'>— 0</span>"
         else:
@@ -919,7 +990,9 @@ def render_master_screener_table(
             if d3m > 0:
                 d3m_html = f"<span class='badge-pill badge-green'>▲ {int(d3m)}</span>"
             elif d3m < 0:
-                d3m_html = f"<span class='badge-pill badge-red'>▼ {abs(int(d3m))}</span>"
+                d3m_html = (
+                    f"<span class='badge-pill badge-red'>▼ {abs(int(d3m))}</span>"
+                )
             else:
                 d3m_html = "<span class='badge-pill badge-neutral'>— 0</span>"
         else:
@@ -927,42 +1000,96 @@ def render_master_screener_table(
 
         # Classification
         idx_raw = str(row.get("Indices", "—")).split(",")[0].strip()
-        idx_html = f"<span class='index-tag'>{idx_raw}</span>" if idx_raw and idx_raw != "—" else "<span class='text-muted'>—</span>"
-        
+        idx_html = (
+            f"<span class='index-tag'>{idx_raw}</span>"
+            if idx_raw and idx_raw != "—"
+            else "<span class='text-muted'>—</span>"
+        )
+
         ind_raw = str(row.get("Industry", "—"))
         ind_disp = ind_raw[:20] + "…" if len(ind_raw) > 21 else ind_raw
 
         mcap_val = row.get("Market Cap (Cr)")
-        mcap_str = f"₹{float(mcap_val):,.0f}" if pd.notna(mcap_val) and isinstance(mcap_val, (int, float)) else "—"
+        mcap_str = (
+            f"₹{float(mcap_val):,.0f}"
+            if pd.notna(mcap_val) and isinstance(mcap_val, (int, float))
+            else "—"
+        )
 
         # 3M Factor Momentum
         ret_3m = row.get("3M Return")
-        ret_3m_str = f"{float(ret_3m):+.1%}" if pd.notna(ret_3m) and isinstance(ret_3m, (int, float)) else "—"
-        ret_3m_clr = "ret-pos" if (isinstance(ret_3m, (int, float)) and ret_3m > 0) else ("ret-neg" if (isinstance(ret_3m, (int, float)) and ret_3m < 0) else "")
+        ret_3m_str = (
+            f"{float(ret_3m):+.1%}"
+            if pd.notna(ret_3m) and isinstance(ret_3m, (int, float))
+            else "—"
+        )
+        ret_3m_clr = (
+            "ret-pos"
+            if (isinstance(ret_3m, (int, float)) and ret_3m > 0)
+            else (
+                "ret-neg" if (isinstance(ret_3m, (int, float)) and ret_3m < 0) else ""
+            )
+        )
 
         sharpe_3m = row.get("3M Sharpe")
-        sharpe_3m_str = f"{float(sharpe_3m):.2f}" if pd.notna(sharpe_3m) and isinstance(sharpe_3m, (int, float)) else "—"
+        sharpe_3m_str = (
+            f"{float(sharpe_3m):.2f}"
+            if pd.notna(sharpe_3m) and isinstance(sharpe_3m, (int, float))
+            else "—"
+        )
 
         r2_3m = row.get("3M R2")
-        r2_3m_str = f"{float(r2_3m):.2f}" if pd.notna(r2_3m) and isinstance(r2_3m, (int, float)) else "—"
+        r2_3m_str = (
+            f"{float(r2_3m):.2f}"
+            if pd.notna(r2_3m) and isinstance(r2_3m, (int, float))
+            else "—"
+        )
 
         dd_3m = row.get("Max DD 3M")
-        dd_3m_str = f"{float(dd_3m):.1f}%" if pd.notna(dd_3m) and isinstance(dd_3m, (int, float)) else "—"
+        dd_3m_str = (
+            f"{float(dd_3m):.1f}%"
+            if pd.notna(dd_3m) and isinstance(dd_3m, (int, float))
+            else "—"
+        )
 
         # 6M Factor Momentum
         ret_6m = row.get("6M Return")
-        ret_6m_str = f"{float(ret_6m):+.1%}" if pd.notna(ret_6m) and isinstance(ret_6m, (int, float)) else "—"
-        ret_6m_clr = "ret-pos" if (isinstance(ret_6m, (int, float)) and ret_6m > 0) else ("ret-neg" if (isinstance(ret_6m, (int, float)) and ret_6m < 0) else "")
+        ret_6m_str = (
+            f"{float(ret_6m):+.1%}"
+            if pd.notna(ret_6m) and isinstance(ret_6m, (int, float))
+            else "—"
+        )
+        ret_6m_clr = (
+            "ret-pos"
+            if (isinstance(ret_6m, (int, float)) and ret_6m > 0)
+            else (
+                "ret-neg" if (isinstance(ret_6m, (int, float)) and ret_6m < 0) else ""
+            )
+        )
 
         sharpe_6m = row.get("6M Sharpe")
-        sharpe_6m_str = f"{float(sharpe_6m):.2f}" if pd.notna(sharpe_6m) and isinstance(sharpe_6m, (int, float)) else "—"
+        sharpe_6m_str = (
+            f"{float(sharpe_6m):.2f}"
+            if pd.notna(sharpe_6m) and isinstance(sharpe_6m, (int, float))
+            else "—"
+        )
 
         r2_6m = row.get("6M R2")
-        r2_6m_str = f"{float(r2_6m):.2f}" if pd.notna(r2_6m) and isinstance(r2_6m, (int, float)) else "—"
+        r2_6m_str = (
+            f"{float(r2_6m):.2f}"
+            if pd.notna(r2_6m) and isinstance(r2_6m, (int, float))
+            else "—"
+        )
 
         dd_6m = row.get("Max DD 6M")
-        if (pd.isna(dd_6m) or not isinstance(dd_6m, (int, float))) and prices_df is not None:
-            p_col = sym if sym in prices_df.columns else (f"{sym}.NS" if f"{sym}.NS" in prices_df.columns else None)
+        if (
+            pd.isna(dd_6m) or not isinstance(dd_6m, (int, float))
+        ) and prices_df is not None:
+            p_col = (
+                sym
+                if sym in prices_df.columns
+                else (f"{sym}.NS" if f"{sym}.NS" in prices_df.columns else None)
+            )
             if p_col is not None:
                 sub_p = prices_df[p_col].dropna()
                 if len(sub_p) >= 2:
@@ -970,37 +1097,75 @@ def render_master_screener_table(
                     p_win = sub_p.iloc[-win_6m:]
                     roll_max = p_win.cummax()
                     dd_6m = float(((p_win - roll_max) / roll_max).min() * 100)
-        dd_6m_str = f"{float(dd_6m):.1f}%" if pd.notna(dd_6m) and isinstance(dd_6m, (int, float)) else "—"
+        dd_6m_str = (
+            f"{float(dd_6m):.1f}%"
+            if pd.notna(dd_6m) and isinstance(dd_6m, (int, float))
+            else "—"
+        )
 
         # Technicals & Filters
         pct_hi = row.get("% High")
-        hi_str = f"{float(pct_hi):.1f}%" if pd.notna(pct_hi) and isinstance(pct_hi, (int, float)) else "—"
+        hi_str = (
+            f"{float(pct_hi):.1f}%"
+            if pd.notna(pct_hi) and isinstance(pct_hi, (int, float))
+            else "—"
+        )
 
         pct_ema = row.get("% 50 EMA")
-        ema_str = f"{float(pct_ema):+.1f}%" if pd.notna(pct_ema) and isinstance(pct_ema, (int, float)) else "—"
+        ema_str = (
+            f"{float(pct_ema):+.1f}%"
+            if pd.notna(pct_ema) and isinstance(pct_ema, (int, float))
+            else "—"
+        )
 
         vol_val = str(row.get("Volume", "Normal"))
-        vol_badge = "<span class='vol-tag'>🔥 High</span>" if vol_val == "High" else ("<span class='vol-tag vol-surge'>⚡ Surge</span>" if vol_val == "Surge" else "<span class='text-muted'>• Normal</span>")
+        vol_badge = (
+            "<span class='vol-tag'>🔥 High</span>"
+            if vol_val == "High"
+            else (
+                "<span class='vol-tag vol-surge'>⚡ Surge</span>"
+                if vol_val == "Surge"
+                else "<span class='text-muted'>• Normal</span>"
+            )
+        )
 
         above_ema = row.get("Above 50 EMA")
-        above_ema_icon = "🟢" if (above_ema is True or str(above_ema) in ["✅", "True", "1"]) else "⚪"
+        above_ema_icon = (
+            "🟢"
+            if (above_ema is True or str(above_ema) in ["✅", "True", "1"])
+            else "⚪"
+        )
 
         near_hi = row.get("Near 52W High")
-        near_hi_icon = "🟢" if (near_hi is True or str(near_hi) in ["✅", "True", "1"]) else "⚪"
+        near_hi_icon = (
+            "🟢" if (near_hi is True or str(near_hi) in ["✅", "True", "1"]) else "⚪"
+        )
 
         # Risk & Exits
         sl_val = row.get("Stop Loss")
-        sl_str = f"₹{float(sl_val):,.0f}" if pd.notna(sl_val) and isinstance(sl_val, (int, float)) else "—"
+        sl_str = (
+            f"₹{float(sl_val):,.0f}"
+            if pd.notna(sl_val) and isinstance(sl_val, (int, float))
+            else "—"
+        )
 
         chand_val = row.get("Chand Exit")
-        chand_str = f"₹{float(chand_val):,.0f}" if pd.notna(chand_val) and isinstance(chand_val, (int, float)) else "—"
+        chand_str = (
+            f"₹{float(chand_val):,.0f}"
+            if pd.notna(chand_val) and isinstance(chand_val, (int, float))
+            else "—"
+        )
 
         # Data Health
         gap_val = str(row.get("Data Gap", "🟢"))
         gap_icon = "🔴" if "🔴" in gap_val else "🟢"
 
         ffill_val = row.get("FFill %")
-        ffill_str = f"{float(ffill_val):.1f}%" if pd.notna(ffill_val) and isinstance(ffill_val, (int, float)) else "0.0%"
+        ffill_str = (
+            f"{float(ffill_val):.1f}%"
+            if pd.notna(ffill_val) and isinstance(ffill_val, (int, float))
+            else "0.0%"
+        )
 
         spark_svg = spark_map.get(sym, '<span class="text-muted">—</span>')
 
@@ -1469,9 +1634,43 @@ def render_saas_table(
     headers_html = []
     for col in df.columns:
         c_str = str(col).upper()
-        if any(w in c_str for w in ["RANK", "DELTA", "Δ", "GAP", "STATUS", "STOCKS", "COUNT", "HOLDINGS", "TRADES", "IN ALL TOP", "QUADRANT", "ACTION"]):
+        if any(
+            w in c_str
+            for w in [
+                "RANK",
+                "DELTA",
+                "Δ",
+                "GAP",
+                "STATUS",
+                "STOCKS",
+                "COUNT",
+                "HOLDINGS",
+                "TRADES",
+                "IN ALL TOP",
+                "QUADRANT",
+                "ACTION",
+            ]
+        ):
             headers_html.append(f'<th class="th-center">{col}</th>')
-        elif any(w in c_str for w in ["SYMBOL", "INDUSTRY", "SECTOR", "STRATEGY", "TAXONOMY", "DESCRIPTION", "NAME", "PERIOD", "MODEL", "OBJECTIVE", "REGIME", "WINDOW", "REASON", "MONTH"]):
+        elif any(
+            w in c_str
+            for w in [
+                "SYMBOL",
+                "INDUSTRY",
+                "SECTOR",
+                "STRATEGY",
+                "TAXONOMY",
+                "DESCRIPTION",
+                "NAME",
+                "PERIOD",
+                "MODEL",
+                "OBJECTIVE",
+                "REGIME",
+                "WINDOW",
+                "REASON",
+                "MONTH",
+            ]
+        ):
             headers_html.append(f'<th class="th-left">{col}</th>')
         else:
             headers_html.append(f'<th class="th-right">{col}</th>')
@@ -1489,79 +1688,207 @@ def render_saas_table(
 
             # Special column formatting
             if "SYMBOL" in c_str:
-                cells_html.append(f'<td class="td-left"><span class="stock-ticker">{val}</span></td>')
+                cells_html.append(
+                    f'<td class="td-left"><span class="stock-ticker">{val}</span></td>'
+                )
             elif "QUADRANT" in c_str:
                 q_val = str(val).capitalize()
                 q_badge = {
                     "Leading": "badge-green",
                     "Weakening": "badge-yellow",
                     "Lagging": "badge-red",
-                    "Improving": "badge-blue"
+                    "Improving": "badge-blue",
                 }.get(q_val, "badge-neutral")
                 q_ico = {
                     "Leading": "🟢",
                     "Weakening": "🟡",
                     "Lagging": "🔴",
-                    "Improving": "🔵"
+                    "Improving": "🔵",
                 }.get(q_val, "⚪")
-                cells_html.append(f'<td class="td-center"><span class="badge-pill {q_badge}">{q_ico} {q_val}</span></td>')
+                cells_html.append(
+                    f'<td class="td-center"><span class="badge-pill {q_badge}">{q_ico} {q_val}</span></td>'
+                )
             elif "ACTION" in c_str:
                 act_str = str(val).upper()
                 if "BUY" in act_str:
-                    cells_html.append('<td class="td-center"><span class="badge-pill badge-green">🟢 BUY</span></td>')
+                    cells_html.append(
+                        '<td class="td-center"><span class="badge-pill badge-green">🟢 BUY</span></td>'
+                    )
                 elif "SELL" in act_str:
-                    cells_html.append('<td class="td-center"><span class="badge-pill badge-red">🔴 SELL</span></td>')
+                    cells_html.append(
+                        '<td class="td-center"><span class="badge-pill badge-red">🔴 SELL</span></td>'
+                    )
                 else:
-                    cells_html.append(f'<td class="td-center"><span class="badge-pill badge-neutral">{val}</span></td>')
+                    cells_html.append(
+                        f'<td class="td-center"><span class="badge-pill badge-neutral">{val}</span></td>'
+                    )
             elif isinstance(val, (int, np.integer)) and not isinstance(val, bool):
                 if any(w in c_str for w in ["DELTA", "Δ"]):
-                    clr = "badge-green" if val > 0 else ("badge-red" if val < 0 else "badge-neutral")
+                    clr = (
+                        "badge-green"
+                        if val > 0
+                        else ("badge-red" if val < 0 else "badge-neutral")
+                    )
                     symbol = "▲" if val > 0 else ("▼" if val < 0 else "—")
-                    cells_html.append(f'<td class="td-center"><span class="badge-pill {clr}">{symbol} {abs(int(val))}</span></td>')
-                elif any(w in c_str for w in ["RANK", "STOCKS", "COUNT", "HOLDINGS", "TRADES"]):
-                    cells_html.append(f'<td class="td-center"><strong>{int(val)}</strong></td>')
+                    cells_html.append(
+                        f'<td class="td-center"><span class="badge-pill {clr}">{symbol} {abs(int(val))}</span></td>'
+                    )
+                elif any(
+                    w in c_str
+                    for w in ["RANK", "STOCKS", "COUNT", "HOLDINGS", "TRADES"]
+                ):
+                    cells_html.append(
+                        f'<td class="td-center"><strong>{int(val)}</strong></td>'
+                    )
                 else:
                     cells_html.append(f'<td class="td-right">{int(val):,}</td>')
             elif isinstance(val, (float, np.floating)):
                 if any(w in c_str for w in ["DELTA", "Δ"]):
-                    clr = "badge-green" if val > 0 else ("badge-red" if val < 0 else "badge-neutral")
+                    clr = (
+                        "badge-green"
+                        if val > 0
+                        else ("badge-red" if val < 0 else "badge-neutral")
+                    )
                     symbol = "▲" if val > 0 else ("▼" if val < 0 else "—")
-                    cells_html.append(f'<td class="td-center"><span class="badge-pill {clr}">{symbol} {abs(round(val))}</span></td>')
-                elif any(w in c_str for w in ["RANK", "STOCKS", "COUNT", "HOLDINGS", "TRADES"]):
-                    cells_html.append(f'<td class="td-center"><strong>{round(val)}</strong></td>')
+                    cells_html.append(
+                        f'<td class="td-center"><span class="badge-pill {clr}">{symbol} {abs(round(val))}</span></td>'
+                    )
+                elif any(
+                    w in c_str
+                    for w in ["RANK", "STOCKS", "COUNT", "HOLDINGS", "TRADES"]
+                ):
+                    cells_html.append(
+                        f'<td class="td-center"><strong>{round(val)}</strong></td>'
+                    )
                 # 1. Returns & Alphas & Monthly returns (e.g. M-1, M-2, Strategy Net, Benchmark)
-                elif any(w in c_str for w in ["RETURN", "RET", "ALPHA", "CAGR", "DAY CHG", "NET", "BENCHMARK"]) or c_str.startswith("M-") or "MONTH" in c_str:
-                    clr = "ret-pos" if val > 0 else ("ret-neg" if val < 0 else "text-muted")
+                elif (
+                    any(
+                        w in c_str
+                        for w in [
+                            "RETURN",
+                            "RET",
+                            "ALPHA",
+                            "CAGR",
+                            "DAY CHG",
+                            "NET",
+                            "BENCHMARK",
+                        ]
+                    )
+                    or c_str.startswith("M-")
+                    or "MONTH" in c_str
+                ):
+                    clr = (
+                        "ret-pos"
+                        if val > 0
+                        else ("ret-neg" if val < 0 else "text-muted")
+                    )
                     if abs(val) <= 1.0 and val != 0:
-                        cells_html.append(f'<td class="td-right {clr}"><strong>{val:+.1%}</strong></td>')
+                        cells_html.append(
+                            f'<td class="td-right {clr}"><strong>{val:+.1%}</strong></td>'
+                        )
                     else:
-                        cells_html.append(f'<td class="td-right {clr}"><strong>{val:+.1f}%</strong></td>')
+                        cells_html.append(
+                            f'<td class="td-right {clr}"><strong>{val:+.1f}%</strong></td>'
+                        )
                 # 2. Percentages (e.g. Del %, Win Rate, Turnover %, Cost Drag %, ATR %, Weight %)
-                elif any(w in c_str for w in ["%", "DD", "DRAWDOWN", "WIN RATE", "TURNOVER", "DEL", "DRAG", "FFILL", "HIGH", "EMA", "WEIGHT"]):
-                    clr = "ret-neg" if any(w in c_str for w in ["DD", "DRAWDOWN", "DRAG"]) else ""
-                    if abs(val) <= 1.0 and val != 0 and not any(k in c_str for k in ["DEL", "TURNOVER", "DRAG", "FFILL", "EMA", "HIGH", "%"]):
+                elif any(
+                    w in c_str
+                    for w in [
+                        "%",
+                        "DD",
+                        "DRAWDOWN",
+                        "WIN RATE",
+                        "TURNOVER",
+                        "DEL",
+                        "DRAG",
+                        "FFILL",
+                        "HIGH",
+                        "EMA",
+                        "WEIGHT",
+                    ]
+                ):
+                    clr = (
+                        "ret-neg"
+                        if any(w in c_str for w in ["DD", "DRAWDOWN", "DRAG"])
+                        else ""
+                    )
+                    if (
+                        abs(val) <= 1.0
+                        and val != 0
+                        and not any(
+                            k in c_str
+                            for k in [
+                                "DEL",
+                                "TURNOVER",
+                                "DRAG",
+                                "FFILL",
+                                "EMA",
+                                "HIGH",
+                                "%",
+                            ]
+                        )
+                    ):
                         cells_html.append(f'<td class="td-right {clr}">{val:.1%}</td>')
                     else:
                         cells_html.append(f'<td class="td-right {clr}">{val:.1f}%</td>')
                 # 3. Currency / Prices (e.g. CMP, Entry Price, Exit Price, Value, Capital)
-                elif any(w in c_str for w in ["CMP", "VALUE", "PRICE", "CAPITAL", "MCAP", "STOP LOSS", "CHAND", "ENTRY", "EXIT"]):
+                elif any(
+                    w in c_str
+                    for w in [
+                        "CMP",
+                        "VALUE",
+                        "PRICE",
+                        "CAPITAL",
+                        "MCAP",
+                        "STOP LOSS",
+                        "CHAND",
+                        "ENTRY",
+                        "EXIT",
+                    ]
+                ):
                     if abs(val) < 100 and abs(val) > 0:
-                        cells_html.append(f'<td class="td-right">₹{float(val):,.2f}</td>')
+                        cells_html.append(
+                            f'<td class="td-right">₹{float(val):,.2f}</td>'
+                        )
                     else:
-                        cells_html.append(f'<td class="td-right">₹{float(val):,.0f}</td>')
+                        cells_html.append(
+                            f'<td class="td-right">₹{float(val):,.0f}</td>'
+                        )
                 # 4. Multipliers & Ratios (e.g. Sharpe, Sortino, Calmar, R2, Beta, Surge, Multiplier, Profit Factor, RS_Ratio, RS_Momentum)
-                elif any(w in c_str for w in ["SHARPE", "SORTINO", "CALMAR", "R2", "RATIO", "BETA", "SURGE", "MULTIPLIER", "FACTOR", "PERSISTENCE", "RS_RATIO", "RS_MOMENTUM"]):
+                elif any(
+                    w in c_str
+                    for w in [
+                        "SHARPE",
+                        "SORTINO",
+                        "CALMAR",
+                        "R2",
+                        "RATIO",
+                        "BETA",
+                        "SURGE",
+                        "MULTIPLIER",
+                        "FACTOR",
+                        "PERSISTENCE",
+                        "RS_RATIO",
+                        "RS_MOMENTUM",
+                    ]
+                ):
                     if any(w in c_str for w in ["SURGE", "MULTIPLIER", "FACTOR"]):
-                        cells_html.append(f'<td class="td-right td-sharpe">{float(val):.2f}×</td>')
+                        cells_html.append(
+                            f'<td class="td-right td-sharpe">{float(val):.2f}×</td>'
+                        )
                     else:
-                        cells_html.append(f'<td class="td-right td-sharpe">{float(val):.2f}</td>')
+                        cells_html.append(
+                            f'<td class="td-right td-sharpe">{float(val):.2f}</td>'
+                        )
                 # 5. Generic Float Fallback (Guarantees clean 2 decimals max!)
                 else:
                     cells_html.append(f'<td class="td-right">{val:.2f}</td>')
             elif any(w in c_str for w in ["INDUSTRY", "SECTOR"]):
                 cells_html.append(f'<td class="td-left td-sector">{val}</td>')
             elif isinstance(val, bool):
-                cells_html.append(f'<td class="td-center">{"🟢 Yes" if val else "⚪ No"}</td>')
+                cells_html.append(
+                    f'<td class="td-center">{"🟢 Yes" if val else "⚪ No"}</td>'
+                )
             else:
                 cells_html.append(f'<td class="td-left">{val}</td>')
 
