@@ -4,7 +4,13 @@ Executed locally or via GitHub Actions at 9:00 PM IST.
 """
 
 from datetime import datetime
+import os
 import sys
+
+# Ensure repository root is in python path
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
 
 from src.loaders.delivery_loader import fetch_delivery_data
 from src.loaders.indices_loader import fetch_indices_data, sync_official_nse_indices

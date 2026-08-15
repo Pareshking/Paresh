@@ -91,9 +91,9 @@ def _fetch_single_day(target_date: datetime) -> Tuple[datetime, Optional[pd.Data
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def fetch_delivery_data(lookback_calendar_days: int = 65) -> pd.DataFrame:
+def fetch_delivery_data(lookback_calendar_days: int = 65, force_refresh: bool = False) -> pd.DataFrame:
     """Fetches and consolidates NSE bhavcopy daily archives."""
-    if is_delivery_cache_fresh():
+    if not force_refresh and is_delivery_cache_fresh():
         try:
             df = pd.read_parquet(DELIVERY_FILE)
             meta = _read_meta() or {}
