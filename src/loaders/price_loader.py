@@ -149,7 +149,7 @@ def fetch_price_history(
                 else:
                     existing = {str(c).replace(".NS", "").upper() for c in df.columns}
                 if not ({s.upper() for s in symbols} - existing):
-                    logger.info(f"Price cache hit: {len(existing)} stocks")
+                    logger.info(f"Price cache hit: {len(existing)} stocks (size {os.path.getsize(PRICES_FILE)//1024} KB)")
                     return df
                 logger.info("Price cache incomplete — fetching missing tickers")
         except Exception as e:

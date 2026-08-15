@@ -17,6 +17,19 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Restore price cache
+        id: restore-price-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/data_cache/
+          key: price-data-${{ runner.os }}
+          restore-keys: |
+            price-data-
+        
+        # Debug output
+        run: |
+          echo "Cache restore result: ${{ steps.restore-price-cache.outputs.cache-hit }}"
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -33,6 +46,13 @@ jobs:
           PYTHONPATH: .
         run: |
           python scripts/sync_data.py
+
+      - name: Save price cache
+        if: always()
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/data_cache/
+          key: price-data-${{ runner.os }}
 
       - name: Commit and Push Updated Index & Classification Files
         run: |
