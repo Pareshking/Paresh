@@ -1,0 +1,45 @@
+name: Weekly Full Sync (Friday night)
+
+on:
+  schedule:
+    # Every Friday at 23:00 IST = 18:30 UTC (adjust if DST not needed)
+    - cron: '30 18 * * 5'
+
+jobs:
+  full-sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Restore price cache
+        uses: actions/cache@v4
+        with:
+          path: data_cache
+          key: price-cache-${{ runner.os }}-${{ hashFiles('src/**/*.py') }}
+
+      - name: Run full refresh sync
+        env:
+          FORCE_FULL: "true"
+        run: |
+          python scripts/sync_data.py
+
+      - name: Save updated cache
+        uses: actions/cache@v4
+        with:
+          path: data_cache
+          key: price-cache-${{ runner.os }}-${{ hashFiles('src/**/*.py') }}
+          restore-keys: |
+            price-cache-${{ runner.os }}-

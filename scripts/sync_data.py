@@ -6,7 +6,8 @@ Executed locally or via GitHub Actions at 9:00 PM IST.
 from datetime import datetime
 import os
 import sys
-
+# Determine if a full 2‑year refresh is required (weekly run)
+FORCE_FULL = os.getenv("FORCE_FULL", "false").lower() == "true"
 # Ensure repository root is in python path
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT_DIR not in sys.path:
@@ -44,17 +45,17 @@ def run_daily_sync() -> None:
 
     # 4. Fetch and cache price histories (2Y)
     print("\n--- 4. Fetching and Caching 2Y OHLCV Price Histories ---")
-    prices_df = fetch_price_history(symbols, period="2y", force_refresh=True)
+    prices_df = fetch_price_history(symbols, period="2y", force_refresh=FORCE_FULL)
     print(f"Price cache updated with shape {prices_df.shape}.")
 
     # 5. Fetch market caps
     print("\n--- 5. Fetching Market Capitalizations ---")
-    mcaps = fetch_market_caps(symbols, force_refresh=True)
+    mcaps = fetch_market_caps(symbols, force_refresh=FORCE_FULL)
     print(f"Market cap cache updated for {len(mcaps)} tickers.")
 
     # 6. Fetch delivery archives
     print("\n--- 6. Fetching NSE Delivery Bhavcopy Archives ---")
-    deliv = fetch_delivery_data(force_refresh=True)
+    deliv = fetch_delivery_data(force_refresh=FORCE_FULL)
     print(f"Delivery archive cache updated with {len(deliv)} records.")
 
     print(f"\n[{datetime.now():%Y-%m-%d %H:%M:%S}] All daily sync tasks completed successfully!")

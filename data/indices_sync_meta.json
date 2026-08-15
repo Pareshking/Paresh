@@ -1,32 +1,32 @@
 {
-  "last_synced": "15 Aug 2026, 09:45",
-  "timestamp": "2026-08-15T09:45:03.887589",
+  "last_synced": "14 Aug 2026, 22:13",
+  "timestamp": "2026-08-14T22:13:53.835889",
   "total_stocks": 752,
   "indices": {
     "NIFTY 50": {
       "count": 50,
       "status": "Updated",
-      "time": "2026-08-15T09:45:01.916541"
+      "time": "2026-08-14T22:13:52.079467"
     },
     "NIFTY NEXT 50": {
       "count": 50,
       "status": "Updated",
-      "time": "2026-08-15T09:45:02.374510"
+      "time": "2026-08-14T22:13:52.580419"
     },
     "NIFTY MIDCAP 150": {
       "count": 150,
       "status": "Updated",
-      "time": "2026-08-15T09:45:02.918665"
+      "time": "2026-08-14T22:13:53.162483"
     },
     "NIFTY SMALLCAP 250": {
       "count": 250,
       "status": "Updated",
-      "time": "2026-08-15T09:45:03.379719"
+      "time": "2026-08-14T22:13:53.391611"
     },
     "NIFTY MICROCAP 250": {
       "count": 252,
       "status": "Updated",
-      "time": "2026-08-15T09:45:03.886496"
+      "time": "2026-08-14T22:13:53.835243"
     }
   }
 }

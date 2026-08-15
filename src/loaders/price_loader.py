@@ -25,14 +25,16 @@ except Exception:
 
 
 def _is_fresh(last_date: Union[datetime, pd.Timestamp, str]) -> bool:
-    """Checks if the latest price date is <= 3 calendar days ago."""
+    """Checks if the latest price date is ≤ 1 calendar day ago.
+    The cache is considered stale after 24 hours, ensuring daily price updates.
+    """
     if isinstance(last_date, (pd.Timestamp, datetime)):
         dt = last_date.date()
     elif isinstance(last_date, str):
         dt = pd.to_datetime(last_date).date()
     else:
         return False
-    return (datetime.now().date() - dt).days <= 3
+    return (datetime.now().date() - dt).days <= 1
 
 
 def _extract_field(df: pd.DataFrame, field_names: List[str]) -> pd.DataFrame:
@@ -130,34 +132,71 @@ def fetch_price_history(
     period: str = "2y",
     force_refresh: bool = False,
 ) -> pd.DataFrame:
-    """
-    Downloads daily historical OHLCV data for symbols using yfinance with parquet caching.
+    """Fetch daily OHLCV data for *symbols*.
+
+    The function caches data in ``PRICES_FILE``. If the cache exists and already
+    contains rows up to the most recent market close, only the missing days are
+    downloaded and appended. A full download is performed only when the cache
+    is absent, corrupted, or ``force_refresh`` is ``True``.
     """
     if not symbols:
         return pd.DataFrame()
 
-    # ── Check Disk Cache ──
+    # Helper to download a date range.
+    def _download_range(tickers: List[str], start_date: pd.Timestamp) -> pd.DataFrame:
+        start_str = start_date.strftime("%Y-%m-%d")
+        logger.info(f"Downloading incremental prices from {start_str} for {len(tickers)} tickers…")
+        return yf.download(
+            tickers,
+            start=start_str,
+            progress=False,
+            group_by="ticker",
+            threads=True,
+        )
+
+    # ── Load existing cache if present ──
     if not force_refresh and os.path.exists(PRICES_FILE):
         try:
-            df = pd.read_parquet(PRICES_FILE)
-            if not df.empty and _is_fresh(df.index[-1]):
-                if isinstance(df.columns, pd.MultiIndex):
-                    existing = {
-                        str(c).replace(".NS", "").upper()
-                        for c in df.columns.get_level_values(0).unique()
-                    }
+            cached = pd.read_parquet(PRICES_FILE)
+            if not cached.empty:
+                last_cached_date = cached.index[-1].date()
+                today = datetime.now().date()
+                if last_cached_date >= today:
+                    logger.info(f"Price cache up‑to‑date: {len(cached.columns)} series")
+                    return cached
+                # Incremental update needed.
+                start_date = pd.Timestamp(last_cached_date) + pd.Timedelta(days=1)
+                new_data = _download_range(
+                    [s + ".NS" if not s.upper().endswith('.NS') else s for s in symbols],
+                    start_date,
+                )
+                if new_data is not None and not new_data.empty:
+                    combined = pd.concat([cached, new_data], axis=1)
+                    if combined.index.duplicated().any():
+                        combined = combined[~combined.index.duplicated(keep="last")]
+                    # Normalise column names.
+                    if isinstance(combined.columns, pd.MultiIndex):
+                        tickers = [str(c).replace(".NS", "").strip().upper() for c in combined.columns.get_level_values(0)]
+                        prices = list(combined.columns.get_level_values(1))
+                        names = combined.columns.names if combined.columns.names[0] else ["Ticker", "Price"]
+                        combined.columns = pd.MultiIndex.from_arrays([tickers, prices], names=names)
+                    else:
+                        combined.columns = [str(c).replace(".NS", "").strip().upper() for c in combined.columns]
+                    try:
+                        combined.to_parquet(PRICES_FILE, compression="snappy")
+                        logger.info(f"Price cache updated: {len(combined)} rows ({len(combined.columns)} series)")
+                    except Exception as e:
+                        logger.warning(f"Price cache save failed (incremental): {e}")
+                    return combined
                 else:
-                    existing = {str(c).replace(".NS", "").upper() for c in df.columns}
-                if not ({s.upper() for s in symbols} - existing):
-                    logger.info(f"Price cache hit: {len(existing)} stocks (size {os.path.getsize(PRICES_FILE)//1024} KB)")
-                    return df
-                logger.info("Price cache incomplete — fetching missing tickers")
+                    logger.info("No new price data available; returning existing cache.")
+                    return cached
         except Exception as e:
             logger.warning(f"Price cache read failed: {e}")
 
-    # ── Batch Download ──
-    yf_symbols = [s + ".NS" if not s.upper().endswith(".NS") else s for s in symbols]
-    logger.info(f"Downloading prices for {len(yf_symbols)} stocks (period={period})…")
+    # ── Full download fallback (cache missing or forced) ──
+    yf_symbols = [s + ".NS" if not s.upper().endswith('.NS') else s for s in symbols]
+    logger.info(f"Downloading full price history for {len(yf_symbols)} stocks (period={period})…")
 
     BATCH_SIZE = 100
     all_batches = []
@@ -166,7 +205,6 @@ def fetch_price_history(
         batch_num = batch_start // BATCH_SIZE + 1
         total_batches = (len(yf_symbols) + BATCH_SIZE - 1) // BATCH_SIZE
         logger.debug(f"Downloading batch {batch_num}/{total_batches} ({len(batch)} tickers)")
-
         try:
             batch_data = yf.download(
                 batch,
@@ -179,7 +217,6 @@ def fetch_price_history(
                 all_batches.append(batch_data)
         except Exception as e:
             logger.warning(f"Batch {batch_num} error: {e}")
-
         if batch_start + BATCH_SIZE < len(yf_symbols):
             time.sleep(1.5)
 
@@ -189,7 +226,7 @@ def fetch_price_history(
 
     data = pd.concat(all_batches, axis=1) if len(all_batches) > 1 else all_batches[0]
 
-    # Retry missing symbols individually
+    # Retry missing symbols individually (same logic as before)
     if isinstance(data.columns, pd.MultiIndex) and not data.empty:
         got = set(data.columns.get_level_values(0).unique())
         missing = [t for t in yf_symbols if t not in got]
@@ -232,7 +269,7 @@ def fetch_price_history(
     if data.index.duplicated().any():
         data = data[~data.index.duplicated(keep="last")]
 
-    # Normalize column names
+    # Normalise column names
     if isinstance(data.columns, pd.MultiIndex):
         tickers = [str(c).replace(".NS", "").strip().upper() for c in data.columns.get_level_values(0)]
         prices = list(data.columns.get_level_values(1))
@@ -243,7 +280,7 @@ def fetch_price_history(
 
     data = data.dropna(how="all")
 
-    # Save to parquet cache
+    # Save to parquet cache (full or incremental)
     try:
         data.to_parquet(PRICES_FILE, compression="snappy")
         logger.info(f"Price cache saved: {len(data)} rows ({len(data.columns)} series)")
