@@ -1,0 +1,51 @@
+name: Apply V1 Momentum Fix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch V1 momentum engine
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/engine/momentum.py')
+          s = p.read_text()
+
+          old_mp = '''    @staticmethod\n    def _mp(window: int) -> int:\n        return max(int(window * 0.8), 10)\n'''
+          new_mp = '''    @staticmethod\n    def _mp(window: int) -> int:\n        # Require the complete lookback window for each momentum/R² component.\n        return window\n'''
+          if old_mp not in s:
+              raise SystemExit('Expected _mp implementation not found')
+          s = s.replace(old_mp, new_mp, 1)
+
+          old_combo = '''        # Weighted combination\n        tot_w = sum(self.weights)\n        norm_weights = [w / tot_w for w in self.weights] if tot_w > 0 else [0.2] * 5\n\n        composite = pd.DataFrame(\n            0.0, index=self.prices.index, columns=self.prices.columns\n        )\n        for w, weight in zip(self.WINDOWS, norm_weights):\n            if w in scores_by_w:\n                composite = composite.add(scores_by_w[w].fillna(0.0) * weight)\n'''
+          new_combo = '''        # Weighted combination: normalize by the weights of the windows\n        # actually available for each stock/date. Missing longer horizons\n        # therefore do not artificially penalize stocks with shorter history.\n        tot_w = sum(self.weights)\n        norm_weights = [w / tot_w for w in self.weights] if tot_w > 0 else [0.2] * 5\n\n        composite = pd.DataFrame(\n            0.0, index=self.prices.index, columns=self.prices.columns\n        )\n        available_weight = pd.DataFrame(\n            0.0, index=self.prices.index, columns=self.prices.columns\n        )\n        for w, weight in zip(self.WINDOWS, norm_weights):\n            if w in scores_by_w:\n                scores = scores_by_w[w]\n                composite = composite.add(scores.fillna(0.0) * weight)\n                available_weight = available_weight.add(scores.notna().astype(float) * weight)\n\n        composite = composite.div(available_weight.replace(0.0, np.nan))\n'''
+          if old_combo not in s:
+              raise SystemExit('Expected weighted-combination block not found')
+          s = s.replace(old_combo, new_combo, 1)
+
+          p.write_text(s)
+
+      - name: Syntax check
+        run: python -m py_compile src/engine/momentum.py
+
+      - name: Commit V1 fix and remove temporary workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/engine/momentum.py
+          git rm .github/workflows/v1-momentum-fix.yml
+          git commit -m 'Fix V1 momentum window handling and weight normalization'
+          git push origin main
