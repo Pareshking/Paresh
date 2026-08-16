@@ -151,7 +151,8 @@ class MomentumEngine:
 
     @staticmethod
     def _mp(window: int) -> int:
-        return max(int(window * 0.8), 10)
+        # Require the complete lookback window for each momentum/R² component.
+        return window
 
     def _rolling_r2(self, window: int) -> pd.DataFrame:
         """Vectorized rolling Pearson correlation squared against linear time."""
@@ -238,16 +239,25 @@ class MomentumEngine:
                     ),
                 }
 
-        # Weighted combination
+        # Weighted combination: normalize by the weights of the windows
+        # actually available for each stock/date. Missing longer horizons
+        # therefore do not artificially penalize stocks with shorter history.
         tot_w = sum(self.weights)
         norm_weights = [w / tot_w for w in self.weights] if tot_w > 0 else [0.2] * 5
 
         composite = pd.DataFrame(
             0.0, index=self.prices.index, columns=self.prices.columns
         )
+        available_weight = pd.DataFrame(
+            0.0, index=self.prices.index, columns=self.prices.columns
+        )
         for w, weight in zip(self.WINDOWS, norm_weights):
             if w in scores_by_w:
-                composite = composite.add(scores_by_w[w].fillna(0.0) * weight)
+                scores = scores_by_w[w]
+                composite = composite.add(scores.fillna(0.0) * weight)
+                available_weight = available_weight.add(scores.notna().astype(float) * weight)
+
+        composite = composite.div(available_weight.replace(0.0, np.nan))
 
         self.momentum_scores = composite
         return self.momentum_scores
