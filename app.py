@@ -242,11 +242,19 @@ else:
 
 # ── Top Header KPI Bar & Alerts ──────────────────────────────────────────────
 total_stocks = len(rank_df)
+
+# Defensive handling for duplicate column names.  A duplicate "Above 50 EMA"
+# can turn rank_df["Above 50 EMA"] into a DataFrame, causing int(sum()) to fail.
+# Keep the rightmost calculated value from MomentumEngine.get_rankings().
+ema_col = rank_df.get("Above 50 EMA")
+if isinstance(ema_col, pd.DataFrame):
+    ema_col = ema_col.iloc[:, -1]
+
 is_above_ema = (
-    rank_df["Above 50 EMA"].map(
+    ema_col.map(
         lambda x: x is True or str(x).strip() in ["✅", "True", "1"]
     )
-    if "Above 50 EMA" in rank_df.columns
+    if ema_col is not None
     else pd.Series(False, index=rank_df.index)
 )
 above_ema = int(is_above_ema.sum())
