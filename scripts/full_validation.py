@@ -15,14 +15,22 @@ from src.loaders.price_loader import extract_ohlcv, fetch_price_history
 OUT = Path("artifacts")
 OUT.mkdir(exist_ok=True)
 
-EXPECTED_NIFTY_TOTAL_MARKET_CONSTITUENTS = 752
+# fetch_indices_data() returns the investable universe after deterministic
+# filtering of explicit DUMMY/placeholder constituents. Do not hard-code the
+# raw NSE row count: constituent counts can change during index rebalances.
 idx = fetch_indices_data(["NIFTY TOTAL MARKET"])
-if len(idx) != EXPECTED_NIFTY_TOTAL_MARKET_CONSTITUENTS:
-    raise AssertionError(
-        f"Expected {EXPECTED_NIFTY_TOTAL_MARKET_CONSTITUENTS} NIFTY TOTAL MARKET constituents, got {len(idx)}"
-    )
+if idx.empty:
+    raise AssertionError("NIFTY TOTAL MARKET returned an empty investable universe")
 
-symbols = idx["Symbol"].astype(str).str.strip().str.upper().tolist()
+symbols = idx["Symbol"].astype(str).str.strip().str.upper()
+if symbols.str.startswith("DUMMY").any():
+    dummy_symbols = symbols[symbols.str.startswith("DUMMY")].tolist()
+    raise AssertionError(f"DUMMY constituents leaked into investable universe: {dummy_symbols}")
+if symbols.duplicated().any():
+    duplicates = symbols[symbols.duplicated()].tolist()
+    raise AssertionError(f"Duplicate symbols in investable universe: {duplicates}")
+symbols = symbols.tolist()
+
 raw = fetch_price_history(symbols, period="2y", force_refresh=False)
 if raw.empty:
     raise AssertionError("Price history is empty")
@@ -101,7 +109,7 @@ rank_summary = rank_df[["Symbol", "Rank", "Score", "3M Return", "6M Return"]].co
 rank_summary.to_csv(OUT / "ranking_summary.csv", index=False)
 
 report = {
-    "universe_requested": EXPECTED_NIFTY_TOTAL_MARKET_CONSTITUENTS,
+    "universe_requested": int(len(idx)),
     "universe_loaded": int(len(idx)),
     "price_series": int(len(adj.columns)),
     "ranked_stocks": int(len(rank_df)),
