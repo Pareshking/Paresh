@@ -16,98 +16,62 @@ jobs:
         with:
           ref: main
           fetch-depth: 2
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pytest
-
-      - name: Apply residual benchmark and overlay consistency fixes
+      - name: Apply benchmark consistency fixes
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
 
-          # Momentum engine: production residual alpha must default to the common V1 benchmark,
-          # never to the equal-weight stock universe. Explicit benchmark_returns still wins.
           p = Path("src/engine/momentum.py")
           s = p.read_text()
           old = '''        daily_ret = self.prices.pct_change(fill_method=None)\n        if benchmark_returns is None:\n            mkt_ret = daily_ret.mean(axis=1)\n        else:\n            mkt_ret = benchmark_returns.reindex(daily_ret.index).ffill()'''
-          new = '''        daily_ret = self.prices.pct_change(fill_method=None)\n        if benchmark_returns is None:\n            from src.loaders.price_loader import fetch_benchmark_history\n            benchmark_close = fetch_benchmark_history(period="2y")\n            if benchmark_close.empty:\n                mkt_ret = pd.Series(np.nan, index=daily_ret.index, dtype=float)\n            else:\n                mkt_ret = pd.to_numeric(benchmark_close, errors="coerce").reindex(daily_ret.index).pct_change(fill_method=None)\n        else:\n            mkt_ret = pd.to_numeric(benchmark_returns, errors="coerce").reindex(daily_ret.index).ffill()'''
+          new = '''        daily_ret = self.prices.pct_change(fill_method=None)\n        if benchmark_returns is None:\n            from src.loaders.price_loader import fetch_benchmark_history\n            benchmark_close = fetch_benchmark_history(period="2y")\n            mkt_ret = (\n                pd.to_numeric(benchmark_close, errors="coerce")\n                .reindex(daily_ret.index)\n                .pct_change(fill_method=None)\n                if not benchmark_close.empty\n                else pd.Series(np.nan, index=daily_ret.index, dtype=float)\n            )\n        else:\n            mkt_ret = pd.to_numeric(benchmark_returns, errors="coerce").reindex(daily_ret.index).ffill()'''
           if old in s:
               s = s.replace(old, new, 1)
-          elif "fetch_benchmark_history(period=\"2y\")" not in s:
-              raise SystemExit("Momentum residual-alpha fallback block not found")
           p.write_text(s)
 
-          # Strategy view: use actual Nifty 500 benchmark and leave-one-out industry-relative score.
           p = Path("src/ui/views/strategy_view.py")
           s = p.read_text()
           if "from src.loaders.price_loader import fetch_benchmark_history" not in s:
-              anchor = "from src.ui.theme import render_saas_table"
-              if anchor not in s:
-                  raise SystemExit("Strategy view import anchor not found")
-              s = s.replace(anchor, anchor + "\nfrom src.loaders.price_loader import fetch_benchmark_history", 1)
-
-          old = '''    prices = _adj_close.dropna(axis=1, how="all").copy()\n    daily_ret = prices.pct_change(fill_method=None)'''
-          new = '''    prices = _adj_close.dropna(axis=1, how="all").copy()\n    daily_ret = prices.pct_change(fill_method=None)\n    benchmark_close = fetch_benchmark_history(period="2y")\n    benchmark_ret = (\n        pd.to_numeric(benchmark_close, errors="coerce")\n        .reindex(prices.index)\n        .pct_change(fill_method=None)\n        if not benchmark_close.empty\n        else pd.Series(np.nan, index=prices.index, dtype=float)\n    )'''
-          if old in s:
-              s = s.replace(old, new, 1)
-          elif "benchmark_ret = (" not in s:
-              raise SystemExit("Strategy price initialization block not found")
-
-          old = '''        mkt_ret = daily_ret.loc[:t_start].mean(axis=1)\n        stk_ret = daily_ret.loc[:t_start].iloc[start_6m:]\n        cov_m = stk_ret.apply(lambda col: col.cov(mkt_ret))\n        var_m = float(mkt_ret.var())\n        beta = cov_m / max(var_m, 1e-8)\n        alpha_res = (stk_ret.mean() * 252) - (beta * (float(mkt_ret.mean()) * 252))'''
-          new = '''        mkt_ret = benchmark_ret.loc[:t_start].iloc[start_6m:]\n        stk_ret = daily_ret.loc[:t_start].iloc[start_6m:]\n        valid_mkt = mkt_ret.notna()\n        mkt_ret = mkt_ret.loc[valid_mkt]\n        stk_ret = stk_ret.loc[valid_mkt]\n        var_m = float(mkt_ret.var()) if len(mkt_ret) else 0.0\n        if len(mkt_ret) >= 30 and var_m > 1e-12:\n            cov_m = stk_ret.apply(lambda col: col.cov(mkt_ret))\n            beta = cov_m / var_m\n            alpha_res = (stk_ret.mean() * 252) - (beta * (float(mkt_ret.mean()) * 252))\n        else:\n            alpha_res = pd.Series(np.nan, index=prices.columns)'''
-          if old in s:
-              s = s.replace(old, new, 1)
-          elif "benchmark_ret.loc[:t_start]" not in s:
-              raise SystemExit("Strategy residual-alpha block not found")
-
-          old = '''        ind_means = {k: float(np.nanmean(v)) for k, v in ind_scores.items() if np.isfinite(v).any()}\n        ind_rel_score = comp_score - comp_score.index.map(\n            lambda s: ind_means.get(ind_map.get(s, "General"), 0)\n        )'''
-          new = '''        ind_sum = comp_score.groupby(comp_score.index.map(lambda s: ind_map.get(s, "General"))).transform("sum")\n        ind_count = comp_score.groupby(comp_score.index.map(lambda s: ind_map.get(s, "General"))).transform("count")\n        peer_sum = ind_sum - comp_score\n        peer_count = ind_count - comp_score.notna().astype(int)\n        peer_mean = peer_sum.div(peer_count.replace(0, np.nan))\n        ind_rel_score = comp_score - peer_mean'''
-          if old in s:
-              s = s.replace(old, new, 1)
-          elif "peer_mean = peer_sum.div(peer_count" not in s:
-              raise SystemExit("Strategy industry-relative block not found")
-
-          # The benchmark curve in this view must also be the actual V1 benchmark.
-          old = '''        b_daily = fwd_slice.mean(axis=1)\n        b_month_cum = float((1 + b_daily).prod() - 1)'''
-          new = '''        b_daily = benchmark_ret.loc[t_start:t_end].iloc[1:].dropna()\n        b_month_cum = float((1 + b_daily).prod() - 1) if not b_daily.empty else 0.0'''
-          if old in s:
-              s = s.replace(old, new, 1)
-          elif "b_daily = benchmark_ret.loc[t_start:t_end]" not in s:
-              raise SystemExit("Strategy benchmark curve block not found")
+              s = s.replace("from src.ui.theme import render_saas_table", "from src.ui.theme import render_saas_table\nfrom src.loaders.price_loader import fetch_benchmark_history", 1)
+          s = s.replace(
+              '''    prices = _adj_close.dropna(axis=1, how="all").copy()\n    daily_ret = prices.pct_change(fill_method=None)''',
+              '''    prices = _adj_close.dropna(axis=1, how="all").copy()\n    daily_ret = prices.pct_change(fill_method=None)\n    benchmark_close = fetch_benchmark_history(period="2y")\n    benchmark_ret = (\n        pd.to_numeric(benchmark_close, errors="coerce")\n        .reindex(prices.index)\n        .pct_change(fill_method=None)\n        if not benchmark_close.empty\n        else pd.Series(np.nan, index=prices.index, dtype=float)\n    )''', 1)
+          residual_pattern = re.compile(r'''        # 2\. Residual Alpha — same calendar 6M window\.\n.*?        # 3\. Industry-Relative Momentum''', re.S)
+          residual_replacement = '''        # 2. Residual Alpha — same calendar 6M window, relative to V1 benchmark.\n        mkt_ret = benchmark_ret.loc[:t_start].iloc[start_6m:]\n        stk_ret = daily_ret.loc[:t_start].iloc[start_6m:]\n        valid_mkt = mkt_ret.notna()\n        mkt_ret = mkt_ret.loc[valid_mkt]\n        stk_ret = stk_ret.loc[valid_mkt]\n        var_m = float(mkt_ret.var()) if len(mkt_ret) else 0.0\n        if len(mkt_ret) >= 30 and var_m > 1e-12:\n            cov_m = stk_ret.apply(lambda col: col.cov(mkt_ret))\n            beta = cov_m / var_m\n            alpha_res = (stk_ret.mean() * 252) - (beta * (float(mkt_ret.mean()) * 252))\n        else:\n            alpha_res = pd.Series(np.nan, index=prices.columns)\n\n        # 3. Industry-Relative Momentum'''
+          s, n = residual_pattern.subn(residual_replacement, s, count=1)
+          if n != 1:
+              raise SystemExit(f"strategy residual block replacement count={n}")
+          industry_pattern = re.compile(r'''        ind_scores: dict\[str, list\[float\]\] = \{\}\n.*?        ind_rel_score = comp_score.index.map\(\n            lambda s: ind_means.get\(ind_map.get\(s, "General"\), 0\)\n        \)''', re.S)
+          # Replace the complete industry score calculation with leave-one-out peers.
+          s = s.replace(
+              '''        ind_scores: dict[str, list[float]] = {}\n        for sym, score in comp_score.items():\n            ind = ind_map.get(sym, "General")\n            ind_scores.setdefault(ind, []).append(score)\n        ind_means = {k: float(np.nanmean(v)) for k, v in ind_scores.items() if np.isfinite(v).any()}\n        ind_rel_score = comp_score - comp_score.index.map(\n            lambda s: ind_means.get(ind_map.get(s, "General"), 0)\n        )''',
+              '''        ind_key = comp_score.index.map(lambda s: ind_map.get(s, "General"))\n        ind_sum = comp_score.groupby(ind_key).transform("sum")\n        ind_count = comp_score.groupby(ind_key).transform("count")\n        peer_sum = ind_sum - comp_score\n        peer_count = ind_count - comp_score.notna().astype(int)\n        peer_mean = peer_sum.div(peer_count.replace(0, np.nan))\n        ind_rel_score = comp_score - peer_mean''', 1)
+          s = s.replace(
+              '''        b_daily = fwd_slice.mean(axis=1)\n        b_month_cum = float((1 + b_daily).prod() - 1)''',
+              '''        b_daily = benchmark_ret.loc[t_start:t_end].iloc[1:].dropna()\n        b_month_cum = float((1 + b_daily).prod() - 1) if not b_daily.empty else 0.0''', 1)
           p.write_text(s)
 
-          # Add a focused regression test for the default residual-alpha benchmark path.
           test = Path("tests/test_residual_alpha_benchmark.py")
           if not test.exists():
-              test.write_text('''import numpy as np\nimport pandas as pd\n\nfrom src.engine.momentum import MomentumEngine\n\n\ndef test_residual_alpha_default_uses_external_benchmark(monkeypatch):\n    idx = pd.bdate_range("2026-01-01", periods=80)\n    prices = pd.DataFrame({\n        "A": 100 * (1.001 ** np.arange(80)),\n        "B": 100 * (0.999 ** np.arange(80)),\n    }, index=idx)\n    benchmark = pd.Series(100 * (1.0005 ** np.arange(80)), index=idx, name="^CRSLDX")\n\n    from src.loaders import price_loader\n    monkeypatch.setattr(price_loader, "fetch_benchmark_history", lambda period="2y": benchmark)\n\n    calc = MomentumEngine(prices)\n    ranks = calc.calculate_residual_momentum(months=None, window=63)\n    assert ranks.notna().sum() == 2\n    assert ranks["A"] < ranks["B"]\n\n\ndef test_residual_alpha_explicit_benchmark_alignment():\n    idx = pd.bdate_range("2026-01-01", periods=80)\n    prices = pd.DataFrame({\n        "A": 100 * (1.001 ** np.arange(80)),\n        "B": 100 * (0.999 ** np.arange(80)),\n    }, index=idx)\n    benchmark = pd.Series(100 * (1.0005 ** np.arange(80)), index=idx, name="^CRSLDX")\n    calc = MomentumEngine(prices)\n    ranks = calc.calculate_residual_momentum(benchmark_returns=benchmark.pct_change(fill_method=None), months=None, window=63)\n    assert ranks.notna().sum() == 2\n''')
+              test.write_text('''import numpy as np\nimport pandas as pd\nfrom src.engine.momentum import MomentumEngine\n\ndef test_default_residual_alpha_uses_external_benchmark(monkeypatch):\n    idx = pd.bdate_range("2026-01-01", periods=80)\n    prices = pd.DataFrame({"A":100*(1.001**np.arange(80)), "B":100*(0.999**np.arange(80))}, index=idx)\n    benchmark = pd.Series(100*(1.0005**np.arange(80)), index=idx, name="^CRSLDX")\n    from src.loaders import price_loader\n    monkeypatch.setattr(price_loader, "fetch_benchmark_history", lambda period="2y": benchmark)\n    ranks = MomentumEngine(prices).calculate_residual_momentum(months=None, window=63)\n    assert ranks.notna().sum() == 2\n    assert ranks["A"] < ranks["B"]\n\ndef test_explicit_residual_benchmark_is_supported():\n    idx = pd.bdate_range("2026-01-01", periods=80)\n    prices = pd.DataFrame({"A":100*(1.001**np.arange(80)), "B":100*(0.999**np.arange(80))}, index=idx)\n    benchmark = pd.Series(100*(1.0005**np.arange(80)), index=idx)\n    ranks = MomentumEngine(prices).calculate_residual_momentum(benchmark_returns=benchmark.pct_change(fill_method=None), months=None, window=63)\n    assert ranks.notna().sum() == 2\n''')
           PY
-
       - name: Compile affected modules
-        run: |
-          python -m py_compile src/engine/momentum.py src/ui/views/strategy_view.py app.py
-
+        run: python -m py_compile src/engine/momentum.py src/ui/views/strategy_view.py app.py
       - name: Run targeted tests
-        run: |
-          python -m pytest -q tests/test_residual_alpha_benchmark.py tests/test_benchmark_consistency.py tests/test_industry_relative_leave_one_out.py
-
+        run: python -m pytest -q tests/test_residual_alpha_benchmark.py tests/test_benchmark_consistency.py tests/test_industry_relative_leave_one_out.py
       - name: Run full regression suite
         run: python -m pytest -q
-
       - name: Commit verified fixes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src/engine/momentum.py src/ui/views/strategy_view.py tests/test_residual_alpha_benchmark.py
-          if git diff --cached --quiet; then
-            echo "No production/test changes required"
-          else
-            git commit -m "fix(v1): enforce benchmark in residual alpha paths"
-            git push origin main
-          fi
+          if git diff --cached --quiet; then echo "No production/test changes required"; else git commit -m "fix(v1): enforce benchmark in residual alpha paths"; git push origin main; fi
