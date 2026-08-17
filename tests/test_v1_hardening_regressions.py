@@ -6,6 +6,8 @@ import pandas as pd
 from src.engine.calendar_momentum import apply_calendar_momentum, latest_as_of_date
 from src.engine.momentum import MomentumEngine, zscore_series
 from src.engine.portfolio import _shrunk_cov
+from src.ui.components import compute_signals
+from src.core.types import MarketRegime
 
 
 def _prices(rows: int = 80, cols: int = 3) -> pd.DataFrame:
@@ -33,8 +35,6 @@ def test_portfolio_covariance_does_not_turn_missing_returns_into_zero() -> None:
     assert cov.shape == (2, 2)
     assert np.isfinite(cov.to_numpy()).all()
     assert np.isfinite(_shrunk_cov(complete).to_numpy()).all()
-    # The estimator must operate on the complete paired sample rather than
-    # treating the missing A observation as a synthetic zero return.
     expected = _shrunk_cov(complete)
     assert np.allclose(cov.to_numpy(), expected.to_numpy())
 
@@ -58,8 +58,6 @@ def test_industry_relative_singleton_has_no_peer_benchmark() -> None:
         {"Symbol": ["S0", "S1"], "Industry": ["Only", "Other"]}
     )
     ranks = calc.calculate_industry_relative(rank_df)
-    # Both singleton peers have no relative signal; rank ties are pushed to
-    # the bottom rather than manufacturing a peer-relative advantage.
     assert ranks.nunique() == 1
     assert ranks.iloc[0] > 1
 
@@ -98,3 +96,17 @@ def test_zscore_small_cross_section_remains_missing() -> None:
 def test_historical_dataset_as_of_date_uses_last_observation() -> None:
     idx = pd.date_range("2022-01-03", periods=10, freq="B")
     assert latest_as_of_date(idx) == idx[-1].normalize()
+
+
+def test_compute_signals_handles_pyarrow_backed_string_flags() -> None:
+    rank_df = pd.DataFrame(
+        {
+            "Symbol": ["A", "B", "C"],
+            "Rank": [1, 2, 3],
+            "Above 50 EMA": pd.Series(["True", "False", "True"], dtype="string[pyarrow]"),
+            "Near 52W High": pd.Series(["True", "True", "False"], dtype="string[pyarrow]"),
+            "Composite Rank": pd.Series([1.0, np.nan, 3.0], dtype="float64"),
+        }
+    )
+    signals = compute_signals(rank_df, MarketRegime.BULLISH, 1.0, 50.0)
+    assert isinstance(signals, list)
