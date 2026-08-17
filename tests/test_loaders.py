@@ -6,6 +6,8 @@ import os
 import shutil
 import sys
 import tempfile
+
+import pandas as pd
 import pytest
 
 PROJECT_ROOT = os.path.abspath(os.path.join(__file__, "../.."))
@@ -46,6 +48,39 @@ def test_sync_official_nse_indices_returns_meta():
     assert isinstance(meta, dict)
     for key in ["last_synced", "timestamp", "total_stocks", "indices"]:
         assert key in meta
+
+
+def test_fetch_indices_data_honors_total_market_selection(monkeypatch, tmp_path):
+    csv = "Company Name,Industry,Symbol,Series,ISIN Code\n"
+    csv += "Alpha Ltd.,Capital Goods,ALPHA,EQ,INE000A00001\n"
+    csv += "Beta Ltd.,Healthcare,BETA,EQ,INE000A00002\n"
+    local = tmp_path / "ind_niftytotalmarket_list.csv"
+    local.write_text(csv, encoding="utf-8")
+
+    monkeypatch.setattr(
+        indices_loader,
+        "INDICES_URLS",
+        {"NIFTY TOTAL MARKET": "https://example.invalid/total-market.csv"},
+        raising=False,
+    )
+    monkeypatch.setattr(
+        indices_loader,
+        "INDICES_LOCAL",
+        {"NIFTY TOTAL MARKET": str(local)},
+        raising=False,
+    )
+
+    result = indices_loader._fetch_indices_impl(["NIFTY TOTAL MARKET"])
+    assert result["Symbol"].tolist() == ["ALPHA", "BETA"]
+    assert len(result) == 2
+
+
+def test_current_nifty_total_market_snapshot_has_752_constituents():
+    root = os.path.abspath(os.path.join(__file__, "../.."))
+    path = os.path.join(root, "data", "indices", "ind_niftytotalmarket_list.csv")
+    df = pd.read_csv(path)
+    assert len(df) == 752
+    assert df["Symbol"].astype(str).str.upper().is_unique
 
 
 def test_fetch_price_history_empty_symbols_returns_empty_df():
