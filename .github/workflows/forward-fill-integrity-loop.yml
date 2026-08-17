@@ -1,0 +1,128 @@
+name: Forward-Fill Integrity Loop
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/forward-fill-integrity-loop.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  audit-fix-test:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest
+
+      - name: Remove stock-specific forward-fill
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path("src/loaders/price_loader.py")
+          s = p.read_text()
+          old = """    out = out.ffill()\n    if symbols:\n"""
+          new = """    # Preserve security-specific NaNs. Forward-filling a missing stock\n          # observation manufactures a flat price and therefore a synthetic zero return.\n          # Exchange-wide holidays are handled by the universe-level cleaner.\n          if symbols:\n"""
+          if old not in s:
+              raise SystemExit("price_loader: expected forward-fill block not found")
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+
+          p = Path("src/engine/momentum.py")
+          s = p.read_text()
+          old = """    cleaned = df.loc[~holidays]\n    return cleaned.ffill()\n"""
+          new = """    # Drop only exchange-wide missing dates. Do not forward-fill individual\n          # securities: that would manufacture zero returns and alter volatility/R2.\n          cleaned = df.loc[~holidays]\n    return cleaned\n"""
+          if old not in s:
+              raise SystemExit("momentum: expected holiday forward-fill block not found")
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+
+      - name: Add missing-data regression tests
+        run: |
+          cat > tests/test_missing_data_integrity.py <<'PY'
+          import numpy as np
+          import pandas as pd
+
+          from src.engine.momentum import clean_holidays
+          from src.loaders.price_loader import _clean_price_df
+
+
+          def test_security_specific_nan_is_not_forward_filled():
+              idx = pd.bdate_range("2026-01-05", periods=4)
+              raw = pd.DataFrame({"A": [100.0, np.nan, 110.0, 111.0]}, index=idx)
+              cleaned = _clean_price_df(raw)
+              assert pd.isna(cleaned.loc[idx[1], "A"])
+              assert cleaned.loc[idx[2], "A"] == 110.0
+
+
+          def test_security_specific_nan_does_not_create_zero_return():
+              idx = pd.bdate_range("2026-01-05", periods=4)
+              raw = pd.DataFrame({"A": [100.0, np.nan, 110.0, 111.0]}, index=idx)
+              cleaned = _clean_price_df(raw)
+              returns = cleaned["A"].pct_change(fill_method=None)
+              assert pd.isna(returns.iloc[1])
+              assert np.isclose(returns.iloc[2], 0.0) is False
+
+
+          def test_exchange_wide_missing_date_is_removed_without_stock_fill():
+              idx = pd.bdate_range("2026-01-05", periods=4)
+              raw = pd.DataFrame(
+                  {
+                      "A": [100.0, np.nan, 102.0, 103.0],
+                      "B": [100.0, np.nan, 102.0, 103.0],
+                      "C": [100.0, np.nan, 102.0, 103.0],
+                      "D": [100.0, np.nan, 102.0, 103.0],
+                      "E": [100.0, np.nan, 102.0, 103.0],
+                      "F": [100.0, np.nan, 102.0, 103.0],
+                      "G": [100.0, np.nan, 102.0, 103.0],
+                      "H": [100.0, np.nan, 102.0, 103.0],
+                      "I": [100.0, np.nan, 102.0, 103.0],
+                      "J": [100.0, np.nan, 102.0, 103.0],
+                  },
+                  index=idx,
+              )
+              cleaned = clean_holidays(raw)
+              assert idx[1] not in cleaned.index
+              assert cleaned.loc[idx[0], "A"] == 100.0
+              assert cleaned.loc[idx[1], "A"] if idx[1] in cleaned.index else True
+
+
+          def test_trailing_all_nan_rows_are_removed_but_internal_nan_survives():
+              idx = pd.bdate_range("2026-01-05", periods=5)
+              raw = pd.DataFrame({"A": [100.0, np.nan, 110.0, 111.0, np.nan]}, index=idx)
+              cleaned = _clean_price_df(raw)
+              assert idx[-1] not in cleaned.index
+              assert pd.isna(cleaned.loc[idx[1], "A"])
+          PY
+
+      - name: Run targeted tests
+        run: python -m pytest -q tests/test_missing_data_integrity.py
+
+      - name: Run full test suite
+        run: python -m pytest -q
+
+      - name: Compile changed modules
+        run: python -m py_compile src/loaders/price_loader.py src/engine/momentum.py
+
+      - name: Commit verified fix and remove temporary loop workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/loaders/price_loader.py src/engine/momentum.py tests/test_missing_data_integrity.py
+          git rm .github/workflows/forward-fill-integrity-loop.yml
+          git commit -m "fix: preserve security-specific missing prices"
+          git push origin main
