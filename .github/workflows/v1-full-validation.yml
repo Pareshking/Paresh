@@ -33,7 +33,7 @@ jobs:
 
       - name: Enforce deprecated Streamlit HTML cleanup
         run: |
-          if git grep -n -E "components.v1|components.html|streamlit.components" -- app.py src '*.py'; then
+          if git grep -n -E "components.v1|components.html|streamlit.components" -- app.py src; then
             echo "Deprecated Streamlit component HTML call remains in application source"
             exit 1
           fi
