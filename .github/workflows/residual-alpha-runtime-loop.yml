@@ -49,8 +49,6 @@ jobs:
           s, n = residual_pattern.subn(residual_replacement, s, count=1)
           if n != 1:
               raise SystemExit(f"strategy residual block replacement count={n}")
-          industry_pattern = re.compile(r'''        ind_scores: dict\[str, list\[float\]\] = \{\}\n.*?        ind_rel_score = comp_score.index.map\(\n            lambda s: ind_means.get\(ind_map.get\(s, "General"\), 0\)\n        \)''', re.S)
-          # Replace the complete industry score calculation with leave-one-out peers.
           s = s.replace(
               '''        ind_scores: dict[str, list[float]] = {}\n        for sym, score in comp_score.items():\n            ind = ind_map.get(sym, "General")\n            ind_scores.setdefault(ind, []).append(score)\n        ind_means = {k: float(np.nanmean(v)) for k, v in ind_scores.items() if np.isfinite(v).any()}\n        ind_rel_score = comp_score - comp_score.index.map(\n            lambda s: ind_means.get(ind_map.get(s, "General"), 0)\n        )''',
               '''        ind_key = comp_score.index.map(lambda s: ind_map.get(s, "General"))\n        ind_sum = comp_score.groupby(ind_key).transform("sum")\n        ind_count = comp_score.groupby(ind_key).transform("count")\n        peer_sum = ind_sum - comp_score\n        peer_count = ind_count - comp_score.notna().astype(int)\n        peer_mean = peer_sum.div(peer_count.replace(0, np.nan))\n        ind_rel_score = comp_score - peer_mean''', 1)
@@ -60,8 +58,7 @@ jobs:
           p.write_text(s)
 
           test = Path("tests/test_residual_alpha_benchmark.py")
-          if not test.exists():
-              test.write_text('''import numpy as np\nimport pandas as pd\nfrom src.engine.momentum import MomentumEngine\n\ndef test_default_residual_alpha_uses_external_benchmark(monkeypatch):\n    idx = pd.bdate_range("2026-01-01", periods=80)\n    prices = pd.DataFrame({"A":100*(1.001**np.arange(80)), "B":100*(0.999**np.arange(80))}, index=idx)\n    benchmark = pd.Series(100*(1.0005**np.arange(80)), index=idx, name="^CRSLDX")\n    from src.loaders import price_loader\n    monkeypatch.setattr(price_loader, "fetch_benchmark_history", lambda period="2y": benchmark)\n    ranks = MomentumEngine(prices).calculate_residual_momentum(months=None, window=63)\n    assert ranks.notna().sum() == 2\n    assert ranks["A"] < ranks["B"]\n\ndef test_explicit_residual_benchmark_is_supported():\n    idx = pd.bdate_range("2026-01-01", periods=80)\n    prices = pd.DataFrame({"A":100*(1.001**np.arange(80)), "B":100*(0.999**np.arange(80))}, index=idx)\n    benchmark = pd.Series(100*(1.0005**np.arange(80)), index=idx)\n    ranks = MomentumEngine(prices).calculate_residual_momentum(benchmark_returns=benchmark.pct_change(fill_method=None), months=None, window=63)\n    assert ranks.notna().sum() == 2\n''')
+          test.write_text('''import numpy as np\nimport pandas as pd\nfrom src.engine.momentum import MomentumEngine\n\ndef make_data():\n    idx = pd.bdate_range("2026-01-01", periods=100)\n    prices = pd.DataFrame({"A":100*(1.001**np.arange(100)), "B":100*(0.999**np.arange(100))}, index=idx)\n    # Varying benchmark returns are required because zero benchmark variance must correctly produce NaN alpha.\n    benchmark = pd.Series(100*np.cumprod(1 + 0.0005 + 0.001*np.sin(np.arange(100))), index=idx, name="^CRSLDX")\n    return prices, benchmark\n\ndef test_default_residual_alpha_uses_external_benchmark(monkeypatch):\n    prices, benchmark = make_data()\n    from src.loaders import price_loader\n    monkeypatch.setattr(price_loader, "fetch_benchmark_history", lambda period="2y": benchmark)\n    ranks = MomentumEngine(prices).calculate_residual_momentum(months=None, window=63)\n    assert ranks.notna().sum() == 2\n    assert ranks["A"] < ranks["B"]\n\ndef test_explicit_residual_benchmark_is_supported():\n    prices, benchmark = make_data()\n    ranks = MomentumEngine(prices).calculate_residual_momentum(benchmark_returns=benchmark.pct_change(fill_method=None), months=None, window=63)\n    assert ranks.notna().sum() == 2\n\ndef test_constant_benchmark_returns_are_rejected():\n    prices, benchmark = make_data()\n    constant = pd.Series(0.0005, index=benchmark.index)\n    ranks = MomentumEngine(prices).calculate_residual_momentum(benchmark_returns=constant, months=None, window=63)\n    assert ranks.isna().all()\n''')
           PY
       - name: Compile affected modules
         run: python -m py_compile src/engine/momentum.py src/ui/views/strategy_view.py app.py
@@ -74,4 +71,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src/engine/momentum.py src/ui/views/strategy_view.py tests/test_residual_alpha_benchmark.py
-          if git diff --cached --quiet; then echo "No production/test changes required"; else git commit -m "fix(v1): enforce benchmark in residual alpha paths"; git push origin main; fi
+          if git diff --cached --quiet; then
+            echo "No production/test changes required"
+          else
+            git commit -m "fix(v1): enforce benchmark in residual alpha paths"
+            git push origin main
+          fi
