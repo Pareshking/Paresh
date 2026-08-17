@@ -21,7 +21,6 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-
           p = Path("src/engine/backtester.py")
           text = p.read_text()
           old = '''    cost_bps: float = 30.0,\n    buffer_n: int | None = None,\n) -> dict[str, Any] | None:'''
@@ -33,7 +32,6 @@ jobs:
           if old not in text: raise SystemExit("rebalancing anchor not found")
           text = text.replace(old, new, 1)
           p.write_text(text)
-
           p = Path("src/ui/views/backtest_view.py")
           text = p.read_text()
           old = '''    c1, c2, c3 = st.columns(3, vertical_alignment="center")\n    bt_n = c1.selectbox('''
@@ -60,20 +58,10 @@ jobs:
           import numpy as np
           import pandas as pd
           from src.engine.backtester import run_backtest
-
           def test_backtest_months_limits_rebalance_start_to_requested_window():
               idx = pd.bdate_range("2024-01-01", "2026-08-17")
-              prices = pd.DataFrame({
-                  "A": np.linspace(100, 180, len(idx)),
-                  "B": np.linspace(100, 150, len(idx)),
-                  "C": np.linspace(100, 130, len(idx)),
-              }, index=idx)
-              result = run_backtest(
-                  "test-6m-window", prices, top_n=1, rebal_freq=21,
-                  ranking_method="Return (Classic Momentum)", lookback_ret=126,
-                  ema_period=20, high_pct=0.0, cost_bps=0.0, buffer_n=1,
-                  backtest_months=6,
-              )
+              prices = pd.DataFrame({"A": np.linspace(100, 180, len(idx)), "B": np.linspace(100, 150, len(idx)), "C": np.linspace(100, 130, len(idx))}, index=idx)
+              result = run_backtest("test-6m-window", prices, top_n=1, rebal_freq=21, ranking_method="Return (Classic Momentum)", lookback_ret=126, ema_period=20, high_pct=0.0, cost_bps=0.0, buffer_n=1, backtest_months=6)
               assert result is not None
               period_dates = [pd.Timestamp(r["date"]) for r in result["period_records"]]
               assert period_dates
