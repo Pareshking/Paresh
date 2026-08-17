@@ -11,7 +11,7 @@ Systems:
 
 from __future__ import annotations
 
-from typing import Sequence
+from typing import Any, Sequence
 
 import numpy as np
 import pandas as pd
@@ -326,10 +326,13 @@ class MomentumEngine:
         chand_mult: float = 3.0,
     ) -> pd.DataFrame:
         """Vectorized ATR, 2xATR Stop Loss, and 3xATR Chandelier Exits."""
-        tr1 = self.high - self.low
-        t = (self.high - self.close.shift(1)).abs()
-        tr3 = (self.low - self.close.shift(1)).abs()
-        tr = pd.concat([tr1, t, tr3]).groupby(level=0).max()
+        prev_close = self.close.shift(1)
+        idx = self.high.index.intersection(self.low.index).intersection(prev_close.index)
+        h = self.high.reindex(idx)
+        lo = self.low.reindex(idx)
+        pc = prev_close.reindex(idx)
+        tr = np.maximum(np.maximum((h - lo).values, (h - pc).abs().values), (lo - pc).abs().values)
+        tr = pd.DataFrame(tr, index=idx, columns=self.high.columns)
 
         atr = tr.rolling(period, min_periods=max(period - 2, 5)).mean()
         latest_atr = atr.iloc[-1]

@@ -205,13 +205,11 @@ def run_backtest(
                 log_ret_period = np.log(
                     p_w.iloc[-1].clip(lower=0.01) / p_w.iloc[0].clip(lower=0.01)
                 )
-                vol = log_ret.iloc[sl : start_idx + 1].std() * np.sqrt(252)
+                vol = log_ret.iloc[sl : start_idx + 1].std() * np.sqrt(lb)
                 score = log_ret_period / vol.replace(0, np.nan)
             elif ranking_method == "Exp Regression":
                 log_p = np.log(p_w.clip(lower=0.01))
                 t_s = pd.Series(np.arange(len(log_p)), index=log_p.index, dtype=float)
-                sy = log_p.std()
-                sx = float(t_s.std())
                 # OLS slope of log-price against time, annualized.
                 beta = (log_p.sub(log_p.mean()).mul(t_s - t_s.mean(), axis=0).sum() / max(float(((t_s - t_s.mean()) ** 2).sum()), 1e-8))
                 score = np.exp(beta * 252) - 1

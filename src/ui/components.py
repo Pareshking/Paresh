@@ -183,7 +183,7 @@ def render_header_kpi_bar(
     today_str = datetime.now().strftime("%d %b %Y")
 
     header_html = f"""
-    <div style="display: flex; align-items: center; justify-content: space-between; padding: 7px 14px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 9px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02); margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
+    <div role="status" aria-label="Market status dashboard" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 14px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 9px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02); margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
         <div style="display: flex; align-items: center; gap: 10px;">
             <div class="mac-dots-container" style="margin-bottom: 0;">
                 <span class="mac-dot mac-dot-red"></span>
@@ -229,7 +229,7 @@ def render_signal_alerts(signals: list[SignalAlert]) -> None:
             f"<span>{s.icon}</span><span>{esc_text}</span></div>"
         )
     ribbon_html = f"""
-    <div style="display: flex; align-items: center; gap: 8px; overflow-x: auto; padding: 4px 8px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; scrollbar-width: none;">
+    <div role="alert" aria-live="polite" aria-label="Market signals" style="display: flex; align-items: center; gap: 8px; overflow-x: auto; padding: 4px 8px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;">
         {chips_html}
     </div>
     """

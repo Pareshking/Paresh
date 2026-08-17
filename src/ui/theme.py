@@ -110,6 +110,46 @@ def inject_custom_css() -> None:
         <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 
         <style>
+        /* ── Design Tokens (light default; dark override via media query) ── */
+        :root {
+            --c-bg: #ffffff;
+            --c-bg-subtle: #f8fafc;
+            --c-surface: #ffffff;
+            --c-border: #e2e8f0;
+            --c-text-primary: #0f172a;
+            --c-text-secondary: #475569;
+            --c-text-muted: #64748b;
+            --c-accent: #4f46e5;
+            --c-bull: #059669;
+            --c-bear: #e11d48;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --c-bg: #0f172a;
+                --c-bg-subtle: #1e293b;
+                --c-surface: #1e293b;
+                --c-border: #334155;
+                --c-text-primary: #f1f5f9;
+                --c-text-secondary: #94a3b8;
+                --c-text-muted: #64748b;
+                --c-accent: #818cf8;
+                --c-bull: #34d399;
+                --c-bear: #fb7185;
+            }
+        }
+        :root[data-theme="dark"] {
+            --c-bg: #0f172a;
+            --c-bg-subtle: #1e293b;
+            --c-surface: #1e293b;
+            --c-border: #334155;
+            --c-text-primary: #f1f5f9;
+            --c-text-secondary: #94a3b8;
+            --c-text-muted: #64748b;
+            --c-accent: #818cf8;
+            --c-bull: #34d399;
+            --c-bear: #fb7185;
+        }
+
         /* ── Base Reset & Typography Hierarchy ── */
         html, body, [class*="css"] {
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
@@ -141,6 +181,23 @@ def inject_custom_css() -> None:
         *, *::before, *::after {
             scrollbar-width: none !important;
             -ms-overflow-style: none !important;
+        }
+        /* Restore visible thin scrollbar for horizontal overflow containers (accessibility) */
+        div[role="alert"][aria-label="Market signals"],
+        .ticker-ribbon {
+            scrollbar-width: thin !important;
+            scrollbar-color: #cbd5e1 transparent !important;
+            -ms-overflow-style: auto !important;
+        }
+        div[role="alert"][aria-label="Market signals"]::-webkit-scrollbar,
+        .ticker-ribbon::-webkit-scrollbar {
+            height: 4px !important;
+            display: block !important;
+        }
+        div[role="alert"][aria-label="Market signals"]::-webkit-scrollbar-thumb,
+        .ticker-ribbon::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1 !important;
+            border-radius: 99px !important;
         }
         *::-webkit-scrollbar, 
         ::-webkit-scrollbar,

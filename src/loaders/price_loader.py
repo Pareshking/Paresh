@@ -10,6 +10,7 @@ import tempfile
 import time
 from datetime import datetime
 from typing import Sequence
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import streamlit as st
@@ -39,7 +40,7 @@ def _is_fresh(last_date: datetime | pd.Timestamp | str) -> bool:
             return False
     else:
         return False
-    return (datetime.now().date() - dt).days <= 1
+    return (datetime.now(ZoneInfo("Asia/Kolkata")).date() - dt).days <= 1
 
 
 def _extract_field(df: pd.DataFrame, field_names: list[str]) -> pd.DataFrame:
