@@ -67,13 +67,7 @@ def factor(prices, end, n):
     t = pd.Series(np.arange(len(p), dtype=float), index=p.index)
     r2 = np.log(p.clip(lower=0.01)).corrwith(t) ** 2
     ram = log_return / (sd * np.sqrt(len(lr)))
-    return {
-        "simple": simple_return,
-        "log": log_return,
-        "ram": ram,
-        "sharpe": sharpe,
-        "r2": ram * r2,
-    }
+    return {"simple": simple_return, "log": log_return, "ram": ram, "sharpe": sharpe, "r2": ram * r2}
 
 
 def composite(factors, key, weights):
@@ -92,11 +86,12 @@ def main():
     prices = download(universe())
     last = prices.index.max()
 
-    # Exactly the latest six calendar months, using only the first available
+    # Exactly the latest six calendar months, using the first available
     # trading day of each month as the signal/snapshot date.
     last_month = last.to_period("M")
     first_month = last_month - 5
-    recent = prices[prices.index.to_period("M").between(first_month, last_month)]
+    periods = prices.index.to_period("M")
+    recent = prices[(periods >= first_month) & (periods <= last_month)]
     snapshot_dates = [g.index[0] for _, g in recent.groupby(recent.index.to_period("M"))]
     ends = [prices.index.get_loc(d) for d in snapshot_dates]
 
