@@ -75,10 +75,10 @@ def _calendar_period_metrics(
     months: int,
     *,
     latest_as_of: pd.Timestamp | None = None,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, np.ndarray]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, np.ndarray]:
     """Calculate V1 System-1 metrics over a calendar-defined rolling window.
 
-    Returns score, simple return, period-scale Sharpe, R² and start positions.
+    Returns score, simple return, period-scale Sharpe and start positions.
     The existing V1 Sharpe structure is preserved, but its volatility window
     uses the actual number of daily return observations rather than a fixed
     21/63/126/189/252 count.
@@ -90,27 +90,19 @@ def _calendar_period_metrics(
 
     starts = calendar_start_positions(index, months, latest_as_of=latest_as_of)
 
-    y = np.log(prices.clip(lower=0.01)).to_numpy(dtype=float)
     r = log_returns.to_numpy(dtype=float)
-    valid_y = np.isfinite(y)
     valid_r = np.isfinite(r)
 
     # Prefix sums let us support calendar-variable windows without forcing
     # every period back to a fixed trading-row count.
     cs_r = np.vstack([np.zeros((1, n_cols)), np.nancumsum(np.where(valid_r, r, 0.0), axis=0)])
-    cs_r2 = np.vstack([np.zeros((1, n_cols)), np.nancumsum(np.where(valid_r, r * r, 0.0), axis=0)])
+    cs_ = np.vstack([np.zeros((1, n_cols)), np.nancumsum(np.where(valid_r, r * r, 0.0), axis=0)])
     cs_rn = np.vstack([np.zeros((1, n_cols)), np.cumsum(valid_r.astype(float), axis=0)])
 
-    x = np.arange(n_rows, dtype=float)
-    cs_y = np.vstack([np.zeros((1, n_cols)), np.nancumsum(np.where(valid_y, y, 0.0), axis=0)])
-    cs_y2 = np.vstack([np.zeros((1, n_cols)), np.nancumsum(np.where(valid_y, y * y, 0.0), axis=0)])
-    cs_xy = np.vstack([np.zeros((1, n_cols)), np.nancumsum(np.where(valid_y, y * x[:, None], 0.0), axis=0)])
-    cs_yn = np.vstack([np.zeros((1, n_cols)), np.cumsum(valid_y.astype(float), axis=0)])
 
     score = np.full((n_rows, n_cols), np.nan)
     returns = np.full((n_rows, n_cols), np.nan)
     sharpe = np.full((n_rows, n_cols), np.nan)
-    r2 = np.full((n_rows, n_cols), np.nan)
 
     for end in range(n_rows):
         start = int(starts[end])
@@ -125,7 +117,7 @@ def _calendar_period_metrics(
         # Daily-return observations are start+1 ... end. N is the actual
         # number of valid daily observations in this calendar window.
         rs = cs_r[end + 1] - cs_r[start + 1]
-        rs2 = cs_r2[end + 1] - cs_r2[start + 1]
+        rs2 = cs_[end + 1] - cs_[start + 1]
         rn = cs_rn[end + 1] - cs_rn[start + 1]
         mean_r = rs / np.where(rn > 0, rn, np.nan)
         sample_var = (rs2 - rn * mean_r * mean_r) / np.where(rn > 1, rn - 1, np.nan)
@@ -138,34 +130,13 @@ def _calendar_period_metrics(
         log_return[valid_price] = np.log(np.maximum(p1[valid_price] / p0[valid_price], 0.001))
         sharpe[end] = log_return / np.where(period_vol > 0, period_vol, np.nan)
 
-        # R² of log price against observation time. Correlation is invariant to
-        # shifting the time origin, so the global row index is sufficient.
-        ys = cs_y[end + 1] - cs_y[start]
-        ys2 = cs_y2[end + 1] - cs_y2[start]
-        xys = cs_xy[end + 1] - cs_xy[start]
-        yn = cs_yn[end + 1] - cs_yn[start]
-
-        x_sum = (end + start + 1) * (end - start) / 2.0
-        x2_sum = (
-            end * (end + 1) * (2 * end + 1)
-            - (start - 1) * start * (2 * start - 1)
-        ) / 6.0
-
-        cov_num = xys - x_sum * ys / np.where(yn > 0, yn, np.nan)
-        var_x = x2_sum - x_sum * x_sum / np.where(yn > 0, yn, np.nan)
-        var_y = ys2 - ys * ys / np.where(yn > 0, yn, np.nan)
-        corr2 = cov_num * cov_num / np.where(
-            (var_x > 0) & (var_y > 0), var_x * var_y, np.nan
-        )
-        r2[end] = np.clip(corr2, 0.0, 1.0)
-        score[end] = sharpe[end] * r2[end]
+        score[end] = sharpe[end]
 
     frame_index = prices.index
     return (
         pd.DataFrame(score, index=frame_index, columns=prices.columns),
         pd.DataFrame(returns, index=frame_index, columns=prices.columns),
         pd.DataFrame(sharpe, index=frame_index, columns=prices.columns),
-        pd.DataFrame(r2, index=frame_index, columns=prices.columns),
         starts,
     )
 
@@ -179,7 +150,7 @@ def apply_calendar_momentum(calc) -> pd.DataFrame:
     as_of = latest_as_of_date(pd.DatetimeIndex(calc.prices.index)) if not calc.prices.empty else None
 
     for key, months in PERIODS.items():
-        score, ret, sharpe, r2, starts = _calendar_period_metrics(
+        score, ret, sharpe, starts = _calendar_period_metrics(
             calc.prices, calc.log_ret, months, latest_as_of=as_of
         )
 
@@ -204,8 +175,7 @@ def apply_calendar_momentum(calc) -> pd.DataFrame:
             calc.period_metrics[key] = {
                 "return": ret.iloc[end],
                 "sharpe": sharpe.iloc[end],
-                "r2": r2.iloc[end],
-                "score": z_score.iloc[end] if not z_score.empty else pd.Series(dtype=float),
+                    "score": z_score.iloc[end] if not z_score.empty else pd.Series(dtype=float),
             }
 
     total_weight = sum(calc.weights)

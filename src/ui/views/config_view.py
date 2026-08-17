@@ -155,7 +155,7 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
                     3. Momentum Lookback Multi-Window Weights
                 </span>
                 <div style="font-size: 0.76rem; color: #64748b; margin-top: 2px;">
-                    Relative weights across 5 rolling windows for System 1 (Sharpe × R² Composite). Sliders automatically normalize.
+                    Relative weights across 5 rolling windows for System 1 (Sharpe Composite). Sliders automatically normalize.
                 </div>
             </div>
             <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 700; color: #4f46e5; background: #eef2ff; border: 1px solid #c7d2fe; padding: 4px 10px; border-radius: 6px;">

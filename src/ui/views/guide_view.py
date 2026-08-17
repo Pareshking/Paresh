@@ -71,7 +71,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px;">
                     <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#d97706;">STEP 03</div>
                     <div style="font-weight:600; font-size:13px; color:#0f172a; margin-top:2px;">Factor Scoring</div>
-                    <div style="font-size:13px; color:#64748b; line-height:1.5; margin-top:4px;">Sharpe × R² multi-window (1M/3M/6M/9M/12M) normalized via ±3σ Winsorized Gaussian Z-scores.</div>
+                    <div style="font-size:13px; color:#64748b; line-height:1.5; margin-top:4px;">Sharpe multi-window (1M/3M/6M/9M/12M) normalized via ±3σ Winsorized Gaussian Z-scores.</div>
                 </div>
                 <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px;">
                     <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#7c3aed;">STEP 04</div>
@@ -92,12 +92,12 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
         comparison_card_html = """
         <div style="padding:18px; background-color:#ffffff; border:1px solid #e2e8f0; border-radius:12px; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; color:#475569; line-height:1.65; box-shadow:0 1px 3px rgba(0,0,0,0.02); margin-bottom:16px;">
             <div style="font-size:14px; font-weight:700; color:#0f172a; margin-bottom:10px;">
-                Architecture Comparison: Composite Sharpe × R² (Config Weights) vs Single-Window Sharpe × R²
+                Architecture Comparison: Composite Sharpe (Config Weights) vs Single-Window Sharpe
             </div>
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px;">
                 <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px;">
                     <div style="font-weight:700; font-size:13px; color:#4f46e5; margin-bottom:6px;">
-                        👑 Composite Sharpe × R² (Config Weights) — [RECOMMENDED FOR CORE PORTFOLIOS]
+                        👑 Composite Sharpe (Config Weights) — [RECOMMENDED FOR CORE PORTFOLIOS]
                     </div>
                     <div style="font-size:13px; color:#475569; line-height:1.6;">
                         • <strong>Multi-Horizon Blend</strong>: Combines 5 distinct lookback windows: 1M (10%), 3M (30%), 6M (30%), 9M (20%), and 12M (10%).<br>
@@ -108,7 +108,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 </div>
                 <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px;">
                     <div style="font-weight:700; font-size:13px; color:#0284c7; margin-bottom:6px;">
-                        🎯 Sharpe × R² (Single-Window Horizon) — [TACTICAL SWING DISCOVERY]
+                        🎯 Sharpe (Single-Window Horizon) — [TACTICAL SWING DISCOVERY]
                     </div>
                     <div style="font-size:13px; color:#475569; line-height:1.6;">
                         • <strong>Single Lookback Window</strong>: Evaluates purely 1 isolated timeframe (e.g. only 3M / 63 days or only 6M / 126 days).<br>
@@ -131,10 +131,10 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
                 <div>
                     <div style="color:#0f172a; font-weight:600; font-size:13px; margin-bottom:4px;">
-                        1. Multi-Window Sharpe × R² Factor (10/30/30/20/10)
+                        1. Multi-Window Sharpe Factor (10/30/30/20/10)
                     </div>
                     <div style="color:#475569; font-size:13px; line-height:1.6;">
-                        Combines 5 rolling lookbacks: <strong>1M (10%)</strong>, <strong>3M (30%)</strong>, <strong>6M (30%)</strong>, <strong>9M (20%)</strong>, and <strong>12M (10%)</strong>. Each window calculates annualized log-Sharpe multiplied by Pearson R² regression score (Sharpe × R²) to reward persistent geometric compounding over erratic single-day spike noise.
+                        Combines 5 rolling lookbacks: <strong>1M (10%)</strong>, <strong>3M (30%)</strong>, <strong>6M (30%)</strong>, <strong>9M (20%)</strong>, and <strong>12M (10%)</strong>. Each window calculates annualized log-Sharpe multiplied by Pearson  regression score (Sharpe) to reward persistent geometric compounding over erratic single-day spike noise.
                     </div>
                 </div>
                 <div>
@@ -247,19 +247,19 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
         )
         matrix_data = [
             {
-                "Strategy Model": "Composite Sharpe × R²",
+                "Strategy Model": "Composite Sharpe",
                 "Lookback Windows": "1M, 3M, 6M, 9M, 12M",
                 "Config Weights": "YES (Customizable)",
-                "Risk Adjustment": "Vol + R² Smoothness",
+                "Risk Adjustment": "Vol +  Smoothness",
                 "Market Beta": "Included",
                 "Best Regime": "Steady Secular Bull Runs",
                 "Primary Objective": "Low-whipsaw persistent geometric compounding",
             },
             {
-                "Strategy Model": "Sharpe × R² (Single Window)",
+                "Strategy Model": "Sharpe (Single Window)",
                 "Lookback Windows": "Single (3M or 6M)",
                 "Config Weights": "NO (Fixed Window)",
-                "Risk Adjustment": "Vol + R² Smoothness",
+                "Risk Adjustment": "Vol +  Smoothness",
                 "Market Beta": "Included",
                 "Best Regime": "Quarterly Swing Cycles",
                 "Primary Objective": "Tactical horizon ranking without multi-window smoothing",
@@ -271,7 +271,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 "Risk Adjustment": "Annualized Volatility",
                 "Market Beta": "Included",
                 "Best Regime": "High-Beta Parabolic Expansions",
-                "Primary Objective": "Captures maximum gross upside without R² penalty",
+                "Primary Objective": "Captures maximum gross upside without  penalty",
             },
             {
                 "Strategy Model": "Residual (α) Momentum",
@@ -310,10 +310,10 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 "Primary Objective": "Minimizes drawdowns & eliminates false breakouts",
             },
             {
-                "Strategy Model": "Exp Regression (R²)",
+                "Strategy Model": "Exp Regression ()",
                 "Lookback Windows": "126 Trading Days (6M)",
                 "Config Weights": "NO (Direct Regression)",
-                "Risk Adjustment": "R² Goodness of Fit",
+                "Risk Adjustment": " Goodness of Fit",
                 "Market Beta": "Slope-driven",
                 "Best Regime": "Linear Exponential Trends",
                 "Primary Objective": "Fits log-linear compounding slope directly",
@@ -345,8 +345,8 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
         strat_choice = st.pills(
             "Select Engine to Inspect",
             [
-                "Composite Sharpe × R²",
-                "Single-Window Sharpe × R²",
+                "Composite Sharpe",
+                "Single-Window Sharpe",
                 "Multi-Window Pure Sharpe",
                 "Residual (α) Momentum",
                 "Industry-Relative Momentum",
@@ -356,12 +356,12 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 "Delivery Surge Factor",
                 "Risk & Stop-Loss Engine",
             ],
-            default="Composite Sharpe × R²",
+            default="Composite Sharpe",
             key="guide_strat_choice_pill",
             label_visibility="collapsed",
         )
 
-        if strat_choice == "Composite Sharpe × R²":
+        if strat_choice == "Composite Sharpe":
             st.markdown(r"""
                 ##### 1. Composite Multi-Window Momentum ($\text{Sharpe} \times R^2$)
                 
@@ -379,7 +379,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 * **Optimal Regime**: Steady secular bull runs and core compounder portfolios.
                 """)
 
-        elif strat_choice == "Single-Window Sharpe × R²":
+        elif strat_choice == "Single-Window Sharpe":
             st.markdown(r"""
                 ##### 2. Single-Window Momentum ($\text{Sharpe} \times R^2$)
                 
@@ -555,7 +555,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 </div>
                 <div style="font-size:13px; color:#475569; line-height:1.6;">
                     <div><strong>#1 Model:</strong> Consensus Ensemble (Borda)</div>
-                    <div><strong>#2 Model:</strong> Composite Sharpe × R²</div>
+                    <div><strong>#2 Model:</strong> Composite Sharpe</div>
                     <div><strong>Target Allocation:</strong> 70% Equity (30% Cash)</div>
                     <div style="margin-top:6px; color:#64748b;">
                         Enable Inverse-Volatility Parity weighting in Portfolio tab to limit drawdown exposure.
@@ -615,10 +615,10 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:12px; margin-bottom:16px; font-family:'Plus Jakarta Sans',sans-serif;">
             <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
                 <div style="font-weight:700; font-size:14px; color:#0f172a; margin-bottom:6px;">
-                    What is the difference between Composite Sharpe × R² and Single-Window Sharpe × R²?
+                    What is the difference between Composite Sharpe and Single-Window Sharpe?
                 </div>
                 <div style="font-size:13px; color:#475569; line-height:1.6;">
-                    <strong>Composite Sharpe × R²</strong> blends 5 rolling horizons (1M/3M/6M/9M/12M) with custom configuration weights to eliminate short-term whipsaws and false breakouts. <strong>Single-Window</strong> calculates Sharpe × R² on strictly 1 isolated period (e.g. 3M), making it more responsive to short-term momentum but subject to higher turnover and volatility.
+                    <strong>Composite Sharpe</strong> blends 5 rolling horizons (1M/3M/6M/9M/12M) with custom configuration weights to eliminate short-term whipsaws and false breakouts. <strong>Single-Window</strong> calculates Sharpe on strictly 1 isolated period (e.g. 3M), making it more responsive to short-term momentum but subject to higher turnover and volatility.
                 </div>
             </div>
 

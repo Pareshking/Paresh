@@ -20,7 +20,7 @@ def _prices(start="2025-08-01", end="2026-08-14"):
 def test_calendar_12m_uses_first_trading_day_on_or_after_target():
     prices = _prices()
     log_returns = np.log(prices / prices.shift(1))
-    _, returns, _, _, starts = _calendar_period_metrics(
+    _, returns, _, starts = _calendar_period_metrics(
         prices, log_returns, 12, latest_as_of=pd.Timestamp("2026-08-17")
     )
 
@@ -38,7 +38,7 @@ def test_calendar_12m_uses_first_trading_day_on_or_after_target():
 def test_calendar_windows_are_not_fixed_21_63_126_189_252_rows():
     prices = _prices()
     log_returns = np.log(prices / prices.shift(1))
-    _, _, _, _, starts = _calendar_period_metrics(
+    _, _, _, starts = _calendar_period_metrics(
         prices, log_returns, 12, latest_as_of=pd.Timestamp("2026-08-17")
     )
     end = len(prices) - 1
@@ -52,3 +52,13 @@ def test_start_position_uses_calendar_as_of_date():
         idx, 12, latest_as_of=pd.Timestamp("2026-08-17")
     )
     assert starts[-1] == 1
+
+
+def test_calendar_metric_returns_four_values_without_r2():
+    prices = _prices()
+    log_returns = np.log(prices / prices.shift(1))
+    result = _calendar_period_metrics(
+        prices, log_returns, 3, latest_as_of=pd.Timestamp("2026-08-17")
+    )
+    assert len(result) == 4
+

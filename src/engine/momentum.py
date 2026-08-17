@@ -2,8 +2,8 @@
 Quantitative Multi-System Momentum Engine — Hardened Production Core.
 
 Systems:
-  1. Multi-Window Sharpe & Sortino Momentum (Winsorized Z(Sharpe × R²) across 5 lookbacks)
-  2. Vectorized Exponential Regression (OLS slope annualized × R² with analytical 1D convolution)
+  1. Multi-Window Sharpe & Sortino Momentum (Winsorized Z-score across 5 lookbacks)
+  2. Vectorized Exponential Regression (annualized OLS slope with analytical 1D convolution)
   3. Residual / Idiosyncratic Alpha (Market-beta stripped alpha)
   4. Industry-Relative Momentum (Sector-neutral outperformance)
   5. Momentum Acceleration (Short-term velocity vs long-term baseline)
@@ -156,151 +156,55 @@ class MomentumEngine:
 
     @staticmethod
     def _mp(window: int) -> int:
-        # Require the complete lookback window for each momentum/R² component.
         return window
 
-    def _rolling_r2(self, window: int) -> pd.DataFrame:
-        """Vectorized rolling Pearson correlation squared against linear time."""
-        log_p = np.log(self.prices.clip(lower=0.01))
-        t = pd.Series(np.arange(len(log_p)), index=log_p.index, dtype=float)
-        return log_p.rolling(window, min_periods=self._mp(window)).corr(t) ** 2
+    def _annualized_sharpe(self, w: int) -> pd.DataFrame:
+        """Compute annualized period Sharpe without an  multiplier."""
+        log_ret_w = np.log(self.prices / self.prices.shift(w).replace(0, np.nan)).replace([np.inf, -np.inf], np.nan)
+        daily_vol_w = (self.log_ret.rolling(w, min_periods=w).std() * np.sqrt(w)).replace(0, np.nan)
+        return (log_ret_w / daily_vol_w).replace([np.inf, -np.inf], np.nan)
 
-    def _annualized_sharpe_r2(self, w: int) -> pd.DataFrame:
-        """
-        Computes annualized Sharpe * R2 using log return consistency:
-        Sharpe = ln(P_t / P_{t-w}) / (std(daily_log_returns) * sqrt(w))
-        """
-        mp = self._mp(w)
-        log_ret_w = np.log(
-            self.prices / self.prices.shift(w).replace(0, np.nan)
-        ).replace([np.inf, -np.inf], np.nan)
-
-        daily_vol_w = (
-            self.log_ret.rolling(w, min_periods=mp).std() * np.sqrt(w)
-        ).replace(0, np.nan)
-
-        sharpe_w = (log_ret_w / daily_vol_w).replace([np.inf, -np.inf], np.nan)
-        r2_w = self._rolling_r2(w)
-        return sharpe_w * r2_w
-
-    def _annualized_sortino_r2(self, w: int) -> pd.DataFrame:
-        """
-        Computes annualized Sortino * R2 using downside deviation:
-        Sortino = ln(P_t / P_{t-w}) / (downside_std * sqrt(w))
-        """
-        mp = self._mp(w)
-        log_ret_w = np.log(
-            self.prices / self.prices.shift(w).replace(0, np.nan)
-        ).replace([np.inf, -np.inf], np.nan)
-
-        downside_log = self.log_ret.clip(upper=0)
-        downside_vol_w = (
-            np.sqrt((downside_log**2).rolling(w, min_periods=mp).mean()) * np.sqrt(w)
-        ).replace(0, np.nan)
-
-        sortino_w = (log_ret_w / downside_vol_w).replace([np.inf, -np.inf], np.nan)
-        r2_w = self._rolling_r2(w)
-        return sortino_w * r2_w
-
-    # ── System 1: Multi-Window Sharpe Momentum ───────────────────────────────
     def calculate_sharpe_momentum(self) -> pd.DataFrame:
-        """Computes weighted Z-scored composite momentum across 5 windows."""
-        scores_by_w: dict[int, pd.DataFrame] = {}
+        """Compute weighted cross-sectional Z-scored pure Sharpe momentum."""
+        scores_by_w = {}
         for w in self.WINDOWS:
-            raw_score = self._annualized_sharpe_r2(w)
-            # Mask short-history tickers
+            raw_score = self._annualized_sharpe(w)
             short_mask = self._valid_counts < w
             if short_mask.any():
                 raw_score.loc[:, short_mask] = np.nan
-
-            # Cross-sectional Winsorized Z-score normalization per day
             mean_ = raw_score.mean(axis=1)
             std_ = raw_score.std(axis=1).replace(0, np.nan)
-            z_score = raw_score.sub(mean_, axis=0).div(std_, axis=0).clip(-3.0, 3.0)
-
-            scores_by_w[w] = z_score
-
-            # Store latest period diagnostics
+            scores_by_w[w] = raw_score.sub(mean_, axis=0).div(std_, axis=0).clip(-3.0, 3.0)
             if not self.prices.empty:
                 idx_prev = max(0, len(self.prices) - 1 - min(w, len(self.prices) - 1))
-                ret_w = (self.prices.iloc[-1] / self.prices.iloc[idx_prev].replace(0, np.nan)) - 1
-                daily_vol_latest = (self.log_ret.iloc[-w:].std() * np.sqrt(w)).replace(
-                    0, np.nan
-                )
-                sharpe_latest = np.log((1 + ret_w).clip(lower=0.001)) / daily_vol_latest
-                r2_latest = (
-                    self._rolling_r2(w).iloc[-1]
-                    if len(self.prices) >= w
-                    else pd.Series(0.0, index=self.prices.columns)
-                )
-                self.period_metrics[w] = {
-                    "return": ret_w,
-                    "sharpe": sharpe_latest,
-                    "r2": r2_latest,
-                    "score": (
-                        z_score.iloc[-1]
-                        if not z_score.empty
-                        else pd.Series(0.0, index=self.prices.columns)
-                    ),
-                }
-
-        # Weighted combination: normalize by the weights of the windows
-        # actually available for each stock/date. Missing longer horizons
-        # therefore do not artificially penalize stocks with shorter history.
-        tot_w = sum(self.weights)
-        norm_weights = [w / tot_w for w in self.weights] if tot_w > 0 else [0.2] * 5
-
-        composite = pd.DataFrame(
-            0.0, index=self.prices.index, columns=self.prices.columns
-        )
-        available_weight = pd.DataFrame(
-            0.0, index=self.prices.index, columns=self.prices.columns
-        )
-        for w, weight in zip(self.WINDOWS, norm_weights):
-            if w in scores_by_w:
-                scores = scores_by_w[w]
-                composite = composite.add(scores.fillna(0.0) * weight)
-                available_weight = available_weight.add(scores.notna().astype(float) * weight)
-
-        composite = composite.div(available_weight.replace(0.0, np.nan))
-
-        self.momentum_scores = composite
+                ret_w = self.prices.iloc[-1] / self.prices.iloc[idx_prev].replace(0, np.nan) - 1
+                daily_vol = (self.log_ret.iloc[-w:].std() * np.sqrt(w)).replace(0, np.nan)
+                self.period_metrics[w] = {"return": ret_w, "sharpe": np.log((1 + ret_w).clip(lower=0.001)) / daily_vol, "score": scores_by_w[w].iloc[-1]}
+        total_weight = sum(self.weights)
+        weights = [w / total_weight for w in self.weights] if total_weight > 0 else [0.2] * 5
+        composite = pd.DataFrame(0.0, index=self.prices.index, columns=self.prices.columns)
+        available = pd.DataFrame(0.0, index=self.prices.index, columns=self.prices.columns)
+        for w, weight in zip(self.WINDOWS, weights):
+            scores = scores_by_w[w]
+            composite = composite.add(scores.fillna(0.0) * weight)
+            available = available.add(scores.notna().astype(float) * weight)
+        self.momentum_scores = composite.div(available.replace(0.0, np.nan))
         return self.momentum_scores
 
-    # ── System 2: Vectorized Exponential Regression ──────────────────────────
     def calculate_exp_regression(self, window: int = 126) -> pd.DataFrame:
-        """
-        Fast analytical rolling exponential regression via 1D convolution:
-        Score = (exp(beta * 252) - 1) * R^2
-        Calculated in milliseconds with zero Python loop bottlenecks.
-        """
+        """Calculate annualized rolling exponential-regression slope."""
         log_p = np.log(self.prices.clip(lower=0.01))
         n = window
         sum_t = (n - 1) * n / 2.0
         sum_t2 = (n - 1) * n * (2 * n - 1) / 6.0
-        var_t = sum_t2 - (sum_t**2) / n
-        t_weights = np.arange(n) - (sum_t / n)
-
-        # Vectorized 1D convolution along time axis
-        conv_vals = convolve1d(
-            log_p.fillna(0.0).values,
-            t_weights[::-1],
-            axis=0,
-            mode="constant",
-            cval=0.0,
-            origin=-(n // 2),
-        )
+        var_t = sum_t2 - (sum_t ** 2) / n
+        t_weights = np.arange(n) - sum_t / n
+        conv_vals = convolve1d(log_p.fillna(0.0).values, t_weights[::-1], axis=0, mode="constant", cval=0.0, origin=-(n // 2))
         roll_t_y = pd.DataFrame(conv_vals, index=log_p.index, columns=log_p.columns)
-
-        slope_daily = roll_t_y / max(var_t, 1e-8)
-        ann_return = np.exp(slope_daily * 252) - 1
-        r2 = self._rolling_r2(window)
-        score = ann_return * r2
-
+        score = np.exp((roll_t_y / max(var_t, 1e-8)) * 252) - 1
         short_mask = self._valid_counts < window
         if short_mask.any():
             score.loc[:, short_mask] = np.nan
-
         self.exp_reg_scores = score
         return score
 
@@ -392,10 +296,10 @@ class MomentumEngine:
         as_of = latest_as_of_date(pd.DatetimeIndex(self.prices.index))
         scores: dict[int, pd.Series] = {}
         for months in (1, 3, 6, 9, 12):
-            _, _, sharpe, r2, _ = _calendar_period_metrics(
+            _, _, sharpe, _ = _calendar_period_metrics(
                 self.prices, self.log_ret, months, latest_as_of=as_of
             )
-            scores[months] = (sharpe.iloc[-1] * r2.iloc[-1]).replace(
+            scores[months] = sharpe.iloc[-1].replace(
                 [np.inf, -np.inf], np.nan
             )
 
@@ -423,9 +327,9 @@ class MomentumEngine:
     ) -> pd.DataFrame:
         """Vectorized ATR, 2xATR Stop Loss, and 3xATR Chandelier Exits."""
         tr1 = self.high - self.low
-        tr2 = (self.high - self.close.shift(1)).abs()
+        t = (self.high - self.close.shift(1)).abs()
         tr3 = (self.low - self.close.shift(1)).abs()
-        tr = pd.concat([tr1, tr2, tr3]).groupby(level=0).max()
+        tr = pd.concat([tr1, t, tr3]).groupby(level=0).max()
 
         atr = tr.rolling(period, min_periods=max(period - 2, 5)).mean()
         latest_atr = atr.iloc[-1]
@@ -584,7 +488,6 @@ class MomentumEngine:
                 m = self.period_metrics[w]
                 rank_df[f"{label} Return"] = rank_df["Symbol"].map(m["return"])
                 rank_df[f"{label} Sharpe"] = rank_df["Symbol"].map(m["sharpe"])
-                rank_df[f"{label} R2"] = rank_df["Symbol"].map(m["r2"])
 
         # 3M & 6M drawdowns use calendar-defined windows.
         close_idx = pd.DatetimeIndex(close_src.index)

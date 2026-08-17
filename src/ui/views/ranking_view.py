@@ -26,10 +26,8 @@ DISPLAY_COLS = [
     "CMP",
     "3M Return",
     "3M Sharpe",
-    "3M R2",
     "6M Return",
     "6M Sharpe",
-    "6M R2",
     "% High",
     "Max DD 3M",
     "Max DD 6M",
@@ -62,7 +60,6 @@ def render_stock_card(row: pd.Series) -> None:
     sl_val = row.get("Stop Loss", 0)
     chand_val = row.get("Chand Exit", 0)
     sharpe_3m = row.get("3M Sharpe", 0)
-    r2_3m = row.get("3M R2", 0)
     vol = row.get("Volume", "Normal")
     vol_icon = "🔥" if vol == "High" else ("⚡" if vol == "Surge" else "•")
 
@@ -98,10 +95,6 @@ def render_stock_card(row: pd.Series) -> None:
             <div>
                 <span style="color: #64748b;">3M Sharpe:</span>
                 <strong>{sharpe_3m:.2f}</strong>
-            </div>
-            <div>
-                <span style="color: #64748b;">3M R²:</span>
-                <strong>{r2_3m:.2f}</strong>
             </div>
             <div>
                 <span style="color: #64748b;">52W Dist:</span>

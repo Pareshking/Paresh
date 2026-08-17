@@ -33,7 +33,7 @@ def render_backtest_view(
         format_func=lambda x: {
             5: "Weekly (5 Trading Days)",
             10: "Bi-Weekly (10 Trading Days)",
-            21: "Monthly (21 Trading Days)",
+            21: "Monthly (First Trading Day)",
             42: "Bi-Monthly (42 Trading Days)",
             63: "Quarterly (63 Trading Days)",
         }[x],
@@ -42,13 +42,12 @@ def render_backtest_view(
     bt_ranking = c3.selectbox(
         "Ranking Model",
         [
-            "Composite Sharpe × R² (Config Weights)",
-            "Multi-Window Pure Sharpe (No R²)",
+            "Composite Sharpe (Config Weights)",
+            "Multi-Window Pure Sharpe",
             "Residual (α) Momentum (126D Alpha)",
             "Industry-Relative Momentum",
             "Momentum Acceleration",
-            "Exp Regression (R² Slope)",
-            "Sharpe × R² (Single Window)",
+            "Exp Regression",
             "Sharpe (Single Window)",
             "Return (Classic Momentum)",
         ],
@@ -116,11 +115,11 @@ def render_backtest_view(
                 [21, 63, 126, 189, 252],
                 index=2,
                 format_func=lambda x: {
-                    21: "1M (21 Trading Days)",
-                    63: "3M (63 Trading Days)",
-                    126: "6M (126 Trading Days)",
-                    189: "9M (189 Trading Days)",
-                    252: "12M (252 Trading Days)",
+                    21: "1M (Calendar Month)",
+                    63: "3M (Calendar Month × 3)",
+                    126: "6M (Calendar Month × 6)",
+                    189: "9M (Calendar Month × 9)",
+                    252: "12M (Calendar Month × 12)",
                 }[x],
                 key="bt_single_lb",
             )
@@ -166,7 +165,7 @@ def render_backtest_view(
         f"""
         <div style='background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 14px; margin-bottom: 12px; font-family: IBM Plex Mono; font-size: 0.76rem; color: #475569; display: flex; flex-wrap: wrap; gap: 14px; align-items: center;'>
             <span>🎯 <strong>Engine:</strong> <span style='color: #0f172a; font-weight: 600;'>{bt_ranking}</span></span>
-            <span>⏱️ <strong>Interval:</strong> <span style='color: #0f172a; font-weight: 600;'>{bt_rebal} Trading Days</span></span>
+            <span>⏱️ <strong>Interval:</strong> <span style='color: #0f172a; font-weight: 600;'>{'Monthly · First Trading Day' if bt_rebal == 21 else f'{bt_rebal} Trading Days'}</span></span>
             <span>📦 <strong>Portfolio:</strong> <span style='color: #0f172a; font-weight: 600;'>Top {bt_n} Stocks (Buffer: Top {int(bt_n * buffer_mult)})</span></span>
             <span>⚖️ <strong>Weighting:</strong> <span style='color: #0f172a; font-weight: 600;'>{bt_weight}</span></span>
             <span>💸 <strong>Cost Drag:</strong> <span style='color: #0f172a; font-weight: 600;'>{cost_drag_bps:.0f} bps</span></span>

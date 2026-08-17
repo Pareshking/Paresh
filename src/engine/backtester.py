@@ -68,7 +68,15 @@ def run_backtest(
     high_52w = prices.rolling(252, min_periods=126).max()
 
     start_offset = max_lb + ema_period
-    rebal_dates = list(range(start_offset, len(prices) - 2, rebal_freq))
+    dates = pd.DatetimeIndex(prices.index)
+    if rebal_freq == 21:
+        eligible = dates[start_offset:]
+        month_keys = eligible.to_period("M")
+        idx_values = np.arange(start_offset, len(prices))
+        first_by_month = pd.Series(idx_values, index=eligible).groupby(month_keys).first()
+        rebal_dates = [int(i) for i in first_by_month.to_numpy() if int(i) < len(prices) - 2]
+    else:
+        rebal_dates = list(range(start_offset, len(prices) - 2, rebal_freq))
     if not rebal_dates:
         return None
 
@@ -106,7 +114,6 @@ def run_backtest(
             or "Multi-Window" in ranking_method
             or "Composite" in ranking_method
         ):
-            use_r2 = "No R²" not in ranking_method
             composite_score = pd.Series(0.0, index=prices.columns)
             for w_period, cw in zip(WINDOWS, norm_w if norm_w else [0.2] * 5):
                 if cw <= 0:
@@ -123,13 +130,7 @@ def run_backtest(
                 vol = log_ret.iloc[sl : start_idx + 1].std() * np.sqrt(w_period)
                 sharpe = log_ret_period / vol.replace(0, np.nan)
 
-                if use_r2:
-                    log_p = np.log(p_w.clip(lower=0.01))
-                    t_arr = np.arange(len(log_p))
-                    r2 = log_p.corrwith(pd.Series(t_arr, index=log_p.index, dtype=float)) ** 2
-                    raw_mom = sharpe * r2.fillna(0)
-                else:
-                    raw_mom = sharpe
+                raw_mom = sharpe
 
                 mu_cs = float(raw_mom.mean())
                 sig_cs = float(raw_mom.std())
@@ -165,10 +166,7 @@ def run_backtest(
                 )
                 vol = log_ret.iloc[sl : start_idx + 1].std() * np.sqrt(w_period)
                 sharpe = log_ret_p / vol.replace(0, np.nan)
-                log_p = np.log(p_w.clip(lower=0.01))
-                t_arr = np.arange(len(log_p))
-                r2 = log_p.corrwith(pd.Series(t_arr, index=log_p.index, dtype=float)) ** 2
-                raw_mom = sharpe * r2.fillna(0)
+                raw_mom = sharpe
                 z = ((raw_mom - raw_mom.mean()) / max(raw_mom.std(), 1e-8)).clip(
                     -3.0, 3.0
                 )
@@ -209,25 +207,14 @@ def run_backtest(
                 )
                 vol = log_ret.iloc[sl : start_idx + 1].std() * np.sqrt(252)
                 score = log_ret_period / vol.replace(0, np.nan)
-            elif "R²" in ranking_method:
-                log_ret_period = np.log(
-                    p_w.iloc[-1].clip(lower=0.01) / p_w.iloc[0].clip(lower=0.01)
-                )
-                vol = log_ret.iloc[sl : start_idx + 1].std() * np.sqrt(252)
-                sharpe = log_ret_period / vol.replace(0, np.nan)
-                log_p = np.log(p_w.clip(lower=0.01))
-                t_arr = np.arange(len(log_p))
-                r2 = log_p.corrwith(pd.Series(t_arr, index=log_p.index, dtype=float)) ** 2
-                score = sharpe * r2.fillna(0)
             elif ranking_method == "Exp Regression":
                 log_p = np.log(p_w.clip(lower=0.01))
                 t_s = pd.Series(np.arange(len(log_p)), index=log_p.index, dtype=float)
-                r = log_p.corrwith(t_s)
                 sy = log_p.std()
                 sx = float(t_s.std())
-                beta = r * (sy / max(sx, 1e-8))
-                r2 = r**2
-                score = (np.exp(beta * 252) - 1) * r2
+                # OLS slope of log-price against time, annualized.
+                beta = (log_p.sub(log_p.mean()).mul(t_s - t_s.mean(), axis=0).sum() / max(float(((t_s - t_s.mean()) ** 2).sum()), 1e-8))
+                score = np.exp(beta * 252) - 1
             else:
                 score = p_w.iloc[-1] / p_w.iloc[0] - 1
 
