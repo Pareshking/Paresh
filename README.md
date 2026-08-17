@@ -10,7 +10,7 @@ Built with Python, Streamlit, and Plotly with a **Pure Paper White (`#FFFFFF`), 
 
 | # | System | Quantitative Signal & Formula |
 |---|--------|-------------------------------|
-| 1 | **Sharpe Momentum** | Multi-window Z(Sharpe) across 5 lookbacks (1M, 3M, 6M, 9M, 12M) — Sharpe carries directional sign;  scales trend quality |
+| 1 | **Sharpe Momentum** | Multi-window Z(Sharpe) across 5 lookbacks (1M, 3M, 6M, 9M, 12M) — Sharpe carries directional sign; no R² scaling |
 | 2 | **Vectorized Exp-Regression** | Vectorized rolling OLS: $\beta = r \times \frac{\sigma_y}{\sigma_x}$, $\text{Score} = (e^{\beta \times 252} - 1) \times R^2$ |
 | 3 | **Residual / Idiosyncratic Alpha** | Rolling regression against broad market proxy: $\alpha_{\text{ann}} = (\mu_i - \beta_i \mu_m) \times 252$ |
 | 4 | **Industry-Relative Momentum** | Stock composite score minus industry/sector peer group average |
