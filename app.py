@@ -18,6 +18,7 @@ warnings.filterwarnings("ignore", message=".*st\\.components\\.v1\\.html.*")
 
 # Core & Loaders
 from src.engine.momentum import MomentumEngine
+from src.engine.calendar_momentum import apply_calendar_momentum
 from src.loaders.indices_loader import fetch_indices_data
 from src.loaders.mcap_loader import fetch_market_caps
 from src.loaders.price_loader import (
@@ -137,7 +138,7 @@ def run_momentum_pipeline(
         volume_df=_volume_data,
         weights=list(weights),
     )
-    calc.calculate_sharpe_momentum()
+    apply_calendar_momentum(calc)
     rank_df = calc.get_rankings(
         _index_info,
         _market_caps,
@@ -173,7 +174,7 @@ def load_all_data(indices: list[str]):
     calc, rank_df = run_momentum_pipeline(
         p_hash,
         i_hash,
-        "v3_dd6m_revised",
+        "v4_calendar_periods",
         adj_close,
         high_p,
         low_p,
