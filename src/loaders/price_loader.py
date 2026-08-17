@@ -91,7 +91,7 @@ def _clean_price_df(df: pd.DataFrame, symbols: Sequence[str] | None = None) -> p
     valid_idx = out.dropna(how="all").index
     if not valid_idx.empty:
         out = out.loc[: valid_idx[-1]]
-    out = out.ffill()
+    # Preserve security-specific NaNs; do not manufacture zero-return observations.
     if symbols:
         valid_cols = [s.upper() for s in symbols if s.upper() in out.columns]
         if valid_cols:
