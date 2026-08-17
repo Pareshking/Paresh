@@ -1,0 +1,110 @@
+name: Finalize Residual Alpha Benchmark Consistency
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/umiya-v1-audit-xht45x
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest
+
+      - name: Remove remaining universe-mean benchmark fallbacks
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("src/ui/views/strategy_view.py")
+          s = p.read_text()
+
+          old = '''    if len(_adj_close) < 140:\n        return pd.DataFrame(), {}\n\n    prices = _adj_close.dropna(axis=1, how="all").copy()\n'''
+          new = '''    if len(_adj_close) < 140:\n        return pd.DataFrame(), {}\n\n    # Residual alpha and benchmark attribution require the common V1 benchmark.\n    # Never substitute the stock-universe mean when ^CRSLDX is unavailable.\n    if _benchmark_rets is None or _benchmark_rets.empty:\n        return pd.DataFrame(), {}\n\n    prices = _adj_close.dropna(axis=1, how="all").copy()\n'''
+          if old not in s:
+              raise SystemExit("Expected matrix precondition block not found")
+          s = s.replace(old, new, 1)
+
+          old = '''        # 2. Residual Alpha — calendar 6M window against ^CRSLDX.\n        stk_ret = daily_ret.loc[:t_start].iloc[start_6m:]\n        if _benchmark_rets is not None and not _benchmark_rets.empty:\n            mkt_ret = _benchmark_rets.reindex(stk_ret.index).ffill()\n        else:\n            mkt_ret = daily_ret.loc[:t_start].mean(axis=1).iloc[start_6m:]\n'''
+          new = '''        # 2. Residual Alpha — calendar 6M window against ^CRSLDX.\n        stk_ret = daily_ret.loc[:t_start].iloc[start_6m:]\n        mkt_ret = _benchmark_rets.reindex(stk_ret.index).ffill()\n'''
+          if old not in s:
+              raise SystemExit("Expected residual-alpha fallback block not found")
+          s = s.replace(old, new, 1)
+
+          old = '''        if _benchmark_rets is not None and not _benchmark_rets.empty:\n            b_series = _benchmark_rets.reindex(fwd_slice.index).fillna(0.0)\n            b_daily = b_series if not b_series.empty else fwd_slice.mean(axis=1)\n        else:\n            b_daily = fwd_slice.mean(axis=1)\n'''
+          new = '''        b_series = _benchmark_rets.reindex(fwd_slice.index).fillna(0.0)\n        b_daily = b_series\n'''
+          if old not in s:
+              raise SystemExit("Expected forward benchmark fallback block not found")
+          s = s.replace(old, new, 1)
+
+          p.write_text(s)
+          PY
+
+      - name: Add focused matrix regression
+        run: |
+          cat >> tests/test_residual_alpha_benchmark.py <<'PY'
+
+          def test_strategy_matrix_requires_common_benchmark():
+              """The strategy matrix must not substitute the stock-universe mean."""
+              from src.ui.views.strategy_view import compute_multi_strategy_monthly_matrix
+
+              prices = _prices(n=180)
+              rank_df = pd.DataFrame(
+                  {
+                      "Symbol": list(prices.columns),
+                      "Industry": ["Sector1", "Sector1", "Sector2"],
+                  }
+              )
+
+              matrix, curves = compute_multi_strategy_monthly_matrix(
+                  "test-no-benchmark", prices, rank_df, top_n=2, n_months=6
+              )
+
+              assert matrix.empty
+              assert curves == {}
+          PY
+
+      - name: Targeted residual-alpha tests
+        run: python -m pytest -q tests/test_residual_alpha_benchmark.py
+
+      - name: Full test suite
+        run: python -m pytest -q
+
+      - name: Compile changed files
+        run: python -m py_compile src/ui/views/strategy_view.py tests/test_residual_alpha_benchmark.py
+
+      - name: Update tracker after verification
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("docs/V1_AUDIT_TRACKER.md")
+          s = p.read_text()
+          s = s.replace(
+              "falls back to universe mean only when no benchmark is available",
+              "requires the common V1 benchmark; returns no matrix when the benchmark is unavailable",
+              1,
+          )
+          p.write_text(s)
+          PY
+
+      - name: Commit verified fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/ui/views/strategy_view.py tests/test_residual_alpha_benchmark.py docs/V1_AUDIT_TRACKER.md
+          git commit -m "fix: remove residual alpha benchmark fallback"
+          git push origin claude/umiya-v1-audit-xht45x
+          git rm .github/workflows/residual-alpha-finalize.yml
+          git commit -m "chore: remove one-shot residual alpha finalizer"
+          git push origin claude/umiya-v1-audit-xht45x
