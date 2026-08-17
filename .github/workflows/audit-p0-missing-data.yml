@@ -1,0 +1,95 @@
+name: Audit P0 Missing Data Fix
+
+on:
+  push:
+    branches:
+      - audit/p0-missing-data
+
+permissions:
+  contents: write
+
+jobs:
+  fix-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Apply missing-data policy fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("src/engine/momentum.py")
+          text = p.read_text(encoding="utf-8")
+          old = '    cleaned = df.loc[~holidays]\n    return cleaned.ffill()\n'
+          new = ('    cleaned = df.loc[~holidays]\n'
+                 '    # Do not impute security-level gaps. Forward-filling can\n'
+                 '    # manufacture zero returns and distort volatility/momentum.\n'
+                 '    return cleaned\n')
+          if old not in text:
+              raise SystemExit("Expected clean_holidays implementation was not found; refusing an unsafe edit.")
+          p.write_text(text.replace(old, new, 1), encoding="utf-8")
+          PY
+
+      - name: Add regression tests
+        run: |
+          cat > tests/test_missing_data_policy.py <<'PY'
+          import numpy as np
+          import pandas as pd
+
+          from src.engine.momentum import clean_holidays
+
+          def test_market_holiday_is_removed_but_security_gap_is_preserved():
+              idx = pd.bdate_range("2026-01-05", periods=6)
+              prices = pd.DataFrame(
+                  {
+                      "A": [100, np.nan, 102, 103, 104, 105],
+                      "B": [100, np.nan, 102, 103, 104, 105],
+                      "C": [100, np.nan, 102, 103, 104, 105],
+                      "D": [100, np.nan, 102, 103, 104, 105],
+                      "E": [100, 101, 102, 103, 104, 105],
+                  },
+                  index=idx,
+              )
+
+              cleaned = clean_holidays(prices)
+
+              # The second row is a market-wide holiday for 4/5 securities and
+              # must be removed rather than filled.
+              assert idx[1] not in cleaned.index
+
+              # A single-stock gap must survive cleaning.
+              prices2 = prices.drop(index=idx[1]).copy()
+              prices2.loc[idx[2], "A"] = np.nan
+              cleaned2 = clean_holidays(prices2)
+              assert pd.isna(cleaned2.loc[idx[2], "A"])
+
+          def test_security_gap_does_not_create_zero_return():
+              idx = pd.bdate_range("2026-02-02", periods=4)
+              prices = pd.DataFrame({"A": [100.0, 105.0, np.nan, 115.0]}, index=idx)
+              cleaned = clean_holidays(prices)
+              log_returns = np.log(cleaned / cleaned.shift(1))
+              assert pd.isna(log_returns.loc[idx[2], "A"])
+              assert np.isclose(log_returns.loc[idx[3], "A"], np.log(115.0 / 105.0))
+          PY
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest
+
+      - name: Run full test suite
+        env:
+          PYTHONPATH: .
+        run: python -m pytest -q
+
+      - name: Commit verified fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/engine/momentum.py tests/test_missing_data_policy.py
+          git commit -m "fix(data): preserve security-level missing observations"
+          git push
