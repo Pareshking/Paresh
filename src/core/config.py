@@ -54,7 +54,7 @@ SHORT_FORMS: Final[dict[str, str]] = {
 }
 
 HTTP_HEADERS: Final[dict[str, str]] = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0.0 Safari/537.36",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
     "Accept-Encoding": "gzip, deflate, br",
@@ -68,6 +68,10 @@ BENCHMARK_SYMBOL: Final[str] = "^CRSLDX"
 # fixed trading-row windows. Session-based windows are defined only by the
 # portfolio/risk component that intentionally needs them.
 MOMENTUM_MONTHS: Final[list[int]] = [1, 3, 6, 9, 12]
+# Backward-compatible engine name. The momentum engine consumes these same
+# canonical calendar-month horizons; keeping the alias prevents an import
+# contract break while the rest of the codebase migrates to MOMENTUM_MONTHS.
+MOMENTUM_WINDOWS: Final[list[int]] = MOMENTUM_MONTHS
 DEFAULT_LOOKBACK_WEIGHTS: Final[list[float]] = [0.10, 0.30, 0.30, 0.20, 0.10]
 DEFAULT_SECTOR_CAP: Final[float] = 0.30
 DEFAULT_STOCK_CAP: Final[float] = 0.05
