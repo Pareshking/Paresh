@@ -24,3 +24,4 @@ jobs:
           name: v1-recent6m-monthstart-results
           path: research/outputs/v1_recent6m_monthstart_*.csv
           retention-days: 14
+      # Sandbox validation trigger: execute against the latest committed script.
