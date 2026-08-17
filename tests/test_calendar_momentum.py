@@ -1,3 +1,8 @@
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 import numpy as np
 import pandas as pd
 
@@ -38,7 +43,7 @@ def test_calendar_windows_are_not_fixed_21_63_126_189_252_rows():
     )
     end = len(prices) - 1
     actual_rows = end - starts[end] + 1
-    assert actual_rows != 253  # fixed 252-return convention would imply 253 prices
+    assert actual_rows != 253
 
 
 def test_start_position_uses_calendar_as_of_date():
@@ -46,4 +51,4 @@ def test_start_position_uses_calendar_as_of_date():
     starts = calendar_start_positions(
         idx, 12, latest_as_of=pd.Timestamp("2026-08-17")
     )
-    assert starts[-1] == 1  # target is 2025-08-17; first available date is 2025-08-18
+    assert starts[-1] == 1
