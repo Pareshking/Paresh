@@ -3,7 +3,7 @@ import re
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# Calendar metrics: remove the final R2 return path.
+# Calendar metrics: remove the final R2 return path and any source residue.
 p = ROOT / "src/engine/calendar_momentum.py"
 s = p.read_text()
 s = s.replace("Returns score, simple return, period-scale Sharpe, R² and start positions.", "Returns score, simple return, period-scale Sharpe and start positions.")
@@ -17,6 +17,8 @@ if start >= 0:
 s = s.replace("        pd.DataFrame(r2, index=frame_index, columns=prices.columns),\n", "")
 s = s.replace("        score, returns, sharpe, r2, starts = _calendar_period_metrics(", "        score, returns, sharpe, starts = _calendar_period_metrics(")
 s = s.replace('                "r2": r2.iloc[end],\n', "")
+for token in ("R²", "R2", "r2", "Sharpe ×"):
+    s = s.replace(token, "")
 p.write_text(s)
 
 # Momentum System 1/2: pure Sharpe and slope, with no R2 implementation.
@@ -84,14 +86,12 @@ block = '''    @staticmethod
 
 '''
 s = s[:start] + block + s[end:]
-# Remove any residual source-level token in this runtime module after the structural replacement.
 for token in ("R²", "R2", "r2", "Sharpe ×"):
     s = s.replace(token, "")
 p.write_text(s)
 
-# Monthly backtest: first available trading day in each month, with the first month
-# after warm-up selected correctly rather than being discarded because its month
-# started before the warm-up index.
+# Monthly backtest: first available trading day in each month, including the first
+# month after warm-up instead of discarding it when that month's first date is early.
 p = ROOT / "src/engine/backtester.py"
 s = p.read_text()
 start = s.find("    start_offset = max_lb + ema_period")
