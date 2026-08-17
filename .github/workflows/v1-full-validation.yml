@@ -28,7 +28,7 @@ jobs:
       - name: Compile application and source
         run: python -m compileall -q app.py src scripts
 
-      - name: Full 750-stock quantitative integration
+      - name: Full 752-stock quantitative integration
         run: python scripts/full_validation.py
 
       - name: Enforce deprecated Streamlit HTML cleanup
