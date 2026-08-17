@@ -62,7 +62,7 @@ def sync_official_nse_indices(force: bool = True) -> dict[str, Any]:
 
     for idx_name, url in INDICES_URLS.items():
         if idx_name == "NIFTY TOTAL MARKET":
-            continue  # Total Market is aggregated from the sub-indices or its master CSV
+            continue  # Total Market is maintained as the canonical master CSV.
 
         downloaded_ok = False
         for attempt in range(3):
@@ -138,7 +138,7 @@ def _fetch_indices_impl(selected_indices: Sequence[str] | None = None) -> pd.Dat
                             os.makedirs(os.path.dirname(local_path), exist_ok=True)
                             with open(local_path, "w", encoding="utf-8") as f:
                                 f.write(csv_text)
-                            logger.debug(f"Persisted live {idx_name} to {local_path}")
+                            logger.debug(f"Persisted live {idx_name} to disk")
                         except Exception as e:
                             logger.debug(f"Could not persist {idx_name} to disk: {e}")
                     break
