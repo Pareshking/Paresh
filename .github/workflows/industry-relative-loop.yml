@@ -2,8 +2,12 @@ name: Industry Relative Leave-One-Out Loop
 on:
   workflow_dispatch:
   push:
-    paths:
-      - .github/industry-relative-trigger.txt
+    branches:
+      - main
+
+permissions:
+  contents: write
+
 jobs:
   validate:
     runs-on: ubuntu-latest
