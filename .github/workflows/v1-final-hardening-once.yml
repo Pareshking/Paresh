@@ -1,0 +1,81 @@
+name: V1 Final Hardening Once
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - run: pip install -r requirements.txt pytest
+      - name: Patch final normalization edge case and tests
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          root = Path('.')
+
+          p = root/'src/engine/momentum.py'
+          t = p.read_text()
+          t = t.replace(
+              '    if len(clean) < 3 or clean.std(ddof=0) == 0:\n        return pd.Series(0.0, index=s.index)\n',
+              '    if len(clean) < 3 or clean.std(ddof=0) == 0:\n        return pd.Series(np.nan, index=s.index)\n',
+          )
+          p.write_text(t)
+
+          p = root/'src/engine/calendar_momentum.py'
+          t = p.read_text()
+          t = t.replace(
+              '    """Return today\'s India date, unless the supplied data is newer."""',
+              '    """Return a current India date for fresh data, else the dataset\'s last observation date."""',
+          )
+          p.write_text(t)
+
+          p = root/'tests/test_v1_hardening_regressions.py'
+          t = p.read_text()
+          t = t.replace(
+              'from src.engine.calendar_momentum import apply_calendar_momentum',
+              'from src.engine.calendar_momentum import apply_calendar_momentum, latest_as_of_date',
+          )
+          t = t.replace(
+              'from src.engine.momentum import MomentumEngine',
+              'from src.engine.momentum import MomentumEngine, zscore_series',
+          )
+          t += '''\n\ndef test_zscore_small_cross_section_remains_missing() -> None:\n    s = pd.Series([1.0, 2.0, np.nan])\n    assert zscore_series(s).isna().all()\n\n\ndef test_historical_dataset_as_of_date_uses_last_observation() -> None:\n    idx = pd.date_range("2022-01-03", periods=10, freq="B")\n    assert latest_as_of_date(idx) == idx[-1].normalize()\n'''
+          p.write_text(t)
+          PY
+      - name: Verify regression and compile
+        run: |
+          python -m pytest -q
+          python -m compileall -q app.py src scripts
+      - name: Publish final hardening
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src tests
+          git commit -m "fix(v1): preserve missing cross-sectional z-scores"
+          git push origin HEAD:main
+      - name: Trigger full validation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run v1-full-validation.yml --ref main
+      - name: Self remove
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
+          git rm .github/workflows/v1-final-hardening-once.yml
+          git commit -m "chore(v1): remove final one-time repair workflow"
+          git push origin HEAD:main
