@@ -29,7 +29,7 @@ The audit is a roadmap, not a requirement to reproduce MSCI/NSE/BSE methodology.
 | Portfolio ERC naming | Lower bound means constrained ERC | 🟡 Documentation/research | Ensure UI/docs consistently call it constrained ERC where applicable |
 | Volatility targeting | 63-session realized volatility | 🟢 Accepted | Retained as an intentional portfolio-risk convention; not a System-1 period |
 | Survivorship bias | Current universe can bias historical results | ⚪ Intentionally ignored | User explicitly chose not to address survivorship bias for this stage |
-| Data history / institutional 3Y replication | Main loader historically around 2Y | 🟠 Open research limitation | Do not claim MSCI replication; consider longer history later if needed |
+| Data history / institutional 3Y replication | Main loader historically around 2Y | 🟢 Closed by decision | 2y is sufficient for all System-1 windows; backtest depth (~9-10 monthly periods) is accepted as thin; extending history without historical constituents worsens survivorship bias |
 | Liquidity / implementability | No strong liquidity penalty | 🟢 Closed by decision | 30 bps flat accepted for retail-AUM Nifty-constituent universe; circuit-limit detection, ADTV filter, and bid-ask model accepted as documented limitations for this stage |
 | Intermediate momentum | 12–7M vs 6–2M not isolated | 🟠 Research opportunity | Test as a separate Umiya research hypothesis; no production change yet |
 | Frog-in-the-Pan | R² was not equivalent to FIP | 🟠 Research opportunity | If desired, test a dedicated continuous-momentum measure; not part of current System-1 |
@@ -78,6 +78,27 @@ The audit is a roadmap, not a requirement to reproduce MSCI/NSE/BSE methodology.
 ### 2.9 Root momentum-window cleanup
 
 **Closed.** The old root `MOMENTUM_WINDOWS = [21, 63, 126, 189, 252]` definition was removed. `MOMENTUM_MONTHS = [1, 3, 6, 9, 12]` is the canonical System-1 configuration.
+
+### 2.12 Data-history limitation
+
+**Closed by decision.** Full audit of data history usage performed. No code changes required.
+
+**Signal quality — 2y is sufficient (ACCEPTED)**
+The longest System-1 horizon is 12 calendar months (≈252 business days). With `period="2y"` (≈504 sessions), warmup consumes approximately 302 sessions (max_lb=252 + EMA=50), leaving ≈202 sessions of valid signal data. Every System-1 score (1M/3M/6M/9M/12M) only requires its own lookback period to compute the *current* score; there is no rolling average of scores across years. 2y provides adequate buffer above the 12M window.
+
+**Backtest depth — accepted thin (ACCEPTED LIMITATION)**
+With monthly rebalancing every ≈21 sessions, valid backtesting yields approximately 9–10 monthly rebalance periods. This is sufficient for directional validation but insufficient for rigorous statistical inference (e.g. Sharpe ratio confidence intervals, regime-conditional performance). The backtest should be interpreted as a sanity check, not a rigorous out-of-sample record. This is accepted at this stage.
+
+Increasing the fetch period to 3y or 5y would extend backtest depth, but:
+- Historical constituent data is not preserved (survivorship bias, intentionally deferred) — longer history amplifies the bias
+- Older yfinance data has more quality gaps and corporate action inconsistencies
+- The current `period="2y"` is therefore the appropriate trade-off
+
+**Institutional 3Y comparison — not applicable (ACCEPTED)**
+MSCI constructs a medium-term momentum signal from 12M-1M price returns and estimates volatility from 3y of weekly returns. V1 does not replicate MSCI's calculation. V1 uses daily log-return-based calendar-period Sharpe across five horizons. Extending history to 3y solely to imitate MSCI's covariance window would change only backtest depth, not signal methodology. This is explicitly declined.
+
+**Regime research — deferred (ACCEPTED)**
+Multi-cycle regime analysis requires 5–10+ years of point-in-time constituent data. This is out of scope for V1 at this stage and deferred alongside survivorship bias.
 
 ### 2.11 Liquidity / implementability audit
 
@@ -150,27 +171,23 @@ MSCI/NSE/BSE/AQR methodologies are comparison/reference models. Umiya is not req
 
 ## 4. Remaining work — ordered queue
 
-### NEXT 1 — Data-history limitation 🟠
-
-Determine whether V1 needs more than the current available history for institutional comparisons and covariance/regime research. Do not alter the current signal merely to imitate MSCI's 3-year weekly volatility.
-
-### NEXT 2 — Intermediate momentum research 🟠
+### NEXT 1 — Intermediate momentum research 🟠
 
 Test separate 12–7M and 6–2M components inspired by the Novy-Marx result. This is research, not a production fix.
 
-### NEXT 3 — Latest-month / classic momentum comparison 🟠
+### NEXT 2 — Latest-month / classic momentum comparison 🟠
 
 Compare the current no-month-skip formulation with a month-skip alternative out of sample.
 
-### NEXT 4 — Dedicated Frog-in-the-Pan research 🟠
+### NEXT 3 — Dedicated Frog-in-the-Pan research 🟠
 
 If useful, test a direct continuous-momentum measure against the current System-1 signal. Do not reintroduce R² merely to approximate FIP.
 
-### NEXT 5 — Institutional benchmark models 🟠
+### NEXT 4 — Institutional benchmark models 🟠
 
 Build clean comparison implementations for MSCI-style and NSE-style momentum so Umiya can be evaluated against them without replacing the Umiya signal.
 
-### NEXT 6 — Numerical robustness sweep 🟠
+### NEXT 5 — Numerical robustness sweep 🟠
 
 Continue synthetic tests for missing observations, short histories, ties, singleton groups, constant prices, duplicate dates and index alignment.
 
