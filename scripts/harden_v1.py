@@ -48,7 +48,8 @@ replacement = '''        z_rows = []
             z = (clipped - float(clipped.mean())) / (clipped_std + 1e-12)
             z_rows.append(z.reindex(score.columns).fillna(0.0))
         z_score = pd.DataFrame(z_rows, index=score.index, columns=score.columns).clip(-3.0, 3.0)'''
-replace_regex("src/engine/calendar_momentum.py", pattern, replacement)
+if pattern in cm.read_text():
+    replace_regex("src/engine/calendar_momentum.py", pattern, replacement)
 cm_text = cm.read_text()
 cm_text = cm_text.replace("sample_var = (rs2 - rn * mean_r * mean_r) / np.where(rn > 1, rn - 1, np.nan)", "population_var = (rs2 / np.where(rn > 0, rn, np.nan)) - (mean_r * mean_r)")
 cm_text = cm_text.replace("daily_sd = np.sqrt(np.maximum(sample_var, 0.0))", "daily_sd = np.sqrt(np.maximum(population_var, 0.0))")
@@ -80,9 +81,8 @@ new_metrics = '''        # 3M & 6M Metrics use the canonical calendar-period eng
             rank_df[f"{label} Return"] = rank_df["Symbol"].map(cal_ret.iloc[-1].to_dict())
             rank_df[f"{label} Sharpe"] = rank_df["Symbol"].map(cal_sharpe.iloc[-1].to_dict())
 '''
-if old_metrics not in m:
-    raise SystemExit("Expected 3M/6M metric block not found")
-m = m.replace(old_metrics, new_metrics, 1)
+if old_metrics in m:
+    m = m.replace(old_metrics, new_metrics, 1)
 m = m.replace("        close_src = (\n            close_prices_df if close_prices_df is not None else self.close\n        ).ffill()\n        high_src = (high_prices_df if high_prices_df is not None else self.high).ffill()", "        close_src = (\n            close_prices_df if close_prices_df is not None else self.close\n        ).copy()\n        high_src = (high_prices_df if high_prices_df is not None else self.high).copy()", 1)
 mom.write_text(m)
 
@@ -128,9 +128,8 @@ new_drop = '''    required = [taxonomy_col, "Symbol"]
             return
         return_col = fallback
     valid_df = rank_df.dropna(subset=required + [return_col]).copy()'''
-if old_drop not in c:
-    raise SystemExit("Expected Treemap dropna block not found")
-c = c.replace(old_drop, new_drop, 1)
+if old_drop in c:
+    c = c.replace(old_drop, new_drop, 1)
 c = c.replace('        min_r = valid_df["3M Return"].min()', '        min_r = valid_df[return_col].min()', 1)
 c = c.replace('        valid_df["Tile_Weight"] = ((valid_df["3M Return"] + offset) * 1000).clip(', '        valid_df["Tile_Weight"] = ((valid_df[return_col] + offset) * 1000).clip(', 1)
 charts.write_text(c)
