@@ -35,12 +35,13 @@ jobs:
         run: pytest -q
       - name: Verify no R2 remains in runtime V1
         run: |
-          ! grep -RniE 'R²|R2|r2|Sharpe ×' src/engine src/ui/views/ranking_view.py src/ui/views/backtest_view.py
+          ! grep -RniE --include='*.py' 'R²|R2|r2|Sharpe ×' src/engine src/ui/views/ranking_view.py src/ui/views/backtest_view.py
       - name: Commit tested changes and remove one-off tooling
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           rm -f scripts/oneoff_remove_r2_v1.py scripts/fix_v1_r2_residue.py .github/workflows/oneoff-v1-r2-and-backtest.yml
+          find src -type d -name __pycache__ -prune -exec rm -rf {} +
           git add -A
           git commit -m 'fix(v1): remove R2 and align monthly backtest [oneoff-v1-r2]'
           git push
