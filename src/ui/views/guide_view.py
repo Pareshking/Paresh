@@ -111,7 +111,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                         🎯 Sharpe (Single-Window Horizon) — [TACTICAL SWING DISCOVERY]
                     </div>
                     <div style="font-size:13px; color:#475569; line-height:1.6;">
-                        • <strong>Single Lookback Window</strong>: Evaluates purely 1 isolated timeframe (e.g. only 3M / 63 days or only 6M / 126 days).<br>
+                        • <strong>Single Lookback Window</strong>: Evaluates one isolated calendar timeframe (e.g. 3M or 6M).<br>
                         • <strong>Higher Responsiveness</strong>: Reacts faster to emerging short-term trends, but has higher whipsaw risk if a single month experiences a sharp drawdown.<br>
                         • <strong>Fixed Horizon</strong>: Does not blend across horizons; scores reflect only price action within that exact lookback window.<br>
                         • <strong>Best Used For</strong>: Tactical swing screening and comparing relative performance within a specific quarterly holding period.
@@ -134,7 +134,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                         1. Multi-Window Sharpe Factor (10/30/30/20/10)
                     </div>
                     <div style="color:#475569; font-size:13px; line-height:1.6;">
-                        Combines 5 rolling lookbacks: <strong>1M (10%)</strong>, <strong>3M (30%)</strong>, <strong>6M (30%)</strong>, <strong>9M (20%)</strong>, and <strong>12M (10%)</strong>. Each window calculates annualized log-Sharpe multiplied by Pearson  regression score (Sharpe) to reward persistent geometric compounding over erratic single-day spike noise.
+                        Combines 5 rolling lookbacks: <strong>1M (10%)</strong>, <strong>3M (30%)</strong>, <strong>6M (30%)</strong>, <strong>9M (20%)</strong>, and <strong>12M (10%)</strong>. Each window calculates the approved period risk-adjusted momentum statistic: log return divided by period volatility using all valid daily observations in the calendar-defined horizon.
                     </div>
                 </div>
                 <div>
@@ -166,7 +166,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                         4. Turnover Buffer & Execution Framework
                     </div>
                     <div style="color:#475569; font-size:13px; line-height:1.6;">
-                        Walk-forward monthly (21D) rebalancing with causal execution (Rank at T → Trade at T+1):
+                        Walk-forward monthly calendar rebalancing with causal execution (Rank at T → Trade at T+1):
                         <ul style="margin:6px 0 0 16px; padding:0; line-height:1.6; font-size:13px;">
                             <li><strong>Top 20 Holdings</strong> (Equal-Weighted or Inverse-Vol Sizing)</li>
                             <li><strong>2.0× Buffer Zone (Top 40)</strong>: Retains existing positions if rank &le; 40, cutting turnover to 39.5%</li>

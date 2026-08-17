@@ -75,8 +75,6 @@ FORMAT_MAP: dict[str, str] = {
     # Ratios & Alpha Scores (2 decimal places)
     "3M Sharpe": "{:.2f}",
     "6M Sharpe": "{:.2f}",
-    "3M R2": "{:.2f}",
-    "6M R2": "{:.2f}",
     "Del_Surge_Daily": "{:.2f}×",
     "Del_Surge_20D": "{:.2f}×",
     "Vol_Surge_Daily": "{:.2f}×",
@@ -815,7 +813,7 @@ def render_styled_table(
                 active_fmt[col] = "{:.1f}%"
             elif any(
                 w in col_l
-                for w in ["sharpe", "sortino", "ratio", "beta", "score", "r2", "surge"]
+                for w in ["sharpe", "sortino", "ratio", "beta", "score", "surge"]
             ):
                 active_fmt[col] = "{:.2f}"
             elif any(
@@ -1094,12 +1092,6 @@ def render_master_screener_table(
             else "—"
         )
 
-        r2_3m = row.get("3M R2")
-        r2_3m_str = (
-            f"{float(r2_3m):.2f}"
-            if pd.notna(r2_3m) and isinstance(r2_3m, (int, float))
-            else "—"
-        )
 
         dd_3m = row.get("Max DD 3M")
         dd_3m_str = (
@@ -1130,12 +1122,6 @@ def render_master_screener_table(
             else "—"
         )
 
-        r2_6m = row.get("6M R2")
-        r2_6m_str = (
-            f"{float(r2_6m):.2f}"
-            if pd.notna(r2_6m) and isinstance(r2_6m, (int, float))
-            else "—"
-        )
 
         dd_6m = row.get("Max DD 6M")
         if (
@@ -1228,9 +1214,9 @@ def render_master_screener_table(
         if is_exec:
             row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk}</strong></td><td class="sticky-col-symbol"><span class="stock-ticker">{sym}</span></td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw}">{ind_disp}</td><td class="td-num {ret_3m_clr}"><strong>{ret_3m_str}</strong></td><td class="td-num td-sharpe">{sharpe_3m_str}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
         elif is_core:
-            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk}</strong></td><td class="sticky-col-symbol"><span class="stock-ticker">{sym}</span></td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw}">{ind_disp}</td><td class="td-num">{mcap_str}</td><td class="td-num {ret_3m_clr}"><strong>{ret_3m_str}</strong></td><td class="td-num td-sharpe">{sharpe_3m_str}</td><td class="td-num">{r2_3m_str}</td><td class="td-num {ret_6m_clr}"><strong>{ret_6m_str}</strong></td><td class="td-num td-sharpe">{sharpe_6m_str}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-num td-sl">{sl_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
+            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk}</strong></td><td class="sticky-col-symbol"><span class="stock-ticker">{sym}</span></td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw}">{ind_disp}</td><td class="td-num">{mcap_str}</td><td class="td-num {ret_3m_clr}"><strong>{ret_3m_str}</strong></td><td class="td-num td-sharpe">{sharpe_3m_str}</td><td class="td-num {ret_6m_clr}"><strong>{ret_6m_str}</strong></td><td class="td-num td-sharpe">{sharpe_6m_str}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-num td-sl">{sl_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
         else:
-            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk}</strong></td><td class="sticky-col-symbol"><span class="stock-ticker">{sym}</span></td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw}">{ind_disp}</td><td class="td-num">{mcap_str}</td><td class="td-num {ret_3m_clr}"><strong>{ret_3m_str}</strong></td><td class="td-num td-sharpe">{sharpe_3m_str}</td><td class="td-num">{r2_3m_str}</td><td class="td-num td-dd">{dd_3m_str}</td><td class="td-num {ret_6m_clr}"><strong>{ret_6m_str}</strong></td><td class="td-num td-sharpe">{sharpe_6m_str}</td><td class="td-num">{r2_6m_str}</td><td class="td-num td-dd">{dd_6m_str}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-center">{above_ema_icon}</td><td class="td-center">{near_hi_icon}</td><td class="td-num td-sl">{sl_str}</td><td class="td-num td-chand">{chand_str}</td><td class="td-center">{gap_icon}</td><td class="td-num">{ffill_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
+            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk}</strong></td><td class="sticky-col-symbol"><span class="stock-ticker">{sym}</span></td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw}">{ind_disp}</td><td class="td-num">{mcap_str}</td><td class="td-num {ret_3m_clr}"><strong>{ret_3m_str}</strong></td><td class="td-num td-sharpe">{sharpe_3m_str}</td><td class="td-num td-dd">{dd_3m_str}</td><td class="td-num {ret_6m_clr}"><strong>{ret_6m_str}</strong></td><td class="td-num td-sharpe">{sharpe_6m_str}</td><td class="td-num td-dd">{dd_6m_str}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-center">{above_ema_icon}</td><td class="td-center">{near_hi_icon}</td><td class="td-num td-sl">{sl_str}</td><td class="td-num td-chand">{chand_str}</td><td class="td-center">{gap_icon}</td><td class="td-num">{ffill_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
         rows_html.append(row_h)
 
     # Assemble headers based on density
@@ -1280,7 +1266,7 @@ def render_master_screener_table(
                 <th>MCAP (CR)</th>
                 <th>3M RET</th>
                 <th>3M SHARPE</th>
-                <th>3M R²</th>
+                
                 <th>6M RET</th>
                 <th>6M SHARPE</th>
                 <th>% 52W HI</th>
@@ -1313,11 +1299,11 @@ def render_master_screener_table(
                 <th>MCAP (CR)</th>
                 <th>3M RET</th>
                 <th>3M SHARPE</th>
-                <th>3M R²</th>
+                
                 <th>MAX DD 3M</th>
                 <th>6M RET</th>
                 <th>6M SHARPE</th>
-                <th>6M R²</th>
+                
                 <th>MAX DD 6M</th>
                 <th>% 52W HI</th>
                 <th>% 50 EMA</th>
@@ -1917,8 +1903,7 @@ def render_saas_table(
                         "SHARPE",
                         "SORTINO",
                         "CALMAR",
-                        "R2",
-                        "RATIO",
+                                                "RATIO",
                         "BETA",
                         "SURGE",
                         "MULTIPLIER",

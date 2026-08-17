@@ -123,14 +123,14 @@ def apply_calendar_momentum(calc) -> pd.DataFrame:
         for _, row in score.iterrows():
             clean = row.dropna()
             if len(clean) < 3 or float(clean.std(ddof=0)) == 0.0:
-                z_rows.append(pd.Series(0.0, index=score.columns))
+                z_rows.append(pd.Series(np.nan, index=score.columns))
                 continue
             raw_mean = float(clean.mean())
             raw_std = float(clean.std(ddof=0))
             clipped = clean.clip(raw_mean - 3.0 * raw_std, raw_mean + 3.0 * raw_std)
             clipped_std = float(clipped.std(ddof=0))
             z = (clipped - float(clipped.mean())) / (clipped_std + 1e-12)
-            z_rows.append(z.reindex(score.columns).fillna(0.0))
+            z_rows.append(z.reindex(score.columns))
         z_score = pd.DataFrame(z_rows, index=score.index, columns=score.columns).clip(-3.0, 3.0)
         scores_by_period[months] = z_score
 

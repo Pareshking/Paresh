@@ -49,7 +49,7 @@ def _render_qualified_section(
     corr_val: float | None = None
     corr_df: pd.DataFrame | None = None
     if len(syms) > 1:
-        corr_df = adj_close[syms].iloc[-90:].ffill().pct_change(fill_method=None).corr()
+        corr_df = adj_close[syms].iloc[-90:].pct_change(fill_method=None).corr()
         corr_val = float(corr_df.values[np.triu_indices_from(corr_df, k=1)].mean())
 
     corr_status = "Diversified" if corr_val and corr_val < 0.70 else "High Correlation"

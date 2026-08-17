@@ -64,7 +64,7 @@ def winsorize_series(s: pd.Series, std_limit: float = 3.0) -> pd.Series:
     clean = s.dropna()
     if len(clean) < 3 or clean.std() == 0:
         return s
-    mean, std = float(clean.mean()), float(clean.std())
+    mean, std = float(clean.mean()), float(clean.std(ddof=0))
     lower, upper = mean - std_limit * std, mean + std_limit * std
     return s.clip(lower=lower, upper=upper)
 
@@ -79,7 +79,7 @@ def zscore_series(s: pd.Series, winsorize: bool = True) -> pd.Series:
     if winsorize:
         clean = winsorize_series(clean, std_limit=3.0)
     mean_val = float(clean.mean())
-    std_val = float(clean.std())
+    std_val = float(clean.std(ddof=0))
     z = (clean - mean_val) / (std_val + 1e-12)
     return z.reindex(s.index)
 
@@ -235,7 +235,7 @@ class MomentumEngine:
                 else pd.Series(np.nan, index=daily_ret.index, dtype=float)
             )
         else:
-            mkt_ret = pd.to_numeric(benchmark_returns, errors="coerce").reindex(daily_ret.index).ffill()
+            mkt_ret = pd.to_numeric(benchmark_returns, errors="coerce").reindex(daily_ret.index)
 
         if months is None:
             start = max(0, len(daily_ret) - window)
@@ -246,27 +246,20 @@ class MomentumEngine:
             )
             start = int(starts[-1])
 
-        ret_w = daily_ret.iloc[start:]
         mkt_ret_w = mkt_ret.iloc[start:]
-        mkt_var = float(mkt_ret_w.var())
-
-        if mkt_var <= 1e-12 or np.isnan(mkt_var) or len(mkt_ret_w.dropna()) < 30:
-            ranks = pd.Series(np.nan, index=self.prices.columns)
-            self.residual_ranks = ranks
-            return ranks
-
-        covs = ret_w.apply(lambda col: col.cov(mkt_ret_w))
-        betas = covs / mkt_var
-        stock_mean = ret_w.mean()
-        mkt_mean = float(mkt_ret_w.mean())
-        alpha_ann = (stock_mean - betas * mkt_mean) * 252
-
-        if months is None:
-            min_history = min(window, 63)
-        else:
-            min_history = max(2, len(ret_w) // 4)
-        alpha_ann = alpha_ann.where(self._valid_counts >= min_history, np.nan)
-        ranks = alpha_ann.rank(ascending=False, method="min")
+        ranks = pd.Series(np.nan, index=self.prices.columns, dtype=float)
+        for sym in self.prices.columns:
+            pair = pd.concat([daily_ret[sym].iloc[start:], mkt_ret_w], axis=1).dropna()
+            if len(pair) < 30:
+                continue
+            stock_r = pair.iloc[:, 0]
+            bench_r = pair.iloc[:, 1]
+            mkt_var = float(bench_r.var())
+            if mkt_var <= 1e-12 or not np.isfinite(mkt_var):
+                continue
+            beta = float(stock_r.cov(bench_r)) / mkt_var
+            ranks.loc[sym] = (float(stock_r.mean()) - beta * float(bench_r.mean())) * 252
+        ranks = ranks.rank(ascending=False, method="min")
         self.residual_ranks = ranks
         return ranks
     def calculate_industry_relative(
@@ -393,7 +386,8 @@ class MomentumEngine:
     ) -> pd.DataFrame:
         """Constructs comprehensive production master rankings."""
         if self.momentum_scores is None:
-            self.calculate_sharpe_momentum()
+            from src.engine.calendar_momentum import apply_calendar_momentum
+            apply_calendar_momentum(self)
 
         latest_scores = (
             self.momentum_scores.iloc[-1]

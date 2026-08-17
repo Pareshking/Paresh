@@ -19,7 +19,7 @@ def _shrunk_cov(returns_df: pd.DataFrame) -> pd.DataFrame:
     Pure NumPy analytical Ledoit-Wolf covariance shrinkage estimator with zero external dependencies.
     Shrinks sample covariance toward diagonal target matrix with equal average variance.
     """
-    clean = returns_df.fillna(0.0)
+    clean = returns_df.dropna(how="any")
     X = clean.values
     T, N = X.shape
 
@@ -97,7 +97,7 @@ class PortfolioOptimizer:
         if n < 2:
             return self.equal_weight(symbols)
 
-        ret_sub = self.returns[valid].iloc[-window:].fillna(0.0)
+        ret_sub = self.returns[valid].iloc[-window:].dropna(how="any")
         if len(ret_sub) < 30:
             return self.inverse_volatility(valid)
 
@@ -163,7 +163,7 @@ class PortfolioOptimizer:
         if n == 1:
             return pd.Series([1.0], index=valid)
 
-        ret_sub = self.returns[valid].iloc[-126:].fillna(0.0)
+        ret_sub = self.returns[valid].iloc[-126:].dropna(how="any")
         if len(ret_sub) < 30:
             return self.equal_weight(valid)
 
@@ -322,7 +322,7 @@ class PortfolioOptimizer:
         valid = [s for s in weights.index if s in self.returns.columns]
         if not valid:
             return weights, 1.0, 0.0
-        sub = self.returns[valid].iloc[-window:].fillna(0.0)
+        sub = self.returns[valid].iloc[-window:].dropna(how="any")
         port = (sub * weights[valid]).sum(axis=1)
         realised = float(port.std(ddof=0) * np.sqrt(252))
         scale = (

@@ -367,7 +367,7 @@ def fetch_benchmark_history(period: str = "2y") -> pd.Series:
 def get_market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL) -> RegimeData:
     """
     Computes market regime by comparing benchmark index price with its 200 DMA.
-    Falls back to Nifty 50 (^NSEI) if Nifty 500 (^CRSLDX) is unavailable.
+    Uses the canonical V1 benchmark passed by the caller (default ^CRSLDX).
     """
     try:
         nifty = yf.download(benchmark_symbol, period="1y", progress=False)

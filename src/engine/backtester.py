@@ -73,7 +73,6 @@ def run_backtest(
     is_composite = (
         "Composite" in ranking_method
         or "Multi-Window" in ranking_method
-        or "Industry-Relative" in ranking_method
     )
     if is_composite:
         w_total = sum(config_weights)
@@ -210,13 +209,16 @@ def run_backtest(
                 composite_score += z.fillna(0) * cw
 
             ind_map = sec_map
-            ind_scores: dict[str, list[float]] = {}
-            for sym, sc in composite_score.items():
-                ind_scores.setdefault(ind_map.get(sym, "Other"), []).append(sc)
-            ind_means = {k: np.nanmean(v) for k, v in ind_scores.items()}
-            ind_rel = composite_score - composite_score.index.map(
-                lambda s: ind_means.get(ind_map.get(s, "Other"), 0)
-            )
+            score_df = pd.DataFrame({
+                "Symbol": composite_score.index,
+                "Score": composite_score.values,
+                "Industry": [ind_map.get(s, "Other") for s in composite_score.index],
+            })
+            peer_sum = score_df.groupby("Industry")["Score"].transform("sum", min_count=1) - score_df["Score"]
+            peer_count = score_df.groupby("Industry")["Score"].transform("count") - score_df["Score"].notna().astype(int)
+            peer_mean = peer_sum.div(peer_count.replace(0, np.nan))
+            ind_rel = score_df["Score"] - peer_mean
+            ind_rel.index = score_df["Symbol"]
             score = ind_rel[valid & ind_rel.notna()]
 
         elif "Acceleration" in ranking_method or "Accel" in ranking_method:
@@ -302,7 +304,7 @@ def run_backtest(
                 _cov_data = (
                     log_ret[holdings]
                     .iloc[max(start_idx - 126, 0) : start_idx + 1]
-                    .fillna(0.0)
+                    .dropna(how="any")
                 )
                 if len(_cov_data) < 30:
                     raise ValueError("Insufficient covariance history")
