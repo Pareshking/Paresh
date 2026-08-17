@@ -1,0 +1,35 @@
+name: V1 Production Website QA
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  production-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Install browser QA dependencies
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Audit production website
+        run: python scripts/production_website_qa.py
+      - name: Upload responsive QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v1-production-website-qa
+          path: artifacts/production_website_qa/
+          if-no-files-found: warn
