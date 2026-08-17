@@ -77,7 +77,7 @@ class PortfolioOptimizer:
         valid = [s for s in symbols if s in self.returns.columns]
         if not valid:
             return self.equal_weight(symbols)
-        vol = self.returns[valid].iloc[-window:].std() * np.sqrt(252)
+        vol = self.returns[valid].iloc[-window:].std(ddof=0) * np.sqrt(252)
         inv = 1.0 / vol.replace(0, np.nan)
         inv = inv.fillna(0)
         total = float(inv.sum())
@@ -324,7 +324,7 @@ class PortfolioOptimizer:
             return weights, 1.0, 0.0
         sub = self.returns[valid].iloc[-window:].fillna(0.0)
         port = (sub * weights[valid]).sum(axis=1)
-        realised = float(port.std() * np.sqrt(252))
+        realised = float(port.std(ddof=0) * np.sqrt(252))
         scale = (
             float(np.clip(target_vol / realised, 0.10, 1.0)) if realised > 0 else 1.0
         )

@@ -4,7 +4,7 @@ Institutional-style quantitative multi-system momentum ranking, portfolio constr
 
 ## V1 quantitative status
 
-The current V1 research model has been hardened against the main mathematical and architectural issues identified in the 2026 quantitative audit. The canonical System-1 signal is now calendar-period based and does **not** use R².
+The current V1 research model has been hardened against the main mathematical and architectural issues identified in the 2026 quantitative audit. The canonical System-1 signal is now calendar-period based and does **not** use .
 
 ### System-1 — Sharpe Momentum
 
@@ -27,13 +27,13 @@ For each as-of date, the engine:
 
 The approved System-1 Sharpe methodology is intentionally retained. It is a **period risk-adjusted momentum statistic**, not conventional annualized Sharpe, and should not be compared numerically with institutional annualized Sharpe figures.
 
-**R² is not part of System-1 and is not used to scale its score.**
+** is not part of System-1 and is not used to scale its score.**
 
 ### Other quantitative systems
 
 | # | System | Description |
 |---|--------|-------------|
-| 1 | **Sharpe Momentum** | Multi-window Z-score across calendar 1M/3M/6M/9M/12M horizons; no R² scaling |
+| 1 | **Sharpe Momentum** | Multi-window Z-score across calendar 1M/3M/6M/9M/12M horizons; no  scaling |
 | 2 | **Vectorized Exp-Regression** | Vectorized rolling regression-based trend signal |
 | 3 | **Residual / Idiosyncratic Alpha** | Rolling regression against the common V1 market benchmark |
 | 4 | **Industry-Relative Momentum** | Stock composite score relative to a **leave-one-out** industry/sector peer mean |

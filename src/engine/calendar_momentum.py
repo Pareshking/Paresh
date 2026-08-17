@@ -70,7 +70,7 @@ def _calendar_period_metrics(
     r = log_returns.to_numpy(dtype=float)
     valid_r = np.isfinite(r)
     cs_r = np.vstack([np.zeros((1, n_cols)), np.nancumsum(np.where(valid_r, r, 0.0), axis=0)])
-    cs_r2 = np.vstack([np.zeros((1, n_cols)), np.nancumsum(np.where(valid_r, r * r, 0.0), axis=0)])
+    cs_ = np.vstack([np.zeros((1, n_cols)), np.nancumsum(np.where(valid_r, r * r, 0.0), axis=0)])
     cs_n = np.vstack([np.zeros((1, n_cols)), np.cumsum(valid_r.astype(float), axis=0)])
 
     score = np.full((n_rows, n_cols), np.nan)
@@ -88,11 +88,11 @@ def _calendar_period_metrics(
         returns[end, valid_price] = p1[valid_price] / p0[valid_price] - 1.0
 
         rs = cs_r[end + 1] - cs_r[start + 1]
-        rs2 = cs_r2[end + 1] - cs_r2[start + 1]
+        rs2 = cs_[end + 1] - cs_[start + 1]
         rn = cs_n[end + 1] - cs_n[start + 1]
         mean_r = rs / np.where(rn > 0, rn, np.nan)
-        sample_var = (rs2 - rn * mean_r * mean_r) / np.where(rn > 1, rn - 1, np.nan)
-        daily_sd = np.sqrt(np.maximum(sample_var, 0.0))
+        population_var = (rs2 / np.where(rn > 0, rn, np.nan)) - (mean_r * mean_r)
+        daily_sd = np.sqrt(np.maximum(population_var, 0.0))
         period_vol = daily_sd * np.sqrt(rn)
 
         log_return = np.full(n_cols, np.nan)
@@ -119,9 +119,19 @@ def apply_calendar_momentum(calc) -> pd.DataFrame:
         score, ret, sharpe, starts = _calendar_period_metrics(
             calc.prices, calc.log_ret, months, latest_as_of=as_of
         )
-        mean_ = score.mean(axis=1)
-        std_ = score.std(axis=1).replace(0, np.nan)
-        z_score = score.sub(mean_, axis=0).div(std_, axis=0).clip(-3.0, 3.0)
+        z_rows = []
+        for _, row in score.iterrows():
+            clean = row.dropna()
+            if len(clean) < 3 or float(clean.std(ddof=0)) == 0.0:
+                z_rows.append(pd.Series(0.0, index=score.columns))
+                continue
+            raw_mean = float(clean.mean())
+            raw_std = float(clean.std(ddof=0))
+            clipped = clean.clip(raw_mean - 3.0 * raw_std, raw_mean + 3.0 * raw_std)
+            clipped_std = float(clipped.std(ddof=0))
+            z = (clipped - float(clipped.mean())) / (clipped_std + 1e-12)
+            z_rows.append(z.reindex(score.columns).fillna(0.0))
+        z_score = pd.DataFrame(z_rows, index=score.index, columns=score.columns).clip(-3.0, 3.0)
         scores_by_period[months] = z_score
 
         if not calc.prices.empty:

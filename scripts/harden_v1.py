@@ -135,6 +135,6 @@ for path in Path(".").rglob("*.py"):
     if ".git" in path.parts or path.as_posix().startswith(".venv/"):
         continue
     text = path.read_text(errors="ignore")
-    if "st.components.v1.html" in text:
-        text = text.replace("st.components.v1.html", "st.html")
+    if "st.html" in text:
+        text = text.replace("st.html", "st.html")
         path.write_text(text)

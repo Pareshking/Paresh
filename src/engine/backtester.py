@@ -154,7 +154,7 @@ def run_backtest(
                 if cw <= 0:
                     continue
                 sharpe, _ = _calendar_period_sharpe(
-                    prices, log_ret, start_idx, int(round(w_period / 21))
+                    prices, log_ret, start_idx, int(w_period)
                 )
                 raw_mom = sharpe
 
@@ -201,7 +201,7 @@ def run_backtest(
             composite_score = pd.Series(0.0, index=prices.columns)
             for w_period, cw in zip(WINDOWS, norm_w if norm_w else [0.2] * 5):
                 sharpe, _ = _calendar_period_sharpe(
-                    prices, log_ret, start_idx, int(round(w_period / 21))
+                    prices, log_ret, start_idx, int(w_period)
                 )
                 raw_mom = sharpe
                 z = ((raw_mom - raw_mom.mean()) / max(raw_mom.std(), 1e-8)).clip(

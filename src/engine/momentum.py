@@ -162,7 +162,7 @@ class MomentumEngine:
     def _annualized_sharpe(self, w: int) -> pd.DataFrame:
         """Compute annualized period Sharpe without an  multiplier."""
         log_ret_w = np.log(self.prices / self.prices.shift(w).replace(0, np.nan)).replace([np.inf, -np.inf], np.nan)
-        daily_vol_w = (self.log_ret.rolling(w, min_periods=w).std() * np.sqrt(w)).replace(0, np.nan)
+        daily_vol_w = (self.log_ret.rolling(w, min_periods=w).std(ddof=0) * np.sqrt(w)).replace(0, np.nan)
         return (log_ret_w / daily_vol_w).replace([np.inf, -np.inf], np.nan)
 
     def calculate_sharpe_momentum(self) -> pd.DataFrame:
@@ -179,7 +179,7 @@ class MomentumEngine:
             if not self.prices.empty:
                 idx_prev = max(0, len(self.prices) - 1 - min(w, len(self.prices) - 1))
                 ret_w = self.prices.iloc[-1] / self.prices.iloc[idx_prev].replace(0, np.nan) - 1
-                daily_vol = (self.log_ret.iloc[-w:].std() * np.sqrt(w)).replace(0, np.nan)
+                daily_vol = (self.log_ret.iloc[-w:].std(ddof=0) * np.sqrt(w)).replace(0, np.nan)
                 self.period_metrics[w] = {"return": ret_w, "sharpe": np.log((1 + ret_w).clip(lower=0.001)) / daily_vol, "score": scores_by_w[w].iloc[-1]}
         total_weight = sum(self.weights)
         weights = [w / total_weight for w in self.weights] if total_weight > 0 else [0.2] * 5
@@ -442,8 +442,8 @@ class MomentumEngine:
         # CMP & Technical Signals
         close_src = (
             close_prices_df if close_prices_df is not None else self.close
-        ).ffill()
-        high_src = (high_prices_df if high_prices_df is not None else self.high).ffill()
+        ).copy()
+        high_src = (high_prices_df if high_prices_df is not None else self.high).copy()
 
         # Normalize column names to uppercase stripped tickers
         close_src.columns = [
@@ -491,12 +491,14 @@ class MomentumEngine:
             lambda x: x >= -20.0 if pd.notna(x) else False
         )
 
-        # 3M & 6M Metrics
-        for w, label in [(63, "3M"), (126, "6M")]:
-            if w in self.period_metrics:
-                m = self.period_metrics[w]
-                rank_df[f"{label} Return"] = rank_df["Symbol"].map(m["return"])
-                rank_df[f"{label} Sharpe"] = rank_df["Symbol"].map(m["sharpe"])
+        # 3M & 6M Metrics use the canonical calendar-period engine.
+        as_of_metrics = latest_as_of_date(pd.DatetimeIndex(self.prices.index))
+        for months, label in ((3, "3M"), (6, "6M")):
+            _, cal_ret, cal_sharpe, _ = _calendar_period_metrics(
+                self.prices, self.log_ret, months, latest_as_of=as_of_metrics
+            )
+            rank_df[f"{label} Return"] = rank_df["Symbol"].map(cal_ret.iloc[-1].to_dict())
+            rank_df[f"{label} Sharpe"] = rank_df["Symbol"].map(cal_sharpe.iloc[-1].to_dict())
 
         # 3M & 6M drawdowns use calendar-defined windows.
         close_idx = pd.DatetimeIndex(close_src.index)
