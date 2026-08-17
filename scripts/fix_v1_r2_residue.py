@@ -16,6 +16,8 @@ if start >= 0:
         s = s[:start] + s[end:]
 s = s.replace("        pd.DataFrame(r2, index=frame_index, columns=prices.columns),\n", "")
 s = s.replace("        score, returns, sharpe, r2, starts = _calendar_period_metrics(", "        score, returns, sharpe, starts = _calendar_period_metrics(")
+s = s.replace("        score, ret, sharpe, r2, starts = _calendar_period_metrics(", "        score, ret, sharpe, starts = _calendar_period_metrics(")
+s = s.replace("        score, ret, sharpe, , starts = _calendar_period_metrics(", "        score, ret, sharpe, starts = _calendar_period_metrics(")
 s = s.replace('                "r2": r2.iloc[end],\n', "")
 for token in ("R²", "R2", "r2", "Sharpe ×"):
     s = s.replace(token, "")
@@ -90,8 +92,7 @@ for token in ("R²", "R2", "r2", "Sharpe ×"):
     s = s.replace(token, "")
 p.write_text(s)
 
-# Monthly backtest: first available trading day in each month, including the first
-# month after warm-up instead of discarding it when that month's first date is early.
+# Monthly backtest: first available trading day in each month after warm-up.
 p = ROOT / "src/engine/backtester.py"
 s = p.read_text()
 start = s.find("    start_offset = max_lb + ema_period")
