@@ -225,9 +225,17 @@ class MomentumEngine:
         """
         daily_ret = self.prices.pct_change(fill_method=None)
         if benchmark_returns is None:
-            mkt_ret = daily_ret.mean(axis=1)
+            from src.loaders.price_loader import fetch_benchmark_history
+            benchmark_close = fetch_benchmark_history(period="2y")
+            mkt_ret = (
+                pd.to_numeric(benchmark_close, errors="coerce")
+                .reindex(daily_ret.index)
+                .pct_change(fill_method=None)
+                if not benchmark_close.empty
+                else pd.Series(np.nan, index=daily_ret.index, dtype=float)
+            )
         else:
-            mkt_ret = benchmark_returns.reindex(daily_ret.index).ffill()
+            mkt_ret = pd.to_numeric(benchmark_returns, errors="coerce").reindex(daily_ret.index).ffill()
 
         if months is None:
             start = max(0, len(daily_ret) - window)

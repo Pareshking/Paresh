@@ -15,6 +15,7 @@ from src.engine.calendar_momentum import calendar_start_positions
 from src.ui.charts import render_multi_strategy_growth_chart
 from src.ui.components import render_data_quality_footer
 from src.ui.theme import render_saas_table
+from src.loaders.price_loader import fetch_benchmark_history
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -50,6 +51,14 @@ def compute_multi_strategy_monthly_matrix(
 
     prices = _adj_close.dropna(axis=1, how="all").copy()
     daily_ret = prices.pct_change(fill_method=None)
+    benchmark_close = fetch_benchmark_history(period="2y")
+    benchmark_ret = (
+        pd.to_numeric(benchmark_close, errors="coerce")
+        .reindex(prices.index)
+        .pct_change(fill_method=None)
+        if not benchmark_close.empty
+        else pd.Series(np.nan, index=prices.index, dtype=float)
+    )
 
     month_ends = prices.resample("ME").last().index
     valid_month_ends = [
@@ -106,13 +115,19 @@ def compute_multi_strategy_monthly_matrix(
         sharpe_6m = ret_6m / vol_6m.replace(0, np.nan)
         comp_score = sharpe_6m
 
-        # 2. Residual Alpha — same calendar 6M window.
-        mkt_ret = daily_ret.loc[:t_start].mean(axis=1).iloc[start_6m:]
+        # 2. Residual Alpha — same calendar 6M window, relative to V1 benchmark.
+        mkt_ret = benchmark_ret.loc[:t_start].iloc[start_6m:]
         stk_ret = daily_ret.loc[:t_start].iloc[start_6m:]
-        cov_m = stk_ret.apply(lambda col: col.cov(mkt_ret))
-        var_m = float(mkt_ret.var())
-        beta = cov_m / max(var_m, 1e-8)
-        alpha_res = (stk_ret.mean() * 252) - (beta * (float(mkt_ret.mean()) * 252))
+        valid_mkt = mkt_ret.notna()
+        mkt_ret = mkt_ret.loc[valid_mkt]
+        stk_ret = stk_ret.loc[valid_mkt]
+        var_m = float(mkt_ret.var()) if len(mkt_ret) else 0.0
+        if len(mkt_ret) >= 30 and var_m > 1e-12:
+            cov_m = stk_ret.apply(lambda col: col.cov(mkt_ret))
+            beta = cov_m / var_m
+            alpha_res = (stk_ret.mean() * 252) - (beta * (float(mkt_ret.mean()) * 252))
+        else:
+            alpha_res = pd.Series(np.nan, index=prices.columns)
 
         # 3. Industry-Relative Momentum
         ind_map = (
@@ -120,14 +135,13 @@ def compute_multi_strategy_monthly_matrix(
             if "Industry" in _rank_df.columns
             else {}
         )
-        ind_scores: dict[str, list[float]] = {}
-        for sym, score in comp_score.items():
-            ind = ind_map.get(sym, "General")
-            ind_scores.setdefault(ind, []).append(score)
-        ind_means = {k: float(np.nanmean(v)) for k, v in ind_scores.items() if np.isfinite(v).any()}
-        ind_rel_score = comp_score - comp_score.index.map(
-            lambda s: ind_means.get(ind_map.get(s, "General"), 0)
-        )
+        ind_key = comp_score.index.map(lambda s: ind_map.get(s, "General"))
+        ind_sum = comp_score.groupby(ind_key).transform("sum")
+        ind_count = comp_score.groupby(ind_key).transform("count")
+        peer_sum = ind_sum - comp_score
+        peer_count = ind_count - comp_score.notna().astype(int)
+        peer_mean = peer_sum.div(peer_count.replace(0, np.nan))
+        ind_rel_score = comp_score - peer_mean
 
         # 4. Momentum Acceleration — calendar 1M/3M/12M windows.
         start_1m = int(calendar_start_positions(idx_slice, 1, latest_as_of=t_start)[-1])
@@ -157,8 +171,8 @@ def compute_multi_strategy_monthly_matrix(
         if fwd_slice.empty:
             continue
 
-        b_daily = fwd_slice.mean(axis=1)
-        b_month_cum = float((1 + b_daily).prod() - 1)
+        b_daily = benchmark_ret.loc[t_start:t_end].iloc[1:].dropna()
+        b_month_cum = float((1 + b_daily).prod() - 1) if not b_daily.empty else 0.0
         bench_monthly_rets.append(b_month_cum)
         bench_daily_rets.extend(b_daily.tolist())
         all_daily_dates.extend(b_daily.index.tolist())
