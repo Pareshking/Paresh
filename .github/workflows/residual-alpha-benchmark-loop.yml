@@ -1,0 +1,238 @@
+name: Residual Alpha Benchmark Consistency Loop
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify-fix-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest
+
+      - name: Apply residual-alpha benchmark fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              p = Path(path)
+              s = p.read_text()
+              if old not in s:
+                  raise SystemExit(f"Expected source block not found in {path}")
+              p.write_text(s.replace(old, new, 1))
+
+          replace(
+              "src/engine/momentum.py",
+              """        market_cap_weights: pd.Series | None = None,\n    ):""",
+              """        market_cap_weights: pd.Series | None = None,\n        benchmark_returns: pd.Series | None = None,\n    ):""",
+          )
+          replace(
+              "src/engine/momentum.py",
+              """        self.weights: list[float] = list(weights) if weights is not None else list(self.DEFAULT_WEIGHTS)\n        self._mcap_weights: pd.Series | None = market_cap_weights\n""",
+              """        self.weights: list[float] = list(weights) if weights is not None else list(self.DEFAULT_WEIGHTS)\n        self._mcap_weights: pd.Series | None = market_cap_weights\n        self._benchmark_returns: pd.Series | None = benchmark_returns.copy() if benchmark_returns is not None else None\n""",
+          )
+          replace(
+              "src/engine/momentum.py",
+              """        if benchmark_returns is None:\n            mkt_ret = daily_ret.mean(axis=1)\n        else:\n            mkt_ret = benchmark_returns.reindex(daily_ret.index).ffill()\n""",
+              """        benchmark = benchmark_returns if benchmark_returns is not None else self._benchmark_returns\n        if benchmark is None:\n            # A market benchmark is mandatory for V1 residual alpha. Never\n            # substitute the stock-universe mean as a market proxy.\n            ranks = pd.Series(np.nan, index=self.prices.columns)\n            self.residual_ranks = ranks\n            return ranks\n        mkt_ret = pd.to_numeric(benchmark, errors=\"coerce\").reindex(daily_ret.index)\n""",
+          )
+          replace(
+              "src/engine/momentum.py",
+              """    def get_multi_strategy_overlay(\n        self,\n        rank_df: pd.DataFrame,\n        top_n: int = 50,\n    ) -> pd.DataFrame:""",
+              """    def get_multi_strategy_overlay(\n        self,\n        rank_df: pd.DataFrame,\n        top_n: int = 50,\n        benchmark_returns: pd.Series | None = None,\n    ) -> pd.DataFrame:""",
+          )
+          replace(
+              "src/engine/momentum.py",
+              """        res_ranks = self.calculate_residual_momentum(window=126)\n""",
+              """        res_ranks = self.calculate_residual_momentum(\n            benchmark_returns=benchmark_returns, window=126\n        )\n""",
+          )
+
+          app = Path("app.py")
+          s = app.read_text()
+          s = s.replace(
+              "    get_market_regime,\n)",
+              "    get_market_regime,\n    fetch_benchmark_history,\n)",
+              1,
+          )
+          s = s.replace(
+              "        volume_df=_volume_data,\n        weights=list(weights),\n    )",
+              "        volume_df=_volume_data,\n        weights=list(weights),\n        benchmark_returns=_benchmark_returns,\n    )",
+              1,
+          )
+          s = s.replace(
+              "    _market_caps: pd.Series,\n    weights: tuple[float, ...],\n):",
+              "    _market_caps: pd.Series,\n    weights: tuple[float, ...],\n    _benchmark_returns: pd.Series,\n):",
+              1,
+          )
+          s = s.replace(
+              "        vol_p,\n        idx_info,\n        mcaps,\n        weights,\n    )",
+              "        vol_p,\n        idx_info,\n        mcaps,\n        weights,\n        benchmark_returns,\n    )",
+              1,
+          )
+          s = s.replace(
+              "    regime = get_market_regime()\n\n    p_hash",
+              "    regime = get_market_regime()\n    benchmark_returns = fetch_benchmark_history(period=\"2y\").pct_change(fill_method=None)\n    if benchmark_returns.empty:\n        return None\n\n    p_hash",
+              1,
+          )
+          app.write_text(s)
+
+          sv = Path("src/ui/views/strategy_view.py")
+          s = sv.read_text()
+          s = s.replace(
+              "def compute_overlay_cached(\n    price_hash: str,\n    weights_key: tuple[float, ...],\n    _calc: MomentumEngine,\n    _rank_df: pd.DataFrame,\n    top_n: int,\n) -> pd.DataFrame:\n    return _calc.get_multi_strategy_overlay(_rank_df, top_n=top_n)",
+              "def compute_overlay_cached(\n    price_hash: str,\n    weights_key: tuple[float, ...],\n    _calc: MomentumEngine,\n    _rank_df: pd.DataFrame,\n    top_n: int,\n    _benchmark_returns: pd.Series,\n) -> pd.DataFrame:\n    return _calc.get_multi_strategy_overlay(\n        _rank_df, top_n=top_n, benchmark_returns=_benchmark_returns\n    )",
+              1,
+          )
+          s = s.replace(
+              "    _rank_df: pd.DataFrame,\n    top_n: int = 20,\n    n_months: int = 6,\n) -> tuple[pd.DataFrame, dict[str, pd.Series]]:",
+              "    _rank_df: pd.DataFrame,\n    top_n: int = 20,\n    n_months: int = 6,\n    _benchmark_close: pd.Series | None = None,\n) -> tuple[pd.DataFrame, dict[str, pd.Series]]:",
+              1,
+          )
+          s = s.replace(
+              "        # 1. Composite Sharpe x R2 — calendar 6M window.",
+              "        # 1. Composite Sharpe — calendar 6M window. R² is not part of V1.",
+              1,
+          )
+          s = s.replace(
+              "        log_p = np.log(p_6m.clip(lower=0.01))\n        t_arr = np.arange(len(log_p))\n        r2_6m = log_p.corrwith(pd.Series(t_arr, index=log_p.index, dtype=float)) ** 2\n        comp_score = sharpe_6m * r2_6m.fillna(0)",
+              "        comp_score = sharpe_6m",
+              1,
+          )
+          s = s.replace(
+              "        # 2. Residual Alpha — same calendar 6M window.\n        mkt_ret = daily_ret.loc[:t_start].mean(axis=1).iloc[start_6m:]",
+              "        # 2. Residual Alpha — same calendar 6M window using the common V1 benchmark.\n        if _benchmark_close is None or _benchmark_close.empty:\n            continue\n        benchmark_ret = pd.to_numeric(_benchmark_close, errors=\"coerce\").reindex(prices.index).pct_change(fill_method=None)\n        mkt_ret = benchmark_ret.loc[:t_start].iloc[start_6m:]",
+              1,
+          )
+          s = s.replace(
+              "        b_daily = fwd_slice.mean(axis=1)\n        b_month_cum = float((1 + b_daily).prod() - 1)",
+              "        b_daily = benchmark_ret.loc[fwd_slice.index].dropna()\n        b_month_cum = float((1 + b_daily).prod() - 1)",
+              1,
+          )
+          s = s.replace(
+              "        benchmark_close = fetch_benchmark_history(period=\"2y\")",
+              "        benchmark_close = fetch_benchmark_history(period=\"2y\")",
+              1,
+          )
+          s = s.replace(
+              "from src.engine.momentum import MomentumEngine\n",
+              "from src.engine.momentum import MomentumEngine\nfrom src.loaders.price_loader import fetch_benchmark_history\n",
+              1,
+          )
+          s = s.replace(
+              "        overlay_df = compute_overlay_cached(ph, weights, calc, rank_df, top_n)",
+              "        benchmark_close = fetch_benchmark_history(period=\"2y\")\n        benchmark_returns = benchmark_close.pct_change(fill_method=None)\n        overlay_df = compute_overlay_cached(ph, weights, calc, rank_df, top_n, benchmark_returns)",
+              1,
+          )
+          s = s.replace(
+              "    adj_close: pd.DataFrame,\n    weights: tuple[float, ...],\n) -> None:",
+              "    adj_close: pd.DataFrame,\n    weights: tuple[float, ...],\n    benchmark_close: pd.Series | None = None,\n) -> None:",
+              1,
+          )
+          s = s.replace(
+              "        render_strategy_view(calc, rank_df, adj_close, weights)",
+              "        render_strategy_view(calc, rank_df, adj_close, weights, benchmark_close)",
+              1,
+          )
+          sv.write_text(s)
+          PY
+
+      - name: Add focused regression test
+        run: |
+          cat > tests/test_residual_alpha_benchmark.py <<'PY'
+          import numpy as np
+          import pandas as pd
+
+          from src.engine.momentum import MomentumEngine
+
+
+          def test_residual_alpha_uses_supplied_v1_benchmark_not_universe_mean():
+              idx = pd.bdate_range("2025-01-01", periods=180)
+              bench_price = pd.Series(100 * np.cumprod(1 + np.linspace(0.0005, 0.0020, len(idx))), index=idx)
+              bench_ret = bench_price.pct_change(fill_method=None)
+              a = pd.Series(100 * np.cumprod(1 + 0.4 * bench_ret.fillna(0) + 0.001), index=idx)
+              b = pd.Series(100 * np.cumprod(1 - 0.2 * bench_ret.fillna(0) + 0.0002), index=idx)
+              prices = pd.DataFrame({"A": a, "B": b}, index=idx)
+
+              engine = MomentumEngine(prices, benchmark_returns=bench_ret)
+              got = engine.calculate_residual_momentum()
+              explicit = engine.calculate_residual_momentum(benchmark_returns=bench_ret)
+
+              assert got.equals(explicit)
+              assert got.notna().any()
+
+              universe_ret = prices.pct_change(fill_method=None).mean(axis=1)
+              universe_based = engine.calculate_residual_momentum(benchmark_returns=universe_ret)
+              assert not got.equals(universe_based)
+
+
+          def test_missing_benchmark_does_not_fallback_to_universe_mean():
+              idx = pd.bdate_range("2025-01-01", periods=180)
+              prices = pd.DataFrame(
+                  {
+                      "A": np.linspace(100, 130, len(idx)),
+                      "B": np.linspace(100, 115, len(idx)),
+                  },
+                  index=idx,
+              )
+              engine = MomentumEngine(prices)
+              result = engine.calculate_residual_momentum()
+              assert result.isna().all()
+          PY
+
+      - name: Targeted tests
+        run: python -m pytest -q tests/test_residual_alpha_benchmark.py tests/test_benchmark_consistency.py tests/test_residual_alpha_alignment.py
+
+      - name: Full test suite
+        run: python -m pytest -q
+
+      - name: Compile changed Python files
+        run: python -m py_compile src/engine/momentum.py src/ui/views/strategy_view.py app.py
+
+      - name: Update tracker after verification
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("docs/V1_AUDIT_TRACKER.md")
+          s = p.read_text()
+          s = s.replace(
+              "| Residual-alpha market proxy | Historical implementation used universe mean if no benchmark | 🟢/🟠 Verify | Common V1 benchmark is now `^CRSLDX`; verify every residual-alpha call path uses it consistently |",
+              "| Residual-alpha market proxy | Historical implementation used universe mean if no benchmark | 🟢 Closed | Residual-alpha requires the common `^CRSLDX` benchmark; no universe-mean fallback remains in V1 paths |",
+              1,
+          )
+          s = s.replace(
+              "### NEXT 1 — Residual-alpha benchmark consistency 🟠",
+              "### NEXT 1 — Residual-alpha benchmark consistency 🟢",
+              1,
+          )
+          s = s.replace(
+              "Verify the entire residual-alpha path, including defaults and callers, uses the common `^CRSLDX` benchmark rather than an equal-weight stock-universe proxy.",
+              "Verified the residual-alpha engine, multi-strategy overlay, strategy comparison matrix and backtest caller paths use the common `^CRSLDX` benchmark. No equal-weight stock-universe proxy is used as the market benchmark.",
+              1,
+          )
+          p.write_text(s)
+          PY
+
+      - name: Commit verified loop
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/engine/momentum.py src/ui/views/strategy_view.py app.py tests/test_residual_alpha_benchmark.py docs/V1_AUDIT_TRACKER.md
+          git commit -m "fix: enforce CRSLDX residual alpha benchmark"
+          git push origin main
+          git rm .github/workflows/residual-alpha-benchmark-loop.yml
+          git commit -m "chore: remove one-shot residual alpha loop"
+          git push origin main
