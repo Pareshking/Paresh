@@ -103,11 +103,13 @@ def run_backtest(
     start_offset = max_lb + ema_period
     dates = pd.DatetimeIndex(prices.index)
     if rebal_freq == 21:
+        # Monthly convention: signal/rebalance at the last available trading
+        # session of each calendar month, then execute on the next session.
         eligible = dates[start_offset:]
         month_keys = eligible.to_period("M")
         idx_values = np.arange(start_offset, len(prices))
-        first_by_month = pd.Series(idx_values, index=eligible).groupby(month_keys).first()
-        rebal_dates = [int(i) for i in first_by_month.to_numpy() if int(i) < len(prices) - 2]
+        last_by_month = pd.Series(idx_values, index=eligible).groupby(month_keys).last()
+        rebal_dates = [int(i) for i in last_by_month.to_numpy() if int(i) < len(prices) - 2]
     else:
         rebal_dates = list(range(start_offset, len(prices) - 2, rebal_freq))
     if not rebal_dates:
