@@ -88,7 +88,12 @@ def compute_signals(
     rk_col = rank_df.get(
         "Composite Rank", rank_df.get("Rank", pd.Series(1, index=rank_df.index))
     )
-    qualified = rank_df[ab_ema & nr_hi & rk_col.notna()]
+    # Force native, index-aligned boolean masks. Pandas 3 / PyArrow-backed
+    # columns can otherwise produce mixed-dtype logical operations at runtime.
+    ab_ema = pd.Series(ab_ema, index=rank_df.index, dtype="bool")
+    nr_hi = pd.Series(nr_hi, index=rank_df.index, dtype="bool")
+    has_rank = pd.Series(rk_col.notna(), index=rank_df.index, dtype="bool")
+    qualified = rank_df[ab_ema & nr_hi & has_rank]
     if len(qualified) < 15:
         signals.append(
             SignalAlert(
