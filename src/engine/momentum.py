@@ -75,7 +75,7 @@ def zscore_series(s: pd.Series, winsorize: bool = True) -> pd.Series:
         return s
     clean = s.dropna()
     if len(clean) < 3 or clean.std(ddof=0) == 0:
-        return pd.Series(0.0, index=s.index)
+        return pd.Series(np.nan, index=s.index)
     if winsorize:
         clean = winsorize_series(clean, std_limit=3.0)
     mean_val = float(clean.mean())

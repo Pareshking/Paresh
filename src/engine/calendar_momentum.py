@@ -21,7 +21,7 @@ INDIA_TZ = ZoneInfo("Asia/Kolkata")
 
 
 def latest_as_of_date(index: pd.DatetimeIndex) -> pd.Timestamp:
-    """Return today's India date, unless the supplied data is newer."""
+    """Return a current India date for fresh data, else the dataset's last observation date."""
     today = pd.Timestamp(datetime.now(INDIA_TZ).date())
     last_data_date = pd.Timestamp(index[-1]).normalize()
     # Use today's calendar date for genuinely current data (including weekends

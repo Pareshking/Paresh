@@ -3,8 +3,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from src.engine.calendar_momentum import apply_calendar_momentum
-from src.engine.momentum import MomentumEngine
+from src.engine.calendar_momentum import apply_calendar_momentum, latest_as_of_date
+from src.engine.momentum import MomentumEngine, zscore_series
 from src.engine.portfolio import _shrunk_cov
 
 
@@ -88,3 +88,13 @@ def test_known_price_paths_do_not_forward_fill_prices_or_benchmark_returns() -> 
         if ".ffill(" in p.read_text(encoding="utf-8")
     ]
     assert offenders == []
+
+
+def test_zscore_small_cross_section_remains_missing() -> None:
+    s = pd.Series([1.0, 2.0, np.nan])
+    assert zscore_series(s).isna().all()
+
+
+def test_historical_dataset_as_of_date_uses_last_observation() -> None:
+    idx = pd.date_range("2022-01-03", periods=10, freq="B")
+    assert latest_as_of_date(idx) == idx[-1].normalize()
