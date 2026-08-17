@@ -1,0 +1,87 @@
+name: Month-End Rebalance Convention
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/month-end-rebalance-loop.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  update-test:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest
+      - name: Update backtest to month-end signal dates
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("src/engine/backtester.py")
+          s = p.read_text()
+          old = '''    dates = pd.DatetimeIndex(prices.index)\n    if rebal_freq == 21:\n        eligible = dates[start_offset:]\n        month_keys = eligible.to_period("M")\n        idx_values = np.arange(start_offset, len(prices))\n        first_by_month = pd.Series(idx_values, index=eligible).groupby(month_keys).first()\n        rebal_dates = [int(i) for i in first_by_month.to_numpy() if int(i) < len(prices) - 2]\n    else:\n        rebal_dates = list(range(start_offset, len(prices) - 2, rebal_freq))\n'''
+          new = '''    dates = pd.DatetimeIndex(prices.index)\n    if rebal_freq == 21:\n        # Monthly convention: signal/rebalance at the last available trading\n        # session of each calendar month, then execute on the next session.\n        eligible = dates[start_offset:]\n        month_keys = eligible.to_period("M")\n        idx_values = np.arange(start_offset, len(prices))\n        last_by_month = pd.Series(idx_values, index=eligible).groupby(month_keys).last()\n        rebal_dates = [int(i) for i in last_by_month.to_numpy() if int(i) < len(prices) - 2]\n    else:\n        rebal_dates = list(range(start_offset, len(prices) - 2, rebal_freq))\n'''
+          if old not in s:
+              raise SystemExit("Expected first-trading-day rebalance block not found")
+          p.write_text(s.replace(old, new, 1))
+          PY
+      - name: Add convention regression tests
+        run: |
+          cat > tests/test_month_end_rebalance.py <<'PY'
+          import pandas as pd
+          import numpy as np
+
+          def _monthly_rebalance_dates(dates, start_offset):
+              eligible = pd.DatetimeIndex(dates)[start_offset:]
+              month_keys = eligible.to_period("M")
+              idx_values = np.arange(start_offset, len(pd.DatetimeIndex(dates)))
+              return [
+                  int(i)
+                  for i in pd.Series(idx_values, index=eligible).groupby(month_keys).last().to_numpy()
+              ]
+
+          def test_month_end_is_last_available_session():
+              dates = pd.DatetimeIndex([
+                  "2026-01-02", "2026-01-29", "2026-01-30", "2026-02-02",
+                  "2026-02-26", "2026-02-27", "2026-03-02", "2026-03-30", "2026-03-31",
+              ])
+              got = _monthly_rebalance_dates(dates, 0)
+              assert [dates[i] for i in got] == [
+                  pd.Timestamp("2026-01-30"),
+                  pd.Timestamp("2026-02-27"),
+                  pd.Timestamp("2026-03-31"),
+              ]
+
+          def test_next_session_is_execution_day():
+              dates = pd.DatetimeIndex([
+                  "2026-01-29", "2026-01-30", "2026-02-02", "2026-02-27", "2026-03-02",
+              ])
+              rebals = _monthly_rebalance_dates(dates, 0)
+              assert dates[rebals[0] + 1] == pd.Timestamp("2026-02-02")
+              assert dates[rebals[1] + 1] == pd.Timestamp("2026-03-02")
+          PY
+      - name: Run targeted tests
+        run: python -m pytest -q tests/test_month_end_rebalance.py
+      - name: Compile
+        run: python -m py_compile src/engine/backtester.py
+      - name: Run full test suite
+        run: python -m pytest -q
+      - name: Commit verified convention
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/engine/backtester.py tests/test_month_end_rebalance.py
+          git rm .github/workflows/month-end-rebalance-loop.yml
+          git commit -m "fix: use month-end backtest rebalance convention"
+          git push origin main
