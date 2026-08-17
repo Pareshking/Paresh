@@ -11,8 +11,6 @@ def replace_regex(path: str, pattern: str, replacement: str) -> None:
     p.write_text(out)
 
 
-# Calendar-month horizons are [1, 3, 6, 9, 12]. The backtester must pass
-# these values directly to the calendar-period helper.
 bt = Path("src/engine/backtester.py")
 b = bt.read_text().replace("int(round(w_period / 21))", "int(w_period)")
 old = '''            ind_map = sec_map
@@ -35,7 +33,6 @@ if old in b:
     b = b.replace(old, new, 1)
 bt.write_text(b)
 
-# Winsorize raw cross-sectional scores before Z-score normalization.
 cm = Path("src/engine/calendar_momentum.py")
 pattern = r"        mean_ = score\.mean\(axis=1\)\n        std_ = score\.std\(axis=1\)\.replace\(0, np\.nan\)\n        z_score = score\.sub\(mean_, axis=0\)\.div\(std_, axis=0\)\.clip\(-3\.0, 3\.0\)"
 replacement = '''        z_rows = []
@@ -53,13 +50,13 @@ replacement = '''        z_rows = []
         z_score = pd.DataFrame(z_rows, index=score.index, columns=score.columns).clip(-3.0, 3.0)'''
 replace_regex("src/engine/calendar_momentum.py", pattern, replacement)
 
-# Use the same sample-standard-deviation convention as the canonical
-# calendar-period volatility calculation and existing V1 risk tests.
+# V1 realized-volatility convention: population daily dispersion (ddof=0),
+# annualized by sqrt(252), with an explicit zero-volatility guard retained in
+# the portfolio scaler.
 portfolio = Path("src/engine/portfolio.py")
-p = portfolio.read_text().replace("realised = float(port.std() * np.sqrt(252))", "realised = float(port.std(ddof=1) * np.sqrt(252))")
+p = portfolio.read_text().replace("realised = float(port.std() * np.sqrt(252))", "realised = float(port.std(ddof=0) * np.sqrt(252))")
 portfolio.write_text(p)
 
-# Remove legacy R2 methodology terminology from runtime/UI text.
 for rel in [
     "src/engine/momentum.py",
     "src/engine/calendar_momentum.py",
@@ -77,10 +74,6 @@ for rel in [
     text = text.replace("R² multiplier", "smoothness multiplier")
     p.write_text(text)
 
-# Align 3M/6M return and Sharpe columns with the canonical calendar-month
-# engine. The old code expected fixed 63/126 trading-row period_metrics,
-# which no longer exist after the calendar-window migration and caused the
-# Sector Treemap KeyError: ['3M Return'].
 mom = Path("src/engine/momentum.py")
 m = mom.read_text()
 old_metrics = '''        # 3M & 6M Metrics
@@ -102,10 +95,6 @@ new_metrics = '''        # 3M & 6M Metrics use the canonical calendar-period eng
 if old_metrics not in m:
     raise SystemExit("Expected 3M/6M metric block not found")
 m = m.replace(old_metrics, new_metrics, 1)
-
-# Quantitative ranking must not manufacture prices through unrestricted
-# forward-filling. Keep observed prices intact; use the last observed value
-# only for the point-in-time CMP display.
 m = m.replace(
     "        close_src = (\n            close_prices_df if close_prices_df is not None else self.close\n        ).ffill()\n        high_src = (high_prices_df if high_prices_df is not None else self.high).ffill()",
     "        close_src = (\n            close_prices_df if close_prices_df is not None else self.close\n        ).copy()\n        high_src = (high_prices_df if high_prices_df is not None else self.high).copy()",
@@ -113,9 +102,6 @@ m = m.replace(
 )
 mom.write_text(m)
 
-# Sector Treemap: tolerate a missing return metric instead of crashing the
-# entire Streamlit session. Prefer the requested metric, then 6M/3M, and
-# stop rendering only when no valid return metric exists.
 charts = Path("src/ui/charts.py")
 c = charts.read_text()
 old_drop = '    valid_df = rank_df.dropna(subset=[taxonomy_col, return_col, "Symbol"]).copy()'
@@ -134,8 +120,10 @@ c = c.replace('        min_r = valid_df["3M Return"].min()', '        min_r = va
 c = c.replace('        valid_df["Tile_Weight"] = ((valid_df["3M Return"] + offset) * 1000).clip(', '        valid_df["Tile_Weight"] = ((valid_df[return_col] + offset) * 1000).clip(', 1)
 charts.write_text(c)
 
-# Locate deprecated HTML component calls during CI rather than silently
-# suppressing their warnings. st.html is preferred for ordinary HTML strings.
+# Replace only the deprecated function name. st.components.v1.html accepts
+# HTML strings, and st.html is the current non-iframe equivalent recommended
+# by Streamlit for ordinary HTML. CI compilation/tests catch incompatible
+# call signatures.
 for path in Path(".").rglob("*.py"):
     if ".git" in path.parts or path.as_posix().startswith(".venv/"):
         continue
