@@ -363,15 +363,14 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
 
         if strat_choice == "Composite Sharpe":
             st.markdown(r"""
-                ##### 1. Composite Multi-Window Momentum ($\text{Sharpe} \times $)
+                ##### 1. Composite Multi-Window Momentum ($\text{Sharpe}$)
                 
                 **Mathematical Formulation:**
                 For each momentum window $w \in \{21\text{D}, 63\text{D}, 126\text{D}, 189\text{D}, 252\text{D}\}$:
                 $$\text{Log Return}_w = \ln\left(\frac{P_t}{P_{t-w}}\right)$$
                 $$\text{Daily Volatility}_w = \text{StdDev}(\ln(P / P_{-1})) \times \sqrt{w}$$
                 $$\text{Sharpe}_w = \frac{\text{Log Return}_w}{\text{Daily Volatility}_w}$$
-                $$_w = \left(\text{Corr}\left(\ln(P), \text{Time}\right)\right)^2$$
-                $$\text{Raw Momentum}_w = \text{Sharpe}_w \times _w$$
+                $$\text{Raw Momentum}_w = \text{Sharpe}_w$$
                 $$\text{Composite Score} = \sum_{w} \text{Weight}_w \times z\text{-Score}\left(\text{Raw Momentum}_w\right)$$
 
                 * **Config Weights Integration**: Uses active weights configured in the **Configuration** tab (e.g. 10/30/30/20/10).
@@ -381,13 +380,12 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
 
         elif strat_choice == "Single-Window Sharpe":
             st.markdown(r"""
-                ##### 2. Single-Window Momentum ($\text{Sharpe} \times $)
+                ##### 2. Single-Window Momentum ($\text{Sharpe}$)
                 
                 **Mathematical Formulation:**
                 Evaluates purely one isolated time window $w$ (e.g., $w = 63\text{D}$ for 3-Month or $w = 126\text{D}$ for 6-Month):
                 $$\text{Sharpe}_w = \frac{\ln(P_t / P_{t-w})}{\sigma_w \sqrt{w}}$$
-                $$_w = \left(\text{Corr}\left(\ln(P), \text{Time}\right)\right)^2$$
-                $$\text{Single Window Score} = z\text{-Score}\left(\text{Sharpe}_w \times _w\right)$$
+                $$\text{Single Window Score} = z\text{-Score}\left(\text{Sharpe}_w\right)$$
 
                 * **Key Difference vs Composite**: Does not blend other horizons. Evaluates performance strictly within the specified window.
                 * **Sensitivity & Trade-off**: Higher responsiveness to quarterly moves, but more sensitive to single-month reversals.
@@ -396,7 +394,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
 
         elif strat_choice == "Multi-Window Pure Sharpe":
             st.markdown(r"""
-                ##### 3. Multi-Window Pure Sharpe Momentum (No $$)
+                ##### 3. Multi-Window Pure Sharpe Momentum
                 
                 **Mathematical Formulation:**
                 Evaluates pure risk-adjusted annualized velocity across all multi-windows without penalizing parabolic curves:
@@ -404,7 +402,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 $$\text{Score} = \sum_{w} \text{Weight}_w \times z\text{-Score}(\text{Sharpe}_w)$$
 
                 * **Config Weights Integration**: Uses custom factor weights across 1M, 3M, 6M, 9M, 12M windows.
-                * **Difference vs $\text{Sharpe} \times $**: Allows explosive, high-curvature parabolic winners to score at the top without penalty.
+                * **Difference vs Composite Sharpe**: Allows explosive, high-curvature parabolic winners to score at the top without penalty.
                 * **Optimal Regime**: Aggressive expansion bull markets where leaders accelerate rapidly.
                 """)
 
