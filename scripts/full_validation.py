@@ -15,9 +15,12 @@ from src.loaders.price_loader import extract_ohlcv, fetch_price_history
 OUT = Path("artifacts")
 OUT.mkdir(exist_ok=True)
 
+EXPECTED_NIFTY_TOTAL_MARKET_CONSTITUENTS = 752
 idx = fetch_indices_data(["NIFTY TOTAL MARKET"])
-if len(idx) != 750:
-    raise AssertionError(f"Expected 750 NIFTY TOTAL MARKET constituents, got {len(idx)}")
+if len(idx) != EXPECTED_NIFTY_TOTAL_MARKET_CONSTITUENTS:
+    raise AssertionError(
+        f"Expected {EXPECTED_NIFTY_TOTAL_MARKET_CONSTITUENTS} NIFTY TOTAL MARKET constituents, got {len(idx)}"
+    )
 
 symbols = idx["Symbol"].astype(str).str.strip().str.upper().tolist()
 raw = fetch_price_history(symbols, period="2y", force_refresh=False)
@@ -98,7 +101,7 @@ rank_summary = rank_df[["Symbol", "Rank", "Score", "3M Return", "6M Return"]].co
 rank_summary.to_csv(OUT / "ranking_summary.csv", index=False)
 
 report = {
-    "universe_requested": 750,
+    "universe_requested": EXPECTED_NIFTY_TOTAL_MARKET_CONSTITUENTS,
     "universe_loaded": int(len(idx)),
     "price_series": int(len(adj.columns)),
     "ranked_stocks": int(len(rank_df)),
