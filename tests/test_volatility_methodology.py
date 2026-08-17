@@ -25,7 +25,8 @@ def test_volatility_target_reports_annualized_realized_volatility():
     opt = PortfolioOptimizer(returns)
     weights = pd.Series({"A": 0.5, "B": 0.5})
     _, scale, realised = opt.volatility_target(weights, target_vol=0.25, window=63)
-    expected_daily = 0.015
+    port = (returns[["A", "B"]].iloc[-63:] * weights[["A", "B"]]).sum(axis=1)
+    expected_daily = port.std(ddof=0)
     expected_annual = expected_daily * np.sqrt(252)
     expected_scale = min(1.0, max(0.10, 0.25 / expected_annual))
     assert np.isclose(realised, expected_annual)
