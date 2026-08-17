@@ -34,13 +34,22 @@ jobs:
       - name: Locate deprecated Streamlit HTML calls
         run: |
           echo "Remaining components.v1.html call sites:"
-          git grep -n "components.v1.html" -- '*.py' || true
+          git grep -n -E "components.v1|components.html|streamlit.components" -- '*.py' || true
 
       - name: Headless Streamlit runtime smoke test
         run: |
           python - <<'PY'
-          from streamlit.testing.v1 import AppTest
+          import traceback
+          import streamlit.components.v1 as components
 
+          original_html = components.html
+          def traced_html(*args, **kwargs):
+              print("DEPRECATED_HTML_CALL_STACK")
+              print("".join(traceback.format_stack(limit=20)))
+              return original_html(*args, **kwargs)
+          components.html = traced_html
+
+          from streamlit.testing.v1 import AppTest
           at = AppTest.from_file("app.py", default_timeout=900)
           at.run(timeout=900)
           if at.exception:
