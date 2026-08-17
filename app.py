@@ -249,8 +249,9 @@ else:
 total_stocks = len(rank_df)
 
 # Defensive handling for duplicate column names.  A duplicate "Above 50 EMA"
-# can turn rank_df["Above 50 EMA"] into a DataFrame, causing int(sum()) to fail.
-# Keep the rightmost calculated value from MomentumEngine.get_rankings().
+# can turn rank_df["Above 50 EMA"] into a DataFrame; map() on a DataFrame in
+# pandas 2.1+ returns a DataFrame, so .sum() returns a Series, and int(Series)
+# raises ValueError.  Force to a 1-D bool Series before summing.
 ema_col = rank_df.get("Above 50 EMA")
 if isinstance(ema_col, pd.DataFrame):
     ema_col = ema_col.iloc[:, -1]
@@ -260,9 +261,11 @@ is_above_ema = (
         lambda x: x is True or str(x).strip() in ["✅", "True", "1"]
     )
     if ema_col is not None
-    else pd.Series(False, index=rank_df.index)
+    else pd.Series(dtype=bool)
 )
-above_ema = int(is_above_ema.sum())
+if isinstance(is_above_ema, pd.DataFrame):
+    is_above_ema = is_above_ema.iloc[:, -1]
+above_ema = int(is_above_ema.astype(float).sum())
 pct_above_ema = (above_ema / total_stocks * 100) if total_stocks > 0 else 0.0
 gap_count = int((rank_df.get("Data Gap", pd.Series()) == "🔴").sum())
 
