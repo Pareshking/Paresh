@@ -1,0 +1,61 @@
+name: Reliance Period Diagnostic
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Fetch RELIANCE and print calendar-period diagnostics
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          from src.loaders.price_loader import fetch_price_history
+          from src.engine.calendar_momentum import calendar_start_positions, PERIODS, INDIA_TZ
+          from datetime import datetime
+
+          prices = fetch_price_history(["RELIANCE"], period="2y", force_refresh=True)
+          prices.index = pd.DatetimeIndex(prices.index).tz_localize(None).normalize()
+          prices = prices.sort_index().dropna(how="all")
+          col = "RELIANCE"
+          if col not in prices.columns:
+              raise SystemExit(f"RELIANCE not found. Columns: {list(prices.columns)}")
+
+          as_of = pd.Timestamp(datetime.now(INDIA_TZ).date())
+          end_idx = prices.index.searchsorted(as_of, side="right") - 1
+          if end_idx < 0:
+              raise SystemExit("No market data on or before as-of date")
+          end_date = prices.index[end_idx]
+          end_price = float(prices.iloc[end_idx][col])
+
+          print("=== RELIANCE CALENDAR PERIOD DIAGNOSTIC ===")
+          print(f"As-of India date       : {as_of.date()}")
+          print(f"Latest available date  : {end_date.date()}")
+          print(f"Latest available price : {end_price:.6f}")
+          print()
+
+          for key, months in PERIODS.items():
+              target = as_of - pd.DateOffset(months=months)
+              start_idx = prices.index.searchsorted(target, side="left")
+              if start_idx >= len(prices):
+                  print(f"{months:2d}M: NO START DATA")
+                  continue
+              start_date = prices.index[start_idx]
+              start_price = float(prices.iloc[start_idx][col])
+              ret = end_price / start_price - 1.0
+              n_prices = end_idx - start_idx + 1
+              n_returns = max(0, n_prices - 1)
+              print(
+                  f"{months:2d}M: target={target.date()} | start={start_date.date()} | "
+                  f"end={end_date.date()} | start_price={start_price:.6f} | "
+                  f"end_price={end_price:.6f} | return={ret:.6%} | "
+                  f"price_rows={n_prices} | daily_returns={n_returns}"
+              )
+          PY
