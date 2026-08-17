@@ -281,8 +281,13 @@ class MomentumEngine:
             }
         )
 
-        ind_avg = score_df.groupby("Industry")["Score"].transform("mean")
-        rel_score = score_df["Score"] - ind_avg
+        # Leave-one-out industry mean: a stock must not contribute to the peer benchmark against which that same stock is measured.
+        industry_sum = score_df.groupby("Industry")["Score"].transform("sum", min_count=1)
+        industry_count = score_df.groupby("Industry")["Score"].transform("count")
+        peer_sum = industry_sum - score_df["Score"]
+        peer_count = industry_count - score_df["Score"].notna().astype(int)
+        peer_mean = peer_sum.div(peer_count.replace(0, np.nan))
+        rel_score = score_df["Score"] - peer_mean
 
         ranks = pd.Series(rel_score.values, index=score_df["Symbol"]).rank(
             ascending=False, na_option="bottom"
