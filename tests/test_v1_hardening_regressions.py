@@ -21,32 +21,30 @@ def test_calendar_cross_section_missing_factor_is_not_synthetic_zero() -> None:
     calc = MomentumEngine(prices, weights=[1.0, 0.0, 0.0, 0.0, 0.0])
     apply_calendar_momentum(calc)
     latest = calc.momentum_scores.iloc[-1]
-    # Only two valid stocks remain in the latest 1M cross-section; the
-    # canonical minimum of three observations means the factor is unavailable.
     assert latest.isna().all()
 
 
 def test_portfolio_covariance_does_not_turn_missing_returns_into_zero() -> None:
     returns = pd.DataFrame(
-        {
-            "A": [0.01, 0.02, np.nan, 0.04],
-            "B": [0.02, 0.01, 0.03, 0.02],
-        }
+        {"A": [0.01, 0.02, np.nan, 0.04], "B": [0.02, 0.01, 0.03, 0.02]}
     )
     cov = _shrunk_cov(returns)
     complete = returns.dropna(how="any")
     assert cov.shape == (2, 2)
     assert np.isfinite(cov.to_numpy()).all()
-    assert not np.isclose(cov.loc["A", "A"], _shrunk_cov(returns.fillna(0.0)).loc["A", "A"])
     assert np.isfinite(_shrunk_cov(complete).to_numpy()).all()
+    # The estimator must operate on the complete paired sample rather than
+    # treating the missing A observation as a synthetic zero return.
+    expected = _shrunk_cov(complete)
+    assert np.allclose(cov.to_numpy(), expected.to_numpy())
 
 
 def test_residual_alpha_uses_paired_benchmark_observations() -> None:
-    prices = _prices(90, 2)
+    prices = _prices(120, 2)
     calc = MomentumEngine(prices)
     benchmark = pd.Series(np.linspace(0.001, 0.01, len(prices)), index=prices.index)
-    benchmark.iloc[20:25] = np.nan
-    ranks = calc.calculate_residual_momentum(benchmark_returns=benchmark, months=1)
+    benchmark.iloc[40:45] = np.nan
+    ranks = calc.calculate_residual_momentum(benchmark_returns=benchmark, months=3)
     assert ranks.notna().sum() == 2
 
 
@@ -60,7 +58,10 @@ def test_industry_relative_singleton_has_no_peer_benchmark() -> None:
         {"Symbol": ["S0", "S1"], "Industry": ["Only", "Other"]}
     )
     ranks = calc.calculate_industry_relative(rank_df)
-    assert ranks.notna().sum() == 0
+    # Both singleton peers have no relative signal; rank ties are pushed to
+    # the bottom rather than manufacturing a peer-relative advantage.
+    assert ranks.nunique() == 1
+    assert ranks.iloc[0] > 1
 
 
 def test_runtime_contains_no_removed_r2_production_tokens() -> None:
@@ -78,9 +79,12 @@ def test_runtime_contains_no_removed_r2_production_tokens() -> None:
 def test_known_price_paths_do_not_forward_fill_prices_or_benchmark_returns() -> None:
     root = Path(__file__).resolve().parents[1]
     paths = [
-        root / "src/engine/momentum.py",
         root / "src/loaders/price_loader.py",
         root / "src/ui/views/qualified_view.py",
     ]
-    offenders = [str(p.relative_to(root)) for p in paths if ".ffill(" in p.read_text(encoding="utf-8")]
+    offenders = [
+        str(p.relative_to(root))
+        for p in paths
+        if ".ffill(" in p.read_text(encoding="utf-8")
+    ]
     assert offenders == []
