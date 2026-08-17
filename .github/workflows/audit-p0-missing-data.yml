@@ -66,13 +66,16 @@ jobs:
               cleaned2 = clean_holidays(prices2)
               assert pd.isna(cleaned2.loc[idx[2], "A"])
 
-          def test_security_gap_does_not_create_zero_return():
+          def test_security_gap_does_not_create_zero_or_bridged_return():
               idx = pd.bdate_range("2026-02-02", periods=4)
               prices = pd.DataFrame({"A": [100.0, 105.0, np.nan, 115.0]}, index=idx)
               cleaned = clean_holidays(prices)
               log_returns = np.log(cleaned / cleaned.shift(1))
               assert pd.isna(log_returns.loc[idx[2], "A"])
-              assert np.isclose(log_returns.loc[idx[3], "A"], np.log(115.0 / 105.0))
+              # The observation after a gap must not be treated as a return from
+              # the stale pre-gap price. It must remain undefined until a valid
+              # prior observation exists.
+              assert pd.isna(log_returns.loc[idx[3], "A"])
           PY
 
       - name: Install dependencies
