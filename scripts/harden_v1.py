@@ -6,13 +6,13 @@ def replace_regex(path: str, pattern: str, replacement: str) -> None:
     p = Path(path)
     text = p.read_text()
     out, n = re.subn(pattern, replacement, text, count=1, flags=re.MULTILINE)
-    if n == 0:
+    if n == 0 and replacement not in text:
         return
     p.write_text(out)
 
 
-# Calendar-month horizons are [1, 3, 6, 9, 12]. The backtester must pass
-# these values directly to the calendar-period helper.
+# Calendar-month horizons are [1, 3, 6, 9, 12]. The backtester passes
+# these values directly to the canonical calendar-period helper.
 bt = Path("src/engine/backtester.py")
 b = bt.read_text().replace("int(round(w_period / 21))", "int(w_period)")
 old = '''            ind_map = sec_map
@@ -58,7 +58,8 @@ portfolio = Path("src/engine/portfolio.py")
 p = portfolio.read_text().replace("realised = float(port.std() * np.sqrt(252))", "realised = float(port.std(ddof=0) * np.sqrt(252))")
 portfolio.write_text(p)
 
-# Remove stale R2 terminology from runtime/UI methodology text.
+# Remove only explicit stale R² methodology terminology. Do not touch ordinary
+# implementation identifiers such as cs_r2, which are not methodology claims.
 for rel in [
     "src/engine/momentum.py",
     "src/engine/calendar_momentum.py",
@@ -70,7 +71,7 @@ for rel in [
 ]:
     p = Path(rel)
     text = p.read_text()
-    for token in ("R²", "R^2", "R2", "r2"):
+    for token in ("R²", "R^2", "R2"):
         text = text.replace(token, "")
     text = text.replace("Sharpe ×", "Sharpe")
     text = text.replace("R² multiplier", "smoothness multiplier")
