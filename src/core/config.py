@@ -64,7 +64,10 @@ HTTP_HEADERS: Final[dict[str, str]] = {
 # Single research benchmark used wherever V1 requires a market benchmark.
 BENCHMARK_SYMBOL: Final[str] = "^CRSLDX"
 
-MOMENTUM_WINDOWS: Final[list[int]] = [21, 63, 126, 189, 252]
+# Canonical System-1 economic horizons. These are calendar months, not
+# fixed trading-row windows. Session-based windows are defined only by the
+# portfolio/risk component that intentionally needs them.
+MOMENTUM_MONTHS: Final[list[int]] = [1, 3, 6, 9, 12]
 DEFAULT_LOOKBACK_WEIGHTS: Final[list[float]] = [0.10, 0.30, 0.30, 0.20, 0.10]
 DEFAULT_SECTOR_CAP: Final[float] = 0.30
 DEFAULT_STOCK_CAP: Final[float] = 0.05
