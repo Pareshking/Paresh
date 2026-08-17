@@ -18,22 +18,52 @@ jobs:
           python - <<'PY'
           import pandas as pd
           from src.loaders.price_loader import fetch_price_history
-          from src.engine.calendar_momentum import calendar_start_positions, PERIODS, INDIA_TZ
+          from src.engine.calendar_momentum import PERIODS, INDIA_TZ
           from datetime import datetime
 
-          prices = fetch_price_history(["RELIANCE"], period="2y", force_refresh=True)
-          prices.index = pd.DatetimeIndex(prices.index).tz_localize(None).normalize()
-          prices = prices.sort_index().dropna(how="all")
-          col = "RELIANCE"
-          if col not in prices.columns:
-              raise SystemExit(f"RELIANCE not found. Columns: {list(prices.columns)}")
+          raw = fetch_price_history(["RELIANCE"], period="2y", force_refresh=True)
+          if raw is None or raw.empty:
+              raise SystemExit("No RELIANCE data returned")
+
+          # fetch_price_history stores the raw yfinance OHLCV frame. Extract
+          # RELIANCE Close robustly from either MultiIndex orientation.
+          if isinstance(raw.columns, pd.MultiIndex):
+              close = None
+              if "RELIANCE" in raw.columns.get_level_values(0):
+                  rel = raw.xs("RELIANCE", level=0, axis=1)
+                  for name in ("Close", "Adj Close"):
+                      if name in rel.columns:
+                          close = rel[name]
+                          break
+              if close is None:
+                  for name in ("Close", "Adj Close"):
+                      if name in raw.columns.get_level_values(1):
+                          close = raw.xs(name, level=1, axis=1).iloc[:, 0]
+                          break
+          else:
+              if "RELIANCE" in raw.columns:
+                  close = raw["RELIANCE"]
+              elif "Close" in raw.columns:
+                  close = raw["Close"]
+              elif "Adj Close" in raw.columns:
+                  close = raw["Adj Close"]
+              else:
+                  close = None
+
+          if close is None:
+              raise SystemExit(f"Could not identify RELIANCE Close. Columns: {list(raw.columns)}")
+
+          close = pd.Series(close, copy=True)
+          close.index = pd.DatetimeIndex(close.index).tz_localize(None).normalize()
+          close = close.sort_index().dropna()
 
           as_of = pd.Timestamp(datetime.now(INDIA_TZ).date())
-          end_idx = prices.index.searchsorted(as_of, side="right") - 1
+          end_idx = close.index.searchsorted(as_of, side="right") - 1
           if end_idx < 0:
               raise SystemExit("No market data on or before as-of date")
-          end_date = prices.index[end_idx]
-          end_price = float(prices.iloc[end_idx][col])
+
+          end_date = close.index[end_idx]
+          end_price = float(close.iloc[end_idx])
 
           print("=== RELIANCE CALENDAR PERIOD DIAGNOSTIC ===")
           print(f"As-of India date       : {as_of.date()}")
@@ -41,14 +71,14 @@ jobs:
           print(f"Latest available price : {end_price:.6f}")
           print()
 
-          for key, months in PERIODS.items():
+          for _, months in PERIODS.items():
               target = as_of - pd.DateOffset(months=months)
-              start_idx = prices.index.searchsorted(target, side="left")
-              if start_idx >= len(prices):
+              start_idx = close.index.searchsorted(target, side="left")
+              if start_idx >= len(close):
                   print(f"{months:2d}M: NO START DATA")
                   continue
-              start_date = prices.index[start_idx]
-              start_price = float(prices.iloc[start_idx][col])
+              start_date = close.index[start_idx]
+              start_price = float(close.iloc[start_idx])
               ret = end_price / start_price - 1.0
               n_prices = end_idx - start_idx + 1
               n_returns = max(0, n_prices - 1)
