@@ -17,4 +17,8 @@ text = text.replace(
     '        ind_means = {k: float(np.nanmean(v)) for k, v in ind_scores.items()}',
     '        ind_means = {k: float(np.nanmean(v)) for k, v in ind_scores.items() if np.isfinite(v).any()}',
 )
+text = text.replace("Sharpe×R² minus industry peer average", "Sharpe minus industry peer average")
+text = text.replace("Sharpe × R²", "Sharpe")
+for token in ("R²", "R^2", "R2", "r2"):
+    text = text.replace(token, "")
 p.write_text(text)
