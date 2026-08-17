@@ -18,7 +18,28 @@ jobs:
           python-version: "3.11"
       - run: pip install -r requirements.txt pytest
       - name: Apply calendar-period consistency changes
-        run: python scripts/apply_calendar_consistency.py
+        run: |
+          if grep -q 'from src.engine.calendar_momentum import (' src/engine/momentum.py; then
+            echo "Calendar migration already present; skipping migration script."
+          else
+            python scripts/apply_calendar_consistency.py
+          fi
+      - name: Harden calendar historical-rank bounds
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("src/engine/momentum.py")
+          text = p.read_text()
+          old = '''            idx_1m = int(starts[-1])\n            s_1m = self.momentum_scores.iloc[idx_1m].where(valid_mask, np.nan)\n            r_1m = s_1m.rank(ascending=False, method="min")\n            rank_df["Rank (-1M)"] = rank_df["Symbol"].map(r_1m)\n            rank_df["Rank Δ 1M"] = rank_df["Rank (-1M)"] - rank_df["Rank"]\n'''
+          new = '''            idx_1m = int(starts[-1])\n            if idx_1m < n_rows:\n                s_1m = self.momentum_scores.iloc[idx_1m].where(valid_mask, np.nan)\n                r_1m = s_1m.rank(ascending=False, method="min")\n                rank_df["Rank (-1M)"] = rank_df["Symbol"].map(r_1m)\n                rank_df["Rank Δ 1M"] = rank_df["Rank (-1M)"] - rank_df["Rank"]\n            else:\n                rank_df["Rank (-1M)"] = np.nan\n                rank_df["Rank Δ 1M"] = np.nan\n'''
+          if old in text:
+              text = text.replace(old, new, 1)
+          old = '''            idx_3m = int(starts[-1])\n            s_3m = self.momentum_scores.iloc[idx_3m].where(valid_mask, np.nan)\n            r_3m = s_3m.rank(ascending=False, method="min")\n            rank_df["Rank (-3M)"] = rank_df["Symbol"].map(r_3m)\n            rank_df["Rank Δ 3M"] = rank_df["Rank (-3M)"] - rank_df["Rank"]\n'''
+          new = '''            idx_3m = int(starts[-1])\n            if idx_3m < n_rows:\n                s_3m = self.momentum_scores.iloc[idx_3m].where(valid_mask, np.nan)\n                r_3m = s_3m.rank(ascending=False, method="min")\n                rank_df["Rank (-3M)"] = rank_df["Symbol"].map(r_3m)\n                rank_df["Rank Δ 3M"] = rank_df["Rank (-3M)"] - rank_df["Rank"]\n            else:\n                rank_df["Rank (-3M)"] = np.nan\n                rank_df["Rank Δ 3M"] = np.nan\n'''
+          if old in text:
+              text = text.replace(old, new, 1)
+          p.write_text(text)
+          PY
       - name: Run full test suite
         run: python -m pytest -q
       - name: Commit tested source changes
