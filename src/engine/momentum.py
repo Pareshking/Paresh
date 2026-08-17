@@ -37,9 +37,15 @@ def clean_holidays(df: pd.DataFrame | None) -> pd.DataFrame:
     n_dropped = int(holidays.sum())
     if n_dropped > 0:
         logger.debug(f"Holiday cleanup: dropped {n_dropped} rows")
+    if n_dropped == len(df):
+        logger.warning(
+            "Holiday cleanup would remove the entire dataset; preserving rows "
+            "to avoid converting an upstream sparse/malformed cache into an empty "
+            "production price history."
+        )
+        return df.copy()
     # Remove exchange-wide missing dates only; preserve stock-specific NaNs.
-    cleaned = df.loc[~holidays]
-    return cleaned
+    return df.loc[~holidays]
 
 
 def compute_ffill_pct(raw_df: pd.DataFrame | None) -> pd.Series:
