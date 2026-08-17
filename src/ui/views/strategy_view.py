@@ -11,6 +11,7 @@ import pandas as pd
 import streamlit as st
 
 from src.engine.momentum import MomentumEngine
+from src.engine.calendar_momentum import calendar_start_positions
 from src.ui.charts import render_multi_strategy_growth_chart
 from src.ui.components import render_data_quality_footer
 from src.ui.theme import render_saas_table
@@ -94,24 +95,23 @@ def compute_multi_strategy_monthly_matrix(
         month_label = f"{t_start:%b %Y}"
         month_cols.append(month_label)
 
-        # 1. Composite Sharpe x R2
+        # 1. Composite Sharpe x R2 — calendar 6M window.
         log_ret_s = np.log(p_slice / p_slice.shift(1).replace(0, np.nan))
-        p_6m = p_slice.iloc[-126:] if len(p_slice) >= 126 else p_slice
-        ret_6m = (p_slice.iloc[-1] / p_slice.iloc[0].clip(lower=0.01)) - 1
-        vol_6m = (
-            log_ret_s.iloc[-126:].std() * np.sqrt(126)
-            if len(log_ret_s) >= 126
-            else log_ret_s.std() * np.sqrt(len(log_ret_s))
-        )
+        idx_slice = pd.DatetimeIndex(p_slice.index)
+        start_6m = int(calendar_start_positions(idx_slice, 6, latest_as_of=t_start)[-1])
+        p_6m = p_slice.iloc[start_6m:]
+        ret_6m = (p_slice.iloc[-1] / p_slice.iloc[start_6m].clip(lower=0.01)) - 1
+        r_6m = log_ret_s.iloc[start_6m + 1 :]
+        vol_6m = r_6m.std() * np.sqrt(r_6m.notna().sum()).replace(0, np.nan)
         sharpe_6m = ret_6m / vol_6m.replace(0, np.nan)
         log_p = np.log(p_6m.clip(lower=0.01))
         t_arr = np.arange(len(log_p))
         r2_6m = log_p.corrwith(pd.Series(t_arr, index=log_p.index, dtype=float)) ** 2
         comp_score = sharpe_6m * r2_6m.fillna(0)
 
-        # 2. Residual Alpha
-        mkt_ret = daily_ret.loc[:t_start].mean(axis=1).iloc[-126:]
-        stk_ret = daily_ret.loc[:t_start].iloc[-126:]
+        # 2. Residual Alpha — same calendar 6M window.
+        mkt_ret = daily_ret.loc[:t_start].mean(axis=1).iloc[start_6m:]
+        stk_ret = daily_ret.loc[:t_start].iloc[start_6m:]
         cov_m = stk_ret.apply(lambda col: col.cov(mkt_ret))
         var_m = float(mkt_ret.var())
         beta = cov_m / max(var_m, 1e-8)
@@ -132,10 +132,13 @@ def compute_multi_strategy_monthly_matrix(
             lambda s: ind_means.get(ind_map.get(s, "General"), 0)
         )
 
-        # 4. Momentum Acceleration (Short vs Long)
-        ret_1m = (p_slice.iloc[-1] / p_slice.iloc[-min(21, len(p_slice))].clip(lower=0.01)) - 1
-        ret_3m = (p_slice.iloc[-1] / p_slice.iloc[-min(63, len(p_slice))].clip(lower=0.01)) - 1
-        ret_12m = (p_slice.iloc[-1] / p_slice.iloc[-min(252, len(p_slice))].clip(lower=0.01)) - 1
+        # 4. Momentum Acceleration — calendar 1M/3M/12M windows.
+        start_1m = int(calendar_start_positions(idx_slice, 1, latest_as_of=t_start)[-1])
+        start_3m = int(calendar_start_positions(idx_slice, 3, latest_as_of=t_start)[-1])
+        start_12m = int(calendar_start_positions(idx_slice, 12, latest_as_of=t_start)[-1])
+        ret_1m = (p_slice.iloc[-1] / p_slice.iloc[start_1m].clip(lower=0.01)) - 1
+        ret_3m = (p_slice.iloc[-1] / p_slice.iloc[start_3m].clip(lower=0.01)) - 1
+        ret_12m = (p_slice.iloc[-1] / p_slice.iloc[start_12m].clip(lower=0.01)) - 1
         accel_score = (ret_1m + ret_3m) - ret_12m
 
         # Top-N picks per system

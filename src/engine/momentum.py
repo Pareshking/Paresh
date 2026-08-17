@@ -19,6 +19,11 @@ from scipy.ndimage import convolve1d
 
 from src.core.config import DEFAULT_LOOKBACK_WEIGHTS, MOMENTUM_WINDOWS
 from src.core.logger import logger
+from src.engine.calendar_momentum import (
+    _calendar_period_metrics,
+    calendar_start_positions,
+    latest_as_of_date,
+)
 
 
 def clean_holidays(df: pd.DataFrame | None) -> pd.DataFrame:
@@ -304,10 +309,14 @@ class MomentumEngine:
         self,
         benchmark_returns: pd.Series | None = None,
         window: int = 126,
+        months: int | None = 6,
     ) -> pd.Series:
-        """
-        Computes 6M annualized idiosyncratic residual alpha:
-        alpha = (mu_stock - beta * mu_market) * 252
+        """Compute residual alpha over a calendar-defined period by default.
+
+        ``window`` remains available for callers that explicitly request a
+        trading-row window by passing ``months=None``. The production 6M
+        model uses calendar months so weekends/holidays do not change the
+        economic horizon.
         """
         daily_ret = self.prices.pct_change(fill_method=None)
         if benchmark_returns is None:
@@ -315,28 +324,38 @@ class MomentumEngine:
         else:
             mkt_ret = benchmark_returns.reindex(daily_ret.index).ffill()
 
-        mkt_ret_w = mkt_ret.iloc[-window:]
+        if months is None:
+            start = max(0, len(daily_ret) - window)
+        else:
+            as_of = latest_as_of_date(pd.DatetimeIndex(daily_ret.index))
+            starts = calendar_start_positions(
+                pd.DatetimeIndex(daily_ret.index), months, latest_as_of=as_of
+            )
+            start = int(starts[-1])
+
+        ret_w = daily_ret.iloc[start:]
+        mkt_ret_w = mkt_ret.iloc[start:]
         mkt_var = float(mkt_ret_w.var())
 
-        if mkt_var <= 1e-12 or np.isnan(mkt_var) or len(mkt_ret_w) < 30:
+        if mkt_var <= 1e-12 or np.isnan(mkt_var) or len(mkt_ret_w.dropna()) < 30:
             ranks = pd.Series(np.nan, index=self.prices.columns)
             self.residual_ranks = ranks
             return ranks
 
-        ret_w = daily_ret.iloc[-window:]
         covs = ret_w.apply(lambda col: col.cov(mkt_ret_w))
         betas = covs / mkt_var
-
         stock_mean = ret_w.mean()
         mkt_mean = float(mkt_ret_w.mean())
         alpha_ann = (stock_mean - betas * mkt_mean) * 252
 
-        alpha_ann = alpha_ann.where(self._valid_counts >= min(window, 63), np.nan)
+        if months is None:
+            min_history = min(window, 63)
+        else:
+            min_history = max(2, len(ret_w) // 4)
+        alpha_ann = alpha_ann.where(self._valid_counts >= min_history, np.nan)
         ranks = alpha_ann.rank(ascending=False, method="min")
         self.residual_ranks = ranks
         return ranks
-
-    # ── System 4: Industry-Relative Momentum ─────────────────────────────────
     def calculate_industry_relative(
         self,
         rank_df: pd.DataFrame,
@@ -368,36 +387,23 @@ class MomentumEngine:
 
     # ── System 5: Momentum Acceleration ──────────────────────────────────────
     def calculate_momentum_acceleration(self) -> pd.Series:
-        """
-        Measures short-term acceleration vs long-term baseline:
-        Accel = (0.10*1M + 0.35*3M + 0.55*6M) - (0.45*9M + 0.55*12M)
-        """
+        """Rank acceleration using calendar 1M/3M/6M/9M/12M horizons."""
         zero_s = pd.Series(0.0, index=self.prices.columns)
-        s_1m = (
-            self._annualized_sharpe_r2(21).iloc[-1]
-            if len(self.prices) >= 21
-            else zero_s
-        )
-        s_3m = (
-            self._annualized_sharpe_r2(63).iloc[-1]
-            if len(self.prices) >= 63
-            else zero_s
-        )
-        s_6m = (
-            self._annualized_sharpe_r2(126).iloc[-1]
-            if len(self.prices) >= 126
-            else zero_s
-        )
-        s_9m = (
-            self._annualized_sharpe_r2(189).iloc[-1]
-            if len(self.prices) >= 189
-            else zero_s
-        )
-        s_12m = (
-            self._annualized_sharpe_r2(252).iloc[-1]
-            if len(self.prices) >= 252
-            else zero_s
-        )
+        as_of = latest_as_of_date(pd.DatetimeIndex(self.prices.index))
+        scores: dict[int, pd.Series] = {}
+        for months in (1, 3, 6, 9, 12):
+            _, _, sharpe, r2, _ = _calendar_period_metrics(
+                self.prices, self.log_ret, months, latest_as_of=as_of
+            )
+            scores[months] = (sharpe.iloc[-1] * r2.iloc[-1]).replace(
+                [np.inf, -np.inf], np.nan
+            )
+
+        s_1m = scores.get(1, zero_s)
+        s_3m = scores.get(3, zero_s)
+        s_6m = scores.get(6, zero_s)
+        s_9m = scores.get(9, zero_s)
+        s_12m = scores.get(12, zero_s)
 
         short_term = (
             0.10 * zscore_series(s_1m)
@@ -407,11 +413,8 @@ class MomentumEngine:
         long_term = 0.45 * zscore_series(s_9m) + 0.55 * zscore_series(s_12m)
         accel = short_term - long_term
 
-        accel = accel.where(self._valid_counts >= 63, np.nan)
         ranks = accel.rank(ascending=False, na_option="bottom")
         return ranks
-
-    # ── ATR Volatility & Dual Trailing Stops ──────────────────────────────────
     def compute_atr_and_stops(
         self,
         period: int = 14,
@@ -443,13 +446,21 @@ class MomentumEngine:
         )
 
     # ── Frog-in-the-Pan Persistence ──────────────────────────────────────────
-    def compute_persistence(self, window: int = 126) -> pd.Series:
-        """Computes % of trading sessions with positive return in lookback."""
-        pos = (self.log_ret.iloc[-window:] > 0).sum()
-        total = self.log_ret.iloc[-window:].notna().sum().replace(0, np.nan)
+    def compute_persistence(
+        self, window: int = 126, months: int | None = 6
+    ) -> pd.Series:
+        """Compute percentage of sessions with positive return in a 6M calendar window."""
+        if months is None:
+            ret = self.log_ret.iloc[-window:]
+        else:
+            as_of = latest_as_of_date(pd.DatetimeIndex(self.log_ret.index))
+            starts = calendar_start_positions(
+                pd.DatetimeIndex(self.log_ret.index), months, latest_as_of=as_of
+            )
+            ret = self.log_ret.iloc[int(starts[-1]) :]
+        pos = (ret > 0).sum()
+        total = ret.notna().sum().replace(0, np.nan)
         return (pos / total * 100).round(1)
-
-    # ── Master Rankings Builder ──────────────────────────────────────────────
     def get_rankings(
         self,
         index_info: pd.DataFrame,
@@ -480,23 +491,38 @@ class MomentumEngine:
         )
         rank_df["Composite Rank"] = rank_df["Rank"]
 
-        # Historical Ranks (-1M: 21D ago, -3M: 63D ago)
+        # Historical ranks use calendar 1M/3M snapshots rather than fixed rows.
         n_rows = len(self.momentum_scores) if self.momentum_scores is not None else 0
-        if n_rows > 21 and self.momentum_scores is not None:
-            s_1m = self.momentum_scores.iloc[-22].where(valid_mask, np.nan)
-            r_1m = s_1m.rank(ascending=False, method="min")
-            rank_df["Rank (-1M)"] = rank_df["Symbol"].map(r_1m)
-            rank_df["Rank Δ 1M"] = rank_df["Rank (-1M)"] - rank_df["Rank"]
+        if n_rows > 0 and self.momentum_scores is not None:
+            as_of = latest_as_of_date(pd.DatetimeIndex(self.momentum_scores.index))
+            starts = calendar_start_positions(
+                pd.DatetimeIndex(self.momentum_scores.index), 1, latest_as_of=as_of
+            )
+            idx_1m = int(starts[-1])
+            if idx_1m < n_rows:
+                s_1m = self.momentum_scores.iloc[idx_1m].where(valid_mask, np.nan)
+                r_1m = s_1m.rank(ascending=False, method="min")
+                rank_df["Rank (-1M)"] = rank_df["Symbol"].map(r_1m)
+                rank_df["Rank Δ 1M"] = rank_df["Rank (-1M)"] - rank_df["Rank"]
+            else:
+                rank_df["Rank (-1M)"] = np.nan
+                rank_df["Rank Δ 1M"] = np.nan
+
+            starts = calendar_start_positions(
+                pd.DatetimeIndex(self.momentum_scores.index), 3, latest_as_of=as_of
+            )
+            idx_3m = int(starts[-1])
+            if idx_3m < n_rows:
+                s_3m = self.momentum_scores.iloc[idx_3m].where(valid_mask, np.nan)
+                r_3m = s_3m.rank(ascending=False, method="min")
+                rank_df["Rank (-3M)"] = rank_df["Symbol"].map(r_3m)
+                rank_df["Rank Δ 3M"] = rank_df["Rank (-3M)"] - rank_df["Rank"]
+            else:
+                rank_df["Rank (-3M)"] = np.nan
+                rank_df["Rank Δ 3M"] = np.nan
         else:
             rank_df["Rank (-1M)"] = np.nan
             rank_df["Rank Δ 1M"] = np.nan
-
-        if n_rows > 63 and self.momentum_scores is not None:
-            s_3m = self.momentum_scores.iloc[-64].where(valid_mask, np.nan)
-            r_3m = s_3m.rank(ascending=False, method="min")
-            rank_df["Rank (-3M)"] = rank_df["Symbol"].map(r_3m)
-            rank_df["Rank Δ 3M"] = rank_df["Rank (-3M)"] - rank_df["Rank"]
-        else:
             rank_df["Rank (-3M)"] = np.nan
             rank_df["Rank Δ 3M"] = np.nan
 
@@ -560,16 +586,16 @@ class MomentumEngine:
                 rank_df[f"{label} Sharpe"] = rank_df["Symbol"].map(m["sharpe"])
                 rank_df[f"{label} R2"] = rank_df["Symbol"].map(m["r2"])
 
-        # 3M & 6M Drawdowns
-        win_3m = min(63, len(close_src))
-        roll_max_3m = close_src.iloc[-win_3m:].cummax()
-        dd_3m = ((close_src.iloc[-win_3m:] - roll_max_3m) / roll_max_3m.replace(0, np.nan)).min() * 100
-        rank_df["Max DD 3M"] = rank_df["Symbol"].map(dd_3m.to_dict())
-
-        win_6m = min(126, len(close_src))
-        roll_max_6m = close_src.iloc[-win_6m:].cummax()
-        dd_6m = ((close_src.iloc[-win_6m:] - roll_max_6m) / roll_max_6m.replace(0, np.nan)).min() * 100
-        rank_df["Max DD 6M"] = rank_df["Symbol"].map(dd_6m.to_dict())
+        # 3M & 6M drawdowns use calendar-defined windows.
+        close_idx = pd.DatetimeIndex(close_src.index)
+        as_of = latest_as_of_date(close_idx)
+        for months, label in ((3, "3M"), (6, "6M")):
+            starts = calendar_start_positions(close_idx, months, latest_as_of=as_of)
+            start = int(starts[-1])
+            period_close = close_src.iloc[start:]
+            roll_max = period_close.cummax()
+            dd = ((period_close - roll_max) / roll_max.replace(0, np.nan)).min() * 100
+            rank_df[f"Max DD {label}"] = rank_df["Symbol"].map(dd.to_dict())
 
         # ATR & Stops
         atr_df = self.compute_atr_and_stops()
@@ -577,7 +603,7 @@ class MomentumEngine:
             rank_df[c] = rank_df["Symbol"].map(atr_df[c].to_dict())
 
         # Persistence
-        pers = self.compute_persistence(126)
+        pers = self.compute_persistence(months=6)
         rank_df["Persistence"] = rank_df["Symbol"].map(pers.to_dict())
 
         # Volume Signal
