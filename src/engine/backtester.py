@@ -149,6 +149,7 @@ def run_backtest(
             or "Composite" in ranking_method
         ):
             composite_score = pd.Series(0.0, index=prices.columns)
+            available_weight = pd.Series(0.0, index=prices.columns)
             for w_period, cw in zip(WINDOWS, norm_w if norm_w else [0.2] * 5):
                 if cw <= 0:
                     continue
@@ -158,13 +159,11 @@ def run_backtest(
                 raw_mom = sharpe
 
                 mu_cs = float(raw_mom.mean())
-                sig_cs = float(raw_mom.std())
-                z = (
-                    ((raw_mom - mu_cs) / sig_cs).clip(-3.0, 3.0)
-                    if sig_cs > 0
-                    else raw_mom * 0
-                )
+                sig_cs = float(raw_mom.std(ddof=0))
+                z = ((raw_mom - mu_cs) / sig_cs).clip(-3.0, 3.0) if sig_cs > 0 else pd.Series(np.nan, index=raw_mom.index)
                 composite_score += z.fillna(0) * cw
+                available_weight += z.notna().astype(float) * cw
+            composite_score = composite_score.div(available_weight.replace(0.0, np.nan))
             score = composite_score[valid & composite_score.notna()]
 
         elif "Residual" in ranking_method or "α" in ranking_method:

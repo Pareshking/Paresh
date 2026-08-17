@@ -1896,7 +1896,7 @@ def render_saas_table(
                         cells_html.append(
                             f'<td class="td-right">₹{float(val):,.0f}</td>'
                         )
-                # 4. Multipliers & Ratios (e.g. Sharpe, Sortino, Calmar, R2, Beta, Surge, Multiplier, Profit Factor, RS_Ratio, RS_Momentum)
+                # 4. Multipliers & Ratios (e.g. Sharpe, Sortino, Calmar, Beta, Surge, Multiplier, Profit Factor, RS_Ratio, RS_Momentum)
                 elif any(
                     w in c_str
                     for w in [

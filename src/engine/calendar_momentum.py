@@ -24,6 +24,12 @@ def latest_as_of_date(index: pd.DatetimeIndex) -> pd.Timestamp:
     """Return today's India date, unless the supplied data is newer."""
     today = pd.Timestamp(datetime.now(INDIA_TZ).date())
     last_data_date = pd.Timestamp(index[-1]).normalize()
+    # Use today's calendar date for genuinely current data (including weekends
+    # and short exchange holidays), but anchor historical/stale datasets to
+    # their actual last observation so test and offline datasets cannot acquire
+    # a multi-year synthetic lookback horizon.
+    if today - last_data_date > pd.Timedelta(days=7):
+        return last_data_date
     return max(today, last_data_date)
 
 

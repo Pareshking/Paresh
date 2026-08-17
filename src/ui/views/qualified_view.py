@@ -243,7 +243,7 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> Non
 
     _render_qualified_section(
         title=f"🏆 Top {top_n} Qualified Momentum Stocks",
-        subtitle="Multi-Window Sharpe × R² Composite",
+        subtitle="Multi-Window Risk-Adjusted Momentum Composite",
         df_subset=qualified_composite,
         adj_close=adj_close,
         key_prefix="qual_composite",

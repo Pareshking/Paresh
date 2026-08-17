@@ -62,7 +62,7 @@ def winsorize_series(s: pd.Series, std_limit: float = 3.0) -> pd.Series:
     if s.empty or s.isna().all():
         return s
     clean = s.dropna()
-    if len(clean) < 3 or clean.std() == 0:
+    if len(clean) < 3 or clean.std(ddof=0) == 0:
         return s
     mean, std = float(clean.mean()), float(clean.std(ddof=0))
     lower, upper = mean - std_limit * std, mean + std_limit * std
@@ -74,7 +74,7 @@ def zscore_series(s: pd.Series, winsorize: bool = True) -> pd.Series:
     if s.empty or s.isna().all():
         return s
     clean = s.dropna()
-    if len(clean) < 3 or clean.std() == 0:
+    if len(clean) < 3 or clean.std(ddof=0) == 0:
         return pd.Series(0.0, index=s.index)
     if winsorize:
         clean = winsorize_series(clean, std_limit=3.0)
@@ -166,46 +166,45 @@ class MomentumEngine:
         return (log_ret_w / daily_vol_w).replace([np.inf, -np.inf], np.nan)
 
     def calculate_sharpe_momentum(self) -> pd.DataFrame:
-        """Compute weighted cross-sectional Z-scored pure Sharpe momentum."""
-        scores_by_w = {}
-        for w in self.WINDOWS:
-            raw_score = self._annualized_sharpe(w)
-            short_mask = self._valid_counts < w
-            if short_mask.any():
-                raw_score.loc[:, short_mask] = np.nan
-            mean_ = raw_score.mean(axis=1)
-            std_ = raw_score.std(axis=1).replace(0, np.nan)
-            scores_by_w[w] = raw_score.sub(mean_, axis=0).div(std_, axis=0).clip(-3.0, 3.0)
-            if not self.prices.empty:
-                idx_prev = max(0, len(self.prices) - 1 - min(w, len(self.prices) - 1))
-                ret_w = self.prices.iloc[-1] / self.prices.iloc[idx_prev].replace(0, np.nan) - 1
-                daily_vol = (self.log_ret.iloc[-w:].std(ddof=0) * np.sqrt(w)).replace(0, np.nan)
-                self.period_metrics[w] = {"return": ret_w, "sharpe": np.log((1 + ret_w).clip(lower=0.001)) / daily_vol, "score": scores_by_w[w].iloc[-1]}
-        total_weight = sum(self.weights)
-        weights = [w / total_weight for w in self.weights] if total_weight > 0 else [0.2] * 5
-        composite = pd.DataFrame(0.0, index=self.prices.index, columns=self.prices.columns)
-        available = pd.DataFrame(0.0, index=self.prices.index, columns=self.prices.columns)
-        for w, weight in zip(self.WINDOWS, weights):
-            scores = scores_by_w[w]
-            composite = composite.add(scores.fillna(0.0) * weight)
-            available = available.add(scores.notna().astype(float) * weight)
-        self.momentum_scores = composite.div(available.replace(0.0, np.nan))
-        return self.momentum_scores
+        """Compatibility entry point for the canonical calendar-month System-1 engine."""
+        from src.engine.calendar_momentum import apply_calendar_momentum
+        return apply_calendar_momentum(self)
 
     def calculate_exp_regression(self, window: int = 126) -> pd.DataFrame:
-        """Calculate annualized rolling exponential-regression slope."""
+        """Calculate annualized rolling exponential-regression slope without synthetic fills."""
         log_p = np.log(self.prices.clip(lower=0.01))
-        n = window
-        sum_t = (n - 1) * n / 2.0
-        sum_t2 = (n - 1) * n * (2 * n - 1) / 6.0
-        var_t = sum_t2 - (sum_t ** 2) / n
-        t_weights = np.arange(n) - sum_t / n
-        conv_vals = convolve1d(log_p.fillna(0.0).values, t_weights[::-1], axis=0, mode="constant", cval=0.0, origin=-(n // 2))
-        roll_t_y = pd.DataFrame(conv_vals, index=log_p.index, columns=log_p.columns)
-        score = np.exp((roll_t_y / max(var_t, 1e-8)) * 252) - 1
-        short_mask = self._valid_counts < window
-        if short_mask.any():
-            score.loc[:, short_mask] = np.nan
+        n = int(window)
+        score = pd.DataFrame(np.nan, index=log_p.index, columns=log_p.columns, dtype=float)
+        if n < 2 or len(log_p) < n:
+            self.exp_reg_scores = score
+            return score
+
+        t = np.arange(n, dtype=float)
+        t_rev = t[::-1]
+        t2_rev = (t * t)[::-1]
+        ones = np.ones(n, dtype=float)
+
+        for col in log_p.columns:
+            y = log_p[col].to_numpy(dtype=float)
+            mask = np.isfinite(y)
+            if int(mask.sum()) < n:
+                continue
+            y0 = np.where(mask, y, 0.0)
+            m = mask.astype(float)
+            n_obs = np.convolve(m, ones, mode="valid")
+            sum_y = np.convolve(y0, ones, mode="valid")
+            sum_t = np.convolve(m, t_rev, mode="valid")
+            sum_t2 = np.convolve(m, t2_rev, mode="valid")
+            sum_ty = np.convolve(y0, t_rev, mode="valid")
+            denom = n_obs * sum_t2 - sum_t * sum_t
+            numer = n_obs * sum_ty - sum_t * sum_y
+            valid = (n_obs >= n) & (denom > 1e-12)
+            slopes = np.full(len(n_obs), np.nan)
+            slopes[valid] = numer[valid] / denom[valid]
+            out = np.full(len(log_p), np.nan)
+            out[n - 1:] = np.exp(np.clip(slopes * 252.0, -700.0, 700.0)) - 1.0
+            score[col] = out
+
         self.exp_reg_scores = score
         return score
 
@@ -524,7 +523,7 @@ class MomentumEngine:
 
         # Volume Signal
         if self.volume is not None and not self.volume.empty:
-            vol_df = self.volume.ffill()
+            vol_df = self.volume.copy()
             vol_df.columns = [
                 str(c).replace(".NS", "").strip().upper() for c in vol_df.columns
             ]
