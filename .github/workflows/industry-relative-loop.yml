@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -14,5 +17,67 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r requirements.txt pytest
-      - name: Validate workflow execution
+      - name: Apply leave-one-out implementation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("src/engine/momentum.py")
+          s = p.read_text()
+          old = '''        ind_avg = score_df.groupby("Industry")["Score"].transform("mean")
+        rel_score = score_df["Score"] - ind_avg
+'''
+          new = '''        # Leave-one-out industry mean: a stock must not contribute to
+        # the peer benchmark against which that same stock is measured.
+        industry_sum = score_df.groupby("Industry")["Score"].transform("sum", min_count=1)
+        industry_count = score_df.groupby("Industry")["Score"].transform("count")
+        peer_sum = industry_sum - score_df["Score"]
+        peer_count = industry_count - score_df["Score"].notna().astype(int)
+        peer_mean = peer_sum.div(peer_count.replace(0, np.nan))
+        rel_score = score_df["Score"] - peer_mean
+'''
+          if old not in s:
+              raise SystemExit("Expected industry-relative block not found; refusing blind edit")
+          p.write_text(s.replace(old, new, 1))
+          PY
+      - name: Add regression test
+        run: |
+          cat > tests/test_industry_relative_leave_one_out.py <<'PY'
+          import numpy as np
+          import pandas as pd
+          from src.engine.momentum import MomentumEngine
+
+          def test_industry_relative_is_leave_one_out():
+              idx = pd.date_range("2026-01-01", periods=5, freq="D")
+              prices = pd.DataFrame({"AAA":[100,101,102,103,104], "BBB":[100,101,102,103,104], "CCC":[100,101,102,103,104]}, index=idx)
+              engine = MomentumEngine(prices)
+              engine.momentum_scores = pd.DataFrame([[1.0, 2.0, 10.0]] * 5, index=idx, columns=["AAA","BBB","CCC"])
+              rank_df = pd.DataFrame({"Symbol":["AAA","BBB","CCC"], "Industry":["X","X","Y"]})
+              ranks = engine.calculate_industry_relative(rank_df)
+              assert ranks["AAA"] == 2
+              assert ranks["BBB"] == 1
+              assert np.isnan(ranks["CCC"])
+
+          def test_industry_relative_preserves_nan_scores():
+              idx = pd.date_range("2026-01-01", periods=3, freq="D")
+              prices = pd.DataFrame({"AAA":[100,101,102], "BBB":[100,101,102]}, index=idx)
+              engine = MomentumEngine(prices)
+              engine.momentum_scores = pd.DataFrame([[1.0, np.nan]] * 3, index=idx, columns=["AAA","BBB"])
+              rank_df = pd.DataFrame({"Symbol":["AAA","BBB"], "Industry":["X","X"]})
+              ranks = engine.calculate_industry_relative(rank_df)
+              assert np.isnan(ranks["AAA"])
+              assert np.isnan(ranks["BBB"])
+          PY
+      - name: Run targeted tests
+        run: python -m pytest -q tests/test_industry_relative_leave_one_out.py
+      - name: Run full test suite
+        run: python -m pytest -q
+      - name: Compile
         run: python -m py_compile src/engine/momentum.py
+      - name: Commit verified change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/engine/momentum.py tests/test_industry_relative_leave_one_out.py
+          git diff --cached --quiet && exit 0
+          git commit -m "fix(v1): use leave-one-out industry-relative momentum"
+          git push
