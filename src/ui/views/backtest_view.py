@@ -22,7 +22,14 @@ def render_backtest_view(
 ) -> None:
     """Renders the Walk-Forward Historical Strategy Backtesting Interface."""
     # ── Aligned Controls Grid ────────────────────────────────────────────────
-    c1, c2, c3 = st.columns(3, vertical_alignment="center")
+    c0, c1, c2, c3 = st.columns(4, vertical_alignment="center")
+    bt_period = c0.selectbox(
+        "Backtest Period",
+        [6, 12],
+        index=0,
+        format_func=lambda x: f"Last {x} Months",
+        key="bt_period_months",
+    )
     bt_n = c1.selectbox(
         "Holdings Count", [10, 15, 20, 30, 50], index=2, key="bt_holdings_n"
     )
@@ -150,11 +157,12 @@ def render_backtest_view(
             sector_map=sec_map,
             cost_bps=cost_drag_bps,
             buffer_n=int(bt_n * buffer_mult),
+            backtest_months=bt_period,
         )
 
     if bt_res is None:
         st.warning(
-            "Insufficient price history to execute backtest. At least 1.5 years of continuous daily data is required."
+            "Insufficient price history to execute the selected backtest period. The strategy still requires its formation lookback history before the selected window."
         )
         return
 
@@ -164,6 +172,7 @@ def render_backtest_view(
     st.markdown(
         f"""
         <div style='background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 14px; margin-bottom: 12px; font-family: IBM Plex Mono; font-size: 0.76rem; color: #475569; display: flex; flex-wrap: wrap; gap: 14px; align-items: center;'>
+            <span>📅 <strong>Period:</strong> <span style='color: #0f172a; font-weight: 600;'>Last {bt_period} Months</span></span>
             <span>🎯 <strong>Engine:</strong> <span style='color: #0f172a; font-weight: 600;'>{bt_ranking}</span></span>
             <span>⏱️ <strong>Interval:</strong> <span style='color: #0f172a; font-weight: 600;'>{'Monthly · First Trading Day' if bt_rebal == 21 else f'{bt_rebal} Trading Days'}</span></span>
             <span>📦 <strong>Portfolio:</strong> <span style='color: #0f172a; font-weight: 600;'>Top {bt_n} Stocks (Buffer: Top {int(bt_n * buffer_mult)})</span></span>

@@ -36,6 +36,7 @@ def run_backtest(
     sector_map: dict[str, str] | None = None,
     cost_bps: float = 30.0,
     buffer_n: int | None = None,
+    backtest_months: int | None = None,
 ) -> dict[str, Any] | None:
     """
     Executes a walk-forward momentum backtest with zero look-ahead bias and friction modeling.
@@ -77,6 +78,12 @@ def run_backtest(
         rebal_dates = [int(i) for i in first_by_month.to_numpy() if int(i) < len(prices) - 2]
     else:
         rebal_dates = list(range(start_offset, len(prices) - 2, rebal_freq))
+    if backtest_months is not None:
+        if backtest_months <= 0:
+            raise ValueError("backtest_months must be positive when supplied")
+        cutoff_date = dates[-1] - pd.DateOffset(months=int(backtest_months))
+        rebal_dates = [i for i in rebal_dates if dates[i] >= cutoff_date]
+
     if not rebal_dates:
         return None
 
