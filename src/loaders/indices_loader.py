@@ -278,14 +278,8 @@ def _fetch_indices_impl(selected_indices: Sequence[str] | None = None) -> pd.Dat
     return filtered
 
 
-@st.cache_data(show_spinner=False)
-def _fetch_indices_data_raw(indices_key: tuple[str, ...]) -> pd.DataFrame:
-    """Disk cache layer for index constituents."""
-    return _fetch_indices_impl(list(indices_key))
-
-
 @st.cache_data(show_spinner=False, ttl=604800)  # 7 days cache
 def fetch_indices_data(selected_indices: Sequence[str] | None = None) -> pd.DataFrame:
     """Public cached loader for index constituents."""
     key = tuple(sorted(selected_indices or []))
-    return _fetch_indices_data_raw(key)
+    return _fetch_indices_impl(list(key))

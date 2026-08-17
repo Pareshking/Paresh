@@ -4,7 +4,7 @@ Market Breadth analytics: Moving Average Breadth and 52W High/Low Time Series.
 
 from __future__ import annotations
 
-from typing import Sequence
+from typing import Any, Sequence
 
 import numpy as np
 import pandas as pd
