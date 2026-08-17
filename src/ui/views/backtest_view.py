@@ -8,6 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from src.engine.backtester import run_backtest
+from src.loaders.price_loader import fetch_benchmark_history
 from src.ui.charts import render_backtest_equity_chart
 from src.ui.components import render_data_quality_footer
 from src.ui.theme import render_saas_table
@@ -129,6 +130,10 @@ def render_backtest_view(
         lb_val = 126
 
     ph = f"{adj_close.index[-1]}_{adj_close.shape[0]}x{adj_close.shape[1]}"
+    benchmark_close = fetch_benchmark_history(period="2y")
+    if benchmark_close.empty:
+        st.error("Nifty 500 benchmark (^CRSLDX) data is unavailable. Backtest stopped to prevent an invalid benchmark comparison.")
+        return
     sec_map = (
         rank_df.set_index("Symbol")["Industry"].to_dict()
         if "Industry" in rank_df.columns
@@ -139,6 +144,7 @@ def render_backtest_view(
         bt_res = run_backtest(
             ph,
             adj_close,
+            _benchmark_close=benchmark_close,
             top_n=bt_n,
             rebal_freq=bt_rebal,
             lookback_ret=lb_val,

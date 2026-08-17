@@ -16,7 +16,7 @@ import pandas as pd
 import streamlit as st
 import yfinance as yf
 
-from src.core.config import PRICES_FILE
+from src.core.config import BENCHMARK_SYMBOL, PRICES_FILE
 from src.core.logger import logger
 from src.core.types import MarketRegime, OHLCVData, RegimeData
 
@@ -342,15 +342,35 @@ def fetch_price_history(
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def get_market_regime(benchmark_symbol: str = "^CRSLDX") -> RegimeData:
+def fetch_benchmark_history(period: str = "2y") -> pd.Series:
+    """Return the single V1 market benchmark price series."""
+    try:
+        data = yf.download(BENCHMARK_SYMBOL, period=period, progress=False, threads=False)
+        if data is None or data.empty:
+            return pd.Series(dtype=float, name=BENCHMARK_SYMBOL)
+        if data.index.tz is not None:
+            data.index = data.index.tz_localize(None)
+        if isinstance(data.columns, pd.MultiIndex):
+            close_df = _extract_field(data, ["Close", "Adj Close", "AdjClose"])
+            series = close_df.iloc[:, 0] if not close_df.empty else data.iloc[:, 0]
+        else:
+            series = data["Close"] if "Close" in data.columns else data.iloc[:, 0]
+        series = pd.to_numeric(series, errors="coerce").dropna()
+        series.name = BENCHMARK_SYMBOL
+        return series
+    except Exception as e:
+        logger.warning(f"Failed to fetch benchmark {BENCHMARK_SYMBOL}: {e}")
+        return pd.Series(dtype=float, name=BENCHMARK_SYMBOL)
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def get_market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL) -> RegimeData:
     """
     Computes market regime by comparing benchmark index price with its 200 DMA.
     Falls back to Nifty 50 (^NSEI) if Nifty 500 (^CRSLDX) is unavailable.
     """
     try:
         nifty = yf.download(benchmark_symbol, period="1y", progress=False)
-        if (nifty is None or nifty.empty) and benchmark_symbol != "^NSEI":
-            nifty = yf.download("^NSEI", period="1y", progress=False)
 
         if nifty is None or nifty.empty:
             return RegimeData(

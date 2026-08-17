@@ -62,6 +62,7 @@ def run_backtest(
     sector_map: dict[str, str] | None = None,
     cost_bps: float = 30.0,
     buffer_n: int | None = None,
+    _benchmark_close: pd.Series | None = None,
 ) -> dict[str, Any] | None:
     """
     Executes a walk-forward momentum backtest with zero look-ahead bias and friction modeling.
@@ -89,6 +90,12 @@ def run_backtest(
 
     daily_ret = prices.pct_change(fill_method=None)
     log_ret = np.log(prices / prices.shift(1).replace(0, np.nan))
+
+    if _benchmark_close is None or _benchmark_close.empty:
+        benchmark_ret = pd.Series(np.nan, index=prices.index, dtype=float)
+    else:
+        benchmark_series = pd.to_numeric(_benchmark_close, errors="coerce").reindex(prices.index)
+        benchmark_ret = benchmark_series.pct_change(fill_method=None)
 
     ema = prices.ewm(span=ema_period).mean()
     high_52w = prices.rolling(252, min_periods=126).max()
@@ -162,13 +169,19 @@ def run_backtest(
         elif "Residual" in ranking_method or "α" in ranking_method:
             # 6M CAPM Market-Beta Regression Alpha
             sl = max(start_idx - 126, 0)
-            mkt_ret = daily_ret.iloc[sl : start_idx + 1].mean(axis=1)
+            mkt_ret = benchmark_ret.iloc[sl : start_idx + 1]
             stk_ret = daily_ret.iloc[sl : start_idx + 1]
-            cov_m = stk_ret.apply(lambda col: col.cov(mkt_ret))
-            var_m = float(mkt_ret.var())
-            beta = cov_m / max(var_m, 1e-8)
-            alpha_res = (stk_ret.mean() * 252) - (beta * (float(mkt_ret.mean()) * 252))
-            score = alpha_res[valid & alpha_res.notna()]
+            valid_mkt = mkt_ret.notna()
+            mkt_ret = mkt_ret.loc[valid_mkt]
+            stk_ret = stk_ret.loc[valid_mkt]
+            if len(mkt_ret) >= 30 and float(mkt_ret.var()) > 0:
+                cov_m = stk_ret.apply(lambda col: col.cov(mkt_ret))
+                var_m = float(mkt_ret.var())
+                beta = cov_m / var_m
+                alpha_res = (stk_ret.mean() * 252) - (beta * (float(mkt_ret.mean()) * 252))
+                score = alpha_res[valid & alpha_res.notna()]
+            else:
+                score = pd.Series(np.nan, index=prices.columns)
 
         elif "Industry-Relative" in ranking_method:
             # Multi-window Composite minus Industry Peer Mean
@@ -235,7 +248,7 @@ def run_backtest(
                 strat_net_daily.append(0.0)
                 strat_gross_daily.append(0.0)
                 bench_daily.append(
-                    float(daily_ret.iloc[j].mean()) if j < len(daily_ret) else 0.0
+                    float(benchmark_ret.iloc[j]) if j < len(benchmark_ret) and pd.notna(benchmark_ret.iloc[j]) else 0.0
                 )
             continue
 
@@ -506,7 +519,7 @@ def run_backtest(
 
             # Deduct friction on the first rebalance day
             net_r = gross_r - (friction_drag if d_idx == 0 else 0.0)
-            bench_r = float(_dr.mean())
+            bench_r = float(benchmark_ret.iloc[j]) if pd.notna(benchmark_ret.iloc[j]) else 0.0
 
             strat_gross_daily.append(gross_r)
             strat_net_daily.append(net_r)
@@ -516,9 +529,9 @@ def run_backtest(
         if period_strat_rets:
             s_ret_c = float(np.prod([1 + r for r in period_strat_rets]) - 1)
             b_rets = [
-                float(daily_ret.iloc[j].mean())
-                for j in range(fwd_start, min(fwd_end, len(daily_ret)))
-                if j < len(daily_ret)
+                float(benchmark_ret.iloc[j])
+                for j in range(fwd_start, min(fwd_end, len(benchmark_ret)))
+                if j < len(benchmark_ret) and pd.notna(benchmark_ret.iloc[j])
             ]
             b_ret_c = float(np.prod([1 + r for r in b_rets]) - 1) if b_rets else 0.0
             period_records.append(
