@@ -1,0 +1,41 @@
+name: Apply Calendar Period Fix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Apply app patch
+        run: python scripts/apply_calendar_period_fix.py
+
+      - name: Run test suite
+        run: python -m pytest -q
+
+      - name: Commit patched application
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f scripts/apply_calendar_period_fix.py .github/workflows/apply-calendar-period-fix.yml
+          git add app.py src/engine/calendar_momentum.py tests/test_calendar_momentum.py
+          git rm --cached --ignore-unmatch scripts/apply_calendar_period_fix.py .github/workflows/apply-calendar-period-fix.yml || true
+          git add -u
+          git commit -m "Fix calendar-defined momentum periods" || exit 0
+          git push
