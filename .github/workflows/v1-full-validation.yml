@@ -31,6 +31,11 @@ jobs:
       - name: Full 750-stock quantitative integration
         run: python scripts/full_validation.py
 
+      - name: Locate deprecated Streamlit HTML calls
+        run: |
+          echo "Remaining components.v1.html call sites:"
+          git grep -n "components.v1.html" -- '*.py' || true
+
       - name: Headless Streamlit runtime smoke test
         run: |
           python - <<'PY'
