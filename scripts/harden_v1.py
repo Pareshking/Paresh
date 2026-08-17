@@ -49,12 +49,8 @@ replacement = '''        z_rows = []
             z_rows.append(z.reindex(score.columns).fillna(0.0))
         z_score = pd.DataFrame(z_rows, index=score.index, columns=score.columns).clip(-3.0, 3.0)'''
 replace_regex("src/engine/calendar_momentum.py", pattern, replacement)
-# Standardize calendar-period realized dispersion to population variance.
 cm_text = cm.read_text()
-cm_text = cm_text.replace(
-    "sample_var = (rs2 - rn * mean_r * mean_r) / np.where(rn > 1, rn - 1, np.nan)",
-    "population_var = (rs2 / np.where(rn > 0, rn, np.nan)) - (mean_r * mean_r)",
-)
+cm_text = cm_text.replace("sample_var = (rs2 - rn * mean_r * mean_r) / np.where(rn > 1, rn - 1, np.nan)", "population_var = (rs2 / np.where(rn > 0, rn, np.nan)) - (mean_r * mean_r)")
 cm_text = cm_text.replace("daily_sd = np.sqrt(np.maximum(sample_var, 0.0))", "daily_sd = np.sqrt(np.maximum(population_var, 0.0))")
 cm.write_text(cm_text)
 
@@ -64,7 +60,6 @@ p = p.replace("self.returns[valid].iloc[-window:].std() * np.sqrt(252)", "self.r
 p = p.replace("realised = float(port.std() * np.sqrt(252))", "realised = float(port.std(ddof=0) * np.sqrt(252))")
 portfolio.write_text(p)
 
-# Pure System-1 Sharpe helper: population rolling daily dispersion.
 mom = Path("src/engine/momentum.py")
 m = mom.read_text()
 m = m.replace("self.log_ret.rolling(w, min_periods=w).std() * np.sqrt(w)", "self.log_ret.rolling(w, min_periods=w).std(ddof=0) * np.sqrt(w)")
@@ -88,11 +83,7 @@ new_metrics = '''        # 3M & 6M Metrics use the canonical calendar-period eng
 if old_metrics not in m:
     raise SystemExit("Expected 3M/6M metric block not found")
 m = m.replace(old_metrics, new_metrics, 1)
-m = m.replace(
-    "        close_src = (\n            close_prices_df if close_prices_df is not None else self.close\n        ).ffill()\n        high_src = (high_prices_df if high_prices_df is not None else self.high).ffill()",
-    "        close_src = (\n            close_prices_df if close_prices_df is not None else self.close\n        ).copy()\n        high_src = (high_prices_df if high_prices_df is not None else self.high).copy()",
-    1,
-)
+m = m.replace("        close_src = (\n            close_prices_df if close_prices_df is not None else self.close\n        ).ffill()\n        high_src = (high_prices_df if high_prices_df is not None else self.high).ffill()", "        close_src = (\n            close_prices_df if close_prices_df is not None else self.close\n        ).copy()\n        high_src = (high_prices_df if high_prices_df is not None else self.high).copy()", 1)
 mom.write_text(m)
 
 for rel in [
@@ -110,6 +101,23 @@ for rel in [
         text = text.replace(token, "")
     text = text.replace("Sharpe ×", "Sharpe")
     text = text.replace("R² multiplier", "smoothness multiplier")
+    p.write_text(text)
+
+# Restore valid pure-Sharpe prose/formulas after removing the old R-squared
+# token. This keeps the guide readable without retaining R-squared as a
+# runtime calculation or weighting dependency.
+for rel in ("README.md", "src/ui/views/guide_view.py"):
+    p = Path(rel)
+    text = p.read_text()
+    text = text.replace("does **not** use .", "does **not** use R-squared.")
+    text = text.replace("** is not part of System-1 and is not used to scale its score.**", "**R-squared is not part of System-1 and is not used to scale its score.**")
+    text = text.replace("; no  scaling", "; no R-squared scaling")
+    text = text.replace("Composite Multi-Window Momentum ($\\text{Sharpe} \\times $)", "Composite Multi-Window Momentum ($\\text{Sharpe}$)")
+    text = text.replace("Single-Window Momentum ($\\text{Sharpe} \\times $)", "Single-Window Momentum ($\\text{Sharpe}$)")
+    text = text.replace("$$_w = \\left(\\text{Corr}\\left(\\ln(P), \\text{Time}\\right)\\right)^2$$\n                $$\\text{Raw Momentum}_w = \\text{Sharpe}_w \\times _w$$", "$$\\text{Raw Momentum}_w = \\text{Sharpe}_w$$")
+    text = text.replace("$$_w = \\left(\\text{Corr}\\left(\\ln(P), \\text{Time}\\right)\\right)^2$$\n                $$\\text{Single Window Score} = z\\text{-Score}\\left(\\text{Sharpe}_w \\times _w\\right)$$", "$$\\text{Single Window Score} = z\\text{-Score}\\left(\\text{Sharpe}_w\\right)$$")
+    text = text.replace("**Difference vs $\\text{Sharpe} \\times $**", "**Difference vs Composite Sharpe**")
+    text = text.replace("Multi-Window Pure Sharpe Momentum (No $$)", "Multi-Window Pure Sharpe Momentum")
     p.write_text(text)
 
 charts = Path("src/ui/charts.py")
@@ -130,11 +138,12 @@ c = c.replace('        min_r = valid_df["3M Return"].min()', '        min_r = va
 c = c.replace('        valid_df["Tile_Weight"] = ((valid_df["3M Return"] + offset) * 1000).clip(', '        valid_df["Tile_Weight"] = ((valid_df[return_col] + offset) * 1000).clip(', 1)
 charts.write_text(c)
 
-# Replace deprecated HTML calls with current st.html for ordinary HTML strings.
+# Do not silently rewrite unknown call signatures. Fail CI if a deprecated
+# HTML component call remains; st.html/st.iframe migrations can then be made
+# explicitly and safely per call site.
 for path in Path(".").rglob("*.py"):
     if ".git" in path.parts or path.as_posix().startswith(".venv/"):
         continue
     text = path.read_text(errors="ignore")
-    if "st.html" in text:
-        text = text.replace("st.html", "st.html")
-        path.write_text(text)
+    if "st.components.v1.html" in text:
+        raise SystemExit(f"Deprecated st.components.v1.html remains in {path}")
