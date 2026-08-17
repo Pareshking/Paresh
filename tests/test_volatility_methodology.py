@@ -6,9 +6,8 @@ from src.engine.portfolio import PortfolioOptimizer
 
 def _returns(periods=80):
     idx = pd.bdate_range("2026-01-01", periods=periods)
-    # Two deterministic daily log-return series with known relative volatility.
-    a = np.full(periods, 0.01)
-    b = np.full(periods, 0.02)
+    a = np.tile([0.01, -0.01], periods // 2)
+    b = np.tile([0.02, -0.02], periods // 2)
     return pd.DataFrame({"A": a, "B": b}, index=idx)
 
 
@@ -33,10 +32,12 @@ def test_volatility_target_reports_annualized_realized_volatility():
     assert np.isclose(scale, expected_scale)
 
 
-def test_volatility_methods_use_sample_standard_deviation():
-    returns = _returns()
-    # Constant series has zero sample volatility; inverse-vol safely falls back.
+def test_zero_volatility_falls_back_to_equal_weight():
+    idx = pd.bdate_range("2026-01-01", periods=80)
+    returns = pd.DataFrame({"A": 0.01, "B": 0.01}, index=idx)
     opt = PortfolioOptimizer(returns)
     weights = opt.inverse_volatility(["A", "B"], window=63)
     assert np.isclose(weights.sum(), 1.0)
     assert np.all(np.isfinite(weights.values))
+    assert np.isclose(weights["A"], 0.5)
+    assert np.isclose(weights["B"], 0.5)
