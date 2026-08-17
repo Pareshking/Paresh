@@ -20,20 +20,21 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
 
-          # price_loader: central benchmark + no Nifty 50 fallback
+          # 1) Central benchmark loader; no Nifty-50 fallback.
           p = Path("src/loaders/price_loader.py")
           s = p.read_text()
-          s = s.replace(
-              "from src.core.config import PRICES_FILE",
-              "from src.core.config import BENCHMARK_SYMBOL, PRICES_FILE",
-          )
-          marker = "\n\n@st.cache_data(show_spinner=False, ttl=3600)\ndef get_market_regime"
-          func = '''
+          s = s.replace("from src.core.config import PRICES_FILE", "from src.core.config import BENCHMARK_SYMBOL, PRICES_FILE")
+          if "def fetch_benchmark_history" not in s:
+              marker = "\n\n@st.cache_data(show_spinner=False, ttl=3600)\ndef get_market_regime"
+              if marker not in s:
+                  raise SystemExit("Could not locate get_market_regime insertion point")
+              func = '''
 
           @st.cache_data(show_spinner=False, ttl=3600)
           def fetch_benchmark_history(period: str = "2y") -> pd.Series:
-              """Return the single V1 market benchmark price series (Nifty 500)."""
+              """Return the single V1 market benchmark price series."""
               try:
                   data = yf.download(BENCHMARK_SYMBOL, period=period, progress=False, threads=False)
                   if data is None or data.empty:
@@ -52,117 +53,79 @@ jobs:
                   logger.warning(f"Failed to fetch benchmark {BENCHMARK_SYMBOL}: {e}")
                   return pd.Series(dtype=float, name=BENCHMARK_SYMBOL)
           '''
-          if "def fetch_benchmark_history" not in s:
               s = s.replace(marker, func + marker)
-          s = s.replace(
-              'def get_market_regime(benchmark_symbol: str = "^CRSLDX")',
-              'def get_market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL)',
-          )
-          s = s.replace(
-              '        if (nifty is None or nifty.empty) and benchmark_symbol != "^NSEI":\n'
-              '            nifty = yf.download("^NSEI", period="1y", progress=False)\n\n',
-              "",
-          )
+          s = s.replace('def get_market_regime(benchmark_symbol: str = "^CRSLDX")', 'def get_market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL)')
+          s = re.sub(r'\n\s*if \(nifty is None or nifty\.empty\) and benchmark_symbol != "\^NSEI":\n\s*nifty = yf\.download\("\^NSEI", period="1y", progress=False\)\n', '\n', s)
           p.write_text(s)
 
-          # backtester: use the common benchmark for residual alpha and benchmark equity curve
+          # 2) Backtester: actual benchmark for residual alpha and benchmark curve.
           p = Path("src/engine/backtester.py")
           s = p.read_text()
-          s = s.replace(
-              "from src.core.config import MOMENTUM_WINDOWS",
-              "from src.core.config import BENCHMARK_SYMBOL, MOMENTUM_WINDOWS",
-          )
-          s = s.replace(
-              "    _adj_close: pd.DataFrame,\n    top_n:",
-              "    _adj_close: pd.DataFrame,\n    _benchmark_close: pd.Series | None = None,\n    top_n:",
-          )
+          if "_benchmark_close: pd.Series | None = None" not in s:
+              sig = "    buffer_n: int | None = None,\n)"
+              if sig not in s:
+                  raise SystemExit("Could not locate backtester function signature")
+              s = s.replace(sig, "    buffer_n: int | None = None,\n    _benchmark_close: pd.Series | None = None,\n)", 1)
           needle = "    log_ret = np.log(prices / prices.shift(1).replace(0, np.nan))\n"
-          insert = '''    log_ret = np.log(prices / prices.shift(1).replace(0, np.nan))
-
+          if "benchmark_ret =" not in s:
+              if needle not in s:
+                  raise SystemExit("Could not locate backtester return calculation")
+              s = s.replace(needle, needle + '''
               if _benchmark_close is None or _benchmark_close.empty:
                   benchmark_ret = pd.Series(np.nan, index=prices.index, dtype=float)
               else:
                   benchmark_series = pd.to_numeric(_benchmark_close, errors="coerce").reindex(prices.index)
                   benchmark_ret = benchmark_series.pct_change(fill_method=None)
-          '''
-          if "benchmark_ret =" not in s:
-              s = s.replace(needle, insert)
-          old = '''            sl = max(start_idx - 126, 0)
-              mkt_ret = daily_ret.iloc[sl : start_idx + 1].mean(axis=1)
-              stk_ret = daily_ret.iloc[sl : start_idx + 1]
-              cov_m = stk_ret.apply(lambda col: col.cov(mkt_ret))
-              var_m = float(mkt_ret.var())
-              beta = cov_m / max(var_m, 1e-8)
-              alpha_res = (stk_ret.mean() * 252) - (beta * (float(mkt_ret.mean()) * 252))
-              score = alpha_res[valid & alpha_res.notna()]'''
-          new = '''            sl = max(start_idx - 126, 0)
-              mkt_ret = benchmark_ret.iloc[sl : start_idx + 1]
-              stk_ret = daily_ret.iloc[sl : start_idx + 1]
-              valid_mkt = mkt_ret.notna()
-              mkt_ret = mkt_ret.loc[valid_mkt]
-              stk_ret = stk_ret.loc[valid_mkt]
-              if len(mkt_ret) >= 30 and float(mkt_ret.var()) > 0:
-                  cov_m = stk_ret.apply(lambda col: col.cov(mkt_ret))
-                  var_m = float(mkt_ret.var())
-                  beta = cov_m / var_m
-                  alpha_res = (stk_ret.mean() * 252) - (beta * (float(mkt_ret.mean()) * 252))
-                  score = alpha_res[valid & alpha_res.notna()]
-              else:
-                  score = pd.Series(np.nan, index=prices.columns)'''
-          if old not in s:
-              raise SystemExit("Residual-alpha block not found; aborting without changes")
-          s = s.replace(old, new)
-          s = s.replace(
-              'float(daily_ret.iloc[j].mean()) if j < len(daily_ret) else 0.0',
-              'float(benchmark_ret.iloc[j]) if j < len(benchmark_ret) and pd.notna(benchmark_ret.iloc[j]) else 0.0',
+          ''', 1)
+
+          pattern = re.compile(
+              r'(?P<i>\s*)sl = max\(start_idx - 126, 0\)\n'
+              r'(?P=i)mkt_ret = daily_ret\.iloc\[sl : start_idx \+ 1\]\.mean\(axis=1\)\n'
+              r'(?P=i)stk_ret = daily_ret\.iloc\[sl : start_idx \+ 1\]\n'
+              r'(?P=i)cov_m = stk_ret\.apply\(lambda col: col\.cov\(mkt_ret\)\)\n'
+              r'(?P=i)var_m = float\(mkt_ret\.var\(\)\)\n'
+              r'(?P=i)beta = cov_m / max\(var_m, 1e-8\)\n'
+              r'(?P=i)alpha_res = \(stk_ret\.mean\(\) \* 252\) - \(beta \* \(float\(mkt_ret\.mean\(\)\) \* 252\)\)\n'
+              r'(?P=i)score = alpha_res\[valid & alpha_res\.notna\(\)\]'
           )
-          s = s.replace(
-              'bench_r = float(_dr.mean())',
-              'bench_r = float(benchmark_ret.iloc[j]) if pd.notna(benchmark_ret.iloc[j]) else 0.0',
-          )
-          s = s.replace(
-              '''            b_rets = [
-                  float(daily_ret.iloc[j].mean())
-                  for j in range(fwd_start, min(fwd_end, len(daily_ret)))
-                  if j < len(daily_ret)
-              ]''',
-              '''            b_rets = [
-                  float(benchmark_ret.iloc[j])
-                  for j in range(fwd_start, min(fwd_end, len(benchmark_ret)))
-                  if j < len(benchmark_ret) and pd.notna(benchmark_ret.iloc[j])
-              ]''',
-          )
+          def residual(m):
+              i = m.group("i")
+              return (f"{i}sl = max(start_idx - 126, 0)\n{i}mkt_ret = benchmark_ret.iloc[sl : start_idx + 1]\n{i}stk_ret = daily_ret.iloc[sl : start_idx + 1]\n{i}valid_mkt = mkt_ret.notna()\n{i}mkt_ret = mkt_ret.loc[valid_mkt]\n{i}stk_ret = stk_ret.loc[valid_mkt]\n{i}if len(mkt_ret) >= 30 and float(mkt_ret.var()) > 0:\n{i}    cov_m = stk_ret.apply(lambda col: col.cov(mkt_ret))\n{i}    var_m = float(mkt_ret.var())\n{i}    beta = cov_m / var_m\n{i}    alpha_res = (stk_ret.mean() * 252) - (beta * (float(mkt_ret.mean()) * 252))\n{i}    score = alpha_res[valid & alpha_res.notna()]\n{i}else:\n{i}    score = pd.Series(np.nan, index=prices.columns)")
+          s, n = pattern.subn(residual, s, count=1)
+          if n != 1:
+              raise SystemExit(f"Residual-alpha migration expected 1 block, found {n}")
+          s = s.replace('float(daily_ret.iloc[j].mean()) if j < len(daily_ret) else 0.0', 'float(benchmark_ret.iloc[j]) if j < len(benchmark_ret) and pd.notna(benchmark_ret.iloc[j]) else 0.0')
+          s = s.replace('bench_r = float(_dr.mean())', 'bench_r = float(benchmark_ret.iloc[j]) if pd.notna(benchmark_ret.iloc[j]) else 0.0')
+          s = re.sub(r'(?P<i>\s*)b_rets = \[\n(?P=i)\s*float\(daily_ret\.iloc\[j\]\.mean\(\)\)\n(?P=i)\s*for j in range\(fwd_start, min\(fwd_end, len\(daily_ret\)\)\)\n(?P=i)\s*if j < len\(daily_ret\)\n(?P=i)\s*\]', lambda m: f'{m.group("i")}b_rets = [\n{m.group("i")}    float(benchmark_ret.iloc[j])\n{m.group("i")}    for j in range(fwd_start, min(fwd_end, len(benchmark_ret)))\n{m.group("i")}    if j < len(benchmark_ret) and pd.notna(benchmark_ret.iloc[j])\n{m.group("i")}]', s, count=1)
           p.write_text(s)
 
-          # backtest view: load and pass the benchmark series to the engine
+          # 3) Backtest UI: fetch the same benchmark and pass it explicitly.
           p = Path("src/ui/views/backtest_view.py")
           s = p.read_text()
-          s = s.replace(
-              "from src.engine.backtester import run_backtest",
-              "from src.engine.backtester import run_backtest\nfrom src.loaders.price_loader import fetch_benchmark_history",
-          )
-          s = s.replace(
-              '    ph = f"{adj_close.index[-1]}_{adj_close.shape[0]}x{adj_close.shape[1]}"',
-              '    ph = f"{adj_close.index[-1]}_{adj_close.shape[0]}x{adj_close.shape[1]}"\n    benchmark_close = fetch_benchmark_history(period="2y")\n    if benchmark_close.empty:\n        st.error("Nifty 500 benchmark (^CRSLDX) data is unavailable. Backtest stopped to prevent an invalid benchmark comparison.")\n        return',
-          )
-          s = s.replace(
-              '''        bt_res = run_backtest(
-                  ph,
-                  adj_close,''',
-              '''        bt_res = run_backtest(
-                  ph,
-                  adj_close,
-                  _benchmark_close=benchmark_close,''',
-          )
+          if "from src.loaders.price_loader import fetch_benchmark_history" not in s:
+              s = s.replace("from src.engine.backtester import run_backtest", "from src.engine.backtester import run_backtest\nfrom src.loaders.price_loader import fetch_benchmark_history", 1)
+          anchor = '    ph = f"{adj_close.index[-1]}_{adj_close.shape[0]}x{adj_close.shape[1]}"'
+          if "benchmark_close = fetch_benchmark_history" not in s:
+              if anchor not in s:
+                  raise SystemExit("Could not locate backtest view insertion point")
+              s = s.replace(anchor, anchor + '\n    benchmark_close = fetch_benchmark_history(period="2y")\n    if benchmark_close.empty:\n        st.error("Nifty 500 benchmark (^CRSLDX) data is unavailable. Backtest stopped to prevent an invalid benchmark comparison.")\n        return', 1)
+          if "_benchmark_close=benchmark_close" not in s:
+              old = "        bt_res = run_backtest(\n            ph,\n            adj_close,"
+              if old not in s:
+                  raise SystemExit("Could not locate run_backtest call")
+              s = s.replace(old, "        bt_res = run_backtest(\n            ph,\n            adj_close,\n            _benchmark_close=benchmark_close,", 1)
           p.write_text(s)
           PY
 
       - name: Compile modified modules
         run: python -m py_compile src/core/config.py src/loaders/price_loader.py src/engine/backtester.py src/ui/views/backtest_view.py
+
       - name: Run benchmark tests
         run: python -m pytest -q tests/test_benchmark_consistency.py
+
       - name: Run full test suite
         run: python -m pytest -q
+
       - name: Commit verified benchmark migration
         run: |
           git config user.name "github-actions[bot]"
