@@ -34,6 +34,8 @@ jobs:
           python -m compileall -q src app.py
 
       - name: Run test suite
+        env:
+          PYTHONPATH: .
         run: pytest -q
 
       - name: Verify no R2 remains in runtime V1
