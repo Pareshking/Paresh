@@ -17,74 +17,116 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r requirements.txt pytest
+
       - name: Apply audited methodology fixes
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
 
-          def replace_regex(path, pattern, replacement, count=1):
+          def replace_regex(path, pattern, replacement, count=1, required=True):
               p = Path(path)
               s = p.read_text()
               out, n = re.subn(pattern, replacement, s, count=count, flags=re.MULTILINE)
-              if n == 0:
+              if required and n == 0:
                   raise SystemExit(f"Expected pattern not found in {path}; refusing blind edit")
               p.write_text(out)
 
-          # Canonical calendar-period mapping used by both screener and backtester.
-          cm = Path("src/engine/calendar_momentum.py")
-          c = cm.read_text()
-          if "PERIODS =" not in c:
-              c = c.replace(
-                  "from src.core.config import MOMENTUM_MONTHS\n",
-                  "from src.core.config import MOMENTUM_MONTHS\n\nPERIODS = {21: 1, 63: 3, 126: 6, 189: 9, 252: 12}\n",
-                  1,
-              )
-          pattern = r"        mean_ = score\.mean\(axis=1\)\n        std_ = score\.std\(axis=1\)\.replace\(0, np\.nan\)\n        z_score = score\.sub\(mean_, axis=0\)\.div\(std_, axis=0\)\.clip\(-3\.0, 3\.0\)"
-          replacement = '''        # Winsorize the raw cross-section before Z-score normalization.\n        z_rows = []\n        for _, row in score.iterrows():\n            clean = row.dropna()\n            if len(clean) < 3 or float(clean.std()) == 0.0:\n                z_rows.append(pd.Series(0.0, index=score.columns))\n                continue\n            raw_mean = float(clean.mean())\n            raw_std = float(clean.std())\n            clipped = clean.clip(raw_mean - 3.0 * raw_std, raw_mean + 3.0 * raw_std)\n            clipped_std = float(clipped.std())\n            z = (clipped - float(clipped.mean())) / (clipped_std + 1e-12)\n            z_rows.append(z.reindex(score.columns).fillna(0.0))\n        z_score = pd.DataFrame(z_rows, index=score.index, columns=score.columns).clip(-3.0, 3.0)'''
-          c, n = re.subn(pattern, replacement, c, count=1, flags=re.MULTILINE)
-          if n == 0 and "Winsorize the raw cross-section" not in c:
-              raise SystemExit("Calendar momentum normalization block not found")
-          cm.write_text(c)
-
-          # Backtester must use the exact canonical period map, not rounded rows.
+          # System-1 uses calendar months [1,3,6,9,12]. The backtester must
+          # pass those month values directly to the canonical calendar helper;
+          # dividing by 21 was an invalid legacy trading-row conversion.
           bt = Path("src/engine/backtester.py")
-          b = bt.read_text()
-          if "from src.engine.calendar_momentum import PERIODS" not in b:
-              b = b.replace(
-                  "from src.core.config import MOMENTUM_WINDOWS\n",
-                  "from src.core.config import MOMENTUM_WINDOWS\nfrom src.engine.calendar_momentum import PERIODS\n",
-                  1,
-              )
-          b = b.replace("int(round(w_period / 21))", "PERIODS[int(w_period)]")
-          old = '''            ind_map = sec_map\n            ind_scores: dict[str, list[float]] = {}\n            for sym, sc in composite_score.items():\n                ind_scores.setdefault(ind_map.get(sym, "Other"), []).append(sc)\n            ind_means = {k: np.nanmean(v) for k, v in ind_scores.items()}\n            ind_rel = composite_score - composite_score.index.map(\n                lambda s: ind_means.get(ind_map.get(s, "Other"), 0)\n            )'''
-          new = '''            ind_map = sec_map\n            industry_labels = pd.Series({sym: ind_map.get(sym, "Other") for sym in composite_score.index})\n            industry_sum = composite_score.groupby(industry_labels).transform("sum")\n            industry_count = composite_score.groupby(industry_labels).transform("count")\n            peer_sum = industry_sum - composite_score\n            peer_count = industry_count - composite_score.notna().astype(int)\n            peer_mean = peer_sum.div(peer_count.replace(0, np.nan))\n            ind_rel = composite_score - peer_mean'''
+          b = bt.read_text().replace("int(round(w_period / 21))", "int(w_period)")
+          old = '''            ind_map = sec_map
+            ind_scores: dict[str, list[float]] = {}
+            for sym, sc in composite_score.items():
+                ind_scores.setdefault(ind_map.get(sym, "Other"), []).append(sc)
+            ind_means = {k: np.nanmean(v) for k, v in ind_scores.items()}
+            ind_rel = composite_score - composite_score.index.map(
+                lambda s: ind_means.get(ind_map.get(s, "Other"), 0)
+            )'''
+          new = '''            ind_map = sec_map
+            industry_labels = pd.Series({sym: ind_map.get(sym, "Other") for sym in composite_score.index})
+            industry_sum = composite_score.groupby(industry_labels).transform("sum")
+            industry_count = composite_score.groupby(industry_labels).transform("count")
+            peer_sum = industry_sum - composite_score
+            peer_count = industry_count - composite_score.notna().astype(int)
+            peer_mean = peer_sum.div(peer_count.replace(0, np.nan))
+            ind_rel = composite_score - peer_mean'''
           if old in b:
               b = b.replace(old, new, 1)
           bt.write_text(b)
 
-          # Keep documentation aligned with the implemented V1 methodology.
-          for path in ("README.md", "src/ui/views/guide_view.py"):
-              p = Path(path)
+          # Winsorize the raw cross-section before Z-score standardization.
+          cm = Path("src/engine/calendar_momentum.py")
+          c = cm.read_text()
+          pattern = r"        mean_ = score\.mean\(axis=1\)\n        std_ = score\.std\(axis=1\)\.replace\(0, np\.nan\)\n        z_score = score\.sub\(mean_, axis=0\)\.div\(std_, axis=0\)\.clip\(-3\.0, 3\.0\)"
+          replacement = '''        z_rows = []
+        for _, row in score.iterrows():
+            clean = row.dropna()
+            if len(clean) < 3 or float(clean.std()) == 0.0:
+                z_rows.append(pd.Series(0.0, index=score.columns))
+                continue
+            raw_mean = float(clean.mean())
+            raw_std = float(clean.std())
+            clipped = clean.clip(raw_mean - 3.0 * raw_std, raw_mean + 3.0 * raw_std)
+            clipped_std = float(clipped.std())
+            z = (clipped - float(clipped.mean())) / (clipped_std + 1e-12)
+            z_rows.append(z.reindex(score.columns).fillna(0.0))
+        z_score = pd.DataFrame(z_rows, index=score.index, columns=score.columns).clip(-3.0, 3.0)'''
+          if "Winsorize the raw cross-section" not in c:
+              c, n = re.subn(pattern, replacement, c, count=1, flags=re.MULTILINE)
+              if n == 0:
+                  raise SystemExit("Calendar momentum normalization block not found")
+          cm.write_text(c)
+
+          # Volatility target is annualized from population daily dispersion.
+          # This avoids the finite-sample ddof=1 inflation when reporting the
+          # realized volatility of the observed portfolio return series.
+          portfolio = Path("src/engine/portfolio.py")
+          p = portfolio.read_text()
+          p = p.replace("realised = float(port.std() * np.sqrt(252))", "realised = float(port.std(ddof=0) * np.sqrt(252))")
+          portfolio.write_text(p)
+
+          # Remove stale R2 methodology terminology from runtime/UI text.
+          runtime_files = [
+              "src/engine/momentum.py",
+              "src/engine/calendar_momentum.py",
+              "src/engine/backtester.py",
+              "src/ui/views/ranking_view.py",
+              "src/ui/views/backtest_view.py",
+          ]
+          for rel in runtime_files:
+              p = Path(rel)
+              text = p.read_text()
+              text = text.replace("R²", "")
+              text = text.replace("R^2", "")
+              text = text.replace("R2", "")
+              text = text.replace("r2", "")
+              text = text.replace("Sharpe ×", "Sharpe")
+              p.write_text(text)
+
+          for rel in ("README.md", "src/ui/views/guide_view.py"):
+              p = Path(rel)
               text = p.read_text()
               text = text.replace("Sharpe × R²", "Sharpe Momentum")
               text = text.replace("Sharpe} \\times R^2", "Sharpe")
               text = text.replace("R² multiplier", "smoothness multiplier")
               p.write_text(text)
           PY
+
       - name: Add audit regression coverage
         run: |
           cat > tests/test_audit_hardening.py <<'PY'
           from pathlib import Path
           import pandas as pd
-          from src.core.config import MOMENTUM_WINDOWS
-          from src.engine.calendar_momentum import PERIODS
+          from src.core.config import MOMENTUM_MONTHS, MOMENTUM_WINDOWS
 
           ROOT = Path(__file__).resolve().parents[1]
 
           def test_momentum_window_alias_and_calendar_mapping():
-              assert list(MOMENTUM_WINDOWS) == [21, 63, 126, 189, 252]
-              assert PERIODS == {21: 1, 63: 3, 126: 6, 189: 9, 252: 12}
+              assert MOMENTUM_MONTHS == [1, 3, 6, 9, 12]
+              assert MOMENTUM_WINDOWS == MOMENTUM_MONTHS
 
           def test_missing_price_is_not_forward_filled():
               dates = pd.bdate_range("2026-01-01", periods=10)
@@ -100,15 +142,18 @@ jobs:
                   assert "Sharpe × R²" not in text
                   assert "Sharpe} \\times R^2" not in text
           PY
+
       - name: Run full regression suite
         run: python -m pytest -q
+
       - name: Compile audited modules
-        run: python -m py_compile src/engine/calendar_momentum.py src/engine/backtester.py src/engine/momentum.py
+        run: python -m py_compile src/engine/calendar_momentum.py src/engine/backtester.py src/engine/momentum.py src/engine/portfolio.py
+
       - name: Commit verified hardening
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/engine/calendar_momentum.py src/engine/backtester.py README.md src/ui/views/guide_view.py tests/test_audit_hardening.py
+          git add src/engine/calendar_momentum.py src/engine/backtester.py src/engine/momentum.py src/engine/portfolio.py src/ui/views/ranking_view.py src/ui/views/backtest_view.py README.md src/ui/views/guide_view.py tests/test_audit_hardening.py .github/workflows/v1-audit-hardening.yml
           git diff --cached --quiet && exit 0
           git commit -m "fix(v1): harden audit methodology consistency"
           git push
