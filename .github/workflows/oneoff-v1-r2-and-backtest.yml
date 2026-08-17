@@ -24,6 +24,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install pytest
 
       - name: Apply V1 changes
         run: python scripts/oneoff_remove_r2_v1.py
