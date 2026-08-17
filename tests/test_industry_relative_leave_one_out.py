@@ -9,8 +9,6 @@ def test_industry_relative_is_leave_one_out():
     engine.momentum_scores = pd.DataFrame([[1.0, 2.0, 10.0]] * 5, index=idx, columns=["AAA","BBB","CCC"])
     rank_df = pd.DataFrame({"Symbol":["AAA","BBB","CCC"], "Industry":["X","X","Y"]})
     ranks = engine.calculate_industry_relative(rank_df)
-    # X peers are evaluated leave-one-out: AAA sees BBB's 2, BBB sees AAA's 1.
-    # Singleton Y has no peer benchmark and therefore receives the existing bottom-rank treatment.
     assert ranks["AAA"] == 2
     assert ranks["BBB"] == 1
     assert ranks["CCC"] == 3
@@ -22,6 +20,5 @@ def test_industry_relative_preserves_missing_score_semantics():
     engine.momentum_scores = pd.DataFrame([[1.0, np.nan]] * 3, index=idx, columns=["AAA","BBB"])
     rank_df = pd.DataFrame({"Symbol":["AAA","BBB"], "Industry":["X","X"]})
     ranks = engine.calculate_industry_relative(rank_df)
-    # No valid peer comparison exists for either observation; both retain bottom-rank semantics.
     assert ranks["AAA"] == 1.5
     assert ranks["BBB"] == 1.5
