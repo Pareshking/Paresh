@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - audit/p0-missing-data
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -58,12 +59,8 @@ jobs:
               )
 
               cleaned = clean_holidays(prices)
-
-              # The second row is a market-wide holiday for 4/5 securities and
-              # must be removed rather than filled.
               assert idx[1] not in cleaned.index
 
-              # A single-stock gap must survive cleaning.
               prices2 = prices.drop(index=idx[1]).copy()
               prices2.loc[idx[2], "A"] = np.nan
               cleaned2 = clean_holidays(prices2)
