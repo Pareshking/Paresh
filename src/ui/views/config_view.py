@@ -155,7 +155,7 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
                     3. Momentum Lookback Multi-Window Weights
                 </span>
                 <div style="font-size: 0.76rem; color: #64748b; margin-top: 2px;">
-                    Relative weights across 5 rolling windows for System 1 (Sharpe Composite). Sliders automatically normalize.
+                    Relative weights across 5 calendar-month windows for System 1. Sliders automatically normalize.
                 </div>
             </div>
             <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 700; color: #4f46e5; background: #eef2ff; border: 1px solid #c7d2fe; padding: 4px 10px; border-radius: 6px;">
@@ -168,11 +168,11 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
 
     wc = st.columns(5)
     windows = [
-        ("1M (21D)", "cfg_w1", 0.10),
-        ("3M (63D)", "cfg_w2", 0.30),
-        ("6M (126D)", "cfg_w3", 0.30),
-        ("9M (189D)", "cfg_w4", 0.20),
-        ("12M (252D)", "cfg_w5", 0.10),
+        ("1M", "cfg_w1", 0.10),
+        ("3M", "cfg_w2", 0.30),
+        ("6M", "cfg_w3", 0.30),
+        ("9M", "cfg_w4", 0.20),
+        ("12M", "cfg_w5", 0.10),
     ]
     for col, (label, key, default) in zip(wc, windows):
         val = col.slider(
@@ -260,59 +260,27 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
 
     st.divider()
 
-    # ── Section 5: Cache Storage Diagnostics ────────────────────────────────
-    st.markdown("##### 5. Disk Storage & Parquet Diagnostics")
-    st.caption(f"Environment: **{mode_label}** · Storage Path: `{DATA_DIR}`")
-
-    cache_records = []
-    for label, path in [
-        ("Price History Parquet", PRICES_FILE),
-        ("Market Cap Parquet", MCAPS_FILE),
-        ("Delivery Bhavcopy Parquet", DELIVERY_FILE),
-        ("TradingView Classification CSV", TV_CLASSIFICATION_FILE),
-    ]:
-        if os.path.exists(path):
-            size = os.path.getsize(path)
-            sz = (
-                f"{size/(1024*1024):.1f} MB"
-                if size >= 1024 * 1024
-                else f"{size/1024:.0f} KB"
-            )
-            mod = datetime.fromtimestamp(os.path.getmtime(path)).strftime(
-                "%d %b %Y, %H:%M"
-            )
-            extra = ""
-            if label == "Delivery Bhavcopy Parquet":
-                meta = _read_meta()
-                if meta:
-                    extra = f"{meta.get('n_days', '?')} days / {meta.get('n_symbols', '?')} tickers"
-            cache_records.append(
-                {
-                    "Dataset": label,
-                    "File Size": sz,
-                    "Records / Detail": extra or "Active",
-                    "Last Modified": mod,
-                    "Status": "🟢 Cached",
-                }
-            )
-        else:
-            cache_records.append(
-                {
-                    "Dataset": label,
-                    "File Size": "—",
-                    "Records / Detail": "Missing",
-                    "Last Modified": "—",
-                    "Status": "⚪ Not Cached",
-                }
-            )
-
-    cache_df = pd.DataFrame(cache_records)
-    st.dataframe(
-        cache_df,
-        width="stretch",
-        hide_index=True,
-    )
-
+    # ── Section 5: Cache & Data Paths ────────────────────────────────────────
+    st.markdown("##### 5. Cache & Data Paths")
+    cache_data = [
+        ("Price History", PRICES_FILE),
+        ("Market Caps", MCAPS_FILE),
+        ("Delivery", DELIVERY_FILE),
+        ("TV Classification", TV_CLASSIFICATION_FILE),
+    ]
+    cache_rows = []
+    for label, path in cache_data:
+        exists = os.path.exists(path)
+        size_mb = os.path.getsize(path) / (1024 * 1024) if exists else 0
+        cache_rows.append(
+            {
+                "Dataset": label,
+                "Status": "🟢 Present" if exists else "🔴 Missing",
+                "Size": f"{size_mb:.1f} MB" if exists else "—",
+                "Path": path,
+            }
+        )
+    st.dataframe(pd.DataFrame(cache_rows), hide_index=True, width="stretch")
     render_data_quality_footer(
         total_stocks=len(rank_df),
         gap_count=int((rank_df.get("Data Gap", pd.Series()) == "🔴").sum()),
