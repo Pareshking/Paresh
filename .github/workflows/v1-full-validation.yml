@@ -1,0 +1,56 @@
+name: V1 Full Validation
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt pytest
+
+      - name: Full regression suite
+        run: python -m pytest -q
+
+      - name: Compile application and source
+        run: python -m compileall -q app.py src scripts
+
+      - name: Full 750-stock quantitative integration
+        run: python scripts/full_validation.py
+
+      - name: Headless Streamlit runtime smoke test
+        run: |
+          python - <<'PY'
+          from streamlit.testing.v1 import AppTest
+
+          at = AppTest.from_file("app.py", default_timeout=900)
+          at.run(timeout=900)
+          if at.exception:
+              for exc in at.exception:
+                  print("STREAMLIT_EXCEPTION:", exc.value)
+              raise SystemExit("Headless Streamlit runtime produced an exception")
+          if at.error:
+              for err in at.error:
+                  print("STREAMLIT_ERROR:", err.value)
+              raise SystemExit("Headless Streamlit runtime produced an error element")
+          print(f"Rendered tabs: {len(at.tabs)}")
+          print(f"Rendered dataframes: {len(at.dataframe)}")
+          print("HEADLESS_STREAMLIT_SMOKE=PASS")
+          PY
+
+      - name: Upload quantitative validation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v1-quantitative-validation
+          path: artifacts/
+          if-no-files-found: error
