@@ -25,9 +25,12 @@ jobs:
           s = p.read_text()
           old = "        ind_avg = score_df.groupby(\"Industry\")[\"Score\"].transform(\"mean\")\n        rel_score = score_df[\"Score\"] - ind_avg\n"
           new = "        # Leave-one-out industry mean: a stock must not contribute to the peer benchmark against which that same stock is measured.\n        industry_sum = score_df.groupby(\"Industry\")[\"Score\"].transform(\"sum\", min_count=1)\n        industry_count = score_df.groupby(\"Industry\")[\"Score\"].transform(\"count\")\n        peer_sum = industry_sum - score_df[\"Score\"]\n        peer_count = industry_count - score_df[\"Score\"].notna().astype(int)\n        peer_mean = peer_sum.div(peer_count.replace(0, np.nan))\n        rel_score = score_df[\"Score\"] - peer_mean\n"
-          if old not in s:
-              raise SystemExit("Expected industry-relative block not found; refusing blind edit")
-          p.write_text(s.replace(old, new, 1))
+          if old in s:
+              p.write_text(s.replace(old, new, 1))
+          elif "peer_mean = peer_sum.div(peer_count.replace(0, np.nan))" in s:
+              print("Leave-one-out implementation already present; continuing idempotently")
+          else:
+              raise SystemExit("Expected industry-relative implementation not found; refusing blind edit")
           PY
       - name: Add regression test
         run: |
@@ -43,8 +46,6 @@ jobs:
               engine.momentum_scores = pd.DataFrame([[1.0, 2.0, 10.0]] * 5, index=idx, columns=["AAA","BBB","CCC"])
               rank_df = pd.DataFrame({"Symbol":["AAA","BBB","CCC"], "Industry":["X","X","Y"]})
               ranks = engine.calculate_industry_relative(rank_df)
-              # X peers are evaluated leave-one-out: AAA sees BBB's 2, BBB sees AAA's 1.
-              # Singleton Y has no peer benchmark and therefore receives the existing bottom-rank treatment.
               assert ranks["AAA"] == 2
               assert ranks["BBB"] == 1
               assert ranks["CCC"] == 3
@@ -56,7 +57,6 @@ jobs:
               engine.momentum_scores = pd.DataFrame([[1.0, np.nan]] * 3, index=idx, columns=["AAA","BBB"])
               rank_df = pd.DataFrame({"Symbol":["AAA","BBB"], "Industry":["X","X"]})
               ranks = engine.calculate_industry_relative(rank_df)
-              # No valid peer comparison exists for either observation; both retain bottom-rank semantics.
               assert ranks["AAA"] == 1.5
               assert ranks["BBB"] == 1.5
           PY
