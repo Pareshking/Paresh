@@ -30,7 +30,7 @@ The audit is a roadmap, not a requirement to reproduce MSCI/NSE/BSE methodology.
 | Volatility targeting | 63-session realized volatility | 🟢 Accepted | Retained as an intentional portfolio-risk convention; not a System-1 period |
 | Survivorship bias | Current universe can bias historical results | ⚪ Intentionally ignored | User explicitly chose not to address survivorship bias for this stage |
 | Data history / institutional 3Y replication | Main loader historically around 2Y | 🟠 Open research limitation | Do not claim MSCI replication; consider longer history later if needed |
-| Liquidity / implementability | No strong liquidity penalty | 🟠 Open | Audit and decide whether liquidity/tradability controls are required |
+| Liquidity / implementability | No strong liquidity penalty | 🟢 Closed by decision | 30 bps flat accepted for retail-AUM Nifty-constituent universe; circuit-limit detection, ADTV filter, and bid-ask model accepted as documented limitations for this stage |
 | Intermediate momentum | 12–7M vs 6–2M not isolated | 🟠 Research opportunity | Test as a separate Umiya research hypothesis; no production change yet |
 | Frog-in-the-Pan | R² was not equivalent to FIP | 🟠 Research opportunity | If desired, test a dedicated continuous-momentum measure; not part of current System-1 |
 | Classic month-skip comparison | Current model includes latest month | 🟠 Research opportunity | Compare current no-skip model with 12–1 / 12–2 style alternatives out of sample |
@@ -79,6 +79,32 @@ The audit is a roadmap, not a requirement to reproduce MSCI/NSE/BSE methodology.
 
 **Closed.** The old root `MOMENTUM_WINDOWS = [21, 63, 126, 189, 252]` definition was removed. `MOMENTUM_MONTHS = [1, 3, 6, 9, 12]` is the canonical System-1 configuration.
 
+### 2.11 Liquidity / implementability audit
+
+**Closed by decision.** Full code audit performed. No code changes required. Explicit decisions on each area:
+
+**Transaction cost — 30 bps flat (ACCEPTED)**
+The composite 30 bps round-trip (STT + stamp duty + brokerage + exchange fees + slippage) is appropriate for retail-sized portfolios on Nifty-constituent names. The backtester correctly charges turnover × cost_bps deducted from the first day's return after each monthly rebalance. Guide and backtest view both document the component breakdown. No per-stock or per-lot spread model is required at this AUM scale.
+_Documented limitation: for AUM > ₹10 Cr, market impact should be modelled separately. 30 bps will underestimate costs for micro-cap positions._
+
+**Circuit-limit detection (ACCEPTED LIMITATION)**
+NSE upper/lower circuit filters (5%/10%/20% bands) are not detected or modelled. The backtester "executes" at closing prices, which may be circuit-locked prices. For monthly rebalancing, circuit events typically resolve within 1–5 trading days; their effect on a monthly strategy is marginal. yfinance closing prices for circuit-locked days are valid market prices. No change required for this stage.
+
+**No ADTV / minimum market-cap hard filter (ACCEPTED)**
+The universe is the official NSE NIFTY TOTAL MARKET index constituent list. The 63-session minimum valid-history gate already excludes suspended/newly-listed stocks. The screener's market-cap column, `Data Gap` flag (> 10% NaN), `Short History` flag (< 126 sessions), and relative volume signal ("High"/"Normal"/"Low") provide informational filtering without hard exclusions. The delivery view already has a UI market-cap filter. No mandatory ADTV filter is required at this stage.
+
+**ATR % as tradability gate (ACCEPTED — informational only)**
+ATR % correctly functions as a position-sizing context for stop-loss sizing. Applying it as a hard universe filter would require an explicit minimum/maximum threshold with no clear empirical basis. Retained as informational.
+
+**Zero-volume day detection (ACCEPTED)**
+NSE-listed index constituents are exchange-traded instruments. yfinance returns NaN for trading halts and suspensions; the existing 70%-missing-date holiday-cleaning and stock-specific NaN preservation handle these correctly. Explicit zero-volume detection adds no value for this data source.
+
+**Bid-ask spread model (ACCEPTED LIMITATION)**
+No per-stock spread model exists. The 30 bps flat composite covers spread as a representative figure. Building a per-stock model would require live order-book data not available in the yfinance pipeline. Document as future enhancement if AUM scales significantly.
+
+**Backtester execution price (ACCEPTED)**
+Monthly close-to-close execution with flat bps friction is the standard approach for strategy-level research. The system is not a live execution engine. Slippage beyond the bps deduction is not modelled; this is an intentional simplification consistent with research-grade backtesting.
+
 ### 2.10 Residual-alpha benchmark consistency
 
 **Closed.** Every residual-alpha (System-3) call path now uses `^CRSLDX` as the market benchmark.
@@ -124,33 +150,27 @@ MSCI/NSE/BSE/AQR methodologies are comparison/reference models. Umiya is not req
 
 ## 4. Remaining work — ordered queue
 
-### NEXT 1 — Liquidity / implementability audit 🟠
-
-Audit liquidity filters, stale prices, bid/ask/impact assumptions, circuit-limit exposure and whether smaller NSE securities can realistically be traded at the assumed transaction cost.
-
-**Acceptance:** explicit methodology decision; no change unless evidence requires it.
-
-### NEXT 2 — Data-history limitation 🟠
+### NEXT 1 — Data-history limitation 🟠
 
 Determine whether V1 needs more than the current available history for institutional comparisons and covariance/regime research. Do not alter the current signal merely to imitate MSCI's 3-year weekly volatility.
 
-### NEXT 3 — Intermediate momentum research 🟠
+### NEXT 2 — Intermediate momentum research 🟠
 
 Test separate 12–7M and 6–2M components inspired by the Novy-Marx result. This is research, not a production fix.
 
-### NEXT 4 — Latest-month / classic momentum comparison 🟠
+### NEXT 3 — Latest-month / classic momentum comparison 🟠
 
 Compare the current no-month-skip formulation with a month-skip alternative out of sample.
 
-### NEXT 5 — Dedicated Frog-in-the-Pan research 🟠
+### NEXT 4 — Dedicated Frog-in-the-Pan research 🟠
 
 If useful, test a direct continuous-momentum measure against the current System-1 signal. Do not reintroduce R² merely to approximate FIP.
 
-### NEXT 6 — Institutional benchmark models 🟠
+### NEXT 5 — Institutional benchmark models 🟠
 
 Build clean comparison implementations for MSCI-style and NSE-style momentum so Umiya can be evaluated against them without replacing the Umiya signal.
 
-### NEXT 7 — Numerical robustness sweep 🟠
+### NEXT 6 — Numerical robustness sweep 🟠
 
 Continue synthetic tests for missing observations, short histories, ties, singleton groups, constant prices, duplicate dates and index alignment.
 
