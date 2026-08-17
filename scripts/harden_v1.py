@@ -103,9 +103,6 @@ for rel in [
     text = text.replace("R² multiplier", "smoothness multiplier")
     p.write_text(text)
 
-# Restore valid pure-Sharpe prose/formulas after removing the old R-squared
-# token. This keeps the guide readable without retaining R-squared as a
-# runtime calculation or weighting dependency.
 for rel in ("README.md", "src/ui/views/guide_view.py"):
     p = Path(rel)
     text = p.read_text()
@@ -138,11 +135,8 @@ c = c.replace('        min_r = valid_df["3M Return"].min()', '        min_r = va
 c = c.replace('        valid_df["Tile_Weight"] = ((valid_df["3M Return"] + offset) * 1000).clip(', '        valid_df["Tile_Weight"] = ((valid_df[return_col] + offset) * 1000).clip(', 1)
 charts.write_text(c)
 
-# Do not silently rewrite unknown call signatures. Fail CI if a deprecated
-# HTML component call remains; st.html/st.iframe migrations can then be made
-# explicitly and safely per call site.
 for path in Path(".").rglob("*.py"):
-    if ".git" in path.parts or path.as_posix().startswith(".venv/"):
+    if ".git" in path.parts or path.as_posix().startswith(".venv/") or path.as_posix() == "scripts/harden_v1.py":
         continue
     text = path.read_text(errors="ignore")
     if "st.components.v1.html" in text:
