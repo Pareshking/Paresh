@@ -23,18 +23,8 @@ jobs:
           from pathlib import Path
           p = Path("src/engine/momentum.py")
           s = p.read_text()
-          old = '''        ind_avg = score_df.groupby("Industry")["Score"].transform("mean")
-        rel_score = score_df["Score"] - ind_avg
-'''
-          new = '''        # Leave-one-out industry mean: a stock must not contribute to
-        # the peer benchmark against which that same stock is measured.
-        industry_sum = score_df.groupby("Industry")["Score"].transform("sum", min_count=1)
-        industry_count = score_df.groupby("Industry")["Score"].transform("count")
-        peer_sum = industry_sum - score_df["Score"]
-        peer_count = industry_count - score_df["Score"].notna().astype(int)
-        peer_mean = peer_sum.div(peer_count.replace(0, np.nan))
-        rel_score = score_df["Score"] - peer_mean
-'''
+          old = "        ind_avg = score_df.groupby(\"Industry\")[\"Score\"].transform(\"mean\")\n        rel_score = score_df[\"Score\"] - ind_avg\n"
+          new = "        # Leave-one-out industry mean: a stock must not contribute to the peer benchmark against which that same stock is measured.\n        industry_sum = score_df.groupby(\"Industry\")[\"Score\"].transform(\"sum\", min_count=1)\n        industry_count = score_df.groupby(\"Industry\")[\"Score\"].transform(\"count\")\n        peer_sum = industry_sum - score_df[\"Score\"]\n        peer_count = industry_count - score_df[\"Score\"].notna().astype(int)\n        peer_mean = peer_sum.div(peer_count.replace(0, np.nan))\n        rel_score = score_df[\"Score\"] - peer_mean\n"
           if old not in s:
               raise SystemExit("Expected industry-relative block not found; refusing blind edit")
           p.write_text(s.replace(old, new, 1))
