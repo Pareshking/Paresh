@@ -14,5 +14,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r requirements.txt pytest
+      - name: Compile application modules
+        run: python -m py_compile app.py src/engine/momentum.py src/engine/calendar_momentum.py src/ui/views/strategy_view.py
       - name: Run full test suite
         run: python -m pytest -q
