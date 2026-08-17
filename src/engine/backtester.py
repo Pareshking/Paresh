@@ -16,7 +16,9 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src.core.config import MOMENTUM_WINDOWS
+# Approximate session counts (1M/3M/6M/9M/12M) used only for warmup-period estimation.
+# System-1 canonical horizons are calendar months; the ranking signal uses _calendar_period_sharpe.
+_APPROX_SESSION_WINDOWS: list[int] = [21, 63, 126, 189, 252]
 
 
 def _calendar_period_sharpe(
@@ -67,7 +69,7 @@ def run_backtest(
     """
     Executes a walk-forward momentum backtest with zero look-ahead bias and friction modeling.
     """
-    WINDOWS = MOMENTUM_WINDOWS
+    WINDOWS = _APPROX_SESSION_WINDOWS
     prices = _adj_close.dropna(axis=1, how="all").copy()
 
     is_composite = (

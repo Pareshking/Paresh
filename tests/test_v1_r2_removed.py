@@ -11,6 +11,7 @@ def test_r2_removed_from_runtime_v1_files():
         ROOT / "src/engine/backtester.py",
         ROOT / "src/ui/views/ranking_view.py",
         ROOT / "src/ui/views/backtest_view.py",
+        ROOT / "src/ui/views/strategy_view.py",
     ]
     forbidden = ("R²", "R2", "r2", "Sharpe ×")
     for path in runtime_files:

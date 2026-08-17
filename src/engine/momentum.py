@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 from scipy.ndimage import convolve1d
 
-from src.core.config import DEFAULT_LOOKBACK_WEIGHTS, MOMENTUM_WINDOWS
+from src.core.config import DEFAULT_LOOKBACK_WEIGHTS, MOMENTUM_MONTHS
 from src.core.logger import logger
 from src.engine.calendar_momentum import (
     _calendar_period_metrics,
@@ -98,7 +98,9 @@ class MomentumEngine:
     Vectorized calculations across 5 lookback windows with zero look-ahead bias.
     """
 
-    WINDOWS: list[int] = MOMENTUM_WINDOWS
+    # Approximate session counts kept for the legacy calculate_sharpe_momentum path.
+    # System-1 canonical horizons are calendar months; see apply_calendar_momentum().
+    WINDOWS: list[int] = [21, 63, 126, 189, 252]
     DEFAULT_WEIGHTS: list[float] = DEFAULT_LOOKBACK_WEIGHTS
 
     def __init__(
@@ -111,6 +113,7 @@ class MomentumEngine:
         volume_df: pd.DataFrame | None = None,
         weights: Sequence[float] | None = None,
         market_cap_weights: pd.Series | None = None,
+        benchmark_rets: pd.Series | None = None,
     ):
         self.ffill_pct: pd.Series = compute_ffill_pct(prices_df)
 
@@ -143,6 +146,7 @@ class MomentumEngine:
 
         self.weights: list[float] = list(weights) if weights is not None else list(self.DEFAULT_WEIGHTS)
         self._mcap_weights: pd.Series | None = market_cap_weights
+        self._benchmark_rets: pd.Series | None = benchmark_rets
 
         # Pre-calculate daily log returns
         self.log_ret: pd.DataFrame = np.log(self.prices / self.prices.shift(1).replace(0, np.nan))
@@ -224,10 +228,16 @@ class MomentumEngine:
         economic horizon.
         """
         daily_ret = self.prices.pct_change(fill_method=None)
-        if benchmark_returns is None:
-            mkt_ret = daily_ret.mean(axis=1)
-        else:
-            mkt_ret = benchmark_returns.reindex(daily_ret.index).ffill()
+        effective_bm = benchmark_returns if benchmark_returns is not None else self._benchmark_rets
+        if effective_bm is None or (hasattr(effective_bm, "empty") and effective_bm.empty):
+            logger.warning(
+                "calculate_residual_momentum: no benchmark supplied; returning NaN. "
+                "Pass benchmark_rets to MomentumEngine or benchmark_returns to this call."
+            )
+            ranks = pd.Series(np.nan, index=self.prices.columns)
+            self.residual_ranks = ranks
+            return ranks
+        mkt_ret = effective_bm.reindex(daily_ret.index).ffill()
 
         if months is None:
             start = max(0, len(daily_ret) - window)
@@ -491,10 +501,10 @@ class MomentumEngine:
             lambda x: x >= -20.0 if pd.notna(x) else False
         )
 
-        # 3M & 6M Metrics
-        for w, label in [(63, "3M"), (126, "6M")]:
-            if w in self.period_metrics:
-                m = self.period_metrics[w]
+        # 3M & 6M Metrics — prefer calendar-month keys set by apply_calendar_momentum.
+        for months, label in ((3, "3M"), (6, "6M")):
+            if months in self.period_metrics:
+                m = self.period_metrics[months]
                 rank_df[f"{label} Return"] = rank_df["Symbol"].map(m["return"])
                 rank_df[f"{label} Sharpe"] = rank_df["Symbol"].map(m["sharpe"])
 
@@ -614,7 +624,9 @@ class MomentumEngine:
         top_n: int = 50,
     ) -> pd.DataFrame:
         """Finds high-conviction consensus picks across alternative momentum systems."""
-        res_ranks = self.calculate_residual_momentum(window=126)
+        res_ranks = self.calculate_residual_momentum(
+            benchmark_returns=self._benchmark_rets, window=126
+        )
         ind_ranks = self.calculate_industry_relative(rank_df, "Industry")
         acc_ranks = self.calculate_momentum_acceleration()
 

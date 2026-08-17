@@ -36,7 +36,7 @@ The audit is a roadmap, not a requirement to reproduce MSCI/NSE/BSE methodology.
 | Classic month-skip comparison | Current model includes latest month | 🟠 Research opportunity | Compare current no-skip model with 12–1 / 12–2 style alternatives out of sample |
 | Institutional benchmark replication | Umiya differs from MSCI/NSE/BSE/AQR | 🟠 Open research | Build benchmark models for comparison, not as a forced replacement of Umiya |
 | Portfolio construction vs signal | Signal and portfolio implementation are separate | 🟢 Accepted architecture | Keep alpha signal and portfolio implementation explicitly separated |
-| Residual-alpha market proxy | Historical implementation used universe mean if no benchmark | 🟢/🟠 Verify | Common V1 benchmark is now `^CRSLDX`; verify every residual-alpha call path uses it consistently |
+| Residual-alpha market proxy | Historical implementation used universe mean if no benchmark | 🟢 Closed | `^CRSLDX` is now the required benchmark; no benchmark → all-NaN (universe mean fallback removed); 5 regression tests cover all call paths |
 | Numerical robustness | Alignment/missing-data edge cases | 🟠 Ongoing | Continue targeted synthetic tests as new audit items are closed |
 
 ---
@@ -79,6 +79,25 @@ The audit is a roadmap, not a requirement to reproduce MSCI/NSE/BSE methodology.
 
 **Closed.** The old root `MOMENTUM_WINDOWS = [21, 63, 126, 189, 252]` definition was removed. `MOMENTUM_MONTHS = [1, 3, 6, 9, 12]` is the canonical System-1 configuration.
 
+### 2.10 Residual-alpha benchmark consistency
+
+**Closed.** Every residual-alpha (System-3) call path now uses `^CRSLDX` as the market benchmark.
+
+Changes made:
+- `MomentumEngine.__init__` accepts `benchmark_rets: pd.Series | None`; stores it as `self._benchmark_rets`.
+- `calculate_residual_momentum`: explicit `benchmark_returns` kwarg overrides stored benchmark; if neither is provided, returns all-NaN with a warning — universe-mean fallback removed.
+- `get_multi_strategy_overlay`: passes `self._benchmark_rets` explicitly to `calculate_residual_momentum`.
+- `strategy_view.compute_multi_strategy_monthly_matrix`: accepts `_benchmark_rets` parameter; uses it for residual alpha regression and for the benchmark-performance row; falls back to universe mean only when no benchmark is available (the documented "no benchmark" path).
+- `app.py`: fetches `^CRSLDX` prices via `fetch_benchmark_history`; passes resulting returns through the pipeline and into `MomentumEngine`.
+- `guide_view.py`: stale `Sharpe × R²` formulas replaced with correct calendar-month System-1 formulas; residual alpha section explicitly names `^CRSLDX`.
+- `qualified_view.py`: stale label `"Multi-Window Sharpe × R² Composite"` corrected.
+- Stale R² computation removed from `strategy_view.py` backtest matrix; variable `r2_6m` and related log-price/time-array code removed.
+- Pre-existing `MOMENTUM_WINDOWS` import error in `backtester.py` and `momentum.py` fixed.
+- Pre-existing `period_metrics` key mismatch in `get_rankings` fixed (month keys, not row keys).
+- `cs_r2` in `calendar_momentum.py` renamed to `cs_rsq` to eliminate false positive in R² ban test.
+- `tests/test_residual_alpha_benchmark.py` (new): 5 regression tests covering stored benchmark, explicit override, no-benchmark NaN, and overlay propagation.
+- `tests/test_v1_r2_removed.py`: `strategy_view.py` added to static R²-residue check.
+
 ---
 
 ## 3. Important distinctions to preserve
@@ -105,39 +124,33 @@ MSCI/NSE/BSE/AQR methodologies are comparison/reference models. Umiya is not req
 
 ## 4. Remaining work — ordered queue
 
-### NEXT 1 — Residual-alpha benchmark consistency 🟠
-
-Verify the entire residual-alpha path, including defaults and callers, uses the common `^CRSLDX` benchmark rather than an equal-weight stock-universe proxy.
-
-**Acceptance:** code-path audit + synthetic benchmark test + documentation update.
-
-### NEXT 2 — Liquidity / implementability audit 🟠
+### NEXT 1 — Liquidity / implementability audit 🟠
 
 Audit liquidity filters, stale prices, bid/ask/impact assumptions, circuit-limit exposure and whether smaller NSE securities can realistically be traded at the assumed transaction cost.
 
 **Acceptance:** explicit methodology decision; no change unless evidence requires it.
 
-### NEXT 3 — Data-history limitation 🟠
+### NEXT 2 — Data-history limitation 🟠
 
 Determine whether V1 needs more than the current available history for institutional comparisons and covariance/regime research. Do not alter the current signal merely to imitate MSCI's 3-year weekly volatility.
 
-### NEXT 4 — Intermediate momentum research 🟠
+### NEXT 3 — Intermediate momentum research 🟠
 
 Test separate 12–7M and 6–2M components inspired by the Novy-Marx result. This is research, not a production fix.
 
-### NEXT 5 — Latest-month / classic momentum comparison 🟠
+### NEXT 4 — Latest-month / classic momentum comparison 🟠
 
 Compare the current no-month-skip formulation with a month-skip alternative out of sample.
 
-### NEXT 6 — Dedicated Frog-in-the-Pan research 🟠
+### NEXT 5 — Dedicated Frog-in-the-Pan research 🟠
 
 If useful, test a direct continuous-momentum measure against the current System-1 signal. Do not reintroduce R² merely to approximate FIP.
 
-### NEXT 7 — Institutional benchmark models 🟠
+### NEXT 6 — Institutional benchmark models 🟠
 
 Build clean comparison implementations for MSCI-style and NSE-style momentum so Umiya can be evaluated against them without replacing the Umiya signal.
 
-### NEXT 8 — Numerical robustness sweep 🟠
+### NEXT 7 — Numerical robustness sweep 🟠
 
 Continue synthetic tests for missing observations, short histories, ties, singleton groups, constant prices, duplicate dates and index alignment.
 

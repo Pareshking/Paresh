@@ -363,62 +363,66 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
 
         if strat_choice == "Composite Sharpe":
             st.markdown(r"""
-                ##### 1. Composite Multi-Window Momentum ($\text{Sharpe} \times R^2$)
-                
-                **Mathematical Formulation:**
-                For each momentum window $w \in \{21\text{D}, 63\text{D}, 126\text{D}, 189\text{D}, 252\text{D}\}$:
-                $$\text{Log Return}_w = \ln\left(\frac{P_t}{P_{t-w}}\right)$$
-                $$\text{Daily Volatility}_w = \text{StdDev}(\ln(P / P_{-1})) \times \sqrt{w}$$
-                $$\text{Sharpe}_w = \frac{\text{Log Return}_w}{\text{Daily Volatility}_w}$$
-                $$R^2_w = \left(\text{Corr}\left(\ln(P), \text{Time}\right)\right)^2$$
-                $$\text{Raw Momentum}_w = \text{Sharpe}_w \times R^2_w$$
-                $$\text{Composite Score} = \sum_{w} \text{Weight}_w \times z\text{-Score}\left(\text{Raw Momentum}_w\right)$$
+                ##### 1. System-1 Composite Period Sharpe Momentum
 
+                **Mathematical Formulation:**
+                For each calendar horizon $M \in \{1\text{M}, 3\text{M}, 6\text{M}, 9\text{M}, 12\text{M}\}$, let $t_M$ be the first market observation on or after the calendar target date:
+                $$\text{Log Return}_M = \ln\left(\frac{P_t}{P_{t_M}}\right)$$
+                $$\text{Period Volatility}_M = \text{StdDev}(\ln(P / P_{-1})) \times \sqrt{n_M}$$
+                $$\text{Sharpe}_M = \frac{\text{Log Return}_M}{\text{Period Volatility}_M}$$
+                $$\text{Composite Score} = \sum_{M} \text{Weight}_M \times z\text{-Score}\left(\text{Sharpe}_M\right)$$
+
+                where $n_M$ is the count of valid daily observations in the calendar period.
+
+                * **R² is not used.** This is a period risk-adjusted momentum statistic, not conventional annualized Sharpe.
+                * **Calendar horizons**: Economic horizons are calendar months, not fixed trading-row windows.
                 * **Config Weights Integration**: Uses active weights configured in the **Configuration** tab (e.g. 10/30/30/20/10).
-                * **Multi-Horizon Defense**: Requires consistent compounding across both short-term (1M/3M) and long-term (6M/9M/12M) horizons, preventing speculative short-term whipsaws.
+                * **Multi-Horizon Defense**: Requires consistent compounding across short-term (1M/3M) and long-term (6M/9M/12M) horizons.
                 * **Optimal Regime**: Steady secular bull runs and core compounder portfolios.
                 """)
 
         elif strat_choice == "Single-Window Sharpe":
             st.markdown(r"""
-                ##### 2. Single-Window Momentum ($\text{Sharpe} \times R^2$)
-                
-                **Mathematical Formulation:**
-                Evaluates purely one isolated time window $w$ (e.g., $w = 63\text{D}$ for 3-Month or $w = 126\text{D}$ for 6-Month):
-                $$\text{Sharpe}_w = \frac{\ln(P_t / P_{t-w})}{\sigma_w \sqrt{w}}$$
-                $$R^2_w = \left(\text{Corr}\left(\ln(P), \text{Time}\right)\right)^2$$
-                $$\text{Single Window Score} = z\text{-Score}\left(\text{Sharpe}_w \times R^2_w\right)$$
+                ##### 2. Single-Window Period Sharpe Momentum
 
-                * **Key Difference vs Composite**: Does not blend other horizons. Evaluates performance strictly within the specified window.
+                **Mathematical Formulation:**
+                Evaluates one isolated calendar horizon $M$ (e.g., 6 calendar months), where $t_M$ is the first available trading observation on/after the target date:
+                $$\text{Sharpe}_M = \frac{\ln(P_t / P_{t_M})}{\text{Period Volatility}_M}$$
+                $$\text{Single Window Score} = z\text{-Score}\left(\text{Sharpe}_M\right)$$
+
+                **R² is not used.**
+
+                * **Key Difference vs Composite**: Does not blend other horizons. Evaluates performance strictly within the specified calendar window.
                 * **Sensitivity & Trade-off**: Higher responsiveness to quarterly moves, but more sensitive to single-month reversals.
                 * **Optimal Regime**: Quarterly tactical rebalancing and short-to-medium term swing trading.
                 """)
 
         elif strat_choice == "Multi-Window Pure Sharpe":
             st.markdown(r"""
-                ##### 3. Multi-Window Pure Sharpe Momentum (No $R^2$)
-                
-                **Mathematical Formulation:**
-                Evaluates pure risk-adjusted annualized velocity across all multi-windows without penalizing parabolic curves:
-                $$\text{Sharpe}_w = \frac{\ln(P_t / P_{t-w})}{\sigma_w \sqrt{w}}$$
-                $$\text{Score} = \sum_{w} \text{Weight}_w \times z\text{-Score}(\text{Sharpe}_w)$$
+                ##### 3. Multi-Window Pure Sharpe Momentum (Current System-1)
 
-                * **Config Weights Integration**: Uses custom factor weights across 1M, 3M, 6M, 9M, 12M windows.
-                * **Difference vs $\text{Sharpe} \times R^2$**: Allows explosive, high-curvature parabolic winners to score at the top without penalty.
+                **Mathematical Formulation:**
+                The current System-1 implementation. Evaluates period risk-adjusted momentum across all five calendar horizons without R² scaling:
+                $$\text{Sharpe}_M = \frac{\ln(P_t / P_{t_M})}{\text{Period Volatility}_M}$$
+                $$\text{Score} = \sum_{M} \text{Weight}_M \times z\text{-Score}(\text{Sharpe}_M)$$
+
+                * **Config Weights Integration**: Uses custom factor weights across 1M, 3M, 6M, 9M, 12M calendar horizons.
+                * **No R² scaling**: Explosive, high-curvature winners are not penalized; the score reflects pure risk-adjusted momentum.
                 * **Optimal Regime**: Aggressive expansion bull markets where leaders accelerate rapidly.
                 """)
 
         elif strat_choice == "Residual (α) Momentum":
             st.markdown(r"""
                 ##### 4. Residual ($\alpha$) Idiosyncratic Momentum
-                
+
                 **Mathematical Formulation:**
-                Performs a rolling **126-Trading Day (6-Month)** single-factor CAPM regression against the broad market index ($R_m$):
+                Single-factor CAPM regression over a **calendar 6-month** window against the common V1 benchmark ($R_m$ = \texttt{\^CRSLDX}, Nifty 500):
                 $$R_{i, t} = \alpha_i + \beta_i \cdot R_{m, t} + \epsilon_{i, t}$$
                 $$\beta_i = \frac{\operatorname{Cov}(R_i, R_m)}{\operatorname{Var}(R_m)}$$
                 $$\alpha_i = \left(\mu_{\text{stock}, i} - \beta_i \cdot \mu_{\text{market}}\right) \times 252$$
 
-                * **Config Weights Integration**: Independent CAPM regression engine.
+                * **Benchmark**: Uses **\texttt{\^CRSLDX}** (Nifty 500) as the market proxy — not the equal-weight universe mean.
+                * **Calendar horizon**: The regression window is a calendar 6-month period, not a fixed trading-row count.
                 * **Why it works**: Strips out broad market beta, isolating stocks with genuine company-specific outperformance.
                 * **Optimal Regime**: Narrow rallies, choppy indices, and consolidation phases.
                 """)

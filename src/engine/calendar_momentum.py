@@ -70,7 +70,7 @@ def _calendar_period_metrics(
     r = log_returns.to_numpy(dtype=float)
     valid_r = np.isfinite(r)
     cs_r = np.vstack([np.zeros((1, n_cols)), np.nancumsum(np.where(valid_r, r, 0.0), axis=0)])
-    cs_r2 = np.vstack([np.zeros((1, n_cols)), np.nancumsum(np.where(valid_r, r * r, 0.0), axis=0)])
+    cs_rsq = np.vstack([np.zeros((1, n_cols)), np.nancumsum(np.where(valid_r, r * r, 0.0), axis=0)])
     cs_n = np.vstack([np.zeros((1, n_cols)), np.cumsum(valid_r.astype(float), axis=0)])
 
     score = np.full((n_rows, n_cols), np.nan)
@@ -88,7 +88,7 @@ def _calendar_period_metrics(
         returns[end, valid_price] = p1[valid_price] / p0[valid_price] - 1.0
 
         rs = cs_r[end + 1] - cs_r[start + 1]
-        rs2 = cs_r2[end + 1] - cs_r2[start + 1]
+        rs2 = cs_rsq[end + 1] - cs_rsq[start + 1]
         rn = cs_n[end + 1] - cs_n[start + 1]
         mean_r = rs / np.where(rn > 0, rn, np.nan)
         sample_var = (rs2 - rn * mean_r * mean_r) / np.where(rn > 1, rn - 1, np.nan)

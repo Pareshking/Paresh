@@ -23,6 +23,7 @@ from src.loaders.indices_loader import fetch_indices_data
 from src.loaders.mcap_loader import fetch_market_caps
 from src.loaders.price_loader import (
     extract_ohlcv,
+    fetch_benchmark_history,
     fetch_price_history,
     get_market_regime,
 )
@@ -130,6 +131,7 @@ def run_momentum_pipeline(
     _index_info: pd.DataFrame,
     _market_caps: pd.Series,
     weights: tuple[float, ...],
+    _benchmark_rets: pd.Series | None = None,
 ):
     calc = MomentumEngine(
         _adj_close,
@@ -138,6 +140,7 @@ def run_momentum_pipeline(
         close_df=_close_prices,
         volume_df=_volume_data,
         weights=list(weights),
+        benchmark_rets=_benchmark_rets,
     )
     apply_calendar_momentum(calc)
     rank_df = calc.get_rankings(
@@ -170,12 +173,19 @@ def load_all_data(indices: list[str]):
     mcaps = load_mcaps_cached(sym_key, symbols)
     regime = get_market_regime()
 
+    bmk_prices = fetch_benchmark_history(period="2y")
+    bmk_rets = (
+        bmk_prices.pct_change(fill_method=None).dropna()
+        if not bmk_prices.empty
+        else pd.Series(dtype=float)
+    )
+
     p_hash = _price_hash(adj_close)
     i_hash = f"{len(idx_info)}_{sym_key}"
     calc, rank_df = run_momentum_pipeline(
         p_hash,
         i_hash,
-        "v4_calendar_periods",
+        "v5_benchmark_in_engine",
         adj_close,
         high_p,
         low_p,
@@ -184,6 +194,7 @@ def load_all_data(indices: list[str]):
         idx_info,
         mcaps,
         weights,
+        _benchmark_rets=bmk_rets,
     )
 
     # Ensure Max DD 6M is populated
@@ -211,6 +222,7 @@ def load_all_data(indices: list[str]):
         "volume_data": vol_p,
         "regime_data": regime,
         "idx_info": idx_info,
+        "benchmark_rets": bmk_rets,
     }
 
 
@@ -314,7 +326,7 @@ with tab_rrg:
     render_rrg_view(calc, rank_df, adj_close)
 
 with tab_strat:
-    render_strategy_view(calc, rank_df, adj_close, weights)
+    render_strategy_view(calc, rank_df, adj_close, weights, benchmark_rets=data.get("benchmark_rets"))
 
 with tab_port:
     render_portfolio_view(
