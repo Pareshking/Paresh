@@ -173,14 +173,25 @@ def run_backtest(
             sl = max(start_idx - 126, 0)
             mkt_ret = benchmark_ret.iloc[sl : start_idx + 1]
             stk_ret = daily_ret.iloc[sl : start_idx + 1]
+            # CAPM alpha must use paired valid stock/benchmark observations.
+            # Do not let a stock's missing observations enter its mean/beta on a
+            # different sample from the benchmark.
             valid_mkt = mkt_ret.notna()
             mkt_ret = mkt_ret.loc[valid_mkt]
             stk_ret = stk_ret.loc[valid_mkt]
             if len(mkt_ret) >= 30 and float(mkt_ret.var()) > 0:
-                cov_m = stk_ret.apply(lambda col: col.cov(mkt_ret))
-                var_m = float(mkt_ret.var())
-                beta = cov_m / var_m
-                alpha_res = (stk_ret.mean() * 252) - (beta * (float(mkt_ret.mean()) * 252))
+                alpha_res = pd.Series(np.nan, index=prices.columns, dtype=float)
+                for sym in stk_ret.columns:
+                    pair = pd.concat([stk_ret[sym], mkt_ret], axis=1).dropna()
+                    if len(pair) < 30:
+                        continue
+                    stock_r = pair.iloc[:, 0]
+                    bench_r = pair.iloc[:, 1]
+                    bench_var = float(bench_r.var())
+                    if bench_var <= 0:
+                        continue
+                    beta_i = float(stock_r.cov(bench_r)) / bench_var
+                    alpha_res.loc[sym] = (float(stock_r.mean()) - beta_i * float(bench_r.mean())) * 252
                 score = alpha_res[valid & alpha_res.notna()]
             else:
                 score = pd.Series(np.nan, index=prices.columns)
