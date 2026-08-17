@@ -1,0 +1,173 @@
+name: Benchmark Consistency Update
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  migrate-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Apply common benchmark migration
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          # price_loader: central benchmark + no Nifty 50 fallback
+          p = Path("src/loaders/price_loader.py")
+          s = p.read_text()
+          s = s.replace(
+              "from src.core.config import PRICES_FILE",
+              "from src.core.config import BENCHMARK_SYMBOL, PRICES_FILE",
+          )
+          marker = "\n\n@st.cache_data(show_spinner=False, ttl=3600)\ndef get_market_regime"
+          func = '''
+
+          @st.cache_data(show_spinner=False, ttl=3600)
+          def fetch_benchmark_history(period: str = "2y") -> pd.Series:
+              """Return the single V1 market benchmark price series (Nifty 500)."""
+              try:
+                  data = yf.download(BENCHMARK_SYMBOL, period=period, progress=False, threads=False)
+                  if data is None or data.empty:
+                      return pd.Series(dtype=float, name=BENCHMARK_SYMBOL)
+                  if data.index.tz is not None:
+                      data.index = data.index.tz_localize(None)
+                  if isinstance(data.columns, pd.MultiIndex):
+                      close_df = _extract_field(data, ["Close", "Adj Close", "AdjClose"])
+                      series = close_df.iloc[:, 0] if not close_df.empty else data.iloc[:, 0]
+                  else:
+                      series = data["Close"] if "Close" in data.columns else data.iloc[:, 0]
+                  series = pd.to_numeric(series, errors="coerce").dropna()
+                  series.name = BENCHMARK_SYMBOL
+                  return series
+              except Exception as e:
+                  logger.warning(f"Failed to fetch benchmark {BENCHMARK_SYMBOL}: {e}")
+                  return pd.Series(dtype=float, name=BENCHMARK_SYMBOL)
+          '''
+          if "def fetch_benchmark_history" not in s:
+              s = s.replace(marker, func + marker)
+          s = s.replace(
+              'def get_market_regime(benchmark_symbol: str = "^CRSLDX")',
+              'def get_market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL)',
+          )
+          s = s.replace(
+              '        if (nifty is None or nifty.empty) and benchmark_symbol != "^NSEI":\n'
+              '            nifty = yf.download("^NSEI", period="1y", progress=False)\n\n',
+              "",
+          )
+          p.write_text(s)
+
+          # backtester: use the common benchmark for residual alpha and benchmark equity curve
+          p = Path("src/engine/backtester.py")
+          s = p.read_text()
+          s = s.replace(
+              "from src.core.config import MOMENTUM_WINDOWS",
+              "from src.core.config import BENCHMARK_SYMBOL, MOMENTUM_WINDOWS",
+          )
+          s = s.replace(
+              "    _adj_close: pd.DataFrame,\n    top_n:",
+              "    _adj_close: pd.DataFrame,\n    _benchmark_close: pd.Series | None = None,\n    top_n:",
+          )
+          needle = "    log_ret = np.log(prices / prices.shift(1).replace(0, np.nan))\n"
+          insert = '''    log_ret = np.log(prices / prices.shift(1).replace(0, np.nan))
+
+              if _benchmark_close is None or _benchmark_close.empty:
+                  benchmark_ret = pd.Series(np.nan, index=prices.index, dtype=float)
+              else:
+                  benchmark_series = pd.to_numeric(_benchmark_close, errors="coerce").reindex(prices.index)
+                  benchmark_ret = benchmark_series.pct_change(fill_method=None)
+          '''
+          if "benchmark_ret =" not in s:
+              s = s.replace(needle, insert)
+          old = '''            sl = max(start_idx - 126, 0)
+              mkt_ret = daily_ret.iloc[sl : start_idx + 1].mean(axis=1)
+              stk_ret = daily_ret.iloc[sl : start_idx + 1]
+              cov_m = stk_ret.apply(lambda col: col.cov(mkt_ret))
+              var_m = float(mkt_ret.var())
+              beta = cov_m / max(var_m, 1e-8)
+              alpha_res = (stk_ret.mean() * 252) - (beta * (float(mkt_ret.mean()) * 252))
+              score = alpha_res[valid & alpha_res.notna()]'''
+          new = '''            sl = max(start_idx - 126, 0)
+              mkt_ret = benchmark_ret.iloc[sl : start_idx + 1]
+              stk_ret = daily_ret.iloc[sl : start_idx + 1]
+              valid_mkt = mkt_ret.notna()
+              mkt_ret = mkt_ret.loc[valid_mkt]
+              stk_ret = stk_ret.loc[valid_mkt]
+              if len(mkt_ret) >= 30 and float(mkt_ret.var()) > 0:
+                  cov_m = stk_ret.apply(lambda col: col.cov(mkt_ret))
+                  var_m = float(mkt_ret.var())
+                  beta = cov_m / var_m
+                  alpha_res = (stk_ret.mean() * 252) - (beta * (float(mkt_ret.mean()) * 252))
+                  score = alpha_res[valid & alpha_res.notna()]
+              else:
+                  score = pd.Series(np.nan, index=prices.columns)'''
+          if old not in s:
+              raise SystemExit("Residual-alpha block not found; aborting without changes")
+          s = s.replace(old, new)
+          s = s.replace(
+              'float(daily_ret.iloc[j].mean()) if j < len(daily_ret) else 0.0',
+              'float(benchmark_ret.iloc[j]) if j < len(benchmark_ret) and pd.notna(benchmark_ret.iloc[j]) else 0.0',
+          )
+          s = s.replace(
+              'bench_r = float(_dr.mean())',
+              'bench_r = float(benchmark_ret.iloc[j]) if pd.notna(benchmark_ret.iloc[j]) else 0.0',
+          )
+          s = s.replace(
+              '''            b_rets = [
+                  float(daily_ret.iloc[j].mean())
+                  for j in range(fwd_start, min(fwd_end, len(daily_ret)))
+                  if j < len(daily_ret)
+              ]''',
+              '''            b_rets = [
+                  float(benchmark_ret.iloc[j])
+                  for j in range(fwd_start, min(fwd_end, len(benchmark_ret)))
+                  if j < len(benchmark_ret) and pd.notna(benchmark_ret.iloc[j])
+              ]''',
+          )
+          p.write_text(s)
+
+          # backtest view: load and pass the benchmark series to the engine
+          p = Path("src/ui/views/backtest_view.py")
+          s = p.read_text()
+          s = s.replace(
+              "from src.engine.backtester import run_backtest",
+              "from src.engine.backtester import run_backtest\nfrom src.loaders.price_loader import fetch_benchmark_history",
+          )
+          s = s.replace(
+              '    ph = f"{adj_close.index[-1]}_{adj_close.shape[0]}x{adj_close.shape[1]}"',
+              '    ph = f"{adj_close.index[-1]}_{adj_close.shape[0]}x{adj_close.shape[1]}"\n    benchmark_close = fetch_benchmark_history(period="2y")\n    if benchmark_close.empty:\n        st.error("Nifty 500 benchmark (^CRSLDX) data is unavailable. Backtest stopped to prevent an invalid benchmark comparison.")\n        return',
+          )
+          s = s.replace(
+              '''        bt_res = run_backtest(
+                  ph,
+                  adj_close,''',
+              '''        bt_res = run_backtest(
+                  ph,
+                  adj_close,
+                  _benchmark_close=benchmark_close,''',
+          )
+          p.write_text(s)
+          PY
+
+      - name: Compile modified modules
+        run: python -m py_compile src/core/config.py src/loaders/price_loader.py src/engine/backtester.py src/ui/views/backtest_view.py
+      - name: Run benchmark tests
+        run: python -m pytest -q tests/test_benchmark_consistency.py
+      - name: Run full test suite
+        run: python -m pytest -q
+      - name: Commit verified benchmark migration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/core/config.py src/loaders/price_loader.py src/engine/backtester.py src/ui/views/backtest_view.py tests/test_benchmark_consistency.py .github/workflows/benchmark-consistency-update.yml
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "fix: use Nifty 500 benchmark consistently"
+          git push origin main
