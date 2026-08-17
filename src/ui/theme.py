@@ -3,7 +3,6 @@ import re
 import numpy as np
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 
 
 def clean_html(html_str: str) -> str:
@@ -1332,7 +1331,7 @@ def render_master_screener_table(
                 <th class="th-center">60D SPARK</th>
             </tr>"""
 
-    # Master Table Assembly - Rendered via components.html with 2D Sticky Freeze
+    # Master Table Assembly - Rendered via st.iframe with 2D Sticky Freeze
     full_page_html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -1669,7 +1668,7 @@ document.addEventListener('DOMContentLoaded', function() {{
 </script>
 </body>
 </html>"""
-    components.html(full_page_html, height=max_height, scrolling=True)
+    st.iframe(full_page_html, height=max_height)
 
 
 def render_saas_table(
@@ -2157,4 +2156,4 @@ document.addEventListener('DOMContentLoaded', function() {{
 </script>
 </body>
 </html>"""
-    components.html(saas_page_html, height=table_h + 10, scrolling=True)
+    st.iframe(saas_page_html, height=table_h + 10)

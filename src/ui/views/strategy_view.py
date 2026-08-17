@@ -95,19 +95,16 @@ def compute_multi_strategy_monthly_matrix(
         month_label = f"{t_start:%b %Y}"
         month_cols.append(month_label)
 
-        # 1. Composite Sharpe x R2 — calendar 6M window.
+        # 1. Composite Sharpe — calendar 6M window.
         log_ret_s = np.log(p_slice / p_slice.shift(1).replace(0, np.nan))
         idx_slice = pd.DatetimeIndex(p_slice.index)
         start_6m = int(calendar_start_positions(idx_slice, 6, latest_as_of=t_start)[-1])
         p_6m = p_slice.iloc[start_6m:]
         ret_6m = (p_slice.iloc[-1] / p_slice.iloc[start_6m].clip(lower=0.01)) - 1
         r_6m = log_ret_s.iloc[start_6m + 1 :]
-        vol_6m = r_6m.std() * np.sqrt(r_6m.notna().sum()).replace(0, np.nan)
+        vol_6m = r_6m.std(ddof=0) * np.sqrt(r_6m.notna().sum()).replace(0, np.nan)
         sharpe_6m = ret_6m / vol_6m.replace(0, np.nan)
-        log_p = np.log(p_6m.clip(lower=0.01))
-        t_arr = np.arange(len(log_p))
-        r2_6m = log_p.corrwith(pd.Series(t_arr, index=log_p.index, dtype=float)) ** 2
-        comp_score = sharpe_6m * r2_6m.fillna(0)
+        comp_score = sharpe_6m
 
         # 2. Residual Alpha — same calendar 6M window.
         mkt_ret = daily_ret.loc[:t_start].mean(axis=1).iloc[start_6m:]
@@ -127,7 +124,7 @@ def compute_multi_strategy_monthly_matrix(
         for sym, score in comp_score.items():
             ind = ind_map.get(sym, "General")
             ind_scores.setdefault(ind, []).append(score)
-        ind_means = {k: float(np.nanmean(v)) for k, v in ind_scores.items()}
+        ind_means = {k: float(np.nanmean(v)) for k, v in ind_scores.items() if np.isfinite(v).any()}
         ind_rel_score = comp_score - comp_score.index.map(
             lambda s: ind_means.get(ind_map.get(s, "General"), 0)
         )
@@ -322,7 +319,7 @@ def render_strategy_view(
         (
             e2,
             "Industry-Relative Momentum",
-            "Stock composite Sharpe×R² minus industry peer average. Isolates top sector outperformers independently of sector cycle.",
+            "Stock composite Sharpe minus industry peer average. Isolates top sector outperformers independently of sector cycle.",
             "#0284c7",
         ),
         (
