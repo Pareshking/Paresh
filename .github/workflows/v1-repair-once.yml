@@ -1,0 +1,108 @@
+name: V1 Repair Once
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies
+        run: pip install -r requirements.txt pytest
+      - name: Patch V1
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          root = Path('.')
+
+          # Canonical System-1 entry point.
+          p = root/'src/engine/momentum.py'; t=p.read_text()
+          t=t.replace('        if self.momentum_scores is None:\n            self.calculate_sharpe_momentum()\n', '        if self.momentum_scores is None:\n            from src.engine.calendar_momentum import apply_calendar_momentum\n            apply_calendar_momentum(self)\n', 1)
+          t=t.replace('float(clean.mean()), float(clean.std())', 'float(clean.mean()), float(clean.std(ddof=0))')
+          t=t.replace('float(clean.std())', 'float(clean.std(ddof=0))')
+          t=t.replace('mkt_ret = pd.to_numeric(benchmark_returns, errors="coerce").reindex(daily_ret.index).ffill()', 'mkt_ret = pd.to_numeric(benchmark_returns, errors="coerce").reindex(daily_ret.index)')
+          old='''        ret_w = daily_ret.iloc[start:]\n        mkt_ret_w = mkt_ret.iloc[start:]\n        mkt_var = float(mkt_ret_w.var())\n\n        if mkt_var <= 1e-12 or np.isnan(mkt_var) or len(mkt_ret_w.dropna()) < 30:\n            ranks = pd.Series(np.nan, index=self.prices.columns)\n            self.residual_ranks = ranks\n            return ranks\n\n        covs = ret_w.apply(lambda col: col.cov(mkt_ret_w))\n        betas = covs / mkt_var\n        stock_mean = ret_w.mean()\n        mkt_mean = float(mkt_ret_w.mean())\n        alpha_ann = (stock_mean - betas * mkt_mean) * 252\n\n        if months is None:\n            min_history = min(window, 63)\n        else:\n            min_history = max(2, len(ret_w) // 4)\n        alpha_ann = alpha_ann.where(self._valid_counts >= min_history, np.nan)\n        ranks = alpha_ann.rank(ascending=False, method="min")\n'''
+          new='''        mkt_ret_w = mkt_ret.iloc[start:]\n        ranks = pd.Series(np.nan, index=self.prices.columns, dtype=float)\n        for sym in self.prices.columns:\n            pair = pd.concat([daily_ret[sym].iloc[start:], mkt_ret_w], axis=1).dropna()\n            if len(pair) < 30:\n                continue\n            stock_r = pair.iloc[:, 0]\n            bench_r = pair.iloc[:, 1]\n            mkt_var = float(bench_r.var())\n            if mkt_var <= 1e-12 or not np.isfinite(mkt_var):\n                continue\n            beta = float(stock_r.cov(bench_r)) / mkt_var\n            ranks.loc[sym] = (float(stock_r.mean()) - beta * float(bench_r.mean())) * 252\n        ranks = ranks.rank(ascending=False, method="min")\n'''
+          if old not in t: raise SystemExit('residual alpha block not found')
+          t=t.replace(old,new,1); p.write_text(t)
+
+          # Calendar factor missingness must stay missing; composite renormalizes available weights.
+          p=root/'src/engine/calendar_momentum.py'; t=p.read_text()
+          t=t.replace('z_rows.append(pd.Series(0.0, index=score.columns))','z_rows.append(pd.Series(np.nan, index=score.columns))')
+          t=t.replace('z_rows.append(z.reindex(score.columns).fillna(0.0))','z_rows.append(z.reindex(score.columns))')
+          p.write_text(t)
+
+          # Backtester: make Industry-Relative reachable and leave-one-out.
+          p=root/'src/engine/backtester.py'; t=p.read_text()
+          t=t.replace('        or "Industry-Relative" in ranking_method\n','',1)
+          old='''            ind_scores: dict[str, list[float]] = {}\n            for sym, sc in composite_score.items():\n                ind_scores.setdefault(ind_map.get(sym, "Other"), []).append(sc)\n            ind_means = {k: np.nanmean(v) for k, v in ind_scores.items()}\n            ind_rel = composite_score - composite_score.index.map(\n                lambda s: ind_means.get(ind_map.get(s, "Other"), 0)\n            )\n            score = ind_rel[valid & ind_rel.notna()]\n'''
+          new='''            score_df = pd.DataFrame({\n                "Symbol": composite_score.index,\n                "Score": composite_score.values,\n                "Industry": [ind_map.get(s, "Other") for s in composite_score.index],\n            })\n            peer_sum = score_df.groupby("Industry")["Score"].transform("sum", min_count=1) - score_df["Score"]\n            peer_count = score_df.groupby("Industry")["Score"].transform("count") - score_df["Score"].notna().astype(int)\n            peer_mean = peer_sum.div(peer_count.replace(0, np.nan))\n            ind_rel = score_df["Score"] - peer_mean\n            ind_rel.index = score_df["Symbol"]\n            score = ind_rel[valid & ind_rel.notna()]\n'''
+          if old not in t: raise SystemExit('backtester industry block not found')
+          t=t.replace(old,new,1); t=t.replace('.fillna(0.0)','.dropna(how="any")'); p.write_text(t)
+
+          # Portfolio: never synthesize zero returns for missing observations.
+          p=root/'src/engine/portfolio.py'; t=p.read_text()
+          t=t.replace('clean = returns_df.fillna(0.0)','clean = returns_df.dropna(how="any")')
+          t=t.replace('.iloc[-window:].fillna(0.0)','.iloc[-window:].dropna(how="any")')
+          t=t.replace('.iloc[-126:].fillna(0.0)','.iloc[-126:].dropna(how="any")'); p.write_text(t)
+
+          # UI correlation: price gaps remain missing rather than being forward-filled.
+          p=root/'src/ui/views/qualified_view.py'; t=p.read_text(); t=t.replace('.iloc[-90:].ffill().pct_change(fill_method=None)', '.iloc[-90:].pct_change(fill_method=None)'); p.write_text(t)
+
+          # Guide methodology cleanup.
+          p=root/'src/ui/views/guide_view.py'; t=p.read_text()
+          t=t.replace('Each window calculates annualized log-Sharpe multiplied by Pearson  regression score (Sharpe) to reward persistent geometric compounding over erratic single-day spike noise.', 'Each window calculates the approved period risk-adjusted momentum statistic: log return divided by period volatility using all valid daily observations in the calendar-defined horizon.')
+          t=t.replace('Single Lookback Window</strong>: Evaluates purely 1 isolated timeframe (e.g. only 3M / 63 days or only 6M / 126 days).', 'Single Lookback Window</strong>: Evaluates one isolated calendar timeframe (e.g. 3M or 6M).')
+          t=t.replace('Walk-forward monthly (21D) rebalancing','Walk-forward monthly calendar rebalancing'); p.write_text(t)
+
+          # R2 removal from theme.py using block-safe regexes.
+          p=root/'src/ui/theme.py'; t=p.read_text()
+          t=re.sub(r'\n    "3M R2": "\{:\.2f\}",\n    "6M R2": "\{:\.2f\}",','',t)
+          t=re.sub(r'\n        r2_3m = row\.get\("3M R2"\)\n        r2_3m_str = \(.*?\n        \)\n', '\n', t, flags=re.S)
+          t=re.sub(r'\n        r2_6m = row\.get\("6M R2"\)\n        r2_6m_str = \(.*?\n        \)\n', '\n', t, flags=re.S)
+          t=t.replace(', "r2",', ',')
+          t=t.replace('"R2",\n','')
+          t=t.replace('<td class="td-num">{r2_3m_str}</td>','')
+          t=t.replace('<td class="td-num">{r2_6m_str}</td>','')
+          t=t.replace('<th>3M R²</th>','').replace('<th>6M R²</th>','')
+          p.write_text(t)
+
+          # Benchmark regime documentation.
+          p=root/'src/loaders/price_loader.py'; t=p.read_text(); t=t.replace('    Falls back to Nifty 50 (^NSEI) if Nifty 500 (^CRSLDX) is unavailable.','    Uses the canonical V1 benchmark passed by the caller (default ^CRSLDX).'); p.write_text(t)
+          PY
+      - name: Verify tests and compile
+        run: |
+          python -m pytest -q
+          python -m compileall -q app.py src scripts
+      - name: Publish repairs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src
+          if git diff --cached --quiet; then echo "No source changes"; else git commit -m "fix(v1): harden quantitative paths and remove stale R2 UI"; git push origin HEAD:main; fi
+      - name: Trigger full validation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run v1-full-validation.yml --ref main
+      - name: Self remove
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
+          git rm .github/workflows/v1-repair-once.yml
+          git commit -m "chore(v1): remove one-time repair workflow"
+          git push origin HEAD:main
