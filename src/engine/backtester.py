@@ -19,6 +19,32 @@ import streamlit as st
 from src.core.config import MOMENTUM_WINDOWS
 
 
+def _calendar_period_sharpe(
+    prices: pd.DataFrame,
+    log_returns: pd.DataFrame,
+    end_idx: int,
+    months: int,
+) -> tuple[pd.Series, int]:
+    """V1 period-scale Sharpe using the same calendar-window rule as the screener."""
+    dates = pd.DatetimeIndex(prices.index)
+    target = pd.Timestamp(dates[end_idx]).normalize() - pd.DateOffset(months=months)
+    start_idx = int(dates.searchsorted(target, side="left"))
+    if start_idx >= end_idx:
+        return pd.Series(np.nan, index=prices.columns), start_idx
+
+    p0 = prices.iloc[start_idx].clip(lower=0.01)
+    p1 = prices.iloc[end_idx].clip(lower=0.01)
+    log_return = np.log(p1 / p0)
+
+    window_lr = log_returns.iloc[start_idx + 1 : end_idx + 1]
+    n = window_lr.notna().sum()
+    daily_sd = window_lr.std()
+    period_vol = daily_sd * np.sqrt(n.astype(float))
+    sharpe = log_return / period_vol.replace(0, np.nan)
+    sharpe[n <= 1] = np.nan
+    return sharpe, start_idx
+
+
 @st.cache_data(show_spinner=False, ttl=3600)
 def run_backtest(
     prices_hash: str,
@@ -118,18 +144,9 @@ def run_backtest(
             for w_period, cw in zip(WINDOWS, norm_w if norm_w else [0.2] * 5):
                 if cw <= 0:
                     continue
-                mp = max(int(w_period * 0.8), 10)
-                sl = max(start_idx - w_period, 0)
-                p_w = prices.iloc[sl : start_idx + 1]
-                if len(p_w) < mp:
-                    continue
-
-                log_ret_period = np.log(
-                    p_w.iloc[-1].clip(lower=0.01) / p_w.iloc[0].clip(lower=0.01)
+                sharpe, _ = _calendar_period_sharpe(
+                    prices, log_ret, start_idx, int(round(w_period / 21))
                 )
-                vol = log_ret.iloc[sl : start_idx + 1].std() * np.sqrt(w_period)
-                sharpe = log_ret_period / vol.replace(0, np.nan)
-
                 raw_mom = sharpe
 
                 mu_cs = float(raw_mom.mean())
@@ -157,15 +174,9 @@ def run_backtest(
             # Multi-window Composite minus Industry Peer Mean
             composite_score = pd.Series(0.0, index=prices.columns)
             for w_period, cw in zip(WINDOWS, norm_w if norm_w else [0.2] * 5):
-                sl = max(start_idx - w_period, 0)
-                p_w = prices.iloc[sl : start_idx + 1]
-                if len(p_w) < 10:
-                    continue
-                log_ret_p = np.log(
-                    p_w.iloc[-1].clip(lower=0.01) / p_w.iloc[0].clip(lower=0.01)
+                sharpe, _ = _calendar_period_sharpe(
+                    prices, log_ret, start_idx, int(round(w_period / 21))
                 )
-                vol = log_ret.iloc[sl : start_idx + 1].std() * np.sqrt(w_period)
-                sharpe = log_ret_p / vol.replace(0, np.nan)
                 raw_mom = sharpe
                 z = ((raw_mom - raw_mom.mean()) / max(raw_mom.std(), 1e-8)).clip(
                     -3.0, 3.0
