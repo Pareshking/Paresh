@@ -1,0 +1,94 @@
+name: Implement 6M Backtest Window
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/6m-backtest
+
+permissions:
+  contents: write
+
+jobs:
+  implement-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Apply 6M backtest window
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path("src/engine/backtester.py")
+          text = p.read_text()
+          old = '''    cost_bps: float = 30.0,\n    buffer_n: int | None = None,\n) -> dict[str, Any] | None:'''
+          new = '''    cost_bps: float = 30.0,\n    buffer_n: int | None = None,\n    backtest_months: int | None = None,\n) -> dict[str, Any] | None:'''
+          if old not in text: raise SystemExit("backtester signature anchor not found")
+          text = text.replace(old, new, 1)
+          old = '''    if not rebal_dates:\n        return None\n\n    strat_net_daily: list[float] = []'''
+          new = '''    if backtest_months is not None:\n        if backtest_months <= 0:\n            raise ValueError("backtest_months must be positive when supplied")\n        cutoff_date = dates[-1] - pd.DateOffset(months=int(backtest_months))\n        rebal_dates = [i for i in rebal_dates if dates[i] >= cutoff_date]\n\n    if not rebal_dates:\n        return None\n\n    strat_net_daily: list[float] = []'''
+          if old not in text: raise SystemExit("rebalancing anchor not found")
+          text = text.replace(old, new, 1)
+          p.write_text(text)
+
+          p = Path("src/ui/views/backtest_view.py")
+          text = p.read_text()
+          old = '''    c1, c2, c3 = st.columns(3, vertical_alignment="center")\n    bt_n = c1.selectbox('''
+          new = '''    c0, c1, c2, c3 = st.columns(4, vertical_alignment="center")\n    bt_period = c0.selectbox(\n        "Backtest Period",\n        [6, 12],\n        index=0,\n        format_func=lambda x: f"Last {x} Months",\n        key="bt_period_months",\n    )\n    bt_n = c1.selectbox('''
+          if old not in text: raise SystemExit("backtest controls anchor not found")
+          text = text.replace(old, new, 1)
+          old = '''            cost_bps=cost_drag_bps,\n            buffer_n=int(bt_n * buffer_mult),\n        )'''
+          new = '''            cost_bps=cost_drag_bps,\n            buffer_n=int(bt_n * buffer_mult),\n            backtest_months=bt_period,\n        )'''
+          if old not in text: raise SystemExit("run_backtest call anchor not found")
+          text = text.replace(old, new, 1)
+          old = '''            <span>🎯 <strong>Engine:</strong> <span style='color: #0f172a; font-weight: 600;'>{bt_ranking}</span></span>'''
+          new = '''            <span>📅 <strong>Period:</strong> <span style='color: #0f172a; font-weight: 600;'>Last {bt_period} Months</span></span>\n            <span>🎯 <strong>Engine:</strong> <span style='color: #0f172a; font-weight: 600;'>{bt_ranking}</span></span>'''
+          if old not in text: raise SystemExit("attribution anchor not found")
+          text = text.replace(old, new, 1)
+          old = '''        st.warning(\n            "Insufficient price history to execute backtest. At least 1.5 years of continuous daily data is required."\n        )'''
+          new = '''        st.warning(\n            "Insufficient price history to execute the selected backtest period. The strategy still requires its formation lookback history before the selected window."\n        )'''
+          if old not in text: raise SystemExit("warning anchor not found")
+          text = text.replace(old, new, 1)
+          p.write_text(text)
+          PY
+      - name: Add regression tests
+        run: |
+          cat > tests/test_backtest_window.py <<'PY'
+          import numpy as np
+          import pandas as pd
+          from src.engine.backtester import run_backtest
+
+          def test_backtest_months_limits_rebalance_start_to_requested_window():
+              idx = pd.bdate_range("2024-01-01", "2026-08-17")
+              prices = pd.DataFrame({
+                  "A": np.linspace(100, 180, len(idx)),
+                  "B": np.linspace(100, 150, len(idx)),
+                  "C": np.linspace(100, 130, len(idx)),
+              }, index=idx)
+              result = run_backtest(
+                  "test-6m-window", prices, top_n=1, rebal_freq=21,
+                  ranking_method="Return (Classic Momentum)", lookback_ret=126,
+                  ema_period=20, high_pct=0.0, cost_bps=0.0, buffer_n=1,
+                  backtest_months=6,
+              )
+              assert result is not None
+              period_dates = [pd.Timestamp(r["date"]) for r in result["period_records"]]
+              assert period_dates
+              assert min(period_dates) >= idx[-1] - pd.DateOffset(months=6)
+          PY
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest
+      - name: Run tests
+        env:
+          PYTHONPATH: .
+        run: python -m pytest -q
+      - name: Commit verified implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/engine/backtester.py src/ui/views/backtest_view.py tests/test_backtest_window.py .github/workflows/implement-6m-backtest.yml
+          git commit -m "feat(v1): add selectable six-month backtest window"
+          git push
