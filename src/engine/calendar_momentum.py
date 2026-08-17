@@ -1,10 +1,14 @@
 """Calendar-period momentum calculations.
 
 The screener's 1M/3M/6M/9M/12M horizons are calendar periods, not fixed
-21/63/126/189/252-row windows.  For each observation date, the start target is
+21/63/126/189/252-row windows. For each observation date, the start target is
 that date minus the requested calendar period and the actual start observation
-is the first available market date on or after that target (Google-style
-historical-series semantics).
+is the first available market date on or after that target.
+
+For the latest available market close, the as-of date is today's Indian
+calendar date. This matters when the market has not yet opened, or when the
+latest data row is from a prior trading session: the endpoint remains the latest
+available close, while the period start is anchored to today's calendar date.
 
 This module deliberately changes only the period/date selection and the
 existing System-1 period statistics. Other V1 metrics that use explicit
@@ -12,6 +16,10 @@ trading-day windows are left untouched for the subsequent metric audit.
 """
 
 from __future__ import annotations
+
+from datetime import datetime
+from typing import Iterable
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
@@ -25,13 +33,39 @@ PERIODS: dict[int, int] = {
     252: 12, # 12M
 }
 
+INDIA_TZ = ZoneInfo("Asia/Kolkata")
 
-def calendar_start_positions(index: pd.DatetimeIndex, months: int) -> np.ndarray:
-    """Return first available observation on/after each calendar target date."""
+
+def latest_as_of_date(index: pd.DatetimeIndex) -> pd.Timestamp:
+    """Return today's India date, unless the supplied data is newer."""
+    today = pd.Timestamp(datetime.now(INDIA_TZ).date())
+    last_data_date = pd.Timestamp(index[-1]).normalize()
+    return max(today, last_data_date)
+
+
+def calendar_start_positions(
+    index: pd.DatetimeIndex,
+    months: int,
+    *,
+    latest_as_of: pd.Timestamp | None = None,
+) -> np.ndarray:
+    """Return first available observation on/after each calendar target date.
+
+    Historical rows use their own observation date as the as-of date. The
+    latest row uses today's Indian calendar date when the market close is not
+    yet available.
+    """
     idx = pd.DatetimeIndex(index)
     if idx.empty:
         return np.array([], dtype=int)
-    targets = idx - pd.DateOffset(months=months)
+
+    as_of = idx.normalize().to_series(index=np.arange(len(idx)))
+    as_of.iloc[-1] = (
+        pd.Timestamp(latest_as_of).normalize()
+        if latest_as_of is not None
+        else latest_as_of_date(idx)
+    )
+    targets = pd.DatetimeIndex(as_of.to_numpy()) - pd.DateOffset(months=months)
     return np.searchsorted(idx.values, targets.values, side="left")
 
 
@@ -39,6 +73,8 @@ def _calendar_period_metrics(
     prices: pd.DataFrame,
     log_returns: pd.DataFrame,
     months: int,
+    *,
+    latest_as_of: pd.Timestamp | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, np.ndarray]:
     """Calculate V1 System-1 metrics over a calendar-defined rolling window.
 
@@ -52,7 +88,7 @@ def _calendar_period_metrics(
     index = pd.DatetimeIndex(prices.index)
     n_rows, n_cols = prices.shape
 
-    starts = calendar_start_positions(index, months)
+    starts = calendar_start_positions(index, months, latest_as_of=latest_as_of)
 
     y = np.log(prices.clip(lower=0.01)).to_numpy(dtype=float)
     r = log_returns.to_numpy(dtype=float)
@@ -135,19 +171,16 @@ def _calendar_period_metrics(
 
 
 def apply_calendar_momentum(calc) -> pd.DataFrame:
-    """Replace V1 System-1 period calculations with calendar-defined windows.
-
-    The MomentumEngine instance is intentionally accepted rather than typed so
-    this is a narrow compatibility layer: all other MomentumEngine systems stay
-    unchanged until their separate metric audit.
-    """
+    """Replace V1 System-1 period calculations with calendar-defined windows."""
     scores_by_period: dict[int, pd.DataFrame] = {}
     calc.period_metrics = {}
     calc.period_dates = {}
 
+    as_of = latest_as_of_date(pd.DatetimeIndex(calc.prices.index)) if not calc.prices.empty else None
+
     for key, months in PERIODS.items():
         score, ret, sharpe, r2, starts = _calendar_period_metrics(
-            calc.prices, calc.log_ret, months
+            calc.prices, calc.log_ret, months, latest_as_of=as_of
         )
 
         # Match V1's cross-sectional normalization and clipping.
@@ -159,15 +192,14 @@ def apply_calendar_momentum(calc) -> pd.DataFrame:
         if not calc.prices.empty:
             end = len(calc.prices) - 1
             start = int(starts[end])
-            target = pd.Timestamp(calc.prices.index[end]) - pd.DateOffset(months=months)
+            target = as_of - pd.DateOffset(months=months)
             calc.period_dates[key] = {
                 "months": months,
                 "target_start": target,
                 "actual_start": pd.Timestamp(calc.prices.index[start]) if start < len(calc.prices) else pd.NaT,
                 "end": pd.Timestamp(calc.prices.index[end]),
-                "return_observations": int(
-                    np.isfinite(calc.log_ret.iloc[start + 1 : end + 1].to_numpy()).sum()
-                ),
+                "as_of": as_of,
+                "return_observations": end - start,
             }
             calc.period_metrics[key] = {
                 "return": ret.iloc[end],
