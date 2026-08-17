@@ -38,7 +38,9 @@ def clean_holidays(df: pd.DataFrame | None) -> pd.DataFrame:
     if n_dropped > 0:
         logger.debug(f"Holiday cleanup: dropped {n_dropped} rows")
     cleaned = df.loc[~holidays]
-    return cleaned.ffill()
+    # Do not impute security-level gaps. Forward-filling can
+    # manufacture zero returns and distort volatility/momentum.
+    return cleaned
 
 
 def compute_ffill_pct(raw_df: pd.DataFrame | None) -> pd.Series:
