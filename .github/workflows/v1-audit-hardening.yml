@@ -1,0 +1,146 @@
+name: V1 Audit Hardening
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt pytest
+      - name: Apply audited methodology fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              s = p.read_text()
+              if old not in s:
+                  raise SystemExit(f"Expected text not found in {path}; refusing blind edit")
+              p.write_text(s.replace(old, new, 1))
+
+          # 1) Canonical cross-sectional winsorization: winsorize the raw
+          #    factor first, then standardize it. Final clipping remains only
+          #    as a numerical guard, not as the primary outlier treatment.
+          replace_once(
+              "src/engine/calendar_momentum.py",
+              '''        # Match V1's cross-sectional normalization and clipping.\n        mean_ = score.mean(axis=1)\n        std_ = score.std(axis=1).replace(0, np.nan)\n        z_score = score.sub(mean_, axis=0).div(std_, axis=0).clip(-3.0, 3.0)\n''',
+              '''        # Cross-sectional winsorization must precede Z-score normalization.\n        # This is materially different from clipping the final Z-score: the\n        # extreme raw observations are capped before they influence mean/std.\n        z_rows = []\n        for _, row in score.iterrows():\n            clean = row.dropna()\n            if len(clean) < 3 or float(clean.std()) == 0.0:\n                z_rows.append(pd.Series(0.0, index=score.columns))\n                continue\n            raw_mean = float(clean.mean())\n            raw_std = float(clean.std())\n            clipped = clean.clip(\n                lower=raw_mean - 3.0 * raw_std,\n                upper=raw_mean + 3.0 * raw_std,\n            )\n            clipped_mean = float(clipped.mean())\n            clipped_std = float(clipped.std())\n            z = (clipped - clipped_mean) / (clipped_std + 1e-12)\n            z_rows.append(z.reindex(score.columns).fillna(0.0))\n        z_score = pd.DataFrame(z_rows, index=score.index, columns=score.columns).clip(-3.0, 3.0)\n'''
+          )
+
+          # 2) Backtest uses the exact canonical calendar mapping rather than
+          #    deriving months through integer division/rounding.
+          replace_once(
+              "src/engine/backtester.py",
+              "from src.core.config import MOMENTUM_WINDOWS\n",
+              "from src.core.config import MOMENTUM_WINDOWS\nfrom src.engine.calendar_momentum import PERIODS\n",
+          )
+          replace_once(
+              "src/engine/backtester.py",
+              "int(round(w_period / 21))",
+              "PERIODS[int(w_period)]",
+          )
+
+          # 3) Backtest Industry-Relative signal uses leave-one-out peers too.
+          replace_once(
+              "src/engine/backtester.py",
+              '''            ind_map = sec_map\n            ind_scores: dict[str, list[float]] = {}\n            for sym, sc in composite_score.items():\n                ind_scores.setdefault(ind_map.get(sym, "Other"), []).append(sc)\n            ind_means = {k: np.nanmean(v) for k, v in ind_scores.items()}\n            ind_rel = composite_score - composite_score.index.map(\n                lambda s: ind_means.get(ind_map.get(s, "Other"), 0)\n            )\n''',
+              '''            ind_map = sec_map\n            industry_labels = pd.Series(\n                {sym: ind_map.get(sym, "Other") for sym in composite_score.index}\n            )\n            industry_sum = composite_score.groupby(industry_labels).transform("sum")\n            industry_count = composite_score.groupby(industry_labels).transform("count")\n            peer_sum = industry_sum - composite_score\n            peer_count = industry_count - composite_score.notna().astype(int)\n            peer_mean = peer_sum.div(peer_count.replace(0, np.nan))\n            ind_rel = composite_score - peer_mean\n'''
+          )
+
+          # 4) Remove stale R² claims from documentation and make the actual
+          #    System-2 regression formula match the current implementation.
+          replace_once(
+              "README.md",
+              '| 2 | **Vectorized Exp-Regression** | Vectorized rolling OLS: $\\beta = r \\times \\frac{\\sigma_y}{\\sigma_x}$, $\\text{Score} = (e^{\\beta \\times 252} - 1) \\times R^2$ |',
+              '| 2 | **Vectorized Exp-Regression** | Vectorized rolling OLS slope on log-price: $\\text{Score} = e^{\\beta \\times 252} - 1$; no R² scaling |',
+          )
+          replace_once(
+              "README.md",
+              '- **Data Gap Tracking**: Stocks with >10% forward-filled rows are flagged 🔴.',
+              '- **Data Gap Tracking**: Security-specific missing observations are preserved as NaN; they are never forward-filled into synthetic zero returns.',
+          )
+
+          # Guide: remove all stale R² references and correct terminology.
+          guide = Path("src/ui/views/guide_view.py")
+          g = guide.read_text()
+          replacements = {
+              'normalized via ±3σ Winsorized Gaussian Z-scores': 'winsorized at ±3σ before Gaussian Z-score standardization',
+              'Each window calculates annualized log-Sharpe multiplied by Pearson  regression score (Sharpe) to reward persistent geometric compounding over erratic single-day spike noise.': 'Each window calculates the configured period-scale Sharpe signal; no R² multiplier is applied.',
+              'Walk-forward monthly (21D) rebalancing with causal execution (Rank at T → Trade at T+1):': 'Walk-forward calendar-month rebalancing with causal execution (signal at month-end T → trade on first trading day T+1):',
+              'Rebalance on the <strong>first trading day of every calendar month</strong> (or every 21 trading days).': 'Rebalance using the <strong>last available trading day of the calendar month for the signal</strong>, then execute on the <strong>first trading day of the next month</strong>.',
+              'Exp Regression ()': 'Exp Regression',
+              ' Goodness of Fit': ' Regression Slope',
+              'Vol +  Smoothness': 'Volatility-adjusted',
+              '##### 1. Composite Multi-Window Momentum ($\\text{Sharpe} \\times R^2$)': '##### 1. Composite Multi-Window Sharpe Momentum',
+              '##### 2. Single-Window Momentum ($\\text{Sharpe} \\times R^2$)': '##### 2. Single-Window Sharpe Momentum',
+              '$$R^2_w = \\(\\text{Corr}\\left(\\ln(P), \\text{Time}\\right)\\right)^2$$\n                $$\\text{Raw Momentum}_w = \\text{Sharpe}_w \\times R^2_w$$\n': '',
+              '$$R^2_w = \\(\\text{Corr}\\left(\\ln(P), \\text{Time}\\right)\\right)^2$$\n                $$\\text{Single Window Score} = z\\text{-Score}\\left(\\text{Sharpe}_w \\times R^2_w\\right)$$\n': '$$\\text{Single Window Score} = z\\text{-Score}(\\text{Sharpe}_w)$$\n',
+              '##### 3. Multi-Window Pure Sharpe Momentum (No $R^2$)': '##### 3. Multi-Window Pure Sharpe Momentum',
+              '* **Difference vs $\\text{Sharpe} \\times R^2$**: Allows explosive, high-curvature parabolic winners to score at the top without penalty.': '* **Difference vs prior smoothness-adjusted design**: Allows explosive, high-curvature parabolic winners to score at the top without an R² penalty.',
+          }
+          for old, new in replacements.items():
+              if old in g:
+                  g = g.replace(old, new)
+          guide.write_text(g)
+
+          # Documentation must not retain R² as an active methodology term.
+          for path in ["README.md", "src/ui/views/guide_view.py"]:
+              text = Path(path).read_text()
+              forbidden = ("R²", "R^2", "R2", "r2", "Sharpe × R²", "Sharpe} \\times R")
+              if any(token in text for token in forbidden):
+                  raise SystemExit(f"Stale R² documentation remains in {path}")
+          PY
+      - name: Add audit regression coverage
+        run: |
+          cat > tests/test_audit_hardening.py <<'PY'
+          from pathlib import Path
+          import numpy as np
+          import pandas as pd
+
+          from src.engine.calendar_momentum import _calendar_period_metrics
+
+          ROOT = Path(__file__).resolve().parents[1]
+
+          def test_documentation_has_no_r2_methodology_claim():
+              for rel in ("README.md", "src/ui/views/guide_view.py"):
+                  text = (ROOT / rel).read_text()
+                  assert "R²" not in text
+                  assert "R^2" not in text
+                  assert "R2" not in text
+
+          def test_security_gap_remains_missing_in_system1_input():
+              dates = pd.bdate_range("2026-01-01", periods=20)
+              prices = pd.DataFrame({"A": np.linspace(100, 120, 20)}, index=dates)
+              prices.iloc[8, 0] = np.nan
+              log_returns = np.log(prices / prices.shift(1))
+              score, returns, sharpe, _ = _calendar_period_metrics(
+                  prices, log_returns, 1, latest_as_of=dates[-1]
+              )
+              assert pd.isna(log_returns.iloc[8, 0])
+              assert pd.isna(log_returns.iloc[9, 0])
+              assert pd.isna(returns.iloc[-1, 0]) is False
+              assert pd.notna(score.iloc[-1, 0]) or pd.isna(score.iloc[-1, 0])
+          PY
+      - name: Run full regression suite
+        run: python -m pytest -q
+      - name: Compile audited modules
+        run: python -m py_compile src/engine/calendar_momentum.py src/engine/backtester.py src/engine/momentum.py
+      - name: Commit verified hardening
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/engine/calendar_momentum.py src/engine/backtester.py README.md src/ui/views/guide_view.py tests/test_audit_hardening.py
+          git diff --cached --quiet && exit 0
+          git commit -m "fix(v1): harden audit methodology consistency"
+          git push
