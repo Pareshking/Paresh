@@ -38,44 +38,37 @@ pattern = r"        mean_ = score\.mean\(axis=1\)\n        std_ = score\.std\(ax
 replacement = '''        z_rows = []
         for _, row in score.iterrows():
             clean = row.dropna()
-            if len(clean) < 3 or float(clean.std()) == 0.0:
+            if len(clean) < 3 or float(clean.std(ddof=0)) == 0.0:
                 z_rows.append(pd.Series(0.0, index=score.columns))
                 continue
             raw_mean = float(clean.mean())
-            raw_std = float(clean.std())
+            raw_std = float(clean.std(ddof=0))
             clipped = clean.clip(raw_mean - 3.0 * raw_std, raw_mean + 3.0 * raw_std)
-            clipped_std = float(clipped.std())
+            clipped_std = float(clipped.std(ddof=0))
             z = (clipped - float(clipped.mean())) / (clipped_std + 1e-12)
             z_rows.append(z.reindex(score.columns).fillna(0.0))
         z_score = pd.DataFrame(z_rows, index=score.index, columns=score.columns).clip(-3.0, 3.0)'''
 replace_regex("src/engine/calendar_momentum.py", pattern, replacement)
+# Standardize calendar-period realized dispersion to population variance.
+cm_text = cm.read_text()
+cm_text = cm_text.replace(
+    "sample_var = (rs2 - rn * mean_r * mean_r) / np.where(rn > 1, rn - 1, np.nan)",
+    "population_var = (rs2 / np.where(rn > 0, rn, np.nan)) - (mean_r * mean_r)",
+)
+cm_text = cm_text.replace("daily_sd = np.sqrt(np.maximum(sample_var, 0.0))", "daily_sd = np.sqrt(np.maximum(population_var, 0.0))")
+cm.write_text(cm_text)
 
-# V1 realized-volatility convention: population daily dispersion (ddof=0),
-# annualized by sqrt(252), with an explicit zero-volatility guard retained in
-# the portfolio scaler.
 portfolio = Path("src/engine/portfolio.py")
-p = portfolio.read_text().replace("realised = float(port.std() * np.sqrt(252))", "realised = float(port.std(ddof=0) * np.sqrt(252))")
+p = portfolio.read_text()
+p = p.replace("self.returns[valid].iloc[-window:].std() * np.sqrt(252)", "self.returns[valid].iloc[-window:].std(ddof=0) * np.sqrt(252)")
+p = p.replace("realised = float(port.std() * np.sqrt(252))", "realised = float(port.std(ddof=0) * np.sqrt(252))")
 portfolio.write_text(p)
 
-for rel in [
-    "src/engine/momentum.py",
-    "src/engine/calendar_momentum.py",
-    "src/engine/backtester.py",
-    "src/ui/views/ranking_view.py",
-    "src/ui/views/backtest_view.py",
-    "README.md",
-    "src/ui/views/guide_view.py",
-]:
-    p = Path(rel)
-    text = p.read_text()
-    for token in ("R²", "R^2", "R2", "r2"):
-        text = text.replace(token, "")
-    text = text.replace("Sharpe ×", "Sharpe")
-    text = text.replace("R² multiplier", "smoothness multiplier")
-    p.write_text(text)
-
+# Pure System-1 Sharpe helper: population rolling daily dispersion.
 mom = Path("src/engine/momentum.py")
 m = mom.read_text()
+m = m.replace("self.log_ret.rolling(w, min_periods=w).std() * np.sqrt(w)", "self.log_ret.rolling(w, min_periods=w).std(ddof=0) * np.sqrt(w)")
+m = m.replace("self.log_ret.iloc[-w:].std() * np.sqrt(w)", "self.log_ret.iloc[-w:].std(ddof=0) * np.sqrt(w)")
 old_metrics = '''        # 3M & 6M Metrics
         for w, label in [(63, "3M"), (126, "6M")]:
             if w in self.period_metrics:
@@ -102,6 +95,23 @@ m = m.replace(
 )
 mom.write_text(m)
 
+for rel in [
+    "src/engine/momentum.py",
+    "src/engine/calendar_momentum.py",
+    "src/engine/backtester.py",
+    "src/ui/views/ranking_view.py",
+    "src/ui/views/backtest_view.py",
+    "README.md",
+    "src/ui/views/guide_view.py",
+]:
+    p = Path(rel)
+    text = p.read_text()
+    for token in ("R²", "R^2", "R2", "r2"):
+        text = text.replace(token, "")
+    text = text.replace("Sharpe ×", "Sharpe")
+    text = text.replace("R² multiplier", "smoothness multiplier")
+    p.write_text(text)
+
 charts = Path("src/ui/charts.py")
 c = charts.read_text()
 old_drop = '    valid_df = rank_df.dropna(subset=[taxonomy_col, return_col, "Symbol"]).copy()'
@@ -120,10 +130,7 @@ c = c.replace('        min_r = valid_df["3M Return"].min()', '        min_r = va
 c = c.replace('        valid_df["Tile_Weight"] = ((valid_df["3M Return"] + offset) * 1000).clip(', '        valid_df["Tile_Weight"] = ((valid_df[return_col] + offset) * 1000).clip(', 1)
 charts.write_text(c)
 
-# Replace only the deprecated function name. st.components.v1.html accepts
-# HTML strings, and st.html is the current non-iframe equivalent recommended
-# by Streamlit for ordinary HTML. CI compilation/tests catch incompatible
-# call signatures.
+# Replace deprecated HTML calls with current st.html for ordinary HTML strings.
 for path in Path(".").rglob("*.py"):
     if ".git" in path.parts or path.as_posix().startswith(".venv/"):
         continue
