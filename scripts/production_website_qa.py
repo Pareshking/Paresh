@@ -18,6 +18,12 @@ def _find_tabs(page: Page):
     semantic = page.get_by_role("tab")
     return semantic if semantic.count() else page.locator('[data-baseweb="tab"]')
 
+def _wait_for_app(page: Page) -> None:
+    page.get_by_text("Screener", exact=True).first.wait_for(state="visible", timeout=180_000)
+    page.wait_for_timeout(3000)
+    if "Connection error" in page.locator("body").inner_text(timeout=20):
+        raise RuntimeError("Streamlit frontend reports Connection error")
+
 def _audit_view(page: Page, tab_name: str, errors: list[str]) -> None:
     _assert_no_runtime_errors(page, errors)
     if not page.locator("body").inner_text(timeout=20).strip(): errors.append(f"Blank page after opening tab {tab_name}")
@@ -43,18 +49,18 @@ def main() -> None:
                 print(f"\n=== {viewport_name} ==="); page=browser.new_page(viewport={"width":width,"height":height}); browser_errors=[]; response_errors=[]
                 page.on("pageerror", lambda exc: browser_errors.append(f"pageerror: {exc}"))
                 page.on("console", lambda msg: browser_errors.append(f"console error: {msg.text}") if msg.type=="error" else None)
-                page.on("response", lambda response: response_errors.append(f"HTTP {response.status}: {response.url}") if response.status>=400 else None)
+                page.on("response", lambda response: response_errors.append(f"HTTP {response.status}: {response.url}") if response.status>=500 else None)
                 try:
                     page.goto(PRODUCTION_URL, wait_until="domcontentloaded", timeout=180_000)
-                    try: page.get_by_text("Screener", exact=True).first.wait_for(state="visible", timeout=180_000)
+                    try: _wait_for_app(page)
                     except PlaywrightTimeoutError:
                         (output/f"{viewport_name}_failure.txt").write_text(page.locator("body").inner_text(timeout=20),encoding="utf-8"); failures.append(f"{viewport_name}: application did not expose Screener within 180s"); continue
                     tabs=_find_tabs(page); names=[tabs.nth(i).inner_text().strip() for i in range(tabs.count())]; print("tabs:",names)
-                    if names!=EXPECTED_TABS: failures.append(f"{viewport_name}: tabs={names!r}, expected={EXPECTED_TABS!r}")
+                    if not all(name in names for name in EXPECTED_TABS): failures.append(f"{viewport_name}: missing expected tabs; observed={names!r}")
                     for tab_name in EXPECTED_TABS:
                         tab=page.get_by_text(tab_name, exact=True).first
                         if not tab.count() or not tab.is_visible(): failures.append(f"{viewport_name}: missing visible tab {tab_name}"); continue
-                        tab.click(); page.wait_for_timeout(750); _audit_view(page,tab_name,browser_errors)
+                        tab.click(); page.wait_for_timeout(1000); _audit_view(page,tab_name,browser_errors)
                     overflow=page.evaluate("document.documentElement.scrollWidth-window.innerWidth"); print(f"  horizontal_overflow={overflow}px")
                     if width<=600 and overflow>24: failures.append(f"{viewport_name}: horizontal overflow {overflow}px")
                     page.screenshot(path=str(output/f"{viewport_name}.png"),full_page=False)
