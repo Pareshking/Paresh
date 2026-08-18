@@ -66,3 +66,78 @@ def ath_series(path: str | None = None) -> pd.Series:
     if df.empty:
         return pd.Series(dtype=float)
     return df.set_index("Symbol")["ATH"]
+
+
+def build_ath_snapshot(
+    symbols: list[str],
+    period: str | None = None,
+    *,
+    download=None,
+    batch_size: int = 100,
+) -> pd.DataFrame:
+    """Compute per-symbol all-time highs from a long history.
+
+    Run by the daily sync job on GitHub Actions, never by the app.
+
+    THE ADJUSTMENT BASIS MUST MATCH THE APP'S. The screener's prices come from
+    yf.download with auto_adjust left at its default, which is True in yfinance
+    1.x -- adjusted for splits and dividends. An all-time high fetched with
+    auto_adjust=False is on a different scale entirely, and comparing the two
+    is meaningless: a stock that split 1:5 would carry a pre-split high five
+    times its adjusted price, so a genuine new high would read as ~76% BELOW
+    its all-time high. Hence auto_adjust=True here, explicitly, with this note
+    -- the default is easy to change and the failure would be silent.
+
+    `download` is injectable so the batching and the adjustment basis can be
+    tested without touching the network.
+    """
+    from src.core.config import ATH_HISTORY_PERIOD
+    from src.loaders.price_loader import _extract_field
+
+    window = period or ATH_HISTORY_PERIOD
+    fetch = download
+    if fetch is None:  # pragma: no cover - exercised only against the network
+        import yfinance as yf
+
+        def fetch(tickers, **kwargs):
+            return yf.download(tickers, **kwargs)
+
+    tickers = [
+        sym if str(sym).upper().endswith(".NS") else f"{sym}.NS" for sym in symbols
+    ]
+    frames = []
+    for i in range(0, len(tickers), batch_size):
+        got = fetch(
+            tickers[i : i + batch_size],
+            period=window,
+            progress=False,
+            group_by="ticker",
+            threads=True,
+            auto_adjust=True,
+        )
+        if got is not None and not got.empty:
+            frames.append(got)
+
+    if not frames:
+        return pd.DataFrame(columns=["Symbol", "ATH", "ATHDate", "AsOf"])
+
+    raw = pd.concat(frames, axis=1)
+    highs = _extract_field(raw, ["High"])
+    if highs is None or highs.empty:
+        return pd.DataFrame(columns=["Symbol", "ATH", "ATHDate", "AsOf"])
+
+    ath = highs.max()
+    ath = ath[ath > 0].dropna()
+    if ath.empty:
+        return pd.DataFrame(columns=["Symbol", "ATH", "ATHDate", "AsOf"])
+
+    peak_date = highs.idxmax().reindex(ath.index)
+    last_session = pd.DatetimeIndex(highs.index)[-1]
+    return pd.DataFrame({
+        "Symbol": ath.index,
+        "ATH": ath.values,
+        "ATHDate": [
+            str(pd.Timestamp(d).date()) if pd.notna(d) else "" for d in peak_date.values
+        ],
+        "AsOf": str(pd.Timestamp(last_session).date()),
+    }).sort_values("Symbol").reset_index(drop=True)
