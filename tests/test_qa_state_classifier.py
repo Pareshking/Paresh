@@ -83,3 +83,27 @@ def test_pipeline_running_is_not_ready():
 
 def test_data_init_failure_is_reported_as_such():
     assert _state("❌ Failed to initialize market data", stTabs=0) == "app_data_init_failed"
+
+
+# ── Liveness without a browser ──────────────────────────────────────────────
+
+def test_app_health_url_targets_the_app_not_the_cloud_wrapper():
+    """Streamlit Cloud answers 200 with the SPA shell for ANY path.
+
+    So the bare /_stcore/health proves nothing -- measured 2026-08-18 it
+    returned 9272 bytes of HTML, while the app's own endpoint under /~/+/
+    returned the literal "ok". Probing only the wrapper left the harness
+    unable to say whether the Python process was alive whenever the browser
+    could not run, which is precisely when that answer matters most.
+    """
+    assert production_qa.APP_HEALTH_URL.endswith("/~/+/_stcore/health")
+    assert production_qa.HEALTH_URL != production_qa.APP_HEALTH_URL
+
+
+def test_only_a_literal_ok_body_counts_as_healthy():
+    """The SPA shell is HTTP 200 too, so status alone is not a health signal."""
+    import inspect
+
+    src = inspect.getsource(production_qa.http_probe)
+    assert '"app_health"' in src
+    assert 'body.strip().lower().startswith("ok")' in src

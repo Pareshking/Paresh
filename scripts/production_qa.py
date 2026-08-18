@@ -38,6 +38,15 @@ import requests
 
 URL = os.getenv("UMIYA_PRODUCTION_URL", "https://paresh.streamlit.app/").rstrip("/") + "/"
 HEALTH_URL = URL.rstrip("/") + "/_stcore/health"
+# The health endpoint that actually belongs to OUR app. Streamlit Community
+# Cloud mounts the app under /~/+/, and only that path reaches the Python
+# process -- it answers the literal body "ok". The bare /_stcore/health above
+# is the wrapper's, and returns the SPA shell for any path, which is why point
+# 2 in this module's docstring exists. Measured 2026-08-18: wrapper 9272 bytes
+# of HTML, app 2 bytes of "ok". This is the only liveness proof available
+# without a browser, and it is what the harness falls back on when one cannot
+# run -- an app whose dependencies failed to install does not answer here.
+APP_HEALTH_URL = URL.rstrip("/") + "/~/+/_stcore/health"
 OUT = Path(os.getenv("UMIYA_QA_OUT", "artifacts/production_qa"))
 
 # Budget for the cold data pipeline. This is a REPORTING horizon, not a pass
@@ -112,7 +121,8 @@ def http_probe() -> dict:
         "(KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"
     )
     result: dict = {}
-    for name, target in (("app", URL), ("health", HEALTH_URL)):
+    for name, target in (("app", URL), ("health", HEALTH_URL),
+                         ("app_health", APP_HEALTH_URL)):
         started = time.perf_counter()
         try:
             r = session.get(target, timeout=45, allow_redirects=True)
@@ -455,6 +465,11 @@ def main() -> None:
 
     print("\n================ PRODUCTION QA VERDICT ================", flush=True)
     print(f"readiness state       : {report.get('ready_state')}", flush=True)
+    # Independent of the browser, so it still reports when the browser cannot
+    # run at all -- and it distinguishes "app is down" from "we could not look".
+    _ah = (report.get("http_probe") or {}).get("app_health") or {}
+    print(f"app process alive     : {bool(_ah.get('is_streamlit_health_ok'))} "
+          f"(HTTP {_ah.get('status', '-')} at /~/+/_stcore/health)", flush=True)
     if EXPECTED_SHA and "deploy_correspondence" not in report:
         print(f"deploy correspondence : not checked (app never reached ready; "
               f"expected {EXPECTED_SHA[:7]})", flush=True)
