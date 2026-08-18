@@ -39,6 +39,8 @@ REACHABLE_TIMEOUT_S = int(os.getenv("UMIYA_REACHABLE_TIMEOUT_S", "600"))
 # How long a cold pipeline is allowed to run before we stop and report it.
 READY_BUDGET_S = int(os.getenv("UMIYA_READY_BUDGET_S", "1500"))
 POLL_S = 5
+# The telemetry element lands only after the whole script run finishes.
+METRICS_WAIT_S = int(os.getenv("UMIYA_METRICS_WAIT_S", "600"))
 TABS = [
     "Screener", "Qualified", "Sectors", "RRG", "Multi-Strategy", "Portfolio",
     "Delivery", "Watchlist", "Market Breadth", "Backtest", "Configuration", "Guide",
@@ -186,9 +188,21 @@ def main() -> None:
             except Exception as exc:
                 report["interaction_error"] = f"{type(exc).__name__}: {str(exc)[:160]}"
 
-        # Delivery is loaded inside its own tab during the first script run, so
-        # its stage timing is already recorded by the time the tabs exist.
-        metrics_blob = read_metrics(page)
+        # The telemetry element is emitted at the very END of the script run,
+        # after all twelve tab bodies have executed (delivery does network I/O
+        # of its own). On a cold run the tabs become visible long before that,
+        # so reading opportunistically here returns nothing and misreports a
+        # healthy cold start as "no telemetry". Wait for it.
+        metrics_deadline = time.monotonic() + METRICS_WAIT_S
+        metrics_blob = None
+        while time.monotonic() < metrics_deadline:
+            metrics_blob = read_metrics(page)
+            if metrics_blob:
+                break
+            print(json.dumps({"t_s": round(time.monotonic() - t0, 1),
+                              "waiting_for": "startup telemetry"}), flush=True)
+            time.sleep(POLL_S)
+        report["metrics_wait_s"] = round(time.monotonic() - t0, 1)
         try:
             page.screenshot(path=str(OUT / "cold_start_final.png"))
         except Exception:
@@ -243,10 +257,13 @@ def main() -> None:
     if not counters:
         print("  (none - nothing was fetched or computed in this process)", flush=True)
     memo_misses = {k: v for k, v in counters.items() if k.startswith("memo_miss")}
-    if not memo_misses:
+    if metrics_blob and not memo_misses:
         print("  NOTE: no memo misses, so Streamlit served every cached call "
               "from a warm cache - these timings are not a cold pipeline.",
               flush=True)
+    elif not metrics_blob:
+        print("  NOTE: no telemetry was published, so nothing can be said "
+              "about the cache state from counters.", flush=True)
     print("\n-- coverage --", flush=True)
     for k in ("universe_symbols", "price_path", "price_symbols_requested",
               "price_missing_after_batches", "price_series_returned",
