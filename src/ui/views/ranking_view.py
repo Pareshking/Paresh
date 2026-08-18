@@ -9,7 +9,7 @@ import pandas as pd
 import streamlit as st
 
 from src.ui.charts import render_candlestick_drilldown
-from src.ui.components import render_data_quality_footer
+from src.ui.components import render_data_quality_footer, to_bool_mask
 from src.ui.theme import (
     render_master_screener_table,
     render_saas_table,
@@ -240,9 +240,16 @@ def render_ranking_view(
 
     # Quick Preset filters
     if filt == "Top 50 Qualified":
-        view = view[(view["Rank"] <= 50) & view["Above 50 EMA"] & view["Near 52W High"]]
+        view = view[
+            (view["Rank"] <= 50)
+            & to_bool_mask(view.get("Above 50 EMA"))
+            & to_bool_mask(view.get("Near 52W High"))
+        ]
     elif filt == "Passed Filters":
-        view = view[view["Above 50 EMA"] & view["Near 52W High"]]
+        view = view[
+            to_bool_mask(view.get("Above 50 EMA"))
+            & to_bool_mask(view.get("Near 52W High"))
+        ]
     elif filt == "Momentum Movers":
         if "Rank Δ 1M" in view.columns:
             view = view[view["Rank Δ 1M"].abs() >= 15].sort_values(
@@ -258,8 +265,10 @@ def render_ranking_view(
 
     n_total = len(rank_df)
     n_view = len(view)
-    n_ema = int(view["Above 50 EMA"].sum()) if "Above 50 EMA" in view.columns else 0
-    n_hi = int(view["Near 52W High"].sum()) if "Near 52W High" in view.columns else 0
+    # Count through the boolean mask. Summing the raw column concatenates
+    # under the pandas 3 string dtype and yields '' for an empty view.
+    n_ema = int(to_bool_mask(view.get("Above 50 EMA")).sum())
+    n_hi = int(to_bool_mask(view.get("Near 52W High")).sum())
     c_info.markdown(
         f"<div style='font-family:JetBrains Mono,monospace;font-size:0.75rem;color:#64748b;padding-top:4px;'>Showing <strong style='color:#0f172a;'>{n_view}</strong> of {n_total} stocks &nbsp;·&nbsp; <span style='color:#15803d;font-weight:600;'>{n_ema}</span> &gt; 50 EMA &nbsp;·&nbsp; <span style='color:#4f46e5;font-weight:600;'>{n_hi}</span> near 52W Hi</div>",
         unsafe_allow_html=True,

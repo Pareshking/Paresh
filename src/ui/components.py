@@ -13,6 +13,30 @@ from src.core.types import MarketRegime, RegimeData, SignalAlert
 from src.ui.theme import clean_html
 
 
+
+def to_bool_mask(values: "pd.Series | None") -> pd.Series:
+    """Coerce a qualification column to a real boolean mask.
+
+    "Above 50 EMA" and "Near 52W High" carry tick marks rather than booleans.
+    Under pandas 3 they land in the string dtype, where summing CONCATENATES
+    instead of counting, and an empty column sums to '' -- so
+    ``int(col.sum())`` raised ``ValueError: invalid literal for int() with
+    base 10: ''`` and took the Screener down in production. Using the column
+    directly with ``&`` is unsafe for the same reason.
+
+    Every other consumer already coerced these with .map(); this centralises
+    that rule so the two representations cannot drift apart again.
+    """
+    if values is None:
+        return pd.Series(dtype=bool)
+    truthy = {"✅", "TRUE", "1", "YES", "Y"}
+    return pd.Series(
+        [v is True or (v is not None and str(v).strip().upper() in truthy) for v in values],
+        index=values.index,
+        dtype=bool,
+    )
+
+
 def compute_signals(
     rank_df: pd.DataFrame,
     regime_status: MarketRegime,
@@ -72,16 +96,12 @@ def compute_signals(
 
     # Qualified count check (Safely parse boolean or string icons)
     ab_ema = (
-        rank_df["Above 50 EMA"].map(
-            lambda x: x is True or str(x).strip() in ["✅", "True", "1"]
-        )
+        to_bool_mask(rank_df["Above 50 EMA"])
         if "Above 50 EMA" in rank_df.columns
         else pd.Series(True, index=rank_df.index)
     )
     nr_hi = (
-        rank_df["Near 52W High"].map(
-            lambda x: x is True or str(x).strip() in ["✅", "True", "1"]
-        )
+        to_bool_mask(rank_df["Near 52W High"])
         if "Near 52W High" in rank_df.columns
         else pd.Series(True, index=rank_df.index)
     )
