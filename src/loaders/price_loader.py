@@ -16,6 +16,7 @@ import pandas as pd
 import streamlit as st
 import yfinance as yf
 
+from src.core import startup_metrics as metrics
 from src.core.config import BENCHMARK_SYMBOL, PRICES_FILE
 from src.core.logger import logger
 from src.core.types import MarketRegime, OHLCVData, RegimeData
@@ -172,6 +173,8 @@ def fetch_price_history(
                 today = datetime.now().date()
                 if last_cached_date >= today:
                     logger.info(f"Price cache up-to-date: {len(cached.columns)} series")
+                    metrics.note("price_path", "cache_fresh")
+                    metrics.note("price_series_returned", len(cached.columns))
                     return cached
                 
                 # Incremental update needed for new calendar trading sessions
@@ -180,6 +183,7 @@ def fetch_price_history(
                     s + ".NS" if not s.upper().endswith(".NS") else s
                     for s in symbols
                 ]
+                metrics.note("price_path", "cache_incremental")
                 new_data = _download_range(yf_tickers, start_date)
                 
                 if new_data is not None and not new_data.empty:
@@ -235,6 +239,8 @@ def fetch_price_history(
         f"Downloading full price history for {len(yf_symbols)} stocks (period={period})…"
     )
 
+    metrics.note("price_path", "full_download")
+    metrics.note("price_symbols_requested", len(yf_symbols))
     BATCH_SIZE = 100
     all_batches: list[pd.DataFrame] = []
     for batch_start in range(0, len(yf_symbols), BATCH_SIZE):
@@ -242,6 +248,7 @@ def fetch_price_history(
         batch_num = batch_start // BATCH_SIZE + 1
         total_batches = (len(yf_symbols) + BATCH_SIZE - 1) // BATCH_SIZE
         logger.debug(f"Downloading batch {batch_num}/{total_batches} ({len(batch)} tickers)")
+        metrics.incr("price_batches_attempted")
         try:
             batch_data = yf.download(
                 batch,
@@ -252,7 +259,10 @@ def fetch_price_history(
             )
             if batch_data is not None and not batch_data.empty:
                 all_batches.append(batch_data)
+            else:
+                metrics.incr("price_batches_empty")
         except Exception as e:
+            metrics.incr("price_batch_errors")
             logger.warning(f"Batch {batch_num} error: {e}")
         if batch_start + BATCH_SIZE < len(yf_symbols):
             time.sleep(1.2)
@@ -267,12 +277,15 @@ def fetch_price_history(
     if isinstance(data.columns, pd.MultiIndex) and not data.empty:
         got = set(data.columns.get_level_values(0).unique())
         missing = [t for t in yf_symbols if t not in got]
+        metrics.note("price_missing_after_batches", len(missing))
         if missing:
             logger.info(f"Retrying {len(missing)} missing tickers individually…")
             for tkr in missing:
+                metrics.incr("price_individual_retries")
                 try:
                     s = yf.download(tkr, period=period, progress=False, threads=False)
                     if not s.empty:
+                        metrics.incr("price_individual_retry_recovered")
                         if s.index.tz is not None:
                             s.index = s.index.tz_localize(None)
                         if isinstance(s.columns, pd.MultiIndex):
@@ -331,6 +344,7 @@ def fetch_price_history(
 
     data = data.dropna(how="all")
 
+    metrics.note("price_series_returned", len(data.columns))
     # Save to parquet cache
     try:
         data.to_parquet(PRICES_FILE, compression="snappy")

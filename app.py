@@ -5,6 +5,7 @@ Flush 0px top padding with Investrack Pill Tab Navigation.
 """
 
 import hashlib
+import json
 import warnings
 
 import pandas as pd
@@ -17,6 +18,13 @@ warnings.filterwarnings("ignore", message=".*replace.*st\\.components\\.v1\\.htm
 warnings.filterwarnings("ignore", message=".*st\\.components\\.v1\\.html.*")
 
 # Core & Loaders
+from src.core import startup_metrics as metrics
+from src.core.config import (
+    DELIVERY_FILE,
+    MCAP_PR_FILE,
+    MCAPS_FILE,
+    PRICES_FILE,
+)
 from src.engine.momentum import MomentumEngine
 from src.engine.calendar_momentum import apply_calendar_momentum, calendar_start_positions, latest_as_of_date
 from src.loaders.indices_loader import fetch_indices_data
@@ -155,36 +163,52 @@ def load_all_data(indices: list[str]):
     if force:
         st.cache_data.clear()
 
-    idx_info = fetch_indices_data(indices)
+    # Snapshot cache presence BEFORE any fetch, so "was this container cold?"
+    # is answered with evidence rather than inferred from a deploy happening.
+    metrics.record_cache_presence({
+        "prices": PRICES_FILE,
+        "market_caps": MCAPS_FILE,
+        "mcap_pr": MCAP_PR_FILE,
+        "delivery": DELIVERY_FILE,
+    })
+
+    with metrics.stage("universe"):
+        idx_info = fetch_indices_data(indices)
     if idx_info.empty:
         return None
 
     symbols = idx_info["Symbol"].unique().tolist()
+    metrics.note("universe_symbols", len(symbols))
     sym_key = _symbols_hash(symbols)
 
-    raw_prices = load_prices_cached(sym_key, symbols, period="2y")
+    with metrics.stage("price_history"):
+        raw_prices = load_prices_cached(sym_key, symbols, period="2y")
     if raw_prices.empty:
         return None
 
-    adj_close, close_p, high_p, low_p, vol_p = extract_ohlcv(raw_prices, symbols)
-    mcaps = load_mcaps_cached(sym_key, symbols)
-    regime = get_market_regime()
+    with metrics.stage("extract_ohlcv"):
+        adj_close, close_p, high_p, low_p, vol_p = extract_ohlcv(raw_prices, symbols)
+    with metrics.stage("market_caps"):
+        mcaps = load_mcaps_cached(sym_key, symbols)
+    with metrics.stage("market_regime"):
+        regime = get_market_regime()
 
     p_hash = _price_hash(adj_close)
     i_hash = f"{len(idx_info)}_{sym_key}"
-    calc, rank_df = run_momentum_pipeline(
-        p_hash,
-        i_hash,
-        "v4_calendar_periods",
-        adj_close,
-        high_p,
-        low_p,
-        close_p,
-        vol_p,
-        idx_info,
-        mcaps,
-        weights,
-    )
+    with metrics.stage("quant_engine"):
+        calc, rank_df = run_momentum_pipeline(
+            p_hash,
+            i_hash,
+            "v4_calendar_periods",
+            adj_close,
+            high_p,
+            low_p,
+            close_p,
+            vol_p,
+            idx_info,
+            mcaps,
+            weights,
+        )
 
     # Ensure Max DD 6M is populated
     if "Max DD 6M" not in rank_df.columns or rank_df["Max DD 6M"].isna().all():
@@ -216,7 +240,8 @@ def load_all_data(indices: list[str]):
 
 # ── Load Market Data ─────────────────────────────────────────────────────────
 with st.spinner("Loading market data & executing quantitative momentum engine…"):
-    data = load_all_data(selected_indices)
+    with metrics.stage("data_pipeline_total"):
+        data = load_all_data(selected_indices)
 
 if not data:
     st.error(
@@ -327,7 +352,8 @@ with tab_port:
     )
 
 with tab_deliv:
-    render_delivery_view(rank_df)
+    with metrics.stage("delivery"):
+        render_delivery_view(rank_df)
 
 with tab_watch:
     render_watchlist_view(rank_df)
@@ -349,3 +375,15 @@ with tab_config:
 
 with tab_guide:
     render_guide_view(rank_df)
+
+
+# ── Cold-start telemetry ─────────────────────────────────────────────────────
+# Hidden, inert element carrying this process's startup measurements so a
+# production probe can read a real cold start from outside the container.
+metrics.note("script_run_completed_at_s", metrics.since_start())
+st.markdown(
+    '<div id="umiya-startup-metrics" style="display:none">'
+    + json.dumps(metrics.snapshot())
+    + "</div>",
+    unsafe_allow_html=True,
+)

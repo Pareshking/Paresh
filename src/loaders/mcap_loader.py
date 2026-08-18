@@ -20,6 +20,7 @@ import pandas as pd
 import requests
 import yfinance as yf
 
+from src.core import startup_metrics as metrics
 from src.core.config import HTTP_HEADERS, MCAP_PR_FILE, MCAPS_FILE
 from src.core.logger import logger
 
@@ -129,6 +130,7 @@ def _fetch_mcaps_yfinance(symbols: Sequence[str]) -> dict[str, float]:
 
     result: dict[str, float] = {}
     failed: list[str] = []
+    metrics.note("mcap_threaded_requested", len(symbols))
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
         futs = {pool.submit(_fetch_single_mcap, s): s for s in symbols}
@@ -142,10 +144,13 @@ def _fetch_mcaps_yfinance(symbols: Sequence[str]) -> dict[str, float]:
             except Exception:
                 failed.append(futs[f])
 
+    metrics.note("mcap_threaded_failed", len(failed))
     for sym in failed:
+        metrics.incr("mcap_sequential_retries")
         try:
             _, mc = _fetch_single_mcap(sym)
             if mc is not None and not np.isnan(mc):
+                metrics.incr("mcap_sequential_recovered")
                 result[sym] = mc
         except Exception:
             pass
@@ -164,6 +169,7 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
         try:
             cache = pd.read_parquet(MCAP_PR_FILE)
             master = cache.set_index("Symbol")["MarketCap"].to_dict()
+            metrics.note("mcap_path", "pr_disk_cache")
             logger.info(f"NSE PR market cap cache hit: {len(master)} stocks")
         except Exception as e:
             logger.warning(f"NSE PR cache read error: {e}")
@@ -176,8 +182,10 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
             td = datetime.now() - timedelta(days=i)
             if td.weekday() >= 5:
                 continue
+            metrics.incr("mcap_pr_zip_attempts")
             nse_map = _fetch_mcap_from_pr_zip(td)
             if nse_map:
+                metrics.note("mcap_path", "pr_live_zip")
                 master.update(nse_map)
                 try:
                     cache_df = pd.DataFrame(
@@ -210,6 +218,7 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
 
     # Layer 3: Live yfinance fetch
     if missing:
+        metrics.note("mcap_yfinance_fallback_symbols", len(missing))
         logger.info(f"Fetching market caps from yfinance for {len(missing)} stocks…")
         yf_map = _fetch_mcaps_yfinance(missing)
         master.update(yf_map)
@@ -233,4 +242,7 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
                 pass
 
     vmap = {s: master[s] for s in symbols if s in master}
+    metrics.note("mcap_symbols_requested", len(symbols))
+    metrics.note("mcap_symbols_resolved", len(vmap))
+    metrics.note("mcap_symbols_missing", len(symbols) - len(vmap))
     return pd.Series(vmap, dtype=float)
