@@ -4,6 +4,7 @@ Relative Rotation Graph (RRG ®) View Controller.
 
 import re
 
+import numpy as np
 import pandas as pd
 import streamlit as st
 
@@ -92,12 +93,26 @@ def compute_rrg_data(
         return pd.DataFrame()
 
     raw_data = {}
-    cum_bench = (1 + benchmark_ret.fillna(0)).cumprod().replace(0, 1.0)
+    # Relative strength must compare the sector and the benchmark over the SAME
+    # observations. Filling a missing return with 0 invents a flat session:
+    # when the benchmark is the filled side the sector's real move is measured
+    # against a stationary benchmark, which biases RS-Ratio directionally.
+    # Missing observations are excluded pairwise instead.
+    valid_bench = benchmark_ret.dropna()
 
     for ind, syms in sectors.items():
-        sect_ret = daily_ret[syms].mean(axis=1).fillna(0)
-        cum_sect = (1 + sect_ret).cumprod()
-        rs_line = cum_sect / cum_bench
+        # mean(axis=1) already ignores individual members that are missing; the
+        # result is NaN only on dates where the whole sector is unobserved.
+        sect_ret = daily_ret[syms].mean(axis=1)
+        paired = pd.concat(
+            [sect_ret.rename("sect"), valid_bench.rename("bench")],
+            axis=1, join="inner",
+        ).dropna()
+        if len(paired) < 2:
+            continue
+        cum_sect = (1 + paired["sect"]).cumprod()
+        cum_bench = (1 + paired["bench"]).cumprod()
+        rs_line = cum_sect / cum_bench.replace(0, np.nan)
         rs_smooth = rs_line.ewm(span=max(lookback // 2, 8)).mean()
         rs_ratio = (
             rs_smooth
