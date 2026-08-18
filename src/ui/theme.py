@@ -1001,12 +1001,43 @@ def generate_sparkline_svg(prices_arr, width: int = 74, height: int = 24) -> str
         return '<span style="color:#cbd5e1;font-size:0.75rem;">—</span>'
 
 
+PERIOD_WINDOWS: tuple[int, ...] = (1, 3, 6, 9, 12)
+
+
+def _period_cells(row, months: int) -> dict[str, str]:
+    """Return/Sharpe/drawdown cells for one calendar window.
+
+    Five windows are shown, so the per-period formatting is written once here
+    rather than copied five times; the 3M and 6M blocks were already duplicates
+    of each other and adding 1M, 9M and 12M by hand would have made five.
+    """
+    label = f"{months}M"
+    ret = row.get(f"{label} Return")
+    ret_num = isinstance(ret, (int, float)) and pd.notna(ret)
+    sharpe = row.get(f"{label} Sharpe")
+    dd = row.get(f"Max DD {label}")
+    return {
+        "ret": f"{float(ret):+.1%}" if ret_num else "—",
+        "clr": "ret-pos" if (ret_num and ret > 0) else ("ret-neg" if (ret_num and ret < 0) else ""),
+        "sharpe": (
+            f"{float(sharpe):.2f}"
+            if pd.notna(sharpe) and isinstance(sharpe, (int, float))
+            else "—"
+        ),
+        "dd": (
+            f"{float(dd):.1f}%"
+            if pd.notna(dd) and isinstance(dd, (int, float))
+            else "—"
+        ),
+    }
+
+
 def render_master_screener_table(
     df: pd.DataFrame,
     prices_df: pd.DataFrame | None = None,
     key: str = "master_screener",
     max_height: int = 750,
-    density: str = "Full Quant (28)",
+    density: str = "Full Quant (33)",
 ) -> None:
     """Renders Institutional SaaS Screener Table with Multi-Tier Column Density, Sticky Headers & Sparklines."""
     if df.empty:
@@ -1220,12 +1251,22 @@ def render_master_screener_table(
 
         spark_svg = spark_map.get(sym, '<span class="text-muted">—</span>')
 
+        # Every calendar window, formatted once. pc[3]["ret"] is the 3M return
+        # cell, and so on; the Full Quant tier below renders all five.
+        pc = {m: _period_cells(row, m) for m in PERIOD_WINDOWS}
+        period_cells_html = "".join(
+            f'<td class="td-num {pc[m]["clr"]}"><strong>{pc[m]["ret"]}</strong></td>'
+            f'<td class="td-num td-sharpe">{pc[m]["sharpe"]}</td>'
+            f'<td class="td-num td-dd">{pc[m]["dd"]}</td>'
+            for m in PERIOD_WINDOWS
+        )
+
         if is_exec:
             row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk}</strong></td><td class="sticky-col-symbol"><span class="stock-ticker">{sym}</span></td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw}">{ind_disp}</td><td class="td-num {ret_3m_clr}"><strong>{ret_3m_str}</strong></td><td class="td-num td-sharpe">{sharpe_3m_str}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
         elif is_core:
             row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk}</strong></td><td class="sticky-col-symbol"><span class="stock-ticker">{sym}</span></td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw}">{ind_disp}</td><td class="td-num">{mcap_str}</td><td class="td-num {ret_3m_clr}"><strong>{ret_3m_str}</strong></td><td class="td-num td-sharpe">{sharpe_3m_str}</td><td class="td-num {ret_6m_clr}"><strong>{ret_6m_str}</strong></td><td class="td-num td-sharpe">{sharpe_6m_str}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-num td-sl">{sl_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
         else:
-            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk}</strong></td><td class="sticky-col-symbol"><span class="stock-ticker">{sym}</span></td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw}">{ind_disp}</td><td class="td-num">{mcap_str}</td><td class="td-num {ret_3m_clr}"><strong>{ret_3m_str}</strong></td><td class="td-num td-sharpe">{sharpe_3m_str}</td><td class="td-num td-dd">{dd_3m_str}</td><td class="td-num {ret_6m_clr}"><strong>{ret_6m_str}</strong></td><td class="td-num td-sharpe">{sharpe_6m_str}</td><td class="td-num td-dd">{dd_6m_str}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-center">{above_ema_icon}</td><td class="td-center">{near_hi_icon}</td><td class="td-num td-sl">{sl_str}</td><td class="td-num td-chand">{chand_str}</td><td class="td-center">{gap_icon}</td><td class="td-num">{ffill_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
+            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk}</strong></td><td class="sticky-col-symbol"><span class="stock-ticker">{sym}</span></td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw}">{ind_disp}</td><td class="td-num">{mcap_str}</td>{period_cells_html}<td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-center">{above_ema_icon}</td><td class="td-center">{near_hi_icon}</td><td class="td-num td-sl">{sl_str}</td><td class="td-num td-chand">{chand_str}</td><td class="td-center">{gap_icon}</td><td class="td-num">{ffill_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
         rows_html.append(row_h)
 
     # Assemble headers based on density
@@ -1258,7 +1299,7 @@ def render_master_screener_table(
                 <th colspan="3" class="sticky-group-id">IDENTITY</th>
                 <th colspan="2">RANK DYNAMICS</th>
                 <th colspan="3">CLASSIFICATION</th>
-                <th colspan="3">3M MOMENTUM</th>
+                <th colspan="2">3M MOMENTUM</th>
                 <th colspan="2">6M MOMENTUM</th>
                 <th colspan="3">FILTERS</th>
                 <th>RISK</th>
@@ -1290,8 +1331,11 @@ def render_master_screener_table(
                 <th colspan="3" class="sticky-group-id">IDENTITY</th>
                 <th colspan="2">RANK DYNAMICS</th>
                 <th colspan="3">CLASSIFICATION</th>
-                <th colspan="4">3M FACTOR MOMENTUM</th>
-                <th colspan="4">6M FACTOR MOMENTUM</th>
+                <th colspan="3">1M FACTOR MOMENTUM</th>
+                <th colspan="3">3M FACTOR MOMENTUM</th>
+                <th colspan="3">6M FACTOR MOMENTUM</th>
+                <th colspan="3">9M FACTOR MOMENTUM</th>
+                <th colspan="3">12M FACTOR MOMENTUM</th>
                 <th colspan="5">TECHNICALS & FILTERS</th>
                 <th colspan="2">RISK & EXITS</th>
                 <th colspan="2">DATA HEALTH</th>
@@ -1306,14 +1350,21 @@ def render_master_screener_table(
                 <th class="th-center">INDEX</th>
                 <th class="th-left">INDUSTRY</th>
                 <th>MCAP (CR)</th>
+                <th>1M RET</th>
+                <th>1M SHARPE</th>
+                <th>MAX DD 1M</th>
                 <th>3M RET</th>
                 <th>3M SHARPE</th>
-                
                 <th>MAX DD 3M</th>
                 <th>6M RET</th>
                 <th>6M SHARPE</th>
-                
                 <th>MAX DD 6M</th>
+                <th>9M RET</th>
+                <th>9M SHARPE</th>
+                <th>MAX DD 9M</th>
+                <th>12M RET</th>
+                <th>12M SHARPE</th>
+                <th>MAX DD 12M</th>
                 <th>% 52W HI</th>
                 <th>% 50 EMA</th>
                 <th class="th-center">VOLUME</th>

@@ -24,13 +24,22 @@ DISPLAY_COLS = [
     "Rank Δ 1M",
     "Rank Δ 3M",
     "CMP",
+    "1M Return",
+    "1M Sharpe",
     "3M Return",
     "3M Sharpe",
     "6M Return",
     "6M Sharpe",
+    "9M Return",
+    "9M Sharpe",
+    "12M Return",
+    "12M Sharpe",
     "% High",
+    "Max DD 1M",
     "Max DD 3M",
     "Max DD 6M",
+    "Max DD 9M",
+    "Max DD 12M",
     "% 50 EMA",
     "Volume",
     "Stop Loss",
@@ -283,13 +292,13 @@ def render_ranking_view(
 
     density_mode = c_density.segmented_control(
         "Column Density",
-        ["Executive (10)", "Core (18)", "Full Quant (28)"],
-        default="Full Quant (28)",
+        ["Executive (11)", "Core (17)", "Full Quant (33)"],
+        default="Full Quant (33)",
         key="rank_density_mode",
         label_visibility="collapsed",
     )
     if not density_mode:
-        density_mode = "Full Quant (28)"
+        density_mode = "Full Quant (33)"
 
     view_mode = c_view.segmented_control(
         "Layout",

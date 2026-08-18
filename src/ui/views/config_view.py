@@ -174,17 +174,21 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
         ("9M", "cfg_w4", 0.20),
         ("12M", "cfg_w5", 0.10),
     ]
+    # Bind each widget DIRECTLY to the canonical session-state key.
+    #
+    # These sliders used to write to "slider_cfg_wN" and copy the value into
+    # "cfg_wN" afterwards. app.py reads cfg_w1..cfg_w5 at the TOP of the script,
+    # which has already run by the time this tab body executes, so the copy
+    # landed one rerun too late: moving a weight slider re-ranked nothing, and
+    # the change only appeared after some unrelated later interaction. The
+    # index multiselect above avoided this by calling st.rerun(); the weights
+    # never did.
+    #
+    # With key=<canonical key>, Streamlit writes the new value into session
+    # state BEFORE the rerun, so the top-of-script read sees it on the same
+    # pass. No st.rerun() needed, and no double computation.
     for col, (label, key, default) in zip(wc, windows):
-        val = col.slider(
-            label,
-            0.0,
-            1.0,
-            float(st.session_state.get(key, default)),
-            0.05,
-            key=f"slider_{key}",
-        )
-        if val != st.session_state.get(key, default):
-            st.session_state[key] = val
+        col.slider(label, min_value=0.0, max_value=1.0, step=0.05, key=key)
 
     st.divider()
 
@@ -205,26 +209,15 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
             """,
             unsafe_allow_html=True,
         )
+        # Same one-rerun lag as the weight sliders above; same fix.
         new_sc = st.slider(
-            "Sector Exposure Cap (%)",
-            15,
-            50,
-            int(st.session_state.get("cfg_sc", 30)),
-            5,
-            key="slider_sc",
+            "Sector Exposure Cap (%)", min_value=15, max_value=50, step=5,
+            key="cfg_sc",
         )
         new_stc = st.slider(
-            "Individual Stock Cap (%)",
-            2,
-            15,
-            int(st.session_state.get("cfg_stc", 8)),
-            1,
-            key="slider_stc",
+            "Individual Stock Cap (%)", min_value=2, max_value=15, step=1,
+            key="cfg_stc",
         )
-        if new_sc != st.session_state.get("cfg_sc"):
-            st.session_state["cfg_sc"] = new_sc
-        if new_stc != st.session_state.get("cfg_stc"):
-            st.session_state["cfg_stc"] = new_stc
 
         if new_stc > new_sc:
             st.warning(f"Stock cap ({new_stc}%) cannot exceed sector cap ({new_sc}%).")
@@ -240,23 +233,12 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
             unsafe_allow_html=True,
         )
         new_vt = st.checkbox(
-            "Enable Dynamic Volatility Targeting",
-            value=st.session_state.get("cfg_vt", False),
-            key="check_vt",
+            "Enable Dynamic Volatility Targeting", key="cfg_vt",
         )
-        new_vtv = st.slider(
-            "Target Portfolio Volatility (%)",
-            10,
-            40,
-            int(st.session_state.get("cfg_vtv", 25)),
-            5,
-            key="slider_vtv",
-            disabled=not new_vt,
+        st.slider(
+            "Target Portfolio Volatility (%)", min_value=10, max_value=40, step=5,
+            key="cfg_vtv", disabled=not new_vt,
         )
-        if new_vt != st.session_state.get("cfg_vt"):
-            st.session_state["cfg_vt"] = new_vt
-        if new_vtv != st.session_state.get("cfg_vtv"):
-            st.session_state["cfg_vtv"] = new_vtv
 
     st.divider()
 

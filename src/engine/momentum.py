@@ -521,19 +521,34 @@ class MomentumEngine:
             lambda x: x >= -20.0 if pd.notna(x) else False
         )
 
-        # 3M & 6M Metrics use the canonical calendar-period engine.
+        # Every canonical window, not just 3M and 6M. apply_calendar_momentum
+        # has already computed all five and stored each period-end return and
+        # Sharpe in self.period_metrics, so publishing the other three costs
+        # nothing -- and reading them back is strictly better than recomputing
+        # two of them here, which duplicated the work and gave the two paths a
+        # chance to disagree. The fallback covers a caller that reached
+        # get_rankings without going through apply_calendar_momentum.
         as_of_metrics = latest_as_of_date(pd.DatetimeIndex(self.prices.index))
-        for months, label in ((3, "3M"), (6, "6M")):
-            _, cal_ret, cal_sharpe, _ = _calendar_period_metrics(
-                self.prices, self.log_ret, months, latest_as_of=as_of_metrics
-            )
-            rank_df[f"{label} Return"] = rank_df["Symbol"].map(cal_ret.iloc[-1].to_dict())
-            rank_df[f"{label} Sharpe"] = rank_df["Symbol"].map(cal_sharpe.iloc[-1].to_dict())
+        for months in MOMENTUM_WINDOWS:
+            label = f"{months}M"
+            cached = (self.period_metrics or {}).get(months) or {}
+            cal_ret_last = cached.get("return")
+            cal_sharpe_last = cached.get("sharpe")
+            if not isinstance(cal_ret_last, pd.Series) or not isinstance(
+                cal_sharpe_last, pd.Series
+            ):
+                _, cal_ret, cal_sharpe, _ = _calendar_period_metrics(
+                    self.prices, self.log_ret, months, latest_as_of=as_of_metrics
+                )
+                cal_ret_last, cal_sharpe_last = cal_ret.iloc[-1], cal_sharpe.iloc[-1]
+            rank_df[f"{label} Return"] = rank_df["Symbol"].map(cal_ret_last.to_dict())
+            rank_df[f"{label} Sharpe"] = rank_df["Symbol"].map(cal_sharpe_last.to_dict())
 
-        # 3M & 6M drawdowns use calendar-defined windows.
+        # Drawdowns over the same calendar windows.
         close_idx = pd.DatetimeIndex(close_src.index)
         as_of = latest_as_of_date(close_idx)
-        for months, label in ((3, "3M"), (6, "6M")):
+        for months in MOMENTUM_WINDOWS:
+            label = f"{months}M"
             starts = calendar_start_positions(close_idx, months, latest_as_of=as_of)
             start = int(starts[-1])
             period_close = close_src.iloc[start:]
