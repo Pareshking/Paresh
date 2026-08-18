@@ -99,3 +99,114 @@ observed production failure, and changing it is a design decision rather than
 a defect fix. Recommended next step is to measure a true cold start (push to
 `main` forces a redeploy, so the QA run that follows a deploy is the cold
 case) and, if it is slow, bound the two retry loops.
+
+---
+
+# Cold-start measurement — 2026-08-18
+
+## Outcome: no cold start observed, and the premise was wrong twice
+
+The cold-start risk recorded above rested on the assumption that a deploy
+produces a fresh container with an empty `/tmp/data_cache`, so every restart
+re-downloads the full universe. **Measured: false, in two separate ways.**
+
+### 1. `/tmp/data_cache` survives a deploy
+
+Run `32092212949` (main `27d3266`), cache snapshot taken *before any fetch*:
+
+| file | state |
+|---|---|
+| `prices.parquet` | present, 16,210,238 B |
+| `mcap_nse.parquet` | present, 70,851 B |
+| `delivery.parquet` | present, 4,235,903 B |
+| `market_caps.parquet` | absent |
+
+`cold_container: false`. The probe refused to report a cold measurement.
+
+### 2. The interpreter survives a deploy too
+
+Run `32095465407` read `module_import_utc: None` and `process: null` — fields
+that exist only in `2609b76` — while simultaneously reading
+`memo_miss_prices: 1`, a counter that **also** exists only in `2609b76`.
+
+The only state consistent with both: `app.py` was refreshed to the new commit
+while `src/core/startup_metrics` remained the old build inside the same
+interpreter, 3283 s (54.7 min) after its import. The entrypoint re-executes on
+every run; an imported module sits in `sys.modules` and is not re-imported.
+
+Streamlit Cloud therefore updated the script **without restarting the
+process**. This is exactly the hazard the `module_import_utc` rename and
+`process_identity()` were added to expose, and it is now demonstrated rather
+than theorised.
+
+## Measured baseline (warm, stable across runs)
+
+| signal | run 32092212949 | run 32095465407 |
+|---|---|---|
+| navigation complete | 1.6 s | 2.6 s |
+| Streamlit shell | 13.5 s | 14.9 s |
+| Screener UI usable | 13.5 s | 14.9 s |
+| fully interactive | 17.0 s | 18.2 s |
+| `data_pipeline_total` | 0.3 s | 0.3 s |
+
+The application's own work is 0.3 s. The ~14 s to first paint is Streamlit and
+Cloud frontend bootstrap, not the V1 pipeline.
+
+## Coverage — the retry loops are not being exercised
+
+```
+mcap_path              : pr_disk_cache
+mcap_symbols_requested : 750
+mcap_symbols_resolved  : 750
+mcap_symbols_missing   : 0
+price_path             : cache_incremental
+universe_symbols       : 750
+```
+
+All 750 market caps resolved from the NSE PR bhavcopy cache, **zero missing**.
+`mcap_yfinance_fallback_symbols` and `mcap_sequential_retries` are absent
+entirely — the yfinance fallback was never entered. The sequential retry storm
+that motivated the concern is not occurring in production.
+
+## Correction: the universe is 750, not 752
+
+The earlier "752 verified" was verified against the **repository snapshot**.
+Production reports `universe_symbols: 750`.
+
+This is not a defect. `_fetch_indices_impl()` downloads live from
+niftyindices.com first and falls back to the repo CSV only on failure, so
+production derives the universe from the authoritative source exactly as
+required. The live index currently returns 750 against the repo's 15 Aug
+snapshot of 752. The architecture is correct; the earlier figure was sourced
+from the wrong place.
+
+## Decision
+
+Cold start remains **unmeasured**, but the trigger for it is materially rarer
+than assumed: neither the disk cache nor the interpreter is discarded on
+deploy. Combined with zero missing symbols and no fallback usage, the evidence
+supports leaving the retry architecture unchanged — the original decision, now
+on firmer ground.
+
+## Known instrument limitation
+
+`stage()` retains only the first execution of each stage. That is correct for
+capturing a cold start, but it means a later cache-invalidated re-run is not
+timed. In run `32095465407` the changed `app.py` altered the `@st.cache_data`
+source hash and forced a genuine re-fetch (`memo_miss_prices: 1`,
+`price_path: cache_incremental`), and that re-fetch went unmeasured — the
+reported `price_history` duration is still the 55-minute-old first run.
+
+## Not reproducible from this session
+
+A genuine cold start needs `/tmp` actually empty, which requires container
+replacement rather than a deploy — app sleep/wake, resource eviction, or infra
+migration. None can be forced without Streamlit Cloud dashboard access. The
+reliable capture is a scheduled probe that records a baseline whenever it
+observes `cold_container: true`.
+
+## Infrastructure note
+
+Run `32092756568` hung on its GitHub runner for 45 min at `duration_ms: 0` and
+was cancelled. Production was healthy throughout, verified independently
+(HTTP 200, ~2.1 s, three consecutive checks). Runner fault, not application.
