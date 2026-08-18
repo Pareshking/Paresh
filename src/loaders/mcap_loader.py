@@ -12,7 +12,7 @@ import io
 import os
 import time
 import zipfile
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Sequence
 
 import numpy as np
@@ -22,11 +22,27 @@ import yfinance as yf
 
 from src.core import startup_metrics as metrics
 from src.core.config import HTTP_HEADERS, MCAP_PR_FILE, MCAPS_FILE
+from src.core.market_time import ist_now, recent_trading_days
 from src.core.logger import logger
 
 
-def _fetch_mcap_from_pr_zip(target_date: datetime) -> dict[str, float]:
-    """Download NSE Bhavcopy PR zip and extract mcap*.csv."""
+class _NSEBlocked(Exception):
+    """NSE refused the client outright rather than lacking the file.
+
+    A 401/403 means every other date will be refused too, so walking further
+    back is guaranteed waste. On a cold start that cost up to five sequential
+    15s requests before the fallback even began.
+    """
+
+
+def _fetch_mcap_from_pr_zip(target_date: datetime | date) -> dict[str, float]:
+    """Download NSE Bhavcopy PR zip and extract mcap*.csv.
+
+    Returns an empty dict when the archive for that date is simply not there
+    (not published yet, or a holiday) -- the caller should try an earlier day.
+    Raises _NSEBlocked when NSE refuses the client, where trying earlier days
+    cannot help.
+    """
     zip_date = target_date.strftime("%d%m%y")
     csv_date = target_date.strftime("%d%m%Y")
     zip_url = (
@@ -36,6 +52,8 @@ def _fetch_mcap_from_pr_zip(target_date: datetime) -> dict[str, float]:
 
     try:
         resp = requests.get(zip_url, headers=HTTP_HEADERS, timeout=15)
+        if resp.status_code in (401, 403, 429):
+            raise _NSEBlocked(f"HTTP {resp.status_code}")
         if resp.status_code != 200:
             return {}
 
@@ -71,8 +89,10 @@ def _fetch_mcap_from_pr_zip(target_date: datetime) -> dict[str, float]:
             f"Loaded NSE PR market cap: {len(result)} stocks for {target_date.date()}"
         )
         return result
+    except _NSEBlocked:
+        raise
     except Exception as e:
-        logger.debug(f"PR mcap fetch failed for {target_date.date()}: {e}")
+        logger.debug(f"PR mcap fetch failed for {target_date}: {e}")
         return {}
 
 
@@ -178,14 +198,24 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
     # Layer 1b: Live NSE PR Bhavcopy zip
     if not master:
         logger.info("Attempting live NSE PR zip for market caps…")
-        for i in range(7):
-            td = datetime.now() - timedelta(days=i)
-            if td.weekday() >= 5:
-                continue
+        # Walk back through recent trading days: today's archive is not
+        # published until after the close, and a holiday has no archive at
+        # all, so the newest date that actually returns data wins. Weekends
+        # are skipped outright; holidays cost one failed lookup each.
+        for td in recent_trading_days(6):
             metrics.incr("mcap_pr_zip_attempts")
-            nse_map = _fetch_mcap_from_pr_zip(td)
+            try:
+                nse_map = _fetch_mcap_from_pr_zip(td)
+            except _NSEBlocked as exc:
+                # Every earlier date would be refused too. Stop immediately
+                # instead of burning the remaining attempts.
+                metrics.note("mcap_pr_blocked", str(exc))
+                logger.warning(f"NSE PR archive refused the client ({exc}); "
+                               "skipping remaining dates and using fallback.")
+                break
             if nse_map:
                 metrics.note("mcap_path", "pr_live_zip")
+                metrics.note("mcap_pr_date", td.isoformat())
                 master.update(nse_map)
                 try:
                     cache_df = pd.DataFrame(

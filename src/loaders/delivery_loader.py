@@ -24,6 +24,7 @@ from src.core.config import (
     MCAP_PR_FILE,
 )
 from src.core.logger import logger
+from src.core.market_time import ist_now, ist_today
 
 _MAX_WORKERS: Final[int] = 4
 _RATE_LIMIT: Final[Semaphore] = Semaphore(_MAX_WORKERS)
@@ -73,7 +74,7 @@ def is_delivery_cache_fresh() -> bool:
         return False
     try:
         last = datetime.strptime(meta["last_date"], "%Y-%m-%d").date()
-        return (datetime.now().date() - last).days <= 3
+        return (ist_today() - last).days <= 3
     except Exception:
         return False
 
@@ -138,7 +139,9 @@ def fetch_delivery_data(
     logger.info(
         f"Downloading {lookback_calendar_days} calendar days of delivery archives from NSE…"
     )
-    today = datetime.now()
+    # Indian market date: at 19:00 UTC the IST date is already tomorrow, so a
+    # server-local "today" asked NSE for the wrong day for part of each day.
+    today = ist_now()
     target_dates = [
         today - timedelta(days=i)
         for i in range(lookback_calendar_days)

@@ -18,6 +18,7 @@ import yfinance as yf
 
 from src.core import startup_metrics as metrics
 from src.core.config import BENCHMARK_SYMBOL, PRICES_FILE
+from src.core.market_time import ist_today
 from src.core.logger import logger
 from src.core.types import MarketRegime, OHLCVData, RegimeData
 
@@ -41,7 +42,7 @@ def _is_fresh(last_date: datetime | pd.Timestamp | str) -> bool:
             return False
     else:
         return False
-    return (datetime.now(ZoneInfo("Asia/Kolkata")).date() - dt).days <= 1
+    return (ist_today() - dt).days <= 1
 
 
 def _extract_field(df: pd.DataFrame, field_names: list[str]) -> pd.DataFrame:
@@ -170,7 +171,11 @@ def fetch_price_history(
             cached = pd.read_parquet(PRICES_FILE)
             if not cached.empty:
                 last_cached_date = cached.index[-1].date()
-                today = datetime.now().date()
+                # Indian market date, not the server's. This module already
+                # used IST in _is_fresh() while comparing against a UTC date
+                # here, so the two disagreed for the 5h30m each day when UTC
+                # is still on the previous calendar day.
+                today = ist_today()
                 if last_cached_date >= today:
                     logger.info(f"Price cache up-to-date: {len(cached.columns)} series")
                     metrics.note("price_path", "cache_fresh")
