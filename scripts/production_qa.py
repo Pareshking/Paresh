@@ -30,7 +30,11 @@ import time
 from pathlib import Path
 
 import requests
-from playwright.sync_api import sync_playwright
+# Imported inside main(), not at module scope. The state classifier below is
+# pure logic and is unit-tested by tests/test_qa_state_classifier.py, which runs
+# in the ordinary validation job where playwright is NOT installed -- it is a QA
+# workflow dependency, not a requirements.txt one. A module-level import made
+# that whole test file uncollectable.
 
 URL = os.getenv("UMIYA_PRODUCTION_URL", "https://paresh.streamlit.app/").rstrip("/") + "/"
 HEALTH_URL = URL.rstrip("/") + "/_stcore/health"
@@ -265,6 +269,8 @@ def main() -> None:
     page_errors: list[str] = []
     bad_responses: list[str] = []
     timeline: list[dict] = []
+
+    from playwright.sync_api import sync_playwright
 
     with sync_playwright() as p:
         launch: dict = {"headless": True, "args": ["--no-sandbox"]}
