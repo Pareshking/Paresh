@@ -63,34 +63,65 @@ def _extract_field(df: pd.DataFrame, field_names: list[str]) -> pd.DataFrame:
         ]
         return out
 
-    # MultiIndex level 1 (Ticker on lvl 0, Field on lvl 1)
+    # MultiIndex. The field may sit on either level depending on how yfinance
+    # grouped the response, so try level 1 (Ticker, Field) then level 0.
     if df.columns.nlevels > 1:
-        lvl1_vals = [str(x).strip().lower() for x in df.columns.get_level_values(1)]
-        for target in field_names:
-            t_low = target.lower()
-            if t_low in lvl1_vals:
-                idx = lvl1_vals.index(t_low)
-                actual_label = df.columns.get_level_values(1)[idx]
-                extracted = df.xs(actual_label, level=1, axis=1)
-                extracted.columns = [
-                    str(c).replace(".NS", "").strip().upper() for c in extracted.columns
-                ]
-                return extracted
-
-        # MultiIndex level 0 (Field on lvl 0, Ticker on lvl 1)
-        lvl0_vals = [str(x).strip().lower() for x in df.columns.get_level_values(0)]
-        for target in field_names:
-            t_low = target.lower()
-            if t_low in lvl0_vals:
-                idx = lvl0_vals.index(t_low)
-                actual_label = df.columns.get_level_values(0)[idx]
-                extracted = df.xs(actual_label, level=0, axis=1)
-                extracted.columns = [
-                    str(c).replace(".NS", "").strip().upper() for c in extracted.columns
-                ]
+        for level in (1, 0):
+            extracted = _extract_by_coverage(df, field_names, level)
+            if extracted is not None:
                 return extracted
 
     return pd.DataFrame(index=df.index)
+
+
+def _extract_by_coverage(
+    df: pd.DataFrame, field_names: list[str], level: int
+) -> pd.DataFrame | None:
+    """Pick the candidate field that covers the MOST tickers, not the first one present.
+
+    This took production down twice. yfinance rate-limits a ticker, returns
+    that one ticker UNADJUSTED -- six fields including "Adj Close" -- while the
+    other 749 come back auto-adjusted with five fields and no "Adj Close" at
+    all. The old code took the first candidate name that appeared ANYWHERE, so
+    "Adj Close" won on the strength of a single failed ticker and
+    df.xs("Adj Close") returned exactly one all-NaN column.
+
+    The screener then ranked 0 of 750 stocks. The giveaway in the logs was
+    "Price cache saved: 500 rows (3751 series)" -- 3751 is 749x5 + 1x6, not a
+    clean grid.
+
+    Coverage decides, with the preference order breaking ties. When every
+    ticker carries both fields the counts are equal and "Adj Close" still wins,
+    so normal behaviour is unchanged.
+    """
+    labels = df.columns.get_level_values(level)
+    lowered = [str(x).strip().lower() for x in labels]
+
+    best_target = None
+    best_coverage = 0
+    for target in field_names:
+        coverage = lowered.count(target.lower())
+        if coverage > best_coverage:
+            best_target, best_coverage = target, coverage
+
+    if best_target is None or best_coverage == 0:
+        return None
+
+    n_tickers = len(set(df.columns.get_level_values(1 - level)))
+    if best_coverage < n_tickers:
+        logger.warning(
+            "Price field '%s' covers only %d of %d tickers; the rest are missing "
+            "this field entirely. Extracting the %d available.",
+            best_target, best_coverage, n_tickers, best_coverage,
+        )
+
+    idx = lowered.index(best_target.lower())
+    actual_label = labels[idx]
+    extracted = df.xs(actual_label, level=level, axis=1)
+    extracted.columns = [
+        str(c).replace(".NS", "").strip().upper() for c in extracted.columns
+    ]
+    return extracted
 
 
 def _clean_price_df(df: pd.DataFrame, symbols: Sequence[str] | None = None) -> pd.DataFrame:
