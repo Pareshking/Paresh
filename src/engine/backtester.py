@@ -38,11 +38,52 @@ def _calendar_period_sharpe(
 
     window_lr = log_returns.iloc[start_idx + 1 : end_idx + 1]
     n = window_lr.notna().sum()
-    daily_sd = window_lr.std()
+    # Population SD (ddof=0), matching the canonical screener engine in
+    # src/engine/calendar_momentum._calendar_period_metrics. Sample SD would
+    # rescale each stock by sqrt(n/(n-1)), and because n differs per stock
+    # that is not a uniform rescaling -- it makes the backtest fail to
+    # reproduce the screener's Sharpe.
+    daily_sd = window_lr.std(ddof=0)
     period_vol = daily_sd * np.sqrt(n.astype(float))
     sharpe = log_return / period_vol.replace(0, np.nan)
     sharpe[n <= 1] = np.nan
     return sharpe, start_idx
+
+
+def _composite_z_score(
+    prices: pd.DataFrame,
+    log_returns: pd.DataFrame,
+    start_idx: int,
+    windows: Sequence[int],
+    weights: Sequence[float],
+) -> pd.Series:
+    """Canonical multi-window composite z-score used by every ranking method.
+
+    A window that is unavailable for a stock must NOT become a synthetic zero
+    z-score. A zero is the cross-sectional average, so filling it silently
+    shrinks that stock's score toward the mean in proportion to the weight it
+    is missing. Each stock is therefore renormalised by the weight actually
+    available to it, matching apply_calendar_momentum() in
+    src/engine/calendar_momentum.py.
+    """
+    composite = pd.Series(0.0, index=prices.columns)
+    available_weight = pd.Series(0.0, index=prices.columns)
+    for w_period, cw in zip(windows, weights):
+        if cw <= 0:
+            continue
+        raw_mom, _ = _calendar_period_sharpe(
+            prices, log_returns, start_idx, int(w_period)
+        )
+        sig_cs = float(raw_mom.std(ddof=0))
+        if not np.isfinite(sig_cs) or sig_cs <= 0:
+            # Degenerate or empty cross-section carries no information; it
+            # contributes no score and no available weight.
+            continue
+        mu_cs = float(raw_mom.mean())
+        z = ((raw_mom - mu_cs) / sig_cs).clip(-3.0, 3.0)
+        composite += z.fillna(0.0) * cw
+        available_weight += z.notna().astype(float) * cw
+    return composite.div(available_weight.replace(0.0, np.nan))
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -148,22 +189,9 @@ def run_backtest(
             or "Multi-Window" in ranking_method
             or "Composite" in ranking_method
         ):
-            composite_score = pd.Series(0.0, index=prices.columns)
-            available_weight = pd.Series(0.0, index=prices.columns)
-            for w_period, cw in zip(WINDOWS, norm_w if norm_w else [0.2] * 5):
-                if cw <= 0:
-                    continue
-                sharpe, _ = _calendar_period_sharpe(
-                    prices, log_ret, start_idx, int(w_period)
-                )
-                raw_mom = sharpe
-
-                mu_cs = float(raw_mom.mean())
-                sig_cs = float(raw_mom.std(ddof=0))
-                z = ((raw_mom - mu_cs) / sig_cs).clip(-3.0, 3.0) if sig_cs > 0 else pd.Series(np.nan, index=raw_mom.index)
-                composite_score += z.fillna(0) * cw
-                available_weight += z.notna().astype(float) * cw
-            composite_score = composite_score.div(available_weight.replace(0.0, np.nan))
+            composite_score = _composite_z_score(
+                prices, log_ret, start_idx, WINDOWS, norm_w if norm_w else [0.2] * 5
+            )
             score = composite_score[valid & composite_score.notna()]
 
         elif "Residual" in ranking_method or "α" in ranking_method:
@@ -196,16 +224,9 @@ def run_backtest(
 
         elif "Industry-Relative" in ranking_method:
             # Multi-window Composite minus Industry Peer Mean
-            composite_score = pd.Series(0.0, index=prices.columns)
-            for w_period, cw in zip(WINDOWS, norm_w if norm_w else [0.2] * 5):
-                sharpe, _ = _calendar_period_sharpe(
-                    prices, log_ret, start_idx, int(w_period)
-                )
-                raw_mom = sharpe
-                z = ((raw_mom - raw_mom.mean()) / max(raw_mom.std(), 1e-8)).clip(
-                    -3.0, 3.0
-                )
-                composite_score += z.fillna(0) * cw
+            composite_score = _composite_z_score(
+                prices, log_ret, start_idx, WINDOWS, norm_w if norm_w else [0.2] * 5
+            )
 
             ind_map = sec_map
             score_df = pd.DataFrame({
