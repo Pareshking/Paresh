@@ -110,7 +110,7 @@ def main() -> None:
                     page.locator("body").inner_text(timeout=20), encoding="utf-8"
                 )
                 failures.append("Initial production load did not expose Screener within 180s")
-                return
+                raise RuntimeError("Initial production load failed")
 
             tabs = _find_tabs(page)
             names = [tabs.nth(i).inner_text().strip() for i in range(tabs.count())]
@@ -145,7 +145,8 @@ def main() -> None:
                 failures.extend(f"{viewport_name}: {error}" for error in viewport_errors)
 
         except Exception as exc:
-            failures.append(f"browser failure: {exc}")
+            if not failures or failures[-1] != "Initial production load did not expose Screener within 180s":
+                failures.append(f"browser failure: {exc}")
         finally:
             failures.extend(f"browser: {error}" for error in browser_errors)
             if response_errors:
