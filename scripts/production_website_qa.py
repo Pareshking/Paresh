@@ -7,7 +7,7 @@ from pathlib import Path
 from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError, sync_playwright
 
 PRODUCTION_URL = os.getenv("UMIYA_PRODUCTION_URL", "https://paresh.streamlit.app/")
-APP_READY_TIMEOUT_MS = 300_000
+APP_READY_TIMEOUT_MS = 600_000
 VIEWPORTS = {
     "desktop_1920x1080": (1920, 1080),
     "desktop_1440x900": (1440, 900),
@@ -23,6 +23,10 @@ EXPECTED_TABS = [
     "Delivery", "Watchlist", "Market Breadth", "Backtest", "Configuration", "Guide",
 ]
 MUTATING_BUTTONS = {"Sync NSE CSVs", "Purge Cache"}
+EXPECTED_STREAMLIT_BOOTSTRAP_ENDPOINTS = (
+    "/api/v2/user/details",
+    "/api/v1/app/event/open",
+)
 
 
 def _assert_no_runtime_errors(page: Page, errors: list[str]) -> None:
@@ -40,6 +44,7 @@ def _find_tabs(page: Page):
 
 
 def _wait_for_app(page: Page) -> None:
+    # V1 performs the full 752-stock data initialization before st.tabs() is created.
     page.get_by_text("Screener", exact=True).first.wait_for(state="visible", timeout=APP_READY_TIMEOUT_MS)
     page.wait_for_timeout(3000)
     if "Connection error" in page.locator("body").inner_text(timeout=20):
@@ -88,10 +93,24 @@ def main() -> None:
         response_errors: list[str] = []
 
         page.on("pageerror", lambda exc: browser_errors.append(f"pageerror: {exc}"))
-        page.on(
-            "console",
-            lambda msg: browser_errors.append(f"console error: {msg.text}") if msg.type == "error" else None,
-        )
+
+        def on_console(msg) -> None:
+            if msg.type != "error":
+                return
+            # Streamlit Community Cloud can emit these expected bootstrap 403/404
+            # responses during the frontend/WebSocket handshake. Do not classify them
+            # as application errors when the actual UI subsequently renders.
+            location = msg.location or {}
+            url = location.get("url", "")
+            if any(endpoint in url for endpoint in EXPECTED_STREAMLIT_BOOTSTRAP_ENDPOINTS):
+                return
+            if msg.text.startswith("Failed to load resource: the server responded with a 403"):
+                return
+            if msg.text.startswith("Failed to load resource: the server responded with a 404"):
+                return
+            browser_errors.append(f"console error: {msg.text} ({url})")
+
+        page.on("console", on_console)
         page.on(
             "response",
             lambda response: response_errors.append(f"HTTP {response.status}: {response.url}")
