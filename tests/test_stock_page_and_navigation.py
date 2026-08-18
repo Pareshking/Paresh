@@ -119,8 +119,14 @@ def test_card_symbol_links_to_the_stock_page(monkeypatch):
     assert 'target="_self"' in html
 
 
-def test_table_symbol_links_out_of_the_iframe():
-    """The table lives in st.iframe, so _self would navigate the frame itself."""
+def test_table_symbol_navigates_the_parent_by_script():
+    """The table lives in a sandboxed component iframe.
+
+    target="_parent" was tried first and did nothing: Streamlit's component
+    iframe has no allow-top-navigation, so the browser silently drops a framed
+    link that tries to navigate its parent. Scripts and same-origin ARE allowed,
+    so the handler sets the parent's location directly.
+    """
     from src.ui import theme
 
     rank_df, px = _rank_df()
@@ -135,9 +141,26 @@ def test_table_symbol_links_out_of_the_iframe():
         theme.st.iframe, theme.st.info = orig_iframe, orig_info
 
     html = captured["html"]
+    # A real href survives for middle-click and "copy link"...
     assert 'href="?stock=' in html
-    assert 'target="_parent"' in html
+    # ...but the click is handled in script and the framed navigation cancelled.
+    assert "window.parent" in html
+    assert "searchParams.set('stock'" in html
+    assert "return false;" in html
+    # The mechanism that silently failed must not come back.
+    assert 'target="_parent"' not in html
     assert 'target="_self"' not in html
+
+
+def test_table_view_offers_a_native_route_that_needs_no_frame_permission():
+    """A guaranteed path, since the framed link already failed once silently."""
+    import inspect
+
+    from src.ui.views import ranking_view
+
+    src = inspect.getsource(ranking_view.render_ranking_view)
+    assert "rank_open_stock" in src
+    assert 'st.query_params["stock"]' in src
 
 
 # ── Card grid reaches every stock ───────────────────────────────────────────

@@ -1263,15 +1263,31 @@ def render_master_screener_table(
 
         # Every calendar window, formatted once. pc[3]["ret"] is the 3M return
         # cell, and so on; the Full Quant tier below renders all five.
-        # The symbol opens the stock page. target="_parent" and not "_self":
-        # this table is rendered inside st.iframe, so a plain link would try to
-        # navigate the iframe itself and land on a bare query string with no
-        # app in it. _parent hands the navigation to the Streamlit document
-        # that owns the frame.
+        # The symbol opens the stock page.
+        #
+        # target="_parent" was tried first and did nothing: this table lives in
+        # a Streamlit component iframe, and that iframe is sandboxed WITHOUT
+        # allow-top-navigation, so the browser silently drops a framed link
+        # that tries to navigate its parent. The sandbox does allow scripts and
+        # same-origin, so setting the parent's location from JS does work.
+        #
+        # The href stays as a real URL for middle-click and "copy link", and
+        # the handler returns false so the framed navigation never happens.
+        # If even the scripted route is blocked, the table view also offers a
+        # native picker above it -- there is always a way through that does not
+        # depend on frame permissions.
+        _nav = (
+            "try{var p=window.parent||window.top;"
+            "var u=new URL(p.location.href);"
+            f"u.searchParams.set('stock','{sym}');"
+            "p.location.href=u.href;}"
+            f"catch(e){{window.top.location.search='?stock={sym}';}}"
+            "return false;"
+        )
         sym_link = (
-            f'<a href="?stock={sym}" target="_parent" class="stock-ticker" '
-            f'style="text-decoration:none;border-bottom:1px dotted #94a3b8;" '
-            f'title="Open {sym}">{sym}</a>'
+            f'<a href="?stock={sym}" onclick="{_nav}" class="stock-ticker" '
+            f'style="text-decoration:none;border-bottom:1px dotted #94a3b8;'
+            f'cursor:pointer;" title="Open {sym}">{sym}</a>'
         )
 
         pc = {m: _period_cells(row, m) for m in PERIOD_WINDOWS}

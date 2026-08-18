@@ -1,6 +1,6 @@
 """
 Light-themed interactive Plotly visualizations for NSE Momentum Dashboard.
-Includes Candlestick + Volume + RSI, Chandelier Exits, RRG with trails, and Sector Treemaps.
+Includes Candlestick + Volume + RSI, RRG with trails, and Sector Treemaps.
 """
 
 import numpy as np
@@ -54,7 +54,12 @@ def render_candlestick_drilldown(
     volume_data: pd.DataFrame | None = None,
     chrome: bool = True,
 ) -> None:
-    """Renders single-stock technical terminal with Candlestick, Chandelier Stops, Volume, and RSI (14).
+    """Renders the single-stock technical terminal: candlesticks with optional
+    moving-average overlays, volume, and RSI (14).
+
+    No exit levels are drawn on the price panel. Both the 2xATR stop and the
+    chandelier exit were horizontal lines a few percent apart that crowded the
+    price action; both numbers are stated exactly in the key-level tiles.
 
     `chrome` draws the header card, the KPI row and the right-hand spec panel.
     The stock detail page turns it off because it renders richer versions of
@@ -237,26 +242,18 @@ def render_candlestick_drilldown(
                 col=1,
             )
 
-        # Chandelier exit only. The 2xATR stop was removed from the chart: two
-        # horizontal lines a few percent apart crowded the price action they
-        # were meant to annotate, and the number is stated exactly in the key
-        # levels above, where it can be read rather than estimated off an axis.
-        _ch = row_s.get("Chand Exit", None)
-        if _ch and pd.notna(_ch) and _ch > 0:
-            fig.add_hline(
-                y=_ch,
-                line_color="#d97706",
-                line_dash="dot",
-                line_width=1,
-                annotation_text=f"Chandelier Exit ₹{_ch:.0f}",
-                annotation_position="top right",
-                annotation_font_color="#d97706",
-                annotation_font_size=9,
-                row=1,
-                col=1,
-            )
+        # No exit levels are drawn on the price panel any more. Both the 2xATR
+        # stop and the chandelier exit were horizontal lines a few percent
+        # apart, crowding the price action they were meant to annotate, and
+        # both numbers are stated exactly in the key-level tiles above -- where
+        # they can be read rather than estimated off an axis.
         # 2. Volume Subplot
-        if volume_data is not None and symbol in volume_data.columns:
+        _vol_available = (
+            volume_data is not None
+            and symbol in volume_data.columns
+            and volume_data[symbol].dropna().gt(0).any()
+        )
+        if _vol_available:
             _vol = volume_data[symbol].dropna().iloc[-_n_days:]
             _vol_avg = _vol.rolling(20, min_periods=10).mean()
             _vol_colors = [
@@ -337,7 +334,17 @@ def render_candlestick_drilldown(
             },
             xaxis_rangeslider_visible=False,
             yaxis={"title": "Price (₹)", "gridcolor": "#f1f5f9", "zeroline": False},
-            yaxis2={"title": "Volume", "gridcolor": "#f1f5f9", "zeroline": False},
+            # rangemode="tozero" because a volume axis has no meaningful
+            # negative half. Production rendered this panel with an axis
+            # running to -250M and no bars at all; whatever left the trace
+            # empty, an axis that cannot go below zero cannot present that as
+            # a plausible reading.
+            yaxis2={
+                "title": "Volume",
+                "gridcolor": "#f1f5f9",
+                "zeroline": False,
+                "rangemode": "tozero",
+            },
             yaxis3={
                 "title": "RSI (14)",
                 "range": [0, 100],
@@ -358,9 +365,32 @@ def render_candlestick_drilldown(
             margin={"l": 10, "r": 10, "t": 20, "b": 10},
             height=490,
             hovermode="x unified",
+            # Plotly's default drag is box-zoom, which on a touch screen means
+            # every stray tap zooms the chart and there is no obvious way back.
+            # Reading is the common case and zooming is the rare one, so drag
+            # is off and the modebar keeps the zoom tools for when it is wanted.
+            dragmode=False,
         )
         fig.update_xaxes(gridcolor="#f1f5f9")
-        st.plotly_chart(fig, width="stretch", key=f"drill_chart_{symbol}")
+        if not _vol_available:
+            fig.add_annotation(
+                text="Volume unavailable for this symbol",
+                xref="paper", yref="y2", x=0.5, y=0, showarrow=False,
+                font={"size": 10, "color": "#94a3b8"},
+            )
+        st.plotly_chart(
+            fig,
+            width="stretch",
+            key=f"drill_chart_{symbol}",
+            config={
+                "scrollZoom": False,
+                "doubleClick": "reset",
+                "displaylogo": False,
+                "modeBarButtonsToRemove": [
+                    "select2d", "lasso2d", "autoScale2d", "toggleSpikelines",
+                ],
+            },
+        )
 
     if c_spec is None:
         return

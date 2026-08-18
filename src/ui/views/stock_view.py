@@ -242,10 +242,16 @@ def _render_key_levels(row: pd.Series) -> None:
     if ath_source == "in_memory_window":
         ath_sub = "2y window, not all-time"
 
+    hi_52_date = str(row.get("52W High Date") or "").strip()
+    hi_sub = f"peak {hi_52_date}" if hi_52_date else (
+        f"{_pct(pct_hi)} away" if pct_hi is not None else ""
+    )
+
     tiles = [
         _tile("52W High", _money(hi_52),
-              sub=f"{_pct(pct_hi)} away" if pct_hi is not None else "",
-              colour=INK),
+              sub=hi_sub,
+              colour=INK,
+              title=f"Peak printed {hi_52_date}" if hi_52_date else ""),
         _tile("All-Time High", _money(ath),
               sub=ath_sub,
               colour=INK,

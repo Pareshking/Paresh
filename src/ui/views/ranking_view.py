@@ -36,6 +36,7 @@ DISPLAY_COLS = [
     "12M Return",
     "12M Sharpe",
     "% High",
+    "52W High Date",
     "% ATH",
     "Max DD 1M",
     "Max DD 3M",
@@ -434,6 +435,22 @@ def render_ranking_view(
     active_cols = [c for c in DISPLAY_COLS if c in view.columns]
 
     if view_mode in ["Table", "📊 Table"] or not view_mode:
+        # A native way into the stock page that does not depend on the table's
+        # iframe being allowed to navigate its parent. The symbol links inside
+        # the table drive the same route; this is the guaranteed path.
+        _syms = view["Symbol"].astype(str).tolist()
+        c_open, _ = st.columns([1.2, 3])
+        chosen = c_open.selectbox(
+            "Open stock page",
+            ["— open a stock page —", *_syms],
+            index=0,
+            key="rank_open_stock",
+            label_visibility="collapsed",
+        )
+        if chosen and chosen in _syms:
+            st.query_params["stock"] = chosen
+            st.rerun()
+
         render_master_screener_table(
             view, prices_df=adj_close, key="rank_master_table", density=density_mode
         )

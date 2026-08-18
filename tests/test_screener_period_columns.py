@@ -142,3 +142,38 @@ def test_full_quant_is_wider_than_core_which_is_wider_than_executive(ranked):
         first = re.search(r'<tr class="screener-row">(.*?)</tr>', html, re.S).group(1)
         widths.append(len(re.findall(r"<td", first)))
     assert widths[0] < widths[1] < widths[2]
+
+
+def test_52w_high_carries_the_date_it_was_printed(ranked):
+    """A high without its date is the same assertion in a shorter window.
+
+    "12% off the high" reads very differently if that high was last week rather
+    than eleven months ago, so the 52-week high now carries a date exactly as
+    the all-time high does.
+    """
+    rank_df, _ = ranked
+    assert "52W High Date" in rank_df.columns
+    dates = rank_df["52W High Date"].astype(str)
+    assert (dates.str.len() == 10).all(), "expected ISO dates"
+    assert dates.str.match(r"\d{4}-\d{2}-\d{2}").all()
+
+
+def test_an_all_nan_column_does_not_break_the_52w_high_date():
+    """idxmax() raises "Encountered all NA values" on an empty column, which is
+    exactly what a rate-limited ticker looks like."""
+    import numpy as np
+    import pandas as pd
+
+    from src.engine.momentum import MomentumEngine
+
+    n = 300
+    idx = pd.bdate_range(end="2026-08-18", periods=n)
+    px = pd.DataFrame(
+        {"GOOD": np.linspace(100, 200, n), "DEAD": np.full(n, np.nan)}, index=idx
+    )
+    info = pd.DataFrame({"Symbol": ["GOOD", "DEAD"], "Industry": ["IT", "IT"]})
+    calc = MomentumEngine(px, high_df=px, low_df=px, close_df=px,
+                          volume_df=pd.DataFrame(1e5, index=idx, columns=px.columns))
+    rank_df = calc.get_rankings(info, pd.Series(dtype=float),
+                                close_prices_df=px, high_prices_df=px)
+    assert "52W High Date" in rank_df.columns          # must not raise

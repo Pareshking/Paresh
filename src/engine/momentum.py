@@ -513,9 +513,29 @@ class MomentumEngine:
 
         # 52W High
         win_52w = min(252, len(high_src))
-        high_52w = high_src.iloc[-win_52w:].max()
+        _win = high_src.iloc[-win_52w:]
+        high_52w = _win.max()
+        # When the 52-week high was printed. The all-time high already carries
+        # its date; a 52-week high without one is the same assertion in a
+        # shorter window -- "12% off the high" reads very differently if that
+        # high was last week rather than eleven months ago.
+        # idxmax() raises "Encountered all NA values" on a column that is
+        # entirely NaN -- which is exactly what a rate-limited ticker looks
+        # like. Ask only the columns that have something to report.
+        _has_any = _win.notna().any()
+        high_52w_date = (
+            _win.loc[:, _has_any[_has_any].index].idxmax()
+            if bool(_has_any.any())
+            else pd.Series(dtype="datetime64[ns]")
+        )
         pct_high = ((latest_close - high_52w) / high_52w.replace(0, np.nan)) * 100
         rank_df["52W High"] = rank_df["Symbol"].map(high_52w.to_dict())
+        rank_df["52W High Date"] = rank_df["Symbol"].map(
+            {
+                sym: (str(pd.Timestamp(d).date()) if pd.notna(d) else "")
+                for sym, d in high_52w_date.items()
+            }
+        )
         rank_df["% High"] = rank_df["Symbol"].map(pct_high.to_dict())
         rank_df["Near 52W High"] = rank_df["% High"].map(
             lambda x: x >= -20.0 if pd.notna(x) else False
