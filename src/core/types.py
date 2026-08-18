@@ -32,7 +32,7 @@ class SurgeMode(str, Enum):
 class ColumnDensity(str, Enum):
     EXECUTIVE = "Executive (11)"
     CORE = "Core (17)"
-    FULL_QUANT = "Full Quant (33)"
+    FULL_QUANT = "Full Quant (35)"
 
 
 @dataclass(frozen=True)

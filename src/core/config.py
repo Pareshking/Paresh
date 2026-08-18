@@ -34,6 +34,9 @@ TV_CLASSIFICATION_FILE: Final[str] = os.path.join(REPO_DATA_DIR, "nse_tv_classif
 # the sync runs on GitHub Actions, where NSE is reachable, and leaves the
 # result here for production to read.
 REPO_MCAP_FILE: Final[str] = os.path.join(REPO_DATA_DIR, "nse_market_caps.csv")
+# All-time highs, computed from a long history by the daily sync job and read
+# back instantly by production. See ATH_HISTORY_PERIOD below.
+REPO_ATH_FILE: Final[str] = os.path.join(REPO_DATA_DIR, "nse_all_time_highs.csv")
 
 INDICES_URLS: Final[dict[str, str]] = {
     "NIFTY 50": "https://niftyindices.com/IndexConstituent/ind_nifty50list.csv",
@@ -93,3 +96,17 @@ class ThemeTokens:
 
 THEME_TOKENS: Final[ThemeTokens] = ThemeTokens()
 THEME: Final[dict[str, str]] = {k: getattr(THEME_TOKENS, k) for k in ThemeTokens.__dataclass_fields__}
+
+
+# ── Price history windows ────────────────────────────────────────────────────
+# The screener pipeline's window. Every calendar-momentum pass walks this frame
+# row by row, so its length drives the cold-start cost directly -- measured at
+# roughly 20s for 500 sessions x 750 symbols and far more at 2500. Lengthening
+# this is a cold-start decision, not just a storage one.
+PRICE_HISTORY_PERIOD: Final[str] = "2y"
+
+# The window used for all-time highs. Fetched by the daily sync job on GitHub
+# Actions, where nobody is waiting, and committed as a small per-symbol
+# snapshot -- so production gets a genuine ten-year high without paying to
+# download or traverse ten years of data at startup.
+ATH_HISTORY_PERIOD: Final[str] = "10y"

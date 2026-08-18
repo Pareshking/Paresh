@@ -7,7 +7,13 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 
+from src.core.market_time import ist_now
 from src.engine.backtester import DEFAULT_BACKTEST_MONTHS, run_backtest
+from src.engine.parameter_sweep import (
+    OBJECTIVES,
+    count_combinations,
+    run_parameter_sweep,
+)
 from src.loaders.price_loader import fetch_benchmark_history
 from src.ui.charts import render_backtest_equity_chart
 from src.ui.components import render_data_quality_footer
@@ -484,8 +490,158 @@ def render_backtest_view(
             f"**Rank Persistence Buffer**: Top **{int(bt_n * buffer_mult)}** buffer zone prevents unnecessary trading when stocks oscillate around the rank threshold."
         )
 
+    # ── Parameter Sweep ──────────────────────────────────────────────────────
+    st.divider()
+    _render_parameter_sweep(
+        adj_close=adj_close,
+        benchmark_close=benchmark_close,
+        sector_map=sec_map,
+        base={
+            "lookback_ret": lb_val,
+            "ranking_method": bt_ranking,
+            "weight_method": bt_weight,
+            "config_weights": active_weights,
+            "stock_cap": stock_cap,
+            "sector_cap": sector_cap,
+            "rebal_freq": bt_rebal,
+            "top_n": bt_n,
+            "ema_period": 50,
+            "high_pct": 0.80,
+            "cost_bps": cost_drag_bps,
+        },
+    )
+
     render_data_quality_footer(
         total_stocks=len(rank_df),
         gap_count=int((rank_df.get("Data Gap", pd.Series()) == "🔴").sum()),
         short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
     )
+
+
+def _render_parameter_sweep(
+    adj_close,
+    benchmark_close,
+    sector_map,
+    base: dict,
+) -> None:
+    """Grid search over buy/sell criteria, with the overfitting caveat attached.
+
+    The caveat is rendered with the result rather than tucked into a tooltip.
+    Searching many combinations on one window and keeping the winner is data
+    mining; the honest output is the distribution plus how far the winner sits
+    from the pack, and that is what this shows.
+    """
+    with st.expander("🔬 Parameter Sweep — search buy/sell criteria", expanded=False):
+        st.caption(
+            "Backtests every combination you select over the same window and ranks "
+            "them. Read the overfitting verdict before acting on a winner."
+        )
+
+        c1, c2, c3 = st.columns(3)
+        holdings = c1.multiselect("Holdings Count", [5, 10, 15, 20, 30, 50],
+                                  default=[10, 20, 30], key="sweep_holdings")
+        rebals = c2.multiselect(
+            "Rebalance Interval", [5, 10, 21, 42, 63], default=[21],
+            format_func=lambda x: "Monthly" if x == 21 else f"{x}D",
+            key="sweep_rebal",
+        )
+        emas = c3.multiselect("EMA Filter Period", [20, 50, 100, 200],
+                              default=[50], key="sweep_ema")
+
+        c4, c5, c6 = st.columns(3)
+        floors = c4.multiselect(
+            "52W High Floor", [0.0, 0.7, 0.8, 0.9],
+            default=[0.8],
+            format_func=lambda x: "Off" if x == 0.0 else f"{x:.0%} of 52W high",
+            key="sweep_floor",
+        )
+        costs = c5.multiselect("Cost (bps)", [0.0, 15.0, 30.0, 50.0],
+                               default=[30.0], key="sweep_cost")
+        objective = c6.selectbox("Optimise For", list(OBJECTIVES),
+                                 index=0, key="sweep_objective")
+
+        space = {}
+        if len(holdings) > 1 or (holdings and holdings != [base["top_n"]]):
+            space["Holdings"] = holdings
+        if rebals:
+            space["Rebalance"] = rebals
+        if emas:
+            space["EMA filter"] = emas
+        if floors:
+            space["52W high floor"] = floors
+        if costs:
+            space["Cost (bps)"] = costs
+        space = {k: v for k, v in space.items() if v}
+
+        n_combos = count_combinations(space)
+        if n_combos == 0:
+            st.info("Select at least one value for a parameter to sweep.")
+            return
+
+        # Every combination is a full walk-forward backtest. Say what it costs
+        # BEFORE the click, not with a spinner afterwards.
+        st.markdown(
+            f"**{n_combos}** combination{'s' if n_combos != 1 else ''} — "
+            f"each one a full walk-forward backtest."
+        )
+        if n_combos > 100:
+            st.warning(
+                f"{n_combos} combinations is a wide search. The more you try, the "
+                "better the best one looks by chance alone. Narrow the grid, or "
+                "read the overfitting verdict carefully."
+            )
+
+        if not st.button("Run sweep", key="sweep_run", type="primary"):
+            return
+
+        bar = st.progress(0.0, text="Starting…")
+
+        def _tick(frac, msg):
+            bar.progress(min(max(frac, 0.0), 1.0), text=msg)
+
+        try:
+            result = run_parameter_sweep(
+                adj_close, space, objective=objective, base=dict(base),
+                sector_map=sector_map, _benchmark_close=benchmark_close,
+                progress=_tick,
+            )
+        except ValueError as exc:
+            bar.empty()
+            st.error(str(exc))
+            return
+        bar.empty()
+
+        if result.table.empty:
+            for w in result.warnings:
+                st.warning(w)
+            st.info("No combination produced a backtest over this window.")
+            return
+
+        badge = {
+            "high": ("#dc2626", "HIGH — the winner is inside the noise"),
+            "moderate": ("#d97706", "MODERATE"),
+            "low": ("#059669", "LOW"),
+            "none": ("#64748b", "PARAMETERS HAD NO EFFECT"),
+            "unknown": ("#64748b", "UNKNOWN"),
+        }.get(result.overfitting_risk, ("#64748b", result.overfitting_risk.upper()))
+
+        st.markdown(
+            f"<div style=\"border-left: 3px solid {badge[0]}; background: {badge[0]}0D; "
+            f"padding: 10px 14px; border-radius: 6px; margin: 10px 0; "
+            f"font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem;\">"
+            f"<strong style=\"color:{badge[0]};\">Overfitting risk: {badge[1]}</strong>"
+            f"<div style=\"color:#475569; margin-top:4px;\">{result.risk_detail}</div>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+        for w in result.warnings:
+            st.caption(f"⚠️ {w}")
+
+        st.dataframe(result.table, width="stretch", hide_index=True)
+        st.download_button(
+            f"Download sweep results ({len(result.table)} rows)",
+            result.table.to_csv(index=False).encode(),
+            f"umiya_parameter_sweep_{ist_now():%Y%m%d}.csv",
+            "text/csv",
+            key="sweep_csv",
+        )

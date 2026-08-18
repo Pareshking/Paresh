@@ -114,7 +114,7 @@ def _render(rank_df, px, density):
     return captured["html"]
 
 
-@pytest.mark.parametrize("density", ["Executive (11)", "Core (17)", "Full Quant (33)"])
+@pytest.mark.parametrize("density", ["Executive (11)", "Core (17)", "Full Quant (35)"])
 def test_header_groups_subheaders_and_cells_all_agree(ranked, density):
     rank_df, px = ranked
     html = _render(rank_df, px, density)
@@ -128,7 +128,7 @@ def test_header_groups_subheaders_and_cells_all_agree(ranked, density):
 @pytest.mark.parametrize("months", MOMENTUM_WINDOWS)
 def test_full_quant_renders_a_column_for_every_window(ranked, months):
     rank_df, px = ranked
-    html = _render(rank_df, px, "Full Quant (33)")
+    html = _render(rank_df, px, "Full Quant (35)")
     assert f"{months}M RET" in html
     assert f"{months}M SHARPE" in html
     assert f"MAX DD {months}M" in html
@@ -137,7 +137,7 @@ def test_full_quant_renders_a_column_for_every_window(ranked, months):
 def test_full_quant_is_wider_than_core_which_is_wider_than_executive(ranked):
     rank_df, px = ranked
     widths = []
-    for d in ("Executive (11)", "Core (17)", "Full Quant (33)"):
+    for d in ("Executive (11)", "Core (17)", "Full Quant (35)"):
         html = _render(rank_df, px, d)
         first = re.search(r'<tr class="screener-row">(.*?)</tr>', html, re.S).group(1)
         widths.append(len(re.findall(r"<td", first)))

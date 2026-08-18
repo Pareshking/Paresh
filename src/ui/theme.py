@@ -1037,7 +1037,7 @@ def render_master_screener_table(
     prices_df: pd.DataFrame | None = None,
     key: str = "master_screener",
     max_height: int = 750,
-    density: str = "Full Quant (33)",
+    density: str = "Full Quant (35)",
 ) -> None:
     """Renders Institutional SaaS Screener Table with Multi-Tier Column Density, Sticky Headers & Sparklines."""
     if df.empty:
@@ -1202,6 +1202,13 @@ def render_master_screener_table(
             else "—"
         )
 
+        pct_ath = row.get("% ATH")
+        ath_str = (
+            f"{float(pct_ath):.1f}%"
+            if pd.notna(pct_ath) and isinstance(pct_ath, (int, float))
+            else "—"
+        )
+
         pct_ema = row.get("% 50 EMA")
         ema_str = (
             f"{float(pct_ema):+.1f}%"
@@ -1222,6 +1229,7 @@ def render_master_screener_table(
 
         above_ema_icon = "🟢" if is_tick_true(row.get("Above 50 EMA")) else "⚪"
         near_hi_icon = "🟢" if is_tick_true(row.get("Near 52W High")) else "⚪"
+        at_ath_icon = "🟢" if is_tick_true(row.get("At ATH")) else "⚪"
 
         # Risk & Exits
         sl_val = row.get("Stop Loss")
@@ -1266,7 +1274,7 @@ def render_master_screener_table(
         elif is_core:
             row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk}</strong></td><td class="sticky-col-symbol"><span class="stock-ticker">{sym}</span></td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw}">{ind_disp}</td><td class="td-num">{mcap_str}</td><td class="td-num {ret_3m_clr}"><strong>{ret_3m_str}</strong></td><td class="td-num td-sharpe">{sharpe_3m_str}</td><td class="td-num {ret_6m_clr}"><strong>{ret_6m_str}</strong></td><td class="td-num td-sharpe">{sharpe_6m_str}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-num td-sl">{sl_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
         else:
-            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk}</strong></td><td class="sticky-col-symbol"><span class="stock-ticker">{sym}</span></td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw}">{ind_disp}</td><td class="td-num">{mcap_str}</td>{period_cells_html}<td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-center">{above_ema_icon}</td><td class="td-center">{near_hi_icon}</td><td class="td-num td-sl">{sl_str}</td><td class="td-num td-chand">{chand_str}</td><td class="td-center">{gap_icon}</td><td class="td-num">{ffill_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
+            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk}</strong></td><td class="sticky-col-symbol"><span class="stock-ticker">{sym}</span></td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw}">{ind_disp}</td><td class="td-num">{mcap_str}</td>{period_cells_html}<td class="td-num">{hi_str}</td><td class="td-num">{ath_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-center">{above_ema_icon}</td><td class="td-center">{near_hi_icon}</td><td class="td-center">{at_ath_icon}</td><td class="td-num td-sl">{sl_str}</td><td class="td-num td-chand">{chand_str}</td><td class="td-center">{gap_icon}</td><td class="td-num">{ffill_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
         rows_html.append(row_h)
 
     # Assemble headers based on density
@@ -1336,7 +1344,7 @@ def render_master_screener_table(
                 <th colspan="3">6M FACTOR MOMENTUM</th>
                 <th colspan="3">9M FACTOR MOMENTUM</th>
                 <th colspan="3">12M FACTOR MOMENTUM</th>
-                <th colspan="5">TECHNICALS & FILTERS</th>
+                <th colspan="7">TECHNICALS & FILTERS</th>
                 <th colspan="2">RISK & EXITS</th>
                 <th colspan="2">DATA HEALTH</th>
                 <th>TREND</th>
@@ -1366,10 +1374,12 @@ def render_master_screener_table(
                 <th>12M SHARPE</th>
                 <th>MAX DD 12M</th>
                 <th>% 52W HI</th>
+                <th>% ATH</th>
                 <th>% 50 EMA</th>
                 <th class="th-center">VOLUME</th>
                 <th class="th-center">&gt; 50 EMA</th>
                 <th class="th-center">NEAR 52W</th>
+                <th class="th-center">AT ATH</th>
                 <th>STOP LOSS</th>
                 <th>CHAND EXIT</th>
                 <th class="th-center">GAP</th>

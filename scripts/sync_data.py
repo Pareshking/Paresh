@@ -85,6 +85,73 @@ def run_daily_sync() -> None:
     else:
         print("No market caps resolved; leaving the repository snapshot untouched.")
 
+    # 5b. All-time highs from a long history.
+    #
+    # Production runs the screener on a two-year window because every
+    # calendar-momentum pass walks that frame row by row, so a ten-year window
+    # would multiply the cold start rather than the storage. This job has no
+    # such constraint -- nobody waits on it -- so it pays the ten-year download
+    # once a day and commits one row per symbol. Production then gets a genuine
+    # all-time high for the price of reading a small CSV.
+    print("\n--- 5b. Computing All-Time Highs ---")
+    try:
+        import pandas as pd
+
+        from src.core.config import ATH_HISTORY_PERIOD, REPO_ATH_FILE
+        from src.loaders.price_loader import _extract_field
+
+        # Downloaded directly rather than through fetch_price_history: that
+        # loader writes whatever it fetches back to the shared price cache, so
+        # asking it for ten years would clobber the two-year cache this job
+        # just built one step earlier (and that the workflow then stores).
+        import yfinance as yf
+
+        tickers = [
+            sym if str(sym).upper().endswith(".NS") else f"{sym}.NS"
+            for sym in symbols
+        ]
+        frames = []
+        for i in range(0, len(tickers), 100):
+            batch = tickers[i : i + 100]
+            got = yf.download(
+                batch,
+                period=ATH_HISTORY_PERIOD,
+                progress=False,
+                group_by="ticker",
+                threads=True,
+                auto_adjust=False,
+            )
+            if got is not None and not got.empty:
+                frames.append(got)
+        long_raw = pd.concat(frames, axis=1) if frames else pd.DataFrame()
+        highs = _extract_field(long_raw, ["High"])
+        if highs is None or highs.empty:
+            print("No long-history highs returned; leaving the ATH snapshot untouched.")
+        else:
+            ath = highs.max()
+            ath = ath[ath > 0].dropna()
+            ath_date = highs.idxmax()
+            snapshot = pd.DataFrame({
+                "Symbol": ath.index,
+                "ATH": ath.values,
+                "ATHDate": [
+                    str(pd.Timestamp(d).date()) if pd.notna(d) else ""
+                    for d in ath_date.reindex(ath.index).values
+                ],
+            }).sort_values("Symbol")
+            last_session = pd.DatetimeIndex(highs.index)[-1]
+            snapshot["AsOf"] = str(pd.Timestamp(last_session).date())
+            os.makedirs(os.path.dirname(REPO_ATH_FILE), exist_ok=True)
+            snapshot.to_csv(REPO_ATH_FILE, index=False)
+            print(
+                f"All-time-high snapshot written: {len(snapshot)} symbols "
+                f"over {ATH_HISTORY_PERIOD} -> {REPO_ATH_FILE}"
+            )
+    except Exception as exc:
+        # A failure here must not cost the rest of the sync. Production falls
+        # back to its in-memory window and labels the column accordingly.
+        print(f"All-time-high snapshot skipped: {type(exc).__name__}: {exc}")
+
     # 6. Fetch delivery archives
     print("\n--- 6. Fetching NSE Delivery Bhavcopy Archives ---")
     deliv = fetch_delivery_data(force_refresh=FORCE_FULL)

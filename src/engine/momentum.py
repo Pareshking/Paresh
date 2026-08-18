@@ -521,6 +521,38 @@ class MomentumEngine:
             lambda x: x >= -20.0 if pd.notna(x) else False
         )
 
+        # ── All-time high ────────────────────────────────────────────────────
+        # Same shape as % 52W High, over a far longer window. The snapshot is
+        # built from ATH_HISTORY_PERIOD by the daily sync job; when it is
+        # absent we fall back to the high water mark of the history in memory,
+        # which is a TWO-YEAR high, not an all-time one. "ATH Source" records
+        # which of the two produced the number so the column is never silently
+        # mislabelled.
+        from src.loaders.ath_loader import ath_series
+
+        snapshot_ath = ath_series()
+        window_ath = high_src.max()
+        if not snapshot_ath.empty:
+            # Row-wise max of the two. The snapshot is a day behind by
+            # construction, so a stock printing a new high today must not read
+            # as below its all-time high; and a symbol missing from the
+            # snapshot still gets its in-window high rather than a NaN.
+            ath = pd.concat(
+                [snapshot_ath.reindex(window_ath.index), window_ath], axis=1
+            ).max(axis=1)
+            ath_source = "snapshot"
+        else:
+            ath = window_ath
+            ath_source = "in_memory_window"
+
+        pct_ath = ((latest_close - ath) / ath.replace(0, np.nan)) * 100
+        rank_df["ATH"] = rank_df["Symbol"].map(ath.to_dict())
+        rank_df["% ATH"] = rank_df["Symbol"].map(pct_ath.to_dict())
+        rank_df["At ATH"] = rank_df["% ATH"].map(
+            lambda x: x >= -5.0 if pd.notna(x) else False
+        )
+        rank_df["ATH Source"] = ath_source
+
         # Every canonical window, not just 3M and 6M. apply_calendar_momentum
         # has already computed all five and stored each period-end return and
         # Sharpe in self.period_metrics, so publishing the other three costs

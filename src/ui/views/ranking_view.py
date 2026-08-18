@@ -35,6 +35,7 @@ DISPLAY_COLS = [
     "12M Return",
     "12M Sharpe",
     "% High",
+    "% ATH",
     "Max DD 1M",
     "Max DD 3M",
     "Max DD 6M",
@@ -47,6 +48,8 @@ DISPLAY_COLS = [
     "Market Cap (Cr)",
     "Above 50 EMA",
     "Near 52W High",
+    "At ATH",
+    "ATH",
     "Short History",
     "FFill %",
     "Data Gap",
@@ -292,13 +295,13 @@ def render_ranking_view(
 
     density_mode = c_density.segmented_control(
         "Column Density",
-        ["Executive (11)", "Core (17)", "Full Quant (33)"],
-        default="Full Quant (33)",
+        ["Executive (11)", "Core (17)", "Full Quant (35)"],
+        default="Full Quant (35)",
         key="rank_density_mode",
         label_visibility="collapsed",
     )
     if not density_mode:
-        density_mode = "Full Quant (33)"
+        density_mode = "Full Quant (35)"
 
     view_mode = c_view.segmented_control(
         "Layout",
