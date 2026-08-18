@@ -2,8 +2,14 @@ name: Daily NSE Momentum Data Sync
 
 on:
   schedule:
-    # 15:30 UTC = 21:00 IST (9:00 PM IST) Monday to Friday (Trading Days)
-    - cron: '30 15 * * 1-5'
+    # 16:30 UTC = 22:00 IST (10:00 PM IST) Monday to Friday (Trading Days).
+    # GitHub runs scheduled workflows on a best-effort queue and delays them
+    # under load -- the 15:30 slot was still unfired 22 minutes later on
+    # 2026-08-18, which is why the all-time-high snapshot had to be triggered
+    # by hand. A later, less contended slot is more likely to fire near time,
+    # but the schedule is a request, not a guarantee: the AsOf dates in the
+    # footer are what make a skipped run visible.
+    - cron: '30 16 * * 1-5'
   workflow_dispatch: # Allows manual 1-click execution anytime from GitHub Actions tab
 
 permissions:
