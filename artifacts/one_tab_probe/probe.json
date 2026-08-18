@@ -1,0 +1,89 @@
+{
+  "elapsed_seconds": 5.121,
+  "screener_visible_seconds": 4.049,
+  "frames": [
+    "http://127.0.0.1:8597/"
+  ],
+  "startup_metrics": {
+    "process_start_utc": "2026-08-18T02:31:16+00:00",
+    "uptime_s": 0.234,
+    "stages": {
+      "universe": {
+        "started_at_s": 0.0,
+        "ended_at_s": 0.05,
+        "duration_s": 0.05,
+        "repeats": 0
+      },
+      "price_history": {
+        "started_at_s": 0.051,
+        "ended_at_s": 0.171,
+        "duration_s": 0.12,
+        "repeats": 0
+      },
+      "quant_engine": {
+        "started_at_s": 0.171,
+        "ended_at_s": 0.201,
+        "duration_s": 0.03,
+        "repeats": 0
+      }
+    },
+    "counters": {
+      "price_batches_attempted": 8,
+      "price_individual_retries": 37
+    },
+    "facts": {
+      "cache_at_startup": {
+        "prices": {
+          "exists": false
+        },
+        "market_caps": {
+          "exists": false
+        }
+      },
+      "cold_container": true,
+      "universe_symbols": 752,
+      "price_path": "full_download",
+      "script_run_completed_at_s": 0.234
+    }
+  },
+  "tab_count": 2,
+  "navigation": {
+    "navigation": [
+      {
+        "domContentLoaded": 1550.5999999998603,
+        "load": 1550.7999999998137,
+        "responseEnd": 22.899999999906868,
+        "duration": 1550.7999999998137
+      }
+    ],
+    "readyState": "complete",
+    "title": "tele",
+    "bodyChars": 33
+  },
+  "websockets": [
+    "OPEN ws://127.0.0.1:8597/_stcore/stream"
+  ],
+  "console_errors": [],
+  "page_errors": [],
+  "events": [
+    {
+      "t": 1.426,
+      "status": 200,
+      "type": "document",
+      "url": "http://127.0.0.1:8597/"
+    },
+    {
+      "t": 3.013,
+      "status": 200,
+      "type": "fetch",
+      "url": "http://127.0.0.1:8597/_stcore/health"
+    },
+    {
+      "t": 3.014,
+      "status": 200,
+      "type": "fetch",
+      "url": "http://127.0.0.1:8597/_stcore/host-config"
+    }
+  ],
+  "body_excerpt": "Deploy\n\nScreener\n\nGuide\n\nscreener"
+}

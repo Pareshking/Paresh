@@ -1,4 +1,10 @@
-"""One-tab production probe for diagnosing Streamlit session/readiness behavior."""
+"""One-tab production probe for diagnosing Streamlit session/readiness behavior.
+
+Frame note: Streamlit Community Cloud serves a wrapper page and mounts the
+application inside a nested iframe. Reading the top-level frame therefore
+reports an empty body, zero tabs and a Screener that never appears, however
+long you wait. Every DOM read below goes through app_frame().
+"""
 from __future__ import annotations
 
 import json
@@ -9,6 +15,33 @@ from playwright.sync_api import sync_playwright
 
 URL = os.getenv("UMIYA_PRODUCTION_URL", "https://paresh.streamlit.app/")
 OUT = Path("artifacts/one_tab_probe")
+METRICS_ID = "umiya-startup-metrics"
+
+
+def app_frame(page):
+    """Return the frame hosting the Streamlit app, not the Cloud wrapper."""
+    for frame in page.frames:
+        try:
+            if frame.locator('[data-testid="stApp"]').count() > 0:
+                return frame
+        except Exception:
+            continue
+    return page.main_frame
+
+
+def read_startup_metrics(page):
+    """Read the app's own cold-start telemetry, if this build publishes it."""
+    for frame in page.frames:
+        try:
+            node = frame.locator(f"#{METRICS_ID}")
+            if node.count() == 0:
+                continue
+            raw = node.first.text_content(timeout=5_000)
+            if raw:
+                return json.loads(raw)
+        except Exception:
+            continue
+    return None
 
 
 def main() -> None:
@@ -61,7 +94,9 @@ def main() -> None:
         screener_time = None
         for _ in range(360):
             try:
-                if page.get_by_text("Screener", exact=True).count() and page.get_by_text("Screener", exact=True).first.is_visible():
+                frame = app_frame(page)
+                loc = frame.get_by_text("Screener", exact=True)
+                if loc.count() and loc.first.is_visible():
                     screener_time = time.perf_counter() - t0
                     print(f"T+{screener_time:.3f} screener_visible")
                     break
@@ -69,19 +104,31 @@ def main() -> None:
                 pass
             page.wait_for_timeout(1000)
 
-        body = page.locator("body").inner_text(timeout=20)
+        frame = app_frame(page)
+        frames_seen = [f.url for f in page.frames]
+        print(f"T+{time.perf_counter()-t0:.3f} frames={frames_seen}")
+        try:
+            body = frame.locator("body").inner_text(timeout=10_000)
+        except Exception:
+            body = ""
         print(f"T+{time.perf_counter()-t0:.3f} body_chars={len(body)}")
-        print(f"T+{time.perf_counter()-t0:.3f} tab_count={page.get_by_role('tab').count()}")
+        print(f"T+{time.perf_counter()-t0:.3f} tab_count={frame.get_by_role('tab').count()}")
+
+        startup_metrics = read_startup_metrics(page)
+        if startup_metrics:
+            facts = startup_metrics.get("facts", {})
+            print(f"T+{time.perf_counter()-t0:.3f} cold_container={facts.get('cold_container')} "
+                  f"uptime={startup_metrics.get('uptime_s')}s")
 
         if screener_time is not None:
             try:
-                page.get_by_text("Screener", exact=True).first.click(timeout=10_000)
+                frame.get_by_text("Screener", exact=True).first.click(timeout=10_000)
                 page.wait_for_timeout(1000)
                 print(f"T+{time.perf_counter()-t0:.3f} screener_clicked")
             except Exception as exc:
                 print(f"T+{time.perf_counter()-t0:.3f} screener_click_error={exc}")
 
-        nav = page.evaluate("""() => ({
+        nav = frame.evaluate("""() => ({
             navigation: performance.getEntriesByType('navigation').map(x => ({
                 domContentLoaded: x.domContentLoadedEventEnd,
                 load: x.loadEventEnd,
@@ -96,6 +143,9 @@ def main() -> None:
         result = {
             "elapsed_seconds": round(time.perf_counter() - t0, 3),
             "screener_visible_seconds": None if screener_time is None else round(screener_time, 3),
+            "frames": frames_seen,
+            "startup_metrics": startup_metrics,
+            "tab_count": frame.get_by_role("tab").count(),
             "navigation": nav,
             "websockets": ws_events,
             "console_errors": console_errors,
