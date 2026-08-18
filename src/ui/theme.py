@@ -5,6 +5,24 @@ import pandas as pd
 import streamlit as st
 
 
+TICK_TRUE = frozenset({"✅", "TRUE", "1", "YES", "Y"})
+
+
+def is_tick_true(value) -> bool:
+    """Whether a qualification cell means "yes".
+
+    "Above 50 EMA" and "Near 52W High" carry tick marks, not booleans, so every
+    consumer has to decode them. Defined once here -- the leaf module both the
+    components layer and the row renderers can import -- because the copies
+    drifted apart before: one of them omitted .strip(), and the vectorised
+    copies used .map(), which preserves the source dtype on an empty frame and
+    produced a str-dtype mask that crashed the Qualified tab.
+    """
+    return value is True or (
+        value is not None and str(value).strip().upper() in TICK_TRUE
+    )
+
+
 def clean_html(html_str: str) -> str:
     """Strips leading whitespace from every line to ensure Markdown NEVER interprets HTML as code blocks."""
     return re.sub(r"^[ \t]+", "", html_str, flags=re.MULTILINE).strip()
@@ -1171,17 +1189,8 @@ def render_master_screener_table(
             )
         )
 
-        above_ema = row.get("Above 50 EMA")
-        above_ema_icon = (
-            "🟢"
-            if (above_ema is True or str(above_ema) in ["✅", "True", "1"])
-            else "⚪"
-        )
-
-        near_hi = row.get("Near 52W High")
-        near_hi_icon = (
-            "🟢" if (near_hi is True or str(near_hi) in ["✅", "True", "1"]) else "⚪"
-        )
+        above_ema_icon = "🟢" if is_tick_true(row.get("Above 50 EMA")) else "⚪"
+        near_hi_icon = "🟢" if is_tick_true(row.get("Near 52W High")) else "⚪"
 
         # Risk & Exits
         sl_val = row.get("Stop Loss")

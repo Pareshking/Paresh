@@ -58,3 +58,40 @@ def test_missing_column_yields_empty_mask():
 def test_mask_preserves_index_for_alignment():
     s = pd.Series(["✅", "❌"], index=[7, 9], dtype="str")
     assert to_bool_mask(s).index.tolist() == [7, 9]
+
+
+def test_empty_frame_map_produces_unusable_mask_but_to_bool_mask_does_not():
+    """The second production crash, on the Qualified tab.
+
+    .map() has no rows to infer a dtype from on an empty frame, so it hands
+    back the SOURCE dtype -- str for one column, float64 for the other -- and
+    "ab_ema & nr_hi" reached Arrow's and_kleene with no matching kernel:
+    ``TypeError: operation 'and_' not supported for dtype 'str' with dtype
+    'float64'``.
+    """
+    df = pd.DataFrame({
+        "Rank": pd.Series([], dtype="int64"),
+        "Above 50 EMA": pd.Series([], dtype="str"),
+        "Near 52W High": pd.Series([], dtype="float64"),
+    })
+    decode = lambda x: x is True or str(x).strip() in ["✅", "True", "1"]  # noqa: E731
+
+    # What the views used to do: the mask dtypes do not survive the empty frame.
+    assert df["Above 50 EMA"].map(decode).dtype != bool
+    assert df["Near 52W High"].map(decode).dtype != bool
+
+    ab_ema = to_bool_mask(df["Above 50 EMA"])
+    nr_hi = to_bool_mask(df["Near 52W High"])
+    assert ab_ema.dtype == bool and nr_hi.dtype == bool
+    assert df[ab_ema & nr_hi].empty
+
+
+def test_mixed_source_dtypes_combine_with_and():
+    """Tick column beside an all-NaN float column, the shape production saw."""
+    df = pd.DataFrame({
+        "Rank": [1, 2],
+        "Above 50 EMA": pd.Series(["✅", "✅"], dtype="str"),
+        "Near 52W High": pd.Series([float("nan")] * 2, dtype="float64"),
+    })
+    sel = df[to_bool_mask(df["Above 50 EMA"]) & to_bool_mask(df["Near 52W High"])]
+    assert sel.empty

@@ -10,7 +10,7 @@ import pandas as pd
 import streamlit as st
 
 from src.core.types import MarketRegime, RegimeData, SignalAlert
-from src.ui.theme import clean_html
+from src.ui.theme import clean_html, is_tick_true
 
 
 
@@ -29,9 +29,8 @@ def to_bool_mask(values: "pd.Series | None") -> pd.Series:
     """
     if values is None:
         return pd.Series(dtype=bool)
-    truthy = {"✅", "TRUE", "1", "YES", "Y"}
     return pd.Series(
-        [v is True or (v is not None and str(v).strip().upper() in truthy) for v in values],
+        [is_tick_true(v) for v in values],
         index=values.index,
         dtype=bool,
     )

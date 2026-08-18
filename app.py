@@ -286,6 +286,25 @@ low_prices = data["low_prices"]
 volume_data = data["volume_data"]
 regime_data = data["regime_data"]
 
+# An empty ranking is a pipeline failure, not a view to render. Twelve tabs of
+# empty frames produced a TypeError in the Qualified tab rather than telling
+# anyone what went wrong, so stop here and report what the engine actually saw.
+if rank_df.empty:
+    diag = getattr(calc, "ranking_diagnostics", {}) or {}
+    metrics.note("ranking_diagnostics", diag)
+    st.error(
+        "❌ The momentum engine ranked 0 stocks, so there is nothing to show.\n\n"
+        f"- Universe: **{diag.get('universe', 'unknown')}** symbols\n"
+        f"- With any price history: **{diag.get('with_price_history', 'unknown')}**\n"
+        f"- Meeting the {diag.get('min_observations', 63)}-observation minimum: "
+        f"**{diag.get('meeting_min_observations', 'unknown')}**\n\n"
+        "This is almost always upstream price data, not the ranking itself. "
+        "Use **Force Refresh** to rebuild the cache, or retry shortly if the "
+        "price provider is rate limiting."
+    )
+    _emit_startup_metrics("empty_ranking")
+    st.stop()
+
 # Merge TradingView granular classification
 tv_map = load_tv_classification()
 if tv_map:

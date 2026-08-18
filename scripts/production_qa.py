@@ -49,6 +49,11 @@ METRICS_ID = "umiya-startup-metrics"
 # after the push.
 EXPECTED_SHA = (os.getenv("UMIYA_EXPECTED_SHA") or "").strip().lower()
 DEPLOY_WAIT_S = int(os.getenv("UMIYA_DEPLOY_WAIT_S", "300"))
+# The app emits its telemetry element as the LAST thing the script run does,
+# after all twelve tab bodies. Reading it the instant stTabs appears loses that
+# race every time and reports the deploy check unverifiable, which is what run
+# 32127263814 did. Wait for the element the way cold_start_probe.py does.
+METRICS_WAIT_S = int(os.getenv("UMIYA_METRICS_WAIT_S", "180"))
 
 TABS = [
     "Screener", "Qualified", "Sectors", "RRG", "Multi-Strategy", "Portfolio",
@@ -122,8 +127,8 @@ def http_probe() -> dict:
     return result
 
 
-def read_revision(page) -> str | None:
-    """Revision the running app reports, from its startup telemetry."""
+def read_telemetry(page) -> dict | None:
+    """The running app's startup telemetry, or None if it has not emitted yet."""
     for frame in page.frames:
         try:
             node = frame.locator(f"#{METRICS_ID}")
@@ -131,10 +136,32 @@ def read_revision(page) -> str | None:
                 continue
             raw = node.first.text_content(timeout=5_000)
             if raw:
-                return (json.loads(raw) or {}).get("revision")
+                return json.loads(raw) or {}
         except Exception:
             continue
     return None
+
+
+def read_revision(page, wait_s: int = 0) -> tuple[str | None, str]:
+    """Revision the running app reports, plus why it could not be read.
+
+    Returns (revision, reason). The reason distinguishes the two ways this can
+    come back empty -- the app never published telemetry at all, versus it
+    published telemetry that carries no revision -- because they have different
+    causes and only the second one is about git metadata on the Streamlit host.
+    """
+    deadline = time.perf_counter() + max(0, wait_s)
+    telemetry = read_telemetry(page)
+    while telemetry is None and time.perf_counter() < deadline:
+        time.sleep(POLL_S)
+        telemetry = read_telemetry(page)
+
+    if telemetry is None:
+        return None, "no_telemetry_element"
+    rev = telemetry.get("revision")
+    if not rev:
+        return None, "telemetry_without_revision"
+    return rev, "ok"
 
 
 def app_frame(page):
@@ -281,7 +308,7 @@ def main() -> None:
             # rather than reporting the new commit red.
             if state["state"] == "ready" and EXPECTED_SHA:
                 deadline_dep = time.perf_counter() + DEPLOY_WAIT_S
-                served = read_revision(page)
+                served, why = read_revision(page, wait_s=METRICS_WAIT_S)
                 while (
                     served
                     and not EXPECTED_SHA.startswith(served.lower()[:7])
@@ -298,12 +325,18 @@ def main() -> None:
                         if read_state(page)["state"] == "ready":
                             break
                         time.sleep(POLL_S)
-                    served = read_revision(page)
+                    served, why = read_revision(page, wait_s=METRICS_WAIT_S)
 
                 report["expected_revision"] = EXPECTED_SHA[:7]
                 report["served_revision"] = (served or "unknown")[:7]
                 if served is None:
                     report["deploy_correspondence"] = "unverifiable"
+                    report["deploy_unverifiable_reason"] = why
+                    failures.append(classify(
+                        "Could not read the revision production is serving "
+                        f"({why}), so this run cannot confirm it tested "
+                        f"{EXPECTED_SHA[:7]} rather than the previous build.",
+                        "QA"))
                 elif EXPECTED_SHA.startswith(served.lower()[:7]):
                     report["deploy_correspondence"] = "match"
                 else:
@@ -406,9 +439,11 @@ def main() -> None:
     print("\n================ PRODUCTION QA VERDICT ================", flush=True)
     print(f"readiness state       : {report.get('ready_state')}", flush=True)
     if EXPECTED_SHA:
+        reason = report.get("deploy_unverifiable_reason")
         print(f"deploy correspondence : {report.get('deploy_correspondence')} "
               f"(expected {report.get('expected_revision')}, "
-              f"served {report.get('served_revision')})", flush=True)
+              f"served {report.get('served_revision')}"
+              + (f", {reason}" if reason else "") + ")", flush=True)
     print(f"time to that state    : {report.get('ready_after_s')}s", flush=True)
     print(f"websocket established : {report['websocket_established']}", flush=True)
     print(f"page errors           : {len(page_errors)}", flush=True)

@@ -155,6 +155,7 @@ class MomentumEngine:
         self._valid_counts: pd.Series = self.prices.notna().sum()
 
         self.momentum_scores: pd.DataFrame | None = None
+        self.ranking_diagnostics: dict[str, int] = {}
         self.exp_reg_scores: pd.DataFrame | None = None
         self.residual_ranks: pd.Series | None = None
         self.ind_rel_ranks: pd.Series | None = None
@@ -405,6 +406,20 @@ class MomentumEngine:
         rank_df = index_info.copy()
         sym_to_score = latest_scores_valid.to_dict()
         rank_df["Score"] = rank_df["Symbol"].map(sym_to_score)
+
+        # Why a ranking can come back empty. dropna below removes every symbol
+        # without a score, so if no symbol cleared the 63-observation minimum
+        # the result is zero rows -- which used to reach the views as an empty
+        # frame and crash the Qualified tab instead of saying anything. Record
+        # the counts so the failure is diagnosable rather than silent.
+        self.ranking_diagnostics = {
+            "universe": int(len(rank_df)),
+            "with_price_history": int((self._valid_counts > 0).sum()),
+            "meeting_min_observations": int(valid_mask.sum()),
+            "min_observations": 63,
+            "scored": int(rank_df["Score"].notna().sum()),
+        }
+
         rank_df = rank_df.dropna(subset=["Score"]).copy()
         rank_df["Rank"] = (
             rank_df["Score"].rank(ascending=False, method="min").astype(int)

@@ -11,7 +11,7 @@ import streamlit as st
 from src.core.types import WeightMethod
 from src.engine.momentum import MomentumEngine
 from src.engine.portfolio import PortfolioOptimizer
-from src.ui.components import render_data_quality_footer
+from src.ui.components import render_data_quality_footer, to_bool_mask
 from src.ui.theme import render_saas_table
 
 
@@ -58,19 +58,18 @@ def render_portfolio_view(
         )
         return
 
+    # .map() preserves the source dtype when there are no rows to infer from,
+    # so on an empty frame these came back str and float64 and "ab_ema & nr_hi"
+    # died in Arrow's and_kleene. to_bool_mask always yields a real bool mask.
     ab_ema = (
-        rank_df["Above 50 EMA"].map(
-            lambda x: x is True or str(x).strip() in ["✅", "True", "1"]
-        )
+        to_bool_mask(rank_df["Above 50 EMA"])
         if "Above 50 EMA" in rank_df.columns
-        else pd.Series(True, index=rank_df.index)
+        else pd.Series(True, index=rank_df.index, dtype=bool)
     )
     nr_hi = (
-        rank_df["Near 52W High"].map(
-            lambda x: x is True or str(x).strip() in ["✅", "True", "1"]
-        )
+        to_bool_mask(rank_df["Near 52W High"])
         if "Near 52W High" in rank_df.columns
-        else pd.Series(True, index=rank_df.index)
+        else pd.Series(True, index=rank_df.index, dtype=bool)
     )
     port_universe = rank_df[ab_ema & nr_hi].sort_values("Rank").head(port_n)
 
