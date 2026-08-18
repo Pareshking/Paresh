@@ -43,7 +43,7 @@ from src.ui.components import (
     render_header_kpi_bar,
     render_signal_alerts,
 )
-from src.ui.theme import inject_custom_css
+from src.ui.theme import inject_custom_css, inject_design_system
 from src.ui.views.backtest_view import render_backtest_view
 from src.ui.views.breadth_view import render_breadth_view
 from src.ui.views.config_view import render_config_view
@@ -67,6 +67,7 @@ st.set_page_config(
 
 # Inject Pure Paper White Design System
 inject_custom_css()
+inject_design_system()
 
 
 # ── State Initialization ─────────────────────────────────────────────────────

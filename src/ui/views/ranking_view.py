@@ -61,7 +61,9 @@ def render_stock_card(row: pd.Series) -> None:
     chand_val = row.get("Chand Exit", 0)
     sharpe_3m = row.get("3M Sharpe", 0)
     vol = row.get("Volume", "Normal")
-    vol_icon = "🔥" if vol == "High" else ("⚡" if vol == "Surge" else "•")
+    # Typographic marks rather than emoji: emoji render inconsistently across
+    # platforms and read as decoration in a dense quant table.
+    vol_icon = "\u25b2" if vol == "High" else ("\u25c6" if vol == "Surge" else "\u00b7")
 
     card_html = f"""
     <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); transition: all 0.15s ease;">

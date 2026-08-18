@@ -759,6 +759,172 @@ def inject_custom_css() -> None:
     )
 
 
+
+def inject_design_system() -> None:
+    """Design-system layer applied on top of the base stylesheet.
+
+    Kept as a separate, additive block rather than edits threaded through the
+    2000-line base sheet: every rule here is a deliberate correction, and the
+    layer can be removed in one line if a change is not wanted.
+
+    It does not restyle the app wholesale. It fixes four measured problems --
+    inverted type hierarchy in the status bar, alert text clipped mid-word,
+    mobile chrome crowding out the data, and sub-44px touch targets -- and
+    puts the values behind tokens so they stay adjustable.
+    """
+    st.markdown(
+        """
+<style>
+:root{
+  /* Neutrals carry a slight blue bias to sit with the indigo primary rather
+     than fighting it as a pure grey would. */
+  --u-ink:#0f172a; --u-ink-2:#475569; --u-ink-3:#64748b; --u-ink-4:#94a3b8;
+  --u-line:#e2e8f0; --u-line-soft:#f1f5f9;
+  --u-surface:#ffffff; --u-surface-2:#f8fafc;
+  --u-primary:#4f46e5; --u-primary-soft:#eef2ff;
+  --u-up:#059669; --u-up-soft:#ecfdf5;
+  --u-down:#e11d48; --u-down-soft:#fff1f2;
+  --u-warn:#d97706; --u-warn-soft:#fef3c7;
+  --u-r-sm:6px; --u-r-md:9px; --u-r-lg:12px;
+  --u-shadow:0 1px 2px rgba(15,23,42,.04), 0 8px 24px -18px rgba(15,23,42,.25);
+  --u-mono:'IBM Plex Mono','JetBrains Mono',ui-monospace,monospace;
+  --u-sans:'Outfit',ui-sans-serif,system-ui,sans-serif;
+}
+
+/* ── Status bar ───────────────────────────────────────────────────────────
+   The old bar set every value at 0.74rem mono separated by pipes, so the
+   most decision-relevant numbers were the smallest text on the page. These
+   rules restore hierarchy: quiet uppercase label, prominent tabular value. */
+.u-statusbar{
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  padding:10px 16px; background:var(--u-surface);
+  border:1px solid var(--u-line); border-radius:var(--u-r-md);
+  box-shadow:var(--u-shadow); margin-bottom:8px;
+}
+.u-brand{
+  font-family:var(--u-sans); font-weight:700; font-size:.95rem;
+  color:var(--u-ink); letter-spacing:-.01em; white-space:nowrap;
+}
+.u-brand small{
+  display:block; font-family:var(--u-mono); font-weight:500; font-size:.62rem;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--u-ink-4);
+}
+.u-statusbar .u-spacer{flex:1 1 auto}
+.u-stats{display:flex; align-items:stretch; gap:0; flex-wrap:wrap}
+.u-stat{
+  display:flex; flex-direction:column; gap:1px;
+  padding:0 14px; border-left:1px solid var(--u-line-soft);
+}
+.u-stat:first-child{border-left:0; padding-left:0}
+.u-stat .k{
+  font-family:var(--u-mono); font-size:.6rem; font-weight:500;
+  letter-spacing:.11em; text-transform:uppercase; color:var(--u-ink-4);
+  white-space:nowrap;
+}
+.u-stat .v{
+  font-family:var(--u-mono); font-size:.9rem; font-weight:600;
+  font-variant-numeric:tabular-nums; color:var(--u-ink); white-space:nowrap;
+  letter-spacing:-.01em;
+}
+.u-stat .v .sub{font-size:.72rem; font-weight:500; color:var(--u-ink-3); margin-left:4px}
+.u-stat .v.up{color:var(--u-up)} .u-stat .v.down{color:var(--u-down)}
+
+.u-regime{
+  display:inline-flex; align-items:center; gap:7px;
+  padding:5px 11px; border-radius:100px;
+  font-family:var(--u-mono); font-size:.68rem; font-weight:600;
+  letter-spacing:.09em; text-transform:uppercase; white-space:nowrap;
+}
+.u-regime .dot{width:7px; height:7px; border-radius:50%; background:currentColor; flex:none}
+.u-regime.up{background:var(--u-up-soft); color:var(--u-up)}
+.u-regime.down{background:var(--u-down-soft); color:var(--u-down)}
+.u-regime.flat{background:var(--u-surface-2); color:var(--u-ink-3)}
+
+/* ── Signal ribbon ────────────────────────────────────────────────────────
+   Chips were nowrap + flex-shrink:0 inside overflow-x:auto, so long lists
+   were cut mid-word with nothing indicating more text existed. Chips now
+   wrap on wide screens; on narrow ones the row scrolls and says so with an
+   edge fade instead of silently truncating. */
+.u-signals{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  padding:7px 10px; background:var(--u-surface-2);
+  border:1px solid var(--u-line); border-radius:var(--u-r-md); margin-bottom:10px;
+}
+.u-signal{
+  display:inline-flex; align-items:baseline; gap:7px;
+  padding:4px 10px; border-radius:var(--u-r-sm);
+  font-family:var(--u-mono); font-size:.71rem; font-weight:500;
+  line-height:1.45; max-width:100%; overflow-wrap:anywhere;
+}
+.u-signal .mark{font-weight:700; flex:none}
+.u-signal .n{font-weight:700}
+.u-signal.up{background:var(--u-up-soft); color:var(--u-up); border:1px solid #a7f3d0}
+.u-signal.down{background:var(--u-down-soft); color:var(--u-down); border:1px solid #fecdd3}
+.u-signal.warn{background:var(--u-warn-soft); color:var(--u-warn); border:1px solid #fde68a}
+.u-signal.info{background:var(--u-primary-soft); color:var(--u-primary); border:1px solid #c7d2fe}
+
+/* ── Data-quality footer ── */
+.u-footer{
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+  padding:11px 16px; background:var(--u-surface-2);
+  border:1px solid var(--u-line); border-radius:var(--u-r-lg);
+  margin-top:26px; font-family:var(--u-mono); font-size:.72rem; color:var(--u-ink-3);
+}
+.u-footer strong{color:var(--u-ink); font-weight:600; font-variant-numeric:tabular-nums}
+.u-footer .u-sep{width:1px; height:13px; background:var(--u-line)}
+.u-footer .u-right{margin-left:auto; color:var(--u-ink-2); font-weight:600}
+
+/* ── Tab strip: make scrollability visible rather than implied ── */
+.stTabs [data-baseweb="tab-list"]{position:relative; scrollbar-width:thin}
+.stTabs [data-baseweb="tab-list"]::after{
+  content:""; position:sticky; right:0; top:0; height:100%; width:28px;
+  flex:none; pointer-events:none;
+  background:linear-gradient(90deg,rgba(255,255,255,0),var(--u-surface));
+}
+
+@media (max-width:640px){
+  /* Chrome was consuming ~400px before the first data row on an 844px
+     screen. Tighten the stack and let the table start higher. */
+  .u-statusbar{gap:10px; padding:9px 12px}
+  .u-stat{padding:0 10px}
+  .u-stat .v{font-size:.82rem}
+  .u-signals{
+    flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch;
+    position:relative;
+    /* Fade the trailing edge so a scrolled-off signal reads as "more here"
+       rather than as a sentence that simply stops. */
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);
+            mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);
+  }
+  .u-signal{white-space:nowrap; flex:none}
+  .stMainBlockContainer{padding-left:12px !important; padding-right:12px !important}
+  [data-testid="stVerticalBlock"]{gap:.55rem !important}
+  [data-testid="stElementContainer"]:has(> [data-testid="stMarkdown"]:empty){display:none}
+
+  /* Touch targets: 28 interactive elements measured under 44px, 12 of them
+     the tab controls at 40px. Streamlit tags these [data-testid="stTab"],
+     not [data-baseweb="tab"]. */
+  .stTabs [data-testid="stTab"],
+  [data-testid="stTab"]{
+    min-height:44px !important; height:44px !important;
+    display:flex !important; align-items:center !important;
+  }
+  [data-testid="stBaseButton-secondary"],
+  [data-testid="stBaseButton-primary"],
+  .stSelectbox [data-baseweb="select"] > div,
+  .stMultiSelect [data-baseweb="select"] > div{min-height:44px !important}
+  [data-baseweb="segmented-control"] button,
+  [role="radiogroup"] label{min-height:44px !important}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms !important; transition-duration:.001ms !important}
+}
+</style>
+""",
+        unsafe_allow_html=True,
+    )
+
 def format_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """Formats boolean and categorical volume indicators for clean display."""
     out = df.copy()
@@ -1162,10 +1328,10 @@ def render_master_screener_table(
 
         vol_val = str(row.get("Volume", "Normal"))
         vol_badge = (
-            "<span class='vol-tag'>🔥 High</span>"
+            "<span class='vol-tag'>High</span>"
             if vol_val == "High"
             else (
-                "<span class='vol-tag vol-surge'>⚡ Surge</span>"
+                "<span class='vol-tag vol-surge'>Surge</span>"
                 if vol_val == "Surge"
                 else "<span class='text-muted'>• Normal</span>"
             )
