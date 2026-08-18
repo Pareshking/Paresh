@@ -62,7 +62,28 @@ def run_daily_sync() -> None:
     # archive itself and would otherwise fall back to 750 individual yfinance
     # lookups -- the slowest stage of a cold start. Writing the snapshot here
     # lets production read what this job already paid for.
-    if len(mcaps) > 0:
+    from src.core import startup_metrics as _metrics
+
+    _facts = _metrics.snapshot().get("facts", {})
+    _mcap_path = str(_facts.get("mcap_path") or "unknown")
+    _as_of = _facts.get("mcap_pr_date")
+
+    if _mcap_path == "repo_snapshot":
+        # The loader fell through to the file THIS JOB wrote last time, which
+        # means nothing new was fetched. Rewriting it would launder a stale
+        # snapshot as a fresh one and reset nothing but the commit date.
+        #
+        # This is not hypothetical: on 2026-08-18 the 22:00 IST slot fired at
+        # 22:29 and NSE had not yet published the PR archive -- the same file
+        # fetched cleanly at 22:51 -- so the job read its own output and wrote
+        # it straight back. A closed loop with no signal that the fetch failed.
+        print(
+            "::warning::Market caps came from the repository snapshot, not a "
+            "fresh NSE fetch. The PR archive was unavailable at this hour. "
+            "Leaving the snapshot untouched rather than re-committing stale "
+            "data as if it were new."
+        )
+    elif len(mcaps) > 0:
         import pandas as pd
 
         from src.core.config import REPO_MCAP_FILE
@@ -76,12 +97,12 @@ def run_daily_sync() -> None:
         snapshot = snapshot[snapshot["MarketCap"] > 0]
         # Stamp the trade date this snapshot represents, so production can say
         # how old its market caps are instead of presenting them undated.
-        from src.core import startup_metrics as _metrics
-
-        as_of = _metrics.snapshot().get("facts", {}).get("mcap_pr_date")
-        snapshot["AsOf"] = as_of or ""
+        snapshot["AsOf"] = _as_of or ""
         snapshot.to_csv(REPO_MCAP_FILE, index=False)
-        print(f"Repository market cap snapshot written: {len(snapshot)} symbols -> {REPO_MCAP_FILE}")
+        print(
+            f"Repository market cap snapshot written: {len(snapshot)} symbols "
+            f"(source={_mcap_path}, as of {_as_of or 'undated'}) -> {REPO_MCAP_FILE}"
+        )
     else:
         print("No market caps resolved; leaving the repository snapshot untouched.")
 
