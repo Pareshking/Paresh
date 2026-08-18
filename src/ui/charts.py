@@ -25,7 +25,7 @@ def compute_rsi_series(prices: pd.Series, period: int = 14) -> pd.Series:
     return rsi
 
 
-def render_candlestick_drilldown(
+def render_stock_chart(
     symbol: str,
     rank_df: pd.DataFrame,
     adj_close: pd.DataFrame,
@@ -33,7 +33,33 @@ def render_candlestick_drilldown(
     low_prices: pd.DataFrame | None = None,
     volume_data: pd.DataFrame | None = None,
 ) -> None:
-    """Renders single-stock technical terminal with Candlestick, Chandelier Stops, Volume, and RSI (14)."""
+    """Just the chart: price with toggleable overlays, volume and RSI."""
+    render_candlestick_drilldown(
+        symbol,
+        rank_df,
+        adj_close,
+        high_prices=high_prices,
+        low_prices=low_prices,
+        volume_data=volume_data,
+        chrome=False,
+    )
+
+
+def render_candlestick_drilldown(
+    symbol: str,
+    rank_df: pd.DataFrame,
+    adj_close: pd.DataFrame,
+    high_prices: pd.DataFrame | None = None,
+    low_prices: pd.DataFrame | None = None,
+    volume_data: pd.DataFrame | None = None,
+    chrome: bool = True,
+) -> None:
+    """Renders single-stock technical terminal with Candlestick, Chandelier Stops, Volume, and RSI (14).
+
+    `chrome` draws the header card, the KPI row and the right-hand spec panel.
+    The stock detail page turns it off because it renders richer versions of
+    all three above the chart.
+    """
     if symbol not in adj_close.columns:
         st.warning(f"No price data available for {symbol}")
         return
@@ -86,17 +112,25 @@ def render_candlestick_drilldown(
         </div>
     </div>
     """
-    st.markdown(clean_html(header_html), unsafe_allow_html=True)
+    # The stock page renders its own identity band and statistics, and renders
+    # them better, so it asks for the chart WITHOUT this chrome. Keeping the
+    # chrome behind a flag means the older inline drilldown keeps working
+    # unchanged rather than being rewritten to suit the new page.
+    if chrome:
+        st.markdown(clean_html(header_html), unsafe_allow_html=True)
 
-    # 4 KPI metric cards row
-    k1, k2, k3, k4 = st.columns(4)
-    k1.metric("3M Sharpe Ratio", f"{row_s.get('3M Sharpe', 0):.2f}")
-    k2.metric("6M Return", f"{ret_6m:.1%}")
-    k3.metric("ATR Volatility %", f"{row_s.get('ATR %', 0):.1f}%")
-    k4.metric("Market Cap", f"₹{row_s.get('Market Cap (Cr)', 0):,.0f} Cr")
+        # 4 KPI metric cards row
+        k1, k2, k3, k4 = st.columns(4)
+        k1.metric("3M Sharpe Ratio", f"{row_s.get('3M Sharpe', 0):.2f}")
+        k2.metric("6M Return", f"{ret_6m:.1%}")
+        k3.metric("ATR Volatility %", f"{row_s.get('ATR %', 0):.1f}%")
+        k4.metric("Market Cap", f"₹{row_s.get('Market Cap (Cr)', 0):,.0f} Cr")
 
-    # Timeframe selection pills
-    c_tf, _ = st.columns([1.5, 3], vertical_alignment="center")
+    # Timeframe and overlay pills. The moving averages are toggleable because
+    # they answer a question ("is it above its 20?") rather than being a
+    # permanent fixture -- and three always-on lines make the price itself hard
+    # to read on a phone.
+    c_tf, c_ma = st.columns([1.5, 2], vertical_alignment="center")
     tf_choice = c_tf.segmented_control(
         "Timeframe",
         ["1M", "3M", "6M", "1Y", "All"],
@@ -106,6 +140,15 @@ def render_candlestick_drilldown(
     )
     if not tf_choice:
         tf_choice = "6M"
+
+    overlays = c_ma.pills(
+        "Overlays",
+        ["20 EMA", "50 EMA", "200 SMA"],
+        selection_mode="multi",
+        default=["20 EMA", "50 EMA"],
+        key=f"ma_overlays_{symbol}",
+        label_visibility="collapsed",
+    ) or []
 
     tf_days_map = {"1M": 22, "3M": 64, "6M": 126, "1Y": 252, "All": 500}
     _n_days = tf_days_map.get(tf_choice, 126)
@@ -118,7 +161,12 @@ def render_candlestick_drilldown(
         and symbol in low_prices.columns
     )
 
-    c_chart, c_spec = st.columns([2.6, 1.1])
+    # Without the chrome the chart takes the full width; the spec panel's
+    # contents already appear as key-level tiles on the stock page.
+    if chrome:
+        c_chart, c_spec = st.columns([2.6, 1.1])
+    else:
+        c_chart, c_spec = st.container(), None
 
     with c_chart:
         fig = make_subplots(
@@ -155,45 +203,44 @@ def render_candlestick_drilldown(
                     x=_close.index,
                     y=_close.values,
                     mode="lines",
-                    line={"color": "#059669", "width": 2},
-                    fill="tozeroy",
-                    fillcolor="rgba(5, 150, 105, 0.05)",
-                    name="Close",
+                    # Price is the subject; the overlays are commentary. It gets
+                    # the darkest, heaviest line so it stays readable with two
+                    # moving averages crossing it.
+                    line={"color": "#0f172a", "width": 2.6},
+                    name="Price",
                 ),
                 row=1,
                 col=1,
             )
 
-        # 50 EMA & 200 SMA
-        if len(_close) >= 20:
-            ema50 = _close.ewm(span=50).mean()
+        # Moving-average overlays, drawn only when their pill is selected.
+        # Distinct hues rather than dash patterns: at this line weight a dotted
+        # indigo and a dashed amber read as the same grey on a phone screen.
+        _ma_specs = [
+            ("20 EMA", lambda c: c.ewm(span=20, min_periods=5).mean(), "#0ea5e9", 20),
+            ("50 EMA", lambda c: c.ewm(span=50, min_periods=10).mean(), "#7c3aed", 20),
+            ("200 SMA", lambda c: c.rolling(200, min_periods=30).mean(), "#d97706", 50),
+        ]
+        for _ma_name, _ma_calc, _ma_colour, _ma_min_len in _ma_specs:
+            if _ma_name not in overlays or len(_close) < _ma_min_len:
+                continue
+            _ma_series = _ma_calc(_close)
             fig.add_trace(
                 go.Scatter(
-                    x=ema50.index,
-                    y=ema50.values,
+                    x=_ma_series.index,
+                    y=_ma_series.values,
                     mode="lines",
-                    line={"color": "#4f46e5", "width": 1.2, "dash": "dot"},
-                    name="50 EMA",
-                ),
-                row=1,
-                col=1,
-            )
-        if len(_close) >= 50:
-            sma200 = _close.rolling(200, min_periods=30).mean()
-            fig.add_trace(
-                go.Scatter(
-                    x=sma200.index,
-                    y=sma200.values,
-                    mode="lines",
-                    line={"color": "#d97706", "width": 1.2, "dash": "dash"},
-                    name="200 SMA",
+                    line={"color": _ma_colour, "width": 1.6},
+                    name=_ma_name,
                 ),
                 row=1,
                 col=1,
             )
 
-        # Chandelier & ATR Trailing Stops
-        _sl = row_s.get("Stop Loss", None)
+        # Chandelier exit only. The 2xATR stop was removed from the chart: two
+        # horizontal lines a few percent apart crowded the price action they
+        # were meant to annotate, and the number is stated exactly in the key
+        # levels above, where it can be read rather than estimated off an axis.
         _ch = row_s.get("Chand Exit", None)
         if _ch and pd.notna(_ch) and _ch > 0:
             fig.add_hline(
@@ -208,20 +255,6 @@ def render_candlestick_drilldown(
                 row=1,
                 col=1,
             )
-        if _sl and pd.notna(_sl) and _sl > 0:
-            fig.add_hline(
-                y=_sl,
-                line_color="#e11d48",
-                line_dash="dash",
-                line_width=1,
-                annotation_text=f"2×ATR Stop ₹{_sl:.0f}",
-                annotation_position="bottom right",
-                annotation_font_color="#e11d48",
-                annotation_font_size=9,
-                row=1,
-                col=1,
-            )
-
         # 2. Volume Subplot
         if volume_data is not None and symbol in volume_data.columns:
             _vol = volume_data[symbol].dropna().iloc[-_n_days:]
@@ -328,6 +361,9 @@ def render_candlestick_drilldown(
         )
         fig.update_xaxes(gridcolor="#f1f5f9")
         st.plotly_chart(fig, width="stretch", key=f"drill_chart_{symbol}")
+
+    if c_spec is None:
+        return
 
     with c_spec:
         sl_raw = row_s.get("Stop Loss")

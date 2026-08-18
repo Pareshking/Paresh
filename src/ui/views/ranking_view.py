@@ -10,6 +10,7 @@ import streamlit as st
 from src.core.market_time import ist_now
 from src.ui.charts import render_candlestick_drilldown
 from src.ui.components import render_data_quality_footer, to_bool_mask
+from src.ui.views.stock_view import render_stock_view
 from src.ui.theme import (
     render_master_screener_table,
     render_saas_table,
@@ -56,6 +57,64 @@ DISPLAY_COLS = [
 ]
 
 
+CARD_BATCH = 48
+
+
+def _render_card_grid(view: pd.DataFrame) -> None:
+    """Card grid over the WHOLE result set, revealed a batch at a time.
+
+    It used to render view.head(48) and stop -- silently. Rank #49 onward
+    simply did not exist in card view, with nothing on screen to say so, which
+    is how a 750-stock screener came to look like a 48-stock one.
+
+    Streamlit has no viewport-driven lazy loading, so this is the honest
+    equivalent: render a batch, say exactly how many of how many are shown, and
+    let the reader ask for more. Rendering all 750 cards at once is what the
+    original cap was avoiding, and that instinct was right -- it is thousands
+    of DOM nodes on a phone.
+    """
+    total = len(view)
+    if total == 0:
+        st.info("No stocks match the active filters.")
+        return
+
+    state_key = "rank_cards_shown"
+    shown = min(int(st.session_state.get(state_key, CARD_BATCH)), total)
+    # A narrowed filter must not leave the counter stranded above the new total.
+    if shown < CARD_BATCH:
+        shown = min(CARD_BATCH, total)
+
+    card_items = view.head(shown).reset_index(drop=True)
+    n_cols = 4
+    for i in range(0, len(card_items), n_cols):
+        cols = st.columns(n_cols)
+        for j in range(n_cols):
+            if i + j < len(card_items):
+                with cols[j]:
+                    render_stock_card(card_items.iloc[i + j])
+        st.markdown(" ")
+
+    st.caption(f"Showing {shown} of {total} stocks.")
+    if shown < total:
+        c_more, c_all, _ = st.columns([1, 1, 3])
+        remaining = total - shown
+        if c_more.button(
+            f"Show {min(CARD_BATCH, remaining)} more", key="rank_cards_more",
+            width="stretch",
+        ):
+            st.session_state[state_key] = shown + CARD_BATCH
+            st.rerun()
+        if c_all.button(
+            f"Show all {total}", key="rank_cards_all", width="stretch",
+        ):
+            st.session_state[state_key] = total
+            st.rerun()
+    elif total > CARD_BATCH:
+        if st.button("Collapse to first 48", key="rank_cards_reset"):
+            st.session_state[state_key] = CARD_BATCH
+            st.rerun()
+
+
 def render_stock_card(row: pd.Series) -> None:
     """Renders a modern stock screener card (Tickerboom style)."""
     sym = row["Symbol"]
@@ -82,9 +141,9 @@ def render_stock_card(row: pd.Series) -> None:
                 <span style="font-size: 0.72rem; font-weight: 700; color: #4f46e5; background-color: #eef2ff; border: 1px solid #c7d2fe; padding: 2px 7px; border-radius: 20px; font-family: 'IBM Plex Mono', monospace;">
                     #{rank_num}
                 </span>
-                <span style="font-weight: 600; font-size: 1.02rem; color: #0f172a; margin-left: 6px;">
+                <a href="?stock={sym}" target="_self" style="font-weight: 600; font-size: 1.02rem; color: #0f172a; margin-left: 6px; text-decoration: none; border-bottom: 1px dotted #94a3b8;" title="Open {sym}">
                     {sym}
-                </span>
+                </a>
             </div>
             <div style="font-family: 'IBM Plex Mono', monospace; font-weight: 800; font-size: 1.05rem; color: #0f172a;">
                 ₹{cmp_val:,.0f}
@@ -141,6 +200,30 @@ def render_ranking_view(
     volume_data: pd.DataFrame | None = None,
 ) -> None:
     """Renders the primary stock rankings interface with dynamic search and Grid/Table switcher."""
+    # ── Stock detail route ───────────────────────────────────────────────────
+    # ?stock=SYMBOL opens the detail page instead of the screener. A query
+    # parameter rather than session state on purpose: it survives a refresh,
+    # it can be shared or bookmarked, and it is the only mechanism a link
+    # inside the hand-built HTML table can reach -- those cells cannot call
+    # back into Python.
+    requested = str(st.query_params.get("stock") or "").strip().upper()
+    if requested:
+        def _back() -> None:
+            if st.button("← Back to screener", key="stock_page_back"):
+                st.query_params.clear()
+                st.rerun()
+
+        render_stock_view(
+            requested,
+            rank_df,
+            adj_close,
+            high_prices=high_prices,
+            low_prices=low_prices,
+            volume_data=volume_data,
+            on_back=_back,
+        )
+        return
+
     # Build dynamic predictive search suggestions
     idx_set = set()
     if "Indices" in rank_df.columns:
@@ -355,16 +438,7 @@ def render_ranking_view(
             view, prices_df=adj_close, key="rank_master_table", density=density_mode
         )
     else:
-        # Screener Card Grid View (Tickerboom style)
-        card_items = view.head(48).reset_index(drop=True)
-        N_COLS = 4
-        for i in range(0, len(card_items), N_COLS):
-            cols = st.columns(N_COLS)
-            for j in range(N_COLS):
-                if i + j < len(card_items):
-                    with cols[j]:
-                        render_stock_card(card_items.iloc[i + j])
-            st.markdown(" ")
+        _render_card_grid(view)
 
     # Export EVERY column the ranking carries, not just the ones on screen.
     # DISPLAY_COLS is a screen-layout decision -- it drops Score, the raw
