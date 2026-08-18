@@ -221,8 +221,9 @@ def main() -> None:
     print(f"verdict                     : {report['verdict']}", flush=True)
     print(f"cold container (cache empty): {cold}", flush=True)
     if metrics_blob:
-        print(f"process start (UTC)         : {metrics_blob.get('process_start_utc')}", flush=True)
-        print(f"process uptime at read      : {metrics_blob.get('uptime_s')}s", flush=True)
+        print(f"module import (UTC)         : {metrics_blob.get('module_import_utc')}", flush=True)
+        print(f"module age at read          : {metrics_blob.get('uptime_s')}s", flush=True)
+        print(f"process identity            : {json.dumps(metrics_blob.get('process'))}", flush=True)
         print(f"cache at startup            : {json.dumps(facts.get('cache_at_startup'))}", flush=True)
     print("\n-- browser-observed --", flush=True)
     for k in ("navigation_complete_s", "app_shell_s", "pipeline_running_first_seen_s",
@@ -239,6 +240,13 @@ def main() -> None:
     print("\n-- fetch counters --", flush=True)
     for k in sorted(counters):
         print(f"  {k:<36}: {counters[k]:g}", flush=True)
+    if not counters:
+        print("  (none - nothing was fetched or computed in this process)", flush=True)
+    memo_misses = {k: v for k, v in counters.items() if k.startswith("memo_miss")}
+    if not memo_misses:
+        print("  NOTE: no memo misses, so Streamlit served every cached call "
+              "from a warm cache - these timings are not a cold pipeline.",
+              flush=True)
     print("\n-- coverage --", flush=True)
     for k in ("universe_symbols", "price_path", "price_symbols_requested",
               "price_missing_after_batches", "price_series_returned",

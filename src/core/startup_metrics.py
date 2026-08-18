@@ -24,8 +24,33 @@ from datetime import datetime, timezone
 
 _LOCK = threading.Lock()
 
-PROCESS_START_MONOTONIC: float = time.monotonic()
-PROCESS_START_UTC: str = datetime.now(timezone.utc).isoformat(timespec="seconds")
+MODULE_IMPORT_MONOTONIC: float = time.monotonic()
+# When THIS MODULE was imported. On Streamlit Cloud a deploy can reload changed
+# modules into an already-running interpreter, so this is NOT proof that the
+# process restarted -- see process_identity() for that.
+MODULE_IMPORT_UTC: str = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def process_identity() -> dict:
+    """Identify the OS process, so a module reload cannot be mistaken for a restart.
+
+    A fresh import with a warm @st.cache_data is exactly what a redeploy into a
+    surviving interpreter looks like, and it is indistinguishable from a cold
+    process unless the PID and process start time are reported too.
+    """
+    info: dict[str, object] = {"pid": os.getpid()}
+    try:
+        with open("/proc/self/stat", "r", encoding="utf-8") as fh:
+            fields = fh.read().rsplit(") ", 1)[-1].split()
+        starttime_ticks = float(fields[19])
+        clk = os.sysconf("SC_CLK_TCK")
+        with open("/proc/uptime", "r", encoding="utf-8") as fh:
+            system_uptime = float(fh.read().split()[0])
+        info["process_age_s"] = round(system_uptime - starttime_ticks / clk, 1)
+        info["system_uptime_s"] = round(system_uptime, 1)
+    except Exception as exc:
+        info["error"] = str(exc)[:120]
+    return info
 
 _stages: dict[str, dict] = {}
 _counters: dict[str, float] = {}
@@ -37,8 +62,8 @@ def _now() -> float:
 
 
 def since_start() -> float:
-    """Seconds elapsed since this Python process started."""
-    return round(_now() - PROCESS_START_MONOTONIC, 3)
+    """Seconds elapsed since this module was imported."""
+    return round(_now() - MODULE_IMPORT_MONOTONIC, 3)
 
 
 @contextmanager
@@ -108,8 +133,9 @@ def snapshot() -> dict:
     """Everything recorded so far, safe to serialise."""
     with _LOCK:
         return {
-            "process_start_utc": PROCESS_START_UTC,
+            "module_import_utc": MODULE_IMPORT_UTC,
             "uptime_s": since_start(),
+            "process": process_identity(),
             "stages": dict(_stages),
             "counters": dict(_counters),
             "facts": dict(_facts),

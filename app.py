@@ -117,11 +117,16 @@ def _symbols_hash(symbols: list[str]) -> str:
 def load_prices_cached(
     sym_key: str, _symbols: list[str], period: str = "2y"
 ) -> pd.DataFrame:
+    # Bumped only when the memo actually misses. If the surrounding stage ran
+    # but this stayed at zero, Streamlit served a warm cache and the timing is
+    # not a cold one.
+    metrics.incr("memo_miss_prices")
     return fetch_price_history(list(_symbols), period=period, force_refresh=False)
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
 def load_mcaps_cached(sym_key: str, _symbols: list[str]) -> pd.Series:
+    metrics.incr("memo_miss_market_caps")
     return fetch_market_caps(list(_symbols), force_refresh=False)
 
 
@@ -139,6 +144,7 @@ def run_momentum_pipeline(
     _market_caps: pd.Series,
     weights: tuple[float, ...],
 ):
+    metrics.incr("memo_miss_quant_engine")
     calc = MomentumEngine(
         _adj_close,
         high_df=_high_prices,
