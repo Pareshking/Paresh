@@ -56,6 +56,29 @@ def run_daily_sync() -> None:
     mcaps = fetch_market_caps(symbols, force_refresh=FORCE_FULL)
     print(f"Market cap cache updated for {len(mcaps)} tickers.")
 
+    # 5b. Commit the result to the repository.
+    # This job runs on GitHub Actions, where NSE is reachable. Production runs
+    # on Streamlit Cloud, whose IP NSE refuses, so it cannot fetch the PR
+    # archive itself and would otherwise fall back to 750 individual yfinance
+    # lookups -- the slowest stage of a cold start. Writing the snapshot here
+    # lets production read what this job already paid for.
+    if len(mcaps) > 0:
+        import pandas as pd
+
+        from src.core.config import REPO_MCAP_FILE
+
+        os.makedirs(os.path.dirname(REPO_MCAP_FILE), exist_ok=True)
+        snapshot = (
+            pd.DataFrame({"Symbol": mcaps.index, "MarketCap": mcaps.values})
+            .dropna()
+            .sort_values("Symbol")
+        )
+        snapshot = snapshot[snapshot["MarketCap"] > 0]
+        snapshot.to_csv(REPO_MCAP_FILE, index=False)
+        print(f"Repository market cap snapshot written: {len(snapshot)} symbols -> {REPO_MCAP_FILE}")
+    else:
+        print("No market caps resolved; leaving the repository snapshot untouched.")
+
     # 6. Fetch delivery archives
     print("\n--- 6. Fetching NSE Delivery Bhavcopy Archives ---")
     deliv = fetch_delivery_data(force_refresh=FORCE_FULL)

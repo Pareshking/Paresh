@@ -29,6 +29,11 @@ DELIVERY_META_FILE: Final[str] = os.path.join(DATA_DIR, "delivery_meta.json")
 REPO_DATA_DIR: Final[str] = os.path.join(BASE_DIR, "data")
 INDICES_DIR: Final[str] = os.path.join(REPO_DATA_DIR, "indices")
 TV_CLASSIFICATION_FILE: Final[str] = os.path.join(REPO_DATA_DIR, "nse_tv_classification.csv")
+# Market caps committed to the repository by the daily sync. NSE blocks the
+# production host's IP, so production cannot fetch the NSE PR archive itself;
+# the sync runs on GitHub Actions, where NSE is reachable, and leaves the
+# result here for production to read.
+REPO_MCAP_FILE: Final[str] = os.path.join(REPO_DATA_DIR, "nse_market_caps.csv")
 
 INDICES_URLS: Final[dict[str, str]] = {
     "NIFTY 50": "https://niftyindices.com/IndexConstituent/ind_nifty50list.csv",

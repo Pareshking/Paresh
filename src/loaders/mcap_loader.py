@@ -21,7 +21,7 @@ import requests
 import yfinance as yf
 
 from src.core import startup_metrics as metrics
-from src.core.config import HTTP_HEADERS, MCAP_PR_FILE, MCAPS_FILE
+from src.core.config import HTTP_HEADERS, MCAP_PR_FILE, MCAPS_FILE, REPO_MCAP_FILE
 from src.core.market_time import ist_now, recent_trading_days
 from src.core.logger import logger
 
@@ -228,6 +228,25 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
                 except Exception:
                     pass
                 break
+
+    # Layer 1c: market caps committed to the repository by the daily sync.
+    # Production cannot reach the NSE PR archive -- NSE blocks the host's IP --
+    # so without this the only remaining source is yfinance, which on a cold
+    # start meant 750 individual lookups and the slowest stage of startup.
+    # The sync runs where NSE is reachable and leaves its result in the repo.
+    if not master and os.path.exists(REPO_MCAP_FILE):
+        try:
+            repo_caps = pd.read_csv(REPO_MCAP_FILE)
+            repo_caps["Symbol"] = repo_caps["Symbol"].astype(str).str.strip().str.upper()
+            repo_caps["MarketCap"] = pd.to_numeric(repo_caps["MarketCap"], errors="coerce")
+            repo_caps = repo_caps[repo_caps["MarketCap"].notna() & (repo_caps["MarketCap"] > 0)]
+            master = repo_caps.set_index("Symbol")["MarketCap"].to_dict()
+            if master:
+                metrics.note("mcap_path", "repo_snapshot")
+                logger.info(f"Repository market cap snapshot: {len(master)} stocks")
+        except Exception as e:
+            logger.warning(f"Repository market cap snapshot unreadable: {e}")
+            master = {}
 
     # Layer 2: yfinance disk cache
     missing = [s for s in symbols if s not in master]
