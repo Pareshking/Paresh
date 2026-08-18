@@ -18,6 +18,9 @@ import streamlit as st
 
 from src.core.config import MOMENTUM_WINDOWS
 
+# MOMENTUM_WINDOWS are calendar months; warmup arithmetic needs trading sessions.
+SESSIONS_PER_MONTH: int = 21
+
 
 def _calendar_period_sharpe(
     prices: pd.DataFrame,
@@ -30,6 +33,12 @@ def _calendar_period_sharpe(
     target = pd.Timestamp(dates[end_idx]).normalize() - pd.DateOffset(months=months)
     start_idx = int(dates.searchsorted(target, side="left"))
     if start_idx >= end_idx:
+        return pd.Series(np.nan, index=prices.columns), start_idx
+    if target < pd.Timestamp(dates[0]).normalize():
+        # The data does not reach back far enough to cover this window.
+        # searchsorted clamps to 0, which would score a "12-month" return over
+        # however few sessions exist. Report it unavailable instead; the
+        # composite renormalises over the windows it actually has.
         return pd.Series(np.nan, index=prices.columns), start_idx
 
     p0 = prices.iloc[start_idx].clip(lower=0.01)
@@ -119,7 +128,16 @@ def run_backtest(
         w_total = sum(config_weights)
         norm_w = [cw / w_total for cw in config_weights] if w_total > 0 else [0.2] * 5
         active_windows = [w for w, cw in zip(WINDOWS, norm_w) if cw > 0]
-        max_lb = max(active_windows) if active_windows else max(WINDOWS)
+        # WINDOWS are calendar MONTHS (the scoring path passes them straight to
+        # _calendar_period_sharpe). The warmup below is measured in SESSIONS, so
+        # using the months verbatim gave max_lb = 12 -- a 12-month formation
+        # window warmed up over 12 trading days. The first rebalance then landed
+        # at session 32 and _calendar_period_sharpe, whose searchsorted clamps to
+        # 0, silently scored "12-month momentum" from whatever little history
+        # existed. Convert to sessions for the warmup; keep months for scoring.
+        max_lb = (
+            max(active_windows) if active_windows else max(WINDOWS)
+        ) * SESSIONS_PER_MONTH
     else:
         max_lb = lookback_ret
         norm_w = None
@@ -601,6 +619,11 @@ def run_backtest(
     eq_strat_net = (1 + pd.Series(strat_net_daily, index=dates)).cumprod()
     eq_strat_gross = (1 + pd.Series(strat_gross_daily, index=dates)).cumprod()
     eq_bench = (1 + pd.Series(bench_daily, index=dates)).cumprod()
+    if not period_records:
+        # Every rebalance was skipped (typically insufficient formation history).
+        # Building a frame from [] and calling dropna(subset=...) raised
+        # KeyError: ['Period Start'] rather than reporting no result.
+        return None
     monthly_df = pd.DataFrame(period_records).dropna(subset=["Period Start"])
     tradebook_df = pd.DataFrame(trade_records)
 
