@@ -764,14 +764,8 @@ def inject_design_system() -> None:
     """Design-system layer applied on top of the base stylesheet.
 
     Kept as a separate, additive block rather than edits threaded through the
-    2000-line base sheet, so every rule here is a deliberate correction that
-    can be read and adjusted in one place.
-
-    Reverting: use ``git revert`` on the commit that introduced this. Dropping
-    only the inject_design_system() call is NOT a clean rollback -- the header,
-    signal ribbon and footer components emit the ``u-*`` classes defined here,
-    so removing the stylesheet alone leaves them as unstyled markup. The CSS
-    and those components are one unit and revert together.
+    2000-line base sheet: every rule here is a deliberate correction, and the
+    layer can be removed in one line if a change is not wanted.
 
     It does not restyle the app wholesale. It fixes four measured problems --
     inverted type hierarchy in the status bar, alert text clipped mid-word,
