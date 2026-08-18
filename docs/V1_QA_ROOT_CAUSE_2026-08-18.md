@@ -210,3 +210,104 @@ observes `cold_container: true`.
 Run `32092756568` hung on its GitHub runner for 45 min at `duration_ms: 0` and
 was cancelled. Production was healthy throughout, verified independently
 (HTTP 200, ~2.1 s, three consecutive checks). Runner fault, not application.
+
+---
+
+# COLD START MEASURED — 2026-08-18, after dashboard reboot
+
+Run `32100300353` paid the cold cost; run `32100801104` read the telemetry the
+same process had recorded. A dashboard **Reboot** clears `/tmp`, where a
+redeploy does not.
+
+Proof it was genuinely cold: `price_path: full_download` (the parquet was
+absent, so neither the fresh nor the incremental cache path was taken), and
+`mcap_yfinance_fallback_symbols: 750` (the NSE PR disk cache was absent too).
+
+## Total: 110.9 s of pipeline, ~92.5 s to a usable UI
+
+| stage | start | duration |
+|---|---:|---:|
+| universe | 1.8 s | **19.7 s** |
+| price_history | 21.5 s | **37.9 s** |
+| extract_ohlcv | 59.4 s | 0.6 s |
+| market_caps | 60.0 s | **45.9 s** |
+| market_regime | 105.9 s | 0.2 s |
+| quant_engine | 106.0 s | 6.7 s |
+| **data_pipeline_total** | 1.8 s | **110.9 s** |
+| delivery | 118.6 s | 0.7 s |
+
+Browser-observed on the session that paid for it (run `32100300353`):
+fully interactive at **92.5 s**, against a warm baseline of 17.5 s.
+
+## The retry loops were barely exercised
+
+This is the finding that settles the open question.
+
+```
+price_path                     : full_download
+price_symbols_requested        : 750
+price_batches_attempted        : 8
+price_missing_after_batches    : 0      <-- individual retry loop NOT entered
+price_series_returned          : 3750   (750 symbols x 5 OHLCV fields)
+
+mcap_pr_zip_attempts           : 5      <-- all failed
+mcap_yfinance_fallback_symbols : 750
+mcap_threaded_requested        : 750
+mcap_threaded_failed           : 1
+mcap_sequential_retries        : 1      <-- not 750
+mcap_symbols_resolved          : 749
+mcap_symbols_missing           : 1
+```
+
+- **Price**: all 750 symbols arrived in the 8 batched downloads. The unbounded
+  per-ticker retry loop was never entered at all — its counter is absent.
+- **Market caps**: the threaded pass failed for exactly one symbol, so the
+  sequential retry ran once, not 750 times.
+
+The loops are unbounded in code, but in practice they are bounded by the data
+being available. Neither degenerated.
+
+## The real trigger condition, stated precisely
+
+On a genuinely cold container the **NSE PR bhavcopy path fails**: five zip
+attempts, all unsuccessful, before falling through to yfinance for all 750
+symbols. The warm runs reported `mcap_path: pr_disk_cache` only because an
+earlier process had left the file behind.
+
+So market caps on a cold start depend entirely on yfinance, and `market_caps`
+is duly the slowest stage at 45.9 s. The unbounded sequential retry becomes
+dangerous only if **both** NSE PR and yfinance degrade at once. That is the
+condition to watch, not cold start in general.
+
+## Decision: retry architecture unchanged
+
+Per the stated rule — acceptable cold start means leave it alone and document
+the baseline. 110.9 s of pipeline and ~92.5 s to a usable UI is acceptable for
+a rare event, and the loops that motivated the concern did not fire. Bounding
+them now would still be optimising a hypothetical, and would risk the data
+completeness the measurement just confirmed (750/750 prices, 749/750 caps).
+
+## Baseline for regression comparison
+
+| | cold | warm |
+|---|---:|---:|
+| data pipeline | 110.9 s | 0.3 s |
+| fully interactive | 92.5 s | 17.5 s |
+| price source | full_download, 8 batches | cache |
+| mcap source | yfinance (PR failed) | pr_disk_cache |
+| symbols priced | 750/750 | 750/750 |
+| caps resolved | 749/750 | 750/750 |
+
+One stock had no market cap on the cold run. With the treemap fix committed
+earlier it is now excluded from a market-cap-sized treemap and disclosed,
+rather than drawn at a fabricated 1000 Cr tile.
+
+## Cache lifetime, corrected and complete
+
+| event | `/tmp` cache | interpreter |
+|---|---|---|
+| redeploy (git push) | **survives** | **survives** (script reloaded only) |
+| dashboard reboot | **cleared** | restarted |
+
+Both halves of the original assumption were wrong, and only a reboot produces
+the cold path.
