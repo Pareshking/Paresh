@@ -45,6 +45,58 @@ def _is_fresh(last_date: datetime | pd.Timestamp | str) -> bool:
     return (ist_today() - dt).days <= 1
 
 
+def _normalise_ticker_level(df: pd.DataFrame) -> pd.DataFrame:
+    """Strip the .NS suffix from the ticker level, in place of a copy.
+
+    yfinance returns "INDIGO.NS"; the cache stores "INDIGO". Doing this AFTER a
+    concat is what broke the daily sync on 2026-08-18: the two frames were
+    joined while their labels still disagreed, so the concat unioned them into
+    two columns per series -- old history in one, new sessions in the other,
+    each half NaN -- and only then were both renamed to the same label. The
+    result was 7500 columns where 3750 belonged, a parquet save that died on
+    "Duplicate column names found", and a frame the engine cannot index by
+    symbol. Normalising BEFORE the concat is the whole fix.
+    """
+    if df is None or df.empty:
+        return df
+    out = df.copy()
+    if isinstance(out.columns, pd.MultiIndex):
+        tickers = [
+            str(c).replace(".NS", "").strip().upper()
+            for c in out.columns.get_level_values(0)
+        ]
+        names = (
+            out.columns.names
+            if out.columns.names and out.columns.names[0]
+            else ["Ticker", "Price"]
+        )
+        out.columns = pd.MultiIndex.from_arrays(
+            [tickers, list(out.columns.get_level_values(1))], names=names
+        )
+    else:
+        out.columns = [str(c).replace(".NS", "").strip().upper() for c in out.columns]
+    return out
+
+
+def _coalesce_duplicate_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Merge columns that share a label, keeping the first non-null per row.
+
+    A backstop for the case above. If two frames ever arrive with genuinely
+    different level ORDER, normalising the labels is not enough and the union
+    reappears; folding the duplicates together loses nothing, because the
+    halves are disjoint in time.
+    """
+    if df is None or df.empty or not df.columns.duplicated().any():
+        return df
+    levels = list(range(df.columns.nlevels))
+    merged = df.T.groupby(level=levels).first().T
+    logger.warning(
+        "Coalesced %d duplicate price columns after merge.",
+        int(df.columns.duplicated().sum()),
+    )
+    return merged
+
+
 def _extract_field(df: pd.DataFrame, field_names: list[str]) -> pd.DataFrame:
     """Extracts a specific price field across all symbols from flat or MultiIndex DataFrames."""
     if df is None or df.empty:
@@ -287,32 +339,22 @@ def fetch_price_history(
                     if cached.index.tz is not None:
                         cached.index = cached.index.tz_localize(None)
                     
+                    # Labels FIRST, then the concat. yfinance says "INDIGO.NS"
+                    # and the cache says "INDIGO", so joining them while they
+                    # still disagree unions the two into separate columns per
+                    # series; renaming afterwards just collapses the labels and
+                    # leaves the frame duplicated. Same labels in, one column
+                    # out, new sessions landing under the history they extend.
+                    cached = _normalise_ticker_level(cached)
+                    new_data = _normalise_ticker_level(new_data)
+
                     # Vertical concatenation along dates (axis=0)
                     combined = pd.concat([cached, new_data], axis=0)
                     if combined.index.duplicated().any():
                         combined = combined[~combined.index.duplicated(keep="last")]
-                    
-                    # Normalize column names
-                    if isinstance(combined.columns, pd.MultiIndex):
-                        tickers = [
-                            str(c).replace(".NS", "").strip().upper()
-                            for c in combined.columns.get_level_values(0)
-                        ]
-                        prices = list(combined.columns.get_level_values(1))
-                        names = (
-                            combined.columns.names
-                            if combined.columns.names and combined.columns.names[0]
-                            else ["Ticker", "Price"]
-                        )
-                        combined.columns = pd.MultiIndex.from_arrays(
-                            [tickers, prices], names=names
-                        )
-                    else:
-                        combined.columns = [
-                            str(c).replace(".NS", "").strip().upper()
-                            for c in combined.columns
-                        ]
-                    
+                    combined = _coalesce_duplicate_columns(combined)
+                    combined = combined.sort_index()
+
                     try:
                         combined.to_parquet(PRICES_FILE, compression="snappy")
                         logger.info(
