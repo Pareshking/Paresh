@@ -279,19 +279,112 @@ def stat_pill(label: str, value: Any, color: str = "indigo") -> str:
     )
 
 
+
+# Sources whose age is worth stating, and how many trading days each may fall
+# behind before it is called stale. Market caps and delivery publish only after
+# the close, so being one trading day behind is their normal state, not a fault.
+_FRESHNESS_SOURCES: list[tuple[str, str, int]] = [
+    ("price_as_of", "Prices", 1),
+    ("mcap_as_of", "Market caps", 1),
+    ("delivery_as_of", "Delivery", 2),
+]
+
+
+def data_freshness() -> list[dict]:
+    """Age of each data source, judged in trading days.
+
+    Read from the startup telemetry the loaders already record, so the twelve
+    views that render the footer need no extra arguments and cannot disagree
+    with each other about how old the data is.
+
+    Trading days, not calendar days: a Monday showing Friday's market caps is
+    current, and a festival cluster must not read as an outage.
+    """
+    from datetime import date as _date
+
+    from src.core import startup_metrics as _metrics
+    from src.core.market_time import trading_days_behind
+
+    facts = _metrics.snapshot().get("facts", {})
+    items: list[dict] = []
+    for key, label, tolerance in _FRESHNESS_SOURCES:
+        raw = facts.get(key)
+        if not raw:
+            continue
+        try:
+            as_of = _date.fromisoformat(str(raw)[:10])
+        except ValueError:
+            continue
+        behind = trading_days_behind(as_of)
+        # None means older than the horizon entirely, which is stale by any
+        # reading. Anything within tolerance is simply the publication lag.
+        stale = behind is None or behind > tolerance
+        items.append({
+            "label": label,
+            "as_of": as_of.strftime("%d %b"),
+            "behind": behind,
+            "stale": stale,
+            "source": facts.get("mcap_path") if key == "mcap_as_of" else None,
+        })
+    return items
+
+
 def render_data_quality_footer(
     total_stocks: int, gap_count: int, short_count: int
 ) -> None:
-    """Renders clean data quality footer bar."""
+    """Renders the data quality footer bar, including how old each source is.
+
+    The signature is unchanged on purpose: twelve views call this, and the
+    freshness figures come from the loaders' own telemetry rather than from
+    twelve call sites that could drift apart.
+
+    The as-of date is shown ALWAYS, not only when something is wrong. A
+    warning that appears only on failure means the normal state tells the
+    reader nothing; a date that is always present makes staleness
+    self-evident and earns trust the rest of the time.
+
+    Styling is inline to match the rest of this bar. The design-system
+    stylesheet was reverted, so class-based styling would render unstyled.
+    """
+    sep = '<span style="color: #cbd5e1;">|</span>'
+    freshness_html = ""
+    stale_any = False
+    for item in data_freshness():
+        if item["stale"]:
+            stale_any = True
+            age = (
+                f" ({item['behind']}d behind)"
+                if item["behind"] is not None
+                else " (stale)"
+            )
+            freshness_html += (
+                f'{sep}<span style="color: #d97706;">{item["label"]}: '
+                f'<strong style="color: #d97706;">{item["as_of"]}</strong>{age}</span>'
+            )
+        else:
+            freshness_html += (
+                f'{sep}<span>{item["label"]}: '
+                f'<strong style="color: #0f172a;">{item["as_of"]}</strong></span>'
+            )
+
+    flag = ""
+    if stale_any:
+        flag = (
+            f'{sep}<span style="color: #d97706; font-weight: 700;">'
+            "&#9679; Some data is behind the latest trading day</span>"
+        )
+
     footer_html = f"""
     <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 10px 16px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; margin-top: 24px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #64748b;">
         <span>🟢 <strong style="color: #0f172a;">{total_stocks}</strong> stocks tracked</span>
+        {freshness_html}
         <span style="color: #cbd5e1;">|</span>
         <span>🔴 Gap-filled &gt;10%: <strong style="color: #d97706;">{gap_count}</strong></span>
         <span style="color: #cbd5e1;">|</span>
         <span>⏳ Short history (&lt;126D): <strong style="color: #0f172a;">{short_count}</strong></span>
         <span style="color: #cbd5e1;">|</span>
         <span>Stop Loss: <strong style="color: #0f172a;">CMP − 2×ATR</strong></span>
+        {flag}
         <span style="margin-left: auto; color: #475569; font-weight: 700;">Paresh Patel</span>
     </div>
     """

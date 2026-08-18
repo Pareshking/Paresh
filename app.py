@@ -194,6 +194,10 @@ def load_all_data(indices: list[str]):
 
     with metrics.stage("extract_ohlcv"):
         adj_close, close_p, high_p, low_p, vol_p = extract_ohlcv(raw_prices, symbols)
+    try:
+        metrics.note("price_as_of", str(pd.DatetimeIndex(adj_close.index)[-1].date()))
+    except Exception:
+        pass
     with metrics.stage("market_caps"):
         mcaps = load_mcaps_cached(sym_key, symbols)
     with metrics.stage("market_regime"):

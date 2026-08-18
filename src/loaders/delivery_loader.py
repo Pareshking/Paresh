@@ -74,6 +74,12 @@ def is_delivery_cache_fresh() -> bool:
         return False
     try:
         last = datetime.strptime(meta["last_date"], "%Y-%m-%d").date()
+        try:
+            from src.core import startup_metrics as _metrics
+
+            _metrics.note("delivery_as_of", last.isoformat())
+        except Exception:
+            pass
         return (ist_today() - last).days <= 3
     except Exception:
         return False

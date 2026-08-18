@@ -58,3 +58,21 @@ def recent_trading_days(
         if len(days) >= count:
             break
     return days
+
+
+def trading_days_behind(as_of: date, *, today: date | None = None, horizon: int = 30) -> int | None:
+    """How many trading days old ``as_of`` is.
+
+    0 means it is the most recent trading day, 1 the one before, and so on.
+    Counting in trading days rather than calendar days is what makes the
+    answer usable: a Monday showing Friday's figures is current, not stale,
+    and a festival cluster must not read as a data outage.
+
+    Returns None when ``as_of`` is not among the recent trading days at all --
+    either far older than the horizon, or in the future.
+    """
+    days = recent_trading_days(horizon, as_of=today or ist_today(), max_lookback_days=horizon * 2)
+    try:
+        return days.index(as_of)
+    except ValueError:
+        return None

@@ -216,6 +216,7 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
             if nse_map:
                 metrics.note("mcap_path", "pr_live_zip")
                 metrics.note("mcap_pr_date", td.isoformat())
+                metrics.note("mcap_as_of", td.isoformat())
                 master.update(nse_map)
                 try:
                     cache_df = pd.DataFrame(
@@ -243,6 +244,10 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
             master = repo_caps.set_index("Symbol")["MarketCap"].to_dict()
             if master:
                 metrics.note("mcap_path", "repo_snapshot")
+                if "AsOf" in repo_caps.columns:
+                    stamped = [v for v in repo_caps["AsOf"].dropna().astype(str) if v.strip()]
+                    if stamped:
+                        metrics.note("mcap_as_of", stamped[0])
                 logger.info(f"Repository market cap snapshot: {len(master)} stocks")
         except Exception as e:
             logger.warning(f"Repository market cap snapshot unreadable: {e}")

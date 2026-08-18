@@ -74,6 +74,12 @@ def run_daily_sync() -> None:
             .sort_values("Symbol")
         )
         snapshot = snapshot[snapshot["MarketCap"] > 0]
+        # Stamp the trade date this snapshot represents, so production can say
+        # how old its market caps are instead of presenting them undated.
+        from src.core import startup_metrics as _metrics
+
+        as_of = _metrics.snapshot().get("facts", {}).get("mcap_pr_date")
+        snapshot["AsOf"] = as_of or ""
         snapshot.to_csv(REPO_MCAP_FILE, index=False)
         print(f"Repository market cap snapshot written: {len(snapshot)} symbols -> {REPO_MCAP_FILE}")
     else:
