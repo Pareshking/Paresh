@@ -435,7 +435,16 @@ def render_sector_treemap(
     size_by: str = "Market Cap",
 ) -> None:
     """Renders Finviz-style 2-Level Hierarchical Treemap Heatmap with dynamic box sizing and return colors."""
-    valid_df = rank_df.dropna(subset=[taxonomy_col, return_col, "Symbol"]).copy()
+    # Degrade rather than raise when an optional column is absent: this view is
+    # reachable with several taxonomies and return horizons, and a missing one
+    # previously surfaced as a bare KeyError on the Sectors tab.
+    required = [taxonomy_col, return_col, "Symbol"]
+    missing = [c for c in required if c not in rank_df.columns]
+    if missing:
+        st.info(f"Treemap unavailable: missing {', '.join(missing)}.")
+        return
+
+    valid_df = rank_df.dropna(subset=required).copy()
     valid_df[taxonomy_col] = valid_df[taxonomy_col].astype(str).str.strip()
     valid_df = valid_df[
         valid_df[taxonomy_col].ne("") & valid_df[taxonomy_col].ne("nan")
@@ -484,10 +493,31 @@ def render_sector_treemap(
             valid_df["Tile_Weight"] = 100
         size_label = "Momentum Rank"
     else:
-        # Sized by Market Cap (Default)
-        valid_df["Tile_Weight"] = (
-            valid_df["Market Cap (Cr)"].fillna(1000).clip(lower=100)
-        )
+        # Sized by Market Cap (Default).
+        # Tile AREA is the datum here, so an unknown market cap must not be
+        # given a fabricated one. Substituting a flat 1000 Cr rendered such a
+        # stock as a mid-size tile, and when the market-cap feed failed
+        # wholesale it produced a uniformly sized map still labelled as
+        # market-cap weighted. Unknown caps are excluded and disclosed.
+        if "Market Cap (Cr)" not in valid_df.columns:
+            st.info("Treemap unavailable: missing Market Cap (Cr).")
+            return
+        mcap = pd.to_numeric(valid_df["Market Cap (Cr)"], errors="coerce")
+        known = mcap.notna() & (mcap > 0)
+        excluded = int((~known).sum())
+        valid_df = valid_df[known].copy()
+        if valid_df.empty:
+            st.info(
+                "Market capitalisation is unavailable for these stocks, so a "
+                "market-cap treemap cannot be drawn. Choose another sizing basis."
+            )
+            return
+        if excluded:
+            st.caption(
+                f"{excluded} stock(s) excluded from the treemap: market "
+                "capitalisation unavailable."
+            )
+        valid_df["Tile_Weight"] = mcap[known]
         size_label = "Market Cap (Cr)"
 
     # Hierarchical Finviz-style Treemap
@@ -505,12 +535,16 @@ def render_sector_treemap(
         ],
         color_continuous_midpoint=0.0,
         hover_data={
-            "Symbol": True,
-            "CMP": ":,.0f",
-            return_col: ":.1%",
-            "Market Cap (Cr)": ":,.0f",
-            "Ret_Capped": False,
-            "Tile_Weight": False,
+            k: v
+            for k, v in {
+                "Symbol": True,
+                "CMP": ":,.0f",
+                return_col: ":.1%",
+                "Market Cap (Cr)": ":,.0f",
+                "Ret_Capped": False,
+                "Tile_Weight": False,
+            }.items()
+            if k in valid_df.columns
         },
     )
 

@@ -114,16 +114,44 @@ def http_probe() -> dict:
     return result
 
 
+def app_frame(page):
+    """Return the frame that actually hosts the Streamlit app.
+
+    Streamlit Community Cloud serves a wrapper SPA and mounts the app inside a
+    nested iframe. Querying only the top-level frame finds an empty body no
+    matter how long you wait, which is exactly how a healthy app gets
+    misreported as "never rendered".
+    """
+    for frame in page.frames:
+        try:
+            if frame.locator('[data-testid="stApp"]').count() > 0:
+                return frame
+        except Exception:
+            continue
+    # Fall back to the largest non-blank frame, then the main frame.
+    for frame in page.frames:
+        try:
+            if frame != page.main_frame and frame.locator("body").inner_text(
+                    timeout=2_000).strip():
+                return frame
+        except Exception:
+            continue
+    return page.main_frame
+
+
 def read_state(page) -> dict:
     """Classify what the browser is ACTUALLY showing right now."""
+    frame = app_frame(page)
+    frames_info = [f.url[:120] for f in page.frames]
     try:
-        body = page.locator("body").inner_text(timeout=10_000)
+        body = frame.locator("body").inner_text(timeout=10_000)
     except Exception as exc:
-        return {"state": "dom_unreadable", "detail": str(exc)[:200], "body": ""}
+        return {"state": "dom_unreadable", "detail": str(exc)[:200],
+                "frames": frames_info, "body": ""}
 
     def count(sel: str) -> int:
         try:
-            return page.locator(sel).count()
+            return frame.locator(sel).count()
         except Exception:
             return 0
 
@@ -136,6 +164,8 @@ def read_state(page) -> dict:
         "body_len": len(body),
         "stApp": st_app, "stTabs": st_tabs,
         "stSpinner": st_spinner, "stException": st_exception,
+        "n_frames": len(page.frames),
+        "frames": frames_info,
         "body_head": body[:300].replace("\n", " | "),
     }
 
@@ -251,11 +281,12 @@ def main() -> None:
                     page.set_viewport_size({"width": w, "height": h})
                     page.wait_for_timeout(600)
                     vp: dict = {"tabs": {}}
+                    frame = app_frame(page)
                     for tab in TABS:
                         try:
-                            loc = page.get_by_role("tab", name=tab, exact=True).first
+                            loc = frame.get_by_role("tab", name=tab, exact=True).first
                             if loc.count() == 0:
-                                loc = page.get_by_text(tab, exact=True).first
+                                loc = frame.get_by_text(tab, exact=True).first
                             if not loc.is_visible():
                                 vp["tabs"][tab] = "not_visible"
                                 failures.append(classify(
@@ -263,9 +294,9 @@ def main() -> None:
                                 continue
                             loc.click(timeout=20_000)
                             page.wait_for_timeout(900)
-                            body = page.locator("body").inner_text(timeout=10_000)
+                            body = frame.locator("body").inner_text(timeout=10_000)
                             hits = [t for t in RUNTIME_TOKENS if t in body]
-                            if page.locator('[data-testid="stException"]').count():
+                            if frame.locator('[data-testid="stException"]').count():
                                 hits.append("stException")
                             if hits:
                                 vp["tabs"][tab] = f"runtime_error:{hits}"
@@ -314,6 +345,11 @@ def main() -> None:
     print(f"time to that state    : {report.get('ready_after_s')}s", flush=True)
     print(f"websocket established : {report['websocket_established']}", flush=True)
     print(f"page errors           : {len(page_errors)}", flush=True)
+    print(f"console errors        : {len(console_errors)}", flush=True)
+    for c in console_errors[:5]:
+        print(f"    {c}", flush=True)
+    if timeline:
+        print(f"frames at last sample : {timeline[-1].get('frames')}", flush=True)
     print(f"5xx responses         : {len(bad_responses)}", flush=True)
     for f in failures:
         print(f"  [{f['kind']}] {f['detail']}", flush=True)
