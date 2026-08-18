@@ -3,6 +3,7 @@ Reusable UI Components and Widgets for NSE Momentum Dashboard.
 Inspired by Investrack, Stockin.id, and Tickerboom financial terminal designs.
 """
 
+import html
 from datetime import datetime
 from typing import Any
 
@@ -235,7 +236,6 @@ def render_header_kpi_bar(
     st.html(header_html)
 
 
-import html
 
 
 def render_signal_alerts(signals: list[SignalAlert]) -> None:
@@ -328,6 +328,58 @@ def data_freshness() -> list[dict]:
     return items
 
 
+def render_freshness_ribbon() -> None:
+    """A bottom ribbon mirroring the signal ribbon at the top of the page.
+
+    Same chip language as render_signal_alerts, deliberately: the top strip
+    tells you what the market did, this one tells you how current the numbers
+    behind it are, and a reader should not have to learn two visual idioms to
+    read the same page.
+
+    Every source is shown with its as-of date, not just the stale ones. A
+    warning that appears only on failure means the normal state tells the
+    reader nothing; a date that is always present makes staleness self-evident
+    and earns trust the rest of the time. Stale sources turn amber and lead.
+    """
+    items = data_freshness()
+    if not items:
+        return
+
+    # Stale first: the thing a reader needs to notice should not be third.
+    items = sorted(items, key=lambda i: (not i["stale"],))
+
+    chips_html = ""
+    for item in items:
+        color = "#d97706" if item["stale"] else "#059669"
+        icon = "&#9888;&#65039;" if item["stale"] else "&#9679;"
+        if item["behind"] is None:
+            age = " · stale"
+        elif item["behind"] <= 0:
+            age = " · today"
+        elif item["behind"] == 1:
+            age = " · 1 trading day behind"
+        else:
+            age = f" · {item['behind']} trading days behind"
+        label = html.escape(str(item["label"]))
+        as_of = html.escape(str(item["as_of"]))
+        chips_html += (
+            f'<div style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; '
+            f'border-radius: 6px; background-color: {color}0D; border: 1px solid {color}25; '
+            f"font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: {color}; "
+            f'font-weight: 600; white-space: nowrap; flex-shrink: 0;">'
+            f"<span>{icon}</span><span>{label}: {as_of}{age}</span></div>"
+        )
+
+    st.markdown(
+        '<div role="status" aria-label="Data freshness" style="display: flex; align-items: center; '
+        "gap: 8px; overflow-x: auto; padding: 4px 8px; background-color: #f8fafc; "
+        "border: 1px solid #e2e8f0; border-radius: 8px; margin-top: 16px; margin-bottom: 4px; "
+        'scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;">'
+        f"{chips_html}</div>",
+        unsafe_allow_html=True,
+    )
+
+
 def render_data_quality_footer(
     total_stocks: int, gap_count: int, short_count: int
 ) -> None:
@@ -345,6 +397,10 @@ def render_data_quality_footer(
     Styling is inline to match the rest of this bar. The design-system
     stylesheet was reverted, so class-based styling would render unstyled.
     """
+    # Drawn here rather than at twelve call sites, for the same reason the
+    # freshness figures are read from telemetry: one place to change, and no
+    # way for two tabs to disagree.
+    render_freshness_ribbon()
     sep = '<span style="color: #cbd5e1;">|</span>'
     freshness_html = ""
     stale_any = False

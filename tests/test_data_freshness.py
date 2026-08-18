@@ -72,3 +72,62 @@ def test_every_source_is_reported_together(monkeypatch):
     )
     assert set(got) == {"Prices", "Market caps", "Delivery"}
     assert all(i["stale"] is False for i in got.values())
+
+
+def test_cache_fresh_path_stamps_the_as_of_date(tmp_path, monkeypatch):
+    """Exercise a real return path rather than scanning the source text.
+
+    "Prices" was absent from the footer entirely because no code path ever
+    wrote price_as_of -- the freshness bar looked healthy while silently
+    omitting the source that matters most.
+    """
+    import pandas as pd
+
+    from src.core import startup_metrics as metrics
+    from src.loaders import price_loader
+
+    idx = pd.bdate_range(end="2026-08-17", periods=4)
+    cached = pd.DataFrame({"RELIANCE": [1.0, 2.0, 3.0, 4.0]}, index=idx)
+    cache_file = tmp_path / "prices.parquet"
+    cached.to_parquet(cache_file)
+
+    monkeypatch.setattr(price_loader, "PRICES_FILE", str(cache_file))
+    # Make the cache look current so the cache_fresh branch is taken.
+    monkeypatch.setattr(price_loader, "ist_today", lambda: idx[-1].date())
+
+    out = price_loader.fetch_price_history(["RELIANCE"])
+
+    assert not out.empty
+    facts = metrics.snapshot()["facts"]
+    assert facts["price_path"] == "cache_fresh"
+    assert facts["price_as_of"] == "2026-08-17"
+
+
+def test_note_price_as_of_stamps_the_last_session(monkeypatch):
+    import pandas as pd
+
+    from src.core import startup_metrics as metrics
+    from src.loaders.price_loader import _note_price_as_of
+
+    idx = pd.bdate_range(end="2026-08-17", periods=5)
+    _note_price_as_of(pd.DataFrame({"A": [1.0] * 5}, index=idx))
+    assert metrics.snapshot()["facts"]["price_as_of"] == "2026-08-17"
+
+
+def test_note_price_as_of_is_silent_on_an_empty_frame():
+    import pandas as pd
+
+    from src.loaders.price_loader import _note_price_as_of
+
+    _note_price_as_of(pd.DataFrame())      # must not raise
+    _note_price_as_of(None)                # must not raise
+
+
+def test_prices_appear_in_the_footer_sources(monkeypatch):
+    from src.ui import components
+
+    monkeypatch.setattr(
+        components, "_FRESHNESS_SOURCES", components._FRESHNESS_SOURCES
+    )
+    keys = [k for k, _, _ in components._FRESHNESS_SOURCES]
+    assert "price_as_of" in keys

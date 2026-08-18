@@ -160,6 +160,23 @@ def extract_ohlcv(
     return adj_close, close_p, high_p, low_p, vol_p
 
 
+def _note_price_as_of(df: pd.DataFrame | None) -> None:
+    """Record the last session the price frame actually contains.
+
+    The data-quality footer reports how old each source is, and it can only
+    report what the loaders record. Every return path from fetch_price_history
+    must call this: a path that forgets simply drops "Prices" from the footer
+    with no visible sign, which is how the freshest-looking footer can be the
+    one hiding the stalest data.
+    """
+    try:
+        if df is None or df.empty or len(df.index) == 0:
+            return
+        metrics.note("price_as_of", pd.Timestamp(df.index[-1]).date().isoformat())
+    except Exception:  # telemetry must never break a data path
+        pass
+
+
 def fetch_price_history(
     symbols: Sequence[str],
     period: str = "2y",
@@ -201,6 +218,7 @@ def fetch_price_history(
                     logger.info(f"Price cache up-to-date: {len(cached.columns)} series")
                     metrics.note("price_path", "cache_fresh")
                     metrics.note("price_series_returned", len(cached.columns))
+                    _note_price_as_of(cached)
                     return cached
                 
                 # Incremental update needed for new calendar trading sessions
@@ -252,9 +270,11 @@ def fetch_price_history(
                         )
                     except Exception as e:
                         logger.warning(f"Price cache save failed (incremental): {e}")
+                    _note_price_as_of(combined)
                     return combined
                 else:
                     logger.info("No new price data available from Yahoo Finance; returning existing cache.")
+                    _note_price_as_of(cached)
                     return cached
         except Exception as e:
             logger.warning(f"Price cache read failed: {e}")
@@ -371,6 +391,7 @@ def fetch_price_history(
     data = data.dropna(how="all")
 
     metrics.note("price_series_returned", len(data.columns))
+    _note_price_as_of(data)
     # Save to parquet cache
     try:
         data.to_parquet(PRICES_FILE, compression="snappy")

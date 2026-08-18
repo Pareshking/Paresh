@@ -3,11 +3,11 @@ Stock Rankings View Controller with Grid Cards and High-Density Table Views.
 Inspired by Investrack, Stockin.id, and Tickerboom.
 """
 
-from datetime import datetime
 
 import pandas as pd
 import streamlit as st
 
+from src.core.market_time import ist_now
 from src.ui.charts import render_candlestick_drilldown
 from src.ui.components import render_data_quality_footer, to_bool_mask
 from src.ui.theme import (
@@ -354,12 +354,22 @@ def render_ranking_view(
                         render_stock_card(card_items.iloc[i + j])
             st.markdown(" ")
 
+    # Export EVERY column the ranking carries, not just the ones on screen.
+    # DISPLAY_COLS is a screen-layout decision -- it drops Score, the raw
+    # composite the whole ranking is sorted by, along with Composite Rank,
+    # Rank (-1M)/(-3M), 52W High, ATR, ATR %, Persistence and Exp Rank. Anyone
+    # exporting to a spreadsheet wants the underlying numbers, and silently
+    # withholding the score behind the rank makes the file impossible to audit.
+    # Display order first so the familiar columns lead, then the rest.
+    export_cols = active_cols + [c for c in view.columns if c not in active_cols]
+    export_df = view[export_cols]
     st.download_button(
-        "Download Rankings CSV",
-        view[active_cols].to_csv(index=False).encode(),
-        f"nse_momentum_rankings_{datetime.now():%Y%m%d}.csv",
+        f"Download Rankings CSV ({len(export_cols)} columns)",
+        export_df.to_csv(index=False).encode(),
+        f"nse_momentum_rankings_{ist_now():%Y%m%d}.csv",
         "text/csv",
         key="dl_rank_csv",
+        help="All ranking columns, including the ones not shown in the table.",
     )
 
     render_data_quality_footer(
