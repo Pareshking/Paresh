@@ -168,17 +168,32 @@ All 750 market caps resolved from the NSE PR bhavcopy cache, **zero missing**.
 entirely — the yfinance fallback was never entered. The sequential retry storm
 that motivated the concern is not occurring in production.
 
-## Correction: the universe is 750, not 752
+## Correction: 752 and 750 are both right, and neither is stale
 
-The earlier "752 verified" was verified against the **repository snapshot**.
-Production reports `universe_symbols: 750`.
+An earlier revision of this document claimed the repository CSV was stale
+because it held 752 constituents while production reported 750. That was
+wrong, twice over.
 
-This is not a defect. `_fetch_indices_impl()` downloads live from
-niftyindices.com first and falls back to the repo CSV only on failure, so
-production derives the universe from the authoritative source exactly as
-required. The live index currently returns 750 against the repo's 15 Aug
-snapshot of 752. The architecture is correct; the earlier figure was sourced
-from the wrong place.
+The index publishes **752** constituents. Two of them, `DUMMYINXGN` and
+`DUMMYTRVN`, are corporate-action placeholders rather than tradable
+securities, and `indices_loader._fetch_indices_impl()` filters them at the
+`symbol.startswith("DUMMY")` guard. So:
+
+```
+752 published - 2 corporate-action placeholders = 750 tradable
+```
+
+Both figures are correct and describe different things. There is no
+discrepancy and there never was one.
+
+Confirmed against live data rather than argued: the daily sync ran on
+18 Aug (run 32121112696) and committed a freshly downloaded constituent
+file as `46c9acc`. That fresh file still contains 752 rows with the same
+two dummies, so the repository snapshot was never behind the source.
+
+Production derives the universe from niftyindices.com with the repo CSV as
+fallback, which is the authoritative-source behaviour required. The
+architecture was right; the reading of it was not.
 
 ## Decision
 
@@ -311,3 +326,27 @@ rather than drawn at a fabricated 1000 Cr tile.
 
 Both halves of the original assumption were wrong, and only a reboot produces
 the cold path.
+
+
+---
+
+# Correction: the daily sync workflow history
+
+An earlier commit message stated that `daily_sync.yml` "had never once run"
+on the basis of 200 recorded runs, all failed. That was wrong.
+
+The accurate history:
+
+| when | state |
+|---|---|
+| 15 Aug | three `workflow_dispatch` runs succeeded; one produced a data commit |
+| 17 Aug | `84c2357` introduced a step declaring both `uses:` and `run:`, making the file invalid |
+| 17-18 Aug | every push produced a validation failure and the nightly cron could not fire |
+| 18 Aug | `438f78b` restored validity; run 32121112696 succeeded and committed `46c9acc` |
+
+Verified by replaying the file through a YAML/schema check at each commit
+that touched it: `84c2357` is invalid, `438f78b` is valid.
+
+The ~197 failures were real and the fix was necessary, but they date from
+17 Aug rather than from the workflow's creation. The workflow worked before
+that commit broke it.
