@@ -51,8 +51,17 @@ def _extract_field(df: pd.DataFrame, field_names: list[str]) -> pd.DataFrame:
         return pd.DataFrame()
 
     if not isinstance(df.columns, pd.MultiIndex):
-        # Flat DataFrame
-        return df.copy()
+        # Flat DataFrame -- yfinance returns this shape when a batch collapses
+        # to a single ticker. Normalise the ticker labels the SAME way as the
+        # MultiIndex branches below. Without this the columns keep their ".NS"
+        # suffix, nothing matches the universe symbols, every Score maps to NaN,
+        # and get_rankings drops all 750 rows -- a silent empty ranking rather
+        # than an error.
+        out = df.copy()
+        out.columns = [
+            str(c).replace(".NS", "").strip().upper() for c in out.columns
+        ]
+        return out
 
     # MultiIndex level 1 (Ticker on lvl 0, Field on lvl 1)
     if df.columns.nlevels > 1:
@@ -98,6 +107,18 @@ def _clean_price_df(df: pd.DataFrame, symbols: Sequence[str] | None = None) -> p
         valid_cols = [s.upper() for s in symbols if s.upper() in out.columns]
         if valid_cols:
             out = out[valid_cols]
+        else:
+            # Not one requested symbol is present. Silently returning the
+            # unfiltered frame lets a symbol-namespace mismatch travel all the
+            # way to the ranking, where it looks like "no stock qualified".
+            logger.warning(
+                "No requested symbol matched the price columns (%d columns, "
+                "e.g. %s vs requested %s). Returning the frame unfiltered; the "
+                "ranking will be empty if these labels do not match.",
+                len(out.columns),
+                list(out.columns[:3]),
+                [str(x).upper() for x in list(symbols)[:3]],
+            )
     return out
 
 

@@ -295,6 +295,8 @@ if rank_df.empty:
     st.error(
         "❌ The momentum engine ranked 0 stocks, so there is nothing to show.\n\n"
         f"- Universe: **{diag.get('universe', 'unknown')}** symbols\n"
+        f"- Price series loaded: **{diag.get('price_columns', 'unknown')}**, "
+        f"matching the universe: **{diag.get('symbols_matching_prices', 'unknown')}**\n"
         f"- With any price history: **{diag.get('with_price_history', 'unknown')}**\n"
         f"- Meeting the {diag.get('min_observations', 63)}-observation minimum: "
         f"**{diag.get('meeting_min_observations', 'unknown')}**\n\n"

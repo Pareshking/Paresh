@@ -412,8 +412,16 @@ class MomentumEngine:
         # the result is zero rows -- which used to reach the views as an empty
         # frame and crash the Qualified tab instead of saying anything. Record
         # the counts so the failure is diagnosable rather than silent.
+        universe_symbols = set(rank_df["Symbol"].astype(str))
+        price_symbols = set(str(c) for c in self.prices.columns)
         self.ranking_diagnostics = {
             "universe": int(len(rank_df)),
+            # Distinguishes a symbol-namespace mismatch from thin history. If
+            # this is 0 while price columns exist, the price frame is keyed
+            # differently from the universe (e.g. "RELIANCE.NS" vs "RELIANCE")
+            # and every Score maps to NaN no matter how good the data is.
+            "price_columns": int(len(price_symbols)),
+            "symbols_matching_prices": int(len(universe_symbols & price_symbols)),
             "with_price_history": int((self._valid_counts > 0).sum()),
             "meeting_min_observations": int(valid_mask.sum()),
             "min_observations": 63,
