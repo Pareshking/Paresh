@@ -182,49 +182,35 @@ def render_header_kpi_bar(
     pct_above_ema: float,
     gap_count: int,
 ) -> None:
-    """Renders the executive status bar.
-
-    Hierarchy is the point. The previous bar rendered every figure at the same
-    0.74rem mono weight, separated by pipes, so universe size, breadth and the
-    200-DMA distance -- the numbers a user actually reads first -- were the
-    smallest text on the page. Each figure is now a labelled stat with a quiet
-    uppercase key and a prominent tabular value, and regime is a status pill
-    rather than a coloured bullet in a run of text.
-    """
-    if regime.status == MarketRegime.BULLISH:
-        regime_cls = "up"
-    elif regime.status == MarketRegime.BEARISH:
-        regime_cls = "down"
-    else:
-        regime_cls = "flat"
-    dma_cls = "up" if regime.distance_pct >= 0 else "down"
+    """Renders ultra-minimalist, high-density executive status navbar."""
+    regime_color = "#059669" if regime.status == MarketRegime.BULLISH else "#e11d48"
+    dma_color = "#059669" if regime.distance_pct >= 0 else "#e11d48"
     today_str = datetime.now().strftime("%d %b %Y")
-    breadth_cls = "up" if pct_above_ema >= 50 else "down"
 
     header_html = f"""
-    <div class="u-statusbar" role="status" aria-label="Market status">
-      <div class="u-brand">Paresh Patel<small>Momentum Terminal</small></div>
-      <span class="u-regime {regime_cls}"><span class="dot"></span>{regime.status.value}</span>
-      <span class="u-spacer"></span>
-      <div class="u-stats">
-        <div class="u-stat">
-          <span class="k">Benchmark</span>
-          <span class="v">&#8377;{regime.current_price:,.0f}
-            <span class="sub {dma_cls}">{regime.distance_pct:+.1f}% vs 200D</span></span>
+    <div role="status" aria-label="Market status dashboard" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 14px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 9px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02); margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="mac-dots-container" style="margin-bottom: 0;">
+                <span class="mac-dot mac-dot-red"></span>
+                <span class="mac-dot mac-dot-yellow"></span>
+                <span class="mac-dot mac-dot-green"></span>
+            </div>
+            <div style="width: 1px; height: 14px; background-color: #e2e8f0;"></div>
+            <div style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.05rem; color: #0f172a; letter-spacing: -0.02em;">
+                Paresh Patel
+            </div>
         </div>
-        <div class="u-stat">
-          <span class="k">Universe</span>
-          <span class="v">{total_stocks:,}</span>
+        <div style="display: flex; align-items: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; flex-wrap: wrap;">
+            <span style="color: {regime_color}; font-weight: 700;">● {regime.status.value}</span>
+            <span style="color: #cbd5e1;">|</span>
+            <span style="color: #475569;">NIFTY <strong style="color: #0f172a;">₹{regime.current_price:,.0f}</strong> (<strong style="color: {dma_color};">{regime.distance_pct:+.1f}%</strong> 200D)</span>
+            <span style="color: #cbd5e1;">|</span>
+            <span style="color: #475569;">Universe: <strong style="color: #0f172a;">{total_stocks}</strong></span>
+            <span style="color: #cbd5e1;">|</span>
+            <span style="color: #475569;">&gt;50 EMA: <strong style="color: #059669;">{above_ema} ({pct_above_ema:.0f}%)</strong></span>
+            <span style="color: #cbd5e1;">|</span>
+            <span style="color: #64748b;">📅 {today_str}</span>
         </div>
-        <div class="u-stat">
-          <span class="k">Above 50 EMA</span>
-          <span class="v {breadth_cls}">{above_ema:,}<span class="sub">{pct_above_ema:.0f}%</span></span>
-        </div>
-        <div class="u-stat">
-          <span class="k">As of</span>
-          <span class="v">{today_str}</span>
-        </div>
-      </div>
     </div>
     """
     st.html(header_html)
@@ -234,42 +220,25 @@ import html
 
 
 def render_signal_alerts(signals: list[SignalAlert]) -> None:
-    """Renders the signal ribbon.
-
-    Chips were `white-space: nowrap` with `flex-shrink: 0` inside an
-    `overflow-x: auto` row, so a long list of symbols was cut off mid-word with
-    nothing on screen indicating more text existed. Chips now wrap on wide
-    viewports; on narrow ones the row still scrolls but the stylesheet adds an
-    edge fade so the truncation is visible rather than silent.
-
-    Emoji are replaced with typographic marks so the ribbon matches the
-    direction glyphs already used in the screener table.
-    """
+    """Renders sleek 1-line horizontal alert chips."""
     if not signals:
         return
 
-    tone_by_color = {
-        "#059669": ("up", "\u25b2"),
-        "#e11d48": ("down", "\u25bc"),
-        "#d97706": ("warn", "\u25cf"),
-        "#4f46e5": ("info", "\u25b2"),
-    }
-
     chips_html = ""
     for s in signals:
-        tone, mark = tone_by_color.get(str(s.color).lower(), ("info", "\u25cf"))
         esc_text = html.escape(str(s.text))
         chips_html += (
-            f'<span class="u-signal {tone}">'
-            f'<span class="mark" aria-hidden="true">{mark}</span>'
-            f"<span>{esc_text}</span></span>"
+            f'<div style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 6px; '
+            f"background-color: {s.color}0D; border: 1px solid {s.color}25; font-family: 'JetBrains Mono', monospace; "
+            f'font-size: 0.72rem; color: {s.color}; font-weight: 600; white-space: nowrap; flex-shrink: 0;">'
+            f"<span>{s.icon}</span><span>{esc_text}</span></div>"
         )
-
-    st.markdown(
-        f'<div class="u-signals" role="status" aria-live="polite" '
-        f'aria-label="Market signals">{chips_html}</div>',
-        unsafe_allow_html=True,
-    )
+    ribbon_html = f"""
+    <div role="alert" aria-live="polite" aria-label="Market signals" style="display: flex; align-items: center; gap: 8px; overflow-x: auto; padding: 4px 8px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;">
+        {chips_html}
+    </div>
+    """
+    st.markdown(ribbon_html, unsafe_allow_html=True)
 
 
 def stat_pill(label: str, value: Any, color: str = "indigo") -> str:
@@ -293,23 +262,17 @@ def stat_pill(label: str, value: Any, color: str = "indigo") -> str:
 def render_data_quality_footer(
     total_stocks: int, gap_count: int, short_count: int
 ) -> None:
-    """Renders the data-quality footer.
-
-    Emoji removed: a coloured status word carries the same meaning without
-    depending on the platform's emoji font, and keeps the row on the same
-    typographic system as the rest of the terminal.
-    """
-    gap_cls = "u-warn" if gap_count else ""
+    """Renders clean data quality footer bar."""
     footer_html = f"""
-    <div class="u-footer">
-      <span>Tracked <strong>{total_stocks:,}</strong></span>
-      <span class="u-sep"></span>
-      <span>Gap-filled &gt;10% <strong class="{gap_cls}">{gap_count:,}</strong></span>
-      <span class="u-sep"></span>
-      <span>Short history &lt;126D <strong>{short_count:,}</strong></span>
-      <span class="u-sep"></span>
-      <span>Stop loss <strong>CMP &minus; 2&times;ATR</strong></span>
-      <span class="u-right">Paresh Patel</span>
+    <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 10px 16px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; margin-top: 24px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #64748b;">
+        <span>🟢 <strong style="color: #0f172a;">{total_stocks}</strong> stocks tracked</span>
+        <span style="color: #cbd5e1;">|</span>
+        <span>🔴 Gap-filled &gt;10%: <strong style="color: #d97706;">{gap_count}</strong></span>
+        <span style="color: #cbd5e1;">|</span>
+        <span>⏳ Short history (&lt;126D): <strong style="color: #0f172a;">{short_count}</strong></span>
+        <span style="color: #cbd5e1;">|</span>
+        <span>Stop Loss: <strong style="color: #0f172a;">CMP − 2×ATR</strong></span>
+        <span style="margin-left: auto; color: #475569; font-weight: 700;">Paresh Patel</span>
     </div>
     """
     st.html(footer_html)
