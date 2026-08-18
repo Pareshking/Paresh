@@ -1263,29 +1263,22 @@ def render_master_screener_table(
 
         # Every calendar window, formatted once. pc[3]["ret"] is the 3M return
         # cell, and so on; the Full Quant tier below renders all five.
-        # The symbol opens the stock page.
         #
-        # target="_parent" was tried first and did nothing: this table lives in
-        # a Streamlit component iframe, and that iframe is sandboxed WITHOUT
-        # allow-top-navigation, so the browser silently drops a framed link
-        # that tries to navigate its parent. The sandbox does allow scripts and
-        # same-origin, so setting the parent's location from JS does work.
+        # The symbol opens the stock page. Getting there is not as simple as an
+        # href: this table lives in a Streamlit iframe sandboxed with
+        #   allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox
+        #   allow-same-origin allow-scripts allow-downloads
+        # and NO allow-top-navigation, so the browser refuses any attempt by
+        # this frame to navigate the page around it -- a plain link, target
+        #="_parent", and assigning parent.location alike. Chrome rejects the
+        # last one out loud: "The current window does not have permission to
+        # navigate the target frame."
         #
-        # The href stays as a real URL for middle-click and "copy link", and
-        # the handler returns false so the framed navigation never happens.
-        # If even the scripted route is blocked, the table view also offers a
-        # native picker above it -- there is always a way through that does not
-        # depend on frame permissions.
-        _nav = (
-            "try{var p=window.parent||window.top;"
-            "var u=new URL(p.location.href);"
-            f"u.searchParams.set('stock','{sym}');"
-            "p.location.href=u.href;}"
-            f"catch(e){{window.top.location.search='?stock={sym}';}}"
-            "return false;"
-        )
+        # The href stays a real URL so middle-click and "copy link address"
+        # behave; the click itself is handled by the delegated listener in the
+        # page script below, which is where the workaround lives.
         sym_link = (
-            f'<a href="?stock={sym}" onclick="{_nav}" class="stock-ticker" '
+            f'<a href="?stock={sym}" class="stock-ticker" data-stock="{sym}" '
             f'style="text-decoration:none;border-bottom:1px dotted #94a3b8;'
             f'cursor:pointer;" title="Open {sym}">{sym}</a>'
         )
@@ -1690,6 +1683,33 @@ body::-webkit-scrollbar,
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {{
+    // Symbol -> stock page. This frame may not navigate the page around it
+    // (no allow-top-navigation), but it DOES have allow-same-origin, so it can
+    // reach into the parent document -- which is not sandboxed -- and add a
+    // script there. That script runs as the parent and navigating yourself is
+    // always allowed, so the route opens in the same tab like the card view.
+    //
+    // If the parent is ever cross-origin (the injection throws), allow-popups
+    // is granted, so the page opens in a new tab instead. Losing the tab is a
+    // worse experience than keeping it; having no way in at all is worse than
+    // both.
+    document.addEventListener('click', function(ev) {{
+        const link = ev.target.closest ? ev.target.closest('a[data-stock]') : null;
+        if (!link) return;
+        ev.preventDefault();
+        const sym = link.getAttribute('data-stock');
+        const search = '?stock=' + encodeURIComponent(sym);
+        try {{
+            const host = window.parent;
+            const s = host.document.createElement('script');
+            s.textContent = 'window.location.search=' + JSON.stringify(search) + ';';
+            host.document.body.appendChild(s);
+            s.remove();
+        }} catch (e) {{
+            window.open(search, '_blank');
+        }}
+    }});
+
     const table = document.querySelector('.modern-screener-table');
     if (!table) return;
     const thList = table.querySelectorAll('thead tr.sub-header-row th');

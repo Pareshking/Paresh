@@ -119,13 +119,23 @@ def test_card_symbol_links_to_the_stock_page(monkeypatch):
     assert 'target="_self"' in html
 
 
-def test_table_symbol_navigates_the_parent_by_script():
-    """The table lives in a sandboxed component iframe.
+def test_table_symbol_opens_the_stock_page_by_injecting_into_the_host():
+    """The table lives in a sandboxed iframe, and the sandbox decides this.
 
-    target="_parent" was tried first and did nothing: Streamlit's component
-    iframe has no allow-top-navigation, so the browser silently drops a framed
-    link that tries to navigate its parent. Scripts and same-origin ARE allowed,
-    so the handler sets the parent's location directly.
+    Streamlit mounts it with
+
+        allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox
+        allow-same-origin allow-scripts allow-downloads
+
+    and no allow-top-navigation. Two mechanisms were tried against a real
+    browser before this one and BOTH failed: target="_parent" was dropped
+    silently, and assigning parent.location raised "The current window does not
+    have permission to navigate the target frame". A unit test asserting either
+    of them passed anyway, which is why this one names the working mechanism.
+
+    What is allowed is same-origin access. The frame adds a script to the parent
+    document; that script runs as the parent, which is not sandboxed, and a page
+    navigating itself is never blocked.
     """
     from src.ui import theme
 
@@ -141,15 +151,22 @@ def test_table_symbol_navigates_the_parent_by_script():
         theme.st.iframe, theme.st.info = orig_iframe, orig_info
 
     html = captured["html"]
-    # A real href survives for middle-click and "copy link"...
+    # A real href survives for middle-click and "copy link address"...
     assert 'href="?stock=' in html
-    # ...but the click is handled in script and the framed navigation cancelled.
+    # ...and the symbol carries the payload the delegated handler reads.
+    assert 'data-stock="' in html
+    # The handler builds a script IN THE PARENT DOCUMENT and appends it there.
     assert "window.parent" in html
-    assert "searchParams.set('stock'" in html
-    assert "return false;" in html
-    # The mechanism that silently failed must not come back.
+    assert "host.document.createElement('script')" in html
+    assert "host.document.body.appendChild(s)" in html
+    assert "window.location.search=" in html
+    # A cross-origin parent would throw; allow-popups still gets the user there.
+    assert "window.open(search, '_blank')" in html
+    # Every mechanism a browser refused must stay gone.
     assert 'target="_parent"' not in html
     assert 'target="_self"' not in html
+    assert "searchParams.set('stock'" not in html
+    assert "p.location.href" not in html
 
 
 def test_table_view_offers_a_native_route_that_needs_no_frame_permission():
