@@ -20,10 +20,22 @@ from src.engine.breadth import compute_ma_breadth, compute_hl_timeseries
 
 @pytest.fixture
 def sample_market_data():
-    dates = pd.date_range("2022-01-01", periods=400, freq="B")
+    # Seeded, and a real price PATH rather than independent draws. The old
+    # fixture called np.random.lognormal with no seed, so every run tested a
+    # different market -- test_backtester passed or failed on the draw. It also
+    # produced i.i.d. prices with no autocorrelation, which is not something a
+    # momentum strategy can meaningfully rank.
+    #
+    # 760 sessions because the backtest reports the last 6 COMPLETED months and
+    # reserves a full 12-month formation window before them.
+    n_periods = 760
+    dates = pd.date_range("2022-01-01", periods=n_periods, freq="B")
     symbols = ["TCS", "INFY", "RELIANCE", "HDFCBANK", "ICICIBANK", "ITC"]
+    rng = np.random.default_rng(20260818)
+    drifts = np.linspace(0.0008, -0.0002, len(symbols))  # dispersion to rank on
+    steps = rng.normal(drifts, 0.012, (n_periods, len(symbols)))
     prices = pd.DataFrame(
-        np.random.lognormal(4, 0.15, (400, len(symbols))), index=dates, columns=symbols
+        50.0 * np.exp(np.cumsum(steps, axis=0)), index=dates, columns=symbols
     )
     highs = prices * 1.01
     lows = prices * 0.99

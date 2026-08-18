@@ -7,7 +7,7 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 
-from src.engine.backtester import run_backtest
+from src.engine.backtester import DEFAULT_BACKTEST_MONTHS, run_backtest
 from src.loaders.price_loader import fetch_benchmark_history
 from src.ui.charts import render_backtest_equity_chart
 from src.ui.components import render_data_quality_footer
@@ -160,16 +160,31 @@ def render_backtest_view(
 
     if bt_res is None:
         st.warning(
-            "Insufficient price history to execute backtest. At least 1.5 years of continuous daily data is required."
+            f"Insufficient price history to backtest the last "
+            f"{DEFAULT_BACKTEST_MONTHS} completed months. The strategy needs a "
+            "full 12-month formation window BEFORE the reported period, so "
+            "roughly 18 months of continuous daily data is required."
         )
         return
 
     stats = bt_res["stats"]
 
+    # Say which window these numbers describe. The backtest reports the last
+    # completed calendar months only -- the month in progress is excluded, so a
+    # part-month return is never shown beside whole ones.
+    _eq_idx = bt_res["equity_curve"].index
+    bt_window_label = (
+        f"Last {DEFAULT_BACKTEST_MONTHS} Completed Months "
+        f"({_eq_idx[0]:%d %b %Y} → {_eq_idx[-1]:%d %b %Y})"
+        if len(_eq_idx)
+        else f"Last {DEFAULT_BACKTEST_MONTHS} Completed Months"
+    )
+
     # ── Active Configuration Attribution Strip ──────────────────────────────
     st.markdown(
         f"""
         <div style='background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 14px; margin-bottom: 12px; font-family: IBM Plex Mono; font-size: 0.76rem; color: #475569; display: flex; flex-wrap: wrap; gap: 14px; align-items: center;'>
+            <span>📅 <strong>Period:</strong> <span style='color: #0f172a; font-weight: 600;'>{bt_window_label}</span></span>
             <span>🎯 <strong>Engine:</strong> <span style='color: #0f172a; font-weight: 600;'>{bt_ranking}</span></span>
             <span>⏱️ <strong>Interval:</strong> <span style='color: #0f172a; font-weight: 600;'>{'Monthly · First Trading Day' if bt_rebal == 21 else f'{bt_rebal} Trading Days'}</span></span>
             <span>📦 <strong>Portfolio:</strong> <span style='color: #0f172a; font-weight: 600;'>Top {bt_n} Stocks (Buffer: Top {int(bt_n * buffer_mult)})</span></span>

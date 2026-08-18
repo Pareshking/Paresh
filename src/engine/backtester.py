@@ -22,6 +22,29 @@ from src.core.config import MOMENTUM_WINDOWS
 SESSIONS_PER_MONTH: int = 21
 
 
+DEFAULT_BACKTEST_MONTHS: int = 6
+
+
+def completed_month_window(
+    dates: pd.DatetimeIndex, months: int = DEFAULT_BACKTEST_MONTHS
+) -> tuple[pd.Timestamp, pd.Timestamp]:
+    """First and last day of the most recent `months` COMPLETED calendar months.
+
+    The month in progress is excluded. Reporting a partial month beside full
+    ones invites comparing a half-month return against six whole ones, and the
+    partial month moves every day the market is open. On 18 Aug 2026 this spans
+    1 Feb 2026 to 31 Jul 2026 -- August is still running.
+    """
+    if len(dates) == 0:
+        raise ValueError("completed_month_window requires at least one date")
+    if months <= 0:
+        raise ValueError("months must be positive")
+    current_month_start = pd.Timestamp(dates[-1]).normalize().replace(day=1)
+    window_end = current_month_start - pd.Timedelta(days=1)
+    window_start = current_month_start - pd.DateOffset(months=months)
+    return window_start, window_end
+
+
 def _calendar_period_sharpe(
     prices: pd.DataFrame,
     log_returns: pd.DataFrame,
@@ -113,6 +136,7 @@ def run_backtest(
     cost_bps: float = 30.0,
     buffer_n: int | None = None,
     _benchmark_close: pd.Series | None = None,
+    backtest_months: int = DEFAULT_BACKTEST_MONTHS,
 ) -> dict[str, Any] | None:
     """
     Executes a walk-forward momentum backtest with zero look-ahead bias and friction modeling.
@@ -170,8 +194,22 @@ def run_backtest(
         rebal_dates = [int(i) for i in last_by_month.to_numpy() if int(i) < len(prices) - 2]
     else:
         rebal_dates = list(range(start_offset, len(prices) - 2, rebal_freq))
+
+    # Restrict the REPORTED window to the last N completed calendar months. The
+    # formation history before it is untouched -- a rebalance still scores on a
+    # full 12-month lookback; we simply do not report periods outside the
+    # window. Filter on the EXECUTION date (T+1), because a rebalance signalled
+    # on the last session of January is the trade that holds through February.
+    window_start, window_end = completed_month_window(dates, backtest_months)
+    rebal_dates = [
+        i for i in rebal_dates if window_start <= dates[i + 1] <= window_end
+    ]
     if not rebal_dates:
         return None
+
+    # The final holding period must stop at the window, not run into the month
+    # in progress.
+    hard_end_idx = int(dates.searchsorted(window_end, side="right"))
 
     strat_net_daily: list[float] = []
     strat_gross_daily: list[float] = []
@@ -189,7 +227,7 @@ def run_backtest(
     for i, start_idx in enumerate(rebal_dates):
         fwd_start = start_idx + 1  # Key: Zero look-ahead - trade on T+1
         fwd_end = rebal_dates[i + 1] + 1 if i + 1 < len(rebal_dates) else len(prices)
-        fwd_end = min(fwd_end, len(prices))
+        fwd_end = min(fwd_end, len(prices), hard_end_idx)
         if fwd_end <= fwd_start:
             continue
 
