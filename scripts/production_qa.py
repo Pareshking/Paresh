@@ -75,10 +75,16 @@ RUNTIME_TOKENS = (
     "ValueError:", "AttributeError:", "StreamlitAPIException",
 )
 # Streamlit Cloud wrapper states that mean "we never got to the app at all".
+# Needles must be DISTINCTIVE PHRASES from Streamlit Cloud's own wrapper pages.
+# A bare "404" here matched the app's own header -- ">50 EMA: 404 (54%)", the
+# number of stocks above their 50-day EMA -- and run 32129132689 reported a
+# fully rendered, healthy app as cloud_not_found at t=412.4s. Nothing that can
+# occur in ordinary market data belongs in this table.
 CLOUD_STATES = {
     "asleep": ("has gone to sleep", "get this app back up"),
     "cloud_error": ("Error running app", "Oh no.", "connection error"),
-    "not_found": ("You do not have access", "404", "page not found"),
+    "not_found": ("You do not have access", "page not found",
+                  "404: page not found", "this app does not exist"),
     "login": ("Sign in to continue", "Continue with Google", "Sign in with"),
 }
 
@@ -219,9 +225,14 @@ def read_state(page) -> dict:
         "body_head": body[:300].replace("\n", " | "),
     }
 
-    for label, needles in CLOUD_STATES.items():
-        if any(n.lower() in body.lower() for n in needles):
-            return {"state": f"cloud_{label}", **info}
+    # Only the WRAPPER can be in a cloud state. If Streamlit has rendered the
+    # app's tab bar then we are looking at the application itself, and any
+    # resemblance to wrapper text is the app's own content -- belt and braces
+    # alongside the phrase list above.
+    if not st_tabs:
+        for label, needles in CLOUD_STATES.items():
+            if any(n.lower() in body.lower() for n in needles):
+                return {"state": f"cloud_{label}", **info}
 
     if st_exception:
         return {"state": "app_exception", **info}
@@ -438,7 +449,10 @@ def main() -> None:
 
     print("\n================ PRODUCTION QA VERDICT ================", flush=True)
     print(f"readiness state       : {report.get('ready_state')}", flush=True)
-    if EXPECTED_SHA:
+    if EXPECTED_SHA and "deploy_correspondence" not in report:
+        print(f"deploy correspondence : not checked (app never reached ready; "
+              f"expected {EXPECTED_SHA[:7]})", flush=True)
+    elif EXPECTED_SHA:
         reason = report.get("deploy_unverifiable_reason")
         print(f"deploy correspondence : {report.get('deploy_correspondence')} "
               f"(expected {report.get('expected_revision')}, "
