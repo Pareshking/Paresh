@@ -7,6 +7,7 @@ from pathlib import Path
 from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError, sync_playwright
 
 PRODUCTION_URL = os.getenv("UMIYA_PRODUCTION_URL", "https://paresh.streamlit.app/")
+APP_READY_TIMEOUT_MS = 300_000
 VIEWPORTS = {
     "desktop_1920x1080": (1920, 1080),
     "desktop_1440x900": (1440, 900),
@@ -39,7 +40,7 @@ def _find_tabs(page: Page):
 
 
 def _wait_for_app(page: Page) -> None:
-    page.get_by_text("Screener", exact=True).first.wait_for(state="visible", timeout=180_000)
+    page.get_by_text("Screener", exact=True).first.wait_for(state="visible", timeout=APP_READY_TIMEOUT_MS)
     page.wait_for_timeout(3000)
     if "Connection error" in page.locator("body").inner_text(timeout=20):
         raise RuntimeError("Streamlit frontend reports Connection error")
@@ -98,18 +99,16 @@ def main() -> None:
         )
 
         try:
-            # IMPORTANT: load Streamlit only once. Reopening the production URL for every
-            # viewport creates a fresh cold-start/session and previously consumed the entire
-            # GitHub Actions timeout before all viewports could be tested.
             print(f"\n=== initial_load === {PRODUCTION_URL}")
-            page.goto(PRODUCTION_URL, wait_until="domcontentloaded", timeout=180_000)
+            page.goto(PRODUCTION_URL, wait_until="domcontentloaded", timeout=APP_READY_TIMEOUT_MS)
             try:
                 _wait_for_app(page)
             except PlaywrightTimeoutError:
-                (output / "initial_load_failure.txt").write_text(
-                    page.locator("body").inner_text(timeout=20), encoding="utf-8"
+                body = page.locator("body").inner_text(timeout=20)
+                (output / "initial_load_failure.txt").write_text(body, encoding="utf-8")
+                failures.append(
+                    f"Initial production load did not expose Screener within {APP_READY_TIMEOUT_MS // 1000}s"
                 )
-                failures.append("Initial production load did not expose Screener within 180s")
                 raise RuntimeError("Initial production load failed")
 
             tabs = _find_tabs(page)
@@ -122,7 +121,6 @@ def main() -> None:
                 print(f"\n=== {viewport_name} ===")
                 page.set_viewport_size({"width": width, "height": height})
                 page.wait_for_timeout(500)
-
                 viewport_errors: list[str] = []
                 for tab_name in EXPECTED_TABS:
                     tab = page.get_by_text(tab_name, exact=True).first
@@ -140,12 +138,11 @@ def main() -> None:
                 print(f"  horizontal_overflow={overflow}px")
                 if width <= 600 and overflow > 24:
                     viewport_errors.append(f"horizontal overflow {overflow}px")
-
                 page.screenshot(path=str(output / f"{viewport_name}.png"), full_page=False)
                 failures.extend(f"{viewport_name}: {error}" for error in viewport_errors)
 
         except Exception as exc:
-            if not failures or failures[-1] != "Initial production load did not expose Screener within 180s":
+            if not failures or failures[-1] != f"Initial production load did not expose Screener within {APP_READY_TIMEOUT_MS // 1000}s":
                 failures.append(f"browser failure: {exc}")
         finally:
             failures.extend(f"browser: {error}" for error in browser_errors)
