@@ -41,6 +41,14 @@ OUT = Path(os.getenv("UMIYA_QA_OUT", "artifacts/production_qa"))
 # with the state the app was actually in, never silently retried at a larger N.
 READY_BUDGET_S = int(os.getenv("UMIYA_READY_BUDGET_S", "420"))
 POLL_S = 10
+METRICS_ID = "umiya-startup-metrics"
+# Commit this run intends to test. The workflow passes github.sha; the app
+# publishes the revision it is actually serving. Without this the probe can
+# connect before Streamlit has swapped builds and report a good commit red --
+# which is exactly what happened to c151597, whose QA started two seconds
+# after the push.
+EXPECTED_SHA = (os.getenv("UMIYA_EXPECTED_SHA") or "").strip().lower()
+DEPLOY_WAIT_S = int(os.getenv("UMIYA_DEPLOY_WAIT_S", "300"))
 
 TABS = [
     "Screener", "Qualified", "Sectors", "RRG", "Multi-Strategy", "Portfolio",
@@ -112,6 +120,21 @@ def http_probe() -> dict:
                 "elapsed_s": round(time.perf_counter() - started, 2),
             }
     return result
+
+
+def read_revision(page) -> str | None:
+    """Revision the running app reports, from its startup telemetry."""
+    for frame in page.frames:
+        try:
+            node = frame.locator(f"#{METRICS_ID}")
+            if node.count() == 0:
+                continue
+            raw = node.first.text_content(timeout=5_000)
+            if raw:
+                return (json.loads(raw) or {}).get("revision")
+        except Exception:
+            continue
+    return None
 
 
 def app_frame(page):
@@ -252,6 +275,46 @@ def main() -> None:
             report["ready_state"] = state["state"]
             report["ready_after_s"] = round(time.perf_counter() - started, 1)
 
+            # Deploy correspondence. If the app is still serving the previous
+            # commit, this run's result says nothing about the commit that
+            # triggered it, so wait for the swap and record what happened
+            # rather than reporting the new commit red.
+            if state["state"] == "ready" and EXPECTED_SHA:
+                deadline_dep = time.perf_counter() + DEPLOY_WAIT_S
+                served = read_revision(page)
+                while (
+                    served
+                    and not EXPECTED_SHA.startswith(served.lower()[:7])
+                    and time.perf_counter() < deadline_dep
+                ):
+                    print(json.dumps({
+                        "waiting_for_deploy": EXPECTED_SHA[:7],
+                        "currently_served": served[:7],
+                        "t_s": round(time.perf_counter() - started, 1),
+                    }), flush=True)
+                    time.sleep(POLL_S)
+                    page.reload(wait_until="domcontentloaded", timeout=120_000)
+                    for _ in range(int(READY_BUDGET_S / POLL_S)):
+                        if read_state(page)["state"] == "ready":
+                            break
+                        time.sleep(POLL_S)
+                    served = read_revision(page)
+
+                report["expected_revision"] = EXPECTED_SHA[:7]
+                report["served_revision"] = (served or "unknown")[:7]
+                if served is None:
+                    report["deploy_correspondence"] = "unverifiable"
+                elif EXPECTED_SHA.startswith(served.lower()[:7]):
+                    report["deploy_correspondence"] = "match"
+                else:
+                    report["deploy_correspondence"] = "mismatch"
+                    failures.append(classify(
+                        f"Tested build {served[:7]} but this run was triggered by "
+                        f"{EXPECTED_SHA[:7]}; Streamlit had not finished swapping "
+                        f"builds within {DEPLOY_WAIT_S}s. This result does not "
+                        f"describe the triggering commit.",
+                        "INFRASTRUCTURE"))
+
             if state["state"] == "ready":
                 pass
             elif state["state"] == "pipeline_running":
@@ -342,6 +405,10 @@ def main() -> None:
 
     print("\n================ PRODUCTION QA VERDICT ================", flush=True)
     print(f"readiness state       : {report.get('ready_state')}", flush=True)
+    if EXPECTED_SHA:
+        print(f"deploy correspondence : {report.get('deploy_correspondence')} "
+              f"(expected {report.get('expected_revision')}, "
+              f"served {report.get('served_revision')})", flush=True)
     print(f"time to that state    : {report.get('ready_after_s')}s", flush=True)
     print(f"websocket established : {report['websocket_established']}", flush=True)
     print(f"page errors           : {len(page_errors)}", flush=True)

@@ -28,6 +28,11 @@ jobs:
           pip install requests playwright
           python -m playwright install --with-deps chromium
       - name: Production QA
+        env:
+          # The app publishes the revision it is actually serving; the probe
+          # waits for the swap instead of testing the previous build and
+          # blaming this commit for it.
+          UMIYA_EXPECTED_SHA: ${{ github.sha }}
         run: python scripts/production_qa.py
       - name: Upload QA evidence
         if: always()

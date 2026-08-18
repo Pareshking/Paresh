@@ -57,6 +57,16 @@ _counters: dict[str, float] = {}
 _facts: dict[str, object] = {}
 
 
+def _revision() -> str | None:
+    """Commit actually serving this process, for deploy correspondence."""
+    try:
+        from src.core.build_info import deployed_revision
+
+        return deployed_revision()
+    except Exception:
+        return None
+
+
 def _now() -> float:
     return time.monotonic()
 
@@ -133,6 +143,7 @@ def snapshot() -> dict:
     """Everything recorded so far, safe to serialise."""
     with _LOCK:
         return {
+            "revision": _revision(),
             "module_import_utc": MODULE_IMPORT_UTC,
             "uptime_s": since_start(),
             "process": process_identity(),
