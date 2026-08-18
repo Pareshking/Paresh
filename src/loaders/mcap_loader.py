@@ -190,6 +190,14 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
             cache = pd.read_parquet(MCAP_PR_FILE)
             master = cache.set_index("Symbol")["MarketCap"].to_dict()
             metrics.note("mcap_path", "pr_disk_cache")
+            if "TradeDate" in cache.columns:
+                dated = [
+                    str(v).strip() for v in cache["TradeDate"].dropna().astype(str)
+                    if str(v).strip()
+                ]
+                if dated:
+                    metrics.note("mcap_pr_date", dated[0])
+                    metrics.note("mcap_as_of", dated[0])
             logger.info(f"NSE PR market cap cache hit: {len(master)} stocks")
         except Exception as e:
             logger.warning(f"NSE PR cache read error: {e}")
@@ -219,9 +227,17 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
                 metrics.note("mcap_as_of", td.isoformat())
                 master.update(nse_map)
                 try:
+                    # TradeDate travels with the data. It is a property of the
+                    # bhavcopy, not of how the bhavcopy was obtained, so the
+                    # disk-cache path below can report it too. Without it that
+                    # path knew the caps but not their date, and the daily sync
+                    # stamped the committed snapshot with an empty AsOf --
+                    # which dropped "Market caps" out of the freshness ribbon.
                     cache_df = pd.DataFrame(
                         [
-                            {"Symbol": k, "MarketCap": v, "LastUpdated": datetime.now()}
+                            {"Symbol": k, "MarketCap": v,
+                             "TradeDate": td.isoformat(),
+                             "LastUpdated": datetime.now()}
                             for k, v in nse_map.items()
                         ]
                     )

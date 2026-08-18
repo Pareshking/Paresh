@@ -62,5 +62,31 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add -A data/
-          git diff --staged --quiet || (git commit -m "chore(data): automated daily NSE index & classification sync [skip ci]" && git push)
+          if git diff --staged --quiet; then
+            echo "No data changes to commit."
+            exit 0
+          fi
+          git commit -m "chore(data): automated daily NSE index & classification sync [skip ci]"
+          # Rebase before pushing, and retry. A plain push loses the ENTIRE
+          # sync when anyone lands a commit on main during the two minutes this
+          # job runs -- which happened on 2026-08-18: the run computed the
+          # all-time-high snapshot, then died on "! [rejected] main -> main
+          # (fetch first)" and threw the whole thing away.
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              echo "Pushed on attempt $attempt."
+              exit 0
+            fi
+            echo "Push rejected on attempt $attempt; rebasing onto origin/main."
+            git fetch origin main
+            git rebase origin/main || {
+              echo "Rebase hit a conflict in generated data; taking our copy."
+              git checkout --ours -- data/ 2>/dev/null || true
+              git add -A data/
+              git rebase --continue || git rebase --abort
+            }
+            sleep $((attempt * 3))
+          done
+          echo "::error::Could not push the data sync after 5 attempts."
+          exit 1
 
