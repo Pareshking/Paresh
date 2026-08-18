@@ -134,6 +134,33 @@ def run_daily_sync() -> None:
         # back to its in-memory window and labels the column accordingly.
         print(f"All-time-high snapshot skipped: {type(exc).__name__}: {exc}")
 
+    # 5c. Publish the price history for production to seed from.
+    #
+    # Written as float32 + zstd: 18.7 MB becomes 10.5 MB, and prices carry
+    # nowhere near seven significant figures of meaning. The workflow uploads
+    # this as a release asset rather than committing it -- 10.5 MB a day is
+    # ~2.5 GB a year of git history against GitHub's ~1 GB soft limit.
+    print("\n--- 5c. Publishing Price Snapshot ---")
+    try:
+        import pandas as pd
+
+        from src.core.config import PRICES_FILE
+
+        if os.path.exists(PRICES_FILE):
+            frame = pd.read_parquet(PRICES_FILE)
+            compact = frame.astype("float32", errors="ignore")
+            out = os.path.join(os.path.dirname(PRICES_FILE), "prices_snapshot.parquet")
+            compact.to_parquet(out, compression="zstd")
+            mb = os.path.getsize(out) / 1024**2
+            print(
+                f"Price snapshot written: {len(frame)} rows, "
+                f"{len(frame.columns)} series, {mb:.1f} MB -> {out}"
+            )
+        else:
+            print("No price cache on disk; nothing to publish.")
+    except Exception as exc:
+        print(f"Price snapshot skipped: {type(exc).__name__}: {exc}")
+
     # 6. Fetch delivery archives
     print("\n--- 6. Fetching NSE Delivery Bhavcopy Archives ---")
     deliv = fetch_delivery_data(force_refresh=FORCE_FULL)

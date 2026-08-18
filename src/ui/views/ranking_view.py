@@ -199,6 +199,7 @@ def render_ranking_view(
     high_prices: pd.DataFrame | None = None,
     low_prices: pd.DataFrame | None = None,
     volume_data: pd.DataFrame | None = None,
+    open_prices: pd.DataFrame | None = None,
 ) -> None:
     """Renders the primary stock rankings interface with dynamic search and Grid/Table switcher."""
     # ── Stock detail route ───────────────────────────────────────────────────
@@ -221,6 +222,7 @@ def render_ranking_view(
             high_prices=high_prices,
             low_prices=low_prices,
             volume_data=volume_data,
+            open_prices=open_prices,
             on_back=_back,
         )
         return

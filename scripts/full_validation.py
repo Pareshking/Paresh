@@ -34,7 +34,7 @@ symbols = symbols.tolist()
 raw = fetch_price_history(symbols, period="2y", force_refresh=False)
 if raw.empty:
     raise AssertionError("Price history is empty")
-adj, close, high, low, volume = extract_ohlcv(raw, symbols)
+adj, close, high, low, volume, open_p = extract_ohlcv(raw, symbols)
 if len(adj.columns) < 700:
     raise AssertionError(f"Too few price series after extraction: {len(adj.columns)}")
 

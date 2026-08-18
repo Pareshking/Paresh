@@ -193,7 +193,7 @@ def load_all_data(indices: list[str]):
         return None
 
     with metrics.stage("extract_ohlcv"):
-        adj_close, close_p, high_p, low_p, vol_p = extract_ohlcv(raw_prices, symbols)
+        adj_close, close_p, high_p, low_p, vol_p, open_p = extract_ohlcv(raw_prices, symbols)
     try:
         metrics.note("price_as_of", str(pd.DatetimeIndex(adj_close.index)[-1].date()))
     except Exception:
@@ -243,6 +243,7 @@ def load_all_data(indices: list[str]):
         "high_prices": high_p,
         "low_prices": low_p,
         "volume_data": vol_p,
+        "open_prices": open_p,
         "regime_data": regime,
         "idx_info": idx_info,
     }
@@ -377,7 +378,10 @@ render_signal_alerts(signals)
 )
 
 with tab_rank:
-    render_ranking_view(rank_df, adj_close, high_prices, low_prices, volume_data)
+    render_ranking_view(
+        rank_df, adj_close, high_prices, low_prices, volume_data,
+        open_prices=data.get("open_prices"),
+    )
 
 with tab_qual:
     render_qualified_view(rank_df, adj_close)

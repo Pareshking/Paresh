@@ -70,6 +70,35 @@ jobs:
           path: ${{ github.workspace }}/data_cache/
           key: price-data-${{ runner.os }}
 
+      # Published as a release asset, not committed. At ~10.5 MB a daily commit
+      # would add roughly 2.5 GB a year of git history to a repository against
+      # GitHub's ~1 GB soft limit; a release asset is replaced in place and
+      # carries none. Production seeds its empty /tmp cache from this in one
+      # HTTPS GET instead of re-downloading two years from Yahoo.
+      - name: Publish price snapshot
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SNAP="${{ github.workspace }}/data_cache/prices_snapshot.parquet"
+          if [ ! -f "$SNAP" ]; then
+            echo "::warning::No price snapshot was produced; skipping upload."
+            exit 0
+          fi
+          ls -lh "$SNAP"
+          # A single rolling tag. The release is created once and its asset
+          # replaced every run, so there is exactly one snapshot to fetch and
+          # no accumulation of stale ones.
+          gh release view data-latest --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create data-latest \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Latest data snapshots" \
+              --notes "Rolling price history published by the daily sync. Replaced in place; not intended as a versioned release." \
+              --latest=false
+          cp "$SNAP" "${{ github.workspace }}/prices.parquet"
+          gh release upload data-latest "${{ github.workspace }}/prices.parquet" \
+            --repo "$GITHUB_REPOSITORY" --clobber
+          echo "Uploaded prices.parquet to release data-latest."
+
       - name: Commit and Push Updated Index & Classification Files
         run: |
           git config --global user.name 'github-actions[bot]'

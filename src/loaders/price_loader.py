@@ -156,14 +156,20 @@ def _clean_price_df(df: pd.DataFrame, symbols: Sequence[str] | None = None) -> p
 def extract_ohlcv(
     prices_df: pd.DataFrame,
     symbols: Sequence[str] | None = None,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
-    Extracts (Adj Close, Close, High, Low, Volume) DataFrames from raw yfinance price data.
+    Extracts (Adj Close, Close, High, Low, Volume, Open) DataFrames from raw
+    yfinance price data. Open is last so existing five-value unpacking keeps
+    working where it is still used.
     """
     if prices_df is None or prices_df.empty:
         empty = pd.DataFrame()
-        return empty, empty, empty, empty, empty
+        return empty, empty, empty, empty, empty, empty
 
+    # Open is extracted too. The stock chart used to synthesise it as the
+    # previous close, which produces candle bodies spanning close-to-close --
+    # not what a candle means, and misleading about intraday action.
+    open_p = _extract_field(prices_df, ["Open"])
     adj_close = _extract_field(prices_df, ["Adj Close", "AdjClose", "Close"])
     close_p = _extract_field(prices_df, ["Close", "Adj Close", "AdjClose"])
     high_p = _extract_field(prices_df, ["High"])
@@ -179,6 +185,8 @@ def extract_ohlcv(
         high_p = close_p.copy()
     if low_p.empty and not close_p.empty:
         low_p = close_p.copy()
+    if open_p.empty and not close_p.empty:
+        open_p = close_p.copy()
     if vol_p.empty and not close_p.empty:
         vol_p = pd.DataFrame(0.0, index=close_p.index, columns=close_p.columns)
 
@@ -187,8 +195,9 @@ def extract_ohlcv(
     high_p = _clean_price_df(high_p, symbols)
     low_p = _clean_price_df(low_p, symbols)
     vol_p = _clean_price_df(vol_p, symbols)
+    open_p = _clean_price_df(open_p, symbols)
 
-    return adj_close, close_p, high_p, low_p, vol_p
+    return adj_close, close_p, high_p, low_p, vol_p, open_p
 
 
 def _note_price_as_of(df: pd.DataFrame | None) -> None:
@@ -220,6 +229,16 @@ def fetch_price_history(
     """
     if not symbols:
         return pd.DataFrame()
+
+    # Seed an empty cache from the published snapshot before deciding anything
+    # else. Hooking in HERE rather than adding a new branch means every path
+    # below is unchanged: once the file exists, the cache is either fresh or
+    # the incremental path tops it up with the few sessions published since.
+    # A failed seed is a no-op, so the worst case is exactly the old behaviour.
+    if not force_refresh and not os.path.exists(PRICES_FILE):
+        from src.loaders.price_store import seed_price_cache_from_snapshot
+
+        seed_price_cache_from_snapshot()
 
     def _download_range(tickers: list[str], start_date: pd.Timestamp) -> pd.DataFrame:
         start_str = start_date.strftime("%Y-%m-%d")

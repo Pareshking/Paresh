@@ -7,3 +7,4 @@ yfinance>=0.2.36
 requests>=2.31.0
 plotly>=5.18.0
 pyarrow>=14.0.0
+streamlit-lightweight-charts==0.7.20

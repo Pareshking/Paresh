@@ -141,6 +141,7 @@ def render_stock_view(
     high_prices: pd.DataFrame | None = None,
     low_prices: pd.DataFrame | None = None,
     volume_data: pd.DataFrame | None = None,
+    open_prices: pd.DataFrame | None = None,
     *,
     on_back=None,
 ) -> None:
@@ -162,7 +163,7 @@ def render_stock_view(
     _render_rank_dynamics(row)
     _render_data_health(row)
 
-    _section("Price action", "20/50 EMA toggleable · volume · RSI(14)")
+    _section("Price action", "drag to pan · 20/50 EMA toggleable · volume · RSI(14)")
     render_stock_chart(
         str(row["Symbol"]),
         rank_df,
@@ -170,6 +171,7 @@ def render_stock_view(
         high_prices=high_prices,
         low_prices=low_prices,
         volume_data=volume_data,
+        open_prices=open_prices,
     )
 
     _render_peers(row, rank_df)

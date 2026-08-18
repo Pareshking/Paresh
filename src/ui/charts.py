@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 
+from src.core.logger import logger
 from src.ui.theme import clean_html
 
 
@@ -25,6 +26,9 @@ def compute_rsi_series(prices: pd.Series, period: int = 14) -> pd.Series:
     return rsi
 
 
+TF_SESSIONS = {"1M": 22, "3M": 64, "6M": 126, "1Y": 252, "All": 5000}
+
+
 def render_stock_chart(
     symbol: str,
     rank_df: pd.DataFrame,
@@ -32,8 +36,69 @@ def render_stock_chart(
     high_prices: pd.DataFrame | None = None,
     low_prices: pd.DataFrame | None = None,
     volume_data: pd.DataFrame | None = None,
+    open_prices: pd.DataFrame | None = None,
 ) -> None:
-    """Just the chart: price with toggleable overlays, volume and RSI."""
+    """Price with toggleable overlays, volume and RSI.
+
+    Drawn with TradingView Lightweight Charts, where drag pans and pinch zooms
+    -- Plotly's drag selects a zoom box, so on a phone reading the chart
+    rearranged it. Lightweight Charts is a THIRD-PARTY COMPONENT and a
+    component that fails to load renders as blank space rather than an error,
+    so any failure falls back to the Plotly renderer. A prettier chart is not
+    worth an empty one.
+    """
+    if symbol not in adj_close.columns:
+        st.warning(f"No price data available for {symbol}")
+        return
+
+    c_tf, c_ma = st.columns([1.5, 2], vertical_alignment="center")
+    tf = c_tf.segmented_control(
+        "Timeframe", list(TF_SESSIONS), default="6M",
+        key=f"lw_tf_{symbol}", label_visibility="collapsed",
+    ) or "6M"
+    overlays = c_ma.pills(
+        "Overlays", ["20 EMA", "50 EMA", "200 SMA"],
+        selection_mode="multi", default=["20 EMA", "50 EMA"],
+        key=f"lw_ma_{symbol}", label_visibility="collapsed",
+    ) or []
+
+    n = TF_SESSIONS.get(tf, 126)
+    close = adj_close[symbol].dropna().iloc[-n:]
+    if close.empty:
+        st.warning(f"No price data available for {symbol}")
+        return
+
+    def _col(df):
+        return df[symbol] if df is not None and symbol in df.columns else None
+
+    # Overlays are computed on the FULL history and then trimmed, so a 200-day
+    # average is a real 200-day average even when only 22 sessions are shown.
+    full_close = adj_close[symbol].dropna()
+    specs = {
+        "20 EMA": full_close.ewm(span=20, min_periods=5).mean(),
+        "50 EMA": full_close.ewm(span=50, min_periods=10).mean(),
+        "200 SMA": full_close.rolling(200, min_periods=30).mean(),
+    }
+    chosen = {k: v for k, v in specs.items() if k in overlays}
+    rsi_full = compute_rsi_series(full_close, 14)
+
+    try:
+        from src.ui.lightweight_chart import ChartUnavailable, render_lightweight_chart
+
+        render_lightweight_chart(
+            symbol,
+            close,
+            open_=_col(open_prices),
+            high=_col(high_prices),
+            low=_col(low_prices),
+            volume=_col(volume_data),
+            overlays=chosen,
+            rsi=rsi_full,
+        )
+        return
+    except Exception as exc:  # ChartUnavailable or anything the component throws
+        logger.info("Lightweight chart unavailable (%s); using Plotly.", exc)
+
     render_candlestick_drilldown(
         symbol,
         rank_df,

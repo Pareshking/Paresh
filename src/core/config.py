@@ -121,3 +121,28 @@ PRICE_HISTORY_PERIOD: Final[str] = "2y"
 # forever. ATHDate travels with every row so such a peak can be seen rather
 # than trusted -- the screener shows it on hover over % ATH.
 ATH_HISTORY_PERIOD: Final[str] = "20y"
+
+
+# ── Price history snapshot ───────────────────────────────────────────────────
+# Production runs on Streamlit Cloud, where DATA_DIR is /tmp and is wiped on
+# every container restart. So a cold start re-downloaded two years of OHLCV for
+# 750 symbols from Yahoo -- roughly 38 seconds, and the point at which Yahoo
+# rate-limited a ticker and took the screener down twice on 2026-08-18.
+#
+# The daily sync already fetches that history on GitHub Actions, where nobody
+# is waiting. It now publishes it as a RELEASE ASSET rather than committing it:
+# at float32/zstd the frame is ~10.5 MB, and committing that daily would add
+# ~2.5 GB a year to a repository against GitHub's ~1 GB soft limit. A release
+# asset is replaced in place and carries no history.
+#
+# Production seeds its empty cache from that asset in one HTTPS GET, and the
+# loader's existing incremental path then fetches only the sessions published
+# since. If the asset cannot be reached the loader behaves exactly as it did
+# before -- this is an accelerator, never a dependency.
+PRICE_SNAPSHOT_TAG: Final[str] = os.getenv("UMIYA_PRICE_SNAPSHOT_TAG", "data-latest")
+PRICE_SNAPSHOT_REPO: Final[str] = os.getenv("UMIYA_REPO", "Pareshking/Umiya")
+PRICE_SNAPSHOT_ASSET: Final[str] = "prices.parquet"
+PRICE_SNAPSHOT_URL: Final[str] = (
+    f"https://github.com/{PRICE_SNAPSHOT_REPO}/releases/download/"
+    f"{PRICE_SNAPSHOT_TAG}/{PRICE_SNAPSHOT_ASSET}"
+)
