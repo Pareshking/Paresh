@@ -243,10 +243,29 @@ with st.spinner("Loading market data & executing quantitative momentum engine…
     with metrics.stage("data_pipeline_total"):
         data = load_all_data(selected_indices)
 
+def _emit_startup_metrics(outcome: str) -> None:
+    """Publish this process's cold-start telemetry as a hidden, inert element.
+
+    Called on the failure path as well as the success path: a cold start that
+    fails is precisely when the stage timings and retry counts matter most,
+    and st.stop() would otherwise end the script before they were ever
+    published.
+    """
+    metrics.note("script_outcome", outcome)
+    metrics.note("script_run_completed_at_s", metrics.since_start())
+    st.markdown(
+        '<div id="umiya-startup-metrics" style="display:none">'
+        + json.dumps(metrics.snapshot())
+        + "</div>",
+        unsafe_allow_html=True,
+    )
+
+
 if not data:
     st.error(
         "❌ Failed to initialize market data. Please verify your internet connection or reload."
     )
+    _emit_startup_metrics("data_init_failed")
     st.stop()
 
 calc = data["calc"]
@@ -380,10 +399,4 @@ with tab_guide:
 # ── Cold-start telemetry ─────────────────────────────────────────────────────
 # Hidden, inert element carrying this process's startup measurements so a
 # production probe can read a real cold start from outside the container.
-metrics.note("script_run_completed_at_s", metrics.since_start())
-st.markdown(
-    '<div id="umiya-startup-metrics" style="display:none">'
-    + json.dumps(metrics.snapshot())
-    + "</div>",
-    unsafe_allow_html=True,
-)
+_emit_startup_metrics("ok")
