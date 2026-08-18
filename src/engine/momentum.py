@@ -553,6 +553,16 @@ class MomentumEngine:
         )
         rank_df["ATH Source"] = ath_source
 
+        # When the peak was printed. Over a long window a single bad tick can
+        # set a permanent phantom high, so the date travels with the number.
+        from src.loaders.ath_loader import ath_date_series
+
+        peak_dates = ath_date_series()
+        if not peak_dates.empty:
+            rank_df["ATH Date"] = rank_df["Symbol"].map(peak_dates.to_dict())
+        else:
+            rank_df["ATH Date"] = ""
+
         # Every canonical window, not just 3M and 6M. apply_calendar_momentum
         # has already computed all five and stored each period-end return and
         # Sharpe in self.period_metrics, so publishing the other three costs

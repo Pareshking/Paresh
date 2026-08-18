@@ -182,3 +182,63 @@ def test_source_is_labelled_so_a_two_year_high_is_never_called_all_time(monkeypa
     rank_df = calc.get_rankings(info, pd.Series(dtype=float),
                                 close_prices_df=prices, high_prices_df=prices)
     assert (rank_df["ATH Source"] == "in_memory_window").all()
+
+
+def test_peak_date_reaches_the_ranking(monkeypatch, tmp_path):
+    """The peak date must travel with the number, not stay in the CSV.
+
+    Over a 20-year window one bad tick sets a permanent phantom high. A stock
+    reading -90% from a peak dated 2007 is a very different claim from one
+    dated last month, and the screener has to let a reader tell them apart.
+    """
+    from src.engine import momentum as mom
+    import src.loaders.ath_loader as al
+
+    n, cols = 300, 3
+    idx = pd.bdate_range(end="2026-08-18", periods=n)
+    prices = pd.DataFrame(
+        {f"S{i}": np.linspace(100, 200, n) for i in range(cols)}, index=idx
+    )
+    info = pd.DataFrame({"Symbol": [f"S{i}" for i in range(cols)],
+                         "Industry": ["IT"] * cols})
+
+    path = tmp_path / "ath.csv"
+    pd.DataFrame({
+        "Symbol": [f"S{i}" for i in range(cols)],
+        "ATH": [5000.0] * cols,                 # a phantom peak
+        "ATHDate": ["2007-01-08"] * cols,       # ... from long ago
+        "AsOf": ["2026-08-18"] * cols,
+    }).to_csv(path, index=False)
+
+    monkeypatch.setattr(al, "ath_series",
+                        lambda p=None: al.load_ath_snapshot(str(path)).set_index("Symbol")["ATH"])
+    monkeypatch.setattr(al, "ath_date_series",
+                        lambda p=None: al.load_ath_snapshot(str(path)).set_index("Symbol")["ATHDate"])
+
+    calc = mom.MomentumEngine(prices, high_df=prices, low_df=prices, close_df=prices,
+                              volume_df=pd.DataFrame(1e5, index=idx, columns=prices.columns))
+    rank_df = calc.get_rankings(info, pd.Series(dtype=float),
+                                close_prices_df=prices, high_prices_df=prices)
+
+    assert "ATH Date" in rank_df.columns
+    assert (rank_df["ATH Date"] == "2007-01-08").all()
+    assert (rank_df["% ATH"] < -90).all()       # the phantom, now attributable
+
+
+def test_missing_peak_dates_do_not_break_the_ranking(monkeypatch):
+    from src.engine import momentum as mom
+    import src.loaders.ath_loader as al
+
+    monkeypatch.setattr(al, "ath_series", lambda p=None: pd.Series(dtype=float))
+    monkeypatch.setattr(al, "ath_date_series", lambda p=None: pd.Series(dtype=object))
+
+    n, cols = 300, 3
+    idx = pd.bdate_range(end="2026-08-18", periods=n)
+    prices = pd.DataFrame({f"S{i}": np.linspace(100, 200, n) for i in range(cols)}, index=idx)
+    info = pd.DataFrame({"Symbol": [f"S{i}" for i in range(cols)], "Industry": ["IT"] * cols})
+
+    calc = mom.MomentumEngine(prices, high_df=prices, low_df=prices, close_df=prices,
+                              volume_df=pd.DataFrame(1e5, index=idx, columns=prices.columns))
+    rank_df = calc.get_rankings(info, pd.Series(dtype=float),
+                                close_prices_df=prices, high_prices_df=prices)
+    assert (rank_df["ATH Date"] == "").all()

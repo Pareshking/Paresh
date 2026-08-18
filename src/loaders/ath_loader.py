@@ -17,6 +17,7 @@ loader says so rather than letting a two-year high be labelled as one.
 from __future__ import annotations
 
 import os
+import time
 
 import pandas as pd
 
@@ -68,6 +69,20 @@ def ath_series(path: str | None = None) -> pd.Series:
     return df.set_index("Symbol")["ATH"]
 
 
+def ath_date_series(path: str | None = None) -> pd.Series:
+    """When each all-time high was printed, indexed by symbol.
+
+    Shown on hover over % ATH. Over a long window Yahoo's old NSE history
+    carries bad ticks, and one spurious print sets a permanent phantom high; a
+    stock reading -90% from a peak dated 2007 is a very different claim from
+    one dated last month, and the reader should be able to tell them apart.
+    """
+    df = load_ath_snapshot(path)
+    if df.empty or "ATHDate" not in df.columns:
+        return pd.Series(dtype=object)
+    return df.set_index("Symbol")["ATHDate"]
+
+
 def build_ath_snapshot(
     symbols: list[str],
     period: str | None = None,
@@ -105,6 +120,7 @@ def build_ath_snapshot(
     tickers = [
         sym if str(sym).upper().endswith(".NS") else f"{sym}.NS" for sym in symbols
     ]
+    started = time.perf_counter()
     frames = []
     for i in range(0, len(tickers), batch_size):
         got = fetch(
@@ -122,6 +138,7 @@ def build_ath_snapshot(
         return pd.DataFrame(columns=["Symbol", "ATH", "ATHDate", "AsOf"])
 
     raw = pd.concat(frames, axis=1)
+    elapsed = time.perf_counter() - started
     highs = _extract_field(raw, ["High"])
     if highs is None or highs.empty:
         return pd.DataFrame(columns=["Symbol", "ATH", "ATHDate", "AsOf"])
@@ -133,6 +150,21 @@ def build_ath_snapshot(
 
     peak_date = highs.idxmax().reindex(ath.index)
     last_session = pd.DatetimeIndex(highs.index)[-1]
+
+    # Report what the window actually cost and reached. Lengthening
+    # ATH_HISTORY_PERIOD is cheap for production and paid entirely here, so the
+    # price of that constant should be visible in this job's log rather than
+    # assumed. "reaches back to" is the honest measure of the window: asking
+    # for 20y does not mean Yahoo has 20y for these symbols.
+    first_session = pd.DatetimeIndex(highs.index)[0]
+    logger.info(
+        "All-time highs over %s: %d symbols, %d sessions, %.1fs, "
+        "data reaches back to %s (oldest peak %s)",
+        window, len(ath), len(highs), elapsed,
+        pd.Timestamp(first_session).date(),
+        pd.Timestamp(peak_date.dropna().min()).date() if peak_date.notna().any() else "n/a",
+    )
+
     return pd.DataFrame({
         "Symbol": ath.index,
         "ATH": ath.values,

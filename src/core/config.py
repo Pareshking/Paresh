@@ -107,6 +107,17 @@ PRICE_HISTORY_PERIOD: Final[str] = "2y"
 
 # The window used for all-time highs. Fetched by the daily sync job on GitHub
 # Actions, where nobody is waiting, and committed as a small per-symbol
-# snapshot -- so production gets a genuine ten-year high without paying to
-# download or traverse ten years of data at startup.
-ATH_HISTORY_PERIOD: Final[str] = "10y"
+# snapshot -- so production gets a genuine long-run high without paying to
+# download or traverse that history at startup.
+#
+# Only the sync job pays for lengthening this; production reads the same 31 KB
+# either way. build_ath_snapshot reports its elapsed time and how far back the
+# data actually reached, so the cost of this constant is visible in the job log
+# rather than assumed.
+#
+# The real risk of a longer window is not time, it is data quality: Yahoo's old
+# NSE history carries bad ticks and missing corporate actions, and one spurious
+# print sets a permanent phantom high that pins a stock at "-90% from ATH"
+# forever. ATHDate travels with every row so such a peak can be seen rather
+# than trusted -- the screener shows it on hover over % ATH.
+ATH_HISTORY_PERIOD: Final[str] = "20y"
