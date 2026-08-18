@@ -282,10 +282,18 @@ def stat_pill(label: str, value: Any, color: str = "indigo") -> str:
 # Sources whose age is worth stating, and how many trading days each may fall
 # behind before it is called stale. Market caps and delivery publish only after
 # the close, so being one trading day behind is their normal state, not a fault.
-_FRESHNESS_SOURCES: list[tuple[str, str, int]] = [
-    ("price_as_of", "Prices", 1),
-    ("mcap_as_of", "Market caps", 1),
-    ("delivery_as_of", "Delivery", 2),
+# (date fact, label, tolerance in trading days, "source is loaded" fact)
+#
+# The fourth entry matters. A source whose date is unknown used to be dropped
+# from the ribbon entirely, so "Market caps" simply vanished when the committed
+# snapshot predated AsOf stamping -- the reader saw a clean bar and had no way
+# to tell a source was being used undated. If the loader says it loaded
+# something, it gets a chip, dated or not.
+_FRESHNESS_SOURCES: list[tuple[str, str, int, str | None]] = [
+    ("price_as_of", "Prices", 1, "price_path"),
+    ("mcap_as_of", "Market caps", 1, "mcap_path"),
+    ("ath_as_of", "All-time highs", 3, "ath_path"),
+    ("delivery_as_of", "Delivery", 2, None),
 ]
 
 
@@ -306,9 +314,32 @@ def data_freshness() -> list[dict]:
 
     facts = _metrics.snapshot().get("facts", {})
     items: list[dict] = []
-    for key, label, tolerance in _FRESHNESS_SOURCES:
+    for key, label, tolerance, presence_key in _FRESHNESS_SOURCES:
         raw = facts.get(key)
         if not raw:
+            # No date. If the loader reported using this source anyway, say so
+            # rather than omitting the row -- an undated snapshot could be any
+            # age, which is the definition of stale.
+            presence = str(facts.get(presence_key) or "").strip() if presence_key else ""
+            if key == "ath_as_of" and presence in {"absent", "unreadable", "malformed"}:
+                # The snapshot is missing, so the engine fell back to the high
+                # water mark of the two-year window. That is NOT an all-time
+                # high, and the column should not be read as one.
+                items.append({
+                    "label": label,
+                    "as_of": "2y window, not all-time",
+                    "behind": None,
+                    "stale": True,
+                    "source": presence,
+                })
+            elif presence and presence not in {"absent", "unreadable", "malformed"}:
+                items.append({
+                    "label": label,
+                    "as_of": "date unknown",
+                    "behind": None,
+                    "stale": True,
+                    "source": presence,
+                })
             continue
         try:
             as_of = _date.fromisoformat(str(raw)[:10])
@@ -323,7 +354,7 @@ def data_freshness() -> list[dict]:
             "as_of": as_of.strftime("%d %b"),
             "behind": behind,
             "stale": stale,
-            "source": facts.get("mcap_path") if key == "mcap_as_of" else None,
+            "source": facts.get(presence_key) if presence_key else None,
         })
     return items
 

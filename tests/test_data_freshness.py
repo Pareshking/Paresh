@@ -129,5 +129,68 @@ def test_prices_appear_in_the_footer_sources(monkeypatch):
     monkeypatch.setattr(
         components, "_FRESHNESS_SOURCES", components._FRESHNESS_SOURCES
     )
-    keys = [k for k, _, _ in components._FRESHNESS_SOURCES]
+    keys = [entry[0] for entry in components._FRESHNESS_SOURCES]
     assert "price_as_of" in keys
+    assert "mcap_as_of" in keys
+    assert "ath_as_of" in keys
+
+
+# ── Every source in use gets a chip, dated or not ───────────────────────────
+
+def _freshness_with(monkeypatch, facts):
+    from src.core import startup_metrics as metrics
+    from src.ui import components
+
+    monkeypatch.setattr(metrics, "snapshot", lambda: {"facts": facts})
+    return {i["label"]: i for i in components.data_freshness()}
+
+
+def test_market_caps_appear_even_when_the_snapshot_carries_no_date(monkeypatch):
+    """The committed snapshot predated AsOf stamping, so the chip vanished.
+
+    A source silently missing from the freshness bar is the failure the bar
+    exists to prevent -- the reader sees a clean row of dates and cannot tell
+    that a source is being used undated.
+    """
+    items = _freshness_with(monkeypatch, {
+        "price_as_of": "2026-08-18", "price_path": "cache_fresh",
+        "mcap_path": "repo_snapshot",          # loaded, but no AsOf column
+    })
+    assert "Market caps" in items
+    assert items["Market caps"]["as_of"] == "date unknown"
+    assert items["Market caps"]["stale"] is True
+
+
+def test_all_time_highs_are_reported_as_a_source(monkeypatch):
+    items = _freshness_with(monkeypatch, {
+        "ath_as_of": "2026-08-18", "ath_path": "repo_snapshot",
+    })
+    assert "All-time highs" in items
+    assert items["All-time highs"]["as_of"] == "18 Aug"
+    assert items["All-time highs"]["stale"] is False
+
+
+def test_a_missing_ath_snapshot_says_the_column_is_not_all_time(monkeypatch):
+    """The fallback is a two-year high; the ribbon must not imply otherwise."""
+    items = _freshness_with(monkeypatch, {"ath_path": "absent"})
+    assert "All-time highs" in items
+    assert "not all-time" in items["All-time highs"]["as_of"]
+    assert items["All-time highs"]["stale"] is True
+
+
+def test_a_source_that_was_never_loaded_is_not_invented(monkeypatch):
+    """No date and no loader report means the source is genuinely absent."""
+    items = _freshness_with(monkeypatch, {"price_as_of": "2026-08-18"})
+    assert "Market caps" not in items
+    assert "Delivery" not in items
+
+
+def test_all_four_sources_report_together(monkeypatch):
+    items = _freshness_with(monkeypatch, {
+        "price_as_of": "2026-08-18", "price_path": "cache_fresh",
+        "mcap_as_of": "2026-08-18", "mcap_path": "repo_snapshot",
+        "ath_as_of": "2026-08-18", "ath_path": "repo_snapshot",
+        "delivery_as_of": "2026-08-18",
+    })
+    assert set(items) == {"Prices", "Market caps", "All-time highs", "Delivery"}
+    assert all(not i["stale"] for i in items.values())
