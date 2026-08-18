@@ -26,12 +26,6 @@ from src.core.market_time import ist_now, recent_trading_days
 from src.core.logger import logger
 
 
-# Close prices from the most recent PR bhavcopy parse, keyed by symbol. Held
-# beside the market caps rather than threaded through _fetch_mcap_from_pr_zip's
-# return type, which several call sites treat as dict[str, float].
-_PR_CLOSE_PRICES: dict[str, float] = {}
-
-
 class _NSEBlocked(Exception):
     """NSE refused the client outright rather than lacking the file.
 
@@ -83,14 +77,6 @@ def _fetch_mcap_from_pr_zip(target_date: datetime | date) -> dict[str, float]:
         if not col_sym or not col_mcap:
             return {}
 
-        # The close price NSE used for this market cap. Capturing it lets the
-        # app scale a published market cap by the price move since the
-        # bhavcopy, so the figure tracks today's price instead of being as old
-        # as the last sync. See scale_market_caps_to_price().
-        col_close = next(
-            (c for c in df.columns if "close price" in c.lower()), None
-        )
-
         df[col_sym] = df[col_sym].astype(str).str.strip().str.upper()
         df[col_mcap] = pd.to_numeric(
             df[col_mcap].astype(str).str.strip().str.replace(",", ""),
@@ -108,20 +94,6 @@ def _fetch_mcap_from_pr_zip(target_date: datetime | date) -> dict[str, float]:
                 df = eq
 
         result: dict[str, float] = df.set_index(col_sym)[col_mcap].to_dict()
-
-        if col_close is not None:
-            closes = pd.to_numeric(
-                df[col_close].astype(str).str.strip().str.replace(",", ""),
-                errors="coerce",
-            )
-            _PR_CLOSE_PRICES.clear()
-            _PR_CLOSE_PRICES.update(
-                {
-                    sym: float(px)
-                    for sym, px in zip(df[col_sym], closes)
-                    if pd.notna(px) and px > 0
-                }
-            )
 
         logger.info(
             f"Loaded NSE PR market cap: {len(result)} stocks for {target_date.date()}"
@@ -235,13 +207,6 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
             cache = pd.read_parquet(MCAP_PR_FILE)
             master = cache.set_index("Symbol")["MarketCap"].to_dict()
             metrics.note("mcap_path", "pr_disk_cache")
-            if "ClosePrice" in cache.columns:
-                _PR_CLOSE_PRICES.clear()
-                _PR_CLOSE_PRICES.update({
-                    str(sym): float(px)
-                    for sym, px in zip(cache["Symbol"], cache["ClosePrice"])
-                    if pd.notna(px) and float(px) > 0
-                })
             if "TradeDate" in cache.columns:
                 dated = [
                     str(v).strip() for v in cache["TradeDate"].dropna().astype(str)
@@ -288,7 +253,6 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
                     cache_df = pd.DataFrame(
                         [
                             {"Symbol": k, "MarketCap": v,
-                             "ClosePrice": _PR_CLOSE_PRICES.get(k),
                              "TradeDate": td.isoformat(),
                              "LastUpdated": datetime.now()}
                             for k, v in nse_map.items()
@@ -313,13 +277,6 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
             master = repo_caps.set_index("Symbol")["MarketCap"].to_dict()
             if master:
                 metrics.note("mcap_path", "repo_snapshot")
-                if "ClosePrice" in repo_caps.columns:
-                    _PR_CLOSE_PRICES.clear()
-                    _PR_CLOSE_PRICES.update({
-                        str(sym): float(px)
-                        for sym, px in zip(repo_caps["Symbol"], repo_caps["ClosePrice"])
-                        if pd.notna(px) and float(px) > 0
-                    })
                 if "AsOf" in repo_caps.columns:
                     stamped = [v for v in repo_caps["AsOf"].dropna().astype(str) if v.strip()]
                     if stamped:
@@ -377,52 +334,3 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
     metrics.note("mcap_symbols_missing", len(symbols) - len(vmap))
     return pd.Series(vmap, dtype=float)
 
-
-def pr_close_prices() -> pd.Series:
-    """Close prices NSE used for the market caps currently loaded."""
-    if not _PR_CLOSE_PRICES:
-        return pd.Series(dtype=float)
-    return pd.Series(_PR_CLOSE_PRICES, dtype=float)
-
-
-def scale_market_caps_to_price(
-    market_caps: pd.Series,
-    latest_close: pd.Series,
-    reference_close: pd.Series | None = None,
-) -> tuple[pd.Series, int]:
-    """Move each market cap from its bhavcopy date to today's price.
-
-    NSE publishes a market cap and the close price it was computed from. Shares
-    outstanding is the ratio of the two, and it changes only on a corporate
-    action -- issuance, buyback, bonus -- while the price changes every session.
-    So the stale half of a day-old market cap is the price, and that is the half
-    we can replace:
-
-        live = published * (today's close / bhavcopy close)
-
-    which is identical to (published / bhavcopy close) * today's close, i.e.
-    shares outstanding times the current price. Anchoring to NSE's own figure
-    rather than to Issue Size sidesteps the partly-paid securities whose
-    "Close Price/Paid up value" column is a paid-up value and not a price --
-    160 of 2295 rows on 18 Aug 2026.
-
-    Returns the scaled caps and how many were scaled. A symbol with no
-    reference close keeps its published figure rather than being dropped.
-    """
-    if market_caps is None or market_caps.empty:
-        return pd.Series(dtype=float), 0
-
-    ref = pr_close_prices() if reference_close is None else reference_close
-    if ref is None or ref.empty or latest_close is None or latest_close.empty:
-        return market_caps, 0
-
-    idx = market_caps.index
-    ref_aligned = pd.to_numeric(ref.reindex(idx), errors="coerce")
-    now_aligned = pd.to_numeric(latest_close.reindex(idx), errors="coerce")
-
-    factor = now_aligned / ref_aligned.replace(0, np.nan)
-    usable = factor.notna() & np.isfinite(factor) & (factor > 0)
-
-    scaled = market_caps.copy()
-    scaled[usable] = market_caps[usable] * factor[usable]
-    return scaled, int(usable.sum())

@@ -68,19 +68,9 @@ def run_daily_sync() -> None:
         from src.core.config import REPO_MCAP_FILE
 
         os.makedirs(os.path.dirname(REPO_MCAP_FILE), exist_ok=True)
-        # ClosePrice travels with the cap. Production multiplies the two into a
-        # live market cap -- published cap x (today's close / this close) -- so
-        # the figure follows the price instead of being as old as this sync.
-        from src.loaders.mcap_loader import pr_close_prices
-
-        closes = pr_close_prices()
         snapshot = (
-            pd.DataFrame({
-                "Symbol": mcaps.index,
-                "MarketCap": mcaps.values,
-                "ClosePrice": [closes.get(sym) for sym in mcaps.index],
-            })
-            .dropna(subset=["Symbol", "MarketCap"])
+            pd.DataFrame({"Symbol": mcaps.index, "MarketCap": mcaps.values})
+            .dropna()
             .sort_values("Symbol")
         )
         snapshot = snapshot[snapshot["MarketCap"] > 0]

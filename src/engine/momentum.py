@@ -628,27 +628,15 @@ class MomentumEngine:
 
         # Market Caps & Flags
         #
-        # NSE publishes a market cap and the close price behind it. Shares
-        # outstanding is the ratio, and that only moves on a corporate action,
-        # while the price moves every session -- so the stale half of a day-old
-        # market cap is the price, and it can be replaced with today's. The
-        # figure then tracks the price instead of the last sync.
-        from src.core import startup_metrics as _metrics
-        from src.loaders.mcap_loader import scale_market_caps_to_price
-
-        live_caps, n_scaled = scale_market_caps_to_price(
-            pd.Series(market_caps, dtype=float), latest_close
-        )
-        _metrics.note("mcap_scaled_to_price", int(n_scaled))
-        if n_scaled:
-            rank_df["Market Cap Basis"] = "live"
-        else:
-            rank_df["Market Cap Basis"] = "as_published"
-
+        # Taken as published by NSE, from the daily snapshot. A market cap is
+        # read here to place a stock in a size band, and a band is far wider
+        # than a session's price move -- so re-scaling the figure to the
+        # current price would add plumbing and a second failure mode without
+        # changing any answer it is actually used for.
         rank_df["Market Cap (Cr)"] = rank_df["Symbol"].map(
             lambda s: (
-                (live_caps.get(s, 0) / 1e7)
-                if pd.notna(live_caps.get(s))
+                (market_caps.get(s, 0) / 1e7)
+                if pd.notna(market_caps.get(s))
                 else np.nan
             )
         )
