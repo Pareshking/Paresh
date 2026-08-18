@@ -17,6 +17,9 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      # A step may declare `uses` or `run`, never both. Having both made this
+      # workflow file invalid, so GitHub failed it on every push and the
+      # nightly schedule never fired -- 200 consecutive failed runs.
       - name: Restore price cache
         id: restore-price-cache
         uses: actions/cache@v4
@@ -25,8 +28,8 @@ jobs:
           key: price-data-${{ runner.os }}
           restore-keys: |
             price-data-
-        
-        # Debug output
+
+      - name: Report cache restore result
         run: |
           echo "Cache restore result: ${{ steps.restore-price-cache.outputs.cache-hit }}"
 
