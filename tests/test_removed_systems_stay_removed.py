@@ -60,6 +60,10 @@ def test_the_weight_method_enum_offers_only_what_exists():
     "strategy_view", "delivery_view", "delivery_loader",
     "mean_variance", "MVO (Mean-Variance)",
     "calculate_residual_momentum", "calculate_exp_regression",
+    # Kwargs count too. CI caught compute_exp_reg surviving in
+    # scripts/full_validation.py, which no test imports -- the token list is
+    # the only thing that reaches a standalone script.
+    "compute_exp_reg", "ranking_method", "lookback_ret",
 ])
 def test_no_module_still_imports_or_calls_the_removed_code(token):
     offenders = [

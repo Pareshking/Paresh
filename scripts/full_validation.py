@@ -53,12 +53,13 @@ rank_df = calc.get_rankings(
     mcaps,
     close_prices_df=close,
     high_prices_df=high,
-    compute_exp_reg=True,
 )
 if len(rank_df) < 700:
     raise AssertionError(f"Ranking output unexpectedly small: {len(rank_df)}")
 
-required = {"Symbol", "Score", "Rank", "3M Return", "6M Return", "CMP", "52W High"}
+required = {"Symbol", "Score", "Rank", "CMP", "52W High"} | {
+    f"{m}M {kind}" for m in (1, 3, 6, 9, 12) for kind in ("Return", "Sharpe")
+}
 missing = sorted(required - set(rank_df.columns))
 if missing:
     raise AssertionError(f"Ranking schema missing columns: {missing}")

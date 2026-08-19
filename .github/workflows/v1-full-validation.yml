@@ -20,7 +20,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
-      - run: pip install -r requirements.txt pytest
+      # pyyaml is a TEST-only dependency, deliberately not in requirements.txt:
+      # the app never parses YAML. Without it here, tests/test_daily_sync_workflow.py
+      # module-skips and the guards on the sync workflow -- the ones that catch a
+      # step declaring both `uses` and `run`, which invalidated the file and cost
+      # 200 consecutive runs -- silently do not run in the only place that matters.
+      - run: pip install -r requirements.txt pytest pyyaml
 
       - name: Full regression suite
         run: python -m pytest -q
