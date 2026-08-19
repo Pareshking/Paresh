@@ -52,9 +52,23 @@ def _fetch_mcap_from_pr_zip(target_date: datetime | date) -> dict[str, float]:
 
     try:
         resp = requests.get(zip_url, headers=HTTP_HEADERS, timeout=15)
+        # Say what actually came back, per date. "NSE is unreachable from CI"
+        # was believed here for a long time on the strength of a code comment
+        # and a fetch that failed quietly -- and a 404 for an archive that is
+        # simply not published yet looks identical, from the outside, to a
+        # refusal. They call for opposite responses: wait, or stop trying.
+        metrics.note(f"mcap_pr_status_{target_date.isoformat()}", resp.status_code)
         if resp.status_code in (401, 403, 429):
+            logger.warning(
+                "NSE PR archive refused this client for %s: HTTP %s",
+                target_date, resp.status_code,
+            )
             raise _NSEBlocked(f"HTTP {resp.status_code}")
         if resp.status_code != 200:
+            logger.info(
+                "NSE PR archive for %s: HTTP %s (not published yet, or a holiday)",
+                target_date, resp.status_code,
+            )
             return {}
 
         with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
@@ -102,7 +116,12 @@ def _fetch_mcap_from_pr_zip(target_date: datetime | date) -> dict[str, float]:
     except _NSEBlocked:
         raise
     except Exception as e:
-        logger.debug(f"PR mcap fetch failed for {target_date}: {e}")
+        # A timeout or DNS failure is not a refusal either, and swallowing it
+        # at debug level is how this stayed a mystery.
+        logger.warning(
+            "NSE PR fetch failed for %s (%s: %s)", target_date, type(e).__name__, e
+        )
+        metrics.note(f"mcap_pr_error_{target_date.isoformat()}", type(e).__name__)
         return {}
 
 
