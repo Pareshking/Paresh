@@ -1,6 +1,6 @@
 """
 Portfolio construction and optimization engine.
-Weighting schemes: Equal Weight, Inverse Volatility, Equal Risk Contribution (Risk Parity), Mean-Variance (MVO with Ledoit-Wolf + SLSQP).
+Weighting schemes: Equal Weight, Inverse Volatility, Equal Risk Contribution (Risk Parity).
 Constraints: Stock Cap, Sector Cap, Volatility Targeting.
 """
 
@@ -139,121 +139,6 @@ class PortfolioOptimizer:
             logger.warning(f"Risk Parity solver error: {e} — fallback to inverse vol")
             return self.inverse_volatility(valid)
 
-    def mean_variance(
-        self,
-        symbols: Sequence[str],
-        expected_returns: pd.Series,
-        risk_aversion: float = 1.0,
-        stock_cap: float = 0.10,
-        sector_cap: float = 0.30,
-    ) -> pd.Series:
-        """
-        Solves the quadratic Mean-Variance Optimization problem:
-        min  0.5 * w'Σw - (1 / λ) * μ'w
-        s.t. sum(w) = 1, 0 <= w_i <= eff_stock_cap, sum(w_sector) <= eff_sector_cap
-        """
-        valid = [
-            s
-            for s in symbols
-            if s in self.returns.columns and s in expected_returns.index
-        ]
-        n = len(valid)
-        if n == 0:
-            return pd.Series(dtype=float)
-        if n == 1:
-            return pd.Series([1.0], index=valid)
-
-        ret_sub = self.returns[valid].iloc[-126:].dropna(how="any")
-        if len(ret_sub) < 30:
-            return self.equal_weight(valid)
-
-        daily_cov = _shrunk_cov(ret_sub)
-        cov = daily_cov.values * 252
-
-        # Expected returns normalization (scaled annualized spread)
-        mu_raw = expected_returns[valid].values.astype(float)
-        mu_std = float(np.std(mu_raw))
-        if mu_std > 1e-8:
-            mu = (mu_raw - np.mean(mu_raw)) / mu_std * 0.15 + 0.15
-        else:
-            mu = np.full(n, 0.15)
-
-        eff_stock_cap = max(float(stock_cap), 1.25 / n, 0.06)
-
-        sec_indices: dict[str, list[int]] = {}
-        if self.sector_map:
-            for idx, sym in enumerate(valid):
-                sec = self.sector_map.get(sym, "Other")
-                sec_indices.setdefault(sec, []).append(idx)
-        num_sectors = max(len(sec_indices), 1)
-        eff_sector_cap = max(float(sector_cap), 1.05 / num_sectors, 0.25)
-
-        try:
-            from scipy.optimize import minimize
-
-            def objective(w):
-                return float(
-                    0.5 * (w @ cov @ w) - (1.0 / max(risk_aversion, 0.1)) * (mu @ w)
-                )
-
-            constraints = [{"type": "eq", "fun": lambda w: float(np.sum(w) - 1.0)}]
-
-            if sec_indices and eff_sector_cap < 1.0:
-                for sec_idx_list in sec_indices.values():
-                    a = np.zeros(n)
-                    a[sec_idx_list] = 1.0
-                    constraints.append(
-                        {
-                            "type": "ineq",
-                            "fun": lambda w, _a=a, _c=eff_sector_cap: float(
-                                _c - np.dot(_a, w)
-                            ),
-                        }
-                    )
-
-            bounds = [(0.005, eff_stock_cap)] * n
-            x0 = np.ones(n) / n
-            opts = {"ftol": 1e-9, "maxiter": 500}
-
-            # Attempt 1: SLSQP with equal weight starting point
-            res = minimize(
-                objective,
-                x0=x0,
-                method="SLSQP",
-                bounds=bounds,
-                constraints=constraints,
-                options=opts,
-            )
-
-            # Attempt 2: Inverse vol starting point if attempt 1 failed
-            if not res.success:
-                iv = self.inverse_volatility(valid)
-                x0_iv = iv.reindex(valid).fillna(1.0 / n).values
-                x0_iv = np.clip(x0_iv, 0.005, eff_stock_cap)
-                x0_iv = x0_iv / np.sum(x0_iv)
-                res = minimize(
-                    objective,
-                    x0=x0_iv,
-                    method="SLSQP",
-                    bounds=bounds,
-                    constraints=constraints,
-                    options=opts,
-                )
-
-            if res.success:
-                w = np.maximum(res.x, 0.0)
-                tot = float(np.sum(w))
-                return pd.Series(w / tot if tot > 0 else np.ones(n) / n, index=valid)
-            else:
-                logger.debug(
-                    "SLSQP didn't converge cleanly — using inverse volatility fallback"
-                )
-                return self.inverse_volatility(valid)
-        except Exception as e:
-            logger.warning(
-                f"MVO solver exception: {e} — fallback to inverse volatility"
-            )
-            return self.inverse_volatility(valid)
 
     def apply_constraints(
         self,

@@ -1,5 +1,5 @@
 """
-Portfolio Construction & MVO Optimization View Controller with Capital Sizing & Zerodha Basket Exports.
+Portfolio Construction View Controller with Capital Sizing & Zerodha Basket Exports.
 """
 
 from datetime import datetime
@@ -23,7 +23,7 @@ def render_portfolio_view(
     vol_target_on: bool,
     vol_target_val: float,
 ) -> None:
-    """Renders Portfolio Construction with Equal Weight, Inverse Vol, MVO, Capital Sizing & Broker Exports."""
+    """Renders Portfolio Construction with Equal Weight, Inverse Vol, Capital Sizing & Broker Exports."""
     # ── Weighting Scheme & Universe Controls (Single Aligned Row) ───────────
     c_wm, c_n, c_cap = st.columns([1.5, 1, 1.2], vertical_alignment="center")
 
@@ -32,7 +32,6 @@ def render_portfolio_view(
         [
             WeightMethod.EQUAL_WEIGHT.value,
             WeightMethod.INVERSE_VOLATILITY.value,
-            WeightMethod.MEAN_VARIANCE.value,
         ],
         default=WeightMethod.EQUAL_WEIGHT.value,
         key="port_weight_method_seg",
@@ -83,18 +82,10 @@ def render_portfolio_view(
     pc = PortfolioOptimizer(log_ret, sector_map=sector_map)
 
     # Compute raw weights
-    if selected_method == WeightMethod.EQUAL_WEIGHT.value:
-        raw_w = pc.equal_weight(port_syms)
-    elif selected_method == WeightMethod.INVERSE_VOLATILITY.value:
+    if selected_method == WeightMethod.INVERSE_VOLATILITY.value:
         raw_w = pc.inverse_volatility(port_syms)
     else:
-        with st.spinner("Solving Mean-Variance Optimization frontier (SLSQP)…"):
-            n_univ = len(rank_df)
-            rank_s = rank_df.set_index("Symbol")["Rank"]
-            mu = rank_s.map(lambda r: (n_univ + 1 - r) / n_univ if pd.notna(r) else 0.5)
-            raw_w = pc.mean_variance(
-                port_syms, mu, stock_cap=stock_cap, sector_cap=sector_cap
-            )
+        raw_w = pc.equal_weight(port_syms)
 
     # Apply constraints
     try:

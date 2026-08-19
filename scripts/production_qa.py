@@ -70,7 +70,7 @@ METRICS_WAIT_S = int(os.getenv("UMIYA_METRICS_WAIT_S", "180"))
 
 TABS = [
     "Screener", "Qualified", "Sectors", "RRG", "Multi-Strategy", "Portfolio",
-    "Delivery", "Watchlist", "Market Breadth", "Backtest", "Configuration", "Guide",
+    "Watchlist", "Market Breadth", "Backtest", "Configuration", "Guide",
 ]
 VIEWPORTS = {
     "desktop_1920x1080": (1920, 1080),

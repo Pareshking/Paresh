@@ -30,7 +30,7 @@ def prices():
     )
 
 
-BASE = {"rebal_freq": 21, "lookback_ret": 126, "cost_bps": 30.0}
+BASE = {"rebal_freq": 21, "cost_bps": 30.0}
 
 
 def test_count_combinations_is_the_cartesian_product():

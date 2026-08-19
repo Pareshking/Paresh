@@ -38,8 +38,6 @@ def _composite(prices):
         prices,
         top_n=5,
         rebal_freq=21,
-        ranking_method="Composite (Multi-Window)",
-        lookback_ret=126,
         ema_period=20,
         high_pct=0.0,
         cost_bps=0.0,

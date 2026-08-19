@@ -20,7 +20,6 @@ warnings.filterwarnings("ignore", message=".*st\\.components\\.v1\\.html.*")
 # Core & Loaders
 from src.core import startup_metrics as metrics
 from src.core.config import (
-    DELIVERY_FILE,
     MCAP_PR_FILE,
     MCAPS_FILE,
     PRICES_FILE,
@@ -47,14 +46,12 @@ from src.ui.theme import inject_custom_css
 from src.ui.views.backtest_view import render_backtest_view
 from src.ui.views.breadth_view import render_breadth_view
 from src.ui.views.config_view import render_config_view
-from src.ui.views.delivery_view import render_delivery_view
 from src.ui.views.guide_view import render_guide_view
 from src.ui.views.portfolio_view import render_portfolio_view
 from src.ui.views.qualified_view import render_qualified_view
 from src.ui.views.ranking_view import render_ranking_view
 from src.ui.views.rrg_view import render_rrg_view
 from src.ui.views.sector_view import render_sector_view
-from src.ui.views.strategy_view import render_strategy_view
 from src.ui.views.watchlist_view import render_watchlist_view
 
 # Page Config: 100% Widescreen, Sidebar Collapsed
@@ -159,7 +156,6 @@ def run_momentum_pipeline(
         _market_caps,
         close_prices_df=_close_prices,
         high_prices_df=_high_prices,
-        compute_exp_reg=True,
     )
     return calc, rank_df
 
@@ -175,7 +171,6 @@ def load_all_data(indices: list[str]):
         "prices": PRICES_FILE,
         "market_caps": MCAPS_FILE,
         "mcap_pr": MCAP_PR_FILE,
-        "delivery": DELIVERY_FILE,
     })
 
     with metrics.stage("universe"):
@@ -352,9 +347,7 @@ render_signal_alerts(signals)
     tab_qual,
     tab_sec,
     tab_rrg,
-    tab_strat,
     tab_port,
-    tab_deliv,
     tab_watch,
     tab_breadth,
     tab_backtest,
@@ -366,9 +359,7 @@ render_signal_alerts(signals)
         "Qualified",
         "Sectors",
         "RRG",
-        "Multi-Strategy",
         "Portfolio",
-        "Delivery",
         "Watchlist",
         "Market Breadth",
         "Backtest",
@@ -392,9 +383,6 @@ with tab_sec:
 with tab_rrg:
     render_rrg_view(calc, rank_df, adj_close)
 
-with tab_strat:
-    render_strategy_view(calc, rank_df, adj_close, weights)
-
 with tab_port:
     render_portfolio_view(
         calc=calc,
@@ -405,9 +393,6 @@ with tab_port:
         vol_target_val=vol_target_val,
     )
 
-with tab_deliv:
-    with metrics.stage("delivery"):
-        render_delivery_view(rank_df)
 
 with tab_watch:
     render_watchlist_view(rank_df)

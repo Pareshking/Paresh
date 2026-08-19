@@ -31,7 +31,6 @@ def _prices(end: str, periods: int = 760, cols: int = 40, seed: int = 7):
 def _run(prices, tag, **kw):
     return run_backtest(
         tag, prices, top_n=20, rebal_freq=21,
-        ranking_method="Composite (Multi-Window)", lookback_ret=126,
         ema_period=20, high_pct=0.0, cost_bps=30.0, buffer_n=30, **kw,
     )
 

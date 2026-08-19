@@ -9,6 +9,8 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 
+from src.core.tickers import normalise_symbol
+
 from src.core.config import DATA_DIR
 from src.ui.components import render_data_quality_footer, stat_pill
 from src.ui.theme import render_master_screener_table
@@ -94,7 +96,7 @@ def render_watchlist_view(rank_df: pd.DataFrame) -> None:
     if raw_text:
         parts = raw_text.replace("\n", ",").split(",")
         user_symbols = [
-            s.strip().upper().replace(".NS", "") for s in parts if s.strip()
+            normalise_symbol(s) for s in parts if s.strip()
         ]
 
     if not user_symbols:

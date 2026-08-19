@@ -50,11 +50,6 @@ def test_very_old_data_is_stale_even_beyond_the_horizon(monkeypatch):
     assert got["Prices"]["behind"] is None
 
 
-def test_delivery_tolerates_an_extra_day(monkeypatch):
-    """Delivery publishes later than the rest, so one more day is normal."""
-    got = _freshness(monkeypatch, date(2026, 8, 18), delivery_as_of="2026-08-14")
-    assert got["Delivery"]["behind"] == 2
-    assert got["Delivery"]["stale"] is False
 
 
 def test_absent_source_is_simply_not_reported(monkeypatch):
@@ -68,9 +63,9 @@ def test_unparseable_date_is_skipped_rather_than_raising(monkeypatch):
 def test_every_source_is_reported_together(monkeypatch):
     got = _freshness(
         monkeypatch, date(2026, 8, 18),
-        price_as_of="2026-08-18", mcap_as_of="2026-08-17", delivery_as_of="2026-08-17",
+        price_as_of="2026-08-18", mcap_as_of="2026-08-17",
     )
-    assert set(got) == {"Prices", "Market caps", "Delivery"}
+    assert set(got) == {"Prices", "Market caps"}
     assert all(i["stale"] is False for i in got.values())
 
 
@@ -185,12 +180,11 @@ def test_a_source_that_was_never_loaded_is_not_invented(monkeypatch):
     assert "Delivery" not in items
 
 
-def test_all_four_sources_report_together(monkeypatch):
+def test_every_remaining_source_reports_together(monkeypatch):
     items = _freshness_with(monkeypatch, {
         "price_as_of": "2026-08-18", "price_path": "cache_fresh",
         "mcap_as_of": "2026-08-18", "mcap_path": "repo_snapshot",
         "ath_as_of": "2026-08-18", "ath_path": "repo_snapshot",
-        "delivery_as_of": "2026-08-18",
     })
-    assert set(items) == {"Prices", "Market caps", "All-time highs", "Delivery"}
+    assert set(items) == {"Prices", "Market caps", "All-time highs"}
     assert all(not i["stale"] for i in items.values())

@@ -20,7 +20,6 @@ ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
-from src.loaders.delivery_loader import fetch_delivery_data
 from src.loaders.indices_loader import fetch_indices_data, sync_official_nse_indices
 from src.core.market_time import recent_trading_days
 from src.loaders.mcap_loader import (
@@ -32,7 +31,7 @@ from src.loaders.tv_loader import reconcile_and_update_tv_classification
 
 
 def run_daily_sync() -> None:
-    """Synchronizes all NSE market data, constituents, price histories, and delivery archives."""
+    """Synchronizes all NSE market data, constituents and price histories."""
     print(f"[{datetime.now():%Y-%m-%d %H:%M:%S}] Starting daily automated sync...")
 
     # 1. Sync official index constituents
@@ -219,10 +218,6 @@ def run_daily_sync() -> None:
     except Exception as exc:
         print(f"Price snapshot skipped: {type(exc).__name__}: {exc}")
 
-    # 6. Fetch delivery archives
-    print("\n--- 6. Fetching NSE Delivery Bhavcopy Archives ---")
-    deliv = fetch_delivery_data(force_refresh=FORCE_FULL)
-    print(f"Delivery archive cache updated with {len(deliv)} records.")
 
     print(
         f"\n[{datetime.now():%Y-%m-%d %H:%M:%S}] All daily sync tasks completed successfully!"

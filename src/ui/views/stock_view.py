@@ -329,8 +329,6 @@ def _render_rank_dynamics(row: pd.Series) -> None:
         delta_tile("Rank Δ 1M", "Rank Δ 1M"),
         delta_tile("Rank Δ 3M", "Rank Δ 3M"),
         _tile("Persistence", _ratio(row.get("Persistence"))),
-        _tile("Exp Regression Rank",
-              f"#{int(_num(row.get('Exp Rank')))}" if _num(row.get("Exp Rank")) is not None else "—"),
         _tile("Market Cap", f"₹{_num(row.get('Market Cap (Cr)')):,.0f} Cr"
               if _num(row.get("Market Cap (Cr)")) is not None else "—"),
         _tile("Volume", str(row.get("Volume") or "—")),

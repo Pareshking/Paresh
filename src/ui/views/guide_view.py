@@ -274,51 +274,6 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 "Primary Objective": "Captures maximum gross upside without  penalty",
             },
             {
-                "Strategy Model": "Residual (α) Momentum",
-                "Lookback Windows": "126 Trading Days (6M)",
-                "Config Weights": "NO (Independent CAPM)",
-                "Risk Adjustment": "Stripped Market Beta (β)",
-                "Market Beta": "Excluded (Idiosyncratic)",
-                "Best Regime": "Narrow Rallies, Choppy Range",
-                "Primary Objective": "Isolates company-specific fundamental alpha",
-            },
-            {
-                "Strategy Model": "Industry-Relative",
-                "Lookback Windows": "Multi-Window (1M–12M)",
-                "Config Weights": "Partial (Uses Composite)",
-                "Risk Adjustment": "Sector Group Mean",
-                "Market Beta": "Sector-Neutralized",
-                "Best Regime": "Active Sector Rotation",
-                "Primary Objective": "Picks #1 outperformer within every peer group",
-            },
-            {
-                "Strategy Model": "Momentum Acceleration",
-                "Lookback Windows": "1M+3M+6M vs 9M+12M",
-                "Config Weights": "NO (Fixed Derivatives)",
-                "Risk Adjustment": "Short vs Long Differential",
-                "Market Beta": "Velocity Trend",
-                "Best Regime": "Early Bull & Inflection Points",
-                "Primary Objective": "Detects early stage-2 fresh breakout momentum",
-            },
-            {
-                "Strategy Model": "Consensus Ensemble",
-                "Lookback Windows": "Multi-Engine Overlap",
-                "Config Weights": "NO (Borda Rank Sum)",
-                "Risk Adjustment": "Multi-Factor Cross-Validation",
-                "Market Beta": "Balanced",
-                "Best Regime": "All-Weather Core Portfolio",
-                "Primary Objective": "Minimizes drawdowns & eliminates false breakouts",
-            },
-            {
-                "Strategy Model": "Exp Regression ()",
-                "Lookback Windows": "126 Trading Days (6M)",
-                "Config Weights": "NO (Direct Regression)",
-                "Risk Adjustment": " Goodness of Fit",
-                "Market Beta": "Slope-driven",
-                "Best Regime": "Linear Exponential Trends",
-                "Primary Objective": "Fits log-linear compounding slope directly",
-            },
-            {
                 "Strategy Model": "Relative Rotation (RRG)",
                 "Lookback Windows": "12W RS / 6W Tail",
                 "Config Weights": "NO (JdK Algorithm)",
@@ -326,15 +281,6 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 "Market Beta": "Benchmark Relative",
                 "Best Regime": "Sector & Asset Allocation",
                 "Primary Objective": "Visualizes clockwise quadrant rotational cycles",
-            },
-            {
-                "Strategy Model": "Institutional Delivery",
-                "Lookback Windows": "Daily vs 20-Day Mean",
-                "Config Weights": "NO (Volume Factor)",
-                "Risk Adjustment": "Volume Threshold Surge",
-                "Market Beta": "Volume-driven",
-                "Best Regime": "Accumulation Breakouts",
-                "Primary Objective": "Confirms big-money institutional buying footprint",
             },
         ]
         comp_df = pd.DataFrame(matrix_data)
@@ -348,12 +294,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 "Composite Sharpe",
                 "Single-Window Sharpe",
                 "Multi-Window Pure Sharpe",
-                "Residual (α) Momentum",
-                "Industry-Relative Momentum",
-                "Momentum Acceleration",
-                "Consensus Ensemble",
                 "Relative Rotation Graph",
-                "Delivery Surge Factor",
                 "Risk & Stop-Loss Engine",
             ],
             default="Composite Sharpe",
@@ -406,63 +347,6 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 * **Optimal Regime**: Aggressive expansion bull markets where leaders accelerate rapidly.
                 """)
 
-        elif strat_choice == "Residual (α) Momentum":
-            st.markdown(r"""
-                ##### 4. Residual ($\alpha$) Idiosyncratic Momentum
-                
-                **Mathematical Formulation:**
-                Performs a rolling **126-Trading Day (6-Month)** single-factor CAPM regression against the broad market index ($R_m$):
-                $$R_{i, t} = \alpha_i + \beta_i \cdot R_{m, t} + \epsilon_{i, t}$$
-                $$\beta_i = \frac{\operatorname{Cov}(R_i, R_m)}{\operatorname{Var}(R_m)}$$
-                $$\alpha_i = \left(\mu_{\text{stock}, i} - \beta_i \cdot \mu_{\text{market}}\right) \times 252$$
-
-                * **Config Weights Integration**: Independent CAPM regression engine.
-                * **Why it works**: Strips out broad market beta, isolating stocks with genuine company-specific outperformance.
-                * **Optimal Regime**: Narrow rallies, choppy indices, and consolidation phases.
-                """)
-
-        elif strat_choice == "Industry-Relative Momentum":
-            st.markdown(r"""
-                ##### 5. Industry-Relative Momentum
-                
-                **Mathematical Formulation:**
-                Evaluates a stock's momentum relative to its own industry peer group:
-                $$\text{RelScore}_i = \text{Score}_i - \overline{\text{Score}}_{\text{Industry}}$$
-                where $\overline{\text{Score}}_{\text{Industry}} = \frac{1}{N_{\text{grp}}} \sum_{j \in \text{Industry}} \text{Score}_j$.
-
-                * **Config Weights Integration**: Uses the multi-window composite score as the base.
-                * **Why it works**: Isolates the single strongest leader inside every sector, providing sector-neutral alpha regardless of macro cycles.
-                * **Optimal Regime**: Active sector rotation environments and market inflections.
-                """)
-
-        elif strat_choice == "Momentum Acceleration":
-            st.markdown(r"""
-                ##### 6. Momentum Acceleration (Velocity Derivative)
-                
-                **Mathematical Formulation:**
-                Measures the difference between recent short-term velocity and long-term trend baseline:
-                $$\text{Short Term} = 0.10 \cdot z(1\text{M}) + 0.35 \cdot z(3\text{M}) + 0.55 \cdot z(6\text{M})$$
-                $$\text{Long Term} = 0.45 \cdot z(9\text{M}) + 0.55 \cdot z(12\text{M})$$
-                $$\text{Acceleration} = \text{Short Term} - \text{Long Term}$$
-
-                * **Config Weights Integration**: Fixed derivative weights.
-                * **Why it works**: Detects early-stage breakouts weeks before they show up in 12M tables.
-                * **Optimal Regime**: Market regime turning points and early bull market recoveries.
-                """)
-
-        elif strat_choice == "Consensus Ensemble":
-            st.markdown(r"""
-                ##### 7. Multi-Strategy Consensus Ensemble
-                
-                **Mathematical Formulation:**
-                Combines independent ranking dimensions using Borda Count rank aggregation:
-                $$\text{Consensus Rank} = \operatorname{Rank}\left(\text{Rank}_{\text{Residual }\alpha} + \text{Rank}_{\text{IndRel}} + \text{Rank}_{\text{Accel}} + \text{Rank}_{\text{Composite}}\right)$$
-
-                * **Config Weights Integration**: Ensemble cross-validation.
-                * **Why it works**: Requires multiple orthogonal models to agree, filtering out high-volatility false breakouts and lowering maximum drawdowns.
-                * **Optimal Regime**: Core capital allocation where capital preservation is paramount.
-                """)
-
         elif strat_choice == "Relative Rotation Graph":
             st.markdown(r"""
                 ##### 8. Relative Rotation Graph (RRG)
@@ -479,20 +363,6 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                   * **Weakening (>100, <100)**: Relative strength remains high, but momentum is fading.
                   * **Lagging (<100, <100)**: Underperforming the benchmark.
                   * **Improving (<100, >100)**: Momentum inflecting upward; watchlist for early entry.
-                """)
-
-        elif strat_choice == "Delivery Surge Factor":
-            st.markdown(r"""
-                ##### 9. Institutional Delivery Volume Surge Factor
-                
-                **Mathematical Formulation:**
-                Tracks true institutional accumulation by analyzing delivery volume percentage and absolute delivery surges:
-                $$\text{Del \%} = \frac{\text{Delivery Quantity}}{\text{Traded Quantity}} \times 100$$
-                $$\text{Del Surge Daily} = \frac{\text{Delivery Quantity}}{\text{20-Day SMA}(\text{Delivery Quantity})}$$
-                $$\text{Del Surge 20D} = \frac{\text{20-Day SMA}(\text{Delivery Quantity})}{\text{Previous 20-Day SMA}(\text{Delivery Quantity})}$$
-
-                * **Threshold Rules**: High delivery flagged at $\text{Del \%} \ge 50\%$ with $\text{Delivery Surge} \ge 1.5\times$.
-                * **Optimal Regime**: Validating that price momentum is backed by genuine long-term institutional buying.
                 """)
 
         elif strat_choice == "Risk & Stop-Loss Engine":
@@ -522,11 +392,11 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                     <span style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#15803d; background:#ecfdf5; padding:2px 7px; border-radius:4px;">NIFTY &gt; 50 EMA</span>
                 </div>
                 <div style="font-size:13px; color:#475569; line-height:1.6;">
-                    <div><strong>#1 Model:</strong> Multi-Window Pure Sharpe</div>
-                    <div><strong>#2 Model:</strong> Momentum Acceleration</div>
+                    <div><strong>Model:</strong> Composite Sharpe</div>
+                    <div><strong>Weight tilt:</strong> Short windows (1M / 3M)</div>
                     <div><strong>Target Allocation:</strong> 100% Equity (0% Cash)</div>
                     <div style="margin-top:6px; color:#64748b;">
-                        Strategy focuses on high-beta momentum breakouts, aggressive compounding, and unconstrained upside capture.
+                        Lean the composite on short horizons to catch breakouts early and compound aggressively.
                     </div>
                 </div>
             </div>
@@ -537,11 +407,11 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                     <span style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#0284c7; background:#f0f9ff; padding:2px 7px; border-radius:4px;">BREADTH 40–55%</span>
                 </div>
                 <div style="font-size:13px; color:#475569; line-height:1.6;">
-                    <div><strong>#1 Model:</strong> Residual (α) Momentum</div>
-                    <div><strong>#2 Model:</strong> Industry-Relative</div>
+                    <div><strong>Model:</strong> Composite Sharpe</div>
+                    <div><strong>Weight tilt:</strong> Mid windows (6M / 9M)</div>
                     <div><strong>Target Allocation:</strong> 85% Equity (15% Cash)</div>
                     <div style="margin-top:6px; color:#64748b;">
-                        Strategy strips out market beta to isolate idiosyncratic, stock-specific fundamental outperformance.
+                        Lean the composite on mid-horizon windows, where choppy tape produces fewer false breakouts than short ones.
                     </div>
                 </div>
             </div>
@@ -552,8 +422,8 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                     <span style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#d97706; background:#fffbeb; padding:2px 7px; border-radius:4px;">VIX &gt; 18</span>
                 </div>
                 <div style="font-size:13px; color:#475569; line-height:1.6;">
-                    <div><strong>#1 Model:</strong> Consensus Ensemble (Borda)</div>
-                    <div><strong>#2 Model:</strong> Composite Sharpe</div>
+                    <div><strong>Model:</strong> Composite Sharpe</div>
+                    <div><strong>Weighting:</strong> Inverse Volatility</div>
                     <div><strong>Target Allocation:</strong> 70% Equity (30% Cash)</div>
                     <div style="margin-top:6px; color:#64748b;">
                         Enable Inverse-Volatility Parity weighting in Portfolio tab to limit drawdown exposure.
@@ -567,8 +437,8 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                     <span style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#dc2626; background:#fef2f2; padding:2px 7px; border-radius:4px;">NIFTY &lt; 50 EMA</span>
                 </div>
                 <div style="font-size:13px; color:#475569; line-height:1.6;">
-                    <div><strong>#1 Model:</strong> Capital Protection Mode</div>
-                    <div><strong>#2 Model:</strong> Cash Preservation</div>
+                    <div><strong>Mode:</strong> Capital protection</div>
+                    <div><strong>Priority:</strong> Cash preservation</div>
                     <div><strong>Target Allocation:</strong> 40% Equity (60% Cash)</div>
                     <div style="margin-top:6px; color:#64748b;">
                         Exit all stocks that violate trailing stops. Do not add new positions until Nifty closes above 50 EMA.

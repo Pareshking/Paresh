@@ -124,10 +124,8 @@ def run_backtest(
     _adj_close: pd.DataFrame,
     top_n: int = 20,
     rebal_freq: int = 21,
-    lookback_ret: int = 126,
     ema_period: int = 50,
     high_pct: float = 0.80,
-    ranking_method: str = "Composite (Config Weights)",
     weight_method: str = "Equal Weight",
     config_weights: Sequence[float] = (0.10, 0.30, 0.30, 0.20, 0.10),
     stock_cap: float = 0.05,
@@ -144,27 +142,19 @@ def run_backtest(
     WINDOWS = MOMENTUM_WINDOWS
     prices = _adj_close.dropna(axis=1, how="all").copy()
 
-    is_composite = (
-        "Composite" in ranking_method
-        or "Multi-Window" in ranking_method
-    )
-    if is_composite:
-        w_total = sum(config_weights)
-        norm_w = [cw / w_total for cw in config_weights] if w_total > 0 else [0.2] * 5
-        active_windows = [w for w, cw in zip(WINDOWS, norm_w) if cw > 0]
-        # WINDOWS are calendar MONTHS (the scoring path passes them straight to
-        # _calendar_period_sharpe). The warmup below is measured in SESSIONS, so
-        # using the months verbatim gave max_lb = 12 -- a 12-month formation
-        # window warmed up over 12 trading days. The first rebalance then landed
-        # at session 32 and _calendar_period_sharpe, whose searchsorted clamps to
-        # 0, silently scored "12-month momentum" from whatever little history
-        # existed. Convert to sessions for the warmup; keep months for scoring.
-        max_lb = (
-            max(active_windows) if active_windows else max(WINDOWS)
-        ) * SESSIONS_PER_MONTH
-    else:
-        max_lb = lookback_ret
-        norm_w = None
+    w_total = sum(config_weights)
+    norm_w = [cw / w_total for cw in config_weights] if w_total > 0 else [0.2] * 5
+    active_windows = [w for w, cw in zip(WINDOWS, norm_w) if cw > 0]
+    # WINDOWS are calendar MONTHS (the scoring path passes them straight to
+    # _calendar_period_sharpe). The warmup below is measured in SESSIONS, so
+    # using the months verbatim gave max_lb = 12 -- a 12-month formation
+    # window warmed up over 12 trading days. The first rebalance then landed
+    # at session 32 and _calendar_period_sharpe, whose searchsorted clamps to
+    # 0, silently scored "12-month momentum" from whatever little history
+    # existed. Convert to sessions for the warmup; keep months for scoring.
+    max_lb = (
+        max(active_windows) if active_windows else max(WINDOWS)
+    ) * SESSIONS_PER_MONTH
 
     min_needed = max_lb + ema_period + rebal_freq + 10
     if len(prices) < min_needed:
@@ -240,98 +230,15 @@ def run_backtest(
         valid = above_ema & near_high & (_p > 0)
 
         # ── Compute Causal Signal at Day T ───────────────────────────────────
-        if (
-            is_composite
-            or "Multi-Window" in ranking_method
-            or "Composite" in ranking_method
-        ):
-            composite_score = _composite_z_score(
-                prices, log_ret, start_idx, WINDOWS, norm_w if norm_w else [0.2] * 5
-            )
-            score = composite_score[valid & composite_score.notna()]
-
-        elif "Residual" in ranking_method or "α" in ranking_method:
-            # 6M CAPM Market-Beta Regression Alpha
-            sl = max(start_idx - 126, 0)
-            mkt_ret = benchmark_ret.iloc[sl : start_idx + 1]
-            stk_ret = daily_ret.iloc[sl : start_idx + 1]
-            # CAPM alpha must use paired valid stock/benchmark observations.
-            # Do not let a stock's missing observations enter its mean/beta on a
-            # different sample from the benchmark.
-            valid_mkt = mkt_ret.notna()
-            mkt_ret = mkt_ret.loc[valid_mkt]
-            stk_ret = stk_ret.loc[valid_mkt]
-            if len(mkt_ret) >= 30 and float(mkt_ret.var()) > 0:
-                alpha_res = pd.Series(np.nan, index=prices.columns, dtype=float)
-                for sym in stk_ret.columns:
-                    pair = pd.concat([stk_ret[sym], mkt_ret], axis=1).dropna()
-                    if len(pair) < 30:
-                        continue
-                    stock_r = pair.iloc[:, 0]
-                    bench_r = pair.iloc[:, 1]
-                    bench_var = float(bench_r.var())
-                    if bench_var <= 0:
-                        continue
-                    beta_i = float(stock_r.cov(bench_r)) / bench_var
-                    alpha_res.loc[sym] = (float(stock_r.mean()) - beta_i * float(bench_r.mean())) * 252
-                score = alpha_res[valid & alpha_res.notna()]
-            else:
-                score = pd.Series(np.nan, index=prices.columns)
-
-        elif "Industry-Relative" in ranking_method:
-            # Multi-window Composite minus Industry Peer Mean
-            composite_score = _composite_z_score(
-                prices, log_ret, start_idx, WINDOWS, norm_w if norm_w else [0.2] * 5
-            )
-
-            ind_map = sec_map
-            score_df = pd.DataFrame({
-                "Symbol": composite_score.index,
-                "Score": composite_score.values,
-                "Industry": [ind_map.get(s, "Other") for s in composite_score.index],
-            })
-            peer_sum = score_df.groupby("Industry")["Score"].transform("sum", min_count=1) - score_df["Score"]
-            peer_count = score_df.groupby("Industry")["Score"].transform("count") - score_df["Score"].notna().astype(int)
-            peer_mean = peer_sum.div(peer_count.replace(0, np.nan))
-            ind_rel = score_df["Score"] - peer_mean
-            ind_rel.index = score_df["Symbol"]
-            score = ind_rel[valid & ind_rel.notna()]
-
-        elif "Acceleration" in ranking_method or "Accel" in ranking_method:
-            p_w1 = prices.iloc[max(start_idx - 21, 0) : start_idx + 1]
-            p_w3 = prices.iloc[max(start_idx - 63, 0) : start_idx + 1]
-            p_w6 = prices.iloc[max(start_idx - 126, 0) : start_idx + 1]
-            p_w9 = prices.iloc[max(start_idx - 189, 0) : start_idx + 1]
-            p_w12 = prices.iloc[max(start_idx - 252, 0) : start_idx + 1]
-            r1 = (p_w1.iloc[-1] / p_w1.iloc[0].clip(lower=0.01)) - 1
-            r3 = (p_w3.iloc[-1] / p_w3.iloc[0].clip(lower=0.01)) - 1
-            r6 = (p_w6.iloc[-1] / p_w6.iloc[0].clip(lower=0.01)) - 1
-            r9 = (p_w9.iloc[-1] / p_w9.iloc[0].clip(lower=0.01)) - 1
-            r12 = (p_w12.iloc[-1] / p_w12.iloc[0].clip(lower=0.01)) - 1
-            accel = (0.10 * r1 + 0.35 * r3 + 0.55 * r6) - (0.45 * r9 + 0.55 * r12)
-            score = accel[valid & accel.notna()]
-
-        else:
-            lb = lookback_ret
-            sl = max(start_idx - lb, 0)
-            p_w = prices.iloc[sl : start_idx + 1]
-
-            if ranking_method == "Sharpe":
-                log_ret_period = np.log(
-                    p_w.iloc[-1].clip(lower=0.01) / p_w.iloc[0].clip(lower=0.01)
-                )
-                vol = log_ret.iloc[sl : start_idx + 1].std() * np.sqrt(lb)
-                score = log_ret_period / vol.replace(0, np.nan)
-            elif ranking_method == "Exp Regression":
-                log_p = np.log(p_w.clip(lower=0.01))
-                t_s = pd.Series(np.arange(len(log_p)), index=log_p.index, dtype=float)
-                # OLS slope of log-price against time, annualized.
-                beta = (log_p.sub(log_p.mean()).mul(t_s - t_s.mean(), axis=0).sum() / max(float(((t_s - t_s.mean()) ** 2).sum()), 1e-8))
-                score = np.exp(beta * 252) - 1
-            else:
-                score = p_w.iloc[-1] / p_w.iloc[0] - 1
-
-            score = score[valid & score.notna()]
+        # One signal, the composite that drives every rank on screen. The
+        # alternatives that used to branch here -- residual alpha, industry
+        # relative, acceleration, exp regression, raw return -- were removed:
+        # backtesting a ranking the screener never shows answers a question
+        # nobody asked, and each branch was its own untested scoring path.
+        composite_score = _composite_z_score(
+            prices, log_ret, start_idx, WINDOWS, norm_w if norm_w else [0.2] * 5
+        )
+        score = composite_score[valid & composite_score.notna()]
 
         full_ranked = score.sort_values(ascending=False)
         if full_ranked.empty:
@@ -375,83 +282,6 @@ def run_backtest(
                 else pd.Series(1.0 / len(holdings), index=holdings)
             )
 
-        elif weight_method == "MVO (Mean-Variance)":
-            try:
-                _cov_data = (
-                    log_ret[holdings]
-                    .iloc[max(start_idx - 126, 0) : start_idx + 1]
-                    .dropna(how="any")
-                )
-                if len(_cov_data) < 30:
-                    raise ValueError("Insufficient covariance history")
-                from sklearn.covariance import ledoit_wolf
-
-                cov_mat, _ = ledoit_wolf(_cov_data)
-                eps = 1e-6 * np.trace(cov_mat) / max(len(cov_mat), 1)
-                cov_mat = cov_mat * 252 + np.eye(len(cov_mat)) * eps
-
-                _mu = full_ranked[holdings].values.astype(float)
-                _mu_range = _mu.max() - _mu.min()
-                mu = (
-                    (_mu - _mu.min()) / _mu_range * 0.50
-                    if _mu_range > 1e-8
-                    else np.ones(len(holdings)) * 0.25
-                )
-
-                n_h = len(holdings)
-                eff_cap = max(stock_cap, 1.0 / n_h + 1e-4)
-                from scipy.optimize import minimize
-
-                def _obj(w):
-                    return w @ cov_mat @ w - 0.5 * (mu @ w)
-
-                _constraints = [{"type": "eq", "fun": lambda w: w.sum() - 1.0}]
-                if sec_map and sector_cap < 1.0:
-                    _sec_idx: dict[str, list[int]] = {}
-                    for idx, sym in enumerate(holdings):
-                        _sec_idx.setdefault(sec_map.get(sym, "Other"), []).append(idx)
-                    for idxs in _sec_idx.values():
-                        a = np.zeros(n_h)
-                        a[idxs] = 1.0
-                        _constraints.append(
-                            {
-                                "type": "ineq",
-                                "fun": lambda w, a=a, c=sector_cap: c - a @ w,
-                            }
-                        )
-
-                _bounds = [(0, eff_cap)] * n_h
-                _opts = {"maxiter": 500}
-
-                res = minimize(
-                    _obj,
-                    x0=np.ones(n_h) / n_h,
-                    method="SLSQP",
-                    bounds=_bounds,
-                    constraints=_constraints,
-                    options=_opts,
-                )
-                if res.success:
-                    wts_arr = np.maximum(res.x, 0)
-                    wts = pd.Series(wts_arr / wts_arr.sum(), index=holdings)
-                else:
-                    _vol_w = (
-                        log_ret[holdings]
-                        .iloc[max(start_idx - 63, 0) : start_idx + 1]
-                        .std()
-                    )
-                    _inv = (1.0 / _vol_w.replace(0, np.nan)).fillna(0)
-                    _inv_sum = _inv.sum()
-                    wts = pd.Series(
-                        (
-                            (_inv / _inv_sum).values
-                            if _inv_sum > 0
-                            else np.ones(n_h) / n_h
-                        ),
-                        index=holdings,
-                    )
-            except Exception:
-                wts = pd.Series(1.0 / len(holdings), index=holdings)
         else:
             wts = pd.Series(1.0 / len(holdings), index=holdings)
 

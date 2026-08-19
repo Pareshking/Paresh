@@ -280,7 +280,7 @@ def stat_pill(label: str, value: Any, color: str = "indigo") -> str:
 
 
 # Sources whose age is worth stating, and how many trading days each may fall
-# behind before it is called stale. Market caps and delivery publish only after
+# behind before it is called stale. Market caps publish only after
 # the close, so being one trading day behind is their normal state, not a fault.
 # (date fact, label, tolerance in trading days, "source is loaded" fact)
 #
@@ -293,7 +293,6 @@ _FRESHNESS_SOURCES: list[tuple[str, str, int, str | None]] = [
     ("price_as_of", "Prices", 1, "price_path"),
     ("mcap_as_of", "Market caps", 1, "mcap_path"),
     ("ath_as_of", "All-time highs", 3, "ath_path"),
-    ("delivery_as_of", "Delivery", 2, None),
 ]
 
 

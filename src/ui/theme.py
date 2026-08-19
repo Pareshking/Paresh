@@ -54,10 +54,6 @@ FORMAT_MAP: dict[str, str] = {
     "Rank (-3M)": "{:.0f}",
     "Rank Δ 1M": "{:+.0f}",
     "Rank Δ 3M": "{:+.0f}",
-    "Exp Rank": "{:.0f}",
-    "Residual Rank": "{:.0f}",
-    "Ind-Rel Rank": "{:.0f}",
-    "Accel Rank": "{:.0f}",
     "Sharpe Rank": "{:.0f}",
     "Composite Rank": "{:.0f}",
     # Decimal Ratios (1 decimal place with % sign)

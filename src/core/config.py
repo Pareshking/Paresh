@@ -23,8 +23,6 @@ os.makedirs(DATA_DIR, exist_ok=True)
 PRICES_FILE: Final[str] = os.path.join(DATA_DIR, "prices.parquet")
 MCAPS_FILE: Final[str] = os.path.join(DATA_DIR, "market_caps.parquet")
 MCAP_PR_FILE: Final[str] = os.path.join(DATA_DIR, "mcap_nse.parquet")
-DELIVERY_FILE: Final[str] = os.path.join(DATA_DIR, "delivery.parquet")
-DELIVERY_META_FILE: Final[str] = os.path.join(DATA_DIR, "delivery_meta.json")
 
 REPO_DATA_DIR: Final[str] = os.path.join(BASE_DIR, "data")
 INDICES_DIR: Final[str] = os.path.join(REPO_DATA_DIR, "indices")

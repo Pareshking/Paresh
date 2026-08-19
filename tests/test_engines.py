@@ -91,7 +91,7 @@ def test_portfolio_optimizer(sample_market_data):
 
 def test_backtester(sample_market_data):
     prices, _, _, _, _ = sample_market_data
-    bt = run_backtest("test_hash", prices, top_n=3, rebal_freq=21, lookback_ret=63)
+    bt = run_backtest("test_hash", prices, top_n=3, rebal_freq=21)
     assert bt is not None
     assert "stats" in bt
     assert "equity_curve" in bt

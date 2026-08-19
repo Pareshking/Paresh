@@ -1,6 +1,6 @@
 """
 Qualified Momentum Picks View Controller.
-Contains Top 30 Qualified Composite Momentum and Top 30 Qualified Residual Momentum sections.
+Contains the Top 30 Qualified Composite Momentum section.
 """
 
 import numpy as np
@@ -206,7 +206,7 @@ def _render_qualified_section(
 
 
 def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
-    """Renders Top 30 Qualified Stocks across Composite Multi-Window and Residual Momentum."""
+    """Renders the Top 30 Qualified Stocks by Composite Multi-Window Momentum."""
     c_filt, c_ctrl = st.columns([3, 1], vertical_alignment="center")
     with c_filt:
         st.markdown(
@@ -249,25 +249,6 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> Non
         theme_color="#4f46e5",
     )
 
-    st.divider()
-
-    # ── Section 2: Residual Momentum Qualified (Top 30) ──────────────────────
-    if "Residual Rank" in rank_df.columns:
-        qualified_residual = (
-            rank_df[ab_ema & nr_hi].sort_values("Residual Rank").head(top_n).copy()
-        )
-    else:
-        qualified_residual = pd.DataFrame()
-
-    if not qualified_residual.empty:
-        _render_qualified_section(
-            title=f"🔬 Top {top_n} Qualified Residual Momentum Stocks",
-            subtitle="Idiosyncratic Beta-Stripped Alpha",
-            df_subset=qualified_residual,
-            adj_close=adj_close,
-            key_prefix="qual_residual",
-            theme_color="#0284c7",
-        )
 
     render_data_quality_footer(
         total_stocks=len(rank_df),

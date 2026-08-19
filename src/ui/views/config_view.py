@@ -11,7 +11,6 @@ import streamlit as st
 
 from src.core.config import (
     DATA_DIR,
-    DELIVERY_FILE,
     INDICES_LOCAL,
     INDICES_URLS,
     MCAPS_FILE,
@@ -19,7 +18,6 @@ from src.core.config import (
     STORAGE_MODE,
     TV_CLASSIFICATION_FILE,
 )
-from src.loaders.delivery_loader import _read_meta
 from src.loaders.indices_loader import get_sync_metadata, sync_official_nse_indices
 from src.ui.components import render_data_quality_footer
 
@@ -247,7 +245,6 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
     cache_data = [
         ("Price History", PRICES_FILE),
         ("Market Caps", MCAPS_FILE),
-        ("Delivery", DELIVERY_FILE),
         ("TV Classification", TV_CLASSIFICATION_FILE),
     ]
     cache_rows = []

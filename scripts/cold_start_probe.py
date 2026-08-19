@@ -14,7 +14,7 @@ Two clocks are combined:
   when the page became fully interactive.
 * Process-side, recorded by src/core/startup_metrics and published in a
   hidden element: per-stage durations (universe, price history, market caps,
-  quant engine, delivery) and the fetch counters (Yahoo batches, individual
+  quant engine) and the fetch counters (Yahoo batches, individual
   retries, market-cap fallback and sequential retries, missing symbols).
 
 The process-side numbers survive across sessions, so the real cold-start cost
@@ -43,7 +43,7 @@ POLL_S = 5
 METRICS_WAIT_S = int(os.getenv("UMIYA_METRICS_WAIT_S", "600"))
 TABS = [
     "Screener", "Qualified", "Sectors", "RRG", "Multi-Strategy", "Portfolio",
-    "Delivery", "Watchlist", "Market Breadth", "Backtest", "Configuration", "Guide",
+    "Watchlist", "Market Breadth", "Backtest", "Configuration", "Guide",
 ]
 
 
@@ -189,7 +189,7 @@ def main() -> None:
                 report["interaction_error"] = f"{type(exc).__name__}: {str(exc)[:160]}"
 
         # The telemetry element is emitted at the very END of the script run,
-        # after all twelve tab bodies have executed (delivery does network I/O
+        # after all tab bodies have executed (some do network I/O
         # of its own). On a cold run the tabs become visible long before that,
         # so reading opportunistically here returns nothing and misreports a
         # healthy cold start as "no telemetry". Wait for it.
@@ -246,7 +246,7 @@ def main() -> None:
             print(f"  {k:<32}: {marks[k]}s", flush=True)
     print("\n-- application stages --", flush=True)
     for name in ("universe", "price_history", "extract_ohlcv", "market_caps",
-                 "market_regime", "quant_engine", "data_pipeline_total", "delivery"):
+                 "market_regime", "quant_engine", "data_pipeline_total"):
         s = stages.get(name)
         if s:
             print(f"  {name:<22} start {s['started_at_s']:>8.1f}s  "

@@ -23,6 +23,7 @@ Three guards are built in rather than left to the reader:
 from __future__ import annotations
 
 import hashlib
+from collections import Counter
 import itertools
 from dataclasses import dataclass, field
 from typing import Any, Sequence
@@ -39,7 +40,6 @@ SWEEPABLE: dict[str, str] = {
     "Rebalance": "rebal_freq",
     "EMA filter": "ema_period",
     "52W high floor": "high_pct",
-    "Ranking method": "ranking_method",
     "Buffer": "buffer_n",
     "Cost (bps)": "cost_bps",
 }
@@ -147,6 +147,7 @@ def run_parameter_sweep(
     fixed = dict(base or {})
     rows: list[dict[str, Any]] = []
     failed = 0
+    failure_reasons: Counter[str] = Counter()
     # Identify the data AND the fixed parameters, so a sweep cannot be served
     # another sweep's memoised backtests.
     fingerprint = _prices_fingerprint(_adj_close)
@@ -168,8 +169,13 @@ def run_parameter_sweep(
                 backtest_months=backtest_months,
                 **kwargs,
             )
-        except Exception:
+        except Exception as exc:
+            # A count is not a diagnosis. If one systematic error kills a whole
+            # region of the space, the sweep still ranks the survivors and
+            # presents a winner -- and the excluded region is invisible, so the
+            # "best" parameters are only best among whatever did not crash.
             res = None
+            failure_reasons[f"{type(exc).__name__}: {exc}"[:120]] += 1
         if progress is not None:
             try:
                 progress((i + 1) / len(combos), f"{i + 1}/{len(combos)} combinations")
@@ -177,6 +183,8 @@ def run_parameter_sweep(
                 pass
         if not res or not res.get("stats"):
             failed += 1
+            if res is not None:
+                failure_reasons["no stats (insufficient history for the window)"] += 1
             continue
         stats = res["stats"]
         rows.append({
@@ -197,6 +205,8 @@ def run_parameter_sweep(
             "Every combination failed to produce a backtest, usually insufficient "
             "price history for the formation window."
         )
+        for reason, n in failure_reasons.most_common(3):
+            warnings.append(f"  {n}x {reason}")
         return SweepResult(pd.DataFrame(), objective, backtest_months,
                            len(combos), failed, warnings=warnings)
 
@@ -208,6 +218,13 @@ def run_parameter_sweep(
     risk, detail = assess_overfitting(table, len(combos))
     if failed:
         warnings.append(f"{failed} of {len(combos)} combinations produced no result.")
+        for reason, n in failure_reasons.most_common(3):
+            warnings.append(f"  {n}x {reason}")
+        if failed > len(combos) / 2:
+            warnings.append(
+                "More than half the space failed, so the winner is the best of a "
+                "small surviving subset rather than of the space you asked for."
+            )
 
     return SweepResult(
         table=table,

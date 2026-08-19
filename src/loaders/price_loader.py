@@ -8,7 +8,7 @@ from __future__ import annotations
 import os
 import tempfile
 import time
-from datetime import datetime
+from datetime import date, datetime
 from typing import Sequence
 from zoneinfo import ZoneInfo
 
@@ -18,6 +18,7 @@ import yfinance as yf
 
 from src.core import startup_metrics as metrics
 from src.core.config import BENCHMARK_SYMBOL, PRICES_FILE
+from src.core.tickers import normalise_columns, normalise_symbol
 from src.core.market_time import ist_today
 from src.core.logger import logger
 from src.core.types import MarketRegime, OHLCVData, RegimeData
@@ -35,6 +36,11 @@ def _is_fresh(last_date: datetime | pd.Timestamp | str) -> bool:
     """Checks if the latest price date is <= 1 calendar day ago."""
     if isinstance(last_date, (pd.Timestamp, datetime)):
         dt = last_date.date()
+    elif isinstance(last_date, date):
+        # datetime subclasses date, so this arm is reached only by a PLAIN
+        # date -- which recent_trading_days() hands out. It used to fall to the
+        # else below and report "not fresh", quietly forcing a re-download.
+        dt = last_date
     elif isinstance(last_date, str):
         try:
             dt = pd.to_datetime(last_date).date()
@@ -46,36 +52,8 @@ def _is_fresh(last_date: datetime | pd.Timestamp | str) -> bool:
 
 
 def _normalise_ticker_level(df: pd.DataFrame) -> pd.DataFrame:
-    """Strip the .NS suffix from the ticker level, in place of a copy.
-
-    yfinance returns "INDIGO.NS"; the cache stores "INDIGO". Doing this AFTER a
-    concat is what broke the daily sync on 2026-08-18: the two frames were
-    joined while their labels still disagreed, so the concat unioned them into
-    two columns per series -- old history in one, new sessions in the other,
-    each half NaN -- and only then were both renamed to the same label. The
-    result was 7500 columns where 3750 belonged, a parquet save that died on
-    "Duplicate column names found", and a frame the engine cannot index by
-    symbol. Normalising BEFORE the concat is the whole fix.
-    """
-    if df is None or df.empty:
-        return df
-    out = df.copy()
-    if isinstance(out.columns, pd.MultiIndex):
-        tickers = [
-            str(c).replace(".NS", "").strip().upper()
-            for c in out.columns.get_level_values(0)
-        ]
-        names = (
-            out.columns.names
-            if out.columns.names and out.columns.names[0]
-            else ["Ticker", "Price"]
-        )
-        out.columns = pd.MultiIndex.from_arrays(
-            [tickers, list(out.columns.get_level_values(1))], names=names
-        )
-    else:
-        out.columns = [str(c).replace(".NS", "").strip().upper() for c in out.columns]
-    return out
+    """Ticker labels, normalised before any merge. See src/core/tickers."""
+    return normalise_columns(df, level=0)
 
 
 def _coalesce_duplicate_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -97,6 +75,15 @@ def _coalesce_duplicate_columns(df: pd.DataFrame) -> pd.DataFrame:
     return merged
 
 
+# Every download in this module pins auto_adjust=True EXPLICITLY. It is also
+# yfinance's current default, so nothing changes today -- that is the point.
+# ath_loader.py sets it explicitly too, and the two must agree: a split-adjusted
+# history compared against an unadjusted all-time high reports -76% where the
+# truth is +20%. Leaving one side to a third-party default meant the invariant
+# holding the whole comparison together was one dependency release away from
+# flipping, silently, with no error anywhere.
+
+
 def _extract_field(df: pd.DataFrame, field_names: list[str]) -> pd.DataFrame:
     """Extracts a specific price field across all symbols from flat or MultiIndex DataFrames."""
     if df is None or df.empty:
@@ -111,7 +98,7 @@ def _extract_field(df: pd.DataFrame, field_names: list[str]) -> pd.DataFrame:
         # than an error.
         out = df.copy()
         out.columns = [
-            str(c).replace(".NS", "").strip().upper() for c in out.columns
+            normalise_symbol(c) for c in out.columns
         ]
         return out
 
@@ -171,7 +158,7 @@ def _extract_by_coverage(
     actual_label = labels[idx]
     extracted = df.xs(actual_label, level=level, axis=1)
     extracted.columns = [
-        str(c).replace(".NS", "").strip().upper() for c in extracted.columns
+        normalise_symbol(c) for c in extracted.columns
     ]
     return extracted
 
@@ -303,6 +290,7 @@ def fetch_price_history(
             progress=False,
             group_by="ticker",
             threads=True,
+            auto_adjust=True,
         )
 
     # ── 1. Load existing cache if present ────────────────────────────────────
@@ -394,6 +382,7 @@ def fetch_price_history(
                 progress=False,
                 group_by="ticker",
                 threads=True,
+                auto_adjust=True,
             )
             if batch_data is not None and not batch_data.empty:
                 all_batches.append(batch_data)
@@ -421,7 +410,7 @@ def fetch_price_history(
             for tkr in missing:
                 metrics.incr("price_individual_retries")
                 try:
-                    s = yf.download(tkr, period=period, progress=False, threads=False)
+                    s = yf.download(tkr, period=period, progress=False, threads=False, auto_adjust=True)
                     if not s.empty:
                         metrics.incr("price_individual_retry_recovered")
                         if s.index.tz is not None:
@@ -467,7 +456,7 @@ def fetch_price_history(
     # Normalize column names
     if isinstance(data.columns, pd.MultiIndex):
         tickers = [
-            str(c).replace(".NS", "").strip().upper()
+            normalise_symbol(c)
             for c in data.columns.get_level_values(0)
         ]
         prices = list(data.columns.get_level_values(1))
@@ -478,7 +467,7 @@ def fetch_price_history(
         )
         data.columns = pd.MultiIndex.from_arrays([tickers, prices], names=names)
     else:
-        data.columns = [str(c).replace(".NS", "").strip().upper() for c in data.columns]
+        data.columns = [normalise_symbol(c) for c in data.columns]
 
     data = data.dropna(how="all")
 
@@ -498,7 +487,10 @@ def fetch_price_history(
 def fetch_benchmark_history(period: str = "2y") -> pd.Series:
     """Return the single V1 market benchmark price series."""
     try:
-        data = yf.download(BENCHMARK_SYMBOL, period=period, progress=False, threads=False)
+        data = yf.download(
+            BENCHMARK_SYMBOL, period=period, progress=False, threads=False,
+            auto_adjust=True,
+        )
         if data is None or data.empty:
             return pd.Series(dtype=float, name=BENCHMARK_SYMBOL)
         if data.index.tz is not None:
@@ -523,7 +515,9 @@ def get_market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL) -> RegimeData:
     Uses the canonical V1 benchmark passed by the caller (default ^CRSLDX).
     """
     try:
-        nifty = yf.download(benchmark_symbol, period="1y", progress=False)
+        nifty = yf.download(
+            benchmark_symbol, period="1y", progress=False, auto_adjust=True
+        )
 
         if nifty is None or nifty.empty:
             return RegimeData(

@@ -46,26 +46,10 @@ def render_backtest_view(
         }[x],
         key="bt_rebal_freq",
     )
-    bt_ranking = c3.selectbox(
-        "Ranking Model",
-        [
-            "Composite Sharpe (Config Weights)",
-            "Multi-Window Pure Sharpe",
-            "Residual (α) Momentum (126D Alpha)",
-            "Industry-Relative Momentum",
-            "Momentum Acceleration",
-            "Exp Regression",
-            "Sharpe (Single Window)",
-            "Return (Classic Momentum)",
-        ],
-        index=0,
-        key="bt_ranking_model",
-    )
-
     c4, c5, c6 = st.columns(3, vertical_alignment="center")
     bt_weight = c4.selectbox(
         "Weighting Scheme",
-        ["Equal Weight", "Inverse Volatility", "MVO (Mean-Variance)"],
+        ["Equal Weight", "Inverse Volatility"],
         index=0,
         key="bt_weight_scheme",
     )
@@ -87,53 +71,18 @@ def render_backtest_view(
         key="bt_buffer_sel",
     )
 
-    # Dynamic Lookback Controls for Backtest
-    if "Composite" in bt_ranking or "Multi-Window" in bt_ranking:
-        with st.expander("🎛️ Customize Lookback Weights for Backtest", expanded=False):
-            st.caption(
-                "Adjust the relative weighting across 5 windows to test factor sensitivities."
-            )
-            bw = st.columns(5)
-            w1 = bw[0].slider(
-                "1M (21D)", 0.0, 1.0, float(weights[0]), 0.05, key="btw_1"
-            )
-            w2 = bw[1].slider(
-                "3M (63D)", 0.0, 1.0, float(weights[1]), 0.05, key="btw_2"
-            )
-            w3 = bw[2].slider(
-                "6M (126D)", 0.0, 1.0, float(weights[2]), 0.05, key="btw_3"
-            )
-            w4 = bw[3].slider(
-                "9M (189D)", 0.0, 1.0, float(weights[3]), 0.05, key="btw_4"
-            )
-            w5 = bw[4].slider(
-                "12M (252D)", 0.0, 1.0, float(weights[4]), 0.05, key="btw_5"
-            )
-            active_weights = (w1, w2, w3, w4, w5)
-            lb_val = 126
-    elif (
-        "Single Window" in bt_ranking
-        or "Exp Regression" in bt_ranking
-        or "Classic Momentum" in bt_ranking
-    ):
-        with st.expander("⏱️ Single-Window Lookback Period", expanded=False):
-            lb_val = st.selectbox(
-                "Lookback Window",
-                [21, 63, 126, 189, 252],
-                index=2,
-                format_func=lambda x: {
-                    21: "1M (Calendar Month)",
-                    63: "3M (Calendar Month × 3)",
-                    126: "6M (Calendar Month × 6)",
-                    189: "9M (Calendar Month × 9)",
-                    252: "12M (Calendar Month × 12)",
-                }[x],
-                key="bt_single_lb",
-            )
-            active_weights = tuple(weights)
-    else:
-        active_weights = tuple(weights)
-        lb_val = 126
+    # Lookback weights for the composite -- the only scoring model there is.
+    with st.expander("🎛️ Customize Lookback Weights for Backtest", expanded=False):
+        st.caption(
+            "Adjust the relative weighting across 5 windows to test factor sensitivities."
+        )
+        bw = st.columns(5)
+        w1 = bw[0].slider("1M (21D)", 0.0, 1.0, float(weights[0]), 0.05, key="btw_1")
+        w2 = bw[1].slider("3M (63D)", 0.0, 1.0, float(weights[1]), 0.05, key="btw_2")
+        w3 = bw[2].slider("6M (126D)", 0.0, 1.0, float(weights[2]), 0.05, key="btw_3")
+        w4 = bw[3].slider("9M (189D)", 0.0, 1.0, float(weights[3]), 0.05, key="btw_4")
+        w5 = bw[4].slider("12M (252D)", 0.0, 1.0, float(weights[4]), 0.05, key="btw_5")
+        active_weights = (w1, w2, w3, w4, w5)
 
     ph = f"{adj_close.index[-1]}_{adj_close.shape[0]}x{adj_close.shape[1]}"
     benchmark_close = fetch_benchmark_history(period="2y")
@@ -153,8 +102,6 @@ def render_backtest_view(
             _benchmark_close=benchmark_close,
             top_n=bt_n,
             rebal_freq=bt_rebal,
-            lookback_ret=lb_val,
-            ranking_method=bt_ranking,
             weight_method=bt_weight,
             config_weights=active_weights,
             stock_cap=stock_cap,
@@ -191,7 +138,7 @@ def render_backtest_view(
         f"""
         <div style='background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 14px; margin-bottom: 12px; font-family: IBM Plex Mono; font-size: 0.76rem; color: #475569; display: flex; flex-wrap: wrap; gap: 14px; align-items: center;'>
             <span>📅 <strong>Period:</strong> <span style='color: #0f172a; font-weight: 600;'>{bt_window_label}</span></span>
-            <span>🎯 <strong>Engine:</strong> <span style='color: #0f172a; font-weight: 600;'>{bt_ranking}</span></span>
+            <span>🎯 <strong>Engine:</strong> <span style='color: #0f172a; font-weight: 600;'>Composite Sharpe</span></span>
             <span>⏱️ <strong>Interval:</strong> <span style='color: #0f172a; font-weight: 600;'>{'Monthly · First Trading Day' if bt_rebal == 21 else f'{bt_rebal} Trading Days'}</span></span>
             <span>📦 <strong>Portfolio:</strong> <span style='color: #0f172a; font-weight: 600;'>Top {bt_n} Stocks (Buffer: Top {int(bt_n * buffer_mult)})</span></span>
             <span>⚖️ <strong>Weighting:</strong> <span style='color: #0f172a; font-weight: 600;'>{bt_weight}</span></span>
@@ -497,8 +444,6 @@ def render_backtest_view(
         benchmark_close=benchmark_close,
         sector_map=sec_map,
         base={
-            "lookback_ret": lb_val,
-            "ranking_method": bt_ranking,
             "weight_method": bt_weight,
             "config_weights": active_weights,
             "stock_cap": stock_cap,

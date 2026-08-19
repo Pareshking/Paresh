@@ -21,7 +21,6 @@ class MarketRegime(str, Enum):
 class WeightMethod(str, Enum):
     EQUAL_WEIGHT = "Equal Weight"
     INVERSE_VOLATILITY = "Inverse Volatility"
-    MEAN_VARIANCE = "MVO (Mean-Variance)"
 
 
 class SurgeMode(str, Enum):

@@ -39,27 +39,8 @@ def test_portfolio_covariance_does_not_turn_missing_returns_into_zero() -> None:
     assert np.allclose(cov.to_numpy(), expected.to_numpy())
 
 
-def test_residual_alpha_uses_paired_benchmark_observations() -> None:
-    prices = _prices(120, 2)
-    calc = MomentumEngine(prices)
-    benchmark = pd.Series(np.linspace(0.001, 0.01, len(prices)), index=prices.index)
-    benchmark.iloc[40:45] = np.nan
-    ranks = calc.calculate_residual_momentum(benchmark_returns=benchmark, months=3)
-    assert ranks.notna().sum() == 2
 
 
-def test_industry_relative_singleton_has_no_peer_benchmark() -> None:
-    prices = _prices(80, 2)
-    calc = MomentumEngine(prices)
-    calc.momentum_scores = pd.DataFrame(
-        {"S0": [1.0], "S1": [2.0]}, index=[prices.index[-1]]
-    )
-    rank_df = pd.DataFrame(
-        {"Symbol": ["S0", "S1"], "Industry": ["Only", "Other"]}
-    )
-    ranks = calc.calculate_industry_relative(rank_df)
-    assert ranks.nunique() == 1
-    assert ranks.iloc[0] > 1
 
 
 def test_runtime_contains_no_removed_r2_production_tokens() -> None:

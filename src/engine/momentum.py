@@ -1,12 +1,14 @@
 """
-Quantitative Multi-System Momentum Engine — Hardened Production Core.
+Momentum Engine — single-system production core.
 
-Systems:
-  1. Multi-Window Sharpe & Sortino Momentum (Winsorized Z-score across 5 lookbacks)
-  2. Vectorized Exponential Regression (annualized OLS slope with analytical 1D convolution)
-  3. Residual / Idiosyncratic Alpha (Market-beta stripped alpha)
-  4. Industry-Relative Momentum (Sector-neutral outperformance)
-  5. Momentum Acceleration (Short-term velocity vs long-term baseline)
+One system, the one that always drove every rank on screen: multi-window
+Sharpe momentum, winsorized and z-scored across five calendar lookbacks.
+
+Four alternative systems used to live here -- exponential regression, residual
+alpha, industry-relative and momentum acceleration. None of them fed the
+composite Rank; they produced extra columns and a Multi-Strategy tab. They were
+removed deliberately: each carried its own failure modes (residual alpha reached
+out to Yahoo mid-calculation), and none paid for the surface area it cost.
 """
 
 from __future__ import annotations
@@ -18,6 +20,7 @@ import pandas as pd
 from scipy.ndimage import convolve1d
 
 from src.core.config import DEFAULT_LOOKBACK_WEIGHTS, MOMENTUM_WINDOWS
+from src.core.tickers import normalise_symbol
 from src.core.logger import logger
 from src.engine.calendar_momentum import (
     _calendar_period_metrics,
@@ -94,7 +97,7 @@ def _normalize_ticker_cols(df: pd.DataFrame | None) -> pd.DataFrame | None:
     if df is None or df.empty:
         return df
     res = df.copy()
-    res.columns = [str(c).replace(".NS", "").strip().upper() for c in res.columns]
+    res.columns = [normalise_symbol(c) for c in res.columns]
     return res
 
 
@@ -156,182 +159,15 @@ class MomentumEngine:
 
         self.momentum_scores: pd.DataFrame | None = None
         self.ranking_diagnostics: dict[str, int] = {}
-        self.exp_reg_scores: pd.DataFrame | None = None
-        self.residual_ranks: pd.Series | None = None
-        self.ind_rel_ranks: pd.Series | None = None
         self.vol_mgd_ranks: pd.Series | None = None
         self.period_metrics: dict[int, dict[str, pd.Series]] = {}
-
-    @staticmethod
-    def _mp(window: int) -> int:
-        return window
-
-    def _annualized_sharpe(self, w: int) -> pd.DataFrame:
-        """Compute annualized period Sharpe without an  multiplier."""
-        log_ret_w = np.log(self.prices / self.prices.shift(w).replace(0, np.nan)).replace([np.inf, -np.inf], np.nan)
-        daily_vol_w = (self.log_ret.rolling(w, min_periods=w).std(ddof=0) * np.sqrt(w)).replace(0, np.nan)
-        return (log_ret_w / daily_vol_w).replace([np.inf, -np.inf], np.nan)
 
     def calculate_sharpe_momentum(self) -> pd.DataFrame:
         """Compatibility entry point for the canonical calendar-month System-1 engine."""
         from src.engine.calendar_momentum import apply_calendar_momentum
         return apply_calendar_momentum(self)
 
-    def calculate_exp_regression(self, window: int = 126) -> pd.DataFrame:
-        """Calculate annualized rolling exponential-regression slope without synthetic fills."""
-        log_p = np.log(self.prices.clip(lower=0.01))
-        n = int(window)
-        score = pd.DataFrame(np.nan, index=log_p.index, columns=log_p.columns, dtype=float)
-        if n < 2 or len(log_p) < n:
-            self.exp_reg_scores = score
-            return score
 
-        t = np.arange(n, dtype=float)
-        t_rev = t[::-1]
-        t2_rev = (t * t)[::-1]
-        ones = np.ones(n, dtype=float)
-
-        for col in log_p.columns:
-            y = log_p[col].to_numpy(dtype=float)
-            mask = np.isfinite(y)
-            if int(mask.sum()) < n:
-                continue
-            y0 = np.where(mask, y, 0.0)
-            m = mask.astype(float)
-            n_obs = np.convolve(m, ones, mode="valid")
-            sum_y = np.convolve(y0, ones, mode="valid")
-            sum_t = np.convolve(m, t_rev, mode="valid")
-            sum_t2 = np.convolve(m, t2_rev, mode="valid")
-            sum_ty = np.convolve(y0, t_rev, mode="valid")
-            denom = n_obs * sum_t2 - sum_t * sum_t
-            numer = n_obs * sum_ty - sum_t * sum_y
-            valid = (n_obs >= n) & (denom > 1e-12)
-            slopes = np.full(len(n_obs), np.nan)
-            slopes[valid] = numer[valid] / denom[valid]
-            out = np.full(len(log_p), np.nan)
-            out[n - 1:] = np.exp(np.clip(slopes * 252.0, -700.0, 700.0)) - 1.0
-            score[col] = out
-
-        self.exp_reg_scores = score
-        return score
-
-    # ── System 3: Residual / Idiosyncratic Momentum ──────────────────────────
-    def calculate_residual_momentum(
-        self,
-        benchmark_returns: pd.Series | None = None,
-        window: int = 126,
-        months: int | None = 6,
-    ) -> pd.Series:
-        """Compute residual alpha over a calendar-defined period by default.
-
-        ``window`` remains available for callers that explicitly request a
-        trading-row window by passing ``months=None``. The production 6M
-        model uses calendar months so weekends/holidays do not change the
-        economic horizon.
-        """
-        daily_ret = self.prices.pct_change(fill_method=None)
-        if benchmark_returns is None:
-            from src.loaders.price_loader import fetch_benchmark_history
-            benchmark_close = fetch_benchmark_history(period="2y")
-            mkt_ret = (
-                pd.to_numeric(benchmark_close, errors="coerce")
-                .reindex(daily_ret.index)
-                .pct_change(fill_method=None)
-                if not benchmark_close.empty
-                else pd.Series(np.nan, index=daily_ret.index, dtype=float)
-            )
-        else:
-            mkt_ret = pd.to_numeric(benchmark_returns, errors="coerce").reindex(daily_ret.index)
-
-        if months is None:
-            start = max(0, len(daily_ret) - window)
-        else:
-            as_of = latest_as_of_date(pd.DatetimeIndex(daily_ret.index))
-            starts = calendar_start_positions(
-                pd.DatetimeIndex(daily_ret.index), months, latest_as_of=as_of
-            )
-            start = int(starts[-1])
-
-        mkt_ret_w = mkt_ret.iloc[start:]
-        ranks = pd.Series(np.nan, index=self.prices.columns, dtype=float)
-        for sym in self.prices.columns:
-            pair = pd.concat([daily_ret[sym].iloc[start:], mkt_ret_w], axis=1).dropna()
-            if len(pair) < 30:
-                continue
-            stock_r = pair.iloc[:, 0]
-            bench_r = pair.iloc[:, 1]
-            mkt_var = float(bench_r.var())
-            if mkt_var <= 1e-12 or not np.isfinite(mkt_var):
-                continue
-            beta = float(stock_r.cov(bench_r)) / mkt_var
-            ranks.loc[sym] = (float(stock_r.mean()) - beta * float(bench_r.mean())) * 252
-        ranks = ranks.rank(ascending=False, method="min")
-        self.residual_ranks = ranks
-        return ranks
-    def calculate_industry_relative(
-        self,
-        rank_df: pd.DataFrame,
-        industry_col: str = "Industry",
-    ) -> pd.Series:
-        """Computes stock composite score minus industry peer group average."""
-        if self.momentum_scores is None or self.momentum_scores.empty:
-            self.calculate_sharpe_momentum()
-
-        latest_scores = self.momentum_scores.iloc[-1] if self.momentum_scores is not None else pd.Series()
-        ind_map = rank_df.set_index("Symbol")[industry_col].to_dict() if industry_col in rank_df.columns else {}
-
-        score_df = pd.DataFrame(
-            {
-                "Symbol": latest_scores.index,
-                "Score": latest_scores.values,
-                "Industry": [ind_map.get(s, "Other") for s in latest_scores.index],
-            }
-        )
-
-        # Leave-one-out industry mean: a stock must not contribute to the peer benchmark against which that same stock is measured.
-        industry_sum = score_df.groupby("Industry")["Score"].transform("sum", min_count=1)
-        industry_count = score_df.groupby("Industry")["Score"].transform("count")
-        peer_sum = industry_sum - score_df["Score"]
-        peer_count = industry_count - score_df["Score"].notna().astype(int)
-        peer_mean = peer_sum.div(peer_count.replace(0, np.nan))
-        rel_score = score_df["Score"] - peer_mean
-
-        ranks = pd.Series(rel_score.values, index=score_df["Symbol"]).rank(
-            ascending=False, na_option="bottom"
-        )
-        self.ind_rel_ranks = ranks
-        return ranks
-
-    # ── System 5: Momentum Acceleration ──────────────────────────────────────
-    def calculate_momentum_acceleration(self) -> pd.Series:
-        """Rank acceleration using calendar 1M/3M/6M/9M/12M horizons."""
-        zero_s = pd.Series(0.0, index=self.prices.columns)
-        as_of = latest_as_of_date(pd.DatetimeIndex(self.prices.index))
-        scores: dict[int, pd.Series] = {}
-        for months in (1, 3, 6, 9, 12):
-            _, _, sharpe, _ = _calendar_period_metrics(
-                self.prices, self.log_ret, months, latest_as_of=as_of
-            )
-            scores[months] = sharpe.iloc[-1].replace(
-                [np.inf, -np.inf], np.nan
-            )
-
-        s_1m = scores.get(1, zero_s)
-        s_3m = scores.get(3, zero_s)
-        s_6m = scores.get(6, zero_s)
-        s_9m = scores.get(9, zero_s)
-        s_12m = scores.get(12, zero_s)
-
-        short_term = (
-            0.10 * zscore_series(s_1m)
-            + 0.35 * zscore_series(s_3m)
-            + 0.55 * zscore_series(s_6m)
-        )
-        long_term = 0.45 * zscore_series(s_9m) + 0.55 * zscore_series(s_12m)
-        accel = short_term - long_term
-
-        ranks = accel.rank(ascending=False, na_option="bottom")
-        return ranks
     def compute_atr_and_stops(
         self,
         period: int = 14,
@@ -388,7 +224,6 @@ class MomentumEngine:
         *,
         close_prices_df: pd.DataFrame | None = None,
         high_prices_df: pd.DataFrame | None = None,
-        compute_exp_reg: bool = True,
     ) -> pd.DataFrame:
         """Constructs comprehensive production master rankings."""
         if self.momentum_scores is None:
@@ -477,10 +312,10 @@ class MomentumEngine:
 
         # Normalize column names to uppercase stripped tickers
         close_src.columns = [
-            str(c).replace(".NS", "").strip().upper() for c in close_src.columns
+            normalise_symbol(c) for c in close_src.columns
         ]
         high_src.columns = [
-            str(c).replace(".NS", "").strip().upper() for c in high_src.columns
+            normalise_symbol(c) for c in high_src.columns
         ]
 
         # Drop any trailing rows that are all NaN
@@ -631,7 +466,7 @@ class MomentumEngine:
         if self.volume is not None and not self.volume.empty:
             vol_df = self.volume.copy()
             vol_df.columns = [
-                str(c).replace(".NS", "").strip().upper() for c in vol_df.columns
+                normalise_symbol(c) for c in vol_df.columns
             ]
             vol_20_avg = vol_df.rolling(20, min_periods=10).mean().iloc[-1]
             vol_latest = vol_df.iloc[-1]
@@ -666,13 +501,6 @@ class MomentumEngine:
         rank_df["FFill %"] = rank_df["Symbol"].map(self.ffill_pct.to_dict()).fillna(0.0)
         rank_df["Data Gap"] = rank_df["FFill %"].map(lambda p: "🔴" if p > 10.0 else "")
 
-        # System 2 Exp Regression Rank
-        if compute_exp_reg:
-            exp_scores = self.calculate_exp_regression(126)
-            if not exp_scores.empty:
-                exp_latest = exp_scores.iloc[-1]
-                exp_rank = exp_latest.rank(ascending=False, method="min")
-                rank_df["Exp Rank"] = rank_df["Symbol"].map(exp_rank.to_dict())
 
         return rank_df.sort_values("Rank").reset_index(drop=True)
 
@@ -722,37 +550,3 @@ class MomentumEngine:
             .reset_index(drop=True)
         )
 
-    # ── Multi-Strategy Overlay ───────────────────────────────────────────────
-    def get_multi_strategy_overlay(
-        self,
-        rank_df: pd.DataFrame,
-        top_n: int = 50,
-    ) -> pd.DataFrame:
-        """Finds high-conviction consensus picks across alternative momentum systems."""
-        res_ranks = self.calculate_residual_momentum(window=126)
-        ind_ranks = self.calculate_industry_relative(rank_df, "Industry")
-        acc_ranks = self.calculate_momentum_acceleration()
-
-        cols = [
-            "Rank",
-            "Symbol",
-            "Industry",
-            "CMP",
-            "3M Return",
-            "6M Return",
-            "Persistence",
-            "ATR %",
-        ]
-        overlay = rank_df[[c for c in cols if c in rank_df.columns]].copy()
-        overlay.rename(columns={"Rank": "Composite Rank"}, inplace=True)
-        overlay["Sharpe Rank"] = overlay["Composite Rank"]
-        overlay["Residual Rank"] = overlay["Symbol"].map(res_ranks.to_dict())
-        overlay["Ind-Rel Rank"] = overlay["Symbol"].map(ind_ranks.to_dict())
-        overlay["Accel Rank"] = overlay["Symbol"].map(acc_ranks.to_dict())
-
-        overlay["In All Top"] = (
-            (overlay["Residual Rank"] <= top_n)
-            & (overlay["Ind-Rel Rank"] <= top_n)
-            & (overlay["Accel Rank"] <= top_n)
-        )
-        return overlay.sort_values("Composite Rank").reset_index(drop=True)
