@@ -53,9 +53,19 @@ jobs:
             price-data-${{ runner.os }}-
             price-data-
 
+      # cache-hit is an EXACT-key match, and the key now carries this run's id,
+      # so it is false on every run by construction -- it would report "false"
+      # while a perfectly good cache was restored. The matched key is the one
+      # that answers the question actually being asked here: which run's
+      # history did this one start from, and did it start from any at all.
       - name: Report cache restore result
         run: |
-          echo "Cache restore result: ${{ steps.restore-price-cache.outputs.cache-hit }}"
+          MATCHED="${{ steps.restore-price-cache.outputs.cache-matched-key }}"
+          if [ -n "$MATCHED" ]; then
+            echo "Price cache restored from: $MATCHED"
+          else
+            echo "::warning::No price cache matched; this run rebuilds the history from scratch."
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v5
