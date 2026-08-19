@@ -108,11 +108,6 @@ def _fetch_mcap_from_pr_zip(target_date: datetime | date) -> dict[str, float]:
                 df = eq
 
         result: dict[str, float] = df.set_index(col_sym)[col_mcap].to_dict()
-
-        logger.info(
-            f"Loaded NSE PR market cap: {len(result)} stocks for {target_date.date()}"
-        )
-        return result
     except _NSEBlocked:
         raise
     except Exception as e:
@@ -123,6 +118,21 @@ def _fetch_mcap_from_pr_zip(target_date: datetime | date) -> dict[str, float]:
         )
         metrics.note(f"mcap_pr_error_{target_date.isoformat()}", type(e).__name__)
         return {}
+
+    # OUTSIDE the try, deliberately. This log line used to sit inside it and
+    # called target_date.date() -- but recent_trading_days() hands out
+    # datetime.date, which has no .date(). So every fetch downloaded the zip,
+    # opened it, parsed the CSV and built this dict, and then the LOGGING threw
+    # AttributeError, the handler caught it, and the caller got {}. NSE was
+    # answering perfectly every single day; the result was discarded on the way
+    # out the door, and the silence was read as "NSE blocks this host".
+    #
+    # Nothing that merely reports on a result belongs where it can destroy one.
+    logger.info(
+        "Loaded NSE PR market cap: %d stocks for %s", len(result), target_date
+    )
+    metrics.note("mcap_pr_fetched_date", target_date.isoformat())
+    return result
 
 
 def _is_mcap_cache_fresh() -> bool:
@@ -190,8 +200,14 @@ def fetch_mcaps_from_yfinance(symbols: Sequence[str]) -> pd.Series:
 
     The nightly job has the opposite trade-off: nobody is waiting on it, and it
     is the only place that can pay this cost once on everyone's behalf. When
-    NSE refuses the runner, this is how the caps still come back with a date
-    attached instead of being served undated forever.
+    NSE genuinely has nothing to give -- an outage, a real 403, an archive not
+    published yet at that hour -- this is how the caps still come back with a
+    date attached instead of being served undated.
+
+    It is a backstop, not the main road. NSE publishes the official figure;
+    this derives one from price x Yahoo's own share count. Measured on the
+    runner 2026-08-19, a full sweep resolved 400 of 750 symbols in 43s, which
+    is why the caller requires a coverage floor before adopting it.
     """
     resolved = _fetch_mcaps_yfinance(list(symbols))
     clean = {

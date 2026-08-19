@@ -67,11 +67,14 @@ def run_daily_sync() -> None:
     print(f"Market cap cache updated for {len(mcaps)} tickers.")
 
     # 5b. Commit the result to the repository.
-    # This job runs on GitHub Actions, where NSE is reachable. Production runs
-    # on Streamlit Cloud, whose IP NSE refuses, so it cannot fetch the PR
-    # archive itself and would otherwise fall back to 750 individual yfinance
-    # lookups -- the slowest stage of a cold start. Writing the snapshot here
-    # lets production read what this job already paid for.
+    # This job runs on GitHub Actions, where NSE is reachable. Whether
+    # production on Streamlit Cloud can reach it too is NOT established -- the
+    # claim that NSE refuses that host traces back to the same silent failure
+    # that turned out to be our own logging bug, so treat it as unverified
+    # until someone reads mcap_path from a live session. Either way, writing
+    # the snapshot here is worth it: production reads one committed file
+    # instead of making 750 individual yfinance lookups, the slowest stage of
+    # a cold start.
     from src.core import startup_metrics as _metrics
 
     _facts = _metrics.snapshot().get("facts", {})
@@ -88,17 +91,23 @@ def run_daily_sync() -> None:
         # fetched cleanly at 22:51 -- so the job read its own output and wrote
         # it straight back. A closed loop with no signal that the fetch failed.
         #
-        # But there is a second door. NSE refuses this runner's IP outright, so
-        # the PR archive is not "late", it is unreachable from here and always
-        # will be -- which left the caps permanently undated. Yahoo answers
-        # this runner perfectly well; the daily prices come from there. It is
-        # only ever skipped because it costs one request per company and the
-        # LIVE app cannot afford 750 of them on a cold start. This job can:
-        # nobody waits on it, and paying once here is what spares production
-        # from paying at all.
+        # A second door, for when the first genuinely will not open.
+        #
+        # Do NOT read this branch as evidence that NSE blocks CI. That was
+        # believed here for months and it was false: the archive answered every
+        # request, and a logging bug in _fetch_mcap_from_pr_zip threw the parsed
+        # result away, which looked identical to a refusal from out here.
+        # Measured 2026-08-19 from two different hosts: HTTP 200 and a valid
+        # 644,058 byte zip.
+        #
+        # So this fires for the cases that remain real -- an outage, a genuine
+        # 403, an archive still unpublished at this hour. Yahoo answers fine;
+        # the daily prices come from there. It is skipped everywhere else only
+        # because market cap has no bulk endpoint, so it costs one request per
+        # company and the LIVE app cannot spend 750 of those on a cold start.
         print(
-            "::warning::NSE refused the PR archive; asking Yahoo for the full "
-            "universe instead so the caps carry a date."
+            "::warning::No market caps from NSE; asking Yahoo for the full "
+            "universe instead so the caps still carry a date."
         )
         _started = time.perf_counter()
         _yf_caps = fetch_mcaps_from_yfinance(symbols)
