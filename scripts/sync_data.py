@@ -5,10 +5,16 @@ Executed locally or via GitHub Actions at 9:00 PM IST.
 
 import os
 import sys
+import time
 from datetime import datetime
 
 # Determine if a full 2‑year refresh is required (weekly run)
 FORCE_FULL = os.getenv("FORCE_FULL", "false").lower() == "true"
+# How much of the universe Yahoo must cover before its sweep may replace the
+# committed snapshot. A thin result would trade coverage for a date, and the
+# caps exist to say which size bucket a stock is in -- a stock with no cap at
+# all is worse than one whose cap is a day old.
+MIN_MCAP_COVERAGE = float(os.getenv("UMIYA_MIN_MCAP_COVERAGE", "0.9"))
 # Ensure repository root is in python path
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT_DIR not in sys.path:
@@ -16,7 +22,11 @@ if ROOT_DIR not in sys.path:
 
 from src.loaders.delivery_loader import fetch_delivery_data
 from src.loaders.indices_loader import fetch_indices_data, sync_official_nse_indices
-from src.loaders.mcap_loader import fetch_market_caps
+from src.core.market_time import recent_trading_days
+from src.loaders.mcap_loader import (
+    fetch_mcaps_from_yfinance,
+    fetch_market_caps,
+)
 from src.loaders.price_loader import fetch_price_history
 from src.loaders.tv_loader import reconcile_and_update_tv_classification
 
@@ -70,19 +80,54 @@ def run_daily_sync() -> None:
 
     if _mcap_path == "repo_snapshot":
         # The loader fell through to the file THIS JOB wrote last time, which
-        # means nothing new was fetched. Rewriting it would launder a stale
-        # snapshot as a fresh one and reset nothing but the commit date.
+        # means nothing new was fetched. Rewriting it as-is would launder a
+        # stale snapshot as a fresh one and reset nothing but the commit date.
         #
         # This is not hypothetical: on 2026-08-18 the 22:00 IST slot fired at
         # 22:29 and NSE had not yet published the PR archive -- the same file
         # fetched cleanly at 22:51 -- so the job read its own output and wrote
         # it straight back. A closed loop with no signal that the fetch failed.
+        #
+        # But there is a second door. NSE refuses this runner's IP outright, so
+        # the PR archive is not "late", it is unreachable from here and always
+        # will be -- which left the caps permanently undated. Yahoo answers
+        # this runner perfectly well; the daily prices come from there. It is
+        # only ever skipped because it costs one request per company and the
+        # LIVE app cannot afford 750 of them on a cold start. This job can:
+        # nobody waits on it, and paying once here is what spares production
+        # from paying at all.
         print(
-            "::warning::Market caps came from the repository snapshot, not a "
-            "fresh NSE fetch. The PR archive was unavailable at this hour. "
-            "Leaving the snapshot untouched rather than re-committing stale "
-            "data as if it were new."
+            "::warning::NSE refused the PR archive; asking Yahoo for the full "
+            "universe instead so the caps carry a date."
         )
+        _started = time.perf_counter()
+        _yf_caps = fetch_mcaps_from_yfinance(symbols)
+        _elapsed = time.perf_counter() - _started
+        _coverage = len(_yf_caps) / max(len(symbols), 1)
+        print(
+            f"Yahoo market cap sweep: {len(_yf_caps)}/{len(symbols)} resolved "
+            f"({_coverage:.0%}) in {_elapsed:.0f}s"
+        )
+
+        if _coverage >= MIN_MCAP_COVERAGE:
+            # Adopted WHOLESALE, never merged with the older snapshot. Keeping
+            # yesterday's rows for whatever Yahoo missed would put two
+            # different days under one AsOf, which is the exact dishonesty the
+            # guard above exists to prevent.
+            mcaps = _yf_caps
+            _mcap_path = "yfinance_sweep"
+            _as_of = recent_trading_days(1)[0].isoformat()
+        else:
+            print(
+                f"::warning::Yahoo covered only {_coverage:.0%} of the universe, "
+                f"below the {MIN_MCAP_COVERAGE:.0%} required to replace the "
+                "snapshot. Leaving the existing one untouched."
+            )
+
+    # Still the repo snapshot means neither door opened, so the committed file
+    # stands as it is -- undated, but not re-dated to today either.
+    if _mcap_path == "repo_snapshot":
+        print("No fresh market caps from either source; snapshot left untouched.")
     elif len(mcaps) > 0:
         import pandas as pd
 
@@ -98,6 +143,10 @@ def run_daily_sync() -> None:
         # Stamp the trade date this snapshot represents, so production can say
         # how old its market caps are instead of presenting them undated.
         snapshot["AsOf"] = _as_of or ""
+        # Which door the number came in through. NSE publishes the official
+        # figure; Yahoo derives it from price x its own share count, and a
+        # reader comparing the two deserves to know which they are looking at.
+        snapshot["Source"] = _mcap_path
         snapshot.to_csv(REPO_MCAP_FILE, index=False)
         print(
             f"Repository market cap snapshot written: {len(snapshot)} symbols "

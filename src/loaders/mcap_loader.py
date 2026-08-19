@@ -160,6 +160,30 @@ def _fetch_single_mcap(symbol: str) -> tuple[str, float]:
     return symbol, np.nan
 
 
+def fetch_mcaps_from_yfinance(symbols: Sequence[str]) -> pd.Series:
+    """Ask Yahoo for every symbol's market cap, ignoring every cache.
+
+    The layered fetch in fetch_market_caps deliberately reaches yfinance LAST
+    and only for symbols nothing else covered, because the live app cannot
+    afford 750 individual lookups on a cold start -- there is no bulk endpoint
+    for market cap the way there is for prices, so it is one request per
+    company.
+
+    The nightly job has the opposite trade-off: nobody is waiting on it, and it
+    is the only place that can pay this cost once on everyone's behalf. When
+    NSE refuses the runner, this is how the caps still come back with a date
+    attached instead of being served undated forever.
+    """
+    resolved = _fetch_mcaps_yfinance(list(symbols))
+    clean = {
+        s: float(v) for s, v in resolved.items()
+        if v is not None and not (isinstance(v, float) and np.isnan(v)) and float(v) > 0
+    }
+    metrics.note("mcap_yfinance_sweep_requested", len(symbols))
+    metrics.note("mcap_yfinance_sweep_resolved", len(clean))
+    return pd.Series(clean, dtype=float)
+
+
 def _fetch_mcaps_yfinance(symbols: Sequence[str]) -> dict[str, float]:
     """Multi-threaded yfinance market cap scraper."""
     if not symbols:
