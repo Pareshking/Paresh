@@ -33,13 +33,24 @@ jobs:
       # A step may declare `uses` or `run`, never both. Having both made this
       # workflow file invalid, so GitHub failed it on every push and the
       # nightly schedule never fired -- 200 consecutive failed runs.
+      #
+      # The key must CHANGE every run. actions/cache treats an entry as
+      # immutable: when the key already exists it skips the save outright --
+      # "Cache hit occurred on the primary key price-data-Linux, not saving
+      # cache", which this job logged on every run it ever made. The cached
+      # frame was therefore frozen on the day it was first written, while the
+      # incremental top-up had to re-fetch one more session for every day that
+      # passed since. run_id makes each run write its own entry; restore-keys
+      # falls back to the newest previous one, so the job still starts from
+      # the freshest history available.
       - name: Restore price cache
         id: restore-price-cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/data_cache/
-          key: price-data-${{ runner.os }}
+          key: price-data-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
+            price-data-${{ runner.os }}-
             price-data-
 
       - name: Report cache restore result
@@ -63,12 +74,16 @@ jobs:
         run: |
           python scripts/sync_data.py
 
+      # Explicitly save, with the SAME rotating key the restore asked for, so
+      # there is exactly one writer. Splitting restore from save also removes
+      # the combined action's own post-job save, which used to fire alongside
+      # this step and skip for the same reason.
       - name: Save price cache
         if: always()
-        uses: actions/cache@v4
+        uses: actions/cache/save@v4
         with:
           path: ${{ github.workspace }}/data_cache/
-          key: price-data-${{ runner.os }}
+          key: price-data-${{ runner.os }}-${{ github.run_id }}
 
       # Published as a release asset, not committed. At ~10.5 MB a daily commit
       # would add roughly 2.5 GB a year of git history to a repository against
