@@ -169,15 +169,19 @@ def test_table_symbol_opens_the_stock_page_by_injecting_into_the_host():
     assert "p.location.href" not in html
 
 
-def test_table_view_offers_a_native_route_that_needs_no_frame_permission():
-    """A guaranteed path, since the framed link already failed once silently."""
+def test_the_table_view_has_no_redundant_stock_picker():
+    """The picker was a fallback for a link that did not work.
+
+    Verified in a browser that clicking a symbol in table view now opens the
+    stock page, so the picker only cost vertical space above the table -- which
+    is exactly what is scarce on a phone.
+    """
     import inspect
 
     from src.ui.views import ranking_view
 
     src = inspect.getsource(ranking_view.render_ranking_view)
-    assert "rank_open_stock" in src
-    assert 'st.query_params["stock"]' in src
+    assert "rank_open_stock" not in src
 
 
 # ── Card grid reaches every stock ───────────────────────────────────────────

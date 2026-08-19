@@ -273,6 +273,31 @@ def inject_custom_css() -> None:
             margin-top: 0px !important;
         }
 
+        /* ── Phones get their screen back ──────────────────────────────────
+           1.5rem a side is 48px, and on a 412px phone that is 12% of the
+           display spent on empty margin -- measured, not estimated. The
+           screener table is the widest thing in the app and scrolls
+           horizontally inside its frame, so every pixel returned here is one
+           more pixel of columns visible before the reader has to scroll.
+           8px still reads as a gutter rather than content touching the bezel.
+
+           This has been the layout since the first commit; nothing recent
+           narrowed it. Verified by rendering both revisions at 412px, which
+           came out identical at 364px usable. */
+        @media (max-width: 640px) {
+            .main .block-container,
+            [data-testid="stMainBlockContainer"],
+            [data-testid="block-container"] {
+                padding-left: 0.5rem !important;
+                padding-right: 0.5rem !important;
+            }
+
+            /* The tab strip is the other fixed cost per row of the screen. */
+            .stTabs [data-baseweb="tab-list"] {
+                padding: 3px 3px !important;
+            }
+        }
+
         /* ── Sleek Top Tab Navigation Menu (Equally Spaced Menu Bar) ── */
         .stTabs [data-baseweb="tab-list"] {
             display: flex !important;
