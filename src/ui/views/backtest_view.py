@@ -471,6 +471,48 @@ def render_backtest_view(
     )
 
 
+# The sweep table carries raw stats: fractions for returns and drawdowns
+# (0.1234 == +12.34%), an already-scaled percentage for turnover. Rendered with
+# no column config they printed as bare decimals, so a 12% return and a 0.12
+# ratio were indistinguishable on screen. Scale the fractions for DISPLAY only
+# -- the CSV keeps the raw numbers, which is what you want to compute on.
+_SWEEP_FRACTION_COLS = ("Total Return", "Alpha", "Max DD", "Win Rate")
+
+
+def _sweep_display_frame(table: pd.DataFrame) -> pd.DataFrame:
+    disp = table.copy()
+    for col in _SWEEP_FRACTION_COLS + ("52W high floor",):
+        if col in disp.columns:
+            disp[col] = pd.to_numeric(disp[col], errors="coerce") * 100
+    return disp
+
+
+def _sweep_column_config() -> dict:
+    n = st.column_config.NumberColumn
+    return {
+        "Rank": n("Rank", format="%.0f"),
+        "Holdings": n("Holdings", format="%.0f"),
+        "Rebalance": n("Rebalance", help="Trading days between rebalances", format="%.0f"),
+        "EMA filter": n("EMA filter", format="%.0f"),
+        "52W high floor": n("52W high floor", format="%.0f%%"),
+        "Cost (bps)": n("Cost (bps)", format="%.0f"),
+        "Buffer": n("Buffer", format="%.0f"),
+        "Score": n("Score", help="The objective being maximised", format="%.3f"),
+        "Sharpe": n("Sharpe", format="%.2f"),
+        "Total Return": n("Total Return", format="%.1f%%"),
+        "Alpha": n("Alpha", help="vs the Nifty 500 benchmark", format="%.1f%%"),
+        "Max DD": n("Max DD", format="%.1f%%"),
+        "Calmar": n("Calmar", format="%.2f"),
+        "Win Rate": n("Win Rate", format="%.0f%%"),
+        "Turnover": n("Turnover", help="Average per rebalance", format="%.1f%%"),
+        "Periods": n("Periods", format="%.0f"),
+        "In-sample Score": n("In-sample Score", format="%.3f"),
+        "Out-of-sample Score": n("Out-of-sample Score", format="%.3f"),
+        "In-sample Rank": n("In-sample Rank", format="%.0f"),
+        "Out-of-sample Rank": n("Out-of-sample Rank", format="%.0f"),
+    }
+
+
 def _render_parameter_sweep(
     adj_close,
     benchmark_close,
@@ -513,6 +555,18 @@ def _render_parameter_sweep(
         objective = c6.selectbox("Optimise For", list(OBJECTIVES),
                                  index=0, key="sweep_objective")
 
+        use_holdout = st.checkbox(
+            "Validate the winner on a holdout half",
+            value=True,
+            key="sweep_holdout",
+            help=(
+                "Splits the window in two, ranks the whole grid on each half, and "
+                "reports where the in-sample winner landed in the half it never "
+                "saw. This is the only check here that separates a real setting "
+                "from a lucky one. It roughly doubles the run time."
+            ),
+        )
+
         space = {}
         if len(holdings) > 1 or (holdings and holdings != [base["top_n"]]):
             space["Holdings"] = holdings
@@ -535,7 +589,13 @@ def _render_parameter_sweep(
         # BEFORE the click, not with a spinner afterwards.
         st.markdown(
             f"**{n_combos}** combination{'s' if n_combos != 1 else ''} — "
-            f"each one a full walk-forward backtest."
+            f"each one a full walk-forward backtest"
+            + (
+                ", scored three times over (full window, in-sample half, "
+                "out-of-sample half)."
+                if use_holdout
+                else "."
+            )
         )
         if n_combos > 100:
             st.warning(
@@ -556,7 +616,7 @@ def _render_parameter_sweep(
             result = run_parameter_sweep(
                 adj_close, space, objective=objective, base=dict(base),
                 sector_map=sector_map, _benchmark_close=benchmark_close,
-                progress=_tick,
+                progress=_tick, holdout=use_holdout,
             )
         except ValueError as exc:
             bar.empty()
@@ -590,7 +650,48 @@ def _render_parameter_sweep(
         for w in result.warnings:
             st.caption(f"⚠️ {w}")
 
-        st.dataframe(result.table, width="stretch", hide_index=True)
+        if result.holdout_detail:
+            rho = result.holdout_rho
+            ho_clr = (
+                "#64748b" if rho is None
+                else "#dc2626" if rho < 0.2
+                else "#d97706" if rho < 0.5
+                else "#059669"
+            )
+            st.markdown(
+                f"<div style=\"border-left: 3px solid {ho_clr}; background: {ho_clr}0D; "
+                f"padding: 10px 14px; border-radius: 6px; margin: 10px 0; "
+                f"font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem;\">"
+                f"<strong style=\"color:{ho_clr};\">Holdout check</strong>"
+                f"<div style=\"color:#475569; margin-top:4px;\">{result.holdout_detail}</div>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+
+        st.dataframe(
+            _sweep_display_frame(result.table),
+            width="stretch",
+            hide_index=True,
+            column_config=_sweep_column_config(),
+        )
+
+        if result.holdout is not None and not result.holdout.empty:
+            with st.expander(
+                "🎯 Holdout detail — how each combination ranked in each half",
+                expanded=False,
+            ):
+                st.caption(
+                    "A combination near the top of both columns is reproducible. "
+                    "One that tops the in-sample half and sinks in the other was "
+                    "fitted to the first half of the window."
+                )
+                st.dataframe(
+                    _sweep_display_frame(result.holdout),
+                    width="stretch",
+                    hide_index=True,
+                    column_config=_sweep_column_config(),
+                )
+
         st.download_button(
             f"Download sweep results ({len(result.table)} rows)",
             result.table.to_csv(index=False).encode(),

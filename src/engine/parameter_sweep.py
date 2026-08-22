@@ -31,7 +31,11 @@ from typing import Any, Sequence
 import numpy as np
 import pandas as pd
 
-from src.engine.backtester import DEFAULT_BACKTEST_MONTHS, run_backtest
+from src.engine.backtester import (
+    DEFAULT_BACKTEST_MONTHS,
+    completed_month_window,
+    run_backtest,
+)
 
 # What a sweep is allowed to vary. Each entry maps a friendly name to the
 # run_backtest keyword it drives.
@@ -67,6 +71,8 @@ class SweepResult:
     overfitting_risk: str = "unknown"
     risk_detail: str = ""
     holdout: pd.DataFrame | None = None
+    holdout_detail: str = ""
+    holdout_rho: float | None = None
     warnings: list[str] = field(default_factory=list)
 
 
@@ -114,58 +120,40 @@ def _score(stats: dict[str, Any], objective: str) -> float:
     return val if np.isfinite(val) else float("nan")
 
 
-def run_parameter_sweep(
-    _adj_close: pd.DataFrame,
-    space: dict[str, Sequence[Any]],
+def _combo_key(combo: dict[str, Any]) -> str:
+    return "_".join(f"{k}={v}" for k, v in sorted(combo.items()))
+
+
+def _score_grid(
+    prices: pd.DataFrame,
+    combos: list[dict[str, Any]],
     *,
-    objective: str = "Sharpe",
-    base: dict[str, Any] | None = None,
-    backtest_months: int = DEFAULT_BACKTEST_MONTHS,
-    sector_map: dict[str, str] | None = None,
-    _benchmark_close: pd.Series | None = None,
-    max_combinations: int = 400,
+    fixed: dict[str, Any],
+    objective: str,
+    backtest_months: int,
+    sector_map: dict[str, str] | None,
+    benchmark_close: pd.Series | None,
+    cache_tag: str,
     progress: Any = None,
-) -> SweepResult:
-    """Backtest every combination in `space` and rank them by `objective`.
-
-    `space` maps names from SWEEPABLE to the values to try. `base` supplies the
-    parameters held fixed. Returns every result, not only the winner.
-    """
-    combos = _grid(space)
-    warnings: list[str] = []
-
-    if not combos:
-        return SweepResult(pd.DataFrame(), objective, backtest_months, 0, 0,
-                           warnings=["No parameters were varied."])
-    if len(combos) > max_combinations:
-        raise ValueError(
-            f"{len(combos)} combinations exceeds max_combinations={max_combinations}. "
-            "Narrow the grid: every combination is a full backtest, and a larger "
-            "grid also makes the winner more likely to be noise."
-        )
-
-    fixed = dict(base or {})
+    progress_span: tuple[float, float] = (0.0, 1.0),
+    progress_label: str = "",
+) -> tuple[pd.DataFrame, int, Counter]:
+    """Backtest every combination over one window and rank them best-first."""
     rows: list[dict[str, Any]] = []
     failed = 0
     failure_reasons: Counter[str] = Counter()
-    # Identify the data AND the fixed parameters, so a sweep cannot be served
-    # another sweep's memoised backtests.
-    fingerprint = _prices_fingerprint(_adj_close)
-    base_key = hashlib.md5(
-        f"{sorted((k, str(v)) for k, v in fixed.items())}|{backtest_months}".encode()
-    ).hexdigest()[:8]
+    lo, hi = progress_span
 
     for i, combo in enumerate(combos):
         kwargs = dict(fixed)
         for friendly, value in combo.items():
             kwargs[SWEEPABLE[friendly]] = value
         try:
-            combo_key = "_".join(f"{k}={v}" for k, v in sorted(combo.items()))
             res = run_backtest(
-                f"sweep-{fingerprint}-{base_key}-{combo_key}",
-                _adj_close,
+                f"{cache_tag}-{_combo_key(combo)}",
+                prices,
                 sector_map=sector_map,
-                _benchmark_close=_benchmark_close,
+                _benchmark_close=benchmark_close,
                 backtest_months=backtest_months,
                 **kwargs,
             )
@@ -178,7 +166,8 @@ def run_parameter_sweep(
             failure_reasons[f"{type(exc).__name__}: {exc}"[:120]] += 1
         if progress is not None:
             try:
-                progress((i + 1) / len(combos), f"{i + 1}/{len(combos)} combinations")
+                frac = lo + (hi - lo) * (i + 1) / len(combos)
+                progress(frac, f"{progress_label}{i + 1}/{len(combos)} combinations")
             except Exception:
                 pass
         if not res or not res.get("stats"):
@@ -201,6 +190,191 @@ def run_parameter_sweep(
         })
 
     if not rows:
+        return pd.DataFrame(), failed, failure_reasons
+
+    table = pd.DataFrame(rows).sort_values("Score", ascending=False, na_position="last")
+    table = table.reset_index(drop=True)
+    table.insert(0, "Rank", range(1, len(table) + 1))
+    return table, failed, failure_reasons
+
+
+def _holdout_frames(
+    prices: pd.DataFrame, window_months: int
+) -> tuple[pd.DataFrame, int, int] | None:
+    """Split the reported window: earlier half in sample, later half out.
+
+    run_backtest always reports the last N COMPLETED months of whatever frame
+    it is handed, so the earlier half is obtained by truncating the frame one
+    session INTO the later half. That session's month becomes the "month in
+    progress" the window rule already excludes, and the run lands exactly on
+    the earlier half. Formation history before the split is untouched -- an
+    in-sample rebalance still scores on a full 12-month lookback.
+
+    Returns (in-sample frame, in-sample months, out-of-sample months), or None
+    when the window is too short to divide.
+    """
+    if window_months < 2:
+        return None
+    dates = pd.DatetimeIndex(prices.index)
+    if len(dates) == 0:
+        return None
+    oos_months = window_months // 2
+    is_months = window_months - oos_months
+    oos_start, _ = completed_month_window(dates, oos_months)
+    cut = int(dates.searchsorted(oos_start, side="left"))
+    if cut <= 0 or cut >= len(dates):
+        return None
+    return prices.iloc[: cut + 1], is_months, oos_months
+
+
+def assess_holdout(
+    in_sample: pd.DataFrame, out_sample: pd.DataFrame
+) -> tuple[pd.DataFrame | None, str, float | None]:
+    """Did the in-sample winner survive the half of the window it never saw?
+
+    Two numbers, because they answer different questions. The winner's
+    out-of-sample RANK says whether that specific setting held up. The rank
+    CORRELATION across the whole grid says whether the ranking means anything
+    at all -- a sweep can promote a lucky winner and still be measuring
+    something real, or rank every combination independently in each half, which
+    is what fitting noise looks like.
+    """
+    if in_sample.empty or out_sample.empty:
+        return None, "One half of the window produced no results; nothing to compare.", None
+
+    param_cols = [
+        c for c in in_sample.columns
+        if c in SWEEPABLE and c in out_sample.columns
+    ]
+    if not param_cols:
+        return None, "No shared parameters between the two halves.", None
+
+    left = in_sample[param_cols + ["Rank", "Score"]].rename(
+        columns={"Rank": "In-sample Rank", "Score": "In-sample Score"}
+    )
+    right = out_sample[param_cols + ["Rank", "Score"]].rename(
+        columns={"Rank": "Out-of-sample Rank", "Score": "Out-of-sample Score"}
+    )
+    merged = left.merge(right, on=param_cols, how="inner")
+    n = len(merged)
+    if n < 3:
+        return (
+            merged if n else None,
+            f"Only {n} combination(s) scored in both halves -- too few to judge.",
+            None,
+        )
+
+    merged = merged.sort_values("In-sample Rank").reset_index(drop=True)
+    rho = float(
+        merged["In-sample Rank"].corr(merged["Out-of-sample Rank"], method="spearman")
+    )
+    if not np.isfinite(rho):
+        rho = None
+
+    winner = merged.iloc[0]
+    oos_rank = int(winner["Out-of-sample Rank"])
+
+    if oos_rank <= max(1, round(n * 0.25)):
+        verdict = (
+            f"The in-sample winner ranked #{oos_rank} of {n} in the half it never "
+            "saw -- it held up."
+        )
+    elif oos_rank >= n / 2:
+        verdict = (
+            f"The in-sample winner ranked #{oos_rank} of {n} in the half it never "
+            "saw -- mid-table or worse. It was fitted to the first half."
+        )
+    else:
+        verdict = (
+            f"The in-sample winner ranked #{oos_rank} of {n} in the half it never "
+            "saw -- neither vindicated nor discredited."
+        )
+
+    if rho is None:
+        pass
+    elif rho < 0.2:
+        verdict += (
+            f" Across the whole grid the two halves rank the parameters almost "
+            f"independently (Spearman rho = {rho:+.2f}), so the ranking itself does "
+            "not persist -- treat ANY winner here as noise."
+        )
+    elif rho < 0.5:
+        verdict += (
+            f" Grid-wide rank correlation between the halves is weak "
+            f"(rho = {rho:+.2f})."
+        )
+    else:
+        verdict += (
+            f" Grid-wide rank correlation between the halves is {rho:+.2f}, so the "
+            "ordering is at least reproducible."
+        )
+    return merged, verdict, rho
+
+
+def run_parameter_sweep(
+    _adj_close: pd.DataFrame,
+    space: dict[str, Sequence[Any]],
+    *,
+    objective: str = "Sharpe",
+    base: dict[str, Any] | None = None,
+    backtest_months: int = DEFAULT_BACKTEST_MONTHS,
+    sector_map: dict[str, str] | None = None,
+    _benchmark_close: pd.Series | None = None,
+    max_combinations: int = 400,
+    progress: Any = None,
+    holdout: bool = False,
+) -> SweepResult:
+    """Backtest every combination in `space` and rank them by `objective`.
+
+    `space` maps names from SWEEPABLE to the values to try. `base` supplies the
+    parameters held fixed. Returns every result, not only the winner.
+
+    With `holdout=True` the reported window is also split in half and the whole
+    grid is scored twice more -- once on the earlier half, once on the later
+    one -- so the winner can be checked against data its ranking never saw.
+    That roughly doubles the run time, and it is the only guard here that can
+    distinguish a real setting from a lucky one.
+    """
+    combos = _grid(space)
+    warnings: list[str] = []
+
+    if not combos:
+        return SweepResult(pd.DataFrame(), objective, backtest_months, 0, 0,
+                           warnings=["No parameters were varied."])
+    if len(combos) > max_combinations:
+        raise ValueError(
+            f"{len(combos)} combinations exceeds max_combinations={max_combinations}. "
+            "Narrow the grid: every combination is a full backtest, and a larger "
+            "grid also makes the winner more likely to be noise."
+        )
+
+    fixed = dict(base or {})
+    # Identify the data AND the fixed parameters, so a sweep cannot be served
+    # another sweep's memoised backtests.
+    fingerprint = _prices_fingerprint(_adj_close)
+    base_key = hashlib.md5(
+        f"{sorted((k, str(v)) for k, v in fixed.items())}|{backtest_months}".encode()
+    ).hexdigest()[:8]
+    grid_kwargs = dict(
+        fixed=fixed,
+        objective=objective,
+        sector_map=sector_map,
+        benchmark_close=_benchmark_close,
+        progress=progress,
+    )
+    # The holdout scores the grid twice more, so the full-window pass owns only
+    # the first half of the progress bar when it is enabled.
+    main_span = (0.0, 0.5) if holdout else (0.0, 1.0)
+
+    table, failed, failure_reasons = _score_grid(
+        _adj_close, combos,
+        backtest_months=backtest_months,
+        cache_tag=f"sweep-{fingerprint}-{base_key}",
+        progress_span=main_span,
+        **grid_kwargs,
+    )
+
+    if table.empty:
         warnings.append(
             "Every combination failed to produce a backtest, usually insufficient "
             "price history for the formation window."
@@ -210,11 +384,44 @@ def run_parameter_sweep(
         return SweepResult(pd.DataFrame(), objective, backtest_months,
                            len(combos), failed, warnings=warnings)
 
-    table = pd.DataFrame(rows).sort_values("Score", ascending=False, na_position="last")
-    table = table.reset_index(drop=True)
-    table.insert(0, "Rank", range(1, len(table) + 1))
-
     best = table.iloc[0].to_dict()
+
+    # ── Holdout: score the same grid on each half of the window ─────────────
+    holdout_table: pd.DataFrame | None = None
+    holdout_detail = ""
+    holdout_rho: float | None = None
+    if holdout:
+        split = _holdout_frames(_adj_close, backtest_months)
+        if split is None:
+            warnings.append(
+                f"A {backtest_months}-month window cannot be split into two "
+                "halves, so no holdout was run."
+            )
+        else:
+            prices_is, is_months, oos_months = split
+            is_table, _, _ = _score_grid(
+                prices_is, combos,
+                backtest_months=is_months,
+                cache_tag=f"sweep-{fingerprint}-{base_key}-is{is_months}",
+                progress_span=(0.5, 0.75),
+                progress_label="in-sample half: ",
+                **grid_kwargs,
+            )
+            oos_table, _, _ = _score_grid(
+                _adj_close, combos,
+                backtest_months=oos_months,
+                cache_tag=f"sweep-{fingerprint}-{base_key}-oos{oos_months}",
+                progress_span=(0.75, 1.0),
+                progress_label="out-of-sample half: ",
+                **grid_kwargs,
+            )
+            holdout_table, holdout_detail, holdout_rho = assess_holdout(
+                is_table, oos_table
+            )
+            holdout_detail = (
+                f"Earlier {is_months} months in sample, later {oos_months} months "
+                f"out of sample. {holdout_detail}"
+            )
     risk, detail = assess_overfitting(table, len(combos))
     if failed:
         warnings.append(f"{failed} of {len(combos)} combinations produced no result.")
@@ -235,6 +442,9 @@ def run_parameter_sweep(
         best=best,
         overfitting_risk=risk,
         risk_detail=detail,
+        holdout=holdout_table,
+        holdout_detail=holdout_detail,
+        holdout_rho=holdout_rho,
         warnings=warnings,
     )
 
