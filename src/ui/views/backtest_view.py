@@ -272,6 +272,10 @@ def render_backtest_view(
                     if "Status" in ct_df.columns
                     else ct_df
                 )
+                # A trade whose fill price is missing has a NaN return, not a
+                # zero one. Leaving it in the base counts it as a loss in the
+                # win rate while contributing nothing to either P&L total.
+                closed_only = closed_only[closed_only["Return %"].notna()]
                 if not closed_only.empty and "Return %" in closed_only.columns:
                     n_closed = len(closed_only)
                     wins = closed_only[closed_only["Return %"] > 0]
@@ -432,7 +436,11 @@ def render_backtest_view(
     with st.expander("ℹ️ Backtest Methodology & Mathematical Assumptions"):
         st.markdown(
             "**Zero Look-Ahead Execution**: At each rebalance date $T$, stocks are ranked using closing prices strictly up to $T$. "
-            "Portfolio positions are established at $T+1$ (next trading day), completely eliminating look-ahead bias.\n\n"
+            "Positions are filled at the $T+1$ close, so the first session they earn anything in is $T+2$ — the $T \\rightarrow T+1$ move "
+            "happens before the book exists and is not credited to it.\n\n"
+            "**Fill-to-fill accounting**: every period runs from one fill to the next, which is why a period's end date is the following "
+            "period's start date. Each stock's realized return is exactly its exit fill divided by its entry fill, and the per-period "
+            "strategy return is those same fills weighted — the tradebook and the equity curve are one calculation, not two.\n\n"
             f"**Transaction Cost Drag**: Deducts **{cost_drag_bps:.0f} bps** per unit of turnover (reflecting STT, Exchange fees, GST, Stamp duty, and slippage).\n\n"
             f"**Rank Persistence Buffer**: Top **{int(bt_n * buffer_mult)}** buffer zone prevents unnecessary trading when stocks oscillate around the rank threshold."
         )

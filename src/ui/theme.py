@@ -1797,6 +1797,64 @@ document.addEventListener('DOMContentLoaded', function() {{
     st.iframe(full_page_html, height=max_height)
 
 
+# ── Percentage units ────────────────────────────────────────────────────────
+# Two conventions meet in these tables. Some columns carry a FRACTION (0.0734
+# means +7.34%); others carry a value already multiplied by 100 (7.34 means
+# +7.34%). The renderer used to tell them apart by magnitude -- "<= 1.0, so it
+# must be a fraction" -- and magnitude cannot recover a unit. It failed on
+# precisely the rows that matter most:
+#
+#   Return % = 1.31 on a stock that gained 131%  ->  printed "+1.3%"
+#   Max DD 3M = -0.8, an 0.8% drawdown           ->  printed "-80.0%"
+#
+# so a multibagger read as a rounding error, and the blotter's entry and exit
+# prices refused to reconcile with the return beside them. The unit is a
+# property of the column, so it is declared per column here. Anything not
+# listed falls back to the magnitude guess, which is right for the ordinary
+# case of a return between -100% and +100%.
+FRACTION_PERCENT_COLUMNS: frozenset[str] = frozenset({
+    # Backtest — trades, periods and stats
+    "RETURN %", "STRATEGY NET", "BENCHMARK", "ALPHA VS BENCHMARK",
+    "TOTAL RETURN", "GROSS RETURN", "NET RETURN", "ALPHA", "OUTPERFORM",
+    "CAGR", "ANN RETURN", "WIN RATE", "MAX DRAWDOWN", "MAX DD",
+    "6M NET RETURN", "6M ALPHA",
+})
+
+SCALED_PERCENT_COLUMNS: frozenset[str] = frozenset({
+    # Already multiplied by 100 at source
+    "TURNOVER", "TURNOVER %", "COST DRAG %", "WEIGHT %",
+    "% HIGH", "% ATH", "% 50 EMA", "% 20 EMA", "% 52W HIGH",
+    "ATR %", "PERSISTENCE", "FFILL %",
+    "DEL %", "DEL% 20D AVG", "DEL% PREV20D",
+    "DAY CHG %", "PRICE_CHG_%",
+})
+
+# Window-parameterised families, so adding a horizon to MOMENTUM_WINDOWS does
+# not silently reintroduce the guess for that column.
+_FRACTION_PATTERNS = (re.compile(r"^\d+M RETURN$"),)
+_SCALED_PATTERNS = (re.compile(r"^MAX DD \d+M$"),)
+
+
+def percent_unit(column: object) -> str | None:
+    """"fraction", "scaled", or None when the column has not declared a unit."""
+    name = str(column).strip().upper()
+    if name in FRACTION_PERCENT_COLUMNS or any(
+        p.match(name) for p in _FRACTION_PATTERNS
+    ):
+        return "fraction"
+    if name in SCALED_PERCENT_COLUMNS or any(p.match(name) for p in _SCALED_PATTERNS):
+        return "scaled"
+    return None
+
+
+# Per-share prices are quoted to the paisa. Rounding them to the rupee -- which
+# is what "two decimals only below 100" did to every stock above 100 rupees --
+# means an entry of 157.65 and an exit of 168.40 print as 158 and 168, and the
+# +6.8% beside them looks wrong because, at the precision shown, it is.
+_PER_SHARE_PRICE_KEYS = ("CMP", "PRICE", "STOP LOSS", "CHAND", "ENTRY", "EXIT")
+_AGGREGATE_MONEY_KEYS = ("VALUE", "CAPITAL", "MCAP")
+
+
 def render_saas_table(
     df: pd.DataFrame,
     key: str = "saas_table",
@@ -1964,7 +2022,13 @@ def render_saas_table(
                         if val > 0
                         else ("ret-neg" if val < 0 else "text-muted")
                     )
-                    if abs(val) <= 1.0 and val != 0:
+                    unit = percent_unit(col)
+                    as_fraction = (
+                        unit == "fraction"
+                        if unit is not None
+                        else (abs(val) <= 1.0 and val != 0)
+                    )
+                    if as_fraction:
                         cells_html.append(
                             f'<td class="td-right {clr}"><strong>{val:+.1%}</strong></td>'
                         )
@@ -1994,41 +2058,36 @@ def render_saas_table(
                         if any(w in c_str for w in ["DD", "DRAWDOWN", "DRAG"])
                         else ""
                     )
-                    if (
-                        abs(val) <= 1.0
-                        and val != 0
-                        and not any(
-                            k in c_str
-                            for k in [
-                                "DEL",
-                                "TURNOVER",
-                                "DRAG",
-                                "FFILL",
-                                "EMA",
-                                "HIGH",
-                                "%",
-                            ]
+                    unit = percent_unit(col)
+                    as_fraction = (
+                        unit == "fraction"
+                        if unit is not None
+                        else (
+                            abs(val) <= 1.0
+                            and val != 0
+                            and not any(
+                                k in c_str
+                                for k in [
+                                    "DEL",
+                                    "TURNOVER",
+                                    "DRAG",
+                                    "FFILL",
+                                    "EMA",
+                                    "HIGH",
+                                    "%",
+                                ]
+                            )
                         )
-                    ):
+                    )
+                    if as_fraction:
                         cells_html.append(f'<td class="td-right {clr}">{val:.1%}</td>')
                     else:
                         cells_html.append(f'<td class="td-right {clr}">{val:.1f}%</td>')
                 # 3. Currency / Prices (e.g. CMP, Entry Price, Exit Price, Value, Capital)
                 elif any(
-                    w in c_str
-                    for w in [
-                        "CMP",
-                        "VALUE",
-                        "PRICE",
-                        "CAPITAL",
-                        "MCAP",
-                        "STOP LOSS",
-                        "CHAND",
-                        "ENTRY",
-                        "EXIT",
-                    ]
+                    w in c_str for w in _PER_SHARE_PRICE_KEYS + _AGGREGATE_MONEY_KEYS
                 ):
-                    if abs(val) < 100 and abs(val) > 0:
+                    if any(w in c_str for w in _PER_SHARE_PRICE_KEYS):
                         cells_html.append(
                             f'<td class="td-right">₹{float(val):,.2f}</td>'
                         )

@@ -82,6 +82,37 @@ def _calendar_period_sharpe(
     return sharpe, start_idx
 
 
+def _fill_price(prices: pd.DataFrame, symbol: str, idx: int) -> float:
+    """The price a fill is struck at, or NaN when the tape has nothing to fill on.
+
+    Yahoo holes sessions routinely, and `float(prices[s].iloc[idx])` on a holed
+    session returned NaN, which the callers then fed into `if p_entry > 0` --
+    False for NaN -- and logged the trade as a flat 0.00% round trip. A
+    fabricated zero in a blotter is worse than a gap: it lands in the win rate,
+    the profit factor and the average-loss figure as a real, uneventful trade.
+    So carry the last real print forward (a stock that has not traded is filled
+    at the last price it traded at), and if there is no earlier print at all,
+    return NaN and let the trade report NaN.
+    """
+    if symbol not in prices.columns or idx >= len(prices):
+        return float("nan")
+    col = prices[symbol]
+    value = col.iloc[idx]
+    if pd.isna(value):
+        prior = col.iloc[: idx + 1].dropna()
+        if prior.empty:
+            return float("nan")
+        value = prior.iloc[-1]
+    return float(value)
+
+
+def _round_trip_return(entry: float, exit_: float) -> float:
+    """Realised return, or NaN when either leg has no price. Never a fake 0%."""
+    if not np.isfinite(entry) or not np.isfinite(exit_) or entry <= 0:
+        return float("nan")
+    return (exit_ / entry) - 1.0
+
+
 def _composite_z_score(
     prices: pd.DataFrame,
     log_returns: pd.DataFrame,
@@ -198,12 +229,15 @@ def run_backtest(
         return None
 
     # The final holding period must stop at the window, not run into the month
-    # in progress.
+    # in progress. searchsorted(..., "right") is an EXCLUSIVE bound, so the last
+    # session the simulation may touch is one before it.
     hard_end_idx = int(dates.searchsorted(window_end, side="right"))
+    last_sim_idx = min(hard_end_idx - 1, len(prices) - 1)
 
     strat_net_daily: list[float] = []
     strat_gross_daily: list[float] = []
     bench_daily: list[float] = []
+    equity_dates: list[pd.Timestamp] = []
     period_records: list[dict[str, Any]] = []
     trade_records: list[dict[str, Any]] = []
     closed_trades: list[dict[str, Any]] = []
@@ -215,10 +249,22 @@ def run_backtest(
     effective_buffer = buffer_n if buffer_n is not None else int(top_n * 1.5)
 
     for i, start_idx in enumerate(rebal_dates):
-        fwd_start = start_idx + 1  # Key: Zero look-ahead - trade on T+1
-        fwd_end = rebal_dates[i + 1] + 1 if i + 1 < len(rebal_dates) else len(prices)
-        fwd_end = min(fwd_end, len(prices), hard_end_idx)
-        if fwd_end <= fwd_start:
+        # Three distinct indices, previously collapsed into two:
+        #   start_idx  T    -- the signal date; every filter and score reads it
+        #   fwd_start  T+1  -- the FILL. Entry and exit prices are struck here.
+        #   exit_idx        -- the fill that closes this holding (the next
+        #                      rebalance's T+1, or the end of the window).
+        # The position is bought at the T+1 CLOSE, so the first day it can earn
+        # anything is T+2. Accruing from T+1 -- which is what a single
+        # fwd_start did -- credited the portfolio the T -> T+1 move, i.e. it
+        # bought at the close of the very session it ranked on. That is the
+        # look-ahead this engine claims not to have, and it also made the
+        # equity curve disagree with the tradebook: a stock logged as bought at
+        # T+1 and sold at T'+1 contributed P[T']/P[T] to the return series.
+        fwd_start = start_idx + 1  # Key: Zero look-ahead - fill on T+1
+        exit_idx = rebal_dates[i + 1] + 1 if i + 1 < len(rebal_dates) else last_sim_idx
+        exit_idx = min(exit_idx, last_sim_idx)
+        if exit_idx <= fwd_start:
             continue
 
         _p = prices.iloc[start_idx]
@@ -242,7 +288,8 @@ def run_backtest(
 
         full_ranked = score.sort_values(ascending=False)
         if full_ranked.empty:
-            for j in range(fwd_start, fwd_end):
+            for j in range(fwd_start + 1, exit_idx + 1):
+                equity_dates.append(prices.index[j])
                 strat_net_daily.append(0.0)
                 strat_gross_daily.append(0.0)
                 bench_daily.append(
@@ -302,8 +349,11 @@ def run_backtest(
         exits = [s for s in prev_holdings if s not in holdings]
         holds = [s for s in holdings if s in prev_holdings]
 
-        p_start_dt = prices.index[fwd_start] if fwd_start < len(prices) else None
-        p_end_dt = prices.index[min(fwd_end - 1, len(prices) - 1)]
+        # Both endpoints are fills: bought at the close of p_start_dt, sold at
+        # the close of p_end_dt. The period return is exactly what a position
+        # held between those two prints earned.
+        p_start_dt = prices.index[fwd_start]
+        p_end_dt = prices.index[exit_idx]
         period_lbl = (
             f"{p_start_dt:%d %b %Y} → {p_end_dt:%d %b %Y}"
             if p_start_dt
@@ -312,11 +362,7 @@ def run_backtest(
 
         # Record Exits & Closed Round-Trip Returns
         for s in exits:
-            p_exit = (
-                float(prices[s].iloc[fwd_start])
-                if (fwd_start < len(prices) and s in prices.columns)
-                else float(prices[s].iloc[start_idx])
-            )
+            p_exit = _fill_price(prices, s, fwd_start)
             if s in full_ranked.index:
                 rk = full_ranked.index.get_loc(s) + 1
                 reason = f"Rank Dropped (#{rk} > Buffer {effective_buffer})"
@@ -331,7 +377,7 @@ def run_backtest(
             if pos:
                 p_entry = pos["entry_price"]
                 entry_dt = pos["entry_date"]
-                ret_pct = ((p_exit / p_entry) - 1) if p_entry > 0 else 0.0
+                ret_pct = _round_trip_return(p_entry, p_exit)
                 h_days = (
                     (p_start_dt - entry_dt).days
                     if (p_start_dt and entry_dt)
@@ -373,11 +419,7 @@ def run_backtest(
 
         # Record Entries
         for s in entries:
-            p_entry = (
-                float(prices[s].iloc[fwd_start])
-                if (fwd_start < len(prices) and s in prices.columns)
-                else float(prices[s].iloc[start_idx])
-            )
+            p_entry = _fill_price(prices, s, fwd_start)
             rk = full_ranked.index.get_loc(s) + 1 if s in full_ranked.index else 1
             w_val = float(wts.get(s, 0.0)) * 100
 
@@ -404,16 +446,12 @@ def run_backtest(
 
         # Record Holds
         for s in holds:
-            p_curr = (
-                float(prices[s].iloc[fwd_start])
-                if (fwd_start < len(prices) and s in prices.columns)
-                else float(prices[s].iloc[start_idx])
-            )
+            p_curr = _fill_price(prices, s, fwd_start)
             rk = full_ranked.index.get_loc(s) + 1 if s in full_ranked.index else "—"
             w_val = float(wts.get(s, 0.0)) * 100
             pos = open_positions.get(s)
             p_entry = pos["entry_price"] if pos else p_curr
-            unrealized_ret = ((p_curr / p_entry) - 1) if p_entry > 0 else 0.0
+            unrealized_ret = _round_trip_return(p_entry, p_curr)
             trade_records.append(
                 {
                     "Period": period_lbl,
@@ -429,11 +467,14 @@ def run_backtest(
 
         prev_holdings = holdings
 
-        # ── Measure Forward Daily Returns (T+1 to T') ────────────────────────
+        # ── Measure Held Returns (fill at T+1 through the closing fill) ──────
+        # The first accrual day is T+2: the position was bought at the T+1
+        # close, so the T+1 bar itself belongs to whoever held it before.
         period_strat_rets: list[float] = []
-        for d_idx, j in enumerate(range(fwd_start, fwd_end)):
+        for d_idx, j in enumerate(range(fwd_start + 1, exit_idx + 1)):
             if j >= len(daily_ret):
                 break
+            equity_dates.append(prices.index[j])
             _dr = daily_ret.iloc[j]
             avail = [s for s in holdings if s in _dr.index and pd.notna(_dr[s])]
             gross_r = float((_dr[avail] * wts[avail]).sum()) if avail else 0.0
@@ -451,8 +492,8 @@ def run_backtest(
             s_ret_c = float(np.prod([1 + r for r in period_strat_rets]) - 1)
             b_rets = [
                 float(benchmark_ret.iloc[j])
-                for j in range(fwd_start, min(fwd_end, len(benchmark_ret)))
-                if j < len(benchmark_ret) and pd.notna(benchmark_ret.iloc[j])
+                for j in range(fwd_start + 1, min(exit_idx + 1, len(benchmark_ret)))
+                if pd.notna(benchmark_ret.iloc[j])
             ]
             b_ret_c = float(np.prod([1 + r for r in b_rets]) - 1) if b_rets else 0.0
             period_records.append(
@@ -474,19 +515,32 @@ def run_backtest(
     if not strat_net_daily:
         return None
 
-    _all_dates = prices.index
-    first_fwd = rebal_dates[0] + 1
-    dates = _all_dates[first_fwd : first_fwd + len(strat_net_daily)]
-    if len(dates) != len(strat_net_daily):
-        n = min(len(dates), len(strat_net_daily))
-        dates = dates[:n]
-        strat_net_daily = strat_net_daily[:n]
-        strat_gross_daily = strat_gross_daily[:n]
-        bench_daily = bench_daily[:n]
+    # The accrual dates are recorded as the loop runs. Rebuilding them from
+    # rebal_dates[0] assumed every rebalance contributed an unbroken run of
+    # sessions from the first fill onward -- false whenever a period is skipped
+    # -- and silently shifted the whole equity curve by the number of missing
+    # days rather than failing.
+    dates = pd.DatetimeIndex(equity_dates)
 
-    eq_strat_net = (1 + pd.Series(strat_net_daily, index=dates)).cumprod()
-    eq_strat_gross = (1 + pd.Series(strat_gross_daily, index=dates)).cumprod()
-    eq_bench = (1 + pd.Series(bench_daily, index=dates)).cumprod()
+    # Index every curve at 1.0 on the FILL date -- the session the first
+    # positions were bought on, one before the first day they could earn
+    # anything. Without that base point the curve's first value is already
+    # 1 + r0, and `iloc[-1] / iloc[0]` then divides that first day back out:
+    # the reported total return silently omitted one day of P&L and, with it,
+    # the entire cost of establishing the portfolio, which is charged on
+    # exactly that day (100% turnover -- the largest single drag in the run).
+    base_pos = int(prices.index.get_loc(dates[0])) - 1
+
+    def _curve(daily: list[float]) -> pd.Series:
+        series = pd.Series(daily, index=dates, dtype=float)
+        if base_pos >= 0:
+            base = pd.Series([0.0], index=[prices.index[base_pos]])
+            series = pd.concat([base, series])
+        return (1 + series).cumprod()
+
+    eq_strat_net = _curve(strat_net_daily)
+    eq_strat_gross = _curve(strat_gross_daily)
+    eq_bench = _curve(bench_daily)
     if not period_records:
         # Every rebalance was skipped (typically insufficient formation history).
         # Building a frame from [] and calling dropna(subset=...) raised
@@ -495,15 +549,17 @@ def run_backtest(
     monthly_df = pd.DataFrame(period_records).dropna(subset=["Period Start"])
     tradebook_df = pd.DataFrame(trade_records)
 
-    # Append remaining active open positions
-    last_dt = prices.index[-1]
+    # Append remaining active open positions, marked at the LAST SIMULATED
+    # session. Marking them at prices.index[-1] priced them in the month still
+    # in progress -- outside the reported window and outside the equity curve --
+    # so the blotter showed a return the strategy is not credited with, on a
+    # date the header says the backtest does not cover.
+    last_dt = prices.index[last_sim_idx]
     for s, pos in open_positions.items():
-        p_curr = (
-            float(prices[s].iloc[-1]) if s in prices.columns else pos["entry_price"]
-        )
+        p_curr = _fill_price(prices, s, last_sim_idx)
         p_entry = pos["entry_price"]
         entry_dt = pos["entry_date"]
-        unrealized_ret = ((p_curr / p_entry) - 1) if p_entry > 0 else 0.0
+        unrealized_ret = _round_trip_return(p_entry, p_curr)
         h_days = (last_dt - entry_dt).days if (last_dt and entry_dt) else 0
         closed_trades.append(
             {
@@ -526,7 +582,7 @@ def run_backtest(
     total_s_gross = float(eq_strat_gross.iloc[-1] / eq_strat_gross.iloc[0] - 1)
     total_b = float(eq_bench.iloc[-1] / eq_bench.iloc[0] - 1)
 
-    n_days = len(dates)
+    n_days = len(dates)  # accrual sessions; the base point is not one of them
     ann_factor = 252.0 / max(n_days, 1)
     cagr_net = float((1 + total_s_net) ** ann_factor - 1) if (1 + total_s_net) > 0 else -1.0
     cagr_gross = (
