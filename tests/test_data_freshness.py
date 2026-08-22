@@ -132,11 +132,20 @@ def test_prices_appear_in_the_footer_sources(monkeypatch):
 
 # ── Every source in use gets a chip, dated or not ───────────────────────────
 
-def _freshness_with(monkeypatch, facts):
+def _freshness_with(monkeypatch, facts, today=date(2026, 8, 18)):
+    """Pin the clock, like _freshness above does.
+
+    This helper did not, so staleness was judged against the real today while
+    the fixtures below name fixed dates. The suite therefore passed on the day
+    it was written and failed by the same margin every day after -- a test that
+    measures the calendar rather than the code.
+    """
     from src.core import startup_metrics as metrics
+    import src.core.market_time as mt
     from src.ui import components
 
     monkeypatch.setattr(metrics, "snapshot", lambda: {"facts": facts})
+    monkeypatch.setattr(mt, "ist_today", lambda: today)
     return {i["label"]: i for i in components.data_freshness()}
 
 

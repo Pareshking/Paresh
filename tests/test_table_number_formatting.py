@@ -98,3 +98,62 @@ def test_aggregate_money_stays_whole(monkeypatch):
         pd.DataFrame({"Symbol": ["X"], "Actual Value (₹)": [1234567.89]}), monkeypatch
     )
     assert "₹1,234,568" in html
+
+
+# ── The two renderers must agree ────────────────────────────────────────────
+# theme.py hosts two table renderers. render_saas_table reads percent_unit();
+# render_styled_table reads FORMAT_MAP. Each used to carry its own idea of
+# which columns hold fractions, with nothing keeping them in step -- and the
+# failure mode is silent, the same column reading +26.3% in one table and
+# +0.26 in the other.
+
+def _format_claims(fmt: str) -> str | None:
+    """What a FORMAT_MAP entry assumes about its column's unit.
+
+    "{:+.1%}" scales by 100 when formatting, so the value must be a fraction.
+    "{:.1f}%" appends a literal sign, so the value must already be scaled.
+    """
+    fmt = fmt.rstrip()
+    if fmt.endswith("%}"):
+        return "fraction"
+    if fmt.endswith("%"):
+        return "scaled"
+    return None
+
+
+def test_format_map_and_percent_unit_never_contradict():
+    from src.ui.theme import FORMAT_MAP
+
+    disagreements = []
+    for col, fmt in FORMAT_MAP.items():
+        claimed, declared = _format_claims(fmt), percent_unit(col)
+        if claimed and declared and claimed != declared:
+            disagreements.append(f"{col}: FORMAT_MAP says {claimed}, percent_unit says {declared}")
+    assert not disagreements, "; ".join(disagreements)
+
+
+def test_alpha_is_a_fraction_in_both_renderers():
+    """It sat in FORMAT_MAP as a bare ratio, left over from removed score columns."""
+    from src.ui.theme import FORMAT_MAP
+
+    assert _format_claims(FORMAT_MAP["Alpha"]) == "fraction"
+    assert percent_unit("Alpha") == "fraction"
+
+
+def test_styled_table_falls_back_to_the_shared_unit_declaration(monkeypatch):
+    """A declared column not listed in FORMAT_MAP still formats correctly."""
+    import pandas as pd
+    from src.ui import theme
+
+    captured = {}
+    monkeypatch.setattr(
+        theme, "st",
+        types.SimpleNamespace(
+            dataframe=lambda obj, **k: captured.setdefault("html", obj.to_html()),
+            info=lambda *a, **k: None,
+        ),
+    )
+    # "Total Return" is declared a fraction but is NOT in FORMAT_MAP.
+    assert "Total Return" not in theme.FORMAT_MAP
+    theme.render_styled_table(pd.DataFrame({"Total Return": [1.3142]}))
+    assert "+131.4%" in captured["html"]

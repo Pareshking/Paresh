@@ -98,7 +98,12 @@ FORMAT_MAP: dict[str, str] = {
     "Sharpe": "{:.2f}",
     "Sortino": "{:.2f}",
     "Calmar": "{:.2f}",
-    "Alpha": "{:+.2f}",
+    # A fraction, like every other alpha in this codebase: stats["alpha"] is
+    # total_s_net - total_b. It sat under "Ratios" as a bare {:+.2f}, left over
+    # from the residual-alpha SCORE columns that were removed -- so a 26.3%
+    # alpha would have printed as "+0.26" in this renderer while the other one
+    # printed "+26.3%".
+    "Alpha": "{:+.1%}",
     "Beta": "{:.2f}",
     "Score": "{:.2f}",
 }
@@ -838,6 +843,18 @@ def render_styled_table(
             active_fmt[col] = custom_formats[col]
         elif col in FORMAT_MAP:
             active_fmt[col] = FORMAT_MAP[col]
+        elif pd.api.types.is_float_dtype(df[col]) and percent_unit(col):
+            # Two renderers live in this module and each used to carry its own
+            # idea of which columns hold fractions and which hold values already
+            # multiplied by 100. Nothing kept them in step, and the failure is
+            # silent: the same column reads +26.3% in one table and +0.26 in the
+            # other. percent_unit() is the single declaration both consult.
+            # FORMAT_MAP still wins above, for columns wanting a specific number
+            # of decimals; test_table_number_formatting asserts the two never
+            # contradict each other.
+            active_fmt[col] = (
+                "{:+.1%}" if percent_unit(col) == "fraction" else "{:.1f}%"
+            )
         elif pd.api.types.is_float_dtype(df[col]):
             col_l = col.lower()
             if (
