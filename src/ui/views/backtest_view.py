@@ -695,7 +695,7 @@ def _render_parameter_sweep(
         st.download_button(
             f"Download sweep results ({len(result.table)} rows)",
             result.table.to_csv(index=False).encode(),
-            f"umiya_parameter_sweep_{ist_now():%Y%m%d}.csv",
+            f"paresh_parameter_sweep_{ist_now():%Y%m%d}.csv",
             "text/csv",
             key="sweep_csv",
         )
