@@ -430,46 +430,25 @@ def render_data_quality_footer(
     # Drawn here rather than at twelve call sites, for the same reason the
     # freshness figures are read from telemetry: one place to change, and no
     # way for two tabs to disagree.
+    #
+    # The ribbon owns the as-of dates. This bar used to restate all of them one
+    # line below it, plus a "some data is behind" flag duplicating the amber
+    # chips -- the same three dates printed twice, a few pixels apart, in two
+    # different visual idioms. The ribbon is the better of the two (it carries
+    # the age, colours staleness, and leads with the stale source), so the bar
+    # keeps only what is unique to it: coverage, data-quality counts, and the
+    # stop-loss convention.
     render_freshness_ribbon()
-    sep = '<span style="color: #cbd5e1;">|</span>'
-    freshness_html = ""
-    stale_any = False
-    for item in data_freshness():
-        if item["stale"]:
-            stale_any = True
-            age = (
-                f" ({item['behind']}d behind)"
-                if item["behind"] is not None
-                else " (stale)"
-            )
-            freshness_html += (
-                f'{sep}<span style="color: #d97706;">{item["label"]}: '
-                f'<strong style="color: #d97706;">{item["as_of"]}</strong>{age}</span>'
-            )
-        else:
-            freshness_html += (
-                f'{sep}<span>{item["label"]}: '
-                f'<strong style="color: #0f172a;">{item["as_of"]}</strong></span>'
-            )
-
-    flag = ""
-    if stale_any:
-        flag = (
-            f'{sep}<span style="color: #d97706; font-weight: 700;">'
-            "&#9679; Some data is behind the latest trading day</span>"
-        )
 
     footer_html = f"""
     <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 10px 16px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; margin-top: 24px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #64748b;">
         <span>🟢 <strong style="color: #0f172a;">{total_stocks}</strong> stocks tracked</span>
-        {freshness_html}
         <span style="color: #cbd5e1;">|</span>
         <span>🔴 Gap-filled &gt;10%: <strong style="color: #d97706;">{gap_count}</strong></span>
         <span style="color: #cbd5e1;">|</span>
         <span>⏳ Short history (&lt;126D): <strong style="color: #0f172a;">{short_count}</strong></span>
         <span style="color: #cbd5e1;">|</span>
         <span>Stop Loss: <strong style="color: #0f172a;">CMP − 2×ATR</strong></span>
-        {flag}
         <span style="margin-left: auto; color: #475569; font-weight: 700;">Paresh Patel</span>
     </div>
     """

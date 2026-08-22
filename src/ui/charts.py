@@ -1198,7 +1198,7 @@ def render_backtest_equity_chart(equity_curve: pd.Series, benchmark: pd.Series) 
         go.Scatter(
             x=benchmark.index,
             y=(benchmark - 1) * 100,
-            name="Benchmark (Equal-Weight Universe)",
+            name="Benchmark (Nifty 500 · ^CRSLDX)",
             mode="lines",
             line={"color": "#64748b", "width": 1.5, "dash": "dot"},
         )

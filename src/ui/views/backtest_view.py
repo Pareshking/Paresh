@@ -163,7 +163,7 @@ def render_backtest_view(
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
             <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">CAGR (Annualized)</div>
             <div style="font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; color: #0f172a; margin-top: 1px;">{stats['ann_return']:+.1%}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #64748b;">Nifty: {stats['bench_return']:+.1%}</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #64748b;">Nifty: {stats['ann_bench']:+.1%}</div>
         </div>
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
             <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Net Alpha vs Benchmark</div>

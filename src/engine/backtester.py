@@ -197,7 +197,21 @@ def run_backtest(
     if _benchmark_close is None or _benchmark_close.empty:
         benchmark_ret = pd.Series(np.nan, index=prices.index, dtype=float)
     else:
-        benchmark_series = pd.to_numeric(_benchmark_close, errors="coerce").reindex(prices.index)
+        # ffill onto the price calendar, and the ffill is not cosmetic. The
+        # index is fetched in its own yfinance call and arrives already
+        # dropna()'d, so any session the price frame has and the index lacks
+        # became NaN here. pct_change then returned NaN on the hole AND on the
+        # session after it (its previous value being NaN), and the loop below
+        # reads every NaN as a 0.0% day -- so ONE missing index print silently
+        # deleted two days of benchmark return. The strategy's own days are
+        # unaffected, so the loss lands entirely in alpha. Carrying the last
+        # real print forward gives 0% across the hole and the true move on the
+        # next real print, which reproduces the index exactly.
+        benchmark_series = (
+            pd.to_numeric(_benchmark_close, errors="coerce")
+            .reindex(prices.index)
+            .ffill()
+        )
         benchmark_ret = benchmark_series.pct_change(fill_method=None)
 
     ema = prices.ewm(span=ema_period).mean()
