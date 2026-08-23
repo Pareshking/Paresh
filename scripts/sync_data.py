@@ -62,7 +62,15 @@ def run_daily_sync() -> None:
 
     # 5. Fetch market caps
     print("\n--- 5. Fetching Market Capitalizations ---")
-    mcaps = fetch_market_caps(symbols, force_refresh=FORCE_FULL)
+    # Always fetch, never read the disk cache. _is_mcap_cache_fresh() accepts a
+    # cache up to 30 hours old, and this job runs every 24 -- so the cache was
+    # ALWAYS "fresh" and the daily sync committed yesterday's market caps every
+    # single day, refreshing them only on the weekly FORCE_FULL run. The window
+    # is sized for interactive app sessions; a job whose entire purpose is to
+    # produce a current snapshot must not consult it. Prices keep FORCE_FULL:
+    # that fetch is incremental by design and a daily full 2y re-download would
+    # be both slow and rude.
+    mcaps = fetch_market_caps(symbols, force_refresh=True)
     print(f"Market cap cache updated for {len(mcaps)} tickers.")
 
     # 5b. Commit the result to the repository.

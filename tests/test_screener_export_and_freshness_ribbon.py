@@ -135,8 +135,11 @@ def test_ribbon_marks_stale_amber_and_current_green(monkeypatch):
 
 
 def test_ribbon_says_today_rather_than_zero_days(monkeypatch):
+    """A same-day reading. behind == 0 on a weekend means the latest SESSION,
+    not today, and is covered in test_freshness_wording_and_sync_refresh."""
     monkeypatch.setattr(components, "data_freshness", lambda: [
-        {"label": "Prices", "as_of": "18 Aug", "behind": 0, "stale": False, "source": None},
+        {"label": "Prices", "as_of": "18 Aug", "behind": 0, "is_today": True,
+         "stale": False, "source": None},
     ])
     captured = []
     monkeypatch.setattr(components.st, "markdown", lambda *a, **k: captured.append(a[0]))

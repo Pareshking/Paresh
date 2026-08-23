@@ -309,7 +309,7 @@ def data_freshness() -> list[dict]:
     from datetime import date as _date
 
     from src.core import startup_metrics as _metrics
-    from src.core.market_time import trading_days_behind
+    from src.core.market_time import ist_today, trading_days_behind
 
     facts = _metrics.snapshot().get("facts", {})
     items: list[dict] = []
@@ -352,6 +352,12 @@ def data_freshness() -> list[dict]:
             "label": label,
             "as_of": as_of.strftime("%d %b"),
             "behind": behind,
+            # behind == 0 means "the most recent TRADING day", which on a
+            # weekend or a holiday is not today. The ribbon needs to tell those
+            # apart: printing "21 Aug - today" on a Sunday reads as a bug in
+            # the pipeline, and a freshness indicator that raises a false alarm
+            # is failing at the one job it has.
+            "is_today": as_of == ist_today(),
             "stale": stale,
             "source": facts.get(presence_key) if presence_key else None,
         })
@@ -385,7 +391,7 @@ def render_freshness_ribbon() -> None:
         if item["behind"] is None:
             age = " · stale"
         elif item["behind"] <= 0:
-            age = " · today"
+            age = " · today" if item.get("is_today") else " · latest session"
         elif item["behind"] == 1:
             age = " · 1 trading day behind"
         else:
