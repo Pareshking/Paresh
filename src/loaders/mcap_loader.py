@@ -135,6 +135,20 @@ def _fetch_mcap_from_pr_zip(target_date: datetime | date) -> dict[str, float]:
     return result
 
 
+# One bhavcopy is published per trading day, so the cache is worth re-checking
+# about once a day -- but the window has to sit BELOW the 24-hour cadence, not
+# above it. At 30 hours a cache written on one nightly run was still "fresh" on
+# the next, which is how the daily sync came to commit the previous day's
+# market caps every single day. 22 hours keeps roughly two hours of slack for a
+# late run (GitHub's scheduler has been firing this job ~28 minutes behind its
+# cron) while guaranteeing the following day's run sees the cache as stale.
+#
+# The sync no longer depends on this -- it passes force_refresh=True, because a
+# job whose purpose is a current snapshot should not consult a heuristic sized
+# for interactive sessions. This governs the app's own reads.
+MCAP_CACHE_MAX_AGE_S: int = 22 * 60 * 60
+
+
 def _is_mcap_cache_fresh() -> bool:
     if not os.path.exists(MCAP_PR_FILE):
         return False
@@ -150,7 +164,7 @@ def _is_mcap_cache_fresh() -> bool:
             # One refetch re-stamps it.
             return False
         last = pd.Timestamp(df["LastUpdated"].max())
-        return (datetime.now() - last).total_seconds() < 108000  # 30 hours
+        return (datetime.now() - last).total_seconds() < MCAP_CACHE_MAX_AGE_S
     except Exception:
         return False
 

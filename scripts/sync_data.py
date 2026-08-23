@@ -62,12 +62,14 @@ def run_daily_sync() -> None:
 
     # 5. Fetch market caps
     print("\n--- 5. Fetching Market Capitalizations ---")
-    # Always fetch, never read the disk cache. _is_mcap_cache_fresh() accepts a
-    # cache up to 30 hours old, and this job runs every 24 -- so the cache was
-    # ALWAYS "fresh" and the daily sync committed yesterday's market caps every
-    # single day, refreshing them only on the weekly FORCE_FULL run. The window
-    # is sized for interactive app sessions; a job whose entire purpose is to
-    # produce a current snapshot must not consult it. Prices keep FORCE_FULL:
+    # Always fetch, never read the disk cache. The cache window used to be 30
+    # hours against a 24-hour cadence, so the cache was ALWAYS "fresh" and this
+    # job committed yesterday's market caps every single day, refreshing them
+    # only on the weekly FORCE_FULL run. The window is now 22 hours
+    # (MCAP_CACHE_MAX_AGE_S) which fixes that on its own, but this job does not
+    # rely on it: a run whose entire purpose is a current snapshot should fetch,
+    # not consult a heuristic sized for interactive sessions -- and it stays
+    # correct if the cadence or the window ever changes. Prices keep FORCE_FULL:
     # that fetch is incremental by design and a daily full 2y re-download would
     # be both slow and rude.
     mcaps = fetch_market_caps(symbols, force_refresh=True)

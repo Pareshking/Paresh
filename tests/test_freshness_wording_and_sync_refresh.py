@@ -111,3 +111,42 @@ def test_prices_stay_incremental():
 
     src = (pathlib.Path(__file__).resolve().parents[1] / "scripts/sync_data.py").read_text()
     assert "fetch_price_history(symbols, period=\"2y\", force_refresh=FORCE_FULL)" in src
+
+
+# ── The cache window must sit below the sync cadence ────────────────────────
+
+def test_the_cache_window_is_shorter_than_the_daily_cadence():
+    """At 30 hours against a 24-hour job, a cache written on one nightly run
+    was still 'fresh' on the next, so the snapshot could never refresh."""
+    from src.loaders.mcap_loader import MCAP_CACHE_MAX_AGE_S
+
+    assert MCAP_CACHE_MAX_AGE_S < 24 * 3600, "must expire before the next run"
+    # Enough slack for a late run: GitHub has been firing this cron ~28 min behind.
+    assert MCAP_CACHE_MAX_AGE_S >= 20 * 3600, "must survive a same-day app restart"
+    assert MCAP_CACHE_MAX_AGE_S == 22 * 3600
+
+
+@pytest.mark.parametrize("age_hours,expected_fresh", [
+    (0.5, True),    # minutes after a sync
+    (12, True),     # same-day app restart
+    (21.5, True),   # a late run, still inside the window
+    (23, False),    # the next nightly run must see it as stale
+    (30, False),    # what used to pass
+])
+def test_cache_freshness_by_age(monkeypatch, tmp_path, age_hours, expected_fresh):
+    import datetime as _dt
+
+    import pandas as pd
+
+    from src.loaders import mcap_loader
+
+    cache = tmp_path / "mcap_nse.parquet"
+    pd.DataFrame({
+        "Symbol": ["RELIANCE"],
+        "MarketCap": [1.0],
+        "TradeDate": ["2026-08-21"],
+        "LastUpdated": [_dt.datetime.now() - _dt.timedelta(hours=age_hours)],
+    }).to_parquet(cache)
+    monkeypatch.setattr(mcap_loader, "MCAP_PR_FILE", str(cache))
+
+    assert mcap_loader._is_mcap_cache_fresh() is expected_fresh
