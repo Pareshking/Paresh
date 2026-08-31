@@ -183,6 +183,88 @@ def test_decompose_fields_matches_extract_by_coverage_path() -> None:
         )
 
 
+def test_precomputed_signals_match_inline_computation() -> None:
+    # _precompute_signals + get_rankings fast path must produce the same
+    # signal columns as the inline slow path.
+    prices = _prices(rows=120, cols=10)
+    close_p = prices * 0.999  # slightly different from adj_close
+    high_p = prices * 1.02
+    low_p = prices * 0.98
+    vol_p = pd.DataFrame(
+        {c: [1_000_000.0] * 120 for c in prices.columns},
+        index=prices.index,
+    )
+    mcaps = pd.Series({c: 1e10 for c in prices.columns})
+    index_info = pd.DataFrame({"Symbol": list(prices.columns), "Industry": "TEST"})
+
+    # Inline path: no _static_signals
+    calc_slow = MomentumEngine(prices, high_df=high_p, low_df=low_p, close_df=close_p, volume_df=vol_p, weights=[0.2]*5)
+    apply_calendar_momentum(calc_slow)
+    rank_slow = calc_slow.get_rankings(index_info, mcaps, close_prices_df=close_p, high_prices_df=high_p)
+
+    # Fast path: _precompute_signals first
+    calc_fast = MomentumEngine(prices, high_df=high_p, low_df=low_p, close_df=close_p, volume_df=vol_p, weights=[0.2]*5)
+    apply_calendar_momentum(calc_fast)
+    calc_fast._precompute_signals(index_info, mcaps, close_p, high_p)
+    rank_fast = calc_fast.get_rankings(index_info, mcaps, close_prices_df=close_p, high_prices_df=high_p)
+
+    # Both paths must produce the same set of symbols and the same column list
+    assert set(rank_slow["Symbol"]) == set(rank_fast["Symbol"])
+    static_cols = [
+        "CMP", "Above 50 EMA", "% 50 EMA", "52W High", "% High",
+        "Near 52W High", "ATH", "% ATH", "At ATH",
+        "1M Return", "3M Return", "6M Return", "9M Return", "12M Return",
+        "1M Sharpe", "3M Sharpe", "6M Sharpe", "9M Sharpe", "12M Sharpe",
+        "Max DD 1M", "Max DD 3M", "Max DD 6M", "Max DD 9M", "Max DD 12M",
+        "ATR", "ATR %", "Stop Loss", "Chand Exit",
+        "Persistence", "Volume", "Market Cap (Cr)", "Short History",
+        "FFill %", "Data Gap",
+    ]
+    for col in static_cols:
+        assert col in rank_fast.columns, f"Column '{col}' missing from fast-path result"
+        # Align on Symbol for a fair comparison
+        slow_s = rank_slow.set_index("Symbol")[col]
+        fast_s = rank_fast.set_index("Symbol")[col]
+        shared = slow_s.index.intersection(fast_s.index)
+        if pd.api.types.is_numeric_dtype(slow_s):
+            np.testing.assert_allclose(
+                slow_s[shared].to_numpy(dtype=float, na_value=np.nan),
+                fast_s[shared].to_numpy(dtype=float, na_value=np.nan),
+                rtol=1e-6,
+                equal_nan=True,
+                err_msg=f"Column '{col}' diverges between slow and fast paths",
+            )
+        else:
+            assert (slow_s[shared] == fast_s[shared]).all(), (
+                f"Column '{col}' (non-numeric) diverges between slow and fast paths"
+            )
+
+
+def test_static_signals_not_recomputed_on_weight_change() -> None:
+    # After _precompute_signals populates _static_signals, changing weights and
+    # calling get_rankings again must not alter _static_signals.
+    prices = _prices(rows=120, cols=8)
+    close_p = prices.copy()
+    high_p = prices * 1.01
+    low_p = prices * 0.99
+    mcaps = pd.Series({c: 5e9 for c in prices.columns})
+    index_info = pd.DataFrame({"Symbol": list(prices.columns), "Industry": "X"})
+
+    from src.engine.calendar_momentum import _compute_period_z_scores, _apply_weight_composite
+    calc = MomentumEngine(prices, high_df=high_p, low_df=low_p, close_df=close_p, weights=[0.2]*5)
+    _compute_period_z_scores(calc)
+    calc._precompute_signals(index_info, mcaps, close_p, high_p)
+    sig_before = calc._static_signals.copy()
+
+    # Apply new weights and call get_rankings — must hit the fast path
+    _apply_weight_composite(calc, [0.5, 0.3, 0.1, 0.05, 0.05])
+    calc.get_rankings(index_info, mcaps, close_prices_df=close_p, high_prices_df=high_p)
+
+    assert calc._static_signals is sig_before or calc._static_signals.equals(sig_before), (
+        "_static_signals was mutated by get_rankings on a weight change"
+    )
+
+
 def test_historical_dataset_as_of_date_uses_last_observation() -> None:
     idx = pd.date_range("2022-01-03", periods=10, freq="B")
     assert latest_as_of_date(idx) == idx[-1].normalize()
