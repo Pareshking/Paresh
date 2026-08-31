@@ -97,10 +97,24 @@ vol_target_val = st.session_state["cfg_vtv"] / 100.0
 
 # ── Cached Data Pipeline ─────────────────────────────────────────────────────
 def _price_hash(df: pd.DataFrame) -> str:
+    """Memo key for the quant engine: shape, last session, AND last values.
+
+    The values matter. Within a trading day the frame's last date and shape
+    never change -- only the numbers in that final row do, as the session moves
+    on. Keyed on shape and date alone, the engine kept returning the ranking it
+    computed from the morning's prices while the loader underneath it went on
+    refreshing them, so CMP, Score, Rank and every derived column were frozen
+    on a page whose header dated them today.
+
+    Hashing the last row is enough: everything before it is settled history,
+    and a change there necessarily changes the length or the date too.
+    """
     if df is None or df.empty:
         return "empty"
     try:
-        return f"{df.index[-1]}_{df.shape[0]}x{df.shape[1]}"
+        last = pd.to_numeric(df.iloc[-1], errors="coerce").to_numpy(dtype="float64")
+        digest = hashlib.md5(last.tobytes()).hexdigest()[:12]
+        return f"{df.index[-1]}_{df.shape[0]}x{df.shape[1]}_{digest}"
     except Exception:
         return "unknown"
 

@@ -10,10 +10,20 @@ notions of "today" sat in the same module in one case.
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 INDIA_TZ = ZoneInfo("Asia/Kolkata")
+
+# When a session's daily bar can be trusted as final. NSE's equity close is
+# 15:30 IST; the extra half hour is slack for the data provider, whose daily
+# bar settles a few minutes after the bell.
+#
+# Until then a row dated today is an IN-PROGRESS quote, not a close. Treating
+# the two as the same thing is what let the price cache freeze at whatever
+# minute a container first fetched it, while the page went on calling the
+# number "today".
+SESSION_SETTLES = time(16, 0)
 
 
 def ist_now() -> datetime:
@@ -76,3 +86,25 @@ def trading_days_behind(as_of: date, *, today: date | None = None, horizon: int 
         return days.index(as_of)
     except ValueError:
         return None
+
+
+def session_is_complete(day: date, *, now: datetime | None = None) -> bool:
+    """Has the trading session dated ``day`` finished producing its daily bar?
+
+    Any past date is settled. A future date never is. Today's is settled only
+    once the close is comfortably behind us -- before that, the row exists but
+    its Close is the last traded price and still moving.
+
+    This is the distinction the price cache needs. Its old freshness gate asked
+    only "does the cache hold a row dated today?", so the FIRST fetch of the
+    morning satisfied it and no later fetch ever ran: the screener served the
+    09:20 price at 15:20 and the header dated it today, which is true of the
+    row and false of the number.
+    """
+    reference = now or ist_now()
+    today = reference.date()
+    if day < today:
+        return True
+    if day > today:
+        return False
+    return reference.time() >= SESSION_SETTLES

@@ -8,9 +8,8 @@ from __future__ import annotations
 import os
 import tempfile
 import time
-from datetime import date, datetime
+from datetime import date
 from typing import Sequence
-from zoneinfo import ZoneInfo
 
 import pandas as pd
 import streamlit as st
@@ -19,7 +18,11 @@ import yfinance as yf
 from src.core import startup_metrics as metrics
 from src.core.config import BENCHMARK_SYMBOL, PRICES_FILE
 from src.core.tickers import normalise_columns, normalise_symbol
-from src.core.market_time import ist_today
+from src.core.market_time import (
+    ist_today,
+    session_is_complete,
+    trading_days_behind,
+)
 from src.core.logger import logger
 from src.core.types import MarketRegime, OHLCVData, RegimeData
 
@@ -32,23 +35,93 @@ except Exception:
     pass
 
 
-def _is_fresh(last_date: datetime | pd.Timestamp | str) -> bool:
-    """Checks if the latest price date is <= 1 calendar day ago."""
-    if isinstance(last_date, (pd.Timestamp, datetime)):
-        dt = last_date.date()
-    elif isinstance(last_date, date):
-        # datetime subclasses date, so this arm is reached only by a PLAIN
-        # date -- which recent_trading_days() hands out. It used to fall to the
-        # else below and report "not fresh", quietly forcing a re-download.
-        dt = last_date
-    elif isinstance(last_date, str):
-        try:
-            dt = pd.to_datetime(last_date).date()
-        except Exception:
-            return False
-    else:
+def _cache_is_current(last_cached_date: date) -> bool:
+    """Is the cache holding the last COMPLETED session, and therefore final?
+
+    Two conditions, and the second one is the one that was missing.
+
+    The cache must hold the most recent trading day -- counted in trading days,
+    so Friday's data read on a Sunday is current rather than two days behind.
+
+    And that session must have CLOSED. The old gate asked only
+    "last_cached_date >= today", which the first fetch of the morning satisfies
+    with a row whose Close is simply the last trade so far. From that moment
+    the cache was declared fresh and no further fetch ran for the rest of the
+    day: the screener served the opening price at three in the afternoon, and
+    the page dated it today -- true of the row, false of the number.
+
+    Holidays are not enumerated (see recent_trading_days). On a holiday this
+    returns False, costs one lookup that finds nothing, and serves the cache
+    anyway. Wrong in the cheap direction: never claiming current when it is
+    not.
+    """
+    behind = trading_days_behind(last_cached_date)
+    if behind is None or behind > 0:
         return False
-    return (ist_today() - dt).days <= 1
+    return session_is_complete(last_cached_date)
+
+
+def _drop_future_rows(df: pd.DataFrame) -> pd.DataFrame:
+    """Discard price rows dated after today, IST.
+
+    yfinance occasionally emits one when its timezone handling slips against a
+    market five and a half hours ahead of UTC. A single such row used to pin
+    the cache permanently: every later run found a last date at or beyond
+    today, declared the cache fresh, and returned without fetching anything --
+    for the life of the container, and with the page reporting the phantom
+    date as the as-of.
+    """
+    if df is None or df.empty:
+        return df
+    try:
+        future = pd.DatetimeIndex(df.index) > pd.Timestamp(ist_today())
+    except (TypeError, ValueError):
+        return df
+    if not future.any():
+        return df
+    logger.warning(
+        "Dropping %d price row(s) dated after today (last was %s).",
+        int(future.sum()), df.index[-1],
+    )
+    metrics.note("price_future_rows_dropped", int(future.sum()))
+    return df.loc[~future]
+
+
+def _recover_stale_cache(cached: pd.DataFrame, last_cached_date: date):
+    """Last resort when Yahoo adds nothing and the cache is genuinely behind.
+
+    Only when the cache is MORE than one trading day behind. One day behind is
+    the ordinary state of a morning before the session has produced anything --
+    reaching for the snapshot there would spend ten megabytes to be told what
+    the cache already knows, every hour of every trading day.
+
+    Returns the recovered frame, or None to keep serving what we have.
+    """
+    behind = trading_days_behind(last_cached_date)
+    if behind is not None and behind <= 1:
+        return None
+
+    metrics.note("price_cache_behind_trading_days", "unknown" if behind is None else behind)
+    logger.warning(
+        "Price cache is %s trading days behind and Yahoo returned nothing; "
+        "trying the published snapshot.",
+        "more than 30" if behind is None else behind,
+    )
+    try:
+        from src.loaders.price_store import snapshot_frame_if_newer
+
+        recovered = snapshot_frame_if_newer(last_cached_date)
+    except Exception as exc:  # recovery must never take the app down
+        logger.warning("Snapshot recovery failed (%s: %s).", type(exc).__name__, exc)
+        return None
+
+    if recovered is None or recovered.empty:
+        metrics.note("price_path", "cache_stale_unrecovered")
+        return None
+
+    metrics.note("price_path", "snapshot_recovery")
+    metrics.note("price_series_returned", len(recovered.columns))
+    return _normalise_ticker_level(recovered)
 
 
 def _normalise_ticker_level(df: pd.DataFrame) -> pd.DataFrame:
@@ -297,22 +370,29 @@ def fetch_price_history(
     if not force_refresh and os.path.exists(PRICES_FILE):
         try:
             cached = pd.read_parquet(PRICES_FILE)
+            cached = _drop_future_rows(cached)
             if not cached.empty:
                 last_cached_date = cached.index[-1].date()
-                # Indian market date, not the server's. This module already
-                # used IST in _is_fresh() while comparing against a UTC date
-                # here, so the two disagreed for the 5h30m each day when UTC
-                # is still on the previous calendar day.
-                today = ist_today()
-                if last_cached_date >= today:
+                # Indian market date, not the server's, throughout -- see
+                # src/core/market_time. The two notions of "today" used to sit
+                # in this one branch and disagreed for the 5h30m each day when
+                # UTC is still on the previous calendar day.
+                if _cache_is_current(last_cached_date):
                     logger.info(f"Price cache up-to-date: {len(cached.columns)} series")
                     metrics.note("price_path", "cache_fresh")
                     metrics.note("price_series_returned", len(cached.columns))
                     _note_price_as_of(cached)
                     return cached
-                
-                # Incremental update needed for new calendar trading sessions
-                start_date = pd.Timestamp(last_cached_date) + pd.Timedelta(days=1)
+
+                # Incremental update. The start date is INCLUSIVE of the last
+                # cached session when that session is still open, so today's
+                # partial row is re-requested and its later values replace the
+                # earlier ones (the merge below keeps the last of a duplicated
+                # date). Asking from the following day instead is what froze
+                # the price at whatever minute the row was first written.
+                start_date = pd.Timestamp(last_cached_date)
+                if session_is_complete(last_cached_date):
+                    start_date += pd.Timedelta(days=1)
                 yf_tickers = [
                     s + ".NS" if not s.upper().endswith(".NS") else s
                     for s in symbols
@@ -353,6 +433,16 @@ def fetch_price_history(
                     _note_price_as_of(combined)
                     return combined
                 else:
+                    # Yahoo had nothing to add. Before the close that is the
+                    # normal answer; days behind the last session it means the
+                    # provider is refusing this host, and the old code simply
+                    # returned the same frame every hour for as long as the
+                    # container lived. The daily snapshot is rebuilt by a job
+                    # Yahoo does answer, so it is the way out.
+                    recovered = _recover_stale_cache(cached, last_cached_date)
+                    if recovered is not None:
+                        _note_price_as_of(recovered)
+                        return recovered
                     logger.info("No new price data available from Yahoo Finance; returning existing cache.")
                     _note_price_as_of(cached)
                     return cached
