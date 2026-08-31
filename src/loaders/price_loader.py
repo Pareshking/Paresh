@@ -265,6 +265,74 @@ def _clean_price_df(df: pd.DataFrame, symbols: Sequence[str] | None = None) -> p
     return out
 
 
+def _decompose_fields(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
+    """Decompose a MultiIndex price DataFrame into per-field DataFrames in one pass.
+
+    The old path called _extract_by_coverage six times, each invoking
+    get_level_values + a linear label scan across all columns. For a
+    750-symbol × 5-field frame (3 750 columns) that is roughly 45 000 string
+    comparisons. This function does it in two get_level_values calls + one O(m)
+    dict build, then six O(1) dict lookups.
+
+    Returns an empty dict for flat DataFrames — callers fall back to
+    _extract_field per-field in that case (flat frames are rare in practice).
+    """
+    if not isinstance(df.columns, pd.MultiIndex):
+        return {}
+
+    KNOWN_FIELDS = {
+        "adj close", "adjclose", "close", "high", "low", "volume", "vol", "open"
+    }
+
+    lv0_raw = df.columns.get_level_values(0)
+    lv1_raw = df.columns.get_level_values(1)
+    lv0 = [str(x).strip().lower() for x in lv0_raw]
+    lv1 = [str(x).strip().lower() for x in lv1_raw]
+
+    # Identify which level carries price field names vs ticker names.
+    n_known_lv1 = sum(1 for x in lv1 if x in KNOWN_FIELDS)
+    n_known_lv0 = sum(1 for x in lv0 if x in KNOWN_FIELDS)
+    if n_known_lv1 >= n_known_lv0:
+        field_labels, ticker_raw = lv1, lv0_raw
+    else:
+        field_labels, ticker_raw = lv0, lv1_raw
+
+    # Build field-name → column-position list in one scan.
+    field_to_cols: dict[str, list[int]] = {}
+    for i, fl in enumerate(field_labels):
+        field_to_cols.setdefault(fl, []).append(i)
+
+    n_tickers = len(set(ticker_raw))
+
+    def _pick(candidates: list[str]) -> pd.DataFrame:
+        best_name: str | None = None
+        best_pos: list[int] = []
+        for cand in candidates:
+            pos = field_to_cols.get(cand.strip().lower(), [])
+            if len(pos) > len(best_pos):
+                best_name, best_pos = cand, pos
+        if not best_pos:
+            return pd.DataFrame(index=df.index)
+        if len(best_pos) < n_tickers:
+            logger.warning(
+                "Price field '%s' covers only %d of %d tickers; the rest are "
+                "missing this field entirely. Extracting the %d available.",
+                best_name, len(best_pos), n_tickers, len(best_pos),
+            )
+        out = df.iloc[:, best_pos].copy()
+        out.columns = [normalise_symbol(ticker_raw[i]) for i in best_pos]
+        return out
+
+    return {
+        "adj_close": _pick(["Adj Close", "AdjClose", "Close"]),
+        "close":     _pick(["Close", "Adj Close", "AdjClose"]),
+        "high":      _pick(["High"]),
+        "low":       _pick(["Low"]),
+        "volume":    _pick(["Volume", "Vol"]),
+        "open":      _pick(["Open"]),
+    }
+
+
 def extract_ohlcv(
     prices_df: pd.DataFrame,
     symbols: Sequence[str] | None = None,
@@ -278,15 +346,23 @@ def extract_ohlcv(
         empty = pd.DataFrame()
         return empty, empty, empty, empty, empty, empty
 
-    # Open is extracted too. The stock chart used to synthesise it as the
-    # previous close, which produces candle bodies spanning close-to-close --
-    # not what a candle means, and misleading about intraday action.
-    open_p = _extract_field(prices_df, ["Open"])
-    adj_close = _extract_field(prices_df, ["Adj Close", "AdjClose", "Close"])
-    close_p = _extract_field(prices_df, ["Close", "Adj Close", "AdjClose"])
-    high_p = _extract_field(prices_df, ["High"])
-    low_p = _extract_field(prices_df, ["Low"])
-    vol_p = _extract_field(prices_df, ["Volume", "Vol"])
+    if isinstance(prices_df.columns, pd.MultiIndex):
+        fields = _decompose_fields(prices_df)
+        adj_close = fields.get("adj_close", pd.DataFrame())
+        close_p   = fields.get("close",     pd.DataFrame())
+        high_p    = fields.get("high",      pd.DataFrame())
+        low_p     = fields.get("low",       pd.DataFrame())
+        vol_p     = fields.get("volume",    pd.DataFrame())
+        open_p    = fields.get("open",      pd.DataFrame())
+    else:
+        # Flat DataFrame — rare (single-ticker response). _extract_field handles
+        # this by returning all columns; the field-name argument is ignored.
+        open_p    = _extract_field(prices_df, ["Open"])
+        adj_close = _extract_field(prices_df, ["Adj Close", "AdjClose", "Close"])
+        close_p   = _extract_field(prices_df, ["Close", "Adj Close", "AdjClose"])
+        high_p    = _extract_field(prices_df, ["High"])
+        low_p     = _extract_field(prices_df, ["Low"])
+        vol_p     = _extract_field(prices_df, ["Volume", "Vol"])
 
     # Fallbacks if some fields are missing
     if adj_close.empty and not close_p.empty:
@@ -303,11 +379,11 @@ def extract_ohlcv(
         vol_p = pd.DataFrame(0.0, index=close_p.index, columns=close_p.columns)
 
     adj_close = _clean_price_df(adj_close, symbols)
-    close_p = _clean_price_df(close_p, symbols)
-    high_p = _clean_price_df(high_p, symbols)
-    low_p = _clean_price_df(low_p, symbols)
-    vol_p = _clean_price_df(vol_p, symbols)
-    open_p = _clean_price_df(open_p, symbols)
+    close_p   = _clean_price_df(close_p,   symbols)
+    high_p    = _clean_price_df(high_p,    symbols)
+    low_p     = _clean_price_df(low_p,     symbols)
+    vol_p     = _clean_price_df(vol_p,     symbols)
+    open_p    = _clean_price_df(open_p,    symbols)
 
     return adj_close, close_p, high_p, low_p, vol_p, open_p
 
