@@ -93,7 +93,6 @@ class ThemeTokens:
     sky: str = "#0284c7"; sky_light: str = "#f0f9ff"
 
 THEME_TOKENS: Final[ThemeTokens] = ThemeTokens()
-THEME: Final[dict[str, str]] = {k: getattr(THEME_TOKENS, k) for k in ThemeTokens.__dataclass_fields__}
 
 
 # ── Price history windows ────────────────────────────────────────────────────

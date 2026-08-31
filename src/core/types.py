@@ -23,15 +23,6 @@ class WeightMethod(str, Enum):
     INVERSE_VOLATILITY = "Inverse Volatility"
 
 
-class SurgeMode(str, Enum):
-    DAILY_VS_20D = "Daily vs 20D Avg"
-    TREND_20D_VS_PREV = "20D Avg vs Prior 20D"
-
-
-class ColumnDensity(str, Enum):
-    EXECUTIVE = "Executive (11)"
-    CORE = "Core (17)"
-    FULL_QUANT = "Full Quant (35)"
 
 
 @dataclass(frozen=True)
@@ -64,10 +55,3 @@ class RegimeData:
     distance_pct: float
 
 
-class OHLCVData(NamedTuple):
-    """Cleaned 5-tuple OHLCV DataFrame extracted from raw price downloads."""
-    adj_close: pd.DataFrame
-    close: pd.DataFrame
-    high: pd.DataFrame
-    low: pd.DataFrame
-    volume: pd.DataFrame

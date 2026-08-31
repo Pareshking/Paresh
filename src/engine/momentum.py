@@ -270,13 +270,16 @@ class MomentumEngine:
         rank_df["Composite Rank"] = rank_df["Rank"]
 
         # Historical ranks use calendar 1M/3M snapshots rather than fixed rows.
+        # Precompute both windows in one pass to avoid two separate searchsorted calls.
         n_rows = len(self.momentum_scores) if self.momentum_scores is not None else 0
         if n_rows > 0 and self.momentum_scores is not None:
-            as_of = latest_as_of_date(pd.DatetimeIndex(self.momentum_scores.index))
-            starts = calendar_start_positions(
-                pd.DatetimeIndex(self.momentum_scores.index), 1, latest_as_of=as_of
-            )
-            idx_1m = int(starts[-1])
+            score_idx = pd.DatetimeIndex(self.momentum_scores.index)
+            as_of = latest_as_of_date(score_idx)
+            hist_starts = {
+                m: calendar_start_positions(score_idx, m, latest_as_of=as_of)
+                for m in (1, 3)
+            }
+            idx_1m = int(hist_starts[1][-1])
             if idx_1m < n_rows:
                 s_1m = self.momentum_scores.iloc[idx_1m].where(valid_mask, np.nan)
                 r_1m = s_1m.rank(ascending=False, method="min")
@@ -286,10 +289,7 @@ class MomentumEngine:
                 rank_df["Rank (-1M)"] = np.nan
                 rank_df["Rank Δ 1M"] = np.nan
 
-            starts = calendar_start_positions(
-                pd.DatetimeIndex(self.momentum_scores.index), 3, latest_as_of=as_of
-            )
-            idx_3m = int(starts[-1])
+            idx_3m = int(hist_starts[3][-1])
             if idx_3m < n_rows:
                 s_3m = self.momentum_scores.iloc[idx_3m].where(valid_mask, np.nan)
                 r_3m = s_3m.rank(ascending=False, method="min")
@@ -327,24 +327,23 @@ class MomentumEngine:
         latest_close = close_src.iloc[-1]
         rank_df["CMP"] = rank_df["Symbol"].map(latest_close.to_dict())
 
-        # 50 EMA
+        # 50 EMA — vectorized: convert to dicts once, single lookup per symbol
         ema_50 = close_src.ewm(span=50, min_periods=30).mean().iloc[-1]
-        rank_df["Above 50 EMA"] = rank_df["Symbol"].map(
-            lambda s: (
-                (latest_close.get(s, 0) > ema_50.get(s, 0))
-                if pd.notna(ema_50.get(s)) and pd.notna(latest_close.get(s))
-                else False
-            )
-        )
-        rank_df["% 50 EMA"] = rank_df["Symbol"].map(
-            lambda s: (
-                ((latest_close.get(s, 0) - ema_50.get(s, 0)) / ema_50.get(s, 1) * 100)
-                if pd.notna(ema_50.get(s))
-                and pd.notna(latest_close.get(s))
-                and ema_50.get(s, 0) > 0
-                else np.nan
-            )
-        )
+        _ema_d = ema_50.to_dict()
+        _cls_d = latest_close.to_dict()
+
+        def _above_ema(s: str) -> bool:
+            e, c = _ema_d.get(s), _cls_d.get(s)
+            return bool(c > e) if (e is not None and c is not None and pd.notna(e) and pd.notna(c)) else False
+
+        def _pct_ema(s: str) -> float:
+            e, c = _ema_d.get(s), _cls_d.get(s)
+            if e is not None and c is not None and pd.notna(e) and pd.notna(c) and e > 0:
+                return (c - e) / e * 100
+            return np.nan
+
+        rank_df["Above 50 EMA"] = rank_df["Symbol"].map(_above_ema)
+        rank_df["% 50 EMA"] = rank_df["Symbol"].map(_pct_ema)
 
         # 52W High
         win_52w = min(252, len(high_src))
@@ -442,12 +441,16 @@ class MomentumEngine:
             rank_df[f"{label} Sharpe"] = rank_df["Symbol"].map(cal_sharpe_last.to_dict())
 
         # Drawdowns over the same calendar windows.
+        # Precompute all start positions once; avoids one np.searchsorted pass per window.
         close_idx = pd.DatetimeIndex(close_src.index)
         as_of = latest_as_of_date(close_idx)
+        starts_by_month = {
+            m: calendar_start_positions(close_idx, m, latest_as_of=as_of)
+            for m in MOMENTUM_WINDOWS
+        }
         for months in MOMENTUM_WINDOWS:
             label = f"{months}M"
-            starts = calendar_start_positions(close_idx, months, latest_as_of=as_of)
-            start = int(starts[-1])
+            start = int(starts_by_month[months][-1])
             period_close = close_src.iloc[start:]
             roll_max = period_close.cummax()
             dd = ((period_close - roll_max) / roll_max.replace(0, np.nan)).min() * 100
@@ -471,11 +474,11 @@ class MomentumEngine:
             vol_20_avg = vol_df.rolling(20, min_periods=10).mean().iloc[-1]
             vol_latest = vol_df.iloc[-1]
             vol_ratio = vol_latest / vol_20_avg.replace(0, np.nan)
+            _vr_d = vol_ratio.to_dict()
             rank_df["Volume"] = rank_df["Symbol"].map(
                 lambda s: (
-                    "High"
-                    if vol_ratio.get(s, 0) >= 1.5
-                    else ("Low" if vol_ratio.get(s, 0) < 0.7 else "Normal")
+                    "High" if _vr_d.get(s, 0) >= 1.5
+                    else ("Low" if _vr_d.get(s, 0) < 0.7 else "Normal")
                 )
             )
         else:

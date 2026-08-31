@@ -25,7 +25,7 @@ from src.core.config import (
     PRICES_FILE,
 )
 from src.engine.momentum import MomentumEngine
-from src.engine.calendar_momentum import apply_calendar_momentum, calendar_start_positions, latest_as_of_date
+from src.engine.calendar_momentum import apply_calendar_momentum
 from src.loaders.indices_loader import fetch_indices_data
 from src.loaders.mcap_loader import fetch_market_caps
 from src.loaders.price_loader import (
@@ -214,21 +214,6 @@ def load_all_data(indices: list[str]):
             mcaps,
             weights,
         )
-
-    # Ensure Max DD 6M is populated
-    if "Max DD 6M" not in rank_df.columns or rank_df["Max DD 6M"].isna().all():
-        as_of = latest_as_of_date(pd.DatetimeIndex(close_p.index))
-        starts = calendar_start_positions(
-            pd.DatetimeIndex(close_p.index), 6, latest_as_of=as_of
-        )
-        period_close = close_p.iloc[int(starts[-1]) :]
-        roll_max_6m = period_close.cummax()
-        dd_6m = ((period_close - roll_max_6m) / roll_max_6m).min() * 100
-        dd_6m_dict = {
-            str(k).replace(".NS", "").strip().upper(): v
-            for k, v in dd_6m.to_dict().items()
-        }
-        rank_df["Max DD 6M"] = rank_df["Symbol"].map(dd_6m_dict)
 
     return {
         "calc": calc,
