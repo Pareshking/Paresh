@@ -856,12 +856,28 @@ let frame = maxFrames - 1;
 let playing = false;
 let pulsePhase = 0;
 let playTimer = null;
+let selectedSector = null;
 
 scrub.max   = maxFrames - 1;
 scrub.value = maxFrames - 1;
 
 // ── Padding ────────────────────────────────────────────────────────────────
-const PAD = {t:32, r:28, b:52, l:56};
+const PAD = {t:40, r:16, b:52, l:50};
+
+// ── Hit test (returns industry name or null) ───────────────────────────────
+function hitTest(mx, my) {
+  const radius = 36;
+  let hit = null, minD = radius;
+  for (let i = 0; i < DATA.sectors.length; i++) {
+    const s = DATA.sectors[i];
+    const hIdx = Math.max(Math.min(frame, s.trail_r.length - 1), 0);
+    const hx = s.trail_r.length > 0 ? tx(s.trail_r[hIdx]) : tx(s.rs_ratio);
+    const hy = s.trail_m.length > 0 ? ty(s.trail_m[hIdx]) : ty(s.rs_momentum);
+    const d = Math.hypot(mx - hx, my - hy);
+    if (d < minD) { minD = d; hit = s.industry; }
+  }
+  return hit;
+}
 
 // ── DPI-aware setup ────────────────────────────────────────────────────────
 let W = 0, H = 0, dpr = 1;
@@ -926,8 +942,9 @@ function drawTicks() {
   ctx.font = '9px IBM Plex Mono,monospace';
   ctx.fillStyle = '#94a3b8';
   ctx.textAlign = 'center';
-  const xStep = (maxX - minX) > 15 ? 2 : 1;
-  for (let v = Math.ceil(minX); v <= maxX; v += xStep) {
+  const availW = W - PAD.l - PAD.r;
+  const xStep = Math.max(2, Math.ceil((maxX - minX) / Math.floor(availW / 30)));
+  for (let v = Math.ceil(minX / xStep) * xStep; v <= maxX; v += xStep) {
     const xp = tx(v);
     ctx.fillText(v.toFixed(0), xp, H - PAD.b + 14);
     ctx.beginPath();
@@ -997,8 +1014,9 @@ function draw() {
   ctx.strokeStyle = gridC;
   ctx.lineWidth = 0.7;
   ctx.setLineDash([]);
-  const xStep = (maxX - minX) > 15 ? 2 : 1;
-  for (let v = Math.ceil(minX); v <= maxX; v += xStep) {
+  const availW2 = W - PAD.l - PAD.r;
+  const xStepG = Math.max(2, Math.ceil((maxX - minX) / Math.floor(availW2 / 30)));
+  for (let v = Math.ceil(minX / xStepG) * xStepG; v <= maxX; v += xStepG) {
     ctx.beginPath(); ctx.moveTo(tx(v), PAD.t); ctx.lineTo(tx(v), H - PAD.b); ctx.stroke();
   }
   const yStep = (maxY - minY) > 8 ? 1 : 0.5;
@@ -1024,13 +1042,42 @@ function draw() {
   ctx.fillText('↑ JdK RS-Momentum', 0, 0);
   ctx.restore();
 
+  // ── Selected sector banner ────────────────────────────────────────────────
+  if (selectedSector) {
+    const sel = DATA.sectors.find(s => s.industry === selectedSector);
+    if (sel) {
+      const hIdx = Math.max(Math.min(frame, sel.trail_r.length - 1), 0);
+      const hr = sel.trail_r.length > 0 ? sel.trail_r[hIdx] : sel.rs_ratio;
+      const hm = sel.trail_m.length > 0 ? sel.trail_m[hIdx] : sel.rs_momentum;
+      ctx.save();
+      ctx.font = 'bold 12px Plus Jakarta Sans,system-ui';
+      ctx.fillStyle = sel.color;
+      ctx.textAlign = 'center';
+      ctx.fillText(sel.industry + '  ·  ' + sel.quadrant + '  ·  R:' + hr.toFixed(1) + '  M:' + hm.toFixed(1), W / 2, 18);
+      ctx.font = '10px Plus Jakarta Sans,system-ui';
+      ctx.fillStyle = textC;
+      ctx.fillText('Tap dot again or empty area to deselect', W / 2, 31);
+      ctx.restore();
+    }
+  }
+
   // ── Sectors ──────────────────────────────────────────────────────────────
   const hasFilter = DATA.highlight.length > 0;
+  const hasUserSel = selectedSector !== null;
 
   for (let si = 0; si < DATA.sectors.length; si++) {
-    const s      = DATA.sectors[si];
-    const active = !hasFilter || DATA.highlight.indexOf(s.industry) >= 0;
-    const alpha  = active ? 1.0 : 0.12;
+    const s = DATA.sectors[si];
+    let active, alpha;
+    if (hasUserSel) {
+      active = (s.industry === selectedSector);
+      alpha  = active ? 1.0 : 0.07;
+    } else if (hasFilter) {
+      active = DATA.highlight.indexOf(s.industry) >= 0;
+      alpha  = active ? 1.0 : 0.12;
+    } else {
+      active = true;
+      alpha  = 1.0;
+    }
     const trailN = s.trail_r.length;
     const fend   = Math.min(frame + 1, trailN);
 
@@ -1098,13 +1145,14 @@ function draw() {
     ctx.fillStyle = s.color;
     ctx.fill();
 
-    // label beside head
-    if (active) {
+    // label beside head — on mobile only show for selected; on wide show all
+    const showLabel = hasUserSel ? active : (W >= 420);
+    if (active && showLabel) {
       ctx.globalAlpha = 1;
-      ctx.font = 'bold 10px Plus Jakarta Sans,system-ui';
+      ctx.font = (active && hasUserSel ? 'bold 11px' : '9px') + ' Plus Jakarta Sans,system-ui';
       ctx.fillStyle = s.color;
       ctx.textAlign = 'left';
-      ctx.fillText(' ' + s.industry, hx + 10, hy - 4);
+      ctx.fillText(' ' + s.industry, hx + (hasUserSel ? 12 : 9), hy - 4);
     }
 
     ctx.globalAlpha = 1;
@@ -1208,6 +1256,22 @@ canvas.addEventListener('mousemove', function(e) {
   }
 });
 canvas.addEventListener('mouseleave', function() { tip.style.display = 'none'; });
+
+// ── Click / Tap to highlight ───────────────────────────────────────────────
+canvas.addEventListener('click', function(e) {
+  const rect = canvas.getBoundingClientRect();
+  const hit = hitTest(e.clientX - rect.left, e.clientY - rect.top);
+  selectedSector = (hit === selectedSector) ? null : hit;
+});
+
+canvas.addEventListener('touchend', function(e) {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  const rect = canvas.getBoundingClientRect();
+  const hit = hitTest(t.clientX - rect.left, t.clientY - rect.top);
+  selectedSector = (hit === selectedSector) ? null : hit;
+  tip.style.display = 'none';
+}, {passive: false});
 
 window.addEventListener('resize', setupCanvas);
 updateLabel();
