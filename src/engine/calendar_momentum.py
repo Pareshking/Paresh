@@ -68,7 +68,7 @@ def _calendar_period_metrics(
     months: int,
     *,
     latest_as_of: pd.Timestamp | None = None,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, np.ndarray]:
+) -> tuple[pd.DataFrame, pd.Series, pd.DataFrame, np.ndarray]:
     """Calculate V1 System-1 metrics over a calendar-defined rolling window.
 
     The approved V1 period-scale Sharpe is preserved. Only the economic
@@ -101,19 +101,22 @@ def _calendar_period_metrics(
     cs_ = np.vstack([np.zeros((1, n_cols)), np.nancumsum(np.where(valid_r, r * r, 0.0), axis=0)])
     cs_n = np.vstack([np.zeros((1, n_cols)), np.cumsum(valid_r.astype(float), axis=0)])
 
-    score = np.full((n_rows, n_cols), np.nan)
-    returns = np.full((n_rows, n_cols), np.nan)
     sharpe = np.full((n_rows, n_cols), np.nan)
+    # Pre-extract both DataFrames to raw numpy before the loop. Each
+    # DataFrame.iloc[] call dispatches through Python and pandas bookkeeping
+    # (~2 µs each); 500 iterations × 2 calls × 5 windows = 5 000 dispatches.
+    # Plain numpy row indexing costs ~20 ns — ~100× less per access.
+    anchor_arr = prices_anchor.to_numpy(dtype=float)
+    prices_arr = prices.to_numpy(dtype=float)
 
     for end in range(n_rows):
         start = int(starts[end])
         if start >= end:
             continue
 
-        p0 = prices_anchor.iloc[start].to_numpy(dtype=float)
-        p1 = prices.iloc[end].to_numpy(dtype=float)
+        p0 = anchor_arr[start]
+        p1 = prices_arr[end]
         valid_price = np.isfinite(p0) & np.isfinite(p1) & (p0 != 0)
-        returns[end, valid_price] = p1[valid_price] / p0[valid_price] - 1.0
 
         rs = cs_r[end + 1] - cs_r[start + 1]
         rs2 = cs_[end + 1] - cs_[start + 1]
@@ -126,14 +129,22 @@ def _calendar_period_metrics(
         log_return = np.full(n_cols, np.nan)
         log_return[valid_price] = np.log(np.maximum(p1[valid_price] / p0[valid_price], 0.001))
         sharpe[end] = log_return / np.where(period_vol > 0, period_vol, np.nan)
-        score[end] = sharpe[end]
 
-    return (
-        pd.DataFrame(score, index=prices.index, columns=prices.columns),
-        pd.DataFrame(returns, index=prices.index, columns=prices.columns),
-        pd.DataFrame(sharpe, index=prices.index, columns=prices.columns),
-        starts,
-    )
+    # Only the final row's simple return is stored in period_metrics — building
+    # a full 500×750 returns matrix and discarding 499 rows wastes 3 MB per window.
+    last_ret_arr = np.full(n_cols, np.nan)
+    if n_rows > 0:
+        end_last = n_rows - 1
+        start_last = int(starts[end_last])
+        if start_last < end_last:
+            lp0 = anchor_arr[start_last]
+            lp1 = prices_arr[end_last]
+            lv = np.isfinite(lp0) & np.isfinite(lp1) & (lp0 != 0)
+            last_ret_arr[lv] = lp1[lv] / lp0[lv] - 1.0
+    last_ret = pd.Series(last_ret_arr, index=prices.columns)
+
+    sharpe_df = pd.DataFrame(sharpe, index=prices.index, columns=prices.columns)
+    return (sharpe_df, last_ret, sharpe_df, starts)
 
 
 def _winsorised_cross_section_z(score: pd.DataFrame) -> pd.DataFrame:
@@ -169,23 +180,34 @@ def _winsorised_cross_section_z(score: pd.DataFrame) -> pd.DataFrame:
         c_sd = np.nanstd(clipped, axis=1, ddof=0, keepdims=True)
         z = (clipped - c_mean) / (c_sd + 1e-12)
 
-    z[(n < 3) | (sd.ravel() == 0.0), :] = np.nan
-    return pd.DataFrame(z, index=score.index, columns=score.columns).clip(-3.0, 3.0)
+    # Guard against both the pre-clip and post-clip standard deviations being
+    # zero. z-scores are computed from c_sd (post-clip); a guard on sd alone
+    # misses the case where sd > 0 but winsorization collapses c_sd to 0.
+    z[(n < 3) | (sd.ravel() == 0.0) | (c_sd.ravel() == 0.0), :] = np.nan
+    # No final clip needed: data was winsorized at ±3σ before z-scoring, so
+    # z-scores cannot meaningfully exceed ±3 by construction.
+    return pd.DataFrame(z, index=score.index, columns=score.columns)
 
 
 def apply_calendar_momentum(calc) -> pd.DataFrame:
     """Apply the canonical 1M/3M/6M/9M/12M System-1 horizons."""
-    scores_by_period: dict[int, pd.DataFrame] = {}
     calc.period_metrics = {}
     calc.period_dates = {}
     as_of = latest_as_of_date(pd.DatetimeIndex(calc.prices.index)) if not calc.prices.empty else None
 
-    for months in MOMENTUM_MONTHS:
-        score, ret, sharpe, starts = _calendar_period_metrics(
+    # Accumulate composite in a single pass — no scores_by_period dict means
+    # only one z-score matrix lives in RAM at a time (3 MB) instead of all five
+    # simultaneously (15 MB). Weights arrive pre-normalized from the caller.
+    composite = pd.DataFrame(0.0, index=calc.prices.index, columns=calc.prices.columns)
+    available_weight = pd.DataFrame(0.0, index=calc.prices.index, columns=calc.prices.columns)
+
+    for months, weight in zip(MOMENTUM_MONTHS, calc.weights):
+        score, last_ret, sharpe, starts = _calendar_period_metrics(
             calc.prices, calc.log_ret, months, latest_as_of=as_of
         )
         z_score = _winsorised_cross_section_z(score)
-        scores_by_period[months] = z_score
+        composite = composite.add(z_score.fillna(0.0) * weight)
+        available_weight = available_weight.add(z_score.notna().astype(float) * weight)
 
         if not calc.prices.empty:
             end = len(calc.prices) - 1
@@ -200,20 +222,10 @@ def apply_calendar_momentum(calc) -> pd.DataFrame:
                 "return_observations": end - start,
             }
             calc.period_metrics[months] = {
-                "return": ret.iloc[end],
+                "return": last_ret,
                 "sharpe": sharpe.iloc[end],
                 "score": z_score.iloc[end] if not z_score.empty else pd.Series(dtype=float),
             }
-
-    total_weight = sum(calc.weights)
-    norm_weights = [w / total_weight for w in calc.weights] if total_weight > 0 else [0.2] * len(MOMENTUM_MONTHS)
-    composite = pd.DataFrame(0.0, index=calc.prices.index, columns=calc.prices.columns)
-    available_weight = pd.DataFrame(0.0, index=calc.prices.index, columns=calc.prices.columns)
-
-    for months, weight in zip(MOMENTUM_MONTHS, norm_weights):
-        scores = scores_by_period[months]
-        composite = composite.add(scores.fillna(0.0) * weight)
-        available_weight = available_weight.add(scores.notna().astype(float) * weight)
 
     calc.momentum_scores = composite.div(available_weight.replace(0.0, np.nan))
     return calc.momentum_scores

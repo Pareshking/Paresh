@@ -14,6 +14,18 @@ from src.ui.theme import clean_html, is_tick_true
 
 
 
+def count_above_ema(rank_df: pd.DataFrame) -> int:
+    """Count stocks with 'Above 50 EMA' truthy, handling duplicate/unexpected columns."""
+    ema_col = rank_df.get("Above 50 EMA")
+    if ema_col is None:
+        return 0
+    if isinstance(ema_col, pd.DataFrame):
+        ema_col = ema_col.iloc[:, -1]
+    if not isinstance(ema_col, pd.Series):
+        ema_col = pd.Series(ema_col, index=rank_df.index)
+    return int(to_bool_mask(ema_col).sum())
+
+
 def to_bool_mask(values: "pd.Series | None") -> pd.Series:
     """Coerce a qualification column to a real boolean mask.
 
@@ -155,43 +167,6 @@ def compute_signals(
 
     return signals
 
-
-def render_ticker_ribbon(rank_df: pd.DataFrame, regime: RegimeData) -> None:
-    """Renders top live marquee ticker ribbon (Stockin.id style)."""
-    top_picks = rank_df.sort_values("Rank").head(8)
-    if top_picks.empty:
-        return
-
-    border_clr = "#059669" if regime.distance_pct >= 0 else "#e11d48"
-    items_html = (
-        f'<div class="ticker-item" style="border-left: 3px solid {border_clr};">'
-        f'<span style="font-weight: 700; color: #0f172a;">NIFTY 500</span>'
-        f'<span style="color: #475569;">₹{regime.current_price:,.0f}</span>'
-        f'<span style="font-weight: 700; color: {border_clr};">{regime.distance_pct:+.1f}% (200D)</span>'
-        f"</div>"
-    )
-
-    for _, row in top_picks.iterrows():
-        sym = row["Symbol"]
-        cmp_val = row.get("CMP", 0)
-        ret_3m = row.get("3M Return", 0)
-        ret_str = f"{ret_3m:+.1%}" if pd.notna(ret_3m) else "—"
-        ret_clr = "#059669" if ret_3m >= 0 else "#e11d48"
-        rank_num = int(row["Rank"]) if pd.notna(row.get("Rank")) else "—"
-
-        items_html += (
-            f'<div class="ticker-item">'
-            f'<span style="color: #64748b; font-size: 0.72rem;">#{rank_num}</span>'
-            f'<span style="font-weight: 800; color: #0f172a;">{sym}</span>'
-            f'<span style="color: #334155;">₹{cmp_val:,.0f}</span>'
-            f'<span style="font-weight: 700; color: {ret_clr};">{ret_str}</span>'
-            f"</div>"
-        )
-
-    st.markdown(
-        clean_html(f'<div class="ticker-ribbon">{items_html}</div>'),
-        unsafe_allow_html=True,
-    )
 
 
 def render_header_kpi_bar(

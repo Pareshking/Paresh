@@ -32,7 +32,8 @@ def test_calendar_12m_uses_first_trading_day_on_or_after_target():
     assert starts[end] == expected_start
     assert prices.index[expected_start] == pd.Timestamp("2025-08-18")
     expected_return = prices.iloc[end, 0] / prices.iloc[expected_start, 0] - 1
-    assert np.isclose(returns.iloc[end, 0], expected_return)
+    # returns is now a Series (last row only); index 0 → "RELIANCE"
+    assert np.isclose(returns.iloc[0], expected_return)
 
 
 def test_calendar_windows_are_not_fixed_21_63_126_189_252_rows():

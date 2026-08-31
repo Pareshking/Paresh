@@ -24,7 +24,7 @@ from src.core.market_time import (
     trading_days_behind,
 )
 from src.core.logger import logger
-from src.core.types import MarketRegime, OHLCVData, RegimeData
+from src.core.types import MarketRegime, RegimeData
 
 # Configure yfinance timezone cache to prevent repeated warning logs
 try:
@@ -602,14 +602,13 @@ def fetch_benchmark_history(period: str = "2y") -> pd.Series:
 def get_market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL) -> RegimeData:
     """
     Computes market regime by comparing benchmark index price with its 200 DMA.
-    Uses the canonical V1 benchmark passed by the caller (default ^CRSLDX).
+    Reuses fetch_benchmark_history (2y window, already cached) so no second
+    HTTP round-trip is needed at cold start.
     """
     try:
-        nifty = yf.download(
-            benchmark_symbol, period="1y", progress=False, auto_adjust=True
-        )
+        close_s = fetch_benchmark_history(period="2y")
 
-        if nifty is None or nifty.empty:
+        if close_s is None or close_s.empty:
             return RegimeData(
                 status=MarketRegime.UNKNOWN,
                 current_price=0.0,
@@ -617,17 +616,9 @@ def get_market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL) -> RegimeData:
                 distance_pct=0.0,
             )
 
-        if nifty.index.tz is not None:
-            nifty.index = nifty.index.tz_localize(None)
-
-        if isinstance(nifty.columns, pd.MultiIndex):
-            close_df = _extract_field(nifty, ["Close", "Adj Close", "AdjClose"])
-            close_s = close_df.iloc[:, 0] if not close_df.empty else nifty.iloc[:, 0]
-        else:
-            close_s = nifty["Close"] if "Close" in nifty.columns else nifty.iloc[:, 0]
-
-        price = float(close_s.dropna().iloc[-1])
-        dma = float(close_s.dropna().rolling(200, min_periods=100).mean().iloc[-1])
+        close_s = pd.to_numeric(close_s, errors="coerce").dropna()
+        price = float(close_s.iloc[-1])
+        dma = float(close_s.rolling(200, min_periods=100).mean().iloc[-1])
         dist = ((price - dma) / dma * 100) if dma > 0 else 0.0
         status = MarketRegime.BULLISH if price >= dma else MarketRegime.BEARISH
 
@@ -638,7 +629,7 @@ def get_market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL) -> RegimeData:
             distance_pct=dist,
         )
     except Exception as e:
-        logger.warning(f"Failed to fetch market regime: {e}")
+        logger.warning(f"Failed to compute market regime: {e}")
         return RegimeData(
             status=MarketRegime.UNKNOWN,
             current_price=0.0,

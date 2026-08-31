@@ -17,7 +17,6 @@ from typing import Any, Sequence
 
 import numpy as np
 import pandas as pd
-from scipy.ndimage import convolve1d
 
 from src.core.config import DEFAULT_LOOKBACK_WEIGHTS, MOMENTUM_WINDOWS
 from src.core.tickers import normalise_symbol
@@ -66,32 +65,6 @@ def compute_ffill_pct(raw_df: pd.DataFrame | None) -> pd.Series:
     return (nan_per_col / max(n_rows, 1) * 100).round(1)
 
 
-def winsorize_series(s: pd.Series, std_limit: float = 3.0) -> pd.Series:
-    """Winsorizes cross-sectional series to +/- std_limit standard deviations."""
-    if s.empty or s.isna().all():
-        return s
-    clean = s.dropna()
-    if len(clean) < 3 or clean.std(ddof=0) == 0:
-        return s
-    mean, std = float(clean.mean()), float(clean.std(ddof=0))
-    lower, upper = mean - std_limit * std, mean + std_limit * std
-    return s.clip(lower=lower, upper=upper)
-
-
-def zscore_series(s: pd.Series, winsorize: bool = True) -> pd.Series:
-    """Calculates cross-sectional Z-scores with optional 3-sigma winsorization."""
-    if s.empty or s.isna().all():
-        return s
-    clean = s.dropna()
-    if len(clean) < 3 or clean.std(ddof=0) == 0:
-        return pd.Series(np.nan, index=s.index)
-    if winsorize:
-        clean = winsorize_series(clean, std_limit=3.0)
-    mean_val = float(clean.mean())
-    std_val = float(clean.std(ddof=0))
-    z = (clean - mean_val) / (std_val + 1e-12)
-    return z.reindex(s.index)
-
 
 def _normalize_ticker_cols(df: pd.DataFrame | None) -> pd.DataFrame | None:
     if df is None or df.empty:
@@ -123,30 +96,43 @@ class MomentumEngine:
     ):
         self.ffill_pct: pd.Series = compute_ffill_pct(prices_df)
 
+        # Clean holidays once from prices_df and share the resulting index across
+        # all four frames. clean_holidays() performs an O(n×m) NaN scan; calling
+        # it separately for each frame wastes 3 redundant full-matrix passes.
+        # Exchange-wide holidays show as >70% NaN density in all frames equally,
+        # so the prices_df mask is the correct and complete holiday mask.
         cleaned_p = clean_holidays(prices_df)
         norm_p = _normalize_ticker_cols(cleaned_p)
         self.prices: pd.DataFrame = norm_p if norm_p is not None else pd.DataFrame()
-        
+        _keep_idx = cleaned_p.index if cleaned_p is not None and not cleaned_p.empty else (
+            prices_df.index if prices_df is not None else pd.Index([])
+        )
+
+        def _apply_mask(df: pd.DataFrame | None) -> pd.DataFrame | None:
+            if df is None or df.empty:
+                return df
+            return df.loc[df.index.intersection(_keep_idx)]
+
         if high_df is not None:
-            norm_h = _normalize_ticker_cols(clean_holidays(high_df))
+            norm_h = _normalize_ticker_cols(_apply_mask(high_df))
             self.high: pd.DataFrame = norm_h if norm_h is not None else self.prices
         else:
             self.high = self.prices
 
         if low_df is not None:
-            norm_l = _normalize_ticker_cols(clean_holidays(low_df))
+            norm_l = _normalize_ticker_cols(_apply_mask(low_df))
             self.low: pd.DataFrame = norm_l if norm_l is not None else self.prices
         else:
             self.low = self.prices
 
         if close_df is not None:
-            norm_c = _normalize_ticker_cols(clean_holidays(close_df))
+            norm_c = _normalize_ticker_cols(_apply_mask(close_df))
             self.close: pd.DataFrame = norm_c if norm_c is not None else self.prices
         else:
             self.close = self.prices
 
         if volume_df is not None:
-            self.volume: pd.DataFrame | None = _normalize_ticker_cols(clean_holidays(volume_df))
+            self.volume: pd.DataFrame | None = _normalize_ticker_cols(_apply_mask(volume_df))
         else:
             self.volume = None
 
@@ -161,6 +147,7 @@ class MomentumEngine:
         self.ranking_diagnostics: dict[str, int] = {}
         self.vol_mgd_ranks: pd.Series | None = None
         self.period_metrics: dict[int, dict[str, pd.Series]] = {}
+        self.period_dates: dict[int, dict] = {}
 
     def calculate_sharpe_momentum(self) -> pd.DataFrame:
         """Compatibility entry point for the canonical calendar-month System-1 engine."""
@@ -185,7 +172,11 @@ class MomentumEngine:
 
         atr = tr.rolling(period, min_periods=max(period - 2, 5)).mean()
         latest_atr = atr.iloc[-1]
-        latest_close = self.close.iloc[-1]
+        # Use the last row that has at least one real close. On a partial trading
+        # day self.close.iloc[-1] may be all-NaN (data pulled before the close),
+        # which turns ATR%, Stop Loss, and Chandelier Exit all NaN even though
+        # the prior day's data is complete and usable.
+        latest_close = self.close.dropna(how="all").iloc[-1]
         atr_pct = (latest_atr / latest_close.replace(0, np.nan)) * 100
 
         stop_loss = (latest_close - atr_mult * latest_atr).clip(lower=0)
@@ -209,11 +200,18 @@ class MomentumEngine:
         if months is None:
             ret = self.log_ret.iloc[-window:]
         else:
-            as_of = latest_as_of_date(pd.DatetimeIndex(self.log_ret.index))
-            starts = calendar_start_positions(
-                pd.DatetimeIndex(self.log_ret.index), months, latest_as_of=as_of
-            )
-            ret = self.log_ret.iloc[int(starts[-1]) :]
+            # Reuse the calendar start date already computed by apply_calendar_momentum
+            # rather than re-running calendar_start_positions (another searchsorted pass).
+            pd_entry = getattr(self, "period_dates", {}).get(months, {})
+            actual_start = pd_entry.get("actual_start")
+            if actual_start is not None and pd.notna(actual_start):
+                ret = self.log_ret.loc[actual_start:]
+            else:
+                as_of = latest_as_of_date(pd.DatetimeIndex(self.log_ret.index))
+                starts = calendar_start_positions(
+                    pd.DatetimeIndex(self.log_ret.index), months, latest_as_of=as_of
+                )
+                ret = self.log_ret.iloc[int(starts[-1]):]
         pos = (ret > 0).sum()
         total = ret.notna().sum().replace(0, np.nan)
         return (pos / total * 100).round(1)
@@ -270,13 +268,16 @@ class MomentumEngine:
         rank_df["Composite Rank"] = rank_df["Rank"]
 
         # Historical ranks use calendar 1M/3M snapshots rather than fixed rows.
+        # Precompute both windows in one pass to avoid two separate searchsorted calls.
         n_rows = len(self.momentum_scores) if self.momentum_scores is not None else 0
         if n_rows > 0 and self.momentum_scores is not None:
-            as_of = latest_as_of_date(pd.DatetimeIndex(self.momentum_scores.index))
-            starts = calendar_start_positions(
-                pd.DatetimeIndex(self.momentum_scores.index), 1, latest_as_of=as_of
-            )
-            idx_1m = int(starts[-1])
+            score_idx = pd.DatetimeIndex(self.momentum_scores.index)
+            as_of = latest_as_of_date(score_idx)
+            hist_starts = {
+                m: calendar_start_positions(score_idx, m, latest_as_of=as_of)
+                for m in (1, 3)
+            }
+            idx_1m = int(hist_starts[1][-1])
             if idx_1m < n_rows:
                 s_1m = self.momentum_scores.iloc[idx_1m].where(valid_mask, np.nan)
                 r_1m = s_1m.rank(ascending=False, method="min")
@@ -286,10 +287,7 @@ class MomentumEngine:
                 rank_df["Rank (-1M)"] = np.nan
                 rank_df["Rank Δ 1M"] = np.nan
 
-            starts = calendar_start_positions(
-                pd.DatetimeIndex(self.momentum_scores.index), 3, latest_as_of=as_of
-            )
-            idx_3m = int(starts[-1])
+            idx_3m = int(hist_starts[3][-1])
             if idx_3m < n_rows:
                 s_3m = self.momentum_scores.iloc[idx_3m].where(valid_mask, np.nan)
                 r_3m = s_3m.rank(ascending=False, method="min")
@@ -327,24 +325,23 @@ class MomentumEngine:
         latest_close = close_src.iloc[-1]
         rank_df["CMP"] = rank_df["Symbol"].map(latest_close.to_dict())
 
-        # 50 EMA
+        # 50 EMA — vectorized: convert to dicts once, single lookup per symbol
         ema_50 = close_src.ewm(span=50, min_periods=30).mean().iloc[-1]
-        rank_df["Above 50 EMA"] = rank_df["Symbol"].map(
-            lambda s: (
-                (latest_close.get(s, 0) > ema_50.get(s, 0))
-                if pd.notna(ema_50.get(s)) and pd.notna(latest_close.get(s))
-                else False
-            )
-        )
-        rank_df["% 50 EMA"] = rank_df["Symbol"].map(
-            lambda s: (
-                ((latest_close.get(s, 0) - ema_50.get(s, 0)) / ema_50.get(s, 1) * 100)
-                if pd.notna(ema_50.get(s))
-                and pd.notna(latest_close.get(s))
-                and ema_50.get(s, 0) > 0
-                else np.nan
-            )
-        )
+        _ema_d = ema_50.to_dict()
+        _cls_d = latest_close.to_dict()
+
+        def _above_ema(s: str) -> bool:
+            e, c = _ema_d.get(s), _cls_d.get(s)
+            return bool(c > e) if (e is not None and c is not None and pd.notna(e) and pd.notna(c)) else False
+
+        def _pct_ema(s: str) -> float:
+            e, c = _ema_d.get(s), _cls_d.get(s)
+            if e is not None and c is not None and pd.notna(e) and pd.notna(c) and e > 0:
+                return (c - e) / e * 100
+            return np.nan
+
+        rank_df["Above 50 EMA"] = rank_df["Symbol"].map(_above_ema)
+        rank_df["% 50 EMA"] = rank_df["Symbol"].map(_pct_ema)
 
         # 52W High
         win_52w = min(252, len(high_src))
@@ -434,20 +431,24 @@ class MomentumEngine:
             if not isinstance(cal_ret_last, pd.Series) or not isinstance(
                 cal_sharpe_last, pd.Series
             ):
-                _, cal_ret, cal_sharpe, _ = _calendar_period_metrics(
+                _, cal_ret_last, cal_sharpe, _ = _calendar_period_metrics(
                     self.prices, self.log_ret, months, latest_as_of=as_of_metrics
                 )
-                cal_ret_last, cal_sharpe_last = cal_ret.iloc[-1], cal_sharpe.iloc[-1]
+                cal_sharpe_last = cal_sharpe.iloc[-1]
             rank_df[f"{label} Return"] = rank_df["Symbol"].map(cal_ret_last.to_dict())
             rank_df[f"{label} Sharpe"] = rank_df["Symbol"].map(cal_sharpe_last.to_dict())
 
         # Drawdowns over the same calendar windows.
+        # Precompute all start positions once; avoids one np.searchsorted pass per window.
         close_idx = pd.DatetimeIndex(close_src.index)
         as_of = latest_as_of_date(close_idx)
+        starts_by_month = {
+            m: calendar_start_positions(close_idx, m, latest_as_of=as_of)
+            for m in MOMENTUM_WINDOWS
+        }
         for months in MOMENTUM_WINDOWS:
             label = f"{months}M"
-            starts = calendar_start_positions(close_idx, months, latest_as_of=as_of)
-            start = int(starts[-1])
+            start = int(starts_by_month[months][-1])
             period_close = close_src.iloc[start:]
             roll_max = period_close.cummax()
             dd = ((period_close - roll_max) / roll_max.replace(0, np.nan)).min() * 100
@@ -471,11 +472,14 @@ class MomentumEngine:
             vol_20_avg = vol_df.rolling(20, min_periods=10).mean().iloc[-1]
             vol_latest = vol_df.iloc[-1]
             vol_ratio = vol_latest / vol_20_avg.replace(0, np.nan)
+            _vr_d = vol_ratio.to_dict()
             rank_df["Volume"] = rank_df["Symbol"].map(
                 lambda s: (
-                    "High"
-                    if vol_ratio.get(s, 0) >= 1.5
-                    else ("Low" if vol_ratio.get(s, 0) < 0.7 else "Normal")
+                    # Default np.nan so stocks absent from vol_df get "Normal"
+                    # (no data) rather than "Low" (thin volume). Python NaN
+                    # comparisons evaluate to False on both branches.
+                    "High" if _vr_d.get(s, np.nan) >= 1.5
+                    else ("Low" if _vr_d.get(s, np.nan) < 0.7 else "Normal")
                 )
             )
         else:
@@ -488,15 +492,13 @@ class MomentumEngine:
         # than a session's price move -- so re-scaling the figure to the
         # current price would add plumbing and a second failure mode without
         # changing any answer it is actually used for.
+        _mc_d = market_caps.to_dict()
         rank_df["Market Cap (Cr)"] = rank_df["Symbol"].map(
-            lambda s: (
-                (market_caps.get(s, 0) / 1e7)
-                if pd.notna(market_caps.get(s))
-                else np.nan
-            )
+            lambda s: (_mc_d[s] / 1e7) if pd.notna(_mc_d.get(s)) else np.nan
         )
+        _vc_d = self._valid_counts.to_dict()
         rank_df["Short History"] = rank_df["Symbol"].map(
-            lambda s: "Yes" if self._valid_counts.get(s, 0) < 126 else "No"
+            lambda s: "Yes" if _vc_d.get(s, 0) < 126 else "No"
         )
         rank_df["FFill %"] = rank_df["Symbol"].map(self.ffill_pct.to_dict()).fillna(0.0)
         rank_df["Data Gap"] = rank_df["FFill %"].map(lambda p: "🔴" if p > 10.0 else "")
