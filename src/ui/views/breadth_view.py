@@ -88,7 +88,7 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
                     </div>
                     """)
         st.html(
-            f'<div style="display: grid; grid-template-columns: repeat({len(kpi_items)}, 1fr); gap: 10px; margin-bottom: 12px;">{"".join(kpi_items)}</div>'
+            f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px;">{"".join(kpi_items)}</div>'
         )
 
         st.markdown(" ")
@@ -197,7 +197,7 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
         )
 
         st.html(f"""
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px;">
                 <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                     <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase;">New {hl_window}D Highs Today</div>
                     <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: #059669; margin-top: 1px;">{today_h}</div>

@@ -290,9 +290,35 @@ def inject_custom_css() -> None:
                 padding-right: 0.5rem !important;
             }
 
-            /* The tab strip is the other fixed cost per row of the screen. */
+            /* Tab bar: scroll horizontally instead of squishing 10 tabs into 375px. */
             .stTabs [data-baseweb="tab-list"] {
                 padding: 3px 3px !important;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                flex-wrap: nowrap !important;
+                scrollbar-width: none !important;
+                -ms-overflow-style: none !important;
+            }
+            .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar {
+                display: none !important;
+            }
+            /* Each tab holds its natural width instead of flex-shrinking to zero. */
+            .stTabs [data-baseweb="tab"] {
+                flex: 0 0 auto !important;
+                font-size: 11px !important;
+                padding: 0 6px !important;
+                height: 32px !important;
+            }
+
+            /* Stack all st.columns() vertically on mobile.
+               260px min-width means no two columns fit in a 375px viewport,
+               so every column wraps to its own full-width row.
+               Content is never cramped; users scroll vertically instead. */
+            [data-testid="stHorizontalBlock"] {
+                flex-wrap: wrap !important;
+            }
+            [data-testid="column"] {
+                min-width: 260px !important;
             }
         }
 

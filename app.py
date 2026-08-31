@@ -4,6 +4,7 @@ Architecture: Modular Package Hierarchy with Pure Paper White Theme & 100% Full 
 Flush 0px top padding with Investrack Pill Tab Navigation.
 """
 
+import concurrent.futures
 import hashlib
 import json
 import warnings
@@ -237,24 +238,31 @@ def load_all_data(indices: list[str]):
     metrics.note("universe_symbols", len(symbols))
     sym_key = _symbols_hash(symbols)
 
-    with metrics.stage("price_history"):
-        raw_prices = load_prices_cached(sym_key, symbols, period="2y")
-    if raw_prices.empty:
-        return None
+    # mcaps + regime have no dependency on price_history — submit them to
+    # background threads so the three fetches overlap on cold start.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as _pool:
+        _fut_mcaps = _pool.submit(load_mcaps_cached, sym_key, symbols)
+        _fut_regime = _pool.submit(get_market_regime)
 
-    with metrics.stage("extract_ohlcv"):
-        p_hash_raw = _price_hash(raw_prices)
-        adj_close, close_p, high_p, low_p, vol_p, open_p = _extract_ohlcv_cached(
-            p_hash_raw, sym_key, raw_prices, symbols
-        )
-    try:
-        metrics.note("price_as_of", str(pd.DatetimeIndex(adj_close.index)[-1].date()))
-    except Exception:
-        pass
-    with metrics.stage("market_caps"):
-        mcaps = load_mcaps_cached(sym_key, symbols)
-    with metrics.stage("market_regime"):
-        regime = get_market_regime()
+        with metrics.stage("price_history"):
+            raw_prices = load_prices_cached(sym_key, symbols, period="2y")
+        if raw_prices.empty:
+            return None
+
+        with metrics.stage("extract_ohlcv"):
+            p_hash_raw = _price_hash(raw_prices)
+            adj_close, close_p, high_p, low_p, vol_p, open_p = _extract_ohlcv_cached(
+                p_hash_raw, sym_key, raw_prices, symbols
+            )
+        try:
+            metrics.note("price_as_of", str(pd.DatetimeIndex(adj_close.index)[-1].date()))
+        except Exception:
+            pass
+
+        with metrics.stage("market_caps"):
+            mcaps = _fut_mcaps.result()
+        with metrics.stage("market_regime"):
+            regime = _fut_regime.result()
 
     p_hash = _price_hash(adj_close)
     i_hash = f"{len(idx_info)}_{sym_key}"
