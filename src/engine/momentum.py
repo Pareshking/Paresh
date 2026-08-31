@@ -65,32 +65,6 @@ def compute_ffill_pct(raw_df: pd.DataFrame | None) -> pd.Series:
     return (nan_per_col / max(n_rows, 1) * 100).round(1)
 
 
-def winsorize_series(s: pd.Series, std_limit: float = 3.0) -> pd.Series:
-    """Winsorizes cross-sectional series to +/- std_limit standard deviations."""
-    if s.empty or s.isna().all():
-        return s
-    clean = s.dropna()
-    if len(clean) < 3 or clean.std(ddof=0) == 0:
-        return s
-    mean, std = float(clean.mean()), float(clean.std(ddof=0))
-    lower, upper = mean - std_limit * std, mean + std_limit * std
-    return s.clip(lower=lower, upper=upper)
-
-
-def zscore_series(s: pd.Series, winsorize: bool = True) -> pd.Series:
-    """Calculates cross-sectional Z-scores with optional 3-sigma winsorization."""
-    if s.empty or s.isna().all():
-        return s
-    clean = s.dropna()
-    if len(clean) < 3 or clean.std(ddof=0) == 0:
-        return pd.Series(np.nan, index=s.index)
-    if winsorize:
-        clean = winsorize_series(clean, std_limit=3.0)
-    mean_val = float(clean.mean())
-    std_val = float(clean.std(ddof=0))
-    z = (clean - mean_val) / (std_val + 1e-12)
-    return z.reindex(s.index)
-
 
 def _normalize_ticker_cols(df: pd.DataFrame | None) -> pd.DataFrame | None:
     if df is None or df.empty:

@@ -3,8 +3,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from src.engine.calendar_momentum import apply_calendar_momentum, latest_as_of_date
-from src.engine.momentum import MomentumEngine, zscore_series
+from src.engine.calendar_momentum import (
+    apply_calendar_momentum,
+    latest_as_of_date,
+    _winsorised_cross_section_z,
+)
+from src.engine.momentum import MomentumEngine
 from src.engine.portfolio import _shrunk_cov
 from src.ui.components import compute_signals
 from src.core.types import MarketRegime
@@ -69,9 +73,36 @@ def test_known_price_paths_do_not_forward_fill_prices_or_benchmark_returns() -> 
     assert offenders == []
 
 
-def test_zscore_small_cross_section_remains_missing() -> None:
-    s = pd.Series([1.0, 2.0, np.nan])
-    assert zscore_series(s).isna().all()
+def test_cross_section_z_fewer_than_3_obs_is_nan() -> None:
+    # A row with fewer than 3 real observations must stay all-NaN —
+    # the same contract the retired zscore_series enforced, now on the
+    # production function that actually runs in the ranking pipeline.
+    scores = pd.DataFrame({"A": [1.0], "B": [2.0], "C": [np.nan]})
+    z = _winsorised_cross_section_z(scores)
+    assert z.iloc[0].isna().all()
+
+
+def test_cross_section_z_zero_variance_is_nan() -> None:
+    # A constant cross-section (zero spread) must stay all-NaN.
+    scores = pd.DataFrame({"A": [5.0, 5.0], "B": [5.0, 5.0], "C": [5.0, 5.0]})
+    z = _winsorised_cross_section_z(scores)
+    assert z.notna().sum().sum() == 0
+
+
+def test_cross_section_z_normal_cross_section_is_finite() -> None:
+    # A healthy cross-section must produce finite z-scores.
+    rng = np.random.default_rng(0)
+    data = {f"S{i}": rng.normal(0, 1, 30) for i in range(20)}
+    scores = pd.DataFrame(data)
+    z = _winsorised_cross_section_z(scores)
+    assert np.isfinite(z.to_numpy()[z.notna().to_numpy()]).all()
+
+
+def test_cross_section_z_nan_stocks_remain_nan() -> None:
+    # NaN in a stock's score must propagate as NaN in the z-score.
+    scores = pd.DataFrame({"A": [1.0, 2.0], "B": [3.0, np.nan], "C": [2.0, 4.0]})
+    z = _winsorised_cross_section_z(scores)
+    assert pd.isna(z.loc[z.index[1], "B"])
 
 
 def test_historical_dataset_as_of_date_uses_last_observation() -> None:
