@@ -1,8 +1,9 @@
 """
-Light-themed interactive Plotly visualizations for NSE Momentum Dashboard.
-Includes Candlestick + Volume + RSI, RRG with trails, and Sector Treemaps.
+Interactive visualizations for NSE Momentum Dashboard.
+Includes Candlestick + Volume + RSI, animated Canvas RRG, and Sector Treemaps.
 """
 
+import json
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -725,326 +726,470 @@ def render_sector_treemap(
     )
 
 
+def _build_rrg_html(data_json: str) -> str:
+    """Build the self-contained animated Canvas RRG HTML component."""
+    _CSS = """
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:transparent;height:100%;overflow:hidden}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif}
+#wrap{position:relative;width:100%}
+canvas{display:block;width:100%;cursor:default}
+#controls{display:flex;gap:8px;align-items:center;justify-content:center;
+  padding:8px 4px 2px;flex-wrap:wrap}
+.ctrl-btn{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;
+  padding:4px 14px;font-size:11.5px;cursor:pointer;color:#334155;
+  font-family:inherit;transition:background .15s}
+.ctrl-btn:hover{background:#e2e8f0}
+.ctrl-btn.active{background:#1e40af;color:#fff;border-color:#1e40af}
+#scrub{width:180px;accent-color:#2563eb;cursor:pointer}
+#frame-lbl{font-size:10.5px;color:#64748b;font-family:'IBM Plex Mono',monospace;
+  min-width:58px;text-align:center}
+#tip{position:absolute;pointer-events:none;background:rgba(15,23,42,.92);
+  color:#fff;padding:8px 11px;border-radius:8px;font-size:11px;line-height:1.65;
+  display:none;z-index:10;max-width:195px;white-space:nowrap}
+@media(prefers-color-scheme:dark){
+  .ctrl-btn{background:#1e293b;border-color:#334155;color:#cbd5e1}
+  .ctrl-btn:hover{background:#334155}
+}
+</style>"""
+
+    _HTML_WRAP = """
+<div id="wrap"><canvas id="rrg"></canvas><div id="tip"></div></div>
+<div id="controls">
+  <button class="ctrl-btn" id="btn-play">&#9654; Play</button>
+  <input type="range" id="scrub" min="0" value="100">
+  <span id="frame-lbl">Current</span>
+  <button class="ctrl-btn" id="btn-rst">&#8635; Reset</button>
+</div>"""
+
+    _JS = r"""
+<script>
+const DATA = """ + data_json + r""";
+
+const canvas = document.getElementById('rrg');
+const ctx    = canvas.getContext('2d');
+const tip    = document.getElementById('tip');
+const btnPlay = document.getElementById('btn-play');
+const scrub   = document.getElementById('scrub');
+const frameLbl = document.getElementById('frame-lbl');
+
+// ── Bounds ─────────────────────────────────────────────────────────────────
+const allR = DATA.sectors.flatMap(s => s.trail_r.length ? s.trail_r : [s.rs_ratio]);
+const allM = DATA.sectors.flatMap(s => s.trail_m.length ? s.trail_m : [s.rs_momentum]);
+const minX = Math.min(88,  allR.length ? Math.min(...allR) - 2 : 90);
+const maxX = Math.max(112, allR.length ? Math.max(...allR) + 2 : 110);
+const minY = Math.min(96,  allM.length ? Math.min(...allM) - 1.5 : 97);
+const maxY = Math.max(105, allM.length ? Math.max(...allM) + 1.5 : 104.5);
+
+const maxFrames = Math.max(...DATA.sectors.map(s => s.trail_r.length), 1);
+let frame = maxFrames - 1;
+let playing = false;
+let pulsePhase = 0;
+let playTimer = null;
+
+scrub.max   = maxFrames - 1;
+scrub.value = maxFrames - 1;
+
+// ── Padding ────────────────────────────────────────────────────────────────
+const PAD = {t:32, r:28, b:52, l:56};
+
+// ── DPI-aware setup ────────────────────────────────────────────────────────
+let W = 0, H = 0, dpr = 1;
+function setupCanvas() {
+  dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  W = Math.max(rect.width, 300);
+  H = Math.min(Math.round(W * 0.62), 530);
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+// ── Coordinate mapping ─────────────────────────────────────────────────────
+function tx(rx) { return PAD.l + (rx - minX) / (maxX - minX) * (W - PAD.l - PAD.r); }
+function ty(ry) { return (H - PAD.b) - (ry - minY) / (maxY - minY) * (H - PAD.t - PAD.b); }
+
+// ── Catmull-Rom smooth path ────────────────────────────────────────────────
+function drawSmooth(pts, alpha) {
+  if (pts.length < 2) return;
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(i - 1, 0)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(i + 2, pts.length - 1)];
+    const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2[0], p2[1]);
+  }
+  ctx.stroke();
+}
+
+// ── Arrowhead at (x1,y1) pointing FROM (x0,y0) ────────────────────────────
+function drawArrow(x0, y0, x1, y1, color) {
+  const dx = x1 - x0, dy = y1 - y0;
+  const len = Math.hypot(dx, dy);
+  if (len < 4) return;
+  const ang = Math.atan2(dy, dx);
+  const sz = 9;
+  ctx.save();
+  ctx.translate(x1, y1);
+  ctx.rotate(ang);
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(-sz, -sz * 0.42);
+  ctx.lineTo(-sz * 0.55, 0);
+  ctx.lineTo(-sz, sz * 0.42);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.restore();
+}
+
+// ── Draw tick labels on axis ───────────────────────────────────────────────
+function drawTicks() {
+  ctx.font = '9px IBM Plex Mono,monospace';
+  ctx.fillStyle = '#94a3b8';
+  ctx.textAlign = 'center';
+  const xStep = (maxX - minX) > 15 ? 2 : 1;
+  for (let v = Math.ceil(minX); v <= maxX; v += xStep) {
+    const xp = tx(v);
+    ctx.fillText(v.toFixed(0), xp, H - PAD.b + 14);
+    ctx.beginPath();
+    ctx.moveTo(xp, H - PAD.b);
+    ctx.lineTo(xp, H - PAD.b + 4);
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+  }
+  ctx.textAlign = 'right';
+  const yStep = (maxY - minY) > 8 ? 1 : 0.5;
+  for (let v = Math.ceil(minY * 2) / 2; v <= maxY; v += yStep) {
+    const yp = ty(v);
+    ctx.fillText(v.toFixed(1), PAD.l - 6, yp + 3);
+    ctx.beginPath();
+    ctx.moveTo(PAD.l - 4, yp);
+    ctx.lineTo(PAD.l, yp);
+    ctx.stroke();
+  }
+}
+
+// ── Main draw ─────────────────────────────────────────────────────────────
+function draw() {
+  setupCanvas();
+  ctx.clearRect(0, 0, W, H);
+
+  const dark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const bg   = dark ? '#0f172a' : '#ffffff';
+  const gridC = dark ? '#1e293b' : '#e2e8f0';
+  const crossC = dark ? '#334155' : '#94a3b8';
+  const textC  = dark ? '#94a3b8' : '#64748b';
+
+  // canvas background
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // quadrant fills
+  const quads = [
+    {x0:minX, x1:100, y0:100, y1:maxY, fill:'rgba(224,231,255,0.45)', lbl:'Improving', lc:'#3b82f6', ax:'left',  lxr:0.04, lyr:0.07},
+    {x0:100,  x1:maxX,y0:100, y1:maxY, fill:'rgba(220,252,231,0.45)', lbl:'Leading',   lc:'#15803d', ax:'right', lxr:0.96, lyr:0.07},
+    {x0:minX, x1:100, y0:minY,y1:100,  fill:'rgba(254,226,226,0.45)', lbl:'Lagging',   lc:'#dc2626', ax:'left',  lxr:0.04, lyr:0.93},
+    {x0:100,  x1:maxX,y0:minY,y1:100,  fill:'rgba(254,249,195,0.45)', lbl:'Weakening', lc:'#ca8a04', ax:'right', lxr:0.96, lyr:0.93},
+  ];
+  for (const q of quads) {
+    const px0 = tx(q.x0), py0 = ty(q.y1), px1 = tx(q.x1), py1 = ty(q.y0);
+    ctx.fillStyle = q.fill;
+    ctx.fillRect(px0, py0, px1 - px0, py1 - py0);
+    const lx = PAD.l + q.lxr * (W - PAD.l - PAD.r);
+    const ly = PAD.t + q.lyr * (H - PAD.t - PAD.b);
+    ctx.font = 'bold 12.5px Plus Jakarta Sans,system-ui';
+    ctx.fillStyle = q.lc;
+    ctx.textAlign = q.ax;
+    ctx.globalAlpha = 0.85;
+    ctx.fillText(q.lbl, lx, ly);
+    ctx.globalAlpha = 1;
+  }
+
+  // watermark
+  ctx.font = '10.5px Plus Jakarta Sans,system-ui';
+  ctx.fillStyle = textC;
+  ctx.textAlign = 'center';
+  ctx.globalAlpha = 0.28;
+  ctx.fillText('RRG ®  Quantum Momentum', tx(100), ty(maxY - (maxY - 100) * 0.13));
+  ctx.globalAlpha = 1;
+
+  // axis grid lines
+  ctx.strokeStyle = gridC;
+  ctx.lineWidth = 0.7;
+  ctx.setLineDash([]);
+  const xStep = (maxX - minX) > 15 ? 2 : 1;
+  for (let v = Math.ceil(minX); v <= maxX; v += xStep) {
+    ctx.beginPath(); ctx.moveTo(tx(v), PAD.t); ctx.lineTo(tx(v), H - PAD.b); ctx.stroke();
+  }
+  const yStep = (maxY - minY) > 8 ? 1 : 0.5;
+  for (let v = Math.ceil(minY*2)/2; v <= maxY; v += yStep) {
+    ctx.beginPath(); ctx.moveTo(PAD.l, ty(v)); ctx.lineTo(W - PAD.r, ty(v)); ctx.stroke();
+  }
+
+  // crosshairs at (100, 100)
+  ctx.strokeStyle = crossC;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(PAD.l, ty(100)); ctx.lineTo(W - PAD.r, ty(100)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(tx(100), PAD.t); ctx.lineTo(tx(100), H - PAD.b); ctx.stroke();
+
+  // ticks and axis labels
+  drawTicks();
+  ctx.font = 'bold 10px Plus Jakarta Sans,system-ui';
+  ctx.fillStyle = textC;
+  ctx.textAlign = 'center';
+  ctx.fillText('JdK RS-Ratio →', tx((minX + maxX) / 2), H - 6);
+  ctx.save();
+  ctx.translate(13, ty((minY + maxY) / 2));
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('↑ JdK RS-Momentum', 0, 0);
+  ctx.restore();
+
+  // ── Sectors ──────────────────────────────────────────────────────────────
+  const hasFilter = DATA.highlight.length > 0;
+
+  for (let si = 0; si < DATA.sectors.length; si++) {
+    const s      = DATA.sectors[si];
+    const active = !hasFilter || DATA.highlight.indexOf(s.industry) >= 0;
+    const alpha  = active ? 1.0 : 0.12;
+    const trailN = s.trail_r.length;
+    const fend   = Math.min(frame + 1, trailN);
+
+    // build pixel trail points up to current frame
+    const pts = [];
+    for (let i = 0; i < fend; i++) pts.push([tx(s.trail_r[i]), ty(s.trail_m[i])]);
+
+    if (pts.length >= 2) {
+      // smooth trail with graduated opacity
+      for (let j = 1; j < pts.length; j++) {
+        const segAlpha = 0.18 + 0.82 * (j / pts.length);
+        ctx.globalAlpha = alpha * segAlpha;
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth   = active ? 2.5 : 1.2;
+        ctx.lineCap     = 'round';
+        ctx.lineJoin    = 'round';
+        drawSmooth(pts.slice(Math.max(j - 1, 0), j + 1), alpha * segAlpha);
+      }
+      // small historical dots on trail
+      if (active) {
+        for (let j = 0; j < pts.length - 1; j++) {
+          const segAlpha = 0.22 + 0.6 * (j / pts.length);
+          ctx.globalAlpha = alpha * segAlpha * 0.7;
+          ctx.beginPath();
+          ctx.arc(pts[j][0], pts[j][1], 3, 0, Math.PI * 2);
+          ctx.fillStyle = s.color;
+          ctx.fill();
+        }
+      }
+      // direction arrow at tip
+      if (active && pts.length >= 2) {
+        ctx.globalAlpha = alpha;
+        const last = pts[pts.length - 1];
+        const prev = pts[pts.length - 2];
+        drawArrow(prev[0], prev[1], last[0], last[1], s.color);
+      }
+    }
+
+    // head dot position
+    const hIdx = Math.max(Math.min(frame, trailN - 1), 0);
+    const hx   = trailN > 0 ? tx(s.trail_r[hIdx]) : tx(s.rs_ratio);
+    const hy   = trailN > 0 ? ty(s.trail_m[hIdx]) : ty(s.rs_momentum);
+
+    // pulsing ring (only active sectors at the final / current frame)
+    if (active && frame >= trailN - 1) {
+      const pulse = 0.5 + 0.5 * Math.sin(pulsePhase);
+      const ringR = 13 + pulse * 5;
+      ctx.globalAlpha = alpha * (0.25 + 0.25 * pulse);
+      ctx.beginPath();
+      ctx.arc(hx, hy, ringR, 0, Math.PI * 2);
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // white border circle
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.arc(hx, hy, active ? 9 : 5, 0, Math.PI * 2);
+    ctx.fillStyle = bg;
+    ctx.fill();
+    // coloured fill
+    ctx.beginPath();
+    ctx.arc(hx, hy, active ? 7.5 : 4, 0, Math.PI * 2);
+    ctx.fillStyle = s.color;
+    ctx.fill();
+
+    // label beside head
+    if (active) {
+      ctx.globalAlpha = 1;
+      ctx.font = 'bold 10px Plus Jakarta Sans,system-ui';
+      ctx.fillStyle = s.color;
+      ctx.textAlign = 'left';
+      ctx.fillText(' ' + s.industry, hx + 10, hy - 4);
+    }
+
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ── RAF loop ──────────────────────────────────────────────────────────────
+function tick() {
+  pulsePhase += 0.07;
+  draw();
+  requestAnimationFrame(tick);
+}
+
+// ── Playback ──────────────────────────────────────────────────────────────
+function updateLabel() {
+  const off = frame - (maxFrames - 1);
+  frameLbl.textContent = off === 0 ? 'Current' : ('T' + off);
+}
+
+function stepPlay() {
+  if (!playing) return;
+  frame++;
+  scrub.value = frame;
+  updateLabel();
+  if (frame >= maxFrames - 1) {
+    playing = false;
+    btnPlay.textContent = '▶ Play';
+    btnPlay.classList.remove('active');
+    return;
+  }
+  playTimer = setTimeout(stepPlay, 130);
+}
+
+btnPlay.addEventListener('click', function() {
+  if (playing) {
+    playing = false;
+    clearTimeout(playTimer);
+    btnPlay.textContent = '▶ Play';
+    btnPlay.classList.remove('active');
+  } else {
+    playing = true;
+    frame = 0;
+    scrub.value = 0;
+    updateLabel();
+    btnPlay.textContent = '⏸ Pause';
+    btnPlay.classList.add('active');
+    stepPlay();
+  }
+});
+
+scrub.addEventListener('input', function() {
+  playing = false;
+  clearTimeout(playTimer);
+  btnPlay.textContent = '▶ Play';
+  btnPlay.classList.remove('active');
+  frame = parseInt(scrub.value);
+  updateLabel();
+});
+
+document.getElementById('btn-rst').addEventListener('click', function() {
+  playing = false;
+  clearTimeout(playTimer);
+  btnPlay.textContent = '▶ Play';
+  btnPlay.classList.remove('active');
+  frame = maxFrames - 1;
+  scrub.value = maxFrames - 1;
+  updateLabel();
+});
+
+// ── Hover tooltip ─────────────────────────────────────────────────────────
+canvas.addEventListener('mousemove', function(e) {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  let nearest = null, minD = 20;
+  for (let i = 0; i < DATA.sectors.length; i++) {
+    const s    = DATA.sectors[i];
+    const hIdx = Math.max(Math.min(frame, s.trail_r.length - 1), 0);
+    const hx   = s.trail_r.length > 0 ? tx(s.trail_r[hIdx]) : tx(s.rs_ratio);
+    const hy   = s.trail_m.length > 0 ? ty(s.trail_m[hIdx]) : ty(s.rs_momentum);
+    const d    = Math.hypot(mx - hx, my - hy);
+    if (d < minD) { minD = d; nearest = s; }
+  }
+  if (nearest) {
+    const hIdx = Math.max(Math.min(frame, nearest.trail_r.length - 1), 0);
+    const hr   = nearest.trail_r.length > 0 ? nearest.trail_r[hIdx] : nearest.rs_ratio;
+    const hm   = nearest.trail_m.length > 0 ? nearest.trail_m[hIdx] : nearest.rs_momentum;
+    tip.style.display = 'block';
+    tip.style.left    = (mx + 14) + 'px';
+    tip.style.top     = (my - 8)  + 'px';
+    tip.innerHTML =
+      '<b style="color:' + nearest.color + '">' + nearest.industry + '</b><br>' +
+      'Quadrant: <b>' + nearest.quadrant + '</b><br>' +
+      'RS-Ratio: <b>' + hr.toFixed(2) + '</b><br>' +
+      'RS-Momentum: <b>' + hm.toFixed(2) + '</b><br>' +
+      'Stocks: ' + nearest.stocks;
+    canvas.style.cursor = 'pointer';
+  } else {
+    tip.style.display  = 'none';
+    canvas.style.cursor = 'default';
+  }
+});
+canvas.addEventListener('mouseleave', function() { tip.style.display = 'none'; });
+
+window.addEventListener('resize', setupCanvas);
+updateLabel();
+tick();
+</script>"""
+
+    return "<!DOCTYPE html><html><head><meta charset='utf-8'>" + _CSS + "</head><body>" + _HTML_WRAP + _JS + "</body></html>"
+
+
 def render_rrg_chart(
     rrg_df: pd.DataFrame,
     highlight_industries: list[str] | None = None,
     current_date_str: str = "",
 ) -> None:
-    """Renders Sharpely / Bloomberg-grade Relative Rotation Graph (RRG) with pastel quadrants and smooth spline trails."""
+    """Animated Canvas RRG — 60 fps, Catmull-Rom trails, direction arrows, pulsing dots."""
     if rrg_df.empty:
         st.info("Not enough historical data to compute Relative Rotation Graph.")
         return
 
-    # Extract dynamic bounds to ensure background rectangles fill 100% of data area
-    all_r = [float(x) for x in rrg_df["RS_Ratio"].dropna().tolist()]
-    t_r_col = (
-        rrg_df["Trail_R"] if "Trail_R" in rrg_df.columns else rrg_df.get("trail_r", [])
-    )
-    for trails in t_r_col:
-        if isinstance(trails, (list, np.ndarray)):
-            all_r.extend([float(x) for x in trails])
-
-    all_m = [float(x) for x in rrg_df["RS_Momentum"].dropna().tolist()]
-    t_m_col = (
-        rrg_df["Trail_M"] if "Trail_M" in rrg_df.columns else rrg_df.get("trail_m", [])
-    )
-    for trails in t_m_col:
-        if isinstance(trails, (list, np.ndarray)):
-            all_m.extend([float(x) for x in trails])
-
-    min_x = min(88.0, (min(all_r) - 2.0) if all_r else 90.0)
-    max_x = max(112.0, (max(all_r) + 2.0) if all_r else 110.0)
-    min_y = min(96.0, (min(all_m) - 1.5) if all_m else 97.0)
-    max_y = max(105.0, (max(all_m) + 1.5) if all_m else 104.5)
-
-    # Sharpely-grade Distinct Vibrant Sector Palette
     VIBRANT_PALETTE = [
-        "#ec4899",  # Vivid Pink / Magenta (like NIFTYIT)
-        "#2563eb",  # Royal Blue (like NIFTYBANK)
-        "#16a34a",  # Fresh Grass Green (like NIFTYFMCG)
-        "#0891b2",  # Vivid Cyan / Teal (like NIFTYPHARMA)
-        "#8b5cf6",  # Electric Violet
-        "#d97706",  # Warm Amber
-        "#dc2626",  # Bright Crimson Red
-        "#059669",  # Emerald
-        "#ea580c",  # Deep Orange
-        "#6366f1",  # Indigo
-        "#0284c7",  # Sky Blue
-        "#9333ea",  # Purple
-        "#64748b",  # Slate Blue
+        "#ec4899", "#2563eb", "#16a34a", "#0891b2", "#8b5cf6",
+        "#d97706", "#dc2626", "#059669", "#ea580c", "#6366f1",
+        "#0284c7", "#9333ea", "#64748b",
     ]
 
-    has_filter = highlight_industries is not None and len(highlight_industries) > 0
-
-    fig = go.Figure()
-
-    # ── 1. Sharpely Pastel Quadrant Shading ──────────────────────────────────
-    # Top-Left: Improving (Soft Lavender-Blue)
-    fig.add_shape(
-        type="rect",
-        x0=min_x,
-        x1=100,
-        y0=100,
-        y1=max_y,
-        fillcolor="rgba(224, 231, 255, 0.45)",
-        line_width=0,
-        layer="below",
-    )
-    # Top-Right: Leading (Soft Mint Green)
-    fig.add_shape(
-        type="rect",
-        x0=100,
-        x1=max_x,
-        y0=100,
-        y1=max_y,
-        fillcolor="rgba(220, 252, 231, 0.45)",
-        line_width=0,
-        layer="below",
-    )
-    # Bottom-Left: Lagging (Soft Peach-Pink)
-    fig.add_shape(
-        type="rect",
-        x0=min_x,
-        x1=100,
-        y0=min_y,
-        y1=100,
-        fillcolor="rgba(254, 226, 226, 0.45)",
-        line_width=0,
-        layer="below",
-    )
-    # Bottom-Right: Weakening (Soft Pale Yellow)
-    fig.add_shape(
-        type="rect",
-        x0=100,
-        x1=max_x,
-        y0=min_y,
-        y1=100,
-        fillcolor="rgba(254, 249, 195, 0.45)",
-        line_width=0,
-        layer="below",
-    )
-
-    # ── 2. Sharpely Quadrant Watermark Annotations ───────────────────────────
-    # Improving (Top-Left)
-    fig.add_annotation(
-        x=min_x + (100 - min_x) * 0.05,
-        y=max_y - (max_y - 100) * 0.06,
-        text="<b>Improving</b>",
-        showarrow=False,
-        xanchor="left",
-        yanchor="top",
-        font={
-            "size": 14,
-            "color": "#3b82f6",
-            "family": "Plus Jakarta Sans, sans-serif",
-        },
-        opacity=0.9,
-    )
-    # Leading (Top-Right)
-    fig.add_annotation(
-        x=max_x - (max_x - 100) * 0.05,
-        y=max_y - (max_y - 100) * 0.06,
-        text="<b>Leading</b>",
-        showarrow=False,
-        xanchor="right",
-        yanchor="top",
-        font={
-            "size": 14,
-            "color": "#15803d",
-            "family": "Plus Jakarta Sans, sans-serif",
-        },
-        opacity=0.9,
-    )
-    # Lagging (Bottom-Left)
-    fig.add_annotation(
-        x=min_x + (100 - min_x) * 0.05,
-        y=min_y + (100 - min_y) * 0.06,
-        text="<b>Lagging</b>",
-        showarrow=False,
-        xanchor="left",
-        yanchor="bottom",
-        font={
-            "size": 14,
-            "color": "#dc2626",
-            "family": "Plus Jakarta Sans, sans-serif",
-        },
-        opacity=0.9,
-    )
-    # Weakening (Bottom-Right)
-    fig.add_annotation(
-        x=max_x - (max_x - 100) * 0.05,
-        y=min_y + (100 - min_y) * 0.06,
-        text="<b>Weakening</b>",
-        showarrow=False,
-        xanchor="right",
-        yanchor="bottom",
-        font={
-            "size": 14,
-            "color": "#ca8a04",
-            "family": "Plus Jakarta Sans, sans-serif",
-        },
-        opacity=0.9,
-    )
-
-    # Central Watermark Brand Tag
-    fig.add_annotation(
-        x=100,
-        y=max_y - (max_y - 100) * 0.12,
-        text="<b>RRG ® Powered by Quantum Momentum</b>",
-        showarrow=False,
-        xanchor="center",
-        yanchor="middle",
-        font={
-            "size": 12,
-            "color": "#94a3b8",
-            "family": "Plus Jakarta Sans, sans-serif",
-        },
-        opacity=0.35,
-    )
-
-    # ── 3. Reference Crosshairs (100, 100) ───────────────────────────────────
-    fig.add_hline(y=100, line_color="#94a3b8", line_width=1.5)
-    fig.add_vline(x=100, line_color="#94a3b8", line_width=1.5)
-
-    # ── 4. Unselected Sectors (Faint ghost trails when filtered) ─────────────
-    # ── 4. Unselected Sectors (Faint ghost trails when filtered) ─────────────
-    if has_filter:
-        for _, row in rrg_df.iterrows():
-            if row["Industry"] in highlight_industries:
-                continue
-            t_r = row.get("Trail_R") if "Trail_R" in row else row.get("trail_r", [])
-            t_m = row.get("Trail_M") if "Trail_M" in row else row.get("trail_m", [])
-            if t_r and t_m and len(t_r) > 1:
-                fig.add_trace(
-                    go.Scatter(
-                        x=t_r,
-                        y=t_m,
-                        mode="lines",
-                        line={
-                            "color": "#cbd5e1",
-                            "width": 1,
-                            "shape": "spline",
-                            "smoothing": 1.3,
-                        },
-                        opacity=0.25,
-                        showlegend=False,
-                        hoverinfo="skip",
-                    )
-                )
-            fig.add_trace(
-                go.Scatter(
-                    x=[row["RS_Ratio"]],
-                    y=[row["RS_Momentum"]],
-                    mode="markers",
-                    marker={"size": 4, "color": "#cbd5e1", "opacity": 0.3},
-                    showlegend=False,
-                    hoverinfo="skip",
-                )
-            )
-
-    # ── 5. Active Highlighted Sectors (Smooth Spline Trails & Circular Dots) ──
+    sectors_data = []
     for idx, (_, row) in enumerate(rrg_df.iterrows()):
-        is_highlighted = not has_filter or row["Industry"] in highlight_industries
-        if has_filter and not is_highlighted:
-            continue
+        trail_r = row.get("Trail_R") or []
+        trail_m = row.get("Trail_M") or []
+        if not isinstance(trail_r, list):
+            trail_r = list(trail_r)
+        if not isinstance(trail_m, list):
+            trail_m = list(trail_m)
+        sectors_data.append({
+            "industry": str(row["Industry"]),
+            "rs_ratio": float(row["RS_Ratio"]),
+            "rs_momentum": float(row["RS_Momentum"]),
+            "quadrant": str(row["Quadrant"]),
+            "stocks": int(row.get("Stocks", 0)),
+            "trail_r": [float(x) for x in trail_r],
+            "trail_m": [float(x) for x in trail_m],
+            "color": VIBRANT_PALETTE[idx % len(VIBRANT_PALETTE)],
+        })
 
-        sec_clr = VIBRANT_PALETTE[idx % len(VIBRANT_PALETTE)]
-        trail_r = row.get("Trail_R") if "Trail_R" in row else row.get("trail_r", [])
-        trail_m = row.get("Trail_M") if "Trail_M" in row else row.get("trail_m", [])
+    payload = json.dumps({
+        "sectors": sectors_data,
+        "highlight": list(highlight_industries or []),
+        "date": current_date_str,
+    })
 
-        # Plot smooth spline rotation trail with historical dots
-        if trail_r and trail_m and len(trail_r) > 1 and len(trail_m) > 1:
-            fig.add_trace(
-                go.Scatter(
-                    x=trail_r,
-                    y=trail_m,
-                    mode="lines+markers",
-                    line={
-                        "color": sec_clr,
-                        "width": 2.5,
-                        "shape": "spline",
-                        "smoothing": 1.3,
-                    },
-                    marker={"size": 6, "color": sec_clr, "symbol": "circle"},
-                    opacity=0.90,
-                    showlegend=False,
-                    hovertemplate=(
-                        f"<b>{row['Industry']} Trail</b><br>"
-                        "RS-Ratio: %{x:.2f}<br>"
-                        "RS-Momentum: %{y:.2f}<extra></extra>"
-                    ),
-                )
-            )
-
-        # Plot prominent solid head marker with label right above/beside
-        fig.add_trace(
-            go.Scatter(
-                x=[row["RS_Ratio"]],
-                y=[row["RS_Momentum"]],
-                mode="markers+text",
-                marker={
-                    "size": 12,
-                    "color": sec_clr,
-                    "line": {"width": 2, "color": "#ffffff"},
-                },
-                text=[f" <b>{row['Industry']}</b>"],
-                textposition="top center",
-                textfont={
-                    "size": 10.5,
-                    "color": sec_clr,
-                    "family": "Plus Jakarta Sans, sans-serif",
-                },
-                name=f"{row['Industry']}",
-                showlegend=True,
-                hovertemplate=(
-                    f"<b style='font-size:13px; color:{sec_clr};'>{row['Industry']}</b><br>"
-                    f"Quadrant: <b>{row['Quadrant']}</b><br>"
-                    f"JdK RS-Ratio: <b>{row['RS_Ratio']:.2f}</b><br>"
-                    f"JdK RS-Momentum: <b>{row['RS_Momentum']:.2f}</b><br>"
-                    f"Stocks: <b>{row['Stocks']}</b><extra></extra>"
-                ),
-            )
-        )
-
-    fig.update_layout(
-        template="plotly_white",
-        paper_bgcolor="#ffffff",
-        plot_bgcolor="#ffffff",
-        font={
-            "family": "Plus Jakarta Sans, sans-serif",
-            "size": 11,
-            "color": "#334155",
-        },
-        xaxis={
-            "title": "<b>JdK RS-Ratio</b>",
-            "range": [min_x, max_x],
-            "gridcolor": "#e2e8f0",
-            "zeroline": False,
-            "dtick": 1.0,
-            "tickangle": -45,
-            "tickfont": {"family": "IBM Plex Mono", "size": 9.5, "color": "#64748b"},
-        },
-        yaxis={
-            "title": "<b>JdK RS-Momentum</b>",
-            "range": [min_y, max_y],
-            "gridcolor": "#e2e8f0",
-            "zeroline": False,
-            "dtick": 0.5,
-            "tickfont": {"family": "IBM Plex Mono", "size": 9.5, "color": "#64748b"},
-        },
-        legend={
-            "orientation": "h",
-            "yanchor": "top",
-            "y": -0.22,
-            "xanchor": "center",
-            "x": 0.5,
-            "font": {"family": "IBM Plex Mono", "size": 10, "color": "#334155"},
-        },
-        height=640,
-        margin={"l": 45, "r": 45, "t": 25, "b": 65},
-        hovermode="closest",
-    )
-    st.plotly_chart(fig, width="stretch", key=f"sharpely_rrg_chart_{current_date_str}")
+    st.iframe(_build_rrg_html(payload), height=700)
 
 
 def render_breadth_chart(breadth_df: pd.DataFrame, ma_type: str = "SMA") -> None:
