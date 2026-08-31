@@ -4,7 +4,6 @@ Inspired by Investrack, Stockin.id, and Tickerboom financial terminal designs.
 """
 
 import html
-from datetime import datetime
 from typing import Any
 
 import pandas as pd
@@ -180,7 +179,7 @@ def render_header_kpi_bar(
     """Renders ultra-minimalist, high-density executive status navbar."""
     regime_color = "#059669" if regime.status == MarketRegime.BULLISH else "#e11d48"
     dma_color = "#059669" if regime.distance_pct >= 0 else "#e11d48"
-    today_str = datetime.now().strftime("%d %b %Y")
+    as_of_text, as_of_color = header_as_of()
 
     header_html = f"""
     <div role="status" aria-label="Market status dashboard" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 14px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 9px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02); margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
@@ -204,7 +203,7 @@ def render_header_kpi_bar(
             <span style="color: #cbd5e1;">|</span>
             <span style="color: #475569;">&gt;50 EMA: <strong style="color: #059669;">{above_ema} ({pct_above_ema:.0f}%)</strong></span>
             <span style="color: #cbd5e1;">|</span>
-            <span style="color: #64748b;">📅 {today_str}</span>
+            <span style="color: {as_of_color}; font-weight: 600;">📅 {as_of_text}</span>
         </div>
     </div>
     """
@@ -302,6 +301,7 @@ def data_freshness() -> list[dict]:
                 items.append({
                     "label": label,
                     "as_of": "2y window, not all-time",
+                    "date": None,
                     "behind": None,
                     "stale": True,
                     "source": presence,
@@ -310,6 +310,7 @@ def data_freshness() -> list[dict]:
                 items.append({
                     "label": label,
                     "as_of": "date unknown",
+                    "date": None,
                     "behind": None,
                     "stale": True,
                     "source": presence,
@@ -326,6 +327,10 @@ def data_freshness() -> list[dict]:
         items.append({
             "label": label,
             "as_of": as_of.strftime("%d %b"),
+            # The date itself, for callers that need a different format or the
+            # year. Re-parsing "28 Aug" to get it back is how a second, subtly
+            # different notion of the as-of date gets born.
+            "date": as_of,
             "behind": behind,
             # behind == 0 means "the most recent TRADING day", which on a
             # weekend or a holiday is not today. The ribbon needs to tell those
@@ -337,6 +342,64 @@ def data_freshness() -> list[dict]:
             "source": facts.get(presence_key) if presence_key else None,
         })
     return items
+
+
+def age_phrase(item: dict) -> str:
+    """How old a source is, in words. The one place that decides.
+
+    Used by the freshness ribbon at the foot of the page and by the date in the
+    header, which must agree: they are two renderings of one fact, and when
+    they disagreed the header was the one people believed.
+    """
+    from src.core.market_time import session_is_complete
+
+    behind = item.get("behind")
+    if behind is None:
+        return " · stale"
+    if behind <= 0:
+        if not item.get("is_today"):
+            return " · latest session"
+        # Today's row exists from the first trade of the day. Until the session
+        # settles it is a running quote, not a close, and saying plainly
+        # "today" invites the reader to treat a 09:20 print as the day's
+        # result.
+        day = item.get("date")
+        if day is not None and not session_is_complete(day):
+            return " · today, session open"
+        return " · today"
+    if behind == 1:
+        return " · 1 trading day behind"
+    return f" · {behind} trading days behind"
+
+
+def header_as_of() -> tuple[str, str]:
+    """The date for the header bar, and the colour to render it in.
+
+    This is the PRICE DATA's own as-of date. The header used to print
+    ``datetime.now()`` -- the server's wall clock, in the server's timezone,
+    stamped beside the market status where every reader takes it for the date
+    of the numbers next to it. It stayed reassuring no matter how old those
+    numbers were: a price cache stuck on 21 August still announced 31 August at
+    the top of the page, and the one honest indicator sat in a ribbon far below
+    the fold.
+
+    Two bugs in one line, in fact. ``datetime.now()`` is also naive server time,
+    which on Streamlit Cloud is UTC -- so for the five and a half hours each
+    evening when India is already on the next date, the header printed
+    YESTERDAY even when everything was working.
+    """
+    prices = next(
+        (i for i in data_freshness() if i["label"] == "Prices"), None
+    )
+    if prices is None or prices.get("date") is None:
+        # Better an admission than a date. The loaders stamp this on every
+        # return path; nothing arriving here means the pipeline did something
+        # unexpected, which is not the moment to print a confident date.
+        return "price date unknown", "#d97706"
+    return (
+        f"{prices['date'].strftime('%d %b %Y')}{age_phrase(prices)}",
+        "#d97706" if prices["stale"] else "#64748b",
+    )
 
 
 def render_freshness_ribbon() -> None:
@@ -363,14 +426,7 @@ def render_freshness_ribbon() -> None:
     for item in items:
         color = "#d97706" if item["stale"] else "#059669"
         icon = "&#9888;&#65039;" if item["stale"] else "&#9679;"
-        if item["behind"] is None:
-            age = " · stale"
-        elif item["behind"] <= 0:
-            age = " · today" if item.get("is_today") else " · latest session"
-        elif item["behind"] == 1:
-            age = " · 1 trading day behind"
-        else:
-            age = f" · {item['behind']} trading days behind"
+        age = age_phrase(item)
         label = html.escape(str(item["label"]))
         as_of = html.escape(str(item["as_of"]))
         chips_html += (

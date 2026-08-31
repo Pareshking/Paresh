@@ -36,7 +36,16 @@ def get_sync_metadata() -> dict[str, Any]:
                 return json.load(f)
         except Exception:
             pass
-    return {"last_synced": None, "total_stocks": 0, "indices": {}}
+    # Every key the successful path writes appears here too, holding None or a
+    # zero. Callers may then read the shape unconditionally: a run that has
+    # never succeeded reports "no sync yet" rather than a missing key, and a
+    # failed run preserving these values keeps the same shape as a good one.
+    return {
+        "last_synced": None,
+        "timestamp": None,
+        "total_stocks": 0,
+        "indices": {},
+    }
 
 
 def _save_sync_metadata(meta: dict[str, Any]) -> None:
@@ -104,12 +113,42 @@ def sync_official_nse_indices(force: bool = True) -> dict[str, Any]:
             results["errors"][idx_name] = "Live fetch failed; using existing fallback"
             results["success"] = False
 
-    meta = {
-        "last_synced": datetime.now().strftime("%d %b %Y, %H:%M"),
-        "timestamp": datetime.now().isoformat(),
-        "total_stocks": len(total_unique_stocks),
-        "indices": results["downloaded"],
-    }
+    # A run that fetched NOTHING must not stamp itself as a sync.
+    #
+    # This block used to overwrite last_synced unconditionally, so the run on
+    # 2026-08-29 -- in which all five downloads failed, fifteen requests, not
+    # one byte of constituent data -- recorded "last_synced: 29 Aug 2026,
+    # 01:04" alongside "total_stocks: 0". The Configuration tab read that and
+    # announced a green "Engine Active (0 Stocks)" under a reassuring
+    # timestamp. The date recorded when the JOB RAN and was displayed as when
+    # the DATA was refreshed, which are not the same fact and diverge exactly
+    # when it matters.
+    #
+    # The headline figures now move only on a COMPLETE sync. A partial one
+    # still writes each CSV it managed to fetch -- that is per-index and
+    # already done above -- but its constituent count would be a real
+    # undercount, and publishing an undercount as the universe size is how a
+    # partial failure comes to look like a shrinking market.
+    now = datetime.now()
+    meta = get_sync_metadata()
+    complete = bool(results["downloaded"]) and not results["errors"]
+
+    if complete:
+        meta.update({
+            "last_synced": now.strftime("%d %b %Y, %H:%M"),
+            "timestamp": now.isoformat(),
+            "total_stocks": len(total_unique_stocks),
+            "indices": results["downloaded"],
+        })
+
+    # Always recorded, success or not: "when did this last run" is a real
+    # question, it is just a different one from "how current is the data".
+    meta["last_attempt"] = now.strftime("%d %b %Y, %H:%M")
+    meta["last_attempt_timestamp"] = now.isoformat()
+    meta["last_attempt_fetched"] = len(results["downloaded"])
+    meta["last_attempt_errors"] = results["errors"]
+    meta["last_attempt_ok"] = complete
+
     _save_sync_metadata(meta)
     return meta
 

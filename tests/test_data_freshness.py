@@ -87,8 +87,12 @@ def test_cache_fresh_path_stamps_the_as_of_date(tmp_path, monkeypatch):
     cached.to_parquet(cache_file)
 
     monkeypatch.setattr(price_loader, "PRICES_FILE", str(cache_file))
-    # Make the cache look current so the cache_fresh branch is taken.
-    monkeypatch.setattr(price_loader, "ist_today", lambda: idx[-1].date())
+    # Make the cache look current so the cache_fresh branch is taken. Currency
+    # is now two questions -- is this the latest trading day, and has that
+    # session closed -- because a row dated today exists from the first trade
+    # of the morning and is not a close until the bell.
+    monkeypatch.setattr(price_loader, "trading_days_behind", lambda *_, **__: 0)
+    monkeypatch.setattr(price_loader, "session_is_complete", lambda *_, **__: True)
 
     out = price_loader.fetch_price_history(["RELIANCE"])
 
