@@ -57,40 +57,47 @@ def test_market_cap_sizing_never_fabricates_a_size():
     because tile area IS the datum in a market-cap treemap, that silently
     misstated the composition of the map.
     """
-    captured = {}
+    import json as _json
+    import re as _re
+    import src.ui.charts as charts
+
     df = _frame()
     df.loc[df.index[:2], "Market Cap (Cr)"] = np.nan
 
-    import src.ui.charts as charts
-
-    real_treemap = charts.px.treemap
-
-    def spy(data_frame, **kwargs):
-        captured["values"] = data_frame[kwargs["values"]].tolist()
-        captured["symbols"] = data_frame["Symbol"].tolist()
-        return real_treemap(data_frame, **kwargs)
-
-    charts.px.treemap = spy
+    captured = {}
+    real_iframe = charts.st.iframe
+    charts.st.iframe = lambda html, **kw: captured.setdefault("html", html)
     try:
         render_sector_treemap(df, size_by="Market Cap")
     finally:
-        charts.px.treemap = real_treemap
+        charts.st.iframe = real_iframe
 
-    # The two unknown-cap stocks are absent rather than sized at 1000.
-    assert captured["symbols"] == ["S2", "S3", "S4", "S5"]
-    assert 1000 not in captured["values"]
-    assert all(v > 0 and np.isfinite(v) for v in captured["values"])
+    assert "html" in captured, "treemap HTML must have been rendered"
+    m = _re.search(r"const DATA=(\[.*?\]);", captured["html"], _re.DOTALL)
+    assert m, "DATA constant not found in HTML"
+    groups = _json.loads(m.group(1))
+    symbols = [child["name"] for g in groups for child in g.get("children", [])]
+    values = [child["value"] for g in groups for child in g.get("children", [])]
+
+    # The two unknown-cap stocks (S0, S1) are absent rather than sized at 1000.
+    assert "S0" not in symbols
+    assert "S1" not in symbols
+    assert set(symbols) == {"S2", "S3", "S4", "S5"}
+    assert 1000 not in values
+    assert all(v > 0 and np.isfinite(v) for v in values)
 
 
 def test_market_cap_sizing_with_no_known_caps_renders_nothing():
+    import src.ui.charts as charts
+
     df = _frame()
     df["Market Cap (Cr)"] = np.nan
-    import src.ui.charts as charts
-    real_treemap = charts.px.treemap
+
     calls = []
-    charts.px.treemap = lambda *a, **k: calls.append(1)
+    real_iframe = charts.st.iframe
+    charts.st.iframe = lambda *a, **k: calls.append(1)
     try:
         render_sector_treemap(df, size_by="Market Cap")
     finally:
-        charts.px.treemap = real_treemap
+        charts.st.iframe = real_iframe
     assert calls == [], "must not draw a treemap with no real market caps"
