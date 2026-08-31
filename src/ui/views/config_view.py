@@ -3,6 +3,7 @@ Configuration & System Settings View Controller.
 Institutional-grade modern configuration terminal with Pure Paper White design.
 """
 
+import html
 import os
 from datetime import datetime
 
@@ -25,8 +26,22 @@ from src.ui.components import render_data_quality_footer
 def render_config_view(rank_df: pd.DataFrame) -> None:
     """Renders high-density institutional system configuration and quantitative parameters."""
     sync_meta = get_sync_metadata()
-    last_sync = sync_meta.get("last_synced", "Never synced")
-    tot_stk = sync_meta.get("total_stocks", len(rank_df))
+    last_sync = sync_meta.get("last_synced") or "Never synced"
+    # ``.get(key, default)`` does not help here, and that was the bug: a failed
+    # sync RECORDS zero, so the key is present, the default never fires, and
+    # the tab printed a green "Engine Active (0 Stocks)" while the engine was
+    # ranking 750 of them. ``or`` falls through on the zero as well as on the
+    # absence.
+    synced_stocks = sync_meta.get("total_stocks") or 0
+    tot_stk = synced_stocks or len(rank_df)
+    # How many stocks the engine is ACTUALLY working with, which is the only
+    # honest thing to put next to the word "Active". It comes from the ranking
+    # in hand, not from a note the sync job left behind.
+    engine_stocks = len(rank_df)
+    sync_ok = sync_meta.get("last_attempt_ok")
+    last_attempt = sync_meta.get("last_attempt")
+    attempt_fetched = sync_meta.get("last_attempt_fetched")
+    attempt_errors = sync_meta.get("last_attempt_errors") or {}
     mode_label = (
         "Streamlit Cloud" if STORAGE_MODE == "streamlit-cloud" else "Local Production"
     )
@@ -46,7 +61,7 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; background: #f0fdf4; border: 1px solid #86efac; color: #166534; padding: 4px 10px; border-radius: 6px; font-weight: 700;">
-                        🟢 Engine Active ({tot_stk} Stocks)
+                        🟢 Engine Active ({engine_stocks} Stocks)
                     </span>
                     <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; background: #eef2ff; border: 1px solid #c7d2fe; color: #4338ca; padding: 4px 10px; border-radius: 6px; font-weight: 700;">
                         {mode_label}
@@ -64,6 +79,19 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
         "Synchronize constituent baskets directly with official CSV feeds on `niftyindices.com`."
     )
 
+    # A failed run is now visible instead of hiding behind the previous run's
+    # date. Silence here is what let a total sync failure read as a success.
+    failed_attempt_html = ""
+    if sync_ok is False:
+        failed_attempt_html = (
+            '<div style="font-family: \'JetBrains Mono\', monospace; font-size: 0.74rem; '
+            'color: #d97706; margin-top: 6px; font-weight: 600;">'
+            f"&#9888;&#65039; Last attempt {html.escape(str(last_attempt or 'unknown'))} "
+            f"fetched {attempt_fetched if attempt_fetched is not None else '?'} index "
+            f"file(s), {len(attempt_errors)} failed &mdash; the figures above are from "
+            "the last complete sync.</div>"
+        )
+
     sync_c1, sync_c2 = st.columns([1.8, 1.2], vertical_alignment="center")
     with sync_c1:
         st.html(f"""
@@ -72,6 +100,7 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
                 <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; color: #64748b; margin-top: 4px;">
                     Last Synced: <strong style="color: #0f172a;">{last_sync}</strong> &nbsp;·&nbsp; Total Universe: <strong style="color: #4f46e5;">{tot_stk} stocks</strong>
                 </div>
+                {failed_attempt_html}
             </div>
             """)
     with sync_c2:
@@ -87,7 +116,18 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
                     st.session_state["force_refresh"] = True
                     st.session_state.pop("data_loaded_key", None)
                     st.cache_data.clear()
-                    st.success(f"Synced {res['total_stocks']} constituents!")
+                    if res.get("last_attempt_ok"):
+                        st.success(f"Synced {res['total_stocks']} constituents!")
+                    else:
+                        # "Synced 0 constituents!" in a green success toast is
+                        # how fifteen consecutive failed downloads got reported
+                        # as an achievement.
+                        st.error(
+                            f"Sync incomplete: {res.get('last_attempt_fetched', 0)} "
+                            f"index file(s) downloaded, "
+                            f"{len(res.get('last_attempt_errors') or {})} failed. "
+                            "The previous constituents are still in use."
+                        )
                     st.rerun()
         with btn_c2:
             if st.button(

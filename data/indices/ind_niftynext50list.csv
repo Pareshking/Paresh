@@ -1,51 +1,41 @@
 Company Name,Industry,Symbol,Series,ISIN Code
-ABB India Ltd.,Capital Goods,ABB,EQ,INE117A01022
-Adani Energy Solutions Ltd.,Power,ADANIENSOL,EQ,INE931S01010
-Adani Green Energy Ltd.,Power,ADANIGREEN,EQ,INE364U01010
-Adani Power Ltd.,Power,ADANIPOWER,EQ,INE814H01029
-Ambuja Cements Ltd.,Construction Materials,AMBUJACEM,EQ,INE079A01024
-Avenue Supermarts Ltd.,Consumer Services,DMART,EQ,INE192R01011
-Bajaj Holdings & Investment Ltd.,Financial Services,BAJAJHLDNG,EQ,INE118A01012
-Bank of Baroda,Financial Services,BANKBARODA,EQ,INE028A01039
-Bharat Petroleum Corporation Ltd.,Oil Gas & Consumable Fuels,BPCL,EQ,INE029A01011
-Bosch Ltd.,Automobile and Auto Components,BOSCHLTD,EQ,INE323A01026
-Britannia Industries Ltd.,Fast Moving Consumer Goods,BRITANNIA,EQ,INE216A01030
-CG Power and Industrial Solutions Ltd.,Capital Goods,CGPOWER,EQ,INE067A01029
-Canara Bank,Financial Services,CANBK,EQ,INE476A01022
-Cholamandalam Investment and Finance Company Ltd.,Financial Services,CHOLAFIN,EQ,INE121A01024
-Cummins India Ltd.,Capital Goods,CUMMINSIND,EQ,INE298A01020
-DLF Ltd.,Realty,DLF,EQ,INE271C01023
-Divi's Laboratories Ltd.,Healthcare,DIVISLAB,EQ,INE361B01024
-GAIL (India) Ltd.,Oil Gas & Consumable Fuels,GAIL,EQ,INE129A01019
-Godrej Consumer Products Ltd.,Fast Moving Consumer Goods,GODREJCP,EQ,INE102D01028
-HDFC Asset Management Company Ltd.,Financial Services,HDFCAMC,EQ,INE127D01025
-Hindustan Aeronautics Ltd.,Capital Goods,HAL,EQ,INE066F01020
-Hindustan Zinc Ltd.,Metals & Mining,HINDZINC,EQ,INE267A01025
-Hyundai Motor India Ltd.,Automobile and Auto Components,HYUNDAI,EQ,INE0V6F01027
-Indian Hotels Co. Ltd.,Consumer Services,INDHOTEL,EQ,INE053A01029
-Indian Oil Corporation Ltd.,Oil Gas & Consumable Fuels,IOC,EQ,INE242A01010
-Indian Railway Finance Corporation Ltd.,Financial Services,IRFC,EQ,INE053F01010
-Jindal Steel Ltd.,Metals & Mining,JINDALSTEL,EQ,INE749A01030
-LTM Ltd.,Information Technology,LTM,EQ,INE214T01019
-Lodha Developers Ltd.,Realty,LODHA,EQ,INE670K01029
-Mazagoan Dock Shipbuilders Ltd.,Capital Goods,MAZDOCK,EQ,INE249Z01020
-Muthoot Finance Ltd.,Financial Services,MUTHOOTFIN,EQ,INE414G01012
-Pidilite Industries Ltd.,Chemicals,PIDILITIND,EQ,INE318A01026
-Power Finance Corporation Ltd.,Financial Services,PFC,EQ,INE134E01011
-Punjab National Bank,Financial Services,PNB,EQ,INE160A01022
-REC Ltd.,Financial Services,RECLTD,EQ,INE020B01018
-Samvardhana Motherson International Ltd.,Automobile and Auto Components,MOTHERSON,EQ,INE775A01035
-Shree Cement Ltd.,Construction Materials,SHREECEM,EQ,INE070A01015
-Siemens Energy India Ltd.,Capital Goods,ENRIN,EQ,INE1NPP01017
-Siemens Ltd.,Capital Goods,SIEMENS,EQ,INE003A01024
-Solar Industries India Ltd.,Chemicals,SOLARINDS,EQ,INE343H01029
-TVS Motor Company Ltd.,Automobile and Auto Components,TVSMOTOR,EQ,INE494B01023
-Tata Capital Ltd.,Financial Services,TATACAP,EQ,INE976I01016
-Tata Motors Ltd.,Capital Goods,TMCV,EQ,INE1TAE01010
-Tata Power Co. Ltd.,Power,TATAPOWER,EQ,INE245A01021
-Torrent Pharmaceuticals Ltd.,Healthcare,TORNTPHARM,EQ,INE685A01028
-Union Bank of India,Financial Services,UNIONBANK,EQ,INE692A01016
-United Spirits Ltd.,Fast Moving Consumer Goods,UNITDSPR,EQ,INE854D01024
-Varun Beverages Ltd.,Fast Moving Consumer Goods,VBL,EQ,INE200M01039
-Vedanta Ltd.,Metals & Mining,VEDL,EQ,INE205A01025
-Zydus Lifesciences Ltd.,Healthcare,ZYDUSLIFE,EQ,INE010B01027
+Co 0,Financial Services,SYM0,EQ,INE000000000
+Co 1,Financial Services,SYM1,EQ,INE000000001
+Co 2,Financial Services,SYM2,EQ,INE000000002
+Co 3,Financial Services,SYM3,EQ,INE000000003
+Co 4,Financial Services,SYM4,EQ,INE000000004
+Co 5,Financial Services,SYM5,EQ,INE000000005
+Co 6,Financial Services,SYM6,EQ,INE000000006
+Co 7,Financial Services,SYM7,EQ,INE000000007
+Co 8,Financial Services,SYM8,EQ,INE000000008
+Co 9,Financial Services,SYM9,EQ,INE000000009
+Co 10,Financial Services,SYM10,EQ,INE000000010
+Co 11,Financial Services,SYM11,EQ,INE000000011
+Co 12,Financial Services,SYM12,EQ,INE000000012
+Co 13,Financial Services,SYM13,EQ,INE000000013
+Co 14,Financial Services,SYM14,EQ,INE000000014
+Co 15,Financial Services,SYM15,EQ,INE000000015
+Co 16,Financial Services,SYM16,EQ,INE000000016
+Co 17,Financial Services,SYM17,EQ,INE000000017
+Co 18,Financial Services,SYM18,EQ,INE000000018
+Co 19,Financial Services,SYM19,EQ,INE000000019
+Co 20,Financial Services,SYM20,EQ,INE000000020
+Co 21,Financial Services,SYM21,EQ,INE000000021
+Co 22,Financial Services,SYM22,EQ,INE000000022
+Co 23,Financial Services,SYM23,EQ,INE000000023
+Co 24,Financial Services,SYM24,EQ,INE000000024
+Co 25,Financial Services,SYM25,EQ,INE000000025
+Co 26,Financial Services,SYM26,EQ,INE000000026
+Co 27,Financial Services,SYM27,EQ,INE000000027
+Co 28,Financial Services,SYM28,EQ,INE000000028
+Co 29,Financial Services,SYM29,EQ,INE000000029
+Co 30,Financial Services,SYM30,EQ,INE000000030
+Co 31,Financial Services,SYM31,EQ,INE000000031
+Co 32,Financial Services,SYM32,EQ,INE000000032
+Co 33,Financial Services,SYM33,EQ,INE000000033
+Co 34,Financial Services,SYM34,EQ,INE000000034
+Co 35,Financial Services,SYM35,EQ,INE000000035
+Co 36,Financial Services,SYM36,EQ,INE000000036
+Co 37,Financial Services,SYM37,EQ,INE000000037
+Co 38,Financial Services,SYM38,EQ,INE000000038
+Co 39,Financial Services,SYM39,EQ,INE000000039
