@@ -5,9 +5,9 @@ Contains the Top 30 Qualified Composite Momentum section.
 
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
 
+from src.ui.charts import render_correlation_heatmap
 from src.ui.components import render_data_quality_footer, to_bool_mask
 from src.ui.theme import render_master_screener_table
 
@@ -131,76 +131,7 @@ def _render_qualified_section(
                 n_disp = 10
 
         if corr_df is not None and len(syms) > 1:
-            try:
-                disp_syms = syms[: int(n_disp)]
-                sub_corr = corr_df.loc[disp_syms, disp_syms]
-
-                z_vals = sub_corr.values
-                text_vals = np.round(z_vals, 2)
-
-                fig_corr = go.Figure(
-                    data=go.Heatmap(
-                        z=z_vals,
-                        x=disp_syms,
-                        y=disp_syms,
-                        colorscale=[
-                            [0.0, "#ffffff"],
-                            [0.25, "#f0f9ff"],
-                            [0.5, "#bae6fd"],
-                            [0.75, "#38bdf8"],
-                            [1.0, "#0284c7"],
-                        ],
-                        zmin=-0.2,
-                        zmax=1.0,
-                        text=text_vals,
-                        texttemplate="%{text:.2f}",
-                        textfont={
-                            "family": "JetBrains Mono, monospace",
-                            "size": 10.5,
-                            "color": "#0f172a",
-                        },
-                        hovertemplate="<b>%{x}</b> × <b>%{y}</b><br>Correlation: <b>%{z:.2f}</b><extra></extra>",
-                        colorbar={
-                            "thickness": 10,
-                            "len": 0.9,
-                            "tickfont": {
-                                "family": "JetBrains Mono, monospace",
-                                "size": 9,
-                                "color": "#64748b",
-                            },
-                            "outlinewidth": 0,
-                        },
-                    )
-                )
-                fig_corr.update_layout(
-                    height=400,
-                    margin={"l": 40, "r": 10, "t": 10, "b": 40},
-                    paper_bgcolor="#ffffff",
-                    plot_bgcolor="#ffffff",
-                    xaxis={
-                        "tickfont": {
-                            "family": "Outfit, sans-serif",
-                            "size": 10,
-                            "color": "#0f172a",
-                        },
-                        "tickangle": -45,
-                        "showgrid": False,
-                    },
-                    yaxis={
-                        "tickfont": {
-                            "family": "Outfit, sans-serif",
-                            "size": 10,
-                            "color": "#0f172a",
-                        },
-                        "showgrid": False,
-                        "autorange": "reversed",
-                    },
-                )
-                st.plotly_chart(
-                    fig_corr, width="stretch", config={"displayModeBar": False}
-                )
-            except Exception:
-                st.info("Unable to render correlation heatmap.")
+            render_correlation_heatmap(corr_df, syms, n_disp)
         else:
             st.info("Insufficient stock history to construct correlation matrix.")
 

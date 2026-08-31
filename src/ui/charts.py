@@ -6,7 +6,6 @@ Includes Candlestick + Volume + RSI, animated Canvas RRG, and Sector Treemaps.
 import json
 import numpy as np
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
@@ -652,78 +651,148 @@ def render_sector_treemap(
         valid_df["Tile_Weight"] = mcap[known]
         size_label = "Market Cap (Cr)"
 
-    # Hierarchical Finviz-style Treemap
-    fig = px.treemap(
-        valid_df,
-        path=[taxonomy_col, "Symbol"],
-        values="Tile_Weight",
-        color="Ret_Capped",
-        color_continuous_scale=[
-            (0.00, "#be123c"),  # Deep Crimson
-            (0.35, "#fca5a5"),  # Soft Red
-            (0.50, "#f1f5f9"),  # Neutral Gray
-            (0.65, "#86efac"),  # Soft Mint Green
-            (1.00, "#047857"),  # Deep Forest Emerald
-        ],
-        color_continuous_midpoint=0.0,
-        hover_data={
-            k: v
-            for k, v in {
-                "Symbol": True,
-                "CMP": ":,.0f",
-                return_col: ":.1%",
-                "Market Cap (Cr)": ":,.0f",
-                "Ret_Capped": False,
-                "Tile_Weight": False,
-            }.items()
-            if k in valid_df.columns
-        },
-    )
+    groups = _build_treemap_groups(valid_df, taxonomy_col, return_col)
+    html = _build_treemap_html(json.dumps(groups), return_col, size_label)
+    st.iframe(html, height=700)
 
-    fig.update_traces(
-        textinfo="label+text",
-        texttemplate="<b>%{label}</b><br>%{customdata[2]:.1%}",
-        textfont={"family": "IBM Plex Mono, monospace", "size": 11, "color": "#0f172a"},
-        marker={
-            "cornerradius": 4,
-            "pad": {"t": 24, "l": 4, "r": 4, "b": 4},
-            "line": {"width": 1.5, "color": "#ffffff"},
-        },
-        hovertemplate=(
-            "<b>%{label}</b><br>"
-            "Parent Group: %{parent}<br>"
-            "CMP: ₹%{customdata[1]:,.0f}<br>"
-            f"{return_col}: %{{customdata[2]:+.1%}}<br>"
-            "Market Cap: ₹%{customdata[3]:,.0f} Cr<br>"
-            f"<b>Sized by:</b> {size_label}<extra></extra>"
-        ),
-    )
 
-    fig.update_layout(
-        template="plotly_white",
-        paper_bgcolor="#ffffff",
-        plot_bgcolor="#ffffff",
-        margin={"l": 4, "r": 4, "t": 4, "b": 4},
-        height=680,
-        coloraxis_colorbar={
-            "title": {
-                "text": f"{return_col}",
-                "font": {"family": "IBM Plex Mono", "size": 10, "color": "#475569"},
-            },
-            "tickformat": "+.0%",
-            "thickness": 12,
-            "len": 0.7,
-            "tickfont": {"family": "IBM Plex Mono", "size": 9},
-        },
-        font={
-            "family": "Plus Jakarta Sans, sans-serif",
-            "size": 11,
-            "color": "#0f172a",
-        },
-    )
-    st.plotly_chart(
-        fig, width="stretch", key=f"sector_treemap_{taxonomy_col}_{size_by}"
-    )
+def _lerp_color(t: float) -> str:
+    """Map t in [0, 1] to the 5-stop return heat-map color scale."""
+    stops = [
+        (0.00, (0xbe, 0x12, 0x3c)),
+        (0.35, (0xfc, 0xa5, 0xa5)),
+        (0.50, (0xf1, 0xf5, 0xf9)),
+        (0.65, (0x86, 0xef, 0xac)),
+        (1.00, (0x04, 0x78, 0x57)),
+    ]
+    t = float(np.clip(t, 0.0, 1.0))
+    for i in range(len(stops) - 1):
+        t0, c0 = stops[i]
+        t1, c1 = stops[i + 1]
+        if t <= t1:
+            f = (t - t0) / (t1 - t0) if t1 > t0 else 0.0
+            r = int(round(c0[0] + f * (c1[0] - c0[0])))
+            g = int(round(c0[1] + f * (c1[1] - c0[1])))
+            b = int(round(c0[2] + f * (c1[2] - c0[2])))
+            return f"#{r:02x}{g:02x}{b:02x}"
+    c = stops[-1][1]
+    return f"#{c[0]:02x}{c[1]:02x}{c[2]:02x}"
+
+
+def _build_treemap_groups(
+    valid_df: pd.DataFrame,
+    taxonomy_col: str,
+    return_col: str,
+) -> list[dict]:
+    """Build ECharts-compatible nested treemap data from a flat ranked DataFrame."""
+    groups: list[dict] = []
+    for grp_name, grp_df in valid_df.groupby(taxonomy_col, sort=False):
+        children: list[dict] = []
+        for _, row in grp_df.iterrows():
+            ret_capped = float(row["Ret_Capped"]) if pd.notna(row.get("Ret_Capped")) else 0.0
+            color = _lerp_color((ret_capped + 0.30) / 0.60)
+            child: dict = {
+                "name": str(row["Symbol"]),
+                "value": float(row["Tile_Weight"]),
+                "itemStyle": {"color": color},
+                "ret_str": str(row["Ret_Pct_Str"]),
+            }
+            if "CMP" in valid_df.columns and pd.notna(row.get("CMP")):
+                child["cmp"] = float(row["CMP"])
+            if "Market Cap (Cr)" in valid_df.columns and pd.notna(row.get("Market Cap (Cr)")):
+                child["mcap"] = float(row["Market Cap (Cr)"])
+            children.append(child)
+
+        grp_rets = grp_df["Ret_Capped"].dropna()
+        grp_avg_ret = float(grp_rets.mean()) if not grp_rets.empty else 0.0
+        groups.append({
+            "name": str(grp_name),
+            "value": sum(c["value"] for c in children),
+            "itemStyle": {"color": _lerp_color((grp_avg_ret + 0.30) / 0.60), "opacity": 0.5},
+            "children": children,
+        })
+    return groups
+
+
+def _build_treemap_html(data_json: str, return_col: str, size_label: str) -> str:
+    """Build a self-contained ECharts treemap HTML component (loads ECharts via cdnjs)."""
+    rc = json.dumps(return_col)
+    sl = json.dumps(size_label)
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+*{{box-sizing:border-box;margin:0;padding:0}}
+html,body{{width:100%;height:100%;overflow:hidden;background:transparent;
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif}}
+#chart{{width:100%;height:100%}}
+</style>
+</head>
+<body>
+<div id="chart"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<script>
+const DATA={data_json};
+const RETURN_COL={rc};
+const SIZE_LABEL={sl};
+const dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches;
+const bg=dark?'#0f172a':'#ffffff';
+const fg=dark?'#e2e8f0':'#0f172a';
+const bd=dark?'#334155':'#ffffff';
+const chart=echarts.init(document.getElementById('chart'),null,{{renderer:'canvas',backgroundColor:bg}});
+function fmt(n){{return n.toLocaleString('en-IN',{{maximumFractionDigits:0}})}}
+const opt={{
+  backgroundColor:bg,
+  tooltip:{{
+    trigger:'item',confine:true,
+    formatter:function(p){{
+      const d=p.data;
+      if(!d.children){{
+        let s=`<b>${{d.name}}</b><br>${{RETURN_COL}}: ${{d.ret_str||'—'}}`;
+        if(d.cmp!=null)s+=`<br>CMP: ₹${{fmt(d.cmp)}}`;
+        if(d.mcap!=null)s+=`<br>Mcap: ₹${{fmt(d.mcap)}} Cr`;
+        s+=`<br><i>Sized by: ${{SIZE_LABEL}}</i>`;
+        return s;
+      }}
+      return `<b>${{d.name}}</b><br>Stocks: ${{(d.children||[]).length}}`;
+    }}
+  }},
+  series:[{{
+    type:'treemap',
+    top:8,bottom:8,left:8,right:8,
+    roam:false,nodeClick:false,
+    breadcrumb:{{show:false}},
+    levels:[
+      {{
+        itemStyle:{{borderColor:bd,borderWidth:3,gapWidth:3}},
+        upperLabel:{{
+          show:true,height:24,color:fg,fontSize:12,fontWeight:'bold',
+          fontFamily:'IBM Plex Mono,monospace',
+          backgroundColor:'rgba(0,0,0,0.20)'
+        }}
+      }},
+      {{
+        itemStyle:{{borderColor:bd,borderWidth:1.5,gapWidth:1.5}},
+        label:{{
+          show:true,color:'#0f172a',fontSize:11,fontWeight:'bold',
+          fontFamily:'IBM Plex Mono,monospace',
+          formatter:function(p){{
+            const d=p.data;
+            return d.name+'\\n'+(d.ret_str||'');
+          }},
+          overflow:'truncate'
+        }}
+      }}
+    ],
+    data:DATA
+  }}]
+}};
+chart.setOption(opt);
+window.addEventListener('resize',()=>chart.resize());
+</script>
+</body>
+</html>"""
 
 
 def _build_rrg_html(data_json: str) -> str:
@@ -1192,192 +1261,271 @@ def render_rrg_chart(
     st.iframe(_build_rrg_html(payload), height=700)
 
 
+def _build_echarts_html(option_json: str) -> str:
+    """Generic self-contained ECharts 5.4 HTML page with dark-mode awareness."""
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+*{{box-sizing:border-box;margin:0;padding:0}}
+html,body{{width:100%;height:100%;overflow:hidden;background:transparent;
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif}}
+#c{{width:100%;height:100%}}
+</style>
+</head>
+<body>
+<div id="c"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<script>
+(function(){{
+const dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches;
+const bg=dark?'#0f172a':'#ffffff';
+const fg=dark?'#e2e8f0':'#334155';
+const grid=dark?'#1e293b':'#f1f5f9';
+const chart=echarts.init(document.getElementById('c'),null,{{backgroundColor:bg}});
+const opt={option_json};
+opt.backgroundColor=bg;
+if(!opt.textStyle)opt.textStyle={{}};
+opt.textStyle.color=fg;
+opt.textStyle.fontFamily='Plus Jakarta Sans,system-ui,sans-serif';
+if(opt.title){{
+  const t=Array.isArray(opt.title)?opt.title[0]:opt.title;
+  if(!t.textStyle)t.textStyle={{}};
+  t.textStyle.color=fg;
+}}
+(opt.yAxis?[].concat(opt.yAxis):[]).forEach(a=>{{
+  if(a.splitLine&&!a.splitLine.lineStyle)a.splitLine.lineStyle={{}};
+  if(a.splitLine)a.splitLine.lineStyle.color=grid;
+}});
+chart.setOption(opt);
+window.addEventListener('resize',()=>chart.resize());
+}})();
+</script>
+</body>
+</html>"""
+
+
+def _ts_ms(index: pd.Index) -> list[int]:
+    """Convert pandas DatetimeIndex to Unix millisecond timestamps."""
+    return [int(pd.Timestamp(ts).timestamp() * 1000) for ts in index]
+
+
 def render_breadth_chart(breadth_df: pd.DataFrame, ma_type: str = "SMA") -> None:
     """Renders Moving Average Breadth time series with bull/bear zones."""
-    fig = go.Figure()
     line_colors = ["#4f46e5", "#059669", "#0284c7", "#d97706", "#e11d48"]
-
+    tms = _ts_ms(breadth_df.index)
+    series: list[dict] = []
     for i, col in enumerate(breadth_df.columns):
-        fig.add_trace(
-            go.Scatter(
-                x=breadth_df.index,
-                y=breadth_df[col],
-                name=f"Above {col}",
-                mode="lines",
-                line={"color": line_colors[i % len(line_colors)], "width": 2},
-            )
-        )
+        vals = breadth_df[col]
+        data = [[tms[j], None if pd.isna(v) else round(float(v), 4)] for j, v in enumerate(vals)]
+        entry: dict = {
+            "name": f"Above {col}",
+            "type": "line",
+            "data": data,
+            "lineStyle": {"color": line_colors[i % len(line_colors)], "width": 2},
+            "itemStyle": {"color": line_colors[i % len(line_colors)]},
+            "symbol": "none",
+            "connectNulls": False,
+        }
+        if i == 0:
+            entry["markArea"] = {
+                "silent": True,
+                "data": [
+                    [{"yAxis": 60, "itemStyle": {"color": "rgba(5,150,105,0.05)"}}, {"yAxis": 80}],
+                    [{"yAxis": 20, "itemStyle": {"color": "rgba(225,29,72,0.05)"}}, {"yAxis": 40}],
+                ],
+            }
+            entry["markLine"] = {
+                "silent": True, "symbol": ["none", "none"], "label": {"show": False},
+                "data": [
+                    {"yAxis": 60, "lineStyle": {"color": "#059669", "type": "dotted", "width": 1}},
+                    {"yAxis": 40, "lineStyle": {"color": "#e11d48", "type": "dotted", "width": 1}},
+                ],
+            }
+        series.append(entry)
 
-    fig.add_hrect(y0=60, y1=80, fillcolor="rgba(5, 150, 105, 0.05)", line_width=0)
-    fig.add_hrect(y0=20, y1=40, fillcolor="rgba(225, 29, 72, 0.05)", line_width=0)
-    fig.add_hline(
-        y=60, line_color="#059669", line_dash="dot", line_width=1, opacity=0.7
-    )
-    fig.add_hline(
-        y=40, line_color="#e11d48", line_dash="dot", line_width=1, opacity=0.7
-    )
-
-    fig.update_layout(
-        template="plotly_white",
-        paper_bgcolor="#ffffff",
-        plot_bgcolor="#ffffff",
-        font={
-            "family": "Plus Jakarta Sans, sans-serif",
-            "size": 11,
-            "color": "#334155",
-        },
-        title={
-            "text": f"<b>Market Breadth (% Stocks Above {ma_type})</b>",
-            "font": {"size": 14, "color": "#0f172a"},
-        },
-        yaxis={
-            "title": "% Stocks Above MA",
-            "range": [0, 100],
-            "gridcolor": "#f1f5f9",
-            "ticksuffix": "%",
-        },
-        xaxis={"gridcolor": "#f1f5f9"},
-        legend={
-            "orientation": "h",
-            "yanchor": "bottom",
-            "y": 1.02,
-            "xanchor": "left",
-            "x": 0,
-            "bgcolor": "rgba(255, 255, 255, 0.9)",
-            "bordercolor": "#e2e8f0",
-        },
-        margin={"l": 10, "r": 10, "t": 50, "b": 10},
-        height=360,
-        hovermode="x unified",
-    )
-    st.plotly_chart(fig, width="stretch", key="breadth_chart_view")
+    option = {
+        "title": {"text": f"Market Breadth (% Stocks Above {ma_type})", "left": "left", "top": 5,
+                  "textStyle": {"fontSize": 14, "fontWeight": "bold"}},
+        "tooltip": {"trigger": "axis", "axisPointer": {"type": "cross"}},
+        "legend": {"top": 38, "left": 0, "type": "scroll"},
+        "grid": {"left": 60, "right": 20, "top": 82, "bottom": 40},
+        "xAxis": {"type": "time", "splitLine": {"show": False}},
+        "yAxis": {"type": "value", "min": 0, "max": 100,
+                  "axisLabel": {"formatter": "{value}%"},
+                  "splitLine": {"lineStyle": {"color": "#f1f5f9"}}},
+        "series": series,
+    }
+    st.iframe(_build_echarts_html(json.dumps(option)), height=400)
 
 
 def render_hl_timeseries_chart(
     hl_df: pd.DataFrame, window_label: str = "52W", is_pct: bool = True
 ) -> None:
-    """Renders Daily New Highs / New Lows area charts."""
+    """Renders Daily New Highs / New Lows mirrored area chart."""
     h_col = "% New Highs" if is_pct else "New Highs"
     l_col = "% New Lows" if is_pct else "New Lows"
     y_suf = "%" if is_pct else ""
 
-    fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-            x=hl_df.index,
-            y=hl_df[h_col],
-            name=f"New {window_label} Highs",
-            mode="lines",
-            line={"color": "#059669", "width": 1.8},
-            fill="tozeroy",
-            fillcolor="rgba(5, 150, 105, 0.08)",
-        )
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=hl_df.index,
-            y=-hl_df[l_col],
-            name=f"New {window_label} Lows",
-            mode="lines",
-            line={"color": "#e11d48", "width": 1.8},
-            fill="tozeroy",
-            fillcolor="rgba(225, 29, 72, 0.08)",
-        )
-    )
-    fig.add_hline(y=0, line_color="#94a3b8", line_width=1)
+    tms = _ts_ms(hl_df.index)
+    h_data = [[tms[j], None if pd.isna(v) else round(float(v), 4)] for j, v in enumerate(hl_df[h_col])]
+    l_data = [[tms[j], None if pd.isna(v) else round(-float(v), 4)] for j, v in enumerate(hl_df[l_col])]
+    y_max = float(max(hl_df[h_col].max(), hl_df[l_col].max()) * 1.15) if not hl_df.empty else 10
 
-    y_max = (
-        max(hl_df[h_col].max(), hl_df[l_col].max()) * 1.15 if not hl_df.empty else 10
-    )
-    fig.update_layout(
-        template="plotly_white",
-        paper_bgcolor="#ffffff",
-        plot_bgcolor="#ffffff",
-        font={
-            "family": "Plus Jakarta Sans, sans-serif",
-            "size": 11,
-            "color": "#334155",
-        },
-        title={
-            "text": f"<b>Daily New {window_label} Highs & Lows</b>",
-            "font": {"size": 14, "color": "#0f172a"},
-        },
-        yaxis={
-            "title": "% of Universe" if is_pct else "Stock Count",
-            "gridcolor": "#f1f5f9",
-            "ticksuffix": y_suf,
-            "range": [-y_max, y_max],
-        },
-        xaxis={"gridcolor": "#f1f5f9"},
-        legend={
-            "orientation": "h",
-            "yanchor": "bottom",
-            "y": 1.02,
-            "xanchor": "left",
-            "x": 0,
-            "bgcolor": "rgba(255, 255, 255, 0.9)",
-            "bordercolor": "#e2e8f0",
-        },
-        margin={"l": 10, "r": 10, "t": 50, "b": 10},
-        height=340,
-        hovermode="x unified",
-    )
-    st.plotly_chart(fig, width="stretch", key="hl_chart_view")
+    option = {
+        "title": {"text": f"Daily New {window_label} Highs & Lows", "left": "left", "top": 5,
+                  "textStyle": {"fontSize": 14, "fontWeight": "bold"}},
+        "tooltip": {"trigger": "axis", "axisPointer": {"type": "cross"}},
+        "legend": {"top": 38, "left": 0},
+        "grid": {"left": 60, "right": 20, "top": 82, "bottom": 40},
+        "xAxis": {"type": "time", "splitLine": {"show": False}},
+        "yAxis": {"type": "value", "min": -y_max, "max": y_max,
+                  "name": "% of Universe" if is_pct else "Stock Count",
+                  "axisLabel": {"formatter": "{value}" + y_suf},
+                  "splitLine": {"lineStyle": {"color": "#f1f5f9"}}},
+        "series": [
+            {"name": f"New {window_label} Highs", "type": "line", "data": h_data,
+             "lineStyle": {"color": "#059669", "width": 1.8},
+             "itemStyle": {"color": "#059669"}, "symbol": "none",
+             "areaStyle": {"color": "rgba(5,150,105,0.08)"}, "connectNulls": False,
+             "markLine": {"silent": True, "symbol": ["none", "none"],
+                          "data": [{"yAxis": 0, "lineStyle": {"color": "#94a3b8", "width": 1}}],
+                          "label": {"show": False}}},
+            {"name": f"New {window_label} Lows", "type": "line", "data": l_data,
+             "lineStyle": {"color": "#e11d48", "width": 1.8},
+             "itemStyle": {"color": "#e11d48"}, "symbol": "none",
+             "areaStyle": {"color": "rgba(225,29,72,0.08)"}, "connectNulls": False},
+        ],
+    }
+    st.iframe(_build_echarts_html(json.dumps(option)), height=370)
 
 
 def render_backtest_equity_chart(equity_curve: pd.Series, benchmark: pd.Series) -> None:
     """Renders cumulative strategy returns vs benchmark."""
-    fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-            x=equity_curve.index,
-            y=(equity_curve - 1) * 100,
-            name="Momentum Strategy (Net)",
-            mode="lines",
-            line={"color": "#059669", "width": 2.2},
-            fill="tozeroy",
-            fillcolor="rgba(5, 150, 105, 0.06)",
-        )
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=benchmark.index,
-            y=(benchmark - 1) * 100,
-            name="Benchmark (Nifty 500 · ^CRSLDX)",
-            mode="lines",
-            line={"color": "#64748b", "width": 1.5, "dash": "dot"},
-        )
-    )
-    fig.add_hline(y=0, line_color="#cbd5e1", line_width=1)
+    strat_pct = (equity_curve - 1) * 100
+    bench_pct = (benchmark - 1) * 100
+    tms_s = _ts_ms(equity_curve.index)
+    tms_b = _ts_ms(benchmark.index)
+    s_data = [[tms_s[j], None if pd.isna(v) else round(float(v), 4)] for j, v in enumerate(strat_pct)]
+    b_data = [[tms_b[j], None if pd.isna(v) else round(float(v), 4)] for j, v in enumerate(bench_pct)]
 
-    fig.update_layout(
-        template="plotly_white",
-        paper_bgcolor="#ffffff",
-        plot_bgcolor="#ffffff",
-        font={
-            "family": "Plus Jakarta Sans, sans-serif",
-            "size": 11,
-            "color": "#334155",
-        },
-        title={
-            "text": "<b>Cumulative Return: Strategy (Net) vs Benchmark</b>",
-            "font": {"size": 14, "color": "#0f172a"},
-        },
-        yaxis={"title": "Return %", "gridcolor": "#f1f5f9", "ticksuffix": "%"},
-        xaxis={"gridcolor": "#f1f5f9"},
-        legend={
-            "orientation": "h",
-            "yanchor": "bottom",
-            "y": 1.02,
-            "xanchor": "left",
-            "x": 0,
-            "bgcolor": "rgba(255, 255, 255, 0.9)",
-            "bordercolor": "#e2e8f0",
-        },
-        margin={"l": 10, "r": 10, "t": 50, "b": 10},
-        height=360,
-        hovermode="x unified",
-    )
-    st.plotly_chart(fig, width="stretch", key="backtest_equity_chart_view")
+    option = {
+        "title": {"text": "Cumulative Return: Strategy (Net) vs Benchmark",
+                  "left": "left", "top": 5, "textStyle": {"fontSize": 14, "fontWeight": "bold"}},
+        "tooltip": {"trigger": "axis", "axisPointer": {"type": "cross"}},
+        "legend": {"top": 38, "left": 0},
+        "grid": {"left": 60, "right": 20, "top": 82, "bottom": 40},
+        "xAxis": {"type": "time", "splitLine": {"show": False}},
+        "yAxis": {"type": "value", "name": "Return %",
+                  "axisLabel": {"formatter": "{value}%"},
+                  "splitLine": {"lineStyle": {"color": "#f1f5f9"}}},
+        "series": [
+            {"name": "Momentum Strategy (Net)", "type": "line", "data": s_data,
+             "lineStyle": {"color": "#059669", "width": 2.2},
+             "itemStyle": {"color": "#059669"}, "symbol": "none",
+             "areaStyle": {"color": "rgba(5,150,105,0.06)"}, "connectNulls": False,
+             "markLine": {"silent": True, "symbol": ["none", "none"],
+                          "data": [{"yAxis": 0, "lineStyle": {"color": "#cbd5e1", "width": 1}}],
+                          "label": {"show": False}}},
+            {"name": "Benchmark (Nifty 500 · ^CRSLDX)", "type": "line", "data": b_data,
+             "lineStyle": {"color": "#64748b", "width": 1.5, "type": "dotted"},
+             "itemStyle": {"color": "#64748b"}, "symbol": "none", "connectNulls": False},
+        ],
+    }
+    st.iframe(_build_echarts_html(json.dumps(option)), height=390)
+
+
+def render_net_hl_bar_chart(net: pd.Series) -> None:
+    """Renders the Daily Net New Highs (Highs − Lows) bar chart."""
+    if net.empty:
+        return
+    tms = _ts_ms(net.index)
+    data = [{"value": [tms[j], None if pd.isna(v) else float(v)],
+              "itemStyle": {"color": "#059669" if pd.notna(v) and v >= 0 else "#e11d48"}}
+            for j, v in enumerate(net)]
+    option = {
+        "title": {"text": "Daily Net New Highs (Highs − Lows)", "left": "left", "top": 5,
+                  "textStyle": {"fontSize": 13, "fontWeight": "bold"}},
+        "tooltip": {"trigger": "axis"},
+        "grid": {"left": 55, "right": 20, "top": 50, "bottom": 40},
+        "xAxis": {"type": "time", "splitLine": {"show": False}},
+        "yAxis": {"type": "value", "splitLine": {"lineStyle": {"color": "#f1f5f9"}}},
+        "series": [{
+            "type": "bar", "data": data,
+            "markLine": {"silent": True, "symbol": ["none", "none"],
+                         "data": [{"yAxis": 0, "lineStyle": {"color": "#94a3b8", "width": 1}}],
+                         "label": {"show": False}},
+        }],
+    }
+    st.iframe(_build_echarts_html(json.dumps(option)), height=300)
+
+
+def render_correlation_heatmap(
+    corr_df: pd.DataFrame, syms: list[str], n_disp: int
+) -> None:
+    """Renders a 90-day return correlation matrix heatmap via ECharts."""
+    try:
+        disp = list(syms[: int(n_disp)])
+        sub = corr_df.loc[disp, disp]
+        # Data: [x_sym, y_sym, corr_value]
+        heat_data = [
+            [xs, ys, None if pd.isna(sub.at[xs, ys]) else round(float(sub.at[xs, ys]), 2)]
+            for xs in disp
+            for ys in disp
+        ]
+        syms_json = json.dumps(disp)
+        data_json = json.dumps(heat_data)
+        html = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+*{{box-sizing:border-box;margin:0;padding:0}}
+html,body{{width:100%;height:100%;overflow:hidden;background:transparent;
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif}}
+#c{{width:100%;height:100%}}
+</style>
+</head>
+<body>
+<div id="c"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<script>
+(function(){{
+const dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches;
+const bg=dark?'#0f172a':'#ffffff';
+const fg=dark?'#e2e8f0':'#334155';
+const chart=echarts.init(document.getElementById('c'),null,{{backgroundColor:bg}});
+const syms={syms_json};
+const data={data_json};
+chart.setOption({{
+  backgroundColor:bg,
+  textStyle:{{color:fg,fontFamily:'Plus Jakarta Sans,system-ui,sans-serif',fontSize:11}},
+  tooltip:{{trigger:'item',formatter:function(p){{
+    const d=p.data;
+    return '<b>'+d[0]+'</b> × <b>'+d[1]+'</b><br>Corr: <b>'+(d[2]!=null?d[2].toFixed(2):'—')+'</b>';
+  }}}},
+  grid:{{left:60,right:70,top:20,bottom:60}},
+  xAxis:{{type:'category',data:syms,splitArea:{{show:true}},
+    axisLabel:{{rotate:-45,fontSize:10,color:fg,fontFamily:'JetBrains Mono,monospace'}}}},
+  yAxis:{{type:'category',data:syms,inverse:true,splitArea:{{show:true}},
+    axisLabel:{{fontSize:10,color:fg,fontFamily:'JetBrains Mono,monospace'}}}},
+  visualMap:{{min:-0.2,max:1.0,calculable:false,orient:'vertical',right:0,top:'center',
+    inRange:{{color:['#ffffff','#f0f9ff','#bae6fd','#38bdf8','#0284c7']}},
+    textStyle:{{fontSize:9,color:fg}}}},
+  series:[{{type:'heatmap',data:data,
+    label:{{show:true,fontSize:10,color:'#0f172a',fontFamily:'JetBrains Mono,monospace',
+      formatter:function(p){{return p.data[2]!=null?p.data[2].toFixed(2):'—';}}
+    }}
+  }}]
+}});
+window.addEventListener('resize',()=>chart.resize());
+}})();
+</script>
+</body>
+</html>"""
+        st.iframe(html, height=420)
+    except Exception:
+        st.info("Unable to render correlation heatmap.")
 
 
