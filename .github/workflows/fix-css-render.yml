@@ -1,0 +1,72 @@
+name: One-time CSS render fix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: >-
+      github.event.head_commit.message != 'fix(ui): render custom CSS as HTML' &&
+      github.event.head_commit.message != 'chore: remove temporary CSS fix workflow'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Patch CSS injection
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('src/ui/theme.py')
+          text = path.read_text(encoding='utf-8')
+
+          old_open = '''    st.markdown(\n        """\n        <link rel="preconnect"'''
+          new_open = '''    st.markdown(\n        clean_html("""\n        <link rel="preconnect"'''
+
+          if text.count(old_open) != 1:
+              raise SystemExit(f'Expected exactly one CSS markdown opener, found {text.count(old_open)}')
+          text = text.replace(old_open, new_open, 1)
+
+          # Limit the closing replacement to inject_custom_css so another
+          # markdown call elsewhere in this module cannot be affected.
+          start = text.index('def inject_custom_css()')
+          end = text.index('\ndef ', start + 5)
+          block = text[start:end]
+          old_close = '''        </style>\n        """\n    )'''
+          new_close = '''        </style>\n        """),\n        unsafe_allow_html=True,\n    )'''
+          if block.count(old_close) != 1:
+              raise SystemExit(f'Expected exactly one CSS markdown closer in inject_custom_css, found {block.count(old_close)}')
+          block = block.replace(old_close, new_close, 1)
+          text = text[:start] + block + text[end:]
+
+          path.write_text(text, encoding='utf-8')
+          print('Patched src/ui/theme.py')
+          PY
+
+      - name: Validate
+        run: |
+          python -m py_compile src/ui/theme.py
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('src/ui/theme.py').read_text(encoding='utf-8')
+          assert 'clean_html("""' in text
+          assert 'unsafe_allow_html=True' in text
+          print('CSS injection validation passed')
+          PY
+
+      - name: Commit and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/ui/theme.py
+          git commit -m 'fix(ui): render custom CSS as HTML'
+          git push origin main
