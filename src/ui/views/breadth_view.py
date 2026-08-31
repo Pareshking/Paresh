@@ -3,7 +3,6 @@ Market Breadth View Controller.
 """
 
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
 
 from src.engine.breadth import (
@@ -11,7 +10,7 @@ from src.engine.breadth import (
     compute_ma_breadth,
     get_recent_hl_events,
 )
-from src.ui.charts import render_breadth_chart, render_hl_timeseries_chart
+from src.ui.charts import render_breadth_chart, render_hl_timeseries_chart, render_net_hl_bar_chart
 from src.ui.components import render_data_quality_footer
 from src.ui.theme import render_saas_table
 
@@ -225,38 +224,7 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
         with st.expander(
             "📊 Net New Highs (Highs − Lows) & Breakout Stocks by Date", expanded=True
         ):
-            net = hl_df["Net New Highs"]
-            colors = ["#059669" if v >= 0 else "#e11d48" for v in net.values]
-            fig_net = go.Figure(
-                go.Bar(
-                    x=net.index,
-                    y=net.values,
-                    marker_color=colors,
-                    marker_line_width=0,
-                    name="Net New Highs",
-                )
-            )
-            fig_net.add_hline(y=0, line_color="#94a3b8", line_width=1)
-            fig_net.update_layout(
-                template="plotly_white",
-                paper_bgcolor="#ffffff",
-                plot_bgcolor="#ffffff",
-                font={
-                    "family": "Plus Jakarta Sans, sans-serif",
-                    "size": 10,
-                    "color": "#334155",
-                },
-                title={
-                    "text": "<b>Daily Net New Highs (Highs − Lows)</b>",
-                    "font": {"size": 13, "color": "#0f172a"},
-                },
-                yaxis={"gridcolor": "#f1f5f9"},
-                xaxis={"gridcolor": "#f1f5f9"},
-                margin={"l": 10, "r": 10, "t": 40, "b": 10},
-                height=280,
-                showlegend=False,
-            )
-            st.plotly_chart(fig_net, width="stretch", key="net_hl_chart")
+            render_net_hl_bar_chart(hl_df["Net New Highs"])
 
             st.markdown("##### 📋 Stocks Hitting New Highs & Lows (Recent Breakdown)")
             hl_events_df = get_recent_hl_events(
