@@ -105,6 +105,28 @@ def test_cross_section_z_nan_stocks_remain_nan() -> None:
     assert pd.isna(z.loc[z.index[1], "B"])
 
 
+def test_weight_change_reuses_period_z_scores_without_recompute() -> None:
+    # _compute_period_z_scores populates _period_z_scores; _apply_weight_composite
+    # reads from it. Changing weights must produce a different composite but must
+    # not alter _period_z_scores (proving the expensive Sharpe pass is not repeated).
+    from src.engine.calendar_momentum import _compute_period_z_scores, _apply_weight_composite
+
+    prices = _prices(rows=80, cols=5)
+    calc = MomentumEngine(prices, weights=[0.2, 0.2, 0.2, 0.2, 0.2])
+    _compute_period_z_scores(calc)
+
+    z_before = {m: df.copy() for m, df in calc._period_z_scores.items()}
+    scores_equal = _apply_weight_composite(calc, [0.2, 0.2, 0.2, 0.2, 0.2])
+    scores_shifted = _apply_weight_composite(calc, [0.5, 0.3, 0.1, 0.05, 0.05])
+
+    # z-scores unchanged across two weight applications
+    for m, z in calc._period_z_scores.items():
+        assert z.equals(z_before[m]), f"z-scores mutated for {m}M window"
+
+    # composites differ when weights differ
+    assert not scores_equal.equals(scores_shifted)
+
+
 def test_historical_dataset_as_of_date_uses_last_observation() -> None:
     idx = pd.date_range("2022-01-03", periods=10, freq="B")
     assert latest_as_of_date(idx) == idx[-1].normalize()
