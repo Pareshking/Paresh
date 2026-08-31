@@ -84,7 +84,9 @@ def test_reused_period_metrics_match_a_direct_recompute(ranked):
         _, cal_ret, _, _ = _calendar_period_metrics(
             calc.prices, calc.log_ret, months, latest_as_of=as_of
         )
-        direct = cal_ret.iloc[-1]
+        # cal_ret is already a pd.Series indexed by symbol (the last-row return);
+        # no .iloc[-1] needed — that would reduce a Series to a scalar.
+        direct = cal_ret
         published = rank_df.set_index("Symbol")[f"{months}M Return"]
         for sym in published.index:
             assert published[sym] == pytest.approx(direct[sym], rel=1e-9)
