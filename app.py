@@ -25,7 +25,7 @@ from src.core.config import (
     PRICES_FILE,
 )
 from src.engine.momentum import MomentumEngine
-from src.engine.calendar_momentum import apply_calendar_momentum
+from src.engine.calendar_momentum import _compute_period_z_scores, _apply_weight_composite
 from src.loaders.indices_loader import fetch_indices_data
 from src.loaders.mcap_loader import fetch_market_caps
 from src.loaders.price_loader import (
@@ -142,7 +142,7 @@ def load_mcaps_cached(sym_key: str, _symbols: list[str]) -> pd.Series:
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def run_momentum_pipeline(
+def _run_engine_base(
     price_hash: str,
     index_hash: str,
     pipeline_version: str,
@@ -151,27 +151,46 @@ def run_momentum_pipeline(
     _low_prices: pd.DataFrame,
     _close_prices: pd.DataFrame,
     _volume_data: pd.DataFrame,
-    _index_info: pd.DataFrame,
-    _market_caps: pd.Series,
-    weights: tuple[float, ...],
 ):
-    metrics.incr("memo_miss_quant_engine")
+    # Expensive: constructs the engine and computes 5×_calendar_period_metrics.
+    # Weights are intentionally absent from the cache key so slider adjustments
+    # skip this stage entirely.
+    metrics.incr("memo_miss_engine_base")
     calc = MomentumEngine(
         _adj_close,
         high_df=_high_prices,
         low_df=_low_prices,
         close_df=_close_prices,
         volume_df=_volume_data,
-        weights=list(weights),
+        weights=[0.2] * 5,
     )
-    apply_calendar_momentum(calc)
-    rank_df = calc.get_rankings(
+    _compute_period_z_scores(calc)
+    return calc
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def run_momentum_pipeline(
+    base_hash: str,
+    weights: tuple[float, ...],
+    _calc,
+    _index_info: pd.DataFrame,
+    _market_caps: pd.Series,
+    _close_prices: pd.DataFrame,
+    _high_prices: pd.DataFrame,
+):
+    # Cheap: weighted sum of the pre-computed z-scores + final ranking table.
+    # Only re-runs when weights change; price/universe changes invalidate
+    # base_hash, which also misses _run_engine_base first.
+    metrics.incr("memo_miss_quant_engine")
+    _calc.weights = list(weights)
+    _apply_weight_composite(_calc, list(weights))
+    rank_df = _calc.get_rankings(
         _index_info,
         _market_caps,
         close_prices_df=_close_prices,
         high_prices_df=_high_prices,
     )
-    return calc, rank_df
+    return _calc, rank_df
 
 
 def load_all_data(indices: list[str]):
@@ -214,8 +233,9 @@ def load_all_data(indices: list[str]):
 
     p_hash = _price_hash(adj_close)
     i_hash = f"{len(idx_info)}_{sym_key}"
-    with metrics.stage("quant_engine"):
-        calc, rank_df = run_momentum_pipeline(
+    base_hash = f"{p_hash}_{i_hash}_v4_calendar_periods"
+    with metrics.stage("engine_base"):
+        calc_base = _run_engine_base(
             p_hash,
             i_hash,
             "v4_calendar_periods",
@@ -224,9 +244,16 @@ def load_all_data(indices: list[str]):
             low_p,
             close_p,
             vol_p,
+        )
+    with metrics.stage("quant_engine"):
+        calc, rank_df = run_momentum_pipeline(
+            base_hash,
+            weights,
+            calc_base,
             idx_info,
             mcaps,
-            weights,
+            close_p,
+            high_p,
         )
 
     return {

@@ -189,43 +189,81 @@ def _winsorised_cross_section_z(score: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(z, index=score.index, columns=score.columns)
 
 
-def apply_calendar_momentum(calc) -> pd.DataFrame:
-    """Apply the canonical 1M/3M/6M/9M/12M System-1 horizons."""
+def _compute_period_z_scores(calc) -> None:
+    """Compute per-period Sharpe z-scores and populate period_metrics/dates.
+
+    Weight-independent step. Stores results in calc._period_z_scores so
+    _apply_weight_composite can combine them cheaply when only weights change —
+    avoiding the expensive 5×_calendar_period_metrics re-run on every slider tick.
+    """
     calc.period_metrics = {}
     calc.period_dates = {}
-    as_of = latest_as_of_date(pd.DatetimeIndex(calc.prices.index)) if not calc.prices.empty else None
+    if calc.prices.empty:
+        calc._period_z_scores = {}
+        return
 
-    # Accumulate composite in a single pass — no scores_by_period dict means
-    # only one z-score matrix lives in RAM at a time (3 MB) instead of all five
-    # simultaneously (15 MB). Weights arrive pre-normalized from the caller.
-    composite = pd.DataFrame(0.0, index=calc.prices.index, columns=calc.prices.columns)
-    available_weight = pd.DataFrame(0.0, index=calc.prices.index, columns=calc.prices.columns)
+    as_of = latest_as_of_date(pd.DatetimeIndex(calc.prices.index))
+    z_scores: dict[int, pd.DataFrame] = {}
 
-    for months, weight in zip(MOMENTUM_MONTHS, calc.weights):
+    for months in MOMENTUM_MONTHS:
         score, last_ret, sharpe, starts = _calendar_period_metrics(
             calc.prices, calc.log_ret, months, latest_as_of=as_of
         )
         z_score = _winsorised_cross_section_z(score)
+        z_scores[months] = z_score
+
+        end = len(calc.prices) - 1
+        start = int(starts[end])
+        target = as_of - pd.DateOffset(months=months)
+        calc.period_dates[months] = {
+            "months": months,
+            "target_start": target,
+            "actual_start": (
+                pd.Timestamp(calc.prices.index[start])
+                if start < len(calc.prices)
+                else pd.NaT
+            ),
+            "end": pd.Timestamp(calc.prices.index[end]),
+            "as_of": as_of,
+            "return_observations": end - start,
+        }
+        calc.period_metrics[months] = {
+            "return": last_ret,
+            "sharpe": sharpe.iloc[end],
+            "score": z_score.iloc[end] if not z_score.empty else pd.Series(dtype=float),
+        }
+
+    calc._period_z_scores = z_scores
+
+
+def _apply_weight_composite(calc, weights: list[float]) -> pd.DataFrame:
+    """Apply weights to pre-computed z-scores and set calc.momentum_scores.
+
+    O(n×m) weighted sum over the five z-score matrices that
+    _compute_period_z_scores already built. Separated from z-score computation
+    so weight-slider changes in the UI skip the expensive Sharpe pass and take
+    ~10 ms instead of ~800 ms.
+    """
+    z_scores: dict[int, pd.DataFrame] | None = getattr(calc, "_period_z_scores", None)
+    if not z_scores or calc.prices.empty:
+        calc.momentum_scores = pd.DataFrame()
+        return pd.DataFrame()
+
+    composite = pd.DataFrame(0.0, index=calc.prices.index, columns=calc.prices.columns)
+    available_weight = pd.DataFrame(0.0, index=calc.prices.index, columns=calc.prices.columns)
+
+    for months, weight in zip(MOMENTUM_MONTHS, weights):
+        z_score = z_scores.get(months)
+        if z_score is None:
+            continue
         composite = composite.add(z_score.fillna(0.0) * weight)
         available_weight = available_weight.add(z_score.notna().astype(float) * weight)
 
-        if not calc.prices.empty:
-            end = len(calc.prices) - 1
-            start = int(starts[end])
-            target = as_of - pd.DateOffset(months=months)
-            calc.period_dates[months] = {
-                "months": months,
-                "target_start": target,
-                "actual_start": pd.Timestamp(calc.prices.index[start]) if start < len(calc.prices) else pd.NaT,
-                "end": pd.Timestamp(calc.prices.index[end]),
-                "as_of": as_of,
-                "return_observations": end - start,
-            }
-            calc.period_metrics[months] = {
-                "return": last_ret,
-                "sharpe": sharpe.iloc[end],
-                "score": z_score.iloc[end] if not z_score.empty else pd.Series(dtype=float),
-            }
-
     calc.momentum_scores = composite.div(available_weight.replace(0.0, np.nan))
     return calc.momentum_scores
+
+
+def apply_calendar_momentum(calc) -> pd.DataFrame:
+    """Apply the canonical 1M/3M/6M/9M/12M System-1 horizons."""
+    _compute_period_z_scores(calc)
+    return _apply_weight_composite(calc, calc.weights)

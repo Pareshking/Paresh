@@ -148,6 +148,7 @@ class MomentumEngine:
         self.vol_mgd_ranks: pd.Series | None = None
         self.period_metrics: dict[int, dict[str, pd.Series]] = {}
         self.period_dates: dict[int, dict] = {}
+        self._period_z_scores: dict[int, pd.DataFrame] = {}
 
     def calculate_sharpe_momentum(self) -> pd.DataFrame:
         """Compatibility entry point for the canonical calendar-month System-1 engine."""
