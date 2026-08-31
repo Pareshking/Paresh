@@ -184,9 +184,10 @@ def _winsorised_cross_section_z(score: pd.DataFrame) -> pd.DataFrame:
     # zero. z-scores are computed from c_sd (post-clip); a guard on sd alone
     # misses the case where sd > 0 but winsorization collapses c_sd to 0.
     z[(n < 3) | (sd.ravel() == 0.0) | (c_sd.ravel() == 0.0), :] = np.nan
-    # No final clip needed: data was winsorized at ±3σ before z-scoring, so
-    # z-scores cannot meaningfully exceed ±3 by construction.
-    return pd.DataFrame(z, index=score.index, columns=score.columns)
+    # Winsorisation shifts the post-clip mean/std, so z-scores can slightly
+    # exceed ±3 even after the ±3σ input clip.  Clamp the final result so the
+    # vectorised path matches the reference loop exactly.
+    return pd.DataFrame(z.clip(-3.0, 3.0), index=score.index, columns=score.columns)
 
 
 def _compute_period_z_scores(calc) -> None:
