@@ -142,6 +142,22 @@ def load_mcaps_cached(sym_key: str, _symbols: list[str]) -> pd.Series:
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
+def _extract_ohlcv_cached(price_hash: str, sym_key: str, _raw_prices: pd.DataFrame, _symbols: list[str]):
+    # extract_ohlcv is O(m) over the full MultiIndex on every call. Cache it so
+    # reruns triggered by UI interactions (tab switches, slider ticks after the
+    # engine cache warms up) skip the decomposition entirely.
+    metrics.incr("memo_miss_ohlcv_extract")
+    return extract_ohlcv(_raw_prices, _symbols)
+
+
+@st.cache_data(show_spinner=False, ttl=86400)
+def _load_tv_cached() -> dict:
+    # load_tv_classification read from disk on every Streamlit rerun with no
+    # caching at all. TV sector data changes at most once a day.
+    return load_tv_classification()
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
 def _run_engine_base(
     price_hash: str,
     index_hash: str,
@@ -221,7 +237,10 @@ def load_all_data(indices: list[str]):
         return None
 
     with metrics.stage("extract_ohlcv"):
-        adj_close, close_p, high_p, low_p, vol_p, open_p = extract_ohlcv(raw_prices, symbols)
+        p_hash_raw = _price_hash(raw_prices)
+        adj_close, close_p, high_p, low_p, vol_p, open_p = _extract_ohlcv_cached(
+            p_hash_raw, sym_key, raw_prices, symbols
+        )
     try:
         metrics.note("price_as_of", str(pd.DatetimeIndex(adj_close.index)[-1].date()))
     except Exception:
@@ -330,7 +349,7 @@ if rank_df.empty:
     st.stop()
 
 # Merge TradingView granular classification
-tv_map = load_tv_classification()
+tv_map = _load_tv_cached()
 if tv_map:
     rank_df["TV_Sector"] = rank_df["Symbol"].map(
         lambda s: tv_map.get(s, {}).get("TV_Sector", "")

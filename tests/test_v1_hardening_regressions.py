@@ -127,6 +127,62 @@ def test_weight_change_reuses_period_z_scores_without_recompute() -> None:
     assert not scores_equal.equals(scores_shifted)
 
 
+def test_decompose_fields_matches_extract_by_coverage_path() -> None:
+    # Build a synthetic MultiIndex matching yfinance's (Ticker, Field) layout.
+    import sys
+    import types
+    import unittest.mock as mock
+
+    # price_loader imports yfinance at module level; stub it so the test can
+    # import the two pure functions without a live yfinance installation.
+    if "yfinance" not in sys.modules:
+        sys.modules["yfinance"] = types.ModuleType("yfinance")
+    if "src.loaders.price_loader" in sys.modules:
+        del sys.modules["src.loaders.price_loader"]
+
+    with mock.patch.dict(sys.modules, {"streamlit": mock.MagicMock()}):
+        from src.loaders.price_loader import _decompose_fields, _extract_field
+
+    tickers = ["RELIANCE.NS", "TCS.NS", "INFY.NS"]
+    fields = ["Adj Close", "Close", "High", "Low", "Volume", "Open"]
+    idx = pd.date_range("2025-01-01", periods=5, freq="B")
+    rng = np.random.default_rng(42)
+
+    cols = pd.MultiIndex.from_tuples(
+        [(t, f) for t in tickers for f in fields], names=["Ticker", "Price"]
+    )
+    data = rng.uniform(100, 200, size=(5, len(cols)))
+    df = pd.DataFrame(data, index=idx, columns=cols)
+
+    # Swap levels so it's (Field, Ticker) as yfinance sometimes returns
+    df_swapped = df.swaplevel(axis=1).sort_index(axis=1)
+
+    for raw in (df, df_swapped):
+        result = _decompose_fields(raw)
+
+        # _decompose_fields must return all six field keys
+        for key in ("adj_close", "close", "high", "low", "volume", "open"):
+            assert key in result, f"Missing key '{key}'"
+            assert not result[key].empty, f"Empty DataFrame for '{key}'"
+
+        # Column count must equal the number of tickers
+        assert result["adj_close"].shape[1] == len(tickers)
+        assert result["high"].shape[1] == len(tickers)
+        assert result["volume"].shape[1] == len(tickers)
+
+        # Cross-validate adj_close values against _extract_field (old path)
+        old_adj = _extract_field(raw, ["Adj Close", "AdjClose", "Close"])
+        new_adj = result["adj_close"]
+        shared_cols = sorted(set(old_adj.columns) & set(new_adj.columns))
+        assert shared_cols, "No shared columns between old and new adj_close paths"
+        np.testing.assert_allclose(
+            old_adj[shared_cols].to_numpy(),
+            new_adj[shared_cols].to_numpy(),
+            rtol=1e-10,
+            err_msg="adj_close values diverge between _decompose_fields and _extract_field",
+        )
+
+
 def test_historical_dataset_as_of_date_uses_last_observation() -> None:
     idx = pd.date_range("2022-01-03", periods=10, freq="B")
     assert latest_as_of_date(idx) == idx[-1].normalize()
