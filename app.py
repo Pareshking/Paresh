@@ -167,10 +167,15 @@ def _run_engine_base(
     _low_prices: pd.DataFrame,
     _close_prices: pd.DataFrame,
     _volume_data: pd.DataFrame,
+    _idx_info: pd.DataFrame,
+    _market_caps: pd.Series,
 ):
-    # Expensive: constructs the engine and computes 5×_calendar_period_metrics.
-    # Weights are intentionally absent from the cache key so slider adjustments
-    # skip this stage entirely.
+    # Expensive: constructs the engine, computes 5×_calendar_period_metrics,
+    # and pre-computes all weight-independent signal columns (ATR, EMA, 52W
+    # high, ATH, drawdowns, persistence) so weight-slider changes in
+    # run_momentum_pipeline skip the signal recomputation entirely.
+    # _idx_info and _market_caps are underscore-prefixed (excluded from the
+    # cache key); price_hash + index_hash already encode data state.
     metrics.incr("memo_miss_engine_base")
     calc = MomentumEngine(
         _adj_close,
@@ -181,6 +186,7 @@ def _run_engine_base(
         weights=[0.2] * 5,
     )
     _compute_period_z_scores(calc)
+    calc._precompute_signals(_idx_info, _market_caps, _close_prices, _high_prices)
     return calc
 
 
@@ -263,6 +269,8 @@ def load_all_data(indices: list[str]):
             low_p,
             close_p,
             vol_p,
+            idx_info,
+            mcaps,
         )
     with metrics.stage("quant_engine"):
         calc, rank_df = run_momentum_pipeline(
