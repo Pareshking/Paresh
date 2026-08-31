@@ -120,7 +120,7 @@ VOL_ICONS = {
 def inject_custom_css() -> None:
     """Injects comprehensive Pure Paper White styling with 5-Font institutional typography."""
     st.markdown(
-        """
+        clean_html("""
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
@@ -795,7 +795,7 @@ def inject_custom_css() -> None:
             margin: 1.2rem 0 !important;
         }
         </style>
-        """,
+        """),
         unsafe_allow_html=True,
     )
 
