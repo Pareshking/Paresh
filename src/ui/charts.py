@@ -1,6 +1,7 @@
 """
 Interactive visualizations for NSE Momentum Dashboard.
-Includes Candlestick + Volume + RSI, animated Canvas RRG, and Sector Treemaps.
+Includes Candlestick + Volume + RSI drilldown, animated Canvas RRG,
+ECharts-powered charts, and Sector Treemaps.
 """
 
 import json
@@ -701,6 +702,10 @@ def _build_treemap_groups(
                 child["cmp"] = float(row["CMP"])
             if "Market Cap (Cr)" in valid_df.columns and pd.notna(row.get("Market Cap (Cr)")):
                 child["mcap"] = float(row["Market Cap (Cr)"])
+            if "Rank" in valid_df.columns and pd.notna(row.get("Rank")):
+                child["rank"] = int(row["Rank"])
+            if "3M Sharpe" in valid_df.columns and pd.notna(row.get("3M Sharpe")):
+                child["sharpe"] = round(float(row["3M Sharpe"]), 2)
             children.append(child)
 
         grp_rets = grp_df["Ret_Capped"].dropna()
@@ -709,13 +714,22 @@ def _build_treemap_groups(
             "name": str(grp_name),
             "value": sum(c["value"] for c in children),
             "itemStyle": {"color": _lerp_color((grp_avg_ret + 0.30) / 0.60), "opacity": 0.5},
+            "n_stocks": len(children),
+            "avg_ret": f"{grp_avg_ret:+.1%}",
             "children": children,
         })
     return groups
 
 
 def _build_treemap_html(data_json: str, return_col: str, size_label: str) -> str:
-    """Build a self-contained ECharts treemap HTML component (loads ECharts via cdnjs)."""
+    """Build a self-contained ECharts treemap HTML component.
+
+    Features matching the old Plotly treemap:
+    - Click a sector header → zooms into that sector (drill down)
+    - Breadcrumb bar at bottom → click to navigate back
+    - Rich hover tooltip: rank, return, CMP, market cap, Sharpe
+    - Two-line label on tiles: ticker + return %
+    """
     rc = json.dumps(return_col)
     sl = json.dumps(size_label)
     return f"""<!DOCTYPE html>
@@ -745,43 +759,86 @@ function fmt(n){{return n.toLocaleString('en-IN',{{maximumFractionDigits:0}})}}
 const opt={{
   backgroundColor:bg,
   tooltip:{{
-    trigger:'item',confine:true,
+    trigger:'item',confine:true,enterable:false,
+    backgroundColor:dark?'rgba(15,23,42,0.96)':'rgba(255,255,255,0.98)',
+    borderColor:dark?'#334155':'#e2e8f0',
+    borderWidth:1,
+    textStyle:{{color:fg,fontSize:12,fontFamily:'IBM Plex Mono,monospace'}},
     formatter:function(p){{
       const d=p.data;
-      if(!d.children){{
-        let s=`<b>${{d.name}}</b><br>${{RETURN_COL}}: ${{d.ret_str||'—'}}`;
-        if(d.cmp!=null)s+=`<br>CMP: ₹${{fmt(d.cmp)}}`;
-        if(d.mcap!=null)s+=`<br>Mcap: ₹${{fmt(d.mcap)}} Cr`;
-        s+=`<br><i>Sized by: ${{SIZE_LABEL}}</i>`;
+      if(d.children!==undefined){{
+        // Sector/group tile
+        let s=`<span style="font-weight:700;font-size:13px">${{d.name}}</span>`;
+        s+=`<br>Avg return: <b>${{d.avg_ret||'—'}}</b>`;
+        s+=`<br>Stocks: <b>${{d.n_stocks||d.children.length}}</b>`;
+        s+=`<br><span style="color:#94a3b8;font-size:11px">Click to zoom into sector →</span>`;
         return s;
       }}
-      return `<b>${{d.name}}</b><br>Stocks: ${{(d.children||[]).length}}`;
+      // Individual stock tile
+      let s=`<span style="font-weight:700;font-size:13px">${{d.name}}</span>`;
+      s+=`<br>${{RETURN_COL}}: <b>${{d.ret_str||'—'}}</b>`;
+      if(d.rank!=null)s+=`<br>Rank: <b>#${{d.rank}}</b>`;
+      if(d.cmp!=null)s+=`<br>CMP: <b>₹${{fmt(d.cmp)}}</b>`;
+      if(d.mcap!=null)s+=`<br>Mcap: <b>₹${{fmt(d.mcap)}} Cr</b>`;
+      if(d.sharpe!=null)s+=`<br>3M Sharpe: <b>${{d.sharpe}}</b>`;
+      s+=`<br><span style="color:#94a3b8;font-size:11px">Sized by: ${{SIZE_LABEL}}</span>`;
+      return s;
     }}
   }},
   series:[{{
     type:'treemap',
-    top:8,bottom:8,left:8,right:8,
-    roam:false,nodeClick:false,
-    breadcrumb:{{show:false}},
+    top:4,bottom:28,left:4,right:4,
+    roam:false,
+    nodeClick:'zoomToNode',
+    zoomToNodeRatio:0.32*0.32,
+    breadcrumb:{{
+      show:true,
+      bottom:0,
+      height:24,
+      emptyItemWidth:25,
+      itemStyle:{{
+        color:dark?'#1e293b':'#f1f5f9',
+        borderColor:dark?'#334155':'#e2e8f0',
+        borderWidth:1,
+        shadowBlur:0,
+        textStyle:{{color:fg,fontSize:11,fontFamily:'IBM Plex Mono,monospace',fontWeight:'600'}}
+      }},
+      emphasis:{{
+        itemStyle:{{color:dark?'#334155':'#e2e8f0'}}
+      }}
+    }},
     levels:[
       {{
         itemStyle:{{borderColor:bd,borderWidth:3,gapWidth:3}},
         upperLabel:{{
-          show:true,height:24,color:fg,fontSize:12,fontWeight:'bold',
+          show:true,height:26,
+          color:'#ffffff',fontSize:12,fontWeight:'bold',
           fontFamily:'IBM Plex Mono,monospace',
-          backgroundColor:'rgba(0,0,0,0.20)'
+          padding:[4,6],
+          overflow:'truncate',
+          backgroundColor:'rgba(0,0,0,0.35)'
         }}
       }},
       {{
-        itemStyle:{{borderColor:bd,borderWidth:1.5,gapWidth:1.5}},
+        itemStyle:{{borderColor:bd,borderWidth:1,gapWidth:1}},
         label:{{
-          show:true,color:'#0f172a',fontSize:11,fontWeight:'bold',
+          show:true,
+          color:'#0f172a',
+          fontSize:10,fontWeight:'bold',
           fontFamily:'IBM Plex Mono,monospace',
+          lineOverflow:'truncate',
           formatter:function(p){{
             const d=p.data;
+            // Two-line: ticker on top, return below — mirrors Plotly behavior
             return d.name+'\\n'+(d.ret_str||'');
           }},
           overflow:'truncate'
+        }},
+        emphasis:{{
+          label:{{
+            color:'#0f172a',fontSize:11,fontWeight:'bold'
+          }},
+          itemStyle:{{opacity:0.85}}
         }}
       }}
     ],
@@ -790,6 +847,10 @@ const opt={{
 }};
 chart.setOption(opt);
 window.addEventListener('resize',()=>chart.resize());
+// Double-click anywhere restores the full view (matches Plotly double-click reset)
+chart.getZr().on('dblclick',function(){{
+  chart.dispatchAction({{type:'treemapRootToNode',seriesIndex:0,targetNode:0}});
+}});
 </script>
 </body>
 </html>"""
