@@ -337,27 +337,47 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
                 break
 
     # Layer 1c: market caps committed to the repository by the daily sync.
-    # Production cannot reach the NSE PR archive -- NSE blocks the host's IP --
-    # so without this the only remaining source is yfinance, which on a cold
-    # start meant 750 individual lookups and the slowest stage of startup.
-    # The sync runs where NSE is reachable and leaves its result in the repo.
-    if not master and os.path.exists(REPO_MCAP_FILE):
-        try:
-            repo_caps = pd.read_csv(REPO_MCAP_FILE)
-            repo_caps["Symbol"] = repo_caps["Symbol"].astype(str).str.strip().str.upper()
-            repo_caps["MarketCap"] = pd.to_numeric(repo_caps["MarketCap"], errors="coerce")
-            repo_caps = repo_caps[repo_caps["MarketCap"].notna() & (repo_caps["MarketCap"] > 0)]
-            master = repo_caps.set_index("Symbol")["MarketCap"].to_dict()
-            if master:
-                metrics.note("mcap_path", "repo_snapshot")
-                if "AsOf" in repo_caps.columns:
-                    stamped = [v for v in repo_caps["AsOf"].dropna().astype(str) if v.strip()]
-                    if stamped:
-                        metrics.note("mcap_as_of", stamped[0])
-                logger.info(f"Repository market cap snapshot: {len(master)} stocks")
-        except Exception as e:
-            logger.warning(f"Repository market cap snapshot unreadable: {e}")
-            master = {}
+    # Used in two situations:
+    # (a) Production cannot reach the NSE PR archive at all (NSE blocks the
+    #     cloud host's IP) -- without this layer the only source would be
+    #     750 individual yfinance lookups on every cold start.
+    # (b) The live NSE PR zip succeeded but did not cover all constituents:
+    #     a stock that hit a circuit breaker or was temporarily moved to the
+    #     BE/BL series on that specific day is absent from the EQ bhavcopy,
+    #     but is still a valid index member with a known market cap from the
+    #     prior day's sync.  Without this top-up those stocks fell through to
+    #     yfinance even though a perfectly good recent figure sat in the repo.
+    if os.path.exists(REPO_MCAP_FILE):
+        gap = [s for s in symbols if s not in master]
+        if not master or gap:
+            try:
+                repo_caps = pd.read_csv(REPO_MCAP_FILE)
+                repo_caps["Symbol"] = repo_caps["Symbol"].astype(str).str.strip().str.upper()
+                repo_caps["MarketCap"] = pd.to_numeric(repo_caps["MarketCap"], errors="coerce")
+                repo_caps = repo_caps[repo_caps["MarketCap"].notna() & (repo_caps["MarketCap"] > 0)]
+                repo_map = repo_caps.set_index("Symbol")["MarketCap"].to_dict()
+                if repo_map:
+                    if not master:
+                        master = repo_map
+                        metrics.note("mcap_path", "repo_snapshot")
+                    else:
+                        filled = {s: repo_map[s] for s in gap if s in repo_map}
+                        if filled:
+                            master.update(filled)
+                            metrics.note("mcap_repo_gap_fill", len(filled))
+                            logger.info(
+                                "Repo snapshot gap-fill: %d symbol(s) not in today's bhavcopy: %s",
+                                len(filled), ", ".join(sorted(filled)),
+                            )
+                    if "AsOf" in repo_caps.columns:
+                        stamped = [v for v in repo_caps["AsOf"].dropna().astype(str) if v.strip()]
+                        if stamped:
+                            metrics.note("mcap_as_of", stamped[0])
+                    logger.info(f"Repository market cap snapshot: {len(repo_map)} stocks")
+            except Exception as e:
+                logger.warning(f"Repository market cap snapshot unreadable: {e}")
+                if not master:
+                    master = {}
 
     # Layer 2: yfinance disk cache
     missing = [s for s in symbols if s not in master]
@@ -379,6 +399,11 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
     # Layer 3: Live yfinance fetch
     if missing:
         metrics.note("mcap_yfinance_fallback_symbols", len(missing))
+        metrics.note("mcap_yfinance_fallback_list", ",".join(sorted(missing)))
+        logger.warning(
+            "mcap yfinance fallback: %d symbols not in any cache/snapshot: %s",
+            len(missing), ", ".join(sorted(missing)),
+        )
         logger.info(f"Fetching market caps from yfinance for {len(missing)} stocks…")
         yf_map = _fetch_mcaps_yfinance(missing)
         master.update(yf_map)
