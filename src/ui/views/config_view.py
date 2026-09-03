@@ -189,10 +189,30 @@ def _section_momentum_signal() -> None:
     for col, (label, key, _default) in zip(wc, windows):
         col.slider(label, min_value=0.0, max_value=1.0, step=0.05, key=key)
 
-    st.caption(
+    lbl_col, pop_col = st.columns([4, 1], vertical_alignment="center")
+    lbl_col.caption(
         "Weights normalize automatically. The 12M window excludes the most recent month "
         "(skip-month convention) to avoid short-term reversal contamination."
     )
+    with pop_col.popover("ℹ️ Window guide", use_container_width=True):
+        st.markdown(
+            """
+**Lookback Windows**
+
+| Window | Trading days | What it captures |
+|---|---|---|
+| **1M** | 21 | Short momentum / mean reversion boundary |
+| **3M** | 63 | Primary trend formation |
+| **6M** | 126 | Intermediate momentum |
+| **9M** | 189 | Extended trend persistence |
+| **12M** | 252 | Long-cycle momentum (skip-month applied) |
+
+Higher weight on **3M + 6M** favours fast breakouts.
+Higher weight on **9M + 12M** favours slow, persistent trends.
+
+*All windows skip the most recent month to reduce reversal noise.*
+"""
+        )
 
 
 def _section_portfolio_risk() -> None:

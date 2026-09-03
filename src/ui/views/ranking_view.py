@@ -392,8 +392,8 @@ def render_ranking_view(
         view = view[view.get("Volume", "") == "High"]
 
     # ── Tier 2: Refinement, Column Density & View Toolbar ────────────────────
-    c_info, c_sort, c_density, c_view = st.columns(
-        [1.8, 0.9, 1.3, 0.6], vertical_alignment="center"
+    c_info, c_sort, c_density, c_view, c_guide = st.columns(
+        [1.8, 0.9, 1.3, 0.6, 0.35], vertical_alignment="center"
     )
 
     n_total = len(rank_df)
@@ -431,6 +431,29 @@ def render_ranking_view(
         key="rank_view_mode",
         label_visibility="collapsed",
     )
+
+    with c_guide.popover("ℹ️", use_container_width=True):
+        st.markdown(
+            """
+**Column Guide**
+
+| Column | What it measures |
+|---|---|
+| **Rank** | Composite momentum rank across universe (1 = strongest) |
+| **Score** | Weighted risk-adjusted return across 1M/3M/6M/9M/12M windows |
+| **CMP** | Last traded price |
+| **3M / 6M Return** | Price return over 63 / 126 trading sessions |
+| **3M Sharpe** | 3M return ÷ 3M volatility — higher means smoother trend |
+| **% High** | Distance from 52-week high (negative = below peak) |
+| **RS Rank** | Relative strength rank vs full universe (1 = highest RS) |
+| **Above 50 EMA** | Price is above the 50-day exponential moving average |
+| **Near 52W High** | Within 10% of the 52-week high |
+| **Volume** | 20-session average daily traded volume |
+| **Market Cap** | Free-float adjusted market capitalisation |
+
+*Score auto-normalises when lookback weights are changed in Config.*
+"""
+        )
 
     # ── Single Stock Technical Deep Dive (Activated by Search Selection) ──────
     if single_stock_drill and single_stock_drill in adj_close.columns:
