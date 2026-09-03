@@ -152,3 +152,79 @@ def summarise(found: pd.DataFrame) -> dict[str, Any]:
             "move": float(found.iloc[0]["Move %"]),
         },
     }
+
+
+# ── Neutralising a flagged session ───────────────────────────────────────────
+
+LOG_PATH = "data/corporate_actions_log.json"
+
+
+def load_events(path: str | Path = LOG_PATH) -> list[dict[str, Any]]:
+    """The flagged sessions on record, or an empty list."""
+    import json
+    from pathlib import Path as _Path
+
+    p = _Path(path)
+    if not p.exists():
+        return []
+    try:
+        with p.open(encoding="utf-8") as fh:
+            log = json.load(fh)
+    except (ValueError, OSError):
+        return []
+    return list((log.get("events") or {}).values())
+
+
+def adjust_prices(
+    prices: pd.DataFrame, events: list[dict[str, Any]] | None
+) -> tuple[pd.DataFrame, list[dict[str, Any]]]:
+    """Remove flagged discontinuities by rescaling the history before each one.
+
+    A 1:2 split halves the price overnight. Scaling every earlier price by the
+    same ratio removes the step, leaving the stock's actual trajectory intact --
+    which is exactly what the vendor's own adjustment would have done had it
+    reached this data.
+
+    Two properties matter more than the arithmetic:
+
+    IT IS NEVER WRITTEN DOWN. The adjustment happens in memory, at read time,
+    derived from the flagged event. If the vendor later restates the series
+    itself, the jump disappears, the guard stops flagging it, and nothing is
+    applied. A patch written into the stored prices would instead be applied on
+    top of the vendor's, double-counting the split and producing a fresh error
+    harder to spot than the original.
+
+    IT ASSUMES A DEMERGER IS VALUE-NEUTRAL. For a split or bonus that is exact.
+    For a demerger it is an approximation: the parent's price genuinely falls,
+    but the holder receives shares in the new entity worth roughly the drop, so
+    treating the session as no-change is much closer to the truth than booking a
+    -65% loss that never happened.
+
+    Returns the adjusted frame and the events actually applied.
+    """
+    if prices is None or prices.empty or not events:
+        return prices, []
+
+    out = prices.copy()
+    applied: list[dict[str, Any]] = []
+    index = pd.DatetimeIndex(out.index)
+
+    for event in events:
+        symbol = event.get("symbol")
+        if symbol not in out.columns:
+            continue
+        try:
+            when = pd.Timestamp(event["date"])
+            ratio = float(event["ratio"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if not np.isfinite(ratio) or ratio <= 0:
+            continue
+        before = index < when
+        if not before.any():
+            continue
+        col = out.columns.get_loc(symbol)
+        out.iloc[before, col] = out.iloc[before, col] * ratio
+        applied.append({**event, "applied": True})
+
+    return out, applied

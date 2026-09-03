@@ -17,6 +17,7 @@ import pandas as pd
 import streamlit as st
 
 from src.core.config import MOMENTUM_WINDOWS
+from src.engine.corporate_actions import adjust_prices
 from src.engine.membership import members_on
 
 # MOMENTUM_WINDOWS are calendar months; warmup arithmetic needs trading sessions.
@@ -260,12 +261,21 @@ def run_backtest(
     _benchmark_close: pd.Series | None = None,
     backtest_months: int = DEFAULT_BACKTEST_MONTHS,
     _membership: dict[str, Any] | None = None,
+    _actions: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
     """
     Executes a walk-forward momentum backtest with zero look-ahead bias and friction modeling.
     """
     WINDOWS = MOMENTUM_WINDOWS
     prices = _adj_close.dropna(axis=1, how="all").copy()
+
+    # Neutralise flagged corporate actions before anything reads a price. A
+    # split the vendor failed to adjust for shows up as a -50% session, which
+    # this engine would otherwise treat as a real return: it would book a
+    # catastrophic loss on a holding, and wreck the stock's momentum score so it
+    # can never be selected again. Done here, in memory, so nothing is written
+    # and the vendor's own later restatement cannot be double-counted.
+    prices, actions_applied = adjust_prices(prices, _actions)
 
     w_total = sum(config_weights)
     norm_w = [cw / w_total for cw in config_weights] if w_total > 0 else [0.2] * 5
@@ -1028,5 +1038,6 @@ def run_backtest(
             "pit_periods": pit_periods,
             "current_universe_periods": current_universe_periods,
             "pit_from": pit_from,
+            "actions_adjusted": len(actions_applied),
         },
     }

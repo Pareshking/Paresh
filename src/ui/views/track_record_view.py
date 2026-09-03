@@ -15,6 +15,7 @@ import pandas as pd
 import streamlit as st
 
 from src.engine.backtester import run_backtest
+from src.engine.corporate_actions import load_events
 from src.engine.track_record import (
     INCEPTION,
     MONTH_LABELS,
@@ -57,6 +58,7 @@ def _record_mtd(
         buffer_n=cfg["buffer_n"],
         _benchmark_close=benchmark_close,
         backtest_months=months,
+        _actions=load_events(),
     )
     return (result or {}).get("live_meta", {}) or {}
 

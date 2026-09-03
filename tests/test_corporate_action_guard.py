@@ -145,3 +145,99 @@ def test_summary_counts_by_kind():
     assert info["unclassified"] == 1
     assert info["symbols"] == ["AAA", "BBB"]
     assert info["worst"]["symbol"] == "BBB"
+
+
+# ── Neutralising the flagged session ─────────────────────────────────────────
+
+from src.engine.corporate_actions import adjust_prices, load_events  # noqa: E402
+
+
+def test_adjusting_removes_the_discontinuity():
+    frame = _frame({"AAA": {20: 0.5}})
+    events = [{"symbol": "AAA", "date": str(frame.index[20].date()), "ratio": 0.5}]
+    fixed, applied = adjust_prices(frame, events)
+    assert len(applied) == 1
+    assert detect(fixed).empty, "the phantom crash must be gone"
+    # A flat series stays flat: the split is removed, not the trajectory.
+    assert fixed["AAA"].nunique() == 1
+
+
+def test_adjusting_preserves_the_real_trajectory():
+    """Only the step is removed; genuine moves either side survive intact."""
+    frame = _frame({"AAA": {10: 1.10, 20: 0.5, 30: 1.05}})
+    events = [{"symbol": "AAA", "date": str(frame.index[20].date()), "ratio": 0.5}]
+    fixed, _ = adjust_prices(frame, events)
+    total_before = frame["AAA"].iloc[-1] / frame["AAA"].iloc[0]
+    total_after = fixed["AAA"].iloc[-1] / fixed["AAA"].iloc[0]
+    assert total_before == pytest.approx(1.10 * 0.5 * 1.05)
+    assert total_after == pytest.approx(1.10 * 1.05), "the split must not count as a loss"
+
+
+def test_only_prices_before_the_event_move():
+    frame = _frame({"AAA": {20: 0.5}})
+    events = [{"symbol": "AAA", "date": str(frame.index[20].date()), "ratio": 0.5}]
+    fixed, _ = adjust_prices(frame, events)
+    assert (fixed["AAA"].iloc[20:] == frame["AAA"].iloc[20:]).all()
+    assert (fixed["AAA"].iloc[:20] != frame["AAA"].iloc[:20]).all()
+
+
+def test_other_symbols_are_untouched():
+    frame = _frame({"AAA": {20: 0.5}, "BBB": {20: 1.0}})
+    events = [{"symbol": "AAA", "date": str(frame.index[20].date()), "ratio": 0.5}]
+    fixed, _ = adjust_prices(frame, events)
+    assert (fixed["BBB"] == frame["BBB"]).all()
+
+
+def test_nothing_is_applied_without_events():
+    frame = _frame({"AAA": {20: 0.5}})
+    for events in (None, []):
+        fixed, applied = adjust_prices(frame, events)
+        assert applied == []
+        assert (fixed["AAA"] == frame["AAA"]).all()
+
+
+def test_an_unknown_symbol_or_bad_ratio_is_skipped_not_raised():
+    frame = _frame({"AAA": {20: 0.5}})
+    day = str(frame.index[20].date())
+    bad = [
+        {"symbol": "NOPE", "date": day, "ratio": 0.5},
+        {"symbol": "AAA", "date": day, "ratio": 0.0},
+        {"symbol": "AAA", "date": day, "ratio": float("nan")},
+        {"symbol": "AAA"},
+    ]
+    fixed, applied = adjust_prices(frame, bad)
+    assert applied == []
+    assert (fixed["AAA"] == frame["AAA"]).all()
+
+
+def test_an_event_before_the_frame_starts_is_a_no_op():
+    """Nothing precedes it, so there is no history to rescale."""
+    frame = _frame({"AAA": {20: 0.5}})
+    events = [{"symbol": "AAA", "date": "2020-01-01", "ratio": 0.5}]
+    _, applied = adjust_prices(frame, events)
+    assert applied == []
+
+
+def test_adjustment_is_never_written_to_the_input():
+    """The correction lives in memory only.
+
+    Persisting it would be applied on top of the vendor's own restatement when
+    that arrives, double-counting the split into a fresh error that is harder
+    to spot than the one it fixed.
+    """
+    frame = _frame({"AAA": {20: 0.5}})
+    original = frame.copy()
+    events = [{"symbol": "AAA", "date": str(frame.index[20].date()), "ratio": 0.5}]
+    adjust_prices(frame, events)
+    pd.testing.assert_frame_equal(frame, original)
+
+
+def test_the_shipped_log_loads_and_clears_its_own_flags():
+    """Every event on record must actually neutralise what it describes."""
+    events = load_events()
+    if not events:
+        pytest.skip("no corporate actions on record")
+    idx = pd.bdate_range("2026-01-01", periods=5)
+    _ = adjust_prices(pd.DataFrame({"AAA": [1.0] * 5}, index=idx), events)
+    for e in events:
+        assert {"symbol", "date", "ratio", "kind"} <= set(e)

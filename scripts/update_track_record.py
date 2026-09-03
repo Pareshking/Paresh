@@ -34,6 +34,7 @@ from src.engine.track_record import (  # noqa: E402
     save_ledger,
     summary_stats,
 )
+from src.engine.corporate_actions import load_events  # noqa: E402
 from src.engine.membership import HISTORY_PATH, describe, load_history  # noqa: E402
 from src.loaders.indices_loader import fetch_indices_data  # noqa: E402
 from src.loaders.price_loader import (  # noqa: E402
@@ -128,6 +129,7 @@ def main() -> int:
         _benchmark_close=benchmark,
         backtest_months=months,
         _membership=membership,
+        _actions=load_events(),
     )
     if result is None:
         print("✗ backtest produced no result (insufficient history?)")

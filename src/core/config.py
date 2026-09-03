@@ -153,7 +153,24 @@ ATH_HISTORY_PERIOD: Final[str] = "20y"
 # since. If the asset cannot be reached the loader behaves exactly as it did
 # before -- this is an accelerator, never a dependency.
 PRICE_SNAPSHOT_TAG: Final[str] = os.getenv("UMIYA_PRICE_SNAPSHOT_TAG", "data-latest")
-PRICE_SNAPSHOT_REPO: Final[str] = os.getenv("UMIYA_REPO", "Pareshking/Umiya")
+# The repository whose release carries the published snapshots. This defaults
+# to THIS repository, because this repository is the one whose daily sync
+# publishes them ($GITHUB_REPOSITORY in the workflow).
+#
+# It used to default to a different repo of the same owner's. Both happened to
+# be in sync, so nothing was visibly wrong -- but the app was reading from a
+# repository nothing here publishes to. Rename, archive or delete that one and
+# this app would not fail loudly: it would fall back to downloading 750 symbols
+# from Yahoo on every cold start, which is the exact fragility the snapshot
+# exists to remove, and Yahoo refuses that volume often enough to matter.
+#
+# PRICE_SNAPSHOT_REPO is the env var to set; UMIYA_REPO is still honoured so an
+# existing deployment override keeps working.
+PRICE_SNAPSHOT_REPO: Final[str] = (
+    os.getenv("PRICE_SNAPSHOT_REPO")
+    or os.getenv("UMIYA_REPO")
+    or "Pareshking/Paresh"
+)
 PRICE_SNAPSHOT_ASSET: Final[str] = "prices.parquet"
 PRICE_ARCHIVE_ASSET: Final[str] = "prices_full.parquet"
 PRICE_SNAPSHOT_URL: Final[str] = (

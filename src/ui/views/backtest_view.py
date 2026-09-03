@@ -9,6 +9,7 @@ import streamlit as st
 
 from src.core.market_time import ist_now
 from src.engine.backtester import DEFAULT_BACKTEST_MONTHS, run_backtest
+from src.engine.corporate_actions import load_events
 from src.engine.parameter_sweep import (
     OBJECTIVES,
     count_combinations,
@@ -109,6 +110,7 @@ def render_backtest_view(
             sector_map=sec_map,
             cost_bps=cost_drag_bps,
             buffer_n=int(bt_n * buffer_mult),
+            _actions=load_events(),
         )
 
     if bt_res is None:

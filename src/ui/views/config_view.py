@@ -19,8 +19,10 @@ from src.core.config import (
     STORAGE_MODE,
     TV_CLASSIFICATION_FILE,
 )
+from src.engine.corporate_actions import load_events
 from src.loaders.indices_loader import get_sync_metadata, sync_official_nse_indices
 from src.ui.components import render_data_quality_footer
+from src.ui.theme import render_saas_table
 
 
 def render_config_view(rank_df: pd.DataFrame) -> None:
@@ -280,8 +282,58 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
 
     st.divider()
 
-    # ── Section 5: Cache & Data Paths ────────────────────────────────────────
-    st.markdown("##### 5. Cache & Data Paths")
+    # ── Section 5: Corporate Actions Detected ────────────────────────────────
+    st.markdown("##### 5. Corporate Actions Detected in Price History")
+    _events = load_events()
+    if not _events:
+        st.success(
+            "No corporate actions flagged. Every session in the price history "
+            "moves within a plausible range."
+        )
+    else:
+        _split = sum(1 for e in _events if e.get("kind") == "split/bonus")
+        _other = len(_events) - _split
+        st.info(
+            f"**{len(_events)} sessions flagged** — {_split} matching a standard "
+            f"split or bonus, {_other} matching none. NSE circuit limits cap a "
+            "session at 5–20%, so a move far past that is a corporate action, "
+            "not a price move. **These are neutralised in the Backtest and "
+            "Track Record** — the history before each event is rescaled in "
+            "memory so the strategy sees the stock's real trajectory. Nothing "
+            "is written to the stored prices, so if the data provider later "
+            "restates the series itself, the correction is simply not applied "
+            "twice."
+        )
+        _rows = []
+        for e in sorted(_events, key=lambda x: x.get("date", ""), reverse=True):
+            _move = e.get("move")
+            _rows.append(
+                {
+                    "Date": e.get("date", "—"),
+                    "Symbol": e.get("symbol", "—"),
+                    "Move": f"{_move * 100:+.1f}%" if _move is not None else "—",
+                    "Ratio": f"{e.get('ratio', float('nan')):.4f}",
+                    "Looks Like": e.get("looks_like", "—"),
+                    "Kind": (
+                        "🔀 Split / bonus"
+                        if e.get("kind") == "split/bonus"
+                        else "❓ Possible demerger"
+                    ),
+                    "First Seen": e.get("first_seen", "—"),
+                }
+            )
+        render_saas_table(pd.DataFrame(_rows), key="cfg_corporate_actions")
+        st.caption(
+            "A **split or bonus** should have been adjusted away by the data "
+            "provider and was not — re-fetching that symbol fixes it. A "
+            "**possible demerger** matches no standard ratio; providers "
+            "generally do not adjust for these at all, because the parent's "
+            "price genuinely falls while shareholders receive stock in the new "
+            "entity. No money was lost, but an unadjusted series records a loss."
+        )
+
+    # ── Section 6: Cache & Data Paths ────────────────────────────────────────
+    st.markdown("##### 6. Cache & Data Paths")
     cache_data = [
         ("Price History", PRICES_FILE),
         ("Market Caps", MCAPS_FILE),
