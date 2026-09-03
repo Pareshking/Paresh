@@ -31,6 +31,7 @@ from src.loaders.indices_loader import fetch_indices_data
 from src.loaders.mcap_loader import fetch_market_caps
 from src.loaders.price_loader import (
     extract_ohlcv,
+    fetch_benchmark_history,
     fetch_price_history,
     get_market_regime,
 )
@@ -53,6 +54,7 @@ from src.ui.views.qualified_view import render_qualified_view
 from src.ui.views.ranking_view import render_ranking_view
 from src.ui.views.rrg_view import render_rrg_view
 from src.ui.views.sector_view import render_sector_view
+from src.ui.views.track_record_view import render_track_record_view
 from src.ui.views.watchlist_view import render_watchlist_view
 
 # Page Config: 100% Widescreen, Sidebar Collapsed
@@ -412,6 +414,7 @@ render_signal_alerts(signals)
     tab_watch,
     tab_breadth,
     tab_backtest,
+    tab_track,
     tab_config,
     tab_guide,
 ) = st.tabs(
@@ -424,6 +427,7 @@ render_signal_alerts(signals)
         "Watchlist",
         "Market Breadth",
         "Backtest",
+        "Track Record",
         "Configuration",
         "Guide",
     ]
@@ -468,6 +472,15 @@ with tab_backtest:
         stock_cap=stock_cap,
         sector_cap=sector_cap,
         weights=weights,
+    )
+
+with tab_track:
+    # The frozen record, plus a live MTD struck under the record's own pinned
+    # configuration. fetch_benchmark_history is cached, so this is the same
+    # round trip the Backtest tab already made.
+    render_track_record_view(
+        adj_close=adj_close,
+        benchmark_close=fetch_benchmark_history(period="5y"),
     )
 
 with tab_config:

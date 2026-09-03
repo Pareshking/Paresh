@@ -265,6 +265,7 @@ def run_backtest(
     daily_ret = prices.pct_change(fill_method=None)
     log_ret = np.log(prices / prices.shift(1).replace(0, np.nan))
 
+    benchmark_level: pd.Series | None = None
     if _benchmark_close is None or _benchmark_close.empty:
         benchmark_ret = pd.Series(np.nan, index=prices.index, dtype=float)
     else:
@@ -284,6 +285,7 @@ def run_backtest(
             .ffill()
         )
         benchmark_ret = benchmark_series.pct_change(fill_method=None)
+        benchmark_level = benchmark_series
 
     ema = prices.ewm(span=ema_period).mean()
     high_52w = prices.rolling(252, min_periods=126).max()
@@ -680,6 +682,8 @@ def run_backtest(
     live_ranks: dict[str, Any] = {}
     pending_signal_dt = None
     pending_fill_dt = None
+    new_holdings: list[str] = []
+    new_wts: pd.Series = pd.Series(dtype=float)
 
     if pending_idx is not None:
         _pp = prices.iloc[pending_idx]
@@ -703,7 +707,7 @@ def run_backtest(
                 else None
             )
 
-            new_holdings = _select_holdings(
+            new_holdings[:] = _select_holdings(
                 p_ranked, prev_holdings, top_n, effective_buffer
             )
             new_wts = _compute_weights(
@@ -822,8 +826,73 @@ def run_backtest(
             key=lambda col: col.map(action_order) if col.name == "Action" else col,
         )
 
+    # ── Month-To-Date ────────────────────────────────────────────────────────
+    # The running month is the one the reported window deliberately omits, and
+    # the one a track record still has to show. Measure it the way the engine
+    # accrues everywhere else: from the CLOSE the book was filled at, on the
+    # book actually held for this month. If the month's rebalance has already
+    # filled, that is the new book from its fill; if not, the standing book
+    # from the last session of the previous month.
+    mtd_period = as_of_dt.to_period("M")
+    mtd_holdings: Sequence[str] = prev_holdings
+    mtd_wts = prev_weights
+    mtd_basis = "standing book"
+    mtd_base_idx: int | None = None
+
+    if (
+        pending_idx is not None
+        and pending_fill_dt is not None
+        and pending_fill_dt.to_period("M") == mtd_period
+        and new_holdings
+    ):
+        mtd_base_idx = pending_idx + 1
+        mtd_holdings = new_holdings
+        mtd_wts = new_wts
+        mtd_basis = "rebalanced book"
+    else:
+        earlier = np.flatnonzero(
+            prices.index.to_period("M").astype("period[M]") < mtd_period
+        )
+        mtd_base_idx = int(earlier[-1]) if earlier.size else None
+
+    strategy_mtd: float | None = None
+    benchmark_mtd: float | None = None
+    if mtd_base_idx is not None and mtd_base_idx < as_of_idx:
+        # No renormalisation over names that failed to price: a missing leg
+        # contributes nothing, exactly as it does in the daily accrual loop.
+        acc = 0.0
+        priced = 0.0
+        for s in mtd_holdings:
+            r = _round_trip_return(
+                _fill_price(prices, s, mtd_base_idx),
+                _fill_price(prices, s, as_of_idx),
+            )
+            w = float(mtd_wts.get(s, 0.0))
+            if np.isfinite(r) and w > 0:
+                acc += w * r
+                priced += w
+        strategy_mtd = acc if priced > 0 else None
+
+        if benchmark_level is not None:
+            b0 = benchmark_level.iloc[mtd_base_idx]
+            b1 = benchmark_level.iloc[as_of_idx]
+            if pd.notna(b0) and pd.notna(b1) and float(b0) > 0:
+                benchmark_mtd = float(b1) / float(b0) - 1.0
+
     live_meta = {
         "as_of": as_of_dt,
+        "mtd_period": str(mtd_period),
+        "mtd_from": (
+            prices.index[mtd_base_idx] if mtd_base_idx is not None else None
+        ),
+        "mtd_basis": mtd_basis,
+        "strategy_mtd": strategy_mtd,
+        "benchmark_mtd": benchmark_mtd,
+        "mtd_alpha": (
+            strategy_mtd - benchmark_mtd
+            if (strategy_mtd is not None and benchmark_mtd is not None)
+            else None
+        ),
         "book_filled_on": prices.index[rebal_dates[-1] + 1] if rebal_dates else None,
         "window_end": window_end,
         "signal_date": pending_signal_dt,
