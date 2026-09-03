@@ -149,6 +149,77 @@ def _composite_z_score(
     return composite.div(available_weight.replace(0.0, np.nan))
 
 
+def _select_holdings(
+    full_ranked: pd.Series,
+    prev_holdings: Sequence[str],
+    top_n: int,
+    effective_buffer: int,
+) -> list[str]:
+    """Buffer-zone selection: retain incumbents inside the buffer, then top up.
+
+    A name already held keeps its slot while it ranks inside `effective_buffer`
+    (wider than `top_n`), so a holding that drifts from #18 to #24 is not sold
+    and re-bought for a rank wobble. Only once it falls past the buffer, or
+    fails a filter and drops out of `full_ranked` entirely, does it go.
+
+    Shared by the backtest loop and the pending-rebalance preview. Keeping one
+    implementation is the point: a preview that told you to sell a name the
+    backtest would have retained is worse than no preview, and a second copy of
+    this logic is exactly how the two drift apart.
+    """
+    selected: list[str] = []
+    for s in prev_holdings:
+        if len(selected) >= top_n:
+            break
+        if s in full_ranked.index:
+            if full_ranked.index.get_loc(s) + 1 <= effective_buffer:
+                selected.append(s)
+    for s in full_ranked.index:
+        if len(selected) >= top_n:
+            break
+        if s not in selected:
+            selected.append(s)
+    return selected[:top_n]
+
+
+def _compute_weights(
+    holdings: Sequence[str],
+    log_ret: pd.DataFrame,
+    start_idx: int,
+    weight_method: str,
+) -> pd.Series:
+    """Target weights for a selected book. Equal weight unless inverse-vol."""
+    if not len(holdings):
+        return pd.Series(dtype=float)
+    if weight_method == "Inverse Volatility":
+        vol_w = log_ret[list(holdings)].iloc[max(start_idx - 63, 0) : start_idx + 1].std()
+        inv = (1.0 / vol_w.replace(0, np.nan)).fillna(0)
+        t_w = inv.sum()
+        if t_w > 0:
+            return inv / t_w
+    return pd.Series(1.0 / len(holdings), index=list(holdings))
+
+
+def _exit_reason(
+    symbol: str,
+    full_ranked: pd.Series,
+    above_ema: pd.Series,
+    near_high: pd.Series,
+    ema_period: int,
+    high_pct: float,
+    effective_buffer: int,
+) -> str:
+    """Why a held name is being sold, in the order the filters actually bind."""
+    if symbol in full_ranked.index:
+        rk = full_ranked.index.get_loc(symbol) + 1
+        return f"Rank Dropped (#{rk} > Buffer {effective_buffer})"
+    if not above_ema.get(symbol, False):
+        return f"Trend Breakdown (< {ema_period} EMA)"
+    if not near_high.get(symbol, False):
+        return f"Failed 52W High Filter (< {high_pct*100:.0f}%)"
+    return "Rebalance Exit"
+
+
 @st.cache_data(show_spinner=False, ttl=3600)
 def run_backtest(
     prices_hash: str,
@@ -227,8 +298,15 @@ def run_backtest(
         idx_values = np.arange(start_offset, len(prices))
         last_by_month = pd.Series(idx_values, index=eligible).groupby(month_keys).last()
         rebal_dates = [int(i) for i in last_by_month.to_numpy() if int(i) < len(prices) - 2]
+        # The same calendar WITHOUT the "needs two sessions after it" guard and
+        # without the reported-window filter below. The guard exists so a
+        # rebalance has room to accrue; the pending preview only needs the
+        # signal itself, and the signal it needs -- the most recent month end --
+        # is precisely the one both filters throw away.
+        all_signal_idx = [int(i) for i in last_by_month.to_numpy()]
     else:
         rebal_dates = list(range(start_offset, len(prices) - 2, rebal_freq))
+        all_signal_idx = list(range(start_offset, len(prices), rebal_freq))
 
     # Restrict the REPORTED window to the last N completed calendar months. The
     # formation history before it is untouched -- a rebalance still scores on a
@@ -312,39 +390,12 @@ def run_backtest(
             continue
 
         # ── Buffer Zone Selection (Turnover Reduction) ───────────────────────
-        selected_holdings: list[str] = []
-        if prev_holdings:
-            # Retain previous holdings if still within buffer rank and valid
-            for s in prev_holdings:
-                if s in full_ranked.index:
-                    rk = full_ranked.index.get_loc(s) + 1
-                    if rk <= effective_buffer:
-                        selected_holdings.append(s)
-                if len(selected_holdings) >= top_n:
-                    break
-
-        # Fill remaining slots with top candidates
-        for s in full_ranked.index:
-            if s not in selected_holdings:
-                selected_holdings.append(s)
-            if len(selected_holdings) >= top_n:
-                break
-
-        holdings = selected_holdings[:top_n]
+        holdings = _select_holdings(
+            full_ranked, prev_holdings, top_n, effective_buffer
+        )
 
         # ── Portfolio Weighting ──────────────────────────────────────────────
-        if weight_method == "Inverse Volatility":
-            vol_w = log_ret[holdings].iloc[max(start_idx - 63, 0) : start_idx + 1].std()
-            inv = (1.0 / vol_w.replace(0, np.nan)).fillna(0)
-            t_w = inv.sum()
-            wts = (
-                (inv / t_w)
-                if t_w > 0
-                else pd.Series(1.0 / len(holdings), index=holdings)
-            )
-
-        else:
-            wts = pd.Series(1.0 / len(holdings), index=holdings)
+        wts = _compute_weights(holdings, log_ret, start_idx, weight_method)
 
         # ── Turnover & Transaction Drag ──────────────────────────────────────
         full_w = pd.Series(0.0, index=prices.columns)
@@ -377,15 +428,10 @@ def run_backtest(
         # Record Exits & Closed Round-Trip Returns
         for s in exits:
             p_exit = _fill_price(prices, s, fwd_start)
-            if s in full_ranked.index:
-                rk = full_ranked.index.get_loc(s) + 1
-                reason = f"Rank Dropped (#{rk} > Buffer {effective_buffer})"
-            elif not above_ema.get(s, False):
-                reason = f"Trend Breakdown (< {ema_period} EMA)"
-            elif not near_high.get(s, False):
-                reason = f"Failed 52W High Filter (< {high_pct*100:.0f}%)"
-            else:
-                reason = "Rebalance Exit"
+            reason = _exit_reason(
+                s, full_ranked, above_ema, near_high,
+                ema_period, high_pct, effective_buffer,
+            )
 
             pos = open_positions.pop(s, None)
             if pos:
@@ -577,18 +623,216 @@ def run_backtest(
         h_days = (last_dt - entry_dt).days if (last_dt and entry_dt) else 0
         closed_trades.append(
             {
-                "Month": f"🟢 Active ({last_dt:%b-%Y})",
+                # "Active (Aug-2026)" was read as "August is the current
+                # month" -- on 3 Sep that looks simply stale. It never meant
+                # that: it means still held, marked at the last session of the
+                # REPORTED WINDOW. Say the mark date outright, because the
+                # Return % beside it is struck at that close and not at
+                # today's. The live mark lives in `live_book`.
+                "Month": f"🟢 Open (as of {last_dt:%d %b %Y})",
                 "Symbol": s,
                 "Entry Date": f"{entry_dt:%d %b %Y}" if entry_dt else "—",
                 "Entry Price": p_entry,
-                "Exit Date": f"Active ({last_dt:%d %b %Y})",
+                "Exit Date": f"Not exited (mark {last_dt:%d %b %Y})",
                 "Exit Price": p_curr,
                 "Return %": unrealized_ret,
                 "Holding (Days)": h_days,
-                "Reason for Exit": "🟢 Currently Held (Open Position)",
+                "Reason for Exit": "🟢 Still held at window close",
                 "Status": "Open",
             }
         )
+
+    # ── Live Book & Pending Rebalance ────────────────────────────────────────
+    # Everything above stops at the last completed month, on purpose. That
+    # leaves the one question a person actually holding this portfolio has to
+    # answer on rebalance morning -- what do I buy and what do I sell -- with
+    # no answer anywhere on the page.
+    #
+    # So compute it here, and keep it strictly separate from the reported
+    # window: these marks use the LATEST close (a date the equity curve does
+    # not cover) and this signal is the month end the window filter excluded.
+    # Nothing below feeds the equity curve, the monthly table or the stats --
+    # it is a forward view, labelled as one.
+    as_of_idx = len(prices) - 1
+    as_of_dt = prices.index[as_of_idx]
+
+    pending_idx: int | None = None
+    if rebal_dates:
+        # A signal is only real once its month has CLOSED. `last_by_month`
+        # takes the last available session of every calendar month, and for the
+        # month still in progress that is just wherever the data happens to
+        # stop -- 3 Sep, say, which is not a month end at all. Previewing it
+        # would invent a rebalance on an arbitrary Thursday and, being the last
+        # row, leave it with no session to fill on. Require a strictly earlier
+        # month than the tape's own, and a fill session that exists.
+        as_of_period = as_of_dt.to_period("M")
+        later = [
+            i
+            for i in all_signal_idx
+            if i > rebal_dates[-1]
+            and i < as_of_idx
+            and prices.index[i].to_period("M") < as_of_period
+        ]
+        pending_idx = max(later) if later else None
+
+    pending_rows: list[dict[str, Any]] = []
+    target_rows: list[dict[str, Any]] = []
+    live_ranks: dict[str, Any] = {}
+    pending_signal_dt = None
+    pending_fill_dt = None
+
+    if pending_idx is not None:
+        _pp = prices.iloc[pending_idx]
+        _pema = ema.iloc[pending_idx]
+        _phi = high_52w.iloc[pending_idx]
+        p_above_ema = _pp > _pema
+        p_near_high = _pp >= _phi * high_pct
+        p_valid = p_above_ema & p_near_high & (_pp > 0)
+
+        p_score = _composite_z_score(
+            prices, log_ret, pending_idx, WINDOWS, norm_w if norm_w else [0.2] * 5
+        )
+        p_ranked = p_score[p_valid & p_score.notna()].sort_values(ascending=False)
+        live_ranks = {s: p_ranked.index.get_loc(s) + 1 for s in p_ranked.index}
+
+        if not p_ranked.empty:
+            pending_signal_dt = prices.index[pending_idx]
+            pending_fill_dt = (
+                prices.index[pending_idx + 1]
+                if pending_idx + 1 < len(prices)
+                else None
+            )
+
+            new_holdings = _select_holdings(
+                p_ranked, prev_holdings, top_n, effective_buffer
+            )
+            new_wts = _compute_weights(
+                new_holdings, log_ret, pending_idx, weight_method
+            )
+
+            p_entries = [s for s in new_holdings if s not in prev_holdings]
+            p_exits = [s for s in prev_holdings if s not in new_holdings]
+            p_holds = [s for s in new_holdings if s in prev_holdings]
+
+            for s in p_exits:
+                pos = open_positions.get(s, {})
+                mark = _fill_price(prices, s, as_of_idx)
+                pending_rows.append(
+                    {
+                        "Action": "🔴 SELL",
+                        "Symbol": s,
+                        "Industry": sec_map.get(s, "—"),
+                        "Rank Now": live_ranks.get(s, "—"),
+                        "Entry Date": pos.get("entry_date"),
+                        "Entry Price": pos.get("entry_price", float("nan")),
+                        "Price Now": mark,
+                        "Return %": _round_trip_return(
+                            pos.get("entry_price", float("nan")), mark
+                        ),
+                        "Current Weight %": float(prev_weights.get(s, 0.0)) * 100,
+                        "Target Weight %": 0.0,
+                        "Reason": _exit_reason(
+                            s, p_ranked, p_above_ema, p_near_high,
+                            ema_period, high_pct, effective_buffer,
+                        ),
+                    }
+                )
+
+            for s in p_entries:
+                pending_rows.append(
+                    {
+                        "Action": "🟢 BUY",
+                        "Symbol": s,
+                        "Industry": sec_map.get(s, "—"),
+                        "Rank Now": live_ranks.get(s, "—"),
+                        "Entry Date": None,
+                        "Entry Price": float("nan"),
+                        "Price Now": _fill_price(prices, s, as_of_idx),
+                        "Return %": float("nan"),
+                        "Current Weight %": 0.0,
+                        "Target Weight %": float(new_wts.get(s, 0.0)) * 100,
+                        "Reason": f"New Momentum Leader (Rank #{live_ranks.get(s, '—')})",
+                    }
+                )
+
+            for s in p_holds:
+                pos = open_positions.get(s, {})
+                mark = _fill_price(prices, s, as_of_idx)
+                pending_rows.append(
+                    {
+                        "Action": "⚪ HOLD",
+                        "Symbol": s,
+                        "Industry": sec_map.get(s, "—"),
+                        "Rank Now": live_ranks.get(s, "—"),
+                        "Entry Date": pos.get("entry_date"),
+                        "Entry Price": pos.get("entry_price", float("nan")),
+                        "Price Now": mark,
+                        "Return %": _round_trip_return(
+                            pos.get("entry_price", float("nan")), mark
+                        ),
+                        "Current Weight %": float(prev_weights.get(s, 0.0)) * 100,
+                        "Target Weight %": float(new_wts.get(s, 0.0)) * 100,
+                        "Reason": f"Buffer Zone Retention (Rank #{live_ranks.get(s, '—')})",
+                    }
+                )
+
+            for s in new_holdings:
+                target_rows.append(
+                    {
+                        "Symbol": s,
+                        "Industry": sec_map.get(s, "—"),
+                        "Rank Now": live_ranks.get(s, "—"),
+                        "Target Weight %": float(new_wts.get(s, 0.0)) * 100,
+                        "Status": "Existing" if s in prev_holdings else "New",
+                    }
+                )
+
+    live_rows: list[dict[str, Any]] = []
+    for s in prev_holdings:
+        pos = open_positions.get(s, {})
+        entry_price = pos.get("entry_price", float("nan"))
+        entry_dt = pos.get("entry_date")
+        mark = _fill_price(prices, s, as_of_idx)
+        live_rows.append(
+            {
+                "Symbol": s,
+                "Industry": sec_map.get(s, "—"),
+                "Entry Date": entry_dt,
+                "Entry Price": entry_price,
+                "Price Now": mark,
+                "Return %": _round_trip_return(entry_price, mark),
+                "Holding (Days)": (
+                    (as_of_dt - entry_dt).days if entry_dt is not None else 0
+                ),
+                "Weight %": float(prev_weights.get(s, 0.0)) * 100,
+                "Rank at Entry": pos.get("entry_rank", "—"),
+                "Rank Now": live_ranks.get(s, "—"),
+            }
+        )
+
+    live_book_df = pd.DataFrame(live_rows)
+    if not live_book_df.empty:
+        live_book_df = live_book_df.sort_values("Return %", ascending=False)
+
+    pending_df = pd.DataFrame(pending_rows)
+    if not pending_df.empty:
+        action_order = {"🔴 SELL": 0, "🟢 BUY": 1, "⚪ HOLD": 2}
+        pending_df = pending_df.sort_values(
+            by=["Action", "Symbol"],
+            key=lambda col: col.map(action_order) if col.name == "Action" else col,
+        )
+
+    live_meta = {
+        "as_of": as_of_dt,
+        "book_filled_on": prices.index[rebal_dates[-1] + 1] if rebal_dates else None,
+        "window_end": window_end,
+        "signal_date": pending_signal_dt,
+        "fill_date": pending_fill_dt,
+        "has_pending": bool(pending_rows),
+        "n_buys": sum(1 for r in pending_rows if r["Action"] == "🟢 BUY"),
+        "n_sells": sum(1 for r in pending_rows if r["Action"] == "🔴 SELL"),
+        "n_holds": sum(1 for r in pending_rows if r["Action"] == "⚪ HOLD"),
+    }
 
     closed_trades_df = pd.DataFrame(closed_trades)
 
@@ -635,6 +879,10 @@ def run_backtest(
         "monthly": monthly_df,
         "tradebook": tradebook_df,
         "closed_trades": closed_trades_df,
+        "live_book": live_book_df,
+        "pending_actions": pending_df,
+        "target_book": pd.DataFrame(target_rows),
+        "live_meta": live_meta,
         "stats": {
             "total_return": total_s_net,
             "gross_return": total_s_gross,

@@ -204,6 +204,154 @@ def render_backtest_view(
     st.markdown(" ")
     render_backtest_equity_chart(bt_res["equity_curve"], bt_res["benchmark"])
 
+    # ── Current Book & Next Rebalance ────────────────────────────────────────
+    # The tables below this one all stop at the last completed month, which is
+    # the right rule for PERFORMANCE and the wrong one for a person holding the
+    # portfolio: on rebalance morning they need today's marks and today's
+    # buy/sell list. That is what this section is, and it is deliberately the
+    # first thing on the page. Every figure here is marked at the latest close
+    # -- a date the equity curve above does NOT cover -- so it is labelled with
+    # its own as-of date and kept out of the performance tables entirely.
+    live_book = bt_res.get("live_book", pd.DataFrame())
+    pending = bt_res.get("pending_actions", pd.DataFrame())
+    target_book = bt_res.get("target_book", pd.DataFrame())
+    lmeta = bt_res.get("live_meta", {}) or {}
+
+    if not live_book.empty or not pending.empty:
+        _as_of = lmeta.get("as_of")
+        _sig = lmeta.get("signal_date")
+        _fill = lmeta.get("fill_date")
+        _filled = lmeta.get("book_filled_on")
+        exp_title = "📌 Current Book & Next Rebalance — what to buy and sell"
+        with st.expander(exp_title, expanded=True):
+            st.caption(
+                f"Book established at the last backtested rebalance"
+                f"{f' (filled {_filled:%d %b %Y})' if _filled is not None else ''}, "
+                f"marked at the close of "
+                f"{f'{_as_of:%d %b %Y}' if _as_of is not None else 'the latest session'}. "
+                "These marks are live and intentionally fall outside the completed-month "
+                "window used by the performance tables below."
+            )
+
+            if lmeta.get("has_pending"):
+                n_b = lmeta.get("n_buys", 0)
+                n_s = lmeta.get("n_sells", 0)
+                n_h = lmeta.get("n_holds", 0)
+                st.success(
+                    f"**Rebalance due** — signalled at the "
+                    f"{f'{_sig:%d %b %Y}' if _sig is not None else 'latest'} close, "
+                    f"execute at the "
+                    f"{f'{_fill:%d %b %Y}' if _fill is not None else 'next session'} close: "
+                    f"**{n_b} BUY · {n_s} SELL · {n_h} HOLD**."
+                )
+            else:
+                st.info(
+                    "No rebalance is due. The next signal is struck at the close of "
+                    "the current month's last trading session; until then the book "
+                    "below stands unchanged."
+                )
+
+            live_sub = st.segmented_control(
+                "Live Book Detail",
+                ["📦 Current Holdings", "🔀 Action List", "🎯 Resulting Portfolio"],
+                default="📦 Current Holdings",
+                key="bt_live_sub_view",
+                label_visibility="collapsed",
+            )
+            if not live_sub:
+                live_sub = "📦 Current Holdings"
+
+            def _fmt_dates(frame: pd.DataFrame) -> pd.DataFrame:
+                out = frame.copy()
+                if "Entry Date" in out.columns:
+                    out["Entry Date"] = pd.to_datetime(
+                        out["Entry Date"], errors="coerce"
+                    ).dt.strftime("%d %b %Y").fillna("—")
+                return out
+
+            if live_sub == "📦 Current Holdings":
+                if live_book.empty:
+                    st.info("No open positions at the end of the backtest window.")
+                else:
+                    lb = _fmt_dates(live_book)
+                    n_up = int((live_book["Return %"] > 0).sum())
+                    n_dn = int((live_book["Return %"] < 0).sum())
+                    avg_r = float(live_book["Return %"].mean(skipna=True) * 100)
+                    st.html(
+                        f"""
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px;">
+                            <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;">
+                                <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:0.68rem;font-weight:700;color:#64748b;text-transform:uppercase;">Open Positions</div>
+                                <div style="font-family:'Outfit',sans-serif;font-size:1.3rem;font-weight:800;color:#0f172a;margin-top:1px;">{len(live_book)}</div>
+                            </div>
+                            <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;">
+                                <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:0.68rem;font-weight:700;color:#64748b;text-transform:uppercase;">In Profit</div>
+                                <div style="font-family:'Outfit',sans-serif;font-size:1.3rem;font-weight:800;color:#059669;margin-top:1px;">{n_up}</div>
+                            </div>
+                            <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;">
+                                <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:0.68rem;font-weight:700;color:#64748b;text-transform:uppercase;">In Loss</div>
+                                <div style="font-family:'Outfit',sans-serif;font-size:1.3rem;font-weight:800;color:#dc2626;margin-top:1px;">{n_dn}</div>
+                            </div>
+                            <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;">
+                                <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:0.68rem;font-weight:700;color:#64748b;text-transform:uppercase;">Avg Unrealised</div>
+                                <div style="font-family:'Outfit',sans-serif;font-size:1.3rem;font-weight:800;color:{'#059669' if avg_r >= 0 else '#dc2626'};margin-top:1px;">{avg_r:+.1f}%</div>
+                            </div>
+                        </div>
+                        """
+                    )
+                    render_saas_table(lb, key="bt_live_book_table")
+                    st.download_button(
+                        "⬇️ Export Current Holdings (CSV)",
+                        lb.to_csv(index=False).encode(),
+                        f"current_book_{datetime.now():%Y%m%d}.csv",
+                        "text/csv",
+                        key="dl_bt_live_book_csv",
+                    )
+
+            elif live_sub == "🔀 Action List":
+                if pending.empty:
+                    st.info(
+                        "No pending rebalance. The action list appears once the "
+                        "month's final session has closed and a new signal is struck."
+                    )
+                else:
+                    pa = _fmt_dates(pending)
+                    act_filter = st.pills(
+                        "Filter Action",
+                        ["All", "🟢 BUY", "🔴 SELL", "⚪ HOLD"],
+                        default="All",
+                        key="bt_pending_action_filter",
+                    )
+                    if act_filter and act_filter != "All":
+                        pa = pa[pa["Action"] == act_filter]
+                    render_saas_table(pa, key="bt_pending_actions_table")
+                    st.download_button(
+                        "⬇️ Export Action List (CSV)",
+                        _fmt_dates(pending).to_csv(index=False).encode(),
+                        f"rebalance_actions_{datetime.now():%Y%m%d}.csv",
+                        "text/csv",
+                        key="dl_bt_pending_csv",
+                    )
+
+            else:
+                if target_book.empty:
+                    st.info(
+                        "No target portfolio to show until a rebalance signal is struck."
+                    )
+                else:
+                    st.caption(
+                        "The book you would hold after executing the action list — "
+                        "every name with its target weight."
+                    )
+                    render_saas_table(target_book, key="bt_target_book_table")
+                    st.download_button(
+                        "⬇️ Export Target Portfolio (CSV)",
+                        target_book.to_csv(index=False).encode(),
+                        f"target_portfolio_{datetime.now():%Y%m%d}.csv",
+                        "text/csv",
+                        key="dl_bt_target_csv",
+                    )
+
     # ── Monthly Performance Breakdown & Rebalance Tradebook ──────────────────
     with st.expander("📋 Per-Period Performance & Rebalance Tradebook", expanded=True):
         c_sub, c_dl = st.columns([2, 1], vertical_alignment="center")
