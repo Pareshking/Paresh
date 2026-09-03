@@ -98,12 +98,26 @@ def _fetch_mcap_from_pr_zip(target_date: datetime | date) -> dict[str, float]:
         )
         df = df[df[col_mcap].notna() & (df[col_mcap] > 0)]
 
-        # Market cap is a company-level figure (price × total outstanding
-        # shares) -- the same number regardless of which trading series the
-        # stock happened to settle under on a given day (EQ, BE, BL, etc.).
-        # Deduplicate by symbol to handle the uncommon case where NSE lists
-        # the same ticker under multiple series in one bhavcopy, keeping the
-        # first row encountered.
+        # NSE equity series that can appear in the bhavcopy for a main-board
+        # constituent.  EQ is normal rolling settlement.  BE is trade-for-trade
+        # (enhanced surveillance, circuit stocks).  BL/BT are block-deal windows.
+        # Non-equity instruments (SM=SME, ST/GB=bonds, RL/W1-W3=rights/warrants)
+        # share the same bhavcopy file and must be excluded.
+        #
+        # When a symbol appears under more than one equity series on the same day
+        # (uncommon but possible), prefer EQ because its closing price is the
+        # regular market close; block-deal prices can differ.
+        _EQUITY_SERIES = {"EQ", "BE", "BL", "BT"}
+        col_series = next((c for c in df.columns if c.lower().strip() == "series"), None)
+        if col_series is not None:
+            df = df.copy()
+            s = df[col_series].astype(str).str.strip().str.upper()
+            df = df[s.isin(_EQUITY_SERIES)]
+            # Sort so EQ rows come first; drop_duplicates(keep="first") then
+            # picks EQ over BE/BL/BT when multiple rows exist for one symbol.
+            df = df.assign(_eq=(s == "EQ").astype(int)).sort_values(
+                "_eq", ascending=False
+            ).drop(columns="_eq")
         df = df.drop_duplicates(subset=[col_sym], keep="first")
 
         result: dict[str, float] = df.set_index(col_sym)[col_mcap].to_dict()
