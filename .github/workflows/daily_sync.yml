@@ -140,6 +140,15 @@ jobs:
             echo "::warning::No price archive was produced; skipping archive upload."
           fi
 
+      # Flag corporate actions sitting in the price history as price moves.
+      # NSE's circuit limits make a -50% session impossible as an actual move,
+      # so anything past the threshold is a split, bonus or demerger -- and a
+      # momentum backtest reads it as a catastrophic loss that never happened.
+      # Non-blocking: the log is the deliverable, and a new find shows up as a
+      # warning on the run rather than stopping the sync.
+      - name: Check for corporate actions
+        run: python scripts/check_corporate_actions.py --fail-on-new || true
+
       # Fold today's constituent list into the point-in-time membership
       # timeline BEFORE committing, so the snapshot lands in the same commit as
       # the CSVs it was taken from. Append-only and a no-op on an unchanged day,
