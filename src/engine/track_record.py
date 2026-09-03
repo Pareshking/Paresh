@@ -323,6 +323,77 @@ def build_grid(
     return pd.DataFrame(rows)
 
 
+SERIES_LABELS: dict[str, str] = {
+    "strategy": "Strategy",
+    "benchmark": "Nifty 500",
+    "alpha": "Alpha",
+}
+
+
+def build_combined_grid(
+    ledger: dict[str, Any],
+    mtd_period: pd.Period | None = None,
+    mtd_values: dict[str, float | None] | None = None,
+    years: Sequence[int] | None = None,
+) -> pd.DataFrame:
+    """All three series in one grid, three rows per year.
+
+    Strategy, benchmark and alpha in separate tables meant comparing them
+    required switching views and holding numbers in your head. The question
+    being asked of this table is almost always "how did we do against the index
+    in June", and that should be one glance down a column.
+
+    Rows are grouped by year, then Strategy / Nifty 500 / Alpha, so a year reads
+    as a block. Each row is built by `build_grid`, so the CY/FY/quarter
+    conventions cannot drift between the combined and per-series views.
+    """
+    mtd_values = mtd_values or {}
+
+    if years is None:
+        seen: set[int] = set()
+        for field in SERIES_LABELS:
+            s = _series_from(ledger, field)
+            seen.update(int(p.year) for p in s.index)
+        if mtd_period is not None and any(
+            mtd_values.get(f) is not None for f in SERIES_LABELS
+        ):
+            seen.add(int(mtd_period.year))
+        if not seen:
+            return pd.DataFrame()
+        years = range(min(seen), max(seen) + 1)
+
+    rows: list[dict[str, Any]] = []
+    for year in years:
+        for field, label in SERIES_LABELS.items():
+            pair = None
+            value = mtd_values.get(field)
+            if mtd_period is not None and value is not None:
+                pair = (mtd_period, value)
+            grid = build_grid(ledger, field=field, mtd=pair, years=[year])
+            if grid.empty:
+                # Keep the row so every year shows all three series; a series
+                # with nothing recorded reads as blank rather than vanishing,
+                # which would silently misalign the block.
+                blank: dict[str, Any] = {"SERIES": label, "YEAR": year}
+                for label_m in MONTH_LABELS:
+                    blank[label_m] = None
+                for extra in ("CY RETURN", "FY RETURN", "Q1", "Q2", "Q3", "Q4"):
+                    blank[extra] = None
+                rows.append(blank)
+                continue
+            rows.append({"SERIES": label, **grid.iloc[0].to_dict()})
+
+    if not rows:
+        return pd.DataFrame()
+    frame = pd.DataFrame(rows)
+    ordered = (
+        ["SERIES", "YEAR"]
+        + MONTH_LABELS
+        + ["CY RETURN", "FY RETURN", "Q1", "Q2", "Q3", "Q4"]
+    )
+    return frame[[c for c in ordered if c in frame.columns]]
+
+
 def summary_stats(ledger: dict[str, Any]) -> dict[str, Any]:
     """Headline figures over the FROZEN record only -- never the running month."""
     strat = _series_from(ledger, "strategy")

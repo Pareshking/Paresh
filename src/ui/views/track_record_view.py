@@ -19,7 +19,7 @@ from src.engine.track_record import (
     INCEPTION,
     MONTH_LABELS,
     TRACK_RECORD_CONFIG,
-    build_grid,
+    build_combined_grid,
     load_ledger,
     months_to_cover,
     summary_stats,
@@ -72,6 +72,8 @@ def _grid_display(grid: pd.DataFrame) -> pd.DataFrame:
     for col in out.columns:
         if col == "YEAR":
             out[col] = out[col].astype(int).astype(str)
+        elif col == "SERIES":
+            continue
         else:
             out[col] = out[col].map(_pct)
     return out
@@ -179,56 +181,53 @@ def render_track_record_view(
 
     # ── Grids ────────────────────────────────────────────────────────────────
     which = st.segmented_control(
-        "Track Record Series",
-        ["📈 Strategy", "📊 Nifty 500", "⚡ Alpha", "🧾 Provenance"],
-        default="📈 Strategy",
+        "Track Record View",
+        ["📊 Returns", "🧾 Provenance"],
+        default="📊 Returns",
         key="tr_series_seg",
         label_visibility="collapsed",
     )
     if not which:
-        which = "📈 Strategy"
+        which = "📊 Returns"
 
-    field = {
-        "📈 Strategy": "strategy",
-        "📊 Nifty 500": "benchmark",
-        "⚡ Alpha": "alpha",
-    }.get(which)
-
-    if field is not None:
-        # MTD belongs only to the series it was measured on.
-        mtd_pair = None
-        if mtd_period is not None:
-            if field == "strategy" and mtd_val is not None:
-                mtd_pair = (mtd_period, mtd_val)
-            elif field == "benchmark" and mtd_bench is not None:
-                mtd_pair = (mtd_period, mtd_bench)
-            elif field == "alpha" and lm.get("mtd_alpha") is not None:
-                mtd_pair = (mtd_period, lm["mtd_alpha"])
-
-        grid = build_grid(ledger, field=field, mtd=mtd_pair)
+    if which == "📊 Returns":
+        # One grid, three rows per year. Strategy, benchmark and alpha in
+        # separate tabs meant the commonest question -- how did we do against
+        # the index in June -- required switching views and remembering a
+        # number. Now it is one glance down a column.
+        grid = build_combined_grid(
+            ledger,
+            mtd_period=mtd_period,
+            mtd_values={
+                "strategy": mtd_val,
+                "benchmark": mtd_bench,
+                "alpha": lm.get("mtd_alpha"),
+            },
+        )
         if grid.empty:
-            st.info("No data recorded for this series yet.")
+            st.info("Nothing recorded yet.")
             return
 
-        cols = ["YEAR"] + MONTH_LABELS + ["CY RETURN", "FY RETURN", "Q1", "Q2", "Q3", "Q4"]
-        grid = grid[[c for c in cols if c in grid.columns]]
+        has_mtd = mtd_period is not None and mtd_val is not None
         st.caption(
             "Calendar quarters (Q1 = Jan·Feb·Mar). CY compounds Jan–Dec; "
             "FY compounds Apr of the row's year through Mar of the next. "
             + (
-                f"The {mtd_period.strftime('%b')} cell is live month-to-date, not frozen."
-                if mtd_pair is not None
+                f"The {mtd_period.strftime('%b')} cells are live month-to-date, "
+                "not frozen."
+                if has_mtd
                 else "Frozen months only."
             )
         )
-        render_saas_table(_grid_display(grid), key=f"tr_grid_{field}")
+        render_saas_table(_grid_display(grid), key="tr_grid_combined")
         st.download_button(
             "⬇️ Export Track Record (CSV)",
             grid.to_csv(index=False).encode(),
-            f"track_record_{field}_{datetime.now():%Y%m%d}.csv",
+            f"track_record_{datetime.now():%Y%m%d}.csv",
             "text/csv",
-            key=f"dl_tr_{field}",
+            key="dl_tr_combined",
         )
+
     else:
         prov = pd.DataFrame(
             [

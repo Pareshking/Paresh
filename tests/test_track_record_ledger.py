@@ -392,3 +392,93 @@ def test_universe_basis_is_frozen_with_the_month():
     )
     assert added == []
     assert led["months"]["2026-01"]["universe"] == "current"
+
+
+# ── The combined grid ────────────────────────────────────────────────────────
+
+def _three_series_ledger() -> dict:
+    led = empty_ledger()
+    led["months"] = {
+        "2026-01": {"strategy": 0.10, "benchmark": 0.04, "alpha": 0.06},
+        "2026-02": {"strategy": -0.05, "benchmark": -0.02, "alpha": -0.03},
+    }
+    return led
+
+
+def test_combined_grid_puts_all_three_series_in_one_table():
+    """One glance down a column, rather than three tabs and a memory test."""
+    from src.engine.track_record import build_combined_grid
+
+    grid = build_combined_grid(_three_series_ledger())
+    assert list(grid["SERIES"]) == ["Strategy", "Nifty 500", "Alpha"]
+    assert list(grid.columns[:2]) == ["SERIES", "YEAR"]
+    assert (grid["YEAR"] == 2026).all()
+
+    by = grid.set_index("SERIES")
+    assert by.loc["Strategy", "JAN"] == pytest.approx(0.10)
+    assert by.loc["Nifty 500", "JAN"] == pytest.approx(0.04)
+    assert by.loc["Alpha", "JAN"] == pytest.approx(0.06)
+
+
+def test_combined_grid_matches_the_per_series_grids():
+    """The two views must not be able to disagree about any number."""
+    from src.engine.track_record import build_combined_grid
+
+    led = _three_series_ledger()
+    combined = build_combined_grid(led).set_index("SERIES")
+    for field, label in (
+        ("strategy", "Strategy"), ("benchmark", "Nifty 500"), ("alpha", "Alpha"),
+    ):
+        single = build_grid(led, field=field).iloc[0]
+        for col in ("JAN", "FEB", "CY RETURN", "FY RETURN", "Q1"):
+            a, b = combined.loc[label, col], single[col]
+            if a is None or (isinstance(a, float) and np.isnan(a)):
+                assert b is None or np.isnan(b)
+            else:
+                assert a == pytest.approx(b)
+
+
+def test_combined_grid_routes_mtd_to_the_right_series():
+    from src.engine.track_record import build_combined_grid
+
+    grid = build_combined_grid(
+        _three_series_ledger(),
+        mtd_period=pd.Period("2026-03", freq="M"),
+        mtd_values={"strategy": 0.03, "benchmark": 0.01, "alpha": 0.02},
+    ).set_index("SERIES")
+    assert grid.loc["Strategy", "MAR"] == pytest.approx(0.03)
+    assert grid.loc["Nifty 500", "MAR"] == pytest.approx(0.01)
+    assert grid.loc["Alpha", "MAR"] == pytest.approx(0.02)
+
+
+def test_combined_grid_groups_rows_by_year():
+    from src.engine.track_record import build_combined_grid
+
+    led = empty_ledger()
+    led["months"] = {
+        "2026-01": {"strategy": 0.10, "benchmark": 0.04, "alpha": 0.06},
+        "2027-01": {"strategy": 0.20, "benchmark": 0.05, "alpha": 0.15},
+    }
+    grid = build_combined_grid(led)
+    assert list(grid["YEAR"]) == [2026, 2026, 2026, 2027, 2027, 2027]
+    assert list(grid["SERIES"][:3]) == ["Strategy", "Nifty 500", "Alpha"]
+
+
+def test_a_series_with_nothing_recorded_still_gets_a_row():
+    """A vanishing row would silently misalign the year block."""
+    from src.engine.track_record import build_combined_grid
+
+    led = empty_ledger()
+    led["months"] = {"2026-01": {"strategy": 0.10, "benchmark": None, "alpha": None}}
+    grid = build_combined_grid(led)
+    assert list(grid["SERIES"]) == ["Strategy", "Nifty 500", "Alpha"]
+    # pandas coerces None to NaN in a float column; the renderer treats both as
+    # "no value", so assert emptiness rather than a particular null.
+    assert pd.isna(grid.set_index("SERIES").loc["Nifty 500", "JAN"])
+    assert grid.set_index("SERIES").loc["Strategy", "JAN"] == pytest.approx(0.10)
+
+
+def test_combined_grid_of_an_empty_ledger_is_empty():
+    from src.engine.track_record import build_combined_grid
+
+    assert build_combined_grid(empty_ledger()).empty
