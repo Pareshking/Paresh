@@ -12,6 +12,16 @@ from src.ui.components import render_data_quality_footer
 from src.ui.theme import render_saas_table
 
 
+def _leader_link(sym: str) -> str:
+    if not sym or sym == "—":
+        return "—"
+    return (
+        f'<a href="?stock={sym}" target="_self" '
+        f'style="color:#4f46e5;font-weight:700;text-decoration:none;'
+        f'border-bottom:1px dotted #c7d2fe;">{sym}</a>'
+    )
+
+
 def render_sector_card(r: pd.Series) -> None:
     """Renders a modern sector card with top holdings and breadth metrics."""
     ind_name = r.get("Industry", "Sector")
@@ -21,12 +31,18 @@ def render_sector_card(r: pd.Series) -> None:
     p_52w = r.get("% 52W High", 0.0)
     p_ema = r.get("% 20 EMA", 0.0)
     mcap = r.get("Total MCap (Cr)", 0.0)
-    top1 = r.get("Top 1", "—")
-    top2 = r.get("Top 2", "—")
-    top3 = r.get("Top 3", "—")
 
     ret_clr_3m = "#15803d" if ret_3m >= 0 else "#b91c1c"
     ret_clr_6m = "#15803d" if ret_6m >= 0 else "#b91c1c"
+
+    # Returns are stored as fractions (0.105 = 10.5%); multiply before display.
+    ret_3m_pct = ret_3m * 100
+    ret_6m_pct = ret_6m * 100
+
+    leaders_html = " &nbsp;·&nbsp; ".join(
+        _leader_link(r.get(f"Top {i}", "—")) for i in range(1, 6)
+        if r.get(f"Top {i}", "—") != "—"
+    )
 
     card_html = f"""
     <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:14px; margin-bottom:12px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
@@ -47,11 +63,11 @@ def render_sector_card(r: pd.Series) -> None:
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:#f8fafc; border-radius:6px; padding:8px; margin-bottom:10px;">
             <div>
                 <div style="font-size:0.68rem; color:#64748b; font-weight:600; text-transform:uppercase;">3M Return</div>
-                <div style="font-family:'JetBrains Mono',monospace; font-size:0.84rem; font-weight:700; color:{ret_clr_3m};">{ret_3m:+.1f}%</div>
+                <div style="font-family:'JetBrains Mono',monospace; font-size:0.84rem; font-weight:700; color:{ret_clr_3m};">{ret_3m_pct:+.1f}%</div>
             </div>
             <div>
                 <div style="font-size:0.68rem; color:#64748b; font-weight:600; text-transform:uppercase;">6M Return</div>
-                <div style="font-family:'JetBrains Mono',monospace; font-size:0.84rem; font-weight:700; color:{ret_clr_6m};">{ret_6m:+.1f}%</div>
+                <div style="font-family:'JetBrains Mono',monospace; font-size:0.84rem; font-weight:700; color:{ret_clr_6m};">{ret_6m_pct:+.1f}%</div>
             </div>
             <div>
                 <div style="font-size:0.68rem; color:#64748b; font-weight:600; text-transform:uppercase;">Near 52W High</div>
@@ -63,8 +79,8 @@ def render_sector_card(r: pd.Series) -> None:
             </div>
         </div>
 
-        <div style="font-size:0.72rem; color:#475569;">
-            <strong style="color:#0f172a;">Leaders:</strong> <span style="font-family:'Outfit',sans-serif; font-weight:700; color:#4f46e5;">{top1}</span>, {top2}, {top3}
+        <div style="font-size:0.72rem; color:#475569; line-height:1.8;">
+            <strong style="color:#0f172a;">Leaders:</strong> {leaders_html}
         </div>
     </div>
     """
@@ -130,13 +146,13 @@ def render_sector_view(
 
     layout_choice = c_view.segmented_control(
         "Sector Layout",
-        ["Treemap", "Table", "Cards"],
-        default="Treemap",
+        ["Cards", "Table", "Treemap"],
+        default="Cards",
         key="sector_layout_choice",
         label_visibility="collapsed",
     )
     if not layout_choice:
-        layout_choice = "Treemap"
+        layout_choice = "Cards"
 
     # Prepare Industry Table Data
     work_df = rank_df.copy()

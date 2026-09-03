@@ -35,6 +35,7 @@ import pandas as pd
 
 import streamlit as st
 
+from src.engine.corporate_actions import load_events
 from src.ui.charts import render_stock_chart
 from src.ui.components import render_data_quality_footer, to_bool_mask
 from src.ui.theme import render_saas_table
@@ -130,6 +131,25 @@ def _gate(label: str, passed: bool) -> str:
     )
 
 
+def _render_corporate_actions(symbol: str) -> None:
+    events = [e for e in load_events() if e.get("symbol", "").upper() == symbol.upper()]
+    if not events:
+        return
+    lines = []
+    for e in sorted(events, key=lambda x: x.get("date", "")):
+        date = e.get("date", "—")
+        move = e.get("move")
+        move_str = f"{move * 100:+.1f}%" if move is not None else "—"
+        kind = e.get("looks_like") or e.get("kind") or "unknown"
+        lines.append(f"**{date}** — {move_str} session · {kind}")
+    st.warning(
+        "**Corporate action detected in price history.** "
+        "The backtest rescales history before this event so the strategy sees the "
+        "real trajectory — the drop below is not a real loss.\n\n"
+        + "\n\n".join(lines)
+    )
+
+
 # ── The page ─────────────────────────────────────────────────────────────────
 PERIODS = (1, 3, 6, 9, 12)
 
@@ -163,7 +183,8 @@ def render_stock_view(
     _render_rank_dynamics(row)
     _render_data_health(row)
 
-    _section("Price action", "drag to pan · 20/50 EMA toggleable · volume · RSI(14)")
+    _render_corporate_actions(str(row["Symbol"]))
+    _section("Price action", "drag to pan · 20/50 EMA toggleable · volume · Relative Strength")
     render_stock_chart(
         str(row["Symbol"]),
         rank_df,

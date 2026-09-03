@@ -255,3 +255,47 @@ A loop is only **closed/green** when:
 6. the tracker status is updated.
 
 Never mark an audit item closed based only on a planned change or an unverified commit.
+
+### NEXT 9 — Raw-price rebuild ⚪ (parked, not started)
+
+Store unadjusted OHLCV prices and apply corporate-action adjustments at read
+time instead of relying on Yahoo Finance's retroactively-mutable adjusted
+series.
+
+**Why:** Yahoo rewrites the entire price history backwards whenever a stock
+splits or demerges. A price on 2024-01-15 stored today may differ from the
+same cell stored next month if a new event triggers a retroactive revision.
+The track record's frozen months were struck against whatever numbers were
+current at freeze time; a re-run against revised prices would produce different
+rankings for the same month. Demergers are never correctly adjusted by Yahoo —
+they appear as large phantom losses that the current `adjust_prices()` workaround
+can only neutralise after a human records the correct ratio.
+
+**Foundation already built:**
+- `src/engine/corporate_actions.py` — `adjust_prices(raw, events)` applies the
+  log at read time, in memory, without touching stored files.
+- `data/corporate_actions_log.json` — 12 events recorded (splits, demergers).
+- `scripts/check_corporate_actions.py` — surfaces new events for human review.
+
+**Implementation scope (when approved):**
+1. `scripts/sync_data.py` — download with `auto_adjust=False`; save as
+   `prices_raw.parquet`.
+2. `src/loaders/price_loader.py` — load raw file; call `adjust_prices()`;
+   fall back to existing adjusted snapshot if raw is absent.
+3. `src/core/config.py` — add `USE_RAW_PRICES`, `PRICE_RAW_ASSET`, `PRICE_RAW_URL`.
+4. `.github/workflows/daily_sync.yml` — publish `prices_raw.parquet` as a
+   release asset alongside `prices.parquet` and `prices_full.parquet`.
+
+**Why all stocks, not just the 12 flagged ones:** The price matrix is a single
+DataFrame. You cannot mix raw and adjusted columns — a 4:1 split would make
+that stock's prices 4x lower than its neighbours, corrupting every cross-
+sectional rank. The download flag (`auto_adjust`) is per-batch, not per-ticker.
+Stocks with no log entry receive no adjustment — same as today.
+
+**Cost:** slightly larger parquet file; one extra function call in the loader
+(already written); manual ratio curation for new events from NSE circulars;
+one-time re-download migration (fallback means no outage).
+
+**Full design:** `docs/RAW_PRICE_REBUILD.md`
+
+**Decision gate:** Do not start until the user says proceed.

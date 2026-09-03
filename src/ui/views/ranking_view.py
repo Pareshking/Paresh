@@ -17,6 +17,28 @@ from src.ui.theme import (
     render_styled_table,
 )
 
+
+@st.dialog("📈 Stock Analysis", width="large")
+def _stock_dialog(
+    symbol: str,
+    rank_df: pd.DataFrame,
+    adj_close: pd.DataFrame,
+    high_prices: pd.DataFrame | None,
+    low_prices: pd.DataFrame | None,
+    volume_data: pd.DataFrame | None,
+    open_prices: pd.DataFrame | None,
+) -> None:
+    render_stock_view(
+        symbol,
+        rank_df,
+        adj_close,
+        high_prices=high_prices,
+        low_prices=low_prices,
+        volume_data=volume_data,
+        open_prices=open_prices,
+    )
+
+
 DISPLAY_COLS = [
     "Rank",
     "Symbol",
@@ -263,12 +285,19 @@ def render_ranking_view(
             if str(s).strip()
         ]
     )
+    tv_ind_opts = sorted(
+        [
+            f"[TV_INDUSTRY] {i}"
+            for i in rank_df.get("TV_Industry", pd.Series()).dropna().unique()
+            if str(i).strip()
+        ]
+    )
     stock_opts = [
         f"[STOCK] {row['Symbol']} — {row.get('Industry', '')}"
         for _, row in rank_df.sort_values("Rank").iterrows()
     ]
 
-    search_options = stock_opts + idx_opts + ind_opts + sec_opts
+    search_options = stock_opts + idx_opts + ind_opts + sec_opts + tv_ind_opts
 
     # ── Tier 1: Primary Search & Preset Filter Bar ───────────────────────────
     c_search, c_pills = st.columns([1.5, 2.5], vertical_alignment="center")
@@ -315,6 +344,12 @@ def render_ranking_view(
                 view.get("TV_Sector", pd.Series("", index=view.index)).str.upper()
                 == target_sec.upper()
             ]
+        elif s_val.startswith("[TV_INDUSTRY] "):
+            target_tv_ind = s_val.replace("[TV_INDUSTRY] ", "").strip()
+            view = view[
+                view.get("TV_Industry", pd.Series("", index=view.index)).str.upper()
+                == target_tv_ind.upper()
+            ]
         elif s_val.startswith("[INDEX] "):
             target_idx = s_val.replace("[INDEX] ", "").strip()
             view = view[view["Indices"].str.contains(target_idx, case=False, na=False)]
@@ -357,8 +392,8 @@ def render_ranking_view(
         view = view[view.get("Volume", "") == "High"]
 
     # ── Tier 2: Refinement, Column Density & View Toolbar ────────────────────
-    c_info, c_sort, c_density, c_view = st.columns(
-        [1.8, 0.9, 1.3, 0.6], vertical_alignment="center"
+    c_info, c_sort, c_density, c_view, c_guide = st.columns(
+        [1.8, 0.9, 1.3, 0.6, 0.35], vertical_alignment="center"
     )
 
     n_total = len(rank_df)
@@ -397,37 +432,40 @@ def render_ranking_view(
         label_visibility="collapsed",
     )
 
+    with c_guide.popover("ℹ️", use_container_width=True):
+        st.markdown(
+            """
+**Column Guide**
+
+| Column | What it measures |
+|---|---|
+| **Rank** | Composite momentum rank across universe (1 = strongest) |
+| **Score** | Weighted risk-adjusted return across 1M/3M/6M/9M/12M windows |
+| **CMP** | Last traded price |
+| **3M / 6M Return** | Price return over 63 / 126 trading sessions |
+| **3M Sharpe** | 3M return ÷ 3M volatility — higher means smoother trend |
+| **% High** | Distance from 52-week high (negative = below peak) |
+| **RS Rank** | Relative strength rank vs full universe (1 = highest RS) |
+| **Above 50 EMA** | Price is above the 50-day exponential moving average |
+| **Near 52W High** | Within 10% of the 52-week high |
+| **Volume** | 20-session average daily traded volume |
+| **Market Cap** | Free-float adjusted market capitalisation |
+
+*Score auto-normalises when lookback weights are changed in Config.*
+"""
+        )
+
     # ── Single Stock Technical Deep Dive (Activated by Search Selection) ──────
     if single_stock_drill and single_stock_drill in adj_close.columns:
-        render_candlestick_drilldown(
+        _stock_dialog(
             single_stock_drill,
             rank_df,
             adj_close,
-            high_prices=high_prices,
-            low_prices=low_prices,
-            volume_data=volume_data,
+            high_prices,
+            low_prices,
+            volume_data,
+            open_prices,
         )
-        curr_ind = (
-            rank_df.loc[rank_df["Symbol"] == single_stock_drill, "Industry"].iloc[0]
-            if "Industry" in rank_df.columns
-            else None
-        )
-        if curr_ind:
-            peers = rank_df[rank_df["Industry"] == curr_ind].sort_values("Rank").head(8)
-            if len(peers) > 1:
-                st.markdown(f"**Top Industry Peers in {curr_ind}**")
-                p_cols = [
-                    "Rank",
-                    "Symbol",
-                    "CMP",
-                    "3M Return",
-                    "6M Return",
-                    "3M Sharpe",
-                    "Volume",
-                ]
-                p_cols = [c for c in p_cols if c in peers.columns]
-                render_saas_table(peers[p_cols], key=f"peers_{single_stock_drill}")
-        st.markdown("---")
 
     # Sorting
     asc = sort_by == "Rank"

@@ -147,10 +147,9 @@ def render_track_record_view(
         else None,
     )
     incl = stats.get("includes_mtd")
-    suffix = f" (incl. {mtd_period.strftime('%b')} MTD)" if incl and mtd_period else ""
 
     tr, br, al, dd = st.columns(4)
-    tr.metric(f"Strategy since inception{suffix}", _pct(stats["total_return"]))
+    tr.metric("Strategy since inception till date", _pct(stats["total_return"]))
     br.metric("Nifty 500", _pct(stats["bench_return"]))
     al.metric("Alpha", _pct(stats["alpha"]))
     dd.metric("Max Drawdown (monthly)", _pct(stats["max_drawdown"]))
@@ -184,21 +183,6 @@ def render_track_record_view(
             + (f" from {frm:%d %b %Y}" if frm is not None else "")
             + ". It moves every session and is **not** part of the frozen record "
             "until the month closes."
-        )
-
-    # Count against FROZEN months only: the running month has no ledger entry,
-    # so including it here would report a universe basis for a row that does
-    # not exist yet.
-    n_pit = stats.get("point_in_time", 0)
-    n_frozen = stats.get("frozen_months", stats["months"])
-    if n_pit < n_frozen:
-        st.warning(
-            f"{n_frozen - n_pit} of {n_frozen} frozen months were scored "
-            "against **today's** index constituents, not the constituents as "
-            "they stood at the time. Index additions skew toward recent strong "
-            "performers and this strategy preferentially buys them, so those "
-            "months are flattered by an unmeasured amount. Point-in-time "
-            "membership accumulates from here; see the Provenance table."
         )
 
     if len(stats.get("configs", [])) > 1:
@@ -266,34 +250,9 @@ def render_track_record_view(
                     "Strategy": _pct(e.get("strategy")),
                     "Nifty 500": _pct(e.get("benchmark")),
                     "Alpha": _pct(e.get("alpha")),
-                    "Origin": (
-                        "📼 Recorded"
-                        if e.get("origin") == "recorded"
-                        else "🔁 Backfilled"
-                    ),
-                    "Universe": (
-                        "🎯 Point-in-time"
-                        if e.get("universe") == "point_in_time"
-                        else "⚠️ Current list"
-                    ),
-                    "Frozen On": e.get("finalized_on", "—"),
-                    "Data As Of": e.get("data_as_of") or "—",
-                    "Config": e.get("config", "—"),
                 }
                 for key, e in sorted(months.items())
             ]
-        )
-        st.caption(
-            "When each month was written, the price data it was struck from, and "
-            "the configuration fingerprint behind it. A change in the Config "
-            "column marks a settings change — months either side of it were "
-            "produced by different strategies. **📼 Recorded** months were frozen "
-            "as they closed, from the data as it stood then; **🔁 Backfilled** "
-            "months were reconstructed later from today's universe and prices, so "
-            "they carry the backtest's biases and are weaker evidence. "
-            "**🎯 Point-in-time** months were scored against the index "
-            "constituents as they actually stood; **⚠️ Current list** months "
-            "used today's constituents and so carry survivorship bias."
         )
         render_saas_table(prov, key="tr_provenance")
         st.download_button(

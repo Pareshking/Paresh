@@ -308,9 +308,19 @@ def load_all_data(indices: list[str]):
 
 
 # ── Load Market Data ─────────────────────────────────────────────────────────
-with st.spinner("Loading market data & executing quantitative momentum engine…"):
+with st.status("Loading market data…", expanded=True) as _load_status:
+    st.write("📡 Fetching price history, constituents & market caps…")
     with metrics.stage("data_pipeline_total"):
         data = load_all_data(selected_indices)
+    if _load_status is not None:
+        if data:
+            _load_status.update(
+                label="Market data ready — running momentum engine",
+                state="complete",
+                expanded=False,
+            )
+        else:
+            _load_status.update(label="Data load failed", state="error", expanded=False)
 
 def _emit_startup_metrics(outcome: str) -> None:
     """Publish this process's cold-start telemetry as a hidden, inert element.
