@@ -17,6 +17,7 @@ import pandas as pd
 import streamlit as st
 
 from src.core.config import MOMENTUM_WINDOWS
+from src.engine.membership import members_on
 
 # MOMENTUM_WINDOWS are calendar months; warmup arithmetic needs trading sessions.
 SESSIONS_PER_MONTH: int = 21
@@ -220,6 +221,27 @@ def _exit_reason(
     return "Rebalance Exit"
 
 
+def _index_mask(
+    membership: dict[str, Any] | None,
+    columns: pd.Index,
+    on: pd.Timestamp,
+) -> pd.Series | None:
+    """Which columns were actually in the index on `on`, or None if unknown.
+
+    None means the membership history does not reach back this far, and the
+    caller must then score against the current universe and SAY SO. Quietly
+    substituting today's list for a date we have no record of would reintroduce
+    exactly the survivorship bias this is here to remove, while appearing to
+    have removed it.
+    """
+    if membership is None:
+        return None
+    members = members_on(membership, pd.Timestamp(on).date())
+    if members is None:
+        return None
+    return pd.Series(columns.isin(members), index=columns)
+
+
 @st.cache_data(show_spinner=False, ttl=3600)
 def run_backtest(
     prices_hash: str,
@@ -237,6 +259,7 @@ def run_backtest(
     buffer_n: int | None = None,
     _benchmark_close: pd.Series | None = None,
     backtest_months: int = DEFAULT_BACKTEST_MONTHS,
+    _membership: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """
     Executes a walk-forward momentum backtest with zero look-ahead bias and friction modeling.
@@ -341,6 +364,8 @@ def run_backtest(
     prev_weights = pd.Series(0.0, index=prices.columns)
     prev_holdings: list[str] = []
     effective_buffer = buffer_n if buffer_n is not None else int(top_n * 1.5)
+    pit_periods = 0
+    current_universe_periods = 0
 
     for i, start_idx in enumerate(rebal_dates):
         # Three distinct indices, previously collapsed into two:
@@ -368,6 +393,19 @@ def run_backtest(
         above_ema = _p > _ema
         near_high = _p >= _hi * high_pct
         valid = above_ema & near_high & (_p > 0)
+
+        # ── Point-In-Time Universe ───────────────────────────────────────────
+        # Restrict to the stocks that were IN the index on the signal date. A
+        # name added to the index in June must not be selectable in January:
+        # index additions skew toward recent strong performers and this screen
+        # preferentially buys exactly those, so today's list applied to a past
+        # month lets the strategy hold what it could not have known to hold.
+        idx_mask = _index_mask(_membership, prices.columns, dates[start_idx])
+        if idx_mask is not None:
+            valid &= idx_mask
+            pit_periods += 1
+        else:
+            current_universe_periods += 1
 
         # ── Compute Causal Signal at Day T ───────────────────────────────────
         # One signal, the composite that drives every rank on screen. The
@@ -696,6 +734,9 @@ def run_backtest(
         p_above_ema = _pp > _pema
         p_near_high = _pp >= _phi * high_pct
         p_valid = p_above_ema & p_near_high & (_pp > 0)
+        p_idx_mask = _index_mask(_membership, prices.columns, prices.index[rebal_idx])
+        if p_idx_mask is not None:
+            p_valid &= p_idx_mask
 
         p_score = _composite_z_score(
             prices, log_ret, rebal_idx, WINDOWS, norm_w if norm_w else [0.2] * 5
@@ -926,6 +967,17 @@ def run_backtest(
     dd_series = eq_strat_net / eq_strat_net.cummax() - 1
     max_dd = float(dd_series.min())
 
+    # The earliest signal date that had real membership behind it.
+    # NB: index `prices.index`, not `dates` -- `dates` is rebound above to the
+    # equity-curve calendar (accrual sessions only), so indexing it with a
+    # rebalance position reads the wrong date or runs off the end entirely.
+    pit_from = None
+    if _membership is not None and pit_periods:
+        for _i in rebal_dates:
+            if _index_mask(_membership, prices.columns, prices.index[_i]) is not None:
+                pit_from = pd.Timestamp(prices.index[_i]).strftime("%Y-%m-%d")
+                break
+
     n_periods = len(monthly_df)
     win_rate = (
         float((monthly_df["Alpha vs Benchmark"] > 0).mean())
@@ -971,5 +1023,10 @@ def run_backtest(
             "cost_drag_total": tot_cost_drag,
             "n_periods": n_periods,
             "n_days": n_days,
+            # How much of this run was actually survivorship-free. A caller
+            # reporting the return without reporting this overstates the result.
+            "pit_periods": pit_periods,
+            "current_universe_periods": current_universe_periods,
+            "pit_from": pit_from,
         },
     }

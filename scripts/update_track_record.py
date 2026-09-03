@@ -34,6 +34,7 @@ from src.engine.track_record import (  # noqa: E402
     save_ledger,
     summary_stats,
 )
+from src.engine.membership import HISTORY_PATH, describe, load_history  # noqa: E402
 from src.loaders.indices_loader import fetch_indices_data  # noqa: E402
 from src.loaders.price_loader import (  # noqa: E402
     extract_ohlcv,
@@ -92,6 +93,23 @@ def main() -> int:
         print("  nothing has closed since inception yet")
         return 0
 
+    # Point-in-time index membership, where we have it. Without this the
+    # backtest scores every month against TODAY's constituent list.
+    membership = None
+    try:
+        membership = load_history(HISTORY_PATH)
+        if membership.get("baseline"):
+            info = describe(membership)
+            print(f"→ membership history: {info['first']} → {info['last']}, "
+                  f"{info['current_size']} constituents, "
+                  f"{info['total_churn']} additions/removals recorded")
+        else:
+            membership = None
+            print("→ no membership history; months will use the current universe")
+    except (ValueError, OSError) as exc:
+        print(f"  ! membership history unreadable ({exc}); using current universe")
+        membership = None
+
     cfg = dict(TRACK_RECORD_CONFIG)
     fingerprint = config_fingerprint(**cfg)
     print(f"  config fingerprint: {fingerprint}")
@@ -109,10 +127,17 @@ def main() -> int:
         buffer_n=cfg["buffer_n"],
         _benchmark_close=benchmark,
         backtest_months=months,
+        _membership=membership,
     )
     if result is None:
         print("✗ backtest produced no result (insufficient history?)")
         return 1
+
+    stats = result["stats"]
+    pit_from = stats.get("pit_from")
+    print(f"→ survivorship-free rebalances: {stats.get('pit_periods', 0)} of "
+          f"{stats.get('pit_periods', 0) + stats.get('current_universe_periods', 0)}"
+          + (f", from {pit_from}" if pit_from else ""))
 
     ledger = load_ledger(args.ledger)
     before = len(ledger.get("months", {}))
@@ -128,6 +153,7 @@ def main() -> int:
         fingerprint=fingerprint,
         as_of=as_of,
         data_as_of=as_of,
+        pit_from=pit_from,
         force=args.force,
     )
 

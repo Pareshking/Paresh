@@ -158,6 +158,17 @@ def render_track_record_view(
             "until the month closes."
         )
 
+    n_pit = stats.get("point_in_time", 0)
+    if n_pit < stats["months"]:
+        st.warning(
+            f"{stats['months'] - n_pit} of {stats['months']} months were scored "
+            "against **today's** index constituents, not the constituents as "
+            "they stood at the time. Index additions skew toward recent strong "
+            "performers and this strategy preferentially buys them, so those "
+            "months are flattered by an unmeasured amount. Point-in-time "
+            "membership accumulates from here; see the Provenance table."
+        )
+
     if len(stats.get("configs", [])) > 1:
         st.warning(
             "This record spans more than one strategy configuration "
@@ -231,6 +242,11 @@ def render_track_record_view(
                         if e.get("origin") == "recorded"
                         else "🔁 Backfilled"
                     ),
+                    "Universe": (
+                        "🎯 Point-in-time"
+                        if e.get("universe") == "point_in_time"
+                        else "⚠️ Current list"
+                    ),
                     "Frozen On": e.get("finalized_on", "—"),
                     "Data As Of": e.get("data_as_of") or "—",
                     "Config": e.get("config", "—"),
@@ -245,7 +261,10 @@ def render_track_record_view(
             "produced by different strategies. **📼 Recorded** months were frozen "
             "as they closed, from the data as it stood then; **🔁 Backfilled** "
             "months were reconstructed later from today's universe and prices, so "
-            "they carry the backtest's biases and are weaker evidence."
+            "they carry the backtest's biases and are weaker evidence. "
+            "**🎯 Point-in-time** months were scored against the index "
+            "constituents as they actually stood; **⚠️ Current list** months "
+            "used today's constituents and so carry survivorship bias."
         )
         render_saas_table(prov, key="tr_provenance")
         st.download_button(

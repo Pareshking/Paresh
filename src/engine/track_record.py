@@ -155,6 +155,7 @@ def finalize_months(
     fingerprint: str,
     as_of: pd.Timestamp,
     data_as_of: pd.Timestamp | None = None,
+    pit_from: str | None = None,
     force: bool = False,
 ) -> tuple[dict[str, Any], list[str], list[str]]:
     """Write newly CLOSED months into the ledger. Never rewrite a stored one.
@@ -196,11 +197,24 @@ def finalize_months(
         # and the record should say which is which rather than leave it to be
         # inferred from a finalisation date.
         origin = "recorded" if period == current_month - 1 else "backfill"
+        # Which universe the month was scored against. A month whose rebalances
+        # knew the real index membership is survivorship-free; one scored
+        # against today's constituent list is not, and the difference is worth
+        # more than the return itself when judging the record.
+        #
+        # `pit_from` is the first SIGNAL date with membership behind it. A
+        # signal on 27 Feb governs March, so a month qualifies when its first
+        # day falls on or after that signal.
+        universe = "current"
+        if pit_from:
+            if pd.Timestamp(pit_from).date() <= period.start_time.date():
+                universe = "point_in_time"
         months[key] = {
             "strategy": round(s_ret, 6),
             "benchmark": round(b_ret, 6) if b_ret is not None else None,
             "alpha": round(s_ret - b_ret, 6) if b_ret is not None else None,
             "origin": origin,
+            "universe": universe,
             "finalized_on": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
             "config": fingerprint,
             "data_as_of": (
@@ -327,13 +341,15 @@ def summary_stats(ledger: dict[str, Any]) -> dict[str, Any]:
     beat = (
         float((strat.reindex(bench.index) > bench).mean()) if not bench.empty else None
     )
-    origins = [
-        e.get("origin", "backfill") for e in ledger.get("months", {}).values()
-    ]
+    entries = list(ledger.get("months", {}).values())
+    origins = [e.get("origin", "backfill") for e in entries]
+    universes = [e.get("universe", "current") for e in entries]
     return {
         "months": n,
         "backfilled": sum(1 for o in origins if o == "backfill"),
         "recorded": sum(1 for o in origins if o == "recorded"),
+        "point_in_time": sum(1 for u in universes if u == "point_in_time"),
+        "current_universe": sum(1 for u in universes if u != "point_in_time"),
         "first": str(strat.index.min()),
         "last": str(strat.index.max()),
         "total_return": total_s,

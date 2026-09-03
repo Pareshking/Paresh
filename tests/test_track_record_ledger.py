@@ -340,3 +340,55 @@ def test_summary_splits_recorded_from_backfilled():
     s = summary_stats(led)
     assert s["backfilled"] == 1 and s["recorded"] == 1
     assert s["backfilled"] + s["recorded"] == s["months"]
+
+
+# ── Universe basis is recorded per month ─────────────────────────────────────
+
+def test_a_month_records_whether_it_was_survivorship_free():
+    """pit_from is a SIGNAL date; a signal on 27 Feb governs March."""
+    led, _, _ = finalize_months(
+        empty_ledger(),
+        _curve({"2026-01": 0.10, "2026-02": 0.05, "2026-03": 0.02, "2026-04": 0.01}),
+        _flat(), "cfg1", as_of=pd.Timestamp("2026-05-10"),
+        pit_from="2026-02-27",
+    )
+    assert led["months"]["2026-01"]["universe"] == "current"
+    assert led["months"]["2026-02"]["universe"] == "current"
+    assert led["months"]["2026-03"]["universe"] == "point_in_time"
+    assert led["months"]["2026-04"]["universe"] == "point_in_time"
+
+
+def test_without_membership_every_month_is_current_universe():
+    led, _, _ = finalize_months(
+        empty_ledger(), _curve({"2026-01": 0.10}), _flat(), "cfg1",
+        as_of=pd.Timestamp("2026-02-10"),
+    )
+    assert led["months"]["2026-01"]["universe"] == "current"
+
+
+def test_summary_splits_point_in_time_from_current_universe():
+    led, _, _ = finalize_months(
+        empty_ledger(),
+        _curve({"2026-01": 0.10, "2026-02": 0.05, "2026-03": 0.02}),
+        _flat(), "cfg1", as_of=pd.Timestamp("2026-04-10"),
+        pit_from="2026-01-31",
+    )
+    s = summary_stats(led)
+    assert s["point_in_time"] == 2      # Feb, Mar
+    assert s["current_universe"] == 1   # Jan
+    assert s["point_in_time"] + s["current_universe"] == s["months"]
+
+
+def test_universe_basis_is_frozen_with_the_month():
+    """A later run with better membership must not relabel a stored month."""
+    led, _, _ = finalize_months(
+        empty_ledger(), _curve({"2026-01": 0.10}), _flat(), "cfg1",
+        as_of=pd.Timestamp("2026-02-10"),
+    )
+    assert led["months"]["2026-01"]["universe"] == "current"
+    led, added, _ = finalize_months(
+        led, _curve({"2026-01": 0.10}), _flat(), "cfg1",
+        as_of=pd.Timestamp("2026-02-10"), pit_from="2026-01-01",
+    )
+    assert added == []
+    assert led["months"]["2026-01"]["universe"] == "current"

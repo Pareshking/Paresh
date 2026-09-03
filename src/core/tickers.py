@@ -36,6 +36,25 @@ def normalise_symbol(value: object) -> str:
     return str(value).strip().upper().removesuffix(NSE_SUFFIX).strip()
 
 
+def is_tradeable_symbol(value: object) -> bool:
+    """False for NSE's placeholder and junk rows, True for a real ticker.
+
+    NSE ships DUMMY rows in its constituent files for corporate actions in
+    flight -- "Dummy Triveni Ltd.,Capital Goods,DUMMYTRVN,EQ,DUM256C01024" is a
+    real line in ind_niftytotalmarket_list.csv. They have no price history, so a
+    universe carrying one could rank and buy a ticker that cannot be traded.
+
+    Defined once, here, because the index loader and the point-in-time
+    membership store must agree on what counts as a constituent. If they
+    disagreed, membership diffs would show phantom additions and removals every
+    time a placeholder came or went.
+    """
+    symbol = str(value).strip().upper()
+    return bool(symbol) and not (
+        symbol.startswith("DUMMY") or len(symbol) < 2 or symbol == "NAN"
+    )
+
+
 def normalise_columns(df: pd.DataFrame, level: int = 0) -> pd.DataFrame:
     """Return a copy of ``df`` with its ticker labels normalised.
 

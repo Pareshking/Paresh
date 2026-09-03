@@ -124,6 +124,13 @@ jobs:
             --repo "$GITHUB_REPOSITORY" --clobber
           echo "Uploaded prices.parquet to release data-latest."
 
+      # Fold today's constituent list into the point-in-time membership
+      # timeline BEFORE committing, so the snapshot lands in the same commit as
+      # the CSVs it was taken from. Append-only and a no-op on an unchanged day,
+      # so this costs nothing until NSE actually reconstitutes the index.
+      - name: Record index membership
+        run: python scripts/build_membership_history.py || true
+
       - name: Commit and Push Updated Index & Classification Files
         run: |
           git config --global user.name 'github-actions[bot]'
