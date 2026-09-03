@@ -394,16 +394,67 @@ def build_combined_grid(
     return frame[[c for c in ordered if c in frame.columns]]
 
 
-def summary_stats(ledger: dict[str, Any]) -> dict[str, Any]:
-    """Headline figures over the FROZEN record only -- never the running month."""
+def _elapsed_fraction(period: pd.Period, as_of: Any | None) -> float:
+    """How much of `period` has actually happened, as a fraction of the month.
+
+    Three days into September is 0.1 of a month, not 1.0. Annualising as though
+    a whole month had passed divides the return by more time than has elapsed.
+    """
+    if as_of is None:
+        return 1.0
+    stamp = pd.Timestamp(as_of).normalize()
+    start = period.start_time.normalize()
+    end = period.end_time.normalize()
+    if stamp >= end:
+        return 1.0
+    if stamp < start:
+        return 0.0
+    total = (end - start).days + 1
+    return float(((stamp - start).days + 1) / total)
+
+
+def summary_stats(
+    ledger: dict[str, Any], mtd: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """Headline figures. Pass `mtd` to include the running month.
+
+    The month in progress is real money. Excluding it from the headline while
+    the grid below compounds it into CY produced two different answers to the
+    same question -- "+38.7% since inception" beside "CY +37.2%" for what is,
+    in the first year, exactly the same period. Whichever convention is chosen,
+    it has to be the same one everywhere.
+
+    `mtd` is {"period", "strategy", "benchmark", "as_of"}. It is NOT read from
+    the ledger, because it is never stored there: it moves every session.
+
+    For annualisation the running month counts as the FRACTION of it elapsed,
+    not as a whole month. Treating three days as a full month would divide the
+    return by more time than has actually passed and understate the annualised
+    figure.
+    """
     strat = _series_from(ledger, "strategy")
     bench = _series_from(ledger, "benchmark")
+
+    frozen_months = len(strat)
+    partial = 0.0
+    mtd_period = None
+    if mtd:
+        mtd_period = mtd.get("period")
+        s_mtd, b_mtd = mtd.get("strategy"), mtd.get("benchmark")
+        if mtd_period is not None and s_mtd is not None:
+            strat.loc[mtd_period] = float(s_mtd)
+            strat = strat.sort_index()
+            partial = _elapsed_fraction(mtd_period, mtd.get("as_of"))
+        if mtd_period is not None and b_mtd is not None:
+            bench.loc[mtd_period] = float(b_mtd)
+            bench = bench.sort_index()
+
     if strat.empty:
-        return {"months": 0}
+        return {"months": 0, "frozen_months": 0, "includes_mtd": False}
 
     total_s = compound(strat.values)
     total_b = compound(bench.values) if not bench.empty else None
-    n = len(strat)
+    n = frozen_months + partial
     ann_s = (1 + total_s) ** (12.0 / n) - 1 if total_s is not None and n else None
     ann_b = (1 + total_b) ** (12.0 / n) - 1 if total_b is not None and n else None
 
@@ -416,7 +467,11 @@ def summary_stats(ledger: dict[str, Any]) -> dict[str, Any]:
     origins = [e.get("origin", "backfill") for e in entries]
     universes = [e.get("universe", "current") for e in entries]
     return {
-        "months": n,
+        "months": len(strat),
+        "frozen_months": frozen_months,
+        "includes_mtd": partial > 0,
+        "mtd_period": str(mtd_period) if mtd_period is not None else None,
+        "elapsed_months": n,
         "backfilled": sum(1 for o in origins if o == "backfill"),
         "recorded": sum(1 for o in origins if o == "recorded"),
         "point_in_time": sum(1 for u in universes if u == "point_in_time"),

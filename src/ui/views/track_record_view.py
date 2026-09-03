@@ -102,7 +102,7 @@ def render_track_record_view(
     st.markdown(
         f"""
         <div style='background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:7px 14px;margin-bottom:12px;font-family:IBM Plex Mono;font-size:0.76rem;color:#475569;display:flex;flex-wrap:wrap;gap:14px;align-items:center;'>
-            <span>📒 <strong>Record:</strong> <span style='color:#0f172a;font-weight:600;'>{len(months)} frozen month(s) from {INCEPTION}</span></span>
+            <span>📒 <strong>Record:</strong> <span style='color:#0f172a;font-weight:600;'>{len(months)} frozen month(s) from {INCEPTION}, plus the month in progress</span></span>
             <span>📊 <strong>Benchmark:</strong> <span style='color:#0f172a;font-weight:600;'>Nifty 500 ({ledger.get('benchmark', '^CRSLDX')})</span></span>
             <span>🔒 <strong>Policy:</strong> <span style='color:#0f172a;font-weight:600;'>Append-only — a closed month is never recalculated</span></span>
         </div>
@@ -130,11 +130,25 @@ def render_track_record_view(
             )
         return
 
-    stats = summary_stats(ledger)
+    # The running month counts, everywhere. It is real money, and excluding it
+    # from the headline while the grid below compounds it into CY gave two
+    # different answers to the same question.
+    stats = summary_stats(
+        ledger,
+        mtd={
+            "period": mtd_period,
+            "strategy": mtd_val,
+            "benchmark": mtd_bench,
+            "as_of": lm.get("as_of"),
+        }
+        if mtd_period is not None
+        else None,
+    )
+    incl = stats.get("includes_mtd")
+    suffix = f" (incl. {mtd_period.strftime('%b')} MTD)" if incl and mtd_period else ""
 
-    # ── Headline: frozen months only ─────────────────────────────────────────
     tr, br, al, dd = st.columns(4)
-    tr.metric("Strategy (since inception)", _pct(stats["total_return"]))
+    tr.metric(f"Strategy since inception{suffix}", _pct(stats["total_return"]))
     br.metric("Nifty 500", _pct(stats["bench_return"]))
     al.metric("Alpha", _pct(stats["alpha"]))
     dd.metric("Max Drawdown (monthly)", _pct(stats["max_drawdown"]))
@@ -148,6 +162,16 @@ def render_track_record_view(
     )
     c4.metric("Best / Worst", f"{_pct(stats['best_month'])} / {_pct(stats['worst_month'])}")
 
+    if incl:
+        st.caption(
+            f"Every figure above includes {mtd_period.strftime('%B')} "
+            "month-to-date — today's reality, not the last closed month. "
+            f"{stats['frozen_months']} of those months are frozen; the current "
+            "one still moves each session, and for the annualised figure it "
+            f"counts as the {stats['elapsed_months'] - stats['frozen_months']:.2f} "
+            "of a month that has actually elapsed."
+        )
+
     if mtd_val is not None and mtd_period is not None:
         basis = lm.get("mtd_basis", "current book")
         frm = lm.get("mtd_from")
@@ -160,10 +184,14 @@ def render_track_record_view(
             "until the month closes."
         )
 
+    # Count against FROZEN months only: the running month has no ledger entry,
+    # so including it here would report a universe basis for a row that does
+    # not exist yet.
     n_pit = stats.get("point_in_time", 0)
-    if n_pit < stats["months"]:
+    n_frozen = stats.get("frozen_months", stats["months"])
+    if n_pit < n_frozen:
         st.warning(
-            f"{stats['months'] - n_pit} of {stats['months']} months were scored "
+            f"{n_frozen - n_pit} of {n_frozen} frozen months were scored "
             "against **today's** index constituents, not the constituents as "
             "they stood at the time. Index additions skew toward recent strong "
             "performers and this strategy preferentially buys them, so those "

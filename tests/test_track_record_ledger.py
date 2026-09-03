@@ -482,3 +482,86 @@ def test_combined_grid_of_an_empty_ledger_is_empty():
     from src.engine.track_record import build_combined_grid
 
     assert build_combined_grid(empty_ledger()).empty
+
+
+# ── The running month counts, everywhere ─────────────────────────────────────
+
+def _mtd(period="2026-03", strategy=0.02, benchmark=0.01, as_of="2026-03-03"):
+    return {
+        "period": pd.Period(period, freq="M"),
+        "strategy": strategy,
+        "benchmark": benchmark,
+        "as_of": pd.Timestamp(as_of),
+    }
+
+
+def test_the_headline_includes_the_running_month():
+    led, _, _ = finalize_months(
+        empty_ledger(), _curve({"2026-01": 0.10, "2026-02": 0.05}), _flat(),
+        "cfg1", as_of=pd.Timestamp("2026-03-03"),
+    )
+    frozen = summary_stats(led)
+    live = summary_stats(led, mtd=_mtd(strategy=0.02))
+
+    assert frozen["total_return"] == pytest.approx(1.10 * 1.05 - 1)
+    assert live["total_return"] == pytest.approx(1.10 * 1.05 * 1.02 - 1)
+    assert live["includes_mtd"] is True
+    assert live["frozen_months"] == 2
+    assert live["months"] == 3
+
+
+def test_headline_and_grid_agree_on_the_same_period():
+    """The bug this fixes: "+38.7% since inception" beside "CY +37.2%"."""
+    from src.engine.track_record import build_combined_grid
+
+    led, _, _ = finalize_months(
+        empty_ledger(), _curve({"2026-01": 0.10, "2026-02": 0.05}), _flat(),
+        "cfg1", as_of=pd.Timestamp("2026-03-03"),
+    )
+    mtd = _mtd(strategy=0.02)
+    headline = summary_stats(led, mtd=mtd)["total_return"]
+    grid = build_combined_grid(
+        led, mtd_period=mtd["period"], mtd_values={"strategy": mtd["strategy"]}
+    )
+    cy = grid[grid["SERIES"] == "Strategy"].iloc[0]["CY RETURN"]
+    assert headline == pytest.approx(cy)
+
+
+def test_a_partial_month_annualises_on_the_time_actually_elapsed():
+    """Three days is 0.1 of a month, not a whole one.
+
+    Counting it whole divides the return by more time than has passed and
+    understates the annualised figure.
+    """
+    led, _, _ = finalize_months(
+        empty_ledger(), _curve({"2026-01": 0.10, "2026-02": 0.05}), _flat(),
+        "cfg1", as_of=pd.Timestamp("2026-03-03"),
+    )
+    early = summary_stats(led, mtd=_mtd(as_of="2026-03-03"))
+    late = summary_stats(led, mtd=_mtd(as_of="2026-03-31"))
+
+    assert early["elapsed_months"] == pytest.approx(2 + 3 / 31)
+    assert late["elapsed_months"] == pytest.approx(3.0)
+    # Same return over less elapsed time annualises higher.
+    assert early["ann_return"] > late["ann_return"]
+
+
+def test_the_running_month_never_enters_the_ledger():
+    """Including it in the headline must not freeze it."""
+    led, _, _ = finalize_months(
+        empty_ledger(), _curve({"2026-01": 0.10}), _flat(), "cfg1",
+        as_of=pd.Timestamp("2026-02-03"),
+    )
+    summary_stats(led, mtd=_mtd(period="2026-02"))
+    assert list(led["months"]) == ["2026-01"]
+
+
+def test_without_mtd_the_headline_is_frozen_only():
+    """The updater script reports what it wrote, so it must not add MTD."""
+    led, _, _ = finalize_months(
+        empty_ledger(), _curve({"2026-01": 0.10}), _flat(), "cfg1",
+        as_of=pd.Timestamp("2026-02-03"),
+    )
+    s = summary_stats(led)
+    assert s["includes_mtd"] is False
+    assert s["months"] == s["frozen_months"] == 1
