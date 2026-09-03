@@ -2,5 +2,78 @@
   "schema_version": 1,
   "inception": "2026-01",
   "benchmark": "^CRSLDX",
-  "months": {}
+  "months": {
+    "2026-01": {
+      "strategy": -0.026879,
+      "benchmark": -0.03318,
+      "alpha": 0.006301,
+      "origin": "backfill",
+      "finalized_on": "2026-09-03",
+      "config": "5b356a6ba93b",
+      "data_as_of": "2026-09-03"
+    },
+    "2026-02": {
+      "strategy": 0.036104,
+      "benchmark": 0.003785,
+      "alpha": 0.032319,
+      "origin": "backfill",
+      "finalized_on": "2026-09-03",
+      "config": "5b356a6ba93b",
+      "data_as_of": "2026-09-03"
+    },
+    "2026-03": {
+      "strategy": -0.122179,
+      "benchmark": -0.113904,
+      "alpha": -0.008275,
+      "origin": "backfill",
+      "finalized_on": "2026-09-03",
+      "config": "5b356a6ba93b",
+      "data_as_of": "2026-09-03"
+    },
+    "2026-04": {
+      "strategy": 0.184092,
+      "benchmark": 0.105003,
+      "alpha": 0.079089,
+      "origin": "backfill",
+      "finalized_on": "2026-09-03",
+      "config": "5b356a6ba93b",
+      "data_as_of": "2026-09-03"
+    },
+    "2026-05": {
+      "strategy": 0.10194,
+      "benchmark": -0.00117,
+      "alpha": 0.10311,
+      "origin": "backfill",
+      "finalized_on": "2026-09-03",
+      "config": "5b356a6ba93b",
+      "data_as_of": "2026-09-03"
+    },
+    "2026-06": {
+      "strategy": 0.090069,
+      "benchmark": 0.014947,
+      "alpha": 0.075122,
+      "origin": "backfill",
+      "finalized_on": "2026-09-03",
+      "config": "5b356a6ba93b",
+      "data_as_of": "2026-09-03"
+    },
+    "2026-07": {
+      "strategy": -0.021666,
+      "benchmark": 0.020223,
+      "alpha": -0.041889,
+      "origin": "backfill",
+      "finalized_on": "2026-09-03",
+      "config": "5b356a6ba93b",
+      "data_as_of": "2026-09-03"
+    },
+    "2026-08": {
+      "strategy": 0.126149,
+      "benchmark": -0.000441,
+      "alpha": 0.12659,
+      "origin": "recorded",
+      "finalized_on": "2026-09-03",
+      "config": "5b356a6ba93b",
+      "data_as_of": "2026-09-03"
+    }
+  }
 }
