@@ -95,17 +95,26 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
         bc1, bc2 = st.columns(2)
         with bc1:
             if st.button("Sync", type="primary", key="btn_sync_indices", use_container_width=True):
-                with st.spinner("Downloading CSVs from niftyindices.com…"):
+                with st.status("Syncing NSE constituents…", expanded=True) as _sync_status:
+                    _sync_status.write("📡 Downloading index CSV files from niftyindices.com…")
                     res = sync_official_nse_indices(force=True)
                     st.session_state["force_refresh"] = True
                     st.session_state.pop("data_loaded_key", None)
                     st.cache_data.clear()
                     if res.get("last_attempt_ok"):
-                        st.success(f"Synced {res['total_stocks']} constituents!")
+                        n = res["total_stocks"]
+                        _sync_status.update(
+                            label=f"Synced {n} constituents successfully",
+                            state="complete",
+                            expanded=False,
+                        )
                     else:
-                        st.error(
-                            f"Sync incomplete: {res.get('last_attempt_fetched', 0)} "
-                            f"downloaded, {len(res.get('last_attempt_errors') or {})} failed."
+                        fetched = res.get("last_attempt_fetched", 0)
+                        errors = len(res.get("last_attempt_errors") or {})
+                        _sync_status.update(
+                            label=f"Sync incomplete — {fetched} downloaded, {errors} failed",
+                            state="error",
+                            expanded=False,
                         )
                     st.rerun()
         with bc2:
