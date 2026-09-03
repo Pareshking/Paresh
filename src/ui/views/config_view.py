@@ -294,15 +294,11 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
         _split = sum(1 for e in _events if e.get("kind") == "split/bonus")
         _other = len(_events) - _split
         st.info(
-            f"**{len(_events)} sessions flagged** — {_split} matching a standard "
-            f"split or bonus, {_other} matching none. NSE circuit limits cap a "
-            "session at 5–20%, so a move far past that is a corporate action, "
-            "not a price move. **These are neutralised in the Backtest and "
-            "Track Record** — the history before each event is rescaled in "
-            "memory so the strategy sees the stock's real trajectory. Nothing "
-            "is written to the stored prices, so if the data provider later "
-            "restates the series itself, the correction is simply not applied "
-            "twice."
+            f"**{len(_events)} sessions flagged** — {_split} valid split/bonus, "
+            f"{_other} unmatched (probable demergers). Circuit-limit breaches "
+            "treated as corporate actions; neutralised in backtest by rescaling "
+            "history in memory — no stored-price edits, so provider restatements "
+            "aren't double-applied."
         )
         _rows = []
         for e in sorted(_events, key=lambda x: x.get("date", ""), reverse=True):

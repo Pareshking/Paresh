@@ -652,6 +652,8 @@ class MomentumEngine:
                     "Top 1": top_syms[0] if len(top_syms) > 0 else "—",
                     "Top 2": top_syms[1] if len(top_syms) > 1 else "—",
                     "Top 3": top_syms[2] if len(top_syms) > 2 else "—",
+                    "Top 4": top_syms[3] if len(top_syms) > 3 else "—",
+                    "Top 5": top_syms[4] if len(top_syms) > 4 else "—",
                 }
             )
 
