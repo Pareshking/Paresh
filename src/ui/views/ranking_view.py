@@ -263,12 +263,19 @@ def render_ranking_view(
             if str(s).strip()
         ]
     )
+    tv_ind_opts = sorted(
+        [
+            f"[TV_INDUSTRY] {i}"
+            for i in rank_df.get("TV_Industry", pd.Series()).dropna().unique()
+            if str(i).strip()
+        ]
+    )
     stock_opts = [
         f"[STOCK] {row['Symbol']} — {row.get('Industry', '')}"
         for _, row in rank_df.sort_values("Rank").iterrows()
     ]
 
-    search_options = stock_opts + idx_opts + ind_opts + sec_opts
+    search_options = stock_opts + idx_opts + ind_opts + sec_opts + tv_ind_opts
 
     # ── Tier 1: Primary Search & Preset Filter Bar ───────────────────────────
     c_search, c_pills = st.columns([1.5, 2.5], vertical_alignment="center")
@@ -314,6 +321,12 @@ def render_ranking_view(
             view = view[
                 view.get("TV_Sector", pd.Series("", index=view.index)).str.upper()
                 == target_sec.upper()
+            ]
+        elif s_val.startswith("[TV_INDUSTRY] "):
+            target_tv_ind = s_val.replace("[TV_INDUSTRY] ", "").strip()
+            view = view[
+                view.get("TV_Industry", pd.Series("", index=view.index)).str.upper()
+                == target_tv_ind.upper()
             ]
         elif s_val.startswith("[INDEX] "):
             target_idx = s_val.replace("[INDEX] ", "").strip()

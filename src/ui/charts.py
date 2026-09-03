@@ -58,7 +58,7 @@ def render_stock_chart(
         key=f"lw_tf_{symbol}", label_visibility="collapsed",
     ) or "6M"
     overlays = c_ma.pills(
-        "Overlays", ["20 EMA", "50 EMA", "200 SMA"],
+        "Overlays", ["20 EMA", "50 EMA", "200 SMA", "Nifty 500"],
         selection_mode="multi", default=["20 EMA", "50 EMA"],
         key=f"lw_ma_{symbol}", label_visibility="collapsed",
     ) or []
@@ -81,6 +81,17 @@ def render_stock_chart(
         "200 SMA": full_close.rolling(200, min_periods=30).mean(),
     }
     chosen = {k: v for k, v in specs.items() if k in overlays}
+
+    if "Nifty 500" in overlays:
+        try:
+            from src.loaders.price_loader import fetch_benchmark_history
+            bench_raw = fetch_benchmark_history(period="5y")
+            bench_window = bench_raw.reindex(close.index, method="ffill").dropna()
+            if len(bench_window) >= 2 and not close.empty:
+                chosen["Nifty 500"] = bench_window / bench_window.iloc[0] * close.iloc[0]
+        except Exception:
+            pass
+
     rsi_full = compute_rsi_series(full_close, 14)
 
     try:

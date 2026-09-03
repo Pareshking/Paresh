@@ -2,11 +2,19 @@
 
 Mirrors app.py's structure in the one respect that matters: the configuration
 values are read at the TOP of the script, before any tab body renders.
+
+With the Windows 11-style left-nav layout, sliders live inside conditionally
+rendered sections. The probe bypasses the nav and calls the section functions
+directly so that all widgets are always visible to AppTest, which probes the
+rendered widget tree rather than clicking through the UI.
 """
 import pandas as pd
 import streamlit as st
 
-from src.ui.views.config_view import render_config_view
+from src.ui.views.config_view import (
+    _section_momentum_signal,
+    _section_portfolio_risk,
+)
 
 if "cfg_w1" not in st.session_state:
     st.session_state.update(
@@ -22,4 +30,5 @@ st.text(f"WEIGHTS={raw_w}")
 st.text(f"SECTOR_CAP={st.session_state['cfg_sc']}")
 st.text(f"STOCK_CAP={st.session_state['cfg_stc']}")
 
-render_config_view(pd.DataFrame({"Symbol": ["A"], "Industry": ["X"], "Rank": [1]}))
+_section_momentum_signal()
+_section_portfolio_risk()
