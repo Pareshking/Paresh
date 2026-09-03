@@ -11,6 +11,7 @@ REFRESHED. Those are different facts, and they diverge precisely when one of
 them matters.
 """
 import json
+import os
 
 import pandas as pd
 import pytest
@@ -22,6 +23,28 @@ from src.loaders import indices_loader
 def meta_file(tmp_path, monkeypatch):
     path = tmp_path / "indices_sync_meta.json"
     monkeypatch.setattr(indices_loader, "SYNC_META_FILE", str(path))
+
+    # Redirect the constituent CSVs too, not just the meta file.
+    #
+    # A sync writes every list it "downloads" to INDICES_LOCAL. With that left
+    # pointing at the real paths, the faked-success tests below overwrote
+    # data/indices/*.csv with 40 rows of "Co 0,Financial Services,SYM0" -- and
+    # since those files are tracked, the next `git add -A` shipped the fixture
+    # data as the live universe. That happened: NIFTY NEXT 50 reached main
+    # holding 40 symbols that do not exist, so every screen and backtest built
+    # on NIFTY TOTAL MARKET silently lost 50 real constituents.
+    #
+    # A test must not be able to write into the data the application ships.
+    idx_dir = tmp_path / "indices"
+    idx_dir.mkdir()
+    monkeypatch.setattr(
+        indices_loader,
+        "INDICES_LOCAL",
+        {
+            name: str(idx_dir / os.path.basename(real))
+            for name, real in indices_loader.INDICES_LOCAL.items()
+        },
+    )
     monkeypatch.setattr(indices_loader.time, "sleep", lambda *_: None)
     return path
 
