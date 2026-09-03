@@ -21,14 +21,15 @@ from src.ui.components import render_data_quality_footer
 from src.ui.theme import render_saas_table
 
 
-def render_backtest_view(
+@st.fragment
+def _backtest_body(
     rank_df: pd.DataFrame,
     adj_close: pd.DataFrame,
     stock_cap: float,
     sector_cap: float,
     weights: tuple[float, ...],
 ) -> None:
-    """Renders the Walk-Forward Historical Strategy Backtesting Interface."""
+    """Fragment: reruns only when backtest-tab widgets change, not on every global rerun."""
     # ── Aligned Controls Grid ────────────────────────────────────────────────
     c1, c2, c3 = st.columns(3, vertical_alignment="center")
     bt_n = c1.selectbox(
@@ -858,3 +859,13 @@ def _render_parameter_sweep(
             "text/csv",
             key="sweep_csv",
         )
+
+def render_backtest_view(
+    rank_df: pd.DataFrame,
+    adj_close: pd.DataFrame,
+    stock_cap: float,
+    sector_cap: float,
+    weights: tuple[float, ...],
+) -> None:
+    """Renders the Walk-Forward Historical Strategy Backtesting Interface."""
+    _backtest_body(rank_df, adj_close, stock_cap, sector_cap, weights)

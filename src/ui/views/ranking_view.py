@@ -17,6 +17,28 @@ from src.ui.theme import (
     render_styled_table,
 )
 
+
+@st.dialog("📈 Stock Analysis", width="large")
+def _stock_dialog(
+    symbol: str,
+    rank_df: pd.DataFrame,
+    adj_close: pd.DataFrame,
+    high_prices: pd.DataFrame | None,
+    low_prices: pd.DataFrame | None,
+    volume_data: pd.DataFrame | None,
+    open_prices: pd.DataFrame | None,
+) -> None:
+    render_stock_view(
+        symbol,
+        rank_df,
+        adj_close,
+        high_prices=high_prices,
+        low_prices=low_prices,
+        volume_data=volume_data,
+        open_prices=open_prices,
+    )
+
+
 DISPLAY_COLS = [
     "Rank",
     "Symbol",
@@ -412,35 +434,15 @@ def render_ranking_view(
 
     # ── Single Stock Technical Deep Dive (Activated by Search Selection) ──────
     if single_stock_drill and single_stock_drill in adj_close.columns:
-        render_candlestick_drilldown(
+        _stock_dialog(
             single_stock_drill,
             rank_df,
             adj_close,
-            high_prices=high_prices,
-            low_prices=low_prices,
-            volume_data=volume_data,
+            high_prices,
+            low_prices,
+            volume_data,
+            open_prices,
         )
-        curr_ind = (
-            rank_df.loc[rank_df["Symbol"] == single_stock_drill, "Industry"].iloc[0]
-            if "Industry" in rank_df.columns
-            else None
-        )
-        if curr_ind:
-            peers = rank_df[rank_df["Industry"] == curr_ind].sort_values("Rank").head(8)
-            if len(peers) > 1:
-                st.markdown(f"**Top Industry Peers in {curr_ind}**")
-                p_cols = [
-                    "Rank",
-                    "Symbol",
-                    "CMP",
-                    "3M Return",
-                    "6M Return",
-                    "3M Sharpe",
-                    "Volume",
-                ]
-                p_cols = [c for c in p_cols if c in peers.columns]
-                render_saas_table(peers[p_cols], key=f"peers_{single_stock_drill}")
-        st.markdown("---")
 
     # Sorting
     asc = sort_by == "Rank"
