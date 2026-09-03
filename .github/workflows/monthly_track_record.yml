@@ -41,6 +41,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # Seed the cache from the ARCHIVE, not the app snapshot. The app snapshot
+      # carries only the screener's trailing window; the record needs every
+      # month since inception plus a 12-month formation window before the
+      # earliest one. Without this the freeze would run on a short frame and,
+      # once the record outgrows that window, quietly stop producing months.
+      - name: Seed price cache from the full archive
+        run: |
+          mkdir -p data_cache
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/data-latest/prices_full.parquet"
+          if curl -fsSL "$URL" -o data_cache/prices.parquet; then
+            ls -lh data_cache/prices.parquet
+          else
+            echo "::warning::Archive unavailable; the freeze will fetch from Yahoo instead."
+            rm -f data_cache/prices.parquet
+          fi
+
       - name: Freeze newly closed months
         run: python scripts/update_track_record.py
 

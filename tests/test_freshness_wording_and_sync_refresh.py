@@ -105,12 +105,51 @@ def test_the_daily_sync_does_not_reuse_the_market_cap_cache():
 
 
 def test_prices_stay_incremental():
-    """A daily full 2y re-download would be slow and rude; only the weekly
-    FORCE_FULL run should do that."""
+    """A daily full re-download would be slow and rude; only the weekly
+    FORCE_FULL run should do that.
+
+    Asserted through the syntax tree rather than a source string: the previous
+    version matched the call's exact text, so reformatting it or widening the
+    window failed the test while the behaviour it guards -- force_refresh comes
+    from FORCE_FULL, never a hardcoded True -- was untouched.
+    """
+    import ast
     import pathlib
 
-    src = (pathlib.Path(__file__).resolve().parents[1] / "scripts/sync_data.py").read_text()
-    assert "fetch_price_history(symbols, period=\"2y\", force_refresh=FORCE_FULL)" in src
+    tree = ast.parse(
+        (pathlib.Path(__file__).resolve().parents[1] / "scripts/sync_data.py").read_text()
+    )
+    calls = [
+        n for n in ast.walk(tree)
+        if isinstance(n, ast.Call)
+        and getattr(n.func, "id", None) == "fetch_price_history"
+    ]
+    assert len(calls) == 1, "expected exactly one price fetch in the sync"
+    kw = {k.arg: k.value for k in calls[0].keywords}
+    assert "force_refresh" in kw, "the fetch must not silently default"
+    assert isinstance(kw["force_refresh"], ast.Name), (
+        "force_refresh must come from FORCE_FULL, not a literal"
+    )
+    assert kw["force_refresh"].id == "FORCE_FULL"
+
+
+def test_the_archive_is_longer_than_the_screener_window():
+    """Two windows, on purpose.
+
+    The screener's frame is walked row by row at cold start, so its length is a
+    latency decision. The archive only has to be deep enough that the track
+    record -- which reports from inception forever, each month needing a
+    12-month formation window before it -- does not outgrow it and quietly stop
+    producing months.
+    """
+    from src.core.config import PRICE_ARCHIVE_PERIOD, PRICE_HISTORY_PERIOD
+
+    def _years(value: str) -> float:
+        return float(str(value).lower().rstrip("y"))
+
+    assert _years(PRICE_ARCHIVE_PERIOD) > _years(PRICE_HISTORY_PERIOD)
+    # Inception (Jan 2026) plus a 12-month formation window, with room to grow.
+    assert _years(PRICE_ARCHIVE_PERIOD) >= 5
 
 
 # ── The cache window must sit below the sync cadence ────────────────────────

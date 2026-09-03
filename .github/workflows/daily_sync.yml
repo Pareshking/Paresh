@@ -124,6 +124,22 @@ jobs:
             --repo "$GITHUB_REPOSITORY" --clobber
           echo "Uploaded prices.parquet to release data-latest."
 
+          # The full archive, alongside the app snapshot. The app never reads
+          # this -- it exists so the monthly track-record freeze has the depth
+          # it needs (each month wants a 12-month formation window before it,
+          # and the record only grows). Uploaded separately so lengthening the
+          # archive never slows the app's cold start.
+          ARCH="${{ github.workspace }}/data_cache/prices_archive.parquet"
+          if [ -f "$ARCH" ]; then
+            ls -lh "$ARCH"
+            cp "$ARCH" "${{ github.workspace }}/prices_full.parquet"
+            gh release upload data-latest "${{ github.workspace }}/prices_full.parquet" \
+              --repo "$GITHUB_REPOSITORY" --clobber
+            echo "Uploaded prices_full.parquet to release data-latest."
+          else
+            echo "::warning::No price archive was produced; skipping archive upload."
+          fi
+
       # Fold today's constituent list into the point-in-time membership
       # timeline BEFORE committing, so the snapshot lands in the same commit as
       # the CSVs it was taken from. Append-only and a no-op on an unchanged day,

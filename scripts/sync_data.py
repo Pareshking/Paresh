@@ -55,9 +55,19 @@ def run_daily_sync() -> None:
     print("\n--- 3. Reconciling TradingView Taxonomy ---")
     reconcile_and_update_tv_classification(universe_df)
 
-    # 4. Fetch and cache price histories (2Y)
-    print("\n--- 4. Fetching and Caching 2Y OHLCV Price Histories ---")
-    prices_df = fetch_price_history(symbols, period="2y", force_refresh=FORCE_FULL)
+    # 4. Fetch and cache price histories (the ARCHIVE window)
+    #
+    # NOTE: lengthening this only takes effect on a FORCE_FULL run. The
+    # incremental path tops the cache up from its last date forward and never
+    # backfills earlier history, so a longer period against an existing shorter
+    # cache returns the shorter cache unchanged. The weekly full sync
+    # (FORCE_FULL=true) is what actually deepens the archive.
+    from src.core.config import PRICE_ARCHIVE_PERIOD
+
+    print(f"\n--- 4. Fetching and Caching {PRICE_ARCHIVE_PERIOD.upper()} OHLCV Price Histories ---")
+    prices_df = fetch_price_history(
+        symbols, period=PRICE_ARCHIVE_PERIOD, force_refresh=FORCE_FULL
+    )
     print(f"Price cache updated with shape {prices_df.shape}.")
 
     # 5. Fetch market caps
@@ -211,17 +221,37 @@ def run_daily_sync() -> None:
     try:
         import pandas as pd
 
-        from src.core.config import PRICES_FILE
+        from src.core.config import PRICE_HISTORY_PERIOD, PRICES_FILE
 
         if os.path.exists(PRICES_FILE):
             frame = pd.read_parquet(PRICES_FILE)
             compact = frame.astype("float32", errors="ignore")
-            out = os.path.join(os.path.dirname(PRICES_FILE), "prices_snapshot.parquet")
-            compact.to_parquet(out, compression="zstd")
+            here = os.path.dirname(PRICES_FILE)
+
+            # The full archive, for jobs where nobody is waiting: the monthly
+            # track-record freeze and any long backtest.
+            archive = os.path.join(here, "prices_archive.parquet")
+            compact.to_parquet(archive, compression="zstd")
+            a_mb = os.path.getsize(archive) / 1024**2
+            print(
+                f"Price ARCHIVE written: {len(frame)} rows, "
+                f"{len(frame.columns)} series, {a_mb:.1f} MB -> {archive}"
+            )
+
+            # The app's cold-start snapshot: only the trailing screener window.
+            # The screener walks this frame row by row, so shipping the whole
+            # archive here would slow every cold start for data the screener
+            # never reads.
+            years = float(str(PRICE_HISTORY_PERIOD).rstrip("y") or 2)
+            cutoff = frame.index.max() - pd.DateOffset(years=int(years))
+            recent = compact.loc[compact.index >= cutoff]
+            out = os.path.join(here, "prices_snapshot.parquet")
+            recent.to_parquet(out, compression="zstd")
             mb = os.path.getsize(out) / 1024**2
             print(
-                f"Price snapshot written: {len(frame)} rows, "
-                f"{len(frame.columns)} series, {mb:.1f} MB -> {out}"
+                f"Price snapshot written: {len(recent)} rows "
+                f"(trailing {PRICE_HISTORY_PERIOD}), "
+                f"{len(recent.columns)} series, {mb:.1f} MB -> {out}"
             )
         else:
             print("No price cache on disk; nothing to publish.")

@@ -102,6 +102,22 @@ THEME_TOKENS: Final[ThemeTokens] = ThemeTokens()
 # this is a cold-start decision, not just a storage one.
 PRICE_HISTORY_PERIOD: Final[str] = "2y"
 
+# The ARCHIVE window. Deliberately much longer than the screener's, and
+# deliberately NOT loaded by the app.
+#
+# Two different jobs want two different things. The screener wants the shortest
+# frame that supports its signals, because its cost is per-row at cold start.
+# The track record wants depth: it reports from Jan 2026 forever and each month
+# needs a 12-month formation window before it, so a 2y archive stops being
+# enough somewhere in 2027 -- at which point the monthly freeze fails, prints
+# into a log nobody reads, and the record silently stops growing.
+#
+# So the daily sync fetches this window, publishes it whole for jobs where
+# nobody is waiting, and publishes the trailing PRICE_HISTORY_PERIOD of it as
+# the app's cold-start snapshot. One download, two files, no change to how fast
+# the app starts.
+PRICE_ARCHIVE_PERIOD: Final[str] = "10y"
+
 # The window used for all-time highs. Fetched by the daily sync job on GitHub
 # Actions, where nobody is waiting, and committed as a small per-symbol
 # snapshot -- so production gets a genuine long-run high without paying to
@@ -139,7 +155,12 @@ ATH_HISTORY_PERIOD: Final[str] = "20y"
 PRICE_SNAPSHOT_TAG: Final[str] = os.getenv("UMIYA_PRICE_SNAPSHOT_TAG", "data-latest")
 PRICE_SNAPSHOT_REPO: Final[str] = os.getenv("UMIYA_REPO", "Pareshking/Umiya")
 PRICE_SNAPSHOT_ASSET: Final[str] = "prices.parquet"
+PRICE_ARCHIVE_ASSET: Final[str] = "prices_full.parquet"
 PRICE_SNAPSHOT_URL: Final[str] = (
     f"https://github.com/{PRICE_SNAPSHOT_REPO}/releases/download/"
     f"{PRICE_SNAPSHOT_TAG}/{PRICE_SNAPSHOT_ASSET}"
+)
+PRICE_ARCHIVE_URL: Final[str] = (
+    f"https://github.com/{PRICE_SNAPSHOT_REPO}/releases/download/"
+    f"{PRICE_SNAPSHOT_TAG}/{PRICE_ARCHIVE_ASSET}"
 )
