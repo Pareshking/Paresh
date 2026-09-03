@@ -296,3 +296,47 @@ def test_fingerprint_changes_with_configuration():
     b = config_fingerprint(**{**TRACK_RECORD_CONFIG, "top_n": 30})
     assert a != b
     assert a == config_fingerprint(**TRACK_RECORD_CONFIG)
+
+
+# ── Reconstructed months are labelled as such ────────────────────────────────
+
+def test_a_backfill_marks_older_months_as_reconstructed():
+    """Only the month that just closed was struck from data as it stood then.
+
+    Everything older in the same write is a reconstruction from today's
+    universe and today's prices, and must not be presented as equal evidence.
+    """
+    led, added, _ = finalize_months(
+        empty_ledger(),
+        _curve({"2026-01": 0.10, "2026-02": 0.05, "2026-03": 0.02, "2026-04": 0.01}),
+        _flat(), "cfg1", as_of=pd.Timestamp("2026-05-10"),
+    )
+    assert added == ["2026-01", "2026-02", "2026-03", "2026-04"]
+    assert led["months"]["2026-04"]["origin"] == "recorded"
+    for key in ("2026-01", "2026-02", "2026-03"):
+        assert led["months"][key]["origin"] == "backfill"
+
+
+def test_the_monthly_run_records_rather_than_backfills():
+    """The scheduled updater writes exactly one month, and it is a real record."""
+    led, _, _ = finalize_months(
+        empty_ledger(), _curve({"2026-01": 0.10}), _flat(), "cfg1",
+        as_of=pd.Timestamp("2026-02-10"),
+    )
+    led, added, _ = finalize_months(
+        led, _curve({"2026-01": 0.10, "2026-02": 0.07}), _flat(), "cfg1",
+        as_of=pd.Timestamp("2026-03-10"),
+    )
+    assert added == ["2026-02"]
+    assert led["months"]["2026-02"]["origin"] == "recorded"
+    assert summary_stats(led)["recorded"] == 2
+
+
+def test_summary_splits_recorded_from_backfilled():
+    led, _, _ = finalize_months(
+        empty_ledger(), _curve({"2026-01": 0.10, "2026-02": 0.05}), _flat(),
+        "cfg1", as_of=pd.Timestamp("2026-03-10"),
+    )
+    s = summary_stats(led)
+    assert s["backfilled"] == 1 and s["recorded"] == 1
+    assert s["backfilled"] + s["recorded"] == s["months"]

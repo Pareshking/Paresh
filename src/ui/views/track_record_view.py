@@ -226,6 +226,11 @@ def render_track_record_view(
                     "Strategy": _pct(e.get("strategy")),
                     "Nifty 500": _pct(e.get("benchmark")),
                     "Alpha": _pct(e.get("alpha")),
+                    "Origin": (
+                        "📼 Recorded"
+                        if e.get("origin") == "recorded"
+                        else "🔁 Backfilled"
+                    ),
                     "Frozen On": e.get("finalized_on", "—"),
                     "Data As Of": e.get("data_as_of") or "—",
                     "Config": e.get("config", "—"),
@@ -237,7 +242,10 @@ def render_track_record_view(
             "When each month was written, the price data it was struck from, and "
             "the configuration fingerprint behind it. A change in the Config "
             "column marks a settings change — months either side of it were "
-            "produced by different strategies."
+            "produced by different strategies. **📼 Recorded** months were frozen "
+            "as they closed, from the data as it stood then; **🔁 Backfilled** "
+            "months were reconstructed later from today's universe and prices, so "
+            "they carry the backtest's biases and are weaker evidence."
         )
         render_saas_table(prov, key="tr_provenance")
         st.download_button(

@@ -187,10 +187,20 @@ def finalize_months(
 
         s_ret = float(strat.loc[period])
         b_ret = float(bench.loc[period]) if period in bench.index else None
+        # How this month came to be recorded, which is not a detail. A month
+        # frozen the moment it closed was struck from the data as it stood then.
+        # A month RECONSTRUCTED later is computed from today's universe file and
+        # today's prices, so it carries the backtest's own biases -- today's
+        # index constituents applied to a month before some of them joined it.
+        # Both are frozen once written; they are not equally strong evidence,
+        # and the record should say which is which rather than leave it to be
+        # inferred from a finalisation date.
+        origin = "recorded" if period == current_month - 1 else "backfill"
         months[key] = {
             "strategy": round(s_ret, 6),
             "benchmark": round(b_ret, 6) if b_ret is not None else None,
             "alpha": round(s_ret - b_ret, 6) if b_ret is not None else None,
+            "origin": origin,
             "finalized_on": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
             "config": fingerprint,
             "data_as_of": (
@@ -317,8 +327,13 @@ def summary_stats(ledger: dict[str, Any]) -> dict[str, Any]:
     beat = (
         float((strat.reindex(bench.index) > bench).mean()) if not bench.empty else None
     )
+    origins = [
+        e.get("origin", "backfill") for e in ledger.get("months", {}).values()
+    ]
     return {
         "months": n,
+        "backfilled": sum(1 for o in origins if o == "backfill"),
+        "recorded": sum(1 for o in origins if o == "recorded"),
         "first": str(strat.index.min()),
         "last": str(strat.index.max()),
         "total_return": total_s,
