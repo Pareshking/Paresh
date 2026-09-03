@@ -24,6 +24,8 @@ from src.core.config import (
     MCAP_PR_FILE,
     MCAPS_FILE,
     PRICES_FILE,
+    REPO_MCAP_FILE,
+    REPO_ATH_FILE,
 )
 from src.engine.momentum import MomentumEngine
 from src.engine.calendar_momentum import _compute_period_z_scores, _apply_weight_composite
@@ -67,6 +69,27 @@ st.set_page_config(
 
 # Inject Pure Paper White Design System
 inject_custom_css()
+
+# Seed freshness dates from committed repo files so the ribbon always has
+# something to show even before the loaders run (or on warm-cache reruns
+# where cached loader bodies don't re-execute and can't re-note the facts).
+# The loaders overwrite these with live dates when they run cold.
+try:
+    import os as _os
+    _snap = pd.read_csv(REPO_MCAP_FILE) if _os.path.exists(REPO_MCAP_FILE) else None
+    if _snap is not None and "AsOf" in _snap.columns and len(_snap):
+        _d = str(_snap["AsOf"].iloc[0]).strip()
+        if _d and "mcap_as_of" not in metrics.snapshot().get("facts", {}):
+            metrics.note("mcap_as_of", _d)
+            metrics.note("mcap_path", "repo_snapshot")
+    _ath = pd.read_csv(REPO_ATH_FILE) if _os.path.exists(REPO_ATH_FILE) else None
+    if _ath is not None and "AsOf" in _ath.columns and len(_ath):
+        _d = str(_ath["AsOf"].iloc[0]).strip()
+        if _d and "ath_as_of" not in metrics.snapshot().get("facts", {}):
+            metrics.note("ath_as_of", _d)
+            metrics.note("ath_path", "repo_snapshot")
+except Exception:
+    pass
 
 
 # ── State Initialization ─────────────────────────────────────────────────────
@@ -308,19 +331,9 @@ def load_all_data(indices: list[str]):
 
 
 # ── Load Market Data ─────────────────────────────────────────────────────────
-with st.status("Loading market data…", expanded=True) as _load_status:
-    st.write("📡 Fetching price history, constituents & market caps…")
+with st.spinner("Loading market data…"):
     with metrics.stage("data_pipeline_total"):
         data = load_all_data(selected_indices)
-    if _load_status is not None:
-        if data:
-            _load_status.update(
-                label="Market data ready — running momentum engine",
-                state="complete",
-                expanded=False,
-            )
-        else:
-            _load_status.update(label="Data load failed", state="error", expanded=False)
 
 def _emit_startup_metrics(outcome: str) -> None:
     """Publish this process's cold-start telemetry as a hidden, inert element.
