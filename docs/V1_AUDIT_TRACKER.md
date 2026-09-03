@@ -148,6 +148,45 @@ at all**. The brittle `== 752` raw row-count assertion, which failed on any
 index revision and counted rows the app never uses, was replaced with a
 behavioural test of the filter and a plausible-range completeness check.
 
+### 2.16 Modern Streamlit UX patterns
+
+Four modern Streamlit primitives were adopted to reduce full-page reruns,
+surface information without page-scroll jumps, and give structured progress
+feedback:
+
+- **`st.dialog()`** — the screener's single-stock drilldown now opens as a
+  full-screen modal (`width="large"`). The function is defined at module level
+  in `ranking_view.py` and called with all price data at click time. The
+  underlying screener table stays visible; the modal is dismissible.
+
+- **`st.fragment()`** — the entire Backtest tab body is wrapped in a fragment.
+  Backtest controls (walk-forward sliders, holdout toggle) rerun only the
+  backtest body, not the screener or any other tab. Config-weight changes
+  still trigger a full rerun because the weights are read at `app.py` top level
+  and passed as arguments to the fragment.
+
+- **`st.popover()`** — a column-definition guide appears as a floating popover
+  on the screener toolbar (5th column in the Tier-2 controls). The Config tab's
+  Momentum Signal section has a second popover explaining each lookback window.
+
+- **`st.status()`** — the app startup block (`app.py`) and the constituent-sync
+  button (`config_view.py`) now use `st.status()` instead of `st.spinner()`.
+  Both show a running state with a step message, then update to complete/error
+  with the result label. The `.write()` step inside the startup block uses
+  `st.write()` (no-runtime-safe); the `.update()` call is guarded with
+  `is not None` so the test suite, which imports `app.py` without a Streamlit
+  runtime, continues to pass.
+
+Table rendering was reviewed at the same time. `st.column_config` was adopted
+for the backtest parameter-sweep table (already using `st.dataframe`) but not
+for other secondary tables: those all use `render_saas_table` (custom HTML),
+which supports per-cell conditional coloring that `column_config` cannot
+replicate. The main screener table was not changed.
+
+The screener search bar was extended with a `[TV_INDUSTRY]` prefix option
+(alongside the existing `[INDEX]`, `[INDUSTRY]`, `[SECTOR]` prefixes), and the
+stock-chart overlay panel gained a Nifty 500 benchmark option.
+
 ---
 
 ## 3. Important distinctions to preserve

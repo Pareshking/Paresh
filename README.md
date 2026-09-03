@@ -145,21 +145,38 @@ conventions and operations.
 
 See [`docs/V1_AUDIT_TRACKER.md`](docs/V1_AUDIT_TRACKER.md) for the full audit roadmap, completed corrections, and remaining research tasks.
 
+See [`docs/PARKED_IDEAS.md`](docs/PARKED_IDEAS.md) for features and integrations that were researched and deliberately set aside, with recorded reasoning.
+
 ## Core capabilities
 
 Tabs, in the order the app renders them:
 
-1. **Screener**: Full-universe screening, symbol/industry/index/sector search, ranking, rank movers, single-stock deep-dive and CSV export.
+1. **Screener**: Full-universe screening with multi-prefix search — `[INDEX]`, `[INDUSTRY]`, `[SECTOR]`, and `[TV_INDUSTRY]` prefixes narrow the view without typing ticker names. Ranking, rank movers, single-stock deep-dive (opens in a full-screen modal dialog), and CSV export.
 2. **Qualified**: High-conviction screening and concentration analysis.
 3. **Sectors**: Industry rankings.
 4. **RRG**: Relative Rotation Graph analysis.
 5. **Portfolio**: Equal Weight and Inverse Volatility construction with capital sizing and broker-basket export. Note this is a *top-N snapshot* of the current ranking — it has no persistence buffer and no memory of existing holdings, so it is not the same book the backtest runs.
 6. **Watchlist**: Custom portfolio tracking against quantitative rankings.
 7. **Market Breadth**: Moving-average breadth and high/low statistics.
-8. **Backtest**: Walk-forward backtesting over the last six completed months, rank at T close and execution at T+1, plus the current book and this month's changes.
+8. **Backtest**: Walk-forward backtesting over the last six completed months, rank at T close and execution at T+1, plus the current book and this month's changes. The entire tab runs as an independent Streamlit fragment — its controls rerun only the backtest, not the screener or any other tab.
 9. **Track Record**: The frozen monthly record against Nifty 500 — see below.
-10. **Configuration**: Index constituents, factor weights, risk parameters and cache diagnostics.
+10. **Configuration**: Index constituents, factor weights, risk parameters and cache diagnostics. Organised as a Windows 11-style left-nav with four sections: *Data & Sync*, *Momentum Signal*, *Portfolio Risk*, and *Data Health*. Each section is rendered on demand; only the active section appears on screen.
 11. **Guide**: In-app methodology reference.
+
+## UI patterns
+
+The app uses four modern Streamlit primitives that reduce full-page reruns and noise:
+
+| Pattern | Where used | Why |
+|---|---|---|
+| `st.dialog()` | Screener stock drilldown | Opens as a full-screen modal so the underlying screener ranking stays visible without a page scroll jump |
+| `st.fragment()` | Entire Backtest tab | Backtest controls rerun only the backtest body; Config weight changes still trigger a full rerun via the top-level read in `app.py` |
+| `st.popover()` | Screener column guide, Config window guide | Floating reference panel without leaving the current screen |
+| `st.status()` | App startup, Config constituent sync | Structured progress with running/complete/error states and collapsible step log |
+
+Table rendering deliberately splits into two tiers:
+- **Main screener** and **all secondary tables** (live book, monthly returns, closed trades, sector breakdown, track record): custom HTML via `render_saas_table` in `src/ui/theme.py`, which supports per-cell conditional coloring that `st.column_config` cannot replicate.
+- **Backtest parameter sweep**: `st.dataframe` with `column_config` for progress bars on numeric columns; no per-cell coloring needed there.
 
 ## Data integrity
 
