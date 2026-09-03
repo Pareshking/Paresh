@@ -1,10 +1,11 @@
-"""The backtest answers "how did it do"; this answers "what do I do on Monday".
+"""The backtest answers "how did it do"; this answers "what do I hold today".
 
-The reported window deliberately stops at the last completed month, so the
-month-end signal that a person actually has to trade on -- the one filling on
-the first session of the current month -- is filtered out of every table on the
-page. The live book and pending action list put it back, WITHOUT letting live
-marks leak into the performance figures.
+The reported window stops at the last completed month, so the rebalance that
+fills on the first session of THIS month is filtered out of every table on the
+page. That rebalance has already executed by the time anyone looks -- on 3 Sep
+the 1 Sep fill is two days old -- so the current book is the book AFTER it, and
+the change list is what it did, not what it might do. Live marks must still
+never leak into the performance figures.
 """
 import numpy as np
 import pandas as pd
@@ -95,13 +96,13 @@ def test_open_position_label_states_its_mark_date():
 
 # ── The pending rebalance ────────────────────────────────────────────────────
 
-def test_pending_signal_is_the_month_end_the_window_excluded():
+def test_rebalance_signal_is_the_month_end_the_window_excluded():
     px = _prices()
-    res = _run(px, "pend_sig")
+    res = _run(px, "reb_sig")
     _, window_end = completed_month_window(pd.DatetimeIndex(px.index), 6)
     meta = res["live_meta"]
 
-    assert meta["has_pending"]
+    assert meta["rebalanced"]
     # The signal is struck AT the window's last close; it is the FILL that
     # falls outside, which is exactly why the window filter (which tests the
     # fill date) drops this rebalance from every reported table.
@@ -116,7 +117,7 @@ def test_pending_signal_is_the_month_end_the_window_excluded():
     assert meta["fill_date"] in px.index, "the fill session must actually exist"
 
 
-def test_pending_signal_is_a_closed_month_end_not_the_trailing_edge():
+def test_rebalance_signal_is_a_closed_month_end_not_the_trailing_edge():
     """The in-progress month's last available session is not a month end.
 
     `last_by_month` returns the final AVAILABLE session per calendar month, so
@@ -125,7 +126,7 @@ def test_pending_signal_is_a_closed_month_end_not_the_trailing_edge():
     Thursday, and leaves it with no session to fill on.
     """
     px = _prices(end="2026-09-03")
-    res = _run(px, "pend_edge")
+    res = _run(px, "reb_edge")
     meta = res["live_meta"]
 
     assert meta["signal_date"].to_period("M") < px.index[-1].to_period("M")
@@ -134,41 +135,77 @@ def test_pending_signal_is_a_closed_month_end_not_the_trailing_edge():
     assert meta["fill_date"] == pd.Timestamp("2026-09-01")
 
 
-def test_action_list_reconciles_current_book_to_target_book():
-    """SELLs leave, BUYs arrive, HOLDs stay -- and the arithmetic closes."""
+def test_the_current_book_is_the_book_after_this_months_fill():
+    """The headline correction: "current" means post-rebalance, not pre.
+
+    Showing the pre-rebalance book under "Current Holdings" showed last
+    month's portfolio -- the names sold on the 1st were still listed and the
+    names bought on the 1st were missing entirely.
+    """
     px = _prices()
-    res = _run(px, "pend_recon")
-    pending, target = res["pending_actions"], res["target_book"]
-    current = set(res["live_book"]["Symbol"])
+    res = _run(px, "reb_current")
+    book = set(res["live_book"]["Symbol"])
+    ch = res["month_changes"]
 
-    sells = set(pending[pending["Action"] == "🔴 SELL"]["Symbol"])
-    buys = set(pending[pending["Action"] == "🟢 BUY"]["Symbol"])
-    holds = set(pending[pending["Action"] == "⚪ HOLD"]["Symbol"])
+    sold = set(ch[ch["Action"] == "🔴 SOLD"]["Symbol"])
+    bought = set(ch[ch["Action"] == "🟢 BOUGHT"]["Symbol"])
+    held = set(ch[ch["Action"] == "⚪ HELD"]["Symbol"])
 
-    assert sells <= current, "cannot sell what is not held"
-    assert not (buys & current), "cannot buy what is already held"
-    assert holds == current - sells
-    assert set(target["Symbol"]) == (current - sells) | buys
-    assert len(target) <= 20
+    assert not (sold & book), "a name sold this month is still in the book"
+    assert bought <= book, "a name bought this month is missing from the book"
+    assert book == held | bought
 
 
-def test_target_weights_sum_to_one_book():
+def test_a_name_bought_this_month_is_dated_to_this_months_fill():
     px = _prices()
-    res = _run(px, "pend_wts")
-    total = res["target_book"]["Target Weight %"].sum()
-    assert total == pytest.approx(100.0, abs=1e-6)
+    res = _run(px, "reb_dates")
+    fill = res["live_meta"]["fill_date"]
+    ch = res["month_changes"]
+    bought = set(ch[ch["Action"] == "🟢 BOUGHT"]["Symbol"])
+    assert bought, "fixture must buy something"
+
+    lb = res["live_book"].set_index("Symbol")
+    for s in bought:
+        assert pd.Timestamp(lb.loc[s, "Entry Date"]) == fill
+        assert lb.loc[s, "Entry Price"] == pytest.approx(px.loc[fill, s])
 
 
-def test_every_sell_states_why():
+def test_a_retained_name_keeps_its_original_entry_date():
+    """Buffer retention is not a re-entry; the holding period is continuous."""
     px = _prices()
-    res = _run(px, "pend_why")
-    sells = res["pending_actions"][res["pending_actions"]["Action"] == "🔴 SELL"]
-    for _, row in sells.iterrows():
+    res = _run(px, "reb_retain")
+    fill = res["live_meta"]["fill_date"]
+    ch = res["month_changes"]
+    held = set(ch[ch["Action"] == "⚪ HELD"]["Symbol"])
+    assert held, "fixture must retain something"
+
+    lb = res["live_book"].set_index("Symbol")
+    for s in held:
+        assert pd.Timestamp(lb.loc[s, "Entry Date"]) < fill
+
+
+def test_current_book_weights_sum_to_one_book():
+    px = _prices()
+    res = _run(px, "reb_wts")
+    assert res["live_book"]["Weight %"].sum() == pytest.approx(100.0, abs=1e-6)
+
+
+def test_every_sale_states_why_and_reports_a_realised_return():
+    px = _prices()
+    res = _run(px, "reb_why")
+    ch = res["month_changes"]
+    sold = ch[ch["Action"] == "🔴 SOLD"]
+    assert not sold.empty
+    for _, row in sold.iterrows():
         assert row["Reason"].strip()
-        assert row["Target Weight %"] == 0.0
+        assert row["Weight %"] == 0.0
+        # Realised at the fill, not marked at today's close.
+        assert row["Exit Price"] == pytest.approx(
+            px.loc[res["live_meta"]["fill_date"], row["Symbol"]]
+        )
 
 
-def test_pending_uses_the_same_buffer_rule_as_the_backtest():
+def test_the_rebalance_uses_the_same_buffer_rule_as_the_backtest():
     """A preview that sold a name the engine would have retained is worse than none.
 
     Selection runs through one shared helper; this pins the behaviour that
@@ -196,27 +233,23 @@ def test_incumbent_past_the_buffer_is_dropped():
     )
 
 
-def test_a_name_that_fails_its_filters_is_sold_not_silently_kept():
-    """Dropping out of the ranked frame entirely must surface as a SELL."""
+def test_every_name_in_the_prior_book_is_accounted_for():
+    """Nothing may silently vanish: each prior holding is SOLD or HELD."""
     px = _prices()
-    res = _run(px, "pend_filter")
-    pending = res["pending_actions"]
-    assert set(pending["Action"]) <= {"🟢 BUY", "🔴 SELL", "⚪ HOLD"}
-    # Every currently-held name is accounted for by exactly one row.
-    held = set(res["live_book"]["Symbol"])
-    accounted = set(
-        pending[pending["Action"].isin(["🔴 SELL", "⚪ HOLD"])]["Symbol"]
-    )
-    assert accounted == held
+    res = _run(px, "reb_account")
+    ch = res["month_changes"]
+    assert set(ch["Action"]) <= {"🟢 BOUGHT", "🔴 SOLD", "⚪ HELD"}
+    assert not ch["Symbol"].duplicated().any(), "a name appears twice"
 
 
-def test_counts_in_meta_match_the_action_list():
+def test_counts_in_meta_match_the_change_list():
     px = _prices()
-    res = _run(px, "pend_counts")
-    pending, meta = res["pending_actions"], res["live_meta"]
-    assert meta["n_buys"] == (pending["Action"] == "🟢 BUY").sum()
-    assert meta["n_sells"] == (pending["Action"] == "🔴 SELL").sum()
-    assert meta["n_holds"] == (pending["Action"] == "⚪ HOLD").sum()
+    res = _run(px, "reb_counts")
+    ch, meta = res["month_changes"], res["live_meta"]
+    assert meta["n_bought"] == (ch["Action"] == "🟢 BOUGHT").sum()
+    assert meta["n_sold"] == (ch["Action"] == "🔴 SOLD").sum()
+    assert meta["n_held"] == (ch["Action"] == "⚪ HELD").sum()
+    assert meta["n_held"] + meta["n_bought"] == len(res["live_book"])
 
 
 def test_tape_ending_on_a_month_end_previews_the_prior_month_signal():
@@ -227,10 +260,10 @@ def test_tape_ending_on_a_month_end_previews_the_prior_month_signal():
     31 Aug session itself is the tape's trailing edge and must not be used.
     """
     px = _prices(end="2026-08-31")
-    res = _run(px, "pend_month_end")
+    res = _run(px, "reb_month_end")
     meta = res["live_meta"]
 
-    assert meta["has_pending"]
+    assert meta["rebalanced"]
     assert meta["signal_date"] == pd.Timestamp("2026-07-31")
     assert meta["fill_date"] == pd.Timestamp("2026-08-03")
     assert not res["live_book"].empty

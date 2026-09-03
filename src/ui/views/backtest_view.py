@@ -204,56 +204,66 @@ def render_backtest_view(
     st.markdown(" ")
     render_backtest_equity_chart(bt_res["equity_curve"], bt_res["benchmark"])
 
-    # ── Current Book & Next Rebalance ────────────────────────────────────────
-    # The tables below this one all stop at the last completed month, which is
-    # the right rule for PERFORMANCE and the wrong one for a person holding the
-    # portfolio: on rebalance morning they need today's marks and today's
-    # buy/sell list. That is what this section is, and it is deliberately the
-    # first thing on the page. Every figure here is marked at the latest close
-    # -- a date the equity curve above does NOT cover -- so it is labelled with
-    # its own as-of date and kept out of the performance tables entirely.
+    # ── Current Book & This Month's Changes ──────────────────────────────────
+    # The tables below stop at the last completed month, which is right for
+    # PERFORMANCE and wrong for a person holding the portfolio. They need
+    # today's book and this month's trades, so that is what this section is,
+    # and it is deliberately first on the page.
+    #
+    # "Today's book" means AFTER this month's rebalance. That rebalance is
+    # signalled on the last session of last month and fills on the first of
+    # this one, so by the time anyone reads this it has already executed --
+    # showing the pre-rebalance book here would be showing last month's
+    # portfolio under the heading "current".
     live_book = bt_res.get("live_book", pd.DataFrame())
-    pending = bt_res.get("pending_actions", pd.DataFrame())
-    target_book = bt_res.get("target_book", pd.DataFrame())
+    changes = bt_res.get("month_changes", pd.DataFrame())
     lmeta = bt_res.get("live_meta", {}) or {}
 
-    if not live_book.empty or not pending.empty:
+    if not live_book.empty or not changes.empty:
         _as_of = lmeta.get("as_of")
         _sig = lmeta.get("signal_date")
         _fill = lmeta.get("fill_date")
-        _filled = lmeta.get("book_filled_on")
-        exp_title = "📌 Current Book & Next Rebalance — what to buy and sell"
-        with st.expander(exp_title, expanded=True):
+        with st.expander(
+            "📌 Current Book & This Month's Changes", expanded=True
+        ):
             st.caption(
-                f"Book established at the last backtested rebalance"
-                f"{f' (filled {_filled:%d %b %Y})' if _filled is not None else ''}, "
-                f"marked at the close of "
-                f"{f'{_as_of:%d %b %Y}' if _as_of is not None else 'the latest session'}. "
-                "These marks are live and intentionally fall outside the completed-month "
-                "window used by the performance tables below."
+                "The portfolio as it stands"
+                + (f" on {_as_of:%d %b %Y}" if _as_of is not None else "")
+                + (
+                    f", after the rebalance signalled at the {_sig:%d %b %Y} close "
+                    f"and filled on {_fill:%d %b %Y}"
+                    if _fill is not None
+                    else ""
+                )
+                + ". Marked at the latest close — these figures sit outside the "
+                "completed-month window the performance tables below report on."
             )
 
-            if lmeta.get("has_pending"):
-                n_b = lmeta.get("n_buys", 0)
-                n_s = lmeta.get("n_sells", 0)
-                n_h = lmeta.get("n_holds", 0)
-                st.success(
-                    f"**Rebalance due** — signalled at the "
-                    f"{f'{_sig:%d %b %Y}' if _sig is not None else 'latest'} close, "
-                    f"execute at the "
-                    f"{f'{_fill:%d %b %Y}' if _fill is not None else 'next session'} close: "
-                    f"**{n_b} BUY · {n_s} SELL · {n_h} HOLD**."
-                )
+            if lmeta.get("rebalanced"):
+                n_b = lmeta.get("n_bought", 0)
+                n_s = lmeta.get("n_sold", 0)
+                n_h = lmeta.get("n_held", 0)
+                if n_b == 0 and n_s == 0:
+                    st.info(
+                        f"**No change this month.** The rebalance ran on "
+                        f"{_fill:%d %b %Y} and every one of the {n_h} holdings "
+                        "stayed inside the buffer, so nothing was bought or sold."
+                    )
+                else:
+                    st.success(
+                        f"**Rebalanced {_fill:%d %b %Y}** — "
+                        f"**{n_s} sold · {n_b} bought · {n_h} held**. "
+                        "See This Month's Changes for the reason behind each."
+                    )
             else:
                 st.info(
-                    "No rebalance is due. The next signal is struck at the close of "
-                    "the current month's last trading session; until then the book "
-                    "below stands unchanged."
+                    "No rebalance has run since the last reported month. The next "
+                    "signal is struck at the close of this month's final session."
                 )
 
             live_sub = st.segmented_control(
                 "Live Book Detail",
-                ["📦 Current Holdings", "🔀 Action List", "🎯 Resulting Portfolio"],
+                ["📦 Current Holdings", "🔀 This Month's Changes"],
                 default="📦 Current Holdings",
                 key="bt_live_sub_view",
                 label_visibility="collapsed",
@@ -271,18 +281,28 @@ def render_backtest_view(
 
             if live_sub == "📦 Current Holdings":
                 if live_book.empty:
-                    st.info("No open positions at the end of the backtest window.")
+                    st.info("No open positions.")
                 else:
                     lb = _fmt_dates(live_book)
                     n_up = int((live_book["Return %"] > 0).sum())
                     n_dn = int((live_book["Return %"] < 0).sum())
                     avg_r = float(live_book["Return %"].mean(skipna=True) * 100)
+                    n_new = 0
+                    if _fill is not None and "Entry Date" in live_book.columns:
+                        n_new = int(
+                            (pd.to_datetime(live_book["Entry Date"], errors="coerce")
+                             == _fill).sum()
+                        )
                     st.html(
                         f"""
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px;">
+                        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 12px;">
                             <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;">
-                                <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:0.68rem;font-weight:700;color:#64748b;text-transform:uppercase;">Open Positions</div>
+                                <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:0.68rem;font-weight:700;color:#64748b;text-transform:uppercase;">Holdings</div>
                                 <div style="font-family:'Outfit',sans-serif;font-size:1.3rem;font-weight:800;color:#0f172a;margin-top:1px;">{len(live_book)}</div>
+                            </div>
+                            <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;">
+                                <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:0.68rem;font-weight:700;color:#64748b;text-transform:uppercase;">Added This Month</div>
+                                <div style="font-family:'Outfit',sans-serif;font-size:1.3rem;font-weight:800;color:#0f172a;margin-top:1px;">{n_new}</div>
                             </div>
                             <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;">
                                 <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:0.68rem;font-weight:700;color:#64748b;text-transform:uppercase;">In Profit</div>
@@ -308,49 +328,38 @@ def render_backtest_view(
                         key="dl_bt_live_book_csv",
                     )
 
-            elif live_sub == "🔀 Action List":
-                if pending.empty:
+            else:
+                if changes.empty:
                     st.info(
-                        "No pending rebalance. The action list appears once the "
-                        "month's final session has closed and a new signal is struck."
+                        "No changes to show. The list appears once the month's "
+                        "rebalance has run."
                     )
                 else:
-                    pa = _fmt_dates(pending)
+                    ch = _fmt_dates(changes)
                     act_filter = st.pills(
                         "Filter Action",
-                        ["All", "🟢 BUY", "🔴 SELL", "⚪ HOLD"],
+                        ["All", "🟢 BOUGHT", "🔴 SOLD", "⚪ HELD"],
                         default="All",
-                        key="bt_pending_action_filter",
+                        key="bt_changes_action_filter",
                     )
                     if act_filter and act_filter != "All":
-                        pa = pa[pa["Action"] == act_filter]
-                    render_saas_table(pa, key="bt_pending_actions_table")
+                        ch = ch[ch["Action"] == act_filter]
+                    st.caption(
+                        "What the "
+                        + (f"{_fill:%d %b %Y} " if _fill is not None else "")
+                        + "rebalance did. **Return %** on a SOLD row is the "
+                        "realised round trip; on a BOUGHT or HELD row it is "
+                        "unrealised, marked at the latest close."
+                    )
+                    render_saas_table(ch, key="bt_month_changes_table")
                     st.download_button(
-                        "⬇️ Export Action List (CSV)",
-                        _fmt_dates(pending).to_csv(index=False).encode(),
-                        f"rebalance_actions_{datetime.now():%Y%m%d}.csv",
+                        "⬇️ Export This Month's Changes (CSV)",
+                        _fmt_dates(changes).to_csv(index=False).encode(),
+                        f"month_changes_{datetime.now():%Y%m%d}.csv",
                         "text/csv",
-                        key="dl_bt_pending_csv",
+                        key="dl_bt_changes_csv",
                     )
 
-            else:
-                if target_book.empty:
-                    st.info(
-                        "No target portfolio to show until a rebalance signal is struck."
-                    )
-                else:
-                    st.caption(
-                        "The book you would hold after executing the action list — "
-                        "every name with its target weight."
-                    )
-                    render_saas_table(target_book, key="bt_target_book_table")
-                    st.download_button(
-                        "⬇️ Export Target Portfolio (CSV)",
-                        target_book.to_csv(index=False).encode(),
-                        f"target_portfolio_{datetime.now():%Y%m%d}.csv",
-                        "text/csv",
-                        key="dl_bt_target_csv",
-                    )
 
     # ── Monthly Performance Breakdown & Rebalance Tradebook ──────────────────
     with st.expander("📋 Per-Period Performance & Rebalance Tradebook", expanded=True):

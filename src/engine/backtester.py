@@ -644,29 +644,31 @@ def run_backtest(
             }
         )
 
-    # ── Live Book & Pending Rebalance ────────────────────────────────────────
+    # ── Current Book & This Month's Rebalance ────────────────────────────────
     # Everything above stops at the last completed month, on purpose. That
-    # leaves the one question a person actually holding this portfolio has to
-    # answer on rebalance morning -- what do I buy and what do I sell -- with
-    # no answer anywhere on the page.
+    # leaves the person actually holding this portfolio with no answer to the
+    # only two questions they have: what do I hold today, and what changed.
     #
-    # So compute it here, and keep it strictly separate from the reported
-    # window: these marks use the LATEST close (a date the equity curve does
-    # not cover) and this signal is the month end the window filter excluded.
-    # Nothing below feeds the equity curve, the monthly table or the stats --
-    # it is a forward view, labelled as one.
+    # The rebalance the reported window excludes is signalled on the last
+    # session of the previous month and FILLS on the first session of this one.
+    # By the time anyone is reading this it has already happened -- on 3 Sep the
+    # 1 Sep fill is two days in the past -- so it is not a preview. Apply it:
+    # the current book is the book AFTER that fill, and the change list is what
+    # it did, not what it might do.
+    #
+    # None of this feeds the equity curve, the monthly table or the stats. It
+    # marks at the LATEST close, a date the reported window does not cover.
     as_of_idx = len(prices) - 1
     as_of_dt = prices.index[as_of_idx]
 
-    pending_idx: int | None = None
+    rebal_idx: int | None = None
     if rebal_dates:
         # A signal is only real once its month has CLOSED. `last_by_month`
         # takes the last available session of every calendar month, and for the
         # month still in progress that is just wherever the data happens to
-        # stop -- 3 Sep, say, which is not a month end at all. Previewing it
-        # would invent a rebalance on an arbitrary Thursday and, being the last
-        # row, leave it with no session to fill on. Require a strictly earlier
-        # month than the tape's own, and a fill session that exists.
+        # stop -- 3 Sep, say, which is not a month end at all. Using it would
+        # invent a rebalance on an arbitrary Thursday and, being the last row,
+        # leave it with no session to fill on.
         as_of_period = as_of_dt.to_period("M")
         later = [
             i
@@ -675,66 +677,63 @@ def run_backtest(
             and i < as_of_idx
             and prices.index[i].to_period("M") < as_of_period
         ]
-        pending_idx = max(later) if later else None
+        rebal_idx = max(later) if later else None
 
-    pending_rows: list[dict[str, Any]] = []
-    target_rows: list[dict[str, Any]] = []
+    change_rows: list[dict[str, Any]] = []
     live_ranks: dict[str, Any] = {}
-    pending_signal_dt = None
-    pending_fill_dt = None
-    new_holdings: list[str] = []
-    new_wts: pd.Series = pd.Series(dtype=float)
+    rebal_signal_dt = None
+    rebal_fill_dt = None
+    # The book as it stands today, and the position record behind it. Both
+    # start as the last in-window book and are updated by the fill below.
+    book: list[str] = list(prev_holdings)
+    book_wts = prev_weights
+    positions = dict(open_positions)
 
-    if pending_idx is not None:
-        _pp = prices.iloc[pending_idx]
-        _pema = ema.iloc[pending_idx]
-        _phi = high_52w.iloc[pending_idx]
+    if rebal_idx is not None:
+        _pp = prices.iloc[rebal_idx]
+        _pema = ema.iloc[rebal_idx]
+        _phi = high_52w.iloc[rebal_idx]
         p_above_ema = _pp > _pema
         p_near_high = _pp >= _phi * high_pct
         p_valid = p_above_ema & p_near_high & (_pp > 0)
 
         p_score = _composite_z_score(
-            prices, log_ret, pending_idx, WINDOWS, norm_w if norm_w else [0.2] * 5
+            prices, log_ret, rebal_idx, WINDOWS, norm_w if norm_w else [0.2] * 5
         )
         p_ranked = p_score[p_valid & p_score.notna()].sort_values(ascending=False)
         live_ranks = {s: p_ranked.index.get_loc(s) + 1 for s in p_ranked.index}
 
         if not p_ranked.empty:
-            pending_signal_dt = prices.index[pending_idx]
-            pending_fill_dt = (
-                prices.index[pending_idx + 1]
-                if pending_idx + 1 < len(prices)
-                else None
-            )
+            rebal_signal_dt = prices.index[rebal_idx]
+            fill_idx = rebal_idx + 1
+            rebal_fill_dt = prices.index[fill_idx]
 
-            new_holdings[:] = _select_holdings(
+            new_holdings = _select_holdings(
                 p_ranked, prev_holdings, top_n, effective_buffer
             )
             new_wts = _compute_weights(
-                new_holdings, log_ret, pending_idx, weight_method
+                new_holdings, log_ret, rebal_idx, weight_method
             )
 
-            p_entries = [s for s in new_holdings if s not in prev_holdings]
-            p_exits = [s for s in prev_holdings if s not in new_holdings]
-            p_holds = [s for s in new_holdings if s in prev_holdings]
+            sold = [s for s in prev_holdings if s not in new_holdings]
+            bought = [s for s in new_holdings if s not in prev_holdings]
+            held = [s for s in new_holdings if s in prev_holdings]
 
-            for s in p_exits:
-                pos = open_positions.get(s, {})
-                mark = _fill_price(prices, s, as_of_idx)
-                pending_rows.append(
+            for s in sold:
+                pos = positions.pop(s, {})
+                exit_price = _fill_price(prices, s, fill_idx)
+                entry_price = pos.get("entry_price", float("nan"))
+                change_rows.append(
                     {
-                        "Action": "🔴 SELL",
+                        "Action": "🔴 SOLD",
                         "Symbol": s,
                         "Industry": sec_map.get(s, "—"),
-                        "Rank Now": live_ranks.get(s, "—"),
+                        "Rank at Signal": live_ranks.get(s, "—"),
                         "Entry Date": pos.get("entry_date"),
-                        "Entry Price": pos.get("entry_price", float("nan")),
-                        "Price Now": mark,
-                        "Return %": _round_trip_return(
-                            pos.get("entry_price", float("nan")), mark
-                        ),
-                        "Current Weight %": float(prev_weights.get(s, 0.0)) * 100,
-                        "Target Weight %": 0.0,
+                        "Entry Price": entry_price,
+                        "Exit Price": exit_price,
+                        "Return %": _round_trip_return(entry_price, exit_price),
+                        "Weight %": 0.0,
                         "Reason": _exit_reason(
                             s, p_ranked, p_above_ema, p_near_high,
                             ema_period, high_pct, effective_buffer,
@@ -742,58 +741,61 @@ def run_backtest(
                     }
                 )
 
-            for s in p_entries:
-                pending_rows.append(
-                    {
-                        "Action": "🟢 BUY",
-                        "Symbol": s,
-                        "Industry": sec_map.get(s, "—"),
-                        "Rank Now": live_ranks.get(s, "—"),
-                        "Entry Date": None,
-                        "Entry Price": float("nan"),
-                        "Price Now": _fill_price(prices, s, as_of_idx),
-                        "Return %": float("nan"),
-                        "Current Weight %": 0.0,
-                        "Target Weight %": float(new_wts.get(s, 0.0)) * 100,
-                        "Reason": f"New Momentum Leader (Rank #{live_ranks.get(s, '—')})",
-                    }
-                )
-
-            for s in p_holds:
-                pos = open_positions.get(s, {})
+            for s in bought:
+                fill_price = _fill_price(prices, s, fill_idx)
+                rk = live_ranks.get(s, "—")
+                # A name bought at this fill is held FROM this fill: its entry
+                # date is the fill date, not whatever it was in a prior life.
+                positions[s] = {
+                    "entry_date": rebal_fill_dt,
+                    "entry_price": fill_price,
+                    "entry_idx": fill_idx,
+                    "entry_weight": float(new_wts.get(s, 0.0)) * 100,
+                    "entry_rank": rk,
+                }
                 mark = _fill_price(prices, s, as_of_idx)
-                pending_rows.append(
+                change_rows.append(
                     {
-                        "Action": "⚪ HOLD",
+                        "Action": "🟢 BOUGHT",
                         "Symbol": s,
                         "Industry": sec_map.get(s, "—"),
-                        "Rank Now": live_ranks.get(s, "—"),
-                        "Entry Date": pos.get("entry_date"),
-                        "Entry Price": pos.get("entry_price", float("nan")),
-                        "Price Now": mark,
-                        "Return %": _round_trip_return(
-                            pos.get("entry_price", float("nan")), mark
-                        ),
-                        "Current Weight %": float(prev_weights.get(s, 0.0)) * 100,
-                        "Target Weight %": float(new_wts.get(s, 0.0)) * 100,
-                        "Reason": f"Buffer Zone Retention (Rank #{live_ranks.get(s, '—')})",
+                        "Rank at Signal": rk,
+                        "Entry Date": rebal_fill_dt,
+                        "Entry Price": fill_price,
+                        "Exit Price": mark,
+                        "Return %": _round_trip_return(fill_price, mark),
+                        "Weight %": float(new_wts.get(s, 0.0)) * 100,
+                        "Reason": f"New Momentum Leader (Rank #{rk})",
                     }
                 )
 
-            for s in new_holdings:
-                target_rows.append(
+            for s in held:
+                pos = positions.get(s, {})
+                entry_price = pos.get("entry_price", float("nan"))
+                mark = _fill_price(prices, s, as_of_idx)
+                change_rows.append(
                     {
+                        "Action": "⚪ HELD",
                         "Symbol": s,
                         "Industry": sec_map.get(s, "—"),
-                        "Rank Now": live_ranks.get(s, "—"),
-                        "Target Weight %": float(new_wts.get(s, 0.0)) * 100,
-                        "Status": "Existing" if s in prev_holdings else "New",
+                        "Rank at Signal": live_ranks.get(s, "—"),
+                        "Entry Date": pos.get("entry_date"),
+                        "Entry Price": entry_price,
+                        "Exit Price": mark,
+                        "Return %": _round_trip_return(entry_price, mark),
+                        "Weight %": float(new_wts.get(s, 0.0)) * 100,
+                        "Reason": (
+                            f"Buffer Zone Retention (Rank #{live_ranks.get(s, '—')})"
+                        ),
                     }
                 )
+
+            book = new_holdings
+            book_wts = new_wts
 
     live_rows: list[dict[str, Any]] = []
-    for s in prev_holdings:
-        pos = open_positions.get(s, {})
+    for s in book:
+        pos = positions.get(s, {})
         entry_price = pos.get("entry_price", float("nan"))
         entry_dt = pos.get("entry_date")
         mark = _fill_price(prices, s, as_of_idx)
@@ -808,9 +810,12 @@ def run_backtest(
                 "Holding (Days)": (
                     (as_of_dt - entry_dt).days if entry_dt is not None else 0
                 ),
-                "Weight %": float(prev_weights.get(s, 0.0)) * 100,
+                "Weight %": float(book_wts.get(s, 0.0)) * 100,
                 "Rank at Entry": pos.get("entry_rank", "—"),
-                "Rank Now": live_ranks.get(s, "—"),
+                # Ranks come from the rebalance SIGNAL date, not from today.
+                # Calling this "Rank Now" invited reading a 31 Aug rank as a
+                # live one and acting on it.
+                "Rank at Rebalance": live_ranks.get(s, "—"),
             }
         )
 
@@ -818,36 +823,30 @@ def run_backtest(
     if not live_book_df.empty:
         live_book_df = live_book_df.sort_values("Return %", ascending=False)
 
-    pending_df = pd.DataFrame(pending_rows)
-    if not pending_df.empty:
-        action_order = {"🔴 SELL": 0, "🟢 BUY": 1, "⚪ HOLD": 2}
-        pending_df = pending_df.sort_values(
+    changes_df = pd.DataFrame(change_rows)
+    if not changes_df.empty:
+        action_order = {"🔴 SOLD": 0, "🟢 BOUGHT": 1, "⚪ HELD": 2}
+        changes_df = changes_df.sort_values(
             by=["Action", "Symbol"],
             key=lambda col: col.map(action_order) if col.name == "Action" else col,
         )
 
     # ── Month-To-Date ────────────────────────────────────────────────────────
-    # The running month is the one the reported window deliberately omits, and
-    # the one a track record still has to show. Measure it the way the engine
-    # accrues everywhere else: from the CLOSE the book was filled at, on the
-    # book actually held for this month. If the month's rebalance has already
-    # filled, that is the new book from its fill; if not, the standing book
-    # from the last session of the previous month.
+    # Measure it the way the engine accrues everywhere else: from the CLOSE the
+    # book was filled at, on the book actually held this month. That is the
+    # rebalanced book from its fill date whenever the fill lands in this month.
     mtd_period = as_of_dt.to_period("M")
-    mtd_holdings: Sequence[str] = prev_holdings
-    mtd_wts = prev_weights
+    mtd_holdings: Sequence[str] = book
+    mtd_wts = book_wts
     mtd_basis = "standing book"
     mtd_base_idx: int | None = None
 
     if (
-        pending_idx is not None
-        and pending_fill_dt is not None
-        and pending_fill_dt.to_period("M") == mtd_period
-        and new_holdings
+        rebal_idx is not None
+        and rebal_fill_dt is not None
+        and rebal_fill_dt.to_period("M") == mtd_period
     ):
-        mtd_base_idx = pending_idx + 1
-        mtd_holdings = new_holdings
-        mtd_wts = new_wts
+        mtd_base_idx = rebal_idx + 1
         mtd_basis = "rebalanced book"
     else:
         earlier = np.flatnonzero(
@@ -879,6 +878,7 @@ def run_backtest(
             if pd.notna(b0) and pd.notna(b1) and float(b0) > 0:
                 benchmark_mtd = float(b1) / float(b0) - 1.0
 
+
     live_meta = {
         "as_of": as_of_dt,
         "mtd_period": str(mtd_period),
@@ -893,14 +893,16 @@ def run_backtest(
             if (strategy_mtd is not None and benchmark_mtd is not None)
             else None
         ),
-        "book_filled_on": prices.index[rebal_dates[-1] + 1] if rebal_dates else None,
+        "prior_book_filled_on": (
+            prices.index[rebal_dates[-1] + 1] if rebal_dates else None
+        ),
         "window_end": window_end,
-        "signal_date": pending_signal_dt,
-        "fill_date": pending_fill_dt,
-        "has_pending": bool(pending_rows),
-        "n_buys": sum(1 for r in pending_rows if r["Action"] == "🟢 BUY"),
-        "n_sells": sum(1 for r in pending_rows if r["Action"] == "🔴 SELL"),
-        "n_holds": sum(1 for r in pending_rows if r["Action"] == "⚪ HOLD"),
+        "signal_date": rebal_signal_dt,
+        "fill_date": rebal_fill_dt,
+        "rebalanced": bool(change_rows),
+        "n_bought": sum(1 for r in change_rows if r["Action"] == "🟢 BOUGHT"),
+        "n_sold": sum(1 for r in change_rows if r["Action"] == "🔴 SOLD"),
+        "n_held": sum(1 for r in change_rows if r["Action"] == "⚪ HELD"),
     }
 
     closed_trades_df = pd.DataFrame(closed_trades)
@@ -949,8 +951,7 @@ def run_backtest(
         "tradebook": tradebook_df,
         "closed_trades": closed_trades_df,
         "live_book": live_book_df,
-        "pending_actions": pending_df,
-        "target_book": pd.DataFrame(target_rows),
+        "month_changes": changes_df,
         "live_meta": live_meta,
         "stats": {
             "total_return": total_s_net,
