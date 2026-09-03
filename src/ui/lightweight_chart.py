@@ -101,10 +101,10 @@ def render_lightweight_chart(
     low: pd.Series | None = None,
     volume: pd.Series | None = None,
     overlays: dict[str, pd.Series] | None = None,
-    rsi: pd.Series | None = None,
+    rs: pd.Series | None = None,
     height: int = 420,
 ) -> None:
-    """Render price (+ overlays, volume) and an RSI pane beneath it.
+    """Render price (+ overlays, volume) and a Relative Strength pane beneath it.
 
     Raises ChartUnavailable when the component is missing or the data cannot
     make a chart, so the caller can fall back to Plotly.
@@ -177,22 +177,24 @@ def render_lightweight_chart(
 
     charts = [{"chart": _base_chart(height), "series": series}]
 
-    rsi_rows = _series(idx, _align(rsi).values) if rsi is not None else []
-    if rsi_rows:
-        rsi_chart = _base_chart(130)
-        rsi_chart["rightPriceScale"] = {
+    rs_rows = _series(idx, _align(rs).values) if rs is not None else []
+    if rs_rows:
+        rs_chart = _base_chart(120)
+        rs_chart["rightPriceScale"] = {
             "borderColor": "#e2e8f0",
-            "autoScale": False,
+            "autoScale": True,
             "scaleMargins": {"top": 0.1, "bottom": 0.1},
         }
         charts.append({
-            "chart": rsi_chart,
+            "chart": rs_chart,
             "series": [{
                 "type": "Line",
-                "data": rsi_rows,
+                "data": rs_rows,
                 "options": {
-                    "color": "#0284c7", "lineWidth": 2,
-                    "priceLineVisible": False, "title": "RSI (14)",
+                    "color": "#7c3aed", "lineWidth": 2,
+                    "priceLineVisible": False,
+                    "title": "RS vs Nifty 500",
+                    "lastValueVisible": True,
                 },
             }],
         })

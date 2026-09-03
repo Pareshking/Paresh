@@ -41,8 +41,8 @@ def _render(captured, **kw):
     return captured["charts"]
 
 
-def test_price_and_rsi_are_separate_panes(captured):
-    charts = _render(captured, volume=VOL, rsi=pd.Series(50.0, index=IDX))
+def test_price_and_rs_are_separate_panes(captured):
+    charts = _render(captured, volume=VOL, rs=pd.Series(100.0, index=IDX))
     assert len(charts) == 2
 
 

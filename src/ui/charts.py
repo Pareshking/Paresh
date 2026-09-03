@@ -1,6 +1,6 @@
 """
 Interactive visualizations for NSE Momentum Dashboard.
-Includes Candlestick + Volume + RSI drilldown, animated Canvas RRG,
+Includes Candlestick + Volume + Relative Strength drilldown, animated Canvas RRG,
 ECharts-powered charts, and Sector Treemaps.
 """
 
@@ -15,16 +15,17 @@ from src.core.logger import logger
 from src.ui.theme import clean_html
 
 
-def compute_rsi_series(prices: pd.Series, period: int = 14) -> pd.Series:
-    """Computes 14-period Relative Strength Index (RSI)."""
-    delta = prices.diff()
-    gain = delta.clip(lower=0)
-    loss = -delta.clip(upper=0)
-    avg_gain = gain.ewm(com=period - 1, min_periods=period).mean()
-    avg_loss = loss.ewm(com=period - 1, min_periods=period).mean()
-    rs = avg_gain / avg_loss.replace(0, np.nan)
-    rsi = 100 - (100 / (1 + rs))
-    return rsi
+def compute_rs_series(stock: pd.Series, benchmark: pd.Series) -> pd.Series:
+    """Relative Strength of stock vs benchmark, indexed to 100 at the first common date.
+
+    Values > 100 mean the stock has outperformed the benchmark since the start
+    of the window; values < 100 mean underperformance.
+    """
+    aligned = pd.DataFrame({"s": stock, "b": benchmark}).dropna()
+    if aligned.empty or len(aligned) < 2:
+        return pd.Series(dtype=float)
+    ratio = aligned["s"] / aligned["b"]
+    return (ratio / ratio.iloc[0]) * 100
 
 
 TF_SESSIONS = {"1M": 22, "3M": 64, "6M": 126, "1Y": 252, "All": 5000}
@@ -82,17 +83,25 @@ def render_stock_chart(
     }
     chosen = {k: v for k, v in specs.items() if k in overlays}
 
-    if "Nifty 500" in overlays:
-        try:
-            from src.loaders.price_loader import fetch_benchmark_history
-            bench_raw = fetch_benchmark_history(period="5y")
-            bench_window = bench_raw.reindex(close.index, method="ffill").dropna()
-            if len(bench_window) >= 2 and not close.empty:
-                chosen["Nifty 500"] = bench_window / bench_window.iloc[0] * close.iloc[0]
-        except Exception:
-            pass
+    # Benchmark is always fetched — used both for the price overlay (if selected)
+    # and for the Relative Strength pane shown beneath the chart.
+    _bench_full: pd.Series | None = None
+    try:
+        from src.loaders.price_loader import fetch_benchmark_history
+        _bench_full = fetch_benchmark_history(period="5y")
+    except Exception:
+        pass
 
-    rsi_full = compute_rsi_series(full_close, 14)
+    if "Nifty 500" in overlays and _bench_full is not None:
+        bench_window = _bench_full.reindex(close.index, method="ffill").dropna()
+        if len(bench_window) >= 2 and not close.empty:
+            chosen["Nifty 500"] = bench_window / bench_window.iloc[0] * close.iloc[0]
+
+    # Relative Strength vs Nifty 500 — computed over the full history so the
+    # ratio is stable regardless of the chosen display window.
+    rs_full: pd.Series | None = None
+    if _bench_full is not None and not full_close.empty:
+        rs_full = compute_rs_series(full_close, _bench_full)
 
     try:
         from src.ui.lightweight_chart import ChartUnavailable, render_lightweight_chart
@@ -105,7 +114,7 @@ def render_stock_chart(
             low=_col(low_prices),
             volume=_col(volume_data),
             overlays=chosen,
-            rsi=rsi_full,
+            rs=rs_full,
         )
         return
     except Exception as exc:  # ChartUnavailable or anything the component throws
@@ -365,40 +374,41 @@ def render_candlestick_drilldown(
                 col=1,
             )
 
-        # 3. RSI (14) Subplot
+        # 3. Relative Strength vs Nifty 500 subplot
         full_stock_close = adj_close[symbol].dropna()
-        if len(full_stock_close) >= 15:
-            rsi_series = compute_rsi_series(full_stock_close, 14).iloc[-_n_days:]
-            fig.add_trace(
-                go.Scatter(
-                    x=rsi_series.index,
-                    y=rsi_series.values,
-                    mode="lines",
-                    line={"color": "#0284c7", "width": 1.5},
-                    name="RSI (14)",
-                    showlegend=False,
-                ),
-                row=3,
-                col=1,
-            )
-            fig.add_hline(
-                y=70,
-                line_color="#e11d48",
-                line_dash="dot",
-                line_width=1,
-                opacity=0.7,
-                row=3,
-                col=1,
-            )
-            fig.add_hline(
-                y=30,
-                line_color="#059669",
-                line_dash="dot",
-                line_width=1,
-                opacity=0.7,
-                row=3,
-                col=1,
-            )
+        _bench_fb: pd.Series | None = None
+        try:
+            from src.loaders.price_loader import fetch_benchmark_history
+            _bench_fb = fetch_benchmark_history(period="5y")
+        except Exception:
+            pass
+        if _bench_fb is not None and not full_stock_close.empty:
+            rs_plotly = compute_rs_series(full_stock_close, _bench_fb)
+            rs_plotly = rs_plotly.iloc[-_n_days:]
+            if not rs_plotly.empty:
+                fig.add_trace(
+                    go.Scatter(
+                        x=rs_plotly.index,
+                        y=rs_plotly.values,
+                        mode="lines",
+                        line={"color": "#7c3aed", "width": 1.5},
+                        name="Rel Strength",
+                        showlegend=False,
+                        fill="tozeroy",
+                        fillcolor="rgba(124,58,237,0.06)",
+                    ),
+                    row=3,
+                    col=1,
+                )
+                fig.add_hline(
+                    y=100,
+                    line_color="#64748b",
+                    line_dash="dot",
+                    line_width=1,
+                    opacity=0.6,
+                    row=3,
+                    col=1,
+                )
 
         fig.update_layout(
             template="plotly_white",
@@ -423,8 +433,7 @@ def render_candlestick_drilldown(
                 "rangemode": "tozero",
             },
             yaxis3={
-                "title": "RSI (14)",
-                "range": [0, 100],
+                "title": "Rel Strength vs Nifty 500",
                 "gridcolor": "#f1f5f9",
                 "zeroline": False,
             },
