@@ -98,14 +98,13 @@ def _fetch_mcap_from_pr_zip(target_date: datetime | date) -> dict[str, float]:
         )
         df = df[df[col_mcap].notna() & (df[col_mcap] > 0)]
 
-        # Equity series only. The same symbol can appear under other series
-        # with a different paid-up value, and those rows would overwrite the
-        # equity row in the dict below.
-        col_series = next((c for c in df.columns if c.lower().strip() == "series"), None)
-        if col_series is not None:
-            eq = df[df[col_series].astype(str).str.strip().str.upper() == "EQ"]
-            if not eq.empty:
-                df = eq
+        # Market cap is a company-level figure (price × total outstanding
+        # shares) -- the same number regardless of which trading series the
+        # stock happened to settle under on a given day (EQ, BE, BL, etc.).
+        # Deduplicate by symbol to handle the uncommon case where NSE lists
+        # the same ticker under multiple series in one bhavcopy, keeping the
+        # first row encountered.
+        df = df.drop_duplicates(subset=[col_sym], keep="first")
 
         result: dict[str, float] = df.set_index(col_sym)[col_mcap].to_dict()
     except _NSEBlocked:
