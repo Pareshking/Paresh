@@ -1,6 +1,8 @@
 # NSE Quantitative Momentum Terminal
 
-Institutional-style quantitative multi-system momentum ranking, portfolio construction, delivery accumulation, and walk-forward backtesting platform for Indian equities (NSE).
+Institutional-style quantitative momentum ranking, portfolio construction and
+walk-forward backtesting for Indian equities (NSE), with an append-only monthly
+track record against Nifty 500.
 
 ## V1 quantitative status
 
@@ -29,15 +31,23 @@ The approved System-1 Sharpe methodology is intentionally retained. It is a **pe
 
 **R-squared is not part of System-1 and is not used to scale its score.**
 
-### Other quantitative systems
+### Removed ranking systems
 
-| # | System | Description |
-|---|--------|-------------|
-| 1 | **Sharpe Momentum** | Multi-window Z-score across calendar 1M/3M/6M/9M/12M horizons; no R-squared scaling |
-| 2 | **Vectorized Exp-Regression** | Vectorized rolling regression-based trend signal |
-| 3 | **Residual / Idiosyncratic Alpha** | Rolling regression against the common V1 market benchmark |
-| 4 | **Industry-Relative Momentum** | Stock composite score relative to a **leave-one-out** industry/sector peer mean |
-| 5 | **Momentum Acceleration** | Short-term momentum versus long-term momentum |
+System-1 is the **only** ranking system. Four alternatives — Vectorized
+Exp-Regression, Residual / Idiosyncratic Alpha, Industry-Relative Momentum and
+Momentum Acceleration — together with the Multi-Strategy Overlay tab, have been
+removed.
+
+None of them ever fed the composite Rank. Each produced extra columns and
+carried its own failure modes: residual alpha reached out to Yahoo mid-
+calculation, making a compute method's cost depend on a third party. Mean-
+Variance Optimization was removed from the portfolio engine for the same class
+of reason — it silently degraded to Equal Weight on any exception while still
+reporting itself as MVO (audit F1). Delivery Accumulation was removed with them.
+
+`tests/test_removed_systems_stay_removed.py` asserts their absence, so a
+re-import or a stray column reference cannot quietly resurrect a half-wired
+feature.
 
 ## Canonical V1 conventions
 
@@ -64,13 +74,33 @@ For monthly V1 rebalancing:
 
 The backtester must use the same canonical System-1 calendar-period engine as the live screener.
 
-### Industry-relative methodology
+### Reported backtest window
 
-For stock `i` in an industry with more than one valid member:
+The backtest reports the last **six completed calendar months**. The month in
+progress is excluded: a part-month return shown beside whole ones invites
+comparing three weeks against six full months, and it moves every session until
+the month closes. Rebalances are filtered on the **execution** date (T+1), so
+the rebalance signalled on the last session of the previous month — which fills
+on the first session of the current one — falls outside the reported window by
+construction.
 
-`Relative_i = Score_i - mean(Score_j for j != i)`
+### Current book and this month's changes
 
-The stock's own score is therefore excluded from its peer benchmark. Missing values remain missing according to the existing ranking contract; singleton industries have no peer-relative comparison.
+That exclusion leaves the person holding the portfolio with no answer to their
+two questions, so the Backtest tab answers them separately, above the
+performance tables:
+
+- **Current Holdings** — the book as it stands *after* this month's fill,
+  marked at the latest close, with entry date, entry price, unrealised return,
+  holding period, weight, and rank drift since entry. Names bought at this
+  month's fill carry that fill date and price; retained names keep their
+  original entry date, because buffer retention is not a re-entry.
+- **This Month's Changes** — SOLD / BOUGHT / HELD with the reason for each. A
+  SOLD row reports the realised round trip struck at the fill; BOUGHT and HELD
+  rows are unrealised at the latest close.
+
+These marks use the latest close — a date the reported window does not cover —
+and feed neither the equity curve, the monthly table, nor the headline stats.
 
 ### Missing stock observations
 
@@ -90,22 +120,46 @@ Portfolio/risk mathematics is intentionally separate from System-1 signal mathem
 
 Examples include realized-volatility targeting, inverse-volatility weighting, covariance estimation and constrained ERC. These retain their approved session counts and annualization conventions.
 
+## Track record
+
+`data/track_record.json` is an **append-only** monthly record of what the
+strategy posted, from January 2026, against Nifty 500.
+
+The backtest recomputes from live prices on every run, which is correct for a
+backtest and useless as a record: a vendor price revision, an index change or a
+nudged slider silently rewrites what January returned. So a closed month is
+written **once** and frozen — re-running the updater cannot move a stored
+number. Each entry carries the configuration fingerprint that produced it, the
+date it was frozen and the price date it was struck from.
+
+Months are marked by origin. **Recorded** months were frozen as they closed,
+from the data as it stood then. **Backfilled** months were reconstructed later
+from today's universe and prices, so they carry the backtest's biases and are
+weaker evidence. Month-to-date is never stored — it moves every session, so it
+is computed live and shown beside the frozen months.
+
+See [`docs/TRACK_RECORD.md`](docs/TRACK_RECORD.md) for the full contract,
+conventions and operations.
+
 ## Research audit tracker
 
 See [`docs/V1_AUDIT_TRACKER.md`](docs/V1_AUDIT_TRACKER.md) for the full audit roadmap, completed corrections, and remaining research tasks.
 
 ## Core capabilities
 
-1. **Stock Rankings**: Full-universe screening, symbol/industry/index/sector search, multi-factor ranking, rank movers, single-stock deep-dive and CSV export.
-2. **Qualified Picks**: High-conviction screening and concentration analysis.
-3. **Industry & RRG**: Industry rankings and Relative Rotation Graph analysis.
-4. **Multi-Strategy Overlay**: Consensus across Residual Alpha, Industry-Relative and Acceleration systems.
-5. **Portfolio Optimization**: Equal Weight, Inverse Volatility and Mean-Variance Optimization with covariance shrinkage, constraints and volatility targeting.
-6. **Delivery Accumulation**: NSE delivery/volume surge analysis.
-7. **Watchlist**: Custom portfolio tracking against quantitative rankings.
-8. **Market Breadth**: Moving-average breadth and high/low statistics.
-9. **Strategy Backtest**: Walk-forward historical backtesting with rank at T close and execution at T+1.
-10. **Config & Diagnostics**: Index constituents, factor weights, risk parameters and cache diagnostics.
+Tabs, in the order the app renders them:
+
+1. **Screener**: Full-universe screening, symbol/industry/index/sector search, ranking, rank movers, single-stock deep-dive and CSV export.
+2. **Qualified**: High-conviction screening and concentration analysis.
+3. **Sectors**: Industry rankings.
+4. **RRG**: Relative Rotation Graph analysis.
+5. **Portfolio**: Equal Weight and Inverse Volatility construction with capital sizing and broker-basket export. Note this is a *top-N snapshot* of the current ranking — it has no persistence buffer and no memory of existing holdings, so it is not the same book the backtest runs.
+6. **Watchlist**: Custom portfolio tracking against quantitative rankings.
+7. **Market Breadth**: Moving-average breadth and high/low statistics.
+8. **Backtest**: Walk-forward backtesting over the last six completed months, rank at T close and execution at T+1, plus the current book and this month's changes.
+9. **Track Record**: The frozen monthly record against Nifty 500 — see below.
+10. **Configuration**: Index constituents, factor weights, risk parameters and cache diagnostics.
+11. **Guide**: In-app methodology reference.
 
 ## Data integrity
 
@@ -113,18 +167,24 @@ See [`docs/V1_AUDIT_TRACKER.md`](docs/V1_AUDIT_TRACKER.md) for the full audit ro
 - Security-specific missing observations remain missing for quantitative calculations.
 - Short-history securities are masked where the required statistical sample is unavailable.
 - Data-gap diagnostics remain available to identify problematic securities.
+- NSE ships **DUMMY placeholder rows** in its constituent files for corporate actions in flight (four in NIFTY TOTAL MARKET as of Sep 2026, e.g. `DUMMYTRVN`). Any symbol beginning `DUMMY`, shorter than two characters, or literally `NAN` is discarded by the loader, so the real universe is smaller than the raw row count. These placeholders have no price history; ranking one could put an untradeable ticker in the portfolio.
 
 ## Project structure
 
 ```text
+├── .github/workflows/   # daily data sync, monthly track-record freeze, QA probes
 ├── .streamlit/
 ├── data/
+│   ├── indices/             # NSE constituent snapshots (committed by the daily sync)
+│   └── track_record.json    # append-only monthly record
 ├── docs/
+├── scripts/             # sync_data, update_track_record, QA probes
 ├── src/
 │   ├── core/
 │   ├── loaders/
-│   ├── engine/
-│   └── ui/
+│   ├── engine/          # momentum, backtester, portfolio, track_record
+│   └── ui/views/
+├── tests/
 ├── app.py
 ├── requirements.txt
 └── README.md

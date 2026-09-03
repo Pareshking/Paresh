@@ -28,7 +28,7 @@ The audit is a roadmap, not a requirement to reproduce MSCI/NSE/BSE methodology.
 | Volatility mathematics | Audit noted differing methodologies | 🟢 Closed by decision | User-approved volatility mathematics retained; regression tests lock the convention |
 | Portfolio ERC naming | Lower bound means constrained ERC | 🟡 Documentation/research | Ensure UI/docs consistently call it constrained ERC where applicable |
 | Volatility targeting | 63-session realized volatility | 🟢 Accepted | Retained as an intentional portfolio-risk convention; not a System-1 period |
-| Survivorship bias | Current universe can bias historical results | ⚪ Intentionally ignored | User explicitly chose not to address survivorship bias for this stage |
+| Survivorship bias | Current universe can bias historical results | ⚪ Deferred by decision, now partly measurable | Still deferred. Constituent snapshots have been committed daily since 2026-08-19, so point-in-time membership accumulates from here even though it cannot be reconstructed for earlier months |
 | Data history / institutional 3Y replication | Main loader historically around 2Y | 🟠 Open research limitation | Do not claim MSCI replication; consider longer history later if needed |
 | Liquidity / implementability | No strong liquidity penalty | 🟠 Open | Audit and decide whether liquidity/tradability controls are required |
 | Intermediate momentum | 12–7M vs 6–2M not isolated | 🟠 Research opportunity | Test as a separate Umiya research hypothesis; no production change yet |
@@ -36,7 +36,7 @@ The audit is a roadmap, not a requirement to reproduce MSCI/NSE/BSE methodology.
 | Classic month-skip comparison | Current model includes latest month | 🟠 Research opportunity | Compare current no-skip model with 12–1 / 12–2 style alternatives out of sample |
 | Institutional benchmark replication | Umiya differs from MSCI/NSE/BSE/AQR | 🟠 Open research | Build benchmark models for comparison, not as a forced replacement of Umiya |
 | Portfolio construction vs signal | Signal and portfolio implementation are separate | 🟢 Accepted architecture | Keep alpha signal and portfolio implementation explicitly separated |
-| Residual-alpha market proxy | Historical implementation used universe mean if no benchmark | 🟢/🟠 Verify | Common V1 benchmark is now `^CRSLDX`; verify every residual-alpha call path uses it consistently |
+| Residual-alpha market proxy | Historical implementation used universe mean if no benchmark | 🟢 Closed by removal | Residual alpha was removed from the engine entirely (see 2.10). There is no call path left to verify |
 | Numerical robustness | Alignment/missing-data edge cases | 🟠 Ongoing | Continue targeted synthetic tests as new audit items are closed |
 
 ---
@@ -79,6 +79,75 @@ The audit is a roadmap, not a requirement to reproduce MSCI/NSE/BSE methodology.
 
 **Closed.** The old root `MOMENTUM_WINDOWS = [21, 63, 126, 189, 252]` definition was removed. `MOMENTUM_MONTHS = [1, 3, 6, 9, 12]` is the canonical System-1 configuration.
 
+### 2.10 Removal of the four alternative systems, MVO and Delivery
+
+Vectorized Exp-Regression, Residual / Idiosyncratic Alpha, Industry-Relative
+Momentum and Momentum Acceleration were removed, together with the
+Multi-Strategy Overlay tab, Mean-Variance Optimization and Delivery
+Accumulation. None of the ranking systems ever fed the composite Rank; each
+carried its own failure modes (MVO silently degraded to Equal Weight while
+still reporting itself as MVO — audit F1; residual alpha reached out to Yahoo
+mid-calculation). `tests/test_removed_systems_stay_removed.py` asserts their
+absence so a stray reference cannot resurrect a half-wired feature.
+
+This closes the residual-alpha benchmark-consistency item by removal rather
+than by verification.
+
+### 2.11 Completed-month reporting window
+
+The backtest reports the last six COMPLETED calendar months; the month in
+progress is excluded, and rebalances are filtered on the execution date (T+1).
+A part-month return beside whole ones invites a false comparison and moves
+every session. Open positions are marked at the window's last session, not at
+the latest close, so the blotter cannot show a return over a period the equity
+curve never covered.
+
+### 2.12 Current book and this month's changes
+
+The window exclusion left the holder of the portfolio with no view of what they
+hold or what changed. The Backtest tab now shows the book as it stands AFTER
+this month's fill, plus a SOLD / BOUGHT / HELD list with the reason for each.
+
+Two corrections were made here worth recording:
+
+- The month's rebalance was initially treated as **pending**. It is not: it is
+  signalled on the last session of the previous month and fills on the first of
+  the current one, so it has always executed by the time the page is read. The
+  "current" book was therefore showing the previous month's portfolio.
+- Ranks displayed beside holdings are struck at the rebalance signal date, not
+  live, and are labelled "Rank at Rebalance" accordingly.
+
+### 2.13 Append-only track record
+
+`data/track_record.json` records what the strategy posted, month by month, from
+January 2026 against Nifty 500. A closed month is frozen once and never
+recomputed; months are marked `recorded` or `backfill` by origin. See
+`docs/TRACK_RECORD.md`.
+
+### 2.14 Test isolation — shipped data
+
+The sync tests redirected the meta file to a temp path but left `INDICES_LOCAL`
+pointing at the real `data/indices/*.csv`. A faked-successful sync therefore
+overwrote the tracked constituent lists with fixture rows
+(`Co 0,Financial Services,SYM0,...`), and a routine `git add -A` shipped them —
+NIFTY NEXT 50 reached `main` holding 40 symbols that do not exist, so every
+screen and backtest on NIFTY TOTAL MARKET silently lost 50 real constituents.
+
+Fixed by sandboxing `INDICES_LOCAL` into `tmp_path`, plus
+`tests/test_shipped_index_data_is_real.py` to fail loudly if placeholder
+symbols or ISINs appear in a shipped list again. This also cleared five
+sweep-holdout failures that had looked unrelated: they ran after the sync tests
+in the same session and were scoring against the corrupted universe.
+
+### 2.15 DUMMY placeholder filter, now tested
+
+NSE ships DUMMY rows in its constituent files for corporate actions in flight
+(four in NIFTY TOTAL MARKET as of Sep 2026). `indices_loader` discards them, so
+the real universe is 750 against a 754-row file — but that filter had **no test
+at all**. The brittle `== 752` raw row-count assertion, which failed on any
+index revision and counted rows the app never uses, was replaced with a
+behavioural test of the filter and a plausible-range completeness check.
+
 ---
 
 ## 3. Important distinctions to preserve
@@ -105,11 +174,10 @@ MSCI/NSE/BSE/AQR methodologies are comparison/reference models. Umiya is not req
 
 ## 4. Remaining work — ordered queue
 
-### NEXT 1 — Residual-alpha benchmark consistency 🟠
+### ~~NEXT 1 — Residual-alpha benchmark consistency~~ 🟢 Closed by removal
 
-Verify the entire residual-alpha path, including defaults and callers, uses the common `^CRSLDX` benchmark rather than an equal-weight stock-universe proxy.
-
-**Acceptance:** code-path audit + synthetic benchmark test + documentation update.
+Residual alpha no longer exists in the engine (see 2.10), so there is no call
+path to verify. Closed without action.
 
 ### NEXT 2 — Liquidity / implementability audit 🟠
 
@@ -147,7 +215,19 @@ Continue synthetic tests for missing observations, short histories, ties, single
 
 ### Survivorship bias ⚪
 
-Historical point-in-time constituent reconstruction is intentionally deferred because the user explicitly chose to ignore survivorship bias for this development stage.
+Historical point-in-time constituent reconstruction remains deferred by explicit
+user decision.
+
+Two facts recorded since that decision, neither of which reopens it:
+
+1. The daily sync has committed constituent snapshots since **2026-08-19**, so
+   git now accumulates real point-in-time membership going forward. Earlier
+   months cannot be reconstructed — the data does not exist.
+2. The track record's **backfilled** months (Jan–Jul 2026) are therefore scored
+   against September 2026 membership. The bias direction is known — index
+   additions skew toward recent strong performers, which a momentum screen
+   preferentially buys — but its **magnitude is not measured and must not be
+   asserted**. The `origin` field marks which months are affected.
 
 ### V2 ⚪
 
