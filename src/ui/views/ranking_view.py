@@ -101,10 +101,11 @@ _CARD_CSS = """
 .sq-sym:hover{color:#4f46e5;}
 .sq-ind{font-size:.7rem;color:#64748b;margin-top:1px;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap;}
+.sq-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;margin-left:auto;}
 .sq-cmp{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:1.0rem;
-  color:#0f172a;white-space:nowrap;text-align:right;margin-left:auto;}
-.sq-delta{position:absolute;top:10px;right:13px;font-family:'JetBrains Mono',monospace;
-  font-size:.65rem;font-weight:800;padding:2px 7px;border-radius:20px;}
+  color:#0f172a;white-space:nowrap;}
+.sq-delta{font-family:'JetBrains Mono',monospace;
+  font-size:.62rem;font-weight:800;padding:2px 7px;border-radius:20px;white-space:nowrap;}
 .sq-delta-up{background:#d1fae5;color:#065f46;}
 .sq-delta-dn{background:#fecdd3;color:#9f1239;}
 .sq-delta-flat{background:#f1f5f9;color:#64748b;}
@@ -334,14 +335,13 @@ def _card_html(row: pd.Series) -> str:
 
     return (
         f'<div class="sq-card" style="{card_style}{card_opacity}">'
-        + delta_html
         + f'<div class="sq-top">'
         + badge_html
         + f'<div class="sq-nameblock">'
         + f'<a href="?stock={sym}" class="sq-sym">{sym}</a>'
         + f'<div class="sq-ind">{industry}</div>'
         + f'</div>'
-        + f'<div class="sq-cmp">{cmp_html}</div>'
+        + f'<div class="sq-right"><span class="sq-cmp">{cmp_html}</span>{delta_html}</div>'
         + f'</div>'
         + (f'<div class="sq-chips">{chips_html}</div>' if chips_html else "")
         + bar_html
@@ -434,9 +434,6 @@ def render_ranking_view(
             on_back=_back,
         )
         return
-
-    # ── Intelligence strip ───────────────────────────────────────────────────
-    _render_intelligence_strip(rank_df)
 
     # Build dynamic predictive search suggestions
     idx_set = set()
