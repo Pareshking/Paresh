@@ -260,44 +260,62 @@ def _render_identity(row: pd.Series, total_stocks: int) -> None:
     av_bg   = "linear-gradient(135deg,#eef2ff,#e0e7ff)"
 
     ring_html = (
-        f'<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">'
+        f'<div class="sv-ring">'
         + ring_svg
         + "</div>"
         if ring_svg else ""
     )
     industry_or_sector = sector if sector else industry
 
+    # Mobile-responsive styles scoped with sv- class prefix
+    mobile_css = (
+        "<style>"
+        ".sv-hero{background:linear-gradient(150deg,#eef2ff 0%,#f0fdf4 55%,#faf5ff 100%);"
+        f"border:1px solid {LINE};border-radius:16px;padding:20px 22px;margin-bottom:10px;}}"
+        ".sv-top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}"
+        ".sv-avatar{width:52px;height:52px;flex-shrink:0;border-radius:14px;"
+        f"background:{av_bg};border:1px solid #c7d2fe;display:flex;align-items:center;"
+        f"justify-content:center;font-family:'Outfit',sans-serif;font-weight:900;"
+        f"font-size:1.2rem;color:{ACC};}}"
+        ".sv-nameblock{flex:1;min-width:0;}"
+        f".sv-sym{{font-family:'Outfit',sans-serif;font-weight:900;font-size:1.6rem;"
+        f"color:{INK};letter-spacing:-.025em;line-height:1;}}"
+        f".sv-sector{{font-size:.72rem;color:{MUTED};margin-top:4px;}}"
+        ".sv-chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;}"
+        ".sv-ring{flex-shrink:0;}"
+        ".sv-cmp{text-align:right;margin-left:auto;}"
+        f".sv-cmp-val{{font-family:'Outfit',sans-serif;font-weight:900;font-size:2rem;"
+        f"color:{INK};letter-spacing:-.03em;line-height:1;}}"
+        f".sv-cmp-delta{{font-family:'JetBrains Mono',monospace;font-size:.78rem;"
+        f"font-weight:700;color:{r3_clr};margin-top:4px;}}"
+        f".sv-gates{{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px;}}"
+        "@media(max-width:520px){"
+        ".sv-ring svg{width:56px!important;height:56px!important;}"
+        ".sv-cmp-val{font-size:1.5rem!important;}"
+        ".sv-sym{font-size:1.35rem!important;}"
+        ".sv-top{gap:10px;}"
+        "}"
+        "</style>"
+    )
+
     html = (
-        f'<div style="background:linear-gradient(150deg,#eef2ff 0%,#f0fdf4 55%,#faf5ff 100%);'
-        f'border:1px solid {LINE};border-radius:16px;padding:20px 22px;margin-bottom:10px;">'
-        f'<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">'
-        # avatar
-        f'<div style="width:52px;height:52px;border-radius:14px;background:{av_bg};'
-        f'border:1px solid #c7d2fe;display:flex;align-items:center;justify-content:center;'
-        f'font-family:\'Outfit\',sans-serif;font-weight:900;font-size:1.2rem;color:{ACC};">'
-        f'{sym[:2]}</div>'
-        # name + chips
-        f'<div style="flex:1;min-width:0;">'
-        f'<div style="font-family:\'Outfit\',sans-serif;font-weight:900;font-size:1.6rem;'
-        f'color:{INK};letter-spacing:-.025em;line-height:1;">{sym}</div>'
-        f'<div style="font-size:0.72rem;color:{MUTED};margin-top:4px;">'
-        + industry_or_sector
-        + f'</div>'
-        f'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;">{idx_chips}</div>'
-        f'</div>'
-        # rank ring
+        mobile_css
+        + '<div class="sv-hero">'
+        + '<div class="sv-top">'
+        + f'<div class="sv-avatar">{sym[:2]}</div>'
+        + '<div class="sv-nameblock">'
+        + f'<div class="sv-sym">{sym}</div>'
+        + f'<div class="sv-sector">{industry_or_sector}</div>'
+        + f'<div class="sv-chips">{idx_chips}</div>'
+        + '</div>'
         + ring_html
-        # CMP block
-        + f'<div style="text-align:right;margin-left:auto;">'
-        f'<div style="font-family:\'Outfit\',sans-serif;font-weight:900;font-size:2rem;'
-        f'color:{INK};letter-spacing:-.03em;line-height:1;">{cmp_val}</div>'
-        f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;'
-        f'font-weight:700;color:{r3_clr};margin-top:4px;">{r3_str}</div>'
-        f'</div>'
-        f'</div>'
-        # gate row
-        f'<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:14px;">{gates}</div>'
-        f'</div>'
+        + '<div class="sv-cmp">'
+        + f'<div class="sv-cmp-val">{cmp_val}</div>'
+        + f'<div class="sv-cmp-delta">{r3_str}</div>'
+        + '</div>'
+        + '</div>'
+        + f'<div class="sv-gates">{gates}</div>'
+        + '</div>'
     )
     st.markdown(html, unsafe_allow_html=True)
 
