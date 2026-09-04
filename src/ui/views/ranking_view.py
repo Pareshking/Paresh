@@ -82,19 +82,201 @@ DISPLAY_COLS = [
 
 CARD_BATCH = 48
 
+# ── CSS injected once per card-grid render ───────────────────────────────────
+_CARD_CSS = """
+<style>
+.sq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;padding:4px 2px 12px;}
+@media(max-width:520px){.sq-grid{grid-template-columns:1fr;}}
+.sq-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px 15px;
+  position:relative;transition:box-shadow .15s;}
+.sq-card:hover{box-shadow:0 4px 16px rgba(79,70,229,.10);}
+.sq-top{display:flex;align-items:flex-start;gap:9px;margin-bottom:8px;}
+.sq-badge{flex-shrink:0;font-family:'JetBrains Mono',monospace;font-size:.7rem;font-weight:800;
+  padding:3px 8px;border-radius:20px;border:1px solid;}
+.sq-badge-gold{background:#fef3c7;color:#92400e;border-color:#fcd34d;}
+.sq-badge-indigo{background:#eef2ff;color:#4338ca;border-color:#c7d2fe;}
+.sq-nameblock{flex:1;min-width:0;}
+.sq-sym{font-family:'Outfit',sans-serif;font-weight:900;font-size:1.05rem;color:#0f172a;
+  text-decoration:none;border-bottom:1px dotted #94a3b8;}
+.sq-sym:hover{color:#4f46e5;}
+.sq-ind{font-size:.7rem;color:#64748b;margin-top:1px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;}
+.sq-cmp{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:1.0rem;
+  color:#0f172a;white-space:nowrap;text-align:right;margin-left:auto;}
+.sq-delta{position:absolute;top:10px;right:13px;font-family:'JetBrains Mono',monospace;
+  font-size:.65rem;font-weight:800;padding:2px 7px;border-radius:20px;}
+.sq-delta-up{background:#d1fae5;color:#065f46;}
+.sq-delta-dn{background:#fecdd3;color:#9f1239;}
+.sq-delta-flat{background:#f1f5f9;color:#64748b;}
+.sq-chips{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;}
+.sq-chip{font-size:.62rem;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid;white-space:nowrap;}
+.sq-chip-n50{background:#ede9fe;color:#5b21b6;border-color:#ddd6fe;}
+.sq-chip-n500{background:#ecfdf5;color:#065f46;border-color:#bbf7d0;}
+.sq-chip-mid{background:#fff7ed;color:#9a3412;border-color:#fed7aa;}
+.sq-chip-sm{background:#fef9c3;color:#713f12;border-color:#fde68a;}
+.sq-chip-other{background:#f1f5f9;color:#475569;border-color:#e2e8f0;}
+.sq-score-wrap{height:4px;background:#e2e8f0;border-radius:4px;margin-bottom:4px;overflow:hidden;}
+.sq-score-bar{height:4px;background:linear-gradient(90deg,#4f46e5,#059669);border-radius:4px;}
+.sq-score-lbl{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:#94a3b8;margin-bottom:9px;}
+.sq-metrics{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:2px;
+  border-top:1px solid #f1f5f9;padding-top:9px;margin-bottom:9px;}
+.sq-metric{text-align:center;}
+.sq-metric-label{font-size:.58rem;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+.sq-metric-val{font-family:'JetBrains Mono',monospace;font-size:.78rem;font-weight:700;margin-top:1px;}
+.sq-pos{color:#059669;}.sq-neg{color:#e11d48;}.sq-warn{color:#d97706;}.sq-neu{color:#0f172a;}
+.sq-footer{display:flex;justify-content:space-between;align-items:center;
+  border-top:1px solid #f1f5f9;padding-top:8px;
+  font-family:'JetBrains Mono',monospace;font-size:.68rem;color:#64748b;}
+.sq-vol-high{color:#e11d48;font-weight:700;}
+.sq-vol-surge{color:#d97706;font-weight:700;}
+.sq-vol-normal{color:#64748b;}
+</style>"""
+
+
+def _idx_chips_html(indices_raw: str) -> str:
+    """Build index chip HTML for a raw comma-separated Indices string."""
+    chips = ""
+    for part in str(indices_raw or "").split(","):
+        s = part.strip()
+        if not s or s == "—":
+            continue
+        if "50" in s and "500" not in s:
+            chips += '<span class="sq-chip sq-chip-n50">N50</span>'
+        elif "500" in s:
+            chips += '<span class="sq-chip sq-chip-n500">N500</span>'
+        elif "MIDCAP" in s.upper():
+            chips += '<span class="sq-chip sq-chip-mid">MID</span>'
+        elif "SMALLCAP" in s.upper():
+            chips += '<span class="sq-chip sq-chip-sm">SM</span>'
+    return chips
+
+
+def _card_html(row: pd.Series) -> str:
+    """Return the HTML for a single screener card (no st.* calls)."""
+    sym      = str(row.get("Symbol", ""))
+    industry = str(row.get("Industry") or "—")
+    rank_raw = row.get("Rank")
+    rank_num = int(rank_raw) if pd.notna(rank_raw) else None
+    score    = row.get("Score")
+    indices  = str(row.get("Indices") or "")
+
+    cmp_val  = row.get("CMP")
+    ret_12m  = row.get("12M Return")
+    ret_3m   = row.get("3M Return")
+    sharpe3  = row.get("3M Sharpe")
+    dd_12m   = row.get("Max DD 12M")
+    delta1m  = row.get("Rank Δ 1M")
+    sl_val   = row.get("Stop Loss")
+    vol      = str(row.get("Volume") or "Normal")
+
+    # Rank badge
+    if rank_num is not None:
+        badge_cls = "sq-badge-gold" if rank_num <= 3 else "sq-badge-indigo"
+        badge_html = f'<span class="sq-badge {badge_cls}">#{rank_num}</span>'
+    else:
+        badge_html = ""
+
+    # Rank delta badge (top-right)
+    if pd.notna(delta1m) and delta1m is not None:
+        d = int(delta1m)
+        if d > 0:
+            delta_html = f'<span class="sq-delta sq-delta-up">▲{d}</span>'
+        elif d < 0:
+            delta_html = f'<span class="sq-delta sq-delta-dn">▼{abs(d)}</span>'
+        else:
+            delta_html = '<span class="sq-delta sq-delta-flat">—</span>'
+    else:
+        delta_html = ""
+
+    # CMP
+    cmp_html = f"₹{cmp_val:,.0f}" if pd.notna(cmp_val) and cmp_val else "—"
+
+    # Chips
+    chips_html = _idx_chips_html(indices)
+    if not chips_html and industry and industry != "—":
+        ind_s = industry[:10] + "…" if len(industry) > 11 else industry
+        chips_html = f'<span class="sq-chip sq-chip-other">{ind_s}</span>'
+
+    # Score bar
+    score_pct = 0
+    score_label = "—"
+    if score is not None and pd.notna(score):
+        score_pct = int(max(0, min(100, float(score) * 100)))
+        score_label = f"{float(score):.3f}"
+    bar_html = (
+        f'<div class="sq-score-wrap"><div class="sq-score-bar" style="width:{score_pct}%"></div></div>'
+        f'<div class="sq-score-lbl">Score {score_label}</div>'
+    )
+
+    # Metrics
+    def _fmt_pct(v, scale=100):
+        if v is None or (isinstance(v, float) and pd.isna(v)):
+            return "—", "sq-neu"
+        f = float(v) * scale
+        clr = "sq-pos" if f > 0 else ("sq-neg" if f < 0 else "sq-neu")
+        return f"{f:+.1f}%", clr
+
+    def _fmt_ratio(v):
+        if v is None or (isinstance(v, float) and pd.isna(v)):
+            return "—", "sq-neu"
+        f = float(v)
+        clr = "sq-pos" if f > 1 else ("sq-warn" if f > 0 else "sq-neg")
+        return f"{f:.2f}", clr
+
+    r12_txt, r12_clr = _fmt_pct(ret_12m)
+    r3_txt,  r3_clr  = _fmt_pct(ret_3m)
+    sh_txt,  sh_clr  = _fmt_ratio(sharpe3)
+    dd_txt,  dd_clr  = _fmt_pct(dd_12m, scale=1)  # already in %
+
+    metrics_html = (
+        '<div class="sq-metrics">'
+        f'<div class="sq-metric"><div class="sq-metric-label">12M Ret</div>'
+        f'<div class="sq-metric-val {r12_clr}">{r12_txt}</div></div>'
+        f'<div class="sq-metric"><div class="sq-metric-label">3M Ret</div>'
+        f'<div class="sq-metric-val {r3_clr}">{r3_txt}</div></div>'
+        f'<div class="sq-metric"><div class="sq-metric-label">Sharpe</div>'
+        f'<div class="sq-metric-val {sh_clr}">{sh_txt}</div></div>'
+        f'<div class="sq-metric"><div class="sq-metric-label">Max DD</div>'
+        f'<div class="sq-metric-val {dd_clr}">{dd_txt}</div></div>'
+        '</div>'
+    )
+
+    # Footer
+    sl_str = f"SL ₹{sl_val:,.0f}" if sl_val and pd.notna(sl_val) else ""
+    vol_icon = "🔥" if vol == "High" else ("⚡" if vol == "Surge" else "•")
+    vol_cls = "sq-vol-high" if vol == "High" else ("sq-vol-surge" if vol == "Surge" else "sq-vol-normal")
+    footer_html = (
+        f'<div class="sq-footer">'
+        f'<span>{sl_str}</span>'
+        f'<span class="{vol_cls}">{vol_icon} {vol}</span>'
+        f'</div>'
+    )
+
+    return (
+        f'<div class="sq-card">'
+        + delta_html
+        + f'<div class="sq-top">'
+        + badge_html
+        + f'<div class="sq-nameblock">'
+        + f'<a href="?stock={sym}" class="sq-sym">{sym}</a>'
+        + f'<div class="sq-ind">{industry}</div>'
+        + f'</div>'
+        + f'<div class="sq-cmp">{cmp_html}</div>'
+        + f'</div>'
+        + (f'<div class="sq-chips">{chips_html}</div>' if chips_html else "")
+        + bar_html
+        + metrics_html
+        + footer_html
+        + '</div>'
+    )
+
 
 def _render_card_grid(view: pd.DataFrame) -> None:
     """Card grid over the WHOLE result set, revealed a batch at a time.
 
-    It used to render view.head(48) and stop -- silently. Rank #49 onward
-    simply did not exist in card view, with nothing on screen to say so, which
-    is how a 750-stock screener came to look like a 48-stock one.
-
-    Streamlit has no viewport-driven lazy loading, so this is the honest
-    equivalent: render a batch, say exactly how many of how many are shown, and
-    let the reader ask for more. Rendering all 750 cards at once is what the
-    original cap was avoiding, and that instinct was right -- it is thousands
-    of DOM nodes on a phone.
+    Uses CSS grid (auto-fill minmax 260px) rendered in one st.markdown call
+    so ?stock=SYM links navigate the parent Streamlit app and layout adapts
+    from 4-col desktop → 1-col mobile without any Python viewport detection.
     """
     total = len(view)
     if total == 0:
@@ -103,19 +285,15 @@ def _render_card_grid(view: pd.DataFrame) -> None:
 
     state_key = "rank_cards_shown"
     shown = min(int(st.session_state.get(state_key, CARD_BATCH)), total)
-    # A narrowed filter must not leave the counter stranded above the new total.
     if shown < CARD_BATCH:
         shown = min(CARD_BATCH, total)
 
     card_items = view.head(shown).reset_index(drop=True)
-    n_cols = 4
-    for i in range(0, len(card_items), n_cols):
-        cols = st.columns(n_cols)
-        for j in range(n_cols):
-            if i + j < len(card_items):
-                with cols[j]:
-                    render_stock_card(card_items.iloc[i + j])
-        st.markdown(" ")
+    cards_inner = "".join(_card_html(card_items.iloc[i]) for i in range(len(card_items)))
+    st.markdown(
+        _CARD_CSS + f'<div class="sq-grid">{cards_inner}</div>',
+        unsafe_allow_html=True,
+    )
 
     st.caption(f"Showing {shown} of {total} stocks.")
     if shown < total:
@@ -139,80 +317,8 @@ def _render_card_grid(view: pd.DataFrame) -> None:
 
 
 def render_stock_card(row: pd.Series) -> None:
-    """Renders a modern stock screener card (Tickerboom style)."""
-    sym = row["Symbol"]
-    industry = row.get("Industry", "—")
-    rank_num = int(row["Rank"]) if pd.notna(row.get("Rank")) else "—"
-
-    cmp_val = row.get("CMP", 0)
-    ret_3m = row.get("3M Return", 0)
-    ret_6m = row.get("6M Return", 0)
-    ret_3m_clr = "#059669" if ret_3m >= 0 else "#e11d48"
-    ret_6m_clr = "#059669" if ret_6m >= 0 else "#e11d48"
-    pct_hi = row.get("% High", 0)
-    hi_clr = "#059669" if pct_hi >= -10 else ("#d97706" if pct_hi >= -20 else "#64748b")
-    sl_val = row.get("Stop Loss", 0)
-    chand_val = row.get("Chand Exit", 0)
-    sharpe_3m = row.get("3M Sharpe", 0)
-    vol = row.get("Volume", "Normal")
-    vol_icon = "🔥" if vol == "High" else ("⚡" if vol == "Surge" else "•")
-
-    card_html = f"""
-    <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); transition: all 0.15s ease;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
-            <div>
-                <span style="font-size: 0.72rem; font-weight: 700; color: #4f46e5; background-color: #eef2ff; border: 1px solid #c7d2fe; padding: 2px 7px; border-radius: 20px; font-family: 'IBM Plex Mono', monospace;">
-                    #{rank_num}
-                </span>
-                <a href="?stock={sym}" target="_self" style="font-weight: 600; font-size: 1.02rem; color: #0f172a; margin-left: 6px; text-decoration: none; border-bottom: 1px dotted #94a3b8;" title="Open {sym}">
-                    {sym}
-                </a>
-            </div>
-            <div style="font-family: 'IBM Plex Mono', monospace; font-weight: 800; font-size: 1.05rem; color: #0f172a;">
-                ₹{cmp_val:,.0f}
-            </div>
-        </div>
-
-        <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-            {industry}
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; border-top: 1px solid #f1f5f9; padding-top: 10px;">
-            <div>
-                <span style="color: #64748b;">3M Ret:</span>
-                <strong style="color: {ret_3m_clr};">{ret_3m:+.1%}</strong>
-            </div>
-            <div>
-                <span style="color: #64748b;">6M Ret:</span>
-                <strong style="color: {ret_6m_clr};">{ret_6m:+.1%}</strong>
-            </div>
-            <div>
-                <span style="color: #64748b;">3M Sharpe:</span>
-                <strong>{sharpe_3m:.2f}</strong>
-            </div>
-            <div>
-                <span style="color: #64748b;">52W Dist:</span>
-                <strong style="color: {hi_clr};">{pct_hi:+.1f}%</strong>
-            </div>
-            <div>
-                <span style="color: #64748b;">Stop Loss:</span>
-                <strong style="color: #e11d48;">₹{sl_val:,.0f}</strong>
-            </div>
-        </div>
-
-        <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; font-size: 0.74rem; font-family: 'IBM Plex Mono', monospace;">
-            <div>
-                <span style="color: #64748b;">Chandelier:</span>
-                <strong style="color: #059669;">₹{chand_val:,.0f}</strong>
-            </div>
-            <div>
-                <span style="color: #64748b;">Volume:</span>
-                <strong style="color: #4f46e5;">{vol_icon} {vol}</strong>
-            </div>
-        </div>
-    </div>
-    """
-    st.html(card_html)
+    """Legacy single-card renderer — kept for external callers; internally card grid uses _card_html."""
+    st.markdown(_CARD_CSS + _card_html(row), unsafe_allow_html=True)
 
 
 def render_ranking_view(
