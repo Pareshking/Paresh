@@ -267,6 +267,28 @@ def _render_identity(row: pd.Series, total_stocks: int) -> None:
     )
     industry_or_sector = sector if sector else industry
 
+    # Period return pills — 1M through 12M inline below the gates
+    _pill_parts = []
+    for _mo, _col in [(1, "1M Return"), (3, "3M Return"), (6, "6M Return"),
+                      (9, "9M Return"), (12, "12M Return")]:
+        _v = _num(row.get(_col))
+        if _v is None:
+            continue
+        _pct_s = f"{_v * 100:+.1f}%"
+        _clr   = "#059669" if _v > 0 else "#e11d48"
+        _bg    = "#d1fae5" if _v > 0 else "#fecdd3"
+        _pill_parts.append(
+            f'<span style="background:{_bg};color:{_clr};border-radius:6px;'
+            f'padding:3px 10px;font-family:\'JetBrains Mono\',monospace;'
+            f'font-size:.67rem;font-weight:700;">{_mo}M&nbsp;{_pct_s}</span>'
+        )
+    periods_pills = (
+        f'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">'
+        + "".join(_pill_parts)
+        + "</div>"
+        if _pill_parts else ""
+    )
+
     # Mobile-responsive styles scoped with sv- class prefix
     mobile_css = (
         "<style>"
@@ -315,6 +337,7 @@ def _render_identity(row: pd.Series, total_stocks: int) -> None:
         + '</div>'
         + '</div>'
         + f'<div class="sv-gates">{gates}</div>'
+        + periods_pills
         + '</div>'
     )
     st.markdown(html, unsafe_allow_html=True)

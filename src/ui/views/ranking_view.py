@@ -133,6 +133,78 @@ _CARD_CSS = """
 </style>"""
 
 
+def _render_intelligence_strip(rank_df: pd.DataFrame) -> None:
+    """Dark strip: market status · breadth · 52W Hi count · regime signal."""
+    now = ist_now()
+    hour_min = now.hour * 60 + now.minute
+    is_open = 9 * 60 + 15 <= hour_min <= 15 * 60 + 30 and now.weekday() < 5
+    mkt_status = "OPEN" if is_open else "CLOSED"
+    dot_shadow = "box-shadow:0 0 6px #34d399;" if is_open else ""
+    dot_color  = "#34d399" if is_open else "#94a3b8"
+
+    n_total = len(rank_df)
+    ema_mask = to_bool_mask(rank_df.get("Above 50 EMA", pd.Series(dtype=object)))
+    hi_mask  = to_bool_mask(rank_df.get("Near 52W High", pd.Series(dtype=object)))
+    n_ema = int(ema_mask.sum()) if n_total else 0
+    n_hi  = int(hi_mask.sum())  if n_total else 0
+    breadth_pct = round(n_ema / n_total * 100) if n_total else 0
+
+    if breadth_pct >= 65:
+        regime, regime_bg = "BULL TRENDING", "#4f46e5"
+    elif breadth_pct >= 50:
+        regime, regime_bg = "BULL MIXED",    "#059669"
+    elif breadth_pct >= 35:
+        regime, regime_bg = "BEAR MIXED",    "#d97706"
+    else:
+        regime, regime_bg = "BEAR TRENDING", "#e11d48"
+
+    sep = "border-right:1px solid rgba(255,255,255,.1);"
+    lbl = "color:rgba(255,255,255,.4);margin-right:4px;"
+    val = "color:#fff;font-weight:600;"
+    item = (
+        f'display:inline-flex;align-items:center;gap:0;'
+        f'padding:0 14px;{sep}'
+    )
+
+    strip = (
+        f'<div style="background:#0f172a;padding:7px 0 7px 14px;'
+        f'display:flex;align-items:center;overflow-x:auto;white-space:nowrap;'
+        f'font-family:\'JetBrains Mono\',monospace;font-size:.64rem;">'
+        # NSE open/closed
+        f'<span style="{item}">'
+        f'<span style="width:7px;height:7px;border-radius:50%;background:{dot_color};'
+        f'flex-shrink:0;{dot_shadow}margin-right:6px;"></span>'
+        f'<span style="{lbl}">NSE</span>'
+        f'<span style="{val}">{mkt_status}</span>'
+        f'</span>'
+        # Breadth
+        f'<span style="{item}">'
+        f'<span style="{lbl}">BREADTH</span>'
+        f'<span style="color:#34d399;font-weight:700;">{breadth_pct}%</span>'
+        f'<span style="color:rgba(255,255,255,.3);margin-left:4px;">&gt;50 EMA</span>'
+        f'</span>'
+        # 52W Hi count
+        f'<span style="{item}">'
+        f'<span style="{lbl}">52W HI</span>'
+        f'<span style="color:#818cf8;font-weight:700;">{n_hi}</span>'
+        f'<span style="color:rgba(255,255,255,.3);margin-left:4px;">stocks near</span>'
+        f'</span>'
+        # Regime pill
+        f'<span style="{item}">'
+        f'<span style="{lbl}">REGIME</span>'
+        f'<span style="background:{regime_bg};color:#fff;padding:2px 8px;'
+        f'border-radius:4px;font-size:.58rem;font-weight:700;letter-spacing:.05em;">{regime}</span>'
+        f'</span>'
+        # Universe count
+        f'<span style="display:inline-flex;align-items:center;padding:0 14px;margin-left:auto;">'
+        f'<span style="{lbl}">UNIVERSE</span>'
+        f'<span style="{val}">{n_total} stocks</span>'
+        f'</span>'
+        f'</div>'
+    )
+    st.markdown(strip, unsafe_allow_html=True)
+
+
 def _idx_chips_html(indices_raw: str) -> str:
     """Build index chip HTML for a raw comma-separated Indices string."""
     chips = ""
@@ -168,6 +240,14 @@ def _card_html(row: pd.Series) -> str:
     delta1m  = row.get("Rank Δ 1M")
     sl_val   = row.get("Stop Loss")
     vol      = str(row.get("Volume") or "Normal")
+    above_ema = bool(to_bool_mask(pd.Series([row.get("Above 50 EMA")])).iloc[0])
+    near_hi   = bool(to_bool_mask(pd.Series([row.get("Near 52W High")])).iloc[0])
+
+    # Card wrapper style — 52W Hi highlight, below-EMA dimming
+    card_style = ""
+    if near_hi:
+        card_style += "border-color:#c7d2fe;background:linear-gradient(135deg,#fafbff 0%,#f8fafc 100%);"
+    card_opacity = "" if above_ema else "opacity:.58;"
 
     # Rank badge
     if rank_num is not None:
@@ -253,7 +333,7 @@ def _card_html(row: pd.Series) -> str:
     )
 
     return (
-        f'<div class="sq-card">'
+        f'<div class="sq-card" style="{card_style}{card_opacity}">'
         + delta_html
         + f'<div class="sq-top">'
         + badge_html
@@ -354,6 +434,9 @@ def render_ranking_view(
             on_back=_back,
         )
         return
+
+    # ── Intelligence strip ───────────────────────────────────────────────────
+    _render_intelligence_strip(rank_df)
 
     # Build dynamic predictive search suggestions
     idx_set = set()
@@ -539,7 +622,7 @@ def render_ranking_view(
     view_mode = c_view.segmented_control(
         "Layout",
         ["Table", "Cards"],
-        default="Table",
+        default="Cards",
         key="rank_view_mode",
         label_visibility="collapsed",
     )
