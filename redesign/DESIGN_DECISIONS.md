@@ -69,16 +69,26 @@ Order:
 
 Desktop may use multiple analytical columns. Mobile uses a vertically ordered research brief with progressive disclosure.
 
-## D-017 — Stock Detail optional sections
-**Decision:** Fundamentals, news, results, shareholding or peer analysis may appear in visual concepts as future/conditional sections, but are NOT approved quantitative requirements unless the current repository supplies the necessary data. They must not be fabricated during implementation.
+## D-017 — No unsupported Stock Detail sections
+**Decision:** Stock Detail must NOT contain unsupported fundamentals, news, results, shareholding, peer-comparison, analyst, or market-weight data.
+
+The earlier Stock Detail visual concept that included these sections is **REJECTED and must not be treated as a design reference**.
+
+Allowed Stock Detail content is limited to the existing/derivable quantitative and metadata fields documented in `redesign/STOCK_DETAIL_V2.md`.
 
 ## D-018 — No visual filler
 **Decision:** Unsupported metrics are omitted rather than invented to fill UI space.
+
+## D-019 — Screenshot validation gate
+**Decision:** A visual concept is not frozen merely because it looks good. Before freeze, each visible metric/control must be checked against the repository's actual data/calculation availability.
+
+**Reason:** Prevent design drift and prevent attractive but unimplementable UI from becoming the specification.
 
 ## Context preservation rule
 If future work is resumed after a long gap, read:
 1. `redesign/DESIGN_MASTER.md`
 2. `redesign/DESIGN_DECISIONS.md`
 3. `redesign/PAGE_MAP.md`
+4. `redesign/STOCK_DETAIL_V2.md` when working on Stock Detail
 
 Then inspect the relevant current branch/files. Never infer forgotten design decisions from current code alone.
