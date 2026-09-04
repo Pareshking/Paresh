@@ -403,7 +403,13 @@ def render_ranking_view(
     n_ema = int(to_bool_mask(view.get("Above 50 EMA")).sum())
     n_hi = int(to_bool_mask(view.get("Near 52W High")).sum())
     c_info.markdown(
-        f"<div style='font-family:JetBrains Mono,monospace;font-size:0.75rem;color:#64748b;padding-top:4px;'>Showing <strong style='color:#0f172a;'>{n_view}</strong> of {n_total} stocks &nbsp;·&nbsp; <span style='color:#15803d;font-weight:600;'>{n_ema}</span> &gt; 50 EMA &nbsp;·&nbsp; <span style='color:#4f46e5;font-weight:600;'>{n_hi}</span> near 52W Hi</div>",
+        f"<div style='font-family:\"JetBrains Mono\",monospace;font-size:0.72rem;"
+        f"color:#64748b;padding:5px 10px;background:#f8fafc;border:1px solid #e2e8f0;"
+        f"border-radius:8px;line-height:1.5;'>"
+        f"Showing <strong style='color:#0f172a;'>{n_view}</strong> of {n_total} &nbsp;·&nbsp; "
+        f"<span style='color:#059669;font-weight:700;'>{n_ema}</span> &gt;50 EMA &nbsp;·&nbsp; "
+        f"<span style='color:#4f46e5;font-weight:700;'>{n_hi}</span> near 52W Hi"
+        f"</div>",
         unsafe_allow_html=True,
     )
 
@@ -451,6 +457,18 @@ def render_ranking_view(
         view = view.sort_values(sort_by, ascending=asc)
 
     active_cols = [c for c in DISPLAY_COLS if c in view.columns]
+
+    # ── Section header above the results ────────────────────────────────────
+    now = ist_now()
+    month_label = now.strftime("%b %Y")
+    st.markdown(
+        f'<div style="font-size:0.73rem;font-weight:800;color:#0f172a;'
+        f'letter-spacing:0.01em;margin:14px 0 6px;padding-bottom:6px;'
+        f'border-bottom:2px solid #eef2ff;">'
+        f'Top Ranked &nbsp;·&nbsp; <span style="color:#64748b;font-weight:500;">{month_label}</span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
     if view_mode in ["Table", "📊 Table"] or not view_mode:
         # The symbol links inside the table open the stock page directly. A
