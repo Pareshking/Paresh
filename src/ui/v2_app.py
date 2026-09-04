@@ -56,16 +56,18 @@ def _prices(key,symbols): return fetch_price_history(list(symbols),period="2y",f
 def _mcaps(key,symbols): return fetch_market_caps(list(symbols),force_refresh=False)
 @st.cache_data(show_spinner=False,ttl=3600)
 def _ohlcv(key,skey,raw,symbols): return extract_ohlcv(raw,symbols)
-@st.cache_data(show_spinner=False,ttl=3600)
+@st.cache_resource(show_spinner=False)
 def _engine(ph,uh,adj,high,low,close,vol,idx,mcaps):
     c=MomentumEngine(adj,high_df=high,low_df=low,close_df=close,volume_df=vol,weights=[.2]*5)
     _compute_period_z_scores(c); c._precompute_signals(idx,mcaps,close,high); return c
-@st.cache_data(show_spinner=False,ttl=3600)
-def _ranked(base,weights,calc,idx,mcaps,close,high):
-    calc.weights=list(weights); _apply_weight_composite(calc,list(weights)); return calc,calc.get_rankings(idx,mcaps,close_prices_df=close,high_prices_df=high)
+
+def _ranked(calc,weights,idx,mcaps,close,high):
+    calc.weights=list(weights)
+    _apply_weight_composite(calc,list(weights))
+    return calc.get_rankings(idx,mcaps,close_prices_df=close,high_prices_df=high)
 
 def load_data():
-    if st.session_state.pop("v2_force_refresh",False): st.cache_data.clear()
+    if st.session_state.pop("v2_force_refresh",False): st.cache_data.clear(); st.cache_resource.clear()
     indices=st.session_state.get("v2_indices",["NIFTY TOTAL MARKET"])
     rw=[float(st.session_state.get(f"v2_w{i}",x)) for i,x in enumerate((.10,.30,.30,.20,.10),1)]; tw=sum(rw); weights=tuple(w/tw for w in rw) if tw else (.2,)*5
     idx=fetch_indices_data(indices)
@@ -74,8 +76,8 @@ def load_data():
     if raw is None or raw.empty:return None
     adj,close,high,low,vol,open_=_ohlcv(_hash_prices(raw),skey,raw,symbols)
     if adj is None or adj.empty:return None
-    mcaps=_mcaps(skey,symbols); ph=_hash_prices(adj); uh=f"{len(idx)}_{skey}"; base=f"{ph}_{uh}_v2"
-    calc_base=_engine(ph,uh,adj,high,low,close,vol,idx,mcaps); calc,rank=_ranked(base,weights,calc_base,idx,mcaps,close,high)
+    mcaps=_mcaps(skey,symbols); ph=_hash_prices(adj); uh=f"{len(idx)}_{skey}"
+    calc=_engine(ph,uh,adj,high,low,close,vol,idx,mcaps); rank=_ranked(calc,weights,idx,mcaps,close,high)
     if rank is None or rank.empty:return None
     try: regime=get_market_regime()
     except Exception: regime=None
@@ -135,80 +137,70 @@ def render_screener(data):
             if str(r.get("Volume","")).lower() in {"high","surge"}:badges.append("HIGH VOLUME")
             bh=''.join(f'<span class="v2-badge v2-badge-good">{x}</span>' for x in badges) or '<span class="v2-badge">No special state</span>'
             vals=[("1M",_ret(r.get("1M Return"))),("3M",_ret(r.get("3M Return"))),("6M",_ret(r.get("6M Return"))),("12M",_ret(r.get("12M Return"))),("52W High",_pct(r.get("% High"))),("50 EMA",_pct(r.get("% 50 EMA"))),("3M Sharpe",f"{_num(r.get('3M Sharpe')):.2f}" if _num(r.get("3M Sharpe")) is not None else "—"),("12M DD",_pct(r.get("Max DD 12M"),False))]
-            mh=''.join(f'<div class="v2-metric"><div class="v2-metric-label">{x}</div><div class="v2-metric-value">{y}</div></div>' for x,y in vals); dc="v2-delta-pos" if (d or 0)>=0 else "v2-delta-neg"
-            card=f'<div class="v2-stock-card"><div class="v2-stock-top"><div><div class="v2-rank">RANK #{int(_num(r.get("Rank"))) if _num(r.get("Rank")) is not None else "—"}</div><div class="v2-symbol">{html.escape(sym)}</div><div class="v2-industry">{html.escape(str(r.get("Industry","") or ""))}</div></div><div><div class="v2-price">{_money(r.get("CMP"))}</div><div class="{dc}">{_pct(d)}</div></div></div><div class="v2-badges">{bh}</div><div class="v2-score"><div class="v2-score-track"><div class="v2-score-fill" style="width:{pctile:.1f}%"></div></div><div class="v2-score-text">{pctile:.0f}th percentile</div></div><div class="v2-metrics">{mh}</div></div>'
-            with (left if i%2==0 else right):st.html(card); st.button(f"Open {sym}",key=f"v2_card_{i}_{sym}",on_click=lambda s=sym:st.session_state.update(v2_selected_symbol=s,v2_page="Stock Detail"))
-        return
-    cols=["Rank","Symbol","Industry","CMP","1D Change","Score","Score Percentile","Rank Δ 1M","Rank Δ 3M","1M Return","3M Return","6M Return","12M Return","3M Sharpe","12M Sharpe","% High","% 50 EMA","Volume","State"];cols=[x for x in cols if x in shown]
-    t=shown[cols].copy()
-    for c_ in ["1M Return","3M Return","6M Return","12M Return"]:t[c_]=pd.to_numeric(t[c_],errors="coerce")*100
-    cfg={"Rank":st.column_config.NumberColumn("Rank",format="%d",pinned=True),"Symbol":st.column_config.TextColumn("Stock",pinned=True),"CMP":st.column_config.NumberColumn("Price",format="₹ %.2f"),"1D Change":st.column_config.NumberColumn("1D",format="%+.2f%%"),"Score":st.column_config.NumberColumn("Score",format="%.2f"),"Score Percentile":st.column_config.ProgressColumn("Percentile",format="%.0f",min_value=0,max_value=100),"Rank Δ 1M":st.column_config.NumberColumn("Δ 1M",format="%+d"),"Rank Δ 3M":st.column_config.NumberColumn("Δ 3M",format="%+d"),"1M Return":st.column_config.NumberColumn("1M",format="%+.1f%%"),"3M Return":st.column_config.NumberColumn("3M",format="%+.1f%%"),"6M Return":st.column_config.NumberColumn("6M",format="%+.1f%%"),"12M Return":st.column_config.NumberColumn("12M",format="%+.1f%%"),"3M Sharpe":st.column_config.NumberColumn("3M Sharpe",format="%.2f"),"12M Sharpe":st.column_config.NumberColumn("12M Sharpe",format="%.2f"),"% High":st.column_config.NumberColumn("vs 52W High",format="%+.1f%%"),"% 50 EMA":st.column_config.NumberColumn("vs 50 EMA",format="%+.1f%%")}
-    ev=st.dataframe(t,column_config=cfg,hide_index=True,width="stretch",height=560,row_height=34,on_select="rerun",selection_mode="single-row",key="v2_screener_table")
-    if ev.selection.rows:st.session_state.update(v2_selected_symbol=str(shown.iloc[ev.selection.rows[0]]["Symbol"]),v2_page="Stock Detail");st.rerun()
+            mh=''.join(f'<div class="v2-metric"><div class="v2-metric-label">{x}</div><div class="v2-metric-value">{y}</div></div>' for x,y in vals)
+            dhtml='—' if d is None else f'{d:+.1f}%'; dc='v2-delta-pos' if d is not None and d>=0 else 'v2-delta-neg'
+            card=f'<div class="v2-stock-card"><div class="v2-stock-top"><div><div class="v2-rank">#{_num(r.get("Rank")):.0f}</div><div class="v2-symbol">{html.escape(sym)}</div><div class="v2-industry">{html.escape(str(r.get("Industry","—")))}</div></div><div><div class="v2-price">{_money(r.get("CMP"))}</div><div class="{dc}">{dhtml} 1D</div></div></div><div class="v2-badges">{bh}</div><div class="v2-score"><div class="v2-score-track"><div class="v2-score-fill" style="width:{max(0,min(100,pctile)):.1f}%"></div></div><div class="v2-score-text">Score Pctl {pctile:.0f}</div></div><div class="v2-metrics">{mh}</div></div>'
+            with (left if i%2==0 else right):
+                if st.button("Open",key=f"v2_open_{sym}",use_container_width=True): st.session_state.v2_symbol=sym; st.session_state.v2_page="Stock Detail"; st.rerun()
+                st.markdown(card,unsafe_allow_html=True)
+    else:
+        cols=["Rank","Symbol","Industry","CMP","1D Change","1M Return","3M Return","6M Return","12M Return","1M Sharpe","3M Sharpe","6M Sharpe","12M Sharpe","% High","% 50 EMA","Volume","State"]
+        cols=[c for c in cols if c in shown.columns]
+        cfg={"Rank":st.column_config.NumberColumn("Rank",format="%d",pinned=True),"Symbol":st.column_config.TextColumn("Symbol",pinned=True),"CMP":st.column_config.NumberColumn("CMP",format="₹%.2f"),"1D Change":st.column_config.NumberColumn("1D",format="%+.1f%%"),"1M Return":st.column_config.NumberColumn("1M",format="%+.1f%%"),"3M Return":st.column_config.NumberColumn("3M",format="%+.1f%%"),"6M Return":st.column_config.NumberColumn("6M",format="%+.1f%%"),"12M Return":st.column_config.NumberColumn("12M",format="%+.1f%%"),"1M Sharpe":st.column_config.NumberColumn("1M S",format="%.2f"),"3M Sharpe":st.column_config.NumberColumn("3M S",format="%.2f"),"6M Sharpe":st.column_config.NumberColumn("6M S",format="%.2f"),"12M Sharpe":st.column_config.NumberColumn("12M S",format="%.2f"),"% High":st.column_config.NumberColumn("52W High",format="%+.1f%%"),"% 50 EMA":st.column_config.NumberColumn("50 EMA",format="%+.1f%%")}
+        ev=st.dataframe(shown[cols].reset_index(drop=True),column_config=cfg,use_container_width=True,hide_index=True,on_select="rerun",selection_mode="single-row",height=650)
+        if ev.selection.rows:
+            st.session_state.v2_symbol=str(shown.iloc[ev.selection.rows[0]]["Symbol"]);st.session_state.v2_page="Stock Detail";st.rerun()
 
 def render_stock(data,symbol):
-    df=data["rank_df"].copy();df["Score Percentile"]=df["Score"].rank(pct=True)*100
-    if not symbol:st.markdown('<div class="v2-page-title">Stock Detail</div><div class="v2-page-sub">Select a stock from Screener to open its quantitative evidence trail.</div>',unsafe_allow_html=True);st.info("No stock selected.");return
-    hit=df[df["Symbol"].astype(str).str.upper()==str(symbol).upper()]
-    if hit.empty:st.error(f"Stock `{symbol}` is not in the current ranked universe.");return
-    r=hit.iloc[0];sym=str(r["Symbol"]);score=_num(r.get("Score"));pctile=_num(r.get("Score Percentile"));rank=_num(r.get("Rank"));states=[]
-    for key,label in [("Above 50 EMA","Above 50 EMA"),("Near 52W High","Near 52W High"),("At ATH","At ATH")]:
-        if _bool(r.get(key)):states.append(label)
-    if str(r.get("Volume","")).lower() in {"high","surge"}:states.append("High Volume")
-    badges=''.join(f'<span class="v2-badge v2-badge-good">{x}</span>' for x in states) or '<span class="v2-badge">No special state</span>'
-    st.button("← Back to Screener",key="v2_back",on_click=lambda:st.session_state.update(v2_page="Screener"))
-    st.markdown(f'<div class="v2-detail-hero"><div class="v2-stock-top"><div><div class="v2-detail-symbol">{html.escape(sym)}</div><div class="v2-detail-meta">{html.escape(str(r.get("Industry","") or ""))} · quantitative evidence trail</div><div class="v2-badges">{badges}</div></div><div><div class="v2-big-number">{_money(r.get("CMP"))}</div><div class="v2-detail-meta">Rank #{int(rank) if rank is not None else "—"} · {pctile:.0f}th percentile</div></div></div></div>',unsafe_allow_html=True)
-    st.markdown('<div class="v2-section">Momentum position</div>',unsafe_allow_html=True);a,b,c,d=st.columns(4)
-    for col,label,val,sub in [(a,"Score",f"{score:.2f}" if score is not None else "—","composite momentum"),(b,"Percentile",f"{pctile:.0f}" if pctile is not None else "—","cross-sectional"),(c,"Rank Δ 1M",f"{_num(r.get('Rank Δ 1M')):+.0f}" if _num(r.get('Rank Δ 1M')) is not None else "—","rank movement"),(d,"Rank Δ 3M",f"{_num(r.get('Rank Δ 3M')):+.0f}" if _num(r.get('Rank Δ 3M')) is not None else "—","rank movement")]:
-        with col:_card(label,val,sub)
-    st.markdown('<div class="v2-section">Price & technicals</div>',unsafe_allow_html=True);_chart(r,data)
-    st.markdown('<div class="v2-section">Momentum windows</div>',unsafe_allow_html=True);perf=pd.DataFrame(index=["Return","Sharpe","Max Drawdown"],columns=[f"{m}M" for m in PERIODS])
-    for m in PERIODS:
-        perf.loc["Return",f"{m}M"]=_ret(r.get(f"{m}M Return"));s=_num(r.get(f"{m}M Sharpe"));perf.loc["Sharpe",f"{m}M"]=f"{s:.2f}" if s is not None else "—";perf.loc["Max Drawdown",f"{m}M"]=_pct(r.get(f"Max DD {m}M"),False)
-    st.dataframe(perf,width="stretch",height=165)
-    st.markdown('<div class="v2-section">Trend, highs & risk</div>',unsafe_allow_html=True)
-    items=[("50 EMA",_pct(r.get("% 50 EMA")),"distance from EMA"),("52W High",_money(r.get("52W High")),str(r.get("52W High Date","") or "")),("From 52W High",_pct(r.get("% High")),"distance"),("ATH",_money(r.get("ATH")),str(r.get("ATH Date","") or "")),("From ATH",_pct(r.get("% ATH")),"distance"),("6M Persistence",_pct(r.get("Persistence"),False),"positive sessions"),("ATR",_money(r.get("ATR")),f"{_num(r.get('ATR %')):.1f}% of price" if _num(r.get("ATR %")) is not None else ""),("Stop Loss",_money(r.get("Stop Loss")),"2 × ATR"),("Chandelier Exit",_money(r.get("Chand Exit")),"3 × ATR"),("12M Max Drawdown",_pct(r.get("Max DD 12M"),False),"worst observed"),("Volume",str(r.get("Volume","—")),"volume status")]
-    for i in range(0,len(items),3):
-        cs=st.columns(3)
-        for col,(label,val,sub) in zip(cs,items[i:i+3]):
-            with col:_card(label,val,sub)
-    st.markdown('<div class="v2-section">Metadata & data quality</div>',unsafe_allow_html=True);meta={k:r.get(k) for k in ["Market Cap (Cr)","Industry","Indices","Short History","FFill %","Data Gap"] if k in r.index};st.dataframe(pd.DataFrame([meta]),hide_index=True,width="stretch",height=90)
-
-def _card(label,value,sub=""):
-    st.markdown(f'<div class="v2-card"><div class="v2-strip-label">{html.escape(label)}</div><div class="v2-big-number" style="text-align:left;margin-top:6px">{html.escape(str(value))}</div><div class="v2-table-note">{html.escape(sub)}</div></div>',unsafe_allow_html=True)
-
-def _chart(r,data):
+    df=_enrich(data["rank_df"],data["close_prices"]); hit=df[df["Symbol"].astype(str).str.upper()==str(symbol).upper()]
+    if hit.empty:st.error("Stock not found in the current universe.");return
+    r=hit.iloc[0]; sym=str(r["Symbol"]); st.markdown('<div class="v2-brand"><div class="v2-mark">PQ</div><div><div class="v2-brand-name">PARESH QUANT</div><div class="v2-brand-sub">NSE Momentum Terminal · v2 verification build</div></div></div>',unsafe_allow_html=True)
+    if st.button("← Back to Screener",key="v2_back"):st.session_state.v2_page="Screener";st.rerun()
+    st.markdown(f'<div class="v2-detail-hero"><div class="v2-rank">RANK #{_num(r.get("Rank")):.0f}</div><div class="v2-detail-symbol">{html.escape(sym)}</div><div class="v2-detail-meta">{html.escape(str(r.get("Industry","—")))} · CMP {_money(r.get("CMP"))}</div></div>',unsafe_allow_html=True)
+    badges=[]
+    for col,label in [("Above 50 EMA","ABOVE 50 EMA"),("Near 52W High","NEAR 52W HIGH"),("At ATH","AT ATH")]:
+        if _bool(r.get(col)):badges.append(label)
+    if str(r.get("Volume","")).lower() in {"high","surge"}:badges.append("HIGH VOLUME")
+    st.markdown('<div class="v2-badges">'+''.join(f'<span class="v2-badge v2-badge-good">{x}</span>' for x in badges)+'</div>',unsafe_allow_html=True)
+    pctl=_num(r.get("Score Percentile")) or 0
+    c1,c2,c3,c4=st.columns(4)
+    c1.metric("Score",f'{_num(r.get("Score")):.3f}' if _num(r.get("Score")) is not None else "—")
+    c2.metric("Score Percentile",f"{pctl:.0f}")
+    c3.metric("Rank Δ 1M",f'{_num(r.get("Rank Δ 1M")):+.0f}' if _num(r.get("Rank Δ 1M")) is not None else "—")
+    c4.metric("Rank Δ 3M",f'{_num(r.get("Rank Δ 3M")):+.0f}' if _num(r.get("Rank Δ 3M")) is not None else "—")
     try:
         import plotly.graph_objects as go
-        from plotly.subplots import make_subplots
-    except Exception:st.warning("Plotly is unavailable.");return
-    sym=str(r["Symbol"]);close=data["close_prices"]
-    if sym not in close:st.info("Price history is unavailable.");return
-    frame=pd.DataFrame({"Close":pd.to_numeric(close[sym],errors="coerce")});
-    for name,key in (("Open","open_prices"),("High","high_prices"),("Low","low_prices"),("Volume","volume_data")):
-        src=data.get(key)
-        if src is not None and sym in src:frame[name]=pd.to_numeric(src[sym],errors="coerce")
-    frame=frame.dropna(subset=["Close"]).tail(252);fig=make_subplots(rows=2,cols=1,shared_xaxes=True,row_heights=[.78,.22],vertical_spacing=.035)
-    if all(x in frame for x in ["Open","High","Low"]):fig.add_trace(go.Candlestick(x=frame.index,open=frame.Open,high=frame.High,low=frame.Low,close=frame.Close,name=sym),row=1,col=1)
-    else:fig.add_trace(go.Scatter(x=frame.index,y=frame.Close,name="Close"),row=1,col=1)
-    fig.add_trace(go.Scatter(x=frame.index,y=frame.Close.ewm(span=50,min_periods=30).mean(),name="50 EMA"),row=1,col=1);hi=_num(r.get("52W High"));ath=_num(r.get("ATH"))
-    if hi is not None:fig.add_hline(y=hi,line_dash="dot",annotation_text="52W High",row=1,col=1)
-    if ath is not None and (hi is None or abs(ath-hi)>1e-9):fig.add_hline(y=ath,line_dash="dash",annotation_text="ATH",row=1,col=1)
-    if "Volume" in frame:fig.add_trace(go.Bar(x=frame.index,y=frame.Volume,name="Volume",opacity=.35),row=2,col=1)
-    fig.update_layout(height=500,margin=dict(l=8,r=8,t=18,b=8),template="plotly_white",hovermode="x unified",showlegend=True);fig.update_xaxes(rangeslider_visible=False);st.plotly_chart(fig,width="stretch",config={"displaylogo":False})
+        s=pd.to_numeric(data["close_prices"][sym],errors="coerce").dropna(); fig=go.Figure()
+        if data.get("open_prices") is not None and data.get("high_prices") is not None and data.get("low_prices") is not None:
+            o=pd.to_numeric(data["open_prices"][sym],errors="coerce").reindex(s.index); h=pd.to_numeric(data["high_prices"][sym],errors="coerce").reindex(s.index); l=pd.to_numeric(data["low_prices"][sym],errors="coerce").reindex(s.index); fig.add_trace(go.Candlestick(x=s.index,open=o,high=h,low=l,close=s,name="Price"))
+        else: fig.add_trace(go.Scatter(x=s.index,y=s,name="Price",mode="lines"))
+        ema=s.ewm(span=50,adjust=False).mean(); fig.add_trace(go.Scatter(x=s.index,y=ema,name="50 EMA",mode="lines"))
+        for col,name in [("52W High","52W High"),("ATH","ATH")]:
+            v=_num(r.get(col));
+            if v is not None:fig.add_hline(y=v,annotation_text=name)
+        fig.update_layout(height=470,margin=dict(l=10,r=10,t=25,b=10),xaxis_rangeslider_visible=False,template="plotly_white",legend=dict(orientation="h"));st.plotly_chart(fig,use_container_width=True)
+    except Exception as e:st.warning(f"Chart unavailable: {e}")
+    st.markdown('<div class="v2-section">Momentum windows</div>',unsafe_allow_html=True)
+    rows=[]
+    for p in PERIODS:rows.append({"Window":f"{p}M","Return":_ret(r.get(f"{p}M Return")),"Sharpe":_num(r.get(f"{p}M Sharpe")),"Max Drawdown":_pct(r.get(f"Max DD {p}M"),False)})
+    st.dataframe(pd.DataFrame(rows),use_container_width=True,hide_index=True,column_config={"Sharpe":st.column_config.NumberColumn(format="%.2f")})
+    st.markdown('<div class="v2-section">Trend · Highs · Risk</div>',unsafe_allow_html=True)
+    trend=[("50 EMA distance",_pct(r.get("% 50 EMA"))), ("52W High",_money(r.get("52W High"))), ("52W High Date",str(r.get("52W High Date","—"))), ("From 52W High",_pct(r.get("% High"))), ("ATH",_money(r.get("ATH"))), ("ATH Date",str(r.get("ATH Date","—"))), ("From ATH",_pct(r.get("% ATH"))), ("6M Persistence",_pct(r.get("6M Persistence"),False)), ("ATR",_money(r.get("ATR"))), ("ATR%",_pct(r.get("ATR%"),False)), ("Stop Loss",_money(r.get("Stop Loss"))), ("Chandelier Exit",_money(r.get("Chand Exit"))), ("12M Max Drawdown",_pct(r.get("Max DD 12M"),False)), ("Volume",str(r.get("Volume","—")))]
+    st.dataframe(pd.DataFrame(trend,columns=["Metric","Value"]),use_container_width=True,hide_index=True)
+    st.markdown('<div class="v2-section">Metadata · Data Quality</div>',unsafe_allow_html=True)
+    meta=[("Market Cap (Cr)",r.get("Market Cap (Cr)","—")),("Industry",r.get("Industry","—")),("Indices",r.get("Indices","—")),("Short History",r.get("Short History","—")),("FFill %",r.get("FFill %","—")),("Data Gap",r.get("Data Gap","—"))]
+    st.dataframe(pd.DataFrame(meta,columns=["Field","Value"]),use_container_width=True,hide_index=True)
 
 def run():
-    st.html(CSS)
-    if "v2_page" not in st.session_state:st.session_state["v2_page"]="Screener"
-    if "v2_selected_symbol" not in st.session_state:st.session_state["v2_selected_symbol"]=None
-    a,b,c=st.columns([1,3,1])
-    with a:st.markdown("**PARESH QUANT**")
-    with b:
-        p=st.pills("Navigation",["Screener","Stock Detail"],default=st.session_state["v2_page"],key="v2_nav",label_visibility="collapsed")
-        if p:st.session_state["v2_page"]=p
-    with c:
-        if st.button("↻ Refresh data",key="v2_refresh"):st.session_state["v2_force_refresh"]=True;st.rerun()
-    with st.spinner("Loading quantitative universe…"):data=load_data()
-    if not data:st.error("Unable to initialize the existing quantitative universe/data pipeline.");st.stop()
-    if st.session_state["v2_page"]=="Stock Detail":render_stock(data,st.session_state.get("v2_selected_symbol"))
+    st.markdown(CSS,unsafe_allow_html=True)
+    if "v2_page" not in st.session_state:st.session_state.v2_page="Screener"
+    data=load_data()
+    if data is None:st.error("Unable to load the quantitative dataset.");return
+    page=st.pills("Page",["Screener","Stock Detail"],default=st.session_state.v2_page,key="v2_page_pill",label_visibility="collapsed")
+    st.session_state.v2_page=page
+    if page=="Stock Detail":
+        symbol=st.session_state.get("v2_symbol")
+        if not symbol:
+            st.info("Select a stock from the Screener first.");return
+        render_stock(data,symbol)
     else:render_screener(data)
