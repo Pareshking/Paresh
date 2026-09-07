@@ -133,7 +133,18 @@
       "looks_like": "unmatched \u2014 possible demerger or spin-off",
       "kind": "unclassified",
       "first_seen": "2026-09-03"
+    },
+    "2026-09-07:HEG": {
+      "date": "2026-09-07",
+      "symbol": "HEG",
+      "move": -0.626227,
+      "ratio": 0.373773,
+      "prev_close": 728.25,
+      "close": 272.2,
+      "looks_like": "unmatched \u2014 possible demerger or spin-off",
+      "kind": "unclassified",
+      "first_seen": "2026-09-07"
     }
   },
-  "last_checked": "2026-09-04"
+  "last_checked": "2026-09-07"
 }
