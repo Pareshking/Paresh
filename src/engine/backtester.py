@@ -203,9 +203,15 @@ def _compute_weights(
         raw = inv / t_w if t_w > 0 else pd.Series(1.0 / len(holdings), index=list(holdings))
     else:
         raw = pd.Series(1.0 / len(holdings), index=list(holdings))
-    return apply_caps(
+    capped = apply_caps(
         raw, sector_map or {}, sector_cap=sector_cap, stock_cap=stock_cap
     )
+    # `.attrs` does not survive the full-width reindex the caller performs, so
+    # hand the neutralisation fact back through a channel that does.
+    _compute_weights.last_scheme_neutralised = bool(
+        capped.attrs.get("scheme_neutralised", False)
+    )
+    return capped
 
 
 def _exit_reason(
@@ -1029,13 +1035,28 @@ def run_backtest(
     # month leaked into a statistic that is supposed to describe the average.
     ann_mean_excess = float(strat_daily_s.mean() * 252) - RISK_FREE_RATE
     strat_sharpe = float(ann_mean_excess / strat_vol) if strat_vol > 0 else 0.0
-    # How much of that ratio is sample noise. SE(Sharpe) ~ sqrt((1+S^2/2)/n).
-    # Over ~126 sessions the standard error on a Sharpe of 2 is about 0.15, and
-    # on a Sharpe of 6 about 0.4 -- which is the whole point of publishing it
-    # beside a number the UI prints to two decimals.
-    sharpe_stderr = (
-        float(np.sqrt((1.0 + 0.5 * strat_sharpe**2) / n_days)) if n_days > 1 else float("nan")
-    )
+    # How much of that ratio is sample noise, per Lo (2002):
+    #     SE(S) = sqrt((1 + S^2/2) / n)
+    # where S is the PER-PERIOD Sharpe and n the number of those periods. The
+    # first version of this line passed the ANNUALISED Sharpe with a count of
+    # daily sessions and returned the result unscaled, which understates the
+    # true standard error by roughly an order of magnitude -- 0.15 where a
+    # 20,000-trial Monte Carlo gives 1.43 for S_ann = 2 over 126 sessions, a
+    # factor of 9.2, and 13x at S_ann = 1 over 252.
+    #
+    # That inverted the entire point of the field. A six-month Sharpe that is
+    # statistically indistinguishable from zero (1.4 sigma) was being presented
+    # as overwhelming evidence (13 sigma), beside a number printed to two
+    # decimals. Convert to the daily Sharpe, take the standard error there, and
+    # scale back up: SE(S_ann) = sqrt(252) * sqrt((1 + S_ann^2/504) / n).
+    _ANNUALISATION = 252.0
+    if n_days > 1:
+        _s_period = strat_sharpe / np.sqrt(_ANNUALISATION)
+        sharpe_stderr = float(
+            np.sqrt(_ANNUALISATION) * np.sqrt((1.0 + 0.5 * _s_period**2) / n_days)
+        )
+    else:
+        sharpe_stderr = float("nan")
 
     dd_series = eq_strat_net / eq_strat_net.cummax() - 1
     max_dd = float(dd_series.min())
@@ -1128,5 +1149,10 @@ def run_backtest(
             "current_universe_periods": current_universe_periods,
             "pit_from": pit_from,
             "actions_adjusted": len(actions_applied),
+            # True when the stock cap admits only one fully-invested book, so
+            # `weight_method` had no effect on the simulation at all.
+            "scheme_neutralised": bool(
+                getattr(_compute_weights, "last_scheme_neutralised", False)
+            ),
         },
     }

@@ -101,7 +101,14 @@ def apply_caps(
     if n == 0:
         return w
     if n == 1:
-        return pd.Series([1.0], index=w.index)
+        only = pd.Series([1.0], index=w.index)
+        # One name is 100% of the book whatever the cap says. Report that rather
+        # than returning a Series with no metadata for the caller to read.
+        only.attrs["effective_stock_cap"] = 1.0
+        only.attrs["effective_sector_cap"] = 1.0
+        only.attrs["caps_relaxed"] = bool(stock_cap < 1.0)
+        only.attrs["scheme_neutralised"] = True
+        return only
 
     sec_groups: dict[str, list[str]] = {}
     if sector_map:
@@ -120,12 +127,20 @@ def apply_caps(
     # admits a fully-invested portfolio is 1/capacity applied to both caps.
     eff_stock_cap = max(stock_cap, 1.0 / n + 1e-9)
     eff_sector_cap = max(sector_cap, 1.0 / num_sec + 1e-9)
+    # A cap raised to its own floor is ALREADY a relaxation, and `relaxed` used
+    # to be set only by the joint-capacity test below -- so the commonest case
+    # never flagged and the caller's warning was dead for it. Twenty names in
+    # one industry under a 30% sector cap produced a 100%-single-industry book
+    # with nothing said.
+    floor_relaxed = (
+        eff_stock_cap > stock_cap + 1e-12 or eff_sector_cap > sector_cap + 1e-12
+    )
     capacity = sum(
         min(eff_sector_cap, len(syms) * eff_stock_cap)
         for syms in (sec_groups.values() or [list(w.index)])
     ) or 1.0
-    relaxed = capacity < 1.0 - 1e-12
-    if relaxed:
+    relaxed = floor_relaxed or capacity < 1.0 - 1e-12
+    if capacity < 1.0 - 1e-12:
         eff_stock_cap /= capacity
         eff_sector_cap /= capacity
         logger.warning(
@@ -136,6 +151,20 @@ def apply_caps(
 
     if float(w.sum()) <= 0:
         w = pd.Series(1.0 / n, index=w.index)
+
+    # A stock cap at or below 1/n admits exactly ONE fully-invested portfolio --
+    # equal weight -- so the projection silently discards whatever weighting
+    # scheme produced the input. At the shipped defaults (20 holdings, 5% stock
+    # cap) that is exactly the case: "Inverse Volatility" and "Equal Weight"
+    # returned byte-identical books while the selector stayed lit on the user's
+    # choice. The maths is unavoidable; presenting it without saying so is not.
+    scheme_neutralised = bool(stock_cap <= 1.0 / n + 1e-12)
+
+    # Names the scheme deliberately zeroed (inverse-vol gives 0 to a symbol with
+    # zero or unusable volatility) must not be revived by the deficit
+    # redistribution below. Handing 5% of the book to a name with no usable
+    # return data is not a cap projection, it is a different portfolio.
+    excluded = w <= 0
 
     for _ in range(200):
         # 1. Clip to the individual cap.
@@ -160,6 +189,10 @@ def apply_caps(
         #    at most (stock cap - its weight), and a sector's names can take at
         #    most (sector cap - the sector's weight) between them.
         room = (eff_stock_cap - w).clip(lower=0.0)
+        # Keep the scheme's own exclusions, unless honouring them leaves nowhere
+        # to put the remaining capital.
+        if excluded.any() and float(room[~excluded].sum()) > deficit:
+            room[excluded] = 0.0
         for syms in sec_groups.values():
             sector_room = eff_sector_cap - float(w[syms].sum())
             wanted = float(room[syms].sum())
@@ -179,6 +212,7 @@ def apply_caps(
     out.attrs["effective_stock_cap"] = eff_stock_cap
     out.attrs["effective_sector_cap"] = eff_sector_cap
     out.attrs["caps_relaxed"] = bool(relaxed)
+    out.attrs["scheme_neutralised"] = scheme_neutralised
     return out
 
 

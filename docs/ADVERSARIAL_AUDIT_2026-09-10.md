@@ -21,10 +21,17 @@ the same author — the exact conflict a council structure exists to break.
 Four independent agents were then given the merged work and told not to
 trust this document. Findings R1-R8 are theirs, verified here before being
 accepted. Three of the four agents were killed by a session rate limit
-before reporting; what follows is what the two that produced work found.
+before reporting; two were re-run afterwards.
+
+**Fifth pass: the prosecution's verdict on the fixes themselves.** An
+independent reviewer attacked the corrections from passes 1-4 and found
+**five regressions introduced BY them** (P1-P5 below), including one that
+silently disabled a user-facing control at the shipped defaults and one
+that inverted the meaning of a statistic added specifically to convey
+uncertainty. It also disproved a parity claim made in this document.
 
 Baseline commit: `0ce4a86`. Test suite at baseline: **651 passed, 1 failed.**
-After this audit: **720 passed, 0 failed.**
+After this audit: **734 passed, 0 failed.**
 
 ---
 
@@ -145,6 +152,58 @@ where my own fix or my own severity call was wrong, and one (R8) corrects a
 "false alarm" I issued. R1 and R4 are quantitative defects three passes of my
 own review did not find. That is the argument for independence, made against
 this audit rather than by it.
+
+---
+
+## Regressions introduced BY the fixes (fifth pass, independent prosecution)
+
+Every one of these was created by a correction made earlier in this audit. They
+are listed separately from the defects found in the original code because the
+distinction matters: fixing carries its own risk, and four passes of the same
+author's review did not catch any of them.
+
+| # | Severity | Regression | Evidence | Fix |
+|---|---|---|---|---|
+| **P1** | **Critical** | **Enforcing the caps silently disabled the Weighting Scheme selector at the shipped defaults.** If `stock_cap ≤ 1/n` the only fully-invested portfolio satisfying the cap is equal weight, so the projection drives *every* scheme to `1/n`. The app ships Top 20 with a 5% stock cap — exactly that case. | "Inverse Volatility" and "Equal Weight" returned **byte-identical books** (`unique weights = [0.05]` for both) and identical backtest returns to 1e-9, with the selector still lit on the user's choice. 9 of the 20 reachable Holdings × Stock-Cap combinations collapse. My own regression test dodged it by using `stock_cap=0.06` with `top_n=20`. | The maths is unavoidable; the silence was not. `apply_caps` now reports `scheme_neutralised`, and both the Portfolio tab and the backtest stats surface it. |
+| **P2** | **High** | **`sharpe_stderr` understated the true standard error by ~9×, inverting the purpose of the field I added it for.** Lo (2002) `SE = √((1+S²/2)/n)` takes the **per-period** Sharpe; I passed the **annualised** one with a count of daily sessions and did not rescale. | 20,000-trial Monte Carlo, reproduced independently: `S_ann=2, n=126` → true SE **1.425**, shipped **0.154** (9.2×); `S_ann=1, n=252` → true **1.005**, shipped **0.077** (13×). A result 1.4σ from zero was displayed as 13σ. The two worked examples in my own comment were wrong by the same factor. | `SE(S_ann) = √252 · √((1 + S_ann²/504)/n)`. A live run now reads **5.03 ± 1.43**, previously ±0.16. |
+| **P3** | **High** | **`caps_relaxed` was `False` for the commonest relaxation**, so the warning I added was dead for it. The per-dimension floors (`max(cap, 1/n)`) raise the caps *before* `relaxed` is computed, which was set only by the later joint-capacity test. | The docstring's own worked example (20 names, 2 sectors, 30% sector cap → 50%) did **not** fire. Worse: 20 names in **one** sector under a 30% cap produced a **100% single-industry book**, unflagged and unlogged. | `relaxed` now covers the floor relaxation. Verified on both cases. |
+| **P4** | **Medium** | **The cap projection revived names the weighting scheme had deliberately zeroed.** Inverse-vol assigns 0 to a symbol with unusable volatility; the deficit redistribution handed two such names **5% of the book each** — 10% of capital to names with no usable return data. | Pre-fix `_compute_weights` returned the raw vector and both were 0%. | Redistribution preserves the scheme's exclusions unless honouring them leaves nowhere to place the capital. |
+| **P5** | **Medium** | **A single-name book returned no `.attrs` at all**, so a caller reading `effective_stock_cap` hit a `KeyError` — masked only by P3's bug making `caps_relaxed` falsy. It also returned 100% under any stock cap without saying so. | Reachable whenever the filters leave one survivor. | The early return now carries the full metadata. |
+
+### And a parity claim in this document was false
+
+**F2 said the two scoring engines were unified.** They were not, on live data.
+`period_sharpe_at` ignored the `latest_as_of` rule that the matrix path applies
+to its final row — the screener anchors to today's calendar date when the tape
+is under a week stale, the row path always used the last observation. On the
+**real shipped tape** that shifted every window by a day: **750 of 750 symbols
+disagreed at 3M**, max |diff| **1.0159** (OIL: 0.293 vs 1.309). Two further
+asymmetries survived alongside it — the "data does not reach back" guard existed
+only in the row path (170 sessions of real tape: row returns NaN for all 750,
+matrix returns a "12-month" number for all 750), and the row path did not sort
+while the matrix path did.
+
+All three are fixed. Re-measured on the same tape after the fix: **0 of 3,000
+symbol-horizons differ**, max |diff| **2.1e-07** — float noise between a
+cumulative-sum and a pandas `std`. The parity claim is now true; it was not when
+it was written.
+
+### What the prosecution could not break
+
+Reported as clean, and worth recording because a negative result is evidence
+too: every headline statistic reproduced an independent recomputation to 1e-9;
+`mtd_cost` does **not** double-count against the daily loop's friction (the MTD
+fill index is strictly greater than every in-window fill, so they charge
+disjoint rebalances); `.attrs` survives every operation the Portfolio tab
+performs on the returned Series; `apply_caps` at 1000 names × 11 sectors
+satisfies both caps in 8 ms; the row and matrix paths agree on all-NaN columns,
+single-row frames, duplicate dates, negative prices and a holed anchor; and the
+paired rank delta sums to exactly 0.0 on the real 750-symbol tape.
+
+One measurement corrects this document: the 126-observation 52-week-high minimum
+(S3) is a **complete no-op on shipped data** — zero of 750 symbols lose their
+high at frame lengths down to 150 rows. It is insurance against a short frame,
+not a change to today's rankings, and S3 should be read that way.
 
 ---
 

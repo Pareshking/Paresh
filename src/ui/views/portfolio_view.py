@@ -100,6 +100,21 @@ def render_portfolio_view(
     # Twenty names across two industries cannot hold a 30% sector cap: the
     # tightest achievable is 50%, and showing "Cap: 30%" beside a 50% sector
     # tells the reader the limit held when it did not.
+    # A stock cap at or below 1/N admits exactly one fully-invested portfolio,
+    # so the weighting scheme the user picked has no effect whatsoever. At the
+    # shipped defaults (Top 20, 5% stock cap) that is precisely the case, and
+    # "Inverse Volatility" produced a book identical to Equal Weight with the
+    # selector still lit on the user's choice.
+    if constrained_w.attrs.get("scheme_neutralised") and len(constrained_w) > 1:
+        st.warning(
+            f"**The {selected_method} weighting has no effect at these settings.** "
+            f"A {stock_cap:.0%} stock cap across {len(constrained_w)} holdings "
+            f"allows only one fully-invested book — {1/len(constrained_w):.1%} in "
+            "every name — so this is Equal Weight whatever the selector says. "
+            "Raise the stock cap in **Configuration → Portfolio Risk**, or hold "
+            "fewer names, for the weighting to bind."
+        )
+
     if constrained_w.attrs.get("caps_relaxed"):
         st.warning(
             f"The configured caps (stock {stock_cap:.0%}, sector {sector_cap:.0%}) "

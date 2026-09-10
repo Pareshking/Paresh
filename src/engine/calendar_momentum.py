@@ -130,6 +130,23 @@ def _calendar_period_metrics(
         log_return[valid_price] = np.log(np.maximum(p1[valid_price] / p0[valid_price], 0.001))
         sharpe[end] = log_return / np.where(period_vol > 0, period_vol, np.nan)
 
+    # The window must actually FIT in the data. searchsorted clamps to 0, so a
+    # frame shorter than the horizon silently scored "12-month momentum" from
+    # whatever few sessions existed -- on 170 sessions of real tape the row path
+    # returned NaN for all 750 symbols and this one returned a number for all
+    # 750. The guard existed only in period_sharpe_at, whose comment explains
+    # exactly why it is needed.
+    first_date = index[0].normalize() if n_rows else None
+    if first_date is not None:
+        as_of_row = index.normalize().to_numpy().copy()
+        if n_rows:
+            as_of_row[-1] = np.datetime64(
+                (pd.Timestamp(latest_as_of).normalize() if latest_as_of is not None
+                 else latest_as_of_date(index))
+            )
+        targets = pd.DatetimeIndex(as_of_row) - pd.DateOffset(months=months)
+        sharpe[np.asarray(targets < first_date), :] = np.nan
+
     # Only the final row's simple return is stored in period_metrics — building
     # a full 500×750 returns matrix and discarding 499 rows wastes 3 MB per window.
     last_ret_arr = np.full(n_cols, np.nan)
@@ -166,6 +183,7 @@ def period_sharpe_at(
     months: int,
     *,
     prices_anchor: pd.DataFrame | None = None,
+    latest_as_of: pd.Timestamp | None = None,
 ) -> tuple[pd.Series, int]:
     """The canonical System-1 period Sharpe for ONE as-of row.
 
@@ -179,8 +197,32 @@ def period_sharpe_at(
 
     Returns the cross-section and the row the window opened on.
     """
+    # F9: the matrix path sorts; this one did not, and `run_backtest` never
+    # sorts `_adj_close` before calling it. An unsorted frame gave two different
+    # answers from one "single definition".
+    if not prices.index.is_monotonic_increasing:
+        order = prices.index.argsort()
+        prices = prices.iloc[order]
+        log_returns = log_returns.reindex(prices.index)
+        if prices_anchor is not None:
+            prices_anchor = prices_anchor.reindex(prices.index)
+
     dates = pd.DatetimeIndex(prices.index)
-    target = pd.Timestamp(dates[end_idx]).normalize() - pd.DateOffset(months=months)
+    # F6: the matrix path replaces the FINAL row's as-of date with
+    # `latest_as_of_date()` -- today's calendar date whenever the data is no
+    # more than a week stale -- and this path always used the last observation
+    # date. On the shipped 750x501 tape that shifted every window by a day and
+    # made 750 of 750 symbols disagree at 3M (max |diff| 1.0159), while the
+    # docstring claimed the two "cannot drift". Apply the same rule.
+    if end_idx == len(dates) - 1:
+        as_of = (
+            pd.Timestamp(latest_as_of).normalize()
+            if latest_as_of is not None
+            else latest_as_of_date(dates)
+        )
+    else:
+        as_of = pd.Timestamp(dates[end_idx]).normalize()
+    target = as_of - pd.DateOffset(months=months)
     start_idx = int(dates.searchsorted(target, side="left"))
     if start_idx >= end_idx:
         return pd.Series(np.nan, index=prices.columns), start_idx

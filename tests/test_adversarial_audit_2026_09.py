@@ -633,3 +633,151 @@ def test_qualified_average_return_colour_follows_its_sign():
     # was removed in favour of calendar periods.
     assert "Trailing 63 Days" not in src and "Trailing 126 Days" not in src
     assert "Calendar 3 months" in src and "Calendar 6 months" in src
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# A8 — the independent prosecution's findings against MY fixes (fifth pass)
+# ─────────────────────────────────────────────────────────────────────────────
+def test_a_stock_cap_that_neutralises_the_weighting_scheme_says_so():
+    """A cap at or below 1/n admits exactly ONE fully-invested portfolio.
+
+    Wiring apply_caps into the backtest made the caps bind and thereby destroyed
+    the weighting scheme: at the shipped defaults (20 holdings, 5% stock cap)
+    "Inverse Volatility" and "Equal Weight" returned byte-identical books with
+    the selector still lit on the user's choice. The maths is unavoidable;
+    shipping it silently is not.
+    """
+    syms = [f"S{i}" for i in range(20)]
+    smap = {s: f"IND{i % 6}" for i, s in enumerate(syms)}
+    rng = np.random.default_rng(1)
+    inv = 1.0 / pd.Series(rng.uniform(0.15, 0.60, 20), index=syms)
+    inv /= inv.sum()
+    equal = pd.Series(1 / 20, index=syms)
+
+    w_iv = apply_caps(inv, smap, sector_cap=0.30, stock_cap=0.05)
+    w_eq = apply_caps(equal, smap, sector_cap=0.30, stock_cap=0.05)
+    assert np.allclose(w_iv, w_eq), "fixture must reproduce the collapse"
+    assert w_iv.attrs["scheme_neutralised"] is True
+    assert w_iv.attrs["caps_relaxed"] is True
+
+    # Above 1/n the scheme binds again and must NOT be flagged.
+    loose = apply_caps(inv, smap, sector_cap=0.30, stock_cap=0.15)
+    assert loose.attrs["scheme_neutralised"] is False
+    assert not np.allclose(loose, equal)
+
+
+def test_a_scheme_zeroed_name_is_not_revived_by_the_cap_projection():
+    """Inverse-vol gives 0 to a symbol with unusable volatility. Redistribution
+    handed it 5% of the book anyway — a different portfolio, not a projection."""
+    syms = [f"S{i}" for i in range(20)]
+    smap = {s: f"IND{i % 6}" for i, s in enumerate(syms)}
+    raw = pd.Series(1 / 18, index=syms)
+    raw.iloc[:2] = 0.0
+    raw /= raw.sum()
+
+    w = apply_caps(raw, smap, sector_cap=0.30, stock_cap=0.10)
+    assert w["S0"] == pytest.approx(0.0, abs=1e-12)
+    assert w["S1"] == pytest.approx(0.0, abs=1e-12)
+
+
+def test_caps_relaxed_fires_when_a_cap_is_raised_to_its_own_floor():
+    """`relaxed` was set only by the joint-capacity test, so the commonest
+    relaxation never flagged and the caller's warning was dead for it."""
+    syms = [f"S{i}" for i in range(20)]
+    one_sector = {s: "ONLY" for s in syms}
+    w = apply_caps(pd.Series(1 / 20, index=syms), one_sector,
+                   sector_cap=0.30, stock_cap=0.10)
+    by_sector = w.sum()
+    assert by_sector == pytest.approx(1.0), "20 names in one sector IS 100% of it"
+    assert w.attrs["caps_relaxed"] is True, "a 100% single-sector book must be flagged"
+
+
+def test_single_name_book_still_reports_its_caps():
+    w = apply_caps(pd.Series([1.0], index=["X"]), {"X": "A"},
+                   sector_cap=0.30, stock_cap=0.10)
+    assert w["X"] == pytest.approx(1.0)
+    assert w.attrs["caps_relaxed"] is True
+    assert w.attrs["scheme_neutralised"] is True
+
+
+def test_sharpe_standard_error_matches_lo_2002():
+    """The first version passed the ANNUALISED Sharpe with a daily n and did not
+    rescale, understating the true standard error ~9x and presenting a 1.4-sigma
+    result as 13-sigma."""
+    res = _stats("adv_se")
+    stats = res["stats"]
+    n, s_ann = stats["n_days"], stats["sharpe"]
+    expected = np.sqrt(252) * np.sqrt((1 + 0.5 * (s_ann / np.sqrt(252)) ** 2) / n)
+    assert stats["sharpe_stderr"] == pytest.approx(expected, rel=1e-9)
+
+    naive = np.sqrt((1 + 0.5 * s_ann**2) / n)
+    assert stats["sharpe_stderr"] > naive * 3, "the understating formula is back"
+
+
+def test_row_and_matrix_paths_agree_on_the_as_of_rule():
+    """The matrix path replaces the FINAL row's as-of with latest_as_of_date();
+    the row path always used the last observation. On the shipped tape that made
+    750 of 750 symbols disagree at 3M."""
+    rng = np.random.default_rng(3)
+    n, t = 60, 501
+    idx = pd.bdate_range(
+        end=pd.Timestamp.today().normalize() - pd.Timedelta(days=1), periods=t
+    )
+    px = pd.DataFrame(
+        {f"S{i}": 100 * np.exp(np.cumsum(rng.normal(0.0004, 0.02, t))) for i in range(n)},
+        index=idx,
+    )
+    lr = np.log(px / px.shift(1))
+    end = len(px) - 1
+    for months in (1, 3, 6, 12):
+        row, _ = _calendar_period_sharpe(px, lr, end, months)
+        mat = _calendar_period_metrics(px, lr, months)[0].iloc[end]
+        both = row.notna() & mat.notna()
+        assert both.sum() > 0
+        assert (row[both] - mat[both]).abs().max() < 1e-6, f"{months}M diverges"
+
+
+def test_both_paths_refuse_a_window_the_data_cannot_cover():
+    """searchsorted clamps to 0, so a short frame scored '12-month momentum'
+    from whatever few sessions existed. The guard was only in the row path."""
+    rng = np.random.default_rng(5)
+    t = 170
+    idx = pd.bdate_range(end=pd.Timestamp.today().normalize() - pd.Timedelta(days=1), periods=t)
+    px = pd.DataFrame(
+        {f"S{i}": 100 * np.exp(np.cumsum(rng.normal(0.0004, 0.02, t))) for i in range(10)},
+        index=idx,
+    )
+    lr = np.log(px / px.shift(1))
+    end = len(px) - 1
+
+    row, _ = _calendar_period_sharpe(px, lr, end, 12)
+    mat = _calendar_period_metrics(px, lr, 12)[0].iloc[end]
+    assert row.isna().all(), "170 sessions cannot support a 12-month window"
+    assert mat.isna().all(), "the matrix path must refuse it too"
+
+
+def test_period_sharpe_at_sorts_like_the_matrix_path():
+    """run_backtest never sorts _adj_close before calling it."""
+    rng = np.random.default_rng(11)
+    t = 420
+    idx = pd.bdate_range("2024-01-01", periods=t)
+    px = pd.DataFrame(
+        {c: 100 * np.exp(np.cumsum(rng.normal(0.0005, 0.015, t))) for c in "ABC"},
+        index=idx,
+    )
+    shuffled = px.sample(frac=1.0, random_state=2)
+    # Log returns precomputed from a shuffled frame are meaningless in BOTH
+    # paths -- that is the caller's problem, not this function's. What must hold
+    # is that the two paths do the same thing with the same bad input: the
+    # matrix path sorts and this one did not, so they returned different
+    # numbers from what the docstring calls a single definition.
+    lr_s = np.log(shuffled / shuffled.shift(1))
+    end = len(shuffled) - 1
+
+    row, _ = _calendar_period_sharpe(shuffled, lr_s, end, 3)
+    mat = _calendar_period_metrics(shuffled, lr_s, 3)[0].iloc[end]
+    both = row.notna() & mat.notna()
+    assert both.sum() > 0, "fixture must leave something scored"
+    assert (row[both] - mat[both]).abs().max() < 1e-9, (
+        "row and matrix paths disagree on an unsorted frame"
+    )
