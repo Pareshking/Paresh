@@ -7,6 +7,7 @@ Inspired by Investrack, Stockin.id, and Tickerboom.
 import pandas as pd
 import streamlit as st
 
+from src.core.config import SHORT_FORMS
 from src.core.market_time import ist_now
 from src.ui.charts import render_candlestick_drilldown
 from src.ui.components import render_data_quality_footer, to_bool_mask
@@ -435,24 +436,30 @@ def render_ranking_view(
         )
         return
 
-    # Build dynamic predictive search suggestions
-    idx_set = set()
+    # Build dynamic predictive search suggestions.
+    #
+    # The Indices column stores SHORT FORMS -- "N50", "NN50", "MID150",
+    # "SMALL250", "MICRO250" -- because indices_loader writes
+    # SHORT_FORMS.get(name, name). The option list used to add the long names
+    # ("NIFTY 50", "NIFTY MIDCAP 150", and a "NIFTY 500" the app does not even
+    # load as a constituent index) on top of the tags, and the filter matched
+    # by substring. On the real 750-symbol universe that gave 11 options of
+    # which 6 returned an empty screener.
+    #
+    # So: one option per tag ACTUALLY present, labelled with the index's real
+    # name, and the tag carried alongside for an exact match.
+    tag_to_name = {short: long for long, short in SHORT_FORMS.items() if short}
+    present_tags: set[str] = set()
     if "Indices" in rank_df.columns:
         for item in rank_df["Indices"].dropna():
             for sub in str(item).split(","):
                 if sub.strip():
-                    idx_set.add(sub.strip())
-    for co in [
-        "NIFTY 50",
-        "NIFTY 500",
-        "NIFTY TOTAL MARKET",
-        "NIFTY MIDCAP 150",
-        "NIFTY SMALLCAP 250",
-        "NIFTY MICROCAP 250",
-    ]:
-        idx_set.add(co)
+                    present_tags.add(sub.strip())
 
-    idx_opts = sorted([f"[INDEX] {i}" for i in idx_set])
+    idx_label_to_tag = {
+        f"[INDEX] {tag_to_name.get(tag, tag)}": tag for tag in present_tags
+    }
+    idx_opts = sorted(idx_label_to_tag)
     ind_opts = (
         sorted(
             [
@@ -537,8 +544,18 @@ def render_ranking_view(
                 == target_tv_ind.upper()
             ]
         elif s_val.startswith("[INDEX] "):
-            target_idx = s_val.replace("[INDEX] ", "").strip()
-            view = view[view["Indices"].str.contains(target_idx, case=False, na=False)]
+            # Exact tag membership, not a substring. "NN50" CONTAINS "N50", so
+            # substring matching returned all 100 Nifty 50 + Nifty Next 50
+            # names for a filter labelled Nifty 50.
+            target_tag = idx_label_to_tag.get(
+                s_val, s_val.replace("[INDEX] ", "").strip()
+            ).upper()
+            view = view[
+                view["Indices"]
+                .fillna("")
+                .astype(str)
+                .apply(lambda v: target_tag in [t.strip().upper() for t in v.split(",")])
+            ]
         else:
             matched_syms = rank_df[rank_df["Symbol"].str.upper() == s_val.upper()]
             if len(matched_syms) == 1:

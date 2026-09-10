@@ -91,6 +91,15 @@ DEFAULT_TRANSACTION_COST_BPS: Final[float] = 30.0
 # an assumption, so it lives where assumptions live.
 RISK_FREE_RATE: Final[float] = 0.065
 
+# Minimum real observations before a "52-week high" may be quoted at all.
+# The backtester has always required this (rolling(252, min_periods=126)); the
+# screener required nothing, so a stock listed 70 sessions ago got a 52-week
+# high drawn from those 70 sessions, scored 0.0% below it, and passed the
+# Near-52W-High gate that the backtest would have excluded it from. The gate
+# was therefore easier to pass the LESS history a stock had — a bias pointing
+# straight at recent listings, which a momentum screen already over-selects.
+HIGH_52W_MIN_OBSERVATIONS: Final[int] = 126
+
 @dataclass(frozen=True)
 class ThemeTokens:
     bg_main: str = "#ffffff"; bg_surface: str = "#f8fafc"; bg_card: str = "#ffffff"; border: str = "#e2e8f0"

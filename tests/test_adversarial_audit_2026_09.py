@@ -348,3 +348,160 @@ def test_survivorship_coverage_is_counted_and_available_to_the_ui():
     # current-universe rather than quietly presented as point-in-time.
     assert stats["pit_periods"] == 0
     assert stats["current_universe_periods"] >= 1
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# A6 — the Screener tab (audited in a second pass; tab 1, and the one people use)
+# ─────────────────────────────────────────────────────────────────────────────
+def _screener(px: pd.DataFrame) -> pd.DataFrame:
+    from src.engine.momentum import MomentumEngine
+
+    info = pd.DataFrame(
+        {"Symbol": list(px.columns), "Industry": "IT", "Indices": "N50"}
+    )
+    calc = MomentumEngine(
+        px, high_df=px, low_df=px, close_df=px,
+        volume_df=pd.DataFrame(1e5, index=px.index, columns=px.columns),
+    )
+    return calc.get_rankings(
+        info, pd.Series(1e4, index=px.columns),
+        close_prices_df=px, high_prices_df=px,
+    )
+
+
+def test_a_52_week_high_needs_52_weeks_of_history():
+    """The gate used to get EASIER the less history a stock had.
+
+    The screener took max() over the trailing 252 rows with no minimum
+    observation count, so a name listed 70 sessions ago got a "52-week high"
+    drawn from those 70 sessions, sat 0.0% below it, passed Near-52W-High and
+    ranked #1 -- while the backtester, which has always used
+    rolling(252, min_periods=126), refused to compute one and excluded it.
+    Two definitions of one filter, disagreeing precisely on recent listings.
+    """
+    from src.core.config import HIGH_52W_MIN_OBSERVATIONS
+
+    T = 500
+    idx = pd.bdate_range("2024-06-03", periods=T)
+    rng = np.random.default_rng(3)
+    cols = {
+        f"F{i}": 100 * np.exp(np.cumsum(rng.normal(0.0004, 0.015, T))) for i in range(5)
+    }
+    # Peaked a year ago, now genuinely 25% below a real 52-week high.
+    cols["SEASONED"] = np.concatenate(
+        [np.linspace(100, 200, 250), np.linspace(200, 150, 250)]
+    )
+    px = pd.DataFrame(cols, index=idx)
+    px["IPO"] = np.nan
+    px.iloc[-70:, px.columns.get_loc("IPO")] = np.linspace(120, 150, 70)
+
+    r = _screener(px).set_index("Symbol")
+
+    assert pd.isna(r.loc["IPO", "52W High"]), "70 sessions is not a 52-week high"
+    assert not bool(r.loc["IPO", "Near 52W High"])
+    assert r.loc["IPO", "Short History"] == "Yes"
+    # The seasoned name still gets a real high and still fails the gate honestly.
+    assert r.loc["SEASONED", "52W High"] == pytest.approx(200.0)
+    assert not bool(r.loc["SEASONED", "Near 52W High"])
+
+    # And the screener now agrees with the backtester's own definition.
+    bt_high = px.rolling(252, min_periods=HIGH_52W_MIN_OBSERVATIONS).max().iloc[-1]
+    assert pd.isna(bt_high["IPO"])
+    assert bt_high["SEASONED"] == pytest.approx(r.loc["SEASONED", "52W High"])
+
+
+def test_rank_delta_is_measured_against_the_same_population():
+    """A rank delta over a fixed population sums to zero. This one did not.
+
+    `Rank` is ranked among the rows that survive the score dropna;
+    `Rank (-1M)` was ranked over every price column, including names that had a
+    score a month ago and have none today -- delistings, suspensions, vendor
+    holes. Each occupies a historical slot that no longer exists, so every
+    survivor below it appears to have climbed. On a 40-name universe with 5
+    names gone dark the mean "improvement" across the whole book was +3.17.
+    """
+    T = 500
+    idx = pd.bdate_range("2024-06-03", periods=T)
+    rng = np.random.default_rng(9)
+    px = pd.DataFrame(
+        {f"S{i}": 100 * np.exp(np.cumsum(rng.normal(0.0004, 0.018, T))) for i in range(40)},
+        index=idx,
+    )
+    for i in range(5):  # go dark in the last fortnight, but keep >=63 observations
+        px.iloc[-14:, px.columns.get_loc(f"S{i}")] = np.nan
+    # ...and five that ENTER the ranking only recently. Correcting only for the
+    # leavers overshoots the other way: new entrants push today's rank numbers
+    # out with no historical counterpart, which took the mean to -2.23.
+    for i in range(5, 10):
+        px.iloc[:-90, px.columns.get_loc(f"S{i}")] = np.nan
+
+    r = _screener(px)
+    assert len(r) < 40, "fixture must actually drop names from today's ranking"
+
+    for col in ("Rank Δ 1M", "Rank Δ 3M"):
+        delta = r[col].dropna()
+        assert len(delta) > 0
+        assert delta.sum() == pytest.approx(0.0, abs=1e-9), (
+            f"{col} does not sum to zero: population mismatch"
+        )
+    # A name that was not RANKABLE on the past date gets no delta at all,
+    # rather than a fabricated jump. The 90-session entrants had ~27 prints
+    # three months ago, below the 63-observation minimum, so they had no rank
+    # then -- and the historical mask is now the history that existed on that
+    # date rather than today's count applied backwards.
+    entrants = r[r["Symbol"].isin([f"S{i}" for i in range(5, 10)])]
+    assert entrants["Rank Δ 3M"].isna().all(), (
+        "a stock that was not rankable three months ago cannot have moved"
+    )
+    assert entrants["Rank Δ 1M"].notna().all(), (
+        "it WAS rankable one month ago, so that delta is real"
+    )
+    assert r["Rank (-1M)"].max() <= r["Rank"].max()
+
+
+def test_every_index_filter_option_matches_something():
+    """6 of 11 options returned an empty screener.
+
+    indices_loader writes SHORT FORMS into the Indices column ("N50",
+    "MID150"...). The option list added the long names on top -- plus a
+    "NIFTY 500" the app does not load as a constituent index at all -- and the
+    filter matched by substring, so selecting "NIFTY 50" filtered for a string
+    that appears nowhere in the data.
+    """
+    from src.core.config import SHORT_FORMS
+
+    tag_to_name = {short: long for long, short in SHORT_FORMS.items() if short}
+    universe = pd.DataFrame({
+        "Symbol": ["A", "B", "C", "D"],
+        "Indices": ["N50", "NN50", "MID150", "N50, MID150"],
+    })
+    present = {t.strip() for v in universe["Indices"] for t in v.split(",") if t.strip()}
+    labels = {f"[INDEX] {tag_to_name.get(t, t)}": t for t in present}
+
+    assert "[INDEX] NIFTY 50" in labels and labels["[INDEX] NIFTY 50"] == "N50"
+    assert "[INDEX] NIFTY 500" not in labels, "the app loads no NIFTY 500 constituent file"
+    for label, tag in labels.items():
+        hit = universe["Indices"].apply(
+            lambda v: tag.upper() in [x.strip().upper() for x in v.split(",")]
+        )
+        assert hit.any(), f"{label} matches nothing"
+
+
+def test_nifty_50_filter_does_not_leak_nifty_next_50():
+    """"NN50" contains "N50", so substring matching returned both indices.
+
+    On the shipped universe the Nifty 50 filter returned 100 stocks.
+    """
+    universe = pd.DataFrame({
+        "Symbol": ["IN_N50", "IN_NN50", "IN_BOTH"],
+        "Indices": ["N50", "NN50", "N50, NN50"],
+    })
+
+    substring = universe[universe["Indices"].str.contains("N50", case=False, na=False)]
+    assert len(substring) == 3, "fixture must reproduce the collision"
+
+    tag = "N50"
+    exact = universe[universe["Indices"].apply(
+        lambda v: tag in [x.strip().upper() for x in v.split(",")]
+    )]
+    assert sorted(exact["Symbol"]) == ["IN_BOTH", "IN_N50"]

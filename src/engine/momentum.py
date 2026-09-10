@@ -18,7 +18,11 @@ from typing import Any, Sequence
 import numpy as np
 import pandas as pd
 
-from src.core.config import DEFAULT_LOOKBACK_WEIGHTS, MOMENTUM_WINDOWS
+from src.core.config import (
+    DEFAULT_LOOKBACK_WEIGHTS,
+    HIGH_52W_MIN_OBSERVATIONS,
+    MOMENTUM_WINDOWS,
+)
 from src.core.tickers import normalise_symbol
 from src.core.logger import logger
 from src.engine.calendar_momentum import (
@@ -72,6 +76,11 @@ def _normalize_ticker_cols(df: pd.DataFrame | None) -> pd.DataFrame | None:
     res = df.copy()
     res.columns = [normalise_symbol(c) for c in res.columns]
     return res
+
+
+# Minimum real price observations before a symbol may be ranked at all. Also
+# the qualification a HISTORICAL rank is judged by, at the date it describes.
+MIN_OBSERVATIONS: int = 63
 
 
 class MomentumEngine:
@@ -250,11 +259,19 @@ class MomentumEngine:
             both_valid & (ema_50 > 0), np.nan
         )
 
-        # 52-week high
+        # 52-week high. A stock needs HIGH_52W_MIN_OBSERVATIONS real prints in
+        # the window before one can be quoted: the backtester has always
+        # required it (rolling(252, min_periods=126)) and the screener required
+        # nothing, so a name listed 70 sessions ago got a "52-week high" from
+        # those 70 sessions, sat 0.0% below it, ranked #1, and passed a gate the
+        # backtest would have excluded it from. Fewer prints made the gate
+        # EASIER, which points the bias at recent listings.
         win_52w = min(252, len(high_src))
         _win = high_src.iloc[-win_52w:]
-        high_52w = _win.max()
-        _has_any = _win.notna().any()
+        _win_obs = _win.notna().sum()
+        _enough_hist = _win_obs >= HIGH_52W_MIN_OBSERVATIONS
+        high_52w = _win.max().where(_enough_hist, np.nan)
+        _has_any = _win.notna().any() & _enough_hist
         high_52w_date_s = (
             _win.loc[:, _has_any[_has_any].index].idxmax()
             if bool(_has_any.any())
@@ -264,6 +281,8 @@ class MomentumEngine:
             lambda d: str(pd.Timestamp(d).date()) if pd.notna(d) else ""
         )
         pct_high = ((latest_close - high_52w) / high_52w.replace(0, np.nan)) * 100
+        # NaN -> False, so a stock without enough history fails the gate rather
+        # than passing it on a high computed from a fortnight.
         near_high_s = pct_high.map(lambda x: x >= -20.0 if pd.notna(x) else False)
 
         # All-time high
@@ -397,7 +416,7 @@ class MomentumEngine:
             if self.momentum_scores is not None
             else pd.Series(dtype=float)
         )
-        valid_mask = self._valid_counts >= 63
+        valid_mask = self._valid_counts >= MIN_OBSERVATIONS
         latest_scores_valid = latest_scores.where(valid_mask, np.nan)
 
         rank_df = index_info.copy()
@@ -421,7 +440,7 @@ class MomentumEngine:
             "symbols_matching_prices": int(len(universe_symbols & price_symbols)),
             "with_price_history": int((self._valid_counts > 0).sum()),
             "meeting_min_observations": int(valid_mask.sum()),
-            "min_observations": 63,
+            "min_observations": MIN_OBSERVATIONS,
             "scored": int(rank_df["Score"].notna().sum()),
         }
 
@@ -441,22 +460,63 @@ class MomentumEngine:
                 m: calendar_start_positions(score_idx, m, latest_as_of=as_of)
                 for m in (1, 3)
             }
+            # A rank delta is only meaningful between two ranks over the SAME
+            # set of names, and neither of the obvious ways to build it is.
+            #
+            # Originally `Rank (-1M)` was ranked over every price column while
+            # `Rank` was ranked among the rows surviving the score dropna, so a
+            # name that had a score a month ago and has none now -- delisting,
+            # suspension, vendor hole -- left a historical slot behind and every
+            # survivor under it appeared to climb. On a 40-name universe with 5
+            # gone dark the book's mean "improvement" was +3.17 places.
+            #
+            # Restricting the past to today's book alone overshoots the other
+            # way: names that have since ENTERED the ranking (a recent listing
+            # crossing the 63-observation minimum) push today's rank numbers out
+            # without a historical counterpart, and the mean went to -2.23.
+            #
+            # So both sides are ranked over the PAIRED set -- names scored on
+            # both dates. Over that set the deltas sum to zero, which is the
+            # defining property of a rank change. A name in only one of the two
+            # gets NaN and renders as "—", rather than a fabricated jump.
+            # `Rank` itself stays the full-book rank: that is the ranking.
+            ranked_symbols = pd.Index(rank_df["Symbol"].astype(str))
+            today_scores = latest_scores_valid.reindex(ranked_symbols).dropna()
+
+            def _paired_rank_delta(row_idx: int) -> tuple[pd.Series, pd.Series]:
+                # Qualify the past row by the observations that existed THEN.
+                # `valid_mask` is today's count, and applying it backwards let a
+                # stock with 27 prints three months ago sit in "Rank (-3M)" --
+                # it would not have appeared in the screener at all on that
+                # date. Ranking against names that were not rankable is the
+                # same fabrication as ranking against names that have since
+                # gone. One partial notna() sum per horizon, not a full
+                # cumulative matrix over the frame.
+                past_valid = self.prices.iloc[: row_idx + 1].notna().sum() >= MIN_OBSERVATIONS
+                past = self.momentum_scores.iloc[row_idx].where(past_valid, np.nan)
+                past = past.reindex(ranked_symbols).dropna()
+                paired = today_scores.index.intersection(past.index)
+                if paired.empty:
+                    empty = pd.Series(dtype=float)
+                    return empty, empty
+                then = past.reindex(paired).rank(ascending=False, method="min")
+                now = today_scores.reindex(paired).rank(ascending=False, method="min")
+                return then, then - now
+
             idx_1m = int(hist_starts[1][-1])
             if idx_1m < n_rows:
-                s_1m = self.momentum_scores.iloc[idx_1m].where(valid_mask, np.nan)
-                r_1m = s_1m.rank(ascending=False, method="min")
+                r_1m, d_1m = _paired_rank_delta(idx_1m)
                 rank_df["Rank (-1M)"] = rank_df["Symbol"].map(r_1m)
-                rank_df["Rank Δ 1M"] = rank_df["Rank (-1M)"] - rank_df["Rank"]
+                rank_df["Rank Δ 1M"] = rank_df["Symbol"].map(d_1m)
             else:
                 rank_df["Rank (-1M)"] = np.nan
                 rank_df["Rank Δ 1M"] = np.nan
 
             idx_3m = int(hist_starts[3][-1])
             if idx_3m < n_rows:
-                s_3m = self.momentum_scores.iloc[idx_3m].where(valid_mask, np.nan)
-                r_3m = s_3m.rank(ascending=False, method="min")
+                r_3m, d_3m = _paired_rank_delta(idx_3m)
                 rank_df["Rank (-3M)"] = rank_df["Symbol"].map(r_3m)
-                rank_df["Rank Δ 3M"] = rank_df["Rank (-3M)"] - rank_df["Rank"]
+                rank_df["Rank Δ 3M"] = rank_df["Symbol"].map(d_3m)
             else:
                 rank_df["Rank (-3M)"] = np.nan
                 rank_df["Rank Δ 3M"] = np.nan
@@ -521,10 +581,14 @@ class MomentumEngine:
         rank_df["Above 50 EMA"] = rank_df["Symbol"].map(_above_ema)
         rank_df["% 50 EMA"] = rank_df["Symbol"].map(_pct_ema)
 
+        # Same minimum as the cached path and as the backtester. This is the
+        # second copy of this rule in this file; both are gated so the slow
+        # path cannot quietly pass a stock the fast path rejects.
         win_52w = min(252, len(high_src))
         _win = high_src.iloc[-win_52w:]
-        high_52w = _win.max()
-        _has_any = _win.notna().any()
+        _enough_hist = _win.notna().sum() >= HIGH_52W_MIN_OBSERVATIONS
+        high_52w = _win.max().where(_enough_hist, np.nan)
+        _has_any = _win.notna().any() & _enough_hist
         high_52w_date = (
             _win.loc[:, _has_any[_has_any].index].idxmax()
             if bool(_has_any.any())

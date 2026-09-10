@@ -8,8 +8,12 @@ allegation the evidence did not support is recorded as rejected.
 Scope: `src/engine`, `src/ui/views`, `src/core/config.py`, `src/loaders`,
 `tests/`, `.github/workflows/`, `data/*.json`, `README.md`, the in-app Guide.
 
+**Second pass (same day): the Screener tab.** The first pass covered the
+Backtest, Portfolio and Track Record tabs and left tab 1 — the one people
+actually use — unaudited. Findings S1-S4 below come from that second pass.
+
 Baseline commit: `0ce4a86`. Test suite at baseline: **651 passed, 1 failed.**
-After this audit: **666 passed, 0 failed.**
+After this audit: **670 passed, 0 failed.**
 
 ---
 
@@ -28,6 +32,11 @@ different signal from the one the screener displays, silently ignored the risk
 limits the user configured, scored five of its six reported months against
 today's index constituents while the machinery to avoid that sat unused, and
 labelled four of its eight headline statistics as quantities they were not.
+
+The Screener tab, audited in a second pass, failed in the same way and closer
+to the user: six of its eleven index filters returned an empty table, its Nifty
+50 filter returned a hundred stocks, its 52-week-high gate was easier to pass
+the less history a stock had, and its rank-change column did not sum to zero.
 
 **Judge decision: REWORK REQUIRED at audit time — now APPROVED WITH CONDITIONS**
 after the corrections in this branch. The conditions are in *Remaining Risks*;
@@ -55,6 +64,27 @@ and cannot yet support a performance claim.
 | **F13** | **Low** | `PortfolioOptimizer.equal_risk_contribution` is **unreachable** (nothing calls it) and has **four** paths that return a different weighting scheme, three of them silent. This is the exact failure mode Mean-Variance Optimisation was removed for (audit F1: "degraded to Equal Weight on any exception while still reporting itself as MVO"). | Grep: no call sites. Silent paths: `n < 2`, `len(ret_sub) < 30`, `res.success == False`. | Every fallback logs what it returned and why; the docstring records the constraint for whoever wires it up. |
 | **F14** | **Low** | **Every return in the application is pre-tax and nothing says so.** "Strategy Return (Net)" means net of modelled transaction costs only. Monthly rebalancing realises gains inside twelve months, so in India essentially all of them are short-term. | No tax logic exists anywhere in `src/` or `scripts/`. | Disclosure added to the Guide FAQ and the buffer note. **No tax model was built** — see *Remaining Risks*. |
 | **F15** | **Low / informational** | **Unescaped external data reaches an HTML sink.** `render_saas_table` and `render_master_screener_table` interpolate DataFrame cell values into `unsafe_allow_html=True` markup with no escaping. Values originate in `niftyindices.com` CSVs and Yahoo Finance. | No live exploit: NSE symbols and industry names are alphanumeric today, and the one user-controlled path (`?stock=`) is guarded — see *Rejected allegations*. The exposure is a compromised or merely `&`-containing upstream field. | **Reported, not fixed.** Recommended: `html.escape(str(val))` at each cell interpolation in `src/ui/theme.py`. Same argument applies to CSV export (`=`/`+`/`-`/`@`-prefixed fields). |
+
+---
+
+## Confirmed problems — Screener tab (second pass)
+
+| # | Severity | Problem | Evidence | Fix |
+|---|---|---|---|---|
+| **S1** | **High** | **The `[INDEX]` filter offered 11 options, 6 of which returned an empty screener.** `indices_loader` writes SHORT FORMS into the `Indices` column (`N50`, `NN50`, `MID150`, `SMALL250`, `MICRO250`); the option list added the long names on top of them — including a `NIFTY 500` the app does not load as a constituent index at all — and filtered by substring. | On the shipped 750-symbol universe: `[INDEX] NIFTY 50` → **0 stocks**. Same for `NIFTY MIDCAP 150`, `NIFTY SMALLCAP 250`, `NIFTY MICROCAP 250`, `NIFTY TOTAL MARKET`, `NIFTY 500`. | One option per tag actually present, labelled with the index's real name and carrying the tag for an exact match. **5 options, 0 dead.** |
+| **S2** | **High** | **The Nifty 50 filter also returned the whole Nifty Next 50**, because `"NN50"` contains `"N50"` and the filter used `str.contains`. | `[INDEX] N50` → **100 stocks**; Nifty 50 has 50. The extra 50 were `ABB, ADANIENSOL, ADANIGREEN, ADANIPOWER, AMBUJACEM, BAJAJHLDNG, BANKBARODA, BOSCHLTD, …` | Exact tag membership against the comma-split list. Nifty 50 now returns 50. |
+| **S3** | **High** | **The 52-week-high gate got EASIER the less history a stock had.** The screener took `max()` over the trailing 252 rows with no minimum observation count, while the backtester has always used `rolling(252, min_periods=126)`. Two definitions of one named filter, disagreeing precisely on recent listings — which a momentum screen already over-selects. | A stock listed 70 sessions ago: screener quoted a "52W High" of 150.0 from those 70 sessions, `% High` **0.0%**, `Near 52W High` **True**, **Rank #1**. The backtester's high for the same name is `NaN` and it fails the gate. On a 750-name frame, **18 short-history names were passing the gate**. The Portfolio tab filters on exactly this column and does not exclude `Short History`. | `HIGH_52W_MIN_OBSERVATIONS = 126` in config, applied in **both** copies of the rule in `momentum.py`. Short-history names passing the gate: **18 → 0**. |
+| **S4** | **Medium** | **`Rank Δ 1M` / `Rank Δ 3M` were differences between ranks over two different populations**, so they did not sum to zero — the defining property of a rank change. `Rank` is ranked among the rows surviving the score `dropna`; `Rank (-1M)` was ranked over every price column. Compounding it, the historical rank was qualified by **today's** observation count, so a stock with 27 prints three months ago — not rankable then — still received a `Rank (-3M)`. | The bias has **no fixed sign**: it depends on which kind of churn dominates. A 40-name universe with 5 names gone dark gave a mean "improvement" of **+3.17 places**; a 750-name universe with 30 recent listings gave **−1643** total (mean −2.2). This column drives the rank-delta badge on every row and card, the "Momentum Movers" preset (`|Δ| ≥ 15`), and the Rank Movers section. | Both sides ranked over the **paired** set — names scored *and rankable* on both dates, with the past judged by the history that existed then. Deltas now sum to **exactly 0**; a name rankable on only one date shows "—" instead of a fabricated jump. |
+
+**Cost.** A 750×500 screener pass runs in **760 ms against a 741 ms baseline (+2.6%)**, the price of one extra `notna()` sum per horizon and the observation gate.
+
+**Behaviour change worth stating.** S3 means a price frame shorter than 126
+sessions yields no 52-week high for anyone, so `Near 52W High` is False across
+the board and the Portfolio tab reports that nothing passes. That is the honest
+answer — a 52-week high cannot be quoted from four months of data — but it is a
+visible change on thin data. Production loads `PRICE_HISTORY_PERIOD = "2y"`, so
+only genuine recent listings are affected, and they are already flagged
+`Short History: Yes` in the footer count.
 
 ---
 
@@ -148,7 +178,9 @@ correction supplies it.
 | `src/ui/views/track_record_view.py` | `_membership` wired; backfill warning; Provenance table now carries provenance. |
 | `src/ui/views/portfolio_view.py` | Cap relaxation surfaced in the KPI and as a warning. |
 | `src/ui/views/guide_view.py` | Hardcoded performance badge removed; two non-existent engines removed; formulation corrected to the calendar-period, winsorise-then-z pipeline; Bhavcopy, 60-day and turnover claims corrected; pre-tax disclosure added. |
-| `tests/test_adversarial_audit_2026_09.py` | **New.** 14 regressions covering the confirmed defects (F15 is reported, not fixed, so it carries no test). |
+| `tests/test_adversarial_audit_2026_09.py` | **New.** 18 regressions covering the confirmed defects (F15 is reported, not fixed, so it carries no test). |
+| `src/engine/momentum.py` | 52-week high gated on `HIGH_52W_MIN_OBSERVATIONS` in both code paths; rank deltas computed over the paired, historically-qualified population; `MIN_OBSERVATIONS` named. |
+| `src/ui/views/ranking_view.py` | `[INDEX]` options built from tags actually present, labelled with real index names, matched exactly rather than by substring. |
 | `tests/test_backtest_trade_returns.py` | Establishment-cost assertion corrected — it had pinned the bug. |
 | `tests/test_stock_page_and_navigation.py` | Patches both render sinks; red since 2026-09-04. |
 
@@ -179,6 +211,18 @@ Same fixture, before and after:
   leaves the decision unchanged.
 - Reproduction scripts for each counterexample are described inline in the
   regression tests, so each finding can be re-derived from this repository.
+
+Screener pass, same fixture before and after:
+
+```
+                                        BEFORE          AFTER
+[INDEX] NIFTY 50                    0 stocks        50 stocks
+[INDEX] N50 / Nifty 50            100 stocks        50 stocks
+52-week highs quoted (of 740)             740              720
+short-history names passing the gate       18                0
+Rank Δ 1M, total across the book        -1643             +0.0
+750x500 screener pass                  741 ms           760 ms
+```
 
 **Cost of the corrections.** A production-shaped backtest (750 symbols x 500
 sessions, 0.4% holed) runs in **498 ms against a 479 ms baseline — +4%**. The
