@@ -657,8 +657,12 @@ def test_a_stock_cap_that_neutralises_the_weighting_scheme_says_so():
     w_iv = apply_caps(inv, smap, sector_cap=0.30, stock_cap=0.05)
     w_eq = apply_caps(equal, smap, sector_cap=0.30, stock_cap=0.05)
     assert np.allclose(w_iv, w_eq), "fixture must reproduce the collapse"
+    # Neutralisation is decided from the RESULT, not inferred from `stock_cap
+    # <= 1/n`: the capacity relaxation can raise the effective cap above 1/n and
+    # leave the projection genuinely non-equal-weight, in which case claiming
+    # otherwise on screen is a false statement. `caps_relaxed` is a separate
+    # question and is asserted in its own test.
     assert w_iv.attrs["scheme_neutralised"] is True
-    assert w_iv.attrs["caps_relaxed"] is True
 
     # Above 1/n the scheme binds again and must NOT be flagged.
     loose = apply_caps(inv, smap, sector_cap=0.30, stock_cap=0.15)
@@ -773,11 +777,69 @@ def test_period_sharpe_at_sorts_like_the_matrix_path():
     # numbers from what the docstring calls a single definition.
     lr_s = np.log(shuffled / shuffled.shift(1))
     end = len(shuffled) - 1
+    wanted = shuffled.index[end]          # the row the CALLER named
 
     row, _ = _calendar_period_sharpe(shuffled, lr_s, end, 3)
-    mat = _calendar_period_metrics(shuffled, lr_s, 3)[0].iloc[end]
+    # The matrix path sorts, so its positional index no longer matches the
+    # caller's. Compare by LABEL: the row path must answer about the row it was
+    # asked about, and the matrix path's answer for that same date must agree.
+    mat_frame = _calendar_period_metrics(shuffled, lr_s, 3)[0]
+    mat = mat_frame.loc[wanted]
     both = row.notna() & mat.notna()
     assert both.sum() > 0, "fixture must leave something scored"
     assert (row[both] - mat[both]).abs().max() < 1e-9, (
-        "row and matrix paths disagree on an unsorted frame"
+        "row and matrix paths disagree about the same date on an unsorted frame"
     )
+
+    # And the row path must not silently answer about a DIFFERENT date. Feed the
+    # pre-sorted frame the same log returns, so the only variable is whether
+    # `end_idx` survived the reorder.
+    sorted_px = shuffled.sort_index()
+    lr_same = lr_s.reindex(sorted_px.index)
+    pos = int(sorted_px.index.get_loc(wanted))
+    row_sorted, _ = _calendar_period_sharpe(sorted_px, lr_same, pos, 3)
+    same = row.notna() & row_sorted.notna()
+    assert same.sum() > 0
+    assert (row[same] - row_sorted[same]).abs().max() < 1e-9, (
+        "end_idx was not resolved across the sort: the function answered about "
+        "a different row from the one the caller named"
+    )
+
+
+def test_neutralisation_is_observed_not_inferred_from_the_raw_cap():
+    """`stock_cap <= 1/n` is not the test; the projection's own output is.
+
+    The capacity relaxation raises the effective cap above 1/n, so a book that
+    is genuinely NOT equal-weight was being flagged as neutralised and the
+    Portfolio tab printed "5.0% in every name" beside a warning saying 5.3% was
+    enforced. The production log shows exactly that relaxation.
+    """
+    syms = [f"S{i}" for i in range(20)]
+    rng = np.random.default_rng(1)
+    inv = 1.0 / pd.Series(rng.uniform(0.15, 0.60, 20), index=syms)
+    inv /= inv.sum()
+
+    # Many small sectors: capacity binds, the effective stock cap is raised, and
+    # the resulting book keeps real dispersion.
+    many = {s: f"IND{i}" for i, s in enumerate(syms)}
+    w = apply_caps(inv, many, sector_cap=0.30, stock_cap=0.05)
+    if float(w.max() - w.min()) > 1e-4 * float(w.mean()):
+        assert w.attrs["scheme_neutralised"] is False, (
+            "a book with real dispersion must not be called neutralised"
+        )
+
+    # A cap that genuinely admits one portfolio is still caught.
+    flat = apply_caps(inv, {s: "ONE" for s in syms}, sector_cap=1.0, stock_cap=0.05)
+    assert flat.attrs["scheme_neutralised"] is True
+
+
+def test_scheme_neutralised_is_not_shared_between_concurrent_runs():
+    """It lived on a function attribute -- process-global, and Streamlit serves
+    concurrent sessions as threads in one process on a public deployment."""
+    import inspect
+
+    src = inspect.getsource(bt)
+    assert "last_scheme_neutralised" not in src, (
+        "process-global weighting state is back"
+    )
+    assert "scheme_neutralised_seen" in src, "the flag must be run-local"

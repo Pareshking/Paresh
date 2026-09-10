@@ -153,6 +153,18 @@ def _backtest_body(
         unsafe_allow_html=True,
     )
 
+    # The Weighting Scheme control is inert whenever the stock cap admits only
+    # one fully-invested book. The backtester reports it; nothing displayed it,
+    # so the selector stayed lit while making no difference to the simulation.
+    if stats.get("scheme_neutralised"):
+        st.warning(
+            f"**The {bt_weight} weighting made no difference to this backtest.** "
+            f"A {stock_cap:.0%} stock cap across {bt_n} holdings allows only one "
+            f"fully-invested book — {1 / max(bt_n, 1):.1%} in every name — so this "
+            "run is Equal Weight whatever the control says. Raise the stock cap "
+            "in **Configuration → Portfolio Risk**, or hold fewer names."
+        )
+
     # ── Survivorship coverage ────────────────────────────────────────────────
     # run_backtest counts how many rebalances were scored against the index as
     # it ACTUALLY stood versus how many fell back to today's constituent list,

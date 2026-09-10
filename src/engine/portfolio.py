@@ -132,8 +132,12 @@ def apply_caps(
     # never flagged and the caller's warning was dead for it. Twenty names in
     # one industry under a 30% sector cap produced a 100%-single-industry book
     # with nothing said.
+    # Relative tolerance, so the 1e-9 epsilon added to the feasibility floors
+    # above is not itself reported as a relaxation. Only a materially raised cap
+    # counts.
     floor_relaxed = (
-        eff_stock_cap > stock_cap + 1e-12 or eff_sector_cap > sector_cap + 1e-12
+        eff_stock_cap > stock_cap * (1.0 + 1e-6) + 1e-12
+        or eff_sector_cap > sector_cap * (1.0 + 1e-6) + 1e-12
     )
     capacity = sum(
         min(eff_sector_cap, len(syms) * eff_stock_cap)
@@ -158,8 +162,12 @@ def apply_caps(
     # cap) that is exactly the case: "Inverse Volatility" and "Equal Weight"
     # returned byte-identical books while the selector stayed lit on the user's
     # choice. The maths is unavoidable; presenting it without saying so is not.
-    scheme_neutralised = bool(stock_cap <= 1.0 / n + 1e-12)
-
+    # Decided from the RESULT below, not from the raw cap. Inferring it from
+    # `stock_cap <= 1/n` ignores the capacity relaxation a few lines up, which
+    # raises the effective cap ABOVE 1/n and leaves the projection genuinely
+    # non-equal-weight. At the shipped defaults the log shows exactly that --
+    # "relaxed to stock 5.26%" -- so the tab printed "5.0% in every name"
+    # beside a warning saying 5.3% was enforced, and the first was simply false.
     # Names the scheme deliberately zeroed (inverse-vol gives 0 to a symbol with
     # zero or unusable volatility) must not be revived by the deficit
     # redistribution below. Handing 5% of the book to a name with no usable
@@ -212,7 +220,16 @@ def apply_caps(
     out.attrs["effective_stock_cap"] = eff_stock_cap
     out.attrs["effective_sector_cap"] = eff_sector_cap
     out.attrs["caps_relaxed"] = bool(relaxed)
-    out.attrs["scheme_neutralised"] = scheme_neutralised
+    # Observed degeneracy: every name at the same weight means the input
+    # scheme had no effect, whatever the caps nominally are.
+    # Tolerance relative to the mean weight, not absolute: the iterative
+    # projection leaves float residue around 3e-09 on a 20-name book, which an
+    # absolute 1e-9 threshold reads as genuine dispersion. Any real difference
+    # between weighting schemes is orders of magnitude larger.
+    _mean_w = float(out.mean()) if len(out) else 0.0
+    out.attrs["scheme_neutralised"] = bool(
+        len(out) > 1 and float(out.max() - out.min()) <= 1e-4 * max(_mean_w, 1e-12)
+    )
     return out
 
 

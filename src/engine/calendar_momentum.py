@@ -201,11 +201,18 @@ def period_sharpe_at(
     # sorts `_adj_close` before calling it. An unsorted frame gave two different
     # answers from one "single definition".
     if not prices.index.is_monotonic_increasing:
+        # `end_idx` is a POSITION in the caller's frame. Sorting moves the row
+        # it names, so resolve it to a label first and look it up again after --
+        # otherwise the function silently answers about a different date, and
+        # the `start_idx` it returns is a position in a frame the caller does
+        # not have.
+        wanted = prices.index[end_idx]
         order = prices.index.argsort()
         prices = prices.iloc[order]
         log_returns = log_returns.reindex(prices.index)
         if prices_anchor is not None:
             prices_anchor = prices_anchor.reindex(prices.index)
+        end_idx = int(pd.Index(prices.index).get_loc(wanted))
 
     dates = pd.DatetimeIndex(prices.index)
     # F6: the matrix path replaces the FINAL row's as-of date with

@@ -7,6 +7,7 @@ import html
 import os
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
 import streamlit as st
 
@@ -206,9 +207,28 @@ def _section_momentum_signal() -> None:
         # from the canonical state one line above. The two disagreed on screen,
         # and touching any one slider would have submitted the displayed zeros
         # for the other four.
-        if key not in st.session_state:
+        # Repair, not merely seed. A guard of the form "if the key is absent"
+        # cannot fix a key that is PRESENT and wrong, and once a session has
+        # stored a zero for every window nothing recovers it: app.py's own
+        # re-seed is also absence-guarded. Treat a non-finite or out-of-range
+        # value as no value at all.
+        current = st.session_state.get(key)
+        if not isinstance(current, (int, float)) or not np.isfinite(current) \
+                or not (0.0 <= float(current) <= 1.0):
             st.session_state[key] = default
         col.slider(label, min_value=0.0, max_value=1.0, step=0.05, key=key)
+
+    # A vector that sums to zero cannot rank anything, and every slider sitting
+    # at 0.00 is exactly what a user reported seeing. Restore the documented
+    # defaults and say so rather than leaving five dead controls on screen.
+    if sum(float(st.session_state.get(k, 0.0)) for _, k, _ in windows) <= 0:
+        for _lbl, k, d in windows:
+            st.session_state[k] = d
+        st.warning(
+            "All five lookback weights were zero, which cannot rank anything. "
+            "Restored the defaults — reopen this section to see them."
+        )
+        st.rerun()
 
     lbl_col, pop_col = st.columns([4, 1], vertical_alignment="center")
     lbl_col.caption(

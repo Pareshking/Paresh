@@ -6,6 +6,7 @@ import pandas as pd
 import streamlit as st
 
 from src.engine.breadth import (
+    OBSERVED_SUFFIX,
     compute_hl_timeseries,
     compute_ma_breadth,
     get_recent_hl_events,
@@ -69,6 +70,20 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
         for ma_lbl in sel_mas:
             if ma_lbl in breadth_df.columns:
                 val = breadth_df[ma_lbl].iloc[-1]
+                if pd.isna(val):
+                    # No symbol had both a price and an MA on this session -- a
+                    # holiday row, a pre-close fetch, or a frame shorter than the
+                    # MA's min_periods. Before the denominator change this could
+                    # not happen (0/N was 0); now it can, and `int(nan)` below
+                    # raised ValueError and took the whole tab down.
+                    kpi_items.append(f"""
+                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px;">
+                        <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Above {ma_lbl} {ma_type}</div>
+                        <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: #94a3b8; margin-top: 1px;">—</div>
+                        <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #94a3b8;">no prices on this session</div>
+                    </div>
+                    """)
+                    continue
                 clr = (
                     "#059669" if val >= 60 else ("#e11d48" if val <= 40 else "#d97706")
                 )
@@ -79,7 +94,19 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
                         "Weak / Deteriorating" if val <= 40 else "Neutral Participation"
                     )
                 )
-                n_stocks = int(val / 100 * len(adj_close.columns))
+                # The denominator now comes from the engine. Multiplying by the
+                # full column count invented a number for stocks that were never
+                # in the numerator -- wrong on 113 of 252 sessions, by up to 83
+                # stocks. And `.where(observed)` made the reading NaN-able for
+                # the first time, so `int(nan)` here killed the whole tab on a
+                # session where nothing printed.
+                n_obs = breadth_df.get(f"{ma_lbl}{OBSERVED_SUFFIX}")
+                n_observed = (
+                    int(n_obs.iloc[-1])
+                    if n_obs is not None and pd.notna(n_obs.iloc[-1])
+                    else len(adj_close.columns)
+                )
+                n_stocks = int(round(val / 100 * n_observed))
                 kpi_items.append(f"""
                     <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                         <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Above {ma_lbl} {ma_type}</div>
@@ -93,7 +120,10 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
 
         st.markdown(" ")
         if bview == "Universe":
-            render_breadth_chart(breadth_df, ma_type=ma_type)
+            # Percentage series only; the companion count columns are
+            # metadata for the KPI cards, not lines on the chart.
+            _pct_cols = [c for c in breadth_df.columns if not c.endswith(OBSERVED_SUFFIX)]
+            render_breadth_chart(breadth_df[_pct_cols], ma_type=ma_type)
         else:
             # Per Index Breakdown
             st.markdown("##### Breadth by Index (Above 50D " + ma_type + ")")

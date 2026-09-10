@@ -11,6 +11,10 @@ import pandas as pd
 import streamlit as st
 
 
+# Suffix marking the companion count column for a breadth series.
+OBSERVED_SUFFIX: str = "__observed"
+
+
 @st.cache_data(show_spinner=False, ttl=3600)
 def compute_ma_breadth(
     prices_hash: str,
@@ -45,8 +49,14 @@ def compute_ma_breadth(
         # Mask the unobserved cells to NaN; mean(axis=1) skips them, which
         # divides by the stocks that actually have both a price and an MA.
         observed = _prices.notna() & ma.notna()
-        above = (_prices > ma).where(observed)
+        above = (_prices > ma).where(observed).astype(float)
         results[label] = above.iloc[-lookback:].mean(axis=1) * 100
+        # The DENOMINATOR, published alongside the percentage. Changing the
+        # engine to divide by the observed stocks silently invalidated its only
+        # caller, which still multiplied the ratio by the full column count and
+        # printed a stock count that was wrong on 113 of 252 sessions (max 83
+        # stocks out). A ratio without its denominator is not enough to render.
+        results[f"{label}{OBSERVED_SUFFIX}"] = observed.iloc[-lookback:].sum(axis=1)
 
     return pd.DataFrame(results)
 

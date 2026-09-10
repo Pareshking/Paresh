@@ -203,15 +203,13 @@ def _compute_weights(
         raw = inv / t_w if t_w > 0 else pd.Series(1.0 / len(holdings), index=list(holdings))
     else:
         raw = pd.Series(1.0 / len(holdings), index=list(holdings))
-    capped = apply_caps(
+    # The caller reads `.attrs` off this Series directly; nothing is stashed on
+    # the function. A module- or function-level attribute would be shared by
+    # every Streamlit session in the process -- and this app is deployed
+    # publicly, so one user's cap setting would decide another user's flag.
+    return apply_caps(
         raw, sector_map or {}, sector_cap=sector_cap, stock_cap=stock_cap
     )
-    # `.attrs` does not survive the full-width reindex the caller performs, so
-    # hand the neutralisation fact back through a channel that does.
-    _compute_weights.last_scheme_neutralised = bool(
-        capped.attrs.get("scheme_neutralised", False)
-    )
-    return capped
 
 
 def _exit_reason(
@@ -391,6 +389,8 @@ def run_backtest(
     effective_buffer = buffer_n if buffer_n is not None else int(top_n * 1.5)
     pit_periods = 0
     current_universe_periods = 0
+    # Local to this run, so concurrent sessions cannot see each other's.
+    scheme_neutralised_seen = False
 
     for i, start_idx in enumerate(rebal_dates):
         # Three distinct indices, previously collapsed into two:
@@ -465,6 +465,8 @@ def run_backtest(
             holdings, log_ret, start_idx, weight_method,
             sector_map=sec_map, stock_cap=stock_cap, sector_cap=sector_cap,
         )
+        if wts.attrs.get("scheme_neutralised"):
+            scheme_neutralised_seen = True
 
         # ── Turnover & Transaction Drag ──────────────────────────────────────
         full_w = pd.Series(0.0, index=prices.columns)
@@ -1151,8 +1153,6 @@ def run_backtest(
             "actions_adjusted": len(actions_applied),
             # True when the stock cap admits only one fully-invested book, so
             # `weight_method` had no effect on the simulation at all.
-            "scheme_neutralised": bool(
-                getattr(_compute_weights, "last_scheme_neutralised", False)
-            ),
+            "scheme_neutralised": bool(scheme_neutralised_seen),
         },
     }

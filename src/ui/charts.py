@@ -742,7 +742,7 @@ def _build_treemap_groups(
 
 
 def _script_json(obj) -> str:
-    """``json.dumps`` for a value that is about to land inside a ``<script>``.
+    r"""``json.dumps`` for a value that is about to land inside a ``<script>``.
 
     These chart pages are handed to ``st.iframe``, whose srcdoc Streamlit
     renders with ``allow-scripts`` AND ``allow-same-origin`` -- anything that
