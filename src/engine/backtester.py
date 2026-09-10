@@ -930,6 +930,21 @@ def run_backtest(
         )
         mtd_base_idx = int(earlier[-1]) if earlier.size else None
 
+    # Friction on the month's rebalance. Every FROZEN month in the track record
+    # is net -- it comes off `eq_strat_net`, which charges
+    # `turnover x cost_bps` on each fill. The live month-to-date charged
+    # nothing, and `summary_stats` compounds the two into one series, so
+    # "Strategy since inception" mixed a gross month with net ones and the
+    # error grew with the month's turnover -- up to a full 100% book
+    # establishment carried for free. Charge it the same way the loop does.
+    mtd_cost = 0.0
+    if mtd_basis == "rebalanced book" and len(mtd_wts):
+        _new_full = pd.Series(0.0, index=prices.columns, dtype=float)
+        _shared = [s for s in mtd_wts.index if s in _new_full.index]
+        _new_full.loc[_shared] = [float(mtd_wts[s]) for s in _shared]
+        mtd_turnover = float((_new_full - prev_weights).abs().sum() / 2.0)
+        mtd_cost = mtd_turnover * (cost_bps / 10000.0)
+
     strategy_mtd: float | None = None
     benchmark_mtd: float | None = None
     if mtd_base_idx is not None and mtd_base_idx < as_of_idx:
@@ -946,7 +961,8 @@ def run_backtest(
             if np.isfinite(r) and w > 0:
                 acc += w * r
                 priced += w
-        strategy_mtd = acc if priced > 0 else None
+        # Net, like every frozen month it will sit beside.
+        strategy_mtd = (acc - mtd_cost) if priced > 0 else None
 
         if benchmark_level is not None:
             b0 = benchmark_level.iloc[mtd_base_idx]
@@ -963,6 +979,8 @@ def run_backtest(
         ),
         "mtd_basis": mtd_basis,
         "strategy_mtd": strategy_mtd,
+        "mtd_cost": mtd_cost,
+        "strategy_mtd_gross": (strategy_mtd + mtd_cost) if strategy_mtd is not None else None,
         "benchmark_mtd": benchmark_mtd,
         "mtd_alpha": (
             strategy_mtd - benchmark_mtd

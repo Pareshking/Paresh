@@ -502,7 +502,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                     How does the 30 bps Friction Drag model work in Backtesting?
                 </div>
                 <div style="font-size:13px; color:#475569; line-height:1.6;">
-                    Every simulated trade deducts a realistic <strong>30 basis points (0.30%) round-trip cost</strong> covering STT (Securities Transaction Tax), exchange turnover charges, SEBI turnover fees, GST, stamp duty, and bid-ask slippage drag.
+                    Every simulated trade deducts a <strong>30 basis point (0.30%) round-trip cost</strong> covering brokerage, exchange turnover and SEBI fees, GST on those fees, stamp duty, STT and bid-ask slippage — the <em>transaction</em> taxes and frictions paid on the trade itself. <strong>Capital-gains tax is a different thing and is not modelled anywhere in this application: every return shown is pre-tax.</strong> A monthly-rebalanced book realises gains inside twelve months, so in India they are short-term.
                 </div>
             </div>
         </div>

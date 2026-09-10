@@ -149,7 +149,26 @@ def _render_intelligence_strip(rank_df: pd.DataFrame) -> None:
     hi_mask  = to_bool_mask(rank_df.get("Near 52W High", pd.Series(dtype=object)))
     n_ema = int(ema_mask.sum()) if n_total else 0
     n_hi  = int(hi_mask.sum())  if n_total else 0
-    breadth_pct = round(n_ema / n_total * 100) if n_total else 0
+
+    # Breadth divides by the stocks that could ANSWER the question, not by every
+    # row. "Above 50 EMA" is False wherever the close or the EMA is missing
+    # (momentum.py: `.where(both_valid, False)`) -- correct for a per-stock gate,
+    # wrong as a denominator, because a stock that did not print is not a stock
+    # below its average. src/engine/breadth.py was corrected for exactly this and
+    # documents the size: a median of 33 holed symbols per session here and 135
+    # on 2026-07-21, biasing the reading down ~4% on an ordinary day and ~18% on
+    # a bad one. This strip drives a four-state BULL/BEAR verdict, so it carried
+    # the same error into a regime call.
+    #
+    # `% 50 EMA` is NaN on exactly those rows, so it identifies them.
+    pct_ema_col = rank_df.get("% 50 EMA")
+    n_observed = (
+        int(pct_ema_col.notna().sum()) if pct_ema_col is not None else n_total
+    )
+    breadth_pct = round(n_ema / n_observed * 100) if n_observed else 0
+    breadth_clr = (
+        "#34d399" if breadth_pct >= 50 else ("#fbbf24" if breadth_pct >= 35 else "#f87171")
+    )
 
     if breadth_pct >= 65:
         regime, regime_bg = "BULL TRENDING", "#4f46e5"
@@ -182,8 +201,9 @@ def _render_intelligence_strip(rank_df: pd.DataFrame) -> None:
         # Breadth
         f'<span style="{item}">'
         f'<span style="{lbl}">BREADTH</span>'
-        f'<span style="color:#34d399;font-weight:700;">{breadth_pct}%</span>'
-        f'<span style="color:rgba(255,255,255,.3);margin-left:4px;">&gt;50 EMA</span>'
+        f'<span style="color:{breadth_clr};font-weight:700;">{breadth_pct}%</span>'
+        f'<span style="color:rgba(255,255,255,.3);margin-left:4px;">&gt;50 EMA'
+        f' ({n_observed} priced)</span>'
         f'</span>'
         # 52W Hi count
         f'<span style="{item}">'
@@ -603,6 +623,8 @@ def render_ranking_view(
     n_view = len(view)
     # Count through the boolean mask. Summing the raw column concatenates
     # under the pandas 3 string dtype and yields '' for an empty view.
+    # Same denominator rule as the strip above: count through the mask, and say
+    # how many rows could answer at all.
     n_ema = int(to_bool_mask(view.get("Above 50 EMA")).sum())
     n_hi = int(to_bool_mask(view.get("Near 52W High")).sum())
     c_info.markdown(

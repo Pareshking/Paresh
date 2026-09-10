@@ -673,7 +673,7 @@ def render_sector_treemap(
         size_label = "Market Cap (Cr)"
 
     groups = _build_treemap_groups(valid_df, taxonomy_col, return_col)
-    html = _build_treemap_html(json.dumps(groups), return_col, size_label)
+    html = _build_treemap_html(_script_json(groups), return_col, size_label)
     st.iframe(html, height=700)
 
 
@@ -741,6 +741,32 @@ def _build_treemap_groups(
     return groups
 
 
+def _script_json(obj) -> str:
+    """``json.dumps`` for a value that is about to land inside a ``<script>``.
+
+    These chart pages are handed to ``st.iframe``, whose srcdoc Streamlit
+    renders with ``allow-scripts`` AND ``allow-same-origin`` -- anything that
+    escapes the script block runs on the app's own origin.
+
+    ``json.dumps`` escapes quotes and backslashes but NOT ``<``, and the HTML
+    parser looks for the literal ``</script`` before JavaScript ever sees the
+    string. So an Industry name or ticker of ``</script><img src=x onerror=...>``
+    -- and every one of those strings arrives from the niftyindices.com CSVs,
+    the NSE bhavcopy or Yahoo -- would close the block and inject markup.
+
+    ``<\/`` is the same character to a JavaScript string literal and invisible
+    to the HTML parser, so the data is unchanged and the block cannot be
+    closed. U+2028/U+2029 are line terminators in JavaScript but not in JSON,
+    which is a syntax error rather than an injection, and just as cheap to fix.
+    """
+    return (
+        json.dumps(obj)
+        .replace("</", "<\\/")
+        .replace("\u2028", "\\u2028")
+        .replace("\u2029", "\\u2029")
+    )
+
+
 def _build_treemap_html(data_json: str, return_col: str, size_label: str) -> str:
     """Build a self-contained ECharts treemap HTML component.
 
@@ -750,8 +776,8 @@ def _build_treemap_html(data_json: str, return_col: str, size_label: str) -> str
     - Rich hover tooltip: rank, return, CMP, market cap, Sharpe
     - Two-line label on tiles: ticker + return %
     """
-    rc = json.dumps(return_col)
-    sl = json.dumps(size_label)
+    rc = _script_json(return_col)
+    sl = _script_json(size_label)
     return f"""<!DOCTYPE html>
 <html>
 <head>
@@ -1397,7 +1423,7 @@ def render_rrg_chart(
             "color": VIBRANT_PALETTE[idx % len(VIBRANT_PALETTE)],
         })
 
-    payload = json.dumps({
+    payload = _script_json({
         "sectors": sectors_data,
         "highlight": list(highlight_industries or []),
         "date": current_date_str,
@@ -1502,7 +1528,7 @@ def render_breadth_chart(breadth_df: pd.DataFrame, ma_type: str = "SMA") -> None
                   "splitLine": {"lineStyle": {"color": "#f1f5f9"}}},
         "series": series,
     }
-    st.iframe(_build_echarts_html(json.dumps(option)), height=400)
+    st.iframe(_build_echarts_html(_script_json(option)), height=400)
 
 
 def render_hl_timeseries_chart(
@@ -1543,7 +1569,7 @@ def render_hl_timeseries_chart(
              "areaStyle": {"color": "rgba(225,29,72,0.08)"}, "connectNulls": False},
         ],
     }
-    st.iframe(_build_echarts_html(json.dumps(option)), height=370)
+    st.iframe(_build_echarts_html(_script_json(option)), height=370)
 
 
 def render_backtest_equity_chart(equity_curve: pd.Series, benchmark: pd.Series) -> None:
@@ -1578,7 +1604,7 @@ def render_backtest_equity_chart(equity_curve: pd.Series, benchmark: pd.Series) 
              "itemStyle": {"color": "#64748b"}, "symbol": "none", "connectNulls": False},
         ],
     }
-    st.iframe(_build_echarts_html(json.dumps(option)), height=390)
+    st.iframe(_build_echarts_html(_script_json(option)), height=390)
 
 
 def render_net_hl_bar_chart(net: pd.Series) -> None:
@@ -1603,7 +1629,7 @@ def render_net_hl_bar_chart(net: pd.Series) -> None:
                          "label": {"show": False}},
         }],
     }
-    st.iframe(_build_echarts_html(json.dumps(option)), height=300)
+    st.iframe(_build_echarts_html(_script_json(option)), height=300)
 
 
 def render_correlation_heatmap(
@@ -1619,8 +1645,8 @@ def render_correlation_heatmap(
             for xs in disp
             for ys in disp
         ]
-        syms_json = json.dumps(disp)
-        data_json = json.dumps(heat_data)
+        syms_json = _script_json(disp)
+        data_json = _script_json(heat_data)
         html = f"""<!DOCTYPE html>
 <html>
 <head>

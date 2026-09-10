@@ -1,4 +1,6 @@
 import re
+from html import escape as _esc
+from urllib.parse import quote as _urlq
 
 import numpy as np
 import pandas as pd
@@ -1127,6 +1129,14 @@ def render_master_screener_table(
     for _, row in df.iterrows():
         rk = row.get("Rank", "—")
         sym = row.get("Symbol", "—")
+        # Every value below originates in a third-party feed (the
+        # niftyindices.com constituent CSVs, the NSE PR bhavcopy, Yahoo) and
+        # lands in an st.iframe srcdoc, which Streamlit renders with
+        # allow-scripts AND allow-same-origin -- markup in a cell would
+        # execute on the app's own origin. Escape at the sink, once, where
+        # it cannot be forgotten by a new column.
+        rk_s = _esc(str(rk))
+        sym_s = _esc(str(sym))
 
         cmp_val = row.get("CMP")
         cmp_str = (
@@ -1165,13 +1175,15 @@ def render_master_screener_table(
         # Classification
         idx_raw = str(row.get("Indices", "—")).split(",")[0].strip()
         idx_html = (
-            f"<span class='index-tag'>{idx_raw}</span>"
+            f"<span class='index-tag'>{_esc(idx_raw)}</span>"
             if idx_raw and idx_raw != "—"
             else "<span class='text-muted'>—</span>"
         )
 
         ind_raw = str(row.get("Industry", "—"))
         ind_disp = ind_raw[:20] + "…" if len(ind_raw) > 21 else ind_raw
+        ind_raw_s = _esc(ind_raw)
+        ind_disp_s = _esc(ind_disp)
 
         mcap_val = row.get("Market Cap (Cr)")
         mcap_str = (
@@ -1265,7 +1277,7 @@ def render_master_screener_table(
 
         pct_ath = row.get("% ATH")
         ath_peak = str(row.get("ATH Date") or "").strip()
-        ath_title = f' title="Peak printed {ath_peak}"' if ath_peak else ""
+        ath_title = f' title="Peak printed {_esc(ath_peak)}"' if ath_peak else ""
         ath_str = (
             f"{float(pct_ath):.1f}%"
             if pd.notna(pct_ath) and isinstance(pct_ath, (int, float))
@@ -1339,9 +1351,10 @@ def render_master_screener_table(
         # behave; the click itself is handled by the delegated listener in the
         # page script below, which is where the workaround lives.
         sym_link = (
-            f'<a href="?stock={sym}" class="stock-ticker" data-stock="{sym}" '
+            f'<a href="?stock={_urlq(str(sym), safe="")}" '
+            f'class="stock-ticker" data-stock="{sym_s}" '
             f'style="text-decoration:none;border-bottom:1px dotted #94a3b8;'
-            f'cursor:pointer;" title="Open {sym}">{sym}</a>'
+            f'cursor:pointer;" title="Open {sym_s}">{sym_s}</a>'
         )
 
         pc = {m: _period_cells(row, m) for m in PERIOD_WINDOWS}
@@ -1353,11 +1366,11 @@ def render_master_screener_table(
         )
 
         if is_exec:
-            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw}">{ind_disp}</td><td class="td-num {ret_3m_clr}"><strong>{ret_3m_str}</strong></td><td class="td-num td-sharpe">{sharpe_3m_str}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
+            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk_s}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw_s}">{ind_disp_s}</td><td class="td-num {ret_3m_clr}"><strong>{ret_3m_str}</strong></td><td class="td-num td-sharpe">{sharpe_3m_str}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
         elif is_core:
-            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw}">{ind_disp}</td><td class="td-num">{mcap_str}</td><td class="td-num {ret_3m_clr}"><strong>{ret_3m_str}</strong></td><td class="td-num td-sharpe">{sharpe_3m_str}</td><td class="td-num {ret_6m_clr}"><strong>{ret_6m_str}</strong></td><td class="td-num td-sharpe">{sharpe_6m_str}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-num td-sl">{sl_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
+            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk_s}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw_s}">{ind_disp_s}</td><td class="td-num">{mcap_str}</td><td class="td-num {ret_3m_clr}"><strong>{ret_3m_str}</strong></td><td class="td-num td-sharpe">{sharpe_3m_str}</td><td class="td-num {ret_6m_clr}"><strong>{ret_6m_str}</strong></td><td class="td-num td-sharpe">{sharpe_6m_str}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-num td-sl">{sl_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
         else:
-            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw}">{ind_disp}</td><td class="td-num">{mcap_str}</td>{period_cells_html}<td class="td-num">{hi_str}</td><td class="td-num"{ath_title}>{ath_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-center">{above_ema_icon}</td><td class="td-center">{near_hi_icon}</td><td class="td-center">{at_ath_icon}</td><td class="td-num td-sl">{sl_str}</td><td class="td-num td-chand">{chand_str}</td><td class="td-center">{gap_icon}</td><td class="td-num">{ffill_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
+            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk_s}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw_s}">{ind_disp_s}</td><td class="td-num">{mcap_str}</td>{period_cells_html}<td class="td-num">{hi_str}</td><td class="td-num"{ath_title}>{ath_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-center">{above_ema_icon}</td><td class="td-center">{near_hi_icon}</td><td class="td-center">{at_ath_icon}</td><td class="td-num td-sl">{sl_str}</td><td class="td-num td-chand">{chand_str}</td><td class="td-center">{gap_icon}</td><td class="td-num">{ffill_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
         rows_html.append(row_h)
 
     # Assemble headers based on density
@@ -1931,7 +1944,7 @@ def render_saas_table(
                 "ACTION",
             ]
         ):
-            headers_html.append(f'<th class="th-center">{col}</th>')
+            headers_html.append(f'<th class="th-center">{_esc(str(col))}</th>')
         elif any(
             w in c_str
             for w in [
@@ -1951,9 +1964,9 @@ def render_saas_table(
                 "MONTH",
             ]
         ):
-            headers_html.append(f'<th class="th-left">{col}</th>')
+            headers_html.append(f'<th class="th-left">{_esc(str(col))}</th>')
         else:
-            headers_html.append(f'<th class="th-right">{col}</th>')
+            headers_html.append(f'<th class="th-right">{_esc(str(col))}</th>')
 
     rows_html = []
     for _, row in df.iterrows():
@@ -1969,7 +1982,7 @@ def render_saas_table(
             # Special column formatting
             if "SYMBOL" in c_str:
                 cells_html.append(
-                    f'<td class="td-left"><span class="stock-ticker">{val}</span></td>'
+                    f'<td class="td-left"><span class="stock-ticker">{_esc(str(val))}</span></td>'
                 )
             elif "QUADRANT" in c_str:
                 q_val = str(val).capitalize()
@@ -1986,7 +1999,7 @@ def render_saas_table(
                     "Improving": "🔵",
                 }.get(q_val, "⚪")
                 cells_html.append(
-                    f'<td class="td-center"><span class="badge-pill {q_badge}">{q_ico} {q_val}</span></td>'
+                    f'<td class="td-center"><span class="badge-pill {q_badge}">{q_ico} {_esc(q_val)}</span></td>'
                 )
             elif "ACTION" in c_str:
                 act_str = str(val).upper()
@@ -2000,7 +2013,7 @@ def render_saas_table(
                     )
                 else:
                     cells_html.append(
-                        f'<td class="td-center"><span class="badge-pill badge-neutral">{val}</span></td>'
+                        f'<td class="td-center"><span class="badge-pill badge-neutral">{_esc(str(val))}</span></td>'
                     )
             elif isinstance(val, (int, np.integer)) and not isinstance(val, bool):
                 if any(w in c_str for w in ["DELTA", "Δ"]):
@@ -2164,13 +2177,13 @@ def render_saas_table(
                 else:
                     cells_html.append(f'<td class="td-right">{val:.2f}</td>')
             elif any(w in c_str for w in ["INDUSTRY", "SECTOR"]):
-                cells_html.append(f'<td class="td-left td-sector">{val}</td>')
+                cells_html.append(f'<td class="td-left td-sector">{_esc(str(val))}</td>')
             elif isinstance(val, bool):
                 cells_html.append(
                     f'<td class="td-center">{"🟢 Yes" if val else "⚪ No"}</td>'
                 )
             else:
-                cells_html.append(f'<td class="td-left">{val}</td>')
+                cells_html.append(f'<td class="td-left">{_esc(str(val))}</td>')
 
         rows_html.append(f'<tr class="screener-row">{"".join(cells_html)}</tr>')
 

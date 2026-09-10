@@ -32,8 +32,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests playwright
           python -m playwright install --with-deps chromium
+      # The input reaches the shell through the environment, never through
+      # ${{ }} interpolation into the script body: a dispatch input is
+      # attacker-controllable text the moment anyone else holds write access,
+      # and interpolation splices it into the command before bash ever sees a
+      # quote. Via env it is data, and the digit check makes a non-number fail
+      # loudly instead of running.
       - name: Pre-roll
-        run: sleep "${{ github.event.inputs.preroll_seconds }}"
+        env:
+          PREROLL_SECONDS: ${{ github.event.inputs.preroll_seconds }}
+        run: |
+          seconds="${PREROLL_SECONDS:-0}"
+          case "$seconds" in
+            ''|*[!0-9]*) echo "::error::preroll_seconds must be a whole number of seconds; got '$seconds'"; exit 1 ;;
+          esac
+          sleep "$seconds"
       - name: Measure cold start
         env:
           UMIYA_READY_BUDGET_S: ${{ github.event.inputs.ready_budget_seconds }}

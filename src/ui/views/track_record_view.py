@@ -151,13 +151,49 @@ def render_track_record_view(
     incl = stats.get("includes_mtd")
 
     tr, br, al, dd = st.columns(4)
-    tr.metric("Strategy since inception till date", _pct(stats["total_return"]))
-    br.metric("Nifty 500", _pct(stats["bench_return"]))
-    al.metric("Alpha", _pct(stats["alpha"]))
+    tr.metric(
+        "Strategy since inception (net of costs, pre-tax)",
+        _pct(stats["total_return"]),
+        help=(
+            "Net of the modelled transaction-cost drag, including the live "
+            "month. No capital-gains tax is deducted anywhere in this app."
+        ),
+    )
+    br.metric("Nifty 500 (price index)", _pct(stats["bench_return"]))
+    # Not Jensen's alpha, and not like-for-like: the strategy trades
+    # dividend-adjusted prices (auto_adjust=True) while ^CRSLDX is the Nifty 500
+    # PRICE index, which excludes dividends. The constituents' yield -- roughly
+    # 1-1.5% a year -- therefore lands in this figure as if it were skill.
+    al.metric(
+        "Excess vs Nifty 500",
+        _pct(stats["alpha"]),
+        help=(
+            "Simple difference of cumulative returns, not beta-adjusted alpha. "
+            "The strategy compounds dividend-adjusted prices; ^CRSLDX is a "
+            "price index that excludes dividends, so roughly 1-1.5% a year of "
+            "this gap is constituent yield rather than outperformance."
+        ),
+    )
     dd.metric("Max Drawdown (monthly)", _pct(stats["max_drawdown"]))
 
+    # Annualising a sub-year record is an extrapolation, not a CAGR. The
+    # Backtest tab says so on its own equivalent figure; this tab, which readers
+    # trust as the real record, did not.
+    _elapsed_years = float(stats.get("elapsed_months", 0) or 0) / 12.0
+    _ann_label = (
+        "Annualised" if _elapsed_years >= 1.0
+        else f"Annualised (scaled up from {_elapsed_years:.2f}y)"
+    )
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Annualised", _pct(stats["ann_return"]))
+    c1.metric(
+        _ann_label,
+        _pct(stats["ann_return"]),
+        help=(
+            "Not a CAGR: no full year has been observed. The return actually "
+            f"posted over {_elapsed_years:.2f} years is raised to the power of "
+            f"1/{max(_elapsed_years, 1e-9):.2f}."
+        ) if _elapsed_years < 1.0 else None,
+    )
     c2.metric("Positive Months", f"{stats['positive_months']} / {stats['months']}")
     c3.metric(
         "Beat Benchmark",

@@ -16,8 +16,15 @@ actually use — unaudited. Findings S1-S4 below come from that second pass.
 RRG, Watchlist, Market Breadth, Configuration, and `src/loaders`. Findings
 T1-T5. Every tab has now been audited.
 
+**Fourth pass: INDEPENDENT review.** Passes 1-3 were written and graded by
+the same author — the exact conflict a council structure exists to break.
+Four independent agents were then given the merged work and told not to
+trust this document. Findings R1-R8 are theirs, verified here before being
+accepted. Three of the four agents were killed by a session rate limit
+before reporting; what follows is what the two that produced work found.
+
 Baseline commit: `0ce4a86`. Test suite at baseline: **651 passed, 1 failed.**
-After this audit: **674 passed, 0 failed.**
+After this audit: **720 passed, 0 failed.**
 
 ---
 
@@ -114,6 +121,30 @@ a plausible 10⁷ error in the `Market Cap (Cr)` column. The shipped
 `data/nse_market_caps.csv` stores rupees and `/1e7` yields crores correctly:
 RELIANCE ₹17.3 lakh crore, TCS ₹7.99 lakh crore, HDFCBANK ₹10.6 lakh crore.
 **False alarm** — both sources agree.
+
+---
+
+## Confirmed problems — independent review (fourth pass)
+
+These were found by reviewers who did not write the code and were instructed to
+distrust this report. Each was verified against the source before acceptance.
+
+| # | Severity | Problem | Evidence | Fix |
+|---|---|---|---|---|
+| **R1** | **Critical** | **The live month-to-date was GROSS while every frozen month is NET, and the two are compounded into one headline.** Frozen months come off `eq_strat_net`, which charges `turnover × cost_bps` at each fill. The MTD block accrued `acc += w * r` with no friction term anywhere, and `summary_stats` splices that figure into the same series as the frozen months. "Strategy since inception" therefore mixed a gross month with net ones. | `src/engine/backtester.py`, MTD block: no `friction_drag` term. When `mtd_basis == "rebalanced book"` the month's turnover — up to a full 100% establishment — was carried for free. | MTD now charges the same `turnover × cost_bps` the loop does; `mtd_cost` and `strategy_mtd_gross` exposed in `live_meta`. |
+| **R2** | **High** | **Track Record's "Annualised" extrapolates 8 months to a year with no caveat** — the identical defect F6 fixed on the Backtest tab, left standing on the tab users trust as the *real record*. | `track_record_view.py`: `c1.metric("Annualised", …)`; `track_record.py`: `(1 + total_s) ** (12.0 / n) - 1` with n = 8. Backtest says "scaled up from 0.51y" and "Not a CAGR"; this said nothing. | Label carries the elapsed window below one year, with the same "not a CAGR" explanation. |
+| **R3** | **High** | **The Screener's breadth reading and BULL/BEAR regime verdict reintroduced the exact NaN-denominator bug T1 had just fixed**, through a different code path. `Above 50 EMA` is False wherever the close or EMA is missing (correct for a per-stock gate), and the strip divided by *every* row. The reading was also hardcoded emerald, so 12% breadth printed green. | `ranking_view.py`: `breadth_pct = round(n_ema / n_total * 100)` driving a four-state regime call; `<span style="color:#34d399">` regardless of value. **T1's fix was therefore incomplete.** | Denominator is the stocks that could answer (`% 50 EMA` non-null); colour follows the value; the priced count is shown. |
+| **R4** | **High** | **"Alpha" books the constituents' dividend yield as skill.** The strategy compounds `auto_adjust=True` prices (total return, dividends reinvested); `^CRSLDX` is the Nifty 500 **price** index, which excludes them. Roughly 1-1.5% a year of the reported gap is yield. It is also a simple difference of cumulative returns, not beta-adjusted alpha. | `price_loader.py` pins `auto_adjust=True` on every download; `alpha = total_s - total_b`. | Relabelled "Excess vs Nifty 500" with the asymmetry stated. *Switching to a TRI series remains open — see Remaining Risks.* |
+| **R5** | **High** | **The Configuration tab claimed a skip-month momentum convention the engine does not implement — three times, two of them contradicting each other.** One line said only the 12M window skips; another said all five do; `grep -rn "skip" src/engine/` returns no such logic. A user weighting the sliders believed they were buying 12-1 momentum and were buying 12-0. | `config_view.py` lines 204 / 217 / 222 vs `calendar_start_positions`, which runs `as_of - DateOffset(months=months)` straight to the latest observation. | All three corrected; the window table now leads with the calendar period and marks session counts approximate. |
+| **R6** | **High** | **F15 was rated Low on a false premise — raised to High.** I judged unescaped third-party data in the HTML tables "Low: NSE symbols are alphanumeric today". The sandbox makes that wrong: these tables render in an `st.iframe` srcdoc with **`allow-same-origin` AND `allow-scripts`**, so markup in a cell executes on the app's own origin. | The decisive evidence was a **pre-existing comment in the very file I audited** — `theme.py:1341-1343` lists the sandbox flags. I read past it. | Escaped at the sink in `render_saas_table` and `render_master_screener_table`; URL-quoted hrefs; 9 tests parse the rendered markup with `HTMLParser` and assert no tag or attribute is created. |
+| **R7** | **High** | **Chart payloads were `json.dumps`'d straight into `<script>` blocks.** `json.dumps` escapes quotes and backslashes but **not `</`**, and the HTML parser finds `</script` before JavaScript sees the string. An Industry name or ticker containing `</script>…` closes the block and injects markup — into the same `allow-same-origin` iframe as R6. | `charts.py`: treemap, RRG, breadth, H/L, equity and correlation payloads. | `_script_json()` escapes `</` → `<\/` plus U+2028/U+2029, applied at all seven sinks. |
+| **R8** | **Medium** | **Workflow script injection**, and a correction to this report: pass 1 examined workflow *permissions*, found them correctly scoped, and recorded "FALSE ALARM". It never checked `${{ }}` interpolation into `run:` bodies. `v1-cold-start-probe.yml` spliced a `workflow_dispatch` input directly into a shell command. | `run: sleep "${{ github.event.inputs.preroll_seconds }}"` — attacker-controllable text the moment anyone holds write access, expanded before bash sees a quote. | Passed via `env:` and validated as digits, failing loudly otherwise. **The "workflows are correctly scoped" verdict in *Rejected allegations* was scoped too narrowly and is corrected here.** |
+
+**What this pass says about passes 1-3.** Two of these eight (R3, R6) are cases
+where my own fix or my own severity call was wrong, and one (R8) corrects a
+"false alarm" I issued. R1 and R4 are quantitative defects three passes of my
+own review did not find. That is the argument for independence, made against
+this audit rather than by it.
 
 ---
 
