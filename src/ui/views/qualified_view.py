@@ -44,6 +44,11 @@ def _render_qualified_section(
     # Metrics
     avg_3m = df_subset["3M Return"].mean() if "3M Return" in df_subset.columns else 0.0
     avg_6m = df_subset["6M Return"].mean() if "6M Return" in df_subset.columns else 0.0
+    # These two were hard-coded emerald, so a -15.4% average printed green.
+    # Colour that contradicts the number is worse than no colour: the reader
+    # takes the colour first.
+    avg_3m_clr = "#059669" if avg_3m >= 0 else "#dc2626"
+    avg_6m_clr = "#059669" if avg_6m >= 0 else "#dc2626"
     syms = [s for s in df_subset["Symbol"] if s in adj_close.columns]
 
     corr_val: float | None = None
@@ -52,8 +57,17 @@ def _render_qualified_section(
         corr_df = adj_close[syms].iloc[-90:].pct_change(fill_method=None).corr()
         corr_val = float(corr_df.values[np.triu_indices_from(corr_df, k=1)].mean())
 
-    corr_status = "Diversified" if corr_val and corr_val < 0.70 else "High Correlation"
-    corr_clr = "#059669" if corr_val and corr_val < 0.70 else "#d97706"
+    # `corr_val and corr_val < 0.70` is a truthiness test, and 0.0 is falsy: a
+    # PERFECTLY uncorrelated book fell through to "High Correlation". A book of
+    # one name, where corr_val is None, did the same -- labelling an unknown as
+    # a bad state beside a "—". Test for None explicitly and compare numbers as
+    # numbers.
+    if corr_val is None:
+        corr_status, corr_clr = "Not measurable", "#64748b"
+    elif corr_val < 0.70:
+        corr_status, corr_clr = "Diversified", "#059669"
+    else:
+        corr_status, corr_clr = "High Correlation", "#d97706"
     corr_str = f"{corr_val:.2f}" if corr_val is not None else "—"
 
     kpi_html = f"""
@@ -65,13 +79,13 @@ def _render_qualified_section(
         </div>
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
             <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Avg 3M Return</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: #059669; margin-top: 2px;">{avg_3m:+.1%}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.70rem; color: #64748b;">Trailing 63 Days</div>
+            <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: {avg_3m_clr}; margin-top: 2px;">{avg_3m:+.1%}</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.70rem; color: #64748b;">Calendar 3 months</div>
         </div>
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
             <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Avg 6M Return</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: #059669; margin-top: 2px;">{avg_6m:+.1%}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.70rem; color: #64748b;">Trailing 126 Days</div>
+            <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: {avg_6m_clr}; margin-top: 2px;">{avg_6m:+.1%}</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.70rem; color: #64748b;">Calendar 6 months</div>
         </div>
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
             <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Avg 90D Correlation</div>

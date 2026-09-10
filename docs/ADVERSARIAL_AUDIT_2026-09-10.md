@@ -12,8 +12,12 @@ Scope: `src/engine`, `src/ui/views`, `src/core/config.py`, `src/loaders`,
 Backtest, Portfolio and Track Record tabs and left tab 1 — the one people
 actually use — unaudited. Findings S1-S4 below come from that second pass.
 
+**Third pass: the remaining tabs and the loaders.** Qualified, Sectors,
+RRG, Watchlist, Market Breadth, Configuration, and `src/loaders`. Findings
+T1-T5. Every tab has now been audited.
+
 Baseline commit: `0ce4a86`. Test suite at baseline: **651 passed, 1 failed.**
-After this audit: **670 passed, 0 failed.**
+After this audit: **674 passed, 0 failed.**
 
 ---
 
@@ -37,6 +41,12 @@ The Screener tab, audited in a second pass, failed in the same way and closer
 to the user: six of its eleven index filters returned an empty table, its Nifty
 50 filter returned a hundred stocks, its 52-week-high gate was easier to pass
 the less history a stock had, and its rank-change column did not sum to zero.
+
+The third pass found the same signature once more — a substring test standing
+in for an identity, and a colour or a label asserting something the number
+does not. The RRG benchmark selector was inert: all three of its options
+contained "50", so all three produced one series. Market Breadth counted every
+stock that failed to print as a stock below its moving average.
 
 **Judge decision: REWORK REQUIRED at audit time — now APPROVED WITH CONDITIONS**
 after the corrections in this branch. The conditions are in *Remaining Risks*;
@@ -85,6 +95,25 @@ answer — a 52-week high cannot be quoted from four months of data — but it i
 visible change on thin data. Production loads `PRICE_HISTORY_PERIOD = "2y"`, so
 only genuine recent listings are affected, and they are already flagged
 `Short History: Yes` in the footer count.
+
+---
+
+## Confirmed problems — remaining tabs and loaders (third pass)
+
+| # | Severity | Problem | Evidence | Fix |
+|---|---|---|---|---|
+| **T1** | **High** | **Market Breadth counted a missing print as a stock below its moving average.** `_prices > ma` is False wherever either side is NaN, and `mean(axis=1)` then divided by the **full** column count. | A 100-stock frame with every stock above its 50D MA reads **100%**; hole 15 symbols on that session and it reads **85%** — 15% of the market reported as failing when those stocks simply did not trade. The README records a median of 33 holed symbols per session and 135 on 2026-07-21, so a number read as a market-regime signal was biased down ~4% on an ordinary day and ~18% on a bad one. | Unobserved cells masked to NaN; `mean(axis=1)` skips them, dividing by the stocks that actually have both a price and an MA. A genuine failure still counts: 40 below + 10 absent out of 100 now reads 50/90 = **55.6%**. |
+| **T2** | **High** | **The RRG benchmark selector did nothing.** The dispatch was `if "50" in benchmark_choice`, and **all three option labels contain "50"** — `Nifty 500 (Universe Equal-Weighted)`, `Nifty 50 (Large-Cap 50)`, `Nifty Midcap 150`. The first branch always won, so the other two were unreachable and the three benchmarks were one series. | All three options produced byte-identical RS-Ratio output. Same defect class as S2 — a substring test standing in for an identity. | Dispatch on named constants with exact equality. The three options now produce three distinct series. |
+| **T3** | **Medium** | **The RRG benchmark labels named NSE indices the code does not compute.** None of the three is an index: each is an *equal-weighted* proxy built from whatever universe the Configuration tab has loaded. The README requires `^CRSLDX` wherever a V1 module needs a market benchmark "unless a module has an explicitly documented reason not to", and no reason was documented. | `daily_ret[top50].mean(axis=1)` is not the Nifty 50 (free-float cap-weighted, fixed constituents); `iloc[100:250]` of today's cap ranking is not the Nifty Midcap 150. | Renamed to what they are — *Loaded universe / Top 50 by market cap / Market-cap ranks 101-250, equal-weighted* — with the deviation from the `^CRSLDX` convention documented in code and in the selector's help text. |
+| **T4** | **Medium** | **Qualified tab: a loss printed green.** The *Avg 3M Return* and *Avg 6M Return* KPIs hard-coded `color: #059669` regardless of sign. | A −15.4% average rendered in emerald. Colour that contradicts the number is worse than no colour: the reader takes the colour first. | Colour follows the sign. |
+| **T5** | **Low** | **Qualified tab: `corr_val and corr_val < 0.70` is a truthiness test, and `0.0` is falsy.** A perfectly uncorrelated book fell through to "High Correlation", and so did a single-name book where `corr_val` is `None` — labelling an unknown as a bad state beside a "—". The sublabels also read *"Trailing 63 Days"* / *"Trailing 126 Days"* on returns that are calendar-month by construction, restating the definition the README says was removed. | `classify(0.0)` → "High Correlation"; `classify(None)` → "High Correlation". | Explicit `None` test and numeric comparison; "Not measurable" is its own state. Sublabels corrected to *Calendar 3 / 6 months*. |
+
+**Rejected in this pass.** The market-cap pipeline was checked for a unit
+mismatch between its two sources (NSE PR archive and the yfinance fallback) —
+a plausible 10⁷ error in the `Market Cap (Cr)` column. The shipped
+`data/nse_market_caps.csv` stores rupees and `/1e7` yields crores correctly:
+RELIANCE ₹17.3 lakh crore, TCS ₹7.99 lakh crore, HDFCBANK ₹10.6 lakh crore.
+**False alarm** — both sources agree.
 
 ---
 
@@ -178,7 +207,10 @@ correction supplies it.
 | `src/ui/views/track_record_view.py` | `_membership` wired; backfill warning; Provenance table now carries provenance. |
 | `src/ui/views/portfolio_view.py` | Cap relaxation surfaced in the KPI and as a warning. |
 | `src/ui/views/guide_view.py` | Hardcoded performance badge removed; two non-existent engines removed; formulation corrected to the calendar-period, winsorise-then-z pipeline; Bhavcopy, 60-day and turnover claims corrected; pre-tax disclosure added. |
-| `tests/test_adversarial_audit_2026_09.py` | **New.** 18 regressions covering the confirmed defects (F15 is reported, not fixed, so it carries no test). |
+| `tests/test_adversarial_audit_2026_09.py` | **New.** 22 regressions covering the confirmed defects (F15 is reported, not fixed, so it carries no test). |
+| `src/engine/breadth.py` | Unobserved cells masked out of the moving-average breadth denominator. |
+| `src/ui/views/rrg_view.py` | Benchmark dispatch on named constants instead of a substring; options renamed to the proxies they actually compute. |
+| `src/ui/views/qualified_view.py` | Average-return colour follows its sign; correlation status handles 0.0 and None; calendar-period sublabels. |
 | `src/engine/momentum.py` | 52-week high gated on `HIGH_52W_MIN_OBSERVATIONS` in both code paths; rank deltas computed over the paired, historically-qualified population; `MIN_OBSERVATIONS` named. |
 | `src/ui/views/ranking_view.py` | `[INDEX]` options built from tags actually present, labelled with real index names, matched exactly rather than by substring. |
 | `tests/test_backtest_trade_returns.py` | Establishment-cost assertion corrected — it had pinned the bug. |
@@ -211,6 +243,17 @@ Same fixture, before and after:
   leaves the decision unchanged.
 - Reproduction scripts for each counterexample are described inline in the
   regression tests, so each finding can be re-derived from this repository.
+
+Third pass, same fixture before and after:
+
+```
+                                            BEFORE          AFTER
+breadth, 15 of 100 symbols holed              85.0%          100.0%
+breadth, 40 below + 10 absent of 100          50.0%           55.6%   (50 of 90 observed)
+RRG: distinct series across 3 benchmarks          1               3
+Qualified: -15.4% average rendered             green             red
+Qualified: classify(corr = 0.00)      High Correlation    Diversified
+```
 
 Screener pass, same fixture before and after:
 

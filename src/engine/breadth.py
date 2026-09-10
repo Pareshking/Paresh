@@ -34,7 +34,18 @@ def compute_ma_breadth(
         else:
             ma = _prices.rolling(period, min_periods=mp).mean()
 
-        above = (_prices > ma).astype(float)
+        # A stock that did not print is not a stock below its moving average.
+        # `_prices > ma` is False wherever either side is NaN, and mean(axis=1)
+        # then divided by the FULL column count -- so every missing print was
+        # counted as a failure. Yahoo holes a median of 33 symbols per session
+        # in this universe and 135 on 2026-07-21, so the reading was biased
+        # down by roughly 4% on an ordinary day and 18% on a bad one, on a
+        # number read as a market-regime signal.
+        #
+        # Mask the unobserved cells to NaN; mean(axis=1) skips them, which
+        # divides by the stocks that actually have both a price and an MA.
+        observed = _prices.notna() & ma.notna()
+        above = (_prices > ma).where(observed)
         results[label] = above.iloc[-lookback:].mean(axis=1) * 100
 
     return pd.DataFrame(results)

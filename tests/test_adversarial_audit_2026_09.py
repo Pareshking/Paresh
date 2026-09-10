@@ -505,3 +505,131 @@ def test_nifty_50_filter_does_not_leak_nifty_next_50():
         lambda v: tag in [x.strip().upper() for x in v.split(",")]
     )]
     assert sorted(exact["Symbol"]) == ["IN_BOTH", "IN_N50"]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# A7 — the remaining tabs (third pass: Qualified, Breadth, RRG)
+# ─────────────────────────────────────────────────────────────────────────────
+def test_market_breadth_does_not_count_a_missing_print_as_a_failure():
+    """`_prices > ma` is False wherever either side is NaN.
+
+    mean(axis=1) then divided by the FULL column count, so every stock that
+    simply did not print was counted as a stock below its moving average. This
+    universe holes a median of 33 symbols per session and 135 on 2026-07-21, so
+    a number read as a market-regime signal was biased down by roughly 4% on an
+    ordinary day and 18% on a bad one.
+    """
+    from src.engine.breadth import compute_ma_breadth
+
+    T, N = 300, 100
+    idx = pd.bdate_range("2025-01-01", periods=T)
+    px = pd.DataFrame({f"S{i}": np.linspace(100, 200, T) for i in range(N)}, index=idx)
+
+    clean = compute_ma_breadth("bt_clean", px, ["50D"], lookback=60)
+    assert clean["50D"].iloc[-1] == pytest.approx(100.0)
+
+    holed = px.copy()
+    holed.iloc[-1, :15] = np.nan
+    assert compute_ma_breadth("bt_holed", holed, ["50D"], lookback=60)["50D"].iloc[-1] == (
+        pytest.approx(100.0)
+    ), "15 stocks that did not print are not 15 stocks below their MA"
+
+    # A genuine failure must still count, and the denominator must be the
+    # stocks that were actually observed.
+    mixed = px.copy()
+    mixed.iloc[-1, :40] = 50.0        # 40 genuinely below
+    mixed.iloc[-1, 40:50] = np.nan    # 10 simply absent
+    assert compute_ma_breadth("bt_mixed", mixed, ["50D"], lookback=60)["50D"].iloc[-1] == (
+        pytest.approx(50 / 90 * 100)
+    )
+
+
+def test_rrg_benchmark_selector_is_not_inert():
+    """All three option labels contained "50", and the dispatch was a substring.
+
+    `if "50" in benchmark_choice` matched "Nifty 500 (Universe Equal-Weighted)",
+    "Nifty 50 (Large-Cap 50)" AND "Nifty Midcap 150", so the first branch always
+    won: the other two were unreachable and the three benchmarks were one
+    series. Same defect class as the screener's N50/NN50 collision -- a
+    substring test standing in for an identity.
+    """
+    from src.ui.views.rrg_view import BENCHMARK_OPTIONS, compute_rrg_data
+
+    rng = np.random.default_rng(4)
+    N, T = 300, 400
+    idx = pd.bdate_range("2024-06-03", periods=T)
+    drift = np.linspace(0.0012, -0.0006, N)   # large caps up, small caps down
+    px = pd.DataFrame(
+        {f"S{i}": 100 * np.exp(np.cumsum(rng.normal(drift[i], 0.016, T))) for i in range(N)},
+        index=idx,
+    )
+    rank_df = pd.DataFrame({
+        "Symbol": list(px.columns),
+        "Industry": [f"IND{i % 12}" for i in range(N)],
+        "Market Cap (Cr)": np.linspace(500000, 500, N),
+    })
+
+    results = {}
+    for opt in BENCHMARK_OPTIONS:
+        out = compute_rrg_data(f"rrg_{opt}", px, rank_df, benchmark_choice=opt)
+        assert not out.empty, f"{opt} produced no coordinates"
+        results[opt] = out.set_index("Industry")["RS_Ratio"].round(6)
+
+    a, b, c = (results[o] for o in BENCHMARK_OPTIONS)
+    assert not a.equals(b), "universe and top-50 benchmarks give identical output"
+    assert not b.equals(c), "top-50 and midcap benchmarks give identical output"
+    assert not a.equals(c), "universe and midcap benchmarks give identical output"
+
+    # And no option may claim to be an NSE index it does not compute.
+    for opt in BENCHMARK_OPTIONS:
+        assert "Nifty" not in opt, f"{opt!r} names an index it does not compute"
+        assert "equal-weighted" in opt.lower()
+
+
+def test_qualified_correlation_status_handles_zero_and_unknown():
+    """`corr_val and corr_val < 0.70` is a truthiness test, and 0.0 is falsy.
+
+    A perfectly uncorrelated book fell through to "High Correlation", and so did
+    a single-name book where corr_val is None -- labelling an unknown as a bad
+    state beside a "—".
+    """
+    import inspect
+
+    from src.ui.views import qualified_view
+
+    src = inspect.getsource(qualified_view._render_qualified_section)
+    assert "if corr_val and corr_val < 0.70" not in src, (
+        "truthiness test reintroduced: 0.0 is falsy"
+    )
+    assert "corr_val is None" in src, "an unmeasurable correlation must be its own state"
+
+    def classify(corr_val):
+        if corr_val is None:
+            return "Not measurable"
+        return "Diversified" if corr_val < 0.70 else "High Correlation"
+
+    assert classify(0.0) == "Diversified"
+    assert classify(-0.3) == "Diversified"
+    assert classify(0.45) == "Diversified"
+    assert classify(0.85) == "High Correlation"
+    assert classify(None) == "Not measurable"
+
+
+def test_qualified_average_return_colour_follows_its_sign():
+    """Avg 3M / 6M Return were hard-coded emerald, so -15.4% printed green.
+
+    Colour that contradicts the number is worse than no colour: the reader
+    takes the colour first.
+    """
+    import inspect
+
+    from src.ui.views import qualified_view
+
+    src = inspect.getsource(qualified_view._render_qualified_section)
+    assert 'color: #059669; margin-top: 2px;">{avg_3m' not in src
+    assert 'color: #059669; margin-top: 2px;">{avg_6m' not in src
+    assert "avg_3m_clr" in src and "avg_6m_clr" in src
+    # The sublabels asserted the 63/126-trading-row definition the README says
+    # was removed in favour of calendar periods.
+    assert "Trailing 63 Days" not in src and "Trailing 126 Days" not in src
+    assert "Calendar 3 months" in src and "Calendar 6 months" in src

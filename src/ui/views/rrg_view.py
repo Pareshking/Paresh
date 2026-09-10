@@ -2,6 +2,7 @@
 Relative Rotation Graph (RRG ®) View Controller.
 """
 
+from typing import Sequence
 import re
 
 import numpy as np
@@ -14,6 +15,15 @@ from src.ui.components import render_data_quality_footer
 from src.ui.theme import render_saas_table
 
 
+# The benchmark options, named once so the selector and the dispatch cannot
+# disagree. Each is an EQUAL-WEIGHTED proxy computed from the loaded universe,
+# not the NSE index of a similar name.
+BENCHMARK_UNIVERSE: str = "Loaded universe (equal-weighted)"
+BENCHMARK_TOP50: str = "Top 50 by market cap (equal-weighted)"
+BENCHMARK_MID: str = "Market-cap ranks 101-250 (equal-weighted)"
+BENCHMARK_OPTIONS: list[str] = [BENCHMARK_UNIVERSE, BENCHMARK_TOP50, BENCHMARK_MID]
+
+
 @st.cache_data(show_spinner=False, ttl=3600)
 def compute_rrg_data(
     prices_hash: str,
@@ -23,7 +33,7 @@ def compute_rrg_data(
     lookback_weeks: int = 12,
     tail_weeks: int = 6,
     timeframe: str = "Weekly candle",
-    benchmark_choice: str = "Nifty 50 (Large-Cap 50)",
+    benchmark_choice: str = BENCHMARK_UNIVERSE,
     end_date_str: str | None = None,
 ) -> pd.DataFrame:
     """Computes Sharpely / JdK Relative Rotation Graph (RRG) coordinates and rotation trails."""
@@ -41,28 +51,38 @@ def compute_rrg_data(
 
     daily_ret = prices.pct_change(fill_method=None)
 
-    # Benchmark calculation
-    if "50" in benchmark_choice and "Market Cap (Cr)" in _rank_df.columns:
-        top50 = _rank_df.sort_values("Market Cap (Cr)", ascending=False)["Symbol"].head(
-            50
-        )
-        top50_valid = [s for s in top50 if s in daily_ret.columns]
-        benchmark_ret = (
-            daily_ret[top50_valid].mean(axis=1)
-            if len(top50_valid) >= 5
-            else daily_ret.mean(axis=1)
-        )
-    elif "Midcap" in benchmark_choice and "Market Cap (Cr)" in _rank_df.columns:
-        mid150 = _rank_df.sort_values("Market Cap (Cr)", ascending=False)[
-            "Symbol"
-        ].iloc[100:250]
-        mid_valid = [s for s in mid150 if s in daily_ret.columns]
-        benchmark_ret = (
-            daily_ret[mid_valid].mean(axis=1)
-            if len(mid_valid) >= 5
-            else daily_ret.mean(axis=1)
-        )
-    else:
+    # Benchmark calculation.
+    #
+    # This dispatched on `"50" in benchmark_choice`, and ALL THREE option
+    # labels contain "50" -- "Nifty 500 (Universe Equal-Weighted)", "Nifty 50
+    # (Large-Cap 50)" and "Nifty Midcap 150". The first branch therefore always
+    # won: the Midcap branch was unreachable, the whole-universe branch was
+    # unreachable, and the three benchmarks were one series. Changing the
+    # selector did nothing to the chart. Same defect class as the screener's
+    # N50/NN50 collision -- a substring test standing in for an identity.
+    #
+    # The labels were also claims the code does not honour. None of these is an
+    # NSE index: they are EQUAL-WEIGHTED proxies built from whatever universe
+    # the Configuration tab has loaded. The README requires ^CRSLDX wherever a
+    # V1 module needs a market benchmark "unless a module has an explicitly
+    # documented reason not to" -- RRG compares sector breadth against a peer
+    # group rather than against a capitalisation-weighted index, so an
+    # equal-weighted proxy is the intended input. That is the documented
+    # reason; the labels now say what they are.
+    has_mcap = "Market Cap (Cr)" in _rank_df.columns
+
+    def _equal_weighted(symbols: Sequence[str]) -> pd.Series | None:
+        valid = [s for s in symbols if s in daily_ret.columns]
+        return daily_ret[valid].mean(axis=1) if len(valid) >= 5 else None
+
+    benchmark_ret = None
+    if has_mcap and benchmark_choice == BENCHMARK_TOP50:
+        ordered = _rank_df.sort_values("Market Cap (Cr)", ascending=False)["Symbol"]
+        benchmark_ret = _equal_weighted(ordered.head(50))
+    elif has_mcap and benchmark_choice == BENCHMARK_MID:
+        ordered = _rank_df.sort_values("Market Cap (Cr)", ascending=False)["Symbol"]
+        benchmark_ret = _equal_weighted(ordered.iloc[100:250])
+    if benchmark_ret is None:
         benchmark_ret = daily_ret.mean(axis=1)
 
     sectors: dict[str, list[str]] = {}
@@ -228,13 +248,16 @@ def render_rrg_view(
         )
         bm_choice = c_bm.selectbox(
             "Benchmark",
-            [
-                "Nifty 500 (Universe Equal-Weighted)",
-                "Nifty 50 (Large-Cap 50)",
-                "Nifty Midcap 150",
-            ],
+            BENCHMARK_OPTIONS,
             index=0,
             key="rrg_bm_choice",
+            help=(
+                "Equal-weighted proxies built from the universe loaded in the "
+                "Configuration tab — not the NSE indices of similar names. RRG "
+                "compares a sector against its peer group, so an equal-weighted "
+                "proxy is the intended input rather than the ^CRSLDX benchmark "
+                "used elsewhere in V1."
+            ),
         )
         tf_choice = c_tf.selectbox(
             "Candle Timeframe",
