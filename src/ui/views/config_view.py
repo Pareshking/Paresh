@@ -195,13 +195,25 @@ def _section_momentum_signal() -> None:
         ("9M", "cfg_w4", 0.20),
         ("12M", "cfg_w5", 0.10),
     ]
-    for col, (label, key, _default) in zip(wc, windows):
+    for col, (label, key, default) in zip(wc, windows):
+        # Re-seed before rendering. These sections are rendered ON DEMAND by the
+        # left-nav, and Streamlit discards widget state for any key whose widget
+        # was not rendered on the previous run -- navigating to Portfolio Risk
+        # and back evicts all five cfg_w* keys (proved in
+        # tests/test_config_weights_survive_nav.py). A slider with a key but no
+        # value then falls back to `min_value`, i.e. 0.00, so the panel showed
+        # five zeroed weights beside a "Weight vector: 10% · 30% · …" pill read
+        # from the canonical state one line above. The two disagreed on screen,
+        # and touching any one slider would have submitted the displayed zeros
+        # for the other four.
+        if key not in st.session_state:
+            st.session_state[key] = default
         col.slider(label, min_value=0.0, max_value=1.0, step=0.05, key=key)
 
     lbl_col, pop_col = st.columns([4, 1], vertical_alignment="center")
     lbl_col.caption(
-        "Weights normalize automatically. The 12M window excludes the most recent month "
-        "The engine does NOT apply a skip-month: each window runs to the latest observation."
+        "Weights normalize automatically. No window skips the most recent month: "
+        "each one runs from its calendar start to the latest observation."
     )
     with pop_col.popover("ℹ️ Window guide", use_container_width=True):
         st.markdown(
@@ -224,7 +236,25 @@ Higher weight on **9M + 12M** favours slow, persistent trends.
         )
 
 
+# Defaults for the on-demand Portfolio Risk widgets. Same reason as the weight
+# sliders: the left-nav renders one section per run, Streamlit evicts widget
+# state for anything it did not render last time, and a slider with a key but no
+# value then falls back to its `min_value`. Here that is silently DESTRUCTIVE
+# rather than merely visible -- a 30% sector cap would come back as 15% and a 5%
+# stock cap as 2%, both of them plausible numbers that now genuinely bind the
+# portfolio and the backtest.
+_RISK_DEFAULTS: dict[str, object] = {
+    "cfg_sc": 30,
+    "cfg_stc": 5,
+    "cfg_vt": False,
+    "cfg_vtv": 25,
+}
+
+
 def _section_portfolio_risk() -> None:
+    for _key, _default in _RISK_DEFAULTS.items():
+        if _key not in st.session_state:
+            st.session_state[_key] = _default
     lc, rc = st.columns(2, gap="large")
     with lc:
         st.markdown(

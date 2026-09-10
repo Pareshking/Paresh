@@ -21,6 +21,7 @@ warnings.filterwarnings("ignore", message=".*st\\.components\\.v1\\.html.*")
 # Core & Loaders
 from src.core import startup_metrics as metrics
 from src.core.config import (
+    DEFAULT_LOOKBACK_WEIGHTS,
     MCAP_PR_FILE,
     MCAPS_FILE,
     PRICES_FILE,
@@ -96,15 +97,11 @@ except Exception:
 if "cfg_indices" not in st.session_state:
     st.session_state["cfg_indices"] = ["NIFTY TOTAL MARKET"]
 if "cfg_w1" not in st.session_state:
-    st.session_state.update(
-        {
-            "cfg_w1": 0.10,
-            "cfg_w2": 0.30,
-            "cfg_w3": 0.30,
-            "cfg_w4": 0.20,
-            "cfg_w5": 0.10,
-        }
-    )
+    # One source for the documented defaults, so app.py and the Configuration
+    # sliders cannot drift apart.
+    st.session_state.update(dict(zip(
+        [f"cfg_w{i}" for i in range(1, 6)], DEFAULT_LOOKBACK_WEIGHTS
+    )))
 if "cfg_sc" not in st.session_state:
     st.session_state.update(
         {"cfg_sc": 30, "cfg_stc": 5, "cfg_vt": False, "cfg_vtv": 25}
@@ -113,7 +110,24 @@ if "cfg_sc" not in st.session_state:
 selected_indices = st.session_state["cfg_indices"]
 raw_w = [st.session_state[f"cfg_w{i}"] for i in range(1, 6)]
 total_w = sum(raw_w)
-weights = tuple([w / total_w for w in raw_w] if total_w > 0 else [0.2] * 5)
+if total_w <= 0:
+    # Every weight at zero is not a configuration, it is a broken one -- and the
+    # old fallback quietly ranked the whole universe on EQUAL weights while the
+    # Configuration tab still described 10/30/30/20/10. That is a different
+    # strategy presented under the configured one's name. Restore the documented
+    # defaults and say so, rather than shipping a silent methodology swap.
+    st.session_state.update(dict(zip(
+        [f"cfg_w{i}" for i in range(1, 6)], DEFAULT_LOOKBACK_WEIGHTS
+    )))
+    raw_w = list(DEFAULT_LOOKBACK_WEIGHTS)
+    total_w = sum(raw_w)
+    st.warning(
+        "All five momentum lookback weights were zero, which cannot rank "
+        "anything. Restored the defaults "
+        f"({' · '.join(f'{w:.0%}' for w in DEFAULT_LOOKBACK_WEIGHTS)}). "
+        "Set them in **Configuration → Momentum Signal**."
+    )
+weights = tuple(w / total_w for w in raw_w)
 
 sector_cap = st.session_state["cfg_sc"] / 100.0
 stock_cap = st.session_state["cfg_stc"] / 100.0
