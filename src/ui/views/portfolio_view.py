@@ -96,6 +96,21 @@ def render_portfolio_view(
         st.error(f"Constraint error: {e}")
         return
 
+    # A cap the projection could not honour is reported, not quietly applied.
+    # Twenty names across two industries cannot hold a 30% sector cap: the
+    # tightest achievable is 50%, and showing "Cap: 30%" beside a 50% sector
+    # tells the reader the limit held when it did not.
+    if constrained_w.attrs.get("caps_relaxed"):
+        st.warning(
+            f"The configured caps (stock {stock_cap:.0%}, sector {sector_cap:.0%}) "
+            f"cannot both be met by {len(constrained_w)} names across "
+            f"{len(set(sector_map.get(s, 'Other') for s in constrained_w.index))} "
+            "industries. Enforced instead: stock "
+            f"**{constrained_w.attrs['effective_stock_cap']:.1%}**, sector "
+            f"**{constrained_w.attrs['effective_sector_cap']:.1%}** — the "
+            "tightest limits this book can actually satisfy."
+        )
+
     # Volatility targeting
     real_vol = 0.0
     scale = 1.0
@@ -151,6 +166,8 @@ def render_portfolio_view(
         else 0.0
     )
 
+    enforced_sector_cap = constrained_w.attrs.get("effective_sector_cap", sector_cap)
+    cap_note = " (relaxed)" if constrained_w.attrs.get("caps_relaxed") else ""
     kpi_port_html = f"""
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px;">
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
@@ -171,7 +188,7 @@ def render_portfolio_view(
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
             <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Top Sector Weight</div>
             <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-top: 2px;">{top_sec:.1f}%</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.70rem; color: #64748b;">Cap: {sector_cap:.0%}</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.70rem; color: #64748b;">Cap: {enforced_sector_cap:.1%}{cap_note}</div>
         </div>
     </div>
     """

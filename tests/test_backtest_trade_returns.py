@@ -152,8 +152,17 @@ def test_establishment_cost_is_charged_against_the_reported_return():
     costed = run_backtest("costed", px, top_n=5, rebal_freq=21, ema_period=20,
                           high_pct=0.0, cost_bps=30.0, buffer_n=8)
     assert costed["stats"]["total_return"] < free["stats"]["total_return"]
-    # The first rebalance establishes the whole book: 100% turnover at 30 bps.
-    assert costed["monthly"]["Cost Drag %"].iloc[0] == pytest.approx(0.30)
+    # Establishing the book BUYS 100% and sells nothing -- half a round trip.
+    # cost_bps is documented as a round-trip cost ("STT + Stamp Duty +
+    # Brokerage + Slippage"), and on NSE delivery one side is ~11-13 bps
+    # against ~25-35 bps for the pair. So 0.5 x 30 = 15 bps.
+    #
+    # This used to assert 0.30, hard-coding turnover_period = 1.0 for the first
+    # period while every later period used sum|dw|/2. The same cost_bps then
+    # priced full notional on day one and half notional afterwards, and a 100%
+    # reading went into the "Avg Period Turnover" KPI beside 20% readings.
+    assert costed["monthly"]["Turnover %"].iloc[0] == pytest.approx(50.0)
+    assert costed["monthly"]["Cost Drag %"].iloc[0] == pytest.approx(0.15)
 
 
 def test_equity_dates_are_unique_and_ordered():

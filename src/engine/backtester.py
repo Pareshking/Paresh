@@ -16,9 +16,11 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src.core.config import MOMENTUM_WINDOWS
+from src.core.config import MOMENTUM_WINDOWS, RISK_FREE_RATE
+from src.engine.calendar_momentum import anchor_frame, period_sharpe_at, winsorised_z
 from src.engine.corporate_actions import adjust_prices
 from src.engine.membership import members_on
+from src.engine.portfolio import apply_caps
 
 # MOMENTUM_WINDOWS are calendar months; warmup arithmetic needs trading sessions.
 SESSIONS_PER_MONTH: int = 21
@@ -52,36 +54,21 @@ def _calendar_period_sharpe(
     log_returns: pd.DataFrame,
     end_idx: int,
     months: int,
+    *,
+    prices_anchor: pd.DataFrame | None = None,
 ) -> tuple[pd.Series, int]:
-    """V1 period-scale Sharpe using the same calendar-window rule as the screener."""
-    dates = pd.DatetimeIndex(prices.index)
-    target = pd.Timestamp(dates[end_idx]).normalize() - pd.DateOffset(months=months)
-    start_idx = int(dates.searchsorted(target, side="left"))
-    if start_idx >= end_idx:
-        return pd.Series(np.nan, index=prices.columns), start_idx
-    if target < pd.Timestamp(dates[0]).normalize():
-        # The data does not reach back far enough to cover this window.
-        # searchsorted clamps to 0, which would score a "12-month" return over
-        # however few sessions exist. Report it unavailable instead; the
-        # composite renormalises over the windows it actually has.
-        return pd.Series(np.nan, index=prices.columns), start_idx
+    """V1 period-scale Sharpe -- the screener's definition, not a copy of it.
 
-    p0 = prices.iloc[start_idx].clip(lower=0.01)
-    p1 = prices.iloc[end_idx].clip(lower=0.01)
-    log_return = np.log(p1 / p0)
-
-    window_lr = log_returns.iloc[start_idx + 1 : end_idx + 1]
-    n = window_lr.notna().sum()
-    # Population SD (ddof=0), matching the canonical screener engine in
-    # src/engine/calendar_momentum._calendar_period_metrics. Sample SD would
-    # rescale each stock by sqrt(n/(n-1)), and because n differs per stock
-    # that is not a uniform rescaling -- it makes the backtest fail to
-    # reproduce the screener's Sharpe.
-    daily_sd = window_lr.std(ddof=0)
-    period_vol = daily_sd * np.sqrt(n.astype(float))
-    sharpe = log_return / period_vol.replace(0, np.nan)
-    sharpe[n <= 1] = np.nan
-    return sharpe, start_idx
+    This delegates to src.engine.calendar_momentum.period_sharpe_at. It used to
+    reimplement the statistic, and the copy drifted: it read the window's
+    opening price off one exact session with no staleness allowance, so a single
+    holed session on the anchor date scored a stock NaN here and a real number
+    on screen. The test that was supposed to pin the two together happened to
+    put its gaps where both engines returned NaN.
+    """
+    return period_sharpe_at(
+        prices, log_returns, end_idx, months, prices_anchor=prices_anchor
+    )
 
 
 def _fill_price(prices: pd.DataFrame, symbol: str, idx: int) -> float:
@@ -121,6 +108,7 @@ def _composite_z_score(
     start_idx: int,
     windows: Sequence[int],
     weights: Sequence[float],
+    prices_anchor: pd.DataFrame | None = None,
 ) -> pd.Series:
     """Canonical multi-window composite z-score used by every ranking method.
 
@@ -133,19 +121,24 @@ def _composite_z_score(
     """
     composite = pd.Series(0.0, index=prices.columns)
     available_weight = pd.Series(0.0, index=prices.columns)
+    # Loop-invariant: five windows share one stale-anchor frame.
+    if prices_anchor is None:
+        prices_anchor = anchor_frame(prices)
     for w_period, cw in zip(windows, weights):
         if cw <= 0:
             continue
         raw_mom, _ = _calendar_period_sharpe(
-            prices, log_returns, start_idx, int(w_period)
+            prices, log_returns, start_idx, int(w_period),
+            prices_anchor=prices_anchor,
         )
-        sig_cs = float(raw_mom.std(ddof=0))
-        if not np.isfinite(sig_cs) or sig_cs <= 0:
-            # Degenerate or empty cross-section carries no information; it
-            # contributes no score and no available weight.
-            continue
-        mu_cs = float(raw_mom.mean())
-        z = ((raw_mom - mu_cs) / sig_cs).clip(-3.0, 3.0)
+        # winsorise -> z -> clamp, the documented pipeline, applied by the same
+        # function the screener uses. Z-scoring first and clipping afterwards is
+        # a different transform: it leaves the dispersion inflated by whatever
+        # outliers the cross-section has, so a fat-tailed window carried less
+        # than its configured weight here while carrying all of it on screen.
+        # A degenerate cross-section comes back all-NaN and therefore
+        # contributes no score and no available weight, as before.
+        z = winsorised_z(raw_mom)
         composite += z.fillna(0.0) * cw
         available_weight += z.notna().astype(float) * cw
     return composite.div(available_weight.replace(0.0, np.nan))
@@ -189,17 +182,30 @@ def _compute_weights(
     log_ret: pd.DataFrame,
     start_idx: int,
     weight_method: str,
+    *,
+    sector_map: dict[str, str] | None = None,
+    stock_cap: float = 1.0,
+    sector_cap: float = 1.0,
 ) -> pd.Series:
-    """Target weights for a selected book. Equal weight unless inverse-vol."""
+    """Target weights for a selected book, projected onto the configured caps.
+
+    Equal weight unless inverse-vol, then the SAME cap projection the Portfolio
+    tab applies. The caps were previously accepted by run_backtest and dropped:
+    the simulation, and the live book it hands the user to trade, ran with no
+    concentration limit at all while the Configuration tab showed one in force.
+    """
     if not len(holdings):
         return pd.Series(dtype=float)
     if weight_method == "Inverse Volatility":
         vol_w = log_ret[list(holdings)].iloc[max(start_idx - 63, 0) : start_idx + 1].std()
         inv = (1.0 / vol_w.replace(0, np.nan)).fillna(0)
         t_w = inv.sum()
-        if t_w > 0:
-            return inv / t_w
-    return pd.Series(1.0 / len(holdings), index=list(holdings))
+        raw = inv / t_w if t_w > 0 else pd.Series(1.0 / len(holdings), index=list(holdings))
+    else:
+        raw = pd.Series(1.0 / len(holdings), index=list(holdings))
+    return apply_caps(
+        raw, sector_map or {}, sector_cap=sector_cap, stock_cap=stock_cap
+    )
 
 
 def _exit_reason(
@@ -295,6 +301,9 @@ def run_backtest(
     if len(prices) < min_needed:
         return None
 
+    # One anchor frame for the whole run: the scorer is called five times
+    # per rebalance and this is invariant across all of them.
+    prices_anchor = anchor_frame(prices)
     daily_ret = prices.pct_change(fill_method=None)
     log_ret = np.log(prices / prices.shift(1).replace(0, np.nan))
 
@@ -424,7 +433,8 @@ def run_backtest(
         # backtesting a ranking the screener never shows answers a question
         # nobody asked, and each branch was its own untested scoring path.
         composite_score = _composite_z_score(
-            prices, log_ret, start_idx, WINDOWS, norm_w if norm_w else [0.2] * 5
+            prices, log_ret, start_idx, WINDOWS, norm_w if norm_w else [0.2] * 5,
+            prices_anchor=prices_anchor,
         )
         score = composite_score[valid & composite_score.notna()]
 
@@ -445,16 +455,29 @@ def run_backtest(
         )
 
         # ── Portfolio Weighting ──────────────────────────────────────────────
-        wts = _compute_weights(holdings, log_ret, start_idx, weight_method)
+        wts = _compute_weights(
+            holdings, log_ret, start_idx, weight_method,
+            sector_map=sec_map, stock_cap=stock_cap, sector_cap=sector_cap,
+        )
 
         # ── Turnover & Transaction Drag ──────────────────────────────────────
         full_w = pd.Series(0.0, index=prices.columns)
         full_w[wts.index] = wts.values
 
-        if prev_weights.sum() > 0:
-            turnover_period = float((full_w - prev_weights).abs().sum() / 2.0)
-        else:
-            turnover_period = 1.0  # Initial portfolio establishment
+        # One definition of turnover, including the first rebalance. The
+        # establishment period used to be hard-coded to 1.0 while every later
+        # period used sum|dw|/2, so the same `cost_bps` priced two different
+        # quantities: full notional traded on day one, half notional after. It
+        # also put a 100% reading into the "Avg Period Turnover" KPI beside
+        # 20% readings, inflating the average of a series whose terms did not
+        # measure the same thing.
+        #
+        # sum|dw|/2 is one-way turnover, which is what `cost_bps` is documented
+        # to price ("round-trip cost"): establishing a book buys 100% and sells
+        # nothing, i.e. half a round trip, so 0.5 -- 15 bps at the default, not
+        # 30. NB the closing book is never liquidated, so its exit leg is never
+        # charged either; the two simplifications point the same way.
+        turnover_period = float((full_w - prev_weights).abs().sum() / 2.0)
 
         prev_weights = full_w
         friction_drag = turnover_period * (cost_bps / 10000.0)
@@ -749,7 +772,8 @@ def run_backtest(
             p_valid &= p_idx_mask
 
         p_score = _composite_z_score(
-            prices, log_ret, rebal_idx, WINDOWS, norm_w if norm_w else [0.2] * 5
+            prices, log_ret, rebal_idx, WINDOWS, norm_w if norm_w else [0.2] * 5,
+            prices_anchor=prices_anchor,
         )
         p_ranked = p_score[p_valid & p_score.notna()].sort_values(ascending=False)
         live_ranks = {s: p_ranked.index.get_loc(s) + 1 for s in p_ranked.index}
@@ -763,7 +787,8 @@ def run_backtest(
                 p_ranked, prev_holdings, top_n, effective_buffer
             )
             new_wts = _compute_weights(
-                new_holdings, log_ret, rebal_idx, weight_method
+                new_holdings, log_ret, rebal_idx, weight_method,
+                sector_map=sec_map, stock_cap=stock_cap, sector_cap=sector_cap,
             )
 
             sold = [s for s in prev_holdings if s not in new_holdings]
@@ -963,7 +988,13 @@ def run_backtest(
     total_b = float(eq_bench.iloc[-1] / eq_bench.iloc[0] - 1)
 
     n_days = len(dates)  # accrual sessions; the base point is not one of them
+    window_years = n_days / 252.0
     ann_factor = 252.0 / max(n_days, 1)
+    # An annualised figure, not a compound annual growth rate observed over a
+    # year. The reported window is six completed months, so this raises a
+    # half-year result to the power of two: a +23% half-year prints +51%. It is
+    # the standard convention and it is kept, but `window_years` travels beside
+    # it so no caller can show it without being able to say what it extrapolates.
     cagr_net = float((1 + total_s_net) ** ann_factor - 1) if (1 + total_s_net) > 0 else -1.0
     cagr_gross = (
         float((1 + total_s_gross) ** ann_factor - 1) if (1 + total_s_gross) > 0 else -1.0
@@ -972,7 +1003,21 @@ def run_backtest(
 
     strat_daily_s = pd.Series(strat_net_daily)
     strat_vol = float(strat_daily_s.std() * np.sqrt(252))
-    strat_sharpe = float(((cagr_net - 0.065) / strat_vol)) if strat_vol > 0 else 0.0
+
+    # Sharpe from the MEAN excess return, which is what a Sharpe ratio is.
+    # It used to divide the annualised CAGR by annualised volatility -- a
+    # geometric numerator over an arithmetic denominator, and a numerator
+    # extrapolated from half a year at that, so the compounding of one strong
+    # month leaked into a statistic that is supposed to describe the average.
+    ann_mean_excess = float(strat_daily_s.mean() * 252) - RISK_FREE_RATE
+    strat_sharpe = float(ann_mean_excess / strat_vol) if strat_vol > 0 else 0.0
+    # How much of that ratio is sample noise. SE(Sharpe) ~ sqrt((1+S^2/2)/n).
+    # Over ~126 sessions the standard error on a Sharpe of 2 is about 0.15, and
+    # on a Sharpe of 6 about 0.4 -- which is the whole point of publishing it
+    # beside a number the UI prints to two decimals.
+    sharpe_stderr = (
+        float(np.sqrt((1.0 + 0.5 * strat_sharpe**2) / n_days)) if n_days > 1 else float("nan")
+    )
 
     dd_series = eq_strat_net / eq_strat_net.cummax() - 1
     max_dd = float(dd_series.min())
@@ -989,18 +1034,40 @@ def run_backtest(
                 break
 
     n_periods = len(monthly_df)
+    # Two different things, both of which were called "Win Rate". The card said
+    # "Profitable Periods" and showed the share of months that BEAT THE
+    # BENCHMARK -- 83% on a run where every month was profitable. They are
+    # reported separately now and neither borrows the other's label.
     win_rate = (
+        float((monthly_df["Strategy Net"] > 0).mean())
+        if not monthly_df.empty and "Strategy Net" in monthly_df.columns
+        else 0.0
+    )
+    beat_rate = (
         float((monthly_df["Alpha vs Benchmark"] > 0).mean())
         if not monthly_df.empty and "Alpha vs Benchmark" in monthly_df.columns
         else 0.0
     )
 
+    # Target semideviation: sqrt(mean(min(r, 0)^2)) over EVERY session, which is
+    # the Sortino denominator. The previous code took the standard deviation of
+    # the negative sessions only -- a different statistic, divided by a smaller
+    # count and measured about their own mean rather than about zero, so it
+    # neither matched any published Sortino nor erred in a predictable
+    # direction. The <=5-observation fallback to total volatility is kept:
+    # a semideviation from four bad days is not a risk estimate.
     downside_rets = strat_daily_s[strat_daily_s < 0]
     downside_vol = (
-        float(downside_rets.std() * np.sqrt(252)) if len(downside_rets) > 5 else strat_vol
+        float(np.sqrt((np.minimum(strat_daily_s, 0.0) ** 2).mean()) * np.sqrt(252))
+        if len(downside_rets) > 5
+        else strat_vol
     )
-    strat_sortino = float(((cagr_net - 0.065) / downside_vol)) if downside_vol > 0 else 0.0
+    strat_sortino = float(ann_mean_excess / downside_vol) if downside_vol > 0 else 0.0
 
+    # Numerator annualised, denominator observed over `window_years`. Over a
+    # six-month window that is not a Calmar ratio in the sense anyone quotes,
+    # because a half-year cannot contain a year's worth of drawdown. Reported
+    # with the window attached so it is read as what it is.
     calmar_ratio = float((cagr_net / abs(max_dd))) if abs(max_dd) > 0 else 0.0
     avg_turnover = float(monthly_df["Turnover %"].mean()) if not monthly_df.empty else 0.0
     tot_cost_drag = total_s_gross - total_s_net
@@ -1025,7 +1092,11 @@ def run_backtest(
             "ann_bench": cagr_bench,
             "max_drawdown": max_dd,
             "win_rate": win_rate,
+            "beat_rate": beat_rate,
             "sharpe": strat_sharpe,
+            "sharpe_stderr": sharpe_stderr,
+            "risk_free_rate": RISK_FREE_RATE,
+            "window_years": window_years,
             "sortino": strat_sortino,
             "calmar": calmar_ratio,
             "volatility": strat_vol,

@@ -84,6 +84,13 @@ DEFAULT_STOCK_CAP: Final[float] = 0.05
 DEFAULT_TARGET_VOL: Final[float] = 0.25
 DEFAULT_TRANSACTION_COST_BPS: Final[float] = 30.0
 
+# Risk-free rate used as the excess-return hurdle in Sharpe and Sortino.
+# It was a bare 0.065 inline in the backtester, which meant the number every
+# ratio on the Backtest tab is measured against could not be found, changed or
+# even seen from anywhere the user looks. Roughly the 10-year GOI yield; it is
+# an assumption, so it lives where assumptions live.
+RISK_FREE_RATE: Final[float] = 0.065
+
 @dataclass(frozen=True)
 class ThemeTokens:
     bg_main: str = "#ffffff"; bg_surface: str = "#f8fafc"; bg_card: str = "#ffffff"; border: str = "#e2e8f0"

@@ -16,6 +16,7 @@ import streamlit as st
 
 from src.engine.backtester import run_backtest
 from src.engine.corporate_actions import load_events
+from src.engine.membership import load_history_or_none
 from src.engine.track_record import (
     INCEPTION,
     MONTH_LABELS,
@@ -58,6 +59,7 @@ def _record_mtd(
         buffer_n=cfg["buffer_n"],
         _benchmark_close=benchmark_close,
         backtest_months=months,
+        _membership=load_history_or_none(),
         _actions=load_events(),
     )
     return (result or {}).get("live_meta", {}) or {}
@@ -185,6 +187,34 @@ def render_track_record_view(
             "until the month closes."
         )
 
+    # How much of this record is EVIDENCE and how much is reconstruction.
+    # summary_stats has counted this since it was written and nothing displayed
+    # it: every month in the shipped ledger is `origin: "backfill"`, computed in
+    # one pass on 2026-09-03 from today's universe and today's prices, and the
+    # headline above reads "Strategy since inception" as though it were a live
+    # record. A backfilled month carries the backtest's survivorship and
+    # index-membership biases; a recorded month was frozen as it closed and
+    # carries none of them. The difference is the entire evidential value of
+    # the tab, so it goes above the numbers, not in a tooltip.
+    _backfilled = int(stats.get("backfilled", 0) or 0)
+    _recorded = int(stats.get("recorded", 0) or 0)
+    if _backfilled:
+        st.warning(
+            f"**{_backfilled} of {_backfilled + _recorded} frozen months were "
+            "BACKFILLED**"
+            + (
+                " — the whole record is a reconstruction, not an out-of-sample "
+                "result."
+                if not _recorded
+                else "."
+            )
+            + " A backfilled month was rebuilt later from today's constituent "
+            "list and today's prices, so it inherits the backtest's "
+            "survivorship and index-membership bias. Only months marked "
+            "*recorded* were frozen as they closed from the data as it then "
+            "stood. See the Provenance view for which is which."
+        )
+
     if len(stats.get("configs", [])) > 1:
         st.warning(
             "This record spans more than one strategy configuration "
@@ -243,6 +273,10 @@ def render_track_record_view(
         )
 
     else:
+        # This view is named Provenance and used to show Month / Strategy /
+        # Nifty 500 / Alpha -- the same four numbers as the Returns grid and no
+        # provenance at all, while the ledger carried origin, config
+        # fingerprint, freeze date and price date for every month.
         prov = pd.DataFrame(
             [
                 {
@@ -250,9 +284,29 @@ def render_track_record_view(
                     "Strategy": _pct(e.get("strategy")),
                     "Nifty 500": _pct(e.get("benchmark")),
                     "Alpha": _pct(e.get("alpha")),
+                    "Origin": (
+                        "✅ Recorded"
+                        if e.get("origin") == "recorded"
+                        else "⚠️ Backfilled"
+                    ),
+                    "Universe": (
+                        "Point-in-time"
+                        if e.get("universe") == "point_in_time"
+                        else "Current list"
+                    ),
+                    "Frozen On": e.get("finalized_on") or "—",
+                    "Priced From": e.get("data_as_of") or "—",
+                    "Config": e.get("config") or "—",
                 }
                 for key, e in sorted(months.items())
             ]
+        )
+        st.caption(
+            "**Recorded** = frozen as the month closed, from the data as it "
+            "then stood. **Backfilled** = reconstructed later, so it carries "
+            "the backtest's biases and is weaker evidence. **Universe** says "
+            "whether that month was scored against the index as it actually "
+            "stood or against today's constituent list."
         )
         render_saas_table(prov, key="tr_provenance")
         st.download_button(

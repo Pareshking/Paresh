@@ -147,29 +147,94 @@ def _calendar_period_metrics(
     return (sharpe_df, last_ret, sharpe_df, starts)
 
 
-def _winsorised_cross_section_z(score: pd.DataFrame) -> pd.DataFrame:
-    """Winsorise each date's cross-section at ±3σ, then z-score it.
+def anchor_frame(prices: pd.DataFrame) -> pd.DataFrame:
+    """Prices with each symbol's last real close carried at most 5 sessions.
 
-    One matrix pass, not one pass per row. This ran as a Python loop over every
-    date, building a Series per row to dropna/clip/reindex -- 500 dates x 5
-    windows = 2,500 iterations, and the single hottest path in the engine at
-    5.21s of 7.14s total compute.
-
-    Verified against the loop on the real 750-symbol universe: identical cells
-    populated, maximum absolute difference 4.0e-15, equal to 1e-12, and 12x
-    faster -- roughly 3.7s off every ranking.
-
-    A row needs 3 real observations and non-zero spread to mean anything; below
-    that it stays NaN, exactly as the loop had it.
+    Hoisted out of ``period_sharpe_at`` because it is loop-invariant and the
+    frame is not small: a backtest calls the scorer five times per rebalance,
+    so computing this inside it re-ffilled a 750x500 frame 35 times per run and
+    cost 336 ms of the 815 ms total. Compute it once per price frame and pass
+    it down.
     """
-    A = score.to_numpy(dtype=float)
+    return prices.ffill(limit=ANCHOR_STALENESS_LIMIT)
+
+
+def period_sharpe_at(
+    prices: pd.DataFrame,
+    log_returns: pd.DataFrame,
+    end_idx: int,
+    months: int,
+    *,
+    prices_anchor: pd.DataFrame | None = None,
+) -> tuple[pd.Series, int]:
+    """The canonical System-1 period Sharpe for ONE as-of row.
+
+    This is the single definition of the statistic. The screener evaluates it
+    for every row at once (``_calendar_period_metrics``, which shares the
+    arithmetic below via cumulative sums); the backtester needs exactly one row
+    per rebalance and used to carry its own copy. The two copies agreed on the
+    fixture that tested them and disagreed on real data, because only one of
+    them carried the stale-anchor rule: a single holed session on the window's
+    opening date scored the stock NaN in the backtest and 1.74 in the screener.
+
+    Returns the cross-section and the row the window opened on.
+    """
+    dates = pd.DatetimeIndex(prices.index)
+    target = pd.Timestamp(dates[end_idx]).normalize() - pd.DateOffset(months=months)
+    start_idx = int(dates.searchsorted(target, side="left"))
+    if start_idx >= end_idx:
+        return pd.Series(np.nan, index=prices.columns), start_idx
+    if target < pd.Timestamp(dates[0]).normalize():
+        # The data does not reach back far enough to cover this window.
+        # searchsorted clamps to 0, which would score a "12-month" return over
+        # however few sessions exist. Report it unavailable instead; the
+        # composite renormalises over the windows it actually has.
+        return pd.Series(np.nan, index=prices.columns), start_idx
+
+    # Same anchor rule as the matrix path: the window's opening price is each
+    # symbol's last real close on or before the start date, at most
+    # ANCHOR_STALENESS_LIMIT sessions stale. Nothing is synthesised -- a stock
+    # with no print for a trading week still scores NaN.
+    if prices_anchor is None:
+        prices_anchor = anchor_frame(prices)
+    p0 = prices_anchor.iloc[start_idx]
+    p1 = prices.iloc[end_idx]
+    valid_price = np.isfinite(p0) & np.isfinite(p1) & (p0 != 0)
+    ratio = pd.Series(np.nan, index=prices.columns, dtype=float)
+    ratio[valid_price] = np.maximum(
+        p1[valid_price].to_numpy(dtype=float) / p0[valid_price].to_numpy(dtype=float),
+        0.001,
+    )
+    log_return = np.log(ratio)
+
+    window_lr = log_returns.iloc[start_idx + 1 : end_idx + 1]
+    n = window_lr.notna().sum()
+    # Population SD (ddof=0), matching the matrix path. Sample SD would rescale
+    # each stock by sqrt(n/(n-1)), and because n differs per stock that is not
+    # a uniform rescaling.
+    daily_sd = window_lr.std(ddof=0)
+    period_vol = daily_sd * np.sqrt(n.astype(float))
+    sharpe = log_return / period_vol.replace(0, np.nan)
+    sharpe[n <= 1] = np.nan
+    return sharpe, start_idx
+
+
+def _winsorise_z_matrix(A: np.ndarray) -> np.ndarray:
+    """Winsorise each row at +-3 sigma, z-score the winsorised row, clamp to +-3.
+
+    The numpy core, shared by the matrix path (every date at once, for the
+    screener) and the row path (one rebalance, for the backtester), so the two
+    cannot drift the way the two Sharpe implementations did. A row needs three
+    real observations and non-zero spread to mean anything; below that it is
+    NaN.
+    """
     valid = np.isfinite(A)
     n = valid.sum(axis=1)
 
     # A date with no observations at all is normal (the warmup rows), and
     # nanmean/nanstd emit a RuntimeWarning per such row rather than going
-    # through errstate. Those rows are set to NaN four lines below, which is
-    # the intended answer -- so the warning is noise, not signal.
+    # through errstate. Those rows are set to NaN below, which is the intended
+    # answer -- so the warning is noise, not signal.
     with np.errstate(invalid="ignore", divide="ignore"), warnings.catch_warnings():
         warnings.filterwarnings("ignore", message="Mean of empty slice")
         warnings.filterwarnings("ignore", message="Degrees of freedom <= 0")
@@ -185,9 +250,52 @@ def _winsorised_cross_section_z(score: pd.DataFrame) -> pd.DataFrame:
     # misses the case where sd > 0 but winsorization collapses c_sd to 0.
     z[(n < 3) | (sd.ravel() == 0.0) | (c_sd.ravel() == 0.0), :] = np.nan
     # Winsorisation shifts the post-clip mean/std, so z-scores can slightly
-    # exceed ±3 even after the ±3σ input clip.  Clamp the final result so the
-    # vectorised path matches the reference loop exactly.
-    return pd.DataFrame(z.clip(-3.0, 3.0), index=score.index, columns=score.columns)
+    # exceed +-3 even after the +-3 sigma input clip. Clamp the final result.
+    return z.clip(-3.0, 3.0)
+
+
+def winsorised_z(raw: pd.Series) -> pd.Series:
+    """Canonical cross-sectional normalisation for one date's raw factor.
+
+    The documented pipeline is winsorise at +-3 sigma, THEN z-score the
+    winsorised data, THEN clamp. The backtester used to z-score first and clip
+    afterwards, which is not the same transform: winsorising first shrinks the
+    dispersion the z-score divides by, so every ordinary name's score is larger.
+    Measured on a 200-name cross-section with five momentum outliers, 149 names
+    moved by more than 0.05 and two of the top twenty changed.
+
+    Rank within a single window is unaffected -- both maps are monotone -- but
+    the COMPOSITE sums five of them, so a window whose tails are fat carried
+    less than its configured weight in the backtest and its configured weight
+    in the screener. That is why the two disagreed about which stocks to hold.
+    """
+    A = np.asarray(raw.to_numpy(dtype=float)).reshape(1, -1)
+    # Straight to the kernel and back into the caller's own index. Round-tripping
+    # through a 1-row DataFrame rebuilt a 750-label Index twice per call, 35
+    # times per backtest -- 613 ms of a 1.57 s profiled run.
+    return pd.Series(_winsorise_z_matrix(A)[0], index=raw.index)
+
+
+def _winsorised_cross_section_z(score: pd.DataFrame) -> pd.DataFrame:
+    """Winsorise each date's cross-section at ±3σ, then z-score it.
+
+    One matrix pass, not one pass per row. This ran as a Python loop over every
+    date, building a Series per row to dropna/clip/reindex -- 500 dates x 5
+    windows = 2,500 iterations, and the single hottest path in the engine at
+    5.21s of 7.14s total compute.
+
+    Verified against the loop on the real 750-symbol universe: identical cells
+    populated, maximum absolute difference 4.0e-15, equal to 1e-12, and 12x
+    faster -- roughly 3.7s off every ranking.
+
+    The arithmetic lives in _winsorise_z_matrix, which the backtester's row path
+    also calls, so the screener and the backtest cannot normalise differently.
+    """
+    return pd.DataFrame(
+        _winsorise_z_matrix(score.to_numpy(dtype=float)),
+        index=score.index,
+        columns=score.columns,
+    )
 
 
 def _compute_period_z_scores(calc) -> None:

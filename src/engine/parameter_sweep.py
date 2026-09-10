@@ -31,6 +31,7 @@ from typing import Any, Sequence
 import numpy as np
 import pandas as pd
 
+from src.engine.membership import load_history_or_none
 from src.engine.backtester import (
     DEFAULT_BACKTEST_MONTHS,
     completed_month_window,
@@ -155,6 +156,11 @@ def _score_grid(
                 sector_map=sector_map,
                 _benchmark_close=benchmark_close,
                 backtest_months=backtest_months,
+                # Every combination is scored on the same point-in-time
+                # universe. Omitting this ranked the whole grid against
+                # today's constituents, so the sweep's "winner" was the
+                # setting that best exploited the survivorship bias.
+                _membership=load_history_or_none(),
                 **kwargs,
             )
         except Exception as exc:

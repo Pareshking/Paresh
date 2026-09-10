@@ -52,8 +52,8 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 <div style="font-size:14px; font-weight:700; color:#0f172a;">
                     End-to-End Quantitative Investment Pipeline
                 </div>
-                <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#059669; background:#ecfdf5; border:1px solid #a7f3d0; padding:3px 10px; border-radius:6px; font-weight:700;">
-                    44.4% CAGR · 1.74 Sharpe · 30 bps Friction Drag Tested
+                <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#475569; background:#f8fafc; border:1px solid #e2e8f0; padding:3px 10px; border-radius:6px; font-weight:700;">
+                    Live figures on the Backtest tab · none quoted here
                 </span>
             </div>
 
@@ -61,7 +61,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px;">
                     <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#4f46e5;">STEP 01</div>
                     <div style="font-weight:600; font-size:13px; color:#0f172a; margin-top:2px;">Universe Ingestion</div>
-                    <div style="font-size:13px; color:#64748b; line-height:1.5; margin-top:4px;">750 liquid stocks from Nifty Total Market with daily Bhavcopy ingestion and corporate action adjustments.</div>
+                    <div style="font-size:13px; color:#64748b; line-height:1.5; margin-top:4px;">~750 Nifty Total Market constituents, adjusted daily closes from Yahoo Finance, with flagged split/bonus discontinuities neutralised in memory at read time.</div>
                 </div>
                 <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px;">
                     <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#059669;">STEP 02</div>
@@ -76,7 +76,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px;">
                     <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#7c3aed;">STEP 04</div>
                     <div style="font-weight:600; font-size:13px; color:#0f172a; margin-top:2px;">Portfolio Sizing</div>
-                    <div style="font-size:13px; color:#64748b; line-height:1.5; margin-top:4px;">Top 20 equal/inv-vol weighting with 2.0× buffer (hold to rank 40) cutting annual turnover to ~39.5%.</div>
+                    <div style="font-size:13px; color:#64748b; line-height:1.5; margin-top:4px;">Top N equal or inverse-vol weighting, projected onto the configured stock and sector caps, with a rank-persistence buffer (2.0× by default) to damp turnover.</div>
                 </div>
                 <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px;">
                     <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#0284c7;">STEP 05</div>
@@ -88,33 +88,33 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
         """
         st.html(pipeline_html)
 
-        # 2. Key Architecture Comparison: Composite (Config Weights) vs Single-Window
+        # 2. What System-1 is, and what was deliberately removed
         comparison_card_html = """
         <div style="padding:18px; background-color:#ffffff; border:1px solid #e2e8f0; border-radius:12px; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; color:#475569; line-height:1.65; box-shadow:0 1px 3px rgba(0,0,0,0.02); margin-bottom:16px;">
             <div style="font-size:14px; font-weight:700; color:#0f172a; margin-bottom:10px;">
-                Architecture Comparison: Composite Sharpe (Config Weights) vs Single-Window Sharpe
+                System-1 Composite Sharpe — the only ranking engine
             </div>
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px;">
                 <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px;">
                     <div style="font-weight:700; font-size:13px; color:#4f46e5; margin-bottom:6px;">
-                        👑 Composite Sharpe (Config Weights) — [RECOMMENDED FOR CORE PORTFOLIOS]
+                        👑 What it does
                     </div>
                     <div style="font-size:13px; color:#475569; line-height:1.6;">
-                        • <strong>Multi-Horizon Blend</strong>: Combines 5 distinct lookback windows: 1M (10%), 3M (30%), 6M (30%), 9M (20%), and 12M (10%).<br>
-                        • <strong>Anti-Whipsaw Filter</strong>: Eliminates short-term "pump-and-dump" traps. A stock with a 2-week speculative spike will score high on 1M, but will be filtered out because its 6M/12M base is weak.<br>
-                        • <strong>Customizable Sliders</strong>: Fully adjustable in the <em>Configuration</em> tab to emphasize shorter or longer horizons based on market cycles.<br>
-                        • <strong>Turnover Efficiency</strong>: Generates stable, high-conviction signals with lower portfolio churn (~39.5% annual turnover).
+                        • <strong>Multi-Horizon Blend</strong>: five calendar horizons — 1M (10%), 3M (30%), 6M (30%), 9M (20%), 12M (10%).<br>
+                        • <strong>Anti-Whipsaw</strong>: a two-week speculative spike scores well on 1M and is outvoted by a weak 6M/12M base.<br>
+                        • <strong>Customisable</strong>: the weights are sliders in the <em>Configuration</em> tab.<br>
+                        • <strong>Turnover</strong>: the persistence buffer damps churn. The realised figure for your settings is on the Backtest tab, under Avg Period Turnover — no number is quoted here, because it depends on your settings and your window.
                     </div>
                 </div>
                 <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px;">
                     <div style="font-weight:700; font-size:13px; color:#0284c7; margin-bottom:6px;">
-                        🎯 Sharpe (Single-Window Horizon) — [TACTICAL SWING DISCOVERY]
+                        🚫 What was removed, and why
                     </div>
                     <div style="font-size:13px; color:#475569; line-height:1.6;">
-                        • <strong>Single Lookback Window</strong>: Evaluates one isolated calendar timeframe (e.g. 3M or 6M).<br>
-                        • <strong>Higher Responsiveness</strong>: Reacts faster to emerging short-term trends, but has higher whipsaw risk if a single month experiences a sharp drawdown.<br>
-                        • <strong>Fixed Horizon</strong>: Does not blend across horizons; scores reflect only price action within that exact lookback window.<br>
-                        • <strong>Best Used For</strong>: Tactical swing screening and comparing relative performance within a specific quarterly holding period.
+                        • <strong>Single-Window Sharpe, Multi-Window Pure Sharpe, Vectorised Exp-Regression, Residual Alpha, Industry-Relative, Momentum Acceleration</strong> — none ever fed the composite Rank. Each added columns and its own failure modes.<br>
+                        • <strong>Mean-Variance Optimisation</strong> — it degraded to Equal Weight on any exception while still reporting itself as MVO.<br>
+                        • <strong>R-squared</strong> — not part of System-1 and not used to scale its score.<br>
+                        • <code>tests/test_removed_systems_stay_removed.py</code> asserts their absence, so a stray import cannot quietly resurrect one.
                     </div>
                 </div>
             </div>
@@ -169,7 +169,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                         Walk-forward monthly calendar rebalancing with causal execution (Rank at T → Trade at T+1):
                         <ul style="margin:6px 0 0 16px; padding:0; line-height:1.6; font-size:13px;">
                             <li><strong>Top 20 Holdings</strong> (Equal-Weighted or Inverse-Vol Sizing)</li>
-                            <li><strong>2.0× Buffer Zone (Top 40)</strong>: Retains existing positions if rank &le; 40, cutting turnover to 39.5%</li>
+                            <li><strong>Rank-persistence buffer</strong>: retains an existing position while its rank stays inside the buffer (2.0× the book size by default), so a drift from #18 to #24 is not sold and re-bought</li>
                             <li><strong>Risk Limits</strong>: 30 bps round-trip friction, 2×ATR stop loss & 3×ATR Chandelier trailing exit</li>
                         </ul>
                     </div>
@@ -199,7 +199,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                         Inverse-Volatility Parity ($w_i \\propto 1/\\sigma_i$)
                     </div>
                     <div style="color:#475569; font-size:13px; line-height:1.6;">
-                        Weights each asset inversely proportional to its annualized 60-day standard deviation:
+                        Weights each asset inversely proportional to its annualised 63-session standard deviation:
                         <div style="font-family:'JetBrains Mono',monospace; font-size:12px; background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:6px 10px; margin-top:8px; font-weight:600; color:#1e293b;">
                             w_i = (1 / &sigma;_i) / &sum;(1 / &sigma;_j)
                         </div>
@@ -240,38 +240,20 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
         st.markdown(
             """
             <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:700; color:#0f172a; margin-bottom:8px;">
-                Full Multi-Model Strategy Comparison Matrix
+                Strategy Components
             </div>
             """,
             unsafe_allow_html=True,
         )
         matrix_data = [
             {
-                "Strategy Model": "Composite Sharpe",
-                "Lookback Windows": "1M, 3M, 6M, 9M, 12M",
+                "Strategy Model": "Composite Sharpe (System-1)",
+                "Lookback Windows": "1M, 3M, 6M, 9M, 12M calendar",
                 "Config Weights": "YES (Customizable)",
-                "Risk Adjustment": "Vol +  Smoothness",
+                "Risk Adjustment": "Period volatility",
                 "Market Beta": "Included",
                 "Best Regime": "Steady Secular Bull Runs",
-                "Primary Objective": "Low-whipsaw persistent geometric compounding",
-            },
-            {
-                "Strategy Model": "Sharpe (Single Window)",
-                "Lookback Windows": "Single (3M or 6M)",
-                "Config Weights": "NO (Fixed Window)",
-                "Risk Adjustment": "Vol +  Smoothness",
-                "Market Beta": "Included",
-                "Best Regime": "Quarterly Swing Cycles",
-                "Primary Objective": "Tactical horizon ranking without multi-window smoothing",
-            },
-            {
-                "Strategy Model": "Multi-Window Pure Sharpe",
-                "Lookback Windows": "1M, 3M, 6M, 9M, 12M",
-                "Config Weights": "YES (Customizable)",
-                "Risk Adjustment": "Annualized Volatility",
-                "Market Beta": "Included",
-                "Best Regime": "High-Beta Parabolic Expansions",
-                "Primary Objective": "Captures maximum gross upside without  penalty",
+                "Primary Objective": "The only ranking system; drives every Rank on screen",
             },
             {
                 "Strategy Model": "Relative Rotation (RRG)",
@@ -280,7 +262,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 "Risk Adjustment": "RS-Ratio vs RS-Momentum",
                 "Market Beta": "Benchmark Relative",
                 "Best Regime": "Sector & Asset Allocation",
-                "Primary Objective": "Visualizes clockwise quadrant rotational cycles",
+                "Primary Objective": "Visualises clockwise quadrant rotational cycles — a chart, not a ranking",
             },
         ]
         comp_df = pd.DataFrame(matrix_data)
@@ -292,8 +274,6 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
             "Select Engine to Inspect",
             [
                 "Composite Sharpe",
-                "Single-Window Sharpe",
-                "Multi-Window Pure Sharpe",
                 "Relative Rotation Graph",
                 "Risk & Stop-Loss Engine",
             ],
@@ -305,46 +285,37 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
         if strat_choice == "Composite Sharpe":
             st.markdown(r"""
                 ##### 1. Composite Multi-Window Momentum ($\text{Sharpe}$)
-                
-                **Mathematical Formulation:**
-                For each momentum window $w \in \{21\text{D}, 63\text{D}, 126\text{D}, 189\text{D}, 252\text{D}\}$:
-                $$\text{Log Return}_w = \ln\left(\frac{P_t}{P_{t-w}}\right)$$
-                $$\text{Daily Volatility}_w = \text{StdDev}(\ln(P / P_{-1})) \times \sqrt{w}$$
-                $$\text{Sharpe}_w = \frac{\text{Log Return}_w}{\text{Daily Volatility}_w}$$
-                $$\text{Raw Momentum}_w = \text{Sharpe}_w$$
-                $$\text{Composite Score} = \sum_{w} \text{Weight}_w \times z\text{-Score}\left(\text{Raw Momentum}_w\right)$$
 
-                * **Config Weights Integration**: Uses active weights configured in the **Configuration** tab (e.g. 10/30/30/20/10).
-                * **Multi-Horizon Defense**: Requires consistent compounding across both short-term (1M/3M) and long-term (6M/9M/12M) horizons, preventing speculative short-term whipsaws.
-                * **Optimal Regime**: Steady secular bull runs and core compounder portfolios.
-                """)
+                **Horizons are CALENDAR PERIODS, not fixed trading-row windows.**
+                For each horizon $m \in \{1, 3, 6, 9, 12\}$ months, the window
+                opens on the first market observation on or after
+                $(\text{as-of date} - m \text{ months})$. The opening price may
+                be carried forward at most five sessions to bridge a missing
+                print; beyond that the horizon scores unavailable.
 
-        elif strat_choice == "Single-Window Sharpe":
-            st.markdown(r"""
-                ##### 2. Single-Window Momentum ($\text{Sharpe}$)
-                
-                **Mathematical Formulation:**
-                Evaluates purely one isolated time window $w$ (e.g., $w = 63\text{D}$ for 3-Month or $w = 126\text{D}$ for 6-Month):
-                $$\text{Sharpe}_w = \frac{\ln(P_t / P_{t-w})}{\sigma_w \sqrt{w}}$$
-                $$\text{Single Window Score} = z\text{-Score}\left(\text{Sharpe}_w\right)$$
+                **Mathematical Formulation** — with $s$ the opening row, $t$ the
+                as-of row and $n$ the count of valid daily observations between:
+                $$\text{Log Return}_m = \ln\left(\frac{P_t}{P_s}\right)$$
+                $$\text{Period Volatility}_m = \sigma_{\text{pop}}\big(\ln(P/P_{-1})\big) \times \sqrt{n}$$
+                $$\text{Sharpe}_m = \frac{\text{Log Return}_m}{\text{Period Volatility}_m}$$
 
-                * **Key Difference vs Composite**: Does not blend other horizons. Evaluates performance strictly within the specified window.
-                * **Sensitivity & Trade-off**: Higher responsiveness to quarterly moves, but more sensitive to single-month reversals.
-                * **Optimal Regime**: Quarterly tactical rebalancing and short-to-medium term swing trading.
-                """)
+                Each horizon's cross-section is then **winsorised at $\pm 3\sigma$,
+                z-scored on the winsorised data, and clamped to $\pm 3$** — in
+                that order. Winsorising after the z-score is a different
+                transform and is not what this engine does.
 
-        elif strat_choice == "Multi-Window Pure Sharpe":
-            st.markdown(r"""
-                ##### 3. Multi-Window Pure Sharpe Momentum
-                
-                **Mathematical Formulation:**
-                Evaluates pure risk-adjusted annualized velocity across all multi-windows without penalizing parabolic curves:
-                $$\text{Sharpe}_w = \frac{\ln(P_t / P_{t-w})}{\sigma_w \sqrt{w}}$$
-                $$\text{Score} = \sum_{w} \text{Weight}_w \times z\text{-Score}(\text{Sharpe}_w)$$
+                $$\text{Composite Score} = \frac{\sum_{m} w_m \, z_m}{\sum_{m \,:\, z_m \text{ available}} w_m}$$
 
-                * **Config Weights Integration**: Uses custom factor weights across 1M, 3M, 6M, 9M, 12M windows.
-                * **Difference vs Composite Sharpe**: Allows explosive, high-curvature parabolic winners to score at the top without penalty.
-                * **Optimal Regime**: Aggressive expansion bull markets where leaders accelerate rapidly.
+                * **Availability renormalisation**: a horizon a stock cannot
+                  supply contributes neither score nor weight. Filling it with a
+                  zero would assign that stock the cross-sectional average and
+                  silently shrink it toward the mean.
+                * **Period scale, not annualised**: $\sqrt{n}$ scales to the
+                  window, so this is a *period* risk-adjusted statistic. It is
+                  not comparable with an institutional annualised Sharpe.
+                * **Config Weights**: the active weights from the
+                  **Configuration** tab (10/30/30/20/10 by default).
+                * **R-squared is not used anywhere in System-1.**
                 """)
 
         elif strat_choice == "Relative Rotation Graph":
@@ -483,10 +454,10 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:12px; margin-bottom:16px; font-family:'Plus Jakarta Sans',sans-serif;">
             <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
                 <div style="font-weight:700; font-size:14px; color:#0f172a; margin-bottom:6px;">
-                    What is the difference between Composite Sharpe and Single-Window Sharpe?
+                    Are the backtest's returns after tax?
                 </div>
                 <div style="font-size:13px; color:#475569; line-height:1.6;">
-                    <strong>Composite Sharpe</strong> blends 5 rolling horizons (1M/3M/6M/9M/12M) with custom configuration weights to eliminate short-term whipsaws and false breakouts. <strong>Single-Window</strong> calculates Sharpe on strictly 1 isolated period (e.g. 3M), making it more responsive to short-term momentum but subject to higher turnover and volatility.
+                    <strong>No.</strong> "Net" on the Backtest tab means net of the modelled transaction-cost drag only. No tax is deducted anywhere in this application. That matters here more than in a buy-and-hold model: monthly rebalancing realises gains inside twelve months, so in India they are short-term capital gains, and the after-tax outcome is materially below every figure shown. Treat all returns on every tab as <strong>pre-tax</strong>.
                 </div>
             </div>
 
@@ -504,7 +475,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                     Why is stock #14 not in the Top 20 Portfolio?
                 </div>
                 <div style="font-size:13px; color:#475569; line-height:1.6;">
-                    The system enforces the <strong>2.0× Turnover Buffer Rule</strong>. Existing holdings are retained as long as they stay within Rank #40. This prevents excessive brokerage friction, impact slippage, and capital gains taxes.
+                    Existing holdings are retained while their rank stays inside the persistence buffer — 2.0× the book size by default, so Top 20 holds to rank 40. This damps brokerage friction, impact slippage and realised capital-gains events. <strong>Note that the backtest models transaction costs only; no tax is deducted anywhere in this application.</strong>
                 </div>
             </div>
 

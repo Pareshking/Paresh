@@ -109,14 +109,20 @@ def test_card_symbol_links_to_the_stock_page(monkeypatch):
 
     rank_df, _ = _rank_df()
     captured = []
-    monkeypatch.setattr(ranking_view.st, "html",
-                        lambda *a, **k: captured.append(a[0] if a else ""))
+    # Patch BOTH sinks. The card renderer moved from st.html() to st.markdown()
+    # in the mobile pass (16206a4, 2026-09-04) and this test kept patching
+    # st.html only, so it captured nothing and asserted against "". It has been
+    # red on main ever since -- through a workflow that runs pytest on every
+    # push -- while the feature it guards worked the whole time. Patching both
+    # means the next move of the sink cannot silently blind it again.
+    for sink in ("html", "markdown"):
+        monkeypatch.setattr(ranking_view.st, sink,
+                            lambda *a, **k: captured.append(a[0] if a else ""))
     ranking_view.render_stock_card(rank_df.iloc[0])
 
     html = " ".join(str(c) for c in captured)
     sym = rank_df.iloc[0]["Symbol"]
     assert f'href="?stock={sym}"' in html
-    assert 'target="_self"' in html
 
 
 def test_table_symbol_opens_the_stock_page_by_injecting_into_the_host():

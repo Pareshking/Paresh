@@ -10,6 +10,7 @@ import streamlit as st
 from src.core.market_time import ist_now
 from src.engine.backtester import DEFAULT_BACKTEST_MONTHS, run_backtest
 from src.engine.corporate_actions import load_events
+from src.engine.membership import load_history_or_none
 from src.engine.parameter_sweep import (
     OBJECTIVES,
     count_combinations,
@@ -111,6 +112,7 @@ def _backtest_body(
             sector_map=sec_map,
             cost_bps=cost_drag_bps,
             buffer_n=int(bt_n * buffer_mult),
+            _membership=load_history_or_none(),
             _actions=load_events(),
         )
 
@@ -151,6 +153,33 @@ def _backtest_body(
         unsafe_allow_html=True,
     )
 
+    # ── Survivorship coverage ────────────────────────────────────────────────
+    # run_backtest counts how many rebalances were scored against the index as
+    # it ACTUALLY stood versus how many fell back to today's constituent list,
+    # and its own comment says a caller reporting the return without reporting
+    # this overstates the result. No caller reported it. Index additions skew
+    # toward recent winners and this screen preferentially buys exactly those,
+    # so a month scored on today's list can hold names it could not have known
+    # to hold. The direction of that bias is known; the size is not, which is
+    # the reason to state it rather than to estimate it.
+    _pit = int(stats.get("pit_periods", 0) or 0)
+    _cur = int(stats.get("current_universe_periods", 0) or 0)
+    if _cur:
+        _from = stats.get("pit_from")
+        st.warning(
+            f"**Survivorship: {_cur} of {_pit + _cur} rebalances were scored "
+            "against TODAY's index constituents**, because the membership "
+            "history does not reach back that far. Index additions skew toward "
+            "recent strong performers, so those periods flatter the strategy by "
+            "an amount this run cannot measure. "
+            + (
+                f"Point-in-time membership begins {_from}; every rebalance from "
+                "there on is survivorship-free."
+                if _from
+                else "No rebalance in this window had point-in-time membership."
+            )
+        )
+
     # ── Executive KPI Cards Grid ─────────────────────────────────────────────
     alpha_status = "Outperforming" if stats["alpha"] >= 0 else "Underperforming"
     alpha_clr = "#059669" if stats["alpha"] >= 0 else "#dc2626"
@@ -164,9 +193,9 @@ def _backtest_body(
             <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #64748b;">Gross: {stats['gross_return']:+.1%}</div>
         </div>
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">CAGR (Annualized)</div>
+            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Annualised Return</div>
             <div style="font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; color: #0f172a; margin-top: 1px;">{stats['ann_return']:+.1%}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #64748b;">Nifty: {stats['ann_bench']:+.1%}</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #64748b;" title="Not a CAGR: no full year was observed. The {stats['total_return']:+.1%} actually earned over {stats.get('window_years', 0):.2f} years is raised to the power of 1/{stats.get('window_years', 1):.2f}.">Nifty: {stats['ann_bench']:+.1%} · scaled up from {stats.get('window_years', 0):.2f}y</div>
         </div>
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
             <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Net Alpha vs Benchmark</div>
@@ -176,7 +205,7 @@ def _backtest_body(
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
             <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Net Sharpe Ratio</div>
             <div style="font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; color: #0f172a; margin-top: 1px;">{stats['sharpe']:.2f}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #64748b;">Sortino: {stats.get('sortino', 0):.2f}</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #64748b;" title="Annualised mean excess return over a {stats.get('risk_free_rate', 0.065):.1%} risk-free rate, divided by annualised volatility. The ± is one standard error at this sample size.">Sortino: {stats.get('sortino', 0):.2f} · ±{stats.get('sharpe_stderr', float('nan')):.2f} s.e.</div>
         </div>
     </div>
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px;">
@@ -188,12 +217,12 @@ def _backtest_body(
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
             <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Calmar Ratio</div>
             <div style="font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; color: #0f172a; margin-top: 1px;">{stats['calmar']:.2f}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #64748b;">CAGR / Max DD</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #64748b;" title="Annualised return over the worst drawdown seen in a {stats.get('window_years', 0):.2f}-year window. A short window cannot contain a full year of drawdown, so this reads high.">Ann. ret / Max DD ({stats.get('window_years', 0):.2f}y)</div>
         </div>
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
             <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Win Rate</div>
             <div style="font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; color: #059669; margin-top: 1px;">{stats['win_rate']:.0%}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #64748b;">Profitable Periods</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #64748b;">Profitable months · beat Nifty {stats.get('beat_rate', 0):.0%}</div>
         </div>
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
             <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Avg Period Turnover</div>

@@ -178,3 +178,25 @@ def describe(history: dict[str, Any]) -> dict[str, Any]:
         "total_churn": churn,
         "current_size": len(members_on(history, last)) if last else 0,
     }
+
+
+def load_history_or_none(path: Path | str = HISTORY_PATH) -> dict[str, Any] | None:
+    """The timeline if one is usable, else None — for callers that pass it to the backtester.
+
+    Every in-app caller of ``run_backtest`` previously omitted ``_membership``
+    entirely, so ``_index_mask`` returned None on every rebalance and every
+    month on screen was scored against TODAY's constituent list. The bias that
+    produces is the one this module exists to remove, and it was reintroduced
+    not by a fallback but by an argument nobody passed.
+
+    A missing or empty history still yields None, because None is the honest
+    answer and the backtester counts it (``current_universe_periods``) rather
+    than hiding it. A corrupt file is reported by ``load_history`` and swallowed
+    here only to the extent of returning None: the app must render, but it must
+    not claim point-in-time coverage it does not have.
+    """
+    try:
+        history = load_history(path)
+    except (ValueError, OSError):
+        return None
+    return history if history.get("baseline") else None

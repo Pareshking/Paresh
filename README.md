@@ -65,6 +65,28 @@ System-1 uses **calendar months**, not fixed trading-row windows. The legacy 21/
 
 Session-based windows may still exist in portfolio/risk components where they are intentionally part of the approved methodology. They must not be reused as System-1 economic horizons.
 
+### Point-in-time universe
+
+Every rebalance is scored against the index as it **actually stood** on the
+signal date, wherever `data/membership_history.json` reaches back that far.
+Where it does not, the run falls back to the current constituent list and the
+Backtest tab **says so**, counting the periods either way. Index additions skew
+toward recent strong performers and this screen preferentially buys exactly
+those, so a month scored on today's list flatters the strategy by an amount
+that cannot be measured from the shipped data. The coverage figure is therefore
+reported rather than estimated.
+
+The history accumulates for free from the daily sync's committed index
+snapshots. Its baseline is recent, so most reported months currently fall back.
+
+### Concentration caps
+
+`stock_cap` and `sector_cap` bind in the **backtest** as well as the Portfolio
+tab, through one shared projection (`src.engine.portfolio.apply_caps`). A cap
+pair that no book of that shape can satisfy — twenty names across two
+industries cannot hold a 30% sector cap — is relaxed to the tightest feasible
+pair, logged, and reported on screen as relaxed. It is never silently applied.
+
 ### Monthly backtest convention
 
 For monthly V1 rebalancing:
@@ -72,7 +94,11 @@ For monthly V1 rebalancing:
 - last available trading day of the month = signal/rebalance date at T close;
 - first available trading day of the following month = execution at T+1.
 
-The backtester must use the same canonical System-1 calendar-period engine as the live screener.
+The backtester uses the same canonical System-1 calendar-period engine as the
+live screener — literally the same functions, `period_sharpe_at` and
+`winsorised_z` in `src/engine/calendar_momentum.py`, not a second
+implementation that agrees on a fixture. Two implementations had drifted: only
+one carried the stale-anchor rule, and only one winsorised before z-scoring.
 
 ### Reported backtest window
 
@@ -144,6 +170,12 @@ conventions and operations.
 ## Research audit tracker
 
 See [`docs/V1_AUDIT_TRACKER.md`](docs/V1_AUDIT_TRACKER.md) for the full audit roadmap, completed corrections, and remaining research tasks.
+
+See [`docs/ADVERSARIAL_AUDIT_2026-09-10.md`](docs/ADVERSARIAL_AUDIT_2026-09-10.md)
+for the multi-agent adversarial audit: confirmed defects with reproductions,
+allegations investigated and rejected, and the remaining risks the corrections
+do **not** address — chiefly that 7 of the 8 recorded months are backfilled
+reconstructions, and that every figure in this application is **pre-tax**.
 
 See [`docs/PARKED_IDEAS.md`](docs/PARKED_IDEAS.md) for features and integrations that were researched and deliberately set aside, with recorded reasoning.
 
