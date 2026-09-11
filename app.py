@@ -556,14 +556,21 @@ _PAGES = [
 # KPI bar, instead of above it in the chrome.
 _nav = st.navigation(_PAGES, position="hidden")
 
-with st.container(horizontal=True, wrap=True, gap="small"):
-    for _p in _PAGES:
-        # No explicit label: st.page_link takes the page's own title. Reading
-        # `_p.title` here raised AttributeError whenever app.py was imported
-        # outside a script run -- `StreamlitPage._title` only exists during
-        # one -- which broke two tests that import the module to check it is
-        # clean.
-        st.page_link(_p)
+with st.container(horizontal=True, wrap=True, gap="small", key="app_nav"):
+    for _i, _p in enumerate(_PAGES):
+        # The ACTIVE item is marked here, in Python, not in CSS. Streamlit
+        # styles the current page link through an emotion prop with no stable
+        # attribute -- no aria-current, no class worth targeting -- so the only
+        # selector available would be a generated class hash that changes
+        # between versions. `st.navigation` returns one of the very objects it
+        # was passed (navigation.py resolves `matching_pages[0]` from the list),
+        # so identity is exact and needs no attribute access; reading `.title`
+        # here raised AttributeError whenever app.py was imported outside a
+        # script run.
+        _state = "navon" if _p is _nav else "navoff"
+        with st.container(key=f"{_state}_{_i}"):
+            # No explicit label: st.page_link takes the page's own title.
+            st.page_link(_p)
 
 _nav.run()
 

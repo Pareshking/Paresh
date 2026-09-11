@@ -125,3 +125,38 @@ def test_the_navigation_survives_being_on_a_different_page():
         and e.proto.__class__.__name__ == "PageLink"
     )
     assert count == len(_page_titles()) >= 5
+
+
+def test_exactly_one_navigation_item_is_marked_active():
+    """The active pill is marked from Python, so assert Python marks it.
+
+    Streamlit styles the current page link through an emotion prop with no
+    stable attribute -- no aria-current, no meaningful class -- so the only CSS
+    hook would be a generated class hash that changes between versions. The app
+    therefore sets its own st-key-navon_* / st-key-navoff_* keys, and this
+    checks the invariant those keys must satisfy.
+    """
+    src = _app_src()
+    assert "navon" in src and "navoff" in src, (
+        "the navigation no longer marks an active item"
+    )
+    assert "_p is _nav" in src, (
+        "active detection must use identity: st.navigation returns one of the "
+        "page objects it was passed, and attribute access on a page raises "
+        "outside a script run"
+    )
+
+    theme = (ROOT / "src" / "ui" / "theme.py").read_text(encoding="utf-8")
+    assert 'st-key-navon_' in theme, "nothing styles the active item"
+    assert ".st-key-app_nav" in theme, "the navigation row is unstyled"
+
+
+def test_the_navigation_row_is_not_styled_by_a_generated_class_hash():
+    """Emotion class names are build artefacts, not an API."""
+    theme = (ROOT / "src" / "ui" / "theme.py").read_text(encoding="utf-8")
+    nav_css = theme[theme.find(".st-key-app_nav"):]
+    nav_css = nav_css[: nav_css.find("/* ── Command Bar")]
+    assert "st-emotion-cache" not in nav_css, (
+        "the navigation styling depends on a generated emotion class, which "
+        "changes between Streamlit builds"
+    )
