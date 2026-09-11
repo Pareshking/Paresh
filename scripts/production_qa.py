@@ -303,6 +303,47 @@ def read_state(page) -> dict:
 DEEP_LINK_SYMBOL = os.getenv("UMIYA_DEEP_LINK_SYMBOL", "WELCORP")
 
 
+def audit_nav_styling(frame) -> dict:
+    """Is the navigation CSS actually reaching the browser?
+
+    The nav is styled by class (`.st-key-app_nav`), which depends on Streamlit
+    emitting an `st-key-` class for a keyed container and on the app's
+    stylesheet being injected before the row renders. Both are true in theory.
+    This app has spent a day proving that theory and the deployed DOM are
+    different questions, so read the COMPUTED style off a real nav link.
+
+    Reports rather than asserts exact pixels: the values are design choices and
+    will change. What it catches is the stylesheet not applying at all, which
+    is the failure that looks identical to "you are on an older build".
+    """
+    out: dict = {}
+    try:
+        row = frame.locator('[class*="st-key-app_nav"]').first
+        out["nav_row_present"] = bool(row.count())
+        link = frame.locator(
+            '[class*="st-key-app_nav"] [data-testid="stPageLink"] a').first
+        if not link.count():
+            out["error"] = "no page link inside the navigation row"
+            return out
+        out.update(link.evaluate(
+            "el => { const s = getComputedStyle(el); return {"
+            "  font_size: s.fontSize, font_weight: s.fontWeight,"
+            "  color: s.color, background: s.backgroundColor,"
+            "  border_radius: s.borderRadius, height: s.height }; }"))
+        active = frame.locator(
+            '[class*="st-key-navon_"] [data-testid="stPageLink"] a').first
+        out["active_marked"] = bool(active.count())
+        if active.count():
+            out["active_color"] = active.evaluate(
+                "el => getComputedStyle(el).color")
+        # 12.5px is the pill size; the browser default is ~16px. If this reads
+        # like the default, the stylesheet is not applying to the row.
+        out["css_applied"] = out.get("font_size", "") not in ("", "16px")
+    except Exception as exc:
+        out["error"] = f"{type(exc).__name__}: {exc}"[:180]
+    return out
+
+
 def audit_deep_links(page) -> dict:
     """Which shareable URL forms actually reach the app.
 
@@ -898,6 +939,12 @@ def main() -> None:
                     print(f"[viewport] {name} done in {vp['elapsed_s']}s",
                           flush=True)
                     report["viewports"][name] = vp
+                report["nav_styling"] = audit_nav_styling(app_frame(page))
+                if report["nav_styling"].get("css_applied") is False:
+                    failures.append(classify(
+                        f"The navigation stylesheet is not applying: "
+                        f"{report['nav_styling']}", "APPLICATION"))
+
                 # Last, because each form is a full navigation away from the
                 # warm session the walk above depends on.
                 report["deep_links"] = audit_deep_links(page)
@@ -959,6 +1006,8 @@ def main() -> None:
             print(f"    {u}", flush=True)
     if timeline:
         print(f"frames at last sample : {timeline[-1].get('frames')}", flush=True)
+    if report.get("nav_styling"):
+        print(f"nav styling           : {report['nav_styling']}", flush=True)
     for _label, _info in (report.get("deep_links") or {}).items():
         print(f"deep link [{_label:<14}] {_info}", flush=True)
     for _vn, _vd in (report.get("viewports") or {}).items():
