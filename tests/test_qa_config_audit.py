@@ -100,3 +100,47 @@ def test_a_short_slider_read_is_reported_rather_than_assumed_healthy():
     snap = {"sliders": {"1M": 0.10, "3M": 0.30}, "pill": [10.0, 30.0]}
     found = judge("desktop_1280x800", _ev(snap))
     assert any("expected 5 lookback sliders" in f["detail"] for f in found)
+
+
+def test_the_reset_phase_is_judged_and_named_for_what_it_proves():
+    """Zeros surviving the panel's own unconditional write is a stronger claim.
+
+    "Reset to defaults" writes all five keys as plain floats and reruns. If the
+    sliders still read zero after that, the defect is not a stale or evicted
+    value -- no write to session state is reaching these widgets at all, and
+    the failure text has to say so or the next reader will re-derive it.
+    """
+    found = judge("desktop_1280x800", {
+        "panel_reached": True, "initial": ZEROED, "after_reset": ZEROED,
+    })
+    reset = [f for f in found if "after_reset" in f["detail"]]
+    assert reset, "the reset phase was not judged at all"
+    assert "no write to session state is reaching these widgets" in reset[0]["detail"]
+
+
+def test_a_reset_that_repairs_the_panel_is_not_reported_as_a_failure():
+    found = judge("desktop_1280x800", {
+        "panel_reached": True, "initial": ZEROED, "after_reset": HEALTHY,
+    })
+    assert not any("after_reset" in f["detail"] for f in found)
+    assert any("initial" in f["detail"] for f in found), (
+        "the original defect must still be reported even once reset repairs it"
+    )
+
+
+def test_the_precomputed_weight_subset_is_used_when_present():
+    """The reader now hands the judge a filtered `weights` map.
+
+    The full slider map contains every slider in the app's DOM -- st.tabs
+    renders all eleven tab bodies -- including the Backtest tab's own
+    "1M (21D)" lookback weights. Judging must use the Configuration panel's
+    five, not whatever else happens to be on the page.
+    """
+    snap = {
+        "sliders": {"1M (21D)": 0.10, "Holdings (Top N)": 20.0,
+                    "1M": 0.0, "3M": 0.0, "6M": 0.0, "9M": 0.0, "12M": 0.0},
+        "weights": {"1M": 0.0, "3M": 0.0, "6M": 0.0, "9M": 0.0, "12M": 0.0},
+        "pill": [10.0, 30.0, 30.0, 20.0, 10.0],
+    }
+    found = judge("desktop_1280x800", _ev(snap))
+    assert any("zeroed weight vector" in f["detail"] for f in found)

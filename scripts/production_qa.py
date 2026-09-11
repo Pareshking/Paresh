@@ -270,20 +270,24 @@ def read_state(page) -> dict:
 
 
 def audit_configuration(page, frame) -> dict:
-    """Read the momentum weight panel off the LIVE app, before and after nav.
+    """Read the momentum weight panel off the LIVE app, and try to repair it.
 
-    Reported from a phone: all five Lookback Window sliders reading 0.00 beside
-    a pill claiming "Weight vector: 10% · 30% · 30% · 20% · 10%" -- two numbers
-    on one screen disagreeing about the same thing. Three rounds of local
-    reproduction failed (a nav-honouring AppTest probe, a bare probe, the real
-    st.radio nav, and app.py itself, all on the Streamlit version Cloud
-    resolves to), so this stops reasoning about the deployed app and measures
-    it: the values it actually renders, and what they do across the exact
-    navigation sequence the eviction hypothesis says should destroy them.
+    Run 295 reproduced the report at last, on desktop_1280x800:
+
+        sliders  1M=0.00 3M=0.00 6M=0.00 9M=0.00 12M=0.00
+        pill     10% 30% 30% 20% 10%
+
+    So session state is NOT zeroed -- the pill is computed from it six lines
+    above the sliders and reads correctly -- yet the sliders render at their
+    minimum. That is the signature of session state not reaching the widget,
+    and four local environments render it correctly, so keep measuring rather
+    than guessing: record which nav clicks land, what the build chip says, one
+    slider's markup verbatim, and what the panel's own "Reset to defaults"
+    button does, which writes the five keys unconditionally.
 
     Returns evidence. Judging it is the caller's job.
     """
-    out: dict = {"panel_reached": False}
+    out: dict = {"panel_reached": False, "nav_trace": []}
 
     def slider_values() -> dict:
         """Label -> displayed value, from Streamlit's own thumb readout.
@@ -293,95 +297,172 @@ def audit_configuration(page, frame) -> dict:
         "the second line" would report the range instead of the value the
         moment Streamlit reorders that markup -- reading 0.00 for a healthy
         slider, which is the very symptom under investigation.
+
+        Every read is individually guarded. Streamlit re-renders while this
+        runs, so a handle resolved a moment ago can be detached by the time it
+        is read; run 295 lost the whole mobile viewport to one such timeout.
+        One unreadable slider must cost one slider.
         """
         vals: dict = {}
         items = frame.locator('[data-testid="stSlider"]')
-        for i in range(items.count()):
-            node = items.nth(i)
+        try:
+            n = items.count()
+        except Exception:
+            return vals
+        for i in range(n):
             try:
-                label = node.locator('[data-testid="stWidgetLabel"]').first.inner_text(
-                    timeout=5_000).strip()
+                node = items.nth(i)
+                try:
+                    label = node.locator(
+                        '[data-testid="stWidgetLabel"]'
+                    ).first.inner_text(timeout=2_000).strip()
+                except Exception:
+                    label = ""
+                raw = ""
+                thumb = node.locator('[data-testid="stSliderThumbValue"]').first
+                if thumb.count():
+                    raw = thumb.inner_text(timeout=2_000).strip()
+                if not label or not raw:
+                    lines = [ln.strip() for ln in
+                             node.inner_text(timeout=2_000).splitlines() if ln.strip()]
+                    if not label and lines:
+                        label = lines[0]
+                    if not raw and len(lines) > 1:
+                        raw = lines[1]
+                m = re.search(r"-?\d+(?:\.\d+)?", raw)
+                if label and m:
+                    vals[label] = float(m.group())
             except Exception:
-                label = ""
-            thumb = node.locator('[data-testid="stSliderThumbValue"]').first
-            raw = ""
-            if thumb.count():
-                raw = thumb.inner_text(timeout=5_000).strip()
-            lines = [ln.strip() for ln in
-                     node.inner_text(timeout=5_000).splitlines() if ln.strip()]
-            if not label and lines:
-                label = lines[0]
-            if not raw and len(lines) > 1:
-                raw = lines[1]
-            m = re.search(r"-?\d+(?:\.\d+)?", raw)
-            if label and m:
-                vals[label] = float(m.group())
+                continue
         return vals
 
     def pill_percentages():
         """The normalised vector the panel CLAIMS, parsed from its own pill."""
-        body = frame.locator("body").inner_text(timeout=10_000)
+        try:
+            body = frame.locator("body").inner_text(timeout=10_000)
+        except Exception:
+            return None
         m = re.search(r"Weight vector:\s*([0-9%·.\s]+)", body)
         if not m:
             return None
         return [float(x) for x in re.findall(r"(\d+(?:\.\d+)?)%", m.group(1))]
+
+    def nav_group():
+        """The Configuration tab's own radio, not some other tab's.
+
+        `stRadio` appears in several tabs, so `.first` is whichever renders
+        earliest in the DOM. Pick the group that actually offers the sections.
+        """
+        grp = frame.locator('[data-testid="stRadio"]').filter(
+            has_text="Momentum Signal")
+        return grp.first if grp.count() else None
 
     def goto(section: str) -> bool:
         """Select a left-nav section the way a person does: by its label.
 
         Streamlit renders a radio option as a visually hidden <input> behind a
         styled wrapper, so `get_by_role("radio")` resolves to an element that
-        the wrapper divs intercept every pointer event for. Run 294 spent the
-        full 20s retry budget on each of them and reported a QA timeout instead
-        of an answer. Click the label, which is the thing that is actually on
-        screen, and fall back to a forced click on the input only if no label
-        matches.
+        the wrapper divs intercept every pointer event for. Run 294 spent its
+        full 20s retry budget on each and reported a timeout instead of an
+        answer. Click the label; force-click the input only as a fallback.
         """
-        radio = frame.locator('[data-testid="stRadio"]').first
+        how = "none"
         target = None
-        if radio.count():
-            lab = radio.locator("label").filter(has_text=section).first
+        grp = nav_group()
+        if grp is not None:
+            lab = grp.locator("label").filter(has_text=section).first
             if lab.count():
-                target = lab
+                target, how = lab, "label"
         if target is None:
             opt = frame.get_by_role("radio", name=re.compile(re.escape(section))).first
-            if opt.count() == 0:
-                return False
-            target = opt
+            if opt.count():
+                target, how = opt, "role"
+        if target is None:
+            out["nav_trace"].append(f"{section}: no control found")
+            return False
         for force in (False, True):
             try:
                 target.click(timeout=8_000, force=force)
                 page.wait_for_timeout(1_500)
+                out["nav_trace"].append(
+                    f"{section}: clicked via {how}{' (forced)' if force else ''}")
                 return True
-            except Exception:
-                continue
+            except Exception as exc:
+                last = f"{type(exc).__name__}"
+        out["nav_trace"].append(f"{section}: click failed via {how} ({last})")
         return False
 
-    def snapshot() -> dict:
-        return {"sliders": slider_values(), "pill": pill_percentages()}
+    WEIGHT_LABELS = ("1M", "3M", "6M", "9M", "12M")
 
-    # Momentum Signal is the nav's default section, so a failed click is not
-    # by itself a reason to report nothing -- look first, and only give up if
-    # the lookback sliders genuinely are not on screen.
-    out["nav_click"] = goto("Momentum Signal")
+    def snapshot() -> dict:
+        vals = slider_values()
+        return {
+            "sliders": vals,
+            "weights": {k: vals[k] for k in WEIGHT_LABELS if k in vals},
+            "pill": pill_percentages(),
+        }
+
+    def on_screen(snap: dict) -> bool:
+        return len(snap.get("weights") or {}) >= 3
+
+    # Momentum Signal is not the nav's default section, so the click has to
+    # land -- but look anyway before giving up, in case it did and something
+    # else went wrong.
+    goto("Momentum Signal")
     first = snapshot()
-    if not any(k in (first.get("sliders") or {}) for k in ("1M", "3M", "6M")):
+    if not on_screen(first):
         out["error"] = (
-            f"lookback sliders not on screen (nav click "
-            f"{'succeeded' if out['nav_click'] else 'failed'}; "
-            f"read {sorted((first.get('sliders') or {}))})")
+            f"lookback sliders not on screen; read {sorted(first.get('sliders') or {})}")
         return out
     out["panel_reached"] = True
     out["initial"] = first
 
-    # The eviction sequence. Streamlit discards widget state for any key whose
-    # widget was not rendered on the previous run, and these sections render
-    # one at a time, so a round trip through another section is precisely the
-    # motion that is supposed to zero the sliders.
+    # What the page itself says it is running, so a stale build cannot be
+    # confused with a live defect.
+    try:
+        body = frame.locator("body").inner_text(timeout=10_000)
+        m = re.search(r"build\s+([0-9a-f]{7,40})", body)
+        out["build_chip"] = m.group(1) if m else None
+    except Exception:
+        out["build_chip"] = None
+
+    # One slider's markup verbatim. If the DOM carries a correct aria-valuenow
+    # while the thumb prints 0.00, that is a rendering fault; if the markup
+    # says zero too, the value never left Python.
+    try:
+        node = frame.locator('[data-testid="stSlider"]').filter(
+            has_text=re.compile(r"^\s*1M\s")).first
+        if node.count():
+            out["first_weight_slider_html"] = node.evaluate(
+                "el => el.outerHTML")[:1200]
+    except Exception as exc:
+        out["first_weight_slider_html"] = f"unreadable: {type(exc).__name__}"
+
+    # The eviction sequence: Streamlit discards widget state for any key whose
+    # widget did not render on the previous run, and these sections render one
+    # at a time, so a round trip is precisely the motion said to zero them.
     if goto("Portfolio Risk"):
         out["risk_sliders"] = slider_values()
         if goto("Momentum Signal"):
-            out["after_nav"] = snapshot()
+            after = snapshot()
+            if on_screen(after):
+                out["after_nav"] = after
+
+    # The unconditional repair. The button overwrites all five keys with plain
+    # floats and reruns, so if the sliders still read zero afterwards, no write
+    # to session state reaches these widgets at all.
+    try:
+        btn = frame.get_by_role("button", name=re.compile("Reset to defaults")).first
+        if btn.count():
+            btn.click(timeout=8_000)
+            page.wait_for_timeout(2_500)
+            after = snapshot()
+            if on_screen(after):
+                out["after_reset"] = after
+        else:
+            out["after_reset_error"] = "reset button not found"
+    except Exception as exc:
+        out["after_reset_error"] = f"{type(exc).__name__}: {exc}"
 
     return out
 
@@ -394,12 +475,13 @@ def judge_configuration(name: str, ev: dict) -> list:
             f"{name}/Configuration: could not reach the Momentum Signal panel "
             f"({ev.get('error', 'unknown')})", "QA")]
 
-    for phase in ("initial", "after_nav"):
+    for phase in ("initial", "after_nav", "after_reset"):
         snap = ev.get(phase)
         if not snap:
             continue
         sliders = snap.get("sliders") or {}
-        weights = {k: v for k, v in sliders.items() if k in ("1M", "3M", "6M", "9M", "12M")}
+        weights = snap.get("weights") or {
+            k: v for k, v in sliders.items() if k in ("1M", "3M", "6M", "9M", "12M")}
         if len(weights) != 5:
             found.append(classify(
                 f"{name}/Configuration [{phase}]: expected 5 lookback sliders, "
@@ -409,10 +491,16 @@ def judge_configuration(name: str, ev: dict) -> list:
         order = ["1M", "3M", "6M", "9M", "12M"]
         shown = [weights[k] for k in order]
         if sum(shown) <= 0:
+            extra = ""
+            if phase == "after_reset":
+                extra = (" -- and this is AFTER the panel's own Reset to "
+                         "defaults button wrote all five keys, so no write to "
+                         "session state is reaching these widgets")
             found.append(classify(
                 f"{name}/Configuration [{phase}]: every lookback slider reads "
                 f"{shown} -- a zeroed weight vector cannot rank anything, and "
-                f"touching one slider submits the displayed zeros for the rest",
+                f"touching one slider submits the displayed zeros for the rest"
+                + extra,
                 "APPLICATION"))
             continue
 
@@ -714,11 +802,20 @@ def main() -> None:
         print(f"config panel [{_vn}]", flush=True)
         if _cfg.get("error"):
             print(f"    error             : {_cfg['error']}", flush=True)
-        for _phase in ("initial", "after_nav"):
+        if _cfg.get("build_chip") is not None:
+            print(f"    build chip        : {_cfg['build_chip']}", flush=True)
+        if _cfg.get("nav_trace"):
+            print(f"    nav               : {'; '.join(_cfg['nav_trace'])}", flush=True)
+        for _phase in ("initial", "after_nav", "after_reset"):
             _snap = _cfg.get(_phase)
             if _snap:
-                print(f"    {_phase:<17} : sliders={_snap.get('sliders')} "
+                print(f"    {_phase:<17} : weights={_snap.get('weights')} "
                       f"pill={_snap.get('pill')}", flush=True)
+        if _cfg.get("after_reset_error"):
+            print(f"    reset             : {_cfg['after_reset_error']}", flush=True)
+        if _cfg.get("first_weight_slider_html"):
+            print(f"    1M markup         : {_cfg['first_weight_slider_html']}",
+                  flush=True)
     print(f"5xx responses         : {len(bad_responses)}", flush=True)
     for f in failures:
         print(f"  [{f['kind']}] {f['detail']}", flush=True)
