@@ -327,23 +327,52 @@ def audit_configuration(page, frame) -> dict:
         return [float(x) for x in re.findall(r"(\d+(?:\.\d+)?)%", m.group(1))]
 
     def goto(section: str) -> bool:
-        opt = frame.get_by_role("radio", name=re.compile(re.escape(section))).first
-        if opt.count() == 0:
-            opt = frame.get_by_text(section, exact=False).first
-        if opt.count() == 0:
-            return False
-        opt.click(timeout=20_000)
-        page.wait_for_timeout(1_500)
-        return True
+        """Select a left-nav section the way a person does: by its label.
+
+        Streamlit renders a radio option as a visually hidden <input> behind a
+        styled wrapper, so `get_by_role("radio")` resolves to an element that
+        the wrapper divs intercept every pointer event for. Run 294 spent the
+        full 20s retry budget on each of them and reported a QA timeout instead
+        of an answer. Click the label, which is the thing that is actually on
+        screen, and fall back to a forced click on the input only if no label
+        matches.
+        """
+        radio = frame.locator('[data-testid="stRadio"]').first
+        target = None
+        if radio.count():
+            lab = radio.locator("label").filter(has_text=section).first
+            if lab.count():
+                target = lab
+        if target is None:
+            opt = frame.get_by_role("radio", name=re.compile(re.escape(section))).first
+            if opt.count() == 0:
+                return False
+            target = opt
+        for force in (False, True):
+            try:
+                target.click(timeout=8_000, force=force)
+                page.wait_for_timeout(1_500)
+                return True
+            except Exception:
+                continue
+        return False
 
     def snapshot() -> dict:
         return {"sliders": slider_values(), "pill": pill_percentages()}
 
-    if not goto("Momentum Signal"):
-        out["error"] = "Momentum Signal nav option not found"
+    # Momentum Signal is the nav's default section, so a failed click is not
+    # by itself a reason to report nothing -- look first, and only give up if
+    # the lookback sliders genuinely are not on screen.
+    out["nav_click"] = goto("Momentum Signal")
+    first = snapshot()
+    if not any(k in (first.get("sliders") or {}) for k in ("1M", "3M", "6M")):
+        out["error"] = (
+            f"lookback sliders not on screen (nav click "
+            f"{'succeeded' if out['nav_click'] else 'failed'}; "
+            f"read {sorted((first.get('sliders') or {}))})")
         return out
     out["panel_reached"] = True
-    out["initial"] = snapshot()
+    out["initial"] = first
 
     # The eviction sequence. Streamlit discards widget state for any key whose
     # widget was not rendered on the previous run, and these sections render
@@ -434,6 +463,12 @@ def main() -> None:
     console_errors: list[str] = []
     page_errors: list[str] = []
     bad_responses: list[str] = []
+    # Chrome's console message for a failed subresource is "Failed to load
+    # resource: the server responded with a status of 404 ()" -- with no URL in
+    # the text. Five of those were reported and could not be explained from the
+    # console alone. Record the responses themselves so a 404 names the thing
+    # that is missing instead of being a number to shrug at.
+    not_found: list[str] = []
     timeline: list[dict] = []
 
     from playwright.sync_api import sync_playwright
@@ -458,6 +493,8 @@ def main() -> None:
         page.on("pageerror", lambda e: page_errors.append(str(e)[:250]))
         page.on("response", lambda r: bad_responses.append(f"{r.status} {r.url[:160]}")
                 if r.status >= 500 else None)
+        page.on("response", lambda r: not_found.append(f"{r.status} {r.url[:200]}")
+                if r.status == 404 else None)
 
         state = {"state": "not_started"}
         started = time.perf_counter()
@@ -634,6 +671,7 @@ def main() -> None:
     report["console_errors"] = console_errors[:40]
     report["page_errors"] = page_errors[:40]
     report["server_errors_5xx"] = bad_responses[:40]
+    report["not_found_404"] = sorted(set(not_found))[:40]
     report["timeline"] = timeline
     report["failures"] = failures
     report["failure_classes"] = sorted({f["kind"] for f in failures})
@@ -662,6 +700,11 @@ def main() -> None:
     print(f"console errors        : {len(console_errors)}", flush=True)
     for c in console_errors[:5]:
         print(f"    {c}", flush=True)
+    if report["not_found_404"]:
+        print(f"404 subresources      : {len(not_found)} "
+              f"({len(report['not_found_404'])} distinct)", flush=True)
+        for u in report["not_found_404"][:10]:
+            print(f"    {u}", flush=True)
     if timeline:
         print(f"frames at last sample : {timeline[-1].get('frames')}", flush=True)
     for _vn, _vd in (report.get("viewports") or {}).items():
