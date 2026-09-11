@@ -11,7 +11,9 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from src.core.build_info import deployed_revision
 from src.core.config import (
+    DEFAULT_LOOKBACK_WEIGHTS,
     DATA_DIR,
     INDICES_LOCAL,
     INDICES_URLS,
@@ -187,6 +189,18 @@ def _section_momentum_signal() -> None:
         </div>
         """
     )
+
+    # An unconditional escape hatch. Three rounds of fixes have not reproduced
+    # the reported "every slider reads 0.00" state in any environment -- probe
+    # scripts, the real nav widget, and app.py itself all render the configured
+    # weights -- so this gives the reader a way out that does not depend on my
+    # understanding the cause. It overwrites the keys outright rather than
+    # seeding only absent ones, which is the guard that failed last time.
+    _rc1, _rc2 = st.columns([3, 1], vertical_alignment="center")
+    if _rc2.button("↺ Reset to defaults", key="cfg_w_reset", width="stretch"):
+        for _i, _d in enumerate(DEFAULT_LOOKBACK_WEIGHTS, start=1):
+            st.session_state[f"cfg_w{_i}"] = float(_d)
+        st.rerun()
 
     wc = st.columns(5)
     windows = [
@@ -398,6 +412,13 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
     mode_label = (
         "Streamlit Cloud" if STORAGE_MODE == "streamlit-cloud" else "Local Production"
     )
+    # Which commit is actually serving this process. `deployed_revision()` was
+    # written for the QA probe and never surfaced in the UI, which left no way
+    # to tell a code defect from a stale build -- the difference between "the
+    # fix is wrong" and "the fix is not running". Three rounds of a config bug
+    # were debugged without it.
+    _rev = deployed_revision()
+    build_rev = _rev[:7] if _rev else "unknown"
 
     # ── Status bar (full-width) ───────────────────────────────────────────────
     st.html(
@@ -423,6 +444,15 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
                              background:#eef2ff;border:1px solid #c7d2fe;color:#4338ca;
                              padding:4px 10px;border-radius:6px;font-weight:700;">
                     {mode_label}
+                </span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:0.74rem;
+                             background:#f8fafc;border:1px solid #e2e8f0;color:#475569;
+                             padding:4px 10px;border-radius:6px;font-weight:700;"
+                      title="The commit this process is actually serving. Streamlit
+                             Cloud can keep an older build alive after a push, and
+                             without this there is no way to tell from the UI which
+                             code produced what you are looking at.">
+                    build {build_rev}
                 </span>
             </div>
         </div>
