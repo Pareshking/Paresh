@@ -248,15 +248,20 @@ The prosecution pursued these and the defence carried them on evidence.
 
 These are **not fixed** and are the conditions on the verdict.
 
+Items 3 and 5 were put to the owner on 2026-09-11 and closed as **not required**.
+They are struck through rather than deleted: a decision not to fix something is
+not the same as the thing not being true, and the next reader of this report
+needs the finding and the decision together.
+
 1. **The track record is not yet evidence.** 7 of 8 months are `origin: "backfill"`, all frozen in one pass on 2026-09-03 from today's universe and today's prices. The headline reads **+38.7% since inception vs −1.8%**; only **August 2026 (+12.6%)** was frozen as it closed. The record now says so on screen, but the number itself does not become out-of-sample by being labelled. **One honest month of live record exists.**
 
 2. **Point-in-time membership reaches back to 2026-08-19 and no further, with zero recorded changes.** Wiring `_membership` in fixes the *mechanism*; it cannot manufacture history. Until the daily sync accumulates several NSE reconstitutions, 5 of every 6 reported months will still be scored on the current list and the Backtest tab will keep saying so. The *direction* of that bias is known and the *magnitude* is not — which is the reason to display it rather than estimate it.
 
-3. **The equity curve rebalances daily, for free.** Within each period the engine applies fixed target weights to every day's returns, which is daily rebalancing to target; the blotter prices the same positions buy-and-hold. Measured on the audit fixture: **+60.4 bps over six months** of uncosted rebalancing return that the tradebook does not contain. Not fixed here — it changes the accrual model, and that is a methodology decision, not a bug fix. It also means the equity curve and the closed-trade table can never be reconciled exactly.
+3. ~~**The equity curve rebalances daily, for free.**~~ **ACCEPTED BY THE OWNER — NOT REQUIRED (2026-09-11).** Within each period the engine applies fixed target weights to every day's returns, which is daily rebalancing to target; the blotter prices the same positions buy-and-hold. Measured on the audit fixture: **+60.4 bps over six months** of uncosted rebalancing return that the tradebook does not contain. The owner has reviewed this and decided against changing the accrual model. The consequence stands and is recorded here rather than removed: the equity curve runs ahead of the tradebook by roughly that margin, and the two can never be reconciled exactly.
 
 4. **Six months of daily data cannot support the ratios computed from it.** With the corrected Sharpe the fixture still prints **5.03 ± 0.44** (one standard error). Calmar over a half-year window has a numerator scaled to a year and a denominator that cannot contain a year's drawdown. The standard error is now shown; the underlying problem is the window, not the arithmetic. **These figures should not be quoted outside the app.**
 
-5. **No tax model, and monthly rebalancing is the worst case for one.** Turnover of ~24%/month realises essentially everything as short-term gains in India. The gap between the displayed pre-tax return and an after-tax outcome is large and is not modelled. Building one would need current-law verification against authoritative sources, which was out of scope; the app now states the absence rather than implying "Net" means net of tax.
+5. ~~**No tax model, and monthly rebalancing is the worst case for one.**~~ **ACCEPTED BY THE OWNER — NOT REQUIRED (2026-09-11).** Turnover of ~24%/month realises essentially everything as short-term gains in India. The owner has reviewed this and decided against building a tax model. The consequence stands: **every return figure in the application is pre-tax**, and "Net" means net of modelled transaction costs only. The Guide FAQ and buffer note already say so on screen, and that disclosure stays — the decision was not to model tax, not to stop stating its absence.
 
 6. **Unescaped external data in HTML sinks (F15)** — reported with a concrete patch, not applied, because it touches the hottest rendering path and deserves its own change with its own tests.
 
