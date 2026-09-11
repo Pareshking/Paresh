@@ -37,7 +37,9 @@ import requests
 # module docstring for why. sys.path is primed from __file__ so this resolves
 # whether the script is run directly or loaded by path from a test.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _streamlit_nav import missing_pages, nav_count, open_page  # noqa: E402
+from _streamlit_nav import (  # noqa: E402
+    missing_pages, nav_count, nav_diagnostics, open_page,
+)
 # Imported inside main(), not at module scope. The state classifier below is
 # pure logic and is unit-tested by tests/test_qa_state_classifier.py, which runs
 # in the ordinary validation job where playwright is NOT installed -- it is a QA
@@ -267,6 +269,8 @@ def read_state(page) -> dict:
     info = {
         "body_len": len(body),
         "stApp": st_app, "stNav": st_tabs,
+        # Only when the nav is missing: say what IS there.
+        **({"nav_dom": nav_diagnostics(frame)} if not st_tabs and st_app else {}),
         "stSpinner": st_spinner, "stException": st_exception,
         "n_frames": len(page.frames),
         "frames": frames_info,

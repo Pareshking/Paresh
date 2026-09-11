@@ -22,10 +22,34 @@ on this implementation.
 """
 from __future__ import annotations
 
+# Every selector here is a test id VERIFIED to exist in the pinned Streamlit
+# build -- see tests/test_qa_probes_share_one_navigator.py, which greps the
+# installed frontend for each one.
+#
+# `stTopNav` was used here and does NOT exist. It was taken from a substring
+# grep that matched the prefix of `stTopNavLink`, so the readiness check waited
+# out its full 420s budget on an element that could never appear and reported a
+# healthy app as state "unknown" (run 301). Infer a selector, verify a selector.
 NAV_CONTAINERS = (
     '[data-testid="stTabs"]',
-    '[data-testid="stTopNav"]',
+    '[data-testid="stTopNavLink"]',
+    '[data-testid="stTopNavSection"]',
     '[data-testid="stSidebarNav"]',
+    '[data-testid="stSidebarNavLink"]',
+)
+
+# Counted and reported when NAV_CONTAINERS finds nothing, so a failure says
+# what the DOM actually contains instead of only what it lacks.
+NAV_DIAGNOSTIC_SELECTORS = NAV_CONTAINERS + (
+    '[data-testid="stHeader"]',
+    '[data-testid="stMain"]',
+    '[data-testid="stSidebar"]',
+    '[data-testid="stToolbar"]',
+    '[data-testid="stAppViewContainer"]',
+    "header",
+    "nav",
+    'a[href*="/screener"]',
+    'a[href*="/configuration"]',
 )
 
 
@@ -43,6 +67,22 @@ def nav_count(frame) -> int:
         except Exception:
             continue
     return total
+
+
+def nav_diagnostics(frame) -> dict:
+    """What nav-ish elements the DOM actually holds, for when nothing matches.
+
+    A readiness failure that only says "no navigation found" cannot distinguish
+    "the app did not render" from "the probe is looking for the wrong element".
+    Run 301 was the second of those and cost a full run to find out.
+    """
+    found = {}
+    for sel in NAV_DIAGNOSTIC_SELECTORS:
+        try:
+            found[sel] = frame.locator(sel).count()
+        except Exception:
+            found[sel] = -1
+    return {k: v for k, v in found.items() if v}
 
 
 def open_page(frame, name: str, page=None) -> str:
