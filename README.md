@@ -229,13 +229,18 @@ The app uses four modern Streamlit primitives that reduce full-page reruns and n
 | `st.popover()` | Screener column guide, Config window guide | Floating reference panel without leaving the current screen |
 | `st.status()` | App startup, Config constituent sync | Structured progress with running/complete/error states and collapsible step log |
 
-**`st.tabs` renders every tab body on every run.** All eleven tab bodies
-execute on each interaction — this is Streamlit's behaviour, not a bug in the
-app, but it is the dominant cost of a click and it puts every tab's widgets in
-one DOM simultaneously. Measured locally on 2026-09-11 with charts stubbed:
-**~1.0 s of Python per rerun**, a lower bound, with 8 sliders, 18 buttons and
-13 selectboxes coexisting. `st.navigation`/`st.Page`, where only the active
-page executes, is the documented remedy — see `docs/UI_ARCHITECTURE.md`.
+**Navigation is `st.navigation`/`st.Page`, not `st.tabs`.** Only the active
+page's script executes. `st.tabs` ran all eleven bodies on every interaction —
+Streamlit's documented behaviour, not a bug — which cost ~1.0 s of Python per
+click and put every tab's widgets in one DOM at once. Measured after the
+migration: **0.43 s per rerun** (−56%), with 2 buttons and 2 selectboxes in the
+DOM instead of 18 and 13. See `docs/UI_ARCHITECTURE.md`.
+
+The consequence to respect when adding a widget: **leaving a page evicts every
+widget on it.** Give every keyed widget an explicit value, and a mirror key if
+the choice should survive the reader navigating away — see *Configuration
+settings and widget state* above. Under `st.tabs` nothing was ever evicted, so
+this rule did not used to bite outside the Configuration page.
 
 Table rendering deliberately splits into two tiers:
 - **Main screener** and **all secondary tables** (live book, monthly returns, closed trades, sector breakdown, track record): custom HTML via `render_saas_table` in `src/ui/theme.py`, which supports per-cell conditional coloring that `st.column_config` cannot replicate.

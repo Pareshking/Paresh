@@ -474,15 +474,23 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
             "Settings</div>",
             unsafe_allow_html=True,
         )
+        # Explicit index, resolved through the mirror, for the same reason every
+        # other setting here carries an explicit value: this radio is itself
+        # evictable. Under st.navigation only the active page runs, so leaving
+        # the Configuration page discards this key and the reader would come
+        # back to "Data & Sync" every time instead of where they were.
+        _remembered = resolve("cfg_nav_section_idx", 0, lo=0, hi=len(_NAV_SECTIONS) - 1)
         section = st.radio(
             "Settings",
             _NAV_SECTIONS,
+            index=_remembered,
             key="cfg_nav_section",
             label_visibility="collapsed",
             format_func=lambda s: f"{_NAV_ICONS[s]} {s}",
         )
         if not section:
             section = _NAV_SECTIONS[0]
+        remember("cfg_nav_section_idx", _NAV_SECTIONS.index(section))
 
         st.markdown(
             "<div style='font-size:0.68rem;color:#94a3b8;margin-top:16px;line-height:1.5;'>"

@@ -27,10 +27,17 @@ from __future__ import annotations
 import json
 import os
 import re
+import sys
 import time
 from pathlib import Path
 
 import requests
+
+# Both probes drive the app's navigation through ONE implementation; see the
+# module docstring for why. sys.path is primed from __file__ so this resolves
+# whether the script is run directly or loaded by path from a test.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _streamlit_nav import missing_pages, nav_count, open_page  # noqa: E402
 # Imported inside main(), not at module scope. The state classifier below is
 # pure logic and is unit-tested by tests/test_qa_state_classifier.py, which runs
 # in the ordinary validation job where playwright is NOT installed -- it is a QA
@@ -233,13 +240,18 @@ def read_state(page) -> dict:
             return 0
 
     st_exception = count('[data-testid="stException"]')
-    st_tabs = count('[data-testid="stTabs"]')
+    # The app's own navigation, whichever primitive renders it. It moved from
+    # `st.tabs` to `st.navigation(position="top")` so that only the active page
+    # executes; readiness means "the app's nav is on screen", not "stTabs
+    # exists". Both are accepted so this classifier survives the migration in
+    # either direction.
+    st_tabs = nav_count(frame)
     st_spinner = count('[data-testid="stSpinner"]')
     st_app = count('[data-testid="stApp"]')
 
     info = {
         "body_len": len(body),
-        "stApp": st_app, "stTabs": st_tabs,
+        "stApp": st_app, "stNav": st_tabs,
         "stSpinner": st_spinner, "stException": st_exception,
         "n_frames": len(page.frames),
         "frames": frames_info,
@@ -247,7 +259,7 @@ def read_state(page) -> dict:
     }
 
     # Only the WRAPPER can be in a cloud state. If Streamlit has rendered the
-    # app's tab bar then we are looking at the application itself, and any
+    # app's navigation then we are looking at the application itself, and any
     # resemblance to wrapper text is the app's own content -- belt and braces
     # alongside the phrase list above.
     if not st_tabs:
@@ -692,16 +704,19 @@ def main() -> None:
                     frame = app_frame(page)
                     for tab in TABS:
                         try:
-                            loc = frame.get_by_role("tab", name=tab, exact=True).first
-                            if loc.count() == 0:
-                                loc = frame.get_by_text(tab, exact=True).first
-                            if not loc.is_visible():
+                            try:
+                                how = open_page(frame, tab, page)
+                            except LookupError as exc:
                                 vp["tabs"][tab] = "not_visible"
                                 failures.append(classify(
-                                    f"{name}: tab '{tab}' not visible", "APPLICATION"))
+                                    f"{name}: page '{tab}' unreachable: {exc}",
+                                    "APPLICATION"))
                                 continue
-                            loc.click(timeout=20_000)
-                            page.wait_for_timeout(900)
+                            vp.setdefault("nav_how", {})[tab] = how
+                            # Only the active page's script runs now, so the
+                            # body arrives after a server round trip rather than
+                            # being already in the DOM behind a CSS toggle.
+                            page.wait_for_timeout(1_500)
                             body = frame.locator("body").inner_text(timeout=10_000)
                             hits = [t for t in RUNTIME_TOKENS if t in body]
                             if frame.locator('[data-testid="stException"]').count():
@@ -723,11 +738,8 @@ def main() -> None:
                     # the values themselves on the sizes that matter.
                     if name in CONFIG_AUDIT_VIEWPORTS:
                         try:
-                            cfg_tab = frame.get_by_role(
-                                "tab", name="Configuration", exact=True).first
-                            if cfg_tab.count():
-                                cfg_tab.click(timeout=20_000)
-                                page.wait_for_timeout(1_200)
+                            open_page(frame, "Configuration", page)
+                            page.wait_for_timeout(1_800)
                             ev = audit_configuration(page, frame)
                             vp["configuration"] = ev
                             failures.extend(judge_configuration(name, ev))

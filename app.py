@@ -438,51 +438,43 @@ signals = compute_signals(
 render_signal_alerts(signals)
 
 
-# ── Top Horizontal Pill Tabs (100% Viewport Width) ───────────────────────────
-(
-    tab_rank,
-    tab_qual,
-    tab_sec,
-    tab_rrg,
-    tab_port,
-    tab_watch,
-    tab_breadth,
-    tab_backtest,
-    tab_track,
-    tab_config,
-    tab_guide,
-) = st.tabs(
-    [
-        "Screener",
-        "Qualified",
-        "Sectors",
-        "RRG",
-        "Portfolio",
-        "Watchlist",
-        "Market Breadth",
-        "Backtest",
-        "Track Record",
-        "Configuration",
-        "Guide",
-    ]
-)
+# ── Navigation ───────────────────────────────────────────────────────────────
+# `st.tabs` executed ALL ELEVEN tab bodies on every rerun. That is Streamlit's
+# documented behaviour, not a defect, but it made every click cost eleven pages
+# of Python (~1.0s measured, charts stubbed) and put every tab's widgets in one
+# DOM at once -- fourteen sliders from four different tabs were readable in a
+# single production frame.
+#
+# `st.navigation` runs ONLY the selected page. The trade is that Streamlit now
+# discards widget state for every page the reader is not looking at, so each
+# keyed widget must carry an explicit value and, where the choice should
+# survive, a mirror key. See src/ui/widget_state.py and the README.
+#
+# Each page is a zero-argument closure over the data loaded above: `st.Page`
+# takes a callable with no parameters, and the pipeline is shared by every page
+# because the entrypoint runs before the selected page does.
 
-with tab_rank:
+
+def _page_screener() -> None:
     render_ranking_view(
         rank_df, adj_close, high_prices, low_prices, volume_data,
         open_prices=data.get("open_prices"),
     )
 
-with tab_qual:
+
+def _page_qualified() -> None:
     render_qualified_view(rank_df, adj_close)
 
-with tab_sec:
+
+def _page_sectors() -> None:
     render_sector_view(calc, rank_df, adj_close)
 
-with tab_rrg:
+
+def _page_rrg() -> None:
     render_rrg_view(calc, rank_df, adj_close)
 
-with tab_port:
+
+def _page_portfolio() -> None:
     render_portfolio_view(
         calc=calc,
         rank_df=rank_df,
@@ -493,13 +485,15 @@ with tab_port:
     )
 
 
-with tab_watch:
+def _page_watchlist() -> None:
     render_watchlist_view(rank_df)
 
-with tab_breadth:
+
+def _page_breadth() -> None:
     render_breadth_view(rank_df, adj_close)
 
-with tab_backtest:
+
+def _page_backtest() -> None:
     render_backtest_view(
         rank_df=rank_df,
         adj_close=adj_close,
@@ -508,20 +502,43 @@ with tab_backtest:
         weights=weights,
     )
 
-with tab_track:
+
+def _page_track_record() -> None:
     # The frozen record, plus a live MTD struck under the record's own pinned
     # configuration. fetch_benchmark_history is cached, so this is the same
-    # round trip the Backtest tab already made.
+    # round trip the Backtest page already made.
     render_track_record_view(
         adj_close=adj_close,
         benchmark_close=fetch_benchmark_history(period="5y"),
     )
 
-with tab_config:
+
+def _page_configuration() -> None:
     render_config_view(rank_df)
 
-with tab_guide:
+
+def _page_guide() -> None:
     render_guide_view(rank_df)
+
+
+# Titles and order are the app's public surface: the production QA probe walks
+# them by name and tests/test_qa_tab_list_matches_the_app.py pins them, so a
+# rename here without one there is a failing build, not a silent drift.
+_PAGES = [
+    st.Page(_page_screener, title="Screener", url_path="screener", default=True),
+    st.Page(_page_qualified, title="Qualified", url_path="qualified"),
+    st.Page(_page_sectors, title="Sectors", url_path="sectors"),
+    st.Page(_page_rrg, title="RRG", url_path="rrg"),
+    st.Page(_page_portfolio, title="Portfolio", url_path="portfolio"),
+    st.Page(_page_watchlist, title="Watchlist", url_path="watchlist"),
+    st.Page(_page_breadth, title="Market Breadth", url_path="breadth"),
+    st.Page(_page_backtest, title="Backtest", url_path="backtest"),
+    st.Page(_page_track_record, title="Track Record", url_path="track-record"),
+    st.Page(_page_configuration, title="Configuration", url_path="configuration"),
+    st.Page(_page_guide, title="Guide", url_path="guide"),
+]
+
+st.navigation(_PAGES, position="top").run()
 
 
 # ── Cold-start telemetry ─────────────────────────────────────────────────────

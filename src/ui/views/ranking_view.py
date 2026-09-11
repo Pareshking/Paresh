@@ -7,6 +7,8 @@ Inspired by Investrack, Stockin.id, and Tickerboom.
 import pandas as pd
 import streamlit as st
 
+from src.ui.widget_state import remember, resolve
+
 from src.core.config import SHORT_FORMS
 from src.core.market_time import ist_now
 from src.ui.charts import render_candlestick_drilldown
@@ -638,12 +640,20 @@ def render_ranking_view(
         unsafe_allow_html=True,
     )
 
+    # Explicit index, resolved through the mirror. Under st.navigation only the
+    # active page runs, so this key is discarded the moment the reader looks at
+    # another page -- without it their chosen sort silently reverts to "Rank".
+    _SORT_OPTIONS = [
+        "Rank", "3M Return", "6M Return", "3M Sharpe", "% High", "Market Cap (Cr)",
+    ]
     sort_by = c_sort.selectbox(
         "Sort By",
-        ["Rank", "3M Return", "6M Return", "3M Sharpe", "% High", "Market Cap (Cr)"],
+        _SORT_OPTIONS,
+        index=resolve("rank_sort_by_idx", 0, lo=0, hi=len(_SORT_OPTIONS) - 1),
         key="rank_sort_by",
         label_visibility="collapsed",
     )
+    remember("rank_sort_by_idx", _SORT_OPTIONS.index(sort_by))
 
     density_mode = c_density.segmented_control(
         "Column Density",

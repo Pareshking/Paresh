@@ -24,10 +24,15 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import time
 from pathlib import Path
 
 import requests
+
+# One navigation implementation for both probes; see scripts/_streamlit_nav.py.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _streamlit_nav import missing_pages, nav_count, open_page  # noqa: E402
 from playwright.sync_api import sync_playwright
 
 URL = os.getenv("UMIYA_PRODUCTION_URL", "https://paresh.streamlit.app/").rstrip("/") + "/"
@@ -144,7 +149,7 @@ def main() -> None:
             frame = app_frame(page)
             try:
                 n_app = frame.locator('[data-testid="stApp"]').count()
-                n_tabs = frame.locator('[data-testid="stTabs"]').count()
+                n_tabs = nav_count(frame)
                 n_spin = frame.locator('[data-testid="stSpinner"]').count()
                 n_exc = frame.locator('[data-testid="stException"]').count()
             except Exception:
@@ -174,17 +179,15 @@ def main() -> None:
         # completes and repaints.
         if "screener_ui_usable_s" in marks:
             frame = app_frame(page)
-            missing_tabs = []
-            for name in TABS:
-                loc = frame.get_by_role("tab", name=name, exact=True)
-                if loc.count() == 0:
-                    missing_tabs.append(name)
-            report["tabs_missing"] = missing_tabs
+            # A page collapsed into the top nav's overflow dropdown is present,
+            # not missing -- with eleven pages that is most of them on a narrow
+            # viewport, so this opens the dropdowns before concluding anything.
+            report["tabs_missing"] = missing_pages(frame, TABS, page)
             try:
-                frame.get_by_role("tab", name="Sectors", exact=True).first.click(timeout=30_000)
+                open_page(frame, "Sectors", page)
+                frame.wait_for_timeout(1800)
+                open_page(frame, "Screener", page)
                 frame.wait_for_timeout(1200)
-                frame.get_by_role("tab", name="Screener", exact=True).first.click(timeout=30_000)
-                frame.wait_for_timeout(800)
                 marks["fully_interactive_s"] = round(time.monotonic() - t0, 1)
             except Exception as exc:
                 report["interaction_error"] = f"{type(exc).__name__}: {str(exc)[:160]}"

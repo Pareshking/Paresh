@@ -1,7 +1,7 @@
 # UI architecture: the tab problem, and whether to rewrite
 
 **Date:** 2026-09-11
-**Status:** recommendation, not yet executed
+**Status:** Stage 1 executed 2026-09-11 — see §6
 **Question put by the owner:** *"Shouldn't we re-write the complete code from
 blank? Current one doesn't even have real tabs, everything in one container is
 a bad thing."*
@@ -160,3 +160,76 @@ way without an explicit value. The widget type was never the axis that mattered.
 Nothing in Stage 1 or 2 changes a number the app reports. If any stage changes a
 reported figure, that is a defect in the migration, and the parity tests should
 catch it.
+
+
+---
+
+## 6. Stage 1 result (2026-09-11)
+
+`app.py` migrated from `st.tabs` to `st.navigation(position="top")` with eleven
+`st.Page` entries. No file under `src/engine/`, `src/loaders/` or `src/core/`
+was touched.
+
+### Measured, the same way as §1
+
+| | before | after | |
+|---|---|---|---|
+| Warm rerun | 0.97 s | **0.43 s** | −56% |
+| Cold start (local) | 15.57 s | **12.80 s** | −18% |
+| Sliders in the DOM | 8 | **0** | Screener has none of its own |
+| Buttons in the DOM | 18 | **2** | |
+| Selectboxes in the DOM | 13 | **2** | |
+
+The §5 gate — *"if it does not improve materially, stop and re-diagnose rather
+than continuing to Stage 2 on faith"* — is met.
+
+The measurement was checked for the failure mode that would fake it: a run that
+renders nothing is also fast. The default page genuinely executes under
+`AppTest` — the Screener's search box, its `Sort By` selectbox and its
+"Show all 750" button are all present in the measured run.
+
+### What had to change with it, and why
+
+**Every keyed widget now needs an explicit value.** With `st.tabs` all eleven
+bodies rendered every run, so no widget was ever evicted and the missing-value
+defect could only bite the Configuration tab, whose left-nav already rendered
+on demand. Under `st.navigation`, leaving a page evicts everything on it — the
+migration turns a one-tab hazard into an app-wide one. An AST audit of all 60
+keyed widgets in `src/ui` found exactly two without one:
+
+- `cfg_nav_section` (Configuration's left-nav) — would have returned the reader
+  to *Data & Sync* on every visit;
+- `rank_sort_by` (Screener sort order) — would have silently reverted to
+  *Rank*.
+
+Both now resolve an explicit index through the mirror.
+`tests/test_config_sliders_carry_explicit_values.py` guards the engine-bound
+set.
+
+**Both QA probes had to learn the new DOM.** `role="tab"` no longer exists;
+`st.navigation(position="top")` renders `stTopNavLink`, and collapses whatever
+does not fit into `stTopNavSection` → `stTopNavPopover` →
+`stTopNavDropdownLink`. Eleven pages do not fit a 360px phone, so **the
+dropdown is the normal path on every mobile viewport**, not an edge case — a
+probe that only clicked visible links would have reported eight of eleven pages
+missing on mobile. Readiness also stopped meaning "stTabs exists" and now means
+"the app's nav rendered", whichever primitive draws it.
+
+Both probes drive this through one module, `scripts/_streamlit_nav.py`, rather
+than a copy each. That is not tidiness: production QA once spent from 20 Aug
+onward reporting the app broken over a deleted "Multi-Strategy" tab because
+only one of two places was updated.
+`tests/test_qa_probes_share_one_navigator.py` keeps them on it.
+
+### Known visual change
+
+`position="top"` renders the navigation in the app chrome, above the header KPI
+bar — previously the tab strip sat below it. The KPI bar and signal alerts now
+appear under the nav on every page, which is also what makes them global
+context rather than Screener decoration.
+
+### Not yet done
+
+Stage 2 — rewriting the views themselves, page by page, each shipped and
+verified before the next. `src/ui/theme.py` (~2,000 lines of hand-built HTML
+table rendering) remains the strongest first candidate.
