@@ -568,7 +568,12 @@ with st.container(horizontal=True, wrap=True, gap="small", key="app_nav"):
         # here raised AttributeError whenever app.py was imported outside a
         # script run.
         _state = "navon" if _p is _nav else "navoff"
-        with st.container(key=f"{_state}_{_i}"):
+        # width="content" is load-bearing, not decoration. st.container defaults
+        # to width="stretch", so each of these per-item wrappers claimed the
+        # full column width and only two pills fitted per row -- eleven items
+        # became a six-row, ~500px block above the content on a phone. Hugging
+        # the label lets them pack.
+        with st.container(key=f"{_state}_{_i}", width="content"):
             # No explicit label: st.page_link takes the page's own title.
             st.page_link(_p)
 

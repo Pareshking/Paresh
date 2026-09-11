@@ -339,8 +339,92 @@ def audit_nav_styling(frame) -> dict:
         # 12.5px is the pill size; the browser default is ~16px. If this reads
         # like the default, the stylesheet is not applying to the row.
         out["css_applied"] = out.get("font_size", "") not in ("", "16px")
+        # How much of the screen the menu eats before any content. It shipped
+        # as a six-row ~500px block on a phone because each per-item container
+        # defaulted to width="stretch"; a number makes that a measurement
+        # rather than an impression.
+        box = row.bounding_box()
+        if box:
+            out["row_height_px"] = round(box["height"])
+            out["row_width_px"] = round(box["width"])
+            vp = frame.page.viewport_size if hasattr(frame, "page") else None
+            if vp and vp.get("height"):
+                out["row_pct_of_viewport"] = round(
+                    100 * box["height"] / vp["height"])
     except Exception as exc:
         out["error"] = f"{type(exc).__name__}: {exc}"[:180]
+    return out
+
+
+def audit_stock_link_navigation(page) -> dict:
+    """Where clicking a ticker actually lands, and what the trip costs.
+
+    The screener table is a sandboxed component iframe with no
+    allow-top-navigation, so it cannot navigate the page around it; the app
+    injects a script into `window.parent` to do it instead (src/ui/theme.py).
+    `window.parent` is the Streamlit app document, mounted by Community Cloud
+    at /~/+/, which is why a ticker click leaves `/~/+/?stock=SYM` in the
+    address bar.
+
+    Whether pointing that at `window.top` would help depends on two things
+    nobody should guess at: whether the app document IS the top document, and
+    whether navigating the top costs a full wrapper reload on every click. This
+    measures both instead of arguing about them.
+    """
+    out: dict = {}
+    frame = app_frame(page)
+    try:
+        out["frame_shape"] = frame.evaluate("""() => ({
+            self_url: location.href,
+            is_top_document: window === window.top,
+            parent_url: (() => { try { return parent.location.href; }
+                                 catch (e) { return 'blocked:' + e.name; } })(),
+            top_url: (() => { try { return top.location.href; }
+                              catch (e) { return 'blocked:' + e.name; } })()
+        })""")
+    except Exception as exc:
+        out["frame_shape"] = {"error": f"{type(exc).__name__}: {exc}"[:140]}
+
+    link = None
+    for f in page.frames:
+        try:
+            candidate = f.locator("a[data-stock]").first
+            if candidate.count():
+                link = candidate
+                break
+        except Exception:
+            continue
+    if link is None:
+        out["click"] = {"error": "no ticker link found on the screener"}
+        return out
+
+    try:
+        symbol = link.get_attribute("data-stock")
+        before = page.url
+        started = time.perf_counter()
+        link.click(timeout=15_000)
+        state: dict = {}
+        deadline = time.monotonic() + 120
+        while time.monotonic() < deadline:
+            state = read_state(page)
+            if state.get("state") in ("ready", "app_exception"):
+                break
+            page.wait_for_timeout(1_000)
+        elapsed = round(time.perf_counter() - started, 1)
+        try:
+            body = app_frame(page).locator("body").inner_text(timeout=10_000)
+        except Exception:
+            body = ""
+        out["click"] = {
+            "symbol": symbol,
+            "from": before[:120],
+            "to": page.url[:120],
+            "seconds": elapsed,
+            "state": state.get("state"),
+            "reached_stock_page": "Back to screener" in body,
+        }
+    except Exception as exc:
+        out["click"] = {"error": f"{type(exc).__name__}: {exc}"[:180]}
     return out
 
 
@@ -945,6 +1029,10 @@ def main() -> None:
                         f"The navigation stylesheet is not applying: "
                         f"{report['nav_styling']}", "APPLICATION"))
 
+                # Before the deep-link forms, because this one needs the
+                # screener as the browser actually left it.
+                report["stock_link"] = audit_stock_link_navigation(page)
+
                 # Last, because each form is a full navigation away from the
                 # warm session the walk above depends on.
                 report["deep_links"] = audit_deep_links(page)
@@ -1006,6 +1094,11 @@ def main() -> None:
             print(f"    {u}", flush=True)
     if timeline:
         print(f"frames at last sample : {timeline[-1].get('frames')}", flush=True)
+    if report.get("stock_link"):
+        print(f"stock link shape      : "
+              f"{report['stock_link'].get('frame_shape')}", flush=True)
+        print(f"stock link click      : "
+              f"{report['stock_link'].get('click')}", flush=True)
     if report.get("nav_styling"):
         print(f"nav styling           : {report['nav_styling']}", flush=True)
     for _label, _info in (report.get("deep_links") or {}).items():
