@@ -361,7 +361,7 @@ def _card_html(row: pd.Series) -> str:
         + f'<div class="sq-top">'
         + badge_html
         + f'<div class="sq-nameblock">'
-        + f'<a href="?stock={sym}" class="sq-sym">{sym}</a>'
+        + f'<a href="?stock={sym}" target="_self" class="sq-sym">{sym}</a>'
         + f'<div class="sq-ind">{industry}</div>'
         + f'</div>'
         + f'<div class="sq-right"><span class="sq-cmp">{cmp_html}</span>{delta_html}</div>'

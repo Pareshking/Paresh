@@ -439,12 +439,25 @@ def audit_stock_link_navigation(page) -> dict:
         before = page.url
         started = time.perf_counter()
         link.click(timeout=15_000)
+        # Wait for the CHANGE, not for readiness. The app is already "ready"
+        # when the click happens, so a readiness loop exits on its first
+        # iteration and reports whatever was on screen 0.1s later -- which is
+        # how this measurement first concluded a ticker click does nothing.
+        # Stop when the stock page appears or the URL moves, whichever first.
         state: dict = {}
-        deadline = time.monotonic() + 120
+        deadline = time.monotonic() + 60
         while time.monotonic() < deadline:
             state = read_state(page)
-            if state.get("state") in ("ready", "app_exception"):
+            if state.get("state") == "app_exception":
                 break
+            if page.url != before:
+                break
+            try:
+                if "Back to screener" in app_frame(page).locator(
+                        "body").inner_text(timeout=5_000):
+                    break
+            except Exception:
+                pass
             page.wait_for_timeout(1_000)
         elapsed = round(time.perf_counter() - started, 1)
         try:
