@@ -7,7 +7,6 @@ import html
 import os
 from datetime import datetime
 
-import numpy as np
 import pandas as pd
 import streamlit as st
 
@@ -25,6 +24,7 @@ from src.core.config import (
 from src.engine.corporate_actions import load_events
 from src.loaders.indices_loader import get_sync_metadata, sync_official_nse_indices
 from src.ui.components import render_data_quality_footer
+from src.ui.widget_state import forget, remember, resolve
 from src.ui.theme import render_saas_table
 
 _NAV_SECTIONS = [
@@ -167,8 +167,23 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
         st.rerun()
 
 
+# The five lookback windows, their canonical keys, and the documented default
+# for each. One list so the pill, the sliders and the reset button cannot drift.
+_WINDOWS: list[tuple[str, str, float]] = [
+    ("1M", "cfg_w1", DEFAULT_LOOKBACK_WEIGHTS[0]),
+    ("3M", "cfg_w2", DEFAULT_LOOKBACK_WEIGHTS[1]),
+    ("6M", "cfg_w3", DEFAULT_LOOKBACK_WEIGHTS[2]),
+    ("9M", "cfg_w4", DEFAULT_LOOKBACK_WEIGHTS[3]),
+    ("12M", "cfg_w5", DEFAULT_LOOKBACK_WEIGHTS[4]),
+]
+
+
 def _section_momentum_signal() -> None:
-    raw_w = [float(st.session_state.get(f"cfg_w{i}", 0.2)) for i in range(1, 6)]
+    # Resolve once, and hand the SAME numbers to the pill and to the sliders.
+    # Reading them separately is what let the two disagree on screen.
+    current = {key: resolve(key, default, lo=0.0, hi=1.0)
+               for _label, key, default in _WINDOWS}
+    raw_w = [current[key] for _label, key, _d in _WINDOWS]
     tot_w = sum(raw_w)
     norm_w = [w / tot_w for w in raw_w] if tot_w > 0 else [0.2] * 5
 
@@ -190,59 +205,47 @@ def _section_momentum_signal() -> None:
         """
     )
 
-    # An unconditional escape hatch. Three rounds of fixes have not reproduced
-    # the reported "every slider reads 0.00" state in any environment -- probe
-    # scripts, the real nav widget, and app.py itself all render the configured
-    # weights -- so this gives the reader a way out that does not depend on my
-    # understanding the cause. It overwrites the keys outright rather than
-    # seeding only absent ones, which is the guard that failed last time.
     _rc1, _rc2 = st.columns([3, 1], vertical_alignment="center")
     if _rc2.button("↺ Reset to defaults", key="cfg_w_reset", width="stretch"):
-        for _i, _d in enumerate(DEFAULT_LOOKBACK_WEIGHTS, start=1):
-            st.session_state[f"cfg_w{_i}"] = float(_d)
+        # Write the mirror and DROP the widget's own state, so the sliders read
+        # the restored value on the next run. Writing the widget key instead is
+        # legal only above the widget, and was the shape that crashed the tab.
+        for _label, key, default in _WINDOWS:
+            remember(key, float(default))
+            forget(key)
         st.rerun()
 
     wc = st.columns(5)
-    windows = [
-        ("1M", "cfg_w1", 0.10),
-        ("3M", "cfg_w2", 0.30),
-        ("6M", "cfg_w3", 0.30),
-        ("9M", "cfg_w4", 0.20),
-        ("12M", "cfg_w5", 0.10),
-    ]
-    for col, (label, key, default) in zip(wc, windows):
-        # Re-seed before rendering. These sections are rendered ON DEMAND by the
-        # left-nav, and Streamlit discards widget state for any key whose widget
-        # was not rendered on the previous run -- navigating to Portfolio Risk
-        # and back evicts all five cfg_w* keys (proved in
-        # tests/test_config_weights_survive_nav.py). A slider with a key but no
-        # value then falls back to `min_value`, i.e. 0.00, so the panel showed
-        # five zeroed weights beside a "Weight vector: 10% · 30% · …" pill read
-        # from the canonical state one line above. The two disagreed on screen,
-        # and touching any one slider would have submitted the displayed zeros
-        # for the other four.
-        # Repair, not merely seed. A guard of the form "if the key is absent"
-        # cannot fix a key that is PRESENT and wrong, and once a session has
-        # stored a zero for every window nothing recovers it: app.py's own
-        # re-seed is also absence-guarded. Treat a non-finite or out-of-range
-        # value as no value at all.
-        current = st.session_state.get(key)
-        if not isinstance(current, (int, float)) or not np.isfinite(current) \
-                or not (0.0 <= float(current) <= 1.0):
-            st.session_state[key] = default
-        col.slider(label, min_value=0.0, max_value=1.0, step=0.05, key=key)
-
-    # A vector that sums to zero cannot rank anything, and every slider sitting
-    # at 0.00 is exactly what a user reported seeing. Restore the documented
-    # defaults and say so rather than leaving five dead controls on screen.
-    if sum(float(st.session_state.get(k, 0.0)) for _, k, _ in windows) <= 0:
-        for _lbl, k, d in windows:
-            st.session_state[k] = d
-        st.warning(
-            "All five lookback weights were zero, which cannot rank anything. "
-            "Restored the defaults — reopen this section to see them."
+    for col, (label, key, default) in zip(wc, _WINDOWS):
+        # Hand the widget an EXPLICIT value. Relying on session state alone is
+        # what produced the reported defect: measured against the live app on
+        # 2026-09-11, these five were the only sliders in the whole DOM without
+        # one, and the only five rendering at their minimum -- 0.00 beside a
+        # pill reading the correct weights from the same state. The Backtest
+        # tab's five, identical in range and step but given a value, were
+        # correct in the same frame.
+        shown = col.slider(
+            label, min_value=0.0, max_value=1.0,
+            value=float(current[key]), step=0.05, key=key,
         )
-        st.rerun()
+        # Record it where eviction cannot reach it, so navigating to another
+        # section no longer reverts a reader's own weights to the defaults.
+        remember(key, float(shown))
+        current[key] = float(shown)
+
+    # A vector that sums to zero cannot rank anything. Say so and leave the
+    # controls alone: the previous repair wrote `st.session_state[key]` AFTER
+    # the slider existed, which raises StreamlitWidgetAlreadyInstantiatedError
+    # and took the entire Configuration tab down for anyone who dragged all
+    # five to zero. `app.py` ranks on the documented defaults meanwhile, and
+    # says so there too.
+    if sum(current.values()) <= 0:
+        st.warning(
+            "All five lookback weights are zero, which cannot rank anything. "
+            "Ranking is using the documented defaults "
+            f"({' · '.join(f'{w:.0%}' for w in DEFAULT_LOOKBACK_WEIGHTS)}) "
+            "until you set one — press **↺ Reset to defaults** above."
+        )
 
     lbl_col, pop_col = st.columns([4, 1], vertical_alignment="center")
     lbl_col.caption(
@@ -277,18 +280,28 @@ Higher weight on **9M + 12M** favours slow, persistent trends.
 # rather than merely visible -- a 30% sector cap would come back as 15% and a 5%
 # stock cap as 2%, both of them plausible numbers that now genuinely bind the
 # portfolio and the backtest.
-_RISK_DEFAULTS: dict[str, object] = {
-    "cfg_sc": 30,
-    "cfg_stc": 5,
-    "cfg_vt": False,
-    "cfg_vtv": 25,
+# key -> (default, minimum, maximum). Ranges live here so the resolver rejects
+# an out-of-range stored value the same way the widget would.
+_RISK_SETTINGS: dict[str, tuple] = {
+    "cfg_sc": (30, 15, 50),
+    "cfg_stc": (5, 2, 15),
+    "cfg_vt": (False, None, None),
+    "cfg_vtv": (25, 10, 40),
 }
 
 
+def _risk(key):
+    """The live value of one risk setting, resolved before it is rendered."""
+    default, lo, hi = _RISK_SETTINGS[key]
+    return resolve(key, default, lo=lo, hi=hi)
+
+
 def _section_portfolio_risk() -> None:
-    for _key, _default in _RISK_DEFAULTS.items():
-        if _key not in st.session_state:
-            st.session_state[_key] = _default
+    # Same exposure as the weight sliders, and worse in consequence: an evicted
+    # weight comes back as an obvious 0.00, but an evicted cap comes back as a
+    # PLAUSIBLE number -- a 30% sector cap as 15%, a 5% stock cap as 2% -- and
+    # both genuinely bind the portfolio and the backtest. Every widget below is
+    # handed an explicit resolved value and mirrored afterwards.
     lc, rc = st.columns(2, gap="large")
     with lc:
         st.markdown(
@@ -299,11 +312,15 @@ def _section_portfolio_risk() -> None:
             unsafe_allow_html=True,
         )
         new_sc = st.slider(
-            "Sector Exposure Cap (%)", min_value=15, max_value=50, step=5, key="cfg_sc",
+            "Sector Exposure Cap (%)", min_value=15, max_value=50, step=5,
+            value=_risk("cfg_sc"), key="cfg_sc",
         )
+        remember("cfg_sc", int(new_sc))
         new_stc = st.slider(
-            "Individual Stock Cap (%)", min_value=2, max_value=15, step=1, key="cfg_stc",
+            "Individual Stock Cap (%)", min_value=2, max_value=15, step=1,
+            value=_risk("cfg_stc"), key="cfg_stc",
         )
+        remember("cfg_stc", int(new_stc))
         if new_stc > new_sc:
             st.warning(f"Stock cap ({new_stc}%) exceeds sector cap ({new_sc}%).")
 
@@ -315,11 +332,16 @@ def _section_portfolio_risk() -> None:
             "Dynamically scales cash allocation to maintain stable realized annual volatility.</div>",
             unsafe_allow_html=True,
         )
-        new_vt = st.checkbox("Enable Dynamic Volatility Targeting", key="cfg_vt")
-        st.slider(
-            "Target Portfolio Volatility (%)", min_value=10, max_value=40, step=5,
-            key="cfg_vtv", disabled=not new_vt,
+        new_vt = st.checkbox(
+            "Enable Dynamic Volatility Targeting",
+            value=_risk("cfg_vt"), key="cfg_vt",
         )
+        remember("cfg_vt", bool(new_vt))
+        new_vtv = st.slider(
+            "Target Portfolio Volatility (%)", min_value=10, max_value=40, step=5,
+            value=_risk("cfg_vtv"), key="cfg_vtv", disabled=not new_vt,
+        )
+        remember("cfg_vtv", int(new_vtv))
 
 
 def _section_data_health(rank_df: pd.DataFrame) -> None:
@@ -419,6 +441,12 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
     # were debugged without it.
     _rev = deployed_revision()
     build_rev = _rev[:7] if _rev else "unknown"
+    # requirements.txt asks for `streamlit>=1.35.0`, so Streamlit Cloud is free
+    # to install a DIFFERENT frontend on any reboot with no change to this
+    # repository -- and the frontend is where the config sliders were rendering
+    # at their minimum. Surface the resolved version so "it worked yesterday"
+    # is a question that can be answered rather than argued about.
+    st_version = getattr(st, "__version__", "unknown")
 
     # ── Status bar (full-width) ───────────────────────────────────────────────
     st.html(
@@ -452,7 +480,7 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
                              Cloud can keep an older build alive after a push, and
                              without this there is no way to tell from the UI which
                              code produced what you are looking at.">
-                    build {build_rev}
+                    build {build_rev} · streamlit {st_version}
                 </span>
             </div>
         </div>

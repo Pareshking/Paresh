@@ -423,8 +423,11 @@ def audit_configuration(page, frame) -> dict:
         body = frame.locator("body").inner_text(timeout=10_000)
         m = re.search(r"build\s+([0-9a-f]{7,40})", body)
         out["build_chip"] = m.group(1) if m else None
+        v = re.search(r"streamlit\s+(\d+\.\d+\.\d+)", body)
+        out["streamlit_version"] = v.group(1) if v else None
     except Exception:
         out["build_chip"] = None
+        out["streamlit_version"] = None
 
     # One slider's markup verbatim. If the DOM carries a correct aria-valuenow
     # while the thumb prints 0.00, that is a rendering fault; if the markup
@@ -804,6 +807,8 @@ def main() -> None:
             print(f"    error             : {_cfg['error']}", flush=True)
         if _cfg.get("build_chip") is not None:
             print(f"    build chip        : {_cfg['build_chip']}", flush=True)
+        if _cfg.get("streamlit_version") is not None:
+            print(f"    streamlit         : {_cfg['streamlit_version']}", flush=True)
         if _cfg.get("nav_trace"):
             print(f"    nav               : {'; '.join(_cfg['nav_trace'])}", flush=True)
         for _phase in ("initial", "after_nav", "after_reset"):

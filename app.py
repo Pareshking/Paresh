@@ -48,6 +48,7 @@ from src.ui.components import (
     render_signal_alerts,
 )
 from src.ui.theme import inject_custom_css
+from src.ui.widget_state import resolve
 from src.ui.views.backtest_view import render_backtest_view
 from src.ui.views.breadth_view import render_breadth_view
 from src.ui.views.config_view import render_config_view
@@ -96,43 +97,39 @@ except Exception:
 # ── State Initialization ─────────────────────────────────────────────────────
 if "cfg_indices" not in st.session_state:
     st.session_state["cfg_indices"] = ["NIFTY TOTAL MARKET"]
-if "cfg_w1" not in st.session_state:
-    # One source for the documented defaults, so app.py and the Configuration
-    # sliders cannot drift apart.
-    st.session_state.update(dict(zip(
-        [f"cfg_w{i}" for i in range(1, 6)], DEFAULT_LOOKBACK_WEIGHTS
-    )))
-if "cfg_sc" not in st.session_state:
-    st.session_state.update(
-        {"cfg_sc": 30, "cfg_stc": 5, "cfg_vt": False, "cfg_vtv": 25}
-    )
-
+# Every cfg_* setting is read through one resolver: the widget's own value
+# while it exists, then a mirror key that Streamlit's widget-state garbage
+# collection cannot evict, then the documented default. Seeding session state
+# from here is what these lines used to do, and it could not survive the
+# Configuration tab's left-nav -- opening another section evicted the weight
+# keys, and the absence guard then "restored" the DEFAULTS over a reader's own
+# settings, silently, on the next run. See src/ui/widget_state.py.
 selected_indices = st.session_state["cfg_indices"]
-raw_w = [st.session_state[f"cfg_w{i}"] for i in range(1, 6)]
+raw_w = [
+    resolve(f"cfg_w{i}", float(DEFAULT_LOOKBACK_WEIGHTS[i - 1]), lo=0.0, hi=1.0)
+    for i in range(1, 6)
+]
 total_w = sum(raw_w)
 if total_w <= 0:
     # Every weight at zero is not a configuration, it is a broken one -- and the
     # old fallback quietly ranked the whole universe on EQUAL weights while the
     # Configuration tab still described 10/30/30/20/10. That is a different
-    # strategy presented under the configured one's name. Restore the documented
+    # strategy presented under the configured one's name. Rank on the documented
     # defaults and say so, rather than shipping a silent methodology swap.
-    st.session_state.update(dict(zip(
-        [f"cfg_w{i}" for i in range(1, 6)], DEFAULT_LOOKBACK_WEIGHTS
-    )))
     raw_w = list(DEFAULT_LOOKBACK_WEIGHTS)
     total_w = sum(raw_w)
     st.warning(
         "All five momentum lookback weights were zero, which cannot rank "
-        "anything. Restored the defaults "
+        "anything. Ranking is using the defaults "
         f"({' · '.join(f'{w:.0%}' for w in DEFAULT_LOOKBACK_WEIGHTS)}). "
         "Set them in **Configuration → Momentum Signal**."
     )
 weights = tuple(w / total_w for w in raw_w)
 
-sector_cap = st.session_state["cfg_sc"] / 100.0
-stock_cap = st.session_state["cfg_stc"] / 100.0
-vol_target_on = st.session_state["cfg_vt"]
-vol_target_val = st.session_state["cfg_vtv"] / 100.0
+sector_cap = resolve("cfg_sc", 30, lo=15, hi=50) / 100.0
+stock_cap = resolve("cfg_stc", 5, lo=2, hi=15) / 100.0
+vol_target_on = resolve("cfg_vt", False)
+vol_target_val = resolve("cfg_vtv", 25, lo=10, hi=40) / 100.0
 
 
 # ── Cached Data Pipeline ─────────────────────────────────────────────────────

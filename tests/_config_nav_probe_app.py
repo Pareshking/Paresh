@@ -2,35 +2,35 @@
 
 `_config_probe_app.py` deliberately bypasses the nav and calls every section
 function directly, "so that all widgets are always visible to AppTest". That is
-what makes it blind to this bug: the momentum weight sliders live inside a
-section that is rendered ONLY when it is the active one, and Streamlit discards
-widget state for keys whose widget was not rendered on the previous run.
+what made it blind: the momentum weight sliders live in a section rendered ONLY
+when it is the active one, and Streamlit discards widget state for keys whose
+widget was not rendered on the previous run.
 
-This probe reproduces app.py faithfully in the two respects that matter:
-  1. the canonical cfg_w* values are seeded once, and only when absent;
+This probe reproduces app.py faithfully in the respects that matter:
+  1. nothing is seeded into session state -- app.py resolves each setting
+     through src/ui/widget_state.py rather than writing it, because writing a
+     widget key is what evicts, warns, and in one branch crashed the tab;
   2. the weights are read at the TOP of the script, before any section renders;
   3. exactly ONE section renders per run, chosen by session state.
 """
 
 import streamlit as st
 
+from src.core.config import DEFAULT_LOOKBACK_WEIGHTS
 from src.ui.views.config_view import (
     _section_momentum_signal,
     _section_portfolio_risk,
 )
-
-# ── app.py's state initialisation, verbatim in behaviour ─────────────────────
-if "cfg_w1" not in st.session_state:
-    st.session_state.update(
-        {"cfg_w1": 0.10, "cfg_w2": 0.30, "cfg_w3": 0.30, "cfg_w4": 0.20, "cfg_w5": 0.10}
-    )
-if "cfg_sc" not in st.session_state:
-    st.session_state.update({"cfg_sc": 30, "cfg_stc": 5, "cfg_vt": False, "cfg_vtv": 25})
+from src.ui.widget_state import resolve
 
 # ── what the ENGINE is handed, read before any section body runs ─────────────
-raw_w = [st.session_state[f"cfg_w{i}"] for i in range(1, 6)]
+raw_w = [
+    resolve(f"cfg_w{i}", float(DEFAULT_LOOKBACK_WEIGHTS[i - 1]), lo=0.0, hi=1.0)
+    for i in range(1, 6)
+]
 total_w = sum(raw_w)
-weights = list([w / total_w for w in raw_w] if total_w > 0 else [0.2] * 5)
+weights = list([w / total_w for w in raw_w] if total_w > 0
+               else list(DEFAULT_LOOKBACK_WEIGHTS))
 st.text(f"RAW={raw_w}")
 st.text(f"ENGINE_WEIGHTS={[round(w, 4) for w in weights]}")
 st.text(f"FELL_BACK_TO_EQUAL={total_w <= 0}")
