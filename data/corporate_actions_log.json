@@ -144,7 +144,18 @@
       "looks_like": "unmatched \u2014 possible demerger or spin-off",
       "kind": "unclassified",
       "first_seen": "2026-09-07"
+    },
+    "2026-09-11:PGIL": {
+      "date": "2026-09-11",
+      "symbol": "PGIL",
+      "move": -0.500631,
+      "ratio": 0.499369,
+      "prev_close": 2378.3999,
+      "close": 1187.7,
+      "looks_like": "1:2 split or 1:1 bonus",
+      "kind": "split/bonus",
+      "first_seen": "2026-09-11"
     }
   },
-  "last_checked": "2026-09-10"
+  "last_checked": "2026-09-11"
 }
