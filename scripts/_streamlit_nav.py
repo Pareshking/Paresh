@@ -31,6 +31,7 @@ from __future__ import annotations
 # out its full 420s budget on an element that could never appear and reported a
 # healthy app as state "unknown" (run 301). Infer a selector, verify a selector.
 NAV_CONTAINERS = (
+    '[data-testid="stPageLink"]',
     '[data-testid="stTabs"]',
     '[data-testid="stTopNavLink"]',
     '[data-testid="stTopNavSection"]',
@@ -91,6 +92,14 @@ def open_page(frame, name: str, page=None) -> str:
     Raises LookupError if no control for that page exists anywhere, which is a
     finding about the application rather than an error to retry.
     """
+    # The app draws its OWN navigation with st.page_link, in the body, because
+    # st.navigation(position="top") renders inside a header this app hides with
+    # display:none -- shipping a nav that no reader could see or click.
+    page_link = frame.locator('[data-testid="stPageLink"]').filter(has_text=name).first
+    if page_link.count():
+        page_link.click(timeout=15_000)
+        return "page_link"
+
     link = frame.locator('[data-testid="stTopNavLink"]').filter(has_text=name).first
     if link.count():
         link.click(timeout=15_000)
@@ -134,7 +143,9 @@ def missing_pages(frame, names, page=None) -> list[str]:
     """
     reachable: set[str] = set()
 
-    for sel in ('[data-testid="stTopNavLink"]', '[data-testid="stSidebarNavLink"]'):
+    for sel in ('[data-testid="stPageLink"]',
+                '[data-testid="stTopNavLink"]',
+                '[data-testid="stSidebarNavLink"]'):
         try:
             items = frame.locator(sel)
             for i in range(items.count()):

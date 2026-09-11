@@ -538,7 +538,34 @@ _PAGES = [
     st.Page(_page_guide, title="Guide", url_path="guide"),
 ]
 
-st.navigation(_PAGES, position="top").run()
+# position="hidden": Streamlit draws NO navigation of its own, and the app
+# draws its own row below. This is not a preference.
+#
+# `position="top"` renders the nav INSIDE Streamlit's header, and
+# src/ui/theme.py:240 hides that header outright:
+#
+#     header, [data-testid="stHeader"], .stApp > header { display: none !important; }
+#
+# so the nav shipped in the DOM with display:none. The app was left with no way
+# to reach ten of its eleven pages, and because hidden elements contribute no
+# text, the QA probe saw a healthy shell with no navigation and no page names --
+# which is exactly what it reported. Test:
+# tests/test_navigation_is_visible.py.
+#
+# Drawing it here also puts it back where the tab strip was, under the header
+# KPI bar, instead of above it in the chrome.
+_nav = st.navigation(_PAGES, position="hidden")
+
+with st.container(horizontal=True, wrap=True, gap="small"):
+    for _p in _PAGES:
+        # No explicit label: st.page_link takes the page's own title. Reading
+        # `_p.title` here raised AttributeError whenever app.py was imported
+        # outside a script run -- `StreamlitPage._title` only exists during
+        # one -- which broke two tests that import the module to check it is
+        # clean.
+        st.page_link(_p)
+
+_nav.run()
 
 
 # ── Cold-start telemetry ─────────────────────────────────────────────────────

@@ -50,8 +50,9 @@ def test_no_probe_still_hardcodes_a_tab_role_click(probe):
 def test_the_navigator_handles_every_shape_the_shell_can_take():
     """Tabs, top nav, the overflow dropdown, and the sidebar."""
     src = NAV_MODULE.read_text(encoding="utf-8")
-    for needle in ("stTopNavLink", "stTopNavSection", "stTopNavDropdownLink",
-                   "stSidebarNavLink", 'get_by_role("tab"'):
+    for needle in ("stPageLink", "stTopNavLink", "stTopNavSection",
+                   "stTopNavDropdownLink", "stSidebarNavLink",
+                   'get_by_role("tab"'):
         assert needle in src, f"the navigator cannot drive {needle}"
 
 
