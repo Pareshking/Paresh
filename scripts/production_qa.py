@@ -417,14 +417,15 @@ def audit_configuration(page, frame) -> dict:
     out["panel_reached"] = True
     out["initial"] = first
 
-    # What the page itself says it is running, so a stale build cannot be
-    # confused with a live defect.
+    # What the process says it is running. This was briefly a chip in the
+    # Configuration status bar; it is diagnostic plumbing, not something a
+    # reader should have to look at, so it lives in the hidden telemetry
+    # element that the deploy-correspondence check already reads.
     try:
         body = frame.locator("body").inner_text(timeout=10_000)
-        m = re.search(r"build\s+([0-9a-f]{7,40})", body)
-        out["build_chip"] = m.group(1) if m else None
-        v = re.search(r"streamlit\s+(\d+\.\d+\.\d+)", body)
-        out["streamlit_version"] = v.group(1) if v else None
+        tele = read_telemetry(page) or {}
+        out["build_chip"] = (tele.get("revision") or "")[:7] or None
+        out["streamlit_version"] = tele.get("streamlit_version")
     except Exception:
         out["build_chip"] = None
         out["streamlit_version"] = None

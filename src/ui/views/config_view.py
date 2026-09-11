@@ -10,7 +10,6 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 
-from src.core.build_info import deployed_revision
 from src.core.config import (
     DEFAULT_LOOKBACK_WEIGHTS,
     DATA_DIR,
@@ -434,19 +433,6 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
     mode_label = (
         "Streamlit Cloud" if STORAGE_MODE == "streamlit-cloud" else "Local Production"
     )
-    # Which commit is actually serving this process. `deployed_revision()` was
-    # written for the QA probe and never surfaced in the UI, which left no way
-    # to tell a code defect from a stale build -- the difference between "the
-    # fix is wrong" and "the fix is not running". Three rounds of a config bug
-    # were debugged without it.
-    _rev = deployed_revision()
-    build_rev = _rev[:7] if _rev else "unknown"
-    # requirements.txt asks for `streamlit>=1.35.0`, so Streamlit Cloud is free
-    # to install a DIFFERENT frontend on any reboot with no change to this
-    # repository -- and the frontend is where the config sliders were rendering
-    # at their minimum. Surface the resolved version so "it worked yesterday"
-    # is a question that can be answered rather than argued about.
-    st_version = getattr(st, "__version__", "unknown")
 
     # ── Status bar (full-width) ───────────────────────────────────────────────
     st.html(
@@ -472,15 +458,6 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
                              background:#eef2ff;border:1px solid #c7d2fe;color:#4338ca;
                              padding:4px 10px;border-radius:6px;font-weight:700;">
                     {mode_label}
-                </span>
-                <span style="font-family:'JetBrains Mono',monospace;font-size:0.74rem;
-                             background:#f8fafc;border:1px solid #e2e8f0;color:#475569;
-                             padding:4px 10px;border-radius:6px;font-weight:700;"
-                      title="The commit this process is actually serving. Streamlit
-                             Cloud can keep an older build alive after a push, and
-                             without this there is no way to tell from the UI which
-                             code produced what you are looking at.">
-                    build {build_rev} · streamlit {st_version}
                 </span>
             </div>
         </div>

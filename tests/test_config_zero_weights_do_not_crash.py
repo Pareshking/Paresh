@@ -89,3 +89,71 @@ def test_the_reset_button_restores_the_documented_defaults():
         DEFAULT_LOOKBACK_WEIGHTS
     ), f"reset left the panel at {shown}"
     assert not at.exception, [e.value[:200] for e in at.exception]
+
+
+# ── Actually moving the controls ─────────────────────────────────────────────
+# The crash was only ever reachable by CHANGING values, so reasoning about the
+# code is not enough: these drag the widgets the way a reader does.
+
+def test_dragging_one_weight_does_not_raise_and_takes_effect():
+    at = _run({})
+    at.slider(key="cfg_w1").set_value(0.45).run()
+    assert not at.exception, [e.value[:200] for e in at.exception]
+    assert {s.label: s.value for s in at.slider}["1M"] == 0.45
+
+
+def test_dragging_every_weight_down_to_zero_does_not_raise():
+    """The exact motion that raised StreamlitWidgetAlreadyInstantiatedError."""
+    at = _run({})
+    for key in KEYS:
+        at.slider(key=key).set_value(0.0).run()
+        assert not at.exception, (
+            f"setting {key} to 0.0 raised: "
+            f"{[e.value[:200] for e in at.exception]}"
+        )
+    shown = {s.label: s.value for s in at.slider}
+    assert [shown[k] for k in ("1M", "3M", "6M", "9M", "12M")] == [0.0] * 5
+    assert "cannot rank anything" in " ".join(w.value for w in at.warning)
+
+
+def test_a_dragged_value_then_reset_then_dragged_again_never_raises():
+    at = _run({})
+    at.slider(key="cfg_w3").set_value(0.55).run()
+    at.button(key="cfg_w_reset").click().run()
+    at.slider(key="cfg_w3").set_value(0.15).run()
+    assert not at.exception, [e.value[:200] for e in at.exception]
+    assert {s.label: s.value for s in at.slider}["6M"] == 0.15
+
+
+def test_dragging_the_risk_caps_does_not_raise():
+    """These bind the book, so a crash here is worse than a cosmetic one."""
+    at = _run({"nav_section": "Portfolio Risk"})
+    at.slider(key="cfg_sc").set_value(45).run()
+    at.slider(key="cfg_stc").set_value(12).run()
+    at.checkbox(key="cfg_vt").set_value(True).run()
+    at.slider(key="cfg_vtv").set_value(35).run()
+    assert not at.exception, [e.value[:200] for e in at.exception]
+    shown = {s.label: s.value for s in at.slider}
+    assert shown["Sector Exposure Cap (%)"] == 45
+    assert shown["Individual Stock Cap (%)"] == 12
+    assert shown["Target Portfolio Volatility (%)"] == 35
+
+
+def test_a_dragged_weight_survives_navigation_and_eviction():
+    """Change it, leave, have Streamlit evict it, come back. Still yours."""
+    at = _run({})
+    at.slider(key="cfg_w2").set_value(0.65).run()
+
+    at.session_state["nav_section"] = "Portfolio Risk"
+    at.run()
+    for k in KEYS:
+        if k in at.session_state:
+            del at.session_state[k]
+    assert all(k not in at.session_state for k in KEYS), "eviction not simulated"
+    at.session_state["nav_section"] = "Momentum Signal"
+    at.run()
+
+    assert not at.exception, [e.value[:200] for e in at.exception]
+    assert {s.label: s.value for s in at.slider}["3M"] == 0.65, (
+        "a weight the reader set was lost by navigating away"
+    )

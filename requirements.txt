@@ -1,4 +1,10 @@
-streamlit>=1.35.0
+# Pinned, not floated. `streamlit>=1.35.0` let Streamlit Cloud install a
+# different FRONTEND on any reboot with no commit in this repository, and the
+# frontend is where the Configuration sliders rendered at their minimum.
+# Production confirmed 1.63.0 is what this deployment already resolves to, so
+# this pin changes nothing today and stops the next silent swap. To upgrade:
+# bump here, let V1 Production QA verify against the live app, then keep it.
+streamlit==1.63.0
 pandas>=2.0.0
 numpy>=1.24.0
 scipy>=1.10.0

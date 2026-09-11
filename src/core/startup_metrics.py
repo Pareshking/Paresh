@@ -67,6 +67,23 @@ def _revision() -> str | None:
         return None
 
 
+def _streamlit_version() -> str | None:
+    """Which Streamlit frontend this process is actually running.
+
+    requirements.txt asked for `streamlit>=1.35.0` for months, so Cloud was
+    free to install a different frontend on any reboot with no commit here --
+    and the frontend is where the Configuration sliders were rendering at their
+    minimum. This belongs in telemetry, where QA can assert on it; it was
+    briefly shown in the UI and does not belong in front of a reader.
+    """
+    try:
+        import streamlit as _st
+
+        return getattr(_st, "__version__", None)
+    except Exception:
+        return None
+
+
 def _now() -> float:
     return time.monotonic()
 
@@ -144,6 +161,7 @@ def snapshot() -> dict:
     with _LOCK:
         return {
             "revision": _revision(),
+            "streamlit_version": _streamlit_version(),
             "module_import_utc": MODULE_IMPORT_UTC,
             "uptime_s": since_start(),
             "process": process_identity(),
