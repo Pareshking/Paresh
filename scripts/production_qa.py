@@ -372,7 +372,17 @@ def audit_stock_link_navigation(page) -> dict:
     measures both instead of arguing about them.
     """
     out: dict = {}
+    # Go to the Screener first. The previous run measured nothing because the
+    # config audit had left the browser on Configuration, where there are no
+    # tickers to click -- the probe reported "no ticker link found" and the
+    # cost question went unanswered for a round.
     frame = app_frame(page)
+    try:
+        open_page(frame, "Screener", page)
+        settle_after_nav(page, frame)
+        frame = app_frame(page)
+    except Exception as exc:
+        out["navigate_to_screener"] = f"{type(exc).__name__}: {exc}"[:140]
     try:
         out["frame_shape"] = frame.evaluate("""() => ({
             self_url: location.href,
