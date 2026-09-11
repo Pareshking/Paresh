@@ -300,6 +300,56 @@ def read_state(page) -> dict:
 
 
 
+DEEP_LINK_SYMBOL = os.getenv("UMIYA_DEEP_LINK_SYMBOL", "WELCORP")
+
+
+def audit_deep_links(page) -> dict:
+    """Which shareable URL forms actually reach the app.
+
+    The app's own links are RELATIVE -- `?stock=SYM` -- so they resolve against
+    whatever path the app process is mounted at. On Streamlit Community Cloud
+    that is `/~/+/`, which is why a reader who opens a stock ends up with
+    `paresh.streamlit.app/~/+/?stock=WELCORP` in the address bar rather than
+    something they would want to send anyone.
+
+    Whether the SHORT form reaches the same place is a property of the host's
+    wrapper, not of this repository, so it is measured here instead of assumed.
+    Deep links are how a reader shares a stock, and nothing tested them against
+    production until now.
+    """
+    forms = {
+        "short_query": f"{URL}?stock={DEEP_LINK_SYMBOL}",
+        "mounted_query": f"{URL}~/+/?stock={DEEP_LINK_SYMBOL}",
+        "short_page": f"{URL}configuration",
+        "mounted_page": f"{URL}~/+/configuration",
+    }
+    out: dict = {}
+    for label, target in forms.items():
+        try:
+            page.goto(target, wait_until="domcontentloaded", timeout=90_000)
+            state: dict = {}
+            deadline = time.monotonic() + 120
+            while time.monotonic() < deadline:
+                state = read_state(page)
+                if state.get("state") in ("ready", "app_exception"):
+                    break
+                page.wait_for_timeout(2_000)
+            frame = app_frame(page)
+            try:
+                body = frame.locator("body").inner_text(timeout=10_000)
+            except Exception:
+                body = ""
+            out[label] = {
+                "final_url": page.url[:160],
+                "state": state.get("state"),
+                "reached_stock_page": "Back to screener" in body,
+                "symbol_shown": DEEP_LINK_SYMBOL in body,
+            }
+        except Exception as exc:
+            out[label] = {"error": f"{type(exc).__name__}: {exc}"[:180]}
+    return out
+
+
 def settle_after_nav(page, frame, budget_ms: int = 12_000) -> float:
     """Wait for the page's script run to finish, not for a fixed interval.
 
@@ -848,6 +898,14 @@ def main() -> None:
                     print(f"[viewport] {name} done in {vp['elapsed_s']}s",
                           flush=True)
                     report["viewports"][name] = vp
+                # Last, because each form is a full navigation away from the
+                # warm session the walk above depends on.
+                report["deep_links"] = audit_deep_links(page)
+                mounted = report["deep_links"].get("mounted_query", {})
+                if not mounted.get("reached_stock_page"):
+                    failures.append(classify(
+                        f"The app's own stock deep link did not open a stock "
+                        f"page: {mounted}", "APPLICATION"))
         except Exception as exc:
             failures.append(classify(
                 f"Browser session error: {type(exc).__name__}: {exc}", "QA"))
@@ -901,6 +959,8 @@ def main() -> None:
             print(f"    {u}", flush=True)
     if timeline:
         print(f"frames at last sample : {timeline[-1].get('frames')}", flush=True)
+    for _label, _info in (report.get("deep_links") or {}).items():
+        print(f"deep link [{_label:<14}] {_info}", flush=True)
     for _vn, _vd in (report.get("viewports") or {}).items():
         _cfg = _vd.get("configuration")
         if not _cfg:
