@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from pathlib import Path
 
@@ -83,6 +84,11 @@ VIEWPORTS = {
     "mobile_375x812": (375, 812),
     "mobile_360x800": (360, 800),
 }
+
+# Viewports on which the Configuration panel is read value-by-value rather than
+# merely checked for tracebacks. One desktop and the phone size the defect was
+# reported from; doing all eight would triple the run for no new information.
+CONFIG_AUDIT_VIEWPORTS = ("desktop_1280x800", "mobile_390x844")
 
 RUNTIME_TOKENS = (
     "Traceback", "KeyError:", "ImportError:", "IndexError:", "TypeError:",
@@ -262,6 +268,155 @@ def read_state(page) -> dict:
     return {"state": "unknown", **info}
 
 
+
+def audit_configuration(page, frame) -> dict:
+    """Read the momentum weight panel off the LIVE app, before and after nav.
+
+    Reported from a phone: all five Lookback Window sliders reading 0.00 beside
+    a pill claiming "Weight vector: 10% · 30% · 30% · 20% · 10%" -- two numbers
+    on one screen disagreeing about the same thing. Three rounds of local
+    reproduction failed (a nav-honouring AppTest probe, a bare probe, the real
+    st.radio nav, and app.py itself, all on the Streamlit version Cloud
+    resolves to), so this stops reasoning about the deployed app and measures
+    it: the values it actually renders, and what they do across the exact
+    navigation sequence the eviction hypothesis says should destroy them.
+
+    Returns evidence. Judging it is the caller's job.
+    """
+    out: dict = {"panel_reached": False}
+
+    def slider_values() -> dict:
+        """Label -> displayed value, from Streamlit's own thumb readout.
+
+        Read the thumb by its test id rather than by position in the widget's
+        text: the track also prints its min and max, and a parser that trusts
+        "the second line" would report the range instead of the value the
+        moment Streamlit reorders that markup -- reading 0.00 for a healthy
+        slider, which is the very symptom under investigation.
+        """
+        vals: dict = {}
+        items = frame.locator('[data-testid="stSlider"]')
+        for i in range(items.count()):
+            node = items.nth(i)
+            try:
+                label = node.locator('[data-testid="stWidgetLabel"]').first.inner_text(
+                    timeout=5_000).strip()
+            except Exception:
+                label = ""
+            thumb = node.locator('[data-testid="stSliderThumbValue"]').first
+            raw = ""
+            if thumb.count():
+                raw = thumb.inner_text(timeout=5_000).strip()
+            lines = [ln.strip() for ln in
+                     node.inner_text(timeout=5_000).splitlines() if ln.strip()]
+            if not label and lines:
+                label = lines[0]
+            if not raw and len(lines) > 1:
+                raw = lines[1]
+            m = re.search(r"-?\d+(?:\.\d+)?", raw)
+            if label and m:
+                vals[label] = float(m.group())
+        return vals
+
+    def pill_percentages():
+        """The normalised vector the panel CLAIMS, parsed from its own pill."""
+        body = frame.locator("body").inner_text(timeout=10_000)
+        m = re.search(r"Weight vector:\s*([0-9%·.\s]+)", body)
+        if not m:
+            return None
+        return [float(x) for x in re.findall(r"(\d+(?:\.\d+)?)%", m.group(1))]
+
+    def goto(section: str) -> bool:
+        opt = frame.get_by_role("radio", name=re.compile(re.escape(section))).first
+        if opt.count() == 0:
+            opt = frame.get_by_text(section, exact=False).first
+        if opt.count() == 0:
+            return False
+        opt.click(timeout=20_000)
+        page.wait_for_timeout(1_500)
+        return True
+
+    def snapshot() -> dict:
+        return {"sliders": slider_values(), "pill": pill_percentages()}
+
+    if not goto("Momentum Signal"):
+        out["error"] = "Momentum Signal nav option not found"
+        return out
+    out["panel_reached"] = True
+    out["initial"] = snapshot()
+
+    # The eviction sequence. Streamlit discards widget state for any key whose
+    # widget was not rendered on the previous run, and these sections render
+    # one at a time, so a round trip through another section is precisely the
+    # motion that is supposed to zero the sliders.
+    if goto("Portfolio Risk"):
+        out["risk_sliders"] = slider_values()
+        if goto("Momentum Signal"):
+            out["after_nav"] = snapshot()
+
+    return out
+
+
+def judge_configuration(name: str, ev: dict) -> list:
+    """Turn the Configuration evidence into failures, or nothing."""
+    found = []
+    if not ev.get("panel_reached"):
+        return [classify(
+            f"{name}/Configuration: could not reach the Momentum Signal panel "
+            f"({ev.get('error', 'unknown')})", "QA")]
+
+    for phase in ("initial", "after_nav"):
+        snap = ev.get(phase)
+        if not snap:
+            continue
+        sliders = snap.get("sliders") or {}
+        weights = {k: v for k, v in sliders.items() if k in ("1M", "3M", "6M", "9M", "12M")}
+        if len(weights) != 5:
+            found.append(classify(
+                f"{name}/Configuration [{phase}]: expected 5 lookback sliders, "
+                f"read {sorted(weights)} from {sorted(sliders)}", "QA"))
+            continue
+
+        order = ["1M", "3M", "6M", "9M", "12M"]
+        shown = [weights[k] for k in order]
+        if sum(shown) <= 0:
+            found.append(classify(
+                f"{name}/Configuration [{phase}]: every lookback slider reads "
+                f"{shown} -- a zeroed weight vector cannot rank anything, and "
+                f"touching one slider submits the displayed zeros for the rest",
+                "APPLICATION"))
+            continue
+
+        pill = snap.get("pill")
+        if pill is None:
+            found.append(classify(
+                f"{name}/Configuration [{phase}]: weight-vector pill not found",
+                "QA"))
+            continue
+        if len(pill) != 5:
+            found.append(classify(
+                f"{name}/Configuration [{phase}]: pill parsed as {pill}", "QA"))
+            continue
+        tot = sum(shown)
+        norm = [100.0 * w / tot for w in shown]
+        drift = [abs(a - b) for a, b in zip(norm, pill)]
+        # The pill rounds to whole percent, so 1pp of disagreement is rounding.
+        if max(drift) > 1.5:
+            found.append(classify(
+                f"{name}/Configuration [{phase}]: sliders normalise to "
+                f"{[round(x) for x in norm]}% but the pill claims {pill}% -- "
+                f"the panel disagrees with itself about the live weights",
+                "APPLICATION"))
+
+    before = (ev.get("initial") or {}).get("sliders")
+    after = (ev.get("after_nav") or {}).get("sliders")
+    if before and after and before != after:
+        found.append(classify(
+            f"{name}/Configuration: navigating away and back changed the "
+            f"sliders from {before} to {after}", "APPLICATION"))
+    return found
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     failures: list[dict] = []
@@ -433,6 +588,27 @@ def main() -> None:
                             vp["tabs"][tab] = f"error:{type(exc).__name__}"
                             failures.append(classify(
                                 f"{name}/{tab}: {type(exc).__name__}: {exc}", "APPLICATION"))
+                    # The tab walk above only asks whether Configuration
+                    # renders without a traceback. The reported defect renders
+                    # perfectly -- it just shows the wrong numbers -- so read
+                    # the values themselves on the sizes that matter.
+                    if name in CONFIG_AUDIT_VIEWPORTS:
+                        try:
+                            cfg_tab = frame.get_by_role(
+                                "tab", name="Configuration", exact=True).first
+                            if cfg_tab.count():
+                                cfg_tab.click(timeout=20_000)
+                                page.wait_for_timeout(1_200)
+                            ev = audit_configuration(page, frame)
+                            vp["configuration"] = ev
+                            failures.extend(judge_configuration(name, ev))
+                            page.screenshot(path=str(OUT / f"{name}_configuration.png"))
+                        except Exception as exc:
+                            vp["configuration"] = {"error": f"{type(exc).__name__}: {exc}"}
+                            failures.append(classify(
+                                f"{name}/Configuration audit: "
+                                f"{type(exc).__name__}: {exc}", "QA"))
+
                     overflow = page.evaluate(
                         "document.documentElement.scrollWidth - window.innerWidth")
                     vp["h_overflow_px"] = overflow
@@ -488,6 +664,18 @@ def main() -> None:
         print(f"    {c}", flush=True)
     if timeline:
         print(f"frames at last sample : {timeline[-1].get('frames')}", flush=True)
+    for _vn, _vd in (report.get("viewports") or {}).items():
+        _cfg = _vd.get("configuration")
+        if not _cfg:
+            continue
+        print(f"config panel [{_vn}]", flush=True)
+        if _cfg.get("error"):
+            print(f"    error             : {_cfg['error']}", flush=True)
+        for _phase in ("initial", "after_nav"):
+            _snap = _cfg.get(_phase)
+            if _snap:
+                print(f"    {_phase:<17} : sliders={_snap.get('sliders')} "
+                      f"pill={_snap.get('pill')}", flush=True)
     print(f"5xx responses         : {len(bad_responses)}", flush=True)
     for f in failures:
         print(f"  [{f['kind']}] {f['detail']}", flush=True)
