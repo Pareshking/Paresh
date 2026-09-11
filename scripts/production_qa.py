@@ -395,21 +395,47 @@ def audit_stock_link_navigation(page) -> dict:
     except Exception as exc:
         out["frame_shape"] = {"error": f"{type(exc).__name__}: {exc}"[:140]}
 
+    # There are TWO ticker links in this app, and they navigate differently:
+    #
+    #   Table view  <a data-stock=...>  inside a SANDBOXED COMPONENT IFRAME;
+    #               the click is intercepted and a script injected into
+    #               window.parent (src/ui/theme.py:1413, :1829)
+    #   Card view   <a href="?stock=..." class="sq-sym">  a plain relative
+    #               anchor in the app document (ranking_view.py:364)
+    #
+    # Cards is what a reader sees by default, and the first two attempts at
+    # this measurement looked only for `a[data-stock]` -- the TABLE one -- so
+    # both reported "no ticker link found" against a screen full of tickers.
+    # Look for either, and record which was found and in which frame, because
+    # the fix for the ugly URL differs between them.
     link = None
-    for f in page.frames:
-        try:
-            candidate = f.locator("a[data-stock]").first
-            if candidate.count():
-                link = candidate
-                break
-        except Exception:
-            continue
+    for selector in ("a[data-stock]", "a.sq-sym", 'a[href*="stock="]'):
+        for f in page.frames:
+            try:
+                candidate = f.locator(selector).first
+                if candidate.count():
+                    link = candidate
+                    out["link_found"] = {
+                        "selector": selector,
+                        "frame_url": f.url[:120],
+                        "in_component_iframe": f.url.startswith("about:"),
+                        "href": candidate.get_attribute("href"),
+                        "target": candidate.get_attribute("target"),
+                    }
+                    break
+            except Exception:
+                continue
+        if link is not None:
+            break
     if link is None:
-        out["click"] = {"error": "no ticker link found on the screener"}
+        out["click"] = {
+            "error": "no ticker link found",
+            "frames": [f.url[:100] for f in page.frames],
+        }
         return out
 
     try:
-        symbol = link.get_attribute("data-stock")
+        symbol = link.get_attribute("data-stock") or (link.inner_text() or "").strip()
         before = page.url
         started = time.perf_counter()
         link.click(timeout=15_000)
@@ -1107,6 +1133,9 @@ def main() -> None:
     if report.get("stock_link"):
         print(f"stock link shape      : "
               f"{report['stock_link'].get('frame_shape')}", flush=True)
+        if report["stock_link"].get("link_found"):
+            print(f"stock link element    : "
+                  f"{report['stock_link']['link_found']}", flush=True)
         print(f"stock link click      : "
               f"{report['stock_link'].get('click')}", flush=True)
     if report.get("nav_styling"):
