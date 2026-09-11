@@ -65,6 +65,20 @@ System-1 uses **calendar months**, not fixed trading-row windows. The legacy 21/
 
 Session-based windows may still exist in portfolio/risk components where they are intentionally part of the approved methodology. They must not be reused as System-1 economic horizons.
 
+**No window skips the most recent month.** Every horizon runs from its calendar
+start to the latest available observation. Verified against the live price file
+on 2026-09-11: the 1M/3M/6M/9M/12M windows all end on the same most recent
+trading date, and `src/engine/calendar_momentum.py` takes the closing price at
+that row (`p1 = prices_arr[end]`) with no offset, lag or exclusion.
+
+This is a deliberate departure from the classical Jegadeesh–Titman convention,
+which skips the most recent month to avoid short-term reversal. Two earlier
+captions in the UI *claimed* a skip-month was applied when the engine never did
+one; the text was corrected to match the code, not the other way round. The
+consequence of the choice stands: the ranking carries more one-month reversal
+exposure than the academic convention, and the most recent month is also
+counted by the 1M window in its own right.
+
 ### Point-in-time universe
 
 Every rebalance is scored against the index as it **actually stood** on the
@@ -167,6 +181,15 @@ is computed live and shown beside the frozen months.
 See [`docs/TRACK_RECORD.md`](docs/TRACK_RECORD.md) for the full contract,
 conventions and operations.
 
+## UI architecture and the rewrite question
+
+`docs/UI_ARCHITECTURE.md` records the measured cost of `st.tabs` rendering all
+eleven tab bodies on every run, and the recommendation that followed: migrate
+the shell to `st.navigation`/`st.Page` and rewrite the views in stages, while
+leaving `src/engine`, `src/loaders` and `src/core` alone. The engine's verified
+properties — screener/backtester parity, causality under future-scrambling, the
+corrected statistics — are the asset a blank rewrite would have to re-earn.
+
 ## Research audit tracker
 
 See [`docs/V1_AUDIT_TRACKER.md`](docs/V1_AUDIT_TRACKER.md) for the full audit roadmap, completed corrections, and remaining research tasks.
@@ -206,9 +229,63 @@ The app uses four modern Streamlit primitives that reduce full-page reruns and n
 | `st.popover()` | Screener column guide, Config window guide | Floating reference panel without leaving the current screen |
 | `st.status()` | App startup, Config constituent sync | Structured progress with running/complete/error states and collapsible step log |
 
+**`st.tabs` renders every tab body on every run.** All eleven tab bodies
+execute on each interaction — this is Streamlit's behaviour, not a bug in the
+app, but it is the dominant cost of a click and it puts every tab's widgets in
+one DOM simultaneously. Measured locally on 2026-09-11 with charts stubbed:
+**~1.0 s of Python per rerun**, a lower bound, with 8 sliders, 18 buttons and
+13 selectboxes coexisting. `st.navigation`/`st.Page`, where only the active
+page executes, is the documented remedy — see `docs/UI_ARCHITECTURE.md`.
+
 Table rendering deliberately splits into two tiers:
 - **Main screener** and **all secondary tables** (live book, monthly returns, closed trades, sector breakdown, track record): custom HTML via `render_saas_table` in `src/ui/theme.py`, which supports per-cell conditional coloring that `st.column_config` cannot replicate.
 - **Backtest parameter sweep**: `st.dataframe` with `column_config` for progress bars on numeric columns; no per-cell coloring needed there.
+
+## Configuration settings and widget state
+
+Every `cfg_*` setting is read through `src/ui/widget_state.py`, never directly
+from `st.session_state`. Two faults made this necessary, both confirmed against
+the live deployment and neither reproducible in `AppTest`, which exercises the
+Python side only and never runs the frontend:
+
+1. **Eviction.** Streamlit discards widget state for any key whose widget was
+   not rendered on the previous run. The Configuration tab renders one section
+   per run from its left-nav, so opening *Portfolio Risk* evicted every
+   `cfg_w*` key — and the absence guard then restored the documented defaults
+   over the reader's own settings, silently, while the panel still described
+   their configuration. Worse for the risk caps, where an evicted value returns
+   *plausible*: a 30% sector cap as 15%, a 5% stock cap as 2%, both of which
+   bind the book and the backtest.
+
+2. **No explicit value.** A slider declared with `key=` and no `value=` renders
+   at its **minimum** on the deployed frontend regardless of what session state
+   holds. Measured on 2026-09-11: fourteen sliders in one live DOM, and the
+   only five rendering wrong were the only five passing no explicit value — the
+   Backtest tab's five lookback sliders, identical in range and step but given
+   `float(weights[i])`, were correct in the same frame.
+
+The two rules that follow, enforced by
+`tests/test_config_sliders_carry_explicit_values.py`:
+
+- **Every engine-bound widget is given an explicit `value=`.** Never rely on
+  session state to reach the widget by itself.
+- **Every setting keeps a mirror key** (`<key>__v`) that no widget owns and
+  eviction cannot touch. `resolve()` reads live widget → mirror → documented
+  default, rejecting present-but-impossible values; `remember()` records the
+  rendered value.
+
+Never write `st.session_state[<widget key>]` after that widget has been
+created in the same run — it raises `StreamlitWidgetAlreadyInstantiatedError`
+and takes the whole tab down. Write the mirror instead.
+
+## Dependency pinning
+
+`streamlit` is pinned to an exact version in `requirements.txt`, not floated.
+Streamlit Cloud reinstalls on every reboot, so a `>=` specifier lets it install
+a different **frontend** with no commit in this repository — and the frontend
+is where the Configuration sliders rendered at their minimum. To upgrade: bump
+the pin, let **V1 Production QA** verify against the live app, then keep it.
+`tests/test_no_diagnostics_in_the_ui.py` fails if the pin is loosened.
 
 ## Data integrity
 
@@ -232,7 +309,9 @@ Table rendering deliberately splits into two tiers:
 │   ├── core/
 │   ├── loaders/
 │   ├── engine/          # momentum, backtester, portfolio, track_record
-│   └── ui/views/
+│   └── ui/
+│       ├── views/
+│       └── widget_state.py  # resolve/remember for every cfg_* setting
 ├── tests/
 ├── app.py
 ├── requirements.txt
@@ -242,8 +321,14 @@ Table rendering deliberately splits into two tiers:
 ## Running locally
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt   # streamlit is pinned exactly; see above
 streamlit run app.py
+```
+
+Tests:
+
+```bash
+python -m pytest -q     # 789 tests
 ```
 
 ## Disclaimer

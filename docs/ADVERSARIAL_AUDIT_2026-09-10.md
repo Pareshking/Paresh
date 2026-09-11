@@ -386,3 +386,116 @@ Remaining Risks, and the binding one is the first: the strategy's reported
 record is one month of evidence and seven months of reconstruction. The system
 may now be trusted to *describe itself accurately*. It cannot yet be trusted to
 *have proven anything*, and those are different claims.
+
+---
+
+# Addendum — 2026-09-11: the Configuration panel, and what it exposed about the method
+
+Written after the report above was signed off, because the defect that produced
+it could not be seen by any of the instruments the report relied on.
+
+## The report
+
+A reader, on a phone, saw all five Lookback Window sliders reading **0.00**
+beside a pill reading **"Weight vector: 10% · 30% · 30% · 20% · 10%"**. Two
+numbers on one screen disagreeing about the same thing.
+
+## Four rounds of wrong diagnosis
+
+Each round was reasoned from the code and each was wrong. Recorded in full
+because the pattern matters more than the fix.
+
+| Round | Hypothesis | Fix attempted | Why it was wrong |
+|---|---|---|---|
+| 1 | Widget-state eviction by the left-nav | Seed the key if absent | The key was present and wrong, not absent |
+| 2 | A present-but-invalid value | Repair non-finite/out-of-range values | Session state was never invalid |
+| 3 | A stale build on Streamlit Cloud | Publish the commit in the UI | Deploy check matched exactly: `2c7184b` served |
+| 4 | An unconditional escape hatch | A "Reset to defaults" button | Treated the symptom; cause still unknown |
+
+Four local environments rendered the panel **correctly**: a nav-honouring
+`AppTest` probe, a bare probe, the real `st.radio` nav, and `app.py` itself —
+all on Streamlit 1.63.0, the version the deployment resolves to.
+
+## What actually found it
+
+Not reasoning. **Measurement against the deployed app.**
+
+The production QA probe walked all eleven tabs and reported "no failures" on a
+build the reader was, at that moment, looking at with five zeroed sliders —
+because the probe only ever asked whether a tab rendered without a traceback,
+and this defect renders perfectly. *A check that cannot fail on the defect it is
+aimed at proves nothing.* The probe was extended to read the slider values
+themselves off the live DOM, and reproduced the report on the first run.
+
+The decisive evidence was a single frame containing **fourteen sliders**:
+
+- every slider passing an explicit `value=` rendered correctly — including the
+  Backtest tab's five lookback weights, identical in range and step, given
+  `float(weights[i])`, reading 0.1/0.3/0.3/0.2/0.1;
+- the only five rendering at their minimum were the only five declared with a
+  `key=` and no value.
+
+Session state held the right numbers throughout: the pill six lines above the
+sliders is computed from it and read correctly. **The fault was never in the
+Python.** `AppTest` exercises the Python side and never runs the frontend, which
+is precisely why four local environments and the pre-session code all passed.
+
+## Two further defects, both introduced by the repairs above
+
+- **The Configuration tab crashed when all five weights were zero.** The round-2
+  repair wrote `st.session_state[key]` *after* the slider with that key existed,
+  raising `StreamlitWidgetAlreadyInstantiatedError` — for exactly the state
+  being reported.
+- **Navigating away silently reverted custom settings to the defaults.**
+  Eviction dropped the keys; the absence guard then restored the documented
+  defaults over the reader's own configuration while the panel still described
+  it. Worse for the risk caps, where an evicted value returns *plausible*: a 30%
+  sector cap as 15%, a 5% stock cap as 2%, both of which bind the book.
+
+## The fix
+
+`src/ui/widget_state.py`. Every `cfg_*` setting keeps a mirror key no widget
+owns and eviction cannot touch; every widget is handed an explicit resolved
+value. Resolution is live widget → mirror → documented default, rejecting
+present-but-impossible values. See the README's *Configuration settings and
+widget state*.
+
+Verified on the live app — production QA run 297, `no failures`:
+
+```
+after_reset : weights={'1M': 0.1, '3M': 0.3, '6M': 0.3, '9M': 0.2, '12M': 0.1}
+              pill=[10.0, 30.0, 30.0, 20.0, 10.0]
+```
+
+`streamlit` was also pinned from `>=1.35.0` to `==1.63.0`. An unpinned frontend
+can change under a live app on any reboot with no commit behind it, which is the
+likeliest explanation for a panel that worked one week and not the next.
+
+## What this changes about the method
+
+1. **`AppTest` is not evidence about the frontend.** It runs the Python side
+   only. Any claim about what a reader *sees* needs the browser.
+2. **A test that cannot fail on its target is worse than no test**, because it
+   reports safety. Two instances here: the original config probe deliberately
+   bypassed the nav "so all widgets are always visible", which is exactly what
+   made it blind; and one of the new regression tests guarded its eviction step
+   behind a `hasattr` that is `False` on `AppTest`'s session state, so it
+   evicted nothing and passed vacuously. Both are fixed. New regressions are now
+   run against the **pre-fix** tree to confirm they go red.
+3. **Version-to-version comparison beat reasoning.** The owner asked for it, and
+   it was the step that broke the deadlock: the slider declaration is
+   byte-identical to the pre-session code, both render correctly in Python, so
+   the fault could not be in the diff.
+4. **Conditional rendering is a hazard, not a style choice.** The left-nav that
+   renders one section per run — added 3 Sept, before this audit — is what makes
+   these widgets evictable. It did not change the slider code; it changed *when*
+   the slider is rendered, and that was the trigger.
+
+## Closed as not required (owner decision, 2026-09-11)
+
+Remaining Risks **3** (the equity curve rebalancing daily for free, +60.4 bps
+over six months) and **5** (no tax model; every figure pre-tax) were put to the
+owner and closed as *not required*. They are struck through in place rather than
+deleted: a decision not to fix something is not the same as the thing not being
+true. The on-screen pre-tax disclosure stays — the decision was not to model
+tax, not to stop stating its absence.
