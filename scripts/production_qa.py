@@ -97,6 +97,21 @@ VIEWPORTS = {
 # reported from; doing all eight would triple the run for no new information.
 CONFIG_AUDIT_VIEWPORTS = ("desktop_1280x800", "mobile_390x844")
 
+# Viewports on which EVERY page is opened and rendered. Under `st.tabs` all
+# eleven bodies were already in the DOM, so clicking through them was nearly
+# free; under `st.navigation` each one is a server round trip, and 11 pages x 8
+# viewports is 88 script runs against a single Streamlit Cloud container. Run
+# 301 spent its entire 35-minute workflow budget on that and was killed without
+# printing a verdict.
+#
+# So: open every page on one desktop and on the phone size the config defect was
+# reported from. The other six still check what they exist to check -- that the
+# nav renders, that every page is REACHABLE (including from the overflow
+# dropdown, which is where most of them live on a narrow screen), that nothing
+# threw, and that the layout does not overflow horizontally. What they no
+# longer do is re-render eleven pages that two other viewports just rendered.
+FULL_WALK_VIEWPORTS = ("desktop_1280x800", "mobile_390x844")
+
 RUNTIME_TOKENS = (
     "Traceback", "KeyError:", "ImportError:", "IndexError:", "TypeError:",
     "ValueError:", "AttributeError:", "StreamlitAPIException",
@@ -279,6 +294,36 @@ def read_state(page) -> dict:
         return {"state": "app_shell_blank", **info}
     return {"state": "unknown", **info}
 
+
+
+def settle_after_nav(page, frame, budget_ms: int = 12_000) -> float:
+    """Wait for the page's script run to finish, not for a fixed interval.
+
+    Under `st.navigation` a page change runs a fresh script on the server, so
+    the DOM is not already present behind a CSS toggle the way `st.tabs` left
+    it. A constant sleep has to be sized for the slowest page (the backtest) and
+    is then wasted on every fast one -- eleven pages times eight viewports, so
+    every needless second costs a minute and a half of wall clock.
+
+    Returns the seconds actually waited, so the walk can report where its time
+    went instead of leaving that to be guessed from a timeout.
+    """
+    started = time.perf_counter()
+    deadline = started + budget_ms / 1000.0
+    settled_for = 0.0
+    while time.perf_counter() < deadline:
+        try:
+            busy = frame.locator('[data-testid="stSpinner"]').count()
+        except Exception:
+            busy = 0
+        if busy:
+            settled_for = 0.0
+        else:
+            settled_for += 0.15
+            if settled_for >= 0.45:
+                break
+        page.wait_for_timeout(150)
+    return round(time.perf_counter() - started, 2)
 
 
 def audit_configuration(page, frame) -> dict:
@@ -702,7 +747,37 @@ def main() -> None:
                     page.wait_for_timeout(600)
                     vp: dict = {"tabs": {}}
                     frame = app_frame(page)
-                    for tab in TABS:
+                    # Progress, printed as it happens. The walk used to be
+                    # silent until the verdict, so a run that overran the
+                    # workflow timeout was killed having reported NOTHING about
+                    # where the time went -- which is exactly when you most
+                    # need to know. Under st.navigation each page change is a
+                    # server round trip rather than a CSS toggle, so this walk
+                    # is inherently slower and its cost has to be visible.
+                    _vp_started = time.perf_counter()
+                    print(f"[viewport] {name} ({w}x{h})", flush=True)
+                    if name not in FULL_WALK_VIEWPORTS:
+                        # Reachability, not re-rendering. `missing_pages` opens
+                        # the overflow dropdowns before concluding anything, so
+                        # a page collapsed into one counts as present.
+                        unreachable = missing_pages(frame, TABS, page)
+                        vp["pages_unreachable"] = unreachable
+                        if unreachable:
+                            failures.append(classify(
+                                f"{name}: pages unreachable from the navigation: "
+                                f"{unreachable}", "APPLICATION"))
+                        if frame.locator('[data-testid="stException"]').count():
+                            failures.append(classify(
+                                f"{name}: stException present", "APPLICATION"))
+                        print(f"    reachability     "
+                              f"{'ok' if not unreachable else unreachable}",
+                              flush=True)
+                        TABS_TO_WALK = []
+                    else:
+                        TABS_TO_WALK = TABS
+
+                    for tab in TABS_TO_WALK:
+                        _page_started = time.perf_counter()
                         try:
                             try:
                                 how = open_page(frame, tab, page)
@@ -716,7 +791,11 @@ def main() -> None:
                             # Only the active page's script runs now, so the
                             # body arrives after a server round trip rather than
                             # being already in the DOM behind a CSS toggle.
-                            page.wait_for_timeout(1_500)
+                            # Wait for the RUN to finish rather than a fixed
+                            # sleep: settle_after_nav returns as soon as the
+                            # spinner clears, which is usually far sooner than
+                            # any constant safe enough for the slowest page.
+                            settle_after_nav(page, frame)
                             body = frame.locator("body").inner_text(timeout=10_000)
                             hits = [t for t in RUNTIME_TOKENS if t in body]
                             if frame.locator('[data-testid="stException"]').count():
@@ -728,6 +807,10 @@ def main() -> None:
                                     "APPLICATION"))
                             else:
                                 vp["tabs"][tab] = "ok"
+                            print(f"    {tab:<16} {vp['tabs'][tab]:<10} "
+                                  f"via {how} "
+                                  f"({time.perf_counter() - _page_started:.1f}s)",
+                                  flush=True)
                         except Exception as exc:
                             vp["tabs"][tab] = f"error:{type(exc).__name__}"
                             failures.append(classify(
@@ -757,6 +840,9 @@ def main() -> None:
                         failures.append(classify(
                             f"{name}: horizontal overflow {overflow}px", "APPLICATION"))
                     page.screenshot(path=str(OUT / f"{name}.png"))
+                    vp["elapsed_s"] = round(time.perf_counter() - _vp_started, 1)
+                    print(f"[viewport] {name} done in {vp['elapsed_s']}s",
+                          flush=True)
                     report["viewports"][name] = vp
         except Exception as exc:
             failures.append(classify(
