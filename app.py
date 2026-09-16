@@ -199,7 +199,22 @@ def _adjust_for_corporate_actions(price_hash: str, _frames: dict) -> tuple[dict,
     return adjusted, applied
 
 
-@st.cache_data(show_spinner=False, ttl=3600)
+# Ten minutes, not an hour, and the reason is NEGATIVE caching.
+#
+# @st.cache_data stores a failure as readily as a success. The container that
+# started at 03:27 UTC on 2026-09-16 asked for an artifact the nightly job had
+# not published yet, got a 404, and cached it -- so when the artifact landed
+# twenty minutes later the app went on skipping it for the rest of the hour and
+# rebuilt the engine on every cold start in between. The probe recorded exactly
+# that: ranking_snapshot=http_404 against a file that by then downloaded fine.
+#
+# The asymmetry decides the number. Re-fetching costs 200 KB and ~0.04s on a
+# file that changes once a day; NOT re-fetching costs a full engine build and
+# leaves the artifact ignored for up to an hour after it appears.
+_RANKING_SNAPSHOT_TTL_S = 600
+
+
+@st.cache_data(show_spinner=False, ttl=_RANKING_SNAPSHOT_TTL_S)
 def _fetch_ranking_snapshot() -> tuple:
     """Download the published ranking. Validated separately, and later.
 

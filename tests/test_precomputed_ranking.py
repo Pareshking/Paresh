@@ -397,3 +397,33 @@ def test_only_applied_events_count_not_the_whole_log():
 
 
 import pathlib  # noqa: E402  (used by the test above)
+
+
+def test_a_missing_artifact_is_retried_well_inside_an_hour():
+    """@st.cache_data stores a failure as readily as a success.
+
+    The container that started at 03:27 UTC on 2026-09-16 asked for an
+    artifact the nightly job had not published yet, got a 404, and cached it.
+    When the artifact landed twenty minutes later the app went on skipping it
+    for the rest of the hour and rebuilt the engine on every cold start in
+    between -- the probe recorded ranking_snapshot=http_404 against a file that
+    by then downloaded fine.
+
+    The asymmetry is what sets the number: re-fetching costs 200 KB on a file
+    that changes once a day, while not re-fetching costs a full engine build
+    and leaves a published artifact ignored for up to an hour.
+    """
+    import re
+
+    app = pathlib.Path(__file__).resolve().parents[1] / "app.py"
+    src = app.read_text()
+    m = re.search(r"_RANKING_SNAPSHOT_TTL_S\s*=\s*(\d+)", src)
+    assert m, "the ranking snapshot TTL is no longer named; negative caching is back"
+    ttl = int(m.group(1))
+    assert ttl <= 900, (
+        f"a missing ranking artifact would be ignored for {ttl}s after it is "
+        "published; that is the negative-cache bug again"
+    )
+    assert re.search(r"ttl=_RANKING_SNAPSHOT_TTL_S", src), (
+        "the fetch no longer uses the named TTL"
+    )
