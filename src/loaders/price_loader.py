@@ -722,6 +722,57 @@ def fetch_price_history(
 
     data = data.dropna(how="all")
 
+    # A FULL REFRESH MUST NOT BE ABLE TO LOSE HISTORY.
+    #
+    # This path used to write straight over the cache. That makes the widest
+    # download in the system the only one with no protection: a batch of 100
+    # that comes back empty, or a ticker that answers with some sessions
+    # missing, replaced good stored history with a worse copy and nothing
+    # noticed. The retry loop above only catches tickers absent ENTIRELY --
+    # a partial series looks like a successful fetch.
+    #
+    # That was survivable while the weekly FORCE_FULL run published nothing,
+    # because the damage stayed in a cache nobody read. It is not survivable
+    # now that the run publishes the snapshot production seeds from: one bad
+    # Friday would hand every reader a thinner history than the one it
+    # replaced, and the append-only daily path could never fill it back in.
+    #
+    # So the vendor's answer wins wherever it HAS a value -- which is what
+    # makes a restatement land, the whole point of a full refresh -- and the
+    # cache survives wherever it does not. The merge is the same one the
+    # incremental path uses, for the same reason.
+    if os.path.exists(PRICES_FILE):
+        try:
+            previous = pd.read_parquet(PRICES_FILE)
+            previous = _drop_future_rows(_normalise_ticker_level(previous))
+            if not previous.empty:
+                merged = data.combine_first(previous)
+                rescued = int(
+                    (data.reindex_like(merged).isna() & merged.notna()).to_numpy().sum()
+                )
+                lost_cols = len(set(previous.columns) - set(data.columns))
+                lost_rows = len(previous.index.difference(data.index))
+                if rescued or lost_cols or lost_rows:
+                    metrics.note("price_full_refresh_cells_rescued", rescued)
+                    metrics.note("price_full_refresh_series_missing", lost_cols)
+                    metrics.note("price_full_refresh_rows_missing", lost_rows)
+                    logger.warning(
+                        "Full refresh came back thinner than the cache it "
+                        "replaces: %d series and %d sessions absent, %d cells "
+                        "preserved from the previous copy. A wholesale "
+                        "overwrite would have destroyed them.",
+                        lost_cols, lost_rows, rescued,
+                    )
+                data = merged.sort_index()
+        except Exception as exc:
+            # Never let the guard cost the refresh. Writing the fresh download
+            # unmerged is the old behaviour, which is worse but not broken.
+            logger.warning(
+                "Could not merge the full refresh with the existing cache "
+                "(%s: %s); writing the download as-is.",
+                type(exc).__name__, exc,
+            )
+
     metrics.note("price_series_returned", len(data.columns))
     _note_price_as_of(data)
     # Save to parquet cache

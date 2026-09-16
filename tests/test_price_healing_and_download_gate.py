@@ -214,3 +214,102 @@ def test_a_revised_close_still_wins_over_the_cached_one(tmp_path, monkeypatch):
 
     out = _run_merge(monkeypatch, tmp_path, cached, revised, heal_days=45)
     assert out.loc[pd.Timestamp("2026-09-15"), "AAA"] == pytest.approx(107.5)
+
+
+# ── A full refresh must not be able to LOSE history ──────────────────────────
+#
+# The FORCE_FULL path wrote straight over the cache, which made the widest
+# download in the system the only one with no protection. A batch of 100 that
+# comes back empty, or a ticker answering with some sessions missing, replaced
+# good stored history with a worse copy and nothing noticed -- the retry loop
+# only catches tickers absent ENTIRELY, and a partial series looks like a
+# successful fetch.
+#
+# Survivable while the weekly run published nothing. Not survivable once it
+# publishes the snapshot production seeds from: one bad Friday would hand every
+# reader a thinner history than the one it replaced, and the append-only daily
+# path could never fill it back in.
+
+def _full_refresh(monkeypatch, tmp_path, cached, downloaded):
+    from src.loaders import price_loader
+
+    path = tmp_path / "prices.parquet"
+    cached.to_parquet(path)
+    monkeypatch.setattr(price_loader, "PRICES_FILE", str(path))
+    monkeypatch.setattr(price_loader.yf, "download", lambda *a, **k: downloaded)
+    monkeypatch.setattr(price_loader.time, "sleep", lambda *_: None)
+    return price_loader.fetch_price_history(
+        list(cached.columns), period="2y", force_refresh=True
+    )
+
+
+def _frame(cols, idx, value=100.0):
+    return pd.DataFrame({c: [value] * len(idx) for c in cols}, index=idx)
+
+
+def test_a_partial_full_refresh_keeps_the_sessions_it_did_not_return(tmp_path, monkeypatch):
+    """The exact hazard: the vendor answers, but with holes."""
+    idx = pd.date_range("2026-09-01", "2026-09-15", freq="B")
+    cached = _frame(["AAA", "BBB"], idx, 100.0)
+
+    holed = cached.copy()
+    holed.loc[idx[3], "AAA"] = np.nan          # vendor dropped one session
+    holed.loc[idx[5], "BBB"] = np.nan
+
+    out = _full_refresh(monkeypatch, tmp_path, cached, holed)
+    assert out.loc[idx[3], "AAA"] == pytest.approx(100.0), "a full refresh lost a session"
+    assert out.loc[idx[5], "BBB"] == pytest.approx(100.0), "a full refresh lost a session"
+    assert out.isna().sum().sum() == 0
+
+
+def test_a_full_refresh_that_drops_a_ticker_keeps_its_history(tmp_path, monkeypatch):
+    """A failed batch must not delete 100 symbols from the record."""
+    idx = pd.date_range("2026-09-01", "2026-09-15", freq="B")
+    cached = _frame(["AAA", "BBB"], idx, 100.0)
+    only_one = cached[["AAA"]].copy()
+
+    out = _full_refresh(monkeypatch, tmp_path, cached, only_one)
+    assert "BBB" in out.columns, "a full refresh deleted a ticker it failed to fetch"
+    assert out["BBB"].notna().all()
+
+
+def test_a_restatement_still_wins_on_a_full_refresh(tmp_path, monkeypatch):
+    """Merging must not become stickiness.
+
+    Landing a vendor restatement is the entire purpose of a full refresh, so
+    wherever the download HAS a value it must replace the cached one.
+    """
+    idx = pd.date_range("2026-09-01", "2026-09-15", freq="B")
+    cached = _frame(["AAA"], idx, 300.0)
+    restated = _frame(["AAA"], idx, 100.0)      # 1:3 split, adjusted by the vendor
+
+    out = _full_refresh(monkeypatch, tmp_path, cached, restated)
+    assert out["AAA"].tolist() == pytest.approx([100.0] * len(out)), (
+        "the full refresh kept pre-restatement prices; restatements can no longer land"
+    )
+
+
+def test_a_full_refresh_that_reaches_further_back_keeps_the_extra_depth(tmp_path, monkeypatch):
+    """A 10y refresh over a 2y cache must end up with 10y, not 2y."""
+    short = pd.date_range("2026-09-01", "2026-09-15", freq="B")
+    long = pd.date_range("2026-08-01", "2026-09-15", freq="B")
+    cached = _frame(["AAA"], short, 100.0)
+    deeper = _frame(["AAA"], long, 100.0)
+
+    out = _full_refresh(monkeypatch, tmp_path, cached, deeper)
+    assert len(out) == len(long), "the full refresh lost the depth it just fetched"
+
+
+def test_the_shortfall_is_reported_not_silent(tmp_path, monkeypatch, caplog):
+    """A thin refresh must say so; it is the only signal anyone would get."""
+    import logging
+
+    idx = pd.date_range("2026-09-01", "2026-09-15", freq="B")
+    cached = _frame(["AAA", "BBB"], idx, 100.0)
+    only_one = cached[["AAA"]].copy()
+
+    with caplog.at_level(logging.WARNING):
+        _full_refresh(monkeypatch, tmp_path, cached, only_one)
+    assert any("thinner than the cache" in r.message for r in caplog.records), (
+        "a full refresh came back short and logged nothing"
+    )
