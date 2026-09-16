@@ -112,6 +112,17 @@
       "kind": "unclassified",
       "first_seen": "2026-09-03"
     },
+    "2026-08-03:PGIL": {
+      "date": "2026-08-03",
+      "symbol": "PGIL",
+      "move": -0.490653,
+      "ratio": 0.509347,
+      "prev_close": 2064.8,
+      "close": 1051.7,
+      "looks_like": "1:2 split or 1:1 bonus",
+      "kind": "split/bonus",
+      "first_seen": "2026-09-16"
+    },
     "2026-08-24:TDPOWERSYS": {
       "date": "2026-08-24",
       "symbol": "TDPOWERSYS",
@@ -157,5 +168,5 @@
       "first_seen": "2026-09-11"
     }
   },
-  "last_checked": "2026-09-15"
+  "last_checked": "2026-09-16"
 }
