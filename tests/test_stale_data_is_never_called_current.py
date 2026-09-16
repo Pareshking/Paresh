@@ -79,31 +79,62 @@ def test_a_cache_beyond_the_horizon_is_never_current(monkeypatch):
     assert price_loader._cache_is_current(date(2025, 1, 6)) is False
 
 
-def test_an_open_session_is_re_requested_from_its_own_date(tmp_path, monkeypatch):
-    """The partial row must be REPLACED, not skipped.
+def test_an_open_session_never_enters_the_cache_at_all(tmp_path, monkeypatch):
+    """This guarantee got STRONGER, so the test it needs is a different one.
 
-    Asking Yahoo from the day AFTER the last cached session is what froze the
-    price: today's row was already there, so the only date that could have
-    updated it was excluded from every later request.
+    It used to read: an open session's partial row must be RE-REQUESTED from
+    its own date, because asking Yahoo from the day AFTER the last cached
+    session excluded the only date that could update it, and the price froze
+    at whatever minute the container first fetched it.
+
+    Downloads are now gated on DOWNLOAD_SETTLES (the 15:30 close plus seven
+    hours), so nothing is fetched while a session is open, and
+    _drop_unsettled_rows keeps an unsettled bar out of the frame however the
+    fetch was reached. There is therefore no partial row left to go stale --
+    which is a stronger promise than refreshing one, and it removes the failure
+    mode rather than managing it.
+
+    The cost is deliberate and was chosen: during market hours the screener
+    shows the previous CLOSE, dated as such, instead of a running quote.
+
+    Why it also has to hold at the frame: heal_days skips the gate on purpose,
+    because a healing run is reaching backward for sessions already held.
+    Dispatched by hand at 09:10 IST on 2026-09-16 the nightly job wrote a row
+    where 587 of 750 symbols had printed, and the precompute published a
+    587-row ranking from it.
     """
     idx = pd.bdate_range(end="2026-08-28", periods=4)
     cache_file = tmp_path / "prices.parquet"
     pd.DataFrame({"RELIANCE": [1.0, 2.0, 3.0, 4.0]}, index=idx).to_parquet(cache_file)
-
     monkeypatch.setattr(price_loader, "PRICES_FILE", str(cache_file))
-    _freeze_cache_currency(monkeypatch, behind=0, complete=False)
 
-    asked = {}
+    # Make the whole scenario agree on the date: 28 Aug is today and still
+    # open, 27 Aug is the newest settled session, and the cache reaches both.
+    monkeypatch.setattr(
+        price_loader, "session_is_complete",
+        lambda d, **k: d < date(2026, 8, 28),
+    )
+    monkeypatch.setattr(
+        price_loader, "last_downloadable_session", lambda **k: date(2026, 8, 27)
+    )
+    monkeypatch.setattr(
+        price_loader, "trading_days_behind",
+        lambda as_of, **k: 0 if as_of == date(2026, 8, 27) else 1,
+    )
+    monkeypatch.setattr(price_loader.yf, "download", _never_called)
 
-    def _fake_download(tickers, start, **kwargs):
-        asked["start"] = start
-        return pd.DataFrame()
+    out = price_loader.fetch_price_history(["RELIANCE"])
+    assert pd.Timestamp("2026-08-28") not in out.index, (
+        "the open session survived into the frame the app reads"
+    )
+    assert out.index[-1] == pd.Timestamp("2026-08-27"), "a settled session was lost"
 
-    monkeypatch.setattr(price_loader.yf, "download", _fake_download)
-    monkeypatch.setattr(price_loader, "_recover_stale_cache", lambda *a, **k: None)
 
-    price_loader.fetch_price_history(["RELIANCE"])
-    assert asked["start"] == "2026-08-28"
+def _never_called(*args, **kwargs):
+    raise AssertionError(
+        "the vendor was asked for a session that has not settled; the "
+        "download gate is not holding"
+    )
 
 
 def test_a_closed_session_is_topped_up_from_the_next_day(tmp_path, monkeypatch):

@@ -11,6 +11,7 @@ import time
 from datetime import date
 from typing import Sequence
 
+import numpy as np
 import pandas as pd
 import streamlit as st
 import yfinance as yf
@@ -60,6 +61,56 @@ def _cache_is_current(last_cached_date: date) -> bool:
     if behind is None or behind > 0:
         return False
     return session_is_complete(last_cached_date)
+
+
+def _drop_unsettled_rows(df: pd.DataFrame) -> pd.DataFrame:
+    """Keep only sessions whose daily bar has finished moving.
+
+    THE CACHE MUST HOLD SETTLED SESSIONS ONLY. Everything downstream assumes
+    it: the download gate decides what to fetch by comparing the last cached
+    date against the last settled session, the precomputed ranking fingerprints
+    the frame and expects the same bytes tomorrow, and "price as of" on the
+    page is a claim about a close.
+
+    An in-progress session breaks all three at once, and the run of
+    2026-09-16 shows how. The nightly job normally fires at 23:00 IST, safely
+    past the settle window -- but dispatched by hand at 09:10 IST, minutes
+    after the open, it wrote a row where 587 of 750 symbols had printed and
+    163 had not. The precompute then ranked that frame and published a table
+    with 587 rows in it, and because the frame and the table agreed with each
+    other the contract had nothing to object to.
+
+    ``heal_days`` is what let it through: a healing run deliberately skips the
+    download gate, because it is reaching BACKWARD for sessions already held.
+    Nothing stopped the same request also reaching forward into a session that
+    had barely started. This is the guard for that, applied where the frame is
+    built rather than where it is requested, so it holds however the fetch was
+    reached.
+
+    A future-dated row is unsettled by definition, so this subsumes
+    :func:`_drop_future_rows`.
+    """
+    if df is None or df.empty:
+        return df
+    try:
+        dates = pd.DatetimeIndex(df.index)
+    except (TypeError, ValueError):
+        return df
+    try:
+        unsettled = np.array([not session_is_complete(d.date()) for d in dates])
+    except (TypeError, ValueError, AttributeError):
+        return df
+    if not unsettled.any():
+        return df
+    kept = df.loc[~unsettled]
+    logger.info(
+        "Dropping %d unsettled session(s) from the price frame (%s); a bar "
+        "that is still moving is not a close.",
+        int(unsettled.sum()),
+        ", ".join(str(d.date()) for d in dates[unsettled][:3]),
+    )
+    metrics.note("price_unsettled_rows_dropped", int(unsettled.sum()))
+    return kept
 
 
 def _drop_future_rows(df: pd.DataFrame) -> pd.DataFrame:
@@ -464,7 +515,7 @@ def fetch_price_history(
     if not force_refresh and os.path.exists(PRICES_FILE):
         try:
             cached = pd.read_parquet(PRICES_FILE)
-            cached = _drop_future_rows(cached)
+            cached = _drop_unsettled_rows(_drop_future_rows(cached))
             if not cached.empty:
                 last_cached_date = cached.index[-1].date()
                 # Indian market date, not the server's, throughout -- see
@@ -583,6 +634,10 @@ def fetch_price_history(
                         combined = combined[~combined.index.duplicated(keep="last")]
                     combined = _coalesce_duplicate_columns(combined)
                     combined = combined.sort_index()
+                    # heal_days skips the download gate on purpose, so this is
+                    # the only thing standing between a healing run and an
+                    # in-progress session landing in the cache.
+                    combined = _drop_unsettled_rows(combined)
 
                     try:
                         combined.to_parquet(PRICES_FILE, compression="snappy")
@@ -772,6 +827,8 @@ def fetch_price_history(
                 "(%s: %s); writing the download as-is.",
                 type(exc).__name__, exc,
             )
+
+    data = _drop_unsettled_rows(data)
 
     metrics.note("price_series_returned", len(data.columns))
     _note_price_as_of(data)

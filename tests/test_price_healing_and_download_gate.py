@@ -345,3 +345,77 @@ def test_a_totally_failed_refresh_leaves_the_cache_untouched(tmp_path, monkeypat
 
     survived = pd.read_parquet(path)
     assert list(survived.columns) == ["AAA", "BBB"] and survived.notna().all().all()
+
+
+# ── An in-progress session must never reach the cache ────────────────────────
+#
+# The cache is assumed settled by everything downstream: the download gate
+# compares its last date against the last settled session, the precomputed
+# ranking fingerprints the frame and expects the same bytes tomorrow, and
+# "price as of" on the page is a claim about a CLOSE.
+#
+# heal_days is what broke that. A healing run skips the download gate on
+# purpose -- it is reaching BACKWARD for sessions already held -- and nothing
+# stopped the same request also reaching forward into a session that had barely
+# opened. Dispatched by hand at 09:10 IST on 2026-09-16, the nightly job wrote
+# a row where 587 of 750 symbols had printed and 163 had not, and the
+# precompute published a 587-row ranking from it. The frame and the table
+# agreed with each other, so the contract had nothing to object to.
+
+def test_an_in_progress_session_is_dropped(monkeypatch):
+    from src.loaders import price_loader
+
+    idx = pd.date_range("2026-09-14", "2026-09-16", freq="B")
+    frame = _frame(["AAA"], idx, 100.0)
+    # 09:10 IST on the 16th: the session has opened but is nowhere near settled.
+    monkeypatch.setattr(
+        price_loader, "session_is_complete",
+        lambda d, **k: d < date(2026, 9, 16),
+    )
+    out = price_loader._drop_unsettled_rows(frame)
+    assert pd.Timestamp("2026-09-16") not in out.index, (
+        "an in-progress session survived into the cache"
+    )
+    assert pd.Timestamp("2026-09-15") in out.index, "a settled session was dropped"
+
+
+def test_a_healing_run_cannot_write_an_unsettled_session(tmp_path, monkeypatch):
+    """The whole path, not just the helper: heal_days must not smuggle one in."""
+    from src.loaders import price_loader
+
+    idx = pd.date_range("2026-09-01", "2026-09-15", freq="B")
+    cached = _frame(["AAA", "BBB"], idx, 100.0)
+    path = tmp_path / "prices.parquet"
+    cached.to_parquet(path)
+    monkeypatch.setattr(price_loader, "PRICES_FILE", str(path))
+
+    # The vendor answers with the healed window PLUS a half-formed today.
+    today = pd.Timestamp("2026-09-16")
+    fresh = _frame(["AAA", "BBB"], idx.append(pd.DatetimeIndex([today])), 100.0)
+    fresh.loc[today, "BBB"] = np.nan            # 1 of 2 symbols has not printed
+
+    monkeypatch.setattr(price_loader.yf, "download", lambda *a, **k: fresh)
+    monkeypatch.setattr(price_loader, "_cache_is_current", lambda d: False)
+    monkeypatch.setattr(price_loader, "_recover_stale_cache", lambda *a, **k: None)
+    monkeypatch.setattr(
+        price_loader, "session_is_complete",
+        lambda d, **k: d < date(2026, 9, 16),
+    )
+
+    out = price_loader.fetch_price_history(["AAA", "BBB"], period="2y", heal_days=45)
+    assert today not in out.index, (
+        "a healing run wrote an in-progress session; this is what produced the "
+        "587-row ranking on 2026-09-16"
+    )
+    assert out.notna().all().all(), "the settled history was disturbed"
+
+
+def test_a_settled_session_is_kept(monkeypatch):
+    """The guard must not eat real data once the bar has settled."""
+    from src.loaders import price_loader
+
+    idx = pd.date_range("2026-09-14", "2026-09-16", freq="B")
+    frame = _frame(["AAA"], idx, 100.0)
+    monkeypatch.setattr(price_loader, "session_is_complete", lambda d, **k: True)
+    out = price_loader._drop_unsettled_rows(frame)
+    assert len(out) == len(frame)
