@@ -8,9 +8,27 @@ streamlit==1.63.0
 pandas>=2.0.0
 numpy>=1.24.0
 scipy>=1.10.0
-scikit-learn>=1.3.0
+# scikit-learn was declared here and imported NOWHERE -- `grep -rn sklearn`
+# across the repository returns this line and nothing else. _shrunk_cov in
+# src/engine/portfolio.py is the Ledoit-Wolf estimator it would have been for,
+# and that is pure NumPy by choice ("zero external dependencies", its own
+# docstring). Carrying it cost the cold start a ~30 MB wheel plus joblib and
+# threadpoolctl on every container boot, for nothing. scipy stays: portfolio.py
+# really does use scipy.optimize, and imports it lazily inside the function so
+# it costs nothing until someone opens the Portfolio tab.
 yfinance>=0.2.36
 requests>=2.31.0
 plotly>=5.18.0
-pyarrow>=14.0.0
+# Pinned to the exact version, not capped below a range.
+#
+# pyarrow 25.0.1 segfaults (apache/arrow#50471) and Streamlit Cloud knows it:
+# every boot it detected 25.0.1, uninstalled it and installed 24.0.0 itself,
+# so the float was buying no newer version anyway -- only an uninstall and a
+# reinstall on the critical path of every cold start.
+#
+# `pyarrow<25` would have been a permanent ceiling for a temporary bug, and
+# nothing would ever have prompted a re-look. An exact pin is a line with a
+# reason and a way out: when arrow#50471 closes, bump this deliberately and
+# let the QA run confirm it.
+pyarrow==24.0.0
 streamlit-lightweight-charts==0.7.20

@@ -30,6 +30,87 @@ from src.loaders.price_loader import fetch_price_history
 from src.loaders.tv_loader import reconcile_and_update_tv_classification
 
 
+def _precompute_rankings(symbols, universe_df, mcaps) -> None:
+    """Rank the published snapshot, and stamp the answer with its own contract.
+
+    Runs the SAME two functions the app runs -- src/engine/pipeline -- so the
+    published table is what production would have computed, not a second
+    implementation that agrees today and drifts next month.
+
+    The corporate-action neutralisation is applied here too, and in the same
+    order, because production applies it before the engine ever sees a price.
+    Skipping it would publish a table ranked across phantom crashes that the
+    live path has already removed, and the two would disagree on exactly the
+    names the guard exists for.
+    """
+    import pandas as pd
+
+    from src.core.config import PRICES_FILE, RANKINGS_SNAPSHOT_ASSET
+    from src.core.config import DEFAULT_LOOKBACK_WEIGHTS
+    from src.engine.corporate_actions import adjust_ohlc, load_events
+    from src.engine import pipeline
+    from src.loaders.price_loader import extract_ohlcv
+    from src.loaders.ranking_store import contract, write_snapshot
+
+    here = os.path.dirname(PRICES_FILE)
+    snapshot_path = os.path.join(here, "prices_snapshot.parquet")
+    if not os.path.exists(snapshot_path):
+        print("No published snapshot to rank; skipping.")
+        return
+
+    raw = pd.read_parquet(snapshot_path)
+    adj_close, close_p, high_p, low_p, vol_p, _open_p = extract_ohlcv(raw, list(symbols))
+    if adj_close is None or adj_close.empty:
+        print("Snapshot produced no usable prices; skipping.")
+        return
+
+    frames, applied = adjust_ohlc(
+        {"adj_close": adj_close, "close": close_p, "high": high_p, "low": low_p},
+        load_events(),
+    )
+    adj_close, close_p = frames["adj_close"], frames["close"]
+    high_p, low_p = frames["high"], frames["low"]
+    print(f"Corporate actions neutralised before ranking: {len(applied)}")
+
+    idx_info = universe_df
+    weights = tuple(float(w) for w in DEFAULT_LOOKBACK_WEIGHTS)
+    total = sum(weights) or 1.0
+    weights = tuple(w / total for w in weights)
+
+    calc = pipeline.build_engine(
+        adj_close, high_p, low_p, close_p, vol_p, idx_info, mcaps,
+        corporate_actions=applied,
+    )
+    _calc, rank_df = pipeline.rank_with_weights(
+        calc, weights, idx_info, mcaps, close_p, high_p
+    )
+    if rank_df is None or rank_df.empty:
+        print("Ranking came back empty; publishing nothing.")
+        return
+
+    as_of = ""
+    try:
+        as_of = str(pd.DatetimeIndex(adj_close.index)[-1].date())
+    except Exception:
+        pass
+
+    terms = contract(
+        price_fingerprint=pipeline.price_fingerprint(adj_close),
+        symbols_fingerprint=pipeline.symbols_fingerprint(symbols),
+        weights=weights,
+        pipeline_version=pipeline.PIPELINE_VERSION,
+        universe=list(universe_df["Symbol"].unique()) if "Symbol" in universe_df else [],
+        price_as_of=as_of,
+    )
+    out = os.path.join(here, RANKINGS_SNAPSHOT_ASSET)
+    write_snapshot(out, rank_df, terms)
+    mb = os.path.getsize(out) / 1024**2
+    print(
+        f"Ranking precomputed: {len(rank_df)} rows, {len(rank_df.columns)} columns, "
+        f"{mb:.2f} MB -> {out} (as of {as_of})"
+    )
+
+
 def run_daily_sync() -> None:
     """Synchronizes all NSE market data, constituents and price histories."""
     print(f"[{datetime.now():%Y-%m-%d %H:%M:%S}] Starting daily automated sync...")
@@ -270,6 +351,25 @@ def run_daily_sync() -> None:
     except Exception as exc:
         print(f"Price snapshot skipped: {type(exc).__name__}: {exc}")
 
+    # 5d. Precompute the ranking from the snapshot just published.
+    #
+    # Thirty of the eighty-nine seconds of a production cold start were spent
+    # here, deriving five calendar-period passes and every signal column over
+    # 750 symbols while a reader watched a spinner. It is the same arithmetic
+    # on the same frame every time, and this job already holds that frame on a
+    # runner where nobody is waiting.
+    #
+    # Ranked from `recent` -- the exact bytes published as prices.parquet --
+    # and NOT from the ten-year archive. The contract production checks is a
+    # fingerprint of the frame that was ranked, so ranking anything other than
+    # what production will seed from would miss on every single cold start.
+    print("\n--- 5d. Precomputing the Ranking ---")
+    try:
+        _precompute_rankings(symbols, universe_df, mcaps)
+    except Exception as exc:
+        # Strictly an accelerator. Production computes the ranking itself when
+        # this is missing, which is what it did before this step existed.
+        print(f"Ranking precompute skipped: {type(exc).__name__}: {exc}")
 
     print(
         f"\n[{datetime.now():%Y-%m-%d %H:%M:%S}] All daily sync tasks completed successfully!"

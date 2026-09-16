@@ -29,9 +29,8 @@ from src.core.config import (
     REPO_ATH_FILE,
 )
 from src.core.logger import logger
+from src.engine import pipeline
 from src.engine.corporate_actions import adjust_ohlc, load_events
-from src.engine.momentum import MomentumEngine
-from src.engine.calendar_momentum import _compute_period_z_scores, _apply_weight_composite
 from src.loaders.indices_loader import fetch_indices_data
 from src.loaders.mcap_loader import fetch_market_caps
 from src.loaders.price_loader import (
@@ -135,32 +134,12 @@ vol_target_val = resolve("cfg_vtv", 25, lo=10, hi=40) / 100.0
 
 
 # ── Cached Data Pipeline ─────────────────────────────────────────────────────
-def _price_hash(df: pd.DataFrame) -> str:
-    """Memo key for the quant engine: shape, last session, AND last values.
-
-    The values matter. Within a trading day the frame's last date and shape
-    never change -- only the numbers in that final row do, as the session moves
-    on. Keyed on shape and date alone, the engine kept returning the ranking it
-    computed from the morning's prices while the loader underneath it went on
-    refreshing them, so CMP, Score, Rank and every derived column were frozen
-    on a page whose header dated them today.
-
-    Hashing the last row is enough: everything before it is settled history,
-    and a change there necessarily changes the length or the date too.
-    """
-    if df is None or df.empty:
-        return "empty"
-    try:
-        last = pd.to_numeric(df.iloc[-1], errors="coerce").to_numpy(dtype="float64")
-        digest = hashlib.md5(last.tobytes()).hexdigest()[:12]
-        return f"{df.index[-1]}_{df.shape[0]}x{df.shape[1]}_{digest}"
-    except Exception:
-        return "unknown"
-
-
-def _symbols_hash(symbols: list[str]) -> str:
-    key = ",".join(sorted(s.upper() for s in symbols))
-    return hashlib.md5(key.encode()).hexdigest()[:12]
+# The engine's memo key AND the precomputed table's validity contract are the
+# same fingerprint, so it lives in src/engine/pipeline beside the arithmetic it
+# describes -- the nightly job stamps the artifact with it and production
+# re-checks it before trusting a single row.
+_price_hash = pipeline.price_fingerprint
+_symbols_hash = pipeline.symbols_fingerprint
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -220,6 +199,74 @@ def _adjust_for_corporate_actions(price_hash: str, _frames: dict) -> tuple[dict,
     return adjusted, applied
 
 
+@st.cache_data(show_spinner=False, ttl=3600)
+def _fetch_ranking_snapshot() -> tuple:
+    """Download the published ranking. Validated separately, and later.
+
+    Split from the check on purpose. The contract cannot be evaluated until the
+    price frame is loaded and fingerprinted, but the DOWNLOAD depends on none of
+    that -- so it is submitted to the same pool that already overlaps market
+    caps and the regime fetch, and by the time there is something to check
+    against, the bytes have arrived. A hit then costs nothing on the critical
+    path, and a miss costs one request nobody waited for.
+    """
+    from src.loaders import ranking_store
+
+    return ranking_store.fetch_snapshot()
+
+
+def _precomputed_ranking(
+    fetched: tuple,
+    price_hash: str,
+    sym_key: str,
+    weights: tuple[float, ...],
+    universe: list[str],
+) -> pd.DataFrame | None:
+    """The nightly job's ranking, but only if it describes exactly this state.
+
+    Thirty of the eighty-nine seconds of a cold start were spent deriving a
+    table that is a pure function of inputs this job already had. It ranks the
+    same frame it publishes, and stamps the answer with a contract naming every
+    input. Production re-checks all of them.
+
+    A miss is normal and cheap: different weights, a universe change, a price
+    frame that has moved on since the job ran, or no asset at all. Each returns
+    None and the engine runs exactly as it did before. The one outcome worth
+    preventing is a HIT that should have been a miss -- a ranking served fast
+    against a configuration it does not describe -- which is why every field is
+    compared and nothing is inferred.
+    """
+    from src.loaders import ranking_store
+
+    frame, published = fetched
+    if frame is None:
+        return None
+
+    expected = ranking_store.contract(
+        price_fingerprint=price_hash,
+        symbols_fingerprint=sym_key,
+        weights=weights,
+        pipeline_version=pipeline.PIPELINE_VERSION,
+        universe=universe,
+    )
+    ok, reason = ranking_store.matches(published, expected)
+    if not ok:
+        # Logged, not silent: "the precompute did not hit" and "the precompute
+        # does not exist" need very different fixes, and only this line tells
+        # them apart from outside the container.
+        logger.info("Precomputed ranking rejected (%s); computing instead.", reason)
+        metrics.note("ranking_precompute", f"miss_{reason.replace(' ', '_')}")
+        return None
+
+    metrics.note("ranking_precompute", "hit")
+    metrics.note("ranking_precompute_rows", int(len(frame)))
+    logger.info(
+        "Precomputed ranking accepted: %d rows, as of %s -- engine skipped.",
+        len(frame), str((published or {}).get("price_as_of", "?")),
+    )
+    return frame
+
+
 @st.cache_data(show_spinner=False, ttl=86400)
 def _load_tv_cached() -> dict:
     # load_tv_classification read from disk on every Streamlit rerun with no
@@ -248,18 +295,10 @@ def _run_engine_base(
     # _idx_info and _market_caps are underscore-prefixed (excluded from the
     # cache key); price_hash + index_hash already encode data state.
     metrics.incr("memo_miss_engine_base")
-    calc = MomentumEngine(
-        _adj_close,
-        high_df=_high_prices,
-        low_df=_low_prices,
-        close_df=_close_prices,
-        volume_df=_volume_data,
-        weights=[0.2] * 5,
-        corporate_actions=_corporate_actions,
+    return pipeline.build_engine(
+        _adj_close, _high_prices, _low_prices, _close_prices, _volume_data,
+        _idx_info, _market_caps, corporate_actions=_corporate_actions,
     )
-    _compute_period_z_scores(calc)
-    calc._precompute_signals(_idx_info, _market_caps, _close_prices, _high_prices)
-    return calc
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -276,15 +315,9 @@ def run_momentum_pipeline(
     # Only re-runs when weights change; price/universe changes invalidate
     # base_hash, which also misses _run_engine_base first.
     metrics.incr("memo_miss_quant_engine")
-    _calc.weights = list(weights)
-    _apply_weight_composite(_calc, list(weights))
-    rank_df = _calc.get_rankings(
-        _index_info,
-        _market_caps,
-        close_prices_df=_close_prices,
-        high_prices_df=_high_prices,
+    return pipeline.rank_with_weights(
+        _calc, weights, _index_info, _market_caps, _close_prices, _high_prices
     )
-    return _calc, rank_df
 
 
 def load_all_data(indices: list[str]):
@@ -311,9 +344,12 @@ def load_all_data(indices: list[str]):
 
     # mcaps + regime have no dependency on price_history — submit them to
     # background threads so the three fetches overlap on cold start.
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as _pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as _pool:
         _fut_mcaps = _pool.submit(load_mcaps_cached, sym_key, symbols)
         _fut_regime = _pool.submit(get_market_regime)
+        # Nothing about the download depends on the prices below, only the
+        # CHECK does -- so it overlaps the price work instead of following it.
+        _fut_ranking = _pool.submit(_fetch_ranking_snapshot)
 
         with metrics.stage("price_history"):
             raw_prices = load_prices_cached(sym_key, symbols, period="2y")
@@ -347,36 +383,63 @@ def load_all_data(indices: list[str]):
             mcaps = _fut_mcaps.result()
         with metrics.stage("market_regime"):
             regime = _fut_regime.result()
+        with metrics.stage("ranking_snapshot_fetch"):
+            _fetched_ranking = _fut_ranking.result()
 
     p_hash = _price_hash(adj_close)
     i_hash = f"{len(idx_info)}_{sym_key}"
-    base_hash = f"{p_hash}_{i_hash}_v4_calendar_periods"
-    with metrics.stage("engine_base"):
-        calc_base = _run_engine_base(
-            p_hash,
-            i_hash,
-            "v4_calendar_periods",
-            adj_close,
-            high_p,
-            low_p,
-            close_p,
-            vol_p,
-            idx_info,
-            mcaps,
-            _ca_applied,
-        )
-    with metrics.stage("quant_engine"):
-        calc, rank_df = run_momentum_pipeline(
-            base_hash,
-            weights,
-            calc_base,
-            idx_info,
-            mcaps,
-            close_p,
-            high_p,
+    base_hash = f"{p_hash}_{i_hash}_{pipeline.PIPELINE_VERSION}"
+
+    def _build_engine_and_rank():
+        """The 30 seconds. Deferred, so a cold start need not pay it at all."""
+        with metrics.stage("engine_base"):
+            calc_base = _run_engine_base(
+                p_hash,
+                i_hash,
+                pipeline.PIPELINE_VERSION,
+                adj_close,
+                high_p,
+                low_p,
+                close_p,
+                vol_p,
+                idx_info,
+                mcaps,
+                _ca_applied,
+            )
+        with metrics.stage("quant_engine"):
+            return run_momentum_pipeline(
+                base_hash,
+                weights,
+                calc_base,
+                idx_info,
+                mcaps,
+                close_p,
+                high_p,
+            )
+
+    # The precomputed table, if the nightly job ranked exactly this frame under
+    # exactly these weights. Every input is re-checked; anything unverifiable
+    # falls straight through to the computation above. See ranking_store.
+    calc = None
+    rank_df = None
+    with metrics.stage("precomputed_ranking"):
+        rank_df = _precomputed_ranking(
+            _fetched_ranking, p_hash, _symbols_hash(symbols), weights,
+            sorted(idx_info["Symbol"].unique().tolist()) if "Symbol" in idx_info else [],
         )
 
+    if rank_df is None:
+        calc, rank_df = _build_engine_and_rank()
+
     return {
+        # A CALLABLE, not the engine. Only three of the eleven pages need it
+        # (Sectors, RRG, Portfolio); the Screener that every cold start lands on
+        # does not, and building it eagerly made every reader pay 30 seconds for
+        # an object their first page never touched. Pages that need it call this
+        # and get the same memoised engine.
+        "get_calc": (lambda: calc) if calc is not None else (
+            lambda: _build_engine_and_rank()[0]
+        ),
         "calc": calc,
         "rank_df": rank_df,
         "adj_close": adj_close,
@@ -420,7 +483,11 @@ if not data:
     _emit_startup_metrics("data_init_failed")
     st.stop()
 
+# The engine, only when a page actually needs it. `calc` is None whenever the
+# precomputed ranking was accepted, which is the common cold start -- see
+# _precomputed_ranking. Three pages call get_calc() and pay for it then.
 calc = data["calc"]
+get_calc = data["get_calc"]
 rank_df = data["rank_df"]
 adj_close = data["adj_close"]
 high_prices = data["high_prices"]
@@ -432,6 +499,9 @@ regime_data = data["regime_data"]
 # empty frames produced a TypeError in the Qualified tab rather than telling
 # anyone what went wrong, so stop here and report what the engine actually saw.
 if rank_df.empty:
+    # An empty ranking can only come from the live engine -- the precomputed
+    # table is never published empty -- so calc is populated here by
+    # construction. getattr keeps the diagnostics optional either way.
     diag = getattr(calc, "ranking_diagnostics", {}) or {}
     metrics.note("ranking_diagnostics", diag)
     st.error(
@@ -516,16 +586,16 @@ def _page_qualified() -> None:
 
 
 def _page_sectors() -> None:
-    render_sector_view(calc, rank_df, adj_close)
+    render_sector_view(get_calc(), rank_df, adj_close)
 
 
 def _page_rrg() -> None:
-    render_rrg_view(calc, rank_df, adj_close)
+    render_rrg_view(get_calc(), rank_df, adj_close)
 
 
 def _page_portfolio() -> None:
     render_portfolio_view(
-        calc=calc,
+        calc=get_calc(),
         rank_df=rank_df,
         sector_cap=sector_cap,
         stock_cap=stock_cap,

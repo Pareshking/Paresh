@@ -140,6 +140,16 @@ jobs:
             echo "::warning::No price archive was produced; skipping archive upload."
           fi
 
+          RANK="${{ github.workspace }}/data_cache/rankings.parquet"
+          if [ -f "$RANK" ]; then
+            ls -lh "$RANK"
+            gh release upload data-latest "$RANK" \
+              --repo "$GITHUB_REPOSITORY" --clobber
+            echo "Uploaded rankings.parquet to release data-latest."
+          else
+            echo "::warning::No precomputed ranking was produced; the app will compute it."
+          fi
+
       # Flag corporate actions sitting in the price history as price moves.
       # NSE's circuit limits make a -50% session impossible as an actual move,
       # so anything past the threshold is a split, bonus or demerger -- and a

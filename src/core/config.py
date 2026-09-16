@@ -217,3 +217,17 @@ PRICE_ARCHIVE_URL: Final[str] = (
     f"https://github.com/{PRICE_SNAPSHOT_REPO}/releases/download/"
     f"{PRICE_SNAPSHOT_TAG}/{PRICE_ARCHIVE_ASSET}"
 )
+
+# The ranking the nightly job computed from the very snapshot above, so a cold
+# start can read the answer instead of spending ~30 seconds deriving it while
+# somebody watches a spinner. Published alongside the prices, on the same
+# rolling tag, and used only when its embedded contract matches exactly --
+# see src/loaders/ranking_store.py.
+RANKINGS_SNAPSHOT_ASSET: Final[str] = "rankings.parquet"
+# Overridable, like PRICE_SNAPSHOT_REPO above, so a fork, a staging deployment
+# or an end-to-end test can point this at its own artifact without editing
+# source. Unset, it resolves to this repository's rolling release asset.
+RANKINGS_SNAPSHOT_URL: Final[str] = os.getenv("UMIYA_RANKINGS_URL") or (
+    f"https://github.com/{PRICE_SNAPSHOT_REPO}/releases/download/"
+    f"{PRICE_SNAPSHOT_TAG}/{RANKINGS_SNAPSHOT_ASSET}"
+)
