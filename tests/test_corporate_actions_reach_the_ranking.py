@@ -159,8 +159,11 @@ def test_every_logged_event_carries_a_usable_ratio():
 # momentum.py takes max(snapshot_ath, window_high), and a high left on a
 # pre-split scale is by construction the LARGER one -- so it wins that max and
 # defeats the frame adjustment beside it. ABFRL read -86.5% from a high of
-# 364.4 against a close of 49.0. "At ATH" is an entry gate, so that is a
-# permanent lockout.
+# 364.4 against a close of 49.0. Nothing SELECTS on "At ATH" -- the Qualified
+# list filters on Above 50 EMA and Near 52W High -- so this is a wrong number on
+# the page and a dark gate chip on a stock actually near its high, rather than a
+# name excluded from the book. "Near 52W High" IS a filter, and it is computed
+# from the price frame, which is why adjusting the frames fixes that one.
 #
 # THE OBVIOUS FIX IS WRONG, and the shipped CSV proves it. That file is MIXED:
 # of the fourteen flagged names, eleven highs sat on the pre-action scale and

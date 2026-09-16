@@ -319,7 +319,12 @@ def trustworthy_ath(
     and silently defeats the adjustment applied to the frame beside it. On the
     shipped snapshot, ABFRL read -86.5% from a high of 364.4 against a close of
     49.0, across a 1:3 split and a demerger that cost a holder nothing. "At
-    ATH" is an entry gate, so that is a permanent lockout, not a stale tooltip.
+    ATH" is drawn as a gate chip on the stock page and a dot in the screener,
+    so a stale high does not merely mislead a tooltip -- it shows a reader a
+    dark signal on a stock that is in fact near its high. Nothing SELECTS on
+    "At ATH" (the Qualified list filters on Above 50 EMA and Near 52W High), so
+    this is a wrong number on the page rather than a name excluded from the
+    book. "% ATH" carries the same error in a column readers sort by.
 
     WHY THIS BLANKS RATHER THAN RESCALES. The obvious fix -- multiply the high
     by the action's ratio whenever it predates the action -- is wrong, and the
