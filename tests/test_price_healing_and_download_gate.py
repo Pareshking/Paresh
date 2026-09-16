@@ -419,3 +419,87 @@ def test_a_settled_session_is_kept(monkeypatch):
     monkeypatch.setattr(price_loader, "session_is_complete", lambda d, **k: True)
     out = price_loader._drop_unsettled_rows(frame)
     assert len(out) == len(frame)
+
+
+# ── An exchange holiday the vendor answered for anyway is not a session ──────
+#
+# clean_holidays drops a row only when more than 70% of the universe is NaN --
+# a genuine exchange-wide blank. A holiday where Yahoo answers for 460 of 750
+# symbols sits at 39% NaN and sails through, and the engine then scores a
+# one-day move INTO a day nobody traded and another back out of it.
+#
+# 2026-09-14 was an NSE holiday and is exactly that. It arrived through the
+# healing path: the incremental top-up had skipped it (the cache jumped 09-11
+# to 09-15, and being append-only it could never revisit) so the accident of
+# that bug was hiding this one. Re-requesting 45 days of settled history found
+# the row Yahoo was offering and merged it in, and the published snapshot and
+# the precomputed ranking both carried it.
+#
+# Measured on the live 500-session frame, the separation is not marginal:
+#   2026-09-14 (holiday)        61.3%   alone in its band
+#   2026-07-20 (thinnest real)  82.0%
+#   496 of 500 sessions         >82%
+#   oldest rows                 90.3%   (a tenth of the universe not yet listed)
+
+def _session(n_have, n_total=750):
+    import numpy as _np
+    vals = [100.0] * n_have + [_np.nan] * (n_total - n_have)
+    return {f"S{i}": vals[i] for i in range(n_total)}
+
+
+def test_a_holiday_the_vendor_answered_for_is_dropped():
+    from src.loaders.price_loader import _drop_phantom_sessions
+
+    idx = pd.to_datetime(["2026-09-11", "2026-09-14", "2026-09-15"])
+    frame = pd.DataFrame(
+        [_session(750), _session(460), _session(750)], index=idx
+    )
+    out = _drop_phantom_sessions(frame)
+    assert pd.Timestamp("2026-09-14") not in out.index, (
+        "the holiday survived; the engine will score a move into a day nobody traded"
+    )
+    assert len(out) == 2
+
+
+def test_a_thin_but_real_session_is_kept():
+    """2026-07-20 at 82% is a real trading day with a partial vendor fetch.
+
+    Dropping it would throw away 615 genuine closes to avoid 135 gaps, which
+    is the wrong trade and the opposite of what the healing path is for.
+    """
+    from src.loaders.price_loader import _drop_phantom_sessions
+
+    idx = pd.to_datetime(["2026-07-17", "2026-07-20", "2026-07-21"])
+    frame = pd.DataFrame(
+        [_session(750), _session(615), _session(750)], index=idx
+    )
+    out = _drop_phantom_sessions(frame)
+    assert len(out) == 3, "a real trading day was discarded as a holiday"
+
+
+def test_the_oldest_rows_of_the_window_are_kept():
+    """They read low only because part of today's universe had not listed."""
+    from src.loaders.price_loader import _drop_phantom_sessions
+
+    idx = pd.to_datetime(["2024-09-16", "2024-09-17"])
+    frame = pd.DataFrame([_session(677), _session(677)], index=idx)
+    assert len(_drop_phantom_sessions(frame)) == 2
+
+
+def test_a_narrow_frame_is_left_alone():
+    """The threshold is a claim about a universe, not about two columns."""
+    from src.loaders.price_loader import _drop_phantom_sessions
+
+    idx = pd.to_datetime(["2026-09-14", "2026-09-15"])
+    frame = pd.DataFrame({"AAA": [np.nan, 1.0], "BBB": [np.nan, 2.0]}, index=idx)
+    assert len(_drop_phantom_sessions(frame)) == 2
+
+
+def test_the_live_frame_loses_exactly_the_holiday():
+    """The real separation, pinned: everything kept clears 82%."""
+    from src.loaders.price_loader import MIN_SESSION_COVERAGE
+
+    assert 0.65 <= MIN_SESSION_COVERAGE <= 0.80, (
+        f"MIN_SESSION_COVERAGE={MIN_SESSION_COVERAGE} no longer sits between the "
+        "61.3% holiday and the 82.0% thinnest real session"
+    )

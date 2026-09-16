@@ -63,6 +63,67 @@ def _cache_is_current(last_cached_date: date) -> bool:
     return session_is_complete(last_cached_date)
 
 
+# A session where this fraction of the universe never printed is not a session.
+#
+# Measured on the live 500-session frame, and the separation is not marginal:
+# 2026-09-14 -- an NSE holiday -- sits alone at 61.3% coverage, the thinnest
+# REAL trading day in two years is 2026-07-20 at 82.0%, and 496 of 500 sessions
+# clear 82%. The oldest rows in the window sit at 90.3%, low only because a
+# tenth of today's universe had not listed yet, so the floor has to stay well
+# under that too. 70% is the midpoint of a twenty-point gap.
+#
+# THIS IS A BACKSTOP, NOT THE ANSWER. The authoritative test for "was this a
+# trading day" is whether NSE published a bhavcopy for it, and this job already
+# downloads those. A committed trading-day record derived from them would need
+# no threshold at all. Until that exists, this catches the case that reaches
+# the engine as phantom returns.
+MIN_SESSION_COVERAGE: float = 0.70
+
+
+def _drop_phantom_sessions(df: pd.DataFrame) -> pd.DataFrame:
+    """Drop dates where too little of the universe traded to be a real session.
+
+    An exchange holiday on which the vendor still emits partial data is not the
+    case clean_holidays was built for. That guard drops a row only when more
+    than 70% of the universe is NaN -- a genuine exchange-wide blank. A holiday
+    where Yahoo answers for 460 of 750 symbols sits at 39% NaN and sails
+    through, and the engine then scores a one-day move into a day nobody
+    traded, and another back out of it.
+
+    2026-09-14 is exactly that, and it arrived through the healing path: the
+    incremental top-up had skipped it (the cache jumped 09-11 to 09-15, and
+    being append-only it could never revisit), so the accident of that bug was
+    hiding this one. Re-requesting 45 days of settled history found the row
+    Yahoo was offering and merged it in. The published snapshot and the
+    precomputed ranking both carried it.
+
+    Dropping is the safe direction whatever the cause. If it really is a
+    holiday, the row is fiction. If it were instead a genuine partial outage,
+    removing it makes the return span 09-11 to 09-15 -- which is what a holder
+    actually experienced -- rather than inventing a close for 460 names and
+    leaving 290 with none.
+    """
+    if df is None or df.empty or df.shape[1] < 50:
+        return df
+    coverage = df.notna().sum(axis=1) / float(df.shape[1])
+    phantom = (coverage < MIN_SESSION_COVERAGE).to_numpy()
+    if not phantom.any():
+        return df
+    dates = pd.DatetimeIndex(df.index)
+    logger.warning(
+        "Dropping %d session(s) where under %.0f%% of the universe traded "
+        "(%s); an exchange holiday the vendor answered for anyway is not a "
+        "session.",
+        int(phantom.sum()), MIN_SESSION_COVERAGE * 100,
+        ", ".join(
+            f"{d.date()} at {coverage.iloc[i]*100:.0f}%"
+            for i, d in enumerate(dates) if phantom[i]
+        )[:200],
+    )
+    metrics.note("price_phantom_sessions_dropped", int(phantom.sum()))
+    return df.loc[~phantom]
+
+
 def _drop_unsettled_rows(df: pd.DataFrame) -> pd.DataFrame:
     """Keep only sessions whose daily bar has finished moving.
 
@@ -515,7 +576,7 @@ def fetch_price_history(
     if not force_refresh and os.path.exists(PRICES_FILE):
         try:
             cached = pd.read_parquet(PRICES_FILE)
-            cached = _drop_unsettled_rows(_drop_future_rows(cached))
+            cached = _drop_phantom_sessions(_drop_unsettled_rows(_drop_future_rows(cached)))
             if not cached.empty:
                 last_cached_date = cached.index[-1].date()
                 # Indian market date, not the server's, throughout -- see
@@ -637,7 +698,7 @@ def fetch_price_history(
                     # heal_days skips the download gate on purpose, so this is
                     # the only thing standing between a healing run and an
                     # in-progress session landing in the cache.
-                    combined = _drop_unsettled_rows(combined)
+                    combined = _drop_phantom_sessions(_drop_unsettled_rows(combined))
 
                     try:
                         combined.to_parquet(PRICES_FILE, compression="snappy")
@@ -828,7 +889,7 @@ def fetch_price_history(
                 type(exc).__name__, exc,
             )
 
-    data = _drop_unsettled_rows(data)
+    data = _drop_phantom_sessions(_drop_unsettled_rows(data))
 
     metrics.note("price_series_returned", len(data.columns))
     _note_price_as_of(data)
