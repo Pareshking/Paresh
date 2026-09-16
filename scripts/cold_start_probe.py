@@ -248,13 +248,34 @@ def main() -> None:
               "screener_ui_usable_s", "fully_interactive_s", "exception_s"):
         if k in marks:
             print(f"  {k:<32}: {marks[k]}s", flush=True)
+    # EVERY stage the app recorded, ordered by when it ran -- not a list of
+    # names kept here.
+    #
+    # This used to name seven stages explicitly, and the app has grown past
+    # them. Run 35051332884 printed a tidy seven-line table that silently
+    # omitted corporate_actions, ranking_snapshot_fetch, precomputed_ranking
+    # and engine_base -- engine_base being the very stage the run was
+    # dispatched to measure. The numbers had to be recovered by downloading
+    # the artifact and reading the JSON by hand, which is exactly the work the
+    # printed summary exists to save.
+    #
+    # A whitelist here can only ever be as current as the last person to
+    # remember it, and the stage it forgets is the new one -- which is the one
+    # being investigated. Sorting by start time keeps the pipeline order the
+    # old list was really encoding, without encoding it.
     print("\n-- application stages --", flush=True)
-    for name in ("universe", "price_history", "extract_ohlcv", "market_caps",
-                 "market_regime", "quant_engine", "data_pipeline_total"):
-        s = stages.get(name)
-        if s:
-            print(f"  {name:<22} start {s['started_at_s']:>8.1f}s  "
-                  f"dur {s['duration_s']:>8.1f}s", flush=True)
+    for name, s in sorted(
+        stages.items(), key=lambda kv: kv[1].get("started_at_s") or 0.0
+    ):
+        repeats = s.get("repeats") or 0
+        # Only the FIRST run of each stage is timed (src/core/startup_metrics),
+        # so a high repeat count means this process served many script runs --
+        # not that the duration shown is an average of them.
+        extra = f"  (first of {repeats + 1} runs)" if repeats else ""
+        print(f"  {name:<24} start {s['started_at_s']:>8.2f}s  "
+              f"dur {s['duration_s']:>8.2f}s{extra}", flush=True)
+    if not stages:
+        print("  (none recorded)", flush=True)
     print("\n-- fetch counters --", flush=True)
     for k in sorted(counters):
         print(f"  {k:<36}: {counters[k]:g}", flush=True)
