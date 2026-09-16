@@ -20,6 +20,7 @@ from src.core.config import BENCHMARK_SYMBOL, PRICES_FILE
 from src.core.tickers import normalise_columns, normalise_symbol
 from src.core.market_time import (
     ist_today,
+    last_downloadable_session,
     session_is_complete,
     trading_days_behind,
 )
@@ -409,11 +410,28 @@ def fetch_price_history(
     symbols: Sequence[str],
     period: str = "2y",
     force_refresh: bool = False,
+    heal_days: int = 0,
 ) -> pd.DataFrame:
     """Fetch daily OHLCV data for symbols with resilient caching and incremental updates.
 
     Caches data in PRICES_FILE (Snappy parquet). If the cache exists and already contains
     rows up to the most recent close, returns the cache immediately.
+
+    ``heal_days`` re-requests that many calendar days of ALREADY CACHED history
+    alongside the new sessions, and merges the answer cell by cell rather than
+    row by row. It exists because the incremental path is append-only: it asks
+    from the last cached date forward, so a close the vendor fills in LATER --
+    Yahoo routinely backfills an Indian symbol days after the session -- is
+    never requested again and the hole is permanent.
+
+    Production measured 572 such holes across 337 symbols in the published
+    snapshot, clustered on five dates where 11-18% of the universe went missing
+    at once. That shape is a partial download failure, not 337 independent
+    events, and every one of them was frozen in by an append-only top-up.
+
+    It costs nothing extra in requests -- the same single ``yf.download`` call
+    simply starts earlier -- so it belongs to the nightly job, where nobody is
+    waiting. Production leaves it at 0 and serves the healed snapshot.
     """
     if not symbols:
         return pd.DataFrame()
@@ -460,6 +478,31 @@ def fetch_price_history(
                     _note_price_as_of(cached)
                     return cached
 
+                # Nothing to ASK FOR yet. _cache_is_current above asks whether
+                # the cache is final; this asks whether the vendor could even
+                # answer, and the two differ for most of every day. At 06:43 IST
+                # the cache holding yesterday's close is not "current" -- today
+                # is a trading day and today's bar is missing -- but today's
+                # session has not opened, so the request that follows costs 25
+                # seconds of a reader's cold start to be told nothing. See
+                # DOWNLOAD_SETTLES in src/core/market_time.
+                #
+                # heal_days skips this gate deliberately: a healing run is not
+                # after the newest session, it is after the ones already held.
+                if not heal_days:
+                    target = last_downloadable_session()
+                    if target is not None and last_cached_date >= target:
+                        logger.info(
+                            "Price cache holds the last settled session (%s); "
+                            "next bar is not downloadable yet, serving cache "
+                            "(%d series).",
+                            last_cached_date, len(cached.columns),
+                        )
+                        metrics.note("price_path", "cache_pre_settle")
+                        metrics.note("price_series_returned", len(cached.columns))
+                        _note_price_as_of(cached)
+                        return cached
+
                 # Incremental update. The start date is INCLUSIVE of the last
                 # cached session when that session is still open, so today's
                 # partial row is re-requested and its later values replace the
@@ -469,6 +512,15 @@ def fetch_price_history(
                 start_date = pd.Timestamp(last_cached_date)
                 if session_is_complete(last_cached_date):
                     start_date += pd.Timedelta(days=1)
+                if heal_days > 0:
+                    # Reach back over settled history too, so a close the
+                    # vendor filled in after the fact is actually asked for.
+                    start_date = min(
+                        start_date,
+                        pd.Timestamp(last_cached_date) - pd.Timedelta(days=heal_days),
+                    )
+                    metrics.note("price_heal_days", int(heal_days))
+                    metrics.note("price_heal_from", str(start_date.date()))
                 yf_tickers = [
                     s + ".NS" if not s.upper().endswith(".NS") else s
                     for s in symbols
@@ -492,8 +544,41 @@ def fetch_price_history(
                     cached = _normalise_ticker_level(cached)
                     new_data = _normalise_ticker_level(new_data)
 
-                    # Vertical concatenation along dates (axis=0)
-                    combined = pd.concat([cached, new_data], axis=0)
+                    # Merge CELL BY CELL over the overlap, not row by row.
+                    #
+                    # keep="last" on a duplicated date takes the vendor's whole
+                    # row, including the cells where it sent nothing. One
+                    # rate-limited ticker in a batch therefore erased a close
+                    # the cache already held -- the append-only path then never
+                    # asked for that date again, so the hole was permanent. The
+                    # 572 interior gaps measured in the published snapshot are
+                    # this, five partial fetches deep.
+                    #
+                    # combine_first keeps the vendor's value wherever it HAS
+                    # one (so a revised close, or a restated split-adjusted
+                    # history, still wins) and falls back to the cache where it
+                    # does not. Strictly better than keep="last" in both
+                    # directions, which is why it applies to every run and not
+                    # only to healing ones.
+                    overlap = cached.index.intersection(new_data.index)
+                    if len(overlap):
+                        healed = new_data.loc[overlap].combine_first(cached.loc[overlap])
+                        repaired = int(
+                            (cached.loc[overlap].isna() & healed.notna()).to_numpy().sum()
+                        )
+                        if repaired:
+                            metrics.note("price_cells_repaired", repaired)
+                            logger.info(
+                                "Backfilled %d previously missing price cells across "
+                                "%d overlapping sessions.", repaired, len(overlap),
+                            )
+                        combined = pd.concat(
+                            [cached.drop(index=overlap), healed,
+                             new_data.drop(index=overlap)],
+                            axis=0,
+                        )
+                    else:
+                        combined = pd.concat([cached, new_data], axis=0)
                     if combined.index.duplicated().any():
                         combined = combined[~combined.index.duplicated(keep="last")]
                     combined = _coalesce_duplicate_columns(combined)

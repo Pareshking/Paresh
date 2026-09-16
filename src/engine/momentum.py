@@ -102,6 +102,7 @@ class MomentumEngine:
         volume_df: pd.DataFrame | None = None,
         weights: Sequence[float] | None = None,
         market_cap_weights: pd.Series | None = None,
+        corporate_actions: list[dict] | None = None,
     ):
         self.ffill_pct: pd.Series = compute_ffill_pct(prices_df)
 
@@ -147,6 +148,10 @@ class MomentumEngine:
 
         self.weights: list[float] = list(weights) if weights is not None else list(self.DEFAULT_WEIGHTS)
         self._mcap_weights: pd.Series | None = market_cap_weights
+        # The events already neutralised in the frames above. Carried so the
+        # ATH snapshot -- a separate download this engine does not own -- can be
+        # put on the same price scale. See corporate_actions.adjust_ath.
+        self.corporate_actions: list[dict] = list(corporate_actions or [])
 
         # Pre-calculate daily log returns
         self.log_ret: pd.DataFrame = np.log(self.prices / self.prices.shift(1).replace(0, np.nan))
@@ -287,7 +292,13 @@ class MomentumEngine:
 
         # All-time high
         from src.loaders.ath_loader import ath_series, ath_date_series
-        snapshot_ath = ath_series()
+        from src.engine.corporate_actions import trustworthy_ath
+        # Drop any high recorded on a price scale a corporate action has since
+        # moved. A pre-split high is the LARGER number, so it would win the
+        # max() below and silently defeat the adjustment applied to the frames.
+        snapshot_ath = trustworthy_ath(
+            ath_series(), ath_date_series(), self.corporate_actions
+        )
         window_ath = high_src.max()
         if not snapshot_ath.empty:
             ath = pd.concat(
@@ -605,7 +616,13 @@ class MomentumEngine:
         )
 
         from src.loaders.ath_loader import ath_series, ath_date_series
-        snapshot_ath = ath_series()
+        from src.engine.corporate_actions import trustworthy_ath
+        # Drop any high recorded on a price scale a corporate action has since
+        # moved. A pre-split high is the LARGER number, so it would win the
+        # max() below and silently defeat the adjustment applied to the frames.
+        snapshot_ath = trustworthy_ath(
+            ath_series(), ath_date_series(), self.corporate_actions
+        )
         window_ath = high_src.max()
         if not snapshot_ath.empty:
             ath = pd.concat(

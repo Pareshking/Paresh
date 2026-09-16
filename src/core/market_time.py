@@ -108,3 +108,60 @@ def session_is_complete(day: date, *, now: datetime | None = None) -> bool:
     if day > today:
         return False
     return reference.time() >= SESSION_SETTLES
+
+
+# ── When the vendor's daily bar is worth ASKING FOR ──────────────────────────
+#
+# SESSION_SETTLES above answers "is this row final?". This answers a different
+# and more expensive question: "is there any point making the request at all?"
+#
+# They are not the same moment. NSE's bell is 15:30 IST, but Yahoo's daily bar
+# for an Indian symbol keeps moving for hours afterwards -- the close is
+# revised, the volume is restated, and on a corporate-action day the whole
+# series is recomputed. Asking at 16:00 gets an answer; asking at 22:30 gets
+# the RIGHT answer, and asking before the open gets nothing at all while still
+# costing the full round trip.
+#
+# That last case is what this constant exists for. Production logged a
+# 25-second download of 750 tickers at 06:43 IST on 2026-09-16 -- before the
+# market had opened -- which returned no new rows, because the session it was
+# asking about had not happened yet. The cache went in with 499 rows and came
+# out with 499 rows, and every cold start before the open paid for it.
+#
+# 15:30 close + 7 hours. Deliberately generous: a late bar costs one stale
+# session, an early fetch costs a wrong price on every page that quotes it.
+DOWNLOAD_SETTLES = time(22, 30)
+
+
+def session_is_downloadable(day: date, *, now: datetime | None = None) -> bool:
+    """Is ``day``'s daily bar worth requesting from the vendor yet?
+
+    Stricter than :func:`session_is_complete`, and for a different caller. That
+    one guards how a row already in hand may be DESCRIBED; this one guards
+    whether a network request is made at all.
+    """
+    reference = now or ist_now()
+    today = reference.date()
+    if day > today:
+        return False
+    if day < today:
+        return True
+    return reference.time() >= DOWNLOAD_SETTLES
+
+
+def last_downloadable_session(*, now: datetime | None = None) -> date | None:
+    """The newest session whose bar the vendor can be expected to have settled.
+
+    Walks back from today over candidate trading days -- weekends are skipped
+    by :func:`recent_trading_days`, holidays are not enumerated -- and returns
+    the first one past its settle window. A caller whose cache already reaches
+    this date has nothing to gain from a request.
+
+    Returns None only if no candidate in the lookback window qualifies, which
+    a caller should read as "cannot tell; behave as before".
+    """
+    reference = now or ist_now()
+    for day in recent_trading_days(count=10, as_of=reference.date()):
+        if session_is_downloadable(day, now=reference):
+            return day
+    return None

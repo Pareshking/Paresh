@@ -9,7 +9,7 @@ jobs:
   full-sync:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,22 +24,77 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # The SAME key namespace the daily sync reads and writes. This job used
+      # to restore and save under `price-cache-*` while the daily job used
+      # `price-data-*`, so the two never saw each other's work: the full
+      # re-download landed in a cache nothing else read, and the daily job went
+      # on topping up its own never-restated copy.
+      #
+      # And the key must CHANGE every run -- actions/cache treats an entry as
+      # immutable and skips the save outright when the key already exists. Keyed
+      # on hashFiles('src/**/*.py'), this one only changed when the source did,
+      # so most weeks it discarded the very thing it had just rebuilt.
       - name: Restore price cache
-        uses: actions/cache@v4
+        id: restore-price-cache
+        uses: actions/cache/restore@v4
         with:
-          path: data_cache
-          key: price-cache-${{ runner.os }}-${{ hashFiles('src/**/*.py') }}
+          path: ${{ github.workspace }}/data_cache/
+          key: price-data-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            price-data-${{ runner.os }}-
+            price-data-
 
       - name: Run full refresh sync
         env:
           FORCE_FULL: "true"
+          PYTHONPATH: .
         run: |
           python scripts/sync_data.py
 
       - name: Save updated cache
-        uses: actions/cache@v4
+        if: always()
+        uses: actions/cache/save@v4
         with:
-          path: data_cache
-          key: price-cache-${{ runner.os }}-${{ hashFiles('src/**/*.py') }}
-          restore-keys: |
-            price-cache-${{ runner.os }}-
+          path: ${{ github.workspace }}/data_cache/
+          key: price-data-${{ runner.os }}-${{ github.run_id }}
+
+      # Without this the entire point of the job was lost. A full refresh is
+      # the ONLY path that re-reads history the incremental top-up can never
+      # revisit -- a close the vendor backfilled, a split it restated weeks
+      # after the fact -- and this job rebuilt all of it and then published
+      # none of it. Production kept seeding from the daily snapshot, which is
+      # built by appending to a cache that has never been re-read.
+      - name: Publish price snapshot
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SNAP="${{ github.workspace }}/data_cache/prices_snapshot.parquet"
+          if [ ! -f "$SNAP" ]; then
+            echo "::warning::No price snapshot was produced; skipping upload."
+            exit 0
+          fi
+          ls -lh "$SNAP"
+          gh release view data-latest --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create data-latest \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Latest data snapshots" \
+              --notes "Rolling price history published by the sync jobs." \
+              --latest=false
+          cp "$SNAP" "${{ github.workspace }}/prices.parquet"
+          gh release upload data-latest "${{ github.workspace }}/prices.parquet" \
+            --repo "$GITHUB_REPOSITORY" --clobber
+          echo "Uploaded the fully-refreshed prices.parquet to release data-latest."
+
+          ARCH="${{ github.workspace }}/data_cache/prices_archive.parquet"
+          if [ -f "$ARCH" ]; then
+            cp "$ARCH" "${{ github.workspace }}/prices_full.parquet"
+            gh release upload data-latest "${{ github.workspace }}/prices_full.parquet" \
+              --repo "$GITHUB_REPOSITORY" --clobber
+            echo "Uploaded prices_full.parquet to release data-latest."
+          fi
+
+      # A full re-download is exactly when a restatement lands, so re-scan.
+      # An event the vendor has now adjusted away stops being detected, and
+      # corporate_actions.adjust_prices re-verifies against the prices anyway.
+      - name: Check for corporate actions
+        run: python scripts/check_corporate_actions.py || true

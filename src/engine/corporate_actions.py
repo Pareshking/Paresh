@@ -188,11 +188,19 @@ def adjust_prices(
     Two properties matter more than the arithmetic:
 
     IT IS NEVER WRITTEN DOWN. The adjustment happens in memory, at read time,
-    derived from the flagged event. If the vendor later restates the series
-    itself, the jump disappears, the guard stops flagging it, and nothing is
-    applied. A patch written into the stored prices would instead be applied on
-    top of the vendor's, double-counting the split and producing a fresh error
-    harder to spot than the original.
+    derived from the flagged event. A patch written into the stored prices
+    would instead be applied on top of the vendor's, double-counting the split
+    and producing a fresh error harder to spot than the original.
+
+    AND IT IS RE-VERIFIED AGAINST THE PRICES IN HAND. The events come from a
+    committed log, not from a live scan, so "the vendor restated it, the guard
+    stops flagging it, nothing is applied" was not true of this function: it
+    applied every logged event unconditionally. Yahoo restates a split-adjusted
+    Indian series one to four weeks after the action -- exactly the window this
+    log exists to cover -- and on the day that landed, the history would have
+    been scaled by the ratio a SECOND time. A 1:3 split would have read as 1:9.
+    So each event is checked against the actual ratio at its own date and
+    skipped once the step is gone.
 
     IT ASSUMES A DEMERGER IS VALUE-NEUTRAL. For a split or bonus that is exact.
     For a demerger it is an approximation: the parent's price genuinely falls,
@@ -223,8 +231,141 @@ def adjust_prices(
         before = index < when
         if not before.any():
             continue
+        if not _step_is_still_present(out[symbol], when, ratio):
+            # The vendor restated this series; the step the log describes is no
+            # longer in the data. Applying the ratio now would re-create the
+            # discontinuity it was written to remove.
+            continue
         col = out.columns.get_loc(symbol)
         out.iloc[before, col] = out.iloc[before, col] * ratio
         applied.append({**event, "applied": True})
 
     return out, applied
+
+
+def _step_is_still_present(
+    series: pd.Series, when: pd.Timestamp, ratio: float
+) -> bool:
+    """Does ``series`` still show the logged discontinuity at ``when``?
+
+    Compares the session's ACTUAL ratio against the logged one. A restated
+    series moves normally across that date, so the observed ratio sits near 1.0
+    and nowhere near the logged fraction; an unrestated one still carries the
+    step. The test is "closer to the logged ratio than to no move at all",
+    which needs no threshold of its own and degrades safely: an unreadable or
+    absent price returns False, and not adjusting is the reversible mistake.
+    """
+    values = pd.to_numeric(series, errors="coerce")
+    at = values.reindex([when]).iloc[0] if when in values.index else np.nan
+    prior = values.loc[values.index < when].dropna()
+    if not np.isfinite(at) or prior.empty:
+        return False
+    previous = float(prior.iloc[-1])
+    if previous <= 0:
+        return False
+    observed = float(at) / previous
+    return abs(observed - ratio) < abs(observed - 1.0)
+
+
+def adjust_ohlc(
+    frames: dict[str, pd.DataFrame], events: list[dict[str, Any]] | None
+) -> tuple[dict[str, pd.DataFrame], list[dict[str, Any]]]:
+    """Neutralise flagged actions across every PRICE frame at once.
+
+    ``adjust_prices`` fixes one frame. The ranking pipeline reads four --
+    adjusted close, close, high and low -- and adjusting a subset is worse than
+    adjusting none: a 52-week high drawn from unadjusted highs sits three times
+    above a split-adjusted close, so the stock reads as 67% below its own high
+    and fails the Near-52W-High gate forever, on a split that never cost a
+    holder a rupee.
+
+    VOLUME IS DELIBERATELY NOT ADJUSTED. A split multiplies share count as it
+    divides price, so historical volume really is on a different scale after
+    one. Nothing here reads it on that horizon: the only consumer is a 20-day
+    relative-volume label (momentum.py:350, :665), which compares the last
+    session against the trailing twenty and is blind to a step older than that.
+    Adjusting it would buy nothing and quietly change a displayed label.
+
+    Returns the adjusted frames under their original keys, and the events that
+    were actually applied (once, not once per frame).
+    """
+    if not events:
+        return dict(frames), []
+    out: dict[str, pd.DataFrame] = {}
+    applied: list[dict[str, Any]] = []
+    for name, frame in frames.items():
+        adjusted, used = adjust_prices(frame, events)
+        out[name] = adjusted
+        if not applied:
+            applied = used
+    return out, applied
+
+
+def trustworthy_ath(
+    highs: pd.Series,
+    peak_dates: pd.Series | None,
+    events: list[dict[str, Any]] | None,
+) -> pd.Series:
+    """Blank all-time highs recorded on a price scale we can no longer identify.
+
+    The 52-week high is computed from the price frame, so adjusting that frame
+    fixes it. THE ALL-TIME HIGH IS NOT: it arrives as a separate per-symbol CSV
+    that the nightly job rebuilds from its own ten-year download
+    (src/loaders/ath_loader.py). Nothing done to the two-year frame in memory
+    reaches a number read from that file.
+
+    And momentum.py takes ``max(snapshot_ath, window_high)``. A high left on a
+    pre-split scale is by construction the LARGER number, so it wins that max
+    and silently defeats the adjustment applied to the frame beside it. On the
+    shipped snapshot, ABFRL read -86.5% from a high of 364.4 against a close of
+    49.0, across a 1:3 split and a demerger that cost a holder nothing. "At
+    ATH" is an entry gate, so that is a permanent lockout, not a stale tooltip.
+
+    WHY THIS BLANKS RATHER THAN RESCALES. The obvious fix -- multiply the high
+    by the action's ratio whenever it predates the action -- is wrong, and the
+    shipped data is what proves it. That CSV is MIXED. Measured across the
+    fourteen flagged names, eleven highs sat on the pre-action scale and three
+    (PGIL, PARAS, TDPOWERSYS) were already restated, because the nightly job
+    re-downloads afresh and Yahoo restates some Indian symbols and not others.
+    The recorded peak date cannot tell the two apart: PGIL's peak predates its
+    split and was adjusted anyway. Rescaling on that rule would have divided
+    three correct highs by two.
+
+    So this makes no claim about the vendor's state. A corporate action dated
+    AFTER the recorded peak means that peak was printed on a scale which may or
+    may not survive in the file, and there is no way to tell from the file
+    itself -- so the entry is dropped and momentum.py's max() falls through to
+    the window high, which this codebase HAS adjusted and can vouch for. An
+    action dated before the peak leaves the peak alone: it was printed on the
+    current scale.
+
+    The degradation is bounded and already documented -- ath_loader says the
+    in-memory fallback "is NOT an all-time high" -- and it self-heals, because
+    the next peak the nightly job records on the current scale restores trust.
+    A high on a scale the stock no longer trades on is not the safer answer.
+    """
+    if highs is None or highs.empty or not events:
+        return highs
+    out = pd.to_numeric(highs, errors="coerce").copy()
+    dates = (
+        pd.to_datetime(peak_dates, errors="coerce")
+        if peak_dates is not None and not peak_dates.empty
+        else None
+    )
+
+    for event in events:
+        symbol = event.get("symbol")
+        if symbol not in out.index:
+            continue
+        try:
+            when = pd.Timestamp(event["date"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if dates is not None and symbol in dates.index:
+            peak = dates.loc[symbol]
+            if pd.notna(peak) and pd.Timestamp(peak) >= when:
+                # Printed after the action, so already on the current scale.
+                continue
+        out.loc[symbol] = np.nan
+
+    return out

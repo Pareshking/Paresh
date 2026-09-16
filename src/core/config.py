@@ -134,6 +134,26 @@ PRICE_HISTORY_PERIOD: Final[str] = "2y"
 # the app starts.
 PRICE_ARCHIVE_PERIOD: Final[str] = "10y"
 
+# How far back the nightly sync re-asks for history it already holds.
+#
+# The incremental price path is append-only: it requests from the last cached
+# session FORWARD, so anything the vendor changes behind that point is
+# invisible to it forever. Two things routinely change behind it. Yahoo
+# backfills a missing Indian close days after the session, and it restates a
+# whole split-adjusted series one to four weeks after the corporate action.
+#
+# Neither is hypothetical here. The published snapshot carries 572 missing
+# closes across 337 symbols, clustered on five dates where 11-18% of the
+# universe vanished at once -- the signature of a partial fetch frozen in by an
+# append-only merge.
+#
+# 45 days covers the vendor's observed backfill latency with room to spare. It
+# is not a full restatement window; the weekly FORCE_FULL run is what re-reads
+# the entire history, and src/engine/corporate_actions.py neutralises a
+# restatement that has not landed yet. This costs nothing extra -- the same one
+# request simply starts earlier -- and it runs where nobody is waiting.
+PRICE_HEAL_DAYS: Final[int] = 45
+
 # The window used for all-time highs. Fetched by the daily sync job on GitHub
 # Actions, where nobody is waiting, and committed as a small per-symbol
 # snapshot -- so production gets a genuine long-run high without paying to

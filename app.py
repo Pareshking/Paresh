@@ -28,6 +28,8 @@ from src.core.config import (
     REPO_MCAP_FILE,
     REPO_ATH_FILE,
 )
+from src.core.logger import logger
+from src.engine.corporate_actions import adjust_ohlc, load_events
 from src.engine.momentum import MomentumEngine
 from src.engine.calendar_momentum import _compute_period_z_scores, _apply_weight_composite
 from src.loaders.indices_loader import fetch_indices_data
@@ -187,6 +189,37 @@ def _extract_ohlcv_cached(price_hash: str, sym_key: str, _raw_prices: pd.DataFra
     return extract_ohlcv(_raw_prices, _symbols)
 
 
+@st.cache_data(show_spinner=False, ttl=3600)
+def _adjust_for_corporate_actions(price_hash: str, _frames: dict) -> tuple[dict, list]:
+    """Neutralise flagged splits and demergers before the engine reads a price.
+
+    run_backtest has done this since the guard was written; the SCREENER never
+    did. The two therefore disagreed about the same stock: the Backtest tab
+    priced ABFRL's 1:3 split as the non-event it was, while the ranking on the
+    front page scored it through a phantom -67% session and buried it.
+
+    Measured against the published snapshot on 2026-09-15, eight of the 750
+    names carried such a session inside a live lookback -- PGIL, HEG,
+    INDIAGLYCO and TDPOWERSYS inside ALL FIVE of them, so 100% of each score
+    was drawn across a crash that never happened. Every one of the fourteen
+    logged events was still sitting in the prices, none had been restated away.
+
+    Cached on the price hash: the adjustment is a handful of column multiplies,
+    but it must not re-run on every slider tick.
+    """
+    metrics.incr("memo_miss_corporate_actions")
+    events = load_events()
+    adjusted, applied = adjust_ohlc(_frames, events)
+    metrics.note("corporate_actions_applied", len(applied))
+    if applied:
+        logger.info(
+            "Neutralised %d flagged corporate action(s) before ranking: %s",
+            len(applied),
+            ", ".join(sorted({str(e.get("symbol")) for e in applied})),
+        )
+    return adjusted, applied
+
+
 @st.cache_data(show_spinner=False, ttl=86400)
 def _load_tv_cached() -> dict:
     # load_tv_classification read from disk on every Streamlit rerun with no
@@ -206,6 +239,7 @@ def _run_engine_base(
     _volume_data: pd.DataFrame,
     _idx_info: pd.DataFrame,
     _market_caps: pd.Series,
+    _corporate_actions: list | None = None,
 ):
     # Expensive: constructs the engine, computes 5×_calendar_period_metrics,
     # and pre-computes all weight-independent signal columns (ATR, EMA, 52W
@@ -221,6 +255,7 @@ def _run_engine_base(
         close_df=_close_prices,
         volume_df=_volume_data,
         weights=[0.2] * 5,
+        corporate_actions=_corporate_actions,
     )
     _compute_period_z_scores(calc)
     calc._precompute_signals(_idx_info, _market_caps, _close_prices, _high_prices)
@@ -295,6 +330,19 @@ def load_all_data(indices: list[str]):
         except Exception:
             pass
 
+        # Every PRICE frame, together. Adjusting the close but not the high
+        # would leave a split-adjusted price measured against an unadjusted
+        # 52-week high -- a stock permanently "67% below its high" on a split
+        # that cost its holders nothing. Volume is left alone on purpose; see
+        # adjust_ohlc.
+        with metrics.stage("corporate_actions"):
+            _adj, _ca_applied = _adjust_for_corporate_actions(
+                p_hash_raw,
+                {"adj_close": adj_close, "close": close_p, "high": high_p, "low": low_p},
+            )
+            adj_close, close_p = _adj["adj_close"], _adj["close"]
+            high_p, low_p = _adj["high"], _adj["low"]
+
         with metrics.stage("market_caps"):
             mcaps = _fut_mcaps.result()
         with metrics.stage("market_regime"):
@@ -315,6 +363,7 @@ def load_all_data(indices: list[str]):
             vol_p,
             idx_info,
             mcaps,
+            _ca_applied,
         )
     with metrics.stage("quant_engine"):
         calc, rank_df = run_momentum_pipeline(

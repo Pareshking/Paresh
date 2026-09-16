@@ -62,11 +62,23 @@ def run_daily_sync() -> None:
     # backfills earlier history, so a longer period against an existing shorter
     # cache returns the shorter cache unchanged. The weekly full sync
     # (FORCE_FULL=true) is what actually deepens the archive.
-    from src.core.config import PRICE_ARCHIVE_PERIOD
+    from src.core.config import PRICE_ARCHIVE_PERIOD, PRICE_HEAL_DAYS
 
     print(f"\n--- 4. Fetching and Caching {PRICE_ARCHIVE_PERIOD.upper()} OHLCV Price Histories ---")
+    # heal_days re-asks for history this cache already holds. Yahoo backfills
+    # an Indian close days after the session and restates a split-adjusted
+    # series for weeks afterwards, and the incremental path -- which asks only
+    # from the last cached date FORWARD -- can never see either. The published
+    # snapshot carries 572 such holes across 337 symbols to prove it.
+    #
+    # It is the same single request with an earlier start, so it costs one job
+    # nothing and no reader anything. Skipped on a FORCE_FULL run, which is
+    # re-downloading the whole window regardless.
     prices_df = fetch_price_history(
-        symbols, period=PRICE_ARCHIVE_PERIOD, force_refresh=FORCE_FULL
+        symbols,
+        period=PRICE_ARCHIVE_PERIOD,
+        force_refresh=FORCE_FULL,
+        heal_days=0 if FORCE_FULL else PRICE_HEAL_DAYS,
     )
     print(f"Price cache updated with shape {prices_df.shape}.")
 
