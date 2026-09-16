@@ -32,6 +32,7 @@ whole trading day production's frame IS the frame the job ranked.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import tempfile
@@ -52,6 +53,42 @@ MIN_PLAUSIBLE_BYTES: int = 10_000
 META_KEY: bytes = b"umiya_ranking_contract"
 
 
+def actions_digest(applied: list[dict[str, Any]] | None) -> str:
+    """Fingerprint the corporate actions that were neutralised before ranking.
+
+    THE PRICE FINGERPRINT CANNOT SEE THESE, and that is not obvious. A
+    corporate action rewrites history BEFORE its own date and deliberately
+    leaves the current price alone -- neutralising ABFRL's 1:3 split rewrites
+    168 rows of the shipped snapshot and changes the last row not at all. So
+    the frame's last row, its shape and its last date are all identical with
+    and without the adjustment, and price_fingerprint returns the same string
+    either way.
+
+    Which means the event set is an input to the ranking that every other
+    field in the contract is blind to. Without this, a table built under one
+    set of events would be served against a different set, with the contract
+    passing: exactly the hit-that-should-have-been-a-miss the rest of this
+    module exists to prevent.
+
+    Not hypothetical. The daily sync publishes the ranking at step 5d and
+    re-scans for corporate actions afterwards, so the run of 2026-09-16
+    precomputed with 12 applied events and then appended a thirteenth (PGIL,
+    2026-08-03) to the log the app reads. One run, two event sets, one
+    fingerprint.
+
+    Only APPLIED events count. An event the vendor has since restated is
+    skipped by adjust_prices on both sides, so it must not enter the digest --
+    otherwise the log growing an entry nobody acts on would force a miss.
+    """
+    if not applied:
+        return "none"
+    parts = sorted(
+        f"{e.get('symbol')}|{e.get('date')}|{round(float(e.get('ratio', 0) or 0), 6)}"
+        for e in applied
+    )
+    return hashlib.md5("~".join(parts).encode()).hexdigest()[:12]
+
+
 def contract(
     *,
     price_fingerprint: str,
@@ -60,9 +97,11 @@ def contract(
     pipeline_version: str,
     universe: list[str] | None = None,
     price_as_of: str | None = None,
+    applied_actions: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Everything that must match before a precomputed table may be used."""
     return {
+        "actions_digest": actions_digest(applied_actions),
         "price_fingerprint": price_fingerprint,
         "symbols_fingerprint": symbols_fingerprint,
         # Rounded, because a float round-trip through JSON must not be the
@@ -84,7 +123,8 @@ def matches(published: dict[str, Any] | None, expected: dict[str, Any]) -> tuple
     """
     if not published:
         return False, "no contract recorded"
-    for field in ("pipeline_version", "symbols_fingerprint", "price_fingerprint"):
+    for field in ("pipeline_version", "symbols_fingerprint", "price_fingerprint",
+                  "actions_digest"):
         if str(published.get(field, "")) != str(expected[field]):
             return False, f"{field} differs"
     if [round(float(w), 6) for w in published.get("weights", [])] != expected["weights"]:

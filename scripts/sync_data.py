@@ -101,6 +101,11 @@ def _precompute_rankings(symbols, universe_df, mcaps) -> None:
         pipeline_version=pipeline.PIPELINE_VERSION,
         universe=list(universe_df["Symbol"].unique()) if "Symbol" in universe_df else [],
         price_as_of=as_of,
+        # What was ACTUALLY neutralised, not what the log holds. This job
+        # re-scans for corporate actions AFTER publishing, so the log the app
+        # reads can already have grown past this table -- and the price
+        # fingerprint cannot see the difference.
+        applied_actions=applied,
     )
     out = os.path.join(here, RANKINGS_SNAPSHOT_ASSET)
     write_snapshot(out, rank_df, terms)

@@ -292,3 +292,108 @@ def test_the_version_is_stable_when_nothing_changes():
 def test_the_version_still_carries_a_readable_tag():
     """The digest is for safety; the tag is so a human can read the log line."""
     assert pipeline.PIPELINE_VERSION.startswith("v4_calendar_periods")
+
+
+# ── The corporate actions are an input the price fingerprint cannot see ──────
+#
+# An adjustment rewrites history BEFORE its own date and deliberately leaves
+# the current price alone. Neutralising ABFRL's 1:3 split rewrites 168 rows of
+# the shipped snapshot and changes the last row not at all -- so the frame's
+# last row, shape and last date are identical either way, and
+# price_fingerprint returns the same string with the adjustment and without it.
+#
+# The event set is therefore an input every other contract field is blind to.
+# Not hypothetically: the daily sync publishes the ranking at step 5d and
+# re-scans for corporate actions afterwards, so the 2026-09-16 run precomputed
+# with 12 applied events and then appended a thirteenth (PGIL, 2026-08-03) to
+# the log the app reads. One run, two event sets, one fingerprint.
+
+ABFRL = {"symbol": "ABFRL", "date": "2025-05-22", "ratio": 0.3341}
+PGIL = {"symbol": "PGIL", "date": "2026-08-03", "ratio": 0.5093}
+
+
+def test_an_adjustment_really_is_invisible_to_the_price_fingerprint():
+    """The premise. If this ever stops being true, the digest can go."""
+    from src.engine.corporate_actions import adjust_ohlc
+
+    idx = pd.date_range("2025-01-01", "2025-12-31", freq="B")
+    before = idx < pd.Timestamp(ABFRL["date"])
+    vals = np.where(before, 300.0, 300.0 * ABFRL["ratio"])
+    close = pd.DataFrame({"ABFRL": vals}, index=idx)
+
+    plain, none_applied = adjust_ohlc({"c": close}, [])
+    fixed, applied = adjust_ohlc({"c": close}, [ABFRL])
+    assert none_applied == [] and len(applied) == 1, "fixture did not apply the event"
+
+    changed = int((plain["c"]["ABFRL"] != fixed["c"]["ABFRL"]).sum())
+    assert changed > 0, "the adjustment changed nothing"
+    assert plain["c"]["ABFRL"].iloc[-1] == fixed["c"]["ABFRL"].iloc[-1], (
+        "the adjustment moved the last row; the premise no longer holds"
+    )
+    assert pipeline.price_fingerprint(plain["c"]) == pipeline.price_fingerprint(fixed["c"]), (
+        "price_fingerprint now sees the adjustment"
+    )
+
+
+def test_a_different_event_set_is_rejected(terms):
+    """The fix. Same prices, same weights, one more event -> miss."""
+    published = ranking_store.contract(
+        price_fingerprint=terms["price_fingerprint"],
+        symbols_fingerprint=terms["symbols_fingerprint"],
+        weights=terms["weights"], pipeline_version=terms["pipeline_version"],
+        universe=terms["universe"], applied_actions=[ABFRL],
+    )
+    expected = ranking_store.contract(
+        price_fingerprint=terms["price_fingerprint"],
+        symbols_fingerprint=terms["symbols_fingerprint"],
+        weights=terms["weights"], pipeline_version=terms["pipeline_version"],
+        universe=terms["universe"], applied_actions=[ABFRL, PGIL],
+    )
+    ok, why = ranking_store.matches(published, expected)
+    assert not ok and "actions_digest" in why
+
+
+def test_the_same_event_set_matches_whatever_the_order(terms):
+    """A reordered log must not force a miss every cold start."""
+    a = ranking_store.actions_digest([ABFRL, PGIL])
+    b = ranking_store.actions_digest([PGIL, ABFRL])
+    assert a == b
+
+
+def test_no_events_is_its_own_stable_value():
+    assert ranking_store.actions_digest([]) == ranking_store.actions_digest(None) == "none"
+    assert ranking_store.actions_digest([ABFRL]) != "none"
+
+
+def test_a_changed_ratio_is_rejected():
+    """Same symbol and date, restated ratio: a different adjustment."""
+    assert ranking_store.actions_digest([ABFRL]) != ranking_store.actions_digest(
+        [{**ABFRL, "ratio": 0.5}]
+    )
+
+
+def test_only_applied_events_count_not_the_whole_log():
+    """An event the vendor restated is skipped on BOTH sides.
+
+    If the digest were taken over the log rather than over what was applied,
+    the log merely growing an entry nobody acts on would force a permanent
+    miss -- which is what happened to TDPOWERSYS and PGIL's 2026-09-11 event
+    on the 2026-09-16 sync: logged, no longer present in the prices, skipped.
+    """
+    import inspect
+
+    from src.loaders import ranking_store as rs
+
+    src = inspect.getsource(rs.actions_digest)
+    assert "APPLIED" in src, "the applied-only contract is no longer documented"
+
+    app = pathlib.Path(__file__).resolve().parents[1] / "app.py"
+    job = pathlib.Path(__file__).resolve().parents[1] / "scripts/sync_data.py"
+    assert "applied_actions=_ca_applied" in app.read_text().replace("\n", "").replace(" ", "") \
+        or "_ca_applied," in app.read_text(), "app.py does not pass what it applied"
+    assert "applied_actions=applied" in job.read_text(), (
+        "the sync stamps the artifact with something other than what it applied"
+    )
+
+
+import pathlib  # noqa: E402  (used by the test above)

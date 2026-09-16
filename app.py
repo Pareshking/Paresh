@@ -221,6 +221,7 @@ def _precomputed_ranking(
     sym_key: str,
     weights: tuple[float, ...],
     universe: list[str],
+    applied_actions: list | None = None,
 ) -> pd.DataFrame | None:
     """The nightly job's ranking, but only if it describes exactly this state.
 
@@ -248,6 +249,10 @@ def _precomputed_ranking(
         weights=weights,
         pipeline_version=pipeline.PIPELINE_VERSION,
         universe=universe,
+        # The price fingerprint is blind to these: an adjustment rewrites
+        # history BEFORE its own date and leaves the last row alone. See
+        # ranking_store.actions_digest.
+        applied_actions=applied_actions,
     )
     ok, reason = ranking_store.matches(published, expected)
     if not ok:
@@ -426,6 +431,7 @@ def load_all_data(indices: list[str]):
         rank_df = _precomputed_ranking(
             _fetched_ranking, p_hash, _symbols_hash(symbols), weights,
             sorted(idx_info["Symbol"].unique().tolist()) if "Symbol" in idx_info else [],
+            _ca_applied,
         )
 
     if rank_df is None:
