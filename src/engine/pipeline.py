@@ -27,7 +27,50 @@ from src.engine.momentum import MomentumEngine
 # table recorded under a different version is discarded rather than trusted:
 # the whole contract is that the artifact equals what the engine would have
 # computed, and a changed engine breaks exactly that.
-PIPELINE_VERSION: str = "v4_calendar_periods"
+_PIPELINE_TAG: str = "v4_calendar_periods"
+
+
+def _settings_digest() -> str:
+    """Fingerprint the CONSTANTS that decide the numbers, not just the tag.
+
+    A hand-maintained version string only invalidates the artifact when someone
+    remembers to bump it, and the case where they forget is the dangerous one.
+    Change MOMENTUM_MONTHS from [1,3,6,9,12] to [1,3,6,12,18] and deploy: the
+    running app scores five different horizons immediately, while the published
+    table is still last night's, computed over the old ones. Every other field
+    in the contract -- the price frame, the universe, the weights -- would still
+    match, so production would serve that table as though it described the new
+    configuration. The screener would show a ranking for horizons nobody is
+    running, and nothing anywhere would say so.
+
+    The lookback WEIGHTS are not here: they are a reader's setting, travel in
+    the contract as their own field, and change per session. These are the
+    build-time constants behind them, which change only with a deploy.
+    """
+    from src.core.config import HIGH_52W_MIN_OBSERVATIONS, MOMENTUM_MONTHS
+    from src.engine.calendar_momentum import ANCHOR_STALENESS_LIMIT
+    from src.engine.momentum import MIN_OBSERVATIONS
+
+    payload = "|".join(
+        str(x) for x in (
+            list(MOMENTUM_MONTHS),
+            HIGH_52W_MIN_OBSERVATIONS,
+            MIN_OBSERVATIONS,
+            ANCHOR_STALENESS_LIMIT,
+        )
+    )
+    return hashlib.md5(payload.encode()).hexdigest()[:8]
+
+
+def pipeline_version() -> str:
+    """The tag, plus a digest of the settings the tag is supposed to track."""
+    return f"{_PIPELINE_TAG}_{_settings_digest()}"
+
+
+# Module-level for the callers that read it as a constant. Both sides of the
+# contract import THIS, so a config edit invalidates yesterday's artifact on the
+# next process start without anyone having to notice.
+PIPELINE_VERSION: str = pipeline_version()
 
 
 def price_fingerprint(df: pd.DataFrame | None) -> str:

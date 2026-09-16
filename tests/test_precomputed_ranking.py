@@ -220,3 +220,75 @@ def test_the_pipeline_version_is_recorded_not_hardcoded_at_the_call_site():
         "app.py hardcodes a pipeline version again; bump it and the artifact "
         "would still be trusted"
     )
+
+
+# ── Changing the lookback must never be served from a stale artifact ─────────
+#
+# Two different things go by "changing the lookback", and they fail differently.
+#
+# THE WEIGHTS are a reader's setting -- five sliders over fixed 1/3/6/9/12-month
+# windows. They travel in the contract as their own field, so moving one misses
+# and the engine runs live. Slower, never wrong.
+#
+# THE HORIZONS are build-time constants. Edit MOMENTUM_MONTHS and deploy, and
+# the running app scores different windows immediately while the published table
+# is still last night's, computed over the old ones -- with the price frame, the
+# universe and the weights all still matching. A hand-bumped version string only
+# catches that when somebody remembers, and the case where they forget is the
+# dangerous one: a ranking for horizons nobody is running, reported as current.
+
+def test_moving_a_weight_slider_misses_rather_than_serving_the_wrong_table(terms):
+    """The reader's case. A miss is the correct, safe outcome."""
+    published = dict(terms)                       # 10/30/30/20/10, as published
+    reader_changed_a_slider = ranking_store.contract(
+        price_fingerprint=terms["price_fingerprint"],
+        symbols_fingerprint=terms["symbols_fingerprint"],
+        weights=(0.20, 0.20, 0.20, 0.20, 0.20),   # equal weight instead
+        pipeline_version=terms["pipeline_version"],
+        universe=terms["universe"],
+    )
+    ok, why = ranking_store.matches(published, reader_changed_a_slider)
+    assert not ok and "weights" in why
+
+
+def test_changing_the_lookback_horizons_invalidates_the_artifact(monkeypatch):
+    """The deploy case, which a hand-maintained version string would miss."""
+    import src.core.config as cfg
+
+    before = pipeline.pipeline_version()
+    monkeypatch.setattr(cfg, "MOMENTUM_MONTHS", [1, 3, 6, 12, 18])
+    after = pipeline.pipeline_version()
+    assert before != after, (
+        "MOMENTUM_MONTHS changed and the pipeline version did not; last "
+        "night's table would still be served against new horizons"
+    )
+
+
+@pytest.mark.parametrize(
+    "module, name, value",
+    [
+        ("src.core.config", "HIGH_52W_MIN_OBSERVATIONS", 999),
+        ("src.engine.momentum", "MIN_OBSERVATIONS", 999),
+        ("src.engine.calendar_momentum", "ANCHOR_STALENESS_LIMIT", 99),
+    ],
+)
+def test_every_ranking_constant_is_in_the_digest(monkeypatch, module, name, value):
+    """Each of these moves the numbers, so each must invalidate the artifact."""
+    import importlib
+
+    before = pipeline.pipeline_version()
+    monkeypatch.setattr(importlib.import_module(module), name, value)
+    assert pipeline.pipeline_version() != before, (
+        f"{module}.{name} changed without invalidating the precomputed table"
+    )
+
+
+def test_the_version_is_stable_when_nothing_changes():
+    """A digest that moved on its own would mean the precompute never hits."""
+    assert pipeline.pipeline_version() == pipeline.pipeline_version()
+    assert pipeline.PIPELINE_VERSION == pipeline.pipeline_version()
+
+
+def test_the_version_still_carries_a_readable_tag():
+    """The digest is for safety; the tag is so a human can read the log line."""
+    assert pipeline.PIPELINE_VERSION.startswith("v4_calendar_periods")

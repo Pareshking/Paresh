@@ -319,12 +319,19 @@ def trustworthy_ath(
     and silently defeats the adjustment applied to the frame beside it. On the
     shipped snapshot, ABFRL read -86.5% from a high of 364.4 against a close of
     49.0, across a 1:3 split and a demerger that cost a holder nothing. "At
-    ATH" is drawn as a gate chip on the stock page and a dot in the screener,
-    so a stale high does not merely mislead a tooltip -- it shows a reader a
-    dark signal on a stock that is in fact near its high. Nothing SELECTS on
-    "At ATH" (the Qualified list filters on Above 50 EMA and Near 52W High), so
-    this is a wrong number on the page rather than a name excluded from the
-    book. "% ATH" carries the same error in a column readers sort by.
+    What that actually costs, measured on the shipped snapshot rather than
+    asserted: the "% ATH" COLUMN was wrong for fourteen names by up to 65
+    percentage points -- PGIL read -55.1% against a true -10.0%, INDIAGLYCO
+    -77.0% against -11.4% -- and readers sort on that column. The "At ATH" dot
+    did NOT change for a single one of them: 17 of 750 lit green before and
+    after, because every corrected name still sits outside the -5% threshold
+    (STAR is closest at -6.1%). Nor does anything SELECT on it; the Qualified
+    list filters on Above 50 EMA and Near 52W High.
+
+    So this is a displayed number, not a gate outcome -- today. STAR is 1.1
+    points from lighting up, and the error it would light up from was 24 points
+    wide, which is the reason to fix the number rather than wait for the day it
+    changes a signal.
 
     WHY THIS BLANKS RATHER THAN RESCALES. The obvious fix -- multiply the high
     by the action's ratio whenever it predates the action -- is wrong, and the
