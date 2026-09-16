@@ -313,3 +313,35 @@ def test_the_shortfall_is_reported_not_silent(tmp_path, monkeypatch, caplog):
     assert any("thinner than the cache" in r.message for r in caplog.records), (
         "a full refresh came back short and logged nothing"
     )
+
+
+def test_a_totally_failed_refresh_leaves_the_cache_untouched(tmp_path, monkeypatch):
+    """The other half of the question: what if the refresh gets NOTHING?
+
+    This one was already safe, and it is worth pinning so it stays that way.
+    fetch_price_history returns an empty frame BEFORE any write when every
+    batch comes back empty, so the cache on disk is never opened -- and
+    sync_data republishes from the FILE, not from the returned frame, so a
+    dead Friday republishes last week's good snapshot rather than nothing.
+
+    The dangerous case was never total failure. It was partial success, which
+    looks identical to a good fetch from the outside.
+    """
+    from src.loaders import price_loader
+
+    idx = pd.date_range("2026-09-01", "2026-09-15", freq="B")
+    cached = _frame(["AAA", "BBB"], idx, 100.0)
+    path = tmp_path / "prices.parquet"
+    cached.to_parquet(path)
+    before = path.read_bytes()
+
+    monkeypatch.setattr(price_loader, "PRICES_FILE", str(path))
+    monkeypatch.setattr(price_loader.yf, "download", lambda *a, **k: pd.DataFrame())
+    monkeypatch.setattr(price_loader.time, "sleep", lambda *_: None)
+
+    out = price_loader.fetch_price_history(["AAA", "BBB"], period="2y", force_refresh=True)
+    assert out.empty, "a failed refresh should report empty, not invent data"
+    assert path.read_bytes() == before, "a failed refresh overwrote the cache"
+
+    survived = pd.read_parquet(path)
+    assert list(survived.columns) == ["AAA", "BBB"] and survived.notna().all().all()
