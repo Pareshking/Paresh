@@ -31,12 +31,16 @@ from typing import Any, Iterable, Sequence
 import numpy as np
 import pandas as pd
 
+from src.core.logger import logger
+
 # Nothing before this month is ever recorded. The strategy's live history
 # starts here; earlier "returns" would be pure hindsight simulation presented
 # beside real ones.
 INCEPTION = pd.Period("2026-01", freq="M")
 
-LEDGER_PATH = Path("data/track_record.json")
+# Repo-root anchored: see the note on LOG_PATH in corporate_actions.py. A
+# missing ledger reads as an empty track record rather than an error.
+LEDGER_PATH = Path(__file__).resolve().parents[2] / "data" / "track_record.json"
 SCHEMA_VERSION = 1
 
 MONTH_LABELS = [
@@ -84,6 +88,7 @@ def load_ledger(path: Path | str = LEDGER_PATH) -> dict[str, Any]:
     """
     p = Path(path)
     if not p.exists():
+        logger.warning("No track-record ledger at %s; reporting an empty record.", p)
         return empty_ledger()
     with p.open("r", encoding="utf-8") as fh:
         ledger = json.load(fh)

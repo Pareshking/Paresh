@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src.engine.momentum import MomentumEngine
 from src.ui.charts import render_rrg_chart
 from src.ui.components import render_data_quality_footer
 from src.ui.theme import render_saas_table
@@ -202,7 +201,6 @@ def compute_rrg_data(
 
 
 def render_rrg_view(
-    calc: MomentumEngine,
     rank_df: pd.DataFrame,
     adj_close: pd.DataFrame,
 ) -> None:

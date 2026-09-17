@@ -28,9 +28,14 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Iterable
 
+from src.core.logger import logger
 from src.core.tickers import is_tradeable_symbol
 
-HISTORY_PATH = Path("data/membership_history.json")
+# Repo-root anchored: see the note on LOG_PATH in corporate_actions.py. A
+# missing history here silently returns None, which the backtester counts as
+# "no point-in-time coverage" and falls back to TODAY's constituent list --
+# reintroducing exactly the survivorship bias this module exists to remove.
+HISTORY_PATH = Path(__file__).resolve().parents[2] / "data" / "membership_history.json"
 SCHEMA_VERSION = 1
 DEFAULT_INDEX = "NIFTY TOTAL MARKET"
 
@@ -68,6 +73,11 @@ def load_history(path: Path | str = HISTORY_PATH) -> dict[str, Any]:
     """Read the timeline, or an empty one. A corrupt file raises, never resets."""
     p = Path(path)
     if not p.exists():
+        logger.warning(
+            "No membership history at %s; point-in-time constituents are "
+            "unavailable and the backtest will score against the CURRENT "
+            "index membership.", p,
+        )
         return empty_history()
     with p.open("r", encoding="utf-8") as fh:
         history = json.load(fh)

@@ -608,7 +608,11 @@ def _page_sectors() -> None:
 
 
 def _page_rrg() -> None:
-    render_rrg_view(get_calc(), rank_df, adj_close)
+    # No get_calc() here. This page never read the engine -- it took it as an
+    # argument and ignored it -- so on the common cold start, where the
+    # precomputed ranking is accepted and `calc` is still None, opening RRG
+    # built the whole engine to satisfy an unused parameter.
+    render_rrg_view(rank_df, adj_close)
 
 
 def _page_portfolio() -> None:

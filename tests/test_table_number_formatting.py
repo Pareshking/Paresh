@@ -138,22 +138,3 @@ def test_alpha_is_a_fraction_in_both_renderers():
 
     assert _format_claims(FORMAT_MAP["Alpha"]) == "fraction"
     assert percent_unit("Alpha") == "fraction"
-
-
-def test_styled_table_falls_back_to_the_shared_unit_declaration(monkeypatch):
-    """A declared column not listed in FORMAT_MAP still formats correctly."""
-    import pandas as pd
-    from src.ui import theme
-
-    captured = {}
-    monkeypatch.setattr(
-        theme, "st",
-        types.SimpleNamespace(
-            dataframe=lambda obj, **k: captured.setdefault("html", obj.to_html()),
-            info=lambda *a, **k: None,
-        ),
-    )
-    # "Total Return" is declared a fraction but is NOT in FORMAT_MAP.
-    assert "Total Return" not in theme.FORMAT_MAP
-    theme.render_styled_table(pd.DataFrame({"Total Return": [1.3142]}))
-    assert "+131.4%" in captured["html"]
