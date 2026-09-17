@@ -3,7 +3,21 @@ name: V1 Production QA
 on:
   workflow_dispatch:
   push:
-    branches: [main, 'claude/**']
+    # `main` only, because this job probes the DEPLOYED app rather than the
+    # checkout. It asserts the build Streamlit is serving equals github.sha
+    # (UMIYA_EXPECTED_SHA below), and Streamlit Cloud serves the deployed
+    # branch -- so on a feature branch that SHA can never appear. The probe
+    # waited its full 300s for a swap that was never going to happen and then
+    # failed, on all six pushes to claude/codebase-audit-xbu6ns, including one
+    # that contained nothing but deletions of unreferenced code. Every
+    # substantive assertion in those runs passed; only the build
+    # correspondence failed, and the probe labelled it [INFRASTRUCTURE]
+    # itself.
+    #
+    # A red check that cannot go green tells a reviewer nothing and trains
+    # everyone to ignore it. When the Cloud app IS deliberately pointed at a
+    # working branch, run this by hand with workflow_dispatch.
+    branches: [main]
   schedule:
     - cron: "17 */6 * * *"
 
