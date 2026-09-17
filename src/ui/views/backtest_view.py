@@ -363,7 +363,7 @@ def _backtest_body(
                         </div>
                         """
                     )
-                    render_saas_table(lb, key="bt_live_book_table")
+                    render_saas_table(lb)
                     st.download_button(
                         "⬇️ Export Current Holdings (CSV)",
                         lb.to_csv(index=False).encode(),
@@ -395,7 +395,7 @@ def _backtest_body(
                         "realised round trip; on a BOUGHT or HELD row it is "
                         "unrealised, marked at the latest close."
                     )
-                    render_saas_table(ch, key="bt_month_changes_table")
+                    render_saas_table(ch)
                     st.download_button(
                         "⬇️ Export This Month's Changes (CSV)",
                         _fmt_dates(changes).to_csv(index=False).encode(),
@@ -452,7 +452,7 @@ def _backtest_body(
                 ]
                 active_cols = [c for c in disp_cols if c in m_df.columns]
 
-                render_saas_table(m_df[active_cols], key="bt_monthly_table")
+                render_saas_table(m_df[active_cols])
                 c_dl.download_button(
                     "⬇️ Export Monthly Performance (CSV)",
                     m_df[active_cols].to_csv(index=False).encode(),
@@ -566,7 +566,7 @@ def _backtest_body(
                 ]
                 active_ct_cols = [c for c in disp_trade_cols if c in ct_df.columns]
 
-                render_saas_table(ct_df[active_ct_cols], key="bt_closed_trades_table")
+                render_saas_table(ct_df[active_ct_cols])
                 c_dl.download_button(
                     "⬇️ Export Realized Trades (CSV)",
                     closed_trades[active_ct_cols].to_csv(index=False).encode(),
@@ -620,7 +620,7 @@ def _backtest_body(
                 ]
                 active_tb_cols = [c for c in tb_disp_cols if c in tb_view.columns]
 
-                render_saas_table(tb_view[active_tb_cols], key="bt_tradebook_table")
+                render_saas_table(tb_view[active_tb_cols])
 
                 c_dl.download_button(
                     "⬇️ Export Full Rebalance Log (CSV)",

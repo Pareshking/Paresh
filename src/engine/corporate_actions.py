@@ -163,9 +163,8 @@ LOG_PATH = "data/corporate_actions_log.json"
 def load_events(path: str | Path = LOG_PATH) -> list[dict[str, Any]]:
     """The flagged sessions on record, or an empty list."""
     import json
-    from pathlib import Path as _Path
 
-    p = _Path(path)
+    p = Path(path)
     if not p.exists():
         return []
     try:

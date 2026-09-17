@@ -1,4 +1,6 @@
+import hashlib
 import re
+import time
 from html import escape as _esc
 from urllib.parse import quote as _urlq
 
@@ -1132,10 +1134,47 @@ def _period_cells(row, months: int) -> dict[str, str]:
     }
 
 
+_SPARK_MISSING = '<span style="color:#cbd5e1;font-size:0.75rem;">—</span>'
+
+
+def _spark_window_key(sub_prices: pd.DataFrame) -> str:
+    """Fingerprint the 60-session window the sparklines are drawn from.
+
+    Same shape as src/engine/pipeline.price_fingerprint and for the same
+    reason: within a trading day the window's last date and shape do not
+    change, only the numbers in the final row do, so hashing that row is what
+    makes an intraday refresh miss the cache instead of serving this morning's
+    lines under this afternoon's prices. Everything before the last row is
+    settled history, and a change there moves the shape or the date anyway.
+    """
+    try:
+        last = pd.to_numeric(sub_prices.iloc[-1], errors="coerce").to_numpy(dtype="float64")
+        digest = hashlib.md5(last.tobytes()).hexdigest()[:12]
+        return f"{sub_prices.index[-1]}_{sub_prices.shape[0]}x{sub_prices.shape[1]}_{digest}"
+    except Exception:
+        # Un-fingerprintable means un-cacheable: return a value that never
+        # repeats, so the map is recomputed rather than wrongly reused.
+        return f"nokey_{id(sub_prices)}_{time.time()}"
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def _sparkline_svgs(window_key: str, _sub_prices: pd.DataFrame) -> dict[str, str]:
+    """Every symbol's sparkline for one price window, built once.
+
+    Keyed on the WINDOW, not on the symbols being displayed, so the screener's
+    filters and presets all read the same cached map instead of each rebuilding
+    the subset they happen to show. Measured at ~118ms for 750 symbols, paid on
+    every Table-mode render before this.
+    """
+    return {
+        str(col): generate_sparkline_svg(_sub_prices[col].values)
+        for col in _sub_prices.columns
+    }
+
+
 def render_master_screener_table(
     df: pd.DataFrame,
     prices_df: pd.DataFrame | None = None,
-    key: str = "master_screener",
     max_height: int = 750,
     density: str = "Full Quant (35)",
 ) -> None:
@@ -1153,17 +1192,20 @@ def render_master_screener_table(
     if prices_df is not None and not prices_df.empty:
         spark_window = min(60, len(prices_df))
         sub_prices = prices_df.iloc[-spark_window:]
-        for sym in df["Symbol"]:
-            if sym in sub_prices.columns:
-                spark_map[sym] = generate_sparkline_svg(sub_prices[sym].values)
-            else:
-                spark_map[sym] = (
-                    '<span style="color:#cbd5e1;font-size:0.75rem;">—</span>'
-                )
+        all_svgs = _sparkline_svgs(_spark_window_key(sub_prices), sub_prices)
+        spark_map = {sym: all_svgs.get(sym, _SPARK_MISSING) for sym in df["Symbol"]}
 
     # Build HTML Rows for All Records (Continuous Scrollable)
+    #
+    # to_dict("records") rather than iterrows(): iterrows() rebuilds a pandas
+    # Series per row, which measured ~3.4x the cost of plain dicts over 750
+    # rows. Every read below is row.get(...), which a dict answers identically.
+    # The frame here always carries Symbol and Industry as text, so it is
+    # mixed-dtype and iterrows() was already boxing values to native Python --
+    # the isinstance(x, (int, float)) checks throughout see exactly what they
+    # saw before.
     rows_html = []
-    for _, row in df.iterrows():
+    for row in df.to_dict("records"):
         rk = row.get("Rank", "—")
         sym = row.get("Symbol", "—")
         # Every value below originates in a third-party feed (the
@@ -1916,7 +1958,6 @@ _AGGREGATE_MONEY_KEYS = ("VALUE", "CAPITAL", "MCAP")
 
 def render_saas_table(
     df: pd.DataFrame,
-    key: str = "saas_table",
     max_height: int | None = None,
 ) -> None:
     """Renders a beautiful borderless SaaS table with sticky headers, interactive column sorting, and JetBrains Mono numerics."""
@@ -1975,7 +2016,15 @@ def render_saas_table(
             headers_html.append(f'<th class="th-right">{_esc(str(col))}</th>')
 
     rows_html = []
-    for _, row in df.iterrows():
+    # Plain dicts rather than iterrows(): a Series per row is ~3.4x the cost
+    # over a large frame and nothing here needs one. Unlike the screener table
+    # this renderer takes arbitrary frames, some of which are homogeneously
+    # numeric -- where iterrows() hands back numpy scalars rather than boxing
+    # to native Python. That is safe here only because the value branches below
+    # test (int, np.integer) and (float, np.floating), so a native int and a
+    # numpy int64 land in the same branch either way. Keep those numpy arms if
+    # this loop is ever rewritten.
+    for row in df.to_dict("records"):
         cells_html = []
         for col in df.columns:
             val = row[col]

@@ -230,7 +230,6 @@ def render_sector_view(
         ]
         render_saas_table(
             ind_rank_df[[c for c in disp_ind_cols if c in ind_rank_df.columns]],
-            key="sector_table_view",
             max_height=520,
         )
 

@@ -151,8 +151,8 @@ def test_table_symbol_opens_the_stock_page_by_injecting_into_the_host():
     theme.st.iframe = lambda h, **k: captured.setdefault("html", h)
     theme.st.info = lambda *a, **k: None
     try:
-        theme.render_master_screener_table(rank_df, prices_df=px, key="t",
-                                           density="Full Quant (35)")
+        theme.render_master_screener_table(rank_df, prices_df=px,
+                                   density="Full Quant (35)")
     finally:
         theme.st.iframe, theme.st.info = orig_iframe, orig_info
 

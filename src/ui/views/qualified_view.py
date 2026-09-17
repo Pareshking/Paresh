@@ -97,7 +97,7 @@ def _render_qualified_section(
     st.markdown(kpi_html, unsafe_allow_html=True)
 
     render_master_screener_table(
-        df_subset, prices_df=adj_close, key=f"{key_prefix}_table"
+        df_subset, prices_df=adj_close
     )
 
     st.markdown(" ")

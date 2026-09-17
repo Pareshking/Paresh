@@ -227,7 +227,6 @@ def render_portfolio_view(
         ]
         render_saas_table(
             summary[[c for c in disp_cols if c in summary.columns]],
-            key="order_sheet_table",
             max_height=320,
         )
 
@@ -308,7 +307,7 @@ def render_portfolio_view(
         )
 
     with st.expander("Inspect Zerodha Kite Basket Schema", expanded=False):
-        render_saas_table(kite_df, key="zerodha_basket_preview_table", max_height=240)
+        render_saas_table(kite_df, max_height=240)
 
     render_data_quality_footer(
         total_stocks=len(rank_df),

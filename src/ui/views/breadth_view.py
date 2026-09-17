@@ -281,7 +281,7 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
                     disp_events = hl_events_df
 
                 render_saas_table(
-                    disp_events, key="hl_breakout_records_table", max_height=400
+                    disp_events, max_height=400
                 )
             else:
                 st.caption("No new high/low breakouts recorded in the lookback window.")

@@ -382,7 +382,7 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
                     ),
                 }
             )
-        render_saas_table(pd.DataFrame(_rows), key="cfg_corporate_actions")
+        render_saas_table(pd.DataFrame(_rows))
         st.caption(
             "A **split or bonus** should have been adjusted away by the data provider and was not — "
             "re-fetching fixes it. A **possible demerger** matches no standard ratio; providers "
