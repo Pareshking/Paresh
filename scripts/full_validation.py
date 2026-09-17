@@ -54,8 +54,52 @@ rank_df = calc.get_rankings(
     close_prices_df=close,
     high_prices_df=high,
 )
-if len(rank_df) < 700:
-    raise AssertionError(f"Ranking output unexpectedly small: {len(rank_df)}")
+# Coverage is measured against the session actually being ranked, not against a
+# constant.
+#
+# `len(rank_df) < 700` conflated two different claims: "the engine ranked what
+# it could" and "the vendor has finished publishing". Only the first is this
+# repository's to guarantee. Yahoo backfills a thin Indian session over hours or
+# days, so on 2026-09-17 just 368 of 750 symbols had a close for 2026-09-16 --
+# and the check failed on `main` with the engine working perfectly, having
+# ranked every symbol it was able to price. A fixed floor makes vendor latency
+# indistinguishable from a ranking defect, and the alarm that cries wolf is the
+# one nobody reads.
+#
+# So the assertion is a ratio against the priceable universe. It still catches
+# the real failure -- the engine dropping names it had prices for -- while a
+# late vendor produces a loud warning and a pass.
+priced_session = pd.DatetimeIndex(adj.index)[-1]
+priced_session_date = pd.Timestamp(priced_session).date()
+priceable = int(adj.loc[priced_session].notna().sum())
+
+# Below this the vendor is mid-backfill, not the engine mid-failure.
+COVERAGE_WARN_BELOW = 500
+# Of what COULD be ranked, essentially all of it should be. The slack absorbs
+# symbols that carry a close but fail the observation minimum.
+RANKED_SHARE_FLOOR = 0.95
+
+if priceable == 0:
+    raise AssertionError(
+        f"No symbol has a close on {priced_session_date}: the price frame's "
+        "last session is empty, which no amount of vendor lag explains."
+    )
+
+if len(rank_df) < priceable * RANKED_SHARE_FLOOR:
+    raise AssertionError(
+        f"Ranking covers {len(rank_df)} of the {priceable} symbols priced on "
+        f"{priced_session_date} ({len(rank_df) / priceable:.1%}); the engine "
+        "dropped names it had prices for."
+    )
+
+if priceable < COVERAGE_WARN_BELOW:
+    print(
+        f"WARNING: only {priceable} of {len(adj.columns)} symbols have a close "
+        f"on {priced_session_date} ({priceable / len(adj.columns):.1%}). The "
+        "vendor is still backfilling that session, so the ranking below covers "
+        f"{len(rank_df)} names -- thin by data availability, not by defect. "
+        "This resolves itself once a fully covered session becomes the last row."
+    )
 
 required = {"Symbol", "Score", "Rank", "CMP", "52W High"} | {
     f"{m}M {kind}" for m in (1, 3, 6, 9, 12) for kind in ("Return", "Sharpe")
@@ -114,6 +158,12 @@ report = {
     "universe_loaded": int(len(idx)),
     "price_series": int(len(adj.columns)),
     "ranked_stocks": int(len(rank_df)),
+    # What the coverage assertion actually measured, so a thin run is legible
+    # from the artifact rather than only from the console.
+    "priced_session": str(priced_session_date),
+    "priceable_on_session": priceable,
+    "ranked_share_of_priceable": round(len(rank_df) / priceable, 4),
+    "vendor_backfill_warning": bool(priceable < COVERAGE_WARN_BELOW),
     "latest_as_of": str(as_of),
     "required_schema_ok": True,
     "rank_monotonic": True,

@@ -259,7 +259,7 @@ def _render_identity(row: pd.Series, total_stocks: int) -> None:
     av_bg   = "linear-gradient(135deg,#eef2ff,#e0e7ff)"
 
     ring_html = (
-        f'<div class="sv-ring">'
+        '<div class="sv-ring">'
         + ring_svg
         + "</div>"
         if ring_svg else ""
@@ -282,7 +282,7 @@ def _render_identity(row: pd.Series, total_stocks: int) -> None:
             f'font-size:.67rem;font-weight:700;">{_mo}M&nbsp;{_pct_s}</span>'
         )
     periods_pills = (
-        f'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">'
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">'
         + "".join(_pill_parts)
         + "</div>"
         if _pill_parts else ""

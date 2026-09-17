@@ -298,14 +298,14 @@ def _card_html(row: pd.Series) -> str:
 
     return (
         f'<div class="sq-card" style="{card_style}{card_opacity}">'
-        + f'<div class="sq-top">'
+        + '<div class="sq-top">'
         + badge_html
-        + f'<div class="sq-nameblock">'
+        + '<div class="sq-nameblock">'
         + f'<a href="?stock={sym}" target="_self" class="sq-sym">{sym}</a>'
         + f'<div class="sq-ind">{industry}</div>'
-        + f'</div>'
+        + '</div>'
         + f'<div class="sq-right"><span class="sq-cmp">{cmp_html}</span>{delta_html}</div>'
-        + f'</div>'
+        + '</div>'
         + (f'<div class="sq-chips">{chips_html}</div>' if chips_html else "")
         + bar_html
         + metrics_html
