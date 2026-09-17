@@ -9,7 +9,7 @@ triggered the run, so a deploy lag is named rather than blamed on the code.
 import subprocess
 
 
-from src.core.build_info import deployed_revision, short_revision
+from src.core.build_info import deployed_revision
 
 
 def test_revision_matches_git():
@@ -17,7 +17,6 @@ def test_revision_matches_git():
         ["git", "rev-parse", "HEAD"], capture_output=True, text=True
     ).stdout.strip()
     assert deployed_revision() == expected
-    assert short_revision() == expected[:7]
 
 
 def test_detached_head_sha_is_read_directly(tmp_path):
@@ -62,7 +61,6 @@ def test_gitdir_pointer_file_is_followed(tmp_path):
 def test_absent_git_metadata_returns_none_rather_than_guessing(tmp_path):
     """None is safer than a wrong SHA: the probe would trust a false mismatch."""
     assert deployed_revision(str(tmp_path)) is None
-    assert short_revision(str(tmp_path)) is None
 
 
 def test_revision_is_published_in_startup_telemetry():

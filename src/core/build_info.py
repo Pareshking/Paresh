@@ -68,7 +68,3 @@ def deployed_revision(base_dir: str | None = None) -> str | None:
                 return parts[0]
     return None
 
-
-def short_revision(base_dir: str | None = None) -> str | None:
-    rev = deployed_revision(base_dir)
-    return rev[:7] if rev else None
