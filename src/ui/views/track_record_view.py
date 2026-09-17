@@ -298,7 +298,7 @@ def render_track_record_view(
                 else "Frozen months only."
             )
         )
-        render_saas_table(_grid_display(grid), key="tr_grid_combined")
+        render_saas_table(_grid_display(grid))
         st.download_button(
             "⬇️ Export Track Record (CSV)",
             grid.to_csv(index=False).encode(),
@@ -343,7 +343,7 @@ def render_track_record_view(
             "whether that month was scored against the index as it actually "
             "stood or against today's constituent list."
         )
-        render_saas_table(prov, key="tr_provenance")
+        render_saas_table(prov)
         st.download_button(
             "⬇️ Export Provenance (CSV)",
             prov.to_csv(index=False).encode(),

@@ -25,7 +25,7 @@ def _render(df: pd.DataFrame, monkeypatch) -> str:
             info=lambda *a, **k: None,
         ),
     )
-    render_saas_table(df, key="test")
+    render_saas_table(df)
     return captured["html"]
 
 

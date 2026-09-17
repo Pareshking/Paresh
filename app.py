@@ -558,14 +558,12 @@ total_stocks = len(rank_df)
 
 above_ema = count_above_ema(rank_df)
 pct_above_ema = (above_ema / total_stocks * 100) if total_stocks > 0 else 0.0
-gap_count = int((rank_df.get("Data Gap", pd.Series()) == "🔴").sum())
 
 render_header_kpi_bar(
     regime=regime_data,
     total_stocks=total_stocks,
     above_ema=above_ema,
     pct_above_ema=pct_above_ema,
-    gap_count=gap_count,
 )
 
 signals = compute_signals(

@@ -237,7 +237,7 @@ def _drop_future_rows(df: pd.DataFrame) -> pd.DataFrame:
     return df.loc[~future]
 
 
-def _recover_stale_cache(cached: pd.DataFrame, last_cached_date: date):
+def _recover_stale_cache(last_cached_date: date):
     """Last resort when Yahoo adds nothing and the cache is genuinely behind.
 
     Only when the cache is MORE than one trading day behind. One day behind is
@@ -753,7 +753,7 @@ def fetch_price_history(
                     # returned the same frame every hour for as long as the
                     # container lived. The daily snapshot is rebuilt by a job
                     # Yahoo does answer, so it is the way out.
-                    recovered = _recover_stale_cache(cached, last_cached_date)
+                    recovered = _recover_stale_cache(last_cached_date)
                     if recovered is not None:
                         _note_price_as_of(recovered)
                         return recovered

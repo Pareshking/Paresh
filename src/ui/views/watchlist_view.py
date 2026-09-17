@@ -124,7 +124,7 @@ def render_watchlist_view(rank_df: pd.DataFrame) -> None:
         )
         st.markdown(" ")
 
-        render_master_screener_table(matched, key="watchlist_table")
+        render_master_screener_table(matched)
 
         st.download_button(
             "Download Watchlist CSV",

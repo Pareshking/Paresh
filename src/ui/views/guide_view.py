@@ -266,7 +266,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
             },
         ]
         comp_df = pd.DataFrame(matrix_data)
-        render_saas_table(comp_df, key="guide_matrix_table", max_height=450)
+        render_saas_table(comp_df, max_height=450)
 
     # ── TAB 3: Mathematical Deep Dives ───────────────────────────────────────
     elif section_tab == "Mathematical Deep Dives":

@@ -174,7 +174,6 @@ def render_header_kpi_bar(
     total_stocks: int,
     above_ema: int,
     pct_above_ema: float,
-    gap_count: int,
 ) -> None:
     """Renders ultra-minimalist, high-density executive status navbar."""
     regime_color = "#059669" if regime.status == MarketRegime.BULLISH else "#e11d48"

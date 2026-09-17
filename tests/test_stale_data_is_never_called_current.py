@@ -252,7 +252,7 @@ def test_recovery_is_not_attempted_one_day_behind(monkeypatch):
         raise AssertionError("the snapshot was fetched one trading day behind")
 
     monkeypatch.setattr(price_store, "snapshot_frame_if_newer", _must_not_run)
-    assert price_loader._recover_stale_cache(pd.DataFrame(), date(2026, 8, 28)) is None
+    assert price_loader._recover_stale_cache(date(2026, 8, 28)) is None
 
 
 def test_a_failed_recovery_reports_itself_rather_than_going_quiet(monkeypatch):
@@ -260,7 +260,7 @@ def test_a_failed_recovery_reports_itself_rather_than_going_quiet(monkeypatch):
     monkeypatch.setattr(price_loader, "trading_days_behind", lambda *_, **__: 6)
     monkeypatch.setattr(price_store, "snapshot_frame_if_newer", lambda *a, **k: None)
 
-    assert price_loader._recover_stale_cache(pd.DataFrame(), date(2026, 8, 21)) is None
+    assert price_loader._recover_stale_cache(date(2026, 8, 21)) is None
     assert metrics.snapshot()["facts"]["price_path"] == "cache_stale_unrecovered"
 
 

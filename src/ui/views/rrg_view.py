@@ -490,7 +490,7 @@ def render_rrg_view(
                 .sort_values("RS_Ratio", ascending=False)
                 .reset_index(drop=True)
             )
-            render_saas_table(view_df, key="rrg_matrix_table", max_height=260)
+            render_saas_table(view_df, max_height=260)
 
     render_data_quality_footer(
         total_stocks=len(rank_df),
