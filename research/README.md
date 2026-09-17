@@ -15,6 +15,7 @@ finishes in seconds.
 | `v1_hypothesis_backtest.py` | How do the candidate scoring models rank against each other over monthly-start snapshots? |
 | `v1_recent6m_monthstart.py` | Over the last six month-start snapshots, what is the rank IC of each model at 1M/3M/6M forward horizons -- including classic 12M-1M momentum as a baseline? |
 | `evaluate_recent_horizons.py` | Over the last eight completed months, what do three horizon weighting profiles earn, and what does each cost in turnover to earn it? |
+| `compare_existing_vs_profile2.py` | Does the earnings/acceleration tilt beat the weights the app actually ships, and how different is the book it would hold today? |
 
 Output lands in `research/outputs/` as CSV (gitignored). The workflow uploads
 it as a build artifact with 14-day retention.
