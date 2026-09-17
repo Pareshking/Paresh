@@ -35,6 +35,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from src.core.logger import logger
+
 # Beyond this, a single session is not a price move. NSE's widest ordinary band
 # is 20%; index-derivative names can move further on results days, so the
 # threshold sits well clear of both to keep the signal clean.
@@ -157,7 +159,16 @@ def summarise(found: pd.DataFrame) -> dict[str, Any]:
 
 # ── Neutralising a flagged session ───────────────────────────────────────────
 
-LOG_PATH = "data/corporate_actions_log.json"
+# Anchored to the repository root, not to the working directory.
+#
+# A relative path made this file resolvable only when the process happened
+# to be started from the repo root, and load_events answers a missing file
+# with an empty list -- so a different cwd did not fail, it silently stopped
+# neutralising every logged split. The screener would then score a stock
+# through a phantom crash the vendor never restated (a 1:3 split reads as
+# -67%) and bury it, with nothing anywhere saying so. src/loaders/
+# indices_loader.py already resolves its data files this way.
+LOG_PATH = Path(__file__).resolve().parents[2] / "data" / "corporate_actions_log.json"
 
 
 def load_events(path: str | Path = LOG_PATH) -> list[dict[str, Any]]:
@@ -166,6 +177,12 @@ def load_events(path: str | Path = LOG_PATH) -> list[dict[str, Any]]:
 
     p = Path(path)
     if not p.exists():
+        # Not an error -- a repo with no flagged actions is legitimate -- but it
+        # must never be indistinguishable from the log failing to resolve.
+        logger.warning(
+            "No corporate-actions log at %s; no flagged split, bonus or "
+            "demerger will be neutralised before ranking.", p,
+        )
         return []
     try:
         with p.open(encoding="utf-8") as fh:
