@@ -28,6 +28,7 @@ from src.core.logger import logger
 from src.engine.calendar_momentum import (
     _calendar_period_metrics,
     calendar_start_positions,
+    horizons_scored,
     latest_as_of_date,
 )
 
@@ -378,6 +379,8 @@ class MomentumEngine:
             index=latest_close.index,
         )
         short_hist_s = self._valid_counts.map(lambda v: "Yes" if v < 126 else "No")
+        # Weight-independent, so it survives a slider tick untouched.
+        horizons_s = horizons_scored(self)
         ffill_s = self.ffill_pct
         data_gap_s = ffill_s.map(lambda p: "🔴" if p > 10.0 else "")
 
@@ -404,6 +407,7 @@ class MomentumEngine:
                 "Volume": vol_label,
                 "Market Cap (Cr)": mcap_s,
                 "Short History": short_hist_s,
+                "Horizons Scored": horizons_s,
                 "FFill %": ffill_s,
                 "Data Gap": data_gap_s,
             }
@@ -542,6 +546,14 @@ class MomentumEngine:
             # join them by Symbol instead of recomputing ATR/EMA/drawdowns.
             rank_df = rank_df.join(self._static_signals, on="Symbol", how="left")
             rank_df["FFill %"] = rank_df["FFill %"].fillna(0.0)
+            # A left join against a symbol the engine never priced yields NaN,
+            # which would turn an integer count into a float column. Nothing
+            # reaching here can really have zero horizons -- a row without a
+            # Score was dropped above -- so 0 is the honest reading for a
+            # symbol the signal frame does not know.
+            rank_df["Horizons Scored"] = (
+                rank_df["Horizons Scored"].fillna(0).astype("int64")
+            )
         else:
             # Slow path: compute signals inline (cold start or legacy callers).
             self._compute_signals_inline(
@@ -695,6 +707,10 @@ class MomentumEngine:
         rank_df["Market Cap (Cr)"] = rank_df["Symbol"].map(
             lambda s: (_mc_d[s] / 1e7) if pd.notna(_mc_d.get(s)) else np.nan
         )
+        rank_df["Horizons Scored"] = (
+            rank_df["Symbol"].map(horizons_scored(self).to_dict()).fillna(0).astype("int64")
+        )
+
         _vc_d = self._valid_counts.to_dict()
         rank_df["Short History"] = rank_df["Symbol"].map(
             lambda s: "Yes" if _vc_d.get(s, 0) < 126 else "No"

@@ -422,6 +422,48 @@ def _apply_weight_composite(calc, weights: list[float]) -> pd.DataFrame:
     return calc.momentum_scores
 
 
+def horizons_scored(calc) -> pd.Series:
+    """How many of the MOMENTUM_MONTHS horizons actually scored each stock.
+
+    The composite is renormalised over whatever horizons are available
+    (`_apply_weight_composite` divides by the weight that carried a score, not
+    by the full weight), which is the right thing to do -- but it means a
+    stock listed four months ago is ranked on 1M and 3M alone and still lands
+    on the same 0-centred scale as a name with all five. Nothing on screen
+    said so. A 2-of-5 composite is an average over fewer, noisier terms, so
+    its rank moves more between sessions for reasons that have nothing to do
+    with the stock.
+
+    This counts the horizons that produced a finite z-score on the as-of row,
+    which is exactly the set the composite renormalised over. It is
+    weight-independent by construction: a horizon the user has weighted to
+    zero was still evaluated, and still says something about how much history
+    is behind the number.
+
+    Related to but not the same as "Short History", which thresholds raw
+    observation count at 126 sessions. A stock can clear that and still be
+    missing the 12M horizon.
+    """
+    columns = calc.prices.columns if getattr(calc, "prices", None) is not None else pd.Index([])
+    counts = pd.Series(0, index=columns, dtype="int64")
+
+    frames = getattr(calc, "_period_z_scores", None) or {}
+    metrics = getattr(calc, "period_metrics", None) or {}
+    for months in MOMENTUM_MONTHS:
+        z_score = frames.get(months)
+        if isinstance(z_score, pd.DataFrame) and not z_score.empty:
+            row = z_score.iloc[-1]
+        else:
+            # Legacy callers that populated period_metrics without keeping the
+            # full z-score matrices. Same row, same numbers.
+            row = (metrics.get(months) or {}).get("score")
+        if not isinstance(row, pd.Series) or row.empty:
+            continue
+        counts += row.reindex(columns).notna().astype("int64")
+
+    return counts
+
+
 def apply_calendar_momentum(calc) -> pd.DataFrame:
     """Apply the canonical 1M/3M/6M/9M/12M System-1 horizons."""
     _compute_period_z_scores(calc)

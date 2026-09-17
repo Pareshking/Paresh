@@ -51,6 +51,7 @@ FORMAT_MAP: dict[str, str] = {
     "Stocks": "{:,.0f}",
     "Count": "{:,.0f}",
     "Holdings": "{:,.0f}",
+    "Horizons Scored": "{:.0f}",
     "Trades": "{:,.0f}",
     "Total Trades": "{:,.0f}",
     "Rank": "{:.0f}",
@@ -1143,6 +1144,25 @@ def render_master_screener_table(
             else "0.0%"
         )
 
+        # How many of the five calendar horizons actually scored this stock.
+        # The composite renormalises over the ones that did, so a 2-of-5 name
+        # sits on the same scale as a 5-of-5 name while averaging fewer, noisier
+        # terms -- its rank moves more between sessions for reasons that are
+        # about its listing date, not its momentum. Anything short of the full
+        # five is worth seeing, so only the full count renders unmarked.
+        hz_val = row.get("Horizons Scored")
+        if pd.notna(hz_val) and isinstance(hz_val, (int, float)):
+            hz_n = int(hz_val)
+            hz_cls = "" if hz_n >= len(PERIOD_WINDOWS) else " td-short-hz"
+            hz_str = (
+                f'<span class="hz-count{hz_cls}" title="Scored on {hz_n} of '
+                f'{len(PERIOD_WINDOWS)} calendar horizons'
+                f'{"" if hz_n >= len(PERIOD_WINDOWS) else "; the composite is an average over fewer, noisier terms"}'
+                f'">{hz_n}/{len(PERIOD_WINDOWS)}</span>'
+            )
+        else:
+            hz_str = "<span class='text-muted'>—</span>"
+
         spark_svg = spark_map.get(sym, '<span class="text-muted">—</span>')
 
         # Every calendar window, formatted once. pc[3]["ret"] is the 3M return
@@ -1181,7 +1201,7 @@ def render_master_screener_table(
         elif is_core:
             row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk_s}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw_s}">{ind_disp_s}</td><td class="td-num">{mcap_str}</td><td class="td-num {pc[3]['clr']}"><strong>{pc[3]['ret']}</strong></td><td class="td-num td-sharpe">{pc[3]['sharpe']}</td><td class="td-num {pc[6]['clr']}"><strong>{pc[6]['ret']}</strong></td><td class="td-num td-sharpe">{pc[6]['sharpe']}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-num td-sl">{sl_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
         else:
-            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk_s}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw_s}">{ind_disp_s}</td><td class="td-num">{mcap_str}</td>{period_cells_html}<td class="td-num">{hi_str}</td><td class="td-num"{ath_title}>{ath_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-center">{above_ema_icon}</td><td class="td-center">{near_hi_icon}</td><td class="td-center">{at_ath_icon}</td><td class="td-num td-sl">{sl_str}</td><td class="td-num td-chand">{chand_str}</td><td class="td-center">{gap_icon}</td><td class="td-num">{ffill_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
+            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk_s}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw_s}">{ind_disp_s}</td><td class="td-num">{mcap_str}</td>{period_cells_html}<td class="td-num">{hi_str}</td><td class="td-num"{ath_title}>{ath_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-center">{above_ema_icon}</td><td class="td-center">{near_hi_icon}</td><td class="td-center">{at_ath_icon}</td><td class="td-num td-sl">{sl_str}</td><td class="td-num td-chand">{chand_str}</td><td class="td-center">{gap_icon}</td><td class="td-num">{ffill_str}</td><td class="td-center">{hz_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
         rows_html.append(row_h)
 
     # Assemble headers based on density
@@ -1253,7 +1273,7 @@ def render_master_screener_table(
                 <th colspan="3">12M FACTOR MOMENTUM</th>
                 <th colspan="7">TECHNICALS & FILTERS</th>
                 <th colspan="2">RISK & EXITS</th>
-                <th colspan="2">DATA HEALTH</th>
+                <th colspan="3">DATA HEALTH</th>
                 <th>TREND</th>
             </tr>
             <tr class="sub-header-row">
@@ -1291,6 +1311,7 @@ def render_master_screener_table(
                 <th>CHAND EXIT</th>
                 <th class="th-center">GAP</th>
                 <th>FFILL %</th>
+                <th class="th-center">HORIZONS</th>
                 <th class="th-center">60D SPARK</th>
             </tr>"""
 
@@ -1552,6 +1573,21 @@ body::-webkit-scrollbar,
 .td-dd {{ color: #dc2626; }}
 .td-sl {{ color: #be123c; }}
 .td-chand {{ color: #059669; font-weight: 600; }}
+.hz-count {{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+}}
+/* Amber, not red: a partial composite is a caveat on how much history is
+   behind the rank, not a data fault like a price gap. */
+.td-short-hz {{
+    color: #b45309;
+    font-weight: 800;
+    background: #fef3c7;
+    border-radius: 5px;
+    padding: 1px 5px;
+}}
 .text-muted {{ color: #94a3b8; font-size: 11px; }}
 </style>
 </head>

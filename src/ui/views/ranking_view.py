@@ -110,6 +110,10 @@ DISPLAY_COLS = [
     "At ATH",
     "ATH",
     "Short History",
+    # How many of the five calendar horizons produced a score. The composite
+    # renormalises over whatever is available, so a 2-of-5 name is ranked on
+    # the same scale as a 5-of-5 one -- this is the only column that says so.
+    "Horizons Scored",
     "FFill %",
     "Data Gap",
 ]
