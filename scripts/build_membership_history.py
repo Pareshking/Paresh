@@ -24,6 +24,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from src.core.market_time import ist_today  # noqa: E402
 from src.engine.membership import (  # noqa: E402
     HISTORY_PATH,
     coverage,
@@ -106,14 +107,33 @@ def main() -> int:
             None,
         )
         if key:
-            from datetime import date as _date
+            # The INDIAN market date, not the runner's, and bound once.
+            #
+            # date.today() is UTC on GitHub Actions and IST runs 5h30m ahead,
+            # so from 18:30 UTC the two disagree. The daily sync fires at 17:30
+            # UTC and GitHub is routinely ~28 minutes late with scheduled runs,
+            # which leaves roughly half an hour of margin before the snapshot
+            # would be stamped with yesterday's date while describing today's
+            # session.
+            #
+            # A slip past that boundary does not merely misdate the snapshot.
+            # record_snapshot is append-only and raises on a date at or before
+            # the last recorded one, and the handler below turns that into
+            # `skipped` -- so the day's membership change would be dropped
+            # silently. Every other date in this system comes from
+            # src/core/market_time; this one now does too.
+            #
+            # Binding it once also removes a second, smaller ambiguity: the old
+            # code called date.today() twice, so a run straddling midnight
+            # could record one date and print another.
+            snapshot_day = ist_today()
             try:
                 history, changed = record_snapshot(
-                    history, _date.today(), [r[key] for r in rows if r.get(key)]
+                    history, snapshot_day, [r[key] for r in rows if r.get(key)]
                 )
                 if changed:
                     added += 1
-                    print(f"  + {_date.today()} (working tree): recorded")
+                    print(f"  + {snapshot_day} (working tree): recorded")
             except ValueError:
                 skipped += 1
 
