@@ -124,7 +124,9 @@ def _composite_z_score(
     # Loop-invariant: five windows share one stale-anchor frame.
     if prices_anchor is None:
         prices_anchor = anchor_frame(prices)
-    for w_period, cw in zip(windows, weights):
+    # strict: a short weight list would otherwise be padded by silent
+    # truncation, scoring a 3-horizon composite and reporting it as 5.
+    for w_period, cw in zip(windows, weights, strict=True):
         if cw <= 0:
             continue
         raw_mom, _ = _calendar_period_sharpe(
@@ -287,9 +289,20 @@ def run_backtest(
     # and the vendor's own later restatement cannot be double-counted.
     prices, actions_applied = adjust_prices(prices, _actions)
 
+    # One weight per horizon, checked before anything is scored. zip()
+    # pairs these silently, so a caller passing four weights would have
+    # run a four-horizon strategy and labelled every result with the
+    # five-horizon configuration the UI still displayed.
+    if len(config_weights) != len(WINDOWS):
+        raise ValueError(
+            f"run_backtest needs one weight per lookback horizon: got "
+            f"{len(config_weights)} weights for {len(WINDOWS)} windows "
+            f"({list(WINDOWS)})."
+        )
+
     w_total = sum(config_weights)
     norm_w = [cw / w_total for cw in config_weights] if w_total > 0 else [0.2] * 5
-    active_windows = [w for w, cw in zip(WINDOWS, norm_w) if cw > 0]
+    active_windows = [w for w, cw in zip(WINDOWS, norm_w, strict=True) if cw > 0]
     # WINDOWS are calendar MONTHS (the scoring path passes them straight to
     # _calendar_period_sharpe). The warmup below is measured in SESSIONS, so
     # using the months verbatim gave max_lb = 12 -- a 12-month formation
