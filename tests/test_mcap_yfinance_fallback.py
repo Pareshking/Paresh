@@ -10,7 +10,6 @@ prices do, so it costs one request per company. The nightly job is the one
 place that cost can be paid once for everyone.
 """
 import numpy as np
-import pandas as pd
 import pytest
 
 from src.loaders import mcap_loader

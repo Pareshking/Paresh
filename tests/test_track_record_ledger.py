@@ -5,7 +5,6 @@ a universe change or a nudged slider silently rewrites what "January" returned.
 The ledger exists to stop that: a closed month is written once and frozen. These
 tests are the guarantee.
 """
-import json
 
 import numpy as np
 import pandas as pd
@@ -33,7 +32,6 @@ def _curve(monthly: dict[str, float], start="2025-12-31") -> pd.Series:
     idx = pd.bdate_range(start=start, end="2026-12-31")
     s = pd.Series(1.0, index=idx, dtype=float)
     level = 1.0
-    base_period = pd.Period(start, freq="M")
     for d in idx:
         p = str(d.to_period("M"))
         s.loc[d] = level

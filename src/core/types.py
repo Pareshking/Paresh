@@ -5,11 +5,8 @@ Ensures strict type-safety across quant engines, loaders, backtesters, and UI la
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, NamedTuple
-
-import pandas as pd
 
 
 class MarketRegime(str, Enum):
@@ -32,18 +29,6 @@ class SignalAlert:
     text: str
     color: str
     category: str = "general"
-
-
-@dataclass
-class BacktestResult:
-    """Walk-forward backtest results with performance attribution."""
-    equity_curve: pd.Series
-    equity_gross: pd.Series
-    benchmark: pd.Series
-    monthly: pd.DataFrame
-    tradebook: pd.DataFrame
-    closed_trades: pd.DataFrame
-    stats: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

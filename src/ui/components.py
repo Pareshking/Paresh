@@ -10,7 +10,7 @@ import pandas as pd
 import streamlit as st
 
 from src.core.types import MarketRegime, RegimeData, SignalAlert
-from src.ui.theme import clean_html, is_tick_true
+from src.ui.theme import is_tick_true
 
 
 

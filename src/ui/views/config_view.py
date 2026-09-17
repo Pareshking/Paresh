@@ -12,7 +12,6 @@ import streamlit as st
 
 from src.core.config import (
     DEFAULT_LOOKBACK_WEIGHTS,
-    DATA_DIR,
     INDICES_LOCAL,
     INDICES_URLS,
     MCAPS_FILE,

@@ -9,7 +9,6 @@ The data to fix this was never bought. The daily sync has been committing
 data/indices/*.csv all along; these tests cover turning those snapshots into a
 timeline and holding the backtest to it.
 """
-import json
 
 import numpy as np
 import pandas as pd

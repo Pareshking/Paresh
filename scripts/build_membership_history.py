@@ -25,7 +25,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.engine.membership import (  # noqa: E402
-    DEFAULT_INDEX,
     HISTORY_PATH,
     coverage,
     describe,
@@ -107,7 +106,6 @@ def main() -> int:
             None,
         )
         if key:
-            today = _git("log", "-1", "--date=short", "--format=%ad").strip() or None
             from datetime import date as _date
             try:
                 history, changed = record_snapshot(

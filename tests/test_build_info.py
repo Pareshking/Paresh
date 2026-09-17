@@ -6,10 +6,8 @@ what happened to c151597, whose QA started two seconds after its push. The
 probe compares the revision the app publishes against the commit that
 triggered the run, so a deploy lag is named rather than blamed on the code.
 """
-import os
 import subprocess
 
-import pytest
 
 from src.core.build_info import deployed_revision, short_revision
 

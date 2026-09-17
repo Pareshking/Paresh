@@ -15,7 +15,6 @@ if PROJECT_ROOT not in sys.path:
 from src.engine.momentum import MomentumEngine
 from src.engine.portfolio import PortfolioOptimizer
 from src.engine.backtester import run_backtest
-from src.engine.breadth import compute_ma_breadth, compute_hl_timeseries
 
 
 @pytest.fixture

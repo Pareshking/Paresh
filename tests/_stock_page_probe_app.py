@@ -1,5 +1,5 @@
 """Drive the real stock page through Streamlit's AppTest."""
-import numpy as np, pandas as pd, streamlit as st
+import numpy as np, pandas as pd
 from src.engine.momentum import MomentumEngine
 from src.ui.views.ranking_view import render_ranking_view
 

@@ -104,7 +104,7 @@ def render_stock_chart(
         rs_full = compute_rs_series(full_close, _bench_full)
 
     try:
-        from src.ui.lightweight_chart import ChartUnavailable, render_lightweight_chart
+        from src.ui.lightweight_chart import render_lightweight_chart
 
         render_lightweight_chart(
             symbol,

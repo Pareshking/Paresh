@@ -22,7 +22,7 @@ import yfinance as yf
 
 from src.core import startup_metrics as metrics
 from src.core.config import HTTP_HEADERS, MCAP_PR_FILE, MCAPS_FILE, REPO_MCAP_FILE
-from src.core.market_time import ist_now, recent_trading_days
+from src.core.market_time import recent_trading_days
 from src.core.logger import logger
 
 

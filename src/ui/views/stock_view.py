@@ -20,7 +20,6 @@ import streamlit as st
 from src.engine.corporate_actions import load_events
 from src.ui.charts import render_stock_chart
 from src.ui.components import render_data_quality_footer, to_bool_mask
-from src.ui.theme import render_saas_table
 
 # ── Palette tokens ───────────────────────────────────────────────────────────
 POS   = "#059669"

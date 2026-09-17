@@ -110,15 +110,6 @@ FORMAT_MAP: dict[str, str] = {
     "Score": "{:.2f}",
 }
 
-BOOL_ICONS = {True: "🟢", False: "⚪"}
-VOL_ICONS = {
-    "High": "🟢 High",
-    "Surge": "🟢 Surge",
-    "Normal": "⚪ Normal",
-    "Low": "🔴 Low",
-}
-
-
 def inject_custom_css() -> None:
     """Injects comprehensive Pure Paper White styling with 5-Font institutional typography."""
     st.markdown(
@@ -886,18 +877,6 @@ def inject_custom_css() -> None:
     )
 
 
-def format_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    """Formats boolean and categorical volume indicators for clean display."""
-    out = df.copy()
-    if "Above 50 EMA" in out.columns:
-        out["Above 50 EMA"] = out["Above 50 EMA"].map(BOOL_ICONS)
-    if "Near 52W High" in out.columns:
-        out["Near 52W High"] = out["Near 52W High"].map(BOOL_ICONS)
-    if "Volume" in out.columns:
-        out["Volume"] = out["Volume"].map(lambda v: VOL_ICONS.get(v, v))
-    return out
-
-
 def render_styled_table(
     df: pd.DataFrame,
     key: str | None = None,
@@ -1272,14 +1251,6 @@ def render_master_screener_table(
             else "—"
         )
 
-
-        dd_3m = row.get("Max DD 3M")
-        dd_3m_str = (
-            f"{float(dd_3m):.1f}%"
-            if pd.notna(dd_3m) and isinstance(dd_3m, (int, float))
-            else "—"
-        )
-
         # 6M Factor Momentum
         ret_6m = row.get("6M Return")
         ret_6m_str = (
@@ -1299,29 +1270,6 @@ def render_master_screener_table(
         sharpe_6m_str = (
             f"{float(sharpe_6m):.2f}"
             if pd.notna(sharpe_6m) and isinstance(sharpe_6m, (int, float))
-            else "—"
-        )
-
-
-        dd_6m = row.get("Max DD 6M")
-        if (
-            pd.isna(dd_6m) or not isinstance(dd_6m, (int, float))
-        ) and prices_df is not None:
-            p_col = (
-                sym
-                if sym in prices_df.columns
-                else (f"{sym}.NS" if f"{sym}.NS" in prices_df.columns else None)
-            )
-            if p_col is not None:
-                sub_p = prices_df[p_col].dropna()
-                if len(sub_p) >= 2:
-                    win_6m = min(126, len(sub_p))
-                    p_win = sub_p.iloc[-win_6m:]
-                    roll_max = p_win.cummax()
-                    dd_6m = float(((p_win - roll_max) / roll_max).min() * 100)
-        dd_6m_str = (
-            f"{float(dd_6m):.1f}%"
-            if pd.notna(dd_6m) and isinstance(dd_6m, (int, float))
             else "—"
         )
 

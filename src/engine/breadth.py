@@ -99,33 +99,6 @@ def compute_hl_timeseries(
     return df.iloc[-lookback:]
 
 
-def compute_industry_breadth(
-    prices_df: pd.DataFrame,
-    industry_map: dict[str, str],
-    period: int = 50,
-    ma_type: str = "EMA",
-) -> pd.Series:
-    """Computes the % of stocks in each industry above a specific moving average."""
-    if prices_df.empty:
-        return pd.Series(dtype=float)
-
-    if ma_type == "EMA":
-        ma = prices_df.ewm(span=period, min_periods=max(int(period * 0.8), 5)).mean()
-    else:
-        ma = prices_df.rolling(period, min_periods=max(int(period * 0.8), 5)).mean()
-
-    above_ma = prices_df.iloc[-1] > ma.iloc[-1]
-    ind_breadth: dict[str, list[float]] = {}
-    for sym, val in above_ma.items():
-        ind = industry_map.get(str(sym))
-        if ind:
-            ind_breadth.setdefault(ind, []).append(float(val))
-
-    return pd.Series({k: np.mean(v) * 100 for k, v in ind_breadth.items()}).sort_values(
-        ascending=False
-    )
-
-
 def get_recent_hl_events(
     prices_df: pd.DataFrame,
     rank_df: pd.DataFrame,
