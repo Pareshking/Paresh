@@ -256,6 +256,253 @@ def _index_mask(
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
+def _build_rebalance_schedule(
+    prices: pd.DataFrame,
+    start_offset: int,
+    rebal_freq: int,
+    backtest_months: int,
+) -> tuple[list[int], list[int], int, pd.Timestamp] | None:
+    """Which sessions the book is rebalanced on, and where the simulation stops.
+
+    Returns (rebal_dates, all_signal_idx, last_sim_idx, window_end), or None
+    when the reported window contains no rebalance at all.
+
+    `all_signal_idx` is the same calendar WITHOUT the "needs two sessions after
+    it" guard and without the reported-window filter: the pending preview only
+    needs the signal itself, and the signal it needs -- the most recent month
+    end -- is precisely the one both filters throw away.
+    """
+    dates = pd.DatetimeIndex(prices.index)
+    if rebal_freq == 21:
+        # Monthly convention: signal/rebalance at the last available trading
+        # session of each calendar month, then execute on the next session.
+        eligible = dates[start_offset:]
+        month_keys = eligible.to_period("M")
+        idx_values = np.arange(start_offset, len(prices))
+        last_by_month = pd.Series(idx_values, index=eligible).groupby(month_keys).last()
+        rebal_dates = [int(i) for i in last_by_month.to_numpy() if int(i) < len(prices) - 2]
+        # The same calendar WITHOUT the "needs two sessions after it" guard and
+        # without the reported-window filter below. The guard exists so a
+        # rebalance has room to accrue; the pending preview only needs the
+        # signal itself, and the signal it needs -- the most recent month end --
+        # is precisely the one both filters throw away.
+        all_signal_idx = [int(i) for i in last_by_month.to_numpy()]
+    else:
+        rebal_dates = list(range(start_offset, len(prices) - 2, rebal_freq))
+        all_signal_idx = list(range(start_offset, len(prices), rebal_freq))
+
+    # Restrict the REPORTED window to the last N completed calendar months. The
+    # formation history before it is untouched -- a rebalance still scores on a
+    # full 12-month lookback; we simply do not report periods outside the
+    # window. Filter on the EXECUTION date (T+1), because a rebalance signalled
+    # on the last session of January is the trade that holds through February.
+    window_start, window_end = completed_month_window(dates, backtest_months)
+    rebal_dates = [
+        i for i in rebal_dates if window_start <= dates[i + 1] <= window_end
+    ]
+    if not rebal_dates:
+        return None
+
+    # The final holding period must stop at the window, not run into the month
+    # in progress. searchsorted(..., "right") is an EXCLUSIVE bound, so the last
+    # session the simulation may touch is one before it.
+    hard_end_idx = int(dates.searchsorted(window_end, side="right"))
+    last_sim_idx = min(hard_end_idx - 1, len(prices) - 1)
+
+    return rebal_dates, all_signal_idx, last_sim_idx, window_end
+
+
+def _step_portfolio_allocation(
+    wts: pd.Series,
+    prev_weights: pd.Series,
+    columns: pd.Index,
+    cost_bps: float,
+) -> tuple[pd.Series, float, float]:
+    """One period's target book, its turnover, and the friction that costs.
+
+    Returns (full_w, turnover_period, friction_drag). The caller carries
+    `full_w` forward as the next period's `prev_weights`; nothing here mutates
+    its arguments.
+    """
+    full_w = pd.Series(0.0, index=columns)
+    full_w[wts.index] = wts.values
+
+    # One definition of turnover, including the first rebalance. The
+    # establishment period used to be hard-coded to 1.0 while every later
+    # period used sum|dw|/2, so the same `cost_bps` priced two different
+    # quantities: full notional traded on day one, half notional after. It
+    # also put a 100% reading into the "Avg Period Turnover" KPI beside
+    # 20% readings, inflating the average of a series whose terms did not
+    # measure the same thing.
+    #
+    # sum|dw|/2 is one-way turnover, which is what `cost_bps` is documented
+    # to price ("round-trip cost"): establishing a book buys 100% and sells
+    # nothing, i.e. half a round trip, so 0.5 -- 15 bps at the default, not
+    # 30. NB the closing book is never liquidated, so its exit leg is never
+    # charged either; the two simplifications point the same way.
+    turnover_period = float((full_w - prev_weights).abs().sum() / 2.0)
+
+    friction_drag = turnover_period * (cost_bps / 10000.0)
+    return full_w, turnover_period, friction_drag
+
+
+def _calculate_backtest_metrics(
+    eq_strat_net: pd.Series,
+    eq_strat_gross: pd.Series,
+    eq_bench: pd.Series,
+    dates: pd.DatetimeIndex,
+    strat_net_daily: list[float],
+    monthly_df: pd.DataFrame,
+    prices: pd.DataFrame,
+    rebal_dates: list[int],
+    _membership: dict[str, Any] | None,
+    pit_periods: int,
+    current_universe_periods: int,
+    actions_applied: list[dict[str, Any]],
+    scheme_neutralised_seen: bool,
+) -> dict[str, Any]:
+    """Total and annualised returns, risk ratios, drawdown and run provenance.
+
+    Every number the `stats` key carries is computed here and nowhere else.
+    """
+    total_s_net = float(eq_strat_net.iloc[-1] / eq_strat_net.iloc[0] - 1)
+    total_s_gross = float(eq_strat_gross.iloc[-1] / eq_strat_gross.iloc[0] - 1)
+    total_b = float(eq_bench.iloc[-1] / eq_bench.iloc[0] - 1)
+
+    n_days = len(dates)  # accrual sessions; the base point is not one of them
+    window_years = n_days / 252.0
+    ann_factor = 252.0 / max(n_days, 1)
+    # An annualised figure, not a compound annual growth rate observed over a
+    # year. The reported window is six completed months, so this raises a
+    # half-year result to the power of two: a +23% half-year prints +51%. It is
+    # the standard convention and it is kept, but `window_years` travels beside
+    # it so no caller can show it without being able to say what it extrapolates.
+    cagr_net = float((1 + total_s_net) ** ann_factor - 1) if (1 + total_s_net) > 0 else -1.0
+    cagr_gross = (
+        float((1 + total_s_gross) ** ann_factor - 1) if (1 + total_s_gross) > 0 else -1.0
+    )
+    cagr_bench = float((1 + total_b) ** ann_factor - 1) if (1 + total_b) > 0 else -1.0
+
+    strat_daily_s = pd.Series(strat_net_daily)
+    strat_vol = float(strat_daily_s.std() * np.sqrt(252))
+
+    # Sharpe from the MEAN excess return, which is what a Sharpe ratio is.
+    # It used to divide the annualised CAGR by annualised volatility -- a
+    # geometric numerator over an arithmetic denominator, and a numerator
+    # extrapolated from half a year at that, so the compounding of one strong
+    # month leaked into a statistic that is supposed to describe the average.
+    ann_mean_excess = float(strat_daily_s.mean() * 252) - RISK_FREE_RATE
+    strat_sharpe = float(ann_mean_excess / strat_vol) if strat_vol > 0 else 0.0
+    # How much of that ratio is sample noise, per Lo (2002):
+    #     SE(S) = sqrt((1 + S^2/2) / n)
+    # where S is the PER-PERIOD Sharpe and n the number of those periods. The
+    # first version of this line passed the ANNUALISED Sharpe with a count of
+    # daily sessions and returned the result unscaled, which understates the
+    # true standard error by roughly an order of magnitude -- 0.15 where a
+    # 20,000-trial Monte Carlo gives 1.43 for S_ann = 2 over 126 sessions, a
+    # factor of 9.2, and 13x at S_ann = 1 over 252.
+    #
+    # That inverted the entire point of the field. A six-month Sharpe that is
+    # statistically indistinguishable from zero (1.4 sigma) was being presented
+    # as overwhelming evidence (13 sigma), beside a number printed to two
+    # decimals. Convert to the daily Sharpe, take the standard error there, and
+    # scale back up: SE(S_ann) = sqrt(252) * sqrt((1 + S_ann^2/504) / n).
+    _ANNUALISATION = 252.0
+    if n_days > 1:
+        _s_period = strat_sharpe / np.sqrt(_ANNUALISATION)
+        sharpe_stderr = float(
+            np.sqrt(_ANNUALISATION) * np.sqrt((1.0 + 0.5 * _s_period**2) / n_days)
+        )
+    else:
+        sharpe_stderr = float("nan")
+
+    dd_series = eq_strat_net / eq_strat_net.cummax() - 1
+    max_dd = float(dd_series.min())
+
+    # The earliest signal date that had real membership behind it.
+    # NB: index `prices.index`, not `dates` -- `dates` is rebound above to the
+    # equity-curve calendar (accrual sessions only), so indexing it with a
+    # rebalance position reads the wrong date or runs off the end entirely.
+    pit_from = None
+    if _membership is not None and pit_periods:
+        for _i in rebal_dates:
+            if _index_mask(_membership, prices.columns, prices.index[_i]) is not None:
+                pit_from = pd.Timestamp(prices.index[_i]).strftime("%Y-%m-%d")
+                break
+
+    n_periods = len(monthly_df)
+    # Two different things, both of which were called "Win Rate". The card said
+    # "Profitable Periods" and showed the share of months that BEAT THE
+    # BENCHMARK -- 83% on a run where every month was profitable. They are
+    # reported separately now and neither borrows the other's label.
+    win_rate = (
+        float((monthly_df["Strategy Net"] > 0).mean())
+        if not monthly_df.empty and "Strategy Net" in monthly_df.columns
+        else 0.0
+    )
+    beat_rate = (
+        float((monthly_df["Alpha vs Benchmark"] > 0).mean())
+        if not monthly_df.empty and "Alpha vs Benchmark" in monthly_df.columns
+        else 0.0
+    )
+
+    # Target semideviation: sqrt(mean(min(r, 0)^2)) over EVERY session, which is
+    # the Sortino denominator. The previous code took the standard deviation of
+    # the negative sessions only -- a different statistic, divided by a smaller
+    # count and measured about their own mean rather than about zero, so it
+    # neither matched any published Sortino nor erred in a predictable
+    # direction. The <=5-observation fallback to total volatility is kept:
+    # a semideviation from four bad days is not a risk estimate.
+    downside_rets = strat_daily_s[strat_daily_s < 0]
+    downside_vol = (
+        float(np.sqrt((np.minimum(strat_daily_s, 0.0) ** 2).mean()) * np.sqrt(252))
+        if len(downside_rets) > 5
+        else strat_vol
+    )
+    strat_sortino = float(ann_mean_excess / downside_vol) if downside_vol > 0 else 0.0
+
+    # Numerator annualised, denominator observed over `window_years`. Over a
+    # six-month window that is not a Calmar ratio in the sense anyone quotes,
+    # because a half-year cannot contain a year's worth of drawdown. Reported
+    # with the window attached so it is read as what it is.
+    calmar_ratio = float((cagr_net / abs(max_dd))) if abs(max_dd) > 0 else 0.0
+    avg_turnover = float(monthly_df["Turnover %"].mean()) if not monthly_df.empty else 0.0
+    tot_cost_drag = total_s_gross - total_s_net
+
+    return {
+        "total_return": total_s_net,
+        "gross_return": total_s_gross,
+        "bench_return": total_b,
+        "alpha": total_s_net - total_b,
+        "ann_return": cagr_net,
+        "cagr_gross": cagr_gross,
+        "ann_bench": cagr_bench,
+        "max_drawdown": max_dd,
+        "win_rate": win_rate,
+        "beat_rate": beat_rate,
+        "sharpe": strat_sharpe,
+        "sharpe_stderr": sharpe_stderr,
+        "risk_free_rate": RISK_FREE_RATE,
+        "window_years": window_years,
+        "sortino": strat_sortino,
+        "calmar": calmar_ratio,
+        "volatility": strat_vol,
+        "avg_turnover": avg_turnover,
+        "cost_drag_total": tot_cost_drag,
+        "n_periods": n_periods,
+        "n_days": n_days,
+        # How much of this run was actually survivorship-free. A caller
+        # reporting the return without reporting this overstates the result.
+        "pit_periods": pit_periods,
+        "current_universe_periods": current_universe_periods,
+        "pit_from": pit_from,
+        "actions_adjusted": len(actions_applied),
+        # True when the stock cap admits only one fully-invested book, so
+        # `weight_method` had no effect on the simulation at all.
+        "scheme_neutralised": bool(scheme_neutralised_seen),
+    }
+
+
 def run_backtest(
     prices_hash: str,
     _adj_close: pd.DataFrame,
@@ -350,42 +597,14 @@ def run_backtest(
     high_52w = prices.rolling(252, min_periods=126).max()
 
     start_offset = max_lb + ema_period
-    dates = pd.DatetimeIndex(prices.index)
-    if rebal_freq == 21:
-        # Monthly convention: signal/rebalance at the last available trading
-        # session of each calendar month, then execute on the next session.
-        eligible = dates[start_offset:]
-        month_keys = eligible.to_period("M")
-        idx_values = np.arange(start_offset, len(prices))
-        last_by_month = pd.Series(idx_values, index=eligible).groupby(month_keys).last()
-        rebal_dates = [int(i) for i in last_by_month.to_numpy() if int(i) < len(prices) - 2]
-        # The same calendar WITHOUT the "needs two sessions after it" guard and
-        # without the reported-window filter below. The guard exists so a
-        # rebalance has room to accrue; the pending preview only needs the
-        # signal itself, and the signal it needs -- the most recent month end --
-        # is precisely the one both filters throw away.
-        all_signal_idx = [int(i) for i in last_by_month.to_numpy()]
-    else:
-        rebal_dates = list(range(start_offset, len(prices) - 2, rebal_freq))
-        all_signal_idx = list(range(start_offset, len(prices), rebal_freq))
-
-    # Restrict the REPORTED window to the last N completed calendar months. The
-    # formation history before it is untouched -- a rebalance still scores on a
-    # full 12-month lookback; we simply do not report periods outside the
-    # window. Filter on the EXECUTION date (T+1), because a rebalance signalled
-    # on the last session of January is the trade that holds through February.
-    window_start, window_end = completed_month_window(dates, backtest_months)
-    rebal_dates = [
-        i for i in rebal_dates if window_start <= dates[i + 1] <= window_end
-    ]
-    if not rebal_dates:
+    _schedule = _build_rebalance_schedule(
+        prices, start_offset, rebal_freq, backtest_months
+    )
+    if _schedule is None:
         return None
+    rebal_dates, all_signal_idx, last_sim_idx, window_end = _schedule
+    dates = pd.DatetimeIndex(prices.index)
 
-    # The final holding period must stop at the window, not run into the month
-    # in progress. searchsorted(..., "right") is an EXCLUSIVE bound, so the last
-    # session the simulation may touch is one before it.
-    hard_end_idx = int(dates.searchsorted(window_end, side="right"))
-    last_sim_idx = min(hard_end_idx - 1, len(prices) - 1)
 
     strat_net_daily: list[float] = []
     strat_gross_daily: list[float] = []
@@ -482,26 +701,10 @@ def run_backtest(
             scheme_neutralised_seen = True
 
         # ── Turnover & Transaction Drag ──────────────────────────────────────
-        full_w = pd.Series(0.0, index=prices.columns)
-        full_w[wts.index] = wts.values
-
-        # One definition of turnover, including the first rebalance. The
-        # establishment period used to be hard-coded to 1.0 while every later
-        # period used sum|dw|/2, so the same `cost_bps` priced two different
-        # quantities: full notional traded on day one, half notional after. It
-        # also put a 100% reading into the "Avg Period Turnover" KPI beside
-        # 20% readings, inflating the average of a series whose terms did not
-        # measure the same thing.
-        #
-        # sum|dw|/2 is one-way turnover, which is what `cost_bps` is documented
-        # to price ("round-trip cost"): establishing a book buys 100% and sells
-        # nothing, i.e. half a round trip, so 0.5 -- 15 bps at the default, not
-        # 30. NB the closing book is never liquidated, so its exit leg is never
-        # charged either; the two simplifications point the same way.
-        turnover_period = float((full_w - prev_weights).abs().sum() / 2.0)
-
+        full_w, turnover_period, friction_drag = _step_portfolio_allocation(
+            wts, prev_weights, prices.columns, cost_bps
+        )
         prev_weights = full_w
-        friction_drag = turnover_period * (cost_bps / 10000.0)
 
         # ── Record Rebalance Tradebook (Entries, Exits & Holds) ───────────────
         entries = [s for s in holdings if s not in prev_holdings]
@@ -1022,110 +1225,6 @@ def run_backtest(
 
     closed_trades_df = pd.DataFrame(closed_trades)
 
-    total_s_net = float(eq_strat_net.iloc[-1] / eq_strat_net.iloc[0] - 1)
-    total_s_gross = float(eq_strat_gross.iloc[-1] / eq_strat_gross.iloc[0] - 1)
-    total_b = float(eq_bench.iloc[-1] / eq_bench.iloc[0] - 1)
-
-    n_days = len(dates)  # accrual sessions; the base point is not one of them
-    window_years = n_days / 252.0
-    ann_factor = 252.0 / max(n_days, 1)
-    # An annualised figure, not a compound annual growth rate observed over a
-    # year. The reported window is six completed months, so this raises a
-    # half-year result to the power of two: a +23% half-year prints +51%. It is
-    # the standard convention and it is kept, but `window_years` travels beside
-    # it so no caller can show it without being able to say what it extrapolates.
-    cagr_net = float((1 + total_s_net) ** ann_factor - 1) if (1 + total_s_net) > 0 else -1.0
-    cagr_gross = (
-        float((1 + total_s_gross) ** ann_factor - 1) if (1 + total_s_gross) > 0 else -1.0
-    )
-    cagr_bench = float((1 + total_b) ** ann_factor - 1) if (1 + total_b) > 0 else -1.0
-
-    strat_daily_s = pd.Series(strat_net_daily)
-    strat_vol = float(strat_daily_s.std() * np.sqrt(252))
-
-    # Sharpe from the MEAN excess return, which is what a Sharpe ratio is.
-    # It used to divide the annualised CAGR by annualised volatility -- a
-    # geometric numerator over an arithmetic denominator, and a numerator
-    # extrapolated from half a year at that, so the compounding of one strong
-    # month leaked into a statistic that is supposed to describe the average.
-    ann_mean_excess = float(strat_daily_s.mean() * 252) - RISK_FREE_RATE
-    strat_sharpe = float(ann_mean_excess / strat_vol) if strat_vol > 0 else 0.0
-    # How much of that ratio is sample noise, per Lo (2002):
-    #     SE(S) = sqrt((1 + S^2/2) / n)
-    # where S is the PER-PERIOD Sharpe and n the number of those periods. The
-    # first version of this line passed the ANNUALISED Sharpe with a count of
-    # daily sessions and returned the result unscaled, which understates the
-    # true standard error by roughly an order of magnitude -- 0.15 where a
-    # 20,000-trial Monte Carlo gives 1.43 for S_ann = 2 over 126 sessions, a
-    # factor of 9.2, and 13x at S_ann = 1 over 252.
-    #
-    # That inverted the entire point of the field. A six-month Sharpe that is
-    # statistically indistinguishable from zero (1.4 sigma) was being presented
-    # as overwhelming evidence (13 sigma), beside a number printed to two
-    # decimals. Convert to the daily Sharpe, take the standard error there, and
-    # scale back up: SE(S_ann) = sqrt(252) * sqrt((1 + S_ann^2/504) / n).
-    _ANNUALISATION = 252.0
-    if n_days > 1:
-        _s_period = strat_sharpe / np.sqrt(_ANNUALISATION)
-        sharpe_stderr = float(
-            np.sqrt(_ANNUALISATION) * np.sqrt((1.0 + 0.5 * _s_period**2) / n_days)
-        )
-    else:
-        sharpe_stderr = float("nan")
-
-    dd_series = eq_strat_net / eq_strat_net.cummax() - 1
-    max_dd = float(dd_series.min())
-
-    # The earliest signal date that had real membership behind it.
-    # NB: index `prices.index`, not `dates` -- `dates` is rebound above to the
-    # equity-curve calendar (accrual sessions only), so indexing it with a
-    # rebalance position reads the wrong date or runs off the end entirely.
-    pit_from = None
-    if _membership is not None and pit_periods:
-        for _i in rebal_dates:
-            if _index_mask(_membership, prices.columns, prices.index[_i]) is not None:
-                pit_from = pd.Timestamp(prices.index[_i]).strftime("%Y-%m-%d")
-                break
-
-    n_periods = len(monthly_df)
-    # Two different things, both of which were called "Win Rate". The card said
-    # "Profitable Periods" and showed the share of months that BEAT THE
-    # BENCHMARK -- 83% on a run where every month was profitable. They are
-    # reported separately now and neither borrows the other's label.
-    win_rate = (
-        float((monthly_df["Strategy Net"] > 0).mean())
-        if not monthly_df.empty and "Strategy Net" in monthly_df.columns
-        else 0.0
-    )
-    beat_rate = (
-        float((monthly_df["Alpha vs Benchmark"] > 0).mean())
-        if not monthly_df.empty and "Alpha vs Benchmark" in monthly_df.columns
-        else 0.0
-    )
-
-    # Target semideviation: sqrt(mean(min(r, 0)^2)) over EVERY session, which is
-    # the Sortino denominator. The previous code took the standard deviation of
-    # the negative sessions only -- a different statistic, divided by a smaller
-    # count and measured about their own mean rather than about zero, so it
-    # neither matched any published Sortino nor erred in a predictable
-    # direction. The <=5-observation fallback to total volatility is kept:
-    # a semideviation from four bad days is not a risk estimate.
-    downside_rets = strat_daily_s[strat_daily_s < 0]
-    downside_vol = (
-        float(np.sqrt((np.minimum(strat_daily_s, 0.0) ** 2).mean()) * np.sqrt(252))
-        if len(downside_rets) > 5
-        else strat_vol
-    )
-    strat_sortino = float(ann_mean_excess / downside_vol) if downside_vol > 0 else 0.0
-
-    # Numerator annualised, denominator observed over `window_years`. Over a
-    # six-month window that is not a Calmar ratio in the sense anyone quotes,
-    # because a half-year cannot contain a year's worth of drawdown. Reported
-    # with the window attached so it is read as what it is.
-    calmar_ratio = float((cagr_net / abs(max_dd))) if abs(max_dd) > 0 else 0.0
-    avg_turnover = float(monthly_df["Turnover %"].mean()) if not monthly_df.empty else 0.0
-    tot_cost_drag = total_s_gross - total_s_net
-
     return {
         "equity_curve": eq_strat_net,
         "equity_gross": eq_strat_gross,
@@ -1136,36 +1235,9 @@ def run_backtest(
         "live_book": live_book_df,
         "month_changes": changes_df,
         "live_meta": live_meta,
-        "stats": {
-            "total_return": total_s_net,
-            "gross_return": total_s_gross,
-            "bench_return": total_b,
-            "alpha": total_s_net - total_b,
-            "ann_return": cagr_net,
-            "cagr_gross": cagr_gross,
-            "ann_bench": cagr_bench,
-            "max_drawdown": max_dd,
-            "win_rate": win_rate,
-            "beat_rate": beat_rate,
-            "sharpe": strat_sharpe,
-            "sharpe_stderr": sharpe_stderr,
-            "risk_free_rate": RISK_FREE_RATE,
-            "window_years": window_years,
-            "sortino": strat_sortino,
-            "calmar": calmar_ratio,
-            "volatility": strat_vol,
-            "avg_turnover": avg_turnover,
-            "cost_drag_total": tot_cost_drag,
-            "n_periods": n_periods,
-            "n_days": n_days,
-            # How much of this run was actually survivorship-free. A caller
-            # reporting the return without reporting this overstates the result.
-            "pit_periods": pit_periods,
-            "current_universe_periods": current_universe_periods,
-            "pit_from": pit_from,
-            "actions_adjusted": len(actions_applied),
-            # True when the stock cap admits only one fully-invested book, so
-            # `weight_method` had no effect on the simulation at all.
-            "scheme_neutralised": bool(scheme_neutralised_seen),
-        },
+        "stats": _calculate_backtest_metrics(
+            eq_strat_net, eq_strat_gross, eq_bench, dates, strat_net_daily,
+            monthly_df, prices, rebal_dates, _membership, pit_periods,
+            current_universe_periods, actions_applied, scheme_neutralised_seen,
+        ),
     }
