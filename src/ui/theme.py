@@ -1072,49 +1072,11 @@ def render_master_screener_table(
             else "—"
         )
 
-        # 3M Factor Momentum
-        ret_3m = row.get("3M Return")
-        ret_3m_str = (
-            f"{float(ret_3m):+.1%}"
-            if pd.notna(ret_3m) and isinstance(ret_3m, (int, float))
-            else "—"
-        )
-        ret_3m_clr = (
-            "ret-pos"
-            if (isinstance(ret_3m, (int, float)) and ret_3m > 0)
-            else (
-                "ret-neg" if (isinstance(ret_3m, (int, float)) and ret_3m < 0) else ""
-            )
-        )
-
-        sharpe_3m = row.get("3M Sharpe")
-        sharpe_3m_str = (
-            f"{float(sharpe_3m):.2f}"
-            if pd.notna(sharpe_3m) and isinstance(sharpe_3m, (int, float))
-            else "—"
-        )
-
-        # 6M Factor Momentum
-        ret_6m = row.get("6M Return")
-        ret_6m_str = (
-            f"{float(ret_6m):+.1%}"
-            if pd.notna(ret_6m) and isinstance(ret_6m, (int, float))
-            else "—"
-        )
-        ret_6m_clr = (
-            "ret-pos"
-            if (isinstance(ret_6m, (int, float)) and ret_6m > 0)
-            else (
-                "ret-neg" if (isinstance(ret_6m, (int, float)) and ret_6m < 0) else ""
-            )
-        )
-
-        sharpe_6m = row.get("6M Sharpe")
-        sharpe_6m_str = (
-            f"{float(sharpe_6m):.2f}"
-            if pd.notna(sharpe_6m) and isinstance(sharpe_6m, (int, float))
-            else "—"
-        )
+        # 3M and 6M are read from `pc` below, like every other window. They used
+        # to be formatted by hand here, twice, because the Executive and Core
+        # tiers predate _period_cells and only Full Quant was migrated to it --
+        # which is how the dead dd_3m_str/dd_6m_str pair survived in this block
+        # long after nothing rendered them.
 
         # Technicals & Filters
         pct_hi = row.get("% High")
@@ -1215,9 +1177,9 @@ def render_master_screener_table(
         )
 
         if is_exec:
-            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk_s}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw_s}">{ind_disp_s}</td><td class="td-num {ret_3m_clr}"><strong>{ret_3m_str}</strong></td><td class="td-num td-sharpe">{sharpe_3m_str}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
+            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk_s}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw_s}">{ind_disp_s}</td><td class="td-num {pc[3]['clr']}"><strong>{pc[3]['ret']}</strong></td><td class="td-num td-sharpe">{pc[3]['sharpe']}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
         elif is_core:
-            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk_s}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw_s}">{ind_disp_s}</td><td class="td-num">{mcap_str}</td><td class="td-num {ret_3m_clr}"><strong>{ret_3m_str}</strong></td><td class="td-num td-sharpe">{sharpe_3m_str}</td><td class="td-num {ret_6m_clr}"><strong>{ret_6m_str}</strong></td><td class="td-num td-sharpe">{sharpe_6m_str}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-num td-sl">{sl_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
+            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk_s}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw_s}">{ind_disp_s}</td><td class="td-num">{mcap_str}</td><td class="td-num {pc[3]['clr']}"><strong>{pc[3]['ret']}</strong></td><td class="td-num td-sharpe">{pc[3]['sharpe']}</td><td class="td-num {pc[6]['clr']}"><strong>{pc[6]['ret']}</strong></td><td class="td-num td-sharpe">{pc[6]['sharpe']}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-num td-sl">{sl_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
         else:
             row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk_s}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw_s}">{ind_disp_s}</td><td class="td-num">{mcap_str}</td>{period_cells_html}<td class="td-num">{hi_str}</td><td class="td-num"{ath_title}>{ath_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-center">{above_ema_icon}</td><td class="td-center">{near_hi_icon}</td><td class="td-center">{at_ath_icon}</td><td class="td-num td-sl">{sl_str}</td><td class="td-num td-chand">{chand_str}</td><td class="td-center">{gap_icon}</td><td class="td-num">{ffill_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
         rows_html.append(row_h)
