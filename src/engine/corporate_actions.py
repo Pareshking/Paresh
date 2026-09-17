@@ -29,6 +29,7 @@ the two causes apart needs information the price series does not carry.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import numpy as np

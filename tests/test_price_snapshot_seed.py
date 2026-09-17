@@ -9,7 +9,6 @@ The seed is an ACCELERATOR, NOT A DEPENDENCY: every failure path must leave the
 cache untouched and let the old full-download behaviour happen, so an
 unreachable snapshot costs a slow start rather than an outage.
 """
-import os
 
 import numpy as np
 import pandas as pd

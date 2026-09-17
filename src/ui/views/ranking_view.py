@@ -11,14 +11,9 @@ from src.ui.widget_state import remember, resolve
 
 from src.core.config import SHORT_FORMS
 from src.core.market_time import ist_now
-from src.ui.charts import render_candlestick_drilldown
 from src.ui.components import render_data_quality_footer, to_bool_mask
 from src.ui.views.stock_view import render_stock_view
-from src.ui.theme import (
-    render_master_screener_table,
-    render_saas_table,
-    render_styled_table,
-)
+from src.ui.theme import render_master_screener_table
 
 
 @st.dialog("📈 Stock Analysis", width="large")
@@ -135,98 +130,6 @@ _CARD_CSS = """
 .sq-vol-surge{color:#d97706;font-weight:700;}
 .sq-vol-normal{color:#64748b;}
 </style>"""
-
-
-def _render_intelligence_strip(rank_df: pd.DataFrame) -> None:
-    """Dark strip: market status · breadth · 52W Hi count · regime signal."""
-    now = ist_now()
-    hour_min = now.hour * 60 + now.minute
-    is_open = 9 * 60 + 15 <= hour_min <= 15 * 60 + 30 and now.weekday() < 5
-    mkt_status = "OPEN" if is_open else "CLOSED"
-    dot_shadow = "box-shadow:0 0 6px #34d399;" if is_open else ""
-    dot_color  = "#34d399" if is_open else "#94a3b8"
-
-    n_total = len(rank_df)
-    ema_mask = to_bool_mask(rank_df.get("Above 50 EMA", pd.Series(dtype=object)))
-    hi_mask  = to_bool_mask(rank_df.get("Near 52W High", pd.Series(dtype=object)))
-    n_ema = int(ema_mask.sum()) if n_total else 0
-    n_hi  = int(hi_mask.sum())  if n_total else 0
-
-    # Breadth divides by the stocks that could ANSWER the question, not by every
-    # row. "Above 50 EMA" is False wherever the close or the EMA is missing
-    # (momentum.py: `.where(both_valid, False)`) -- correct for a per-stock gate,
-    # wrong as a denominator, because a stock that did not print is not a stock
-    # below its average. src/engine/breadth.py was corrected for exactly this and
-    # documents the size: a median of 33 holed symbols per session here and 135
-    # on 2026-07-21, biasing the reading down ~4% on an ordinary day and ~18% on
-    # a bad one. This strip drives a four-state BULL/BEAR verdict, so it carried
-    # the same error into a regime call.
-    #
-    # `% 50 EMA` is NaN on exactly those rows, so it identifies them.
-    pct_ema_col = rank_df.get("% 50 EMA")
-    n_observed = (
-        int(pct_ema_col.notna().sum()) if pct_ema_col is not None else n_total
-    )
-    breadth_pct = round(n_ema / n_observed * 100) if n_observed else 0
-    breadth_clr = (
-        "#34d399" if breadth_pct >= 50 else ("#fbbf24" if breadth_pct >= 35 else "#f87171")
-    )
-
-    if breadth_pct >= 65:
-        regime, regime_bg = "BULL TRENDING", "#4f46e5"
-    elif breadth_pct >= 50:
-        regime, regime_bg = "BULL MIXED",    "#059669"
-    elif breadth_pct >= 35:
-        regime, regime_bg = "BEAR MIXED",    "#d97706"
-    else:
-        regime, regime_bg = "BEAR TRENDING", "#e11d48"
-
-    sep = "border-right:1px solid rgba(255,255,255,.1);"
-    lbl = "color:rgba(255,255,255,.4);margin-right:4px;"
-    val = "color:#fff;font-weight:600;"
-    item = (
-        f'display:inline-flex;align-items:center;gap:0;'
-        f'padding:0 14px;{sep}'
-    )
-
-    strip = (
-        f'<div style="background:#0f172a;padding:7px 0 7px 14px;'
-        f'display:flex;align-items:center;overflow-x:auto;white-space:nowrap;'
-        f'font-family:\'JetBrains Mono\',monospace;font-size:.64rem;">'
-        # NSE open/closed
-        f'<span style="{item}">'
-        f'<span style="width:7px;height:7px;border-radius:50%;background:{dot_color};'
-        f'flex-shrink:0;{dot_shadow}margin-right:6px;"></span>'
-        f'<span style="{lbl}">NSE</span>'
-        f'<span style="{val}">{mkt_status}</span>'
-        f'</span>'
-        # Breadth
-        f'<span style="{item}">'
-        f'<span style="{lbl}">BREADTH</span>'
-        f'<span style="color:{breadth_clr};font-weight:700;">{breadth_pct}%</span>'
-        f'<span style="color:rgba(255,255,255,.3);margin-left:4px;">&gt;50 EMA'
-        f' ({n_observed} priced)</span>'
-        f'</span>'
-        # 52W Hi count
-        f'<span style="{item}">'
-        f'<span style="{lbl}">52W HI</span>'
-        f'<span style="color:#818cf8;font-weight:700;">{n_hi}</span>'
-        f'<span style="color:rgba(255,255,255,.3);margin-left:4px;">stocks near</span>'
-        f'</span>'
-        # Regime pill
-        f'<span style="{item}">'
-        f'<span style="{lbl}">REGIME</span>'
-        f'<span style="background:{regime_bg};color:#fff;padding:2px 8px;'
-        f'border-radius:4px;font-size:.58rem;font-weight:700;letter-spacing:.05em;">{regime}</span>'
-        f'</span>'
-        # Universe count
-        f'<span style="display:inline-flex;align-items:center;padding:0 14px;margin-left:auto;">'
-        f'<span style="{lbl}">UNIVERSE</span>'
-        f'<span style="{val}">{n_total} stocks</span>'
-        f'</span>'
-        f'</div>'
-    )
-    st.markdown(strip, unsafe_allow_html=True)
 
 
 def _idx_chips_html(indices_raw: str) -> str:
@@ -578,23 +481,18 @@ def render_ranking_view(
                 .astype(str)
                 .apply(lambda v: target_tag in [t.strip().upper() for t in v.split(",")])
             ]
-        else:
-            matched_syms = rank_df[rank_df["Symbol"].str.upper() == s_val.upper()]
-            if len(matched_syms) == 1:
-                single_stock_drill = matched_syms.iloc[0]["Symbol"]
-
-            mask = (
-                view["Symbol"].str.contains(s_val, case=False, na=False)
-                | view["Industry"].str.contains(s_val, case=False, na=False)
-                | view["Indices"].str.contains(s_val, case=False, na=False)
-                | view.get("TV_Industry", pd.Series("", index=view.index)).str.contains(
-                    s_val, case=False, na=False
-                )
-                | view.get("TV_Sector", pd.Series("", index=view.index)).str.contains(
-                    s_val, case=False, na=False
-                )
-            )
-            view = view[mask]
+        # No free-text fallback, because there is no free text to fall back on.
+        # `selected_search` comes from a selectbox whose options are exactly the
+        # lists built above, and every one of them carries a [STOCK]/[INDEX]/
+        # [INDUSTRY]/[SECTOR]/[TV_INDUSTRY] prefix; st.selectbox only returns an
+        # option it was given (accept_new_options defaults to False), so the
+        # branch that used to sit here could never run.
+        #
+        # It also could not have run SAFELY: it passed the reader's text
+        # straight into Series.str.contains, which treats its argument as a
+        # REGULAR EXPRESSION by default. A single "(" or "*" would have raised
+        # re.error and taken the screener down. If free text is ever wanted
+        # here, pass regex=False and re-add the branch deliberately.
 
     # Quick Preset filters
     if filt == "Top 50 Qualified":
@@ -739,34 +637,3 @@ def render_ranking_view(
         gap_count=int((rank_df.get("Data Gap", pd.Series()) == "🔴").sum()),
         short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
     )
-
-
-def render_rank_movers_section(rank_df: pd.DataFrame) -> None:
-    """Renders 1-month momentum rank acceleration and breakdown movers (Preserved for modular reuse)."""
-    if "Rank (-1M)" not in rank_df.columns:
-        return
-    m_df = rank_df.dropna(subset=["Rank (-1M)"]).copy()
-    m_df["Rank Δ 1M"] = m_df["Rank (-1M)"] - m_df["Rank"]
-
-    col_a, col_b = st.columns(2)
-    with col_a:
-        st.markdown("##### 🔺 Top Rank Improvers (1 Month)")
-        imp = m_df[m_df["Rank Δ 1M"] > 0].nlargest(10, "Rank Δ 1M")
-        if not imp.empty:
-            imp_cols = ["Rank", "Symbol", "Rank Δ 1M", "Rank (-1M)", "CMP", "3M Return"]
-            render_styled_table(
-                imp[[c for c in imp_cols if c in imp.columns]], key="rank_improvers"
-            )
-        else:
-            st.info("No stocks improved ranks.")
-
-    with col_b:
-        st.markdown("##### 🔻 Top Rank Fallers (1 Month)")
-        fal = m_df[m_df["Rank Δ 1M"] < 0].nsmallest(10, "Rank Δ 1M")
-        if not fal.empty:
-            fal_cols = ["Rank", "Symbol", "Rank Δ 1M", "Rank (-1M)", "CMP", "3M Return"]
-            render_styled_table(
-                fal[[c for c in fal_cols if c in fal.columns]], key="rank_fallers"
-            )
-        else:
-            st.info("No stocks dropped ranks.")

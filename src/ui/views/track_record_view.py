@@ -19,7 +19,6 @@ from src.engine.corporate_actions import load_events
 from src.engine.membership import load_history_or_none
 from src.engine.track_record import (
     INCEPTION,
-    MONTH_LABELS,
     TRACK_RECORD_CONFIG,
     build_combined_grid,
     load_ledger,

@@ -6,7 +6,6 @@ screen saying so.
 """
 from datetime import date
 
-import pytest
 
 from src.core import startup_metrics as metrics
 from src.ui.components import data_freshness

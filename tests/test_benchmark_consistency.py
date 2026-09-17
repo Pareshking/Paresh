@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 
-from src.engine.backtester import _calendar_period_sharpe
 
 
 def test_benchmark_symbol_is_nifty_500():

@@ -707,7 +707,10 @@ def audit_configuration(page, frame) -> dict:
     # reader should have to look at, so it lives in the hidden telemetry
     # element that the deploy-correspondence check already reads.
     try:
-        body = frame.locator("body").inner_text(timeout=10_000)
+        # The value is not read; the CALL is what matters. It blocks until the
+        # body has text (or raises into the except below), which is what keeps
+        # read_telemetry from sampling a frame that has not rendered yet.
+        frame.locator("body").inner_text(timeout=10_000)
         tele = read_telemetry(page) or {}
         out["build_chip"] = (tele.get("revision") or "")[:7] or None
         out["streamlit_version"] = tele.get("streamlit_version")

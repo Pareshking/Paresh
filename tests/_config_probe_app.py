@@ -8,7 +8,6 @@ rendered sections. The probe bypasses the nav and calls the section functions
 directly so that all widgets are always visible to AppTest, which probes the
 rendered widget tree rather than clicking through the UI.
 """
-import pandas as pd
 import streamlit as st
 
 from src.ui.views.config_view import (
