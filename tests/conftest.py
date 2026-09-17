@@ -1,13 +1,22 @@
 """pytest session-wide fixtures and import stubs.
 
-Libraries not installed in the isolated CI test environment are stubbed here
-so every test file can be collected without ModuleNotFoundError.  Stubs are
-intentionally minimal — just enough for import-time resolution; tests that
-exercise live behaviour mock specific callables themselves.
+Libraries that are genuinely absent are stubbed here so every test file can be
+collected without ModuleNotFoundError. Stubs are intentionally minimal — just
+enough for import-time resolution; tests that exercise live behaviour mock
+specific callables themselves.
+
+The stubbing is CONDITIONAL, and that matters. The meta-path finder below used
+to intercept every "plotly" import unconditionally, so it won and installed a
+MagicMock even where the real package was installed -- which is everywhere the
+suite actually runs, since plotly and streamlit-lightweight-charts are both in
+requirements.txt. src/ui/charts.py was therefore never once exercised against
+the library it ships against: any misuse of the plotly API returned a MagicMock
+and passed. Stubbing now happens only for what genuinely cannot be imported.
 """
 
 import importlib.abc
 import importlib.machinery
+import importlib.util
 import sys
 import types
 import unittest.mock
@@ -22,14 +31,23 @@ if "yfinance" not in sys.modules:
     _yf.Ticker = unittest.mock.MagicMock()
     sys.modules["yfinance"] = _yf
 
-# ── plotly + streamlit_lightweight_charts ─────────────────────────────────────
-# Streamlit itself imports several plotly submodules (plotly.io, plotly.tools,
-# plotly.express …).  Pre-registering a fixed list breaks whenever Streamlit
-# accesses another submodule.  Instead, install a meta-path finder that
-# intercepts *any* import whose name starts with "plotly" (or the other
-# missing packages) and returns a MagicMock-based module so the import
-# always succeeds.
-_STUB_PREFIXES = ("plotly", "streamlit_lightweight_charts")
+
+def _installed(name: str) -> bool:
+    """Whether a top-level package can actually be imported."""
+    try:
+        return importlib.util.find_spec(name) is not None
+    except (ImportError, ValueError):
+        return False
+
+
+# ── plotly + streamlit_lightweight_charts ────────────────────────────────────
+# Only the ones that are missing. Streamlit reaches for several plotly
+# submodules (plotly.io, plotly.tools, plotly.express …) and pre-registering a
+# fixed list breaks whenever it reaches for another, so an absent package is
+# covered by a prefix finder rather than by name.
+_STUB_PREFIXES = tuple(
+    name for name in ("plotly", "streamlit_lightweight_charts") if not _installed(name)
+)
 
 
 class _StubFinder(importlib.abc.MetaPathFinder, importlib.abc.Loader):
@@ -56,11 +74,14 @@ class _StubFinder(importlib.abc.MetaPathFinder, importlib.abc.Loader):
         pass   # nothing to execute; MagicMock handles attribute access
 
 
-sys.meta_path.insert(0, _StubFinder())
+if _STUB_PREFIXES:
+    sys.meta_path.insert(0, _StubFinder())
 
 # Streamlit's plotly_chart.py serialises the figure via plotly.io.to_json and
-# then assigns the result to a protobuf string field.  With a stub, that
-# method returns a MagicMock → protobuf rejects it.  Pre-import the stub and
-# set a valid return value so the protobuf assignment succeeds.
-import plotly.io as _pio   # noqa: E402 — must come after finder install
-_pio.to_json.return_value = "{}"
+# then assigns the result to a protobuf string field. A MagicMock there is
+# rejected by protobuf, so the stub needs a valid return value. The real
+# plotly.io needs nothing -- it returns a str already.
+if "plotly" in _STUB_PREFIXES:
+    import plotly.io as _pio   # noqa: E402 — must come after finder install
+
+    _pio.to_json.return_value = "{}"

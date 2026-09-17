@@ -3,6 +3,12 @@ name: V1 Full Validation
 on:
   push:
     branches: [main]
+  # Also on the PROPOSAL, not only on the merge. Running solely on push to
+  # main meant the suite first executed after the change was already in --
+  # a red result there is a revert, where the same red result on the pull
+  # request is just a commit that does not land.
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
