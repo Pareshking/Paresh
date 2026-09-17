@@ -82,7 +82,14 @@ def test_the_deleted_modules_are_actually_deleted():
         assert not (ROOT / rel).exists(), f"{rel} is still on disk"
 
 
-def test_the_app_still_imports_cleanly():
-    """The tab tuple and the tab list must still line up after two removals."""
+def test_the_app_still_imports_cleanly(offline_market_data):
+    """The tab tuple and the tab list must still line up after two removals.
+
+    Takes the offline fixture because importing app.py runs its entire data
+    pipeline at module scope. Unstubbed, this single import fetched the
+    constituent lists, the market-cap archive and the 10 MB published price
+    snapshot -- so "does the module import" was answered by three third parties
+    being reachable.
+    """
     import importlib
     importlib.import_module("app")

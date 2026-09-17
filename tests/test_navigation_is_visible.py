@@ -95,9 +95,9 @@ def test_the_app_renders_one_page_link_per_page():
     assert "st.page_link(" in src, "no in-body navigation is rendered"
 
 
-def test_every_page_is_reachable_from_the_rendered_navigation():
+def test_every_page_is_reachable_from_the_rendered_navigation(offline_market_data):
     """The end-to-end guarantee, against the real app rather than its source."""
-    at = AppTest.from_file(APP, default_timeout=600).run()
+    at = AppTest.from_file(APP, default_timeout=120).run()
     assert not at.exception, [e.value[:300] for e in at.exception]
 
     labels = [
@@ -114,9 +114,9 @@ def test_every_page_is_reachable_from_the_rendered_navigation():
     )
 
 
-def test_the_navigation_survives_being_on_a_different_page():
+def test_the_navigation_survives_being_on_a_different_page(offline_market_data):
     """The nav is drawn by the entrypoint, so it must not depend on the page."""
-    at = AppTest.from_file(APP, default_timeout=600).run()
+    at = AppTest.from_file(APP, default_timeout=120).run()
     assert not at.exception, [e.value[:300] for e in at.exception]
     count = sum(
         1 for e in at.main

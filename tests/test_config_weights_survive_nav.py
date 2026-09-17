@@ -89,7 +89,12 @@ def test_a_zero_weight_vector_is_repaired_and_reported_never_silently_equal_weig
     under the configured one's name is the silent-methodology-swap the README
     forbids elsewhere in this codebase.
     """
-    import app as _app_module  # noqa: F401  (import guard only)
+    # No `import app` here. This test reads app.py as TEXT, and importing it
+    # executes the entire data pipeline at module scope -- indices, market
+    # caps, the benchmark and the 10 MB published price snapshot -- to
+    # produce a module object the test then never touched. That app.py
+    # imports cleanly is already covered by the AppTest runs in
+    # tests/test_navigation_is_visible.py.
 
     src = Path(__file__).resolve().parents[1].joinpath("app.py").read_text()
     assert "else [0.2] * 5" not in src, (
