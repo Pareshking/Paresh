@@ -272,7 +272,13 @@ def test_sortino_uses_target_semideviation_not_the_sd_of_losing_days():
     curve = res["equity_curve"].to_numpy()
     net_daily = pd.Series(curve[1:] / curve[:-1] - 1.0)
 
-    semidev = np.sqrt((np.minimum(net_daily, 0.0) ** 2).mean()) * np.sqrt(252)
+    # MAR-aligned: shortfall is measured against the SAME risk-free rate the
+    # numerator uses, not against zero. Two MARs in one ratio matched no
+    # published Sortino.
+    rf_daily = stats["risk_free_rate"] / 252.0
+    semidev = (
+        np.sqrt((np.minimum(net_daily - rf_daily, 0.0) ** 2).mean()) * np.sqrt(252)
+    )
     ann_excess = net_daily.mean() * 252 - stats["risk_free_rate"]
     assert stats["sortino"] == pytest.approx(ann_excess / semidev, rel=1e-6)
 
@@ -288,7 +294,7 @@ def test_annualised_return_ships_the_window_it_was_extrapolated_from():
     assert stats["ann_return"] == pytest.approx(
         (1 + stats["total_return"]) ** (1 / stats["window_years"]) - 1, rel=1e-6
     )
-    assert np.isfinite(stats["sharpe_stderr"]) and stats["sharpe_stderr"] > 0
+    assert np.isfinite(stats["sharpe_stderr_iid"]) and stats["sharpe_stderr_iid"] > 0
 
 
 def test_risk_free_rate_is_configuration_not_a_number_buried_in_a_ratio():
@@ -712,10 +718,10 @@ def test_sharpe_standard_error_matches_lo_2002():
     stats = res["stats"]
     n, s_ann = stats["n_days"], stats["sharpe"]
     expected = np.sqrt(252) * np.sqrt((1 + 0.5 * (s_ann / np.sqrt(252)) ** 2) / n)
-    assert stats["sharpe_stderr"] == pytest.approx(expected, rel=1e-9)
+    assert stats["sharpe_stderr_iid"] == pytest.approx(expected, rel=1e-9)
 
     naive = np.sqrt((1 + 0.5 * s_ann**2) / n)
-    assert stats["sharpe_stderr"] > naive * 3, "the understating formula is back"
+    assert stats["sharpe_stderr_iid"] > naive * 3, "the understating formula is back"
 
 
 def test_row_and_matrix_paths_agree_on_the_as_of_rule():

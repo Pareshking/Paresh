@@ -212,6 +212,20 @@ def apply_caps(
         if available <= 1e-15:
             break               # caps jointly leave nowhere to put the rest
         w = w + room * min(1.0, deficit / available)
+    else:
+        # The loop ran all 200 iterations without converging or concluding that
+        # the caps leave nowhere to put the capital. Every exit above is a
+        # decision; falling out of the bottom is not one, and the normalise
+        # below would then quietly rescale a book that never satisfied the
+        # constraints. Nothing here can see that from the outside, so say it.
+        logger.warning(
+            "Concentration cap projection did not converge in 200 iterations "
+            "for %d names across %d sectors (residual deficit %.3e); the "
+            "returned weights are the last iterate and may not satisfy the "
+            "stock %.2f%% / sector %.2f%% caps exactly.",
+            n, num_sec, abs(1.0 - float(w.sum())),
+            eff_stock_cap * 100, eff_sector_cap * 100,
+        )
 
     total = float(w.sum())
     out = w / total if total > 0 else pd.Series(1.0 / n, index=w.index)

@@ -217,7 +217,7 @@ def _backtest_body(
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
             <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Net Sharpe Ratio</div>
             <div style="font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; color: #0f172a; margin-top: 1px;">{stats['sharpe']:.2f}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #64748b;" title="Annualised mean excess return over a {stats.get('risk_free_rate', 0.065):.1%} risk-free rate, divided by annualised volatility. The ± is one standard error at this sample size.">Sortino: {stats.get('sortino', 0):.2f} · ±{stats.get('sharpe_stderr', float('nan')):.2f} s.e.</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #64748b;" title="Annualised mean excess return over a {stats.get('risk_free_rate', 0.065):.1%} risk-free rate, divided by annualised volatility. The ± is one standard error at this sample size.">Sortino: {stats.get('sortino', 0):.2f} · ±{stats.get('sharpe_stderr_iid', float('nan')):.2f} s.e.</div>
         </div>
     </div>
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px;">

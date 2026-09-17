@@ -346,6 +346,59 @@ def _step_portfolio_allocation(
     return full_w, turnover_period, friction_drag
 
 
+def _returns_autocorr_lag1(daily: pd.Series) -> float:
+    """Sample first-order autocorrelation of the daily net return series.
+
+    Reported because the Sharpe standard error beside it assumes this is zero,
+    and a momentum book is the kind of strategy where it usually is not. The
+    sign is what matters: positive rho means the i.i.d. standard error is too
+    SMALL and the annualised Sharpe too large; negative means the reverse.
+
+    Lo's eta(q) is deliberately NOT computed here. It weights each sample rho_k
+    by (q - k), which at q = 252 is roughly 252x, while the reported window is
+    six completed months -- about 130 sessions, SHORTER than the aggregation
+    period it would be annualising to. On a sample series with rho_1 of only
+    -0.058 that arithmetic returned eta = 51.2 against sqrt(252) = 15.9: not a
+    property of the strategy, just estimation noise multiplied by 252. A
+    statistic that cannot be estimated from the window on offer does not become
+    estimable by being printed to two decimals.
+    """
+    n = len(daily)
+    if n < 20:
+        return float("nan")
+    x = daily.to_numpy(dtype=float)
+    x = x - x.mean()
+    denom = float((x * x).sum())
+    if not np.isfinite(denom) or denom <= 0:
+        return float("nan")
+    return float((x[1:] * x[:-1]).sum() / denom)
+
+
+def _underwater_durations(equity: pd.Series) -> tuple[int, int]:
+    """Longest and current stretch below the previous equity peak, in CALENDAR days.
+
+    Depth is only half of a drawdown; the half a holder actually feels is how
+    long it lasted. Measured in calendar days rather than sessions because that
+    is the elapsed time someone lived through, and from the first session below
+    the peak to the last one, inclusive -- the session that regains the peak is
+    a recovery, not part of the underwater run.
+    """
+    if equity is None or len(equity) < 2:
+        return 0, 0
+    peak = equity.cummax()
+    underwater = equity < peak * (1.0 - 1e-12)
+    if not bool(underwater.any()):
+        return 0, 0
+    runs = (underwater != underwater.shift(fill_value=False)).cumsum()
+    spans = [
+        (seg.index[-1] - seg.index[0]).days + 1
+        for _, seg in equity[underwater].groupby(runs[underwater])
+    ]
+    longest = int(max(spans)) if spans else 0
+    current = int(spans[-1]) if bool(underwater.iloc[-1]) else 0
+    return longest, current
+
+
 def _calculate_backtest_metrics(
     eq_strat_net: pd.Series,
     eq_strat_gross: pd.Series,
@@ -410,14 +463,29 @@ def _calculate_backtest_metrics(
     _ANNUALISATION = 252.0
     if n_days > 1:
         _s_period = strat_sharpe / np.sqrt(_ANNUALISATION)
-        sharpe_stderr = float(
+        sharpe_stderr_iid = float(
             np.sqrt(_ANNUALISATION) * np.sqrt((1.0 + 0.5 * _s_period**2) / n_days)
         )
     else:
-        sharpe_stderr = float("nan")
+        _s_period = float("nan")
+        sharpe_stderr_iid = float("nan")
+
+    # The key says `_iid` because the formula above assumes it, twice: Lo's
+    # SE(S) = sqrt((1 + S^2/2)/n) is derived for independent returns, and the
+    # sqrt(252) that annualises it assumes them too. A momentum book is
+    # positively autocorrelated within a holding period, which makes the TRUE
+    # standard error larger than this one -- so an unlabelled `sharpe_stderr`
+    # was quietly the optimistic end of the range.
+    #
+    # The measured lag-1 autocorrelation travels beside it so the size and
+    # direction of that assumption are visible. Lo's eta(q) is not reported --
+    # see _returns_autocorr_lag1 for why it cannot be estimated from a
+    # six-month window.
+    returns_autocorr_lag1 = _returns_autocorr_lag1(strat_daily_s)
 
     dd_series = eq_strat_net / eq_strat_net.cummax() - 1
     max_dd = float(dd_series.min())
+    max_dd_duration_days, current_dd_duration_days = _underwater_durations(eq_strat_net)
 
     # The earliest signal date that had real membership behind it.
     # NB: index `prices.index`, not `dates` -- `dates` is rebound above to the
@@ -453,13 +521,30 @@ def _calculate_backtest_metrics(
     # neither matched any published Sortino nor erred in a predictable
     # direction. The <=5-observation fallback to total volatility is kept:
     # a semideviation from four bad days is not a risk estimate.
-    downside_rets = strat_daily_s[strat_daily_s < 0]
-    downside_vol = (
-        float(np.sqrt((np.minimum(strat_daily_s, 0.0) ** 2).mean()) * np.sqrt(252))
-        if len(downside_rets) > 5
-        else strat_vol
-    )
-    strat_sortino = float(ann_mean_excess / downside_vol) if downside_vol > 0 else 0.0
+    # MAR-ALIGNED. The numerator is excess return over the risk-free rate, so
+    # the denominator measures shortfall against the same target. Measuring the
+    # numerator against rf and the denominator against zero is two different
+    # MARs in one ratio, and matches no published Sortino.
+    _rf_daily = RISK_FREE_RATE / 252.0
+    _downside_excess = np.minimum(strat_daily_s - _rf_daily, 0.0)
+    _n_below_mar = int((strat_daily_s < _rf_daily).sum())
+    _msd = float((_downside_excess**2).mean()) if len(strat_daily_s) else 0.0
+
+    # NO FALLBACK TO TOTAL VOLATILITY. The old code substituted total vol below
+    # six losing days, which is a materially different and much larger
+    # denominator -- measured at ~1.9x the semideviation on a sample series, so
+    # the reported Sortino roughly doubled the moment a sixth losing day
+    # arrived. A metric that steps discontinuously on an arbitrary count is
+    # worse than an absent one. Too few observations, or no shortfall at all,
+    # now reports NaN: not computable is a fact, 0.0 was a verdict, and it was
+    # the worst possible verdict on the best possible outcome.
+    _MIN_DOWNSIDE_OBS = 6
+    if _n_below_mar >= _MIN_DOWNSIDE_OBS and _msd > 0.0:
+        downside_vol = float(np.sqrt(_msd) * np.sqrt(252))
+        strat_sortino = float(ann_mean_excess / downside_vol)
+    else:
+        downside_vol = float("nan")
+        strat_sortino = float("nan")
 
     # Numerator annualised, denominator observed over `window_years`. Over a
     # six-month window that is not a Calmar ratio in the sense anyone quotes,
@@ -478,10 +563,16 @@ def _calculate_backtest_metrics(
         "cagr_gross": cagr_gross,
         "ann_bench": cagr_bench,
         "max_drawdown": max_dd,
+        # Depth is only half a drawdown; this is how long it lasted.
+        "max_drawdown_duration_days": max_dd_duration_days,
+        "current_drawdown_duration_days": current_dd_duration_days,
         "win_rate": win_rate,
         "beat_rate": beat_rate,
         "sharpe": strat_sharpe,
-        "sharpe_stderr": sharpe_stderr,
+        # Renamed from `sharpe_stderr`: the formula assumes zero autocorrelation
+        # and the name now says so, with the measured lag-1 figure beside it.
+        "sharpe_stderr_iid": sharpe_stderr_iid,
+        "returns_autocorr_lag1": returns_autocorr_lag1,
         "risk_free_rate": RISK_FREE_RATE,
         "window_years": window_years,
         "sortino": strat_sortino,
