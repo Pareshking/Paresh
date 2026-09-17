@@ -611,157 +611,169 @@ def fetch_price_history(
 
     # ── 1. Load existing cache if present ────────────────────────────────────
     if not force_refresh and os.path.exists(PRICES_FILE):
+        # ONLY the read is guarded. This used to wrap the whole cached path --
+        # ticker renaming, the cell-by-cell merge, the parquet write -- and
+        # report every one of them as "cache read failed" before falling
+        # through to a full 750-symbol download from Yahoo. A bug in the merge
+        # therefore looked like a cold cache and was answered with the exact
+        # request the published snapshot exists to avoid, which Yahoo
+        # rate-limits. Past this point a failure is a real failure and raises.
         try:
             cached = pd.read_parquet(PRICES_FILE)
             cached = _drop_phantom_sessions(_drop_unsettled_rows(_drop_future_rows(cached)))
-            if not cached.empty:
-                last_cached_date = cached.index[-1].date()
-                # Indian market date, not the server's, throughout -- see
-                # src/core/market_time. The two notions of "today" used to sit
-                # in this one branch and disagreed for the 5h30m each day when
-                # UTC is still on the previous calendar day.
-                if _cache_is_current(last_cached_date):
-                    logger.info(f"Price cache up-to-date: {len(cached.columns)} series")
-                    metrics.note("price_path", "cache_fresh")
+        except Exception as e:
+            logger.warning(
+                "Price cache read failed (%s: %s); falling back to a full download.",
+                type(e).__name__, e,
+            )
+            cached = None
+
+        if cached is not None and not cached.empty:
+            last_cached_date = cached.index[-1].date()
+            # Indian market date, not the server's, throughout -- see
+            # src/core/market_time. The two notions of "today" used to sit
+            # in this one branch and disagreed for the 5h30m each day when
+            # UTC is still on the previous calendar day.
+            if _cache_is_current(last_cached_date):
+                logger.info(f"Price cache up-to-date: {len(cached.columns)} series")
+                metrics.note("price_path", "cache_fresh")
+                metrics.note("price_series_returned", len(cached.columns))
+                _note_price_as_of(cached)
+                return cached
+
+            # Nothing to ASK FOR yet. _cache_is_current above asks whether
+            # the cache is final; this asks whether the vendor could even
+            # answer, and the two differ for most of every day. At 06:43 IST
+            # the cache holding yesterday's close is not "current" -- today
+            # is a trading day and today's bar is missing -- but today's
+            # session has not opened, so the request that follows costs 25
+            # seconds of a reader's cold start to be told nothing. See
+            # DOWNLOAD_SETTLES in src/core/market_time.
+            #
+            # heal_days skips this gate deliberately: a healing run is not
+            # after the newest session, it is after the ones already held.
+            if not heal_days:
+                target = last_downloadable_session()
+                if target is not None and last_cached_date >= target:
+                    logger.info(
+                        "Price cache holds the last settled session (%s); "
+                        "next bar is not downloadable yet, serving cache "
+                        "(%d series).",
+                        last_cached_date, len(cached.columns),
+                    )
+                    metrics.note("price_path", "cache_pre_settle")
                     metrics.note("price_series_returned", len(cached.columns))
                     _note_price_as_of(cached)
                     return cached
 
-                # Nothing to ASK FOR yet. _cache_is_current above asks whether
-                # the cache is final; this asks whether the vendor could even
-                # answer, and the two differ for most of every day. At 06:43 IST
-                # the cache holding yesterday's close is not "current" -- today
-                # is a trading day and today's bar is missing -- but today's
-                # session has not opened, so the request that follows costs 25
-                # seconds of a reader's cold start to be told nothing. See
-                # DOWNLOAD_SETTLES in src/core/market_time.
-                #
-                # heal_days skips this gate deliberately: a healing run is not
-                # after the newest session, it is after the ones already held.
-                if not heal_days:
-                    target = last_downloadable_session()
-                    if target is not None and last_cached_date >= target:
-                        logger.info(
-                            "Price cache holds the last settled session (%s); "
-                            "next bar is not downloadable yet, serving cache "
-                            "(%d series).",
-                            last_cached_date, len(cached.columns),
-                        )
-                        metrics.note("price_path", "cache_pre_settle")
-                        metrics.note("price_series_returned", len(cached.columns))
-                        _note_price_as_of(cached)
-                        return cached
-
-                # Incremental update. The start date is INCLUSIVE of the last
-                # cached session when that session is still open, so today's
-                # partial row is re-requested and its later values replace the
-                # earlier ones (the merge below keeps the last of a duplicated
-                # date). Asking from the following day instead is what froze
-                # the price at whatever minute the row was first written.
-                start_date = pd.Timestamp(last_cached_date)
-                if session_is_complete(last_cached_date):
-                    start_date += pd.Timedelta(days=1)
-                if heal_days > 0:
-                    # Reach back over settled history too, so a close the
-                    # vendor filled in after the fact is actually asked for.
-                    start_date = min(
-                        start_date,
-                        pd.Timestamp(last_cached_date) - pd.Timedelta(days=heal_days),
-                    )
-                    metrics.note("price_heal_days", int(heal_days))
-                    metrics.note("price_heal_from", str(start_date.date()))
-                yf_tickers = [
-                    s + ".NS" if not s.upper().endswith(".NS") else s
-                    for s in symbols
-                ]
-                metrics.note("price_path", "cache_incremental")
-                new_data = _download_range(yf_tickers, start_date)
+            # Incremental update. The start date is INCLUSIVE of the last
+            # cached session when that session is still open, so today's
+            # partial row is re-requested and its later values replace the
+            # earlier ones (the merge below keeps the last of a duplicated
+            # date). Asking from the following day instead is what froze
+            # the price at whatever minute the row was first written.
+            start_date = pd.Timestamp(last_cached_date)
+            if session_is_complete(last_cached_date):
+                start_date += pd.Timedelta(days=1)
+            if heal_days > 0:
+                # Reach back over settled history too, so a close the
+                # vendor filled in after the fact is actually asked for.
+                start_date = min(
+                    start_date,
+                    pd.Timestamp(last_cached_date) - pd.Timedelta(days=heal_days),
+                )
+                metrics.note("price_heal_days", int(heal_days))
+                metrics.note("price_heal_from", str(start_date.date()))
+            yf_tickers = [
+                s + ".NS" if not s.upper().endswith(".NS") else s
+                for s in symbols
+            ]
+            metrics.note("price_path", "cache_incremental")
+            new_data = _download_range(yf_tickers, start_date)
                 
-                if new_data is not None and not new_data.empty:
-                    # Clean timezone
-                    if new_data.index.tz is not None:
-                        new_data.index = new_data.index.tz_localize(None)
-                    if cached.index.tz is not None:
-                        cached.index = cached.index.tz_localize(None)
+            if new_data is not None and not new_data.empty:
+                # Clean timezone
+                if new_data.index.tz is not None:
+                    new_data.index = new_data.index.tz_localize(None)
+                if cached.index.tz is not None:
+                    cached.index = cached.index.tz_localize(None)
                     
-                    # Labels FIRST, then the concat. yfinance says "INDIGO.NS"
-                    # and the cache says "INDIGO", so joining them while they
-                    # still disagree unions the two into separate columns per
-                    # series; renaming afterwards just collapses the labels and
-                    # leaves the frame duplicated. Same labels in, one column
-                    # out, new sessions landing under the history they extend.
-                    cached = _normalise_ticker_level(cached)
-                    new_data = _normalise_ticker_level(new_data)
+                # Labels FIRST, then the concat. yfinance says "INDIGO.NS"
+                # and the cache says "INDIGO", so joining them while they
+                # still disagree unions the two into separate columns per
+                # series; renaming afterwards just collapses the labels and
+                # leaves the frame duplicated. Same labels in, one column
+                # out, new sessions landing under the history they extend.
+                cached = _normalise_ticker_level(cached)
+                new_data = _normalise_ticker_level(new_data)
 
-                    # Merge CELL BY CELL over the overlap, not row by row.
-                    #
-                    # keep="last" on a duplicated date takes the vendor's whole
-                    # row, including the cells where it sent nothing. One
-                    # rate-limited ticker in a batch therefore erased a close
-                    # the cache already held -- the append-only path then never
-                    # asked for that date again, so the hole was permanent. The
-                    # 572 interior gaps measured in the published snapshot are
-                    # this, five partial fetches deep.
-                    #
-                    # combine_first keeps the vendor's value wherever it HAS
-                    # one (so a revised close, or a restated split-adjusted
-                    # history, still wins) and falls back to the cache where it
-                    # does not. Strictly better than keep="last" in both
-                    # directions, which is why it applies to every run and not
-                    # only to healing ones.
-                    overlap = cached.index.intersection(new_data.index)
-                    if len(overlap):
-                        healed = new_data.loc[overlap].combine_first(cached.loc[overlap])
-                        repaired = int(
-                            (cached.loc[overlap].isna() & healed.notna()).to_numpy().sum()
-                        )
-                        if repaired:
-                            metrics.note("price_cells_repaired", repaired)
-                            logger.info(
-                                "Backfilled %d previously missing price cells across "
-                                "%d overlapping sessions.", repaired, len(overlap),
-                            )
-                        combined = pd.concat(
-                            [cached.drop(index=overlap), healed,
-                             new_data.drop(index=overlap)],
-                            axis=0,
-                        )
-                    else:
-                        combined = pd.concat([cached, new_data], axis=0)
-                    if combined.index.duplicated().any():
-                        combined = combined[~combined.index.duplicated(keep="last")]
-                    combined = _coalesce_duplicate_columns(combined)
-                    combined = combined.sort_index()
-                    # heal_days skips the download gate on purpose, so this is
-                    # the only thing standing between a healing run and an
-                    # in-progress session landing in the cache.
-                    combined = _drop_phantom_sessions(_drop_unsettled_rows(combined))
-
-                    try:
-                        combined.to_parquet(PRICES_FILE, compression="snappy")
+                # Merge CELL BY CELL over the overlap, not row by row.
+                #
+                # keep="last" on a duplicated date takes the vendor's whole
+                # row, including the cells where it sent nothing. One
+                # rate-limited ticker in a batch therefore erased a close
+                # the cache already held -- the append-only path then never
+                # asked for that date again, so the hole was permanent. The
+                # 572 interior gaps measured in the published snapshot are
+                # this, five partial fetches deep.
+                #
+                # combine_first keeps the vendor's value wherever it HAS
+                # one (so a revised close, or a restated split-adjusted
+                # history, still wins) and falls back to the cache where it
+                # does not. Strictly better than keep="last" in both
+                # directions, which is why it applies to every run and not
+                # only to healing ones.
+                overlap = cached.index.intersection(new_data.index)
+                if len(overlap):
+                    healed = new_data.loc[overlap].combine_first(cached.loc[overlap])
+                    repaired = int(
+                        (cached.loc[overlap].isna() & healed.notna()).to_numpy().sum()
+                    )
+                    if repaired:
+                        metrics.note("price_cells_repaired", repaired)
                         logger.info(
-                            f"Price cache updated incrementally: {len(combined)} rows ({len(combined.columns)} series)"
+                            "Backfilled %d previously missing price cells across "
+                            "%d overlapping sessions.", repaired, len(overlap),
                         )
-                    except Exception as e:
-                        logger.warning(f"Price cache save failed (incremental): {e}")
-                    _note_price_as_of(combined)
-                    return combined
+                    combined = pd.concat(
+                        [cached.drop(index=overlap), healed,
+                         new_data.drop(index=overlap)],
+                        axis=0,
+                    )
                 else:
-                    # Yahoo had nothing to add. Before the close that is the
-                    # normal answer; days behind the last session it means the
-                    # provider is refusing this host, and the old code simply
-                    # returned the same frame every hour for as long as the
-                    # container lived. The daily snapshot is rebuilt by a job
-                    # Yahoo does answer, so it is the way out.
-                    recovered = _recover_stale_cache(last_cached_date)
-                    if recovered is not None:
-                        _note_price_as_of(recovered)
-                        return recovered
-                    logger.info("No new price data available from Yahoo Finance; returning existing cache.")
-                    _note_price_as_of(cached)
-                    return cached
-        except Exception as e:
-            logger.warning(f"Price cache read failed: {e}")
+                    combined = pd.concat([cached, new_data], axis=0)
+                if combined.index.duplicated().any():
+                    combined = combined[~combined.index.duplicated(keep="last")]
+                combined = _coalesce_duplicate_columns(combined)
+                combined = combined.sort_index()
+                # heal_days skips the download gate on purpose, so this is
+                # the only thing standing between a healing run and an
+                # in-progress session landing in the cache.
+                combined = _drop_phantom_sessions(_drop_unsettled_rows(combined))
+
+                try:
+                    combined.to_parquet(PRICES_FILE, compression="snappy")
+                    logger.info(
+                        f"Price cache updated incrementally: {len(combined)} rows ({len(combined.columns)} series)"
+                    )
+                except Exception as e:
+                    logger.warning(f"Price cache save failed (incremental): {e}")
+                _note_price_as_of(combined)
+                return combined
+            else:
+                # Yahoo had nothing to add. Before the close that is the
+                # normal answer; days behind the last session it means the
+                # provider is refusing this host, and the old code simply
+                # returned the same frame every hour for as long as the
+                # container lived. The daily snapshot is rebuilt by a job
+                # Yahoo does answer, so it is the way out.
+                recovered = _recover_stale_cache(last_cached_date)
+                if recovered is not None:
+                    _note_price_as_of(recovered)
+                    return recovered
+                logger.info("No new price data available from Yahoo Finance; returning existing cache.")
+                _note_price_as_of(cached)
+                return cached
 
     # ── 2. Full download fallback (cache missing or forced refresh) ──────────
     yf_symbols = [s + ".NS" if not s.upper().endswith(".NS") else s for s in symbols]
@@ -941,15 +953,17 @@ def fetch_price_history(
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def fetch_benchmark_history(period: str = "2y") -> pd.Series:
-    """Return the single V1 market benchmark price series."""
+def fetch_benchmark_history(
+    period: str = "2y", symbol: str = BENCHMARK_SYMBOL
+) -> pd.Series:
+    """Return a benchmark price series, the V1 benchmark by default."""
     try:
         data = yf.download(
-            BENCHMARK_SYMBOL, period=period, progress=False, threads=False,
+            symbol, period=period, progress=False, threads=False,
             auto_adjust=True,
         )
         if data is None or data.empty:
-            return pd.Series(dtype=float, name=BENCHMARK_SYMBOL)
+            return pd.Series(dtype=float, name=symbol)
         if data.index.tz is not None:
             data.index = data.index.tz_localize(None)
         if isinstance(data.columns, pd.MultiIndex):
@@ -958,11 +972,11 @@ def fetch_benchmark_history(period: str = "2y") -> pd.Series:
         else:
             series = data["Close"] if "Close" in data.columns else data.iloc[:, 0]
         series = pd.to_numeric(series, errors="coerce").dropna()
-        series.name = BENCHMARK_SYMBOL
+        series.name = symbol
         return series
     except Exception as e:
-        logger.warning(f"Failed to fetch benchmark {BENCHMARK_SYMBOL}: {e}")
-        return pd.Series(dtype=float, name=BENCHMARK_SYMBOL)
+        logger.warning(f"Failed to fetch benchmark {symbol}: {e}")
+        return pd.Series(dtype=float, name=symbol)
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -973,7 +987,10 @@ def get_market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL) -> RegimeData:
     HTTP round-trip is needed at cold start.
     """
     try:
-        close_s = fetch_benchmark_history(period="2y")
+        # The argument is honoured rather than decorative: this read
+        # BENCHMARK_SYMBOL internally, so asking for any other index
+        # silently returned the Nifty 500 regime under that index's name.
+        close_s = fetch_benchmark_history(period="2y", symbol=benchmark_symbol)
 
         if close_s is None or close_s.empty:
             return RegimeData(

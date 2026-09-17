@@ -409,7 +409,9 @@ def _apply_weight_composite(calc, weights: list[float]) -> pd.DataFrame:
     composite = pd.DataFrame(0.0, index=calc.prices.index, columns=calc.prices.columns)
     available_weight = pd.DataFrame(0.0, index=calc.prices.index, columns=calc.prices.columns)
 
-    for months, weight in zip(MOMENTUM_MONTHS, weights):
+    # strict: see run_backtest. A weight list shorter than MOMENTUM_MONTHS
+    # would drop the tail horizons from the composite without a word.
+    for months, weight in zip(MOMENTUM_MONTHS, weights, strict=True):
         z_score = z_scores.get(months)
         if z_score is None:
             continue
