@@ -503,3 +503,110 @@ def test_the_live_frame_loses_exactly_the_holiday():
         f"MIN_SESSION_COVERAGE={MIN_SESSION_COVERAGE} no longer sits between the "
         "61.3% holiday and the 82.0% thinnest real session"
     )
+
+
+# ── The exchange outranks the coverage guess ─────────────────────────────────
+#
+# Counting how much of the universe has a price CANNOT tell a holiday from a
+# vendor that has not finished publishing. The same two dates, measured a day
+# apart, prove no threshold can:
+#
+#                        2026-09-16 (traded)   2026-09-14 (holiday)
+#   during the sync              20%                   61%
+#   a day later                  63%                   86%
+#
+# On 2026-09-16 a 70% floor dropped the real session. By 2026-09-17 the same
+# floor would keep the holiday and drop the real session again. Yahoo backfills
+# a closed day as readily as an open one.
+#
+# NSE settles it, and the job ALREADY ASKS -- it downloaded the bhavcopy FOR
+# 2026-09-16 three seconds after dropping that session at 20% coverage.
+
+def test_a_session_nse_confirmed_is_never_dropped(monkeypatch):
+    """2026-09-16: 20% coverage, but NSE published a bhavcopy for it."""
+    from src.loaders import price_loader
+
+    monkeypatch.setattr(
+        price_loader, "load_confirmed", lambda: {"2026-09-16"}, raising=False
+    )
+    import src.loaders.trading_days as td
+    monkeypatch.setattr(td, "load_confirmed", lambda path=None: {"2026-09-16"})
+
+    idx = pd.to_datetime(["2026-09-15", "2026-09-16"])
+    frame = pd.DataFrame([_session(750), _session(150)], index=idx)   # 100%, 20%
+    out = price_loader._drop_phantom_sessions(frame)
+    assert pd.Timestamp("2026-09-16") in out.index, (
+        "a session NSE confirmed as a trading day was deleted on vendor coverage"
+    )
+
+
+def test_an_unconfirmed_thin_session_still_falls_to_the_floor(monkeypatch):
+    """2026-09-14: NSE never answered (403), so the floor still applies."""
+    from src.loaders import price_loader
+    import src.loaders.trading_days as td
+
+    monkeypatch.setattr(td, "load_confirmed", lambda path=None: {"2026-09-16"})
+
+    idx = pd.to_datetime(["2026-09-14", "2026-09-16"])
+    frame = pd.DataFrame([_session(460), _session(150)], index=idx)   # 61%, 20%
+    out = price_loader._drop_phantom_sessions(frame)
+    assert pd.Timestamp("2026-09-14") not in out.index, "the unconfirmed holiday survived"
+    assert pd.Timestamp("2026-09-16") in out.index, "the confirmed session was dropped"
+
+
+def test_an_empty_record_changes_nothing(monkeypatch):
+    """Before the first confirmation lands, behaviour is exactly as before."""
+    from src.loaders import price_loader
+    import src.loaders.trading_days as td
+
+    monkeypatch.setattr(td, "load_confirmed", lambda path=None: set())
+    idx = pd.to_datetime(["2026-09-15", "2026-09-16"])
+    frame = pd.DataFrame([_session(750), _session(150)], index=idx)
+    out = price_loader._drop_phantom_sessions(frame)
+    assert pd.Timestamp("2026-09-16") not in out.index
+
+
+def test_the_record_only_ever_holds_confirmations(tmp_path):
+    """Absence must never read as a closure -- NSE answers 403 when throttled,
+    and six retries on 2026-09-14 never got past it. Reading that as 'holiday'
+    would delete real sessions on a bad network day."""
+    from src.loaders.trading_days import is_confirmed, load_confirmed, record_confirmed
+
+    path = str(tmp_path / "days.json")
+    record_confirmed({"2026-09-16"}, path)
+    assert load_confirmed(path) == {"2026-09-16"}
+    assert is_confirmed("2026-09-16", load_confirmed(path))
+    # An unknown date is unknown, not closed.
+    assert not is_confirmed("2026-09-14", load_confirmed(path))
+
+
+def test_the_record_is_append_only(tmp_path):
+    """A date NSE confirmed once stays confirmed; nothing here removes one."""
+    from src.loaders.trading_days import load_confirmed, record_confirmed
+
+    path = str(tmp_path / "days.json")
+    record_confirmed({"2026-09-15"}, path)
+    added, total = record_confirmed({"2026-09-16"}, path)
+    assert added == 1 and total == 2
+    assert load_confirmed(path) == {"2026-09-15", "2026-09-16"}
+    # Re-recording the same day is a no-op.
+    assert record_confirmed({"2026-09-16"}, path) == (0, 2)
+
+
+def test_an_unreadable_record_degrades_to_the_floor(tmp_path):
+    from src.loaders.trading_days import load_confirmed
+
+    bad = tmp_path / "days.json"
+    bad.write_text("{not json")
+    assert load_confirmed(str(bad)) == set()
+
+
+def test_the_shipped_record_vouches_for_the_session_that_broke():
+    """The live file must carry 2026-09-16, or tonight repeats the mistake."""
+    from src.loaders.trading_days import load_confirmed
+
+    days = load_confirmed()
+    assert "2026-09-16" in days, (
+        "2026-09-16 is not in the committed record; the nightly heal will drop "
+        "that real session again at 63% coverage"
+    )

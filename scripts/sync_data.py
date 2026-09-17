@@ -183,6 +183,30 @@ def run_daily_sync() -> None:
     mcaps = fetch_market_caps(symbols, force_refresh=True)
     print(f"Market cap cache updated for {len(mcaps)} tickers.")
 
+    # 5a. Write down which date NSE just confirmed.
+    #
+    # The fetch above downloads a bhavcopy for a specific date and walks back
+    # until one answers with 200. That answer IS the exchange saying the market
+    # traded that day, and it was being thrown away: on 2026-09-16 this job
+    # dropped the 09-16 price row at 20% coverage three seconds before fetching
+    # NSE's bhavcopy FOR 09-16. Recording it costs no extra request.
+    try:
+        from src.core import startup_metrics as _m
+        from src.loaders.trading_days import record_confirmed
+
+        _facts = _m.snapshot().get("facts", {})
+        _seen = {
+            str(_facts[k]) for k in ("mcap_pr_date", "mcap_pr_fetched_date")
+            if _facts.get(k)
+        }
+        if _seen:
+            _added, _total = record_confirmed(_seen)
+            print(
+                f"Trading days confirmed by NSE: +{_added} new, {_total} on record."
+            )
+    except Exception as exc:
+        print(f"Trading-day record skipped: {type(exc).__name__}: {exc}")
+
     # 5b. Commit the result to the repository.
     # This job runs on GitHub Actions, where NSE is reachable. Whether
     # production on Streamlit Cloud can reach it too is NOT established -- the

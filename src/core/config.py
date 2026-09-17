@@ -36,6 +36,23 @@ REPO_MCAP_FILE: Final[str] = os.path.join(REPO_DATA_DIR, "nse_market_caps.csv")
 # back instantly by production. See ATH_HISTORY_PERIOD below.
 REPO_ATH_FILE: Final[str] = os.path.join(REPO_DATA_DIR, "nse_all_time_highs.csv")
 
+# Dates NSE itself confirmed were trading days, by publishing a bhavcopy for
+# them. The nightly sync already downloads those files for market caps; this is
+# where what it learns gets written down instead of thrown away.
+#
+# It exists because counting how much of the universe has a price CANNOT tell a
+# holiday from a vendor that has not finished publishing. Measured two days
+# running on the same two dates:
+#
+#                        2026-09-16 (traded)   2026-09-14 (holiday)
+#   during the sync              20%                   61%
+#   a day later                  63%                   86%
+#
+# A single coverage threshold gets one of them wrong whichever value it takes,
+# and on 2026-09-17 it would have taken the holiday and dropped the real
+# session. Only the exchange's own record settles it.
+REPO_TRADING_DAYS_FILE: Final[str] = os.path.join(REPO_DATA_DIR, "nse_trading_days.json")
+
 INDICES_URLS: Final[dict[str, str]] = {
     "NIFTY 50": "https://niftyindices.com/IndexConstituent/ind_nifty50list.csv",
     "NIFTY NEXT 50": "https://niftyindices.com/IndexConstituent/ind_niftynext50list.csv",

@@ -110,6 +110,43 @@ def _drop_phantom_sessions(df: pd.DataFrame) -> pd.DataFrame:
     if not phantom.any():
         return df
     dates = pd.DatetimeIndex(df.index)
+
+    # NSE's own answer outranks the coverage guess wherever it exists. The
+    # nightly job downloads a bhavcopy per trading day for market caps, and a
+    # date it got a 200 for is a date the market traded -- whatever the vendor
+    # has managed to publish since. Without this, 2026-09-16 was dropped at 20%
+    # coverage three seconds before the same run fetched NSE's bhavcopy FOR
+    # 2026-09-16.
+    #
+    # Only confirmations are consulted. An unconfirmed date falls through to
+    # the coverage floor exactly as before, because absence is never evidence
+    # of a closure -- see src/loaders/trading_days.
+    try:
+        from src.loaders.trading_days import load_confirmed
+
+        confirmed = load_confirmed()
+        if confirmed:
+            vouched = np.array([d.date().isoformat() in confirmed for d in dates])
+            rescued = int((phantom & vouched).sum())
+            if rescued:
+                logger.info(
+                    "Keeping %d thin session(s) NSE confirmed as trading days "
+                    "(%s); the exchange outranks the coverage floor.",
+                    rescued,
+                    ", ".join(
+                        str(d.date()) for i, d in enumerate(dates)
+                        if phantom[i] and vouched[i]
+                    )[:120],
+                )
+                metrics.note("price_sessions_rescued_by_nse", rescued)
+            phantom = phantom & ~vouched
+            if not phantom.any():
+                return df
+    except Exception as exc:
+        logger.warning(
+            "Trading-day record unavailable (%s); falling back to coverage alone.",
+            type(exc).__name__,
+        )
     logger.warning(
         "Dropping %d session(s) where under %.0f%% of the universe traded "
         "(%s); an exchange holiday the vendor answered for anyway is not a "

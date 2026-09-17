@@ -1,0 +1,10 @@
+{
+ "schema_version": 1,
+ "source": "NSE PR bhavcopy (archives.nseindia.com) \u2014 HTTP 200 only",
+ "note": "Confirmations only. An absent date is UNKNOWN, never closed: NSE answers 403 when rate limiting and that is indistinguishable from any other refusal, so absence is never evidence of a holiday.",
+ "trading_days": [
+  "2026-09-11",
+  "2026-09-15",
+  "2026-09-16"
+ ]
+}
