@@ -18,7 +18,13 @@ import pandas as pd
 import pytest
 
 from src.engine import backtester as bt
-from src.engine.backtester import _calendar_period_sharpe, _composite_z_score, run_backtest
+from src.engine.backtester import (
+    _calendar_period_sharpe,
+    _composite_z_score,
+    _drift_holdings,
+    _step_portfolio_allocation,
+    run_backtest,
+)
 from src.engine.calendar_momentum import (
     _calendar_period_metrics,
     _winsorised_cross_section_z,
@@ -322,6 +328,75 @@ def test_turnover_has_one_definition_across_every_period():
     assert (monthly["Turnover %"] <= 100.0 + 1e-9).all()
     for _, row in monthly.iterrows():
         assert row["Cost Drag %"] == pytest.approx(row["Turnover %"] * 30.0 / 10000.0)
+
+
+def test_turnover_is_measured_against_the_drifted_book_not_the_stale_target():
+    """Nobody rebalances between rebalances, so the book arrives drifted.
+
+    Turnover was `|new_target - old_target|/2`, which prices a trade nobody
+    makes. Re-strike the SAME targets on a book whose names have moved and it
+    reports zero: the winners never get sold back down and the losers never
+    get topped up, so the cost of holding a weight constant is free.
+    """
+    cols = pd.Index(["A", "B", "C"])
+    px = pd.DataFrame(
+        [[100.0, 100.0, 100.0], [110.0, 90.0, 100.0]],
+        index=pd.to_datetime(["2026-01-01", "2026-02-01"]),
+        columns=cols,
+    )
+    book = pd.Series([1 / 3, 1 / 3, 1 / 3], index=cols)
+
+    drifted = _drift_holdings(book, px, 0, 1)
+    # w_i (1 + r_i) renormalised: 1.1, 0.9 and 1.0 thirds over their sum.
+    assert drifted.sum() == pytest.approx(1.0)
+    assert drifted["A"] == pytest.approx(1.1 / 3.0)
+    assert drifted["B"] == pytest.approx(0.9 / 3.0)
+    assert book.equals(pd.Series([1 / 3, 1 / 3, 1 / 3], index=cols)), "mutated its input"
+
+    _, stale, _ = _step_portfolio_allocation(book, book, cols, 30.0)
+    _, real, _ = _step_portfolio_allocation(book, drifted, cols, 30.0)
+    assert stale == 0.0, "this is the defect: an unchanged target looks free"
+    assert real == pytest.approx(0.1 / 3.0), "0.1/3 must be sold out of A into B"
+
+
+def test_a_missing_print_drifts_by_one_rather_than_redistributing_its_weight():
+    """An unpriceable leg contributes nothing to the accrual loop.
+
+    Dropping it here instead would hand its weight to the survivors and
+    manufacture turnover out of a data gap, charging real money for it.
+    """
+    cols = pd.Index(["A", "B"])
+    px = pd.DataFrame(
+        [[100.0, 100.0], [100.0, np.nan]],
+        index=pd.to_datetime(["2026-01-01", "2026-02-01"]),
+        columns=cols,
+    )
+    book = pd.Series([0.5, 0.5], index=cols)
+    assert _drift_holdings(book, px, 0, 1).equals(book)
+
+    # No prior book, and a period the loop skipped, both leave it untouched.
+    empty = pd.Series(0.0, index=cols)
+    assert _drift_holdings(empty, px, 0, 1).equals(empty)
+    assert _drift_holdings(book, px, None, 1).equals(book)
+    assert _drift_holdings(book, px, 1, 1).equals(book)
+
+
+def test_equal_weight_turnover_is_no_longer_quantised_to_whole_positions():
+    """The signature of stale differencing, and the reason it went unnoticed.
+
+    Two equal-weight books over the same top_n differ only on the names that
+    changed, so `sum|dw|/2` collapses to (names swapped)/top_n -- every reading
+    an exact multiple of 5% at top_n=20. Real books do not do that, and a KPI
+    that only ever prints round numbers was reporting position count, not
+    money moved.
+    """
+    monthly = _stats("adv_drift")["monthly"]
+    later = monthly["Turnover %"].iloc[1:]
+    assert len(later) >= 3, "need periods past the establishment fill"
+    quantised = np.isclose(later.to_numpy() % 5.0, 0.0, atol=1e-6) | np.isclose(
+        later.to_numpy() % 5.0, 5.0, atol=1e-6
+    )
+    assert not quantised.all(), "turnover is still counting positions, not weights"
 
 
 # ─────────────────────────────────────────────────────────────────────────────

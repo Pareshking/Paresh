@@ -320,8 +320,9 @@ def _step_portfolio_allocation(
 ) -> tuple[pd.Series, float, float]:
     """One period's target book, its turnover, and the friction that costs.
 
-    Returns (full_w, turnover_period, friction_drag). The caller carries
-    `full_w` forward as the next period's `prev_weights`; nothing here mutates
+    Returns (full_w, turnover_period, friction_drag). `prev_weights` must be
+    the book as it STANDS at this fill, i.e. the previous target carried
+    forward through the market -- see `_drift_holdings`. Nothing here mutates
     its arguments.
     """
     full_w = pd.Series(0.0, index=columns)
@@ -344,6 +345,58 @@ def _step_portfolio_allocation(
 
     friction_drag = turnover_period * (cost_bps / 10000.0)
     return full_w, turnover_period, friction_drag
+
+
+def _drift_holdings(
+    prev_weights: pd.Series,
+    prices: pd.DataFrame,
+    from_idx: int | None,
+    to_idx: int,
+) -> pd.Series:
+    """Carry a book from the fill that set it to the fill that replaces it.
+
+        w_drifted,i = w_prev,i * (1 + r_i) / sum_j w_prev,j * (1 + r_j)
+
+    where r is each holding's return between the two fills. Nobody rebalances
+    between rebalances, so the weights a portfolio actually arrives with are
+    not the weights it was given: winners grow their share of the book and
+    losers shrink theirs, and the renormalisation is what makes the drifted
+    vector sum to 1 again.
+
+    Comparing a new target against the STALE prior target -- which is what the
+    loop did -- therefore prices the wrong trade. It under-reports whenever
+    drift has already moved the book toward the new target and over-reports
+    when it has moved away, and in the limiting case it is plainly wrong: hold
+    the same 20 names at the same targets for a month, re-strike the same
+    targets, and stale differencing reports 0.0000 turnover for a rebalance
+    that really does have to sell the winners back down and top the losers up.
+    Simulated at sigma = 9%/name/month that omission is ~3.5% of one-way
+    turnover per rebalance, about 12.5 bps a year of cost never charged --
+    always in the strategy's favour, since the missing trades are never free.
+
+    A holding that fails to price at either endpoint drifts by a factor of
+    1.0 rather than vanishing: the accrual loop already treats an unpriceable
+    leg as contributing nothing, and dropping it here instead would hand its
+    weight to the survivors and manufacture turnover out of a data gap.
+    """
+    held = prev_weights[prev_weights != 0.0]
+    if from_idx is None or held.empty or to_idx <= from_idx:
+        return prev_weights
+
+    p0 = prices.iloc[from_idx].reindex(held.index).to_numpy(dtype=float)
+    p1 = prices.iloc[to_idx].reindex(held.index).to_numpy(dtype=float)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        growth = p1 / p0
+    growth = np.where(np.isfinite(growth) & (p0 > 0.0) & (p1 > 0.0), growth, 1.0)
+
+    value = held.to_numpy(dtype=float) * growth
+    total = float(value.sum())
+    if not np.isfinite(total) or total <= 0.0:
+        return prev_weights
+
+    drifted = pd.Series(0.0, index=prev_weights.index)
+    drifted.loc[held.index] = value / total
+    return drifted
 
 
 def _returns_autocorr_lag1(daily: pd.Series) -> float:
@@ -708,6 +761,9 @@ def run_backtest(
     sec_map = sector_map or {}
 
     prev_weights = pd.Series(0.0, index=prices.columns)
+    # The fill `prev_weights` was struck at, so the next fill knows how far the
+    # book has drifted since. None until the first book is established.
+    prev_fill_idx: int | None = None
     prev_holdings: list[str] = []
     effective_buffer = buffer_n if buffer_n is not None else int(top_n * 1.5)
     pit_periods = 0
@@ -792,10 +848,18 @@ def run_backtest(
             scheme_neutralised_seen = True
 
         # ── Turnover & Transaction Drag ──────────────────────────────────────
+        # Against the book as it STANDS at this fill, not the targets last
+        # written down for it. Skipped periods are handled by the same line:
+        # `prev_fill_idx` only advances when a book is actually struck, so a
+        # month the loop passed over drifts through rather than resetting.
+        standing_weights = _drift_holdings(
+            prev_weights, prices, prev_fill_idx, fwd_start
+        )
         full_w, turnover_period, friction_drag = _step_portfolio_allocation(
-            wts, prev_weights, prices.columns, cost_bps
+            wts, standing_weights, prices.columns, cost_bps
         )
         prev_weights = full_w
+        prev_fill_idx = fwd_start
 
         # ── Record Rebalance Tradebook (Entries, Exits & Holds) ───────────────
         entries = [s for s in holdings if s not in prev_holdings]
@@ -1257,7 +1321,12 @@ def run_backtest(
         _new_full = pd.Series(0.0, index=prices.columns, dtype=float)
         _shared = [s for s in mtd_wts.index if s in _new_full.index]
         _new_full.loc[_shared] = [float(mtd_wts[s]) for s in _shared]
-        mtd_turnover = float((_new_full - prev_weights).abs().sum() / 2.0)
+        # Same drift correction as the in-window loop: the book this fill
+        # trades out of is the last target carried forward to `mtd_base_idx`,
+        # not the target itself. Without it the in-window months and the live
+        # month would charge friction on two different quantities.
+        _standing = _drift_holdings(prev_weights, prices, prev_fill_idx, mtd_base_idx)
+        mtd_turnover = float((_new_full - _standing).abs().sum() / 2.0)
         mtd_cost = mtd_turnover * (cost_bps / 10000.0)
 
     strategy_mtd: float | None = None

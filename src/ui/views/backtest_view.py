@@ -2,6 +2,7 @@
 Strategy Backtesting View Controller with Friction & Turnover Attribution.
 """
 
+import math
 from datetime import datetime
 
 import pandas as pd
@@ -197,6 +198,21 @@ def _backtest_body(
     alpha_clr = "#059669" if stats["alpha"] >= 0 else "#dc2626"
     ret_clr = "#059669" if stats["total_return"] >= 0 else "#dc2626"
 
+    # The +/- is the standard error of the SHARPE, so it belongs beside the
+    # Sharpe value. It used to render at the end of the "Sortino: x / +/-y s.e."
+    # subline, where it read as the Sortino's own error, and the one tooltip
+    # covering both described the Sharpe denominator ("annualised volatility")
+    # for a ratio that divides by downside deviation.
+    _rf = stats.get("risk_free_rate", 0.065)
+    _se = float(stats.get("sharpe_stderr_iid", float("nan")))
+    _sortino = float(stats.get("sortino", float("nan")))
+    # Both can legitimately be absent: the standard error needs a non-empty
+    # sample, and the Sortino is withheld when too few sessions fell below the
+    # MAR to estimate a downside deviation. Printing a bare "nan" beside a
+    # formatted ratio reads like a bug, so say nothing and n/a respectively.
+    sharpe_se_txt = f" \u00b1{_se:.2f} s.e." if math.isfinite(_se) else ""
+    sortino_txt = f"{_sortino:.2f}" if math.isfinite(_sortino) else "n/a"
+
     kpi_bt_html = f"""
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px;">
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
@@ -216,8 +232,8 @@ def _backtest_body(
         </div>
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
             <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Net Sharpe Ratio</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; color: #0f172a; margin-top: 1px;">{stats['sharpe']:.2f}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #64748b;" title="Annualised mean excess return over a {stats.get('risk_free_rate', 0.065):.1%} risk-free rate, divided by annualised volatility. The ± is one standard error at this sample size.">Sortino: {stats.get('sortino', 0):.2f} · ±{stats.get('sharpe_stderr_iid', float('nan')):.2f} s.e.</div>
+            <div style="font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; color: #0f172a; margin-top: 1px;" title="Annualised mean excess return over a {_rf:.1%} risk-free rate, divided by annualised volatility. The ± is one standard error on THIS Sharpe at this sample size, and assumes independent daily returns.">{stats['sharpe']:.2f}<span style="font-family: 'JetBrains Mono', monospace; font-size: 0.80rem; font-weight: 600; color: #64748b;">{sharpe_se_txt}</span></div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #64748b;" title="Same annualised mean excess return over a {_rf:.1%} risk-free rate, divided by annualised downside deviation — the root-mean-square of daily shortfalls below that same rate. Reads n/a when too few sessions fell below it to measure one.">Sortino: {sortino_txt}</div>
         </div>
     </div>
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px;">
