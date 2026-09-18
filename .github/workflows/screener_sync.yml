@@ -9,9 +9,14 @@ name: Screener daily price sync (overnight)
 
 on:
   schedule:
-    # 18:45 UTC = 00:15 IST, every day. India's session has long settled, the
-    # site is at its quietest, and GitHub's usual ~28 minute queue delay still
-    # lands this comfortably inside the overnight window.
+    # 18:45 UTC = 00:15 IST nominally, every day. India's session has long
+    # settled and the site is at its quietest.
+    #
+    # GitHub's queue adds hours here, not minutes -- this slot fired at 21:15
+    # UTC on its first scheduled run, 2h30m late. It does not matter: the job
+    # re-requests a rolling year of settled closes and drops any session still
+    # trading, so a late run collects exactly the same data as a punctual one.
+    # What would matter is not running at all, which is why it runs daily.
     #
     # Every day, not weekdays: the job re-requests a rolling year on each run,
     # so a weekend pass costs one cheap walk and repairs anything a blocked or

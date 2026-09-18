@@ -11,16 +11,28 @@ on:
     # window comfortably behind while staying on the same IST calendar day, so
     # recent_trading_days() still resolves "today" to the session just closed.
     #
-    # GitHub also runs scheduled workflows on a best-effort queue and has been
-    # consistently ~28 minutes late here, so the real firing is nearer 23:30
-    # IST. That is slack in the right direction. The schedule remains a
-    # request rather than a guarantee -- the AsOf dates in the footer are what
-    # make a missed run visible.
+    # GitHub runs scheduled workflows on a best-effort queue, and on this repo
+    # the delay is HOURS, not minutes. Measured on 2026-09-18:
+    #
+    #     daily  02:00 UTC slot  ->  fired 06:54   (4h54m late)
+    #     daily  17:30 UTC slot  ->  fired 19:47   (2h17m late)
+    #     screener 18:45 slot    ->  fired 21:15   (2h30m late)
+    #
+    # An earlier version of this comment claimed ~28 minutes, which was a
+    # single observation generalised into a rule. Both slots are positioned so
+    # that hours of slack still land them usefully, and nothing downstream
+    # depends on the wall-clock time: the download gate refuses a session that
+    # has not settled, and the ranking-date rule refuses one the vendor has not
+    # finished, whenever the job happens to run. The schedule is a request, not
+    # a guarantee -- the AsOf dates in the footer are what make a missed run
+    # visible.
     - cron: '30 17 * * 1-5'
 
-    # 02:00 UTC = 07:30 IST, Tuesday to Saturday -- the morning after each
-    # trading session. With GitHub's usual ~28 minute queue delay this lands
-    # near 08:00 IST.
+    # 02:00 UTC, nominally 07:30 IST -- the morning after each trading session.
+    # In practice GitHub's queue puts it hours later (06:54 UTC on 2026-09-18,
+    # so nearer 12:30 IST). That is tolerable precisely because this slot is
+    # for RECOVERY rather than freshness: it re-requests settled history, and
+    # settled history does not care what time the job runs.
     #
     # This run does NOT make the screener fresher, and it is not meant to.
     # Yahoo publishes an Indian session over about a day and a half, largest
