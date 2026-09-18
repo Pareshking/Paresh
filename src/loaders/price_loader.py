@@ -79,6 +79,101 @@ def _cache_is_current(last_cached_date: date) -> bool:
 # the engine as phantom returns.
 MIN_SESSION_COVERAGE: float = 0.70
 
+# The third test, and the only one that needs neither a threshold nor a record.
+# A holiday row from Yahoo is not a thin session, it is a quote sheet: open =
+# high = low = close = the previous close, at zero volume. On 2026-09-14 that
+# held for 551 of the 551 symbols the vendor answered for -- every one flat,
+# every one at zero volume, not one matching the NEXT session.
+#
+# This is what closed_days cannot do on its own: a holiday has to be
+# ESTABLISHED before the calendar can drop it, and four more were sitting in
+# the live cache that nobody had established --
+#
+#   2026-01-15  88.8%   2026-05-01  88.9%   2026-05-28 100.0%
+#   2026-06-26 100.0%   2026-09-14  73.5%
+#
+# -- two of them at FULL coverage, where no floor can ever reach them. Volume
+# needs no prior knowledge of the calendar and does not move as the vendor
+# backfills.
+#
+# Deliberately strict. A session is only called a non-session when the vendor
+# SUPPLIED volume (absence of volume is never evidence of no trading, the same
+# asymmetry trading_days is built on), when every supplied volume is zero, and
+# when the bars are flat.
+_ZERO_TRADE_MIN_NAMES: int = 20
+_ZERO_TRADE_VOLUME_SHARE: float = 0.95
+_ZERO_TRADE_FLAT_SHARE: float = 0.95
+
+
+def _field_level(columns: pd.MultiIndex) -> int | None:
+    """Which level of a (ticker, field) column index holds the OHLCV names."""
+    for lvl in range(columns.nlevels):
+        vals = {str(v).strip().lower() for v in columns.get_level_values(lvl)}
+        if "close" in vals and "volume" in vals:
+            return lvl
+    return None
+
+
+def _zero_trade_sessions(df: pd.DataFrame) -> pd.Series | None:
+    """Dates on which nothing traded, whatever the vendor published for them.
+
+    Returns a boolean mask over df.index, or None when the frame carries no
+    volume to judge by -- a single-field price frame falls through to the
+    coverage floor and the recorded calendar exactly as before.
+
+    Coverage cannot separate a holiday from a vendor mid-publish, so a floor is
+    always racing backfill: 2026-09-14 read 61% during its own sync, 86% the
+    next day and 73.5% the day after, landing either side of the 70% line.
+    Volume does not move. A closed exchange prints none on the day and none a
+    week later, so this test is as good late as it is early.
+    """
+    if not isinstance(df.columns, pd.MultiIndex):
+        return None
+    lvl = _field_level(df.columns)
+    if lvl is None:
+        return None
+
+    spelling = {str(v).strip().lower(): v for v in df.columns.get_level_values(lvl)}
+
+    def _field(name: str) -> pd.DataFrame | None:
+        key = spelling.get(name)
+        if key is None:
+            return None
+        return df.xs(key, level=lvl, axis=1).apply(pd.to_numeric, errors="coerce")
+
+    close, volume = _field("close"), _field("volume")
+    if close is None or volume is None or close.shape[1] < _ZERO_TRADE_MIN_NAMES:
+        return None
+    volume = volume.reindex(columns=close.columns)
+
+    has_close = close.notna()
+    priced = has_close.sum(axis=1)
+    # Volume the vendor actually supplied, for names it also priced.
+    vol_known = (volume.notna() & has_close).sum(axis=1)
+    traded = ((volume > 0) & has_close).sum(axis=1)
+
+    # A bar with no range. Checked when the frame carries O/H/L and skipped when
+    # it does not: zero volume across a whole session is already decisive, and
+    # requiring a field the vendor omitted would silently disable the test.
+    flat = priced
+    ohl = [_field(n) for n in ("open", "high", "low")]
+    if all(f is not None for f in ohl):
+        same = has_close.copy()
+        for other in ohl:
+            same &= np.isclose(
+                other.reindex(columns=close.columns).to_numpy(dtype=float),
+                close.to_numpy(dtype=float),
+                equal_nan=False,
+            )
+        flat = same.sum(axis=1)
+
+    return (
+        (priced >= _ZERO_TRADE_MIN_NAMES)
+        & (traded == 0)
+        & (vol_known >= priced * _ZERO_TRADE_VOLUME_SHARE)
+        & (flat >= priced * _ZERO_TRADE_FLAT_SHARE)
+    )
+
 
 def _drop_phantom_sessions(df: pd.DataFrame) -> pd.DataFrame:
     """Drop dates where too little of the universe traded to be a real session.
@@ -102,6 +197,14 @@ def _drop_phantom_sessions(df: pd.DataFrame) -> pd.DataFrame:
     removing it makes the return span 09-11 to 09-15 -- which is what a holder
     actually experienced -- rather than inventing a close for 460 names and
     leaving 290 with none.
+
+    THREE TESTS, in descending order of authority. A recorded closure drops the
+    row at any coverage, because the calendar is a fact. Zero trading drops it
+    at any coverage too, because a session on which not one priced symbol
+    changed hands was not a session -- and unlike the calendar, that needs
+    nobody to have established the holiday first. The coverage floor is the
+    backstop for what neither can see: a vendor publishing nothing at all for a
+    session that really happened.
     """
     if df is None or df.empty or df.shape[1] < 50:
         return df
@@ -109,6 +212,13 @@ def _drop_phantom_sessions(df: pd.DataFrame) -> pd.DataFrame:
     phantom = (coverage < MIN_SESSION_COVERAGE).to_numpy()
     dates = pd.DatetimeIndex(df.index)
     shut = np.zeros(len(dates), dtype=bool)
+
+    # Evidence, alongside the record below rather than instead of it. A recorded
+    # closure is a fact about the calendar and needs no corroboration; this
+    # catches the holidays nobody has recorded yet, including the ones sitting
+    # at full coverage where no floor can reach them.
+    _zt = _zero_trade_sessions(df)
+    zt = _zt.to_numpy() if _zt is not None else np.zeros(len(dates), dtype=bool)
 
     # The record outranks the coverage guess in BOTH directions, and the two
     # halves are consulted separately because they carry different claims.
@@ -168,6 +278,39 @@ def _drop_phantom_sessions(df: pd.DataFrame) -> pd.DataFrame:
             "Trading-day record unavailable (%s); falling back to coverage alone.",
             type(exc).__name__,
         )
+
+    if zt.any():
+        logger.warning(
+            "Dropping %d session(s) on which nothing traded -- every priced "
+            "symbol flat at zero volume (%s). A quote sheet is not a session.",
+            int(zt.sum()),
+            ", ".join(
+                f"{d.date()} at {coverage.iloc[i]*100:.0f}%"
+                for i, d in enumerate(dates) if zt[i]
+            )[:200],
+        )
+        metrics.note("price_zero_trade_sessions_dropped", int(zt.sum()))
+        # A confirmation rescues a THIN session from the floor; it does not
+        # rescue one where nothing changed hands. A bhavcopy 200 says the
+        # endpoint answered, zero volume across the whole universe says nobody
+        # traded, and the second is the more specific claim. record_closed
+        # already refuses to store a closure for a confirmed date, so a
+        # disagreement here means one of the two sources is wrong -- reported,
+        # not silently resolved.
+        _conflict = zt & ~shut
+        _vouched_zt = [
+            d for i, d in enumerate(dates)
+            if _conflict[i] and not phantom[i] and coverage.iloc[i] >= 0.99
+        ]
+        if _vouched_zt:
+            logger.info(
+                "%d of those were at full vendor coverage (%s); no floor could "
+                "have reached them.",
+                len(_vouched_zt),
+                ", ".join(str(d.date()) for d in _vouched_zt)[:120],
+            )
+
+    shut = shut | zt
 
     if not phantom.any():
         return df.loc[~shut] if shut.any() else df

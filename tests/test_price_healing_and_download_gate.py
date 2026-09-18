@@ -767,3 +767,204 @@ def test_the_shipped_record_marks_the_holiday_that_keeps_returning():
     assert not (closed & load_confirmed()), (
         "the committed record claims a date is both a trading day and a holiday"
     )
+
+
+# ── Evidence, for the holidays nobody has recorded yet ───────────────────────
+#
+# closed_days drops a holiday at any coverage, which is right, but a holiday
+# has to be ESTABLISHED before the calendar can drop it. Run against the live
+# 502-session cache on 2026-09-18, four more were sitting in it that nobody had
+# established, every one of them zero-volume and flat:
+#
+#   2026-01-15 Thu   666/750    88.8%
+#   2026-05-01 Fri   667/750    88.9%
+#   2026-05-28 Thu   750/750   100.0%   <- no floor can ever reach this
+#   2026-06-26 Fri   750/750   100.0%   <- nor this
+#   2026-09-14 Mon   551/750    73.5%   (the one that IS recorded)
+#
+# Two at FULL coverage. That is not a threshold that needs raising, it is a
+# quantity that cannot answer the question. Volume can, needs no prior
+# knowledge of the calendar, and does not drift as the vendor backfills.
+
+def _quote_sheet_frame(spec, n_total=750):
+    """A (ticker, field) OHLCV frame built one session at a time.
+
+    `spec` maps a date to (symbols_priced, kind), where kind is
+    "traded"      a normal session: a real range and real volume
+    "quote_sheet" the 2026-09-14 shape: flat at the prior close, volume 0
+    "no_volume"   a real range, but the vendor supplied no volume at all
+    """
+    syms = [f"S{i}" for i in range(n_total)]
+    fields = ["Open", "High", "Low", "Close", "Volume"]
+    idx = pd.to_datetime(list(spec))
+    data = {(s, f): np.full(len(idx), np.nan) for s in syms for f in fields}
+    prev = {s: 100.0 + i for i, s in enumerate(syms)}
+
+    for row, (n_have, kind) in enumerate(spec.values()):
+        for s in syms[:n_have]:
+            c = prev[s]
+            if kind == "quote_sheet":
+                o = h = lo_ = close = c
+                vol = 0.0
+            else:
+                o, h, lo_, close = c, c * 1.02, c * 0.98, c * 1.01
+                vol = np.nan if kind == "no_volume" else 1_000_000.0
+                prev[s] = close
+            for f, v in zip(fields, (o, h, lo_, close, vol)):
+                data[(s, f)][row] = v
+
+    return pd.DataFrame(
+        data, index=idx, columns=pd.MultiIndex.from_product([syms, fields])
+    )
+
+
+def _no_records(monkeypatch):
+    """Silence both halves of the record, so only the evidence can act.
+
+    Without this every fixture below would be dropped by closed_days for
+    2026-09-14 and pass whether or not the volume test works at all.
+    """
+    import src.loaders.trading_days as td
+
+    monkeypatch.setattr(td, "load_closed", lambda *a, **k: set())
+    monkeypatch.setattr(td, "load_confirmed", lambda *a, **k: set())
+
+
+def test_a_session_nobody_traded_is_dropped_over_the_coverage_floor(monkeypatch):
+    """THE REGRESSION. 73.5% clears the floor; zero volume does not.
+
+    This is the live 2026-09-18 state of 2026-09-14, with the closure record
+    silenced so the coverage rule is the only other thing that could act.
+    """
+    from src.loaders.price_loader import MIN_SESSION_COVERAGE, _drop_phantom_sessions
+
+    _no_records(monkeypatch)
+    frame = _quote_sheet_frame({
+        "2026-09-11": (750, "traded"),
+        "2026-09-14": (551, "quote_sheet"),
+        "2026-09-15": (750, "traded"),
+    })
+    assert 551 / 750 > MIN_SESSION_COVERAGE, (
+        "the fixture no longer reproduces the case: it must CLEAR the floor"
+    )
+    out = _drop_phantom_sessions(frame)
+    assert pd.Timestamp("2026-09-14") not in out.index, (
+        "551 priced symbols, all flat at zero volume, survived as a session"
+    )
+    assert len(out) == 2
+
+
+def test_an_unrecorded_holiday_at_full_coverage_is_still_dropped(monkeypatch):
+    """2026-05-28 and 2026-06-26: 750/750 priced, not one share traded.
+
+    The case that motivates this test existing beside closed_days. At 100%
+    coverage no floor can reach the row, and nobody had recorded the holiday,
+    so before this the engine scored a move into it and back out again.
+    """
+    from src.loaders.price_loader import _drop_phantom_sessions
+
+    _no_records(monkeypatch)
+    frame = _quote_sheet_frame({
+        "2026-05-27": (750, "traded"),
+        "2026-05-28": (750, "quote_sheet"),
+        "2026-05-29": (750, "traded"),
+    })
+    out = _drop_phantom_sessions(frame)
+    assert pd.Timestamp("2026-05-28") not in out.index, (
+        "a full-coverage holiday survived; no coverage threshold can catch this"
+    )
+
+
+def test_a_thin_session_that_actually_traded_is_kept(monkeypatch):
+    """Same 73.5% coverage, real volume. Thin is not closed."""
+    from src.loaders.price_loader import _drop_phantom_sessions
+
+    _no_records(monkeypatch)
+    frame = _quote_sheet_frame({
+        "2026-07-17": (750, "traded"),
+        "2026-07-20": (551, "traded"),
+        "2026-07-21": (750, "traded"),
+    })
+    assert len(_drop_phantom_sessions(frame)) == 3, "a real trading day was discarded"
+
+
+def test_an_ordinary_week_is_never_touched(monkeypatch):
+    """The guard must be invisible on ordinary data."""
+    from src.loaders.price_loader import _drop_phantom_sessions
+
+    _no_records(monkeypatch)
+    frame = _quote_sheet_frame({
+        "2026-09-15": (750, "traded"),
+        "2026-09-16": (750, "traded"),
+        "2026-09-17": (750, "traded"),
+    })
+    assert len(_drop_phantom_sessions(frame)) == 3
+
+
+def test_missing_volume_is_not_evidence_that_nothing_traded(monkeypatch):
+    """The same asymmetry trading_days is built on.
+
+    A vendor that supplies no volume tells us nothing about whether the
+    exchange was open. Reading silence as a closure would delete real sessions
+    on a bad fetch -- the failure this guard exists to avoid causing.
+    """
+    from src.loaders.price_loader import _drop_phantom_sessions
+
+    _no_records(monkeypatch)
+    frame = _quote_sheet_frame({
+        "2026-09-15": (750, "traded"),
+        "2026-09-16": (750, "no_volume"),
+        "2026-09-17": (750, "traded"),
+    })
+    assert pd.Timestamp("2026-09-16") in _drop_phantom_sessions(frame).index
+
+
+def test_a_confirmation_does_not_rescue_a_session_nobody_traded(monkeypatch):
+    """A confirmation rescues a THIN session from the floor, not a dead one.
+
+    A bhavcopy 200 says the endpoint answered; zero volume across the whole
+    universe says nobody traded, which is the more specific claim. record_closed
+    already refuses to store a closure for a confirmed date, so if these two
+    ever disagree one of the sources is wrong.
+    """
+    from src.loaders import price_loader
+    import src.loaders.trading_days as td
+
+    monkeypatch.setattr(td, "load_closed", lambda *a, **k: set())
+    monkeypatch.setattr(td, "load_confirmed", lambda *a, **k: {"2026-09-14"})
+
+    frame = _quote_sheet_frame({
+        "2026-09-11": (750, "traded"),
+        "2026-09-14": (551, "quote_sheet"),
+        "2026-09-15": (750, "traded"),
+    })
+    out = price_loader._drop_phantom_sessions(frame)
+    assert pd.Timestamp("2026-09-14") not in out.index, (
+        "a confirmation rescued a session on which nothing changed hands"
+    )
+
+
+def test_a_single_field_frame_cannot_be_judged_on_volume():
+    """No volume to read means the test must not fire, and must not guess."""
+    from src.loaders.price_loader import _zero_trade_sessions
+
+    idx = pd.to_datetime(["2026-09-14", "2026-09-15"])
+    frame = pd.DataFrame([_session(551), _session(750)], index=idx)
+    assert _zero_trade_sessions(frame) is None
+
+
+def test_close_and_volume_alone_are_enough(monkeypatch):
+    """The flat-bar check is corroboration, not a precondition.
+
+    Requiring open/high/low would silently disable the whole test against a
+    vendor that ships only closes.
+    """
+    from src.loaders.price_loader import _drop_phantom_sessions
+
+    _no_records(monkeypatch)
+    frame = _quote_sheet_frame({
+        "2026-09-11": (750, "traded"),
+        "2026-09-14": (551, "quote_sheet"),
+        "2026-09-15": (750, "traded"),
+    }).drop(columns=["Open", "High", "Low"], level=1)
+    assert pd.Timestamp("2026-09-14") not in _drop_phantom_sessions(frame).index
