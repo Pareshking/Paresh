@@ -171,6 +171,50 @@ def snapshot() -> dict:
         }
 
 
+# Facts that name a data vendor. Kept in-process for logs and for the cold
+# start probe, which read snapshot() directly, but never written into the page.
+#
+# app.py embeds the whole snapshot in a hidden div so a probe can read startup
+# timings out of the served HTML. Hidden is not private: it is in view-source
+# for anyone who opens the page. Which upstream feed the numbers came from is
+# nobody's business but the operator's, and it has no bearing on the timings
+# that div exists to carry.
+_VENDOR_FACTS: frozenset[str] = frozenset({
+    "price_source",
+    "price_source_rejected",
+    "screener_store_fetch",
+    "screener_store_fetch_s",
+    "screener_symbols_fetched",
+    "screener_symbols_unresolved",
+    "screener_run_complete",
+    "screener_blocked_after",
+    "screener_store_rows",
+    "screener_store_new_rows",
+    "screener_cells_preserved",
+    "screener_store_refused",
+})
+
+# Prefixes too, so a fact added later is redacted by default rather than
+# leaking until someone remembers to list it.
+_VENDOR_PREFIXES: tuple[str, ...] = ("screener_", "yfinance_", "vendor_")
+
+
+def public_snapshot() -> dict:
+    """snapshot() with vendor-identifying facts removed, for the served page.
+
+    Everything else is untouched: stage timings, counters and the rest are the
+    whole reason the div exists, and a probe that lost them would be measuring
+    nothing.
+    """
+    snap = snapshot()
+    facts = snap.get("facts", {})
+    snap["facts"] = {
+        k: v for k, v in facts.items()
+        if k not in _VENDOR_FACTS and not k.startswith(_VENDOR_PREFIXES)
+    }
+    return snap
+
+
 def reset_for_tests() -> None:
     with _LOCK:
         _stages.clear()

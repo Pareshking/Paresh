@@ -174,3 +174,76 @@ def test_an_unusable_screener_store_leaves_yahoo_untouched():
     fallback = ps.from_yahoo(f, f, f, f, f)
     assert ps.from_screener(None) is None
     assert fallback.source == "yahoo" and fallback.intraday is True
+
+
+# ── The served page must not name the vendor ─────────────────────────────────
+#
+# app.py embeds the startup metrics in a hidden div so a probe can read timings
+# out of the served HTML. Hidden is not private -- it is in view-source for
+# anyone who opens the page. Which upstream feed the prices came from is the
+# operator's business and has no bearing on the timings that div carries.
+
+def test_no_vendor_name_reaches_the_served_page():
+    import json
+    from src.core import startup_metrics as m
+
+    m.reset_for_tests()
+    m.note("price_as_of", "2026-09-18")
+    m.note("price_coverage", "750/750")
+    m.note("price_source", "screener")
+    m.note("screener_store_fetch", "ok")
+    m.note("screener_symbols_fetched", 750)
+    m.note("price_source_rejected", "screener_too_short")
+
+    served = json.dumps(m.public_snapshot()).lower()
+    for word in ("screener", "yahoo", "yfinance"):
+        assert word not in served, f"'{word}' leaked into the served page"
+
+
+def test_redaction_is_prefix_based_so_new_facts_are_safe_by_default():
+    """A fact added later must not leak until someone remembers to list it."""
+    import json
+    from src.core import startup_metrics as m
+
+    m.reset_for_tests()
+    m.note("screener_something_invented_tomorrow", "value")
+    assert "screener" not in json.dumps(m.public_snapshot()).lower()
+
+
+def test_redaction_keeps_everything_the_probe_needs():
+    """Stripping the timings would make the div pointless."""
+    from src.core import startup_metrics as m
+
+    m.reset_for_tests()
+    m.note("price_as_of", "2026-09-18")
+    m.incr("memo_miss_prices")
+    pub = m.public_snapshot()
+    assert "uptime_s" in pub and "stages" in pub and "counters" in pub
+    assert pub["facts"].get("price_as_of") == "2026-09-18"
+    assert pub["counters"].get("memo_miss_prices") == 1
+
+
+def test_the_app_serves_the_redacted_snapshot():
+    src = open("app.py", encoding="utf-8").read()
+    assert "metrics.public_snapshot()" in src
+    assert "json.dumps(metrics.snapshot())" not in src, (
+        "the raw snapshot is being embedded in the page again"
+    )
+
+
+def test_the_ribbon_never_prints_the_source():
+    """It is held on the item for internal use, and must stay unrendered."""
+    from src.core import startup_metrics as m
+    from src.ui.components import age_phrase, data_freshness
+
+    m.reset_for_tests()
+    m.note("price_as_of", "2026-09-18"); m.note("price_coverage", "750/750")
+    m.note("price_path", "cache_fresh"); m.note("price_source", "screener")
+    m.note("price_high_basis", "closing prices"); m.note("price_intraday", "no")
+
+    for item in data_freshness():
+        printed = f"{item['label']}: {item['as_of']}"
+        printed += f" · {item['coverage']}" if item.get("coverage") else ""
+        printed += age_phrase(item)
+        assert "screener" not in printed.lower(), f"chip names the vendor: {printed}"
+        assert "yahoo" not in printed.lower(), f"chip names the vendor: {printed}"

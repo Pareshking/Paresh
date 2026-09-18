@@ -573,7 +573,10 @@ def _emit_startup_metrics(outcome: str) -> None:
     metrics.note("script_run_completed_at_s", metrics.since_start())
     st.markdown(
         '<div id="umiya-startup-metrics" style="display:none">'
-        + json.dumps(metrics.snapshot())
+        # public_snapshot, not snapshot: this div is hidden, not private, and
+        # which upstream feed the prices came from does not belong in HTML
+        # anyone can view-source. Timings and counters are untouched.
+        + json.dumps(metrics.public_snapshot())
         + "</div>",
         unsafe_allow_html=True,
     )
