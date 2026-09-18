@@ -107,22 +107,28 @@ def _drop_phantom_sessions(df: pd.DataFrame) -> pd.DataFrame:
         return df
     coverage = df.notna().sum(axis=1) / float(df.shape[1])
     phantom = (coverage < MIN_SESSION_COVERAGE).to_numpy()
-    if not phantom.any():
-        return df
     dates = pd.DatetimeIndex(df.index)
+    shut = np.zeros(len(dates), dtype=bool)
 
-    # NSE's own answer outranks the coverage guess wherever it exists. The
-    # nightly job downloads a bhavcopy per trading day for market caps, and a
-    # date it got a 200 for is a date the market traded -- whatever the vendor
-    # has managed to publish since. Without this, 2026-09-16 was dropped at 20%
-    # coverage three seconds before the same run fetched NSE's bhavcopy FOR
-    # 2026-09-16.
+    # The record outranks the coverage guess in BOTH directions, and the two
+    # halves are consulted separately because they carry different claims.
     #
-    # Only confirmations are consulted. An unconfirmed date falls through to
-    # the coverage floor exactly as before, because absence is never evidence
-    # of a closure -- see src/loaders/trading_days.
+    # A confirmed date is one NSE published a bhavcopy for, so it traded --
+    # whatever the vendor has managed to publish since. Without this,
+    # 2026-09-16 was dropped at 20% coverage three seconds before the same run
+    # fetched NSE's bhavcopy FOR 2026-09-16.
+    #
+    # A closed date is one established as a holiday. It is dropped at ANY
+    # coverage, which is the whole point: 2026-09-14 was a holiday Yahoo kept
+    # answering for, and its coverage wandered 61% -> 86% -> 73.5% across three
+    # days, landing either side of the floor. No threshold decides it; the
+    # calendar does.
+    #
+    # An unrecorded date is neither, and falls through to the coverage floor
+    # exactly as before -- absence is never evidence of a closure. See
+    # src/loaders/trading_days.
     try:
-        from src.loaders.trading_days import load_confirmed
+        from src.loaders.trading_days import load_closed, load_confirmed
 
         confirmed = load_confirmed()
         if confirmed:
@@ -140,13 +146,31 @@ def _drop_phantom_sessions(df: pd.DataFrame) -> pd.DataFrame:
                 )
                 metrics.note("price_sessions_rescued_by_nse", rescued)
             phantom = phantom & ~vouched
-            if not phantom.any():
-                return df
+
+        closed = load_closed()
+        if closed:
+            shut = np.array([d.date().isoformat() in closed for d in dates])
+            # A confirmation would have beaten this, but record_closed refuses
+            # to store a date NSE vouched for, so the two can never both hold.
+            if shut.any():
+                logger.info(
+                    "Dropping %d session(s) recorded as market holidays (%s); "
+                    "the vendor answered for them anyway.",
+                    int(shut.sum()),
+                    ", ".join(
+                        f"{d.date()} at {coverage.iloc[i]*100:.0f}%"
+                        for i, d in enumerate(dates) if shut[i]
+                    )[:160],
+                )
+                metrics.note("price_holiday_rows_dropped", int(shut.sum()))
     except Exception as exc:
         logger.warning(
             "Trading-day record unavailable (%s); falling back to coverage alone.",
             type(exc).__name__,
         )
+
+    if not phantom.any():
+        return df.loc[~shut] if shut.any() else df
     logger.warning(
         "Dropping %d session(s) where under %.0f%% of the universe traded "
         "(%s); an exchange holiday the vendor answered for anyway is not a "
@@ -158,7 +182,7 @@ def _drop_phantom_sessions(df: pd.DataFrame) -> pd.DataFrame:
         )[:200],
     )
     metrics.note("price_phantom_sessions_dropped", int(phantom.sum()))
-    return df.loc[~phantom]
+    return df.loc[~(phantom | shut)]
 
 
 def _drop_unsettled_rows(df: pd.DataFrame) -> pd.DataFrame:

@@ -610,3 +610,160 @@ def test_the_shipped_record_vouches_for_the_session_that_broke():
         "2026-09-16 is not in the committed record; the nightly heal will drop "
         "that real session again at 63% coverage"
     )
+
+
+# ── A recorded closure beats the floor in the other direction ────────────────
+#
+# The confirmations above rescue a real session the vendor was slow on. They
+# cannot do the opposite, and 2026-09-14 needed the opposite. It was a holiday
+# NSE never answered for (403, six retries), so it had no confirmation to lose
+# -- it just had to stay under a threshold, and it would not:
+#
+#   during the sync 2026-09-16    61%   dropped
+#   2026-09-17                    86%   KEPT
+#   2026-09-18                  73.5%   KEPT
+#
+# Twice above the floor, once below, same day, same holiday. The 70% line is
+# not the wrong number; there is no right number. So the calendar gets recorded
+# as a fact and the floor stops being asked.
+
+def test_a_recorded_holiday_is_dropped_at_any_coverage(monkeypatch):
+    """The three coverages 2026-09-14 actually showed, one test each."""
+    from src.loaders import price_loader
+    import src.loaders.trading_days as td
+
+    monkeypatch.setattr(td, "load_confirmed", lambda path=None: set())
+    monkeypatch.setattr(td, "load_closed", lambda path=None: {"2026-09-14"})
+
+    for n_have, pct in ((460, "61%"), (645, "86%"), (551, "73.5%")):
+        idx = pd.to_datetime(["2026-09-11", "2026-09-14", "2026-09-15"])
+        frame = pd.DataFrame(
+            [_session(750), _session(n_have), _session(750)], index=idx
+        )
+        out = price_loader._drop_phantom_sessions(frame)
+        assert pd.Timestamp("2026-09-14") not in out.index, (
+            f"the recorded holiday survived at {pct} coverage"
+        )
+        assert len(out) == 2, "a real session was dropped alongside the holiday"
+
+
+def test_a_recorded_holiday_is_dropped_even_at_full_coverage(monkeypatch):
+    """Coverage is not consulted at all for a date on the closed record.
+
+    The vendor reaching 100% on a holiday is the end state of backfill, not
+    evidence of a session. Nothing about 750/750 makes the market have opened.
+    """
+    from src.loaders import price_loader
+    import src.loaders.trading_days as td
+
+    monkeypatch.setattr(td, "load_confirmed", lambda path=None: set())
+    monkeypatch.setattr(td, "load_closed", lambda path=None: {"2026-09-14"})
+
+    idx = pd.to_datetime(["2026-09-11", "2026-09-14", "2026-09-15"])
+    frame = pd.DataFrame([_session(750)] * 3, index=idx)
+    out = price_loader._drop_phantom_sessions(frame)
+    assert pd.Timestamp("2026-09-14") not in out.index
+    assert len(out) == 2
+
+
+def test_a_closure_and_a_thin_real_session_are_handled_in_one_pass(monkeypatch):
+    """Both halves of the record at once -- the case production actually hit.
+
+    2026-09-17 sat at 20% and was dropped; 2026-09-14 sat at 73.5% and was
+    kept. Exactly backwards, and both wrong in the same frame.
+    """
+    from src.loaders import price_loader
+    import src.loaders.trading_days as td
+
+    monkeypatch.setattr(td, "load_confirmed", lambda path=None: {"2026-09-17"})
+    monkeypatch.setattr(td, "load_closed", lambda path=None: {"2026-09-14"})
+
+    idx = pd.to_datetime(["2026-09-14", "2026-09-15", "2026-09-17"])
+    frame = pd.DataFrame(
+        [_session(551), _session(750), _session(150)], index=idx  # 73.5%, 100%, 20%
+    )
+    out = price_loader._drop_phantom_sessions(frame)
+    assert pd.Timestamp("2026-09-14") not in out.index, "the holiday was kept again"
+    assert pd.Timestamp("2026-09-17") in out.index, "the real session was dropped again"
+
+
+def test_an_empty_closure_record_changes_nothing(monkeypatch):
+    """With nothing recorded closed, the floor behaves exactly as before."""
+    from src.loaders import price_loader
+    import src.loaders.trading_days as td
+
+    monkeypatch.setattr(td, "load_confirmed", lambda path=None: set())
+    monkeypatch.setattr(td, "load_closed", lambda path=None: set())
+
+    idx = pd.to_datetime(["2026-09-14", "2026-09-15"])
+    frame = pd.DataFrame([_session(460), _session(750)], index=idx)
+    out = price_loader._drop_phantom_sessions(frame)
+    assert pd.Timestamp("2026-09-14") not in out.index   # 61%, below the floor
+    assert pd.Timestamp("2026-09-15") in out.index
+
+
+def test_nse_confirmation_outranks_a_closure_claim(tmp_path):
+    """A bhavcopy beats anything else, so the two records can never disagree.
+
+    Without this, one bad closure entry would silently delete real sessions
+    forever -- the exact failure mode the confirmations-only rule exists to
+    prevent, reintroduced through the other door.
+    """
+    from src.loaders.trading_days import (
+        load_closed, load_confirmed, record_closed, record_confirmed,
+    )
+
+    path = str(tmp_path / "days.json")
+    record_confirmed({"2026-09-16"}, path)
+    added, _ = record_closed(["2026-09-16"], source="mistaken", path=path)
+    assert added == 0, "a date NSE published a bhavcopy for was marked closed"
+    assert load_closed(path) == set()
+    assert load_confirmed(path) == {"2026-09-16"}
+
+
+def test_the_two_records_survive_each_other(tmp_path):
+    """Nightly confirmations must not wipe the closures, or vice versa.
+
+    They share one file and the nightly job rewrites it on every new trading
+    day, so a write that only knew about its own half would drop the other.
+    """
+    from src.loaders.trading_days import (
+        load_closed, load_confirmed, record_closed, record_confirmed,
+    )
+
+    path = str(tmp_path / "days.json")
+    record_closed(["2026-09-14"], source="user-confirmed holiday", path=path)
+    record_confirmed({"2026-09-15", "2026-09-16"}, path)
+    assert load_closed(path) == {"2026-09-14"}, "the nightly write erased the closure"
+    assert load_confirmed(path) == {"2026-09-15", "2026-09-16"}
+
+    record_closed(["2026-10-02"], source="Gandhi Jayanti", path=path)
+    assert load_confirmed(path) == {"2026-09-15", "2026-09-16"}, (
+        "recording a closure erased the confirmations"
+    )
+    assert load_closed(path) == {"2026-09-14", "2026-10-02"}
+
+
+def test_the_source_of_every_closure_is_written_down(tmp_path):
+    """A closure deletes history, so the file must say who established it."""
+    import json
+    from src.loaders.trading_days import record_closed
+
+    path = str(tmp_path / "days.json")
+    record_closed(["2026-09-14"], source="user-confirmed NSE holiday", path=path)
+    payload = json.loads(open(path).read())
+    assert payload["closed_days_source"]["2026-09-14"] == "user-confirmed NSE holiday"
+
+
+def test_the_shipped_record_marks_the_holiday_that_keeps_returning():
+    """The live file must carry 2026-09-14, or tonight repeats the mistake."""
+    from src.loaders.trading_days import load_closed, load_confirmed
+
+    closed = load_closed()
+    assert "2026-09-14" in closed, (
+        "2026-09-14 is not on the closed record; the nightly heal will pull "
+        "the holiday back in at whatever coverage Yahoo happens to show"
+    )
+    assert not (closed & load_confirmed()), (
+        "the committed record claims a date is both a trading day and a holiday"
+    )

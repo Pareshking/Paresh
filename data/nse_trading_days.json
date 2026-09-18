@@ -1,7 +1,13 @@
 {
+ "closed_days": [
+  "2026-09-14"
+ ],
+ "closed_days_source": {
+  "2026-09-14": "user-confirmed NSE holiday (2026-09-17)"
+ },
+ "note": "trading_days holds CONFIRMATIONS only: an absent date is unknown, never closed, because NSE answers 403 when rate limiting and that cannot be told from any other refusal. closed_days is the opposite claim and needs its own evidence; closed_days_source records it.",
  "schema_version": 1,
  "source": "NSE PR bhavcopy (archives.nseindia.com) \u2014 HTTP 200 only",
- "note": "Confirmations only. An absent date is UNKNOWN, never closed: NSE answers 403 when rate limiting and that is indistinguishable from any other refusal, so absence is never evidence of a holiday.",
  "trading_days": [
   "2026-09-11",
   "2026-09-15",

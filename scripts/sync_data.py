@@ -141,32 +141,22 @@ def run_daily_sync() -> None:
     print("\n--- 3. Reconciling TradingView Taxonomy ---")
     reconcile_and_update_tv_classification(universe_df)
 
-    # 4. Fetch and cache price histories (the ARCHIVE window)
+    # ORDER MATTERS: market caps BEFORE prices.
     #
-    # NOTE: lengthening this only takes effect on a FORCE_FULL run. The
-    # incremental path tops the cache up from its last date forward and never
-    # backfills earlier history, so a longer period against an existing shorter
-    # cache returns the shorter cache unchanged. The weekly full sync
-    # (FORCE_FULL=true) is what actually deepens the archive.
-    from src.core.config import PRICE_ARCHIVE_PERIOD, PRICE_HEAL_DAYS
-
-    print(f"\n--- 4. Fetching and Caching {PRICE_ARCHIVE_PERIOD.upper()} OHLCV Price Histories ---")
-    # heal_days re-asks for history this cache already holds. Yahoo backfills
-    # an Indian close days after the session and restates a split-adjusted
-    # series for weeks afterwards, and the incremental path -- which asks only
-    # from the last cached date FORWARD -- can never see either. The published
-    # snapshot carries 572 such holes across 337 symbols to prove it.
+    # The market-cap fetch is what asks NSE for a bhavcopy, and a 200 is the
+    # exchange confirming the market traded that day. Running it after the
+    # price fetch meant the newest session -- the only one the vendor has not
+    # finished publishing, and so the only one at risk -- was judged on
+    # coverage alone and dropped before the confirmation existed. The run of
+    # 2026-09-17 did exactly that, seconds apart:
     #
-    # It is the same single request with an earlier start, so it costs one job
-    # nothing and no reader anything. Skipped on a FORCE_FULL run, which is
-    # re-downloading the whole window regardless.
-    prices_df = fetch_price_history(
-        symbols,
-        period=PRICE_ARCHIVE_PERIOD,
-        force_refresh=FORCE_FULL,
-        heal_days=0 if FORCE_FULL else PRICE_HEAL_DAYS,
-    )
-    print(f"Price cache updated with shape {prices_df.shape}.")
+    #   20:27:22  Dropping 1 session(s) ... (2026-09-17 at 20%)
+    #             Trading days confirmed by NSE: +1 new, 4 on record.
+    #
+    # Same shape as the 2026-09-16 failure this record was added to fix, one
+    # day later, because writing the answer down is useless if it is written
+    # after the decision it was meant to inform. Market caps do not depend on
+    # prices, so the swap costs nothing.
 
     # 5. Fetch market caps
     print("\n--- 5. Fetching Market Capitalizations ---")
@@ -206,6 +196,33 @@ def run_daily_sync() -> None:
             )
     except Exception as exc:
         print(f"Trading-day record skipped: {type(exc).__name__}: {exc}")
+
+    # 4. Fetch and cache price histories (the ARCHIVE window)
+    #
+    # NOTE: lengthening this only takes effect on a FORCE_FULL run. The
+    # incremental path tops the cache up from its last date forward and never
+    # backfills earlier history, so a longer period against an existing shorter
+    # cache returns the shorter cache unchanged. The weekly full sync
+    # (FORCE_FULL=true) is what actually deepens the archive.
+    from src.core.config import PRICE_ARCHIVE_PERIOD, PRICE_HEAL_DAYS
+
+    print(f"\n--- 4. Fetching and Caching {PRICE_ARCHIVE_PERIOD.upper()} OHLCV Price Histories ---")
+    # heal_days re-asks for history this cache already holds. Yahoo backfills
+    # an Indian close days after the session and restates a split-adjusted
+    # series for weeks afterwards, and the incremental path -- which asks only
+    # from the last cached date FORWARD -- can never see either. The published
+    # snapshot carries 572 such holes across 337 symbols to prove it.
+    #
+    # It is the same single request with an earlier start, so it costs one job
+    # nothing and no reader anything. Skipped on a FORCE_FULL run, which is
+    # re-downloading the whole window regardless.
+    prices_df = fetch_price_history(
+        symbols,
+        period=PRICE_ARCHIVE_PERIOD,
+        force_refresh=FORCE_FULL,
+        heal_days=0 if FORCE_FULL else PRICE_HEAL_DAYS,
+    )
+    print(f"Price cache updated with shape {prices_df.shape}.")
 
     # 5b. Commit the result to the repository.
     # This job runs on GitHub Actions, where NSE is reachable. Whether

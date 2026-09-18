@@ -66,6 +66,34 @@ def load_confirmed(path: str | None = None) -> set[str]:
     return {str(d) for d in days if isinstance(d, str) and d}
 
 
+def _read_payload(target: str) -> dict:
+    if not os.path.exists(target):
+        return {}
+    try:
+        with open(target, encoding="utf-8") as fh:
+            payload = json.load(fh)
+        return payload if isinstance(payload, dict) else {}
+    except (ValueError, OSError):
+        return {}
+
+
+def _write_payload(target: str, payload: dict) -> None:
+    payload["schema_version"] = SCHEMA_VERSION
+    payload["source"] = "NSE PR bhavcopy (archives.nseindia.com) — HTTP 200 only"
+    payload["note"] = (
+        "trading_days holds CONFIRMATIONS only: an absent date is unknown, "
+        "never closed, because NSE answers 403 when rate limiting and that "
+        "cannot be told from any other refusal. closed_days is the opposite "
+        "claim and needs its own evidence; closed_days_source records it."
+    )
+    os.makedirs(os.path.dirname(target) or ".", exist_ok=True)
+    tmp = target + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump(payload, fh, indent=1, sort_keys=True)
+        fh.write("\n")
+    os.replace(tmp, target)
+
+
 def record_confirmed(
     days: set[str] | list[str], path: str | None = None
 ) -> tuple[int, int]:
@@ -85,23 +113,10 @@ def record_confirmed(
         return 0, len(existing)
 
     merged = sorted(existing | incoming)
-    payload = {
-        "schema_version": SCHEMA_VERSION,
-        "source": "NSE PR bhavcopy (archives.nseindia.com) — HTTP 200 only",
-        "note": (
-            "Confirmations only. An absent date is UNKNOWN, never closed: NSE "
-            "answers 403 when rate limiting and that is indistinguishable from "
-            "any other refusal, so absence is never evidence of a holiday."
-        ),
-        "trading_days": merged,
-    }
+    payload = _read_payload(target)
+    payload["trading_days"] = merged
     try:
-        os.makedirs(os.path.dirname(target) or ".", exist_ok=True)
-        tmp = target + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as fh:
-            json.dump(payload, fh, indent=1)
-            fh.write("\n")
-        os.replace(tmp, target)
+        _write_payload(target, payload)
     except OSError as exc:
         logger.warning("Could not write the trading-day record (%s).", exc)
         return 0, len(existing)
@@ -111,6 +126,71 @@ def record_confirmed(
         len(added), ", ".join(sorted(added)[:4]), len(merged),
     )
     return len(added), len(merged)
+
+
+def load_closed(path: str | None = None) -> set[str]:
+    """Dates established as NON-trading, from evidence rather than inference.
+
+    Separate from the confirmations above because it carries the opposite
+    claim and needs a stronger source. A date lands here only when something
+    authoritative said the market was shut -- NSE answering 404 for a bhavcopy
+    it would otherwise publish, or a person who knows the calendar saying so --
+    never because coverage looked thin and never because a request failed.
+
+    It exists because coverage cannot hold the line on its own. 2026-09-14 was
+    an NSE holiday; Yahoo reported 61% of the universe for it during the sync
+    that day, 86% a day later, and 73.5% on 2026-09-18, drifting back and forth
+    across a 70% floor. Recorded as closed, it stops being a coin toss.
+    """
+    target = path or REPO_TRADING_DAYS_FILE
+    if not os.path.exists(target):
+        return set()
+    try:
+        with open(target, encoding="utf-8") as fh:
+            payload = json.load(fh)
+    except (ValueError, OSError):
+        return set()
+    days = payload.get("closed_days")
+    if not isinstance(days, list):
+        return set()
+    return {str(d) for d in days if isinstance(d, str) and d}
+
+
+def record_closed(
+    days: set[str] | list[str], source: str, path: str | None = None
+) -> tuple[int, int]:
+    """Record dates the market was shut. ``source`` says who established it."""
+    target = path or REPO_TRADING_DAYS_FILE
+    existing = load_closed(target)
+    incoming = {str(d) for d in days if d}
+    added = incoming - existing
+    if not added:
+        return 0, len(existing)
+
+    confirmed = load_confirmed(target)
+    clash = incoming & confirmed
+    if clash:
+        # NSE publishing a bhavcopy outranks anything else. Refuse rather than
+        # let a closure quietly delete sessions the exchange vouched for.
+        logger.warning(
+            "Refusing to mark %s closed: NSE confirmed those as trading days.",
+            ", ".join(sorted(clash)),
+        )
+        incoming -= clash
+        added -= clash
+        if not added:
+            return 0, len(existing)
+
+    payload = _read_payload(target)
+    payload["closed_days"] = sorted(existing | incoming)
+    payload.setdefault("closed_days_source", {})
+    for d in sorted(added):
+        payload["closed_days_source"][d] = source
+    _write_payload(target, payload)
+    logger.info(
+        "Trading-day record: %s marked CLOSED (%s).", ", ".join(sorted(added)), source
+    )
+    return len(added), len(payload["closed_days"])
 
 
 def is_confirmed(day: date | str, confirmed: set[str] | None = None) -> bool:
