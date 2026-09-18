@@ -572,6 +572,18 @@ def render_data_quality_footer(
     # stop-loss convention.
     render_freshness_ribbon()
 
+    # ATR needs an intraday high and low. When the ranking came from a source
+    # without them the Stop Loss column does not exist, and stating the formula
+    # anyway would describe a number the reader cannot find anywhere on screen.
+    from src.core import startup_metrics as _m
+
+    _intraday = str(_m.snapshot().get("facts", {}).get("price_intraday", "")).strip()
+    stop_loss_note = (
+        ""
+        if _intraday == "no"
+        else '<span style="color: #cbd5e1;">|</span>'
+             '<span>Stop Loss: <strong style="color: #0f172a;">CMP \u2212 2\u00d7ATR</strong></span>'
+    )
     footer_html = f"""
     <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 10px 16px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; margin-top: 24px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #64748b;">
         <span>🟢 <strong style="color: #0f172a;">{total_stocks}</strong> stocks tracked</span>
@@ -579,8 +591,7 @@ def render_data_quality_footer(
         <span>🔴 Gap-filled &gt;10%: <strong style="color: #d97706;">{gap_count}</strong></span>
         <span style="color: #cbd5e1;">|</span>
         <span>⏳ Short history (&lt;126D): <strong style="color: #0f172a;">{short_count}</strong></span>
-        <span style="color: #cbd5e1;">|</span>
-        <span>Stop Loss: <strong style="color: #0f172a;">CMP − 2×ATR</strong></span>
+        {stop_loss_note}
         <span style="margin-left: auto; color: #475569; font-weight: 700;">Paresh Patel</span>
     </div>
     """

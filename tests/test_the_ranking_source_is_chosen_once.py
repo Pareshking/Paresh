@@ -333,3 +333,61 @@ def test_the_app_serves_the_redacted_snapshot():
     src = open("app.py", encoding="utf-8").read()
     assert "metrics.public_snapshot()" in src
     assert "json.dumps(metrics.snapshot())" not in src
+
+
+# ── Dropping the ATR columns must not break the pages that read them ─────────
+#
+# Stop Loss is ATR-derived, so it vanishes whenever the ranking came from a
+# source with no intraday high. Three places read it and only two degraded
+# gracefully: the Portfolio page indexed it directly and took the whole page
+# down with a KeyError, and the footer stated "Stop Loss: CMP - 2xATR" for a
+# column that was no longer anywhere on screen.
+
+def test_the_portfolio_page_survives_a_missing_stop_loss():
+    """The crash. rank_df["Stop Loss"] raises when the column is dropped."""
+    import inspect
+    from src.ui.views import portfolio_view
+
+    src = inspect.getsource(portfolio_view)
+    assert 'rank_df.set_index("Symbol")["Stop Loss"]' not in src or \
+           '"Stop Loss" in rank_df.columns' in src, (
+        "Stop Loss is read without checking it exists; the Portfolio page "
+        "raises KeyError whenever the ranking came from a close-only source"
+    )
+
+
+def test_a_missing_stop_loss_column_maps_to_nothing_rather_than_nan():
+    """Mapping an empty dict would fill the column with NaN and still show it."""
+    import inspect
+    from src.ui.views import portfolio_view
+
+    src = inspect.getsource(portfolio_view)
+    assert "if sl_map:" in src, (
+        "an absent Stop Loss is being written as an all-NaN column instead of "
+        "left out, so the table shows an empty column rather than no column"
+    )
+
+
+def test_the_footer_drops_the_stop_loss_formula_without_intraday_data():
+    from src.core import startup_metrics as m
+    import inspect
+    from src.ui import components
+
+    src = inspect.getsource(components)
+    assert "stop_loss_note" in src, (
+        "the footer states the 2xATR formula unconditionally, describing a "
+        "number the reader cannot find when the column is absent"
+    )
+    assert 'price_intraday' in src
+
+
+def test_the_footer_keeps_the_formula_on_yahoo_data():
+    """It must not disappear for the source that does have ATR."""
+    import inspect
+    from src.ui import components
+
+    src = inspect.getsource(components)
+    assert '_intraday == "no"' in src, (
+        "the footer note is gated on something other than the absence of "
+        "intraday data; it would vanish for Yahoo too"
+    )

@@ -157,7 +157,15 @@ def render_portfolio_view(
 
     # Enrich with Capital, Share Counts, and CMP
     cmp_map = rank_df.set_index("Symbol")["CMP"].to_dict()
-    sl_map = rank_df.set_index("Symbol")["Stop Loss"].to_dict()
+    # Stop Loss is ATR-derived, so it is absent whenever the ranking came from
+    # a source with no intraday high or low. Indexing it directly raised a
+    # KeyError and took the whole Portfolio page down with it; the display list
+    # below already drops columns that are not there.
+    sl_map = (
+        rank_df.set_index("Symbol")["Stop Loss"].to_dict()
+        if "Stop Loss" in rank_df.columns
+        else {}
+    )
 
     summary["CMP"] = summary["Symbol"].map(cmp_map)
     summary["Target Value (₹)"] = (
@@ -169,7 +177,8 @@ def render_portfolio_view(
         .astype(int)
     )
     summary["Actual Value (₹)"] = (summary["Shares to Buy"] * summary["CMP"]).round(0)
-    summary["Stop Loss"] = summary["Symbol"].map(sl_map)
+    if sl_map:
+        summary["Stop Loss"] = summary["Symbol"].map(sl_map)
 
     total_allocated = summary["Actual Value (₹)"].sum()
     unallocated_cash = max(0, portfolio_capital - total_allocated)
