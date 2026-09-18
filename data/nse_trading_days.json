@@ -1,8 +1,10 @@
 {
  "closed_days": [
+  "2026-06-26",
   "2026-09-14"
  ],
  "closed_days_source": {
+  "2026-06-26": "zero-volume evidence (100% priced, all flat at zero volume)",
   "2026-09-14": "user-confirmed NSE holiday (2026-09-17)"
  },
  "note": "trading_days holds CONFIRMATIONS only: an absent date is unknown, never closed, because NSE answers 403 when rate limiting and that cannot be told from any other refusal. closed_days is the opposite claim and needs its own evidence; closed_days_source records it.",
