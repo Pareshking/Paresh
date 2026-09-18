@@ -27,7 +27,11 @@ from src.core.config import (  # noqa: E402
 )
 
 META_KEY = b"umiya_ranking_contract"
-INTRADAY_COLS = ("ATR", "ATR %", "Stop Loss", "Chandelier Exit")
+
+# Imported, not restated. This file carried the same "Chandelier Exit" typo as
+# the drop list it was meant to verify, so it reported the columns absent while
+# one of them was still being published.
+from src.engine.momentum import ATR_DERIVED_COLUMNS as INTRADAY_COLS  # noqa: E402
 
 
 def _get(url: str, dest: str) -> bool:
