@@ -164,12 +164,29 @@ PRICE_ARCHIVE_PERIOD: Final[str] = "10y"
 # universe vanished at once -- the signature of a partial fetch frozen in by an
 # append-only merge.
 #
-# 45 days covers the vendor's observed backfill latency with room to spare. It
-# is not a full restatement window; the weekly FORCE_FULL run is what re-reads
-# the entire history, and src/engine/corporate_actions.py neutralises a
-# restatement that has not landed yet. This costs nothing extra -- the same one
-# request simply starts earlier -- and it runs where nobody is waiting.
-PRICE_HEAL_DAYS: Final[int] = 45
+# 90 days, raised from 45 once the cost was actually measured rather than
+# assumed. Widening the window is close to free: the request count does not
+# change, and wall time is dominated by per-ticker round trips, not by how many
+# sessions each response carries. Timed over 15 tickers, one batched request
+# each:
+#
+#     heal_days=45    34 sessions    503 cells    2.6s
+#     heal_days=90    65 sessions    968 cells    0.8s
+#
+# The 90-day call was the faster of the two -- twice the history for no cost,
+# the difference being warm connections rather than anything about the range.
+#
+# 45 already covered the vendor's 1-4 week backfill latency. 90 covers a late
+# restatement, which is the case that actually bit: a split Yahoo restates six
+# weeks after the fact falls outside 45 and is then only repaired by the weekly
+# FORCE_FULL -- so a failed weekly run used to mean waiting another week.
+#
+# It is still not a full restatement window. The weekly FORCE_FULL re-reads the
+# ENTIRE archive (force_refresh, where heal_days is 0 precisely because
+# everything is being re-fetched anyway), and corporate_actions.py neutralises
+# a restatement that has not landed yet. This is the daily safety net under
+# that, and it runs where nobody is waiting.
+PRICE_HEAL_DAYS: Final[int] = 90
 
 # The window used for all-time highs. Fetched by the daily sync job on GitHub
 # Actions, where nobody is waiting, and committed as a small per-symbol
