@@ -247,3 +247,78 @@ def test_the_ribbon_never_prints_the_source():
         printed += age_phrase(item)
         assert "screener" not in printed.lower(), f"chip names the vendor: {printed}"
         assert "yahoo" not in printed.lower(), f"chip names the vendor: {printed}"
+
+
+# ── The operator can see what the public cannot ──────────────────────────────
+#
+# Hiding the vendor from the page also hides it from the person running the
+# app, who needs to know which history produced the table on screen. The gate
+# is a token in the DEPLOYMENT's environment matched against a query
+# parameter, so an unset environment is permanently off and nothing can flip
+# it from outside.
+
+def _ribbon_text():
+    from src.core import startup_metrics as m
+    from src.ui.components import age_phrase, data_freshness
+
+    m.reset_for_tests()
+    for k, v in (("price_as_of", "2026-09-18"), ("price_coverage", "750/750"),
+                 ("price_path", "cache_fresh"), ("price_source", "screener"),
+                 ("price_high_basis", "closing prices"), ("price_intraday", "no")):
+        m.note(k, v)
+    return " | ".join(
+        f"{i['label']}: {i['as_of']}{age_phrase(i)}" for i in data_freshness()
+    )
+
+
+class _QP(dict):
+    def get(self, k, d=""):
+        return dict.get(self, k, d)
+
+
+def test_an_unset_token_means_permanently_off(monkeypatch):
+    monkeypatch.delenv("UMIYA_DIAG_TOKEN", raising=False)
+    assert "screener" not in _ribbon_text().lower()
+
+
+def test_a_visitor_cannot_unlock_it_themselves(monkeypatch):
+    """Guessing the parameter name is not enough; the token is server-side."""
+    import streamlit as st
+
+    monkeypatch.setenv("UMIYA_DIAG_TOKEN", "s3cret")
+    monkeypatch.setattr(st, "query_params", _QP({"diag": "1"}), raising=False)
+    assert "screener" not in _ribbon_text().lower()
+
+    monkeypatch.setattr(st, "query_params", _QP(), raising=False)
+    assert "screener" not in _ribbon_text().lower()
+
+
+def test_the_operator_sees_the_source(monkeypatch):
+    import streamlit as st
+
+    monkeypatch.setenv("UMIYA_DIAG_TOKEN", "s3cret")
+    monkeypatch.setattr(st, "query_params", _QP({"diag": "s3cret"}), raising=False)
+    text = _ribbon_text()
+    assert "Ranked from: screener" in text
+
+
+def test_the_source_chip_carries_no_age_suffix(monkeypatch):
+    """'Ranked from: screener - latest session' describes nothing."""
+    import streamlit as st
+
+    monkeypatch.setenv("UMIYA_DIAG_TOKEN", "s3cret")
+    monkeypatch.setattr(st, "query_params", _QP({"diag": "s3cret"}), raising=False)
+    assert "Ranked from: screener |" in _ribbon_text() + " |"
+
+
+def test_a_missing_streamlit_context_is_locked_not_crashed(monkeypatch):
+    """The ribbon renders in tests and scripts with no session."""
+    import streamlit as st
+    from src.ui.components import _operator_unlocked
+
+    monkeypatch.setenv("UMIYA_DIAG_TOKEN", "s3cret")
+    class _Boom:
+        def get(self, *a, **k):
+            raise RuntimeError("no script run context")
+    monkeypatch.setattr(st, "query_params", _Boom(), raising=False)
+    assert _operator_unlocked() is False

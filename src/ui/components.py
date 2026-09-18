@@ -4,6 +4,7 @@ Inspired by Investrack, Stockin.id, and Tickerboom financial terminal designs.
 """
 
 import html
+import os
 from typing import Any
 
 import pandas as pd
@@ -269,6 +270,23 @@ _FRESHNESS_SOURCES: list[tuple[str, str, int, str | None]] = [
 ]
 
 
+def _operator_unlocked() -> bool:
+    """Is this viewer the operator, asking to see internals?
+
+    Gated on a token that lives in the deployment's environment, matched
+    against a query parameter. Unset environment means permanently off, so the
+    default for a public deployment is silence and nothing can flip it from
+    outside. Never raises: a missing Streamlit context simply means locked.
+    """
+    token = os.getenv("UMIYA_DIAG_TOKEN", "").strip()
+    if not token:
+        return False
+    try:
+        return str(st.query_params.get("diag", "")).strip() == token
+    except Exception:
+        return False
+
+
 def data_freshness() -> list[dict]:
     """Age of each data source, judged in trading days.
 
@@ -361,6 +379,22 @@ def data_freshness() -> list[dict]:
     # universe. A reader comparing this screener against a chart elsewhere has
     # to be able to see why the two disagree.
     source = str(facts.get("price_source") or "").strip()
+    if source and _operator_unlocked():
+        # Named ONLY for the operator, who otherwise has no way to tell which
+        # history produced the table on screen -- the page deliberately does
+        # not say, and that hides it from them as much as from anyone else.
+        # Requires a token set in the deployment's own environment, so no
+        # visitor can turn this on.
+        items.append({
+            "label": "Ranked from",
+            "as_of": source,
+            "date": None,
+            "behind": 0,
+            "is_today": False,
+            "stale": False,
+            "phrase": "",
+            "source": source,
+        })
     if source and prices is not None:
         prices["source"] = source
         basis = str(facts.get("price_high_basis") or "").strip()
@@ -418,8 +452,12 @@ def age_phrase(item: dict) -> str:
     # An item may state its own age in words. "Latest session" is the case:
     # it is not behind anything, it is ahead and still arriving, and every
     # phrase below would misdescribe that.
+    # `is not None`, not truthiness: an item may deliberately want NO phrase.
+    # "Ranked from: screener" needs no age suffix, and an empty string that
+    # fell through to the age logic read as "Ranked from: screener - latest
+    # session", which describes nothing.
     override = item.get("phrase")
-    if override:
+    if override is not None:
         return str(override)
 
     behind = item.get("behind")
