@@ -21,7 +21,7 @@ import hashlib
 import pandas as pd
 
 from src.engine.calendar_momentum import _apply_weight_composite, _compute_period_z_scores
-from src.engine.momentum import MomentumEngine
+from src.engine.momentum import ATR_DERIVED_COLUMNS, MomentumEngine
 
 # Bump when a change alters the numbers this pipeline produces. A precomputed
 # table recorded under a different version is discarded rather than trusted:
@@ -242,9 +242,11 @@ def build_engine(
 # symbols -- so a 2xATR stop would sit 53% tighter than the same column shows
 # on Yahoo data. A stop loss silently half its intended width is more dangerous
 # than an absent one, so these are dropped rather than approximated.
-_INTRADAY_ONLY_COLUMNS: tuple[str, ...] = (
-    "ATR", "ATR %", "Stop Loss", "Chandelier Exit",
-)
+# Imported, never restated. The first version of this list spelled one column
+# "Chandelier Exit" when the engine calls it "Chand Exit", so the column was
+# never dropped and a close-only source kept showing a stop at roughly half its
+# intended width. A test asserting the list equalled that same typo passed.
+_INTRADAY_ONLY_COLUMNS: tuple[str, ...] = ATR_DERIVED_COLUMNS
 
 
 def rank_with_weights(

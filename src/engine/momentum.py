@@ -84,6 +84,15 @@ def _normalize_ticker_cols(df: pd.DataFrame | None) -> pd.DataFrame | None:
 MIN_OBSERVATIONS: int = 63
 
 
+# Every column that needs a real intraday high and low, named here because
+# this module is what produces them. A second copy elsewhere is a typo waiting
+# to happen, and it did: the drop list in pipeline.py said "Chandelier Exit"
+# while the column has always been "Chand Exit", so on a close-only source the
+# stop kept rendering -- from an ATR measured at 0.47x its true width, which is
+# the one outcome worse than showing nothing.
+ATR_DERIVED_COLUMNS: tuple[str, ...] = ("ATR", "ATR %", "Stop Loss", "Chand Exit")
+
+
 class MomentumEngine:
     """
     Hardened Production Quantitative Momentum Engine.
@@ -685,7 +694,7 @@ class MomentumEngine:
             rank_df[f"Max DD {label}"] = rank_df["Symbol"].map(dd.to_dict())
 
         atr_df = self.compute_atr_and_stops()
-        for c in ["ATR", "ATR %", "Stop Loss", "Chand Exit"]:
+        for c in ATR_DERIVED_COLUMNS:
             rank_df[c] = rank_df["Symbol"].map(atr_df[c].to_dict())
 
         pers = self.compute_persistence(months=6)

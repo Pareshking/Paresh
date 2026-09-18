@@ -107,13 +107,38 @@ def test_a_malformed_store_is_refused_rather_than_guessed_at():
 
 # ── The ATR columns ──────────────────────────────────────────────────────────
 
-def test_atr_columns_are_dropped_when_there_is_no_intraday_data():
-    """0.47x true ATR means a 2xATR stop 53% tighter than intended."""
+def test_every_name_in_the_drop_list_is_a_real_column():
+    """The test this replaces compared my list against my own typo.
+
+    It said "Chandelier Exit"; the engine has always produced "Chand Exit". The
+    column was therefore never dropped, and production rendered a Chandelier
+    Exit of 930 beside a blank ATR -- a stop computed from an ATR measured at
+    0.47x its true width, which is worse than showing nothing.
+
+    The truth now comes from the module that PRODUCES the columns, so a rename
+    there cannot leave the drop list silently stale.
+    """
+    from src.engine.momentum import ATR_DERIVED_COLUMNS
     from src.engine.pipeline import _INTRADAY_ONLY_COLUMNS
 
-    assert set(_INTRADAY_ONLY_COLUMNS) == {
-        "ATR", "ATR %", "Stop Loss", "Chandelier Exit"
-    }, "the set of intraday-only columns changed; re-check what each needs"
+    assert tuple(_INTRADAY_ONLY_COLUMNS) == tuple(ATR_DERIVED_COLUMNS)
+    assert "Chand Exit" in _INTRADAY_ONLY_COLUMNS, (
+        "the chandelier column is not in the drop list under its real name"
+    )
+
+
+def test_the_engine_writes_exactly_the_columns_the_drop_list_names():
+    """Derived from the engine's own assignment loop, not from a copy."""
+    import inspect
+    from src.engine import momentum
+    from src.engine.momentum import ATR_DERIVED_COLUMNS
+
+    src = inspect.getsource(momentum.MomentumEngine.compute_atr_and_stops)
+    for col in ATR_DERIVED_COLUMNS:
+        assert f'"{col}"' in src, (
+            f"{col!r} is in the drop list but compute_atr_and_stops never "
+            "produces it; the list and the engine have drifted"
+        )
 
 
 def test_dropping_is_driven_by_the_flag_not_the_frame():
@@ -391,3 +416,52 @@ def test_the_footer_keeps_the_formula_on_yahoo_data():
         "the footer note is gated on something other than the absence of "
         "intraday data; it would vanish for Yahoo too"
     )
+
+
+
+# ── The ribbon must describe the frame that was actually ranked ─────────────
+#
+# price_as_of was computed straight after extract_ohlcv -- before the source
+# was chosen -- so it described the YAHOO frame while the table came from
+# screener. Production showed "Prices: 16 Sep - 2 trading days behind" over a
+# ranking dated 18 Sep, because Yahoo's 17th and 18th were too thin to rank
+# while screener had both at 100%.
+
+def test_the_as_of_metric_is_recorded_after_the_source_is_chosen():
+    src = open("app.py", encoding="utf-8").read()
+    resolve_at = src.index("_src = _resolve_price_source(")
+    as_of_at = src.index('metrics.note("price_as_of"')
+    assert as_of_at > resolve_at, (
+        "price_as_of is recorded before the source is resolved, so the ribbon "
+        "describes a frame the engine may never have scored"
+    )
+
+
+def test_the_coverage_metric_is_recorded_after_the_source_is_chosen():
+    src = open("app.py", encoding="utf-8").read()
+    resolve_at = src.index("_src = _resolve_price_source(")
+    cov_at = src.index('metrics.note("price_coverage"')
+    assert cov_at > resolve_at
+
+
+def test_the_ribbon_date_matches_the_frame_the_engine_ranked():
+    """End to end on the two real frames, which disagree by two sessions."""
+    import numpy as np
+    import pandas as pd
+    from src.engine import pipeline
+
+    idx = pd.bdate_range("2025-09-18", "2026-09-18")
+    cols = [f"S{i}" for i in range(100)]
+
+    # Yahoo's shape on 2026-09-18: the last two sessions thin/empty
+    yahoo = pd.DataFrame(100.0, index=idx, columns=cols)
+    yahoo.iloc[-1, :] = np.nan                  # 09-18 at 0%
+    yahoo.iloc[-2, 40:] = np.nan                # 09-17 at ~40%
+    # screener's shape: complete throughout
+    screener = pd.DataFrame(100.0, index=idx, columns=cols)
+
+    assert pipeline.ranking_as_of(yahoo) != pipeline.ranking_as_of(screener), (
+        "fixture is wrong: the two sources must disagree for this to mean "
+        "anything"
+    )
+    assert pipeline.ranking_as_of(screener) == str(idx[-1].date())
