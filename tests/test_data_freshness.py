@@ -200,3 +200,93 @@ def test_every_remaining_source_reports_together(monkeypatch):
     })
     assert set(items) == {"Prices", "Market caps", "All-time highs"}
     assert all(not i["stale"] for i in items.values())
+
+
+# ── The date shown must be the date the table describes ──────────────────────
+#
+# The ranking stops at the newest session the vendor has finished, so the price
+# frame can visibly reach a later date than the table is labelled with. On
+# 2026-09-18 that was 17 Sep in the frame against 16 Sep on the table.
+#
+# Showing only the date makes that read as a fault -- or worse, as the table
+# silently describing 17 Sep. Both facts, with the coverage that decided
+# between them, is the difference between a deliberate wait and a bug.
+
+def test_the_priced_row_reports_how_much_of_the_universe_it_has(monkeypatch):
+    items = _freshness(
+        monkeypatch, date(2026, 9, 18),
+        price_as_of="2026-09-16", price_coverage="750/750", price_path="cache_fresh",
+    )
+    assert items["Prices"]["coverage"] == "750/750"
+
+
+def test_the_session_being_waited_on_is_named(monkeypatch):
+    """Not naming it is what makes the ribbon look a day stale for no reason."""
+    items = _freshness(
+        monkeypatch, date(2026, 9, 18),
+        price_as_of="2026-09-16", price_coverage="750/750", price_path="cache_fresh",
+        price_deferred_as_of="2026-09-17", price_deferred_coverage="378/750",
+    )
+    assert "Latest session" in items, (
+        "the frame reaches a newer session than the table and the ribbon says "
+        "nothing about it"
+    )
+    later = items["Latest session"]
+    assert later["as_of"] == "17 Sep"
+    assert later["coverage"] == "378/750"
+
+
+def test_waiting_for_a_session_is_not_rendered_as_a_fault(monkeypatch):
+    """An amber chip here would train the reader to ignore the real ones.
+
+    The vendor publishes an Indian session over roughly a day and a half.
+    Waiting for it is the correct behaviour, every single day.
+    """
+    from src.ui.components import age_phrase
+
+    items = _freshness(
+        monkeypatch, date(2026, 9, 18),
+        price_as_of="2026-09-16", price_coverage="750/750", price_path="cache_fresh",
+        price_deferred_as_of="2026-09-17", price_deferred_coverage="378/750",
+    )
+    later = items["Latest session"]
+    assert later["stale"] is False
+    assert age_phrase(later) == " · still publishing", (
+        "the deferred session is being described with a staleness phrase, "
+        "which misreads what it is"
+    )
+
+
+def test_nothing_extra_appears_when_the_newest_session_is_the_ranked_one(monkeypatch):
+    """In the steady state there is no second chip, and no explaining to do."""
+    items = _freshness(
+        monkeypatch, date(2026, 9, 18),
+        price_as_of="2026-09-17", price_coverage="750/750", price_path="cache_fresh",
+    )
+    assert "Latest session" not in items
+    assert items["Prices"]["coverage"] == "750/750"
+
+
+def test_the_header_carries_the_coverage_too(monkeypatch):
+    """The header is the one people believe when the two disagree."""
+    from src.ui.components import header_as_of
+
+    _freshness(
+        monkeypatch, date(2026, 9, 18),
+        price_as_of="2026-09-16", price_coverage="750/750", price_path="cache_fresh",
+    )
+    text, _colour = header_as_of()
+    assert text.startswith("16 Sep 2026"), text
+    assert "750/750" in text, "the header states a date with no idea how complete it is"
+
+
+def test_a_missing_coverage_fact_degrades_quietly(monkeypatch):
+    """Older snapshots predate the coverage fact; the ribbon must still render."""
+    from src.ui.components import header_as_of
+
+    items = _freshness(
+        monkeypatch, date(2026, 9, 18),
+        price_as_of="2026-09-16", price_path="cache_fresh",
+    )
+    assert items["Prices"]["coverage"] is None
+    assert header_as_of()[0].startswith("16 Sep 2026")

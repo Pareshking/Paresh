@@ -38,9 +38,18 @@ on:
     # history on every run and deliberately bypasses the download gate, so this
     # is a genuine second attempt rather than a no-op.
     #
-    # Saturday is included because Friday's session is still filling in on
-    # Saturday morning. Sunday and Monday have no session behind them.
-    - cron: '0 2 * * 2-6'
+    # Every day, including Sunday and Monday. There is no session behind
+    # those two, but the run is not only chasing the newest bar: heal_days
+    # re-requests the trailing 45 days of SETTLED history on every run, and
+    # Yahoo restates an Indian series for weeks after the fact -- split
+    # adjustments typically land 1-4 weeks late. A Sunday run costs one job
+    # and can still repair a close from three weeks ago.
+    #
+    # What it does NOT do is deepen the archive. heal_days reaches back 45
+    # days and no further; the 10-year window is rebuilt only by the weekly
+    # FORCE_FULL run, which is the one place a longer PRICE_ARCHIVE_PERIOD
+    # takes effect.
+    - cron: '0 2 * * *'
   workflow_dispatch: # Allows manual 1-click execution anytime from GitHub Actions tab
 
 permissions:

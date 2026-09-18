@@ -290,6 +290,19 @@ def _drop_phantom_sessions(df: pd.DataFrame) -> pd.DataFrame:
             )[:200],
         )
         metrics.note("price_zero_trade_sessions_dropped", int(zt.sum()))
+        # The DATES, not just the count, so the nightly job can write them into
+        # the calendar. A count cannot be recorded against anything.
+        metrics.note(
+            "price_zero_trade_dates",
+            ",".join(str(d.date()) for i, d in enumerate(dates) if zt[i]),
+        )
+        metrics.note(
+            "price_zero_trade_coverage",
+            ",".join(
+                f"{d.date()}:{coverage.iloc[i]*100:.0f}"
+                for i, d in enumerate(dates) if zt[i]
+            ),
+        )
         # A confirmation rescues a THIN session from the floor; it does not
         # rescue one where nothing changed hands. A bhavcopy 200 says the
         # endpoint answered, zero volume across the whole universe says nobody

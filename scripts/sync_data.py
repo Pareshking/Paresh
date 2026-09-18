@@ -223,6 +223,47 @@ def run_daily_sync() -> None:
     )
     print(f"Price cache updated with shape {prices_df.shape}.")
 
+    # 4a. Let the calendar learn the holidays the volume test found.
+    #
+    # The zero-volume test reads something no coverage threshold can: a session
+    # where every priced symbol is flat at zero volume is one on which nothing
+    # changed hands, and two of the four it found sat at 100% vendor coverage.
+    # Writing them down turns a test that must re-derive the answer from the
+    # whole frame on every read into a fact the calendar simply knows -- and
+    # one a human can audit, which a heuristic buried in a loader is not.
+    #
+    # This is evidence, not an assertion of an NSE holiday. The source string
+    # says exactly what was observed and at what coverage, so a wrong entry can
+    # be traced to the run that made it rather than appearing as an anonymous
+    # date somebody once decided was closed. record_closed already refuses any
+    # date NSE published a bhavcopy for, so the exchange still outranks this.
+    try:
+        from src.core import startup_metrics as _m
+        from src.loaders.trading_days import record_closed
+
+        _facts = _m.snapshot().get("facts", {})
+        _dead = [d for d in str(_facts.get("price_zero_trade_dates") or "").split(",") if d]
+        if _dead:
+            _cov = dict(
+                part.split(":", 1)
+                for part in str(_facts.get("price_zero_trade_coverage") or "").split(",")
+                if ":" in part
+            )
+            for _day in _dead:
+                _pct = _cov.get(_day, "?")
+                added, total = record_closed(
+                    [_day],
+                    source=f"zero-volume evidence ({_pct}% priced, all flat at zero volume)",
+                )
+                if added:
+                    print(f"Calendar learned {_day} is a non-session ({_pct}% priced); {total} on record.")
+        else:
+            print("No zero-volume non-sessions found in this frame.")
+    except Exception as exc:
+        # Strictly an enrichment: the volume test already dropped these rows
+        # from the frame this run, with or without the calendar entry.
+        print(f"Calendar learning skipped: {type(exc).__name__}: {exc}")
+
     # 5b. Commit the result to the repository.
     # This job runs on GitHub Actions, where NSE is reachable. Whether
     # production on Streamlit Cloud can reach it too is NOT established -- the

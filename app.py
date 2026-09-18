@@ -385,8 +385,29 @@ def load_all_data(indices: list[str]):
         # stops before it rather than dropping every symbol the vendor has not
         # got to yet. See pipeline.last_ranked_session.
         try:
-            metrics.note("price_as_of", pipeline.ranking_as_of(adj_close))
-            metrics.note("price_frame_last_row", str(pd.DatetimeIndex(adj_close.index)[-1].date()))
+            _ranked = pipeline.ranking_as_of(adj_close)
+            metrics.note("price_as_of", _ranked)
+            _idx = pd.DatetimeIndex(adj_close.index)
+            metrics.note("price_frame_last_row", str(_idx[-1].date()))
+
+            # How much of the universe the ranked session actually has, and
+            # which newer session is being held back and why. Without the
+            # second fact the ribbon looks simply wrong: the frame visibly
+            # reaches 17 Sep while the table says 16 Sep, and a reader has no
+            # way to tell a deliberate wait from a broken pipeline.
+            _n = int(adj_close.shape[1])
+            _cov = adj_close.notna().sum(axis=1)
+            _ts = pd.Timestamp(_ranked)
+            if _n and _ts in adj_close.index:
+                metrics.note("price_coverage", f"{int(_cov.loc[_ts])}/{_n}")
+            _newer = [d for d in _idx if d > _ts]
+            if _newer and _n:
+                _d = _newer[-1]
+                metrics.note("price_deferred_as_of", str(_d.date()))
+                metrics.note(
+                    "price_deferred_coverage",
+                    f"{int(_cov.loc[_d])}/{_n}",
+                )
         except Exception:
             pass
 

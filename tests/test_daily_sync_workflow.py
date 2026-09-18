@@ -130,19 +130,20 @@ def _crons(spec):
 def test_both_scheduled_slots_are_present(spec):
     crons = _crons(spec)
     assert "30 17 * * 1-5" in crons, "the night slot is gone"
-    assert "0 2 * * 2-6" in crons, "the morning recovery slot is gone"
+    assert "0 2 * * *" in crons, "the morning recovery slot is gone"
 
 
-def test_the_morning_slot_covers_the_day_after_every_session(spec):
-    """Sessions run Mon-Fri, so the morning after runs Tue-SAT.
+def test_the_morning_slot_runs_every_day(spec):
+    """Including Sunday and Monday, which have no session behind them.
 
-    Dropping Saturday would leave Friday's session -- still only half published
-    on Saturday morning -- with no recovery attempt until Monday night.
+    The run is not only chasing the newest bar. heal_days re-requests the
+    trailing 45 days of settled history, and Yahoo restates an Indian series
+    for weeks -- split adjustments typically land 1-4 weeks late. A Sunday run
+    can still repair a close from three weeks ago.
     """
-    dow = "0 2 * * 2-6".split()[-1]
-    assert dow == "2-6", "the morning slot no longer covers Tue-Sat"
     crons = _crons(spec)
-    assert "0 2 * * 2-6" in crons
+    morning = [c for c in crons if c.startswith("0 2 ")]
+    assert morning == ["0 2 * * *"], f"the morning slot is not daily: {morning}"
 
 
 def test_the_slots_land_where_they_are_meant_to_in_india():

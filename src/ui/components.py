@@ -340,6 +340,43 @@ def data_freshness() -> list[dict]:
             "stale": stale,
             "source": facts.get(presence_key) if presence_key else None,
         })
+
+    # Coverage on the priced row, and the session held back behind it.
+    #
+    # The ranking stops at the newest session the vendor has finished, so the
+    # frame can visibly reach a later date than the table is labelled with. On
+    # 2026-09-18 that was 17 Sep in the frame against 16 Sep on the table, and
+    # with only the date shown it reads as the pipeline being a day stale --
+    # or, worse, as the table silently describing 17 Sep. Naming both, with
+    # the coverage that decided it, is the difference between a deliberate
+    # wait and an apparent fault.
+    prices = next((i for i in items if i["label"] == "Prices"), None)
+    if prices is not None:
+        prices["coverage"] = str(facts.get("price_coverage") or "").strip() or None
+
+    deferred_day = str(facts.get("price_deferred_as_of") or "").strip()
+    if deferred_day:
+        try:
+            _d = _date.fromisoformat(deferred_day[:10])
+        except ValueError:
+            _d = None
+        if _d is not None:
+            cov = str(facts.get("price_deferred_coverage") or "").strip()
+            items.append({
+                "label": "Latest session",
+                "as_of": _d.strftime("%d %b"),
+                "date": _d,
+                "behind": 0,
+                "is_today": _d == ist_today(),
+                # Not a fault and must not render as one. The vendor publishes
+                # an Indian session over roughly a day and a half; waiting for
+                # it is the correct behaviour, and an amber chip here would
+                # train the reader to ignore the ones that do mean something.
+                "stale": False,
+                "coverage": cov or None,
+                "phrase": " · still publishing",
+                "source": "deferred",
+            })
     return items
 
 
@@ -351,6 +388,13 @@ def age_phrase(item: dict) -> str:
     they disagreed the header was the one people believed.
     """
     from src.core.market_time import session_is_complete
+
+    # An item may state its own age in words. "Latest session" is the case:
+    # it is not behind anything, it is ahead and still arriving, and every
+    # phrase below would misdescribe that.
+    override = item.get("phrase")
+    if override:
+        return str(override)
 
     behind = item.get("behind")
     if behind is None:
@@ -395,8 +439,10 @@ def header_as_of() -> tuple[str, str]:
         # return path; nothing arriving here means the pipeline did something
         # unexpected, which is not the moment to print a confident date.
         return "price date unknown", "#d97706"
+    cov = str(prices.get("coverage") or "").strip()
+    suffix = f" · {cov}" if cov else ""
     return (
-        f"{prices['date'].strftime('%d %b %Y')}{age_phrase(prices)}",
+        f"{prices['date'].strftime('%d %b %Y')}{suffix}{age_phrase(prices)}",
         "#d97706" if prices["stale"] else "#64748b",
     )
 
@@ -428,6 +474,9 @@ def render_freshness_ribbon() -> None:
         age = age_phrase(item)
         label = html.escape(str(item["label"]))
         as_of = html.escape(str(item["as_of"]))
+        cov = str(item.get("coverage") or "").strip()
+        if cov:
+            as_of = f"{as_of} · {html.escape(cov)}"
         chips_html += (
             f'<div style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; '
             f'border-radius: 6px; background-color: {color}0D; border: 1px solid {color}25; '
