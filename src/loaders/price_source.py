@@ -177,5 +177,22 @@ def from_yahoo(adj_close, close, high, low, volume) -> PriceFrames:
     )
 
 
+# What a reader sees. The internal ids stay as they are -- they are the
+# contract term, the config value and what the logs say -- so renaming here
+# cannot change which table is accepted or which source is chosen.
+_DISPLAY_NAMES: dict[str, str] = {
+    "screener": "Personal",
+    "yahoo": "Yahoo",
+}
+
+
+def display_name(source: str | None) -> str:
+    """The label for the front end. Unknown ids pass through capitalised."""
+    key = str(source or "").strip().lower()
+    if not key:
+        return ""
+    return _DISPLAY_NAMES.get(key, key.replace("_", " ").title())
+
+
 def preferred() -> str:
     return RANKING_PRICE_SOURCE or "yahoo"

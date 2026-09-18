@@ -4,7 +4,6 @@ Inspired by Investrack, Stockin.id, and Tickerboom financial terminal designs.
 """
 
 import html
-import os
 from typing import Any
 
 import pandas as pd
@@ -270,23 +269,6 @@ _FRESHNESS_SOURCES: list[tuple[str, str, int, str | None]] = [
 ]
 
 
-def _operator_unlocked() -> bool:
-    """Is this viewer the operator, asking to see internals?
-
-    Gated on a token that lives in the deployment's environment, matched
-    against a query parameter. Unset environment means permanently off, so the
-    default for a public deployment is silence and nothing can flip it from
-    outside. Never raises: a missing Streamlit context simply means locked.
-    """
-    token = os.getenv("UMIYA_DIAG_TOKEN", "").strip()
-    if not token:
-        return False
-    try:
-        return str(st.query_params.get("diag", "")).strip() == token
-    except Exception:
-        return False
-
-
 def data_freshness() -> list[dict]:
     """Age of each data source, judged in trading days.
 
@@ -379,15 +361,16 @@ def data_freshness() -> list[dict]:
     # universe. A reader comparing this screener against a chart elsewhere has
     # to be able to see why the two disagree.
     source = str(facts.get("price_source") or "").strip()
-    if source and _operator_unlocked():
-        # Named ONLY for the operator, who otherwise has no way to tell which
-        # history produced the table on screen -- the page deliberately does
-        # not say, and that hides it from them as much as from anyone else.
-        # Requires a token set in the deployment's own environment, so no
-        # visitor can turn this on.
+    if source:
+        # Which history produced the table, under its display name. The reader
+        # needs this to make sense of the 52-week-high chip below and of the
+        # ATR columns being present or absent -- those follow from the source,
+        # and without it they look arbitrary.
+        from src.loaders.price_source import display_name
+
         items.append({
             "label": "Ranked from",
-            "as_of": source,
+            "as_of": display_name(source),
             "date": None,
             "behind": 0,
             "is_today": False,

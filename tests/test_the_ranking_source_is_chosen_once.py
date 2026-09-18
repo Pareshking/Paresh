@@ -249,15 +249,43 @@ def test_the_ribbon_never_prints_the_source():
         assert "yahoo" not in printed.lower(), f"chip names the vendor: {printed}"
 
 
-# ── The operator can see what the public cannot ──────────────────────────────
+# ── What the front end calls each source ────────────────────────────────────
 #
-# Hiding the vendor from the page also hides it from the person running the
-# app, who needs to know which history produced the table on screen. The gate
-# is a token in the DEPLOYMENT's environment matched against a query
-# parameter, so an unset environment is permanently off and nothing can flip
-# it from outside.
+# The internal ids stay as they are -- they are the contract term, the config
+# value and what the logs say -- so the display name cannot change which table
+# is accepted or which source gets chosen.
 
-def _ribbon_text():
+def test_the_display_names():
+    assert ps.display_name("screener") == "Personal"
+    assert ps.display_name("yahoo") == "Yahoo"
+
+
+def test_display_is_case_and_whitespace_tolerant():
+    assert ps.display_name("  SCREENER ") == "Personal"
+    assert ps.display_name("") == ""
+    assert ps.display_name(None) == ""
+
+
+def test_an_unknown_source_still_renders_something():
+    """A third source added later must not render as a blank chip."""
+    assert ps.display_name("some_new_feed") == "Some New Feed"
+
+
+def test_renaming_does_not_touch_the_contract():
+    """Display is presentation; the contract keeps the id it always had."""
+    from src.loaders.ranking_store import contract
+
+    terms = contract(price_fingerprint="a", symbols_fingerprint="b",
+                     weights=(0.2,) * 5, pipeline_version="v4",
+                     universe=["AAA"], price_source="screener")
+    assert terms["price_source"] == "screener", (
+        "the display name leaked into the contract; a table written under one "
+        "spelling would stop matching one written under the other"
+    )
+
+
+def test_the_source_is_always_shown_now():
+    """No token, no query parameter -- every viewer sees it."""
     from src.core import startup_metrics as m
     from src.ui.components import age_phrase, data_freshness
 
@@ -266,59 +294,42 @@ def _ribbon_text():
                  ("price_path", "cache_fresh"), ("price_source", "screener"),
                  ("price_high_basis", "closing prices"), ("price_intraday", "no")):
         m.note(k, v)
-    return " | ".join(
+    printed = " | ".join(
         f"{i['label']}: {i['as_of']}{age_phrase(i)}" for i in data_freshness()
     )
+    assert "Ranked from: Personal" in printed
+    assert "screener" not in printed.lower(), "the raw source id reached the page"
 
 
-class _QP(dict):
-    def get(self, k, d=""):
-        return dict.get(self, k, d)
+def test_yahoo_shows_under_its_own_name():
+    from src.core import startup_metrics as m
+    from src.ui.components import data_freshness
+
+    m.reset_for_tests()
+    m.note("price_as_of", "2026-09-18"); m.note("price_path", "cache_fresh")
+    m.note("price_source", "yahoo"); m.note("price_intraday", "yes")
+    chip = next(i for i in data_freshness() if i["label"] == "Ranked from")
+    assert chip["as_of"] == "Yahoo"
 
 
-def test_an_unset_token_means_permanently_off(monkeypatch):
-    monkeypatch.delenv("UMIYA_DIAG_TOKEN", raising=False)
-    assert "screener" not in _ribbon_text().lower()
+def test_the_raw_id_still_never_reaches_the_served_html():
+    """The hidden metrics div is unchanged by the rename.
+
+    The chip says "Personal"; the div must not say "screener" beside it.
+    """
+    import json
+    from src.core import startup_metrics as m
+
+    m.reset_for_tests()
+    m.note("price_source", "screener")
+    m.note("screener_store_fetch", "ok")
+    m.note("price_as_of", "2026-09-18")
+    served = json.dumps(m.public_snapshot()).lower()
+    assert "screener" not in served
+    assert m.public_snapshot()["facts"].get("price_as_of") == "2026-09-18"
 
 
-def test_a_visitor_cannot_unlock_it_themselves(monkeypatch):
-    """Guessing the parameter name is not enough; the token is server-side."""
-    import streamlit as st
-
-    monkeypatch.setenv("UMIYA_DIAG_TOKEN", "s3cret")
-    monkeypatch.setattr(st, "query_params", _QP({"diag": "1"}), raising=False)
-    assert "screener" not in _ribbon_text().lower()
-
-    monkeypatch.setattr(st, "query_params", _QP(), raising=False)
-    assert "screener" not in _ribbon_text().lower()
-
-
-def test_the_operator_sees_the_source(monkeypatch):
-    import streamlit as st
-
-    monkeypatch.setenv("UMIYA_DIAG_TOKEN", "s3cret")
-    monkeypatch.setattr(st, "query_params", _QP({"diag": "s3cret"}), raising=False)
-    text = _ribbon_text()
-    assert "Ranked from: screener" in text
-
-
-def test_the_source_chip_carries_no_age_suffix(monkeypatch):
-    """'Ranked from: screener - latest session' describes nothing."""
-    import streamlit as st
-
-    monkeypatch.setenv("UMIYA_DIAG_TOKEN", "s3cret")
-    monkeypatch.setattr(st, "query_params", _QP({"diag": "s3cret"}), raising=False)
-    assert "Ranked from: screener |" in _ribbon_text() + " |"
-
-
-def test_a_missing_streamlit_context_is_locked_not_crashed(monkeypatch):
-    """The ribbon renders in tests and scripts with no session."""
-    import streamlit as st
-    from src.ui.components import _operator_unlocked
-
-    monkeypatch.setenv("UMIYA_DIAG_TOKEN", "s3cret")
-    class _Boom:
-        def get(self, *a, **k):
-            raise RuntimeError("no script run context")
-    monkeypatch.setattr(st, "query_params", _Boom(), raising=False)
-    assert _operator_unlocked() is False
+def test_the_app_serves_the_redacted_snapshot():
+    src = open("app.py", encoding="utf-8").read()
+    assert "metrics.public_snapshot()" in src
+    assert "json.dumps(metrics.snapshot())" not in src
