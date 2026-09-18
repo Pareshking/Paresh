@@ -1,0 +1,131 @@
+name: Screener daily price sync (overnight)
+
+# A SECOND price history, built in parallel with the Yahoo one and not yet
+# consumed by anything. It has to accumulate before it can be useful: screener
+# serves daily bars for about a year and weekly beyond that, so depth comes one
+# night at a time and every night missed is a day of daily history that cannot
+# be bought back later. That is why this runs now rather than after the engine
+# is wired to it.
+
+on:
+  schedule:
+    # 18:45 UTC = 00:15 IST, every day. India's session has long settled, the
+    # site is at its quietest, and GitHub's usual ~28 minute queue delay still
+    # lands this comfortably inside the overnight window.
+    #
+    # Every day, not weekdays: the job re-requests a rolling year on each run,
+    # so a weekend pass costs one cheap walk and repairs anything a blocked or
+    # truncated weeknight left behind.
+    - cron: '45 18 * * *'
+  workflow_dispatch:
+
+# NOT in the daily-sync group. This job must never delay or be delayed by the
+# pipeline production actually ranks off -- it writes a different file, touches
+# no Yahoo artifact, and a screener outage has to be incapable of failing the
+# run that feeds the live screener.
+concurrency:
+  group: screener-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  screener:
+    runs-on: ubuntu-latest
+    # ~22 minutes projected for 750 symbols at the measured rate. The ceiling is
+    # generous because a paced walk must never be killed halfway by a timeout:
+    # the store would still be written, but the run would be marked failed and
+    # the reason would be invisible.
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Its own cache namespace. Sharing the Yahoo one would let either job
+      # restore the other's frame, and the two must never meet: they do not
+      # share an adjustment basis. See SCREENER_PRICES_FILE.
+      - name: Restore screener store
+        id: restore-screener
+        uses: actions/cache/restore@v4
+        with:
+          path: data_cache/
+          key: screener-data-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            screener-data-${{ runner.os }}-
+
+      - name: Run screener sync
+        env:
+          PYTHONPATH: .
+        run: python scripts/sync_screener.py
+
+      # Rotating key, for the same reason the price cache uses one: actions/cache
+      # treats an entry as immutable and silently skips the save when the key
+      # already exists, which froze the Yahoo cache on the day it was first
+      # written.
+      - name: Save screener store
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data_cache/
+          key: screener-data-${{ runner.os }}-${{ github.run_id }}
+
+      - name: Publish screener history
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          STORE="data_cache/screener_prices.parquet"
+          if [ ! -f "$STORE" ]; then
+            echo "::warning::No screener store was produced; nothing to publish."
+            exit 0
+          fi
+          ls -lh "$STORE"
+          gh release view data-latest --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create data-latest \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Latest data snapshots" \
+              --notes "Rolling history published by the sync jobs." \
+              --latest=false
+          gh release upload data-latest "$STORE" --repo "$GITHUB_REPOSITORY" --clobber
+          echo "Uploaded screener_prices.parquet."
+
+      # The id map is the only thing that belongs in the repo: it is small,
+      # stable, and re-deriving it would double every night's request count.
+      - name: Commit the company id map
+        if: always()
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add -A data/screener_company_ids.json
+          if git diff --staged --quiet; then
+            echo "No new company ids."
+            exit 0
+          fi
+          git commit -m "chore(data): screener company id map [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              echo "Pushed on attempt $attempt."
+              exit 0
+            fi
+            echo "Push rejected on attempt $attempt; rebasing onto origin/main."
+            git fetch origin main
+            git rebase origin/main || {
+              git checkout --ours -- data/ 2>/dev/null || true
+              git add -A data/
+              git rebase --continue || git rebase --abort
+            }
+            sleep $((attempt * 3))
+          done
+          echo "::error::Could not push the company id map after 5 attempts."
+          exit 1

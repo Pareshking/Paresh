@@ -53,6 +53,43 @@ REPO_ATH_FILE: Final[str] = os.path.join(REPO_DATA_DIR, "nse_all_time_highs.csv"
 # session. Only the exchange's own record settles it.
 REPO_TRADING_DAYS_FILE: Final[str] = os.path.join(REPO_DATA_DIR, "nse_trading_days.json")
 
+# ── Screener.in, kept deliberately apart from Yahoo ──────────────────────────
+#
+# A SECOND source, never a merged one. The two do not share an adjustment
+# basis, and the difference is invisible in the numbers themselves. HEG around
+# its 2026-09-07 demerger, same sessions, both sources:
+#
+#     2026-09-04    screener  266.60    yahoo  728.25
+#     2026-09-07    screener  272.20    yahoo  272.20
+#
+# Screener carries the adjustment back through the history; yfinance does not
+# adjust demergers at all. Splice one into the other and a name acquires a
+# 2.7x step in the middle of its own price series, silently, on exactly the
+# names a corporate-action guard is supposed to protect. So they live in
+# separate files and are chosen between, never combined.
+#
+# The screener frame is CLOSE AND VOLUME ONLY. The API serves Price, DMA50,
+# DMA200 and Volume; every OHLC variant 404s. Anything needing a real intraday
+# high -- ATR, a true 52-week high -- cannot be computed from this source, and
+# the caller has to decide what that means rather than silently getting a
+# close-based answer.
+SCREENER_PRICES_FILE: Final[str] = os.path.join(DATA_DIR, "screener_prices.parquet")
+SCREENER_IDS_FILE: Final[str] = os.path.join(REPO_DATA_DIR, "screener_company_ids.json")
+
+# Daily resolution reaches back about a year and is downsampled to weekly
+# beyond it (measured: 248 points at days=365, 522 at days=3650, 1121 at
+# days=10000). Requesting more than the daily window therefore BUYS NOTHING
+# and costs a bigger response, so the sync asks for the daily window only and
+# grows its own history by accumulating each night.
+SCREENER_DAYS: Final[int] = 365
+
+# One request per symbol per night, with a pause between them. 30 symbols
+# measured at 1.74s each including this delay, which puts the full universe at
+# roughly 22 minutes -- comfortably inside an overnight window, and gentle
+# enough that the site sees less traffic from the whole job than one person
+# browsing it.
+SCREENER_DELAY_S: Final[float] = 1.2
+
 INDICES_URLS: Final[dict[str, str]] = {
     "NIFTY 50": "https://niftyindices.com/IndexConstituent/ind_nifty50list.csv",
     "NIFTY NEXT 50": "https://niftyindices.com/IndexConstituent/ind_niftynext50list.csv",
