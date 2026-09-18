@@ -88,11 +88,10 @@ def _precompute_rankings(symbols, universe_df, mcaps) -> None:
         print("Ranking came back empty; publishing nothing.")
         return
 
-    as_of = ""
-    try:
-        as_of = str(pd.DatetimeIndex(adj_close.index)[-1].date())
-    except Exception:
-        pass
+    # The date the ENGINE stopped on, not the frame's last row. The two differ
+    # whenever the vendor is still publishing the newest session, and stamping
+    # the later one would label this table with a session it never scored.
+    as_of = pipeline.ranking_as_of(adj_close)
 
     terms = contract(
         price_fingerprint=pipeline.price_fingerprint(adj_close),

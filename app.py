@@ -380,8 +380,13 @@ def load_all_data(indices: list[str]):
             adj_close, close_p, high_p, low_p, vol_p, open_p = _extract_ohlcv_cached(
                 p_hash_raw, sym_key, raw_prices, symbols
             )
+        # The session the RANKING lands on, which is not always the frame's
+        # last row: the newest session can still be filling in, and the engine
+        # stops before it rather than dropping every symbol the vendor has not
+        # got to yet. See pipeline.last_ranked_session.
         try:
-            metrics.note("price_as_of", str(pd.DatetimeIndex(adj_close.index)[-1].date()))
+            metrics.note("price_as_of", pipeline.ranking_as_of(adj_close))
+            metrics.note("price_frame_last_row", str(pd.DatetimeIndex(adj_close.index)[-1].date()))
         except Exception:
             pass
 

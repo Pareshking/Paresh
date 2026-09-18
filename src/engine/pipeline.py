@@ -106,6 +106,99 @@ def symbols_fingerprint(symbols) -> str:
     return hashlib.md5(key.encode()).hexdigest()[:12]
 
 
+# ── Which session is complete enough to rank on ──────────────────────────────
+#
+# The engine takes each symbol's CLOSING price as a real observation -- p1 is
+# read straight from the frame, never forward-filled, deliberately (see
+# calendar_momentum). So a symbol with no print on the final session scores NaN
+# across every horizon and leaves the table entirely.
+#
+# That is correct per symbol and wrong for the universe, because Yahoo
+# publishes an Indian session over about two days. Measured on the live
+# snapshot for 2026-09-17: 20% of the universe at 23:30 IST that night, 50% by
+# the next morning, 100% a day later. Ranking on that session does not produce
+# a fresher table, it produces a table of whichever half the vendor happened to
+# publish first -- 378 names instead of 750, selected by vendor latency.
+#
+# Until 2026-09-18 this never showed, because the coverage floor deleted the
+# thin session outright and the ranking landed on the previous one by accident.
+# Now that a real session is correctly KEPT in the history, the ranking has to
+# choose its own date on purpose.
+#
+# History and ranking date are separate questions. The frame keeps every real
+# session -- returns, charts and the archive need them -- while the engine
+# stops at the newest session the vendor has actually finished.
+
+RANKING_COVERAGE_FLOOR: float = 0.90
+MAX_UNRANKED_TAIL: int = 5
+
+
+def last_ranked_session(
+    adj_close: pd.DataFrame,
+    floor: float = RANKING_COVERAGE_FLOOR,
+    max_back: int = MAX_UNRANKED_TAIL,
+) -> int | None:
+    """Position of the newest session complete enough to rank on.
+
+    Coverage is judged against the RECENT norm, not an absolute count, because
+    absolute coverage falls off legitimately as you go back: a stock that
+    listed in 2025 is NaN for every session before it, so an old row can sit at
+    60% while being perfectly complete. The reference is the best coverage in
+    the trailing month, which on any healthy frame is a finished session.
+
+    Returns None -- meaning change nothing -- when no session in the last
+    ``max_back`` qualifies. Walking back further would start hiding real
+    sessions from the ranking to chase a threshold, which is the failure this
+    whole area already had once.
+    """
+    if adj_close is None or adj_close.empty or adj_close.shape[1] == 0:
+        return None
+    covered = adj_close.notna().sum(axis=1).to_numpy()
+    n = len(covered)
+    if n == 0:
+        return None
+    reference = float(covered[max(0, n - 21):].max())
+    if reference <= 0:
+        return None
+    need = floor * reference
+    for back in range(0, min(max_back, n - 1) + 1):
+        if covered[n - 1 - back] >= need:
+            return n - 1 - back
+    return None
+
+
+def ranking_as_of(adj_close: pd.DataFrame) -> str:
+    """The date the ranking actually describes, as the table will be labelled.
+
+    Callers must take the as-of date from here rather than from the frame's
+    last row, or the label and the table disagree -- the snapshot would be
+    stamped with a session the engine never scored.
+    """
+    try:
+        pos = last_ranked_session(adj_close)
+        if pos is None:
+            pos = len(adj_close.index) - 1
+        return str(pd.DatetimeIndex(adj_close.index)[pos].date())
+    except Exception:
+        return ""
+
+
+def _trim_to_ranked_session(*frames):
+    """Cut every frame to the ranking date. Shape-preserving and idempotent."""
+    ref = next((f for f in frames if isinstance(f, pd.DataFrame) and not f.empty), None)
+    if ref is None:
+        return frames, None
+    pos = last_ranked_session(ref)
+    if pos is None or pos >= len(ref.index) - 1:
+        return frames, None
+    cutoff = ref.index[pos]
+    out = tuple(
+        f.loc[:cutoff] if isinstance(f, pd.DataFrame) and not f.empty else f
+        for f in frames
+    )
+    return out, cutoff
+
+
 def build_engine(
     adj_close: pd.DataFrame,
     high_prices: pd.DataFrame,
@@ -117,6 +210,19 @@ def build_engine(
     corporate_actions: list | None = None,
 ) -> MomentumEngine:
     """The expensive half: everything that does not depend on the weights."""
+    (adj_close, high_prices, low_prices, close_prices, volume_data), cutoff = (
+        _trim_to_ranked_session(
+            adj_close, high_prices, low_prices, close_prices, volume_data
+        )
+    )
+    if cutoff is not None:
+        from src.core.logger import logger
+
+        logger.info(
+            "Ranking as of %s: the newer session(s) are still filling in and "
+            "would drop every symbol the vendor has not published yet.",
+            str(cutoff)[:10],
+        )
     calc = MomentumEngine(
         adj_close,
         high_df=high_prices,
@@ -140,6 +246,10 @@ def rank_with_weights(
     high_prices: pd.DataFrame,
 ):
     """The cheap half: apply weights to z-scores already computed, then rank."""
+    # The engine was built on the trimmed frames; these two are handed straight
+    # to get_rankings, so they have to stop on the same session or the table
+    # reads its prices one row past everything it scored.
+    (close_prices, high_prices), _ = _trim_to_ranked_session(close_prices, high_prices)
     calc.weights = list(weights)
     _apply_weight_composite(calc, list(weights))
     rank_df = calc.get_rankings(
