@@ -17,10 +17,43 @@ on:
     # request rather than a guarantee -- the AsOf dates in the footer are what
     # make a missed run visible.
     - cron: '30 17 * * 1-5'
+
+    # 02:00 UTC = 07:30 IST, Tuesday to Saturday -- the morning after each
+    # trading session. With GitHub's usual ~28 minute queue delay this lands
+    # near 08:00 IST.
+    #
+    # This run does NOT make the screener fresher, and it is not meant to.
+    # Yahoo publishes an Indian session over about a day and a half, largest
+    # names first, measured on 2026-09-17:
+    #
+    #     ~10h after close (the 23:00 slot)   150/750    20%
+    #     ~15h after close (this slot)        378/750    50%
+    #     ~34h after close                    750/750   100%
+    #
+    # The ranking needs a near-complete session, so at 50% it still lands on
+    # the previous day exactly as the night run did. What this slot buys is
+    # RECOVERY: the night run is the only thing that fills the cache, and when
+    # it is delayed past its window, throttled by NSE, or fails outright, the
+    # gap currently waits a full day. heal_days re-requests 45 days of settled
+    # history on every run and deliberately bypasses the download gate, so this
+    # is a genuine second attempt rather than a no-op.
+    #
+    # Saturday is included because Friday's session is still filling in on
+    # Saturday morning. Sunday and Monday have no session behind them.
+    - cron: '0 2 * * 2-6'
   workflow_dispatch: # Allows manual 1-click execution anytime from GitHub Actions tab
 
 permissions:
   contents: write
+
+# Two scheduled slots a day now, plus manual dispatch. They must not overlap:
+# both write the same rotating price cache and both commit to main, and a
+# second runner starting mid-commit would race the rebase-and-retry push below.
+# Queue rather than cancel -- a run that is already fetching prices is worth
+# finishing, and the later one starts from its freshly saved cache.
+concurrency:
+  group: daily-sync
+  cancel-in-progress: false
 
 jobs:
   sync:

@@ -103,3 +103,96 @@ def test_the_cache_is_saved_even_when_the_sync_fails():
     spec = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
     steps = spec["jobs"]["sync"]["steps"]
     assert _cache_step(steps, "save").get("if") == "always()"
+
+
+# ── The two scheduled slots ──────────────────────────────────────────────────
+#
+# Yahoo publishes an Indian session over about a day and a half, largest names
+# first. Measured on 2026-09-17: 20% of the universe ~10h after the close, 50%
+# at ~15h, 100% at ~34h. The night slot therefore always ranks the PREVIOUS
+# session, and the morning slot exists for recovery -- a second attempt when
+# the night run is delayed, throttled or fails -- not for freshness.
+
+@pytest.fixture(scope="module")
+def spec():
+    return yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
+
+
+def _triggers(spec):
+    # PyYAML parses a bare `on:` key as the boolean True, not the string "on".
+    return spec.get("on") or spec.get(True)
+
+
+def _crons(spec):
+    return [entry["cron"] for entry in _triggers(spec)["schedule"]]
+
+
+def test_both_scheduled_slots_are_present(spec):
+    crons = _crons(spec)
+    assert "30 17 * * 1-5" in crons, "the night slot is gone"
+    assert "0 2 * * 2-6" in crons, "the morning recovery slot is gone"
+
+
+def test_the_morning_slot_covers_the_day_after_every_session(spec):
+    """Sessions run Mon-Fri, so the morning after runs Tue-SAT.
+
+    Dropping Saturday would leave Friday's session -- still only half published
+    on Saturday morning -- with no recovery attempt until Monday night.
+    """
+    dow = "0 2 * * 2-6".split()[-1]
+    assert dow == "2-6", "the morning slot no longer covers Tue-Sat"
+    crons = _crons(spec)
+    assert "0 2 * * 2-6" in crons
+
+
+def test_the_slots_land_where_they_are_meant_to_in_india():
+    """Both are written in UTC; the market they serve is not.
+
+    GitHub queues scheduled workflows on a best-effort basis and has run this
+    repo consistently ~28 minutes late, which both slots are positioned for.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    IST = timezone(timedelta(hours=5, minutes=30))
+    observed_delay = timedelta(minutes=28)
+
+    def ist_hhmm(hour, minute):
+        t = datetime(2026, 9, 22, hour, minute, tzinfo=timezone.utc) + observed_delay
+        return t.astimezone(IST).strftime("%H:%M")
+
+    assert ist_hhmm(17, 30) == "23:28", "the night slot drifted off 23:00 IST"
+    assert ist_hhmm(2, 0) == "07:58", "the morning slot drifted off 08:00 IST"
+
+
+def test_the_two_slots_cannot_run_over_each_other(spec):
+    """Both write the same rotating cache and both commit to main.
+
+    A second runner starting mid-commit would race the rebase-and-retry push.
+    Queued, not cancelled: a run already fetching prices is worth finishing.
+    """
+    conc = spec.get("concurrency")
+    assert conc, "two scheduled slots with no concurrency guard"
+    assert conc.get("cancel-in-progress") is False, (
+        "cancelling in progress would kill a run mid-fetch and lose its cache"
+    )
+
+
+def test_the_morning_run_actually_re_downloads(spec):
+    """The download gate would otherwise make it a no-op.
+
+    last_downloadable_session() is already past by 08:00 IST and the cache
+    holds that session, so the incremental path would return the cache
+    untouched. heal_days bypasses the gate deliberately, which is the only
+    reason this slot fetches anything at all.
+    """
+    from src.core.config import PRICE_HEAL_DAYS
+
+    assert PRICE_HEAL_DAYS > 0, (
+        "with heal_days at 0 the morning slot returns the cache without asking "
+        "the vendor for anything, and the second attempt is worthless"
+    )
+    src = (pathlib.Path(__file__).resolve().parents[1] / "scripts/sync_data.py").read_text()
+    assert "heal_days=0 if FORCE_FULL else PRICE_HEAL_DAYS" in src, (
+        "the daily sync no longer heals, so the morning slot cannot recover a "
+        "session the night run missed"
+    )
