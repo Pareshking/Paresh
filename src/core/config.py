@@ -90,6 +90,26 @@ SCREENER_DAYS: Final[int] = 365
 # browsing it.
 SCREENER_DELAY_S: Final[float] = 1.2
 
+# Which source the RANKING is computed from. The other is still collected and
+# still published; this only decides which one the engine scores.
+#
+# "screener" is preferred because it finishes a session. Yahoo publishes an
+# Indian session over a day and a half and sometimes stalls outright --
+# 2026-09-17 reached 378 of 750 symbols and had not moved 44 hours later, while
+# screener had all 750 the next morning.
+#
+# The cost is stated plainly in SCREENER_PRICES_FILE: no intraday high or low.
+# The engine already falls back to closes when high_df is absent, so the
+# 52-week high becomes a high of CLOSES. That is a different quantity, not a
+# worse estimate of the same one -- on the live universe it moves the
+# "within 5% of the 52-week high" gate from 22 names to 50.
+#
+# Falls back to Yahoo on its own if the screener store is missing or does not
+# reach far enough back, so a failed collection night degrades instead of
+# emptying the screener.
+RANKING_PRICE_SOURCE: Final[str] = os.getenv("UMIYA_PRICE_SOURCE", "screener").strip().lower()
+
+
 INDICES_URLS: Final[dict[str, str]] = {
     "NIFTY 50": "https://niftyindices.com/IndexConstituent/ind_nifty50list.csv",
     "NIFTY NEXT 50": "https://niftyindices.com/IndexConstituent/ind_niftynext50list.csv",
@@ -301,4 +321,11 @@ RANKINGS_SNAPSHOT_ASSET: Final[str] = "rankings.parquet"
 RANKINGS_SNAPSHOT_URL: Final[str] = os.getenv("UMIYA_RANKINGS_URL") or (
     f"https://github.com/{PRICE_SNAPSHOT_REPO}/releases/download/"
     f"{PRICE_SNAPSHOT_TAG}/{RANKINGS_SNAPSHOT_ASSET}"
+)
+
+# The screener store, published by the same release as the price snapshot.
+SCREENER_STORE_ASSET: Final[str] = "screener_prices.parquet"
+SCREENER_STORE_URL: Final[str] = os.getenv("UMIYA_SCREENER_URL") or (
+    f"https://github.com/{PRICE_SNAPSHOT_REPO}/releases/download/"
+    f"{PRICE_SNAPSHOT_TAG}/{SCREENER_STORE_ASSET}"
 )

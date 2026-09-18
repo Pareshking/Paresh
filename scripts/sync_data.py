@@ -49,6 +49,7 @@ def _precompute_rankings(symbols, universe_df, mcaps) -> None:
     from src.core.config import DEFAULT_LOOKBACK_WEIGHTS
     from src.engine.corporate_actions import adjust_ohlc, load_events
     from src.engine import pipeline
+    from src.loaders import price_source, screener_loader
     from src.loaders.price_loader import extract_ohlcv
     from src.loaders.ranking_store import contract, write_snapshot
 
@@ -64,12 +65,42 @@ def _precompute_rankings(symbols, universe_df, mcaps) -> None:
         print("Snapshot produced no usable prices; skipping.")
         return
 
+    # Which history to rank. The app asks the same module, so the two cannot
+    # drift onto different sources while the contract still matches.
+    src = price_source.from_yahoo(adj_close, close_p, high_p, low_p, vol_p)
+    if price_source.preferred() == "screener":
+        store = screener_loader.load_store()
+        if store is None or store.empty:
+            store = price_source.fetch_screener_store()
+        chosen = price_source.from_screener(store) if store is not None else None
+        if chosen is not None:
+            keep = [c for c in chosen.close.columns if c in set(symbols)]
+            chosen.adj_close = chosen.close = chosen.close[keep]
+            chosen.volume = chosen.volume.reindex(columns=keep)
+            src = chosen
+        else:
+            print("Screener history not usable yet; ranking from Yahoo.")
+    print(f"Ranking source: {src.source} "
+          f"({src.adj_close.shape[0]} sessions x {src.adj_close.shape[1]} symbols, "
+          f"52-week high on {src.high_basis})")
+    for note in src.notes:
+        print(f"  note: {note}")
+
+    # Screener already carries its corporate-action adjustments, so this is a
+    # no-op there and must stay one -- measured, 0 events applied to the
+    # screener frame against 38 to Yahoo's, because _step_is_still_present sees
+    # the step is already gone. Running it anyway costs nothing and keeps one
+    # code path.
     frames, applied = adjust_ohlc(
-        {"adj_close": adj_close, "close": close_p, "high": high_p, "low": low_p},
+        {"adj_close": src.adj_close, "close": src.close,
+         "high": src.high if src.high is not None else src.close,
+         "low": src.low if src.low is not None else src.close},
         load_events(),
     )
     adj_close, close_p = frames["adj_close"], frames["close"]
-    high_p, low_p = frames["high"], frames["low"]
+    high_p = frames["high"] if src.intraday else None
+    low_p = frames["low"] if src.intraday else None
+    vol_p = src.volume
     print(f"Corporate actions neutralised before ranking: {len(applied)}")
 
     idx_info = universe_df
@@ -82,7 +113,9 @@ def _precompute_rankings(symbols, universe_df, mcaps) -> None:
         corporate_actions=applied,
     )
     _calc, rank_df = pipeline.rank_with_weights(
-        calc, weights, idx_info, mcaps, close_p, high_p
+        calc, weights, idx_info, mcaps, close_p,
+        high_p if high_p is not None else close_p,
+        intraday=src.intraday,
     )
     if rank_df is None or rank_df.empty:
         print("Ranking came back empty; publishing nothing.")
@@ -100,6 +133,7 @@ def _precompute_rankings(symbols, universe_df, mcaps) -> None:
         pipeline_version=pipeline.PIPELINE_VERSION,
         universe=list(universe_df["Symbol"].unique()) if "Symbol" in universe_df else [],
         price_as_of=as_of,
+        price_source=src.source,
         # What was ACTUALLY neutralised, not what the log holds. This job
         # re-scans for corporate actions AFTER publishing, so the log the app
         # reads can already have grown past this table -- and the price

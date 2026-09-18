@@ -237,6 +237,16 @@ def build_engine(
     return calc
 
 
+# Columns that need a real intraday high and low. Without them true range
+# collapses to |close - prev close|, measured at 0.47x true ATR across 750
+# symbols -- so a 2xATR stop would sit 53% tighter than the same column shows
+# on Yahoo data. A stop loss silently half its intended width is more dangerous
+# than an absent one, so these are dropped rather than approximated.
+_INTRADAY_ONLY_COLUMNS: tuple[str, ...] = (
+    "ATR", "ATR %", "Stop Loss", "Chandelier Exit",
+)
+
+
 def rank_with_weights(
     calc: MomentumEngine,
     weights,
@@ -244,6 +254,7 @@ def rank_with_weights(
     market_caps: pd.Series,
     close_prices: pd.DataFrame,
     high_prices: pd.DataFrame,
+    intraday: bool = True,
 ):
     """The cheap half: apply weights to z-scores already computed, then rank."""
     # The engine was built on the trimmed frames; these two are handed straight
@@ -258,4 +269,9 @@ def rank_with_weights(
         close_prices_df=close_prices,
         high_prices_df=high_prices,
     )
+    if not intraday and rank_df is not None and not rank_df.empty:
+        drop = [c for c in _INTRADAY_ONLY_COLUMNS if c in rank_df.columns]
+        if drop:
+            rank_df = rank_df.drop(columns=drop)
+
     return calc, rank_df

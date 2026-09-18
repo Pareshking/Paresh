@@ -354,6 +354,32 @@ def data_freshness() -> list[dict]:
     if prices is not None:
         prices["coverage"] = str(facts.get("price_coverage") or "").strip() or None
 
+    # WHICH source produced the ranking, and on what the 52-week high is
+    # measured. Not a detail: on screener data the high is taken from CLOSES
+    # because no intraday high exists in that feed, which moves the
+    # "within 5% of the 52-week high" gate from 22 names to 50 on the live
+    # universe. A reader comparing this screener against a chart elsewhere has
+    # to be able to see why the two disagree.
+    source = str(facts.get("price_source") or "").strip()
+    if source and prices is not None:
+        prices["source"] = source
+        basis = str(facts.get("price_high_basis") or "").strip()
+        if basis:
+            prices["high_basis"] = basis
+        if str(facts.get("price_intraday") or "").strip() == "no":
+            items.append({
+                "label": "52W high",
+                "as_of": "closing prices",
+                "date": None,
+                "behind": 0,
+                "is_today": False,
+                # Not a fault: it is what this source can measure. Amber here
+                # would read as breakage and train the reader to ignore it.
+                "stale": False,
+                "phrase": " · no intraday high in this feed",
+                "source": source,
+            })
+
     deferred_day = str(facts.get("price_deferred_as_of") or "").strip()
     if deferred_day:
         try:

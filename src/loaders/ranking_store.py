@@ -98,10 +98,19 @@ def contract(
     universe: list[str] | None = None,
     price_as_of: str | None = None,
     applied_actions: list[dict[str, Any]] | None = None,
+    price_source: str | None = None,
 ) -> dict[str, Any]:
     """Everything that must match before a precomputed table may be used."""
     return {
         "actions_digest": actions_digest(applied_actions),
+        # WHICH history produced this table. Two sources now exist and they are
+        # not interchangeable: screener has no intraday high, so its 52-week
+        # high is measured on closes and its ATR columns are absent. A table
+        # built from one and served to an app configured for the other would
+        # differ in exactly those columns while every other field here still
+        # matched -- undetectable downstream, which is why it is a contract
+        # term rather than a note.
+        "price_source": str(price_source or "").strip().lower(),
         "price_fingerprint": price_fingerprint,
         "symbols_fingerprint": symbols_fingerprint,
         # Rounded, because a float round-trip through JSON must not be the
@@ -123,8 +132,16 @@ def matches(published: dict[str, Any] | None, expected: dict[str, Any]) -> tuple
     """
     if not published:
         return False, "no contract recorded"
+    # price_source is compared like the rest. A table built from Yahoo and one
+    # built from screener differ in the 52-week high and in whether the ATR
+    # columns exist at all, while every other field here can match exactly.
+    #
+    # A snapshot written before this field existed carries "", so it will not
+    # satisfy a configured source -- the precompute misses once and the app
+    # computes instead, which is the safe direction and self-healing on the
+    # next nightly write.
     for field in ("pipeline_version", "symbols_fingerprint", "price_fingerprint",
-                  "actions_digest"):
+                  "actions_digest", "price_source"):
         if str(published.get(field, "")) != str(expected[field]):
             return False, f"{field} differs"
     if [round(float(w), 6) for w in published.get("weights", [])] != expected["weights"]:

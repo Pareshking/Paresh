@@ -236,6 +236,7 @@ def _precomputed_ranking(
     weights: tuple[float, ...],
     universe: list[str],
     applied_actions: list | None = None,
+    price_source: str | None = None,
 ) -> pd.DataFrame | None:
     """The nightly job's ranking, but only if it describes exactly this state.
 
@@ -259,6 +260,7 @@ def _precomputed_ranking(
 
     expected = ranking_store.contract(
         price_fingerprint=price_hash,
+        price_source=price_source,
         symbols_fingerprint=sym_key,
         weights=weights,
         pipeline_version=pipeline.PIPELINE_VERSION,
@@ -284,6 +286,40 @@ def _precomputed_ranking(
         len(frame), str((published or {}).get("price_as_of", "?")),
     )
     return frame
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def _fetch_screener_store(_k: str):
+    """The published screener history. Cached: it is ~2.5 MB over the wire."""
+    from src.loaders import price_source as _ps
+
+    return _ps.fetch_screener_store()
+
+
+def _resolve_price_source(price_hash, sym_key, adj_close, close_p, high_p, low_p, vol_p, symbols):
+    """Pick the history the engine scores, falling back rather than failing.
+
+    Screener finishes a session where Yahoo can stall for days, but it carries
+    no intraday high, so the 52-week high is measured on closes and the ATR
+    columns are dropped rather than computed at half their true width. A
+    screener store that cannot reach the 12-month lookback is refused here, so
+    the table never ships with an empty 12M column.
+    """
+    from src.loaders import price_source as _ps
+
+    fallback = _ps.from_yahoo(adj_close, close_p, high_p, low_p, vol_p)
+    if _ps.preferred() != "screener":
+        return fallback
+    store = _fetch_screener_store(price_hash)
+    chosen = _ps.from_screener(store) if store is not None else None
+    if chosen is None:
+        return fallback
+    keep = [c for c in chosen.close.columns if c in set(symbols)]
+    if not keep:
+        return fallback
+    chosen.adj_close = chosen.close = chosen.close[keep]
+    chosen.volume = chosen.volume.reindex(columns=keep)
+    return chosen
 
 
 @st.cache_data(show_spinner=False, ttl=86400)
@@ -329,13 +365,15 @@ def run_momentum_pipeline(
     _market_caps: pd.Series,
     _close_prices: pd.DataFrame,
     _high_prices: pd.DataFrame,
+    intraday: bool = True,
 ):
     # Cheap: weighted sum of the pre-computed z-scores + final ranking table.
     # Only re-runs when weights change; price/universe changes invalidate
     # base_hash, which also misses _run_engine_base first.
     metrics.incr("memo_miss_quant_engine")
     return pipeline.rank_with_weights(
-        _calc, weights, _index_info, _market_caps, _close_prices, _high_prices
+        _calc, weights, _index_info, _market_caps, _close_prices, _high_prices,
+        intraday=intraday,
     )
 
 
@@ -416,13 +454,30 @@ def load_all_data(indices: list[str]):
         # 52-week high -- a stock permanently "67% below its high" on a split
         # that cost its holders nothing. Volume is left alone on purpose; see
         # adjust_ohlc.
+        # Which history to rank. price_source decides for BOTH the app and the
+        # nightly precompute, so the two cannot end up scoring different data
+        # while the ranking contract still matches -- a wrong answer served
+        # fast, which nothing downstream could detect.
+        with metrics.stage("price_source"):
+            _src = _resolve_price_source(
+                p_hash_raw, sym_key, adj_close, close_p, high_p, low_p, vol_p, symbols
+            )
+            adj_close, close_p = _src.adj_close, _src.close
+            high_p, low_p, vol_p = _src.high, _src.low, _src.volume
+            metrics.note("price_source", _src.source)
+            metrics.note("price_high_basis", _src.high_basis)
+            metrics.note("price_intraday", "yes" if _src.intraday else "no")
+
         with metrics.stage("corporate_actions"):
             _adj, _ca_applied = _adjust_for_corporate_actions(
                 p_hash_raw,
-                {"adj_close": adj_close, "close": close_p, "high": high_p, "low": low_p},
+                {"adj_close": adj_close, "close": close_p,
+                 "high": high_p if high_p is not None else close_p,
+                 "low": low_p if low_p is not None else close_p},
             )
             adj_close, close_p = _adj["adj_close"], _adj["close"]
-            high_p, low_p = _adj["high"], _adj["low"]
+            if _src.intraday:
+                high_p, low_p = _adj["high"], _adj["low"]
 
         with metrics.stage("market_caps"):
             mcaps = _fut_mcaps.result()
@@ -459,7 +514,8 @@ def load_all_data(indices: list[str]):
                 idx_info,
                 mcaps,
                 close_p,
-                high_p,
+                high_p if high_p is not None else close_p,
+                intraday=_src.intraday,
             )
 
     # The precomputed table, if the nightly job ranked exactly this frame under
@@ -472,6 +528,7 @@ def load_all_data(indices: list[str]):
             _fetched_ranking, p_hash, _symbols_hash(symbols), weights,
             sorted(idx_info["Symbol"].unique().tolist()) if "Symbol" in idx_info else [],
             _ca_applied,
+            price_source=_src.source,
         )
 
     if rank_df is None:
