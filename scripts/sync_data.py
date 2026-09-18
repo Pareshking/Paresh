@@ -360,9 +360,24 @@ def run_daily_sync() -> None:
         import pandas as pd
 
         from src.core.config import PRICE_HISTORY_PERIOD, PRICES_FILE
+        from src.loaders.price_loader import _read_local_price_cache
 
         if os.path.exists(PRICES_FILE):
-            frame = pd.read_parquet(PRICES_FILE)
+            # Through the SAME guards the app reads with, not a bare
+            # read_parquet. Everything published here is consumed by something
+            # that does not re-check: the app's cold start, the monthly
+            # track-record freeze, and _precompute_rankings, which reads the
+            # snapshot file straight back off disk.
+            #
+            # A bare read shipped four non-sessions -- 2026-01-15, 2026-05-01,
+            # 2026-05-28, 2026-06-26, every priced symbol flat at zero volume,
+            # two of them at 100% vendor coverage. The app stripped them on
+            # read and the precomputed ranking did not, so the two would have
+            # ranked different frames while the contract matched: a wrong
+            # answer served fast, which is worse than no artifact at all.
+            frame = _read_local_price_cache()
+            if frame is None or frame.empty:
+                frame = pd.read_parquet(PRICES_FILE)
             compact = frame.astype("float32", errors="ignore")
             here = os.path.dirname(PRICES_FILE)
 

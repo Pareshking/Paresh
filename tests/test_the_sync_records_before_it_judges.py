@@ -100,3 +100,50 @@ def test_prices_are_never_read_before_they_are_fetched():
     assert stores, "prices_df is no longer assigned in run_daily_sync"
     early = [ln for ln in loads if ln < min(stores)]
     assert not early, f"prices_df is read at {early} before it is assigned"
+
+
+# ── What gets PUBLISHED must pass the same guards the app reads with ─────────
+#
+# Everything the publish step writes is consumed by something that does not
+# re-check it: the app's cold-start snapshot, the archive the monthly freeze
+# reads, and _precompute_rankings, which reads the snapshot file straight back
+# off disk and ranks it.
+#
+# A bare read_parquet here shipped four non-sessions -- 2026-01-15, 2026-05-01,
+# 2026-05-28 and 2026-06-26, every priced symbol flat at zero volume, two of
+# them at 100% vendor coverage. The app strips them on read and the precompute
+# did not, so the two would rank different frames while every field of the
+# contract still matched. A wrong answer served fast is worse than no artifact.
+
+def test_the_published_snapshot_is_read_through_the_guards():
+    src = open(SCRIPT, encoding="utf-8").read()
+    assert "_read_local_price_cache()" in src, (
+        "the publish step no longer reads through the price-cache guards, so "
+        "non-sessions reach the published snapshot and the precomputed ranking"
+    )
+
+
+def test_the_publish_step_does_not_bypass_them_with_a_bare_read():
+    """A fallback is fine; reaching for it first is not."""
+    import ast
+
+    tree = ast.parse(open(SCRIPT, encoding="utf-8").read())
+    fn = next(
+        n for n in ast.walk(tree)
+        if isinstance(n, ast.FunctionDef) and n.name == "run_daily_sync"
+    )
+    guarded, bare = [], []
+    for n in ast.walk(fn):
+        if isinstance(n, ast.Call):
+            f = n.func
+            name = f.attr if isinstance(f, ast.Attribute) else getattr(f, "id", None)
+            if name == "_read_local_price_cache":
+                guarded.append(n.lineno)
+            elif name == "read_parquet":
+                bare.append(n.lineno)
+    assert guarded, "the guarded reader is gone from the publish step"
+    for b in bare:
+        assert any(g < b for g in guarded), (
+            f"a bare read_parquet at line {b} runs before any guarded read; "
+            "the published artifact would carry whatever is on disk"
+        )
