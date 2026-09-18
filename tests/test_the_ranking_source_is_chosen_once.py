@@ -521,3 +521,48 @@ def test_the_backtest_says_when_it_used_a_different_history():
         "the backtest can run on a different price history than the screener "
         "ranks on and says nothing about it"
     )
+
+
+# ── Open must travel with close ──────────────────────────────────────────────
+#
+# open_p is extracted once from the Yahoo frame and was never reassigned, so a
+# screener-ranked app drew candlesticks with a Yahoo open against a screener
+# close: different lengths, and different corporate-action bases. On a demerged
+# name that body is fiction -- HEG sits at 728 in one and 267 in the other on
+# the same session.
+
+def test_open_prices_are_dropped_when_the_source_has_none():
+    src = open("app.py", encoding="utf-8").read()
+    start = src.index("_src = _resolve_price_source(")
+    window = src[start:start + 1600]
+    assert "open_p = None" in window, (
+        "open survives the source switch while close is replaced, so the "
+        "candlestick mixes two price series"
+    )
+    assert "if not _src.intraday:" in window
+
+
+def test_a_bar_with_no_open_degrades_to_a_flat_close():
+    """None is safe precisely because the chart handles it honestly."""
+    import inspect
+    from src.ui import lightweight_chart
+
+    src = inspect.getsource(lightweight_chart._candles)
+    assert "float(cv)" in src and "pd.notna(ov)" in src, (
+        "the chart no longer substitutes the close for a missing open, so "
+        "passing None would drop or corrupt the bar instead of flattening it"
+    )
+
+
+def test_every_atr_tile_reads_defensively():
+    """The ATR columns are absent on a close-only source; the tiles must not
+    index them directly the way portfolio_view once did."""
+    import re
+
+    src = open("src/ui/views/stock_view.py", encoding="utf-8").read()
+    for col in ("ATR", "Stop Loss", "Chand Exit"):
+        direct = re.search(rf'row\[\s*["\']{re.escape(col)}["\']\s*\]', src)
+        assert direct is None, (
+            f"stock_view indexes {col!r} directly; it raises whenever the "
+            "ranking came from a source with no intraday high"
+        )

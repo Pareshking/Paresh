@@ -445,6 +445,18 @@ def load_all_data(indices: list[str]):
             )
             adj_close, close_p = _src.adj_close, _src.close
             high_p, low_p, vol_p = _src.high, _src.low, _src.volume
+            if not _src.intraday:
+                # OPEN MUST TRAVEL WITH CLOSE. It is extracted once from the
+                # Yahoo frame and was never reassigned, so a screener-ranked app
+                # drew candles with a Yahoo open against a screener close --
+                # different lengths and, worse, different corporate-action
+                # bases. On a demerged name that is a fictional body: HEG sits
+                # at 728 in one and 267 in the other on the same session.
+                #
+                # None rather than a substitute. The chart degrades a bar with
+                # no open to a flat close, which is exactly the honest picture
+                # for a close-only feed.
+                open_p = None
             metrics.note("price_source", _src.source)
             metrics.note("price_high_basis", _src.high_basis)
             metrics.note("price_intraday", "yes" if _src.intraday else "no")
