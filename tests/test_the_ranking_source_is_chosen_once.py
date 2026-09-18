@@ -465,3 +465,59 @@ def test_the_ribbon_date_matches_the_frame_the_engine_ranked():
         "anything"
     )
     assert pipeline.ranking_as_of(screener) == str(idx[-1].date())
+
+
+# ── A ranking wants freshness; a backtest wants depth ───────────────────────
+#
+# Pointing the ranking at screener silently emptied the Backtest and Track
+# Record pages. Both read the same adj_close the engine ranks on, and screener
+# serves about 12 months against the ~18 a 12-month formation window plus a
+# 6-month reported period needs. The screener went on working; two whole pages
+# stopped, with only a warning that read like a data outage.
+
+def test_the_app_keeps_a_deep_frame_separate_from_the_ranking_frame():
+    src = open("app.py", encoding="utf-8").read()
+    assert '"deep_adj_close"' in src, (
+        "the app exposes only the ranking frame, so any page needing more "
+        "history than a ranking does is silently starved"
+    )
+
+
+def test_the_backtest_and_track_record_read_the_deep_frame():
+    src = open("app.py", encoding="utf-8").read()
+    for page in ("_page_backtest", "_page_track_record"):
+        # From the page function itself, not the import line that shares the name.
+        start = src.index(f"def {page}(")
+        window = src[start:start + 700]
+        assert "adj_close=deep_adj_close" in window, (
+            f"{page} still receives the ranking frame, which may be a year "
+            "shorter than the study it is asked to run"
+        )
+
+
+def test_the_deep_frame_falls_back_rather_than_vanishing():
+    """If it is ever absent, the pages must degrade, not raise."""
+    src = open("app.py", encoding="utf-8").read()
+    assert 'data.get("deep_adj_close")' in src
+    assert "deep_adj_close = adj_close" in src, (
+        "no fallback: a missing deep frame would take the pages down instead "
+        "of leaving them where they were"
+    )
+
+
+def test_eighteen_months_is_what_the_backtest_actually_needs():
+    """Pin the arithmetic the split is based on: 12 formation + 6 reported."""
+    from src.ui.views.backtest_view import DEFAULT_BACKTEST_MONTHS
+
+    assert DEFAULT_BACKTEST_MONTHS == 6
+    assert 12 + DEFAULT_BACKTEST_MONTHS == 18
+
+
+def test_the_backtest_says_when_it_used_a_different_history():
+    """Two sources with different adjustment bases must not be conflated in
+    silence -- a demerged name sits at a different level in each."""
+    src = open("src/ui/views/backtest_view.py", encoding="utf-8").read()
+    assert "price_source" in src and "does not yet reach far enough" in src, (
+        "the backtest can run on a different price history than the screener "
+        "ranks on and says nothing about it"
+    )

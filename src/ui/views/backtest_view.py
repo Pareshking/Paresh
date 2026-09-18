@@ -126,6 +126,26 @@ def _backtest_body(
         )
         return
 
+    # The backtest runs on the DEEPEST history available, which is not always
+    # the history the live screener ranks on -- a ranking wants the freshest
+    # complete session, a backtest wants years. When the two differ, say so:
+    # they do not share a corporate-action adjustment basis, so a name with a
+    # demerger can sit at a different level in each, and a reader comparing a
+    # backtest holding against today's table deserves to know why.
+    try:
+        from src.core import startup_metrics as _m
+        from src.loaders.price_source import display_name as _display
+
+        _ranked_on = str(_m.snapshot().get("facts", {}).get("price_source") or "")
+        if _ranked_on and _ranked_on != "yahoo":
+            st.caption(
+                f"Backtested on the long price history. The live screener ranks "
+                f"on {_display(_ranked_on)}, which does not yet reach far enough "
+                f"back for a {DEFAULT_BACKTEST_MONTHS}-month study."
+            )
+    except Exception:
+        pass
+
     stats = bt_res["stats"]
 
     # Say which window these numbers describe. The backtest reports the last

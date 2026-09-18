@@ -429,6 +429,17 @@ def load_all_data(indices: list[str]):
         # while the ranking contract still matches -- a wrong answer served
         # fast, which nothing downstream could detect.
         with metrics.stage("price_source"):
+            # Keep the Yahoo frame before the switch. The RANKING wants the
+            # freshest complete session; the BACKTEST and the track record want
+            # DEPTH, and those are different requirements from the same app.
+            #
+            # Screener serves about a year and grows one session a night, which
+            # is ample to rank on and nowhere near the ~18 months a 12-month
+            # formation window plus a 6-month reported period needs. Handing
+            # them the ranking frame silently emptied both pages.
+            _deep_adj_close, _deep_close = adj_close, close_p
+            _deep_high, _deep_low = high_p, low_p
+
             _src = _resolve_price_source(
                 p_hash_raw, sym_key, adj_close, close_p, high_p, low_p, vol_p, symbols
             )
@@ -544,6 +555,11 @@ def load_all_data(indices: list[str]):
         "calc": calc,
         "rank_df": rank_df,
         "adj_close": adj_close,
+        # The longest continuous history available, whatever the ranking is
+        # computed from. Only the backtest and the track record read this, and
+        # only because they need more history than a ranking does.
+        "deep_adj_close": _deep_adj_close,
+        "deep_close_prices": _deep_close,
         "close_prices": close_p,
         "high_prices": high_p,
         "low_prices": low_p,
@@ -594,6 +610,9 @@ calc = data["calc"]
 get_calc = data["get_calc"]
 rank_df = data["rank_df"]
 adj_close = data["adj_close"]
+deep_adj_close = data.get("deep_adj_close")
+if deep_adj_close is None or deep_adj_close.empty:
+    deep_adj_close = adj_close
 high_prices = data["high_prices"]
 low_prices = data["low_prices"]
 volume_data = data["volume_data"]
@@ -721,7 +740,9 @@ def _page_breadth() -> None:
 def _page_backtest() -> None:
     render_backtest_view(
         rank_df=rank_df,
-        adj_close=adj_close,
+        # Depth, not freshness: a 12-month formation window before a 6-month
+        # reported period needs ~18 months of continuous daily data.
+        adj_close=deep_adj_close,
         stock_cap=stock_cap,
         sector_cap=sector_cap,
         weights=weights,
@@ -733,7 +754,7 @@ def _page_track_record() -> None:
     # configuration. fetch_benchmark_history is cached, so this is the same
     # round trip the Backtest page already made.
     render_track_record_view(
-        adj_close=adj_close,
+        adj_close=deep_adj_close,
         benchmark_close=fetch_benchmark_history(period="5y"),
     )
 
