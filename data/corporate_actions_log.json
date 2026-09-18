@@ -2,6 +2,105 @@
   "schema_version": 1,
   "threshold": 0.35,
   "events": {
+    "2017-02-27:J&KBANK": {
+      "date": "2017-02-27",
+      "symbol": "J&KBANK",
+      "move": -0.537556,
+      "ratio": 0.462444,
+      "prev_close": 150.8949,
+      "close": 69.7805,
+      "looks_like": "unmatched \u2014 possible demerger or spin-off",
+      "kind": "unclassified",
+      "first_seen": "2026-09-18"
+    },
+    "2017-04-17:EMBDL": {
+      "date": "2017-04-17",
+      "symbol": "EMBDL",
+      "move": 0.400094,
+      "ratio": 1.400094,
+      "prev_close": 105.85,
+      "close": 148.2,
+      "looks_like": "unmatched \u2014 possible demerger or spin-off",
+      "kind": "unclassified",
+      "first_seen": "2026-09-18"
+    },
+    "2017-07-03:CDSL": {
+      "date": "2017-07-03",
+      "symbol": "CDSL",
+      "move": -0.499236,
+      "ratio": 0.500764,
+      "prev_close": 236.2626,
+      "close": 118.3118,
+      "looks_like": "1:2 split or 1:1 bonus",
+      "kind": "split/bonus",
+      "first_seen": "2026-09-18"
+    },
+    "2017-09-06:AHLUCONT": {
+      "date": "2017-09-06",
+      "symbol": "AHLUCONT",
+      "move": 1.688666,
+      "ratio": 2.688666,
+      "prev_close": 104.1114,
+      "close": 279.9206,
+      "looks_like": "unmatched \u2014 possible demerger or spin-off",
+      "kind": "unclassified",
+      "first_seen": "2026-09-18"
+    },
+    "2017-10-25:CANBK": {
+      "date": "2017-10-25",
+      "symbol": "CANBK",
+      "move": 0.38726,
+      "ratio": 1.38726,
+      "prev_close": 53.6766,
+      "close": 74.4634,
+      "looks_like": "unmatched \u2014 possible demerger or spin-off",
+      "kind": "unclassified",
+      "first_seen": "2026-09-18"
+    },
+    "2017-10-25:PNB": {
+      "date": "2017-10-25",
+      "symbol": "PNB",
+      "move": 0.462012,
+      "ratio": 1.462012,
+      "prev_close": 124.6059,
+      "close": 182.1754,
+      "looks_like": "unmatched \u2014 possible demerger or spin-off",
+      "kind": "unclassified",
+      "first_seen": "2026-09-18"
+    },
+    "2018-05-04:PCJEWELLER": {
+      "date": "2018-05-04",
+      "symbol": "PCJEWELLER",
+      "move": 0.43804,
+      "ratio": 1.43804,
+      "prev_close": 12.0702,
+      "close": 17.3575,
+      "looks_like": "unmatched \u2014 possible demerger or spin-off",
+      "kind": "unclassified",
+      "first_seen": "2026-09-18"
+    },
+    "2018-05-07:PCJEWELLER": {
+      "date": "2018-05-07",
+      "symbol": "PCJEWELLER",
+      "move": 0.375608,
+      "ratio": 1.375608,
+      "prev_close": 17.3575,
+      "close": 23.8771,
+      "looks_like": "unmatched \u2014 possible demerger or spin-off",
+      "kind": "unclassified",
+      "first_seen": "2026-09-18"
+    },
+    "2018-09-28:CCAVENUE": {
+      "date": "2018-09-28",
+      "symbol": "CCAVENUE",
+      "move": -0.708261,
+      "ratio": 0.291739,
+      "prev_close": 41.4495,
+      "close": 12.0925,
+      "looks_like": "unmatched \u2014 possible demerger or spin-off",
+      "kind": "unclassified",
+      "first_seen": "2026-09-18"
+    },
     "2019-10-11:ABREL": {
       "date": "2019-10-11",
       "symbol": "ABREL",
