@@ -121,3 +121,49 @@ jobs:
       # corporate_actions.adjust_prices re-verifies against the prices anyway.
       - name: Check for corporate actions
         run: python scripts/check_corporate_actions.py || true
+
+      # WITHOUT THIS THE RUN LEARNS AND FORGETS.
+      #
+      # A full refresh re-downloads the entire archive, which re-introduces the
+      # zero-volume non-sessions Yahoo still serves for dates long past. The
+      # detector finds them and record_closed writes them into
+      # data/nse_trading_days.json -- in the runner's working copy, which was
+      # then discarded when the job ended.
+      #
+      # That is why only 2026-06-26 was ever learned automatically: it falls
+      # inside the daily job's 90-day heal window, so the DAILY re-introduced
+      # and committed it. 2026-01-15, 2026-05-01 and 2026-05-28 are older than
+      # any heal window, so only this job ever sees them, and only this job can
+      # record them.
+      #
+      # The corporate-action log survived the same gap by accident -- a later
+      # daily run re-scanned the deepened archive from cache and committed what
+      # it found. The calendar has no such second chance.
+      - name: Commit what this run learned
+        if: always()
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add -A data/
+          if git diff --staged --quiet; then
+            echo "Nothing new learned."
+            exit 0
+          fi
+          git diff --staged --stat
+          git commit -m "chore(data): weekly full sync findings [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              echo "Pushed on attempt $attempt."
+              exit 0
+            fi
+            echo "Push rejected on attempt $attempt; rebasing onto origin/main."
+            git fetch origin main
+            git rebase origin/main || {
+              git checkout --ours -- data/ 2>/dev/null || true
+              git add -A data/
+              git rebase --continue || git rebase --abort
+            }
+            sleep $((attempt * 3))
+          done
+          echo "::error::Could not push the weekly findings after 5 attempts."
+          exit 1

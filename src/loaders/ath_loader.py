@@ -17,6 +17,7 @@ loader says so rather than letting a two-year high be labelled as one.
 from __future__ import annotations
 
 import os
+import threading
 import time
 
 import pandas as pd
@@ -26,13 +27,62 @@ from src.core.config import REPO_ATH_FILE
 from src.core.logger import logger
 
 
+# One engine build reads this file three times -- ath_series once and
+# ath_date_series twice, at each of the two ATH sites in momentum.py -- and
+# every read re-parsed the same 750-row CSV from disk.
+#
+# Keyed on the file's identity rather than just its path, so the daily sync
+# rewriting the snapshot invalidates the entry instead of serving yesterday's
+# highs for the life of the process. Lock because Streamlit serves concurrent
+# sessions from one process; the worst a race costs is a duplicate read, but
+# the dict must not be mutated from two threads at once.
+_SNAPSHOT_CACHE: dict[tuple, pd.DataFrame] = {}
+_SNAPSHOT_LOCK = threading.Lock()
+
+
+def _file_identity(target: str) -> tuple:
+    """(path, mtime, size), or (path,) when the file is not there."""
+    try:
+        st = os.stat(target)
+        return (target, st.st_mtime_ns, st.st_size)
+    except OSError:
+        return (target,)
+
+
+def clear_snapshot_cache() -> None:
+    """For tests, and for any caller that rewrites the file in-process."""
+    with _SNAPSHOT_LOCK:
+        _SNAPSHOT_CACHE.clear()
+
+
 def load_ath_snapshot(path: str | None = None) -> pd.DataFrame:
     """Per-symbol all-time highs, or an empty frame when unavailable.
 
     Columns: Symbol, ATH, ATHDate, AsOf. Never raises -- a missing or malformed
     snapshot degrades to the in-memory fallback rather than taking the app down.
+
+    Memoised on the file's identity. Returns a COPY: callers set an index on
+    the result, and handing out the cached frame would let one caller's
+    set_index reshape what every later caller receives.
     """
     target = path or REPO_ATH_FILE
+    key = _file_identity(target)
+    with _SNAPSHOT_LOCK:
+        hit = _SNAPSHOT_CACHE.get(key)
+    if hit is not None:
+        metrics.incr("ath_snapshot_cache_hit")
+        return hit.copy()
+    frame = _read_ath_snapshot(target)
+    with _SNAPSHOT_LOCK:
+        _SNAPSHOT_CACHE[key] = frame
+        # The path only ever has one live identity; drop stale generations so
+        # a long-running process does not accumulate old snapshots.
+        for stale in [k for k in _SNAPSHOT_CACHE if k[0] == target and k != key]:
+            del _SNAPSHOT_CACHE[stale]
+    return frame.copy()
+
+
+def _read_ath_snapshot(target: str) -> pd.DataFrame:
     if not os.path.exists(target):
         metrics.note("ath_path", "absent")
         return pd.DataFrame(columns=["Symbol", "ATH", "ATHDate", "AsOf"])

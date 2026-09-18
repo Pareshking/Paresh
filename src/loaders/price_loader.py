@@ -208,8 +208,34 @@ def _drop_phantom_sessions(df: pd.DataFrame) -> pd.DataFrame:
     """
     if df is None or df.empty or df.shape[1] < 50:
         return df
-    coverage = df.notna().sum(axis=1) / float(df.shape[1])
-    phantom = (coverage < MIN_SESSION_COVERAGE).to_numpy()
+
+    # Coverage is measured against the symbols that EXISTED on that date, not
+    # against today's universe. A stock that listed in 2023 is legitimately NaN
+    # for every session before it, so judging an old row against all 750 names
+    # makes deep history look like an outage and deletes it.
+    #
+    # That is not hypothetical: it cost three years. The archive rebuilt from a
+    # ten-year download arrived with 2476 sessions and was cut to 1731, and the
+    # oldest surviving row sat at 70.1% -- one tick above the floor. The cut
+    # date, 2019-09-20, was simply where 70% of today's constituents happened
+    # to have listed. Nothing was wrong with the prices.
+    #
+    # A symbol counts as alive from its first real print onward. Before that it
+    # contributes to neither the numerator nor the denominator, so a complete
+    # 2016 session reads 100% on the 520 names that existed, exactly as a
+    # complete 2026 session reads 100% on 750.
+    values = df.notna().to_numpy()
+    alive = np.logical_or.accumulate(values, axis=0)
+    alive_count = alive.sum(axis=1)
+    covered = values.sum(axis=1)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        ratio = np.where(alive_count > 0, covered / np.maximum(alive_count, 1), 1.0)
+    coverage = pd.Series(ratio, index=df.index)
+
+    # Below this there are too few listed names for the ratio to mean anything,
+    # and a handful of blanks would read as an exchange-wide outage.
+    _MIN_ALIVE = 50
+    phantom = ((coverage < MIN_SESSION_COVERAGE) & (alive_count >= _MIN_ALIVE)).to_numpy()
     dates = pd.DatetimeIndex(df.index)
     shut = np.zeros(len(dates), dtype=bool)
 

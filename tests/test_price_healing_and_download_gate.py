@@ -688,7 +688,36 @@ def test_a_closure_and_a_thin_real_session_are_handled_in_one_pass(monkeypatch):
 
 
 def test_an_empty_closure_record_changes_nothing(monkeypatch):
-    """With nothing recorded closed, the floor behaves exactly as before."""
+    """With nothing recorded closed, the floor behaves exactly as before.
+
+    The frame opens with a FULL session on purpose. Coverage is measured
+    against the symbols known to have listed, and on a frame's very first row
+    "missing" and "not listed yet" are the same observation -- so a thin
+    leading row is kept rather than deleted. In production 2026-09-14 has
+    years of history behind it, which is what this now reproduces.
+    """
+    from src.loaders import price_loader
+    import src.loaders.trading_days as td
+
+    monkeypatch.setattr(td, "load_confirmed", lambda path=None: set())
+    monkeypatch.setattr(td, "load_closed", lambda path=None: set())
+
+    idx = pd.to_datetime(["2026-09-11", "2026-09-14", "2026-09-15"])
+    frame = pd.DataFrame([_session(750), _session(460), _session(750)], index=idx)
+    out = price_loader._drop_phantom_sessions(frame)
+    assert pd.Timestamp("2026-09-14") not in out.index   # 61%, below the floor
+    assert pd.Timestamp("2026-09-15") in out.index
+
+
+def test_a_thin_leading_row_is_kept_because_it_is_ambiguous(monkeypatch):
+    """The one case the listed-symbol rule cannot resolve, made explicit.
+
+    On a frame's first row there is no earlier print to say whether a blank
+    means "not listed yet" or "the vendor missed it". Keeping it is the safe
+    direction and matches the rest of this module: an unreadable signal never
+    justifies deleting history. A real archive begins ten years back, so this
+    only ever affects rows nothing is ranked on.
+    """
     from src.loaders import price_loader
     import src.loaders.trading_days as td
 
@@ -698,8 +727,10 @@ def test_an_empty_closure_record_changes_nothing(monkeypatch):
     idx = pd.to_datetime(["2026-09-14", "2026-09-15"])
     frame = pd.DataFrame([_session(460), _session(750)], index=idx)
     out = price_loader._drop_phantom_sessions(frame)
-    assert pd.Timestamp("2026-09-14") not in out.index   # 61%, below the floor
-    assert pd.Timestamp("2026-09-15") in out.index
+    assert pd.Timestamp("2026-09-14") in out.index, (
+        "a thin FIRST row was deleted, though nothing in the frame can say "
+        "whether those symbols had listed"
+    )
 
 
 def test_nse_confirmation_outranks_a_closure_claim(tmp_path):
@@ -968,3 +999,95 @@ def test_close_and_volume_alone_are_enough(monkeypatch):
         "2026-09-15": (750, "traded"),
     }).drop(columns=["Open", "High", "Low"], level=1)
     assert pd.Timestamp("2026-09-14") not in _drop_phantom_sessions(frame).index
+
+
+# ── Old history is sparse because stocks had not listed, not because of gaps ──
+#
+# Coverage judged against TODAY's universe makes deep history look like an
+# outage. It cost three years: a ten-year rebuild arrived with 2476 sessions
+# and was cut to 1731, and the oldest surviving row sat at 70.1% -- one tick
+# above the floor. The cut date, 2019-09-20, was simply where 70% of today's
+# constituents happened to have listed. Nothing was wrong with those prices.
+
+def _aged_frame(n_old=35, n_young=30, rows=600, young_from=500):
+    """Old names with full history, young ones listing partway through."""
+    idx = pd.bdate_range("2020-01-01", periods=rows)
+    cols = {}
+    for i in range(n_old):
+        cols[f"OLD{i}"] = np.full(rows, 100.0)
+    for i in range(n_young):
+        v = np.full(rows, 100.0)
+        v[:young_from] = np.nan
+        cols[f"YOUNG{i}"] = v
+    return pd.DataFrame(cols, index=idx)
+
+
+def test_history_before_a_stock_listed_is_not_an_outage(monkeypatch):
+    from src.loaders import price_loader
+    import src.loaders.trading_days as td
+
+    monkeypatch.setattr(td, "load_confirmed", lambda path=None: set())
+    monkeypatch.setattr(td, "load_closed", lambda path=None: set())
+
+    frame = _aged_frame()
+    against_universe = frame.notna().sum(axis=1).iloc[0] / frame.shape[1]
+    assert against_universe < price_loader.MIN_SESSION_COVERAGE, (
+        "fixture is wrong: the old rows must fail an absolute floor"
+    )
+    out = price_loader._drop_phantom_sessions(frame)
+    assert len(out) == len(frame), (
+        f"{len(frame) - len(out)} sessions deleted for containing stocks that "
+        "had not listed yet"
+    )
+
+
+def test_a_genuinely_thin_session_is_still_dropped(monkeypatch):
+    """The fix must not disarm the guard for the case it exists for."""
+    from src.loaders import price_loader
+    import src.loaders.trading_days as td
+
+    monkeypatch.setattr(td, "load_confirmed", lambda path=None: set())
+    monkeypatch.setattr(td, "load_closed", lambda path=None: set())
+
+    frame = _aged_frame()
+    # blank 80% of the names that were ALIVE on the final session
+    last = frame.index[-1]
+    alive = [c for c in frame.columns if frame[c].notna().any()]
+    frame.loc[last, alive[: int(len(alive) * 0.8)]] = np.nan
+    out = price_loader._drop_phantom_sessions(frame)
+    assert last not in out.index, "a session where 80% of listed names went dark survived"
+
+
+def test_an_empty_session_is_dropped_however_old_the_frame(monkeypatch):
+    """2026-09-18 arrived from Yahoo with every symbol NaN."""
+    from src.loaders import price_loader
+    import src.loaders.trading_days as td
+
+    monkeypatch.setattr(td, "load_confirmed", lambda path=None: set())
+    monkeypatch.setattr(td, "load_closed", lambda path=None: set())
+
+    frame = _aged_frame()
+    last = frame.index[-1]
+    frame.loc[last, :] = np.nan
+    assert last not in price_loader._drop_phantom_sessions(frame).index
+
+
+def test_the_very_start_of_a_frame_is_not_judged_on_a_handful_of_names(monkeypatch):
+    """With only a few names listed the ratio means nothing, and a couple of
+    blanks would read as an exchange-wide outage."""
+    from src.loaders import price_loader
+    import src.loaders.trading_days as td
+
+    monkeypatch.setattr(td, "load_confirmed", lambda path=None: set())
+    monkeypatch.setattr(td, "load_closed", lambda path=None: set())
+
+    rows = 400
+    idx = pd.bdate_range("2020-01-01", periods=rows)
+    cols = {}
+    for i in range(60):
+        v = np.full(rows, 100.0)
+        v[: i * 5] = np.nan          # names list one after another
+        cols[f"S{i}"] = v
+    frame = pd.DataFrame(cols, index=idx)
+    out = price_loader._drop_phantom_sessions(frame)
+    assert len(out) == len(frame), "the staggered start of the frame was deleted"

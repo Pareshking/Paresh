@@ -236,3 +236,97 @@ def test_an_unreadable_id_map_just_means_re_resolving(tmp_path):
     bad = tmp_path / "ids.json"
     bad.write_text("{not json")
     assert sl.load_ids(str(bad)) == {}
+
+
+# ── The all-time-high snapshot is read three times per engine build ──────────
+#
+# ath_series once and ath_date_series twice, at each of the two ATH sites in
+# momentum.py, and every call re-parsed the same 750-row CSV. Flagged on the
+# first day of this work and left open long enough that a later change added
+# the third read.
+
+def test_the_snapshot_is_read_from_disk_once(tmp_path, monkeypatch):
+    import pandas as pd
+    from src.loaders import ath_loader as al
+
+    path = str(tmp_path / "ath.csv")
+    pd.DataFrame({"Symbol": ["A", "B"], "ATH": [1.0, 2.0],
+                  "ATHDate": ["2026-01-01"] * 2, "AsOf": ["2026-01-01"] * 2}).to_csv(path, index=False)
+    al.clear_snapshot_cache()
+
+    reads = []
+    real = pd.read_csv
+    monkeypatch.setattr(pd, "read_csv", lambda *a, **k: reads.append(1) or real(*a, **k))
+
+    for _ in range(3):
+        al.load_ath_snapshot(path)
+    assert len(reads) == 1, f"parsed the file {len(reads)} times for three calls"
+
+
+def test_each_caller_gets_its_own_frame(tmp_path):
+    """Callers set_index on the result; handing out the cached object would let
+    one caller reshape what every later caller receives."""
+    import pandas as pd
+    from src.loaders import ath_loader as al
+
+    path = str(tmp_path / "ath.csv")
+    pd.DataFrame({"Symbol": ["A"], "ATH": [1.0],
+                  "ATHDate": ["2026-01-01"], "AsOf": ["2026-01-01"]}).to_csv(path, index=False)
+    al.clear_snapshot_cache()
+
+    first = al.load_ath_snapshot(path)
+    first.set_index("Symbol", inplace=True)
+    second = al.load_ath_snapshot(path)
+    assert "Symbol" in second.columns, "a caller's set_index reshaped the cache"
+
+
+def test_a_rewritten_snapshot_is_picked_up(tmp_path):
+    """The daily sync rewrites this file. Serving yesterday's highs for the
+    life of the process would be worse than re-reading it."""
+    import time
+    import pandas as pd
+    from src.loaders import ath_loader as al
+
+    path = str(tmp_path / "ath.csv")
+    pd.DataFrame({"Symbol": ["A"], "ATH": [1.0],
+                  "ATHDate": ["2026-01-01"], "AsOf": ["2026-01-01"]}).to_csv(path, index=False)
+    al.clear_snapshot_cache()
+    assert len(al.load_ath_snapshot(path)) == 1
+
+    time.sleep(0.01)
+    pd.DataFrame({"Symbol": ["A", "B"], "ATH": [1.0, 2.0],
+                  "ATHDate": ["2026-01-01"] * 2, "AsOf": ["2026-01-02"] * 2}).to_csv(path, index=False)
+    assert len(al.load_ath_snapshot(path)) == 2, "served a stale snapshot after a rewrite"
+
+
+def test_stale_generations_do_not_accumulate(tmp_path):
+    """A long-running process rewriting the file must not grow the cache."""
+    import time
+    import pandas as pd
+    from src.loaders import ath_loader as al
+
+    path = str(tmp_path / "ath.csv")
+    al.clear_snapshot_cache()
+    for i in range(4):
+        pd.DataFrame({"Symbol": [f"S{i}"], "ATH": [float(i)],
+                      "ATHDate": ["2026-01-01"], "AsOf": ["2026-01-01"]}).to_csv(path, index=False)
+        al.load_ath_snapshot(path)
+        time.sleep(0.01)
+    entries = [k for k in al._SNAPSHOT_CACHE if k[0] == path]
+    assert len(entries) == 1, f"{len(entries)} generations retained for one path"
+
+
+def test_a_missing_snapshot_is_not_cached_as_a_success(tmp_path):
+    """Absence must not be memoised past the file appearing."""
+    import pandas as pd
+    from src.loaders import ath_loader as al
+
+    path = str(tmp_path / "later.csv")
+    al.clear_snapshot_cache()
+    assert al.load_ath_snapshot(path).empty
+
+    pd.DataFrame({"Symbol": ["A"], "ATH": [1.0],
+                  "ATHDate": ["2026-01-01"], "AsOf": ["2026-01-01"]}).to_csv(path, index=False)
+    assert len(al.load_ath_snapshot(path)) == 1, (
+        "the absent-file result was served after the file appeared"
+    )
