@@ -4,6 +4,19 @@ on:
   schedule:
     # Every Friday at 23:00 IST = 18:30 UTC (adjust if DST not needed)
     - cron: '30 18 * * 5'
+  workflow_dispatch: # This job rebuilds the whole archive; it must be runnable
+                     # on demand. Without this there was no way to deepen the
+                     # history except to wait for Friday, and no way to test a
+                     # change to the full-refresh path at all.
+
+# The SAME group as daily_sync.yml, deliberately. These are two workflows but
+# one resource: both write the price-data-* cache namespace and both commit to
+# main. Overlapping them races the rebase-and-retry push, and worse, a full
+# refresh finishing mid-incremental would have its rebuilt archive overwritten
+# by the shorter frame the other job is holding in memory.
+concurrency:
+  group: daily-sync
+  cancel-in-progress: false
 
 jobs:
   full-sync:
