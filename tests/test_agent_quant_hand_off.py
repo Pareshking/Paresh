@@ -76,7 +76,7 @@ def test_missing_artifact_fails_closed(monkeypatch):
     "change, message",
     [
         ({"pipeline_version": "old"}, "pipeline_version"),
-        ({"price_source": "yahoo"}, "price_source"),
+        ({"price_source": "unknown-source"}, "price_source"),
         ({"price_as_of": ""}, "price_as_of"),
         ({"weights": [0.2] * 5}, "weights"),
         ({"universe": []}, "universe"),
