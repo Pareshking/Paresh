@@ -54,6 +54,21 @@ def main() -> None:
         f"- Contradictions: {dossier.audit.contradiction_count}",
         f"- Unresolved questions: {dossier.audit.unresolved_question_count}",
         "",
+        "## Evidence log",
+    ]
+    for evidence in dossier.item.positive_evidence + dossier.item.negative_evidence + dossier.item.unknowns:
+        lines.extend(
+            [
+                f"- [{evidence.kind.value.upper()}] {evidence.domain.value}: {evidence.claim}",
+                f"  - Source: {evidence.source}",
+                f"  - Source tier: {evidence.source_tier.value}",
+                f"  - Event date: {evidence.event_date.isoformat() if evidence.event_date else 'unknown'}",
+                f"  - Published: {evidence.published_on.isoformat() if evidence.published_on else 'unknown'}",
+                "",
+            ]
+        )
+
+    lines.extend([
         "## Causal findings",
     ]
 
@@ -90,7 +105,7 @@ def main() -> None:
             *[f"- {item}" for item in dossier.monitoring_questions],
             "",
             "## Judge",
-            "- STAGE4B_SAN SERA_EXECUTION=PASS",
+            "- STAGE4B_SANSERA_EXECUTION=PASS",
             "- The dossier passed structural validation, hypothesis coverage, provenance checks and the adversarial publication gate.",
             "- This is research intelligence, not an investment recommendation.",
         ]
@@ -98,13 +113,13 @@ def main() -> None:
 
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-    print(f"STAGE4B_SAN SERA_AS_OF={dossier.snapshot_as_of.isoformat()}")
-    print(f"STAGE4B_SAN SERA_RANK={dossier.candidate.rank}")
-    print(f"STAGE4B_SAN SERA_SCORE={dossier.candidate.score}")
-    print(f"STAGE4B_SAN SERA_EVIDENCE={dossier.audit.evidence_count}")
-    print(f"STAGE4B_SAN SERA_PRIMARY_COVERAGE={dossier.audit.primary_coverage:.3f}")
-    print(f"STAGE4B_SAN SERA_CAUSAL={dossier.audit.causal_finding_count}")
-    print(f"STAGE4B_SAN SERA_CONTRADICTIONS={dossier.audit.contradiction_count}")
+    print(f"STAGE4B_SANSERA_AS_OF={dossier.snapshot_as_of.isoformat()}")
+    print(f"STAGE4B_SANSERA_RANK={dossier.candidate.rank}")
+    print(f"STAGE4B_SANSERA_SCORE={dossier.candidate.score}")
+    print(f"STAGE4B_SANSERA_EVIDENCE={dossier.audit.evidence_count}")
+    print(f"STAGE4B_SANSERA_PRIMARY_COVERAGE={dossier.audit.primary_coverage:.3f}")
+    print(f"STAGE4B_SANSERA_CAUSAL={dossier.audit.causal_finding_count}")
+    print(f"STAGE4B_SANSERA_CONTRADICTIONS={dossier.audit.contradiction_count}")
     print("STAGE4B_SANSERA_EXECUTION=PASS")
 
 
