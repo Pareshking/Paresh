@@ -204,3 +204,7 @@ Success is one quantitative source of truth, reproducible research, traceable ev
 The AI agent should make Paresh's existing system more understandable, auditable and researchable — not replace it with an AI approximation.
 
 When uncertain: **inspect → search existing implementation → reuse → test → document → only then build.**
+
+## Stage-2 implementation ownership
+
+The read-only quantitative hand-off is implemented in `agent/quant_hand_off.py`. It consumes the canonical `ranking_store.fetch_snapshot()` result, validates the embedded contract against current canonical pipeline/source/weight identity, validates row/universe integrity, and converts the accepted rows to `QuantSnapshot`. It has no price acquisition, ranking calculation, portfolio logic, or qualitative research fallback.
