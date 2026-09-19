@@ -281,3 +281,14 @@ The final dossier should add information that a simple announcement feed does no
 WELCORP is the acceptance sample. The detailed design and sample are recorded in agent/STAGE_4_DEEP_RESEARCH_SPEC.md and agent/STAGE_4_WELCORP_DEEP_SAMPLE_2026-09-19.md.
 
 Stage 4 remains open until the executable workflow demonstrates this depth and survives the full adversarial review.
+
+
+## Stage-4 adaptive research principle — 2026-09-19
+
+The research-domain list is a capability library, not a universal checklist. Company Intelligence begins with a company-specific profile and material-driver map. The system selects only relevant domains and explicitly records why domains were included or excluded.
+
+Examples such as WELCORP, banks, pharma API/CDMO/domestic/specialty businesses, tariffs, crude, capacity and FX are illustrative only. They must not be hard-coded templates.
+
+The analytical layer is mandatory: evidence must be connected through a company-specific mechanism, timing, offsets/mitigants, peer/industry context where relevant, contradictions and unresolved questions. A report that merely lists news is considered a Stage-4 failure regardless of citation count.
+
+Research sequence: company profile → economic drivers → materiality map → hypotheses → targeted evidence → causal analysis → contradiction search → synthesis → monitoring questions.
