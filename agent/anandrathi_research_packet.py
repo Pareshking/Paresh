@@ -273,28 +273,50 @@ def anandrathi_packet() -> ResearchProviderPacket:
                 original_claim="AUM growth demonstrates durable underlying business growth.",
                 counter_evidence="Only about 14% of Q1FY27 AUM growth came from net inflows according to management; the remainder was supported by portfolio appreciation, while Q1 net inflows were lower than the prior-year quarter.",
                 resolution="Separate flow-led growth from market-led AUM growth; both contribute to reported AUM but have different durability implications.",
-                evidence_refs=(ref("Q1FY27 AUM rose 21% YoY to INR 1,06,300 crore and net inflows were INR 2,743 crore; active client families rose 13% YoY to 13,941."), ref("Q1FY27 net inflows were INR 2,743 crore versus INR 3,824 crore in Q1FY26, so the inflow contribution was lower year over year even as AUM increased."), ref("The reviewed disclosures do not provide a sufficiently detailed stress test of revenue and PAT under a prolonged equity-market drawdown; market sensitivity therefore remains partly unresolved.")),
+                # original_claim_refs/counter_evidence_refs (item 7): the prior
+                # single evidence_refs list cited two AUM-growth items but never
+                # the item that actually states the "~14%" figure this
+                # counter_evidence quotes -- it was cited elsewhere (causal
+                # findings 0 and 3) but not here. Added. Also dropped the
+                # stress-test-derived item: it is about future bear-market
+                # sensitivity, not the flow-vs-appreciation composition this
+                # contradiction is actually about; it stays correctly cited on
+                # hypotheses[3]'s contradiction below.
+                original_claim_refs=(ref("Q1FY27 AUM rose 21% YoY to INR 1,06,300 crore and net inflows were INR 2,743 crore; active client families rose 13% YoY to 13,941."),),
+                counter_evidence_refs=(ref("Q1FY27 net inflows were INR 2,743 crore versus INR 3,824 crore in Q1FY26, so the inflow contribution was lower year over year even as AUM increased."), ref("AUM growth contains a market-performance component: management stated that about 14% of Q1FY27 AUM growth came from net inflows, with the remainder supported by portfolio appreciation.")),
             ),
             ContradictionFinding(
                 hypothesis=anandrathi_plan().hypotheses[1],
                 original_claim="Strong client/RM growth should produce operating leverage.",
                 counter_evidence="Q1 employee costs increased 53% YoY and reported EBITDA margin declined to about 34%, partly because of a one-time ESOP charge.",
                 resolution="Treat operating leverage as a management hypothesis to be monitored, not as a completed outcome.",
-                evidence_refs=(ref("The company's Q1FY27 management interview states that operating leverage is expected to improve over the next two years and highlights RM capacity utilisation and new RM hiring as growth levers."), ref("Q1FY27 reported EBITDA margin fell to about 34% from 47% a year earlier, with employee costs rising 53% YoY; reporting included a one-time ESOP charge."), ref("The board approved a proposal to apply to SEBI to act as sponsor of a mutual fund under the SEBI Mutual Funds Regulations 2026.")),
+                # item 7: the AMC board-approval ref was misattached here -- it
+                # has nothing to do with RM productivity or operating leverage.
+                # It belongs to (and is now cited on) the AMC contradiction below.
+                original_claim_refs=(ref("The company's Q1FY27 management interview states that operating leverage is expected to improve over the next two years and highlights RM capacity utilisation and new RM hiring as growth levers."),),
+                counter_evidence_refs=(ref("Q1FY27 reported EBITDA margin fell to about 34% from 47% a year earlier, with employee costs rising 53% YoY; reporting included a one-time ESOP charge."),),
             ),
             ContradictionFinding(
                 hypothesis=anandrathi_plan().hypotheses[2],
                 original_claim="The AMC proposal is an additional growth engine.",
                 counter_evidence="The board has only approved an application; approval, launch, fee economics and AUM scale are not established.",
                 resolution="Record the AMC as a conditional strategic initiative rather than current earnings contribution.",
-                evidence_refs=(ref("SEBI's Mutual Funds Regulations 2026 are the current regulatory framework for mutual funds, with the regulation page last amended on 7 July 2026."), ref("The reviewed materials confirm the AMC application but do not establish the eventual approval date, product launch timing, fee structure, distribution economics or incremental profitability of the proposed AMC."), ref("Digital Wealth AUM reached INR 2,526 crore in Q1FY27, up 23% YoY, and the company reported that its UK subsidiary had started operations.")),
+                # item 7: the board-approval item is the actual factual basis
+                # for "the AMC is a growth engine" and belongs here, not on the
+                # operating-leverage contradiction above. Dropped the SEBI
+                # regulations item (generic background, not about growth-engine
+                # status) and the Digital Wealth item (a different initiative)
+                # -- both remain correctly cited on the AMC causal finding above.
+                original_claim_refs=(ref("The board approved a proposal to apply to SEBI to act as sponsor of a mutual fund under the SEBI Mutual Funds Regulations 2026."),),
+                counter_evidence_refs=(ref("The reviewed materials confirm the AMC application but do not establish the eventual approval date, product launch timing, fee structure, distribution economics or incremental profitability of the proposed AMC."),),
             ),
             ContradictionFinding(
                 hypothesis=anandrathi_plan().hypotheses[3],
                 original_claim="Diversification makes the platform resilient to market weakness.",
                 counter_evidence="Management attributed most Q1 AUM growth to portfolio appreciation rather than net inflows, and no prolonged-market stress sensitivity was disclosed in the reviewed materials.",
                 resolution="Diversification is visible in channels and client base, but market sensitivity remains an unresolved economic exposure.",
-                evidence_refs=(ref("FY26 annual reporting shows AUM of INR 93,037 crore, 13,395 active client families and 401 relationship managers at 31 March 2026, with five-year growth across these operating metrics."), ref("The reviewed disclosures do not provide a sufficiently detailed stress test of revenue and PAT under a prolonged equity-market drawdown; market sensitivity therefore remains partly unresolved."), ref("The reviewed Q1FY27 materials do not establish the future contribution, cost structure or return profile of the UK, digital and proposed AMC initiatives at scale.")),
+                original_claim_refs=(ref("FY26 annual reporting shows AUM of INR 93,037 crore, 13,395 active client families and 401 relationship managers at 31 March 2026, with five-year growth across these operating metrics."),),
+                counter_evidence_refs=(ref("The reviewed disclosures do not provide a sufficiently detailed stress test of revenue and PAT under a prolonged equity-market drawdown; market sensitivity therefore remains partly unresolved."), ref("The reviewed Q1FY27 materials do not establish the future contribution, cost structure or return profile of the UK, digital and proposed AMC initiatives at scale."), ref("AUM growth contains a market-performance component: management stated that about 14% of Q1FY27 AUM growth came from net inflows, with the remainder supported by portfolio appreciation.")),
             ),
         ),
         unresolved_questions=(

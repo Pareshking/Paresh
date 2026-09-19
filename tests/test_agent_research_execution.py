@@ -99,7 +99,8 @@ def packet():
                 original_claim="Orders imply future revenue growth.",
                 counter_evidence="Execution capacity may constrain conversion.",
                 resolution="Treat revenue timing as conditional rather than completed.",
-                evidence_refs=(refs[0], refs[1]),
+                original_claim_refs=(refs[0],),
+                counter_evidence_refs=(refs[1],),
             ),
         ),
         unresolved_questions=("What is current utilisation?",),
@@ -232,7 +233,8 @@ def test_execution_rejects_string_evidence_refs_in_contradiction():
         original_claim="x",
         counter_evidence="y",
         resolution="z",
-        evidence_refs=evidence_ref(p.evidence[0]),
+        original_claim_refs=evidence_ref(p.evidence[0]),
+        counter_evidence_refs=(evidence_ref(p.evidence[1]),),
     )
     bad = ResearchProviderPacket(
         plan=p.plan,

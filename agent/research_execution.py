@@ -53,7 +53,25 @@ class ContradictionFinding:
     original_claim: str
     counter_evidence: str
     resolution: str
-    evidence_refs: tuple[str, ...]
+    original_claim_refs: tuple[str, ...]
+    counter_evidence_refs: tuple[str, ...]
+    """Item 7: a contradiction needs evidence on BOTH sides of the tension it
+    claims, not one undifferentiated evidence_refs list. Splitting the field
+    makes the two-sided structure auditable and enforced (_validate_contradictions
+    requires both non-empty, resolvable, and disjoint), which is the part of
+    "genuine disagreement" that is safely checkable without a semantic
+    strawman-classifier this pipeline deliberately does not build (see the
+    Stage-4B improvement tracker, item 7 loop notes, for why ref-count alone
+    was tried and rejected as a proxy: SANSERA's one contradiction Report 1
+    called genuinely good cited only 1 ref, and its three weak ones already
+    cited >=2)."""
+
+    @property
+    def evidence_refs(self) -> tuple[str, ...]:
+        """Combined view for generic per-finding consumers (e.g. the
+        absence-based-support check in execute_research) that only need
+        "every cited ref", not which side it supports."""
+        return self.original_claim_refs + self.counter_evidence_refs
 
 
 @dataclass(frozen=True)
@@ -194,11 +212,26 @@ def _validate_causal_findings(
                 raise ValueError("causal finding references missing evidence")
 
 
+def _validate_contradiction_ref_list(refs: object, side: str) -> tuple[str, ...]:
+    if isinstance(refs, str) or not isinstance(refs, tuple):
+        raise ValueError(f"contradiction {side} must be a tuple[str, ...]")
+    if not refs:
+        raise ValueError(f"contradiction requires {side} (evidence provenance)")
+    return refs
+
+
 def _validate_contradictions(
     plan: ResearchPlan,
     contradictions: Iterable[ContradictionFinding],
     evidence_by_ref: dict[str, Evidence],
 ) -> None:
+    """Item 7: a contradiction must show evidence on BOTH sides of the
+    tension it claims -- at least one ref backing the original_claim, at
+    least one backing the counter_evidence, and the two sets disjoint. This
+    does not detect every strawman (that needs reading the prose, which this
+    deterministic pipeline does not automate -- see the class docstring on
+    ContradictionFinding), but it does force the two-sided structure to be
+    explicit and auditable rather than one undifferentiated ref list."""
     allowed = set(plan.hypotheses)
     for finding in contradictions:
         if finding.hypothesis not in allowed:
@@ -207,11 +240,20 @@ def _validate_contradictions(
             raise ValueError("contradiction requires original and counter claims")
         if not finding.resolution.strip():
             raise ValueError("contradiction requires a resolution or unresolved statement")
-        if isinstance(finding.evidence_refs, str) or not isinstance(finding.evidence_refs, tuple):
-            raise ValueError("contradiction evidence_refs must be a tuple[str, ...]")
-        if not finding.evidence_refs:
-            raise ValueError("contradiction requires evidence provenance")
-        for ref in finding.evidence_refs:
+
+        claim_refs = _validate_contradiction_ref_list(
+            finding.original_claim_refs, "original_claim_refs"
+        )
+        counter_refs = _validate_contradiction_ref_list(
+            finding.counter_evidence_refs, "counter_evidence_refs"
+        )
+        overlap = set(claim_refs) & set(counter_refs)
+        if overlap:
+            raise ValueError(
+                "contradiction cites the same evidence on both sides, which "
+                "cannot establish a disagreement: " + ", ".join(sorted(overlap))
+            )
+        for ref in claim_refs + counter_refs:
             if ref not in evidence_by_ref:
                 raise ValueError("contradiction references missing evidence")
 
