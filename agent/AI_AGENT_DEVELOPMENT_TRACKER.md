@@ -183,21 +183,32 @@ Stage 2 is closed. Stage 3 can begin only with its own repository inspection and
 ## Stage 3 — Market → Sector → Industry → Peer
 
 ### PLAN
-Use existing Paresh breadth, sector/industry taxonomy and ranking outputs.
+[✓] Fresh repository inspection completed before implementation
+[✓] Existing market/regime owner identified
+[✓] Existing breadth owner identified
+[✓] Existing taxonomy owner identified
+[✓] Existing industry aggregation owner identified
+[✓] Existing point-in-time membership owner identified
+[✓] Written Stage-3 plan recorded in agent/STAGE_3_PLAN.md
+
+### DO — in progress
+[✓] Read-only market hierarchy adapter added
+[✓] Focused Stage-3 tests added
+[✓] Peer derivation corrected to use the full supplied taxonomy universe
+[✓] Point-in-time membership wrapper preserves canonical out-of-coverage unknown
+[ ] Final adversarial review
+[ ] Full regression/CI verification
+[ ] Documentation reconciliation
+[ ] Stage-3 gate decision
 
 ### CHECK
-[ ] Market context matches existing engine
-[ ] Sector classification uses existing taxonomy
-[ ] Industry classification uses existing taxonomy
-[ ] Peer group derives from existing taxonomy
-[ ] No second taxonomy created
-[ ] Missing classification remains explicit
-[ ] Historical date handling is correct
+Status: **OPEN / NOT VERIFIED** pending CI execution and final adversarial loop.
 
 ### EXIT GATE
-[ ] Read-only context adapters verified against existing outputs
-[ ] No duplicate formulas
-[ ] Adversarial review complete
+Stage 3 is not complete until canonical market/breadth/taxonomy owners are reused,
+peer derivation is taxonomy-only, uncertainty is explicit, focused and regression
+tests pass, and the Researcher → Prosecution → Defence → Reviewer → Jury → Judge
+loop signs off.
 
 ## Stage 4 — Company research
 
