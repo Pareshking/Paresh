@@ -53,6 +53,9 @@ jobs:
           print("STAGE2_HANDOFF=PASS")
           PY
 
+      - name: Stage-3 live hierarchy output
+        run: python scripts/stage3_live_validation.py
+
       - name: Full current-universe quantitative integration
         run: python scripts/full_validation.py
 
