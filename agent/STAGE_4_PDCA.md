@@ -152,3 +152,9 @@ The provider packet has provenance, dates, selected-domain coverage, explicit un
 
 ### Judge
 **GATE OPEN — NOT VERIFIED.** CI for the current Stage-4B head has not produced a workflow run through the available GitHub Actions interface, so machine execution cannot be claimed yet.
+
+### Jury
+The evidence set supports a factual finding that SANSERA's diversification is already operational rather than merely aspirational: ADS/non-auto growth is visible in Q1 revenue, the legacy ICE base still grows, and capacity is being expanded. The jury does not treat the large backlog as equivalent to near-term revenue. The principal unresolved issues are backlog/customer concentration, machine and qualification bottlenecks, current tariff incidence, current FX sensitivity, incremental asset returns and direct verification of the FY2025-26 fraud disclosure. The later approximately INR57.5bn backlog figure is retained as secondary evidence rather than silently replacing the June primary figure.
+
+### Judge
+The research loop has therefore completed the **Researcher → Prosecution → Defence → Reviewer → Jury** reasoning cycle for the manual SANSERA packet. Publication remains **OPEN / NOT VERIFIED** because the deterministic machine execution and current-head CI evidence are still unavailable through the current GitHub Actions interface, and some secondary claims require underlying-primary reconciliation.
