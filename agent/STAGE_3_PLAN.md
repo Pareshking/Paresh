@@ -246,3 +246,21 @@ research cannot mistake it for same-session data;
 6. rerun the full regression and continue the adversarial review.
 
 This is provenance hardening, not a new breadth calculation.
+
+
+## Live-output verification plan — 2026-09-19
+
+The implementation gate was previously based on tests and canonical artifact hand-off, but the actual Stage-3 hierarchy had not yet been executed against the current published ranking artifact. This is a verification gap, not an implementation change.
+
+Before changing code, the repair/verification plan is:
+
+1. Use the existing Stage-2 `load_quant_snapshot()` boundary to load the current published `rankings.parquet` and validate its embedded contract.
+2. Use the production `load_tv_classification()` owner and committed taxonomy data; do not create another taxonomy loader.
+3. Build the Stage-3 hierarchy from all currently published ranking rows, then inspect the actual Top-25 by canonical Rank.
+4. Produce a machine-readable/Markdown live verification artifact containing snapshot as-of, row count, taxonomy, Top-25 hierarchy, peer counts, and peer membership.
+5. Assert that the live artifact has the expected 750-row snapshot, 25 Top-25 rows, non-duplicated symbols, and taxonomy-derived peer groups.
+6. Upload the verification artifact in CI so the evidence is retained with the workflow run; GitHub Actions artifacts are intended for persisting test/output files after a run. citeturn2search0turn2search1
+7. Record the exact verification result in the Stage-3 PDCA/tracker/master documentation. A future Stage-3 gate must not be marked complete without either a live execution artifact or an explicit documented NOT VERIFIED state.
+8. Run the full adversarial review again after the live-output implementation and stop before Company Intelligence if this live gate fails.
+
+This verification path is an audit harness around existing owners. It does not calculate a new ranking, download a second price source, or alter the Stage-3 methodology.
