@@ -3,8 +3,15 @@
 **Status:** ACTIVE — fail-closed improvement loop  
 **Scope:** Stage-4B adaptive research / provenance / adversarial publication gate  
 **Source:** Report 1 + Report 1b + Report 2 supplied on 2026-09-19  
-**Current execution branch:** `agent/stage4b-second-archetype-clean`  
-**Current PR:** #15
+**PR #15 (`agent/stage4b-second-archetype-clean`): MERGED to `main`** as
+squash commit `93d1474` on 2026-09-19, after CI run #360 (35443317589)
+verified green on the final commit. Items 1-10, 15-24 above are now on
+`main`; items 2, 9, 11-14 remain open per Paresh's recorded decisions
+(Loop 8).  
+**Current execution branch:** `agent/stage4b-third-archetypes` (from `main`
+post-merge)  
+**Current PR:** #16 -- CI VERIFIED (run #363), `mergeable_state: clean`,
+ready to merge. See Loop 11 below.
 
 ## Operating rule
 
@@ -828,6 +835,81 @@ completed/success.
 opening further rounds looking for more issues, per Paresh's explicit
 "are we stuck in one loop" check -- this fix is shipped and closed, not a
 new open-ended thread.
+
+## Loop 11 — third/fourth/fifth archetypes: PAYTM, YATHARTH, LENSKART (in progress)
+
+Per Paresh's explicit instruction after the PR #15 merge ("run 2-3
+different companies analysis to get more ideas... move very fast"):
+extending real-data coverage to three more Top-25 candidates, chosen
+deliberately for archetype diversity against the two already built
+(SANSERA = industrial exporter, ANANDRATHI = wealth management) so real
+research surfaces new pipeline edge cases rather than repeating known
+patterns:
+
+- **PAYTM** (rank 22, One97 Communications) -- digital-payments/fintech
+  platform archetype: network effects, RBI/PA-CB regulatory exposure, no
+  physical order backlog.
+- **YATHARTH** (rank 17, Yatharth Hospital and Trauma Care Services) --
+  hospital-operator archetype: bed capacity/occupancy, ARPOB, payer mix,
+  government-scheme exposure.
+- **LENSKART** (rank 11) -- consumer D2C/omnichannel retail archetype:
+  store-network expansion, same-store growth, private-label margin.
+
+Dispatched as three parallel research agents, each given the exact current
+schema (`contracts.py`, `research_execution.py`, `company_research.py`)
+read directly from source rather than from memory, and every non-negotiable
+rule this session already paid to learn: mandatory non-trivial exclusions,
+`published_on` requirement with the narrow `undated_primary_source` escape,
+real `http(s)://` URLs only, PRIMARY-tier rejection for video hosts/bare
+domain roots, claim-keyed refs (never positional), two-sided
+non-strawman contradictions with disjoint ref lists, full hypothesis
+coverage, and an explicit no-fabrication requirement (every source must be
+actually fetched and read, not inferred). Each agent works only on its own
+three new files (`agent/<symbol>_research_packet.py`,
+`scripts/stage4b_<symbol>_live_validation.py`,
+`tests/test_agent_<symbol>_execution.py`) and does not touch any existing
+file or commit -- integration, verification against real data, CI wiring,
+and the commit/push are done centrally, one company at a time, with the
+same discipline as every prior loop (full local suite, both/all live
+scripts, actual CI run ID checked before any VERIFIED claim).
+
+All three agents hit a shared, account-level session rate limit mid-run
+(not a per-agent defect) and were resumed once via `SendMessage` after the
+limit cleared; each then completed independently.
+
+**Integration verification performed centrally** (not just trusted from
+each agent's self-report): every packet file was read in full for schema
+correctness (claim-keyed refs via `evidence_ref`, disjoint two-sided
+contradiction ref lists, non-trivial exclusions, dates all `<=` the
+2026-09-18 cutoff), then re-run independently through
+`execute_research`/`judge_dossier`, then the single highest-stakes claim in
+each packet was spot-checked against the real primary source directly (not
+the agent's own quoted text):
+
+- **YATHARTH**: the ₹3,150cr Advent International preferential-issue claim
+  was checked against the actual board-outcome PDF
+  (yatharth_20573744.pdf) -- every figure (1,30,26,516 shares,
+  1,89,47,664 warrants, INR 985.17/unit, INR 31,50,00,02,910.60
+  aggregate, 24.87% fully-diluted stake, 15 Oct 2026 EGM, CCI condition,
+  55.80% pre-issue promoter holding, 3-year lock-in) matched exactly,
+  down to the paisa.
+- **PAYTM**: the RBI/PPBL licence-cancellation claim was checked against
+  the actual RBI press release (prid=62621) -- date (24 April 2026),
+  statutory grounds (Section 22, Banking Regulation Act 1949) and the
+  depositor-liquidity statement all matched.
+- **LENSKART**: the corrected IPO-listing-date claim (10 Nov 2025, which
+  the agent corrected from this loop's own initial rank/sector hint) was
+  independently confirmed via a fresh web search.
+
+21/23/26 evidence items respectively (YATHARTH/PAYTM/LENSKART), all
+PRIMARY/SECONDARY items real fetched sources with real dates, DERIVED
+items honestly recording genuine disclosure gaps rather than fabricating
+resolutions. Full local suite after adding all three: **1168 passed** (up
+from 1159 -- 9 new tests, 3 per company, zero regressions).
+
+**CI: VERIFIED.** Run #363 (35470906354) on PR #16, commit b5557b2 --
+completed/success, all steps green including the three new live-execution
+steps and dossier-artifact retention. `mergeable_state: clean`.
 
 ## Rule against false closure
 
