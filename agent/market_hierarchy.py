@@ -150,9 +150,11 @@ def build_hierarchy_context(
             "rank_df is missing snapshot symbols: " + ", ".join(missing_symbols[:10])
         )
 
+    # Build peers from the full supplied canonical ranking frame so a
+    # candidate sees all same-taxonomy peers already present in the universe.
     peer_map: dict[str, list[str]] = {}
-    for symbol in symbols:
-        group = _clean_text(frame.at[symbol, tax_col])
+    for symbol, row in frame.iterrows():
+        group = _clean_text(row[tax_col])
         if group is not None:
             peer_map.setdefault(group, []).append(symbol)
 
