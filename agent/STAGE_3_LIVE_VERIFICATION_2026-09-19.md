@@ -76,9 +76,11 @@ The peer list above is a **taxonomy membership output**, not a peer-quality judg
 
 The current live verification uses TradingView Industry (119). NSE Industry and TradingView Sector remain separate selectable taxonomies in the Stage-3 adapter and must not be conflated.
 
-## Separate CI issue
+## Separate CI issue — retired
 
-Workflow #289 subsequently failed at the existing `scripts/full_validation.py` Yahoo-backed full-universe check because only **430/750** symbols had a close for 2026-09-17 and the existing finite-score floor is 700. The Stage-3 live hierarchy step itself passed and was not affected by that later failure.
+The earlier V1 runs exposed an existing Yahoo-backed `scripts/full_validation.py` failure at 430/750 coverage. Repository review confirmed that this script independently rebuilt a legacy Yahoo ranking path and was not the production Screener-backed ranking path.
+
+The obsolete script and workflow gate were subsequently retired. The Stage-3 live verification therefore no longer depends on that Yahoo validation path.
 
 ## Permanent gate rule
 
