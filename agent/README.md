@@ -45,6 +45,21 @@ Every external claim in an agent report should carry:
 
 The quantitative snapshot should also carry the exact as-of date and model/config fingerprint.
 
+## Stage 1 completion gate
+
+Stage 1 is complete only when all of these are true:
+
+1. **Plan** — the pipeline stages and non-negotiable boundaries are explicit.
+2. **Do** — immutable contracts exist for quantitative snapshots, evidence, research items, adversarial reviews and weekly reports.
+3. **Check** — provenance fields are validated, confidence is bounded, evidence cannot be placed in the wrong bucket, report symbols are unique, and reviews cannot reference absent symbols.
+4. **Act** — the runner uses the live canonical V1 configuration fingerprint rather than an `UNWIRED` placeholder, and the foundation tests are part of normal pytest discovery.
+
+Stage 1 deliberately does **not** fetch prices, call external research providers, rank securities, or change portfolio behaviour.
+
+## PDCA record
+
+The detailed Stage 1 PDCA record is in `agent/STAGE_1_PDCA.md`. Each later stage must repeat the same loop: define the gate, implement the smallest change, test adversarially, record failures/limitations, then act only on evidence.
+
 ## Current status
 
-Foundation only. No production ranking or portfolio behaviour is changed by these files.
+**Stage 1 — Foundation: complete.** No production ranking or portfolio behaviour is changed by these files.
