@@ -48,7 +48,7 @@ Each improvement follows:
 | 19 | Reject/downgrade unstable sources | F1/F2/B3 | **VERIFIED — run #348 (35438217592), all 16 steps green** |
 | 20 | Evidence-window freshness: max(published_on) vs snapshot.as_of | F4 | **VERIFIED — run #350 (35438667821); reported metric, not a hard gate — Loop 3** |
 | 21 | Mark absence-based support explicitly | F6 | **VERIFIED — run #351 (35439390433); both archetypes 0/0, confirmed in job logs** |
-| 22 | Apply genuine-contradiction standard retroactively to SANSERA | G1/B2 | TODO |
+| 22 | Apply genuine-contradiction standard retroactively to SANSERA | G1/B2 | **DONE, CI pending — see Loop 7** |
 | 23 | Require and test explicit domain exclusions for every archetype | G2 | **VERIFIED — run #351 (35439390433)** |
 | 24 | Make `information_cutoff` required (no `date.today()` default) | Report 0 S3 | **VERIFIED — run #346 (35437730258)** |
 
@@ -665,6 +665,65 @@ refs traceable; ANANDRATHI live PASS -- 0 disagreements, no regression;
 both dossiers written and the new section visually checked in both.
 
 **CI: VERIFIED.** Run #354 (35441089140) on PR #15, commit 26e4d1d -- all 16 gate steps green. Job log confirms STAGE4B_SANSERA_NUMERIC_DISAGREEMENTS=1 with the full 44368-vs-57500 detail line verbatim, and STAGE4B_ANANDRATHI_NUMERIC_DISAGREEMENTS=0, both matching local exactly.
+
+
+## Loop 7 — item 22 (retroactive SANSERA contradiction audit)
+
+Now that item 7's split (original_claim_refs / counter_evidence_refs) exists
+and both real packets carry it, read all four SANSERA contradictions
+against the same standard applied during item 7's migration -- not just
+"does each side have evidence" (item 7's structural check, already passing
+for all four) but "does the original_claim genuinely follow from its own
+cited evidence, and does the counter genuinely oppose it" (the semantic part
+item 7's docstring explicitly says this pipeline does not automate). Found
+two more defects that the structural check could not catch, and confirmed
+the other two are sound.
+
+**[0] "Large order books provide revenue visibility" -- confirmed as the
+exact strawman Report 1 (B2) originally found, now precisely locatable
+because it has an explicit claim_ref to check against.** The cited evidence
+("ADS cumulative unexecuted backlog... executable over approximately five
+years") already states a five-year horizon; "provides revenue visibility"
+without qualification reads as near-term, which the evidence itself never
+claimed. Reworded to "provide multi-year revenue visibility" -- matches
+what the evidence actually supports, and the real tension survives: even
+multi-year visibility is at risk if capacity-constrained conversion
+persists or worsens.
+
+**[1] "ADS is supported by strong aerospace, semiconductor and defence
+demand" cited evidence for only ONE of its three named drivers (Airbus /
+aerospace).** Checked whether the other two exist in the packet before
+touching anything: the defence item (India's Positive Indigenisation List)
+does, and is already cited on this same hypothesis's causal finding
+(reusing it here is not a new orphan risk); the semiconductor item (Applied
+Materials' USD 5B India investment) exists but was cited nowhere in the
+entire packet -- a genuine orphan, closed by this fix. Added both as
+claim_refs so the citation set matches what the claim actually asserts.
+
+**[2] and [3] read as sound on inspection -- no change.** [2] (tariffs):
+claim_ref explicitly states the sourcing-shift the claim describes; the
+"stop-gap" wording in the evidence itself appropriately tempers the
+resolution's "not resolved" framing, no strawman. [3] (diversification):
+already the one contradiction Report 1 called genuinely good, strengthened
+structurally by item 7's fix (Loop 5) which added its missing claim-side
+evidence; the customer-concentration-declining vs. product-concentration-
+still-high tension is a real, evidence-grounded, non-strawman qualifier.
+
+**Deliberately not touched:** ANANDRATHI's four contradictions were already
+assessed as sound during item 7's migration (Loop 5) and again implicitly
+during item 8's design (no numeric-disagreement false positives found in
+them either). Re-auditing them here would be repeating work already done,
+not new analysis.
+
+**Local verification:** compileall OK; full regression 1158 passed;
+SANSERA live PASS -- contradiction count unchanged at 4, all other facts
+unchanged (including the numeric-disagreement detection, unaffected since
+the claim text it scans was not touched); both fixes visually confirmed
+correct in the rendered dossier. ANANDRATHI untouched, no re-run needed for
+content, but included in the same CI push since both live scripts run in
+one job.
+
+**CI: not yet verified for this loop.** Awaiting push and a fresh run.
 
 ## Rule against false closure
 

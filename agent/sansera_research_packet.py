@@ -441,7 +441,14 @@ def sansera_packet() -> ResearchProviderPacket:
         contradictions=(
             ContradictionFinding(
                 hypothesis=sansera_plan().hypotheses[1],
-                original_claim="Large order books provide revenue visibility.",
+                # item 22 (retroactive audit): reworded from "provide revenue
+                # visibility" -- the cited backlog evidence already states
+                # "executable over approximately five years", so the original
+                # wording overstated near-term visibility the evidence itself
+                # never claimed (Report 1 B2's strawman finding). The genuine
+                # tension -- multi-year visibility vs. capacity-constrained
+                # conversion -- survives the reword.
+                original_claim="Large order books provide multi-year revenue visibility.",
                 counter_evidence="Semiconductor mother-machine lead times and new facility commissioning can constrain conversion.",
                 resolution="Treat backlog as multi-year opportunity, not as equivalent near-term revenue; monitor capacity commissioning and utilisation.",
                 original_claim_refs=(refs["ADS cumulative unexecuted backlog was INR 44,368 million at June 2026 and the presentation describes it as executable over approximately five years; Q1 ADS revenue was INR 1,454 million and FY27 ADS revenue guidance was INR 5,500-6,000 million."],),
@@ -452,7 +459,15 @@ def sansera_packet() -> ResearchProviderPacket:
                 original_claim="ADS is supported by strong aerospace, semiconductor and defence demand.",
                 counter_evidence="Boeing production stabilisation is taking longer than expected and customer concentration within ADS backlog is unresolved.",
                 resolution="Industry demand supports the opportunity, but company revenue timing remains dependent on specific program execution and customer concentration.",
-                original_claim_refs=(refs["Airbus said global aircraft demand remains robust, forecasting around 42,000 new aircraft over 20 years and India demand of about 3,480 aircraft, while noting ongoing supply-chain challenges."],),
+                # item 22 (retroactive audit): the claim names three demand
+                # drivers (aerospace, semiconductor, defence) but only Airbus
+                # (aerospace) was cited. Added the semiconductor and defence
+                # items that already exist in the packet -- the defence one is
+                # also cited on this same hypothesis's causal finding; the
+                # semiconductor one was previously an orphan cited nowhere.
+                original_claim_refs=(refs["Airbus said global aircraft demand remains robust, forecasting around 42,000 new aircraft over 20 years and India demand of about 3,480 aircraft, while noting ongoing supply-chain challenges."],
+                                      refs["Applied Materials announced a planned USD 5 billion India investment over the next decade amid strong AI-driven semiconductor demand and global supply-chain diversification; this is an industry backdrop relevant to Sansera's semiconductor-equipment component activity."],
+                                      refs["India's Defence Production Department notified a sixth Positive Indigenisation List covering 405 items with estimated business potential of INR 3,070 crore, including components and raw materials."]),
                 counter_evidence_refs=(refs["Boeing reported that stabilising 737 MAX production at 47 aircraft per month was taking longer than expected because of supply-chain and certification issues, demonstrating that aerospace demand does not automatically equal near-term supplier revenue conversion."],
                                         refs["Customer concentration within the ADS backlog itself was not disclosed in the reviewed Q1FY27 presentation; therefore the concentration of the five-year ADS backlog remains unresolved."]),
             ),
