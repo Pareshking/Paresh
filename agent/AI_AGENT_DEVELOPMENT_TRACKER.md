@@ -16,8 +16,8 @@ If a later discovery invalidates an earlier decision, reopen that stage and reco
 ## Global status
 
 Stage 1: foundation + repository integration hardening — **REVIEWED**
-Stage 2: quantitative hand-off — **NOT STARTED**
-Stage 3: market hierarchy — BLOCKED by Stage 2
+Stage 2: quantitative hand-off — **IMPLEMENTED / VERIFICATION OPEN**
+Stage 3: market hierarchy — **BLOCKED by Stage 2 gate**
 Stage 4: company research — BLOCKED
 Stage 5: adversarial roles — BLOCKED
 Stage 6: weekly report — BLOCKED
