@@ -8,6 +8,7 @@ import pandas as pd
 
 from src.engine.calendar_momentum import _calendar_period_metrics, apply_calendar_momentum, latest_as_of_date
 from src.engine.momentum import MomentumEngine
+from src.engine.pipeline import last_ranked_session
 from src.loaders.indices_loader import fetch_indices_data
 from src.loaders.mcap_loader import fetch_market_caps
 from src.loaders.price_loader import extract_ohlcv, fetch_price_history
@@ -37,6 +38,30 @@ if raw.empty:
 adj, close, high, low, volume, open_p = extract_ohlcv(raw, symbols)
 if len(adj.columns) < 700:
     raise AssertionError(f"Too few price series after extraction: {len(adj.columns)}")
+
+# Rank the session PRODUCTION would rank, not the frame's last row.
+#
+# This script built the engine by hand and scored whatever row happened to be
+# last. Since real sessions stopped being deleted from the history, that row is
+# routinely one the vendor is still publishing: on a fresh CI checkout Yahoo's
+# newest Indian session held 430 of 750 closes, the engine ranked the 430 names
+# it could price, and the finite-score assertion below read that as corruption.
+# `main` was red for days over a working engine and a late vendor.
+#
+# pipeline.last_ranked_session is the rule app.py and scripts/sync_data.py
+# already use, so this validates what production computes instead of a session
+# production skips. Trimming, not floor-lowering: the assertions stay strict.
+_cut = last_ranked_session(adj)
+if _cut is not None and _cut < len(adj.index) - 1:
+    _stop = adj.index[_cut]
+    print(
+        f"Ranking as of {str(_stop)[:10]} rather than {str(adj.index[-1])[:10]}: "
+        "the newer session(s) are still being published."
+    )
+    adj, close, high, low, volume = (
+        f.loc[:_stop] if f is not None else None
+        for f in (adj, close, high, low, volume)
+    )
 
 mcaps = fetch_market_caps(symbols, force_refresh=False)
 calc = MomentumEngine(
@@ -126,8 +151,19 @@ corr.to_csv(OUT / "factor_correlation.csv")
 score = pd.to_numeric(rank_df["Score"], errors="coerce")
 rank = pd.to_numeric(rank_df["Rank"], errors="coerce")
 valid = score.notna() & rank.notna()
-if valid.sum() < 700:
-    raise AssertionError("Too few finite ranked scores")
+# Every row the engine ranked must carry a finite Score and Rank. A fixed floor
+# of 700 was a COVERAGE test wearing a corruption test's name -- the exact
+# conflation the comment thirty lines above rejects, repeated here and left
+# behind when that one was fixed. How many names were priceable is the vendor's
+# business and is asserted as a ratio above; that none of them came back NaN is
+# this engine's business, and is absolute.
+if rank_df.empty:
+    raise AssertionError("Ranking produced no rows")
+if int(valid.sum()) != len(rank_df):
+    raise AssertionError(
+        f"{len(rank_df) - int(valid.sum())} of {len(rank_df)} ranked rows carry "
+        "a non-finite Score or Rank"
+    )
 if not np.isfinite(score[valid]).all():
     raise AssertionError("Non-finite ranking scores detected")
 if not rank[valid].is_monotonic_increasing:
