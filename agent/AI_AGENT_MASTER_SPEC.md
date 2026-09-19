@@ -239,3 +239,13 @@ If that execution cannot be performed, the stage must be explicitly marked **NOT
 The V1 agent must validate the production quantitative system through the canonical published ranking artifact and its embedded contract. The retired `scripts/full_validation.py` Yahoo-backed path must not be used as a production ranking gate because production ranking now consumes the canonical Screener-backed source-selection path.
 
 A separate Yahoo/yfinance use is not automatically prohibited; it must have its own explicit purpose and must not be mistaken for production ranking validation.
+
+
+## Stage-4 Company Research status — 2026-09-19
+
+Stage 4 has entered implementation only after fresh repository inspection, existing source-owner audit, and a written Stage-4 plan.
+
+The first live Top-25 company research report is preserved in agent/STAGE_4_LIVE_OUTPUT_2026-09-19.md.
+
+The gate remains OPEN until focused tests, full regression, source/date/entity audit and deeper primary-document review are complete. A provisional live report must not be mistaken for a completed Stage-4 gate.
+
