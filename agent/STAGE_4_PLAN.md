@@ -172,3 +172,28 @@ WELCORP is the required deep-research acceptance sample. The existing first-pass
 ### Research quality principle
 
 The goal is not maximum number of headlines. The goal is maximum decision-relevant information density, with every material conclusion traceable to underlying evidence and every unresolved issue visible.
+
+
+## 14. Critical refinement — adaptive research, not a universal checklist
+
+The earlier wording risked turning the expanded research domains into a mandatory checklist for every company. That is explicitly rejected.
+
+The domain list is now a **capability library**. Before research begins, the agent must profile the specific company and select the material lenses. Different companies in the same sector can require different research approaches, and different business models within pharma, finance, technology, manufacturing or consumer sectors can have radically different drivers.
+
+The research sequence is:
+
+Company profile → economic drivers → materiality map → selected domains → hypotheses/questions → targeted evidence → causal/analytical chains → contradiction search → unresolved questions.
+
+### Analytical acceptance criterion
+
+A successful dossier must connect facts to mechanisms. It must answer why a piece of information matters to this company, through what channel, on what time horizon, with what offsets, how peers/industry differ where relevant, and what evidence could invalidate the interpretation.
+
+A chronological news summary fails the Stage-4 gate even if its citations are perfect.
+
+### Examples are illustrative only
+
+The WELCORP sample, bank examples, pharma examples and tariff/input examples are teaching examples for the architecture. They must never become hard-coded research templates. The company profile determines the actual research plan.
+
+### New acceptance gate
+
+At least one acceptance dossier must demonstrate that the system can choose **different research lenses for materially different company profiles** rather than running the same 24-domain checklist for every candidate.
