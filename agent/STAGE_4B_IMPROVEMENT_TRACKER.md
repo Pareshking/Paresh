@@ -48,7 +48,7 @@ Each improvement follows:
 | 19 | Reject/downgrade unstable sources | F1/F2/B3 | **VERIFIED — run #348 (35438217592), all 16 steps green** |
 | 20 | Evidence-window freshness: max(published_on) vs snapshot.as_of | F4 | **VERIFIED — run #350 (35438667821); reported metric, not a hard gate — Loop 3** |
 | 21 | Mark absence-based support explicitly | F6 | **VERIFIED — run #351 (35439390433); both archetypes 0/0, confirmed in job logs** |
-| 22 | Apply genuine-contradiction standard retroactively to SANSERA | G1/B2 | **DONE, CI pending — see Loop 7** |
+| 22 | Apply genuine-contradiction standard retroactively to SANSERA | G1/B2 | **VERIFIED — run #356 (35441605984), all 16 steps green — Loop 7** |
 | 23 | Require and test explicit domain exclusions for every archetype | G2 | **VERIFIED — run #351 (35439390433)** |
 | 24 | Make `information_cutoff` required (no `date.today()` default) | Report 0 S3 | **VERIFIED — run #346 (35437730258)** |
 
@@ -163,12 +163,13 @@ hypothesis), not a bare domain flag.
 - Item 20: **VERIFIED** (run #350, 35438667821) -- see above
 - Item 7: **VERIFIED** (run #353, 35440586723) -- see above
 - Item 8: **VERIFIED** (run #354, 35441089140) -- see above
+- Item 22: **VERIFIED** (run #356, 35441605984) -- see above
 - Items 4a, 5, 6, 10, 21, 23: **VERIFIED** (run #351, 35439390433, all 16 steps green;
   printed values SANSERA age-buckets 23/4/2/2/2, ANANDRATHI 11/2/0/0/3, both
   absence-based 0/0, matching local exactly)
 - Item 4's gaps-field half: **TODO**
 - Item 9: **DEFERRED** -- needs an issuer-to-symbol map (Loop 4)
-- Remaining (items 2, 11-14, 22): **NOT STARTED**
+- Remaining (items 2, 11-14): **NOT STARTED — blocked on a threshold/half-life policy decision, see below**
 - SANSERA retroactive contradiction audit (#22): **NOT VERIFIED**
 - WELCORP adaptive rerun: **NOT VERIFIED**
 - Full adversarial council (Section 33): **NOT VERIFIED**
@@ -723,7 +724,7 @@ correct in the rendered dossier. ANANDRATHI untouched, no re-run needed for
 content, but included in the same CI push since both live scripts run in
 one job.
 
-**CI: not yet verified for this loop.** Awaiting push and a fresh run.
+**CI: VERIFIED.** Run #356 (35441605984) on PR #15, commit 23c7975 -- all 16 gate steps green. Both dossiers confirmed rendering the reworded contradiction and the added semiconductor/defence refs correctly.
 
 ## Rule against false closure
 
