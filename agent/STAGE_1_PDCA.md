@@ -164,3 +164,8 @@ new ranking/data-download pipeline.
 ## STAGE-2 HAND-OFF START — 2026-09-19
 
 Stage 2 was authorized only after repository inspection and a written `agent/STAGE_2_PLAN.md` were recorded. The implementation is deliberately limited to `agent/quant_hand_off.py` plus focused tests. The canonical ranking artifact remains the only quantitative source of truth.
+
+
+## Stage-2 closure update — 2026-09-19
+
+Stage 2 was reopened after CI exposed two regression-test defects, repaired under a written plan, and then re-verified. The repaired head recorded 1099 passing regression tests, successful compilation, and a real published `rankings.parquet` hand-off of 750 rows as of 2026-09-18 using pipeline `v4_calendar_periods_cbab8da9` and actual source `screener`. Stage 2 gate is now **PASSED**. The broader full-universe validation remains separately red because only 430/750 symbols were priceable on 2026-09-17; that issue is not being altered in the agent layer.
