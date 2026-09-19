@@ -8,10 +8,14 @@ squash commit `93d1474` on 2026-09-19, after CI run #360 (35443317589)
 verified green on the final commit. Items 1-10, 15-24 above are now on
 `main`; items 2, 9, 11-14 remain open per Paresh's recorded decisions
 (Loop 8).  
-**Current execution branch:** `agent/stage4b-third-archetypes` (from `main`
-post-merge)  
-**Current PR:** #16 -- CI VERIFIED (run #363), `mergeable_state: clean`,
-ready to merge. See Loop 11 below.
+**PR #16 (`agent/stage4b-third-archetypes`): MERGED to `main`** as squash
+commit `c036442` on 2026-09-19, after CI run #364 (35471072564) verified
+green on the final commit. Adds PAYTM, YATHARTH, LENSKART (Loop 11) and
+the item 8 regex fix (Loop 10) to `main`.  
+**Current execution branch:** `agent/stage4b-next` (from `main` post-merge)  
+**Current PR:** none yet -- five real archetypes (SANSERA, ANANDRATHI,
+PAYTM, YATHARTH, LENSKART) are now on `main`, all CI-verified. Awaiting
+further direction.
 
 ## Operating rule
 
@@ -909,7 +913,8 @@ from 1159 -- 9 new tests, 3 per company, zero regressions).
 
 **CI: VERIFIED.** Run #363 (35470906354) on PR #16, commit b5557b2 --
 completed/success, all steps green including the three new live-execution
-steps and dossier-artifact retention. `mergeable_state: clean`.
+steps and dossier-artifact retention. Run #364 (35471072564) re-verified
+green on the actual final commit (217617f) merged into `main` as `c036442`.
 
 ## Rule against false closure
 
