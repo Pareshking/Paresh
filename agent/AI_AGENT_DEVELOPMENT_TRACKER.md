@@ -18,7 +18,7 @@ If a later discovery invalidates an earlier decision, reopen that stage and reco
 Stage 1: foundation + repository integration hardening — **REVIEWED**
 Stage 2: quantitative hand-off — **COMPLETE / GATE PASSED**
 Stage 3: market hierarchy — **COMPLETE / GATE PASSED**
-Stage 4: company research — BLOCKED
+Stage 4: company research — IN PROGRESS / DEEP RESEARCH REFINEMENT
 Stage 5: adversarial roles — BLOCKED
 Stage 6: weekly report — BLOCKED
 Stage 7: historical audit — BLOCKED
@@ -504,3 +504,43 @@ The retirement is deliberate: the removed script independently called the Yahoo/
 ### CURRENT GATE
 **OPEN / NOT COMPLETE.** The real report exists for human review, but Stage 4 is not yet marked complete until CI and evidence-depth checks are finished.
 
+
+
+## Stage 4 — Deep research refinement — 2026-09-19
+
+### Human review finding
+[✓] Initial live output reviewed as too close to a Screener/BSE news digest
+[✓] Acceptance target upgraded to 360-degree Company Intelligence
+[✓] WELCORP selected as acceptance sample
+
+### Deep-research domains
+[✓] Company / financials / management / orders
+[✓] Capacity / utilisation / capex
+[✓] Customers / suppliers
+[✓] Peers / industry / sector
+[✓] Government / regulation
+[✓] Inputs / energy / freight
+[✓] FX / tariffs / trade
+[✓] Macro / geopolitics
+[✓] Technology / IP
+[✓] Capital markets / funding / shareholding
+[✓] Legal / compliance
+[✓] Market reaction
+[✓] Contradictions / unknown-resolution questions
+
+### Implementation artifacts
+[✓] agent/STAGE_4_DEEP_RESEARCH_SPEC.md
+[✓] agent/STAGE_4_WELCORP_DEEP_SAMPLE_2026-09-19.md
+[✓] ResearchDomain metadata added to evidence contract
+[✓] Explicit research-domain coverage validation added
+[✓] Domain summary helper added
+[✓] Focused tests extended for domain coverage
+
+### Gate status
+[ ] Deep executable collection workflow complete
+[ ] Primary-document audit complete for WELCORP
+[ ] Full CI verified on current head
+[ ] Adversarial loop rerun after refinement
+[ ] Stage-4 judge gate passed
+
+**Current state: NOT VERIFIED / GATE OPEN.**
