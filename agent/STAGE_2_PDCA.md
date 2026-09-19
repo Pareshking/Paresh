@@ -179,3 +179,8 @@ The repository is **not globally green**. The unrelated full-universe validation
 ## Clarification — 2026-09-19
 
 The 430/750 validation failure must not be described as a failure of the current Screener-driven production ranking. `scripts/full_validation.py` directly calls `src.loaders.price_loader.fetch_price_history()`, which is the Yahoo/yfinance historical-price path. The canonical production ranking source-selection layer can use Screener; the verified Stage-2 artifact did use Screener and contained 750 rows as of 2026-09-18. Thus the observed 430/750 figure belongs to the separate Yahoo-backed full-validation path, not to the verified Screener-backed Stage-2 hand-off. No methodology or threshold change is made by this clarification.
+
+
+The obsolete `scripts/full_validation.py` Yahoo-backed ranking validation has now been retired because it independently rebuilt a legacy Yahoo ranking path rather than validating the production Screener-backed published artifact. The production quantitative validation boundary is now the real `rankings.parquet` hand-off through `agent/quant_hand_off.py` / `ranking_store.fetch_snapshot()`. The existing Yahoo price loader remains untouched for other repository uses; this retirement is limited to the obsolete validation script and workflow gate.
+
+**Retirement decision: VERIFIED and intentional.**
