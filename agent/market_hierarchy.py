@@ -23,6 +23,7 @@ class MarketContext:
     benchmark: str
     regime: RegimeData
     breadth: tuple[dict[str, Any], ...] = ()
+    breadth_as_of: date | None = None
     source_owners: tuple[str, ...] = ()
 
 
@@ -92,6 +93,7 @@ def build_market_context(
         raise TypeError("regime must be canonical RegimeData")
 
     records: list[dict[str, Any]] = []
+    breadth_as_of: date | None = None
     if breadth is not None:
         if not isinstance(breadth, pd.DataFrame):
             raise TypeError("breadth must be a pandas DataFrame when supplied")
@@ -100,12 +102,20 @@ def build_market_context(
                 {"date": str(idx), **{str(k): v for k, v in row.items()}}
                 for idx, row in breadth.iterrows()
             ]
+            try:
+                parsed = pd.to_datetime(breadth.index, errors="raise")
+                breadth_as_of = parsed.max().date()
+            except (TypeError, ValueError):
+                raise ValueError("breadth index must contain parseable dates")
+            if breadth_as_of > snapshot.as_of:
+                raise ValueError("breadth_as_of cannot be after snapshot as_of")
 
     return MarketContext(
         as_of=snapshot.as_of,
         benchmark=snapshot.benchmark,
         regime=regime,
         breadth=tuple(records),
+        breadth_as_of=breadth_as_of,
         source_owners=tuple(source_owners),
     )
 
