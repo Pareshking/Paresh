@@ -236,6 +236,7 @@ def _precomputed_ranking(
     universe: list[str],
     applied_actions: list | None = None,
     price_source: str | None = None,
+    price_as_of: str | None = None,
 ) -> pd.DataFrame | None:
     """The nightly job's ranking, but only if it describes exactly this state.
 
@@ -260,6 +261,16 @@ def _precomputed_ranking(
     expected = ranking_store.contract(
         price_fingerprint=price_hash,
         price_source=price_source,
+        # The session the engine would STOP on, which the fingerprint cannot
+        # see. It hashes the last row, the shape and the last date; the ranked
+        # session is chosen by walking BACK from there over coverage. Two
+        # frames can therefore fingerprint identically -- same shape, same
+        # final row, right down to its NaNs -- while an earlier session is
+        # thin in one and healed in the other, and rank a different day.
+        # Verified: publisher 2026-09-09, reader 2026-09-10, one fingerprint.
+        # Without this the reader accepts a table for a session it would not
+        # have ranked, and every other contract term still matches.
+        price_as_of=price_as_of,
         symbols_fingerprint=sym_key,
         weights=weights,
         pipeline_version=pipeline.PIPELINE_VERSION,
@@ -549,6 +560,9 @@ def load_all_data(indices: list[str]):
             sorted(idx_info["Symbol"].unique().tolist()) if "Symbol" in idx_info else [],
             _ca_applied,
             price_source=_src.source,
+            # Same frame the fingerprint above is taken from, and the same call
+            # scripts/sync_data.py makes, so the two sides are comparable.
+            price_as_of=pipeline.ranking_as_of(adj_close),
         )
 
     if rank_df is None:

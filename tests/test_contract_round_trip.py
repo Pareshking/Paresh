@@ -47,8 +47,8 @@ def _publisher_terms(frame: pd.DataFrame, *, as_of: str, source: str) -> dict:
     )
 
 
-def _reader_terms(frame: pd.DataFrame, *, source: str) -> dict:
-    """app.py::_precomputed_ranking -- note the ABSENT price_as_of."""
+def _reader_terms(frame: pd.DataFrame, *, as_of: str, source: str) -> dict:
+    """app.py::_precomputed_ranking -- it supplies its OWN as-of."""
     return contract(
         price_fingerprint=pipeline.price_fingerprint(frame),
         price_source=source,
@@ -56,6 +56,7 @@ def _reader_terms(frame: pd.DataFrame, *, source: str) -> dict:
         weights=WEIGHTS,
         pipeline_version=pipeline.PIPELINE_VERSION,
         universe=UNIVERSE,
+        price_as_of=as_of,
         applied_actions=ACTIONS,
     )
 
@@ -65,7 +66,7 @@ def test_the_app_accepts_what_the_publisher_wrote():
     frame = _frame()
     ok, why = matches(
         _publisher_terms(frame, as_of="2026-09-18", source="screener"),
-        _reader_terms(frame, source="screener"),
+        _reader_terms(frame, as_of="2026-09-18", source="screener"),
     )
     assert ok, (
         f"the published ranking would be REJECTED on every load: {why}. "
@@ -80,7 +81,7 @@ def test_this_holds_for_either_price_source():
     for source in ("screener", "yahoo"):
         ok, why = matches(
             _publisher_terms(frame, as_of="2026-09-16", source=source),
-            _reader_terms(frame, source=source),
+            _reader_terms(frame, as_of="2026-09-16", source=source),
         )
         assert ok, f"{source}: {why}"
 
@@ -94,15 +95,45 @@ def test_no_compared_term_is_one_only_the_publisher_supplies():
     """
     frame = _frame()
     publisher = _publisher_terms(frame, as_of="2026-09-18", source="screener")
-    reader = _reader_terms(frame, source="screener")
+    reader = _reader_terms(frame, as_of="2026-09-18", source="screener")
     disagree = {k for k in publisher if str(publisher[k]) != str(reader.get(k))}
-    # price_as_of is recorded for provenance and is legitimately one-sided.
-    assert disagree <= {"price_as_of"}, f"unexpected one-sided terms: {disagree}"
-    for field in disagree:
-        ok, _ = matches(publisher, dict(reader, **{field: publisher[field]}))
-        assert ok
-        ok, why = matches(publisher, reader)
-        assert ok, (
-            f"{field!r} is supplied only by the publisher, so comparing it "
-            f"rejects every valid table: {why}"
-        )
+    assert not disagree, (
+        f"terms only one side supplies: {sorted(disagree)}. Each of these "
+        "defaults to empty on the other side, so comparing it would reject "
+        "every valid table and each cold start would rebuild the engine."
+    )
+
+
+def test_a_table_ranked_on_a_different_session_is_rejected():
+    """Why price_as_of is compared at all, and why both sides must supply it.
+
+    price_fingerprint hashes the last row, the shape and the last date. The
+    ranked session is then chosen by walking BACK from there over coverage, so
+    two frames can fingerprint identically while an earlier session is thin in
+    one and healed in the other -- and rank a different day. Nothing else in
+    the contract can see that.
+    """
+    frame = _frame()
+    publisher = _publisher_terms(frame, as_of="2026-09-16", source="screener")
+    reader = _reader_terms(frame, as_of="2026-09-17", source="screener")
+    ok, why = matches(publisher, reader)
+    assert not ok and "price_as_of" in why
+
+
+def test_the_fingerprint_alone_cannot_catch_it():
+    """The gap is real, not hypothetical: one fingerprint, two ranked sessions."""
+    import numpy as np
+
+    idx = pd.date_range("2026-08-01", periods=30, freq="B")
+    cols = [f"S{i}" for i in range(100)]
+
+    def build(*, healed: bool) -> pd.DataFrame:
+        df = pd.DataFrame(1.0, index=idx, columns=cols)
+        if not healed:
+            df.iloc[-2, 57:] = np.nan     # thin in the publisher's copy only
+        df.iloc[-1, 57:] = np.nan         # identically thin in both
+        return df
+
+    published, live = build(healed=False), build(healed=True)
+    assert pipeline.price_fingerprint(published) == pipeline.price_fingerprint(live)
+    assert pipeline.ranking_as_of(published) != pipeline.ranking_as_of(live)
