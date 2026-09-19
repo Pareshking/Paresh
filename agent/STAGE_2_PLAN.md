@@ -178,3 +178,8 @@ Stage 2 may complete only if:
 - No ranking changes.
 - No portfolio changes.
 - No automation.
+
+
+## Adversarial refinement — canonical price-source fallback
+
+Repository review of `src/loaders/price_source.py` after implementation exposed an important nuance: the canonical producer prefers Screener when configured, but deliberately falls back to Yahoo when the Screener store is unavailable or too short. The adapter was therefore hardened to accept `screener` or the documented `yahoo` fallback when Screener is preferred, while rejecting non-canonical source identifiers. A regression test covers both the fallback acceptance and unknown-source rejection.
