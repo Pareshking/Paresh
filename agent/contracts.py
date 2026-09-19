@@ -69,6 +69,13 @@ class ResearchPlan:
             raise ValueError("research plan requires material domains")
         if not self.hypotheses:
             raise ValueError("research plan requires hypotheses/questions")
+        if not self.exclusions:
+            raise ValueError(
+                "research plan requires explicit exclusions (item 23): a plan "
+                "that names nothing out of scope has not demonstrated the "
+                "domain library was applied selectively rather than as a "
+                "checklist"
+            )
 
 
 @dataclass(frozen=True)

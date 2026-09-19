@@ -91,6 +91,26 @@ class ResearchAudit:
     carries a real date, just not a publication date); DERIVED
     absence-of-evidence records never contribute -- they are not
     information, so they should not count as "current" information."""
+    evidence_age_within_90d: int = 0
+    evidence_age_91_to_180d: int = 0
+    evidence_age_181_to_365d: int = 0
+    evidence_age_over_365d: int = 0
+    evidence_age_unanchored: int = 0
+    """Age distribution (item 10), bucketed by the same per-item temporal
+    anchor logic used for newest_evidence_anchor, relative to snapshot as-of.
+    'unanchored' is a DERIVED item or one with neither published_on nor
+    event_date -- distinct from the other buckets, not folded into the
+    oldest one, since "no date" and "very old" are different findings."""
+    causal_findings_absence_based: int = 0
+    contradictions_absence_based: int = 0
+    derived_only_domains: tuple[str, ...] = ()
+    """Count of causal findings / contradictions whose evidence_refs resolve
+    ONLY to DERIVED (absence-of-evidence) items (item 21). Not itself a
+    blocker: "no stress test was disclosed" can be a legitimate contradiction
+    of "the platform is resilient". But it must be visible that the finding
+    rests on an absence rather than on contradicting evidence, per the
+    handover's Section 24: "we could not find disclosure" must not silently
+    read as "negative evidence"."""
 
     @property
     def primary_coverage(self) -> float:
@@ -268,15 +288,60 @@ def execute_research(
     if not unresolved and not monitoring:
         blockers.append("no unresolved or monitoring questions")
 
-    def _temporal_anchor(item: Evidence) -> date | None:
-        if item.source_tier is SourceTier.DERIVED:
+    def _temporal_anchor(evidence_item: Evidence) -> date | None:
+        if evidence_item.source_tier is SourceTier.DERIVED:
             return None
-        if item.published_on is not None:
-            return item.published_on
-        return item.event_date
+        if evidence_item.published_on is not None:
+            return evidence_item.published_on
+        return evidence_item.event_date
 
     anchors = [a for e in evidence if (a := _temporal_anchor(e)) is not None]
     newest_anchor = max(anchors) if anchors else None
+
+    age_within_90d = age_91_180d = age_181_365d = age_over_365d = age_unanchored = 0
+    for e in evidence:
+        anchor = _temporal_anchor(e)
+        if anchor is None:
+            age_unanchored += 1
+            continue
+        age_days = (snapshot.as_of - anchor).days
+        if age_days <= 90:
+            age_within_90d += 1
+        elif age_days <= 180:
+            age_91_180d += 1
+        elif age_days <= 365:
+            age_181_365d += 1
+        else:
+            age_over_365d += 1
+
+    def _is_absence_based(refs: tuple[str, ...]) -> bool:
+        cited = [evidence_by_ref[r] for r in refs if r in evidence_by_ref]
+        return bool(cited) and all(e.source_tier is SourceTier.DERIVED for e in cited)
+
+    causal_absence_based = sum(1 for f in causal if _is_absence_based(f.evidence_refs))
+    contradictions_absence_based = sum(
+        1 for f in contradictions if _is_absence_based(f.evidence_refs)
+    )
+
+    domains_with_real_evidence = {
+        e.domain for e in evidence if e.source_tier is not SourceTier.DERIVED
+    }
+    domains_with_any_evidence = {e.domain for e in evidence}
+    derived_only_domains = tuple(
+        sorted(
+            d.value
+            for d in packet.plan.material_domains
+            if d in domains_with_any_evidence and d not in domains_with_real_evidence
+        )
+    )
+    """Item 5: material domains covered ONLY by DERIVED (absence-of-evidence)
+    records. Deliberately NOT a hard gate -- see execute_research/Loop 4 notes.
+    A domain covered only by "no disclosure was found" is a legitimate,
+    honestly-recorded research outcome (Section 24 of the handover; item 21
+    applies the same non-punitive logic to individual findings), not
+    something to force evidence into or forbid outright. Reported so a
+    reviewer can see it, same as evidence_window_gap_days and the age
+    buckets."""
 
     audit = ResearchAudit(
         evidence_count=len(evidence),
@@ -293,6 +358,14 @@ def execute_research(
         hypotheses_challenged=len(challenged_hypotheses),
         blockers=tuple(blockers),
         newest_evidence_anchor=newest_anchor,
+        evidence_age_within_90d=age_within_90d,
+        evidence_age_91_to_180d=age_91_180d,
+        evidence_age_181_to_365d=age_181_365d,
+        evidence_age_over_365d=age_over_365d,
+        evidence_age_unanchored=age_unanchored,
+        causal_findings_absence_based=causal_absence_based,
+        contradictions_absence_based=contradictions_absence_based,
+        derived_only_domains=derived_only_domains,
     )
 
     return ResearchDossier(

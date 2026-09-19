@@ -204,6 +204,7 @@ def test_company_specific_research_plan_rejects_duplicate_domains():
         economic_drivers=("NIM",),
         material_domains=(ResearchDomain.FINANCIALS, ResearchDomain.FINANCIALS),
         hypotheses=("Is funding cost changing?",),
+        exclusions=("target prices and valuation recommendations",),
     )
     with pytest.raises(ValueError, match="duplicate material domains"):
         validate_research_plan(plan)

@@ -14,7 +14,7 @@ from datetime import date
 from agent.company_research import ResearchCandidate
 from agent.contracts import QuantSnapshot
 from agent.research_execution import evidence_ref, execute_research
-from agent.sansera_research_packet import CUTOFF, sansera_packet
+from agent.sansera_research_packet import CUTOFF, sansera_packet, sansera_plan
 
 
 def _snapshot():
@@ -74,3 +74,16 @@ def test_sansera_packet_is_executable():
 # satisfy a test"). Resolving this needs the supporting-vs-background-evidence
 # distinction item 18 already calls for, which is still TODO. Left unasserted
 # here rather than decided unilaterally.
+
+
+def test_sansera_plan_declares_explicit_exclusions():
+    """Item 23: every archetype must declare what it deliberately did not
+    research, mirroring test_anandrathi_plan_exclusions_are_explicit_and_material.
+    ResearchPlan.__post_init__ now makes exclusions mandatory framework-wide
+    (a plan with none fails to construct at all); this additionally checks
+    SANSERA's specific declared exclusions are the real ones, not placeholders.
+    """
+    plan = sansera_plan()
+    assert plan.exclusions
+    assert any("valuation" in item for item in plan.exclusions)
+    assert any("System-1" in item for item in plan.exclusions)

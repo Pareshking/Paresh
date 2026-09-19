@@ -35,6 +35,21 @@ lines = [
     f"- Causal findings: {dossier.audit.causal_finding_count}",
     f"- Contradictions: {dossier.audit.contradiction_count}",
     f"- Unresolved questions: {dossier.audit.unresolved_question_count}",
+    f"- Evidence window gap: {dossier.evidence_window_gap_days} days (newest evidence vs. snapshot as-of)",
+    (
+        "- Evidence age: "
+        f"<=90d {dossier.audit.evidence_age_within_90d}, "
+        f"91-180d {dossier.audit.evidence_age_91_to_180d}, "
+        f"181-365d {dossier.audit.evidence_age_181_to_365d}, "
+        f">365d {dossier.audit.evidence_age_over_365d}, "
+        f"unanchored {dossier.audit.evidence_age_unanchored}"
+    ),
+    (
+        "- Absence-based findings: "
+        f"{dossier.audit.causal_findings_absence_based} causal, "
+        f"{dossier.audit.contradictions_absence_based} contradiction "
+        "(support rests only on \"no disclosure was found\", not on contradicting evidence)"
+    ),
     "",
     "## Selected economic drivers",
 ]
@@ -85,4 +100,17 @@ print(f"STAGE4B_ANANDRATHI_DOMAINS={dossier.audit.domain_count}")
 print(f"STAGE4B_ANANDRATHI_CAUSAL={dossier.audit.causal_finding_count}")
 print(f"STAGE4B_ANANDRATHI_CONTRADICTIONS={dossier.audit.contradiction_count}")
 print(f"STAGE4B_ANANDRATHI_EVIDENCE_WINDOW_GAP_DAYS={dossier.evidence_window_gap_days}")
+print(
+    "STAGE4B_ANANDRATHI_EVIDENCE_AGE_BUCKETS="
+    f"{dossier.audit.evidence_age_within_90d}/"
+    f"{dossier.audit.evidence_age_91_to_180d}/"
+    f"{dossier.audit.evidence_age_181_to_365d}/"
+    f"{dossier.audit.evidence_age_over_365d}/"
+    f"{dossier.audit.evidence_age_unanchored}"
+)
+print(
+    "STAGE4B_ANANDRATHI_ABSENCE_BASED_FINDINGS="
+    f"{dossier.audit.causal_findings_absence_based}/"
+    f"{dossier.audit.contradictions_absence_based}"
+)
 print("STAGE4B_ANANDRATHI_EXECUTION=PASS")

@@ -38,6 +38,7 @@ def plan():
             "Can order growth convert into revenue?",
             "Can capacity support the order pipeline?",
         ),
+        exclusions=("target prices and valuation recommendations",),
     )
 
 
@@ -170,6 +171,7 @@ def test_execution_requires_hypothesis_coverage():
         economic_drivers=p.plan.economic_drivers,
         material_domains=(ResearchDomain.ORDERS,),
         hypotheses=p.plan.hypotheses,
+        exclusions=("target prices and valuation recommendations",),
     )
     bad = ResearchProviderPacket(plan=bad_plan, evidence=evidence)
     with pytest.raises(ValueError, match="lack evidence"):
@@ -326,6 +328,7 @@ def test_evidence_window_gap_is_none_without_any_anchor():
         economic_drivers=("capacity utilisation",),
         material_domains=(ResearchDomain.CAPACITY,),
         hypotheses=("Can capacity support the order pipeline?",),
+        exclusions=("target prices and valuation recommendations",),
     )
     only_derived = ResearchProviderPacket(
         plan=minimal_plan,

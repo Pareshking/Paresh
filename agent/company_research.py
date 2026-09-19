@@ -142,6 +142,14 @@ def validate_evidence_set(
                     f"source cannot be tiered primary ({reason}): "
                     f"{symbol}: {item.source}"
                 )
+        if (
+            item.source_tier is not SourceTier.DERIVED
+            and not item.source.strip().lower().startswith(("http://", "https://"))
+        ):
+            raise ValueError(
+                "primary/secondary evidence requires a real http(s) URL "
+                f"(item 4): {symbol}: {item.source!r}"
+            )
         if item.published_on and item.published_on > information_cutoff:
             raise ValueError("evidence publication date is after the information cutoff")
         if (

@@ -30,13 +30,13 @@ Each improvement follows:
 | 1 | Require `published_on` for primary/secondary evidence | A1 | **VERIFIED — run #346 (35437730258), all 16 steps green** |
 | 2 | Enforce minimum primary-source share in judge | A2 | TODO |
 | 3 | Reject malformed string evidence refs explicitly | existing | **DONE — code + regression test** |
-| 4 | Validate source URLs / separate gaps from evidence | B3/B6 | TODO |
-| 5 | Quality-aware domain coverage | A3 | TODO |
-| 6 | Soften judge summary to actual guarantees | A4 | TODO |
+| 4 | Validate source URLs / separate gaps from evidence | B3/B6 | **PARTIAL — 4a (URL format for non-derived tiers) DONE; separate gaps field still TODO — Loop 4** |
+| 5 | Quality-aware domain coverage | A3 | **DONE as a REPORTED metric, not a hard gate — Loop 4 course-correction** |
+| 6 | Soften judge summary to actual guarantees | A4 | **DONE — Loop 4** |
 | 7 | Contradictions require genuinely disagreeing evidence | B2 | TODO |
 | 8 | Detect cross-tier numeric disagreement | B1 | TODO |
-| 9 | Entity-relative source tiering | B4 | TODO |
-| 10 | Evidence age distribution + rounded score | C1/C2/R5c | TODO |
+| 9 | Entity-relative source tiering | B4 | **DEFERRED — needs an issuer-to-symbol map; a URL-shape heuristic would guess, not fix — Loop 4** |
+| 10 | Evidence age distribution + rounded score | C1/C2/R5c | **DONE — Loop 4** |
 | 11 | Claim-type evidence half-life classification | R4 | TODO |
 | 12 | Stale evidence cannot sole-cover/carry mechanism/primary share | R5a | TODO |
 | 13 | Joint tier + recency ranking, never recency-first | R3/R5b | TODO |
@@ -47,9 +47,9 @@ Each improvement follows:
 | 18 | Detect evidence cited by no causal/contradiction finding | E5 | **DONE — ANANDRATHI execution test enforces zero orphans** |
 | 19 | Reject/downgrade unstable sources | F1/F2/B3 | **VERIFIED — run #348 (35438217592), all 16 steps green** |
 | 20 | Evidence-window freshness: max(published_on) vs snapshot.as_of | F4 | **DONE (measured + reported, not yet a hard gate) — see Loop 3** |
-| 21 | Mark absence-based support explicitly | F6 | TODO |
+| 21 | Mark absence-based support explicitly | F6 | **DONE — Loop 4** |
 | 22 | Apply genuine-contradiction standard retroactively to SANSERA | G1/B2 | TODO |
-| 23 | Require and test explicit domain exclusions for every archetype | G2 | **PARTIAL — ANANDRATHI plan + test already present; framework enforcement TODO** |
+| 23 | Require and test explicit domain exclusions for every archetype | G2 | **DONE — ResearchPlan.exclusions now mandatory framework-wide; SANSERA symmetry test added — Loop 4** |
 | 24 | Make `information_cutoff` required (no `date.today()` default) | Report 0 S3 | **VERIFIED — run #346 (35437730258)** |
 
 ## Immediate execution result
@@ -160,7 +160,12 @@ hypothesis), not a bare domain flag.
 - Executable-path regression coverage: **DONE — 14 focused tests pass, including both live runners**
 - Items 1, 24: **VERIFIED** (run #346, 35437730258) -- see above
 - Item 19: **VERIFIED** (run #348, 35438217592) -- see above
-- Full improvement suite (items 2, 4-14, 20-23): **NOT STARTED**
+- Item 20: **VERIFIED** (run #350, 35438667821) -- see above
+- Items 6, 10, 21, 23: **DONE, CI pending** (Loop 4, batched)
+- Item 5: **DONE as reported metric (not a hard gate), CI pending** (Loop 4)
+- Item 4: **PARTIAL (4a done, gaps-field TODO), CI pending** (Loop 4)
+- Item 9: **DEFERRED** -- needs an issuer-to-symbol map (Loop 4)
+- Remaining (items 2, 7, 8, 11-14, 22): **NOT STARTED**
 - SANSERA retroactive contradiction audit (#22): **NOT VERIFIED**
 - WELCORP adaptive rerun: **NOT VERIFIED**
 - Full adversarial council (Section 33): **NOT VERIFIED**
@@ -382,6 +387,96 @@ ANANDRATHI live PASS (gap=66, all other facts unchanged); both dossiers
 written.
 
 **CI: not yet verified for this loop.** Awaiting push and a fresh run.
+
+
+## Loop 4 — batched: items 4a, 5, 6, 10, 21, 23 (+ item 9 deferred)
+
+Paresh asked to speed up: club items where confidence is high, verify once
+with a full local pass, and use fewer CI round trips rather than one per
+item. Considered parallel subagents first and rejected it -- this is a
+single shared branch with a serialized CI pipeline and a handful of tightly
+coupled files (today's real bugs all came from cross-file dependencies:
+domain coverage, citation refs, tier consumers), so uncoordinated parallel
+edits would cost more in merge/re-verification than batching saves.
+Batching more items into fewer, still-fully-verified pushes was the actual
+lever.
+
+**Item 23 (framework-level exclusion enforcement):** `ResearchPlan` already
+had an `exclusions` field (default `()`); made it mandatory in
+`__post_init__`. Checked every construction site first -- both real
+archetypes already declare exclusions; only test fixtures needed a
+placeholder added (4 sites, across two files, one missed on the first pass
+because an earlier per-file grep check doesn't catch a file with some
+constructions fixed and others not -- caught by the second full-suite run).
+Added a SANSERA exclusions test mirroring the existing ANANDRATHI one.
+
+**Item 4a (URL format for non-derived tiers):** `validate_evidence_set` now
+requires a `http://`/`https://` source for any non-DERIVED item. DERIVED
+stays exempt (its `source` is a `research-window: ...` label, not a URL).
+Item 4's second half -- moving DERIVED "gaps" into their own dossier field
+rather than the shared evidence list -- is a bigger dossier-shape change
+and stays TODO rather than being rushed into this batch.
+
+**Item 5 (quality-aware domain coverage) -- implemented, found wrong, fixed
+within this same loop, not shipped broken:** first cut made a domain
+covered only by DERIVED evidence a hard `raise`. Running the full suite
+immediately (this is what "verify in full test" bought here) surfaced 13
+failures, not 1 -- the shared test fixture in `test_agent_research_execution.py`
+deliberately covers its CAPACITY domain with only a DERIVED "not disclosed"
+item, which is exactly the legitimate state Section 24 of the handover and
+item 21's own design protect ("we could not find disclosure" must not be
+punished or forced to look like something else). A hard gate here would
+have meant either fabricating evidence to satisfy the check or forbidding a
+disclosure gap from ever being honestly recorded -- both worse than the
+defect it was meant to fix. Reverted the hard gate; `validate_research_coverage`
+is back to its original presence check. Re-implemented item 5 as a
+REPORTED metric instead, consistent with items 18/20/21's pattern:
+`ResearchAudit.derived_only_domains` lists which of a plan's material
+domains have evidence but only DERIVED evidence. Confirmed both real
+packets currently report none.
+
+**Item 6 (truthful judge wording):** only SANSERA's dossier renderer had
+the overstated line ("passed... the adversarial publication gate");
+ANANDRATHI's never did. Replaced with wording naming exactly what
+`judge_dossier` checks (structural/provenance/coverage) and explicitly
+stating this is not a full adversarial council review.
+
+**Item 10 (age distribution + score rounding):** rounded SANSERA's dossier
+score to `:.6f`, matching ANANDRATHI's existing convention (no new format
+invented). Added five age buckets (`<=90d`, `91-180d`, `181-365d`, `>365d`,
+`unanchored`) to `ResearchAudit`, reusing the exact per-item temporal-anchor
+logic from item 20 (`published_on`, falling back to `event_date` for
+`undated_primary_source` items, DERIVED never contributing) rather than a
+second, possibly-inconsistent definition of "age". `unanchored` is its own
+bucket, not folded into `>365d` -- "no date at all" and "very old" are
+different findings and must not be conflated.
+
+**Item 21 (absence-based support flag):** a causal finding or contradiction
+is flagged when EVERY one of its `evidence_refs` resolves to a DERIVED item
+-- deliberately strict (partial-absence support, e.g. one real citation plus
+one derived one, is not flagged; that needs the more careful weighting item
+7/22 will require, not an automatable rule). Both real packets currently
+report 0/0 for both archetypes: SANSERA's contradictions that cite a
+DERIVED item always cite it alongside real evidence, not alone.
+
+**Item 9 (entity-relative source tiering) -- explicitly deferred, not
+attempted:** correctly flagging "Bharat Forge's own annual report is
+primary for Bharat Forge, not automatically primary for SANSERA" needs an
+issuer-to-symbol mapping this codebase does not have. A URL-shape heuristic
+(the technique that worked for item 19's bare-root/video-host check) cannot
+distinguish "issuer's own primary document" from "a fine primary source for
+a different company" -- guessing here would be exactly the kind of
+half-built heuristic the operating standard warns against. Left for real
+design work, not rushed into this batch.
+
+**Local verification (one pass, after the item-5 course-correction):**
+compileall OK; full regression 1155 passed, 1 deselected (same pre-existing
+worktree artifact); SANSERA live PASS (all facts unchanged except the new
+printed fields: age buckets 23/4/2/2/2, absence-based 0/0); ANANDRATHI live
+PASS (age buckets 11/2/0/0/3, absence-based 0/0); both dossiers written and
+visually checked for correct rendering of the new sections.
+
+**CI: not yet verified for this batch.** Awaiting push and a fresh run.
 
 ## Rule against false closure
 
