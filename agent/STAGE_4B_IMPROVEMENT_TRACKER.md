@@ -3,8 +3,15 @@
 **Status:** ACTIVE — fail-closed improvement loop  
 **Scope:** Stage-4B adaptive research / provenance / adversarial publication gate  
 **Source:** Report 1 + Report 1b + Report 2 supplied on 2026-09-19  
-**Current execution branch:** `agent/stage4b-second-archetype-clean`  
-**Current PR:** #15
+**PR #15 (`agent/stage4b-second-archetype-clean`): MERGED to `main`** as
+squash commit `93d1474` on 2026-09-19, after CI run #360 (35443317589)
+verified green on the final commit. Items 1-10, 15-24 above are now on
+`main`; items 2, 9, 11-14 remain open per Paresh's recorded decisions
+(Loop 8).  
+**Current execution branch:** `agent/stage4b-third-archetypes` (from `main`
+post-merge)  
+**Current PR:** none yet — third-archetype work (PAYTM, YATHARTH, LENSKART)
+in progress, see Loop 11 below.
 
 ## Operating rule
 
@@ -828,6 +835,47 @@ completed/success.
 opening further rounds looking for more issues, per Paresh's explicit
 "are we stuck in one loop" check -- this fix is shipped and closed, not a
 new open-ended thread.
+
+## Loop 11 — third/fourth/fifth archetypes: PAYTM, YATHARTH, LENSKART (in progress)
+
+Per Paresh's explicit instruction after the PR #15 merge ("run 2-3
+different companies analysis to get more ideas... move very fast"):
+extending real-data coverage to three more Top-25 candidates, chosen
+deliberately for archetype diversity against the two already built
+(SANSERA = industrial exporter, ANANDRATHI = wealth management) so real
+research surfaces new pipeline edge cases rather than repeating known
+patterns:
+
+- **PAYTM** (rank 7, One97 Communications) -- digital-payments/fintech
+  platform archetype: network effects, RBI/PA-CB regulatory exposure, no
+  physical order backlog.
+- **YATHARTH** (rank 17, Yatharth Hospital and Trauma Care Services) --
+  hospital-operator archetype: bed capacity/occupancy, ARPOB, payer mix,
+  government-scheme exposure.
+- **LENSKART** (rank 11) -- consumer D2C/omnichannel retail archetype:
+  store-network expansion, same-store growth, private-label margin.
+
+Dispatched as three parallel research agents, each given the exact current
+schema (`contracts.py`, `research_execution.py`, `company_research.py`)
+read directly from source rather than from memory, and every non-negotiable
+rule this session already paid to learn: mandatory non-trivial exclusions,
+`published_on` requirement with the narrow `undated_primary_source` escape,
+real `http(s)://` URLs only, PRIMARY-tier rejection for video hosts/bare
+domain roots, claim-keyed refs (never positional), two-sided
+non-strawman contradictions with disjoint ref lists, full hypothesis
+coverage, and an explicit no-fabrication requirement (every source must be
+actually fetched and read, not inferred). Each agent works only on its own
+three new files (`agent/<symbol>_research_packet.py`,
+`scripts/stage4b_<symbol>_live_validation.py`,
+`tests/test_agent_<symbol>_execution.py`) and does not touch any existing
+file or commit -- integration, verification against real data, CI wiring,
+and the commit/push are done centrally, one company at a time, with the
+same discipline as every prior loop (full local suite, both/all live
+scripts, actual CI run ID checked before any VERIFIED claim).
+
+**Status: agents dispatched, not yet integrated.** This section will be
+completed with each company's actual evidence count, source list, and CI
+run ID once real, verified.
 
 ## Rule against false closure
 
