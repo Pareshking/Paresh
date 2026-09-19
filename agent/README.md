@@ -66,3 +66,10 @@ The detailed Stage 1 PDCA record is in `agent/STAGE_1_PDCA.md`. Each later stage
 ## Current status
 
 **Stage 1 — Foundation: re-reviewed and hardened.** The repository audit exposed additional provenance requirements and one precomputed-ranking contract gap; those are being addressed on this branch before Stage 2 begins. No production ranking methodology or portfolio behaviour is intentionally changed by the agent layer.
+
+
+## Stage-2 implementation
+
+`agent/quant_hand_off.py` is the single Stage-2 quantitative hand-off owner. It reads the existing published `rankings.parquet` through `ranking_store.fetch_snapshot()`, validates the embedded contract and row integrity, and produces a `QuantSnapshot`. It does not download prices, invoke the ranking engine, or silently fall back to recalculation.
+
+Current Stage-2 verification remains **NOT VERIFIED** for local pytest, GitHub Actions, and live published-artifact E2E until those checks are actually observed.
