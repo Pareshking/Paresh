@@ -205,6 +205,7 @@ def test_post_cutoff_evidence_is_rejected():
         claim="Later event",
         source="https://primary.example/later",
         source_tier=SourceTier.PRIMARY,
+        published_on=date(2026, 9, 10),
         event_date=date(2026, 9, 19),
         retrieved_on=date(2026, 9, 19),
         domain=ResearchDomain.ORDERS,

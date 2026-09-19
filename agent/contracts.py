@@ -100,6 +100,16 @@ class Evidence:
     hypothesis: str = ""
     confidence: float | None = None
     notes: str = ""
+    undated_primary_source: bool = False
+    """Explicit, narrow escape from the published_on requirement in
+    validate_evidence_set (tracker item 1 / A1) for a source that genuinely
+    carries no publication date -- an evergreen page (e.g. a static "about
+    us" page) or a live site showing only an "as of" data date, as opposed
+    to a dated document or article. Defaults to False so a missing date
+    fails closed by default; it must be set deliberately, per item, after
+    confirming (e.g. by fetching the live source) that no date exists to
+    record. When True, event_date must still be set -- there must be some
+    verifiable temporal anchor, even if it is not a publication date."""
 
     def __post_init__(self) -> None:
         if not self.entity.strip():
@@ -121,6 +131,10 @@ class Evidence:
             raise ValueError("event_date cannot be after retrieved_on")
         if not self.materiality.strip():
             raise ValueError("materiality is required")
+        if self.undated_primary_source and self.event_date is None:
+            raise ValueError(
+                "undated_primary_source requires event_date as a temporal anchor"
+            )
 
 
 @dataclass(frozen=True)

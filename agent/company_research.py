@@ -18,6 +18,7 @@ from agent.contracts import (
     ResearchDomain,
     ResearchItem,
     ResearchPlan,
+    SourceTier,
     validate_snapshot,
 )
 
@@ -76,8 +77,16 @@ def validate_evidence_set(
     candidates: Iterable[ResearchCandidate],
     evidence: Iterable[Evidence],
     *,
-    information_cutoff: date | None = None,
+    information_cutoff: date,
 ) -> None:
+    """Validate an evidence set against its research candidates.
+
+    `information_cutoff` is required, not defaulted to `date.today()`. A
+    caller-supplied cutoff makes cutoff enforcement reproducible regardless of
+    the day the validator happens to run; a silent "today" default previously
+    let a future-publication test pass or fail depending on the calendar date
+    (see Stage-4B improvement tracker, item 24 / Report 0 S3).
+    """
     allowed = {candidate.symbol for candidate in candidates}
     ids: set[tuple[str, str, str]] = set()
 
@@ -85,12 +94,21 @@ def validate_evidence_set(
         symbol = item.entity.strip().upper()
         if symbol not in allowed:
             raise ValueError(f"evidence entity is outside research candidate set: {symbol}")
-        cutoff = information_cutoff or date.today()
-        if item.published_on and item.published_on > cutoff:
+        if (
+            item.source_tier is not SourceTier.DERIVED
+            and item.published_on is None
+            and not item.undated_primary_source
+        ):
+            raise ValueError(
+                "primary/secondary evidence requires published_on "
+                "(or an explicit, reviewed undated_primary_source=True): "
+                f"{symbol}: {item.claim.strip()[:80]!r}"
+            )
+        if item.published_on and item.published_on > information_cutoff:
             raise ValueError("evidence publication date is after the information cutoff")
         if (
             item.event_date
-            and item.event_date > cutoff
+            and item.event_date > information_cutoff
             and item.domain is not ResearchDomain.SCHEDULED_EVENTS
         ):
             raise ValueError("evidence event date is after the information cutoff")

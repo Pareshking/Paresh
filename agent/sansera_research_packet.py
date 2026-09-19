@@ -156,6 +156,9 @@ def sansera_evidence() -> tuple[Evidence, ...]:
             claim="Bharat Forge reported a FY26 defence order book of INR 10,961 crore and is expanding aerospace and defence manufacturing, providing a relevant Indian precision-engineering comparison with broader non-auto exposure.",
             source="https://www.bharatforge.com/AR2026/operational-highlights.html",
             source_tier=SourceTier.PRIMARY,
+            # Live-fetched and confirmed 2026-09-19: this page states "Annual
+            # Report FY 2025-26" but no publication/board-approval/filing date.
+            undated_primary_source=True,
             event_date=date(2026, 3, 31), retrieved_on=RETRIEVED,
             domain=ResearchDomain.PEERS, materiality="medium",
             hypothesis="Is ADS growth structurally durable, or is the current backlog concentrated in a small number of customers and execution programs?",
@@ -173,7 +176,11 @@ def sansera_evidence() -> tuple[Evidence, ...]:
             entity="SANSERA", kind=EvidenceKind.POSITIVE,
             claim="ACMA reports FY2025-26 Indian auto-component turnover of INR 7.59 lakh crore, 12.7% growth, OEM supplies growth of 16.3%, and exports of USD 24 billion, supporting a broad industry demand/localisation backdrop.",
             source="https://acma.in/about-us.php",
-            source_tier=SourceTier.PRIMARY, event_date=date(2026, 3, 31), retrieved_on=RETRIEVED,
+            source_tier=SourceTier.PRIMARY,
+            # Live-fetched and confirmed 2026-09-19: a static "about us" page
+            # with no publication date anywhere on it.
+            undated_primary_source=True,
+            event_date=date(2026, 3, 31), retrieved_on=RETRIEVED,
             domain=ResearchDomain.INDUSTRY, materiality="medium",
             hypothesis="Is the current diversification producing a durable improvement in revenue quality and margins?",
         ),
@@ -218,6 +225,10 @@ def sansera_evidence() -> tuple[Evidence, ...]:
             claim="Sansera's FY2024-25 annual report stated that raw-material cost fluctuations were fully passed through across domestic and international ICE businesses, supporting historical pricing resilience.",
             source="https://sansera.in/wp-content/uploads/2025/08/Annual-Report-2024-25.pdf",
             source_tier=SourceTier.PRIMARY,
+            # Fetched 2026-09-19: no authoritative publication date extracted
+            # from the PDF (only file-upload-path/XMP metadata pointing at
+            # 2025-08, which is circumstantial, not a disclosed filing date).
+            undated_primary_source=True,
             event_date=date(2025, 3, 31), retrieved_on=RETRIEVED,
             domain=ResearchDomain.INPUTS_ENERGY, materiality="high",
             hypothesis="Is the current diversification producing a durable improvement in revenue quality and margins?",

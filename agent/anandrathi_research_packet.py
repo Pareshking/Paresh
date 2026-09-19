@@ -78,6 +78,10 @@ def anandrathi_evidence() -> tuple[Evidence, ...]:
             claim="As of 30 June 2026, AUM was INR 1,06,300+ crore, with 417+ relationship managers and 13,941+ clients according to the company's current website.",
             source="https://www.anandrathiwealth.in/",
             source_tier=SourceTier.PRIMARY,
+            # Live-fetched and confirmed 2026-09-19: the homepage shows
+            # "(As of 30 June 2026)" against these figures -- a data date,
+            # not a publication date; the page itself is undated/evergreen.
+            undated_primary_source=True,
             event_date=date(2026, 6, 30), retrieved_on=RETRIEVED,
             domain=ResearchDomain.CUSTOMERS_SUPPLIERS, materiality="high",
             hypothesis="Is AUM growth being supported by durable client acquisition and retention rather than market appreciation alone?",

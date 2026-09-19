@@ -86,10 +86,13 @@ def test_duplicate_evidence_claim_fails():
         claim="Same claim",
         source="https://example.com",
         source_tier=SourceTier.PRIMARY,
+        published_on=date(2026, 9, 10),
         retrieved_on=date(2026, 9, 19),
     )
     with pytest.raises(ValueError, match="duplicate evidence claim"):
-        validate_evidence_set(candidates, (evidence, evidence))
+        validate_evidence_set(
+            candidates, (evidence, evidence), information_cutoff=date(2026, 9, 18)
+        )
 
 
 def test_unknown_is_preserved():
@@ -115,6 +118,7 @@ def test_research_does_not_change_rank_or_score():
         claim="Verified event",
         source="https://example.com",
         source_tier=SourceTier.PRIMARY,
+        published_on=date(2026, 9, 10),
         retrieved_on=date(2026, 9, 19),
     )
     result = build_research_items(snap, (evidence,))
@@ -176,6 +180,7 @@ def test_event_date_after_snapshot_cutoff_fails():
     evidence = Evidence(
         entity="AAA", kind=EvidenceKind.POSITIVE, claim="Later event",
         source="https://example.com", source_tier=SourceTier.PRIMARY,
+        published_on=date(2026, 9, 10),
         event_date=date(2026, 9, 19), retrieved_on=date(2026, 9, 19),
     )
     with pytest.raises(ValueError, match="after the information cutoff"):
