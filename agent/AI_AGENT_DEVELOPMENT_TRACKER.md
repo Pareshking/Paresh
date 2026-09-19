@@ -34,3 +34,26 @@
 Current adaptive sample: `agent/STAGE_4_ADAPTIVE_RESULT_DIVISLAB_2026-09-19.md`
 
 **Gate: OPEN / NOT VERIFIED.**
+
+## Stage 4B — Adaptive Research Execution Engine — 2026-09-19
+
+[✓] Fresh Stage-4B execution plan written before implementation
+[✓] Added deterministic provider-packet execution boundary
+[✓] Added hypothesis-bound evidence provenance
+[✓] Added causal-finding provenance and timing/uncertainty requirements
+[✓] Added contradiction/prosecution findings as first-class records
+[✓] Added publication Judge gate
+[✓] Added future scheduled-event handling without weakening historical cutoff controls
+[✓] Performed a fresh real SANSERA research cycle with primary/secondary web evidence
+[✓] Built company-specific SANSERA ResearchPlan and causal model
+[✓] Added industry, peer, government, tariff, FX, input, technology, capital, legal and market-reaction context only where material
+[✓] Added explicit unresolved questions and monitoring questions
+[ ] Current-head CI verification
+[ ] Machine-executed SANSERA dossier artifact verification
+[ ] Full adversarial council recorded against the machine-generated dossier
+[ ] Second materially different archetype execution
+
+Current branch: agent/stage4b-execution
+Current PR: #13
+
+**Gate: OPEN / NOT VERIFIED.** The real research has been performed, but the repository execution/CI gate has not yet produced a current-head run.
