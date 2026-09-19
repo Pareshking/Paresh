@@ -173,7 +173,7 @@ class ResearchDossier:
 
 
 _INR_VALUE_PATTERN = re.compile(
-    r"INR\s+([\d,]+(?:\.\d+)?)(?:\s*-\s*([\d,]+(?:\.\d+)?))?\s*"
+    r"INR\s+([\d,]+(?:\.\d+)?)\+?(?:\s*-\s*([\d,]+(?:\.\d+)?)\+?)?\s*"
     r"(lakh crore|crore|million|billion)",
     re.IGNORECASE,
 )
@@ -183,13 +183,16 @@ _NUMERIC_DISAGREEMENT_MATERIALITY = 0.10  # 10%
 
 def _extract_inr_million_values(claim: str) -> frozenset[float]:
     """Extract every INR-denominated figure in a claim, normalized to a
-    common unit (INR million), from patterns like "INR 44,368 million" or
-    "INR 5,500-6,000 million" (both range endpoints). Anchored on the
-    literal word "INR" so it only extracts monetary figures this dataset
-    actually states this way, not any bare number in the text -- narrow by
-    design (item 8; Section 23 of the handover: "start with deterministic
-    detection where possible... do not build an overly ambitious NLP
-    system")."""
+    common unit (INR million), from patterns like "INR 44,368 million",
+    "INR 5,500-6,000 million" (both range endpoints), or "INR 1,06,300+
+    crore" (a trailing "+" is tolerated and ignored -- real evidence in
+    this dataset states AUM this way, e.g. anandrathi_research_packet.py's
+    website-sourced figure, and the "+" must not silently drop the figure
+    from disagreement detection). Anchored on the literal word "INR" so it
+    only extracts monetary figures this dataset actually states this way,
+    not any bare number in the text -- narrow by design (item 8; Section 23
+    of the handover: "start with deterministic detection where possible...
+    do not build an overly ambitious NLP system")."""
     values: set[float] = set()
     for match in _INR_VALUE_PATTERN.finditer(claim):
         multiplier = _INR_UNIT_TO_MILLION[match.group(3).lower()]

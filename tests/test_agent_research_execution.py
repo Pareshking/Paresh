@@ -446,3 +446,50 @@ def test_numeric_disagreement_ignores_unrelated_co_occurring_figures():
     )
     dossier = execute_research(snapshot(), ResearchCandidate("BBB", 2, 2.0, {}), bad)
     assert dossier.audit.numeric_disagreements == ()
+
+
+def test_numeric_disagreement_extracts_plus_suffixed_figures():
+    """Real ANANDRATHI evidence states a headline figure as "INR 1,06,300+
+    crore" (a trailing "+" meaning "at least"). The extractor must not
+    silently drop that figure from disagreement detection just because of
+    the "+" -- confirmed by direct testing that the original regex failed
+    to match it at all (item 8 follow-up, found during a manual audit pass,
+    2026-09-19). A genuinely differing headline figure restated verbatim
+    must still be caught even when the first claim uses the "+" form."""
+    p = packet()
+    evidence = p.evidence + (
+        Evidence(
+            entity="BBB",
+            kind=EvidenceKind.POSITIVE,
+            claim="Backlog was INR 44,368+ million at June 2026 according to the company's current website.",
+            source="https://primary.example/backlog-plus",
+            source_tier=SourceTier.PRIMARY,
+            published_on=date(2026, 8, 1),
+            retrieved_on=date(2026, 9, 19),
+            domain=ResearchDomain.ORDERS,
+            hypothesis="Can order growth convert into revenue?",
+        ),
+        Evidence(
+            entity="BBB",
+            kind=EvidenceKind.NEGATIVE,
+            claim="A later update put backlog at INR 57,500 million, up from INR 44,368 million.",
+            source="https://secondary.example/backlog-correction",
+            source_tier=SourceTier.SECONDARY,
+            published_on=date(2026, 9, 1),
+            retrieved_on=date(2026, 9, 19),
+            domain=ResearchDomain.ORDERS,
+            hypothesis="Can order growth convert into revenue?",
+        ),
+    )
+    bad = ResearchProviderPacket(
+        plan=p.plan,
+        evidence=evidence,
+        causal_findings=p.causal_findings,
+        contradictions=p.contradictions,
+        unresolved_questions=p.unresolved_questions,
+        monitoring_questions=p.monitoring_questions,
+    )
+    dossier = execute_research(snapshot(), ResearchCandidate("BBB", 2, 2.0, {}), bad)
+    assert len(dossier.audit.numeric_disagreements) == 1
+    assert "44368" in dossier.audit.numeric_disagreements[0]
+    assert "57500" in dossier.audit.numeric_disagreements[0]
