@@ -66,7 +66,7 @@ def test_future_publication_date_fails():
         source="https://example.com",
         source_tier=SourceTier.PRIMARY,
         published_on=date.today() + timedelta(days=1),
-        retrieved_on=date.today(),
+        retrieved_on=date.today() + timedelta(days=1),
     )
     with pytest.raises(ValueError, match="after the information cutoff"):
         validate_evidence_set(candidates, (evidence,))
