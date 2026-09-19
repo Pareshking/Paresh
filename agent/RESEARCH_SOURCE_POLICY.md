@@ -48,3 +48,47 @@ UNKNOWN means the fact is relevant but its directional effect cannot be establis
 ## Publication gate
 
 A report is publishable only when each substantive claim has a traceable source, dates are coherent, entity identity is correct, evidence classification is explicit, and unresolved uncertainty is visible.
+
+
+## Deep research expansion — 2026-09-19
+
+Stage 4 is a 360-degree contextual research process, not an announcement feed. Source collection must cover the company plus peers, industry, sector, government/regulation, macro/geopolitics, commodities/energy, FX, tariffs/trade, capacity/utilisation, customers/suppliers, technology/IP, capital markets and market reaction.
+
+### Document priority
+
+For material claims, inspect the underlying document whenever reasonably available:
+- annual report;
+- quarterly results;
+- investor presentation;
+- earnings-call transcript;
+- exchange filing and attachment;
+- regulator/government document;
+- official project/tender document.
+
+An index page or headline is discovery evidence, not sufficient evidence for a deeper financial conclusion.
+
+### Cross-source triangulation
+
+For material developments, seek at least two independent layers where practical:
+1. company/filing evidence;
+2. external industry, government, customer, peer or market evidence.
+
+The second layer may corroborate, qualify, contradict or merely contextualise the first. It must not be presented as confirmation unless it actually confirms the fact.
+
+### Second-order impact discipline
+
+Research must explicitly investigate second-order channels such as input costs, energy, freight, FX, tariffs, funding constraints, capacity bottlenecks, customer concentration, competitor capacity, government spending and geopolitical disruption.
+
+A scenario is not a fact. Statements such as “crude up will hurt margins” require company-specific exposure, contract/pricing evidence and timing before being classified as an established impact.
+
+### Event lifecycle
+
+Track MOU/proposal/approval/funding/construction/commissioning/production/order/execution separately. Track proposed transactions separately from completed or cancelled transactions.
+
+### Unknown reduction
+
+UNKNOWN is a research state. Every important UNKNOWN should have a follow-up question and, where possible, the evidence that would resolve it. The system should measure UNKNOWNs resolved over time rather than hiding uncertainty.
+
+### Source-quality metrics
+
+Stage 4 should record primary-source coverage, underlying-document review rate, peer/industry coverage, contradiction count, stale evidence and factual corrections.
