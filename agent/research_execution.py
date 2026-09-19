@@ -234,7 +234,7 @@ def execute_research(
     if not causal:
         blockers.append("no causal analysis")
     if not contradictions:
-        blockers.append("no contradiction search")
+        blockers.append("no contradiction challenge/search")
     if not unresolved and not monitoring:
         blockers.append("no unresolved or monitoring questions")
 
