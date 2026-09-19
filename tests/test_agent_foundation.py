@@ -56,7 +56,10 @@ def test_fingerprint_is_stable_and_uses_canonical_config() -> None:
     second = config_fingerprint()
     assert first == second
     assert len(first) == 64
-    assert canonical_config_payload()["benchmark_symbol"] == "^CRSLDX"
+    payload = canonical_config_payload()
+    assert payload["benchmark_symbol"] == "^CRSLDX"
+    assert payload["pipeline_version"]
+    assert payload["ranking_price_source"]
 
 
 def test_report_rejects_duplicate_symbols() -> None:
@@ -109,3 +112,16 @@ def test_report_rejects_review_for_unknown_symbol() -> None:
     )
     with pytest.raises(ValueError, match="review symbol"):
         validate_report(report)
+
+
+def test_snapshot_rejects_price_as_of_after_snapshot_as_of() -> None:
+    snapshot = QuantSnapshot(
+        as_of=date(2026, 9, 18),
+        benchmark="^CRSLDX",
+        universe="NIFTY TOTAL MARKET",
+        model="System-1",
+        config_fingerprint="abc",
+        price_as_of=date(2026, 9, 19),
+    )
+    with pytest.raises(ValueError, match="price_as_of"):
+        validate_snapshot(snapshot)
