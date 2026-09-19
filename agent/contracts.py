@@ -112,7 +112,12 @@ class Evidence:
             raise ValueError("confidence must be between 0 and 1")
         if self.published_on and self.retrieved_on and self.published_on > self.retrieved_on:
             raise ValueError("published_on cannot be after retrieved_on")
-        if self.event_date and self.retrieved_on and self.event_date > self.retrieved_on:
+        if (
+            self.event_date
+            and self.retrieved_on
+            and self.event_date > self.retrieved_on
+            and self.domain is not ResearchDomain.SCHEDULED_EVENTS
+        ):
             raise ValueError("event_date cannot be after retrieved_on")
         if not self.materiality.strip():
             raise ValueError("materiality is required")
