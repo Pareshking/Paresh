@@ -1,10 +1,13 @@
-# Research Agent — Foundation
+# Research Agent — Paresh Integration
+
+**Start here: [`REPO_INTEGRATION_MAP.md`](REPO_INTEGRATION_MAP.md).** It is the
+agent-facing map of existing Paresh capabilities and the non-duplication rules.
 
 This directory adds an agent/orchestration layer around the existing Paresh quantitative engine.
 
 ## Non-negotiable architecture
 
-The agent is **not** a second ranking engine. It consumes the canonical outputs already produced by `src/engine` and treats those outputs as facts.
+The agent is **not** a second ranking engine. It consumes the canonical outputs already produced by Paresh and treats those outputs as facts. The normal Stage-2 quantitative input is the existing `rankings.parquet` release asset, not a fresh price download or a duplicate ranking calculation.
 
 The agent may:
 - explain quantitative results;
@@ -24,7 +27,7 @@ The agent must not:
 ## Staged implementation
 
 1. **Foundation** — contracts, provenance, evidence model and report schema.
-2. **Quant adapter** — expose the existing screener/backtest outputs through read-only agent tools.
+2. **Quant hand-off** — consume and validate the existing precomputed ranking artifact and expose its rows/provenance through read-only agent tools. Recalculation is reserved for an explicit audit, never the normal path.
 3. **Market hierarchy** — market → sector → industry → peer context.
 4. **Company research** — events, filings, announcements, corporate actions and material news.
 5. **Adversarial review** — researcher → challenger → reviewer.
@@ -54,7 +57,7 @@ Stage 1 is complete only when all of these are true:
 3. **Check** — provenance fields are validated, confidence is bounded, evidence cannot be placed in the wrong bucket, report symbols are unique, and reviews cannot reference absent symbols.
 4. **Act** — the runner uses the live canonical V1 configuration fingerprint rather than an `UNWIRED` placeholder, and the foundation tests are part of normal pytest discovery.
 
-Stage 1 deliberately does **not** fetch prices, call external research providers, rank securities, or change portfolio behaviour.
+Stage 1 deliberately does **not** fetch prices, call external research providers, rank securities, or change portfolio behaviour. The post-Stage-1 repository audit also confirmed that Stage 2 must reuse the existing ranking snapshot, price snapshot, universe, membership, taxonomy, backtest and track-record infrastructure rather than duplicate them.
 
 ## PDCA record
 
@@ -62,4 +65,4 @@ The detailed Stage 1 PDCA record is in `agent/STAGE_1_PDCA.md`. Each later stage
 
 ## Current status
 
-**Stage 1 — Foundation: complete.** No production ranking or portfolio behaviour is changed by these files.
+**Stage 1 — Foundation: re-reviewed and hardened.** The repository audit exposed additional provenance requirements and one precomputed-ranking contract gap; those are being addressed on this branch before Stage 2 begins. No production ranking methodology or portfolio behaviour is intentionally changed by the agent layer.
