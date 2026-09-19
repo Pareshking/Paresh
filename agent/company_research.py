@@ -153,5 +153,3 @@ def validate_research_plan(plan: ResearchPlan) -> None:
         raise ValueError("research plan contains duplicate material domains")
     if any(not question.strip() for question in plan.hypotheses):
         raise ValueError("research plan contains an empty hypothesis/question")
-    if any(domain in plan.material_domains for domain in ()):
-        raise ValueError("invalid research plan")
