@@ -49,6 +49,29 @@ class ResearchDomain(str, Enum):
 
 
 @dataclass(frozen=True)
+class ResearchPlan:
+    """Company-specific research lens selected before evidence collection."""
+    symbol: str
+    company_archetype: str
+    economic_drivers: tuple[str, ...]
+    material_domains: tuple[ResearchDomain, ...]
+    hypotheses: tuple[str, ...]
+    exclusions: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.symbol.strip():
+            raise ValueError("research plan symbol is required")
+        if not self.company_archetype.strip():
+            raise ValueError("research plan company_archetype is required")
+        if not self.economic_drivers:
+            raise ValueError("research plan requires economic drivers")
+        if not self.material_domains:
+            raise ValueError("research plan requires material domains")
+        if not self.hypotheses:
+            raise ValueError("research plan requires hypotheses/questions")
+
+
+@dataclass(frozen=True)
 class QuantSnapshot:
     as_of: date
     benchmark: str
