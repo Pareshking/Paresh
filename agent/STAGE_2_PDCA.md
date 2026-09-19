@@ -174,3 +174,8 @@ The repository is **not globally green**. The unrelated full-universe validation
 - Stage 2 is closed.
 - Stage 3 may be planned, but must begin with repository inspection and a written Stage-3 plan as required by the master trigger.
 - The existing full-universe validation failure remains a separate canonical-system QA issue; do not patch it inside the agent layer or silently lower its threshold.
+
+
+## Clarification — 2026-09-19
+
+The 430/750 validation failure must not be described as a failure of the current Screener-driven production ranking. `scripts/full_validation.py` directly calls `src.loaders.price_loader.fetch_price_history()`, which is the Yahoo/yfinance historical-price path. The canonical production ranking source-selection layer can use Screener; the verified Stage-2 artifact did use Screener and contained 750 rows as of 2026-09-18. Thus the observed 430/750 figure belongs to the separate Yahoo-backed full-validation path, not to the verified Screener-backed Stage-2 hand-off. No methodology or threshold change is made by this clarification.
