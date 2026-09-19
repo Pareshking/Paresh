@@ -91,3 +91,18 @@ From this verification onward, Stage-3 cannot be considered fully verified merel
 5. retained CI evidence.
 
 If live execution cannot be performed, the documentation must explicitly say **NOT VERIFIED** rather than implying that synthetic tests are live evidence.
+
+## Repeat and durable retention — workflow #296
+
+After the first live run, the workflow was repaired so the Stage-3 output is uploaded immediately after the live step and is not lost when a later unrelated QA gate fails.
+
+V1 Full Validation run **#296** repeated the live Stage-3 execution successfully with the same current published snapshot and Top-25 output, then:
+
+- Stage-3 live hierarchy output: **PASS**
+- Retain Stage-3 live hierarchy artifact: **PASS**
+- Artifact name: `stage3-live-hierarchy`
+- Artifact size: **2,418 bytes**
+- Artifact SHA-256: `a82d1e7d52f7ea170a522094303f7b102451c9040285af68ebc7ef2e30194fcf`
+- Artifact contents verified after download: `stage3_live_hierarchy.md`
+
+The workflow still fails later at the pre-existing full-universe Yahoo validation. That later failure does not invalidate the already-passed Stage-3 live step or its retained artifact.
