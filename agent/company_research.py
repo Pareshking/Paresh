@@ -11,7 +11,15 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Iterable
 
-from agent.contracts import Evidence, EvidenceKind, QuantSnapshot, ResearchDomain, ResearchItem, ResearchPlan, validate_snapshot
+from agent.contracts import (
+    Evidence,
+    EvidenceKind,
+    QuantSnapshot,
+    ResearchDomain,
+    ResearchItem,
+    ResearchPlan,
+    validate_snapshot,
+)
 
 
 @dataclass(frozen=True)
@@ -122,18 +130,22 @@ def build_research_items(
     )
 
 
-# Domains that must be explicitly researched or marked UNKNOWN for every company.
-REQUIRED_RESEARCH_DOMAINS: tuple[ResearchDomain, ...] = tuple(ResearchDomain)
-
-
 def validate_research_coverage(
     evidence: Iterable[Evidence],
-    required_domains: Iterable[ResearchDomain] = REQUIRED_RESEARCH_DOMAINS,
+    required_domains: Iterable[ResearchDomain],
 ) -> None:
-    """Require an explicit evidence/unknown state for every research domain."""
+    """Require explicit evidence/unknown state only for selected material domains.
+
+    There is intentionally no universal domain checklist. The ResearchPlan is
+    the company-specific source of truth for which domains are material.
+    """
     evidence_tuple = tuple(evidence)
+    selected = tuple(required_domains)
+    if len(selected) != len(set(selected)):
+        raise ValueError("research coverage contains duplicate required domains")
+
     covered = {item.domain for item in evidence_tuple}
-    missing = [domain.value for domain in required_domains if domain not in covered]
+    missing = [domain.value for domain in selected if domain not in covered]
     if missing:
         raise ValueError("research coverage missing domains: " + ", ".join(missing))
 
