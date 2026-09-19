@@ -212,8 +212,13 @@ def anandrathi_evidence() -> tuple[Evidence, ...]:
 
 def anandrathi_packet() -> ResearchProviderPacket:
     evidence = anandrathi_evidence()
-    refs = tuple(evidence_ref(e) for e in evidence)
-    by_h = {e.hypothesis: [] for e in evidence}
+    refs = {e.claim: evidence_ref(e) for e in evidence}
+
+    def ref(claim: str) -> str:
+        try:
+            return refs[claim]
+        except KeyError as exc:
+            raise ValueError(f"unknown evidence claim: {claim}") from exc
     return ResearchProviderPacket(
         plan=anandrathi_plan(),
         evidence=evidence,
@@ -224,7 +229,7 @@ def anandrathi_packet() -> ResearchProviderPacket:
                 mechanism="Net client inflows add assets directly, while portfolio appreciation raises AUM without equivalent new-client funding; revenue then depends on the monetisation of the resulting asset base.",
                 timing="Quarterly and multi-year; the next earnings cycles can separate flow-led from market-led AUM growth.",
                 uncertainty="The reviewed materials do not provide a full revenue sensitivity to market levels.",
-                evidence_refs=(refs[1], refs[2], refs[3], refs[4], refs[13], refs[14]),
+                evidence_refs=(ref("As of 30 June 2026, AUM was INR 1,06,300+ crore, with 417+ relationship managers and 13,941+ clients according to the company's current website."), ref("Q1FY27 AUM rose 21% YoY to INR 1,06,300 crore and net inflows were INR 2,743 crore; active client families rose 13% YoY to 13,941."), ref("Q1FY27 client attrition measured by AUM lost was 0.09%; management also reported zero regret relationship-manager attrition during the quarter."), ref("Q1FY27 net inflows were INR 2,743 crore versus INR 3,824 crore in Q1FY26, so the inflow contribution was lower year over year even as AUM increased."), ref("AUM growth contains a market-performance component: management stated that about 14% of Q1FY27 AUM growth came from net inflows, with the remainder supported by portfolio appreciation."), ref("The reviewed disclosures do not provide a sufficiently detailed stress test of revenue and PAT under a prolonged equity-market drawdown; market sensitivity therefore remains partly unresolved.")),
             ),
             CausalFinding(
                 hypothesis=anandrathi_plan().hypotheses[1],
@@ -232,7 +237,7 @@ def anandrathi_packet() -> ResearchProviderPacket:
                 mechanism="Revenue is linked to assets and client relationships, while a large portion of operating cost is people-driven; RM capacity utilisation and client acquisition therefore matter to incremental margins.",
                 timing="Near-to-medium term, with management explicitly discussing two-year operating leverage.",
                 uncertainty="The effect of the one-time ESOP charge versus recurring employee-cost growth requires subsequent quarters to separate.",
-                evidence_refs=(refs[6], refs[7], refs[8]),
+                evidence_refs=(ref("The company's Q1FY27 management interview states that operating leverage is expected to improve over the next two years and highlights RM capacity utilisation and new RM hiring as growth levers."), ref("Q1FY27 reported EBITDA margin fell to about 34% from 47% a year earlier, with employee costs rising 53% YoY; reporting included a one-time ESOP charge."), ref("The board approved a proposal to apply to SEBI to act as sponsor of a mutual fund under the SEBI Mutual Funds Regulations 2026.")),
             ),
             CausalFinding(
                 hypothesis=anandrathi_plan().hypotheses[2],
@@ -240,7 +245,7 @@ def anandrathi_packet() -> ResearchProviderPacket:
                 mechanism="Regulatory approval would be required before launch; product mix, fees, distribution arrangements and investment scale would determine incremental economics.",
                 timing="Future and conditional; no completed AMC launch is established by the reviewed evidence.",
                 uncertainty="Approval, launch timing, fee structure, AUM ramp and profitability remain unknown.",
-                evidence_refs=(refs[9], refs[10], refs[11]),
+                evidence_refs=(ref("SEBI's Mutual Funds Regulations 2026 are the current regulatory framework for mutual funds, with the regulation page last amended on 7 July 2026."), ref("The reviewed materials confirm the AMC application but do not establish the eventual approval date, product launch timing, fee structure, distribution economics or incremental profitability of the proposed AMC."), ref("Digital Wealth AUM reached INR 2,526 crore in Q1FY27, up 23% YoY, and the company reported that its UK subsidiary had started operations.")),
             ),
             CausalFinding(
                 hypothesis=anandrathi_plan().hypotheses[3],
@@ -248,7 +253,7 @@ def anandrathi_packet() -> ResearchProviderPacket:
                 mechanism="Portfolio appreciation affects AUM without new inflows; weak markets can reduce AUM-based revenue even if client relationships remain intact, while digital/UK channels may diversify future growth.",
                 timing="Ongoing; stress becomes visible through AUM, flows and revenue across subsequent quarters.",
                 uncertainty="No company-specific prolonged-bear-market sensitivity was established.",
-                evidence_refs=(refs[12], refs[14], refs[15], refs[16]),
+                evidence_refs=(ref("FY26 annual reporting shows AUM of INR 93,037 crore, 13,395 active client families and 401 relationship managers at 31 March 2026, with five-year growth across these operating metrics."), ref("The reviewed disclosures do not provide a sufficiently detailed stress test of revenue and PAT under a prolonged equity-market drawdown; market sensitivity therefore remains partly unresolved."), ref("The reviewed Q1FY27 materials do not establish the future contribution, cost structure or return profile of the UK, digital and proposed AMC initiatives at scale."), refs[16]),
             ),
         ),
         contradictions=(
@@ -257,28 +262,28 @@ def anandrathi_packet() -> ResearchProviderPacket:
                 original_claim="AUM growth demonstrates durable underlying business growth.",
                 counter_evidence="Only about 14% of Q1FY27 AUM growth came from net inflows according to management; the remainder was supported by portfolio appreciation, while Q1 net inflows were lower than the prior-year quarter.",
                 resolution="Separate flow-led growth from market-led AUM growth; both contribute to reported AUM but have different durability implications.",
-                evidence_refs=(refs[2], refs[4], refs[14]),
+                evidence_refs=(ref("Q1FY27 AUM rose 21% YoY to INR 1,06,300 crore and net inflows were INR 2,743 crore; active client families rose 13% YoY to 13,941."), ref("Q1FY27 net inflows were INR 2,743 crore versus INR 3,824 crore in Q1FY26, so the inflow contribution was lower year over year even as AUM increased."), ref("The reviewed disclosures do not provide a sufficiently detailed stress test of revenue and PAT under a prolonged equity-market drawdown; market sensitivity therefore remains partly unresolved.")),
             ),
             ContradictionFinding(
                 hypothesis=anandrathi_plan().hypotheses[1],
                 original_claim="Strong client/RM growth should produce operating leverage.",
                 counter_evidence="Q1 employee costs increased 53% YoY and reported EBITDA margin declined to about 34%, partly because of a one-time ESOP charge.",
                 resolution="Treat operating leverage as a management hypothesis to be monitored, not as a completed outcome.",
-                evidence_refs=(refs[6], refs[7], refs[8]),
+                evidence_refs=(ref("The company's Q1FY27 management interview states that operating leverage is expected to improve over the next two years and highlights RM capacity utilisation and new RM hiring as growth levers."), ref("Q1FY27 reported EBITDA margin fell to about 34% from 47% a year earlier, with employee costs rising 53% YoY; reporting included a one-time ESOP charge."), ref("The board approved a proposal to apply to SEBI to act as sponsor of a mutual fund under the SEBI Mutual Funds Regulations 2026.")),
             ),
             ContradictionFinding(
                 hypothesis=anandrathi_plan().hypotheses[2],
                 original_claim="The AMC proposal is an additional growth engine.",
                 counter_evidence="The board has only approved an application; approval, launch, fee economics and AUM scale are not established.",
                 resolution="Record the AMC as a conditional strategic initiative rather than current earnings contribution.",
-                evidence_refs=(refs[9], refs[10], refs[11]),
+                evidence_refs=(ref("SEBI's Mutual Funds Regulations 2026 are the current regulatory framework for mutual funds, with the regulation page last amended on 7 July 2026."), ref("The reviewed materials confirm the AMC application but do not establish the eventual approval date, product launch timing, fee structure, distribution economics or incremental profitability of the proposed AMC."), ref("Digital Wealth AUM reached INR 2,526 crore in Q1FY27, up 23% YoY, and the company reported that its UK subsidiary had started operations.")),
             ),
             ContradictionFinding(
                 hypothesis=anandrathi_plan().hypotheses[3],
                 original_claim="Diversification makes the platform resilient to market weakness.",
                 counter_evidence="Management attributed most Q1 AUM growth to portfolio appreciation rather than net inflows, and no prolonged-market stress sensitivity was disclosed in the reviewed materials.",
                 resolution="Diversification is visible in channels and client base, but market sensitivity remains an unresolved economic exposure.",
-                evidence_refs=(refs[12], refs[14], refs[15]),
+                evidence_refs=(ref("FY26 annual reporting shows AUM of INR 93,037 crore, 13,395 active client families and 401 relationship managers at 31 March 2026, with five-year growth across these operating metrics."), ref("The reviewed disclosures do not provide a sufficiently detailed stress test of revenue and PAT under a prolonged equity-market drawdown; market sensitivity therefore remains partly unresolved."), ref("The reviewed Q1FY27 materials do not establish the future contribution, cost structure or return profile of the UK, digital and proposed AMC initiatives at scale.")),
             ),
         ),
         unresolved_questions=(
