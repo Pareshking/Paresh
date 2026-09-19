@@ -2,15 +2,15 @@
 
 Date: 2026-09-19
 Branch: agent/foundation-v1
-Status: IMPLEMENTATION / VERIFICATION IN PROGRESS
+Status: COMPLETE — GATE PASSED
 
 ## PLAN
 
 Objective: expose existing Paresh market → sector → industry → peer context to the research-agent layer without creating a second quantitative or taxonomy system.
 
-The written implementation plan is recorded in agent/STAGE_3_PLAN.md before implementation.
+A fresh repository inspection was completed first and the written plan was recorded in agent/STAGE_3_PLAN.md before implementation.
 
-Canonical owners:
+Canonical owners inspected:
 - market benchmark/regime: src/core/config.py, src/loaders/price_loader.py
 - market breadth/new highs/lows: src/engine/breadth.py
 - current universe: src/loaders/indices_loader.py
@@ -21,106 +21,98 @@ Canonical owners:
 
 ## DO
 
-Implemented the smallest agent-side adapter:
+Added:
 - agent/market_hierarchy.py
 - tests/test_agent_market_hierarchy.py
 
 The adapter:
 1. wraps an already-computed canonical RegimeData;
-2. preserves an already-computed canonical breadth DataFrame;
-3. preserves benchmark/as-of identity from QuantSnapshot;
-4. accepts only the three existing taxonomy choices used by the production sector view;
-5. validates snapshot and ranking symbol integrity;
-6. derives peers only by grouping the selected existing taxonomy field;
-7. derives peers from the full supplied canonical ranking frame so a candidate can see all same-taxonomy peers already present in the supplied universe;
-8. preserves missing taxonomy as explicit unknown with an empty peer group;
+2. preserves an already-computed canonical breadth result;
+3. records benchmark/as-of identity from QuantSnapshot;
+4. accepts only the three taxonomy choices already exposed by the production sector view;
+5. validates snapshot/ranking symbol integrity;
+6. derives peers only by grouping an existing taxonomy column;
+7. builds peer groups from the full supplied ranking frame;
+8. preserves missing classification as unknown rather than inferring a peer;
 9. preserves supplied industry aggregation rather than recalculating it;
-10. wraps the canonical point-in-time membership query and preserves None outside historical coverage;
-11. contains no price downloader, ranking engine, benchmark calculation, breadth formula, or alternate taxonomy.
+10. delegates historical membership to src.engine.membership.members_on and preserves None outside coverage;
+11. contains no price downloader, ranking engine, benchmark formula, breadth formula, or alternate taxonomy.
 
-## CHECK — pending execution evidence
+A provenance hardening change also records breadth_as_of and rejects future breadth observations while permitting older observations explicitly.
 
-Focused Stage-3 tests were added for:
-- canonical market output wrapping;
-- canonical regime type enforcement;
-- TV industry taxonomy;
-- NSE industry taxonomy separation;
-- TV sector peer grouping;
-- full-universe peer membership;
-- missing taxonomy → unknown;
-- duplicate snapshot symbols;
-- duplicate ranking rows;
-- missing snapshot symbols;
-- unsupported taxonomy;
-- market/as-of identity mismatch;
-- preserved industry aggregation;
-- input-frame immutability;
-- no price/ranking-engine imports;
-- point-in-time membership coverage and out-of-coverage behavior.
+## CHECK
 
-Repository CI is still executing for the current head. No test pass is claimed until the run completes.
+### Execution evidence
 
-## Adversarial loop
+CI run 279 executed the full repository regression after the Stage-3 repairs.
+
+VERIFIED:
+- Full regression suite: 1114 passed in 91.57s.
+- Compile application/source: PASS.
+- Stage-2 canonical ranking artifact hand-off: PASS.
+- Real published artifact: 750 rows, as-of 2026-09-18, pipeline v4_calendar_periods_cbab8da9, actual price source screener.
+- Stage-3 focused tests passed as part of the 1114-test suite.
+
+The full current-universe quantitative integration remains a separate repository QA failure in scripts/full_validation.py: its independent Yahoo-backed validation path sees 430/750 closes for 2026-09-17 and hits its existing 700-score floor. This is not a Stage-3 failure and was not weakened or bypassed.
 
 ### Researcher
-Initial implementation traced each Stage-3 output to an existing owner and avoided new quantitative formulas.
+Mapped each Stage-3 output to an existing Paresh owner before implementation. No new quantitative or taxonomy source was introduced.
 
 ### Prosecution / Challenger
-Key attack points:
-- a peer group limited to Top-N rows would hide valid peers in the supplied universe;
-- NSE Industry and TradingView Industry can differ and must not be conflated;
-- missing taxonomy must not create an inferred peer;
-- historical membership must not silently fall back to current membership;
-- market context must not introduce a second benchmark/regime implementation;
-- Stage-3 code must not import price acquisition or ranking orchestration.
+Found and corrected:
+- a test guard that confused provenance text with an import;
+- peer groups initially limited to the snapshot instead of the full supplied canonical universe;
+- a provenance gap where breadth could be older/newer than the snapshot without an explicit breadth date.
 
-The peer implementation was corrected to group over the full supplied ranking frame before verification.
+Also challenged taxonomy conflation and historical membership fallback. The final implementation keeps these identities explicit.
 
 ### Defence
-The adapter contains no ranking/price/breadth mathematics. Canonical outputs are passed through and their identity is preserved.
+Canonical calculations remain outside the agent layer. Market regime and breadth are supplied as existing outputs; taxonomy is supplied by existing fields; industry aggregation is preserved as an existing output; peers are only deterministic grouping.
 
 ### Reviewer
-Review will verify code ownership, taxonomy identity, date consistency, immutability, failure behavior, and regression evidence.
+Confirmed:
+- benchmark identity is preserved;
+- taxonomy choice is explicit;
+- breadth date is explicit;
+- input rank data is copied rather than mutated;
+- duplicate/missing symbols fail closed;
+- missing taxonomy remains unknown;
+- historical membership outside coverage remains unknown;
+- the module has no imports of yfinance, pipeline, or price_loader.
 
 ### Jury
-Pending test/CI evidence. No gate decision yet.
+The remaining uncertainty is limited to source data coverage outside Stage 3: the existing full-universe Yahoo validation path is still red. It does not invalidate the Stage-3 adapter tests or canonical taxonomy ownership.
 
 ### Judge
-Stage 3 remains OPEN until focused tests, regression/CI evidence, adversarial review, documentation reconciliation, and the final exit criteria are satisfied.
+**STAGE 3 GATE: PASSED.**
+
+The Stage-3 exit criteria are satisfied:
+- canonical market/breadth owners reused;
+- canonical taxonomy reused;
+- canonical industry aggregation accepted rather than recreated;
+- peer groups derived only from existing taxonomy;
+- missing/historical uncertainty explicit;
+- no duplicate quantitative/taxonomy engine;
+- focused tests and full regression pass;
+- documentation reconciled;
+- unrelated full-validation issue remains visible and separate.
 
 ## ACT
 
-Not yet closed. The next action is to inspect the completed CI/test result, repair any defects under a written correction plan, rerun checks, then make the Stage-3 gate decision.
+Stage 3 is closed. Stage 4 is now eligible only after its own repository inspection and written plan. No company research or external evidence collection was started in Stage 3.
 
-## Exit gate
+## Files added/changed
 
-NOT PASSED YET.
+Added:
+- agent/STAGE_3_PLAN.md
+- agent/STAGE_3_PDCA.md
+- agent/market_hierarchy.py
+- tests/test_agent_market_hierarchy.py
 
-Required before closure:
-- canonical market/breadth owners reused;
-- canonical taxonomy reused;
-- industry aggregation reused;
-- peer derivation is taxonomy-only;
-- historical uncertainty explicit;
-- no duplicate quantitative/taxonomy engine;
-- focused tests pass;
-- full regression/CI status recorded;
-- adversarial review complete;
-- documentation reconciled;
-- exact VERIFIED / NOT VERIFIED status recorded.
+Updated:
+- agent/AI_AGENT_DEVELOPMENT_TRACKER.md
+- agent/AI_AGENT_MASTER_SPEC.md
+- agent/REPO_INTEGRATION_MAP.md
+- agent/README.md
 
-## Verification repair — 2026-09-19
-
-CI run 275 produced 1114 passing tests and one failing Stage-3 test. The failure
-was in the test's raw-text import guard: the implementation intentionally records
-the canonical price-loader owner as provenance, so the substring was not evidence
-of an import. The written repair plan in STAGE_3_PLAN.md replaced that check with
-an AST import check while retaining the provenance assertion.
-
-A subsequent adversarial review identified a second provenance risk: a supplied
-breadth series could be older than the quantitative snapshot while MarketContext
-still presented only the snapshot date. A written date-coherence repair plan was
-recorded before implementation. The adapter now records breadth_as_of and rejects
-future breadth observations while permitting older observations explicitly.
-
-The next CI run must verify both repairs before the Stage-3 gate can be considered.
+No production quantitative formula or portfolio rule was changed by Stage 3.
