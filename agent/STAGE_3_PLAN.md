@@ -264,3 +264,16 @@ Before changing code, the repair/verification plan is:
 8. Run the full adversarial review again after the live-output implementation and stop before Company Intelligence if this live gate fails.
 
 This verification path is an audit harness around existing owners. It does not calculate a new ranking, download a second price source, or alter the Stage-3 methodology.
+
+## Live-artifact retention repair plan — 2026-09-19
+
+The first live verification executed successfully, but the workflow's final artifact-upload step was skipped because the later unrelated full-universe Yahoo validation failed. The live output was still recoverable from the job log, but that is not a durable artifact.
+
+Before changing the workflow, the repair decision is:
+
+1. keep the successful live Stage-3 execution unchanged;
+2. add a dedicated Stage-3 artifact-upload step immediately after the live verification;
+3. make that upload independent of later validation failures, while still warning rather than fabricating an artifact if the live step itself failed;
+4. add the exact verified 2026-09-19 output to a repository audit document;
+5. rerun the focused live step and confirm the artifact is retained;
+6. do not change the unrelated full-universe 430/750 validation threshold.
