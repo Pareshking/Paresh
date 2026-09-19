@@ -208,3 +208,22 @@ Stage 3 passes only if:
 ## Entry condition for implementation
 
 This plan is now recorded. Implementation may begin only after the Stage-3-specific existing callers/tests are searched once more and the smallest integration point is confirmed.
+
+## Verification repair plan — 2026-09-19
+
+The first CI execution found one test defect: the no-duplicate-engine test searched
+raw source text for the substring "price_loader", but the adapter intentionally
+records the canonical owner string
+"src/loaders/price_loader.py::get_market_regime" as provenance. The implementation
+does not import price_loader.
+
+Before changing code, the repair decision is:
+
+1. keep the adapter provenance string unchanged;
+2. replace the brittle raw-substring assertion with an AST/import-level check that
+   verifies the module has no import from price_loader, pipeline, or yfinance;
+3. retain the explicit provenance owner assertion separately;
+4. rerun the focused Stage-3 tests and full regression;
+5. only then continue the adversarial gate.
+
+This is a test-quality repair, not a weakening of the Stage-3 no-duplication rule.
