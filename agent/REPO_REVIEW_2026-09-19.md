@@ -118,3 +118,8 @@ Verification status: focused tests were added but local execution is unavailable
 ## Stage-2 final audit update — 2026-09-19
 
 The Stage-2 hand-off was executed against the actual published ranking artifact through the canonical reader. Evidence: 750 rows, price-as-of 2026-09-18, pipeline v4_calendar_periods_cbab8da9, actual source screener. Full regression passed with 1099 tests and compilation passed. Stage 2 is therefore **GATE PASSED**. The current V1 validation workflow remains red later in scripts/full_validation.py due the existing finite-score floor during a thin vendor session (430/750 priceable), and this is explicitly retained as a separate canonical QA issue rather than hidden or weakened.
+
+
+## Clarification — 2026-09-19
+
+The 430/750 validation failure must not be described as a failure of the current Screener-driven production ranking. `scripts/full_validation.py` directly calls `src.loaders.price_loader.fetch_price_history()`, which is the Yahoo/yfinance historical-price path. The canonical production ranking source-selection layer can use Screener; the verified Stage-2 artifact did use Screener and contained 750 rows as of 2026-09-18. Thus the observed 430/750 figure belongs to the separate Yahoo-backed full-validation path, not to the verified Screener-backed Stage-2 hand-off. No methodology or threshold change is made by this clarification.
