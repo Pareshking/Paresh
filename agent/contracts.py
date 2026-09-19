@@ -47,8 +47,16 @@ class Evidence:
     notes: str = ""
 
     def __post_init__(self) -> None:
+        if not self.entity.strip():
+            raise ValueError("evidence entity is required")
+        if not self.claim.strip():
+            raise ValueError("evidence claim is required")
+        if not self.source.strip():
+            raise ValueError("evidence source is required")
         if self.confidence is not None and not 0.0 <= self.confidence <= 1.0:
             raise ValueError("confidence must be between 0 and 1")
+        if self.published_on and self.retrieved_on and self.published_on > self.retrieved_on:
+            raise ValueError("published_on cannot be after retrieved_on")
 
 
 @dataclass(frozen=True)
@@ -80,6 +88,41 @@ class WeeklyReport:
     reviews: tuple[AdversarialReview, ...] = ()
     methodology_notes: tuple[str, ...] = ()
     limitations: tuple[str, ...] = ()
+
+
+def validate_report(report: WeeklyReport) -> None:
+    """Fail closed on structural inconsistencies before a report is emitted."""
+    validate_snapshot(
+        QuantSnapshot(
+            as_of=report.as_of,
+            benchmark=report.benchmark,
+            universe=report.universe,
+            model=report.model,
+            config_fingerprint="report-validation",
+        )
+    )
+    symbols = [item.symbol.strip() for item in report.items]
+    if any(not symbol for symbol in symbols):
+        raise ValueError("report contains an empty symbol")
+    if len(symbols) != len(set(symbols)):
+        raise ValueError("report contains duplicate symbols")
+
+    for item in report.items:
+        if item.rank is not None and item.rank < 1:
+            raise ValueError("rank must be positive")
+        for field_name, expected in (
+            ("positive_evidence", EvidenceKind.POSITIVE),
+            ("negative_evidence", EvidenceKind.NEGATIVE),
+            ("unknowns", EvidenceKind.UNKNOWN),
+        ):
+            for evidence in getattr(item, field_name):
+                if evidence.kind is not expected:
+                    raise ValueError(f"{field_name} contains mismatched evidence kind")
+
+    known = set(symbols)
+    for review in report.reviews:
+        if review.symbol not in known:
+            raise ValueError(f"review symbol not present in report: {review.symbol}")
 
 
 def validate_snapshot(snapshot: QuantSnapshot) -> None:
