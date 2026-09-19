@@ -215,3 +215,12 @@ Added `scripts/stage3_live_validation.py` as the audit harness for the Market â†
 The V1 Full Validation workflow now runs this harness and retains its Markdown output as a dedicated `stage3-live-hierarchy` artifact before later QA gates.
 
 The exact first live execution is preserved in `agent/STAGE_3_LIVE_VERIFICATION_2026-09-19.md`.
+
+
+## Legacy Yahoo full-validation retirement â€” 2026-09-19
+
+`scripts/full_validation.py` has been retired. It directly invoked `src.loaders.price_loader.fetch_price_history()` and independently rebuilt a ranking-validation path that no longer represents the production Screener-backed ranking pipeline.
+
+The V1 production quantitative validation boundary is the published `data-latest/rankings.parquet` contract and the Stage-2 hand-off through `ranking_store.fetch_snapshot()` / `agent/quant_hand_off.py`.
+
+Do not reintroduce the retired script as a production ranking gate. This does **not** remove Yahoo/yfinance from every repository use; it removes this obsolete validation path only.
