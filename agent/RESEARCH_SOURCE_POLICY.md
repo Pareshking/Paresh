@@ -129,3 +129,10 @@ UNKNOWN is a research state. Every important UNKNOWN should have a follow-up que
 ### Source-quality metrics
 
 Stage 4 should record primary-source coverage, underlying-document review rate, peer/industry coverage, contradiction count, stale evidence and factual corrections.
+## Stage-4B execution provenance
+
+The execution engine treats web research as an evidence-provider boundary. A provider may be a current ChatGPT research session during development or a future connected research runtime. The deterministic Paresh layer validates the packet and never treats provider prose as authoritative by itself.
+
+Each hypothesis must have evidence, causal analysis or an explicit unresolved state. Causal and contradiction findings must point back to deterministic evidence references.
+
+Current SANSERA acceptance research uses primary company/exchange/government/ICRA documents where available, with Reuters/industry/peer sources for context and challenge. Secondary summaries are explicitly downgraded and flagged for underlying-primary review when an exact number could materially change the interpretation.
