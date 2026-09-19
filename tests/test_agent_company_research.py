@@ -59,8 +59,8 @@ def test_evidence_outside_candidate_set_fails():
 
 def test_future_publication_date_fails():
     candidates = top_candidates(snapshot(({"Symbol": "AAA", "Rank": 1, "Score": 3.0},)))
-    future = date.today() + timedelta(days=1)
-    retrieved = date.today()
+    future = date(2026, 9, 19)
+    retrieved = date(2026, 9, 19)
     evidence = Evidence(
         entity="AAA",
         kind=EvidenceKind.POSITIVE,
