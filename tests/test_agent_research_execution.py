@@ -220,3 +220,24 @@ def test_post_cutoff_evidence_is_rejected():
     )
     with pytest.raises(ValueError, match="after the information cutoff"):
         execute_research(snapshot(), ResearchCandidate("BBB", 2, 2.0, {}), bad)
+
+
+def test_execution_rejects_string_evidence_refs_in_contradiction():
+    p = packet()
+    bad_finding = ContradictionFinding(
+        hypothesis=p.plan.hypotheses[0],
+        original_claim="x",
+        counter_evidence="y",
+        resolution="z",
+        evidence_refs=evidence_ref(p.evidence[0]),
+    )
+    bad = ResearchProviderPacket(
+        plan=p.plan,
+        evidence=p.evidence,
+        causal_findings=p.causal_findings,
+        contradictions=(bad_finding,),
+        unresolved_questions=p.unresolved_questions,
+        monitoring_questions=p.monitoring_questions,
+    )
+    with pytest.raises(ValueError, match="must be a tuple"):
+        execute_research(snapshot(), ResearchCandidate("BBB", 2, 2.0, {}), bad)
