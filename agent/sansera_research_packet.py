@@ -458,7 +458,7 @@ def sansera_packet() -> ResearchProviderPacket:
                 original_claim="Diversification is reducing concentration risk.",
                 counter_evidence="Connecting rods still represented 35.5% of FY26 product sales, so product-level concentration remains material even as end-market mix diversifies.",
                 resolution="End-market diversification is real, but product concentration has not disappeared; both dimensions must be monitored.",
-                evidence_refs=(refs["FY26 customer and product mix shows connecting rods at 35.5%, rocker arms 15.1%, crankshaft assembly 14.1%, and aerospace products 9.6%; top-five customer share has been declining while aerospace mix has increased."]),
+                evidence_refs=(refs["FY26 customer and product mix shows connecting rods at 35.5%, rocker arms 15.1%, crankshaft assembly 14.1%, and aerospace products 9.6%; top-five customer share has been declining while aerospace mix has increased."],),
             ),
         ),
         unresolved_questions=(
