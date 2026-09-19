@@ -48,3 +48,27 @@ Retirement is complete only when:
 ## Non-goal
 
 This does not mean Yahoo/yfinance must disappear from the repository. It only retires this obsolete ranking-validation script/path as a V1 production gate. Any other Yahoo use must be assessed against its current owner and purpose separately.
+
+
+## Execution closure — 2026-09-19
+
+Retirement was executed and verified.
+
+- `scripts/full_validation.py`: **deleted**.
+- Workflow invocation of that script: **removed**.
+- Final artifact label: `v1-validation-artifacts`.
+- V1 Full Validation run **#304**: **PASS** through all remaining gates.
+- Full regression: **PASS**.
+- Compile: **PASS**.
+- Stage-2 canonical ranking artifact hand-off: **PASS**.
+- Stage-3 live hierarchy: **PASS**.
+- Stage-3 artifact retention: **PASS**.
+- Deprecated Streamlit HTML guard: **PASS**.
+- Headless Streamlit runtime smoke test: **PASS**.
+- Final V1 validation artifact upload: **PASS**.
+
+The former 430/750 Yahoo coverage failure no longer blocks V1 because the obsolete Yahoo ranking-validation path has been retired. Production ranking validation remains anchored to the published Screener-backed ranking artifact.
+
+### Status
+
+**RETIREMENT VERIFIED.**
