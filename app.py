@@ -13,7 +13,6 @@ import streamlit as st
 
 # Suppress runtime noise
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="numpy")
-warnings.filterwarnings("ignore", message=".*use_container_width.*")
 warnings.filterwarnings("ignore", message=".*replace.*st\\.components\\.v1\\.html.*")
 warnings.filterwarnings("ignore", message=".*st\\.components\\.v1\\.html.*")
 

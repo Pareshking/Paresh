@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from src.engine.momentum import ATR_DERIVED_COLUMNS
+
 
 TICK_TRUE = frozenset({"✅", "TRUE", "1", "YES", "Y"})
 
@@ -974,6 +976,153 @@ def _sparkline_svgs(window_key: str, _sub_prices: pd.DataFrame) -> dict[str, str
     }
 
 
+# ── Column headers ──────────────────────────────────────────────────────────
+# Module level, and the ONLY place the table's shape is written down. The
+# density labels used to carry their own hand-typed column counts -- "Full
+# Quant (35)" over a table that emitted 36 -- because a second copy of a
+# number is a copy that drifts. `screener_column_count` now reads the count
+# back out of these very blocks, so a column added here reaches the label
+# with no second edit.
+def _headers_block(is_exec: bool, is_core: bool, has_risk: bool) -> str:
+    # Dropped together: a group label spanning no columns leaves a stray cell
+    # in the top header row, which shifts every column after it by one.
+    risk_group_core = "<th>RISK</th>" if has_risk else ""
+    risk_sub_core = "<th>STOP LOSS</th>" if has_risk else ""
+    risk_group_full = '<th colspan="2">RISK & EXITS</th>' if has_risk else ""
+    risk_sub_full = (
+        "<th>STOP LOSS</th>\n                <th>CHAND EXIT</th>" if has_risk else ""
+    )
+
+    # Assemble headers based on density
+    if is_exec:
+        headers_block = """
+            <tr class="group-header-row">
+                <th colspan="3" class="sticky-group-id">IDENTITY</th>
+                <th>DYNAMICS</th>
+                <th colspan="2">CLASSIFICATION</th>
+                <th colspan="2">3M MOMENTUM</th>
+                <th colspan="2">FILTERS</th>
+                <th>TREND</th>
+            </tr>
+            <tr class="sub-header-row">
+                <th class="sticky-col-rank">RANK</th>
+                <th class="sticky-col-symbol">SYMBOL</th>
+                <th>CMP</th>
+                <th class="th-center">1M Δ</th>
+                <th class="th-center">INDEX</th>
+                <th class="th-left">INDUSTRY</th>
+                <th>3M RET</th>
+                <th>3M SHARPE</th>
+                <th>% 52W HI</th>
+                <th>% 50 EMA</th>
+                <th class="th-center">60D SPARK</th>
+            </tr>"""
+    elif is_core:
+        headers_block = f"""
+            <tr class="group-header-row">
+                <th colspan="3" class="sticky-group-id">IDENTITY</th>
+                <th colspan="2">RANK DYNAMICS</th>
+                <th colspan="3">CLASSIFICATION</th>
+                <th colspan="2">3M MOMENTUM</th>
+                <th colspan="2">6M MOMENTUM</th>
+                <th colspan="3">FILTERS</th>
+                {risk_group_core}
+                <th>TREND</th>
+            </tr>
+            <tr class="sub-header-row">
+                <th class="sticky-col-rank">RANK</th>
+                <th class="sticky-col-symbol">SYMBOL</th>
+                <th>CMP</th>
+                <th class="th-center">1M Δ</th>
+                <th class="th-center">3M Δ</th>
+                <th class="th-center">INDEX</th>
+                <th class="th-left">INDUSTRY</th>
+                <th>MCAP (CR)</th>
+                <th>3M RET</th>
+                <th>3M SHARPE</th>
+                
+                <th>6M RET</th>
+                <th>6M SHARPE</th>
+                <th>% 52W HI</th>
+                <th>% 50 EMA</th>
+                <th class="th-center">VOLUME</th>
+                {risk_sub_core}
+                <th class="th-center">60D SPARK</th>
+            </tr>"""
+    else:
+        headers_block = f"""
+            <tr class="group-header-row">
+                <th colspan="3" class="sticky-group-id">IDENTITY</th>
+                <th colspan="2">RANK DYNAMICS</th>
+                <th colspan="3">CLASSIFICATION</th>
+                <th colspan="3">1M FACTOR MOMENTUM</th>
+                <th colspan="3">3M FACTOR MOMENTUM</th>
+                <th colspan="3">6M FACTOR MOMENTUM</th>
+                <th colspan="3">9M FACTOR MOMENTUM</th>
+                <th colspan="3">12M FACTOR MOMENTUM</th>
+                <th colspan="7">TECHNICALS & FILTERS</th>
+                {risk_group_full}
+                <th colspan="3">DATA HEALTH</th>
+                <th>TREND</th>
+            </tr>
+            <tr class="sub-header-row">
+                <th class="sticky-col-rank">RANK</th>
+                <th class="sticky-col-symbol">SYMBOL</th>
+                <th>CMP</th>
+                <th class="th-center">1M Δ</th>
+                <th class="th-center">3M Δ</th>
+                <th class="th-center">INDEX</th>
+                <th class="th-left">INDUSTRY</th>
+                <th>MCAP (CR)</th>
+                <th>1M RET</th>
+                <th>1M SHARPE</th>
+                <th>MAX DD 1M</th>
+                <th>3M RET</th>
+                <th>3M SHARPE</th>
+                <th>MAX DD 3M</th>
+                <th>6M RET</th>
+                <th>6M SHARPE</th>
+                <th>MAX DD 6M</th>
+                <th>9M RET</th>
+                <th>9M SHARPE</th>
+                <th>MAX DD 9M</th>
+                <th>12M RET</th>
+                <th>12M SHARPE</th>
+                <th>MAX DD 12M</th>
+                <th>% 52W HI</th>
+                <th>% ATH</th>
+                <th>% 50 EMA</th>
+                <th class="th-center">VOLUME</th>
+                <th class="th-center">&gt; 50 EMA</th>
+                <th class="th-center">NEAR 52W</th>
+                <th class="th-center">AT ATH</th>
+                {risk_sub_full}
+                <th class="th-center">GAP</th>
+                <th>FFILL %</th>
+                <th class="th-center">HORIZONS</th>
+                <th class="th-center">60D SPARK</th>
+            </tr>"""
+    return headers_block
+
+
+def screener_column_count(density: str, columns) -> int:
+    """How many columns the table will actually draw at this density."""
+    return len(
+        re.findall(
+            r"<th",
+            re.search(
+                r'<tr class="sub-header-row">(.*?)</tr>',
+                _headers_block(
+                    str(density).startswith("Executive"),
+                    str(density).startswith("Core"),
+                    any(c in columns for c in ATR_DERIVED_COLUMNS),
+                ),
+                re.S,
+            ).group(1),
+        )
+    )
+
+
 def render_master_screener_table(
     df: pd.DataFrame,
     prices_df: pd.DataFrame | None = None,
@@ -988,6 +1137,14 @@ def render_master_screener_table(
     # Determine density tier
     is_exec = str(density).startswith("Executive")
     is_core = str(density).startswith("Core")
+
+    # A ranking built from CLOSING prices carries no ATR, so the Core and Full
+    # densities were printing a STOP LOSS column -- and, at Full, a CHAND EXIT
+    # column beside it -- in which every one of 750 rows was an em dash. The
+    # columns are dropped with their headers and their group label instead.
+    # The card grid already did this (it emits an empty footer span), which is
+    # why only the table showed it.
+    has_risk = any(col in df.columns for col in ATR_DERIVED_COLUMNS)
 
     # Pre-extract 60-day price sparklines
     spark_map = {}
@@ -1133,6 +1290,11 @@ def render_master_screener_table(
             else "—"
         )
 
+        sl_cell = f'<td class="td-num td-sl">{sl_str}</td>' if has_risk else ""
+        chand_cell = (
+            f'<td class="td-num td-chand">{chand_str}</td>' if has_risk else ""
+        )
+
         # Data Health
         gap_val = str(row.get("Data Gap", "🟢"))
         gap_icon = "🔴" if "🔴" in gap_val else "🟢"
@@ -1199,121 +1361,12 @@ def render_master_screener_table(
         if is_exec:
             row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk_s}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw_s}">{ind_disp_s}</td><td class="td-num {pc[3]['clr']}"><strong>{pc[3]['ret']}</strong></td><td class="td-num td-sharpe">{pc[3]['sharpe']}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
         elif is_core:
-            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk_s}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw_s}">{ind_disp_s}</td><td class="td-num">{mcap_str}</td><td class="td-num {pc[3]['clr']}"><strong>{pc[3]['ret']}</strong></td><td class="td-num td-sharpe">{pc[3]['sharpe']}</td><td class="td-num {pc[6]['clr']}"><strong>{pc[6]['ret']}</strong></td><td class="td-num td-sharpe">{pc[6]['sharpe']}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-num td-sl">{sl_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
+            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk_s}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw_s}">{ind_disp_s}</td><td class="td-num">{mcap_str}</td><td class="td-num {pc[3]['clr']}"><strong>{pc[3]['ret']}</strong></td><td class="td-num td-sharpe">{pc[3]['sharpe']}</td><td class="td-num {pc[6]['clr']}"><strong>{pc[6]['ret']}</strong></td><td class="td-num td-sharpe">{pc[6]['sharpe']}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td>{sl_cell}<td class="td-spark">{spark_svg}</td></tr>"""
         else:
-            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk_s}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw_s}">{ind_disp_s}</td><td class="td-num">{mcap_str}</td>{period_cells_html}<td class="td-num">{hi_str}</td><td class="td-num"{ath_title}>{ath_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-center">{above_ema_icon}</td><td class="td-center">{near_hi_icon}</td><td class="td-center">{at_ath_icon}</td><td class="td-num td-sl">{sl_str}</td><td class="td-num td-chand">{chand_str}</td><td class="td-center">{gap_icon}</td><td class="td-num">{ffill_str}</td><td class="td-center">{hz_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
+            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk_s}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw_s}">{ind_disp_s}</td><td class="td-num">{mcap_str}</td>{period_cells_html}<td class="td-num">{hi_str}</td><td class="td-num"{ath_title}>{ath_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-center">{above_ema_icon}</td><td class="td-center">{near_hi_icon}</td><td class="td-center">{at_ath_icon}</td>{sl_cell}{chand_cell}<td class="td-center">{gap_icon}</td><td class="td-num">{ffill_str}</td><td class="td-center">{hz_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
         rows_html.append(row_h)
 
-    # Assemble headers based on density
-    if is_exec:
-        headers_block = """
-            <tr class="group-header-row">
-                <th colspan="3" class="sticky-group-id">IDENTITY</th>
-                <th>DYNAMICS</th>
-                <th colspan="2">CLASSIFICATION</th>
-                <th colspan="2">3M MOMENTUM</th>
-                <th colspan="2">FILTERS</th>
-                <th>TREND</th>
-            </tr>
-            <tr class="sub-header-row">
-                <th class="sticky-col-rank">RANK</th>
-                <th class="sticky-col-symbol">SYMBOL</th>
-                <th>CMP</th>
-                <th class="th-center">1M Δ</th>
-                <th class="th-center">INDEX</th>
-                <th class="th-left">INDUSTRY</th>
-                <th>3M RET</th>
-                <th>3M SHARPE</th>
-                <th>% 52W HI</th>
-                <th>% 50 EMA</th>
-                <th class="th-center">60D SPARK</th>
-            </tr>"""
-    elif is_core:
-        headers_block = """
-            <tr class="group-header-row">
-                <th colspan="3" class="sticky-group-id">IDENTITY</th>
-                <th colspan="2">RANK DYNAMICS</th>
-                <th colspan="3">CLASSIFICATION</th>
-                <th colspan="2">3M MOMENTUM</th>
-                <th colspan="2">6M MOMENTUM</th>
-                <th colspan="3">FILTERS</th>
-                <th>RISK</th>
-                <th>TREND</th>
-            </tr>
-            <tr class="sub-header-row">
-                <th class="sticky-col-rank">RANK</th>
-                <th class="sticky-col-symbol">SYMBOL</th>
-                <th>CMP</th>
-                <th class="th-center">1M Δ</th>
-                <th class="th-center">3M Δ</th>
-                <th class="th-center">INDEX</th>
-                <th class="th-left">INDUSTRY</th>
-                <th>MCAP (CR)</th>
-                <th>3M RET</th>
-                <th>3M SHARPE</th>
-                
-                <th>6M RET</th>
-                <th>6M SHARPE</th>
-                <th>% 52W HI</th>
-                <th>% 50 EMA</th>
-                <th class="th-center">VOLUME</th>
-                <th>STOP LOSS</th>
-                <th class="th-center">60D SPARK</th>
-            </tr>"""
-    else:
-        headers_block = """
-            <tr class="group-header-row">
-                <th colspan="3" class="sticky-group-id">IDENTITY</th>
-                <th colspan="2">RANK DYNAMICS</th>
-                <th colspan="3">CLASSIFICATION</th>
-                <th colspan="3">1M FACTOR MOMENTUM</th>
-                <th colspan="3">3M FACTOR MOMENTUM</th>
-                <th colspan="3">6M FACTOR MOMENTUM</th>
-                <th colspan="3">9M FACTOR MOMENTUM</th>
-                <th colspan="3">12M FACTOR MOMENTUM</th>
-                <th colspan="7">TECHNICALS & FILTERS</th>
-                <th colspan="2">RISK & EXITS</th>
-                <th colspan="3">DATA HEALTH</th>
-                <th>TREND</th>
-            </tr>
-            <tr class="sub-header-row">
-                <th class="sticky-col-rank">RANK</th>
-                <th class="sticky-col-symbol">SYMBOL</th>
-                <th>CMP</th>
-                <th class="th-center">1M Δ</th>
-                <th class="th-center">3M Δ</th>
-                <th class="th-center">INDEX</th>
-                <th class="th-left">INDUSTRY</th>
-                <th>MCAP (CR)</th>
-                <th>1M RET</th>
-                <th>1M SHARPE</th>
-                <th>MAX DD 1M</th>
-                <th>3M RET</th>
-                <th>3M SHARPE</th>
-                <th>MAX DD 3M</th>
-                <th>6M RET</th>
-                <th>6M SHARPE</th>
-                <th>MAX DD 6M</th>
-                <th>9M RET</th>
-                <th>9M SHARPE</th>
-                <th>MAX DD 9M</th>
-                <th>12M RET</th>
-                <th>12M SHARPE</th>
-                <th>MAX DD 12M</th>
-                <th>% 52W HI</th>
-                <th>% ATH</th>
-                <th>% 50 EMA</th>
-                <th class="th-center">VOLUME</th>
-                <th class="th-center">&gt; 50 EMA</th>
-                <th class="th-center">NEAR 52W</th>
-                <th class="th-center">AT ATH</th>
-                <th>STOP LOSS</th>
-                <th>CHAND EXIT</th>
-                <th class="th-center">GAP</th>
-                <th>FFILL %</th>
-                <th class="th-center">HORIZONS</th>
-                <th class="th-center">60D SPARK</th>
-            </tr>"""
+    headers_block = _headers_block(is_exec, is_core, has_risk)
 
     # Master Table Assembly - Rendered via st.iframe with 2D Sticky Freeze
     full_page_html = f"""<!DOCTYPE html>

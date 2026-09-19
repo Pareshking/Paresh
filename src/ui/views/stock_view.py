@@ -18,6 +18,7 @@ import pandas as pd
 import streamlit as st
 
 from src.engine.corporate_actions import load_events
+from src.engine.momentum import ATR_DERIVED_COLUMNS
 from src.ui.charts import render_stock_chart
 from src.ui.components import render_data_quality_footer, to_bool_mask
 
@@ -407,15 +408,29 @@ def _render_key_levels(row: pd.Series) -> None:
         _tile("% from 52W High", _pct(pct_hi), colour=_sign_colour(pct_hi), bg=hi_bg),
         _tile("% from ATH", _pct(pct_ath), colour=_sign_colour(pct_ath),
               title=f"Peak printed {ath_date}" if ath_date else ""),
-        _tile("Stop Loss", _money(row.get("Stop Loss")),
-              sub="CMP − 2×ATR", colour=NEG, bg=sl_bg),
-        _tile("Chandelier Exit", _money(row.get("Chand Exit")),
-              sub="22D high − 3×ATR", colour=WARN, bg=cex_bg),
-        _tile("ATR", _money(row.get("ATR"), 1),
-              sub=f"{_ratio(row.get('ATR %'))}% of price", colour=INK),
-        _tile("vs 50 EMA", _pct(row.get("% 50 EMA")),
-              colour=_sign_colour(row.get("% 50 EMA")), bg=ema_bg),
     ]
+
+    # The three ATR tiles are DROPPED, not blanked, when the ranking carries no
+    # ATR. A history of closing prices has no intraday range, so the pipeline
+    # removes ATR_DERIVED_COLUMNS outright rather than derive a number from
+    # close-to-close moves that would read as a true ATR and size a stop about
+    # half as wide as intended. What reached the page instead was three tiles
+    # printing an em dash under "CMP − 2×ATR" and "22D high − 3×ATR" -- a
+    # formula with no number, on every stock, permanently.
+    if any(_num(row.get(col)) is not None for col in ATR_DERIVED_COLUMNS):
+        tiles += [
+            _tile("Stop Loss", _money(row.get("Stop Loss")),
+                  sub="CMP − 2×ATR", colour=NEG, bg=sl_bg),
+            _tile("Chandelier Exit", _money(row.get("Chand Exit")),
+                  sub="22D high − 3×ATR", colour=WARN, bg=cex_bg),
+            _tile("ATR", _money(row.get("ATR"), 1),
+                  sub=f"{_ratio(row.get('ATR %'))}% of price", colour=INK),
+        ]
+
+    tiles.append(
+        _tile("vs 50 EMA", _pct(row.get("% 50 EMA")),
+              colour=_sign_colour(row.get("% 50 EMA")), bg=ema_bg)
+    )
     st.markdown(_row(tiles), unsafe_allow_html=True)
 
 

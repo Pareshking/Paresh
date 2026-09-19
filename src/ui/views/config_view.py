@@ -95,7 +95,7 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
     with btn_c:
         bc1, bc2 = st.columns(2)
         with bc1:
-            if st.button("Sync", type="primary", key="btn_sync_indices", use_container_width=True):
+            if st.button("Sync", type="primary", key="btn_sync_indices", width="stretch"):
                 with st.status("Syncing NSE constituents…", expanded=True) as _sync_status:
                     _sync_status.write("📡 Downloading index CSV files from niftyindices.com…")
                     res = sync_official_nse_indices(force=True)
@@ -119,7 +119,7 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
                         )
                     st.rerun()
         with bc2:
-            if st.button("Purge", type="secondary", key="btn_purge_cache", use_container_width=True):
+            if st.button("Purge", type="secondary", key="btn_purge_cache", width="stretch"):
                 st.session_state["force_refresh"] = True
                 st.session_state.pop("data_loaded_key", None)
                 st.cache_data.clear()
@@ -250,7 +250,7 @@ def _section_momentum_signal() -> None:
         "Weights normalize automatically. No window skips the most recent month: "
         "each one runs from its calendar start to the latest observation."
     )
-    with pop_col.popover("ℹ️ Window guide", use_container_width=True):
+    with pop_col.popover("ℹ️ Window guide", width="stretch"):
         st.markdown(
             """
 **Lookback Windows**
@@ -414,7 +414,7 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
                 "Path": path,
             }
         )
-    st.dataframe(pd.DataFrame(cache_rows), hide_index=True, use_container_width=True)
+    st.dataframe(pd.DataFrame(cache_rows), hide_index=True, width="stretch")
 
     render_data_quality_footer(
         total_stocks=len(rank_df),

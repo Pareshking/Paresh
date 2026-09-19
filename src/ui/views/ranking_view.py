@@ -16,7 +16,11 @@ from src.core.config import SHORT_FORMS
 from src.core.market_time import ist_now
 from src.ui.components import render_data_quality_footer, to_bool_mask
 from src.ui.views.stock_view import render_stock_view
-from src.ui.theme import render_master_screener_table
+from src.ui.theme import render_master_screener_table, screener_column_count
+
+# Stored in session state by `rank_density_mode`, so these strings are an
+# on-disk contract, not labels -- see the format_func in the density control.
+_DENSITY_OPTIONS = ["Executive (11)", "Core (17)", "Full Quant (35)"]
 
 
 def _frame_key(df: pd.DataFrame) -> str:
@@ -612,15 +616,27 @@ def render_ranking_view(
     )
     remember("rank_sort_by_idx", _SORT_OPTIONS.index(sort_by))
 
+    # The option VALUES are fixed strings and stay that way: they are what
+    # session state stores, and a stored value that vanishes from the list on
+    # the next run is a crash, not a relabel. Only the TEXT is computed, and it
+    # is read back out of the header block the table actually emits -- "Full
+    # Quant (35)" sat over a 36-column table because the count was typed a
+    # second time, and dropping the ATR columns under a closing-price source
+    # would have made both of the wide tiers wrong again.
+    def _density_label(option: str) -> str:
+        return (f"{option.split(' (')[0]} "
+                f"({screener_column_count(option, view.columns)})")
+
     density_mode = c_density.segmented_control(
         "Column Density",
-        ["Executive (11)", "Core (17)", "Full Quant (35)"],
-        default="Full Quant (35)",
+        _DENSITY_OPTIONS,
+        default=_DENSITY_OPTIONS[-1],
+        format_func=_density_label,
         key="rank_density_mode",
         label_visibility="collapsed",
     )
     if not density_mode:
-        density_mode = "Full Quant (35)"
+        density_mode = _DENSITY_OPTIONS[-1]
 
     view_mode = c_view.segmented_control(
         "Layout",
