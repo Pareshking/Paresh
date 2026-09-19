@@ -2,7 +2,7 @@
 
 Date: 2026-09-19
 Branch: agent/foundation-v1
-Status: IMPLEMENTATION IN PROGRESS — GATE OPEN
+Status: DEEP RESEARCH REFINEMENT IN PROGRESS — GATE OPEN
 
 ## PLAN
 
@@ -51,3 +51,39 @@ The research boundary is structurally sound and a real report exists, but severa
 ## ACT
 
 Do not mark Stage 4 complete yet. The current live report is retained for human review and is explicitly labelled provisional.
+
+
+## CHECK — Human review refinement, 2026-09-19
+
+The human review correctly rejected the initial report as too close to a news digest. A company announcement feed is already available from Screener/BSE and does not justify the intended Stage-4 investment in research infrastructure.
+
+### New acceptance requirement
+
+The WELCORP acceptance sample must demonstrate:
+- peers and competitive footprint;
+- industry-wide order flow;
+- sector developments;
+- government/regulatory/project pipeline;
+- capacity and utilisation;
+- customers/suppliers;
+- input/energy/freight margin channels;
+- FX exposure;
+- tariffs/duties/trade-war asymmetry;
+- macro/geopolitical transmission;
+- technology/IP;
+- funding/capital allocation/shareholding;
+- management commentary across quarters;
+- event lifecycle tracking;
+- contradiction detection;
+- explicit UNKNOWN-to-question-to-resolution tracking;
+- market-reaction context.
+
+The detailed specification is recorded in `agent/STAGE_4_DEEP_RESEARCH_SPEC.md` and the acceptance sample in `agent/STAGE_4_WELCORP_DEEP_SAMPLE_2026-09-19.md`.
+
+### New adversarial finding
+
+The WELCORP sample itself surfaced a reconciliation issue: the official July company disclosure reported an approximately ₹25,750 crore order book after a ₹960 crore order, while a third-party transcript summary currently reports ₹42,000 crore. The production implementation must resolve such definition/date discrepancies from the underlying primary transcript/presentation instead of selecting the more favourable figure.
+
+### Judge
+
+**GATE OPEN — NOT COMPLETE.** The research scope is now materially deeper, but the executable workflow and primary-document verification still need implementation and testing.
