@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Iterable
 
-from agent.contracts import Evidence, EvidenceKind, QuantSnapshot, ResearchItem, validate_snapshot
+from agent.contracts import Evidence, EvidenceKind, QuantSnapshot, ResearchDomain, ResearchItem, validate_snapshot
 
 
 @dataclass(frozen=True)
@@ -115,3 +115,28 @@ def build_research_items(
         candidates=candidates,
         items=tuple(items),
     )
+
+
+# Domains that must be explicitly researched or marked UNKNOWN for every company.
+REQUIRED_RESEARCH_DOMAINS: tuple[ResearchDomain, ...] = tuple(ResearchDomain)
+
+
+def validate_research_coverage(
+    evidence: Iterable[Evidence],
+    required_domains: Iterable[ResearchDomain] = REQUIRED_RESEARCH_DOMAINS,
+) -> None:
+    """Require an explicit evidence/unknown state for every research domain."""
+    evidence_tuple = tuple(evidence)
+    covered = {item.domain for item in evidence_tuple}
+    missing = [domain.value for domain in required_domains if domain not in covered]
+    if missing:
+        raise ValueError("research coverage missing domains: " + ", ".join(missing))
+
+
+def research_domain_summary(evidence: Iterable[Evidence]) -> dict[str, dict[str, int]]:
+    """Return counts by research domain and evidence direction for reporting."""
+    summary: dict[str, dict[str, int]] = {}
+    for item in evidence:
+        bucket = summary.setdefault(item.domain.value, {kind.value: 0 for kind in EvidenceKind})
+        bucket[item.kind.value] += 1
+    return summary
