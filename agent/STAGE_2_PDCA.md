@@ -109,3 +109,68 @@ NOT PASSED — runtime/CI/live-artifact evidence is still required.
 ## Adversarial refinement after initial implementation
 
 A second prosecution pass inspected `src/loaders/price_source.py` rather than assuming the configured preference was always the actual artifact source. The producer can legitimately stamp `price_source=yahoo` when Screener is preferred but unavailable/too short. The adapter initially required an exact preference match; that would have rejected a valid canonical fallback artifact. This was corrected to mirror the producer's documented source-selection semantics without downloading or reconstructing prices. Focused tests now cover the fallback and non-canonical source cases.
+
+
+## Gate reopening and final verification — 2026-09-19
+
+### PLAN / REOPEN
+
+GitHub Actions exposed two test defects after the initial implementation. Stage 2 was explicitly reopened before repair. The plan was updated before code changes.
+
+### DO
+
+- Corrected the source-mismatch test so it rejects a non-canonical source rather than the documented Yahoo fallback when Screener is preferred.
+- Corrected the precomputed-ranking weight regression fixture to carry a coherent `price_as_of`, isolating the weight invariant.
+- Added an existing-CI verification step that executes `load_quant_snapshot()` against the real published `rankings.parquet` before the broader quantitative integration check.
+
+### CHECK — execution evidence
+
+The repaired GitHub Actions run `V1 Full Validation #258` executed against the PR merge ref containing the repaired head.
+
+**VERIFIED:**
+
+- Full regression suite: **1099 passed** in 78.95s.
+- Compile application/source: **PASS**.
+- Real published Stage-2 hand-off: **PASS**.
+- Live artifact as-of: **2026-09-18**.
+- Live artifact rows accepted: **750**.
+- Pipeline version: **v4_calendar_periods_cbab8da9**.
+- Actual artifact price source: **screener**.
+- Source artifact: the canonical `data-latest/rankings.parquet` release asset.
+- Adapter executed through the real `ranking_store.fetch_snapshot()` path; no ranking engine or price download was introduced by the adapter.
+
+### Prosecution
+
+The repaired hand-off now has both unit/regression evidence and real-artifact execution evidence. The remaining red workflow step is not a Stage-2 hand-off failure: `scripts/full_validation.py` fails later on its existing hard floor of 700 finite ranked scores while the current price session had only 430/750 priceable symbols. The run therefore stops before Streamlit smoke testing. This is recorded as a separate canonical quantitative-validation issue, not hidden or reclassified as a Stage-2 pass.
+
+The live hand-off itself passed before that failure, so the red full-validation result does not invalidate the observed Stage-2 artifact acceptance.
+
+### Defence
+
+The adapter was not weakened to accommodate the failing full-universe check. The source fallback rule was preserved from the canonical producer, and the live artifact was accepted only after contract, source, weight, as-of, universe and row validation.
+
+### Reviewer
+
+The evidence chain is now:
+
+`data-latest/rankings.parquet → ranking_store.fetch_snapshot() → contract validation → row validation → QuantSnapshot`
+
+No independent ranking calculation exists in the Stage-2 adapter. The live artifact reports 750 rows and the adapter preserves the artifact rows into the snapshot; focused tests cover value preservation and engine non-invocation.
+
+### Jury
+
+**Stage-2-specific evidence is sufficient.** The broader V1 validation workflow remains red for an unrelated/current-universe data-coverage assertion and must remain visible as a repository risk.
+
+### Judge
+
+**STAGE 2 GATE: PASSED.**
+
+The Stage-2 acceptance criteria are satisfied: canonical artifact acquisition, contract validation, provenance, row integrity, no duplicate quantitative owner, focused regression coverage, full-suite execution, and real published-artifact execution are all evidenced.
+
+The repository is **not globally green**. The unrelated full-universe validation failure is carried forward explicitly and is not treated as resolved.
+
+### ACT
+
+- Stage 2 is closed.
+- Stage 3 may be planned, but must begin with repository inspection and a written Stage-3 plan as required by the master trigger.
+- The existing full-universe validation failure remains a separate canonical-system QA issue; do not patch it inside the agent layer or silently lower its threshold.
