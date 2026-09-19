@@ -160,3 +160,7 @@ The next action is a dedicated Stage-2 plan/implementation only after the reposi
 integration map and Stage-1 hardening are reviewed. The first Stage-2 deliverable should
 be a read-only adapter around the existing ranking artifact and its contract, with no
 new ranking/data-download pipeline.
+
+## STAGE-2 HAND-OFF START — 2026-09-19
+
+Stage 2 was authorized only after repository inspection and a written `agent/STAGE_2_PLAN.md` were recorded. The implementation is deliberately limited to `agent/quant_hand_off.py` plus focused tests. The canonical ranking artifact remains the only quantitative source of truth.
