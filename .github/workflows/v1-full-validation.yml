@@ -62,6 +62,15 @@ jobs:
       - name: Stage-4B adaptive second-archetype ANANDRATHI execution
         run: python scripts/stage4b_anandrathi_live_validation.py
 
+      - name: Stage-4B adaptive third-archetype PAYTM execution
+        run: python scripts/stage4b_paytm_live_validation.py
+
+      - name: Stage-4B adaptive fourth-archetype YATHARTH execution
+        run: python scripts/stage4b_yatharth_live_validation.py
+
+      - name: Stage-4B adaptive fifth-archetype LENSKART execution
+        run: python scripts/stage4b_lenskart_live_validation.py
+
       - name: Retain Stage-4B SANSERA dossier
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
@@ -76,6 +85,30 @@ jobs:
         with:
           name: stage4b-anandrathi-dossier
           path: artifacts/stage4b_anandrathi_dossier.md
+          if-no-files-found: warn
+
+      - name: Retain Stage-4B PAYTM dossier
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4b-paytm-dossier
+          path: artifacts/stage4b_paytm_dossier.md
+          if-no-files-found: warn
+
+      - name: Retain Stage-4B YATHARTH dossier
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4b-yatharth-dossier
+          path: artifacts/stage4b_yatharth_dossier.md
+          if-no-files-found: warn
+
+      - name: Retain Stage-4B LENSKART dossier
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4b-lenskart-dossier
+          path: artifacts/stage4b_lenskart_dossier.md
           if-no-files-found: warn
 
       - name: Retain Stage-3 live hierarchy artifact
