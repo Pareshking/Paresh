@@ -464,3 +464,10 @@ The Stage-3 Market → Sector → Industry → Peer implementation was executed 
 **Stage-3 live verification: COMPLETE / VERIFIED.**
 
 Permanent rule: Stage-3 cannot be marked fully verified from unit tests alone. A real current-artifact execution must be recorded, or the state must be NOT VERIFIED.
+
+
+## Legacy Yahoo validation retirement — 2026-09-19
+
+**COMPLETE.** Retired `scripts/full_validation.py` and removed its workflow gate. The canonical quantitative validation boundary remains the real published ranking artifact consumed through the Stage-2 hand-off. The Stage-3 live hierarchy step remains part of V1 validation.
+
+The retirement is deliberate: the removed script independently called the Yahoo/yfinance historical-price path and therefore tested a ranking path no longer used for production ranking. No ranking methodology or Screener source-selection code was changed.
