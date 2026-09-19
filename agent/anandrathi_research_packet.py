@@ -46,7 +46,6 @@ def anandrathi_plan() -> ResearchPlan:
             ResearchDomain.GOVERNMENT_REGULATION,
             ResearchDomain.TECHNOLOGY_IP,
             ResearchDomain.CAPITAL_MARKETS,
-            ResearchDomain.MARKET_REACTION,
         ),
         hypotheses=(
             "Is AUM growth being supported by durable client acquisition and retention rather than market appreciation alone?",
@@ -114,8 +113,9 @@ def anandrathi_evidence() -> tuple[Evidence, ...]:
         Evidence(
             entity="ANANDRATHI", kind=EvidenceKind.POSITIVE,
             claim="Q1FY27 adjusted revenue was about INR 336 crore, up 18% YoY, and adjusted PAT was about INR 116 crore, up 24% YoY; management maintained FY27 guidance of INR 1,415 crore revenue and INR 460 crore PAT.",
-            source="https://www.anandrathiwealth.in/",
-            source_tier=SourceTier.DERIVED, retrieved_on=RETRIEVED,
+            source="https://www.youtube.com/watch?v=EFvyPYEU13I",
+            source_tier=SourceTier.PRIMARY, published_on=date(2026, 7, 10),
+            event_date=date(2026, 7, 10), retrieved_on=RETRIEVED,
             domain=ResearchDomain.FINANCIALS, materiality="high",
             hypothesis="Can relationship-manager productivity and client growth support revenue growth without proportionate employee-cost escalation?",
             notes="Derived from the company's Q1FY27 management interview and result disclosures; underlying management source is the official Anand Rathi Wealth YouTube channel.",
