@@ -67,6 +67,8 @@ def top_candidates(snapshot: QuantSnapshot, limit: int = 25) -> tuple[ResearchCa
 def validate_evidence_set(
     candidates: Iterable[ResearchCandidate],
     evidence: Iterable[Evidence],
+    *,
+    information_cutoff: date | None = None,
 ) -> None:
     allowed = {candidate.symbol for candidate in candidates}
     ids: set[tuple[str, str, str]] = set()
@@ -75,8 +77,11 @@ def validate_evidence_set(
         symbol = item.entity.strip().upper()
         if symbol not in allowed:
             raise ValueError(f"evidence entity is outside research candidate set: {symbol}")
-        if item.published_on and item.published_on > date.today():
-            raise ValueError("evidence publication date cannot be in the future")
+        cutoff = information_cutoff or date.today()
+        if item.published_on and item.published_on > cutoff:
+            raise ValueError("evidence publication date is after the information cutoff")
+        if item.event_date and item.event_date > cutoff:
+            raise ValueError("evidence event date is after the information cutoff")
 
         key = (symbol, item.kind.value, item.claim.strip())
         if key in ids:
@@ -90,7 +95,7 @@ def build_research_items(
 ) -> CompanyResearchSet:
     candidates = top_candidates(snapshot)
     evidence_tuple = tuple(evidence)
-    validate_evidence_set(candidates, evidence_tuple)
+    validate_evidence_set(candidates, evidence_tuple, information_cutoff=snapshot.as_of)
 
     by_symbol: dict[str, list[Evidence]] = {c.symbol: [] for c in candidates}
     for item in evidence_tuple:
