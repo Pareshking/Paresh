@@ -25,6 +25,7 @@ from agent.contracts import (
     ResearchDomain,
     ResearchItem,
     ResearchPlan,
+    ResearchItem,
 )
 
 
@@ -216,8 +217,7 @@ def execute_research(
     _validate_contradictions(packet.plan, contradictions, evidence_by_ref)
     _validate_hypothesis_coverage(packet.plan, evidence, causal, unresolved)
 
-    item = build_research_items(snapshot, evidence).items[0]
-
+    item = ResearchItem(\n        symbol=candidate.symbol,\n        rank=candidate.rank,\n        quantitative_facts=dict(candidate.quantitative_facts),\n        positive_evidence=tuple(e for e in evidence if e.kind.value == "positive"),\n        negative_evidence=tuple(e for e in evidence if e.kind.value == "negative"),\n        unknowns=tuple(e for e in evidence if e.kind.value == "unknown"),\n    )\n
     evidence_hypotheses = {e.hypothesis for e in evidence if e.hypothesis.strip()}
     causal_hypotheses = {f.hypothesis for f in causal}
     challenged_hypotheses = {f.hypothesis for f in contradictions}
