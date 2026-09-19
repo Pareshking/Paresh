@@ -18,3 +18,34 @@ def test_anandrathi_explicitly_excludes_manufacturing_and_bank_lenses():
     plan = anandrathi_plan()
     assert any("plant-utilisation" in item for item in plan.exclusions)
     assert any("NIM" in item for item in plan.exclusions)
+
+
+from datetime import date
+
+from agent.company_research import ResearchCandidate
+from agent.contracts import QuantSnapshot
+from agent.anandrathi_research_packet import anandrathi_packet
+from agent.research_execution import execute_research, judge_dossier
+
+
+def test_anandrathi_packet_executes_end_to_end():
+    """The executable archetype packet must be exercised, not only its plan."""
+    snapshot = QuantSnapshot(
+        as_of=date(2026, 9, 18),
+        benchmark="^CRSLDX",
+        universe="NIFTY TOTAL MARKET",
+        model="system-1",
+        config_fingerprint="test",
+        rows=(("Symbol", "Rank", "Score"),),
+    )
+    candidate = ResearchCandidate(
+        symbol="ANANDRATHI",
+        rank=7,
+        score=2.0,
+        quantitative_facts={"Symbol": "ANANDRATHI", "Rank": 7, "Score": 2.0},
+    )
+    dossier = execute_research(snapshot, candidate, anandrathi_packet())
+    judge_dossier(dossier)
+    assert dossier.audit.evidence_count == 16
+    assert dossier.audit.causal_finding_count == 4
+    assert dossier.audit.contradiction_count == 4
