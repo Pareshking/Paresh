@@ -167,3 +167,23 @@ def test_row_outside_contract_universe_fails_closed(
     with pytest.raises(QuantHandoffError, match="outside contract universe"):
         load_quant_snapshot()
 
+
+def test_yahoo_artifact_is_allowed_when_screener_is_the_preferred_source(
+    monkeypatch, ranking_frame, ranking_contract
+):
+    if config.RANKING_PRICE_SOURCE != "screener":
+        pytest.skip("fallback case only applies when screener is preferred")
+    published = dict(ranking_contract, price_source="yahoo")
+    _mock_fetch(monkeypatch, ranking_frame, published)
+    snapshot = load_quant_snapshot()
+    assert snapshot.price_source == "yahoo"
+
+
+def test_noncanonical_price_source_fails_closed(
+    monkeypatch, ranking_frame, ranking_contract
+):
+    published = dict(ranking_contract, price_source="unknown-source")
+    _mock_fetch(monkeypatch, ranking_frame, published)
+    with pytest.raises(QuantHandoffError, match="canonical source"):
+        load_quant_snapshot()
+
