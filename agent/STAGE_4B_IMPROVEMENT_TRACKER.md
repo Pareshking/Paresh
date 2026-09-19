@@ -45,7 +45,7 @@ Each improvement follows:
 | 16 | Claim-keyed evidence refs; prohibit positional refs | E3 | **DONE — ANANDRATHI converted** |
 | 17 | Executable test per archetype: packet + execute_research | E4 | **DONE — ANANDRATHI test added** |
 | 18 | Detect evidence cited by no causal/contradiction finding | E5 | **DONE — ANANDRATHI execution test enforces zero orphans** |
-| 19 | Reject/downgrade unstable sources | F1/F2/B3 | TODO |
+| 19 | Reject/downgrade unstable sources | F1/F2/B3 | **VERIFIED locally, CI pending — see Loop 2** |
 | 20 | Evidence-window freshness: max(published_on) vs snapshot.as_of | F4 | TODO |
 | 21 | Mark absence-based support explicitly | F6 | TODO |
 | 22 | Apply genuine-contradiction standard retroactively to SANSERA | G1/B2 | TODO |
@@ -249,6 +249,68 @@ on PR #15 -- all 16 gate steps green: regression, compile, Stage-2, Stage-3,
 SANSERA execution, ANANDRATHI execution, both dossiers retained, Streamlit
 HTML cleanup + smoke, final artifact upload. Items 1 and 24 are CI-verified,
 not only locally verified.
+
+
+## Loop 2 — item 19 (reject unstable PRIMARY sources)
+
+Scoped narrowly and deterministically, per Section 21 of the handover
+("prefer small deterministic validators", "do not over-engineer"):
+`validate_evidence_set` now rejects `source_tier=PRIMARY` when the source is
+(a) a known video-hosting host (youtube.com, youtu.be, vimeo.com), or (b) a
+bare domain root (empty or `/` path). Deliberately does NOT try to classify
+a "generic-looking" page that has a path (e.g. ACMA's about-us.php, Bharat
+Forge's operational-highlights.html) -- that is an entity-relative source
+policy question (item 9), not a URL-shape heuristic, and guessing at it here
+would itself be over-engineering.
+
+Enabling it found exactly 4 items, all ANANDRATHI, all previously identified
+by name in Report 2 (F1: three items citing the same YouTube video; F2: the
+bare-homepage item already flagged and handled for published_on in Loop 1):
+
+- `anandrathiwealth.in` (bare root) -- domain CUSTOMERS_SUPPLIERS
+- `youtube.com/watch?v=EFvyPYEU13I` x3 -- domains FINANCIALS, MANAGEMENT,
+  CAPITAL_MARKETS (one of these was F1's flagged sole evidence for MANAGEMENT)
+
+**Zero SANSERA items matched.** The sources Report 1 (B3) named as weak --
+foliopulse, whalesbook, timesofwhales, earningscalls.dev -- were already
+correctly tiered SECONDARY; B3's complaint about them is "prefer an issuer
+document when one exists" (a recommendation), not a tier misclassification
+(a defect), so item 19 correctly leaves them alone.
+
+**Checked for side effects before downgrading (learned from the Loop 0b
+industry-domain incident):** grepped every consumer of `source_tier` in the
+codebase. Exactly three: (1) the published_on/undated_primary_source check
+(SECONDARY needs the same thing PRIMARY does, so downgrading does not change
+the requirement), (2) primary/secondary/derived audit counts (informational
+only, not gated by anything yet -- item 2 is still TODO), (3) nothing else.
+`validate_research_coverage` checks domain presence, not tier, so downgrading
+a domain's only evidence item does not un-cover that domain (unlike deleting
+it, which is what the industry-domain fix in Loop 0b had to avoid).
+
+**Repair:** downgraded all 4 items from PRIMARY to SECONDARY. All three video
+items already carried a real `published_on` (2026-07-10); the homepage item's
+`undated_primary_source=True` from Loop 1 continues to apply.
+
+**Result:** `STAGE4B_ANANDRATHI_PRIMARY` dropped from 7 to 3 -- matching
+Report 2 finding F3's independent manual estimate ("effective primary share
+is ~19%, not 44%": 3/16 = 18.75%) almost exactly. `SANSERA_PRIMARY_COVERAGE`
+unchanged at 0.606, confirming no SANSERA regression.
+
+**Test-fixture fallout (not a defect):** four unit tests in
+`tests/test_agent_company_research.py` used the placeholder
+`source="https://example.com"` on PRIMARY-tier evidence -- a literal bare
+root, now correctly rejected regardless of the test's actual intent. Fixed
+by changing the placeholder to `https://example.com/report` (a path, no
+change to test semantics) in all 6 occurrences in that file (2 were already
+tier=SECONDARY or otherwise unaffected but changed for consistency).
+
+**Local verification:** compileall OK; full regression 1150 passed, 1
+deselected (same pre-existing worktree artifact as Loop 1); SANSERA live
+PASS (facts unchanged); ANANDRATHI live PASS (evidence 16, causal 4,
+contradictions 4 unchanged; primary 7 -> 3 as intended); both dossiers
+written.
+
+**CI: not yet verified for this loop.** Awaiting push and a fresh run.
 
 ## Rule against false closure
 

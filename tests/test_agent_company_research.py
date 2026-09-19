@@ -49,7 +49,7 @@ def test_evidence_outside_candidate_set_fails():
         entity="BBB",
         kind=EvidenceKind.UNKNOWN,
         claim="Unverified",
-        source="https://example.com",
+        source="https://example.com/report",
         source_tier=SourceTier.SECONDARY,
         retrieved_on=date(2026, 9, 19),
     )
@@ -65,7 +65,7 @@ def test_future_publication_date_fails():
         entity="AAA",
         kind=EvidenceKind.POSITIVE,
         claim="Future event",
-        source="https://example.com",
+        source="https://example.com/report",
         source_tier=SourceTier.PRIMARY,
         published_on=future,
         retrieved_on=retrieved,
@@ -84,7 +84,7 @@ def test_duplicate_evidence_claim_fails():
         entity="AAA",
         kind=EvidenceKind.POSITIVE,
         claim="Same claim",
-        source="https://example.com",
+        source="https://example.com/report",
         source_tier=SourceTier.PRIMARY,
         published_on=date(2026, 9, 10),
         retrieved_on=date(2026, 9, 19),
@@ -116,7 +116,7 @@ def test_research_does_not_change_rank_or_score():
         entity="AAA",
         kind=EvidenceKind.POSITIVE,
         claim="Verified event",
-        source="https://example.com",
+        source="https://example.com/report",
         source_tier=SourceTier.PRIMARY,
         published_on=date(2026, 9, 10),
         retrieved_on=date(2026, 9, 19),
@@ -159,7 +159,7 @@ def test_research_coverage_accepts_unknown_as_a_valid_state():
         ),
         Evidence(
             entity="AAA", kind=EvidenceKind.POSITIVE, claim="Peer evidence",
-            source="https://example.com", source_tier=SourceTier.SECONDARY,
+            source="https://example.com/report", source_tier=SourceTier.SECONDARY,
             retrieved_on=date(2026, 9, 19), domain=ResearchDomain.PEERS,
         ),
     )
@@ -179,7 +179,7 @@ def test_event_date_after_snapshot_cutoff_fails():
     candidates = top_candidates(snapshot(({"Symbol": "AAA", "Rank": 1, "Score": 3.0},)))
     evidence = Evidence(
         entity="AAA", kind=EvidenceKind.POSITIVE, claim="Later event",
-        source="https://example.com", source_tier=SourceTier.PRIMARY,
+        source="https://example.com/report", source_tier=SourceTier.PRIMARY,
         published_on=date(2026, 9, 10),
         event_date=date(2026, 9, 19), retrieved_on=date(2026, 9, 19),
     )

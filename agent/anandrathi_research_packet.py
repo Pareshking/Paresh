@@ -77,7 +77,9 @@ def anandrathi_evidence() -> tuple[Evidence, ...]:
             entity="ANANDRATHI", kind=EvidenceKind.POSITIVE,
             claim="As of 30 June 2026, AUM was INR 1,06,300+ crore, with 417+ relationship managers and 13,941+ clients according to the company's current website.",
             source="https://www.anandrathiwealth.in/",
-            source_tier=SourceTier.PRIMARY,
+            # Downgraded from PRIMARY (item 19 / F2): a bare domain root is a
+            # live page, not a fixed dated document.
+            source_tier=SourceTier.SECONDARY,
             # Live-fetched and confirmed 2026-09-19: the homepage shows
             # "(As of 30 June 2026)" against these figures -- a data date,
             # not a publication date; the page itself is undated/evergreen.
@@ -116,8 +118,10 @@ def anandrathi_evidence() -> tuple[Evidence, ...]:
         Evidence(
             entity="ANANDRATHI", kind=EvidenceKind.POSITIVE,
             claim="Q1FY27 adjusted revenue was about INR 336 crore, up 18% YoY, and adjusted PAT was about INR 116 crore, up 24% YoY; management maintained FY27 guidance of INR 1,415 crore revenue and INR 460 crore PAT.",
+            # Downgraded from PRIMARY (item 19 / F1): a video platform is
+            # not an independently re-checkable document.
             source="https://www.youtube.com/watch?v=EFvyPYEU13I",
-            source_tier=SourceTier.PRIMARY, published_on=date(2026, 7, 10),
+            source_tier=SourceTier.SECONDARY, published_on=date(2026, 7, 10),
             event_date=date(2026, 7, 10), retrieved_on=RETRIEVED,
             domain=ResearchDomain.FINANCIALS, materiality="high",
             hypothesis="Can relationship-manager productivity and client growth support revenue growth without proportionate employee-cost escalation?",
@@ -126,8 +130,10 @@ def anandrathi_evidence() -> tuple[Evidence, ...]:
         Evidence(
             entity="ANANDRATHI", kind=EvidenceKind.POSITIVE,
             claim="The company's Q1FY27 management interview states that operating leverage is expected to improve over the next two years and highlights RM capacity utilisation and new RM hiring as growth levers.",
+            # Downgraded from PRIMARY (item 19 / F1): a video platform is
+            # not an independently re-checkable document.
             source="https://www.youtube.com/watch?v=EFvyPYEU13I",
-            source_tier=SourceTier.PRIMARY, published_on=date(2026, 7, 10),
+            source_tier=SourceTier.SECONDARY, published_on=date(2026, 7, 10),
             event_date=date(2026, 7, 10), retrieved_on=RETRIEVED,
             domain=ResearchDomain.MANAGEMENT, materiality="high",
             hypothesis="Can relationship-manager productivity and client growth support revenue growth without proportionate employee-cost escalation?",
@@ -188,8 +194,10 @@ def anandrathi_evidence() -> tuple[Evidence, ...]:
         Evidence(
             entity="ANANDRATHI", kind=EvidenceKind.NEGATIVE,
             claim="AUM growth contains a market-performance component: management stated that about 14% of Q1FY27 AUM growth came from net inflows, with the remainder supported by portfolio appreciation.",
+            # Downgraded from PRIMARY (item 19 / F1): a video platform is
+            # not an independently re-checkable document.
             source="https://www.youtube.com/watch?v=EFvyPYEU13I",
-            source_tier=SourceTier.PRIMARY, published_on=date(2026, 7, 10),
+            source_tier=SourceTier.SECONDARY, published_on=date(2026, 7, 10),
             event_date=date(2026, 7, 10), retrieved_on=RETRIEVED,
             domain=ResearchDomain.CAPITAL_MARKETS, materiality="high",
             hypothesis="Is the business sufficiently diversified across clients, products and channels to remain resilient during weak capital markets?",

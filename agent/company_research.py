@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from typing import Iterable
+from urllib.parse import urlparse
 
 from agent.contracts import (
     Evidence,
@@ -73,6 +74,36 @@ def top_candidates(snapshot: QuantSnapshot, limit: int = 25) -> tuple[ResearchCa
     return tuple(result)
 
 
+_UNSTABLE_PRIMARY_VIDEO_HOSTS = frozenset({
+    "youtube.com",
+    "www.youtube.com",
+    "youtu.be",
+    "vimeo.com",
+    "www.vimeo.com",
+})
+
+
+def _unstable_primary_source_reason(source: str) -> str | None:
+    """Return a short reason if `source` cannot support a PRIMARY tier claim.
+
+    Deterministic and intentionally narrow (Stage-4B improvement tracker item
+    19; Report 2 findings F1/F2): a video platform is not an independently
+    re-checkable document, and a bare domain root is a live, ever-changing
+    page rather than a fixed, dated disclosure -- both were found tiered
+    PRIMARY in the ANANDRATHI packet. This does NOT try to classify a
+    "generic-looking" page that has a path (e.g. an issuer's own about-us or
+    operational-highlights page): that needs an entity-relative source-tier
+    policy (item 9), not a URL-shape heuristic, and guessing at it here would
+    be the over-engineering the operating standard warns against.
+    """
+    parsed = urlparse(source)
+    if parsed.netloc in _UNSTABLE_PRIMARY_VIDEO_HOSTS:
+        return "a video-hosting platform, not an independently re-checkable document"
+    if parsed.path in ("", "/"):
+        return "a bare domain root, a live page rather than a fixed dated document"
+    return None
+
+
 def validate_evidence_set(
     candidates: Iterable[ResearchCandidate],
     evidence: Iterable[Evidence],
@@ -104,6 +135,13 @@ def validate_evidence_set(
                 "(or an explicit, reviewed undated_primary_source=True): "
                 f"{symbol}: {item.claim.strip()[:80]!r}"
             )
+        if item.source_tier is SourceTier.PRIMARY:
+            reason = _unstable_primary_source_reason(item.source)
+            if reason:
+                raise ValueError(
+                    f"source cannot be tiered primary ({reason}): "
+                    f"{symbol}: {item.source}"
+                )
         if item.published_on and item.published_on > information_cutoff:
             raise ValueError("evidence publication date is after the information cutoff")
         if (
