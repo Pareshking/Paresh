@@ -181,3 +181,15 @@ def test_hierarchy_module_has_no_price_or_ranking_engine_imports():
     assert "price_loader" not in source
     assert "pipeline" not in source
     assert "yfinance" not in source
+
+
+def test_membership_as_of_preserves_canonical_unknown_before_coverage():
+    from agent.market_hierarchy import membership_as_of
+
+    history = {
+        "baseline": {"date": "2026-09-01", "symbols": ["AAA", "BBB"]},
+        "changes": [{"date": "2026-09-10", "added": ["CCC"], "removed": ["BBB"]}],
+    }
+    assert membership_as_of(history, date(2026, 8, 31)) is None
+    assert membership_as_of(history, date(2026, 9, 5)) == frozenset({"AAA", "BBB"})
+    assert membership_as_of(history, date(2026, 9, 12)) == frozenset({"AAA", "CCC"})
