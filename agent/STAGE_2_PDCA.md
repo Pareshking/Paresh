@@ -104,3 +104,8 @@ The connected GitHub interface reported no workflow runs for the current head. T
 ## Exit gate
 
 NOT PASSED — runtime/CI/live-artifact evidence is still required.
+
+
+## Adversarial refinement after initial implementation
+
+A second prosecution pass inspected `src/loaders/price_source.py` rather than assuming the configured preference was always the actual artifact source. The producer can legitimately stamp `price_source=yahoo` when Screener is preferred but unavailable/too short. The adapter initially required an exact preference match; that would have rejected a valid canonical fallback artifact. This was corrected to mirror the producer's documented source-selection semantics without downloading or reconstructing prices. Focused tests now cover the fallback and non-canonical source cases.
