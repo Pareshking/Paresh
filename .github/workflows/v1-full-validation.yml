@@ -39,6 +39,20 @@ jobs:
       - name: Compile application and source
         run: python -m compileall -q app.py src scripts
 
+      - name: Stage-2 canonical ranking artifact hand-off
+        run: |
+          python - <<'PY'
+          from agent.quant_hand_off import load_quant_snapshot
+
+          snapshot = load_quant_snapshot()
+          print(f"STAGE2_HANDOFF_AS_OF={snapshot.as_of.isoformat()}")
+          print(f"STAGE2_HANDOFF_ROWS={len(snapshot.rows)}")
+          print(f"STAGE2_HANDOFF_PIPELINE={snapshot.pipeline_version}")
+          print(f"STAGE2_HANDOFF_PRICE_SOURCE={snapshot.price_source}")
+          print(f"STAGE2_HANDOFF_ARTIFACT={snapshot.source_artifact}")
+          print("STAGE2_HANDOFF=PASS")
+          PY
+
       - name: Full current-universe quantitative integration
         run: python scripts/full_validation.py
 
