@@ -13,7 +13,8 @@ import json
 from datetime import date
 from pathlib import Path
 
-from contracts import QuantSnapshot, validate_snapshot
+from agent.contracts import QuantSnapshot, validate_snapshot
+from agent.fingerprint import config_fingerprint
 
 
 def build_plan(as_of: date, model: str, universe: str, benchmark: str) -> dict[str, object]:
@@ -22,7 +23,7 @@ def build_plan(as_of: date, model: str, universe: str, benchmark: str) -> dict[s
         benchmark=benchmark,
         universe=universe,
         model=model,
-        config_fingerprint="UNWIRED",
+        config_fingerprint=config_fingerprint(),
     )
     validate_snapshot(snapshot)
     return {
@@ -43,6 +44,7 @@ def build_plan(as_of: date, model: str, universe: str, benchmark: str) -> dict[s
             "weekly_report",
         ],
         "ranking_mutation_allowed": False,
+        "provenance": {"config_fingerprint": snapshot.config_fingerprint},
     }
 
 
