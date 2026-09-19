@@ -292,3 +292,21 @@ Examples such as WELCORP, banks, pharma API/CDMO/domestic/specialty businesses, 
 The analytical layer is mandatory: evidence must be connected through a company-specific mechanism, timing, offsets/mitigants, peer/industry context where relevant, contradictions and unresolved questions. A report that merely lists news is considered a Stage-4 failure regardless of citation count.
 
 Research sequence: company profile → economic drivers → materiality map → hypotheses → targeted evidence → causal analysis → contradiction search → synthesis → monitoring questions.
+## Stage-4B — Adaptive Research Execution Engine
+
+Stage 4B converts the manual research method into a deterministic execution boundary plus a research-provider contract. The deterministic layer does not browse the web or replace the research-capable runtime. It validates and compiles provider evidence.
+
+Execution sequence:
+QuantSnapshot → Company Profile → ResearchPlan → targeted evidence → causal analysis → contradiction search → defence/reconciliation → reviewer → judge → dossier.
+
+The ResearchPlan remains the company-specific source of truth. Domains are selected from the capability library; irrelevant domains are excluded rather than mechanically researched.
+
+Provider evidence is bound to hypotheses and must preserve provenance. Causal findings require evidence references plus mechanism, timing and uncertainty. Contradictions require counter-evidence and an explicit resolution or unresolved statement.
+
+The Judge fails closed when causal analysis, contradiction search or explicit uncertainty/monitoring questions are missing.
+
+Future scheduled events are a special temporal case: their publication must be at or before the report cutoff, while the scheduled event date may be later than the cutoff. Historical evidence outside the cutoff remains prohibited.
+
+SANSERA is the first real acceptance execution. The packet is retained in agent/sansera_research_packet.py; the live validator is scripts/stage4b_sansera_live_validation.py.
+
+Stage 4B is not complete until current-head CI, machine-generated dossier verification, full adversarial council review and a materially different archetype execution are complete.
