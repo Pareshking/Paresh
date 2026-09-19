@@ -232,3 +232,10 @@ Required retained evidence:
 - durable CI artifact or repository audit record.
 
 If that execution cannot be performed, the stage must be explicitly marked **NOT VERIFIED**. Synthetic fixtures may validate logic but cannot substitute for live-output evidence.
+
+
+## Production ranking validation boundary — permanent rule
+
+The V1 agent must validate the production quantitative system through the canonical published ranking artifact and its embedded contract. The retired `scripts/full_validation.py` Yahoo-backed path must not be used as a production ranking gate because production ranking now consumes the canonical Screener-backed source-selection path.
+
+A separate Yahoo/yfinance use is not automatically prohibited; it must have its own explicit purpose and must not be mistaken for production ranking validation.
