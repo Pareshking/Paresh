@@ -30,13 +30,13 @@ Each improvement follows:
 | 1 | Require `published_on` for primary/secondary evidence | A1 | **VERIFIED — run #346 (35437730258), all 16 steps green** |
 | 2 | Enforce minimum primary-source share in judge | A2 | TODO |
 | 3 | Reject malformed string evidence refs explicitly | existing | **DONE — code + regression test** |
-| 4 | Validate source URLs / separate gaps from evidence | B3/B6 | **PARTIAL — 4a (URL format for non-derived tiers) DONE; separate gaps field still TODO — Loop 4** |
-| 5 | Quality-aware domain coverage | A3 | **DONE as a REPORTED metric, not a hard gate — Loop 4 course-correction** |
-| 6 | Soften judge summary to actual guarantees | A4 | **DONE — Loop 4** |
+| 4 | Validate source URLs / separate gaps from evidence | B3/B6 | **PARTIAL — 4a VERIFIED (run #351, 35439390433); separate gaps field still TODO** |
+| 5 | Quality-aware domain coverage | A3 | **VERIFIED — run #351 (35439390433), reported metric, not a hard gate** |
+| 6 | Soften judge summary to actual guarantees | A4 | **VERIFIED — run #351 (35439390433)** |
 | 7 | Contradictions require genuinely disagreeing evidence | B2 | TODO |
 | 8 | Detect cross-tier numeric disagreement | B1 | TODO |
 | 9 | Entity-relative source tiering | B4 | **DEFERRED — needs an issuer-to-symbol map; a URL-shape heuristic would guess, not fix — Loop 4** |
-| 10 | Evidence age distribution + rounded score | C1/C2/R5c | **DONE — Loop 4** |
+| 10 | Evidence age distribution + rounded score | C1/C2/R5c | **VERIFIED — run #351 (35439390433); buckets confirmed exact match to local (SANSERA 23/4/2/2/2, ANANDRATHI 11/2/0/0/3)** |
 | 11 | Claim-type evidence half-life classification | R4 | TODO |
 | 12 | Stale evidence cannot sole-cover/carry mechanism/primary share | R5a | TODO |
 | 13 | Joint tier + recency ranking, never recency-first | R3/R5b | TODO |
@@ -47,9 +47,9 @@ Each improvement follows:
 | 18 | Detect evidence cited by no causal/contradiction finding | E5 | **DONE — ANANDRATHI execution test enforces zero orphans** |
 | 19 | Reject/downgrade unstable sources | F1/F2/B3 | **VERIFIED — run #348 (35438217592), all 16 steps green** |
 | 20 | Evidence-window freshness: max(published_on) vs snapshot.as_of | F4 | **DONE (measured + reported, not yet a hard gate) — see Loop 3** |
-| 21 | Mark absence-based support explicitly | F6 | **DONE — Loop 4** |
+| 21 | Mark absence-based support explicitly | F6 | **VERIFIED — run #351 (35439390433); both archetypes 0/0, confirmed in job logs** |
 | 22 | Apply genuine-contradiction standard retroactively to SANSERA | G1/B2 | TODO |
-| 23 | Require and test explicit domain exclusions for every archetype | G2 | **DONE — ResearchPlan.exclusions now mandatory framework-wide; SANSERA symmetry test added — Loop 4** |
+| 23 | Require and test explicit domain exclusions for every archetype | G2 | **VERIFIED — run #351 (35439390433)** |
 | 24 | Make `information_cutoff` required (no `date.today()` default) | Report 0 S3 | **VERIFIED — run #346 (35437730258)** |
 
 ## Immediate execution result
@@ -161,9 +161,10 @@ hypothesis), not a bare domain flag.
 - Items 1, 24: **VERIFIED** (run #346, 35437730258) -- see above
 - Item 19: **VERIFIED** (run #348, 35438217592) -- see above
 - Item 20: **VERIFIED** (run #350, 35438667821) -- see above
-- Items 6, 10, 21, 23: **DONE, CI pending** (Loop 4, batched)
-- Item 5: **DONE as reported metric (not a hard gate), CI pending** (Loop 4)
-- Item 4: **PARTIAL (4a done, gaps-field TODO), CI pending** (Loop 4)
+- Items 4a, 5, 6, 10, 21, 23: **VERIFIED** (run #351, 35439390433, all 16 steps green;
+  printed values SANSERA age-buckets 23/4/2/2/2, ANANDRATHI 11/2/0/0/3, both
+  absence-based 0/0, matching local exactly)
+- Item 4's gaps-field half: **TODO**
 - Item 9: **DEFERRED** -- needs an issuer-to-symbol map (Loop 4)
 - Remaining (items 2, 7, 8, 11-14, 22): **NOT STARTED**
 - SANSERA retroactive contradiction audit (#22): **NOT VERIFIED**
@@ -476,7 +477,15 @@ printed fields: age buckets 23/4/2/2/2, absence-based 0/0); ANANDRATHI live
 PASS (age buckets 11/2/0/0/3, absence-based 0/0); both dossiers written and
 visually checked for correct rendering of the new sections.
 
-**CI: not yet verified for this batch.** Awaiting push and a fresh run.
+**CI: VERIFIED.** Run #351 (35439390433) on PR #15, commit 307a119 -- all
+16 gate steps green. Job logs confirm the exact printed values matching
+local: `STAGE4B_SANSERA_EVIDENCE_AGE_BUCKETS=23/4/2/2/2`,
+`STAGE4B_SANSERA_ABSENCE_BASED_FINDINGS=0/0`,
+`STAGE4B_ANANDRATHI_EVIDENCE_AGE_BUCKETS=11/2/0/0/3`,
+`STAGE4B_ANANDRATHI_ABSENCE_BASED_FINDINGS=0/0`. CI ran 1156 tests (vs.
+local's 1155 + 1 deselected) -- confirms `test_build_info.py::test_revision_matches_git`
+was genuinely a local git-worktree artifact, not a real issue: it passes on
+CI's actual checkout.
 
 ## Rule against false closure
 
