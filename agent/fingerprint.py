@@ -1,7 +1,9 @@
 """Stable identity for the canonical System-1 configuration.
 
-The agent records this fingerprint; it does not define or alter the model.
-Only configuration values that can change quantitative behaviour belong here.
+The agent records this identity; it does not define or alter the model.
+The repository pipeline version is included because it already fingerprints
+ranking-changing engine constants, and price-source preference is also part of
+quantitative provenance.
 """
 
 from __future__ import annotations
@@ -11,6 +13,7 @@ import json
 from typing import Any
 
 from src.core import config
+from src.engine import pipeline
 
 
 def canonical_config_payload() -> dict[str, Any]:
@@ -25,6 +28,8 @@ def canonical_config_payload() -> dict[str, Any]:
         "transaction_cost_bps": config.DEFAULT_TRANSACTION_COST_BPS,
         "risk_free_rate": config.RISK_FREE_RATE,
         "high_52w_min_observations": config.HIGH_52W_MIN_OBSERVATIONS,
+        "ranking_price_source": config.RANKING_PRICE_SOURCE,
+        "pipeline_version": pipeline.PIPELINE_VERSION,
     }
 
 
