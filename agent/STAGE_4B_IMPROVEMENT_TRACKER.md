@@ -30,7 +30,7 @@ Each improvement follows:
 | 1 | Require `published_on` for primary/secondary evidence | A1 | **VERIFIED — run #346 (35437730258), all 16 steps green** |
 | 2 | Enforce minimum primary-source share in judge | A2 | **DEFERRED (Paresh's decision) — no hard gate until item 9 exists** |
 | 3 | Reject malformed string evidence refs explicitly | existing | **DONE — code + regression test** |
-| 4 | Validate source URLs / separate gaps from evidence | B3/B6 | **PARTIAL — 4a VERIFIED (run #351, 35439390433); separate gaps field still TODO** |
+| 4 | Validate source URLs / separate gaps from evidence | B3/B6 | **4a VERIFIED (run #351); 4b (separate field) CLOSED as substantively superseded — see Loop 9** |
 | 5 | Quality-aware domain coverage | A3 | **VERIFIED — run #351 (35439390433), reported metric, not a hard gate** |
 | 6 | Soften judge summary to actual guarantees | A4 | **VERIFIED — run #351 (35439390433)** |
 | 7 | Contradictions require genuinely disagreeing evidence | B2 | **VERIFIED — run #353 (35440586723) — Loop 5** |
@@ -756,6 +756,39 @@ does not lock in for all. That materially lowers the risk of proposing a
 reasonable starting table myself (see item 11 below), unlike item 2's
 single hard universal gate, which stays deferred because getting it wrong
 there means blocking a whole archetype outright.
+
+
+## Loop 9 — item 4b reassessed and closed (not implemented as a schema split)
+
+B6's original concern was "absence-of-evidence was counted as normal
+evidence" -- i.e. a DERIVED record could silently masquerade as real
+evidence, inflating counts unnoticed. Checked before building anything:
+both dossier renderers already report primary/secondary/derived evidence
+counts as separate, explicit fields (predates this session's work), so a
+DERIVED item was never actually invisible in the total. What items 5, 18,
+20 and 21 added today is tier-aware FILTERING in every metric computed
+since: DERIVED never sets newest_evidence_anchor or an age bucket (item
+20), a domain covered only by DERIVED evidence is separately reported
+(item 5), and a finding resting solely on DERIVED support is flagged (item
+21).
+
+Given that, a literal "separate gaps field" -- pulling DERIVED items out of
+`ResearchProviderPacket.evidence` into their own collection -- would mean
+threading a new field through every construction site (both packets),
+every consumer (`validate_evidence_set`, `validate_research_coverage`,
+`execute_research`, `_evidence_map`, both dossier renderers, both live
+scripts, the ResearchItem's positive/negative/unknowns split), and every
+existing test that constructs a packet. That is a large, invasive refactor
+whose only remaining benefit over the current source_tier-based filtering
+is architectural tidiness, not a fixed defect -- B6's actual harm is
+already closed. Doing it now would be exactly the over-engineering the
+operating standard warns against: real effort for a benefit smaller than
+what already exists.
+
+**Closed, not implemented.** If a future need arises where DERIVED and
+real evidence genuinely cannot share one collection (not yet identified),
+revisit then with that concrete need driving the design, rather than
+speculatively splitting the schema now.
 
 ## Rule against false closure
 
