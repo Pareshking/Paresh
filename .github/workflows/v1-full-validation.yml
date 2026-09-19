@@ -92,7 +92,7 @@ jobs:
           print("HEADLESS_STREAMLIT_SMOKE=PASS")
           PY
 
-      - name: Upload quantitative validation artifact
+      - name: Upload V1 validation artifacts
         uses: actions/upload-artifact@v4
         with:
           name: v1-validation-artifacts
