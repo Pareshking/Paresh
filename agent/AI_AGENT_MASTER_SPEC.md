@@ -208,3 +208,8 @@ When uncertain: **inspect → search existing implementation → reuse → test 
 ## Stage-2 implementation ownership
 
 The read-only quantitative hand-off is implemented in `agent/quant_hand_off.py`. It consumes the canonical `ranking_store.fetch_snapshot()` result, validates the embedded contract against current canonical pipeline/source/weight identity, validates row/universe integrity, and converts the accepted rows to `QuantSnapshot`. It has no price acquisition, ranking calculation, portfolio logic, or qualitative research fallback.
+
+
+### Canonical price-source fallback
+
+Artifact provenance records the actual source used by the producer. When the canonical configuration prefers Screener, the producer may legitimately fall back to Yahoo if Screener is unavailable or insufficient. The agent must preserve and validate that documented fallback rather than treating the preference string as proof of the actual source. It must not independently download prices to determine which source should have won.
