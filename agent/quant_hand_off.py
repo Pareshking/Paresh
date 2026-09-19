@@ -49,11 +49,7 @@ def _canonical_weights() -> list[float]:
     return [round(w / total, 6) for w in weights]
 
 
-def _validate_contract(
-    published: dict[str, Any] | None,
-    *,
-    snapshot_as_of: date | None = None,
-) -> date:
+def _validate_contract(published: dict[str, Any] | None) -> tuple[date, set[str]]:
     if not published:
         raise QuantHandoffError("ranking artifact has no embedded contract")
 
@@ -76,8 +72,6 @@ def _validate_contract(
         raise QuantHandoffError("ranking artifact price_source differs")
 
     price_as_of = _as_date(published["price_as_of"], "price_as_of")
-    if snapshot_as_of is not None and price_as_of > snapshot_as_of:
-        raise QuantHandoffError("price_as_of cannot be after snapshot_as_of")
 
     try:
         stored_weights = [round(float(w), 6) for w in published["weights"]]
@@ -96,10 +90,10 @@ def _validate_contract(
     if len(symbols) != len(set(symbols)):
         raise QuantHandoffError("ranking artifact universe contains duplicate symbols")
 
-    return price_as_of
+    return price_as_of, set(symbols)
 
 
-def _validate_rows(frame: pd.DataFrame) -> None:
+def _validate_rows(frame: pd.DataFrame, universe_symbols: set[str]) -> None:
     if frame is None or frame.empty:
         raise QuantHandoffError("ranking artifact contains no rows")
 
@@ -112,8 +106,11 @@ def _validate_rows(frame: pd.DataFrame) -> None:
     symbols = frame["Symbol"].astype(str).str.strip()
     if symbols.eq("").any():
         raise QuantHandoffError("ranking artifact contains an empty Symbol")
-    if symbols.str.upper().duplicated().any():
+    normalized = symbols.str.upper()
+    if normalized.duplicated().any():
         raise QuantHandoffError("ranking artifact contains duplicate Symbol rows")
+    if not normalized.isin(universe_symbols).all():
+        raise QuantHandoffError("ranking artifact contains Symbol outside contract universe")
 
     ranks = pd.to_numeric(frame["Rank"], errors="coerce")
     if ranks.isna().any() or (ranks < 1).any():
@@ -134,14 +131,14 @@ def load_quant_snapshot(
     if frame is None:
         raise QuantHandoffError("canonical ranking artifact is unavailable")
 
-    price_as_of = _validate_contract(published)
+    price_as_of, universe_symbols = _validate_contract(published)
     if expected_as_of is not None and price_as_of != expected_as_of:
         raise QuantHandoffError(
             f"ranking artifact as-of differs: {price_as_of.isoformat()} "
             f"!= {expected_as_of.isoformat()}"
         )
 
-    _validate_rows(frame)
+    _validate_rows(frame, universe_symbols)
 
     snapshot = QuantSnapshot(
         as_of=price_as_of,
