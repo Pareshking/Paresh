@@ -39,7 +39,7 @@ No single source is sufficient for the dossier.
 
 ## 3. Mandatory research domains
 
-Every company must have an explicit status for each domain. A domain may be populated with evidence or an explicit UNKNOWN explaining why no directional conclusion is established.
+The domains below are a **research library, not a universal checklist**. The agent must first profile the company and select the domains that can materially affect that specific business. Irrelevant domains must be explicitly marked NOT APPLICABLE rather than researched mechanically. Material domains must have evidence or an explicit UNKNOWN explaining why no directional conclusion is established.
 
 1. Company operations and business mix
 2. Quarterly results and financial trajectory
@@ -66,7 +66,156 @@ Every company must have an explicit status for each domain. A domain may be popu
 23. Contradictions between management, filings, media and industry evidence
 24. Open questions / evidence needed to resolve them
 
-## 4. Peer and industry analysis
+## 4. Company-specific research profiling
+
+Before collecting evidence, create a **Company Research Profile**. This is the first analytical step and determines what the agent should investigate.
+
+The profile must identify:
+- business model and revenue/profit drivers;
+- major products/services and segments;
+- geography and export/import exposure;
+- customer type and concentration;
+- supplier/input dependencies;
+- capital intensity and capacity constraints;
+- regulatory/licensing sensitivity;
+- financing/funding model;
+- competitive structure;
+- technology/IP dependence;
+- current quantitative signal and the factual question the research is trying to understand.
+
+Then select **material research domains** for that company and record why each was selected. There is no requirement to research every possible domain.
+
+### Examples of different research profiles
+
+These are illustrative archetypes only. They are not templates that should be blindly applied.
+
+**Bank / NBFC** may require emphasis on:
+- loan growth and mix;
+- NIM;
+- deposit growth/cost of funds;
+- CASA or funding structure where relevant;
+- asset quality;
+- GNPA/NNPA/slippages;
+- restructuring/write-offs;
+- capital adequacy;
+- provisioning;
+- unsecured exposure;
+- liquidity;
+- regulatory changes;
+- credit-cycle indicators;
+- competitor pricing/deposit behaviour.
+
+A steel-price or plant-utilisation investigation may be irrelevant to a bank unless it affects a material borrower/sector exposure.
+
+**Pharma** may require a completely different lens depending on the company:
+- API company: raw-material chemistry, pricing, capacity, regulatory approvals, China exposure, backward integration;
+- CDMO: customer pipeline, molecule/program wins, plant qualification, utilisation, customer concentration, development-to-commercial conversion;
+- domestic branded pharma: prescription trends, therapeutic mix, price controls, doctor/channel dynamics, launches, field-force/productivity;
+- U.S.-focused generic: ANDA pipeline, USFDA observations, product pricing, litigation, competition, launches and supply constraints;
+- specialty/new-patent company: patent expiry/approval, exclusivity period, clinical/regulatory milestones, manufacturing scale-up and commercialisation.
+
+These examples demonstrate why the company itself must determine the research lens.
+
+**IT/SaaS**, **auto OEM**, **auto ancillary**, **commodity producer**, **hospital**, **consumer company**, **insurance company**, **asset manager**, **real-estate company**, etc. should each generate their own material-driver map rather than inheriting a generic checklist.
+
+### Adaptive domain rule
+
+For every candidate:
+
+Company profile
+→ economic drivers
+→ material risks/opportunities
+→ relevant research domains
+→ hypotheses/questions
+→ evidence collection
+→ causal analysis
+→ contradiction search
+→ unresolved questions.
+
+This prevents irrelevant research and reduces headline accumulation.
+
+## 5. Analytical reasoning layer — connect the dots
+
+Evidence collection is only the input. Stage 4 must contain a separate **analysis layer** that connects evidence to company economics.
+
+The agent should construct explicit causal chains where evidence supports them:
+
+**External event → transmission mechanism → company exposure → timing → financial/operational variable → management response → peer comparison → uncertainty.**
+
+For example, instead of:
+
+> "Copper prices increased."
+
+The report should investigate whether:
+
+Copper price
+→ company copper intensity
+→ procurement/inventory timing
+→ contract pricing or pass-through
+→ customer pricing
+→ gross-margin exposure
+→ reporting-quarter timing
+→ peer exposure
+→ management commentary.
+
+Likewise, instead of:
+
+> "U.S. tariff increased."
+
+investigate:
+
+Tariff
+→ product classification
+→ country of origin
+→ company's manufacturing footprint
+→ revenue exposed
+→ customer responsibility
+→ contract repricing/pass-through
+→ competitor exposure
+→ order-book exposure
+→ timing.
+
+The chain must stop where evidence stops. The missing link becomes UNKNOWN rather than invented.
+
+### Analytical questions for every material finding
+
+1. **What changed?**
+2. **Why does it matter to this particular company?**
+3. **Through what mechanism could it affect the business?**
+4. **Which segment/geography/product is exposed?**
+5. **When could the effect appear?**
+6. **What offsets or mitigants exist?**
+7. **What do peers experience?**
+8. **What does management say?**
+9. **What evidence contradicts the initial interpretation?**
+10. **What remains unknown?**
+
+### Hypothesis-driven research
+
+Do not begin with a pile of searches. Begin with a small set of material questions/hypotheses derived from the company profile and quantitative context.
+
+Example only:
+- Is the current order strength company-specific or industry-wide?
+- Is capacity the limiting factor rather than demand?
+- Does a tariff advantage actually exist after product classification and contract terms?
+- Is an apparent margin risk offset by pass-through or hedging?
+- Is a new plant an earnings catalyst or simply replacement capacity?
+
+The agent must test these hypotheses with evidence and actively seek disconfirming evidence.
+
+## 6. Materiality and relevance gate
+
+Every discovered item passes through three filters:
+
+**Relevant?** Does it affect a selected company driver/domain?
+
+**Material?** Could it plausibly affect earnings, cash flow, growth, timing, competitive position, balance-sheet risk, regulation or valuation-relevant business conditions?
+
+**Connected?** Can the evidence be connected to a company-specific mechanism, or does it remain generic background?
+
+Generic information can remain in the context layer, but it must not dominate the dossier.
+
+## 7. Peer and industry analysis
 
 Peers must not be a list of names.
 
@@ -97,7 +246,7 @@ Example:
 - Peer C announced a new plant that may increase competitive supply.
 - Industry order flow is increasing, but company-specific order conversion remains the unresolved question.
 
-## 5. Industry-wide order-flow layer
+## 8. Industry-wide order-flow layer
 
 Search beyond the company.
 
@@ -130,7 +279,7 @@ from
 
 **derived opportunity**.
 
-## 6. Government and regulatory layer
+## 9. Government and regulatory layer
 
 Track policies that can materially affect economics:
 
@@ -161,7 +310,7 @@ Policy
 
 Do not assume the economic effect.
 
-## 7. Capacity and utilisation engine
+## 10. Capacity and utilisation engine
 
 Capacity must be tracked as a timeline:
 
@@ -190,7 +339,7 @@ For every material facility, record:
 
 This is particularly important where the company has a geographic advantage over peers.
 
-## 8. Input-cost and margin-pressure analysis
+## 11. Input-cost and margin-pressure analysis
 
 The research system must actively search for adverse second-order effects.
 
@@ -237,7 +386,7 @@ Example structure:
 
 Never convert the example into a fact without company-specific evidence.
 
-## 9. FX analysis
+## 12. FX analysis
 
 For export-heavy companies:
 
@@ -257,7 +406,7 @@ INR depreciation → imported input cost / export competitiveness
 
 The report must not assume the direction without understanding the company's natural hedge.
 
-## 10. Tariff and trade-war analysis
+## 13. Tariff and trade-war analysis
 
 This is mandatory for companies with material cross-border exposure.
 
@@ -292,7 +441,7 @@ could materially threaten future order economics even if the order book is large
 
 The system must quantify only where source data permits and otherwise label the magnitude UNKNOWN.
 
-## 11. Geopolitical analysis
+## 14. Geopolitical analysis
 
 Monitor events such as:
 
@@ -318,7 +467,7 @@ event
 
 A geopolitical event must never be treated as automatically positive or negative.
 
-## 12. Management consistency analysis
+## 15. Management consistency analysis
 
 Every earnings cycle should compare current management commentary with prior commentary.
 
@@ -348,7 +497,7 @@ Flag:
 
 This is one of the highest-value parts of Company Intelligence.
 
-## 13. Event lifecycle
+## 16. Event lifecycle
 
 Do not treat every announcement as a completed event.
 
@@ -375,7 +524,7 @@ proposal
 
 The current state must be explicit.
 
-## 14. Contradiction engine
+## 17. Contradiction engine
 
 For every major thesis, actively search for opposing evidence.
 
@@ -393,7 +542,7 @@ Examples:
 
 Contradictions are first-class output, not footnotes.
 
-## 15. Research value test
+## 18. Research value test
 
 A finding is high-value when it does at least one of:
 
@@ -409,7 +558,7 @@ A finding is high-value when it does at least one of:
 
 Routine announcements should be retained in the evidence log but compressed in the final dossier.
 
-## 16. Final dossier structure
+## 19. Final dossier structure
 
 Each company report should contain:
 
@@ -442,7 +591,7 @@ Each company report should contain:
 27. Evidence quality / source coverage
 28. Change log versus previous report
 
-## 17. No recommendation
+## 20. No recommendation
 
 The dossier must not produce:
 
@@ -455,7 +604,7 @@ The dossier must not produce:
 
 It provides evidence and context for human interpretation.
 
-## 18. Research coverage metrics
+## 21. Research coverage metrics
 
 Track:
 
@@ -475,10 +624,23 @@ Track:
 
 The objective is not to maximise evidence count. It is to maximise **decision-relevant information density**.
 
-## 19. Stage-4 gate
+## 22. Stage-4 gate
 
 Stage 4 cannot close until at least one complete company dossier demonstrates the above workflow end-to-end.
 
 WELCORP is the acceptance sample.
 
 The first basic Top-25 report is therefore retained as an intermediate artifact, not the final Stage-4 deliverable.
+
+
+## 23. Non-news-report acceptance test
+
+A Stage-4 dossier fails the gate if it can be reduced to a chronological list of announcements with little company-specific reasoning.
+
+The minimum analytical chain is:
+
+**evidence → relevance → company exposure → mechanism → timing → offset/mitigant → peer/industry comparison where relevant → contradiction → uncertainty → monitoring question.**
+
+Not every chain will reach a conclusion. A correctly bounded UNKNOWN is preferable to a plausible but unsupported narrative.
+
+The WELCORP document is an **illustration of analytical structure only**, not a universal research template. The acceptance test for another company must be generated from that company's own profile and economic drivers.
