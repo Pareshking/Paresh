@@ -217,7 +217,15 @@ def execute_research(
     _validate_contradictions(packet.plan, contradictions, evidence_by_ref)
     _validate_hypothesis_coverage(packet.plan, evidence, causal, unresolved)
 
-    item = ResearchItem(\n        symbol=candidate.symbol,\n        rank=candidate.rank,\n        quantitative_facts=dict(candidate.quantitative_facts),\n        positive_evidence=tuple(e for e in evidence if e.kind.value == "positive"),\n        negative_evidence=tuple(e for e in evidence if e.kind.value == "negative"),\n        unknowns=tuple(e for e in evidence if e.kind.value == "unknown"),\n    )\n
+    item = ResearchItem(
+        symbol=candidate.symbol,
+        rank=candidate.rank,
+        quantitative_facts=dict(candidate.quantitative_facts),
+        positive_evidence=tuple(e for e in evidence if e.kind.value == "positive"),
+        negative_evidence=tuple(e for e in evidence if e.kind.value == "negative"),
+        unknowns=tuple(e for e in evidence if e.kind.value == "unknown"),
+    )
+
     evidence_hypotheses = {e.hypothesis for e in evidence if e.hypothesis.strip()}
     causal_hypotheses = {f.hypothesis for f in causal}
     challenged_hypotheses = {f.hypothesis for f in contradictions}
