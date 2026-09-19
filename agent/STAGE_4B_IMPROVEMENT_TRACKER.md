@@ -34,7 +34,7 @@ Each improvement follows:
 | 5 | Quality-aware domain coverage | A3 | **VERIFIED — run #351 (35439390433), reported metric, not a hard gate** |
 | 6 | Soften judge summary to actual guarantees | A4 | **VERIFIED — run #351 (35439390433)** |
 | 7 | Contradictions require genuinely disagreeing evidence | B2 | **VERIFIED — run #353 (35440586723) — Loop 5** |
-| 8 | Detect cross-tier numeric disagreement | B1 | **DONE, CI pending — see Loop 6** |
+| 8 | Detect cross-tier numeric disagreement | B1 | **VERIFIED — run #354 (35441089140); job log matches local exactly — Loop 6** |
 | 9 | Entity-relative source tiering | B4 | **DEFERRED — needs an issuer-to-symbol map; a URL-shape heuristic would guess, not fix — Loop 4** |
 | 10 | Evidence age distribution + rounded score | C1/C2/R5c | **VERIFIED — run #351 (35439390433); buckets confirmed exact match to local (SANSERA 23/4/2/2/2, ANANDRATHI 11/2/0/0/3)** |
 | 11 | Claim-type evidence half-life classification | R4 | TODO |
@@ -161,12 +161,14 @@ hypothesis), not a bare domain flag.
 - Items 1, 24: **VERIFIED** (run #346, 35437730258) -- see above
 - Item 19: **VERIFIED** (run #348, 35438217592) -- see above
 - Item 20: **VERIFIED** (run #350, 35438667821) -- see above
+- Item 7: **VERIFIED** (run #353, 35440586723) -- see above
+- Item 8: **VERIFIED** (run #354, 35441089140) -- see above
 - Items 4a, 5, 6, 10, 21, 23: **VERIFIED** (run #351, 35439390433, all 16 steps green;
   printed values SANSERA age-buckets 23/4/2/2/2, ANANDRATHI 11/2/0/0/3, both
   absence-based 0/0, matching local exactly)
 - Item 4's gaps-field half: **TODO**
 - Item 9: **DEFERRED** -- needs an issuer-to-symbol map (Loop 4)
-- Remaining (items 2, 7, 8, 11-14, 22): **NOT STARTED**
+- Remaining (items 2, 11-14, 22): **NOT STARTED**
 - SANSERA retroactive contradiction audit (#22): **NOT VERIFIED**
 - WELCORP adaptive rerun: **NOT VERIFIED**
 - Full adversarial council (Section 33): **NOT VERIFIED**
@@ -662,7 +664,7 @@ exactly the known case, 30% difference computed correctly, both evidence
 refs traceable; ANANDRATHI live PASS -- 0 disagreements, no regression;
 both dossiers written and the new section visually checked in both.
 
-**CI: not yet verified for this loop.** Awaiting push and a fresh run.
+**CI: VERIFIED.** Run #354 (35441089140) on PR #15, commit 26e4d1d -- all 16 gate steps green. Job log confirms STAGE4B_SANSERA_NUMERIC_DISAGREEMENTS=1 with the full 44368-vs-57500 detail line verbatim, and STAGE4B_ANANDRATHI_NUMERIC_DISAGREEMENTS=0, both matching local exactly.
 
 ## Rule against false closure
 
