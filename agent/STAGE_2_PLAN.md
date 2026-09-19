@@ -183,3 +183,27 @@ Stage 2 may complete only if:
 ## Adversarial refinement — canonical price-source fallback
 
 Repository review of `src/loaders/price_source.py` after implementation exposed an important nuance: the canonical producer prefers Screener when configured, but deliberately falls back to Yahoo when the Screener store is unavailable or too short. The adapter was therefore hardened to accept `screener` or the documented `yahoo` fallback when Screener is preferred, while rejecting non-canonical source identifiers. A regression test covers both the fallback acceptance and unknown-source rejection.
+
+
+## Stage-2 gate reopening — 2026-09-19
+
+The current-head GitHub Actions run exposed two regression failures after the implementation was pushed. Stage 2 is therefore **REOPENED** before any Stage-3 work.
+
+### Observed failures
+
+1. `tests/test_agent_quant_hand_off.py::test_contract_mismatch_fails_closed[change1-price_source]` expected every Yahoo artifact to be rejected. That conflicts with the inspected canonical producer: when Screener is preferred, Yahoo is a documented fallback. The test is stale, not the adapter contract.
+2. `tests/test_precomputed_ranking.py::test_moving_a_weight_slider_misses_rather_than_serving_the_wrong_table` still exercises a contract without `price_as_of`. Because `matches()` now correctly checks `price_as_of`, the failure reason becomes `price_as_of differs` before reaching the intentionally changed weights. The regression test fixture must include a coherent `price_as_of` so it isolates the weight invariant.
+
+### Repair plan — before code changes
+
+- Inspect the exact failing assertions and current canonical price-source semantics.
+- Update the Stage-2 hand-off test to distinguish a legitimate Yahoo fallback from a non-canonical source mismatch.
+- Update the precomputed-ranking regression fixture so the weight test isolates weights rather than an unrelated missing as-of field.
+- Preserve the production contract semantics; do not weaken validation merely to satisfy the old tests.
+- Run the full GitHub regression workflow on the repaired head.
+- If failures remain, repeat the adversarial loop before considering the gate.
+- Do not begin Stage 3 until the repaired head has successful runtime evidence and the live artifact/parity checks are addressed.
+
+### Gate rule
+
+The observed CI failure is evidence that Stage 2 is **not complete**. No green-by-assumption status is permitted. The gate remains open until the repaired implementation is actually executed and verified.
