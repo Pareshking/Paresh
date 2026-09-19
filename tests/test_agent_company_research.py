@@ -196,3 +196,19 @@ def test_company_specific_research_plan_rejects_duplicate_domains():
     )
     with pytest.raises(ValueError, match="duplicate material domains"):
         validate_research_plan(plan)
+
+def test_future_scheduled_event_is_valid_when_published_before_cutoff():
+    candidates = top_candidates(snapshot(({"Symbol": "AAA", "Rank": 1, "Score": 3.0},)))
+    evidence = Evidence(
+        entity="AAA",
+        kind=EvidenceKind.POSITIVE,
+        claim="AGM is scheduled for a future date.",
+        source="https://example.com/agm",
+        source_tier=SourceTier.PRIMARY,
+        published_on=date(2026, 9, 10),
+        event_date=date(2026, 9, 24),
+        retrieved_on=date(2026, 9, 19),
+        domain=ResearchDomain.SCHEDULED_EVENTS,
+    )
+    validate_evidence_set(candidates, (evidence,), information_cutoff=date(2026, 9, 18))
+
