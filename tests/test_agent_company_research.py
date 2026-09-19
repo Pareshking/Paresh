@@ -128,6 +128,18 @@ def test_research_coverage_requires_explicit_domain_states():
         validate_research_coverage(evidence, (ResearchDomain.INDUSTRY, ResearchDomain.PEERS))
 
 
+def test_research_coverage_requires_selected_domains_explicitly():
+    evidence = (
+        Evidence(
+            entity="AAA", kind=EvidenceKind.UNKNOWN, claim="Only selected domain checked",
+            source="research-window", source_tier=SourceTier.DERIVED,
+            retrieved_on=date(2026, 9, 19), domain=ResearchDomain.CAPACITY,
+        ),
+    )
+    with pytest.raises(TypeError):
+        validate_research_coverage(evidence)
+
+
 def test_research_coverage_accepts_unknown_as_a_valid_state():
     evidence = (
         Evidence(
