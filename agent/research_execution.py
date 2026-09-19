@@ -139,6 +139,8 @@ def _validate_causal_findings(
             raise ValueError("causal finding requires finding and mechanism")
         if not finding.timing.strip() or not finding.uncertainty.strip():
             raise ValueError("causal finding requires timing and uncertainty")
+        if isinstance(finding.evidence_refs, str) or not isinstance(finding.evidence_refs, tuple):
+            raise ValueError("causal finding evidence_refs must be a tuple[str, ...]")
         if not finding.evidence_refs:
             raise ValueError("causal finding requires evidence provenance")
         for ref in finding.evidence_refs:
@@ -159,6 +161,8 @@ def _validate_contradictions(
             raise ValueError("contradiction requires original and counter claims")
         if not finding.resolution.strip():
             raise ValueError("contradiction requires a resolution or unresolved statement")
+        if isinstance(finding.evidence_refs, str) or not isinstance(finding.evidence_refs, tuple):
+            raise ValueError("contradiction evidence_refs must be a tuple[str, ...]")
         if not finding.evidence_refs:
             raise ValueError("contradiction requires evidence provenance")
         for ref in finding.evidence_refs:
