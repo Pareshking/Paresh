@@ -141,7 +141,7 @@ def matches(published: dict[str, Any] | None, expected: dict[str, Any]) -> tuple
     # computes instead, which is the safe direction and self-healing on the
     # next nightly write.
     for field in ("pipeline_version", "symbols_fingerprint", "price_fingerprint",
-                  "actions_digest", "price_source"):
+                  "actions_digest", "price_source", "price_as_of"):
         if str(published.get(field, "")) != str(expected[field]):
             return False, f"{field} differs"
     if [round(float(w), 6) for w in published.get("weights", [])] != expected["weights"]:

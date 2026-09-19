@@ -98,6 +98,12 @@ def test_a_changed_input_is_rejected(terms, field, value):
     assert field in why
 
 
+def test_a_different_price_as_of_is_rejected(terms):
+    published = dict(terms, price_as_of="2026-09-14")
+    ok, why = ranking_store.matches(published, terms)
+    assert not ok and "price_as_of" in why
+
+
 def test_different_weights_are_rejected(terms):
     """The reader moved a slider. Their ranking is not the published one."""
     published = dict(terms, weights=[0.2, 0.2, 0.2, 0.2, 0.2])
@@ -246,6 +252,7 @@ def test_moving_a_weight_slider_misses_rather_than_serving_the_wrong_table(terms
         weights=(0.20, 0.20, 0.20, 0.20, 0.20),   # equal weight instead
         pipeline_version=terms["pipeline_version"],
         universe=terms["universe"],
+        price_as_of=terms["price_as_of"],
     )
     ok, why = ranking_store.matches(published, reader_changed_a_slider)
     assert not ok and "weights" in why
