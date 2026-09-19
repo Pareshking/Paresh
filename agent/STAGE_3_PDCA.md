@@ -108,3 +108,19 @@ Required before closure:
 - adversarial review complete;
 - documentation reconciled;
 - exact VERIFIED / NOT VERIFIED status recorded.
+
+## Verification repair — 2026-09-19
+
+CI run 275 produced 1114 passing tests and one failing Stage-3 test. The failure
+was in the test's raw-text import guard: the implementation intentionally records
+the canonical price-loader owner as provenance, so the substring was not evidence
+of an import. The written repair plan in STAGE_3_PLAN.md replaced that check with
+an AST import check while retaining the provenance assertion.
+
+A subsequent adversarial review identified a second provenance risk: a supplied
+breadth series could be older than the quantitative snapshot while MarketContext
+still presented only the snapshot date. A written date-coherence repair plan was
+recorded before implementation. The adapter now records breadth_as_of and rejects
+future breadth observations while permitting older observations explicitly.
+
+The next CI run must verify both repairs before the Stage-3 gate can be considered.
