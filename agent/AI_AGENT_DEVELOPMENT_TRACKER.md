@@ -16,8 +16,8 @@ If a later discovery invalidates an earlier decision, reopen that stage and reco
 ## Global status
 
 Stage 1: foundation + repository integration hardening — **REVIEWED**
-Stage 2: quantitative hand-off — **IMPLEMENTED / VERIFICATION OPEN**
-Stage 3: market hierarchy — **BLOCKED by Stage 2 gate**
+Stage 2: quantitative hand-off — **COMPLETE / GATE PASSED**
+Stage 3: market hierarchy — **READY FOR INSPECTION / PLAN**
 Stage 4: company research — BLOCKED
 Stage 5: adversarial roles — BLOCKED
 Stage 6: weekly report — BLOCKED
@@ -135,6 +135,50 @@ Non-goals: no new ranking formulas, price downloader, universe builder, breadth 
 [ ] Tests pass / CI verified
 [ ] Documentation updated
 [ ] Stage 2 PDCA signed off
+
+## Stage 2 — FINAL GATE RECORD — 2026-09-19
+
+### PLAN / REOPEN
+[✓] Reopened after CI exposed two regression-test defects
+[✓] Updated written repair/verification plan before code changes
+
+### DO
+[✓] Corrected canonical price-source mismatch test
+[✓] Corrected weight-contract regression fixture
+[✓] Added direct live-artifact hand-off assertion to existing V1 validation workflow
+
+### CHECK
+[✓] Full regression suite: **1099 passed**
+[✓] Compile application/source: **PASS**
+[✓] Real published rankings.parquet accepted by Stage-2 adapter
+[✓] Live artifact as-of: **2026-09-18**
+[✓] Live artifact rows: **750**
+[✓] Pipeline: **v4_calendar_periods_cbab8da9**
+[✓] Actual price source: **screener**
+[✓] Source artifact: canonical `data-latest/rankings.parquet`
+[✓] Adapter did not recalculate ranking
+
+### PROSECUTION
+[✓] Confirmed the original source-mismatch assertion was stale against the documented Screener→Yahoo fallback
+[✓] Confirmed the weight regression fixture was being masked by the newly enforced as-of check
+[✓] Confirmed broader workflow remains red only after Stage-2 hand-off, at existing full-universe validation
+
+### DEFENCE
+[✓] No ranking/price duplicate introduced
+[✓] Canonical producer/source-selection semantics preserved
+[✓] Failure remains visible rather than weakening the hand-off
+
+### REVIEWER / JURY / JUDGE
+[✓] Stage-2 evidence chain is internally consistent
+[✓] Provenance preserved
+[✓] Mandatory hand-off failure tests covered
+[✓] **STAGE 2 GATE PASSED**
+
+### Separate repository QA issue — NOT RESOLVED
+The same validation run fails later in `scripts/full_validation.py` with `Too few finite ranked scores` because only 430/750 symbols had a close on 2026-09-17. The existing 700-score hard floor is a separate canonical quantitative QA issue. It is **not** being lowered or bypassed by the agent.
+
+### ACT
+Stage 2 is closed. Stage 3 can begin only with its own repository inspection and written plan. No Stage-3 implementation has been started.
 
 ## Stage 3 — Market → Sector → Industry → Peer
 
