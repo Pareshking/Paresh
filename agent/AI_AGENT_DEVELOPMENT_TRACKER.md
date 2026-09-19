@@ -1,0 +1,280 @@
+# AI Agent Development Tracker & Audit Log
+
+Date started: 2026-09-19
+Status: Living execution record
+
+This file is the operational checklist and historical log. It must be updated as work happens. Do not mark an item complete merely because code was written.
+
+## How to use this tracker
+
+For every task: record PLAN before implementation; record files inspected; identify existing owner; record DO changes; run/check tests; record exact failures; perform adversarial review; record ACT decision; update documentation; then mark the gate.
+
+If evidence is unavailable, write **NOT VERIFIED** rather than assuming success.
+
+If a later discovery invalidates an earlier decision, reopen that stage and record why.
+
+## Global status
+
+Stage 1: foundation + repository integration hardening — **REVIEWED**
+Stage 2: quantitative hand-off — **NOT STARTED**
+Stage 3: market hierarchy — BLOCKED by Stage 2
+Stage 4: company research — BLOCKED
+Stage 5: adversarial roles — BLOCKED
+Stage 6: weekly report — BLOCKED
+Stage 7: historical audit — BLOCKED
+Stage 8: automation — BLOCKED
+
+## Master pre-development checklist
+
+[ ] Read AI_AGENT_MASTER_SPEC.md
+[ ] Read REPO_INTEGRATION_MAP.md
+[ ] Read latest Stage PDCA record
+[ ] Inspect relevant production implementation
+[ ] Inspect callers
+[ ] Inspect tests
+[ ] Search repository for duplicate capability
+[ ] Identify canonical owner
+[ ] Define smallest integration point
+[ ] Define failure mode
+[ ] Define provenance
+[ ] Define acceptance tests
+[ ] Define adversarial tests
+[ ] Only then implement
+
+## Stage 1 — Foundation
+
+### PLAN
+[✓] Define agent boundary
+[✓] Define immutable contracts
+[✓] Define evidence buckets
+[✓] Define research/review/report schemas
+[✓] Define provenance
+
+### DO
+[✓] agent package
+[✓] contracts
+[✓] fingerprint
+[✓] foundation runner
+[✓] normal pytest tests
+
+### CHECK
+[✓] empty identity rejected
+[✓] confidence bounds
+[✓] publication/retrieval date ordering
+[✓] duplicate symbols rejected
+[✓] evidence bucket mismatch rejected
+[✓] unknown review symbol rejected
+[✓] canonical benchmark identity
+[✓] provenance hardening after repo audit
+
+### RE-AUDIT FINDINGS
+[✓] Existing precomputed ranking discovered
+[✓] Existing release-asset publication path discovered
+[✓] Existing app cache/contract path discovered
+[✓] Existing quantitative owners mapped
+[✓] ranking artifact as-of mismatch identified
+[✓] ranking artifact as-of regression added
+[✓] agent fingerprint strengthened with pipeline version/source
+
+### ACT
+[✓] Stage-1 documents updated
+[✓] Stage 2 explicitly changed to artifact-first
+[✓] Stage 2 not started
+
+### Evidence / verification
+CI status: **NOT VERIFIED** for current head. No local pytest run is claimed.
+
+## Stage 2 — Quantitative hand-off
+
+### PLAN
+Goal: expose the existing published ranking as a read-only agent snapshot.
+
+Entry condition: Stage 1 repository integration review complete.
+
+Non-goals: no new ranking formulas, price downloader, universe builder, breadth engine, sector engine, or portfolio engine.
+
+### DO — planned sequence
+[ ] Locate exact production ranking artifact acquisition path
+[ ] Reuse ranking_store.fetch_snapshot/read_snapshot
+[ ] Reuse existing contract matcher
+[ ] Identify exact current expected contract inputs
+[ ] Build minimal read-only adapter
+[ ] Convert accepted ranking rows to QuantSnapshot
+[ ] Preserve source artifact and provenance
+[ ] Add schema/column validation only where needed
+
+### CHECK — mandatory
+[ ] Missing artifact fails safely
+[ ] Unreadable artifact fails safely
+[ ] Contract mismatch fails safely
+[ ] Wrong as-of fails
+[ ] Wrong universe fails
+[ ] Wrong pipeline version fails
+[ ] Wrong price source fails
+[ ] Wrong corporate-action digest fails
+[ ] Weight mismatch fails
+[ ] Duplicate symbols fail
+[ ] Adapter does not recalculate ranking
+[ ] Adapter output equals artifact rows exactly
+[ ] Top-25 selection is deterministic
+[ ] Existing production ranking tests remain valid
+
+### QUANT PARITY AUDIT
+[ ] Compare adapter rows to canonical artifact
+[ ] Compare rank
+[ ] Compare score
+[ ] Compare factor columns
+[ ] Compare dates
+[ ] Compare universe
+[ ] Compare provenance
+[ ] Record any discrepancy before fixing
+
+### EXIT GATE
+[ ] Zero unexplained discrepancies
+[ ] No duplicate quantitative owner
+[ ] Tests pass / CI verified
+[ ] Documentation updated
+[ ] Stage 2 PDCA signed off
+
+## Stage 3 — Market → Sector → Industry → Peer
+
+### PLAN
+Use existing Paresh breadth, sector/industry taxonomy and ranking outputs.
+
+### CHECK
+[ ] Market context matches existing engine
+[ ] Sector classification uses existing taxonomy
+[ ] Industry classification uses existing taxonomy
+[ ] Peer group derives from existing taxonomy
+[ ] No second taxonomy created
+[ ] Missing classification remains explicit
+[ ] Historical date handling is correct
+
+### EXIT GATE
+[ ] Read-only context adapters verified against existing outputs
+[ ] No duplicate formulas
+[ ] Adversarial review complete
+
+## Stage 4 — Company research
+
+### PLAN
+Add only genuinely new external evidence collection.
+
+Research areas: filings, company announcements, exchange/regulator disclosures, results, guidance, orders, fund raising, M&A, management commentary, corporate actions, regulatory/litigation events, industry developments and material upcoming events.
+
+### CHECK
+[ ] Correct entity/ticker
+[ ] Primary source preferred
+[ ] Source date captured
+[ ] Retrieval date captured
+[ ] Event date separated from publication date
+[ ] Evidence classified positive/negative/unknown
+[ ] Unknown not treated as negative
+[ ] Contradictory evidence retained
+[ ] No invented facts
+[ ] No unsupported inference
+[ ] Stale evidence labelled
+[ ] Citation audit complete
+
+## Stage 5 — Adversarial research
+
+### PLAN
+Researcher → Challenger/Prosecution → Defence → Reviewer → Jury → Judge.
+
+### CHECK
+[ ] Challenger receives original claims
+[ ] Challenger searches for contradiction
+[ ] Defence cannot delete negative evidence
+[ ] Reviewer checks source/date/entity
+[ ] Jury records unresolved disputes
+[ ] Judge checks process gate
+[ ] No role changes quantitative ranking
+[ ] No role creates an investment recommendation/rating
+
+## Stage 6 — Weekly report
+
+### PLAN
+Generate Top-25 report with market context, candidate facts, positive/negative/unknown evidence, adversarial review, next-event calendar and provenance appendix.
+
+### CHECK
+[ ] Top-25 exactly traceable to canonical artifact
+[ ] Rank ordering preserved
+[ ] No hidden score
+[ ] Every material claim traceable
+[ ] Contradictions represented
+[ ] Unknowns visible
+[ ] Upcoming events dated/source-backed
+[ ] Report reproducible from snapshot + evidence set
+
+## Stage 7 — Historical audit
+
+### PLAN
+Measure whether the research process adds useful information without contaminating System-1.
+
+### CHECK
+[ ] Historical ranking frozen
+[ ] Historical evidence cutoff enforced
+[ ] No future information leakage
+[ ] Research process metrics defined
+[ ] False-positive/unsupported-claim rates measured
+[ ] Source quality measured
+[ ] Research changes do not alter historical System-1
+
+Potential metrics: citation completeness, primary-source rate, contradiction discovery rate, stale-evidence rate, unknown rate, factual correction rate, research latency and reproducibility.
+
+## Stage 8 — Automation
+
+### PLAN
+Only after manual workflow is reproducible and CI is green.
+
+### CHECK
+[ ] Credentials documented
+[ ] Secrets never committed
+[ ] Failure notifications
+[ ] Retry policy
+[ ] Artifact freshness check
+[ ] Research cutoff
+[ ] Duplicate-run protection
+[ ] Report archival
+[ ] Provenance archival
+[ ] Cost controls
+[ ] Human review/approval point where required
+[ ] Rollback/disable path
+
+## Adversarial checklist — use at every stage
+
+### Prosecution
+What existing code already does this? What assumption is unsupported? Where can stale data pass? Where can future data leak? What can silently disagree?
+
+### Defence
+What evidence shows the implementation follows the canonical repository design? Which failure cases are intentionally handled?
+
+### Reviewer
+Can every output be traced to a source? Can another developer reproduce it? Did we introduce a second owner?
+
+### Jury
+List unresolved issues without hiding disagreement.
+
+### Judge
+Does the stage satisfy its gate? If not, block progression.
+
+## Change log
+
+2026-09-19 — Initial Stage-1 foundation created.
+2026-09-19 — Repository integration review performed before Stage 2.
+2026-09-19 — Existing precomputed ranking architecture documented.
+2026-09-19 — ranking contract as-of gap fixed and regression test added.
+2026-09-19 — Agent fingerprint strengthened with pipeline version and ranking price source.
+2026-09-19 — QuantSnapshot provenance expanded.
+2026-09-19 — Stage 2 postponed until artifact-first adapter design.
+
+## Current blockers / limitations
+
+- GitHub Actions result for the current head is **NOT VERIFIED** through the available connector.
+- No local full-repository checkout is available in this environment, so no local pytest run is claimed.
+- External research/API requirements are intentionally deferred until the qualitative research stage.
+- Stage 2 must begin with the exact existing artifact path, not an invented loader.
+
+## Final rule
+
+**Never mark complete because the code looks reasonable. Mark complete only when the expected behaviour is demonstrated, the failure modes are checked, the existing owner is respected, and the documentation records the evidence.**
