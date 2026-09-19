@@ -24,6 +24,30 @@ class SourceTier(str, Enum):
     DERIVED = "derived"
 
 
+class ResearchDomain(str, Enum):
+    COMPANY = "company"
+    FINANCIALS = "financials"
+    MANAGEMENT = "management"
+    ORDERS = "orders"
+    CAPACITY = "capacity"
+    CUSTOMERS_SUPPLIERS = "customers_suppliers"
+    PEERS = "peers"
+    INDUSTRY = "industry"
+    SECTOR = "sector"
+    GOVERNMENT_REGULATION = "government_regulation"
+    INPUTS_ENERGY = "inputs_energy"
+    FX = "fx"
+    TARIFF_TRADE = "tariff_trade"
+    MACRO_GEOPOLITICS = "macro_geopolitics"
+    TECHNOLOGY_IP = "technology_ip"
+    CAPITAL_MARKETS = "capital_markets"
+    LEGAL_COMPLIANCE = "legal_compliance"
+    MARKET_REACTION = "market_reaction"
+    SCHEDULED_EVENTS = "scheduled_events"
+    CONTRADICTIONS = "contradictions"
+    UNKNOWN_QUESTIONS = "unknown_questions"
+
+
 @dataclass(frozen=True)
 class QuantSnapshot:
     as_of: date
@@ -47,6 +71,9 @@ class Evidence:
     source_tier: SourceTier
     published_on: date | None = None
     retrieved_on: date | None = None
+    event_date: date | None = None
+    domain: ResearchDomain = ResearchDomain.COMPANY
+    materiality: str = "material"
     confidence: float | None = None
     notes: str = ""
 
@@ -61,6 +88,10 @@ class Evidence:
             raise ValueError("confidence must be between 0 and 1")
         if self.published_on and self.retrieved_on and self.published_on > self.retrieved_on:
             raise ValueError("published_on cannot be after retrieved_on")
+        if self.event_date and self.retrieved_on and self.event_date > self.retrieved_on:
+            raise ValueError("event_date cannot be after retrieved_on")
+        if not self.materiality.strip():
+            raise ValueError("materiality is required")
 
 
 @dataclass(frozen=True)
