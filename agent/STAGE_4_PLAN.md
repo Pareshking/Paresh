@@ -2,7 +2,7 @@
 
 Date: 2026-09-19
 Branch: agent/foundation-v1
-Status: PLAN RECORDED — IMPLEMENTATION NOT STARTED
+Status: DEEP-RESEARCH REFINEMENT RECORDED — IMPLEMENTATION IN PROGRESS
 
 ## 1. Objective
 
@@ -137,3 +137,38 @@ If live research cannot be completed reliably, Stage 4 remains NOT VERIFIED rath
 ## 12. Non-goals
 
 No new ranking model; no qualitative score; no investment recommendation; no duplicate taxonomy; no duplicate corporate-action engine; no autonomous LLM API; no silent web scraping treated as primary evidence; no historical backtest; no automation scheduling yet.
+
+
+## 13. Refinement after human review — 2026-09-19
+
+The initial live report was intentionally too shallow for the intended product. Human review identified that a list of company announcements can be obtained from Screener/BSE and therefore does not by itself justify the Stage-4 engineering effort.
+
+The acceptance target is now a 360-degree Company Intelligence Dossier as defined in `agent/STAGE_4_DEEP_RESEARCH_SPEC.md`.
+
+### Required additional layers
+
+- peers and relative competitive footprint;
+- industry-wide order flow and demand indicators;
+- sector developments;
+- government policy, tenders and regulation;
+- capacity/utilisation/commissioning/capex;
+- customer/supplier developments;
+- raw materials, energy, freight and margin channels;
+- FX exposure and hedging/natural hedge;
+- tariffs, duties, dumping, trade-war exposure and manufacturing-location asymmetry;
+- macro/geopolitical events and transmission channels;
+- technology, patents and product displacement;
+- funding, debt, rights issues, promoter/institutional activity;
+- management guidance and quarter-to-quarter consistency;
+- event lifecycle tracking;
+- contradiction detection;
+- explicit UNKNOWN-to-question-to-resolution workflow;
+- market reaction context.
+
+### Acceptance sample
+
+WELCORP is the required deep-research acceptance sample. The existing first-pass Top-25 report remains an intermediate artifact. Stage 4 cannot close until the WELCORP dossier demonstrates the expanded workflow end-to-end and passes the adversarial/reviewer/judge loop.
+
+### Research quality principle
+
+The goal is not maximum number of headlines. The goal is maximum decision-relevant information density, with every material conclusion traceable to underlying evidence and every unresolved issue visible.
