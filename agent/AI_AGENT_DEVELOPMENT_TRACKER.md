@@ -359,3 +359,10 @@ Decision: keep Stage 2 open. Do not advance to Stage 3 or company research until
 2026-09-19 — Universe-to-row consistency check added after adversarial review.
 2026-09-19 — Documentation reconciled after implementation.
 2026-09-19 — Stage 2 held open pending runtime/CI/live-artifact verification.
+
+
+### Stage-2 adversarial refinement
+
+2026-09-19 — Prosecution inspected the existing price-source selector after implementation and found a valid canonical Screener → Yahoo fallback path that the first adapter validation was too strict about.
+2026-09-19 — Adapter changed to mirror the existing source-selection contract: Screener or canonical Yahoo fallback when Screener is preferred; Yahoo otherwise.
+2026-09-19 — Added regression tests for fallback acceptance and unknown-source rejection.
