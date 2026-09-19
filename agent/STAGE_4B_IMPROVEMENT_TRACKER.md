@@ -27,7 +27,7 @@ Each improvement follows:
 
 | ID | Improvement | Source | Status |
 |---|---|---|---|
-| 1 | Require `published_on` for primary/secondary evidence | A1 | **DONE — code + explicit undated_primary_source escape + regression tests, awaiting CI** |
+| 1 | Require `published_on` for primary/secondary evidence | A1 | **VERIFIED — run #346 (35437730258), all 16 steps green** |
 | 2 | Enforce minimum primary-source share in judge | A2 | TODO |
 | 3 | Reject malformed string evidence refs explicitly | existing | **DONE — code + regression test** |
 | 4 | Validate source URLs / separate gaps from evidence | B3/B6 | TODO |
@@ -50,7 +50,7 @@ Each improvement follows:
 | 21 | Mark absence-based support explicitly | F6 | TODO |
 | 22 | Apply genuine-contradiction standard retroactively to SANSERA | G1/B2 | TODO |
 | 23 | Require and test explicit domain exclusions for every archetype | G2 | **PARTIAL — ANANDRATHI plan + test already present; framework enforcement TODO** |
-| 24 | Make `information_cutoff` required (no `date.today()` default) | Report 0 S3 | **DONE — parameter now required, one test call site fixed** |
+| 24 | Make `information_cutoff` required (no `date.today()` default) | Report 0 S3 | **VERIFIED — run #346 (35437730258)** |
 
 ## Immediate execution result
 
@@ -158,7 +158,8 @@ hypothesis), not a bare domain flag.
 - ANANDRATHI provenance repair (Loop 0, claim-keyed refs): **DONE — code + regression test**
 - ANANDRATHI domain-coverage repair (Loop 0b, drop unused INDUSTRY domain): **IMPLEMENTED locally — awaiting CI run #345**
 - Executable-path regression coverage: **DONE — 14 focused tests pass, including both live runners**
-- Full improvement suite (items 1-14, 19-23): **NOT STARTED**
+- Items 1, 24: **VERIFIED** (run #346, 35437730258) -- see above
+- Full improvement suite (items 2, 4-14, 19-23): **NOT STARTED**
 - SANSERA retroactive contradiction audit (#22): **NOT VERIFIED**
 - WELCORP adaptive rerun: **NOT VERIFIED**
 - Full adversarial council (Section 33): **NOT VERIFIED**
@@ -243,7 +244,11 @@ the real fix needs the supporting-vs-background-evidence distinction Section
 - ANANDRATHI live: `STAGE4B_ANANDRATHI_EXECUTION=PASS` (unchanged facts: rank 7, evidence 16, causal 4, contradictions 4)
 - both dossier artifacts written
 
-**CI: NOT YET VERIFIED for this loop.** Awaiting push and a fresh run.
+**CI: VERIFIED.** Run #346 (35437730258, job 105883144200, commit c9db923)
+on PR #15 -- all 16 gate steps green: regression, compile, Stage-2, Stage-3,
+SANSERA execution, ANANDRATHI execution, both dossiers retained, Streamlit
+HTML cleanup + smoke, final artifact upload. Items 1 and 24 are CI-verified,
+not only locally verified.
 
 ## Rule against false closure
 
