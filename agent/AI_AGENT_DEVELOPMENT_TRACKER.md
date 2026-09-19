@@ -447,3 +447,20 @@ The 430/750 validation failure must not be described as a failure of the current
 
 
 Stage 3 is complete and gate passed. CI run 279 recorded 1114 passed, compile PASS, Stage-2 hand-off PASS, while the unrelated Yahoo-backed full-universe validation remains separately red.
+
+## Stage-3 live-output verification closure — 2026-09-19
+
+The Stage-3 Market → Sector → Industry → Peer implementation was executed against the current published production ranking artifact in V1 Full Validation run **#289**.
+
+- Live snapshot: 750 rows, as-of 2026-09-18.
+- Taxonomy: TradingView Industry (119), 2,319 taxonomy rows loaded.
+- Classification coverage: 750/750; unknown: 0.
+- Actual Top-25 hierarchy: emitted and verified.
+- Peer groups: derived from the complete 750-row ranking universe.
+- Benchmark/regime: canonical ^CRSLDX; live regime output was produced by the existing market-regime owner.
+- Exact output: `agent/STAGE_3_LIVE_VERIFICATION_2026-09-19.md`.
+- Durable CI evidence: dedicated Stage-3 artifact upload added immediately after the live step.
+
+**Stage-3 live verification: COMPLETE / VERIFIED.**
+
+Permanent rule: Stage-3 cannot be marked fully verified from unit tests alone. A real current-artifact execution must be recorded, or the state must be NOT VERIFIED.
