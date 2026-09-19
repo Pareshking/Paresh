@@ -45,7 +45,7 @@ Each improvement follows:
 | 16 | Claim-keyed evidence refs; prohibit positional refs | E3 | **DONE — ANANDRATHI converted** |
 | 17 | Executable test per archetype: packet + execute_research | E4 | **DONE — ANANDRATHI test added** |
 | 18 | Detect evidence cited by no causal/contradiction finding | E5 | **DONE — ANANDRATHI execution test enforces zero orphans** |
-| 19 | Reject/downgrade unstable sources | F1/F2/B3 | **VERIFIED locally, CI pending — see Loop 2** |
+| 19 | Reject/downgrade unstable sources | F1/F2/B3 | **VERIFIED — run #348 (35438217592), all 16 steps green** |
 | 20 | Evidence-window freshness: max(published_on) vs snapshot.as_of | F4 | TODO |
 | 21 | Mark absence-based support explicitly | F6 | TODO |
 | 22 | Apply genuine-contradiction standard retroactively to SANSERA | G1/B2 | TODO |
@@ -159,7 +159,8 @@ hypothesis), not a bare domain flag.
 - ANANDRATHI domain-coverage repair (Loop 0b, drop unused INDUSTRY domain): **IMPLEMENTED locally — awaiting CI run #345**
 - Executable-path regression coverage: **DONE — 14 focused tests pass, including both live runners**
 - Items 1, 24: **VERIFIED** (run #346, 35437730258) -- see above
-- Full improvement suite (items 2, 4-14, 19-23): **NOT STARTED**
+- Item 19: **VERIFIED** (run #348, 35438217592) -- see above
+- Full improvement suite (items 2, 4-14, 20-23): **NOT STARTED**
 - SANSERA retroactive contradiction audit (#22): **NOT VERIFIED**
 - WELCORP adaptive rerun: **NOT VERIFIED**
 - Full adversarial council (Section 33): **NOT VERIFIED**
@@ -310,7 +311,8 @@ PASS (facts unchanged); ANANDRATHI live PASS (evidence 16, causal 4,
 contradictions 4 unchanged; primary 7 -> 3 as intended); both dossiers
 written.
 
-**CI: not yet verified for this loop.** Awaiting push and a fresh run.
+**CI: VERIFIED.** Run #348 (35438217592, job 105884427449, commit 4aa7150)
+on PR #15 -- all 16 gate steps green.
 
 ## Rule against false closure
 
