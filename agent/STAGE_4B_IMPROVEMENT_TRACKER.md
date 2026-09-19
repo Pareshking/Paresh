@@ -10,8 +10,8 @@ verified green on the final commit. Items 1-10, 15-24 above are now on
 (Loop 8).  
 **Current execution branch:** `agent/stage4b-third-archetypes` (from `main`
 post-merge)  
-**Current PR:** none yet — third-archetype work (PAYTM, YATHARTH, LENSKART)
-in progress, see Loop 11 below.
+**Current PR:** #16 -- CI VERIFIED (run #363), `mergeable_state: clean`,
+ready to merge. See Loop 11 below.
 
 ## Operating rule
 
@@ -907,7 +907,9 @@ items honestly recording genuine disclosure gaps rather than fabricating
 resolutions. Full local suite after adding all three: **1168 passed** (up
 from 1159 -- 9 new tests, 3 per company, zero regressions).
 
-**CI: pending push and verification** -- see next commit.
+**CI: VERIFIED.** Run #363 (35470906354) on PR #16, commit b5557b2 --
+completed/success, all steps green including the three new live-execution
+steps and dossier-artifact retention. `mergeable_state: clean`.
 
 ## Rule against false closure
 
