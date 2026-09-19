@@ -120,6 +120,7 @@ def main() -> None:
     print(f"STAGE4B_SANSERA_PRIMARY_COVERAGE={dossier.audit.primary_coverage:.3f}")
     print(f"STAGE4B_SANSERA_CAUSAL={dossier.audit.causal_finding_count}")
     print(f"STAGE4B_SANSERA_CONTRADICTIONS={dossier.audit.contradiction_count}")
+    print(f"STAGE4B_SANSERA_EVIDENCE_WINDOW_GAP_DAYS={dossier.evidence_window_gap_days}")
     print("STAGE4B_SANSERA_EXECUTION=PASS")
 
 

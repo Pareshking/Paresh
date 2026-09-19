@@ -242,3 +242,112 @@ def test_execution_rejects_string_evidence_refs_in_contradiction():
     )
     with pytest.raises(ValueError, match="must be a tuple"):
         execute_research(snapshot(), ResearchCandidate("BBB", 2, 2.0, {}), bad)
+
+
+def test_evidence_window_gap_uses_newest_published_on():
+    """Item 20 (Report 2 F4): the evidence-window gap is max(published_on)
+    vs snapshot.as_of, not a per-item age check (items 11/12)."""
+    dossier = execute_research(
+        snapshot(), ResearchCandidate("BBB", 2, 2.0, {}), packet()
+    )
+    # fixture's only dated (non-DERIVED) item is published_on=2026-09-10;
+    # snapshot as_of is 2026-09-18.
+    assert dossier.audit.newest_evidence_anchor == date(2026, 9, 10)
+    assert dossier.evidence_window_gap_days == 8
+
+
+def test_evidence_window_gap_falls_back_to_event_date_for_undated_primary_source():
+    """An item that legitimately has no publication date (a live/evergreen
+    source, undated_primary_source=True) should still count toward window
+    freshness via its event_date -- excluding it would understate how fresh
+    the evidence set actually is."""
+    p = packet()
+    fresher_undated = Evidence(
+        entity="BBB",
+        kind=EvidenceKind.POSITIVE,
+        claim="A live page shows a more recent as-of figure.",
+        source="https://issuer.example/",
+        source_tier=SourceTier.SECONDARY,
+        undated_primary_source=True,
+        event_date=date(2026, 9, 17),
+        retrieved_on=date(2026, 9, 19),
+        domain=ResearchDomain.ORDERS,
+        hypothesis="Can order growth convert into revenue?",
+    )
+    bad = ResearchProviderPacket(
+        plan=p.plan,
+        evidence=p.evidence + (fresher_undated,),
+        causal_findings=p.causal_findings,
+        contradictions=p.contradictions,
+        unresolved_questions=p.unresolved_questions,
+        monitoring_questions=p.monitoring_questions,
+    )
+    dossier = execute_research(snapshot(), ResearchCandidate("BBB", 2, 2.0, {}), bad)
+    assert dossier.audit.newest_evidence_anchor == date(2026, 9, 17)
+    assert dossier.evidence_window_gap_days == 1
+
+
+def test_evidence_window_gap_ignores_derived_items():
+    """A DERIVED absence-of-evidence record must never set the freshness
+    anchor, even if it happens to carry an event_date -- it is not
+    information, so it should not count as current information."""
+    p = packet()
+    derived_with_date = Evidence(
+        entity="BBB",
+        kind=EvidenceKind.UNKNOWN,
+        claim="We looked but found nothing newer.",
+        source="research-window",
+        source_tier=SourceTier.DERIVED,
+        event_date=date(2026, 9, 18),
+        retrieved_on=date(2026, 9, 19),
+        domain=ResearchDomain.CAPACITY,
+        hypothesis="Can capacity support the order pipeline?",
+    )
+    bad = ResearchProviderPacket(
+        plan=p.plan,
+        evidence=p.evidence + (derived_with_date,),
+        causal_findings=p.causal_findings,
+        contradictions=p.contradictions,
+        unresolved_questions=p.unresolved_questions,
+        monitoring_questions=p.monitoring_questions,
+    )
+    dossier = execute_research(snapshot(), ResearchCandidate("BBB", 2, 2.0, {}), bad)
+    # Still 2026-09-10 (the PRIMARY item), NOT 2026-09-18 from the DERIVED one.
+    assert dossier.audit.newest_evidence_anchor == date(2026, 9, 10)
+    assert dossier.evidence_window_gap_days == 8
+
+
+def test_evidence_window_gap_is_none_without_any_anchor():
+    """No evidence item carries a usable temporal anchor -> None, not a
+    crash and not a misleading 0."""
+    minimal_plan = ResearchPlan(
+        symbol="BBB",
+        company_archetype="industrial",
+        economic_drivers=("capacity utilisation",),
+        material_domains=(ResearchDomain.CAPACITY,),
+        hypotheses=("Can capacity support the order pipeline?",),
+    )
+    only_derived = ResearchProviderPacket(
+        plan=minimal_plan,
+        evidence=(
+            Evidence(
+                entity="BBB",
+                kind=EvidenceKind.UNKNOWN,
+                claim="Current utilisation was not disclosed.",
+                source="research-window",
+                source_tier=SourceTier.DERIVED,
+                retrieved_on=date(2026, 9, 19),
+                domain=ResearchDomain.CAPACITY,
+                hypothesis="Can capacity support the order pipeline?",
+            ),
+        ),
+        causal_findings=(),
+        contradictions=(),
+        unresolved_questions=("What is current utilisation?",),
+        monitoring_questions=(),
+    )
+    # execute_research itself does not require causal/contradiction presence
+    # (that is judge_dossier's job), so this should still construct a dossier.
+    dossier = execute_research(snapshot(), ResearchCandidate("BBB", 2, 2.0, {}), only_derived)
+    assert dossier.audit.newest_evidence_anchor is None
+    assert dossier.evidence_window_gap_days is None

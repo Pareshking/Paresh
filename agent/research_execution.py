@@ -26,6 +26,7 @@ from agent.contracts import (
     ResearchItem,
     ResearchPlan,
     ResearchItem,
+    SourceTier,
 )
 
 
@@ -80,6 +81,16 @@ class ResearchAudit:
     hypotheses_with_causal_analysis: int
     hypotheses_challenged: int
     blockers: tuple[str, ...] = ()
+    newest_evidence_anchor: date | None = None
+    """The latest per-item temporal anchor across all evidence (item 20;
+    Report 2 F4). Not the same thing as per-item age (items 11/12): an
+    evidence *set* can have every item individually "fresh enough" while the
+    set as a whole has not been updated in months. Computed as
+    max(published_on) for dated items, falling back to event_date only for
+    an item that explicitly declares undated_primary_source=True (it still
+    carries a real date, just not a publication date); DERIVED
+    absence-of-evidence records never contribute -- they are not
+    information, so they should not count as "current" information."""
 
     @property
     def primary_coverage(self) -> float:
@@ -99,6 +110,21 @@ class ResearchDossier:
     unresolved_questions: tuple[str, ...]
     monitoring_questions: tuple[str, ...]
     audit: ResearchAudit
+
+    @property
+    def evidence_window_gap_days(self) -> int | None:
+        """Days between the newest evidence anchor and the snapshot as-of.
+
+        This is a REPORTED metric, not yet a hard gate (item 20). A universal
+        threshold across archetypes would repeat the checklist mistake the
+        adaptive-research design exists to avoid: a market-sensitive book and
+        a quarterly-cadence manufacturer do not go stale at the same rate.
+        None when no evidence item carries any usable temporal anchor.
+        """
+        anchor = self.audit.newest_evidence_anchor
+        if anchor is None:
+            return None
+        return (self.snapshot_as_of - anchor).days
 
 
 def evidence_ref(evidence: Evidence) -> str:
@@ -242,6 +268,16 @@ def execute_research(
     if not unresolved and not monitoring:
         blockers.append("no unresolved or monitoring questions")
 
+    def _temporal_anchor(item: Evidence) -> date | None:
+        if item.source_tier is SourceTier.DERIVED:
+            return None
+        if item.published_on is not None:
+            return item.published_on
+        return item.event_date
+
+    anchors = [a for e in evidence if (a := _temporal_anchor(e)) is not None]
+    newest_anchor = max(anchors) if anchors else None
+
     audit = ResearchAudit(
         evidence_count=len(evidence),
         primary_evidence_count=sum(e.source_tier.value == "primary" for e in evidence),
@@ -256,6 +292,7 @@ def execute_research(
         hypotheses_with_causal_analysis=len(causal_hypotheses),
         hypotheses_challenged=len(challenged_hypotheses),
         blockers=tuple(blockers),
+        newest_evidence_anchor=newest_anchor,
     )
 
     return ResearchDossier(

@@ -46,7 +46,7 @@ Each improvement follows:
 | 17 | Executable test per archetype: packet + execute_research | E4 | **DONE — ANANDRATHI test added** |
 | 18 | Detect evidence cited by no causal/contradiction finding | E5 | **DONE — ANANDRATHI execution test enforces zero orphans** |
 | 19 | Reject/downgrade unstable sources | F1/F2/B3 | **VERIFIED — run #348 (35438217592), all 16 steps green** |
-| 20 | Evidence-window freshness: max(published_on) vs snapshot.as_of | F4 | TODO |
+| 20 | Evidence-window freshness: max(published_on) vs snapshot.as_of | F4 | **DONE (measured + reported, not yet a hard gate) — see Loop 3** |
 | 21 | Mark absence-based support explicitly | F6 | TODO |
 | 22 | Apply genuine-contradiction standard retroactively to SANSERA | G1/B2 | TODO |
 | 23 | Require and test explicit domain exclusions for every archetype | G2 | **PARTIAL — ANANDRATHI plan + test already present; framework enforcement TODO** |
@@ -313,6 +313,75 @@ written.
 
 **CI: VERIFIED.** Run #348 (35438217592, job 105884427449, commit 4aa7150)
 on PR #15 -- all 16 gate steps green.
+
+
+## Loop 3 — item 20 (evidence-window freshness)
+
+Implemented as a REPORTED metric, not a hard gate, deliberately. Discussed
+with Paresh before coding: a universal staleness threshold across archetypes
+would repeat exactly the checklist mistake the adaptive-research design
+exists to avoid -- a market-sensitive wealth manager and a quarterly-cadence
+manufacturer do not go stale at the same rate, and inventing one number
+unilaterally would be picking an arbitrary threshold and calling it rigor.
+
+**What it measures, and how it differs from items 11/12 (per-item age):**
+an evidence *set* can have every individual item within its own acceptable
+age and still, as a whole, not have been updated in months. This is
+`max(temporal anchor)` across the whole evidence set compared against
+`snapshot.as_of`, not a per-item check.
+
+**Design decisions, each grounded in what the packets actually contain
+(checked before coding, not assumed):**
+- The anchor is `published_on` for dated items. `retrieved_on` was
+  considered and rejected: in both packets it is a single constant applied
+  to every item (the day the research batch ran), not a per-item timestamp,
+  so it carries no freshness signal at all.
+- An item with `undated_primary_source=True` (Loop 1) falls back to its
+  `event_date` -- it still carries a real, verified date, just not a
+  publication date. Excluding it would understate freshness.
+- A `DERIVED` item never contributes, even if it happened to carry an
+  `event_date` -- confirmed no current DERIVED item does, but the rule holds
+  either way, since an absence-of-evidence record is not information and
+  should not count as "current" information.
+- Returns `None` (not 0, not a crash) when no evidence item has any usable
+  anchor -- an empty-anchor set is a different, worse condition than "zero
+  days stale" and must not be conflated with it.
+
+**Added:** `ResearchAudit.newest_evidence_anchor` (computed in
+`execute_research`) and `ResearchDossier.evidence_window_gap_days` (a
+property, since it needs `snapshot_as_of`, which lives on the dossier, not
+the archetype-agnostic audit). Printed as
+`STAGE4B_{SANSERA,ANANDRATHI}_EVIDENCE_WINDOW_GAP_DAYS` in both live
+runners. Four new focused tests in `test_agent_research_execution.py`
+covering: the normal dated case, the undated-primary-source fallback, the
+DERIVED-never-contributes rule (including the adversarial case of a DERIVED
+item that does carry an event_date), and the no-anchor-at-all None case.
+
+**Measured on real data:**
+- SANSERA: gap = **0 days** (newest evidence is the 2026-09-18 Reuters
+  tariff-authority piece -- same day as the cutoff)
+- ANANDRATHI: gap = **66 days** (newest evidence 2026-07-14; cutoff
+  2026-09-18) -- exactly reproducing Report 2 finding F4
+
+The 0-vs-66 spread is itself a useful confirmation that the metric
+discriminates correctly between a currently-fresh dossier and a stale one on
+real, unmodified data, not a contrived example.
+
+**Not yet done, and deliberately left open:** no threshold, no hard gate.
+The natural home for a threshold is the archetype's own `ResearchPlan` --
+the same place material domains and exclusions are already declared -- so a
+wealth-management plan could declare "30 days" and a manufacturing plan
+"one reporting period" without a universal constant. That is a real design
+decision for Paresh, not mine to invent; recorded here rather than guessed
+at in code.
+
+**Local verification:** compileall OK; 4 new tests pass (12 total in the
+file); full regression 1154 passed, 1 deselected (same pre-existing
+worktree artifact); SANSERA live PASS (gap=0, all other facts unchanged);
+ANANDRATHI live PASS (gap=66, all other facts unchanged); both dossiers
+written.
+
+**CI: not yet verified for this loop.** Awaiting push and a fresh run.
 
 ## Rule against false closure
 
