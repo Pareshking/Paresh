@@ -71,7 +71,11 @@ def test_future_publication_date_fails():
         retrieved_on=retrieved,
     )
     with pytest.raises(ValueError, match="after the information cutoff"):
-        validate_evidence_set(candidates, (evidence,))
+        validate_evidence_set(
+            candidates,
+            (evidence,),
+            information_cutoff=date(2026, 9, 18),
+        )
 
 
 def test_duplicate_evidence_claim_fails():
