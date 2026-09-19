@@ -59,14 +59,15 @@ def test_evidence_outside_candidate_set_fails():
 
 def test_future_publication_date_fails():
     candidates = top_candidates(snapshot(({"Symbol": "AAA", "Rank": 1, "Score": 3.0},)))
+    future = date.today() + timedelta(days=1)
     evidence = Evidence(
         entity="AAA",
         kind=EvidenceKind.POSITIVE,
         claim="Future event",
         source="https://example.com",
         source_tier=SourceTier.PRIMARY,
-        published_on=date.today() + timedelta(days=1),
-        retrieved_on=date.today() + timedelta(days=1),
+        published_on=future,
+        retrieved_on=future,
     )
     with pytest.raises(ValueError, match="after the information cutoff"):
         validate_evidence_set(candidates, (evidence,))
