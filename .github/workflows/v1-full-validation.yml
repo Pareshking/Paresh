@@ -2,7 +2,7 @@ name: V1 Full Validation
 
 on:
   push:
-    branches: [main]
+    branches: [main, agent/stage4b-execution]
   # Also on the PROPOSAL, not only on the merge. Running solely on push to
   # main meant the suite first executed after the change was already in --
   # a red result there is a revert, where the same red result on the pull
@@ -55,6 +55,17 @@ jobs:
 
       - name: Stage-3 live hierarchy output
         run: python scripts/stage3_live_validation.py
+
+      - name: Stage-4B real SANSERA research execution
+        run: python scripts/stage4b_sansera_live_validation.py
+
+      - name: Retain Stage-4B SANSERA dossier
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4b-sansera-dossier
+          path: artifacts/stage4b_sansera_dossier.md
+          if-no-files-found: warn
 
       - name: Retain Stage-3 live hierarchy artifact
         if: ${{ always() }}
