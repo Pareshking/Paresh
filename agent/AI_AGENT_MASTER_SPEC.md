@@ -249,3 +249,35 @@ The first live Top-25 company research report is preserved in agent/STAGE_4_LIVE
 
 The gate remains OPEN until focused tests, full regression, source/date/entity audit and deeper primary-document review are complete. A provisional live report must not be mistaken for a completed Stage-4 gate.
 
+
+
+## Stage-4 deep Company Intelligence refinement — 2026-09-19
+
+The initial Stage-4 live output was intentionally treated as a baseline and was rejected as insufficiently differentiated from a Screener/BSE announcement feed. The final target is a 360-degree contextual dossier.
+
+### Mandatory contextual layers
+
+Company + financials + management + orders + capacity/utilisation + customers/suppliers + peers + industry order flow + sector + government/regulation + inputs/energy/freight + FX + tariffs/trade + macro/geopolitics + technology/IP + capital markets/funding/shareholding + legal/compliance + market reaction + contradictions + unknown-resolution questions.
+
+### Core principle
+
+The agent must explain relationships and second-order effects, not merely collect facts. Examples include:
+- tariff → country of manufacture → peer exposure → customer pricing → order economics;
+- input cost → contract/pass-through → inventory lag → margin timing;
+- geopolitical event → shipping route → facility/customer → order execution;
+- government funding → industry order flow → company backlog → capacity utilisation;
+- peer capacity addition → industry supply → pricing/market-share context;
+- management statement this quarter vs prior quarter → changed expectation;
+- proposed transaction → completion/cancellation → current state.
+
+These are analytical relationships and must remain evidence-backed; scenarios must not be presented as established facts.
+
+### Value threshold
+
+The final dossier should add information that a simple announcement feed does not provide. High-value research should resolve or sharpen a question about earnings, timing, competitive position, risk, market reaction, management expectations or industry conditions. Routine duplicate headlines should be compressed.
+
+### Acceptance sample
+
+WELCORP is the acceptance sample. The detailed design and sample are recorded in agent/STAGE_4_DEEP_RESEARCH_SPEC.md and agent/STAGE_4_WELCORP_DEEP_SAMPLE_2026-09-19.md.
+
+Stage 4 remains open until the executable workflow demonstrates this depth and survives the full adversarial review.
