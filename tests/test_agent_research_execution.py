@@ -186,7 +186,7 @@ def test_judge_rejects_no_contradiction_challenge():
         monitoring_questions=p.monitoring_questions,
     )
     dossier = execute_research(snapshot(), ResearchCandidate("BBB", 2, 2.0, {}), no_challenge)
-    with pytest.raises(ValueError, match="no contradiction challenge"):
+    with pytest.raises(ValueError, match="no contradiction search"):
         judge_dossier(dossier)
 
 
