@@ -87,3 +87,25 @@ The WELCORP sample itself surfaced a reconciliation issue: the official July com
 ### Judge
 
 **GATE OPEN — NOT COMPLETE.** The research scope is now materially deeper, but the executable workflow and primary-document verification still need implementation and testing.
+
+
+## CHECK — Adaptive research correction, 2026-09-19
+
+### Human review finding
+The expanded domain list must not become a universal checklist. Banks, pharma, CDMO, API, domestic pharma, specialty pharma, SaaS, hospitals, insurers, auto companies and industrial businesses have different economic drivers. Even two companies in the same sector can require different research lenses.
+
+### Architectural correction
+[✓] Research domains are now a capability library, not mandatory per-company fields
+[✓] Added ResearchPlan contract with company archetype, economic drivers, selected material domains, hypotheses/questions and exclusions
+[✓] Added validation for company-specific research plans
+[✓] Added explicit information-cutoff controls to evidence validation
+
+### Analytical correction
+Evidence collection is now explicitly subordinate to analysis:
+
+company profile → economic drivers → materiality map → hypotheses → targeted evidence → causal chain → timing → offsets/mitigants → peer/industry context where relevant → contradiction search → unresolved questions.
+
+A chronological news report is a Stage-4 failure even when every headline is correctly sourced.
+
+### Judge
+**GATE OPEN — NOT COMPLETE.** The architecture now reflects adaptive, company-specific research and analytical connection of evidence, but the executable dossier generator and deep acceptance run still remain to be completed and verified.
