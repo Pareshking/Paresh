@@ -218,3 +218,17 @@ Artifact provenance records the actual source used by the producer. When the can
 ## Stage-3 implementation ownership
 
 The Stage-3 market hierarchy adapter is agent/market_hierarchy.py. It is read-only and consumes canonical Paresh market outputs and taxonomy fields. Peer groups are deterministic groupings over the selected existing taxonomy; no peer model or second taxonomy is introduced. Historical membership delegates to src/engine/membership.py and preserves out-of-coverage unknowns. This does not change System-1.
+
+## Stage-3 live-output gate — permanent requirement
+
+For Market → Sector → Industry → Peer work, passing unit/regression tests is not sufficient evidence of a production hierarchy. The stage gate must also contain a real execution against the current published canonical ranking artifact.
+
+Required retained evidence:
+- snapshot as-of and row count;
+- benchmark and market context identity;
+- selected taxonomy identity and coverage;
+- actual Top-25 hierarchy;
+- peer membership derived from the full supplied universe;
+- durable CI artifact or repository audit record.
+
+If that execution cannot be performed, the stage must be explicitly marked **NOT VERIFIED**. Synthetic fixtures may validate logic but cannot substitute for live-output evidence.
