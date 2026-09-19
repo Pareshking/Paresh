@@ -17,7 +17,7 @@ If a later discovery invalidates an earlier decision, reopen that stage and reco
 
 Stage 1: foundation + repository integration hardening — **REVIEWED**
 Stage 2: quantitative hand-off — **COMPLETE / GATE PASSED**
-Stage 3: market hierarchy — **READY FOR INSPECTION / PLAN**
+Stage 3: market hierarchy — **COMPLETE / GATE PASSED**
 Stage 4: company research — BLOCKED
 Stage 5: adversarial roles — BLOCKED
 Stage 6: weekly report — BLOCKED
@@ -189,26 +189,44 @@ Stage 2 is closed. Stage 3 can begin only with its own repository inspection and
 [✓] Existing taxonomy owner identified
 [✓] Existing industry aggregation owner identified
 [✓] Existing point-in-time membership owner identified
-[✓] Written Stage-3 plan recorded in agent/STAGE_3_PLAN.md
+[✓] Written Stage-3 plan recorded in agent/STAGE_3_PLAN.md before code
 
-### DO — in progress
-[✓] Read-only market hierarchy adapter added
-[✓] Focused Stage-3 tests added
-[✓] Peer derivation corrected to use the full supplied taxonomy universe
-[✓] Point-in-time membership wrapper preserves canonical out-of-coverage unknown
-[ ] Final adversarial review
-[ ] Full regression/CI verification
-[ ] Documentation reconciliation
-[ ] Stage-3 gate decision
+### DO
+[✓] Added agent/market_hierarchy.py
+[✓] Added tests/test_agent_market_hierarchy.py
+[✓] Reused canonical market/regime/breadth outputs
+[✓] Reused existing NSE/TradingView taxonomy fields
+[✓] Reused existing industry aggregation output
+[✓] Derived peers only from selected existing taxonomy
+[✓] Preserved missing taxonomy as unknown
+[✓] Preserved out-of-coverage historical membership as unknown
+[✓] Added breadth_as_of provenance and future-date rejection
 
 ### CHECK
-Status: **OPEN / NOT VERIFIED** pending CI execution and final adversarial loop.
+[✓] First CI test defect identified and repaired under a written plan
+[✓] Full regression after repair: **1114 passed**
+[✓] Compile application/source: **PASS**
+[✓] Stage-2 canonical ranking hand-off: **PASS**
+[✓] Real published artifact: 750 rows, as-of 2026-09-18, actual source screener
+[✓] Stage-3 focused tests passed as part of the full 1114-test suite
+[✓] No price_loader, pipeline, or yfinance imports in Stage-3 adapter
+[✓] Peer grouping covers the full supplied ranking frame
+[✓] Breadth date coherence tested
+[✓] Historical membership coverage tested
 
-### EXIT GATE
-Stage 3 is not complete until canonical market/breadth/taxonomy owners are reused,
-peer derivation is taxonomy-only, uncertainty is explicit, focused and regression
-tests pass, and the Researcher → Prosecution → Defence → Reviewer → Jury → Judge
-loop signs off.
+### ADVERSARIAL REVIEW
+**Prosecution:** corrected brittle import guard, snapshot-only peer grouping, and breadth-date provenance risk.
+
+**Defence:** canonical calculations remain outside agent/market_hierarchy.py; adapter is read-only.
+
+**Reviewer:** taxonomy identity, benchmark identity, dates, immutability and fail-closed cases verified by tests/code inspection.
+
+**Jury:** Stage-3-specific evidence is sufficient. The unrelated Yahoo-backed full-universe validation remains red and is not reclassified.
+
+**Judge:** **STAGE 3 GATE PASSED.**
+
+### ACT
+Stage 3 is closed. Stage 4 remains blocked until its own repository inspection and written plan are completed.
 
 ## Stage 4 — Company research
 
