@@ -195,3 +195,16 @@ def build_hierarchy_context(
         rows=tuple(rows),
         industry_rankings=tuple(agg_records),
     )
+
+
+def membership_as_of(history: dict[str, Any], on: date) -> frozenset[str] | None:
+    """Read point-in-time membership from the canonical membership timeline.
+
+    The canonical owner deliberately returns None outside its coverage. That
+    uncertainty is preserved here; this adapter never substitutes current
+    constituents for a historical date.
+    """
+    from src.engine.membership import members_on
+
+    members = members_on(history, on)
+    return frozenset(members) if members is not None else None
