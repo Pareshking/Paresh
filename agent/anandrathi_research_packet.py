@@ -42,7 +42,6 @@ def anandrathi_plan() -> ResearchPlan:
             ResearchDomain.FINANCIALS,
             ResearchDomain.MANAGEMENT,
             ResearchDomain.CUSTOMERS_SUPPLIERS,
-            ResearchDomain.INDUSTRY,
             ResearchDomain.GOVERNMENT_REGULATION,
             ResearchDomain.TECHNOLOGY_IP,
             ResearchDomain.CAPITAL_MARKETS,
