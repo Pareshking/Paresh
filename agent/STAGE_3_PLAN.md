@@ -227,3 +227,22 @@ Before changing code, the repair decision is:
 5. only then continue the adversarial gate.
 
 This is a test-quality repair, not a weakening of the Stage-3 no-duplication rule.
+
+## Adversarial repair plan — date coherence — 2026-09-19
+
+The completed test run will be followed by a deeper reviewer pass on provenance
+coherence. The current MarketContext labels its context with the QuantSnapshot
+as-of date even when a supplied breadth series could end earlier or accidentally
+contain a future row.
+
+Before changing implementation, the repair decision is:
+
+1. retain the canonical breadth values unchanged;
+2. record an explicit breadth_as_of derived only from the supplied breadth index;
+3. reject a breadth series whose latest dated observation is after snapshot.as_of;
+4. permit an older breadth observation but preserve its actual date so downstream
+research cannot mistake it for same-session data;
+5. add regression tests for future breadth and older-but-explicit breadth;
+6. rerun the full regression and continue the adversarial review.
+
+This is provenance hardening, not a new breadth calculation.
