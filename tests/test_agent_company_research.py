@@ -67,7 +67,7 @@ def test_future_publication_date_fails():
         published_on=date.today() + timedelta(days=1),
         retrieved_on=date.today(),
     )
-    with pytest.raises(ValueError, match="cannot be in the future"):
+    with pytest.raises(ValueError, match="after the information cutoff"):
         validate_evidence_set(candidates, (evidence,))
 
 
@@ -150,3 +150,14 @@ def test_research_domain_summary_preserves_direction():
         Evidence(entity="AAA", kind=EvidenceKind.UNKNOWN, claim="C", source="z", source_tier=SourceTier.DERIVED, retrieved_on=date(2026, 9, 19), domain=ResearchDomain.CAPACITY),
     )
     assert research_domain_summary(evidence)["capacity"] == {"positive": 1, "negative": 1, "unknown": 1}
+
+
+def test_event_date_after_snapshot_cutoff_fails():
+    candidates = top_candidates(snapshot(({"Symbol": "AAA", "Rank": 1, "Score": 3.0},)))
+    evidence = Evidence(
+        entity="AAA", kind=EvidenceKind.POSITIVE, claim="Later event",
+        source="https://example.com", source_tier=SourceTier.PRIMARY,
+        event_date=date(2026, 9, 19), retrieved_on=date(2026, 9, 19),
+    )
+    with pytest.raises(ValueError, match="after the information cutoff"):
+        validate_evidence_set(candidates, (evidence,), information_cutoff=date(2026, 9, 18))
