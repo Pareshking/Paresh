@@ -245,7 +245,7 @@ def anandrathi_packet() -> ResearchProviderPacket:
                 mechanism="Regulatory approval would be required before launch; product mix, fees, distribution arrangements and investment scale would determine incremental economics.",
                 timing="Future and conditional; no completed AMC launch is established by the reviewed evidence.",
                 uncertainty="Approval, launch timing, fee structure, AUM ramp and profitability remain unknown.",
-                evidence_refs=(ref("SEBI's Mutual Funds Regulations 2026 are the current regulatory framework for mutual funds, with the regulation page last amended on 7 July 2026."), ref("The reviewed materials confirm the AMC application but do not establish the eventual approval date, product launch timing, fee structure, distribution economics or incremental profitability of the proposed AMC."), ref("Digital Wealth AUM reached INR 2,526 crore in Q1FY27, up 23% YoY, and the company reported that its UK subsidiary had started operations.")),
+                evidence_refs=(ref("The board approved a proposal to apply to SEBI to act as sponsor of a mutual fund under the SEBI Mutual Funds Regulations 2026."), ref("SEBI's Mutual Funds Regulations 2026 are the current regulatory framework for mutual funds, with the regulation page last amended on 7 July 2026."), ref("The reviewed materials confirm the AMC application but do not establish the eventual approval date, product launch timing, fee structure, distribution economics or incremental profitability of the proposed AMC.")),
             ),
             CausalFinding(
                 hypothesis=anandrathi_plan().hypotheses[3],
