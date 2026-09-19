@@ -105,3 +105,11 @@ This review used the connected GitHub repository interface. No local pytest run 
 
 ## Conclusion
 **No Stage-2 duplicate system will be built.** The repository already does the expensive quantitative work. The agent's job is to understand, challenge and enrich those outputs with evidence while preserving the quantitative system as the single source of truth.
+
+## STAGE-2 IMPLEMENTATION REVIEW — 2026-09-19
+
+The planned artifact-first hand-off was implemented after the repository inspection. `agent/quant_hand_off.py` calls the existing `ranking_store.fetch_snapshot()` and performs no price download or ranking-engine call. Focused tests cover malformed contracts, date/source/version/weight mismatches, row integrity, universe consistency, provenance and an explicit guard against engine recalculation.
+
+The Stage-2 adapter does not independently reconstruct the price fingerprint. That remains producer/artifact provenance; an independent quantitative audit is a separate future audit path.
+
+Verification status: focused tests were added but local execution is unavailable in this environment. GitHub Actions for the current head returned no workflow runs, so CI and live published-artifact end-to-end execution remain **NOT VERIFIED**. Stage 2 therefore remains open pending executable verification and final gate review.
