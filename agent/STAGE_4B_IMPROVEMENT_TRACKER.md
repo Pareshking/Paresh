@@ -28,7 +28,7 @@ Each improvement follows:
 | ID | Improvement | Source | Status |
 |---|---|---|---|
 | 1 | Require `published_on` for primary/secondary evidence | A1 | **VERIFIED — run #346 (35437730258), all 16 steps green** |
-| 2 | Enforce minimum primary-source share in judge | A2 | TODO |
+| 2 | Enforce minimum primary-source share in judge | A2 | **DEFERRED (Paresh's decision) — no hard gate until item 9 exists** |
 | 3 | Reject malformed string evidence refs explicitly | existing | **DONE — code + regression test** |
 | 4 | Validate source URLs / separate gaps from evidence | B3/B6 | **PARTIAL — 4a VERIFIED (run #351, 35439390433); separate gaps field still TODO** |
 | 5 | Quality-aware domain coverage | A3 | **VERIFIED — run #351 (35439390433), reported metric, not a hard gate** |
@@ -725,6 +725,37 @@ content, but included in the same CI push since both live scripts run in
 one job.
 
 **CI: VERIFIED.** Run #356 (35441605984) on PR #15, commit 23c7975 -- all 16 gate steps green. Both dossiers confirmed rendering the reworded contradiction and the added semiconductor/defence refs correctly.
+
+
+## Loop 8 — Paresh's decisions on items 2/11-14's blocking policy question
+
+Asked, rather than guessed, since these items all needed a policy input
+this pipeline cannot derive from the data alone (same reasoning as item
+20's deferred threshold).
+
+**Q1: should staleness/half-life and primary-share thresholds be universal
+constants or declared per-archetype?**
+**A: per-archetype**, in each `ResearchPlan` -- the same place
+`material_domains` and `exclusions` already live. This is the answer that
+keeps the adaptive-research design consistent: a wealth manager and a
+manufacturer do not go stale at the same rate, and a single universal
+constant would repeat the checklist mistake found twice already today.
+
+**Q2: minimum primary-source share (item 2)?** Told Paresh the real
+consequence before asking: SANSERA is at 60.6%, ANANDRATHI is at ~19% after
+item 19 correctly downgraded its video/homepage sources -- any threshold
+above ~19% blocks ANANDRATHI's dossier today, on a defect (item 9,
+entity-relative tiering) that is not yet fixed, not on new bad research.
+**A: no hard gate yet.** Item 2 is DEFERRED, explicitly, until item 9
+exists. This is now a recorded decision, not an assumption.
+
+**Consequence for items 11-14:** the per-archetype answer means the
+half-life table is an OPTIONAL, OVERRIDABLE field on ResearchPlan, not a
+single constant applied everywhere -- a wrong default for one archetype
+does not lock in for all. That materially lowers the risk of proposing a
+reasonable starting table myself (see item 11 below), unlike item 2's
+single hard universal gate, which stays deferred because getting it wrong
+there means blocking a whole archetype outright.
 
 ## Rule against false closure
 
