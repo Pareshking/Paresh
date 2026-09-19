@@ -88,7 +88,11 @@ def validate_evidence_set(
         cutoff = information_cutoff or date.today()
         if item.published_on and item.published_on > cutoff:
             raise ValueError("evidence publication date is after the information cutoff")
-        if item.event_date and item.event_date > cutoff:
+        if (
+            item.event_date
+            and item.event_date > cutoff
+            and item.domain is not ResearchDomain.SCHEDULED_EVENTS
+        ):
             raise ValueError("evidence event date is after the information cutoff")
 
         key = (symbol, item.kind.value, item.claim.strip())
