@@ -471,3 +471,36 @@ Permanent rule: Stage-3 cannot be marked fully verified from unit tests alone. A
 **COMPLETE.** Retired `scripts/full_validation.py` and removed its workflow gate. The canonical quantitative validation boundary remains the real published ranking artifact consumed through the Stage-2 hand-off. The Stage-3 live hierarchy step remains part of V1 validation.
 
 The retirement is deliberate: the removed script independently called the Yahoo/yfinance historical-price path and therefore tested a ranking path no longer used for production ranking. No ranking methodology or Screener source-selection code was changed.
+
+
+## Stage 4 — Company Research — IN PROGRESS
+
+### PLAN
+[✓] Fresh repository inspection completed before implementation
+[✓] Existing research/source-owner audit completed
+[✓] Written Stage-4 plan recorded in agent/STAGE_4_PLAN.md before implementation
+[✓] Source hierarchy and evidence policy defined
+[✓] Failure modes defined
+[✓] Live-output gate defined
+
+### DO
+[✓] Added agent/company_research.py
+[✓] Added tests/test_agent_company_research.py
+[✓] Added agent/RESEARCH_SOURCE_POLICY.md
+[✓] Added agent/STAGE_4_PDCA.md
+[✓] Added first real live Top-25 report: agent/STAGE_4_LIVE_OUTPUT_2026-09-19.md
+
+### CHECK
+[✓] Current Top-25 researched against public sources
+[✓] Primary-source preference enforced
+[✓] Positive / Negative / Unknown distinction preserved
+[✓] No quantitative recalculation introduced
+[✓] Unknown used where announcement titles were insufficient
+[ ] Focused Stage-4 CI execution
+[ ] Full regression on current Stage-4 head
+[ ] Underlying-document audit of all material claims
+[ ] Final adversarial gate
+
+### CURRENT GATE
+**OPEN / NOT COMPLETE.** The real report exists for human review, but Stage 4 is not yet marked complete until CI and evidence-depth checks are finished.
+
