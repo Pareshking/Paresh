@@ -410,3 +410,8 @@ Decision: keep Stage 2 open. Do not advance to Stage 3 or company research until
 2026-09-19 — Prosecution inspected the existing price-source selector after implementation and found a valid canonical Screener → Yahoo fallback path that the first adapter validation was too strict about.
 2026-09-19 — Adapter changed to mirror the existing source-selection contract: Screener or canonical Yahoo fallback when Screener is preferred; Yahoo otherwise.
 2026-09-19 — Added regression tests for fallback acceptance and unknown-source rejection.
+
+
+## Clarification — 2026-09-19
+
+The 430/750 validation failure must not be described as a failure of the current Screener-driven production ranking. `scripts/full_validation.py` directly calls `src.loaders.price_loader.fetch_price_history()`, which is the Yahoo/yfinance historical-price path. The canonical production ranking source-selection layer can use Screener; the verified Stage-2 artifact did use Screener and contained 750 rows as of 2026-09-18. Thus the observed 430/750 figure belongs to the separate Yahoo-backed full-validation path, not to the verified Screener-backed Stage-2 hand-off. No methodology or threshold change is made by this clarification.
