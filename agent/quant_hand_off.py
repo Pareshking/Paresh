@@ -66,10 +66,14 @@ def _validate_contract(published: dict[str, Any] | None) -> tuple[date, set[str]
     if published["pipeline_version"] != pipeline.PIPELINE_VERSION:
         raise QuantHandoffError("ranking artifact pipeline_version differs")
 
-    if str(published["price_source"]).strip().lower() != str(
-        config.RANKING_PRICE_SOURCE
-    ).strip().lower():
-        raise QuantHandoffError("ranking artifact price_source differs")
+    artifact_source = str(published["price_source"]).strip().lower()
+    preferred_source = str(config.RANKING_PRICE_SOURCE or "yahoo").strip().lower()
+    # The canonical producer prefers screener but explicitly falls back to
+    # Yahoo when screener is unavailable/too short. Accept either source only
+    # in that documented configuration; otherwise the producer uses Yahoo.
+    allowed_sources = {"screener", "yahoo"} if preferred_source == "screener" else {"yahoo"}
+    if artifact_source not in allowed_sources:
+        raise QuantHandoffError("ranking artifact price_source is not a canonical source")
 
     price_as_of = _as_date(published["price_as_of"], "price_as_of")
 
