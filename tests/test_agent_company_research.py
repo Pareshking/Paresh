@@ -54,7 +54,7 @@ def test_evidence_outside_candidate_set_fails():
         retrieved_on=date(2026, 9, 19),
     )
     with pytest.raises(ValueError, match="outside research candidate set"):
-        validate_evidence_set(candidates, (evidence,))
+        validate_evidence_set(candidates, (evidence,), information_cutoff=date(2026, 9, 18))
 
 
 def test_future_publication_date_fails():
