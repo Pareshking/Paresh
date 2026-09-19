@@ -109,3 +109,46 @@ A chronological news report is a Stage-4 failure even when every headline is cor
 
 ### Judge
 **GATE OPEN — NOT COMPLETE.** The architecture now reflects adaptive, company-specific research and analytical connection of evidence, but the executable dossier generator and deep acceptance run still remain to be completed and verified.
+
+## CHECK — Stage 4B execution loop, 2026-09-19
+
+### PLAN
+Stage 4B plan recorded in agent/STAGE_4B_PLAN.md. The architecture explicitly separates research collection from deterministic validation/compilation.
+
+### DO
+Added:
+- agent/research_execution.py
+- agent/sansera_research_packet.py
+- scripts/stage4b_sansera_live_validation.py
+- tests/test_agent_research_execution.py
+- hypothesis binding on Evidence
+
+### Research execution
+A fresh SANSERA research cycle was performed against the 2026-09-18 information cutoff. It investigated the company-specific drivers of precision engineering, ADS, semiconductor equipment, aerospace, defence, automotive diversification, capacity, customer concentration, tariffs, FX, inputs, capital allocation, peers, industry and market reaction.
+
+The research deliberately connected evidence rather than producing a chronology. Principal causal chains:
+1. diversification → mix → margin;
+2. backlog → qualification/machines/capacity → revenue timing;
+3. ADS demand → industry demand → customer concentration → execution;
+4. tariff → facility geography → customer sourcing → cost/incidence;
+5. QIP/deleveraging → capex → asset turns → future ROCE.
+
+### Prosecution / Challenger
+Key challenges retained:
+- backlog is not near-term revenue;
+- semiconductor machine lead times constrain conversion;
+- aerospace demand does not guarantee OEM production cadence;
+- ADS backlog concentration is unresolved;
+- tariff effects are asymmetric and product-specific incidence is unresolved;
+- product concentration remains material despite end-market diversification;
+- historical employee-misappropriation/fraud disclosure requires direct annual-report review;
+- the later approximately INR57.5bn ADS backlog figure is secondary-source evidence and requires primary-transcript reconciliation.
+
+### Defence
+The positive thesis survives only in bounded form: diversification and ADS growth are already visible in reported revenue, but backlog conversion, customer concentration and capital productivity remain execution questions. No contradiction was suppressed.
+
+### Reviewer
+The provider packet has provenance, dates, selected-domain coverage, explicit unknowns, causal provenance and contradiction provenance. Future scheduled events are allowed only when the event is explicitly classified as SCHEDULED_EVENTS and the publication is available before the information cutoff.
+
+### Judge
+**GATE OPEN — NOT VERIFIED.** CI for the current Stage-4B head has not produced a workflow run through the available GitHub Actions interface, so machine execution cannot be claimed yet.
