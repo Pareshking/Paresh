@@ -158,3 +158,12 @@ def test_expected_as_of_is_an_explicit_audit_constraint(
     _mock_fetch(monkeypatch, ranking_frame, ranking_contract)
     snapshot = load_quant_snapshot(expected_as_of=date(2026, 9, 18))
     assert snapshot.price_as_of == date(2026, 9, 18)
+
+def test_row_outside_contract_universe_fails_closed(
+    monkeypatch, ranking_frame, ranking_contract
+):
+    published = dict(ranking_contract, universe=["AAA", "BBB"])
+    _mock_fetch(monkeypatch, ranking_frame, published)
+    with pytest.raises(QuantHandoffError, match="outside contract universe"):
+        load_quant_snapshot()
+
