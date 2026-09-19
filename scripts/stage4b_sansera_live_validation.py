@@ -70,7 +70,7 @@ def main() -> None:
 
     lines.extend([
         "## Causal findings",
-    ]
+    ])
 
     for finding in dossier.causal_findings:
         lines.extend(
