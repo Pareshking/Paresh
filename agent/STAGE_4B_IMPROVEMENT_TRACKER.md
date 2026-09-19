@@ -846,7 +846,7 @@ deliberately for archetype diversity against the two already built
 research surfaces new pipeline edge cases rather than repeating known
 patterns:
 
-- **PAYTM** (rank 7, One97 Communications) -- digital-payments/fintech
+- **PAYTM** (rank 22, One97 Communications) -- digital-payments/fintech
   platform archetype: network effects, RBI/PA-CB regulatory exposure, no
   physical order backlog.
 - **YATHARTH** (rank 17, Yatharth Hospital and Trauma Care Services) --
@@ -873,9 +873,41 @@ and the commit/push are done centrally, one company at a time, with the
 same discipline as every prior loop (full local suite, both/all live
 scripts, actual CI run ID checked before any VERIFIED claim).
 
-**Status: agents dispatched, not yet integrated.** This section will be
-completed with each company's actual evidence count, source list, and CI
-run ID once real, verified.
+All three agents hit a shared, account-level session rate limit mid-run
+(not a per-agent defect) and were resumed once via `SendMessage` after the
+limit cleared; each then completed independently.
+
+**Integration verification performed centrally** (not just trusted from
+each agent's self-report): every packet file was read in full for schema
+correctness (claim-keyed refs via `evidence_ref`, disjoint two-sided
+contradiction ref lists, non-trivial exclusions, dates all `<=` the
+2026-09-18 cutoff), then re-run independently through
+`execute_research`/`judge_dossier`, then the single highest-stakes claim in
+each packet was spot-checked against the real primary source directly (not
+the agent's own quoted text):
+
+- **YATHARTH**: the ₹3,150cr Advent International preferential-issue claim
+  was checked against the actual board-outcome PDF
+  (yatharth_20573744.pdf) -- every figure (1,30,26,516 shares,
+  1,89,47,664 warrants, INR 985.17/unit, INR 31,50,00,02,910.60
+  aggregate, 24.87% fully-diluted stake, 15 Oct 2026 EGM, CCI condition,
+  55.80% pre-issue promoter holding, 3-year lock-in) matched exactly,
+  down to the paisa.
+- **PAYTM**: the RBI/PPBL licence-cancellation claim was checked against
+  the actual RBI press release (prid=62621) -- date (24 April 2026),
+  statutory grounds (Section 22, Banking Regulation Act 1949) and the
+  depositor-liquidity statement all matched.
+- **LENSKART**: the corrected IPO-listing-date claim (10 Nov 2025, which
+  the agent corrected from this loop's own initial rank/sector hint) was
+  independently confirmed via a fresh web search.
+
+21/23/26 evidence items respectively (YATHARTH/PAYTM/LENSKART), all
+PRIMARY/SECONDARY items real fetched sources with real dates, DERIVED
+items honestly recording genuine disclosure gaps rather than fabricating
+resolutions. Full local suite after adding all three: **1168 passed** (up
+from 1159 -- 9 new tests, 3 per company, zero regressions).
+
+**CI: pending push and verification** -- see next commit.
 
 ## Rule against false closure
 
