@@ -50,6 +50,43 @@ UNKNOWN means the fact is relevant but its directional effect cannot be establis
 A report is publishable only when each substantive claim has a traceable source, dates are coherent, entity identity is correct, evidence classification is explicit, and unresolved uncertainty is visible.
 
 
+## Adaptive research and analytical reasoning — 2026-09-19
+
+The domain library is not a universal checklist.
+
+Before evidence collection, Stage 4 must construct a company-specific ResearchPlan:
+1. identify the company/business archetype;
+2. identify economic drivers that can move revenue, margin, cash flow, capital needs or competitive position;
+3. select only material research domains;
+4. state hypotheses/questions;
+5. explicitly exclude irrelevant domains.
+
+Different companies therefore receive different research lenses. A bank may require NIM, deposit/funding mix, asset quality, capital and regulatory-credit-cycle work; an API manufacturer may require input chemistry, pricing, backward integration, regulatory exposure and capacity; a CDMO may require customer programmes, qualification, utilisation, concentration and development-to-commercial conversion. These are examples, not hard-coded templates.
+
+Every selected domain must end in POSITIVE, NEGATIVE or UNKNOWN evidence. An irrelevant domain is excluded, not mechanically filled with generic news.
+
+### Analytical reasoning gate
+
+Stage 4 is not complete when it has collected relevant news.
+
+For each material issue, attempt the chain:
+
+external/internal event -> transmission mechanism -> company exposure -> affected product/segment/geography -> timing -> financial/operational variable -> management response -> peer/industry comparison -> contradiction -> uncertainty
+
+The report should answer, where evidence permits:
+- What changed?
+- Why does it matter to this company?
+- Through what mechanism?
+- Which part of the business is exposed?
+- When could the effect appear?
+- What offsets or mitigants exist?
+- How are peers exposed?
+- What does management say?
+- What evidence could invalidate the interpretation?
+- What remains unknown?
+
+A report that merely lists announcements, headlines or facts without company-specific causal analysis fails the Stage-4 analytical gate.
+
 ## Deep research expansion — 2026-09-19
 
 Stage 4 is a 360-degree contextual research process, not an announcement feed. Source collection must cover the company plus peers, industry, sector, government/regulation, macro/geopolitics, commodities/energy, FX, tariffs/trade, capacity/utilisation, customers/suppliers, technology/IP, capital markets and market reaction.
