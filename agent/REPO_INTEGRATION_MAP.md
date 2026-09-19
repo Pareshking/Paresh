@@ -195,3 +195,15 @@ Perform a complete Stage-1 + Stage-2 re-audit against:
 - documentation.
 
 A stage can be reopened if later work exposes a weakness in its assumptions.
+
+
+Stage 3 implementation ownership
+
+The Stage-3 agent adapter is agent/market_hierarchy.py. It is an orchestration/read-only boundary only:
+- market regime and breadth are supplied from existing Paresh owners;
+- taxonomy remains src/loaders/tv_loader.py and data/nse_tv_classification.csv;
+- industry aggregation remains MomentumEngine.get_industry_rankings;
+- historical membership remains src/engine/membership.py;
+- peer groups are deterministic groupings over an explicitly selected existing taxonomy.
+
+No Stage-3 function downloads prices, recalculates ranking/breadth, creates a benchmark, or creates a second taxonomy.
