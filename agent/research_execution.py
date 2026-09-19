@@ -8,8 +8,10 @@ that packet into a publication-gated dossier.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import date
+from itertools import combinations
 from typing import Iterable
 
 from agent.company_research import (
@@ -129,6 +131,11 @@ class ResearchAudit:
     rests on an absence rather than on contradicting evidence, per the
     handover's Section 24: "we could not find disclosure" must not silently
     read as "negative evidence"."""
+    numeric_disagreements: tuple[str, ...] = ()
+    """Item 8: pairs of same-domain evidence whose own headline INR figures
+    differ materially while provably describing the same underlying quantity
+    (see _numeric_disagreement). Never resolved automatically -- flagged for
+    a human reviewer, per Section 23 of the handover."""
 
     @property
     def primary_coverage(self) -> float:
@@ -163,6 +170,72 @@ class ResearchDossier:
         if anchor is None:
             return None
         return (self.snapshot_as_of - anchor).days
+
+
+_INR_VALUE_PATTERN = re.compile(
+    r"INR\s+([\d,]+(?:\.\d+)?)(?:\s*-\s*([\d,]+(?:\.\d+)?))?\s*"
+    r"(lakh crore|crore|million|billion)",
+    re.IGNORECASE,
+)
+_INR_UNIT_TO_MILLION = {"crore": 10, "million": 1, "billion": 1000, "lakh crore": 100000}
+_NUMERIC_DISAGREEMENT_MATERIALITY = 0.10  # 10%
+
+
+def _extract_inr_million_values(claim: str) -> frozenset[float]:
+    """Extract every INR-denominated figure in a claim, normalized to a
+    common unit (INR million), from patterns like "INR 44,368 million" or
+    "INR 5,500-6,000 million" (both range endpoints). Anchored on the
+    literal word "INR" so it only extracts monetary figures this dataset
+    actually states this way, not any bare number in the text -- narrow by
+    design (item 8; Section 23 of the handover: "start with deterministic
+    detection where possible... do not build an overly ambitious NLP
+    system")."""
+    values: set[float] = set()
+    for match in _INR_VALUE_PATTERN.finditer(claim):
+        multiplier = _INR_UNIT_TO_MILLION[match.group(3).lower()]
+        for group in (match.group(1), match.group(2)):
+            if group:
+                values.add(round(float(group.replace(",", "")) * multiplier, 3))
+    return frozenset(values)
+
+
+def _numeric_disagreement(claim_a: str, claim_b: str) -> tuple[float, float, float] | None:
+    """Return (smaller_headline, larger_headline, pct_difference) if the two
+    claims' own maximum extracted figures differ materially AND are provably
+    about the same underlying quantity -- the smaller one appears verbatim
+    (post-normalization) in the OTHER claim's own extracted values too.
+
+    That linkage requirement is the entire design: matching on shared domain
+    alone is not enough (a 2026-09-19 prototype run against both real
+    packets found a same-domain, same-sentence false positive -- a claim's
+    AUM figure spuriously "disagreeing" with an unrelated net-inflows figure
+    quoted two sentences later) and matching on shared keywords is not safe
+    either (a bag-of-words check would match "non-ADS order book" to "ADS
+    backlog" purely because "non-ADS" tokenizes to include "ADS"). Requiring
+    the smaller headline to be an exact, explicit restatement inside the
+    other claim is what let the real SANSERA ADS-backlog case (44,368 vs
+    57,500 million, a verified 30% gap Report 1 found and the pipeline had
+    never caught) pass while producing zero false positives on either real
+    packet in that same prototype run. It will miss disagreements stated in
+    genuinely independent claims with no shared figure -- that is the
+    accepted, stated cost of staying deterministic rather than guessing at
+    topic similarity from text.
+    """
+    values_a = _extract_inr_million_values(claim_a)
+    values_b = _extract_inr_million_values(claim_b)
+    if not values_a or not values_b:
+        return None
+    max_a, max_b = max(values_a), max(values_b)
+    if abs(max_a - max_b) < 0.01:
+        return None
+    smaller, larger = (max_a, max_b) if max_a < max_b else (max_b, max_a)
+    other_values = values_b if smaller == max_a else values_a
+    if not any(abs(smaller - v) < 0.01 for v in other_values):
+        return None
+    pct = (larger - smaller) / smaller
+    if pct < _NUMERIC_DISAGREEMENT_MATERIALITY:
+        return None
+    return (smaller, larger, pct)
 
 
 def evidence_ref(evidence: Evidence) -> str:
@@ -385,6 +458,27 @@ def execute_research(
     reviewer can see it, same as evidence_window_gap_days and the age
     buckets."""
 
+    by_domain: dict[ResearchDomain, list[Evidence]] = {}
+    for e in evidence:
+        by_domain.setdefault(e.domain, []).append(e)
+    numeric_disagreements: list[str] = []
+    for domain, items in by_domain.items():
+        for a, b in combinations(items, 2):
+            result = _numeric_disagreement(a.claim, b.claim)
+            if result is None:
+                continue
+            smaller, larger, pct = result
+            numeric_disagreements.append(
+                f"{domain.value}: {smaller:g} vs {larger:g} INR million "
+                f"({pct:.0%} difference) -- {evidence_ref(a)} | {evidence_ref(b)}"
+            )
+    """Item 8 (Report 1 B1; Section 23 of the handover): NUMERIC_DISAGREEMENT_
+    REVIEW_REQUIRED. Deliberately NOT a hard gate and never decides which
+    figure is correct -- purely a flag for a human reviewer, per Section 23's
+    explicit instruction. See _numeric_disagreement's docstring for why this
+    is scoped to exact-value linkage within one domain rather than fuzzy
+    topic matching."""
+
     audit = ResearchAudit(
         evidence_count=len(evidence),
         primary_evidence_count=sum(e.source_tier.value == "primary" for e in evidence),
@@ -408,6 +502,7 @@ def execute_research(
         causal_findings_absence_based=causal_absence_based,
         contradictions_absence_based=contradictions_absence_based,
         derived_only_domains=derived_only_domains,
+        numeric_disagreements=tuple(numeric_disagreements),
     )
 
     return ResearchDossier(

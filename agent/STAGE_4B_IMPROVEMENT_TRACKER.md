@@ -33,8 +33,8 @@ Each improvement follows:
 | 4 | Validate source URLs / separate gaps from evidence | B3/B6 | **PARTIAL — 4a VERIFIED (run #351, 35439390433); separate gaps field still TODO** |
 | 5 | Quality-aware domain coverage | A3 | **VERIFIED — run #351 (35439390433), reported metric, not a hard gate** |
 | 6 | Soften judge summary to actual guarantees | A4 | **VERIFIED — run #351 (35439390433)** |
-| 7 | Contradictions require genuinely disagreeing evidence | B2 | **DONE, CI pending — see Loop 5** |
-| 8 | Detect cross-tier numeric disagreement | B1 | TODO |
+| 7 | Contradictions require genuinely disagreeing evidence | B2 | **VERIFIED — run #353 (35440586723) — Loop 5** |
+| 8 | Detect cross-tier numeric disagreement | B1 | **DONE, CI pending — see Loop 6** |
 | 9 | Entity-relative source tiering | B4 | **DEFERRED — needs an issuer-to-symbol map; a URL-shape heuristic would guess, not fix — Loop 4** |
 | 10 | Evidence age distribution + rounded score | C1/C2/R5c | **VERIFIED — run #351 (35439390433); buckets confirmed exact match to local (SANSERA 23/4/2/2/2, ANANDRATHI 11/2/0/0/3)** |
 | 11 | Claim-type evidence half-life classification | R4 | TODO |
@@ -46,7 +46,7 @@ Each improvement follows:
 | 17 | Executable test per archetype: packet + execute_research | E4 | **DONE — ANANDRATHI test added** |
 | 18 | Detect evidence cited by no causal/contradiction finding | E5 | **DONE — ANANDRATHI execution test enforces zero orphans** |
 | 19 | Reject/downgrade unstable sources | F1/F2/B3 | **VERIFIED — run #348 (35438217592), all 16 steps green** |
-| 20 | Evidence-window freshness: max(published_on) vs snapshot.as_of | F4 | **DONE (measured + reported, not yet a hard gate) — see Loop 3** |
+| 20 | Evidence-window freshness: max(published_on) vs snapshot.as_of | F4 | **VERIFIED — run #350 (35438667821); reported metric, not a hard gate — Loop 3** |
 | 21 | Mark absence-based support explicitly | F6 | **VERIFIED — run #351 (35439390433); both archetypes 0/0, confirmed in job logs** |
 | 22 | Apply genuine-contradiction standard retroactively to SANSERA | G1/B2 | TODO |
 | 23 | Require and test explicit domain exclusions for every archetype | G2 | **VERIFIED — run #351 (35439390433)** |
@@ -387,7 +387,7 @@ worktree artifact); SANSERA live PASS (gap=0, all other facts unchanged);
 ANANDRATHI live PASS (gap=66, all other facts unchanged); both dossiers
 written.
 
-**CI: not yet verified for this loop.** Awaiting push and a fresh run.
+**CI: VERIFIED.** Run #350 (35438667821) on PR #15, commit 67c3cd1 -- all 16 gate steps green.
 
 
 ## Loop 4 — batched: items 4a, 5, 6, 10, 21, 23 (+ item 9 deferred)
@@ -579,6 +579,88 @@ following an unrelated third-party-plugin-install attempt earlier in the
 session. Confirmed the primary clone was unaffected before continuing; no
 impact on any Loop 0-4 result, all of which were already CI-verified before
 the block appeared.
+
+**CI: VERIFIED.** Run #353 (35440586723) on PR #15, commit ed55c19 -- all 16 gate steps green.
+
+
+## Loop 6 — item 8 (numeric disagreement detection)
+
+Second item done carefully, one at a time, per the same instruction as
+Loop 5. Prototyped against real data BEFORE writing any production code,
+and the prototype itself caught a design flaw before it ever shipped.
+
+**First design considered and rejected: same-domain + keyword/bag-of-words
+overlap.** Tested it against the real packets specifically to check the
+known SANSERA ADS-backlog case (Report 1 B1: primary source 44,368M vs
+secondary ~57,500M, a verified 30% gap the pipeline never caught). It
+worked for that case, but a bag-of-words check on "non-ADS new-business
+order book" against "ADS cumulative unexecuted backlog" shared the token
+"ADS" (because naive tokenization splits "non-ADS" into "non" + "ADS") plus
+a second incidental word ("revenue"), which would have wrongly flagged two
+genuinely different metrics (ADS backlog vs. the SEPARATE non-ADS order
+book) as disagreeing. Fuzzy topic-matching on free text is not safe on this
+dataset. Dropped before writing any validator code.
+
+**What shipped instead: exact numeric coincidence, not topic similarity.**
+`_extract_inr_million_values` extracts every "INR <number>(-<number>)?
+<unit>" figure from a claim (crore/million/billion/lakh crore, normalized to
+INR million) -- anchored on the literal word "INR" so it only extracts
+figures this dataset actually states this way, not any bare number.
+`_numeric_disagreement(claim_a, claim_b)` then requires: (1) the two
+claims' own MAXIMUM (headline) figures differ by >=10%, AND (2) the smaller
+headline is explicitly, verbatim present in the OTHER claim's own numbers
+too -- proof the two claims are provably about the same quantity, not a
+guess from shared wording.
+
+**The prototype for this refined rule ALSO caught a false positive before
+shipping:** same-domain, same-sentence-adjacent ANANDRATHI evidence (AUM
+INR 1,06,300 crore in one claim; net inflows INR 2,743 crore repeated in a
+different claim two sentences later) shared the number 2,743cr, but 2,743cr
+is not either claim's own headline (1,06,300cr and 3,824cr are the
+respective maxima) -- so it does not qualify under the "shared value must be
+a headline" rule. Verified this by running the exact production logic
+against both full real packets before wiring it into execute_research: one
+true positive (SANSERA backlog), zero false positives on 30+ same-domain
+evidence pairs across both archetypes.
+
+**Never a hard gate, never auto-resolves which source is right** --
+Section 23 of the handover is explicit about this ("Do NOT automatically
+decide which source is correct... surface the disagreement for research
+review"). `ResearchAudit.numeric_disagreements` is a reported tuple of
+human-readable strings (domain, both values, % difference, both full
+evidence refs for traceability), printed in both live runners as
+`STAGE4B_{SANSERA,ANANDRATHI}_NUMERIC_DISAGREEMENTS` (count) and
+`..._NUMERIC_DISAGREEMENT_DETAIL` (one line per finding), and rendered in
+both dossiers under a `NUMERIC_DISAGREEMENT_REVIEW_REQUIRED` heading.
+
+**Result on real data:** SANSERA now flags exactly the one real, previously
+undetected disagreement Report 1 found by hand eight months into this
+project's evidence review -- `orders: 44368 vs 57500 INR million (30%
+difference)`, correctly citing both evidence items (the primary company
+presentation and the secondary foliopulse update) so a reviewer can decide,
+rather than the pipeline silently accepting whichever figure a later
+finding happened to cite. ANANDRATHI: 0 (matches the earlier finding that
+Report 2's ANANDRATHI review found no comparable defect).
+
+**Two regression tests added**, each encoding one of the two verified
+cases directly: `test_numeric_disagreement_detects_linked_headline_figures_differing`
+(the true positive, using the exact real values) and
+`test_numeric_disagreement_ignores_unrelated_co_occurring_figures` (the
+false positive found during prototyping, so it can never silently regress).
+
+**Explicitly acknowledged limitation, not hidden:** this only catches
+disagreements where the same figure is explicitly restated somewhere in the
+disagreeing text. A genuinely independent pair of claims stating different
+numbers for the same fact with no shared anchor number would not be caught.
+That is the accepted cost of staying deterministic instead of guessing at
+topic similarity -- consistent with Section 23's explicit instruction to
+prefer a narrower, safe detector over an ambitious one.
+
+**Local verification:** compileall OK; 2 new tests pass; full regression
+1158 passed (real clone); SANSERA live PASS -- 1 disagreement flagged,
+exactly the known case, 30% difference computed correctly, both evidence
+refs traceable; ANANDRATHI live PASS -- 0 disagreements, no regression;
+both dossiers written and the new section visually checked in both.
 
 **CI: not yet verified for this loop.** Awaiting push and a fresh run.
 

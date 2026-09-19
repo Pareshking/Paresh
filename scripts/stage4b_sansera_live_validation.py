@@ -69,6 +69,14 @@ def main() -> None:
             "(support rests only on \"no disclosure was found\", not on contradicting evidence)"
         ),
         "",
+        "## Numeric disagreements (NUMERIC_DISAGREEMENT_REVIEW_REQUIRED)",
+        (
+            "None detected."
+            if not dossier.audit.numeric_disagreements
+            else "Not auto-resolved -- flagged for reviewer judgement, not a defect verdict."
+        ),
+        *[f"- {item}" for item in dossier.audit.numeric_disagreements],
+        "",
         "## Evidence log",
     ]
     for evidence in dossier.item.positive_evidence + dossier.item.negative_evidence + dossier.item.unknowns:
@@ -149,6 +157,9 @@ def main() -> None:
         f"{dossier.audit.causal_findings_absence_based}/"
         f"{dossier.audit.contradictions_absence_based}"
     )
+    print(f"STAGE4B_SANSERA_NUMERIC_DISAGREEMENTS={len(dossier.audit.numeric_disagreements)}")
+    for item in dossier.audit.numeric_disagreements:
+        print(f"STAGE4B_SANSERA_NUMERIC_DISAGREEMENT_DETAIL={item}")
     print("STAGE4B_SANSERA_EXECUTION=PASS")
 
 

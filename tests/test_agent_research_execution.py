@@ -356,3 +356,93 @@ def test_evidence_window_gap_is_none_without_any_anchor():
     dossier = execute_research(snapshot(), ResearchCandidate("BBB", 2, 2.0, {}), only_derived)
     assert dossier.audit.newest_evidence_anchor is None
     assert dossier.evidence_window_gap_days is None
+
+
+def test_numeric_disagreement_detects_linked_headline_figures_differing():
+    """Item 8 (Report 1 B1): SANSERA's real ADS-backlog case -- one claim's
+    headline figure (44,368) is explicitly restated inside a second claim
+    that also gives a materially different headline figure (57,500). The
+    smaller figure appearing verbatim in the other claim is what proves they
+    describe the same quantity; that is what makes this safe to flag without
+    any keyword/topic matching."""
+    p = packet()
+    evidence = p.evidence + (
+        Evidence(
+            entity="BBB",
+            kind=EvidenceKind.POSITIVE,
+            claim="Backlog was INR 44,368 million at June 2026.",
+            source="https://primary.example/backlog-1",
+            source_tier=SourceTier.PRIMARY,
+            published_on=date(2026, 8, 1),
+            retrieved_on=date(2026, 9, 19),
+            domain=ResearchDomain.ORDERS,
+            hypothesis="Can order growth convert into revenue?",
+        ),
+        Evidence(
+            entity="BBB",
+            kind=EvidenceKind.POSITIVE,
+            claim="A later update put backlog at INR 57,500 million, up from INR 44,368 million.",
+            source="https://secondary.example/backlog-2",
+            source_tier=SourceTier.SECONDARY,
+            published_on=date(2026, 9, 1),
+            retrieved_on=date(2026, 9, 19),
+            domain=ResearchDomain.ORDERS,
+            hypothesis="Can order growth convert into revenue?",
+        ),
+    )
+    bad = ResearchProviderPacket(
+        plan=p.plan,
+        evidence=evidence,
+        causal_findings=p.causal_findings,
+        contradictions=p.contradictions,
+        unresolved_questions=p.unresolved_questions,
+        monitoring_questions=p.monitoring_questions,
+    )
+    dossier = execute_research(snapshot(), ResearchCandidate("BBB", 2, 2.0, {}), bad)
+    assert len(dossier.audit.numeric_disagreements) == 1
+    assert "44368" in dossier.audit.numeric_disagreements[0]
+    assert "57500" in dossier.audit.numeric_disagreements[0]
+
+
+def test_numeric_disagreement_ignores_unrelated_co_occurring_figures():
+    """A same-domain false positive found while prototyping this detector:
+    two different metrics (e.g. AUM and a separate net-inflow figure quoted
+    two sentences apart) must NOT be flagged just because they sit in the
+    same domain. Only each claim's own maximum figure is compared, and only
+    when the smaller one is explicitly linked by appearing in the other
+    claim too."""
+    p = packet()
+    evidence = p.evidence + (
+        Evidence(
+            entity="BBB",
+            kind=EvidenceKind.POSITIVE,
+            claim="AUM was INR 1,06,300 crore and net inflows were INR 2,743 crore.",
+            source="https://primary.example/aum",
+            source_tier=SourceTier.PRIMARY,
+            published_on=date(2026, 8, 1),
+            retrieved_on=date(2026, 9, 19),
+            domain=ResearchDomain.ORDERS,
+            hypothesis="Can order growth convert into revenue?",
+        ),
+        Evidence(
+            entity="BBB",
+            kind=EvidenceKind.NEGATIVE,
+            claim="Net inflows were INR 2,743 crore versus INR 3,824 crore a year earlier.",
+            source="https://secondary.example/inflows",
+            source_tier=SourceTier.SECONDARY,
+            published_on=date(2026, 8, 2),
+            retrieved_on=date(2026, 9, 19),
+            domain=ResearchDomain.ORDERS,
+            hypothesis="Can order growth convert into revenue?",
+        ),
+    )
+    bad = ResearchProviderPacket(
+        plan=p.plan,
+        evidence=evidence,
+        causal_findings=p.causal_findings,
+        contradictions=p.contradictions,
+        unresolved_questions=p.unresolved_questions,
+        monitoring_questions=p.monitoring_questions,
+    )
+    dossier = execute_research(snapshot(), ResearchCandidate("BBB", 2, 2.0, {}), bad)
+    assert dossier.audit.numeric_disagreements == ()

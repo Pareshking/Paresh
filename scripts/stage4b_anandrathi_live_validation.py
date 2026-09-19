@@ -51,6 +51,14 @@ lines = [
         "(support rests only on \"no disclosure was found\", not on contradicting evidence)"
     ),
     "",
+    "## Numeric disagreements (NUMERIC_DISAGREEMENT_REVIEW_REQUIRED)",
+    (
+        "None detected."
+        if not dossier.audit.numeric_disagreements
+        else "Not auto-resolved -- flagged for reviewer judgement, not a defect verdict."
+    ),
+    *[f"- {item}" for item in dossier.audit.numeric_disagreements],
+    "",
     "## Selected economic drivers",
 ]
 lines.extend(f"- {item}" for item in dossier.plan.economic_drivers)
@@ -113,4 +121,7 @@ print(
     f"{dossier.audit.causal_findings_absence_based}/"
     f"{dossier.audit.contradictions_absence_based}"
 )
+print(f"STAGE4B_ANANDRATHI_NUMERIC_DISAGREEMENTS={len(dossier.audit.numeric_disagreements)}")
+for item in dossier.audit.numeric_disagreements:
+    print(f"STAGE4B_ANANDRATHI_NUMERIC_DISAGREEMENT_DETAIL={item}")
 print("STAGE4B_ANANDRATHI_EXECUTION=PASS")
