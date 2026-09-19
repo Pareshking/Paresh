@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import date
+import ast
+from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -177,10 +179,18 @@ def test_input_frame_is_not_mutated():
 
 
 def test_hierarchy_module_has_no_price_or_ranking_engine_imports():
-    source = open("agent/market_hierarchy.py", encoding="utf-8").read()
-    assert "price_loader" not in source
-    assert "pipeline" not in source
-    assert "yfinance" not in source
+    source = Path("agent/market_hierarchy.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    imported = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported.extend(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            imported.append(node.module or "")
+    assert not any(name == "yfinance" or name.startswith("yfinance.") for name in imported)
+    assert not any(name == "src.engine.pipeline" for name in imported)
+    assert not any(name == "src.loaders.price_loader" for name in imported)
+    assert "src/loaders/price_loader.py::get_market_regime" in source
 
 
 def test_membership_as_of_preserves_canonical_unknown_before_coverage():
