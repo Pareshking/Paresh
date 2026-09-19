@@ -213,3 +213,8 @@ The read-only quantitative hand-off is implemented in `agent/quant_hand_off.py`.
 ### Canonical price-source fallback
 
 Artifact provenance records the actual source used by the producer. When the canonical configuration prefers Screener, the producer may legitimately fall back to Yahoo if Screener is unavailable or insufficient. The agent must preserve and validate that documented fallback rather than treating the preference string as proof of the actual source. It must not independently download prices to determine which source should have won.
+
+
+## Stage-3 implementation ownership
+
+The Stage-3 market hierarchy adapter is agent/market_hierarchy.py. It is read-only and consumes canonical Paresh market outputs and taxonomy fields. Peer groups are deterministic groupings over the selected existing taxonomy; no peer model or second taxonomy is introduced. Historical membership delegates to src/engine/membership.py and preserves out-of-coverage unknowns. This does not change System-1.
