@@ -56,6 +56,14 @@ jobs:
       - name: Stage-3 live hierarchy output
         run: python scripts/stage3_live_validation.py
 
+      - name: Retain Stage-3 live hierarchy artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage3-live-hierarchy
+          path: artifacts/stage3_live_hierarchy.md
+          if-no-files-found: warn
+
       - name: Full current-universe quantitative integration
         run: python scripts/full_validation.py
 
