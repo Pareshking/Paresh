@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Iterable
 
-from agent.contracts import Evidence, EvidenceKind, QuantSnapshot, ResearchDomain, ResearchItem, validate_snapshot
+from agent.contracts import Evidence, EvidenceKind, QuantSnapshot, ResearchDomain, ResearchItem, ResearchPlan, validate_snapshot
 
 
 @dataclass(frozen=True)
@@ -145,3 +145,13 @@ def research_domain_summary(evidence: Iterable[Evidence]) -> dict[str, dict[str,
         bucket = summary.setdefault(item.domain.value, {kind.value: 0 for kind in EvidenceKind})
         bucket[item.kind.value] += 1
     return summary
+
+
+def validate_research_plan(plan: ResearchPlan) -> None:
+    """Validate the company-specific analytical lens before evidence collection."""
+    if len(plan.material_domains) != len(set(plan.material_domains)):
+        raise ValueError("research plan contains duplicate material domains")
+    if any(not question.strip() for question in plan.hypotheses):
+        raise ValueError("research plan contains an empty hypothesis/question")
+    if any(domain in plan.material_domains for domain in ()):
+        raise ValueError("invalid research plan")
