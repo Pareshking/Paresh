@@ -32,6 +32,10 @@ class QuantSnapshot:
     model: str
     config_fingerprint: str
     rows: tuple[dict[str, Any], ...] = ()
+    pipeline_version: str = ""
+    price_source: str = ""
+    price_as_of: date | None = None
+    source_artifact: str = ""
 
 
 @dataclass(frozen=True)
@@ -136,3 +140,5 @@ def validate_snapshot(snapshot: QuantSnapshot) -> None:
     missing = [name for name, value in required.items() if not value]
     if missing:
         raise ValueError("quant snapshot missing: " + ", ".join(missing))
+    if snapshot.price_as_of and snapshot.price_as_of > snapshot.as_of:
+        raise ValueError("price_as_of cannot be after snapshot as_of")
