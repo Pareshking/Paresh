@@ -78,3 +78,8 @@ Current Stage-2 verification remains **NOT VERIFIED** for local pytest, GitHub A
 ## Stage-2 status — 2026-09-19
 
 Stage 2 quantitative hand-off is **COMPLETE / GATE PASSED**. The real published `rankings.parquet` was consumed through `ranking_store.fetch_snapshot()` and accepted as a 750-row QuantSnapshot with as-of 2026-09-18, pipeline `v4_calendar_periods_cbab8da9`, and actual price source `screener`. The full regression suite recorded 1099 passing tests. A separate existing full-universe validation check remains red under thin current-session data and is not modified by the agent layer. Stage 3 has not yet been implemented; its repository inspection and written plan are the next gate.
+
+
+Stage-3 status — 2026-09-19
+
+Stage 3 — Market hierarchy is COMPLETE / GATE PASSED. agent/market_hierarchy.py exposes existing market/regime/breadth outputs, existing NSE/TradingView taxonomy, canonical industry aggregates, and taxonomy-derived peer groups without duplicating quantitative logic. Missing taxonomy and out-of-coverage historical membership remain explicit unknowns. CI recorded 1114 passing tests and successful compilation; the unrelated Yahoo-backed full-universe validation remains separately red.
