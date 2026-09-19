@@ -207,3 +207,17 @@ The current-head GitHub Actions run exposed two regression failures after the im
 ### Gate rule
 
 The observed CI failure is evidence that Stage 2 is **not complete**. No green-by-assumption status is permitted. The gate remains open until the repaired implementation is actually executed and verified.
+
+
+### Stage-2 verification instrumentation decision — 2026-09-19
+
+The repaired full regression suite now passes, but the existing full-validation workflow subsequently fails in its unrelated current-universe coverage assertion before reaching runtime/production smoke checks. To obtain direct evidence for the Stage-2 exit gate without creating a new system, add one CI assertion to the existing validation workflow that invokes the Stage-2 adapter against the published `rankings.parquet` artifact. This is test/verification instrumentation only; it does not alter production ranking behaviour or introduce automation beyond the existing CI workflow.
+
+The check must:
+
+- use `agent.quant_hand_off.load_quant_snapshot()`;
+- obtain the real published artifact through the existing canonical URL/config;
+- print as-of, row count, pipeline version, price source and source artifact;
+- fail closed on any hand-off validation error;
+- perform no price/ranking recalculation;
+- execute before the existing full-universe validation so its result remains observable even if that unrelated validation is red.
