@@ -2,7 +2,7 @@ name: V1 Full Validation
 
 on:
   push:
-    branches: [main]
+    branches: [main, agent/stage4b-execution]
   # Also on the PROPOSAL, not only on the merge. Running solely on push to
   # main meant the suite first executed after the change was already in --
   # a red result there is a revert, where the same red result on the pull
@@ -39,8 +39,41 @@ jobs:
       - name: Compile application and source
         run: python -m compileall -q app.py src scripts
 
-      - name: Full current-universe quantitative integration
-        run: python scripts/full_validation.py
+      - name: Stage-2 canonical ranking artifact hand-off
+        run: |
+          python - <<'PY'
+          from agent.quant_hand_off import load_quant_snapshot
+
+          snapshot = load_quant_snapshot()
+          print(f"STAGE2_HANDOFF_AS_OF={snapshot.as_of.isoformat()}")
+          print(f"STAGE2_HANDOFF_ROWS={len(snapshot.rows)}")
+          print(f"STAGE2_HANDOFF_PIPELINE={snapshot.pipeline_version}")
+          print(f"STAGE2_HANDOFF_PRICE_SOURCE={snapshot.price_source}")
+          print(f"STAGE2_HANDOFF_ARTIFACT={snapshot.source_artifact}")
+          print("STAGE2_HANDOFF=PASS")
+          PY
+
+      - name: Stage-3 live hierarchy output
+        run: python scripts/stage3_live_validation.py
+
+      - name: Stage-4B real SANSERA research execution
+        run: python scripts/stage4b_sansera_live_validation.py
+
+      - name: Retain Stage-4B SANSERA dossier
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4b-sansera-dossier
+          path: artifacts/stage4b_sansera_dossier.md
+          if-no-files-found: warn
+
+      - name: Retain Stage-3 live hierarchy artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage3-live-hierarchy
+          path: artifacts/stage3_live_hierarchy.md
+          if-no-files-found: warn
 
       - name: Enforce deprecated Streamlit HTML cleanup
         run: |
@@ -70,9 +103,10 @@ jobs:
           print("HEADLESS_STREAMLIT_SMOKE=PASS")
           PY
 
-      - name: Upload quantitative validation artifact
+      - name: Upload V1 validation artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: v1-quantitative-validation
+          name: v1-validation-artifacts
           path: artifacts/
           if-no-files-found: error
+
