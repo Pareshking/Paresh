@@ -8,8 +8,9 @@ from agent.company_research import (
     validate_evidence_set,
     validate_research_coverage,
     research_domain_summary,
+    validate_research_plan,
 )
-from agent.contracts import Evidence, EvidenceKind, QuantSnapshot, ResearchDomain, SourceTier
+from agent.contracts import Evidence, EvidenceKind, QuantSnapshot, ResearchDomain, ResearchPlan, SourceTier
 
 
 def snapshot(rows):
@@ -161,3 +162,25 @@ def test_event_date_after_snapshot_cutoff_fails():
     )
     with pytest.raises(ValueError, match="after the information cutoff"):
         validate_evidence_set(candidates, (evidence,), information_cutoff=date(2026, 9, 18))
+
+
+def test_company_specific_research_plan_requires_drivers_and_hypotheses():
+    plan = ResearchPlan(
+        symbol="AAA", company_archetype="CDMO",
+        economic_drivers=("capacity utilisation", "customer pipeline"),
+        material_domains=(ResearchDomain.CAPACITY, ResearchDomain.CUSTOMERS_SUPPLIERS),
+        hypotheses=("Is new capacity supported by customer commitments?",),
+        exclusions=("retail store metrics",),
+    )
+    validate_research_plan(plan)
+
+
+def test_company_specific_research_plan_rejects_duplicate_domains():
+    plan = ResearchPlan(
+        symbol="AAA", company_archetype="bank",
+        economic_drivers=("NIM",),
+        material_domains=(ResearchDomain.FINANCIALS, ResearchDomain.FINANCIALS),
+        hypotheses=("Is funding cost changing?",),
+    )
+    with pytest.raises(ValueError, match="duplicate material domains"):
+        validate_research_plan(plan)
