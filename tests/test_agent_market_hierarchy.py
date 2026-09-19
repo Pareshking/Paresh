@@ -203,3 +203,17 @@ def test_membership_as_of_preserves_canonical_unknown_before_coverage():
     assert membership_as_of(history, date(2026, 8, 31)) is None
     assert membership_as_of(history, date(2026, 9, 5)) == frozenset({"AAA", "BBB"})
     assert membership_as_of(history, date(2026, 9, 12)) == frozenset({"AAA", "CCC"})
+
+
+def test_breadth_as_of_is_preserved_when_older_than_snapshot():
+    snapshot = _snapshot(as_of=date(2026, 9, 18))
+    breadth = pd.DataFrame({"50D": [55.0]}, index=pd.to_datetime(["2026-09-17"]))
+    out = build_market_context(snapshot, _regime(), breadth)
+    assert out.breadth_as_of == date(2026, 9, 17)
+
+
+def test_future_breadth_fails_closed():
+    snapshot = _snapshot(as_of=date(2026, 9, 18))
+    breadth = pd.DataFrame({"50D": [55.0]}, index=pd.to_datetime(["2026-09-19"]))
+    with pytest.raises(ValueError, match="breadth_as_of"):
+        build_market_context(snapshot, _regime(), breadth)
