@@ -34,7 +34,7 @@ Each improvement follows:
 | 5 | Quality-aware domain coverage | A3 | **VERIFIED — run #351 (35439390433), reported metric, not a hard gate** |
 | 6 | Soften judge summary to actual guarantees | A4 | **VERIFIED — run #351 (35439390433)** |
 | 7 | Contradictions require genuinely disagreeing evidence | B2 | **VERIFIED — run #353 (35440586723) — Loop 5** |
-| 8 | Detect cross-tier numeric disagreement | B1 | **VERIFIED — run #354 (35441089140); job log matches local exactly — Loop 6** |
+| 8 | Detect cross-tier numeric disagreement | B1 | **VERIFIED — run #354 (35441089140) — Loop 6; regex gap fix VERIFIED — run #360 (35443317589) — Loop 10** |
 | 9 | Entity-relative source tiering | B4 | **DEFERRED — needs an issuer-to-symbol map; a URL-shape heuristic would guess, not fix — Loop 4** |
 | 10 | Evidence age distribution + rounded score | C1/C2/R5c | **VERIFIED — run #351 (35439390433); buckets confirmed exact match to local (SANSERA 23/4/2/2/2, ANANDRATHI 11/2/0/0/3)** |
 | 11 | Claim-type evidence half-life classification | R4 | TODO |
@@ -789,6 +789,45 @@ what already exists.
 real evidence genuinely cannot share one collection (not yet identified),
 revisit then with that concrete need driving the design, rather than
 speculatively splitting the schema now.
+
+## Loop 10 — item 8 regex gap: "+"-suffixed figures silently unextracted
+
+**Observed** during a self-directed adversarial-council audit pass (not a
+new report from Paresh): `_INR_VALUE_PATTERN` required whitespace or a
+range dash immediately after the numeric group. Real ANANDRATHI evidence
+states AUM as `"INR 1,06,300+ crore"` (website-sourced figure). Confirmed
+by direct testing -- not inference -- that `_extract_inr_million_values`
+returned an empty set for that claim: the literal `+` character sat
+between the digits and the required `\s*` before the unit, so the whole
+pattern failed to match.
+
+**Root-cause decision:** narrow regex fix, not a rewrite. Tolerate an
+optional `+` after each numeric group (both the single-value case and each
+end of a range), consistent with item 8's original design constraint
+(Section 23: deterministic, narrow, no NLP).
+
+**Repair:** `_INR_VALUE_PATTERN` updated; docstring extended to document
+the `+` case and cite the real evidence item it comes from.
+
+**Local verification:** direct extraction test confirmed `"INR
+1,06,300+ crore"` now yields `1063000.0` (INR million), matching the
+non-`+` restatement of the same figure elsewhere in the packet -- so no
+new disagreement is spuriously introduced. Full suite: 1159 passed (up
+from before by one new regression test,
+`test_numeric_disagreement_extracts_plus_suffixed_figures`). Both live
+scripts re-run: SANSERA unchanged (1 disagreement, 44368 vs 57500 million);
+ANANDRATHI unchanged (0 disagreements) -- confirms the fix closes a
+detection gap without changing any real-data output, because the `+`
+claim's own value already agrees with the other same-quarter AUM claim
+once extraction actually works.
+
+**CI: VERIFIED.** Run #360 (35443317589) on PR #15, commit f2663d3 --
+completed/success.
+
+**Scope decision:** stopping the self-directed audit here rather than
+opening further rounds looking for more issues, per Paresh's explicit
+"are we stuck in one loop" check -- this fix is shipped and closed, not a
+new open-ended thread.
 
 ## Rule against false closure
 
