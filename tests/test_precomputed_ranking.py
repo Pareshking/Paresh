@@ -252,6 +252,7 @@ def test_moving_a_weight_slider_misses_rather_than_serving_the_wrong_table(terms
         weights=(0.20, 0.20, 0.20, 0.20, 0.20),   # equal weight instead
         pipeline_version=terms["pipeline_version"],
         universe=terms["universe"],
+        price_as_of=terms["price_as_of"],
     )
     ok, why = ranking_store.matches(published, reader_changed_a_slider)
     assert not ok and "weights" in why
