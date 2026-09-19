@@ -305,6 +305,7 @@ the pin, let **V1 Production QA** verify against the live app, then keep it.
 ```text
 ├── .github/workflows/   # daily data sync, monthly track-record freeze, QA probes
 ├── .streamlit/
+├── agent/                # read-only AI research/orchestration layer; see REPO_INTEGRATION_MAP.md
 ├── data/
 │   ├── indices/             # NSE constituent snapshots (committed by the daily sync)
 │   └── track_record.json    # append-only monthly record
@@ -322,6 +323,16 @@ the pin, let **V1 Production QA** verify against the live app, then keep it.
 ├── requirements.txt
 └── README.md
 ```
+
+## AI research-agent boundary
+
+The repository already publishes rolling `prices.parquet` and `rankings.parquet`
+release assets from the daily/weekly sync jobs. The AI agent must consume these
+canonical outputs before considering any fresh download or recalculation.
+
+The agent integration map is `agent/REPO_INTEGRATION_MAP.md`. It defines which
+existing module owns each quantitative capability and is the required starting
+point for agent development.
 
 ## Running locally
 
