@@ -113,3 +113,8 @@ The planned artifact-first hand-off was implemented after the repository inspect
 The Stage-2 adapter does not independently reconstruct the price fingerprint. That remains producer/artifact provenance; an independent quantitative audit is a separate future audit path.
 
 Verification status: focused tests were added but local execution is unavailable in this environment. GitHub Actions for the current head returned no workflow runs, so CI and live published-artifact end-to-end execution remain **NOT VERIFIED**. Stage 2 therefore remains open pending executable verification and final gate review.
+
+
+## Stage-2 final audit update — 2026-09-19
+
+The Stage-2 hand-off was executed against the actual published ranking artifact through the canonical reader. Evidence: 750 rows, price-as-of 2026-09-18, pipeline v4_calendar_periods_cbab8da9, actual source screener. Full regression passed with 1099 tests and compilation passed. Stage 2 is therefore **GATE PASSED**. The current V1 validation workflow remains red later in scripts/full_validation.py due the existing finite-score floor during a thin vendor session (430/750 priceable), and this is explicitly retained as a separate canonical QA issue rather than hidden or weakened.
