@@ -73,3 +73,8 @@ The detailed Stage 1 PDCA record is in `agent/STAGE_1_PDCA.md`. Each later stage
 `agent/quant_hand_off.py` is the single Stage-2 quantitative hand-off owner. It reads the existing published `rankings.parquet` through `ranking_store.fetch_snapshot()`, validates the embedded contract and row integrity, and produces a `QuantSnapshot`. It does not download prices, invoke the ranking engine, or silently fall back to recalculation.
 
 Current Stage-2 verification remains **NOT VERIFIED** for local pytest, GitHub Actions, and live published-artifact E2E until those checks are actually observed.
+
+
+## Stage-2 status — 2026-09-19
+
+Stage 2 quantitative hand-off is **COMPLETE / GATE PASSED**. The real published `rankings.parquet` was consumed through `ranking_store.fetch_snapshot()` and accepted as a 750-row QuantSnapshot with as-of 2026-09-18, pipeline `v4_calendar_periods_cbab8da9`, and actual price source `screener`. The full regression suite recorded 1099 passing tests. A separate existing full-universe validation check remains red under thin current-session data and is not modified by the agent layer. Stage 3 has not yet been implemented; its repository inspection and written plan are the next gate.
