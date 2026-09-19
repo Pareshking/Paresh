@@ -207,3 +207,11 @@ The Stage-3 agent adapter is agent/market_hierarchy.py. It is an orchestration/r
 - peer groups are deterministic groupings over an explicitly selected existing taxonomy.
 
 No Stage-3 function downloads prices, recalculates ranking/breadth, creates a benchmark, or creates a second taxonomy.
+
+## Stage-3 live verification integration — 2026-09-19
+
+Added `scripts/stage3_live_validation.py` as the audit harness for the Market → Sector → Industry → Peer boundary. It consumes the Stage-2 QuantSnapshot, canonical TradingView classification, and canonical market-regime output; it does not introduce a ranking or taxonomy engine.
+
+The V1 Full Validation workflow now runs this harness and retains its Markdown output as a dedicated `stage3-live-hierarchy` artifact before later QA gates.
+
+The exact first live execution is preserved in `agent/STAGE_3_LIVE_VERIFICATION_2026-09-19.md`.
