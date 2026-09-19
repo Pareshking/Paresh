@@ -116,3 +116,31 @@ Updated:
 - agent/README.md
 
 No production quantitative formula or portfolio rule was changed by Stage 3.
+
+
+## LIVE VERIFICATION CLOSURE — 2026-09-19
+
+The previously missing real-output verification was executed in V1 Full Validation workflow run **#289**.
+
+VERIFIED:
+- Stage-3 live hierarchy step: PASS.
+- Current published ranking artifact: 750 rows, as-of 2026-09-18.
+- Canonical benchmark: ^CRSLDX.
+- Canonical price source in artifact: screener.
+- TradingView Industry (119) taxonomy loaded: 2,319 rows.
+- All 750 live ranking rows classified; unknown classification rows: 0.
+- Actual Top-25 hierarchy emitted and inspected.
+- Peer groups derived from the full 750-row ranking frame.
+- Live output includes actual sector, industry, peer count and top peers by rank.
+
+The exact output is preserved in `agent/STAGE_3_LIVE_VERIFICATION_2026-09-19.md`.
+
+A dedicated CI artifact-retention step was then added so later unrelated failures do not discard the Stage-3 evidence.
+
+The separate existing Yahoo-backed `scripts/full_validation.py` failure remains unchanged and is not a Stage-3 failure.
+
+### Final live gate
+
+**VERIFIED — Stage-3 actual runtime output now exists and is permanently documented.**
+
+Future Stage-3 gates require both automated tests and live-output evidence; synthetic-only execution must be labelled NOT VERIFIED.
