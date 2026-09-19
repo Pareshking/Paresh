@@ -224,3 +224,48 @@ The exact first live execution is preserved in `agent/STAGE_3_LIVE_VERIFICATION_
 The V1 production quantitative validation boundary is the published `data-latest/rankings.parquet` contract and the Stage-2 hand-off through `ranking_store.fetch_snapshot()` / `agent/quant_hand_off.py`.
 
 Do not reintroduce the retired script as a production ranking gate. This does **not** remove Yahoo/yfinance from every repository use; it removes this obsolete validation path only.
+
+
+## Stage-4 deep research boundary — 2026-09-19
+
+The Stage-4 research boundary is now explicitly 360-degree. `agent/company_research.py` owns orchestration/validation only; it does not become a second quantitative engine.
+
+### Research context consumed/collected
+
+The research layer may combine evidence about:
+- company operations and financials;
+- management commentary and guidance;
+- orders/backlog/cancellations;
+- capacity/utilisation/capex;
+- customers/suppliers;
+- peers and competitor capacity;
+- industry-wide order flow;
+- sector developments;
+- government/regulation/tenders;
+- inputs/energy/freight;
+- FX;
+- tariffs/duties/trade restrictions;
+- macro/geopolitics;
+- technology/IP;
+- capital markets/funding/shareholding;
+- legal/compliance;
+- market reaction.
+
+Every domain must have evidence or an explicit UNKNOWN state. The agent must not silently omit a domain because a search returned little information.
+
+### Important ownership rule
+
+External research may contextualise existing Paresh outputs but must not recreate:
+- ranking;
+- price-source selection;
+- breadth;
+- sector/industry taxonomy;
+- corporate-action adjustment;
+- backtesting;
+- portfolio mathematics.
+
+Peer/industry context is qualitative research around the canonical taxonomy, not a second taxonomy engine.
+
+### Value test
+
+A final dossier should add information beyond Screener/BSE announcement feeds by connecting underlying documents, historical management statements, peers, industry order flow, government/project data, capacity, inputs, FX/trade, geopolitics and market reaction. Routine duplicate headlines belong in the evidence log, not the executive intelligence summary.
