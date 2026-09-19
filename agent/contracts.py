@@ -97,6 +97,7 @@ class Evidence:
     event_date: date | None = None
     domain: ResearchDomain = ResearchDomain.COMPANY
     materiality: str = "material"
+    hypothesis: str = ""
     confidence: float | None = None
     notes: str = ""
 
