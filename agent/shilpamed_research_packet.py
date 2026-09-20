@@ -180,7 +180,7 @@ def shilpamed_packet() -> ResearchProviderPacket:
                 mechanism="Revenue growth can come from launches, product mix and CDMO programs; durable earnings require those contributors to recur rather than simply compare against a weak base.",
                 timing="Quarterly",
                 uncertainty="The reviewed set does not isolate the contribution of each business line to Q1 growth.",
-                evidence_refs=tuple(ref("Q1FY27 consolidated revenue from operations was INR 465.78 crore, up 44.89% YoY, while consolidated PAT was INR 100.88 crore, up 115.19% YoY."), ref("Q1FY27 net profit of INR 100.88 crore was 6.40% below Q4FY26 profit of INR 107.78 crore despite the strong YoY increase."), ref("Management reported firm Q4 orders for the newly launched NorUDCA formulation and expected significant potential in the following financial year.")),
+                evidence_refs=(ref("Q1FY27 consolidated revenue from operations was INR 465.78 crore, up 44.89% YoY, while consolidated PAT was INR 100.88 crore, up 115.19% YoY."), ref("Q1FY27 net profit of INR 100.88 crore was 6.40% below Q4FY26 profit of INR 107.78 crore despite the strong YoY increase."), ref("Management reported firm Q4 orders for the newly launched NorUDCA formulation and expected significant potential in the following financial year.")),
             ),
             CausalFinding(
                 hypothesis="Can new peptide, oncology and complex-injectable capacity convert into durable commercial revenue?",
@@ -188,7 +188,7 @@ def shilpamed_packet() -> ResearchProviderPacket:
                 mechanism="Scale-up, validation, approval and customer conversion precede commercial utilisation.",
                 timing="FY27-FY28",
                 uncertainty="Commercial ramp and utilisation after commissioning remain unresolved.",
-                evidence_refs=tuple(ref("Management said large-scale peptide manufacturing capacity was under construction with completion planned for the second half of FY27."), ref("Management reported development of injectable and oral semaglutide formulations plus synthetic and semisynthetic API programs, with scale-up and validation targeted around Q4FY26/Q1FY27."), ref("The reviewed disclosures do not establish the eventual commercial contribution, utilisation ramp or economics of the new peptide capacity after commissioning.")),
+                evidence_refs=(ref("Management said large-scale peptide manufacturing capacity was under construction with completion planned for the second half of FY27."), ref("Management reported development of injectable and oral semaglutide formulations plus synthetic and semisynthetic API programs, with scale-up and validation targeted around Q4FY26/Q1FY27."), ref("The reviewed disclosures do not establish the eventual commercial contribution, utilisation ramp or economics of the new peptide capacity after commissioning.")),
             ),
             CausalFinding(
                 hypothesis="Do regulatory approvals and partner programs reduce execution risk, or do inspection/approval dependencies remain material?",
@@ -196,7 +196,7 @@ def shilpamed_packet() -> ResearchProviderPacket:
                 mechanism="Approvals unlock products and partner programs, while inspections can affect timing or remediation requirements.",
                 timing="Ongoing",
                 uncertainty="The reviewed material does not quantify the financial impact of any inspection outcome.",
-                evidence_refs=tuple(ref("The company's exchange-intimation page records final SEC approval for marketing authorization of its OERIS ondansetron extended-release injectable."), ref("The company disclosed a co-development and supply agreement involving Shilpa Biologicals and Orion Corporation, Finland."), ref("The company's 2026 exchange-intimation record also shows a USFDA inspection at Unit VI, Dabaspet, demonstrating that regulatory inspection remains an active execution dependency.")),
+                evidence_refs=(ref("The company's exchange-intimation page records final SEC approval for marketing authorization of its OERIS ondansetron extended-release injectable."), ref("The company disclosed a co-development and supply agreement involving Shilpa Biologicals and Orion Corporation, Finland."), ref("The company's 2026 exchange-intimation record also shows a USFDA inspection at Unit VI, Dabaspet, demonstrating that regulatory inspection remains an active execution dependency.")),
             ),
             CausalFinding(
                 hypothesis="Is the current margin improvement supported by utilisation and mix, or is it vulnerable to under-utilised capacity and program timing?",
@@ -204,7 +204,7 @@ def shilpamed_packet() -> ResearchProviderPacket:
                 mechanism="Fixed-cost absorption and mix can improve margins as capacity fills, but launch timing and product mix can cause sequential volatility.",
                 timing="Quarterly",
                 uncertainty="The disclosures do not provide a normalised utilisation-to-margin bridge.",
-                evidence_refs=tuple(ref("FY26 investor materials stated that substantial gross block remained under-utilised and that improved utilisation was expected to drive revenue and EBITDA-margin improvement."), ref("FY26 investor materials linked expected operating leverage and margin improvement to higher utilisation across higher-margin biosimilar, CDMO and NDDS activities."), ref("Q1FY27 PBT was INR 98.06 crore versus INR 120.44 crore in Q4FY26, showing that sequential profitability did not rise with revenue.")),
+                evidence_refs=(ref("FY26 investor materials stated that substantial gross block remained under-utilised and that improved utilisation was expected to drive revenue and EBITDA-margin improvement."), ref("FY26 investor materials linked expected operating leverage and margin improvement to higher utilisation across higher-margin biosimilar, CDMO and NDDS activities."), ref("Q1FY27 PBT was INR 98.06 crore versus INR 120.44 crore in Q4FY26, showing that sequential profitability did not rise with revenue.")),
             ),
         ),
         contradictions=(
