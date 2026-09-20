@@ -176,27 +176,53 @@ hypothesis), not a bare domain flag.
 
 ## Gate status
 
+**Note (2026-09-20): this section is the ORIGINAL early-session snapshot and
+was left stale for several loops (e.g. it said item 22 was both "NOT
+VERIFIED" at the bottom and "VERIFIED" seven lines above -- an
+incremental-edit artifact, never fully reconciled). Superseded by the
+"Current state, 2026-09-20" block immediately below, which reflects
+everything through Loop 12/13. Left in place, corrected, rather than
+deleted, so the loop-by-loop history stays intact.**
+
 - SANSERA Stage-4B execution: **VERIFIED previously** (unaffected by Loop 0/0b; re-confirmed locally at 7379fe5)
 - ANANDRATHI execution before repair: **FAILED** (refs[16] crash, then industry-coverage error)
 - ANANDRATHI provenance repair (Loop 0, claim-keyed refs): **DONE — code + regression test**
-- ANANDRATHI domain-coverage repair (Loop 0b, drop unused INDUSTRY domain): **IMPLEMENTED locally — awaiting CI run #345**
-- Executable-path regression coverage: **DONE — 14 focused tests pass, including both live runners**
-- Items 1, 24: **VERIFIED** (run #346, 35437730258) -- see above
-- Item 19: **VERIFIED** (run #348, 35438217592) -- see above
-- Item 20: **VERIFIED** (run #350, 35438667821) -- see above
-- Item 7: **VERIFIED** (run #353, 35440586723) -- see above
-- Item 8: **VERIFIED** (run #354, 35441089140) -- see above
-- Item 22: **VERIFIED** (run #356, 35441605984) -- see above
-- Items 4a, 5, 6, 10, 21, 23: **VERIFIED** (run #351, 35439390433, all 16 steps green;
-  printed values SANSERA age-buckets 23/4/2/2/2, ANANDRATHI 11/2/0/0/3, both
-  absence-based 0/0, matching local exactly)
-- Item 4's gaps-field half: **TODO**
-- Item 9: **DEFERRED** -- needs an issuer-to-symbol map (Loop 4)
-- Remaining (items 2, 11-14): **NOT STARTED — blocked on a threshold/half-life policy decision, see below**
-- SANSERA retroactive contradiction audit (#22): **NOT VERIFIED**
-- WELCORP adaptive rerun: **NOT VERIFIED**
-- Full adversarial council (Section 33): **NOT VERIFIED**
-- Stage-4B closure: **NOT READY**
+- ANANDRATHI domain-coverage repair (Loop 0b, drop unused INDUSTRY domain): **DONE**
+- Executable-path regression coverage: **DONE**
+- Items 1, 3, 4a, 5, 6, 7, 8, 10, 15-24: **VERIFIED** -- see each item's own Loop section for its run ID
+- Item 4b (gaps as a separate field): **CLOSED as substantively superseded, not implemented** (Loop 9)
+- Item 2: **DEFERRED (Paresh's decision)** -- no hard gate until item 9 exists (Loop 8)
+- Item 9: **DEFERRED** -- needs an issuer-to-symbol map this codebase does not have (Loop 4)
+- Items 11, 12, 14: **VERIFIED** (Loop 12)
+- Item 13: **CLOSED as not-yet-applicable** -- no evidence-ranking function exists to fix (Loop 12)
+- WELCORP adaptive rerun (as originally planned): **never done as such** -- superseded in effect,
+  not in name, by adding PAYTM/YATHARTH/LENSKART instead (Loop 11), per Paresh's own later
+  instruction ("run 2-3 different companies... move fast") rather than the single WELCORP
+  rerun this section originally planned. The underlying purpose -- proving the pipeline
+  generalises beyond SANSERA/ANANDRATHI -- is more thoroughly satisfied by three additional
+  real archetypes than the original single-company plan would have been.
+- **Full adversarial council (Section 33): still NOT DONE.** The Loop 10 audit pass (which
+  found the item 8 "+" regex gap) was a self-directed, informal review -- not the structured
+  six-role Researcher/Prosecution/Defence/Reviewer/Jury/Judge process Section 33 specifies,
+  and it only covered SANSERA/ANANDRATHI, not the three later archetypes. This remains the
+  literal next step the operating rule's own step 8 calls for, before step 9's "final Stage-4B
+  gate decision" -- see "Current state" below.
+- Stage-4B closure: **NOT READY** -- blocked specifically on the adversarial council step, not
+  on any of the items above.
+
+### Current state, 2026-09-20
+
+- **Five real archetypes on `main`, all CI-verified**: SANSERA, ANANDRATHI, PAYTM, YATHARTH, LENSKART.
+- **Done**: items 1, 3, 4a, 5, 6, 7, 8, 10, 11, 12, 14, 15-24.
+- **Closed, not implemented** (reassessed, not skipped): items 4b, 13.
+- **Deferred, blocked on real inputs, not a policy number**: items 2, 9.
+- **Deferred to V1.1 by Paresh's explicit decision**: the production-architecture
+  work (Loop 13) -- incremental weekly research, Top-25 roster churn, a
+  stitched all-25 report.
+- **Not yet done, and the actual next step for Stage-4B itself**: the full
+  structured adversarial council pass (Section 33) across all five real
+  archetypes. Not started -- awaiting Paresh's direction on whether/when
+  to run it.
 
 
 ## Loop 1 — item 1 (published_on requirement) + item 24 (required cutoff)
