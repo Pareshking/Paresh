@@ -1,12 +1,28 @@
-# Paresh Research-Agent Roadmap (Stages 1-9)
+# Paresh Research-Agent Roadmap (Stages 1-8)
 
-**Status:** Stages 1-4 built and real. Stages 5-9 are a proposed
+**Status:** Stages 1-4 built and real. Stages 5-8 are a proposed
 continuation, not a locked specification -- recorded here so the
 architectural context survives beyond chat, per Paresh's explicit
 instruction (2026-09-20) that Stage 4 was never intended as the system's
 final destination.
 
-**Caveat, stated by Paresh at the same time this was recorded:** the exact
+**Revision history:**
+- 2026-09-20 (initial): recorded a 9-stage split (5 Comparative, 6
+  Monitoring, 7 Thesis, 8 Portfolio, 9 Learning), with a "Sequencing
+  assessment" section flagging that 5/8 and 6/7 looked likely to collapse
+  into fewer stages once built.
+- 2026-09-20 (revision): Paresh had a second AI review that same split and
+  argued for exactly that collapse, plus a new "portfolio/user
+  intelligence" stage not previously identified. Checked against the
+  actual repo before accepting: two of the three arguments (5+8 merge,
+  6+7 merge) independently match what this doc's own prior sequencing
+  section already said, so this is confirmation more than reversal. One
+  factual correction found (`HierarchyRow` carries more scoping fields
+  than previously documented here) and one real open question found (no
+  portfolio/holdings concept exists in the codebase at all) -- both noted
+  below. Renumbered 9 stages down to 8 on that basis.
+
+**Caveat, stated by Paresh when this was first recorded:** the exact
 post-Stage-4 stages below are the logical continuation of the architecture
 already being built, not an already-approved locked design. Treat this as
 the proposed next roadmap. Paresh also noted some of it may turn out to be
@@ -29,15 +45,13 @@ Stage 3 -- Market Hierarchy / Context
 Stage 4 -- Adaptive Company Research
         |
         v
-Stage 5 -- Comparative / Peer Intelligence
+Stage 5 -- Persistent Research State & Continuous Monitoring
         |
-Stage 6 -- Continuous Monitoring / Change Detection
+Stage 6 -- Cross-Company / Market Intelligence
         |
-Stage 7 -- Living Thesis / Research State Tracking
+Stage 7 -- Portfolio / User Research Intelligence
         |
-Stage 8 -- Portfolio / Market-Level Intelligence
-        |
-Stage 9 -- Research Feedback / Learning Loop
+Stage 8 -- Research Feedback / Learning Loop
 ```
 
 Stage 4 is the point where Paresh moves from being primarily a
@@ -58,10 +72,14 @@ inspection on 2026-09-20:
 - **Stage 3 -- Market Hierarchy / Context**: `agent/market_hierarchy.py`
   ("Stage 3 does not own market calculations or taxonomy. It accepts
   outputs already produced by Paresh canonical loaders/engines and makes
-  their identity explicit"). Already computes, per symbol,
-  `HierarchyRow.peer_group: tuple[str, ...]` -- the full same-taxonomy
-  peer list from the canonical ranking frame. This is Stage 5's
-  foundation, already built and currently unused by Stage 4.
+  their identity explicit"). `HierarchyRow` already carries, per symbol:
+  `sector`, `industry`, `peer_taxonomy`, and `peer_group: tuple[str, ...]`
+  (the full same-taxonomy peer list from the canonical ranking frame,
+  under a selectable taxonomy: NSE Industry, TV Industry (119), or TV
+  Sector (20)). This is more scoping granularity than this doc originally
+  credited it with (it previously mentioned only `peer_group`) -- Stage 3
+  already has the primitives for peer, industry, *and* sector scoping, all
+  currently unused by Stage 4.
 - **Stage 4 -- Adaptive Company Research**: everything tracked in
   `agent/STAGE_4B_IMPROVEMENT_TRACKER.md` -- company-specific research
   planning, adaptive domains, hypotheses, evidence collection, provenance,
@@ -71,104 +89,123 @@ inspection on 2026-09-20:
   with this company, why does it matter, and what evidence supports or
   contradicts that interpretation?" Five real archetypes live as of
   2026-09-20 (SANSERA, ANANDRATHI, PAYTM, YATHARTH, LENSKART) out of the
-  Top-25 universe. The "4B" naming in the tracker suggests an earlier "4A"
-  phase (likely the initial contracts/execution scaffolding) preceded this
-  session's work; not otherwise resolved here.
+  Top-25 universe, deliberately chosen to span very different economic
+  models (industrial/auto engineering, wealth management, fintech,
+  hospitals, retail) -- enough to prove the adaptive architecture, not
+  enough for meaningful same-taxonomy peer comparison yet. The "4B" naming
+  in the tracker suggests an earlier "4A" phase (likely the initial
+  contracts/execution scaffolding) preceded this session's work; not
+  otherwise resolved here.
 
-## Stage 5 -- Comparative / Peer Intelligence
+## Stage 5 -- Persistent Research State & Continuous Monitoring
 
-Moves from "what is happening to this company?" to "how does this company
-compare with its peers and the broader industry?" -- common industry
-driver vs. company-specific driver, peer divergence, relative
-opportunity/risk, competitor evidence, industry-wide vs. company-specific
-developments, whether a company's quantitative strength is supported by
-its fundamentals/research context.
+Merges what earlier versions of this doc called "Stage 6 (Continuous
+Monitoring)" and "Stage 7 (Thesis / Research State Tracking)" into one
+stage, because they are the same event: new evidence arriving *is* the
+input, and updating each affected hypothesis's confidence/state *is* the
+interpretation of that event. Splitting detection from interpretation
+into separate stages was an artificial boundary once a persistent store
+exists to hold both.
 
-**Must use the existing peer hierarchy** (`HierarchyRow.peer_group` from
-Stage 3), not a new ranking engine -- consistent with the hard boundary
-Stage 1-4 already enforce ("no ranking mathematics").
+Builds, per company: a persistent record of `research_plan`, hypotheses,
+evidence, causal findings, contradictions, unresolved/monitoring
+questions, last-researched cutoff, and a tracked confidence/state history
+per hypothesis (not just the current dossier snapshot). The weekly loop
+becomes delta research against the last cutoff, not a full re-run:
+fetch only new/relevant information, judge materiality, and only then
+challenge existing hypotheses and update the persisted state.
 
-**Practical gating factor**: peer comparison needs multiple members of the
-same peer group actually researched. With only 5 of 25 Top-25 names
-covered today, spread across different archetypes/industries, there is
-limited real peer overlap yet to compare. Stage 5's value scales with
-Stage 4's coverage breadth.
+Must also handle Top-25 roster churn: full initial research for a new
+entrant, incremental research for an existing name, archival (not
+deletion) for a dropout, and reconciliation against prior state on
+re-entry.
 
-## Stage 6 -- Continuous Monitoring / Change Detection
+**This is the same gap already identified and discussed as "Loop 13 /
+V1.1"** in `agent/STAGE_4B_IMPROVEMENT_TRACKER.md` -- incremental weekly
+research, a persistent per-company evidence store, and an "unattended
+API-driven agent loop" using Cloudflare R2 for storage (Paresh's
+decisions, 2026-09-20). V1.1 is not a side-track from this roadmap; it is
+Stage 5, under a different name, already deferred until V1 is ready per
+Paresh's explicit instruction. No further design work has been done here
+pending that.
 
-Moves from periodic research to "what has changed since the last research
-cycle?" -- tracking new filings, results, management commentary, orders,
-regulatory changes, industry developments, contradictions that have been
-resolved, previously unresolved questions, and changes in
-research-plan relevance. The core idea is **delta research**, not
-regenerating the entire dossier every cycle.
+**This stage is the real bottleneck for everything below it.** Stage 6's
+value depends on having enough companies researched to compare, and
+manually building Top-25 x weekly-research forever is not viable -- so
+production capacity here, not comparative-engine design, is what actually
+gates the rest of the roadmap.
 
-**This is the same gap already identified and discussed as "Loop 13 / V1.1"**
-in `agent/STAGE_4B_IMPROVEMENT_TRACKER.md` -- incremental weekly research,
-a persistent per-company evidence store, and an "unattended API-driven
-agent loop" using Cloudflare R2 for storage (Paresh's decisions,
-2026-09-20). V1.1 is not a side-track from this roadmap; it is Stage 6,
-under a different name, already deferred until V1 is ready per Paresh's
-explicit instruction. No further design work has been done here pending
-that.
+## Stage 6 -- Cross-Company / Market Intelligence
 
-## Stage 7 -- Thesis / Research State Tracking
-
-Turns the research dossier from a static report into a living research
-state per hypothesis:
-
-```
-Hypothesis
-    -> Supporting evidence
-    -> Contradicting evidence
-    -> Current confidence/uncertainty
-    -> What would confirm it?
-    -> What would invalidate it?
-    -> Next monitoring trigger
-```
-
-**Partially foreshadowed today**: every Stage-4 dossier already has
-`unresolved_questions` and `monitoring_questions` fields, and Loop 14's
-`ResearchAudit.stale_evidence`/half-life tracking (items 11/12/14) gives a
-per-item freshness signal. None of this yet persists across research
-cycles into a tracked confidence trend -- that requires Stage 6's
-persistent state to exist first. Stage 6 and 7 look like they could be one
-engineering effort (a shared persisted-state model) rather than two fully
-separate builds, since a change-detection record and a thesis-state update
-are naturally the same event.
-
-## Stage 8 -- Portfolio / Market-Level Intelligence
-
-Only after company-level research is mature: reason across the
-portfolio/universe -- multiple highly-ranked companies exposed to the same
-external risk, sector-wide developments affecting many candidates, whether
-a market regime is producing common fundamental effects, clusters of
-unresolved risks/opportunities.
+Merges what earlier versions of this doc called "Stage 5 (Comparative /
+Peer Intelligence)" and "Stage 8 (Portfolio / Market-Level Intelligence)"
+into one stage: once persistent per-company research state exists, peer
+comparison, industry aggregation, sector aggregation, and universe-wide
+aggregation are the same underlying engine running at different scopes,
+not different systems. Same mechanism, wider net each time:
 
 ```
-Quantitative ranking
-       +
-Company research
-       +
-Industry context
-       +
-Peer divergence
-       ->
-Market/portfolio research intelligence
+Company -> Peer Group -> Industry -> Sector -> Universe
 ```
 
-**Must inform System-1, never silently modify its ranking methodology** --
-same hard boundary already enforced throughout Stage 1-4. Likely leans
-heavily on Stage 5's peer-comparison primitives rather than being a wholly
-separate clustering/ranking engine; may turn out to be "Stage 5 aggregated
-across the whole universe" rather than a fully distinct capability. Needs
-most of the Top-25 covered to be meaningful, not just 5 names.
+This is more than ranked peer comparison. Because the underlying state is
+evidence and hypotheses (not just numbers), the same engine can also
+surface things ranking alone cannot:
+- a shared external event (e.g. a tariff change) hitting several
+  companies through different transmission mechanisms and with different
+  financial consequences;
+- a shared hypothesis (e.g. "China+1 creates incremental opportunity")
+  where some companies merely discuss it and others show actual capacity,
+  qualification, or orders against it;
+- contradiction clusters -- the same kind of management-optimism-vs-
+  evidence conflict recurring across multiple companies in a sector;
+- unresolved-question concentration -- which sectors carry the most
+  unresolved risk across the researched universe.
 
-## Stage 9 -- Research Feedback / Learning Loop
+**Must use Stage 3's existing scoping fields** (`peer_group`, `industry`,
+`sector`, `peer_taxonomy`), not a new ranking engine, and must never
+modify System-1's ranking methodology -- this carries forward the hard
+boundary the original "Stage 8" framing stated explicitly, and it must
+survive the merge into this stage's name, not get diluted by it.
+
+**Practical gating factor**: needs multiple members of the same
+peer/industry/sector group actually researched under Stage 5's persistent
+state to be meaningful. Today's five archetypes were deliberately chosen
+to span different economic models to prove Stage 4's adaptive design, so
+they have little same-taxonomy overlap to compare yet -- breadth within
+archetypes (more auto/industrial names alongside SANSERA, more hospital
+names alongside YATHARTH, etc.) is what unlocks this stage's value, and
+that breadth is itself gated by Stage 5's production-capacity problem, not
+by this stage's own design.
+
+## Stage 7 -- Portfolio / User Research Intelligence
+
+Connects System-1's quantitative signal, Stage 4's company research state,
+and Stage 6's cross-company intelligence to the user's own actual
+positions, rather than just the system's own Top-25 output. Concretely:
+surfacing which held names had a material research-state change in a
+given cycle (a previously unresolved question resolved, a new
+contradiction, a hypothesis's confidence shifting), not a second
+recommendation engine.
+
+**Open question, not yet resolved:** there is currently no "portfolio" or
+"holdings" concept anywhere in the codebase -- checked directly, nothing
+matches beyond incidental prose (e.g. "shareholding" inside a PAYTM
+evidence quote). It is not yet decided whether "portfolio" here means the
+system's own Top-25 output, or an actual set of real holdings the user
+would input separately (which could differ from Top-25 in composition,
+sizing, or include names outside the ranked universe). That is a product
+decision for Paresh to make before this stage is buildable, not an
+implementation detail to infer.
+
+Must inform the user, never silently feed back into or modify System-1's
+ranking -- same boundary as Stage 6.
+
+## Stage 8 -- Research Feedback / Learning Loop
 
 Compares what the research predicted/flagged against what subsequently
 happened -- which evidence was useful, which hypotheses were wrong, which
-research domains mattered -- to improve future research planning.
+research domains mattered -- to improve future research planning:
 
 ```
 What the research predicted/flagged
@@ -182,24 +219,29 @@ Which hypotheses were wrong?
 Which research domains mattered?
               ->
 Improve future research planning
+              (prioritisation, hypothesis generation,
+               evidence selection, contradiction detection,
+               monitoring questions, archetype research profiles)
 ```
 
 **Must improve the research process, not silently optimise the
 quantitative ranking** until a separately defined methodology change is
-approved -- same boundary again. Needs Stages 6-8 to have run for real
+approved -- same boundary again. Needs Stages 5-7 to have run for real
 research cycles first to have anything to learn from; this is correctly
 the last stage in sequence, not something to build early.
 
-## Sequencing assessment (Claude's honest take, 2026-09-20)
+## Sequencing assessment (Claude's honest take, 2026-09-20, revised)
 
-The 5-9 sequencing is sound and nothing in it reads as premature
-over-engineering *if pursued in order* -- but right now, with 5 of 25
-Top-25 names covered and no persistent incremental-research
-infrastructure, Stages 5 and 8 don't have much real data to work with yet
-(peer/portfolio comparison needs breadth of coverage Stage 4 alone hasn't
-reached), and Stages 7 and 9 need Stage 6's persisted state to exist
-before they have anything to track or learn from. This means Stage 6 (=
-V1.1, already deferred) is the genuine prerequisite unlocking the rest,
-not a parallel or optional track -- consistent with Paresh's own decision
-to park it until V1 is ready. Nothing here is being built now; recorded
-for continuity only.
+Stage 5 (persistent state + monitoring) is the genuine prerequisite that
+unlocks everything after it -- already true in the original 9-stage
+version of this doc and unchanged by the revision. What changed: the
+9-stage split understated how much Stage 6 (cross-company) and the old
+Stage 8 (portfolio/market) shared the same engine, and how artificial the
+detection/interpretation boundary was between the old Stage 6/7. Both are
+now collapsed above. The new Stage 7 (portfolio/user intelligence) is a
+genuinely useful addition this doc did not previously identify, but it is
+gated on a real data-model decision (what "portfolio" means here) that
+does not yet have an answer in the codebase or in any instruction from
+Paresh -- recorded as open rather than guessed at. Nothing here is being
+built now; recorded for continuity only, and Stage 5/V1.1 stays parked
+until Paresh says V1 is ready, per standing instruction.
