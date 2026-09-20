@@ -180,7 +180,7 @@ def divislab_packet() -> ResearchProviderPacket:
                 mechanism="Custom Synthesis can lift mix and margins, while project timing can make individual quarters unusually strong.",
                 timing="Quarterly to annual",
                 uncertainty="The reviewed material does not isolate the durability of the current mix beyond management commentary.",
-                evidence_refs=tuple(ref("Divi's consolidated Q1 FY27 revenue from operations was INR 3,080 crore and PAT was INR 902 crore, up 27.8% and 65.5% YoY respectively."), ref("Independent reporting on Q1 FY27 stated that Custom Synthesis contributed about 60% of revenue and supported the strong quarter."), ref("Independent earnings-call reporting noted that management cautioned against extrapolating the unusually strong Q1 gross margin because business mix is lumpy.")),
+                evidence_refs=(ref("Divi's consolidated Q1 FY27 revenue from operations was INR 3,080 crore and PAT was INR 902 crore, up 27.8% and 65.5% YoY respectively."), ref("Independent reporting on Q1 FY27 stated that Custom Synthesis contributed about 60% of revenue and supported the strong quarter."), ref("Independent earnings-call reporting noted that management cautioned against extrapolating the unusually strong Q1 gross margin because business mix is lumpy.")),
             ),
             CausalFinding(
                 hypothesis="Can the major capex programs convert validation activity into commercial supply on the expected timeline?",
@@ -188,7 +188,7 @@ def divislab_packet() -> ResearchProviderPacket:
                 mechanism="Capacity becomes revenue only after validation, qualification, approvals and customer supply activation.",
                 timing="FY27-FY28",
                 uncertainty="Program-level commercial dates are not established.",
-                evidence_refs=tuple(ref("Q1 earnings-call reporting states that three major capex programs were nearing completion with validations underway."), ref("The same earnings-call reporting states that commercial revenues from the capex projects depend on customer qualification and regulatory approvals, making timing uncertain."), ref("The reviewed material does not establish the exact date and revenue contribution of commercialisation for each major capex program.")),
+                evidence_refs=(ref("Q1 earnings-call reporting states that three major capex programs were nearing completion with validations underway."), ref("The same earnings-call reporting states that commercial revenues from the capex projects depend on customer qualification and regulatory approvals, making timing uncertain."), ref("The reviewed material does not establish the exact date and revenue contribution of commercialisation for each major capex program.")),
             ),
             CausalFinding(
                 hypothesis="Are backward integration and manufacturing capacity improving supply resilience without creating excessive inventory or working-capital drag?",
@@ -196,7 +196,7 @@ def divislab_packet() -> ResearchProviderPacket:
                 mechanism="Internal intermediate capacity can reduce external dependency, but buffers and higher input costs consume working capital.",
                 timing="Ongoing",
                 uncertainty="The reviewed evidence does not quantify the net economic benefit of the integration versus inventory cost.",
-                evidence_refs=tuple(ref("Q1 reporting states that Unit 3 is being used for backward integration and phased transfers from Units 1 and 2 to support critical-intermediate supply assurance."), ref("Q1 reporting also notes elevated solvent costs and global logistics pressure, with inventory at about INR 4,413 crore after maintaining a strategic three-month buffer."), ref("NSE's consolidated filing shows Q1 FY27 revenue from operations of INR 3,080 crore and cost of materials consumed of INR 1,503 crore, providing a direct filing anchor for the input-cost context.")),
+                evidence_refs=(ref("Q1 reporting states that Unit 3 is being used for backward integration and phased transfers from Units 1 and 2 to support critical-intermediate supply assurance."), ref("Q1 reporting also notes elevated solvent costs and global logistics pressure, with inventory at about INR 4,413 crore after maintaining a strategic three-month buffer."), ref("NSE's consolidated filing shows Q1 FY27 revenue from operations of INR 3,080 crore and cost of materials consumed of INR 1,503 crore, providing a direct filing anchor for the input-cost context.")),
             ),
             CausalFinding(
                 hypothesis="How sensitive is near-term profitability to solvent costs, logistics and the normalisation of unusually high Q1 margins?",
@@ -204,7 +204,7 @@ def divislab_packet() -> ResearchProviderPacket:
                 mechanism="Product mix, solvent costs and logistics can move gross margin materially between quarters.",
                 timing="Quarterly",
                 uncertainty="A full-year cost sensitivity was not disclosed.",
-                evidence_refs=tuple(ref("Q1 reporting says management expected full-year gross margin to normalise toward about 60% versus the unusually high Q1 level, alongside elevated solvent costs."), ref("NSE's Q1 filing reports consolidated PBT of INR 1,180 crore and PAT of INR 902 crore, with no exceptional item in the quarter."), ref("The reviewed material does not quantify the full-year earnings sensitivity to solvent-cost and logistics scenarios.")),
+                evidence_refs=(ref("Q1 reporting says management expected full-year gross margin to normalise toward about 60% versus the unusually high Q1 level, alongside elevated solvent costs."), ref("NSE's Q1 filing reports consolidated PBT of INR 1,180 crore and PAT of INR 902 crore, with no exceptional item in the quarter."), ref("The reviewed material does not quantify the full-year earnings sensitivity to solvent-cost and logistics scenarios.")),
             ),
         ),
         contradictions=(
