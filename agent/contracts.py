@@ -57,6 +57,16 @@ class ResearchPlan:
     material_domains: tuple[ResearchDomain, ...]
     hypotheses: tuple[str, ...]
     exclusions: tuple[str, ...] = ()
+    evidence_half_life_days: dict[ResearchDomain, int] = field(default_factory=dict)
+    """Item 11/12/13/14: optional per-archetype override of how many days a
+    domain's evidence stays "fresh" before it is reported as stale (Paresh's
+    decision, 2026-09-20: per-archetype, not a universal constant -- the same
+    reasoning as item 2's deferral, since a wealth manager's AUM figure and a
+    hospital's five-year capacity plan do not go stale at the same rate).
+    Only needs to name the domains where the module-level default in
+    research_execution.py is wrong for this specific archetype; every other
+    domain falls back to that default. Capped at 400 days (Paresh's explicit
+    instruction) so no archetype can declare a claim permanently fresh."""
 
     def __post_init__(self) -> None:
         if not self.symbol.strip():
@@ -76,6 +86,18 @@ class ResearchPlan:
                 "domain library was applied selectively rather than as a "
                 "checklist"
             )
+        for domain, days in self.evidence_half_life_days.items():
+            if days <= 0:
+                raise ValueError(
+                    f"evidence half-life for {domain.value} must be positive"
+                )
+            if days > 400:
+                raise ValueError(
+                    f"evidence half-life for {domain.value} is {days} days, "
+                    "exceeding the 400-day cap (item 11/12; Paresh's decision, "
+                    "2026-09-20): no domain's evidence may be declared fresh "
+                    "indefinitely"
+                )
 
 
 @dataclass(frozen=True)

@@ -136,6 +136,24 @@ class ResearchAudit:
     differ materially while provably describing the same underlying quantity
     (see _numeric_disagreement). Never resolved automatically -- flagged for
     a human reviewer, per Section 23 of the handover."""
+    stale_evidence: tuple[str, ...] = ()
+    """Item 14: non-DERIVED, non-SCHEDULED_EVENTS evidence whose age exceeds
+    its domain's half-life (item 11 -- see _half_life_days and the
+    per-archetype ResearchPlan.evidence_half_life_days override). Deliberately
+    a REPORTED metric, not a hard gate, for the same reason item 5's and
+    item 21's absence-based checks are reported rather than raised: a
+    universal staleness threshold across every domain would repeat the
+    checklist mistake (a five-year capacity plan is not "stale" the way a
+    quarterly revenue figure is), and this pipeline does not yet have enough
+    real-world evidence to be confident the chosen half-lives are exactly
+    right. A human reviewer sees this list and judges it, same as
+    numeric_disagreements."""
+    causal_findings_stale_only: int = 0
+    contradictions_stale_only: int = 0
+    """Item 12: a causal finding or contradiction whose evidence_refs resolve
+    ONLY to stale evidence (mirrors item 21's causal_findings_absence_based /
+    contradictions_absence_based structure exactly, substituting "stale" for
+    "DERIVED"). Also reported, not raised, for the same reason."""
 
     @property
     def primary_coverage(self) -> float:
@@ -170,6 +188,41 @@ class ResearchDossier:
         if anchor is None:
             return None
         return (self.snapshot_as_of - anchor).days
+
+
+_DEFAULT_EVIDENCE_HALF_LIFE_DAYS: dict[ResearchDomain, int] = {
+    ResearchDomain.MARKET_REACTION: 30,
+    ResearchDomain.FX: 60,
+    ResearchDomain.INPUTS_ENERGY: 120,
+    ResearchDomain.FINANCIALS: 100,
+    ResearchDomain.CAPITAL_MARKETS: 150,
+    ResearchDomain.ORDERS: 180,
+    ResearchDomain.CUSTOMERS_SUPPLIERS: 180,
+    ResearchDomain.GOVERNMENT_REGULATION: 200,
+    ResearchDomain.LEGAL_COMPLIANCE: 200,
+    ResearchDomain.MACRO_GEOPOLITICS: 200,
+    ResearchDomain.MANAGEMENT: 300,
+    ResearchDomain.PEERS: 300,
+    ResearchDomain.TARIFF_TRADE: 300,
+    ResearchDomain.TECHNOLOGY_IP: 300,
+    ResearchDomain.CAPACITY: 365,
+    ResearchDomain.COMPANY: 400,
+    ResearchDomain.INDUSTRY: 400,
+    ResearchDomain.SECTOR: 400,
+}
+"""Item 11: default per-domain half-life in days, capped at 400 (Paresh's
+explicit instruction, 2026-09-20). A rough, deliberately conservative
+starting table -- faster-moving domains (market reaction to a single event,
+FX rates) get short half-lives; slower-moving structural domains (industry
+TAM, sector structure) get the 400-day cap. Overridable per archetype via
+ResearchPlan.evidence_half_life_days for a domain where this default is
+wrong for that specific company. SCHEDULED_EVENTS is deliberately absent:
+its evidence typically carries a future event_date (e.g. a regulatory
+deadline), not a disclosure date, so "staleness" does not apply the same
+way. CONTRADICTIONS and UNKNOWN_QUESTIONS are unused as evidence domains
+(confirmed by inspection) and are also omitted. A domain absent from both
+this table and an archetype's override is simply not evaluated for
+staleness, rather than guessing a number for it."""
 
 
 _INR_VALUE_PATTERN = re.compile(
@@ -239,6 +292,18 @@ def _numeric_disagreement(claim_a: str, claim_b: str) -> tuple[float, float, flo
     if pct < _NUMERIC_DISAGREEMENT_MATERIALITY:
         return None
     return (smaller, larger, pct)
+
+
+def _half_life_days(domain: ResearchDomain, plan: ResearchPlan) -> int | None:
+    """Item 11: the archetype's own override for `domain`, if it declared
+    one, else the module-level default, else None (not evaluated for
+    staleness). Looking at the override first is what makes
+    ResearchPlan.evidence_half_life_days an override rather than a
+    replacement -- an archetype only needs to name the domains where the
+    default is wrong for it."""
+    if domain in plan.evidence_half_life_days:
+        return plan.evidence_half_life_days[domain]
+    return _DEFAULT_EVIDENCE_HALF_LIFE_DAYS.get(domain)
 
 
 def evidence_ref(evidence: Evidence) -> str:
@@ -441,6 +506,38 @@ def execute_research(
         1 for f in contradictions if _is_absence_based(f.evidence_refs)
     )
 
+    def _is_stale(evidence_item: Evidence) -> bool:
+        if evidence_item.source_tier is SourceTier.DERIVED:
+            return False
+        if evidence_item.domain is ResearchDomain.SCHEDULED_EVENTS:
+            return False
+        anchor = _temporal_anchor(evidence_item)
+        if anchor is None:
+            return False
+        half_life = _half_life_days(evidence_item.domain, packet.plan)
+        if half_life is None:
+            return False
+        return (snapshot.as_of - anchor).days > half_life
+
+    stale_evidence = tuple(
+        f"{e.domain.value}: {(snapshot.as_of - _temporal_anchor(e)).days}d old "
+        f"(half-life {_half_life_days(e.domain, packet.plan)}d) -- {evidence_ref(e)}"
+        for e in evidence
+        if _is_stale(e)
+    )
+    """Item 14: see ResearchAudit.stale_evidence's docstring for why this is
+    reported, not gated."""
+
+    def _is_stale_only(refs: tuple[str, ...]) -> bool:
+        cited = [evidence_by_ref[r] for r in refs if r in evidence_by_ref]
+        return bool(cited) and all(_is_stale(e) for e in cited)
+
+    causal_stale_only = sum(1 for f in causal if _is_stale_only(f.evidence_refs))
+    contradictions_stale_only = sum(
+        1 for f in contradictions if _is_stale_only(f.evidence_refs)
+    )
+    """Item 12: see ResearchAudit.causal_findings_stale_only's docstring."""
+
     domains_with_real_evidence = {
         e.domain for e in evidence if e.source_tier is not SourceTier.DERIVED
     }
@@ -506,6 +603,9 @@ def execute_research(
         contradictions_absence_based=contradictions_absence_based,
         derived_only_domains=derived_only_domains,
         numeric_disagreements=tuple(numeric_disagreements),
+        stale_evidence=stale_evidence,
+        causal_findings_stale_only=causal_stale_only,
+        contradictions_stale_only=contradictions_stale_only,
     )
 
     return ResearchDossier(
