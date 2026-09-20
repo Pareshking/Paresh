@@ -22,9 +22,12 @@ post-merge)
 PAYTM, YATHARTH, LENSKART) are now on `main`, all CI-verified, with items
 1-8, 10-24 done/deferred-by-decision. Items 2 and 9 remain the only open
 items, both blocked on real inputs (an issuer-to-symbol map) rather than
-a policy number. Next: a larger architecture conversation with Paresh
-about incremental weekly research, Top-25 roster churn, and a stitched
-master report across all 25 names -- see Loop 13 below.
+a policy number. The larger production-architecture question (incremental
+weekly research, Top-25 roster churn, a stitched master report across all
+25 names -- see Loop 13) is **DEFERRED to V1.1** per Paresh's explicit
+decision (2026-09-20): parked until V1 is ready, not designed or built.
+V1 scope for Stage-4B is otherwise stable at five real archetypes, all
+CI-verified.
 
 ## Operating rule
 
@@ -1046,11 +1049,18 @@ to keep this document current:
    from "new entrant, needs first-time full research" from "dropped out,
    archive it."
 
-**Status: awaiting Paresh's direction** on whether to receive a concrete
-design proposal (storage choice, weekly flow, cost estimate) for items
-2/4/5 together (they are one connected system), or talk through tradeoffs
-first. No code written against this yet -- deliberately, since guessing at
-storage/scheduling architecture wrong would be expensive to unwind.
+Also surfaced in the tradeoffs discussion: this needs an agent doing real
+research judgement each cycle (WebSearch/WebFetch, deciding what's
+material), not a deterministic cron script -- the repo's existing
+scheduled workflows (`weekly_full_sync.yml` Fridays, `monthly_track_
+record.yml`) are precedent for cadence, but they only sync quant price
+data, nothing that requires model reasoning. Whether this becomes a
+human-triggered periodic session or a genuinely unattended scheduled
+agent run is itself one of the open design questions.
+
+**Status: DEFERRED to V1.1 (Paresh's decision, 2026-09-20).** Explicitly
+parked until V1 is ready -- not designed, not built. Revisit only when
+Paresh reopens it; no further action here until then.
 
 ## Rule against false closure
 
