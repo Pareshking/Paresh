@@ -169,7 +169,26 @@ class ResearchAudit:
     calibration for what "enough" diversity looks like per archetype, and a
     hard gate would risk blocking legitimate research where only one source
     genuinely exists (e.g. a newly-listed company's own investor filings,
-    before independent analyst coverage exists)."""
+    before independent analyst coverage exists).
+
+    Important calibration note (Paresh, 2026-09-20): this metric does NOT
+    distinguish an authoritative official channel (the company's own
+    website/investor-relations page, a BSE/NSE exchange announcement) from a
+    single third party's unaudited estimates (e.g. one brokerage's own
+    channel-check figures) -- both register identically as "one publisher."
+    They are not equally concerning: citing several of a company's own
+    official disclosures for its own numbers is normal and expected, not a
+    defect, since there usually IS only one authoritative source for "what
+    the company itself reported." The flag is most worth acting on when the
+    single source is a third party whose claims could plausibly be wrong,
+    biased, or unverifiable (a brokerage's own capacity-utilization
+    estimate, for example) -- not when it is the issuer's own primary
+    disclosure. A human reviewer applies this judgement; the metric only
+    surfaces the fact of concentration. When independent corroboration is
+    genuinely worth seeking, Paresh's suggested channels (not hard
+    requirements): X/Twitter for company-specific threads, Substack/
+    independent-analyst blogs, ValuePickr and Moneycontrol (community/
+    financial-media coverage common for Indian equities)."""
     causal_findings_single_sourced: int = 0
     contradictions_single_sourced: int = 0
     """Same concentration check at finding level: a finding/contradiction
