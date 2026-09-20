@@ -50,6 +50,12 @@ lines = [
         f"{dossier.audit.contradictions_absence_based} contradiction "
         "(support rests only on \"no disclosure was found\", not on contradicting evidence)"
     ),
+    (
+        "- Stale-only findings: "
+        f"{dossier.audit.causal_findings_stale_only} causal, "
+        f"{dossier.audit.contradictions_stale_only} contradiction "
+        "(support rests only on evidence past its domain's half-life)"
+    ),
     "",
     "## Numeric disagreements (NUMERIC_DISAGREEMENT_REVIEW_REQUIRED)",
     (
@@ -58,6 +64,14 @@ lines = [
         else "Not auto-resolved -- flagged for reviewer judgement, not a defect verdict."
     ),
     *[f"- {item}" for item in dossier.audit.numeric_disagreements],
+    "",
+    "## Stale evidence (item 11/14 -- reported, not a hard gate)",
+    (
+        "None detected."
+        if not dossier.audit.stale_evidence
+        else "Past its domain's default or archetype-overridden half-life -- flagged for reviewer judgement, not a defect verdict."
+    ),
+    *[f"- {item}" for item in dossier.audit.stale_evidence],
     "",
     "## Selected economic drivers",
 ]
@@ -124,4 +138,12 @@ print(
 print(f"STAGE4B_PAYTM_NUMERIC_DISAGREEMENTS={len(dossier.audit.numeric_disagreements)}")
 for item in dossier.audit.numeric_disagreements:
     print(f"STAGE4B_PAYTM_NUMERIC_DISAGREEMENT_DETAIL={item}")
+print(f"STAGE4B_PAYTM_STALE_EVIDENCE={len(dossier.audit.stale_evidence)}")
+for item in dossier.audit.stale_evidence:
+    print(f"STAGE4B_PAYTM_STALE_EVIDENCE_DETAIL={item}")
+print(
+    "STAGE4B_PAYTM_STALE_ONLY_FINDINGS="
+    f"{dossier.audit.causal_findings_stale_only}/"
+    f"{dossier.audit.contradictions_stale_only}"
+)
 print("STAGE4B_PAYTM_EXECUTION=PASS")

@@ -48,10 +48,10 @@ Each improvement follows:
 | 8 | Detect cross-tier numeric disagreement | B1 | **VERIFIED — run #354 (35441089140) — Loop 6; regex gap fix VERIFIED — run #360 (35443317589) — Loop 10** |
 | 9 | Entity-relative source tiering | B4 | **DEFERRED — needs an issuer-to-symbol map; a URL-shape heuristic would guess, not fix — Loop 4** |
 | 10 | Evidence age distribution + rounded score | C1/C2/R5c | **VERIFIED — run #351 (35439390433); buckets confirmed exact match to local (SANSERA 23/4/2/2/2, ANANDRATHI 11/2/0/0/3)** |
-| 11 | Claim-type evidence half-life classification | R4 | TODO |
-| 12 | Stale evidence cannot sole-cover/carry mechanism/primary share | R5a | TODO |
-| 13 | Joint tier + recency ranking, never recency-first | R3/R5b | TODO |
-| 14 | Explicit last-disclosed/stale finding | R5c/R1 | TODO |
+| 11 | Claim-type evidence half-life classification | R4 | **VERIFIED — Loop 12; per-domain default table capped at 400 days (Paresh's decision, 2026-09-20), overridable per archetype** |
+| 12 | Stale evidence cannot sole-cover/carry mechanism/primary share | R5a | **VERIFIED — Loop 12; REPORTED metric (`causal_findings_stale_only`/`contradictions_stale_only`), not a hard gate — same reasoning as item 21** |
+| 13 | Joint tier + recency ranking, never recency-first | R3/R5b | **CLOSED as not-yet-applicable — Loop 12; no evidence-ranking function exists anywhere in the pipeline to fix (checked before building), so there is no "recency-first" bug today. Building an unused sorter now would be speculative infrastructure. Revisit if/when a real consumer needs ordered evidence.** |
+| 14 | Explicit last-disclosed/stale finding | R5c/R1 | **VERIFIED — Loop 12; `ResearchAudit.stale_evidence`, rendered in every dossier** |
 | 15 | Fix ANANDRATHI refs[16] only through provenance-safe repair | E1/E2 | **DONE — absorbed into 16** |
 | 16 | Claim-keyed evidence refs; prohibit positional refs | E3 | **DONE — ANANDRATHI converted** |
 | 17 | Executable test per archetype: packet + execute_research | E4 | **DONE — ANANDRATHI test added** |
@@ -840,7 +840,7 @@ opening further rounds looking for more issues, per Paresh's explicit
 "are we stuck in one loop" check -- this fix is shipped and closed, not a
 new open-ended thread.
 
-## Loop 11 — third/fourth/fifth archetypes: PAYTM, YATHARTH, LENSKART (in progress)
+## Loop 11 — third/fourth/fifth archetypes: PAYTM, YATHARTH, LENSKART
 
 Per Paresh's explicit instruction after the PR #15 merge ("run 2-3
 different companies analysis to get more ideas... move very fast"):
@@ -915,6 +915,86 @@ from 1159 -- 9 new tests, 3 per company, zero regressions).
 completed/success, all steps green including the three new live-execution
 steps and dossier-artifact retention. Run #364 (35471072564) re-verified
 green on the actual final commit (217617f) merged into `main` as `c036442`.
+
+## Loop 12 — items 11/12/14 (evidence half-life/staleness), item 13 closed
+
+Paresh's decision, 2026-09-20, in response to an explicit "explain and give
+options" question: **Option 2 for items 11-14** (Claude proposes a first-cut
+half-life table, Paresh reviews) **with a hard cap of 400 days.** Items 2/9
+were not addressed this round and remain deferred exactly as Loop 8 left
+them -- entity-relative tiering still needs an issuer-to-symbol map this
+codebase does not have.
+
+**Design, consistent with the per-archetype decision (Loop 8) and the
+established REPORTED-not-gated pattern (items 5, 20, 21):**
+
+- `ResearchPlan.evidence_half_life_days: dict[ResearchDomain, int]` -- an
+  optional per-archetype override, validated at construction: every value
+  must be positive and `<= 400` (Paresh's cap enforced as a hard invariant,
+  not a convention -- an archetype cannot declare a domain permanently
+  fresh).
+- A module-level `_DEFAULT_EVIDENCE_HALF_LIFE_DAYS` table in
+  `research_execution.py` keyed by `ResearchDomain`, ranging from 30 days
+  (MARKET_REACTION -- a single event's share-price reaction ages almost
+  immediately) to the 400-day cap (INDUSTRY/SECTOR/COMPANY -- structural
+  facts that genuinely change slowly). Keyed by domain, not by an invented
+  "claim type" classifier, to stay consistent with this pipeline's
+  deterministic-only design (Section 23 of the handover) -- domain is
+  already a real, non-inferred field on every Evidence item.
+  SCHEDULED_EVENTS is deliberately excluded (its evidence typically carries
+  a future event_date -- a deadline, not a disclosure -- so "staleness"
+  does not apply); CONTRADICTIONS/UNKNOWN_QUESTIONS are excluded because
+  grep confirmed no evidence is ever tagged with them.
+- No archetype's existing packet needed to change: the override defaults to
+  `{}`, so all five real archetypes use the default table unless a future
+  one needs to override a specific domain.
+- Item 11 (classification) is the table itself. Item 14
+  (`ResearchAudit.stale_evidence`) is a human-readable list of every
+  non-DERIVED, non-SCHEDULED_EVENTS item past its domain's half-life,
+  rendered in every dossier exactly like `numeric_disagreements`. Item 12
+  (`causal_findings_stale_only` / `contradictions_stale_only`) mirrors item
+  21's absence-based check exactly, substituting "stale" for "DERIVED": a
+  finding is flagged only when EVERY evidence ref it cites is stale, never
+  when at least one fresh ref supports it. Both are REPORTED, not raised --
+  the same reasoning as item 2's deferral and item 5's reverted hard gate:
+  a threshold this pipeline has not yet battle-tested against enough real
+  archetypes should not silently block a dossier on a guess.
+- **Item 13 (joint tier+recency ranking) closed, not implemented:** checked
+  first whether an evidence-ranking/ordering function exists anywhere in
+  the pipeline (`grep` across research_execution.py and company_research.py)
+  -- none does. Evidence is stored and rendered in author-supplied tuple
+  order everywhere today. There is no live "recency-first" bug to fix, and
+  building a sorter with no real caller would be exactly the speculative,
+  unused infrastructure the operating standard warns against (same
+  reasoning as Loop 9's item 4b closure). Revisit if/when a future feature
+  actually needs to rank or select among an evidence set.
+
+**Local verification:** full suite 1174 passed (up from 1168 -- 6 new
+regression tests: the 400-day cap rejection, a non-positive rejection, a
+default-half-life staleness detection, a per-archetype override
+suppressing that same staleness flag, a SCHEDULED_EVENTS exemption, and a
+stale-only causal-finding flag). `compileall` clean. All 5 live-validation
+scripts re-run against the real Top-25 snapshot -- real, plausible
+staleness flags surfaced with zero false hard failures:
+
+- SANSERA: 5 stale items (a Feb-2026 defence-policy note now past its
+  200-day half-life, FY24-25 raw-material commentary, an Oct-2024 FX
+  disclosure, a Jan-2026 credit-rating note, a 52-week-high reaction now 5
+  days past its 30-day half-life).
+- ANANDRATHI: 2 stale items (FY26 annual-report figures, now 144 days old
+  against a 100-day FINANCIALS half-life).
+- PAYTM: 4 stale items (the Nov-2025 PA licence, the Sept-2025 gaming-ban
+  impairment, the Mar-2025 FEMA notice, and the Apr-2026 market reaction to
+  the PPBL cancellation).
+- YATHARTH: 0 stale items (all sourcing was Aug-Sept 2026, freshly
+  researched this session).
+- LENSKART: 3 stale items (the Feb-2026 brokerage report's FY25 figures,
+  cited for financials/FX/legal-compliance).
+
+`causal_findings_stale_only`/`contradictions_stale_only` are 0/0 across all
+five archetypes -- no existing finding rests solely on stale evidence.
+
+**CI: pending push and verification** -- see next commit.
 
 ## Rule against false closure
 

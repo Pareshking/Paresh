@@ -493,3 +493,168 @@ def test_numeric_disagreement_extracts_plus_suffixed_figures():
     assert len(dossier.audit.numeric_disagreements) == 1
     assert "44368" in dossier.audit.numeric_disagreements[0]
     assert "57500" in dossier.audit.numeric_disagreements[0]
+
+
+def test_evidence_half_life_override_above_400_days_is_rejected():
+    """Item 11/12 (Paresh's decision, 2026-09-20): no archetype may declare a
+    domain's evidence fresh indefinitely -- 400 days is a hard cap enforced
+    at plan construction, not just a convention the pipeline happens to
+    follow."""
+    with pytest.raises(ValueError, match="400-day cap"):
+        ResearchPlan(
+            symbol="BBB",
+            company_archetype="industrial",
+            economic_drivers=("order conversion",),
+            material_domains=(ResearchDomain.ORDERS,),
+            hypotheses=("Can order growth convert into revenue?",),
+            exclusions=("target prices and valuation recommendations",),
+            evidence_half_life_days={ResearchDomain.ORDERS: 401},
+        )
+
+
+def test_evidence_half_life_override_must_be_positive():
+    with pytest.raises(ValueError, match="must be positive"):
+        ResearchPlan(
+            symbol="BBB",
+            company_archetype="industrial",
+            economic_drivers=("order conversion",),
+            material_domains=(ResearchDomain.ORDERS,),
+            hypotheses=("Can order growth convert into revenue?",),
+            exclusions=("target prices and valuation recommendations",),
+            evidence_half_life_days={ResearchDomain.ORDERS: 0},
+        )
+
+
+def test_stale_evidence_is_flagged_using_default_half_life():
+    """ORDERS defaults to a 180-day half-life. An item dated 200 days before
+    snapshot.as_of should be flagged; the packet fixture's own ORDERS item
+    (dated 9 days before as_of) should not."""
+    p = packet()
+    stale_item = Evidence(
+        entity="BBB",
+        kind=EvidenceKind.POSITIVE,
+        claim="An old order was disclosed 200 days ago.",
+        source="https://primary.example/old-orders",
+        source_tier=SourceTier.PRIMARY,
+        published_on=date(2026, 3, 2),  # 200 days before 2026-09-18
+        retrieved_on=date(2026, 9, 19),
+        domain=ResearchDomain.ORDERS,
+        hypothesis="Can order growth convert into revenue?",
+    )
+    bad = ResearchProviderPacket(
+        plan=p.plan,
+        evidence=p.evidence + (stale_item,),
+        causal_findings=p.causal_findings,
+        contradictions=p.contradictions,
+        unresolved_questions=p.unresolved_questions,
+        monitoring_questions=p.monitoring_questions,
+    )
+    dossier = execute_research(snapshot(), ResearchCandidate("BBB", 2, 2.0, {}), bad)
+    assert len(dossier.audit.stale_evidence) == 1
+    assert "orders" in dossier.audit.stale_evidence[0]
+    assert evidence_ref(stale_item) in dossier.audit.stale_evidence[0]
+
+
+def test_stale_evidence_respects_archetype_half_life_override():
+    """The same 200-day-old ORDERS item is NOT stale once the archetype
+    overrides ORDERS' half-life to 365 days -- item 11's whole point is that
+    the default is only a default."""
+    base_plan = plan()
+    overridden_plan = ResearchPlan(
+        symbol=base_plan.symbol,
+        company_archetype=base_plan.company_archetype,
+        economic_drivers=base_plan.economic_drivers,
+        material_domains=base_plan.material_domains,
+        hypotheses=base_plan.hypotheses,
+        exclusions=base_plan.exclusions,
+        evidence_half_life_days={ResearchDomain.ORDERS: 365},
+    )
+    p = packet()
+    stale_under_default = Evidence(
+        entity="BBB",
+        kind=EvidenceKind.POSITIVE,
+        claim="An old order was disclosed 200 days ago.",
+        source="https://primary.example/old-orders",
+        source_tier=SourceTier.PRIMARY,
+        published_on=date(2026, 3, 2),
+        retrieved_on=date(2026, 9, 19),
+        domain=ResearchDomain.ORDERS,
+        hypothesis="Can order growth convert into revenue?",
+    )
+    bad = ResearchProviderPacket(
+        plan=overridden_plan,
+        evidence=p.evidence + (stale_under_default,),
+        causal_findings=p.causal_findings,
+        contradictions=p.contradictions,
+        unresolved_questions=p.unresolved_questions,
+        monitoring_questions=p.monitoring_questions,
+    )
+    dossier = execute_research(snapshot(), ResearchCandidate("BBB", 2, 2.0, {}), bad)
+    assert dossier.audit.stale_evidence == ()
+
+
+def test_scheduled_events_evidence_is_never_flagged_stale():
+    """SCHEDULED_EVENTS items typically carry a future event_date (a
+    deadline, not a disclosure date) -- excluded from staleness regardless
+    of how old their date looks, since "stale" does not describe a future
+    deadline."""
+    p = packet()
+    old_scheduled_event = Evidence(
+        entity="BBB",
+        kind=EvidenceKind.UNKNOWN,
+        claim="A regulatory deadline was announced long ago.",
+        source="https://primary.example/deadline",
+        source_tier=SourceTier.PRIMARY,
+        published_on=date(2020, 1, 1),
+        retrieved_on=date(2026, 9, 19),
+        domain=ResearchDomain.SCHEDULED_EVENTS,
+        hypothesis="Can order growth convert into revenue?",
+    )
+    bad = ResearchProviderPacket(
+        plan=p.plan,
+        evidence=p.evidence + (old_scheduled_event,),
+        causal_findings=p.causal_findings,
+        contradictions=p.contradictions,
+        unresolved_questions=p.unresolved_questions,
+        monitoring_questions=p.monitoring_questions,
+    )
+    dossier = execute_research(snapshot(), ResearchCandidate("BBB", 2, 2.0, {}), bad)
+    assert dossier.audit.stale_evidence == ()
+
+
+def test_causal_finding_resting_solely_on_stale_evidence_is_flagged():
+    """Item 12: mirrors item 21's absence-based check exactly, substituting
+    "stale" for "DERIVED". A finding is only flagged stale-only when EVERY
+    evidence ref it cites is stale -- one fresh ref among several is enough
+    to keep it out of the count."""
+    p = packet()
+    stale_item = Evidence(
+        entity="BBB",
+        kind=EvidenceKind.POSITIVE,
+        claim="An old order was disclosed 200 days ago.",
+        source="https://primary.example/old-orders",
+        source_tier=SourceTier.PRIMARY,
+        published_on=date(2026, 3, 2),
+        retrieved_on=date(2026, 9, 19),
+        domain=ResearchDomain.ORDERS,
+        hypothesis="Can order growth convert into revenue?",
+    )
+    evidence_with_stale = p.evidence + (stale_item,)
+    stale_only_finding = CausalFinding(
+        hypothesis="Can order growth convert into revenue?",
+        finding="Old orders alone are cited here.",
+        mechanism="N/A",
+        timing="N/A",
+        uncertainty="N/A",
+        evidence_refs=(evidence_ref(stale_item),),
+    )
+    bad = ResearchProviderPacket(
+        plan=p.plan,
+        evidence=evidence_with_stale,
+        causal_findings=(stale_only_finding, *p.causal_findings[1:]),
+        contradictions=p.contradictions,
+        unresolved_questions=p.unresolved_questions,
+        monitoring_questions=p.monitoring_questions,
+    )
+    dossier = execute_research(snapshot(), ResearchCandidate("BBB", 2, 2.0, {}), bad)
+    assert dossier.audit.causal_findings_stale_only == 1
