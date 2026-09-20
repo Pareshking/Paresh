@@ -144,3 +144,93 @@ def test_render_stock_chart_falls_back_to_plotly(monkeypatch):
     rank_df = pd.DataFrame([{"Symbol": "TEST", "Rank": 1}])
     charts.render_stock_chart("TEST", rank_df, CLOSE.to_frame("TEST"))
     assert used.get("plotly") is True
+
+
+# ── The close-only source ────────────────────────────────────────────────────
+#
+# Screener carries Close and Volume and nothing else, and price_source returns
+# high and low as an explicit None to keep that honest. Drawn as candles, every
+# bar collapsed to open==high==low==close: a doji, one pixel tall. The live
+# stock page rendered 250 of them and they read as a broken chart, not a price.
+
+
+def test_a_close_only_source_draws_a_dark_line_not_a_column_of_dojis(captured):
+    render_lightweight_chart("TEST", CLOSE, volume=VOL)
+    price = captured["charts"][0]["series"][0]
+    assert price["type"] == "Line"
+    assert price["options"]["color"] == LW.INK
+    assert set(price["data"][0]) == {"time", "value"}
+    assert len(price["data"]) == N
+
+
+def test_the_price_line_keeps_its_last_value_tag(captured):
+    """The number against the axis is how the chart is read at a glance."""
+    render_lightweight_chart("TEST", CLOSE, volume=VOL)
+    opts = captured["charts"][0]["series"][0]["options"]
+    assert opts["lastValueVisible"] is True
+    assert opts["priceLineVisible"] is True
+
+
+def test_the_price_line_outweighs_its_overlays(captured):
+    """Price is the subject; the moving averages are commentary."""
+    render_lightweight_chart("TEST", CLOSE, volume=VOL,
+                             overlays={"20 EMA": CLOSE.ewm(span=20).mean()})
+    drawn = captured["charts"][0]["series"]
+    assert drawn[0]["options"]["color"] == LW.INK
+    assert drawn[1]["options"]["color"] == LW.MA_COLOURS["20 EMA"]
+
+
+def test_an_all_nan_range_column_is_not_intraday(captured):
+    """Yahoo published 2026-09-18 with all 750 volumes and not one price, so
+    High existed as a full column of NaN. A None check alone would have called
+    that intraday and drawn the dojis anyway."""
+    empty = pd.Series(np.nan, index=IDX)
+    render_lightweight_chart("TEST", CLOSE, open_=OPEN, high=empty, low=empty,
+                             volume=VOL)
+    assert captured["charts"][0]["series"][0]["type"] == "Line"
+
+
+def test_a_mostly_present_range_still_draws_candles(captured):
+    """The switch is for a source that has no range at all, not for a frame
+    with a few gaps -- those still degrade per bar."""
+    high, low = HIGH.copy(), LOW.copy()
+    high.iloc[:5] = np.nan
+    low.iloc[:5] = np.nan
+    render_lightweight_chart("TEST", CLOSE, open_=OPEN, high=high, low=low,
+                             volume=VOL)
+    assert captured["charts"][0]["series"][0]["type"] == "Candlestick"
+
+
+def test_half_a_candle_chart_is_not_a_candle_chart(captured):
+    """One surviving high does not earn candle bodies for the other 299."""
+    high, low = HIGH.copy(), LOW.copy()
+    high.iloc[1:] = np.nan
+    low.iloc[1:] = np.nan
+    render_lightweight_chart("TEST", CLOSE, open_=OPEN, high=high, low=low,
+                             volume=VOL)
+    assert captured["charts"][0]["series"][0]["type"] == "Line"
+
+
+def test_volume_without_an_open_is_coloured_by_the_previous_close(captured):
+    """The old test was `notna(close) and notna(open)`, so a frame with no
+    opens failed it on every session and the entire volume pane rendered red
+    under a price that had quadrupled."""
+    render_lightweight_chart("TEST", CLOSE, volume=VOL)
+    hist = [s for s in captured["charts"][0]["series"]
+            if s["type"] == "Histogram"][0]
+    colours = {row["color"] for row in hist["data"]}
+    assert len(colours) == 2
+
+    up = {r["time"] for r in hist["data"] if "5,150,105" in r["color"]}
+    expected = {t.strftime("%Y-%m-%d")
+                for t in CLOSE.index[CLOSE.diff().fillna(0) >= 0]}
+    assert up == expected
+
+
+def test_a_close_only_source_still_gets_its_rs_pane(captured):
+    charts = []
+    render_lightweight_chart("TEST", CLOSE, volume=VOL,
+                             rs=pd.Series(100.0, index=IDX))
+    charts = captured["charts"]
+    assert len(charts) == 2
+    assert charts[1]["series"][0]["options"]["title"] == "RS vs Nifty 500"
