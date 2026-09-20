@@ -188,15 +188,13 @@ given cycle (a previously unresolved question resolved, a new
 contradiction, a hypothesis's confidence shifting), not a second
 recommendation engine.
 
-**Open question, not yet resolved:** there is currently no "portfolio" or
-"holdings" concept anywhere in the codebase -- checked directly, nothing
-matches beyond incidental prose (e.g. "shareholding" inside a PAYTM
-evidence quote). It is not yet decided whether "portfolio" here means the
-system's own Top-25 output, or an actual set of real holdings the user
-would input separately (which could differ from Top-25 in composition,
-sizing, or include names outside the ranked universe). That is a product
-decision for Paresh to make before this stage is buildable, not an
-implementation detail to infer.
+**Resolved, 2026-09-20 (Paresh):** "portfolio" here means the system's own
+Top-25 ranked output, not a separate set of real holdings input by the
+user. This closes the open data-model question raised when this stage was
+first proposed -- there is still no "portfolio" concept in the codebase
+today (checked directly), but this stage does not need to invent one: it
+can key off the same Top-25 roster Stage 4/5/6 already track, rather than
+a new user-input concept.
 
 Must inform the user, never silently feed back into or modify System-1's
 ranking -- same boundary as Stage 6.
@@ -239,9 +237,9 @@ version of this doc and unchanged by the revision. What changed: the
 Stage 8 (portfolio/market) shared the same engine, and how artificial the
 detection/interpretation boundary was between the old Stage 6/7. Both are
 now collapsed above. The new Stage 7 (portfolio/user intelligence) is a
-genuinely useful addition this doc did not previously identify, but it is
-gated on a real data-model decision (what "portfolio" means here) that
-does not yet have an answer in the codebase or in any instruction from
-Paresh -- recorded as open rather than guessed at. Nothing here is being
-built now; recorded for continuity only, and Stage 5/V1.1 stays parked
+genuinely useful addition this doc did not previously identify; its
+data-model question (what "portfolio" means here) is now resolved --
+Paresh confirmed it is the system's own Top-25 output, not separate
+user-input holdings. Nothing here is being built now; recorded for
+continuity only, and Stage 5/V1.1 stays parked
 until Paresh says V1 is ready, per standing instruction.
