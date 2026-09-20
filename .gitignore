@@ -79,3 +79,8 @@ htmlcov/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Claude Code local tooling state (agent worktrees, local settings) --
+# never commit: worktrees are full duplicate source trees used transiently
+# by background subagents, not project content.
+.claude/
