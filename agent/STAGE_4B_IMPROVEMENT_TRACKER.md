@@ -74,6 +74,7 @@ Each improvement follows:
 | 22 | Apply genuine-contradiction standard retroactively to SANSERA | G1/B2 | **VERIFIED — run #356 (35441605984), all 16 steps green — Loop 7** |
 | 23 | Require and test explicit domain exclusions for every archetype | G2 | **VERIFIED — run #351 (35439390433)** |
 | 24 | Make `information_cutoff` required (no `date.today()` default) | Report 0 S3 | **VERIFIED — run #346 (35437730258)** |
+| 25 | Single-publisher source concentration reporting | Loop 14 adversarial council (found independently in 4 of 5 real archetypes) | **VERIFIED — Loop 14; `domains_single_sourced`/`causal_findings_single_sourced`/`contradictions_single_sourced`, reported not gated** |
 
 ## Immediate execution result
 
@@ -1108,6 +1109,297 @@ judgement call it can't safely make on its own without a human watching.
 **Status: DEFERRED to V1.1 (Paresh's decision, 2026-09-20).** Explicitly
 parked until V1 is ready -- not designed, not built. Revisit only when
 Paresh reopens it; no further action here until then.
+
+## Loop 14 — full adversarial council (Section 33) across all five real archetypes
+
+Per Paresh's "let's move forward" after reviewing what's pending: this is
+the item the Gate-status section above named as the actual remaining
+blocker for Stage-4B closure. The original handover's verbatim Section 33
+text is no longer in this session's active context (it predates a context
+compaction) -- this loop reconstructs the six named roles
+(Researcher/Prosecution/Defence/Reviewer/Jury/Judge) faithfully from what
+is documented rather than inventing a different process, and says so
+plainly rather than claiming exact fidelity to text no longer available.
+
+**Process used:** five parallel subagents, one per archetype, each briefed
+with the exact current schema, told to read the rendered dossier + packet
+source completely fresh, and instructed to attack as hard and specifically
+as a skeptical outside reviewer -- this was the Prosecution role,
+deliberately parallelized since an adversarial attack benefits from a
+reviewer with no attachment to the work, unlike Defence/Jury/Judge which
+needs the accumulated context of what this session already verified and
+why. Defence, Jury and Judge were then done centrally, by re-reading each
+brief against the actual packet source, the actual cited evidence, and (for
+the SANSERA/PAYTM cross-checks) real primary-source verification, not by
+trusting either the prosecution briefs or the original packets at face
+value.
+
+**Scale:** ~43 concrete points across 5 briefs (SANSERA 8, ANANDRATHI 9,
+PAYTM 8, YATHARTH 9, LENSKART 8). Every point was reviewed; this section
+records verdicts and outcomes, not the full text of each brief (preserved
+in this session's transcript).
+
+### Cross-cutting findings (new pipeline capability: item 25)
+
+Two patterns recurred independently across 4-5 of the 5 archetypes,
+identified as genuine pipeline gaps rather than per-company mistakes:
+
+1. **Single-publisher concentration, undisclosed as a risk.** ANANDRATHI:
+   2 of 6 material domains AND the flagship "~14% of AUM growth from
+   inflows" statistic (feeding 2 causal findings + 2 contradictions) all
+   trace to one YouTube video. PAYTM: 9 of 10 primary-tier items from one
+   earnings-release PDF. YATHARTH: 100% of all evidence from one publisher.
+   LENSKART: 67% of secondary evidence, and the entire CAPACITY and
+   INDUSTRY domains, from one brokerage report. No metric anywhere measured
+   this before.
+2. **Prose (finding/mechanism/original_claim) containing claims not
+   actually grounded in their own cited evidence_refs.** Provable,
+   checkable mismatches, not "the pipeline can't detect strawmen in
+   general": ANANDRATHI's retention claim (no cited ref discusses
+   retention), ANANDRATHI's AMC contradiction (original_claim asserted by
+   no evidence item), LENSKART's H1 contradiction ("stores pay back
+   quickly" -- unfalsifiable, walled off by the plan's own exclusions) and
+   H5 contradiction/finding (an uncited "nearly tripling" EBITDA-margin
+   figure and uncited ASP/ACP ratios).
+
+**Item 25 built in response to pattern 1** (research_execution.py):
+`ResearchAudit.domains_single_sourced` -- a material domain with >=2
+non-DERIVED evidence items that ALL resolve to the same publisher (URL
+netloc). The >=2 threshold is deliberate: one evidence item is a coverage
+question (item 5/23), not a diversity question. `causal_findings_single_
+sourced`/`contradictions_single_sourced` catch the sharper finding-level
+case. Both REPORTED, not gated, for the same reason every other quality
+metric here is (items 2, 5, 12, 20, 21): no real-world calibration yet for
+what "enough" diversity looks like, and a hard gate would block legitimate
+research where only one source genuinely exists. Applied automatically to
+all five archetypes with no per-archetype changes needed. Real output:
+SANSERA 5 domains, ANANDRATHI 0 domains (but 1 contradiction), PAYTM 1
+domain (financials -- itself normal, since a quarter has exactly one
+earnings release), YATHARTH 5 domains, LENSKART 4 domains. 3 new regression
+tests (400-day-cap-style threshold test, domain-level detection, and
+finding-level detection).
+
+Pattern 2 was fixed per-instance (below) rather than as a general
+detector -- a real content-entailment checker would be exactly the
+over-engineered NLP system Section 23 of the handover warns against.
+
+### Per-archetype verdicts and fixes
+
+**SANSERA** (8 points, all confirmed):
+- Hypothesis 4 names FX as a co-equal driver with tariffs but the causal
+  finding was 100% tariff -- the only FX evidence is a stale, UNKNOWN-kind
+  placeholder, uncited. **Fixed**: finding/mechanism/uncertainty now cite
+  the FX gap explicitly and the FX evidence_ref is added, rather than
+  silently answering only half the hypothesis.
+- A causal finding's present-tense "balance sheet... provide[s] funding
+  capacity" rested on a credit rating already flagged stale (233d/150d
+  half-life) paired with a fresh but topically unrelated capex figure,
+  evading the stale-only check (which only fires when EVERY ref is stale).
+  **Fixed**: reworded to explicitly date the credit view and note three
+  subsequent quarters of unconfirmed capex spend.
+- All four "Contradictions" are qualifiers, not strict logical
+  incompatibilities (e.g. "large backlog" vs "capacity can constrain
+  conversion" -- both can be true). **Accepted as a documented interpretive
+  limitation, not deeply reworked**: renaming `ContradictionFinding` or
+  rewriting all four would be a large, risky change for what is
+  fundamentally a labelling question, and the individual resolutions
+  already say "coexist"/"asymmetric" rather than claiming strict negation.
+  Logged here for a future design pass, not silently accepted.
+- The 30%-in-7-weeks ADS backlog jump is parked only in the numeric-
+  disagreement footnote, never reasoned about in a finding. **Accepted,
+  not fixed this loop** -- would need a new causal-timing judgement, not a
+  wording fix; flagged for a future loop.
+- The Applied Materials evidence is a hand-wavy mechanism link, added in
+  Loop 7 only to close a citation-count gap. **Accepted as a known,
+  previously-documented weak link** (Loop 7 already recorded this
+  trade-off); no stronger source was found this loop.
+- AGM evidence item was tagged to the capital-allocation hypothesis but its
+  content is pure governance/leadership. **Fixed**: re-tagged to the
+  correct (ADS-durability/leadership) hypothesis, one-line change.
+- "Building capacity ahead of demand and qualifications" was tagged
+  unambiguously POSITIVE despite being genuine capital-at-risk. **Fixed**:
+  reclassified to UNKNOWN (payoff not yet determined), consistent with how
+  tariffs already got two-sided treatment.
+- The ACMA industry-turnover item borders the plan's own exclusion and is
+  mechanism-thin. **Accepted, not load-bearing** -- not cited by any causal
+  finding, so left as a minor, non-blocking observation.
+
+**ANANDRATHI** (9 points, all confirmed):
+- 2 of 6 domains + the flagship 14%-inflows statistic single-sourced to one
+  video. **Addressed by item 25** (see above) plus this is a genuinely
+  harder, more bespoke pattern (one statistic recurring across findings) a
+  generic metric can't fully catch -- logged, not further coded this loop.
+- A causal finding's text claimed "strong retention" but none of its
+  evidence_refs discuss retention. **Fixed**: removed the unsupported
+  clause.
+- The AMC contradiction was manufactured -- `original_claim` ("an
+  additional growth engine") was asserted by no evidence item, duplicating
+  an existing unresolved question. **Fixed**: rescoped `original_claim`
+  down to what the board-approval evidence actually supports.
+- FY26 growth (stated ex-ESOP) and Q1FY27 margin decline (blamed partly on
+  an ESOP charge, reported basis) juxtapose two different accounting bases
+  without reconciliation. **Fixed**: uncertainty now names the basis
+  mismatch explicitly.
+- The diversification contradiction's counter-evidence is 2/3
+  self-generated DERIVED items, evading the absence-based flag (which
+  requires ALL refs DERIVED). **Accepted as a known limitation of the
+  absence-based check's all-or-nothing design** -- not changed this loop;
+  the individual contradiction is not fabricated, just partially
+  absence-supported in a way the binary flag can't express.
+- The "clients" third of a three-part hypothesis (diversified across
+  "clients, products and channels") is never tested, despite raw AUM/
+  client-family data hinting at HNI/UHNI concentration. **Accepted, not
+  fixed** -- would need new research (client-concentration disclosure),
+  not a wording fix; not found in the reviewed materials.
+- The diversification contradiction cherry-picked a stale AUM figure over
+  an available fresher one for the identical claim. **Fixed**: swapped to
+  the non-stale Q1FY27 figure already used for the same narrative
+  elsewhere in the dossier.
+- Regulatory research is one-sided (AMC upside only, no downside
+  commission/TER-compression risk). **Accepted, not fixed** -- would need
+  new research; not found in the reviewed materials this loop.
+- Two flattering data points rest on weak sourcing (a content-free SEBI
+  page inflating the "primary" count; the flagship retention stat from an
+  obscure aggregator). **Accepted, not fixed** -- no independent
+  corroboration found this loop; logged as a known weakness.
+
+**PAYTM** (8 points, all confirmed):
+- The First Games (gaming-JV) impairment was cited as if it were direct
+  evidence of merchant-loan/BNPL/personal-loan credit-shock risk, when it
+  has no transmission mechanism to that specific book. **Fixed**:
+  finding/mechanism/uncertainty now explicitly concede it is
+  illustrative-by-analogy for regulatory-abruptness risk, not confirmatory
+  evidence for lending-book credit quality specifically.
+- "Primary evidence: 10" overstates diversity (9 of 10 from one PDF); a
+  self-description ("Strong Governance") is cited as durability evidence.
+  **Addressed by item 25** (flags the `financials` domain); the
+  self-description point is accepted as a known, minor overstatement, not
+  separately reworded this loop.
+- H_LENDING is the thinnest-evidenced of four hypotheses despite being
+  central. **Accepted, not fixed** -- reflects genuinely thin real
+  disclosure, not a research gap this loop can close without new sources.
+- The PPBL exclusion's practical effect is that no finding engages with
+  what RBI's order implies about the fitness of PPBL's management,
+  including One97's own sitting CEO (51% PPBL holder, no board seat).
+  **Fixed**: uncertainty now states plainly that RBI's cited order names
+  "the bank's management" collectively (verified against the actual RBI
+  press release text), not any individual, and that the dossier has not
+  independently resolved the question either way.
+- The H_COMPETITION contradiction picks an easy target (a marketing
+  tagline) over the harder Bernstein-MDR-vs-NPCI-cap tension. **Accepted,
+  not fixed** -- the existing contradiction is not wrong, just narrower
+  than the strongest available tension; a future loop could add a second
+  contradiction rather than replace this one.
+- Two anchor items (FEMA notice, First Games) are >1 year old but read
+  with present-tense currency in the narrative. **Addressed by the
+  existing stale-evidence table** (both already flagged there); the
+  narrative-prose framing is accepted as a minor tone issue, not reworded
+  this loop.
+- A KPI-redefinition red flag (de-emphasizing contribution margin the same
+  quarter it turned unfavourable) is folded into a generic caveat list
+  rather than named as a pattern. **Accepted, not fixed** -- a real,
+  softer tone observation, deprioritized against the SEVERE-tier fixes
+  above.
+- The PIDF-subsidy swing behind headline EBITDA growth is never
+  reconciled. **Accepted, not fixed this loop** -- a real, if non-damaging,
+  unflagged tension; logged for a future pass.
+
+**YATHARTH** (9 points, all confirmed -- the most heavily revised archetype
+this loop):
+- 100% single-publisher dependency, zero independent corroboration
+  anywhere. **Addressed by item 25** (5 of 6 domains flagged) plus two new
+  unresolved questions added naming the gap explicitly and asking whether
+  independent corroboration exists.
+- Contradiction #4's resolution was too quick to give management the
+  benefit of the doubt on the Advent-timing question. **Fixed**: resolution
+  now names the harder reading explicitly (a transaction this size
+  plausibly requires weeks-to-months of negotiation, meaning discussions
+  were quite possibly already underway on 11 August), grounded in the
+  actual board-outcome filing's own 14-September intimation date (verified
+  against the real PDF this session), while being honest that exact
+  negotiation-start timing is not established.
+- The CGHS causal finding said repricing "caused" a ~4pp payer-mix rise
+  when management's own figure attributes only ~1-2pp to it. **Fixed**:
+  reworded to "partially explains," residual ~2-3pp named explicitly in
+  both the finding and a new unresolved question.
+- New Delhi Model Town's 29% occupancy (on a disclosed, denominator-
+  breaking bed-base change) was used as clean contradiction evidence with
+  the caveat buried only in "Uncertainty." **Fixed**: the denominator break
+  is now named directly in the contradiction's own counter_evidence and
+  resolution, downgraded from a decisive comparison to a genuinely
+  uncertain one.
+- Zero competitor evidence for two hypotheses (H2, H5) where it's an
+  obvious factor, and not an owned exclusion. **Fixed** (partially): added
+  an explicit unresolved question naming the gap; did not add fabricated
+  competitor evidence, and a real search for genuine competitive-landscape
+  data was not attempted this loop (time-bounded).
+- H2's "management playbook" mechanism can't explain why Faridabad and
+  Delhi (same playbook) diverge so sharply on breakeven timing. **Fixed**:
+  mechanism and uncertainty now concede this explicitly and name the gap
+  (no disclosed hospital-specific factor identified).
+- The clinical-quality exclusion redefines "clinical differentiation" down
+  to favourable input/reputation proxies (accreditation, volume counts).
+  **Fixed**: finding reworded to state plainly it answers capacity/talent
+  inputs, not verified clinical-outcome quality.
+- Contradiction #1's "original claim" was a dossier-authored strawman, not
+  an actual quote. **Fixed**: reworded to explicitly name it as this
+  research's own synthesis of two cited data points, mirroring the exact
+  remedy item 7/22 already established for the same pattern elsewhere.
+- The Advent-raise causal finding gave the "accelerated growth" reading
+  alone, relegating the "balance-sheet strain" reading to the contradiction
+  only. **Fixed**: finding and mechanism now present both readings with
+  comparable weight, neither confirmed over the other.
+
+**LENSKART** (8 points, all confirmed):
+- 67% of secondary evidence (entire CAPACITY and INDUSTRY domains) traces
+  to one brokerage report. **Addressed by item 25** (4 domains flagged)
+  plus a new unresolved question naming the lack of independent
+  corroboration.
+- Evidence age is bucketed by publication date, not underlying-fact date,
+  understating true staleness of FY25-vintage data cited from a
+  Feb-2026-published report. **Accepted as intentional design, not a
+  bug** -- item 20's `_temporal_anchor` deliberately measures information
+  recency, not fact recency (a legitimate, documented choice); the
+  per-item event_date is shown in the Evidence section for a reader who
+  wants it. Not changed this loop.
+- Reported (~43% YoY) and proforma (management's "+33.6%") revenue growth
+  rates diverge by ~10pp without reconciliation; `_numeric_disagreement`
+  can't catch this (it compares literal figures, not derived rates), which
+  is an accepted, documented scope limit of item 8, not a bug. **Fixed**:
+  added an explicit reconciling sentence to the H6 finding's uncertainty.
+- The H1 contradiction's `original_claim` contained two clauses ("stores
+  pay back quickly," an ROCE claim belonging to H6) with zero supporting
+  evidence_ref, one of them unfalsifiable by the plan's own exclusions.
+  **Fixed**: rescoped to only the clause the cited ref actually supports.
+- Two other fields (H5's contradiction and its causal finding's mechanism)
+  contained precise, uncited numeric claims ("nearly tripling," specific
+  ASP/ACP ratios). **Fixed**: rescoped to cited figures; uncited ratios
+  removed and noted as unconfirmed.
+- H3 and H4 (the two most constructive-narrative hypotheses) have zero
+  independently- or negatively-sourced evidence. **Fixed** (partially):
+  added an explicit unresolved question naming this; did not source new
+  independent evidence this loop.
+- All six causal findings share an identical "affirmative, then but-caveat"
+  prose structure, reading as a constructive-leaning default. **Accepted,
+  not fixed** -- a real, softer tone observation, deprioritized against the
+  higher-severity structural fixes above.
+- An unattributed "brokerages continuing to highlight..." clause was
+  carried verbatim into an evidence claim with no brokerage named. **Fixed**:
+  removed the unsupported clause, kept the verifiable share-price facts.
+
+### Verification
+
+Full local suite: **1177 passed** (up from 1174 -- 3 new tests for item
+25). `compileall` clean across agent/, scripts/, tests/. All 5 live
+validation scripts re-run against the real Top-25 snapshot after every
+fix -- all `STAGE4B_<X>_EXECUTION=PASS`, no evidence/finding/contradiction
+counts regressed from the pre-loop baseline (SANSERA 33/5/4, ANANDRATHI
+16/4/4, PAYTM 23/4/4, YATHARTH 21/5/4, LENSKART 26/6/4 evidence/causal/
+contradiction counts) except where a fix intentionally added an
+unresolved question (question counts increased as documented per
+archetype above).
+
+**CI: pending push and verification** -- see next commit.
 
 ## Rule against false closure
 

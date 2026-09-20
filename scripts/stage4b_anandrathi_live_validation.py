@@ -56,6 +56,12 @@ lines = [
         f"{dossier.audit.contradictions_stale_only} contradiction "
         "(support rests only on evidence past its domain's half-life)"
     ),
+    (
+        "- Single-sourced findings: "
+        f"{dossier.audit.causal_findings_single_sourced} causal, "
+        f"{dossier.audit.contradictions_single_sourced} contradiction "
+        "(every cited evidence item resolves to the same publisher)"
+    ),
     "",
     "## Numeric disagreements (NUMERIC_DISAGREEMENT_REVIEW_REQUIRED)",
     (
@@ -72,6 +78,14 @@ lines = [
         else "Past its domain's default or archetype-overridden half-life -- flagged for reviewer judgement, not a defect verdict."
     ),
     *[f"- {item}" for item in dossier.audit.stale_evidence],
+    "",
+    "## Single-sourced domains (item 25 -- reported, not a hard gate)",
+    (
+        "None detected."
+        if not dossier.audit.domains_single_sourced
+        else "Every non-DERIVED item in this domain resolves to the same publisher -- flagged for reviewer judgement, not a defect verdict."
+    ),
+    *[f"- {item}" for item in dossier.audit.domains_single_sourced],
     "",
     "## Selected economic drivers",
 ]
@@ -145,5 +159,13 @@ print(
     "STAGE4B_ANANDRATHI_STALE_ONLY_FINDINGS="
     f"{dossier.audit.causal_findings_stale_only}/"
     f"{dossier.audit.contradictions_stale_only}"
+)
+print(f"STAGE4B_ANANDRATHI_SINGLE_SOURCED_DOMAINS={len(dossier.audit.domains_single_sourced)}")
+for item in dossier.audit.domains_single_sourced:
+    print(f"STAGE4B_ANANDRATHI_SINGLE_SOURCED_DOMAIN_DETAIL={item}")
+print(
+    "STAGE4B_ANANDRATHI_SINGLE_SOURCED_FINDINGS="
+    f"{dossier.audit.causal_findings_single_sourced}/"
+    f"{dossier.audit.contradictions_single_sourced}"
 )
 print("STAGE4B_ANANDRATHI_EXECUTION=PASS")
