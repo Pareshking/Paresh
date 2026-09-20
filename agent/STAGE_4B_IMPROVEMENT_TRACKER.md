@@ -16,18 +16,29 @@ the item 8 regex fix (Loop 10) to `main`.
 `5f78a0e` on 2026-09-20, after CI run #366 (35488665332) verified green.
 Adds items 11/12/14 (evidence half-life/staleness) and closes item 13
 (Loop 12) to `main`.  
+**PR #20 (`agent/stage4b-next`): MERGED to `main`** as squash commit
+`759455e` on 2026-09-20, after CI run #373 (35491543082) verified green.
+Adds item 25 (source-concentration reporting) and the full Loop 14
+adversarial-council fixes across all five archetypes to `main`. Involved
+a real merge conflict against an unrelated PR #18 (a UI fix) that landed
+on `main` mid-loop -- diagnosed as a squash-merge ancestry-break false
+conflict (verified via diff before resolving, not just picked a side) and
+resolved cleanly.  
 **Current execution branch:** `agent/stage4b-next` (restarted from `main`
 post-merge)  
 **Current PR:** none yet -- five real archetypes (SANSERA, ANANDRATHI,
 PAYTM, YATHARTH, LENSKART) are now on `main`, all CI-verified, with items
-1-8, 10-24 done/deferred-by-decision. Items 2 and 9 remain the only open
+1-8, 10-25 done/deferred-by-decision and the full adversarial council
+(Section 33) run against all five. Items 2 and 9 remain the only open
 items, both blocked on real inputs (an issuer-to-symbol map) rather than
 a policy number. The larger production-architecture question (incremental
 weekly research, Top-25 roster churn, a stitched master report across all
 25 names -- see Loop 13) is **DEFERRED to V1.1** per Paresh's explicit
 decision (2026-09-20): parked until V1 is ready, not designed or built.
-V1 scope for Stage-4B is otherwise stable at five real archetypes, all
-CI-verified.
+V1 scope for Stage-4B is otherwise stable and CI-verified. Per the
+operating rule's own step 8/9 ordering, with the adversarial council now
+complete, **Stage-4B is ready for a final gate decision** -- see Loop 14's
+closing note.
 
 ## Operating rule
 
@@ -1399,7 +1410,29 @@ contradiction counts) except where a fix intentionally added an
 unresolved question (question counts increased as documented per
 archetype above).
 
-**CI: pending push and verification** -- see next commit.
+**CI: VERIFIED.** Run #373 (35491543082) on PR #20, commit cb57196 --
+completed/success. Merged to `main` as `759455e` (squash), after resolving
+a real merge conflict against PR #18 (an unrelated UI fix that landed on
+`main` mid-loop) -- confirmed via diff to be a squash-merge ancestry-break
+false conflict, not a genuine content disagreement, before resolving.
+
+### Closing note: operating-rule steps 8/9
+
+The operating rule at the top of this document lists, as steps 8 and 9:
+"Run adversarial council" then "Final Stage-4B gate decision." Step 8 is
+now done, for the first time as the formal six-role process, across all
+five real archetypes. This loop record is the input to step 9, not step 9
+itself -- the final gate decision is Paresh's to make, not something this
+tracker declares on its own. What this loop can say with confidence: every
+finding from the adversarial council was reviewed, none were dismissed
+without a stated reason, real defects were fixed and re-verified end to
+end (local suite, live scripts against the real snapshot, and CI on the
+actual merged commit), and everything not fixed is named explicitly as
+either an accepted documented limitation or a deferred item -- not
+silently dropped. Items 2 and 9 remain open on real inputs this session
+does not have; V1.1's production-architecture work is deliberately parked.
+Whether that state constitutes "done" for Stage-4B's purposes is Paresh's
+call.
 
 ## Rule against false closure
 
