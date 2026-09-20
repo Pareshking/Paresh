@@ -180,7 +180,7 @@ def lauruslabs_packet() -> ResearchProviderPacket:
                 mechanism="Diversification reduces reliance on one business, but the mature FDF portfolio still carries tender and pricing exposure.",
                 timing="Quarterly to multi-year",
                 uncertainty="The reviewed disclosures do not provide a single bridge attributing Q1 growth across all businesses.",
-                evidence_refs=tuple(ref("Laurus reported Q1 FY27 revenue of INR 2,026 crore, up 29% YoY, with EBITDA of INR 644 crore and an EBITDA margin of 31.8%."), ref("FY26 revenue rose 23% to INR 6,813 crore, with CDMO revenue up 36% to INR 2,080 crore and Affordable Medicines up 18% to INR 4,733 crore."), ref("Laurus's FY26 business review notes that tender cycles and pricing dynamics can influence near-term FDF revenue phasing even while the overall outlook remains positive.")),
+                evidence_refs=(ref("Laurus reported Q1 FY27 revenue of INR 2,026 crore, up 29% YoY, with EBITDA of INR 644 crore and an EBITDA margin of 31.8%."), ref("FY26 revenue rose 23% to INR 6,813 crore, with CDMO revenue up 36% to INR 2,080 crore and Affordable Medicines up 18% to INR 4,733 crore."), ref("Laurus's FY26 business review notes that tender cycles and pricing dynamics can influence near-term FDF revenue phasing even while the overall outlook remains positive.")),
             ),
             CausalFinding(
                 hypothesis="Can the large capex program translate into utilisation and commercial CDMO revenue without creating a balance-sheet drag?",
@@ -188,7 +188,7 @@ def lauruslabs_packet() -> ResearchProviderPacket:
                 mechanism="New capacity can lift revenue and operating leverage if qualified and filled; until then it absorbs capital and may add depreciation/debt pressure.",
                 timing="FY27-FY28+",
                 uncertainty="Exact utilisation and return timing remain unresolved.",
-                evidence_refs=tuple(ref("A September 2026 investor presentation shows Q1 FY27 capex of about INR 394 crore and more than INR 3,000 crore of proposed cumulative capex across FY27-FY28."), ref("FY26 capex was INR 1,070 crore and net debt to EBITDA was 1.3x after the expansion program, so the growth plan carries ongoing funding and execution requirements."), ref("The reviewed disclosures do not establish the exact utilisation ramp and return profile of the full FY27-FY28 capex program.")),
+                evidence_refs=(ref("A September 2026 investor presentation shows Q1 FY27 capex of about INR 394 crore and more than INR 3,000 crore of proposed cumulative capex across FY27-FY28."), ref("FY26 capex was INR 1,070 crore and net debt to EBITDA was 1.3x after the expansion program, so the growth plan carries ongoing funding and execution requirements."), ref("The reviewed disclosures do not establish the exact utilisation ramp and return profile of the full FY27-FY28 capex program.")),
             ),
             CausalFinding(
                 hypothesis="Are the CDMO pipeline, filings and quality record strong enough to support multi-year customer conversion?",
@@ -196,7 +196,7 @@ def lauruslabs_packet() -> ResearchProviderPacket:
                 mechanism="Projects progress from development to validation to commercial supply; quality and capacity are prerequisites for conversion.",
                 timing="Multi-year",
                 uncertainty="Project count does not by itself disclose customer concentration or revenue conversion timing.",
-                evidence_refs=tuple(ref("Laurus reported 125+ active CDMO projects across clinical and commercial stages during FY26."), ref("FY26 reporting states that 132+ quality audits were completed without critical findings and that 7 developed-market formulation dossiers were filed with 6 approvals received."), ref("FY26 business review states that dedicated CMO oral-dosage capacity at Vizag commenced operations and that the KRKA JV facility was progressing toward Phase 1 completion in mid-2027.")),
+                evidence_refs=(ref("Laurus reported 125+ active CDMO projects across clinical and commercial stages during FY26."), ref("FY26 reporting states that 132+ quality audits were completed without critical findings and that 7 developed-market formulation dossiers were filed with 6 approvals received."), ref("FY26 business review states that dedicated CMO oral-dosage capacity at Vizag commenced operations and that the KRKA JV facility was progressing toward Phase 1 completion in mid-2027.")),
             ),
             CausalFinding(
                 hypothesis="How exposed is near-term profitability to tender cycles, pricing pressure and project/approval timing?",
@@ -204,7 +204,7 @@ def lauruslabs_packet() -> ResearchProviderPacket:
                 mechanism="Quarterly product mix and external pricing/tender outcomes affect revenue phasing and margin even with a growing underlying pipeline.",
                 timing="Quarterly",
                 uncertainty="No quantitative sensitivity to specific tender or approval outcomes was found.",
-                evidence_refs=tuple(ref("Laurus explicitly flags tender cycles, pricing dynamics and approval timelines as factors that can affect near-term FDF revenue phasing."), ref("Independent results reporting confirms Q1 FY27 revenue of INR 2,026.31 crore and PAT of INR 362.07 crore, with PAT up about 124% YoY."), ref("The reviewed disclosures do not quantify the sensitivity of FY27 earnings to individual tender outcomes or customer approval delays.")),
+                evidence_refs=(ref("Laurus explicitly flags tender cycles, pricing dynamics and approval timelines as factors that can affect near-term FDF revenue phasing."), ref("Independent results reporting confirms Q1 FY27 revenue of INR 2,026.31 crore and PAT of INR 362.07 crore, with PAT up about 124% YoY."), ref("The reviewed disclosures do not quantify the sensitivity of FY27 earnings to individual tender outcomes or customer approval delays.")),
             ),
         ),
         contradictions=(
