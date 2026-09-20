@@ -12,10 +12,19 @@ verified green on the final commit. Items 1-10, 15-24 above are now on
 commit `c036442` on 2026-09-19, after CI run #364 (35471072564) verified
 green on the final commit. Adds PAYTM, YATHARTH, LENSKART (Loop 11) and
 the item 8 regex fix (Loop 10) to `main`.  
-**Current execution branch:** `agent/stage4b-next` (from `main` post-merge)  
+**PR #17 (`agent/stage4b-next`): MERGED to `main`** as squash commit
+`5f78a0e` on 2026-09-20, after CI run #366 (35488665332) verified green.
+Adds items 11/12/14 (evidence half-life/staleness) and closes item 13
+(Loop 12) to `main`.  
+**Current execution branch:** `agent/stage4b-next` (restarted from `main`
+post-merge)  
 **Current PR:** none yet -- five real archetypes (SANSERA, ANANDRATHI,
-PAYTM, YATHARTH, LENSKART) are now on `main`, all CI-verified. Awaiting
-further direction.
+PAYTM, YATHARTH, LENSKART) are now on `main`, all CI-verified, with items
+1-8, 10-24 done/deferred-by-decision. Items 2 and 9 remain the only open
+items, both blocked on real inputs (an issuer-to-symbol map) rather than
+a policy number. Next: a larger architecture conversation with Paresh
+about incremental weekly research, Top-25 roster churn, and a stitched
+master report across all 25 names -- see Loop 13 below.
 
 ## Operating rule
 
@@ -994,7 +1003,54 @@ staleness flags surfaced with zero false hard failures:
 `causal_findings_stale_only`/`contradictions_stale_only` are 0/0 across all
 five archetypes -- no existing finding rests solely on stale evidence.
 
-**CI: pending push and verification** -- see next commit.
+**CI: VERIFIED.** Run #366 (35488665332) on PR #17, commit 934be65 --
+completed/success, `mergeable_state: clean`. Merged to `main` as `5f78a0e`.
+
+## Loop 13 — production architecture questions raised by Paresh (open, not yet designed)
+
+After Loop 12 merged, Paresh asked five connected questions that expose a
+real gap between what exists today and a genuine weekly production system.
+Recorded here rather than left only in chat, per the standing instruction
+to keep this document current:
+
+1. **The 5 archetypes are examples, not a template** -- confirmed correct.
+   Each has fully custom domains/hypotheses/exclusions; nothing beyond the
+   schema is shared. Scales to the remaining 20 Top-25 names, each needing
+   its own real research.
+2. **Incremental weekly research** -- NOT built. Every archetype today is a
+   static, hand/agent-researched Python file with no "last researched"
+   state, no scheduler, and no delta-fetch logic. Re-running a live
+   validation script today refreshes the quantitative rank/score (live)
+   but not the qualitative evidence (hardcoded) -- neither the efficient
+   incremental behaviour Paresh wants, nor a real weekly refresh. Needs:
+   a persisted per-company evidence store with a last-researched cutoff, a
+   weekly job that searches only for items dated after that cutoff, and an
+   honest "no material update this week" outcome (consistent with the
+   existing DERIVED-absence pattern) rather than forcing a finding.
+3. **1W/1M returns, whole-number %** -- checked the actual data: `1M
+   Return` exists in the live quant snapshot (a fraction, e.g. `0.264`,
+   formatted elsewhere as `+26.4%`) and is trivial to round to a whole
+   percent. **`1W Return` does not exist anywhere in the system** -- the
+   quant engine only computes 1M/3M/6M/9M/12M. Adding it means touching
+   the quant/ranking side (System-1), which `contracts.py` explicitly
+   states Stage-4B must not do ("these types deliberately contain no
+   ranking mathematics") -- a separate, smaller task, not something
+   Stage-4B can fake.
+4. **A stitched all-25 master report** -- confirmed as the goal, NOT built.
+   Each company produces its own separate `.md` dossier today; there is no
+   generator that combines all 25 (quant facts + qualitative dossier) into
+   one weekly artifact. Only 5 of 25 have any research at all today.
+5. **Top-25 roster churn (monthly)** -- confirmed as a real requirement,
+   NOT handled. `top_candidates()` just returns whoever is in the Top-25
+   right now; nothing distinguishes "still in, do an incremental update"
+   from "new entrant, needs first-time full research" from "dropped out,
+   archive it."
+
+**Status: awaiting Paresh's direction** on whether to receive a concrete
+design proposal (storage choice, weekly flow, cost estimate) for items
+2/4/5 together (they are one connected system), or talk through tradeoffs
+first. No code written against this yet -- deliberately, since guessing at
+storage/scheduling architecture wrong would be expensive to unwind.
 
 ## Rule against false closure
 
