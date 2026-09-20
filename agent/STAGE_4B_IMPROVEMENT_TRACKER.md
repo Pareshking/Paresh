@@ -12,10 +12,22 @@ verified green on the final commit. Items 1-10, 15-24 above are now on
 commit `c036442` on 2026-09-19, after CI run #364 (35471072564) verified
 green on the final commit. Adds PAYTM, YATHARTH, LENSKART (Loop 11) and
 the item 8 regex fix (Loop 10) to `main`.  
-**Current execution branch:** `agent/stage4b-next` (from `main` post-merge)  
+**PR #17 (`agent/stage4b-next`): MERGED to `main`** as squash commit
+`5f78a0e` on 2026-09-20, after CI run #366 (35488665332) verified green.
+Adds items 11/12/14 (evidence half-life/staleness) and closes item 13
+(Loop 12) to `main`.  
+**Current execution branch:** `agent/stage4b-next` (restarted from `main`
+post-merge)  
 **Current PR:** none yet -- five real archetypes (SANSERA, ANANDRATHI,
-PAYTM, YATHARTH, LENSKART) are now on `main`, all CI-verified. Awaiting
-further direction.
+PAYTM, YATHARTH, LENSKART) are now on `main`, all CI-verified, with items
+1-8, 10-24 done/deferred-by-decision. Items 2 and 9 remain the only open
+items, both blocked on real inputs (an issuer-to-symbol map) rather than
+a policy number. The larger production-architecture question (incremental
+weekly research, Top-25 roster churn, a stitched master report across all
+25 names -- see Loop 13) is **DEFERRED to V1.1** per Paresh's explicit
+decision (2026-09-20): parked until V1 is ready, not designed or built.
+V1 scope for Stage-4B is otherwise stable at five real archetypes, all
+CI-verified.
 
 ## Operating rule
 
@@ -164,27 +176,53 @@ hypothesis), not a bare domain flag.
 
 ## Gate status
 
+**Note (2026-09-20): this section is the ORIGINAL early-session snapshot and
+was left stale for several loops (e.g. it said item 22 was both "NOT
+VERIFIED" at the bottom and "VERIFIED" seven lines above -- an
+incremental-edit artifact, never fully reconciled). Superseded by the
+"Current state, 2026-09-20" block immediately below, which reflects
+everything through Loop 12/13. Left in place, corrected, rather than
+deleted, so the loop-by-loop history stays intact.**
+
 - SANSERA Stage-4B execution: **VERIFIED previously** (unaffected by Loop 0/0b; re-confirmed locally at 7379fe5)
 - ANANDRATHI execution before repair: **FAILED** (refs[16] crash, then industry-coverage error)
 - ANANDRATHI provenance repair (Loop 0, claim-keyed refs): **DONE — code + regression test**
-- ANANDRATHI domain-coverage repair (Loop 0b, drop unused INDUSTRY domain): **IMPLEMENTED locally — awaiting CI run #345**
-- Executable-path regression coverage: **DONE — 14 focused tests pass, including both live runners**
-- Items 1, 24: **VERIFIED** (run #346, 35437730258) -- see above
-- Item 19: **VERIFIED** (run #348, 35438217592) -- see above
-- Item 20: **VERIFIED** (run #350, 35438667821) -- see above
-- Item 7: **VERIFIED** (run #353, 35440586723) -- see above
-- Item 8: **VERIFIED** (run #354, 35441089140) -- see above
-- Item 22: **VERIFIED** (run #356, 35441605984) -- see above
-- Items 4a, 5, 6, 10, 21, 23: **VERIFIED** (run #351, 35439390433, all 16 steps green;
-  printed values SANSERA age-buckets 23/4/2/2/2, ANANDRATHI 11/2/0/0/3, both
-  absence-based 0/0, matching local exactly)
-- Item 4's gaps-field half: **TODO**
-- Item 9: **DEFERRED** -- needs an issuer-to-symbol map (Loop 4)
-- Remaining (items 2, 11-14): **NOT STARTED — blocked on a threshold/half-life policy decision, see below**
-- SANSERA retroactive contradiction audit (#22): **NOT VERIFIED**
-- WELCORP adaptive rerun: **NOT VERIFIED**
-- Full adversarial council (Section 33): **NOT VERIFIED**
-- Stage-4B closure: **NOT READY**
+- ANANDRATHI domain-coverage repair (Loop 0b, drop unused INDUSTRY domain): **DONE**
+- Executable-path regression coverage: **DONE**
+- Items 1, 3, 4a, 5, 6, 7, 8, 10, 15-24: **VERIFIED** -- see each item's own Loop section for its run ID
+- Item 4b (gaps as a separate field): **CLOSED as substantively superseded, not implemented** (Loop 9)
+- Item 2: **DEFERRED (Paresh's decision)** -- no hard gate until item 9 exists (Loop 8)
+- Item 9: **DEFERRED** -- needs an issuer-to-symbol map this codebase does not have (Loop 4)
+- Items 11, 12, 14: **VERIFIED** (Loop 12)
+- Item 13: **CLOSED as not-yet-applicable** -- no evidence-ranking function exists to fix (Loop 12)
+- WELCORP adaptive rerun (as originally planned): **never done as such** -- superseded in effect,
+  not in name, by adding PAYTM/YATHARTH/LENSKART instead (Loop 11), per Paresh's own later
+  instruction ("run 2-3 different companies... move fast") rather than the single WELCORP
+  rerun this section originally planned. The underlying purpose -- proving the pipeline
+  generalises beyond SANSERA/ANANDRATHI -- is more thoroughly satisfied by three additional
+  real archetypes than the original single-company plan would have been.
+- **Full adversarial council (Section 33): still NOT DONE.** The Loop 10 audit pass (which
+  found the item 8 "+" regex gap) was a self-directed, informal review -- not the structured
+  six-role Researcher/Prosecution/Defence/Reviewer/Jury/Judge process Section 33 specifies,
+  and it only covered SANSERA/ANANDRATHI, not the three later archetypes. This remains the
+  literal next step the operating rule's own step 8 calls for, before step 9's "final Stage-4B
+  gate decision" -- see "Current state" below.
+- Stage-4B closure: **NOT READY** -- blocked specifically on the adversarial council step, not
+  on any of the items above.
+
+### Current state, 2026-09-20
+
+- **Five real archetypes on `main`, all CI-verified**: SANSERA, ANANDRATHI, PAYTM, YATHARTH, LENSKART.
+- **Done**: items 1, 3, 4a, 5, 6, 7, 8, 10, 11, 12, 14, 15-24.
+- **Closed, not implemented** (reassessed, not skipped): items 4b, 13.
+- **Deferred, blocked on real inputs, not a policy number**: items 2, 9.
+- **Deferred to V1.1 by Paresh's explicit decision**: the production-architecture
+  work (Loop 13) -- incremental weekly research, Top-25 roster churn, a
+  stitched all-25 report.
+- **Not yet done, and the actual next step for Stage-4B itself**: the full
+  structured adversarial council pass (Section 33) across all five real
+  archetypes. Not started -- awaiting Paresh's direction on whether/when
+  to run it.
 
 
 ## Loop 1 — item 1 (published_on requirement) + item 24 (required cutoff)
@@ -994,7 +1032,82 @@ staleness flags surfaced with zero false hard failures:
 `causal_findings_stale_only`/`contradictions_stale_only` are 0/0 across all
 five archetypes -- no existing finding rests solely on stale evidence.
 
-**CI: pending push and verification** -- see next commit.
+**CI: VERIFIED.** Run #366 (35488665332) on PR #17, commit 934be65 --
+completed/success, `mergeable_state: clean`. Merged to `main` as `5f78a0e`.
+
+## Loop 13 — production architecture questions raised by Paresh (open, not yet designed)
+
+After Loop 12 merged, Paresh asked five connected questions that expose a
+real gap between what exists today and a genuine weekly production system.
+Recorded here rather than left only in chat, per the standing instruction
+to keep this document current:
+
+1. **The 5 archetypes are examples, not a template** -- confirmed correct.
+   Each has fully custom domains/hypotheses/exclusions; nothing beyond the
+   schema is shared. Scales to the remaining 20 Top-25 names, each needing
+   its own real research.
+2. **Incremental weekly research** -- NOT built. Every archetype today is a
+   static, hand/agent-researched Python file with no "last researched"
+   state, no scheduler, and no delta-fetch logic. Re-running a live
+   validation script today refreshes the quantitative rank/score (live)
+   but not the qualitative evidence (hardcoded) -- neither the efficient
+   incremental behaviour Paresh wants, nor a real weekly refresh. Needs:
+   a persisted per-company evidence store with a last-researched cutoff, a
+   weekly job that searches only for items dated after that cutoff, and an
+   honest "no material update this week" outcome (consistent with the
+   existing DERIVED-absence pattern) rather than forcing a finding.
+3. **1W/1M returns, whole-number %** -- checked the actual data: `1M
+   Return` exists in the live quant snapshot (a fraction, e.g. `0.264`,
+   formatted elsewhere as `+26.4%`) and is trivial to round to a whole
+   percent. **`1W Return` does not exist anywhere in the system** -- the
+   quant engine only computes 1M/3M/6M/9M/12M. Adding it means touching
+   the quant/ranking side (System-1), which `contracts.py` explicitly
+   states Stage-4B must not do ("these types deliberately contain no
+   ranking mathematics") -- a separate, smaller task, not something
+   Stage-4B can fake.
+4. **A stitched all-25 master report** -- confirmed as the goal, NOT built.
+   Each company produces its own separate `.md` dossier today; there is no
+   generator that combines all 25 (quant facts + qualitative dossier) into
+   one weekly artifact. Only 5 of 25 have any research at all today.
+5. **Top-25 roster churn (monthly)** -- confirmed as a real requirement,
+   NOT handled. `top_candidates()` just returns whoever is in the Top-25
+   right now; nothing distinguishes "still in, do an incremental update"
+   from "new entrant, needs first-time full research" from "dropped out,
+   archive it."
+
+Also surfaced in the tradeoffs discussion: this needs an agent doing real
+research judgement each cycle (WebSearch/WebFetch, deciding what's
+material), not a deterministic cron script -- the repo's existing
+scheduled workflows (`weekly_full_sync.yml` Fridays, `monthly_track_
+record.yml`) are precedent for cadence, but they only sync quant price
+data, nothing that requires model reasoning.
+
+**Two of the open forks are now decided (Paresh, 2026-09-20), for
+V1.1 design to build from when reopened:**
+- **Scheduling model:** genuinely unattended. Paresh's actual purpose in
+  building this with Claude Code now is to get the design and first real
+  archetypes right, then supply an LLM API key (Claude or another
+  provider) so a weekly job runs the incremental research loop on its own
+  -- not a human triggering a session each week. V1.1's design needs to
+  assume an API-driven agent loop (tool-using Messages/Agent-SDK-style
+  calls for the search/fetch/judgement steps), not the interactive Claude
+  Code session workflow used to build the first five archetypes.
+- **Persistent storage: Cloudflare R2.** Per-company evidence state,
+  historical dossiers, and the stitched master report are intended to
+  live in R2 (S3-compatible object storage), not as committed files in
+  this git repo and not in a relational database. This shapes the state
+  design: object keys per company/week rather than table rows, and the
+  weekly job needs R2 read/write credentials at run time.
+
+Still genuinely open for the V1.1 design pass: what counts as a
+"material update" worth a fresh search each week, how roster churn
+(new entrant / dropout) is detected and actioned, the exact stitched
+master-report format, and how an unattended run surfaces a failure or a
+judgement call it can't safely make on its own without a human watching.
+
+**Status: DEFERRED to V1.1 (Paresh's decision, 2026-09-20).** Explicitly
+parked until V1 is ready -- not designed, not built. Revisit only when
+Paresh reopens it; no further action here until then.
 
 ## Rule against false closure
 
