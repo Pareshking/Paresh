@@ -1054,9 +1054,30 @@ research judgement each cycle (WebSearch/WebFetch, deciding what's
 material), not a deterministic cron script -- the repo's existing
 scheduled workflows (`weekly_full_sync.yml` Fridays, `monthly_track_
 record.yml`) are precedent for cadence, but they only sync quant price
-data, nothing that requires model reasoning. Whether this becomes a
-human-triggered periodic session or a genuinely unattended scheduled
-agent run is itself one of the open design questions.
+data, nothing that requires model reasoning.
+
+**Two of the open forks are now decided (Paresh, 2026-09-20), for
+V1.1 design to build from when reopened:**
+- **Scheduling model:** genuinely unattended. Paresh's actual purpose in
+  building this with Claude Code now is to get the design and first real
+  archetypes right, then supply an LLM API key (Claude or another
+  provider) so a weekly job runs the incremental research loop on its own
+  -- not a human triggering a session each week. V1.1's design needs to
+  assume an API-driven agent loop (tool-using Messages/Agent-SDK-style
+  calls for the search/fetch/judgement steps), not the interactive Claude
+  Code session workflow used to build the first five archetypes.
+- **Persistent storage: Cloudflare R2.** Per-company evidence state,
+  historical dossiers, and the stitched master report are intended to
+  live in R2 (S3-compatible object storage), not as committed files in
+  this git repo and not in a relational database. This shapes the state
+  design: object keys per company/week rather than table rows, and the
+  weekly job needs R2 read/write credentials at run time.
+
+Still genuinely open for the V1.1 design pass: what counts as a
+"material update" worth a fresh search each week, how roster churn
+(new entrant / dropout) is detected and actioned, the exact stitched
+master-report format, and how an unattended run surfaces a failure or a
+judgement call it can't safely make on its own without a human watching.
 
 **Status: DEFERRED to V1.1 (Paresh's decision, 2026-09-20).** Explicitly
 parked until V1 is ready -- not designed, not built. Revisit only when
