@@ -341,9 +341,15 @@ def lenskart_evidence() -> tuple[Evidence, ...]:
             domain=ResearchDomain.LEGAL_COMPLIANCE, materiality="high", hypothesis=H6,
         ),
         # ----------------------------------------------------------- MARKET_REACTION
+        # Loop 14 adversarial council: dropped "with brokerages continuing to
+        # highlight the company's store-network growth and manufacturing
+        # integration" -- no brokerage or report was named or cited for that
+        # clause; it read as unattributed editorializing carried verbatim
+        # from the source rather than a verifiable fact. Kept the actual
+        # verifiable share-price data.
         Evidence(
             entity="LENSKART", kind=EvidenceKind.POSITIVE,
-            claim="Lenskart shares traded around INR 695.55 on 18 September 2026 -- about 73% above the INR 402 IPO price and about 98% above the INR 355.70 listing-day low -- with brokerages continuing to highlight the company's store-network growth and manufacturing integration.",
+            claim="Lenskart shares traded around INR 695.55 on 18 September 2026 -- about 73% above the INR 402 IPO price and about 98% above the INR 355.70 listing-day low.",
             source=KOTAK_NEO_SHARE_PRICE, source_tier=SourceTier.SECONDARY,
             published_on=date(2026, 9, 18), event_date=date(2026, 9, 18), retrieved_on=RETRIEVED,
             domain=ResearchDomain.MARKET_REACTION, materiality="high", hypothesis=H6,
@@ -435,9 +441,15 @@ def lenskart_packet() -> ResearchProviderPacket:
             CausalFinding(
                 hypothesis=H5,
                 finding="International segment margin improvement is real and driven by both scale and structurally higher product margin from Owndays/Meller integration, but it coexists with several loss-making overseas subsidiaries that still require parent funding, so segment-level profitability is not yet uniform across every geography.",
-                mechanism="International ASP runs roughly 3x India's while ACP runs roughly 2x, structurally lifting product margin as revenue scales; fixed employee and marketing costs in more mature markets (Japan, Southeast Asia) get diluted by growth, while newer/smaller entities (Singapore, Saudi Arabia) have not yet crossed into profitability.",
+                mechanism="Higher average selling/cost prices in more mature international markets structurally lift product margin as revenue scales; fixed employee and marketing costs in more mature markets (Japan, Southeast Asia) get diluted by growth, while newer/smaller entities (Singapore, Saudi Arabia) have not yet crossed into profitability.",
                 timing="Segment margin expansion is already visible in Q1 FY27; subsidiary-level losses are FY25 figures and their current trajectory is not established by the reviewed materials.",
-                uncertainty="Whether the specific loss-making subsidiaries (Singapore, Saudi Arabia) have narrowed losses since FY25, and how much of the segment-level margin gain is currency-tailwind versus structural, are not established.",
+                # Loop 14 adversarial council: this finding's mechanism
+                # previously asserted specific ASP/ACP ratios ("roughly 3x...
+                # roughly 2x") that no evidence_ref cited here (or anywhere in
+                # this packet) actually states -- free-floating, uncited
+                # precision. Removed from the mechanism text above; noted here
+                # as an unconfirmed figure rather than silently dropped.
+                uncertainty="Whether the specific loss-making subsidiaries (Singapore, Saudi Arabia) have narrowed losses since FY25, and how much of the segment-level margin gain is currency-tailwind versus structural, are not established. A precise India-vs-International ASP/ACP ratio is also not established by any evidence in this packet -- only the directional claim that international pricing supports higher product margin is supported.",
                 evidence_refs=(
                     ref("Q1 FY27 segment revenue was INR 1,530.82 crore for India and INR 1,203.29 crore for International (reported basis); on a proforma basis management reported India grew 30.7% YoY and International grew 38.0% YoY, with segment profit-before-tax of INR 183.28 crore for India and INR 103.67 crore for International."),
                     ref("A February 2026 brokerage analysis found FY25 net losses at several overseas subsidiaries -- INR 615 million at Lenskart Solutions Pte. Ltd. (Singapore), INR 489 million at Lenskart Arabia Limited (Saudi Arabia), and INR 98 million at Owndays Co., Ltd. (Japan) -- stating these loss-making entities required ongoing funding from the parent and diluted consolidated profitability."),
@@ -448,13 +460,23 @@ def lenskart_packet() -> ResearchProviderPacket:
                 finding="Post-IPO capital allocation is currently supporting the growth plan -- strong reported revenue/PAT growth and record product margin, rising ROCE, positive net cash flow after capex, a large net-cash balance funded in part by the November 2025 IPO, and a corporate-simplification merger scheme -- and the market has re-rated the stock well above its IPO price, but two unresolved legal/regulatory items (the FEMA/ED inquiry and franchise litigation) sit alongside that re-rating without a quantified resolution.",
                 mechanism="IPO proceeds and operating cash flow fund store and plant capex while remaining net-cash positive; the merger scheme simplifies the corporate structure ahead of further scaling; the market's response (share-price re-rating) reflects the combination of reported growth and capital discipline, but that re-rating does not itself resolve pending regulatory/legal matters.",
                 timing="Capital-allocation metrics and the merger scheme are current as of Q1 FY27 (quarter ended 30 June 2026, board approvals in July-August 2026); the FEMA inquiry and franchise litigation are open-ended as of the most recent independent review (7 September 2026).",
-                uncertainty="Neither the NCLT/shareholder timeline for the merger nor the outcome, timeline, or financial exposure of the FEMA inquiry or franchise litigation is established by the reviewed materials.",
+                # Loop 14 adversarial council: reported YoY revenue growth
+                # from the cited figures is (2,714.18-1,894.46)/1,894.46 =
+                # ~43.3%, versus management's own proforma "+33.6%" -- a ~10pp
+                # gap because the proforma prior-year comparator folds in
+                # Dealskart/GeoIQ/Meller revenue the reported (audited)
+                # comparator excludes, meaning a real share of headline growth
+                # is inorganic/M&A-driven. This "strong reported... growth"
+                # framing did not previously flag that the audited and
+                # management-preferred comparators disagree on the growth
+                # rate by a material margin.
+                uncertainty="Neither the NCLT/shareholder timeline for the merger nor the outcome, timeline, or financial exposure of the FEMA inquiry or franchise litigation is established by the reviewed materials. Separately: reported (audited) YoY revenue growth implied by the cited figures is about 43%, versus management's own proforma framing of '+33.6%' -- the two disagree by roughly 10 percentage points because the proforma comparator includes in-period M&A (Dealskart/GeoIQ/Meller) in the prior-year base that the reported comparator excludes, meaning a real share of the reported headline growth rate is inorganic. This is not reconciled in the reviewed materials.",
                 evidence_refs=(
                     ref("Q1 FY27 (quarter ended 30 June 2026) reported consolidated revenue from operations was INR 2,714.18 crore, versus INR 1,894.46 crore a year earlier, and consolidated PAT attributable to owners of the company was INR 221.84 crore, versus INR 60.08 crore; on a proforma basis (per the IPO prospectus, adjusting for in-period M&A including Dealskart, GeoIQ and Meller), management stated revenue grew 33.6% YoY, EBITDA (pre-IndAS 116) grew 95.0%, PAT grew 2.8x to INR 228 crore, and consolidated product margin crossed 70% for the first time (70.3% versus 68.7% a year earlier)."),
                     ref("Lenskart completed an IPO of 181,058,478 equity shares (53,495,905 fresh issue plus 127,562,573 offer-for-sale) aggregating INR 7,278.02 crore, and was listed on NSE and BSE on 10 November 2025; of the fresh-issue proceeds, INR 363.77 crore had been utilised towards the stated objects of the offer by 30 June 2026, with the remainder temporarily invested in fixed deposits."),
                     ref("Return on Capital Employed improved to 23.2% in Q1 FY27 from 14.6% for full-year FY26; net cash excluding IPO-related payables stood at INR 4,104 crore at Q1 FY27-end; and Q1 FY27 operating cash flow of INR 297 crore (82% of pre-IndAS 116 EBITDA of INR 361 crore) exceeded total capex of INR 207 crore (INR 75 crore stores, INR 132 crore plant/Hyderabad), leaving positive net cash flow pre-M&A/equity of INR 116 crore."),
                     ref("The Board of Directors, at its meeting on 2 July 2026, approved a scheme merging wholly-owned subsidiaries Dealskart Online Services Private Limited and Lenskart Eyetech Private Limited into Lenskart Solutions Limited, subject to shareholder, creditor and NCLT approval; no effect of the proposed merger had been given in the Q1 FY27 results, and the company was in the process of filing the approved scheme with the NCLT."),
-                    ref("Lenskart shares traded around INR 695.55 on 18 September 2026 -- about 73% above the INR 402 IPO price and about 98% above the INR 355.70 listing-day low -- with brokerages continuing to highlight the company's store-network growth and manufacturing integration."),
+                    ref("Lenskart shares traded around INR 695.55 on 18 September 2026 -- about 73% above the INR 402 IPO price and about 98% above the INR 355.70 listing-day low."),
                     ref("Lenskart is subject to an ongoing Enforcement Directorate inquiry under FEMA related to procedural delays in import/export filings; a September 2026 independent review states the outcome has included denial of a No-Objection Certificate for Overseas Direct Investment, which it flags as a challenge to further international expansion."),
                     ref("The reviewed materials do not establish the outcome, timeline, or any quantified financial or operational impact of either the pending Enforcement Directorate FEMA inquiry or the franchise point-of-sale-data-manipulation litigation."),
                 ),
@@ -462,8 +484,16 @@ def lenskart_packet() -> ResearchProviderPacket:
         ),
         contradictions=(
             ContradictionFinding(
+                # Loop 14 adversarial council: the prior original_claim
+                # included "stores pay back quickly" (no evidence_ref anywhere
+                # in this packet discusses store payback periods, and the
+                # plan's own exclusions wall off store-level unit-economics
+                # modelling -- an unfalsifiable claim by design) and "ROCE has
+                # expanded sharply" (that evidence belongs to H6, not H1, and
+                # was never cited here). Rescoped to only the clause the cited
+                # ref actually supports.
                 hypothesis=H1,
-                original_claim="Store densification and network growth are capital-efficient: SPSG has run ahead of SSSG, stores pay back quickly, and ROCE has expanded sharply through disciplined capital allocation.",
+                original_claim="Store densification and network growth are demand-accretive: SPSG has run consistently ahead of SSSG as the network scales.",
                 counter_evidence="An independent brokerage found manufacturing-facility capacity utilization remained low across FY23-1QFY26 (e.g. Gurugram 36.9-52.3%, Bhiwadi 20.0-68.3%), indicating historical under-absorption of fixed costs and a drag on RoCE even as the store network scaled.",
                 resolution="Store-level economics and centralized manufacturing utilization are two different capital bases; store growth being demand-accretive (SPSG >= SSSG) does not by itself establish that the manufacturing asset base backing it has been used efficiently -- both should be tracked separately.",
                 original_claim_refs=(
@@ -487,8 +517,13 @@ def lenskart_packet() -> ResearchProviderPacket:
                 ),
             ),
             ContradictionFinding(
+                # Loop 14 adversarial council: "EBITDA margin nearly tripling"
+                # was not supported by the cited evidence_ref (which gives
+                # segment revenue/PBT, not an EBITDA margin percentage) or by
+                # any other item in this packet. Rescoped to the revenue/PBT
+                # growth the citation actually contains.
                 hypothesis=H5,
-                original_claim="International segment profitability is now structurally improving, with EBITDA (pre-IndAS 116) margin nearly tripling year-on-year, driven by scale and product-margin expansion from Owndays/Meller integration.",
+                original_claim="International segment profitability is now structurally improving, with 38.0% YoY proforma revenue growth and INR 103.67 crore of segment profit-before-tax in Q1 FY27, driven by scale and product-margin expansion from Owndays/Meller integration.",
                 counter_evidence="A February 2026 brokerage analysis found FY25 net losses at several overseas subsidiaries -- Singapore, Saudi Arabia and Japan/Owndays -- that required ongoing funding from the parent and diluted consolidated profitability.",
                 resolution="Segment-level aggregation can mask entity-level losses; International's blended margin improvement is consistent with some large, mature entities (e.g. Japan at the group level) improving sharply while smaller or newer entities remain loss-making -- both should be tracked, not netted into a single narrative.",
                 original_claim_refs=(
@@ -505,7 +540,7 @@ def lenskart_packet() -> ResearchProviderPacket:
                 resolution="The market's re-rating and the reported capital-allocation metrics describe realized financial performance; the FEMA inquiry and franchise litigation describe unresolved regulatory/legal exposure that has not yet been quantified in the financials -- both should be monitored as distinct, unreconciled facts rather than assuming one implies the other is immaterial.",
                 original_claim_refs=(
                     ref("Return on Capital Employed improved to 23.2% in Q1 FY27 from 14.6% for full-year FY26; net cash excluding IPO-related payables stood at INR 4,104 crore at Q1 FY27-end; and Q1 FY27 operating cash flow of INR 297 crore (82% of pre-IndAS 116 EBITDA of INR 361 crore) exceeded total capex of INR 207 crore (INR 75 crore stores, INR 132 crore plant/Hyderabad), leaving positive net cash flow pre-M&A/equity of INR 116 crore."),
-                    ref("Lenskart shares traded around INR 695.55 on 18 September 2026 -- about 73% above the INR 402 IPO price and about 98% above the INR 355.70 listing-day low -- with brokerages continuing to highlight the company's store-network growth and manufacturing integration."),
+                    ref("Lenskart shares traded around INR 695.55 on 18 September 2026 -- about 73% above the INR 402 IPO price and about 98% above the INR 355.70 listing-day low."),
                 ),
                 counter_evidence_refs=(
                     ref("Lenskart is subject to an ongoing Enforcement Directorate inquiry under FEMA related to procedural delays in import/export filings; a September 2026 independent review states the outcome has included denial of a No-Objection Certificate for Overseas Direct Investment, which it flags as a challenge to further international expansion."),
@@ -520,6 +555,18 @@ def lenskart_packet() -> ResearchProviderPacket:
             "What would International segment EBITDA margin look like on a constant-currency basis, and have the FY25 loss-making overseas subsidiaries (Singapore, Saudi Arabia) narrowed losses since?",
             "Will marketing efficiency (falling as a share of India revenue) hold as store expansion moves further into Tier 2+ towns with less pre-existing brand awareness?",
             "When will the Dealskart/Lenskart Eyetech merger scheme receive NCLT and shareholder/creditor approval, and will it change reported segment or consolidated financials?",
+            # Loop 14 adversarial council additions (Prosecution items #1 and
+            # #6): 8 of 26 evidence items (the entire CAPACITY and INDUSTRY
+            # domains, plus the FY25 subsidiary-loss item) trace to a single
+            # February 2026 brokerage report with no independent
+            # corroboration found for any of its specific factual claims
+            # (capacity-utilization percentages, China-import share); and the
+            # two most constructive-narrative hypotheses (H3 premiumization,
+            # H4 customer-acquisition efficiency) have zero independently- or
+            # negatively-sourced evidence, resting entirely on the company's
+            # own promotional shareholders' letter.
+            "Do the Motilal Oswal-sourced capacity-utilization and China-import figures (the entire basis for the capacity and industry domains) hold up against a second, independent source -- no corroboration for these specific factual claims was found in this research pass?",
+            "H3 (premiumization) and H4 (customer-acquisition efficiency) rest entirely on company-authored, unaudited materials (the Shareholders' Letter) with zero independently-sourced or negative evidence -- would an independent source corroborate the durability of either narrative?",
         ),
         monitoring_questions=(
             "Track SSSG versus SPSG each quarter as densification continues past 1.6 stores per pin code.",

@@ -247,7 +247,13 @@ def anandrathi_packet() -> ResearchProviderPacket:
                 finding="Client and RM growth create a potential operating-leverage path, but Q1 employee-cost growth shows that productivity must outrun compensation intensity for margins to expand.",
                 mechanism="Revenue is linked to assets and client relationships, while a large portion of operating cost is people-driven; RM capacity utilisation and client acquisition therefore matter to incremental margins.",
                 timing="Near-to-medium term, with management explicitly discussing two-year operating leverage.",
-                uncertainty="The effect of the one-time ESOP charge versus recurring employee-cost growth requires subsequent quarters to separate.",
+                # Loop 14 adversarial council: the FY26 growth figure cited
+                # below is stated EXCLUDING ESOP expenses (an adjusted basis),
+                # while the Q1FY27 margin decline cited below is a REPORTED
+                # figure driven partly BY an ESOP charge -- two different
+                # accounting bases juxtaposed in one finding without
+                # reconciliation. Made explicit rather than left implicit.
+                uncertainty="The effect of the one-time ESOP charge versus recurring employee-cost growth requires subsequent quarters to separate. Note also that the FY26 growth figure above is stated on an ex-ESOP adjusted basis while the Q1FY27 margin decline is a reported (non-adjusted) figure driven partly by an ESOP charge -- the two are not on the same accounting basis, and whether FY26 growth would look as strong stated on a reported basis, or whether Q1FY27's ESOP charge is the same or a distinct cost category from what FY26 already excluded, is not established by the reviewed materials.",
                 evidence_refs=(ref("FY26 consolidated total income excluding fair-value gains, ESOP expenses and related tax effects was INR 1,198.49 crore, up 22.3% YoY; adjusted PAT was INR 385.73 crore, up 28.4%."), ref("Q1FY27 adjusted revenue was about INR 336 crore, up 18% YoY, and adjusted PAT was about INR 116 crore, up 24% YoY; management maintained FY27 guidance of INR 1,415 crore revenue and INR 460 crore PAT."), ref("The company's Q1FY27 management interview states that operating leverage is expected to improve over the next two years and highlights RM capacity utilisation and new RM hiring as growth levers."), ref("Q1FY27 reported EBITDA margin fell to about 34% from 47% a year earlier, with employee costs rising 53% YoY; reporting included a one-time ESOP charge.")),
             ),
             CausalFinding(
@@ -260,7 +266,15 @@ def anandrathi_packet() -> ResearchProviderPacket:
             ),
             CausalFinding(
                 hypothesis=anandrathi_plan().hypotheses[3],
-                finding="The platform has multiple channels and strong retention, but AUM remains partly market-sensitive and the reviewed materials do not quantify earnings under a prolonged market decline.",
+                # Loop 14 adversarial council: this finding's own evidence_refs
+                # (below) are AUM/inflows/channel items and two absence-of-data
+                # DERIVED items -- none of them discuss retention. The actual
+                # retention evidence (0.09% AUM attrition, zero regret RM
+                # attrition) is real but is cited only under hypotheses[0]'s
+                # finding, not here. Removed the unsupported "strong retention"
+                # clause rather than let a true fact from elsewhere in the
+                # packet be claimed as support for a finding that doesn't cite it.
+                finding="The platform has multiple channels (Digital Wealth, UK), but AUM remains partly market-sensitive and the reviewed materials do not quantify earnings under a prolonged market decline.",
                 mechanism="Portfolio appreciation affects AUM without new inflows; weak markets can reduce AUM-based revenue even if client relationships remain intact, while digital/UK channels may diversify future growth.",
                 timing="Ongoing; stress becomes visible through AUM, flows and revenue across subsequent quarters.",
                 uncertainty="No company-specific prolonged-bear-market sensitivity was established.",
@@ -298,7 +312,13 @@ def anandrathi_packet() -> ResearchProviderPacket:
             ),
             ContradictionFinding(
                 hypothesis=anandrathi_plan().hypotheses[2],
-                original_claim="The AMC proposal is an additional growth engine.",
+                # Loop 14 adversarial council: the prior original_claim ("The
+                # AMC proposal is an additional growth engine") was asserted
+                # by no evidence item -- the board-approval item only states
+                # that an application was approved, not that it constitutes a
+                # growth engine. Rescoped the claim down to what the cited
+                # evidence actually supports.
+                original_claim="The board's approval to apply for AMC sponsorship signals strategic intent to expand into fund manufacturing, a new product line beyond distribution/wealth management.",
                 counter_evidence="The board has only approved an application; approval, launch, fee economics and AUM scale are not established.",
                 resolution="Record the AMC as a conditional strategic initiative rather than current earnings contribution.",
                 # item 7: the board-approval item is the actual factual basis
@@ -315,7 +335,14 @@ def anandrathi_packet() -> ResearchProviderPacket:
                 original_claim="Diversification makes the platform resilient to market weakness.",
                 counter_evidence="Management attributed most Q1 AUM growth to portfolio appreciation rather than net inflows, and no prolonged-market stress sensitivity was disclosed in the reviewed materials.",
                 resolution="Diversification is visible in channels and client base, but market sensitivity remains an unresolved economic exposure.",
-                original_claim_refs=(ref("FY26 annual reporting shows AUM of INR 93,037 crore, 13,395 active client families and 401 relationship managers at 31 March 2026, with five-year growth across these operating metrics."),),
+                # Loop 14 adversarial council: swapped the FY26 annual-report
+                # AUM figure (already flagged 144d old against a 100d
+                # half-life in this dossier's own Stale-evidence table) for
+                # the fresher Q1FY27 figure covering the same channels/
+                # client-base claim -- a non-stale, same-metric alternative
+                # was available and already used for the identical
+                # AUM-durability narrative elsewhere in this same dossier.
+                original_claim_refs=(ref("Q1FY27 AUM rose 21% YoY to INR 1,06,300 crore and net inflows were INR 2,743 crore; active client families rose 13% YoY to 13,941."),),
                 counter_evidence_refs=(ref("The reviewed disclosures do not provide a sufficiently detailed stress test of revenue and PAT under a prolonged equity-market drawdown; market sensitivity therefore remains partly unresolved."), ref("The reviewed Q1FY27 materials do not establish the future contribution, cost structure or return profile of the UK, digital and proposed AMC initiatives at scale."), ref("AUM growth contains a market-performance component: management stated that about 14% of Q1FY27 AUM growth came from net inflows, with the remainder supported by portfolio appreciation.")),
             ),
         ),

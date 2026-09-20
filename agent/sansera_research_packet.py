@@ -108,7 +108,17 @@ def sansera_evidence() -> tuple[Evidence, ...]:
             hypothesis="Is ADS growth structurally durable, or is the current backlog concentrated in a small number of customers and execution programs?",
         ),
         Evidence(
-            entity="SANSERA", kind=EvidenceKind.POSITIVE,
+            # Loop 14 adversarial council: reclassified POSITIVE -> UNKNOWN.
+            # "Building ahead of demand and qualifications" is capital
+            # committed against unconfirmed future utilisation -- the same
+            # capital-at-risk pattern this dossier already treats as
+            # two-sided for tariffs (see the split positive/negative tariff
+            # items above), and CausalFinding hypotheses[4]'s own
+            # uncertainty text already flags "actual incremental ROCE... are
+            # future observations, not current facts." Tagging this
+            # unambiguously POSITIVE understated that the payoff is not yet
+            # determined.
+            entity="SANSERA", kind=EvidenceKind.UNKNOWN,
             claim="The company planned an 80,000 sq ft ADS hangar, a 45,000 sq ft defence plant, a surface-coating facility, additional xEV machining, Manesar expansion and Pantnagar forging capacity; management also stated it is building capacity ahead of demand and qualifications.",
             source="https://sansera.in/wp-content/uploads/2026/08/Investors-presentation-Q1FY27.pdf",
             source_tier=SourceTier.PRIMARY, published_on=date(2026, 8, 12),
@@ -376,7 +386,7 @@ def sansera_evidence() -> tuple[Evidence, ...]:
             source_tier=SourceTier.SECONDARY, published_on=date(2026, 8, 24),
             event_date=date(2026, 9, 24), retrieved_on=RETRIEVED,
             domain=ResearchDomain.SCHEDULED_EVENTS, materiality="medium",
-            hypothesis="Do capital investment and financial capacity support the growth plan without creating a balance-sheet or return-on-capital problem?",
+            hypothesis="Is ADS growth structurally durable, or is the current backlog concentrated in a small number of customers and execution programs?",
         ),
     )
 
@@ -420,20 +430,37 @@ def sansera_packet() -> ResearchProviderPacket:
             ),
             CausalFinding(
                 hypothesis=sansera_plan().hypotheses[3],
-                finding="Cross-border exposure creates a two-sided mechanism: tariffs impose direct cost and can delay localisation decisions, but they can also encourage customers to source more from India's existing facilities.",
-                mechanism="Tariff policy → landed-cost difference → customer sourcing decision → Sansera export mix → facility-location economics. The company's planned U.S. facility is part of this decision tree.",
-                timing="A direct Q1FY27 tariff/import-duty cost was already recognised; broader U.S. tariff authority remains a future policy risk as of the 18-Sep cutoff.",
-                uncertainty="Product-specific tariff classification, customer pass-through and the ultimate incidence of any new U.S. tariff on Sansera products are unresolved.",
+                # Loop 14 adversarial council: this hypothesis names tariffs,
+                # FX and manufacturing footprint as three co-equal drivers,
+                # but the reviewed evidence only supports tariff analysis --
+                # the FX evidence item is itself a stale (2024), UNKNOWN-kind
+                # disclosure that current net currency sensitivity was never
+                # established. Rather than let the finding silently answer
+                # only the tariff half while implying full coverage, it now
+                # cites the FX gap explicitly and says so.
+                finding="Cross-border exposure creates a two-sided mechanism under tariffs: they impose direct cost and can delay localisation decisions, but they can also encourage customers to source more from India's existing facilities. Current net FX sensitivity, by contrast, is not established from the reviewed materials -- the only FX-domain evidence is a 2024 disclosure of exposure and forward-contract use, with no current hedged/unhedged position or P&L sensitivity disclosed.",
+                mechanism="Tariff policy → landed-cost difference → customer sourcing decision → Sansera export mix → facility-location economics. The company's planned U.S. facility is part of this decision tree. The FX channel (currency moves → input/export cost) is named by the hypothesis but cannot be mechanistically traced from currently available disclosure.",
+                timing="A direct Q1FY27 tariff/import-duty cost was already recognised; broader U.S. tariff authority remains a future policy risk as of the 18-Sep cutoff. The FX gap is present-tense, not a future risk: no current sensitivity exists to become stale or resolve.",
+                uncertainty="Product-specific tariff classification, customer pass-through and the ultimate incidence of any new U.S. tariff on Sansera products are unresolved. Separately and more fundamentally, current net FX sensitivity after natural hedges and forwards is not established at all -- this is a real, unaddressed gap in the hypothesis's own scope, not merely an unresolved detail within an otherwise-covered driver.",
                 evidence_refs=(refs["Q1FY27 included an INR 126-129 million U.S. import-duty/tariff cost in reported expenses, and management said tariff uncertainty had delayed the planned U.S. connecting-rod facility."],
                                refs["Management also said tariff uncertainty was prompting some customers to source more from Sansera's India operations as a stop-gap, showing that the same trade disruption can create both cost and sourcing-shift channels."],
-                               refs["On 18-Sep-2026 Reuters reported that new U.S. legislation gives the President authority to impose tariffs of up to 100% on imports from countries purchasing Russian oil or gas; India is among the countries that could be affected. The company-specific product incidence remains unresolved."]),
+                               refs["On 18-Sep-2026 Reuters reported that new U.S. legislation gives the President authority to impose tariffs of up to 100% on imports from countries purchasing Russian oil or gas; India is among the countries that could be affected. The company-specific product incidence remains unresolved."],
+                               refs["Historical company disclosure confirms foreign-currency exposure and use of forward contracts, but a current Q1FY27 net currency sensitivity was not established in the reviewed primary documents."]),
             ),
             CausalFinding(
                 hypothesis=sansera_plan().hypotheses[4],
-                finding="The balance sheet and prior QIP provide funding capacity for the current capex program, while management targets higher asset turns for ADS than Auto ICE.",
-                mechanism="QIP deleveraging → stronger balance sheet → ability to fund growth capex → asset commissioning → revenue ramp. Higher targeted ADS asset turns would improve capital productivity if achieved.",
-                timing="Capex is already underway; the key test is commissioning and utilisation rather than funding availability alone.",
-                uncertainty="Actual incremental ROCE by new facility and realised ADS asset turns are future observations, not current facts.",
+                # Loop 14 adversarial council: the ICRA rating is already
+                # flagged in this dossier's own Stale-evidence table (233d
+                # vs. a 150d capital_markets half-life); pairing it with a
+                # fresh but topically unrelated capex figure let the finding
+                # assert present-tense certainty ("provide[s]") without ever
+                # tripping the stale-only check (which only fires when EVERY
+                # cited ref is stale). Reworded to date the credit view
+                # explicitly rather than imply current confirmation.
+                finding="As of its 28-Jan-2026 rating (now over seven months old relative to this snapshot), the balance sheet and prior QIP had provided funding capacity for the capex program then underway; three quarters of further capex spend have occurred since without a more current credit or leverage view confirming that capacity still holds. Management separately targets higher asset turns for ADS than Auto ICE.",
+                mechanism="QIP deleveraging → stronger balance sheet → ability to fund growth capex → asset commissioning → revenue ramp, as assessed at the January 2026 rating date. Higher targeted ADS asset turns would improve capital productivity if achieved.",
+                timing="Capex is already underway; the key test is commissioning and utilisation rather than funding availability alone. The funding-capacity view itself dates to January 2026 and has not been refreshed against three subsequent quarters of capex spend.",
+                uncertainty="Actual incremental ROCE by new facility and realised ADS asset turns are future observations, not current facts. Whether the balance sheet's funding capacity, as assessed in January 2026, still holds after three further quarters of capex is itself not confirmed by any evidence more recent than that rating.",
                 evidence_refs=(refs["ICRA reaffirmed Sansera at [ICRA]AA (Stable) for term loans and [ICRA]A1+ for short-term facilities; ICRA also noted that INR 1,200 crore QIP proceeds had largely been used to repay/prepay borrowings."],
                                refs["FY26 capex was INR 5,097 million and Q1FY27 capex was INR 1,342 million; management's stated incremental asset-turn targets are 2.0-2.2x for ADS and 1.25-1.3x for Auto ICE."]),
             ),

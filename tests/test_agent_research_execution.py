@@ -658,3 +658,90 @@ def test_causal_finding_resting_solely_on_stale_evidence_is_flagged():
     )
     dossier = execute_research(snapshot(), ResearchCandidate("BBB", 2, 2.0, {}), bad)
     assert dossier.audit.causal_findings_stale_only == 1
+
+
+def test_domain_single_sourced_requires_at_least_two_items_from_one_publisher():
+    """Item 25 (Loop 14 adversarial council): a domain with exactly one
+    evidence item is a coverage question, not a diversity question -- it
+    must not be flagged. The fixture's CAPACITY domain has exactly one
+    (DERIVED) item, so it must not appear even though DERIVED items have no
+    publisher at all."""
+    dossier = execute_research(snapshot(), ResearchCandidate("BBB", 2, 2.0, {}), packet())
+    assert dossier.audit.domains_single_sourced == ()
+
+
+def test_domain_flagged_single_sourced_when_two_items_share_a_publisher():
+    p = packet()
+    same_publisher_items = (
+        Evidence(
+            entity="BBB", kind=EvidenceKind.POSITIVE,
+            claim="First fact from the same publisher.",
+            source="https://onepublisher.example/report-a",
+            source_tier=SourceTier.SECONDARY,
+            published_on=date(2026, 9, 1), retrieved_on=date(2026, 9, 19),
+            domain=ResearchDomain.CAPACITY,
+            hypothesis="Can capacity support the order pipeline?",
+        ),
+        Evidence(
+            entity="BBB", kind=EvidenceKind.NEGATIVE,
+            claim="Second fact from the same publisher.",
+            source="https://onepublisher.example/report-b",
+            source_tier=SourceTier.SECONDARY,
+            published_on=date(2026, 9, 1), retrieved_on=date(2026, 9, 19),
+            domain=ResearchDomain.CAPACITY,
+            hypothesis="Can capacity support the order pipeline?",
+        ),
+    )
+    bad = ResearchProviderPacket(
+        plan=p.plan,
+        evidence=p.evidence + same_publisher_items,
+        causal_findings=p.causal_findings,
+        contradictions=p.contradictions,
+        unresolved_questions=p.unresolved_questions,
+        monitoring_questions=p.monitoring_questions,
+    )
+    dossier = execute_research(snapshot(), ResearchCandidate("BBB", 2, 2.0, {}), bad)
+    assert dossier.audit.domains_single_sourced == ("capacity",)
+
+
+def test_causal_finding_single_sourced_when_all_refs_share_a_publisher():
+    p = packet()
+    same_publisher_items = (
+        Evidence(
+            entity="BBB", kind=EvidenceKind.POSITIVE,
+            claim="First fact from the same publisher for a finding.",
+            source="https://onepublisher.example/report-c",
+            source_tier=SourceTier.SECONDARY,
+            published_on=date(2026, 9, 1), retrieved_on=date(2026, 9, 19),
+            domain=ResearchDomain.ORDERS,
+            hypothesis="Can order growth convert into revenue?",
+        ),
+        Evidence(
+            entity="BBB", kind=EvidenceKind.POSITIVE,
+            claim="Second fact from the same publisher for a finding.",
+            source="https://onepublisher.example/report-d",
+            source_tier=SourceTier.SECONDARY,
+            published_on=date(2026, 9, 1), retrieved_on=date(2026, 9, 19),
+            domain=ResearchDomain.ORDERS,
+            hypothesis="Can order growth convert into revenue?",
+        ),
+    )
+    evidence = p.evidence + same_publisher_items
+    single_sourced_finding = CausalFinding(
+        hypothesis="Can order growth convert into revenue?",
+        finding="Both facts come from the same publisher.",
+        mechanism="N/A",
+        timing="N/A",
+        uncertainty="N/A",
+        evidence_refs=tuple(evidence_ref(e) for e in same_publisher_items),
+    )
+    bad = ResearchProviderPacket(
+        plan=p.plan,
+        evidence=evidence,
+        causal_findings=(single_sourced_finding, *p.causal_findings[1:]),
+        contradictions=p.contradictions,
+        unresolved_questions=p.unresolved_questions,
+        monitoring_questions=p.monitoring_questions,
+    )
+    dossier = execute_research(snapshot(), ResearchCandidate("BBB", 2, 2.0, {}), bad)
+    assert dossier.audit.causal_findings_single_sourced == 1

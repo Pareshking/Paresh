@@ -576,7 +576,16 @@ def yatharth_packet() -> ResearchProviderPacket:
                     "mix; management's playbook of recruiting reputed doctors "
                     "and restricting government-scheme growth accelerates ARPOB "
                     "but can slow headline occupancy relative to a strategy that "
-                    "filled beds faster with lower-paying patients."
+                    "filled beds faster with lower-paying patients. This "
+                    "playbook is common to both Faridabad Sector-20 and New "
+                    "Delhi Model Town, so it explains why new hospitals in "
+                    "general may show slower headline occupancy than a "
+                    "volume-first strategy would -- it does NOT by itself "
+                    "explain why these two specific hospitals, running the same "
+                    "playbook, diverge so sharply on breakeven timing (9 months "
+                    "vs. 15-17 months guided); some hospital-specific factor "
+                    "not identified in the reviewed materials must also be at "
+                    "work."
                 ),
                 timing=(
                     "Faridabad Sector-20 and Agra have already inflected; New "
@@ -588,7 +597,13 @@ def yatharth_packet() -> ResearchProviderPacket:
                     "Occupancy at New Delhi and Faridabad Sector-20 is measured "
                     "against a rising census-bed denominator that management "
                     "adjusts quarter to quarter, which the reviewed materials do "
-                    "not reconcile into a single like-for-like ramp-up curve."
+                    "not reconcile into a single like-for-like ramp-up curve. "
+                    "Separately: no disclosed, hospital-specific factor (e.g. "
+                    "differing capex vintage, case mix, catchment competition "
+                    "density, or doctor roster) is identified to explain the "
+                    "Faridabad-vs-Delhi breakeven-timing divergence beyond the "
+                    "shared group-level playbook, which cannot itself account "
+                    "for a difference between two hospitals both running it."
                 ),
                 evidence_refs=(
                     ref(_CLAIM_CAP_OVERVIEW),
@@ -600,14 +615,24 @@ def yatharth_packet() -> ResearchProviderPacket:
             ),
             CausalFinding(
                 hypothesis=_H3_PAYER_MIX_REGULATION,
+                # Loop 14 adversarial council: management's own figure
+                # attributes only ~1-2 of the observed ~4-point (36%->~40%)
+                # rise to the CGHS repricing -- "because" overstated a partial
+                # explanation as the full cause. Reworded, and the ~2-3-point
+                # residual is now named explicitly rather than only appearing
+                # as a future-looking uncertainty.
                 finding=(
                     "Yatharth's payer-mix strategy at new hospitals (over 90% "
                     "cash/TPA) is real and evidenced at the hospital level, but "
-                    "at the group level the government-payer revenue share rose "
-                    "quarter-on-quarter because a CGHS rate revision lifted "
-                    "realizations on a shrinking government-patient base, and a "
-                    "government panel has separately floated capping private "
-                    "hospital room charges."
+                    "at the group level the government-payer revenue share still "
+                    "rose quarter-on-quarter (about 36% to 'close to 40%'). "
+                    "Management attributed only roughly 1-2 of those ~4 "
+                    "percentage points to a CGHS rate revision lifting "
+                    "realizations on a shrinking government-patient base -- so "
+                    "CGHS repricing partially, not fully, explains the current "
+                    "quarter's rise, and roughly 2-3 points remain unaccounted "
+                    "for in the reviewed materials. A government panel has "
+                    "separately floated capping private hospital room charges."
                 ),
                 mechanism=(
                     "Government-scheme pricing and rules are set exogenously "
@@ -627,7 +652,14 @@ def yatharth_packet() -> ResearchProviderPacket:
                 uncertainty=(
                     "The magnitude of a potential room-rent cap or further "
                     "CGHS/PMJAY rate changes on group revenue and margin is not "
-                    "quantified in the reviewed materials."
+                    "quantified in the reviewed materials. Separately, and in "
+                    "the present tense rather than as a future risk: roughly "
+                    "2-3 of the ~4-percentage-point rise in government payer "
+                    "share this quarter is not explained by the disclosed CGHS "
+                    "repricing impact, and no alternative explanation (e.g. a "
+                    "mix shift within the government-patient base, or a "
+                    "different scheme's repricing) is identified in the "
+                    "reviewed materials."
                 ),
                 evidence_refs=(
                     ref(_CLAIM_CGHS_PAYERMIX),
@@ -638,16 +670,29 @@ def yatharth_packet() -> ResearchProviderPacket:
             ),
             CausalFinding(
                 hypothesis=_H4_CAPITAL_ALLOCATION,
+                # Loop 14 adversarial council: the prior finding text gave the
+                # "accelerated growth ambition" reading alone, relegating the
+                # equally-plausible "balance-sheet strain" reading (declining
+                # RoCE, a raise arranged within 5 weeks of a "sufficient"
+                # comment) to the contradiction's resolution only. Both
+                # readings now appear with comparable weight in the finding
+                # itself, not just when a counter-argument forces it.
                 finding=(
                     "The Advent International preferential investment provides "
                     "a large primary capital infusion (up to INR 3,150 crore "
                     "for a 24.87% fully-diluted stake) that goes well beyond the "
                     "internal-accrual and debt-headroom funding management "
                     "described just five weeks earlier for the already-"
-                    "committed ~1,800-bed programme, indicating the company is "
-                    "capitalising for a materially larger and/or faster "
-                    "expansion than the previously guided funding sources alone "
-                    "would support."
+                    "committed ~1,800-bed programme. Two readings are equally "
+                    "available from the disclosed facts and neither is "
+                    "confirmed over the other: (1) the company is capitalising "
+                    "for a materially larger and/or faster expansion than "
+                    "previously guided funding sources alone would support, or "
+                    "(2) a large, hastily-arranged primary raise from one "
+                    "sponsor -- granted board seats and reserved-matter rights, "
+                    "arriving alongside already-declining RoCE (27-29% to 16% "
+                    "over FY22-FY26) -- signals pressure to shore up the "
+                    "balance sheet rather than confirmed growth ambition."
                 ),
                 mechanism=(
                     "Bed-capacity growth requires capex (guided at INR 75-80 "
@@ -656,7 +701,10 @@ def yatharth_packet() -> ResearchProviderPacket:
                     "EBITDA) and equity; a large primary equity raise reduces "
                     "leverage and dilution risk per rupee of capex but dilutes "
                     "existing shareholders and introduces a new investor with "
-                    "board-nomination and reserved-matter rights."
+                    "board-nomination and reserved-matter rights -- the same "
+                    "facts support either the expansion-acceleration or the "
+                    "balance-sheet-strain reading above; nothing in the "
+                    "reviewed materials confirms which is operative."
                 ),
                 timing=(
                     "The Investment Agreement was signed 17 September 2026; "
@@ -682,15 +730,29 @@ def yatharth_packet() -> ResearchProviderPacket:
             ),
             CausalFinding(
                 hypothesis=_H5_TALENT_DIFFERENTIATION,
+                # Loop 14 adversarial council: the plan excludes clinical-
+                # outcome metrics (mortality, complication rates) as
+                # undisclosed, which is a legitimate scope limit -- but the
+                # finding's own language should not then describe accreditation
+                # status and volume counts as "clinical differentiation"
+                # unqualified, since those are input/reputation proxies the
+                # company chooses to publish favourably, not independently
+                # verified outcome quality. Reworded to name that distinction
+                # rather than let the hypothesis's own wording ("clinical
+                # differentiation") imply more than what is actually measured.
                 finding=(
-                    "Clinical differentiation (universal NABH accreditation, "
-                    "JCI accreditation at Noida Extension, robotic-surgery and "
-                    "transplant volumes) is a real, current asset, and group "
-                    "doctor attrition (about 7%, lower among senior doctors) "
-                    "appears controlled for now, but neither the accreditation "
-                    "base nor the current attrition rate has yet been tested at "
-                    "the scale of a five-cluster, ~5,000-bed network reaching "
-                    "into new geographies."
+                    "Yatharth reports favourable INPUT and reputational proxies "
+                    "for clinical capability (universal NABH accreditation, JCI "
+                    "accreditation at Noida Extension, robotic-surgery and "
+                    "transplant volumes) and group doctor attrition (about 7%, "
+                    "lower among senior doctors) appears controlled for now -- "
+                    "but this finding answers capacity/talent inputs, not "
+                    "verified clinical-outcome quality (mortality, complication "
+                    "or infection rates are not disclosed and are outside this "
+                    "research's scope). Neither the accreditation base nor the "
+                    "attrition rate has been tested at the scale of a "
+                    "five-cluster, ~5,000-bed network reaching into new "
+                    "geographies."
                 ),
                 mechanism=(
                     "Recruiting and retaining reputed specialist doctors drives "
@@ -722,11 +784,20 @@ def yatharth_packet() -> ResearchProviderPacket:
         ),
         contradictions=(
             ContradictionFinding(
+                # Loop 14 adversarial council: "durable, high-quality" was not
+                # language used by any cited source -- it was this research's
+                # own synthesis of the 5-year growth and revenue-mix evidence,
+                # presented as if it were an external claim being rebutted.
+                # Reworded to name it explicitly as a reading of the cited
+                # evidence, consistent with how item 7/22 already fixed the
+                # same pattern elsewhere in this pipeline.
                 hypothesis=_H1_MARGIN_QUALITY,
                 original_claim=(
-                    "Yatharth's Q1FY27 results, and its five-year track "
-                    "record, demonstrate durable, high-quality revenue and "
-                    "margin growth."
+                    "Read together, Yatharth's five-year revenue/EBITDA/PAT "
+                    "CAGR and Q1FY27's rising new-hospital revenue mix would "
+                    "suggest durable, high-quality growth -- this is this "
+                    "research's own reading of those two data points, not a "
+                    "claim quoted from management or an analyst."
                 ),
                 counter_evidence=(
                     "Q1FY27's own reported numbers show consolidated EBITDA "
@@ -756,22 +827,41 @@ def yatharth_packet() -> ResearchProviderPacket:
                     "breakeven and Agra's above-20% EBITDA margin in its first "
                     "full quarter."
                 ),
+                # Loop 14 adversarial council: the 29% figure is computed on
+                # a census-bed base that itself rose 100->150 beds QoQ, a
+                # disclosed denominator change that breaks like-for-like
+                # comparison -- previously this caveat sat only in the
+                # finding's buried "Uncertainty" field while the contradiction
+                # used the bare 29% as if directly comparable. Named here
+                # instead of only implied, and the resolution downgrades this
+                # from a clean, decisive comparison to an observation that
+                # needs a stable-denominator recomputation before being relied
+                # on as proof of a materially slower ramp.
                 counter_evidence=(
                     "New Delhi Model Town, the group's other 2025-vintage new "
                     "hospital, reported only 29% occupancy in Q1FY27 -- the "
                     "lowest in the network -- with EBITDA breakeven now guided "
                     "to H2 FY27 (about 15-17 months post-launch), materially "
                     "slower than Faridabad Sector-20's 9-month breakeven "
-                    "despite a similar launch window and the same playbook."
+                    "despite a similar launch window and the same playbook. "
+                    "This 29% figure is computed on a census-bed base that "
+                    "itself rose from 100 to 150 beds quarter-on-quarter, so "
+                    "it is not a clean like-for-like ramp-up metric -- the "
+                    "underlying occupied-bed count, which would allow a stable "
+                    "comparison, is not disclosed in the reviewed materials."
                 ),
                 resolution=(
                     "The playbook has clearly worked at Faridabad Sector-20 "
-                    "and Agra, but New Delhi's slower occupancy ramp shows "
-                    "execution speed is not uniform across new hospitals even "
-                    "within the same acquisition strategy and geography; New "
-                    "Delhi's breakeven timeline should be monitored against "
-                    "guidance rather than assumed from the other assets' "
-                    "faster results."
+                    "and Agra. New Delhi's occupancy percentage is the lowest "
+                    "in the network, but because its census-bed denominator "
+                    "grew during the quarter, the 29% figure alone cannot "
+                    "establish HOW MUCH slower the ramp genuinely is -- it "
+                    "could be better, worse, or similar to what a stable "
+                    "denominator would show. Treat New Delhi's execution as "
+                    "genuinely uncertain rather than as a confirmed, "
+                    "quantified underperformance, and monitor the breakeven "
+                    "guidance itself rather than the occupancy percentage in "
+                    "isolation."
                 ),
                 original_claim_refs=(ref(_CLAIM_FBD20), ref(_CLAIM_AGRA)),
                 counter_evidence_refs=(ref(_CLAIM_PERHOSP_OCC), ref(_CLAIM_DELHI)),
@@ -823,17 +913,39 @@ def yatharth_packet() -> ResearchProviderPacket:
                     "employed that had already declined from 27-29% to 16% "
                     "over FY22-FY26 amid the ongoing capex cycle."
                 ),
+                # Loop 14 adversarial council: the prior resolution only
+                # hedged around the harder reading without naming it. A
+                # transaction of this size and structure (warrants, board
+                # seats, reserved matters, a Cyprus SPV) plausibly requires
+                # weeks-to-months of negotiation, which would place its start
+                # before 11 August -- but the reviewed materials do not
+                # establish exactly when Advent discussions began (the
+                # earliest public signal found is the company's own 14
+                # September intimation of the board meeting, just 3 days
+                # before approval, which is not itself proof either way).
+                # Named the harder reading explicitly rather than leaving it
+                # only implied by hedged language.
                 resolution=(
-                    "The two statements are not necessarily incompatible -- "
+                    "Two readings are available and the evidence does not "
+                    "confirm either: (1) the two statements are compatible -- "
                     "Advent's capital could fund an accelerated bed-capacity "
                     "target, new-cluster M&A, or balance-sheet strengthening "
-                    "beyond the already-committed 1,800 beds rather than "
-                    "signal the earlier funding-sufficiency claim was wrong -- "
-                    "but the shift from an internally-funded framing to a "
-                    "large primary equity raise within five weeks, alongside a "
-                    "multi-year RoCE decline, is a material change investors "
-                    "should weigh rather than assume was already priced into "
-                    "the funding-sufficiency comment."
+                    "beyond the already-committed 1,800 beds, arising only "
+                    "after 11 August; or (2) the harder reading -- a "
+                    "transaction of this size and structure (warrants, board "
+                    "seats, reserved-matter rights, a Cyprus SPV) plausibly "
+                    "requires weeks-to-months of negotiation, meaning "
+                    "discussions were quite possibly already underway when "
+                    "management called existing sources 'sufficient,' making "
+                    "that comment materially incomplete rather than "
+                    "subsequently overtaken by events. The reviewed materials "
+                    "do not establish when Advent discussions actually began "
+                    "-- the earliest public signal found is the company's own "
+                    "14 September intimation of the board meeting, only 3 days "
+                    "before approval, which does not itself resolve the "
+                    "question either way. Investors should weigh this as a "
+                    "genuinely open question, not treat the funding-"
+                    "sufficiency comment as already reconciled with the raise."
                 ),
                 original_claim_refs=(ref(_CLAIM_CAPEX_DEBT),),
                 counter_evidence_refs=(ref(_CLAIM_ADVENT), ref(_CLAIM_ROCE_DEBT)),
@@ -845,6 +957,11 @@ def yatharth_packet() -> ResearchProviderPacket:
             "rate actions occur, given the reviewed materials disclose only "
             "an aggregate ~40% government payer share and a qualitative "
             "impact figure rather than a quantified sensitivity?",
+            "Roughly 2-3 of the ~4-percentage-point rise in government payer "
+            "share this quarter is not explained by the disclosed CGHS "
+            "repricing impact -- what accounts for the remainder (a mix "
+            "shift within government patients, a different scheme's "
+            "repricing, or something else)?",
             "Will the government panel recommendation on capping hospital "
             "room charges referenced on the Q1FY27 call advance into a "
             "binding framework, and if so what would its revenue/margin "
@@ -862,6 +979,28 @@ def yatharth_packet() -> ResearchProviderPacket:
             "as it scales into new geographies and competes for specialist "
             "talent, particularly at newly entered clusters like New Delhi "
             "and Gurugram?",
+            # Loop 14 adversarial council additions (items #1 and #5 of the
+            # Prosecution brief): every non-DERIVED item in this packet
+            # traces to one publisher (the company's own investor-relations
+            # filings) -- no rating-agency note, exchange-filing page,
+            # sell-side report or independent press coverage was found for
+            # any claim, and no competitive-landscape evidence (Max, Fortis,
+            # Apollo, Manipal, Medanta -- all direct Delhi/NCR/Gurugram
+            # competitors) exists anywhere despite two hypotheses (H2, H5) for
+            # which competitive intensity is an obvious explanatory factor.
+            # Recorded honestly as open gaps rather than left silent.
+            "No evidence in this dossier is independently corroborated outside "
+            "the company's own investor-relations filings (no rating-agency "
+            "note, exchange-side filing page, analyst report, or independent "
+            "press coverage was found) -- how would the headline figures in "
+            "this dossier hold up against an independent source, and does one "
+            "exist for a hospital operator of this size and listing age?",
+            "How does Yatharth's occupancy, ARPOB and payer-mix profile in "
+            "Delhi/NCR and Gurugram compare to established competitors (Max, "
+            "Fortis, Apollo, Manipal, Medanta) operating in the same "
+            "catchments -- no competitive-landscape evidence was found despite "
+            "this being a plausible explanatory factor for New Delhi Model "
+            "Town's comparatively weak occupancy ramp?",
         ),
         monitoring_questions=(
             "Track quarterly occupancy and ARPOB ramp-up at each new "

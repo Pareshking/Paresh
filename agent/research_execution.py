@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from datetime import date
 from itertools import combinations
 from typing import Iterable
+from urllib.parse import urlparse
 
 from agent.company_research import (
     ResearchCandidate,
@@ -154,6 +155,30 @@ class ResearchAudit:
     ONLY to stale evidence (mirrors item 21's causal_findings_absence_based /
     contradictions_absence_based structure exactly, substituting "stale" for
     "DERIVED"). Also reported, not raised, for the same reason."""
+    domains_single_sourced: tuple[str, ...] = ()
+    """Item 25 (found by the Loop 14 adversarial council, present in 4 of the
+    5 real archetypes independently): a material domain with >=2 non-DERIVED
+    evidence items that ALL resolve to the SAME publisher (URL netloc). The
+    >=2 threshold is deliberate -- a domain with exactly one evidence item is
+    a coverage question (item 5/23), not a diversity question; you cannot be
+    "concentrated" with a single data point. A domain can pass coverage with
+    several evidence items and still be a single source wearing different
+    hats -- if that one source is wrong, biased, or stale, the entire
+    domain's case collapses at once.
+    Reported, not gated: this pipeline does not yet have real-world
+    calibration for what "enough" diversity looks like per archetype, and a
+    hard gate would risk blocking legitimate research where only one source
+    genuinely exists (e.g. a newly-listed company's own investor filings,
+    before independent analyst coverage exists)."""
+    causal_findings_single_sourced: int = 0
+    contradictions_single_sourced: int = 0
+    """Same concentration check at finding level: a finding/contradiction
+    whose every cited non-DERIVED evidence_ref resolves to the same
+    publisher. Catches the sharper case the domain-level metric can miss --
+    e.g. one interview backing findings/contradictions spread across two
+    different domains, so neither domain looks single-sourced in isolation,
+    but the underlying claim's entire evidentiary weight still traces to one
+    uncorroborated source."""
 
     @property
     def primary_coverage(self) -> float:
@@ -558,6 +583,38 @@ def execute_research(
     reviewer can see it, same as evidence_window_gap_days and the age
     buckets."""
 
+    def _publisher(evidence_item: Evidence) -> str | None:
+        if evidence_item.source_tier is SourceTier.DERIVED:
+            return None
+        netloc = urlparse(evidence_item.source).netloc.lower()
+        return netloc or None
+
+    def _domain_publishers(domain: ResearchDomain) -> list[str]:
+        return [p for e in evidence if e.domain is domain and (p := _publisher(e))]
+
+    domains_single_sourced = tuple(
+        sorted(
+            domain.value
+            for domain in packet.plan.material_domains
+            if len(pubs := _domain_publishers(domain)) >= 2 and len(set(pubs)) == 1
+        )
+    )
+
+    def _is_single_sourced(refs: tuple[str, ...]) -> bool:
+        publishers = {
+            p for r in refs if r in evidence_by_ref and (p := _publisher(evidence_by_ref[r]))
+        }
+        return len(publishers) == 1
+
+    causal_single_sourced = sum(1 for f in causal if _is_single_sourced(f.evidence_refs))
+    contradictions_single_sourced = sum(
+        1 for f in contradictions if _is_single_sourced(f.evidence_refs)
+    )
+    """Item 25: see ResearchAudit.domains_single_sourced/causal_findings_
+    single_sourced's docstrings. A finding/contradiction whose refs are all
+    DERIVED already surfaces via the absence-based check (item 21); this
+    only fires when there IS real evidence but it is all one publisher."""
+
     by_domain: dict[ResearchDomain, list[Evidence]] = {}
     for e in evidence:
         by_domain.setdefault(e.domain, []).append(e)
@@ -602,6 +659,9 @@ def execute_research(
         causal_findings_absence_based=causal_absence_based,
         contradictions_absence_based=contradictions_absence_based,
         derived_only_domains=derived_only_domains,
+        domains_single_sourced=domains_single_sourced,
+        causal_findings_single_sourced=causal_single_sourced,
+        contradictions_single_sourced=contradictions_single_sourced,
         numeric_disagreements=tuple(numeric_disagreements),
         stale_evidence=stale_evidence,
         causal_findings_stale_only=causal_stale_only,
