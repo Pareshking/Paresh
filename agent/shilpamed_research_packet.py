@@ -196,7 +196,7 @@ def shilpamed_packet() -> ResearchProviderPacket:
                 mechanism="Approvals unlock products and partner programs, while inspections can affect timing or remediation requirements.",
                 timing="Ongoing",
                 uncertainty="The reviewed material does not quantify the financial impact of any inspection outcome.",
-                evidence_refs=(ref("The company's exchange-intimation page records final SEC approval for marketing authorization of its OERIS ondansetron extended-release injectable."), ref("The company disclosed a co-development and supply agreement involving Shilpa Biologicals and Orion Corporation, Finland."), ref("The company's 2026 exchange-intimation record also shows a USFDA inspection at Unit VI, Dabaspet, demonstrating that regulatory inspection remains an active execution dependency.")),
+                evidence_refs=(ref("The company's exchange-intimation page records final approval from the Subject Expert Committee (SEC) under CDSCO for grant of marketing authorization for OERIS (Ondansetron Extended-Release Injection, 100 mg/mL)."), ref("The company disclosed a co-development and supply agreement involving Shilpa Biologicals and Orion Corporation, Finland."), ref("The company's 2026 exchange-intimation record also shows a USFDA inspection at Unit VI, Dabaspet, demonstrating that regulatory inspection remains an active execution dependency.")),
             ),
             CausalFinding(
                 hypothesis="Is the current margin improvement supported by utilisation and mix, or is it vulnerable to under-utilised capacity and program timing?",
@@ -226,10 +226,10 @@ def shilpamed_packet() -> ResearchProviderPacket:
             ),
             ContradictionFinding(
                 hypothesis="Do regulatory approvals and partner programs reduce execution risk, or do inspection/approval dependencies remain material?",
-                original_claim="The company's exchange-intimation page records final SEC approval for marketing authorization of its OERIS ondansetron extended-release injectable.",
+                original_claim="The company's exchange-intimation page records final approval from the Subject Expert Committee (SEC) under CDSCO for grant of marketing authorization for OERIS (Ondansetron Extended-Release Injection, 100 mg/mL).",
                 counter_evidence="The company's 2026 exchange-intimation record also shows a USFDA inspection at Unit VI, Dabaspet, demonstrating that regulatory inspection remains an active execution dependency.",
                 resolution="Approval progress and inspection dependency coexist; the evidence supports neither a fully de-risked nor a failed regulatory thesis.",
-                original_claim_refs=tuple(ref("The company's exchange-intimation page records final SEC approval for marketing authorization of its OERIS ondansetron extended-release injectable.")),
+                original_claim_refs=tuple(ref("The company's exchange-intimation page records final approval from the Subject Expert Committee (SEC) under CDSCO for grant of marketing authorization for OERIS (Ondansetron Extended-Release Injection, 100 mg/mL).")),
                 counter_evidence_refs=tuple(ref("The company's 2026 exchange-intimation record also shows a USFDA inspection at Unit VI, Dabaspet, demonstrating that regulatory inspection remains an active execution dependency.")),
             ),
             ContradictionFinding(
