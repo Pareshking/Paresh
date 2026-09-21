@@ -239,7 +239,6 @@ def render_header_kpi_bar(
                         _state = "navon" if _p is active_page else "navoff"
                         with st.container(key=f"{_state}_system_{_i}", width="stretch"):
                             st.page_link(_p)
-    st.html(header_html)
 
 
 
