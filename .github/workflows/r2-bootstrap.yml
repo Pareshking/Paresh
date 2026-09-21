@@ -2,6 +2,9 @@ name: R2 Historical Bootstrap
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feat/r2-phase2-bootstrap
 
 permissions:
   contents: read
