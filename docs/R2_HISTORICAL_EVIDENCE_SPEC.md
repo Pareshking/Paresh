@@ -56,10 +56,11 @@ Rules:
 - a later correction creates a new revision and is traceable to its evidence.
 
 ### C3 — Trading sessions
-Archive the authoritative set of market sessions used by research.
+Separate **observed sessions** from **exchange-confirmed sessions**. The project must not manufacture a historical calendar from weekday assumptions, and a sparse confirmed-source file must not be published as if it were complete historical coverage.
 
-Logical namespace:
-`trading_days/`
+Logical namespaces:
+- `trading_days/observed/` — sessions actually observed in the production price archive;
+- `trading_days/confirmed/` — sessions explicitly confirmed by an exchange/source feed.
 
 Minimum fields:
 - `date`
@@ -68,7 +69,9 @@ Minimum fields:
 - `source`
 - `evidence_date`
 
-The research layer must use this dataset for expected-session checks rather than assuming 252 identical sessions every year.
+The observed dataset is suitable for continuity/read-coverage audits. The confirmed dataset is source evidence and may be sparse unless full historical coverage has been established. Research consumers must declare which contract they require rather than silently treating either one as a universal calendar.
+
+The research layer must use an archived session contract for expected-session checks rather than assuming 252 identical sessions every year.
 
 ### C4 — Historical market-cap snapshots
 Archive point-in-time market-cap evidence used by universe construction or research.
@@ -180,7 +183,7 @@ Completed and already implemented — do not duplicate:
 Pending Section C:
 - C1 constituent snapshots;
 - C2 point-in-time membership;
-- C3 trading sessions;
+- C3 observed/confirmed trading-session datasets;
 - C4 market caps;
 - C5 corporate-action evidence;
 - C6 raw source evidence.
