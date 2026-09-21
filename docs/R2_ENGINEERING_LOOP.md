@@ -65,7 +65,9 @@ must be resolved before merge:
 3. `nse_market_caps.csv` is currently a single 2026-09-18 snapshot, not yet a
    historical series;
 4. corporate-action evidence provenance/schema must satisfy the C5 contract,
-   including source and evidence URI/date where available.
+   including source and evidence URI/date where available;
+5. the PR workflow's historical-evidence test selector currently matches no
+   tests and must be replaced by executable Section-C coverage.
 
 No Yahoo raw-price rebuild is authorized by this tracker; it remains parked.
 
