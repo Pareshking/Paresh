@@ -149,6 +149,17 @@ def shilpamed_evidence() -> tuple[Evidence, ...]:
             hypothesis="Is the current margin improvement supported by utilisation and mix, or is it vulnerable to under-utilised capacity and program timing?",
         ),
         Evidence(
+            entity="SHILPAMED", kind=EvidenceKind.POSITIVE,
+            claim="The company's exchange-intimation record records final approval from the Subject Expert Committee (SEC) under CDSCO for grant of marketing authorization for OERIS (Ondansetron Extended-Release Injection, 100 mg/mL).",
+            source="https://www.vbshilpa.com/pdf/OERIS%20final%20approval%20from%20SEC.pdf",
+            source_tier=SourceTier.PRIMARY,
+            published_on=date(2026,9,11),
+            event_date=date(2026,9,11),
+            retrieved_on=RETRIEVED,
+            domain=ResearchDomain.GOVERNMENT_REGULATION, materiality="high",
+            hypothesis="Do regulatory approvals and partner programs reduce execution risk, or do inspection/approval dependencies remain material?",
+        ),
+        Evidence(
             entity="SHILPAMED", kind=EvidenceKind.UNKNOWN,
             claim="The reviewed disclosures do not establish the eventual commercial contribution, utilisation ramp or economics of the new peptide capacity after commissioning.",
             source="research-window: Q1FY27 disclosures reviewed through 2026-09-18",
