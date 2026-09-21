@@ -42,23 +42,12 @@ def test_market_cap_history_keeps_latest_revision_per_evidence_date(monkeypatch,
 
 def test_market_cap_history_rejects_duplicate_symbols(monkeypatch):
     from scripts import build_market_cap_history as mod
-
-    frame = pd.DataFrame(
-        {
-            "Symbol": ["AAA", "AAA"],
-            "MarketCap": [10, 11],
-            "AsOf": ["2026-01-01", "2026-01-01"],
-            "Source": ["nse", "nse"],
-        }
-    )
-    monkeypatch.setattr(mod, "_git", lambda *args: "a" * 40)
-    monkeypatch.setattr(
-        mod,
-        "_snapshot",
-        lambda commit, path: (_ for _ in ()).throw(RuntimeError("duplicate symbols")),
-    )
-
     import pytest
 
+    csv_text = """Symbol,MarketCap,AsOf,Source
+AAA,10,2026-01-01,nse
+AAA,11,2026-01-01,nse
+"""
+    monkeypatch.setattr(mod, "_git", lambda *args: csv_text)
     with pytest.raises(RuntimeError, match="duplicate symbols"):
-        mod.build(Path("/tmp/unused.parquet"), mod.DEFAULT_PATH)
+        mod._snapshot("a" * 40, "data/nse_market_caps.csv")
