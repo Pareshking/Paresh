@@ -1,4 +1,4 @@
-"""The app must draw its own navigation, in the body, where it is visible.
+"""The app must draw its own compact navigation trigger in the body, where it is visible.
 
 `st.navigation(position="top")` renders the nav inside Streamlit's header, and
 this app hides that header outright (src/ui/theme.py):
@@ -86,13 +86,14 @@ def test_navigation_is_not_placed_in_the_hidden_header():
     )
     assert position == "hidden", (
         f"position={position!r}: the app must suppress Streamlit's own nav and "
-        f"draw its own in the body, where its CSS does not hide it"
+        f"draw its own compact popover trigger in the body, where its CSS does not hide it"
     )
 
 
 def test_the_app_renders_one_page_link_per_page():
     src = _app_src()
-    assert "st.page_link(" in src, "no in-body navigation is rendered"
+    assert "st.popover(" in src, "no compact navigation trigger is rendered"
+    assert 'key="app_nav_menu"' in src, "navigation popover has no stable key"
 
 
 def test_every_page_is_reachable_from_the_rendered_navigation(offline_market_data):
@@ -126,7 +127,7 @@ def test_the_navigation_survives_being_on_a_different_page(offline_market_data):
     assert count == len(_page_titles()) >= 5
 
 
-def test_exactly_one_navigation_item_is_marked_active():
+def test_navigation_marks_the_current_page_inside_the_popover():
     """The active pill is marked from Python, so assert Python marks it.
 
     Streamlit styles the current page link through an emotion prop with no
@@ -147,7 +148,7 @@ def test_exactly_one_navigation_item_is_marked_active():
 
     theme = (ROOT / "src" / "ui" / "theme.py").read_text(encoding="utf-8")
     assert 'st-key-navon_' in theme, "nothing styles the active item"
-    assert ".st-key-app_nav" in theme, "the navigation row is unstyled"
+    assert ".st-key-app_nav_shell" in theme, "the navigation trigger is unstyled"
 
 
 def test_the_navigation_row_is_not_styled_by_a_generated_class_hash():
