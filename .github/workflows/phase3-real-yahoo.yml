@@ -74,7 +74,7 @@ jobs:
           ]:
               path = Path(filename)
               d = describe_parquet(path)
-              key = f"{root}/{d['as_of']}/{filename}"
+              key = f"{root}/{d['as_of']}/{path.name}"
               manifest_key = f"archive/manifests/{dataset}/{d['as_of']}.json"
               archive.verify_file(key, path)
               manifest = json.loads(archive.get_bytes(manifest_key).decode())
