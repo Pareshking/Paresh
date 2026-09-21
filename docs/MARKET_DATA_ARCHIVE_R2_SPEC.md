@@ -1304,3 +1304,105 @@ Acceptance checks for the bootstrap include:
 
 This gives the backtest layer a materially deeper Screener source history
 without pretending that the older observations are daily bars.
+
+
+# 40. Implementation status — 2026-09-21
+
+The R2 archive implementation has progressed through the storage foundation,
+bootstrap, dual-publication, and revision-model work. The status below is
+evidence from the repository and CI runs, not a design assumption.
+
+### Verified
+
+- **Phase 1 storage adapter:** implemented and previously verified against the
+  real R2 bucket with PUT, HEAD, GET/read-back, LIST, immutable overwrite
+  protection, and DELETE checks.
+- **Phase 2 bootstrap:** implemented and previously verified with the
+  `data-latest` release artifacts. The bootstrap produced and read back the
+  expected R2 archive objects and manifests.
+- **Phase 3 dual publication:** merged to `main`. The daily Yahoo/NSE path and
+  Screener path have both been exercised with real source collection; the
+  production artifacts themselves were successfully generated.
+- **Daily Yahoo/NSE collection:** the latest real validation generated
+  `prices_archive.parquet` with 497 sessions and 3,751 series and completed
+  the production daily sync successfully. R2 publication in that validation
+  was blocked by endpoint configuration rather than source collection.
+- **Revision model:** implemented on the Phase-3 revision branch. Canonical
+  source objects are now content-addressed by SHA-256, with immutable revision
+  manifests and a mutable `current.json` pointer.
+- **Screener deep-history bootstrap:** implemented as a one-time manual
+  workflow requesting a 10-year window and merging the returned older
+  observations into the existing source-separated Screener store. The normal
+  daily Screener job remains unchanged.
+
+### Current validation state
+
+The current revision branch is still under validation and must not be merged
+until its regression gate is green.
+
+The latest V1 run exposed two test-contract defects in
+`tests/test_r2_dual_publication.py`: the tests still expected the former
+date-only object path, and one test modified a valid Parquet file by appending
+bytes, making it intentionally invalid Parquet before the publisher attempted
+to inspect it. These are test defects, not evidence that the revision archive
+model itself is broken. The tests have been corrected to assert revision
+paths and to create a second valid Parquet snapshot with changed data.
+
+The real Screener 10-year validation is being allowed to run independently
+because the full-universe acquisition is expected to be substantially slower
+than the normal daily collection. It is not being treated as a reason to
+redesign the daily pipeline.
+
+The intended acceptance sequence remains:
+
+```
+real Screener 10Y collection
+        ->
+merge with existing daily store
+        ->
+verify deep historical coverage
+        ->
+publish immutable R2 revision
+        ->
+read back and verify
+        ->
+merge/CI gate
+```
+
+The Yahoo revision validation follows the corresponding path:
+
+```
+real Yahoo/NSE collection
+        ->
+validated production artifact
+        ->
+SHA-256 content identity
+        ->
+immutable revision
+        ->
+manifest
+        ->
+current.json
+        ->
+read-back verification
+```
+
+### Next gates
+
+1. Complete the real Screener 10-year run without interruption.
+2. Complete real Yahoo revision publication after the R2 endpoint configuration
+   is valid.
+3. Run the corrected regression/V1 suite.
+4. Remove temporary validation workflows from the production PR before merge.
+5. Merge the revision/bootstrap implementation only after the production gate
+   is green.
+6. Execute the one-time production Screener 10-year bootstrap from the merged
+   workflow and verify the resulting R2 objects.
+7. Run subsequent normal daily Screener cycles to prove the older weekly
+   history is preserved.
+8. Run repeated Yahoo cycles to verify both new revisions and identical-retry
+   idempotency.
+9. Only after those gates, begin the R2 read-path/feature-flag work.
+
+No ranking formula, benchmark, universe methodology, or Stage-4 research
+methodology is changed by this archive work.
