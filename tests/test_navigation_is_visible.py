@@ -1,4 +1,4 @@
-"""The app must draw its own compact navigation trigger in the body, where it is visible.
+"""The app must draw its own compact navigation trigger in the header, where it is visible.
 
 `st.navigation(position="top")` renders the nav inside Streamlit's header, and
 this app hides that header outright (src/ui/theme.py):
@@ -86,14 +86,17 @@ def test_navigation_is_not_placed_in_the_hidden_header():
     )
     assert position == "hidden", (
         f"position={position!r}: the app must suppress Streamlit's own nav and "
-        f"draw its own compact popover trigger in the body, where its CSS does not hide it"
+        f"draw its own compact popover trigger inside the custom header"
     )
 
 
 def test_the_app_renders_one_page_link_per_page():
     src = _app_src()
-    assert "st.popover(" in src, "no compact navigation trigger is rendered"
-    assert 'key="app_nav_menu"' in src, "navigation popover has no stable key"
+    components = (ROOT / "src" / "ui" / "components.py").read_text(encoding="utf-8")
+    assert "st.popover(" in components, "no compact navigation trigger is rendered"
+    assert 'key="app_nav_menu"' in components, "navigation popover has no stable key"
+    assert "render_header_kpi_bar(" in src, "the app does not render the custom header"
+    assert "nav_pages=_PAGES" in src, "the hamburger is not attached to the header renderer"
 
 
 def test_every_page_is_reachable_from_the_rendered_navigation(offline_market_data):
@@ -137,10 +140,11 @@ def test_navigation_marks_the_current_page_inside_the_popover():
     checks the invariant those keys must satisfy.
     """
     src = _app_src()
-    assert "navon" in src and "navoff" in src, (
+    components = (ROOT / "src" / "ui" / "components.py").read_text(encoding="utf-8")
+    assert "navon" in components and "navoff" in components, (
         "the navigation no longer marks an active item"
     )
-    assert "_p is _nav" in src, (
+    assert "_p is active_page" in components, (
         "active detection must use identity: st.navigation returns one of the "
         "page objects it was passed, and attribute access on a page raises "
         "outside a script run"
@@ -148,7 +152,9 @@ def test_navigation_marks_the_current_page_inside_the_popover():
 
     theme = (ROOT / "src" / "ui" / "theme.py").read_text(encoding="utf-8")
     assert 'st-key-navon_' in theme, "nothing styles the active item"
-    assert ".st-key-app_nav_shell" in theme, "the navigation trigger is unstyled"
+    assert ".st-key-app_header_shell" in theme, "the header navigation shell is unstyled"
+    assert "nav_pages=_PAGES" in src, "the hamburger is not attached to the header renderer"
+    assert "active_page=_nav" in src, "the header renderer does not know the active page"
 
 
 def test_the_navigation_row_is_not_styled_by_a_generated_class_hash():

@@ -681,28 +681,6 @@ else:
     rank_df["TV_Industry"] = rank_df.get("Industry", "")
 
 
-# ── Top Header KPI Bar & Alerts ──────────────────────────────────────────────
-total_stocks = len(rank_df)
-
-above_ema = count_above_ema(rank_df)
-pct_above_ema = (above_ema / total_stocks * 100) if total_stocks > 0 else 0.0
-
-render_header_kpi_bar(
-    regime=regime_data,
-    total_stocks=total_stocks,
-    above_ema=above_ema,
-    pct_above_ema=pct_above_ema,
-)
-
-signals = compute_signals(
-    rank_df=rank_df,
-    regime_status=regime_data.status,
-    dma_dist=regime_data.distance_pct,
-    pct_above_ema=pct_above_ema,
-)
-render_signal_alerts(signals)
-
-
 # ── Navigation ───────────────────────────────────────────────────────────────
 # Keep the canonical page declarations and st.navigation router unchanged.
 # The only experiment here is the user-facing trigger: a compact popover
@@ -802,31 +780,29 @@ _PAGES = [
 # position="hidden" keeps Streamlit's own navigation out of the hidden header.
 _nav = st.navigation(_PAGES, position="hidden")
 
-with st.container(key="app_nav_shell", width="content"):
-    with st.popover(
-        "☰",
-        type="tertiary",
-        help="Open navigation",
-        width=320,
-        key="app_nav_menu",
-    ):
-        st.markdown("**Research**")
-        for _i, _p in enumerate(_PAGES[:5]):
-            _state = "navon" if _p is _nav else "navoff"
-            with st.container(key=f"{_state}_research_{_i}", width="stretch"):
-                st.page_link(_p)
+# ── Top Header KPI Bar & Alerts ──────────────────────────────────────────────
+total_stocks = len(rank_df)
 
-        st.markdown("**Monitoring**")
-        for _i, _p in enumerate(_PAGES[5:9]):
-            _state = "navon" if _p is _nav else "navoff"
-            with st.container(key=f"{_state}_monitoring_{_i}", width="stretch"):
-                st.page_link(_p)
+above_ema = count_above_ema(rank_df)
+pct_above_ema = (above_ema / total_stocks * 100) if total_stocks > 0 else 0.0
 
-        st.markdown("**System**")
-        for _i, _p in enumerate(_PAGES[9:]):
-            _state = "navon" if _p is _nav else "navoff"
-            with st.container(key=f"{_state}_system_{_i}", width="stretch"):
-                st.page_link(_p)
+render_header_kpi_bar(
+    regime=regime_data,
+    total_stocks=total_stocks,
+    above_ema=above_ema,
+    pct_above_ema=pct_above_ema,
+    nav_pages=_PAGES,
+    active_page=_nav,
+)
+
+signals = compute_signals(
+    rank_df=rank_df,
+    regime_status=regime_data.status,
+    dma_dist=regime_data.distance_pct,
+    pct_above_ema=pct_above_ema,
+)
+render_signal_alerts(signals)
+
 
 _nav.run()
 

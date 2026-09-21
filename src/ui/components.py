@@ -174,6 +174,8 @@ def render_header_kpi_bar(
     total_stocks: int,
     above_ema: int,
     pct_above_ema: float,
+    nav_pages: list | None = None,
+    active_page: object | None = None,
 ) -> None:
     """Renders ultra-minimalist, high-density executive status navbar."""
     regime_color = "#059669" if regime.status == MarketRegime.BULLISH else "#e11d48"
@@ -181,8 +183,8 @@ def render_header_kpi_bar(
     as_of_text, as_of_color = header_as_of()
 
     header_html = f"""
-    <div role="status" aria-label="Market status dashboard" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 14px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 9px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02); margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
-        <div style="display: flex; align-items: center; gap: 10px;">
+    <div role="status" aria-label="Market status dashboard" style="display: flex; align-items: center; gap: 10px; padding: 7px 4px 7px 12px; background-color: #ffffff; margin: 0; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 10px; min-width: 132px;">
             <div class="mac-dots-container" style="margin-bottom: 0;">
                 <span class="mac-dot mac-dot-red"></span>
                 <span class="mac-dot mac-dot-yellow"></span>
@@ -206,6 +208,37 @@ def render_header_kpi_bar(
         </div>
     </div>
     """
+
+    with st.container(key="app_header_shell", width="stretch"):
+        _header_cols = st.columns([1, 0.12], vertical_alignment="top", gap="small")
+        with _header_cols[0]:
+            st.html(header_html)
+        if nav_pages:
+            with _header_cols[1]:
+                with st.popover(
+                    "☰",
+                    type="tertiary",
+                    help="Open navigation",
+                    width=320,
+                    key="app_nav_menu",
+                ):
+                    st.markdown("**Research**")
+                    for _i, _p in enumerate(nav_pages[:5]):
+                        _state = "navon" if _p is active_page else "navoff"
+                        with st.container(key=f"{_state}_research_{_i}", width="stretch"):
+                            st.page_link(_p)
+
+                    st.markdown("**Monitoring**")
+                    for _i, _p in enumerate(nav_pages[5:9]):
+                        _state = "navon" if _p is active_page else "navoff"
+                        with st.container(key=f"{_state}_monitoring_{_i}", width="stretch"):
+                            st.page_link(_p)
+
+                    st.markdown("**System**")
+                    for _i, _p in enumerate(nav_pages[9:], start=9):
+                        _state = "navon" if _p is active_page else "navoff"
+                        with st.container(key=f"{_state}_system_{_i}", width="stretch"):
+                            st.page_link(_p)
     st.html(header_html)
 
 
