@@ -59,15 +59,15 @@ verification boxes remain **OPEN** until a real Actions run proves them.
 PR #49 (`R2 historical evidence bootstrap pipeline`) is the active Section-C
 implementation and must not be duplicated. Review identified four blockers that
 must be resolved before merge:
-1. undefined `last_evidence` in membership interval construction;
-2. current `nse_trading_days.json` contains only five confirmed sessions and
-   cannot be published as a complete historical session archive;
-3. `nse_market_caps.csv` is currently a single 2026-09-18 snapshot, not yet a
-   historical series;
-4. corporate-action evidence provenance/schema must satisfy the C5 contract,
-   including source and evidence URI/date where available;
-5. the PR workflow's historical-evidence test selector currently matches no
-   tests and must be replaced by executable Section-C coverage.
+1. membership interval evidence-date bug — fixed with deterministic latest-history evidence date;
+2. confirmed-session dataset is intentionally sparse and explicitly typed as
+   confirmed evidence, not a universal historical calendar;
+3. the current market-cap dataset is explicitly published as an initial
+   snapshot, not misrepresented as a historical series;
+4. corporate-action evidence now carries source, evidence URI, and evidence date;
+5. dedicated executable Section-C tests replaced the zero-match selector.
+
+V1 #546 passed with 1,217+ tests and all existing Stage-2/3/4B and Streamlit gates.
 
 No Yahoo raw-price rebuild is authorized by this tracker; it remains parked.
 
@@ -130,3 +130,28 @@ The current Screener 10Y workflow is a long-running acquisition and must not
 block Sections B–F. When it finishes, validate its real data as evidence; do
 not use its eventual green status as a substitute for object, manifest,
 coverage, and read-back verification.
+
+
+## Section-C publication state
+
+Section-C historical evidence bootstrap is merged. It publishes repository-maintained
+index constituent snapshots, point-in-time membership, confirmed-session evidence,
+an explicitly named NSE market-cap snapshot, and corporate-action evidence through
+the existing immutable R2 publisher.
+
+This is a **bootstrap evidence layer**, not a claim that all historical evidence
+domains are complete. In particular, confirmed trading sessions remain sparse until
+the broader observed-session archive is published from production price history, and
+market caps remain a snapshot until dated historical snapshots are accumulated.
+
+## Immediate next loop
+
+1. Execute the production Screener verification workflow against the real R2 bucket:
+   manifest/current/object/HEAD/SHA read-back, then an identical immutable retry, then
+   post-retry read-back.
+2. Publish the broader observed trading-session archive from the production price
+   history and retain the confirmed-session dataset as separate source evidence.
+3. Build/accumulate dated historical market-cap snapshots rather than treating the
+   2026-09-18 snapshot as a time series.
+4. Then implement R2 readers/consumer integration without introducing another
+   historical-data or ranking engine.
