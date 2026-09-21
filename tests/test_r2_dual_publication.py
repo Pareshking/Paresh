@@ -244,3 +244,83 @@ def test_publisher_retries_identical_revision_idempotently(tmp_path, monkeypatch
         release_tag="data-latest",
     )
     assert len(archive.keys) == before
+
+
+def test_r2_publisher_performs_post_publication_readback(monkeypatch, tmp_path):
+    from scripts import r2_publish
+
+    path = tmp_path / "prices.parquet"
+    pd.DataFrame(
+        {"Symbol": ["AAA"], "Close": [100.0]},
+        index=pd.to_datetime(["2026-09-19"]),
+    ).to_parquet(path)
+
+    class FakeArchive:
+        def __init__(self, _config):
+            self.keys = {}
+            self.verify_calls = []
+
+        def put_file(self, key, path, **_kwargs):
+            self.keys[key] = Path(path).read_bytes()
+
+        def put_bytes(self, key, body, **_kwargs):
+            self.keys[key] = body
+
+        def get_bytes(self, key):
+            return self.keys[key]
+
+        def verify_file(self, key, path):
+            self.verify_calls.append((key, str(path)))
+            assert self.keys[key] == Path(path).read_bytes()
+
+    archive = FakeArchive(None)
+    monkeypatch.setattr(r2_publish, "R2Archive", lambda _config: archive)
+    monkeypatch.setattr(r2_publish.R2Config, "from_env", classmethod(lambda cls: None))
+
+    r2_publish.publish(
+        path, dataset="prices/screener", source="screener",
+        key_root="archive/prices/screener", pipeline_version="test",
+        release_tag="data-latest",
+    )
+
+    assert len(archive.verify_calls) == 1
+    assert any("/revisions/" in key for key, _ in archive.verify_calls)
+
+
+def test_r2_publisher_fails_on_pointer_mismatch(monkeypatch, tmp_path):
+    from scripts import r2_publish
+
+    path = tmp_path / "prices.parquet"
+    pd.DataFrame(
+        {"Symbol": ["AAA"], "Close": [100.0]},
+        index=pd.to_datetime(["2026-09-19"]),
+    ).to_parquet(path)
+
+    class FakeArchive:
+        def __init__(self, _config):
+            self.keys = {}
+
+        def put_file(self, key, path, **_kwargs):
+            self.keys[key] = Path(path).read_bytes()
+
+        def put_bytes(self, key, body, **_kwargs):
+            if key.endswith("/current.json"):
+                body = body.replace(b'"revision_sha256":', b'"revision_sha256":"tampered","_original_revision_sha256":')
+            self.keys[key] = body
+
+        def get_bytes(self, key):
+            return self.keys[key]
+
+        def verify_file(self, key, path):
+            assert self.keys[key] == Path(path).read_bytes()
+
+    archive = FakeArchive(None)
+    monkeypatch.setattr(r2_publish, "R2Archive", lambda _config: archive)
+    monkeypatch.setattr(r2_publish.R2Config, "from_env", classmethod(lambda cls: None))
+
+    with pytest.raises(RuntimeError, match="current pointer verification failed"):
+        r2_publish.publish(
+            path, dataset="prices/screener", source="screener",
+            key_root="archive/prices/screener", pipeline_version="test",
+            release_tag="data-latest",
+        )
