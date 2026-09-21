@@ -77,11 +77,6 @@ class R2DatasetReader:
             f"archive/manifests/{dataset}/{as_of}/revisions/"
             f"{revision_sha256}.json"
         )
-        object_key = (
-            f"archive/{dataset}/{as_of}/revisions/"
-            f"{revision_sha256}/"
-            f"{dataset.rsplit('/', 1)[-1].replace('/', '_')}.parquet"
-        )
         manifest = self._load_manifest(manifest_key)
         self._validate_manifest(
             manifest,
@@ -89,6 +84,9 @@ class R2DatasetReader:
             as_of=as_of,
             revision_sha256=revision_sha256,
         )
+        object_key = str(manifest.get("object_key", ""))
+        if not object_key:
+            raise R2DatasetIntegrityError("manifest has no object_key")
         self._validate_object(object_key, manifest)
         return R2DatasetRef(
             dataset=dataset,
