@@ -35,9 +35,9 @@ jobs:
       - name: Verify fresh production artifacts
         run: |
           set -euo pipefail
-          test -f prices_full.parquet
-          test -f prices.parquet
-          ls -lh prices_full.parquet prices.parquet
+          test -f data_cache/prices_archive.parquet
+          test -f data_cache/prices_snapshot.parquet
+          ls -lh data_cache/prices_archive.parquet data_cache/prices_snapshot.parquet
 
       - name: Publish freshly synced Yahoo/application artifacts to R2
         env:
@@ -48,9 +48,9 @@ jobs:
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
           PYTHONPATH: .
         run: |
-          python scripts/r2_publish.py             --path prices_full.parquet             --dataset prices/yahoo             --source yahoo             --key-root archive/prices/yahoo             --pipeline-version "phase3-real-yahoo-${GITHUB_SHA}"             --release-tag phase3-real-validation
+          python scripts/r2_publish.py             --path data_cache/prices_archive.parquet             --dataset prices/yahoo             --source yahoo             --key-root archive/prices/yahoo             --pipeline-version "phase3-real-yahoo-${GITHUB_SHA}"             --release-tag phase3-real-validation
 
-          python scripts/r2_publish.py             --path prices.parquet             --dataset snapshots/application             --source application             --key-root snapshots/application             --pipeline-version "phase3-real-yahoo-${GITHUB_SHA}"             --release-tag phase3-real-validation
+          python scripts/r2_publish.py             --path data_cache/prices_snapshot.parquet             --dataset snapshots/application             --source application             --key-root snapshots/application             --pipeline-version "phase3-real-yahoo-${GITHUB_SHA}"             --release-tag phase3-real-validation
 
       - name: Verify fresh Yahoo/application R2 readback
         env:
@@ -69,8 +69,8 @@ jobs:
 
           archive = R2Archive(R2Config.from_env())
           for filename, dataset, root in [
-              ("prices_full.parquet", "prices/yahoo", "archive/prices/yahoo"),
-              ("prices.parquet", "snapshots/application", "snapshots/application"),
+              ("data_cache/prices_archive.parquet", "prices/yahoo", "archive/prices/yahoo"),
+              ("data_cache/prices_snapshot.parquet", "snapshots/application", "snapshots/application"),
           ]:
               path = Path(filename)
               d = describe_parquet(path)
