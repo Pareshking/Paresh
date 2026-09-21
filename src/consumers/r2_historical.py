@@ -32,8 +32,8 @@ def _as_date(value: Any) -> pd.Timestamp:
         raise R2HistoricalConsumerError(f"invalid as_of date: {value!r}") from exc
 
 
-def membership_from_frame(frame: pd.DataFrame, *, index: str, as_of: Any) -> set[str]:
-    """Return members whose archived interval contains as_of; fail closed."""
+def membership_from_frame(frame: pd.DataFrame, *, index: str, as_of: Any) -> set[str] | None:
+    """Return members whose archived interval contains as_of; unknown coverage returns None."""
     required = {"index", "symbol", "effective_from", "effective_to", "source", "evidence_date"}
     missing = required - set(frame.columns)
     if missing:
@@ -41,7 +41,7 @@ def membership_from_frame(frame: pd.DataFrame, *, index: str, as_of: Any) -> set
     target = _as_date(as_of)
     rows = frame.loc[frame["index"].astype(str) == str(index)].copy()
     if rows.empty:
-        return set()
+        return None
     rows["symbol"] = rows["symbol"].astype(str).str.strip().str.upper()
     rows["effective_from"] = pd.to_datetime(rows["effective_from"], errors="coerce").dt.normalize()
     rows["effective_to"] = pd.to_datetime(rows["effective_to"], errors="coerce").dt.normalize()
