@@ -35,7 +35,7 @@ work. The production 10Y run is checked separately when it completes.
 - [ ] Add a standalone archive-audit command for arbitrary dataset/date.
 - [ ] Add negative tests for pointer/manifest/object mismatch.
 - [ ] Add schema validation/version enforcement for archived datasets.
-- [ ] Add archive no-shrinkage/coverage audit tooling.
+- [x] Add archive no-shrinkage/coverage audit tooling.
 
 ## C. Historical evidence datasets — after publication hardening
 
