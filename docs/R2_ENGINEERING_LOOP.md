@@ -141,7 +141,7 @@ This is intentional: R2 acceptance is based on R2 evidence. SANSERA, ANANDRATHI,
 
 ## F. Operations / governance
 
-- [x] Archive inventory/audit report — read-only inventory tool and scheduled/manual R2 workflow added; live execution is the next operational evidence gate.
+- [x] Archive inventory/audit report — read-only inventory tool and scheduled/manual workflow live-verified successfully (Run ID 35642709261).
 - [ ] Coverage/continuity observability.
 - [ ] Failure/recovery tests.
 - [ ] Retention policy before any deletion mechanism.
