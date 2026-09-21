@@ -8,19 +8,20 @@ work. The production 10Y run is checked separately when it completes.
 
 ## A. Current production run — Screener 10Y
 
-- [ ] Real 10Y acquisition completes.
-- [ ] Confirm complete universe walk and unresolved-symbol count.
-- [ ] Confirm unsettled sessions are removed.
-- [ ] Record rows, symbols, min/max dates, and older-session coverage.
-- [ ] Confirm no historical shrinkage versus the pre-run store.
-- [ ] Confirm R2 revision object exists.
-- [ ] Confirm revision SHA-256.
-- [ ] Confirm immutable revision manifest exists and matches the object.
-- [ ] Confirm `current.json` points to that revision.
+- [x] Real 10Y acquisition completes — 750 symbols, 1,161 sessions, 2016-09-23 → 2026-09-21.
+- [x] Confirm complete universe walk and unresolved-symbol count — 0 unresolved.
+- [x] Confirm unsettled sessions are removed.
+- [x] Record rows, symbols, min/max dates, and older-session coverage — 750 symbols; 910 sessions older than 370 days.
+- [x] Confirm no historical shrinkage versus the pre-run store — 277,600 existing cells preserved; +913 sessions.
+- [x] Confirm R2 revision object exists.
+- [x] Confirm revision SHA-256 — `df03ed6d6fb9c8ca963c4f3fb3b73386c43e6f106cc9a3307d7b693cf80455dd`.
+- [x] Confirm immutable revision manifest exists.
+- [ ] Confirm immutable revision manifest matches the object via live read-back.
+- [ ] Confirm `current.json` points to that revision via live read-back.
 - [ ] Confirm R2 HEAD + byte/hash read-back.
-- [ ] Confirm release asset contains the exact published artifact.
-- [ ] Confirm release/R2 SHA-256 equality.
-- [ ] Run an identical retry/idempotency check.
+- [x] Confirm release asset contains the exact published artifact by SHA equality.
+- [x] Confirm release/R2 SHA-256 equality — `df03ed6d6fb9c8ca963c4f3fb3b73386c43e6f106cc9a3307d7b693cf80455dd`.
+- [ ] Run an identical retry/idempotency check against the live publication.
 - [ ] Record final evidence in the run summary.
 
 ## B. R2 publication integrity — do now, independent of Screener
@@ -32,10 +33,10 @@ work. The production 10Y run is checked separately when it completes.
 - [x] Current pointer is explicit.
 - [x] Object PUT/HEAD/GET/SHA verification exists.
 - [x] Publisher now re-reads and verifies object + manifest + current pointer.
-- [ ] Add a standalone archive-audit command for arbitrary dataset/date.
-- [ ] Add negative tests for pointer/manifest/object mismatch.
-- [ ] Add schema validation/version enforcement for archived datasets.
-- [ ] Add archive no-shrinkage/coverage audit tooling.
+- [x] Standalone archive-audit command for arbitrary dataset/date.
+- [x] Negative tests for pointer/manifest/object mismatch.
+- [x] Schema validation/version enforcement for archived datasets.
+- [x] Archive no-shrinkage/coverage audit tooling, including interior-session continuity.
 
 ## C. Historical evidence datasets — after publication hardening
 
