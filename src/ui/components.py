@@ -180,10 +180,8 @@ def render_header_kpi_bar(
     """Renders ultra-minimalist, high-density executive status navbar."""
     regime_color = "#059669" if regime.status == MarketRegime.BULLISH else "#e11d48"
     dma_color = "#059669" if regime.distance_pct >= 0 else "#e11d48"
-    as_of_text, as_of_color = header_as_of()
-
     header_html = f"""
-    <div role="status" aria-label="Market status dashboard" style="display: flex; align-items: center; gap: 10px; padding: 7px 4px 7px 12px; background-color: #ffffff; margin: 0; flex-wrap: wrap;">
+    <div role="status" aria-label="Market status dashboard" style="display: flex; align-items: center; gap: 10px; padding: 7px 54px 7px 12px; background-color: #ffffff; margin: 0; flex-wrap: wrap;">
         <div style="display: flex; align-items: center; gap: 10px; min-width: 132px;">
             <div class="mac-dots-container" style="margin-bottom: 0;">
                 <span class="mac-dot mac-dot-red"></span>
@@ -203,19 +201,15 @@ def render_header_kpi_bar(
             <span style="color: #475569;">Universe: <strong style="color: #0f172a;">{total_stocks}</strong></span>
             <span style="color: #cbd5e1;">|</span>
             <span style="color: #475569;">&gt;50 EMA: <strong style="color: #059669;">{above_ema} ({pct_above_ema:.0f}%)</strong></span>
-            <span style="color: #cbd5e1;">|</span>
-            <span style="color: {as_of_color}; font-weight: 600;">📅 {as_of_text}</span>
+
         </div>
     </div>
     """
 
     with st.container(key="app_header_shell", width="stretch"):
-        _header_cols = st.columns([1, 0.12], vertical_alignment="top", gap="small")
-        with _header_cols[0]:
-            st.html(header_html)
+        st.html(header_html)
         if nav_pages:
-            with _header_cols[1]:
-                with st.popover(
+            with st.popover(
                     "☰",
                     type="tertiary",
                     help="Open navigation",
