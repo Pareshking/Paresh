@@ -140,10 +140,11 @@ def test_navigation_marks_the_current_page_inside_the_popover():
     checks the invariant those keys must satisfy.
     """
     src = _app_src()
-    assert "navon" in src and "navoff" in src, (
+    components = (ROOT / "src" / "ui" / "components.py").read_text(encoding="utf-8")
+    assert "navon" in components and "navoff" in components, (
         "the navigation no longer marks an active item"
     )
-    assert "_p is _nav" in src, (
+    assert "_p is active_page" in components, (
         "active detection must use identity: st.navigation returns one of the "
         "page objects it was passed, and attribute access on a page raises "
         "outside a script run"
