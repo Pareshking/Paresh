@@ -105,6 +105,32 @@ jobs:
           gh release upload data-latest "$STORE" --repo "$GITHUB_REPOSITORY" --clobber
           echo "Uploaded screener_prices.parquet."
 
+      # Dual-publish the exact store that just went to the rolling GitHub
+      # Release. This keeps Screener as a distinct source dataset; it is never
+      # merged with Yahoo values.
+      - name: Publish validated Screener dataset to R2
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          STORE="data_cache/screener_prices.parquet"
+          if [ ! -f "$STORE" ]; then
+            echo "::error::Screener release artifact is missing; refusing to mark R2 dual publication complete."
+            exit 1
+          fi
+          python scripts/r2_publish.py \
+            --path "$STORE" \
+            --dataset prices/screener \
+            --source screener \
+            --key-root archive/prices/screener \
+            --pipeline-version "r2-screener-${GITHUB_SHA}" \
+            --release-tag data-latest
+
       # The id map is the only thing that belongs in the repo: it is small,
       # stable, and re-deriving it would double every night's request count.
       - name: Commit the company id map

@@ -204,6 +204,57 @@ jobs:
             echo "::warning::No precomputed ranking was produced; the app will compute it."
           fi
 
+      # The same validated artifacts published to the rolling GitHub Release are
+      # also published to the durable R2 archive. R2 publication is immutable:
+      # a retry verifies an existing identical object rather than replacing it.
+      # A missing critical artifact is a hard failure -- the run must not claim
+      # dual publication when only one side was written.
+      - name: Publish validated datasets to R2
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+
+          for required in prices.parquet prices_full.parquet; do
+            if [ ! -f "$required" ]; then
+              echo "::error::Required dual-publication artifact missing: $required"
+              exit 1
+            fi
+          done
+
+          python scripts/r2_publish.py \
+            --path prices_full.parquet \
+            --dataset prices/yahoo \
+            --source yahoo \
+            --key-root archive/prices/yahoo \
+            --pipeline-version "r2-daily-${GITHUB_SHA}" \
+            --release-tag data-latest
+
+          python scripts/r2_publish.py \
+            --path prices.parquet \
+            --dataset snapshots/application \
+            --source application \
+            --key-root snapshots/application \
+            --pipeline-version "r2-daily-${GITHUB_SHA}" \
+            --release-tag data-latest
+
+          if [ -f rankings.parquet ]; then
+            python scripts/r2_publish.py \
+              --path rankings.parquet \
+              --dataset snapshots/rankings \
+              --source system1 \
+              --key-root snapshots/rankings \
+              --pipeline-version "r2-daily-${GITHUB_SHA}" \
+              --release-tag data-latest
+          else
+            echo "::warning::No rankings.parquet produced; no ranking snapshot to dual-publish."
+          fi
+
       # Flag corporate actions sitting in the price history as price moves.
       # NSE's circuit limits make a -50% session impossible as an actual move,
       # so anything past the threshold is a split, bonus or demerger -- and a
