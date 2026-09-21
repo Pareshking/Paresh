@@ -66,11 +66,7 @@ Current expected production evidence:
 - as_of: `2026-09-21`
 - SHA-256: `df03ed6d6fb9c8ca963c4f3fb3b73386c43e6f106cc9a3307d7b693cf80455dd`
 
-The workflow has been committed and its contract is covered by
-`tests/test_r2_production_verification.py`, but its execution result is not yet verified in
-this engineering session because the available GitHub action interface does not
-expose manual workflow dispatch/list-all-runs. Therefore the Section-A live
-verification boxes remain **OPEN** until a real Actions run proves them.
+The workflow has been executed against the real R2 object. Production verification run #1 / Run ID 35635710984 passed manifest/current/object/HEAD/SHA read-back, identical immutable retry, and post-retry verification.
 
 ## Section-C coordination
 
@@ -163,10 +159,7 @@ coverage, and read-back verification.
 
 ## Section-C publication state
 
-Section-C bootstrap is merged. The broader observed-session archive is now live-
-verified. Dated market-cap history is implemented and published by a main-branch
-workflow, but its live R2 result has not yet been independently recorded in this
-tracker. Therefore the market-cap publication gate remains open.
+Section-C bootstrap is merged. The broader observed-session archive and dated market-cap history are both live-verified.
 
 The sparse confirmed-session dataset remains separate from observed sessions. It is
 source evidence, not a complete exchange calendar. The observed dataset records
@@ -177,8 +170,7 @@ contract for archive continuity/read-coverage checks.
 
 1. ~~Verify the live R2 publication of `market_caps/nse_history`: object, manifest,~~ **DONE** — live publication/read-back verified in Run #2 / 35638464074.
    current pointer, HEAD/SHA read-back, and coverage/uniqueness evidence.
-2. Close Section-C only after the market-cap gate and required consumer acceptance
-   tests are green; raw source evidence remains a separate C6 decision.
+2. Close Section-C only after the remaining consumer acceptance tests are green; raw source evidence remains a separate C6 decision.
 3. Start the R2 consumer layer: a generic read adapter, manifest-pinned research /
    backtest access, then a Streamlit read path behind a feature flag with a proven
    release/local fallback.
