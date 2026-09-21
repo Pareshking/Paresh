@@ -155,13 +155,20 @@ _CARD_CSS = """
 .sq-chips{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;}
 .sq-chip{font-size:.62rem;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid;white-space:nowrap;}
 .sq-chip-n50{background:#ede9fe;color:#5b21b6;border-color:#ddd6fe;}
-.sq-chip-n500{background:#ecfdf5;color:#065f46;border-color:#bbf7d0;}
+.sq-chip-nn50{background:#f3e8ff;color:#7e22ce;border-color:#e9d5ff;}
 .sq-chip-mid{background:#fff7ed;color:#9a3412;border-color:#fed7aa;}
 .sq-chip-sm{background:#fef9c3;color:#713f12;border-color:#fde68a;}
+.sq-chip-micro{background:#fef2f2;color:#991b1b;border-color:#fecaca;}
 .sq-chip-other{background:#f1f5f9;color:#475569;border-color:#e2e8f0;}
-.sq-score-wrap{height:4px;background:#e2e8f0;border-radius:4px;margin-bottom:4px;overflow:hidden;}
-.sq-score-bar{height:4px;background:linear-gradient(90deg,#4f46e5,#059669);border-radius:4px;}
-.sq-score-lbl{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:#94a3b8;margin-bottom:9px;}
+.sq-range-wrap{position:relative;margin:7px 0 10px;padding-top:7px;}
+.sq-range-track{height:6px;background:#e2e8f0;border-radius:999px;position:relative;overflow:visible;}
+.sq-range-fill{height:6px;background:linear-gradient(90deg,#4f46e5,#059669);border-radius:999px 0 0 999px;}
+.sq-range-current{position:absolute;top:50%;width:10px;height:10px;border-radius:50%;background:#059669;border:2px solid #ffffff;box-shadow:0 0 0 1px #059669;transform:translate(-50%,-50%);z-index:3;}
+.sq-range-20{position:absolute;top:-6px;width:1px;height:18px;background:#d97706;border-left:1px dashed #d97706;z-index:2;}
+.sq-range-20-label{position:absolute;top:-19px;transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:.52rem;font-weight:800;color:#b45309;white-space:nowrap;}
+.sq-range-labels{display:flex;justify-content:space-between;gap:6px;margin-top:5px;font-family:'JetBrains Mono',monospace;font-size:.54rem;color:#94a3b8;}
+.sq-range-labels span{white-space:nowrap;}
+.sq-range-current-label{color:#059669;font-weight:800;}
 .sq-metrics{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:2px;
   border-top:1px solid #f1f5f9;padding-top:9px;margin-bottom:9px;}
 .sq-metric{text-align:center;}
@@ -178,21 +185,23 @@ _CARD_CSS = """
 
 
 def _idx_chips_html(indices_raw: str) -> str:
-    """Build index chip HTML for a raw comma-separated Indices string."""
-    chips = ""
+    """Build exact short-form index chips from the canonical Indices tags."""
+    chip_classes = {
+        "N50": "sq-chip-n50",
+        "NN50": "sq-chip-nn50",
+        "MID150": "sq-chip-mid",
+        "SMALL250": "sq-chip-sm",
+        "MICRO250": "sq-chip-micro",
+    }
+    chips = []
     for part in str(indices_raw or "").split(","):
-        s = part.strip()
-        if not s or s == "—":
-            continue
-        if "50" in s and "500" not in s:
-            chips += '<span class="sq-chip sq-chip-n50">N50</span>'
-        elif "500" in s:
-            chips += '<span class="sq-chip sq-chip-n500">N500</span>'
-        elif "MIDCAP" in s.upper():
-            chips += '<span class="sq-chip sq-chip-mid">MID</span>'
-        elif "SMALLCAP" in s.upper():
-            chips += '<span class="sq-chip sq-chip-sm">SM</span>'
-    return chips
+        tag = part.strip().upper()
+        css_class = chip_classes.get(tag)
+        if css_class:
+            chips.append(
+                f'<span class="sq-chip {css_class}">{tag}</span>'
+            )
+    return "".join(chips)
 
 
 def _card_html(row: pd.Series) -> str:
@@ -249,16 +258,46 @@ def _card_html(row: pd.Series) -> str:
         ind_s = industry[:10] + "…" if len(industry) > 11 else industry
         chips_html = f'<span class="sq-chip sq-chip-other">{ind_s}</span>'
 
-    # Score bar
-    score_pct = 0
-    score_label = "—"
-    if score is not None and pd.notna(score):
-        score_pct = int(max(0, min(100, float(score) * 100)))
-        score_label = f"{float(score):.3f}"
-    bar_html = (
-        f'<div class="sq-score-wrap"><div class="sq-score-bar" style="width:{score_pct}%"></div></div>'
-        f'<div class="sq-score-lbl">Score {score_label}</div>'
-    )
+    # 52-week price range bar — current CMP fills the range from 52W low to 52W high.
+    # The range values are attached by _attach_52w_range() using the canonical
+    # 252-trading-session window. The amber marker is 20% below the 52W high.
+    hi_52 = row.get("_52W High")
+    lo_52 = row.get("_52W Low")
+    current_pos = row.get("_52W Position")
+    marker_pos = row.get("_52W 20% Marker")
+    if (
+        pd.notna(hi_52) and pd.notna(lo_52)
+        and pd.notna(current_pos) and float(hi_52) > float(lo_52)
+    ):
+        fill_pct = max(0.0, min(100.0, float(current_pos)))
+        marker_pct = max(0.0, min(100.0, float(marker_pos))) if pd.notna(marker_pos) else None
+        marker_html = (
+            f'<div class="sq-range-20" style="left:{marker_pct:.2f}%;">'
+            f'<span class="sq-range-20-label">−20%</span></div>'
+            if marker_pct is not None else ""
+        )
+        bar_html = (
+            '<div class="sq-range-wrap">'
+            '<div class="sq-range-track">'
+            f'<div class="sq-range-fill" style="width:{fill_pct:.2f}%"></div>'
+            f'{marker_html}'
+            f'<div class="sq-range-current" style="left:{fill_pct:.2f}%;" '
+            f'title="Current ₹{cmp_val:,.0f} · {fill_pct:.1f}% of 52W range"></div>'
+            '</div>'
+            '<div class="sq-range-labels">'
+            f'<span>₹{float(lo_52):,.0f}</span>'
+            f'<span class="sq-range-current-label">Current {fill_pct:.0f}%</span>'
+            f'<span>₹{float(hi_52):,.0f}</span>'
+            '</div>'
+            '</div>'
+        )
+    else:
+        bar_html = (
+            '<div class="sq-range-wrap">'
+            '<div class="sq-range-track"></div>'
+            '<div class="sq-range-labels"><span>52W Low —</span><span>52W High —</span></div>'
+            '</div>'
+        )
 
     # Metrics
     def _fmt_pct(v, scale=100):
@@ -320,6 +359,56 @@ def _card_html(row: pd.Series) -> str:
         + footer_html
         + '</div>'
     )
+
+
+def _attach_52w_range(
+    view: pd.DataFrame,
+    high_prices: pd.DataFrame | None,
+    low_prices: pd.DataFrame | None,
+) -> pd.DataFrame:
+    """Attach the 52-week high/low and current-range position for card rendering."""
+    out = view.copy()
+    out["_52W High"] = pd.NA
+    out["_52W Low"] = pd.NA
+    out["_52W Position"] = pd.NA
+    out["_52W 20% Marker"] = pd.NA
+
+    if high_prices is None or low_prices is None:
+        return out
+
+    # The application defines a trading year as 252 sessions. Use the latest
+    # 252 observations available for each symbol, not calendar-day arithmetic.
+    for idx, row in out.iterrows():
+        symbol = str(row.get("Symbol", "")).strip()
+        if not symbol or symbol not in high_prices.columns or symbol not in low_prices.columns:
+            continue
+        highs = high_prices[symbol].dropna().sort_index().tail(252)
+        lows = low_prices[symbol].dropna().sort_index().tail(252)
+        if highs.empty or lows.empty:
+            continue
+
+        hi = float(highs.max())
+        lo = float(lows.min())
+        if not (pd.notna(hi) and pd.notna(lo) and hi > lo):
+            continue
+
+        cmp_val = row.get("CMP")
+        if cmp_val is None or pd.isna(cmp_val):
+            continue
+
+        current = float(cmp_val)
+        position = (current - lo) / (hi - lo) * 100.0
+
+        # "20% from 52W high" means the price level 20% below the high.
+        marker_price = hi * 0.80
+        marker = (marker_price - lo) / (hi - lo) * 100.0
+
+        out.at[idx, "_52W High"] = hi
+        out.at[idx, "_52W Low"] = lo
+        out.at[idx, "_52W Position"] = position
+        out.at[idx, "_52W 20% Marker"] = marker
+
+    return out
 
 
 def _render_card_grid(view: pd.DataFrame) -> None:
@@ -687,7 +776,7 @@ def render_ranking_view(
             view, prices_df=adj_close, density=density_mode
         )
     else:
-        _render_card_grid(view)
+        _render_card_grid(_attach_52w_range(view, high_prices, low_prices))
 
     # Export EVERY column the ranking carries, not just the ones on screen.
     # DISPLAY_COLS is a screen-layout decision -- it drops Score, the raw
