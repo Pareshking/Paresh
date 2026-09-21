@@ -704,20 +704,10 @@ render_signal_alerts(signals)
 
 
 # ── Navigation ───────────────────────────────────────────────────────────────
-# `st.tabs` executed ALL ELEVEN tab bodies on every rerun. That is Streamlit's
-# documented behaviour, not a defect, but it made every click cost eleven pages
-# of Python (~1.0s measured, charts stubbed) and put every tab's widgets in one
-# DOM at once -- fourteen sliders from four different tabs were readable in a
-# single production frame.
-#
-# `st.navigation` runs ONLY the selected page. The trade is that Streamlit now
-# discards widget state for every page the reader is not looking at, so each
-# keyed widget must carry an explicit value and, where the choice should
-# survive, a mirror key. See src/ui/widget_state.py and the README.
-#
-# Each page is a zero-argument closure over the data loaded above: `st.Page`
-# takes a callable with no parameters, and the pipeline is shared by every page
-# because the entrypoint runs before the selected page does.
+# Keep the canonical page declarations and st.navigation router unchanged.
+# The only experiment here is the user-facing trigger: a compact popover
+# replaces the permanent eleven-item navigation row.
+
 
 
 def _page_screener() -> None:
@@ -809,47 +799,36 @@ _PAGES = [
     st.Page(_page_guide, title="Guide", url_path="guide"),
 ]
 
-# position="hidden": Streamlit draws NO navigation of its own, and the app
-# draws its own row below. This is not a preference.
-#
-# `position="top"` renders the nav INSIDE Streamlit's header, and
-# src/ui/theme.py:240 hides that header outright:
-#
-#     header, [data-testid="stHeader"], .stApp > header { display: none !important; }
-#
-# so the nav shipped in the DOM with display:none. The app was left with no way
-# to reach ten of its eleven pages, and because hidden elements contribute no
-# text, the QA probe saw a healthy shell with no navigation and no page names --
-# which is exactly what it reported. Test:
-# tests/test_navigation_is_visible.py.
-#
-# Drawing it here also puts it back where the tab strip was, under the header
-# KPI bar, instead of above it in the chrome.
+# position="hidden" keeps Streamlit's own navigation out of the hidden header.
 _nav = st.navigation(_PAGES, position="hidden")
 
-with st.container(horizontal=True, wrap=True, gap="small", key="app_nav"):
-    for _i, _p in enumerate(_PAGES):
-        # The ACTIVE item is marked here, in Python, not in CSS. Streamlit
-        # styles the current page link through an emotion prop with no stable
-        # attribute -- no aria-current, no class worth targeting -- so the only
-        # selector available would be a generated class hash that changes
-        # between versions. `st.navigation` returns one of the very objects it
-        # was passed (navigation.py resolves `matching_pages[0]` from the list),
-        # so identity is exact and needs no attribute access; reading `.title`
-        # here raised AttributeError whenever app.py was imported outside a
-        # script run.
-        _state = "navon" if _p is _nav else "navoff"
-        # width="content" is load-bearing, not decoration. st.container defaults
-        # to width="stretch", so each of these per-item wrappers claimed the
-        # full column width and only two pills fitted per row -- eleven items
-        # became a six-row, ~500px block above the content on a phone. Hugging
-        # the label lets them pack.
-        with st.container(key=f"{_state}_{_i}", width="content"):
-            # No explicit label: st.page_link takes the page's own title.
-            st.page_link(_p)
+with st.container(key="app_nav_shell", width="content"):
+    with st.popover(
+        "☰",
+        type="tertiary",
+        help="Open navigation",
+        width=320,
+        key="app_nav_menu",
+    ):
+        st.markdown("**Research**")
+        for _i, _p in enumerate(_PAGES[:5]):
+            _state = "navon" if _p is _nav else "navoff"
+            with st.container(key=f"{_state}_research_{_i}", width="stretch"):
+                st.page_link(_p)
+
+        st.markdown("**Monitoring**")
+        for _i, _p in enumerate(_PAGES[5:9]):
+            _state = "navon" if _p is _nav else "navoff"
+            with st.container(key=f"{_state}_monitoring_{_i}", width="stretch"):
+                st.page_link(_p)
+
+        st.markdown("**System**")
+        for _i, _p in enumerate(_PAGES[9:]):
+            _state = "navon" if _p is _nav else "navoff"
+            with st.container(key=f"{_state}_system_{_i}", width="stretch"):
+                st.page_link(_p)
 
 _nav.run()
-
 
 # ── Cold-start telemetry ─────────────────────────────────────────────────────
 # Hidden, inert element carrying this process's startup measurements so a
