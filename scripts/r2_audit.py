@@ -11,6 +11,7 @@ import argparse
 import json
 from typing import Any
 
+from src.storage.manifest import MANIFEST_SCHEMA_VERSION
 from src.storage.r2 import R2Archive, R2Config
 
 
@@ -34,11 +35,14 @@ def audit(*, dataset: str, as_of: str) -> dict[str, Any]:
     manifest = json.loads(archive.get_bytes(manifest_key).decode("utf-8"))
 
     for field in (
-        "dataset", "as_of", "source", "size_bytes", "sha256",
+        "dataset", "as_of", "source", "schema_version", "size_bytes", "sha256",
         "object_key", "revision_sha256",
     ):
         if field not in manifest:
             raise RuntimeError(f"manifest missing {field}: {manifest_key}")
+
+    if int(manifest["schema_version"]) != MANIFEST_SCHEMA_VERSION:
+        raise RuntimeError("unsupported manifest schema version")
 
     for field in ("dataset", "as_of", "source", "revision_sha256", "object_key"):
         if current[field] != manifest[field]:
