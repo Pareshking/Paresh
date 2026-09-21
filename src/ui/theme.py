@@ -380,6 +380,7 @@ def inject_custom_css() -> None:
            Keep the trigger intentionally small; the full navigation only
            exists in the floating popover when the reader asks for it. */
         .st-key-app_header_shell {
+            position: relative !important;
             margin-bottom: 6px !important;
             min-height: 0 !important;
             padding: 0 !important;
@@ -390,11 +391,16 @@ def inject_custom_css() -> None:
             overflow: visible !important;
         }
 
-        .st-key-app_header_shell [data-testid="column"]:last-child {
-            flex: 0 0 auto !important;
-            width: auto !important;
-            min-width: 42px !important;
-            padding-right: 6px !important;
+        /* Keep the Streamlit popover out of normal flow so mobile flex
+           stacking cannot move it underneath the header. */
+        .st-key-app_header_shell .st-key-app_nav_menu {
+            position: absolute !important;
+            top: 8px !important;
+            right: 7px !important;
+            z-index: 20 !important;
+            width: 38px !important;
+            min-width: 38px !important;
+            margin: 0 !important;
         }
 
         .st-key-app_nav_menu button {
