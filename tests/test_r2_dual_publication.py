@@ -337,3 +337,11 @@ def test_screener_10y_bootstrap_audits_r2_after_publication():
     run = str(step["run"])
     assert "scripts/r2_audit.py" in run
     assert "--dataset prices/screener" in run
+
+
+def test_r2_live_archive_audit_workflow_is_read_only_and_targets_screener():
+    steps = _steps("r2_archive_audit.yml")
+    run = str(next(s for s in steps if s.get("name") == "Audit latest Screener R2 publication")["run"])
+    assert "scripts/r2_audit.py --dataset prices/screener" in run
+    env = next(s for s in steps if s.get("name") == "Audit latest Screener R2 publication")["env"]
+    assert "R2_SECRET_ACCESS_KEY" in env
