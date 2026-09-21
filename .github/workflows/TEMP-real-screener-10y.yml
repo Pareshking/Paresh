@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - ".github/workflows/TEMP-real-screener-10y.yml"
+  pull_request:
 
 permissions:
   contents: write
