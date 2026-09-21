@@ -8,6 +8,10 @@
 
 ---
 
+### Current R2 verification state
+
+The R2 archive has passed live publication/read-back for the production Screener price archive, observed trading sessions, and dated market-cap history. The manifest-pinned `R2DatasetReader` is now validated by focused R2 CI. These are infrastructure gates and remain independent of Stage-4B research execution.
+
 ## R2 / stock-research boundary — non-negotiable
 
 R2 is a **separate implementation track** from the stock-research system (System-1, Stage-2/3, and Stage-4B). R2 provides durable historical-data storage and reproducible data access; it does not implement or validate the stock-ranking/research methodology.
