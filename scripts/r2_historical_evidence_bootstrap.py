@@ -101,7 +101,7 @@ def _membership_intervals(history: dict[str, Any]) -> pd.DataFrame:
                 "effective_from": starts[symbol].isoformat(),
                 "effective_to": None,
                 "source": "repository membership history",
-                "evidence_date": _sync_date(),
+                "evidence_date": last_evidence.isoformat(),
             }
         )
 
