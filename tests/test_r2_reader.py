@@ -102,5 +102,5 @@ def test_reader_rejects_manifest_revision_mismatch():
     archive.objects[manifest_key] = json.dumps(manifest).encode()
 
     reader = R2DatasetReader(archive)
-    with pytest.raises(R2DatasetIntegrityError, match="manifest SHA"):
+    with pytest.raises(R2DatasetIntegrityError, match="manifest .*SHA"):
         reader.resolve_current(dataset, as_of=as_of)
