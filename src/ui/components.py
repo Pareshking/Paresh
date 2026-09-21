@@ -210,7 +210,7 @@ def render_header_kpi_bar(
     """
 
     with st.container(key="app_header_shell", width="stretch"):
-        _header_cols = st.columns([1, "auto"], vertical_alignment="top", gap="small")
+        _header_cols = st.columns([1, 0.12], vertical_alignment="top", gap="small")
         with _header_cols[0]:
             st.html(header_html)
         if nav_pages:
