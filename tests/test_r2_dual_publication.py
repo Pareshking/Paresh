@@ -324,3 +324,16 @@ def test_r2_publisher_fails_on_pointer_mismatch(monkeypatch, tmp_path):
             key_root="archive/prices/screener", pipeline_version="test",
             release_tag="data-latest",
         )
+
+
+def test_screener_10y_bootstrap_audits_r2_after_publication():
+    steps = _steps("screener_10y_bootstrap.yml")
+    names = [str(step.get("name", "")) for step in steps]
+    publish = names.index("Publish deep Screener history to R2")
+    audit = names.index("Audit published R2 Screener revision")
+    release = names.index("Publish deep Screener history to release")
+    assert publish < audit < release
+    step = steps[audit]
+    run = str(step["run"])
+    assert "scripts/r2_audit.py" in run
+    assert "--dataset prices/screener" in run
