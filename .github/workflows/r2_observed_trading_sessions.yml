@@ -1,0 +1,89 @@
+name: R2 observed trading-session publication
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/build_trading_sessions.py"
+      - "tests/test_build_trading_sessions.py"
+      - ".github/workflows/r2_observed_trading_sessions.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Download production Screener release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/r2-observed
+          gh release download data-latest \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "screener_prices.parquet" \
+            --dir /tmp/r2-observed \
+            --clobber
+          test -s /tmp/r2-observed/screener_prices.parquet
+
+      - name: Build observed trading-session archive
+        run: |
+          python scripts/build_trading_sessions.py \
+            --prices /tmp/r2-observed/screener_prices.parquet \
+            --output /tmp/r2-observed/trading_sessions_observed.parquet
+
+      - name: Validate observed-session coverage
+        run: |
+          python - <<'PY'
+          import pandas as pd
+
+          path = "/tmp/r2-observed/trading_sessions_observed.parquet"
+          frame = pd.read_parquet(path)
+          assert len(frame) >= 1000, f"unexpectedly small session archive: {len(frame)}"
+          assert frame["date"].is_monotonic_increasing
+          assert frame["date"].is_unique
+          assert frame["is_session"].all()
+          assert frame["market"].eq("NSE").all()
+          print(f"OBSERVED_SESSION_COUNT={len(frame)}")
+          print(f"OBSERVED_FIRST={frame['date'].min().date()}")
+          print(f"OBSERVED_LAST={frame['date'].max().date()}")
+          PY
+
+      - name: Publish observed sessions to R2
+        run: |
+          python scripts/r2_publish.py \
+            --path /tmp/r2-observed/trading_sessions_observed.parquet \
+            --dataset trading_sessions/observed \
+            --source production_price_archive \
+            --key-root archive/trading_days/observed \
+            --pipeline-version "r2_observed_sessions_${{ github.sha }}" \
+            --release-tag data-latest
+
+      - name: Audit published observed sessions
+        run: |
+          AS_OF="$(python - <<'PY'
+          import pandas as pd
+          print(pd.read_parquet("/tmp/r2-observed/trading_sessions_observed.parquet")["date"].max().date())
+          PY
+          )"
+          python scripts/r2_audit.py --dataset trading_sessions/observed --as-of "$AS_OF"
