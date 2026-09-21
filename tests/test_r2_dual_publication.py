@@ -344,3 +344,31 @@ def test_r2_live_archive_audit_workflow_is_read_only_and_targets_screener():
     step = next(s for s in steps if s.get("name") == "Audit latest Screener R2 publication")
     assert "scripts/r2_audit.py --dataset prices/screener" in str(step["run"])
     assert "R2_SECRET_ACCESS_KEY" in step["env"]
+
+
+def test_historical_evidence_membership_intervals_are_point_in_time():
+    from scripts.r2_historical_evidence_bootstrap import _membership_intervals
+
+    frame = _membership_intervals({
+        "index": "NIFTY TOTAL MARKET",
+        "baseline": {"date": "2026-01-01", "symbols": ["AAA", "BBB"]},
+        "changes": [
+            {"date": "2026-02-01", "added": ["CCC"], "removed": ["AAA"]},
+            {"date": "2026-03-01", "added": ["AAA"], "removed": ["BBB"]},
+        ],
+    })
+    aaa = frame[frame.symbol == "AAA"].sort_values("effective_from")
+    assert list(aaa.effective_from) == ["2026-01-01", "2026-03-01"]
+    assert list(aaa.effective_to) == ["2026-01-31", None]
+    assert set(frame[frame.effective_to.isna()].symbol) == {"AAA", "CCC"}
+
+
+def test_historical_evidence_rejects_invalid_membership_removal():
+    from scripts.r2_historical_evidence_bootstrap import _membership_intervals
+
+    with pytest.raises(RuntimeError, match="removal without active start"):
+        _membership_intervals({
+            "index": "NIFTY TOTAL MARKET",
+            "baseline": {"date": "2026-01-01", "symbols": ["AAA"]},
+            "changes": [{"date": "2026-02-01", "added": [], "removed": ["BBB"]}],
+        })
