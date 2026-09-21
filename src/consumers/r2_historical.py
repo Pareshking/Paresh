@@ -51,13 +51,17 @@ def membership_from_frame(frame: pd.DataFrame, *, index: str, as_of: Any) -> set
     if rows["symbol"].eq("").any():
         raise R2HistoricalConsumerError("membership contains an empty symbol")
     active = rows[(rows["effective_from"] <= target) & (rows["effective_to"].isna() | (rows["effective_to"] >= target))]
+    if active.empty:
+        # No interval covering the requested date is unknown historical coverage,
+        # not an empty index. Never turn missing evidence into a valid empty universe.
+        return None
     duplicates = active["symbol"][active["symbol"].duplicated()].tolist()
     if duplicates:
         raise R2HistoricalConsumerError("multiple active membership intervals: " + ", ".join(sorted(set(duplicates))))
     return set(active["symbol"])
 
 
-def read_membership_as_of(reader: R2DatasetReader, *, as_of: Any, index: str = "nifty_total_market") -> tuple[R2DatasetRef, set[str]]:
+def read_membership_as_of(reader: R2DatasetReader, *, as_of: Any, index: str = "nifty_total_market") -> tuple[R2DatasetRef, set[str] | None]:
     """Read the current manifest-pinned R2 membership revision and reconstruct members."""
     ref, frame = reader.read_current_parquet(MEMBERSHIP_DATASET)
     return ref, membership_from_frame(frame, index=index, as_of=as_of)
