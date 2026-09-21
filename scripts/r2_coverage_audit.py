@@ -39,6 +39,10 @@ def audit_no_shrinkage(baseline: Path, candidate: Path) -> dict[str, Any]:
             f"latest session shrank: {after_idx.max().date()} < {before_idx.max().date()}"
         )
 
+    missing_sessions = before_idx.difference(after_idx)
+    if len(missing_sessions):
+        raise RuntimeError(f"historical sessions disappeared: {len(missing_sessions)}")
+
     before_symbols = _symbols(before)
     after_symbols = _symbols(after)
     missing_symbols = sorted(before_symbols - after_symbols)
@@ -65,6 +69,7 @@ def audit_no_shrinkage(baseline: Path, candidate: Path) -> dict[str, Any]:
         "candidate_min_date": str(after_idx.min().date()),
         "baseline_max_date": str(before_idx.max().date()),
         "candidate_max_date": str(after_idx.max().date()),
+        "missing_sessions": 0,
         "status": "PASS",
     }
     print(json.dumps(result, sort_keys=True))
