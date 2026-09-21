@@ -31,7 +31,8 @@ def test_shilpamed_packet_is_executable():
     judge_dossier(dossier)
     assert dossier.audit.evidence_count == len(packet.evidence)
     assert dossier.audit.causal_finding_count == 4
-    assert dossier.audit.contradiction_count == 4
+    assert dossier.audit.contradiction_count == 0
+    assert dossier.audit.counter_evidence_count == 4
 
 
 def test_shilpamed_packet_uses_every_evidence_record():
@@ -51,3 +52,9 @@ def test_shilpamed_plan_has_explicit_exclusions_and_material_domains():
     assert any("valuation" in item for item in plan.exclusions)
     assert any("System-1" in item for item in plan.exclusions)
     assert len(plan.material_domains) == 7
+
+
+def test_contradiction_semantics_reject_complementary_facts():
+    from agent.research_execution import _claims_directly_conflict
+    assert not _claims_directly_conflict("OERIS received regulatory approval.", "A USFDA inspection was conducted at the facility.")
+    assert _claims_directly_conflict("OERIS was approved for marketing.", "OERIS was rejected for marketing.")

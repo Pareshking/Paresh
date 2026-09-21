@@ -207,8 +207,8 @@ def divislab_packet() -> ResearchProviderPacket:
                 evidence_refs=(ref("Q1 reporting says management expected full-year gross margin to normalise toward about 60% versus the unusually high Q1 level, alongside elevated solvent costs."), ref("NSE's Q1 filing reports consolidated PBT of INR 1,180 crore and PAT of INR 902 crore, with no exceptional item in the quarter."), ref("The reviewed material does not quantify the full-year earnings sensitivity to solvent-cost and logistics scenarios.")),
             ),
         ),
-        contradictions=(
-            ContradictionFinding(
+        counter_evidence=(
+            CounterEvidenceFinding(
                 hypothesis="Is the current growth rate supported by durable Custom Synthesis and nutraceutical demand rather than a single-quarter mix effect?",
                 original_claim="Divi's consolidated Q1 FY27 revenue from operations was INR 3,080 crore and PAT was INR 902 crore, up 27.8% and 65.5% YoY respectively.",
                 counter_evidence="Independent earnings-call reporting noted that management cautioned against extrapolating the unusually strong Q1 gross margin because business mix is lumpy.",

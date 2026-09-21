@@ -207,8 +207,8 @@ def lauruslabs_packet() -> ResearchProviderPacket:
                 evidence_refs=(ref("Laurus explicitly flags tender cycles, pricing dynamics and approval timelines as factors that can affect near-term FDF revenue phasing."), ref("Independent results reporting confirms Q1 FY27 revenue of INR 2,026.31 crore and PAT of INR 362.07 crore, with PAT up about 124% YoY."), ref("The reviewed disclosures do not quantify the sensitivity of FY27 earnings to individual tender outcomes or customer approval delays.")),
             ),
         ),
-        contradictions=(
-            ContradictionFinding(
+        counter_evidence=(
+            CounterEvidenceFinding(
                 hypothesis="Is Laurus's FY27 growth broadening across CDMO and Affordable Medicines rather than depending on ARV/generic cycles?",
                 original_claim="FY26 revenue rose 23% to INR 6,813 crore, with CDMO revenue up 36% to INR 2,080 crore and Affordable Medicines up 18% to INR 4,733 crore.",
                 counter_evidence="Laurus's FY26 business review notes that tender cycles and pricing dynamics can influence near-term FDF revenue phasing even while the overall outlook remains positive.",

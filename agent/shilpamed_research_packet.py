@@ -218,8 +218,8 @@ def shilpamed_packet() -> ResearchProviderPacket:
                 evidence_refs=(ref("FY26 investor materials stated that substantial gross block remained under-utilised and that improved utilisation was expected to drive revenue and EBITDA-margin improvement."), ref("FY26 investor materials linked expected operating leverage and margin improvement to higher utilisation across higher-margin biosimilar, CDMO and NDDS activities."), ref("Q1FY27 PBT was INR 98.06 crore versus INR 120.44 crore in Q4FY26, showing that sequential profitability did not rise with revenue.")),
             ),
         ),
-        contradictions=(
-            ContradictionFinding(
+        counter_evidence=(
+            CounterEvidenceFinding(
                 hypothesis="Is FY27 growth broadening across commercial formulations, APIs and CDMO rather than being driven by a small number of launches?",
                 original_claim="Q1FY27 consolidated revenue from operations was INR 465.78 crore, up 44.89% YoY, while consolidated PAT was INR 100.88 crore, up 115.19% YoY.",
                 counter_evidence="Q1FY27 net profit of INR 100.88 crore was 6.40% below Q4FY26 profit of INR 107.78 crore despite the strong YoY increase.",

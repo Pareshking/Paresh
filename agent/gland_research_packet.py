@@ -207,8 +207,8 @@ def gland_packet() -> ResearchProviderPacket:
                 evidence_refs=(ref("Gland reported that Saudi Arabia experienced supply disruptions and that NUPCO tender awards had been delayed."), ref("The global-pharma partnership is not expected to begin revenue generation until calendar 2029, so current earnings cannot yet include the full economics of the announced pipeline."), ref("The reviewed disclosures do not quantify the earnings sensitivity to the delayed NUPCO tender outcome or Saudi supply disruption.")),
             ),
         ),
-        contradictions=(
-            ContradictionFinding(
+        counter_evidence=(
+            CounterEvidenceFinding(
                 hypothesis="Is Gland's growth becoming structurally broader through CDMO and B2B rather than relying on individual launches?",
                 original_claim="Q1 FY27 CDMO revenue was INR 891.5 crore, up 20% YoY, while B2B revenue was INR 908.8 crore, up 19% YoY; each contributed about half of total revenue.",
                 counter_evidence="Q1 revenue growth was not uniform across geographies: the company reported other core markets down 28% YoY while the US grew 32%.",

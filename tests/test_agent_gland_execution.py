@@ -31,7 +31,8 @@ def test_gland_packet_is_executable():
     judge_dossier(dossier)
     assert dossier.audit.evidence_count == len(packet.evidence)
     assert dossier.audit.causal_finding_count == 4
-    assert dossier.audit.contradiction_count == 4
+    assert dossier.audit.contradiction_count == 0
+    assert dossier.audit.counter_evidence_count == 4
 
 
 def test_gland_packet_uses_every_evidence_record():
