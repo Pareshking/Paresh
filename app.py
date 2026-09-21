@@ -704,149 +704,42 @@ render_signal_alerts(signals)
 
 
 # ── Navigation ───────────────────────────────────────────────────────────────
-# `st.tabs` executed ALL ELEVEN tab bodies on every rerun. That is Streamlit's
-# documented behaviour, not a defect, but it made every click cost eleven pages
-# of Python (~1.0s measured, charts stubbed) and put every tab's widgets in one
-# DOM at once -- fourteen sliders from four different tabs were readable in a
-# single production frame.
+# Streamlit's native top navigation lives inside the Streamlit header, while
+# this app deliberately hides that header. Keep st.navigation as the router,
+# but render the user-facing navigation as a compact popover ("hamburger")
+# using st.page_link. This removes the eleven-item navigation block from the
+# permanent page layout while preserving every page and URL.
 #
-# `st.navigation` runs ONLY the selected page. The trade is that Streamlit now
-# discards widget state for every page the reader is not looking at, so each
-# keyed widget must carry an explicit value and, where the choice should
-# survive, a mirror key. See src/ui/widget_state.py and the README.
-#
-# Each page is a zero-argument closure over the data loaded above: `st.Page`
-# takes a callable with no parameters, and the pipeline is shared by every page
-# because the entrypoint runs before the selected page does.
-
-
-def _page_screener() -> None:
-    render_ranking_view(
-        rank_df, adj_close, high_prices, low_prices, volume_data,
-        open_prices=data.get("open_prices"),
-    )
-
-
-def _page_qualified() -> None:
-    render_qualified_view(rank_df, adj_close)
-
-
-def _page_sectors() -> None:
-    render_sector_view(get_calc(), rank_df, adj_close)
-
-
-def _page_rrg() -> None:
-    # No get_calc() here. This page never read the engine -- it took it as an
-    # argument and ignored it -- so on the common cold start, where the
-    # precomputed ranking is accepted and `calc` is still None, opening RRG
-    # built the whole engine to satisfy an unused parameter.
-    render_rrg_view(rank_df, adj_close)
-
-
-def _page_portfolio() -> None:
-    render_portfolio_view(
-        calc=get_calc(),
-        rank_df=rank_df,
-        sector_cap=sector_cap,
-        stock_cap=stock_cap,
-        vol_target_on=vol_target_on,
-        vol_target_val=vol_target_val,
-    )
-
-
-def _page_watchlist() -> None:
-    render_watchlist_view(rank_df)
-
-
-def _page_breadth() -> None:
-    render_breadth_view(rank_df, adj_close)
-
-
-def _page_backtest() -> None:
-    render_backtest_view(
-        rank_df=rank_df,
-        # Depth, not freshness: a 12-month formation window before a 6-month
-        # reported period needs ~18 months of continuous daily data.
-        adj_close=deep_adj_close,
-        stock_cap=stock_cap,
-        sector_cap=sector_cap,
-        weights=weights,
-    )
-
-
-def _page_track_record() -> None:
-    # The frozen record, plus a live MTD struck under the record's own pinned
-    # configuration. fetch_benchmark_history is cached, so this is the same
-    # round trip the Backtest page already made.
-    render_track_record_view(
-        adj_close=deep_adj_close,
-        benchmark_close=fetch_benchmark_history(period="5y"),
-    )
-
-
-def _page_configuration() -> None:
-    render_config_view(rank_df)
-
-
-def _page_guide() -> None:
-    render_guide_view(rank_df)
-
-
-# Titles and order are the app's public surface: the production QA probe walks
-# them by name and tests/test_qa_tab_list_matches_the_app.py pins them, so a
-# rename here without one there is a failing build, not a silent drift.
-_PAGES = [
-    st.Page(_page_screener, title="Screener", url_path="screener", default=True),
-    st.Page(_page_qualified, title="Qualified", url_path="qualified"),
-    st.Page(_page_sectors, title="Sectors", url_path="sectors"),
-    st.Page(_page_rrg, title="RRG", url_path="rrg"),
-    st.Page(_page_portfolio, title="Portfolio", url_path="portfolio"),
-    st.Page(_page_watchlist, title="Watchlist", url_path="watchlist"),
-    st.Page(_page_breadth, title="Market Breadth", url_path="breadth"),
-    st.Page(_page_backtest, title="Backtest", url_path="backtest"),
-    st.Page(_page_track_record, title="Track Record", url_path="track-record"),
-    st.Page(_page_configuration, title="Configuration", url_path="configuration"),
-    st.Page(_page_guide, title="Guide", url_path="guide"),
-]
-
-# position="hidden": Streamlit draws NO navigation of its own, and the app
-# draws its own row below. This is not a preference.
-#
-# `position="top"` renders the nav INSIDE Streamlit's header, and
-# src/ui/theme.py:240 hides that header outright:
-#
-#     header, [data-testid="stHeader"], .stApp > header { display: none !important; }
-#
-# so the nav shipped in the DOM with display:none. The app was left with no way
-# to reach ten of its eleven pages, and because hidden elements contribute no
-# text, the QA probe saw a healthy shell with no navigation and no page names --
-# which is exactly what it reported. Test:
-# tests/test_navigation_is_visible.py.
-#
-# Drawing it here also puts it back where the tab strip was, under the header
-# KPI bar, instead of above it in the chrome.
+# st.popover is available in the pinned Streamlit 1.63.0 release. Opening it
+# does not rerun the app; selecting a page link performs normal Streamlit
+# navigation and preserves the existing session-state behavior.
 _nav = st.navigation(_PAGES, position="hidden")
 
-with st.container(horizontal=True, wrap=True, gap="small", key="app_nav"):
-    for _i, _p in enumerate(_PAGES):
-        # The ACTIVE item is marked here, in Python, not in CSS. Streamlit
-        # styles the current page link through an emotion prop with no stable
-        # attribute -- no aria-current, no class worth targeting -- so the only
-        # selector available would be a generated class hash that changes
-        # between versions. `st.navigation` returns one of the very objects it
-        # was passed (navigation.py resolves `matching_pages[0]` from the list),
-        # so identity is exact and needs no attribute access; reading `.title`
-        # here raised AttributeError whenever app.py was imported outside a
-        # script run.
-        _state = "navon" if _p is _nav else "navoff"
-        # width="content" is load-bearing, not decoration. st.container defaults
-        # to width="stretch", so each of these per-item wrappers claimed the
-        # full column width and only two pills fitted per row -- eleven items
-        # became a six-row, ~500px block above the content on a phone. Hugging
-        # the label lets them pack.
-        with st.container(key=f"{_state}_{_i}", width="content"):
-            # No explicit label: st.page_link takes the page's own title.
-            st.page_link(_p)
+with st.container(key="app_nav_shell", width="content"):
+    with st.popover(
+        "☰",
+        type="tertiary",
+        help="Open navigation",
+        width=320,
+        key="app_nav_menu",
+    ):
+        st.markdown("**Research**")
+        for _i, _p in enumerate(_PAGES[:5]):
+            _state = "navon" if _p is _nav else "navoff"
+            with st.container(key=f"{_state}_research_{_i}", width="stretch"):
+                st.page_link(_p)
+
+        st.markdown("**Monitoring**")
+        for _i, _p in enumerate(_PAGES[5:9]):
+            _state = "navon" if _p is _nav else "navoff"
+            with st.container(key=f"{_state}_monitoring_{_i}", width="stretch"):
+                st.page_link(_p)
+
+        st.markdown("**System**")
+        for _i, _p in enumerate(_PAGES[9:]):
+            _state = "navon" if _p is _nav else "navoff"
+            with st.container(key=f"{_state}_system_{_i}", width="stretch"):
+                st.page_link(_p)
 
 _nav.run()
 
