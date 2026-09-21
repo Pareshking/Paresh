@@ -1,0 +1,106 @@
+name: R2 Phase-3 Live Publication Validation
+
+on:
+  push:
+    branches:
+      - test/r2-phase3-live-validation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download exact current release artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download data-latest             --repo "$GITHUB_REPOSITORY"             --pattern prices_full.parquet             --pattern screener_prices.parquet             --pattern prices.parquet             --pattern rankings.parquet
+
+      - name: Publish exact release artifacts to R2
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+
+          python scripts/r2_publish.py             --path prices_full.parquet             --dataset prices/yahoo             --source yahoo             --key-root archive/prices/yahoo             --pipeline-version "phase3-live-${GITHUB_SHA}"             --release-tag data-latest
+
+          python scripts/r2_publish.py             --path screener_prices.parquet             --dataset prices/screener             --source screener             --key-root archive/prices/screener             --pipeline-version "phase3-live-${GITHUB_SHA}"             --release-tag data-latest
+
+          python scripts/r2_publish.py             --path prices.parquet             --dataset snapshots/application             --source application             --key-root snapshots/application             --pipeline-version "phase3-live-${GITHUB_SHA}"             --release-tag data-latest
+
+          python scripts/r2_publish.py             --path rankings.parquet             --dataset snapshots/rankings             --source system1             --key-root snapshots/rankings             --pipeline-version "phase3-live-${GITHUB_SHA}"             --release-tag data-latest
+
+      - name: Verify canonical R2 objects and manifests
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          PYTHONPATH: .
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+
+          import pandas as pd
+
+          from scripts.r2_publish import describe_parquet
+          from src.storage.r2 import R2Archive, R2Config
+
+          archive = R2Archive(R2Config.from_env())
+
+          expected = {
+              "prices_full.parquet": "archive/prices/yahoo",
+              "screener_prices.parquet": "archive/prices/screener",
+              "prices.parquet": "snapshots/application",
+              "rankings.parquet": "snapshots/rankings",
+          }
+
+          for filename, root in expected.items():
+              path = Path(filename)
+              description = describe_parquet(path)
+              key = f"{root}/{description['as_of']}/{filename}"
+              manifest_key = (
+                  f"archive/manifests/"
+                  f"{'prices/yahoo' if filename == 'prices_full.parquet' else 'prices/screener' if filename == 'screener_prices.parquet' else 'snapshots/application' if filename == 'prices.parquet' else 'snapshots/rankings'}"
+                  f"/{description['as_of']}.json"
+              )
+
+              archive.verify_file(key, path)
+              manifest = json.loads(archive.get_bytes(manifest_key).decode("utf-8"))
+              if manifest["sha256"] == "":
+                  raise SystemExit(f"Empty manifest checksum: {manifest_key}")
+              if manifest["object_key"] != key:
+                  raise SystemExit(f"Manifest object mismatch: {manifest_key}")
+
+              print(
+                  f"R2 VERIFIED {filename}: "
+                  f"as_of={description['as_of']} "
+                  f"rows={description['row_count']} "
+                  f"sha256={manifest['sha256']}"
+              )
+
+          print("R2 PHASE-3 LIVE PUBLICATION VALIDATION PASSED")
+          PY
