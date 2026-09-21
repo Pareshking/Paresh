@@ -78,11 +78,26 @@ class ContradictionFinding:
 
 
 @dataclass(frozen=True)
+class CounterEvidenceFinding:
+    """Evidence that weakens or qualifies a hypothesis without asserting that the supporting claim is false."""
+    hypothesis: str
+    original_claim: str
+    counter_evidence: str
+    resolution: str
+    original_claim_refs: tuple[str, ...]
+    counter_evidence_refs: tuple[str, ...]
+    @property
+    def evidence_refs(self) -> tuple[str, ...]:
+        return self.original_claim_refs + self.counter_evidence_refs
+
+
+@dataclass(frozen=True)
 class ResearchProviderPacket:
     plan: ResearchPlan
     evidence: tuple[Evidence, ...]
     causal_findings: tuple[CausalFinding, ...] = ()
     contradictions: tuple[ContradictionFinding, ...] = ()
+    counter_evidence: tuple[CounterEvidenceFinding, ...] = ()
     unresolved_questions: tuple[str, ...] = ()
     monitoring_questions: tuple[str, ...] = ()
 
@@ -102,6 +117,7 @@ class ResearchAudit:
     hypotheses_with_causal_analysis: int
     hypotheses_challenged: int
     blockers: tuple[str, ...] = ()
+    counter_evidence_count: int = 0
     newest_evidence_anchor: date | None = None
     """The latest per-item temporal anchor across all evidence (item 20;
     Report 2 F4). Not the same thing as per-item age (items 11/12): an
@@ -214,6 +230,7 @@ class ResearchDossier:
     item: ResearchItem
     causal_findings: tuple[CausalFinding, ...]
     contradictions: tuple[ContradictionFinding, ...]
+    counter_evidence: tuple[CounterEvidenceFinding, ...]
     unresolved_questions: tuple[str, ...]
     monitoring_questions: tuple[str, ...]
     audit: ResearchAudit
@@ -405,6 +422,19 @@ def _validate_contradiction_ref_list(refs: object, side: str) -> tuple[str, ...]
     return refs
 
 
+_CONTRADICTION_PAIRS = (
+    ("approved","rejected"), ("approval","rejection"), ("increased","decreased"),
+    ("increase","decrease"), ("growth","decline"), ("grew","declined"),
+    ("up","down"), ("profit","loss"), ("successful","failed"),
+    ("completed","delayed"), ("available","unavailable"), ("enabled","disabled"),
+)
+def _claims_directly_conflict(original_claim: str, counter_evidence: str) -> bool:
+    """Conservative semantic gate: shared context plus explicit opposing polarity."""
+    a=set(re.findall(r"[a-z0-9]+", original_claim.lower()))
+    b=set(re.findall(r"[a-z0-9]+", counter_evidence.lower()))
+    if not a & b:
+        return False
+    return any(x in a and y in b for x,y in _CONTRADICTION_PAIRS) or any(y in a and x in b for x,y in _CONTRADICTION_PAIRS)
 def _validate_contradictions(
     plan: ResearchPlan,
     contradictions: Iterable[ContradictionFinding],
@@ -425,7 +455,6 @@ def _validate_contradictions(
             raise ValueError("contradiction requires original and counter claims")
         if not finding.resolution.strip():
             raise ValueError("contradiction requires a resolution or unresolved statement")
-
         claim_refs = _validate_contradiction_ref_list(
             finding.original_claim_refs, "original_claim_refs"
         )
@@ -487,11 +516,22 @@ def execute_research(
 
     causal = tuple(packet.causal_findings)
     contradictions = tuple(packet.contradictions)
+    counter_evidence = tuple(packet.counter_evidence)
     unresolved = tuple(q.strip() for q in packet.unresolved_questions if q.strip())
     monitoring = tuple(q.strip() for q in packet.monitoring_questions if q.strip())
 
     _validate_causal_findings(packet.plan, causal, evidence_by_ref)
     _validate_contradictions(packet.plan, contradictions, evidence_by_ref)
+    for finding in counter_evidence:
+        if finding.hypothesis not in set(packet.plan.hypotheses):
+            raise ValueError("counter-evidence references an unknown hypothesis")
+        if not finding.original_claim.strip() or not finding.counter_evidence.strip() or not finding.resolution.strip():
+            raise ValueError("counter-evidence requires claims and resolution")
+        if isinstance(finding.evidence_refs, str) or not isinstance(finding.evidence_refs, tuple) or not finding.evidence_refs:
+            raise ValueError("counter-evidence requires tuple evidence provenance")
+        for ref in finding.evidence_refs:
+            if ref not in evidence_by_ref:
+                raise ValueError("counter-evidence references missing evidence")
     _validate_hypothesis_coverage(packet.plan, evidence, causal, unresolved)
 
     item = ResearchItem(
@@ -505,13 +545,13 @@ def execute_research(
 
     evidence_hypotheses = {e.hypothesis for e in evidence if e.hypothesis.strip()}
     causal_hypotheses = {f.hypothesis for f in causal}
-    challenged_hypotheses = {f.hypothesis for f in contradictions}
+    challenged_hypotheses = {f.hypothesis for f in contradictions} | {f.hypothesis for f in counter_evidence}
 
     blockers: list[str] = []
     if not causal:
         blockers.append("no causal analysis")
-    if not contradictions:
-        blockers.append("no contradiction challenge")
+    if not contradictions and not counter_evidence:
+        blockers.append("no contradiction or counter-evidence challenge")
     if not unresolved and not monitoring:
         blockers.append("no unresolved or monitoring questions")
 
@@ -662,12 +702,13 @@ def execute_research(
         derived_evidence_count=sum(e.source_tier.value == "derived" for e in evidence),
         domain_count=len({e.domain for e in evidence}),
         contradiction_count=len(contradictions),
+        counter_evidence_count=len(counter_evidence),
         causal_finding_count=len(causal),
         unresolved_question_count=len(unresolved),
         hypothesis_count=len(packet.plan.hypotheses),
         hypotheses_with_evidence=len(evidence_hypotheses),
         hypotheses_with_causal_analysis=len(causal_hypotheses),
-        hypotheses_challenged=len(challenged_hypotheses),
+        hypotheses_challenged=len(challenged_hypotheses | {f.hypothesis for f in counter_evidence}),
         blockers=tuple(blockers),
         newest_evidence_anchor=newest_anchor,
         evidence_age_within_90d=age_within_90d,
@@ -694,6 +735,7 @@ def execute_research(
         item=item,
         causal_findings=causal,
         contradictions=contradictions,
+        counter_evidence=counter_evidence,
         unresolved_questions=unresolved,
         monitoring_questions=monitoring,
         audit=audit,
@@ -710,6 +752,6 @@ def judge_dossier(dossier: ResearchDossier) -> None:
     if audit.hypotheses_with_causal_analysis == 0:
         raise ValueError("research dossier has no causal hypothesis analysis")
     if audit.hypotheses_challenged == 0:
-        raise ValueError("research dossier has no contradiction challenge")
+        raise ValueError("research dossier has no adversarial challenge")
     if not dossier.unresolved_questions and not dossier.monitoring_questions:
         raise ValueError("research dossier has no explicit uncertainty or monitoring questions")

@@ -2,7 +2,7 @@ name: V1 Full Validation
 
 on:
   push:
-    branches: [main, agent/stage4b-execution, agent/stage4b-second-archetype]
+    branches: [main, agent/stage4b-execution, agent/stage4b-second-archetype, agent/stage4b-batch1-pharma]
   # Also on the PROPOSAL, not only on the merge. Running solely on push to
   # main meant the suite first executed after the change was already in --
   # a red result there is a revert, where the same red result on the pull
@@ -70,6 +70,17 @@ jobs:
 
       - name: Stage-4B adaptive fifth-archetype LENSKART execution
         run: python scripts/stage4b_lenskart_live_validation.py
+      - name: Stage-4B Batch-1 SHILPAMED execution
+        run: python scripts/stage4b_shilpamed_live_validation.py
+
+      - name: Stage-4B Batch-1 LAURUSLABS execution
+        run: python scripts/stage4b_lauruslabs_live_validation.py
+
+      - name: Stage-4B Batch-1 DIVISLAB execution
+        run: python scripts/stage4b_divislab_live_validation.py
+
+      - name: Stage-4B Batch-1 GLAND execution
+        run: python scripts/stage4b_gland_live_validation.py
 
       - name: Retain Stage-4B SANSERA dossier
         if: ${{ always() }}
@@ -109,6 +120,37 @@ jobs:
         with:
           name: stage4b-lenskart-dossier
           path: artifacts/stage4b_lenskart_dossier.md
+          if-no-files-found: warn
+      - name: Retain Stage-4B SHILPAMED dossier
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4b-shilpamed-dossier
+          path: artifacts/stage4b_shilpamed_dossier.md
+          if-no-files-found: warn
+
+      - name: Retain Stage-4B LAURUSLABS dossier
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4b-lauruslabs-dossier
+          path: artifacts/stage4b_lauruslabs_dossier.md
+          if-no-files-found: warn
+
+      - name: Retain Stage-4B DIVISLAB dossier
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4b-divislab-dossier
+          path: artifacts/stage4b_divislab_dossier.md
+          if-no-files-found: warn
+
+      - name: Retain Stage-4B GLAND dossier
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4b-gland-dossier
+          path: artifacts/stage4b_gland_dossier.md
           if-no-files-found: warn
 
       - name: Retain Stage-3 live hierarchy artifact
