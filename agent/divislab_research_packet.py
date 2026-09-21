@@ -217,7 +217,7 @@ def divislab_packet() -> ResearchProviderPacket:
                 original_claim_refs=(ref("Divi's consolidated Q1 FY27 revenue from operations was INR 3,080 crore and PAT was INR 902 crore, up 27.8% and 65.5% YoY respectively."),),
                 counter_evidence_refs=(ref("Independent earnings-call reporting noted that management cautioned against extrapolating the unusually strong Q1 gross margin because business mix is lumpy."),),
             ),
-            ContradictionFinding(
+            CounterEvidenceFinding(
                 hypothesis="Can the major capex programs convert validation activity into commercial supply on the expected timeline?",
                 original_claim="Q1 earnings-call reporting states that three major capex programs were nearing completion with validations underway.",
                 counter_evidence="The same earnings-call reporting states that commercial revenues from the capex projects depend on customer qualification and regulatory approvals, making timing uncertain.",
@@ -225,7 +225,7 @@ def divislab_packet() -> ResearchProviderPacket:
                 original_claim_refs=(ref("Q1 earnings-call reporting states that three major capex programs were nearing completion with validations underway."),),
                 counter_evidence_refs=(ref("The same earnings-call reporting states that commercial revenues from the capex projects depend on customer qualification and regulatory approvals, making timing uncertain."),),
             ),
-            ContradictionFinding(
+            CounterEvidenceFinding(
                 hypothesis="Are backward integration and manufacturing capacity improving supply resilience without creating excessive inventory or working-capital drag?",
                 original_claim="Q1 reporting states that Unit 3 is being used for backward integration and phased transfers from Units 1 and 2 to support critical-intermediate supply assurance.",
                 counter_evidence="Q1 reporting also notes elevated solvent costs and global logistics pressure, with inventory at about INR 4,413 crore after maintaining a strategic three-month buffer.",
@@ -233,7 +233,7 @@ def divislab_packet() -> ResearchProviderPacket:
                 original_claim_refs=(ref("Q1 reporting states that Unit 3 is being used for backward integration and phased transfers from Units 1 and 2 to support critical-intermediate supply assurance."),),
                 counter_evidence_refs=(ref("Q1 reporting also notes elevated solvent costs and global logistics pressure, with inventory at about INR 4,413 crore after maintaining a strategic three-month buffer."),),
             ),
-            ContradictionFinding(
+            CounterEvidenceFinding(
                 hypothesis="How sensitive is near-term profitability to solvent costs, logistics and the normalisation of unusually high Q1 margins?",
                 original_claim="NSE's Q1 filing reports consolidated PBT of INR 1,180 crore and PAT of INR 902 crore, with no exceptional item in the quarter.",
                 counter_evidence="Q1 reporting says management expected full-year gross margin to normalise toward about 60% versus the unusually high Q1 level, alongside elevated solvent costs.",
