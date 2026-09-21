@@ -324,3 +324,73 @@ def test_r2_publisher_fails_on_pointer_mismatch(monkeypatch, tmp_path):
             key_root="archive/prices/screener", pipeline_version="test",
             release_tag="data-latest",
         )
+
+
+def test_archive_audit_passes_complete_publication(monkeypatch):
+    import hashlib
+    import json
+    from scripts.r2_audit import audit
+
+    body = b"canonical-data"
+    sha = hashlib.sha256(body).hexdigest()
+    object_key = "archive/prices/screener/2026-09-19/revisions/" + sha + "/prices.parquet"
+    manifest_key = "archive/manifests/prices/screener/2026-09-19/revisions/" + sha + ".json"
+    current_key = "archive/manifests/prices/screener/2026-09-19/current.json"
+    manifest = {"dataset":"prices/screener","as_of":"2026-09-19","source":"screener","schema_version":1,"size_bytes":len(body),"sha256":sha,"object_key":object_key,"revision_sha256":sha}
+    current = {"dataset":"prices/screener","as_of":"2026-09-19","source":"screener","revision_sha256":sha,"object_key":object_key,"manifest_key":manifest_key}
+
+    class FakeArchive:
+        def __init__(self, _config):
+            self.keys={current_key:json.dumps(current).encode(), manifest_key:json.dumps(manifest).encode(), object_key:body}
+        def get_bytes(self,key): return self.keys[key]
+
+    monkeypatch.setattr("scripts.r2_audit.R2Archive", lambda _config: FakeArchive(None))
+    monkeypatch.setattr("scripts.r2_audit.R2Config.from_env", classmethod(lambda cls: None))
+    assert audit(dataset="prices/screener", as_of="2026-09-19")["status"] == "PASS"
+
+
+def test_archive_audit_rejects_object_mismatch(monkeypatch):
+    import hashlib
+    import json
+    from scripts.r2_audit import audit
+
+    expected = b"expected"
+    actual = b"tampered"
+    sha = hashlib.sha256(expected).hexdigest()
+    object_key = "archive/prices/screener/2026-09-19/revisions/" + sha + "/prices.parquet"
+    manifest_key = "archive/manifests/prices/screener/2026-09-19/revisions/" + sha + ".json"
+    current_key = "archive/manifests/prices/screener/2026-09-19/current.json"
+    manifest = {"dataset":"prices/screener","as_of":"2026-09-19","source":"screener","schema_version":1,"size_bytes":len(expected),"sha256":sha,"object_key":object_key,"revision_sha256":sha}
+    current = {"dataset":"prices/screener","as_of":"2026-09-19","source":"screener","revision_sha256":sha,"object_key":object_key,"manifest_key":manifest_key}
+
+    class FakeArchive:
+        def __init__(self, _config): self.keys={current_key:json.dumps(current).encode(), manifest_key:json.dumps(manifest).encode(), object_key:actual}
+        def get_bytes(self,key): return self.keys[key]
+
+    monkeypatch.setattr("scripts.r2_audit.R2Archive", lambda _config: FakeArchive(None))
+    monkeypatch.setattr("scripts.r2_audit.R2Config.from_env", classmethod(lambda cls: None))
+    with pytest.raises(RuntimeError, match="object SHA mismatch"):
+        audit(dataset="prices/screener", as_of="2026-09-19")
+
+
+def test_archive_audit_rejects_manifest_mismatch(monkeypatch):
+    import hashlib
+    import json
+    from scripts.r2_audit import audit
+
+    body = b"canonical-data"
+    sha = hashlib.sha256(body).hexdigest()
+    object_key = "archive/prices/screener/2026-09-19/revisions/" + sha + "/prices.parquet"
+    manifest_key = "archive/manifests/prices/screener/2026-09-19/revisions/" + sha + ".json"
+    current_key = "archive/manifests/prices/screener/2026-09-19/current.json"
+    manifest = {"dataset":"prices/screener","as_of":"2026-09-19","source":"other","schema_version":1,"size_bytes":len(body),"sha256":sha,"object_key":object_key,"revision_sha256":sha}
+    current = {"dataset":"prices/screener","as_of":"2026-09-19","source":"screener","revision_sha256":sha,"object_key":object_key,"manifest_key":manifest_key}
+
+    class FakeArchive:
+        def __init__(self, _config): self.keys={current_key:json.dumps(current).encode(), manifest_key:json.dumps(manifest).encode(), object_key:body}
+        def get_bytes(self,key): return self.keys[key]
+
+    monkeypatch.setattr("scripts.r2_audit.R2Archive", lambda _config: FakeArchive(None))
+    monkeypatch.setattr("scripts.r2_audit.R2Config.from_env", classmethod(lambda cls: None))
+    with pytest.raises(RuntimeError, match="pointer/manifest mismatch source"):
+        audit(dataset="prices/screener", as_of="2026-09-19")
