@@ -34,7 +34,18 @@ def build(price_path: Path, output: Path) -> dict:
         "sessions": sessions,
     }
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    if output.suffix.lower() == ".parquet":
+        pd.DataFrame(
+            {
+                "date": pd.to_datetime(sessions),
+                "market": "NSE",
+                "is_session": True,
+                "source": "production_price_archive",
+                "evidence_date": sessions[-1],
+            }
+        ).to_parquet(output, index=False)
+    else:
+        output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     return payload
 
 
