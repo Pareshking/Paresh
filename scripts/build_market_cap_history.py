@@ -30,12 +30,20 @@ def _git(*args: str) -> str:
     ).stdout
 
 
-def _snapshot(commit: str, path: str) -> pd.DataFrame:
+def _snapshot(commit: str, path: str) -> pd.DataFrame | None:
     raw = _git("show", f"{commit}:{path}")
     frame = pd.read_csv(io.StringIO(raw))
     missing = REQUIRED - set(frame.columns)
-    if missing:
-        raise RuntimeError(f"{path}@{commit[:8]} missing {sorted(missing)}")
+    value_missing = {"Symbol", "MarketCap"} - set(frame.columns)
+    if value_missing:
+        raise RuntimeError(
+            f"{path}@{commit[:8]} missing required value columns {sorted(value_missing)}"
+        )
+    # Older repository snapshots predate the explicit AsOf/Source columns.
+    # They are retained in Git but are not converted into dated evidence,
+    # because doing so would invent a market-cap date/source.
+    if {"AsOf", "Source"} & missing:
+        return None
 
     frame = frame.rename(
         columns={
@@ -61,8 +69,12 @@ def build(output: Path, path: Path = DEFAULT_PATH) -> dict:
         raise RuntimeError(f"no git history for {rel}")
 
     snapshots: dict[str, tuple[str, pd.DataFrame]] = {}
+    skipped_legacy = 0
     for commit in commits.splitlines():
         frame = _snapshot(commit, rel)
+        if frame is None:
+            skipped_legacy += 1
+            continue
         if frame.empty:
             continue
         as_of = str(frame["date"].max().date())
@@ -94,6 +106,7 @@ def build(output: Path, path: Path = DEFAULT_PATH) -> dict:
         "first_date": str(result["date"].min().date()),
         "last_date": str(result["date"].max().date()),
         "unique_symbols": int(result["symbol"].nunique()),
+        "skipped_legacy_commits": skipped_legacy,
     }
     print(summary)
     return summary
