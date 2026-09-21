@@ -1,0 +1,56 @@
+name: TEMP real Yahoo revision validation
+
+on:
+  push:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: temp-yahoo-revision
+  cancel-in-progress: false
+
+jobs:
+  yahoo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Restore existing production price cache
+        uses: actions/cache/restore@v4
+        with:
+          path: data_cache/
+          key: temp-yahoo-\${{ runner.os }}-\${{ github.run_id }}
+          restore-keys: |
+            price-data-\${{ runner.os }}-
+            price-data-
+      - name: Run real Yahoo/NSE sync
+        env:
+          PYTHONPATH: .
+        run: python scripts/sync_data.py
+      - name: Verify fresh Yahoo artifacts
+        run: |
+          test -s data_cache/prices_archive.parquet
+          test -s data_cache/prices_snapshot.parquet
+          ls -lh data_cache/prices_archive.parquet data_cache/prices_snapshot.parquet
+      - name: Publish fresh Yahoo archive to R2
+        env:
+          R2_ACCOUNT_ID: \${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: \${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: \${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: \${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: \${{ secrets.R2_BUCKET }}
+          PYTHONPATH: .
+        run: |
+          python scripts/r2_publish.py \
+            --path data_cache/prices_archive.parquet \
+            --dataset prices/yahoo \
+            --source yahoo \
+            --key-root archive/prices/yahoo \
+            --pipeline-version "temp-yahoo-revision-\${{ github.sha }}" \
+            --release-tag data-latest
