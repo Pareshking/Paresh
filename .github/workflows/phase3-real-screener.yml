@@ -1,0 +1,77 @@
+name: Phase 3 Real Screener Sync Validation
+
+on:
+  push:
+    branches:
+      - test/phase3-real-screener-sync
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run real Screener sync
+        env:
+          SCREENER_DELAY_S: "0.8"
+        run: python scripts/sync_screener.py
+
+      - name: Verify Screener artifact exists
+        run: |
+          set -euo pipefail
+          test -f data_cache/screener_prices.parquet
+          ls -lh data_cache/screener_prices.parquet
+
+      - name: Publish exact freshly synced Screener artifact to R2
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          PYTHONPATH: .
+        run: |
+          python scripts/r2_publish.py             --path data_cache/screener_prices.parquet             --dataset prices/screener             --source screener             --key-root archive/prices/screener             --pipeline-version "phase3-real-screener-${GITHUB_SHA}"             --release-tag phase3-real-validation
+
+      - name: Verify fresh Screener R2 readback
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          PYTHONPATH: .
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          from scripts.r2_publish import describe_parquet
+          from src.storage.r2 import R2Archive, R2Config
+
+          path = Path("data_cache/screener_prices.parquet")
+          d = describe_parquet(path)
+          key = f"archive/prices/screener/{d['as_of']}/{path.name}"
+          manifest_key = f"archive/manifests/prices/screener/{d['as_of']}.json"
+          archive = R2Archive(R2Config.from_env())
+          archive.verify_file(key, path)
+          manifest = json.loads(archive.get_bytes(manifest_key).decode())
+          assert manifest["object_key"] == key
+          assert manifest["row_count"] == d["row_count"]
+          assert manifest["sha256"]
+          print(f"FRESH SCREENER VERIFIED: as_of={d['as_of']} rows={d['row_count']} symbols={d['symbol_count']}")
+          print("REAL SCREENER -> R2 VALIDATION PASSED")
+          PY
