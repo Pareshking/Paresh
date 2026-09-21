@@ -49,7 +49,13 @@ def test_portfolio_covariance_does_not_turn_missing_returns_into_zero() -> None:
 
 def test_runtime_contains_no_removed_r2_production_tokens() -> None:
     root = Path(__file__).resolve().parents[1]
-    paths = [root / "app.py", *sorted((root / "src").rglob("*.py"))]
+    # R2 is now a deliberate infrastructure boundary. This legacy guard is
+    # about removed quantitative/UI terminology, so storage infrastructure is
+    # outside its scope.
+    paths = [
+        root / "app.py",
+        *sorted(p for p in (root / "src").rglob("*.py") if "src/storage" not in str(p.relative_to(root))),
+    ]
     forbidden = ("R²", "R^2", "R2", "Sharpe × R")
     offenders = []
     for path in paths:
