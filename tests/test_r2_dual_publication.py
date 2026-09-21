@@ -111,9 +111,18 @@ def test_publisher_uses_content_identity_for_same_date_conflict(tmp_path, monkey
         release_tag="data-latest",
     )
 
-    assert "archive/prices/yahoo/2026-09-19/prices.parquet" in archive.keys
-    manifest_key = "archive/manifests/prices/yahoo/2026-09-19.json"
-    assert manifest_key in archive.keys
+    revision_keys = [
+        key for key in archive.keys
+        if "/revisions/" in key and key.endswith("prices.parquet")
+    ]
+    assert len(revision_keys) == 1
+    manifest_keys = [
+        key for key in archive.keys
+        if "/revisions/" in key and key.endswith(".json")
+    ]
+    assert len(manifest_keys) == 1
+    current_key = "archive/manifests/prices/yahoo/2026-09-19/current.json"
+    assert current_key in archive.keys
 
 
 def test_publisher_preserves_same_date_different_bytes_as_new_revision(tmp_path, monkeypatch):
@@ -122,10 +131,14 @@ def test_publisher_preserves_same_date_different_bytes_as_new_revision(tmp_path,
     from scripts import r2_publish
 
     path = tmp_path / "prices.parquet"
-    pd.DataFrame(
-        {"Symbol": ["AAA"], "Close": [100.0]},
-        index=pd.to_datetime(["2026-09-19"]),
-    ).to_parquet(path)
+
+    def write_frame(close: float) -> None:
+        pd.DataFrame(
+            {"Symbol": ["AAA"], "Close": [close]},
+            index=pd.to_datetime(["2026-09-19"]),
+        ).to_parquet(path)
+
+    write_frame(100.0)
 
     class FakeArchive:
         def __init__(self, _config):
@@ -164,7 +177,7 @@ def test_publisher_preserves_same_date_different_bytes_as_new_revision(tmp_path,
     ]
     assert len(first_revisions) == 1
 
-    path.write_bytes(path.read_bytes() + b"\n")
+    write_frame(101.0)
     r2_publish.publish(
         path,
         dataset="prices/yahoo",
