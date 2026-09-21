@@ -114,3 +114,42 @@ def test_publisher_uses_content_identity_for_same_date_conflict(tmp_path, monkey
     assert "archive/prices/yahoo/2026-09-19/prices.parquet" in archive.keys
     manifest_key = "archive/manifests/prices/yahoo/2026-09-19.json"
     assert manifest_key in archive.keys
+
+
+def test_publisher_rejects_same_date_different_bytes(tmp_path, monkeypatch):
+    from scripts import r2_publish
+    from src.storage.r2 import R2ImmutableObjectExists
+
+    path = tmp_path / "prices.parquet"
+    pd.DataFrame(
+        {"Symbol": ["AAA"], "Close": [100.0]},
+        index=pd.to_datetime(["2026-09-19"]),
+    ).to_parquet(path)
+
+    class FakeArchive:
+        def __init__(self, _config):
+            self.object_key = None
+
+        def put_file(self, key, _path, **_kwargs):
+            self.object_key = key
+            raise R2ImmutableObjectExists(key)
+
+        def verify_file(self, _key, _path):
+            raise RuntimeError("existing object differs")
+
+        def get_bytes(self, _key):
+            return b"{}"
+
+    archive = FakeArchive(None)
+    monkeypatch.setattr(r2_publish, "R2Archive", lambda _config: archive)
+    monkeypatch.setattr(r2_publish.R2Config, "from_env", classmethod(lambda cls: None))
+
+    with pytest.raises(RuntimeError, match="existing object differs"):
+        r2_publish.publish(
+            path,
+            dataset="prices/yahoo",
+            source="yahoo",
+            key_root="archive/prices/yahoo",
+            pipeline_version="test",
+            release_tag="data-latest",
+        )
