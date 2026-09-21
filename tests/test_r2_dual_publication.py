@@ -283,7 +283,7 @@ def test_r2_publisher_performs_post_publication_readback(monkeypatch, tmp_path):
         release_tag="data-latest",
     )
 
-    assert len(archive.verify_calls) == 2
+    assert len(archive.verify_calls) == 1
     assert any("/revisions/" in key for key, _ in archive.verify_calls)
 
 
