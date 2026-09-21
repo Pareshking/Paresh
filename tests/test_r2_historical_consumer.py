@@ -18,7 +18,7 @@ def test_reconstructs_membership_as_of_date():
     assert membership_from_frame(_frame(), index="nifty_total_market", as_of="2026-07-01") == {"BBB","CCC"}
 
 def test_unknown_index_fails_closed_to_empty_set():
-    assert membership_from_frame(_frame(), index="nifty50", as_of="2026-07-01") == set()
+    assert membership_from_frame(_frame(), index="nifty50", as_of="2026-07-01") is None
 
 def test_missing_columns_fail_closed():
     with pytest.raises(R2HistoricalConsumerError, match="missing columns"):
@@ -30,4 +30,4 @@ def test_duplicate_active_intervals_are_rejected():
         membership_from_frame(f, index="nifty_total_market", as_of="2026-07-01")
 
 def test_pre_coverage_is_not_replaced_by_current_members():
-    assert membership_from_frame(_frame(), index="nifty_total_market", as_of="2025-12-31") == set()
+    assert membership_from_frame(_frame(), index="nifty_total_market", as_of="2025-12-31") is None
