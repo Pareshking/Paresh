@@ -2,33 +2,26 @@ name: V1 Full Validation
 
 on:
   push:
-  # R2 is a separate storage/research-data track. R2-only changes must not
-  # launch the expensive V1 + Stage-4B suite. If a change touches any path
-  # outside this R2-only set, V1 still runs normally.
-  paths-ignore:
-    - 'src/storage/**'
-    - 'src/consumers/r2_*.py'
-    - 'scripts/r2_*.py'
-    - 'scripts/build_trading_sessions.py'
-    - 'scripts/build_market_cap_history.py'
-    - 'tests/test_r2_*.py'
-    - 'tests/test_build_trading_sessions.py'
-    - 'tests/test_market_cap_history.py'
-    - '.github/workflows/r2-*.yml'
-    - '.github/workflows/r2_*.yml'
-    - 'docs/R2_*.md'
-    - 'docs/MARKET_DATA_ARCHIVE_R2_SPEC.md'
-    - 'docs/RAW_PRICE_REBUILD.md'
     branches: [main, agent/stage4b-execution, agent/stage4b-second-archetype]
-  # Also on the PROPOSAL, not only on the merge. Running solely on push to
-  # main meant the suite first executed after the change was already in --
-  # a red result there is a revert, where the same red result on the pull
-  # request is just a commit that does not land.
-  pull_request:
-    branches: [main]
-    # Keep R2-only PRs on the R2 validation path; do not run Stage-4B here.
     paths-ignore:
       - 'src/storage/**'
+      - 'src/consumers/r2_*.py'
+      - 'scripts/r2_*.py'
+      - 'scripts/build_trading_sessions.py'
+      - 'scripts/build_market_cap_history.py'
+      - 'tests/test_r2_*.py'
+      - 'tests/test_build_trading_sessions.py'
+      - 'tests/test_market_cap_history.py'
+      - '.github/workflows/r2-*.yml'
+      - '.github/workflows/r2_*.yml'
+      - 'docs/R2_*.md'
+      - 'docs/MARKET_DATA_ARCHIVE_R2_SPEC.md'
+      - 'docs/RAW_PRICE_REBUILD.md'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'src/storage/**'
+      - 'src/consumers/r2_*.py'
       - 'scripts/r2_*.py'
       - 'scripts/build_trading_sessions.py'
       - 'scripts/build_market_cap_history.py'
@@ -44,10 +37,6 @@ on:
 
 permissions:
   contents: read
-
-env:
-  PYTHONPATH: .
-
 jobs:
   validate:
     runs-on: ubuntu-latest
