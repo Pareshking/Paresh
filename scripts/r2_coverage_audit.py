@@ -75,7 +75,8 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--baseline", required=True, type=Path)
     parser.add_argument("--candidate", required=True, type=Path)
-    print(json.dumps(audit_no_shrinkage(parser.parse_args().baseline, parser.parse_args().candidate), sort_keys=True))
+    args = parser.parse_args()
+    audit_no_shrinkage(args.baseline, args.candidate)
     return 0
 
 
