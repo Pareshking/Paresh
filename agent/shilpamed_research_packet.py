@@ -228,7 +228,7 @@ def shilpamed_packet() -> ResearchProviderPacket:
                 original_claim_refs=(ref("Q1FY27 consolidated revenue from operations was INR 465.78 crore, up 44.89% YoY, while consolidated PAT was INR 100.88 crore, up 115.19% YoY."),),
                 counter_evidence_refs=(ref("Q1FY27 net profit of INR 100.88 crore was 6.40% below Q4FY26 profit of INR 107.78 crore despite the strong YoY increase."),),
             ),
-            ContradictionFinding(
+            CounterEvidenceFinding(
                 hypothesis="Can new peptide, oncology and complex-injectable capacity convert into durable commercial revenue?",
                 original_claim="Management said large-scale peptide manufacturing capacity was under construction with completion planned for the second half of FY27.",
                 counter_evidence="The reviewed disclosures do not establish the eventual commercial contribution, utilisation ramp or economics of the new peptide capacity after commissioning.",
@@ -236,7 +236,7 @@ def shilpamed_packet() -> ResearchProviderPacket:
                 original_claim_refs=(ref("Management said large-scale peptide manufacturing capacity was under construction with completion planned for the second half of FY27."),),
                 counter_evidence_refs=(ref("The reviewed disclosures do not establish the eventual commercial contribution, utilisation ramp or economics of the new peptide capacity after commissioning."),),
             ),
-            ContradictionFinding(
+            CounterEvidenceFinding(
                 hypothesis="Do regulatory approvals and partner programs reduce execution risk, or do inspection/approval dependencies remain material?",
                 original_claim="The company's exchange-intimation page records final approval from the Subject Expert Committee (SEC) under CDSCO for grant of marketing authorization for OERIS (Ondansetron Extended-Release Injection, 100 mg/mL).",
                 counter_evidence="The company's 2026 exchange-intimation record also shows a USFDA inspection at Unit VI, Dabaspet, demonstrating that regulatory inspection remains an active execution dependency.",
@@ -244,7 +244,7 @@ def shilpamed_packet() -> ResearchProviderPacket:
                 original_claim_refs=(ref("The company's exchange-intimation page records final approval from the Subject Expert Committee (SEC) under CDSCO for grant of marketing authorization for OERIS (Ondansetron Extended-Release Injection, 100 mg/mL)."),),
                 counter_evidence_refs=(ref("The company's 2026 exchange-intimation record also shows a USFDA inspection at Unit VI, Dabaspet, demonstrating that regulatory inspection remains an active execution dependency."),),
             ),
-            ContradictionFinding(
+            CounterEvidenceFinding(
                 hypothesis="Is the current margin improvement supported by utilisation and mix, or is it vulnerable to under-utilised capacity and program timing?",
                 original_claim="FY26 investor materials linked expected operating leverage and margin improvement to higher utilisation across higher-margin biosimilar, CDMO and NDDS activities.",
                 counter_evidence="Q1FY27 PBT was INR 98.06 crore versus INR 120.44 crore in Q4FY26, showing that sequential profitability did not rise with revenue.",
