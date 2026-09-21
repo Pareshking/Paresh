@@ -51,3 +51,12 @@ AAA,11,2026-01-01,nse
     monkeypatch.setattr(mod, "_git", lambda *args: csv_text)
     with pytest.raises(RuntimeError, match="duplicate symbols"):
         mod._snapshot("a" * 40, "data/nse_market_caps.csv")
+
+def test_market_cap_history_skips_undated_legacy_snapshot(monkeypatch):
+    from scripts import build_market_cap_history as mod
+
+    csv_text = """Symbol,MarketCap
+AAA,10
+"""
+    monkeypatch.setattr(mod, "_git", lambda *args: csv_text)
+    assert mod._snapshot("a" * 40, "data/nse_market_caps.csv") is None
