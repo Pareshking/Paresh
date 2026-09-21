@@ -1185,3 +1185,43 @@ If the ranking engine changes, the source history remains.
 If a new backtest is invented five years from now, the underlying historical evidence remains.
 
 That is the reason for this architecture.
+
+
+# 37. Phase 3 implementation decision — dual publication
+
+Phase 3 uses the existing validated production artifacts as the single input to
+both publication paths.
+
+The daily Yahoo pipeline publishes, when produced:
+
+- `prices_full.parquet` -> `archive/prices/yahoo/<as_of>/prices_full.parquet`;
+- `prices.parquet` -> `snapshots/application/<as_of>/prices.parquet`;
+- `rankings.parquet` -> `snapshots/rankings/<as_of>/rankings.parquet`.
+
+The independent Screener pipeline publishes:
+
+- `screener_prices.parquet` -> `archive/prices/screener/<as_of>/screener_prices.parquet`.
+
+Each object receives an immutable manifest under:
+
+`archive/manifests/<dataset>/<as_of>.json`
+
+The publication boundary verifies:
+
+1. the exact local artifact exists;
+2. the R2 object is uploaded;
+3. size and SHA-256 match after read-back;
+4. an existing identical object is accepted idempotently;
+5. an existing object with different bytes is rejected rather than overwritten;
+6. source identity remains explicit in the manifest.
+
+The rolling GitHub Release remains in place during Phase 3.
+
+For same-date corrections caused by later vendor restatements, Phase 3 deliberately
+fails closed rather than overwriting an immutable archive object. A future
+revision/versioning policy must be introduced explicitly before same-date
+replacement is permitted.
+
+This keeps the first dual-publication phase conservative: no historical evidence
+can be silently replaced while the R2 archive is being proven against the live
+pipeline.
