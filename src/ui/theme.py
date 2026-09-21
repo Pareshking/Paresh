@@ -379,9 +379,22 @@ def inject_custom_css() -> None:
            row consumed ~180px on a phone before the screener even started.
            Keep the trigger intentionally small; the full navigation only
            exists in the floating popover when the reader asks for it. */
-        .st-key-app_nav_shell {
-            margin-bottom: 0.65rem !important;
+        .st-key-app_header_shell {
+            margin-bottom: 6px !important;
             min-height: 0 !important;
+            padding: 0 !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 9px !important;
+            background: #ffffff !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+            overflow: visible !important;
+        }
+
+        .st-key-app_header_shell [data-testid="column"]:last-child {
+            flex: 0 0 auto !important;
+            width: auto !important;
+            min-width: 42px !important;
+            padding-right: 6px !important;
         }
 
         .st-key-app_nav_menu button {
