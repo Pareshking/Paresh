@@ -157,6 +157,14 @@ def test_navigation_marks_the_current_page_inside_the_popover():
     assert "active_page=_nav" in src, "the header renderer does not know the active page"
 
 
+def test_mobile_header_menu_is_anchored_to_the_right_and_date_line_removed():
+    components = (ROOT / "src" / "ui" / "components.py").read_text(encoding="utf-8")
+    theme = (ROOT / "src" / "ui" / "theme.py").read_text(encoding="utf-8")
+    assert "📅 {as_of_text}" not in components, "the snapshot date line is still rendered in the header"
+    assert "position: absolute !important;" in theme, "hamburger is still participating in mobile layout flow"
+    assert "right: 7px !important;" in theme, "hamburger is not anchored to the right edge"
+
+
 def test_the_navigation_row_is_not_styled_by_a_generated_class_hash():
     """Emotion class names are build artefacts, not an API."""
     theme = (ROOT / "src" / "ui" / "theme.py").read_text(encoding="utf-8")
