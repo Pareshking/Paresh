@@ -2,8 +2,6 @@ name: TEMP Reliance Screener 3650-day probe
 
 on:
   push:
-    paths:
-      - ".github/workflows/TEMP-reliance-3650.yml"
 
 permissions:
   contents: read
@@ -56,9 +54,7 @@ jobs:
           print(series.tail(10).to_string())
 
           if len(series) < 1000:
-              raise SystemExit(
-                  f"NOT_DAILY_OR_TOO_SHORT: only {len(series)} observations"
-              )
+              raise SystemExit(f"NOT_DAILY_OR_TOO_SHORT: only {len(series)} observations")
 
           gaps = pd.Series(series.index).diff().dt.days.dropna()
           print(f"MEDIAN_GAP_DAYS={gaps.median()}")
