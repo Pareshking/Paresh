@@ -34,6 +34,40 @@ The remaining Section A boxes are **real-data publication verification**: live R
 
 The next engineering loop is Section C historical evidence datasets. It must not redesign System-1 or Stage-4B.
 
+
+## Production verification gate — 2026-09-21
+
+A dedicated read-only production verification workflow is now present at
+`.github/workflows/r2_screener_production_verification.yml`. It is designed to
+use the existing `data-latest/screener_prices.parquet` release artifact, verify
+the expected production SHA/date, perform the live manifest/current/object/HEAD/SHA
+audit, execute an **actual identical immutable retry** through
+`scripts/r2_publish.py`, and perform a second live audit.
+
+Current expected production evidence:
+- as_of: `2026-09-21`
+- SHA-256: `df03ed6d6fb9c8ca963c4f3fb3b73386c43e6f106cc9a3307d7b693cf80455dd`
+
+The workflow has been committed, but its execution result is not yet verified in
+this engineering session because the available GitHub action interface does not
+expose manual workflow dispatch/list-all-runs. Therefore the Section-A live
+verification boxes remain **OPEN** until a real Actions run proves them.
+
+## Section-C coordination
+
+PR #49 (`R2 historical evidence bootstrap pipeline`) is the active Section-C
+implementation and must not be duplicated. Review identified four blockers that
+must be resolved before merge:
+1. undefined `last_evidence` in membership interval construction;
+2. current `nse_trading_days.json` contains only five confirmed sessions and
+   cannot be published as a complete historical session archive;
+3. `nse_market_caps.csv` is currently a single 2026-09-18 snapshot, not yet a
+   historical series;
+4. corporate-action evidence provenance/schema must satisfy the C5 contract,
+   including source and evidence URI/date where available.
+
+No Yahoo raw-price rebuild is authorized by this tracker; it remains parked.
+
 ## B. R2 publication integrity — do now, independent of Screener
 
 - [x] Content-addressed revisions.
