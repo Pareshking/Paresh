@@ -6,6 +6,24 @@ This tracker is the working checklist for the market-data archive. Do not wait o
 the long Screener deep-history acquisition to advance independent engineering
 work. The production 10Y run is checked separately when it completes.
 
+## R2 / V1 boundary — HARD ARCHITECTURAL SEPARATION
+
+**R2 implementation and V1/Stage-4B stock research are separate engineering tracks. They must not be mixed.**
+
+R2 is the market-data storage/archive and reader layer. Its responsibilities are limited to historical data acquisition, normalization, immutable publication, manifests, checksums, coverage/integrity audits, and reproducible reads. R2 does **not** own ranking, stock selection, Stage-2/3 hierarchy, Stage-4B research, archetype execution, or Streamlit product validation.
+
+V1 is the application/quantitative-research validation track. Stage-4B live archetypes such as SANSERA, ANANDRATHI, PAYTM, YATHARTH, and LENSKART belong to V1 research validation and are not R2 acceptance criteria.
+
+### CI rule
+
+- R2-only changes must be validated by R2-specific tests/workflows and must **not** trigger the expensive V1 Full Validation suite merely because the repository contains both systems.
+- V1 Full Validation remains responsible for application + System-1 + Stage-4B regression when a non-R2 change can affect those systems.
+- An R2 gate is green only from R2 evidence; a Stage-4B result is neither a substitute for nor a prerequisite for an R2 storage gate.
+- A V1/Stage-4B failure must not block independent R2 engineering unless the changed R2 code is demonstrably on the failing execution path.
+- R2 consumer integration is a controlled later step. Until then, R2 remains an independent archive/read layer and V1 continues using its canonical existing data path.
+
+This separation is intentional: the combined V1 suite currently executes multiple real Stage-4B archetypes and Streamlit checks, so attaching it to every R2 storage/documentation change creates unnecessary latency and makes unrelated failures harder to diagnose.
+
 ## A. Current production run — Screener 10Y
 
 - [x] Real 10Y acquisition completes — 750 symbols, 1,161 sessions, 2016-09-23 → 2026-09-21.
