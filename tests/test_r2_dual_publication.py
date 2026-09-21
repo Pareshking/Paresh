@@ -394,3 +394,21 @@ def test_archive_audit_rejects_manifest_mismatch(monkeypatch):
     monkeypatch.setattr("scripts.r2_audit.R2Config.from_env", classmethod(lambda cls: None))
     with pytest.raises(RuntimeError, match="pointer/manifest mismatch source"):
         audit(dataset="prices/screener", as_of="2026-09-19")
+
+
+def test_no_shrinkage_audit_passes_and_rejects_erasure(tmp_path):
+    from scripts.r2_coverage_audit import audit_no_shrinkage
+
+    idx = pd.to_datetime(["2026-09-17", "2026-09-18"])
+    cols = pd.MultiIndex.from_product([["AAA", "BBB"], ["Close"]])
+    baseline = pd.DataFrame([[10, 20], [11, 21]], index=idx, columns=cols)
+    candidate = pd.DataFrame([[9, 10], [10, 11], [11, 21]], index=pd.to_datetime(["2026-09-16", "2026-09-17", "2026-09-18"]), columns=cols)
+    bp, cp = tmp_path / "baseline.parquet", tmp_path / "candidate.parquet"
+    baseline.to_parquet(bp); candidate.to_parquet(cp)
+    assert audit_no_shrinkage(bp, cp)["status"] == "PASS"
+
+    erased = candidate.copy()
+    erased.loc[pd.Timestamp("2026-09-18"), ("BBB", "Close")] = float("nan")
+    ep = tmp_path / "erased.parquet"; erased.to_parquet(ep)
+    with pytest.raises(RuntimeError, match="historical cells erased"):
+        audit_no_shrinkage(bp, ep)
