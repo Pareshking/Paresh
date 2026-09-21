@@ -66,11 +66,7 @@ Current expected production evidence:
 - as_of: `2026-09-21`
 - SHA-256: `df03ed6d6fb9c8ca963c4f3fb3b73386c43e6f106cc9a3307d7b693cf80455dd`
 
-The workflow has been committed and its contract is covered by
-`tests/test_r2_production_verification.py`, but its execution result is not yet verified in
-this engineering session because the available GitHub action interface does not
-expose manual workflow dispatch/list-all-runs. Therefore the Section-A live
-verification boxes remain **OPEN** until a real Actions run proves them.
+The workflow was executed against the real R2 object: Run #1 / Run ID 35635710984 passed manifest/current/object/HEAD/SHA read-back, an identical immutable retry, and post-retry verification.
 
 ## Section-C coordination
 
@@ -124,12 +120,24 @@ Source design is documented in `docs/RAW_PRICE_REBUILD.md`.
 
 ## E. R2 consumer layer
 
-- [ ] R2 read adapter for analytical datasets.
-- [ ] Research/backtest reader.
+- [x] R2 read adapter for analytical datasets — manifest-pinned `R2DatasetReader` resolves current or explicit revisions and verifies manifest identity, HEAD size, object SHA, and byte size.
+- [ ] Research/backtest reader — separate consumer integration; do not move ranking or Stage-4B logic into R2.
 - [ ] Streamlit reader behind a feature flag.
 - [ ] Controlled fallback to release/local artifacts.
 - [ ] Manifest-pinned research runs.
 - [ ] Point-in-time universe reconstruction from archived membership.
+
+
+## CI isolation — VERIFIED 2026-09-21
+
+R2 and V1/Stage-4B are now separate CI tracks.
+
+- R2-only paths run **R2 Focused Validation** rather than the expensive V1 Full Validation suite.
+- V1 Full Validation and V1 Production QA ignore R2-only paths.
+- R2 Focused Validation Run #3 / Run ID 35639796677 passed the R2 regression, compile, and separation-contract checks.
+- V1 Full Validation Run #568 / Run ID 35638696739 failed in the generic regression suite on two R2 reader tests before any Stage-4B execution step ran. Those R2 failures were repaired and then passed in the focused R2 workflow.
+
+This is intentional: R2 acceptance is based on R2 evidence. SANSERA, ANANDRATHI, PAYTM, YATHARTH, and LENSKART are V1/Stage-4B research workloads and are not R2 acceptance tests.
 
 ## F. Operations / governance
 
