@@ -111,14 +111,97 @@ def test_publisher_uses_content_identity_for_same_date_conflict(tmp_path, monkey
         release_tag="data-latest",
     )
 
-    assert "archive/prices/yahoo/2026-09-19/prices.parquet" in archive.keys
-    manifest_key = "archive/manifests/prices/yahoo/2026-09-19.json"
-    assert manifest_key in archive.keys
+    revision_keys = [
+        key for key in archive.keys
+        if "/revisions/" in key and key.endswith("prices.parquet")
+    ]
+    assert len(revision_keys) == 1
+    manifest_keys = [
+        key for key in archive.keys
+        if "/revisions/" in key and key.endswith(".json")
+    ]
+    assert len(manifest_keys) == 1
+    current_key = "archive/manifests/prices/yahoo/2026-09-19/current.json"
+    assert current_key in archive.keys
 
 
-def test_publisher_rejects_same_date_different_bytes(tmp_path, monkeypatch):
+def test_publisher_preserves_same_date_different_bytes_as_new_revision(tmp_path, monkeypatch):
+    import json
+
     from scripts import r2_publish
-    from src.storage.r2 import R2ImmutableObjectExists
+
+    path = tmp_path / "prices.parquet"
+
+    def write_frame(close: float) -> None:
+        pd.DataFrame(
+            {"Symbol": ["AAA"], "Close": [close]},
+            index=pd.to_datetime(["2026-09-19"]),
+        ).to_parquet(path)
+
+    write_frame(100.0)
+
+    class FakeArchive:
+        def __init__(self, _config):
+            self.keys = {}
+
+        def put_file(self, key, path, **_kwargs):
+            if key in self.keys:
+                raise RuntimeError("unexpected duplicate key")
+            self.keys[key] = Path(path).read_bytes()
+
+        def put_bytes(self, key, body, **_kwargs):
+            self.keys[key] = body
+
+        def get_bytes(self, key):
+            return self.keys[key]
+
+        def verify_file(self, key, path):
+            assert self.keys[key] == Path(path).read_bytes()
+
+    archive = FakeArchive(None)
+    monkeypatch.setattr(r2_publish, "R2Archive", lambda _config: archive)
+    monkeypatch.setattr(r2_publish.R2Config, "from_env", classmethod(lambda cls: None))
+
+    r2_publish.publish(
+        path,
+        dataset="prices/yahoo",
+        source="yahoo",
+        key_root="archive/prices/yahoo",
+        pipeline_version="test",
+        release_tag="data-latest",
+    )
+
+    first_revisions = [
+        key for key in archive.keys
+        if "/revisions/" in key and key.endswith("prices.parquet")
+    ]
+    assert len(first_revisions) == 1
+
+    write_frame(101.0)
+    r2_publish.publish(
+        path,
+        dataset="prices/yahoo",
+        source="yahoo",
+        key_root="archive/prices/yahoo",
+        pipeline_version="test-2",
+        release_tag="data-latest",
+    )
+
+    revision_keys = [
+        key for key in archive.keys
+        if "/revisions/" in key and key.endswith("prices.parquet")
+    ]
+    assert len(revision_keys) == 2
+    current = json.loads(
+        archive.get_bytes(
+            "archive/manifests/prices/yahoo/2026-09-19/current.json"
+        )
+    )
+    assert any(current["revision_sha256"] in key for key in revision_keys)
+
+
+def test_publisher_retries_identical_revision_idempotently(tmp_path, monkeypatch):
+    from scripts import r2_publish
 
     path = tmp_path / "prices.parquet"
     pd.DataFrame(
@@ -128,28 +211,36 @@ def test_publisher_rejects_same_date_different_bytes(tmp_path, monkeypatch):
 
     class FakeArchive:
         def __init__(self, _config):
-            self.object_key = None
+            self.keys = {}
 
-        def put_file(self, key, _path, **_kwargs):
-            self.object_key = key
-            raise R2ImmutableObjectExists(key)
+        def put_file(self, key, path, **_kwargs):
+            if key in self.keys:
+                from src.storage.r2 import R2ImmutableObjectExists
+                raise R2ImmutableObjectExists(key)
+            self.keys[key] = Path(path).read_bytes()
 
-        def verify_file(self, _key, _path):
-            raise RuntimeError("existing object differs")
+        def put_bytes(self, key, body, **_kwargs):
+            self.keys[key] = body
 
-        def get_bytes(self, _key):
-            return b"{}"
+        def get_bytes(self, key):
+            return self.keys[key]
+
+        def verify_file(self, key, path):
+            assert self.keys[key] == Path(path).read_bytes()
 
     archive = FakeArchive(None)
     monkeypatch.setattr(r2_publish, "R2Archive", lambda _config: archive)
     monkeypatch.setattr(r2_publish.R2Config, "from_env", classmethod(lambda cls: None))
 
-    with pytest.raises(RuntimeError, match="existing object differs"):
-        r2_publish.publish(
-            path,
-            dataset="prices/yahoo",
-            source="yahoo",
-            key_root="archive/prices/yahoo",
-            pipeline_version="test",
-            release_tag="data-latest",
-        )
+    r2_publish.publish(
+        path, dataset="prices/yahoo", source="yahoo",
+        key_root="archive/prices/yahoo", pipeline_version="test",
+        release_tag="data-latest",
+    )
+    before = len(archive.keys)
+    r2_publish.publish(
+        path, dataset="prices/yahoo", source="yahoo",
+        key_root="archive/prices/yahoo", pipeline_version="test",
+        release_tag="data-latest",
+    )
+    assert len(archive.keys) == before

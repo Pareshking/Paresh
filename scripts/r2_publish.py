@@ -1,13 +1,16 @@
 """Publish a validated production artifact to the canonical R2 archive.
 
-This is the Phase-3 dual-publication boundary. It does not fetch market data,
-rank symbols, or transform source values. The caller supplies the exact file
-that was already validated/published by the existing pipeline.
+Same-date source data can legitimately change (for example when a vendor
+restates corporate-action-adjusted history). Therefore the archive is
+content-addressed: every distinct byte-level source snapshot is immutable and
+preserved as a revision. A mutable current pointer identifies the latest
+validated revision for each dataset/date.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -17,6 +20,14 @@ import pyarrow.parquet as pq
 
 from src.storage.manifest import build_manifest, canonical_json
 from src.storage.r2 import R2Archive, R2Config, R2ImmutableObjectExists
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _ranking_contract(path: Path) -> dict[str, Any] | None:
@@ -72,15 +83,6 @@ def describe_parquet(path: Path) -> dict[str, Any]:
     }
 
 
-def _verify_existing(
-    archive: R2Archive,
-    path: Path,
-    key: str,
-) -> None:
-    archive.verify_file(key, path)
-    print(f"ALREADY PRESENT + VERIFIED {key}")
-
-
 def _publish_manifest(
     archive: R2Archive,
     manifest: dict[str, Any],
@@ -93,20 +95,10 @@ def _publish_manifest(
     except R2ImmutableObjectExists:
         existing = json.loads(archive.get_bytes(key).decode("utf-8"))
         fields = (
-            "dataset",
-            "as_of",
-            "source",
-            "schema_version",
-            "row_count",
-            "symbol_count",
-            "min_date",
-            "max_date",
-            "size_bytes",
-            "sha256",
-            "object_key",
-            "release_tag",
-            "source_asset",
-            "source_asset_sha256",
+            "dataset", "as_of", "source", "schema_version", "row_count",
+            "symbol_count", "min_date", "max_date", "size_bytes", "sha256",
+            "object_key", "release_tag", "source_asset", "source_asset_sha256",
+            "revision_sha256",
         )
         for field in fields:
             if existing.get(field) != manifest.get(field):
@@ -114,6 +106,39 @@ def _publish_manifest(
                     f"Existing R2 manifest differs for {key}: {field}"
                 )
         print(f"MANIFEST ALREADY PRESENT + VERIFIED {key}")
+
+
+def _publish_current(
+    archive: R2Archive,
+    *,
+    dataset: str,
+    as_of: str,
+    revision_sha256: str,
+    object_key: str,
+    manifest_key: str,
+    source: str,
+    pipeline_version: str,
+) -> None:
+    key = f"archive/manifests/{dataset}/{as_of}/current.json"
+    pointer = {
+        "dataset": dataset,
+        "as_of": as_of,
+        "source": source,
+        "revision_sha256": revision_sha256,
+        "object_key": object_key,
+        "manifest_key": manifest_key,
+        "pipeline_version": pipeline_version,
+    }
+    # This pointer is intentionally mutable. The immutable revision and its
+    # manifest are the historical evidence; current.json is only convenience
+    # metadata identifying the latest accepted revision.
+    archive.put_bytes(
+        key,
+        canonical_json(pointer),
+        content_type="application/json",
+        immutable=False,
+    )
+    print(f"CURRENT POINTER UPDATED {key} -> {revision_sha256}")
 
 
 def publish(
@@ -130,8 +155,13 @@ def publish(
 
     description = describe_parquet(path)
     as_of = description["as_of"]
-    object_key = f"{key_root}/{as_of}/{path.name}"
-    manifest_key = f"archive/manifests/{dataset}/{as_of}.json"
+    revision_sha256 = _sha256_file(path)
+    object_key = (
+        f"{key_root}/{as_of}/revisions/{revision_sha256}/{path.name}"
+    )
+    manifest_key = (
+        f"archive/manifests/{dataset}/{as_of}/revisions/{revision_sha256}.json"
+    )
 
     archive = R2Archive(R2Config.from_env())
 
@@ -145,7 +175,8 @@ def publish(
         )
         print(f"PUBLISHED {object_key}")
     except R2ImmutableObjectExists:
-        _verify_existing(archive, path, object_key)
+        archive.verify_file(object_key, path)
+        print(f"REVISION ALREADY PRESENT + VERIFIED {object_key}")
 
     manifest = build_manifest(
         path,
@@ -161,14 +192,24 @@ def publish(
             "object_key": object_key,
             "release_tag": release_tag,
             "source_asset": path.name,
-            "source_asset_sha256": None,
+            "source_asset_sha256": revision_sha256,
+            "revision_sha256": revision_sha256,
         },
     )
-    manifest["source_asset_sha256"] = manifest["sha256"]
     if description["ranking_contract"] is not None:
         manifest["ranking_contract"] = description["ranking_contract"]
 
     _publish_manifest(archive, manifest, manifest_key)
+    _publish_current(
+        archive,
+        dataset=dataset,
+        as_of=as_of,
+        revision_sha256=revision_sha256,
+        object_key=object_key,
+        manifest_key=manifest_key,
+        source=source,
+        pipeline_version=pipeline_version,
+    )
 
 
 def main() -> int:

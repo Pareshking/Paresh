@@ -74,7 +74,7 @@ The repository documents the Screener source as:
 - Close;
 - Volume;
 - no reliable intraday OHLC history from the current chart endpoint;
-- approximately one year of daily resolution, with older data downsampled by the vendor;
+- recent history at daily resolution, with older history downsampled by the vendor;
 - one request per symbol per nightly run;
 - paced requests;
 - accumulated locally rather than replacing the historical store.
@@ -345,11 +345,30 @@ It must not be silently combined with Yahoo values.
 
 ### Important limitation
 
-The current Screener collection path is daily only for approximately the recent year and is downsampled by Screener beyond that window.
+The current Screener chart endpoint was directly tested with **RELIANCE** using `days=3650`.
 
-Therefore:
+The production collector returned:
 
-> We cannot assume that a brand-new R2 archive can be populated with many years of daily Screener history from one request.
+- **523 observations**;
+- first observation: **2016-09-23**;
+- latest observation: **2026-09-21**;
+- unresolved symbols: **none**.
+
+The returned dates are predominantly weekly in the deep-history portion, rather than daily. The sample begins:
+
+- 2016-09-23
+- 2016-09-30
+- 2016-10-07
+- 2016-10-14
+- 2016-10-21
+
+and the recent tail transitions to the current accumulated daily region.
+
+Therefore the direct single-stock test confirms the important architectural fact:
+
+> **A 3650-day Screener chart request does not return 10 years of daily observations. It returns a long history with older observations downsampled to approximately weekly frequency.**
+
+We therefore must not design the one-time bootstrap as a 10-year daily backfill.
 
 The archive must grow continuously from nightly collection.
 
@@ -1225,3 +1244,191 @@ replacement is permitted.
 This keeps the first dual-publication phase conservative: no historical evidence
 can be silently replaced while the R2 archive is being proven against the live
 pipeline.
+
+
+# 38. Same-date source revisions
+
+Phase 3 real-data validation exposed an important property of vendor history:
+the same \`as_of\` date can legitimately produce different bytes on a later
+collection. This is expected for sources whose historical prices are adjusted
+or restated after corporate actions, and must not be treated as a corruption
+condition by itself.
+
+The archive therefore uses **content-addressed revisions** for canonical
+source datasets:
+
+\`\`\`
+archive/prices/yahoo/<as_of>/revisions/<sha256>/prices_full.parquet
+archive/prices/screener/<as_of>/revisions/<sha256>/screener_prices.parquet
+\`\`\`
+
+Each distinct byte-level snapshot gets its own immutable object and immutable
+manifest:
+
+\`\`\`
+archive/manifests/<dataset>/<as_of>/revisions/<sha256>.json
+\`\`\`
+
+A mutable convenience pointer records the latest accepted revision:
+
+\`\`\`
+archive/manifests/<dataset>/<as_of>/current.json
+\`\`\`
+
+Rules:
+
+1. identical retry of an existing revision is idempotent and verified;
+2. same date + different bytes creates a new revision;
+3. an older revision is never overwritten or deleted by publication;
+4. \`current.json\` identifies the latest accepted revision only;
+5. the revision SHA-256 is the content identity used by the archive;
+6. manifests retain source identity and pipeline metadata.
+
+This is particularly important for Yahoo, where corporate-action-adjusted
+history can be restated. The archive must preserve what was actually received,
+not silently rewrite yesterday's evidence with today's interpretation.
+
+The first observed Yahoo same-date conflict proved that the byte-level
+snapshot changed; the semantic cause of each future change should be measured
+separately rather than assumed.
+
+# 39. One-time Screener 10-year bootstrap
+
+A direct production-collector probe of the Screener chart endpoint was run for
+RELIANCE with `days=3650`. It returned 523 observations from 2016-09-23 through
+2026-09-21, with the older portion clearly downsampled to approximately weekly
+frequency.
+
+This confirms that a one-time deep-history bootstrap can recover materially
+more historical Screener data, but **cannot recover 10 years of daily bars from
+this endpoint**.
+
+The resulting store deliberately has mixed temporal density:
+
+- recent period: accumulated daily observations;
+- older period: Screener-provided weekly observations, as directly verified by
+  the RELIANCE 3650-day probe.
+
+The normal daily Screener job then continues exactly as before. It requests
+the recent rolling daily window and merges it into the store, preserving the
+older weekly observations. No weekly deep-history request is required on future
+daily runs.
+
+The bootstrap is a one-time research-data acquisition step, not a change to the
+live ranking methodology.
+
+Acceptance checks for the bootstrap include:
+
+- complete successful universe walk;
+- no unsettled session frozen into history;
+- historical rows preserved rather than replaced;
+- substantial history older than one year;
+- final artifact published to both the rolling GitHub Release and R2;
+- R2 publication uses the same revision model described above.
+
+This gives the backtest layer a materially deeper Screener source history
+without pretending that the older observations are daily bars.
+
+
+# 40. Implementation status — 2026-09-21
+
+The R2 archive implementation has progressed through the storage foundation,
+bootstrap, dual-publication, and revision-model work. The status below is
+evidence from the repository and CI runs, not a design assumption.
+
+### Verified
+
+- **Phase 1 storage adapter:** implemented and previously verified against the
+  real R2 bucket with PUT, HEAD, GET/read-back, LIST, immutable overwrite
+  protection, and DELETE checks.
+- **Phase 2 bootstrap:** implemented and previously verified with the
+  `data-latest` release artifacts. The bootstrap produced and read back the
+  expected R2 archive objects and manifests.
+- **Phase 3 dual publication:** merged to `main`. The daily Yahoo/NSE path and
+  Screener path have both been exercised with real source collection; the
+  production artifacts themselves were successfully generated.
+- **Daily Yahoo/NSE collection:** the latest real validation generated
+  `prices_archive.parquet` with 497 sessions and 3,751 series and completed
+  the production daily sync successfully. R2 publication in that validation
+  was blocked by endpoint configuration rather than source collection.
+- **Revision model:** implemented on the Phase-3 revision branch. Canonical
+  source objects are now content-addressed by SHA-256, with immutable revision
+  manifests and a mutable `current.json` pointer.
+- **Screener deep-history bootstrap:** implemented as a one-time manual
+  workflow requesting a 10-year window and merging the returned older
+  observations into the existing source-separated Screener store. The normal
+  daily Screener job remains unchanged.
+
+### Current validation state
+
+The current revision branch is still under validation and must not be merged
+until its regression gate is green.
+
+The latest V1 run exposed two test-contract defects in
+`tests/test_r2_dual_publication.py`: the tests still expected the former
+date-only object path, and one test modified a valid Parquet file by appending
+bytes, making it intentionally invalid Parquet before the publisher attempted
+to inspect it. These are test defects, not evidence that the revision archive
+model itself is broken. The tests have been corrected to assert revision
+paths and to create a second valid Parquet snapshot with changed data.
+
+A direct single-stock Screener probe has now completed for RELIANCE with
+`days=3650`: 523 observations from 2016-09-23 through 2026-09-21, confirming
+that the deep-history endpoint is weekly/downsampled rather than 10-year daily.
+The full-universe bootstrap therefore remains a mixed-frequency acquisition
+step; it is not being treated as a reason to redesign the daily pipeline.
+
+The intended acceptance sequence remains:
+
+```
+real Screener 10Y collection
+        ->
+merge with existing daily store
+        ->
+verify deep historical coverage
+        ->
+publish immutable R2 revision
+        ->
+read back and verify
+        ->
+merge/CI gate
+```
+
+The Yahoo revision validation follows the corresponding path:
+
+```
+real Yahoo/NSE collection
+        ->
+validated production artifact
+        ->
+SHA-256 content identity
+        ->
+immutable revision
+        ->
+manifest
+        ->
+current.json
+        ->
+read-back verification
+```
+
+### Next gates
+
+1. Complete the real full-universe Screener deep-history run without interruption,
+   using the now-verified mixed daily/weekly expectation.
+2. Complete real Yahoo revision publication after the R2 endpoint configuration
+   is valid.
+3. Run the corrected regression/V1 suite.
+4. Remove temporary validation workflows from the production PR before merge.
+5. Merge the revision/bootstrap implementation only after the production gate
+   is green.
+6. Execute the one-time production Screener 10-year bootstrap from the merged
+   workflow and verify the resulting R2 objects.
+7. Run subsequent normal daily Screener cycles to prove the older weekly
+   history is preserved.
+8. Run repeated Yahoo cycles to verify both new revisions and identical-retry
+   idempotency.
+9. Only after those gates, begin the R2 read-path/feature-flag work.
+
+No ranking formula, benchmark, universe methodology, or Stage-4 research
+methodology is changed by this archive work.
