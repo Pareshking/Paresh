@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import pandas as pd
 
 from src.core import startup_metrics as metrics
-from src.core.config import SCREENER_DELAY_S, SCREENER_PRICES_FILE
+from src.core.config import SCREENER_DELAY_S
 from src.core.market_time import session_is_complete
 from src.loaders import screener_loader as sl
 from src.loaders.indices_loader import fetch_indices_data
@@ -83,7 +83,6 @@ def run() -> int:
         print("[ERROR] Bootstrap produced an empty close matrix.")
         return 1
 
-    weekly_like = closes.index.to_series().diff().dt.days
     older = closes.index < (closes.index.max() - pd.Timedelta(days=370))
     old_count = int(older.sum())
     print(f"  historical sessions older than 370 days: {old_count}")
