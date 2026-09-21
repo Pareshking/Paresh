@@ -69,3 +69,5 @@ jobs:
             --key-root archive/prices/screener \
             --pipeline-version "temp-screener-10y-${{ github.sha }}" \
             --release-tag data-latest
+
+# validation rerun
