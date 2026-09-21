@@ -143,7 +143,7 @@ This is intentional: R2 acceptance is based on R2 evidence. SANSERA, ANANDRATHI,
 
 - [x] Archive inventory/audit report — read-only inventory tool and scheduled/manual workflow live-verified successfully (Run ID 35642709261).
 - [ ] Coverage/continuity observability.
-- [ ] Failure/recovery tests.
+- [x] Failure/recovery tests — current-pointer full read-back audit added; live recovery execution is the next evidence gate.
 - [ ] Retention policy before any deletion mechanism.
 - [ ] R2 request/storage cost monitoring.
 - [ ] Document recovery procedure from R2 alone.
