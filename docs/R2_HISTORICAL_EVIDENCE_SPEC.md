@@ -6,6 +6,16 @@
 
 This document converts the original R2 architecture requirements into implementation boundaries. It does not start the parked Yahoo raw-price rebuild.
 
+## R2 / stock-research boundary
+
+Historical evidence stored in R2 is an infrastructure/data contract. It is **not** the Stage-4B research layer.
+
+R2 owns the preservation and reproducibility of source evidence: immutable revisions, manifests, provenance, evidence dates, checksums, coverage, and read-back. Stock research owns interpretation, ranking, hierarchy, agent reasoning, causal findings, contradictions, and Stage-4B archetype execution.
+
+Stage-4B examples such as SANSERA, ANANDRATHI, PAYTM, YATHARTH, and LENSKART must remain outside the R2 dataset and acceptance model. They may become consumers of R2 later, but only through the dedicated reader/consumer contracts in Section E of the R2 engineering loop.
+
+**Do not use V1 Full Validation as the R2 acceptance test.** R2 changes need R2-specific tests and live archive gates. V1/Stage-4B validation remains a separate regression track.
+
 ## 1. Non-negotiable principles
 
 1. Historical evidence is append-only where the source permits it.
