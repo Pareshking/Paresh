@@ -85,7 +85,7 @@ def test_reader_rejects_object_hash_mismatch():
     archive, dataset, as_of, _ = _archive_for_current(body=b"correct")
     pointer = next(k for k in archive.objects if k.endswith("/current.json"))
     payload = json.loads(archive.objects[pointer])
-    archive.objects[payload["object_key"]] = b"tampered"
+    archive.objects[payload["object_key"]] = b"wrong!!"
 
     reader = R2DatasetReader(archive)
     ref = reader.resolve_current(dataset, as_of=as_of)
@@ -102,5 +102,5 @@ def test_reader_rejects_manifest_revision_mismatch():
     archive.objects[manifest_key] = json.dumps(manifest).encode()
 
     reader = R2DatasetReader(archive)
-    with pytest.raises(R2DatasetIntegrityError, match="manifest SHA"):
+    with pytest.raises(R2DatasetIntegrityError, match="manifest .*SHA"):
         reader.resolve_current(dataset, as_of=as_of)

@@ -1,0 +1,87 @@
+name: R2 Focused Validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/storage/**'
+      - 'scripts/r2_*.py'
+      - 'scripts/build_trading_sessions.py'
+      - 'scripts/build_market_cap_history.py'
+      - 'tests/test_r2_*.py'
+      - 'tests/test_build_trading_sessions.py'
+      - 'tests/test_market_cap_history.py'
+      - '.github/workflows/r2-*.yml'
+      - '.github/workflows/r2_*.yml'
+      - '.github/workflows/r2-focused-validation.yml'
+      - 'docs/R2_*.md'
+      - 'docs/MARKET_DATA_ARCHIVE_R2_SPEC.md'
+      - 'docs/RAW_PRICE_REBUILD.md'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/storage/**'
+      - 'scripts/r2_*.py'
+      - 'scripts/build_trading_sessions.py'
+      - 'scripts/build_market_cap_history.py'
+      - 'tests/test_r2_*.py'
+      - 'tests/test_build_trading_sessions.py'
+      - 'tests/test_market_cap_history.py'
+      - '.github/workflows/r2-*.yml'
+      - '.github/workflows/r2_*.yml'
+      - '.github/workflows/r2-focused-validation.yml'
+      - 'docs/R2_*.md'
+      - 'docs/MARKET_DATA_ARCHIVE_R2_SPEC.md'
+      - 'docs/RAW_PRICE_REBUILD.md'
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: .
+
+jobs:
+  r2-focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install test dependencies
+        run: pip install -r requirements.txt pytest
+
+      - name: R2-focused regression
+        run: |
+          python -m pytest -q \
+            tests/test_r2_*.py \
+            tests/test_build_trading_sessions.py \
+            tests/test_market_cap_history.py
+
+      - name: Compile R2 implementation
+        run: |
+          python -m compileall -q src/storage
+          python -m compileall -q \
+            scripts/r2_*.py \
+            scripts/build_trading_sessions.py \
+            scripts/build_market_cap_history.py
+
+      - name: Assert R2 / V1 separation contract
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          v1 = Path(".github/workflows/v1-full-validation.yml").read_text()
+          if "paths-ignore:" not in v1:
+              raise SystemExit("V1 Full Validation is not isolated from R2-only paths")
+          for required in ("src/storage/**", "scripts/r2_*.py", "tests/test_r2_*.py"):
+              if required not in v1:
+                  raise SystemExit(f"V1 isolation missing required R2 path: {required}")
+
+          text = Path("docs/R2_ENGINEERING_LOOP.md").read_text()
+          if "R2 / V1 boundary" not in text:
+              raise SystemExit("R2/V1 architectural separation is not documented")
+          print("R2_V1_SEPARATION=PASS")
+          PY

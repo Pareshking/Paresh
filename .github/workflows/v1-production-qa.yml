@@ -3,6 +3,21 @@ name: V1 Production QA
 on:
   workflow_dispatch:
   push:
+    # R2 is independent infrastructure; do not run deployed-app QA for
+    # R2-only changes. Production QA remains for application/V1 changes.
+    paths-ignore:
+      - 'src/storage/**'
+      - 'scripts/r2_*.py'
+      - 'scripts/build_trading_sessions.py'
+      - 'scripts/build_market_cap_history.py'
+      - 'tests/test_r2_*.py'
+      - 'tests/test_build_trading_sessions.py'
+      - 'tests/test_market_cap_history.py'
+      - '.github/workflows/r2-*.yml'
+      - '.github/workflows/r2_*.yml'
+      - 'docs/R2_*.md'
+      - 'docs/MARKET_DATA_ARCHIVE_R2_SPEC.md'
+      - 'docs/RAW_PRICE_REBUILD.md'
     # `main` only, because this job probes the DEPLOYED app rather than the
     # checkout. It asserts the build Streamlit is serving equals github.sha
     # (UMIYA_EXPECTED_SHA below), and Streamlit Cloud serves the deployed

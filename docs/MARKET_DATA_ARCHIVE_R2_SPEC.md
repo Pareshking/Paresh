@@ -1,12 +1,26 @@
 # Market Data Archive & Cloudflare R2 Architecture Specification
 
-**Status:** Design / pre-implementation  
+**Status:** Active implementation / migration in progress  
 **Document purpose:** Define the long-term market-data architecture before changing production data flow.  
 **Repository:** `Pareshking/Paresh`  
 **Target storage:** Cloudflare R2 Standard  
 **Last updated:** 2026-09-21
 
 ---
+
+## R2 / stock-research boundary — non-negotiable
+
+R2 is a **separate implementation track** from the stock-research system (System-1, Stage-2/3, and Stage-4B). R2 provides durable historical-data storage and reproducible data access; it does not implement or validate the stock-ranking/research methodology.
+
+The Stage-4B archetypes (for example SANSERA, ANANDRATHI, PAYTM, YATHARTH, and LENSKART) are stock-research validation workloads. They are not R2 datasets, R2 tests, or R2 acceptance gates.
+
+The two tracks may integrate later through a narrow, explicitly tested reader boundary, but integration does **not** merge their responsibilities:
+
+- **R2:** archive, revision, manifest, checksum, coverage, recovery, and read contracts.
+- **Stock research/V1:** canonical ranking hand-off, hierarchy, research agents, evidence/provenance, Stage-4B archetypes, and application validation.
+- **Integration:** readers/consumer adapters only, with explicit contracts and fallback; no second ranking/price engine is allowed in R2.
+
+CI should preserve this separation. R2-only commits should use R2-specific validation and should not be forced through the full Stage-4B/V1 suite. Conversely, changes to stock-research/application paths should not be declared R2 work merely because they consume market data.
 
 ## 1. Executive decision
 
@@ -36,7 +50,15 @@ Git/GitHub remains the canonical home for:
 
 GitHub Releases may remain as an application snapshot/fallback mechanism during and after migration, but they are not the intended long-term data warehouse.
 
-**Important:** This document records the architecture and migration plan only. It does not authorize changing the live data path yet.
+**Current implementation note:** The architecture has moved beyond design-only status. R2
+storage, immutable revision publication, historical-evidence bootstrap, live Screener
+publication verification, and the observed-session archive are implemented. The
+current application data path remains on the proven GitHub Release/local artifact
+path; R2 is being introduced as the durable archive and will become the canonical
+research-data source only after the consumer acceptance gates are passed.
+
+Do not interpret the existence of an R2 object as permission to make Streamlit or
+System-1 depend on it. Consumer migration is a separate gate.
 
 ---
 
@@ -752,79 +774,81 @@ Do not remove the existing release path until R2 has passed the migration gates.
 
 # 22. Migration strategy
 
-Migration must be incremental.
+Migration is incremental and the phases below now reflect the implementation state.
 
 ## Phase 0 — Documentation
 
-This document.
+**Status: complete.**
 
-No production data-path change.
+The architecture, historical-evidence contracts, engineering loop, and hand-off
+rules are documented in:
+- `docs/MARKET_DATA_ARCHIVE_R2_SPEC.md`
+- `docs/R2_HISTORICAL_EVIDENCE_SPEC.md`
+- `docs/R2_ENGINEERING_LOOP.md`
 
 ## Phase 1 — R2 connectivity
 
-Create private bucket.
+**Status: complete.**
 
-Implement a small storage adapter.
-
-Test:
-
-- put;
-- head;
-- get;
-- list;
-- checksum;
-- failure handling.
-
-No application dependency.
+The storage adapter and real R2 validation cover put, head, get, list, checksums,
+and immutable-object behavior.
 
 ## Phase 2 — Historical bootstrap
 
-Upload existing validated datasets.
+**Status: complete for the current bootstrap scope.**
 
-Verify local versus R2:
+The repository-maintained historical evidence bootstrap is published through the
+immutable R2 publisher. It includes constituent snapshots, point-in-time
+membership, sparse confirmed-session evidence, an initial NSE market-cap snapshot,
+and corporate-action evidence with provenance.
 
-- row count;
-- columns;
-- date range;
-- symbols;
-- file size;
-- checksum;
-- sample values.
+The 10Y Screener price archive is also published and has passed a real production
+R2 verification gate.
 
 ## Phase 3 — Dual publication
 
-Daily sync publishes:
+**Status: active.**
 
-- existing GitHub Release artifacts;
-- R2 archive artifacts.
+GitHub Release artifacts remain available as the application snapshot/fallback.
+R2 now holds canonical archival datasets and immutable revisions.
 
-Neither replaces the other yet.
+Verified production Screener artifact:
+- as_of: `2026-09-21`
+- SHA-256: `df03ed6d6fb9c8ca963c4f3fb3b73386c43e6f106cc9a3307d7b693cf80455dd`
+- live manifest/current/object/HEAD/SHA verification: PASS
+- identical immutable retry: PASS
 
-Compare outputs over multiple successful runs.
+Verified observed-session archive:
+- 1,161 sessions
+- 2016-09-23 → 2026-09-21
+- live R2 publication/read-back: PASS
+
+Dated market-cap history is implemented on main, but its live R2 publication and
+read-back evidence is still an open gate.
 
 ## Phase 4 — R2 reader
 
-Add R2 read capability behind a configuration flag.
+**Status: next.**
 
-Production still defaults to the proven GitHub path.
+Implement a generic analytical R2 read adapter, then manifest-pinned
+research/backtest access. Streamlit integration must be behind a feature flag
+and retain a controlled release/local fallback until acceptance is proven.
 
-## Phase 5 — R2 canonical
+## Phase 5 — R2 canonical consumer path
 
-After validation:
+**Status: not started.**
 
-\`R2 -> primary\`
-
-\`GitHub Release -> fallback\`
+R2 becomes primary for a consumer only after manifest-pinned reads, integrity and
+equality checks, failure/fallback tests, point-in-time membership reconstruction,
+and the relevant regression/full-validation gates are green.
 
 ## Phase 6 — GitHub data reduction
 
-Only after a stable period:
+**Status: future.**
 
-- stop treating GitHub Release as the permanent archive;
-- retain only the application snapshot/fallback required by the deployment;
-- keep all canonical historical data in R2.
-
----
+Only after a stable R2-primary period should rolling GitHub data be reduced to the
+minimum application snapshot/fallback required by deployment. Canonical historical
+data remains in R2.
 
 # 23. Migration acceptance gates
 
@@ -873,6 +897,20 @@ Historical constituent membership can be reconstructed independently of today's 
 Screener and Yahoo data remain distinguishable and are never silently spliced.
 
 ### Gate J — reproducibility
+
+A research run can record the exact dataset version/manifest it consumed.
+
+### Gate K — consumer isolation
+
+No R2 reader may create a second ranking, price, benchmark, taxonomy, or
+historical-data engine. System-1 remains the canonical quantitative engine and
+R2 remains a storage/evidence layer.
+
+### Gate L — recovery
+
+A documented recovery procedure must rebuild the required application/research
+artifacts from R2 alone, with the release/local path retained as a fallback until
+that procedure is tested.
 
 A research run can record the exact dataset version/manifest it consumed.
 
