@@ -141,6 +141,49 @@ def _publish_current(
     print(f"CURRENT POINTER UPDATED {key} -> {revision_sha256}")
 
 
+def _verify_publication(
+    archive: R2Archive,
+    *,
+    path: Path,
+    manifest: dict[str, Any],
+    manifest_key: str,
+    current_key: str,
+) -> None:
+    """Re-read the complete publication contract from R2 and verify it."""
+    remote_manifest = json.loads(archive.get_bytes(manifest_key).decode("utf-8"))
+    for field in (
+        "dataset", "as_of", "source", "size_bytes", "sha256",
+        "object_key", "revision_sha256",
+    ):
+        if remote_manifest.get(field) != manifest.get(field):
+            raise RuntimeError(
+                f"R2 manifest verification failed for {manifest_key}: {field}"
+            )
+
+    object_key = str(remote_manifest["object_key"])
+    archive.verify_file(object_key, path)
+
+    current = json.loads(archive.get_bytes(current_key).decode("utf-8"))
+    expected_pointer = {
+        "dataset": manifest["dataset"],
+        "as_of": manifest["as_of"],
+        "source": manifest["source"],
+        "revision_sha256": manifest["revision_sha256"],
+        "object_key": manifest["object_key"],
+        "manifest_key": manifest_key,
+    }
+    for field, expected in expected_pointer.items():
+        if current.get(field) != expected:
+            raise RuntimeError(
+                f"R2 current pointer verification failed for {current_key}: {field}"
+            )
+
+    print(
+        f"R2 PUBLICATION VERIFIED: object={object_key} "
+        f"manifest={manifest_key} pointer={current_key}"
+    )
+
+
 def publish(
     path: Path,
     *,
@@ -209,6 +252,13 @@ def publish(
         manifest_key=manifest_key,
         source=source,
         pipeline_version=pipeline_version,
+    )
+    _verify_publication(
+        archive,
+        path=path,
+        manifest=manifest,
+        manifest_key=manifest_key,
+        current_key=f"archive/manifests/{dataset}/{as_of}/current.json",
     )
 
 
