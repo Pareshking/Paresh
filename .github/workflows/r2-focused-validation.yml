@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'src/storage/**'
+      - 'src/consumers/r2_*.py'
       - 'scripts/r2_*.py'
       - 'scripts/build_trading_sessions.py'
       - 'scripts/build_market_cap_history.py'
