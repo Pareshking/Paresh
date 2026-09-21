@@ -29,6 +29,7 @@ lines = [
     f"- Domains: {dossier.audit.domain_count}",
     f"- Causal findings: {dossier.audit.causal_finding_count}",
     f"- Contradictions: {dossier.audit.contradiction_count}",
+    f"- Counter-evidence: {dossier.audit.counter_evidence_count}",
     f"- Unresolved questions: {dossier.audit.unresolved_question_count}",
     f"- Evidence window gap: {dossier.evidence_window_gap_days} days",
     f"- Numeric disagreements: {len(dossier.audit.numeric_disagreements)}",
@@ -43,9 +44,12 @@ lines.extend(f"- {x.value}" for x in dossier.plan.material_domains)
 lines.extend(["", "## Causal findings"])
 for f in dossier.causal_findings:
     lines += [f"### {f.hypothesis}", f"- Finding: {f.finding}", f"- Mechanism: {f.mechanism}", f"- Timing: {f.timing}", f"- Uncertainty: {f.uncertainty}", ""]
-lines.extend(["## Contradictions"])
+lines.extend(["## Genuine contradictions"])
 for f in dossier.contradictions:
     lines += [f"### {f.hypothesis}", f"- Original: {f.original_claim}", f"- Counter: {f.counter_evidence}", f"- Resolution: {f.resolution}", ""]
+lines.extend(["## Counter-evidence / qualifications"])
+for f in dossier.counter_evidence:
+    lines += [f"### {f.hypothesis}", f"- Claim: {f.original_claim}", f"- Counter-evidence: {f.counter_evidence}", f"- Resolution: {f.resolution}", ""]
 lines.extend(["## Unresolved questions"])
 lines.extend(f"- {x}" for x in dossier.unresolved_questions)
 lines.extend(["", "## Monitoring questions"])
@@ -61,4 +65,5 @@ print(f"STAGE4B_LAURUSLABS_PRIMARY={dossier.audit.primary_evidence_count}")
 print(f"STAGE4B_LAURUSLABS_DOMAINS={dossier.audit.domain_count}")
 print(f"STAGE4B_LAURUSLABS_CAUSAL={dossier.audit.causal_finding_count}")
 print(f"STAGE4B_LAURUSLABS_CONTRADICTIONS={dossier.audit.contradiction_count}")
+print(f"STAGE4B_LAURUSLABS_COUNTER_EVIDENCE={dossier.audit.counter_evidence_count}")
 print(f"STAGE4B_LAURUSLABS_EXECUTION=PASS")
