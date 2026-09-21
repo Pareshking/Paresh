@@ -107,7 +107,7 @@ No Yahoo raw-price rebuild is authorized by this tracker; it remains parked.
 - [x] Confirmed trading-session evidence — kept separate and explicitly sparse/source-confirmed.
 - [x] Observed trading-session archive — 1,161 sessions, 2016-09-23 → 2026-09-21; live R2 publication/read-back verified.
 - [x] Historical market-cap builder — reconstructs dated snapshots from Git evidence without inventing missing values.
-- [ ] Historical market-cap live R2 publication/read-back — workflow is on main; live execution evidence still required.
+- [x] Historical market-cap live R2 publication/read-back — workflow run #2 / Run ID 35638464074 completed SUCCESS; 21 explicit dated snapshots, 15,750 rows, 2026-08-18 → 2026-09-18, immutable publication and read-back audit PASS.
 - [x] Corporate-action evidence archive — published with source/evidence URI/date.
 - [ ] Raw source snapshots where useful.
 - [x] Source provenance/evidence dates carried by the implemented historical datasets; final consumer contracts remain pending.
@@ -125,12 +125,24 @@ Source design is documented in `docs/RAW_PRICE_REBUILD.md`.
 
 ## E. R2 consumer layer
 
-- [ ] R2 read adapter for analytical datasets.
-- [ ] Research/backtest reader.
+- [x] R2 read adapter for analytical datasets — manifest-pinned `R2DatasetReader` resolves current or explicit revisions and verifies manifest, HEAD size, object SHA, and byte size.
+- [ ] Research/backtest reader — consumer integration remains intentionally separate from the R2 storage implementation.
 - [ ] Streamlit reader behind a feature flag.
 - [ ] Controlled fallback to release/local artifacts.
 - [ ] Manifest-pinned research runs.
 - [ ] Point-in-time universe reconstruction from archived membership.
+
+## CI isolation — VERIFIED 2026-09-21
+
+R2 and V1/Stage-4B are now explicitly separated in both documentation and CI.
+
+- R2-only paths use the focused **R2 Focused Validation** workflow.
+- V1 Full Validation ignores R2-only paths and therefore does not launch the five live Stage-4B archetypes for R2-only changes.
+- V1 Production QA also ignores R2-only paths.
+- The first focused R2 run after the separation changes completed SUCCESS (Run #3 / Run ID 35639796677).
+- The preceding V1 Full Validation run #568 / Run ID 35638696739 failed during the generic regression suite on two R2 reader tests **before any Stage-4B execution step ran**. The failure was repaired in the R2 track; the focused R2 suite then passed.
+
+This is the intended architecture: an R2 failure is diagnosed and repaired by R2 tests, while Stage-4B remains an independent stock-research validation track.
 
 ## F. Operations / governance
 
@@ -163,7 +175,7 @@ contract for archive continuity/read-coverage checks.
 
 ## Immediate next loop
 
-1. Verify the live R2 publication of `market_caps/nse_history`: object, manifest,
+1. ~~Verify the live R2 publication of `market_caps/nse_history`: object, manifest,~~ **DONE** — live publication/read-back verified in Run #2 / 35638464074.
    current pointer, HEAD/SHA read-back, and coverage/uniqueness evidence.
 2. Close Section-C only after the market-cap gate and required consumer acceptance
    tests are green; raw source evidence remains a separate C6 decision.
