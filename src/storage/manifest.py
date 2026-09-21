@@ -41,7 +41,7 @@ def build_manifest(
     schema_version: int = MANIFEST_SCHEMA_VERSION,
     extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Build a deterministic manifest for a local candidate artifact."""
+    """Build a manifest for a local candidate artifact."""
     file_path = Path(path)
     if not file_path.is_file():
         raise FileNotFoundError(file_path)
