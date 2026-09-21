@@ -45,6 +45,8 @@ env:
 
 jobs:
   production-qa:
+    # Production QA probes the deployed main app; feature-branch pushes are not deployment targets.
+    if: github.event_name != 'push' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
