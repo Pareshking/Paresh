@@ -40,7 +40,7 @@ def test_gland_packet_uses_every_evidence_record():
     all_refs = {evidence_ref(item) for item in packet.evidence}
     used_refs = {
         ref
-        for finding in (*packet.causal_findings, *packet.contradictions)
+        for finding in (*packet.causal_findings, *packet.contradictions, *packet.counter_evidence)
         for ref in finding.evidence_refs
     }
     assert all_refs <= used_refs
