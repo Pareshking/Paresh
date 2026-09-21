@@ -1,0 +1,86 @@
+name: Phase 3 Real Yahoo Sync Validation
+
+on:
+  push:
+    branches:
+      - test/phase3-real-yahoo-sync
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run real Yahoo/NSE market sync
+        env:
+          PYTHONPATH: .
+        run: python scripts/sync_data.py
+
+      - name: Verify fresh production artifacts
+        run: |
+          set -euo pipefail
+          test -f prices_full.parquet
+          test -f prices.parquet
+          ls -lh prices_full.parquet prices.parquet
+
+      - name: Publish freshly synced Yahoo/application artifacts to R2
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          PYTHONPATH: .
+        run: |
+          python scripts/r2_publish.py             --path prices_full.parquet             --dataset prices/yahoo             --source yahoo             --key-root archive/prices/yahoo             --pipeline-version "phase3-real-yahoo-${GITHUB_SHA}"             --release-tag phase3-real-validation
+
+          python scripts/r2_publish.py             --path prices.parquet             --dataset snapshots/application             --source application             --key-root snapshots/application             --pipeline-version "phase3-real-yahoo-${GITHUB_SHA}"             --release-tag phase3-real-validation
+
+      - name: Verify fresh Yahoo/application R2 readback
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          PYTHONPATH: .
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          from scripts.r2_publish import describe_parquet
+          from src.storage.r2 import R2Archive, R2Config
+
+          archive = R2Archive(R2Config.from_env())
+          for filename, dataset, root in [
+              ("prices_full.parquet", "prices/yahoo", "archive/prices/yahoo"),
+              ("prices.parquet", "snapshots/application", "snapshots/application"),
+          ]:
+              path = Path(filename)
+              d = describe_parquet(path)
+              key = f"{root}/{d['as_of']}/{filename}"
+              manifest_key = f"archive/manifests/{dataset}/{d['as_of']}.json"
+              archive.verify_file(key, path)
+              manifest = json.loads(archive.get_bytes(manifest_key).decode())
+              assert manifest["object_key"] == key
+              assert manifest["row_count"] == d["row_count"]
+              assert manifest["sha256"]
+              print(f"FRESH {filename} VERIFIED: as_of={d['as_of']} rows={d['row_count']} symbols={d['symbol_count']}")
+          print("REAL YAHOO/NSE -> R2 VALIDATION PASSED")
+          PY
