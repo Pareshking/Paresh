@@ -1,0 +1,75 @@
+name: TEMP Reliance Screener 3650-day probe
+
+on:
+  push:
+    paths:
+      - ".github/workflows/TEMP-reliance-3650.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - name: Probe Reliance at 3650 days
+        env:
+          PYTHONPATH: .
+          SCREENER_DELAY_S: "0"
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          from src.loaders import screener_loader as sl
+
+          symbol = "RELIANCE"
+          ids = sl.load_ids()
+          if symbol not in ids:
+              raise SystemExit(f"No cached Screener company id for {symbol}")
+
+          frame, ids, unresolved = sl.fetch_universe(
+              [symbol], days=3650, ids=ids, delay_s=0
+          )
+          sl.save_ids(ids)
+
+          if frame.empty:
+              raise SystemExit("EMPTY: no data returned")
+
+          closes = sl.closes(frame)
+          series = closes[symbol].dropna()
+          if series.empty:
+              raise SystemExit("EMPTY: Reliance close series empty")
+
+          print("=== RELIANCE 3650-DAY PROBE ===")
+          print(f"ROWS={len(series)}")
+          print(f"FIRST={series.index.min()}")
+          print(f"LAST={series.index.max()}")
+          print(f"UNRESOLVED={unresolved}")
+          print("SAMPLE_HEAD=")
+          print(series.head(10).to_string())
+          print("SAMPLE_TAIL=")
+          print(series.tail(10).to_string())
+
+          if len(series) < 1000:
+              raise SystemExit(
+                  f"NOT_DAILY_OR_TOO_SHORT: only {len(series)} observations"
+              )
+
+          gaps = pd.Series(series.index).diff().dt.days.dropna()
+          print(f"MEDIAN_GAP_DAYS={gaps.median()}")
+          print(f"MAX_GAP_DAYS={gaps.max()}")
+          print(f"GAPS_<=3_DAYS={(gaps <= 3).mean():.4f}")
+
+          daily_like = (gaps <= 3).mean()
+          if daily_like < 0.80:
+              raise SystemExit(
+                  f"NOT_MOSTLY_DAILY: only {daily_like:.2%} of gaps <= 3 days"
+              )
+
+          print("RELIANCE 3650-DAY PROBE=PASS")
+          PY
