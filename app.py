@@ -704,15 +704,102 @@ render_signal_alerts(signals)
 
 
 # ── Navigation ───────────────────────────────────────────────────────────────
-# Streamlit's native top navigation lives inside the Streamlit header, while
-# this app deliberately hides that header. Keep st.navigation as the router,
-# but render the user-facing navigation as a compact popover ("hamburger")
-# using st.page_link. This removes the eleven-item navigation block from the
-# permanent page layout while preserving every page and URL.
-#
-# st.popover is available in the pinned Streamlit 1.63.0 release. Opening it
-# does not rerun the app; selecting a page link performs normal Streamlit
-# navigation and preserves the existing session-state behavior.
+# Keep the canonical page declarations and st.navigation router unchanged.
+# The only experiment here is the user-facing trigger: a compact popover
+# replaces the permanent eleven-item navigation row.
+
+
+
+def _page_screener() -> None:
+    render_ranking_view(
+        rank_df, adj_close, high_prices, low_prices, volume_data,
+        open_prices=data.get("open_prices"),
+    )
+
+
+def _page_qualified() -> None:
+    render_qualified_view(rank_df, adj_close)
+
+
+def _page_sectors() -> None:
+    render_sector_view(get_calc(), rank_df, adj_close)
+
+
+def _page_rrg() -> None:
+    # No get_calc() here. This page never read the engine -- it took it as an
+    # argument and ignored it -- so on the common cold start, where the
+    # precomputed ranking is accepted and `calc` is still None, opening RRG
+    # built the whole engine to satisfy an unused parameter.
+    render_rrg_view(rank_df, adj_close)
+
+
+def _page_portfolio() -> None:
+    render_portfolio_view(
+        calc=get_calc(),
+        rank_df=rank_df,
+        sector_cap=sector_cap,
+        stock_cap=stock_cap,
+        vol_target_on=vol_target_on,
+        vol_target_val=vol_target_val,
+    )
+
+
+def _page_watchlist() -> None:
+    render_watchlist_view(rank_df)
+
+
+def _page_breadth() -> None:
+    render_breadth_view(rank_df, adj_close)
+
+
+def _page_backtest() -> None:
+    render_backtest_view(
+        rank_df=rank_df,
+        # Depth, not freshness: a 12-month formation window before a 6-month
+        # reported period needs ~18 months of continuous daily data.
+        adj_close=deep_adj_close,
+        stock_cap=stock_cap,
+        sector_cap=sector_cap,
+        weights=weights,
+    )
+
+
+def _page_track_record() -> None:
+    # The frozen record, plus a live MTD struck under the record's own pinned
+    # configuration. fetch_benchmark_history is cached, so this is the same
+    # round trip the Backtest page already made.
+    render_track_record_view(
+        adj_close=deep_adj_close,
+        benchmark_close=fetch_benchmark_history(period="5y"),
+    )
+
+
+def _page_configuration() -> None:
+    render_config_view(rank_df)
+
+
+def _page_guide() -> None:
+    render_guide_view(rank_df)
+
+
+# Titles and order are the app's public surface: the production QA probe walks
+# them by name and tests/test_qa_tab_list_matches_the_app.py pins them, so a
+# rename here without one there is a failing build, not a silent drift.
+_PAGES = [
+    st.Page(_page_screener, title="Screener", url_path="screener", default=True),
+    st.Page(_page_qualified, title="Qualified", url_path="qualified"),
+    st.Page(_page_sectors, title="Sectors", url_path="sectors"),
+    st.Page(_page_rrg, title="RRG", url_path="rrg"),
+    st.Page(_page_portfolio, title="Portfolio", url_path="portfolio"),
+    st.Page(_page_watchlist, title="Watchlist", url_path="watchlist"),
+    st.Page(_page_breadth, title="Market Breadth", url_path="breadth"),
+    st.Page(_page_backtest, title="Backtest", url_path="backtest"),
+    st.Page(_page_track_record, title="Track Record", url_path="track-record"),
+    st.Page(_page_configuration, title="Configuration", url_path="configuration"),
+    st.Page(_page_guide, title="Guide", url_path="guide"),
+]
+
+# position="hidden" keeps Streamlit's own navigation out of the hidden header.
 _nav = st.navigation(_PAGES, position="hidden")
 
 with st.container(key="app_nav_shell", width="content"):
@@ -742,7 +829,6 @@ with st.container(key="app_nav_shell", width="content"):
                 st.page_link(_p)
 
 _nav.run()
-
 
 # ── Cold-start telemetry ─────────────────────────────────────────────────────
 # Hidden, inert element carrying this process's startup measurements so a
