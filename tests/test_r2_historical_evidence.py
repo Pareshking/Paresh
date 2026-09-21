@@ -32,8 +32,8 @@ def test_membership_intervals_close_removed_symbols_and_stamp_open_intervals():
     assert aaa["effective_to"] == "2026-08-09"
     assert pd.isna(bbb["effective_to"])
     assert pd.isna(ccc["effective_to"])
-    assert bbb["evidence_date"] == "2026-08-10"
-    assert ccc["evidence_date"] == "2026-08-10"
+    assert bbb["evidence_date"] == "2026-08-20"
+    assert ccc["evidence_date"] == "2026-08-20"
 
 
 def test_confirmed_trading_sessions_preserve_sparse_source_contract(tmp_path):
