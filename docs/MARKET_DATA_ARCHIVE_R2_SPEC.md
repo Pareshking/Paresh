@@ -823,8 +823,12 @@ Verified observed-session archive:
 - 2016-09-23 → 2026-09-21
 - live R2 publication/read-back: PASS
 
-Dated market-cap history is implemented on main, but its live R2 publication and
-read-back evidence is still an open gate.
+Verified dated market-cap history:
+- 21 explicit snapshots
+- 15,750 rows
+- 2026-08-18 → 2026-09-18
+- live R2 publication/read-back: PASS
+- revision SHA: `f01555ee9afa74a0f6c0c8bd5e8e451b88bd7390c79ca8367cf0ff904244b6e6`
 
 ## Phase 4 — R2 reader
 
