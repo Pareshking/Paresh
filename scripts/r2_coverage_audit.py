@@ -28,8 +28,18 @@ def audit_no_shrinkage(baseline: Path, candidate: Path) -> dict[str, Any]:
     if after.empty:
         raise RuntimeError("candidate is empty")
 
-    before_idx = pd.DatetimeIndex(before.index)
-    after_idx = pd.DatetimeIndex(after.index)
+    before_idx = pd.DatetimeIndex(before.index).normalize()
+    after_idx = pd.DatetimeIndex(after.index).normalize()
+
+    # Coverage is a set property, not just a min/max property: an interior
+    # session disappearing is a historical shrink even when the endpoints stay.
+    missing_sessions = sorted(set(before_idx) - set(after_idx))
+    if missing_sessions:
+        raise RuntimeError(
+            "historical sessions disappeared: "
+            + ", ".join(str(v.date()) for v in missing_sessions[:10])
+        )
+
     if after_idx.min() > before_idx.min():
         raise RuntimeError(
             f"historical start shrank: {after_idx.min().date()} > {before_idx.min().date()}"
@@ -65,6 +75,7 @@ def audit_no_shrinkage(baseline: Path, candidate: Path) -> dict[str, Any]:
         "candidate_min_date": str(after_idx.min().date()),
         "baseline_max_date": str(before_idx.max().date()),
         "candidate_max_date": str(after_idx.max().date()),
+        "missing_sessions": 0,
         "status": "PASS",
     }
     print(json.dumps(result, sort_keys=True))
