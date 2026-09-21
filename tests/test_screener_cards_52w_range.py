@@ -26,9 +26,13 @@ def test_card_range_uses_252_sessions_and_20_percent_below_high_marker():
     assert '"_52W High"' in src
     assert '"_52W Position"' in src
     assert '"_52W 20% Marker"' in src
+    assert "52W Low ₹" in src
+    assert "CMP ₹" in src
+    assert "52W High ₹" in src
+    assert "canonical_hi = row.get(\"52W High\")" in src
 
 
 def test_cards_receive_range_data_without_changing_table_path():
     src = _source()
-    assert "_render_card_grid(_attach_52w_range(view, high_prices, low_prices))" in src
+    assert "_render_card_grid(_attach_52w_range(view, high_prices, low_prices, adj_close))" in src
     assert "render_master_screener_table(" in src

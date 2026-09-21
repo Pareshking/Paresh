@@ -285,9 +285,9 @@ def _card_html(row: pd.Series) -> str:
             f'title="Current ₹{cmp_val:,.0f} · {fill_pct:.1f}% of 52W range"></div>'
             '</div>'
             '<div class="sq-range-labels">'
-            f'<span>₹{float(lo_52):,.0f}</span>'
-            f'<span class="sq-range-current-label">Current {fill_pct:.0f}%</span>'
-            f'<span>₹{float(hi_52):,.0f}</span>'
+            f'<span>52W Low ₹{float(lo_52):,.0f}</span>'
+            f'<span class="sq-range-current-label">CMP ₹{float(cmp_val):,.0f}</span>'
+            f'<span>52W High ₹{float(hi_52):,.0f}</span>'
             '</div>'
             '</div>'
         )
@@ -365,31 +365,55 @@ def _attach_52w_range(
     view: pd.DataFrame,
     high_prices: pd.DataFrame | None,
     low_prices: pd.DataFrame | None,
+    adj_close: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
-    """Attach the 52-week high/low and current-range position for card rendering."""
+    """Attach the canonical 52W range and current-price position for cards.
+
+    The ranking already carries the canonical 52W High. On the production
+    close-only screener feed, raw high/low frames are intentionally unavailable,
+    so the card must not depend on them being present. For the low end, use the
+    available intraday low when present and otherwise the same close history the
+    screener is ranking. This keeps the card populated on both price-source
+    paths.
+    """
     out = view.copy()
     out["_52W High"] = pd.NA
     out["_52W Low"] = pd.NA
     out["_52W Position"] = pd.NA
     out["_52W 20% Marker"] = pd.NA
 
-    if high_prices is None or low_prices is None:
-        return out
-
     # The application defines a trading year as 252 sessions. Use the latest
     # 252 observations available for each symbol, not calendar-day arithmetic.
     for idx, row in out.iterrows():
         symbol = str(row.get("Symbol", "")).strip()
-        if not symbol or symbol not in high_prices.columns or symbol not in low_prices.columns:
-            continue
-        highs = high_prices[symbol].dropna().sort_index().tail(252)
-        lows = low_prices[symbol].dropna().sort_index().tail(252)
-        if highs.empty or lows.empty:
+        if not symbol:
             continue
 
-        hi = float(highs.max())
+        # Prefer the canonical high already calculated by the ranking engine.
+        # This is also available when the screener price source is close-only.
+        canonical_hi = row.get("52W High")
+        hi = float(canonical_hi) if pd.notna(canonical_hi) else None
+
+        if hi is None and high_prices is not None and symbol in high_prices.columns:
+            highs = high_prices[symbol].dropna().sort_index().tail(252)
+            if not highs.empty:
+                hi = float(highs.max())
+
+        source = None
+        if low_prices is not None and symbol in low_prices.columns:
+            source = low_prices[symbol]
+        elif adj_close is not None and symbol in adj_close.columns:
+            source = adj_close[symbol]
+
+        if source is None:
+            continue
+
+        lows = source.dropna().sort_index().tail(252)
+        if lows.empty:
+            continue
+
         lo = float(lows.min())
-        if not (pd.notna(hi) and pd.notna(lo) and hi > lo):
+        if hi is None or not (pd.notna(hi) and pd.notna(lo) and hi > lo):
             continue
 
         cmp_val = row.get("CMP")
@@ -776,7 +800,7 @@ def render_ranking_view(
             view, prices_df=adj_close, density=density_mode
         )
     else:
-        _render_card_grid(_attach_52w_range(view, high_prices, low_prices))
+        _render_card_grid(_attach_52w_range(view, high_prices, low_prices, adj_close))
 
     # Export EVERY column the ranking carries, not just the ones on screen.
     # DISPLAY_COLS is a screen-layout decision -- it drops Score, the raw
