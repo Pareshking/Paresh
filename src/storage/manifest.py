@@ -48,7 +48,7 @@ def build_manifest(
     manifest: dict[str, Any] = {
         "dataset": dataset,
         "as_of": as_of,
-        "created_at": None,
+        "created_at": datetime.now(timezone.utc).isoformat(),
         "source": source,
         "schema_version": int(schema_version),
         "row_count": row_count,
