@@ -48,7 +48,7 @@ def test_market_cap_history_uses_latest_snapshot_per_asof(monkeypatch, tmp_path:
     )[["symbol", "market_cap", "date", "source"]])
 
     out = tmp_path / "market_caps.parquet"
-    result = mod.build(out, Path("data/nse_market_caps.csv"))
+    result = mod.build(out, mod.DEFAULT_PATH)
     frame = pd.read_parquet(out)
 
     assert result["snapshot_count"] == 2
