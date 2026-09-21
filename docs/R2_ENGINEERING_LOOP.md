@@ -50,13 +50,13 @@ The next engineering loop is Section C historical evidence datasets. It must not
 
 ## C. Historical evidence datasets — after publication hardening
 
-- [ ] Index constituent snapshots.
-- [ ] Point-in-time index membership history.
-- [ ] Trading-day/session archive.
+- [ ] Index constituent snapshots — existing `build_membership_history.py` + `membership_history.json` provide the local baseline; R2 publication remains.
+- [x] Point-in-time membership logic exists locally; R2 publication/manifest remains.
+- [x] Trading-session archive builder implemented from observed production sessions; live R2 publication remains.
 - [ ] Historical market-cap snapshots.
 - [ ] Corporate-action evidence archive.
 - [ ] Raw source snapshots where useful.
-- [ ] Preserve source provenance and evidence dates in manifests.
+- [ ] Preserve source provenance and evidence dates in manifests for each historical dataset publication.
 
 ## D. Raw Yahoo reproducibility
 
