@@ -6,6 +6,7 @@ from agent.contracts import Evidence, EvidenceKind, ResearchDomain, ResearchPlan
 from agent.research_execution import (
     CausalFinding,
     ContradictionFinding,
+    CounterEvidenceFinding,
     ResearchProviderPacket,
     evidence_ref,
 )

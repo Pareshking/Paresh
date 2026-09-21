@@ -110,7 +110,6 @@ class ResearchAudit:
     derived_evidence_count: int
     domain_count: int
     contradiction_count: int
-    counter_evidence_count: int
     causal_finding_count: int
     unresolved_question_count: int
     hypothesis_count: int
@@ -118,6 +117,7 @@ class ResearchAudit:
     hypotheses_with_causal_analysis: int
     hypotheses_challenged: int
     blockers: tuple[str, ...] = ()
+    counter_evidence_count: int = 0
     newest_evidence_anchor: date | None = None
     """The latest per-item temporal anchor across all evidence (item 20;
     Report 2 F4). Not the same thing as per-item age (items 11/12): an
@@ -455,9 +455,6 @@ def _validate_contradictions(
             raise ValueError("contradiction requires original and counter claims")
         if not finding.resolution.strip():
             raise ValueError("contradiction requires a resolution or unresolved statement")
-        if not _claims_directly_conflict(finding.original_claim, finding.counter_evidence):
-            raise ValueError("contradiction claims are complementary/qualifying; record them as counter_evidence")
-
         claim_refs = _validate_contradiction_ref_list(
             finding.original_claim_refs, "original_claim_refs"
         )
