@@ -15,8 +15,21 @@ from src.storage.manifest import MANIFEST_SCHEMA_VERSION
 from src.storage.r2 import R2Archive, R2Config
 
 
-def audit(*, dataset: str, as_of: str) -> dict[str, Any]:
+def _latest_as_of(archive: R2Archive, dataset: str) -> str:
+    prefix = f"archive/manifests/{dataset}/"
+    dates = set()
+    for key in archive.list_keys(prefix):
+        parts = key[len(prefix):].split("/")
+        if len(parts) == 2 and parts[1] == "current.json":
+            dates.add(parts[0])
+    if not dates:
+        raise RuntimeError(f"no current pointers found for {dataset}")
+    return max(dates)
+
+
+def audit(*, dataset: str, as_of: str | None = None) -> dict[str, Any]:
     archive = R2Archive(R2Config.from_env())
+    as_of = as_of or _latest_as_of(archive, dataset)
     current_key = f"archive/manifests/{dataset}/{as_of}/current.json"
     current = json.loads(archive.get_bytes(current_key).decode("utf-8"))
 
@@ -77,7 +90,7 @@ def audit(*, dataset: str, as_of: str) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", required=True)
-    parser.add_argument("--as-of", required=True)
+    parser.add_argument("--as-of")
     args = parser.parse_args()
     audit(dataset=args.dataset, as_of=args.as_of)
     return 0
