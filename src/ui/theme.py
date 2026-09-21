@@ -375,7 +375,7 @@ def inject_custom_css() -> None:
 
         /* ── Compact Hamburger Navigation ───────────────────────────────
            The page router remains st.navigation(position="hidden"), while the
-           body exposes a single st.popover trigger. The old eleven-item pill
+           custom header exposes a single st.popover trigger. The old eleven-item pill
            row consumed ~180px on a phone before the screener even started.
            Keep the trigger intentionally small; the full navigation only
            exists in the floating popover when the reader asks for it. */
