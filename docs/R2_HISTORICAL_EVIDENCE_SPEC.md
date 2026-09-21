@@ -1,7 +1,7 @@
 # R2 Historical Evidence Dataset Contracts
 
 **Status:** Engineering design — Section C of the R2 Engineering Loop  
-**Last updated:** 2026-09-21  
+**Last updated:** 2026-09-21 (Section-C bootstrap merged)  
 **Scope:** Historical evidence required for point-in-time research and survivorship-bias-aware analysis.
 
 This document converts the original R2 architecture requirements into implementation boundaries. It does not start the parked Yahoo raw-price rebuild.
@@ -180,13 +180,18 @@ Completed and already implemented — do not duplicate:
 - schema-version checks;
 - no-shrinkage/coverage audit tooling.
 
-Pending Section C:
-- C1 constituent snapshots;
-- C2 point-in-time membership;
-- C3 observed/confirmed trading-session datasets;
-- C4 market caps;
-- C5 corporate-action evidence;
-- C6 raw source evidence.
+Section-C bootstrap now implemented/merged:
+- C1 constituent snapshots — repository-maintained source snapshots are normalized and publishable;
+- C2 point-in-time membership — existing repository membership history is normalized into intervals;
+- C3 confirmed trading-session evidence — sparse source-confirmed dataset is published separately;
+- C4 market caps — initial 2026-09-18 snapshot is explicitly treated as a snapshot, not a time series;
+- C5 corporate-action evidence — anomaly log is normalized with source/evidence URI/date.
+
+Still pending Section-C completeness:
+- C3 observed-session archive from the full production price history;
+- C4 accumulation of dated historical market-cap snapshots;
+- C6 raw source evidence where it provides material reproducibility value;
+- full source-completeness and consumer acceptance tests for each dataset.
 
 Parked:
 - Yahoo raw-price rebuild in `docs/RAW_PRICE_REBUILD.md`.
