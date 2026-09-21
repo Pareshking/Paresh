@@ -28,7 +28,7 @@ jobs:
       - name: Build historical evidence datasets
         run: python scripts/r2_historical_evidence_bootstrap.py --output-dir /tmp/r2-evidence
       - name: Run historical evidence tests
-        run: pytest -q tests/test_r2_dual_publication.py -k 'historical_evidence'
+        run: pytest -q tests/test_r2_historical_evidence.py
       - name: Publish index constituent snapshots
         shell: bash
         run: |
@@ -49,6 +49,6 @@ jobs:
       - name: Publish confirmed trading sessions
         run: python scripts/r2_publish.py --path /tmp/r2-evidence/trading_sessions_confirmed.parquet --dataset trading_sessions/confirmed --source nse_confirmed_sessions --key-root archive/trading_days/confirmed --pipeline-version r2_historical_evidence_v1 --release-tag data-latest
       - name: Publish historical market caps
-        run: python scripts/r2_publish.py --path /tmp/r2-evidence/market_caps_nse.parquet --dataset market_caps/nse --source nse_market_cap_snapshot --key-root archive/market_caps/nse --pipeline-version r2_historical_evidence_v1 --release-tag data-latest
+        run: python scripts/r2_publish.py --path /tmp/r2-evidence/market_caps_nse.parquet --dataset market_caps/nse_snapshot --source nse_market_cap_snapshot --key-root archive/market_caps/nse_snapshot --pipeline-version r2_historical_evidence_v1 --release-tag data-latest
       - name: Publish corporate-action evidence
         run: python scripts/r2_publish.py --path /tmp/r2-evidence/corporate_actions_evidence.parquet --dataset corporate_actions/evidence --source repository_corporate_action_log --key-root archive/corporate_actions/evidence --pipeline-version r2_historical_evidence_v1 --release-tag data-latest
