@@ -216,7 +216,7 @@ def _card_html(row: pd.Series) -> str:
     cmp_val  = row.get("CMP")
     ret_12m  = row.get("12M Return")
     ret_3m   = row.get("3M Return")
-    sharpe3  = row.get("3M Sharpe")
+    ret_1m   = row.get("1M Return")
     dd_12m   = row.get("Max DD 12M")
     delta1m  = row.get("Rank Δ 1M")
     sl_val   = row.get("Stop Loss")
@@ -316,7 +316,7 @@ def _card_html(row: pd.Series) -> str:
 
     r12_txt, r12_clr = _fmt_pct(ret_12m)
     r3_txt,  r3_clr  = _fmt_pct(ret_3m)
-    sh_txt,  sh_clr  = _fmt_ratio(sharpe3)
+    r1_txt,  r1_clr  = _fmt_pct(ret_1m)
     dd_txt,  dd_clr  = _fmt_pct(dd_12m, scale=1)  # already in %
 
     metrics_html = (
@@ -325,8 +325,8 @@ def _card_html(row: pd.Series) -> str:
         f'<div class="sq-metric-val {r12_clr}">{r12_txt}</div></div>'
         f'<div class="sq-metric"><div class="sq-metric-label">3M Ret</div>'
         f'<div class="sq-metric-val {r3_clr}">{r3_txt}</div></div>'
-        f'<div class="sq-metric"><div class="sq-metric-label">Sharpe</div>'
-        f'<div class="sq-metric-val {sh_clr}">{sh_txt}</div></div>'
+        f'<div class="sq-metric"><div class="sq-metric-label">1M Ret</div>'
+        f'<div class="sq-metric-val {r1_clr}">{r1_txt}</div></div>'
         f'<div class="sq-metric"><div class="sq-metric-label">Max DD</div>'
         f'<div class="sq-metric-val {dd_clr}">{dd_txt}</div></div>'
         '</div>'
