@@ -8,6 +8,20 @@
 
 ---
 
+## R2 / stock-research boundary — non-negotiable
+
+R2 is a **separate implementation track** from the stock-research system (System-1, Stage-2/3, and Stage-4B). R2 provides durable historical-data storage and reproducible data access; it does not implement or validate the stock-ranking/research methodology.
+
+The Stage-4B archetypes (for example SANSERA, ANANDRATHI, PAYTM, YATHARTH, and LENSKART) are stock-research validation workloads. They are not R2 datasets, R2 tests, or R2 acceptance gates.
+
+The two tracks may integrate later through a narrow, explicitly tested reader boundary, but integration does **not** merge their responsibilities:
+
+- **R2:** archive, revision, manifest, checksum, coverage, recovery, and read contracts.
+- **Stock research/V1:** canonical ranking hand-off, hierarchy, research agents, evidence/provenance, Stage-4B archetypes, and application validation.
+- **Integration:** readers/consumer adapters only, with explicit contracts and fallback; no second ranking/price engine is allowed in R2.
+
+CI should preserve this separation. R2-only commits should use R2-specific validation and should not be forced through the full Stage-4B/V1 suite. Conversely, changes to stock-research/application paths should not be declared R2 work merely because they consume market data.
+
 ## 1. Executive decision
 
 The project is evolving from a Streamlit application that needs market data into a quantitative research system that must preserve historical market data for future:
