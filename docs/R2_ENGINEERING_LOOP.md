@@ -48,7 +48,8 @@ Current expected production evidence:
 - as_of: `2026-09-21`
 - SHA-256: `df03ed6d6fb9c8ca963c4f3fb3b73386c43e6f106cc9a3307d7b693cf80455dd`
 
-The workflow has been committed, but its execution result is not yet verified in
+The workflow has been committed and its contract is covered by
+`tests/test_r2_production_verification.py`, but its execution result is not yet verified in
 this engineering session because the available GitHub action interface does not
 expose manual workflow dispatch/list-all-runs. Therefore the Section-A live
 verification boxes remain **OPEN** until a real Actions run proves them.
