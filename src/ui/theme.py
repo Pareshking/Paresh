@@ -373,62 +373,60 @@ def inject_custom_css() -> None:
             box-shadow: 0 1px 3px rgba(79, 70, 229, 0.08) !important;
         }
 
-        /* ── App Navigation (st.page_link row, styled as the old pill tabs) ──
-           The app draws its own navigation because st.navigation(position=
-           "top") renders inside the Streamlit header that this stylesheet
-           hides, which shipped a nav no reader could see. Active state is
-           marked from Python as st-key-navon_* / st-key-navoff_*: Streamlit's
-           own current-page styling is an emotion prop with no stable selector,
-           and a generated class hash is not something to depend on. */
-        .st-key-app_nav {
-            background-color: #f8fafc !important;
-            padding: 4px 5px !important;
-            border-radius: 9px !important;
+        /* ── Compact Hamburger Navigation ───────────────────────────────
+           The page router remains st.navigation(position="hidden"), while the
+           body exposes a single st.popover trigger. The old eleven-item pill
+           row consumed ~180px on a phone before the screener even started.
+           Keep the trigger intentionally small; the full navigation only
+           exists in the floating popover when the reader asks for it. */
+        .st-key-app_nav_shell {
+            margin-bottom: 0.65rem !important;
+            min-height: 0 !important;
+        }
+
+        .st-key-app_nav_menu button {
+            min-height: 34px !important;
+            width: 38px !important;
+            padding: 0 !important;
             border: 1px solid #e2e8f0 !important;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
-            margin-bottom: 0.85rem !important;
+            border-radius: 8px !important;
+            background: #f8fafc !important;
+            color: #475569 !important;
+            font-size: 18px !important;
+            line-height: 1 !important;
         }
 
-        .st-key-app_nav [data-testid="stPageLink"] a {
-            display: flex !important;
-            justify-content: center !important;
-            align-items: center !important;
-            height: 34px !important;
-            padding: 0 12px !important;
-            border-radius: 7px !important;
-            background-color: transparent !important;
-            border: 1px solid transparent !important;
-            font-family: 'Plus Jakarta Sans', sans-serif !important;
-            font-size: 12.5px !important;
-            font-weight: 600 !important;
-            color: #64748b !important;
-            white-space: nowrap !important;
-            text-decoration: none !important;
-            transition: all 0.15s ease !important;
-        }
-
-        .st-key-app_nav [data-testid="stPageLink"] a p {
-            font-size: 12.5px !important;
-            font-weight: 600 !important;
-            margin: 0 !important;
-        }
-
-        .st-key-app_nav [data-testid="stPageLink"] a:hover {
-            background-color: #ffffff !important;
-            color: #0f172a !important;
-            border-color: #e2e8f0 !important;
-        }
-
-        [class*="st-key-navon_"] [data-testid="stPageLink"] a,
-        [class*="st-key-navon_"] [data-testid="stPageLink"] a p {
-            background-color: #ffffff !important;
-            color: #4f46e5 !important;
-            font-weight: 700 !important;
-        }
-
-        [class*="st-key-navon_"] [data-testid="stPageLink"] a {
+        .st-key-app_nav_menu button:hover {
+            background: #ffffff !important;
             border-color: #c7d2fe !important;
-            box-shadow: 0 1px 3px rgba(79, 70, 229, 0.08) !important;
+            color: #4f46e5 !important;
+        }
+
+        /* Page links inside the floating navigation menu. */
+        [data-testid="stPopover"] [data-testid="stPageLink"] a,
+        [data-testid="stPopoverBody"] [data-testid="stPageLink"] a {
+            min-height: 38px !important;
+            padding: 7px 10px !important;
+            border-radius: 7px !important;
+            color: #475569 !important;
+            text-decoration: none !important;
+            font-family: 'Plus Jakarta Sans', sans-serif !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+        }
+
+        [data-testid="stPopover"] [data-testid="stPageLink"] a:hover,
+        [data-testid="stPopoverBody"] [data-testid="stPageLink"] a:hover {
+            background: #f8fafc !important;
+            color: #0f172a !important;
+        }
+
+        [data-testid="stPopover"] [class*="st-key-navon_"] [data-testid="stPageLink"] a,
+        [data-testid="stPopoverBody"] [class*="st-key-navon_"] [data-testid="stPageLink"] a {
+            background: #eef2ff !important;
+            color: #4f46e5 !important;
+            border: 1px solid #c7d2fe !important;
+            font-weight: 700 !important;
         }
 
         /* ── Command Bar & Quick Filter Pills Styling ── */
