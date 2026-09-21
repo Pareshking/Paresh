@@ -86,14 +86,17 @@ def test_navigation_is_not_placed_in_the_hidden_header():
     )
     assert position == "hidden", (
         f"position={position!r}: the app must suppress Streamlit's own nav and "
-        f"draw its own compact popover trigger in the body, where its CSS does not hide it"
+        f"draw its own compact popover trigger inside the custom header"
     )
 
 
 def test_the_app_renders_one_page_link_per_page():
     src = _app_src()
-    assert "st.popover(" in src, "no compact navigation trigger is rendered"
-    assert 'key="app_nav_menu"' in src, "navigation popover has no stable key"
+    components = (ROOT / "src" / "ui" / "components.py").read_text(encoding="utf-8")
+    assert "st.popover(" in components, "no compact navigation trigger is rendered"
+    assert 'key="app_nav_menu"' in components, "navigation popover has no stable key"
+    assert "render_header_kpi_bar(" in src, "the app does not render the custom header"
+    assert "nav_pages=_PAGES" in src, "the hamburger is not attached to the header renderer"
 
 
 def test_every_page_is_reachable_from_the_rendered_navigation(offline_market_data):
