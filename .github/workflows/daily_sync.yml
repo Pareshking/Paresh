@@ -197,7 +197,8 @@ jobs:
           RANK="${{ github.workspace }}/data_cache/rankings.parquet"
           if [ -f "$RANK" ]; then
             ls -lh "$RANK"
-            gh release upload data-latest "$RANK" \
+            cp "$RANK" "${{ github.workspace }}/rankings.parquet"
+            gh release upload data-latest "${{ github.workspace }}/rankings.parquet" \
               --repo "$GITHUB_REPOSITORY" --clobber
             echo "Uploaded rankings.parquet to release data-latest."
           else
