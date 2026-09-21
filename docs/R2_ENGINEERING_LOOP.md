@@ -2,6 +2,14 @@
 
 Status: active
 
+## Agent coordination note — 2026-09-21
+
+The long Screener 10Y acquisition is no longer an engineering blocker. The user reports the production run is GREEN. Do not restart or duplicate the acquisition. The remaining Section A checks are evidence validation only: rows/symbols, frequency/older-session coverage, no-shrinkage, R2 revision/manifest/current pointer, object read-back, release↔R2 SHA equality, and idempotent retry.
+
+Publication hardening is now implemented on `main`: standalone archive audit, mismatch tests, schema-version enforcement, and no-shrinkage/coverage audit tooling. Other agents should treat these as complete and move to Section C rather than rebuilding them.
+
+Next independent work: design/implement the historical evidence datasets in Section C, starting with index constituent snapshots and point-in-time membership. Do not start the parked Yahoo raw-price rebuild unless explicitly authorized; `docs/RAW_PRICE_REBUILD.md` remains parked.
+
 This tracker is the working checklist for the market-data archive. Do not wait on
 the long Screener deep-history acquisition to advance independent engineering
 work. The production 10Y run is checked separately when it completes.
@@ -40,7 +48,7 @@ work. The production 10Y run is checked separately when it completes.
 
 ## C. Historical evidence datasets — after publication hardening
 
-- [ ] Index constituent snapshots.
+- [ ] Index constituent snapshots. **NEXT**
 - [ ] Point-in-time index membership history.
 - [ ] Trading-day/session archive.
 - [ ] Historical market-cap snapshots.
