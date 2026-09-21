@@ -899,8 +899,6 @@ A documented recovery procedure must rebuild the required application/research
 artifacts from R2 alone, with the release/local path retained as a fallback until
 that procedure is tested.
 
-A research run can record the exact dataset version/manifest it consumed.
-
 ---
 
 # 24. Data retention philosophy
