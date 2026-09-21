@@ -200,8 +200,7 @@ Section-C implementation state on main:
 - C5 corporate-action evidence — published with source/evidence URI/date.
 
 Do not duplicate the observed-session or market-cap builders/workflows. The next
-independent work is the live market-cap verification gate, followed by consumer
-integration and point-in-time reconstruction tests.
+independent work is consumer integration and point-in-time reconstruction tests.
 
 Still pending Section-C completeness:
 - full consumer acceptance tests for each dataset;
