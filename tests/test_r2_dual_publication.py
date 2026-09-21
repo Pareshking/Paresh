@@ -359,7 +359,8 @@ def test_historical_evidence_membership_intervals_are_point_in_time():
     })
     aaa = frame[frame.symbol == "AAA"].sort_values("effective_from")
     assert list(aaa.effective_from) == ["2026-01-01", "2026-03-01"]
-    assert list(aaa.effective_to) == ["2026-01-31", None]
+    assert list(aaa.effective_to.dropna()) == ["2026-01-31"]
+    assert pd.isna(aaa.effective_to.iloc[-1])
     assert set(frame[frame.effective_to.isna()].symbol) == {"AAA", "CCC"}
 
 
