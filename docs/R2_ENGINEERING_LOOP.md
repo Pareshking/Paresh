@@ -24,6 +24,16 @@ work. The production 10Y run is checked separately when it completes.
 - [ ] Run an identical retry/idempotency check against the live publication.
 - [ ] Record final evidence in the run summary.
 
+## Status note — 2026-09-21
+
+The long-running 10Y Screener acquisition has completed independently: 750 symbols, 1,161 sessions, 2016-09-23 through 2026-09-21, 0 unresolved symbols, 910 sessions older than 370 days, and 277,600 existing cells preserved while adding 913 sessions. The resulting artifact SHA-256 is `df03ed6d6fb9c8ca963c4f3fb3b73386c43e6f106cc9a3307d7b693cf80455dd`.
+
+R2 publication hardening is now merged on main (PR #46, V1 Full Validation #524 passed). The independent storage gates are therefore complete at the code/test level: live archive audit, pointer/manifest/object mismatch coverage, schema-version enforcement, and interior-session no-shrinkage checks.
+
+The remaining Section A boxes are **real-data publication verification**: live R2 read-back of the completed Screener revision, exact current-pointer verification, and a real identical retry. These require the production R2 object and are not replaced by CI simulation.
+
+The next engineering loop is Section C historical evidence datasets. It must not redesign System-1 or Stage-4B.
+
 ## B. R2 publication integrity — do now, independent of Screener
 
 - [x] Content-addressed revisions.
