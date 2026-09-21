@@ -95,6 +95,11 @@ def _membership_intervals(history: dict[str, Any]) -> pd.DataFrame:
             starts[symbol] = effective
             state.add(symbol)
 
+    last_evidence = max(
+        [pd.Timestamp(baseline["date"]).date()]
+        + [pd.Timestamp(change["date"]).date() for change in history.get("changes", [])]
+    )
+
     for symbol in sorted(state):
         rows.append(
             {
@@ -165,7 +170,9 @@ def build_corporate_actions(output_dir: Path) -> Path:
         raise RuntimeError("corporate-action log is empty")
     frame = pd.DataFrame(rows)
     frame["event_date"] = pd.to_datetime(frame["date"])
+    frame["source"] = "repository-derived corporate-action anomaly log"
     frame["evidence_date"] = pd.to_datetime(frame["first_seen"])
+    frame["evidence_uri"] = "repo://Pareshking/Paresh/data/corporate_actions_log.json"
     path = output_dir / "corporate_actions_evidence.parquet"
     frame.to_parquet(path, index=False)
     return path
