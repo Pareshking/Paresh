@@ -3,7 +3,8 @@
 **Status:** Parked — documented, not started. Implemented only after explicit
 approval.
 
-**Tracker ref:** V1_AUDIT_TRACKER.md → NEXT 9
+**Tracker ref:** V1_AUDIT_TRACKER.md → NEXT 9  
+**R2 dependency:** Follow `docs/R2_ENGINEERING_LOOP.md` Phase D only after the R2 consumer layer is established.
 
 ---
 
@@ -106,14 +107,22 @@ Yahoo's retroactively-mutable ones.
 
 ### Step 3 — Publish raw asset
 
-In `.github/workflows/daily_sync.yml`, publish `prices_raw.parquet` as a
-release asset under the `data-latest` tag, alongside the existing
-`prices.parquet` (2-year app snapshot) and `prices_full.parquet` (10-year
-track record archive).
+The raw Yahoo dataset must follow the active R2 archive architecture rather than
+become another rolling GitHub Release-only dataset.
+
+Publish immutable raw revisions to:
+
+`archive/prices/yahoo/raw/<as_of>/revisions/<sha>/prices_raw.parquet`
+
+with an immutable manifest and current pointer. The R2 object is the canonical
+raw evidence. The existing GitHub Release may carry a temporary application
+fallback/snapshot during migration, but it must not become the long-term raw
+archive.
 
 The raw file is larger than the adjusted snapshot (splits inflate historical
 per-share prices numerically — the file size is similar but there are no
-retroactive rewrites to remove rows). Upload with `--clobber` like the others.
+retroactive rewrites to remove rows). The R2 publisher must verify object size,
+SHA, manifest identity, and immutable retry behavior.
 
 ### Step 4 — Backward compatibility
 
@@ -210,7 +219,22 @@ the ranking at its correct relative price.
 
 ---
 
-## 9. Decision gate
+## 9. R2 migration dependency
+
+This rebuild remains parked. When approved, it must integrate with the active R2
+architecture rather than create a parallel archive:
+
+1. raw Yahoo OHLCV is stored as an immutable source dataset in R2;
+2. the project adjustment layer remains a consumer-side transformation;
+3. adjusted research/application snapshots remain derived artifacts;
+4. the R2 manifest pins the exact raw revision consumed by a research run;
+5. the existing GitHub Release path remains fallback until equivalence and
+   recovery tests pass.
+
+Do not start this rebuild as part of the current R2 consumer work unless the
+user explicitly reopens the decision gate.
+
+## 10. Decision gate
 
 This is parked. Do not start implementation until the user says to proceed.
 
