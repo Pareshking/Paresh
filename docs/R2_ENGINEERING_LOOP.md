@@ -151,8 +151,8 @@ market caps remain a snapshot until dated historical snapshots are accumulated.
    post-retry read-back.
 2. Publish the broader observed trading-session archive from the production price
    history and retain the confirmed-session dataset as separate source evidence.
-3. Build/accumulate dated historical market-cap snapshots rather than treating the
-   2026-09-18 snapshot as a time series.
+3. Maintain the dated market-cap history as new repository snapshots arrive; the
+   current bootstrap now contains 21 explicit dated snapshots (2026-08-18→2026-09-18).
 4. Then implement R2 readers/consumer integration without introducing another
    historical-data or ranking engine.
 
@@ -198,3 +198,18 @@ V1 Full Validation run **#553 / Run ID 35637235543** completed SUCCESS on the sa
 - headless Streamlit smoke test = PASS
 
 The next engineering work is now the remaining historical-evidence completeness and R2 consumer layers; the Screener production gate is no longer a blocker.
+
+
+### Dated market-cap history: VERIFIED
+
+R2 workflow run **#2 / Run ID 35638464074** completed SUCCESS after the legacy-format
+hardening:
+- 21 explicit dated snapshots
+- 15,750 rows
+- 2026-08-18 → 2026-09-18
+- legacy Git revisions without explicit `AsOf`/`Source` were skipped rather than
+  assigned invented dates
+- R2 publication = PASS
+- R2 read-back audit = PASS
+- revision SHA = `f01555ee9afa74a0f6c0c8bd5e8e451b88bd7390c79ca8367cf0ff904244b6e6`
+- object size = 165,114 bytes
