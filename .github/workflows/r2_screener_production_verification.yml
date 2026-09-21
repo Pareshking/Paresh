@@ -1,0 +1,113 @@
+name: R2 production Screener verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/r2_screener_production_verification.yml"
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: "Expected Screener release SHA-256"
+        required: true
+        default: "df03ed6d6fb9c8ca963c4f3fb3b73386c43e6f106cc9a3307d7b693cf80455dd"
+      expected_as_of:
+        description: "Expected Screener archive as-of date"
+        required: true
+        default: "2026-09-21"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPECTED_SHA: ${{ inputs.expected_sha || 'df03ed6d6fb9c8ca963c4f3fb3b73386c43e6f106cc9a3307d7b693cf80455dd' }}
+      EXPECTED_AS_OF: ${{ inputs.expected_as_of || '2026-09-21' }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      PYTHONPATH: .
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download production Screener release asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/r2-production
+          gh release download data-latest \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "screener_prices.parquet" \
+            --dir /tmp/r2-production \
+            --clobber
+          test -s /tmp/r2-production/screener_prices.parquet
+
+      - name: Verify release artifact identity
+        run: |
+          set -euo pipefail
+          SHA="$(sha256sum /tmp/r2-production/screener_prices.parquet | awk '{print $1}')"
+          echo "release_sha=$SHA"
+          echo "expected_sha=$EXPECTED_SHA"
+          test "$SHA" = "$EXPECTED_SHA"
+
+          AS_OF="$(python - <<'PY'
+          import pandas as pd
+          frame = pd.read_parquet("/tmp/r2-production/screener_prices.parquet")
+          print(pd.DatetimeIndex(frame.index).max().date())
+          PY
+          )"
+          echo "release_as_of=$AS_OF"
+          echo "expected_as_of=$EXPECTED_AS_OF"
+          test "$AS_OF" = "$EXPECTED_AS_OF"
+
+      - name: Live R2 manifest/current/object/HEAD/SHA verification
+        run: |
+          python scripts/r2_audit.py \
+            --dataset prices/screener \
+            --as-of "$EXPECTED_AS_OF"
+
+      - name: Actual identical retry against the immutable publication
+        run: |
+          set -euo pipefail
+          python scripts/r2_publish.py \
+            --path /tmp/r2-production/screener_prices.parquet \
+            --dataset prices/screener \
+            --source screener \
+            --key-root archive/prices/screener \
+            --pipeline-version "r2-production-identical-retry" \
+            --release-tag data-latest
+
+      - name: Post-retry live R2 verification
+        run: |
+          python scripts/r2_audit.py \
+            --dataset prices/screener \
+            --as-of "$EXPECTED_AS_OF"
+
+      - name: Write verification summary
+        run: |
+          {
+            echo "## R2 production Screener verification"
+            echo ""
+            echo "- expected as-of: `$EXPECTED_AS_OF`"
+            echo "- expected SHA-256: `$EXPECTED_SHA`"
+            echo "- live manifest/current/object/HEAD/SHA verification: PASS"
+            echo "- actual identical immutable retry: PASS"
+            echo "- post-retry live verification: PASS"
+          } >> "$GITHUB_STEP_SUMMARY"
