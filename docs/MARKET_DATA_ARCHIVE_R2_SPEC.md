@@ -74,7 +74,7 @@ The repository documents the Screener source as:
 - Close;
 - Volume;
 - no reliable intraday OHLC history from the current chart endpoint;
-- approximately one year of daily resolution, with older data downsampled by the vendor;
+- recent history at daily resolution, with older history downsampled by the vendor;
 - one request per symbol per nightly run;
 - paced requests;
 - accumulated locally rather than replacing the historical store.
@@ -345,11 +345,30 @@ It must not be silently combined with Yahoo values.
 
 ### Important limitation
 
-The current Screener collection path is daily only for approximately the recent year and is downsampled by Screener beyond that window.
+The current Screener chart endpoint was directly tested with **RELIANCE** using `days=3650`.
 
-Therefore:
+The production collector returned:
 
-> We cannot assume that a brand-new R2 archive can be populated with many years of daily Screener history from one request.
+- **523 observations**;
+- first observation: **2016-09-23**;
+- latest observation: **2026-09-21**;
+- unresolved symbols: **none**.
+
+The returned dates are predominantly weekly in the deep-history portion, rather than daily. The sample begins:
+
+- 2016-09-23
+- 2016-09-30
+- 2016-10-07
+- 2016-10-14
+- 2016-10-21
+
+and the recent tail transitions to the current accumulated daily region.
+
+Therefore the direct single-stock test confirms the important architectural fact:
+
+> **A 3650-day Screener chart request does not return 10 years of daily observations. It returns a long history with older observations downsampled to approximately weekly frequency.**
+
+We therefore must not design the one-time bootstrap as a 10-year daily backfill.
 
 The archive must grow continuously from nightly collection.
 
@@ -1275,15 +1294,20 @@ separately rather than assumed.
 
 # 39. One-time Screener 10-year bootstrap
 
-Screener exposes recent history at daily resolution and older history in
-weekly form. A one-time deep-history bootstrap therefore requests approximately
-10 years from the same source endpoint and merges it into the existing
-source-separated Screener store.
+A direct production-collector probe of the Screener chart endpoint was run for
+RELIANCE with `days=3650`. It returned 523 observations from 2016-09-23 through
+2026-09-21, with the older portion clearly downsampled to approximately weekly
+frequency.
+
+This confirms that a one-time deep-history bootstrap can recover materially
+more historical Screener data, but **cannot recover 10 years of daily bars from
+this endpoint**.
 
 The resulting store deliberately has mixed temporal density:
 
 - recent period: accumulated daily observations;
-- older period: Screener-provided weekly observations.
+- older period: Screener-provided weekly observations, as directly verified by
+  the RELIANCE 3650-day probe.
 
 The normal daily Screener job then continues exactly as before. It requests
 the recent rolling daily window and merges it into the store, preserving the
@@ -1348,10 +1372,11 @@ to inspect it. These are test defects, not evidence that the revision archive
 model itself is broken. The tests have been corrected to assert revision
 paths and to create a second valid Parquet snapshot with changed data.
 
-The real Screener 10-year validation is being allowed to run independently
-because the full-universe acquisition is expected to be substantially slower
-than the normal daily collection. It is not being treated as a reason to
-redesign the daily pipeline.
+A direct single-stock Screener probe has now completed for RELIANCE with
+`days=3650`: 523 observations from 2016-09-23 through 2026-09-21, confirming
+that the deep-history endpoint is weekly/downsampled rather than 10-year daily.
+The full-universe bootstrap therefore remains a mixed-frequency acquisition
+step; it is not being treated as a reason to redesign the daily pipeline.
 
 The intended acceptance sequence remains:
 
@@ -1389,7 +1414,8 @@ read-back verification
 
 ### Next gates
 
-1. Complete the real Screener 10-year run without interruption.
+1. Complete the real full-universe Screener deep-history run without interruption,
+   using the now-verified mixed daily/weekly expectation.
 2. Complete real Yahoo revision publication after the R2 endpoint configuration
    is valid.
 3. Run the corrected regression/V1 suite.
