@@ -1225,3 +1225,82 @@ replacement is permitted.
 This keeps the first dual-publication phase conservative: no historical evidence
 can be silently replaced while the R2 archive is being proven against the live
 pipeline.
+
+
+# 38. Same-date source revisions
+
+Phase 3 real-data validation exposed an important property of vendor history:
+the same \`as_of\` date can legitimately produce different bytes on a later
+collection. This is expected for sources whose historical prices are adjusted
+or restated after corporate actions, and must not be treated as a corruption
+condition by itself.
+
+The archive therefore uses **content-addressed revisions** for canonical
+source datasets:
+
+\`\`\`
+archive/prices/yahoo/<as_of>/revisions/<sha256>/prices_full.parquet
+archive/prices/screener/<as_of>/revisions/<sha256>/screener_prices.parquet
+\`\`\`
+
+Each distinct byte-level snapshot gets its own immutable object and immutable
+manifest:
+
+\`\`\`
+archive/manifests/<dataset>/<as_of>/revisions/<sha256>.json
+\`\`\`
+
+A mutable convenience pointer records the latest accepted revision:
+
+\`\`\`
+archive/manifests/<dataset>/<as_of>/current.json
+\`\`\`
+
+Rules:
+
+1. identical retry of an existing revision is idempotent and verified;
+2. same date + different bytes creates a new revision;
+3. an older revision is never overwritten or deleted by publication;
+4. \`current.json\` identifies the latest accepted revision only;
+5. the revision SHA-256 is the content identity used by the archive;
+6. manifests retain source identity and pipeline metadata.
+
+This is particularly important for Yahoo, where corporate-action-adjusted
+history can be restated. The archive must preserve what was actually received,
+not silently rewrite yesterday's evidence with today's interpretation.
+
+The first observed Yahoo same-date conflict proved that the byte-level
+snapshot changed; the semantic cause of each future change should be measured
+separately rather than assumed.
+
+# 39. One-time Screener 10-year bootstrap
+
+Screener exposes recent history at daily resolution and older history in
+weekly form. A one-time deep-history bootstrap therefore requests approximately
+10 years from the same source endpoint and merges it into the existing
+source-separated Screener store.
+
+The resulting store deliberately has mixed temporal density:
+
+- recent period: accumulated daily observations;
+- older period: Screener-provided weekly observations.
+
+The normal daily Screener job then continues exactly as before. It requests
+the recent rolling daily window and merges it into the store, preserving the
+older weekly observations. No weekly deep-history request is required on future
+daily runs.
+
+The bootstrap is a one-time research-data acquisition step, not a change to the
+live ranking methodology.
+
+Acceptance checks for the bootstrap include:
+
+- complete successful universe walk;
+- no unsettled session frozen into history;
+- historical rows preserved rather than replaced;
+- substantial history older than one year;
+- final artifact published to both the rolling GitHub Release and R2;
+- R2 publication uses the same revision model described above.
+
+This gives the backtest layer a materially deeper Screener source history
+without pretending that the older observations are daily bars.
