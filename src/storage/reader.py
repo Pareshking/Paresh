@@ -192,6 +192,8 @@ class R2DatasetReader:
             raise R2DatasetIntegrityError("manifest as_of mismatch")
         if str(manifest.get("sha256", "")) != revision_sha256:
             raise R2DatasetIntegrityError("manifest SHA does not match revision identity")
+        if str(manifest.get("revision_sha256", "")) != revision_sha256:
+            raise R2DatasetIntegrityError("manifest revision SHA does not match revision identity")
         if int(manifest.get("size_bytes", -1)) < 0:
             raise R2DatasetIntegrityError("manifest has invalid size_bytes")
 
