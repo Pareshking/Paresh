@@ -412,3 +412,77 @@ def test_no_shrinkage_audit_passes_and_rejects_erasure(tmp_path):
     ep = tmp_path / "erased.parquet"; erased.to_parquet(ep)
     with pytest.raises(RuntimeError, match="historical cells erased"):
         audit_no_shrinkage(bp, ep)
+
+
+def test_archive_audit_rejects_unsupported_schema_version(monkeypatch):
+    import hashlib
+    import json
+    from scripts.r2_audit import audit
+
+    body = b"canonical-data"
+    sha = hashlib.sha256(body).hexdigest()
+    object_key = "archive/prices/screener/2026-09-19/revisions/" + sha + "/prices.parquet"
+    manifest_key = "archive/manifests/prices/screener/2026-09-19/revisions/" + sha + ".json"
+    current_key = "archive/manifests/prices/screener/2026-09-19/current.json"
+    manifest = {
+        "dataset": "prices/screener", "as_of": "2026-09-19", "source": "screener",
+        "schema_version": 999, "size_bytes": len(body), "sha256": sha,
+        "object_key": object_key, "revision_sha256": sha,
+    }
+    current = {
+        "dataset": "prices/screener", "as_of": "2026-09-19", "source": "screener",
+        "revision_sha256": sha, "object_key": object_key, "manifest_key": manifest_key,
+    }
+
+    class FakeArchive:
+        def __init__(self, _config):
+            self.keys = {
+                current_key: json.dumps(current).encode(),
+                manifest_key: json.dumps(manifest).encode(),
+                object_key: body,
+            }
+
+        def get_bytes(self, key):
+            return self.keys[key]
+
+    monkeypatch.setattr("scripts.r2_audit.R2Archive", lambda _config: FakeArchive(None))
+    monkeypatch.setattr("scripts.r2_audit.R2Config.from_env", classmethod(lambda cls: None))
+    with pytest.raises(RuntimeError, match="unsupported manifest schema version"):
+        audit(dataset="prices/screener", as_of="2026-09-19")
+
+
+def test_archive_audit_rejects_current_pointer_identity_mismatch(monkeypatch):
+    import hashlib
+    import json
+    from scripts.r2_audit import audit
+
+    body = b"canonical-data"
+    sha = hashlib.sha256(body).hexdigest()
+    object_key = "archive/prices/screener/2026-09-19/revisions/" + sha + "/prices.parquet"
+    manifest_key = "archive/manifests/prices/screener/2026-09-19/revisions/" + sha + ".json"
+    current_key = "archive/manifests/prices/screener/2026-09-19/current.json"
+    manifest = {
+        "dataset": "prices/screener", "as_of": "2026-09-19", "source": "screener",
+        "schema_version": 1, "size_bytes": len(body), "sha256": sha,
+        "object_key": object_key, "revision_sha256": sha,
+    }
+    current = {
+        "dataset": "prices/screener", "as_of": "2026-09-20", "source": "screener",
+        "revision_sha256": sha, "object_key": object_key, "manifest_key": manifest_key,
+    }
+
+    class FakeArchive:
+        def __init__(self, _config):
+            self.keys = {
+                current_key: json.dumps(current).encode(),
+                manifest_key: json.dumps(manifest).encode(),
+                object_key: body,
+            }
+
+        def get_bytes(self, key):
+            return self.keys[key]
+
+    monkeypatch.setattr("scripts.r2_audit.R2Archive", lambda _config: FakeArchive(None))
+    monkeypatch.setattr("scripts.r2_audit.R2Config.from_env", classmethod(lambda cls: None))
+    with pytest.raises(RuntimeError, match="current pointer identity mismatch"):
+        audit(dataset="prices/screener", as_of="2026-09-19")
