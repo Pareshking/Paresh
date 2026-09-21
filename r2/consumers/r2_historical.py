@@ -1,6 +1,6 @@
 """Explicit consumer boundary for historical R2 evidence.
 
-This module is deliberately outside src/storage. The storage layer knows only
+This module is deliberately outside src/storage and outside the V1 runtime. The storage layer knows only
 how to resolve and verify immutable R2 datasets. This module interprets the
 published membership schema for stock-research consumers.
 

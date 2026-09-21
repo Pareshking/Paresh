@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from src.consumers.r2_historical import (
+from r2.consumers.r2_historical import (
     R2HistoricalConsumerError,
     membership_from_frame,
 )
