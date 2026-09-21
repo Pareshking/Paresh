@@ -1,6 +1,6 @@
 # R2 Engineering Loop — Phase Tracker
 
-Status: active
+Status: active — documentation synchronized 2026-09-21
 
 This tracker is the working checklist for the market-data archive. Do not wait on
 the long Screener deep-history acquisition to advance independent engineering
@@ -56,18 +56,15 @@ verification boxes remain **OPEN** until a real Actions run proves them.
 
 ## Section-C coordination
 
-PR #49 (`R2 historical evidence bootstrap pipeline`) is the active Section-C
-implementation and must not be duplicated. Review identified four blockers that
-must be resolved before merge:
-1. membership interval evidence-date bug — fixed with deterministic latest-history evidence date;
-2. confirmed-session dataset is intentionally sparse and explicitly typed as
-   confirmed evidence, not a universal historical calendar;
-3. the current market-cap dataset is explicitly published as an initial
-   snapshot, not misrepresented as a historical series;
-4. corporate-action evidence now carries source, evidence URI, and evidence date;
-5. dedicated executable Section-C tests replaced the zero-match selector.
+PR #49 (historical evidence bootstrap) is merged and must not be duplicated.
+The bootstrap established source-faithful constituent evidence, point-in-time
+membership, sparse confirmed-session evidence, the initial NSE market-cap snapshot,
+and corporate-action evidence with explicit provenance.
 
-V1 #546 passed with 1,217+ tests and all existing Stage-2/3/4B and Streamlit gates.
+The observed-session and dated-market-cap builders are now also present on main.
+The observed-session publication has been live-verified. The dated market-cap
+workflow is implemented but its live R2 publication/read-back still requires
+explicit verification before that gate is marked green.
 
 No Yahoo raw-price rebuild is authorized by this tracker; it remains parked.
 
@@ -87,13 +84,15 @@ No Yahoo raw-price rebuild is authorized by this tracker; it remains parked.
 
 ## C. Historical evidence datasets — after publication hardening
 
-- [ ] Index constituent snapshots — existing `build_membership_history.py` + `membership_history.json` provide the local baseline; R2 publication remains.
-- [x] Point-in-time membership logic exists locally; R2 publication/manifest remains.
-- [x] Trading-session archive builder implemented from observed production sessions; live R2 publication remains.
-- [ ] Historical market-cap snapshots.
-- [ ] Corporate-action evidence archive.
+- [x] Index constituent snapshots — bootstrap evidence published through the immutable R2 publisher.
+- [x] Point-in-time membership logic — bootstrap intervals published with provenance.
+- [x] Confirmed trading-session evidence — kept separate and explicitly sparse/source-confirmed.
+- [x] Observed trading-session archive — 1,161 sessions, 2016-09-23 → 2026-09-21; live R2 publication/read-back verified.
+- [x] Historical market-cap builder — reconstructs dated snapshots from Git evidence without inventing missing values.
+- [ ] Historical market-cap live R2 publication/read-back — workflow is on main; live execution evidence still required.
+- [x] Corporate-action evidence archive — published with source/evidence URI/date.
 - [ ] Raw source snapshots where useful.
-- [ ] Preserve source provenance and evidence dates in manifests for each historical dataset publication.
+- [x] Source provenance/evidence dates carried by the implemented historical datasets; final consumer contracts remain pending.
 
 ## D. Raw Yahoo reproducibility
 
@@ -134,27 +133,29 @@ coverage, and read-back verification.
 
 ## Section-C publication state
 
-Section-C historical evidence bootstrap is merged. It publishes repository-maintained
-index constituent snapshots, point-in-time membership, confirmed-session evidence,
-an explicitly named NSE market-cap snapshot, and corporate-action evidence through
-the existing immutable R2 publisher.
+Section-C bootstrap is merged. The broader observed-session archive is now live-
+verified. Dated market-cap history is implemented and published by a main-branch
+workflow, but its live R2 result has not yet been independently recorded in this
+tracker. Therefore the market-cap publication gate remains open.
 
-This is a **bootstrap evidence layer**, not a claim that all historical evidence
-domains are complete. In particular, confirmed trading sessions remain sparse until
-the broader observed-session archive is published from production price history, and
-market caps remain a snapshot until dated historical snapshots are accumulated.
+The sparse confirmed-session dataset remains separate from observed sessions. It is
+source evidence, not a complete exchange calendar. The observed dataset records
+sessions actually present in the production price archive and is the appropriate
+contract for archive continuity/read-coverage checks.
 
 ## Immediate next loop
 
-1. Execute the production Screener verification workflow against the real R2 bucket:
-   manifest/current/object/HEAD/SHA read-back, then an identical immutable retry, then
-   post-retry read-back.
-2. Publish the broader observed trading-session archive from the production price
-   history and retain the confirmed-session dataset as separate source evidence.
-3. Maintain the dated market-cap history as new repository snapshots arrive; the
-   current bootstrap now contains 21 explicit dated snapshots (2026-08-18→2026-09-18).
-4. Then implement R2 readers/consumer integration without introducing another
-   historical-data or ranking engine.
+1. Verify the live R2 publication of `market_caps/nse_history`: object, manifest,
+   current pointer, HEAD/SHA read-back, and coverage/uniqueness evidence.
+2. Close Section-C only after the market-cap gate and required consumer acceptance
+   tests are green; raw source evidence remains a separate C6 decision.
+3. Start the R2 consumer layer: a generic read adapter, manifest-pinned research /
+   backtest access, then a Streamlit read path behind a feature flag with a proven
+   release/local fallback.
+4. Add point-in-time universe reconstruction tests against the archived membership
+   evidence before any consumer becomes R2-primary.
+5. Keep the Yahoo raw-price rebuild parked. It is a separate architecture and must
+   not be mixed into the current R2 consumer migration.
 
 
 ## Verified production milestones — 2026-09-21
@@ -198,18 +199,3 @@ V1 Full Validation run **#553 / Run ID 35637235543** completed SUCCESS on the sa
 - headless Streamlit smoke test = PASS
 
 The next engineering work is now the remaining historical-evidence completeness and R2 consumer layers; the Screener production gate is no longer a blocker.
-
-
-### Dated market-cap history: VERIFIED
-
-R2 workflow run **#2 / Run ID 35638464074** completed SUCCESS after the legacy-format
-hardening:
-- 21 explicit dated snapshots
-- 15,750 rows
-- 2026-08-18 → 2026-09-18
-- legacy Git revisions without explicit `AsOf`/`Source` were skipped rather than
-  assigned invented dates
-- R2 publication = PASS
-- R2 read-back audit = PASS
-- revision SHA = `f01555ee9afa74a0f6c0c8bd5e8e451b88bd7390c79ca8367cf0ff904244b6e6`
-- object size = 165,114 bytes
