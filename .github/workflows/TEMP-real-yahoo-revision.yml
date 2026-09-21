@@ -2,6 +2,7 @@ name: TEMP real Yahoo revision validation
 
 on:
   push:
+  pull_request:
 
 permissions:
   contents: read
