@@ -217,7 +217,7 @@ def gland_packet() -> ResearchProviderPacket:
                 original_claim_refs=(ref("Q1 FY27 CDMO revenue was INR 891.5 crore, up 20% YoY, while B2B revenue was INR 908.8 crore, up 19% YoY; each contributed about half of total revenue."),),
                 counter_evidence_refs=(ref("Q1 revenue growth was not uniform across geographies: the company reported other core markets down 28% YoY while the US grew 32%."),),
             ),
-            ContradictionFinding(
+            CounterEvidenceFinding(
                 hypothesis="Can the expanding CDMO pipeline and new capacity convert into material future revenue without excessive lead time?",
                 original_claim="Gland disclosed a strategic global-pharma manufacturing agreement covering 55 SKUs across three sites, with estimated eventual annual revenue potential of USD 90-100 million and revenue commencement expected from calendar 2029.",
                 counter_evidence="The 55-SKU global partnership is expected to generate revenue only from calendar 2029 after technology-transfer activities planned over two years, showing a long conversion cycle.",
@@ -225,7 +225,7 @@ def gland_packet() -> ResearchProviderPacket:
                 original_claim_refs=(ref("Gland disclosed a strategic global-pharma manufacturing agreement covering 55 SKUs across three sites, with estimated eventual annual revenue potential of USD 90-100 million and revenue commencement expected from calendar 2029."),),
                 counter_evidence_refs=(ref("The 55-SKU global partnership is expected to generate revenue only from calendar 2029 after technology-transfer activities planned over two years, showing a long conversion cycle."),),
             ),
-            ContradictionFinding(
+            CounterEvidenceFinding(
                 hypothesis="Does the regulated-market and quality record support continued product launches and customer retention?",
                 original_claim="Gland disclosed USFDA approval for Sugammadex Injection 200 mg/2 mL and 500 mg/5 mL single-dose vials.",
                 counter_evidence="Gland's September 2026 exchange announcement records conclusion of the USFDA inspection at its VSEZ sterile oncology formulations and API facilities.",
@@ -233,7 +233,7 @@ def gland_packet() -> ResearchProviderPacket:
                 original_claim_refs=(ref("Gland disclosed USFDA approval for Sugammadex Injection 200 mg/2 mL and 500 mg/5 mL single-dose vials."),),
                 counter_evidence_refs=(ref("Gland's September 2026 exchange announcement records conclusion of the USFDA inspection at its VSEZ sterile oncology formulations and API facilities."),),
             ),
-            ContradictionFinding(
+            CounterEvidenceFinding(
                 hypothesis="How exposed are earnings to geographic supply disruptions, tender delays and the long technology-transfer cycle?",
                 original_claim="Management said capacity creation was a key priority and that brownfield and greenfield expansion initiatives were progressing across the manufacturing network.",
                 counter_evidence="Gland reported that Saudi Arabia experienced supply disruptions and that NUPCO tender awards had been delayed.",
