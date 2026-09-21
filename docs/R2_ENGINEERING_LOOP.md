@@ -2,6 +2,8 @@
 
 Status: active
 
+Latest completed publication-hardening merge: PR #39 (`be72945aca73c15c7a7e4cdf76d971fcf24c4b19`).
+
 This tracker is the working checklist for the market-data archive. Do not wait on
 the long Screener deep-history acquisition to advance independent engineering
 work. The production 10Y run is checked separately when it completes.
@@ -32,9 +34,9 @@ work. The production 10Y run is checked separately when it completes.
 - [x] Current pointer is explicit.
 - [x] Object PUT/HEAD/GET/SHA verification exists.
 - [x] Publisher now re-reads and verifies object + manifest + current pointer.
-- [ ] Add a standalone archive-audit command for arbitrary dataset/date.
-- [ ] Add negative tests for pointer/manifest/object mismatch.
-- [ ] Add schema validation/version enforcement for archived datasets.
+- [x] Add a standalone archive-audit command for arbitrary dataset/date.
+- [x] Add negative tests for pointer/manifest/object mismatch.
+- [x] Add schema validation/version enforcement for archived datasets.
 - [ ] Add archive no-shrinkage/coverage audit tooling.
 
 ## C. Historical evidence datasets — after publication hardening
