@@ -1,0 +1,79 @@
+name: R2 dated market-cap publication
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/build_market_cap_history.py"
+      - "tests/test_market_cap_history.py"
+      - ".github/workflows/r2_market_cap_history.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      PYTHONPATH: .
+    steps:
+      - name: Checkout full repository history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install -r requirements.txt pytest
+
+      - name: Run market-cap history tests
+        run: pytest -q tests/test_market_cap_history.py
+
+      - name: Build dated market-cap history
+        run: python scripts/build_market_cap_history.py --output /tmp/market_caps_history.parquet
+
+      - name: Validate dated market-cap history
+        run: |
+          python - <<'PY'
+          import pandas as pd
+
+          frame = pd.read_parquet("/tmp/market_caps_history.parquet")
+          assert len(frame) > 0
+          assert frame["date"].is_monotonic_increasing
+          assert frame[["symbol", "date"]].duplicated().sum() == 0
+          assert frame["evidence_date"].notna().all()
+          assert frame["evidence_commit"].str.len().eq(40).all()
+          print(f"MARKET_CAP_ROWS={len(frame)}")
+          print(f"MARKET_CAP_SNAPSHOTS={frame['date'].nunique()}")
+          print(f"MARKET_CAP_FIRST={frame['date'].min().date()}")
+          print(f"MARKET_CAP_LAST={frame['date'].max().date()}")
+          PY
+
+      - name: Publish dated market-cap history to R2
+        run: |
+          python scripts/r2_publish.py \
+            --path /tmp/market_caps_history.parquet \
+            --dataset market_caps/nse_history \
+            --source nse_market_cap_git_history \
+            --key-root archive/market_caps/nse_history \
+            --pipeline-version "r2_market_cap_history_${{ github.sha }}" \
+            --release-tag data-latest
+
+      - name: Audit published market-cap history
+        run: |
+          AS_OF="$(python - <<'PY'
+          import pandas as pd
+          print(pd.read_parquet("/tmp/market_caps_history.parquet")["date"].max().date())
+          PY
+          )"
+          python scripts/r2_audit.py --dataset market_caps/nse_history --as-of "$AS_OF"
