@@ -1,0 +1,41 @@
+name: R2 observed sessions and market-cap history
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+    steps:
+      - name: Checkout full repository history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Download production price archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download data-latest --pattern prices_full.parquet --dir /tmp/r2-sessions --clobber
+      - name: Build observed sessions
+        run: python scripts/build_observed_sessions_parquet.py --prices /tmp/r2-sessions/prices_full.parquet --output /tmp/observed_sessions.parquet
+      - name: Build dated market-cap history
+        run: python scripts/build_market_cap_history.py --output /tmp/market_caps_history.parquet
+      - name: Publish observed trading sessions
+        run: python scripts/r2_publish.py --path /tmp/observed_sessions.parquet --dataset trading_sessions/observed --source observed_production_price_archive --key-root archive/trading_days/observed --pipeline-version r2_observed_sessions_v1 --release-tag data-latest
+      - name: Publish dated market-cap history
+        run: python scripts/r2_publish.py --path /tmp/market_caps_history.parquet --dataset market_caps/nse_history --source nse_market_cap_git_history --key-root archive/market_caps/nse_history --pipeline-version r2_market_cap_history_v1 --release-tag data-latest
