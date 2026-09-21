@@ -23,7 +23,8 @@ on:
     branches: [main]
     paths:
       - 'src/storage/**'
-        - 'scripts/r2_*.py'
+      - 'r2/**/*.py'
+      - 'scripts/r2_*.py'
       - 'scripts/build_trading_sessions.py'
       - 'scripts/build_market_cap_history.py'
       - 'tests/test_r2_*.py'
@@ -63,7 +64,7 @@ jobs:
 
       - name: Compile R2 implementation
         run: |
-          python -m compileall -q src/storage
+          python -m compileall -q src/storage r2
           python -m compileall -q \
             scripts/r2_*.py \
             scripts/build_trading_sessions.py \
