@@ -155,3 +155,46 @@ market caps remain a snapshot until dated historical snapshots are accumulated.
    2026-09-18 snapshot as a time series.
 4. Then implement R2 readers/consumer integration without introducing another
    historical-data or ranking engine.
+
+
+## Verified production milestones — 2026-09-21
+
+### Screener R2 production gate: VERIFIED
+
+Production verification workflow run **#1 / Run ID 35635710984** completed SUCCESS.
+
+Verified against the real `data-latest/screener_prices.parquet`:
+- release SHA-256 = `df03ed6d6fb9c8ca963c4f3fb3b73386c43e6f106cc9a3307d7b693cf80455dd`
+- as_of = `2026-09-21`
+- live manifest read-back = PASS
+- `current.json` pointer identity = PASS
+- live object HEAD/byte/SHA verification = PASS
+- immutable object SHA = `df03ed6d6fb9c8ca963c4f3fb3b73386c43e6f106cc9a3307d7b693cf80455dd`
+- object size = 5,381,737 bytes
+- actual identical retry = PASS; existing revision and manifest were re-read and verified
+- post-retry live verification = PASS
+
+This closes all four production Screener verification boxes that were previously open.
+
+### Observed trading-session archive: VERIFIED
+
+Workflow run **#1 / Run ID 35637235582** completed SUCCESS using the production Screener release:
+- 1,161 observed sessions
+- 2016-09-23 → 2026-09-21
+- R2 revision SHA = `e6b9f2e02fac818dc8b72a4e090a9c982e616b3df73dbbe6d5965259cdae8923`
+- live R2 publication = PASS
+- standalone R2 read-back audit = PASS
+- object size = 13,270 bytes
+
+### Validation
+
+V1 Full Validation run **#553 / Run ID 35637235543** completed SUCCESS on the same main commit:
+- full regression suite = PASS
+- compile = PASS
+- Stage-2 hand-off = PASS
+- Stage-3 hierarchy = PASS
+- all five Stage-4B live archetype executions = PASS
+- deprecated Streamlit cleanup = PASS
+- headless Streamlit smoke test = PASS
+
+The next engineering work is now the remaining historical-evidence completeness and R2 consumer layers; the Screener production gate is no longer a blocker.
