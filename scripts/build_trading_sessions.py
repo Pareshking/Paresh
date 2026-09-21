@@ -34,8 +34,7 @@ def build(price_path: Path, output: Path) -> dict:
         "sessions": sessions,
     }
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(payload, indent=2) + "
-", encoding="utf-8")
+    output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     return payload
 
 
