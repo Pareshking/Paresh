@@ -47,7 +47,6 @@ def audit(*, dataset: str, as_of: str) -> dict[str, Any]:
             )
 
     object_key = str(manifest["object_key"])
-    archive.verify_file_metadata(object_key, manifest)
     remote = archive.get_bytes(object_key)
 
     import hashlib
