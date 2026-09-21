@@ -1,7 +1,7 @@
 # R2 Historical Evidence Dataset Contracts
 
 **Status:** Engineering design — Section C of the R2 Engineering Loop  
-**Last updated:** 2026-09-21 (observed-session archive implemented/verified; dated market-cap publication pending live verification)  
+**Last updated:** 2026-09-21 (observed-session archive and dated market-cap publication live-verified)  
 **Scope:** Historical evidence required for point-in-time research and survivorship-bias-aware analysis.
 
 This document converts the original R2 architecture requirements into implementation boundaries. It does not start the parked Yahoo raw-price rebuild.
@@ -196,7 +196,7 @@ Section-C implementation state on main:
 - C2 point-in-time membership — normalized intervals published with evidence provenance.
 - C3 confirmed trading-session evidence — published separately as sparse/source-confirmed evidence.
 - C3 observed sessions — implemented from the production Screener price archive and live-verified in R2: 1,161 sessions from 2016-09-23 through 2026-09-21.
-- C4 market-cap history — dated snapshot builder is implemented from Git evidence and the R2 publication workflow is on main; live R2 publication/read-back remains an open gate.
+- C4 market-cap history — dated snapshot builder is implemented from Git evidence and live R2 publication/read-back is verified: 21 explicit dated snapshots, 15,750 rows, 2026-08-18→2026-09-18.
 - C5 corporate-action evidence — published with source/evidence URI/date.
 
 Do not duplicate the observed-session or market-cap builders/workflows. The next
@@ -204,9 +204,8 @@ independent work is the live market-cap verification gate, followed by consumer
 integration and point-in-time reconstruction tests.
 
 Still pending Section-C completeness:
-- live verification of `market_caps/nse_history`;
-- C6 raw source evidence where it provides material reproducibility value;
 - full consumer acceptance tests for each dataset;
+- C6 raw source evidence where it provides material reproducibility value;
 - point-in-time universe reconstruction against archived evidence.
 
 Parked:
@@ -222,7 +221,7 @@ The Section-C datasets are intentionally at different maturity levels:
 | PIT membership | complete | bootstrap publication completed | pending |
 | Confirmed sessions | complete | bootstrap publication completed | pending |
 | Observed sessions | complete | **verified** — 1,161 sessions, 2016-09-23 → 2026-09-21 | pending |
-| Dated market caps | complete | **open** — workflow is implemented; live publication/read-back not yet recorded | pending |
+| Dated market caps | complete | **verified** — 21 snapshots, 15,750 rows, live publication/read-back PASS | pending |
 | Corporate actions | complete | bootstrap publication completed | pending |
 | Raw source evidence | not started | — | — |
 
