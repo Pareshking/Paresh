@@ -148,5 +148,5 @@ def test_navigator_has_live_route_fallback_for_viewport_probe():
 
 def test_navigator_handles_mounted_frame_replacement():
     src = (ROOT / "scripts" / "production_qa.py").read_text(encoding="utf-8")
-    assert "frame = app_frame(page)" in src
-    assert "reacquire it before reading the new page" in src
+    assert src.count("frame = app_frame(page)") >= 2
+    assert "settle_after_nav(page, frame)" in src
