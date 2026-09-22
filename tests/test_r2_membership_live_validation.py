@@ -60,5 +60,9 @@ def test_membership_resolution_fails_closed_without_immutable_revision():
     class FakeReader:
         archive = FakeArchive()
 
+        @staticmethod
+        def resolve_latest_revision(dataset, as_of):
+            raise FileNotFoundError("no immutable R2 revisions")
+
     with pytest.raises(FileNotFoundError):
         _resolve_membership_revision(FakeReader(), as_of="2026-09-18")
