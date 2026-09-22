@@ -59,7 +59,7 @@ def test_real_membership_history_has_no_changes_and_covers_acceptance_date(tmp_p
     assert generated["index"].eq("nifty_total_market").all()
     assert generated["as_of"].eq(_sync_date()).all()
     assert (pd.to_datetime(generated["effective_from"]) <= pd.Timestamp(MEMBERSHIP_AS_OF)).all()
-    assert describe_parquet(frame)["as_of"] == MEMBERSHIP_AS_OF
+    assert describe_parquet(frame)["as_of"] == _sync_date()
 
 
 def test_confirmed_trading_sessions_preserve_sparse_source_contract(tmp_path):
