@@ -2,6 +2,20 @@ name: R2 historical evidence bootstrap
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "data/indices/**"
+      - "data/indices_sync_meta.json"
+      - "data/nse_market_caps.csv"
+      - "data/nse_trading_days.json"
+      - "data/nse_tv_classification.csv"
+      - "data/corporate_actions_log.json"
+      - "scripts/build_membership_history.py"
+      - "scripts/build_classification_history.py"
+      - "scripts/r2_historical_evidence_bootstrap.py"
+      - "tests/test_r2_historical_evidence.py"
+      - ".github/workflows/r2-historical-evidence-bootstrap.yml"
   schedule:
     - cron: "15 20 * * *"
 
