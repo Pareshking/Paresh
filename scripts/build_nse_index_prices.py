@@ -21,11 +21,11 @@ except ImportError:
     curl_requests = None
 
 INDEX_NAMES = {
-    "nifty50": "NIFTY 50",
-    "nifty_next50": "NIFTY NEXT 50",
-    "nifty_midcap150": "NIFTY MIDCAP 150",
-    "nifty_smallcap250": "NIFTY SMALLCAP 250",
-    "nifty_microcap250": "NIFTY MICROCAP 250",
+    "nifty50": "Nifty 50",
+    "nifty_next50": "Nifty Next 50",
+    "nifty_midcap150": "Nifty Midcap 150",
+    "nifty_smallcap250": "Nifty Smallcap 250",
+    "nifty_microcap250": "Nifty Microcap 250",
 }
 
 URL = "https://www.niftyindices.com/Backpage.aspx/getHistoricaldatatabletoString"
