@@ -87,6 +87,11 @@ def describe_parquet(path: Path) -> dict[str, Any]:
     }
 
 
+def _immutable_manifest_contract(manifest: dict[str, Any]) -> dict[str, Any]:
+    """Return manifest metadata that must remain stable for a revision."""
+    return {key: value for key, value in manifest.items() if key != "created_at"}
+
+
 def _publish_manifest(
     archive: R2Archive,
     manifest: dict[str, Any],
@@ -98,17 +103,17 @@ def _publish_manifest(
         print(f"MANIFEST PUBLISHED {key}")
     except R2ImmutableObjectExists:
         existing = json.loads(archive.get_bytes(key).decode("utf-8"))
-        fields = (
-            "dataset", "as_of", "source", "schema_version", "row_count",
-            "symbol_count", "min_date", "max_date", "size_bytes", "sha256",
-            "object_key", "release_tag", "source_asset", "source_asset_sha256",
-            "revision_sha256",
-        )
-        for field in fields:
-            if existing.get(field) != manifest.get(field):
-                raise RuntimeError(
-                    f"Existing R2 manifest differs for {key}: {field}"
-                )
+        existing_contract = _immutable_manifest_contract(existing)
+        candidate_contract = _immutable_manifest_contract(manifest)
+        if existing_contract != candidate_contract:
+            differing = sorted(
+                field
+                for field in set(existing_contract) | set(candidate_contract)
+                if existing_contract.get(field) != candidate_contract.get(field)
+            )
+            raise RuntimeError(
+                f"Existing R2 manifest differs for {key}: {', '.join(differing)}"
+            )
         print(f"MANIFEST ALREADY PRESENT + VERIFIED {key}")
 
 
@@ -156,8 +161,10 @@ def _verify_publication(
     """Re-read the complete publication contract from R2 and verify it."""
     remote_manifest = json.loads(archive.get_bytes(manifest_key).decode("utf-8"))
     for field in (
-        "dataset", "as_of", "source", "size_bytes", "sha256",
-        "object_key", "revision_sha256",
+        "dataset", "as_of", "source", "schema_version", "row_count",
+        "symbol_count", "min_date", "max_date", "size_bytes", "sha256",
+        "object_key", "release_tag", "source_asset", "source_asset_sha256",
+        "revision_sha256", "pipeline_version", "ranking_contract",
     ):
         if remote_manifest.get(field) != manifest.get(field):
             raise RuntimeError(
