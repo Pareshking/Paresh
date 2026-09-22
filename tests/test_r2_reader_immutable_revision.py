@@ -96,7 +96,7 @@ def test_resolve_latest_revision_rejects_timezone_less_created_at():
 
 
 def test_resolve_revision_rejects_timestamp_as_of():
-    with pytest.raises(Exception, match="ISO YYYY-MM-DD"):
+    with pytest.raises(Exception, match="invalid as_of date"):
         R2DatasetReader(FakeArchive()).resolve_revision(
             "indices/membership/nifty_total_market",
             "2026-09-18T00:00:00",
