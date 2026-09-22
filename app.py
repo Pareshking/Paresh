@@ -328,6 +328,7 @@ def _resolve_price_source(price_hash, sym_key, adj_close, close_p, high_p, low_p
     screener store that cannot reach the 12-month lookback is refused here, so
     the table never ships with an empty 12M column.
     """
+    from r2.consumers import r2_streamlit
     from src.loaders import price_source as _ps
 
     fallback = _ps.from_yahoo(adj_close, close_p, high_p, low_p, vol_p)
@@ -336,9 +337,13 @@ def _resolve_price_source(price_hash, sym_key, adj_close, close_p, high_p, low_p
     store = _fetch_screener_store(price_hash, r2_streamlit.configuration_key())
     chosen = _ps.from_screener(store) if store is not None else None
     if chosen is None:
+        if r2_streamlit.enabled():
+            raise RuntimeError("Configured R2 Screener dataset is not usable")
         return fallback
     keep = [c for c in chosen.close.columns if c in set(symbols)]
     if not keep:
+        if r2_streamlit.enabled():
+            raise RuntimeError("Configured R2 Screener dataset has no requested symbols")
         return fallback
     chosen.adj_close = chosen.close = chosen.close[keep]
     chosen.volume = chosen.volume.reindex(columns=keep)
