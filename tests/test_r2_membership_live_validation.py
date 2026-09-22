@@ -43,10 +43,9 @@ def test_membership_resolution_does_not_require_current_pointer():
         archive = FakeArchive()
 
         @staticmethod
-        def resolve_revision(dataset, as_of, sha):
+        def resolve_latest_revision(dataset, as_of):
             assert dataset == "indices/membership/nifty_total_market"
             assert as_of == "2026-09-18"
-            assert sha == revision
             return ref
 
     resolved = _resolve_membership_revision(FakeReader(), as_of="2026-09-18")
