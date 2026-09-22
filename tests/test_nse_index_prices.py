@@ -1,6 +1,6 @@
 import pandas as pd
 
-from scripts.build_nse_index_prices import INDEX_NAMES, _records, _number
+from scripts.build_nse_index_prices import INDEX_NAMES, _number
 
 
 def test_all_five_research_indices_are_defined():
@@ -13,23 +13,9 @@ def test_all_five_research_indices_are_defined():
     }
 
 
-def test_nse_payload_records_and_numbers_are_normalized():
-    payload = {
-        "data": {
-            "indexCloseOnlineRecords": [
-                {
-                    "TIMESTAMP": "18-09-2026",
-                    "EOD_OPEN_INDEX_VAL": "23,000.10",
-                    "EOD_HIGH_INDEX_VAL": "23,100.20",
-                    "EOD_LOW_INDEX_VAL": "22,900.30",
-                    "EOD_CLOSE_INDEX_VAL": "23,050.40",
-                }
-            ]
-        }
-    }
-    rows = _records(payload)
-    assert len(rows) == 1
-    assert _number(rows[0]["EOD_CLOSE_INDEX_VAL"]) == 23050.40
+def test_nse_number_normalization():
+    assert _number("23,050.40") == 23050.40
+    assert _number("-") is None
 
 
 def test_index_price_archive_contract(tmp_path):
