@@ -1,6 +1,6 @@
 """Diagnose raw-Yahoo vs canonical V1 price-scale discrepancies by corporate action.
 
-This is diagnostic only. It never changes V1 prices, rankings, or the R2 raw archive.
+This is diagnostic only. It never changes V1 prices, rankings, or the R2 raw archive.\n\nEvent attribution intentionally uses the ORIGINAL raw Yahoo close; comparing V1\nwith the already-adjusted raw series would erase the scale step being attributed.
 It measures whether a logged corporate action explains a change in the V1/raw
 historical scale, and separately reports unexplained scale breaks.
 """
@@ -48,24 +48,24 @@ def robust_scale(a: pd.Series, b: pd.Series) -> float:
     return float(ratio.median())
 
 
-def event_attribution(v1: pd.DataFrame, raw_adj: pd.DataFrame, events: list[dict]) -> pd.DataFrame:
+def event_attribution(v1: pd.DataFrame, raw: pd.DataFrame, events: list[dict]) -> pd.DataFrame:
     rows = []
     for e in events:
         s = str(e.get("symbol", "")).upper()
-        if s not in v1.columns or s not in raw_adj.columns:
+        if s not in v1.columns or s not in raw.columns:
             continue
         when = pd.Timestamp(e["date"])
         ratio = float(e["ratio"])
-        common = v1[s].index.intersection(raw_adj[s].index)
+        common = v1[s].index.intersection(raw[s].index)
         if when not in common:
             continue
         # Use a local window, but exclude the action day itself.
         pre_idx = common[(common < when) & (common >= when - pd.Timedelta(days=45))]
         post_idx = common[(common > when) & (common <= when + pd.Timedelta(days=45))]
-        pre_scale = robust_scale(v1[s].reindex(pre_idx), raw_adj[s].reindex(pre_idx))
-        post_scale = robust_scale(v1[s].reindex(post_idx), raw_adj[s].reindex(post_idx))
+        pre_scale = robust_scale(v1[s].reindex(pre_idx), raw[s].reindex(pre_idx))
+        post_scale = robust_scale(v1[s].reindex(post_idx), raw[s].reindex(post_idx))
         inferred = (post_scale / pre_scale) if np.isfinite(pre_scale) and pre_scale else np.nan
-        # If V1 removes a split from the historical side, post/pre should be ~1/ratio.
+        # If V1 removes the event from the historical side, post/pre should be ~1/ratio.\n        # This comparison must use ORIGINAL raw Yahoo prices, not raw_adj.
         expected_scale_step = 1.0 / ratio
         error = (
             abs(np.log(inferred / expected_scale_step))
@@ -111,14 +111,14 @@ def discrepancy(v1: pd.DataFrame, raw_adj: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows).sort_values("material_share", ascending=False)
 
 
-def unexplained_scale_breaks(v1: pd.DataFrame, raw_adj: pd.DataFrame, events: list[dict]) -> pd.DataFrame:
+def unexplained_scale_breaks(v1: pd.DataFrame, raw: pd.DataFrame, events: list[dict]) -> pd.DataFrame:
     event_days = {(str(e.get("symbol","")).upper(), pd.Timestamp(e["date"])) for e in events}
     rows = []
-    for s in sorted(set(v1.columns) & set(raw_adj.columns)):
-        idx = v1.index.intersection(raw_adj[s].dropna().index)
+    for s in sorted(set(v1.columns) & set(raw.columns)):
+        idx = v1.index.intersection(raw[s].dropna().index)
         if len(idx) < 30:
             continue
-        scale = (v1[s].reindex(idx) / raw_adj[s].reindex(idx)).replace([np.inf, -np.inf], np.nan)
+        scale = (v1[s].reindex(idx) / raw[s].reindex(idx)).replace([np.inf, -np.inf], np.nan)
         scale = scale.dropna()
         if len(scale) < 30:
             continue
@@ -151,16 +151,17 @@ def main() -> int:
     ap.add_argument("--out", type=Path, required=True)
     args = ap.parse_args()
 
-    raw = pd.read_parquet(args.raw)
-    raw_adj, *_ = adjusted_from_raw(raw)
+    raw_frame = pd.read_parquet(args.raw)
+    raw = close_frame(raw_frame)
+    raw_adj, *_ = adjusted_from_raw(raw_frame)
     v1 = close_frame(pd.read_parquet(args.v1))
     events_doc = json.loads(args.events.read_text(encoding="utf-8"))
     events = list((events_doc.get("events") or {}).values())
 
     args.out.mkdir(parents=True, exist_ok=True)
     disc = discrepancy(v1, raw_adj)
-    attrib = event_attribution(v1, raw_adj, events)
-    unexplained = unexplained_scale_breaks(v1, raw_adj, events)
+    attrib = event_attribution(v1, raw, events)
+    unexplained = unexplained_scale_breaks(v1, raw, events)
     disc.to_csv(args.out / "discrepancy_by_symbol.csv", index=False)
     attrib.to_csv(args.out / "event_attribution.csv", index=False)
     unexplained.to_csv(args.out / "unexplained_scale_breaks.csv", index=False)
