@@ -28,7 +28,7 @@ jobs:
       - name: Build historical evidence datasets
         run: python scripts/r2_historical_evidence_bootstrap.py --output-dir /tmp/r2-evidence
       - name: Run historical evidence tests
-        run: pytest -q tests/test_r2_historical_evidence.py
+        run: python -m pytest -q tests/test_r2_historical_evidence.py
       - name: Publish index constituent snapshots
         shell: bash
         run: |
