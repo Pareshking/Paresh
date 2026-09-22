@@ -1,6 +1,6 @@
 # R2 Engineering Loop — Phase Tracker
 
-Status: active — documentation synchronized 2026-09-22
+Status: R2 acceptance complete — documentation synchronized 2026-09-22
 
 This tracker is the working checklist for the market-data archive. Do not wait on
 the long Screener deep-history acquisition to advance independent engineering
@@ -131,13 +131,13 @@ evidence only. They do not alter V1, System-1, rankings, or the canonical price 
 
 - [x] R2 read adapter for analytical datasets — manifest-pinned `R2DatasetReader` resolves current or explicit revisions and verifies manifest identity, HEAD size, object SHA, and byte size.
 - [x] Research/backtest reader — separate manifest-pinned consumer adapter; it accepts an explicit dataset/as_of/revision SHA and never falls back to the mutable current pointer. No ranking, price, universe, or Stage-4B logic is moved into R2.
-- [ ] Research/backtest live R2 acceptance — combined live acceptance workflow is merged; real execution evidence still required.
+- [x] Research/backtest live R2 acceptance — Final Acceptance Run 35704396591 passed the live immutable research acceptance against the pinned revision.
 - [x] Controlled research fallback — explicit opt-in local/release artifact fallback; no silent fallback and no R2 write-back.
 - [x] Streamlit reader boundary behind a feature flag — disabled by default and requires an explicit immutable research pin when enabled.
 - [x] Controlled fallback to release/local artifacts — explicit opt-in fallback is implemented and SHA-provenance is returned.
-- [x] Manifest-pinned research runs — immutable pin adapter and live acceptance workflow are implemented; real execution evidence remains pending.
+- [x] Manifest-pinned research runs — immutable pin adapter implemented and live acceptance verified by Final Acceptance Run 35704396591.
 - [x] Point-in-time membership consumer contract — isolated under `r2/consumers/`, fail-closed on unknown coverage and duplicate active intervals.
-- [ ] Live point-in-time universe reconstruction acceptance — combined final acceptance workflow is merged; real R2 execution remains the acceptance gate.
+- [x] Live point-in-time universe reconstruction acceptance — Final Acceptance Run 35704396591 passed live PIT membership acceptance.
 
 
 ## CI isolation — VERIFIED 2026-09-22
@@ -192,12 +192,12 @@ No V1 consumer has been switched to raw Yahoo prices. Equivalence and migration 
 
 ## Immediate next loop
 
-1. Complete live PIT membership acceptance through the dedicated R2 consumer workflow.
-2. Complete live manifest-pinned research/backtest acceptance using an explicit revision pin.
-3. Complete the remaining R2 final-acceptance recovery and cost-observability evidence.
-4. Keep the verified Screener, observed-session, and dated-market-cap publications under routine audit.
-5. Keep Stage-4B on its independent validation track; do not couple it to R2 acceptance.
-6. Treat Yahoo raw data as parked optional evidence, not an active engineering dependency.
+1. **R2 acceptance is complete.** Bootstrap Run 35703827204 and Final Acceptance Run 35704396591 are green.
+2. Keep the published Screener, PIT membership, observed-session, market-cap, and corporate-action datasets under routine audit.
+3. Use the manifest-pinned R2 reader for research/backtest work where historical reproducibility is required; do not silently replace the canonical production price path.
+4. If Streamlit is ever migrated to R2, treat it as a separate feature-flagged migration with its own equivalence and production gate. The current live app remains on the canonical Screener path.
+5. Continue Stage-4B independently.
+6. Yahoo remains parked optional evidence.
 
 
 ## Verified production milestones — 2026-09-21
@@ -270,3 +270,27 @@ FileNotFoundError: no current R2 pointer for dataset indices/membership
 Root cause: `MEMBERSHIP_DATASET = "indices/membership"` in `r2/consumers/r2_historical.py`
 but the bootstrap published to `indices/membership/nifty_total_market`. The constant
 was updated to `"indices/membership/nifty_total_market"` to match the published path.
+
+
+## Final R2 acceptance — VERIFIED 2026-09-22
+
+The historical-evidence bootstrap and final acceptance gates are now closed on live R2 data.
+
+### Bootstrap
+- Workflow Run **35703827204** — GREEN.
+- All substantive bootstrap steps passed: build/tests, constituent snapshots, PIT membership, confirmed sessions, market caps, corporate actions.
+- PIT membership is published under `indices/membership/nifty_total_market/2026-09-18`.
+- Immutable membership revision: `cd820a04f4d085c8317a269e49187ce22f06004558c30e2f77f22ce7e2eb9058`.
+
+### Final Acceptance
+- Workflow Run **35704396591** — GREEN.
+- **R2 regression** — PASS.
+- **Live PIT membership acceptance** — PASS.
+- **Live immutable research acceptance** — PASS.
+- **Live recovery audit** — PASS.
+- **Live cost observability** — PASS.
+
+Therefore the remaining unchecked Section-E live acceptance items are closed. R2 is now an accepted historical-data/evidence substrate.
+
+### Production boundary — explicit
+R2 acceptance does **not** mean the Streamlit production site has switched to R2. The live application remains on the canonical Screener price path. Any future R2 application/read-path migration must be separately gated and must not alter System-1 methodology or silently change production data provenance.
