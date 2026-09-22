@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 from datetime import date
-from r2.consumers.r2_historical import MEMBERSHIP_DATASET, read_membership_as_of
+from r2.consumers.r2_historical import MEMBERSHIP_DATASET, membership_from_frame
 from src.storage.r2 import R2Archive, R2Config
 from src.storage.reader import R2DatasetIntegrityError, R2DatasetReader
 
@@ -15,8 +15,10 @@ def main() -> int:
     archive = R2Archive(R2Config.from_env())
     reader = R2DatasetReader(archive)
     try:
-        ref, members = read_membership_as_of(reader, as_of=args.as_of)
-    except (R2DatasetIntegrityError, ValueError, KeyError) as exc:
+        ref = reader.resolve_current(MEMBERSHIP_DATASET, as_of=args.as_of)
+        frame = reader.read_parquet(ref)
+        members = membership_from_frame(frame, index="nifty_total_market", as_of=args.as_of)
+    except (R2DatasetIntegrityError, ValueError, KeyError, FileNotFoundError) as exc:
         raise SystemExit(f"R2 membership consumer acceptance failed: {exc}") from exc
     if members is None:
         raise SystemExit(f"R2 membership dataset has no PIT coverage for {args.as_of}")
