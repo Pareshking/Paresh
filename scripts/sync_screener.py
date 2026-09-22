@@ -31,7 +31,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import pandas as pd  # noqa: E402
 
 from src.core import startup_metrics as metrics  # noqa: E402
-from src.core.config import SCREENER_DEEP_HISTORY_DAYS, SCREENER_DELAY_S, SCREENER_PRICES_FILE  # noqa: E402
+from src.core.config import SCREENER_DAYS, SCREENER_DEEP_HISTORY_DAYS, SCREENER_DELAY_S, SCREENER_PRICES_FILE  # noqa: E402
 from src.core.market_time import session_is_complete  # noqa: E402
 from src.loaders import screener_loader as sl  # noqa: E402
 from src.loaders.indices_loader import fetch_indices_data  # noqa: E402
@@ -136,7 +136,7 @@ def run() -> int:
     unresolved: list[str] = []
     if regular_symbols:
         frame_regular, ids, unresolved = sl.fetch_universe(
-            regular_symbols, ids=ids, delay_s=SCREENER_DELAY_S
+            regular_symbols, days=SCREENER_DAYS, ids=ids, delay_s=SCREENER_DELAY_S
         )
     frame = _concat_fresh(forced, frame_regular)
     unresolved = forced_unresolved + unresolved
