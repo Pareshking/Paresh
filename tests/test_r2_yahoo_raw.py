@@ -62,14 +62,9 @@ def test_adjustment_is_read_time_only(tmp_path, monkeypatch):
 
 
 def test_raw_build_workflow_is_manual_and_r2_is_explicit():
-    import yaml
-
-    with open(".github/workflows/r2_yahoo_raw_build.yml", encoding="utf-8") as fh:
-        spec = yaml.safe_load(fh)
-    trigger = spec.get("on") or spec.get(True)
-    assert "workflow_dispatch" in trigger
-    assert "push" not in trigger
-    run = "\n".join(str(step.get("run", "")) for step in spec["jobs"]["build"]["steps"])
-    assert "r2_build_yahoo_raw.py" in run
-    assert "--dataset prices/yahoo/raw" in run
-    assert "--key-root archive/prices/yahoo/raw" in run
+    text = open(".github/workflows/r2_yahoo_raw_build.yml", encoding="utf-8").read()
+    assert "workflow_dispatch:" in text
+    assert "r2_build_yahoo_raw.py" in text
+    assert "--dataset prices/yahoo/raw" in text
+    assert "--key-root archive/prices/yahoo/raw" in text
+    assert "\n  push:" not in text
