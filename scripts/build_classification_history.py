@@ -9,6 +9,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.core.tickers import is_tradeable_symbol
+
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PATH = ROOT / "data/nse_tv_classification.csv"
 REQUIRED = {"Symbol", "TV_Sector", "TV_Industry"}
@@ -33,7 +35,7 @@ def _snapshot(commit: str, path: str) -> pd.DataFrame:
     frame["sector"] = frame["sector"].astype(str).str.strip()
     frame["industry"] = frame["industry"].astype(str).str.strip()
     frame = frame.loc[:, ["symbol", "sector", "industry"]]
-    frame = frame[frame["symbol"].ne("") & frame["symbol"].ne("NAN")]
+    frame = frame[frame["symbol"].map(is_tradeable_symbol)]
     if frame["symbol"].duplicated().any():
         raise RuntimeError(f"{path}@{commit[:8]} contains duplicate symbols")
     if frame[["sector", "industry"]].isna().any().any():
