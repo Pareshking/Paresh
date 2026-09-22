@@ -78,7 +78,7 @@ def test_run_forces_new_symbols_before_regular_sweep(monkeypatch):
     monkeypatch.setattr(sync.sl, "load_ids", lambda: {})
     monkeypatch.setattr(sync.sl, "save_ids", lambda ids: None)
     monkeypatch.setattr(sync, "_drop_unsettled", lambda frame: (frame, []))
-    monkeypatch.setattr(sync.session_is_complete, "__call__", lambda date: True)
+    monkeypatch.setattr(sync, "session_is_complete", lambda date: True)
 
     def fake_fetch(symbols, **kwargs):
         calls.append(list(symbols))
