@@ -1,7 +1,6 @@
 # Raw-Price Rebuild — Design Document
 
-**Status:** Parked — documented, not started. Implemented only after explicit
-approval.
+**Status:** R2 raw-evidence implementation active; V1 consumer migration remains parked pending exact-retry and equivalence gates.
 
 **Tracker ref:** V1_AUDIT_TRACKER.md → NEXT 9  
 **R2 dependency:** Follow `docs/R2_ENGINEERING_LOOP.md` Phase D only after the R2 consumer layer is established.
@@ -238,15 +237,25 @@ architecture rather than create a parallel archive:
 Do not start this rebuild as part of the current R2 consumer work unless the
 user explicitly reopens the decision gate.
 
-## 10. Decision gate
+## 10. Current R2 implementation status — 2026-09-22
 
-This is parked. Do not start implementation until the user says to proceed.
+The previously parked **raw-evidence acquisition** work has now been explicitly reopened and implemented under Section D of `docs/R2_ENGINEERING_LOOP.md`. The canonical V1 consumer path is still unchanged.
 
-The question to answer before starting: is the one-time migration cost
-(re-downloading all history with `auto_adjust=False`, publishing the raw
-asset, flipping the loader) worth doing now, or after the next set of
-features stabilises?
+Verified live evidence:
 
-The corporate_actions_log.json and the `adjust_prices()` function are the
-foundation. They exist. This document is the blueprint. The build happens
-when ready.
+- Yahoo 10Y acquisition Run #3: 750/750 symbols, 0 missing, 2,475 sessions, 2016-09-21 → 2026-09-21; raw artifact published and R2 publication read-back passed.
+- Yahoo 10Y acquisition Run #4: independent non-publishing repeat, again 750/750 symbols, 0 missing, 2,475 sessions, same date range; artifact verification passed.
+- R2 published revision from Run #3: `807fe1b22432c4260b600d79800df1c804827de00abd0efa96bc0cca4cc283a7`.
+
+The builder now **fails closed when any requested universe symbol is missing**. A stock having less than ten years of legitimate Yahoo history is acceptable; a requested symbol returning no OHLCV data is not silently accepted.
+
+The remaining gates before any V1 consumer migration are:
+
+1. Run the exact-byte retry workflow against the already captured Run #3 artifact. This must reuse the artifact bytes rather than perform another Yahoo download.
+2. Perform byte-level/series-level equivalence analysis between the raw-derived adjusted output and the current canonical adjusted price path, including corporate-action events and material edge cases.
+3. Document the equivalence evidence and migration/recovery procedure.
+4. Only after those gates pass, consider enabling raw prices for V1 consumers.
+
+The new exact retry workflow is `.github/workflows/r2_yahoo_raw_retry.yml`. It is manual by design so the exact source run/artifact and pipeline version are explicit.
+
+**Important:** no V1 ranking, benchmark, universe, Stage-4B, or consumer methodology has been changed by this implementation.
