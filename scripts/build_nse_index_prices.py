@@ -16,6 +16,7 @@ import json
 
 import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 from io import StringIO
 import requests
 try:
@@ -37,6 +38,8 @@ INDEX_NAMES = {
 
 URL = "https://www.niftyindices.com/Backpage.aspx/getHistoricaldatatabletoString"
 NSE_FALLBACK_URL = "https://www.niftyindices.com/Backpage.aspx/getHistoricaldatatabletoString"
+_thread_local = threading.local()
+
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
@@ -75,6 +78,16 @@ def _field(row, *names):
     return None
 
 
+def _archive_session() -> requests.Session:
+    session = getattr(_thread_local, "session", None)
+    if session is None:
+        session = requests.Session()
+        session.headers.update(HEADERS)
+        session.get("https://www.nseindia.com/", headers=HEADERS, timeout=20)
+        _thread_local.session = session
+    return session
+
+
 def _fetch_archive_day(day: date) -> list[dict]:
     url = f"https://nsearchives.nseindia.com/content/indices/ind_close_all_{day:%d%m%Y}.csv"
     headers = {
@@ -82,7 +95,7 @@ def _fetch_archive_day(day: date) -> list[dict]:
         "Accept": "text/csv,*/*",
         "Referer": "https://www.nseindia.com/",
     }
-    response = requests.get(url, headers=headers, timeout=30)
+    response = _archive_session().get(url, headers=headers, timeout=30)
     if response.status_code != 200 or not response.content.strip():
         return []
     frame = pd.read_csv(StringIO(response.text))
@@ -112,7 +125,7 @@ def _fetch_archive_day(day: date) -> list[dict]:
 def _fetch_archive_range(start: date, end: date) -> list[dict]:
     days = pd.date_range(start, end, freq="B").date
     rows = []
-    with ThreadPoolExecutor(max_workers=16) as pool:
+    with ThreadPoolExecutor(max_workers=8) as pool:
         futures = {pool.submit(_fetch_archive_day, day): day for day in days}
         for future in as_completed(futures):
             try:
