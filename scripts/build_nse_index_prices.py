@@ -14,7 +14,12 @@ from pathlib import Path
 import pandas as pd
 import json
 
+import json
 import requests
+try:
+    from curl_cffi import requests as curl_requests
+except ImportError:
+    curl_requests = None
 try:
     from curl_cffi import requests as curl_requests
 except ImportError:
@@ -29,7 +34,7 @@ INDEX_NAMES = {
 }
 
 URL = "https://www.niftyindices.com/Backpage.aspx/getHistoricaldatatabletoString"
-NSE_FALLBACK_URL = "https://www.nseindia.com/api/historical/indicesHistory"
+NSE_FALLBACK_URL = "https://www.niftyindices.com/Backpage.aspx/getHistoricaldatatabletoString"
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
@@ -69,16 +74,13 @@ def _field(row, *names):
 
 
 def _fetch_range(session, index_name: str, start: date, end: date):
-    payload = {
-        "cinfo": json.dumps(
-            {
-                "name": index_name,
-                "startDate": start.strftime("%d-%b-%Y"),
-                "endDate": end.strftime("%d-%b-%Y"),
-                "indexName": index_name,
-            }
-        )
-    }
+    inner = (
+        "{'name':'" + index_name +
+        "','startDate':'" + start.strftime("%d-%b-%Y") +
+        "','endDate':'" + end.strftime("%d-%b-%Y") +
+        "','indexName':'" + index_name + "'}"
+    )
+    payload = {"cinfo": inner}
     headers = {
         **HEADERS,
         "Content-Type": "application/json; charset=UTF-8",
