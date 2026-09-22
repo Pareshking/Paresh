@@ -101,7 +101,7 @@ def test_integrity_failure_is_exposed_as_consumer_error():
 
 
 def test_research_pin_requires_exact_iso_date():
-    with pytest.raises(R2ResearchConsumerError, match="ISO YYYY-MM-DD"):
+    with pytest.raises(R2ResearchConsumerError, match="invalid as_of date"):
         read_pinned_dataset(
             FakeReader(),
             pin=R2ResearchPin(
