@@ -58,3 +58,38 @@ def test_resolve_latest_revision_fails_closed_when_none_exist():
         R2DatasetReader(FakeArchive()).resolve_latest_revision(
             "indices/membership/nifty_total_market", "2026-09-18"
         )
+
+
+def test_resolve_latest_revision_rejects_non_iso_as_of():
+    with pytest.raises(Exception, match="as_of"):
+        R2DatasetReader(FakeArchive()).resolve_latest_revision(
+            "indices/membership/nifty_total_market", "2026-9-18"
+        )
+
+
+def test_resolve_latest_revision_rejects_missing_created_at():
+    import hashlib
+    dataset = "indices/membership/nifty_total_market"
+    as_of = "2026-09-18"
+    body = b"one"
+    revision = hashlib.sha256(body).hexdigest()
+    archive = FakeArchive()
+    archive.objects["obj"] = body
+    key = f"archive/manifests/{dataset}/{as_of}/revisions/{revision}.json"
+    archive.manifests[key] = _manifest(dataset, as_of, revision, "", "obj", len(body))
+    with pytest.raises(Exception, match="created_at"):
+        R2DatasetReader(archive).resolve_latest_revision(dataset, as_of)
+
+
+def test_resolve_latest_revision_rejects_timezone_less_created_at():
+    import hashlib
+    dataset = "indices/membership/nifty_total_market"
+    as_of = "2026-09-18"
+    body = b"one"
+    revision = hashlib.sha256(body).hexdigest()
+    archive = FakeArchive()
+    archive.objects["obj"] = body
+    key = f"archive/manifests/{dataset}/{as_of}/revisions/{revision}.json"
+    archive.manifests[key] = _manifest(dataset, as_of, revision, "2026-09-18T10:00:00", "obj", len(body))
+    with pytest.raises(Exception, match="timezone"):
+        R2DatasetReader(archive).resolve_latest_revision(dataset, as_of)
