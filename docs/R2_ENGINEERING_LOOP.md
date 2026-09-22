@@ -320,24 +320,27 @@ The next engineering loop should focus on remaining R2 provenance/operational ha
 The engineering plan is now deliberately stopped at the production boundary: R2 is the accepted historical-data/evidence substrate, while Streamlit/System-1 remains on the canonical Screener path. A future R2 application migration is a separate project requiring equivalence, fallback, deployment, and production gates. No further R2 micro-PRs should be created merely to add tests or refactor already-accepted contracts.
 
 
-## Production Streamlit read path — implementation started 2026-09-22
+## Production Streamlit read path — daily current revision
 
-The application read path is now implemented behind an explicit immutable R2 pin.
+The Streamlit R2 production reader now follows the **latest validated `current.json` pointer** for `prices/screener`. It does not require a manually maintained `as_of` or revision SHA.
 
 - `R2_STREAMLIT_READER_ENABLED` defaults OFF.
-- When enabled, the app reads `prices/screener` through `R2DatasetReader` using an explicit `as_of` and 64-character revision SHA.
-- The cache identity includes the full immutable pin.
-- An archive read failure fails closed; the app does not silently switch to Yahoo.
-- The existing Screener URL path remains the default while the migration gate is closed.
-- GitHub Actions now has a real-credential read-path gate that compares the archive frame with the canonical Screener release artifact and validates the same `from_screener` transformation.
+- When enabled, the app reads the configured dataset through `R2DatasetReader.resolve_current()`.
+- Every published revision remains immutable and content-addressed for historical reproducibility.
+- The mutable `current.json` pointer is updated by the validated R2 publication workflow after a new daily dataset is accepted.
+- An archive read/integrity failure fails closed; the app does not silently switch to Yahoo.
+- The Streamlit cache is time-limited, so a daily publication is picked up automatically without editing Streamlit secrets.
+- The real-credential production gate compares the live current R2 revision with the canonical Screener release artifact and validates the same `from_screener` transformation.
 
-### Remaining production action
+### Production configuration
 
-The code gate is complete. The remaining action is deployment configuration on the existing Streamlit app: provide the existing R2 credentials through Streamlit secrets, set the four `R2_STREAMLIT_*` variables, restart, and observe the live app. Do not enable the flag until the immutable pin matches the currently published Screener revision.
+Only the R2 credentials and the feature flag/dataset selection are deployment configuration. No daily SHA or date needs to be edited in Streamlit.
 
-First production pin:
-- dataset: `prices/screener`
-- as_of: `2026-09-21`
-- revision: `df03ed6d6fb9c8ca963c4f3fb3b73386c43e6f106cc9a3307d7b693cf80455dd`
+```toml
+R2_STREAMLIT_READER_ENABLED = "1"
+R2_STREAMLIT_DATASET = "prices/screener"
+```
+
+The existing five R2 credential secrets remain unchanged.
 
 This migration changes only the source of the existing Screener dataframe. It does not change System-1 formulas, ranking weights, benchmark, universe, corporate-action methodology, or Stage-4B logic.
