@@ -62,6 +62,12 @@ def membership_from_frame(frame: pd.DataFrame, *, index: str, as_of: Any) -> set
 
 
 def read_membership_as_of(reader: R2DatasetReader, *, as_of: Any, index: str = "nifty_total_market") -> tuple[R2DatasetRef, set[str] | None]:
-    """Read the current manifest-pinned R2 membership revision and reconstruct members."""
-    ref, frame = reader.read_current_parquet(MEMBERSHIP_DATASET)
-    return ref, membership_from_frame(frame, index=index, as_of=as_of)
+    """Read immutable PIT evidence for the requested date.
+
+    The consumer intentionally resolves the latest immutable revision for the
+    exact evidence date instead of depending on current.json.
+    """
+    target = _as_date(as_of).date().isoformat()
+    ref = reader.resolve_latest_revision(MEMBERSHIP_DATASET, target)
+    frame = reader.read_parquet(ref)
+    return ref, membership_from_frame(frame, index=index, as_of=target)

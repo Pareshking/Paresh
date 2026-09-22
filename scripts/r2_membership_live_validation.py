@@ -10,30 +10,8 @@ from src.storage.r2 import R2Archive, R2Config
 from src.storage.reader import R2DatasetIntegrityError, R2DatasetReader
 
 def _resolve_membership_revision(reader: R2DatasetReader, *, as_of: str):
-    """Resolve immutable PIT evidence without depending on a mutable pointer."""
-    prefix = f"archive/manifests/{MEMBERSHIP_DATASET}/{as_of}/revisions/"
-    revision_keys = sorted(
-        key for key in reader.archive.list_keys(prefix)
-        if key.endswith(".json")
-    )
-    if not revision_keys:
-        raise FileNotFoundError(
-            f"no immutable membership revisions for {MEMBERSHIP_DATASET} as_of={as_of}"
-        )
-
-    candidates = []
-    for key in revision_keys:
-        revision = key.rsplit("/", 1)[-1][:-5]
-        if len(revision) != 64:
-            raise R2DatasetIntegrityError(f"invalid membership revision key: {key}")
-        ref = reader.resolve_revision(MEMBERSHIP_DATASET, as_of, revision)
-        candidates.append(ref)
-
-    # Prefer the latest manifest creation time; SHA is the deterministic tie-breaker.
-    candidates.sort(
-        key=lambda ref: (str(ref.manifest.get("created_at", "")), ref.revision_sha256)
-    )
-    return candidates[-1]
+    """Resolve the latest immutable PIT revision for the exact evidence date."""
+    return reader.resolve_latest_revision(MEMBERSHIP_DATASET, as_of)
 
 def main() -> int:
     parser = argparse.ArgumentParser()
