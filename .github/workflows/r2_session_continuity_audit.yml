@@ -1,0 +1,37 @@
+name: R2 session continuity audit
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 4 * * *"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/r2_session_continuity_audit.py"
+      - "tests/test_r2_session_continuity_audit.py"
+      - ".github/workflows/r2_session_continuity_audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  continuity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest
+      - name: Unit tests
+        run: python -m pytest -q tests/test_r2_session_continuity_audit.py
+      - name: Build observed sessions from canonical release
+        run: |
+          gh release download data-latest --pattern screener_prices.parquet --dir /tmp/r2
+          python scripts/build_trading_sessions.py /tmp/r2/screener_prices.parquet /tmp/observed_sessions.parquet
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Audit observed session continuity
+        run: python scripts/r2_session_continuity_audit.py --dataset /tmp/observed_sessions.parquet --json
