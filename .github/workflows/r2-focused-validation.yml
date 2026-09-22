@@ -81,6 +81,18 @@ jobs:
           for required in ("src/storage/**", "scripts/r2_*.py", "tests/test_r2_*.py"):
               if required not in v1:
                   raise SystemExit(f"V1 isolation missing required R2 path: {required}")
+          if "Stage-4B real SANSERA research execution" in v1:
+              raise SystemExit("Stage-4B SANSERA execution remains coupled to V1")
+          if "Stage-4B adaptive second-archetype ANANDRATHI execution" in v1:
+              raise SystemExit("Stage-4B ANANDRATHI execution remains coupled to V1")
+          if "Stage-4B adaptive third-archetype PAYTM execution" in v1:
+              raise SystemExit("Stage-4B PAYTM execution remains coupled to V1")
+          if "Stage-4B adaptive fourth-archetype YATHARTH execution" in v1:
+              raise SystemExit("Stage-4B YATHARTH execution remains coupled to V1")
+          if "Stage-4B adaptive fifth-archetype LENSKART execution" in v1:
+              raise SystemExit("Stage-4B LENSKART execution remains coupled to V1")
+          if not Path(".github/workflows/stage4b-independent-validation.yml").exists():
+              raise SystemExit("Independent Stage-4B workflow is missing")
 
           text = Path("docs/R2_ENGINEERING_LOOP.md").read_text()
           if "R2 / V1 boundary" not in text:
