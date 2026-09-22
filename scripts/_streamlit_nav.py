@@ -62,6 +62,20 @@ def _open_custom_popover(frame) -> bool:
         'button[aria-label="Open navigation"]',
         'button:has-text("☰")',
     )
+    # Streamlit's popover button has changed wrapper markup across pinned
+    # releases. Prefer the semantic button role as a final, verified fallback.
+    try:
+        button = frame.get_by_role("button", name="☰", exact=True).first
+        if button.count():
+            button.click(timeout=8_000)
+            deadline = time.perf_counter() + 3.0
+            while time.perf_counter() < deadline:
+                if frame.locator('[data-testid="stPopoverBody"]').count():
+                    return True
+                time.sleep(0.1)
+    except Exception:
+        pass
+
     for selector in selectors:
         try:
             button = frame.locator(selector).first
