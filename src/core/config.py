@@ -82,6 +82,12 @@ SCREENER_IDS_FILE: Final[str] = os.path.join(REPO_DATA_DIR, "screener_company_id
 # and costs a bigger response, so the sync asks for the daily window only and
 # grows its own history by accumulating each night.
 SCREENER_DAYS: Final[int] = 365
+# A symbol newly entering the authoritative NSE universe is a data-integrity
+# event: acquire its available deep Screener history before allowing it into
+# the normal current-universe store. Screener down-samples older observations
+# to weekly, so 3650 days is the same deep-history horizon used by the one-time
+# bootstrap and does not pretend to create daily observations that do not exist.
+SCREENER_DEEP_HISTORY_DAYS: Final[int] = 3650
 
 # One request per symbol per night, with a pause between them. 30 symbols
 # measured at 1.74s each including this delay, which puts the full universe at
