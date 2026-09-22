@@ -30,6 +30,8 @@ from src.core.logger import logger
 from src.engine import pipeline
 from src.engine.corporate_actions import adjust_ohlc, load_events
 from src.loaders.indices_loader import fetch_indices_data
+# R2-backed production readers are an explicit transport boundary; keep this import adjacent to the loader.
+from r2.consumers import r2_streamlit
 from src.loaders.mcap_loader import fetch_market_caps
 from src.loaders.price_loader import (
     extract_ohlcv,
@@ -148,6 +150,16 @@ def load_prices_cached(
     # but this stayed at zero, Streamlit served a warm cache and the timing is
     # not a cold one.
     metrics.incr("memo_miss_prices")
+    if r2_streamlit.enabled():
+        frame, pin = r2_streamlit.read_configured_deep_history()
+        metrics.note("deep_price_provider", "r2_yahoo_archive")
+        metrics.note("deep_price_as_of", pin.as_of)
+        metrics.note("deep_price_revision", pin.revision_sha256)
+        logger.info(
+            "Deep price history loaded: provider=object_storage dataset=%s as_of=%s revision=%s source=Yahoo-origin archive",
+            pin.dataset, pin.as_of, pin.revision_sha256,
+        )
+        return frame
     return fetch_price_history(list(_symbols), period=period, force_refresh=False)
 
 
@@ -287,6 +299,26 @@ def _precomputed_ranking(
         # them apart from outside the container.
         logger.info("Precomputed ranking rejected (%s); computing instead.", reason)
         metrics.note("ranking_precompute", f"miss_{reason.replace(' ', '_')}")
+        if reason == "symbols_fingerprint differs" and "Symbol" in frame:
+            published_symbols = {
+                str(symbol).strip().upper()
+                for symbol in frame["Symbol"].dropna().tolist()
+            }
+            expected_symbols = {
+                str(symbol).strip().upper()
+                for symbol in universe
+            }
+            added = sorted(published_symbols - expected_symbols)
+            missing = sorted(expected_symbols - published_symbols)
+            logger.info(
+                "Precomputed universe mismatch: published=%d expected=%d added=%s missing=%s",
+                len(published_symbols), len(expected_symbols),
+                ",".join(added[:20]) or "-", ",".join(missing[:20]) or "-",
+            )
+            metrics.note("ranking_precompute_published_symbols", len(published_symbols))
+            metrics.note("ranking_precompute_expected_symbols", len(expected_symbols))
+            metrics.note("ranking_precompute_universe_added", ",".join(added[:20]) or "none")
+            metrics.note("ranking_precompute_universe_missing", ",".join(missing[:20]) or "none")
         return None
 
     metrics.note("ranking_precompute", "hit")
@@ -446,11 +478,12 @@ def load_all_data(indices: list[str]):
 
         with metrics.stage("price_history"):
             raw_prices = load_prices_cached(sym_key, symbols, period="2y")
-            metrics.note("deep_price_provider", "yahoo")
-            logger.info(
-                "Deep price history loaded: provider=Yahoo; this feed is separate "
-                "from the ranking Screener/object-storage source."
-            )
+            if not r2_streamlit.enabled():
+                metrics.note("deep_price_provider", "yahoo")
+                logger.info(
+                    "Deep price history loaded: provider=Yahoo; this feed is separate "
+                    "from the ranking Screener/object-storage source."
+                )
         if raw_prices.empty:
             return None
 

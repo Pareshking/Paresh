@@ -6,6 +6,7 @@ from r2.consumers.r2_streamlit import (
     configuration_key,
     enabled,
     read_historical,
+    DEEP_HISTORY_DATASET,
 )
 
 
@@ -33,3 +34,36 @@ def test_streamlit_reader_dataset_can_be_configured(monkeypatch):
     monkeypatch.setenv("R2_STREAMLIT_DATASET", "prices/custom")
     assert configured_dataset() == "prices/custom"
     assert configuration_key() == "r2|prices/custom|current"
+
+
+def test_streamlit_reader_deep_history_dataset():
+    assert DEEP_HISTORY_DATASET == "prices/yahoo/raw"
+
+
+def test_streamlit_reader_deep_history_is_current_pointer(monkeypatch):
+    monkeypatch.setenv("R2_STREAMLIT_READER_ENABLED", "1")
+    import r2.consumers.r2_streamlit as mod
+
+    class Ref:
+        dataset = "prices/yahoo/raw"
+        as_of = "2026-09-21"
+        revision_sha256 = "b" * 64
+
+    class Reader:
+        def __init__(self, archive):
+            self.archive = archive
+        def resolve_current(self, dataset):
+            assert dataset == "prices/yahoo/raw"
+            return Ref()
+        def read_parquet(self, ref):
+            return {"ok": True}
+
+    monkeypatch.setattr(mod, "R2DatasetReader", Reader)
+    monkeypatch.setattr(mod, "R2Archive", lambda cfg: object())
+    monkeypatch.setattr(mod, "R2Config", type("Cfg", (), {"from_env": classmethod(lambda cls: object())}))
+
+    frame, pin = mod.read_configured_deep_history()
+    assert frame == {"ok": True}
+    assert pin.dataset == "prices/yahoo/raw"
+    assert pin.as_of == "2026-09-21"
+    assert pin.revision_sha256 == "b" * 64
