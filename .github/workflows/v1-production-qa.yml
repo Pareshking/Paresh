@@ -1,3 +1,4 @@
+# Acceptance gate: production QA must execute against the exact live commit.
 on:
   workflow_dispatch:
   push:
