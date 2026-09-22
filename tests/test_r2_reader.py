@@ -113,7 +113,7 @@ def test_reader_rejects_invalid_manifest_as_of():
     manifest = json.loads(archive.objects[manifest_key])
     manifest["as_of"] = "2026-09-21T00:00:00"
     archive.objects[manifest_key] = json.dumps(manifest).encode()
-    with pytest.raises(R2DatasetIntegrityError, match="manifest as_of"):
+    with pytest.raises(R2DatasetIntegrityError, match="invalid as_of"):
         R2DatasetReader(archive).resolve_current(dataset, as_of=as_of)
 
 
