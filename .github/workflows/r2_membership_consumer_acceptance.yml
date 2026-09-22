@@ -1,0 +1,42 @@
+name: R2 membership consumer acceptance
+
+on:
+  workflow_dispatch:
+    inputs:
+      as_of:
+        description: "Covered PIT date to reconstruct"
+        required: true
+        default: "2026-09-18"
+  push:
+    branches: [main]
+    paths:
+      - "r2/consumers/**"
+      - "scripts/r2_membership_live_validation.py"
+      - "tests/test_r2_membership_live_validation.py"
+      - ".github/workflows/r2_membership_consumer_acceptance.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest
+      - name: Consumer unit tests
+        run: python -m pytest -q tests/test_r2_historical_consumer.py tests/test_r2_membership_live_validation.py
+      - name: Live manifest-pinned membership acceptance
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          PYTHONPATH: .
+        run: python scripts/r2_membership_live_validation.py --as-of "${{ inputs.as_of || '2026-09-18' }}"
