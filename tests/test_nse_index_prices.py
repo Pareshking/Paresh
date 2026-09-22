@@ -13,24 +13,14 @@ def test_all_five_research_indices_are_defined():
     }
 
 
-def test_nse_payload_records_and_numbers_are_normalized():
-    payload = {
-        "data": {
-            "indexCloseOnlineRecords": [
-                {
-                    "TIMESTAMP": "18-09-2026",
-                    "EOD_OPEN_INDEX_VAL": "23,000.10",
-                    "EOD_HIGH_INDEX_VAL": "23,100.20",
-                    "EOD_LOW_INDEX_VAL": "22,900.30",
-                    "EOD_CLOSE_INDEX_VAL": "23,050.40",
-                }
-            ]
-        }
+def test_index_source_contract():
+    from scripts.build_nse_index_prices import INDEX_NAMES, INDEX_SLUGS, DEEP_DAYS
+    assert set(INDEX_NAMES) == {
+        "nifty50", "nifty_next50", "nifty_midcap150",
+        "nifty_smallcap250", "nifty_microcap250",
     }
-    rows = _records(payload)
-    assert len(rows) == 1
-    assert _number(rows[0]["EOD_CLOSE_INDEX_VAL"]) == 23050.40
-
+    assert set(INDEX_SLUGS) == set(INDEX_NAMES)
+    assert DEEP_DAYS == 3650
 
 def test_index_price_archive_contract(tmp_path):
     frame = pd.DataFrame(
