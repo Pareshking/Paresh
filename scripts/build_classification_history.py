@@ -82,6 +82,7 @@ def build(output: Path, path: Path = DEFAULT_PATH) -> dict:
         .sort_values(["effective_from", "symbol"])
         .reset_index(drop=True)
     )
+    result["as_of"] = result["evidence_date"].max()
     output.parent.mkdir(parents=True, exist_ok=True)
     result.to_parquet(output, index=False)
     summary = {
