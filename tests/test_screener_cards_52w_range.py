@@ -21,7 +21,7 @@ def test_card_indices_use_exact_canonical_short_forms():
 def test_card_range_uses_252_sessions_and_20_percent_below_high_marker():
     src = _source()
     assert ".sort_index().tail(252)" in src
-    assert "marker_price = hi * 0.80" in src
+    assert "marker = 80.0" in src
     assert '"_52W Low"' in src
     assert '"_52W High"' in src
     assert '"_52W Position"' in src
