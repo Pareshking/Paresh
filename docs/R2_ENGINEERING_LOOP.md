@@ -122,9 +122,9 @@ Source design is documented in `docs/RAW_PRICE_REBUILD.md`.
 - [x] Research/backtest reader — separate manifest-pinned consumer adapter; it accepts an explicit dataset/as_of/revision SHA and never falls back to the mutable current pointer. No ranking, price, universe, or Stage-4B logic is moved into R2.
 - [ ] Research/backtest live R2 acceptance — combined live acceptance workflow is merged; real execution evidence still required.
 - [x] Controlled research fallback — explicit opt-in local/release artifact fallback; no silent fallback and no R2 write-back.
-- [ ] Streamlit reader behind a feature flag.
-- [ ] Controlled fallback to release/local artifacts.
-- [ ] Manifest-pinned research runs.
+- [x] Streamlit reader boundary behind a feature flag — disabled by default and requires an explicit immutable research pin when enabled.
+- [x] Controlled fallback to release/local artifacts — explicit opt-in fallback is implemented and SHA-provenance is returned.
+- [x] Manifest-pinned research runs — immutable pin adapter and live acceptance workflow are implemented; real execution evidence remains pending.
 - [x] Point-in-time membership consumer contract — isolated under `r2/consumers/`, fail-closed on unknown coverage and duplicate active intervals.
 - [ ] Live point-in-time universe reconstruction acceptance — combined final acceptance workflow is merged; real R2 execution remains the acceptance gate.
 
@@ -179,8 +179,7 @@ contract for archive continuity/read-coverage checks.
 3. Complete live manifest-pinned research/backtest acceptance using an explicit revision pin.
 4. Use the controlled fallback only when explicitly authorized and record its source SHA.
 5. Continue scheduled recovery and cost-observability audits.
-4. Keep Stage-4B on its independent validation track; reattach it to V1 only after its research gate is deliberately ready.
-5. Finish live recovery and cost monitoring gates.
+6. Keep Stage-4B on its independent validation track; reattach it to V1 only after its research gate is deliberately ready.
 6. Keep the Yahoo raw-price rebuild parked until the R2 consumer layer is stable.
 
 
