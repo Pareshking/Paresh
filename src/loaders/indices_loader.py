@@ -318,7 +318,7 @@ def _fetch_indices_impl(selected_indices: Sequence[str] | None = None) -> pd.Dat
     return filtered
 
 
-@st.cache_data(show_spinner=False, ttl=604800)  # 7 days cache
+@st.cache_data(show_spinner=False, ttl=3600)  # 1 hour: universe membership is a live production input
 def fetch_indices_data(selected_indices: Sequence[str] | None = None) -> pd.DataFrame:
     """Public cached loader for index constituents."""
     key = tuple(sorted(selected_indices or []))
