@@ -12,7 +12,13 @@ from datetime import date, timedelta
 from pathlib import Path
 
 import pandas as pd
+import json
+
 import requests
+try:
+    from curl_cffi import requests as curl_requests
+except ImportError:
+    curl_requests = None
 
 INDEX_NAMES = {
     "nifty50": "NIFTY 50",
@@ -22,7 +28,8 @@ INDEX_NAMES = {
     "nifty_microcap250": "NIFTY MICROCAP 250",
 }
 
-URL = "https://www.nseindia.com/api/historical/indicesHistory"
+URL = "https://www.niftyindices.com/Backpage.aspx/getHistoricaldatatabletoString"
+NSE_FALLBACK_URL = "https://www.nseindia.com/api/historical/indicesHistory"
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
@@ -61,90 +68,50 @@ def _field(row, *names):
     return None
 
 
-def _fetch_range(session: requests.Session, index_name: str, start: date, end: date):
-    params = {
-        "indexType": index_name,
-        "from": start.strftime("%d-%m-%Y"),
-        "to": end.strftime("%d-%m-%Y"),
+def _fetch_range(session, index_name: str, start: date, end: date):
+    payload = {
+        "cinfo": json.dumps(
+            {
+                "name": index_name,
+                "startDate": start.strftime("%d-%b-%Y"),
+                "endDate": end.strftime("%d-%b-%Y"),
+                "indexName": index_name,
+            }
+        )
+    }
+    headers = {
+        **HEADERS,
+        "Content-Type": "application/json; charset=UTF-8",
+        "X-Requested-With": "XMLHttpRequest",
+        "Origin": "https://www.niftyindices.com",
+        "Referer": "https://www.niftyindices.com/reports/historical-data",
     }
     for attempt in range(4):
-        response = session.get(URL, params=params, headers=HEADERS, timeout=30)
-        if response.status_code == 200:
-            payload = response.json()
-            rows = []
-            for row in _records(payload):
-                raw_date = _field(row, "TIMESTAMP", "INDEX_DATE", "DATE", "indexDate")
-                if raw_date is None:
-                    continue
-                parsed = pd.to_datetime(raw_date, dayfirst=True, errors="coerce")
-                if pd.isna(parsed):
-                    continue
-                rows.append(
-                    {
-                        "date": parsed.normalize(),
-                        "open": _number(_field(row, "EOD_OPEN_INDEX_VAL", "OPEN_INDEX_VAL", "OPEN")),
-                        "high": _number(_field(row, "EOD_HIGH_INDEX_VAL", "HIGH_INDEX_VAL", "HIGH")),
-                        "low": _number(_field(row, "EOD_LOW_INDEX_VAL", "LOW_INDEX_VAL", "LOW")),
-                        "close": _number(_field(row, "EOD_CLOSE_INDEX_VAL", "CLOSE_INDEX_VAL", "CLOSE")),
-                    }
-                )
-            return rows
-        if response.status_code in {401, 403, 429, 500, 502, 503, 504}:
-            time.sleep(2 ** attempt)
-            session.get("https://www.nseindia.com/", headers=HEADERS, timeout=30)
-            continue
-        response.raise_for_status()
-    raise RuntimeError(f"NSE index request failed after retries: {index_name} {start}..{end}")
+        try:
+            response = session.post(URL, json=payload, headers=headers, timeout=60)
+            if response.status_code == 200:
+                body = response.json()
+                raw = body.get("d", "[]")
+                rows_raw = json.loads(raw) if isinstance(raw, str) else raw
+                rows = []
+                for row in rows_raw:
+                    raw_date = row.get("HistoricalDate")
+                    parsed = pd.to_datetime(raw_date, dayfirst=True, errors="coerce")
+                    if pd.isna(parsed):
+                        continue
+                    rows.append(
+                        {
+                            "date": parsed.normalize(),
+                            "open": _number(row.get("OPEN")),
+                            "high": _number(row.get("HIGH")),
+                            "low": _number(row.get("LOW")),
+                            "close": _number(row.get("CLOSE")),
+                        }
+                    )
+                if rows:
+                    return rows
+        except (ValueError, json.JSONDecodeError, requests.RequestException):
+            pass
+        time.sleep(2 ** attempt)
+    raise RuntimeError(f"Nifty Indices historical request failed: {index_name} {start}..{end}")
 
-
-def build(output: Path, start: date, end: date) -> dict:
-    session = requests.Session()
-    session.headers.update(HEADERS)
-    session.get("https://www.nseindia.com/", headers=HEADERS, timeout=30)
-
-    parts = []
-    for key, name in INDEX_NAMES.items():
-        rows = []
-        cursor = start
-        while cursor <= end:
-            chunk_end = min(end, cursor + timedelta(days=364))
-            rows.extend(_fetch_range(session, name, cursor, chunk_end))
-            cursor = chunk_end + timedelta(days=1)
-            time.sleep(1.0)
-        frame = pd.DataFrame(rows)
-        if frame.empty:
-            raise RuntimeError(f"NSE returned no history for {name}")
-        frame["index"] = key
-        frame["source"] = "NSE historical indices API"
-        frame["evidence_date"] = pd.Timestamp(end)
-        frame = frame.drop_duplicates(["index", "date"], keep="last")
-        required = ["date", "index", "open", "high", "low", "close", "source", "evidence_date"]
-        frame = frame[required].sort_values("date")
-        if frame["close"].isna().any():
-            raise RuntimeError(f"{name}: null close values in NSE history")
-        parts.append(frame)
-
-    result = pd.concat(parts, ignore_index=True)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    result.to_parquet(output, index=False)
-    summary = {
-        "rows": len(result),
-        "indices": int(result["index"].nunique()),
-        "first_date": str(result["date"].min().date()),
-        "last_date": str(result["date"].max().date()),
-    }
-    print(summary)
-    return summary
-
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--start", type=date.fromisoformat, default=date.today() - timedelta(days=3650))
-    parser.add_argument("--end", type=date.fromisoformat, default=date.today())
-    args = parser.parse_args()
-    build(args.output, args.start, args.end)
-
-
-if __name__ == "__main__":
-    main()
