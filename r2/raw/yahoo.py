@@ -13,7 +13,8 @@ from typing import Sequence
 import pandas as pd
 import yfinance as yf
 
-from src.engine.corporate_actions import adjust_ohlc, load_events
+import src.engine.corporate_actions as corporate_actions
+from src.engine.corporate_actions import adjust_ohlc
 from src.loaders.price_loader import _decompose_fields, _clean_price_df
 from src.core.tickers import normalise_symbol
 
@@ -78,6 +79,6 @@ def adjusted_from_raw(raw: pd.DataFrame, symbols: Sequence[str] | None = None):
     volume = _clean_price_df(fields.get("volume", pd.DataFrame()), symbols)
     adjusted, applied = adjust_ohlc(
         {"adj_close": close.copy(), "close": close, "high": high, "low": low},
-        load_events(),
+        corporate_actions.load_events(),
     )
     return adjusted["adj_close"], adjusted["close"], adjusted["high"], adjusted["low"], volume, applied
