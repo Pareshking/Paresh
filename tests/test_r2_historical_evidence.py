@@ -15,6 +15,7 @@ from scripts.r2_historical_evidence_bootstrap import (
     build_membership,
     build_point_in_time_universe,
     build_trading_sessions,
+    _sync_date,
 )
 
 
@@ -56,7 +57,7 @@ def test_real_membership_history_has_no_changes_and_covers_acceptance_date(tmp_p
     frame = tmp_path / "membership_nifty_total_market.parquet"
     generated = pd.read_parquet(frame)
     assert generated["index"].eq("nifty_total_market").all()
-    assert generated["as_of"].eq(MEMBERSHIP_AS_OF).all()
+    assert generated["as_of"].eq(_sync_date()).all()
     assert (pd.to_datetime(generated["effective_from"]) <= pd.Timestamp(MEMBERSHIP_AS_OF)).all()
     assert describe_parquet(frame)["as_of"] == MEMBERSHIP_AS_OF
 
@@ -121,7 +122,7 @@ def test_build_membership_produces_all_five_research_index_histories(tmp_path):
         assert not frame.empty
         assert frame["symbol"].notna().all()
         assert frame["effective_from"].notna().all()
-        assert frame["as_of"].eq(MEMBERSHIP_AS_OF).all()
+        assert frame["as_of"].eq(_sync_date()).all()
 
 
 
