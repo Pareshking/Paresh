@@ -58,7 +58,7 @@ jobs:
             --dataset indices/prices/nse \
             --source nse_historical_indices_api \
             --key-root archive/indices/prices/nse \
-            --pipeline-version "r2_nse_index_prices_${{ github.sha }}" \
+            --pipeline-version "r2_nse_index_prices_v1" \
             --release-tag data-latest
       - name: Audit published index history
         run: python scripts/r2_audit.py --dataset indices/prices/nse --as-of "$(python -c 'import pandas as pd; print(pd.read_parquet("/tmp/nse_index_prices.parquet")["date"].max().date())')"

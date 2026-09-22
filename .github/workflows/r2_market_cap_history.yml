@@ -69,7 +69,7 @@ jobs:
             --dataset market_caps/nse_history \
             --source nse_market_cap_git_history \
             --key-root archive/market_caps/nse_history \
-            --pipeline-version "r2_market_cap_history_${{ github.sha }}" \
+            --pipeline-version "r2_market_cap_history_v1" \
             --release-tag data-latest
 
       - name: Audit published market-cap history

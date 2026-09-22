@@ -62,7 +62,7 @@ jobs:
             --dataset calculations/rankings \
             --source canonical_system1_ranking \
             --key-root archive/calculations/rankings \
-            --pipeline-version r2_ranking_archive_${{ github.sha }} \
+            --pipeline-version r2_ranking_archive_v1 \
             --release-tag data-latest
       - name: Audit published ranking calculation
         run: |
