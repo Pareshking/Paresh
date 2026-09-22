@@ -67,4 +67,7 @@ def test_raw_build_workflow_is_manual_and_r2_is_explicit():
     assert "r2_build_yahoo_raw.py" in text
     assert "--dataset prices/yahoo/raw" in text
     assert "--key-root archive/prices/yahoo/raw" in text
+    assert '--period "${{ inputs.period }}"' in text
+    assert 'if: ${{ inputs.publish_r2 == true }}' in text
+    assert "\\${{ inputs.period }}" not in text
     assert "\n  push:" not in text
