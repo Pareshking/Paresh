@@ -57,7 +57,7 @@ def test_r2_focused_workflows_do_not_execute_stage4b():
             if marker in text:
                 violations.append(f"{path.relative_to(ROOT)} contains {marker!r}")
     assert not violations, (
-        "R2 workflows must not execute or name Stage-4B research workloads: "
+        "R2 workflows must not execute research workloads: "
         + ", ".join(violations)
     )
 
