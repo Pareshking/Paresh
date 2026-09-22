@@ -1,4 +1,4 @@
-name: R2 NSE index price history
+name: R2 research index price history
 
 on:
   workflow_dispatch:
@@ -55,10 +55,10 @@ jobs:
         run: |
           python scripts/r2_publish.py \
             --path /tmp/nse_index_prices.parquet \
-            --dataset indices/prices/nse \
-            --source nse_historical_indices_api \
-            --key-root archive/indices/prices/nse \
+            --dataset indices/prices/research \
+            --source nse_index_price_research_transport \
+            --key-root archive/indices/prices/research \
             --pipeline-version "r2_nse_index_prices_v1" \
             --release-tag data-latest
       - name: Audit published index history
-        run: python scripts/r2_audit.py --dataset indices/prices/nse --as-of "$(python -c 'import pandas as pd; print(pd.read_parquet("/tmp/nse_index_prices.parquet")["date"].max().date())')"
+        run: python scripts/r2_audit.py --dataset indices/prices/research --as-of "$(python -c 'import pandas as pd; print(pd.read_parquet("/tmp/nse_index_prices.parquet")["date"].max().date())')"
