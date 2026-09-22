@@ -119,7 +119,8 @@ Source design is documented in `docs/RAW_PRICE_REBUILD.md`.
 ## E. R2 consumer layer
 
 - [x] R2 read adapter for analytical datasets — manifest-pinned `R2DatasetReader` resolves current or explicit revisions and verifies manifest identity, HEAD size, object SHA, and byte size.
-- [ ] Research/backtest reader — separate consumer integration; do not move ranking or Stage-4B logic into R2.
+- [x] Research/backtest reader — separate manifest-pinned consumer adapter; it accepts an explicit dataset/as_of/revision SHA and never falls back to the mutable current pointer. No ranking, price, universe, or Stage-4B logic is moved into R2.
+- [ ] Research/backtest live R2 acceptance — requires a real R2 dataset/revision pin and read-back execution.
 - [ ] Streamlit reader behind a feature flag.
 - [ ] Controlled fallback to release/local artifacts.
 - [ ] Manifest-pinned research runs.
