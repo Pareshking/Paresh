@@ -105,25 +105,29 @@ No Yahoo raw-price rebuild is authorized by this tracker; it remains parked.
 - [ ] Raw source snapshots where useful.
 - [x] Source provenance/evidence dates carried by the implemented historical datasets.
 
-## D. Raw Yahoo reproducibility — implementation started 2026-09-22
+## D. Raw Yahoo reproducibility — PARKED 2026-09-22
 
-Source design is documented in `docs/RAW_PRICE_REBUILD.md`. Section D is now an isolated R2 engineering track; it does not modify the canonical System-1 price path or V1 consumers.
+The isolated Yahoo raw acquisition work remains preserved as reproducibility evidence,
+but **Yahoo is no longer an active R2 acceptance or migration path**.
 
-- [x] Implement isolated raw Yahoo OHLCV acquisition under `r2/raw/yahoo.py` using `auto_adjust=False` and retaining only raw OHLCV fields.
-- [x] Add isolated builder `scripts/r2_build_yahoo_raw.py` and manual-only workflow `.github/workflows/r2_yahoo_raw_build.yml`.
-- [x] Apply project corporate-action adjustments at read time without rewriting raw evidence.
-- [x] Add unit and workflow-contract coverage; R2 Focused Validation is green on merged PR #77.
-- [x] Preserve V1 separation: raw Yahoo paths are excluded from V1 Full Validation / Production QA triggers.
-- [x] Execute the real 10Y Yahoo raw acquisition and record coverage/fingerprint evidence — Run #3 (ID 35680527253) and Run #4 (ID 35680695094) each returned 750/750 symbols, 0 missing, 2,475 sessions, 2016-09-21 → 2026-09-21; Run #4 verified the artifact without publication.
-- [x] Publish the real raw artifact to R2 and verify immutable manifest/current/object/SHA — Run #3 published and verified revision `807fe1b22432c4260b600d79800df1c804827de00abd0efa96bc0cca4cc283a7` for `2026-09-21`.
-- [ ] Execute the exact-byte R2 retry against the exact published Run #3 artifact — workflow `.github/workflows/r2_yahoo_raw_retry.yml` is ready; GitHub connector cannot dispatch it.
-- [ ] Run and review raw-derived adjusted-price equivalence against the canonical V1 `prices_full.parquet` snapshot — workflow `.github/workflows/r2_raw_v1_equivalence.yml` is ready. Equality is not assumed because V1 currently uses Screener while R2 raw is Yahoo; discrepancies must be classified, especially demergers/corporate actions.
-- [ ] Publish the resulting equivalence report and migration/reproducibility evidence.
-- [ ] Only after the evidence gates pass, consider V1 consumer migration.
+Verified evidence retained:
+- Two independent 10Y Yahoo runs returned 750/750 symbols, 0 missing, 2,475 sessions,
+  2016-09-21 → 2026-09-21.
+- Run #3 published the raw artifact to R2 and verified immutable publication.
+- The exact raw artifact and diagnostic workflows remain available for future research.
 
-**Important:** consumer migration is intentionally not part of PR #77. The existing adjusted-price path remains canonical until equivalence evidence is complete.
+Decision:
+- Do **not** spend further engineering time on Yahoo-vs-Screener equivalence.
+- Do **not** attempt V1 consumer migration to Yahoo.
+- Do **not** make Yahoo corporate-action attribution a blocker for R2 acceptance.
+- Keep the raw Yahoo artifact immutable as optional provenance/reproducibility evidence.
+- The canonical production price path remains the verified Screener publication.
+
+The previously generated Yahoo equivalence/corporate-action diagnostics are historical
+evidence only. They do not alter V1, System-1, rankings, or the canonical price path.
 
 ## E. R2 consumer layer
+
 
 - [x] R2 read adapter for analytical datasets — manifest-pinned `R2DatasetReader` resolves current or explicit revisions and verifies manifest identity, HEAD size, object SHA, and byte size.
 - [x] Research/backtest reader — separate manifest-pinned consumer adapter; it accepts an explicit dataset/as_of/revision SHA and never falls back to the mutable current pointer. No ranking, price, universe, or Stage-4B logic is moved into R2.
@@ -188,14 +192,12 @@ No V1 consumer has been switched to raw Yahoo prices. Equivalence and migration 
 
 ## Immediate next loop
 
-1. Keep the verified Screener, observed-session, and dated-market-cap publications
-   under routine audit; do not rerun the long 10Y acquisition for engineering work.
-2. Complete live PIT membership acceptance through the dedicated R2 consumer workflow.
-3. Complete live manifest-pinned research/backtest acceptance using an explicit revision pin.
-4. Use the controlled fallback only when explicitly authorized and record its source SHA.
-5. Continue scheduled recovery and cost-observability audits.
-6. Keep Stage-4B on its independent validation track; reattach it to V1 only after its research gate is deliberately ready.
-6. Continue Section D raw Yahoo reproducibility: real acquisition, R2 publication/read-back, retry/idempotency, then equivalence evidence before any consumer migration.
+1. Complete live PIT membership acceptance through the dedicated R2 consumer workflow.
+2. Complete live manifest-pinned research/backtest acceptance using an explicit revision pin.
+3. Complete the remaining R2 final-acceptance recovery and cost-observability evidence.
+4. Keep the verified Screener, observed-session, and dated-market-cap publications under routine audit.
+5. Keep Stage-4B on its independent validation track; do not couple it to R2 acceptance.
+6. Treat Yahoo raw data as parked optional evidence, not an active engineering dependency.
 
 
 ## Verified production milestones — 2026-09-21
