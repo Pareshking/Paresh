@@ -90,10 +90,13 @@ def _fetch_range(session, index_name: str, start: date, end: date):
     }
     for attempt in range(4):
         try:
-            response = session.post(URL, json=payload, headers=headers, timeout=60)
+            response = session.post(URL, data=json.dumps(payload), headers=headers, timeout=60)
             if response.status_code == 200:
                 body = response.json()
                 raw = body.get("d", "[]")
+                if not raw:
+                    time.sleep(2 ** attempt)
+                    continue
                 rows_raw = json.loads(raw) if isinstance(raw, str) else raw
                 rows = []
                 for row in rows_raw:
