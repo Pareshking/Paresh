@@ -38,3 +38,32 @@ def test_streamlit_reader_dataset_can_be_configured(monkeypatch):
 
 def test_streamlit_reader_deep_history_dataset():
     assert DEEP_HISTORY_DATASET == "prices/yahoo"
+
+
+def test_streamlit_reader_deep_history_is_current_pointer(monkeypatch):
+    monkeypatch.setenv("R2_STREAMLIT_READER_ENABLED", "1")
+    import r2.consumers.r2_streamlit as mod
+
+    class Ref:
+        dataset = "prices/yahoo"
+        as_of = "2026-09-21"
+        revision_sha256 = "b" * 64
+
+    class Reader:
+        def __init__(self, archive):
+            self.archive = archive
+        def resolve_current(self, dataset):
+            assert dataset == "prices/yahoo"
+            return Ref()
+        def read_parquet(self, ref):
+            return {"ok": True}
+
+    monkeypatch.setattr(mod, "R2DatasetReader", Reader)
+    monkeypatch.setattr(mod, "R2Archive", lambda cfg: object())
+    monkeypatch.setattr(mod, "R2Config", type("Cfg", (), {"from_env": classmethod(lambda cls: object())}))
+
+    frame, pin = mod.read_configured_deep_history()
+    assert frame == {"ok": True}
+    assert pin.dataset == "prices/yahoo"
+    assert pin.as_of == "2026-09-21"
+    assert pin.revision_sha256 == "b" * 64
