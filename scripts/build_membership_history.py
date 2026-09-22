@@ -73,7 +73,9 @@ def build_history(
     path: str,
     history_path: str | Path,
     *,
+    index_name: str,
     include_working_tree: bool = True,
+    write: bool = True,
 ) -> dict:
     """Reconstruct/append one index's membership history from Git snapshots."""
     log = _git(
