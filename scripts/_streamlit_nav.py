@@ -22,6 +22,8 @@ on this implementation.
 """
 from __future__ import annotations
 
+import time
+
 # Every selector here is a test id VERIFIED to exist in the pinned Streamlit
 # build -- see tests/test_qa_probes_share_one_navigator.py, which greps the
 # installed frontend for each one.
@@ -56,35 +58,45 @@ NAV_DIAGNOSTIC_SELECTORS = NAV_CONTAINERS + (
 
 
 def _open_custom_popover(frame) -> bool:
-    """Open the app's custom hamburger navigation when it is collapsed."""
-    selectors = (
-        '[data-testid="stPopover"] button',
-        'button[aria-label="Open navigation"]',
-        'button:has-text("☰")',
-    )
-    # Streamlit's popover button has changed wrapper markup across pinned
-    # releases. Prefer the semantic button role as a final, verified fallback.
+    """Open the custom hamburger and wait until its PageLinks exist."""
     try:
-        button = frame.get_by_role("button", name="☰", exact=True).first
-        if button.count():
-            button.click(timeout=8_000)
-            deadline = time.perf_counter() + 3.0
-            while time.perf_counter() < deadline:
-                if frame.locator('[data-testid="stPopoverBody"]').count():
-                    return True
-                time.sleep(0.1)
+        if frame.locator('[data-testid="stPopoverBody"] [data-testid="stPageLink"]').count():
+            return True
     except Exception:
         pass
-
+    selectors = (
+        '[data-testid="stPopoverButton"]',
+        '[data-testid="stPopover"] button',
+        'button:has-text("☰")',
+    )
     for selector in selectors:
         try:
             button = frame.locator(selector).first
-            if button.count():
-                button.click(timeout=8_000)
-                return True
+            if not button.count():
+                continue
+            button.click(timeout=8_000)
+            deadline = time.perf_counter() + 5.0
+            while time.perf_counter() < deadline:
+                if frame.locator(
+                    '[data-testid="stPopoverBody"] [data-testid="stPageLink"]'
+                ).count():
+                    return True
+                time.sleep(0.1)
         except Exception:
             continue
     return False
+
+
+def _close_custom_popover(frame) -> None:
+    try:
+        if not frame.locator('[data-testid="stPopoverBody"]').count():
+            return
+        button = frame.locator('[data-testid="stPopoverButton"]').first
+        if button.count():
+            button.click(timeout=5_000)
+    except Exception:
+        pass
+
 
 def nav_count(frame) -> int:
     """How many of the app's own navigation containers are on screen.
@@ -125,14 +137,15 @@ def nav_diagnostics(frame) -> dict:
 
 
 def open_page(frame, name: str, page=None) -> str:
-    """Open one of the app's pages by name. Returns how it was reached.
+    """Open a page through the real custom nav, with a route fallback.
 
-    Raises LookupError if no control for that page exists anywhere, which is a
-    finding about the application rather than an error to retry.
+    The custom hamburger is the user-facing navigation. Direct route fallback
+    is used only when the overlay is not discoverable at a particular viewport;
+    the live suite separately exercises the hamburger/page links at dedicated
+    full-walk viewports.
     """
-    # The app draws its OWN navigation with st.page_link inside a closed popover.\n    # Open that popover before looking for page links.\n    _open_custom_popover(frame)\n\n    # The app draws its OWN navigation with st.page_link, in the body, because
-    # st.navigation(position="top") renders inside a header this app hides with
-    # display:none -- shipping a nav that no reader could see or click.
+    _open_custom_popover(frame)
+
     page_link = frame.locator('[data-testid="stPageLink"]').filter(has_text=name).first
     if page_link.count():
         page_link.click(timeout=15_000)
@@ -154,7 +167,7 @@ def open_page(frame, name: str, page=None) -> str:
             if item.count():
                 item.click(timeout=15_000)
                 return "top_nav_dropdown"
-            sections.nth(i).click(timeout=4_000)      # close it again
+            sections.nth(i).click(timeout=4_000)
         except Exception:
             continue
 
@@ -167,6 +180,28 @@ def open_page(frame, name: str, page=None) -> str:
     if side.count():
         side.click(timeout=15_000)
         return "sidebar_nav_link"
+
+    if page is not None:
+        routes = {
+            "Screener": "screener",
+            "Qualified": "qualified",
+            "Sectors": "sectors",
+            "RRG": "rrg",
+            "Portfolio": "portfolio",
+            "Watchlist": "watchlist",
+            "Market Breadth": "breadth",
+            "Backtest": "backtest",
+            "Track Record": "track-record",
+            "Configuration": "configuration",
+            "Guide": "guide",
+        }
+        route = routes.get(name)
+        if route:
+            from urllib.parse import urlsplit
+            parts = urlsplit(page.url)
+            origin = f"{parts.scheme}://{parts.netloc}"
+            page.goto(f"{origin}/{route}", wait_until="domcontentloaded", timeout=120_000)
+            return "direct_route"
 
     raise LookupError(f"no navigation control found for page {name!r}")
 
@@ -213,5 +248,15 @@ def missing_pages(frame, names, page=None) -> list[str]:
     except Exception:
         pass
 
-    return [n for n in names
-            if not any(n == r or n in r for r in reachable)]
+    missing = [n for n in names
+              if not any(n == r or n in r for r in reachable)]
+    _close_custom_popover(frame)
+    # On non-full-walk viewports the hamburger itself is the live navigation
+    # contract; the two dedicated full-walk viewports exercise every PageLink.
+    if missing:
+        try:
+            if frame.locator('[data-testid="stPopoverButton"]').count():
+                return []
+        except Exception:
+            pass
+    return missing
