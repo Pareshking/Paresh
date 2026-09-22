@@ -62,8 +62,22 @@ def _fetch_official(name: str, start: date, end: date) -> pd.DataFrame:
 
 
 def _fetch_yahoo(name_key: str, name: str, start: date, end: date) -> pd.DataFrame:
-    quotes = yf.Search(name, max_results=25).quotes
-    indexes = [q for q in quotes if str(q.get("quoteType", "")).upper() == "INDEX"]
+    search_queries = {
+        "NIFTY 50": ["NIFTY 50"],
+        "NIFTY NEXT 50": ["NIFTY NEXT 50", "NIFTYJR", "NIFTY Next"],
+        "NIFTY MIDCAP 150": ["NIFTY MIDCAP 150", "NIFTY MIDCAP", "MIDCAP 150"],
+        "NIFTY SMALLCAP 250": ["NIFTY SMALLCAP 250", "NIFTY SMALL CAP 250", "NIFTY SMALLCAP", "SMALLCAP 250"],
+        "NIFTY MICROCAP 250": ["NIFTY MICROCAP 250", "NIFTY MICROCAP", "MICROCAP 250"],
+    }.get(name, [name])
+    indexes = []
+    for query in search_queries:
+        try:
+            quotes = yf.Search(query, max_results=50).quotes
+        except Exception:
+            quotes = []
+        indexes.extend(q for q in quotes if str(q.get("quoteType", "")).upper() == "INDEX")
+        if indexes:
+            break
     if not indexes:
         raise RuntimeError(f"Yahoo search found no index for {name}")
     exact = [q for q in indexes if str(q.get("shortname", "")).strip().lower() == name.lower()]
