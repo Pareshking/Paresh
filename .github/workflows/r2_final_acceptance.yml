@@ -1,0 +1,51 @@
+name: R2 Final Acceptance
+
+on:
+  workflow_dispatch:
+    inputs:
+      research_dataset:
+        description: "Immutable R2 dataset"
+        required: true
+        default: "market_caps/nse_history"
+      research_as_of:
+        description: "Immutable R2 evidence date"
+        required: true
+        default: "2026-09-18"
+      research_revision:
+        description: "64-character immutable revision SHA"
+        required: true
+        default: "f01555ee9afa74a0f6c0c8bd5e8e451b88bd7390c79ca8367cf0ff904244b6e6"
+  schedule:
+    - cron: "53 4 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  final:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt pytest
+      - name: R2 regression
+        run: python -m pytest -q tests/test_r2_*.py tests/test_build_trading_sessions.py tests/test_market_cap_history.py
+      - name: Live PIT membership acceptance
+        run: python scripts/r2_membership_live_validation.py --as-of "2026-09-18"
+      - name: Live immutable research acceptance
+        run: |
+          python scripts/r2_research_live_validation.py             --dataset "${{ inputs.research_dataset || 'market_caps/nse_history' }}"             --as-of "${{ inputs.research_as_of || '2026-09-18' }}"             --revision "${{ inputs.research_revision || 'f01555ee9afa74a0f6c0c8bd5e8e451b88bd7390c79ca8367cf0ff904244b6e6' }}"
+      - name: Live recovery audit
+        run: python scripts/r2_recovery_audit.py
+      - name: Live cost observability
+        run: python scripts/r2_cost_audit.py
