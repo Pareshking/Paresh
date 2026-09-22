@@ -21,6 +21,7 @@ on:
     branches: [main]
     paths-ignore:
       - 'src/storage/**'
+      - 'r2/consumers/**'
       - 'scripts/r2_*.py'
       - 'scripts/build_trading_sessions.py'
       - 'scripts/build_market_cap_history.py'
