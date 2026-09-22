@@ -24,7 +24,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt pytest
       - name: Build historical evidence datasets
         run: python scripts/r2_historical_evidence_bootstrap.py --output-dir /tmp/r2-evidence
       - name: Run historical evidence tests
