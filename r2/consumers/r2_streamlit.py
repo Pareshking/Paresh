@@ -15,7 +15,7 @@ from src.storage.r2 import R2Archive, R2Config
 ENV_FLAG = "R2_STREAMLIT_READER_ENABLED"
 DATASET_ENV = "R2_STREAMLIT_DATASET"
 DEFAULT_DATASET = "prices/screener"
-DEEP_HISTORY_DATASET = "prices/yahoo"
+DEEP_HISTORY_DATASET = "prices/yahoo/raw"
 
 
 
