@@ -29,7 +29,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from src.core.logger import logger
-from src.core.tickers import is_tradeable_symbol
+from src.core.tickers import is_tradeable_symbol, normalise_symbol
 
 # Repo-root anchored: see the note on LOG_PATH in corporate_actions.py. A
 # missing history here silently returns None, which the backtester counts as
@@ -56,7 +56,7 @@ def _clean(symbols: Iterable[str]) -> list[str]:
     a membership change and the diffs would fill with phantom churn.
     """
     return sorted({
-        str(s).strip().upper() for s in symbols if is_tradeable_symbol(s)
+        normalise_symbol(s) for s in symbols if is_tradeable_symbol(s)
     })
 
 
