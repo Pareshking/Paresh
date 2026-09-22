@@ -395,3 +395,31 @@ R2_STREAMLIT_DATASET = "prices/screener"
 The existing five R2 credential secrets remain unchanged.
 
 This migration changes only the source of the existing Screener dataframe. It does not change System-1 formulas, ranking weights, benchmark, universe, corporate-action methodology, or Stage-4B logic.
+
+
+## Historical Research Data Foundation — active expansion 2026-09-22
+
+This expansion completes the durable R2 inputs needed for future point-in-time backtests, while deliberately excluding historical fundamentals because no suitable source is currently available.
+
+- [x] Screener daily price archive — existing canonical R2 path.
+- [x] Yahoo raw deep-history archive — existing independent R2 path.
+- [ ] Market-cap history — existing publisher retained and now scheduled for routine daily publication.
+- [ ] **Five-index PIT membership history** — NIFTY 50, NIFTY Next 50, NIFTY Midcap 150, NIFTY Smallcap 250, NIFTY Microcap 250.
+- [ ] Combined point-in-time universe archive derived from those five histories.
+- [ ] Official NSE OHLC history for those five indices.
+- [ ] Historical sector/industry classification from dated repository evidence.
+- [x] Observed and confirmed trading-session evidence.
+- [x] Corporate-action evidence archive.
+- [ ] Immutable System-1 ranking-calculation archive.
+- [ ] Final live coverage/read-back acceptance for the expansion.
+
+### Hard rules for this expansion
+
+1. Do not alter System-1 ranking methodology, benchmark, canonical Screener price source, or Stage-4B.
+2. Do not hard-code symbol aliases for universe churn. Current NSE membership remains authoritative for current operation; historical membership is reconstructed from dated evidence.
+3. Apply the central `is_tradeable_symbol()` predicate to every index-universe archive so DUMMY* rows cannot enter the research universe.
+4. Keep source datasets separate. NSE index prices remain NSE-source evidence; Yahoo stock history remains Yahoo-source evidence; Screener remains the canonical V1 stock-price source.
+5. Preserve immutable revisions/manifests/current pointers for every published dataset.
+6. Derived calculations are reproducible from archived inputs, but canonical ranking outputs are also archived as immutable calculation evidence.
+7. Fundamental history is explicitly out of scope until a real point-in-time source is available.
+8. The expansion is accepted only after automated tests, live publication, manifest/current/object read-back, coverage validation, and consumer/reconstruction checks are green.
