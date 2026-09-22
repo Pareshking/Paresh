@@ -17,9 +17,9 @@ V1 is the application/quantitative-research validation track. Stage-4B live arch
 ### CI rule
 
 - R2-only changes must be validated by R2-specific tests/workflows and must **not** trigger the expensive V1 Full Validation suite merely because the repository contains both systems.
-- V1 Full Validation remains responsible for application + System-1 + Stage-4B regression when a non-R2 change can affect those systems.
+- V1 Full Validation remains responsible for application + System-1 regression. Stage-4B live archetype execution is temporarily isolated in its own workflow so R2/V1 progress does not wait on the expensive research loop.
 - An R2 gate is green only from R2 evidence; a Stage-4B result is neither a substitute for nor a prerequisite for an R2 storage gate.
-- A V1/Stage-4B failure must not block independent R2 engineering unless the changed R2 code is demonstrably on the failing execution path.
+- A V1/Stage-4B failure must not block independent R2 engineering unless the changed R2 code is demonstrably on the failing execution path. Stage-4B remains intact and independently executable; this is CI decoupling, not removal or weakening of Stage-4B tests.
 - R2 consumer integration is a controlled later step. Until then, R2 remains an independent archive/read layer and V1 continues using its canonical existing data path.
 
 This separation is intentional: the combined V1 suite currently executes multiple real Stage-4B archetypes and Streamlit checks, so attaching it to every R2 storage/documentation change creates unnecessary latency and makes unrelated failures harder to diagnose.
@@ -128,14 +128,16 @@ Source design is documented in `docs/RAW_PRICE_REBUILD.md`.
 - [ ] Live point-in-time universe reconstruction acceptance — dedicated workflow merged; real R2 execution remains the acceptance gate.
 
 
-## CI isolation — VERIFIED 2026-09-21
+## CI isolation — VERIFIED 2026-09-22
 
 R2 and V1/Stage-4B are now separate CI tracks.
 
 - R2-only paths run **R2 Focused Validation** rather than the expensive V1 Full Validation suite.
 - V1 Full Validation and V1 Production QA ignore R2-only paths.
-- R2 Focused Validation Run #3 / Run ID 35639796677 passed the R2 regression, compile, and separation-contract checks.
-- V1 Full Validation Run #568 / Run ID 35638696739 failed in the generic regression suite on two R2 reader tests before any Stage-4B execution step ran. Those R2 failures were repaired and then passed in the focused R2 workflow.
+- R2 Focused Validation remains the canonical gate for R2 changes.
+- V1 Full Validation now excludes R2 paths and no longer executes Stage-4B live archetypes.
+- Stage-4B live archetypes are retained in `.github/workflows/stage4b-independent-validation.yml` and run only on dedicated Stage-4B branches or manual dispatch.
+- This removes Stage-4B latency/failure coupling from the V1/R2 engineering loop without deleting or weakening any Stage-4B executable checks.
 
 This is intentional: R2 acceptance is based on R2 evidence. SANSERA, ANANDRATHI, PAYTM, YATHARTH, and LENSKART are V1/Stage-4B research workloads and are not R2 acceptance tests.
 
@@ -173,8 +175,8 @@ contract for archive continuity/read-coverage checks.
 1. Keep the verified Screener, observed-session, and dated-market-cap publications
    under routine audit; do not rerun the long 10Y acquisition for engineering work.
 2. Complete live PIT membership acceptance through the dedicated R2 consumer workflow.
-3. Build the manifest-pinned research/backtest reader without changing System-1 or Stage-4B.
-4. Add controlled fallback and reproducibility gates before any consumer migration.
+3. Continue R2 consumer work: live PIT acceptance, manifest-pinned research/backtest execution, controlled fallback, and reproducibility gates.
+4. Keep Stage-4B on its independent validation track; reattach it to V1 only after its research gate is deliberately ready.
 5. Finish live recovery and cost monitoring gates.
 6. Keep the Yahoo raw-price rebuild parked until the R2 consumer layer is stable.
 
