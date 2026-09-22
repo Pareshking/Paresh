@@ -24,7 +24,7 @@ from src.core.config import (
     SHORT_FORMS,
 )
 from src.core.logger import logger
-from src.core.tickers import is_tradeable_symbol
+from src.core.tickers import is_tradeable_symbol, normalise_symbol
 
 SYNC_META_FILE = os.path.join(REPO_DATA_DIR, "indices_sync_meta.json")
 
@@ -241,9 +241,10 @@ def _fetch_indices_impl(selected_indices: Sequence[str] | None = None) -> pd.Dat
                 None,
             )
             for _, row in df.iterrows():
-                symbol = str(row[sym_col]).strip().upper()
-                if not is_tradeable_symbol(symbol):
-                    discarded.append(symbol)
+                raw_symbol = str(row[sym_col]).strip().upper()
+                symbol = normalise_symbol(raw_symbol)
+                if not is_tradeable_symbol(raw_symbol):
+                    discarded.append(raw_symbol)
                     continue
                 comp_name = (
                     str(row[name_col]).strip()
