@@ -19,6 +19,14 @@ from __future__ import annotations
 import pandas as pd
 
 NSE_SUFFIX = ".NS"
+# NSE changed HEG Limited's trading symbol to HEGAM during the September 2026
+# name/symbol migration, while the security identity (ISIN INE545A01024) and
+# the data vendors used by this application continued to identify the same
+# security as HEG. Keep HEG as the canonical internal label so membership,
+# Screener/Yahoo history and published rankings remain one series.
+NSE_SYMBOL_ALIASES = {
+    "HEGAM": "HEG",
+}
 
 
 def normalise_symbol(value: object) -> str:
@@ -33,7 +41,8 @@ def normalise_symbol(value: object) -> str:
     removesuffix, not replace: a ".NS" occurring anywhere but the end is part
     of the name, not a market suffix.
     """
-    return str(value).strip().upper().removesuffix(NSE_SUFFIX).strip()
+    symbol = str(value).strip().upper().removesuffix(NSE_SUFFIX).strip()
+    return NSE_SYMBOL_ALIASES.get(symbol, symbol)()
 
 
 def is_tradeable_symbol(value: object) -> bool:
