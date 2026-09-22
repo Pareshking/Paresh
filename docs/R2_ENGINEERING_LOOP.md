@@ -116,9 +116,10 @@ Source design is documented in `docs/RAW_PRICE_REBUILD.md`. Section D is now an 
 - [x] Preserve V1 separation: raw Yahoo paths are excluded from V1 Full Validation / Production QA triggers.
 - [x] Execute the real 10Y Yahoo raw acquisition and record coverage/fingerprint evidence — Run #3 (ID 35680527253) and Run #4 (ID 35680695094) each returned 750/750 symbols, 0 missing, 2,475 sessions, 2016-09-21 → 2026-09-21; Run #4 verified the artifact without publication.
 - [x] Publish the real raw artifact to R2 and verify immutable manifest/current/object/SHA — Run #3 published and verified revision `807fe1b22432c4260b600d79800df1c804827de00abd0efa96bc0cca4cc283a7` for `2026-09-21`.
-- [ ] Perform an identical-byte R2 retry against the exact published Run #3 artifact — dedicated retry workflow added; requires one manual dispatch because the GitHub connector cannot dispatch workflows.
-- [ ] Prove track-record/research equivalence before switching consumers.
-- [ ] Add migration/reproducibility evidence and only then consider consumer migration.
+- [ ] Execute the exact-byte R2 retry against the exact published Run #3 artifact — workflow `.github/workflows/r2_yahoo_raw_retry.yml` is ready; GitHub connector cannot dispatch it.
+- [ ] Run and review raw-derived adjusted-price equivalence against the canonical V1 `prices_full.parquet` snapshot — workflow `.github/workflows/r2_raw_v1_equivalence.yml` is ready. Equality is not assumed because V1 currently uses Screener while R2 raw is Yahoo; discrepancies must be classified, especially demergers/corporate actions.
+- [ ] Publish the resulting equivalence report and migration/reproducibility evidence.
+- [ ] Only after the evidence gates pass, consider V1 consumer migration.
 
 **Important:** consumer migration is intentionally not part of PR #77. The existing adjusted-price path remains canonical until equivalence evidence is complete.
 
@@ -181,7 +182,7 @@ contract for archive continuity/read-coverage checks.
 
 The real Yahoo raw acquisition is now proven reproducible at the acquisition level: two independent 10Y runs returned the full 750-symbol NIFTY TOTAL MARKET universe with zero missing symbols and the same 2,475-session date range. The second run was deliberately non-publishing and produced a separate workflow artifact.
 
-Run #3 published the raw artifact to R2 and the publisher verified the immutable object, manifest, and current pointer. The remaining Yahoo-specific gate is an **exact-byte retry using the already captured Run #3 artifact**, not a fresh Yahoo download. This is implemented in `.github/workflows/r2_yahoo_raw_retry.yml` and is intentionally manual so the exact source artifact is explicit.
+Run #3 published the raw artifact to R2 and the publisher verified the immutable object, manifest, and current pointer. The remaining Yahoo-specific gate is an **exact-byte retry using the already captured Run #3 artifact**, not a fresh Yahoo download. A separate equivalence workflow now compares the exact raw artifact's project-adjusted closes with the canonical V1 archive without modifying either source. This is implemented in `.github/workflows/r2_yahoo_raw_retry.yml` and is intentionally manual so the exact source artifact is explicit.
 
 No V1 consumer has been switched to raw Yahoo prices. Equivalence and migration remain blocked until the exact retry and comparison evidence are complete.
 
