@@ -15,6 +15,7 @@ from typing import Any
 import pandas as pd
 
 from scripts.build_membership_history import RESEARCH_INDEXES, TRACKED_INDEX_PATHS, build_history
+from src.core.tickers import is_tradeable_symbol
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -54,7 +55,7 @@ def build_constituents(output_dir: Path) -> list[Path]:
         if symbol_col is None:
             raise RuntimeError(f"{path}: missing Symbol column")
         symbols = frame[symbol_col].astype(str).str.strip().str.upper()
-        symbols = symbols[symbols.ne("")].drop_duplicates().sort_values()
+        symbols = symbols[symbols.map(is_tradeable_symbol)].drop_duplicates().sort_values()
         result = pd.DataFrame(
             {
                 "index": index,
@@ -161,6 +162,12 @@ def build_membership(output_dir: Path) -> list[Path]:
     return paths
 
 
+def build_classification(output_dir: Path) -> Path:
+    from scripts.build_classification_history import build
+    path = output_dir / "classification_history.parquet"
+    build(path)
+    return path
+
 def build_trading_sessions(output_dir: Path) -> Path:
     payload = json.loads((ROOT / "data/nse_trading_days.json").read_text())
     dates = sorted(set(payload.get("trading_days", [])))
@@ -220,6 +227,7 @@ def build_all(output_dir: Path) -> list[Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
     paths = build_constituents(output_dir)
     paths.extend(build_membership(output_dir))
+    paths.append(build_classification(output_dir))
     paths.append(build_trading_sessions(output_dir))
     paths.append(build_market_caps(output_dir))
     paths.append(build_corporate_actions(output_dir))
