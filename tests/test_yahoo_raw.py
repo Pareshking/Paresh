@@ -50,8 +50,8 @@ def test_adjustment_is_read_time_only(tmp_path, monkeypatch):
     path = tmp_path / "raw.parquet"
     raw.to_parquet(path)
 
-    import src.engine.corporate_actions as ca
-    monkeypatch.setattr(ca, "load_events", lambda: [{
+    import src.loaders.yahoo_raw as raw_loader
+    monkeypatch.setattr(raw_loader, "load_events", lambda: [{
         "date": "2026-09-03", "symbol": "AAA", "ratio": 0.5,
     }])
 
@@ -65,3 +65,21 @@ def test_adjustment_is_read_time_only(tmp_path, monkeypatch):
 
     after = read_raw_ohlcv(path)
     pd.testing.assert_frame_equal(after, before)
+
+
+def test_raw_build_workflow_isolated_and_manual():
+    import yaml
+
+    path = ".github/workflows/r2_yahoo_raw_build.yml"
+    with open(path, encoding="utf-8") as fh:
+        spec = yaml.safe_load(fh)
+    trigger = spec.get("on") or spec.get(True)
+    assert "workflow_dispatch" in trigger
+    assert "push" not in trigger
+    run = "\n".join(
+        str(step.get("run", ""))
+        for step in spec["jobs"]["build"]["steps"]
+    )
+    assert "build_yahoo_raw_archive.py" in run
+    assert "--dataset prices/yahoo/raw" in run
+    assert "--key-root archive/prices/yahoo/raw" in run
