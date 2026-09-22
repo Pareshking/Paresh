@@ -47,8 +47,8 @@ def test_adjustment_is_read_time_only(tmp_path, monkeypatch):
     raw.to_parquet(path)
 
     import r2.raw.yahoo as raw_loader
-    monkeypatch.setattr(raw_loader, "load_events", lambda: [{
-        "date": "2026-09-03", "symbol": "AAA", "ratio": 0.5,
+    monkeypatch.setattr(raw_loader.corporate_actions, "load_events", lambda: [{
+        "date": "2026-09-02", "symbol": "AAA", "ratio": 0.5,
     }])
 
     before = read_raw_ohlcv(path)
