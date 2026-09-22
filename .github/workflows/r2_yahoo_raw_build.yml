@@ -38,7 +38,7 @@ jobs:
         env:
           PYTHONPATH: .
         run: |
-          python scripts/build_yahoo_raw_archive.py \
+          python scripts/r2_build_yahoo_raw.py \
             --output data_cache/prices_yahoo_raw.parquet \
             --period "\${{ inputs.period }}"
 
