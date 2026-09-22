@@ -311,3 +311,10 @@ The post-acceptance immutable-consumer hardening loop is merged on main.
 Post-merge R2 Focused, R2 Research Consumer, and PIT membership acceptance gates were green for the completed merges. These changes remain confined to R2 storage/consumer boundaries and do not alter System-1 ranking, the canonical Screener production price path, universe methodology, or Stage-4B research logic.
 
 The next engineering loop should focus on remaining R2 provenance/operational hardening only where it materially improves reproducibility or recovery. Do not start a production Streamlit R2 migration unless a separate equivalence and deployment gate is opened.
+
+
+## Canonical status — 2026-09-22 (supersedes earlier working notes)
+
+**R2 implementation and acceptance are complete.** Bootstrap Run 35703827204 and Final Acceptance Run 35704396591 passed on live R2. PRs #92–#100 subsequently hardened the immutable PIT/research consumers, manifest validation, recovery audit, and publication provenance. These are hardening changes only; they do not open a new R2 implementation phase.
+
+The engineering plan is now deliberately stopped at the production boundary: R2 is the accepted historical-data/evidence substrate, while Streamlit/System-1 remains on the canonical Screener path. A future R2 application migration is a separate project requiring equivalence, fallback, deployment, and production gates. No further R2 micro-PRs should be created merely to add tests or refactor already-accepted contracts.
