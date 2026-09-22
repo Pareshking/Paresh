@@ -326,8 +326,8 @@ The historical-evidence bootstrap and final acceptance gates are now closed on l
 
 Therefore the remaining unchecked Section-E live acceptance items are closed. R2 is now an accepted historical-data/evidence substrate.
 
-### Production boundary — explicit
-R2 acceptance does **not** mean the Streamlit production site has switched to R2. The live application remains on the canonical Screener price path. Any future R2 application/read-path migration must be separately gated and must not alter System-1 methodology or silently change production data provenance.
+### Historical acceptance boundary — superseded by the current production contract
+At the time of Final Acceptance Run 35704396591, Streamlit had not yet been switched to R2. The later Streamlit read-path gate is documented below and is now the controlling production contract.
 
 
 ---
@@ -344,7 +344,7 @@ The post-acceptance immutable-consumer hardening loop is merged on main.
 
 Post-merge R2 Focused, R2 Research Consumer, and PIT membership acceptance gates were green for the completed merges. These changes remain confined to R2 storage/consumer boundaries and do not alter System-1 ranking, the canonical Screener production price path, universe methodology, or Stage-4B research logic.
 
-The next engineering loop should focus on remaining R2 provenance/operational hardening only where it materially improves reproducibility or recovery. Do not start a production Streamlit R2 migration unless a separate equivalence and deployment gate is opened.
+The remaining R2 work is routine provenance/operational hardening only where it materially improves reproducibility or recovery. Streamlit production consumption is governed by the daily-current read-path contract below.
 
 
 ## Canonical status — 2026-09-22 (supersedes earlier working notes)
