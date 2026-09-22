@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from scripts.r2_publish import describe_parquet
 from scripts.r2_historical_evidence_bootstrap import (
     INDEX_FILES,
     MEMBERSHIP_AS_OF,
@@ -47,16 +48,15 @@ def test_membership_intervals_close_removed_symbols_and_stamp_open_intervals():
     assert ccc["evidence_date"] == "2026-08-20"
 
 
-def test_real_membership_history_has_no_changes_and_covers_acceptance_date():
+def test_real_membership_history_has_no_changes_and_covers_acceptance_date(tmp_path):
     history = json.loads((ROOT / "data/membership_history.json").read_text())
     assert history["changes"] == []
-    frame = build_membership(ROOT / "tmp-test-r2-membership")
-    assert set(frame.read_text() for _ in []) == set()  # no-op; existence asserted below
-    # Re-read through pandas so the test exercises the actual generated artifact.
+    frame = build_membership(tmp_path)
     generated = pd.read_parquet(frame)
     assert generated["index"].eq("nifty_total_market").all()
     assert generated["as_of"].eq(MEMBERSHIP_AS_OF).all()
     assert (pd.to_datetime(generated["effective_from"]) <= pd.Timestamp(MEMBERSHIP_AS_OF)).all()
+    assert describe_parquet(frame)["as_of"] == MEMBERSHIP_AS_OF
 
 
 def test_confirmed_trading_sessions_preserve_sparse_source_contract(tmp_path):
