@@ -91,7 +91,11 @@ Key detail: raw OHLCV prices use the split-unadjusted close column, which
 yfinance returns as `"Close"` (not `"Adj Close"`) when `auto_adjust=False`.
 Dividends appear as a separate column and are ignored for this purpose.
 
-### Step 2 — Read-time adjustment in the loader
+### Step 2 — Read-time adjustment
+
+The isolated R2 reader adapter is implemented in `r2/raw/yahoo.py`. It applies the existing project corporate-action logic in memory via `adjusted_from_raw()`; the raw parquet is never rewritten. Canonical V1 loader migration remains gated.
+
+The eventual V1 migration target remains the existing loader boundary, but it must not happen until equivalence is demonstrated.
 
 In `src/loaders/price_loader.py` (or the equivalent cache-loader path):
 
