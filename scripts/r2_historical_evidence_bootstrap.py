@@ -162,6 +162,17 @@ def build_membership(output_dir: Path) -> list[Path]:
     return paths
 
 
+def build_point_in_time_universe(output_dir: Path) -> Path:
+    frames = []
+    for index in (*RESEARCH_INDEXES, "nifty_total_market"):
+        path = output_dir / f"membership_{index}.parquet"
+        frame = pd.read_parquet(path)
+        frames.append(frame)
+    result = pd.concat(frames, ignore_index=True).sort_values(["effective_from", "index", "symbol"])
+    path = output_dir / "point_in_time_universe.parquet"
+    result.to_parquet(path, index=False)
+    return path
+
 def build_classification(output_dir: Path) -> Path:
     from scripts.build_classification_history import build
     path = output_dir / "classification_history.parquet"
@@ -228,6 +239,7 @@ def build_all(output_dir: Path) -> list[Path]:
     paths = build_constituents(output_dir)
     paths.extend(build_membership(output_dir))
     paths.append(build_classification(output_dir))
+    paths.append(build_point_in_time_universe(output_dir))
     paths.append(build_trading_sessions(output_dir))
     paths.append(build_market_caps(output_dir))
     paths.append(build_corporate_actions(output_dir))
