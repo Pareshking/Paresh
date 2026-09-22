@@ -63,6 +63,16 @@ jobs:
         run: |
           python scripts/build_market_cap_history.py --output /tmp/r2-evidence/market_caps_nse_history.parquet
           python scripts/r2_publish.py             --path /tmp/r2-evidence/market_caps_nse_history.parquet             --dataset market_caps/nse_history             --source nse_market_cap_git_history             --key-root archive/market_caps/nse_history             --pipeline-version r2_historical_evidence_v2             --release-tag data-latest
+      - name: Publish point-in-time combined universe
+        run: |
+          python scripts/r2_publish.py \
+            --path /tmp/r2-evidence/point_in_time_universe.parquet \
+            --dataset universes/point_in_time \
+            --source repository_index_membership_history \
+            --key-root archive/universes/point_in_time \
+            --pipeline-version r2_historical_evidence_v2 \
+            --release-tag data-latest
+
       - name: Publish historical sector and industry classification
         run: |
           python scripts/r2_publish.py \
