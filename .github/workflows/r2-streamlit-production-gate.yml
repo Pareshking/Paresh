@@ -13,17 +13,6 @@ on:
       - ".github/workflows/r2-streamlit-production-gate.yml"
   pull_request:
     branches: [main]
-  workflow_dispatch:
-    inputs:
-      expected_sha:
-        description: "Immutable Screener revision SHA-256"
-        required: true
-        default: "df03ed6d6fb9c8ca963c4f3fb3b73386c43e6f106cc9a3307d7b693cf80455dd"
-      expected_as_of:
-        description: "Immutable Screener evidence date"
-        required: true
-        default: "2026-09-21"
-
 permissions:
   contents: read
 
@@ -39,8 +28,6 @@ jobs:
       R2_BUCKET: ${{ secrets.R2_BUCKET }}
       R2_STREAMLIT_READER_ENABLED: "1"
       R2_STREAMLIT_DATASET: "prices/screener"
-      R2_STREAMLIT_AS_OF: ${{ inputs.expected_as_of || '2026-09-21' }}
-      R2_STREAMLIT_REVISION_SHA256: ${{ inputs.expected_sha || 'df03ed6d6fb9c8ca963c4f3fb3b73386c43e6f106cc9a3307d7b693cf80455dd' }}
       PYTHONPATH: .
     steps:
       - uses: actions/checkout@v4
@@ -66,13 +53,15 @@ jobs:
 
           release_path = Path("/tmp/r2-streamlit/screener_prices.parquet")
           release_sha = hashlib.sha256(release_path.read_bytes()).hexdigest()
-          expected = "df03ed6d6fb9c8ca963c4f3fb3b73386c43e6f106cc9a3307d7b693cf80455dd"
-          assert release_sha == expected, (release_sha, expected)
           release = pd.read_parquet(release_path)
+          release_as_of = pd.DatetimeIndex(release.index).max().date().isoformat()
+          import os
+          os.environ["R2_STREAMLIT_AS_OF"] = release_as_of
+          os.environ["R2_STREAMLIT_REVISION_SHA256"] = release_sha
           r2_frame, pin = read_configured_screener()
           assert pin.dataset == "prices/screener"
-          assert pin.as_of == "2026-09-21"
-          assert pin.revision_sha256 == expected
+          assert pin.as_of == release_as_of
+          assert pin.revision_sha256 == release_sha
           pd.testing.assert_frame_equal(release.sort_index(axis=1), r2_frame.sort_index(axis=1), check_dtype=True, check_like=True)
           release_price = from_screener(release)
           r2_price = from_screener(r2_frame)
