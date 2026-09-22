@@ -298,6 +298,26 @@ def _precomputed_ranking(
         # them apart from outside the container.
         logger.info("Precomputed ranking rejected (%s); computing instead.", reason)
         metrics.note("ranking_precompute", f"miss_{reason.replace(' ', '_')}")
+        if reason == "symbols_fingerprint differs" and "Symbol" in frame:
+            published_symbols = {
+                str(symbol).strip().upper()
+                for symbol in frame["Symbol"].dropna().tolist()
+            }
+            expected_symbols = {
+                str(symbol).strip().upper()
+                for symbol in universe
+            }
+            added = sorted(published_symbols - expected_symbols)
+            missing = sorted(expected_symbols - published_symbols)
+            logger.info(
+                "Precomputed universe mismatch: published=%d expected=%d added=%s missing=%s",
+                len(published_symbols), len(expected_symbols),
+                ",".join(added[:20]) or "-", ",".join(missing[:20]) or "-",
+            )
+            metrics.note("ranking_precompute_published_symbols", len(published_symbols))
+            metrics.note("ranking_precompute_expected_symbols", len(expected_symbols))
+            metrics.note("ranking_precompute_universe_added", ",".join(added[:20]) or "none")
+            metrics.note("ranking_precompute_universe_missing", ",".join(missing[:20]) or "none")
         return None
 
     metrics.note("ranking_precompute", "hit")
