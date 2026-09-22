@@ -93,3 +93,12 @@ def test_resolve_latest_revision_rejects_timezone_less_created_at():
     archive.manifests[key] = _manifest(dataset, as_of, revision, "2026-09-18T10:00:00", "obj", len(body))
     with pytest.raises(Exception, match="timezone"):
         R2DatasetReader(archive).resolve_latest_revision(dataset, as_of)
+
+
+def test_resolve_revision_rejects_timestamp_as_of():
+    with pytest.raises(Exception, match="ISO YYYY-MM-DD"):
+        R2DatasetReader(FakeArchive()).resolve_revision(
+            "indices/membership/nifty_total_market",
+            "2026-09-18T00:00:00",
+            "a" * 64,
+        )
