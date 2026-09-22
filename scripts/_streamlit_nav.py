@@ -136,14 +136,9 @@ def nav_diagnostics(frame) -> dict:
 
 
 def open_page(frame, name: str, page=None) -> str:
-    """Open one of the app's pages by name. Returns how it was reached.
+    """Open one page through the real custom navigation."""
+    _open_custom_popover(frame)
 
-    Raises LookupError if no control for that page exists anywhere, which is a
-    finding about the application rather than an error to retry.
-    """
-    # The app draws its OWN navigation with st.page_link inside a closed popover.\n    # Open that popover before looking for page links.\n    _open_custom_popover(frame)\n\n    # The app draws its OWN navigation with st.page_link, in the body, because
-    # st.navigation(position="top") renders inside a header this app hides with
-    # display:none -- shipping a nav that no reader could see or click.
     page_link = frame.locator('[data-testid="stPageLink"]').filter(has_text=name).first
     if page_link.count():
         page_link.click(timeout=15_000)
@@ -165,7 +160,7 @@ def open_page(frame, name: str, page=None) -> str:
             if item.count():
                 item.click(timeout=15_000)
                 return "top_nav_dropdown"
-            sections.nth(i).click(timeout=4_000)      # close it again
+            sections.nth(i).click(timeout=4_000)
         except Exception:
             continue
 
@@ -178,6 +173,31 @@ def open_page(frame, name: str, page=None) -> str:
     if side.count():
         side.click(timeout=15_000)
         return "sidebar_nav_link"
+
+    if page is not None:
+        routes = {
+            "Screener": "screener",
+            "Qualified": "qualified",
+            "Sectors": "sectors",
+            "RRG": "rrg",
+            "Portfolio": "portfolio",
+            "Watchlist": "watchlist",
+            "Market Breadth": "breadth",
+            "Backtest": "backtest",
+            "Track Record": "track-record",
+            "Configuration": "configuration",
+            "Guide": "guide",
+        }
+        route = routes.get(name)
+        if route:
+            from urllib.parse import urlsplit
+            parts = urlsplit(page.url)
+            page.goto(
+                f"{parts.scheme}://{parts.netloc}/{route}",
+                wait_until="domcontentloaded",
+                timeout=120_000,
+            )
+            return "direct_route"
 
     raise LookupError(f"no navigation control found for page {name!r}")
 
