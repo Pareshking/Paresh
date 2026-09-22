@@ -5,6 +5,7 @@ on:
     branches: [main, agent/stage4b-execution, agent/stage4b-second-archetype]
     paths-ignore:
       - 'src/storage/**'
+      - 'r2/consumers/**'
       - 'scripts/r2_*.py'
       - 'scripts/build_trading_sessions.py'
       - 'scripts/build_market_cap_history.py'
