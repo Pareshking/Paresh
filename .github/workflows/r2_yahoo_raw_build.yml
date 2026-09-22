@@ -1,0 +1,84 @@
+name: R2 Yahoo Raw Price Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      period:
+        description: "Yahoo acquisition period"
+        required: true
+        default: "10y"
+      publish_r2:
+        description: "Publish the captured raw revision to R2"
+        required: true
+        default: "false"
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build raw unadjusted Yahoo OHLCV
+        env:
+          PYTHONPATH: .
+        run: |
+          python scripts/r2_build_yahoo_raw.py \
+            --output data_cache/prices_yahoo_raw.parquet \
+            --period "\${{ inputs.period }}"
+
+      - name: Verify raw artifact
+        env:
+          PYTHONPATH: .
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          p = "data_cache/prices_yahoo_raw.parquet"
+          f = pd.read_parquet(p)
+          assert isinstance(f.columns, pd.MultiIndex)
+          assert set(f.columns.get_level_values(1)) == {"Open", "High", "Low", "Close", "Volume"}
+          assert len(f) > 0
+          symbols = len(set(f.columns.get_level_values(0)))
+          assert symbols >= 700
+          print(f"RAW_YAHOO_ARTIFACT PASS rows={len(f)} symbols={symbols}")
+          PY
+
+      - name: Publish raw revision to R2
+        if: \${{ inputs.publish_r2 == true }}
+        env:
+          R2_ACCOUNT_ID: \${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: \${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: \${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: \${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: \${{ secrets.R2_BUCKET }}
+          PYTHONPATH: .
+        run: |
+          python scripts/r2_publish.py \
+            --path data_cache/prices_yahoo_raw.parquet \
+            --dataset prices/yahoo/raw \
+            --source yahoo_raw_unadjusted \
+            --key-root archive/prices/yahoo/raw \
+            --pipeline-version "r2-yahoo-raw-\${{ github.sha }}" \
+            --release-tag data-latest
+
+      - name: Upload raw artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: yahoo-raw-ohlcv
+          path: data_cache/prices_yahoo_raw.parquet
+          retention-days: 14
