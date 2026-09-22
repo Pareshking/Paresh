@@ -11,7 +11,7 @@ import re
 
 import pandas as pd
 
-from src.storage.reader import R2DatasetReader, R2DatasetRef
+from src.storage.reader import R2DatasetIntegrityError, R2DatasetReader, R2DatasetRef
 
 
 class R2ResearchConsumerError(ValueError):
@@ -60,7 +60,7 @@ def read_pinned_dataset(
             pin.as_of,
             pin.revision_sha256,
         )
-    except (FileNotFoundError, ValueError) as exc:
+    except (FileNotFoundError, ValueError, R2DatasetIntegrityError) as exc:
         raise R2ResearchConsumerError(str(exc)) from exc
 
     frame = reader.read_parquet(ref)
