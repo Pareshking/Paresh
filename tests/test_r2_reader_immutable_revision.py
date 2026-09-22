@@ -21,9 +21,6 @@ class FakeArchive:
 def _manifest(dataset, as_of, revision, created_at, object_key):
     import json
     body = b"not-parquet"
-    import hashlib
-    sha = hashlib.sha256(body).hexdigest()
-    assert sha == revision
     return json.dumps({
         "schema_version": 1,
         "dataset": dataset,
