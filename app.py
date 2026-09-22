@@ -449,7 +449,7 @@ def load_all_data(indices: list[str]):
             metrics.note("deep_price_provider", "yahoo")
             logger.info(
                 "Deep price history loaded: provider=Yahoo; this feed is separate "
-                "from the ranking Screener/R2 source."
+                "from the ranking Screener/object-storage source."
             )
         if raw_prices.empty:
             return None
