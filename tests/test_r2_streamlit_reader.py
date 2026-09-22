@@ -6,6 +6,7 @@ from r2.consumers.r2_streamlit import (
     configuration_key,
     enabled,
     read_historical,
+    DEEP_HISTORY_DATASET,
 )
 
 
@@ -33,3 +34,7 @@ def test_streamlit_reader_dataset_can_be_configured(monkeypatch):
     monkeypatch.setenv("R2_STREAMLIT_DATASET", "prices/custom")
     assert configured_dataset() == "prices/custom"
     assert configuration_key() == "r2|prices/custom|current"
+
+
+def test_streamlit_reader_deep_history_dataset():
+    assert DEEP_HISTORY_DATASET == "prices/yahoo"
