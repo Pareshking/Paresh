@@ -126,3 +126,10 @@ def test_readiness_is_not_pinned_to_stTabs_any_more():
 
 def test_the_navigator_does_not_reference_the_id_that_never_existed():
     assert 'data-testid="stTopNav"' not in NAV_MODULE.read_text(encoding="utf-8")
+
+
+def test_shared_navigator_opens_the_custom_hamburger():
+    src = NAV_MODULE.read_text(encoding="utf-8")
+    assert "def _open_custom_popover" in src
+    assert 'aria-label="Open navigation"' in src
+    assert '☰' in src

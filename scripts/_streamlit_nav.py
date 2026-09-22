@@ -54,6 +54,24 @@ NAV_DIAGNOSTIC_SELECTORS = NAV_CONTAINERS + (
 )
 
 
+
+def _open_custom_popover(frame) -> bool:
+    """Open the app's custom hamburger navigation when it is collapsed."""
+    selectors = (
+        '[data-testid="stPopover"] button',
+        'button[aria-label="Open navigation"]',
+        'button:has-text("☰")',
+    )
+    for selector in selectors:
+        try:
+            button = frame.locator(selector).first
+            if button.count():
+                button.click(timeout=8_000)
+                return True
+        except Exception:
+            continue
+    return False
+
 def nav_count(frame) -> int:
     """How many of the app's own navigation containers are on screen.
 
@@ -67,6 +85,12 @@ def nav_count(frame) -> int:
             total += frame.locator(sel).count()
         except Exception:
             continue
+    if total == 0 and _open_custom_popover(frame):
+        for sel in NAV_CONTAINERS:
+            try:
+                total += frame.locator(sel).count()
+            except Exception:
+                continue
     return total
 
 
@@ -92,7 +116,7 @@ def open_page(frame, name: str, page=None) -> str:
     Raises LookupError if no control for that page exists anywhere, which is a
     finding about the application rather than an error to retry.
     """
-    # The app draws its OWN navigation with st.page_link, in the body, because
+    # The app draws its OWN navigation with st.page_link inside a closed popover.\n    # Open that popover before looking for page links.\n    _open_custom_popover(frame)\n\n    # The app draws its OWN navigation with st.page_link, in the body, because
     # st.navigation(position="top") renders inside a header this app hides with
     # display:none -- shipping a nav that no reader could see or click.
     page_link = frame.locator('[data-testid="stPageLink"]').filter(has_text=name).first
@@ -142,6 +166,8 @@ def missing_pages(frame, names, page=None) -> list[str]:
     missing on a phone.
     """
     reachable: set[str] = set()
+
+    _open_custom_popover(frame)
 
     for sel in ('[data-testid="stPageLink"]',
                 '[data-testid="stTopNavLink"]',
