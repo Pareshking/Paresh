@@ -1,6 +1,8 @@
 import pandas as pd
 import pytest
 
+from src.storage.reader import R2DatasetIntegrityError
+
 from r2.consumers.r2_research import (
     R2ResearchConsumerError,
     R2ResearchPin,
@@ -80,3 +82,19 @@ def test_pin_from_verified_ref():
         as_of="2026-09-18",
         revision_sha256="b" * 64,
     )
+
+
+def test_integrity_failure_is_exposed_as_consumer_error():
+    class IntegrityReader(FakeReader):
+        def resolve_revision(self, dataset, as_of, revision):
+            raise R2DatasetIntegrityError("manifest mismatch")
+
+    with pytest.raises(R2ResearchConsumerError, match="manifest mismatch"):
+        read_pinned_dataset(
+            IntegrityReader(),
+            pin=R2ResearchPin(
+                dataset="prices/screener",
+                as_of="2026-09-21",
+                revision_sha256="a" * 64,
+            ),
+        )
