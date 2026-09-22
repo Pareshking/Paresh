@@ -57,7 +57,13 @@ jobs:
       - name: Full regression suite
         run: |
           python -m pytest -q \
-            --ignore-glob='test_r2_*.py' \
+            --ignore=tests/test_r2_historical_evidence.py \
+            --ignore=tests/test_r2_live_audit.py \
+            --ignore=tests/test_r2_coverage_audit.py \
+            --ignore=tests/test_r2_dual_publication.py \
+            --ignore=tests/test_r2_reader.py \
+            --ignore=tests/test_r2_historical_consumer.py \
+            --ignore=tests/test_r2_historical_evidence.py \
             --ignore=tests/test_build_trading_sessions.py \
             --ignore=tests/test_market_cap_history.py
 
