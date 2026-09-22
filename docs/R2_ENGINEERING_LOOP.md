@@ -1,6 +1,8 @@
 # R2 Engineering Loop — Phase Tracker
 
-Status: R2 acceptance complete — documentation synchronized 2026-09-22
+Status: **Current production contract — 2026-09-22**
+
+> **This file contains historical engineering notes as well as the current contract. The current contract below takes precedence over older implementation notes. Do not use older “next gate” lists as operational instructions.**
 
 This tracker is the working checklist for the market-data archive. Do not wait on
 the long Screener deep-history acquisition to advance independent engineering
@@ -133,8 +135,8 @@ evidence only. They do not alter V1, System-1, rankings, or the canonical price 
 - [x] Research/backtest reader — separate manifest-pinned consumer adapter; it accepts an explicit dataset/as_of/revision SHA and never falls back to the mutable current pointer. No ranking, price, universe, or Stage-4B logic is moved into R2.
 - [x] Research/backtest live R2 acceptance — Final Acceptance Run 35704396591 passed the live immutable research acceptance against the pinned revision.
 - [x] Controlled research fallback — explicit opt-in local/release artifact fallback; no silent fallback and no R2 write-back.
-- [x] Streamlit reader boundary behind a feature flag — disabled by default and requires an explicit immutable research pin when enabled.
-- [x] Controlled fallback to release/local artifacts — explicit opt-in fallback is implemented and SHA-provenance is returned.
+- [x] Streamlit reader boundary behind a feature flag — disabled by default; when enabled for production it follows the latest validated `current.json` revision for `prices/screener`.
+- [x] Controlled fallback to release/local artifacts — research consumers may use explicit opt-in fallback; the production Streamlit reader does **not** silently fall back.
 - [x] Manifest-pinned research runs — immutable pin adapter implemented and live acceptance verified by Final Acceptance Run 35704396591.
 - [x] Point-in-time membership consumer contract — isolated under `r2/consumers/`, fail-closed on unknown coverage and duplicate active intervals.
 - [x] Live point-in-time universe reconstruction acceptance — Final Acceptance Run 35704396591 passed live PIT membership acceptance.
@@ -152,6 +154,38 @@ R2 and V1/Stage-4B are now separate CI tracks.
 - This removes Stage-4B latency/failure coupling from the V1/R2 engineering loop without deleting or weakening any Stage-4B executable checks.
 
 This is intentional: R2 acceptance is based on R2 evidence. SANSERA, ANANDRATHI, PAYTM, YATHARTH, and LENSKART are V1/Stage-4B research workloads and are not R2 acceptance tests.
+
+## Current production contract — Streamlit R2 read path
+
+The production Streamlit R2 reader is a **daily-current consumer**, not a manually pinned deployment.
+
+- Feature flag: `R2_STREAMLIT_READER_ENABLED`.
+- Dataset: `R2_STREAMLIT_DATASET`, default `prices/screener`.
+- When enabled, the reader resolves the latest accepted `current.json` pointer and then reads the referenced immutable revision.
+- The immutable revision SHA is still the historical identity of the exact bytes consumed, but it is **not** a Streamlit secret that must be changed every day.
+- The daily Screener publication creates/preserves an immutable revision and advances `current.json` after validation.
+- Streamlit cache TTL allows the application to pick up the newly published daily revision without editing deployment configuration.
+- A read/integrity failure fails closed. The application does not silently switch to Yahoo or another source.
+- Research/backtest consumers remain explicitly pinned to dataset/as_of/revision SHA and do **not** use `current.json`.
+
+This distinction is intentional:
+
+```
+Production Streamlit:
+current.json -> latest validated immutable revision -> live app
+
+Research/reproducibility:
+explicit SHA -> exact immutable revision -> reproducible run
+```
+
+Deployment configuration therefore requires only the existing five R2 credentials plus:
+
+```toml
+R2_STREAMLIT_READER_ENABLED = "1"
+R2_STREAMLIT_DATASET = "prices/screener"
+```
+
+No daily `R2_STREAMLIT_AS_OF` or `R2_STREAMLIT_REVISION_SHA256` is required.
 
 ## F. Operations / governance
 
