@@ -1,5 +1,6 @@
 """Executable contracts for Section-C historical evidence bootstrap."""
 
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -47,8 +48,7 @@ def test_confirmed_trading_sessions_preserve_sparse_source_contract(tmp_path):
     ]
     assert frame["is_session"].all()
     assert frame["date"].is_monotonic_increasing
-    source = pd.read_json(ROOT / "data/nse_trading_days.json") if False else None
-    payload = __import__("json").loads((ROOT / "data/nse_trading_days.json").read_text())
+    payload = json.loads((ROOT / "data/nse_trading_days.json").read_text())
     expected_dates = sorted(set(payload.get("trading_days", [])))
     assert len(frame) == len(expected_dates)
     assert frame["date"].dt.strftime("%Y-%m-%d").tolist() == expected_dates
