@@ -185,7 +185,7 @@ contract for archive continuity/read-coverage checks.
 4. Use the controlled fallback only when explicitly authorized and record its source SHA.
 5. Continue scheduled recovery and cost-observability audits.
 6. Keep Stage-4B on its independent validation track; reattach it to V1 only after its research gate is deliberately ready.
-6. Keep the Yahoo raw-price rebuild parked until the R2 consumer layer is stable.
+6. Continue Section D raw Yahoo reproducibility: real acquisition, R2 publication/read-back, retry/idempotency, then equivalence evidence before any consumer migration.
 
 
 ## Verified production milestones — 2026-09-21
