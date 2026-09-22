@@ -11,8 +11,13 @@ from pathlib import Path
 import hashlib
 import pandas as pd
 
-from r2.consumers.r2_research import R2ResearchDataset, R2ResearchPin, read_pinned_dataset
-from src.storage.reader import R2DatasetReader
+from r2.consumers.r2_research import (
+    R2ResearchConsumerError,
+    R2ResearchDataset,
+    R2ResearchPin,
+    read_pinned_dataset,
+)
+from src.storage.reader import R2DatasetIntegrityError, R2DatasetReader
 
 
 class R2ResearchFallbackError(ValueError):
@@ -50,7 +55,7 @@ def read_with_explicit_fallback(
             pin=pin,
             sha256=pin.revision_sha256,
         )
-    except Exception as r2_error:
+    except (R2ResearchConsumerError, R2DatasetIntegrityError, FileNotFoundError, ValueError) as r2_error:
         if not fallback_path:
             raise R2ResearchFallbackError(
                 f"pinned R2 read failed and no fallback was authorized: {r2_error}"
