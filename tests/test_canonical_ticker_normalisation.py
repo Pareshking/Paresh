@@ -30,6 +30,11 @@ def test_symbols_normalise(raw, want):
     assert normalise_symbol(raw) == want
 
 
+def test_heg_symbol_migration_uses_the_same_canonical_security_label():
+    assert normalise_symbol("HEGAM") == "HEG"
+    assert normalise_symbol("HEGAM.NS") == "HEG"
+
+
 def test_case_is_folded_before_the_suffix_is_stripped():
     """The bug every inline copy shared.
 
