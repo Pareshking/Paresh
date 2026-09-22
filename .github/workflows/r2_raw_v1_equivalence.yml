@@ -32,7 +32,6 @@ jobs:
       - name: Download exact Yahoo raw artifact
         uses: actions/download-artifact@v4
         with:
-          name: yahoo-raw-ohlcv
           path: data_cache
           github-token: ${{ github.token }}
           run-id: ${{ inputs.source_run_id }}
