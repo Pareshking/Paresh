@@ -107,3 +107,8 @@ def test_only_a_literal_ok_body_counts_as_healthy():
     src = inspect.getsource(production_qa.http_probe)
     assert '"app_health"' in src
     assert 'body.strip().lower().startswith("ok")' in src
+
+
+def test_current_production_shell_is_ready_without_nav_dom():
+    body = "Paresh Patel ● BEARISH NIFTY ₹22,794 (-0.9% 200D) Universe: 749 >50 EMA: 297"
+    assert _state(body, stTabs=0) == "ready"
