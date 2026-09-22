@@ -127,7 +127,13 @@ def build(output: Path, start: date, end: date) -> dict:
 
     parts = []
     for key, name in INDEX_NAMES.items():
-        rows = _fetch_range(session, name, start, end)
+        rows = []
+        cursor = start
+        while cursor <= end:
+            chunk_end = min(end, cursor + timedelta(days=364))
+            rows.extend(_fetch_range(session, name, cursor, chunk_end))
+            cursor = chunk_end + timedelta(days=1)
+            time.sleep(1.0)
         frame = pd.DataFrame(rows)
         if frame.empty:
             raise RuntimeError(f"NSE returned no history for {name}")
@@ -143,7 +149,6 @@ def build(output: Path, start: date, end: date) -> dict:
         if not frame["date"].is_monotonic_increasing:
             raise RuntimeError(f"{name}: dates are not monotonic")
         parts.append(frame)
-        time.sleep(1.0)
 
     result = pd.concat(parts, ignore_index=True)
     output.parent.mkdir(parents=True, exist_ok=True)
