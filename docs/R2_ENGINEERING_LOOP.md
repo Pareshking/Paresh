@@ -318,3 +318,26 @@ The next engineering loop should focus on remaining R2 provenance/operational ha
 **R2 implementation and acceptance are complete.** Bootstrap Run 35703827204 and Final Acceptance Run 35704396591 passed on live R2. PRs #92–#100 subsequently hardened the immutable PIT/research consumers, manifest validation, recovery audit, and publication provenance. These are hardening changes only; they do not open a new R2 implementation phase.
 
 The engineering plan is now deliberately stopped at the production boundary: R2 is the accepted historical-data/evidence substrate, while Streamlit/System-1 remains on the canonical Screener path. A future R2 application migration is a separate project requiring equivalence, fallback, deployment, and production gates. No further R2 micro-PRs should be created merely to add tests or refactor already-accepted contracts.
+
+
+## Production Streamlit read path — implementation started 2026-09-22
+
+The application read path is now implemented behind an explicit immutable R2 pin.
+
+- `R2_STREAMLIT_READER_ENABLED` defaults OFF.
+- When enabled, the app reads `prices/screener` through `R2DatasetReader` using an explicit `as_of` and 64-character revision SHA.
+- The cache identity includes the full immutable pin.
+- An archive read failure fails closed; the app does not silently switch to Yahoo.
+- The existing Screener URL path remains the default while the migration gate is closed.
+- GitHub Actions now has a real-credential read-path gate that compares the archive frame with the canonical Screener release artifact and validates the same `from_screener` transformation.
+
+### Remaining production action
+
+The code gate is complete. The remaining action is deployment configuration on the existing Streamlit app: provide the existing R2 credentials through Streamlit secrets, set the four `R2_STREAMLIT_*` variables, restart, and observe the live app. Do not enable the flag until the immutable pin matches the currently published Screener revision.
+
+First production pin:
+- dataset: `prices/screener`
+- as_of: `2026-09-21`
+- revision: `df03ed6d6fb9c8ca963c4f3fb3b73386c43e6f106cc9a3307d7b693cf80455dd`
+
+This migration changes only the source of the existing Screener dataframe. It does not change System-1 formulas, ranking weights, benchmark, universe, corporate-action methodology, or Stage-4B logic.
