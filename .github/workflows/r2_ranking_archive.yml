@@ -1,0 +1,63 @@
+name: R2 ranking calculation archive
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "45 20 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - name: Download canonical ranking calculation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/r2-ranking
+          gh release download data-latest --repo "$GITHUB_REPOSITORY" --pattern "rankings.parquet" --dir /tmp/r2-ranking --clobber
+          test -s /tmp/r2-ranking/rankings.parquet
+      - name: Validate ranking artifact
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          from src.loaders.ranking_store import read_snapshot
+          frame, contract = read_snapshot('/tmp/r2-ranking/rankings.parquet')
+          assert frame is not None and not frame.empty
+          assert contract is not None
+          assert contract.get('pipeline_version')
+          assert contract.get('price_source')
+          assert contract.get('price_as_of')
+          print('RANKING_ARCHIVE_CONTRACT=PASS')
+          print(f"RANKING_ROWS={len(frame)}")
+          print(f"RANKING_AS_OF={contract['price_as_of']}")
+          print(f"RANKING_PIPELINE={contract['pipeline_version']}")
+          PY
+      - name: Publish immutable ranking calculation to R2
+        run: |
+          python scripts/r2_publish.py \
+            --path /tmp/r2-ranking/rankings.parquet \
+            --dataset calculations/rankings \
+            --source canonical_system1_ranking \
+            --key-root archive/calculations/rankings \
+            --pipeline-version r2_ranking_archive_${{ github.sha }} \
+            --release-tag data-latest
+      - name: Audit published ranking calculation
+        run: |
+          python scripts/r2_audit.py --dataset calculations/rankings --as-of "$(python -c 'from src.loaders.ranking_store import read_snapshot; _,c=read_snapshot("/tmp/r2-ranking/rankings.parquet"); print(c["price_as_of"])')"
