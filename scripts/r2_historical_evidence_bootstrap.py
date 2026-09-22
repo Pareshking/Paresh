@@ -21,7 +21,7 @@ INDEX_FILES = {
     "nifty_next50": ROOT / "data/indices/ind_niftynext50list.csv",
     "nifty_midcap150": ROOT / "data/indices/ind_niftymidcap150list.csv",
     "nifty_smallcap250": ROOT / "data/indices/ind_niftysmallcap250list.csv",
-    "nifty_microcap250": ROOT / "data/indices/ind_niftymicrocap250list.csv",
+    "nifty_microcap250": ROOT / "data/indices/ind_niftymicrocap250_list.csv",
     "nifty_total_market": ROOT / "data/indices/ind_niftytotalmarket_list.csv",
 }
 
