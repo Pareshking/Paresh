@@ -177,7 +177,6 @@ def main() -> int:
             include_working_tree=not args.dry_run,
             write=not args.dry_run,
         )
-        )
         print(
             f"{name}: {summary['first']} -> {summary['last']} "
             f"changes={summary['snapshots_with_changes']} "
