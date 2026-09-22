@@ -1068,6 +1068,7 @@ def main() -> None:
                         try:
                             open_page(frame, "Configuration", page)
                             page.wait_for_timeout(1_800)
+                            frame = app_frame(page)
                             ev = audit_configuration(page, frame)
                             vp["configuration"] = ev
                             failures.extend(judge_configuration(name, ev))

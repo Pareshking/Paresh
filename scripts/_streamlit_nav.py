@@ -210,6 +210,7 @@ def open_page(frame, name: str, page=None) -> str:
         }
         route = routes.get(name)
         if route:
+            _close_custom_popover(frame)
             from urllib.parse import urlsplit
             parts = urlsplit(page.url)
             page.goto(
