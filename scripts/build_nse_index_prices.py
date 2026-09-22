@@ -15,6 +15,8 @@ import pandas as pd
 import json
 
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from io import StringIO
 import requests
 try:
     from curl_cffi import requests as curl_requests
@@ -73,6 +75,52 @@ def _field(row, *names):
     return None
 
 
+def _fetch_archive_day(day: date) -> list[dict]:
+    url = f"https://archives.nseindia.com/content/indices/ind_close_all_{day:%d%m%Y}.csv"
+    headers = {
+        "User-Agent": HEADERS["User-Agent"],
+        "Accept": "text/csv,*/*",
+        "Referer": "https://www.nseindia.com/",
+    }
+    response = requests.get(url, headers=headers, timeout=30)
+    if response.status_code != 200 or not response.content.strip():
+        return []
+    frame = pd.read_csv(StringIO(response.text))
+    frame.columns = [str(x).strip() for x in frame.columns]
+    name_col = next((x for x in ("Index Name", "Index Name ") if x in frame.columns), None)
+    if name_col is None:
+        return []
+    wanted = set(INDEX_NAMES.values())
+    rows = []
+    for _, row in frame.iterrows():
+        name = str(row[name_col]).strip()
+        if name not in wanted:
+            continue
+        rows.append(
+            {
+                "date": pd.Timestamp(day),
+                "index_name": name,
+                "open": _number(row.get("Open")),
+                "high": _number(row.get("High")),
+                "low": _number(row.get("Low")),
+                "close": _number(row.get("Close")),
+            }
+        )
+    return rows
+
+
+def _fetch_archive_range(start: date, end: date) -> list[dict]:
+    days = pd.date_range(start, end, freq="B").date
+    rows = []
+    with ThreadPoolExecutor(max_workers=16) as pool:
+        futures = {pool.submit(_fetch_archive_day, day): day for day in days}
+        for future in as_completed(futures):
+            try:
+                rows.extend(future.result())
+            except requests.RequestException:
+                continue
+    return rows
+
 def _fetch_range(session, index_name: str, start: date, end: date):
     inner = (
         "{'name':'" + index_name +
@@ -122,47 +170,35 @@ def _fetch_range(session, index_name: str, start: date, end: date):
 
 
 def build(output: Path, start: date, end: date) -> dict:
-    session = curl_requests.Session(impersonate="chrome") if curl_requests else requests.Session()
-    session.headers.update(HEADERS)
-    session.get(
-        "https://www.niftyindices.com/reports/historical-data",
-        headers=HEADERS,
-        timeout=15,
+    rows = _fetch_archive_range(start, end)
+    frame = pd.DataFrame(rows)
+    if frame.empty:
+        raise RuntimeError("NSE daily index archive returned no rows")
+
+    frame["index"] = frame["index_name"].map(
+        {name: key for key, name in INDEX_NAMES.items()}
     )
-
-    parts = []
-    for key, name in INDEX_NAMES.items():
-        rows = []
-        cursor = start
-        while cursor <= end:
-            chunk_end = min(end, cursor + timedelta(days=364))
-            rows.extend(_fetch_range(session, name, cursor, chunk_end))
-            cursor = chunk_end + timedelta(days=1)
-            time.sleep(1.0)
-        frame = pd.DataFrame(rows)
-        if frame.empty:
-            raise RuntimeError(f"NSE returned no history for {name}")
-        frame["index"] = key
-        frame["source"] = "NSE Indices historical data"
-        frame["evidence_date"] = pd.Timestamp(end)
-        frame = frame.drop_duplicates(["index", "date"], keep="last")
-        frame = frame[
-            ["date", "index", "open", "high", "low", "close", "source", "evidence_date"]
-        ].sort_values("date")
-        if frame["close"].isna().any():
-            raise RuntimeError(f"{name}: null close values in NSE history")
-        if not frame["date"].is_monotonic_increasing:
-            raise RuntimeError(f"{name}: dates are not monotonic")
-        parts.append(frame)
-
-    result = pd.concat(parts, ignore_index=True)
+    frame = frame.dropna(subset=["index"])
+    frame["source"] = "NSE daily index archive"
+    frame["evidence_date"] = pd.Timestamp(end)
+    frame = frame.drop_duplicates(["index", "date"], keep="last")
+    frame = frame[
+        ["date", "index", "open", "high", "low", "close", "source", "evidence_date"]
+    ].sort_values(["index", "date"])
+    expected = set(INDEX_NAMES)
+    actual = set(frame["index"])
+    missing = expected - actual
+    if missing:
+        raise RuntimeError(f"NSE index archive missing indices: {sorted(missing)}")
+    if frame["close"].isna().any():
+        raise RuntimeError("NSE index archive contains null close values")
     output.parent.mkdir(parents=True, exist_ok=True)
-    result.to_parquet(output, index=False)
+    frame.to_parquet(output, index=False)
     summary = {
-        "rows": len(result),
-        "indices": int(result["index"].nunique()),
-        "first_date": str(result["date"].min().date()),
-        "last_date": str(result["date"].max().date()),
+        "rows": len(frame),
+        "indices": int(frame["index"].nunique()),
+        "first_date": str(frame["date"].min().date()),
+        "last_date": str(frame["date"].max().date()),
     }
     print(summary)
     return summary
