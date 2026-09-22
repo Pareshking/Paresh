@@ -43,6 +43,7 @@ def _archive_for_current(body=b"parquet-bytes"):
         "revision_sha256": sha,
         "size_bytes": len(body),
         "object_key": object_key,
+        "created_at": "2026-09-21T00:00:00Z",
     }
     pointer = {
         "dataset": dataset,
@@ -104,3 +105,23 @@ def test_reader_rejects_manifest_revision_mismatch():
     reader = R2DatasetReader(archive)
     with pytest.raises(R2DatasetIntegrityError, match="manifest .*SHA"):
         reader.resolve_current(dataset, as_of=as_of)
+
+
+def test_reader_rejects_invalid_manifest_as_of():
+    archive, dataset, as_of, _ = _archive_for_current()
+    manifest_key = next(k for k in archive.objects if "/revisions/" in k and k.endswith(".json"))
+    manifest = json.loads(archive.objects[manifest_key])
+    manifest["as_of"] = "2026-09-21T00:00:00"
+    archive.objects[manifest_key] = json.dumps(manifest).encode()
+    with pytest.raises(R2DatasetIntegrityError, match="manifest as_of"):
+        R2DatasetReader(archive).resolve_current(dataset, as_of=as_of)
+
+
+def test_reader_rejects_missing_manifest_created_at():
+    archive, dataset, as_of, _ = _archive_for_current()
+    manifest_key = next(k for k in archive.objects if "/revisions/" in k and k.endswith(".json"))
+    manifest = json.loads(archive.objects[manifest_key])
+    manifest.pop("created_at", None)
+    archive.objects[manifest_key] = json.dumps(manifest).encode()
+    with pytest.raises(R2DatasetIntegrityError, match="created_at"):
+        R2DatasetReader(archive).resolve_current(dataset, as_of=as_of)
