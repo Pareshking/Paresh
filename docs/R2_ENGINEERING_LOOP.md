@@ -121,6 +121,7 @@ Source design is documented in `docs/RAW_PRICE_REBUILD.md`.
 - [x] R2 read adapter for analytical datasets — manifest-pinned `R2DatasetReader` resolves current or explicit revisions and verifies manifest identity, HEAD size, object SHA, and byte size.
 - [x] Research/backtest reader — separate manifest-pinned consumer adapter; it accepts an explicit dataset/as_of/revision SHA and never falls back to the mutable current pointer. No ranking, price, universe, or Stage-4B logic is moved into R2.
 - [ ] Research/backtest live R2 acceptance — requires a real R2 dataset/revision pin and read-back execution.
+- [x] Controlled research fallback — explicit opt-in local/release artifact fallback; no silent fallback and no R2 write-back.
 - [ ] Streamlit reader behind a feature flag.
 - [ ] Controlled fallback to release/local artifacts.
 - [ ] Manifest-pinned research runs.
@@ -147,7 +148,7 @@ This is intentional: R2 acceptance is based on R2 evidence. SANSERA, ANANDRATHI,
 - [x] Coverage/continuity observability — scheduled observed-session continuity audit added; it reconstructs the canonical release dataset and fails closed on duplicate, unsorted, non-NSE, or non-session rows.
 - [x] Failure/recovery tests — current-pointer full read-back recovery audit and unit coverage are implemented; live scheduled recovery execution remains to be evidenced.
 - [x] Retention policy before any deletion mechanism — documented as retain indefinitely until explicit recovery/reproducibility prerequisites are met.
-- [ ] R2 request/storage cost monitoring.
+- [x] R2 request/storage cost observability — read-only manifest inventory reports immutable revision count/bytes and audit-derived LIST/HEAD operations; provider billing remains external.
 - [x] Document recovery procedure from R2 alone — `docs/R2_RECOVERY_AND_RETENTION.md`.
 
 ## Operating rule
@@ -175,7 +176,9 @@ contract for archive continuity/read-coverage checks.
 1. Keep the verified Screener, observed-session, and dated-market-cap publications
    under routine audit; do not rerun the long 10Y acquisition for engineering work.
 2. Complete live PIT membership acceptance through the dedicated R2 consumer workflow.
-3. Continue R2 consumer work: live PIT acceptance, manifest-pinned research/backtest execution, controlled fallback, and reproducibility gates.
+3. Complete live manifest-pinned research/backtest acceptance using an explicit revision pin.
+4. Use the controlled fallback only when explicitly authorized and record its source SHA.
+5. Continue scheduled recovery and cost-observability audits.
 4. Keep Stage-4B on its independent validation track; reattach it to V1 only after its research gate is deliberately ready.
 5. Finish live recovery and cost monitoring gates.
 6. Keep the Yahoo raw-price rebuild parked until the R2 consumer layer is stable.
