@@ -84,7 +84,7 @@ jobs:
               if required not in v1:
                   raise SystemExit(f"V1 isolation missing required R2 path: {required}")
           if "Stage-4B" in v1:
-              raise SystemExit("Stage-4B execution remains coupled to V1")
+              raise SystemExit("Research execution remains coupled to V1")
           if not Path(".github/workflows/stage4b-independent-validation.yml").exists():
               raise SystemExit("Independent Stage-4B workflow is missing")
 
