@@ -73,6 +73,16 @@ jobs:
             python scripts/r2_publish.py               --path "$f"               --dataset "indices/membership/$index"               --source repository_membership_history               --key-root "archive/indices/membership/$index"               --pipeline-version r2_historical_evidence_v1               --release-tag data-latest
           done
 
+      - name: Publish point-in-time combined universe
+        run: |
+          python scripts/r2_publish.py \
+            --path /tmp/r2-evidence/point_in_time_universe.parquet \
+            --dataset universes/point_in_time \
+            --source repository_index_membership_history \
+            --key-root archive/universes/point_in_time \
+            --pipeline-version r2_historical_evidence_v1 \
+            --release-tag data-latest
+
       - name: Publish historical sector and industry classification
         run: |
           python scripts/r2_publish.py \
