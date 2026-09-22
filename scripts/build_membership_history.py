@@ -90,7 +90,7 @@ def build_history(
 
     history_file = Path(history_path)
     history = load_history(history_file) if history_file.exists() else empty_history()
-    history["index"] = path.split("/")[-1].removeprefix("ind_").removesuffix("list.csv")
+    history["index"] = index_name
 
     added = 0
     skipped = 0
@@ -173,7 +173,7 @@ def main() -> int:
         summary = build_history(
             path,
             target,
-            include_working_tree=not args.dry_run,
+            index_name=name,\n            include_working_tree=not args.dry_run,\n            write=not args.dry_run,
         )
         print(
             f"{name}: {summary['first']} -> {summary['last']} "
