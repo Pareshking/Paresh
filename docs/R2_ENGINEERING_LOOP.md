@@ -142,11 +142,11 @@ This is intentional: R2 acceptance is based on R2 evidence. SANSERA, ANANDRATHI,
 ## F. Operations / governance
 
 - [x] Archive inventory/audit report — read-only inventory tool and scheduled/manual workflow live-verified successfully (Run ID 35642709261).
-- [ ] Coverage/continuity observability — tooling exists; scheduled/live continuity gate remains to be added.
+- [x] Coverage/continuity observability — scheduled observed-session continuity audit added; it reconstructs the canonical release dataset and fails closed on duplicate, unsorted, non-NSE, or non-session rows.
 - [x] Failure/recovery tests — current-pointer full read-back recovery audit and unit coverage are implemented; live scheduled recovery execution remains to be evidenced.
-- [ ] Retention policy before any deletion mechanism.
+- [x] Retention policy before any deletion mechanism — documented as retain indefinitely until explicit recovery/reproducibility prerequisites are met.
 - [ ] R2 request/storage cost monitoring.
-- [ ] Document recovery procedure from R2 alone.
+- [x] Document recovery procedure from R2 alone — `docs/R2_RECOVERY_AND_RETENTION.md`.
 
 ## Operating rule
 
@@ -175,7 +175,7 @@ contract for archive continuity/read-coverage checks.
 2. Complete live PIT membership acceptance through the dedicated R2 consumer workflow.
 3. Build the manifest-pinned research/backtest reader without changing System-1 or Stage-4B.
 4. Add controlled fallback and reproducibility gates before any consumer migration.
-5. Finish operational continuity, live recovery, retention, and cost gates.
+5. Finish live recovery and cost monitoring gates.
 6. Keep the Yahoo raw-price rebuild parked until the R2 consumer layer is stable.
 
 
