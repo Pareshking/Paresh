@@ -315,7 +315,7 @@ def _fetch_screener_store(_k: str, source_key: str):
         metrics.note("screener_store_as_of", pin.as_of)
         metrics.note("screener_store_revision", pin.revision_sha256)
         logger.info(
-            "Screener ranking store: source=R2 dataset=%s as_of=%s revision=%s",
+            "Screener ranking store: source=object_storage dataset=%s as_of=%s revision=%s",
             pin.dataset,
             pin.as_of,
             pin.revision_sha256,
