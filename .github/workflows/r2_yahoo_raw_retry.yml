@@ -54,6 +54,13 @@ jobs:
           run-id: ${{ inputs.source_run_id }}
           artifact-ids: ${{ inputs.source_artifact_id }}
 
+      - name: Normalize downloaded raw artifact path
+        run: |
+          set -euo pipefail
+          matches=($(find data_cache -type f -name 'prices_yahoo_raw.parquet' -print))
+          test "${#matches[@]}" -eq 1
+          mv "${matches[0]}" data_cache/prices_yahoo_raw.parquet
+
       - name: Verify exact source artifact
         run: |
           python - <<'PY'
