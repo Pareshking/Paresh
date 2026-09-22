@@ -62,3 +62,18 @@ def test_recovery_revalidates_every_immutable_revision():
     assert result["immutable_revisions"] == 1
     assert len(result["immutable_verified"]) == 1
     assert result["immutable_verified"][0]["revision_sha256"] == "b" * 64
+
+
+
+def test_manifest_contract_excludes_only_creation_timestamp():
+    from scripts.r2_publish import _immutable_manifest_contract
+    manifest = {
+        "dataset": "d",
+        "pipeline_version": "v1",
+        "ranking_contract": {"universe": ["A"]},
+        "created_at": "2026-09-22T00:00:00+00:00",
+    }
+    contract = _immutable_manifest_contract(manifest)
+    assert "created_at" not in contract
+    assert contract["pipeline_version"] == "v1"
+    assert contract["ranking_contract"] == {"universe": ["A"]}
