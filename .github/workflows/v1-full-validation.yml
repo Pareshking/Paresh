@@ -21,6 +21,7 @@ on:
   pull_request:
     branches: [main]
     paths-ignore:
+      - 'r2/raw/**'
       - 'src/storage/**'
       - 'scripts/r2_*.py'
       - 'scripts/build_trading_sessions.py'
