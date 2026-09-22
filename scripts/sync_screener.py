@@ -54,6 +54,31 @@ def _drop_unsettled(frame: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
     return frame.loc[keep], dropped
 
 
+def current_universe_delta(current_symbols: list[str], stored_symbols: list[str]) -> tuple[list[str], list[str]]:
+    """Return (new_current, exited) using symbol identity only.
+
+    Index reclassification is deliberately invisible here: if a symbol already
+    exists in the Screener store, moving from SMALL250 to MID150 is not a new
+    security and must not trigger a historical download. Conversely, a symbol
+    newly present in the authoritative NSE universe is an acquisition event,
+    even when another old symbol for the same index has disappeared.
+    """
+    current = {str(s).strip().upper() for s in current_symbols if str(s).strip()}
+    stored = {str(s).strip().upper() for s in stored_symbols if str(s).strip()}
+    return sorted(current - stored), sorted(stored - current)
+
+
+def _concat_fresh(*frames: pd.DataFrame) -> pd.DataFrame:
+    """Combine independent Screener fetches without manufacturing columns."""
+    usable = [frame for frame in frames if frame is not None and not frame.empty]
+    if not usable:
+        return pd.DataFrame()
+    result = pd.concat(usable, axis=1)
+    if result.columns.duplicated().any():
+        result = result.loc[:, ~result.columns.duplicated(keep="last")]
+    return result.sort_index()
+
+
 def run() -> int:
     started = datetime.now()
     print(f"[{started:%Y-%m-%d %H:%M:%S}] Screener sync starting…")
@@ -65,10 +90,53 @@ def run() -> int:
     symbols = sorted(universe_df["Symbol"].dropna().unique().tolist())
     print(f"Universe: {len(symbols)} symbols")
 
+    stored = sl.load_store()
+    stored_closes = sl.closes(stored)
+    stored_symbols = stored_closes.columns.astype(str).str.strip().str.upper().tolist() if not stored_closes.empty else []
+    new_current, exited = current_universe_delta(symbols, stored_symbols)
+    print(f"Stored Screener symbols: {len(set(stored_symbols))}")
+    print(f"New current symbols requiring history: {len(new_current)}")
+    if new_current:
+        print(f"  FORCED Screener historical acquisition: {new_current}")
+    print(f"Exited current symbols (history retained, no further acquisition): {len(exited)}")
+
     ids = sl.load_ids()
     print(f"Known company ids: {len(ids)} (the rest resolve on first sight)")
 
-    frame, ids, unresolved = sl.fetch_universe(symbols, ids=ids, delay_s=SCREENER_DELAY_S)
+    # A newly arrived current symbol gets its own acquisition pass first. This
+    # is intentionally separate from the ordinary nightly sweep: it makes
+    # universe churn a hard data-integrity gate rather than something that can
+    # be missed because a later broad fetch was partial or rate-limited.
+    forced = pd.DataFrame()
+    forced_unresolved: list[str] = []
+    if new_current:
+        forced, ids, forced_unresolved = sl.fetch_universe(
+            new_current, ids=ids, delay_s=SCREENER_DELAY_S
+        )
+        forced_fetched = sl.closes(forced).columns.astype(str).str.upper().tolist() if not forced.empty else []
+        still_missing = sorted(set(new_current) - set(forced_fetched))
+        if still_missing:
+            print(
+                "[ERROR] New current symbols were not acquired from Screener: "
+                f"{still_missing}"
+            )
+            if forced_unresolved:
+                print(f"  unresolved: {forced_unresolved}")
+            return 2
+        print(f"  Forced acquisition complete: {len(forced_fetched)}/{len(new_current)} symbols")
+
+    # Existing current symbols continue through the normal paced sweep. New
+    # symbols are excluded because they were already fetched above; this avoids
+    # doubling requests while preserving the explicit forced-acquisition gate.
+    regular_symbols = [symbol for symbol in symbols if symbol not in set(new_current)]
+    frame_regular = pd.DataFrame()
+    unresolved: list[str] = []
+    if regular_symbols:
+        frame_regular, ids, unresolved = sl.fetch_universe(
+            regular_symbols, ids=ids, delay_s=SCREENER_DELAY_S
+        )
+    frame = _concat_fresh(forced, frame_regular)
+    unresolved = forced_unresolved + unresolved
     sl.save_ids(ids)
     print(f"Fetched {frame.shape[1] // 2 if not frame.empty else 0} symbols; "
           f"{len(unresolved)} unresolved")
