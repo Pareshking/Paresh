@@ -228,7 +228,7 @@ No V1 consumer has been switched to raw Yahoo prices. Equivalence and migration 
 
 1. **R2 acceptance is complete.** Bootstrap Run 35703827204 and Final Acceptance Run 35704396591 are green.
 2. Keep the published Screener, PIT membership, observed-session, market-cap, and corporate-action datasets under routine audit.
-3. Use the manifest-pinned R2 reader for research/backtest work where historical reproducibility is required; do not silently replace the canonical production price path.
+3. Use the manifest-pinned R2 reader for research/backtest work where historical reproducibility is required; research remains explicitly SHA-pinned. Streamlit production, when enabled, follows the validated R2 current pointer.
 4. Streamlit R2 production consumption is implemented behind its separate feature flag and equivalence gate. When enabled, it follows the validated daily `current.json` revision; when disabled, the canonical existing Screener path remains unchanged.
 5. Continue Stage-4B independently.
 6. Yahoo remains parked optional evidence.
