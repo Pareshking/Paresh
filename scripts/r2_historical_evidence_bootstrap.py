@@ -70,7 +70,7 @@ def build_constituents(output_dir: Path) -> list[Path]:
     return out
 
 
-def _membership_intervals(history: dict[str, Any]) -> pd.DataFrame:
+def _membership_intervals(history: dict[str, Any], index_name: str | None = None) -> pd.DataFrame:
     baseline = history.get("baseline")
     if not baseline:
         raise RuntimeError("membership history has no baseline")
@@ -91,7 +91,7 @@ def _membership_intervals(history: dict[str, Any]) -> pd.DataFrame:
                 raise RuntimeError(f"membership removal without active start: {symbol}")
             rows.append(
                 {
-                    "index": "nifty_total_market",
+                    "index": index_name or "nifty_total_market",
                     "symbol": symbol,
                     "effective_from": start.isoformat(),
                     "effective_to": (effective - timedelta(days=1)).isoformat(),
@@ -114,7 +114,7 @@ def _membership_intervals(history: dict[str, Any]) -> pd.DataFrame:
     for symbol in sorted(state):
         rows.append(
             {
-                "index": "nifty_total_market",
+                "index": index_name or "nifty_total_market",
                 "symbol": symbol,
                 "effective_from": starts[symbol].isoformat(),
                 "effective_to": None,
@@ -153,7 +153,7 @@ def build_membership(output_dir: Path) -> list[Path]:
             include_working_tree=True,
             write=False,
         )
-        frame = _membership_intervals(summary["history"])
+        frame = _membership_intervals(summary["history"], index_name=index)
         path = output_dir / f"membership_{index}.parquet"
         frame.to_parquet(path, index=False)
         paths.append(path)
