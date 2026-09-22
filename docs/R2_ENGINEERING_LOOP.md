@@ -366,6 +366,23 @@ The Streamlit R2 production reader now follows the **latest validated `current.j
 - The Streamlit cache is time-limited, so a daily publication is picked up automatically without editing Streamlit secrets.
 - The real-credential production gate compares the live current R2 revision with the canonical Screener release artifact and validates the same `from_screener` transformation.
 
+### Two distinct price feeds in the Streamlit process
+
+The production application intentionally has **two different price-data roles**:
+
+1. **Ranking feed:** when the R2 reader is enabled, the Screener ranking dataframe is read from R2 via `current.json`. This is the price source named by the ranking contract and by `price_source`.
+2. **Deep-history feed:** the existing `fetch_price_history()` path still loads the Yahoo-backed local price cache. It supplies longer history needed by backtest/track-record pages and is not evidence that the ranking used Yahoo.
+
+Therefore a cold-start log may legitimately contain a Yahoo/snapshot download even while the front-page ranking is R2-backed. The authoritative provenance line is:
+
+`Ranking price source selected: source=r2 ...`
+
+and the R2 revision is logged separately as:
+
+`Screener ranking store: source=R2 dataset=prices/screener as_of=... revision=...`
+
+When R2 is disabled, the corresponding ranking line is `source=screener` and the store line identifies `published_screener_https`. This removes ambiguity between the deep-history transport and the ranking source.
+
 ### Production configuration
 
 Only the R2 credentials and the feature flag/dataset selection are deployment configuration. No daily SHA or date needs to be edited in Streamlit.
