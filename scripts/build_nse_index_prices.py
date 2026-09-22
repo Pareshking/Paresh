@@ -76,7 +76,7 @@ def _field(row, *names):
 
 
 def _fetch_archive_day(day: date) -> list[dict]:
-    url = f"https://archives.nseindia.com/content/indices/ind_close_all_{day:%d%m%Y}.csv"
+    url = f"https://nsearchives.nseindia.com/content/indices/ind_close_all_{day:%d%m%Y}.csv"
     headers = {
         "User-Agent": HEADERS["User-Agent"],
         "Accept": "text/csv,*/*",
