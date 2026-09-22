@@ -39,7 +39,7 @@ def membership_from_frame(frame: pd.DataFrame, *, index: str, as_of: Any) -> set
     if missing:
         raise R2HistoricalConsumerError(f"membership dataset missing columns: {sorted(missing)}")
     target = _as_date(as_of)
-    rows = frame.loc[frame["index"].astype(str) == str(index)].copy()
+    rows = frame.loc[frame["index"].astype(str).str.strip().str.lower() == str(index).strip().lower()].copy()
     if rows.empty:
         return None
     rows["symbol"] = rows["symbol"].astype(str).str.strip().str.upper()

@@ -17,6 +17,11 @@ def test_reconstructs_membership_as_of_date():
     assert membership_from_frame(_frame(), index="nifty_total_market", as_of="2026-06-30") == {"AAA","BBB"}
     assert membership_from_frame(_frame(), index="nifty_total_market", as_of="2026-07-01") == {"BBB","CCC"}
 
+def test_index_matching_is_case_and_whitespace_tolerant():
+    frame = _frame()
+    frame["index"] = " NIFTY_TOTAL_MARKET "
+    assert membership_from_frame(frame, index="nifty_total_market", as_of="2026-07-01") == {"BBB","CCC"}
+
 def test_unknown_index_fails_closed_to_empty_set():
     assert membership_from_frame(_frame(), index="nifty50", as_of="2026-07-01") is None
 

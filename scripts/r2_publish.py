@@ -64,6 +64,10 @@ def describe_parquet(path: Path) -> dict[str, Any]:
         if not dates.empty:
             min_date = str(dates.min().date())
             max_date = str(dates.max().date())
+    elif "as_of" in frame.columns:
+        dates = pd.to_datetime(frame["as_of"], errors="coerce").dropna()
+        if not dates.empty:
+            max_date = str(dates.max().date())
 
     contract = _ranking_contract(path)
     if contract:
