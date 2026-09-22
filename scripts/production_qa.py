@@ -294,6 +294,14 @@ def read_state(page) -> dict:
         return {"state": "ready", **info}
     if st_spinner or "Loading market data" in body:
         return {"state": "pipeline_running", **info}
+    # Current production uses a keyed custom navigation container whose page-link
+    # DOM can be absent from the frame inspected by the probe even though the
+    # application itself is fully rendered. The stable application shell markers
+    # below are emitted by the live Screener page; use them as a readiness proof
+    # only when Streamlit has mounted the app, no spinner is active, and no
+    # exception/data-init failure was detected above.
+    if st_app and "Universe:" in body and "NIFTY" in body:
+        return {"state": "ready", **info}
     if st_app and len(body.strip()) == 0:
         return {"state": "app_shell_blank", **info}
     return {"state": "unknown", **info}
