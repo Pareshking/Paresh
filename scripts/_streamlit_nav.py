@@ -82,10 +82,13 @@ def _open_custom_popover(frame) -> bool:
             if not button.count():
                 continue
             button.click(timeout=8_000)
-            deadline = time.perf_counter() + 3.0
+            deadline = time.perf_counter() + 5.0
             while time.perf_counter() < deadline:
                 try:
-                    if frame.locator('[data-testid="stPopoverBody"]').count():
+                    if (
+                        frame.locator('[data-testid="stPopoverBody"]').count()
+                        and frame.locator('[data-testid="stPageLink"]').count()
+                    ):
                         return True
                 except Exception:
                     pass
@@ -114,6 +117,24 @@ def nav_count(frame) -> int:
             except Exception:
                 continue
     return total
+
+
+def _close_custom_popover(frame) -> None:
+    """Close the custom navigation overlay after a non-navigating audit."""
+    try:
+        body = frame.locator('[data-testid="stPopoverBody"]')
+        if not body.count():
+            return
+        button = frame.locator('[data-testid="stPopoverButton"]').first
+        if button.count():
+            button.click(timeout=5_000)
+            deadline = time.perf_counter() + 2.0
+            while time.perf_counter() < deadline:
+                if not frame.locator('[data-testid="stPopoverBody"]').count():
+                    return
+                time.sleep(0.1)
+    except Exception:
+        pass
 
 
 def nav_diagnostics(frame) -> dict:
@@ -221,5 +242,7 @@ def missing_pages(frame, names, page=None) -> list[str]:
     except Exception:
         pass
 
-    return [n for n in names
-            if not any(n == r or n in r for r in reachable)]
+    missing = [n for n in names
+              if not any(n == r or n in r for r in reachable)]
+    _close_custom_popover(frame)
+    return missing
