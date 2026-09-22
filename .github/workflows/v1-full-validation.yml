@@ -41,6 +41,8 @@ permissions:
   contents: read
 jobs:
   validate:
+    env:
+      PYTHONPATH: .
     # Feature-branch pushes are never the V1 deployment/validation target.
     # R2 work can be developed on branches without launching Stage-4B.
     if: github.event_name != 'push' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/agent/stage4b-execution' || github.ref == 'refs/heads/agent/stage4b-second-archetype'

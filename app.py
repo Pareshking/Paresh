@@ -299,9 +299,22 @@ def _precomputed_ranking(
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def _fetch_screener_store(_k: str):
-    """The published screener history. Cached: it is ~2.5 MB over the wire."""
+def _fetch_screener_store(_k: str, source_key: str):
+    """Read Screener history, optionally from an immutable archive pin."""
+    from r2.consumers import r2_streamlit
     from src.loaders import price_source as _ps
+
+    if r2_streamlit.enabled():
+        try:
+            frame, pin = r2_streamlit.read_configured_screener()
+        except Exception as exc:
+            logger.error("Configured immutable Screener read failed: %s", type(exc).__name__)
+            metrics.note("screener_store_fetch", f"r2_error_{type(exc).__name__}")
+            raise RuntimeError("Configured immutable Screener read failed; refusing source fallback") from exc
+        metrics.note("screener_store_source", "r2")
+        metrics.note("screener_store_as_of", pin.as_of)
+        metrics.note("screener_store_revision", pin.revision_sha256)
+        return frame
 
     return _ps.fetch_screener_store()
 
@@ -315,17 +328,22 @@ def _resolve_price_source(price_hash, sym_key, adj_close, close_p, high_p, low_p
     screener store that cannot reach the 12-month lookback is refused here, so
     the table never ships with an empty 12M column.
     """
+    from r2.consumers import r2_streamlit
     from src.loaders import price_source as _ps
 
     fallback = _ps.from_yahoo(adj_close, close_p, high_p, low_p, vol_p)
     if _ps.preferred() != "screener":
         return fallback
-    store = _fetch_screener_store(price_hash)
+    store = _fetch_screener_store(price_hash, r2_streamlit.configuration_key())
     chosen = _ps.from_screener(store) if store is not None else None
     if chosen is None:
+        if r2_streamlit.enabled():
+            raise RuntimeError("Configured immutable Screener dataset is not usable")
         return fallback
     keep = [c for c in chosen.close.columns if c in set(symbols)]
     if not keep:
+        if r2_streamlit.enabled():
+            raise RuntimeError("Configured immutable Screener dataset has no requested symbols")
         return fallback
     chosen.adj_close = chosen.close = chosen.close[keep]
     chosen.volume = chosen.volume.reindex(columns=keep)
