@@ -69,3 +69,27 @@ def test_v1_workflows_explicitly_isolate_r2_only_paths():
     required = ("paths-ignore:", "src/storage/**", "scripts/r2_*.py", "tests/test_r2_*.py")
     missing = [marker for marker in required if marker not in v1]
     assert not missing, f"V1 Full Validation R2 isolation is incomplete: {missing}"
+
+
+def test_v1_workflow_does_not_execute_stage4b_research_steps():
+    workflow = ROOT / ".github" / "workflows" / "v1-full-validation.yml"
+    text = workflow.read_text(encoding="utf-8").splitlines()
+    forbidden_step_terms = ("stage4b_", "sansera", "anandrathi", "paytm", "yatharth", "lenskart")
+    violations = []
+    in_run = False
+    for line in text:
+        if line.startswith("      - name:"):
+            in_run = False
+        if line.startswith("        run:"):
+            in_run = True
+        if in_run:
+            lowered = line.lower()
+            for term in forbidden_step_terms:
+                if term in lowered:
+                    violations.append(term)
+    assert not violations, f"V1 workflow contains research execution markers: {sorted(set(violations))}"
+
+
+def test_stage4b_independent_workflow_exists():
+    path = ROOT / ".github" / "workflows" / "stage4b-independent-validation.yml"
+    assert path.exists()
