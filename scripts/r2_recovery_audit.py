@@ -28,7 +28,9 @@ def audit_recovery(archive: R2Archive) -> dict[str, Any]:
             continue
         dataset = "/".join(parts[2:-3])
         as_of = parts[-3]
-        revision_sha256 = parts[-2]
+        revision_sha256 = parts[-1][:-5]
+        if len(revision_sha256) != 64:
+            raise RuntimeError(f"Invalid immutable manifest revision key: {key}")
         ref = reader.resolve_revision(dataset, as_of, revision_sha256)
         body = reader.read_bytes(ref)
         immutable_verified.append({
