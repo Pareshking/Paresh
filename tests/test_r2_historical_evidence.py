@@ -13,7 +13,9 @@ from scripts.r2_historical_evidence_bootstrap import (
     build_corporate_actions,
     build_market_caps,
     build_membership,
+    build_point_in_time_universe,
     build_trading_sessions,
+    _sync_date,
 )
 
 
@@ -51,12 +53,13 @@ def test_membership_intervals_close_removed_symbols_and_stamp_open_intervals():
 def test_real_membership_history_has_no_changes_and_covers_acceptance_date(tmp_path):
     history = json.loads((ROOT / "data/membership_history.json").read_text())
     assert history["changes"] == []
-    frame = build_membership(tmp_path)
+    build_membership(tmp_path)
+    frame = tmp_path / "membership_nifty_total_market.parquet"
     generated = pd.read_parquet(frame)
     assert generated["index"].eq("nifty_total_market").all()
-    assert generated["as_of"].eq(MEMBERSHIP_AS_OF).all()
+    assert generated["as_of"].eq(_sync_date()).all()
     assert (pd.to_datetime(generated["effective_from"]) <= pd.Timestamp(MEMBERSHIP_AS_OF)).all()
-    assert describe_parquet(frame)["as_of"] == MEMBERSHIP_AS_OF
+    assert describe_parquet(frame)["as_of"] == _sync_date()
 
 
 def test_confirmed_trading_sessions_preserve_sparse_source_contract(tmp_path):
@@ -100,3 +103,37 @@ def test_corporate_action_evidence_has_provenance(tmp_path):
         "repo://Pareshking/Paresh/data/corporate_actions_log.json"
     ).all()
     assert frame["evidence_date"].notna().all()
+
+
+def test_build_membership_produces_all_five_research_index_histories(tmp_path):
+    paths = build_membership(tmp_path)
+    names = {path.name for path in paths}
+    expected = {
+        "membership_nifty50.parquet",
+        "membership_nifty_next50.parquet",
+        "membership_nifty_midcap150.parquet",
+        "membership_nifty_smallcap250.parquet",
+        "membership_nifty_microcap250.parquet",
+        "membership_nifty_total_market.parquet",
+    }
+    assert expected <= names
+    for name in expected:
+        frame = pd.read_parquet(tmp_path / name)
+        assert not frame.empty
+        assert frame["symbol"].notna().all()
+        assert frame["effective_from"].notna().all()
+        assert frame["as_of"].eq(_sync_date()).all()
+
+
+
+def test_point_in_time_universe_contains_all_five_research_indices(tmp_path):
+    build_membership(tmp_path)
+    path = build_point_in_time_universe(tmp_path)
+    frame = pd.read_parquet(path)
+    expected = {
+        "nifty50", "nifty_next50", "nifty_midcap150",
+        "nifty_smallcap250", "nifty_microcap250",
+    }
+    assert expected <= set(frame["index"])
+    assert frame["symbol"].map(lambda s: not str(s).upper().startswith("DUMMY")).all()
+    assert frame[["index", "symbol", "effective_from"]].duplicated().sum() == 0

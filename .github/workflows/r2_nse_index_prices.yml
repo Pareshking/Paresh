@@ -1,0 +1,64 @@
+name: R2 NSE index price history
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 20 * * *"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/build_nse_index_prices.py"
+      - "tests/test_nse_index_prices.py"
+      - ".github/workflows/r2_nse_index_prices.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt pytest
+      - name: Run index price tests
+        run: pytest -q tests/test_nse_index_prices.py
+      - name: Acquire official NSE index history
+        run: python scripts/build_nse_index_prices.py --output /tmp/nse_index_prices.parquet
+      - name: Validate index history
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          from scripts.build_nse_index_prices import INDEX_NAMES
+          f = pd.read_parquet('/tmp/nse_index_prices.parquet')
+          assert set(f['index']) == set(INDEX_NAMES)
+          assert f[['index','date']].duplicated().sum() == 0
+          assert f['close'].notna().all()
+          assert all(g['date'].is_monotonic_increasing for _, g in f.groupby('index'))
+          print(f"NSE_INDEX_ROWS={len(f)}")
+          print(f"NSE_INDEX_FIRST={f['date'].min().date()}")
+          print(f"NSE_INDEX_LAST={f['date'].max().date()}")
+          for name, g in f.groupby('index'): print(name, len(g), g['date'].min().date(), g['date'].max().date())
+          PY
+      - name: Publish NSE index history to R2
+        run: |
+          python scripts/r2_publish.py \
+            --path /tmp/nse_index_prices.parquet \
+            --dataset indices/prices/nse \
+            --source nse_historical_indices_api \
+            --key-root archive/indices/prices/nse \
+            --pipeline-version "r2_nse_index_prices_${{ github.sha }}" \
+            --release-tag data-latest
+      - name: Audit published index history
+        run: python scripts/r2_audit.py --dataset indices/prices/nse --as-of "$(python -c 'import pandas as pd; print(pd.read_parquet("/tmp/nse_index_prices.parquet")["date"].max().date())')"

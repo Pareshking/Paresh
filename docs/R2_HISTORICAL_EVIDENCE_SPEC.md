@@ -250,3 +250,36 @@ The R2 historical evidence layer is accepted as a reproducible data substrate. S
 All Section-C historical-evidence contracts required for the current R2 acceptance scope are implemented and live-verified. Final Acceptance Run 35704396591 passed PIT membership, immutable research, recovery, and cost gates. The remaining items in this document are future/optional expansion only: continued accumulation of new dated evidence and C6 raw-source evidence where it has material reproducibility value. They are not blockers for R2 acceptance.
 
 The historical-evidence contract remains separate from the Streamlit deployment contract. The Streamlit reader, when enabled, consumes the latest validated R2 Screener revision; System-1 methodology remains unchanged.
+
+
+## 10. Historical Research Data Foundation expansion — 2026-09-22
+
+The R2 historical layer is being extended from the original Section-C evidence set into the durable backtest substrate. Fundamental snapshots are intentionally excluded because the repository does not currently have a suitable historical fundamental source.
+
+### Required durable datasets
+
+| Dataset | R2 namespace | Role |
+|---|---|---|
+| Screener daily prices | `prices/screener` | Canonical V1 price evidence and backtests |
+| Yahoo raw OHLCV | `prices/yahoo/raw` | Independent deep-history/raw provenance |
+| Market-cap history | `market_caps/nse_history` | Point-in-time capitalization inputs |
+| Five NSE research-index memberships | `indices/membership/<index>` | NIFTY 50, NIFTY Next 50, NIFTY Midcap 150, NIFTY Smallcap 250, NIFTY Microcap 250 |
+| NIFTY Total Market compatibility membership | `indices/membership/nifty_total_market` | Existing V1 compatibility and historical reconstruction |
+| Combined PIT universe | `universes/point_in_time` | Convenient backtest universe reconstruction |
+| NSE index prices | `indices/prices/nse` | Historical OHLC for the five research indices |
+| Sector/industry history | `classifications/tv_history` | Historical classification reconstruction from repository snapshots |
+| Trading sessions | `trading_sessions/observed`, `trading_sessions/confirmed` | Session-aware backtest boundaries |
+| Corporate-action evidence | `corporate_actions/evidence` | Reproducible price-adjustment evidence |
+| Ranking calculations | `calculations/rankings` | Immutable System-1 calculation outputs for audit/reproduction |
+
+The five research-index histories are the universe families for future backtests. NIFTY Total Market is retained as a compatibility dataset, not as a replacement for the five-index history.
+
+### Historical reconstruction rule
+
+A backtest must be able to reconstruct the eligible universe, index membership, classification, market cap, sessions, prices, and applicable corporate-action evidence as of a historical date. It must never substitute today's index membership, today's classification, or today's market cap for historical evidence.
+
+Derived indicators may be regenerated from the archived source inputs. Ranking artifacts are also retained as immutable calculation evidence so an exact historical System-1 output can be audited without rerunning the full calculation.
+
+### Fundamental-data boundary
+
+Historical fundamentals are **not** part of this phase. No placeholder fundamental history is to be invented or inferred from current values. Adding fundamentals later requires a separate point-in-time source and provenance contract.
