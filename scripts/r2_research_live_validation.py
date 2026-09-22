@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse, json
 from r2.consumers.r2_research import R2ResearchPin, read_pinned_dataset
 from src.storage.r2 import R2Archive, R2Config
-from src.storage.reader import R2DatasetReader
+from src.storage.reader import R2DatasetIntegrityError, R2DatasetReader
 
 def main() -> int:
     p=argparse.ArgumentParser()
@@ -13,7 +13,10 @@ def main() -> int:
     args=p.parse_args()
     reader=R2DatasetReader(R2Archive(R2Config.from_env()))
     pin=R2ResearchPin(args.dataset,args.as_of,args.revision)
-    data=read_pinned_dataset(reader,pin=pin)
+    try:
+        data=read_pinned_dataset(reader,pin=pin)
+    except (R2DatasetIntegrityError, ValueError) as exc:
+        raise SystemExit(f"R2 research consumer acceptance failed: {exc}") from exc
     print(json.dumps({"dataset":args.dataset,"as_of":args.as_of,"revision_sha256":args.revision,"rows":len(data.frame),"columns":list(data.frame.columns),"source":"r2-immutable-revision","acceptance":"PASS"},sort_keys=True))
     return 0
 if __name__=="__main__":
