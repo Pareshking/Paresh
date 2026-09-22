@@ -294,3 +294,20 @@ Therefore the remaining unchecked Section-E live acceptance items are closed. R2
 
 ### Production boundary — explicit
 R2 acceptance does **not** mean the Streamlit production site has switched to R2. The live application remains on the canonical Screener price path. Any future R2 application/read-path migration must be separately gated and must not alter System-1 methodology or silently change production data provenance.
+
+
+---
+
+## Current R2 consumer-hardening closure — 2026-09-22
+
+The post-acceptance immutable-consumer hardening loop is merged on main.
+
+- PR #92 — PIT membership consumer no longer requires current.json; it resolves the latest immutable revision for the exact evidence date.
+- PR #93 — research pin validation and integrity failures were hardened; invalid revision identities fail closed and live validation reports integrity failures cleanly.
+- PR #94 — immutable revision resolution now requires an exact ISO YYYY-MM-DD evidence date and timezone-aware created_at metadata; research storage-integrity failures are normalized at the consumer boundary.
+- PR #95 — explicit research fallback no longer catches arbitrary programming exceptions; fallback occurs only for known consumer/storage failures.
+- PR #96 — research pins now require an exact ISO YYYY-MM-DD evidence date rather than accepting timestamp-like values.
+
+Post-merge R2 Focused, R2 Research Consumer, and PIT membership acceptance gates were green for the completed merges. These changes remain confined to R2 storage/consumer boundaries and do not alter System-1 ranking, the canonical Screener production price path, universe methodology, or Stage-4B research logic.
+
+The next engineering loop should focus on remaining R2 provenance/operational hardening only where it materially improves reproducibility or recovery. Do not start a production Streamlit R2 migration unless a separate equivalence and deployment gate is opened.
