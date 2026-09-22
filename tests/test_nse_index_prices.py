@@ -14,9 +14,10 @@ def test_all_five_research_indices_are_defined():
 
 
 def test_index_source_contract():
-    from scripts.build_nse_index_prices import _fetch_official, _fetch_yahoo
+    from scripts.build_nse_index_prices import _fetch_official, _fetch_screener, _fetch_yahoo
     assert callable(_fetch_official)
     assert callable(_fetch_yahoo)
+    assert callable(_fetch_screener)
 
 def test_index_price_archive_contract(tmp_path):
     frame = pd.DataFrame(
