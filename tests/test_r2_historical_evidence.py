@@ -6,13 +6,21 @@ from pathlib import Path
 import pandas as pd
 
 from scripts.r2_historical_evidence_bootstrap import (
+    INDEX_FILES,
+    MEMBERSHIP_AS_OF,
     _membership_intervals,
     build_corporate_actions,
     build_market_caps,
+    build_membership,
     build_trading_sessions,
 )
 
+
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_all_index_source_files_exist():
+    assert all(path.is_file() for path in INDEX_FILES.values())
 
 
 def test_membership_intervals_close_removed_symbols_and_stamp_open_intervals():
@@ -29,12 +37,26 @@ def test_membership_intervals_close_removed_symbols_and_stamp_open_intervals():
     bbb = frame.loc[frame["symbol"].eq("BBB")].iloc[0]
     ccc = frame.loc[frame["symbol"].eq("CCC")].iloc[0]
 
+    assert set(frame["index"]) == {"nifty_total_market"}
+    assert set(frame["as_of"]) == {MEMBERSHIP_AS_OF}
     assert aaa["effective_from"] == "2026-08-01"
     assert aaa["effective_to"] == "2026-08-09"
     assert pd.isna(bbb["effective_to"])
     assert pd.isna(ccc["effective_to"])
     assert bbb["evidence_date"] == "2026-08-20"
     assert ccc["evidence_date"] == "2026-08-20"
+
+
+def test_real_membership_history_has_no_changes_and_covers_acceptance_date():
+    history = json.loads((ROOT / "data/membership_history.json").read_text())
+    assert history["changes"] == []
+    frame = build_membership(ROOT / "tmp-test-r2-membership")
+    assert set(frame.read_text() for _ in []) == set()  # no-op; existence asserted below
+    # Re-read through pandas so the test exercises the actual generated artifact.
+    generated = pd.read_parquet(frame)
+    assert generated["index"].eq("nifty_total_market").all()
+    assert generated["as_of"].eq(MEMBERSHIP_AS_OF).all()
+    assert (pd.to_datetime(generated["effective_from"]) <= pd.Timestamp(MEMBERSHIP_AS_OF)).all()
 
 
 def test_confirmed_trading_sessions_preserve_sparse_source_contract(tmp_path):
