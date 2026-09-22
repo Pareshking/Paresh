@@ -20,6 +20,8 @@ jobs:
   equivalence:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      PYTHONPATH: .
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -36,13 +38,22 @@ jobs:
           github-token: ${{ github.token }}
           run-id: ${{ inputs.source_run_id }}
           artifact-ids: ${{ inputs.source_artifact_id }}
+      - name: Normalize downloaded raw artifact path
+        run: |
+          set -euo pipefail
+          matches=($(find data_cache -type f -name 'prices_yahoo_raw.parquet' -print))
+          test "${#matches[@]}" -eq 1
+          mv "${matches[0]}" data_cache/prices_yahoo_raw.parquet
       - name: Download canonical V1 archive
         run: |
           mkdir -p data_cache
           curl --fail --location --retry 3             https://github.com/Pareshking/Paresh/releases/download/data-latest/prices_full.parquet             --output data_cache/prices_full.parquet
       - name: Run equivalence audit
         run: |
-          python scripts/r2_compare_raw_v1.py             --raw data_cache/prices_yahoo_raw.parquet             --v1 data_cache/prices_full.parquet             --report data_cache/raw_v1_equivalence.csv
+          python scripts/r2_compare_raw_v1.py \
+            --raw data_cache/prices_yahoo_raw.parquet \
+            --v1 data_cache/prices_full.parquet \
+            --report data_cache/raw_v1_equivalence.csv
       - name: Upload equivalence evidence
         uses: actions/upload-artifact@v4
         with:
