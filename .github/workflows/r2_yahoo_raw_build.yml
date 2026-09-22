@@ -40,7 +40,7 @@ jobs:
         run: |
           python scripts/r2_build_yahoo_raw.py \
             --output data_cache/prices_yahoo_raw.parquet \
-            --period "\${{ inputs.period }}"
+            --period "${{ inputs.period }}"
 
       - name: Verify raw artifact
         env:
@@ -59,13 +59,13 @@ jobs:
           PY
 
       - name: Publish raw revision to R2
-        if: \${{ inputs.publish_r2 == true }}
+        if: ${{ inputs.publish_r2 == true }}
         env:
-          R2_ACCOUNT_ID: \${{ secrets.R2_ACCOUNT_ID }}
-          R2_ACCESS_KEY_ID: \${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: \${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_ENDPOINT: \${{ secrets.R2_ENDPOINT }}
-          R2_BUCKET: \${{ secrets.R2_BUCKET }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
           PYTHONPATH: .
         run: |
           python scripts/r2_publish.py \
@@ -73,7 +73,7 @@ jobs:
             --dataset prices/yahoo/raw \
             --source yahoo_raw_unadjusted \
             --key-root archive/prices/yahoo/raw \
-            --pipeline-version "r2-yahoo-raw-\${{ github.sha }}" \
+            --pipeline-version "r2-yahoo-raw-${{ github.sha }}" \
             --release-tag data-latest
 
       - name: Upload raw artifact
