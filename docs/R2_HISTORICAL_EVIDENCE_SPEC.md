@@ -266,7 +266,7 @@ The R2 historical layer is being extended from the original Section-C evidence s
 | Five NSE research-index memberships | `indices/membership/<index>` | NIFTY 50, NIFTY Next 50, NIFTY Midcap 150, NIFTY Smallcap 250, NIFTY Microcap 250 |
 | NIFTY Total Market compatibility membership | `indices/membership/nifty_total_market` | Existing V1 compatibility and historical reconstruction |
 | Combined PIT universe | `universes/point_in_time` | Convenient backtest universe reconstruction |
-| NSE index prices | `indices/prices/nse` | Historical OHLC for the five research indices |
+| NSE index prices | `indices/prices/research` | Historical OHLC for the five research indices |
 | Sector/industry history | `classifications/tv_history` | Historical classification reconstruction from repository snapshots |
 | Trading sessions | `trading_sessions/observed`, `trading_sessions/confirmed` | Session-aware backtest boundaries |
 | Corporate-action evidence | `corporate_actions/evidence` | Reproducible price-adjustment evidence |
@@ -283,3 +283,8 @@ Derived indicators may be regenerated from the archived source inputs. Ranking a
 ### Fundamental-data boundary
 
 Historical fundamentals are **not** part of this phase. No placeholder fundamental history is to be invented or inferred from current values. Adding fundamentals later requires a separate point-in-time source and provenance contract.
+
+
+## Final research-index price contract
+
+The five index price archive covers NIFTY 50, NIFTY Next 50, NIFTY Midcap 150, NIFTY Smallcap 250, and NIFTY Microcap 250. The builder first attempts the official NSE Indices historical OHLC endpoint; when the public endpoint is unavailable from CI, it falls back to Yahoo Finance transport while retaining the NSE-maintained index identity and recording the transport in the `source` column. This avoids falsely labelling Yahoo data as direct NSE transport.
