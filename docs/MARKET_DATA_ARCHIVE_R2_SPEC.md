@@ -1497,16 +1497,13 @@ including PIT membership and corporate-action evidence. Final Acceptance
 
 R2 is therefore an accepted historical-data/evidence substrate.
 
-**Important boundary:** acceptance of R2 is not a production Streamlit migration.
-The current application continues to use the canonical Screener production price
-path. Any future Phase-5 migration must be independently validated and explicitly
-promoted.
+**Historical acceptance boundary:** R2 archive acceptance and the Streamlit application read path are separate gates. When the Streamlit R2 feature is enabled, it consumes the latest validated `prices/screener` `current.json` revision. System-1 methodology remains unchanged.
 
 ## Canonical implementation status — 2026-09-22
 
 Earlier Phase-3 working notes in this document describe the implementation while it was being built and are retained as historical engineering record. They are superseded by the final acceptance state: R2 bootstrap Run 35703827204 and Final Acceptance Run 35704396591 are GREEN, and the immutable consumer/manifest/recovery hardening through PR #100 is merged to main.
 
-**Do not treat the earlier “Next gates” list as current blockers.** Yahoo raw-price migration remains parked, and Streamlit remains on the canonical Screener production path. Any future R2 read-path migration is a separate gated project.
+**Do not treat the earlier “Next gates” list as current blockers.** Yahoo raw-price migration remains parked. The current operational contract below governs Streamlit production consumption.
 
 
 ---
