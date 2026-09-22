@@ -11,6 +11,8 @@ on:
       - "src/storage/**"
       - "tests/test_r2_streamlit_reader.py"
       - ".github/workflows/r2-streamlit-production-gate.yml"
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
       expected_sha:
