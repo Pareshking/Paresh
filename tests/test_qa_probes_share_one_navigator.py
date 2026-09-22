@@ -133,3 +133,10 @@ def test_shared_navigator_opens_the_custom_hamburger():
     assert "def _open_custom_popover" in src
     assert 'aria-label="Open navigation"' in src
     assert '☰' in src
+
+
+def test_custom_popover_opening_is_idempotent_and_waits_for_body():
+    src = NAV_MODULE.read_text(encoding="utf-8")
+    assert "stPopoverBody" in src
+    assert "perf_counter" in src
+    assert "Never click a second time" in src
