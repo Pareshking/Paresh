@@ -173,7 +173,10 @@ def main() -> int:
         summary = build_history(
             path,
             target,
-            index_name=name,\n            include_working_tree=not args.dry_run,\n            write=not args.dry_run,
+            index_name=name,
+            include_working_tree=not args.dry_run,
+            write=not args.dry_run,
+        )
         )
         print(
             f"{name}: {summary['first']} -> {summary['last']} "
