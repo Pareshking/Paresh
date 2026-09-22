@@ -13,6 +13,7 @@ from scripts.r2_historical_evidence_bootstrap import (
     build_corporate_actions,
     build_market_caps,
     build_membership,
+    build_point_in_time_universe,
     build_trading_sessions,
 )
 
@@ -122,3 +123,16 @@ def test_build_membership_produces_all_five_research_index_histories(tmp_path):
         assert frame["effective_from"].notna().all()
         assert frame["as_of"].eq(MEMBERSHIP_AS_OF).all()
 
+
+
+def test_point_in_time_universe_contains_all_five_research_indices(tmp_path):
+    build_membership(tmp_path)
+    path = build_point_in_time_universe(tmp_path)
+    frame = pd.read_parquet(path)
+    expected = {
+        "nifty50", "nifty_next50", "nifty_midcap150",
+        "nifty_smallcap250", "nifty_microcap250",
+    }
+    assert expected <= set(frame["index"])
+    assert frame["symbol"].map(lambda s: not str(s).upper().startswith("DUMMY")).all()
+    assert frame[["index", "symbol", "effective_from"]].duplicated().sum() == 0
