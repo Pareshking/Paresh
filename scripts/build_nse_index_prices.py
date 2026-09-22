@@ -53,12 +53,9 @@ def build(output: Path, start: date, end: date) -> dict:
         frame = frame[(frame.index.date >= start) & (frame.index.date <= end)]
         frame = frame.reset_index(names="date")
         frame["index"] = key
-        frame["open"] = frame["close"]
-        frame["high"] = frame["close"]
-        frame["low"] = frame["close"]
         frame["source"] = "Screener index chart (NSE index)"
         frame["evidence_date"] = pd.Timestamp(end)
-        parts.append(frame[["date","index","open","high","low","close","source","evidence_date"]])
+        parts.append(frame[["date","index","close","source","evidence_date"]])
 
     result = pd.concat(parts, ignore_index=True).drop_duplicates(["index","date"])
     result = result.sort_values(["index","date"])
