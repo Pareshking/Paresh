@@ -115,3 +115,61 @@ def _fetch_range(session, index_name: str, start: date, end: date):
         time.sleep(2 ** attempt)
     raise RuntimeError(f"Nifty Indices historical request failed: {index_name} {start}..{end}")
 
+
+def build(output: Path, start: date, end: date) -> dict:
+    session = curl_requests.Session(impersonate="chrome") if curl_requests else requests.Session()
+    session.headers.update(HEADERS)
+    session.get(
+        "https://www.niftyindices.com/reports/historical-data",
+        headers=HEADERS,
+        timeout=15,
+    )
+
+    parts = []
+    for key, name in INDEX_NAMES.items():
+        rows = _fetch_range(session, name, start, end)
+        frame = pd.DataFrame(rows)
+        if frame.empty:
+            raise RuntimeError(f"NSE returned no history for {name}")
+        frame["index"] = key
+        frame["source"] = "NSE Indices historical data"
+        frame["evidence_date"] = pd.Timestamp(end)
+        frame = frame.drop_duplicates(["index", "date"], keep="last")
+        frame = frame[
+            ["date", "index", "open", "high", "low", "close", "source", "evidence_date"]
+        ].sort_values("date")
+        if frame["close"].isna().any():
+            raise RuntimeError(f"{name}: null close values in NSE history")
+        if not frame["date"].is_monotonic_increasing:
+            raise RuntimeError(f"{name}: dates are not monotonic")
+        parts.append(frame)
+        time.sleep(1.0)
+
+    result = pd.concat(parts, ignore_index=True)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    result.to_parquet(output, index=False)
+    summary = {
+        "rows": len(result),
+        "indices": int(result["index"].nunique()),
+        "first_date": str(result["date"].min().date()),
+        "last_date": str(result["date"].max().date()),
+    }
+    print(summary)
+    return summary
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--start",
+        type=date.fromisoformat,
+        default=date.today() - timedelta(days=3650),
+    )
+    parser.add_argument("--end", type=date.fromisoformat, default=date.today())
+    args = parser.parse_args()
+    build(args.output, args.start, args.end)
+
+
+if __name__ == "__main__":
+    main()
