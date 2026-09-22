@@ -135,7 +135,7 @@ def build_history(
     if first is None:
         raise RuntimeError(f"no usable membership snapshots for {path}")
 
-    if added:
+    if added and write:
         save_history(history, history_file)
 
     return {
@@ -147,6 +147,7 @@ def build_history(
         "snapshots_with_changes": len(history.get("changes") or []),
         "added_snapshots": added,
         "skipped_snapshots": skipped,
+        "history": history,
     }
 
 
