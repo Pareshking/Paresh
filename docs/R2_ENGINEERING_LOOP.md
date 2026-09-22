@@ -120,13 +120,13 @@ Source design is documented in `docs/RAW_PRICE_REBUILD.md`.
 
 - [x] R2 read adapter for analytical datasets — manifest-pinned `R2DatasetReader` resolves current or explicit revisions and verifies manifest identity, HEAD size, object SHA, and byte size.
 - [x] Research/backtest reader — separate manifest-pinned consumer adapter; it accepts an explicit dataset/as_of/revision SHA and never falls back to the mutable current pointer. No ranking, price, universe, or Stage-4B logic is moved into R2.
-- [ ] Research/backtest live R2 acceptance — requires a real R2 dataset/revision pin and read-back execution.
+- [ ] Research/backtest live R2 acceptance — combined live acceptance workflow is merged; real execution evidence still required.
 - [x] Controlled research fallback — explicit opt-in local/release artifact fallback; no silent fallback and no R2 write-back.
 - [ ] Streamlit reader behind a feature flag.
 - [ ] Controlled fallback to release/local artifacts.
 - [ ] Manifest-pinned research runs.
 - [x] Point-in-time membership consumer contract — isolated under `r2/consumers/`, fail-closed on unknown coverage and duplicate active intervals.
-- [ ] Live point-in-time universe reconstruction acceptance — dedicated workflow merged; real R2 execution remains the acceptance gate.
+- [ ] Live point-in-time universe reconstruction acceptance — combined final acceptance workflow is merged; real R2 execution remains the acceptance gate.
 
 
 ## CI isolation — VERIFIED 2026-09-22
@@ -146,7 +146,7 @@ This is intentional: R2 acceptance is based on R2 evidence. SANSERA, ANANDRATHI,
 
 - [x] Archive inventory/audit report — read-only inventory tool and scheduled/manual workflow live-verified successfully (Run ID 35642709261).
 - [x] Coverage/continuity observability — scheduled observed-session continuity audit added; it reconstructs the canonical release dataset and fails closed on duplicate, unsorted, non-NSE, or non-session rows.
-- [x] Failure/recovery tests — current-pointer full read-back recovery audit and unit coverage are implemented; live scheduled recovery execution remains to be evidenced.
+- [x] Failure/recovery tests — current-pointer full read-back recovery audit and unit coverage are implemented; combined final acceptance workflow now executes the live recovery audit.
 - [x] Retention policy before any deletion mechanism — documented as retain indefinitely until explicit recovery/reproducibility prerequisites are met.
 - [x] R2 request/storage cost observability — read-only manifest inventory reports immutable revision count/bytes and audit-derived LIST/HEAD operations; provider billing remains external.
 - [x] Document recovery procedure from R2 alone — `docs/R2_RECOVERY_AND_RETENTION.md`.
@@ -225,3 +225,10 @@ V1 Full Validation run **#553 / Run ID 35637235543** completed SUCCESS on the sa
 - headless Streamlit smoke test = PASS
 
 The next engineering work is now live PIT consumer acceptance, manifest-pinned research/backtest consumption, and the remaining operational gates; the Screener production gate is no longer a blocker.
+
+
+## Final acceptance loop — 2026-09-22
+
+PR #72 merged the explicit opt-in research fallback and read-only cost-observability gates. PR #73 merged the combined R2 final acceptance workflow, which exercises focused regression, live PIT membership acceptance, an explicit immutable research revision, the recovery audit, and cost observability.
+
+The live execution result is intentionally not marked PASS until GitHub Actions provides actual run evidence.
