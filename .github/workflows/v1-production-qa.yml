@@ -5,6 +5,7 @@ on:
     paths-ignore:
       - 'src/storage/**'
       - 'r2/consumers/**'
+      - 'r2/raw/**'
       - 'scripts/r2_*.py'
       - 'scripts/build_trading_sessions.py'
       - 'scripts/build_market_cap_history.py'
