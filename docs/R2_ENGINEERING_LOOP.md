@@ -105,16 +105,21 @@ No Yahoo raw-price rebuild is authorized by this tracker; it remains parked.
 - [ ] Raw source snapshots where useful.
 - [x] Source provenance/evidence dates carried by the implemented historical datasets.
 
-## D. Raw Yahoo reproducibility
+## D. Raw Yahoo reproducibility — implementation started 2026-09-22
 
-Source design is documented in `docs/RAW_PRICE_REBUILD.md`.
+Source design is documented in `docs/RAW_PRICE_REBUILD.md`. Section D is now an isolated R2 engineering track; it does not modify the canonical System-1 price path or V1 consumers.
 
-- [ ] Download/store raw unadjusted Yahoo OHLCV.
-- [ ] Preserve immutable raw revisions in R2.
-- [ ] Apply project corporate-action adjustments at read time.
-- [ ] Keep existing adjusted-price path as migration fallback.
+- [x] Implement isolated raw Yahoo OHLCV acquisition under `r2/raw/yahoo.py` using `auto_adjust=False` and retaining only raw OHLCV fields.
+- [x] Add isolated builder `scripts/r2_build_yahoo_raw.py` and manual-only workflow `.github/workflows/r2_yahoo_raw_build.yml`.
+- [x] Apply project corporate-action adjustments at read time without rewriting raw evidence.
+- [x] Add unit and workflow-contract coverage; R2 Focused Validation is green on merged PR #77.
+- [x] Preserve V1 separation: raw Yahoo paths are excluded from V1 Full Validation / Production QA triggers.
+- [ ] Execute the real 10Y Yahoo raw acquisition and record coverage/fingerprint evidence.
+- [ ] Publish the real raw artifact to R2 and verify immutable manifest/current/object/SHA and identical retry.
 - [ ] Prove track-record/research equivalence before switching consumers.
-- [ ] Add migration and reproducibility tests.
+- [ ] Add migration/reproducibility evidence and only then consider consumer migration.
+
+**Important:** consumer migration is intentionally not part of PR #77. The existing adjusted-price path remains canonical until equivalence evidence is complete.
 
 ## E. R2 consumer layer
 
