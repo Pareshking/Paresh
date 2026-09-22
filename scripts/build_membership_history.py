@@ -22,6 +22,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.core.market_time import ist_today  # noqa: E402
+from src.core.tickers import is_tradeable_symbol  # noqa: E402
 from src.engine.membership import (  # noqa: E402
     coverage,
     empty_history,
@@ -66,7 +67,7 @@ def _symbols_at(commit: str, path: str) -> list[str]:
     )
     if key is None:
         return []
-    return [row[key] for row in rows if row.get(key)]
+    return [row[key] for row in rows if row.get(key) and is_tradeable_symbol(row[key])]
 
 
 def build_history(
@@ -123,7 +124,7 @@ def build_history(
                     history, changed = record_snapshot(
                         history,
                         ist_today(),
-                        [row[key] for row in rows if row.get(key)],
+                        [row[key] for row in rows if row.get(key) and is_tradeable_symbol(row[key])],
                     )
                 except ValueError:
                     skipped += 1
