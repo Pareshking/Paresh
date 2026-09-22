@@ -41,6 +41,9 @@ def build(output: Path, *, period: str = "10y") -> dict[str, int | str]:
     )
     if missing:
         print("YAHOO_RAW_MISSING " + ",".join(missing))
+        raise RuntimeError(
+            f"Yahoo raw acquisition incomplete: {len(missing)} requested symbols missing"
+        )
 
     output.parent.mkdir(parents=True, exist_ok=True)
     raw.to_parquet(output, compression="snappy")
