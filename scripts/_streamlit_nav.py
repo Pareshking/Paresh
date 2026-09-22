@@ -70,7 +70,8 @@ def _open_custom_popover(frame) -> bool:
             button.click(timeout=8_000)
             deadline = time.perf_counter() + 3.0
             while time.perf_counter() < deadline:
-                if frame.locator('[data-testid="stPopoverBody"]').count():
+                body = frame.locator('[data-testid="stPopoverBody"]').first
+                if body.count() and body.is_visible():
                     return True
                 time.sleep(0.1)
     except Exception:
@@ -81,7 +82,12 @@ def _open_custom_popover(frame) -> bool:
             button = frame.locator(selector).first
             if button.count():
                 button.click(timeout=8_000)
-                return True
+                deadline = time.perf_counter() + 3.0
+                while time.perf_counter() < deadline:
+                    body = frame.locator('[data-testid="stPopoverBody"]').first
+                    if body.count() and body.is_visible():
+                        return True
+                    time.sleep(0.1)
         except Exception:
             continue
     return False
