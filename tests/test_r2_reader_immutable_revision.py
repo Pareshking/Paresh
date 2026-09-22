@@ -18,7 +18,7 @@ class FakeArchive:
         return {"ContentLength": len(self.objects[key])}
 
 
-def _manifest(dataset, as_of, revision, created_at, object_key):
+def _manifest(dataset, as_of, revision, created_at, object_key, body_size):
     import json
     body = b"not-parquet"
     return json.dumps({
@@ -27,7 +27,7 @@ def _manifest(dataset, as_of, revision, created_at, object_key):
         "as_of": as_of,
         "sha256": revision,
         "revision_sha256": revision,
-        "size_bytes": len(body),
+        "size_bytes": body_size,
         "object_key": object_key,
         "created_at": created_at,
     }).encode()
@@ -46,8 +46,8 @@ def test_resolve_latest_revision_uses_immutable_manifests():
     archive.objects["obj2"] = body2
     k1 = f"archive/manifests/{dataset}/{as_of}/revisions/{r1}.json"
     k2 = f"archive/manifests/{dataset}/{as_of}/revisions/{r2}.json"
-    archive.manifests[k1] = _manifest(dataset, as_of, r1, "2026-09-18T10:00:00Z", "obj1")
-    archive.manifests[k2] = _manifest(dataset, as_of, r2, "2026-09-18T11:00:00Z", "obj2")
+    archive.manifests[k1] = _manifest(dataset, as_of, r1, "2026-09-18T10:00:00Z", "obj1", len(body1))
+    archive.manifests[k2] = _manifest(dataset, as_of, r2, "2026-09-18T11:00:00Z", "obj2", len(body2))
     ref = R2DatasetReader(archive).resolve_latest_revision(dataset, as_of)
     assert ref.revision_sha256 == r2
     assert ref.object_key == "obj2"
