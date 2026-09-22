@@ -1,6 +1,6 @@
 # R2 Engineering Loop — Phase Tracker
 
-Status: active — documentation synchronized 2026-09-21
+Status: active — documentation synchronized 2026-09-22
 
 This tracker is the working checklist for the market-data archive. Do not wait on
 the long Screener deep-history acquisition to advance independent engineering
@@ -230,4 +230,14 @@ The next engineering work is now live PIT consumer acceptance, manifest-pinned r
 
 PR #72 merged the explicit opt-in research fallback and read-only cost-observability gates. PR #73 merged the combined R2 final acceptance workflow, which exercises focused regression, live PIT membership acceptance, an explicit immutable research revision, the recovery audit, and cost observability.
 
-The live execution result is intentionally not marked PASS until GitHub Actions provides actual run evidence.
+The r2_cost_audit.main() argparse argv leak and the self-referential Stage-4B marker
+scan in r2-focused-validation.yml were resolved in this session (branch
+claude/pr-75-4b-interference-8ndpep / PR #76). The r2-focused CI gate is now green.
+
+Contract tests for the r2_final_acceptance.yml step ordering and required arguments are
+added in tests/test_r2_final_acceptance_contract.py and run as part of the r2-focused
+validation gate.
+
+The live execution result for the two Section E items (PIT membership, research pin)
+is intentionally not marked PASS until GitHub Actions provides actual run evidence
+with real R2 credentials.
