@@ -1,0 +1,65 @@
+name: Stage-4B Independent Validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/stage4b-execution
+      - agent/stage4b-second-archetype
+      - agent/stage4b-second-archetype-clean
+      - agent/stage4b-third-archetypes
+      - agent/stage4b-next
+      - agent/stage4b-batch1-pharma
+      - claude/stage4b-cutoff-fix-rerun-gvpryl
+    paths:
+      - "agent/**"
+      - "scripts/stage4b_*.py"
+      - "tests/**"
+      - ".github/workflows/stage4b-independent-validation.yml"
+      - "docs/**"
+
+permissions:
+  contents: read
+
+jobs:
+  stage4b:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest pyyaml
+      - name: Stage-2 canonical ranking artifact hand-off
+        run: |
+          python - <<'PY'
+          from agent.quant_hand_off import load_quant_snapshot
+          snapshot = load_quant_snapshot()
+          print(f"STAGE2_HANDOFF_AS_OF={snapshot.as_of.isoformat()}")
+          print(f"STAGE2_HANDOFF_ROWS={len(snapshot.rows)}")
+          print(f"STAGE2_HANDOFF_PIPELINE={snapshot.pipeline_version}")
+          print(f"STAGE2_HANDOFF_PRICE_SOURCE={snapshot.price_source}")
+          print(f"STAGE2_HANDOFF_ARTIFACT={snapshot.source_artifact}")
+          print("STAGE2_HANDOFF=PASS")
+          PY
+      - name: Stage-3 live hierarchy output
+        run: python scripts/stage3_live_validation.py
+      - name: Stage-4B real SANSERA research execution
+        run: python scripts/stage4b_sansera_live_validation.py
+      - name: Stage-4B adaptive second-archetype ANANDRATHI execution
+        run: python scripts/stage4b_anandrathi_live_validation.py
+      - name: Stage-4B adaptive third-archetype PAYTM execution
+        run: python scripts/stage4b_paytm_live_validation.py
+      - name: Stage-4B adaptive fourth-archetype YATHARTH execution
+        run: python scripts/stage4b_yatharth_live_validation.py
+      - name: Stage-4B adaptive fifth-archetype LENSKART execution
+        run: python scripts/stage4b_lenskart_live_validation.py
+      - name: Retain Stage-4B dossiers
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4b-dossiers
+          path: artifacts/stage4b_*.md
+          if-no-files-found: warn
