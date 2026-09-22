@@ -138,3 +138,8 @@ def test_shared_navigator_opens_the_custom_hamburger():
 def test_navigator_has_semantic_hamburger_fallback():
     src = NAV_MODULE.read_text(encoding="utf-8")
     assert 'get_by_role("button", name="☰", exact=True)' in src
+
+
+def test_navigator_waits_for_visible_popover_body():
+    src = NAV_MODULE.read_text(encoding="utf-8")
+    assert "body.is_visible()" in src
