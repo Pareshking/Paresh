@@ -12,11 +12,34 @@ from src.storage.reader import R2DatasetReader
 
 def audit_recovery(archive: R2Archive) -> dict[str, Any]:
     reader = R2DatasetReader(archive)
+    manifest_keys = sorted(
+        key for key in archive.list_keys("archive/manifests/")
+        if "/revisions/" in key and key.endswith(".json")
+    )
     pointers = sorted(
         key for key in archive.list_keys("archive/manifests/")
         if key.endswith("/current.json")
     )
     verified = []
+    immutable_verified = []
+    for key in manifest_keys:
+        parts = key.split("/")
+        if len(parts) < 7:
+            continue
+        dataset = "/".join(parts[2:-3])
+        as_of = parts[-3]
+        revision_sha256 = parts[-1][:-5]
+        if len(revision_sha256) != 64:
+            raise RuntimeError(f"Invalid immutable manifest revision key: {key}")
+        ref = reader.resolve_revision(dataset, as_of, revision_sha256)
+        body = reader.read_bytes(ref)
+        immutable_verified.append({
+            "dataset": dataset,
+            "as_of": as_of,
+            "revision_sha256": ref.revision_sha256,
+            "size_bytes": len(body),
+        })
+
     for key in pointers:
         parts = key.split("/")
         if len(parts) < 5 or parts[-1] != "current.json":
@@ -31,7 +54,13 @@ def audit_recovery(archive: R2Archive) -> dict[str, Any]:
             "revision_sha256": ref.revision_sha256,
             "size_bytes": len(body),
         })
-    return {"status": "PASS", "current_pointers": len(pointers), "verified": verified}
+    return {
+        "status": "PASS",
+        "current_pointers": len(pointers),
+        "immutable_revisions": len(manifest_keys),
+        "verified": verified,
+        "immutable_verified": immutable_verified,
+    }
 
 
 def main() -> int:
@@ -45,6 +74,8 @@ def main() -> int:
         print("R2_RECOVERY_AUDIT={}".format(result["status"]))
         print("CURRENT_POINTERS={}".format(result["current_pointers"]))
         print("VERIFIED_OBJECTS={}".format(len(result["verified"])))
+        print("IMMUTABLE_REVISIONS={}".format(result["immutable_revisions"]))
+        print("IMMUTABLE_VERIFIED={}".format(len(result["immutable_verified"])))
     return 0
 
 
