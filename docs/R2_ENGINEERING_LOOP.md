@@ -75,10 +75,8 @@ The bootstrap established source-faithful constituent evidence, point-in-time
 membership, sparse confirmed-session evidence, the initial NSE market-cap snapshot,
 and corporate-action evidence with explicit provenance.
 
-The observed-session and dated-market-cap builders are now also present on main.
-The observed-session publication has been live-verified. The dated market-cap
-workflow is implemented but its live R2 publication/read-back still requires
-explicit verification before that gate is marked green.
+The observed-session and dated-market-cap builders are present on main and both
+have completed live R2 publication/read-back verification.
 
 No Yahoo raw-price rebuild is authorized by this tracker; it remains parked.
 
@@ -125,7 +123,8 @@ Source design is documented in `docs/RAW_PRICE_REBUILD.md`.
 - [ ] Streamlit reader behind a feature flag.
 - [ ] Controlled fallback to release/local artifacts.
 - [ ] Manifest-pinned research runs.
-- [ ] Point-in-time universe reconstruction from archived membership.
+- [x] Point-in-time membership consumer contract — isolated under `r2/consumers/`, fail-closed on unknown coverage and duplicate active intervals.
+- [ ] Live point-in-time universe reconstruction acceptance — dedicated workflow merged; real R2 execution remains the acceptance gate.
 
 
 ## CI isolation — VERIFIED 2026-09-21
@@ -142,8 +141,8 @@ This is intentional: R2 acceptance is based on R2 evidence. SANSERA, ANANDRATHI,
 ## F. Operations / governance
 
 - [x] Archive inventory/audit report — read-only inventory tool and scheduled/manual workflow live-verified successfully (Run ID 35642709261).
-- [ ] Coverage/continuity observability.
-- [x] Failure/recovery tests — current-pointer full read-back audit added; live recovery execution is the next evidence gate.
+- [ ] Coverage/continuity observability — tooling exists; scheduled/live continuity gate remains to be added.
+- [x] Failure/recovery tests — current-pointer full read-back recovery audit and unit coverage are implemented; live scheduled recovery execution remains to be evidenced.
 - [ ] Retention policy before any deletion mechanism.
 - [ ] R2 request/storage cost monitoring.
 - [ ] Document recovery procedure from R2 alone.
@@ -172,14 +171,11 @@ contract for archive continuity/read-coverage checks.
 
 1. Keep the verified Screener, observed-session, and dated-market-cap publications
    under routine audit; do not rerun the long 10Y acquisition for engineering work.
-2. Finish Section-C consumer acceptance: source completeness, schema/coverage,
-   manifest pinning, and point-in-time universe reconstruction tests.
-3. Start the R2 consumer layer: generic analytical read adapter, manifest-pinned
-   research/backtest reader, then Streamlit behind a feature flag with a proven
-   release/local fallback.
-4. Add operational recovery, inventory, continuity, retention, and cost gates
-   before making R2 primary.
-5. Keep the Yahoo raw-price rebuild parked until the R2 consumer layer is stable.
+2. Complete live PIT membership acceptance through the dedicated R2 consumer workflow.
+3. Build the manifest-pinned research/backtest reader without changing System-1 or Stage-4B.
+4. Add controlled fallback and reproducibility gates before any consumer migration.
+5. Finish operational continuity, live recovery, retention, and cost gates.
+6. Keep the Yahoo raw-price rebuild parked until the R2 consumer layer is stable.
 
 
 ## Verified production milestones — 2026-09-21
@@ -222,4 +218,4 @@ V1 Full Validation run **#553 / Run ID 35637235543** completed SUCCESS on the sa
 - deprecated Streamlit cleanup = PASS
 - headless Streamlit smoke test = PASS
 
-The next engineering work is now the remaining historical-evidence completeness and R2 consumer layers; the Screener production gate is no longer a blocker.
+The next engineering work is now live PIT consumer acceptance, manifest-pinned research/backtest consumption, and the remaining operational gates; the Screener production gate is no longer a blocker.
