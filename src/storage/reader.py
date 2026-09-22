@@ -234,18 +234,40 @@ class R2DatasetReader:
         as_of: str,
         revision_sha256: str,
     ) -> None:
-        if int(manifest.get("schema_version", -1)) != MANIFEST_SCHEMA_VERSION:
+        try:
+            schema_version = int(manifest.get("schema_version", -1))
+        except (TypeError, ValueError) as exc:
+            raise R2DatasetIntegrityError("manifest has invalid schema_version") from exc
+        if schema_version != MANIFEST_SCHEMA_VERSION:
             raise R2DatasetIntegrityError("unsupported R2 manifest schema version")
         if str(manifest.get("dataset", "")) != dataset:
             raise R2DatasetIntegrityError("manifest dataset mismatch")
-        if str(manifest.get("as_of", "")) != as_of:
+        manifest_as_of = str(manifest.get("as_of", ""))
+        try:
+            normalized_as_of = date.fromisoformat(manifest_as_of).isoformat()
+        except (TypeError, ValueError) as exc:
+            raise R2DatasetIntegrityError("manifest has invalid as_of") from exc
+        if normalized_as_of != manifest_as_of or manifest_as_of != as_of:
             raise R2DatasetIntegrityError("manifest as_of mismatch")
         if str(manifest.get("sha256", "")) != revision_sha256:
             raise R2DatasetIntegrityError("manifest SHA does not match revision identity")
         if str(manifest.get("revision_sha256", "")) != revision_sha256:
             raise R2DatasetIntegrityError("manifest revision SHA does not match revision identity")
-        if int(manifest.get("size_bytes", -1)) < 0:
+        try:
+            size_bytes = int(manifest.get("size_bytes", -1))
+        except (TypeError, ValueError) as exc:
+            raise R2DatasetIntegrityError("manifest has invalid size_bytes") from exc
+        if size_bytes < 0:
             raise R2DatasetIntegrityError("manifest has invalid size_bytes")
+        created_at = manifest.get("created_at")
+        if not isinstance(created_at, str) or not created_at.strip():
+            raise R2DatasetIntegrityError("manifest has no created_at")
+        try:
+            parsed_created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise R2DatasetIntegrityError("manifest has invalid created_at") from exc
+        if parsed_created_at.tzinfo is None:
+            raise R2DatasetIntegrityError("manifest created_at must include timezone")
 
     def _validate_object(self, object_key: str, manifest: dict[str, Any]) -> None:
         head = self.archive.head(object_key)
