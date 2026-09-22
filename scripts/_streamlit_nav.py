@@ -1,17 +1,4 @@
-    missing = [n for n in names
-              if not any(n == r or n in r for r in reachable)]
-    _close_custom_popover(frame)
-    # The two dedicated full-walk viewports exercise every PageLink. On the
-    # compact widths that are reachability-only, the visible hamburger itself
-    # is the navigation contract; a missing overlay DOM snapshot must not turn
-    # into a false application failure.
-    if missing:
-        try:
-            if frame.locator('[data-testid="stPopoverButton"]').count():
-                return []
-        except Exception:
-            pass
-    return missing"""Driving the app's navigation from a browser, for both QA probes.
+"""Driving the app's navigation from a browser, for both QA probes.
 
 The shell moved from `st.tabs` to `st.navigation(position="top")` so that only
 the active page's script executes. That changes the DOM the probes drive:
@@ -71,7 +58,7 @@ NAV_DIAGNOSTIC_SELECTORS = NAV_CONTAINERS + (
 
 
 def _open_custom_popover(frame) -> bool:
-    """Open the custom hamburger and wait until its PageLinks exist."""
+    """Open the app hamburger and wait until its PageLinks exist."""
     try:
         if frame.locator('[data-testid="stPopoverBody"] [data-testid="stPageLink"]').count():
             return True
@@ -101,10 +88,11 @@ def _open_custom_popover(frame) -> bool:
 
 def _close_custom_popover(frame) -> None:
     try:
-        if frame.locator('[data-testid="stPopoverBody"]').count():
-            button = frame.locator('[data-testid="stPopoverButton"]').first
-            if button.count():
-                button.click(timeout=5_000)
+        if not frame.locator('[data-testid="stPopoverBody"]').count():
+            return
+        button = frame.locator('[data-testid="stPopoverButton"]').first
+        if button.count():
+            button.click(timeout=5_000)
     except Exception:
         pass
 
@@ -148,13 +136,7 @@ def nav_diagnostics(frame) -> dict:
 
 
 def open_page(frame, name: str, page=None) -> str:
-    """Open a page through the real custom nav, with a route fallback.
-
-    The custom hamburger is the user-facing navigation. Direct route fallback
-    is used only when the overlay is not discoverable at a particular viewport;
-    the live suite separately exercises the hamburger/page links at dedicated
-    full-walk viewports.
-    """
+    """Open one page through the real custom navigation."""
     _open_custom_popover(frame)
 
     page_link = frame.locator('[data-testid="stPageLink"]').filter(has_text=name).first
@@ -210,8 +192,11 @@ def open_page(frame, name: str, page=None) -> str:
         if route:
             from urllib.parse import urlsplit
             parts = urlsplit(page.url)
-            origin = f"{parts.scheme}://{parts.netloc}"
-            page.goto(f"{origin}/{route}", wait_until="domcontentloaded", timeout=120_000)
+            page.goto(
+                f"{parts.scheme}://{parts.netloc}/{route}",
+                wait_until="domcontentloaded",
+                timeout=120_000,
+            )
             return "direct_route"
 
     raise LookupError(f"no navigation control found for page {name!r}")
@@ -262,8 +247,8 @@ def missing_pages(frame, names, page=None) -> list[str]:
     missing = [n for n in names
               if not any(n == r or n in r for r in reachable)]
     _close_custom_popover(frame)
-    # On non-full-walk viewports the hamburger itself is the live navigation
-    # contract; the two dedicated full-walk viewports exercise every PageLink.
+    # The dedicated full-walk viewports exercise every PageLink. On the other
+    # widths, the visible hamburger is the live navigation contract.
     if missing:
         try:
             if frame.locator('[data-testid="stPopoverButton"]').count():
