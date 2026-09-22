@@ -22,7 +22,7 @@ V1 is the application/quantitative-research validation track. Stage-4B live arch
 - V1 Full Validation remains responsible for application + System-1 regression. Stage-4B live archetype execution is temporarily isolated in its own workflow so R2/V1 progress does not wait on the expensive research loop.
 - An R2 gate is green only from R2 evidence; a Stage-4B result is neither a substitute for nor a prerequisite for an R2 storage gate.
 - A V1/Stage-4B failure must not block independent R2 engineering unless the changed R2 code is demonstrably on the failing execution path. Stage-4B remains intact and independently executable; this is CI decoupling, not removal or weakening of Stage-4B tests.
-- R2 consumer integration is a controlled later step. Until then, R2 remains an independent archive/read layer and V1 continues using its canonical existing data path.
+- R2 consumer integration is now split by purpose: research/backtest remains explicitly pinned; Streamlit production is a separate daily-current consumer behind its feature flag.
 
 This separation is intentional: the combined V1 suite currently executes multiple real Stage-4B archetypes and Streamlit checks, so attaching it to every R2 storage/documentation change creates unnecessary latency and makes unrelated failures harder to diagnose.
 
@@ -229,7 +229,7 @@ No V1 consumer has been switched to raw Yahoo prices. Equivalence and migration 
 1. **R2 acceptance is complete.** Bootstrap Run 35703827204 and Final Acceptance Run 35704396591 are green.
 2. Keep the published Screener, PIT membership, observed-session, market-cap, and corporate-action datasets under routine audit.
 3. Use the manifest-pinned R2 reader for research/backtest work where historical reproducibility is required; do not silently replace the canonical production price path.
-4. If Streamlit is ever migrated to R2, treat it as a separate feature-flagged migration with its own equivalence and production gate. The current live app remains on the canonical Screener path.
+4. Streamlit R2 production consumption is implemented behind its separate feature flag and equivalence gate. When enabled, it follows the validated daily `current.json` revision; when disabled, the canonical existing Screener path remains unchanged.
 5. Continue Stage-4B independently.
 6. Yahoo remains parked optional evidence.
 
@@ -351,7 +351,7 @@ The next engineering loop should focus on remaining R2 provenance/operational ha
 
 **R2 implementation and acceptance are complete.** Bootstrap Run 35703827204 and Final Acceptance Run 35704396591 passed on live R2. PRs #92–#100 subsequently hardened the immutable PIT/research consumers, manifest validation, recovery audit, and publication provenance. These are hardening changes only; they do not open a new R2 implementation phase.
 
-The engineering plan is now deliberately stopped at the production boundary: R2 is the accepted historical-data/evidence substrate, while Streamlit/System-1 remains on the canonical Screener path. A future R2 application migration is a separate project requiring equivalence, fallback, deployment, and production gates. No further R2 micro-PRs should be created merely to add tests or refactor already-accepted contracts.
+The R2 storage/evidence foundation is accepted. Research consumers remain explicitly pinned. Streamlit production consumption is separately gated and, when enabled, follows the latest validated Screener revision through `current.json`. No System-1 methodology changes are part of this path.
 
 
 ## Production Streamlit read path — daily current revision
