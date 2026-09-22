@@ -13,6 +13,8 @@ on:
       - 'tests/test_r2_*.py'
       - 'tests/test_build_trading_sessions.py'
       - 'tests/test_market_cap_history.py'
+      - 'tests/test_r2_research_fallback.py'
+      - 'tests/test_r2_cost_audit.py'
       - '.github/workflows/r2-*.yml'
       - '.github/workflows/r2_*.yml'
       - '.github/workflows/r2-focused-validation.yml'
