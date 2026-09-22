@@ -46,3 +46,53 @@ def test_dummy_symbols_are_not_added_by_the_delta_when_loader_has_filtered_them(
 
     assert new_current == []
     assert exited == ["DUMMYHEG"]
+
+
+def _frame(symbols):
+    import pandas as pd
+
+    idx = pd.DatetimeIndex(["2026-09-21"])
+    columns = pd.MultiIndex.from_tuples(
+        [(symbol, field) for symbol in symbols for field in ("Close", "Volume")],
+        names=["Symbol", "Field"],
+    )
+    values = []
+    for _ in idx:
+        row = []
+        for symbol in symbols:
+            row.extend([100.0, 1000.0])
+        values.append(row)
+    return pd.DataFrame(values, index=idx, columns=columns)
+
+
+def test_run_forces_new_symbols_before_regular_sweep(monkeypatch):
+    import scripts.sync_screener as sync
+
+    calls = []
+    monkeypatch.setattr(
+        sync,
+        "fetch_indices_data",
+        lambda selected: __import__("pandas").DataFrame({"Symbol": ["AAA", "HEGAM"]}),
+    )
+    monkeypatch.setattr(sync.sl, "load_store", lambda: _frame(["AAA"]))
+    monkeypatch.setattr(sync.sl, "load_ids", lambda: {})
+    monkeypatch.setattr(sync.sl, "save_ids", lambda ids: None)
+    monkeypatch.setattr(sync, "_drop_unsettled", lambda frame: (frame, []))
+    monkeypatch.setattr(sync.session_is_complete, "__call__", lambda date: True)
+
+    def fake_fetch(symbols, **kwargs):
+        calls.append(list(symbols))
+        return _frame(symbols), kwargs["ids"], []
+
+    monkeypatch.setattr(sync.sl, "fetch_universe", fake_fetch)
+    captured = {}
+
+    def fake_merge(frame):
+        captured["symbols"] = sorted(sync.sl.closes(frame).columns.tolist())
+        return frame, 1, 0
+
+    monkeypatch.setattr(sync.sl, "merge_into_store", fake_merge)
+
+    assert sync.run() == 0
+    assert calls == [["HEGAM"], ["AAA"]]
+    assert captured["symbols"] == ["AAA", "HEGAM"]
