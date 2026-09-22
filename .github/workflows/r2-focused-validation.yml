@@ -10,6 +10,13 @@ on:
       - 'scripts/r2_*.py'
       - 'scripts/build_trading_sessions.py'
       - 'scripts/build_market_cap_history.py'
+      - 'scripts/build_nse_index_prices.py'
+      - 'scripts/build_classification_history.py'
+      - 'scripts/build_membership_history.py'
+      - 'scripts/r2_historical_evidence_bootstrap.py'
+      - 'tests/test_nse_index_prices.py'
+      - 'tests/test_classification_history.py'
+      - 'tests/test_r2_historical_evidence.py'
       - 'tests/test_r2_*.py'
       - 'tests/test_build_trading_sessions.py'
       - 'tests/test_market_cap_history.py'
@@ -62,7 +69,9 @@ jobs:
           python -m pytest -q \
             tests/test_r2_*.py \
             tests/test_build_trading_sessions.py \
-            tests/test_market_cap_history.py
+            tests/test_market_cap_history.py \
+            tests/test_nse_index_prices.py \
+            tests/test_classification_history.py
 
       - name: Compile R2 implementation
         run: |
@@ -70,7 +79,11 @@ jobs:
           python -m compileall -q \
             scripts/r2_*.py \
             scripts/build_trading_sessions.py \
-            scripts/build_market_cap_history.py
+            scripts/build_market_cap_history.py \
+            scripts/build_nse_index_prices.py \
+            scripts/build_classification_history.py \
+            scripts/build_membership_history.py \
+            scripts/r2_historical_evidence_bootstrap.py
 
       - name: Assert R2 / V1 separation contract
         run: |
