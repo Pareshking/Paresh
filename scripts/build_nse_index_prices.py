@@ -124,64 +124,64 @@ def _fetch_archive_range(start: date, end: date) -> list[dict]:
 def _fetch_range(session, index_name: str, start: date, end: date):
     inner = (
         "{'name':'" + index_name +
-        "','startDate':'" + start.strftime("%d-%b-%Y") +
-        "','endDate':'" + end.strftime("%d-%b-%Y") +
+        "','startDate':'" + start.strftime('%d-%b-%Y') +
+        "','endDate':'" + end.strftime('%d-%b-%Y') +
         "','indexName':'" + index_name + "'}"
     )
     payload = {"cinfo": inner}
     headers = {
-        **HEADERS,
         "Content-Type": "application/json; charset=UTF-8",
         "X-Requested-With": "XMLHttpRequest",
-        "Origin": "https://www.niftyindices.com",
         "Referer": "https://www.niftyindices.com/reports/historical-data",
+        "User-Agent": HEADERS["User-Agent"],
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Origin": "https://www.niftyindices.com",
     }
-    for attempt in range(4):
+    requester = curl_requests if curl_requests else requests
+    for attempt in range(5):
         try:
-            response = session.post(URL, data=json.dumps(payload), headers=headers, timeout=60)
-            if response.status_code == 200:
-                body = response.json()
-                raw = body.get("d", "[]")
-                if not raw:
-                    time.sleep(2 ** attempt)
+            if curl_requests:
+                response = requester.post(URL, json=payload, headers=headers, timeout=60, impersonate="chrome")
+            else:
+                response = requester.post(URL, json=payload, headers=headers, timeout=60)
+            if response.status_code != 200:
+                time.sleep(2 ** attempt)
+                continue
+            body = response.json()
+            raw = body.get("d", "[]")
+            rows_raw = json.loads(raw) if isinstance(raw, str) else raw
+            rows = []
+            for row in rows_raw:
+                parsed = pd.to_datetime(row.get("HistoricalDate"), dayfirst=True, errors="coerce")
+                if pd.isna(parsed):
                     continue
-                rows_raw = json.loads(raw) if isinstance(raw, str) else raw
-                rows = []
-                for row in rows_raw:
-                    raw_date = row.get("HistoricalDate")
-                    parsed = pd.to_datetime(raw_date, dayfirst=True, errors="coerce")
-                    if pd.isna(parsed):
-                        continue
-                    rows.append(
-                        {
-                            "date": parsed.normalize(),
-                            "open": _number(row.get("OPEN")),
-                            "high": _number(row.get("HIGH")),
-                            "low": _number(row.get("LOW")),
-                            "close": _number(row.get("CLOSE")),
-                        }
-                    )
-                if rows:
-                    return rows
-        except (ValueError, json.JSONDecodeError, requests.RequestException):
+                rows.append({"date": parsed.normalize(), "open": _number(row.get("OPEN")), "high": _number(row.get("HIGH")), "low": _number(row.get("LOW")), "close": _number(row.get("CLOSE"))})
+            if rows:
+                return rows
+        except Exception:
             pass
         time.sleep(2 ** attempt)
     raise RuntimeError(f"Nifty Indices historical request failed: {index_name} {start}..{end}")
 
-
 def build(output: Path, start: date, end: date) -> dict:
-    rows = _fetch_archive_range(start, end)
-    frame = pd.DataFrame(rows)
-    if frame.empty:
-        raise RuntimeError("NSE daily index archive returned no rows")
-
-    frame["index"] = frame["index_name"].map(
-        {name: key for key, name in INDEX_NAMES.items()}
-    )
-    frame = frame.dropna(subset=["index"])
-    frame["source"] = "NSE daily index archive"
-    frame["evidence_date"] = pd.Timestamp(end)
-    frame = frame.drop_duplicates(["index", "date"], keep="last")
+    parts = []
+    for key, name in INDEX_NAMES.items():
+        try:
+            rows = _fetch_range(None, name, start, end)
+        except RuntimeError:
+            rows = _fetch_archive_range(start, end)
+            rows = [row for row in rows if row["index_name"] == name]
+        frame = pd.DataFrame(rows)
+        if frame.empty:
+            raise RuntimeError(f"No official NSE/Nifty Indices history for {name}")
+        if "index_name" in frame.columns:
+            frame = frame.drop(columns=["index_name"])
+        frame["index"] = key
+        frame["source"] = "NSE Indices historical data"
+        frame["evidence_date"] = pd.Timestamp(end)
+        frame = frame.drop_duplicates(["index", "date"], keep="last")
+        parts.append(frame)
+    frame = pd.concat(parts, ignore_index=True)
     frame = frame[
         ["date", "index", "open", "high", "low", "close", "source", "evidence_date"]
     ].sort_values(["index", "date"])
