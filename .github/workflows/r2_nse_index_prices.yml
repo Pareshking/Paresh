@@ -56,8 +56,8 @@ jobs:
         run: |
           python scripts/r2_publish.py \
             --path /tmp/nse_index_prices.parquet \
-            --dataset indices/prices/nse \
-            --source nse_historical_indices_api \
+            --dataset indices/prices/nse_index_series \
+            --source screener_index_chart_nse_indices \
             --key-root archive/indices/prices/nse \
             --pipeline-version "r2_nse_index_prices_v1" \
             --release-tag data-latest
