@@ -37,7 +37,7 @@ def test_streamlit_reader_dataset_can_be_configured(monkeypatch):
 
 
 def test_streamlit_reader_deep_history_dataset():
-    assert DEEP_HISTORY_DATASET == "prices/yahoo"
+    assert DEEP_HISTORY_DATASET == "prices/yahoo/raw"
 
 
 def test_streamlit_reader_deep_history_is_current_pointer(monkeypatch):
@@ -45,7 +45,7 @@ def test_streamlit_reader_deep_history_is_current_pointer(monkeypatch):
     import r2.consumers.r2_streamlit as mod
 
     class Ref:
-        dataset = "prices/yahoo"
+        dataset = "prices/yahoo/raw"
         as_of = "2026-09-21"
         revision_sha256 = "b" * 64
 
@@ -53,7 +53,7 @@ def test_streamlit_reader_deep_history_is_current_pointer(monkeypatch):
         def __init__(self, archive):
             self.archive = archive
         def resolve_current(self, dataset):
-            assert dataset == "prices/yahoo"
+            assert dataset == "prices/yahoo/raw"
             return Ref()
         def read_parquet(self, ref):
             return {"ok": True}
@@ -64,6 +64,6 @@ def test_streamlit_reader_deep_history_is_current_pointer(monkeypatch):
 
     frame, pin = mod.read_configured_deep_history()
     assert frame == {"ok": True}
-    assert pin.dataset == "prices/yahoo"
+    assert pin.dataset == "prices/yahoo/raw"
     assert pin.as_of == "2026-09-21"
     assert pin.revision_sha256 == "b" * 64
