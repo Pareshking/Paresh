@@ -807,7 +807,7 @@ R2 verification gate.
 
 ## Phase 3 — Dual publication
 
-**Status: active.**
+**Status: verified and operational.**
 
 GitHub Release artifacts remain available as the application snapshot/fallback.
 R2 now holds canonical archival datasets and immutable revisions.
@@ -832,19 +832,24 @@ Verified dated market-cap history:
 
 ## Phase 4 — R2 reader
 
-**Status: next.**
+**Status: implemented and live-accepted.**
 
-Implement a generic analytical R2 read adapter, then manifest-pinned
-research/backtest access. Streamlit integration must be behind a feature flag
-and retain a controlled release/local fallback until acceptance is proven.
+The analytical R2 reader, manifest-pinned research/backtest adapter, controlled
+fallback, and feature-flagged Streamlit boundary are implemented. Final
+Acceptance Run **35704396591** passed the live immutable research acceptance and
+live PIT membership acceptance, along with recovery and cost-observability gates.
+
+This phase does **not** switch the production Streamlit application to R2.
 
 ## Phase 5 — R2 canonical consumer path
 
-**Status: not started.**
+**Status: not started — deliberately gated.**
 
-R2 becomes primary for a consumer only after manifest-pinned reads, integrity and
-equality checks, failure/fallback tests, point-in-time membership reconstruction,
-and the relevant regression/full-validation gates are green.
+The production application remains on the canonical Screener price path. R2
+becoming the primary production consumer is a separate migration project. It
+requires application-level equivalence, failure/fallback testing, deployment
+verification, and explicit production acceptance. No System-1 ranking, benchmark,
+universe, or price methodology is changed by R2 storage acceptance.
 
 ## Phase 6 — GitHub data reduction
 
@@ -1474,3 +1479,25 @@ read-back verification
 
 No ranking formula, benchmark, universe methodology, or Stage-4 research
 methodology is changed by this archive work.
+
+
+---
+
+# 28. Final R2 acceptance record — 2026-09-22
+
+Historical evidence bootstrap **Run 35703827204** passed all publication steps,
+including PIT membership and corporate-action evidence. Final Acceptance
+**Run 35704396591** passed:
+
+- R2 regression;
+- live PIT membership acceptance;
+- live immutable research acceptance;
+- live recovery audit;
+- live cost observability.
+
+R2 is therefore an accepted historical-data/evidence substrate.
+
+**Important boundary:** acceptance of R2 is not a production Streamlit migration.
+The current application continues to use the canonical Screener production price
+path. Any future Phase-5 migration must be independently validated and explicitly
+promoted.

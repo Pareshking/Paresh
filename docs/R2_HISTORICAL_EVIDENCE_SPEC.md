@@ -1,7 +1,7 @@
 # R2 Historical Evidence Dataset Contracts
 
 **Status:** Engineering design — Section C of the R2 Engineering Loop  
-**Last updated:** 2026-09-21 (observed sessions and dated market-cap history live-verified)  
+**Last updated:** 2026-09-22 (historical evidence bootstrap and final acceptance live-verified)  
 **Scope:** Historical evidence required for point-in-time research and survivorship-bias-aware analysis.
 
 This document converts the original R2 architecture requirements into implementation boundaries. It does not start the parked Yahoo raw-price rebuild.
@@ -199,15 +199,13 @@ Section-C implementation state on main:
 - C4 dated market-cap history — 21 explicit snapshots, 15,750 rows, 2026-08-18 through 2026-09-18; live R2 publication/read-back verified.
 - C5 corporate-action evidence — published with source/evidence URI/date.
 
-Do not duplicate the observed-session or market-cap builders/workflows. The next
-independent work is consumer acceptance, point-in-time reconstruction, and the
-remaining operations/recovery gates.
+Do not duplicate the observed-session or market-cap builders/workflows. The live consumer and operational acceptance gates are now closed by the combined R2 Final Acceptance workflow.
 
 Still pending Section-C completeness:
 - ongoing accumulation of future dated market-cap snapshots as new source evidence arrives;
-- C6 raw source evidence where it provides material reproducibility value;
-- full consumer acceptance tests for each dataset;
-- point-in-time universe reconstruction against archived evidence.
+- C6 raw source evidence where it provides material reproducibility value.
+
+The previously pending live consumer and point-in-time reconstruction gates are complete.
 
 Parked:
 - Yahoo raw-price rebuild in `docs/RAW_PRICE_REBUILD.md`.
@@ -218,12 +216,12 @@ The Section-C datasets are intentionally at different maturity levels:
 
 | Dataset | Implementation | Live R2 evidence | Consumer acceptance |
 |---|---|---|---|
-| Constituent snapshots | complete | bootstrap publication completed | pending |
-| PIT membership | complete | bootstrap publication completed | pending |
-| Confirmed sessions | complete | bootstrap publication completed | pending |
-| Observed sessions | complete | **verified** — 1,161 sessions, 2016-09-23 → 2026-09-21 | pending |
-| Dated market caps | complete | **verified** — 21 snapshots, 15,750 rows, 2026-08-18 → 2026-09-18 | pending |
-| Corporate actions | complete | bootstrap publication completed | pending |
+| Constituent snapshots | complete | bootstrap publication completed | **accepted** — Final Acceptance 35704396591 |
+| PIT membership | complete | **verified** — immutable dated revision published | **accepted** — live PIT acceptance PASS |
+| Confirmed sessions | complete | bootstrap publication completed | **accepted** — Final Acceptance 35704396591 |
+| Observed sessions | complete | **verified** — 1,161 sessions, 2016-09-23 → 2026-09-21 | **accepted** — Final Acceptance 35704396591 |
+| Dated market caps | complete | **verified** — 21 snapshots, 15,750 rows, 2026-08-18 → 2026-09-18 | **accepted** — Final Acceptance 35704396591 |
+| Corporate actions | complete | bootstrap publication completed | **accepted** — Final Acceptance 35704396591 |
 | Raw source evidence | not started | — | — |
 
 ## 8. Acceptance gate
@@ -238,3 +236,10 @@ No historical evidence dataset is considered complete merely because an object e
 6. manifest/current-pointer verification;
 7. object read-back and checksum verification;
 8. reproducible consumer test.
+
+
+## 9. Live acceptance closure — 2026-09-22
+
+Bootstrap Run **35703827204** completed successfully and published the Section-C evidence datasets. Final Acceptance Run **35704396591** completed successfully with live R2 credentials and passed regression, PIT membership acceptance, immutable research acceptance, recovery audit, and cost observability.
+
+The R2 historical evidence layer is therefore accepted as a reproducible data substrate. This acceptance does not authorize or imply a production Streamlit migration to R2; production remains on the canonical Screener price path unless a separate migration gate is introduced.
