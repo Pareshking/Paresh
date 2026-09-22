@@ -96,25 +96,31 @@ def _publish_manifest(
     archive: R2Archive,
     manifest: dict[str, Any],
     key: str,
-) -> None:
+) -> dict[str, Any]:
     body = canonical_json(manifest)
     try:
         archive.put_bytes(key, body, content_type="application/json", immutable=True)
         print(f"MANIFEST PUBLISHED {key}")
+        return manifest
     except R2ImmutableObjectExists:
         existing = json.loads(archive.get_bytes(key).decode("utf-8"))
         existing_contract = _immutable_manifest_contract(existing)
         candidate_contract = _immutable_manifest_contract(manifest)
-        if existing_contract != candidate_contract:
-            differing = sorted(
-                field
-                for field in set(existing_contract) | set(candidate_contract)
-                if existing_contract.get(field) != candidate_contract.get(field)
-            )
+        differing = sorted(
+            field
+            for field in set(existing_contract) | set(candidate_contract)
+            if existing_contract.get(field) != candidate_contract.get(field)
+        )
+        material = [field for field in differing if field != "pipeline_version"]
+        if material:
             raise RuntimeError(
-                f"Existing R2 manifest differs for {key}: {', '.join(differing)}"
+                f"Existing R2 manifest differs for {key}: {', '.join(material)}"
             )
-        print(f"MANIFEST ALREADY PRESENT + VERIFIED {key}")
+        print(
+            f"MANIFEST ALREADY PRESENT + VERIFIED {key}"
+            + (f"; preserving immutable metadata: {', '.join(differing)}" if differing else "")
+        )
+        return existing
 
 
 def _publish_current(
@@ -253,7 +259,7 @@ def publish(
     if description["ranking_contract"] is not None:
         manifest["ranking_contract"] = description["ranking_contract"]
 
-    _publish_manifest(archive, manifest, manifest_key)
+    manifest = _publish_manifest(archive, manifest, manifest_key)
     _publish_current(
         archive,
         dataset=dataset,
@@ -262,7 +268,7 @@ def publish(
         object_key=object_key,
         manifest_key=manifest_key,
         source=source,
-        pipeline_version=pipeline_version,
+        pipeline_version=manifest["pipeline_version"],
     )
     _verify_publication(
         archive,
