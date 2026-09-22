@@ -118,6 +118,12 @@ class R2DatasetReader:
         as_of: str,
         revision_sha256: str,
     ) -> R2DatasetRef:
+        try:
+            normalized_as_of = date.fromisoformat(as_of).isoformat()
+        except (TypeError, ValueError) as exc:
+            raise R2DatasetIntegrityError(f"invalid as_of date: {as_of!r}") from exc
+        if normalized_as_of != as_of:
+            raise R2DatasetIntegrityError(f"as_of must be ISO YYYY-MM-DD: {as_of!r}")
         if len(revision_sha256) != 64 or any(
             char not in "0123456789abcdef" for char in revision_sha256
         ):
