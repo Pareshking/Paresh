@@ -10,6 +10,8 @@ from pathlib import Path
 import pandas as pd
 import yfinance as yf
 
+from src.loaders.screener_loader import fetch_series, resolve_id
+
 INDEX_NAMES = {
     "nifty50": "NIFTY 50",
     "nifty_next50": "NIFTY NEXT 50",
@@ -91,6 +93,35 @@ def _fetch_yahoo(name_key: str, name: str, start: date, end: date) -> pd.DataFra
     return frame
 
 
+def _fetch_screener(name_key: str, name: str, start: date, end: date) -> pd.DataFrame:
+    slugs = {
+        "nifty50": "NIFTY",
+        "nifty_next50": "id/1272613",
+        "nifty_midcap150": "NMIDCAP150",
+        "nifty_smallcap250": "SMALLCA250",
+        "nifty_microcap250": "NFMICRO250",
+    }
+    import requests
+    session = requests.Session()
+    cid = resolve_id(slugs[name_key], session)
+    if not cid:
+        raise RuntimeError(f"Screener could not resolve index {name}")
+    got = fetch_series(cid, session, days=3650)
+    if got is None:
+        raise RuntimeError(f"Screener returned no history for {name}")
+    close, _ = got
+    frame = pd.DataFrame({"date": close.index, "close": close.values})
+    frame["date"] = pd.to_datetime(frame["date"]).dt.normalize()
+    frame = frame[(frame["date"].dt.date >= start) & (frame["date"].dt.date <= end)]
+    if frame.empty:
+        raise RuntimeError(f"Screener history outside requested range for {name}")
+    frame["open"] = pd.NA
+    frame["high"] = pd.NA
+    frame["low"] = pd.NA
+    frame["index"] = name_key
+    frame["source"] = "Screener index chart (NSE index)"
+    return frame[["date", "open", "high", "low", "close", "index", "source"]]
+
 def build(output: Path, start: date, end: date) -> dict:
     parts = []
     for key, name in INDEX_NAMES.items():
@@ -98,9 +129,14 @@ def build(output: Path, start: date, end: date) -> dict:
             frame = _fetch_official(name, start, end)
             source = "NSE Indices historical data"
         except Exception as official_error:
-            frame = _fetch_yahoo(key, name, start, end)
-            source = "Yahoo Finance transport for NSE-maintained index"
-            print(f"OFFICIAL_INDEX_SOURCE_FALLBACK index={name} reason={type(official_error).__name__}")
+            try:
+                frame = _fetch_yahoo(key, name, start, end)
+                source = "Yahoo Finance transport for NSE-maintained index"
+                print(f"OFFICIAL_INDEX_SOURCE_FALLBACK index={name} reason={type(official_error).__name__}")
+            except Exception as yahoo_error:
+                frame = _fetch_screener(key, name, start, end)
+                source = "Screener index chart (NSE index)"
+                print(f"INDEX_SOURCE_FALLBACK index={name} official={type(official_error).__name__} yahoo={type(yahoo_error).__name__}")
         frame["index"] = key
         frame["source"] = source
         frame["evidence_date"] = pd.Timestamp(end)
