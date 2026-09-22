@@ -1,0 +1,31 @@
+name: R2 Research Consumer Validation
+
+on:
+  pull_request:
+    paths:
+      - "r2/consumers/**"
+      - "src/storage/**"
+      - "tests/test_r2_research_consumer.py"
+      - ".github/workflows/r2_research_consumer.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "r2/consumers/**"
+      - "src/storage/**"
+      - "tests/test_r2_research_consumer.py"
+      - ".github/workflows/r2_research_consumer.yml"
+  workflow_dispatch:
+
+jobs:
+  r2-research-consumer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: R2 research consumer tests
+        run: pytest -q tests/test_r2_research_consumer.py tests/test_r2_reader.py
