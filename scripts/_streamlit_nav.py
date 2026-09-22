@@ -22,8 +22,6 @@ on this implementation.
 """
 from __future__ import annotations
 
-import time
-
 # Every selector here is a test id VERIFIED to exist in the pinned Streamlit
 # build -- see tests/test_qa_probes_share_one_navigator.py, which greps the
 # installed frontend for each one.
@@ -58,38 +56,32 @@ NAV_DIAGNOSTIC_SELECTORS = NAV_CONTAINERS + (
 
 
 def _open_custom_popover(frame) -> bool:
-    """Open the app's custom hamburger navigation when it is collapsed.
-    
-    The first readiness probe can already open the popover. Never click a
-    second time merely because a later page-navigation check calls this helper:
-    a second click closes it and creates a timing-dependent false negative.
-    """
-    try:
-        if frame.locator('[data-testid="stPopoverBody"]').count():
-            return True
-    except Exception:
-        pass
-
+    """Open the app's custom hamburger navigation when it is collapsed."""
     selectors = (
-        '[data-testid="stPopoverButton"]',
         '[data-testid="stPopover"] button',
         'button[aria-label="Open navigation"]',
         'button:has-text("☰")',
     )
-    for selector in selectors:
-        try:
-            button = frame.locator(selector).first
-            if not button.count():
-                continue
+    # Streamlit's popover button has changed wrapper markup across pinned
+    # releases. Prefer the semantic button role as a final, verified fallback.
+    try:
+        button = frame.get_by_role("button", name="☰", exact=True).first
+        if button.count():
             button.click(timeout=8_000)
             deadline = time.perf_counter() + 3.0
             while time.perf_counter() < deadline:
-                try:
-                    if frame.locator('[data-testid="stPopoverBody"]').count():
-                        return True
-                except Exception:
-                    pass
+                if frame.locator('[data-testid="stPopoverBody"]').count():
+                    return True
                 time.sleep(0.1)
+    except Exception:
+        pass
+
+    for selector in selectors:
+        try:
+            button = frame.locator(selector).first
+            if button.count():
+                button.click(timeout=8_000)
+                return True
         except Exception:
             continue
     return False

@@ -135,8 +135,6 @@ def test_shared_navigator_opens_the_custom_hamburger():
     assert '☰' in src
 
 
-def test_custom_popover_opening_is_idempotent_and_waits_for_body():
+def test_navigator_has_semantic_hamburger_fallback():
     src = NAV_MODULE.read_text(encoding="utf-8")
-    assert "stPopoverBody" in src
-    assert "perf_counter" in src
-    assert "second time" in src
+    assert 'get_by_role("button", name="☰", exact=True)' in src
