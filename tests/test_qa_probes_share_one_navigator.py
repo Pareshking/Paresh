@@ -144,3 +144,9 @@ def test_navigator_has_live_route_fallback_for_viewport_probe():
     src = NAV_MODULE.read_text(encoding="utf-8")
     assert "direct_route" in src
     assert '"Screener": "screener"' in src
+
+
+def test_navigator_handles_mounted_frame_replacement():
+    src = (ROOT / "scripts" / "production_qa.py").read_text(encoding="utf-8")
+    assert "frame = app_frame(page)" in src
+    assert "Frame was detached" not in src

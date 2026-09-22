@@ -1035,6 +1035,12 @@ def main() -> None:
                             # spinner clears, which is usually far sooner than
                             # any constant safe enough for the slowest page.
                             settle_after_nav(page, frame)
+                            # Streamlit replaces the mounted app frame after a
+                            # page navigation. Reacquire it before reading the
+                            # new page; retaining the old Frame causes the
+                            # viewport-dependent "Frame was detached" failures
+                            # seen on the mobile full-walk.
+                            frame = app_frame(page)
                             body = frame.locator("body").inner_text(timeout=10_000)
                             hits = [t for t in RUNTIME_TOKENS if t in body]
                             if frame.locator('[data-testid="stException"]').count():
