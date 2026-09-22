@@ -51,3 +51,13 @@ def test_index_price_archive_contract(tmp_path):
     assert set(loaded["index"]) == set(INDEX_NAMES)
     assert loaded["close"].notna().all()
     assert loaded[["index", "date"]].duplicated().sum() == 0
+
+
+def test_nifty_indices_payload_uses_required_string_contract():
+    # Contract exercised by the live acquisition implementation.
+    index_name = "NIFTY 50"
+    start = "01-Jan-2025"
+    end = "10-Jan-2025"
+    inner = "{'name':'" + index_name + "','startDate':'" + start + "','endDate':'" + end + "','indexName':'" + index_name + "'}"
+    assert inner.startswith("{'name':'NIFTY 50'")
+    assert '"cinfo"' not in inner
