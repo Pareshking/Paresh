@@ -423,9 +423,14 @@ def _attach_52w_range(
         current = float(cmp_val)
         position = (current - lo) / (hi - lo) * 100.0
 
-        # "20% from 52W high" means the price level 20% below the high.
-        marker_price = hi * 0.80
-        marker = (marker_price - lo) / (hi - lo) * 100.0
+        # The bar itself is normalized from 52W Low (0%) to 52W High
+        # (100%). Therefore the visual "−20% from 52W High" guide belongs
+        # 20% of the displayed range below the high, i.e. at 80% of the
+        # low-to-high bar. Do not use 80% of the absolute high price here:
+        # that can fall below the displayed 52W Low (e.g. CASTROLIND:
+        # 80% × ₹204 = ₹163.20 < ₹174), which incorrectly clamps the guide
+        # to the left edge.
+        marker = 80.0
 
         out.at[idx, "_52W High"] = hi
         out.at[idx, "_52W Low"] = lo
