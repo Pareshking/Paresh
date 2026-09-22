@@ -2,6 +2,12 @@ name: R2 ranking calculation archive
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/loaders/ranking_store.py"
+      - "data/**"
+      - ".github/workflows/r2_ranking_archive.yml"
   schedule:
     - cron: "45 20 * * *"
 
