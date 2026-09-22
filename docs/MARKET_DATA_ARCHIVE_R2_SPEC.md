@@ -1507,3 +1507,69 @@ promoted.
 Earlier Phase-3 working notes in this document describe the implementation while it was being built and are retained as historical engineering record. They are superseded by the final acceptance state: R2 bootstrap Run 35703827204 and Final Acceptance Run 35704396591 are GREEN, and the immutable consumer/manifest/recovery hardening through PR #100 is merged to main.
 
 **Do not treat the earlier “Next gates” list as current blockers.** Yahoo raw-price migration remains parked, and Streamlit remains on the canonical Screener production path. Any future R2 read-path migration is a separate gated project.
+
+
+---
+
+# Current operational contract — 2026-09-22
+
+The sections above include retained architecture/design history. This section is the
+current operational contract and takes precedence over earlier “proposed”, “next
+gate”, or pre-acceptance status notes.
+
+## Daily publication
+
+The normal Screener production job continues to produce the current daily artifact.
+R2 publication stores each byte-level dataset snapshot as an immutable,
+content-addressed revision and advances the dataset's mutable `current.json` pointer
+only after the publication/verification contract succeeds.
+
+The archive therefore has two intentionally different access patterns:
+
+### Production application
+
+Streamlit follows the latest validated revision through `current.json`.
+
+It does **not** require a manually maintained revision SHA or `as_of` date.
+
+### Historical research/reproducibility
+
+Research consumers use an explicit dataset + `as_of` + revision SHA.
+
+They must not follow `current.json`, because a research run must remain reproducible
+even after later daily publications or same-date corrections.
+
+## Streamlit production configuration
+
+When the R2 reader feature flag is enabled, deployment configuration is:
+
+```toml
+R2_STREAMLIT_READER_ENABLED = "1"
+R2_STREAMLIT_DATASET = "prices/screener"
+```
+
+plus the existing five R2 credential secrets.
+
+The application resolves the latest validated current pointer, reads the referenced
+immutable revision, and records the resolved dataset/as_of/revision in runtime
+metrics. Cache expiry allows a newly published daily revision to be picked up without
+manual deployment-secret changes.
+
+If the R2 read or integrity verification fails, the application fails closed. It
+does not silently fall back to Yahoo or another price source.
+
+## Boundary that remains unchanged
+
+Moving the Streamlit storage read from the rolling Screener artifact to its validated
+R2 copy does not change:
+
+- System-1 formulas;
+- ranking weights;
+- benchmark;
+- universe methodology;
+- corporate-action methodology;
+- Stage-4B research logic;
+- source semantics.
+
+R2 remains a storage/evidence layer. The immutable revision is the reproducibility
+identity; `current.json` is the production freshness selector.
