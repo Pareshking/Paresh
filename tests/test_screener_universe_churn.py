@@ -81,7 +81,7 @@ def test_run_forces_new_symbols_before_regular_sweep(monkeypatch):
     monkeypatch.setattr(sync, "session_is_complete", lambda date: True)
 
     def fake_fetch(symbols, **kwargs):
-        calls.append(list(symbols))
+        calls.append((list(symbols), kwargs.get("days")))
         return _frame(symbols), kwargs["ids"], []
 
     monkeypatch.setattr(sync.sl, "fetch_universe", fake_fetch)
@@ -94,5 +94,5 @@ def test_run_forces_new_symbols_before_regular_sweep(monkeypatch):
     monkeypatch.setattr(sync.sl, "merge_into_store", fake_merge)
 
     assert sync.run() == 0
-    assert calls == [["HEGAM"], ["AAA"]]
+    assert calls == [(["HEGAM"], 3650), (["AAA"], 365)]
     assert captured["symbols"] == ["AAA", "HEGAM"]
