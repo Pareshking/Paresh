@@ -1,11 +1,14 @@
 name: R2 dated market-cap publication
 
 on:
+  schedule:
+    - cron: "00 20 * * *"
   push:
     branches: [main]
     paths:
       - "scripts/build_market_cap_history.py"
       - "tests/test_market_cap_history.py"
+      - "data/nse_market_caps.csv"
       - ".github/workflows/r2_market_cap_history.yml"
   workflow_dispatch:
 
