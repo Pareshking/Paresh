@@ -30,6 +30,7 @@ from src.core.logger import logger
 from src.engine import pipeline
 from src.engine.corporate_actions import adjust_ohlc, load_events
 from src.loaders.indices_loader import fetch_indices_data
+from r2.consumers import r2_streamlit
 from src.loaders.mcap_loader import fetch_market_caps
 from src.loaders.price_loader import (
     extract_ohlcv,
@@ -148,7 +149,6 @@ def load_prices_cached(
     # but this stayed at zero, Streamlit served a warm cache and the timing is
     # not a cold one.
     metrics.incr("memo_miss_prices")
-    from r2.consumers import r2_streamlit
     if r2_streamlit.enabled():
         frame, pin = r2_streamlit.read_configured_deep_history()
         metrics.note("deep_price_provider", "r2_yahoo_archive")
