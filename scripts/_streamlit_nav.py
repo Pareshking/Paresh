@@ -58,32 +58,53 @@ NAV_DIAGNOSTIC_SELECTORS = NAV_CONTAINERS + (
 
 
 def _open_custom_popover(frame) -> bool:
-    """Open the custom hamburger and wait until its PageLinks exist."""
+    """Open the custom hamburger and wait until its PageLinks are visible."""
+    page_links = frame.locator(
+        '[data-testid="stPopoverBody"] [data-testid="stPageLink"]'
+    )
     try:
-        if frame.locator('[data-testid="stPopoverBody"] [data-testid="stPageLink"]').count():
+        if page_links.count() and page_links.first.is_visible():
             return True
     except Exception:
         pass
+
     selectors = (
         '[data-testid="stPopoverButton"]',
         '[data-testid="stPopover"] button',
+        'button[aria-label="Open navigation"]',
         'button:has-text("☰")',
     )
+
+    def _wait_open() -> bool:
+        deadline = time.perf_counter() + 5.0
+        while time.perf_counter() < deadline:
+            try:
+                if page_links.count() and page_links.first.is_visible():
+                    return True
+            except Exception:
+                pass
+            time.sleep(0.1)
+        return False
+
+    # Streamlit's wrapper/test-id has changed between releases; use the
+    # semantic button as a final fallback after the verified selectors.
     for selector in selectors:
         try:
             button = frame.locator(selector).first
-            if not button.count():
-                continue
-            button.click(timeout=8_000)
-            deadline = time.perf_counter() + 5.0
-            while time.perf_counter() < deadline:
-                if frame.locator(
-                    '[data-testid="stPopoverBody"] [data-testid="stPageLink"]'
-                ).count():
+            if button.count():
+                button.click(timeout=8_000)
+                if _wait_open():
                     return True
-                time.sleep(0.1)
         except Exception:
             continue
+
+    try:
+        button = frame.get_by_role("button", name="☰", exact=True).first
+        if button.count():
+            button.click(timeout=8_000)
+            return _wait_open()
+    except Exception:
+        pass
     return False
 
 
