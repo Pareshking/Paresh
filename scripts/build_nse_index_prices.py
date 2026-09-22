@@ -1,32 +1,20 @@
-"""Acquire official NSE historical OHLC for the five research indices.
+"""Acquire historical OHLC-style index series for the five research indices.
 
-This is an independent index-price archive. It does not alter System-1 ranking
-prices or the Yahoo/Screener stock-price paths.
+NSE's public daily archive and interactive historical endpoint are not reachable
+from the GitHub Actions runner reliably. Screener exposes the same NSE index
+series through its chart API; this archive therefore records the source as
+Screener and never pretends it is a direct NSE feed.
 """
 
 from __future__ import annotations
 
 import argparse
-import time
 from datetime import date, timedelta
 from pathlib import Path
 
 import pandas as pd
-import json
 
-import json
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import threading
-from io import StringIO
-import requests
-try:
-    from curl_cffi import requests as curl_requests
-except ImportError:
-    curl_requests = None
-try:
-    from curl_cffi import requests as curl_requests
-except ImportError:
-    curl_requests = None
+from src.loaders.screener_loader import fetch_series, resolve_id
 
 INDEX_NAMES = {
     "nifty50": "NIFTY 50",
@@ -36,19 +24,56 @@ INDEX_NAMES = {
     "nifty_microcap250": "NIFTY MICROCAP 250",
 }
 
-URL = "https://www.niftyindices.com/Backpage.aspx/getHistoricaldatatabletoString"
-NSE_FALLBACK_URL = "https://www.niftyindices.com/Backpage.aspx/getHistoricaldatatabletoString"
-_thread_local = threading.local()
-
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/140.0 Safari/537.36"
-    ),
-    "Accept": "application/json,text/plain,*/*",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Referer": "https://www.nseindia.com/",
+INDEX_SLUGS = {
+    "nifty50": "NIFTY",
+    "nifty_next50": "id/1272613",
+    "nifty_midcap150": "NMIDCAP150",
+    "nifty_smallcap250": "SMALLCA250",
+    "nifty_microcap250": "NFMICRO250",
 }
+
+DEEP_DAYS = 3650
+
+
+def build(output: Path, start: date, end: date) -> dict:
+    import requests
+
+    session = requests.Session()
+    parts = []
+    for key, name in INDEX_NAMES.items():
+        cid = resolve_id(INDEX_SLUGS[key], session)
+        if not cid:
+            raise RuntimeError(f"Screener could not resolve index {name}")
+        got = fetch_series(cid, session, days=DEEP_DAYS)
+        if got is None:
+            raise RuntimeError(f"Screener returned no history for {name}")
+        close, volume = got
+        frame = pd.DataFrame({"close": close, "volume": volume})
+        frame.index = pd.DatetimeIndex(frame.index).normalize()
+        frame = frame[(frame.index.date >= start) & (frame.index.date <= end)]
+        frame = frame.reset_index(names="date")
+        frame["index"] = key
+        frame["source"] = "Screener index chart (NSE index)"
+        frame["evidence_date"] = pd.Timestamp(end)
+        parts.append(frame[["date","index","close","source","evidence_date"]])
+
+    result = pd.concat(parts, ignore_index=True).drop_duplicates(["index","date"])
+    result = result.sort_values(["index","date"])
+    if set(result["index"]) != set(INDEX_NAMES):
+        raise RuntimeError("Screener index archive is missing one or more research indices")
+    if result["close"].isna().any():
+        raise RuntimeError("Screener index archive contains null closes")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    result.to_parquet(output, index=False)
+    summary = {
+        "rows": len(result),
+        "indices": int(result["index"].nunique()),
+        "first_date": str(result["date"].min().date()),
+        "last_date": str(result["date"].max().date()),
+        "source": "Screener index chart (NSE index)",
+    }
+    print(summary)
+    return summary
 
 
 def _number(value):
@@ -59,172 +84,13 @@ def _number(value):
 
 def _records(payload):
     data = payload.get("data", payload) if isinstance(payload, dict) else payload
-    if isinstance(data, dict):
-        for key in (
-            "indexCloseOnlineRecords",
-            "indexCloseOnlineRecords",
-            "records",
-            "data",
-        ):
-            if isinstance(data.get(key), list):
-                return data[key]
     return data if isinstance(data, list) else []
-
-
-def _field(row, *names):
-    for name in names:
-        if name in row:
-            return row[name]
-    return None
-
-
-def _archive_session() -> requests.Session:
-    session = getattr(_thread_local, "session", None)
-    if session is None:
-        session = requests.Session()
-        session.headers.update(HEADERS)
-        session.get("https://www.nseindia.com/", headers=HEADERS, timeout=20)
-        _thread_local.session = session
-    return session
-
-
-def _fetch_archive_day(day: date) -> list[dict]:
-    url = f"https://nsearchives.nseindia.com/content/indices/ind_close_all_{day:%d%m%Y}.csv"
-    headers = {
-        "User-Agent": HEADERS["User-Agent"],
-        "Accept": "text/csv,*/*",
-        "Referer": "https://www.nseindia.com/",
-    }
-    response = _archive_session().get(url, headers=headers, timeout=30)
-    if response.status_code != 200 or not response.content.strip():
-        return []
-    frame = pd.read_csv(StringIO(response.text))
-    frame.columns = [str(x).strip() for x in frame.columns]
-    name_col = next((x for x in ("Index Name", "Index Name ") if x in frame.columns), None)
-    if name_col is None:
-        return []
-    wanted = set(INDEX_NAMES.values())
-    rows = []
-    for _, row in frame.iterrows():
-        name = str(row[name_col]).strip()
-        if name not in wanted:
-            continue
-        rows.append(
-            {
-                "date": pd.Timestamp(day),
-                "index_name": name,
-                "open": _number(row.get("Open")),
-                "high": _number(row.get("High")),
-                "low": _number(row.get("Low")),
-                "close": _number(row.get("Close")),
-            }
-        )
-    return rows
-
-
-def _fetch_archive_range(start: date, end: date) -> list[dict]:
-    days = pd.date_range(start, end, freq="B").date
-    rows = []
-    with ThreadPoolExecutor(max_workers=8) as pool:
-        futures = {pool.submit(_fetch_archive_day, day): day for day in days}
-        for future in as_completed(futures):
-            try:
-                rows.extend(future.result())
-            except requests.RequestException:
-                continue
-    return rows
-
-def _fetch_range(session, index_name: str, start: date, end: date):
-    inner = (
-        "{'name':'" + index_name +
-        "','startDate':'" + start.strftime('%d-%b-%Y') +
-        "','endDate':'" + end.strftime('%d-%b-%Y') +
-        "','indexName':'" + index_name + "'}"
-    )
-    payload = {"cinfo": inner}
-    headers = {
-        "Content-Type": "application/json; charset=UTF-8",
-        "X-Requested-With": "XMLHttpRequest",
-        "Referer": "https://www.niftyindices.com/reports/historical-data",
-        "User-Agent": HEADERS["User-Agent"],
-        "Accept": "application/json, text/javascript, */*; q=0.01",
-        "Origin": "https://www.niftyindices.com",
-    }
-    requester = curl_requests if curl_requests else requests
-    for attempt in range(5):
-        try:
-            if curl_requests:
-                response = requester.post(URL, json=payload, headers=headers, timeout=60, impersonate="chrome")
-            else:
-                response = requester.post(URL, json=payload, headers=headers, timeout=60)
-            if response.status_code != 200:
-                time.sleep(2 ** attempt)
-                continue
-            body = response.json()
-            raw = body.get("d", "[]")
-            rows_raw = json.loads(raw) if isinstance(raw, str) else raw
-            rows = []
-            for row in rows_raw:
-                parsed = pd.to_datetime(row.get("HistoricalDate"), dayfirst=True, errors="coerce")
-                if pd.isna(parsed):
-                    continue
-                rows.append({"date": parsed.normalize(), "open": _number(row.get("OPEN")), "high": _number(row.get("HIGH")), "low": _number(row.get("LOW")), "close": _number(row.get("CLOSE"))})
-            if rows:
-                return rows
-        except Exception:
-            pass
-        time.sleep(2 ** attempt)
-    raise RuntimeError(f"Nifty Indices historical request failed: {index_name} {start}..{end}")
-
-def build(output: Path, start: date, end: date) -> dict:
-    parts = []
-    for key, name in INDEX_NAMES.items():
-        try:
-            rows = _fetch_range(None, name, start, end)
-        except RuntimeError:
-            rows = _fetch_archive_range(start, end)
-            rows = [row for row in rows if row["index_name"] == name]
-        frame = pd.DataFrame(rows)
-        if frame.empty:
-            raise RuntimeError(f"No official NSE/Nifty Indices history for {name}")
-        if "index_name" in frame.columns:
-            frame = frame.drop(columns=["index_name"])
-        frame["index"] = key
-        frame["source"] = "NSE Indices historical data"
-        frame["evidence_date"] = pd.Timestamp(end)
-        frame = frame.drop_duplicates(["index", "date"], keep="last")
-        parts.append(frame)
-    frame = pd.concat(parts, ignore_index=True)
-    frame = frame[
-        ["date", "index", "open", "high", "low", "close", "source", "evidence_date"]
-    ].sort_values(["index", "date"])
-    expected = set(INDEX_NAMES)
-    actual = set(frame["index"])
-    missing = expected - actual
-    if missing:
-        raise RuntimeError(f"NSE index archive missing indices: {sorted(missing)}")
-    if frame["close"].isna().any():
-        raise RuntimeError("NSE index archive contains null close values")
-    output.parent.mkdir(parents=True, exist_ok=True)
-    frame.to_parquet(output, index=False)
-    summary = {
-        "rows": len(frame),
-        "indices": int(frame["index"].nunique()),
-        "first_date": str(frame["date"].min().date()),
-        "last_date": str(frame["date"].max().date()),
-    }
-    print(summary)
-    return summary
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument(
-        "--start",
-        type=date.fromisoformat,
-        default=date.today() - timedelta(days=3650),
-    )
+    parser.add_argument("--start", type=date.fromisoformat, default=date.today() - timedelta(days=3650))
     parser.add_argument("--end", type=date.fromisoformat, default=date.today())
     args = parser.parse_args()
     build(args.output, args.start, args.end)
