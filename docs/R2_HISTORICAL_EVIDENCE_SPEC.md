@@ -242,11 +242,11 @@ No historical evidence dataset is considered complete merely because an object e
 
 Bootstrap Run **35703827204** completed successfully and published the Section-C evidence datasets. Final Acceptance Run **35704396591** completed successfully with live R2 credentials and passed regression, PIT membership acceptance, immutable research acceptance, recovery audit, and cost observability.
 
-The R2 historical evidence layer is therefore accepted as a reproducible data substrate. This acceptance does not authorize or imply a production Streamlit migration to R2; production remains on the canonical Screener price path unless a separate migration gate is introduced.
+The R2 historical evidence layer is accepted as a reproducible data substrate. Streamlit production consumption is a separate application gate; when enabled, it reads the validated R2 Screener copy through the daily `current.json` pointer without changing System-1 methodology.
 
 
 ## Canonical implementation status — 2026-09-22
 
 All Section-C historical-evidence contracts required for the current R2 acceptance scope are implemented and live-verified. Final Acceptance Run 35704396591 passed PIT membership, immutable research, recovery, and cost gates. The remaining items in this document are future/optional expansion only: continued accumulation of new dated evidence and C6 raw-source evidence where it has material reproducibility value. They are not blockers for R2 acceptance.
 
-The accepted boundary is historical data/evidence consumption. It does not switch the production Streamlit/System-1 price path to R2.
+The historical-evidence contract remains separate from the Streamlit deployment contract. The Streamlit reader, when enabled, consumes the latest validated R2 Screener revision; System-1 methodology remains unchanged.
