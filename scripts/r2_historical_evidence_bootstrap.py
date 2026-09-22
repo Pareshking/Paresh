@@ -71,7 +71,7 @@ def build_constituents(output_dir: Path) -> list[Path]:
     return out
 
 
-def _membership_intervals(history: dict[str, Any], index_name: str | None = None) -> pd.DataFrame:
+def _membership_intervals(history: dict[str, Any], index_name: str | None = None, as_of: str = MEMBERSHIP_AS_OF) -> pd.DataFrame:
     baseline = history.get("baseline")
     if not baseline:
         raise RuntimeError("membership history has no baseline")
@@ -125,7 +125,7 @@ def _membership_intervals(history: dict[str, Any], index_name: str | None = None
         )
 
     frame = pd.DataFrame(rows).sort_values(["index", "symbol", "effective_from"])
-    frame["as_of"] = MEMBERSHIP_AS_OF
+    frame["as_of"] = as_of
     return frame
 
 
@@ -140,8 +140,9 @@ def build_membership(output_dir: Path) -> list[Path]:
     """
     paths: list[Path] = []
 
+    as_of = _sync_date()
     legacy = json.loads((ROOT / "data/membership_history.json").read_text())
-    frame = _membership_intervals(legacy)
+    frame = _membership_intervals(legacy, as_of=as_of)
     path = output_dir / "membership_nifty_total_market.parquet"
     frame.to_parquet(path, index=False)
     paths.append(path)
@@ -154,7 +155,7 @@ def build_membership(output_dir: Path) -> list[Path]:
             include_working_tree=True,
             write=False,
         )
-        frame = _membership_intervals(summary["history"], index_name=index)
+        frame = _membership_intervals(summary["history"], index_name=index, as_of=as_of)
         path = output_dir / f"membership_{index}.parquet"
         frame.to_parquet(path, index=False)
         paths.append(path)
