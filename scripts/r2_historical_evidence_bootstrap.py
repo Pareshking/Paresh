@@ -16,12 +16,13 @@ import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[1]
+MEMBERSHIP_AS_OF = "2026-09-18"
 INDEX_FILES = {
     "nifty50": ROOT / "data/indices/ind_nifty50list.csv",
     "nifty_next50": ROOT / "data/indices/ind_niftynext50list.csv",
     "nifty_midcap150": ROOT / "data/indices/ind_niftymidcap150list.csv",
     "nifty_smallcap250": ROOT / "data/indices/ind_niftysmallcap250list.csv",
-    "nifty_microcap250": ROOT / "data/indices/ind_niftymicrocap250list.csv",
+    "nifty_microcap250": ROOT / "data/indices/ind_niftymicrocap250_list.csv",
     "nifty_total_market": ROOT / "data/indices/ind_niftytotalmarket_list.csv",
 }
 
@@ -31,7 +32,16 @@ def _sync_date() -> str:
     return str(pd.Timestamp(meta["timestamp"]).date())
 
 
+def _validate_index_sources() -> None:
+    missing = [str(path) for path in INDEX_FILES.values() if not path.is_file()]
+    if missing:
+        raise FileNotFoundError(
+            "historical evidence index source file(s) missing: " + ", ".join(missing)
+        )
+
+
 def build_constituents(output_dir: Path) -> list[Path]:
+    _validate_index_sources()
     evidence_date = _sync_date()
     out: list[Path] = []
     for index, path in INDEX_FILES.items():
@@ -41,14 +51,13 @@ def build_constituents(output_dir: Path) -> list[Path]:
         )
         if symbol_col is None:
             raise RuntimeError(f"{path}: missing Symbol column")
-        symbols = (
-            frame[symbol_col].astype(str).str.strip().str.upper()
-        )
+        symbols = frame[symbol_col].astype(str).str.strip().str.upper()
         symbols = symbols[symbols.ne("")].drop_duplicates().sort_values()
         result = pd.DataFrame(
             {
                 "index": index,
                 "symbol": symbols.to_list(),
+                "as_of": evidence_date,
                 "evidence_date": evidence_date,
                 "source": "NSE index constituent snapshot",
             }
@@ -80,7 +89,7 @@ def _membership_intervals(history: dict[str, Any]) -> pd.DataFrame:
                 raise RuntimeError(f"membership removal without active start: {symbol}")
             rows.append(
                 {
-                    "index": history["index"],
+                    "index": "nifty_total_market",
                     "symbol": symbol,
                     "effective_from": start.isoformat(),
                     "effective_to": (effective - timedelta(days=1)).isoformat(),
@@ -103,7 +112,7 @@ def _membership_intervals(history: dict[str, Any]) -> pd.DataFrame:
     for symbol in sorted(state):
         rows.append(
             {
-                "index": history["index"],
+                "index": "nifty_total_market",
                 "symbol": symbol,
                 "effective_from": starts[symbol].isoformat(),
                 "effective_to": None,
@@ -112,7 +121,9 @@ def _membership_intervals(history: dict[str, Any]) -> pd.DataFrame:
             }
         )
 
-    return pd.DataFrame(rows).sort_values(["index", "symbol", "effective_from"])
+    frame = pd.DataFrame(rows).sort_values(["index", "symbol", "effective_from"])
+    frame["as_of"] = MEMBERSHIP_AS_OF
+    return frame
 
 
 def build_membership(output_dir: Path) -> Path:
