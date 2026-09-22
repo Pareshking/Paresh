@@ -69,16 +69,13 @@ def _field(row, *names):
 
 
 def _fetch_range(session, index_name: str, start: date, end: date):
-    payload = {
-        "cinfo": json.dumps(
-            {
-                "name": index_name,
-                "startDate": start.strftime("%d-%b-%Y"),
-                "endDate": end.strftime("%d-%b-%Y"),
-                "indexName": index_name,
-            }
-        )
-    }
+    inner = (
+        "{'name':'" + index_name +
+        "','startDate':'" + start.strftime("%d-%b-%Y") +
+        "','endDate':'" + end.strftime("%d-%b-%Y") +
+        "','indexName':'" + index_name + "'}"
+    )
+    payload = {"cinfo": inner}
     headers = {
         **HEADERS,
         "Content-Type": "application/json; charset=UTF-8",
