@@ -300,7 +300,7 @@ def _precomputed_ranking(
 
 @st.cache_data(show_spinner=False, ttl=3600)
 def _fetch_screener_store(_k: str, source_key: str):
-    """Read Screener history, optionally from an immutable R2 pin."""
+    """Read Screener history, optionally from an immutable archive pin."""
     from r2.consumers import r2_streamlit
     from src.loaders import price_source as _ps
 
