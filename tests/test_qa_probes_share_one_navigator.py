@@ -140,3 +140,9 @@ def test_custom_popover_opening_is_idempotent_and_waits_for_body():
     assert "stPopoverBody" in src
     assert "perf_counter" in src
     assert "second time" in src
+
+
+def test_custom_popover_waits_for_links_and_closes_after_audit():
+    src = NAV_MODULE.read_text(encoding="utf-8")
+    assert "stPageLink" in src
+    assert "def _close_custom_popover" in src
