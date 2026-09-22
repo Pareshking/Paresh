@@ -839,17 +839,13 @@ fallback, and feature-flagged Streamlit boundary are implemented. Final
 Acceptance Run **35704396591** passed the live immutable research acceptance and
 live PIT membership acceptance, along with recovery and cost-observability gates.
 
-This phase does **not** switch the production Streamlit application to R2.
+The Streamlit boundary is separately gated from historical R2 acceptance. The production gate verifies the live R2 current revision against the canonical Screener release and the same `from_screener` transformation.
 
 ## Phase 5 — R2 canonical consumer path
 
-**Status: not started — deliberately gated.**
+**Status: implemented behind an explicit production gate.**
 
-The production application remains on the canonical Screener price path. R2
-becoming the primary production consumer is a separate migration project. It
-requires application-level equivalence, failure/fallback testing, deployment
-verification, and explicit production acceptance. No System-1 ranking, benchmark,
-universe, or price methodology is changed by R2 storage acceptance.
+When `R2_STREAMLIT_READER_ENABLED=1`, Streamlit consumes `prices/screener` through the latest validated R2 `current.json` revision. The immutable revision remains available for exact historical reproduction. Read/integrity failures fail closed; there is no silent Yahoo fallback. No System-1 ranking, benchmark, universe, or price methodology is changed.
 
 ## Phase 6 — GitHub data reduction
 
