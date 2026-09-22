@@ -308,9 +308,9 @@ def _fetch_screener_store(_k: str, source_key: str):
         try:
             frame, pin = r2_streamlit.read_configured_screener()
         except Exception as exc:
-            logger.error("Configured R2 Screener read failed: %s", type(exc).__name__)
+            logger.error("Configured immutable Screener read failed: %s", type(exc).__name__)
             metrics.note("screener_store_fetch", f"r2_error_{type(exc).__name__}")
-            raise RuntimeError("Configured R2 Screener read failed; refusing source fallback") from exc
+            raise RuntimeError("Configured immutable Screener read failed; refusing source fallback") from exc
         metrics.note("screener_store_source", "r2")
         metrics.note("screener_store_as_of", pin.as_of)
         metrics.note("screener_store_revision", pin.revision_sha256)
@@ -338,12 +338,12 @@ def _resolve_price_source(price_hash, sym_key, adj_close, close_p, high_p, low_p
     chosen = _ps.from_screener(store) if store is not None else None
     if chosen is None:
         if r2_streamlit.enabled():
-            raise RuntimeError("Configured R2 Screener dataset is not usable")
+            raise RuntimeError("Configured immutable Screener dataset is not usable")
         return fallback
     keep = [c for c in chosen.close.columns if c in set(symbols)]
     if not keep:
         if r2_streamlit.enabled():
-            raise RuntimeError("Configured R2 Screener dataset has no requested symbols")
+            raise RuntimeError("Configured immutable Screener dataset has no requested symbols")
         return fallback
     chosen.adj_close = chosen.close = chosen.close[keep]
     chosen.volume = chosen.volume.reindex(columns=keep)
