@@ -1,6 +1,8 @@
 # R2 Engineering Loop — Phase Tracker
 
-Status: R2 acceptance complete — documentation synchronized 2026-09-22
+Status: **Current production contract — 2026-09-22**
+
+> **This file contains historical engineering notes as well as the current contract. The current contract below takes precedence over older implementation notes. Do not use older “next gate” lists as operational instructions.**
 
 This tracker is the working checklist for the market-data archive. Do not wait on
 the long Screener deep-history acquisition to advance independent engineering
@@ -20,7 +22,7 @@ V1 is the application/quantitative-research validation track. Stage-4B live arch
 - V1 Full Validation remains responsible for application + System-1 regression. Stage-4B live archetype execution is temporarily isolated in its own workflow so R2/V1 progress does not wait on the expensive research loop.
 - An R2 gate is green only from R2 evidence; a Stage-4B result is neither a substitute for nor a prerequisite for an R2 storage gate.
 - A V1/Stage-4B failure must not block independent R2 engineering unless the changed R2 code is demonstrably on the failing execution path. Stage-4B remains intact and independently executable; this is CI decoupling, not removal or weakening of Stage-4B tests.
-- R2 consumer integration is a controlled later step. Until then, R2 remains an independent archive/read layer and V1 continues using its canonical existing data path.
+- R2 consumer integration is now split by purpose: research/backtest remains explicitly pinned; Streamlit production is a separate daily-current consumer behind its feature flag.
 
 This separation is intentional: the combined V1 suite currently executes multiple real Stage-4B archetypes and Streamlit checks, so attaching it to every R2 storage/documentation change creates unnecessary latency and makes unrelated failures harder to diagnose.
 
@@ -133,8 +135,8 @@ evidence only. They do not alter V1, System-1, rankings, or the canonical price 
 - [x] Research/backtest reader — separate manifest-pinned consumer adapter; it accepts an explicit dataset/as_of/revision SHA and never falls back to the mutable current pointer. No ranking, price, universe, or Stage-4B logic is moved into R2.
 - [x] Research/backtest live R2 acceptance — Final Acceptance Run 35704396591 passed the live immutable research acceptance against the pinned revision.
 - [x] Controlled research fallback — explicit opt-in local/release artifact fallback; no silent fallback and no R2 write-back.
-- [x] Streamlit reader boundary behind a feature flag — disabled by default and requires an explicit immutable research pin when enabled.
-- [x] Controlled fallback to release/local artifacts — explicit opt-in fallback is implemented and SHA-provenance is returned.
+- [x] Streamlit reader boundary behind a feature flag — disabled by default; when enabled for production it follows the latest validated `current.json` revision for `prices/screener`.
+- [x] Controlled fallback to release/local artifacts — research consumers may use explicit opt-in fallback; the production Streamlit reader does **not** silently fall back.
 - [x] Manifest-pinned research runs — immutable pin adapter implemented and live acceptance verified by Final Acceptance Run 35704396591.
 - [x] Point-in-time membership consumer contract — isolated under `r2/consumers/`, fail-closed on unknown coverage and duplicate active intervals.
 - [x] Live point-in-time universe reconstruction acceptance — Final Acceptance Run 35704396591 passed live PIT membership acceptance.
@@ -152,6 +154,38 @@ R2 and V1/Stage-4B are now separate CI tracks.
 - This removes Stage-4B latency/failure coupling from the V1/R2 engineering loop without deleting or weakening any Stage-4B executable checks.
 
 This is intentional: R2 acceptance is based on R2 evidence. SANSERA, ANANDRATHI, PAYTM, YATHARTH, and LENSKART are V1/Stage-4B research workloads and are not R2 acceptance tests.
+
+## Current production contract — Streamlit R2 read path
+
+The production Streamlit R2 reader is a **daily-current consumer**, not a manually pinned deployment.
+
+- Feature flag: `R2_STREAMLIT_READER_ENABLED`.
+- Dataset: `R2_STREAMLIT_DATASET`, default `prices/screener`.
+- When enabled, the reader resolves the latest accepted `current.json` pointer and then reads the referenced immutable revision.
+- The immutable revision SHA is still the historical identity of the exact bytes consumed, but it is **not** a Streamlit secret that must be changed every day.
+- The daily Screener publication creates/preserves an immutable revision and advances `current.json` after validation.
+- Streamlit cache TTL allows the application to pick up the newly published daily revision without editing deployment configuration.
+- A read/integrity failure fails closed. The application does not silently switch to Yahoo or another source.
+- Research/backtest consumers remain explicitly pinned to dataset/as_of/revision SHA and do **not** use `current.json`.
+
+This distinction is intentional:
+
+```
+Production Streamlit:
+current.json -> latest validated immutable revision -> live app
+
+Research/reproducibility:
+explicit SHA -> exact immutable revision -> reproducible run
+```
+
+Deployment configuration therefore requires only the existing five R2 credentials plus:
+
+```toml
+R2_STREAMLIT_READER_ENABLED = "1"
+R2_STREAMLIT_DATASET = "prices/screener"
+```
+
+No daily `R2_STREAMLIT_AS_OF` or `R2_STREAMLIT_REVISION_SHA256` is required.
 
 ## F. Operations / governance
 
@@ -194,8 +228,8 @@ No V1 consumer has been switched to raw Yahoo prices. Equivalence and migration 
 
 1. **R2 acceptance is complete.** Bootstrap Run 35703827204 and Final Acceptance Run 35704396591 are green.
 2. Keep the published Screener, PIT membership, observed-session, market-cap, and corporate-action datasets under routine audit.
-3. Use the manifest-pinned R2 reader for research/backtest work where historical reproducibility is required; do not silently replace the canonical production price path.
-4. If Streamlit is ever migrated to R2, treat it as a separate feature-flagged migration with its own equivalence and production gate. The current live app remains on the canonical Screener path.
+3. Use the manifest-pinned R2 reader for research/backtest work where historical reproducibility is required; research remains explicitly SHA-pinned. Streamlit production, when enabled, follows the validated R2 current pointer.
+4. Streamlit R2 production consumption is implemented behind its separate feature flag and equivalence gate. When enabled, it follows the validated daily `current.json` revision; when disabled, the canonical existing Screener path remains unchanged.
 5. Continue Stage-4B independently.
 6. Yahoo remains parked optional evidence.
 
@@ -317,27 +351,30 @@ The next engineering loop should focus on remaining R2 provenance/operational ha
 
 **R2 implementation and acceptance are complete.** Bootstrap Run 35703827204 and Final Acceptance Run 35704396591 passed on live R2. PRs #92–#100 subsequently hardened the immutable PIT/research consumers, manifest validation, recovery audit, and publication provenance. These are hardening changes only; they do not open a new R2 implementation phase.
 
-The engineering plan is now deliberately stopped at the production boundary: R2 is the accepted historical-data/evidence substrate, while Streamlit/System-1 remains on the canonical Screener path. A future R2 application migration is a separate project requiring equivalence, fallback, deployment, and production gates. No further R2 micro-PRs should be created merely to add tests or refactor already-accepted contracts.
+The R2 storage/evidence foundation is accepted. Research consumers remain explicitly pinned. Streamlit production consumption is separately gated and, when enabled, follows the latest validated Screener revision through `current.json`. No System-1 methodology changes are part of this path.
 
 
-## Production Streamlit read path — implementation started 2026-09-22
+## Production Streamlit read path — daily current revision
 
-The application read path is now implemented behind an explicit immutable R2 pin.
+The Streamlit R2 production reader now follows the **latest validated `current.json` pointer** for `prices/screener`. It does not require a manually maintained `as_of` or revision SHA.
 
 - `R2_STREAMLIT_READER_ENABLED` defaults OFF.
-- When enabled, the app reads `prices/screener` through `R2DatasetReader` using an explicit `as_of` and 64-character revision SHA.
-- The cache identity includes the full immutable pin.
-- An archive read failure fails closed; the app does not silently switch to Yahoo.
-- The existing Screener URL path remains the default while the migration gate is closed.
-- GitHub Actions now has a real-credential read-path gate that compares the archive frame with the canonical Screener release artifact and validates the same `from_screener` transformation.
+- When enabled, the app reads the configured dataset through `R2DatasetReader.resolve_current()`.
+- Every published revision remains immutable and content-addressed for historical reproducibility.
+- The mutable `current.json` pointer is updated by the validated R2 publication workflow after a new daily dataset is accepted.
+- An archive read/integrity failure fails closed; the app does not silently switch to Yahoo.
+- The Streamlit cache is time-limited, so a daily publication is picked up automatically without editing Streamlit secrets.
+- The real-credential production gate compares the live current R2 revision with the canonical Screener release artifact and validates the same `from_screener` transformation.
 
-### Remaining production action
+### Production configuration
 
-The code gate is complete. The remaining action is deployment configuration on the existing Streamlit app: provide the existing R2 credentials through Streamlit secrets, set the four `R2_STREAMLIT_*` variables, restart, and observe the live app. Do not enable the flag until the immutable pin matches the currently published Screener revision.
+Only the R2 credentials and the feature flag/dataset selection are deployment configuration. No daily SHA or date needs to be edited in Streamlit.
 
-First production pin:
-- dataset: `prices/screener`
-- as_of: `2026-09-21`
-- revision: `df03ed6d6fb9c8ca963c4f3fb3b73386c43e6f106cc9a3307d7b693cf80455dd`
+```toml
+R2_STREAMLIT_READER_ENABLED = "1"
+R2_STREAMLIT_DATASET = "prices/screener"
+```
+
+The existing five R2 credential secrets remain unchanged.
 
 This migration changes only the source of the existing Screener dataframe. It does not change System-1 formulas, ranking weights, benchmark, universe, corporate-action methodology, or Stage-4B logic.
