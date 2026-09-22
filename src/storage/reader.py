@@ -62,6 +62,32 @@ class R2DatasetReader:
         key = candidates[-1]
         return self._resolve_pointer(key, expected_dataset=dataset)
 
+    def resolve_latest_revision(self, dataset: str, as_of: str) -> R2DatasetRef:
+        """Resolve the newest immutable revision for an exact dataset/date.
+
+        This deliberately does not consult current.json. Immutable evidence is
+        the source of truth for historical consumers; a mutable pointer is only
+        a convenience index and must never be required for PIT research.
+        """
+        prefix = f"archive/manifests/{dataset}/{as_of}/revisions/"
+        keys = sorted(
+            key for key in self.archive.list_keys(prefix) if key.endswith(".json")
+        )
+        if not keys:
+            raise FileNotFoundError(
+                f"no immutable R2 revisions for dataset {dataset} as_of={as_of}"
+            )
+        candidates = []
+        for key in keys:
+            revision = key.rsplit("/", 1)[-1][:-5]
+            if len(revision) != 64 or any(c not in "0123456789abcdef" for c in revision):
+                raise R2DatasetIntegrityError(f"invalid revision key: {key}")
+            candidates.append(self.resolve_revision(dataset, as_of, revision))
+        candidates.sort(
+            key=lambda ref: (str(ref.manifest.get("created_at", "")), ref.revision_sha256)
+        )
+        return candidates[-1]
+
     def resolve_revision(
         self,
         dataset: str,
