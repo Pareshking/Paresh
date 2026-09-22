@@ -30,7 +30,7 @@ from src.core.logger import logger
 from src.engine import pipeline
 from src.engine.corporate_actions import adjust_ohlc, load_events
 from src.loaders.indices_loader import fetch_indices_data
-from r2.consumers import r2_streamlit
+# R2-backed production readers are an explicit transport boundary; keep this import adjacent to the loader.\nfrom r2.consumers import r2_streamlit
 from src.loaders.mcap_loader import fetch_market_caps
 from src.loaders.price_loader import (
     extract_ohlcv,
