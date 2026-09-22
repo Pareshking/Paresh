@@ -51,7 +51,8 @@ def test_membership_intervals_close_removed_symbols_and_stamp_open_intervals():
 def test_real_membership_history_has_no_changes_and_covers_acceptance_date(tmp_path):
     history = json.loads((ROOT / "data/membership_history.json").read_text())
     assert history["changes"] == []
-    frame = build_membership(tmp_path)
+    paths = build_membership(tmp_path)
+    frame = tmp_path / "membership_nifty_total_market.parquet"
     generated = pd.read_parquet(frame)
     assert generated["index"].eq("nifty_total_market").all()
     assert generated["as_of"].eq(MEMBERSHIP_AS_OF).all()
