@@ -20,13 +20,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import pandas as pd
 
 from src.core import startup_metrics as metrics
-from src.core.config import SCREENER_DELAY_S
+from src.core.config import SCREENER_DEEP_HISTORY_DAYS, SCREENER_DELAY_S
 from src.core.market_time import session_is_complete
 from src.loaders import screener_loader as sl
 from src.loaders.indices_loader import fetch_indices_data
-
-SCREENER_DEEP_HISTORY_DAYS = 3650
-
 
 def _drop_unsettled(frame: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
     if frame is None or frame.empty:
