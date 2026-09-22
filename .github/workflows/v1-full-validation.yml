@@ -20,7 +20,7 @@ on:
     branches: [main]
     paths-ignore:
       - 'src/storage/**'
-        - 'scripts/r2_*.py'
+      - 'scripts/r2_*.py'
       - 'scripts/build_trading_sessions.py'
       - 'scripts/build_market_cap_history.py'
       - 'tests/test_r2_*.py'
@@ -55,7 +55,11 @@ jobs:
       - run: pip install -r requirements.txt pytest pyyaml
 
       - name: Full regression suite
-        run: python -m pytest -q
+        run: |
+          python -m pytest -q \
+            --ignore-glob='test_r2_*.py' \
+            --ignore=tests/test_build_trading_sessions.py \
+            --ignore=tests/test_market_cap_history.py
 
       - name: Compile application and source
         run: python -m compileall -q app.py src scripts
