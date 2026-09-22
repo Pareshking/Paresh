@@ -314,9 +314,17 @@ def _fetch_screener_store(_k: str, source_key: str):
         metrics.note("screener_store_source", "r2")
         metrics.note("screener_store_as_of", pin.as_of)
         metrics.note("screener_store_revision", pin.revision_sha256)
+        logger.info(
+            "Screener ranking store: source=object_storage dataset=%s as_of=%s revision=%s",
+            pin.dataset,
+            pin.as_of,
+            pin.revision_sha256,
+        )
         return frame
 
-    return _ps.fetch_screener_store()
+    frame = _ps.fetch_screener_store()
+    logger.info("Screener ranking store: source=published_screener_https")
+    return frame
 
 
 def _resolve_price_source(price_hash, sym_key, adj_close, close_p, high_p, low_p, vol_p, symbols):
@@ -438,6 +446,11 @@ def load_all_data(indices: list[str]):
 
         with metrics.stage("price_history"):
             raw_prices = load_prices_cached(sym_key, symbols, period="2y")
+            metrics.note("deep_price_provider", "yahoo")
+            logger.info(
+                "Deep price history loaded: provider=Yahoo; this feed is separate "
+                "from the ranking Screener/object-storage source."
+            )
         if raw_prices.empty:
             return None
 
@@ -488,6 +501,13 @@ def load_all_data(indices: list[str]):
             metrics.note("price_source", _src.source)
             metrics.note("price_high_basis", _src.high_basis)
             metrics.note("price_intraday", "yes" if _src.intraday else "no")
+            logger.info(
+                "Ranking price source selected: source=%s as_of=%s high_basis=%s intraday=%s",
+                _src.source,
+                str(pipeline.ranking_as_of(adj_close)),
+                _src.high_basis,
+                "yes" if _src.intraday else "no",
+            )
 
             # AFTER the source is chosen, never before. These describe the
             # frame the engine will actually score, and computing them from the
