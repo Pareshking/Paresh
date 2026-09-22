@@ -8,7 +8,8 @@ from r2.consumers.r2_research_fallback import R2ResearchFallbackError, read_with
 
 def test_fallback_requires_explicit_opt_in():
     class Broken:
-        pass
+        def resolve_revision(self, *args):
+            raise R2ResearchConsumerError("pinned revision unavailable")
     with pytest.raises(R2ResearchFallbackError, match="no fallback was authorized"):
         read_with_explicit_fallback(Broken(), pin=R2ResearchPin("d","2026-01-01","a"*64))
 
@@ -18,7 +19,8 @@ def test_fallback_reads_local_parquet(tmp_path: Path):
     frame = pd.DataFrame({"symbol": ["AAA"], "value": [1.0]})
     frame.to_parquet(path, index=False)
     class Broken:
-        pass
+        def resolve_revision(self, *args):
+            raise R2ResearchConsumerError("pinned revision unavailable")
     result = read_with_explicit_fallback(
         Broken(),
         pin=R2ResearchPin("d","2026-01-01","a"*64),
