@@ -55,9 +55,6 @@ jobs:
           release_sha = hashlib.sha256(release_path.read_bytes()).hexdigest()
           release = pd.read_parquet(release_path)
           release_as_of = pd.DatetimeIndex(release.index).max().date().isoformat()
-          import os
-          os.environ["R2_STREAMLIT_AS_OF"] = release_as_of
-          os.environ["R2_STREAMLIT_REVISION_SHA256"] = release_sha
           r2_frame, pin = read_configured_screener()
           assert pin.dataset == "prices/screener"
           assert pin.as_of == release_as_of
