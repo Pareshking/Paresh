@@ -14,6 +14,8 @@ from typing import Any
 
 import pandas as pd
 
+from scripts.build_membership_history import RESEARCH_INDEXES, TRACKED_INDEX_PATHS, build_history
+
 
 ROOT = Path(__file__).resolve().parents[1]
 MEMBERSHIP_AS_OF = "2026-09-18"
@@ -126,12 +128,37 @@ def _membership_intervals(history: dict[str, Any]) -> pd.DataFrame:
     return frame
 
 
-def build_membership(output_dir: Path) -> Path:
-    history = json.loads((ROOT / "data/membership_history.json").read_text())
-    frame = _membership_intervals(history)
+def build_membership(output_dir: Path) -> list[Path]:
+    """Build PIT membership intervals for all five research indices.
+
+    The legacy Total Market timeline is intentionally retained as a compatibility
+    artifact because existing V1 consumers use it. The five research indices are
+    reconstructed independently from their own committed NSE snapshots so an
+    index reclassification is represented by the actual index timelines rather
+    than inferred from today's universe.
+    """
+    paths: list[Path] = []
+
+    legacy = json.loads((ROOT / "data/membership_history.json").read_text())
+    frame = _membership_intervals(legacy)
     path = output_dir / "membership_nifty_total_market.parquet"
     frame.to_parquet(path, index=False)
-    return path
+    paths.append(path)
+
+    for index in RESEARCH_INDEXES:
+        summary = build_history(
+            TRACKED_INDEX_PATHS[index],
+            ROOT / "data" / "membership" / f"{index}.json",
+            index_name=index,
+            include_working_tree=True,
+            write=False,
+        )
+        frame = _membership_intervals(summary["history"])
+        path = output_dir / f"membership_{index}.parquet"
+        frame.to_parquet(path, index=False)
+        paths.append(path)
+
+    return paths
 
 
 def build_trading_sessions(output_dir: Path) -> Path:
@@ -192,7 +219,7 @@ def build_corporate_actions(output_dir: Path) -> Path:
 def build_all(output_dir: Path) -> list[Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
     paths = build_constituents(output_dir)
-    paths.append(build_membership(output_dir))
+    paths.extend(build_membership(output_dir))
     paths.append(build_trading_sessions(output_dir))
     paths.append(build_market_caps(output_dir))
     paths.append(build_corporate_actions(output_dir))
