@@ -241,3 +241,15 @@ validation gate.
 The live execution result for the two Section E items (PIT membership, research pin)
 is intentionally not marked PASS until GitHub Actions provides actual run evidence
 with real R2 credentials.
+
+### Membership dataset path fix — 2026-09-22
+
+R2 Final Acceptance run #2 (ID 35676371725) failed at "Live PIT membership acceptance":
+
+```
+FileNotFoundError: no current R2 pointer for dataset indices/membership
+```
+
+Root cause: `MEMBERSHIP_DATASET = "indices/membership"` in `r2/consumers/r2_historical.py`
+but the bootstrap published to `indices/membership/nifty_total_market`. The constant
+was updated to `"indices/membership/nifty_total_market"` to match the published path.

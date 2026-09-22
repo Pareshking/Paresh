@@ -22,7 +22,7 @@ class R2HistoricalConsumerError(ValueError):
     """Published R2 evidence cannot satisfy the consumer contract."""
 
 
-MEMBERSHIP_DATASET = "indices/membership"
+MEMBERSHIP_DATASET = "indices/membership/nifty_total_market"
 
 
 def _as_date(value: Any) -> pd.Timestamp:
