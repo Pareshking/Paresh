@@ -100,3 +100,24 @@ def test_corporate_action_evidence_has_provenance(tmp_path):
         "repo://Pareshking/Paresh/data/corporate_actions_log.json"
     ).all()
     assert frame["evidence_date"].notna().all()
+
+
+def test_build_membership_produces_all_five_research_index_histories(tmp_path):
+    paths = build_membership(tmp_path)
+    names = {path.name for path in paths}
+    expected = {
+        "membership_nifty50.parquet",
+        "membership_nifty_next50.parquet",
+        "membership_nifty_midcap150.parquet",
+        "membership_nifty_smallcap250.parquet",
+        "membership_nifty_microcap250.parquet",
+        "membership_nifty_total_market.parquet",
+    }
+    assert expected <= names
+    for name in expected:
+        frame = pd.read_parquet(tmp_path / name)
+        assert not frame.empty
+        assert frame["symbol"].notna().all()
+        assert frame["effective_from"].notna().all()
+        assert frame["as_of"].eq(MEMBERSHIP_AS_OF).all()
+
