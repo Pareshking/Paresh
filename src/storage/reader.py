@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Any
 
 import pandas as pd
@@ -69,6 +70,13 @@ class R2DatasetReader:
         the source of truth for historical consumers; a mutable pointer is only
         a convenience index and must never be required for PIT research.
         """
+        try:
+            normalized_as_of = date.fromisoformat(as_of).isoformat()
+        except (TypeError, ValueError) as exc:
+            raise R2DatasetIntegrityError(f"invalid as_of date: {as_of!r}") from exc
+        if normalized_as_of != as_of:
+            raise R2DatasetIntegrityError(f"as_of must be ISO YYYY-MM-DD: {as_of!r}")
+
         prefix = f"archive/manifests/{dataset}/{as_of}/revisions/"
         keys = sorted(
             key for key in self.archive.list_keys(prefix) if key.endswith(".json")
@@ -83,9 +91,25 @@ class R2DatasetReader:
             if len(revision) != 64 or any(c not in "0123456789abcdef" for c in revision):
                 raise R2DatasetIntegrityError(f"invalid revision key: {key}")
             candidates.append(self.resolve_revision(dataset, as_of, revision))
-        candidates.sort(
-            key=lambda ref: (str(ref.manifest.get("created_at", "")), ref.revision_sha256)
-        )
+        def _created_at(ref: R2DatasetRef) -> str:
+            value = ref.manifest.get("created_at")
+            if not isinstance(value, str) or not value.strip():
+                raise R2DatasetIntegrityError(
+                    f"immutable manifest missing created_at: {ref.manifest_key}"
+                )
+            try:
+                parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise R2DatasetIntegrityError(
+                    f"invalid manifest created_at: {ref.manifest_key}"
+                ) from exc
+            if parsed.tzinfo is None:
+                raise R2DatasetIntegrityError(
+                    f"manifest created_at must include timezone: {ref.manifest_key}"
+                )
+            return parsed.astimezone().isoformat()
+
+        candidates.sort(key=lambda ref: (_created_at(ref), ref.revision_sha256))
         return candidates[-1]
 
     def resolve_revision(
