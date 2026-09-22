@@ -81,3 +81,18 @@ def test_no_inline_copies_survive_in_src():
         if '.replace(".NS"' in line and not line.lstrip().startswith("#")
     ]
     assert not offenders, f"inline ticker normalisation reappeared: {offenders}"
+
+
+
+def test_dummy_symbols_are_excluded_from_canonical_universe():
+    from src.core.tickers import is_tradeable_symbol
+
+    for symbol in ("DUMMY", "DUMMYTRVN", "dummyabc", " DUMMYXYZ "):
+        assert not is_tradeable_symbol(symbol), symbol
+
+
+def test_real_symbols_remain_tradeable_when_filtering_dummy_rows():
+    from src.core.tickers import is_tradeable_symbol
+
+    for symbol in ("RELIANCE", "CASTROL", "TCS", "M&M"):
+        assert is_tradeable_symbol(symbol), symbol
