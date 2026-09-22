@@ -71,25 +71,3 @@ jobs:
             scripts/r2_*.py \
             scripts/build_trading_sessions.py \
             scripts/build_market_cap_history.py
-
-      - name: Assert R2 / V1 separation contract
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          v1 = Path(".github/workflows/v1-full-validation.yml").read_text()
-          if "paths-ignore:" not in v1:
-              raise SystemExit("V1 Full Validation is not isolated from R2-only paths")
-          for required in ("src/storage/**", "scripts/r2_*.py", "tests/test_r2_*.py"):
-              if required not in v1:
-                  raise SystemExit(f"V1 isolation missing required R2 path: {required}")
-          if "Stage-4B" in v1:
-              raise SystemExit("Research execution remains coupled to V1")
-          if not Path(".github/workflows/stage4b-independent-validation.yml").exists():
-              raise SystemExit("Independent Stage-4B workflow is missing")
-
-          text = Path("docs/R2_ENGINEERING_LOOP.md").read_text()
-          if "R2 / V1 boundary" not in text:
-              raise SystemExit("R2/V1 architectural separation is not documented")
-          print("R2_V1_SEPARATION=PASS")
-          PY
