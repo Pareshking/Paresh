@@ -60,7 +60,7 @@ jobs:
               --dataset "indices/constituents/$index" \
               --source "nse_index_constituents" \
               --key-root "archive/indices/constituents/$index" \
-              --pipeline-version "r2_historical_evidence_v2" \
+              --pipeline-version "r2_historical_evidence_v1" \
               --release-tag "data-latest"
           done
       - name: Publish point-in-time membership histories
@@ -70,7 +70,7 @@ jobs:
           for f in /tmp/r2-evidence/membership_*.parquet; do
             name="$(basename "$f" .parquet)"
             index="$(echo "$name" | sed 's/^membership_//')"
-            python scripts/r2_publish.py               --path "$f"               --dataset "indices/membership/$index"               --source repository_membership_history               --key-root "archive/indices/membership/$index"               --pipeline-version r2_historical_evidence_v2               --release-tag data-latest
+            python scripts/r2_publish.py               --path "$f"               --dataset "indices/membership/$index"               --source repository_membership_history               --key-root "archive/indices/membership/$index"               --pipeline-version r2_historical_evidence_v1               --release-tag data-latest
           done
 
       - name: Publish historical sector and industry classification
@@ -80,12 +80,12 @@ jobs:
             --dataset classifications/tv_history \
             --source repository_tv_classification_history \
             --key-root archive/classifications/tv_history \
-            --pipeline-version r2_historical_evidence_v2 \
+            --pipeline-version r2_historical_evidence_v1 \
             --release-tag data-latest
 
       - name: Publish confirmed trading sessions
-        run: python scripts/r2_publish.py --path /tmp/r2-evidence/trading_sessions_confirmed.parquet --dataset trading_sessions/confirmed --source nse_confirmed_sessions --key-root archive/trading_days/confirmed --pipeline-version r2_historical_evidence_v2 --release-tag data-latest
+        run: python scripts/r2_publish.py --path /tmp/r2-evidence/trading_sessions_confirmed.parquet --dataset trading_sessions/confirmed --source nse_confirmed_sessions --key-root archive/trading_days/confirmed --pipeline-version r2_historical_evidence_v1 --release-tag data-latest
       - name: Publish historical market caps
-        run: python scripts/r2_publish.py --path /tmp/r2-evidence/market_caps_nse.parquet --dataset market_caps/nse_snapshot --source nse_market_cap_snapshot --key-root archive/market_caps/nse_snapshot --pipeline-version r2_historical_evidence_v2 --release-tag data-latest
+        run: python scripts/r2_publish.py --path /tmp/r2-evidence/market_caps_nse.parquet --dataset market_caps/nse_snapshot --source nse_market_cap_snapshot --key-root archive/market_caps/nse_snapshot --pipeline-version r2_historical_evidence_v1 --release-tag data-latest
       - name: Publish corporate-action evidence
-        run: python scripts/r2_publish.py --path /tmp/r2-evidence/corporate_actions_evidence.parquet --dataset corporate_actions/evidence --source repository_corporate_action_log --key-root archive/corporate_actions/evidence --pipeline-version r2_historical_evidence_v2 --release-tag data-latest
+        run: python scripts/r2_publish.py --path /tmp/r2-evidence/corporate_actions_evidence.parquet --dataset corporate_actions/evidence --source repository_corporate_action_log --key-root archive/corporate_actions/evidence --pipeline-version r2_historical_evidence_v1 --release-tag data-latest
