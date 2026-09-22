@@ -155,7 +155,7 @@ def load_prices_cached(
         metrics.note("deep_price_as_of", pin.as_of)
         metrics.note("deep_price_revision", pin.revision_sha256)
         logger.info(
-            "Deep price history loaded: provider=R2 dataset=%s as_of=%s revision=%s source=Yahoo-origin archive",
+            "Deep price history loaded: provider=object_storage dataset=%s as_of=%s revision=%s source=Yahoo-origin archive",
             pin.dataset, pin.as_of, pin.revision_sha256,
         )
         return frame
