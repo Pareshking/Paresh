@@ -7,7 +7,7 @@ storage contract and returns the verified dataframe plus its exact pin.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+import re
 
 import pandas as pd
 
@@ -48,6 +48,12 @@ def read_pinned_dataset(
         raise R2ResearchConsumerError("dataset must not be empty")
     if not pin.as_of:
         raise R2ResearchConsumerError("as_of must not be empty")
+    try:
+        pd.Timestamp(pin.as_of).normalize()
+    except Exception as exc:
+        raise R2ResearchConsumerError(f"invalid as_of date: {pin.as_of!r}") from exc
+    if not re.fullmatch(r"[0-9a-f]{64}", pin.revision_sha256):
+        raise R2ResearchConsumerError("revision_sha256 must be a lowercase 64-character SHA-256")
     try:
         ref = reader.resolve_revision(
             pin.dataset,
