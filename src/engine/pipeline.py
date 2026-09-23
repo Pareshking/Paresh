@@ -129,7 +129,7 @@ def symbols_fingerprint(symbols) -> str:
 # session -- returns, charts and the archive need them -- while the engine
 # stops at the newest session the vendor has actually finished.
 
-RANKING_COVERAGE_FLOOR: float = 0.90
+RANKING_COVERAGE_FLOOR: float = 1.00
 MAX_UNRANKED_TAIL: int = 5
 
 
