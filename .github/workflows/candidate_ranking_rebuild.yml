@@ -1,0 +1,55 @@
+name: Candidate ranking rebuild
+
+on:
+  push:
+    branches:
+      - fix/ranking-universe-reconciliation
+
+permissions:
+  contents: read
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore price cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/data_cache/
+          key: price-data-${{ runner.os }}-candidate-${{ github.run_id }}
+          restore-keys: |
+            price-data-${{ runner.os }}-
+            price-data-
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Rebuild canonical ranking
+        env:
+          PYTHONPATH: .
+        run: |
+          python scripts/sync_data.py
+          python - <<'PY'
+          import pandas as pd
+          from src.core.config import RANKINGS_SNAPSHOT_ASSET, PRICES_FILE
+          from src.engine import pipeline
+          ranking = pd.read_parquet(RANKINGS_SNAPSHOT_ASSET if RANKINGS_SNAPSHOT_ASSET.endswith(".parquet") else "data_cache/rankings.parquet")
+          prices = pd.read_parquet(PRICES_FILE)
+          print(f"CANDIDATE_RANKING_ROWS={len(ranking)}")
+          print(f"CANDIDATE_RANKING_COLUMNS={len(ranking.columns)}")
+          print(f"CANDIDATE_PRICE_COLUMNS={len(prices.columns)}")
+          if len(ranking) != 750:
+              raise SystemExit("Candidate ranking is not 750 rows")
+          print("CANDIDATE_RANKING=750")
+          print(f"CANDIDATE_PIPELINE_VERSION={pipeline.PIPELINE_VERSION}")
+          PY
+      - name: Upload candidate ranking
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-ranking
+          path: |
+            data_cache/rankings.parquet
+            data_cache/prices_snapshot.parquet
