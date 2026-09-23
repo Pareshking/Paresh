@@ -132,6 +132,21 @@ def note(key: str, value) -> None:
         _facts[key] = value
 
 
+def note_if_changed(key: str, value) -> bool:
+    """Record a fact and report whether its value changed in this process.
+
+    Streamlit reruns the script from top to bottom on interaction. This helper
+    lets callers distinguish a genuinely new decision from the same decision
+    being observed again, without weakening the underlying computation or
+    cache contract.
+    """
+    with _LOCK:
+        sentinel = object()
+        previous = _facts.get(key, sentinel)
+        _facts[key] = value
+        return previous is sentinel or previous != value
+
+
 def record_cache_presence(paths: dict[str, str]) -> None:
     """Snapshot which cache files existed BEFORE any fetch ran.
 
