@@ -17,7 +17,6 @@ jobs:
           import json
           import re
           import urllib.request
-          from datetime import datetime, timezone
 
           symbol = "HEGAM"
           days = 3650
@@ -41,51 +40,41 @@ jobs:
               f"?q=Price-DMA50-Volume&days={days}"
           )
           data = json.loads(get(chart_url))
-          datasets = data.get("datasets", [])
-
           price = next(
-              x for x in datasets
+              x for x in data.get("datasets", [])
               if str(x.get("metric", "")).lower() == "price"
           )
 
           values = price.get("values", [])
-          print("price_metric=", price.get("metric"))
-          print("price_label=", price.get("label"))
-          print("price_meta=", price.get("meta"))
-          print("raw_value_count=", len(values))
-          print("raw_first_3=", repr(values[:3]))
-          print("raw_last_3=", repr(values[-3:]))
-
-          rows = []
-          for pair in values:
-              if not isinstance(pair, (list, tuple)) or len(pair) < 2:
-                  continue
-              ts, value = pair[0], pair[1]
-              if value is not None:
-                  rows.append((ts, value))
+          rows = [
+              (pair[0], pair[1])
+              for pair in values
+              if isinstance(pair, (list, tuple))
+              and len(pair) >= 2
+              and pair[1] is not None
+          ]
 
           if not rows:
               raise RuntimeError("HEGAM price dataset is empty")
 
-          def dt(ts):
-              if isinstance(ts, str):
-                  return ts
-              return datetime.fromtimestamp(ts, tz=timezone.utc).date().isoformat()
-
           print("========== HEGAM SCREENER HISTORY ==========")
           print(f"symbol={symbol}")
+          print(f"company_id={company_id}")
           print(f"requested_days={days}")
+          print(f"metric={price.get('metric')}")
+          print(f"label={price.get('label')}")
+          print(f"meta={price.get('meta')}")
           print(f"rows={len(rows)}")
-          print(f"first_date={dt(rows[0][0])}")
-          print(f"last_date={dt(rows[-1][0])}")
+          print(f"first_date={rows[0][0]}")
+          print(f"last_date={rows[-1][0]}")
           print(f"first_close={rows[0][1]}")
           print(f"last_close={rows[-1][1]}")
 
           print("first_10_rows:")
-          for ts, value in rows[:10]:
-              print(dt(ts), value)
+          for row in rows[:10]:
+              print(row[0], row[1])
 
           print("last_10_rows:")
-          for ts, value in rows[-10:]:
-              print(dt(ts), value)
+          for row in rows[-10:]:
+              print(row[0], row[1])
           PY
