@@ -831,6 +831,11 @@ def _fetch_incremental_updates(
     return _download_range(yf_tickers, start_date)
 
 
+def _count_true_cells(mask: pd.DataFrame) -> int:
+    """Count truthy cells safely, including pandas nullable booleans."""
+    return int(mask.fillna(False).to_numpy(dtype=bool).sum())
+
+
 def _merge_and_save_cache(cached: pd.DataFrame, new_data: pd.DataFrame) -> pd.DataFrame:
     """Fold the vendor's answer into the cache, cell by cell, and persist it.
 
@@ -867,9 +872,7 @@ def _merge_and_save_cache(cached: pd.DataFrame, new_data: pd.DataFrame) -> pd.Da
         # NaN, and int(NaN) aborts the entire nightly sync. This is telemetry
         # only: never let the repair counter make a valid merge fail.
         repaired_mask = cached.loc[overlap].isna() & healed.notna()
-        repaired = int(
-            repaired_mask.fillna(False).to_numpy(dtype=bool).sum()
-        )
+        repaired = _count_true_cells(repaired_mask)
         if repaired:
             metrics.note("price_cells_repaired", repaired)
             logger.info(
@@ -1147,9 +1150,7 @@ def fetch_price_history(
                 # Same nullable-mask hardening as the incremental merge above:
                 # this counter is diagnostic and must never make a successful
                 # full-refresh reconciliation fail.
-                rescued = int(
-                    rescued_mask.fillna(False).to_numpy(dtype=bool).sum()
-                )
+                rescued = _count_true_cells(rescued_mask)
                 lost_cols = len(set(previous.columns) - set(data.columns))
                 lost_rows = len(previous.index.difference(data.index))
                 if rescued or lost_cols or lost_rows:
