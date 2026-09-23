@@ -861,8 +861,14 @@ def _merge_and_save_cache(cached: pd.DataFrame, new_data: pd.DataFrame) -> pd.Da
     overlap = cached.index.intersection(new_data.index)
     if len(overlap):
         healed = new_data.loc[overlap].combine_first(cached.loc[overlap])
+        # The frames can carry nullable/object-backed cells after a
+        # yfinance merge. Their boolean mask can therefore contain pandas
+        # NA values; reducing that object array with sum() can produce float
+        # NaN, and int(NaN) aborts the entire nightly sync. This is telemetry
+        # only: never let the repair counter make a valid merge fail.
+        repaired_mask = cached.loc[overlap].isna() & healed.notna()
         repaired = int(
-            (cached.loc[overlap].isna() & healed.notna()).to_numpy().sum()
+            repaired_mask.fillna(False).to_numpy(dtype=bool).sum()
         )
         if repaired:
             metrics.note("price_cells_repaired", repaired)
@@ -1137,8 +1143,12 @@ def fetch_price_history(
             previous = _drop_future_rows(_normalise_ticker_level(previous))
             if not previous.empty:
                 merged = data.combine_first(previous)
+                rescued_mask = data.reindex_like(merged).isna() & merged.notna()
+                # Same nullable-mask hardening as the incremental merge above:
+                # this counter is diagnostic and must never make a successful
+                # full-refresh reconciliation fail.
                 rescued = int(
-                    (data.reindex_like(merged).isna() & merged.notna()).to_numpy().sum()
+                    rescued_mask.fillna(False).to_numpy(dtype=bool).sum()
                 )
                 lost_cols = len(set(previous.columns) - set(data.columns))
                 lost_rows = len(previous.index.difference(data.index))
