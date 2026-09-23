@@ -350,3 +350,76 @@ that touched it: `84c2357` is invalid, `438f78b` is valid.
 The ~197 failures were real and the fix was necessary, but they date from
 17 Aug rather than from the workflow's creation. The workflow worked before
 that commit broke it.
+
+
+---
+
+# Later production sync hardening — 2026-09-22
+
+A separate production failure was diagnosed in Daily NSE Momentum Data Sync
+run **35779308782**. The failure occurred after successful index refresh,
+membership reconciliation, market-cap refresh, and the start of the incremental
+Yahoo price acquisition.
+
+The failing path was:
+
+`scripts/sync_data.py` → `fetch_price_history()` →
+`_merge_and_save_cache()`
+
+The merge itself was intentionally retained. Its contract is to combine the
+existing cache with the new Yahoo response: newly returned values replace
+overlapping cached values, while cached values survive vendor gaps. This is
+required to avoid turning a partial vendor response into permanent holes.
+
+The defect was in the **repair-cell telemetry counter**, not in the merge.
+A pandas nullable boolean mask could contain `pd.NA`, and converting its
+aggregate directly to `int` raised:
+
+```
+ValueError: cannot convert float NaN to integer
+```
+
+### Fix
+
+`src/loaders/price_loader.py` now uses a shared
+`_count_true_cells()` helper that converts nullable masks safely by treating
+missing mask values as false. The same protection is applied to the
+full-refresh rescue counter. The underlying merge/rescue semantics were not
+changed.
+
+Regression coverage:
+- `tests/test_price_cache_repair_counter.py`
+- nullable boolean-mask counting;
+- actual cache merge behaviour, including vendor values replacing cached
+  values and cached values surviving vendor gaps.
+
+Commits on `main`: `38a91c2`, `6ab2f36`, `9d462eb`.
+
+### Validation
+
+- V1 Production QA **35809568640 — GREEN**.
+- V1 Full Validation **35809568686 — GREEN**.
+- Full regression, compile, canonical ranking hand-off, Stage-3 hierarchy and
+  Streamlit runtime smoke checks passed.
+
+### Index membership status
+
+The failed run had already completed the index-membership reconciliation
+before the price-cache failure. Observed source rows were:
+
+- NIFTY 50: 50
+- NIFTY NEXT 50: 50
+- NIFTY MIDCAP 150: 150
+- NIFTY SMALLCAP 250: 251
+- NIFTY MICROCAP 250: 254
+
+The reconciled index set contained **755 unique stocks**, while the production
+NIFTY TOTAL MARKET tradable universe remained **750** after placeholder and
+membership reconciliation. Symbols beginning with `DUMMY` remain excluded.
+The nominal component counts must not be treated as immutable source-row
+counts.
+
+The remaining production closure condition is one successful execution of the
+Daily NSE Momentum Data Sync against the fixed code. Until that run occurs,
+this incident is **code-fixed and CI-validated, but not yet runtime-validated
+in the daily scheduled workflow**.
