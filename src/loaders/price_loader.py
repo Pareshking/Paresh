@@ -18,7 +18,7 @@ import yfinance as yf
 
 from src.core import startup_metrics as metrics
 from src.core.config import BENCHMARK_SYMBOL, PRICES_FILE
-from src.core.tickers import normalise_columns, normalise_symbol
+from src.core.tickers import is_tradeable_symbol, normalise_columns, normalise_symbol
 from src.core.market_time import (
     ist_today,
     last_downloadable_session,
@@ -800,6 +800,113 @@ def _read_local_price_cache() -> pd.DataFrame | None:
         return None
 
 
+def _cached_symbols(df: pd.DataFrame) -> set[str]:
+    """Return canonical ticker symbols present in a raw price cache."""
+    if df is None or df.empty:
+        return set()
+    if isinstance(df.columns, pd.MultiIndex):
+        raw = df.columns.get_level_values(0)
+    else:
+        raw = df.columns
+    return {
+        normalise_symbol(value)
+        for value in raw
+        if is_tradeable_symbol(normalise_symbol(value))
+    }
+
+
+def _new_cache_symbols(symbols: Sequence[str], cached: pd.DataFrame) -> list[str]:
+    """Find current-universe symbols absent from the Yahoo price cache.
+
+    A new NSE constituent must not inherit the cache's last-date incremental
+    path: that path can only fetch forward from a date the symbol already has.
+    New symbols therefore get a full configured history acquisition first.
+    """
+    requested = {
+        normalise_symbol(symbol)
+        for symbol in symbols
+        if is_tradeable_symbol(normalise_symbol(symbol))
+    }
+    missing = sorted(requested - _cached_symbols(cached))
+    if missing:
+        logger.info(
+            "Detected %d new price-cache symbol(s) requiring full history: %s",
+            len(missing),
+            ", ".join(missing[:20]) + ("…" if len(missing) > 20 else ""),
+        )
+        metrics.note("price_new_symbols_detected", len(missing))
+    return missing
+
+
+def _download_full_symbol_history(
+    symbols: Sequence[str], period: str
+) -> pd.DataFrame:
+    """Acquire full available Yahoo history for only newly missing symbols.
+
+    This deliberately uses the canonical symbol name and Yahoo's mechanical
+    .NS transport suffix. It is not an alias/remapping layer: if Yahoo has
+    not published a newly renamed NSE symbol yet, that symbol simply remains
+    unresolved until a later run.
+    """
+    if not symbols:
+        return pd.DataFrame()
+
+    yf_symbols = [
+        s + ".NS" if not s.upper().endswith(".NS") else s
+        for s in symbols
+        if is_tradeable_symbol(normalise_symbol(s))
+    ]
+    if not yf_symbols:
+        return pd.DataFrame()
+
+    metrics.note("price_new_symbols_requested", len(yf_symbols))
+    frames: list[pd.DataFrame] = []
+    for start in range(0, len(yf_symbols), 100):
+        batch = yf_symbols[start:start + 100]
+        logger.info(
+            "Downloading full history for %d new price-cache symbol(s) "
+            "(period=%s).",
+            len(batch),
+            period,
+        )
+        try:
+            got = yf.download(
+                batch,
+                period=period,
+                progress=False,
+                group_by="ticker",
+                threads=True,
+                auto_adjust=True,
+            )
+            if got is not None and not got.empty:
+                frames.append(got)
+        except Exception as exc:
+            logger.warning(
+                "Full-history new-symbol batch failed (%s): %s",
+                type(exc).__name__,
+                exc,
+            )
+
+    if not frames:
+        return pd.DataFrame()
+
+    data = pd.concat(frames, axis=1) if len(frames) > 1 else frames[0]
+    if data.index.tz is not None:
+        data.index = data.index.tz_localize(None)
+    if data.index.duplicated().any():
+        data = data[~data.index.duplicated(keep="last")]
+
+    if isinstance(data.columns, pd.MultiIndex):
+        tickers = [normalise_symbol(value) for value in data.columns.get_level_values(0)]
+        prices = list(data.columns.get_level_values(1))
+        names = data.columns.names if data.columns.names else ["Ticker", "Price"]
+        data.columns = pd.MultiIndex.from_arrays([tickers, prices], names=names)
+    else:
+        data.columns = [normalise_symbol(value) for value in data.columns]
+
+    return data.dropna(how="all")
+
+
 def _fetch_incremental_updates(
     symbols: Sequence[str], last_cached_date: date, heal_days: int
 ) -> pd.DataFrame | None:
@@ -951,6 +1058,28 @@ def fetch_price_history(
         cached = _read_local_price_cache()
 
         if cached is not None and not cached.empty:
+            # A newly arrived NSE constituent is the one case where the
+            # incremental path cannot work: there is no last cached date for
+            # that symbol to start from. Acquire its full available history
+            # before the ordinary freshness/incremental gate. Existing symbols
+            # continue through exactly the same path as before.
+            missing_symbols = _new_cache_symbols(symbols, cached)
+            if missing_symbols:
+                new_history = _download_full_symbol_history(
+                    missing_symbols, period
+                )
+                if new_history is not None and not new_history.empty:
+                    cached = _merge_and_save_cache(cached, new_history)
+                    metrics.note(
+                        "price_new_symbols_acquired",
+                        len(_cached_symbols(cached).intersection(missing_symbols)),
+                    )
+                else:
+                    logger.warning(
+                        "No full history returned for new price-cache symbols: %s",
+                        ", ".join(missing_symbols[:20]),
+                    )
+
             last_cached_date = cached.index[-1].date()
             # Indian market date, not the server's, throughout -- see
             # src/core/market_time. The two notions of "today" used to sit
