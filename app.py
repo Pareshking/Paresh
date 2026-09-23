@@ -241,6 +241,25 @@ def _fetch_ranking_snapshot() -> tuple:
     return ranking_store.fetch_snapshot()
 
 
+@st.cache_data(show_spinner=False, ttl=_RANKING_SNAPSHOT_TTL_S)
+def _validate_precomputed_contract(
+    published_json: str, expected_json: str
+) -> tuple[bool, str]:
+    """Memoise the pure contract comparison across Streamlit reruns.
+
+    The published contract and the expected contract are the complete inputs
+    to this decision. The parquet itself remains the separately cached value;
+    this cache only prevents repeating the same validation work and log noise
+    when Streamlit reruns the script without changing any ranking input.
+    """
+    from src.loaders import ranking_store
+
+    metrics.incr("memo_miss_ranking_contract_validation")
+    published = json.loads(published_json)
+    expected = json.loads(expected_json)
+    return ranking_store.matches(published, expected)
+
+
 def _precomputed_ranking(
     fetched: tuple,
     price_hash: str,
@@ -293,7 +312,15 @@ def _precomputed_ranking(
         # ranking_store.actions_digest.
         applied_actions=applied_actions,
     )
-    ok, reason = ranking_store.matches(published, expected)
+    published_contract_json = json.dumps(
+        published or {}, sort_keys=True, separators=(",", ":")
+    )
+    expected_contract_json = json.dumps(
+        expected, sort_keys=True, separators=(",", ":")
+    )
+    ok, reason = _validate_precomputed_contract(
+        published_contract_json, expected_contract_json
+    )
     if not ok:
         # Logged, not silent: "the precompute did not hit" and "the precompute
         # does not exist" need very different fixes, and only this line tells
@@ -344,16 +371,28 @@ def _precomputed_ranking(
 
     metrics.note("ranking_precompute", "hit")
     metrics.note("ranking_precompute_rows", int(len(frame)))
-    logger.info(
-        "Precomputed ranking accepted: %d rows, as of %s -- engine skipped.",
-        len(frame), str((published or {}).get("price_as_of", "?")),
-    )
+    acceptance_key = "|".join([
+        str((published or {}).get("price_as_of", "")),
+        str(len(frame)),
+        str((published or {}).get("price_fingerprint", "")),
+        str((published or {}).get("pipeline_version", "")),
+    ])
+    if metrics.note_if_changed("ranking_precompute_acceptance_key", acceptance_key):
+        logger.info(
+            "Precomputed ranking accepted: %d rows, as of %s -- engine skipped.",
+            len(frame), str((published or {}).get("price_as_of", "?")),
+        )
     return frame
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
 def _fetch_screener_store(_k: str, source_key: str):
-    """Read Screener history, optionally from an immutable archive pin."""
+    """Read Screener history, optionally from an immutable archive pin.
+
+    The second return value is the source revision identity used to memoise
+    shaping. For R2 it is the immutable SHA; for the legacy HTTPS path the
+    existing one-hour cache TTL remains the freshness boundary.
+    """
     from r2.consumers import r2_streamlit
     from src.loaders import price_source as _ps
 
@@ -373,11 +412,26 @@ def _fetch_screener_store(_k: str, source_key: str):
             pin.as_of,
             pin.revision_sha256,
         )
-        return frame
+        return frame, pin.revision_sha256
 
     frame = _ps.fetch_screener_store()
     logger.info("Screener ranking store: source=published_screener_https")
-    return frame
+    return frame, "published_screener_https"
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def _shape_screener_store(store_revision: str, _store: pd.DataFrame):
+    """Memoise the expensive Screener MultiIndex shaping across reruns.
+
+    The store itself is already cached by _fetch_screener_store. R2 supplies
+    an immutable revision SHA, so this transform is invalidated whenever the
+    published dataset changes without hashing the entire DataFrame on every
+    rerun.
+    """
+    from src.loaders import price_source as _ps
+
+    metrics.incr("memo_miss_screener_shape")
+    return _ps.from_screener(_store)
 
 
 def _resolve_price_source(price_hash, sym_key, adj_close, close_p, high_p, low_p, vol_p, symbols):
@@ -395,8 +449,18 @@ def _resolve_price_source(price_hash, sym_key, adj_close, close_p, high_p, low_p
     fallback = _ps.from_yahoo(adj_close, close_p, high_p, low_p, vol_p)
     if _ps.preferred() != "screener":
         return fallback
-    store = _fetch_screener_store(price_hash, r2_streamlit.configuration_key())
-    chosen = _ps.from_screener(store) if store is not None else None
+    store_result = _fetch_screener_store(
+        price_hash, r2_streamlit.configuration_key()
+    )
+    if store_result is None:
+        chosen = None
+    else:
+        store, store_revision = store_result
+        chosen = (
+            _shape_screener_store(store_revision, store)
+            if store is not None
+            else None
+        )
     if chosen is None:
         if r2_streamlit.enabled():
             raise RuntimeError("Configured immutable Screener dataset is not usable")
@@ -555,13 +619,21 @@ def load_all_data(indices: list[str]):
             metrics.note("price_source", _src.source)
             metrics.note("price_high_basis", _src.high_basis)
             metrics.note("price_intraday", "yes" if _src.intraday else "no")
-            logger.info(
-                "Ranking price source selected: source=%s as_of=%s high_basis=%s intraday=%s",
+            _selection_as_of = str(pipeline.ranking_as_of(adj_close))
+            _selection_key = "|".join([
                 _src.source,
-                str(pipeline.ranking_as_of(adj_close)),
+                _selection_as_of,
                 _src.high_basis,
                 "yes" if _src.intraday else "no",
-            )
+            ])
+            if metrics.note_if_changed("price_source_selection_key", _selection_key):
+                logger.info(
+                    "Ranking price source selected: source=%s as_of=%s high_basis=%s intraday=%s",
+                    _src.source,
+                    _selection_as_of,
+                    _src.high_basis,
+                    "yes" if _src.intraday else "no",
+                )
 
             # AFTER the source is chosen, never before. These describe the
             # frame the engine will actually score, and computing them from the
