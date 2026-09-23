@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "index": "NIFTY TOTAL MARKET",
+  "index": "nifty_total_market",
   "baseline": {
     "date": "2026-08-19",
     "symbols": [
@@ -756,5 +756,15 @@
       "ZYDUSWELL"
     ]
   },
-  "changes": []
+  "changes": [
+    {
+      "date": "2026-09-23",
+      "added": [
+        "HEGAM"
+      ],
+      "removed": [
+        "HEG"
+      ]
+    }
+  ]
 }
