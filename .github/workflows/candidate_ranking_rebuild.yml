@@ -36,7 +36,7 @@ jobs:
           import pandas as pd
           from src.core.config import RANKINGS_SNAPSHOT_ASSET, PRICES_FILE
           from src.engine import pipeline
-          ranking = pd.read_parquet(RANKINGS_SNAPSHOT_ASSET if RANKINGS_SNAPSHOT_ASSET.endswith(".parquet") else "data_cache/rankings.parquet")
+          ranking = pd.read_parquet("data_cache/rankings.parquet")
           prices = pd.read_parquet(PRICES_FILE)
           print(f"CANDIDATE_RANKING_ROWS={len(ranking)}")
           print(f"CANDIDATE_RANKING_COLUMNS={len(ranking.columns)}")
