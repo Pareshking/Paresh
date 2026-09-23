@@ -57,6 +57,7 @@ def _settings_digest() -> str:
             HIGH_52W_MIN_OBSERVATIONS,
             MIN_OBSERVATIONS,
             ANCHOR_STALENESS_LIMIT,
+            RANKING_COVERAGE_FLOOR,
         )
     )
     return hashlib.md5(payload.encode()).hexdigest()[:8]
