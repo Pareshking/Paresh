@@ -1,0 +1,78 @@
+name: HEGAM Screener history probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe HEGAM Screener history only
+        run: |
+          python - <<'PY'
+          import json
+          import re
+          import urllib.request
+
+          symbol = "HEGAM"
+          days = 3650
+          headers = {"User-Agent": "Mozilla/5.0"}
+
+          def get(url):
+              req = urllib.request.Request(url, headers=headers)
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  return r.read().decode("utf-8")
+
+          page_url = f"https://www.screener.in/company/{symbol}/"
+          html = get(page_url)
+
+          m = re.search(r"/api/company/(\d+)/", html)
+          if not m:
+              raise RuntimeError("Could not resolve Screener company ID for HEGAM")
+
+          company_id = m.group(1)
+          print(f"company_id={company_id}")
+
+          chart_url = (
+              f"https://www.screener.in/api/company/{company_id}/chart/"
+              f"?q=Price-DMA50-Volume&days={days}"
+          )
+
+          data = json.loads(get(chart_url))
+          price = next(x for x in data["datasets"] if x["name"] == "price")
+
+          rows = [
+              (ts, value)
+              for ts, value in zip(price["timestamp"], price["values"])
+              if value is not None
+          ]
+
+          if not rows:
+              raise RuntimeError("HEGAM price dataset is empty")
+
+          from datetime import datetime, timezone
+
+          def dt(ts):
+              return datetime.fromtimestamp(ts, tz=timezone.utc).date().isoformat()
+
+          print("========== HEGAM SCREENER HISTORY ==========")
+          print(f"symbol={symbol}")
+          print(f"requested_days={days}")
+          print(f"rows={len(rows)}")
+          print(f"first_date={dt(rows[0][0])}")
+          print(f"last_date={dt(rows[-1][0])}")
+          print(f"first_close={rows[0][1]}")
+          print(f"last_close={rows[-1][1]}")
+          print("")
+          print("first_10_rows:")
+          for ts, value in rows[:10]:
+              print(dt(ts), value)
+          print("")
+          print("last_10_rows:")
+          for ts, value in rows[-10:]:
+              print(dt(ts), value)
+          PY
