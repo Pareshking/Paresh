@@ -31,27 +31,52 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import pandas as pd  # noqa: E402
 
 from src.core import startup_metrics as metrics  # noqa: E402
-from src.core.config import SCREENER_DAYS, SCREENER_DEEP_HISTORY_DAYS, SCREENER_DELAY_S, SCREENER_PRICES_FILE  # noqa: E402
+from src.core.config import SCREENER_DAYS, SCREENER_DEEP_HISTORY_DAYS, SCREENER_DELAY_S  # noqa: E402
 from src.core.market_time import session_is_complete  # noqa: E402
 from src.loaders import screener_loader as sl  # noqa: E402
 from src.loaders.indices_loader import fetch_indices_data  # noqa: E402
 
 
 def _drop_unsettled(frame: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
-    """Drop any session still trading.
-
-    Screener serves the running price during market hours, exactly as Yahoo
-    does. Accumulating that would freeze an intraday quote into the history
-    permanently as though it were a close -- and unlike a vendor's late
-    backfill, nothing would ever correct it, because tomorrow's response no
-    longer contains today's intraday value to overwrite it with.
-    """
+    """Drop any session still trading."""
     if frame is None or frame.empty:
         return frame, []
     idx = pd.DatetimeIndex(frame.index)
     keep = [session_is_complete(d.date()) for d in idx]
     dropped = [str(d.date()) for d, k in zip(idx, keep) if not k]
     return frame.loc[keep], dropped
+
+
+def _tradable_universe_symbols(symbols: list[str]) -> list[str]:
+    """Canonical current symbols, excluding explicit DUMMY placeholders."""
+    return sorted({
+        str(symbol).strip().upper()
+        for symbol in symbols
+        if str(symbol).strip() and not str(symbol).strip().upper().startswith("DUMMY")
+    })
+
+
+def _validate_current_price_coverage(
+    current_symbols: list[str], close_frame: pd.DataFrame
+) -> tuple[list[str], list[str]]:
+    """Return (missing_columns, empty_columns) for the current tradable universe.
+
+    A symbol column is not enough: an all-NaN column is not usable price
+    history. This is the publication gate that prevents a 749/750 store from
+    being treated as complete after a new-symbol acquisition.
+    """
+    current = _tradable_universe_symbols(current_symbols)
+    available = {
+        str(column).strip().upper()
+        for column in close_frame.columns
+    } if close_frame is not None and not close_frame.empty else set()
+
+    missing = sorted(set(current) - available)
+    empty = sorted(
+        symbol for symbol in set(current) & available
+        if close_frame[symbol].notna().sum() == 0
+    )
+    return missing, empty
 
 
 def current_universe_delta(current_symbols: list[str], stored_symbols: list[str]) -> tuple[list[str], list[str]]:
@@ -87,8 +112,8 @@ def run() -> int:
     if universe_df.empty or "Symbol" not in universe_df:
         print("[ERROR] Universe load returned empty; nothing to fetch.")
         return 1
-    symbols = sorted(universe_df["Symbol"].dropna().unique().tolist())
-    print(f"Universe: {len(symbols)} symbols")
+    symbols = _tradable_universe_symbols(universe_df["Symbol"].dropna().unique().tolist())
+    print(f"Universe: {len(symbols)} tradable symbols (DUMMY excluded)")
 
     stored = sl.load_store()
     stored_closes = sl.closes(stored)
@@ -116,17 +141,25 @@ def run() -> int:
             ids=ids,
             delay_s=SCREENER_DELAY_S,
         )
-        forced_fetched = sl.closes(forced).columns.astype(str).str.upper().tolist() if not forced.empty else []
-        still_missing = sorted(set(new_current) - set(forced_fetched))
-        if still_missing:
-            print(
-                "[ERROR] New current symbols were not acquired from Screener: "
-                f"{still_missing}"
-            )
+        forced_closes = sl.closes(forced)
+        forced_missing, forced_empty = _validate_current_price_coverage(new_current, forced_closes)
+        if forced_missing or forced_empty:
+            print("[ERROR] New current symbols failed Screener history acquisition.")
+            if forced_missing:
+                print(f"  missing columns: {forced_missing}")
+            if forced_empty:
+                print(f"  empty price series: {forced_empty}")
             if forced_unresolved:
                 print(f"  unresolved: {forced_unresolved}")
             return 2
-        print(f"  Forced acquisition complete: {len(forced_fetched)}/{len(new_current)} symbols")
+
+        for symbol in new_current:
+            series = forced_closes[symbol].dropna()
+            print(
+                f"  {symbol}: {len(series)} price rows, "
+                f"{str(series.index.min())[:10]} -> {str(series.index.max())[:10]}"
+            )
+        print(f"  Forced acquisition complete: {len(forced_closes.columns)}/{len(new_current)} symbols")
 
     # Existing current symbols continue through the normal paced sweep. New
     # symbols are excluded because they were already fetched above; this avoids
@@ -156,21 +189,37 @@ def run() -> int:
 
     merged, new_rows, preserved = sl.merge_into_store(frame)
     c = sl.closes(merged)
-    print(f"\nStore: {merged.shape[0]} sessions x {c.shape[1]} symbols "
+
+    # Final universe-vs-store gate. Publication must never proceed with a
+    # current tradable symbol absent from the merged Screener history.
+    missing, empty = _validate_current_price_coverage(symbols, c)
+    print(
+        f"Universe/price-store reconciliation: "
+        f"{len(symbols) - len(missing) - len(empty)}/{len(symbols)} symbols have usable Close history"
+    )
+    if missing or empty:
+        if missing:
+            print(f"[ERROR] Missing current-universe price symbols: {missing}")
+        if empty:
+            print(f"[ERROR] Current-universe symbols with empty Close history: {empty}")
+        print("[ERROR] Refusing successful completion/publication until coverage is complete.")
+        return 3
+
+    print(f"Store: {merged.shape[0]} sessions x {c.shape[1]} symbols "
           f"({str(c.index[0])[:10]} -> {str(c.index[-1])[:10]})")
     print(f"  +{new_rows} new session(s), {preserved} cell(s) preserved from earlier runs")
 
     cov = c.notna().sum(axis=1)
-    print("\n  last 5 sessions by coverage:")
+    print("last 5 sessions by coverage:")
     for d in c.index[-5:]:
-        print(f"    {str(d)[:10]}  {int(cov.loc[d]):4d}/{c.shape[1]}  "
+        print(f"  {str(d)[:10]}  {int(cov.loc[d]):4d}/{c.shape[1]}  "
               f"{cov.loc[d] / c.shape[1] * 100:5.1f}%")
 
     facts = metrics.snapshot().get("facts", {})
     if str(facts.get("screener_run_complete")) == "no":
-        print("\n  NOTE: the site asked us to stop partway. What arrived is kept; "
+        print("NOTE: the site asked us to stop partway. What arrived is kept; "
               "the rest is left for the next run.")
-    print(f"\n[{datetime.now():%Y-%m-%d %H:%M:%S}] Screener sync done "
+    print(f"[{datetime.now():%Y-%m-%d %H:%M:%S}] Screener sync done "
           f"({(datetime.now() - started).total_seconds() / 60:.1f} min).")
     return 0
 
