@@ -233,3 +233,20 @@ context rather than Screener decoration.
 Stage 2 — rewriting the views themselves, page by page, each shipped and
 verified before the next. `src/ui/theme.py` (~2,000 lines of hand-built HTML
 table rendering) remains the strongest first candidate.
+
+
+## 7. Production rerun work after the navigation migration
+
+**Verified 2026-09-23.** After the `st.navigation`/page migration, the remaining repeated-work path was traced to two non-cached operations: canonical precomputed-ranking contract validation and Screener price-frame shaping. Streamlit still reruns the script on interaction, so caching the expensive source loads did not by itself guarantee that all equivalent validation/shaping work disappeared.
+
+The production fix uses:
+
+- contract validation memoized from the complete published + expected ranking contract;
+- Screener-frame shaping memoized from the immutable R2 revision SHA;
+- process-level change detection for the source-selection and precomputed-acceptance logs.
+
+The cache keys deliberately preserve correctness. A changed ranking contract invalidates contract validation; a new immutable R2 revision invalidates Screener shaping. The R2 one-hour legacy HTTPS freshness boundary remains intact where that fallback path is used.
+
+CI verification passed for both the full V1 validation and the focused R2 Streamlit read-path gate. The first live deployment after merge loaded the 750-row canonical ranking and logged one precomputed acceptance with engine skipped, confirming that the optimization did not alter the ranking path.
+
+**Important:** engine skipped means the runtime momentum/ranking calculation was intentionally bypassed because the already-published canonical ranking passed its contract checks. It does not mean ranking was skipped or that the application is operating without a ranking.
