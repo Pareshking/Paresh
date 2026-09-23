@@ -1,6 +1,8 @@
 name: Daily NSE Momentum Data Sync
 
 on:
+  push:
+    branches: [main]
   schedule:
     # 17:30 UTC = 23:00 IST (11:00 PM IST) Monday to Friday (Trading Days).
     #
