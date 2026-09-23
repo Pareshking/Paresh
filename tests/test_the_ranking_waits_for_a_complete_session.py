@@ -71,7 +71,7 @@ def test_a_complete_session_is_ranked_immediately():
     assert cutoff is None, "a complete session was held back for no reason"
 
 
-def test_a_session_just_above_the_floor_is_ranked():
+def test_a_session_missing_any_current_symbol_is_deferred():
     """The floor is a real boundary, not a demand for a perfect 100%.
 
     A handful of the universe can legitimately have no print -- suspended,
