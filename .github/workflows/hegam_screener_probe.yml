@@ -17,6 +17,7 @@ jobs:
           import json
           import re
           import urllib.request
+          from datetime import datetime, timezone
 
           symbol = "HEGAM"
           days = 3650
@@ -27,9 +28,7 @@ jobs:
               with urllib.request.urlopen(req, timeout=30) as r:
                   return r.read().decode("utf-8")
 
-          page_url = f"https://www.screener.in/company/{symbol}/"
-          html = get(page_url)
-
+          html = get(f"https://www.screener.in/company/{symbol}/")
           m = re.search(r"/api/company/(\d+)/", html)
           if not m:
               raise RuntimeError("Could not resolve Screener company ID for HEGAM")
@@ -41,20 +40,52 @@ jobs:
               f"https://www.screener.in/api/company/{company_id}/chart/"
               f"?q=Price-DMA50-Volume&days={days}"
           )
-
           data = json.loads(get(chart_url))
-          price = next(x for x in data["datasets"] if x["name"] == "price")
+
+          print("top_level_keys=", list(data.keys()))
+          datasets = data.get("datasets", [])
+          print("dataset_count=", len(datasets))
+
+          for i, item in enumerate(datasets):
+              if isinstance(item, dict):
+                  print(f"dataset_{i}_keys=", list(item.keys()))
+                  print(f"dataset_{i}_name=", item.get("name"))
+                  print(f"dataset_{i}_metric=", item.get("metric"))
+                  print(f"dataset_{i}_label=", item.get("label"))
+
+          # Find the price series by shape rather than assuming a particular
+          # dataset metadata key.
+          candidates = []
+          for item in datasets:
+              if not isinstance(item, dict):
+                  continue
+              if "timestamp" in item and "values" in item:
+                  candidates.append(item)
+
+          if not candidates:
+              raise RuntimeError("No timestamp/value dataset returned by Screener")
+
+          price = next(
+              (
+                  x for x in candidates
+                  if str(x.get("name", "")).lower() == "price"
+                  or str(x.get("metric", "")).lower() == "price"
+                  or str(x.get("label", "")).lower() == "price"
+              ),
+              candidates[0],
+          )
+
+          timestamps = price["timestamp"]
+          values = price["values"]
 
           rows = [
               (ts, value)
-              for ts, value in zip(price["timestamp"], price["values"])
+              for ts, value in zip(timestamps, values)
               if value is not None
           ]
 
           if not rows:
               raise RuntimeError("HEGAM price dataset is empty")
-
-          from datetime import datetime, timezone
 
           def dt(ts):
               return datetime.fromtimestamp(ts, tz=timezone.utc).date().isoformat()
@@ -67,11 +98,11 @@ jobs:
           print(f"last_date={dt(rows[-1][0])}")
           print(f"first_close={rows[0][1]}")
           print(f"last_close={rows[-1][1]}")
-          print("")
+
           print("first_10_rows:")
           for ts, value in rows[:10]:
               print(dt(ts), value)
-          print("")
+
           print("last_10_rows:")
           for ts, value in rows[-10:]:
               print(dt(ts), value)
