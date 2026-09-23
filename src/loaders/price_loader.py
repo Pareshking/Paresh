@@ -891,6 +891,49 @@ def _download_full_symbol_history(
         return pd.DataFrame()
 
     data = pd.concat(frames, axis=1) if len(frames) > 1 else frames[0]
+
+    # A batch can partially answer. Retry only the new symbols that did not
+    # appear in that response; never turn this into a 750-symbol refresh.
+    returned = _cached_symbols(data)
+    missing = [
+        symbol for symbol in symbols
+        if normalise_symbol(symbol) not in returned
+    ]
+    for symbol in missing:
+        ticker = (
+            symbol + ".NS"
+            if not str(symbol).upper().endswith(".NS")
+            else str(symbol)
+        )
+        try:
+            retry = yf.download(
+                ticker,
+                period=period,
+                progress=False,
+                threads=False,
+                auto_adjust=True,
+            )
+            if retry is not None and not retry.empty:
+                if retry.index.tz is not None:
+                    retry.index = retry.index.tz_localize(None)
+                if isinstance(retry.columns, pd.MultiIndex):
+                    fields = list(retry.columns.get_level_values(-1))
+                else:
+                    fields = list(retry.columns)
+                retry.columns = pd.MultiIndex.from_product(
+                    [[normalise_symbol(symbol)], fields],
+                    names=["Ticker", "Price"],
+                )
+                data = pd.concat([data, retry], axis=1)
+                logger.info("Recovered new price-cache symbol %s on individual retry.", symbol)
+        except Exception as exc:
+            logger.warning(
+                "Individual full-history retry failed for new symbol %s (%s): %s",
+                symbol,
+                type(exc).__name__,
+                exc,
+            )
+
     if data.index.tz is not None:
         data.index = data.index.tz_localize(None)
     if data.index.duplicated().any():
