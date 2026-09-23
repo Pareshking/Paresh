@@ -68,6 +68,8 @@ jobs:
               raise RuntimeError("HEGAM price dataset is empty")
 
           def dt(ts):
+              if isinstance(ts, str):
+                  return ts
               return datetime.fromtimestamp(ts, tz=timezone.utc).date().isoformat()
 
           print("========== HEGAM SCREENER HISTORY ==========")
