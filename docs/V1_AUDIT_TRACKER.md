@@ -271,6 +271,26 @@ MSCI/NSE/BSE/AQR methodologies are comparison/reference models. Umiya is not req
 
 ---
 
+### 2.19 Canonical universe/ranking reconciliation and complete-session coverage
+
+**Closed.** A production 749/750 ranking was traced to the ranking completeness policy rather than the NSE universe loader. The stored price frame can contain an exited historical symbol alongside the 750 current symbols; the previous 90% coverage floor could therefore accept a session with one current-universe symbol missing. The momentum engine then produced a missing score for that symbol and dropped it, yielding 749 output rows.
+
+The canonical policy is now **100% current-universe coverage**. The ranking session cannot be selected as complete unless every current-universe symbol has a usable Close. The coverage policy is included in the pipeline settings digest so the change is fingerprinted. A canonical rebuild and V1 validation verified a 750-row artifact.
+
+Production acceptance also uses explicit symbol reconciliation (expected/published/missing/extra/duplicates) on precomputed-ranking rejection paths, so a future missing symbol is diagnosable rather than silently disappearing from the ranking.
+
+### 2.20 R2 canonical publication and production separation
+
+**Closed for the current V1 production path.** Screener history is acquired into the canonical price store and published to R2 as an immutable, content-addressed revision with manifest/current-pointer verification and byte/hash read-back. Yahoo-origin deep history is stored separately. R2-focused validation is isolated from Stage-4B research validation and must not execute Stage-4B work.
+
+The Streamlit reader resolves the accepted current R2 revision and fails closed on integrity/read failures. The 2026-09-23 production deployment verified both R2 datasets and accepted the 750-row canonical Screener ranking.
+
+### 2.21 Streamlit repeated-work reduction
+
+**Closed.** Streamlit reruns the script on interaction, so equivalent ranking-contract validation and immutable Screener-frame shaping were memoized. Ranking-contract validation is keyed by the full published/expected contract JSON; Screener shaping is keyed by the immutable R2 revision SHA. Duplicate source-selection and precomputed-acceptance messages are suppressed when the logical decision is unchanged.
+
+The change preserves the canonical ranking contract and freshness/invalidation rules: a changed ranking contract or new R2 revision creates a new cache key. V1 full validation and the focused R2 Streamlit read-path gate both passed before merge. The first post-merge production startup on 2026-09-23 showed a single 750-row precomputed acceptance and no repeated acceptance/source-selection noise.
+
 ## 4. Remaining work — ordered queue
 
 ### ~~NEXT 1 — Residual-alpha benchmark consistency~~ 🟢 Closed by removal
