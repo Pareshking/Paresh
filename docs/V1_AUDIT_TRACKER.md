@@ -38,6 +38,7 @@ The audit is a roadmap, not a requirement to reproduce MSCI/NSE/BSE methodology.
 | Portfolio construction vs signal | Signal and portfolio implementation are separate | 🟢 Accepted architecture | Keep alpha signal and portfolio implementation explicitly separated |
 | Residual-alpha market proxy | Historical implementation used universe mean if no benchmark | 🟢 Closed by removal | Residual alpha was removed from the engine entirely (see 2.10). There is no call path left to verify |
 | Numerical robustness | Alignment/missing-data edge cases | 🟠 Ongoing | Continue targeted synthetic tests as new audit items are closed |
+| Daily sync cache-merge robustness | Nullable pandas mask in repair telemetry could abort the nightly sync despite a valid merge | 🟢 Closed | Harden repair/rescue counters with `_count_true_cells()`; preserve `combine_first` merge semantics; regression test added and V1 CI green |
 
 ---
 
@@ -148,7 +149,66 @@ at all**. The brittle `== 752` raw row-count assertion, which failed on any
 index revision and counted rows the app never uses, was replaced with a
 behavioural test of the filter and a plausible-range completeness check.
 
-### 2.16 Modern Streamlit UX patterns
+### 2.16 Daily sync cache-merge robustness
+
+**Closed.** The 2026-09-22 Daily NSE Momentum Data Sync failed in
+`scripts/sync_data.py` while merging the incremental Yahoo deep-history
+response into the existing price cache. The failure was not a data-merge
+failure: `_merge_and_save_cache()` correctly uses the cached history as the
+base and lets newly returned vendor values replace cached cells, while
+preserving cached values where the new response is missing.
+
+The actual defect was diagnostic telemetry. A nullable pandas boolean mask used
+to count repaired cells could contain `pd.NA`; converting the resulting count
+directly with `int(...)` raised:
+
+```
+ValueError: cannot convert float NaN to integer
+```
+
+The fix centralises truth-cell counting in
+`src/loaders/price_loader.py::_count_true_cells()`, which fills nullable
+values with `False` before converting to a boolean NumPy array. The same
+hardening is applied to the full-refresh rescue counter.
+
+Regression coverage was added in
+`tests/test_price_cache_repair_counter.py` for both nullable-mask counting
+and the actual cache merge semantics. Commits `38a91c2`, `6ab2f36` and
+`9d462eb` are on `main`.
+
+Validation:
+- V1 Production QA run `35809568640`: **GREEN**.
+- V1 Full Validation run `35809568686`: **GREEN**, including the full
+  regression suite and application compile/runtime checks.
+- The actual scheduled/manual Daily NSE Momentum Data Sync still requires one
+  post-fix execution before the production runtime incident can be marked
+  completely closed.
+
+The canonical V1 price source remains Screener. Yahoo remains a separate deep
+history/archive/healing feed and is not a ranking-source replacement.
+
+### 2.17 Index-membership reconciliation and placeholder handling
+
+**Closed as an implementation contract.** Daily index reconciliation continues
+to ingest the published NSE constituent rows, discard symbols beginning with
+`DUMMY`, deduplicate the resulting symbols, and derive the production NIFTY
+TOTAL MARKET universe from the reconciled tradable set. The 2026-09-22 failed
+sync had already completed the index refresh and reconciliation before the
+price-cache telemetry failure; the failure therefore did not originate in the
+membership reconciliation path.
+
+The observed source counts on that run were NIFTY 50 = 50, NEXT 50 = 50,
+MIDCAP 150 = 150, SMALLCAP 250 = 251, MICROCAP 250 = 254; after reconciliation
+the combined set contained 755 unique index stocks and the NIFTY TOTAL MARKET
+tradable universe was 750. The source can temporarily differ from the nominal
+index sizes because NSE constituent files can contain placeholder/corporate-
+action rows and overlapping membership.
+
+The shipped-data regression guard and DUMMY-filter tests remain part of the
+acceptance contract. No hard-coded 750-source-row assumption is to be
+reintroduced.
+
+### 2.18 Modern Streamlit UX patterns
 
 Four modern Streamlit primitives were adopted to reduce full-page reruns,
 surface information without page-scroll jumps, and give structured progress
