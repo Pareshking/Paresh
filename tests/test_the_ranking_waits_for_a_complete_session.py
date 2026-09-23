@@ -71,14 +71,10 @@ def test_a_complete_session_is_ranked_immediately():
     assert cutoff is None, "a complete session was held back for no reason"
 
 
-def test_a_session_just_above_the_floor_is_ranked():
-    """The floor is a real boundary, not a demand for a perfect 100%.
-
-    A handful of the universe can legitimately have no print -- suspended,
-    halted, newly delisted -- and that must not defer the whole table.
-    """
-    df = _frame([1.0] * 30 + [RANKING_COVERAGE_FLOOR + 0.02])
-    assert last_ranked_session(df) == len(df.index) - 1
+def test_a_session_missing_any_current_symbol_is_deferred():
+    """A single missing current-universe close defers the ranking."""
+    df = _frame([1.0] * 30 + [RANKING_COVERAGE_FLOOR - 0.001])
+    assert last_ranked_session(df) == len(df.index) - 2
 
 
 def test_history_that_thins_out_with_age_is_not_mistaken_for_incompleteness():

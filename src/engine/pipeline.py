@@ -29,6 +29,12 @@ from src.engine.momentum import ATR_DERIVED_COLUMNS, MomentumEngine
 # computed, and a changed engine breaks exactly that.
 _PIPELINE_TAG: str = "v4_calendar_periods"
 
+# A ranking artifact must contain every current-universe symbol. The previous
+# 90% floor allowed a 749/750 session to be treated as complete, after which
+# MomentumEngine correctly dropped the one symbol with no close and published
+# a 749-row table. Keep this policy in the pipeline contract fingerprint too.
+RANKING_COVERAGE_FLOOR: float = 1.00
+
 
 def _settings_digest() -> str:
     """Fingerprint the CONSTANTS that decide the numbers, not just the tag.
@@ -57,6 +63,7 @@ def _settings_digest() -> str:
             HIGH_52W_MIN_OBSERVATIONS,
             MIN_OBSERVATIONS,
             ANCHOR_STALENESS_LIMIT,
+            RANKING_COVERAGE_FLOOR,
         )
     )
     return hashlib.md5(payload.encode()).hexdigest()[:8]
@@ -129,7 +136,6 @@ def symbols_fingerprint(symbols) -> str:
 # session -- returns, charts and the archive need them -- while the engine
 # stops at the newest session the vendor has actually finished.
 
-RANKING_COVERAGE_FLOOR: float = 0.90
 MAX_UNRANKED_TAIL: int = 5
 
 
