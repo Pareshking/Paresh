@@ -41,48 +41,28 @@ jobs:
               f"?q=Price-DMA50-Volume&days={days}"
           )
           data = json.loads(get(chart_url))
-
-          print("top_level_keys=", list(data.keys()))
           datasets = data.get("datasets", [])
-          print("dataset_count=", len(datasets))
-
-          for i, item in enumerate(datasets):
-              if isinstance(item, dict):
-                  print(f"dataset_{i}_keys=", list(item.keys()))
-                  print(f"dataset_{i}_name=", item.get("name"))
-                  print(f"dataset_{i}_metric=", item.get("metric"))
-                  print(f"dataset_{i}_label=", item.get("label"))
-
-          # Find the price series by shape rather than assuming a particular
-          # dataset metadata key.
-          candidates = []
-          for item in datasets:
-              if not isinstance(item, dict):
-                  continue
-              if "timestamp" in item and "values" in item:
-                  candidates.append(item)
-
-          if not candidates:
-              raise RuntimeError("No timestamp/value dataset returned by Screener")
 
           price = next(
-              (
-                  x for x in candidates
-                  if str(x.get("name", "")).lower() == "price"
-                  or str(x.get("metric", "")).lower() == "price"
-                  or str(x.get("label", "")).lower() == "price"
-              ),
-              candidates[0],
+              x for x in datasets
+              if str(x.get("metric", "")).lower() == "price"
           )
 
-          timestamps = price["timestamp"]
-          values = price["values"]
+          values = price.get("values", [])
+          print("price_metric=", price.get("metric"))
+          print("price_label=", price.get("label"))
+          print("price_meta=", price.get("meta"))
+          print("raw_value_count=", len(values))
+          print("raw_first_3=", repr(values[:3]))
+          print("raw_last_3=", repr(values[-3:]))
 
-          rows = [
-              (ts, value)
-              for ts, value in zip(timestamps, values)
-              if value is not None
-          ]
+          rows = []
+          for pair in values:
+              if not isinstance(pair, (list, tuple)) or len(pair) < 2:
+                  continue
+              ts, value = pair[0], pair[1]
+              if value is not None:
+                  rows.append((ts, value))
 
           if not rows:
               raise RuntimeError("HEGAM price dataset is empty")
