@@ -30,6 +30,7 @@ from src.core.logger import logger
 from src.engine import pipeline
 from src.engine.corporate_actions import adjust_ohlc, load_events
 from src.loaders.indices_loader import fetch_indices_data
+from src.core.universe_reconciliation import reconcile_symbols
 # R2-backed production readers are an explicit transport boundary; keep this import adjacent to the loader.
 from r2.consumers import r2_streamlit
 from src.loaders.mcap_loader import fetch_market_caps
@@ -299,26 +300,46 @@ def _precomputed_ranking(
         # them apart from outside the container.
         logger.info("Precomputed ranking rejected (%s); computing instead.", reason)
         metrics.note("ranking_precompute", f"miss_{reason.replace(' ', '_')}")
-        if reason == "symbols_fingerprint differs" and "Symbol" in frame:
-            published_symbols = {
-                str(symbol).strip().upper()
-                for symbol in frame["Symbol"].dropna().tolist()
-            }
-            expected_symbols = {
-                str(symbol).strip().upper()
-                for symbol in universe
-            }
-            added = sorted(published_symbols - expected_symbols)
-            missing = sorted(expected_symbols - published_symbols)
-            logger.info(
-                "Precomputed universe mismatch: published=%d expected=%d added=%s missing=%s",
-                len(published_symbols), len(expected_symbols),
-                ",".join(added[:20]) or "-", ",".join(missing[:20]) or "-",
+        # A contract miss must still tell us whether the published table
+        # actually describes the current universe. Do this for EVERY rejection
+        # reason, not only a symbols_fingerprint miss: price_fingerprint and
+        # price_as_of can change independently while a 749-row table remains
+        # the real underlying problem. DUMMY symbols are excluded by the same
+        # canonical rule used by the universe loader.
+        if "Symbol" in frame:
+            reconciliation = reconcile_symbols(
+                expected=universe,
+                actual=frame["Symbol"].dropna().tolist(),
             )
-            metrics.note("ranking_precompute_published_symbols", len(published_symbols))
-            metrics.note("ranking_precompute_expected_symbols", len(expected_symbols))
-            metrics.note("ranking_precompute_universe_added", ",".join(added[:20]) or "none")
-            metrics.note("ranking_precompute_universe_missing", ",".join(missing[:20]) or "none")
+            logger.info(
+                "Precomputed universe reconciliation: expected=%d published=%d "
+                "missing=%s extra=%s duplicates=%s",
+                reconciliation["expected_count"],
+                reconciliation["published_count"],
+                ",".join(reconciliation["missing"][:20]) or "-",
+                ",".join(reconciliation["extra"][:20]) or "-",
+                ",".join(reconciliation["duplicates"][:20]) or "-",
+            )
+            metrics.note(
+                "ranking_precompute_published_symbols",
+                reconciliation["published_count"],
+            )
+            metrics.note(
+                "ranking_precompute_expected_symbols",
+                reconciliation["expected_count"],
+            )
+            metrics.note(
+                "ranking_precompute_universe_added",
+                ",".join(reconciliation["extra"][:20]) or "none",
+            )
+            metrics.note(
+                "ranking_precompute_universe_missing",
+                ",".join(reconciliation["missing"][:20]) or "none",
+            )
+            metrics.note(
+                "ranking_precompute_universe_duplicates",
+                ",".join(reconciliation["duplicates"][:20]) or "none",
+            )
         return None
 
     metrics.note("ranking_precompute", "hit")
