@@ -1,0 +1,100 @@
+name: Screener store backfill
+
+# One-off: fill gaps in the published Screener store from an earlier SCREENER
+# publication kept in R2 (prices/screener). Never Yahoo. Default source is the
+# 10-year download of 2026-09-21 (revision df03ed6d...), whose daily closes
+# 2025-07-04..2025-09-17 and older weekly dates never reached the nightly
+# store. Gaps only: a stored value is never changed, and a symbol whose closes
+# disagree with the source on shared dates (a split or bonus re-adjusted
+# since) is skipped and listed. See scripts/screener_backfill.py.
+#
+# DRY RUN unless dispatched with apply=true. On push it only reports.
+on:
+  workflow_dispatch:
+    inputs:
+      source_revision:
+        description: "prices/screener revision SHA prefix in R2"
+        required: true
+        default: "df03ed6d"
+      apply:
+        description: "Write the filled store (false = dry run)"
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - "scripts/screener_backfill.py"
+      - ".github/workflows/screener_backfill.yml"
+
+permissions:
+  contents: write  # release upload on apply
+
+# The nightly sync's own queue: the two never touch the store at once.
+concurrency:
+  group: screener-sync
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      PYTHONPATH: .
+      SOURCE: ${{ inputs.source_revision || 'df03ed6d' }}
+      APPLY: ${{ github.event_name == 'workflow_dispatch' && inputs.apply }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+          cache: pip
+      - run: pip install -r requirements.txt pytest
+
+      - name: Unit tests
+        run: python -m pytest -q tests/test_screener_backfill.py
+
+      - name: Download the published Screener store
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p data_cache
+          gh release download data-latest --repo "$GITHUB_REPOSITORY" \
+            --pattern "screener_prices.parquet" --dir data_cache --clobber
+          test -s data_cache/screener_prices.parquet
+
+      - name: Before
+        run: python scripts/r2_screener_history.py | grep '^SCREENER_HISTORY' | tail -3
+
+      - name: Backfill (dry run unless apply)
+        run: |
+          set -euo pipefail
+          if [ "$APPLY" = "true" ]; then FLAG=--apply; else FLAG=; fi
+          python scripts/screener_backfill.py \
+            --store data_cache/screener_prices.parquet \
+            --source-r2-revision "$SOURCE" $FLAG
+
+      - name: Publish the filled store (release, then R2)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release upload data-latest data_cache/screener_prices.parquet \
+            --repo "$GITHUB_REPOSITORY" --clobber
+          python scripts/r2_publish.py \
+            --path data_cache/screener_prices.parquet \
+            --dataset prices/screener \
+            --source screener \
+            --key-root archive/prices/screener \
+            --pipeline-version "screener-backfill-${GITHUB_SHA}" \
+            --release-tag data-latest
+
+      - name: After
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply }}
+        run: python scripts/r2_screener_history.py | grep '^SCREENER_HISTORY' | tail -3
