@@ -250,3 +250,35 @@ def test_the_engine_carries_the_applied_events():
     assert MomentumEngine(prices, corporate_actions=[SPLIT]).corporate_actions == [SPLIT]
     # Empty, not None, so callers can iterate it unconditionally.
     assert MomentumEngine(prices).corporate_actions == []
+
+
+def test_a_confirmed_price_move_stays_on_record_but_is_never_neutralised(tmp_path):
+    """F&O stocks have no circuit limit: POLICYBZR fell 36% on 2026-09-24 on a
+    government announcement. Owner-confirmed moves carry verdict=price_move."""
+    import json
+
+    import numpy as np
+    import pandas as pd
+
+    from src.engine.corporate_actions import PRICE_MOVE, adjust_prices, load_events
+
+    log = tmp_path / "log.json"
+    real = {"date": "2026-01-10", "symbol": "AAA", "ratio": 0.64, "verdict": PRICE_MOVE}
+    split = {"date": "2026-01-10", "symbol": "BBB", "ratio": 0.5}
+    log.write_text(json.dumps({"events": {"a": real, "b": split}}))
+    events = load_events(log)
+    assert events == [split]
+
+    idx = pd.bdate_range("2026-01-01", periods=10)
+    prices = pd.DataFrame({"AAA": np.r_[[100.0] * 7, [64.0] * 3],
+                           "BBB": np.r_[[100.0] * 7, [50.0] * 3]}, index=idx)
+    out, applied = adjust_prices(prices, events)
+    assert [e["symbol"] for e in applied] == ["BBB"]
+    pd.testing.assert_series_equal(out["AAA"], prices["AAA"])   # the real fall stays
+
+
+def test_the_live_log_keeps_policybzr_as_a_real_move():
+    from src.engine.corporate_actions import load_events
+
+    assert not [e for e in load_events() if e["symbol"] == "POLICYBZR"
+                and e["date"] == "2026-09-24"]
