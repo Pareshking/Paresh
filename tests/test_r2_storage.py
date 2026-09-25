@@ -86,3 +86,44 @@ def test_r2_config_redacts_secret(monkeypatch):
 def test_immutable_object_error_type_is_explicit():
     assert issubclass(R2ImmutableObjectExists, RuntimeError)
     assert issubclass(R2VerificationError, RuntimeError)
+
+
+class _StreamingBody:
+    def __init__(self, data: bytes):
+        self.data = data
+
+    def iter_chunks(self, chunk_size=1024):
+        for i in range(0, len(self.data), chunk_size):
+            yield self.data[i:i + chunk_size]
+
+    def read(self):  # pragma: no cover - verify_file must not buffer the object
+        raise AssertionError("verify_file read the whole object into memory")
+
+
+class _Client:
+    def __init__(self, remote: bytes):
+        self.remote = remote
+
+    def head_object(self, **_):
+        return {"ContentLength": len(self.remote)}
+
+    def get_object(self, **_):
+        return {"Body": _StreamingBody(self.remote)}
+
+
+def _archive(remote: bytes):
+    from src.storage.r2 import R2Archive
+
+    cfg = R2Config("a", "k", "s", "https://a.r2.cloudflarestorage.com", "b")
+    return R2Archive(cfg, client=_Client(remote))
+
+
+def test_verify_file_streams_the_remote_hash(tmp_path: Path):
+    local = tmp_path / "x.parquet"
+    local.write_bytes(b"x" * (3 << 20))
+    _archive(b"x" * (3 << 20)).verify_file("k", local)
+
+    with pytest.raises(R2VerificationError, match="SHA-256 mismatch"):
+        _archive(b"y" * (3 << 20)).verify_file("k", local)
+    with pytest.raises(R2VerificationError, match="size mismatch"):
+        _archive(b"x").verify_file("k", local)

@@ -198,7 +198,13 @@ class R2Archive:
             )
 
         local_sha = _sha256_file(path)
-        remote_sha = _sha256_bytes(self.get_bytes(key))
+        # Streamed: the ten-year price archive is verified on every daily
+        # publish, and reading it whole doubled the runner's peak memory.
+        response = self.client.get_object(Bucket=self.config.bucket, Key=_key(key))
+        digest = hashlib.sha256()
+        for chunk in response["Body"].iter_chunks(chunk_size=1 << 20):
+            digest.update(chunk)
+        remote_sha = digest.hexdigest()
         if local_sha != remote_sha:
             raise R2VerificationError(
                 f"R2 SHA-256 mismatch for {key}: local={local_sha}, remote={remote_sha}"
@@ -225,7 +231,3 @@ def _sha256_file(path: Path, chunk_size: int = 1 << 20) -> str:
         while chunk := fh.read(chunk_size):
             digest.update(chunk)
     return digest.hexdigest()
-
-
-def _sha256_bytes(body: bytes) -> str:
-    return hashlib.sha256(body).hexdigest()

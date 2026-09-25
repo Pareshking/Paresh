@@ -165,3 +165,14 @@ def test_reader_ignores_a_nested_datasets_pointers():
 
     nested = reader.resolve_current("prices/yahoo/raw")
     assert (nested.dataset, nested.as_of) == ("prices/yahoo/raw", "2026-09-21")
+
+
+def test_reader_rejects_a_pointer_that_disagrees_with_its_manifest():
+    objects = _objects_for("prices/yahoo", "2026-09-24", b"adjusted")
+    key = "archive/manifests/prices/yahoo/2026-09-24/current.json"
+    pointer = json.loads(objects[key])
+    pointer["object_key"] = "archive/somewhere/else.parquet"
+    objects[key] = json.dumps(pointer).encode()
+    objects["archive/somewhere/else.parquet"] = b"adjusted"
+    with pytest.raises(R2DatasetIntegrityError, match="object_key mismatch"):
+        R2DatasetReader(FakeArchive(objects)).resolve_current("prices/yahoo")

@@ -101,3 +101,31 @@ def test_resolve_revision_rejects_timestamp_as_of():
             "2026-09-18T00:00:00",
             "a" * 64,
         )
+
+
+def test_latest_revision_is_the_latest_instant_whatever_the_runner_zone(monkeypatch):
+    """Across a DST fall-back, local wall-clock strings sort the wrong way."""
+    import hashlib
+    import time
+
+    if not hasattr(time, "tzset"):
+        pytest.skip("needs time.tzset")
+    monkeypatch.setenv("TZ", "America/New_York")
+    time.tzset()
+    try:
+        dataset, as_of = "indices/membership/nifty_total_market", "2026-11-01"
+        b1, b2 = b"earlier", b"later"
+        r1, r2 = hashlib.sha256(b1).hexdigest(), hashlib.sha256(b2).hexdigest()
+        archive = FakeArchive()
+        archive.objects["o1"], archive.objects["o2"] = b1, b2
+        base = f"archive/manifests/{dataset}/{as_of}/revisions/"
+        # 05:40Z is 01:40 EDT; 06:10Z is 01:10 EST -- later, but "smaller" locally.
+        archive.manifests[base + f"{r1}.json"] = _manifest(
+            dataset, as_of, r1, "2026-11-01T05:40:00Z", "o1", len(b1))
+        archive.manifests[base + f"{r2}.json"] = _manifest(
+            dataset, as_of, r2, "2026-11-01T06:10:00Z", "o2", len(b2))
+        ref = R2DatasetReader(archive).resolve_latest_revision(dataset, as_of)
+        assert ref.revision_sha256 == r2
+    finally:
+        monkeypatch.delenv("TZ")
+        time.tzset()
