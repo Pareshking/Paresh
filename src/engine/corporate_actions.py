@@ -170,6 +170,9 @@ def summarise(found: pd.DataFrame) -> dict[str, Any]:
 # indices_loader.py already resolves its data files this way.
 LOG_PATH = Path(__file__).resolve().parents[2] / "data" / "corporate_actions_log.json"
 
+# `verdict` value for a flagged session confirmed to be a genuine price move.
+PRICE_MOVE = "price_move"
+
 
 def load_events(path: str | Path = LOG_PATH) -> list[dict[str, Any]]:
     """The flagged sessions on record, or an empty list."""
@@ -196,7 +199,13 @@ def load_events(path: str | Path = LOG_PATH) -> list[dict[str, Any]]:
             p, type(exc).__name__,
         )
         return []
-    return list((log.get("events") or {}).values())
+    events = list((log.get("events") or {}).values())
+    # A session the owner confirmed as a real price move stays on the record
+    # (so the detector never re-flags it) but is never neutralised. The +/-35%
+    # rule assumes NSE circuit limits, and F&O stocks have none: POLICYBZR fell
+    # 36% on 2026-09-24 on a government announcement, and rescaling its history
+    # by 0.64 would have erased a real crash from the ranking.
+    return [e for e in events if e.get("verdict") != PRICE_MOVE]
 
 
 def adjust_prices(

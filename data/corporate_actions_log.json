@@ -572,7 +572,9 @@
       "close": 1207.2,
       "looks_like": "unmatched \u2014 possible demerger or spin-off",
       "kind": "unclassified",
-      "first_seen": "2026-09-25"
+      "first_seen": "2026-09-25",
+      "verdict": "price_move",
+      "verdict_note": "Owner, 2026-09-25: real fall (~30-36%) on a government announcement; F&O stock, so no circuit limit. Not a corporate action."
     }
   },
   "last_checked": "2026-09-25"
