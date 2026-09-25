@@ -71,6 +71,16 @@ def _revision() -> str | None:
         return None
 
 
+# The commit on disk when this process imported its modules. `revision`
+# below is read from git on every call, so it moves the moment Streamlit
+# Cloud pulls a push. But Streamlit re-executes only app.py on a rerun, and
+# modules already imported (everything under src/) stay as they were loaded
+# until the process restarts. On 2026-09-25, #177 was on disk and reported as
+# served while the process still ran the src/ui it had imported at #173.
+# Comparing the two is how QA can tell.
+LOADED_REVISION: str | None = _revision()
+
+
 def _streamlit_version() -> str | None:
     """Which Streamlit frontend this process is actually running.
 
@@ -180,6 +190,7 @@ def snapshot() -> dict:
     with _LOCK:
         return {
             "revision": _revision(),
+            "loaded_revision": LOADED_REVISION,
             "streamlit_version": _streamlit_version(),
             "module_import_utc": MODULE_IMPORT_UTC,
             "uptime_s": since_start(),

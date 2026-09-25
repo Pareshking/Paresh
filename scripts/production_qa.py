@@ -74,6 +74,37 @@ METRICS_ID = "umiya-startup-metrics"
 EXPECTED_SHA = (os.getenv("UMIYA_EXPECTED_SHA") or "").strip().lower()
 
 
+def _stale_modules(loaded: str | None, served: str | None) -> list[str]:
+    """src/ files that differ between the code the process imported and disk.
+
+    Streamlit re-executes app.py on every rerun but keeps already-imported
+    modules until the process restarts, and Streamlit Cloud pulls a push
+    without restarting. `served` (git on disk) then says the new commit while
+    everything under src/ is still the build the process started on. That is
+    what hid #177 on 2026-09-25: the menu fix was "served" and not running.
+
+    Only src/ counts: app.py is re-read every run, scripts/ and docs/ never
+    reach the process, and a requirements.txt change restarts it anyway.
+    Empty when there is nothing to compare or git cannot answer.
+    """
+    loaded = (loaded or "").strip().lower()
+    served = (served or "").strip().lower()
+    if not loaded or not served or loaded == served:
+        return []
+    import subprocess
+
+    try:
+        out = subprocess.run(
+            ["git", "diff", "--name-only", loaded, served, "--", "src/"],
+            capture_output=True, text=True, timeout=20,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+    if out.returncode != 0:
+        return []
+    return [ln for ln in out.stdout.splitlines() if ln.strip()]
+
+
 def _serves_expected(served: str) -> bool:
     """True when the served build IS, or DESCENDS FROM, the triggering commit.
 
@@ -992,6 +1023,18 @@ def main() -> None:
 
                 report["expected_revision"] = EXPECTED_SHA[:7]
                 report["served_revision"] = (served or "unknown")[:7]
+                loaded = (read_telemetry(page) or {}).get("loaded_revision")
+                report["loaded_revision"] = (loaded or "unknown")[:7]
+                stale = _stale_modules(loaded, served)
+                if stale:
+                    report["stale_modules"] = stale
+                    failures.append(classify(
+                        f"Production has {(served or '')[:7]} on disk but its "
+                        f"process imported src/ at {loaded[:7]} and has not "
+                        f"restarted: {len(stale)} src/ file(s) changed since "
+                        f"then are NOT running ({', '.join(stale[:5])}). "
+                        f"Reboot the app from the Streamlit Cloud dashboard.",
+                        "INFRASTRUCTURE"))
                 if served is None:
                     report["deploy_correspondence"] = "unverifiable"
                     report["deploy_unverifiable_reason"] = why
@@ -1208,6 +1251,10 @@ def main() -> None:
               f"(expected {report.get('expected_revision')}, "
               f"served {report.get('served_revision')}"
               + (f", {reason}" if reason else "") + ")", flush=True)
+        if report.get("loaded_revision"):
+            print(f"modules loaded at     : {report['loaded_revision']}"
+                  + (f"  STALE: {len(report['stale_modules'])} src/ file(s) not running"
+                     if report.get("stale_modules") else ""), flush=True)
     print(f"time to that state    : {report.get('ready_after_s')}s", flush=True)
     print(f"websocket established : {report['websocket_established']}", flush=True)
     print(f"page errors           : {len(page_errors)}", flush=True)
