@@ -37,7 +37,7 @@ plotly==7.1.0
 # nothing would ever have prompted a re-look. An exact pin is a line with a
 # reason and a way out: when arrow#50471 closes, bump this deliberately and
 # let the QA run confirm it.
-pyarrow==24.0.0
+pyarrow==25.0.1
 streamlit-lightweight-charts==0.7.20
 # S3-compatible Cloudflare R2 archive adapter. Left as a range on purpose:
 # boto3 releases almost daily, its S3 API is stable within a major, and the
