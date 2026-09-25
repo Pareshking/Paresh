@@ -618,3 +618,22 @@ before its imports and `mark_loaded()` after them.
   commit only touches `data/`.
 - **Safety net:** production QA's stale-module check (#179) still fails loudly
   if this ever does not happen.
+
+**Two R2 workflows red since 02:00 (found 09:09, after #158 re-ran them).**
+Neither was caused by the Actions bump. The earlier runs, after #151, were
+red too.
+- **R2 production Screener verification.** A one-off acceptance pinned to the
+  2026-09-21 release SHA, which also re-ran on every push to its own file. The
+  daily sync replaces that asset nightly, so the push run could only fail. It
+  is now dispatch-only, with no default SHA or date.
+- **R2 observed trading-session publication.** It asserts `>= 1000` sessions and
+  now finds 720. The published Screener store holds exactly 720 dates: weekly
+  points 2016-09 to 2025-09, then 252 daily. The store's merge never shortens
+  history, yet the same check passed on 2026-09-21.
+  - The owner chose to investigate first. `scripts/r2_screener_history.py`
+    (read-only) now runs in that workflow before the check, reporting each
+    `prices/screener` revision in R2: dates, where the daily history starts,
+    and symbols.
+  - The threshold stays untouched until that evidence is read.
+  - Owner direction: keep collecting Screener daily. The nightly sync already
+    accumulates, so the daily history grows by one session per trading day.

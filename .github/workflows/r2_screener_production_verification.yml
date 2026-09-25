@@ -1,20 +1,20 @@
 name: R2 production Screener verification
 
+# A one-off acceptance of ONE Screener publication, identified by its SHA-256
+# and as-of date. It used to also run on every push to this file with the
+# 2026-09-21 values as defaults; the daily sync replaces the release asset
+# every night, so from 2026-09-22 on that push run could only fail (red on
+# 2026-09-25 at 02:00 and 09:09). Dispatch it by hand with the publication
+# you mean to verify; there is no default, so it cannot check a stale one.
 on:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/r2_screener_production_verification.yml"
   workflow_dispatch:
     inputs:
       expected_sha:
         description: "Expected Screener release SHA-256"
         required: true
-        default: "df03ed6d6fb9c8ca963c4f3fb3b73386c43e6f106cc9a3307d7b693cf80455dd"
       expected_as_of:
-        description: "Expected Screener archive as-of date"
+        description: "Expected Screener archive as-of date (YYYY-MM-DD)"
         required: true
-        default: "2026-09-21"
 
 permissions:
   contents: read
@@ -24,8 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      EXPECTED_SHA: ${{ inputs.expected_sha || 'df03ed6d6fb9c8ca963c4f3fb3b73386c43e6f106cc9a3307d7b693cf80455dd' }}
-      EXPECTED_AS_OF: ${{ inputs.expected_as_of || '2026-09-21' }}
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+      EXPECTED_AS_OF: ${{ inputs.expected_as_of }}
       R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
       R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
       R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
