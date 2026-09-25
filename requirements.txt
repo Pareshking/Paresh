@@ -6,7 +6,7 @@
 # bump here, let V1 Production QA verify against the live app, then keep it.
 streamlit==1.63.0
 pandas>=2.0.0
-numpy>=1.24.0
+numpy>=2.5.3
 scipy>=1.10.0
 # scikit-learn was declared here and imported NOWHERE -- `grep -rn sklearn`
 # across the repository returns this line and nothing else. _shrunk_cov in
