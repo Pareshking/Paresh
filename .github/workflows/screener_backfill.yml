@@ -74,10 +74,15 @@ jobs:
       - name: Backfill (dry run unless apply)
         run: |
           set -euo pipefail
-          if [ "$APPLY" = "true" ]; then FLAG=--apply; else FLAG=; fi
-          python scripts/screener_backfill.py \
-            --store data_cache/screener_prices.parquet \
-            --source-r2-revision "$SOURCE" $FLAG
+          if [ "$APPLY" = "true" ]; then
+            python scripts/screener_backfill.py \
+              --store data_cache/screener_prices.parquet \
+              --source-r2-revision "$SOURCE" --apply
+          else
+            python scripts/screener_backfill.py \
+              --store data_cache/screener_prices.parquet \
+              --source-r2-revision "$SOURCE"
+          fi
 
       - name: Publish the filled store (release, then R2)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply }}
