@@ -485,3 +485,28 @@ R2 publish is correctly skipped.
 The shared table renderers (`render_saas_table`, the master screener table)
 escape every text cell through `_esc`. Widget state is covered by
 `widget_state.resolve`.
+
+## 13. Line-by-line audit, area 7: the test suite
+
+### Fixed
+| # | File | Finding | Effect |
+|---|---|---|---|
+| T1 | `v1-full-validation.yml` | V1 skipped 8 R2 test files, which ran only in R2 Focused Validation, and that workflow triggers only on R2 paths. The tests also depend on `src/core/tickers.py`, the membership builder and `requirements.txt`, so **a pandas or pyarrow bump ran them nowhere**. They are hermetic (fakes, no credentials, about 2 s). | V1 runs the whole suite. R2 Focused still covers R2-only changes. |
+| T2 | `tests/test_all_workflows_are_valid.py` | The "`uses` and `run` in one step" guard, the mistake that cost 200 runs, covered two workflows by name. | It now covers all 30 workflows: every job has a timeout and declared permissions, every referenced repo file exists, and every scheduled workflow is watched by the failure alert. |
+
+### Read and found sound
+- The network is blocked at the socket in `conftest.py`, so no test can reach
+  the internet.
+- The 7 tests without an `assert` are deliberate "must not raise" smoke tests.
+- The two repeated test names are in different files and guard different
+  workflows.
+
+## 14. Audit complete: what is left for the owner
+
+All seven areas are merged (§7–§13). Decisions recorded and deliberately
+not changed:
+1. Wall-clock `latest_as_of_date` anchoring (§7).
+2. The 100% coverage floor, which can hold the ranking back up to 5 sessions (§7).
+3. The price fingerprint hashes only the last row (§7).
+4. `r2_recovery_audit` fully reads every revision each week, and its cost grows without bound (§10).
+5. Delete the branches listed in `docs/BRANCH_CLEANUP_TODO.md`.

@@ -60,17 +60,14 @@ jobs:
       # 200 consecutive runs -- silently do not run in the only place that matters.
       - run: pip install -r requirements.txt pytest pyyaml
 
+      # Everything, R2 suites included. They are hermetic (fakes, no
+      # credentials, ~2 s), and they also depend on code no R2 path filter
+      # watches -- src/core/tickers.py, the membership builder, and above all
+      # requirements.txt. Excluded here, a pandas or pyarrow bump ran them
+      # nowhere. R2 Focused Validation still runs them for R2-only changes,
+      # which this workflow's paths-ignore skips.
       - name: Full regression suite
-        run: |
-          python -m pytest -q \
-            --ignore=tests/test_r2_historical_evidence.py \
-            --ignore=tests/test_r2_live_audit.py \
-            --ignore=tests/test_r2_coverage_audit.py \
-            --ignore=tests/test_r2_dual_publication.py \
-            --ignore=tests/test_r2_reader.py \
-            --ignore=tests/test_r2_historical_consumer.py \
-            --ignore=tests/test_build_trading_sessions.py \
-            --ignore=tests/test_market_cap_history.py
+        run: python -m pytest -q
 
       - name: Compile application and source
         run: python -m compileall -q app.py src scripts
