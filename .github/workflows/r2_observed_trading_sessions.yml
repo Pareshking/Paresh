@@ -7,6 +7,7 @@ on:
       - "scripts/build_trading_sessions.py"
       - "tests/test_build_trading_sessions.py"
       - "scripts/r2_screener_history.py"
+      - "scripts/check_observed_sessions.py"
       - ".github/workflows/r2_observed_trading_sessions.yml"
   workflow_dispatch:
 
@@ -64,22 +65,14 @@ jobs:
             --prices /tmp/r2-observed/screener_prices.parquet \
             --output /tmp/r2-observed/trading_sessions_observed.parquet
 
+      # Daily recent year, ~10-year span, and never fewer sessions than the
+      # archive already published (scripts/check_observed_sessions.py). This
+      # replaced `len >= 1000`, which tested how the store was built rather
+      # than whether history was lost.
       - name: Validate observed-session coverage
         run: |
-          python - <<'PY'
-          import pandas as pd
-
-          path = "/tmp/r2-observed/trading_sessions_observed.parquet"
-          frame = pd.read_parquet(path)
-          assert len(frame) >= 1000, f"unexpectedly small session archive: {len(frame)}"
-          assert frame["date"].is_monotonic_increasing
-          assert frame["date"].is_unique
-          assert frame["is_session"].all()
-          assert frame["market"].eq("NSE").all()
-          print(f"OBSERVED_SESSION_COUNT={len(frame)}")
-          print(f"OBSERVED_FIRST={frame['date'].min().date()}")
-          print(f"OBSERVED_LAST={frame['date'].max().date()}")
-          PY
+          python scripts/check_observed_sessions.py \
+            --path /tmp/r2-observed/trading_sessions_observed.parquet
 
       - name: Publish observed sessions to R2
         run: |
