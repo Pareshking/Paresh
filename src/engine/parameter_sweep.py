@@ -272,8 +272,10 @@ def assess_holdout(
         )
 
     merged = merged.sort_values("In-sample Rank").reset_index(drop=True)
+    # Spearman's rho is Pearson's r on the ranks. Computed that way because
+    # pandas' method="spearman" imports scipy, which the app does not install.
     rho = float(
-        merged["In-sample Rank"].corr(merged["Out-of-sample Rank"], method="spearman")
+        merged["In-sample Rank"].rank().corr(merged["Out-of-sample Rank"].rank())
     )
     if not np.isfinite(rho):
         rho = None
