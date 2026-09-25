@@ -84,3 +84,11 @@ def test_new_high_share_is_measured_over_stocks_that_can_have_one():
     hl = compute_hl_timeseries("hl-denominator", px, window=252, lookback=10)
     assert (hl["Total Stocks"] == 1).all()
     assert (hl["% New Highs"] == 100.0).all()
+
+
+def test_windows_count_back_from_the_last_price_not_from_today():
+    """Decision 1B: one unchanged file must rank identically on any day."""
+    from src.engine.calendar_momentum import latest_as_of_date
+
+    recent = pd.bdate_range(end=pd.Timestamp.today().normalize() - pd.Timedelta(days=2), periods=30)
+    assert latest_as_of_date(recent) == recent[-1].normalize()
