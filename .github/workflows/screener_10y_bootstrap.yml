@@ -7,7 +7,10 @@ permissions:
   contents: write
 
 concurrency:
-  group: screener-10y-bootstrap
+  # The nightly screener sync's group: both read the published store, merge,
+  # and --clobber the same release asset, so running side by side the later
+  # upload would silently discard the other's rows.
+  group: screener-sync
   cancel-in-progress: false
 
 jobs:

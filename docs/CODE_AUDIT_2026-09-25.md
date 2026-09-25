@@ -448,3 +448,25 @@ deferred for that reason.
   last N days, and HEAD-plus-manifest check the older revisions; or
   sample-read the older ones. This trades assurance for cost, so the decision
   is yours.
+
+## 11. Line-by-line audit, area 5: workflows and the remaining scripts
+
+All 30 workflows were cross-checked mechanically. Every job has a timeout,
+every workflow declares permissions, every referenced script and test exists,
+every non-Stage-4B workflow reads `.python-version`, and every scheduled
+workflow is watched by `scheduled_failure_alert.yml`.
+
+### Fixed
+| # | File | Finding | Effect |
+|---|---|---|---|
+| W1 | `daily_sync`, `weekly_full_sync`, `screener_sync`, `monthly_track_record` | **The push-retry loop resolved rebase conflicts with `git checkout --ours`.** In a rebase, `--ours` is origin/main, so this took main's copy and dropped the run's own data. Reproduced: the sync commit vanished, the next `git push` printed "Everything up-to-date", and the step reported **"Pushed"** with nothing pushed. | Now `--theirs` (the replayed commit), with `GIT_EDITOR=true` so `--continue` can never wait for an editor. A test guards all workflows. |
+| W2 | `screener_10y_bootstrap.yml` | Had its own concurrency group, but clobbers the same release asset (`screener_prices.parquet`) as the nightly screener sync. Run side by side, the later upload silently discarded the other's rows. | Shares the `screener-sync` queue. A test asserts one queue per writer. |
+| W3 | `src/engine/momentum.py` | The `market_cap_weights` parameter and the `vol_mgd_ranks` attribute had no reader or writer anywhere (Stage-4B included). | Removed. |
+
+### Read and found sound
+`sync_data.py`, `sync_screener.py`, `update_track_record.py`, the cache
+save/restore rotation, the `workflow_run` chaining and the failure alert.
+`sync_screener.py`'s coverage gate returns 3 after the store is written, and the
+release upload (`if: always()`) still publishes it. That is harmless: the merge
+only ever adds rows, so the upload is a superset of what is already live. The
+R2 publish is correctly skipped.

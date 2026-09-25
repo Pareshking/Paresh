@@ -111,7 +111,6 @@ class MomentumEngine:
         close_df: pd.DataFrame | None = None,
         volume_df: pd.DataFrame | None = None,
         weights: Sequence[float] | None = None,
-        market_cap_weights: pd.Series | None = None,
         corporate_actions: list[dict] | None = None,
     ):
         self.ffill_pct: pd.Series = compute_ffill_pct(prices_df)
@@ -157,7 +156,6 @@ class MomentumEngine:
             self.volume = None
 
         self.weights: list[float] = list(weights) if weights is not None else list(self.DEFAULT_WEIGHTS)
-        self._mcap_weights: pd.Series | None = market_cap_weights
         # The events already neutralised in the frames above. Carried so the
         # ATH snapshot -- a separate download this engine does not own -- can be
         # put on the same price scale. See corporate_actions.adjust_ath.
@@ -169,7 +167,6 @@ class MomentumEngine:
 
         self.momentum_scores: pd.DataFrame | None = None
         self.ranking_diagnostics: dict[str, int] = {}
-        self.vol_mgd_ranks: pd.Series | None = None
         self.period_metrics: dict[int, dict[str, pd.Series]] = {}
         self.period_dates: dict[int, dict] = {}
         self._period_z_scores: dict[int, pd.DataFrame] = {}

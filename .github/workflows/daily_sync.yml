@@ -314,10 +314,14 @@ jobs:
             echo "Push rejected on attempt $attempt; rebasing onto origin/main."
             git fetch origin main
             git rebase origin/main || {
-              echo "Rebase hit a conflict in generated data; taking our copy."
-              git checkout --ours -- data/ 2>/dev/null || true
+              echo "Rebase hit a conflict in generated data; keeping this run's copy."
+              # In a REBASE the sides are swapped: --ours is origin/main and
+              # --theirs is the commit being replayed, i.e. this run's data.
+              # --ours here silently dropped the whole sync commit, and the
+              # next push then "succeeded" with nothing in it.
+              git checkout --theirs -- data/ 2>/dev/null || true
               git add -A data/
-              git rebase --continue || git rebase --abort
+              GIT_EDITOR=true git rebase --continue || git rebase --abort
             }
             sleep $((attempt * 3))
           done
