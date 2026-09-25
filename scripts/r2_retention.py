@@ -1,8 +1,8 @@
 """R2 retention for the two large daily datasets. Dry run unless told otherwise.
 
-Owner-approved policy, 2026-09-25: for `prices/yahoo` and
-`snapshots/application`, keep the last KEEP_DAILY as_of dates plus the last
-as_of of every calendar month. Every other dataset keeps its full history and
+Owner-approved policy, 2026-09-25: for `prices/yahoo`,
+`snapshots/application` and (added the same day) `prices/screener`, keep the
+last KEEP_DAILY as_of dates plus the last as_of of every calendar month. Every other dataset keeps its full history and
 is never touched here.
 
 What goes, for each as_of date that is not kept:
@@ -49,10 +49,15 @@ from src.storage.r2 import R2Archive, R2Config
 KEEP_DAILY = 7
 
 # dataset -> the key root its payloads are published under (daily_sync.yml:
-# `--key-root archive/prices/yahoo` and `--key-root snapshots/application`).
+# `--key-root archive/prices/yahoo` and `--key-root snapshots/application`;
+# screener_sync.yml: `--key-root archive/prices/screener`). Each nightly
+# Screener store is the whole history (~5 MB), so older copies add nothing the
+# newest does not hold. prices/screener/bootstrap is a separate dataset and,
+# like every nested one, is never matched here.
 RETAINED_DATASETS: dict[str, str] = {
     "prices/yahoo": "archive/prices/yahoo",
     "snapshots/application": "snapshots/application",
+    "prices/screener": "archive/prices/screener",
 }
 
 _ENTRY = re.compile(

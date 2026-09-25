@@ -2,6 +2,11 @@ name: R2 ranking calculation archive
 
 on:
   workflow_dispatch:
+  # Archive the ranking the daily sync just published (rankings.parquet). The
+  # schedule below stays as a fallback; publication is idempotent.
+  workflow_run:
+    workflows: ["Daily NSE Momentum Data Sync"]
+    types: [completed]
   push:
     branches: [main]
     paths:
@@ -21,6 +26,8 @@ concurrency:
 
 jobs:
   publish:
+    # Chained runs only after a successful upstream run: a failed one published nothing new.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:

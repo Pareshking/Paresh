@@ -12,6 +12,12 @@ on:
       - "data/nse_market_caps.csv"
       - ".github/workflows/r2_market_cap_history.yml"
   workflow_dispatch:
+  # Straight after the daily sync commits data/nse_market_caps.csv, instead of
+  # relying on GitHub's hours-late queue landing the two in order. The schedule
+  # stays as a fallback; publication is idempotent.
+  workflow_run:
+    workflows: ["Daily NSE Momentum Data Sync"]
+    types: [completed]
 
 permissions:
   contents: read
@@ -23,6 +29,8 @@ concurrency:
 
 jobs:
   publish:
+    # Chained runs only after a successful upstream run: a failed one published nothing new.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:

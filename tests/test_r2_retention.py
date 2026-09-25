@@ -64,10 +64,12 @@ def _archive():
         # Nested and unrelated datasets that must never be touched.
         publish(a, "prices/yahoo/raw", "archive/prices/yahoo/raw", d, 900 + i)
         publish(a, "prices/screener", "archive/prices/screener", d, 1500 + i)
+        publish(a, "prices/screener/bootstrap", "archive/prices/screener/bootstrap", d, 1900 + i)
+        publish(a, "market_caps/nse_history", "archive/market_caps/nse_history", d, 2300 + i)
     return a
 
 
-def test_plan_drops_only_the_two_datasets_and_only_unkept_dates():
+def test_plan_drops_only_the_retained_datasets_and_only_unkept_dates():
     a = _archive()
     plans = {p.dataset: p for p in rr.make_plan(a)}
     yahoo = plans["prices/yahoo"]
@@ -77,8 +79,12 @@ def test_plan_drops_only_the_two_datasets_and_only_unkept_dates():
     assert len(yahoo.delete_keys) == 3 * len(dropped)
     assert yahoo.delete_bytes == 1000 * len(dropped) + sum(
         len(a.objects[k]) for k in yahoo.delete_keys if k.startswith("archive/manifests/"))
+    # Screener follows the same policy (owner, 2026-09-25).
+    assert set(plans["prices/screener"].drop) == dropped
+    assert set(plans) == {"prices/yahoo", "snapshots/application", "prices/screener"}
     every = [k for p in plans.values() for k in p.delete_keys]
-    assert not [k for k in every if "/raw/" in k or "screener" in k]
+    assert not [k for k in every
+                if "/raw/" in k or "/bootstrap/" in k or "market_caps" in k]
     # Pointers go first, payloads last.
     assert yahoo.delete_keys[0].endswith("/current.json")
     assert not yahoo.delete_keys[-1].startswith("archive/manifests/")
