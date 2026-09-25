@@ -69,6 +69,28 @@ jobs:
           restore-keys: |
             screener-data-${{ runner.os }}-
 
+      # The cache is this job's working copy; the release asset is what was
+      # published. On 2026-09-21 the 10-year download reached the release but
+      # not the cache, and the next night's run started from the cache and
+      # published over it -- the store fell from 1161 dates to 718. Fold the
+      # published copy in first (gaps only, per-symbol basis check), so a
+      # publication is never lost to a stale or expired cache.
+      - name: Fold the published store into the working copy
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/screener-release
+          if gh release download data-latest --repo "$GITHUB_REPOSITORY" \
+               --pattern "screener_prices.parquet" --dir /tmp/screener-release --clobber; then
+            python scripts/screener_backfill.py \
+              --store data_cache/screener_prices.parquet \
+              --source-file /tmp/screener-release/screener_prices.parquet --apply
+          else
+            echo "::warning::No published Screener store to fold in; continuing from the cache."
+          fi
+
       - name: Run screener sync
         env:
           PYTHONPATH: .
