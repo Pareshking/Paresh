@@ -82,6 +82,46 @@ def _closes(source: str) -> tuple[pd.DataFrame, pd.Timestamp | None]:
     return adj, None
 
 
+def confirm_restated(events: dict, closes: pd.DataFrame, since: pd.Timestamp | None,
+                     fo_symbols: set[str] | None = None) -> list[str]:
+    """Mark F&O moves as corporate actions once Screener has restated them.
+
+    An F&O move that matches no split/bonus ratio is treated as real until
+    confirmed (corporate_actions.needs_confirmation). Screener restates a
+    demerger's history within days and never restates a crash, so a step that
+    is no longer in the Screener series is the confirmation. Only the DAILY
+    part counts: across weekly points a crash and its rebound (YESBANK, March
+    2020) would look like no step at all. Returns the keys confirmed.
+    """
+    from src.engine.corporate_actions import (
+        CORPORATE_ACTION,
+        _step_is_still_present,
+        load_fo_symbols,
+        needs_confirmation,
+    )
+
+    fo = load_fo_symbols() if fo_symbols is None else fo_symbols
+    confirmed = []
+    for key, event in events.items():
+        if event.get("verdict") or not needs_confirmation(event, fo):
+            continue
+        symbol = event.get("symbol")
+        if since is None or symbol not in closes.columns:
+            continue
+        when = pd.Timestamp(event["date"])
+        series = closes[symbol].dropna()
+        if when <= since or series.loc[series.index < when].empty \
+                or series.loc[series.index >= when].empty:
+            continue
+        if _step_is_still_present(series, when, float(event["ratio"])):
+            continue
+        event["verdict"] = CORPORATE_ACTION
+        event["verdict_note"] = (f"Screener restated the history (checked "
+                                 f"{date.today().isoformat()}): a corporate action.")
+        confirmed.append(key)
+    return confirmed
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--log", default=str(LOG_PATH))
@@ -110,12 +150,14 @@ def main() -> int:
         f"at +/-{args.threshold:.0%}"
     )
 
-    if found.empty:
-        print("✓ no implausible sessions")
-        return 0
-
     log = _load(Path(args.log))
     events = dict(log.get("events", {}))
+    confirmed = confirm_restated(events, adj, since) if args.source == "screener" else []
+    for key in confirmed:
+        print(f"  CONFIRMED {key}: Screener restated the history -- a corporate action")
+    if found.empty and not confirmed:
+        print("✓ no implausible sessions")
+        return 0
     new_keys: list[str] = []
 
     for _, row in found.iterrows():

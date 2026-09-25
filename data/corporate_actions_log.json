@@ -462,7 +462,9 @@
       "close": 392.1966,
       "looks_like": "unmatched \u2014 possible demerger or spin-off",
       "kind": "unclassified",
-      "first_seen": "2026-09-03"
+      "first_seen": "2026-09-03",
+      "verdict": "corporate_action",
+      "verdict_note": "Screener restated the history (checked 2026-09-25): a corporate action."
     },
     "2025-10-15:SKFINDIA": {
       "date": "2025-10-15",
@@ -484,7 +486,9 @@
       "close": 271.55,
       "looks_like": "unmatched \u2014 possible demerger or spin-off",
       "kind": "unclassified",
-      "first_seen": "2026-09-03"
+      "first_seen": "2026-09-03",
+      "verdict": "corporate_action",
+      "verdict_note": "Screener restated the history (checked 2026-09-25): a corporate action."
     },
     "2026-07-22:TRIVENI": {
       "date": "2026-07-22",
