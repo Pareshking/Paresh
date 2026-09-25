@@ -77,3 +77,46 @@ def test_a_menu_that_will_not_open_falls_back_to_the_button(monkeypatch):
     t = iter(range(0, 10**6, 10))
     monkeypatch.setattr(nav.time, "perf_counter", lambda: next(t))
     assert nav.missing_pages(_Frame(PAGES, opens=False), PAGES) == []
+
+
+class _ToggleMenu:
+    """A ☰ that toggles on click and shows its links a few polls later."""
+
+    def __init__(self, links_after_polls=3):
+        self.expanded = False
+        self.clicks = 0
+        self.polls = 0
+        self.links_after = links_after_polls
+
+    def locator(self, sel):
+        menu = self
+        if sel == '[data-testid="stPopoverButton"]':
+            class _Btn(_Loc):
+                def click(self, timeout=None):
+                    menu.clicks += 1
+                    menu.expanded = not menu.expanded
+                    menu.polls = 0
+
+                def get_attribute(self, name):
+                    return "true" if menu.expanded else "false"
+
+                @property
+                def first(self):
+                    return self
+            return _Btn(["☰"])
+        if "stPopoverBody" in sel and "stPageLink" in sel:
+            self.polls += 1
+            ready = self.expanded and self.polls > self.links_after
+            return _Loc(["Screener"] if ready else [], ready)
+        return _Loc([])
+
+    def get_by_role(self, *a, **k):
+        return _Loc([])
+
+
+def test_a_menu_that_is_still_opening_is_not_clicked_shut(monkeypatch):
+    """Run 577: the second click closed a menu whose links were on their way."""
+    monkeypatch.setattr(nav.time, "sleep", lambda s: None)
+    menu = _ToggleMenu(links_after_polls=3)
+    assert nav._open_custom_popover(menu) is True
+    assert menu.clicks == 1 and menu.expanded

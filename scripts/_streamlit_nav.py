@@ -57,53 +57,120 @@ NAV_DIAGNOSTIC_SELECTORS = NAV_CONTAINERS + (
 
 
 
-def _open_custom_popover(frame) -> bool:
-    """Open the custom hamburger and wait until its PageLinks are visible."""
-    page_links = frame.locator(
-        '[data-testid="stPopoverBody"] [data-testid="stPageLink"]'
-    )
+# Why the last _open_custom_popover call could not open the menu, for the
+# report. Empty when it opened.
+LAST_OPEN_DIAGNOSIS: list[str] = []
+
+_MENU_BUTTONS = (
+    '[data-testid="stPopoverButton"]',
+    '[data-testid="stPopover"] button',
+    'button[aria-label="Open navigation"]',
+    'button:has-text("☰")',
+)
+
+
+def _menu_is_open(frame) -> bool:
+    """At least one page link in the popover is visible.
+
+    Not aria-expanded: the button flips to expanded a moment BEFORE the
+    links render, so trusting it reported an empty menu as open.
+    """
+    links = frame.locator('[data-testid="stPopoverBody"] [data-testid="stPageLink"]')
     try:
-        if page_links.count() and page_links.first.is_visible():
-            return True
-    except Exception:
-        pass
-
-    selectors = (
-        '[data-testid="stPopoverButton"]',
-        '[data-testid="stPopover"] button',
-        'button[aria-label="Open navigation"]',
-        'button:has-text("☰")',
-    )
-
-    def _wait_open() -> bool:
-        deadline = time.perf_counter() + 5.0
-        while time.perf_counter() < deadline:
-            try:
-                if page_links.count() and page_links.first.is_visible():
-                    return True
-            except Exception:
-                pass
-            time.sleep(0.1)
-        return False
-
-    for selector in selectors:
-        try:
-            button = frame.locator(selector).first
-            if button.count():
-                button.click(timeout=8_000)
-                if _wait_open():
-                    return True
-        except Exception:
-            continue
-
-    try:
-        button = frame.get_by_role("button", name="☰", exact=True).first
-        if button.count():
-            button.click(timeout=8_000)
-            return _wait_open()
+        for i in range(min(links.count(), 12)):
+            if links.nth(i).is_visible():
+                return True
     except Exception:
         pass
     return False
+
+
+def _button_expanded(button) -> bool:
+    try:
+        return button.get_attribute("aria-expanded") == "true"
+    except Exception:
+        return False
+
+
+def _open_custom_popover(frame) -> bool:
+    """Open the custom hamburger and wait until the menu is open.
+
+    One button, clicked at most twice. This used to try four selectors in
+    turn and click each one -- but they are the SAME button, and a popover
+    button toggles, so every "it did not open in time" guess closed the menu
+    again. Harmless while the menu stayed open across pages; once choosing a
+    page started closing it (#177), every mobile page cost ~25s of toggling
+    (run 577) and a desktop click landed on a menu that was mid-toggle.
+    """
+    LAST_OPEN_DIAGNOSIS.clear()
+    if _menu_is_open(frame):
+        return True
+
+    button = None
+    for selector in _MENU_BUTTONS:
+        try:
+            candidate = frame.locator(selector).first
+            if candidate.count():
+                button = candidate
+                break
+        except Exception:
+            continue
+    if button is None:
+        try:
+            candidate = frame.get_by_role("button", name="☰", exact=True).first
+            if candidate.count():
+                button = candidate
+        except Exception:
+            pass
+    if button is None:
+        LAST_OPEN_DIAGNOSIS.append("no menu button found")
+        return False
+
+    # A second click only if the first one did not take: a rerun that lands
+    # while the click is in flight can swallow it.
+    for attempt in (1, 2):
+        # Already expanded: the links are on their way. Clicking now would
+        # CLOSE the menu, so wait for them instead.
+        if _button_expanded(button):
+            deadline = time.perf_counter() + 5.0
+            while time.perf_counter() < deadline:
+                if _menu_is_open(frame):
+                    LAST_OPEN_DIAGNOSIS.clear()
+                    return True
+                time.sleep(0.1)
+            LAST_OPEN_DIAGNOSIS.append(f"attempt {attempt}: expanded but no links after 5s")
+            continue
+        try:
+            button.click(timeout=8_000)
+        except Exception as exc:
+            # Playwright names the element that intercepted the click, which
+            # is exactly what a reader-facing overlap would look like.
+            LAST_OPEN_DIAGNOSIS.append(
+                f"click {attempt}: {str(exc).splitlines()[0][:200]}")
+            continue
+        deadline = time.perf_counter() + 5.0
+        while time.perf_counter() < deadline:
+            if _menu_is_open(frame):
+                LAST_OPEN_DIAGNOSIS.clear()
+                return True
+            time.sleep(0.1)
+        LAST_OPEN_DIAGNOSIS.append(f"click {attempt}: menu not open after 5s")
+    return False
+
+
+def _click_with_retry(frame, locator_fn, attempts: int = 3) -> None:
+    """Click a menu link, reopening the menu if a rerun detached it."""
+    last: Exception | None = None
+    for _ in range(attempts):
+        try:
+            locator_fn().click(timeout=15_000)
+            return
+        except Exception as exc:  # detached / not stable while rerendering
+            last = exc
+            time.sleep(0.5)
+            _open_custom_popover(frame)
+    assert last is not None
+    raise last
 
 
 def _close_custom_popover(frame) -> None:
@@ -159,9 +226,11 @@ def open_page(frame, name: str, page=None) -> str:
     """Open one page through the real custom navigation."""
     _open_custom_popover(frame)
 
-    page_link = frame.locator('[data-testid="stPageLink"]').filter(has_text=name).first
-    if page_link.count():
-        page_link.click(timeout=15_000)
+    def page_link():
+        return frame.locator('[data-testid="stPageLink"]').filter(has_text=name).first
+
+    if page_link().count():
+        _click_with_retry(frame, page_link)
         return "page_link"
 
     link = frame.locator('[data-testid="stTopNavLink"]').filter(has_text=name).first
