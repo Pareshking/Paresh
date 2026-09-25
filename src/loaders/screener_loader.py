@@ -49,6 +49,7 @@ from src.core.config import (
     SCREENER_PRICES_FILE,
 )
 from src.core.logger import logger
+from src.loaders.screener_restatement import rebase_store
 
 BASE = "https://www.screener.in"
 HTTP_HEADERS = {
@@ -232,9 +233,14 @@ def fetch_universe(
 
 
 def merge_into_store(
-    fresh: pd.DataFrame, path: str | None = None
+    fresh: pd.DataFrame, path: str | None = None, rebased: dict | None = None
 ) -> tuple[pd.DataFrame, int, int]:
     """Fold tonight's year into the stored history. Returns (frame, new rows, repaired cells).
+
+    Before merging, stored dates tonight's fetch does not cover are moved onto
+    its adjustment basis wherever Screener has restated a corporate action
+    (screener_restatement.rebase_store). What was rescaled, per symbol, is
+    written into `rebased` when the caller passes a dict.
 
     CELL level, not row level. A symbol screener could not serve tonight must
     not blank the value it served last night, and a row present in both must
@@ -260,6 +266,11 @@ def merge_into_store(
         merged, new_rows, repaired = fresh, len(fresh), 0
     else:
         before_cells = int(previous.notna().sum().sum())
+        previous, report = rebase_store(previous, fresh)
+        if report:
+            metrics.note("screener_symbols_rebased", len(report))
+            if rebased is not None:
+                rebased.update(report)
         merged = fresh.combine_first(previous)
         merged = merged.sort_index()
         new_rows = len(merged.index.difference(previous.index))

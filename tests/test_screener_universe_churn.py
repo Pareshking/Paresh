@@ -79,6 +79,7 @@ def test_run_forces_new_symbols_before_regular_sweep(monkeypatch):
     monkeypatch.setattr(sync.sl, "save_ids", lambda ids: None)
     monkeypatch.setattr(sync, "_drop_unsettled", lambda frame: (frame, []))
     monkeypatch.setattr(sync, "session_is_complete", lambda date: True)
+    monkeypatch.setattr(sync, "_deep_check_due", lambda: False)
 
     def fake_fetch(symbols, **kwargs):
         calls.append((list(symbols), kwargs.get("days")))
@@ -87,7 +88,7 @@ def test_run_forces_new_symbols_before_regular_sweep(monkeypatch):
     monkeypatch.setattr(sync.sl, "fetch_universe", fake_fetch)
     captured = {}
 
-    def fake_merge(frame):
+    def fake_merge(frame, **kwargs):
         captured["symbols"] = sorted(sync.sl.closes(frame).columns.tolist())
         return frame, 1, 0
 
