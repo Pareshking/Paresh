@@ -2,6 +2,9 @@
 Industry & Sector Momentum Analytics View Controller.
 """
 
+import html
+from urllib.parse import quote
+
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -16,9 +19,9 @@ def _leader_link(sym: str) -> str:
     if not sym or sym == "—":
         return "—"
     return (
-        f'<a href="?stock={sym}" target="_self" '
+        f'<a href="?stock={quote(sym, safe="")}" target="_self" '
         f'style="color:#4f46e5;font-weight:700;text-decoration:none;'
-        f'border-bottom:1px dotted #c7d2fe;">{sym}</a>'
+        f'border-bottom:1px dotted #c7d2fe;">{html.escape(sym)}</a>'
     )
 
 
