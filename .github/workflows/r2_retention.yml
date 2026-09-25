@@ -1,0 +1,65 @@
+name: R2 retention
+
+# Owner-approved policy (2026-09-25): prices/yahoo and snapshots/application
+# keep the last 7 as_of dates plus every month-end; everything else keeps its
+# full history. See scripts/r2_retention.py.
+#
+# DRY RUN unless dispatched with apply=true AND expect_deletes equal to the
+# count the latest dry run printed. On push it only ever plans.
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Delete for real (false = dry run)"
+        type: boolean
+        default: false
+      expect_deletes:
+        description: "RETENTION_DELETE_COUNT from the dry run (required to apply)"
+        required: false
+        default: ""
+  push:
+    branches: [main]
+    paths:
+      - "scripts/r2_retention.py"
+      - "tests/test_r2_retention.py"
+      - ".github/workflows/r2_retention.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: r2-publish-r2_retention
+  cancel-in-progress: false
+
+jobs:
+  retention:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version-file: .python-version
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest
+      - name: Unit tests
+        run: python -m pytest -q tests/test_r2_retention.py
+      - name: Plan (dry run)
+        run: python scripts/r2_retention.py --list
+      - name: Apply
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply }}
+        env:
+          EXPECT: ${{ inputs.expect_deletes }}
+        run: python scripts/r2_retention.py --apply --expect-deletes "$EXPECT"
+      # Every remaining current pointer and immutable revision must still
+      # resolve and read end to end after a deletion.
+      - name: Recovery audit after apply
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply }}
+        run: python scripts/r2_recovery_audit.py --json
