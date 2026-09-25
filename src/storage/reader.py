@@ -101,7 +101,7 @@ class R2DatasetReader:
             if len(revision) != 64 or any(c not in "0123456789abcdef" for c in revision):
                 raise R2DatasetIntegrityError(f"invalid revision key: {key}")
             candidates.append(self.resolve_revision(dataset, as_of, revision))
-        def _created_at(ref: R2DatasetRef) -> str:
+        def _created_at(ref: R2DatasetRef) -> datetime:
             value = ref.manifest.get("created_at")
             if not isinstance(value, str) or not value.strip():
                 raise R2DatasetIntegrityError(
@@ -117,7 +117,10 @@ class R2DatasetReader:
                 raise R2DatasetIntegrityError(
                     f"manifest created_at must include timezone: {ref.manifest_key}"
                 )
-            return parsed.astimezone().isoformat()
+            # Compared as instants. The old key was an isoformat string in the
+            # RUNNER's local zone: its order depended on the machine's zone and
+            # DST, and on whether a timestamp happened to carry microseconds.
+            return parsed
 
         candidates.sort(key=lambda ref: (_created_at(ref), ref.revision_sha256))
         return candidates[-1]
@@ -224,9 +227,9 @@ class R2DatasetReader:
             revision_sha256=revision,
         )
 
-        if str(manifest_key) != str(pointer.get("manifest_key", "")):
-            raise R2DatasetIntegrityError("pointer manifest_key mismatch")
-        if str(object_key) != str(pointer.get("object_key", "")):
+        # Against the MANIFEST: these two lines used to compare the pointer's
+        # keys with the pointer itself, which can never fail.
+        if object_key != str(manifest.get("object_key", "")):
             raise R2DatasetIntegrityError("pointer object_key mismatch")
 
         self._validate_object(object_key, manifest)

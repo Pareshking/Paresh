@@ -425,3 +425,26 @@ deferred for that reason.
 | C4 | `app.py`, `config_view.py`, `backtest_view.py` | `DEFAULT_SECTOR_CAP`, `DEFAULT_STOCK_CAP`, `DEFAULT_TARGET_VOL` and `DEFAULT_TRANSACTION_COST_BPS` were defined but never read. The same numbers were typed in three places. | Read from config. The track-record config keeps its literal 30 bps, because it is a frozen regime. |
 | C5 | `config.py` | `ThemeTokens`/`THEME_TOKENS` and `PRICE_ARCHIVE_ASSET`/`PRICE_ARCHIVE_URL` had no readers. | Removed. |
 | C6 | `app.py` | The module docstring described a UI that no longer exists ("Investrack Pill Tab"). | Rewritten. |
+
+## 10. Line-by-line audit, area 4: R2 storage, consumers and R2 scripts
+
+### Fixed
+| # | File | Finding | Effect |
+|---|---|---|---|
+| R1 | `src/storage/reader.py` | `resolve_latest_revision` ordered revisions by `created_at` converted to a **local-time string**. The order therefore depended on the runner's time zone. Across a DST fall-back, a later revision sorted as older. | Sorts the instants themselves. The test fails with the old code under `TZ=America/New_York`. |
+| R2 | `src/storage/reader.py` | `_resolve_pointer` "checked" the pointer's `manifest_key`/`object_key` against the pointer itself, so the check could never fail. | Pointer `object_key` is now checked against the manifest's. |
+| R3 | `src/storage/r2.py` | `verify_file` downloaded the whole object into memory to hash it. That happens on every daily publish of the 10-year archive. | Streams the hash in 1 MB chunks. The unused `_sha256_bytes` is removed. |
+| R4 | `scripts/r2_cost_audit.py` | Reported `list_operations: 1` whatever the key count. | One per 1,000 keys, as ListObjectsV2 pages. |
+| R5 | `scripts/r2_historical_evidence_bootstrap.py` | A `last_evidence` assignment in the change loop was always overwritten. | Removed. |
+
+### Read and found sound
+`r2.py` (the rest), `manifest.py`, `r2_publish.py` (content-addressed revisions, a mutable pointer, full re-verification), `r2_audit.py`, `r2_inventory.py` (freshness gate), `r2_coverage_audit.py`, `r2_session_continuity_audit.py`, the live-validation scripts and all `r2/consumers/*`.
+
+### Recorded for the owner, not changed
+- **`r2_recovery_audit.py` downloads every immutable revision in full**,
+  weekly, and again in `r2_final_acceptance`. The daily 10-year price archive
+  alone adds one revision a day, so the job's runtime and Class B read count
+  grow without bound. Options: fully read only the current pointers plus the
+  last N days, and HEAD-plus-manifest check the older revisions; or
+  sample-read the older ones. This trades assurance for cost, so the decision
+  is yours.

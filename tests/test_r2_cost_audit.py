@@ -20,3 +20,19 @@ def test_cost_audit_reports_inventory(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert '"manifest_revision_bytes": 123' in out
     assert '"current_pointer_count": 1' in out
+
+
+def test_cost_audit_counts_one_list_request_per_thousand_keys(monkeypatch, capsys):
+    keys = [f"archive/manifests/d/2026-01-01/revisions/{i:064d}.json" for i in range(2500)]
+
+    class Archive:
+        def list_keys(self, prefix):
+            return iter(keys)
+
+        def head(self, key):
+            return {"ContentLength": 1}
+
+    monkeypatch.setattr("scripts.r2_cost_audit.R2Config.from_env", lambda: object())
+    monkeypatch.setattr("scripts.r2_cost_audit.R2Archive", lambda cfg: Archive())
+    assert main([]) == 0
+    assert '"list_operations": 3' in capsys.readouterr().out

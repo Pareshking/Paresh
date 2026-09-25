@@ -27,7 +27,8 @@ def main(argv=None) -> int:
         "manifest_revision_objects": object_count,
         "manifest_revision_bytes": bytes_total,
         "current_pointer_count": len(current),
-        "list_operations": 1,
+        # ListObjectsV2 returns at most 1,000 keys a page, one request each.
+        "list_operations": max(1, -(-len(keys) // 1000)),
         "head_operations": object_count,
         "billing_source": "inventory-derived; provider billing/API request logs are not exposed here",
     }
