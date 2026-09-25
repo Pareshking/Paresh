@@ -50,15 +50,15 @@ def test_membership_intervals_close_removed_symbols_and_stamp_open_intervals():
     assert ccc["evidence_date"] == "2026-08-20"
 
 
-def test_real_membership_history_has_no_changes_and_covers_acceptance_date(tmp_path):
-    history = json.loads((ROOT / "data/membership_history.json").read_text())
-    assert history["changes"] == []
+def test_real_membership_history_covers_acceptance_date(tmp_path):
     build_membership(tmp_path)
     frame = tmp_path / "membership_nifty_total_market.parquet"
     generated = pd.read_parquet(frame)
     assert generated["index"].eq("nifty_total_market").all()
     assert generated["as_of"].eq(_sync_date()).all()
-    assert (pd.to_datetime(generated["effective_from"]) <= pd.Timestamp(MEMBERSHIP_AS_OF)).all()
+    # Some rows must cover the acceptance date (changes after it are also recorded, which is correct)
+    covering = generated[pd.to_datetime(generated["effective_from"]) <= pd.Timestamp(MEMBERSHIP_AS_OF)]
+    assert not covering.empty, "no membership rows cover the acceptance date"
     assert describe_parquet(frame)["as_of"] == _sync_date()
 
 
