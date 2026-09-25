@@ -162,17 +162,28 @@ def test_the_tab_reports_the_engines_real_universe_not_the_recorded_zero(
     """``.get(key, default)`` never fired: the key was present, holding zero.
 
     This is the whole reason the badge could read "Engine Active (0 Stocks)"
-    while 750 stocks were ranked on the next tab along.
+    while 750 stocks were ranked on the next tab along. Rendered through the
+    real view (its status bar is the first st.html call), not re-derived here.
     """
+    from src.ui.views import config_view
+
     meta_file.write_text(json.dumps(
         {"last_synced": "29 Aug 2026, 01:04", "total_stocks": 0, "indices": {}}
     ))
     rank_df = pd.DataFrame({"Symbol": [f"SYM{i}" for i in range(750)]})
 
-    sync_meta = indices_loader.get_sync_metadata()
-    engine_stocks = len(rank_df)
-    tot_stk = (sync_meta.get("total_stocks") or 0) or len(rank_df)
+    class _StatusBarRendered(Exception):
+        pass
 
-    assert engine_stocks == 750
-    assert tot_stk == 750
-    assert sync_meta.get("total_stocks", len(rank_df)) == 0   # the old expression
+    captured = []
+
+    def _html(body, **kwargs):
+        captured.append(body)
+        raise _StatusBarRendered  # the rest of the view is not under test
+
+    monkeypatch.setattr(config_view.st, "html", _html)
+    with pytest.raises(_StatusBarRendered):
+        config_view.render_config_view(rank_df)
+
+    assert "Engine Active (750 Stocks)" in captured[0]
+    assert "(0 Stocks)" not in captured[0]

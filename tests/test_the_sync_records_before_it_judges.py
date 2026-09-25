@@ -84,10 +84,11 @@ def test_the_price_fetch_still_happens_before_the_rankings_are_precomputed():
     fn = _daily_sync()
     prices = _call_lines(fn, "fetch_price_history")
     precompute = _call_lines(fn, "_precompute_rankings")
-    if precompute:
-        assert min(prices) < min(precompute), (
-            "rankings are precomputed before the price cache is updated"
-        )
+    # Asserted, not `if precompute:` -- a vanished call would otherwise pass.
+    assert precompute, "the sync no longer precomputes the rankings"
+    assert min(prices) < min(precompute), (
+        "rankings are precomputed before the price cache is updated"
+    )
 
 
 def test_prices_are_never_read_before_they_are_fetched():

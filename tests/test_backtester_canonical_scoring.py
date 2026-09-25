@@ -80,34 +80,8 @@ def test_composite_z_score_renormalizes_missing_windows():
     assert avail > 0, "fixture must leave at least one window available"
     assert avail < sum(weights), "fixture must leave at least one window missing"
     assert np.isclose(float(composite["D"]), contrib / avail)
-
-
-def test_missing_window_does_not_demote_a_stronger_stock():
-    """Concrete selection failure the dilution bug produced."""
-    windows = [1, 3, 6, 9, 12]
-    weights = [0.10, 0.30, 0.30, 0.20, 0.10]
-    z_by_window = {
-        1: pd.Series({"IPO": 1.60, "SEASONED": 1.45}),
-        3: pd.Series({"IPO": 1.60, "SEASONED": 1.45}),
-        6: pd.Series({"IPO": 1.60, "SEASONED": 1.45}),
-        9: pd.Series({"IPO": 1.60, "SEASONED": 1.45}),
-        12: pd.Series({"IPO": np.nan, "SEASONED": 1.45}),
-    }
-
-    diluted = pd.Series(0.0, index=["IPO", "SEASONED"])
-    for w, cw in zip(windows, weights):
-        diluted += z_by_window[w].fillna(0) * cw
-
-    renormalised = pd.Series(0.0, index=["IPO", "SEASONED"])
-    available = pd.Series(0.0, index=["IPO", "SEASONED"])
-    for w, cw in zip(windows, weights):
-        renormalised += z_by_window[w].fillna(0) * cw
-        available += z_by_window[w].notna().astype(float) * cw
-    renormalised = renormalised.div(available.replace(0.0, np.nan))
-
-    # IPO is stronger on every window it has; dilution demoted it.
-    assert diluted.idxmax() == "SEASONED"
-    assert renormalised.idxmax() == "IPO"
+    # Dilution (a missing window counted as z=0) would give contrib / 1.0.
+    assert not np.isclose(float(composite["D"]), contrib / sum(weights))
 
 
 def test_composite_z_score_degenerate_cross_section_yields_nan():

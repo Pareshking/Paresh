@@ -20,10 +20,14 @@ def test_rebase_conflicts_keep_the_replayed_commit():
 
 
 def test_rebase_continue_never_waits_for_an_editor():
+    seen = []
     for path in WORKFLOWS:
         for line in path.read_text(encoding="utf-8").splitlines():
             if "git rebase --continue" in line:
+                seen.append(path.name)
                 assert "GIT_EDITOR=true" in line, path.name
+    # Without this, renaming the step (or the glob finding nothing) would pass.
+    assert seen, "no workflow runs `git rebase --continue`; is this test stale?"
 
 
 def test_every_writer_of_the_screener_store_shares_one_queue():

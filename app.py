@@ -143,6 +143,9 @@ if total_w <= 0:
         "Set them in **Configuration → Momentum Signal**."
     )
 weights = tuple(w / total_w for w in raw_w)
+# What the engine is handed, observable from outside: the Configuration panel
+# can describe one vector while a session-state fault hands the engine another.
+metrics.note("ranking_weights", [round(w, 6) for w in weights])
 
 # Defaults from config, the same constants the Configuration tab renders with.
 sector_cap = resolve("cfg_sc", round(DEFAULT_SECTOR_CAP * 100), lo=15, hi=50) / 100.0

@@ -44,7 +44,9 @@ def test_calendar_windows_are_not_fixed_21_63_126_189_252_rows():
     )
     end = len(prices) - 1
     actual_rows = end - starts[end] + 1
-    assert actual_rows != 253
+    # The window is every session from the first one on/after 17-Aug-2025 to
+    # the end: counted from the calendar, not a fixed 252/253-row lookback.
+    assert actual_rows == len(prices.loc["2025-08-18":]) == 260
 
 
 def test_start_position_uses_calendar_as_of_date():

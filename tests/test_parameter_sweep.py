@@ -63,7 +63,10 @@ def test_sweep_returns_one_row_per_combination(prices):
     space = {"Holdings": [10, 20, 30], "EMA filter": [20, 50]}
     res = run_parameter_sweep(prices, space, base=BASE)
     assert res.combinations_tested == 6
-    assert len(res.table) == 6 - res.combinations_failed
+    # 760 sessions is enough for every combination; without this, six
+    # failures would satisfy 0 == 6 - 6.
+    assert res.combinations_failed == 0, res.warnings
+    assert len(res.table) == 6
 
 
 def test_results_are_ranked_best_first(prices):

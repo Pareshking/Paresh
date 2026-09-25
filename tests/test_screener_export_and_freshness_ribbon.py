@@ -11,7 +11,7 @@ import pytest
 
 from src.engine.momentum import MomentumEngine
 from src.ui import components
-from src.ui.views.ranking_view import DISPLAY_COLS
+from src.ui.views.ranking_view import DISPLAY_COLS, export_columns
 
 
 @pytest.fixture
@@ -38,10 +38,18 @@ def ranked():
     )
 
 
-def _export_cols(view):
-    """Mirror of the export selection in render_ranking_view."""
-    active = [c for c in DISPLAY_COLS if c in view.columns]
-    return active + [c for c in view.columns if c not in active]
+# The function render_ranking_view exports with -- called, not mirrored: a
+# copy here would stay green if the view's selection changed.
+_export_cols = export_columns
+
+
+def test_the_view_exports_through_export_columns():
+    import inspect
+
+    from src.ui.views import ranking_view
+
+    src = inspect.getsource(ranking_view.render_ranking_view)
+    assert "export_cols = export_columns(view)" in src
 
 
 def test_export_includes_every_ranking_column(ranked):

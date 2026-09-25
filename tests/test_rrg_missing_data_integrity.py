@@ -59,7 +59,15 @@ def test_unobserved_sector_is_not_treated_as_a_flat_sector():
     ), "unobserved sector must not be scored as if it traded flat"
 
 
-def test_sectors_without_gaps_are_unaffected():
+def test_a_gap_in_one_sector_still_scores_every_sector():
+    """Every sector keeps a finite position when one sector goes unobserved.
+
+    The OTHER sectors do move, and should: the default benchmark is the
+    universe's mean daily return, and three of its twelve members are missing
+    for 40 sessions. (Measured: up to ~9.5 RS-Ratio points on this fixture.)
+    An earlier version of this test was named "..._are_unaffected" while
+    asserting only that the same sector names came back.
+    """
     prices, rank_df, dates = _fixture()
     gap_syms = ["S9", "S10", "S11"]
     unobserved = prices.copy()
@@ -67,9 +75,8 @@ def test_sectors_without_gaps_are_unaffected():
 
     clean = _run(prices, rank_df).set_index("Industry")
     got = _run(unobserved, rank_df).set_index("Industry")
-    # The gapped sector changes; a fully observed sector's own RS inputs do not
-    # depend on another sector's missing observations beyond shared rescaling.
-    assert set(clean.index) == set(got.index)
+    assert set(clean.index) == set(got.index) == {"Fin", "IT", "Auto", "GAP"}
+    assert np.isfinite(got[["RS_Ratio", "RS_Momentum"]].to_numpy()).all()
 
 
 @pytest.mark.parametrize("mutate,label", [
