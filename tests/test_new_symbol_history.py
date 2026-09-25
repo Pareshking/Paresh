@@ -84,3 +84,21 @@ def test_fetch_price_history_full_backfills_new_symbol_before_fresh_cache_return
     assert calls == [["HEGAM.NS"]]
     assert pd.Timestamp("2025-09-18") in out.index
     assert pd.Timestamp("2026-09-17") in out.index
+
+def test_new_symbol_batch_gap_is_retried_individually(monkeypatch):
+    calls = []
+
+    def fake_download(tickers, **kwargs):
+        calls.append((tickers, kwargs))
+        if isinstance(tickers, list):
+            # Simulate a batch response that silently omits HEGAM.
+            return _raw_frame("OTHER", ["2026-09-17"])
+        return _raw_frame("HEGAM", ["2025-09-18", "2026-09-17"])
+
+    monkeypatch.setattr(price_loader.yf, "download", fake_download)
+
+    out = price_loader._download_full_symbol_history(["HEGAM"], "10y")
+
+    assert calls[0][0] == ["HEGAM.NS"]
+    assert calls[1][0] == "HEGAM.NS"
+    assert set(out.columns.get_level_values(0)) == {"OTHER", "HEGAM"}
