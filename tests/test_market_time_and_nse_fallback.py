@@ -6,15 +6,25 @@ import pytest
 from src.core.market_time import INDIA_TZ, ist_today, recent_trading_days
 
 
-def test_ist_date_can_differ_from_server_date():
+def test_ist_date_can_differ_from_server_date(monkeypatch):
     """The bug this guards: UTC is 5h30m behind IST.
 
     At 19:00 UTC the Indian date is already tomorrow, so a server-local
     "today" asks NSE for the wrong trading day for part of every day.
     """
+    from src.core import market_time
+
     utc_evening = datetime(2026, 8, 18, 19, 0, tzinfo=timezone.utc)
-    assert utc_evening.date() == date(2026, 8, 18)
-    assert utc_evening.astimezone(INDIA_TZ).date() == date(2026, 8, 19)
+
+    class FrozenClock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return utc_evening.astimezone(tz) if tz else utc_evening.replace(tzinfo=None)
+
+    monkeypatch.setattr(market_time, "datetime", FrozenClock)
+    assert FrozenClock.now().date() == date(2026, 8, 18)  # the server's date
+    assert ist_today() == date(2026, 8, 19)
+    assert market_time.ist_now().tzinfo == INDIA_TZ
 
 
 def test_ist_today_is_a_date():

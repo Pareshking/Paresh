@@ -51,15 +51,15 @@ def test_an_empty_answer_is_an_empty_series_not_a_crash(monkeypatch):
 
 
 # ── The decision the sync makes with that answer ────────────────────────────
-
-def _decide(resolved: int, universe: int, threshold: float = 0.9) -> bool:
-    """The rule in scripts/sync_data.py, stated once so a test can hold it."""
-    return (resolved / max(universe, 1)) >= threshold
-
+# Called, not restated: an earlier version tested its own copy of this rule,
+# which would have stayed green with the sync's rule changed or deleted.
 
 def test_a_full_sweep_replaces_the_undated_snapshot():
-    assert _decide(750, 750) is True
-    assert _decide(700, 750) is True          # 93%
+    from scripts.sync_data import mcap_sweep_is_adoptable as adoptable
+
+    assert adoptable(750, 750) is True
+    assert adoptable(700, 750) is True          # 93%
+    assert adoptable(675, 750) is True          # exactly 90%
 
 
 def test_a_thin_sweep_leaves_the_snapshot_alone():
@@ -69,18 +69,21 @@ def test_a_thin_sweep_leaves_the_snapshot_alone():
     cap at all is worse than one whose cap is a day old, so a sparse Yahoo
     answer must not be adopted just because it would carry today's date.
     """
-    assert _decide(400, 750) is False         # 53%
-    assert _decide(0, 750) is False
+    from scripts.sync_data import mcap_sweep_is_adoptable as adoptable
+
+    assert adoptable(674, 750) is False         # just under 90%
+    assert adoptable(400, 750) is False         # 53%
+    assert adoptable(0, 750) is False
+    assert adoptable(0, 0) is False             # an empty universe adopts nothing
 
 
-def test_the_sync_states_that_rule_at_the_threshold_it_tests():
-    """Keeps this file honest if the threshold is ever retuned."""
+def test_the_sync_applies_that_rule_and_adopts_wholesale():
     import inspect
 
     import scripts.sync_data as sync
 
     src = inspect.getsource(sync.run_daily_sync)
-    assert "MIN_MCAP_COVERAGE" in src
+    assert "mcap_sweep_is_adoptable(len(_yf_caps), len(symbols))" in src
     assert "fetch_mcaps_from_yfinance" in src
     # Wholesale, never merged -- two days under one AsOf is the thing to avoid.
     assert "mcaps = _yf_caps" in src

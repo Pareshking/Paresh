@@ -15,6 +15,15 @@ FORCE_FULL = os.getenv("FORCE_FULL", "false").lower() == "true"
 # caps exist to say which size bucket a stock is in -- a stock with no cap at
 # all is worse than one whose cap is a day old.
 MIN_MCAP_COVERAGE = float(os.getenv("UMIYA_MIN_MCAP_COVERAGE", "0.9"))
+
+
+def mcap_sweep_is_adoptable(resolved: int, universe: int) -> bool:
+    """Does a Yahoo market-cap sweep cover enough of the universe to replace
+    the snapshot? Coverage outranks freshness: a stock with no cap is worse
+    than one whose cap is a day old."""
+    return resolved / max(universe, 1) >= MIN_MCAP_COVERAGE
+
+
 # Ensure repository root is in python path
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT_DIR not in sys.path:
@@ -350,7 +359,7 @@ def run_daily_sync() -> None:
             f"({_coverage:.0%}) in {_elapsed:.0f}s"
         )
 
-        if _coverage >= MIN_MCAP_COVERAGE:
+        if mcap_sweep_is_adoptable(len(_yf_caps), len(symbols)):
             # Adopted WHOLESALE, never merged with the older snapshot. Keeping
             # yesterday's rows for whatever Yahoo missed would put two
             # different days under one AsOf, which is the exact dishonesty the

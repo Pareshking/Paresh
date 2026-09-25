@@ -126,6 +126,16 @@ DISPLAY_COLS = [
 ]
 
 
+def export_columns(view: pd.DataFrame) -> list[str]:
+    """Every column the ranking carries, the on-screen ones first.
+
+    DISPLAY_COLS is a screen-layout decision; the CSV must also carry Score
+    and the other columns behind the rank, or the file cannot be audited.
+    """
+    active = [c for c in DISPLAY_COLS if c in view.columns]
+    return active + [c for c in view.columns if c not in active]
+
+
 CARD_BATCH = 48
 
 # ── CSS injected once per card-grid render ───────────────────────────────────
@@ -793,8 +803,6 @@ def render_ranking_view(
     if sort_by in view.columns:
         view = view.sort_values(sort_by, ascending=asc)
 
-    active_cols = [c for c in DISPLAY_COLS if c in view.columns]
-
     # ── Section header above the results ────────────────────────────────────
     # The ranking's own date, not the wall clock: on 1 Oct a table ranked on
     # 30 Sep closes is September's ranking, and labelling it "Oct" said
@@ -834,7 +842,7 @@ def render_ranking_view(
     # exporting to a spreadsheet wants the underlying numbers, and silently
     # withholding the score behind the rank makes the file impossible to audit.
     # Display order first so the familiar columns lead, then the rest.
-    export_cols = active_cols + [c for c in view.columns if c not in active_cols]
+    export_cols = export_columns(view)
     export_df = view[export_cols]
     st.download_button(
         f"Download Rankings CSV ({len(export_cols)} columns)",

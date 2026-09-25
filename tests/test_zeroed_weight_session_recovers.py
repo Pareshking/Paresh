@@ -20,6 +20,7 @@ from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
+from src.core import startup_metrics
 from src.core.config import DEFAULT_LOOKBACK_WEIGHTS
 
 APP = str(Path(__file__).resolve().parents[1] / "app.py")
@@ -37,6 +38,15 @@ def _warnings(at) -> str:
     return " ".join(w.value for w in at.warning)
 
 
+def _engine_weights() -> list[float]:
+    """The normalised vector app.py handed the engine on the last run."""
+    return startup_metrics.snapshot()["facts"]["ranking_weights"]
+
+
+def _normalised(ws) -> list[float]:
+    return [round(w / sum(ws), 6) for w in ws]
+
+
 def test_a_session_holding_five_zeros_ranks_on_the_documented_defaults():
     at = _run_with(dict.fromkeys(KEYS, 0.0))
     assert not at.exception, [e.value for e in at.exception]
@@ -47,6 +57,7 @@ def test_a_session_holding_five_zeros_ranks_on_the_documented_defaults():
     )
     for w in DEFAULT_LOOKBACK_WEIGHTS:
         assert f"{w:.0%}" in said, "the warning does not name what it ranked on"
+    assert _engine_weights() == _normalised(DEFAULT_LOOKBACK_WEIGHTS)
 
 
 def test_a_healthy_session_is_left_alone_and_not_warned_at():
@@ -75,13 +86,19 @@ def test_a_mirrored_weight_outlives_an_evicted_widget_key():
     the reader's own weights were replaced by the defaults -- silently, while
     the panel still described their configuration.
     """
-    at = _run_with({f"cfg_w{i}__v": v for i, v in
-                    zip(range(1, 6), [0.5, 0.2, 0.1, 0.1, 0.1])})
+    mine = [0.5, 0.2, 0.1, 0.1, 0.1]
+    at = _run_with({f"cfg_w{i}__v": v for i, v in zip(range(1, 6), mine)})
     assert not at.exception, [e.value for e in at.exception]
     assert "were zero" not in _warnings(at)
+    # No warning is also what the silent fall-back to defaults looked like;
+    # only the vector itself tells the two apart.
+    assert _engine_weights() == _normalised(mine), (
+        "the reader's weights were replaced by the defaults"
+    )
 
 
 def test_an_out_of_range_stored_weight_does_not_reach_the_engine():
     """A present-but-impossible value is treated as no value at all."""
     at = _run_with(dict.fromkeys(KEYS, 4.0))
     assert not at.exception, [e.value for e in at.exception]
+    assert _engine_weights() == _normalised(DEFAULT_LOOKBACK_WEIGHTS)

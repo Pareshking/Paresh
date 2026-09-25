@@ -118,10 +118,11 @@ def test_coverage_and_describe():
 
 def test_the_shipped_history_is_readable():
     h = load_history()
-    if h.get("baseline"):
-        first, last = coverage(h)
-        assert first is not None and last >= first
-        assert len(members_on(h, last)) > 100
+    # Asserted, not `if h.get("baseline"):` -- an emptied file would pass.
+    assert h.get("baseline"), "the shipped membership history has no baseline"
+    first, last = coverage(h)
+    assert first is not None and last >= first
+    assert len(members_on(h, last)) > 100
 
 
 # ── The backtest ─────────────────────────────────────────────────────────────
