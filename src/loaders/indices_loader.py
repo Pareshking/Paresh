@@ -35,8 +35,8 @@ def get_sync_metadata() -> dict[str, Any]:
         try:
             with open(SYNC_META_FILE, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Unreadable %s (%s); treating as absent.", SYNC_META_FILE, type(exc).__name__)
     # Every key the successful path writes appears here too, holding None or a
     # zero. Callers may then read the shape unconditionally: a run that has
     # never succeeded reports "no sync yet" rather than a missing key, and a

@@ -1,0 +1,30 @@
+name: Lint
+
+# One fast gate on every PR, with no path filters: the V1 and R2 suites each
+# skip the other's files, so a lint step inside either would miss half the
+# repository. Rules live in ruff.toml.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ruff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - run: pip install ruff==0.15.8
+      - run: ruff check --output-format=github .

@@ -1,0 +1,19 @@
+# Keep the image to what `streamlit run app.py` needs.
+.git
+.github
+.devcontainer
+.claude
+**/__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+data_cache
+artifacts
+research/outputs
+tests
+docs
+*.md
+!README.md
+.env
+.env.*
+.streamlit/secrets.toml

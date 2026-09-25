@@ -345,8 +345,8 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
                         ]
                     )
                     cache_df.to_parquet(MCAP_PR_FILE, compression="snappy")
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.warning("NSE PR market-cap cache write failed (%s).", type(exc).__name__)
                 break
 
     # Layer 1c: market caps committed to the repository by the daily sync.
@@ -436,8 +436,8 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
                 else:
                     updated = new_rows
                 updated.to_parquet(MCAPS_FILE, compression="snappy")
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("Market-cap cache write failed (%s).", type(exc).__name__)
 
     vmap = {s: master[s] for s in symbols if s in master}
     metrics.note("mcap_symbols_requested", len(symbols))

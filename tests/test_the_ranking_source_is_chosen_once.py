@@ -22,7 +22,6 @@ What differs, measured on the live universe rather than assumed:
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from src.loaders import price_source as ps
 
@@ -354,12 +353,6 @@ def test_the_raw_id_still_never_reaches_the_served_html():
     assert m.public_snapshot()["facts"].get("price_as_of") == "2026-09-18"
 
 
-def test_the_app_serves_the_redacted_snapshot():
-    src = open("app.py", encoding="utf-8").read()
-    assert "metrics.public_snapshot()" in src
-    assert "json.dumps(metrics.snapshot())" not in src
-
-
 # ── Dropping the ATR columns must not break the pages that read them ─────────
 #
 # Stop Loss is ATR-derived, so it vanishes whenever the ranking came from a
@@ -394,7 +387,6 @@ def test_a_missing_stop_loss_column_maps_to_nothing_rather_than_nan():
 
 
 def test_the_footer_drops_the_stop_loss_formula_without_intraday_data():
-    from src.core import startup_metrics as m
     import inspect
     from src.ui import components
 

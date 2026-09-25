@@ -210,7 +210,6 @@ def _card_html(row: pd.Series) -> str:
     industry = str(row.get("Industry") or "—")
     rank_raw = row.get("Rank")
     rank_num = int(rank_raw) if pd.notna(rank_raw) else None
-    score    = row.get("Score")
     indices  = str(row.get("Indices") or "")
 
     cmp_val  = row.get("CMP")
@@ -306,13 +305,6 @@ def _card_html(row: pd.Series) -> str:
         f = float(v) * scale
         clr = "sq-pos" if f > 0 else ("sq-neg" if f < 0 else "sq-neu")
         return f"{f:+.1f}%", clr
-
-    def _fmt_ratio(v):
-        if v is None or (isinstance(v, float) and pd.isna(v)):
-            return "—", "sq-neu"
-        f = float(v)
-        clr = "sq-pos" if f > 1 else ("sq-warn" if f > 0 else "sq-neg")
-        return f"{f:.2f}", clr
 
     r12_txt, r12_clr = _fmt_pct(ret_12m)
     r3_txt,  r3_clr  = _fmt_pct(ret_3m)
