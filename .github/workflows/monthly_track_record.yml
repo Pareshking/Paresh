@@ -81,11 +81,12 @@ jobs:
             echo "Push failed (attempt $i); rebasing onto origin/main."
             git fetch origin main
             git rebase origin/main || {
-              # The ledger is append-only, so on a conflict OUR version is the
-              # one carrying the new month. Keep it and continue.
-              git checkout --ours -- data/track_record.json 2>/dev/null || true
+              # The ledger is append-only, so on a conflict this run's version
+              # is the one carrying the new month. Keep it and continue. In a
+              # rebase that is --theirs (--ours is origin/main).
+              git checkout --theirs -- data/track_record.json 2>/dev/null || true
               git add data/track_record.json
-              git rebase --continue || git rebase --abort
+              GIT_EDITOR=true git rebase --continue || git rebase --abort
             }
             sleep $((i * 5))
           done
