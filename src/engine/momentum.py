@@ -160,6 +160,8 @@ class MomentumEngine:
         # ATH snapshot -- a separate download this engine does not own -- can be
         # put on the same price scale. See corporate_actions.adjust_ath.
         self.corporate_actions: list[dict] = list(corporate_actions or [])
+        # Set by pipeline.build_engine: ranked on their last print (⏳).
+        self.carried_symbols: list[str] = []
 
         # Pre-calculate daily log returns
         self.log_ret: pd.DataFrame = np.log(self.prices / self.prices.shift(1).replace(0, np.nan))
@@ -401,6 +403,9 @@ class MomentumEngine:
         horizons_s = horizons_scored(self)
         ffill_s = self.ffill_pct
         data_gap_s = ffill_s.map(lambda p: "🔴" if p > 10.0 else "")
+        for sym in self.carried_symbols:
+            if sym in data_gap_s.index:
+                data_gap_s[sym] = (data_gap_s[sym] + "⏳").strip()
 
         self._static_signals = pd.DataFrame(
             {
