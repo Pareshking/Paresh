@@ -5,8 +5,12 @@ name: R2 retention
 # full history. See scripts/r2_retention.py.
 #
 # DRY RUN unless dispatched with apply=true AND expect_deletes equal to the
-# count the latest dry run printed. On push it only ever plans.
+# count the latest dry run printed. On push and on the weekly schedule it
+# only ever plans: the Sunday run shows what a deletion would remove, and
+# fails (and alerts) if any manifest points outside its dataset.
 on:
+  schedule:
+    - cron: "17 3 * * 0"  # Sunday 03:17 UTC, after Friday's weekly sync
   workflow_dispatch:
     inputs:
       apply:

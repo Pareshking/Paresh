@@ -10,6 +10,13 @@ What goes, for each as_of date that is not kept:
     archive/manifests/<dataset>/<as_of>/revisions/<sha>.json (each manifest)
     the object each manifest names                           (the payload)
 
+And within each KEPT date (owner, 2026-09-25: "keep only the newest revision
+per kept date"): every revision except the one current.json names and the one
+resolve_latest_revision() picks (newest created_at). Those two are nearly
+always the same revision; keeping both means no reader changes its answer. A
+kept date whose pointer or created_at values cannot be read is left whole and
+reported as SKIPPED.
+
 Safety, in order:
 - Only keys DIRECTLY under the dataset are considered. `prices/yahoo` is a
   prefix of `prices/yahoo/raw` and `prices/yahoo/bootstrap`, which are separate
@@ -34,6 +41,7 @@ import argparse
 import json
 import re
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any
 
 from src.storage.r2 import R2Archive, R2Config
@@ -63,6 +71,8 @@ class DatasetPlan:
     delete_bytes: int = 0
     kept_bytes: int = 0
     refused: list[str] = field(default_factory=list)
+    superseded: list[str] = field(default_factory=list)  # manifests pruned on kept dates
+    skipped: list[str] = field(default_factory=list)     # kept dates left whole, and why
 
 
 def keep_dates(as_of_dates: list[str], keep_daily: int = KEEP_DAILY) -> set[str]:
@@ -98,29 +108,94 @@ def plan_dataset(archive: R2Archive, dataset: str, root: str,
     drop = [d for d in dates if d not in keep]
     plan = DatasetPlan(dataset, dates, sorted(keep), drop)
 
-    def object_of(manifest_key: str) -> str:
-        body = json.loads(archive.get_bytes(manifest_key).decode("utf-8"))
-        return str(body.get("object_key", ""))
+    def load(key: str) -> dict[str, Any]:
+        body = json.loads(archive.get_bytes(key).decode("utf-8"))
+        return body if isinstance(body, dict) else {}
 
-    kept_objects = {object_of(k) for d in keep for k in manifests.get(d, [])}
+    bodies = {mk: load(mk) for d in dates for mk in manifests.get(d, [])}
+
+    def object_of(manifest_key: str) -> str:
+        return str(bodies[manifest_key].get("object_key", ""))
+
+    # Manifests that stay: every one on a kept date, minus the superseded.
+    kept_manifests: set[str] = set()
+    for d in keep:
+        mks = manifests.get(d, [])
+        survivors = _survivors(archive, pointers.get(d), mks, bodies)
+        if isinstance(survivors, str):
+            if len(mks) > 1:
+                plan.skipped.append(f"{d}: {survivors}")
+            kept_manifests.update(mks)
+            continue
+        kept_manifests.update(survivors)
+        plan.superseded.extend(sorted(set(mks) - survivors))
+
+    kept_objects = {object_of(k) for k in kept_manifests}
     plan.kept_bytes = sum(sizes.get(k, 0) for k in kept_objects)
 
     pointer_keys, manifest_keys, object_keys = [], [], []
+    by_date = {mk: d for d in dates for mk in manifests.get(d, [])}
+    doomed = [mk for d in drop for mk in sorted(manifests.get(d, []))] + plan.superseded
     for d in drop:
         if d in pointers:
             pointer_keys.append(pointers[d])
-        for mk in sorted(manifests.get(d, [])):
-            obj = object_of(mk)
-            if not obj.startswith(f"{root}/{d}/revisions/"):
-                plan.refused.append(f"{mk}: object_key {obj!r} is outside {root}/{d}/")
-                continue
-            manifest_keys.append(mk)
-            if obj in kept_objects:
-                continue  # the same payload is still named by a kept date
-            object_keys.append(obj)
+    for mk in doomed:
+        d = by_date[mk]
+        obj = object_of(mk)
+        if not obj.startswith(f"{root}/{d}/revisions/"):
+            plan.refused.append(f"{mk}: object_key {obj!r} is outside {root}/{d}/")
+            continue
+        manifest_keys.append(mk)
+        if obj in kept_objects or obj in object_keys:
+            continue  # the same payload is still named by a kept revision
+        object_keys.append(obj)
     plan.delete_keys = pointer_keys + manifest_keys + object_keys
     plan.delete_bytes = sum(sizes.get(k, 0) for k in plan.delete_keys)
     return plan
+
+
+def _created_at(body: dict[str, Any]) -> datetime | None:
+    value = body.get("created_at")
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo is not None else None
+
+
+def _survivors(archive: R2Archive, pointer_key: str | None, mks: list[str],
+               bodies: dict[str, dict[str, Any]]) -> set[str] | str:
+    """The manifests of a kept date that must stay, or why the date is left whole.
+
+    Two readers pick a revision: resolve_current() follows current.json, and
+    resolve_latest_revision() takes the newest created_at (sha breaks ties),
+    exactly as src/storage/reader.py orders them.
+    """
+    if len(mks) <= 1:
+        return set(mks)
+    if pointer_key is None:
+        return "no current.json"
+    try:
+        pointed = json.loads(archive.get_bytes(pointer_key).decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return "current.json is not valid JSON"
+    if not isinstance(pointed, dict):
+        return "current.json is not a JSON object"
+    named = str(pointed.get("manifest_key") or "")
+    if not named and pointed.get("revision_sha256"):
+        named = f"{pointer_key.rsplit('/', 1)[0]}/revisions/{pointed['revision_sha256']}.json"
+    if named not in mks:
+        return f"current.json names {named!r}, not one of this date's manifests"
+    stamped = []
+    for mk in mks:
+        when = _created_at(bodies[mk])
+        if when is None:
+            return f"{mk} has no usable created_at"
+        stamped.append((when, mk.rsplit("/", 1)[-1], mk))
+    newest = max(stamped)[2]
+    return {named, newest}
 
 
 def make_plan(archive: R2Archive,
@@ -156,6 +231,8 @@ def report(plans: list[DatasetPlan]) -> dict[str, Any]:
                 "delete_bytes": p.delete_bytes,
                 "kept_payload_bytes": p.kept_bytes,
                 "refused": p.refused,
+                "superseded_revisions": len(p.superseded),
+                "skipped": p.skipped,
             }
             for p in plans
         },
@@ -177,12 +254,15 @@ def main() -> int:
     for ds, row in rep["datasets"].items():
         print(f"RETENTION={ds} DATES={row['as_of_dates']} KEEP={len(row['keep'])} "
               f"DROP={len(row['drop'])} DELETE_KEYS={row['delete_count']} "
+              f"SUPERSEDED={row['superseded_revisions']} "
               f"FREES={_mb(row['delete_bytes'])} KEEPS={_mb(row['kept_payload_bytes'])}")
         print(f"  keep: {', '.join(row['keep'])}")
         if row["drop"]:
             print(f"  drop: {', '.join(row['drop'])}")
         for why in row["refused"]:
             print(f"  REFUSED {why}")
+        for why in row["skipped"]:
+            print(f"  SKIPPED {why}")
     if args.list:
         for p in plans:
             for key in p.delete_keys:
