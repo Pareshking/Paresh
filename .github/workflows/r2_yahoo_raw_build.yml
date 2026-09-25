@@ -27,10 +27,10 @@ jobs:
     timeout-minutes: 180
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version-file: .python-version
           cache: pip
@@ -83,7 +83,7 @@ jobs:
             --release-tag data-latest
 
       - name: Upload raw artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: yahoo-raw-ohlcv
           path: data_cache/prices_yahoo_raw.parquet
