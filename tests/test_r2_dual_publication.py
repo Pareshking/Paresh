@@ -36,11 +36,20 @@ def test_daily_sync_publishes_all_three_production_release_artifacts():
     steps = _steps("daily_sync.yml")
     step = next(s for s in steps if s.get("name") == "Publish validated datasets to R2")
     run = str(step["run"])
-    for asset in ("prices.parquet", "prices_full.parquet", "rankings.parquet"):
+    for asset in ("prices_full.parquet", "rankings.parquet"):
         assert f"--path {asset}" in run
     assert "archive/prices/yahoo" in run
-    assert "snapshots/application" in run
     assert "snapshots/rankings" in run
+
+
+def test_the_application_snapshot_is_not_republished_to_r2():
+    """Owner, 2026-09-25: prices.parquet is a cut of prices_full.parquet, read
+    from the release asset; its R2 copy (snapshots/application) had no reader."""
+    steps = _steps("daily_sync.yml")
+    step = next(s for s in steps if s.get("name") == "Publish validated datasets to R2")
+    run = str(step["run"])
+    assert "--path prices.parquet" not in run
+    assert "--dataset snapshots/application" not in run
 
 
 def test_screener_sync_has_r2_dual_publication_after_release():

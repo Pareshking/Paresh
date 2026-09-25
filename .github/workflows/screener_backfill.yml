@@ -20,6 +20,10 @@ on:
         description: "Write the filled store (false = dry run)"
         type: boolean
         default: false
+      explain:
+        description: "Comma-separated symbols: report why their copies disagree (read-only)"
+        required: false
+        default: ""
   push:
     branches: [main]
     paths:
@@ -47,6 +51,7 @@ jobs:
       PYTHONPATH: .
       SOURCE: ${{ inputs.source_revision || 'df03ed6d' }}
       APPLY: ${{ github.event_name == 'workflow_dispatch' && inputs.apply }}
+      EXPLAIN: ${{ inputs.explain || '' }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -74,7 +79,11 @@ jobs:
       - name: Backfill (dry run unless apply)
         run: |
           set -euo pipefail
-          if [ "$APPLY" = "true" ]; then
+          if [ -n "$EXPLAIN" ]; then
+            python scripts/screener_backfill.py \
+              --store data_cache/screener_prices.parquet \
+              --source-r2-revision "$SOURCE" --explain "$EXPLAIN"
+          elif [ "$APPLY" = "true" ]; then
             python scripts/screener_backfill.py \
               --store data_cache/screener_prices.parquet \
               --source-r2-revision "$SOURCE" --apply
@@ -85,7 +94,7 @@ jobs:
           fi
 
       - name: Publish the filled store (release, then R2)
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply && inputs.explain == '' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -101,5 +110,5 @@ jobs:
             --release-tag data-latest
 
       - name: After
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply && inputs.explain == '' }}
         run: python scripts/r2_screener_history.py | grep '^SCREENER_HISTORY' | tail -3

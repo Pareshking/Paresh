@@ -73,3 +73,11 @@ dry-run list.
 7. Re-run the recovery and continuity audits after repair.
 
 The recovery audit is read-only and therefore safe to schedule routinely.
+
+### `snapshots/application` is no longer published (owner, 2026-09-25)
+
+`prices.parquet` is a 2-year cut of `prices_full.parquet`, which is already
+archived as `prices/yahoo`. The app reads `prices.parquet` from the release
+asset, and nothing ever read it from R2. So the daily sync stops sending it to
+R2. Its 14 existing copies (137 MB) stay in place until the owner deletes them.
+Until then, retention still trims their superseded revisions.
