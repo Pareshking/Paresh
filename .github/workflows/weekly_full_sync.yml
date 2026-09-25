@@ -121,7 +121,7 @@ jobs:
       # An event the vendor has now adjusted away stops being detected, and
       # corporate_actions.adjust_prices re-verifies against the prices anyway.
       - name: Check for corporate actions
-        run: python scripts/check_corporate_actions.py || true
+        run: python scripts/check_corporate_actions.py || echo "::warning::Corporate-actions check failed -- read the step log."
 
       # WITHOUT THIS THE RUN LEARNS AND FORGETS.
       #

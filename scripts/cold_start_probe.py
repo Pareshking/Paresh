@@ -272,8 +272,8 @@ def main() -> None:
         # so a high repeat count means this process served many script runs --
         # not that the duration shown is an average of them.
         extra = f"  (first of {repeats + 1} runs)" if repeats else ""
-        print(f"  {name:<24} start {s['started_at_s']:>8.2f}s  "
-              f"dur {s['duration_s']:>8.2f}s{extra}", flush=True)
+        print(f"  {name:<24} start {s.get('started_at_s') or 0.0:>8.2f}s  "
+              f"dur {s.get('duration_s') or 0.0:>8.2f}s{extra}", flush=True)
     if not stages:
         print("  (none recorded)", flush=True)
     print("\n-- fetch counters --", flush=True)
@@ -303,6 +303,21 @@ def main() -> None:
     print("====================================================", flush=True)
 
     if report["verdict"] in ("NO_TELEMETRY", "INDETERMINATE"):
+        raise SystemExit(1)
+    # A measurement is only worth having if the app it measured worked. The
+    # verdict above is about the CONTAINER; these are about the app, and each
+    # used to end in a green run: an exception on screen, a navigation that
+    # never rendered within the budget, or pages missing from the menu.
+    broken = [
+        why for why, bad in (
+            ("an exception was rendered", "exception_s" in marks),
+            ("the navigation never rendered", "screener_ui_usable_s" not in marks),
+            (f"pages missing: {report.get('tabs_missing')}", bool(report.get("tabs_missing"))),
+            (f"interaction failed: {report.get('interaction_error')}", "interaction_error" in report),
+        ) if bad
+    ]
+    if broken:
+        print("APP NOT HEALTHY: " + "; ".join(broken), flush=True)
         raise SystemExit(1)
 
 

@@ -38,6 +38,7 @@ import requests
 # whether the script is run directly or loaded by path from a test.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _streamlit_nav import (  # noqa: E402
+    _close_custom_popover, _open_custom_popover,
     missing_pages, nav_count, nav_diagnostics, open_page,
 )
 # Imported inside main(), not at module scope. The state classifier below is
@@ -354,10 +355,17 @@ def audit_nav_styling(frame) -> dict:
     try:
         row = frame.locator('[class*="st-key-app_nav"]').first
         out["nav_row_present"] = bool(row.count())
+        # The links are not inside the header row. The ☰ popover renders its
+        # body in a floating overlay elsewhere in the document, and only while
+        # it is open -- so this looked inside the row, found nothing on every
+        # run, and reported "no page link" instead of ever measuring the CSS.
+        opened = _open_custom_popover(frame)
         link = frame.locator(
-            '[class*="st-key-app_nav"] [data-testid="stPageLink"] a').first
+            '[data-testid="stPopoverBody"] [data-testid="stPageLink"] a').first
         if not link.count():
-            out["error"] = "no page link inside the navigation row"
+            out["error"] = (
+                "no page link in the navigation menu"
+                + ("" if opened else " (the menu did not open)"))
             return out
         out.update(link.evaluate(
             "el => { const s = getComputedStyle(el); return {"
@@ -365,13 +373,14 @@ def audit_nav_styling(frame) -> dict:
             "  color: s.color, background: s.backgroundColor,"
             "  border_radius: s.borderRadius, height: s.height }; }"))
         active = frame.locator(
-            '[class*="st-key-navon_"] [data-testid="stPageLink"] a').first
+            '[data-testid="stPopoverBody"] [class*="st-key-navon_"] '
+            '[data-testid="stPageLink"] a').first
         out["active_marked"] = bool(active.count())
         if active.count():
             out["active_color"] = active.evaluate(
                 "el => getComputedStyle(el).color")
-        # 12.5px is the pill size; the browser default is ~16px. If this reads
-        # like the default, the stylesheet is not applying to the row.
+        # theme.py sets the menu links to 13px; the browser default is ~16px.
+        # If this reads like the default, the stylesheet is not applying.
         out["css_applied"] = out.get("font_size", "") not in ("", "16px")
         # How much of the screen the menu eats before any content. It shipped
         # as a six-row ~500px block on a phone because each per-item container
@@ -387,6 +396,8 @@ def audit_nav_styling(frame) -> dict:
                     100 * box["height"] / vp["height"])
     except Exception as exc:
         out["error"] = f"{type(exc).__name__}: {exc}"[:180]
+    finally:
+        _close_custom_popover(frame)
     return out
 
 
