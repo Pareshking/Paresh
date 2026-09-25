@@ -144,3 +144,18 @@ def test_the_precomputed_weight_subset_is_used_when_present():
     }
     found = judge("desktop_1280x800", _ev(snap))
     assert any("zeroed weight vector" in f["detail"] for f in found)
+
+
+def test_a_menu_left_open_after_choosing_a_page_is_a_failure():
+    """Run 570's desktop screenshot: the ☰ menu still covering Configuration."""
+    ev = _ev(HEALTHY, HEALTHY) | {"menu_open_after_nav": True}
+    found = judge("desktop_1280x800", ev)
+    assert any(f["kind"] == "APPLICATION" and "still open" in f["detail"] for f in found)
+
+
+def test_a_reset_that_could_not_be_clicked_is_not_a_pass():
+    """Run 570 printed the click timeout, then reported 'no failures'."""
+    ev = _ev(HEALTHY, HEALTHY) | {
+        "after_reset_error": "TimeoutError: Locator.click: Timeout 8000ms exceeded.\nCall log: ..."}
+    found = judge("desktop_1280x800", ev)
+    assert any("Reset to defaults could not be exercised" in f["detail"] for f in found)

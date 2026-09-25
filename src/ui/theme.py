@@ -393,7 +393,7 @@ def inject_custom_css() -> None:
 
         /* Keep the Streamlit popover out of normal flow so mobile flex
            stacking cannot move it underneath the header. */
-        .st-key-app_header_shell .st-key-app_nav_menu {
+        .st-key-app_header_shell [class*="st-key-app_nav_menu_"] {
             position: absolute !important;
             top: 8px !important;
             right: 7px !important;
@@ -403,7 +403,7 @@ def inject_custom_css() -> None:
             margin: 0 !important;
         }
 
-        .st-key-app_nav_menu button {
+        [class*="st-key-app_nav_menu_"] button {
             min-height: 34px !important;
             width: 38px !important;
             padding: 0 !important;
@@ -415,7 +415,7 @@ def inject_custom_css() -> None:
             line-height: 1 !important;
         }
 
-        .st-key-app_nav_menu button:hover {
+        [class*="st-key-app_nav_menu_"] button:hover {
             background: #ffffff !important;
             border-color: #c7d2fe !important;
             color: #4f46e5 !important;

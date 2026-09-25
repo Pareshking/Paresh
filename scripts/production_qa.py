@@ -618,6 +618,13 @@ def audit_configuration(page, frame) -> dict:
     Returns evidence. Judging it is the caller's job.
     """
     out: dict = {"panel_reached": False, "nav_trace": []}
+    # The page was just chosen from the ☰ menu. A menu still open now is one
+    # the reader has to dismiss by hand, covering part of the page.
+    try:
+        body = frame.locator('[data-testid="stPopoverBody"]').first
+        out["menu_open_after_nav"] = bool(body.count() and body.is_visible())
+    except Exception:
+        out["menu_open_after_nav"] = None
 
     def slider_values() -> dict:
         """Label -> displayed value, from Streamlit's own thumb readout.
@@ -861,6 +868,17 @@ def judge_configuration(name: str, ev: dict) -> list:
                 f"{[round(x) for x in norm]}% but the pill claims {pill}% -- "
                 f"the panel disagrees with itself about the live weights",
                 "APPLICATION"))
+
+    if ev.get("menu_open_after_nav"):
+        found.append(classify(
+            f"{name}: the navigation menu is still open after choosing "
+            f"Configuration from it", "APPLICATION"))
+    # The reset is the check that proves writes reach the widgets. Failing to
+    # click it used to be printed and then passed (run 570, desktop).
+    if ev.get("after_reset_error"):
+        found.append(classify(
+            f"{name}/Configuration: Reset to defaults could not be exercised: "
+            f"{str(ev['after_reset_error']).splitlines()[0][:160]}", "QA"))
 
     before = (ev.get("initial") or {}).get("sliders")
     after = (ev.get("after_nav") or {}).get("sliders")
