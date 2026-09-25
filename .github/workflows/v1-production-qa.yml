@@ -41,7 +41,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
+      # Full history: the deploy-correspondence check asks git whether the
+      # build production serves descends from the triggering commit.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
           python-version-file: .python-version

@@ -71,6 +71,32 @@ METRICS_ID = "umiya-startup-metrics"
 # which is exactly what happened to c151597, whose QA started two seconds
 # after the push.
 EXPECTED_SHA = (os.getenv("UMIYA_EXPECTED_SHA") or "").strip().lower()
+
+
+def _serves_expected(served: str) -> bool:
+    """True when the served build IS, or DESCENDS FROM, the triggering commit.
+
+    Exact-match only used to fail every run after a merge that the daily data
+    sync followed within minutes: production was already on the sync commit,
+    which contains the merge, and the probe spent its whole 300 s budget
+    waiting for a swap back to an older build that would never come -- then
+    reported the merge red. Needs the git history (fetch-depth: 0); without it
+    this falls back to exact matching.
+    """
+    served = (served or "").strip().lower()
+    if not served or not EXPECTED_SHA:
+        return False
+    if EXPECTED_SHA.startswith(served[:7]):
+        return True
+    import subprocess
+
+    try:
+        return subprocess.run(
+            ["git", "merge-base", "--is-ancestor", EXPECTED_SHA, served],
+            capture_output=True, timeout=20,
+        ).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
 DEPLOY_WAIT_S = int(os.getenv("UMIYA_DEPLOY_WAIT_S", "300"))
 # The app emits its telemetry element as the LAST thing the script run does,
 # after all twelve tab bodies. Reading it the instant stTabs appears loses that
@@ -919,7 +945,7 @@ def main() -> None:
                 served, why = read_revision(page, wait_s=METRICS_WAIT_S)
                 while (
                     served
-                    and not EXPECTED_SHA.startswith(served.lower()[:7])
+                    and not _serves_expected(served)
                     and time.perf_counter() < deadline_dep
                 ):
                     print(json.dumps({
@@ -947,6 +973,11 @@ def main() -> None:
                         "QA"))
                 elif EXPECTED_SHA.startswith(served.lower()[:7]):
                     report["deploy_correspondence"] = "match"
+                elif _serves_expected(served):
+                    # A NEWER build that contains the triggering commit -- in
+                    # practice the automated data-sync commit that lands right
+                    # after a merge. It tests everything the trigger changed.
+                    report["deploy_correspondence"] = "match (newer build)"
                 else:
                     report["deploy_correspondence"] = "mismatch"
                     failures.append(classify(
