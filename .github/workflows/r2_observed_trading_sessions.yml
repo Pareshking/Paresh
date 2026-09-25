@@ -6,6 +6,7 @@ on:
     paths:
       - "scripts/build_trading_sessions.py"
       - "tests/test_build_trading_sessions.py"
+      - "scripts/r2_screener_history.py"
       - ".github/workflows/r2_observed_trading_sessions.yml"
   workflow_dispatch:
 
@@ -50,6 +51,12 @@ jobs:
             --dir /tmp/r2-observed \
             --clobber
           test -s /tmp/r2-observed/screener_prices.parquet
+
+      # Read-only: every prices/screener revision in R2 -- dates, where the
+      # daily history starts, symbols. Runs before the coverage check so its
+      # evidence is in the log whether or not that check passes.
+      - name: Screener store history across R2 revisions
+        run: python scripts/r2_screener_history.py
 
       - name: Build observed trading-session archive
         run: |
