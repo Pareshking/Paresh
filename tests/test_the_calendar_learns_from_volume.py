@@ -19,9 +19,7 @@ refuses any date NSE published a bhavcopy for.
 
 import json
 
-import numpy as np
 import pandas as pd
-import pytest
 
 from src.loaders.trading_days import (
     load_closed, load_confirmed, record_closed, record_confirmed,

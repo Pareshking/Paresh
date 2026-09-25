@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # Actions: keeps the workflows ahead of runtime deprecations such as the
+  # 2025 Node 20 -> 24 move, which forced every action up a major.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+  # pip: streamlit and pyarrow are pinned on purpose (see requirements.txt).
+  # A PR still surfaces the newer version so a pin can be re-checked with the
+  # V1 Production QA run instead of being forgotten.
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5

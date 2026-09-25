@@ -20,7 +20,6 @@ class FakeArchive:
 
 def _manifest(dataset, as_of, revision, created_at, object_key, body_size):
     import json
-    body = b"not-parquet"
     return json.dumps({
         "schema_version": 1,
         "dataset": dataset,

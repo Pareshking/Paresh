@@ -49,10 +49,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
-          python-version: "3.14"
+          python-version-file: .python-version
       # pyyaml is a TEST-only dependency, deliberately not in requirements.txt:
       # the app never parses YAML. Without it here, tests/test_daily_sync_workflow.py
       # module-skips and the guards on the sync workflow -- the ones that catch a
@@ -94,7 +94,7 @@ jobs:
 
       - name: Retain Stage-3 live hierarchy artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: stage3-live-hierarchy
           path: artifacts/stage3_live_hierarchy.md
@@ -129,7 +129,7 @@ jobs:
           PY
 
       - name: Upload V1 validation artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: v1-validation-artifacts
           path: artifacts/

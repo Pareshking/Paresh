@@ -38,6 +38,15 @@ A new R2 revision or changed ranking contract still invalidates the relevant cac
 - R2 Streamlit read-path gate: **green**.
 - Live deployment on 2026-09-23: **750-row precomputed ranking accepted**.
 
+## Precompute freshness (2026-09-25)
+
+Production logs showed the precomputed ranking **rejected** (`price_fingerprint
+differs`) between each night's Screener publish (~22:00 UTC) and the next
+02:00 daily-sync slot (~07:00 UTC). During that window the app ran the engine
+live. `daily_sync.yml` now also runs on completion of the Screener sync, so the
+published ranking follows the new store within minutes. Confirm with the log
+line `Precomputed ranking accepted` after the next overnight run.
+
 ## Non-blocking observations
 
 NSE PR/market-cap retrieval has previously encountered HTTP 429 rate limiting; the application has a fallback and can still load the market-cap data. This is not a blocker for the canonical ranking path and should not be coupled to the ranking-source architecture.

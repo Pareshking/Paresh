@@ -63,7 +63,7 @@ def test_r2_focused_workflows_do_not_execute_stage4b():
 
 
 def test_v1_workflows_explicitly_isolate_r2_only_paths():
-    v1 = (workflow_dir := ROOT / ".github" / "workflows" / "v1-full-validation.yml").read_text(
+    v1 = (ROOT / ".github" / "workflows" / "v1-full-validation.yml").read_text(
         encoding="utf-8"
     )
     required = ("paths-ignore:", "src/storage/**", "scripts/r2_*.py", "tests/test_r2_*.py")

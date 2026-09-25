@@ -1,4 +1,3 @@
-import json
 
 from scripts import r2_inventory
 

@@ -36,7 +36,7 @@ import json
 import os
 import re
 import time
-from typing import Iterable, Sequence
+from typing import Sequence
 
 import pandas as pd
 import requests

@@ -21,6 +21,11 @@ on:
 permissions:
   contents: read
 
+# Never let two runs of this workflow write the same objects at once.
+concurrency:
+  group: r2-publish-r2_final_acceptance
+  cancel-in-progress: false
+
 jobs:
   final:
     runs-on: ubuntu-latest
@@ -33,10 +38,10 @@ jobs:
       R2_BUCKET: ${{ secrets.R2_BUCKET }}
       PYTHONPATH: .
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
-          python-version: "3.13"
+          python-version-file: .python-version
       - run: pip install -r requirements.txt pytest
       - name: R2 regression
         run: python -m pytest -q tests/test_r2_*.py tests/test_build_trading_sessions.py tests/test_market_cap_history.py

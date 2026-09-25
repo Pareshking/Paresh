@@ -1,0 +1,66 @@
+name: Scheduled job failure alert
+
+# Scheduled runs fail quietly: GitHub only emails whoever last edited the
+# workflow, so the R2 bootstrap and continuity audit stayed red for days in
+# September 2026 with nobody looking. Every failed scheduled run of a
+# production workflow now lands on one open issue, labelled so it is easy to
+# find, and a later green run of the same workflow says so on that issue.
+on:
+  workflow_run:
+    workflows:
+      - Daily NSE Momentum Data Sync
+      - Monthly Track Record Freeze
+      - R2 historical evidence bootstrap
+      - R2 archive inventory
+      - R2 Cost Observability
+      - R2 Final Acceptance
+      - R2 dated market-cap publication
+      - R2 research index price history
+      - R2 ranking calculation archive
+      - R2 recovery audit
+      - R2 session continuity audit
+      - Screener daily price sync (overnight)
+      - V1 Production QA
+      - Weekly Full Sync (Friday night)
+    types: [completed]
+
+permissions:
+  issues: write
+
+concurrency:
+  group: scheduled-failure-alert
+  cancel-in-progress: false
+
+jobs:
+  alert:
+    if: >-
+      github.event.workflow_run.event == 'schedule' &&
+      (github.event.workflow_run.conclusion == 'failure' ||
+       github.event.workflow_run.conclusion == 'timed_out')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      WORKFLOW: ${{ github.event.workflow_run.name }}
+      RUN_URL: ${{ github.event.workflow_run.html_url }}
+      CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+      SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - name: Open or update the failure issue
+        run: |
+          set -euo pipefail
+          gh label create scheduled-failure --color B60205 \
+            --description "A scheduled production workflow failed" 2>/dev/null || true
+          title="Scheduled workflow failing: ${WORKFLOW}"
+          body="**${WORKFLOW}** ${CONCLUSION} on \`${SHA:0:7}\`: ${RUN_URL}"
+          number=$(gh issue list --label scheduled-failure --state open \
+            --search "in:title \"${title}\"" --json number,title \
+            --jq "map(select(.title == \"${title}\")) | .[0].number // empty")
+          if [ -n "${number}" ]; then
+            gh issue comment "${number}" --body "${body}"
+          else
+            gh issue create --title "${title}" --label scheduled-failure --body "${body}
+
+          Close this issue once the workflow is green again."
+          fi

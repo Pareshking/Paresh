@@ -92,8 +92,8 @@ try:
         if _d and "ath_as_of" not in metrics.snapshot().get("facts", {}):
             metrics.note("ath_as_of", _d)
             metrics.note("ath_path", "repo_snapshot")
-except Exception:
-    pass
+except Exception as _exc:
+    logger.warning("Could not seed freshness dates from repo snapshots (%s).", type(_exc).__name__)
 
 
 # ── State Initialization ─────────────────────────────────────────────────────
@@ -325,7 +325,15 @@ def _precomputed_ranking(
         # Logged, not silent: "the precompute did not hit" and "the precompute
         # does not exist" need very different fixes, and only this line tells
         # them apart from outside the container.
-        logger.info("Precomputed ranking rejected (%s); computing instead.", reason)
+        # Streamlit reruns this on every interaction; production logged the same
+        # rejection pair dozens of times a minute. Log a decision once per
+        # distinct (reason, published, expected) and keep the metrics per-run.
+        log_rejection = metrics.note_if_changed(
+            "ranking_precompute_rejection_key",
+            f"{reason}|{published_contract_json}|{expected_contract_json}",
+        )
+        if log_rejection:
+            logger.info("Precomputed ranking rejected (%s); computing instead.", reason)
         metrics.note("ranking_precompute", f"miss_{reason.replace(' ', '_')}")
         # A contract miss must still tell us whether the published table
         # actually describes the current universe. Do this for EVERY rejection
@@ -338,15 +346,16 @@ def _precomputed_ranking(
                 expected=universe,
                 actual=frame["Symbol"].dropna().tolist(),
             )
-            logger.info(
-                "Precomputed universe reconciliation: expected=%d published=%d "
-                "missing=%s extra=%s duplicates=%s",
-                reconciliation["expected_count"],
-                reconciliation["published_count"],
-                ",".join(reconciliation["missing"][:20]) or "-",
-                ",".join(reconciliation["extra"][:20]) or "-",
-                ",".join(reconciliation["duplicates"][:20]) or "-",
-            )
+            if log_rejection:
+                logger.info(
+                    "Precomputed universe reconciliation: expected=%d published=%d "
+                    "missing=%s extra=%s duplicates=%s",
+                    reconciliation["expected_count"],
+                    reconciliation["published_count"],
+                    ",".join(reconciliation["missing"][:20]) or "-",
+                    ",".join(reconciliation["extra"][:20]) or "-",
+                    ",".join(reconciliation["duplicates"][:20]) or "-",
+                )
             metrics.note(
                 "ranking_precompute_published_symbols",
                 reconciliation["published_count"],
@@ -386,7 +395,7 @@ def _precomputed_ranking(
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def _fetch_screener_store(_k: str, source_key: str):
+def _fetch_screener_store(source_key: str):
     """Read Screener history, optionally from an immutable archive pin.
 
     The second return value is the source revision identity used to memoise
@@ -416,7 +425,16 @@ def _fetch_screener_store(_k: str, source_key: str):
 
     frame = _ps.fetch_screener_store()
     logger.info("Screener ranking store: source=published_screener_https")
-    return frame, "published_screener_https"
+    # The HTTPS file has no immutable revision, so derive one from its content.
+    # A constant here let _shape_screener_store pair a re-fetched store with
+    # the shape of the previous one for up to an hour (two independent TTLs).
+    if frame is None:
+        return None, "published_screener_https:none"
+    digest = (
+        int(pd.util.hash_pandas_object(frame, index=True).sum())
+        + int(pd.util.hash_pandas_object(frame.columns.to_frame(index=False), index=False).sum())
+    ) & 0xFFFFFFFFFFFFFFFF
+    return frame, f"published_screener_https:{digest:016x}"
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -449,9 +467,7 @@ def _resolve_price_source(price_hash, sym_key, adj_close, close_p, high_p, low_p
     fallback = _ps.from_yahoo(adj_close, close_p, high_p, low_p, vol_p)
     if _ps.preferred() != "screener":
         return fallback
-    store_result = _fetch_screener_store(
-        price_hash, r2_streamlit.configuration_key()
-    )
+    store_result = _fetch_screener_store(r2_streamlit.configuration_key())
     if store_result is None:
         chosen = None
     else:
@@ -660,8 +676,8 @@ def load_all_data(indices: list[str]):
                     _d = _newer[-1]
                     metrics.note("price_deferred_as_of", str(_d.date()))
                     metrics.note("price_deferred_coverage", f"{int(_cov.loc[_d])}/{_n}")
-            except Exception:
-                pass
+            except Exception as _exc:
+                logger.warning("Price freshness notes unavailable (%s).", type(_exc).__name__)
 
         with metrics.stage("corporate_actions"):
             _adj, _ca_applied = _adjust_for_corporate_actions(

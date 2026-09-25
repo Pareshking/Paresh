@@ -16,6 +16,11 @@ on:
 permissions:
   contents: read
 
+# Never let two runs of this workflow write the same objects at once.
+concurrency:
+  group: r2-publish-r2_market_cap_history
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -29,13 +34,13 @@ jobs:
       PYTHONPATH: .
     steps:
       - name: Checkout full repository history
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version-file: .python-version
           cache: pip
 
       - run: pip install -r requirements.txt pytest

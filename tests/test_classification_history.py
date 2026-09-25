@@ -1,6 +1,5 @@
 import pandas as pd
 
-from scripts.build_classification_history import REQUIRED
 
 
 def test_classification_contract():

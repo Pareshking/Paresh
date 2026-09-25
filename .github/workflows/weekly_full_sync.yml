@@ -21,16 +21,17 @@ concurrency:
 jobs:
   full-sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     permissions:
       contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version-file: .python-version
 
       - name: Install dependencies
         run: |
@@ -49,7 +50,7 @@ jobs:
       # so most weeks it discarded the very thing it had just rebuilt.
       - name: Restore price cache
         id: restore-price-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: ${{ github.workspace }}/data_cache/
           key: price-data-${{ runner.os }}-${{ github.run_id }}
@@ -66,7 +67,7 @@ jobs:
 
       - name: Save updated cache
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: ${{ github.workspace }}/data_cache/
           key: price-data-${{ runner.os }}-${{ github.run_id }}

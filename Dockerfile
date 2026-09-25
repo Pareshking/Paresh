@@ -11,8 +11,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application source
+# Copy application source and drop root: the app never needs it.
 COPY . .
+RUN useradd --create-home --uid 10001 app && chown -R app:app /app
+USER app
 
 EXPOSE 8501
 

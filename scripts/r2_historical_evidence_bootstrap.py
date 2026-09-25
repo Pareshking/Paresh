@@ -259,4 +259,16 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    # Every Parquet file is written and closed inside main(). On 2026-09-25 the
+    # CI run built all of them, printed every BUILT line, then aborted during
+    # interpreter teardown ("terminate called without an active exception",
+    # exit 134) -- a native thread-pool shutdown race, not a data error, and
+    # not reproducible locally in 30 runs. Skipping teardown once the output is
+    # flushed makes the step's exit code reflect the work actually done.
+    import os
+    import sys
+
+    code = main()
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(code)
