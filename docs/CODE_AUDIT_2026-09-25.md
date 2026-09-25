@@ -571,3 +571,36 @@ carried one, which is conservative), `stage3_live_validation.py` (depends on
 `build_membership_history.py`, the Dockerfile and `.dockerignore`,
 `.streamlit/config.toml`, `ruff.toml` (targets py311 while CI runs 3.14; this
 only makes the syntax check stricter), `pytest.ini`, and the devcontainer.
+
+### 16a. A merged change is not a running change
+
+Production QA 573 (after #177) failed. The menu was still open, and the page
+drew it with the old key (`st-key-app_nav_menu`, with no page suffix), while the
+app reported revision 455f43e.
+
+The telemetry showed why. The process had started at 05:54:37 UTC, when #173
+changed `requirements.txt` and Streamlit Cloud reinstalled packages and
+restarted it. #176 and #177 were then pulled onto disk without a restart.
+Streamlit re-executes `app.py` on every rerun, but modules already imported
+(everything under `src/`) stay in memory as they were loaded. `revision` is
+read from git on disk, so it said "match" while the old `src/ui/components.py`
+was still running.
+
+The fix itself is correct. A local Streamlit 1.63 check, in a browser, shows it:
+
+| popover key | open after choosing a page |
+|---|---|
+| fixed `app_nav_menu` | **yes** (the bug) |
+| per page `app_nav_menu_<page>` | no |
+
+Now:
+- `startup_metrics.LOADED_REVISION` records the commit on disk when the process
+  imported its modules. It is published as `loaded_revision`.
+- Production QA runs `git diff loaded..served -- src/`. Any file listed there
+  is code that is merged but not running. QA fails with an INFRASTRUCTURE
+  finding that says to reboot the app.
+
+Until someone reboots it from the Streamlit Cloud dashboard, production runs
+`src/` as of #173. That includes everything in #172 and earlier, but not the
+#177 menu fix.
+
