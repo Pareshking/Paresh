@@ -64,3 +64,21 @@ def test_app_py_calls_the_reloader_before_and_after_its_imports():
     first_src_import = src.index("from src.core import startup_metrics")
     assert src.index("reload_if_changed()") < first_src_import
     assert src.index("mark_loaded()") > src.rindex("from src.ui.views")
+
+
+def test_app_py_declares_its_code_current_only_after_the_reload_check():
+    """QA run 580: a push that only ADDED src/core/code_reload.py reloaded
+    nothing, so loaded_revision kept naming the start build and QA reported
+    a new, running file as stale."""
+    src = open("app.py", encoding="utf-8").read()
+    assert src.index("metrics.mark_code_current()") > src.index("mark_loaded()")
+
+
+def test_mark_code_current_moves_loaded_revision_to_disk(monkeypatch):
+    from src.core import startup_metrics as metrics
+
+    monkeypatch.setattr(metrics, "LOADED_REVISION", "a" * 40)
+    monkeypatch.setattr(metrics, "_revision", lambda: "b" * 40)
+    assert metrics.snapshot()["loaded_revision"] == "a" * 40
+    metrics.mark_code_current()
+    assert metrics.snapshot()["loaded_revision"] == "b" * 40

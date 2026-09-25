@@ -630,6 +630,43 @@ def settle_after_nav(page, frame, budget_ms: int = 12_000) -> float:
     return round(time.perf_counter() - started, 2)
 
 
+SECTION_CONTROL_WAIT_MS = 20_000
+
+
+def _find_section_control(page, frame, section: str,
+                          wait_ms: int = SECTION_CONTROL_WAIT_MS):
+    """The Configuration left-nav control for `section`, waiting for it to render.
+
+    Looked once, 1.8 s after open_page, until run 580: on mobile open_page is
+    a full reload of the route, the page was still rendering, and a healthy
+    panel was reported as "Momentum Signal: no control found".
+
+    Returns (locator, "label" | "role") or (None, "none") once `wait_ms` has
+    passed without either appearing.
+    """
+    waited = 0
+    while True:
+        # The Configuration tab's own radio, not some other tab's: `stRadio`
+        # appears in several tabs, so pick the group that offers the sections.
+        try:
+            grp = frame.locator('[data-testid="stRadio"]').filter(
+                has_text="Momentum Signal")
+            if grp.count():
+                lab = grp.first.locator("label").filter(has_text=section).first
+                if lab.count():
+                    return lab, "label"
+            opt = frame.get_by_role(
+                "radio", name=re.compile(re.escape(section))).first
+            if opt.count():
+                return opt, "role"
+        except Exception:
+            pass  # re-rendering under us; look again
+        if waited >= wait_ms:
+            return None, "none"
+        page.wait_for_timeout(500)
+        waited += 500
+
+
 def audit_configuration(page, frame) -> dict:
     """Read the momentum weight panel off the LIVE app, and try to repair it.
 
@@ -715,16 +752,6 @@ def audit_configuration(page, frame) -> dict:
             return None
         return [float(x) for x in re.findall(r"(\d+(?:\.\d+)?)%", m.group(1))]
 
-    def nav_group():
-        """The Configuration tab's own radio, not some other tab's.
-
-        `stRadio` appears in several tabs, so `.first` is whichever renders
-        earliest in the DOM. Pick the group that actually offers the sections.
-        """
-        grp = frame.locator('[data-testid="stRadio"]').filter(
-            has_text="Momentum Signal")
-        return grp.first if grp.count() else None
-
     def goto(section: str) -> bool:
         """Select a left-nav section the way a person does: by its label.
 
@@ -734,17 +761,7 @@ def audit_configuration(page, frame) -> dict:
         full 20s retry budget on each and reported a timeout instead of an
         answer. Click the label; force-click the input only as a fallback.
         """
-        how = "none"
-        target = None
-        grp = nav_group()
-        if grp is not None:
-            lab = grp.locator("label").filter(has_text=section).first
-            if lab.count():
-                target, how = lab, "label"
-        if target is None:
-            opt = frame.get_by_role("radio", name=re.compile(re.escape(section))).first
-            if opt.count():
-                target, how = opt, "role"
+        target, how = _find_section_control(page, frame, section)
         if target is None:
             out["nav_trace"].append(f"{section}: no control found")
             return False
