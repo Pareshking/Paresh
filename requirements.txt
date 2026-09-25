@@ -4,7 +4,7 @@
 # Production confirmed 1.63.0 is what this deployment already resolves to, so
 # this pin changes nothing today and stops the next silent swap. To upgrade:
 # bump here, let V1 Production QA verify against the live app, then keep it.
-streamlit==1.63.0
+streamlit==1.64.0
 # The numeric stack and the data clients are pinned for the same reason as
 # streamlit: a floor like `pandas>=2.0.0` let every container boot pick up
 # whatever was newest that day, while CI had only ever tested one version.
