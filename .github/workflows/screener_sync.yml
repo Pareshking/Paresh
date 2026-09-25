@@ -23,6 +23,11 @@ on:
     # truncated weeknight left behind.
     - cron: '45 18 * * *'
   workflow_dispatch:
+    inputs:
+      deep_check:
+        description: "Compare the whole stored history with Screener's 10-year weekly series tonight (normally every 7 days)"
+        type: boolean
+        default: false
 
 # NOT in the daily-sync group. This job must never delay or be delayed by the
 # pipeline production actually ranks off -- it writes a different file, touches
@@ -94,7 +99,18 @@ jobs:
       - name: Run screener sync
         env:
           PYTHONPATH: .
+          SCREENER_DEEP_CHECK: ${{ inputs.deep_check && '1' || '' }}
         run: python scripts/sync_screener.py
+
+      # Screener restates a split/bonus/demerger some days after the event --
+      # the lag is not fixed. Until it does, the event is a step in this
+      # series; logging it lets adjust_ohlc neutralise it before ranking, and
+      # the adjustment switches itself off once the restated history arrives.
+      # Non-blocking, like the Yahoo check in daily_sync.yml.
+      - name: Check the Screener store for corporate actions
+        env:
+          PYTHONPATH: .
+        run: python scripts/check_corporate_actions.py --source screener --fail-on-new || echo "::warning::Screener corporate-actions check exited non-zero (new find or failure) -- read the step log."
 
       # Rotating key, for the same reason the price cache uses one: actions/cache
       # treats an entry as immutable and silently skips the save when the key
@@ -153,19 +169,20 @@ jobs:
             --pipeline-version "r2-screener-${GITHUB_SHA}" \
             --release-tag data-latest
 
-      # The id map is the only thing that belongs in the repo: it is small,
-      # stable, and re-deriving it would double every night's request count.
-      - name: Commit the company id map
+      # The id map and the corporate-actions log are the only things that
+      # belong in the repo: small, stable, and the log is what the app and the
+      # ranking read to neutralise an event Screener has not restated yet.
+      - name: Commit the company id map and corporate-actions log
         if: always()
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add -A data/screener_company_ids.json
+          git add -A data/screener_company_ids.json data/corporate_actions_log.json
           if git diff --staged --quiet; then
-            echo "No new company ids."
+            echo "No new company ids or corporate actions."
             exit 0
           fi
-          git commit -m "chore(data): screener company id map [skip ci]"
+          git commit -m "chore(data): screener company id map and corporate actions [skip ci]"
           for attempt in 1 2 3 4 5; do
             if git push; then
               echo "Pushed on attempt $attempt."

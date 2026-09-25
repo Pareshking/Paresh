@@ -22,16 +22,23 @@ night not collected is a day of daily history that cannot be recovered later.
 
 from __future__ import annotations
 
+import json
 import os
 import sys
-from datetime import datetime
+from datetime import date, datetime
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import pandas as pd  # noqa: E402
 
 from src.core import startup_metrics as metrics  # noqa: E402
-from src.core.config import SCREENER_DAYS, SCREENER_DEEP_HISTORY_DAYS, SCREENER_DELAY_S  # noqa: E402
+from src.core.config import (  # noqa: E402
+    SCREENER_DAYS,
+    SCREENER_DEEP_CHECK_DAYS,
+    SCREENER_DEEP_CHECK_FILE,
+    SCREENER_DEEP_HISTORY_DAYS,
+    SCREENER_DELAY_S,
+)
 from src.core.market_time import session_is_complete  # noqa: E402
 from src.loaders import screener_loader as sl  # noqa: E402
 from src.loaders.indices_loader import fetch_indices_data  # noqa: E402
@@ -104,6 +111,29 @@ def _concat_fresh(*frames: pd.DataFrame) -> pd.DataFrame:
     return result.sort_index()
 
 
+def _deep_check_due(today: date | None = None, path: str = SCREENER_DEEP_CHECK_FILE) -> bool:
+    """Is tonight the night to compare the whole history with Screener's?
+
+    Kept as a date next to the store rather than a weekday, so a late or
+    skipped run shifts the check instead of losing it for a week.
+    SCREENER_DEEP_CHECK=1 forces it.
+    """
+    if os.getenv("SCREENER_DEEP_CHECK") == "1":
+        return True
+    try:
+        with open(path, encoding="utf-8") as fh:
+            last = date.fromisoformat(json.load(fh)["last"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return True
+    return ((today or date.today()) - last).days >= SCREENER_DEEP_CHECK_DAYS
+
+
+def _record_deep_check(today: date | None = None, path: str = SCREENER_DEEP_CHECK_FILE) -> None:
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump({"last": (today or date.today()).isoformat()}, fh)
+
+
 def run() -> int:
     started = datetime.now()
     print(f"[{started:%Y-%m-%d %H:%M:%S}] Screener sync starting…")
@@ -165,11 +195,16 @@ def run() -> int:
     # symbols are excluded because they were already fetched above; this avoids
     # doubling requests while preserving the explicit forced-acquisition gate.
     regular_symbols = [symbol for symbol in symbols if symbol not in set(new_current)]
+    deep = _deep_check_due()
+    days = SCREENER_DEEP_HISTORY_DAYS if deep else SCREENER_DAYS
+    if deep:
+        print(f"DEEP CHECK tonight: fetching {days} days (weekly) for every symbol to "
+              "compare the whole stored history with Screener's current basis.")
     frame_regular = pd.DataFrame()
     unresolved: list[str] = []
     if regular_symbols:
         frame_regular, ids, unresolved = sl.fetch_universe(
-            regular_symbols, days=SCREENER_DAYS, ids=ids, delay_s=SCREENER_DELAY_S
+            regular_symbols, days=days, ids=ids, delay_s=SCREENER_DELAY_S
         )
     frame = _concat_fresh(forced, frame_regular)
     unresolved = forced_unresolved + unresolved
@@ -187,8 +222,18 @@ def run() -> int:
     if dropped:
         print(f"Dropped {len(dropped)} unsettled session(s): {dropped}")
 
-    merged, new_rows, preserved = sl.merge_into_store(frame)
+    rebased: dict = {}
+    merged, new_rows, preserved = sl.merge_into_store(frame, rebased=rebased)
     c = sl.closes(merged)
+    # A restated split/bonus/demerger: older stored prices moved onto
+    # Screener's new basis. Printed per symbol, because this rewrites history.
+    print(f"Restatements applied to older history: {len(rebased)} symbol(s)")
+    for sym, info in sorted(rebased.items()):
+        print(f"  REBASED {sym}: factors {info['factors']} from {info['boundaries']}, "
+              f"{info['dates_rescaled']} stored date(s) back to {info['oldest_date']}"
+              f"{', volume too' if info['volume_rescaled'] else ''}")
+    if deep and str(metrics.snapshot().get("facts", {}).get("screener_run_complete")) != "no":
+        _record_deep_check()
 
     # Final universe-vs-store gate. Publication must never proceed with a
     # current tradable symbol absent from the merged Screener history.

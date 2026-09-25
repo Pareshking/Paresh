@@ -15,6 +15,14 @@ raw-price store would need.
     python scripts/check_corporate_actions.py            # report and log
     python scripts/check_corporate_actions.py --dry-run
     python scripts/check_corporate_actions.py --fail-on-new   # exit 1 on a new find
+    python scripts/check_corporate_actions.py --source screener
+
+--source screener scans the Screener store instead. Screener re-adjusts its
+history after an event, but only some days later -- the lag is not fixed. Until
+then the event is a step in that series too, and it is logged here so
+adjust_ohlc neutralises it before ranking; once Screener restates, the step is
+gone and the adjustment switches itself off. Only the daily part is scanned:
+the older history is weekly, and five sessions can legitimately move 35%.
 """
 
 from __future__ import annotations
@@ -45,6 +53,35 @@ def _load(path: Path) -> dict:
     return log
 
 
+def daily_start(index: pd.Index) -> pd.Timestamp | None:
+    """First date of the unbroken daily tail (no gap over 5 days), or None."""
+    dates = pd.DatetimeIndex(index).normalize().unique().sort_values()
+    if len(dates) < 2:
+        return None
+    gaps = pd.Series(dates[1:] - dates[:-1]).dt.days.to_numpy()
+    start = len(dates) - 1
+    while start > 0 and gaps[start - 1] <= 5:
+        start -= 1
+    return dates[start]
+
+
+def _closes(source: str) -> tuple[pd.DataFrame, pd.Timestamp | None]:
+    """(closes to scan, first date to scan from) for one source."""
+    if source == "screener":
+        from src.core.config import SCREENER_PRICES_FILE
+        from src.loaders import screener_loader
+
+        store = screener_loader.load_store(SCREENER_PRICES_FILE)
+        closes = screener_loader.closes(store)
+        return closes, daily_start(closes.index) if not closes.empty else None
+    from src.core.config import PRICES_FILE
+
+    if not Path(PRICES_FILE).exists():
+        return pd.DataFrame(), None
+    adj, *_ = extract_ohlcv(pd.read_parquet(PRICES_FILE))
+    return adj, None
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--log", default=str(LOG_PATH))
@@ -56,23 +93,20 @@ def main() -> int:
         help="Exit non-zero when a session is flagged for the first time, so a "
         "scheduled run surfaces it instead of burying it in a log.",
     )
+    ap.add_argument("--source", choices=("yahoo", "screener"), default="yahoo",
+                    help="which price history to scan (default: the Yahoo cache)")
     args = ap.parse_args()
 
-    from src.core.config import PRICES_FILE
-
-    if not Path(PRICES_FILE).exists():
-        print(f"✗ no price cache at {PRICES_FILE}")
-        return 1
-
-    adj, *_ = extract_ohlcv(pd.read_parquet(PRICES_FILE))
+    adj, since = _closes(args.source)
     if adj.empty:
-        print("✗ no adjusted closes to check")
+        print(f"✗ no {args.source} closes to check")
         return 1
 
-    found = detect(adj, threshold=args.threshold)
+    found = detect(adj, threshold=args.threshold, since=since)
     info = summarise(found)
+    scanned = adj.loc[adj.index >= since] if since is not None else adj
     print(
-        f"→ scanned {adj.shape[0]} sessions x {adj.shape[1]} symbols "
+        f"→ scanned {args.source}: {scanned.shape[0]} sessions x {adj.shape[1]} symbols "
         f"at +/-{args.threshold:.0%}"
     )
 
@@ -99,6 +133,7 @@ def main() -> int:
             "looks_like": row["Looks Like"],
             "kind": row["Kind"],
             "first_seen": date.today().isoformat(),
+            "source": args.source,
         }
 
     print(
