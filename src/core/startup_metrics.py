@@ -55,6 +55,10 @@ def process_identity() -> dict:
 _stages: dict[str, dict] = {}
 _counters: dict[str, float] = {}
 _facts: dict[str, object] = {}
+# note_if_changed's memory. Kept OUT of _facts on purpose: its keys are log
+# dedupe state (one held ~20 KB of contract JSON, another the price vendor's
+# name), and _facts is embedded in the served page.
+_seen: dict[str, object] = {}
 
 
 def _revision() -> str | None:
@@ -133,7 +137,7 @@ def note(key: str, value) -> None:
 
 
 def note_if_changed(key: str, value) -> bool:
-    """Record a fact and report whether its value changed in this process.
+    """Report whether a value changed in this process since the last call.
 
     Streamlit reruns the script from top to bottom on interaction. This helper
     lets callers distinguish a genuinely new decision from the same decision
@@ -142,8 +146,8 @@ def note_if_changed(key: str, value) -> bool:
     """
     with _LOCK:
         sentinel = object()
-        previous = _facts.get(key, sentinel)
-        _facts[key] = value
+        previous = _seen.get(key, sentinel)
+        _seen[key] = value
         return previous is sentinel or previous != value
 
 
@@ -235,3 +239,4 @@ def reset_for_tests() -> None:
         _stages.clear()
         _counters.clear()
         _facts.clear()
+        _seen.clear()

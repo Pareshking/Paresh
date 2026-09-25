@@ -1,13 +1,15 @@
 """Pure symbol-universe reconciliation for ranking diagnostics.
 
 This module deliberately knows nothing about price data or ranking methodology.
-It compares canonical NSE symbols only and excludes DUMMY symbols, matching the
-universe loader's tradeability rule. It is used diagnostically when a published
+It compares canonical NSE symbols only and drops non-tradeable rows (DUMMY and
+NaN placeholders) by the universe loader's own rule, is_tradeable_symbol. It is used diagnostically when a published
 ranking is rejected so the operator can see the exact missing/extra names.
 """
 
 from collections import Counter
 from typing import Iterable
+
+from src.core.tickers import is_tradeable_symbol
 
 
 def _canonical_symbols(symbols: Iterable[object]) -> list[str]:
@@ -19,7 +21,7 @@ def _canonical_symbols(symbols: Iterable[object]) -> list[str]:
             for symbol in symbols
             if symbol is not None
         )
-        if value and not value.startswith("DUMMY")
+        if is_tradeable_symbol(value)
     ]
 
 

@@ -6,7 +6,6 @@ Pure Paper White Design Tokens, Data Paths, and Quantitative Model Parameters.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
 from typing import Final
 
 IS_STREAMLIT_CLOUD: Final[bool] = bool(
@@ -180,16 +179,6 @@ RISK_FREE_RATE: Final[float] = 0.065
 # straight at recent listings, which a momentum screen already over-selects.
 HIGH_52W_MIN_OBSERVATIONS: Final[int] = 126
 
-@dataclass(frozen=True)
-class ThemeTokens:
-    bg_main: str = "#ffffff"; bg_surface: str = "#f8fafc"; bg_card: str = "#ffffff"; border: str = "#e2e8f0"
-    border_subtle: str = "#f1f5f9"; text_primary: str = "#0f172a"; text_secondary: str = "#475569"; text_muted: str = "#64748b"
-    primary: str = "#4f46e5"; primary_light: str = "#eef2ff"; emerald: str = "#059669"; emerald_light: str = "#ecfdf5"
-    rose: str = "#e11d48"; rose_light: str = "#fff1f2"; amber: str = "#d97706"; amber_light: str = "#fef3c7"
-    sky: str = "#0284c7"; sky_light: str = "#f0f9ff"
-
-THEME_TOKENS: Final[ThemeTokens] = ThemeTokens()
-
 
 # ── Price history windows ────────────────────────────────────────────────────
 # The screener pipeline's window. Every calendar-momentum pass walks this frame
@@ -305,14 +294,9 @@ PRICE_SNAPSHOT_REPO: Final[str] = (
     or "Pareshking/Paresh"
 )
 PRICE_SNAPSHOT_ASSET: Final[str] = "prices.parquet"
-PRICE_ARCHIVE_ASSET: Final[str] = "prices_full.parquet"
 PRICE_SNAPSHOT_URL: Final[str] = (
     f"https://github.com/{PRICE_SNAPSHOT_REPO}/releases/download/"
     f"{PRICE_SNAPSHOT_TAG}/{PRICE_SNAPSHOT_ASSET}"
-)
-PRICE_ARCHIVE_URL: Final[str] = (
-    f"https://github.com/{PRICE_SNAPSHOT_REPO}/releases/download/"
-    f"{PRICE_SNAPSHOT_TAG}/{PRICE_ARCHIVE_ASSET}"
 )
 
 # The ranking the nightly job computed from the very snapshot above, so a cold
