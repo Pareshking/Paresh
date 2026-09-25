@@ -279,44 +279,75 @@ The suite takes about 2 minutes (1,329 tests). Once the tests are marked
 
 ---
 
-## 6. To-do list (in execution order)
+## 6. Status (updated 2026-09-25, branch `claude/code-audit-improvements-t8677r`)
 
-**Now (restore green):**
-- [ ] C1: rewrite the membership-history test as invariants and get
-      `R2 historical evidence bootstrap` green
-- [ ] C1: pull the `R2 session continuity audit` run log, find the root
-      cause, and fix it
-- [ ] C2/W7: add a failure-notification job for scheduled workflows
+Stage-4B paths (`agent/`, `scripts/stage4b_*`, `tests/test_agent_*`,
+`stage4b-independent-validation.yml`) were left untouched on purpose because
+that work is still in development. R2, R3 and W5's Stage-4B triggers are
+deferred for that reason.
 
-**Next (safety):**
-- [ ] W6: add `permissions`, `timeout-minutes` and `concurrency` to every
-      write-capable and R2-publishing workflow
-- [ ] W8: fix the devcontainer (`app.py`, remove the CORS/XSRF flags, drop
-      the unpinned streamlit)
-- [ ] W4: pick one Python version and pin it everywhere, including
-      Streamlit Cloud
-- [ ] W2 + W3: fix the Screener shaping cache identity on the HTTPS path
-- [ ] W1: verify that keep-warm actually runs the script; fix it or remove it
-- [ ] W9: log the swallowed exceptions in the loaders
+### Done
+- [x] **C1, historical evidence bootstrap:** the membership test now checks
+      invariants instead of expecting no changes. The full bootstrap build
+      was re-run locally and succeeds.
+- [x] **C1, session continuity audit:** the run log showed argparse exit 2.
+      The workflow passed positional paths to `build_trading_sessions.py`,
+      which now requires `--prices` and `--output`. After the fix, both steps
+      were re-run against the published `data-latest` release: PASS, 720
+      sessions.
+- [x] Added `tests/test_workflow_script_cli.py`, which checks every
+      workflow's `python scripts/X.py` call against that script's argparse
+      definition, so this kind of drift fails on the PR.
+- [x] **C2/W7:** new `scheduled_failure_alert.yml`. A failed scheduled run
+      opens or updates a `scheduled-failure` issue.
+- [x] **W6:** timeouts on every job that lacked one; concurrency groups on
+      every R2 publisher and audit; `permissions` on `r2_research_consumer`.
+      *Correction:* `weekly_full_sync` already scopes its permissions at the
+      job level.
+- [x] Actions bumped to their first Node 24 majors (GitHub already warns
+      that Node 20 is deprecated).
+- [x] **R1 (partial):** deleted `r2-archive-validation`,
+      `hegam_screener_probe`, `r2_corporate_action_diagnostic`,
+      `r2_raw_v1_equivalence` and the two scripts only they called. Kept:
+      the Yahoo raw build/retry workflows, the 10-year bootstrap and
+      Screener production verification (tests and runbooks refer to them),
+      and `v1-recent6m-monthstart` / `v1-cold-start-probe` (research and
+      probe tools).
+- [x] **W2 + W3:** the HTTPS Screener revision is now derived from the
+      data's content; the ignored `_k` argument is gone.
+- [x] **W8:** devcontainer fixed. **W9:** cache-write and meta-read
+      failures are now logged. (The per-symbol yfinance fallback chain
+      deliberately stays quiet.)
+- [x] **R4:** unused imports and locals removed. This also removed a test
+      that was **defined twice**, so its first copy never ran. **R5:**
+      `_fmt_ratio` removed.
+- [x] **I1:** `ruff.toml` plus a Lint workflow (pyflakes and syntax errors,
+      run on every PR). **I4:** `.dockerignore` and a non-root user.
+      **I5:** Dependabot.
 
-**Cleanup (remove unwanted items):**
-- [ ] W5 + R1: delete the one-off workflows and the stale branch triggers
-- [ ] R4 + R6: remove unused imports, variables and warning filters
-      (`ruff --fix`)
-- [ ] R5: confirm, then delete the dead functions
-- [ ] R2 + R3: move the company packets to test fixtures and merge the
-      Stage-4B scripts into one
-- [ ] R7: delete the 26 fully merged branches, then triage the rest
-      (tag first)
-- [ ] R8: archive the dated audit docs under `docs/archive/`
+### Won't do (with reason)
+- **R6:** *Correction:* the `components.v1.html` warning filters in `app.py`
+  are not dead. Third-party components (such as
+  `streamlit-lightweight-charts`) can still emit that warning. The CI grep
+  only covers our own code.
+- **I9, md5:** the digests are pipeline and contract fingerprints.
+  `usedforsecurity=False` changes nothing functionally and isn't worth
+  touching the fingerprint code for.
+- The other R5 functions are public R2 consumer API. Keep them.
 
-**Quality (ongoing):**
-- [ ] I1: add ruff to CI and fix the 47 auto-fixable findings
-- [ ] I2 + I3: add pytest markers and replace the `--ignore` lists
-- [ ] I4: add `.dockerignore` and a non-root user
-- [ ] I5: add Dependabot for actions and pip
+### Needs the owner
+- [ ] **W4:** the Python version Streamlit Cloud runs (Manage app →
+      Settings). CI will be aligned to it.
+- [ ] **W1:** check whether a keep-warm ping runs the script (see the PR
+      description for the steps).
+- [ ] **R7:** deleting 23 fully merged branches (command in the PR
+      description). Git deletions are blocked from this session.
+- [ ] **R8:** whether to move the dated audit docs into `docs/archive/`.
+
+### Later
+- [ ] I2 + I3: pytest markers instead of the `--ignore` lists
 - [ ] I6: extract the CSS from `theme.py` and split the large modules
-- [ ] I7 + I8: isolate the test cache directory and add xdist
-- [ ] I9: audit the `unsafe_allow_html` interpolations; md5
-      `usedforsecurity=False`
-- [ ] Section 5 items as time allows
+- [ ] I7 + I8: isolate the test cache directory; xdist
+- [ ] I9: audit the `unsafe_allow_html` interpolations
+- [ ] Widen the ruff rules (B, UP, SIM) step by step
+- [ ] After Stage-4B lands: R2, R3, W5's Stage-4B triggers
