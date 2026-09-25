@@ -544,3 +544,30 @@ Read and found sound: `components.py` (freshness ribbon, signals),
 (11/16-17/36), `render_saas_table` formatting for every live column, the guide
 (its claims match the engine: 10/30/30/20/10, within 20% of the high, above
 the 50 EMA, ±3σ), the track record and portfolio views, and the RRG maths.
+
+## 16. Scripts, dependencies and config
+
+| # | Where | Found | Now |
+|---|---|---|---|
+| S1 | `requirements.txt` | pandas, numpy, yfinance, requests and plotly were floors (`pandas>=2.0.0`). Every container boot chose its own versions, while CI had tested one. | Pinned to the tested versions (#173). boto3 remains a documented range. |
+| S2 | R2 read-path gate | Red on every Dependabot PR: GitHub gives those PRs no secrets. | Skipped for Dependabot PRs. It now re-runs on main when `requirements.txt` changes, and did so green after #173 (run 156). |
+| S3 | `dependabot.yml` | The grouped actions bump (#158) rewrote the Stage-4B workflow, so it could not be merged. | Stage-4B workflow excluded. |
+| S4 | `_streamlit_nav.missing_pages` | Returned "nothing missing" whenever the ☰ button existed, even after opening and reading the menu. A page dropped from the menu passed QA on every viewport. The full walk could not catch it either, because it falls back to the page URL. | Only a menu that would not open falls back to the button. |
+| S5 | `production_qa.audit_nav_styling` | Looked for links inside the header row. The menu is drawn in a floating overlay, so every run reported "no page link" and never measured the CSS. | Opens the menu and reads a real link. |
+| S6 | `cold_start_probe.py` | Passed with an exception on screen, a navigation that never rendered, or pages missing. | Each of these now fails the probe. |
+| S7 | `build_nse_index_prices.py` | The Yahoo fallback took the first index hit when no name matched exactly. "NIFTY MIDCAP" also finds Midcap 100, whose history would be stored as Midcap 150. | Exact name or nothing. The Screener fallback uses fixed ids. |
+| S8 | daily and weekly sync | `\|\| true` on the corporate-actions and membership steps also swallowed crashes. | Non-blocking still, but the run shows a warning. |
+
+Found from the live QA evidence (run 570), not yet fixed here:
+
+- On desktop, choosing a page from ☰ leaves the menu open over the content, until the reader clicks elsewhere. This is Streamlit's documented behaviour for a keyed popover ("interacting with widgets inside an open popover will … keep the popover open"). The QA screenshot `desktop_1280x800_configuration.png` shows it. That run's "Reset to defaults" check could not be clicked for this reason, and the failure was not counted. The fix is the next PR.
+- The ticker-click audit reports "no ticker link found" and is informational only. The stock page is covered by the deep-link check, which passes.
+
+Read and found sound: `which_source.py`, `check_corporate_actions.py`,
+`full_validation.py` (manual; it ranks the trimmed session rather than the
+carried one, which is conservative), `stage3_live_validation.py` (depends on
+`agent/`, so left alone), `build_trading_sessions.py`,
+`build_classification_history.py`, `build_market_cap_history.py`,
+`build_membership_history.py`, the Dockerfile and `.dockerignore`,
+`.streamlit/config.toml`, `ruff.toml` (targets py311 while CI runs 3.14; this
+only makes the syntax check stricter), `pytest.ini`, and the devcontainer.

@@ -233,7 +233,7 @@ def missing_pages(frame, names, page=None) -> list[str]:
     """
     reachable: set[str] = set()
 
-    _open_custom_popover(frame)
+    menu_opened = _open_custom_popover(frame)
 
     for sel in ('[data-testid="stPageLink"]',
                 '[data-testid="stTopNavLink"]',
@@ -268,9 +268,15 @@ def missing_pages(frame, names, page=None) -> list[str]:
     missing = [n for n in names
               if not any(n == r or n in r for r in reachable)]
     _close_custom_popover(frame)
-    # The dedicated full-walk viewports exercise every PageLink. On the other
-    # widths, the visible hamburger is the live navigation contract.
-    if missing:
+    # A hamburger that would not open cannot be read, so there the button's
+    # presence is taken as the navigation contract. A hamburger that DID open
+    # has just been read, and what it lacks is missing.
+    #
+    # This used to return [] whenever the button existed, opened or not -- so
+    # a page dropped from the menu passed reachability on every viewport. The
+    # full walk could not catch it either: open_page falls back to the page's
+    # direct URL, which works whether or not the menu links to it.
+    if missing and not menu_opened:
         try:
             if frame.locator('[data-testid="stPopoverButton"]').count():
                 return []
