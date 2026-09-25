@@ -292,6 +292,11 @@ is where the Configuration sliders rendered at their minimum. To upgrade: bump
 the pin, let **V1 Production QA** verify against the live app, then keep it.
 `tests/test_no_diagnostics_in_the_ui.py` fails if the pin is loosened.
 
+The rest of the runtime stack is pinned for the same reason: pandas, numpy,
+pyarrow, yfinance, requests and plotly (`tests/test_dependency_pins.py`).
+boto3 is the one documented range. Dependabot opens a PR for each new
+release. pyarrow 25.0.1 segfaults (apache/arrow#50471), so do not take it.
+
 ## Production data and runtime architecture
 
 The production application uses a strict separation between the canonical ranking path and auxiliary deep-history data:
@@ -299,7 +304,8 @@ The production application uses a strict separation between the canonical rankin
 - **Canonical V1 ranking source:** Screener data published to Cloudflare R2 at `prices/screener`. The ranking artifact is consumed through the canonical ranking-store contract; Yahoo downloads must not replace this path.
 - **Deep-history/archive source:** Yahoo-origin data published separately to R2 at `prices/yahoo/raw`. It is available for deep history, archive/healing and research support, not as a replacement ranking engine.
 - **Universe:** the current NIFTY TOTAL MARKET production universe is the reconciled set of **750 tradable symbols**. NSE `DUMMY*` placeholders are discarded; aliases must not be invented to repair missing symbols.
-- **Ranking completeness:** the canonical ranking pipeline requires **100% current-universe coverage**. A session with even one current symbol missing a usable Close is not eligible for ranking. This prevents a valid-looking 749/750 ranking from being published.
+- **Ranking completeness:** the canonical ranking pipeline requires **100% current-universe coverage**. This prevents a valid-looking 749/750 ranking from being published.
+  The one exception is owner decision 2B. Up to 5 stragglers that printed within the last 5 sessions are ranked on their last print, flagged ⏸, and count toward that 100%. Any other gap makes the session ineligible, and the ranking falls back to the previous complete one.
 - **Published artifact:** when a validated precomputed ranking is available, Streamlit accepts the canonical artifact and **skips the runtime ranking engine**. This is an intentional performance path, not a degraded mode.
 - **Streamlit reruns:** contract validation and Screener-frame shaping are memoized using the complete logical contract and immutable R2 revision identity respectively. Repeated reruns therefore avoid repeating equivalent work while still invalidating when the underlying ranking contract or R2 revision changes.
 
@@ -339,7 +345,7 @@ The 2026-09-23 production deployment verified the full path: 750-row ranking acc
 ## Running locally
 
 ```bash
-pip install -r requirements.txt   # streamlit is pinned exactly; see above
+pip install -r requirements.txt   # runtime deps are pinned exactly; see above
 streamlit run app.py
 ```
 

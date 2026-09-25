@@ -83,8 +83,15 @@ def _fetch_yahoo(name_key: str, name: str, start: date, end: date) -> pd.DataFra
     if not indexes:
         raise RuntimeError(f"Yahoo search found no index for {name}")
     exact = [q for q in indexes if str(q.get("shortname", "")).strip().lower() == name.lower()]
-    q = exact[0] if exact else indexes[0]
-    symbol = q.get("symbol")
+    # Exact name or nothing. This used to take the first INDEX-typed hit when
+    # no name matched, and the loose queries above ("NIFTY MIDCAP", "NIFTY
+    # SMALLCAP") also find Midcap 100/50 and Smallcap 100/50 -- whose history
+    # would then be stored, without a word, as the 150/250 index. Raising
+    # hands over to the Screener fallback, which resolves fixed index ids.
+    if not exact:
+        found = sorted({str(q.get("shortname", "")) for q in indexes})
+        raise RuntimeError(f"Yahoo search found no exact match for {name}: {found}")
+    symbol = exact[0].get("symbol")
     frame = yf.download(
         symbol,
         start=start.isoformat(),

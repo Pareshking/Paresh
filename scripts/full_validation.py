@@ -8,7 +8,7 @@ import pandas as pd
 
 from src.engine.calendar_momentum import _calendar_period_metrics, apply_calendar_momentum, latest_as_of_date
 from src.engine.momentum import MomentumEngine
-from src.engine.pipeline import last_ranked_session
+from src.engine.pipeline import carried_symbols, carry_last_prints, last_ranked_session
 from src.loaders.indices_loader import fetch_indices_data
 from src.loaders.mcap_loader import fetch_market_caps
 from src.loaders.price_loader import extract_ohlcv, fetch_price_history
@@ -62,6 +62,17 @@ if _cut is not None and _cut < len(adj.index) - 1:
         f.loc[:_stop] if f is not None else None
         for f in (adj, close, high, low, volume)
     )
+
+# Owner decision 2B, exactly as pipeline.build_engine applies it: a few
+# stragglers that printed recently are ranked on their last print instead of
+# holding the whole session back. Without this, this script ranked a
+# different set of names than production on any day with a straggler.
+_carried = carried_symbols(adj)
+if _carried:
+    adj, close, high, low = (
+        carry_last_prints(f, _carried) for f in (adj, close, high, low)
+    )
+    print(f"Carried on their last print (2B): {', '.join(_carried)}")
 
 mcaps = fetch_market_caps(symbols, force_refresh=False)
 calc = MomentumEngine(

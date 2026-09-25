@@ -38,3 +38,32 @@ def test_newer_descendant_build_counts_as_the_triggering_commit(tmp_path, monkey
     assert qa._serves_expected(older[:7])       # exact
     qa = _qa(monkeypatch, newer)
     assert not qa._serves_expected(older[:7])   # an older build is not the trigger
+
+
+def _commit(repo, message, files=None):
+    for name, text in (files or {}).items():
+        path = Path(repo) / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+        _git(repo, "add", name)
+    _git(repo, "-c", "user.email=a@b", "-c", "user.name=a",
+         "commit", "-q", "--allow-empty", "-m", message)
+    return _git(repo, "rev-parse", "HEAD")
+
+
+def test_src_changed_since_the_process_started_is_reported_stale(tmp_path, monkeypatch):
+    """The 2026-09-25 case: #177 on disk, src/ still the build imported at #173."""
+    _git(tmp_path, "init", "-q")
+    loaded = _commit(tmp_path, "process starts here", {"src/ui/components.py": "old\n"})
+    scripts_only = _commit(tmp_path, "scripts only", {"scripts/x.py": "1\n"})
+    ui_fix = _commit(tmp_path, "menu fix", {"src/ui/components.py": "new\n"})
+    monkeypatch.chdir(tmp_path)
+    qa = _qa(monkeypatch, ui_fix)
+
+    assert qa._stale_modules(loaded, ui_fix) == ["src/ui/components.py"]
+    # A push that never touches src/ leaves nothing stale: app.py is re-read
+    # every run and scripts/ never reach the process.
+    assert qa._stale_modules(loaded, scripts_only) == []
+    assert qa._stale_modules(ui_fix, ui_fix) == []
+    # An old process without the telemetry field cannot be judged.
+    assert qa._stale_modules(None, ui_fix) == []

@@ -38,6 +38,7 @@ import requests
 # whether the script is run directly or loaded by path from a test.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _streamlit_nav import (  # noqa: E402
+    _close_custom_popover, _open_custom_popover,
     missing_pages, nav_count, nav_diagnostics, open_page,
 )
 # Imported inside main(), not at module scope. The state classifier below is
@@ -71,6 +72,37 @@ METRICS_ID = "umiya-startup-metrics"
 # which is exactly what happened to c151597, whose QA started two seconds
 # after the push.
 EXPECTED_SHA = (os.getenv("UMIYA_EXPECTED_SHA") or "").strip().lower()
+
+
+def _stale_modules(loaded: str | None, served: str | None) -> list[str]:
+    """src/ files that differ between the code the process imported and disk.
+
+    Streamlit re-executes app.py on every rerun but keeps already-imported
+    modules until the process restarts, and Streamlit Cloud pulls a push
+    without restarting. `served` (git on disk) then says the new commit while
+    everything under src/ is still the build the process started on. That is
+    what hid #177 on 2026-09-25: the menu fix was "served" and not running.
+
+    Only src/ counts: app.py is re-read every run, scripts/ and docs/ never
+    reach the process, and a requirements.txt change restarts it anyway.
+    Empty when there is nothing to compare or git cannot answer.
+    """
+    loaded = (loaded or "").strip().lower()
+    served = (served or "").strip().lower()
+    if not loaded or not served or loaded == served:
+        return []
+    import subprocess
+
+    try:
+        out = subprocess.run(
+            ["git", "diff", "--name-only", loaded, served, "--", "src/"],
+            capture_output=True, text=True, timeout=20,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+    if out.returncode != 0:
+        return []
+    return [ln for ln in out.stdout.splitlines() if ln.strip()]
 
 
 def _serves_expected(served: str) -> bool:
@@ -354,10 +386,17 @@ def audit_nav_styling(frame) -> dict:
     try:
         row = frame.locator('[class*="st-key-app_nav"]').first
         out["nav_row_present"] = bool(row.count())
+        # The links are not inside the header row. The ☰ popover renders its
+        # body in a floating overlay elsewhere in the document, and only while
+        # it is open -- so this looked inside the row, found nothing on every
+        # run, and reported "no page link" instead of ever measuring the CSS.
+        opened = _open_custom_popover(frame)
         link = frame.locator(
-            '[class*="st-key-app_nav"] [data-testid="stPageLink"] a').first
+            '[data-testid="stPopoverBody"] [data-testid="stPageLink"] a').first
         if not link.count():
-            out["error"] = "no page link inside the navigation row"
+            out["error"] = (
+                "no page link in the navigation menu"
+                + ("" if opened else " (the menu did not open)"))
             return out
         out.update(link.evaluate(
             "el => { const s = getComputedStyle(el); return {"
@@ -365,13 +404,14 @@ def audit_nav_styling(frame) -> dict:
             "  color: s.color, background: s.backgroundColor,"
             "  border_radius: s.borderRadius, height: s.height }; }"))
         active = frame.locator(
-            '[class*="st-key-navon_"] [data-testid="stPageLink"] a').first
+            '[data-testid="stPopoverBody"] [class*="st-key-navon_"] '
+            '[data-testid="stPageLink"] a').first
         out["active_marked"] = bool(active.count())
         if active.count():
             out["active_color"] = active.evaluate(
                 "el => getComputedStyle(el).color")
-        # 12.5px is the pill size; the browser default is ~16px. If this reads
-        # like the default, the stylesheet is not applying to the row.
+        # theme.py sets the menu links to 13px; the browser default is ~16px.
+        # If this reads like the default, the stylesheet is not applying.
         out["css_applied"] = out.get("font_size", "") not in ("", "16px")
         # How much of the screen the menu eats before any content. It shipped
         # as a six-row ~500px block on a phone because each per-item container
@@ -387,6 +427,8 @@ def audit_nav_styling(frame) -> dict:
                     100 * box["height"] / vp["height"])
     except Exception as exc:
         out["error"] = f"{type(exc).__name__}: {exc}"[:180]
+    finally:
+        _close_custom_popover(frame)
     return out
 
 
@@ -607,6 +649,13 @@ def audit_configuration(page, frame) -> dict:
     Returns evidence. Judging it is the caller's job.
     """
     out: dict = {"panel_reached": False, "nav_trace": []}
+    # The page was just chosen from the ☰ menu. A menu still open now is one
+    # the reader has to dismiss by hand, covering part of the page.
+    try:
+        body = frame.locator('[data-testid="stPopoverBody"]').first
+        out["menu_open_after_nav"] = bool(body.count() and body.is_visible())
+    except Exception:
+        out["menu_open_after_nav"] = None
 
     def slider_values() -> dict:
         """Label -> displayed value, from Streamlit's own thumb readout.
@@ -851,6 +900,17 @@ def judge_configuration(name: str, ev: dict) -> list:
                 f"the panel disagrees with itself about the live weights",
                 "APPLICATION"))
 
+    if ev.get("menu_open_after_nav"):
+        found.append(classify(
+            f"{name}: the navigation menu is still open after choosing "
+            f"Configuration from it", "APPLICATION"))
+    # The reset is the check that proves writes reach the widgets. Failing to
+    # click it used to be printed and then passed (run 570, desktop).
+    if ev.get("after_reset_error"):
+        found.append(classify(
+            f"{name}/Configuration: Reset to defaults could not be exercised: "
+            f"{str(ev['after_reset_error']).splitlines()[0][:160]}", "QA"))
+
     before = (ev.get("initial") or {}).get("sliders")
     after = (ev.get("after_nav") or {}).get("sliders")
     if before and after and before != after:
@@ -963,6 +1023,18 @@ def main() -> None:
 
                 report["expected_revision"] = EXPECTED_SHA[:7]
                 report["served_revision"] = (served or "unknown")[:7]
+                loaded = (read_telemetry(page) or {}).get("loaded_revision")
+                report["loaded_revision"] = (loaded or "unknown")[:7]
+                stale = _stale_modules(loaded, served)
+                if stale:
+                    report["stale_modules"] = stale
+                    failures.append(classify(
+                        f"Production has {(served or '')[:7]} on disk but its "
+                        f"process imported src/ at {loaded[:7]} and has not "
+                        f"restarted: {len(stale)} src/ file(s) changed since "
+                        f"then are NOT running ({', '.join(stale[:5])}). "
+                        f"Reboot the app from the Streamlit Cloud dashboard.",
+                        "INFRASTRUCTURE"))
                 if served is None:
                     report["deploy_correspondence"] = "unverifiable"
                     report["deploy_unverifiable_reason"] = why
@@ -1179,6 +1251,10 @@ def main() -> None:
               f"(expected {report.get('expected_revision')}, "
               f"served {report.get('served_revision')}"
               + (f", {reason}" if reason else "") + ")", flush=True)
+        if report.get("loaded_revision"):
+            print(f"modules loaded at     : {report['loaded_revision']}"
+                  + (f"  STALE: {len(report['stale_modules'])} src/ file(s) not running"
+                     if report.get("stale_modules") else ""), flush=True)
     print(f"time to that state    : {report.get('ready_after_s')}s", flush=True)
     print(f"websocket established : {report['websocket_established']}", flush=True)
     print(f"page errors           : {len(page_errors)}", flush=True)

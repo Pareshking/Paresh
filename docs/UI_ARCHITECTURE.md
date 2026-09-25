@@ -250,3 +250,27 @@ The cache keys deliberately preserve correctness. A changed ranking contract inv
 CI verification passed for both the full V1 validation and the focused R2 Streamlit read-path gate. The first live deployment after merge loaded the 750-row canonical ranking and logged one precomputed acceptance with engine skipped, confirming that the optimization did not alter the ranking path.
 
 **Important:** engine skipped means the runtime momentum/ranking calculation was intentionally bypassed because the already-published canonical ranking passed its contract checks. It does not mean ranking was skipped or that the application is operating without a ranking.
+
+
+## 8. Navigation today (2026-09-25)
+
+§6 describes `st.navigation(position="top")` and the `stTopNav*` DOM. That is
+no longer what ships. The app now uses:
+
+- `st.navigation(_PAGES, position="hidden")`, so Streamlit draws no navigation of
+  its own. The header it would draw in is hidden by the theme.
+- a ☰ `st.popover` in the custom header (`components.render_header_kpi_bar`),
+  holding one `st.page_link` per page in three groups: Research, Monitoring and
+  System.
+
+The popover's key includes the active page (`app_nav_menu_<url_path>`).
+Streamlit keeps a keyed popover open across the reruns its own contents
+trigger, and choosing a page is one of them. So with a fixed key, the menu
+stayed open on desktop over the page just chosen. Production QA now fails if
+that happens (`menu_open_after_nav`). The theme styles the menu by the key
+prefix, `[class*="st-key-app_nav_menu_"]`.
+
+The QA probes still accept every navigation shape (`scripts/_streamlit_nav.py`).
+`missing_pages` now reports a page that is absent from an opened menu. It used
+to return nothing whenever the ☰ button existed.
+

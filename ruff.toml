@@ -2,7 +2,8 @@
 # duplicate definitions) and syntax errors -- the classes that hide real bugs,
 # such as a test defined twice so the first copy never runs. Widen it once the
 # wider rule sets (B, UP, SIM) have been cleaned up.
-target-version = "py311"
+# Matches .python-version (3.14), which CI and production run.
+target-version = "py314"
 extend-exclude = [
     # Stage-4B research is under active development on its own branches.
     "agent",
