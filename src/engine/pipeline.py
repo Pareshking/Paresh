@@ -138,6 +138,44 @@ def symbols_fingerprint(symbols) -> str:
 
 MAX_UNRANKED_TAIL: int = 5
 
+# One halted or vendor-skipped stock used to hold the WHOLE ranking on an older
+# session, for up to MAX_UNRANKED_TAIL sessions. Now, when at most this many
+# symbols are missing from the newest session and each of them printed within
+# CARRY_MAX_AGE sessions, they are ranked on that last print (flagged ⏳ in the
+# table) and everyone else is ranked on the newest session. A session the
+# vendor is still publishing -- hundreds missing -- is far past this limit and
+# still walks back exactly as before. Owner decision 2B, 2026-09-25.
+MAX_CARRIED_SYMBOLS: int = 5
+CARRY_MAX_AGE: int = 5
+
+
+def carried_symbols(adj_close: pd.DataFrame | None) -> list[str]:
+    """Symbols to rank on their last print instead of holding the session back."""
+    if adj_close is None or adj_close.empty or len(adj_close.index) < 2:
+        return []
+    last = adj_close.iloc[-1]
+    missing = last.index[last.isna()]
+    if len(missing) == 0 or len(missing) > MAX_CARRIED_SYMBOLS:
+        return []
+    recent = adj_close[missing].iloc[-(CARRY_MAX_AGE + 1):-1]
+    carried = [str(s) for s in missing if recent[s].notna().any()]
+    # All or nothing: a symbol with no print in the window is not a straggler
+    # (it is suspended or gone), and ranking the session anyway would drop it.
+    return sorted(carried) if len(carried) == len(missing) else []
+
+
+def carry_last_prints(frame: pd.DataFrame | None, symbols: list[str]):
+    """Fill the final row of ``symbols`` with their last print (prices only)."""
+    if frame is None or frame.empty or not symbols:
+        return frame
+    cols = [s for s in symbols if s in frame.columns]
+    if not cols:
+        return frame
+    out = frame.copy()
+    window = out[cols].iloc[-(CARRY_MAX_AGE + 1):].ffill()
+    out.iloc[-1, [out.columns.get_loc(c) for c in cols]] = window.iloc[-1].to_numpy()
+    return out
+
 
 def last_ranked_session(
     adj_close: pd.DataFrame,
@@ -159,10 +197,11 @@ def last_ranked_session(
     """
     if adj_close is None or adj_close.empty or adj_close.shape[1] == 0:
         return None
-    covered = adj_close.notna().sum(axis=1).to_numpy()
+    covered = adj_close.notna().sum(axis=1).to_numpy().copy()
     n = len(covered)
     if n == 0:
         return None
+    covered[n - 1] += len(carried_symbols(adj_close))
     reference = float(covered[max(0, n - 21):].max())
     if reference <= 0:
         return None
@@ -216,6 +255,20 @@ def build_engine(
     corporate_actions: list | None = None,
 ) -> MomentumEngine:
     """The expensive half: everything that does not depend on the weights."""
+    carried = carried_symbols(adj_close)
+    if carried:
+        from src.core import startup_metrics as metrics
+        from src.core.logger import logger
+
+        adj_close, high_prices, low_prices, close_prices = (
+            carry_last_prints(f, carried)
+            for f in (adj_close, high_prices, low_prices, close_prices)
+        )
+        metrics.note("ranking_carried_symbols", ",".join(carried))
+        logger.info(
+            "Ranking on the newest session with %d symbol(s) on their last "
+            "print: %s", len(carried), ", ".join(carried),
+        )
     (adj_close, high_prices, low_prices, close_prices, volume_data), cutoff = (
         _trim_to_ranked_session(
             adj_close, high_prices, low_prices, close_prices, volume_data
@@ -238,6 +291,7 @@ def build_engine(
         weights=[0.2] * 5,
         corporate_actions=corporate_actions,
     )
+    calc.carried_symbols = carried
     _compute_period_z_scores(calc)
     calc._precompute_signals(idx_info, market_caps, close_prices, high_prices)
     return calc
@@ -268,6 +322,10 @@ def rank_with_weights(
     # The engine was built on the trimmed frames; these two are handed straight
     # to get_rankings, so they have to stop on the same session or the table
     # reads its prices one row past everything it scored.
+    carried = getattr(calc, "carried_symbols", [])
+    close_prices, high_prices = (
+        carry_last_prints(f, carried) for f in (close_prices, high_prices)
+    )
     (close_prices, high_prices), _ = _trim_to_ranked_session(close_prices, high_prices)
     calc.weights = list(weights)
     _apply_weight_composite(calc, list(weights))

@@ -31,9 +31,13 @@ import pandas as pd
 import pytest
 
 from src.engine.pipeline import (
+    CARRY_MAX_AGE,
+    MAX_CARRIED_SYMBOLS,
     MAX_UNRANKED_TAIL,
     RANKING_COVERAGE_FLOOR,
     _trim_to_ranked_session,
+    carried_symbols,
+    carry_last_prints,
     last_ranked_session,
     ranking_as_of,
 )
@@ -71,10 +75,37 @@ def test_a_complete_session_is_ranked_immediately():
     assert cutoff is None, "a complete session was held back for no reason"
 
 
-def test_a_session_missing_any_current_symbol_is_deferred():
-    """A single missing current-universe close defers the ranking."""
+def test_a_few_stragglers_no_longer_hold_the_whole_ranking_back():
+    """Owner decision 2B: up to MAX_CARRIED_SYMBOLS missing, each printed recently.
+
+    One halted stock used to defer all 750 for up to five sessions. Now it is
+    ranked on its last print (flagged) and the session goes ahead.
+    """
     df = _frame([1.0] * 30 + [RANKING_COVERAGE_FLOOR - 0.001])
+    assert carried_symbols(df) == ["S749"]
+    assert last_ranked_session(df) == len(df.index) - 1
+
+
+def test_more_stragglers_than_the_limit_still_defer():
+    n_cols = 750
+    missing = MAX_CARRIED_SYMBOLS + 1
+    df = _frame([1.0] * 30 + [(n_cols - missing) / n_cols])
+    assert carried_symbols(df) == []
     assert last_ranked_session(df) == len(df.index) - 2
+
+
+def test_a_symbol_silent_for_longer_than_the_carry_window_is_not_carried():
+    df = _frame([1.0] * 30 + [1.0] * 3)
+    df.iloc[-(CARRY_MAX_AGE + 1):, -1] = np.nan  # no print in the whole window
+    assert carried_symbols(df) == []
+
+
+def test_carried_prices_are_the_last_print_and_only_on_the_final_row():
+    df = _frame([1.0] * 30 + [749 / 750])
+    df.iloc[-2, -1] = 123.0
+    out = carry_last_prints(df, carried_symbols(df))
+    assert out.iloc[-1, -1] == 123.0
+    assert out.iloc[:-1].equals(df.iloc[:-1])
 
 
 def test_history_that_thins_out_with_age_is_not_mistaken_for_incompleteness():
@@ -152,3 +183,30 @@ def test_an_empty_or_degenerate_frame_is_left_alone():
     assert last_ranked_session(pd.DataFrame()) is None
     assert last_ranked_session(None) is None
     assert ranking_as_of(pd.DataFrame()) == ""
+
+
+def test_a_carried_stock_stays_in_the_table_flagged():
+    """End to end: the straggler is ranked on its last print and marked ⏳."""
+    from src.engine.pipeline import build_engine, rank_with_weights
+
+    syms = [f"S{i}" for i in range(12)]
+    idx = pd.bdate_range(end="2026-08-31", periods=400)
+    rng = np.random.default_rng(4)
+    px = pd.DataFrame(
+        100 * np.exp(np.cumsum(rng.normal(0.0005, 0.015, (400, 12)), axis=0)),
+        index=idx, columns=syms,
+    )
+    px.iloc[-1, 0] = np.nan  # S0 has no print on the newest session
+    info = pd.DataFrame({"Symbol": syms, "Company Name": syms,
+                         "Industry": ["IT"] * 12, "Indices": ["N50"] * 12})
+    mcaps = pd.Series({s: 1e11 for s in syms})
+    vol = pd.DataFrame(1e6, index=idx, columns=syms)
+
+    calc = build_engine(px, px, px, px, vol, info, mcaps)
+    _, ranked = rank_with_weights(calc, [0.2] * 5, info, mcaps, px, px)
+
+    assert ranking_as_of(px) == str(idx[-1].date())
+    assert set(ranked["Symbol"]) == set(syms)
+    row = ranked.set_index("Symbol").loc["S0"]
+    assert "⏳" in row["Data Gap"]
+    assert row["CMP"] == pytest.approx(px.iloc[-2, 0], rel=1e-6)

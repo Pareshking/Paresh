@@ -1315,6 +1315,9 @@ def render_master_screener_table(
         # Data Health
         gap_val = str(row.get("Data Gap", "🟢"))
         gap_icon = "🔴" if "🔴" in gap_val else "🟢"
+        if "⏳" in gap_val:
+            # Ranked on its last print: no price on the ranking session.
+            gap_icon = f'<span title="No price on the ranking date; ranked on its last print">{gap_icon}⏳</span>'
 
         ffill_val = row.get("FFill %")
         ffill_str = (
