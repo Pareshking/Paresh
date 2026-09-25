@@ -95,6 +95,7 @@ def fetch_screener_store(url: str | None = None) -> pd.DataFrame | None:
     target = url or SCREENER_STORE_URL
     started = time.perf_counter()
     tmp_path = None
+    resp = None  # streamed: holds a pooled connection until closed
     try:
         resp = requests.get(target, timeout=DOWNLOAD_TIMEOUT_S, stream=True)
         if resp.status_code != 200:
@@ -114,6 +115,8 @@ def fetch_screener_store(url: str | None = None) -> pd.DataFrame | None:
         metrics.note("screener_store_fetch", type(exc).__name__)
         return None
     finally:
+        if resp is not None:
+            resp.close()
         if tmp_path and os.path.exists(tmp_path):
             try:
                 os.remove(tmp_path)

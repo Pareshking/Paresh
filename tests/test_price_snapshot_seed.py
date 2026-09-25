@@ -41,6 +41,9 @@ class _Resp:
         self.status_code = status
         self._payload = payload
 
+    def close(self):
+        pass
+
     def iter_content(self, chunk_size=1):
         yield self._payload
 

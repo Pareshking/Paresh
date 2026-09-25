@@ -197,6 +197,7 @@ def fetch_snapshot(url: str | None = None) -> tuple[pd.DataFrame | None, dict[st
     target = url or RANKINGS_SNAPSHOT_URL
     started = time.perf_counter()
     tmp_path = None
+    resp = None  # streamed: holds a pooled connection until closed
     try:
         resp = requests.get(target, timeout=DOWNLOAD_TIMEOUT_S, stream=True)
         if resp.status_code != 200:
@@ -242,6 +243,8 @@ def fetch_snapshot(url: str | None = None) -> tuple[pd.DataFrame | None, dict[st
         metrics.note("ranking_snapshot", f"error_{type(exc).__name__}")
         return None, None
     finally:
+        if resp is not None:
+            resp.close()
         if tmp_path and os.path.exists(tmp_path):
             try:
                 os.unlink(tmp_path)
