@@ -94,6 +94,7 @@ def _download_snapshot(url: str, fact: str):
     """
     started = time.perf_counter()
     tmp_path = None
+    resp = None  # streamed: holds a pooled connection until closed
     try:
         resp = requests.get(url, timeout=DOWNLOAD_TIMEOUT_S, stream=True)
         if resp.status_code != 200:
@@ -156,6 +157,8 @@ def _download_snapshot(url: str, fact: str):
         metrics.note(fact, f"error_{type(exc).__name__}")
         return None
     finally:
+        if resp is not None:
+            resp.close()
         # Only failures reach here still holding tmp_path; the success path
         # handed it to the caller and cleared it.
         if tmp_path and os.path.exists(tmp_path):

@@ -8,6 +8,7 @@ object size, and object SHA before returning bytes/dataframes.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
@@ -16,6 +17,9 @@ import pandas as pd
 
 from .manifest import MANIFEST_SCHEMA_VERSION, sha256_bytes
 from .r2 import R2Archive
+
+
+_CURRENT_POINTER = re.compile(r"\d{4}-\d{2}-\d{2}/current\.json")
 
 
 class R2DatasetIntegrityError(RuntimeError):
@@ -54,9 +58,15 @@ class R2DatasetReader:
             return self._resolve_pointer(key, expected_dataset=dataset, expected_as_of=as_of)
 
         prefix = f"archive/manifests/{dataset}/"
+        # Only pointers DIRECTLY under this dataset: <prefix><YYYY-MM-DD>/current.json.
+        # The listing is a prefix match, so "prices/yahoo" also returned every
+        # pointer of "prices/yahoo/raw", and "raw/..." sorts after any date --
+        # resolve_current("prices/yahoo") then picked the raw pointer and failed
+        # the dataset check. That is why the app was moved onto the raw archive
+        # on 2026-09-22 instead of this being fixed.
         candidates = sorted(
             key for key in self.archive.list_keys(prefix)
-            if key.endswith("/current.json")
+            if _CURRENT_POINTER.fullmatch(key[len(prefix):])
         )
         if not candidates:
             raise FileNotFoundError(f"no current R2 pointer for dataset {dataset}")

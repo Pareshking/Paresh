@@ -890,7 +890,7 @@ def _download_full_symbol_history(
     if not frames:
         return pd.DataFrame()
 
-    data = pd.concat(frames, axis=1) if len(frames) > 1 else frames[0]
+    data = pd.concat(frames, axis=1, sort=True) if len(frames) > 1 else frames[0]
 
     # A batch can partially answer. Retry only the new symbols that did not
     # appear in that response; never turn this into a 750-symbol refresh.
@@ -917,14 +917,21 @@ def _download_full_symbol_history(
                 if retry.index.tz is not None:
                     retry.index = retry.index.tz_localize(None)
                 if isinstance(retry.columns, pd.MultiIndex):
-                    fields = list(retry.columns.get_level_values(-1))
+                    # yfinance's default group_by="column" puts a single
+                    # ticker's columns in (Price, Ticker) order, so the LAST
+                    # level is the ticker, not the field. Find the level that
+                    # actually carries the field names.
+                    lvl = _field_level(retry.columns)
+                    fields = list(retry.columns.get_level_values(
+                        lvl if lvl is not None else -1
+                    ))
                 else:
                     fields = list(retry.columns)
                 retry.columns = pd.MultiIndex.from_product(
                     [[normalise_symbol(symbol)], fields],
                     names=["Ticker", "Price"],
                 )
-                data = pd.concat([data, retry], axis=1)
+                data = pd.concat([data, retry], axis=1, sort=True)
                 logger.info("Recovered new price-cache symbol %s on individual retry.", symbol)
         except Exception as exc:
             logger.warning(

@@ -191,6 +191,9 @@ def _serve_snapshot(monkeypatch, frame):
     class _Resp:
         status_code = 200
 
+        def close(self):
+            pass
+
         def iter_content(self, chunk_size=1):
             yield payload
 

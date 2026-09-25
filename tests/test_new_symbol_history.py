@@ -102,3 +102,28 @@ def test_new_symbol_batch_gap_is_retried_individually(monkeypatch):
     assert calls[0][0] == ["HEGAM.NS"]
     assert calls[1][0] == "HEGAM.NS"
     assert set(out.columns.get_level_values(0)) == {"OTHER", "HEGAM"}
+
+
+def test_individual_retry_reads_fields_from_yfinances_real_column_order(monkeypatch):
+    """A single-ticker yf.download (group_by="column") is (Price, Ticker).
+
+    The retry used to take the LAST level as the field names -- that is the
+    ticker there, so the recovered symbol came back as ("HEGAM", "HEGAM.NS")
+    columns with no Close at all.
+    """
+    def fake_download(tickers, **kwargs):
+        if isinstance(tickers, list):
+            return _raw_frame("OTHER", ["2026-09-17"])
+        index = pd.DatetimeIndex(["2025-09-18", "2026-09-17"])
+        columns = pd.MultiIndex.from_product(
+            [["Close", "Volume"], [tickers]], names=["Price", "Ticker"]
+        )
+        return pd.DataFrame([[100.0, 1000.0], [110.0, 1200.0]], index=index, columns=columns)
+
+    monkeypatch.setattr(price_loader.yf, "download", fake_download)
+
+    out = price_loader._download_full_symbol_history(["HEGAM"], "10y")
+
+    assert ("HEGAM", "Close") in out.columns
+    assert ("HEGAM", "Volume") in out.columns
+    assert out[("HEGAM", "Close")].tolist() == [100.0, 110.0]

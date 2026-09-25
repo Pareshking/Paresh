@@ -15,7 +15,13 @@ from src.storage.r2 import R2Archive, R2Config
 ENV_FLAG = "R2_STREAMLIT_READER_ENABLED"
 DATASET_ENV = "R2_STREAMLIT_DATASET"
 DEFAULT_DATASET = "prices/screener"
-DEEP_HISTORY_DATASET = "prices/yahoo/raw"
+# The adjusted 10-year Yahoo archive the daily sync republishes every night
+# (prices_full.parquet). NOT prices/yahoo/raw: that is an unadjusted provenance
+# capture from a one-off build (auto_adjust=False, no "Adj Close"), frozen at
+# its build date. Serving it made every split outside the corporate-action log
+# a phantom crash in the Backtest and Track Record, on prices that stopped
+# moving on 2026-09-21.
+DEEP_HISTORY_DATASET = "prices/yahoo"
 
 
 

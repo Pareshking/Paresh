@@ -378,7 +378,7 @@ deferred for that reason.
 | E8 | `momentum.py` | "Max DD 12M" had the same clamp. | NaN when the window does not fit. |
 | E9 | `momentum.py` | Persistence counted the return on the window's start date, one session outside the window. | Aligned with the momentum window. |
 | E10 | `momentum.py` | About 150 lines of signal code were duplicated between a "fast" path and a "slow" path. | One definition. |
-| E11 | `portfolio.py` | Equal Risk Contribution and `_shrunk_cov` were unreachable, and were the only users of `scipy`. | Removed, and `scipy` dropped from `requirements.txt` (one fewer wheel per cold start). |
+| E11 | `portfolio.py` | Equal Risk Contribution and `_shrunk_cov` were unreachable, and were the only direct imports of `scipy`. | Removed, and `scipy` dropped from `requirements.txt` (one fewer wheel per cold start). The one indirect user, pandas' `corr(method="spearman")` in the sweep's hold-out check, now ranks and then takes the Pearson correlation, which gives the same value. |
 | E12 | `corporate_actions.py` | An unreadable log silently disabled all split neutralisation. | Now logged as an error. |
 | E13 | `corporate_actions.py` | A split whose own session was a vendor hole read as "restated" and was not neutralised. | Now checks the first real print on or after the date. |
 | E14 | `breadth.py` | The "% New Highs/Lows" denominator counted stocks too young to have a 52-week high. | Now uses stocks that can register one. |
@@ -401,3 +401,15 @@ deferred for that reason.
 - The pipeline version was **not** bumped. Stage-4B's hand-off gate in V1 CI
   requires the published artifact to match it. The only effect is that
   Persistence shows its old value until tonight's re-rank.
+
+## 8. Line-by-line audit, area 2: `src/loaders` and the R2 read path
+
+### Fixed
+| # | File | Finding | Effect |
+|---|---|---|---|
+| L1 | `src/storage/reader.py` | `resolve_current` listed pointers by prefix, so `prices/yahoo` also picked up every pointer of `prices/yahoo/raw`. `raw/...` sorts after every date, so it won, and the reader failed with "pointer dataset mismatch". | Only `<date>/current.json` directly under the dataset counts. This is the exact error from production, reproduced in a test. |
+| L2 | `r2/consumers/r2_streamlit.py` | Because of L1, commit fc43585 (2026-09-22) pointed the app's deep history at `prices/yahoo/raw`. That capture is **unadjusted** (`auto_adjust=False`) and **frozen at 2026-09-21**. It feeds the Backtest, the Track Record MTD and every deep frame. | Back on `prices/yahoo`: the adjusted 10-year archive that the daily sync republishes every night, in the same layout as the local price cache. |
+| L3 | `price_loader.py` | A single-ticker retry from `yf.download` has `(Price, Ticker)` columns, but the code read the last level as the field names. That level is the ticker, so a recovered new symbol had no `Close`. | Finds the field level by content. The test uses yfinance's real column order. |
+| L4 | `price_source.py`, `price_store.py`, `ranking_store.py` | Streamed downloads were never closed, so each one held a pooled connection until garbage collection. | Closed in `finally`. |
+| L5 | `price_loader.py` | `pd.concat(axis=1)` over frames with different dates raised Pandas4Warning, because pandas 4 stops sorting the union. | `sort=True` keeps today's date order. |
+

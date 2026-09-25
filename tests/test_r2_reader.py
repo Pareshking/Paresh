@@ -125,3 +125,43 @@ def test_reader_rejects_missing_manifest_created_at():
     archive.objects[manifest_key] = json.dumps(manifest).encode()
     with pytest.raises(R2DatasetIntegrityError, match="created_at"):
         R2DatasetReader(archive).resolve_current(dataset, as_of=as_of)
+
+
+def _objects_for(dataset, as_of, body):
+    sha = sha256_bytes(body)
+    object_key = f"archive/{dataset}/{as_of}/revisions/{sha}/data.parquet"
+    manifest_key = f"archive/manifests/{dataset}/{as_of}/revisions/{sha}.json"
+    manifest = {
+        "dataset": dataset, "as_of": as_of, "schema_version": 1,
+        "sha256": sha, "revision_sha256": sha, "size_bytes": len(body),
+        "object_key": object_key, "created_at": f"{as_of}T00:00:00Z",
+    }
+    pointer = {
+        "dataset": dataset, "as_of": as_of, "revision_sha256": sha,
+        "object_key": object_key, "manifest_key": manifest_key,
+    }
+    return {
+        f"archive/manifests/{dataset}/{as_of}/current.json": json.dumps(pointer).encode(),
+        manifest_key: json.dumps(manifest).encode(),
+        object_key: body,
+    }
+
+
+def test_reader_ignores_a_nested_datasets_pointers():
+    """prices/yahoo must not resolve to a pointer of prices/yahoo/raw.
+
+    The manifest listing is a prefix match and "raw/..." sorts after every
+    date, so the nested dataset's pointer used to win and fail the dataset
+    check -- which is why the app was moved onto the frozen raw archive.
+    """
+    objects = {}
+    objects.update(_objects_for("prices/yahoo", "2026-09-24", b"adjusted"))
+    objects.update(_objects_for("prices/yahoo/raw", "2026-09-21", b"raw"))
+    reader = R2DatasetReader(FakeArchive(objects))
+
+    parent = reader.resolve_current("prices/yahoo")
+    assert (parent.dataset, parent.as_of) == ("prices/yahoo", "2026-09-24")
+    assert reader.read_bytes(parent) == b"adjusted"
+
+    nested = reader.resolve_current("prices/yahoo/raw")
+    assert (nested.dataset, nested.as_of) == ("prices/yahoo/raw", "2026-09-21")
