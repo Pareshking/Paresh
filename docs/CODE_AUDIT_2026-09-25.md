@@ -413,3 +413,15 @@ deferred for that reason.
 | L4 | `price_source.py`, `price_store.py`, `ranking_store.py` | Streamed downloads were never closed, so each one held a pooled connection until garbage collection. | Closed in `finally`. |
 | L5 | `price_loader.py` | `pd.concat(axis=1)` over frames with different dates raised Pandas4Warning, because pandas 4 stops sorting the union. | `sort=True` keeps today's date order. |
 
+
+## 9. Line-by-line audit, area 3: `app.py` and `src/core`
+
+### Fixed
+| # | File | Finding | Effect |
+|---|---|---|---|
+| C1 | `startup_metrics.py` | `note_if_changed` kept its dedupe keys in `_facts`, which is embedded in the served page. One key held about 20 KB of contract JSON, and another (`price_source_selection_key`) named the price vendor. The vendor redaction only matches `screener_*` prefixes. | Dedupe state now lives in a private dict and never reaches the page. |
+| C2 | `app.py` | `_adjust_for_corporate_actions` was cached on the price hash only, and `_run_engine_base` did not key on the applied actions at all. A log that gains an event over unchanged prices was served the old adjustment and engine for up to an hour. | Both are keyed on the event digest (`ranking_store.actions_digest`). |
+| C3 | `universe_reconciliation.py` | Dropped only `DUMMY*`, while the universe loader also drops `NAN` and one-character rows. | Uses `is_tradeable_symbol`, so the two agree. |
+| C4 | `app.py`, `config_view.py`, `backtest_view.py` | `DEFAULT_SECTOR_CAP`, `DEFAULT_STOCK_CAP`, `DEFAULT_TARGET_VOL` and `DEFAULT_TRANSACTION_COST_BPS` were defined but never read. The same numbers were typed in three places. | Read from config. The track-record config keeps its literal 30 bps, because it is a frozen regime. |
+| C5 | `config.py` | `ThemeTokens`/`THEME_TOKENS` and `PRICE_ARCHIVE_ASSET`/`PRICE_ARCHIVE_URL` had no readers. | Removed. |
+| C6 | `app.py` | The module docstring described a UI that no longer exists ("Investrack Pill Tab"). | Rewritten. |

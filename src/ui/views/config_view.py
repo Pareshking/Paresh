@@ -12,6 +12,9 @@ import streamlit as st
 
 from src.core.config import (
     DEFAULT_LOOKBACK_WEIGHTS,
+    DEFAULT_SECTOR_CAP,
+    DEFAULT_STOCK_CAP,
+    DEFAULT_TARGET_VOL,
     INDICES_LOCAL,
     INDICES_URLS,
     MCAPS_FILE,
@@ -281,10 +284,10 @@ Higher weight on **9M + 12M** favours slow, persistent trends.
 # key -> (default, minimum, maximum). Ranges live here so the resolver rejects
 # an out-of-range stored value the same way the widget would.
 _RISK_SETTINGS: dict[str, tuple] = {
-    "cfg_sc": (30, 15, 50),
-    "cfg_stc": (5, 2, 15),
+    "cfg_sc": (round(DEFAULT_SECTOR_CAP * 100), 15, 50),
+    "cfg_stc": (round(DEFAULT_STOCK_CAP * 100), 2, 15),
     "cfg_vt": (False, None, None),
-    "cfg_vtv": (25, 10, 40),
+    "cfg_vtv": (round(DEFAULT_TARGET_VOL * 100), 10, 40),
 }
 
 

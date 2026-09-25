@@ -8,6 +8,7 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 
+from src.core.config import DEFAULT_TRANSACTION_COST_BPS
 from src.core.market_time import ist_now
 from src.engine.backtester import DEFAULT_BACKTEST_MONTHS, run_backtest
 from src.engine.corporate_actions import load_events
@@ -61,7 +62,7 @@ def _backtest_body(
         "Transaction Cost Drag (bps)",
         0.0,
         100.0,
-        30.0,
+        float(DEFAULT_TRANSACTION_COST_BPS),
         5.0,
         help="Round-trip cost (STT + Stamp Duty + Brokerage + Slippage). Standard NSE equity is ~25-35 bps.",
         key="bt_cost_bps",

@@ -1,7 +1,8 @@
-"""
-NSE Momentum Dashboard — Production Application Entry Point.
-Architecture: Modular Package Hierarchy with Pure Paper White Theme & 100% Full Viewport Widescreen Layout.
-Flush 0px top padding with Investrack Pill Tab Navigation.
+"""NSE Momentum Dashboard -- production entry point.
+
+Resolves the reader's settings, loads prices through the cached pipeline,
+serves the precomputed ranking when its contract matches (computing it
+otherwise), and routes the pages through st.navigation.
 """
 
 import concurrent.futures
@@ -20,6 +21,9 @@ warnings.filterwarnings("ignore", message=".*st\\.components\\.v1\\.html.*")
 from src.core import startup_metrics as metrics
 from src.core.config import (
     DEFAULT_LOOKBACK_WEIGHTS,
+    DEFAULT_SECTOR_CAP,
+    DEFAULT_STOCK_CAP,
+    DEFAULT_TARGET_VOL,
     MCAP_PR_FILE,
     MCAPS_FILE,
     PRICES_FILE,
@@ -128,10 +132,11 @@ if total_w <= 0:
     )
 weights = tuple(w / total_w for w in raw_w)
 
-sector_cap = resolve("cfg_sc", 30, lo=15, hi=50) / 100.0
-stock_cap = resolve("cfg_stc", 5, lo=2, hi=15) / 100.0
+# Defaults from config, the same constants the Configuration tab renders with.
+sector_cap = resolve("cfg_sc", round(DEFAULT_SECTOR_CAP * 100), lo=15, hi=50) / 100.0
+stock_cap = resolve("cfg_stc", round(DEFAULT_STOCK_CAP * 100), lo=2, hi=15) / 100.0
 vol_target_on = resolve("cfg_vt", False)
-vol_target_val = resolve("cfg_vtv", 25, lo=10, hi=40) / 100.0
+vol_target_val = resolve("cfg_vtv", round(DEFAULT_TARGET_VOL * 100), lo=10, hi=40) / 100.0
 
 
 # ── Cached Data Pipeline ─────────────────────────────────────────────────────
@@ -180,7 +185,9 @@ def _extract_ohlcv_cached(price_hash: str, sym_key: str, _raw_prices: pd.DataFra
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def _adjust_for_corporate_actions(price_hash: str, _frames: dict) -> tuple[dict, list]:
+def _adjust_for_corporate_actions(
+    price_hash: str, events_key: str, _frames: dict, _events: list
+) -> tuple[dict, list]:
     """Neutralise flagged splits and demergers before the engine reads a price.
 
     run_backtest has done this since the guard was written; the SCREENER never
@@ -194,12 +201,13 @@ def _adjust_for_corporate_actions(price_hash: str, _frames: dict) -> tuple[dict,
     was drawn across a crash that never happened. Every one of the fourteen
     logged events was still sitting in the prices, none had been restated away.
 
-    Cached on the price hash: the adjustment is a handful of column multiplies,
-    but it must not re-run on every slider tick.
+    Cached on the price hash AND the event log: the adjustment is a handful of
+    column multiplies, but it must not re-run on every slider tick -- and a
+    log that gains an event over unchanged prices must not be served the old
+    adjustment for up to an hour.
     """
     metrics.incr("memo_miss_corporate_actions")
-    events = load_events()
-    adjusted, applied = adjust_ohlc(_frames, events)
+    adjusted, applied = adjust_ohlc(_frames, _events)
     metrics.note("corporate_actions_applied", len(applied))
     if applied:
         logger.info(
@@ -503,6 +511,7 @@ def _run_engine_base(
     price_hash: str,
     index_hash: str,
     pipeline_version: str,
+    actions_key: str,
     _adj_close: pd.DataFrame,
     _high_prices: pd.DataFrame,
     _low_prices: pd.DataFrame,
@@ -517,7 +526,9 @@ def _run_engine_base(
     # high, ATH, drawdowns, persistence) so weight-slider changes in
     # run_momentum_pipeline skip the signal recomputation entirely.
     # _idx_info and _market_caps are underscore-prefixed (excluded from the
-    # cache key); price_hash + index_hash already encode data state.
+    # cache key); price_hash + index_hash already encode data state, and
+    # actions_key the adjustments -- which rewrite history BEFORE their date
+    # and so are invisible to price_hash (see ranking_store.actions_digest).
     metrics.incr("memo_miss_engine_base")
     return pipeline.build_engine(
         _adj_close, _high_prices, _low_prices, _close_prices, _volume_data,
@@ -680,12 +691,18 @@ def load_all_data(indices: list[str]):
                 logger.warning("Price freshness notes unavailable (%s).", type(_exc).__name__)
 
         with metrics.stage("corporate_actions"):
+            from src.loaders.ranking_store import actions_digest
+
+            _ca_events = load_events()
             _adj, _ca_applied = _adjust_for_corporate_actions(
                 p_hash_raw,
+                actions_digest(_ca_events),
                 {"adj_close": adj_close, "close": close_p,
                  "high": high_p if high_p is not None else close_p,
                  "low": low_p if low_p is not None else close_p},
+                _ca_events,
             )
+            _ca_key = actions_digest(_ca_applied)
             adj_close, close_p = _adj["adj_close"], _adj["close"]
             if _src.intraday:
                 high_p, low_p = _adj["high"], _adj["low"]
@@ -699,7 +716,7 @@ def load_all_data(indices: list[str]):
 
     p_hash = _price_hash(adj_close)
     i_hash = f"{len(idx_info)}_{sym_key}"
-    base_hash = f"{p_hash}_{i_hash}_{pipeline.PIPELINE_VERSION}"
+    base_hash = f"{p_hash}_{i_hash}_{pipeline.PIPELINE_VERSION}_{_ca_key}"
 
     def _build_engine_and_rank():
         """The 30 seconds. Deferred, so a cold start need not pay it at all."""
@@ -708,6 +725,7 @@ def load_all_data(indices: list[str]):
                 p_hash,
                 i_hash,
                 pipeline.PIPELINE_VERSION,
+                _ca_key,
                 adj_close,
                 high_p,
                 low_p,
