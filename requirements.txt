@@ -5,7 +5,7 @@
 # this pin changes nothing today and stops the next silent swap. To upgrade:
 # bump here, let V1 Production QA verify against the live app, then keep it.
 streamlit==1.63.0
-pandas>=2.0.0
+pandas>=3.0.6
 numpy>=1.24.0
 scipy>=1.10.0
 # scikit-learn was declared here and imported NOWHERE -- `grep -rn sklearn`
