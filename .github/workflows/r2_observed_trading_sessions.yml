@@ -10,6 +10,11 @@ on:
       - "scripts/check_observed_sessions.py"
       - ".github/workflows/r2_observed_trading_sessions.yml"
   workflow_dispatch:
+  # Built from the published Screener store, so rebuilt after every Screener
+  # sync. It had no schedule at all: it only refreshed when this file changed.
+  workflow_run:
+    workflows: ["Screener daily price sync (overnight)"]
+    types: [completed]
 
 permissions:
   contents: read
@@ -21,6 +26,8 @@ concurrency:
 
 jobs:
   publish:
+    # Chained runs only after a successful upstream run: a failed one published nothing new.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:

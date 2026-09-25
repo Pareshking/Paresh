@@ -1,6 +1,6 @@
 name: Scheduled job failure alert
 
-# Scheduled runs fail quietly: GitHub only emails whoever last edited the
+# Unattended runs fail quietly: GitHub only emails whoever last edited the
 # workflow, so the R2 bootstrap and continuity audit stayed red for days in
 # September 2026 with nobody looking. Every failed scheduled run of a
 # production workflow now lands on one open issue, labelled so it is easy to
@@ -15,6 +15,7 @@ on:
       - R2 Cost Observability
       - R2 Final Acceptance
       - R2 dated market-cap publication
+      - R2 observed trading-session publication
       - R2 research index price history
       - R2 retention
       - R2 ranking calculation archive
@@ -34,8 +35,12 @@ concurrency:
 
 jobs:
   alert:
+    # Scheduled runs, and runs chained off another workflow (workflow_run):
+    # both happen with nobody watching. Pushes and dispatches have a person
+    # looking at them already.
     if: >-
-      github.event.workflow_run.event == 'schedule' &&
+      (github.event.workflow_run.event == 'schedule' ||
+       github.event.workflow_run.event == 'workflow_run') &&
       (github.event.workflow_run.conclusion == 'failure' ||
        github.event.workflow_run.conclusion == 'timed_out')
     runs-on: ubuntu-latest

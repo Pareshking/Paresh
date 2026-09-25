@@ -1,8 +1,8 @@
 name: R2 retention
 
-# Owner-approved policy (2026-09-25): prices/yahoo and snapshots/application
-# keep the last 7 as_of dates plus every month-end; everything else keeps its
-# full history. See scripts/r2_retention.py.
+# Owner-approved policy (2026-09-25): prices/yahoo, snapshots/application and
+# prices/screener keep the last 7 as_of dates plus every month-end; everything
+# else keeps its full history. See scripts/r2_retention.py.
 #
 # DRY RUN unless dispatched with apply=true AND expect_deletes equal to the
 # count the latest dry run printed. On push and on the weekly schedule it

@@ -2,6 +2,12 @@ name: R2 historical evidence bootstrap
 
 on:
   workflow_dispatch:
+  # Straight after the daily sync commits the index, market-cap and
+  # corporate-action files it reads (its own commits carry [skip ci], so the
+  # push trigger never sees them). The schedule stays as a fallback.
+  workflow_run:
+    workflows: ["Daily NSE Momentum Data Sync"]
+    types: [completed]
   push:
     branches: [main]
     paths:
@@ -29,6 +35,8 @@ concurrency:
 
 jobs:
   bootstrap:
+    # Chained runs only after a successful upstream run: a failed one published nothing new.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
