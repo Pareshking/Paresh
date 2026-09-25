@@ -65,6 +65,11 @@ TRACK_RECORD_CONFIG: dict[str, Any] = {
     "cost_bps": 30.0,
     "buffer_n": 40,
     "benchmark": "^CRSLDX",
+    # Not a run_backtest argument: it names the ACCOUNTING, so the fingerprint
+    # changes with it. From 2026-09-25 the backtest holds each book between
+    # fills (buy and hold) instead of re-weighting it to target every session;
+    # months frozen before that stay as they are and read as a separate regime.
+    "accrual": "buy_and_hold",
 }
 
 

@@ -9,7 +9,6 @@ from src.engine.calendar_momentum import (
     _winsorised_cross_section_z,
 )
 from src.engine.momentum import MomentumEngine
-from src.engine.portfolio import _shrunk_cov
 from src.ui.components import compute_signals
 from src.core.types import MarketRegime
 
@@ -28,23 +27,6 @@ def test_calendar_cross_section_missing_factor_is_not_synthetic_zero() -> None:
     apply_calendar_momentum(calc)
     latest = calc.momentum_scores.iloc[-1]
     assert latest.isna().all()
-
-
-def test_portfolio_covariance_does_not_turn_missing_returns_into_zero() -> None:
-    returns = pd.DataFrame(
-        {"A": [0.01, 0.02, np.nan, 0.04], "B": [0.02, 0.01, 0.03, 0.02]}
-    )
-    cov = _shrunk_cov(returns)
-    complete = returns.dropna(how="any")
-    assert cov.shape == (2, 2)
-    assert np.isfinite(cov.to_numpy()).all()
-    assert np.isfinite(_shrunk_cov(complete).to_numpy()).all()
-    expected = _shrunk_cov(complete)
-    assert np.allclose(cov.to_numpy(), expected.to_numpy())
-
-
-
-
 
 
 def test_runtime_contains_no_removed_quantitative_r2_tokens() -> None:

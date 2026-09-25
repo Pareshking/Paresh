@@ -360,3 +360,44 @@ deferred for that reason.
 - [ ] I9: audit the `unsafe_allow_html` interpolations
 - [ ] Widen the ruff rules (B, UP, SIM) step by step
 - [ ] After Stage-4B lands: R2, R3, W5's Stage-4B triggers
+
+---
+
+## 7. Line-by-line audit, area 1: `src/engine` (5,125 lines, every line read)
+
+### Fixed
+| # | File | Finding | Effect |
+|---|---|---|---|
+| E1 | `backtester.py` | `run_backtest` lost its `@st.cache_data` in the 2026-09-17 refactor. | The Backtest and Track Record pages re-ran the whole walk-forward on every interaction. |
+| E2 | `backtester.py` | Between fills the loop applied the target weights to every day's returns, which models a free daily rebalance. `_drift_holdings`, the MTD figure and the tradebook all assume buy-and-hold. | On live Screener data the six-month net return moves from +43.1% to +46.3%, and the Sharpe ratio from 2.21 to 2.34. Tracked as a new track-record regime (`accrual` key in the fingerprint). |
+| E3 | `backtester.py` | A holed session made both that day's and the next day's return NaN, so the move across the hole was never booked. | Holdings are now valued at their last real print. |
+| E4 | `backtester.py` | A period with an empty ranking skipped the book. Positions stayed "open", no exit was recorded, no cost was charged, and the period earned 0%. | The book now goes to cash with the exits recorded and charged. |
+| E5 | `backtester.py` | An exit with no recorded entry was booked as a flat 0% round trip. | Now NaN. |
+| E6 | `backtester.py` | The backtest's inverse-vol estimate (64 rows, sample SD) differed from the Portfolio tab's (63 rows, population SD). | Now one definition. |
+| E7 | `calendar_momentum.py` | "12M Return" was measured over whatever history existed when the frame was shorter than the horizon. The Sharpe ratio already had this guard. | NaN when the window does not fit. |
+| E8 | `momentum.py` | "Max DD 12M" had the same clamp. | NaN when the window does not fit. |
+| E9 | `momentum.py` | Persistence counted the return on the window's start date, one session outside the window. | Aligned with the momentum window. |
+| E10 | `momentum.py` | About 150 lines of signal code were duplicated between a "fast" path and a "slow" path. | One definition. |
+| E11 | `portfolio.py` | Equal Risk Contribution and `_shrunk_cov` were unreachable, and were the only users of `scipy`. | Removed, and `scipy` dropped from `requirements.txt` (one fewer wheel per cold start). |
+| E12 | `corporate_actions.py` | An unreadable log silently disabled all split neutralisation. | Now logged as an error. |
+| E13 | `corporate_actions.py` | A split whose own session was a vendor hole read as "restated" and was not neutralised. | Now checks the first real print on or after the date. |
+| E14 | `breadth.py` | The "% New Highs/Lows" denominator counted stocks too young to have a 52-week high. | Now uses stocks that can register one. |
+| E15 | `parameter_sweep.py` | The membership file was re-read once per grid combination. | Now read once per grid. |
+
+### Recorded for the owner, not changed
+- **Wall-clock as-of date** (`latest_as_of_date`): for data under 7 days old,
+  the final row's window is anchored to today's IST date, not to the data date.
+  The same price file therefore ranks slightly differently on a Saturday and on
+  a Sunday. The precomputed table, stamped at about 02:00 IST, and a live
+  recompute later in the day can use different window starts under one
+  contract. This is methodology, so it is not changed here.
+- **100% coverage floor** (`last_ranked_session`): one current-universe symbol
+  with no print for 1–5 sessions (a halt or a vendor hole) holds the whole
+  ranking back to its last full session, for up to 5 sessions. This is a
+  documented owner rule; today's data is complete (750/750).
+- **Price fingerprint hashes only the last row.** A vendor restatement of
+  history with an unchanged last row keeps the old precompute valid. The risk
+  is now small because re-ranking runs right after each Screener publish.
+- The pipeline version was **not** bumped. Stage-4B's hand-off gate in V1 CI
+  requires the published artifact to match it. The only effect is that
+  Persistence shows its old value until tonight's re-rank.

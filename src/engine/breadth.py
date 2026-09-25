@@ -82,7 +82,11 @@ def compute_hl_timeseries(
     is_high = (_prices >= high_w - tol).astype(float)
     is_low = (_prices <= low_w + tol).astype(float)
 
-    n_stocks = _prices.notna().sum(axis=1)
+    # The denominator is the stocks that COULD register a high or low today:
+    # a price and enough history for the rolling window. Counting every stock
+    # with a price divided by names that cannot yet have a 52-week high, which
+    # biased both percentages down -- the same error compute_ma_breadth fixed.
+    n_stocks = (_prices.notna() & high_w.notna() & low_w.notna()).sum(axis=1)
     daily_highs = is_high.sum(axis=1)
     daily_lows = is_low.sum(axis=1)
 
