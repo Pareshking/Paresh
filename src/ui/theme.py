@@ -961,7 +961,7 @@ _SPARK_MISSING = '<span style="color:#cbd5e1;font-size:0.75rem;">—</span>'
 def _spark_window_key(sub_prices: pd.DataFrame) -> str:
     """Fingerprint the 60-session window the sparklines are drawn from.
 
-    Same shape as src/engine/pipeline.price_fingerprint and for the same
+    Same shape as src/engine/pipeline.frame_memo_key and for the same
     reason: within a trading day the window's last date and shape do not
     change, only the numbers in the final row do, so hashing that row is what
     makes an intraday refresh miss the cache instead of serving this morning's

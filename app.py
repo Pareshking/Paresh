@@ -600,7 +600,10 @@ def load_all_data(indices: list[str]):
             return None
 
         with metrics.stage("extract_ohlcv"):
-            p_hash_raw = _price_hash(raw_prices)
+            # The raw 10-year download is too big to hash whole on every rerun;
+            # this key only memoises the extraction. The ranking itself is
+            # keyed on price_fingerprint of the extracted frames below.
+            p_hash_raw = pipeline.frame_memo_key(raw_prices)
             adj_close, close_p, high_p, low_p, vol_p, open_p = _extract_ohlcv_cached(
                 p_hash_raw, sym_key, raw_prices, symbols
             )

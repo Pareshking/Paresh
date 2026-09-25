@@ -120,8 +120,9 @@ def test_a_table_ranked_on_a_different_session_is_rejected():
     assert not ok and "price_as_of" in why
 
 
-def test_the_fingerprint_alone_cannot_catch_it():
-    """The gap is real, not hypothetical: one fingerprint, two ranked sessions."""
+def test_healing_an_older_session_is_caught_by_the_fingerprint_and_the_date():
+    """Two copies, one healed a session back: the whole-history fingerprint
+    (decision 3B) now tells them apart, and price_as_of still does too."""
     import numpy as np
 
     idx = pd.date_range("2026-08-01", periods=30, freq="B")
@@ -135,5 +136,24 @@ def test_the_fingerprint_alone_cannot_catch_it():
         return df
 
     published, live = build(healed=False), build(healed=True)
-    assert pipeline.price_fingerprint(published) == pipeline.price_fingerprint(live)
+    assert pipeline.price_fingerprint(published) != pipeline.price_fingerprint(live)
     assert pipeline.ranking_as_of(published) != pipeline.ranking_as_of(live)
+
+
+def test_a_restatement_of_older_history_changes_the_fingerprint():
+    """Decision 3B: a vendor fixing a missed split rewrites the past and leaves
+    today's price alone. The last-row fingerprint matched and the stale table
+    was served."""
+    frame = _frame()
+    restated = frame.copy()
+    restated.iloc[0] = restated.iloc[0] / 2
+    assert pipeline.price_fingerprint(restated) != pipeline.price_fingerprint(frame)
+    # A memo-only key may stay last-row, but never the contract.
+    assert pipeline.frame_memo_key(restated) == pipeline.frame_memo_key(frame)
+
+
+def test_the_fingerprint_ignores_storage_precision():
+    frame = _frame()
+    assert pipeline.price_fingerprint(frame.astype("float32")) == (
+        pipeline.price_fingerprint(frame.astype("float64"))
+    )
