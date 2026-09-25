@@ -41,7 +41,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.13"
+          python-version-file: .python-version
       - run: pip install -r requirements.txt pytest
       - name: R2 regression
         run: python -m pytest -q tests/test_r2_*.py tests/test_build_trading_sessions.py tests/test_market_cap_history.py

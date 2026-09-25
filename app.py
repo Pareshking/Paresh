@@ -325,7 +325,15 @@ def _precomputed_ranking(
         # Logged, not silent: "the precompute did not hit" and "the precompute
         # does not exist" need very different fixes, and only this line tells
         # them apart from outside the container.
-        logger.info("Precomputed ranking rejected (%s); computing instead.", reason)
+        # Streamlit reruns this on every interaction; production logged the same
+        # rejection pair dozens of times a minute. Log a decision once per
+        # distinct (reason, published, expected) and keep the metrics per-run.
+        log_rejection = metrics.note_if_changed(
+            "ranking_precompute_rejection_key",
+            f"{reason}|{published_contract_json}|{expected_contract_json}",
+        )
+        if log_rejection:
+            logger.info("Precomputed ranking rejected (%s); computing instead.", reason)
         metrics.note("ranking_precompute", f"miss_{reason.replace(' ', '_')}")
         # A contract miss must still tell us whether the published table
         # actually describes the current universe. Do this for EVERY rejection
@@ -338,15 +346,16 @@ def _precomputed_ranking(
                 expected=universe,
                 actual=frame["Symbol"].dropna().tolist(),
             )
-            logger.info(
-                "Precomputed universe reconciliation: expected=%d published=%d "
-                "missing=%s extra=%s duplicates=%s",
-                reconciliation["expected_count"],
-                reconciliation["published_count"],
-                ",".join(reconciliation["missing"][:20]) or "-",
-                ",".join(reconciliation["extra"][:20]) or "-",
-                ",".join(reconciliation["duplicates"][:20]) or "-",
-            )
+            if log_rejection:
+                logger.info(
+                    "Precomputed universe reconciliation: expected=%d published=%d "
+                    "missing=%s extra=%s duplicates=%s",
+                    reconciliation["expected_count"],
+                    reconciliation["published_count"],
+                    ",".join(reconciliation["missing"][:20]) or "-",
+                    ",".join(reconciliation["extra"][:20]) or "-",
+                    ",".join(reconciliation["duplicates"][:20]) or "-",
+                )
             metrics.note(
                 "ranking_precompute_published_symbols",
                 reconciliation["published_count"],

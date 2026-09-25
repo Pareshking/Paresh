@@ -64,6 +64,22 @@ on:
     - cron: '0 2 * * *'
   workflow_dispatch: # Allows manual 1-click execution anytime from GitHub Actions tab
 
+  # Re-rank as soon as new Screener prices are published.
+  #
+  # The precomputed ranking is only accepted while its price fingerprint
+  # matches the Screener store production reads. The 17:30 slot ranks the
+  # store the PREVIOUS night published; the Screener job then advances it
+  # (~22:00 UTC), and production logged "Precomputed ranking rejected
+  # (price_fingerprint differs); computing instead." from then until the 02:00
+  # slot landed (~07:00 UTC) -- 2026-09-24 03:30-07:02 and 2026-09-25 01:16
+  # onwards. That is the Indian morning, when readers are actually on the app,
+  # paying the full engine cost on every cold cache. Chaining here closes the
+  # gap to minutes; the concurrency group below queues it behind any running
+  # slot.
+  workflow_run:
+    workflows: ["Screener daily price sync (overnight)"]
+    types: [completed]
+
 permissions:
   contents: write
 
@@ -78,6 +94,8 @@ concurrency:
 
 jobs:
   sync:
+    # A failed Screener run published nothing new, so there is nothing to re-rank.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -125,7 +143,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version-file: .python-version
           cache: 'pip'
 
       - name: Install Dependencies
