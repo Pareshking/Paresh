@@ -10,6 +10,9 @@ on:
       - "src/loaders/price_source.py"
       - "src/storage/**"
       - "tests/test_r2_streamlit_reader.py"
+      # boto3 is the R2 client. A Dependabot bump skips this gate on its PR
+      # (below), so the merge must bring it back here, against the real bucket.
+      - "requirements.txt"
       - ".github/workflows/r2-streamlit-production-gate.yml"
   pull_request:
     branches: [main]
@@ -18,6 +21,12 @@ permissions:
 
 jobs:
   gate:
+    # GitHub gives Dependabot PRs no repository secrets, so on them this gate
+    # can only ever fail with "Missing R2 configuration" -- a red that says
+    # nothing about the change. Handing Dependabot the R2 keys instead would
+    # run freshly-bumped third-party code with write credentials. The job is
+    # skipped there and re-runs on main after the merge (paths above).
+    if: github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:

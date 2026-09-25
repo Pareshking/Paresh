@@ -5,17 +5,27 @@
 # this pin changes nothing today and stops the next silent swap. To upgrade:
 # bump here, let V1 Production QA verify against the live app, then keep it.
 streamlit==1.63.0
-pandas>=2.0.0
-numpy>=1.24.0
+# The numeric stack and the data clients are pinned for the same reason as
+# streamlit: a floor like `pandas>=2.0.0` let every container boot pick up
+# whatever was newest that day, while CI had only ever tested one version.
+# These are the versions the full suite passed on (2026-09-25). pandas 3 and
+# numpy 2 change dtype and copy semantics the engine depends on, and a floor
+# of 2.0.0 / 1.24.0 claimed support for versions nothing ever ran. Dependabot
+# (monthly, increase-if-necessary) opens a PR for each new release; bump
+# deliberately and let CI plus V1 Production QA confirm it.
+pandas==3.0.6
+numpy==2.4.6
 # scikit-learn was declared here and imported NOWHERE -- `grep -rn sklearn`
 # across the repository returns this line and nothing else. Carrying it cost
 # the cold start a ~30 MB wheel plus joblib and threadpoolctl on every container
 # boot, for nothing. scipy went the same way on
 # 2026-09-25: its only user was an Equal Risk Contribution optimiser nothing
 # in the app could reach.
-yfinance>=0.2.36
-requests>=2.31.0
-plotly>=5.18.0
+# yfinance scrapes Yahoo and breaks when Yahoo changes, so its fixes matter:
+# when the daily sync starts failing on Yahoo, check for a newer yfinance first.
+yfinance==1.7.0
+requests==2.34.2
+plotly==7.1.0
 # Pinned to the exact version, not capped below a range.
 #
 # pyarrow 25.0.1 segfaults (apache/arrow#50471) and Streamlit Cloud knows it:
@@ -29,5 +39,7 @@ plotly>=5.18.0
 # let the QA run confirm it.
 pyarrow==24.0.0
 streamlit-lightweight-charts==0.7.20
-# S3-compatible Cloudflare R2 archive adapter.
+# S3-compatible Cloudflare R2 archive adapter. Left as a range on purpose:
+# boto3 releases almost daily, its S3 API is stable within a major, and the
+# R2 read-path gate re-runs on main whenever this file changes.
 boto3>=1.35.0,<2

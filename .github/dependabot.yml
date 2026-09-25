@@ -6,6 +6,11 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    # Stage-4B is maintained separately and is not to be changed from here.
+    # Without this, the grouped bump (PR #158) rewrote its workflow too, so
+    # the whole group could not be merged.
+    exclude-paths:
+      - ".github/workflows/stage4b-independent-validation.yml"
     groups:
       actions:
         patterns: ["*"]
