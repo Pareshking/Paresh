@@ -18,7 +18,7 @@ scipy>=1.10.0
 # it costs nothing until someone opens the Portfolio tab.
 yfinance>=0.2.36
 requests>=2.31.0
-plotly>=5.18.0
+plotly>=7.1.0
 # Pinned to the exact version, not capped below a range.
 #
 # pyarrow 25.0.1 segfaults (apache/arrow#50471) and Streamlit Cloud knows it:
