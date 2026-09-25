@@ -59,3 +59,26 @@ def test_a_weekend_plus_holiday_is_not_stale():
     # Friday's session read on the next Thursday: six days, still healthy.
     result = _result(**{d.replace("/", "__"): "2026-09-18" for d in r2_inventory.DAILY_DATASETS})
     assert r2_inventory.freshness(result, date(2026, 9, 24))["status"] == "PASS"
+
+
+def test_storage_report_splits_recent_from_old_per_dataset():
+    from datetime import date
+
+    from scripts.r2_inventory import storage_report
+
+    class Archive:
+        def list_objects(self, prefix):
+            return iter([
+                ("archive/prices/yahoo/2026-09-24/revisions/a/prices_full.parquet", 30),
+                ("archive/prices/yahoo/2026-06-01/revisions/b/prices_full.parquet", 25),
+                ("archive/manifests/prices/yahoo/2026-09-24/current.json", 1),
+                ("README.txt", 2),
+            ])
+
+    report = storage_report(Archive(), date(2026, 9, 25))
+    yahoo = report["by_dataset"]["archive/prices/yahoo"]
+    assert (yahoo["objects"], yahoo["bytes"]) == (2, 55)
+    assert (yahoo["recent_bytes"], yahoo["old_bytes"]) == (30, 25)
+    assert report["by_dataset"]["archive/manifests/prices/yahoo"]["recent_bytes"] == 1
+    assert report["total"]["undated_bytes"] == 2
+    assert report["total"]["bytes"] == 58
