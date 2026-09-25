@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-09-25 — Full code audit (merged up to #177)
+
+- Owner decisions shipped:
+  - 1B: ranking windows count back from the last price date.
+  - 2B: up to five stragglers are ranked on their last print (⏸) instead of holding the ranking back.
+  - 3B: the price fingerprint covers the whole history.
+- UI read line by line:
+  - escaping of every user- or vendor-supplied string;
+  - exact index-tag matching;
+  - cache keys that change when the history changes;
+  - the navigation menu now closes when a page is chosen.
+- Production QA:
+  - a newer build that contains the triggering commit is no longer a mismatch;
+  - the menu-reachability and nav-styling checks now measure what they claim;
+  - a Reset that cannot be clicked is now a failure.
+- Runtime dependencies pinned to the tested versions. The R2 read gate is skipped on Dependabot PRs and re-runs on main when `requirements.txt` changes.
+- The Yahoo index-price fallback only accepts an exact index name.
+- R2 storage size report added. Retention is awaiting the owner's decision.
+
 ## 2026-09-23 — Production ranking and Streamlit runtime hardening
 
 - Enforced 100% current-universe coverage for canonical ranking sessions, eliminating the 749/750 acceptance path caused by the former 90% coverage floor.
