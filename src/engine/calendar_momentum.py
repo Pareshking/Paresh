@@ -10,28 +10,22 @@ from __future__ import annotations
 
 import warnings
 
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
 import numpy as np
 import pandas as pd
 
 from src.core.config import MOMENTUM_MONTHS
 
-INDIA_TZ = ZoneInfo("Asia/Kolkata")
-
 
 def latest_as_of_date(index: pd.DatetimeIndex) -> pd.Timestamp:
-    """Return a current India date for fresh data, else the dataset's last observation date."""
-    today = pd.Timestamp(datetime.now(INDIA_TZ).date())
-    last_data_date = pd.Timestamp(index[-1]).normalize()
-    # Use today's calendar date for genuinely current data (including weekends
-    # and short exchange holidays), but anchor historical/stale datasets to
-    # their actual last observation so test and offline datasets cannot acquire
-    # a multi-year synthetic lookback horizon.
-    if today - last_data_date > pd.Timedelta(days=7):
-        return last_data_date
-    return max(today, last_data_date)
+    """The date every lookback window is counted back from: the last price.
+
+    It used to be TODAY's India date whenever the data was under a week old,
+    so one unchanged price file ranked differently on Saturday and Sunday --
+    a 6-month window opened on 20 Mar one day and 21 Mar the next -- and the
+    nightly precomputed table could disagree with a live recompute of the same
+    file after midnight. The answer is now a function of the data alone.
+    """
+    return pd.Timestamp(index[-1]).normalize()
 
 
 def calendar_start_positions(
@@ -220,9 +214,9 @@ def period_sharpe_at(
         end_idx = int(pd.Index(prices.index).get_loc(wanted))
 
     dates = pd.DatetimeIndex(prices.index)
-    # F6: the matrix path replaces the FINAL row's as-of date with
-    # `latest_as_of_date()` -- today's calendar date whenever the data is no
-    # more than a week stale -- and this path always used the last observation
+    # F6: the matrix path takes the FINAL row's as-of date from
+    # `latest_as_of_date()` (at the time, today's calendar date whenever the
+    # data was under a week old) and this path always used the last observation
     # date. On the shipped 750x501 tape that shifted every window by a day and
     # made 750 of 750 symbols disagree at 3M (max |diff| 1.0159), while the
     # docstring claimed the two "cannot drift". Apply the same rule.
