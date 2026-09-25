@@ -350,7 +350,7 @@ deferred for that reason.
 - [x] **R8:** the closed August logs moved to `docs/archive/`.
       `ADVERSARIAL_AUDIT_2026-09-10.md` stays because README links it as
       current.
-- [ ] **R7:** branch deletion. The owner runs the command in PR #151
+- [ ] **R7:** branch deletion. Tracked in `docs/BRANCH_CLEANUP_TODO.md`; the owner runs it
       (this session cannot delete refs).
 
 ### Later
