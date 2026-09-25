@@ -280,5 +280,5 @@ def test_a_confirmed_price_move_stays_on_record_but_is_never_neutralised(tmp_pat
 def test_the_live_log_keeps_policybzr_as_a_real_move():
     from src.engine.corporate_actions import load_events
 
-    assert not [e for e in load_events() if e["symbol"] == "POLICYBZR"
-                and e["date"] == "2026-09-24"]
+    real = {("POLICYBZR", "2026-09-24"), ("PATANJALI", "2020-01-27"), ("IDEA", "2020-03-18")}
+    assert not [e for e in load_events() if (e["symbol"], e["date"]) in real]

@@ -176,7 +176,9 @@
       "close": 5.4922,
       "looks_like": "unmatched \u2014 possible demerger or spin-off",
       "kind": "unclassified",
-      "first_seen": "2026-09-18"
+      "first_seen": "2026-09-18",
+      "verdict": "price_move",
+      "verdict_note": "Owner, 2026-09-25: a real price move -- Screener's data is already adjusted, so nothing here needs neutralising."
     },
     "2020-02-19:ALOKINDS": {
       "date": "2020-02-19",
@@ -253,7 +255,9 @@
       "close": 3.15,
       "looks_like": "3:2 (1:2 bonus)",
       "kind": "split/bonus",
-      "first_seen": "2026-09-18"
+      "first_seen": "2026-09-18",
+      "verdict": "price_move",
+      "verdict_note": "Owner, 2026-09-25: a real price move -- Screener's data is already adjusted, so nothing here needs neutralising."
     },
     "2020-03-26:BANDHANBNK": {
       "date": "2020-03-26",
