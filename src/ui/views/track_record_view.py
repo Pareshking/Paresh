@@ -9,14 +9,15 @@ a price got revised or a slider got nudged.
 
 from __future__ import annotations
 
-from datetime import datetime
 
 import pandas as pd
 import streamlit as st
 
+from src.core.market_time import ist_now
 from src.engine.backtester import run_backtest
 from src.engine.corporate_actions import load_events
 from src.engine.membership import load_history_or_none
+from src.engine.pipeline import price_fingerprint
 from src.engine.track_record import (
     INCEPTION,
     TRACK_RECORD_CONFIG,
@@ -25,6 +26,7 @@ from src.engine.track_record import (
     months_to_cover,
     summary_stats,
 )
+from src.loaders.ranking_store import actions_digest
 from src.ui.theme import render_saas_table
 
 
@@ -45,8 +47,11 @@ def _record_mtd(
     if months <= 0:
         return {}
     cfg = TRACK_RECORD_CONFIG
+    # Whole-history fingerprint + applied events: the old key (date, width,
+    # months) served an hour-stale MTD after a restatement or a new split.
+    events = load_events()
     result = run_backtest(
-        f"trackrec_{as_of:%Y%m%d}_{adj_close.shape[1]}_{months}",
+        f"trackrec_{price_fingerprint(adj_close)}_{actions_digest(events)}_{months}",
         adj_close,
         top_n=cfg["top_n"],
         rebal_freq=cfg["rebal_freq"],
@@ -59,7 +64,7 @@ def _record_mtd(
         _benchmark_close=benchmark_close,
         backtest_months=months,
         _membership=load_history_or_none(),
-        _actions=load_events(),
+        _actions=events,
     )
     return (result or {}).get("live_meta", {}) or {}
 
@@ -302,7 +307,7 @@ def render_track_record_view(
         st.download_button(
             "⬇️ Export Track Record (CSV)",
             grid.to_csv(index=False).encode(),
-            f"track_record_{datetime.now():%Y%m%d}.csv",
+            f"track_record_{ist_now():%Y%m%d}.csv",
             "text/csv",
             key="dl_tr_combined",
         )
@@ -347,7 +352,7 @@ def render_track_record_view(
         st.download_button(
             "⬇️ Export Provenance (CSV)",
             prov.to_csv(index=False).encode(),
-            f"track_record_provenance_{datetime.now():%Y%m%d}.csv",
+            f"track_record_provenance_{ist_now():%Y%m%d}.csv",
             "text/csv",
             key="dl_tr_prov",
         )

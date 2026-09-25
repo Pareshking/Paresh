@@ -568,6 +568,19 @@ def render_freshness_ribbon() -> None:
     )
 
 
+def gap_count(rank_df: pd.DataFrame) -> int:
+    """Stocks flagged 🔴 (gap-filled >10%) in the Data Gap column.
+
+    Contains, not equals: the cell can carry more than one mark -- a stock
+    ranked on its last print appends CARRIED_MARK -- and eleven views used to
+    count with ``== "🔴"``, which silently dropped exactly those rows.
+    """
+    col = rank_df.get("Data Gap") if rank_df is not None else None
+    if col is None:
+        return 0
+    return int(col.astype(str).str.contains("🔴", regex=False).sum())
+
+
 def render_data_quality_footer(
     total_stocks: int, gap_count: int, short_count: int
 ) -> None:

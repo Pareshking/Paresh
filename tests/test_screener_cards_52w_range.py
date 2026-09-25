@@ -32,7 +32,23 @@ def test_card_range_uses_252_sessions_and_20_percent_below_high_marker():
     assert "canonical_hi = row.get(\"52W High\")" in src
 
 
-def test_cards_receive_range_data_without_changing_table_path():
-    src = _source()
-    assert "_render_card_grid(_attach_52w_range(view, high_prices, low_prices, adj_close))" in src
-    assert "render_master_screener_table(" in src
+def test_cards_receive_range_data_without_changing_table_path(monkeypatch):
+    """Behaviour, not source text: the drawn cards carry the 52W range."""
+    import numpy as np
+    import pandas as pd
+
+    from src.ui.views import ranking_view
+
+    syms = ["AAA", "BBB"]
+    px = pd.DataFrame(
+        np.linspace(100, 200, 300)[:, None].repeat(2, axis=1),
+        index=pd.bdate_range(end="2026-09-24", periods=300), columns=syms,
+    )
+    view = pd.DataFrame({"Symbol": syms, "Rank": [1, 2], "52W High": [200.0, 200.0],
+                         "CMP": [190.0, 150.0]})
+    drawn = []
+    monkeypatch.setattr(ranking_view.st, "markdown", lambda h, **k: drawn.append(h))
+    monkeypatch.setattr(ranking_view.st, "caption", lambda *a, **k: None)
+    ranking_view._render_card_grid(view, None, None, px)
+    assert "52W Low ₹" in drawn[0] and "52W High ₹200" in drawn[0]
+    assert "render_master_screener_table(" in _source()

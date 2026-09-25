@@ -186,7 +186,8 @@ def test_an_empty_or_degenerate_frame_is_left_alone():
 
 
 def test_a_carried_stock_stays_in_the_table_flagged():
-    """End to end: the straggler is ranked on its last print and marked ⏳."""
+    """End to end: the straggler is ranked on its last print and marked ⏸."""
+    from src.engine.momentum import CARRIED_MARK
     from src.engine.pipeline import build_engine, rank_with_weights
 
     syms = [f"S{i}" for i in range(12)]
@@ -208,5 +209,5 @@ def test_a_carried_stock_stays_in_the_table_flagged():
     assert ranking_as_of(px) == str(idx[-1].date())
     assert set(ranked["Symbol"]) == set(syms)
     row = ranked.set_index("Symbol").loc["S0"]
-    assert "⏳" in row["Data Gap"]
+    assert CARRIED_MARK in row["Data Gap"]
     assert row["CMP"] == pytest.approx(px.iloc[-2, 0], rel=1e-6)

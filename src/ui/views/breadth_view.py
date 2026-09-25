@@ -11,9 +11,22 @@ from src.engine.breadth import (
     compute_ma_breadth,
     get_recent_hl_events,
 )
+from src.core.config import SHORT_FORMS
+from src.engine.pipeline import price_fingerprint
 from src.ui.charts import render_breadth_chart, render_hl_timeseries_chart, render_net_hl_bar_chart
-from src.ui.components import render_data_quality_footer
+from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.theme import render_saas_table
+
+
+def index_members(rank_df: pd.DataFrame, index_name: str) -> list[str]:
+    """Symbols tagged with exactly this index (config.SHORT_FORMS tags)."""
+    if "Indices" not in rank_df.columns:
+        return []
+    tag = SHORT_FORMS.get(index_name, index_name).upper()
+    tags = rank_df["Indices"].fillna("").astype(str).map(
+        lambda v: {t.strip().upper() for t in v.split(",") if t.strip()}
+    )
+    return rank_df.loc[tags.map(lambda ts: tag in ts), "Symbol"].tolist()
 
 
 def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
@@ -59,7 +72,9 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
         st.info("Select at least one moving average period above.")
         return
 
-    ph = f"{adj_close.index[-1]}_{adj_close.shape[0]}x{adj_close.shape[1]}"
+    # Whole-history fingerprint, not last date + shape (an intraday refresh
+    # or a restatement kept the old key and served stale breadth).
+    ph = price_fingerprint(adj_close)
     breadth_df = compute_ma_breadth(
         ph, adj_close, tuple(sel_mas), lookback=history_days, ma_type=ma_type
     )
@@ -134,12 +149,13 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
                 "NIFTY SMALLCAP 250",
                 "NIFTY MICROCAP 250",
             ]
+            # Exact tags, as indices_loader writes them (config.SHORT_FORMS).
+            # A substring test on "50" matched NN50, MID150, SMALL250 and
+            # MICRO250, so the NIFTY 50 row was nearly the whole universe --
+            # and "NEXT 50", "MIDCAP 150"... never matched their short tags,
+            # so those rows never rendered at all.
             for idx_name in idx_order:
-                syms = rank_df[
-                    rank_df["Indices"].str.contains(
-                        idx_name.replace("NIFTY ", ""), na=False
-                    )
-                ]["Symbol"].tolist()
+                syms = index_members(rank_df, idx_name)
                 valid_syms = [s for s in syms if s in adj_close.columns]
                 if not valid_syms:
                     continue
@@ -148,13 +164,14 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
                     if ma_type == "EMA"
                     else adj_close[valid_syms].rolling(50).mean()
                 )
-                pct = float(
-                    (
-                        (adj_close[valid_syms].iloc[-1] > ma_s.iloc[-1]).sum()
-                        / len(valid_syms)
-                    )
-                    * 100
-                )
+                # Over stocks that HAVE a price and an MA on the last row -- the
+                # same denominator the universe breadth uses; a missing print
+                # is not a stock below its average.
+                _last, _ma = adj_close[valid_syms].iloc[-1], ma_s.iloc[-1]
+                _obs = _last.notna() & _ma.notna()
+                if not _obs.any():
+                    continue
+                pct = float((_last[_obs] > _ma[_obs]).sum() / _obs.sum() * 100)
                 clr = (
                     "#059669" if pct >= 60 else ("#e11d48" if pct <= 40 else "#d97706")
                 )
@@ -171,7 +188,7 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
                             {pct:.0f}%
                         </div>
                         <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #64748b; min-width: 70px;">
-                            {len(valid_syms)} stocks
+                            {int(_obs.sum())} stocks
                         </div>
                     </div>
                     """)
@@ -288,6 +305,6 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
 
     render_data_quality_footer(
         total_stocks=len(rank_df),
-        gap_count=int((rank_df.get("Data Gap", pd.Series()) == "🔴").sum()),
+        gap_count=gap_count(rank_df),
         short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
     )

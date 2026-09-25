@@ -3,14 +3,15 @@ Custom watchlist view. The list lives in the URL (?wl=...), so it is private to
 the reader, survives a refresh and can be bookmarked or shared.
 """
 
-from datetime import datetime
+import re
 
 import pandas as pd
 import streamlit as st
 
+from src.core.market_time import ist_now
 from src.core.tickers import normalise_symbol
 
-from src.ui.components import render_data_quality_footer, stat_pill
+from src.ui.components import gap_count, render_data_quality_footer, stat_pill
 from src.ui.theme import render_master_screener_table
 
 
@@ -85,8 +86,11 @@ def render_watchlist_view(rank_df: pd.DataFrame) -> None:
     missing = set(user_symbols) - set(rank_df["Symbol"])
 
     if missing:
+        # Echoed back from the URL (?wl=...), which anyone can craft and share,
+        # into Markdown: reduce each to ticker characters before showing it.
+        shown = sorted({re.sub(r"[^A-Z0-9&._-]", "", str(m).upper())[:20] for m in missing} - {""})
         st.warning(
-            f"{len(missing)} symbol(s) not found in loaded index universe: {', '.join(sorted(missing))}"
+            f"{len(missing)} symbol(s) not found in loaded index universe: {', '.join(shown)}"
         )
 
     if not matched.empty:
@@ -105,7 +109,7 @@ def render_watchlist_view(rank_df: pd.DataFrame) -> None:
         st.download_button(
             "Download Watchlist CSV",
             matched.to_csv(index=False).encode(),
-            f"watchlist_momentum_{datetime.now():%Y%m%d}.csv",
+            f"watchlist_momentum_{ist_now():%Y%m%d}.csv",
             "text/csv",
             key="dl_wl_csv",
         )
@@ -116,6 +120,6 @@ def render_watchlist_view(rank_df: pd.DataFrame) -> None:
 
     render_data_quality_footer(
         total_stocks=len(rank_df),
-        gap_count=int((rank_df.get("Data Gap", pd.Series()) == "🔴").sum()),
+        gap_count=gap_count(rank_df),
         short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
     )

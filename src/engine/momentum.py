@@ -92,6 +92,11 @@ MIN_OBSERVATIONS: int = 63
 # the one outcome worse than showing nothing.
 ATR_DERIVED_COLUMNS: tuple[str, ...] = ("ATR", "ATR %", "Stop Loss", "Chand Exit")
 
+# Appended to "Data Gap" for a stock ranked on its last print because it had no
+# price on the ranking session (pipeline.carried_symbols). Not ⏳: that already
+# means "short history" in the footer.
+CARRIED_MARK: str = "⏸"
+
 
 class MomentumEngine:
     """
@@ -160,7 +165,7 @@ class MomentumEngine:
         # ATH snapshot -- a separate download this engine does not own -- can be
         # put on the same price scale. See corporate_actions.adjust_ath.
         self.corporate_actions: list[dict] = list(corporate_actions or [])
-        # Set by pipeline.build_engine: ranked on their last print (⏳).
+        # Set by pipeline.build_engine: ranked on their last print (⏸).
         self.carried_symbols: list[str] = []
 
         # Pre-calculate daily log returns
@@ -405,7 +410,7 @@ class MomentumEngine:
         data_gap_s = ffill_s.map(lambda p: "🔴" if p > 10.0 else "")
         for sym in self.carried_symbols:
             if sym in data_gap_s.index:
-                data_gap_s[sym] = (data_gap_s[sym] + "⏳").strip()
+                data_gap_s[sym] = (data_gap_s[sym] + CARRIED_MARK).strip()
 
         self._static_signals = pd.DataFrame(
             {

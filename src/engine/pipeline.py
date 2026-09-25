@@ -172,7 +172,7 @@ MAX_UNRANKED_TAIL: int = 5
 # One halted or vendor-skipped stock used to hold the WHOLE ranking on an older
 # session, for up to MAX_UNRANKED_TAIL sessions. Now, when at most this many
 # symbols are missing from the newest session and each of them printed within
-# CARRY_MAX_AGE sessions, they are ranked on that last print (flagged ⏳ in the
+# CARRY_MAX_AGE sessions, they are ranked on that last print (flagged ⏸ in the
 # table) and everyone else is ranked on the newest session. A session the
 # vendor is still publishing -- hundreds missing -- is far past this limit and
 # still walks back exactly as before. Owner decision 2B, 2026-09-25.

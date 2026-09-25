@@ -26,7 +26,7 @@ from src.core.config import (
 )
 from src.engine.corporate_actions import load_events
 from src.loaders.indices_loader import get_sync_metadata, sync_official_nse_indices
-from src.ui.components import render_data_quality_footer
+from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.widget_state import forget, remember, resolve
 from src.ui.theme import render_saas_table
 
@@ -225,7 +225,13 @@ def _section_momentum_signal() -> None:
                for _label, key, default in _WINDOWS}
     raw_w = [current[key] for _label, key, _d in _WINDOWS]
     tot_w = sum(raw_w)
-    norm_w = [w / tot_w for w in raw_w] if tot_w > 0 else [0.2] * 5
+    # All-zero falls back to what app.py actually ranks on -- the documented
+    # defaults -- not an equal split the ranking never uses.
+    _fallback = [float(w) for w in DEFAULT_LOOKBACK_WEIGHTS]
+    norm_w = (
+        [w / tot_w for w in raw_w] if tot_w > 0
+        else [w / sum(_fallback) for w in _fallback]
+    )
 
     st.markdown(
         "<div style='font-size:0.83rem;font-weight:700;color:#0f172a;margin-bottom:2px;'>"
@@ -403,8 +409,8 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
         st.info(
             f"**{len(_events)} sessions flagged** — {_split} valid split/bonus, "
             f"{_other} unmatched (probable demergers). Circuit-limit breaches "
-            "treated as corporate actions; neutralised in backtest by rescaling "
-            "history in memory — no stored-price edits, so provider restatements "
+            "treated as corporate actions; neutralised before ranking and in the "
+            "backtest by rescaling history in memory — no stored-price edits, so provider restatements "
             "aren't double-applied."
         )
         _rows = []
@@ -415,7 +421,12 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
                     "Date": e.get("date", "—"),
                     "Symbol": e.get("symbol", "—"),
                     "Move": f"{_move * 100:+.1f}%" if _move is not None else "—",
-                    "Ratio": f"{e.get('ratio', float('nan')):.4f}",
+                    # A null ratio in the log raised TypeError on the format
+                    # and took the Configuration page down.
+                    "Ratio": (
+                        f"{float(e['ratio']):.4f}"
+                        if isinstance(e.get("ratio"), (int, float)) else "—"
+                    ),
                     "Looks Like": e.get("looks_like", "—"),
                     "Kind": (
                         "🔀 Split / bonus"
@@ -460,7 +471,7 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
 
     render_data_quality_footer(
         total_stocks=len(rank_df),
-        gap_count=int((rank_df.get("Data Gap", pd.Series()) == "🔴").sum()),
+        gap_count=gap_count(rank_df),
         short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
     )
 

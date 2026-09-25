@@ -7,7 +7,7 @@ parameter lookbacks, weight dependencies, trade execution protocols, and market 
 import pandas as pd
 import streamlit as st
 
-from src.ui.components import render_data_quality_footer
+from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.theme import render_saas_table
 
 
@@ -511,6 +511,6 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
 
     render_data_quality_footer(
         total_stocks=len(rank_df),
-        gap_count=int((rank_df.get("Data Gap", pd.Series()) == "🔴").sum()),
+        gap_count=gap_count(rank_df),
         short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
     )

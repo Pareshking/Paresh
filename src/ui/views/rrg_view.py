@@ -9,8 +9,9 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from src.engine.pipeline import price_fingerprint
 from src.ui.charts import render_rrg_chart
-from src.ui.components import render_data_quality_footer
+from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.theme import render_saas_table
 
 
@@ -290,7 +291,7 @@ def render_rrg_view(
         else:
             sel_date_str = adj_close.index[-1].strftime("%Y-%m-%d")
 
-    ph = f"{sel_date_str}_{adj_close.shape[0]}x{adj_close.shape[1]}_{bm_choice}_{tf_choice}_{target_col}"
+    ph = f"{sel_date_str}_{price_fingerprint(adj_close)}_{bm_choice}_{tf_choice}_{target_col}"
     rrg_df = compute_rrg_data(
         ph,
         adj_close,
@@ -492,6 +493,6 @@ def render_rrg_view(
 
     render_data_quality_footer(
         total_stocks=len(rank_df),
-        gap_count=int((rank_df.get("Data Gap", pd.Series()) == "🔴").sum()),
+        gap_count=gap_count(rank_df),
         short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
     )

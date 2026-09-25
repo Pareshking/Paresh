@@ -2,16 +2,17 @@
 Portfolio Construction View Controller with Capital Sizing & Zerodha Basket Exports.
 """
 
-from datetime import datetime
+import html
 
 import numpy as np
 import pandas as pd
 import streamlit as st
 
+from src.core.market_time import ist_now
 from src.core.types import WeightMethod
 from src.engine.momentum import MomentumEngine
 from src.engine.portfolio import PortfolioOptimizer
-from src.ui.components import render_data_quality_footer, to_bool_mask
+from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
 from src.ui.theme import render_saas_table
 
 
@@ -257,7 +258,7 @@ def render_portfolio_view(
                 ind_items_html.append(f"""
                     <div style="margin-bottom: 9px;">
                         <div style="display: flex; justify-content: space-between; font-size: 0.76rem; font-family: 'Plus Jakarta Sans', sans-serif; margin-bottom: 3px;">
-                            <span style="font-weight: 600; color: #0f172a;">{r['Industry']}</span>
+                            <span style="font-weight: 600; color: #0f172a;">{html.escape(str(r['Industry']))}</span>
                             <span style="font-family: 'JetBrains Mono', monospace; color: #475569; font-weight: 700;">{int(r['Count'])} stock{'s' if r['Count']>1 else ''} ({r['Weight']:.1f}%)</span>
                         </div>
                         <div style="width: 100%; height: 6px; background-color: #f1f5f9; border-radius: 99px; overflow: hidden;">
@@ -303,7 +304,7 @@ def render_portfolio_view(
         st.download_button(
             "Download Zerodha Kite Basket CSV",
             kite_df.to_csv(index=False).encode(),
-            f"zerodha_kite_basket_{datetime.now():%Y%m%d}.csv",
+            f"zerodha_kite_basket_{ist_now():%Y%m%d}.csv",
             "text/csv",
             type="primary",
             key="dl_kite_basket_btn",
@@ -320,6 +321,6 @@ def render_portfolio_view(
 
     render_data_quality_footer(
         total_stocks=len(rank_df),
-        gap_count=int((rank_df.get("Data Gap", pd.Series()) == "🔴").sum()),
+        gap_count=gap_count(rank_df),
         short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
     )
