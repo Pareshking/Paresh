@@ -20,6 +20,11 @@ permissions:
   contents: read
   actions: read
 
+# Never let two runs of this workflow write the same objects at once.
+concurrency:
+  group: r2-publish-r2_yahoo_raw_retry
+  cancel-in-progress: false
+
 jobs:
   retry:
     runs-on: ubuntu-latest
@@ -33,10 +38,10 @@ jobs:
       PYTHONPATH: .
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
@@ -47,7 +52,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Download exact source artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: data_cache
           github-token: ${{ github.token }}

@@ -1,3 +1,5 @@
+name: V1 Production QA
+
 # Acceptance gate: production QA must execute against the exact live commit.
 on:
   workflow_dispatch:
@@ -27,6 +29,11 @@ permissions:
 env:
   PYTHONUNBUFFERED: "1"
 
+# Never let two runs of this workflow write the same objects at once.
+concurrency:
+  group: v1-production-qa
+  cancel-in-progress: false
+
 jobs:
   production-qa:
     # Production QA probes the deployed main app; feature-branch pushes are not deployment targets.
@@ -34,8 +41,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
       - name: Install QA dependencies
@@ -52,7 +59,7 @@ jobs:
         run: python scripts/production_qa.py
       - name: Upload QA evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: v1-production-qa
           path: artifacts/production_qa/

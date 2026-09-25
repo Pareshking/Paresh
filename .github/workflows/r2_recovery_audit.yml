@@ -14,13 +14,18 @@ on:
 permissions:
   contents: read
 
+# Never let two runs of this workflow write the same objects at once.
+concurrency:
+  group: r2-publish-r2_recovery_audit
+  cancel-in-progress: false
+
 jobs:
   recovery:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
       - name: Install dependencies

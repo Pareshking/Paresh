@@ -46,10 +46,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
           cache: pip
@@ -62,7 +62,7 @@ jobs:
       # share an adjustment basis. See SCREENER_PRICES_FILE.
       - name: Restore screener store
         id: restore-screener
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: data_cache/
           key: screener-data-${{ runner.os }}-${{ github.run_id }}
@@ -80,7 +80,7 @@ jobs:
       # written.
       - name: Save screener store
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: data_cache/
           key: screener-data-${{ runner.os }}-${{ github.run_id }}

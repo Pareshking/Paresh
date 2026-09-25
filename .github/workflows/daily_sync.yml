@@ -79,10 +79,11 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # A step may declare `uses` or `run`, never both. Having both made this
       # workflow file invalid, so GitHub failed it on every push and the
@@ -99,7 +100,7 @@ jobs:
       # the freshest history available.
       - name: Restore price cache
         id: restore-price-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: ${{ github.workspace }}/data_cache/
           key: price-data-${{ runner.os }}-${{ github.run_id }}
@@ -122,7 +123,7 @@ jobs:
           fi
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -144,7 +145,7 @@ jobs:
       # this step and skip for the same reason.
       - name: Save price cache
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: ${{ github.workspace }}/data_cache/
           key: price-data-${{ runner.os }}-${{ github.run_id }}

@@ -18,13 +18,18 @@ on:
 permissions:
   contents: read
 
+# Never let two runs of this workflow write the same objects at once.
+concurrency:
+  group: r2-publish-r2_membership_consumer_acceptance
+  cancel-in-progress: false
+
 jobs:
   acceptance:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
       - name: Install dependencies
