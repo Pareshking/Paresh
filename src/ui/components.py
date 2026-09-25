@@ -4,6 +4,7 @@ Inspired by Investrack, Stockin.id, and Tickerboom financial terminal designs.
 """
 
 import html
+import re
 from typing import Any
 
 import pandas as pd
@@ -206,6 +207,14 @@ def render_header_kpi_bar(
     </div>
     """
 
+    # One menu key per page. Streamlit keeps a keyed popover open across the
+    # rerun its own contents trigger, and choosing a page IS such a rerun: on
+    # desktop the menu stayed open over the page just chosen until the reader
+    # clicked elsewhere (production QA run 570's screenshot, which is also
+    # why that run could not click "Reset to defaults"). A key that changes
+    # with the page makes the next page's menu a new, closed popover.
+    _page_slug = re.sub(
+        r"[^A-Za-z0-9_-]", "_", str(getattr(active_page, "url_path", "") or "home"))
     with st.container(key="app_header_shell", width="stretch"):
         st.html(header_html)
         if nav_pages:
@@ -214,7 +223,7 @@ def render_header_kpi_bar(
                     type="tertiary",
                     help="Open navigation",
                     width=320,
-                    key="app_nav_menu",
+                    key=f"app_nav_menu_{_page_slug}",
                 ):
                     st.markdown("**Research**")
                     for _i, _p in enumerate(nav_pages[:5]):

@@ -94,7 +94,9 @@ def test_the_app_renders_one_page_link_per_page():
     src = _app_src()
     components = (ROOT / "src" / "ui" / "components.py").read_text(encoding="utf-8")
     assert "st.popover(" in components, "no compact navigation trigger is rendered"
-    assert 'key="app_nav_menu"' in components, "navigation popover has no stable key"
+    # Keyed per page (app_nav_menu_<page>) so choosing a page closes the menu;
+    # theme.py styles it by that prefix.
+    assert 'key=f"app_nav_menu_{' in components, "navigation popover is not keyed per page"
     assert "render_header_kpi_bar(" in src, "the app does not render the custom header"
     assert "nav_pages=_PAGES" in src, "the hamburger is not attached to the header renderer"
 
