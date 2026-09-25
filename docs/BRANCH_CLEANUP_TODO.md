@@ -77,26 +77,29 @@ git push origin --delete \
   redesign-v3-spec redesign-v3-spec2 redesign-v3-ui
 ```
 
-## Also open: older pull requests to triage
+## Older pull requests: triaged 2026-09-25
 
-These PRs from 2026-09-22/23 are still open. Each branch carries 1–9 commits
-whose exact patches are not on `main`, but later merges (#127, #148, #149 and
-others) may have landed the same fixes in different form. Production QA and
-every R2 check are green on `main`, so none of them is blocking anything.
-Decide for each one: merge, or close with a one-line reason.
+- **#147** `verify/new-symbol-history`: merged. It adds one regression test,
+  which passes on `main`.
+- **Closed as superseded** (a comment on each PR gives the reason): #142,
+  #137 and #136, whose navigator fixes landed in #143 and #144; and #126,
+  #120, #116 and #115, whose R2 index and publication work landed in
+  #124/#125/#127/#130. Their branches are older than `main`, so merging them
+  would have regressed it.
 
-| PR | Branch | Size |
+Their branches have unmerged commits, so the safety loop above will list
+them as "NOT MERGED". That is expected; they are dead ends. Delete them too:
+
+| # | Branch | Done |
 |---|---|---|
-| #147 | `verify/new-symbol-history` | 1 file, +18 |
-| #142 | `fix-production-nav-probe-v6` | 2 files, +37/−11 |
-| #137 | `final-qa-popover-fix` | 2 files, +33/−4 |
-| #136 | `fix-production-qa-popover-race` | 2 files, +64/−6 |
-| #126 | `r2-final-foundation` | 9 files, +181/−213 |
-| #120 | `r2-publication-idempotency-and-index-fetch` | 5 files, +70/−23 |
-| #116 | `r2-nse-index-final` | 3 files, +82/−10 |
-| #115 | `r2-nse-index-fix2` | 2 files, +72/−10 |
-
-Once a PR is closed or merged, its branch can be deleted too.
+| 23 | `verify/new-symbol-history` (after #147 merges) | [ ] |
+| 24 | `fix-production-nav-probe-v6` | [ ] |
+| 25 | `final-qa-popover-fix` | [ ] |
+| 26 | `fix-production-qa-popover-race` | [ ] |
+| 27 | `r2-final-foundation` | [ ] |
+| 28 | `r2-publication-idempotency-and-index-fetch` | [ ] |
+| 29 | `r2-nse-index-final` | [ ] |
+| 30 | `r2-nse-index-fix2` | [ ] |
 
 ## When finished
 Delete this file in a small PR, or ask a Claude session to remove it. Also
