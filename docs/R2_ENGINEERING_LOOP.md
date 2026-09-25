@@ -104,7 +104,7 @@ No Yahoo raw-price rebuild is authorized by this tracker; it remains parked.
 - [x] Observed trading-session archive — 1,161 sessions, 2016-09-23 → 2026-09-21; live R2 publication/read-back verified.
 - [x] Dated historical market-cap snapshots — 21 explicit snapshots, 2026-08-18 → 2026-09-18, 15,750 rows; live R2 publication/read-back verified.
 - [x] Corporate-action evidence archive — published with source/evidence URI/date.
-- [ ] Raw source snapshots where useful.
+- [x] ~~Raw source snapshots where useful.~~ Closed 2026-09-25 as not needed: every implemented dataset already carries source, evidence date and commit provenance, and no consumer needs the raw vendor payloads.
 - [x] Source provenance/evidence dates carried by the implemented historical datasets.
 
 ## D. Raw Yahoo reproducibility — PARKED 2026-09-22
@@ -417,15 +417,19 @@ This expansion completes the durable R2 inputs needed for future point-in-time b
 
 - [x] Screener daily price archive — existing canonical R2 path.
 - [x] Yahoo raw deep-history archive — existing independent R2 path.
-- [ ] Market-cap history — existing publisher retained and now scheduled for routine daily publication.
-- [ ] **Five-index PIT membership history** — NIFTY 50, NIFTY Next 50, NIFTY Midcap 150, NIFTY Smallcap 250, NIFTY Microcap 250.
-- [ ] Combined point-in-time universe archive derived from those five histories.
-- [ ] Official NSE OHLC history for those five indices.
-- [ ] Historical sector/industry classification from dated repository evidence.
+- [x] Market-cap history — `r2_market_cap_history.yml`, daily; `market_caps/nse_history` live through 2026-09-23.
+- [x] **Five-index PIT membership history** — NIFTY 50, NIFTY Next 50, NIFTY Midcap 150, NIFTY Smallcap 250, NIFTY Microcap 250. `indices/membership/*` live (historical evidence bootstrap).
+- [x] Combined point-in-time universe archive derived from those five histories — `universes/point_in_time` live.
+- [x] Official NSE OHLC history for those five indices — `r2_nse_index_prices.yml`, daily; `indices/prices/research` live through 2026-09-23.
+- [x] Historical sector/industry classification from dated repository evidence — `classifications/tv_history` live. The R2 copy is stamped 2026-08-15 by older code; the current builder stamps the latest evidence date and replaces it on the next bootstrap run.
 - [x] Observed and confirmed trading-session evidence.
 - [x] Corporate-action evidence archive.
-- [ ] Immutable System-1 ranking-calculation archive.
-- [ ] Final live coverage/read-back acceptance for the expansion.
+- [x] Immutable System-1 ranking-calculation archive — `r2_ranking_archive.yml`, daily; `calculations/rankings` live.
+- [x] Final live coverage/read-back acceptance for the expansion — replaced by a standing check: `scripts/r2_inventory.py` fails the daily R2 archive inventory when any daily dataset (`DAILY_DATASETS`) is missing or more than 6 days old, and the scheduled-failure alert opens an issue. R2 Final Acceptance run #8 (2026-09-25) covers membership and market caps.
+
+Status verified 2026-09-25 against the live R2 inventory (run 35971204524) and workflow history.
+
+**Next trigger, not started:** the backtester still reads `data/membership_history.json`. Moving it to the R2 membership archive adds nothing yet, because both are rebuilt from the same committed index snapshots, which start 2026-08-15, and the reported backtest window is the last six completed months. Revisit once the archive covers that window (about February 2027), or earlier if a deeper historical membership source is found.
 
 ### Hard rules for this expansion
 
