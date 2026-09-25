@@ -77,6 +77,30 @@ git push origin --delete \
   redesign-v3-spec redesign-v3-spec2 redesign-v3-ui
 ```
 
+## Older pull requests: triaged 2026-09-25
+
+- **#147** `verify/new-symbol-history`: merged. It adds one regression test,
+  which passes on `main`.
+- **Closed as superseded** (a comment on each PR gives the reason): #142,
+  #137 and #136, whose navigator fixes landed in #143 and #144; and #126,
+  #120, #116 and #115, whose R2 index and publication work landed in
+  #124/#125/#127/#130. Their branches are older than `main`, so merging them
+  would have regressed it.
+
+Their branches have unmerged commits, so the safety loop above will list
+them as "NOT MERGED". That is expected; they are dead ends. Delete them too:
+
+| # | Branch | Done |
+|---|---|---|
+| 23 | `verify/new-symbol-history` (after #147 merges) | [ ] |
+| 24 | `fix-production-nav-probe-v6` | [ ] |
+| 25 | `final-qa-popover-fix` | [ ] |
+| 26 | `fix-production-qa-popover-race` | [ ] |
+| 27 | `r2-final-foundation` | [ ] |
+| 28 | `r2-publication-idempotency-and-index-fetch` | [ ] |
+| 29 | `r2-nse-index-final` | [ ] |
+| 30 | `r2-nse-index-fix2` | [ ] |
+
 ## When finished
 Delete this file in a small PR, or ask a Claude session to remove it. Also
 tick R7 in `docs/CODE_AUDIT_2026-09-25.md`.

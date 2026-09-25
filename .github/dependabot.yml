@@ -16,4 +16,9 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    # Only propose a change when the current range no longer admits the new
+    # release. The first run otherwise raised every `>=` floor to today's
+    # version (numpy, pandas, scipy, plotly, boto3) -- five PRs that change
+    # nothing production installs.
+    versioning-strategy: increase-if-necessary
     open-pull-requests-limit: 5
