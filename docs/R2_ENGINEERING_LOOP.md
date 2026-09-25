@@ -326,6 +326,20 @@ The historical-evidence bootstrap and final acceptance gates are now closed on l
 
 Therefore the remaining unchecked Section-E live acceptance items are closed. R2 is now an accepted historical-data/evidence substrate.
 
+### Re-acceptance on current head — 2026-09-25
+
+A real NSE index constituent change (HEGAM added, HEG removed on 2026-09-23) broke a
+snapshot assertion in `test_r2_historical_evidence.py`. PR #152 replaced the stale
+`changes == []` check with the correct contract (rows covering MEMBERSHIP_AS_OF must
+exist). R2 Final Acceptance run #8 (ID 36082580748) then passed on the PR #152 merge
+commit `6e381e1c`:
+
+- **R2 regression** — PASS (83 tests, HEGAM change correctly handled).
+- **Live PIT membership acceptance** — PASS.
+- **Live immutable research acceptance** — PASS.
+- **Live recovery audit** — PASS.
+- **Live cost observability** — PASS.
+
 ### Historical acceptance boundary — superseded by the current production contract
 At the time of Final Acceptance Run 35704396591, Streamlit had not yet been switched to R2. The later Streamlit read-path gate is documented below and is now the controlling production contract.
 
