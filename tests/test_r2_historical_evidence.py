@@ -50,15 +50,35 @@ def test_membership_intervals_close_removed_symbols_and_stamp_open_intervals():
     assert ccc["evidence_date"] == "2026-08-20"
 
 
-def test_real_membership_history_has_no_changes_and_covers_acceptance_date(tmp_path):
+def test_real_membership_history_is_consistent_and_covers_sync_date(tmp_path):
+    # The committed history is appended to by the daily sync, so assert its
+    # invariants rather than its contents: a real index change (HEG -> HEGAM on
+    # 2026-09-23) must not turn this test red.
     history = json.loads((ROOT / "data/membership_history.json").read_text())
-    assert history["changes"] == []
+    baseline_date = pd.Timestamp(history["baseline"]["date"])
+    change_dates = [pd.Timestamp(change["date"]) for change in history["changes"]]
+    assert change_dates == sorted(change_dates)
+    assert all(date > baseline_date for date in change_dates)
+    for change in history["changes"]:
+        assert not set(change.get("added", [])) & set(change.get("removed", []))
+
     build_membership(tmp_path)
     frame = tmp_path / "membership_nifty_total_market.parquet"
     generated = pd.read_parquet(frame)
+    sync_date = pd.Timestamp(_sync_date())
     assert generated["index"].eq("nifty_total_market").all()
     assert generated["as_of"].eq(_sync_date()).all()
-    assert (pd.to_datetime(generated["effective_from"]) <= pd.Timestamp(MEMBERSHIP_AS_OF)).all()
+    starts = pd.to_datetime(generated["effective_from"])
+    ends = pd.to_datetime(generated["effective_to"])
+    assert (starts <= sync_date).all()
+    assert (ends.isna() | (ends >= starts)).all()
+    for change in history["changes"]:
+        for symbol in change.get("added", []):
+            rows = generated.loc[generated["symbol"].eq(symbol)]
+            assert change["date"] in set(rows["effective_from"])
+        for symbol in change.get("removed", []):
+            rows = generated.loc[generated["symbol"].eq(symbol)]
+            assert rows["effective_to"].notna().any()
     assert describe_parquet(frame)["as_of"] == _sync_date()
 
 

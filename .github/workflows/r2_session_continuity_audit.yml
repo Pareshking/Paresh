@@ -30,7 +30,9 @@ jobs:
       - name: Build observed sessions from canonical release
         run: |
           gh release download data-latest --pattern screener_prices.parquet --dir /tmp/r2
-          python scripts/build_trading_sessions.py /tmp/r2/screener_prices.parquet /tmp/observed_sessions.parquet
+          python scripts/build_trading_sessions.py \
+            --prices /tmp/r2/screener_prices.parquet \
+            --output /tmp/observed_sessions.parquet
         env:
           GH_TOKEN: ${{ github.token }}
       - name: Audit observed session continuity
