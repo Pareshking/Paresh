@@ -470,3 +470,18 @@ save/restore rotation, the `workflow_run` chaining and the failure alert.
 release upload (`if: always()`) still publishes it. That is harmless: the merge
 only ever adds rows, so the upload is a superset of what is already live. The
 R2 publish is correctly skipped.
+
+## 12. Line-by-line audit, area 6: UI (`src/ui`, the views, the theme)
+
+### Fixed
+| # | File | Finding | Effect |
+|---|---|---|---|
+| U1 | `ranking_view.py`, `sector_view.py` | Card and sector-leader links were built as `?stock={sym}` without URL-encoding. NSE has tickers with `&` (M&M, J&KBANK, ARE&M), and `?stock=M&M` parses as stock **"M"**, so clicking M&M opened the wrong page or a "not in ranking" warning. (The table in `theme.py` already encoded correctly.) | URL-encoded, with the text HTML-escaped. |
+| U2 | `watchlist_view.py` | The watchlist was also saved to `data/user_watchlist.json` on the **server**, and read back for anyone whose URL carried no list. On the public deployment, one visitor's saved watchlist became everyone's default. | The URL (`?wl=`) is the only store, which is per reader. |
+| U3 | `config_view.py` | **Sync** and **Purge** clear `st.cache_data` for the whole process. Any visitor could push every other reader onto a cold ~30 s engine build, and Sync also re-downloads every index file. | Allowed once per 15 min across the process. A refused click gets a toast. |
+| U4 | `ranking_view.py`, `stock_view.py` | The `?stock=` value from the URL was echoed back on a miss, and symbol/industry text was interpolated into HTML unescaped. | `?stock=` is reduced to ticker characters (max 32). The stock header, card and industry text are escaped. |
+
+### Read and found sound
+The shared table renderers (`render_saas_table`, the master screener table)
+escape every text cell through `_esc`. Widget state is covered by
+`widget_state.resolve`.

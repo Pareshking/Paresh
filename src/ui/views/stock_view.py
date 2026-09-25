@@ -12,6 +12,7 @@ Layout order (matches agreed design canvas StockLight):
 
 from __future__ import annotations
 
+import html as _html
 import math
 
 import pandas as pd
@@ -324,10 +325,10 @@ def _render_identity(row: pd.Series, total_stocks: int) -> None:
         mobile_css
         + '<div class="sv-hero">'
         + '<div class="sv-top">'
-        + f'<div class="sv-avatar">{sym[:2]}</div>'
+        + f'<div class="sv-avatar">{_html.escape(sym[:2])}</div>'
         + '<div class="sv-nameblock">'
-        + f'<div class="sv-sym">{sym}</div>'
-        + f'<div class="sv-sector">{industry_or_sector}</div>'
+        + f'<div class="sv-sym">{_html.escape(sym)}</div>'
+        + f'<div class="sv-sector">{_html.escape(str(industry_or_sector))}</div>'
         + f'<div class="sv-chips">{idx_chips}</div>'
         + '</div>'
         + ring_html

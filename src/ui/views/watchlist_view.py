@@ -1,9 +1,8 @@
 """
-Custom Watchlist View Controller with Dual-Layer Persistence (Local Disk + URL Cloud Bookmark).
+Custom watchlist view. The list lives in the URL (?wl=...), so it is private to
+the reader, survives a refresh and can be bookmarked or shared.
 """
 
-import json
-import os
 from datetime import datetime
 
 import pandas as pd
@@ -11,49 +10,26 @@ import streamlit as st
 
 from src.core.tickers import normalise_symbol
 
-from src.core.config import DATA_DIR
 from src.ui.components import render_data_quality_footer, stat_pill
 from src.ui.theme import render_master_screener_table
 
-WATCHLIST_FILE = os.path.join(DATA_DIR, "user_watchlist.json")
 
-
+# There used to be a second layer: data/user_watchlist.json on the server's
+# disk, read back whenever the URL carried no list. On the public deployment
+# that file is shared by every visitor, so one reader's saved watchlist became
+# every other reader's default. The URL is per-reader; the disk never was.
 def _load_persisted_watchlist() -> str:
-    """Loads persisted watchlist from URL query parameters (Streamlit Cloud) or local disk."""
-    # 1. Check URL query parameters (works on Streamlit Cloud & GitHub deployments)
-    if "wl" in st.query_params:
-        param_wl = st.query_params["wl"]
-        if param_wl and str(param_wl).strip():
-            return str(param_wl).strip()
-
-    # 2. Check local disk JSON (works on local machine)
-    if os.path.exists(WATCHLIST_FILE):
-        try:
-            with open(WATCHLIST_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return data.get("watchlist_text", "")
-        except Exception:
-            return ""
-    return ""
+    """The watchlist carried in this reader's URL, or an empty one."""
+    param_wl = st.query_params.get("wl")
+    return str(param_wl).strip() if param_wl and str(param_wl).strip() else ""
 
 
 def _save_persisted_watchlist(text: str) -> None:
-    """Saves watchlist text to both local disk and URL query params for seamless cloud persistence."""
-    # 1. Update URL query params for permanent browser bookmarking & Cloud persistence
+    """Keep the watchlist in this reader's URL."""
     if text.strip():
         st.query_params["wl"] = text.strip()
     else:
         st.query_params.pop("wl", None)
-
-    # 2. Update local disk file for offline/desktop persistence
-    try:
-        os.makedirs(DATA_DIR, exist_ok=True)
-        with open(WATCHLIST_FILE, "w", encoding="utf-8") as f:
-            json.dump(
-                {"watchlist_text": text, "updated_at": datetime.now().isoformat()}, f
-            )
-    except Exception:
-        pass
 
 
 def render_watchlist_view(rank_df: pd.DataFrame) -> None:

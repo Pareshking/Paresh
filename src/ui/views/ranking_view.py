@@ -5,7 +5,10 @@ Inspired by Investrack, Stockin.id, and Tickerboom.
 
 
 import hashlib
+import html
+import re
 import time
+from urllib.parse import quote
 
 import pandas as pd
 import streamlit as st
@@ -340,8 +343,8 @@ def _card_html(row: pd.Series) -> str:
         + '<div class="sq-top">'
         + badge_html
         + '<div class="sq-nameblock">'
-        + f'<a href="?stock={sym}" target="_self" class="sq-sym">{sym}</a>'
-        + f'<div class="sq-ind">{industry}</div>'
+        + f'<a href="?stock={quote(str(sym), safe="")}" target="_self" class="sq-sym">{html.escape(str(sym))}</a>'
+        + f'<div class="sq-ind">{html.escape(str(industry))}</div>'
         + '</div>'
         + f'<div class="sq-right"><span class="sq-cmp">{cmp_html}</span>{delta_html}</div>'
         + '</div>'
@@ -497,7 +500,11 @@ def render_ranking_view(
     # it can be shared or bookmarked, and it is the only mechanism a link
     # inside the hand-built HTML table can reach -- those cells cannot call
     # back into Python.
-    requested = str(st.query_params.get("stock") or "").strip().upper()
+    # Reduced to the characters an NSE ticker can hold (M&M, BAJAJ-AUTO): the
+    # value is whatever the URL says, and it is echoed back on a miss.
+    requested = re.sub(
+        r"[^A-Z0-9&._-]", "", str(st.query_params.get("stock") or "").strip().upper()
+    )[:32]
     if requested:
         def _back() -> None:
             if st.button("← Back to screener", key="stock_page_back"):

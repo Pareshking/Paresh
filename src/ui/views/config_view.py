@@ -5,6 +5,8 @@ Windows 11-style left-nav + right-content layout.
 
 import html
 import os
+import threading
+import time
 from datetime import datetime
 
 import pandas as pd
@@ -27,6 +29,35 @@ from src.loaders.indices_loader import get_sync_metadata, sync_official_nse_indi
 from src.ui.components import render_data_quality_footer
 from src.ui.widget_state import forget, remember, resolve
 from src.ui.theme import render_saas_table
+
+# Sync and Purge clear st.cache_data for the WHOLE PROCESS, not the clicking
+# reader: every other visitor's next rerun then pays the cold engine build
+# (~30 s), and Sync also re-downloads every index file from niftyindices.com.
+# The app is public, so one reader clicking repeatedly would do that to
+# everyone. One clear per window, shared across sessions; module state is
+# process-wide in Streamlit.
+GLOBAL_REFRESH_COOLDOWN_S = 15 * 60
+_refresh_lock = threading.Lock()
+_last_global_refresh = [float("-inf")]
+
+
+def _claim_global_refresh(now: float | None = None) -> float:
+    """0.0 when this caller may clear the shared caches, else seconds to wait."""
+    now = time.monotonic() if now is None else now
+    with _refresh_lock:
+        wait = _last_global_refresh[0] + GLOBAL_REFRESH_COOLDOWN_S - now
+        if wait > 0:
+            return wait
+        _last_global_refresh[0] = now
+        return 0.0
+
+
+def _refused_refresh(wait: float) -> None:
+    st.toast(
+        f"Data was refreshed moments ago. Try again in {max(1, round(wait / 60))} min.",
+        icon="⏳",
+    )
+
 
 _NAV_SECTIONS = [
     "Data & Sync",
@@ -99,34 +130,42 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
         bc1, bc2 = st.columns(2)
         with bc1:
             if st.button("Sync", type="primary", key="btn_sync_indices", width="stretch"):
-                with st.status("Syncing NSE constituents…", expanded=True) as _sync_status:
-                    _sync_status.write("📡 Downloading index CSV files from niftyindices.com…")
-                    res = sync_official_nse_indices(force=True)
+                _wait = _claim_global_refresh()
+                if _wait:
+                    _refused_refresh(_wait)
+                else:
+                    with st.status("Syncing NSE constituents…", expanded=True) as _sync_status:
+                        _sync_status.write("📡 Downloading index CSV files from niftyindices.com…")
+                        res = sync_official_nse_indices(force=True)
+                        st.session_state["force_refresh"] = True
+                        st.session_state.pop("data_loaded_key", None)
+                        st.cache_data.clear()
+                        if res.get("last_attempt_ok"):
+                            n = res["total_stocks"]
+                            _sync_status.update(
+                                label=f"Synced {n} constituents successfully",
+                                state="complete",
+                                expanded=False,
+                            )
+                        else:
+                            fetched = res.get("last_attempt_fetched", 0)
+                            errors = len(res.get("last_attempt_errors") or {})
+                            _sync_status.update(
+                                label=f"Sync incomplete — {fetched} downloaded, {errors} failed",
+                                state="error",
+                                expanded=False,
+                            )
+                        st.rerun()
+        with bc2:
+            if st.button("Purge", type="secondary", key="btn_purge_cache", width="stretch"):
+                _wait = _claim_global_refresh()
+                if _wait:
+                    _refused_refresh(_wait)
+                else:
                     st.session_state["force_refresh"] = True
                     st.session_state.pop("data_loaded_key", None)
                     st.cache_data.clear()
-                    if res.get("last_attempt_ok"):
-                        n = res["total_stocks"]
-                        _sync_status.update(
-                            label=f"Synced {n} constituents successfully",
-                            state="complete",
-                            expanded=False,
-                        )
-                    else:
-                        fetched = res.get("last_attempt_fetched", 0)
-                        errors = len(res.get("last_attempt_errors") or {})
-                        _sync_status.update(
-                            label=f"Sync incomplete — {fetched} downloaded, {errors} failed",
-                            state="error",
-                            expanded=False,
-                        )
                     st.rerun()
-        with bc2:
-            if st.button("Purge", type="secondary", key="btn_purge_cache", width="stretch"):
-                st.session_state["force_refresh"] = True
-                st.session_state.pop("data_loaded_key", None)
-                st.cache_data.clear()
-                st.rerun()
 
     with st.expander("📁 Local Index Files", expanded=False):
         for idx_name, path in INDICES_LOCAL.items():
