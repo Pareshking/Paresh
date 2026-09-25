@@ -159,3 +159,55 @@ def test_a_reset_that_could_not_be_clicked_is_not_a_pass():
         "after_reset_error": "TimeoutError: Locator.click: Timeout 8000ms exceeded.\nCall log: ..."}
     found = judge("desktop_1280x800", ev)
     assert any("Reset to defaults could not be exercised" in f["detail"] for f in found)
+
+
+# ── Reaching the panel ──────────────────────────────────────────────────────
+
+class _Loc:
+    def __init__(self, n):
+        self.n = n
+
+    def count(self):
+        return self.n
+
+    @property
+    def first(self):
+        return self
+
+    def filter(self, has_text=None):
+        return self
+
+    def locator(self, sel):
+        return self
+
+
+class _LateConfigPage:
+    """A Configuration page whose section radio renders after `after_ms`."""
+
+    def __init__(self, after_ms):
+        self.after_ms, self.clock = after_ms, 0
+
+    def wait_for_timeout(self, ms):
+        self.clock += ms
+
+    def locator(self, sel):
+        return _Loc(1 if self.clock >= self.after_ms else 0)
+
+    def get_by_role(self, role, name=None):
+        return _Loc(0)
+
+
+def test_a_panel_still_rendering_is_waited_for_not_reported_missing():
+    """Run 580, mobile_390x844: open_page reloads the route, and the radio
+    arrived after the single look taken 1.8 s later."""
+    page = _LateConfigPage(after_ms=6_000)
+    target, how = production_qa._find_section_control(page, page, "Momentum Signal")
+    assert target is not None and how == "label"
+    assert 6_000 <= page.clock < production_qa.SECTION_CONTROL_WAIT_MS
+
+
+def test_a_panel_that_never_renders_is_still_reported_missing():
+    page = _LateConfigPage(after_ms=10**9)
+    target, how = production_qa._find_section_control(page, page, "Momentum Signal")
+    assert (target, how) == (None, "none")
+    assert page.clock == production_qa.SECTION_CONTROL_WAIT_MS

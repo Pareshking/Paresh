@@ -81,6 +81,23 @@ def _revision() -> str | None:
 LOADED_REVISION: str | None = _revision()
 
 
+def mark_code_current() -> None:
+    """The process now runs the src/ code on disk: move LOADED_REVISION to it.
+
+    app.py calls this after src.core.code_reload has checked every loaded
+    src/ and r2/ module against its file (reloading all of them if any
+    differed) and the imports have run. A module not yet imported will load
+    from disk. So the code running is the code on disk, whatever the process
+    started on. Without it, a push that only ADDS a file reloads nothing, and
+    LOADED_REVISION kept naming the start build (QA run 580).
+
+    If app.py stops calling the reloader, this is not called either, and QA's
+    stale-module check sees the old revision again.
+    """
+    global LOADED_REVISION
+    LOADED_REVISION = _revision()
+
+
 def _streamlit_version() -> str | None:
     """Which Streamlit frontend this process is actually running.
 

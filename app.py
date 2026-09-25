@@ -83,6 +83,7 @@ st.set_page_config(
 )
 
 mark_loaded()  # the baseline reload_if_changed() compares against next run
+metrics.mark_code_current()  # loaded_revision: the src/ now running is disk's
 if _code_reloaded:
     logger.info("Reloaded app code changed on disk: %s", ", ".join(_code_reloaded))
 
