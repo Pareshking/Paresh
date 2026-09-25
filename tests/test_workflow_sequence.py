@@ -60,3 +60,17 @@ def test_every_unattended_workflow_raises_the_failure_alert():
     assert unattended - watched == set()
     condition = alert["jobs"]["alert"]["if"]
     assert "'schedule'" in condition and "'workflow_run'" in condition
+
+
+def test_the_sunday_retention_run_applies_its_own_plan_then_audits():
+    """Owner, 2026-09-25: the weekly run deletes, not only plans."""
+    doc = _load("r2_retention.yml")
+    assert _on(doc)["schedule"]
+    steps = {s.get("name"): s for s in doc["jobs"]["retention"]["steps"]}
+    plan, apply, audit = steps["Plan (dry run)"], steps["Apply"], steps["Recovery audit after apply"]
+    assert "RETENTION_DELETE_COUNT" in plan["run"] and "GITHUB_OUTPUT" in plan["run"]
+    assert "github.event_name == 'schedule'" in apply["if"]
+    assert "steps.plan.outputs.count != '0'" in apply["if"]
+    assert "steps.plan.outputs.count" in apply["env"]["EXPECT"]
+    assert "--expect-deletes" in apply["run"]
+    assert audit["if"] == "${{ steps.apply.outcome == 'success' }}"
