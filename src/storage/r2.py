@@ -184,6 +184,15 @@ class R2Archive:
             for obj in page.get("Contents", []):
                 yield str(obj["Key"])
 
+    def list_objects(self, prefix: str = "") -> Iterator[tuple[str, int]]:
+        """(key, size in bytes) for every object under ``prefix``."""
+        paginator = self.client.get_paginator("list_objects_v2")
+        for page in paginator.paginate(
+            Bucket=self.config.bucket, Prefix=_key(prefix) if prefix else ""
+        ):
+            for obj in page.get("Contents", []):
+                yield str(obj["Key"]), int(obj.get("Size", 0))
+
     def delete(self, key: str) -> None:
         self.client.delete_object(Bucket=self.config.bucket, Key=_key(key))
 
