@@ -16,6 +16,7 @@ on:
       - R2 Final Acceptance
       - R2 dated market-cap publication
       - R2 research index price history
+      - R2 retention
       - R2 ranking calculation archive
       - R2 recovery audit
       - R2 session continuity audit

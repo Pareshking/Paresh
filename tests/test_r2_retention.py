@@ -30,14 +30,18 @@ class FakeArchive:
         del self.objects[key]
 
 
-def publish(archive, dataset, root, as_of, n, size=100, object_key=None):
+def publish(archive, dataset, root, as_of, n, size=100, object_key=None,
+            created_at="2026-09-25T10:00:00+00:00", move_pointer=True):
+    """What scripts/r2_publish.py writes: payload, manifest, then the pointer."""
     sha = SHA.format(n)
     obj = object_key or f"{root}/{as_of}/revisions/{sha}/file.parquet"
+    manifest_key = f"archive/manifests/{dataset}/{as_of}/revisions/{sha}.json"
     archive.put(obj, size=size)
-    archive.put(f"archive/manifests/{dataset}/{as_of}/revisions/{sha}.json",
-                json.dumps({"object_key": obj}).encode())
-    archive.put(f"archive/manifests/{dataset}/{as_of}/current.json",
-                json.dumps({"object_key": obj}).encode())
+    archive.put(manifest_key, json.dumps(
+        {"object_key": obj, "revision_sha256": sha, "created_at": created_at}).encode())
+    if move_pointer:
+        archive.put(f"archive/manifests/{dataset}/{as_of}/current.json", json.dumps(
+            {"object_key": obj, "revision_sha256": sha, "manifest_key": manifest_key}).encode())
     return obj
 
 
@@ -133,3 +137,72 @@ def test_apply_refuses_when_the_count_differs_from_the_dry_run(monkeypatch, caps
     monkeypatch.setattr("sys.argv", ["r2_retention.py", "--apply", "--expect-deletes", str(count)])
     assert rr.main() == 0
     assert len(a.deleted) == count
+
+
+def _revisions(a, dataset, as_of):
+    prefix = f"archive/manifests/{dataset}/{as_of}/revisions/"
+    return sorted(k for k in a.objects if k.startswith(prefix))
+
+
+def _republished_archive():
+    """Every date published once, then the newest date republished twice."""
+    a = FakeArchive()
+    for i, d in enumerate(SEP):
+        publish(a, "prices/yahoo", "archive/prices/yahoo", d, i, size=1000,
+                created_at=f"{d}T10:00:00+00:00")
+    for n, hour in ((101, 11), (102, 12)):
+        publish(a, "prices/yahoo", "archive/prices/yahoo", "2026-09-25", n, size=1000,
+                created_at=f"2026-09-25T{hour}:00:00+00:00")
+    return a
+
+
+def test_a_kept_date_keeps_only_its_newest_revision():
+    a = _republished_archive()
+    plan = rr.plan_dataset(a, "prices/yahoo", "archive/prices/yahoo", dict(a.list_objects("")))
+    root = "archive/prices/yahoo/2026-09-25/revisions"
+    old = [f"archive/manifests/prices/yahoo/2026-09-25/revisions/{SHA.format(n)}.json"
+           for n in (len(SEP) - 1, 101)]
+    assert sorted(plan.superseded) == old
+    for n in (len(SEP) - 1, 101):
+        assert f"{root}/{SHA.format(n)}/file.parquet" in plan.delete_keys
+    newest = f"{root}/{SHA.format(102)}/file.parquet"
+    assert newest not in plan.delete_keys
+    assert "archive/manifests/prices/yahoo/2026-09-25/current.json" not in plan.delete_keys
+
+    # After applying, both ways of reading the date give the same revision.
+    rr.apply_plan(a, [plan])
+    assert _revisions(a, "prices/yahoo", "2026-09-25") == [
+        f"archive/manifests/prices/yahoo/2026-09-25/revisions/{SHA.format(102)}.json"]
+    ptr = json.loads(a.objects["archive/manifests/prices/yahoo/2026-09-25/current.json"])
+    assert ptr["object_key"] == newest and newest in a.objects
+
+
+def test_the_revision_current_json_names_is_kept_even_if_not_newest():
+    """A newer manifest whose pointer was never moved (a failed publish): keep both."""
+    a = _republished_archive()
+    publish(a, "prices/yahoo", "archive/prices/yahoo", "2026-09-25", 103,
+            created_at="2026-09-25T13:00:00+00:00", move_pointer=False)
+    plan = rr.plan_dataset(a, "prices/yahoo", "archive/prices/yahoo", dict(a.list_objects("")))
+    kept = set(_revisions(a, "prices/yahoo", "2026-09-25")) - set(plan.superseded)
+    assert {k.rsplit("/", 1)[-1][:-5] for k in kept} == {SHA.format(102), SHA.format(103)}
+
+
+def test_a_kept_date_that_cannot_be_ordered_is_left_whole():
+    a = _republished_archive()
+    publish(a, "prices/yahoo", "archive/prices/yahoo", "2026-09-25", 104, created_at=None)
+    plan = rr.plan_dataset(a, "prices/yahoo", "archive/prices/yahoo", dict(a.list_objects("")))
+    assert plan.superseded == []
+    assert not [k for k in plan.delete_keys if "/2026-09-25/" in k]
+    assert plan.skipped and "created_at" in plan.skipped[0]
+    # Not an error: the rest of the plan still stands.
+    assert not plan.refused and plan.drop
+
+
+def test_a_pointer_without_manifest_key_is_resolved_by_revision_sha():
+    a = _republished_archive()
+    ptr_key = "archive/manifests/prices/yahoo/2026-09-25/current.json"
+    ptr = json.loads(a.objects[ptr_key])
+    del ptr["manifest_key"]
+    a.put(ptr_key, json.dumps(ptr).encode())
+    plan = rr.plan_dataset(a, "prices/yahoo", "archive/prices/yahoo", dict(a.list_objects("")))
+    assert len(plan.superseded) == 2 and not plan.skipped

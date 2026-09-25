@@ -42,6 +42,19 @@ How it is applied (`scripts/r2_retention.py`, workflow `R2 retention`):
    - A manifest pointing anywhere else makes the whole run refuse.
 5. **Order:** the pointer first, then the manifests, then the payloads.
 6. **The recovery audit runs after every apply.**
+7. **Newest revision per kept date** (owner, item 7). A date can be
+   republished several times a day, which is about 5 revisions per date today.
+   On each kept date, every revision goes except two:
+   - the one `current.json` names;
+   - the one `resolve_latest_revision()` picks (newest `created_at`).
+
+   These two are nearly always the same. Keeping both means neither reader
+   changes its answer.
+   - If a date's pointer or `created_at` values cannot be read, that date is
+     left whole and printed as `SKIPPED`.
+   - Superseded revisions count toward `SUPERSEDED=`.
+8. **Weekly dry run:** Sunday at 03:17 UTC. It is watched by the scheduled-failure
+   alert, so a refused plan raises an issue.
 
 The month-end copies are the archival strategy that the conditions above ask
 for.
