@@ -15,7 +15,9 @@ Rules, per symbol:
 - A cell the store already has is never changed (the store wins).
 - A symbol is filled only if its closes AGREE with the store on the dates
   both hold: at least MIN_OVERLAP common dates, every one within
-  MAX_REL_DIFF. A split or bonus re-adjusted since the source was taken
+  MAX_REL_DIFF -- except up to MAX_CORRECTIONS scattered single days
+  (Screener correcting a close; owner-approved 2026-09-25 after checking
+  the 8 such symbols against live data). A split or bonus re-adjusted since the source was taken
   shows up as disagreement, and that symbol is skipped and listed, so two
   adjustment bases are never mixed in one series.
 - A symbol the store does not carry is not added (nothing to verify it
@@ -39,10 +41,30 @@ import pandas as pd
 
 MIN_OVERLAP = 5
 MAX_REL_DIFF = 0.01  # 1%: rounding noise passes, any split/bonus/demerger fails
+MAX_CORRECTIONS = 3  # scattered single-day corrections tolerated per symbol
 
 
 def _symbols(frame: pd.DataFrame) -> list[str]:
     return sorted(set(frame.columns.get_level_values(0)))
+
+
+def _isolated_corrections(rel: pd.Series, off: pd.Series) -> bool:
+    """A few single-day price corrections, not a re-adjusted history.
+
+    Checked 2026-09-25 on the 8 symbols the strict rule skipped: each differed
+    on 1-2 days of 249, and on every one Screener's live series matched the
+    store -- Screener had corrected a close after the source was taken. A
+    split or bonus instead re-adjusts EVERY date before its event, so its
+    disagreements are many and run unbroken from the earliest shared date.
+    The store's corrected values win either way (gaps only are filled).
+    """
+    if len(off) > MAX_CORRECTIONS or len(off) > 0.02 * len(rel):
+        return False
+    # An event just after the start of the overlap would disagree on only the
+    # first few shared dates -- and the missing older dates would carry the
+    # old basis. Refuse when the disagreements are the leading run.
+    leading = rel.index[: len(off)]
+    return not off.index.equals(leading)
 
 
 def backfill(store: pd.DataFrame, source: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]]:
@@ -65,10 +87,12 @@ def backfill(store: pd.DataFrame, source: pd.DataFrame) -> tuple[pd.DataFrame, d
             reason = f"only {len(common)} common dates"
         else:
             rel = (a.loc[common] / b.loc[common] - 1.0).abs()
-            if float(rel.max()) > MAX_REL_DIFF:
+            off = rel[rel > MAX_REL_DIFF]
+            if len(off) and not _isolated_corrections(rel, off):
                 worst = rel.idxmax()
-                reason = (f"closes disagree on {worst.date()}: store {a.loc[worst]:.2f} "
-                          f"vs source {b.loc[worst]:.2f}")
+                reason = (f"closes disagree on {len(off)} of {len(common)} shared dates "
+                          f"(e.g. {worst.date()}: store {a.loc[worst]:.2f} vs source "
+                          f"{b.loc[worst]:.2f}) -- looks like a re-adjustment")
         if reason:
             skipped[sym] = reason
             merged = mine
