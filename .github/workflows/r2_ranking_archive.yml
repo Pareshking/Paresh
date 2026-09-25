@@ -31,8 +31,8 @@ jobs:
       R2_BUCKET: ${{ secrets.R2_BUCKET }}
       PYTHONPATH: .
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version-file: .python-version
       - run: pip install -r requirements.txt

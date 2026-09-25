@@ -49,8 +49,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version-file: .python-version
       # pyyaml is a TEST-only dependency, deliberately not in requirements.txt:
@@ -91,7 +91,7 @@ jobs:
 
       - name: Retain Stage-3 live hierarchy artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: stage3-live-hierarchy
           path: artifacts/stage3_live_hierarchy.md
@@ -126,7 +126,7 @@ jobs:
           PY
 
       - name: Upload V1 validation artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: v1-validation-artifacts
           path: artifacts/

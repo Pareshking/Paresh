@@ -43,10 +43,10 @@ jobs:
     steps:
       # Full history: the deploy-correspondence check asks git whether the
       # build production serves descends from the triggering commit.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version-file: .python-version
       - name: Install QA dependencies
@@ -63,7 +63,7 @@ jobs:
         run: python scripts/production_qa.py
       - name: Upload QA evidence
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: v1-production-qa
           path: artifacts/production_qa/
