@@ -335,14 +335,23 @@ deferred for that reason.
   touching the fingerprint code for.
 - The other R5 functions are public R2 consumer API. Keep them.
 
-### Needs the owner
-- [ ] **W4:** the Python version Streamlit Cloud runs (Manage app →
-      Settings). CI will be aligned to it.
-- [ ] **W1:** check whether a keep-warm ping runs the script (see the PR
-      description for the steps).
-- [ ] **R7:** deleting 23 fully merged branches (command in the PR
-      description). Git deletions are blocked from this session.
-- [ ] **R8:** whether to move the dated audit docs into `docs/archive/`.
+### Resolved with the owner's input (production logs, 2026-09-25)
+- [x] **New, found in production logs:** the precomputed ranking was
+      rejected (`price_fingerprint differs`) from each night's Screener
+      publish (~22:00 UTC) until the 02:00 daily slot ran (~07:00 UTC). The
+      live engine ran through the Indian morning. `daily_sync` now also runs
+      when the Screener sync completes. The repeated rejection log lines are
+      now logged once per contract.
+- [x] **W1:** keep-warm got HTTP 303 and never reached the app. Removed;
+      V1 Production QA already visits in real Chromium every 6 h.
+- [x] **W4:** production runs Python 3.14.7. `.python-version` (3.14)
+      now drives every non-Stage-4B workflow and the devcontainer. The
+      suite passes on 3.14.
+- [x] **R8:** the closed August logs moved to `docs/archive/`.
+      `ADVERSARIAL_AUDIT_2026-09-10.md` stays because README links it as
+      current.
+- [ ] **R7:** branch deletion. The owner runs the command in PR #151
+      (this session cannot delete refs).
 
 ### Later
 - [ ] I2 + I3: pytest markers instead of the `--ignore` lists
