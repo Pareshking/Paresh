@@ -604,3 +604,17 @@ Until someone reboots it from the Streamlit Cloud dashboard, production runs
 `src/` as of #173. That includes everything in #172 and earlier, but not the
 #177 menu fix.
 
+
+**Follow-up (owner: "do it").** The live app now reloads changed code by
+itself (`src/core/code_reload.py`). `app.py` calls `reload_if_changed()`
+before its imports and `mark_loaded()` after them.
+- **What it does:** if any file behind a loaded `src/` or `r2/` module changed
+  on disk since it was imported, all of those modules are dropped. The imports
+  that follow then load the current code, with no Reboot needed.
+- **Tested against a real Streamlit server with its file watcher off** (as on
+  Cloud): a changed file was served on the very next visit. The first version,
+  without `mark_loaded()`, missed it; the test caught that.
+- **Unchanged days cost almost nothing:** one `stat` per module. The daily data
+  commit only touches `data/`.
+- **Safety net:** production QA's stale-module check (#179) still fails loudly
+  if this ever does not happen.

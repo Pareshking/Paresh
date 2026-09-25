@@ -17,6 +17,12 @@ warnings.filterwarnings("ignore", category=RuntimeWarning, module="numpy")
 warnings.filterwarnings("ignore", message=".*replace.*st\\.components\\.v1\\.html.*")
 warnings.filterwarnings("ignore", message=".*st\\.components\\.v1\\.html.*")
 
+# Before any other app import: load the current src/ and r2/ code if a pull
+# changed it since this process imported it (src/core/code_reload.py).
+from src.core.code_reload import mark_loaded, reload_if_changed
+
+_code_reloaded = reload_if_changed()
+
 # Core & Loaders
 from src.core import startup_metrics as metrics
 from src.core.config import (
@@ -31,6 +37,7 @@ from src.core.config import (
     REPO_ATH_FILE,
 )
 from src.core.logger import logger
+
 from src.engine import pipeline
 from src.engine.corporate_actions import adjust_ohlc, load_events
 from src.loaders.indices_loader import fetch_indices_data
@@ -74,6 +81,10 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+mark_loaded()  # the baseline reload_if_changed() compares against next run
+if _code_reloaded:
+    logger.info("Reloaded app code changed on disk: %s", ", ".join(_code_reloaded))
 
 # Inject Pure Paper White Design System
 inject_custom_css()
