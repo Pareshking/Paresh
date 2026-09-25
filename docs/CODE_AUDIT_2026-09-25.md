@@ -510,3 +510,37 @@ not changed:
 3. The price fingerprint hashes only the last row (§7).
 4. `r2_recovery_audit` fully reads every revision each week, and its cost grows without bound (§10).
 5. Delete the branches listed in `docs/BRANCH_CLEANUP_TODO.md`.
+
+## 15. UI line by line, part 2 (every view, `theme.py`, `charts.py`, `components.py`)
+
+§12 covered the UI with targeted checks. This pass read every file. Each
+fix below has a test in `tests/test_ui_audit_part2_2026_09_25.py`, or in the
+test named in the row.
+
+| # | File | Finding | Effect |
+|---|---|---|---|
+| U5 | `stock_view.py` | Index badges used a substring test (`"50" in tag`). MID150, SMALL250, MICRO250 and NN50 all contain "50". | **Every midcap, smallcap, microcap and Next-50 stock showed an "N50" badge.** Exact tags are now used. |
+| U6 | `breadth_view.py` | Breadth "By Index" used the same substring test on "50". | The NIFTY 50 row counted almost the whole universe, and the other four indices never matched their short tags, so they never appeared. Exact tags are now used, over stocks that actually have a price. |
+| U7 | `stock_view.py` | Peers table: CMP and % High are float32, which is not a Python `float`. | They printed raw ("1234.5677"). Fixed. |
+| U8 | `ranking_view.py` | Card drawdown: a float32 NaN slipped past `isinstance(v, float)`. | "+nan%" appeared on every stock under 12 months old. Fixed. |
+| U9 | `stock_view.py` | The rank ring was filled with the raw composite score (a z-score of about −2 to +1.5) clamped to 0..1. | The ring was almost full or almost empty. It now shows the stock's standing in the universe. |
+| U10 | `stock_view.py` | The 52W tile tint used a truthiness test. | A stock exactly at its high (0%) was tinted red. |
+| U11 | `backtest_view`, `track_record_view`, `breadth_view`, `rrg_view` | Cache keys were the last date plus the frame shape, and applied corporate actions were excluded. (The regression came from restoring the backtest cache in #160.) | Stale Backtest, MTD, Breadth and RRG results for up to an hour. Keys now use the whole-history fingerprint plus the event digest. |
+| U12 | 11 views | Gap counts used `== "🔴"`. | Gapped stocks that also carry the ⏸ mark were missed. Now one `components.gap_count` helper. |
+| U13 | `momentum.py`, `theme.py`, `stock_view.py` | The 2B carried-price mark reused ⏳, which already means "short history". | Now ⏸, and shown as a "Latest price: last print" tile on the stock page. |
+| U14 | `charts.py` | The treemap, RRG and correlation tooltips inserted names into HTML unescaped (inside a same-origin iframe). | A JavaScript `esc()` is used at each sink. The pages are checked with `node --check`. |
+| U15 | `charts.py` | The Plotly fallback's header, KPI row and spec panel were unreachable, because the only caller passes `chrome=False`. Its high/low series each dropped their own NaNs. | Dead code removed. High and low are aligned to the close's dates, so candles no longer shift. |
+| U16 | `sector_view.py` | "Near 52W High" meant within 10% here but within 20% in the screener. A rolling max and an EWM were computed per industry on every rerun. | Uses the screener's flag. The 20 EMA is computed once for the whole universe. |
+| U17 | `theme.py` | The sort comparator returned 1 for two blanks. | The comparator was inconsistent, so browsers could scramble rows. Blanks now compare equal. |
+| U18 | `theme.py` | Whole-number counts stored as floats printed "3.00" and "42.00 days". | Now integers. |
+| U19 | `ranking_view.py` | The 52W range was computed for the whole filtered view (0.24 s) to draw 48 cards. | Computed for the drawn cards only (0.02 s). The source-text test was replaced by a behavioural one. |
+| U20 | `ranking_view.py` | The results header was labelled with the wall-clock month. | Uses the ranking's own date. |
+| U21 | `config_view.py` | A null ratio in the corporate-action log crashed the page. With all weights at zero, the pill showed 20% each while the ranking used the defaults. | Both fixed. The text now says actions are also neutralised before ranking. |
+| U22 | `watchlist_view.py` | Missing tickers taken from a shareable `?wl=` URL were echoed into Markdown. | Reduced to ticker characters. |
+| U23 | several | Unescaped industry names in the sector card, the qualified list, the portfolio breakdown, card chips and the peers heading. Download dates used server UTC. | Escaped. Dates are now India time. |
+
+Read and found sound: `components.py` (freshness ribbon, signals),
+`lightweight_chart.py`, the header/row cell counts of the master table
+(11/16-17/36), `render_saas_table` formatting for every live column, the guide
+(its claims match the engine: 10/30/30/20/10, within 20% of the high, above
+the 50 EMA, ±3σ), the track record and portfolio views, and the RRG maths.

@@ -17,7 +17,7 @@ from src.ui.widget_state import remember, resolve
 
 from src.core.config import SHORT_FORMS
 from src.core.market_time import ist_now
-from src.ui.components import render_data_quality_footer, to_bool_mask
+from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
 from src.ui.views.stock_view import render_stock_view
 from src.ui.theme import render_master_screener_table, screener_column_count
 
@@ -258,7 +258,7 @@ def _card_html(row: pd.Series) -> str:
     chips_html = _idx_chips_html(indices)
     if not chips_html and industry and industry != "—":
         ind_s = industry[:10] + "…" if len(industry) > 11 else industry
-        chips_html = f'<span class="sq-chip sq-chip-other">{ind_s}</span>'
+        chips_html = f'<span class="sq-chip sq-chip-other">{html.escape(ind_s)}</span>'
 
     # 52-week price range bar — current CMP fills the range from 52W low to 52W high.
     # The range values are attached by _attach_52w_range() using the canonical
@@ -303,7 +303,9 @@ def _card_html(row: pd.Series) -> str:
 
     # Metrics
     def _fmt_pct(v, scale=100):
-        if v is None or (isinstance(v, float) and pd.isna(v)):
+        # pd.isna, not isinstance(v, float): Max DD 12M is float32, and a
+        # float32 NaN (any stock under 12 months old) printed "+nan%".
+        if v is None or pd.isna(v):
             return "—", "sq-neu"
         f = float(v) * scale
         clr = "sq-pos" if f > 0 else ("sq-neg" if f < 0 else "sq-neu")
@@ -435,7 +437,12 @@ def _attach_52w_range(
     return out
 
 
-def _render_card_grid(view: pd.DataFrame) -> None:
+def _render_card_grid(
+    view: pd.DataFrame,
+    high_prices: pd.DataFrame | None = None,
+    low_prices: pd.DataFrame | None = None,
+    adj_close: pd.DataFrame | None = None,
+) -> None:
     """Card grid over the WHOLE result set, revealed a batch at a time.
 
     Uses CSS grid (auto-fill minmax 260px) rendered in one st.markdown call
@@ -452,7 +459,12 @@ def _render_card_grid(view: pd.DataFrame) -> None:
     if shown < CARD_BATCH:
         shown = min(CARD_BATCH, total)
 
-    card_items = view.head(shown).reset_index(drop=True)
+    # The 52W range only for the cards actually drawn: attaching it to the
+    # whole filtered view walked all 750 symbols (~0.24s) on every rerun to
+    # draw 48 of them (~0.02s).
+    card_items = _attach_52w_range(
+        view.head(shown), high_prices, low_prices, adj_close
+    ).reset_index(drop=True)
     cards_inner = "".join(_card_html(card_items.iloc[i]) for i in range(len(card_items)))
     st.markdown(
         _CARD_CSS + f'<div class="sq-grid">{cards_inner}</div>',
@@ -784,8 +796,17 @@ def render_ranking_view(
     active_cols = [c for c in DISPLAY_COLS if c in view.columns]
 
     # ── Section header above the results ────────────────────────────────────
-    now = ist_now()
-    month_label = now.strftime("%b %Y")
+    # The ranking's own date, not the wall clock: on 1 Oct a table ranked on
+    # 30 Sep closes is September's ranking, and labelling it "Oct" said
+    # otherwise.
+    from src.core import startup_metrics as _metrics
+
+    try:
+        month_label = pd.Timestamp(
+            str(_metrics.snapshot().get("facts", {}).get("price_as_of") or "")[:10]
+        ).strftime("%b %Y")
+    except (ValueError, TypeError):
+        month_label = ist_now().strftime("%b %Y")
     st.markdown(
         f'<div style="font-size:0.73rem;font-weight:800;color:#0f172a;'
         f'letter-spacing:0.01em;margin:14px 0 6px;padding-bottom:6px;'
@@ -804,7 +825,7 @@ def render_ranking_view(
             view, prices_df=adj_close, density=density_mode
         )
     else:
-        _render_card_grid(_attach_52w_range(view, high_prices, low_prices, adj_close))
+        _render_card_grid(view, high_prices, low_prices, adj_close)
 
     # Export EVERY column the ranking carries, not just the ones on screen.
     # DISPLAY_COLS is a screen-layout decision -- it drops Score, the raw
@@ -826,6 +847,6 @@ def render_ranking_view(
 
     render_data_quality_footer(
         total_stocks=len(rank_df),
-        gap_count=int((rank_df.get("Data Gap", pd.Series()) == "🔴").sum()),
+        gap_count=gap_count(rank_df),
         short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
     )

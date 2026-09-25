@@ -15,13 +15,14 @@ from __future__ import annotations
 import html as _html
 import math
 
+import numpy as np
 import pandas as pd
 import streamlit as st
 
 from src.engine.corporate_actions import load_events
-from src.engine.momentum import ATR_DERIVED_COLUMNS
+from src.engine.momentum import ATR_DERIVED_COLUMNS, CARRIED_MARK
 from src.ui.charts import render_stock_chart
-from src.ui.components import render_data_quality_footer, to_bool_mask
+from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
 
 # ── Palette tokens ───────────────────────────────────────────────────────────
 POS   = "#059669"
@@ -117,7 +118,7 @@ def _chip(text: str, bg: str = "#f1f5f9", fg: str = SUB, border: str = LINE) -> 
         f'<span style="display:inline-block;font-size:0.68rem;font-weight:700;'
         f'padding:2px 7px;border-radius:4px;background:{bg};color:{fg};'
         f'border:1px solid {border};letter-spacing:.03em;white-space:nowrap;">'
-        f'{text}</span>'
+        f'{_html.escape(str(text))}</span>'
     )
 
 
@@ -212,11 +213,20 @@ def _render_corporate_actions(symbol: str) -> None:
 
 # ── 1. HERO ──────────────────────────────────────────────────────────────────
 
+# Same palette as the screener cards (ranking_view._idx_chips_html).
+_INDEX_CHIP_STYLES: dict[str, tuple[str, str, str]] = {
+    "N50": ("#ede9fe", "#5b21b6", "#ddd6fe"),
+    "NN50": ("#f3e8ff", "#7e22ce", "#e9d5ff"),
+    "MID150": ("#fff7ed", "#9a3412", "#fed7aa"),
+    "SMALL250": ("#fef9c3", "#713f12", "#fde68a"),
+    "MICRO250": ("#fef2f2", "#991b1b", "#fecaca"),
+}
+
+
 def _render_identity(row: pd.Series, total_stocks: int) -> None:
     sym     = str(row["Symbol"])
     rank    = _num(row.get("Rank"))
     rank_i  = int(rank) if rank is not None else None
-    score   = _num(row.get("Score"))
     industry = row.get("Industry") or "—"
     sector   = row.get("TV_Sector") or ""
     indices  = str(row.get("Indices") or "").strip()
@@ -229,14 +239,12 @@ def _render_identity(row: pd.Series, total_stocks: int) -> None:
         idx_s = idx_raw.strip()
         if not idx_s or idx_s == "—":
             continue
-        if "50" in idx_s and "500" not in idx_s:
-            idx_chips += _chip("N50", "#ede9fe", "#5b21b6", "#ddd6fe")
-        elif "500" in idx_s:
-            idx_chips += _chip("N500", "#ecfdf5", "#065f46", "#bbf7d0")
-        elif "MIDCAP" in idx_s.upper():
-            idx_chips += _chip("MID", "#fff7ed", "#9a3412", "#fed7aa")
-        elif "SMALLCAP" in idx_s.upper():
-            idx_chips += _chip("SM", "#fef9c3", "#713f12", "#fde68a")
+        # Exact tags, as indices_loader writes them (config.SHORT_FORMS). The
+        # old substring test ("50" in tag) matched NN50, MID150, SMALL250 and
+        # MICRO250 too, so every one of those stocks wore an "N50" badge.
+        style = _INDEX_CHIP_STYLES.get(idx_s.upper())
+        if style:
+            idx_chips += _chip(idx_s.upper(), *style)
         else:
             idx_chips += _chip(idx_s[:8], "#f1f5f9", SUB, LINE)
 
@@ -254,7 +262,14 @@ def _render_identity(row: pd.Series, total_stocks: int) -> None:
               bool(to_bool_mask(pd.Series([row.get("At ATH")])).iloc[0])),
     ])
 
-    ring_svg = _rank_ring(rank_i, total_stocks, score, size=76)
+    # The arc shows standing in the universe. It used to be filled with the raw
+    # composite Score -- a z-score, roughly -2 to +1.5 -- clamped to 0..1, so
+    # every stock above average drew a full ring and every one below an empty one.
+    standing = (
+        1.0 - (rank_i - 1) / max(total_stocks - 1, 1)
+        if rank_i is not None and total_stocks else None
+    )
+    ring_svg = _rank_ring(rank_i, total_stocks, standing, size=76)
 
     r3_str  = f"{r3 * 100:+.1f}% · 3M" if r3 is not None else ""
     r3_clr  = _sign_colour(r3)
@@ -360,7 +375,7 @@ def _render_kpi_band(row: pd.Series) -> None:
     dd12_str = f"{dd12:.1f}%" if dd12 is not None else "—"
 
     tiles = "".join([
-        _kpi_tile("12M Return", r12_str, colour=_sign_colour(r12), sub="vs universe"),
+        _kpi_tile("12M Return", r12_str, colour=_sign_colour(r12), sub="price return"),
         _kpi_tile("12M Sharpe", s12_str,
                   colour=POS if s12 and s12 > 1 else (WARN if s12 and s12 > 0 else NEG)),
         _kpi_tile("Rank Δ 3M", d3m_str, colour=_sign_colour(d3m),
@@ -396,7 +411,14 @@ def _render_key_levels(row: pd.Series) -> None:
     )
 
     # Tile background tints: green = good/high, amber = caution, red = risk level
-    hi_bg  = "#f0fdf4" if pct_hi and pct_hi > -5 else ("#fffbeb" if pct_hi and pct_hi > -15 else "#fff1f2")
+    # `is not None`, not truthiness: a stock AT its 52-week high has
+    # pct_hi == 0, which read as false and painted the tile red.
+    hi_bg  = (
+        "#f8fafc" if pct_hi is None
+        else "#f0fdf4" if pct_hi > -5
+        else "#fffbeb" if pct_hi > -15
+        else "#fff1f2"
+    )
     sl_bg  = "#fff1f2"   # stop loss → always red-tinted (risk)
     cex_bg = "#fffbeb"   # chandelier exit → amber (caution)
     ema_bg = "#f0fdf4" if _sign_colour(row.get("% 50 EMA")) == POS else "#fff1f2"
@@ -562,6 +584,10 @@ def _render_data_health(row: pd.Series) -> None:
         _tile("Data Gap", "Yes" if "🔴" in gap else "No",
               colour=NEG if "🔴" in gap else POS,
               bg="#fff1f2" if "🔴" in gap else "#f0fdf4"),
+        _tile("Latest price",
+              "Last print" if CARRIED_MARK in gap else "Current",
+              sub="no price on the ranking date" if CARRIED_MARK in gap else "",
+              colour=WARN if CARRIED_MARK in gap else POS),
         _tile("Short history", short_hist, sub="< 126 sessions",
               colour=WARN if short_hist == "Yes" else POS,
               bg="#fffbeb" if short_hist == "Yes" else "#f8fafc"),
@@ -581,7 +607,7 @@ def _render_peers(row: pd.Series, rank_df: pd.DataFrame) -> None:
     peers = rank_df[rank_df["Industry"] == industry].sort_values("Rank").head(10)
     if len(peers) <= 1:
         return
-    _section(f"Peers — {industry}", f"{len(peers)} shown · highlighted = this stock")
+    _section(f"Peers — {_html.escape(str(industry))}", f"{len(peers)} shown · highlighted = this stock")
 
     sym = str(row["Symbol"])
     cols = [c for c in ["Rank", "Symbol", "CMP", "3M Return", "6M Return",
@@ -611,7 +637,11 @@ def _render_peers_table(df: pd.DataFrame, highlight_sym: str) -> None:
         for col, val in r.items():
             align = "left" if col in ("Symbol", "Industry") else "right"
             fw = "800" if col == "Symbol" else "600"
-            if isinstance(val, float) and pd.notna(val):
+            # np.floating too: CMP and % High come out of the engine as
+            # float32, which is not a Python float, so they printed raw
+            # ("1234.5677") instead of "₹1,235".
+            if isinstance(val, (float, np.floating)) and pd.notna(val):
+                val = float(val)
                 if "Return" in col or "Alpha" in col:
                     txt = f"{val:+.1%}"
                     clr = POS if val > 0 else NEG
@@ -628,7 +658,7 @@ def _render_peers_table(df: pd.DataFrame, highlight_sym: str) -> None:
                     txt = f"{val:.1f}"
                     clr = INK
             else:
-                txt = str(val) if pd.notna(val) else "—"
+                txt = _html.escape(str(val)) if pd.notna(val) else "—"
                 clr = ACC if col == "Symbol" and is_hl else INK
             cells += (
                 f'<td style="padding:6px 10px;text-align:{align};font-weight:{fw};'
@@ -715,6 +745,6 @@ def render_stock_view(
 
     render_data_quality_footer(
         total_stocks=total_stocks,
-        gap_count=int((rank_df.get("Data Gap", pd.Series(dtype=str)) == "🔴").sum()),
+        gap_count=gap_count(rank_df),
         short_count=int((rank_df.get("Short History", pd.Series(dtype=str)) == "Yes").sum()),
     )

@@ -11,7 +11,7 @@ import streamlit as st
 
 from src.engine.momentum import MomentumEngine
 from src.ui.charts import render_sector_treemap
-from src.ui.components import render_data_quality_footer
+from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
 from src.ui.theme import render_saas_table
 
 
@@ -52,7 +52,7 @@ def render_sector_card(r: pd.Series) -> None:
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
             <div>
                 <div style="font-family:'Outfit',sans-serif; font-weight:800; font-size:0.92rem; color:#0f172a; line-height:1.2;">
-                    {ind_name}
+                    {html.escape(str(ind_name))}
                 </div>
                 <div style="font-size:0.72rem; color:#64748b; margin-top:2px;">
                     {n_stocks} stocks · ₹{mcap:,.0f} Cr MCap
@@ -165,25 +165,41 @@ def render_sector_view(
 
     ind_rank_df = calc.get_industry_rankings(work_df)
 
-    # Compute % 52W High, % 20 EMA, and Total MCap per group
+    # Share of each group near its 52-week high, above its 20 EMA, and total
+    # market cap.
+    #
+    # "Near 52W High" is the SCREENER's own flag (within 20% of the canonical
+    # 52-week high, momentum.py). This used to recompute its own version --
+    # within 10%, over a raw rolling max -- under the same label, so the card
+    # and the screener counted different stocks as "near". The 20 EMA has no
+    # screener column, so it is computed here, once for the whole universe
+    # rather than once per group (a rolling max and an EWM over the full
+    # history, ~100 times per rerun).
+    near_mask = (
+        to_bool_mask(work_df["Near 52W High"])
+        if "Near 52W High" in work_df.columns
+        else pd.Series(False, index=work_df.index)
+    )
+    in_frame = [s for s in work_df["Symbol"].unique() if s in adj_close.columns]
+    if in_frame:
+        latest = adj_close[in_frame].iloc[-1]
+        ema20_last = adj_close[in_frame].ewm(span=20, min_periods=10).mean().iloc[-1]
+        above_ema20 = (latest > ema20_last)
+    else:
+        above_ema20 = pd.Series(dtype=bool)
+    work_df = work_df.assign(
+        _near=near_mask.to_numpy(),
+        _above20=work_df["Symbol"].map(above_ema20).fillna(False).astype(bool).to_numpy(),
+        _priced=work_df["Symbol"].isin(in_frame).to_numpy(),
+    )
     ind_52w, ind_ema, ind_mcap = {}, {}, {}
     for ind_name, grp in work_df.groupby("Industry"):
-        grp_syms = [s for s in grp["Symbol"] if s in adj_close.columns]
         ind_mcap[ind_name] = (
             grp["Market Cap (Cr)"].sum() if "Market Cap (Cr)" in grp.columns else 0.0
         )
-        if not grp_syms:
-            ind_52w[ind_name] = 0.0
-            ind_ema[ind_name] = 0.0
-            continue
-        hi52 = adj_close[grp_syms].rolling(252, min_periods=60).max()
-        latest = adj_close[grp_syms].iloc[-1]
-        near_high = ((latest / hi52.iloc[-1].replace(0, np.nan)) >= 0.90).sum()
-        ind_52w[ind_name] = (near_high / len(grp_syms)) * 100
-
-        ema20 = adj_close[grp_syms].ewm(span=20, min_periods=10).mean()
-        above_ema20 = (latest > ema20.iloc[-1]).sum()
-        ind_ema[ind_name] = (above_ema20 / len(grp_syms)) * 100
+        n = int(grp["_priced"].sum())
+        ind_52w[ind_name] = (grp.loc[grp["_priced"], "_near"].sum() / n * 100) if n else 0.0
+        ind_ema[ind_name] = (grp.loc[grp["_priced"], "_above20"].sum() / n * 100) if n else 0.0
 
     if "Industry" in ind_rank_df.columns:
         ind_rank_df["Total MCap (Cr)"] = ind_rank_df["Industry"].map(ind_mcap).fillna(0)
@@ -247,6 +263,6 @@ def render_sector_view(
 
     render_data_quality_footer(
         total_stocks=len(rank_df),
-        gap_count=int((rank_df.get("Data Gap", pd.Series()) == "🔴").sum()),
+        gap_count=gap_count(rank_df),
         short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
     )

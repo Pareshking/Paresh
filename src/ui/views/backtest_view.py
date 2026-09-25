@@ -3,7 +3,6 @@ Strategy Backtesting View Controller with Friction & Turnover Attribution.
 """
 
 import math
-from datetime import datetime
 
 import pandas as pd
 import streamlit as st
@@ -18,9 +17,11 @@ from src.engine.parameter_sweep import (
     count_combinations,
     run_parameter_sweep,
 )
+from src.engine.pipeline import price_fingerprint
 from src.loaders.price_loader import fetch_benchmark_history
+from src.loaders.ranking_store import actions_digest
 from src.ui.charts import render_backtest_equity_chart
-from src.ui.components import render_data_quality_footer
+from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.theme import render_saas_table
 
 
@@ -89,7 +90,12 @@ def _backtest_body(
         w5 = bw[4].slider("12M (252D)", 0.0, 1.0, float(weights[4]), 0.05, key="btw_5")
         active_weights = (w1, w2, w3, w4, w5)
 
-    ph = f"{adj_close.index[-1]}_{adj_close.shape[0]}x{adj_close.shape[1]}"
+    # Keyed on the WHOLE price history and the applied corporate actions. The
+    # old key (last date + shape) missed an intraday refresh, a vendor
+    # restatement and a newly logged split alike, and served the cached answer
+    # for up to an hour.
+    _events = load_events()
+    ph = f"{price_fingerprint(adj_close)}_{actions_digest(_events)}"
     benchmark_close = fetch_benchmark_history(period="2y")
     if benchmark_close.empty:
         st.error("Nifty 500 benchmark (^CRSLDX) data is unavailable. Backtest stopped to prevent an invalid benchmark comparison.")
@@ -115,7 +121,7 @@ def _backtest_body(
             cost_bps=cost_drag_bps,
             buffer_n=int(bt_n * buffer_mult),
             _membership=load_history_or_none(),
-            _actions=load_events(),
+            _actions=_events,
         )
 
     if bt_res is None:
@@ -404,7 +410,7 @@ def _backtest_body(
                     st.download_button(
                         "⬇️ Export Current Holdings (CSV)",
                         lb.to_csv(index=False).encode(),
-                        f"current_book_{datetime.now():%Y%m%d}.csv",
+                        f"current_book_{ist_now():%Y%m%d}.csv",
                         "text/csv",
                         key="dl_bt_live_book_csv",
                     )
@@ -436,7 +442,7 @@ def _backtest_body(
                     st.download_button(
                         "⬇️ Export This Month's Changes (CSV)",
                         _fmt_dates(changes).to_csv(index=False).encode(),
-                        f"month_changes_{datetime.now():%Y%m%d}.csv",
+                        f"month_changes_{ist_now():%Y%m%d}.csv",
                         "text/csv",
                         key="dl_bt_changes_csv",
                     )
@@ -493,7 +499,7 @@ def _backtest_body(
                 c_dl.download_button(
                     "⬇️ Export Monthly Performance (CSV)",
                     m_df[active_cols].to_csv(index=False).encode(),
-                    f"monthly_performance_{datetime.now():%Y%m%d}.csv",
+                    f"monthly_performance_{ist_now():%Y%m%d}.csv",
                     "text/csv",
                     key="dl_bt_monthly_csv",
                 )
@@ -607,7 +613,7 @@ def _backtest_body(
                 c_dl.download_button(
                     "⬇️ Export Realized Trades (CSV)",
                     closed_trades[active_ct_cols].to_csv(index=False).encode(),
-                    f"realized_trades_{datetime.now():%Y%m%d}.csv",
+                    f"realized_trades_{ist_now():%Y%m%d}.csv",
                     "text/csv",
                     key="dl_bt_realized_trades_csv",
                 )
@@ -662,7 +668,7 @@ def _backtest_body(
                 c_dl.download_button(
                     "⬇️ Export Full Rebalance Log (CSV)",
                     tradebook[active_tb_cols].to_csv(index=False).encode(),
-                    f"rebalance_log_{datetime.now():%Y%m%d}.csv",
+                    f"rebalance_log_{ist_now():%Y%m%d}.csv",
                     "text/csv",
                     key="dl_bt_tradebook_csv",
                 )
@@ -704,7 +710,7 @@ def _backtest_body(
 
     render_data_quality_footer(
         total_stocks=len(rank_df),
-        gap_count=int((rank_df.get("Data Gap", pd.Series()) == "🔴").sum()),
+        gap_count=gap_count(rank_df),
         short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
     )
 

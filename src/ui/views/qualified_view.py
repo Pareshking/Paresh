@@ -3,12 +3,13 @@ Qualified Momentum Picks View Controller.
 Contains the Top 30 Qualified Composite Momentum section.
 """
 
+import html
 import numpy as np
 import pandas as pd
 import streamlit as st
 
 from src.ui.charts import render_correlation_heatmap
-from src.ui.components import render_data_quality_footer, to_bool_mask
+from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
 from src.ui.theme import render_master_screener_table
 
 
@@ -79,12 +80,12 @@ def _render_qualified_section(
         </div>
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
             <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Avg 3M Return</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: {avg_3m_clr}; margin-top: 2px;">{avg_3m:+.1%}</div>
+            <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: {avg_3m_clr}; margin-top: 2px;">{"—" if pd.isna(avg_3m) else f"{avg_3m:+.1%}"}</div>
             <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.70rem; color: #64748b;">Calendar 3 months</div>
         </div>
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
             <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Avg 6M Return</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: {avg_6m_clr}; margin-top: 2px;">{avg_6m:+.1%}</div>
+            <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: {avg_6m_clr}; margin-top: 2px;">{"—" if pd.isna(avg_6m) else f"{avg_6m:+.1%}"}</div>
             <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.70rem; color: #64748b;">Calendar 6 months</div>
         </div>
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
@@ -114,7 +115,7 @@ def _render_qualified_section(
             ind_items_html.append(f"""
                 <div style="margin-bottom: 9px;">
                     <div style="display: flex; justify-content: space-between; font-size: 0.76rem; font-family: 'Plus Jakarta Sans', sans-serif; margin-bottom: 3px;">
-                        <span style="font-weight: 600; color: #0f172a;">{r['Industry']}</span>
+                        <span style="font-weight: 600; color: #0f172a;">{html.escape(str(r['Industry']))}</span>
                         <span style="font-family: 'JetBrains Mono', monospace; color: #475569; font-weight: 700;">{int(r['Count'])} stock{'s' if r['Count']>1 else ''} ({r['Pct']:.0f}%)</span>
                     </div>
                     <div style="width: 100%; height: 6px; background-color: #f1f5f9; border-radius: 99px; overflow: hidden;">
@@ -197,6 +198,6 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> Non
 
     render_data_quality_footer(
         total_stocks=len(rank_df),
-        gap_count=int((rank_df.get("Data Gap", pd.Series()) == "🔴").sum()),
+        gap_count=gap_count(rank_df),
         short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
     )

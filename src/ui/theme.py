@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src.engine.momentum import ATR_DERIVED_COLUMNS
+from src.engine.momentum import ATR_DERIVED_COLUMNS, CARRIED_MARK
 
 
 TICK_TRUE = frozenset({"✅", "TRUE", "1", "YES", "Y"})
@@ -1315,9 +1315,9 @@ def render_master_screener_table(
         # Data Health
         gap_val = str(row.get("Data Gap", "🟢"))
         gap_icon = "🔴" if "🔴" in gap_val else "🟢"
-        if "⏳" in gap_val:
+        if CARRIED_MARK in gap_val:
             # Ranked on its last print: no price on the ranking session.
-            gap_icon = f'<span title="No price on the ranking date; ranked on its last print">{gap_icon}⏳</span>'
+            gap_icon = f'<span title="No price on the ranking date; ranked on its last print">{gap_icon}{CARRIED_MARK}</span>'
 
         ffill_val = row.get("FFill %")
         ffill_str = (
@@ -1737,8 +1737,13 @@ document.addEventListener('DOMContentLoaded', function() {{
                 let txtA = cellA.innerText.trim();
                 let txtB = cellB.innerText.trim();
 
-                if (txtA === '—' || txtA === '') return 1;
-                if (txtB === '—' || txtB === '') return -1;
+                // Blanks sink to the bottom in both directions. Two blanks
+                // compare EQUAL: returning 1 for both orders made the
+                // comparator inconsistent, and the browser's sort may then
+                // scramble the rows.
+                const blankA = (txtA === '—' || txtA === '');
+                const blankB = (txtB === '—' || txtB === '');
+                if (blankA || blankB) return (blankA === blankB) ? 0 : (blankA ? 1 : -1);
 
                 if (txtA.startsWith('▲') || txtA.startsWith('▼') || txtA.startsWith('—')) {{
                     let numA = parseFloat(txtA.replace(/[▲▼—\\s]/g, '')) * (txtA.startsWith('▼') ? -1 : 1);
@@ -1980,6 +1985,11 @@ def render_saas_table(
                     cells_html.append(
                         f'<td class="td-center"><strong>{round(val)}</strong></td>'
                     )
+                # Whole-number counts that arrive as float (a NaN anywhere in
+                # the column makes pandas store it that way): "3.00 buys" and
+                # "42.00 days" read as measurements, not counts.
+                elif any(w in c_str for w in ["BUYS", "SELLS", "(DAYS)", "SHARES"]) and float(val).is_integer():
+                    cells_html.append(f'<td class="td-right">{int(val):,}</td>')
                 # 1. Returns & Alphas & Monthly returns (e.g. M-1, M-2, Strategy Net, Benchmark)
                 elif (
                     any(
@@ -2290,8 +2300,13 @@ document.addEventListener('DOMContentLoaded', function() {{
                 let txtA = cellA.innerText.trim();
                 let txtB = cellB.innerText.trim();
 
-                if (txtA === '—' || txtA === '') return 1;
-                if (txtB === '—' || txtB === '') return -1;
+                // Blanks sink to the bottom in both directions. Two blanks
+                // compare EQUAL: returning 1 for both orders made the
+                // comparator inconsistent, and the browser's sort may then
+                // scramble the rows.
+                const blankA = (txtA === '—' || txtA === '');
+                const blankB = (txtB === '—' || txtB === '');
+                if (blankA || blankB) return (blankA === blankB) ? 0 : (blankA ? 1 : -1);
 
                 if (txtA.startsWith('▲') || txtA.startsWith('▼') || txtA.startsWith('—')) {{
                     let numA = parseFloat(txtA.replace(/[▲▼—\\s]/g, '')) * (txtA.startsWith('▼') ? -1 : 1);

@@ -12,7 +12,6 @@ import streamlit as st
 from plotly.subplots import make_subplots
 
 from src.core.logger import logger
-from src.ui.theme import clean_html
 
 
 def compute_rs_series(stock: pd.Series, benchmark: pd.Series) -> pd.Series:
@@ -127,7 +126,6 @@ def render_stock_chart(
         high_prices=high_prices,
         low_prices=low_prices,
         volume_data=volume_data,
-        chrome=False,
     )
 
 
@@ -138,7 +136,6 @@ def render_candlestick_drilldown(
     high_prices: pd.DataFrame | None = None,
     low_prices: pd.DataFrame | None = None,
     volume_data: pd.DataFrame | None = None,
-    chrome: bool = True,
 ) -> None:
     """Renders the single-stock technical terminal: candlesticks with optional
     moving-average overlays, volume, and RSI (14).
@@ -147,75 +144,14 @@ def render_candlestick_drilldown(
     chandelier exit were horizontal lines a few percent apart that crowded the
     price action; both numbers are stated exactly in the key-level tiles.
 
-    `chrome` draws the header card, the KPI row and the right-hand spec panel.
-    The stock detail page turns it off because it renders richer versions of
-    all three above the chart.
+    Only the Plotly fallback for the stock page, which draws its own identity
+    band, statistics and key levels above the chart. The header card, KPI row
+    and spec panel this function used to draw (behind a `chrome` flag that its
+    one caller always turned off) were removed as unreachable.
     """
     if symbol not in adj_close.columns:
         st.warning(f"No price data available for {symbol}")
         return
-
-    row = rank_df[rank_df["Symbol"] == symbol]
-    if row.empty:
-        st.warning(f"{symbol} not found in rankings.")
-        return
-    row_s = row.iloc[0]
-
-    # Header Card with Logo Badge, Symbol, Company, Industry
-    industry = row_s.get("Industry", "—")
-    tv_sector = row_s.get("TV_Sector", "")
-    cmp_val = row_s.get("CMP", 0)
-    ret_3m = row_s.get("3M Return", 0)
-    ret_6m = row_s.get("6M Return", 0)
-    ret_clr = "#059669" if ret_3m >= 0 else "#e11d48"
-    rank_num = int(row_s["Rank"]) if pd.notna(row_s.get("Rank")) else "—"
-
-    header_html = f"""
-    <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03); flex-wrap: wrap; gap: 12px;">
-        <div style="display: flex; align-items: center; gap: 14px;">
-            <div style="width: 44px; height: 44px; border-radius: 12px; background-color: #f1f5f9; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; color: #0f172a;">
-                {symbol[:2]}
-            </div>
-            <div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-weight: 800; font-size: 1.3rem; color: #0f172a; letter-spacing: -0.02em;">
-                        {symbol}
-                    </span>
-                    <span style="font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; font-weight: 700; background-color: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 2px 8px; border-radius: 20px;">
-                        Rank #{rank_num}
-                    </span>
-                </div>
-                <div style="font-size: 0.78rem; color: #64748b;">
-                    NSE: {symbol} · {industry} {f'· {tv_sector}' if tv_sector else ''}
-                </div>
-            </div>
-        </div>
-
-        <div style="display: flex; align-items: baseline; gap: 14px;">
-            <div>
-                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 1.6rem; font-weight: 800; color: #0f172a;">
-                    ₹{cmp_val:,.0f}
-                </span>
-            </div>
-            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 0.9rem; font-weight: 700; color: {ret_clr}; background-color: {ret_clr}15; padding: 4px 10px; border-radius: 8px; border: 1px solid {ret_clr}30;">
-                3M: {ret_3m:+.1%}
-            </div>
-        </div>
-    </div>
-    """
-    # The stock page renders its own identity band and statistics, and renders
-    # them better, so it asks for the chart WITHOUT this chrome. Keeping the
-    # chrome behind a flag means the older inline drilldown keeps working
-    # unchanged rather than being rewritten to suit the new page.
-    if chrome:
-        st.markdown(clean_html(header_html), unsafe_allow_html=True)
-
-        # 4 KPI metric cards row
-        k1, k2, k3, k4 = st.columns(4)
-        k1.metric("3M Sharpe Ratio", f"{row_s.get('3M Sharpe', 0):.2f}")
-        k2.metric("6M Return", f"{ret_6m:.1%}")
-        k3.metric("ATR Volatility %", f"{row_s.get('ATR %', 0):.1f}%")
-        k4.metric("Market Cap", f"₹{row_s.get('Market Cap (Cr)', 0):,.0f} Cr")
 
     # Timeframe and overlay pills. The moving averages are toggleable because
     # they answer a question ("is it above its 20?") rather than being a
@@ -252,14 +188,7 @@ def render_candlestick_drilldown(
         and symbol in low_prices.columns
     )
 
-    # Without the chrome the chart takes the full width; the spec panel's
-    # contents already appear as key-level tiles on the stock page.
-    if chrome:
-        c_chart, c_spec = st.columns([2.6, 1.1])
-    else:
-        c_chart, c_spec = st.container(), None
-
-    with c_chart:
+    with st.container():
         fig = make_subplots(
             rows=3,
             cols=1,
@@ -270,8 +199,10 @@ def render_candlestick_drilldown(
 
         # 1. Main Candlestick / Price Chart
         if _has_ohlc:
-            _high = high_prices[symbol].dropna().iloc[-_n_days:]
-            _low = low_prices[symbol].dropna().iloc[-_n_days:]
+            # On the CLOSE's dates. Each series dropped its own NaNs, so a
+            # missing high shifted every later candle onto the wrong day.
+            _high = high_prices[symbol].reindex(_close.index)
+            _low = low_prices[symbol].reindex(_close.index)
             _open = _close.shift(1).fillna(_close)
             fig.add_trace(
                 go.Candlestick(
@@ -477,107 +408,6 @@ def render_candlestick_drilldown(
                 ],
             },
         )
-
-    if c_spec is None:
-        return
-
-    with c_spec:
-        sl_raw = row_s.get("Stop Loss")
-        sl_str = (
-            f"₹{float(sl_raw):,.0f}"
-            if pd.notna(sl_raw) and isinstance(sl_raw, (int, float))
-            else "—"
-        )
-
-        ch_raw = row_s.get("Chand Exit")
-        ch_str = (
-            f"₹{float(ch_raw):,.0f}"
-            if pd.notna(ch_raw) and isinstance(ch_raw, (int, float))
-            else "—"
-        )
-
-        hi_raw = row_s.get("52W High")
-        hi_str = (
-            f"₹{float(hi_raw):,.0f}"
-            if pd.notna(hi_raw) and isinstance(hi_raw, (int, float))
-            else "—"
-        )
-
-        pct_hi_raw = row_s.get("% High")
-        pct_hi_str = (
-            f"{float(pct_hi_raw):+.1f}%"
-            if pd.notna(pct_hi_raw) and isinstance(pct_hi_raw, (int, float))
-            else "—"
-        )
-        pct_hi_clr = (
-            "#059669"
-            if (pd.notna(pct_hi_raw) and float(pct_hi_raw) >= -10)
-            else "#d97706"
-        )
-
-        pct_ema_raw = row_s.get("% 50 EMA")
-        pct_ema_str = (
-            f"{float(pct_ema_raw):+.1f}%"
-            if pd.notna(pct_ema_raw) and isinstance(pct_ema_raw, (int, float))
-            else "—"
-        )
-        pct_ema_clr = (
-            "#059669"
-            if (pd.notna(pct_ema_raw) and float(pct_ema_raw) >= 0)
-            else "#e11d48"
-        )
-
-        pers_raw = row_s.get("Persistence")
-        pers_str = (
-            f"{float(pers_raw):.0f}%"
-            if pd.notna(pers_raw) and isinstance(pers_raw, (int, float))
-            else "—"
-        )
-
-        vol_sig = row_s.get("Volume", "Normal") or "Normal"
-        gap_stat = row_s.get("Data Gap", "Clean") or "Clean"
-
-        spec_html = f"""
-        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px; height: 490px; overflow-y: auto;">
-            <div style="font-weight: 700; font-size: 0.92rem; color: #0f172a; margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
-                Technical Specifications
-            </div>
-            
-            <div class="stock-card-metric-row" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px solid #f1f5f9; font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem;">
-                <span style="color: #64748b;">Stop Loss (2×ATR)</span>
-                <strong style="color: #e11d48;">{sl_str}</strong>
-            </div>
-            <div class="stock-card-metric-row" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px solid #f1f5f9; font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem;">
-                <span style="color: #64748b;">Chandelier Exit (3×ATR)</span>
-                <strong style="color: #d97706;">{ch_str}</strong>
-            </div>
-            <div class="stock-card-metric-row" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px solid #f1f5f9; font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem;">
-                <span style="color: #64748b;">52W High</span>
-                <strong style="color: #0f172a;">{hi_str}</strong>
-            </div>
-            <div class="stock-card-metric-row" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px solid #f1f5f9; font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem;">
-                <span style="color: #64748b;">Distance to 52W High</span>
-                <strong style="color: {pct_hi_clr};">{pct_hi_str}</strong>
-            </div>
-            <div class="stock-card-metric-row" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px solid #f1f5f9; font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem;">
-                <span style="color: #64748b;">vs 50 EMA</span>
-                <strong style="color: {pct_ema_clr};">{pct_ema_str}</strong>
-            </div>
-            <div class="stock-card-metric-row" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px solid #f1f5f9; font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem;">
-                <span style="color: #64748b;">Persistence (Pos Days)</span>
-                <strong style="color: #0f172a;">{pers_str}</strong>
-            </div>
-            <div class="stock-card-metric-row" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px solid #f1f5f9; font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem;">
-                <span style="color: #64748b;">Volume Signal</span>
-                <strong style="color: #4f46e5;">{vol_sig}</strong>
-            </div>
-            <div class="stock-card-metric-row" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px solid #f1f5f9; font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem;">
-                <span style="color: #64748b;">Data Quality</span>
-                <strong style="color: {'#d97706' if gap_stat == '🔴' else '#059669'};">{gap_stat}</strong>
-            </div>
-        </div>
-        """
-        st.markdown(clean_html(spec_html), unsafe_allow_html=True)
 
 
 def render_sector_treemap(
@@ -793,6 +623,8 @@ html,body{{width:100%;height:100%;overflow:hidden;background:transparent;
 <div id="chart"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
 <script>
+// Names come from third-party feeds; tooltips are HTML. Escape at the sink.
+function esc(v){{return String(v).replace(/[&<>"']/g,function(c){{return {{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[c];}});}}
 const DATA={data_json};
 const RETURN_COL={rc};
 const SIZE_LABEL={sl};
@@ -814,20 +646,20 @@ const opt={{
       const d=p.data;
       if(d.children!==undefined){{
         // Sector/group tile
-        let s=`<span style="font-weight:700;font-size:13px">${{d.name}}</span>`;
+        let s=`<span style="font-weight:700;font-size:13px">${{esc(d.name)}}</span>`;
         s+=`<br>Avg return: <b>${{d.avg_ret||'—'}}</b>`;
         s+=`<br>Stocks: <b>${{d.n_stocks||d.children.length}}</b>`;
         s+=`<br><span style="color:#94a3b8;font-size:11px">Click to zoom into sector →</span>`;
         return s;
       }}
       // Individual stock tile
-      let s=`<span style="font-weight:700;font-size:13px">${{d.name}}</span>`;
-      s+=`<br>${{RETURN_COL}}: <b>${{d.ret_str||'—'}}</b>`;
+      let s=`<span style="font-weight:700;font-size:13px">${{esc(d.name)}}</span>`;
+      s+=`<br>${{esc(RETURN_COL)}}: <b>${{d.ret_str||'—'}}</b>`;
       if(d.rank!=null)s+=`<br>Rank: <b>#${{d.rank}}</b>`;
       if(d.cmp!=null)s+=`<br>CMP: <b>₹${{fmt(d.cmp)}}</b>`;
       if(d.mcap!=null)s+=`<br>Mcap: <b>₹${{fmt(d.mcap)}} Cr</b>`;
       if(d.sharpe!=null)s+=`<br>3M Sharpe: <b>${{d.sharpe}}</b>`;
-      s+=`<br><span style="color:#94a3b8;font-size:11px">Sized by: ${{SIZE_LABEL}}</span>`;
+      s+=`<br><span style="color:#94a3b8;font-size:11px">Sized by: ${{esc(SIZE_LABEL)}}</span>`;
       return s;
     }}
   }},
@@ -943,6 +775,8 @@ canvas{display:block;width:100%;cursor:default}
 <script>
 const DATA = """ + data_json + r""";
 
+// Industry names come from third-party feeds and the tooltip is HTML.
+function esc(v){return String(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 const canvas = document.getElementById('rrg');
 const ctx    = canvas.getContext('2d');
 const tip    = document.getElementById('tip');
@@ -1351,8 +1185,8 @@ canvas.addEventListener('mousemove', function(e) {
     tip.style.left    = (mx + 14) + 'px';
     tip.style.top     = (my - 8)  + 'px';
     tip.innerHTML =
-      '<b style="color:' + nearest.color + '">' + nearest.industry + '</b><br>' +
-      'Quadrant: <b>' + nearest.quadrant + '</b><br>' +
+      '<b style="color:' + nearest.color + '">' + esc(nearest.industry) + '</b><br>' +
+      'Quadrant: <b>' + esc(nearest.quadrant) + '</b><br>' +
       'RS-Ratio: <b>' + hr.toFixed(2) + '</b><br>' +
       'RS-Momentum: <b>' + hm.toFixed(2) + '</b><br>' +
       'Stocks: ' + nearest.stocks;
@@ -1667,6 +1501,7 @@ const dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').m
 const bg=dark?'#0f172a':'#ffffff';
 const fg=dark?'#e2e8f0':'#334155';
 const chart=echarts.init(document.getElementById('c'),null,{{backgroundColor:bg}});
+function esc(v){{return String(v).replace(/[&<>"']/g,function(c){{return {{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[c];}});}}
 const syms={syms_json};
 const data={data_json};
 chart.setOption({{
@@ -1674,7 +1509,7 @@ chart.setOption({{
   textStyle:{{color:fg,fontFamily:'Plus Jakarta Sans,system-ui,sans-serif',fontSize:11}},
   tooltip:{{trigger:'item',formatter:function(p){{
     const d=p.data;
-    return '<b>'+d[0]+'</b> × <b>'+d[1]+'</b><br>Corr: <b>'+(d[2]!=null?d[2].toFixed(2):'—')+'</b>';
+    return '<b>'+esc(d[0])+'</b> × <b>'+esc(d[1])+'</b><br>Corr: <b>'+(d[2]!=null?d[2].toFixed(2):'—')+'</b>';
   }}}},
   grid:{{left:60,right:70,top:20,bottom:60}},
   xAxis:{{type:'category',data:syms,splitArea:{{show:true}},
