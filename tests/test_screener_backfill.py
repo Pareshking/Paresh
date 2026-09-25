@@ -117,3 +117,33 @@ def test_live_data_says_which_copy_screener_stands_by():
     live = store[("BBB", "Close")]            # Screener now serves the store's value
     got = sb.explain(store, source, "BBB", live=live)
     assert (got["live_matches_store"], got["live_matches_source"]) == (1, 0)
+
+
+# ── isolated corrections vs re-adjustments (owner-approved 2026-09-25) ─────
+
+def test_a_single_corrected_close_no_longer_blocks_the_fill():
+    """ELLEN, NYKAA, ...: one day corrected by Screener after the source."""
+    store = _store()
+    d = RECENT[120]
+    store.loc[d, ("BBB", "Close")] *= 1.03
+    out, rep = sb.backfill(store, _source())
+    assert "BBB" not in rep["skipped"]
+    assert out.loc[OLD, ("BBB", "Close")].notna().all()        # history filled
+    assert out.loc[d, ("BBB", "Close")] == store.loc[d, ("BBB", "Close")]  # correction kept
+
+
+def test_many_scattered_disagreements_are_still_refused():
+    store = _store()
+    for d in RECENT[10:200:40]:          # 5 days, above MAX_CORRECTIONS
+        store.loc[d, ("BBB", "Close")] *= 1.03
+    _, rep = sb.backfill(store, _source())
+    assert "BBB" in rep["skipped"]
+
+
+def test_an_event_at_the_start_of_the_overlap_is_refused():
+    """Disagreeing only on the first shared days means the older history is on
+    another basis -- filling it would mix the two."""
+    store = _store()
+    store.loc[RECENT[:2], ("BBB", "Close")] /= 2
+    _, rep = sb.backfill(store, _source())
+    assert "BBB" in rep["skipped"]
