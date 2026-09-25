@@ -199,7 +199,9 @@ def _compute_weights(
     if not len(holdings):
         return pd.Series(dtype=float)
     if weight_method == "Inverse Volatility":
-        vol_w = log_ret[list(holdings)].iloc[max(start_idx - 63, 0) : start_idx + 1].std()
+        # Same estimate as the Portfolio tab (PortfolioOptimizer.inverse_volatility):
+        # the last 63 sessions up to and including the signal date, population SD.
+        vol_w = log_ret[list(holdings)].iloc[max(start_idx - 62, 0) : start_idx + 1].std(ddof=0)
         inv = (1.0 / vol_w.replace(0, np.nan)).fillna(0)
         t_w = inv.sum()
         raw = inv / t_w if t_w > 0 else pd.Series(1.0 / len(holdings), index=list(holdings))
@@ -647,6 +649,11 @@ def _calculate_backtest_metrics(
     }
 
 
+# Memoised on everything except the underscore-prefixed frames, which the
+# callers identify through `prices_hash`. The decorator was lost in the
+# 2026-09-17 refactor that split this function into stages, after which every
+# rerun of the Backtest and Track Record pages re-ran the whole walk-forward.
+@st.cache_data(show_spinner=False, ttl=3600)
 def run_backtest(
     prices_hash: str,
     _adj_close: pd.DataFrame,
@@ -712,7 +719,11 @@ def run_backtest(
     # One anchor frame for the whole run: the scorer is called five times
     # per rebalance and this is invariant across all of them.
     prices_anchor = anchor_frame(prices)
-    daily_ret = prices.pct_change(fill_method=None)
+    # Holdings are valued at their last real print, the rule `_fill_price`
+    # already applies to every fill. Daily pct_change could not do this: a
+    # holed session made BOTH that day's and the next day's return NaN, so the
+    # move across the hole was never booked at all.
+    prices_ff = prices.ffill()
     log_ret = np.log(prices / prices.shift(1).replace(0, np.nan))
 
     benchmark_level: pd.Series | None = None
@@ -823,16 +834,12 @@ def run_backtest(
         )
         score = composite_score[valid & composite_score.notna()]
 
+        # An empty ranking (nothing passes the trend and 52-week-high filters,
+        # as in a broad sell-off) is not a special case: the book goes to cash.
+        # It used to skip the period, which left every prior holding on the
+        # blotter as still open, charged nothing for leaving it, and earned 0%
+        # as though it had been sold.
         full_ranked = score.sort_values(ascending=False)
-        if full_ranked.empty:
-            for j in range(fwd_start + 1, exit_idx + 1):
-                equity_dates.append(prices.index[j])
-                strat_net_daily.append(0.0)
-                strat_gross_daily.append(0.0)
-                bench_daily.append(
-                    float(benchmark_ret.iloc[j]) if j < len(benchmark_ret) and pd.notna(benchmark_ret.iloc[j]) else 0.0
-                )
-            continue
 
         # ── Buffer Zone Selection (Turnover Reduction) ───────────────────────
         holdings = _select_holdings(
@@ -853,7 +860,7 @@ def run_backtest(
         # `prev_fill_idx` only advances when a book is actually struck, so a
         # month the loop passed over drifts through rather than resetting.
         standing_weights = _drift_holdings(
-            prev_weights, prices, prev_fill_idx, fwd_start
+            prev_weights, prices_ff, prev_fill_idx, fwd_start
         )
         full_w, turnover_period, friction_drag = _step_portfolio_allocation(
             wts, standing_weights, prices.columns, cost_bps
@@ -896,9 +903,11 @@ def run_backtest(
                     else rebal_freq
                 )
             else:
-                p_entry = p_exit
+                # No recorded entry means no known cost basis. NaN, not a
+                # fabricated flat round trip -- see _fill_price.
+                p_entry = float("nan")
                 entry_dt = p_start_dt
-                ret_pct = 0.0
+                ret_pct = float("nan")
                 h_days = rebal_freq
 
             closed_trades.append(
@@ -982,14 +991,39 @@ def run_backtest(
         # ── Measure Held Returns (fill at T+1 through the closing fill) ──────
         # The first accrual day is T+2: the position was bought at the T+1
         # close, so the T+1 bar itself belongs to whoever held it before.
+        #
+        # Buy and hold between fills. Each position is worth its target weight
+        # times its price growth since the fill, and the day's return is the
+        # change in the whole book's value. Applying the TARGET weights to
+        # every day's returns instead -- what this loop used to do -- is a book
+        # rebalanced back to target every session, for free, which is neither
+        # what the tradebook records nor what `_drift_holdings` and the
+        # month-to-date figure assume. Weight the caps leave uninvested is
+        # held as cash at 0%. A name with no price at its fill contributes
+        # nothing, as before.
         period_strat_rets: list[float] = []
+        held_cols = [s for s in holdings if s in prices_ff.columns]
+        held_w = np.array([float(wts.get(s, 0.0)) for s in held_cols], dtype=float)
+        cash = max(1.0 - float(held_w.sum()), 0.0)
+        if held_cols:
+            base_px = prices_ff[held_cols].iloc[fwd_start].to_numpy(dtype=float)
+            base_ok = np.isfinite(base_px) & (base_px > 0)
+        book_value_prev = cash + float(held_w.sum())
         for d_idx, j in enumerate(range(fwd_start + 1, exit_idx + 1)):
-            if j >= len(daily_ret):
+            if j >= len(prices_ff):
                 break
             equity_dates.append(prices.index[j])
-            _dr = daily_ret.iloc[j]
-            avail = [s for s in holdings if s in _dr.index and pd.notna(_dr[s])]
-            gross_r = float((_dr[avail] * wts[avail]).sum()) if avail else 0.0
+            if held_cols:
+                px = prices_ff[held_cols].iloc[j].to_numpy(dtype=float)
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    growth = np.where(base_ok & np.isfinite(px), px / base_px, 1.0)
+                book_value = cash + float((held_w * growth).sum())
+            else:
+                book_value = cash
+            gross_r = (
+                book_value / book_value_prev - 1.0 if book_value_prev > 0 else 0.0
+            )
+            book_value_prev = book_value
 
             # Deduct friction on the first rebalance day
             net_r = gross_r - (friction_drag if d_idx == 0 else 0.0)
@@ -1325,7 +1359,7 @@ def run_backtest(
         # trades out of is the last target carried forward to `mtd_base_idx`,
         # not the target itself. Without it the in-window months and the live
         # month would charge friction on two different quantities.
-        _standing = _drift_holdings(prev_weights, prices, prev_fill_idx, mtd_base_idx)
+        _standing = _drift_holdings(prev_weights, prices_ff, prev_fill_idx, mtd_base_idx)
         mtd_turnover = float((_new_full - _standing).abs().sum() / 2.0)
         mtd_cost = mtd_turnover * (cost_bps / 10000.0)
 

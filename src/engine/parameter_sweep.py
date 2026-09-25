@@ -144,6 +144,11 @@ def _score_grid(
     failed = 0
     failure_reasons: Counter[str] = Counter()
     lo, hi = progress_span
+    # Every combination is scored on the same point-in-time universe. Omitting
+    # it ranked the whole grid against today's constituents, so the sweep's
+    # "winner" was the setting that best exploited the survivorship bias. Read
+    # once per grid, not once per combination.
+    membership = load_history_or_none()
 
     for i, combo in enumerate(combos):
         kwargs = dict(fixed)
@@ -156,11 +161,7 @@ def _score_grid(
                 sector_map=sector_map,
                 _benchmark_close=benchmark_close,
                 backtest_months=backtest_months,
-                # Every combination is scored on the same point-in-time
-                # universe. Omitting this ranked the whole grid against
-                # today's constituents, so the sweep's "winner" was the
-                # setting that best exploited the survivorship bias.
-                _membership=load_history_or_none(),
+                _membership=membership,
                 **kwargs,
             )
         except Exception as exc:

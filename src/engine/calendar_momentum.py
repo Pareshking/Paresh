@@ -136,6 +136,7 @@ def _calendar_period_metrics(
     # 750. The guard existed only in period_sharpe_at, whose comment explains
     # exactly why it is needed.
     first_date = index[0].normalize() if n_rows else None
+    last_window_fits = True
     if first_date is not None:
         as_of_row = index.normalize().to_numpy().copy()
         if n_rows:
@@ -144,12 +145,17 @@ def _calendar_period_metrics(
                  else latest_as_of_date(index))
             )
         targets = pd.DatetimeIndex(as_of_row) - pd.DateOffset(months=months)
-        sharpe[np.asarray(targets < first_date), :] = np.nan
+        does_not_fit = np.asarray(targets < first_date)
+        sharpe[does_not_fit, :] = np.nan
+        last_window_fits = not bool(does_not_fit[-1])
 
     # Only the final row's simple return is stored in period_metrics — building
     # a full 500×750 returns matrix and discarding 499 rows wastes 3 MB per window.
+    # Same fit rule as the Sharpe above: when the frame is shorter than the
+    # horizon, searchsorted clamps the start to row 0 and this would publish a
+    # "12M Return" measured over however few months the frame holds.
     last_ret_arr = np.full(n_cols, np.nan)
-    if n_rows > 0:
+    if n_rows > 0 and last_window_fits:
         end_last = n_rows - 1
         start_last = int(starts[end_last])
         if start_last < end_last:

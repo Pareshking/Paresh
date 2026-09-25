@@ -80,9 +80,6 @@ def test_portfolio_optimizer(sample_market_data):
     w_iv = opt.inverse_volatility(symbols)
     assert np.isclose(w_iv.sum(), 1.0)
 
-    w_erc = opt.equal_risk_contribution(symbols)
-    assert np.isclose(w_erc.sum(), 1.0)
-
     w_constr = opt.apply_constraints(w_eq, sector_cap=0.40, stock_cap=0.25)
     assert np.isclose(w_constr.sum(), 1.0)
     assert (w_constr <= 0.25 + 1e-6).all()

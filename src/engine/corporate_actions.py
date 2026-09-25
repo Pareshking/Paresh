@@ -187,7 +187,14 @@ def load_events(path: str | Path = LOG_PATH) -> list[dict[str, Any]]:
     try:
         with p.open(encoding="utf-8") as fh:
             log = json.load(fh)
-    except (ValueError, OSError):
+    except (ValueError, OSError) as exc:
+        # Same stakes as the missing-file case above, and it used to be silent:
+        # an unreadable log switches off every neutralisation.
+        logger.error(
+            "Corporate-actions log %s is unreadable (%s); no flagged split, "
+            "bonus or demerger will be neutralised before ranking.",
+            p, type(exc).__name__,
+        )
         return []
     return list((log.get("events") or {}).values())
 
@@ -273,7 +280,11 @@ def _step_is_still_present(
     absent price returns False, and not adjusting is the reversible mistake.
     """
     values = pd.to_numeric(series, errors="coerce")
-    at = values.reindex([when]).iloc[0] if when in values.index else np.nan
+    # The first real print on or after the event date. Looking only at the
+    # exact session meant a vendor hole on that one day read as "restated" and
+    # left the phantom crash in place, visible on the very next print.
+    after = values.loc[values.index >= when].dropna()
+    at = after.iloc[0] if not after.empty else np.nan
     prior = values.loc[values.index < when].dropna()
     if not np.isfinite(at) or prior.empty:
         return False
