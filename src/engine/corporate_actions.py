@@ -170,12 +170,50 @@ def summarise(found: pd.DataFrame) -> dict[str, Any]:
 # indices_loader.py already resolves its data files this way.
 LOG_PATH = Path(__file__).resolve().parents[2] / "data" / "corporate_actions_log.json"
 
-# `verdict` value for a flagged session confirmed to be a genuine price move.
+# `verdict` values on a flagged session. PRICE_MOVE: confirmed genuine, never
+# neutralised. CORPORATE_ACTION: confirmed an action even though the symbol
+# trades in F&O (see load_events) -- set by hand, or by the Screener check once
+# Screener has restated the history.
 PRICE_MOVE = "price_move"
+CORPORATE_ACTION = "corporate_action"
+
+# NSE's current F&O underlyings, refreshed by scripts/sync_fo_symbols.py.
+FO_SYMBOLS_PATH = LOG_PATH.parent / "nse_fo_symbols.json"
 
 
-def load_events(path: str | Path = LOG_PATH) -> list[dict[str, Any]]:
-    """The flagged sessions on record, or an empty list."""
+def load_fo_symbols(path: str | Path = FO_SYMBOLS_PATH) -> set[str]:
+    """Symbols with F&O contracts, or an empty set (then no F&O rule applies)."""
+    import json
+
+    try:
+        with Path(path).open(encoding="utf-8") as fh:
+            return {str(s).strip().upper() for s in json.load(fh).get("symbols", [])}
+    except (OSError, ValueError, AttributeError):
+        logger.warning("No readable F&O symbol list at %s; the F&O rule is off.", path)
+        return set()
+
+
+def needs_confirmation(event: dict[str, Any], fo_symbols: set[str]) -> bool:
+    """An F&O move matching no split/bonus ratio, not yet confirmed an action.
+
+    The +/-35% rule rests on NSE circuit limits (20% at most), and F&O stocks
+    have none: YESBANK's March 2020 crash, IDEA's and the PSU banks' rallies,
+    POLICYBZR on 2026-09-24 were all real. Owner, 2026-09-25: treat such a move
+    as real until Screener restates the history -- a demerger is restated
+    within days, a crash never is.
+    """
+    return (event.get("kind") != "split/bonus"
+            and str(event.get("symbol", "")).upper() in fo_symbols
+            and event.get("verdict") != CORPORATE_ACTION)
+
+
+def load_events(path: str | Path = LOG_PATH,
+                fo_symbols: set[str] | None = None) -> list[dict[str, Any]]:
+    """The flagged sessions to neutralise, or an empty list.
+
+    Left out: sessions confirmed as genuine price moves, and F&O moves not yet
+    confirmed as corporate actions (needs_confirmation).
+    """
     import json
 
     p = Path(path)
@@ -205,7 +243,9 @@ def load_events(path: str | Path = LOG_PATH) -> list[dict[str, Any]]:
     # rule assumes NSE circuit limits, and F&O stocks have none: POLICYBZR fell
     # 36% on 2026-09-24 on a government announcement, and rescaling its history
     # by 0.64 would have erased a real crash from the ranking.
-    return [e for e in events if e.get("verdict") != PRICE_MOVE]
+    fo = load_fo_symbols() if fo_symbols is None else fo_symbols
+    return [e for e in events
+            if e.get("verdict") != PRICE_MOVE and not needs_confirmation(e, fo)]
 
 
 def adjust_prices(

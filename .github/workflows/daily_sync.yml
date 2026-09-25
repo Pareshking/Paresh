@@ -151,6 +151,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # NSE's F&O list, read by the corporate-actions rule before ranking: an
+      # F&O stock has no circuit limit, so its one-day move beyond 35% is real
+      # unless Screener later restates it. Non-blocking: a failed download
+      # keeps the committed list.
+      - name: Refresh the F&O symbol list
+        run: python scripts/sync_fo_symbols.py || echo "::warning::F&O list refresh failed; using the committed list."
+
       - name: Run Automated Daily Market Sync
         env:
           PYTHONPATH: .
