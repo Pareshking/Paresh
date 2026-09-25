@@ -88,3 +88,32 @@ def test_a_missing_store_takes_the_source_whole(tmp_path, monkeypatch):
     monkeypatch.setattr("sys.argv", ["x", "--store", str(target), "--source-file", str(src_p), "--apply"])
     assert sb.main() == 0
     assert len(pd.read_parquet(target)) == len(_source())
+
+
+# ── explain: why two copies of one symbol disagree ─────────────────────────
+
+def test_a_bonus_shows_as_one_constant_ratio_before_its_date():
+    store, source = _store(), _source()
+    bonus = pd.Timestamp("2026-06-01")
+    store.loc[store.index < bonus, ("BBB", "Close")] /= 2   # 1:1 bonus re-adjusted history
+    got = sb.explain(store, source, "BBB")
+    assert got["looks_like_adjustment"] is True
+    assert got["ratio_min"] == got["ratio_max"] == 0.5
+
+
+def test_scattered_corrections_are_not_an_adjustment():
+    store, source = _store(), _source()
+    for d in (RECENT[10], RECENT[100], RECENT[200]):
+        store.loc[d, ("BBB", "Close")] *= 1.03
+    got = sb.explain(store, source, "BBB")
+    assert got["disagreeing_dates"] == 3
+    assert got["looks_like_adjustment"] is False
+
+
+def test_live_data_says_which_copy_screener_stands_by():
+    store, source = _store(), _source()
+    d = RECENT[50]
+    store.loc[d, ("BBB", "Close")] *= 1.03
+    live = store[("BBB", "Close")]            # Screener now serves the store's value
+    got = sb.explain(store, source, "BBB", live=live)
+    assert (got["live_matches_store"], got["live_matches_source"]) == (1, 0)

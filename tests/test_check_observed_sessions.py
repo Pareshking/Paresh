@@ -24,8 +24,12 @@ def test_the_2026_09_21_regression_is_caught():
     one_year = pd.bdate_range("2025-09-18", "2026-09-21")
     previous = set(_healthy().strftime("%Y-%m-%d"))
     problems = cos.check(_archive(one_year), previous)
-    assert any("spans" in p for p in problems)
     assert any("missing" in p for p in problems)
+
+
+def test_a_short_history_alone_is_not_a_problem():
+    """Owner: short history is fine (listing dates, collection just begun)."""
+    assert cos.check(_archive(pd.bdate_range("2025-09-18", "2026-09-24")), None) == []
 
 
 def test_a_store_that_fell_back_to_weekly_fails_the_recent_year():

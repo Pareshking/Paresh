@@ -65,7 +65,7 @@ jobs:
             --prices /tmp/r2-observed/screener_prices.parquet \
             --output /tmp/r2-observed/trading_sessions_observed.parquet
 
-      # Daily recent year, ~10-year span, and never fewer sessions than the
+      # Daily recent year, and never fewer sessions than the
       # archive already published (scripts/check_observed_sessions.py). This
       # replaced `len >= 1000`, which tested how the store was built rather
       # than whether history was lost.

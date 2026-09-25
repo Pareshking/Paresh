@@ -109,7 +109,6 @@ DAILY_DATASETS = (
     "prices/screener",
     "prices/yahoo",
     "snapshots/rankings",
-    "snapshots/application",
     "calculations/rankings",
     "market_caps/nse_history",
     "indices/prices/research",

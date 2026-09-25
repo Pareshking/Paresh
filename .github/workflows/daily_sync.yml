@@ -255,13 +255,11 @@ jobs:
             --pipeline-version "r2-daily-${GITHUB_SHA}" \
             --release-tag data-latest
 
-          python scripts/r2_publish.py \
-            --path prices.parquet \
-            --dataset snapshots/application \
-            --source application \
-            --key-root snapshots/application \
-            --pipeline-version "r2-daily-${GITHUB_SHA}" \
-            --release-tag data-latest
+          # prices.parquet is NOT published to R2 (owner, 2026-09-25). It is a
+          # 2-year cut of prices_full.parquet above; the app reads it from the
+          # release asset, and nothing ever read it from R2 (snapshots/application,
+          # 137 MB in 14 copies). Its existing copies are left for the owner
+          # to delete.
 
           if [ -f rankings.parquet ]; then
             python scripts/r2_publish.py \

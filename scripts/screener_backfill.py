@@ -120,6 +120,67 @@ def _read_r2_revision(prefix: str) -> pd.DataFrame:
     return reader.read_parquet(ref)
 
 
+def explain(store: pd.DataFrame, source: pd.DataFrame, symbol: str,
+            live: pd.Series | None = None) -> dict[str, Any]:
+    """Why a symbol's two copies disagree. Read-only.
+
+    A split or bonus re-adjusts the WHOLE history before its date by one
+    factor, so the store/source ratio is one constant on every shared date
+    before it and 1.0 after. A data correction changes a few scattered days.
+    `live` (tonight's Screener series) says which copy Screener stands by now.
+    """
+    a = store[symbol]["Close"].dropna()
+    b = source[symbol]["Close"].dropna()
+    common = a.index.intersection(b.index)
+    ratio = (a.loc[common] / b.loc[common])
+    off = ratio[(ratio - 1).abs() > MAX_REL_DIFF]
+    out: dict[str, Any] = {
+        "symbol": symbol, "common_dates": int(len(common)),
+        "disagreeing_dates": int(len(off)),
+        "first_disagreement": str(off.index.min().date()) if len(off) else None,
+        "last_disagreement": str(off.index.max().date()) if len(off) else None,
+        "ratio_min": round(float(off.min()), 4) if len(off) else None,
+        "ratio_max": round(float(off.max()), 4) if len(off) else None,
+        "worst": [f"{d.date()} store={a.loc[d]:.2f} source={b.loc[d]:.2f}"
+                  for d in (off - 1).abs().sort_values(ascending=False).index[:5]],
+    }
+    if len(off):
+        # One constant factor on every shared date up to the last disagreement
+        # is the fingerprint of a corporate-action re-adjustment.
+        before = ratio.loc[:off.index.max()]
+        out["looks_like_adjustment"] = bool(
+            len(off) == len(before) and float(off.max() / off.min()) < 1.002)
+    if live is not None and len(off):
+        live = live.dropna()
+        days = [d for d in off.index if d in live.index]
+        store_hits = sum(abs(a.loc[d] / live.loc[d] - 1) <= 0.002 for d in days)
+        source_hits = sum(abs(b.loc[d] / live.loc[d] - 1) <= 0.002 for d in days)
+        out["live_checked_dates"] = len(days)
+        out["live_matches_store"] = int(store_hits)
+        out["live_matches_source"] = int(source_hits)
+    return out
+
+
+def _live_closes(symbols: list[str]) -> dict[str, pd.Series]:
+    """Tonight's Screener series for a handful of symbols (one request each)."""
+    import time
+
+    import requests
+
+    from src.loaders import screener_loader as sl
+
+    ids = sl.load_ids()
+    session = requests.Session()
+    out = {}
+    for sym in symbols:
+        cid = ids.get(sym) or sl.resolve_id(sym, session)
+        got = sl.fetch_series(cid, session) if cid else None
+        if got is not None:
+            out[sym] = got[0]
+        time.sleep(1.5)
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--store", required=True, help="the Screener store to fill (written only with --apply)")
@@ -127,6 +188,9 @@ def main() -> int:
     src.add_argument("--source-file", help="another Screener store, e.g. the release asset")
     src.add_argument("--source-r2-revision", help="prefix of a prices/screener revision SHA in R2")
     ap.add_argument("--apply", action="store_true")
+    ap.add_argument("--explain", default="",
+                    help="comma-separated symbols: report why their copies disagree "
+                         "(and what Screener serves live), then exit without writing")
     args = ap.parse_args()
 
     if args.source_file:
@@ -134,6 +198,15 @@ def main() -> int:
         print(f"SOURCE file {args.source_file}")
     else:
         source = _read_r2_revision(args.source_r2_revision)
+
+    if args.explain:
+        symbols = [x.strip().upper() for x in args.explain.split(",") if x.strip()]
+        store = pd.read_parquet(args.store)
+        live = _live_closes(symbols)
+        for sym in symbols:
+            print("EXPLAIN " + json.dumps(explain(store, source, sym, live.get(sym)),
+                                          sort_keys=True))
+        return 0
 
     if not os.path.exists(args.store):
         # No store at all (the Actions cache expired or was never written):

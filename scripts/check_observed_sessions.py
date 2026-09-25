@@ -9,7 +9,9 @@ fill in as time passes. So the checks are:
 - DAILY RECENT YEAR: the last 365 calendar days hold at least
   MIN_RECENT_SESSIONS sessions (NSE trades ~248 a year); a store that fell
   back to weekly points fails.
-- SPAN: the archive reaches back at least MIN_SPAN_YEARS.
+- (No minimum span. Owner, 2026-09-25: a short history is fine -- it
+  depends on listing dates and on how long collection has run. Lost
+  history is caught by the check below, not by a length.)
 - NEVER SHRINKS: every session in the archive currently published to R2 is
   still present. This is the check that would have caught 2026-09-21, when
   the nightly store replaced a 1161-date download with 249 dates.
@@ -25,7 +27,6 @@ from datetime import timedelta
 import pandas as pd
 
 MIN_RECENT_SESSIONS = 230
-MIN_SPAN_YEARS = 9.5
 DATASET = "trading_sessions/observed"
 
 
@@ -48,10 +49,6 @@ def check(frame: pd.DataFrame, previous: set[str] | None) -> list[str]:
         problems.append(
             f"only {recent} sessions in the year to {last.date()} "
             f"(need {MIN_RECENT_SESSIONS}: the recent year must be daily)")
-
-    span_years = (last - dates.min()).days / 365.25
-    if span_years < MIN_SPAN_YEARS:
-        problems.append(f"spans {span_years:.1f} years (need {MIN_SPAN_YEARS})")
 
     if previous:
         have = set(dates.dt.strftime("%Y-%m-%d"))
