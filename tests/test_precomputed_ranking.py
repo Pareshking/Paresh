@@ -319,8 +319,10 @@ ABFRL = {"symbol": "ABFRL", "date": "2025-05-22", "ratio": 0.3341}
 PGIL = {"symbol": "PGIL", "date": "2026-08-03", "ratio": 0.5093}
 
 
-def test_an_adjustment_really_is_invisible_to_the_price_fingerprint():
-    """The premise. If this ever stops being true, the digest can go."""
+def test_the_price_fingerprint_now_sees_an_adjustment_too():
+    """Decision 3B: the fingerprint covers the whole history, so a neutralised
+    split changes it even though the last row is untouched. actions_digest
+    stays in the contract as a second, independent guard."""
     from src.engine.corporate_actions import adjust_ohlc
 
     idx = pd.date_range("2025-01-01", "2025-12-31", freq="B")
@@ -337,8 +339,8 @@ def test_an_adjustment_really_is_invisible_to_the_price_fingerprint():
     assert plain["c"]["ABFRL"].iloc[-1] == fixed["c"]["ABFRL"].iloc[-1], (
         "the adjustment moved the last row; the premise no longer holds"
     )
-    assert pipeline.price_fingerprint(plain["c"]) == pipeline.price_fingerprint(fixed["c"]), (
-        "price_fingerprint now sees the adjustment"
+    assert pipeline.price_fingerprint(plain["c"]) != pipeline.price_fingerprint(fixed["c"]), (
+        "price_fingerprint is blind to history again"
     )
 
 

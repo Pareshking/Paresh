@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import hashlib
 
+import numpy as np
 import pandas as pd
 
 from src.engine.calendar_momentum import _apply_weight_composite, _compute_period_z_scores
@@ -80,8 +81,8 @@ def pipeline_version() -> str:
 PIPELINE_VERSION: str = pipeline_version()
 
 
-def price_fingerprint(df: pd.DataFrame | None) -> str:
-    """Memo key for the quant engine: shape, last session, AND last values.
+def frame_memo_key(df: pd.DataFrame | None) -> str:
+    """Cheap in-process memo key: shape, last session, AND last values.
 
     The values matter. Within a trading day the frame's last date and shape
     never change -- only the numbers in that final row do, as the session moves
@@ -90,13 +91,9 @@ def price_fingerprint(df: pd.DataFrame | None) -> str:
     refreshing them, so CMP, Score, Rank and every derived column were frozen
     on a page whose header dated them today.
 
-    Hashing the last row is enough: everything before it is settled history,
-    and a change there necessarily changes the length or the date too.
-
-    This is also the precomputed table's validity contract, which is why it
-    lives here rather than in app.py: the nightly job stamps the artifact with
-    the fingerprint of the frame it ranked, and production only trusts the
-    artifact when its own frame fingerprints identically.
+    It is blind to a restatement of OLDER rows, so it is only for frames too
+    big to hash on every rerun (the 10-year raw download, ~150 ms). Anything
+    that decides what the ranking says uses price_fingerprint.
     """
     if df is None or df.empty:
         return "empty"
@@ -104,6 +101,40 @@ def price_fingerprint(df: pd.DataFrame | None) -> str:
         last = pd.to_numeric(df.iloc[-1], errors="coerce").to_numpy(dtype="float64")
         digest = hashlib.md5(last.tobytes()).hexdigest()[:12]
         return f"{df.index[-1]}_{df.shape[0]}x{df.shape[1]}_{digest}"
+    except Exception:
+        return "unknown"
+
+
+def price_fingerprint(df: pd.DataFrame | None) -> str:
+    """Fingerprint of the WHOLE price history the ranking is computed from.
+
+    This is the precomputed table's validity contract -- the nightly job
+    stamps the artifact with the fingerprint of the frame it ranked, and
+    production only trusts the artifact when its own frame fingerprints
+    identically -- and the engine's memo key.
+
+    It used to hash only the last row, on the theory that older rows are
+    settled history. They are not: a vendor restating a missed split rewrites
+    every price before the split date and leaves today's price alone, so the
+    old fingerprint matched and the app served a table ranked on the
+    uncorrected history. Owner decision 3B, 2026-09-25.
+
+    Values are hashed as float32, so the same data fingerprints identically
+    whether a side holds it as float32 (the published snapshot) or float64.
+    """
+    if df is None or df.empty:
+        return "empty"
+    try:
+        numeric = df if all(pd.api.types.is_numeric_dtype(t) for t in df.dtypes) else (
+            df.apply(pd.to_numeric, errors="coerce")
+        )
+        values = numeric.to_numpy(dtype="float32")
+        values = np.where(np.isnan(values), np.float32(np.nan), values)
+        digest = hashlib.md5()
+        digest.update(pd.DatetimeIndex(df.index).asi8.tobytes())
+        digest.update(",".join(map(str, df.columns)).encode())
+        digest.update(np.ascontiguousarray(values).tobytes())
+        return f"{df.index[-1]}_{df.shape[0]}x{df.shape[1]}_{digest.hexdigest()[:12]}"
     except Exception:
         return "unknown"
 
