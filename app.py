@@ -60,6 +60,7 @@ from src.ui.components import (
     render_header_kpi_bar,
     render_signal_alerts,
 )
+from src.ui import watchlist_store
 from src.ui.theme import inject_custom_css
 from src.ui.widget_state import resolve
 from src.ui.views.backtest_view import render_backtest_view
@@ -1026,6 +1027,10 @@ signals = compute_signals(
     pct_above_ema=pct_above_ema,
 )
 render_signal_alerts(signals)
+
+# The reader's watchlist lives in their browser; bring it into the session
+# before any page reads it (src/ui/watchlist_store.py).
+watchlist_store.sync()
 
 
 _nav.run()

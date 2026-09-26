@@ -595,6 +595,49 @@ def _render_data_health(row: pd.Series) -> None:
         )
 
 
+# ── Actions: back, watchlist, share ──────────────────────────────────────────
+
+def _share_url(sym: str) -> str:
+    """The short, public link to this stock's page.
+
+    Built from the address the reader is on, minus Streamlit Cloud's /~/+/
+    mount and any page path: the short form is the one production QA has
+    confirmed reaches the stock page (audit_deep_links, "short_query").
+    """
+    from urllib.parse import urlsplit
+
+    try:
+        parts = urlsplit(str(st.context.url or ""))
+        base = f"{parts.scheme}://{parts.netloc}" if parts.scheme and parts.netloc else ""
+    except Exception:
+        base = ""
+    return f"{base}/?stock={_quote(sym, safe='')}"
+
+
+def _render_actions(sym: str, on_back=None) -> None:
+    from src.ui import watchlist_store
+
+    on_list = sym.upper() in watchlist_store.symbols()
+    with st.container(key="sp_actions", horizontal=True, vertical_alignment="center",
+                      gap="small"):
+        if on_back:
+            on_back()
+        st.space("stretch")
+        st.button(
+            "In watchlist" if on_list else "Add to watchlist",
+            icon=":material/star:" if on_list else ":material/star_border:",
+            key="sp_watch",
+            type="secondary",
+            on_click=watchlist_store.toggle,
+            args=(sym,),
+            help=("Remove from your watchlist" if on_list else
+                  "Save to your watchlist, kept in this browser"),
+        )
+        with st.popover("Share", icon=":material/link:", key="sp_share"):
+            st.caption("Link to this stock's page. Use the copy button on the right.")
+            st.code(_share_url(sym), language=None, wrap_lines=True)
+
+
 # ── Main entry ────────────────────────────────────────────────────────────────
 
 def render_stock_view(
@@ -619,9 +662,7 @@ def render_stock_view(
     total_stocks = len(rank_df)
     sym = str(row["Symbol"])
 
-    if on_back:
-        on_back()
-
+    _render_actions(sym, on_back)
     _render_identity(row, total_stocks)
     _render_verdict(row)
     _render_corporate_actions(sym)

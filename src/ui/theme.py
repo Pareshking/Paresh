@@ -573,10 +573,24 @@ def inject_custom_css() -> None:
             .ms-tile { flex: 0 0 158px; padding: 12px 14px; background: #FFFFFF; border: 1px solid #E3E6EB !important; border-radius: 14px; gap: 3px; }
             .ms-tile .ms-bar { display: none; }
             .st-key-dl_rank_csv { display: none !important; }
+            /* Filters & sort opens as a bottom sheet on a phone. The panel is
+               portalled outside the page, so it is found by what it holds. */
+            [data-testid="stPopoverBody"]:has(.st-key-scr_filters) {
+                position: fixed !important; left: 0 !important; right: 0 !important;
+                bottom: 0 !important; top: auto !important; transform: none !important;
+                width: 100vw !important; max-width: 100vw !important;
+                max-height: 82vh !important; overflow-y: auto !important;
+                border-radius: 18px 18px 0 0 !important;
+                box-shadow: 0 -8px 30px rgba(14, 23, 38, 0.18) !important;
+                padding: 18px 16px 24px !important;
+            }
             .ms-v { font-size: 20px; }
             .ms-s { font-size: 12px; }
             .st-key-scr_toolbar [data-testid="stSelectbox"] { width: 100% !important; }
         }
+
+        /* The watchlist bridge has no visible output. */
+        .st-key-wl_store { display: none !important; }
 
         /* ── Stock page (redesign phase 3) ────────────────────────────── */
         .st-key-stock_page_back button {
