@@ -185,5 +185,5 @@ def test_the_tab_reports_the_engines_real_universe_not_the_recorded_zero(
     with pytest.raises(_StatusBarRendered):
         config_view.render_config_view(rank_df)
 
-    assert "Engine Active (750 Stocks)" in captured[0]
-    assert "(0 Stocks)" not in captured[0]
+    assert "Ranking 750 stocks" in captured[0]
+    assert "Ranking 0 stocks" not in captured[0]

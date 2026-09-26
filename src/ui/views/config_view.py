@@ -12,6 +12,8 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 
+from src.ui import page_kit as kit
+
 from src.core.config import (
     DEFAULT_LOOKBACK_WEIGHTS,
     DEFAULT_SECTOR_CAP,
@@ -66,13 +68,6 @@ _NAV_SECTIONS = [
     "Data Health",
 ]
 
-_NAV_ICONS = {
-    "Data & Sync": "🔄",
-    "Momentum Signal": "📐",
-    "Portfolio Risk": "🛡️",
-    "Data Health": "🏥",
-}
-
 _NAV_DESCRIPTIONS = {
     "Data & Sync": "Constituent universe & cache",
     "Momentum Signal": "Lookback window weights",
@@ -89,9 +84,9 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
     attempt_errors = sync_meta.get("last_attempt_errors") or {}
 
     st.markdown(
-        "<div style='font-size:0.83rem;font-weight:700;color:#0E1726;margin-bottom:2px;'>"
+        "<div class='cfg-h'>"
         "Official NSE Constituent Synchronization</div>"
-        "<div style='font-size:0.74rem;color:#5E6878;margin-bottom:12px;'>"
+        "<div class='cfg-s'>"
         "Synchronize constituent baskets directly with official CSV feeds on "
         "<code>niftyindices.com</code>.</div>",
         unsafe_allow_html=True,
@@ -101,7 +96,7 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
     if sync_ok is False:
         failed_attempt_html = (
             '<div style="font-size:0.74rem;color:#B54708;margin-top:6px;font-weight:600;">'
-            f"⚠️ Last attempt {html.escape(str(last_attempt or 'unknown'))} "
+            f"Last attempt {html.escape(str(last_attempt or 'unknown'))} "
             f"fetched {attempt_fetched if attempt_fetched is not None else '?'} index "
             f"file(s), {len(attempt_errors)} failed — figures above are from "
             "the last complete sync.</div>"
@@ -135,7 +130,7 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
                     _refused_refresh(_wait)
                 else:
                     with st.status("Syncing NSE constituents…", expanded=True) as _sync_status:
-                        _sync_status.write("📡 Downloading index CSV files from niftyindices.com…")
+                        _sync_status.write("Downloading index CSV files from niftyindices.com…")
                         res = sync_official_nse_indices(force=True)
                         st.session_state["force_refresh"] = True
                         st.session_state.pop("data_loaded_key", None)
@@ -167,7 +162,7 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
                     st.cache_data.clear()
                     st.rerun()
 
-    with st.expander("📁 Local Index Files", expanded=False):
+    with st.expander("Local index files", expanded=False):
         for idx_name, path in INDICES_LOCAL.items():
             if os.path.exists(path):
                 size = os.path.getsize(path)
@@ -185,9 +180,9 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
     st.divider()
 
     st.markdown(
-        "<div style='font-size:0.83rem;font-weight:700;color:#0E1726;margin-bottom:2px;'>"
+        "<div class='cfg-h'>"
         "Active Screening Universe</div>"
-        "<div style='font-size:0.74rem;color:#5E6878;margin-bottom:10px;'>"
+        "<div class='cfg-s'>"
         "Select which index constituent baskets are merged into the screening pipeline.</div>",
         unsafe_allow_html=True,
     )
@@ -234,9 +229,9 @@ def _section_momentum_signal() -> None:
     )
 
     st.markdown(
-        "<div style='font-size:0.83rem;font-weight:700;color:#0E1726;margin-bottom:2px;'>"
+        "<div class='cfg-h'>"
         "Momentum Lookback Multi-Window Weights</div>"
-        "<div style='font-size:0.74rem;color:#5E6878;margin-bottom:10px;'>"
+        "<div class='cfg-s'>"
         "Relative weights across 5 calendar-month windows. Sliders auto-normalize to 100%.</div>",
         unsafe_allow_html=True,
     )
@@ -298,7 +293,7 @@ def _section_momentum_signal() -> None:
         "Weights normalize automatically. No window skips the most recent month: "
         "each one runs from its calendar start to the latest observation."
     )
-    with pop_col.popover("ℹ️ Window guide", width="stretch"):
+    with pop_col.popover("Window guide", icon=":material/help_outline:", width="stretch"):
         st.markdown(
             """
 **Lookback Windows**
@@ -351,9 +346,9 @@ def _section_portfolio_risk() -> None:
     lc, rc = st.columns(2, gap="large")
     with lc:
         st.markdown(
-            "<div style='font-size:0.83rem;font-weight:700;color:#0E1726;margin-bottom:2px;'>"
+            "<div class='cfg-h'>"
             "Concentration Limits</div>"
-            "<div style='font-size:0.74rem;color:#5E6878;margin-bottom:10px;'>"
+            "<div class='cfg-s'>"
             "Maximum capital allocation per sector and per individual holding.</div>",
             unsafe_allow_html=True,
         )
@@ -372,9 +367,9 @@ def _section_portfolio_risk() -> None:
 
     with rc:
         st.markdown(
-            "<div style='font-size:0.83rem;font-weight:700;color:#0E1726;margin-bottom:2px;'>"
+            "<div class='cfg-h'>"
             "Volatility Targeting</div>"
-            "<div style='font-size:0.74rem;color:#5E6878;margin-bottom:10px;'>"
+            "<div class='cfg-s'>"
             "Dynamically scales cash allocation to maintain stable realized annual volatility.</div>",
             unsafe_allow_html=True,
         )
@@ -392,7 +387,7 @@ def _section_portfolio_risk() -> None:
 
 def _section_data_health(rank_df: pd.DataFrame) -> None:
     st.markdown(
-        "<div style='font-size:0.83rem;font-weight:700;color:#0E1726;margin-bottom:2px;'>"
+        "<div class='cfg-h'>"
         "Corporate Actions Detected in Price History</div>",
         unsafe_allow_html=True,
     )
@@ -429,9 +424,9 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
                     ),
                     "Looks Like": e.get("looks_like", "—"),
                     "Kind": (
-                        "🔀 Split / bonus"
+                        "Split / bonus"
                         if e.get("kind") == "split/bonus"
-                        else "❓ Possible demerger"
+                        else "Possible demerger"
                     ),
                 }
             )
@@ -446,7 +441,7 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
     st.divider()
 
     st.markdown(
-        "<div style='font-size:0.83rem;font-weight:700;color:#0E1726;margin-bottom:8px;'>"
+        "<div class='cfg-h'>"
         "Cache & Data Paths</div>",
         unsafe_allow_html=True,
     )
@@ -462,7 +457,7 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
         cache_rows.append(
             {
                 "Dataset": label,
-                "Status": "🟢 Present" if exists else "🔴 Missing",
+                "Status": "Present" if exists else "Missing",
                 "Size": f"{size_mb:.1f} MB" if exists else "—",
                 "Path": path,
             }
@@ -486,70 +481,38 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
         "Streamlit Cloud" if STORAGE_MODE == "streamlit-cloud" else "Local Production"
     )
 
-    # ── Status bar (full-width) ───────────────────────────────────────────────
+    # ── Header, with what is running on the right ─────────────────────────────
     st.html(
-        f"""
-        <div style="background:#ffffff;border:1px solid #E3E6EB;border-radius:10px;
-                    padding:14px 20px;margin-bottom:20px;
-                    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-            <div>
-                <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:1.10rem;font-weight:800;color:#0E1726;">
-                    ⚙️ System Configuration
-                </div>
-                <div style="font-size:0.76rem;color:#5E6878;margin-top:2px;">
-                    Constituent sync · momentum weights · portfolio risk · data health
-                </div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                <span style="font-family:'Geist Mono',monospace;font-size:0.74rem;
-                             background:#E8F5EE;border:1px solid #86efac;color:#166534;
-                             padding:4px 10px;border-radius:6px;font-weight:700;">
-                    🟢 Engine Active ({engine_stocks} Stocks)
-                </span>
-                <span style="font-family:'Geist Mono',monospace;font-size:0.74rem;
-                             background:#eef2ff;border:1px solid #c7d2fe;color:#4338ca;
-                             padding:4px 10px;border-radius:6px;font-weight:700;">
-                    {mode_label}
-                </span>
-            </div>
-        </div>
-        """
+        '<div class="cfg-top"><div class="scr-head"><h1>Configuration</h1>'
+        "<p>Which stocks are ranked, how the score weighs each window, the portfolio's "
+        "limits, and the health of the data behind it</p></div>"
+        '<div class="cfg-pills">'
+        f'<span class="cfg-pill ok"><i></i>Ranking {engine_stocks} stocks</span>'
+        f'<span class="cfg-pill">{html.escape(mode_label)}</span></div></div>'
     )
 
     # ── Left nav + right content ──────────────────────────────────────────────
-    nav_col, content_col = st.columns([1, 3.2], gap="large")
-
-    with nav_col:
-        st.markdown(
-            "<div style='font-size:0.68rem;font-weight:700;color:#667080;"
-            "text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;'>"
-            "Settings</div>",
-            unsafe_allow_html=True,
-        )
-        # Explicit index, resolved through the mirror, for the same reason every
-        # other setting here carries an explicit value: this radio is itself
-        # evictable. Under st.navigation only the active page runs, so leaving
-        # the Configuration page discards this key and the reader would come
-        # back to "Data & Sync" every time instead of where they were.
-        _remembered = resolve("cfg_nav_section_idx", 0, lo=0, hi=len(_NAV_SECTIONS) - 1)
+    # Explicit index, resolved through the mirror, for the same reason every
+    # other setting here carries an explicit value: this radio is itself
+    # evictable. Under st.navigation only the active page runs, so leaving
+    # the Configuration page discards this key and the reader would come
+    # back to "Data & Sync" every time instead of where they were.
+    _remembered = resolve("cfg_nav_section_idx", 0, lo=0, hi=len(_NAV_SECTIONS) - 1)
+    with st.container(key="cfg_tabs"):
         section = st.radio(
             "Settings",
             _NAV_SECTIONS,
             index=_remembered,
             key="cfg_nav_section",
             label_visibility="collapsed",
-            format_func=lambda s: f"{_NAV_ICONS[s]} {s}",
+            horizontal=True,
         )
-        if not section:
-            section = _NAV_SECTIONS[0]
-        remember("cfg_nav_section_idx", _NAV_SECTIONS.index(section))
+    if not section:
+        section = _NAV_SECTIONS[0]
+    remember("cfg_nav_section_idx", _NAV_SECTIONS.index(section))
+    kit.caption(_NAV_DESCRIPTIONS.get(section, ""))
 
-        st.markdown(
-            "<div style='font-size:0.68rem;color:#667080;margin-top:16px;line-height:1.5;'>"
-            + _NAV_DESCRIPTIONS.get(section, "") + "</div>",
-            unsafe_allow_html=True,
-        )
-
+    content_col = st.container(key="pgcard_cfg_body")
     with content_col:
         if section == "Data & Sync":
             _section_data_sync(sync_meta, tot_stk, engine_stocks)

@@ -1316,41 +1316,6 @@ def _ts_ms(index: pd.Index) -> list[int]:
     return [int(pd.Timestamp(ts).timestamp() * 1000) for ts in index]
 
 
-def render_backtest_equity_chart(equity_curve: pd.Series, benchmark: pd.Series) -> None:
-    """Renders cumulative strategy returns vs benchmark."""
-    strat_pct = (equity_curve - 1) * 100
-    bench_pct = (benchmark - 1) * 100
-    tms_s = _ts_ms(equity_curve.index)
-    tms_b = _ts_ms(benchmark.index)
-    s_data = [[tms_s[j], None if pd.isna(v) else round(float(v), 4)] for j, v in enumerate(strat_pct)]
-    b_data = [[tms_b[j], None if pd.isna(v) else round(float(v), 4)] for j, v in enumerate(bench_pct)]
-
-    option = {
-        "title": {"text": "Cumulative Return: Strategy (Net) vs Benchmark",
-                  "left": "left", "top": 5, "textStyle": {"fontSize": 14, "fontWeight": "bold"}},
-        "tooltip": {"trigger": "axis", "axisPointer": {"type": "cross"}},
-        "legend": {"top": 38, "left": 0},
-        "grid": {"left": 60, "right": 20, "top": 82, "bottom": 40},
-        "xAxis": {"type": "time", "splitLine": {"show": False}},
-        "yAxis": {"type": "value", "name": "Return %",
-                  "axisLabel": {"formatter": "{value}%"},
-                  "splitLine": {"lineStyle": {"color": "#F1F3F6"}}},
-        "series": [
-            {"name": "Momentum Strategy (Net)", "type": "line", "data": s_data,
-             "lineStyle": {"color": "#067647", "width": 2.2},
-             "itemStyle": {"color": "#067647"}, "symbol": "none",
-             "areaStyle": {"color": "rgba(5,150,105,0.06)"}, "connectNulls": False,
-             "markLine": {"silent": True, "symbol": ["none", "none"],
-                          "data": [{"yAxis": 0, "lineStyle": {"color": "#D0D5DD", "width": 1}}],
-                          "label": {"show": False}}},
-            {"name": "Benchmark (Nifty 500 · ^CRSLDX)", "type": "line", "data": b_data,
-             "lineStyle": {"color": "#5E6878", "width": 1.5, "type": "dotted"},
-             "itemStyle": {"color": "#5E6878"}, "symbol": "none", "connectNulls": False},
-        ],
-    }
-    st.iframe(_build_echarts_html(_script_json(option)), height=390)
-
-
 def render_correlation_heatmap(
     corr_df: pd.DataFrame, syms: list[str], n_disp: int
 ) -> None:
