@@ -20,6 +20,7 @@ import html as _html
 from urllib.parse import quote as _quote
 
 import numpy as np
+
 import pandas as pd
 import streamlit as st
 
@@ -616,6 +617,27 @@ def _share_url(sym: str) -> str:
     return f"{base}/?stock={_quote(sym, safe='')}"
 
 
+def _render_exit_status(sym: str, rank_df: pd.DataFrame) -> None:
+    """If you hold it: where it stands against the three rules that sell it."""
+    from src.engine.exit_watch import CLEAR, SELL, STATUS_LABEL, assess
+
+    a = assess(rank_df, [sym])
+    if a.empty or a.iloc[0]["status"] not in STATUS_LABEL:
+        return
+    r = a.iloc[0]
+    status = r["status"]
+    if status == CLEAR:
+        why = "clear of all three sell rules"
+    else:
+        why = r["why"] or ""
+    cls = {SELL: "sell", CLEAR: "clear"}.get(status, "watch")
+    _html_block(
+        f'<div class="sp-exit {cls}"><span class="lbl">If you hold it</span>'
+        f'<b>{_html.escape(STATUS_LABEL[status])}</b><span>{_html.escape(why)}</span>'
+        '<a href="/exit-watch" target="_self">Exit watch →</a></div>'
+    )
+
+
 def _render_actions(sym: str, on_back=None) -> None:
     from src.ui import watchlist_store
 
@@ -667,6 +689,7 @@ def render_stock_view(
     _render_actions(sym, on_back)
     _render_identity(row, total_stocks)
     _render_verdict(row)
+    _render_exit_status(sym, rank_df)
     _render_corporate_actions(sym)
 
     _html_block('<div class="sp-sec"><h2>Price and relative strength</h2>'

@@ -31,15 +31,11 @@ from src.ui import page_kit as kit
 from src.ui.theme import render_saas_table
 
 
-def _record_mtd(
-    adj_close: pd.DataFrame, benchmark_close: pd.Series | None
-) -> dict:
-    """Month-to-date under the RECORD's configuration, not the Backtest tab's.
+def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None) -> dict:
+    """The strategy under the RECORD's pinned configuration, through today.
 
-    The Backtest tab's sliders are for exploring. If MTD were taken from
-    whatever they happen to be set to, the running month would be measured on a
-    different strategy from every frozen month beside it, and the year-to-date
-    column would silently mix the two. So run the pinned configuration.
+    One cached run serves the month-to-date here and the model book on the
+    Exit watch page, so both describe the same portfolio.
     """
     if adj_close is None or adj_close.empty:
         return {}
@@ -67,7 +63,20 @@ def _record_mtd(
         _membership=load_history_or_none(),
         _actions=events,
     )
-    return (result or {}).get("live_meta", {}) or {}
+    return result or {}
+
+
+def _record_mtd(
+    adj_close: pd.DataFrame, benchmark_close: pd.Series | None
+) -> dict:
+    """Month-to-date under the RECORD's configuration, not the Backtest tab's.
+
+    The Backtest tab's sliders are for exploring. If MTD were taken from
+    whatever they happen to be set to, the running month would be measured on a
+    different strategy from every frozen month beside it, and the year-to-date
+    column would silently mix the two. So run the pinned configuration.
+    """
+    return record_run(adj_close, benchmark_close).get("live_meta", {}) or {}
 
 
 def _pct(v: float | None) -> str:

@@ -68,6 +68,7 @@ from src.ui.views.breadth_view import render_breadth_view
 from src.ui.views.config_view import render_config_view
 from src.ui.views.guide_view import render_guide_view
 from src.ui.views.portfolio_view import render_portfolio_view
+from src.ui.views.exit_watch_view import render_exit_watch_view
 from src.ui.views.qualified_view import render_qualified_view
 from src.ui.views.ranking_view import render_ranking_view
 from src.ui.views.rrg_view import render_rrg_view
@@ -960,6 +961,14 @@ def _page_backtest() -> None:
     )
 
 
+def _page_exit_watch() -> None:
+    # The model book comes from the same pinned run as the Track Record's
+    # month-to-date (record_run), so the two pages describe one portfolio.
+    render_exit_watch_view(
+        rank_df, deep_adj_close, fetch_benchmark_history(period="5y"),
+    )
+
+
 def _page_track_record() -> None:
     # The frozen record, plus a live MTD struck under the record's own pinned
     # configuration. fetch_benchmark_history is cached, so this is the same
@@ -987,6 +996,7 @@ _PAGES = [
     st.Page(_page_sectors, title="Sectors", url_path="sectors"),
     st.Page(_page_rrg, title="RRG", url_path="rrg"),
     st.Page(_page_portfolio, title="Portfolio", url_path="portfolio"),
+    st.Page(_page_exit_watch, title="Exit Watch", url_path="exit-watch"),
     st.Page(_page_watchlist, title="Watchlist", url_path="watchlist"),
     st.Page(_page_breadth, title="Market Breadth", url_path="breadth"),
     st.Page(_page_backtest, title="Backtest", url_path="backtest"),
