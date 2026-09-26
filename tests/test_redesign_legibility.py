@@ -72,3 +72,13 @@ def test_the_chips_keep_their_contrast_on_their_tints():
              ("#054F31", "#E8F5EE"), ("#7A2E0E", "#FEF6EA")]
     for fg, bg in pairs:
         assert _contrast(fg, bg) >= 4.5, f"{fg} on {bg}: {_contrast(fg, bg):.2f}:1"
+
+
+def test_the_range_bar_legend_keeps_its_swatches():
+    """Unscoped, the bar's absolute marks rule also lifted the legend's two
+    swatches out of the legend; one floated under the chart as a stray "|"
+    (owner's phone screenshot, 26 Sep)."""
+    css = REDESIGN_CSS["stock page"]
+    absolute = [ln for ln in css.splitlines() if "position: absolute" in ln and "m-ema" in ln]
+    assert absolute and all(".track i.m-" in ln for ln in absolute), absolute
+    assert "position: static" in css[css.index(".sp-range .key i"):][:200]

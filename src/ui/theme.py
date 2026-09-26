@@ -659,12 +659,15 @@ def inject_custom_css() -> None:
         .sp-range .track { position: relative; height: 10px; border-radius: 5px; background: #EDEFF3; }
         .sp-range .fill { height: 10px; border-radius: 5px; background: linear-gradient(90deg, #C7D2FE, #4F46E5); }
         .sp-range .dot { position: absolute; top: -4px; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: #4F46E5; border: 3px solid #FFFFFF; box-shadow: 0 0 0 1px #4F46E5; box-sizing: border-box; }
-        .sp-range i.m-line, .sp-range i.m-ema { position: absolute; top: -5px; width: 2px; height: 20px; margin-left: -1px; }
-        .sp-range i.m-line, .sp-range .key i.m-line { background: #B54708; }
-        .sp-range i.m-ema, .sp-range .key i.m-ema { background: #0E1726; }
+        /* Marks ON the bar only. Unscoped, this also took the legend's two
+           swatches out of the legend: they floated above the section as a
+           stray "|" under the chart, and the legend lost its colours. */
+        .sp-range .track i.m-line, .sp-range .track i.m-ema { position: absolute; top: -5px; width: 3px; height: 20px; margin-left: -1.5px; border-radius: 1px; }
+        .sp-range i.m-line { background: #B54708; }
+        .sp-range i.m-ema { background: #0E1726; }
         .sp-range .ends { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; font-size: 12.5px; color: #5E6878; flex-wrap: wrap; }
-        .sp-range .key { display: flex; align-items: center; gap: 6px; }
-        .sp-range .key i { display: inline-block; width: 2px; height: 12px; margin-left: 6px; }
+        .sp-range .key { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .sp-range .key i { display: inline-block; position: static; width: 3px; height: 12px; margin-left: 6px; border-radius: 1px; }
         .sp-ladder .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-top: 14px; }
         .sp-ladder .li { display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; border-radius: 12px; background: #F6F7F9; }
         .sp-ladder .lk { font-size: 12.5px; font-weight: 600; color: #3C4657; }
