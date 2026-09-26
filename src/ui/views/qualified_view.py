@@ -87,8 +87,13 @@ def heatmap_html(corr: pd.DataFrame, syms: list[str]) -> str:
             f'{head}{body}</div></div>')
 
 
-def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
-    """The qualified list: readings, the table, where they come from, how they move."""
+def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, *,
+                          embedded: bool = False) -> None:
+    """The qualified list: readings, the table, where they come from, how they move.
+
+    `embedded` draws it as the Actions page's "Buy candidates" section: no page
+    header or footer, the picker and export in a bar of their own.
+    """
     ab_ema = (to_bool_mask(rank_df["Above 50 EMA"]) if "Above 50 EMA" in rank_df.columns
               else pd.Series(True, index=rank_df.index, dtype=bool))
     nr_hi = (to_bool_mask(rank_df["Near 52W High"]) if "Near 52W High" in rank_df.columns
@@ -96,12 +101,18 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> Non
     passing = rank_df[ab_ema & nr_hi].sort_values("Rank")
 
     top_n = int(st.session_state.get("qual_top_n", 30) or 30)
-    actions = kit.page_head(
-        "Qualified",
-        f"The {top_n} best-ranked stocks that pass both filters: above their 50-day "
-        "EMA and within 20% of their 52-week high",
-        actions=True,
-    )
+    if embedded:
+        actions = st.container(horizontal=True, vertical_alignment="center", key="qual_pool_bar")
+        with actions:
+            kit.caption(f"The {top_n} best-ranked of the {len(passing)} stocks that pass both "
+                        "filters today: above their 50-day EMA and within 20% of their 52-week high.")
+    else:
+        actions = kit.page_head(
+            "Qualified",
+            f"The {top_n} best-ranked stocks that pass both filters: above their 50-day "
+            "EMA and within 20% of their 52-week high",
+            actions=True,
+        )
     view = passing.head(top_n).copy()
     with actions:
         st.selectbox("Show", [10, 15, 20, 25, 30], index=4, key="qual_top_n",
@@ -154,6 +165,8 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> Non
             kit.caption("Correlation of daily returns over 90 sessions. 1.00 = move "
                         "exactly together; near 0 = unrelated. Darker = closer.")
 
+    if embedded:
+        return
     render_data_quality_footer(
         total_stocks=len(rank_df),
         gap_count=gap_count(rank_df),

@@ -634,7 +634,7 @@ def _render_exit_status(sym: str, rank_df: pd.DataFrame) -> None:
     _html_block(
         f'<div class="sp-exit {cls}"><span class="lbl">If you hold it</span>'
         f'<b>{_html.escape(STATUS_LABEL[status])}</b><span>{_html.escape(why)}</span>'
-        '<a href="/exit-watch" target="_self">Exit watch →</a></div>'
+        '<a href="/actions" target="_self">Actions →</a></div>'
     )
 
 
