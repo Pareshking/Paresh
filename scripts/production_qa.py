@@ -510,8 +510,16 @@ def _find_ticker_link(page, out: dict):
     for selector in ("a[data-stock]", "a.sq-sym", 'a[href*="stock="]'):
         for f in page.frames:
             try:
-                candidate = f.locator(selector).first
-                if candidate.count():
+                # The first match can be hidden (a collapsed layout) or sit under
+                # Cloud's "Manage app" overlay: on 2026-09-26 a click on it timed
+                # out after 15s. Take the first one that is actually visible.
+                matches = f.locator(selector)
+                candidate = None
+                for i in range(min(matches.count(), 20)):
+                    if matches.nth(i).is_visible():
+                        candidate = matches.nth(i)
+                        break
+                if candidate is not None:
                     out["link_found"] = {
                         "selector": selector,
                         "frame_url": f.url[:120],
@@ -530,7 +538,15 @@ def _click_ticker(page, link, out: dict) -> dict:
         symbol = link.get_attribute("data-stock") or (link.inner_text() or "").strip()
         before = page.url
         started = time.perf_counter()
-        link.click(timeout=15_000)
+        try:
+            link.scroll_into_view_if_needed(timeout=5_000)
+            link.click(timeout=15_000)
+            out["clicked_via"] = "pointer"
+        except Exception:
+            # Still the browser following the anchor, just without the
+            # pointer hit-test that an overlay can intercept.
+            link.evaluate("el => el.click()")
+            out["clicked_via"] = "script"
         # Wait for the CHANGE, not for readiness. The app is already "ready"
         # when the click happens, so a readiness loop exits on its first
         # iteration and reports whatever was on screen 0.1s later -- which is
@@ -1320,7 +1336,8 @@ def main() -> None:
             print(f"stock link element    : "
                   f"{report['stock_link']['link_found']}", flush=True)
         print(f"stock link click      : "
-              f"{report['stock_link'].get('click')}", flush=True)
+              f"{report['stock_link'].get('click')} "
+              f"(via {report['stock_link'].get('clicked_via')})", flush=True)
     if report.get("nav_styling"):
         print(f"nav styling           : {report['nav_styling']}", flush=True)
     for _label, _info in (report.get("deep_links") or {}).items():
