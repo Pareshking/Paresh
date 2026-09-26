@@ -212,12 +212,6 @@ def render_header_kpi_bar(
     regime_cls = "mkt-up" if bullish else "mkt-down"
     dist = regime.distance_pct
     dist_text = f"{abs(dist):.1f}% {'above' if dist >= 0 else 'below'}"
-    brand_html = (
-        '<div class="hdr-brand">'
-        '<span class="hdr-mark" aria-hidden="true"><i></i><i></i><i></i></span>'
-        '<span class="hdr-name"><span class="hdr-title">Momentum Terminal</span>'
-        '<span class="hdr-by">by Paresh Patel</span></span></div>'
-    )
     market_html = f"""
     <div role="status" aria-label="Market status dashboard" class="mkt-line">
         <span class="{regime_cls} mkt-regime">● {html.escape(regime.status.value.title())}</span>
@@ -241,7 +235,14 @@ def render_header_kpi_bar(
         r"[^A-Za-z0-9_-]", "_", str(getattr(active_page, "url_path", "") or "home"))
     with st.container(key="app_header_shell", width="stretch", horizontal=True,
                       vertical_alignment="center", gap="small", wrap=False):
-        st.html(brand_html, width="content")
+        # The brand is the way home: a page link to the Screener, so it opens
+        # in place like every other page link (and clears ?stock=). Named
+        # exactly "Paresh Patel", as the owner asked.
+        if nav_pages:
+            with st.container(key="app_brand", width="content"):
+                st.page_link(nav_pages[0], label="Paresh Patel")
+        else:
+            st.html('<span class="hdr-title">Paresh Patel</span>', width="content")
         if nav_pages:
             # Desktop only (hidden under 900px by theme.py). The ☰ menu below
             # stays the complete list, and the one the QA probes drive.

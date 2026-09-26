@@ -168,6 +168,14 @@ def render_ranking_view(
         )
         return
 
+    # Arrived back from a stock page without the Back button -- the brand
+    # link, say. The session has dropped ?stock=, but a link to the page you
+    # are already on does not update the address bar, which still named the
+    # stock: a refresh would have reopened it. Writing the parameters is what
+    # updates the address bar, exactly as the Back button's clear() does.
+    if st.session_state.pop("_stock_url_synced", None):
+        st.query_params.clear()
+
     # Build dynamic predictive search suggestions.
     #
     # The Indices column stores SHORT FORMS -- "N50", "NN50", "MID150",
