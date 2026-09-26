@@ -39,8 +39,8 @@ def test_stock_param_opens_the_detail_page():
 
 
 @pytest.mark.parametrize("section", [
-    "Key levels", "Performance across every window", "Rank dynamics",
-    "Data health", "Price action",
+    "Momentum rank", "Screener filters", "Price and relative strength",
+    "Where the price sits", "Returns and risk by window",
 ])
 def test_every_section_of_the_page_renders(section):
     at = _app(stock="S3")
@@ -65,20 +65,27 @@ def test_an_unknown_symbol_warns_rather_than_crashing():
     assert any("not in the current ranking" in w.value for w in at.warning)
 
 
-def test_key_levels_show_the_all_time_high_and_its_date():
+def test_the_ladder_shows_the_all_time_high():
     at = _app(stock="S3")
     body = " ".join(m.value for m in at.markdown)
-    assert "All-Time High" in body
-    assert "% from ATH" in body
+    assert "All-time high" in body
+    assert "52W High" in body
 
 
-def test_performance_matrix_covers_every_window():
+def test_returns_and_risk_cover_every_window():
     at = _app(stock="S3")
     body = " ".join(m.value for m in at.markdown)
     for months in (1, 3, 6, 9, 12):
-        assert f"{months}M" in body
-    for band in ("Return", "Sharpe", "Max Drawdown"):
+        assert f"<b>{months}M</b>" in body
+    for band in ("Return", "Sharpe", "Max drawdown"):
         assert band in body
+
+
+def test_the_page_carries_its_data_checks():
+    at = _app(stock="S3")
+    # An expander with an icon reaches AppTest as a status block.
+    labels = [str(getattr(e, "label", "")) for e in list(at.expander) + list(at.status)]
+    assert any(label.startswith("Data checks") for label in labels), labels
 
 
 # ── Navigation links ────────────────────────────────────────────────────────
