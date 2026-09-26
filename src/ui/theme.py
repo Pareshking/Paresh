@@ -382,22 +382,23 @@ def inject_custom_css() -> None:
         }
 
         /* Brand: mark + name. */
-        .hdr-brand { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
-        .hdr-mark {
-            width: 32px; height: 32px; border-radius: 9px; background: #4F46E5;
-            display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
-        }
-        .hdr-mark { gap: 3px; align-items: flex-end; padding-bottom: 9px; box-sizing: border-box; }
-        .hdr-mark i { display: block; width: 4px; border-radius: 2px; background: #FFFFFF; }
-        .hdr-mark i:nth-child(1) { height: 6px; }
-        .hdr-mark i:nth-child(2) { height: 10px; }
-        .hdr-mark i:nth-child(3) { height: 14px; }
-        .hdr-name { display: flex; flex-direction: column; line-height: 1.1; }
         .hdr-title {
             font-family: var(--font-display); font-size: 17px; font-weight: 700;
             letter-spacing: -0.2px; color: #0E1726;
         }
-        .hdr-by { font-size: 12px; color: #5E6878; }
+
+        /* Brand: "Paresh Patel", a link home to the Screener. */
+        .st-key-app_brand [data-testid="stPageLink"] a {
+            padding: 4px 6px !important; background: transparent !important;
+            text-decoration: none !important; border-radius: 8px !important;
+        }
+        .st-key-app_brand [data-testid="stPageLink"] a p,
+        .st-key-app_brand [data-testid="stPageLink"] a span {
+            font-family: var(--font-display) !important; font-size: 19px !important;
+            font-weight: 700 !important; letter-spacing: -0.3px !important;
+            color: #0E1726 !important; white-space: nowrap !important;
+        }
+        .st-key-app_brand [data-testid="stPageLink"] a:hover { background: #F4F5F8 !important; }
 
         /* Desktop link row. Underlined, not boxed: it is a menu, not buttons. */
         .st-key-app_toplinks { gap: 2px !important; flex-wrap: nowrap !important; overflow: hidden !important; }
@@ -460,7 +461,6 @@ def inject_custom_css() -> None:
             .st-key-app_header_shell { min-height: 52px !important; padding: 6px 56px 6px 10px !important; gap: 10px !important; flex-wrap: nowrap !important; justify-content: space-between !important; }
             .hdr-pill-lead { display: none; }
             .mkt-line .mkt-sep { display: none; }
-            .hdr-by { display: none; }
             .hdr-title { font-size: 16px; }
             .hdr-pill { height: 28px; padding: 0 10px; font-size: 12px; }
             .mkt-line { font-size: 12px; padding: 2px 2px 8px; }
@@ -659,12 +659,15 @@ def inject_custom_css() -> None:
         .sp-range .track { position: relative; height: 10px; border-radius: 5px; background: #EDEFF3; }
         .sp-range .fill { height: 10px; border-radius: 5px; background: linear-gradient(90deg, #C7D2FE, #4F46E5); }
         .sp-range .dot { position: absolute; top: -4px; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: #4F46E5; border: 3px solid #FFFFFF; box-shadow: 0 0 0 1px #4F46E5; box-sizing: border-box; }
-        .sp-range i.m-line, .sp-range i.m-ema { position: absolute; top: -5px; width: 2px; height: 20px; margin-left: -1px; }
-        .sp-range i.m-line, .sp-range .key i.m-line { background: #B54708; }
-        .sp-range i.m-ema, .sp-range .key i.m-ema { background: #0E1726; }
+        /* Marks ON the bar only. Unscoped, this also took the legend's two
+           swatches out of the legend: they floated above the section as a
+           stray "|" under the chart, and the legend lost its colours. */
+        .sp-range .track i.m-line, .sp-range .track i.m-ema { position: absolute; top: -5px; width: 3px; height: 20px; margin-left: -1.5px; border-radius: 1px; }
+        .sp-range i.m-line { background: #B54708; }
+        .sp-range i.m-ema { background: #0E1726; }
         .sp-range .ends { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; font-size: 12.5px; color: #5E6878; flex-wrap: wrap; }
-        .sp-range .key { display: flex; align-items: center; gap: 6px; }
-        .sp-range .key i { display: inline-block; width: 2px; height: 12px; margin-left: 6px; }
+        .sp-range .key { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .sp-range .key i { display: inline-block; position: static; width: 3px; height: 12px; margin-left: 6px; border-radius: 1px; }
         .sp-ladder .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-top: 14px; }
         .sp-ladder .li { display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; border-radius: 12px; background: #F6F7F9; }
         .sp-ladder .lk { font-size: 12.5px; font-weight: 600; color: #3C4657; }

@@ -77,7 +77,7 @@ from src.ui.views.watchlist_view import render_watchlist_view
 
 # Page Config: 100% Widescreen, Sidebar Collapsed
 st.set_page_config(
-    page_title="Paresh Patel | Momentum Terminal",
+    page_title="Paresh Patel",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="collapsed",

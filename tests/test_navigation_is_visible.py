@@ -122,7 +122,9 @@ def test_every_page_is_reachable_from_the_rendered_navigation(offline_market_dat
         f"declared {expected}"
     )
     shortcuts = labels[:-len(expected)]
-    assert set(shortcuts) <= set(expected), f"the link row offers unknown pages: {shortcuts}"
+    # The brand, "Paresh Patel", is the link home and comes first.
+    assert shortcuts and shortcuts[0] == "Paresh Patel", shortcuts
+    assert set(shortcuts[1:]) <= set(expected), f"the link row offers unknown pages: {shortcuts}"
 
 
 def test_the_navigation_survives_being_on_a_different_page(offline_market_data):

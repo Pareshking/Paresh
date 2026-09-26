@@ -324,7 +324,9 @@ def _render_price_ladder(row: pd.Series, year_low: float | None = None) -> None:
             f'<div class="fill" style="width:{x(cmp_v):.1f}%"></div>{marks}'
             f'<span class="dot" style="left:{x(cmp_v):.1f}%"></span></div>'
             f'<div class="ends"><span>52-week low {_money(year_low)}</span>'
-            '<span class="key"><i class="m-line"></i>filter line <i class="m-ema"></i>50-day EMA</span>'
+            f'<span class="key"><i class="m-line"></i>filter line {_money(line)}'
+            + (f' <i class="m-ema"></i>50-day EMA {_money(ema_val)}' if ema_val is not None else "")
+            + '</span>'
             f'<span>52-week high {_money(hi)}</span></div></div>'
         )
 
