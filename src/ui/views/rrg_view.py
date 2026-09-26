@@ -2,6 +2,8 @@
 Relative Rotation Graph (RRG ®) View Controller.
 """
 
+import html
+from urllib.parse import quote
 from typing import Sequence
 import re
 
@@ -13,7 +15,6 @@ from src.engine.pipeline import price_fingerprint
 from src.ui import page_kit as kit
 from src.ui.charts import render_rrg_chart
 from src.ui.components import gap_count, render_data_quality_footer
-from src.ui.theme import render_saas_table
 
 
 # The benchmark options, named once so the selector and the dispatch cannot
@@ -202,44 +203,57 @@ def compute_rrg_data(
     return pd.DataFrame(rows)
 
 
+QUADRANTS = [("Leading", "lead"), ("Improving", "imp"), ("Weakening", "weak"), ("Lagging", "lag")]
+
+
+def quadrant_lists_html(rrg_df: pd.DataFrame, is_stocks: bool) -> str:
+    """Four lists, one per quadrant, strongest first, with ratio · momentum."""
+    cols = []
+    for quad, cls in QUADRANTS:
+        sub = rrg_df[rrg_df["Quadrant"] == quad].sort_values("RS_Ratio", ascending=False)
+        items = "".join(
+            '<div class="rq-i"><span>'
+            + (f'<a href="?stock={quote(str(r.Industry), safe="")}" target="_self">{html.escape(str(r.Industry))}</a>'
+               if is_stocks else html.escape(str(r.Industry)))
+            + f'</span><b>{r.RS_Ratio:.1f} · {r.RS_Momentum:.1f}</b></div>'
+            for r in sub.itertuples()
+        ) or '<div class="rq-i"><span class="rq-none">None</span></div>'
+        cols.append(f'<div class="rq {cls}"><div class="rq-h"><b>{quad}</b>'
+                    f'<span>{len(sub)} · ratio · momentum</span></div>{items}</div>')
+    return f'<div class="rq-grid">{"".join(cols)}</div>'
+
+
 def render_rrg_view(
     rank_df: pd.DataFrame,
     adj_close: pd.DataFrame,
 ) -> None:
-    """Renders Relative Rotation Graph (RRG ®) rotational analysis and quadrant matrix."""
-    kit.page_head(
+    """Relative rotation: the chart first and full width, controls in one row."""
+    head = kit.page_head(
         "Relative rotation",
-        "Which industries are gaining strength against the market, and which are fading: "
-        "they rotate clockwise from Improving to Leading, Weakening and Lagging",
+        "Which industries are gaining strength against the market and which are fading. "
+        "They rotate clockwise: Improving → Leading → Weakening → Lagging.",
+        actions=True,
     )
-
-    col_chart, col_side = st.columns([3.1, 1.1], gap="medium")
-
-    with col_side:
-        st.html('<div class="pg-card-h"><h2>Compare</h2></div>')
+    with head:
         scope_pill = st.segmented_control(
-            "Selection Scope",
+            "Compare",
             ["Sector Indices", "Top Stocks", "TV Sectors"],
             default="Sector Indices",
             format_func=lambda k: {"Sector Indices": "Industries", "Top Stocks": "Top stocks",
-                                   "TV Sectors": "TradingView sectors"}[k],
+                                   "TV Sectors": "TV sectors"}[k],
             key="rrg_scope_pill",
             label_visibility="collapsed",
-        )
-        if not scope_pill:
-            scope_pill = "Sector Indices"
+        ) or "Sector Indices"
+        settings = st.popover("Chart settings", icon=":material/tune:")
 
-        target_col = "Industry"
-        if scope_pill == "Top Stocks":
-            target_col = "Symbol"
-        elif scope_pill == "TV Sectors" and "TV_Sector" in rank_df.columns:
-            target_col = "TV_Sector"
+    target_col = "Industry"
+    if scope_pill == "Top Stocks":
+        target_col = "Symbol"
+    elif scope_pill == "TV Sectors" and "TV_Sector" in rank_df.columns:
+        target_col = "TV_Sector"
 
-    with col_chart:
-        c_bm, c_tf, c_tail, c_lb = st.columns(
-            [1.6, 1.2, 1.3, 1.0], vertical_alignment="center"
-        )
-        bm_choice = c_bm.selectbox(
+    with settings:
+        bm_choice = st.selectbox(
             "Benchmark",
             BENCHMARK_OPTIONS,
             index=0,
@@ -252,39 +266,35 @@ def render_rrg_view(
                 "used elsewhere in V1."
             ),
         )
-        tf_choice = c_tf.selectbox(
+        tf_choice = st.selectbox(
             "Timeframe",
             ["Weekly candle", "Daily candle"],
             format_func=lambda k: k.split()[0],
             index=0,
             key="rrg_tf_choice",
         )
-        tail_w = c_tail.slider(
-            "Tail (weeks)",
-            min_value=2,
-            max_value=20,
-            value=6,
-            step=1,
-            key="rrg_tl_w",
-        )
-        lookback_w = c_lb.number_input(
-            "Lookback (weeks)", min_value=4, max_value=52, value=12, step=1, key="rrg_lb_w"
-        )
-
+        tail_w = st.slider("Tail (weeks)", min_value=2, max_value=20, value=6, step=1,
+                           key="rrg_tl_w")
+        lookback_w = st.number_input("Lookback (weeks)", min_value=4, max_value=52, value=12,
+                                     step=1, key="rrg_lb_w")
         n_total_dates = len(adj_close)
-        min_date_idx = max(0, n_total_dates - 120)
-        date_options = [d.strftime("%Y-%m-%d") for d in adj_close.index[min_date_idx:]]
-
+        date_options = [d.strftime("%Y-%m-%d") for d in adj_close.index[max(0, n_total_dates - 120):]]
         if len(date_options) > 1:
             sel_date_str = st.select_slider(
                 "As of",
                 options=date_options,
                 value=date_options[-1],
-                format_func=lambda x: f"{tail_w} weeks to {pd.to_datetime(x):%d %b %Y}",
+                format_func=lambda x: f"{pd.to_datetime(x):%d %b %Y}",
                 key="rrg_timeline_scrub",
             )
         else:
             sel_date_str = adj_close.index[-1].strftime("%Y-%m-%d")
+
+    bm_short = "all stocks, equal-weighted" if bm_choice == BENCHMARK_OPTIONS[0] else bm_choice.lower()
+    kit.caption(
+        f"vs {bm_short} · {tf_choice.split()[0].lower()} · tail {tail_w} weeks · lookback "
+        f"{lookback_w} weeks · as of {pd.to_datetime(sel_date_str):%d %b %Y}"
+    )
 
     ph = f"{sel_date_str}_{price_fingerprint(adj_close)}_{bm_choice}_{tf_choice}_{target_col}"
     rrg_df = compute_rrg_data(
@@ -299,20 +309,18 @@ def render_rrg_view(
         end_date_str=sel_date_str,
     )
 
-    if not rrg_df.empty:
+    if rrg_df.empty:
+        st.info("Not enough price history to draw the rotation for these settings.")
+    else:
         all_inds = sorted(rrg_df["Industry"].tolist())
         leading_items = (
             rrg_df[rrg_df["Quadrant"] == "Leading"]
-            .sort_values("RS_Ratio", ascending=False)["Industry"]
-            .head(8)
-            .tolist()
+            .sort_values("RS_Ratio", ascending=False)["Industry"].head(8).tolist()
         )
         default_highlight = (
             leading_items
             if leading_items
-            else rrg_df.sort_values("RS_Ratio", ascending=False)
-            .head(6)["Industry"]
-            .tolist()
+            else rrg_df.sort_values("RS_Ratio", ascending=False).head(6)["Industry"].tolist()
         )
 
         ms_key = f"rrg_ms_{target_col}"
@@ -330,118 +338,61 @@ def render_rrg_view(
             st.session_state[ms_key] = [s for s in current if s != item_to_remove]
 
         def _set_rrg_quadrant(target_quad: str) -> None:
-            quad_items = (
+            st.session_state[ms_key] = (
                 rrg_df[rrg_df["Quadrant"] == target_quad]
-                .sort_values("RS_Ratio", ascending=False)["Industry"]
-                .head(8)
-                .tolist()
+                .sort_values("RS_Ratio", ascending=False)["Industry"].head(8).tolist()
             )
-            st.session_state[ms_key] = quad_items
 
         def _clear_rrg_all() -> None:
             st.session_state[ms_key] = []
 
-        with col_side:
-            spotlight = st.multiselect(
-                "Show",
-                all_inds,
-                key=ms_key,
-                placeholder="Search and add…",
-            )
+        with st.container(key="pgcard_rrg_chart"):
+            with st.container(horizontal=True, vertical_alignment="center", key="rrg_selbar"):
+                counts = rrg_df["Quadrant"].value_counts()
+                for quad, cls in QUADRANTS:
+                    st.button(
+                        f"{quad} · {int(counts.get(quad, 0))}",
+                        key=f"btn_rrg_{cls}_{target_col}",
+                        help=f"Show the top of {quad} (up to 8)",
+                        on_click=_set_rrg_quadrant,
+                        args=(quad,),
+                    )
+                active_list = list(st.session_state.get(ms_key, []))
+                for sym in active_list:
+                    st.button(
+                        f"{sym}  ✕",
+                        key=re.sub(r"[^a-zA-Z0-9_]", "_", f"del_rrg_{target_col}_{sym}"),
+                        help=f"Remove {sym} from the chart",
+                        on_click=_remove_rrg_item,
+                        args=(sym,),
+                    )
+                with st.popover("+ Add", key=f"rrg_add_{target_col}"):
+                    st.multiselect("Show on the chart", all_inds, key=ms_key,
+                                   placeholder="Search…")
+                if active_list:
+                    st.button("Clear", key=f"btn_rrg_clr_{target_col}", on_click=_clear_rrg_all,
+                              type="tertiary")
 
-            # 4-Quadrant 1-Click Filters
-            kit.caption("Show the top of one quadrant:")
-            q_row1_c1, q_row1_c2 = st.columns(2)
-            q_row1_c1.button(
-                "Leading",
-                key=f"btn_rrg_lead_{target_col}",
-                help="Show top Leading assets (max 8)",
-                width="stretch",
-                on_click=_set_rrg_quadrant,
-                args=("Leading",),
-            )
-            q_row1_c2.button(
-                "Improving",
-                key=f"btn_rrg_imp_{target_col}",
-                help="Show top Improving assets (max 8)",
-                width="stretch",
-                on_click=_set_rrg_quadrant,
-                args=("Improving",),
-            )
-
-            q_row2_c1, q_row2_c2 = st.columns(2)
-            q_row2_c1.button(
-                "Weakening",
-                key=f"btn_rrg_weak_{target_col}",
-                help="Show top Weakening assets (max 8)",
-                width="stretch",
-                on_click=_set_rrg_quadrant,
-                args=("Weakening",),
-            )
-            q_row2_c2.button(
-                "Lagging",
-                key=f"btn_rrg_lag_{target_col}",
-                help="Show top Lagging assets (max 8)",
-                width="stretch",
-                on_click=_set_rrg_quadrant,
-                args=("Lagging",),
-            )
-
-            # Active Items Chips with Filled Quadrant Color Styling & 1-Click Remove
-            kit.caption("On the chart (click one to remove it):")
-            active_list = spotlight if spotlight is not None else []
-
-            if not active_list:
-                kit.caption("Nothing selected. Pick a quadrant above, or search.")
-
-            for sym in active_list:
-                q_row = rrg_df[rrg_df["Industry"] == sym]
-                quad = q_row["Quadrant"].iloc[0] if not q_row.empty else "Leading"
-                btn_lbl = f"{sym} · {quad}  ✕"
-
-                clean_btn_key = re.sub(
-                    r"[^a-zA-Z0-9_]", "_", f"del_rrg_{target_col}_{sym}"
-                )
-                st.button(
-                    btn_lbl,
-                    key=clean_btn_key,
-                    help=f"Click to remove {sym} ({quad}) from RRG",
-                    width="stretch",
-                    on_click=_remove_rrg_item,
-                    args=(sym,),
-                )
-
-            if active_list:
-                st.button(
-                    "Clear all",
-                    key=f"btn_rrg_clr_{target_col}",
-                    help="Clear all selections",
-                    width="stretch",
-                    on_click=_clear_rrg_all,
-                )
-
-            kit.caption(
-                "Drag on the chart to zoom. A stock or industry usually moves "
-                "Improving → Leading → Weakening → Lagging."
-            )
-
-        with col_chart:
-            target_highlight = spotlight if spotlight else []
             render_rrg_chart(
                 rrg_df,
-                highlight_industries=target_highlight,
+                highlight_industries=list(st.session_state.get(ms_key, [])),
                 current_date_str=sel_date_str,
             )
-
-            st.html('<div class="pg-card-h" style="margin-top:14px"><h2>Strength and momentum, by name</h2>'
-                    "<span>RS ratio above 100 = stronger than the benchmark · momentum above 100 = gaining</span></div>")
-            view_cols = ["Industry", "RS_Ratio", "RS_Momentum", "Quadrant", "Stocks"]
-            view_df = (
-                rrg_df[view_cols]
-                .sort_values("RS_Ratio", ascending=False)
-                .reset_index(drop=True)
+            kit.caption(
+                f"Tails show the last {tail_w} weeks. Grey dots are the others; click a quadrant "
+                "above or a dot to bring it forward. Drag on the chart to zoom."
             )
-            render_saas_table(view_df, max_height=260)
+
+        with kit.card("By quadrant", "rrg_quads", "strongest first · RS-ratio · RS-momentum"):
+            st.html(quadrant_lists_html(rrg_df, is_stocks=(target_col == "Symbol")))
+            kit.caption("RS-ratio above 100 = stronger than the benchmark; RS-momentum above "
+                        "100 = gaining on it.")
+            st.download_button(
+                "Export CSV",
+                rrg_df.drop(columns=[c for c in ("Trail_R", "Trail_M") if c in rrg_df.columns])
+                .to_csv(index=False).encode(),
+                "rrg.csv", "text/csv", key="dl_rrg_csv",
+            )
 
     render_data_quality_footer(
         total_stocks=len(rank_df),

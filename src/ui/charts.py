@@ -785,8 +785,11 @@ const scrub   = document.getElementById('scrub');
 const frameLbl = document.getElementById('frame-lbl');
 
 // ── Bounds ─────────────────────────────────────────────────────────────────
-const allR = DATA.sectors.flatMap(s => s.trail_r.length ? s.trail_r : [s.rs_ratio]);
-const allM = DATA.sectors.flatMap(s => s.trail_m.length ? s.trail_m : [s.rs_momentum]);
+// Every current position, plus the trails of what is shown: a trail nobody
+// looks at must not stretch the plot and squeeze everything else into a corner.
+const _shown = s => !DATA.highlight.length || DATA.highlight.indexOf(s.industry) >= 0;
+const allR = DATA.sectors.flatMap(s => (_shown(s) && s.trail_r.length) ? s.trail_r.concat([s.rs_ratio]) : [s.rs_ratio]);
+const allM = DATA.sectors.flatMap(s => (_shown(s) && s.trail_m.length) ? s.trail_m.concat([s.rs_momentum]) : [s.rs_momentum]);
 const minX = Math.min(88,  allR.length ? Math.min(...allR) - 2 : 90);
 const maxX = Math.max(112, allR.length ? Math.max(...allR) + 2 : 110);
 const minY = Math.min(96,  allM.length ? Math.min(...allM) - 1.5 : 97);
@@ -826,7 +829,11 @@ function setupCanvas() {
   dpr = window.devicePixelRatio || 1;
   const rect = canvas.parentElement.getBoundingClientRect();
   W = Math.max(rect.width, 300);
-  H = Math.min(Math.round(W * 0.62), 530);
+  // Fill the frame the page gives the chart (taller on desktop, square-ish on
+  // a phone), less the play controls underneath.
+  const ctrl = document.getElementById('controls');
+  const ctrlH = ctrl ? ctrl.getBoundingClientRect().height + 6 : 48;
+  H = Math.max(280, Math.round(window.innerHeight - ctrlH));
   canvas.width  = W * dpr;
   canvas.height = H * dpr;
   canvas.style.width  = W + 'px';
@@ -879,15 +886,23 @@ function drawArrow(x0, y0, x1, y1, color) {
 }
 
 // ── Draw tick labels on axis ───────────────────────────────────────────────
+// A readable step: one label per `px` pixels at most, rounded to 1/2/2.5/5.
+function niceStep(range, avail, px) {
+  const raw = range / Math.max(1, Math.floor(avail / px));
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  for (const m of [1, 2, 2.5, 5, 10]) { if (m * mag >= raw) return m * mag; }
+  return 10 * mag;
+}
+
 function drawTicks() {
-  ctx.font = '9px Geist Mono,monospace';
-  ctx.fillStyle = '#667080';
+  ctx.font = '11px Geist Mono,monospace';
+  ctx.fillStyle = '#5E6878';
   ctx.textAlign = 'center';
   const availW = W - PAD.l - PAD.r;
-  const xStep = Math.max(2, Math.ceil((maxX - minX) / Math.floor(availW / 30)));
+  const xStep = niceStep(maxX - minX, availW, 56);
   for (let v = Math.ceil(minX / xStep) * xStep; v <= maxX; v += xStep) {
     const xp = tx(v);
-    ctx.fillText(v.toFixed(0), xp, H - PAD.b + 14);
+    ctx.fillText(Number.isInteger(xStep) ? v.toFixed(0) : v.toFixed(1), xp, H - PAD.b + 16);
     ctx.beginPath();
     ctx.moveTo(xp, H - PAD.b);
     ctx.lineTo(xp, H - PAD.b + 4);
@@ -896,10 +911,10 @@ function drawTicks() {
     ctx.stroke();
   }
   ctx.textAlign = 'right';
-  const yStep = (maxY - minY) > 8 ? 1 : 0.5;
-  for (let v = Math.ceil(minY * 2) / 2; v <= maxY; v += yStep) {
+  const yStep = niceStep(maxY - minY, H - PAD.t - PAD.b, 34);
+  for (let v = Math.ceil(minY / yStep) * yStep; v <= maxY; v += yStep) {
     const yp = ty(v);
-    ctx.fillText(v.toFixed(1), PAD.l - 6, yp + 3);
+    ctx.fillText(yStep < 1 ? v.toFixed(1) : v.toFixed(0), PAD.l - 6, yp + 4);
     ctx.beginPath();
     ctx.moveTo(PAD.l - 4, yp);
     ctx.lineTo(PAD.l, yp);
@@ -1021,6 +1036,13 @@ function draw() {
     }
     const trailN = s.trail_r.length;
     const fend   = Math.min(frame + 1, trailN);
+    // The axes are fitted to the shown trails; faded ones may run past them.
+    ctx.save();
+    if (!active) {
+      ctx.beginPath();
+      ctx.rect(PAD.l, PAD.t, W - PAD.l - PAD.r, H - PAD.t - PAD.b);
+      ctx.clip();
+    }
 
     // build pixel trail points up to current frame
     const pts = [];
@@ -1096,6 +1118,7 @@ function draw() {
       ctx.fillText(' ' + s.industry, hx + (hasUserSel ? 12 : 9), hy - 4);
     }
 
+    ctx.restore();
     ctx.globalAlpha = 1;
   }
 }
@@ -1263,7 +1286,10 @@ def render_rrg_chart(
         "date": current_date_str,
     })
 
-    st.iframe(_build_rrg_html(payload), height=700)
+    # Sized by the page's stylesheet (.st-key-rrg_frame): tall on desktop, near
+    # square on a phone. The chart inside fills whatever height it is given.
+    with st.container(key="rrg_frame"):
+        st.iframe(_build_rrg_html(payload), height=780)
 
 
 def _build_echarts_html(option_json: str) -> str:
