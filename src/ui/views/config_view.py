@@ -521,7 +521,7 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
 
     with nav_col:
         st.markdown(
-            "<div style='font-size:0.68rem;font-weight:700;color:#6B7482;"
+            "<div style='font-size:0.68rem;font-weight:700;color:#667080;"
             "text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;'>"
             "Settings</div>",
             unsafe_allow_html=True,
@@ -545,7 +545,7 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
         remember("cfg_nav_section_idx", _NAV_SECTIONS.index(section))
 
         st.markdown(
-            "<div style='font-size:0.68rem;color:#6B7482;margin-top:16px;line-height:1.5;'>"
+            "<div style='font-size:0.68rem;color:#667080;margin-top:16px;line-height:1.5;'>"
             + _NAV_DESCRIPTIONS.get(section, "") + "</div>",
             unsafe_allow_html=True,
         )

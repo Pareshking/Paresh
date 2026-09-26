@@ -598,17 +598,17 @@ def render_freshness_ribbon() -> None:
         if cov:
             as_of = f"{as_of} · {html.escape(cov)}"
         chips_html += (
-            f'<div style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; '
-            f'border-radius: 6px; background-color: {color}0D; border: 1px solid {color}25; '
-            f"font-family: 'Geist Mono', monospace; font-size: 0.72rem; color: {color}; "
+            f'<div style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; '
+            f'border-radius: 8px; background-color: {color}12; border: 1px solid {color}2E; '
+            f"font-family: var(--font-ui); font-size: 12.5px; color: {color}; "
             f'font-weight: 600; white-space: nowrap; flex-shrink: 0;">'
             f"<span>{icon}</span><span>{label}: {as_of}{age}</span></div>"
         )
 
     st.markdown(
         '<div role="status" aria-label="Data freshness" style="display: flex; align-items: center; '
-        "gap: 8px; overflow-x: auto; padding: 4px 8px; background-color: #F4F5F8; "
-        "border: 1px solid #E3E6EB; border-radius: 8px; margin-top: 16px; margin-bottom: 4px; "
+        "gap: 8px; overflow-x: auto; padding: 14px 0 4px; border-top: 1px solid #E3E6EB; "
+        "margin-top: 22px; margin-bottom: 2px; "
         'scrollbar-width: thin; scrollbar-color: #D0D5DD transparent;">'
         f"{chips_html}</div>",
         unsafe_allow_html=True,
@@ -667,18 +667,20 @@ def render_data_quality_footer(
     stop_loss_note = (
         ""
         if _intraday == "no"
-        else '<span style="color: #D0D5DD;">|</span>'
-             '<span>Stop Loss: <strong style="color: #0E1726;">CMP \u2212 2\u00d7ATR</strong></span>'
+        else '<span style="color: #A5ACB8;">·</span>'
+             '<span>Stop loss: <strong style="color: #0E1726;">price \u2212 2\u00d7ATR</strong></span>'
     )
     footer_html = f"""
-    <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 10px 16px; background-color: #F4F5F8; border: 1px solid #E3E6EB; border-radius: 10px; margin-top: 24px; font-family: 'Geist Mono', monospace; font-size: 0.75rem; color: #5E6878;">
-        <span>🟢 <strong style="color: #0E1726;">{total_stocks}</strong> stocks tracked</span>
-        <span style="color: #D0D5DD;">|</span>
-        <span>🔴 Gap-filled &gt;10%: <strong style="color: #B54708;">{gap_count}</strong></span>
-        <span style="color: #D0D5DD;">|</span>
-        <span>⏳ Short history (&lt;126D): <strong style="color: #0E1726;">{short_count}</strong></span>
+    <div style="display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding: 6px 0 24px; font-family: var(--font-ui); font-size: 12.5px; color: #5E6878;">
+        <span><strong style="color: #0E1726;">{total_stocks}</strong> stocks tracked</span>
+        <span style="color: #A5ACB8;">·</span>
+        <span>Gap-filled over 10%: <strong style="color: {"#B54708" if gap_count else "#0E1726"};">{gap_count}</strong></span>
+        <span style="color: #A5ACB8;">·</span>
+        <span>Short history (under 126 sessions): <strong style="color: #0E1726;">{short_count}</strong></span>
         {stop_loss_note}
-        <span style="margin-left: auto; color: #3C4657; font-weight: 700;">Paresh Patel</span>
+        <span style="color: #A5ACB8;">·</span>
+        <span>Returns exclude dividends</span>
+        <span style="margin-left: auto; color: #3C4657;">© Paresh Patel</span>
     </div>
     """
     st.html(footer_html)

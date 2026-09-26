@@ -1658,7 +1658,7 @@ def render_master_screener_table(
         sym_link = (
             f'<a href="?stock={_urlq(str(sym), safe="")}" '
             f'class="stock-ticker" data-stock="{sym_s}" '
-            f'style="text-decoration:none;border-bottom:1px dotted #6B7482;'
+            f'style="text-decoration:none;border-bottom:1px dotted #667080;'
             f'cursor:pointer;" title="Open {sym_s}">{sym_s}</a>'
         )
 
@@ -1953,7 +1953,7 @@ body::-webkit-scrollbar,
     border-radius: 5px;
     padding: 1px 5px;
 }}
-.text-muted {{ color: #6B7482; font-size: 11px; }}
+.text-muted {{ color: #667080; font-size: 11px; }}
 </style>
 </head>
 <body>
@@ -2544,7 +2544,7 @@ body::-webkit-scrollbar,
 .ret-pos {{ color: #067647; font-weight: 700; }}
 .ret-neg {{ color: #912018; font-weight: 700; }}
 .td-sharpe {{ color: #067647; font-weight: 600; }}
-.text-muted {{ color: #6B7482; }}
+.text-muted {{ color: #667080; }}
 </style>
 </head>
 <body>
