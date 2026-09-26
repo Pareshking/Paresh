@@ -996,6 +996,13 @@ _PAGES = [
 # position="hidden" keeps Streamlit's own navigation out of the hidden header.
 _nav = st.navigation(_PAGES, position="hidden")
 
+# The stock page is a route of the Screener (?stock=SYMBOL). Links to it are
+# relative, so one clicked on another page -- a sector leader on Sectors --
+# arrives as /sectors?stock=X, and that page has no idea what to do with it:
+# the click reloaded Sectors. Send any stock request to the Screener.
+if st.query_params.get("stock") and _nav.title != _PAGES[0].title:
+    st.switch_page(_PAGES[0], query_params={"stock": st.query_params["stock"]})
+
 # ── Top Header KPI Bar & Alerts ──────────────────────────────────────────────
 total_stocks = len(rank_df)
 
