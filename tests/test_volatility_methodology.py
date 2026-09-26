@@ -11,13 +11,17 @@ def _returns(periods=80):
     return pd.DataFrame({"A": a, "B": b}, index=idx)
 
 
-def test_inverse_volatility_uses_63_sessions_and_sqrt_252():
+def test_inverse_volatility_uses_only_the_last_63_sessions():
     returns = _returns()
+    # A violent start for A, outside the last 63 sessions. Over the whole frame
+    # A would be the MORE volatile stock; over the window it is half of B.
+    returns.iloc[:17, 0] = np.tile([0.30, -0.30], 9)[:17]
     opt = PortfolioOptimizer(returns)
     weights = opt.inverse_volatility(["A", "B"], window=63)
-    # Volatility ratio is 1:2, so inverse-vol weights are 2:1.
+    # Volatility ratio over the window is 1:2, so inverse-vol weights are 2:1.
     assert np.isclose(weights["A"], 2.0 / 3.0)
     assert np.isclose(weights["B"], 1.0 / 3.0)
+    assert opt.inverse_volatility(["A", "B"], window=80)["A"] < 0.5
 
 
 def test_volatility_target_reports_annualized_realized_volatility():

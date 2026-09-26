@@ -73,8 +73,13 @@ def test_a_holed_session_does_not_delete_the_move_across_it():
     assert same["Strategy Net"] == pytest.approx(period["Strategy Net"], rel=1e-9)
 
 
-def test_an_empty_ranking_liquidates_the_book_and_records_it():
-    """Nothing qualifies -> the book is sold, charged for, and sits in cash."""
+def test_a_ranking_that_is_always_empty_holds_cash_and_books_nothing():
+    """Nothing ever qualifies -> no holdings, a flat 0% every period, no open trade.
+
+    (This used to be titled "liquidates the book and records it", but nothing
+    qualifies from the first rebalance, so no book is ever bought and no
+    liquidation happens. The claim it can make is the one below.)
+    """
     px = _prices(seed=3)
     base = dict(top_n=3, rebal_freq=21, ema_period=20, cost_bps=30.0, buffer_n=3)
     normal = run_backtest("empty-normal", px, high_pct=0.0, **base)

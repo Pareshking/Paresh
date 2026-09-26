@@ -106,8 +106,9 @@ def test_a_block_stops_the_walk_and_keeps_what_arrived(caplog):
     s = _Session(charts, ids=ids, refuse_after=2, status=429)
 
     frame, _ids, _un = sl.fetch_universe(list(ids), ids=ids, delay_s=0, session=s)
-    assert not frame.empty, "a 429 threw away the symbols already collected"
-    assert frame.shape[1] // 2 < len(ids), "the walk continued past the refusal"
+    kept = list(frame.columns.get_level_values(0).unique())
+    assert kept == ["S1", "S2"], "a 429 threw away the symbols already collected"
+    assert s.calls == 3, "the walk continued past the refusal"
 
     from src.core import startup_metrics as m
     assert str(m.snapshot()["facts"].get("screener_run_complete")) == "no"
@@ -118,7 +119,8 @@ def test_a_403_is_treated_the_same_as_a_429():
     ids = {"S1": "1", "S2": "2"}
     s = _Session(charts, ids=ids, refuse_after=1, status=403)
     frame, _i, _u = sl.fetch_universe(list(ids), ids=ids, delay_s=0, session=s)
-    assert frame.shape[1] // 2 <= 1
+    assert list(frame.columns.get_level_values(0).unique()) == ["S1"]
+    assert s.calls == 2
 
 
 def test_an_unknown_symbol_does_not_stop_the_run():

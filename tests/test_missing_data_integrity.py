@@ -16,7 +16,10 @@ def test_security_specific_nan_does_not_create_zero_return():
     raw = pd.DataFrame({"A": [100.0, np.nan, 110.0, 111.0]}, index=idx)
     returns = _clean_price_df(raw)["A"].pct_change(fill_method=None)
     assert pd.isna(returns.iloc[1])
-    assert not np.isclose(returns.iloc[2], 0.0)
+    # Nor a return across the gap: 100 -> 110 must not be booked on day 3.
+    # (`not isclose(returns.iloc[2], 0)` held for NaN too, so it proved nothing.)
+    assert pd.isna(returns.iloc[2])
+    assert returns.iloc[3] == 111.0 / 110.0 - 1.0
 
 def test_exchange_wide_missing_date_is_removed():
     idx = pd.bdate_range("2026-01-05", periods=4)

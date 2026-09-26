@@ -14,7 +14,7 @@ def test_cli_rejects_invalid_date(monkeypatch):
     monkeypatch.setattr(
         "sys.argv", ["r2_membership_live_validation", "--as-of", "not-a-date"]
     )
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="isoformat"):   # the date, not R2 config
         main()
 
 

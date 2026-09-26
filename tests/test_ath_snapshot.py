@@ -24,7 +24,7 @@ def _fake_download(peaks: dict[str, float], record: list | None = None):
 
     def _download(tickers, **kwargs):
         if record is not None:
-            record.append(kwargs)
+            record.append({**kwargs, "_tickers": list(tickers)})
         frames = []
         for t in tickers:
             base = peaks.get(t, 100.0)
@@ -64,7 +64,9 @@ def test_symbols_are_suffixed_for_yahoo_but_stored_bare():
         ["RELIANCE", "TCS.NS"], "10y",
         download=_fake_download({"RELIANCE.NS": 900.0, "TCS.NS": 400.0}, calls),
     )
-    assert calls[0]["tickers"] if "tickers" in calls[0] else True
+    # Tickers go positionally, so the old `calls[0]["tickers"] if "tickers" in
+    # calls[0] else True` was always True. Record them and check the suffix.
+    assert calls[0]["_tickers"] == ["RELIANCE.NS", "TCS.NS"]   # TCS.NS not doubled
     assert sorted(snap["Symbol"]) == ["RELIANCE", "TCS"]
 
 

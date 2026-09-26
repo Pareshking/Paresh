@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from src.loaders import price_loader
 from src.loaders.price_loader import (
     _coalesce_duplicate_columns,
     _normalise_ticker_level,
@@ -35,14 +36,21 @@ def _frame(symbols, index, suffix="", start=0.0):
     return df
 
 
+@pytest.fixture(autouse=True)
+def _sandboxed_cache(tmp_path, monkeypatch):
+    """The real merge writes the cache; point it at a temp file. Session
+    filters that consult the clock are neutralised so the fixture dates stay."""
+    monkeypatch.setattr(price_loader, "PRICES_FILE", str(tmp_path / "prices.parquet"))
+    monkeypatch.setattr(price_loader, "_drop_phantom_sessions", lambda frame: frame)
+    monkeypatch.setattr(price_loader, "_drop_unsettled_rows", lambda frame: frame)
+    return tmp_path / "prices.parquet"
+
+
 def _merge(cached, new_data):
-    """The loader's incremental merge, in the order the loader now does it."""
-    cached = _normalise_ticker_level(cached)
-    new_data = _normalise_ticker_level(new_data)
-    combined = pd.concat([cached, new_data], axis=0)
-    if combined.index.duplicated().any():
-        combined = combined[~combined.index.duplicated(keep="last")]
-    return _coalesce_duplicate_columns(combined).sort_index()
+    """The loader's own incremental merge -- not a restatement of it. (This
+    helper used to re-implement the merge "in the order the loader now does
+    it", so the tests passed whatever the loader actually did.)"""
+    return price_loader._merge_and_save_cache(cached, new_data)
 
 
 def test_yfinance_suffix_does_not_double_the_columns():
@@ -72,17 +80,16 @@ def test_new_sessions_extend_the_same_series():
     assert close.index.is_monotonic_increasing
 
 
-def test_the_merged_frame_can_actually_be_written(tmp_path):
+def test_the_merged_frame_is_actually_written(_sandboxed_cache):
     """The original symptom was a parquet save that failed outright."""
     syms = ["INDIGO", "CIPLA"]
     cached = _frame(syms, pd.bdate_range("2026-08-10", periods=5))
     new_data = _frame(syms, pd.bdate_range("2026-08-17", periods=2), suffix=".NS")
 
     combined = _merge(cached, new_data)
-    target = tmp_path / "prices.parquet"
-    combined.to_parquet(target, compression="snappy")
 
-    assert pd.read_parquet(target).shape == combined.shape
+    assert _sandboxed_cache.exists(), "the loader did not persist the merge"
+    assert pd.read_parquet(_sandboxed_cache).shape == combined.shape == (7, 10)
 
 
 def test_a_symbol_only_in_the_new_data_is_kept():

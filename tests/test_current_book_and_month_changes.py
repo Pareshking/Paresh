@@ -240,6 +240,15 @@ def test_every_name_in_the_prior_book_is_accounted_for():
     ch = res["month_changes"]
     assert set(ch["Action"]) <= {"🟢 BOUGHT", "🔴 SOLD", "⚪ HELD"}
     assert not ch["Symbol"].duplicated().any(), "a name appears twice"
+    # The book going into this month's fill is the last reported period's book.
+    # Every one of those names must appear as SOLD or HELD -- the labels alone
+    # (all this test used to check) would pass with a holding silently dropped.
+    tb = res["tradebook"]
+    last = res["monthly"]["Period"].iloc[-1]
+    prior = set(tb[(tb["Period"] == last) & tb["Action"].str.contains("BUY|HOLD")]["Symbol"])
+    assert prior, "fixture must hold something going into the month"
+    accounted = set(ch[ch["Action"].isin(["🔴 SOLD", "⚪ HELD"])]["Symbol"])
+    assert prior == accounted
 
 
 def test_counts_in_meta_match_the_change_list():
