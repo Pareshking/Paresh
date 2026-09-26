@@ -34,7 +34,7 @@ VIEWS = ROOT / "src" / "ui" / "views"
 GUARDED_KEYS = {"cfg_w1", "cfg_w2", "cfg_w3", "cfg_w4", "cfg_w5",
                 "cfg_sc", "cfg_stc", "cfg_vt", "cfg_vtv"}
 
-VALUED = {"slider", "checkbox", "number_input", "select_slider", "radio",
+VALUED = {"slider", "checkbox", "toggle", "number_input", "select_slider", "radio",
           "selectbox", "multiselect"}
 
 
