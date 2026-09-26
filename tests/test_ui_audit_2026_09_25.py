@@ -1,14 +1,15 @@
 """Regressions from the 2026-09-25 UI audit: tickers with '&', escaping, watchlist."""
-import pandas as pd
 
-from src.ui.views import ranking_view, sector_view, watchlist_view
+from src.ui import screener_table
+from src.ui.views import sector_view, watchlist_view
 
 
-def test_card_link_survives_an_ampersand_ticker():
-    """?stock=M&M parsed as stock "M" -- the card opened the wrong page."""
-    row = pd.Series({"Symbol": "M&M", "Industry": "Autos <b>", "Rank": 1})
-    html = ranking_view._card_html(row)
+def test_table_link_survives_an_ampersand_ticker():
+    """?stock=M&M parsed as stock "M" -- the link opened the wrong page."""
+    row = {"Symbol": "M&M", "Industry": "Autos <b>", "Rank": 1}
+    html = screener_table._row_html(row, screener_table.columns_for("Core"), {})
     assert 'href="?stock=M%26M"' in html
+    assert 'data-stock="M&amp;M"' in html
     assert "Autos &lt;b&gt;" in html
 
 

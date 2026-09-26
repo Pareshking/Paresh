@@ -524,6 +524,60 @@ def inject_custom_css() -> None:
             font-weight: 700 !important;
         }
 
+        /* ── Screener page (redesign phase 2) ─────────────────────────── */
+        .scr-head h1 {
+            margin: 0 !important; padding: 0 !important;
+            font-family: var(--font-display) !important; font-size: 34px !important;
+            font-weight: 700 !important; letter-spacing: -0.6px !important; color: #0E1726 !important;
+        }
+        .scr-head p { margin: 4px 0 0; font-size: 14.5px; color: #3C4657; }
+        .mkt-strip {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 16px; overflow: hidden;
+        }
+        .ms-tile { display: flex; flex-direction: column; gap: 6px; padding: 16px 20px; border-right: 1px solid #EDEFF3; }
+        .ms-tile:last-child { border-right: 0; }
+        .ms-k { font-size: 12.5px; font-weight: 600; color: #5E6878; }
+        .ms-v { font-family: var(--font-display); font-size: 26px; font-weight: 700; line-height: 1.1; color: #0E1726; }
+        .ms-s { font-size: 13px; color: #3C4657; line-height: 1.4; }
+        .ms-s b { font-weight: 600; }
+        .ms-dot { color: #A5ACB8; font-weight: 500; }
+        .mkt-strip .up { color: #067647; } .mkt-strip .down { color: #B42318; }
+        .ms-bar { display: block; height: 6px; border-radius: 3px; background: #EDEFF3; }
+        .ms-bar i { display: block; height: 6px; border-radius: 3px; background: #0E1726; }
+        .scr-count { font-size: 13.5px; color: #3C4657; padding: 2px 2px 0; }
+        .scr-count strong { color: #0E1726; }
+        .t50 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+        .t50-card { background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+        .t50-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+        .t50-h h2 { margin: 0 !important; padding: 0 !important; font-family: var(--font-ui) !important; font-size: 16px !important; font-weight: 650 !important; letter-spacing: 0 !important; }
+        .t50-h span { font-size: 13px; font-weight: 600; }
+        .t50 .up { color: #067647; } .t50 .down { color: #B42318; }
+        .t50-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .t50-chip {
+            display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px;
+            border-radius: 8px; background: #F4F5F8; color: #0E1726 !important; text-decoration: none !important;
+            font-size: 13px; font-weight: 650;
+        }
+        .t50-chip:hover { background: #EEF0FF; }
+        .t50-chip span { font-family: var(--font-mono); font-size: 12px; font-weight: 500; color: #5E6878; }
+        .t50-none { font-size: 13px; color: #5E6878; }
+        .st-key-scr_toolbar { gap: 10px !important; }
+        .st-key-scr_toolbar [data-testid="stPopoverButton"] { height: 40px !important; }
+        .sig-label { font-size: 12.5px; font-weight: 600; color: #5E6878; margin-right: 2px; white-space: nowrap; }
+        @media (max-width: 640px) {
+            .scr-head h1 { font-size: 28px !important; }
+            .scr-head p { font-size: 13.5px; }
+            /* One sideways-scrolling row of cards, so the list starts sooner. */
+            .mkt-strip { display: flex; overflow-x: auto; background: transparent; border: 0; border-radius: 0; gap: 10px; }
+            .ms-tile { flex: 0 0 158px; padding: 12px 14px; background: #FFFFFF; border: 1px solid #E3E6EB !important; border-radius: 14px; gap: 3px; }
+            .ms-tile .ms-bar { display: none; }
+            .st-key-dl_rank_csv { display: none !important; }
+            .ms-v { font-size: 20px; }
+            .ms-s { font-size: 12px; }
+            .st-key-scr_toolbar [data-testid="stSelectbox"] { width: 100% !important; }
+        }
+
         /* ── Command Bar & Quick Filter Pills Styling ── */
         [data-testid="stPills"] {
             display: flex !important;
@@ -536,11 +590,11 @@ def inject_custom_css() -> None:
         }
 
         [data-testid="stPills"] button {
-            border-radius: 20px !important;
-            font-size: 0.78rem !important;
-            font-weight: 600 !important;
-            padding: 2px 10px !important;
-            height: 36px !important;
+            border-radius: 999px !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            padding: 2px 14px !important;
+            height: 40px !important;
             border: 1px solid #E3E6EB !important;
             background-color: #F4F5F8 !important;
             color: #3C4657 !important;
@@ -556,11 +610,11 @@ def inject_custom_css() -> None:
         }
 
         [data-testid="stPills"] button[aria-checked="true"] {
-            background-color: #ffffff !important;
-            color: #4f46e5 !important;
-            border-color: #4f46e5 !important;
-            box-shadow: 0 1px 3px rgba(79, 70, 229, 0.12) !important;
-            font-weight: 700 !important;
+            background-color: #EEEDFD !important;
+            color: #0E1726 !important;
+            border: 1.5px solid #4F46E5 !important;
+            box-shadow: none !important;
+            font-weight: 600 !important;
         }
 
         /* ── Segmented Control (Table / Cards Switcher) ── */

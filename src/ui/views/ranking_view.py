@@ -1,7 +1,4 @@
-"""
-Stock Rankings View Controller with Grid Cards and High-Density Table Views.
-Inspired by Investrack, Stockin.id, and Tickerboom.
-"""
+"""The Screener page: one ranking table for desktop and phone, and the stock route."""
 
 
 import hashlib
@@ -19,10 +16,13 @@ from src.core.config import SHORT_FORMS
 from src.core.market_time import ist_now
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
 from src.ui.views.stock_view import render_stock_view
+from src.ui.screener_table import column_count, render_screener_table
 from src.ui.theme import render_master_screener_table, screener_column_count
 
 # Stored in session state by `rank_density_mode`, so these strings are an
 # on-disk contract, not labels -- see the format_func in the density control.
+# Executive and Core draw the design's table (src/ui/screener_table.py); Full
+# Quant keeps the wide research table.
 _DENSITY_OPTIONS = ["Executive (11)", "Core (17)", "Full Quant (35)"]
 
 
@@ -58,27 +58,6 @@ def _rankings_csv(view_key: str, _export_df: pd.DataFrame) -> bytes:
     changed.
     """
     return _export_df.to_csv(index=False).encode()
-
-
-@st.dialog("📈 Stock Analysis", width="large")
-def _stock_dialog(
-    symbol: str,
-    rank_df: pd.DataFrame,
-    adj_close: pd.DataFrame,
-    high_prices: pd.DataFrame | None,
-    low_prices: pd.DataFrame | None,
-    volume_data: pd.DataFrame | None,
-    open_prices: pd.DataFrame | None,
-) -> None:
-    render_stock_view(
-        symbol,
-        rank_df,
-        adj_close,
-        high_prices=high_prices,
-        low_prices=low_prices,
-        volume_data=volume_data,
-        open_prices=open_prices,
-    )
 
 
 DISPLAY_COLS = [
@@ -136,377 +115,6 @@ def export_columns(view: pd.DataFrame) -> list[str]:
     return active + [c for c in view.columns if c not in active]
 
 
-CARD_BATCH = 48
-
-# ── CSS injected once per card-grid render ───────────────────────────────────
-_CARD_CSS = """
-<style>
-.sq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;padding:4px 2px 12px;}
-@media(max-width:520px){.sq-grid{grid-template-columns:1fr;}}
-.sq-card{background:#fff;border:1px solid #E3E6EB;border-radius:14px;padding:14px 15px;
-  position:relative;transition:box-shadow .15s;}
-.sq-card:hover{box-shadow:0 4px 16px rgba(79,70,229,.10);}
-.sq-top{display:flex;align-items:flex-start;gap:9px;margin-bottom:8px;}
-.sq-badge{flex-shrink:0;font-family:'Geist Mono',monospace;font-size:.7rem;font-weight:800;
-  padding:3px 8px;border-radius:20px;border:1px solid;}
-.sq-badge-gold{background:#FEF6EA;color:#92400e;border-color:#fcd34d;}
-.sq-badge-indigo{background:#eef2ff;color:#4338ca;border-color:#c7d2fe;}
-.sq-nameblock{flex:1;min-width:0;}
-.sq-sym{font-family:'Bricolage Grotesque',sans-serif;font-weight:900;font-size:1.05rem;color:#0E1726;
-  text-decoration:none;border-bottom:1px dotted #6B7482;}
-.sq-sym:hover{color:#4f46e5;}
-.sq-ind{font-size:.7rem;color:#5E6878;margin-top:1px;overflow:hidden;
-  text-overflow:ellipsis;white-space:nowrap;}
-.sq-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;margin-left:auto;}
-.sq-cmp{font-family:'Geist Mono',monospace;font-weight:800;font-size:1.0rem;
-  color:#0E1726;white-space:nowrap;}
-.sq-delta{font-family:'Geist Mono',monospace;
-  font-size:.62rem;font-weight:800;padding:2px 7px;border-radius:20px;white-space:nowrap;}
-.sq-delta-up{background:#D3EEDF;color:#054F31;}
-.sq-delta-dn{background:#F3C7C1;color:#9f1239;}
-.sq-delta-flat{background:#F1F3F6;color:#5E6878;}
-.sq-chips{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;}
-.sq-chip{font-size:.62rem;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid;white-space:nowrap;}
-.sq-chip-n50{background:#ede9fe;color:#5b21b6;border-color:#ddd6fe;}
-.sq-chip-nn50{background:#f3e8ff;color:#7e22ce;border-color:#e9d5ff;}
-.sq-chip-mid{background:#fff7ed;color:#9a3412;border-color:#fed7aa;}
-.sq-chip-sm{background:#fef9c3;color:#713f12;border-color:#F5D7A8;}
-.sq-chip-micro{background:#FDEDEB;color:#991b1b;border-color:#F3C7C1;}
-.sq-chip-other{background:#F1F3F6;color:#3C4657;border-color:#E3E6EB;}
-.sq-range-wrap{position:relative;margin:7px 0 10px;padding-top:7px;}
-.sq-range-track{height:6px;background:#E3E6EB;border-radius:999px;position:relative;overflow:visible;}
-.sq-range-fill{height:6px;background:linear-gradient(90deg,#4f46e5,#067647);border-radius:999px 0 0 999px;}
-.sq-range-current{position:absolute;top:50%;width:10px;height:10px;border-radius:50%;background:#067647;border:2px solid #ffffff;box-shadow:0 0 0 1px #067647;transform:translate(-50%,-50%);z-index:3;}
-.sq-range-20{position:absolute;top:-6px;width:1px;height:18px;background:#B54708;border-left:1px dashed #B54708;z-index:2;}
-.sq-range-20-label{position:absolute;top:-19px;transform:translateX(-50%);font-family:'Geist Mono',monospace;font-size:.52rem;font-weight:800;color:#93370D;white-space:nowrap;}
-.sq-range-labels{display:flex;justify-content:space-between;gap:6px;margin-top:5px;font-family:'Geist Mono',monospace;font-size:.54rem;color:#6B7482;}
-.sq-range-labels span{white-space:nowrap;}
-.sq-range-current-label{color:#067647;font-weight:800;}
-.sq-metrics{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:2px;
-  border-top:1px solid #F1F3F6;padding-top:9px;margin-bottom:9px;}
-.sq-metric{text-align:center;}
-.sq-metric-label{font-size:.58rem;color:#6B7482;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
-.sq-metric-val{font-family:'Geist Mono',monospace;font-size:.78rem;font-weight:700;margin-top:1px;}
-.sq-pos{color:#067647;}.sq-neg{color:#B42318;}.sq-warn{color:#B54708;}.sq-neu{color:#0E1726;}
-.sq-footer{display:flex;justify-content:space-between;align-items:center;
-  border-top:1px solid #F1F3F6;padding-top:8px;
-  font-family:'Geist Mono',monospace;font-size:.68rem;color:#5E6878;}
-.sq-vol-high{color:#B42318;font-weight:700;}
-.sq-vol-surge{color:#B54708;font-weight:700;}
-.sq-vol-normal{color:#5E6878;}
-</style>"""
-
-
-def _idx_chips_html(indices_raw: str) -> str:
-    """Build exact short-form index chips from the canonical Indices tags."""
-    chip_classes = {
-        "N50": "sq-chip-n50",
-        "NN50": "sq-chip-nn50",
-        "MID150": "sq-chip-mid",
-        "SMALL250": "sq-chip-sm",
-        "MICRO250": "sq-chip-micro",
-    }
-    chips = []
-    for part in str(indices_raw or "").split(","):
-        tag = part.strip().upper()
-        css_class = chip_classes.get(tag)
-        if css_class:
-            chips.append(
-                f'<span class="sq-chip {css_class}">{tag}</span>'
-            )
-    return "".join(chips)
-
-
-def _card_html(row: pd.Series) -> str:
-    """Return the HTML for a single screener card (no st.* calls)."""
-    sym      = str(row.get("Symbol", ""))
-    industry = str(row.get("Industry") or "—")
-    rank_raw = row.get("Rank")
-    rank_num = int(rank_raw) if pd.notna(rank_raw) else None
-    indices  = str(row.get("Indices") or "")
-
-    cmp_val  = row.get("CMP")
-    ret_12m  = row.get("12M Return")
-    ret_3m   = row.get("3M Return")
-    ret_1m   = row.get("1M Return")
-    dd_12m   = row.get("Max DD 12M")
-    delta1m  = row.get("Rank Δ 1M")
-    sl_val   = row.get("Stop Loss")
-    vol      = str(row.get("Volume") or "Normal")
-    above_ema = bool(to_bool_mask(pd.Series([row.get("Above 50 EMA")])).iloc[0])
-    near_hi   = bool(to_bool_mask(pd.Series([row.get("Near 52W High")])).iloc[0])
-
-    # Card wrapper style — 52W Hi highlight, below-EMA dimming
-    card_style = ""
-    if near_hi:
-        card_style += "border-color:#c7d2fe;background:linear-gradient(135deg,#fafbff 0%,#F4F5F8 100%);"
-    card_opacity = "" if above_ema else "opacity:.58;"
-
-    # Rank badge
-    if rank_num is not None:
-        badge_cls = "sq-badge-gold" if rank_num <= 3 else "sq-badge-indigo"
-        badge_html = f'<span class="sq-badge {badge_cls}">#{rank_num}</span>'
-    else:
-        badge_html = ""
-
-    # Rank delta badge (top-right)
-    if pd.notna(delta1m) and delta1m is not None:
-        d = int(delta1m)
-        if d > 0:
-            delta_html = f'<span class="sq-delta sq-delta-up">▲{d}</span>'
-        elif d < 0:
-            delta_html = f'<span class="sq-delta sq-delta-dn">▼{abs(d)}</span>'
-        else:
-            delta_html = '<span class="sq-delta sq-delta-flat">—</span>'
-    else:
-        delta_html = ""
-
-    # CMP
-    cmp_html = f"₹{cmp_val:,.0f}" if pd.notna(cmp_val) and cmp_val else "—"
-
-    # Chips
-    chips_html = _idx_chips_html(indices)
-    if not chips_html and industry and industry != "—":
-        ind_s = industry[:10] + "…" if len(industry) > 11 else industry
-        chips_html = f'<span class="sq-chip sq-chip-other">{html.escape(ind_s)}</span>'
-
-    # 52-week price range bar — current CMP fills the range from 52W low to 52W high.
-    # The range values are attached by _attach_52w_range() using the canonical
-    # 252-trading-session window. The amber marker is 20% below the 52W high.
-    hi_52 = row.get("_52W High")
-    lo_52 = row.get("_52W Low")
-    current_pos = row.get("_52W Position")
-    marker_pos = row.get("_52W 20% Marker")
-    if (
-        pd.notna(hi_52) and pd.notna(lo_52)
-        and pd.notna(current_pos) and float(hi_52) > float(lo_52)
-    ):
-        fill_pct = max(0.0, min(100.0, float(current_pos)))
-        marker_pct = max(0.0, min(100.0, float(marker_pos))) if pd.notna(marker_pos) else None
-        marker_html = (
-            f'<div class="sq-range-20" style="left:{marker_pct:.2f}%;">'
-            f'<span class="sq-range-20-label">−20%</span></div>'
-            if marker_pct is not None else ""
-        )
-        bar_html = (
-            '<div class="sq-range-wrap">'
-            '<div class="sq-range-track">'
-            f'<div class="sq-range-fill" style="width:{fill_pct:.2f}%"></div>'
-            f'{marker_html}'
-            f'<div class="sq-range-current" style="left:{fill_pct:.2f}%;" '
-            f'title="Current ₹{cmp_val:,.0f} · {fill_pct:.1f}% of 52W range"></div>'
-            '</div>'
-            '<div class="sq-range-labels">'
-            f'<span>52W Low ₹{float(lo_52):,.0f}</span>'
-            f'<span class="sq-range-current-label">CMP ₹{float(cmp_val):,.0f}</span>'
-            f'<span>52W High ₹{float(hi_52):,.0f}</span>'
-            '</div>'
-            '</div>'
-        )
-    else:
-        bar_html = (
-            '<div class="sq-range-wrap">'
-            '<div class="sq-range-track"></div>'
-            '<div class="sq-range-labels"><span>52W Low —</span><span>52W High —</span></div>'
-            '</div>'
-        )
-
-    # Metrics
-    def _fmt_pct(v, scale=100):
-        # pd.isna, not isinstance(v, float): Max DD 12M is float32, and a
-        # float32 NaN (any stock under 12 months old) printed "+nan%".
-        if v is None or pd.isna(v):
-            return "—", "sq-neu"
-        f = float(v) * scale
-        clr = "sq-pos" if f > 0 else ("sq-neg" if f < 0 else "sq-neu")
-        return f"{f:+.1f}%", clr
-
-    r12_txt, r12_clr = _fmt_pct(ret_12m)
-    r3_txt,  r3_clr  = _fmt_pct(ret_3m)
-    r1_txt,  r1_clr  = _fmt_pct(ret_1m)
-    dd_txt,  dd_clr  = _fmt_pct(dd_12m, scale=1)  # already in %
-
-    metrics_html = (
-        '<div class="sq-metrics">'
-        f'<div class="sq-metric"><div class="sq-metric-label">12M Ret</div>'
-        f'<div class="sq-metric-val {r12_clr}">{r12_txt}</div></div>'
-        f'<div class="sq-metric"><div class="sq-metric-label">3M Ret</div>'
-        f'<div class="sq-metric-val {r3_clr}">{r3_txt}</div></div>'
-        f'<div class="sq-metric"><div class="sq-metric-label">1M Ret</div>'
-        f'<div class="sq-metric-val {r1_clr}">{r1_txt}</div></div>'
-        f'<div class="sq-metric"><div class="sq-metric-label">Max DD</div>'
-        f'<div class="sq-metric-val {dd_clr}">{dd_txt}</div></div>'
-        '</div>'
-    )
-
-    # Footer
-    sl_str = f"SL ₹{sl_val:,.0f}" if sl_val and pd.notna(sl_val) else ""
-    vol_icon = "🔥" if vol == "High" else ("⚡" if vol == "Surge" else "•")
-    vol_cls = "sq-vol-high" if vol == "High" else ("sq-vol-surge" if vol == "Surge" else "sq-vol-normal")
-    footer_html = (
-        f'<div class="sq-footer">'
-        f'<span>{sl_str}</span>'
-        f'<span class="{vol_cls}">{vol_icon} {vol}</span>'
-        f'</div>'
-    )
-
-    return (
-        f'<div class="sq-card" style="{card_style}{card_opacity}">'
-        + '<div class="sq-top">'
-        + badge_html
-        + '<div class="sq-nameblock">'
-        + f'<a href="?stock={quote(str(sym), safe="")}" target="_self" class="sq-sym">{html.escape(str(sym))}</a>'
-        + f'<div class="sq-ind">{html.escape(str(industry))}</div>'
-        + '</div>'
-        + f'<div class="sq-right"><span class="sq-cmp">{cmp_html}</span>{delta_html}</div>'
-        + '</div>'
-        + (f'<div class="sq-chips">{chips_html}</div>' if chips_html else "")
-        + bar_html
-        + metrics_html
-        + footer_html
-        + '</div>'
-    )
-
-
-def _attach_52w_range(
-    view: pd.DataFrame,
-    high_prices: pd.DataFrame | None,
-    low_prices: pd.DataFrame | None,
-    adj_close: pd.DataFrame | None = None,
-) -> pd.DataFrame:
-    """Attach the canonical 52W range and current-price position for cards.
-
-    The ranking already carries the canonical 52W High. On the production
-    close-only screener feed, raw high/low frames are intentionally unavailable,
-    so the card must not depend on them being present. For the low end, use the
-    available intraday low when present and otherwise the same close history the
-    screener is ranking. This keeps the card populated on both price-source
-    paths.
-    """
-    out = view.copy()
-    out["_52W High"] = pd.NA
-    out["_52W Low"] = pd.NA
-    out["_52W Position"] = pd.NA
-    out["_52W 20% Marker"] = pd.NA
-
-    # The application defines a trading year as 252 sessions. Use the latest
-    # 252 observations available for each symbol, not calendar-day arithmetic.
-    for idx, row in out.iterrows():
-        symbol = str(row.get("Symbol", "")).strip()
-        if not symbol:
-            continue
-
-        # Prefer the canonical high already calculated by the ranking engine.
-        # This is also available when the screener price source is close-only.
-        canonical_hi = row.get("52W High")
-        hi = float(canonical_hi) if pd.notna(canonical_hi) else None
-
-        if hi is None and high_prices is not None and symbol in high_prices.columns:
-            highs = high_prices[symbol].dropna().sort_index().tail(252)
-            if not highs.empty:
-                hi = float(highs.max())
-
-        source = None
-        if low_prices is not None and symbol in low_prices.columns:
-            source = low_prices[symbol]
-        elif adj_close is not None and symbol in adj_close.columns:
-            source = adj_close[symbol]
-
-        if source is None:
-            continue
-
-        lows = source.dropna().sort_index().tail(252)
-        if lows.empty:
-            continue
-
-        lo = float(lows.min())
-        if hi is None or not (pd.notna(hi) and pd.notna(lo) and hi > lo):
-            continue
-
-        cmp_val = row.get("CMP")
-        if cmp_val is None or pd.isna(cmp_val):
-            continue
-
-        current = float(cmp_val)
-        position = (current - lo) / (hi - lo) * 100.0
-
-        # The bar itself is normalized from 52W Low (0%) to 52W High
-        # (100%). Therefore the visual "−20% from 52W High" guide belongs
-        # 20% of the displayed range below the high, i.e. at 80% of the
-        # low-to-high bar. Do not use 80% of the absolute high price here:
-        # that can fall below the displayed 52W Low (e.g. CASTROLIND:
-        # 80% × ₹204 = ₹163.20 < ₹174), which incorrectly clamps the guide
-        # to the left edge.
-        marker = 80.0
-
-        out.at[idx, "_52W High"] = hi
-        out.at[idx, "_52W Low"] = lo
-        out.at[idx, "_52W Position"] = position
-        out.at[idx, "_52W 20% Marker"] = marker
-
-    return out
-
-
-def _render_card_grid(
-    view: pd.DataFrame,
-    high_prices: pd.DataFrame | None = None,
-    low_prices: pd.DataFrame | None = None,
-    adj_close: pd.DataFrame | None = None,
-) -> None:
-    """Card grid over the WHOLE result set, revealed a batch at a time.
-
-    Uses CSS grid (auto-fill minmax 260px) rendered in one st.markdown call
-    so ?stock=SYM links navigate the parent Streamlit app and layout adapts
-    from 4-col desktop → 1-col mobile without any Python viewport detection.
-    """
-    total = len(view)
-    if total == 0:
-        st.info("No stocks match the active filters.")
-        return
-
-    state_key = "rank_cards_shown"
-    shown = min(int(st.session_state.get(state_key, CARD_BATCH)), total)
-    if shown < CARD_BATCH:
-        shown = min(CARD_BATCH, total)
-
-    # The 52W range only for the cards actually drawn: attaching it to the
-    # whole filtered view walked all 750 symbols (~0.24s) on every rerun to
-    # draw 48 of them (~0.02s).
-    card_items = _attach_52w_range(
-        view.head(shown), high_prices, low_prices, adj_close
-    ).reset_index(drop=True)
-    cards_inner = "".join(_card_html(card_items.iloc[i]) for i in range(len(card_items)))
-    st.markdown(
-        _CARD_CSS + f'<div class="sq-grid">{cards_inner}</div>',
-        unsafe_allow_html=True,
-    )
-
-    st.caption(f"Showing {shown} of {total} stocks.")
-    if shown < total:
-        c_more, c_all, _ = st.columns([1, 1, 3])
-        remaining = total - shown
-        if c_more.button(
-            f"Show {min(CARD_BATCH, remaining)} more", key="rank_cards_more",
-            width="stretch",
-        ):
-            st.session_state[state_key] = shown + CARD_BATCH
-            st.rerun()
-        if c_all.button(
-            f"Show all {total}", key="rank_cards_all", width="stretch",
-        ):
-            st.session_state[state_key] = total
-            st.rerun()
-    elif total > CARD_BATCH:
-        if st.button("Collapse to first 48", key="rank_cards_reset"):
-            st.session_state[state_key] = CARD_BATCH
-            st.rerun()
-
-
-def render_stock_card(row: pd.Series) -> None:
-    """Legacy single-card renderer — kept for external callers; internally card grid uses _card_html."""
-    st.markdown(_CARD_CSS + _card_html(row), unsafe_allow_html=True)
-
-
 def render_ranking_view(
     rank_df: pd.DataFrame,
     adj_close: pd.DataFrame,
@@ -514,8 +122,10 @@ def render_ranking_view(
     low_prices: pd.DataFrame | None = None,
     volume_data: pd.DataFrame | None = None,
     open_prices: pd.DataFrame | None = None,
+    regime=None,
 ) -> None:
-    """Renders the primary stock rankings interface with dynamic search and Grid/Table switcher."""
+    """The Screener: market strip, search and presets, the ranking table, and
+    this month's top-50 moves. ?stock=SYMBOL opens that stock's page instead."""
     # ── Stock detail route ───────────────────────────────────────────────────
     # ?stock=SYMBOL opens the detail page instead of the screener. A query
     # parameter rather than session state on purpose: it survives a refresh,
@@ -632,43 +242,120 @@ def render_ranking_view(
 
     search_options = stock_opts + idx_opts + ind_opts + sec_opts + tv_ind_opts
 
-    # ── Tier 1: Primary Search & Preset Filter Bar ───────────────────────────
-    c_search, c_pills = st.columns([1.5, 2.5], vertical_alignment="center")
+    # ── Page header ──────────────────────────────────────────────────────────
+    # The ranking's own date, not the wall clock: on 1 Oct a table ranked on
+    # 30 Sep closes is September's ranking, and labelling it "Oct" said
+    # otherwise.
+    from src.core import startup_metrics as _metrics
 
-    selected_search = c_search.selectbox(
-        "Search Stock, Industry, or Index",
-        options=search_options,
-        index=None,
-        placeholder="Search Stock, Industry, or Index (e.g. TCS, CUPID, NIFTY)…",
-        key="rank_search_predictive",
-        label_visibility="collapsed",
+    try:
+        price_day = pd.Timestamp(
+            str(_metrics.snapshot().get("facts", {}).get("price_as_of") or "")[:10]
+        )
+        month_label = price_day.strftime("%B %Y")
+        close_label = f"closes of {price_day:%a %d %b}"
+    except (ValueError, TypeError):
+        month_label = ist_now().strftime("%B %Y")
+        close_label = "latest closes"
+
+    n_total = len(rank_df)
+    c_title, c_export = st.columns([4, 1], vertical_alignment="bottom")
+    c_title.html(
+        f'<div class="scr-head"><h1>Screener</h1><p>{n_total} NSE stocks ranked by '
+        f"risk-adjusted momentum · {html.escape(month_label)} ranking, "
+        f"{html.escape(close_label)}</p></div>"
     )
 
-    filt = c_pills.pills(
-        "Universe Filter Presets",
-        [
-            "All Universe",
-            "Top 50 Qualified",
-            "Passed Filters",
-            "Momentum Movers",
-            "High Volume",
-        ],
-        default="All Universe",
-        key="rank_quick_pills",
-        label_visibility="collapsed",
-    )
+    render_market_strip(rank_df, regime)
+
+    # ── Search, presets, sort and columns ────────────────────────────────────
+    passes = (to_bool_mask(rank_df.get("Above 50 EMA"))
+              & to_bool_mask(rank_df.get("Near 52W High")))
+    preset_counts = {
+        "All Universe": n_total,
+        "Top 50 Qualified": int(((rank_df["Rank"] <= 50) & passes).sum()),
+        "Passed Filters": int(passes.sum()),
+        "Momentum Movers": int((rank_df["Rank Δ 1M"].abs() >= 15).sum())
+        if "Rank Δ 1M" in rank_df.columns else 0,
+        "High Volume": int((rank_df.get("Volume", pd.Series("", index=rank_df.index)) == "High").sum()),
+    }
+    preset_names = {
+        "All Universe": "All", "Top 50 Qualified": "Top 50 qualified",
+        "Passed Filters": "Pass both filters", "Momentum Movers": "Big movers",
+        "High Volume": "High volume",
+    }
+
+    def _open_searched_stock() -> None:
+        # Choosing a stock opens its page, like every other stock link, so the
+        # search box is how you get to any stock by name.
+        val = str(st.session_state.get("rank_search_predictive") or "")
+        if val.startswith("[STOCK] "):
+            st.query_params["stock"] = val.replace("[STOCK] ", "").split(" — ")[0].strip()
+            st.session_state["rank_search_predictive"] = None
+
+    with st.container(key="scr_toolbar", horizontal=True, vertical_alignment="center",
+                      gap="small"):
+        selected_search = st.selectbox(
+            "Search stock, industry or index",
+            options=search_options,
+            index=None,
+            placeholder="Search stock, industry or index",
+            key="rank_search_predictive",
+            label_visibility="collapsed",
+            on_change=_open_searched_stock,
+            width=340,
+        )
+        filt = st.pills(
+            "Presets",
+            list(preset_counts),
+            default="All Universe",
+            format_func=lambda o: f"{preset_names[o]} {preset_counts[o]}",
+            key="rank_quick_pills",
+            label_visibility="collapsed",
+            width="content",
+        )
+        with st.popover("Sort & columns", icon=":material/tune:", width="content"):
+            # Explicit index, resolved through the mirror. Under st.navigation
+            # only the active page runs, so this key is discarded the moment
+            # the reader looks at another page -- without it their chosen sort
+            # silently reverts to "Rank".
+            _SORT_OPTIONS = [
+                "Rank", "3M Return", "6M Return", "3M Sharpe", "% High", "Market Cap (Cr)",
+            ]
+            sort_by = st.selectbox(
+                "Sort by",
+                _SORT_OPTIONS,
+                index=resolve("rank_sort_by_idx", 0, lo=0, hi=len(_SORT_OPTIONS) - 1),
+                key="rank_sort_by",
+            )
+            remember("rank_sort_by_idx", _SORT_OPTIONS.index(sort_by))
+
+            # The option VALUES are fixed strings: they are what session state
+            # stores, and a stored value that vanishes from the list on the
+            # next run is a crash, not a relabel. Only the TEXT is computed,
+            # from the table that will actually be drawn.
+            def _density_label(option: str) -> str:
+                if option.startswith("Full"):
+                    n = screener_column_count(option, rank_df.columns)
+                else:
+                    n = column_count(option)
+                return f"{option.split(' (')[0]} ({n})"
+
+            density_mode = st.segmented_control(
+                "Columns",
+                _DENSITY_OPTIONS,
+                default=_DENSITY_OPTIONS[1],
+                format_func=_density_label,
+                key="rank_density_mode",
+            )
+            st.caption("Click a column header in the table to sort by it too.")
+    if not density_mode:
+        density_mode = _DENSITY_OPTIONS[1]
 
     view = rank_df.copy()
-    single_stock_drill: str | None = None
-
-    # Dynamic Predictive Filter Execution
     if selected_search and str(selected_search).strip():
         s_val = str(selected_search).strip()
-        if s_val.startswith("[STOCK] "):
-            target_sym = s_val.replace("[STOCK] ", "").split(" — ")[0].strip()
-            view = view[view["Symbol"].str.upper() == target_sym.upper()]
-            single_stock_drill = target_sym
-        elif s_val.startswith("[INDUSTRY] "):
+        if s_val.startswith("[INDUSTRY] "):
             target_ind = s_val.replace("[INDUSTRY] ", "").strip()
             view = view[view["Industry"].str.upper() == target_ind.upper()]
         elif s_val.startswith("[SECTOR] "):
@@ -696,20 +383,11 @@ def render_ranking_view(
                 .astype(str)
                 .apply(lambda v: target_tag in [t.strip().upper() for t in v.split(",")])
             ]
-        # No free-text fallback, because there is no free text to fall back on.
-        # `selected_search` comes from a selectbox whose options are exactly the
-        # lists built above, and every one of them carries a [STOCK]/[INDEX]/
-        # [INDUSTRY]/[SECTOR]/[TV_INDUSTRY] prefix; st.selectbox only returns an
-        # option it was given (accept_new_options defaults to False), so the
-        # branch that used to sit here could never run.
-        #
-        # It also could not have run SAFELY: it passed the reader's text
-        # straight into Series.str.contains, which treats its argument as a
-        # REGULAR EXPRESSION by default. A single "(" or "*" would have raised
-        # re.error and taken the screener down. If free text is ever wanted
-        # here, pass regex=False and re-add the branch deliberately.
+        # A [STOCK] choice never filters: _open_searched_stock has already sent
+        # the reader to that stock's page. There is no free-text branch either:
+        # st.selectbox only returns an option it was given, and every option
+        # carries one of the prefixes above.
 
-    # Quick Preset filters
     if filt == "Top 50 Qualified":
         view = view[
             (view["Rank"] <= 50)
@@ -729,124 +407,26 @@ def render_ranking_view(
     elif filt == "High Volume":
         view = view[view.get("Volume", "") == "High"]
 
-    # ── Tier 2: Refinement, Column Density & View Toolbar ────────────────────
-    c_info, c_sort, c_density, c_view = st.columns(
-        [1.8, 0.9, 1.3, 0.6], vertical_alignment="center"
-    )
-
-    n_total = len(rank_df)
-    n_view = len(view)
-    # Count through the boolean mask. Summing the raw column concatenates
-    # under the pandas 3 string dtype and yields '' for an empty view.
-    # Same denominator rule as the strip above: count through the mask, and say
-    # how many rows could answer at all.
-    n_ema = int(to_bool_mask(view.get("Above 50 EMA")).sum())
-    n_hi = int(to_bool_mask(view.get("Near 52W High")).sum())
-    c_info.markdown(
-        f"<div style='font-family:\"Geist Mono\",monospace;font-size:0.72rem;"
-        f"color:#5E6878;padding:5px 10px;background:#F4F5F8;border:1px solid #E3E6EB;"
-        f"border-radius:8px;line-height:1.5;'>"
-        f"Showing <strong style='color:#0E1726;'>{n_view}</strong> of {n_total} &nbsp;·&nbsp; "
-        f"<span style='color:#067647;font-weight:700;'>{n_ema}</span> &gt;50 EMA &nbsp;·&nbsp; "
-        f"<span style='color:#4f46e5;font-weight:700;'>{n_hi}</span> near 52W Hi"
-        f"</div>",
-        unsafe_allow_html=True,
-    )
-
-    # Explicit index, resolved through the mirror. Under st.navigation only the
-    # active page runs, so this key is discarded the moment the reader looks at
-    # another page -- without it their chosen sort silently reverts to "Rank".
-    _SORT_OPTIONS = [
-        "Rank", "3M Return", "6M Return", "3M Sharpe", "% High", "Market Cap (Cr)",
-    ]
-    sort_by = c_sort.selectbox(
-        "Sort By",
-        _SORT_OPTIONS,
-        index=resolve("rank_sort_by_idx", 0, lo=0, hi=len(_SORT_OPTIONS) - 1),
-        key="rank_sort_by",
-        label_visibility="collapsed",
-    )
-    remember("rank_sort_by_idx", _SORT_OPTIONS.index(sort_by))
-
-    # The option VALUES are fixed strings and stay that way: they are what
-    # session state stores, and a stored value that vanishes from the list on
-    # the next run is a crash, not a relabel. Only the TEXT is computed, and it
-    # is read back out of the header block the table actually emits -- "Full
-    # Quant (35)" sat over a 36-column table because the count was typed a
-    # second time, and dropping the ATR columns under a closing-price source
-    # would have made both of the wide tiers wrong again.
-    def _density_label(option: str) -> str:
-        return (f"{option.split(' (')[0]} "
-                f"({screener_column_count(option, view.columns)})")
-
-    density_mode = c_density.segmented_control(
-        "Column Density",
-        _DENSITY_OPTIONS,
-        default=_DENSITY_OPTIONS[-1],
-        format_func=_density_label,
-        key="rank_density_mode",
-        label_visibility="collapsed",
-    )
-    if not density_mode:
-        density_mode = _DENSITY_OPTIONS[-1]
-
-    view_mode = c_view.segmented_control(
-        "Layout",
-        ["Table", "Cards"],
-        default="Cards",
-        key="rank_view_mode",
-        label_visibility="collapsed",
-    )
-
-
-    # ── Single Stock Technical Deep Dive (Activated by Search Selection) ──────
-    if single_stock_drill and single_stock_drill in adj_close.columns:
-        _stock_dialog(
-            single_stock_drill,
-            rank_df,
-            adj_close,
-            high_prices,
-            low_prices,
-            volume_data,
-            open_prices,
-        )
-
-    # Sorting
     asc = sort_by == "Rank"
-    if sort_by in view.columns:
+    if sort_by in view.columns and not (filt == "Momentum Movers" and sort_by == "Rank"):
         view = view.sort_values(sort_by, ascending=asc)
 
-    # ── Section header above the results ────────────────────────────────────
-    # The ranking's own date, not the wall clock: on 1 Oct a table ranked on
-    # 30 Sep closes is September's ranking, and labelling it "Oct" said
-    # otherwise.
-    from src.core import startup_metrics as _metrics
-
-    try:
-        month_label = pd.Timestamp(
-            str(_metrics.snapshot().get("facts", {}).get("price_as_of") or "")[:10]
-        ).strftime("%b %Y")
-    except (ValueError, TypeError):
-        month_label = ist_now().strftime("%b %Y")
-    st.markdown(
-        f'<div style="font-size:0.73rem;font-weight:800;color:#0E1726;'
-        f'letter-spacing:0.01em;margin:14px 0 6px;padding-bottom:6px;'
-        f'border-bottom:2px solid #eef2ff;">'
-        f'Top Ranked &nbsp;·&nbsp; <span style="color:#5E6878;font-weight:500;">{month_label}</span>'
-        f'</div>',
-        unsafe_allow_html=True,
+    # Count through the boolean mask. Summing the raw column concatenates
+    # under the pandas 3 string dtype and yields '' for an empty view.
+    n_view = len(view)
+    n_ema = int(to_bool_mask(view.get("Above 50 EMA")).sum())
+    n_hi = int(to_bool_mask(view.get("Near 52W High")).sum())
+    st.html(
+        f'<div class="scr-count">Showing <strong>{n_view}</strong> of {n_total}'
+        f" · {n_ema} above 50-day EMA · {n_hi} within 20% of their 52-week high"
+        f" · click a column to sort, a row to open the stock</div>"
     )
 
-    if view_mode in ["Table", "📊 Table"] or not view_mode:
-        # The symbol links inside the table open the stock page directly. A
-        # picker used to sit here as a fallback for when they did not work;
-        # they work now, so it was one more control between the reader and the
-        # table -- costly on a phone, where vertical space is the scarce thing.
-        render_master_screener_table(
-            view, prices_df=adj_close, density=density_mode
-        )
+    if str(density_mode).startswith("Full"):
+        # The research view: every window and every data-health column.
+        render_master_screener_table(view, prices_df=adj_close, density=density_mode)
     else:
-        _render_card_grid(view, high_prices, low_prices, adj_close)
+        render_screener_table(view, adj_close, density_mode)
 
     # Export EVERY column the ranking carries, not just the ones on screen.
     # DISPLAY_COLS is a screen-layout decision -- it drops Score, the raw
@@ -857,17 +437,93 @@ def render_ranking_view(
     # Display order first so the familiar columns lead, then the rest.
     export_cols = export_columns(view)
     export_df = view[export_cols]
-    st.download_button(
-        f"Download Rankings CSV ({len(export_cols)} columns)",
+    c_export.download_button(
+        "Export CSV",
         _rankings_csv(_frame_key(export_df), export_df),
         f"nse_momentum_rankings_{ist_now():%Y%m%d}.csv",
         "text/csv",
         key="dl_rank_csv",
-        help="All ranking columns, including the ones not shown in the table.",
+        icon=":material/download:",
+        help=f"The {len(view)} stocks shown, with all {len(export_cols)} ranking "
+             f"columns, including the ones not in the table.",
+        width="stretch",
     )
+
+    render_top50_changes(rank_df, month_label.split(" ")[0])
 
     render_data_quality_footer(
         total_stocks=len(rank_df),
         gap_count=gap_count(rank_df),
         short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
+    )
+
+
+def render_market_strip(rank_df: pd.DataFrame, regime) -> None:
+    """Regime, breadth, pass count and this month's top-50 moves."""
+    n = len(rank_df)
+    ema = int(to_bool_mask(rank_df.get("Above 50 EMA")).sum())
+    passes = int((to_bool_mask(rank_df.get("Above 50 EMA"))
+                  & to_bool_mask(rank_df.get("Near 52W High"))).sum())
+    pct = ema / n * 100 if n else 0.0
+    entered, left = top50_changes(rank_df)
+    tiles = []
+    if regime is not None:
+        bull = str(getattr(regime.status, "value", regime.status)).upper() == "BULLISH"
+        dist = float(regime.distance_pct)
+        tiles.append(
+            f'<div class="ms-tile"><span class="ms-k">Market regime</span>'
+            f'<span class="ms-v {"up" if bull else "down"}">{"Bullish" if bull else "Bearish"}</span>'
+            f'<span class="ms-s">Nifty 500 at {regime.current_price:,.0f} · '
+            f'<b class="{"up" if dist >= 0 else "down"}">{abs(dist):.1f}% '
+            f'{"above" if dist >= 0 else "below"}</b> its 200-day average</span></div>'
+        )
+    tiles.append(
+        f'<div class="ms-tile"><span class="ms-k">Breadth</span><span class="ms-v">{pct:.0f}%</span>'
+        f'<span class="ms-bar"><i style="width:{pct:.0f}%"></i></span>'
+        f'<span class="ms-s">{ema} of {n} above their 50-day EMA</span></div>'
+    )
+    tiles.append(
+        f'<div class="ms-tile"><span class="ms-k">Pass both filters</span><span class="ms-v">{passes}</span>'
+        f'<span class="ms-s">Above 50-day EMA and within 20% of their 52-week high</span></div>'
+    )
+    if entered is not None:
+        tiles.append(
+            f'<div class="ms-tile"><span class="ms-k">Top 50 this month</span>'
+            f'<span class="ms-v"><span class="up">{len(entered)} in</span> '
+            f'<span class="ms-dot">·</span> <span class="down">{len(left)} out</span></span>'
+            f'<span class="ms-s">See who moved, below the table</span></div>'
+        )
+    st.html(f'<section class="mkt-strip" aria-label="Market today">{"".join(tiles)}</section>')
+
+
+def top50_changes(rank_df: pd.DataFrame):
+    """Stocks that entered and left the top 50 since last month, by rank."""
+    if "Rank (-1M)" not in rank_df.columns:
+        return None, None
+    prev = pd.to_numeric(rank_df["Rank (-1M)"], errors="coerce")
+    now = pd.to_numeric(rank_df["Rank"], errors="coerce")
+    entered = rank_df[(now <= 50) & (prev > 50)].sort_values("Rank")
+    left = rank_df[(now > 50) & (prev <= 50)].sort_values("Rank")
+    return entered, left
+
+
+def render_top50_changes(rank_df: pd.DataFrame, month: str) -> None:
+    entered, left = top50_changes(rank_df)
+    if entered is None or (entered.empty and left.empty):
+        return
+
+    def chips(df: pd.DataFrame) -> str:
+        return "".join(
+            f'<a class="t50-chip" href="?stock={quote(str(r.Symbol), safe="")}" target="_self">'
+            f'{html.escape(str(r.Symbol))} <span>#{int(r.Rank)}</span></a>'
+            for r in df.itertuples()
+        ) or '<span class="t50-none">None</span>'
+
+    st.html(
+        '<section class="t50" aria-label="Top 50 this month">'
+        f'<div class="t50-card"><div class="t50-h"><h2>Entered the top 50 in {html.escape(month)}</h2>'
+        f'<span class="up">{len(entered)} stocks</span></div><div class="t50-chips">{chips(entered)}</div></div>'
+        f'<div class="t50-card"><div class="t50-h"><h2>Left the top 50</h2>'
+        f'<span class="down">{len(left)} stocks · now ranked</span></div>'
+        f'<div class="t50-chips">{chips(left)}</div></div></section>'
     )
