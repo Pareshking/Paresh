@@ -589,6 +589,43 @@ def inject_custom_css() -> None:
             .st-key-scr_toolbar [data-testid="stSelectbox"] { width: 100% !important; }
         }
 
+        /* ── Page kit (src/ui/page_kit.py): every other page ───────────── */
+        .mkt-strip .warn { color: #B54708; }
+        .pg-note {
+            padding: 12px 16px; border-radius: 12px; background: #FEF6EA; border: 1px solid #F5D7A8;
+            font-size: 13.5px; line-height: 1.5; color: #7A2E0E;
+        }
+        .pg-note b { font-weight: 700; }
+        [class*="st-key-pgcard_"] {
+            background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 16px;
+            padding: 18px 22px !important; gap: 12px !important;
+        }
+        .pg-card-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .pg-card-h h2 {
+            margin: 0 !important; padding: 0 !important; font-family: var(--font-ui) !important;
+            font-size: 17px !important; font-weight: 650 !important; letter-spacing: 0 !important; color: #0E1726 !important;
+        }
+        .pg-card-h span { font-size: 12.5px; color: #5E6878; }
+        .pg-cap { margin: 0; font-size: 12.5px; line-height: 1.5; color: #5E6878; }
+        .pg-bars { display: flex; flex-direction: column; gap: 4px; }
+        .pg-bar { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 76px; align-items: center; gap: 12px; min-height: 30px; }
+        .pg-bar-l { font-size: 13.5px; color: #0E1726; }
+        .pg-bar-t { position: relative; height: 10px; border-radius: 5px; background: #EDEFF3; }
+        .pg-bar-t i { position: absolute; left: 0; top: 0; height: 10px; border-radius: 5px; background: #4F46E5; }
+        .pg-bar-t i.warn { background: #B54708; }
+        .pg-bar-v { font-family: var(--font-mono); font-size: 13px; text-align: right; color: #0E1726; }
+        [class*="st-key-pg_actions_"] { gap: 10px !important; }
+        .hm-wrap { overflow-x: auto; }
+        .hm { display: grid; gap: 3px; min-width: 520px; }
+        .hm-x, .hm-y { font-family: var(--font-mono); font-size: 11px; color: #3C4657; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .hm-x { writing-mode: vertical-rl; transform: rotate(180deg); height: 76px; text-align: left; justify-self: center; }
+        .hm-y { display: flex; align-items: center; }
+        .hm-c { height: 28px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 11px; background: #F4F5F8; color: #0E1726; }
+        @media (max-width: 640px) {
+            [class*="st-key-pgcard_"] { padding: 14px 14px !important; border-radius: 14px; }
+            .pg-bar { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 64px; gap: 8px; }
+        }
+
         /* The watchlist bridge has no visible output. */
         .st-key-wl_store { display: none !important; }
 
