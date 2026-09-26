@@ -478,19 +478,19 @@ def audit_stock_link_navigation(page) -> dict:
     except Exception as exc:
         out["frame_shape"] = {"error": f"{type(exc).__name__}: {exc}"[:140]}
 
-    # There are TWO ticker links in this app, and they navigate differently:
+    # Ticker links come in two shapes, and they navigate differently:
     #
-    #   Table view  <a data-stock=...>  inside a SANDBOXED COMPONENT IFRAME;
-    #               the click is intercepted and a script injected into
-    #               window.parent (src/ui/theme.py:1413, :1829)
-    #   Card view   <a href="?stock=..." class="sq-sym">  a plain relative
-    #               anchor in the app document (ranking_view.py:364)
+    #   Screener table  <a data-stock=...> (and the whole <tr data-stock>)
+    #               inside a SANDBOXED COMPONENT IFRAME; the click is
+    #               intercepted and a script injected into window.parent
+    #               (src/ui/screener_table.py, and theme.py for Full Quant)
+    #   Plain links <a href="?stock=..." target="_self"> in the app document:
+    #               Top 50 this month, peers on the stock page, sector leaders
     #
-    # Cards is what a reader sees by default, and the first two attempts at
-    # this measurement looked only for `a[data-stock]` -- the TABLE one -- so
-    # both reported "no ticker link found" against a screen full of tickers.
-    # Look for either, and record which was found and in which frame, because
-    # the fix for the ugly URL differs between them.
+    # The card view that used to be the default is gone; `a.sq-sym` stays in
+    # the selector list below only so an older deployment still measures.
+    # Record which shape was found and in which frame, because the fix for
+    # the ugly URL differs between them.
     link = None
     for _attempt in range(10):  # the Screener may still be rendering
         link = _find_ticker_link(page, out)

@@ -393,7 +393,7 @@ def render_candlestick_drilldown(
             fig.add_annotation(
                 text="Volume unavailable for this symbol",
                 xref="paper", yref="y2", x=0.5, y=0, showarrow=False,
-                font={"size": 10, "color": "#6B7482"},
+                font={"size": 10, "color": "#667080"},
             )
         st.plotly_chart(
             fig,
@@ -649,7 +649,7 @@ const opt={{
         let s=`<span style="font-weight:700;font-size:13px">${{esc(d.name)}}</span>`;
         s+=`<br>Avg return: <b>${{d.avg_ret||'—'}}</b>`;
         s+=`<br>Stocks: <b>${{d.n_stocks||d.children.length}}</b>`;
-        s+=`<br><span style="color:#6B7482;font-size:11px">Click to zoom into sector →</span>`;
+        s+=`<br><span style="color:#667080;font-size:11px">Click to zoom into sector →</span>`;
         return s;
       }}
       // Individual stock tile
@@ -659,7 +659,7 @@ const opt={{
       if(d.cmp!=null)s+=`<br>CMP: <b>₹${{fmt(d.cmp)}}</b>`;
       if(d.mcap!=null)s+=`<br>Mcap: <b>₹${{fmt(d.mcap)}} Cr</b>`;
       if(d.sharpe!=null)s+=`<br>3M Sharpe: <b>${{d.sharpe}}</b>`;
-      s+=`<br><span style="color:#6B7482;font-size:11px">Sized by: ${{esc(SIZE_LABEL)}}</span>`;
+      s+=`<br><span style="color:#667080;font-size:11px">Sized by: ${{esc(SIZE_LABEL)}}</span>`;
       return s;
     }}
   }},
@@ -881,7 +881,7 @@ function drawArrow(x0, y0, x1, y1, color) {
 // ── Draw tick labels on axis ───────────────────────────────────────────────
 function drawTicks() {
   ctx.font = '9px Geist Mono,monospace';
-  ctx.fillStyle = '#6B7482';
+  ctx.fillStyle = '#667080';
   ctx.textAlign = 'center';
   const availW = W - PAD.l - PAD.r;
   const xStep = Math.max(2, Math.ceil((maxX - minX) / Math.floor(availW / 30)));
@@ -915,8 +915,8 @@ function draw() {
   const dark = window.matchMedia('(prefers-color-scheme:dark)').matches;
   const bg   = dark ? '#0E1726' : '#ffffff';
   const gridC = dark ? '#1F2A3A' : '#E3E6EB';
-  const crossC = dark ? '#3C4657' : '#6B7482';
-  const textC  = dark ? '#6B7482' : '#5E6878';
+  const crossC = dark ? '#3C4657' : '#667080';
+  const textC  = dark ? '#667080' : '#5E6878';
 
   // canvas background
   ctx.fillStyle = bg;
@@ -1395,7 +1395,7 @@ def render_hl_timeseries_chart(
              "itemStyle": {"color": "#067647"}, "symbol": "none",
              "areaStyle": {"color": "rgba(5,150,105,0.08)"}, "connectNulls": False,
              "markLine": {"silent": True, "symbol": ["none", "none"],
-                          "data": [{"yAxis": 0, "lineStyle": {"color": "#6B7482", "width": 1}}],
+                          "data": [{"yAxis": 0, "lineStyle": {"color": "#667080", "width": 1}}],
                           "label": {"show": False}}},
             {"name": f"New {window_label} Lows", "type": "line", "data": l_data,
              "lineStyle": {"color": "#B42318", "width": 1.8},
@@ -1459,7 +1459,7 @@ def render_net_hl_bar_chart(net: pd.Series) -> None:
         "series": [{
             "type": "bar", "data": data,
             "markLine": {"silent": True, "symbol": ["none", "none"],
-                         "data": [{"yAxis": 0, "lineStyle": {"color": "#6B7482", "width": 1}}],
+                         "data": [{"yAxis": 0, "lineStyle": {"color": "#667080", "width": 1}}],
                          "label": {"show": False}},
         }],
     }

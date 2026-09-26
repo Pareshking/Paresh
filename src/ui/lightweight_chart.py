@@ -35,7 +35,7 @@ UP = "#067647"
 DOWN = "#B42318"
 INK = "#0E1726"
 GRID = "#F1F3F6"
-MUTED = "#6B7482"
+MUTED = "#667080"
 MA_COLOURS = {"20 EMA": "#0ea5e9", "50 EMA": "#7c3aed", "200 SMA": "#B54708"}
 
 # Half the sessions must carry a real range before the price is drawn as

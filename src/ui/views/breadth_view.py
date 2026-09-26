@@ -94,8 +94,8 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
                     kpi_items.append(f"""
                     <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px;">
                         <div style="font-family: 'Geist', sans-serif; font-size: 0.70rem; font-weight: 700; color: #5E6878; text-transform: uppercase;">Above {ma_lbl} {ma_type}</div>
-                        <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.5rem; font-weight: 800; color: #6B7482; margin-top: 1px;">—</div>
-                        <div style="font-family: 'Geist Mono', monospace; font-size: 0.69rem; color: #6B7482;">no prices on this session</div>
+                        <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.5rem; font-weight: 800; color: #667080; margin-top: 1px;">—</div>
+                        <div style="font-family: 'Geist Mono', monospace; font-size: 0.69rem; color: #667080;">no prices on this session</div>
                     </div>
                     """)
                     continue

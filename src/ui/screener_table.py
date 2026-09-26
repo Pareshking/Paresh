@@ -175,7 +175,7 @@ td{height:""" + str(ROW_PX) + """px;padding:0 10px;border-bottom:1px solid #EDEF
 tbody tr:nth-child(even) td{background:#FAFBFC}
 tbody tr:hover td{background:#F1F0FF;cursor:pointer}
 td.n{text-align:right;font-family:'Geist Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
-.pos{color:#067647}.neg{color:#B42318}.muted{color:#6B7482}
+.pos{color:#067647}.neg{color:#B42318}.muted{color:#667080}
 th:nth-child(1),td.c-rank{position:sticky;left:0;z-index:2;width:52px;min-width:52px;text-align:left}
 thead th:nth-child(1){z-index:4}
 th:nth-child(2),td.c-stock{position:sticky;left:52px;z-index:2;text-align:left;max-width:330px;box-shadow:1px 0 0 #EDEFF3}
@@ -188,8 +188,8 @@ td.c-stock .sub{font-size:12.5px;color:#5E6878;overflow:hidden;text-overflow:ell
 .chip.up{background:#E8F5EE;color:#067647}.chip.down{background:#FDEDEB;color:#B42318}.chip.flat{background:#F1F3F6;color:#5E6878}
 td.c-path{padding-left:14px}
 td.c-flt{text-align:left}
-.pass{font-size:12px;font-weight:600;color:#067647}.fail{font-size:12px;font-weight:600;color:#6B7482}
-.ath{margin-left:6px;font-size:10.5px;font-weight:700;padding:2px 6px;border-radius:6px;background:#EEF0FF;color:#3730A3}
+.pass{font-size:12px;font-weight:600;color:#067647}.fail{font-size:12px;font-weight:600;color:#667080}
+.ath{margin-left:6px;font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px;background:#EEF0FF;color:#3730A3}
 .m-only{display:none}
 @media (max-width:640px){
   table{min-width:0}
