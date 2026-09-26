@@ -68,8 +68,7 @@ from src.ui.views.breadth_view import render_breadth_view
 from src.ui.views.config_view import render_config_view
 from src.ui.views.guide_view import render_guide_view
 from src.ui.views.portfolio_view import render_portfolio_view
-from src.ui.views.exit_watch_view import render_exit_watch_view
-from src.ui.views.qualified_view import render_qualified_view
+from src.ui.views.actions_view import render_actions_view
 from src.ui.views.ranking_view import render_ranking_view
 from src.ui.views.rrg_view import render_rrg_view
 from src.ui.views.sector_view import render_sector_view
@@ -914,10 +913,6 @@ def _page_screener() -> None:
     )
 
 
-def _page_qualified() -> None:
-    render_qualified_view(rank_df, adj_close)
-
-
 def _page_sectors() -> None:
     render_sector_view(rank_df, adj_close)
 
@@ -961,10 +956,10 @@ def _page_backtest() -> None:
     )
 
 
-def _page_exit_watch() -> None:
+def _page_actions() -> None:
     # The model book comes from the same pinned run as the Track Record's
     # month-to-date (record_run), so the two pages describe one portfolio.
-    render_exit_watch_view(
+    render_actions_view(
         rank_df, deep_adj_close, fetch_benchmark_history(period="5y"),
     )
 
@@ -992,11 +987,10 @@ def _page_guide() -> None:
 # rename here without one there is a failing build, not a silent drift.
 _PAGES = [
     st.Page(_page_screener, title="Screener", url_path="screener", default=True),
-    st.Page(_page_qualified, title="Qualified", url_path="qualified"),
+    st.Page(_page_actions, title="Actions", url_path="actions"),
     st.Page(_page_sectors, title="Sectors", url_path="sectors"),
     st.Page(_page_rrg, title="RRG", url_path="rrg"),
     st.Page(_page_portfolio, title="Portfolio", url_path="portfolio"),
-    st.Page(_page_exit_watch, title="Exit Watch", url_path="exit-watch"),
     st.Page(_page_watchlist, title="Watchlist", url_path="watchlist"),
     st.Page(_page_breadth, title="Market Breadth", url_path="breadth"),
     st.Page(_page_backtest, title="Backtest", url_path="backtest"),
@@ -1005,8 +999,21 @@ _PAGES = [
     st.Page(_page_guide, title="Guide", url_path="guide"),
 ]
 
+# Addresses that moved: Qualified and Exit Watch became Actions. A bookmark to
+# either still lands there. These are redirects, not pages -- they are left out
+# of _PAGES, so no menu shows them, and their titles are not the app's tabs.
+_MOVED = {"qualified": "Qualified", "exit-watch": "Exit Watch"}
+
+
+def _moved_page(path: str):
+    def _go() -> None:
+        st.switch_page(_PAGES[1])
+    _go.__name__ = f"_moved_{path.replace('-', '_')}"
+    return st.Page(_go, title=_MOVED[path], url_path=path)
+
+
 # position="hidden" keeps Streamlit's own navigation out of the hidden header.
-_nav = st.navigation(_PAGES, position="hidden")
+_nav = st.navigation(_PAGES + [_moved_page(p) for p in _MOVED], position="hidden")
 
 # The stock page is a route of the Screener (?stock=SYMBOL). Links to it are
 # relative, so one clicked on another page -- a sector leader on Sectors --
