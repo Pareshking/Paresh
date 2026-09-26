@@ -169,13 +169,13 @@ def _backtest_body(
     # ── Active Configuration Attribution Strip ──────────────────────────────
     st.markdown(
         f"""
-        <div style='background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 14px; margin-bottom: 12px; font-family: IBM Plex Mono; font-size: 0.76rem; color: #475569; display: flex; flex-wrap: wrap; gap: 14px; align-items: center;'>
-            <span>📅 <strong>Period:</strong> <span style='color: #0f172a; font-weight: 600;'>{bt_window_label}</span></span>
-            <span>🎯 <strong>Engine:</strong> <span style='color: #0f172a; font-weight: 600;'>Composite Sharpe</span></span>
-            <span>⏱️ <strong>Interval:</strong> <span style='color: #0f172a; font-weight: 600;'>{'Monthly · First Trading Day' if bt_rebal == 21 else f'{bt_rebal} Trading Days'}</span></span>
-            <span>📦 <strong>Portfolio:</strong> <span style='color: #0f172a; font-weight: 600;'>Top {bt_n} Stocks (Buffer: Top {int(bt_n * buffer_mult)})</span></span>
-            <span>⚖️ <strong>Weighting:</strong> <span style='color: #0f172a; font-weight: 600;'>{bt_weight}</span></span>
-            <span>💸 <strong>Cost Drag:</strong> <span style='color: #0f172a; font-weight: 600;'>{cost_drag_bps:.0f} bps</span></span>
+        <div style='background: #F4F5F8; border: 1px solid #E3E6EB; border-radius: 8px; padding: 7px 14px; margin-bottom: 12px; font-family: Geist Mono,monospace; font-size: 0.76rem; color: #3C4657; display: flex; flex-wrap: wrap; gap: 14px; align-items: center;'>
+            <span>📅 <strong>Period:</strong> <span style='color: #0E1726; font-weight: 600;'>{bt_window_label}</span></span>
+            <span>🎯 <strong>Engine:</strong> <span style='color: #0E1726; font-weight: 600;'>Composite Sharpe</span></span>
+            <span>⏱️ <strong>Interval:</strong> <span style='color: #0E1726; font-weight: 600;'>{'Monthly · First Trading Day' if bt_rebal == 21 else f'{bt_rebal} Trading Days'}</span></span>
+            <span>📦 <strong>Portfolio:</strong> <span style='color: #0E1726; font-weight: 600;'>Top {bt_n} Stocks (Buffer: Top {int(bt_n * buffer_mult)})</span></span>
+            <span>⚖️ <strong>Weighting:</strong> <span style='color: #0E1726; font-weight: 600;'>{bt_weight}</span></span>
+            <span>💸 <strong>Cost Drag:</strong> <span style='color: #0E1726; font-weight: 600;'>{cost_drag_bps:.0f} bps</span></span>
         </div>
         """,
         unsafe_allow_html=True,
@@ -222,8 +222,8 @@ def _backtest_body(
 
     # ── Executive KPI Cards Grid ─────────────────────────────────────────────
     alpha_status = "Outperforming" if stats["alpha"] >= 0 else "Underperforming"
-    alpha_clr = "#059669" if stats["alpha"] >= 0 else "#dc2626"
-    ret_clr = "#059669" if stats["total_return"] >= 0 else "#dc2626"
+    alpha_clr = "#067647" if stats["alpha"] >= 0 else "#B42318"
+    ret_clr = "#067647" if stats["total_return"] >= 0 else "#B42318"
 
     # The +/- is the standard error of the SHARPE, so it belongs beside the
     # Sharpe value. It used to render at the end of the "Sortino: x / +/-y s.e."
@@ -242,47 +242,47 @@ def _backtest_body(
 
     kpi_bt_html = f"""
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px;">
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Strategy Return (Net)</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; color: {ret_clr}; margin-top: 1px;">{stats['total_return']:+.1%}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #64748b;">Gross: {stats['gross_return']:+.1%}</div>
+        <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <div style="font-family: 'Geist', sans-serif; font-size: 0.70rem; font-weight: 700; color: #5E6878; text-transform: uppercase; letter-spacing: 0.05em;">Strategy Return (Net)</div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.45rem; font-weight: 800; color: {ret_clr}; margin-top: 1px;">{stats['total_return']:+.1%}</div>
+            <div style="font-family: 'Geist Mono', monospace; font-size: 0.69rem; color: #5E6878;">Gross: {stats['gross_return']:+.1%}</div>
         </div>
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Annualised Return</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; color: #0f172a; margin-top: 1px;">{stats['ann_return']:+.1%}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #64748b;" title="Not a CAGR: no full year was observed. The {stats['total_return']:+.1%} actually earned over {stats.get('window_years', 0):.2f} years is raised to the power of 1/{stats.get('window_years', 1):.2f}.">Nifty: {stats['ann_bench']:+.1%} · scaled up from {stats.get('window_years', 0):.2f}y</div>
+        <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <div style="font-family: 'Geist', sans-serif; font-size: 0.70rem; font-weight: 700; color: #5E6878; text-transform: uppercase; letter-spacing: 0.05em;">Annualised Return</div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.45rem; font-weight: 800; color: #0E1726; margin-top: 1px;">{stats['ann_return']:+.1%}</div>
+            <div style="font-family: 'Geist Mono', monospace; font-size: 0.69rem; color: #5E6878;" title="Not a CAGR: no full year was observed. The {stats['total_return']:+.1%} actually earned over {stats.get('window_years', 0):.2f} years is raised to the power of 1/{stats.get('window_years', 1):.2f}.">Nifty: {stats['ann_bench']:+.1%} · scaled up from {stats.get('window_years', 0):.2f}y</div>
         </div>
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Net Alpha vs Benchmark</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; color: {alpha_clr}; margin-top: 1px;">{stats['alpha']:+.1%}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: {alpha_clr}; font-weight: 600;">{alpha_status}</div>
+        <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <div style="font-family: 'Geist', sans-serif; font-size: 0.70rem; font-weight: 700; color: #5E6878; text-transform: uppercase; letter-spacing: 0.05em;">Net Alpha vs Benchmark</div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.45rem; font-weight: 800; color: {alpha_clr}; margin-top: 1px;">{stats['alpha']:+.1%}</div>
+            <div style="font-family: 'Geist Mono', monospace; font-size: 0.69rem; color: {alpha_clr}; font-weight: 600;">{alpha_status}</div>
         </div>
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Net Sharpe Ratio</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; color: #0f172a; margin-top: 1px;" title="Annualised mean excess return over a {_rf:.1%} risk-free rate, divided by annualised volatility. The ± is one standard error on THIS Sharpe at this sample size, and assumes independent daily returns.">{stats['sharpe']:.2f}<span style="font-family: 'JetBrains Mono', monospace; font-size: 0.80rem; font-weight: 600; color: #64748b;">{sharpe_se_txt}</span></div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #64748b;" title="Same annualised mean excess return over a {_rf:.1%} risk-free rate, divided by annualised downside deviation — the root-mean-square of daily shortfalls below that same rate. Reads n/a when too few sessions fell below it to measure one.">Sortino: {sortino_txt}</div>
+        <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <div style="font-family: 'Geist', sans-serif; font-size: 0.70rem; font-weight: 700; color: #5E6878; text-transform: uppercase; letter-spacing: 0.05em;">Net Sharpe Ratio</div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.45rem; font-weight: 800; color: #0E1726; margin-top: 1px;" title="Annualised mean excess return over a {_rf:.1%} risk-free rate, divided by annualised volatility. The ± is one standard error on THIS Sharpe at this sample size, and assumes independent daily returns.">{stats['sharpe']:.2f}<span style="font-family: 'Geist Mono', monospace; font-size: 0.80rem; font-weight: 600; color: #5E6878;">{sharpe_se_txt}</span></div>
+            <div style="font-family: 'Geist Mono', monospace; font-size: 0.69rem; color: #5E6878;" title="Same annualised mean excess return over a {_rf:.1%} risk-free rate, divided by annualised downside deviation — the root-mean-square of daily shortfalls below that same rate. Reads n/a when too few sessions fell below it to measure one.">Sortino: {sortino_txt}</div>
         </div>
     </div>
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px;">
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Max Drawdown</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; color: #dc2626; margin-top: 1px;">{stats['max_drawdown']:.1%}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #dc2626;">Peak to Trough</div>
+        <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <div style="font-family: 'Geist', sans-serif; font-size: 0.70rem; font-weight: 700; color: #5E6878; text-transform: uppercase; letter-spacing: 0.05em;">Max Drawdown</div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.45rem; font-weight: 800; color: #B42318; margin-top: 1px;">{stats['max_drawdown']:.1%}</div>
+            <div style="font-family: 'Geist Mono', monospace; font-size: 0.69rem; color: #B42318;">Peak to Trough</div>
         </div>
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Calmar Ratio</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; color: #0f172a; margin-top: 1px;">{stats['calmar']:.2f}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #64748b;" title="Annualised return over the worst drawdown seen in a {stats.get('window_years', 0):.2f}-year window. A short window cannot contain a full year of drawdown, so this reads high.">Ann. ret / Max DD ({stats.get('window_years', 0):.2f}y)</div>
+        <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <div style="font-family: 'Geist', sans-serif; font-size: 0.70rem; font-weight: 700; color: #5E6878; text-transform: uppercase; letter-spacing: 0.05em;">Calmar Ratio</div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.45rem; font-weight: 800; color: #0E1726; margin-top: 1px;">{stats['calmar']:.2f}</div>
+            <div style="font-family: 'Geist Mono', monospace; font-size: 0.69rem; color: #5E6878;" title="Annualised return over the worst drawdown seen in a {stats.get('window_years', 0):.2f}-year window. A short window cannot contain a full year of drawdown, so this reads high.">Ann. ret / Max DD ({stats.get('window_years', 0):.2f}y)</div>
         </div>
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Win Rate</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; color: #059669; margin-top: 1px;">{stats['win_rate']:.0%}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #64748b;">Profitable months · beat Nifty {stats.get('beat_rate', 0):.0%}</div>
+        <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <div style="font-family: 'Geist', sans-serif; font-size: 0.70rem; font-weight: 700; color: #5E6878; text-transform: uppercase; letter-spacing: 0.05em;">Win Rate</div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.45rem; font-weight: 800; color: #067647; margin-top: 1px;">{stats['win_rate']:.0%}</div>
+            <div style="font-family: 'Geist Mono', monospace; font-size: 0.69rem; color: #5E6878;">Profitable months · beat Nifty {stats.get('beat_rate', 0):.0%}</div>
         </div>
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Avg Period Turnover</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; color: #0f172a; margin-top: 1px;">{stats['avg_turnover']:.1f}%</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #64748b;">Per Rebalance</div>
+        <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <div style="font-family: 'Geist', sans-serif; font-size: 0.70rem; font-weight: 700; color: #5E6878; text-transform: uppercase; letter-spacing: 0.05em;">Avg Period Turnover</div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.45rem; font-weight: 800; color: #0E1726; margin-top: 1px;">{stats['avg_turnover']:.1f}%</div>
+            <div style="font-family: 'Geist Mono', monospace; font-size: 0.69rem; color: #5E6878;">Per Rebalance</div>
         </div>
     </div>
     """
@@ -383,25 +383,25 @@ def _backtest_body(
                     st.html(
                         f"""
                         <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 12px;">
-                            <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;">
-                                <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:0.68rem;font-weight:700;color:#64748b;text-transform:uppercase;">Holdings</div>
-                                <div style="font-family:'Outfit',sans-serif;font-size:1.3rem;font-weight:800;color:#0f172a;margin-top:1px;">{len(live_book)}</div>
+                            <div style="background:#ffffff;border:1px solid #E3E6EB;border-radius:8px;padding:8px 12px;">
+                                <div style="font-family:Geist,sans-serif;font-size:0.68rem;font-weight:700;color:#5E6878;text-transform:uppercase;">Holdings</div>
+                                <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:1.3rem;font-weight:800;color:#0E1726;margin-top:1px;">{len(live_book)}</div>
                             </div>
-                            <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;">
-                                <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:0.68rem;font-weight:700;color:#64748b;text-transform:uppercase;">Added This Month</div>
-                                <div style="font-family:'Outfit',sans-serif;font-size:1.3rem;font-weight:800;color:#0f172a;margin-top:1px;">{n_new}</div>
+                            <div style="background:#ffffff;border:1px solid #E3E6EB;border-radius:8px;padding:8px 12px;">
+                                <div style="font-family:Geist,sans-serif;font-size:0.68rem;font-weight:700;color:#5E6878;text-transform:uppercase;">Added This Month</div>
+                                <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:1.3rem;font-weight:800;color:#0E1726;margin-top:1px;">{n_new}</div>
                             </div>
-                            <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;">
-                                <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:0.68rem;font-weight:700;color:#64748b;text-transform:uppercase;">In Profit</div>
-                                <div style="font-family:'Outfit',sans-serif;font-size:1.3rem;font-weight:800;color:#059669;margin-top:1px;">{n_up}</div>
+                            <div style="background:#ffffff;border:1px solid #E3E6EB;border-radius:8px;padding:8px 12px;">
+                                <div style="font-family:Geist,sans-serif;font-size:0.68rem;font-weight:700;color:#5E6878;text-transform:uppercase;">In Profit</div>
+                                <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:1.3rem;font-weight:800;color:#067647;margin-top:1px;">{n_up}</div>
                             </div>
-                            <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;">
-                                <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:0.68rem;font-weight:700;color:#64748b;text-transform:uppercase;">In Loss</div>
-                                <div style="font-family:'Outfit',sans-serif;font-size:1.3rem;font-weight:800;color:#dc2626;margin-top:1px;">{n_dn}</div>
+                            <div style="background:#ffffff;border:1px solid #E3E6EB;border-radius:8px;padding:8px 12px;">
+                                <div style="font-family:Geist,sans-serif;font-size:0.68rem;font-weight:700;color:#5E6878;text-transform:uppercase;">In Loss</div>
+                                <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:1.3rem;font-weight:800;color:#B42318;margin-top:1px;">{n_dn}</div>
                             </div>
-                            <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;">
-                                <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:0.68rem;font-weight:700;color:#64748b;text-transform:uppercase;">Avg Unrealised</div>
-                                <div style="font-family:'Outfit',sans-serif;font-size:1.3rem;font-weight:800;color:{'#059669' if avg_r >= 0 else '#dc2626'};margin-top:1px;">{avg_r:+.1f}%</div>
+                            <div style="background:#ffffff;border:1px solid #E3E6EB;border-radius:8px;padding:8px 12px;">
+                                <div style="font-family:Geist,sans-serif;font-size:0.68rem;font-weight:700;color:#5E6878;text-transform:uppercase;">Avg Unrealised</div>
+                                <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:1.3rem;font-weight:800;color:{'#067647' if avg_r >= 0 else '#B42318'};margin-top:1px;">{avg_r:+.1f}%</div>
                             </div>
                         </div>
                         """
@@ -547,25 +547,25 @@ def _backtest_body(
 
                     trade_kpi_html = f"""
                     <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 12px;">
-                        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Closed Trades</div>
-                            <div style="font-family: 'Outfit', sans-serif; font-size: 1.3rem; font-weight: 800; color: #0f172a; margin-top: 1px;">{n_closed}</div>
+                        <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                            <div style="font-family: 'Geist', sans-serif; font-size: 0.68rem; font-weight: 700; color: #5E6878; text-transform: uppercase;">Closed Trades</div>
+                            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.3rem; font-weight: 800; color: #0E1726; margin-top: 1px;">{n_closed}</div>
                         </div>
-                        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Win Rate</div>
-                            <div style="font-family: 'Outfit', sans-serif; font-size: 1.3rem; font-weight: 800; color: #059669; margin-top: 1px;">{win_rate_pct:.1f}%</div>
+                        <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                            <div style="font-family: 'Geist', sans-serif; font-size: 0.68rem; font-weight: 700; color: #5E6878; text-transform: uppercase;">Win Rate</div>
+                            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.3rem; font-weight: 800; color: #067647; margin-top: 1px;">{win_rate_pct:.1f}%</div>
                         </div>
-                        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Profit Factor</div>
-                            <div style="font-family: 'Outfit', sans-serif; font-size: 1.3rem; font-weight: 800; color: #0f172a; margin-top: 1px;">{profit_factor:.2f}×</div>
+                        <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                            <div style="font-family: 'Geist', sans-serif; font-size: 0.68rem; font-weight: 700; color: #5E6878; text-transform: uppercase;">Profit Factor</div>
+                            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.3rem; font-weight: 800; color: #0E1726; margin-top: 1px;">{profit_factor:.2f}×</div>
                         </div>
-                        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Avg Win / Loss</div>
-                            <div style="font-family: 'Outfit', sans-serif; font-size: 1.15rem; font-weight: 800; color: #0f172a; margin-top: 1px;">+{avg_win:.1f}% / {avg_loss:.1f}%</div>
+                        <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                            <div style="font-family: 'Geist', sans-serif; font-size: 0.68rem; font-weight: 700; color: #5E6878; text-transform: uppercase;">Avg Win / Loss</div>
+                            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.15rem; font-weight: 800; color: #0E1726; margin-top: 1px;">+{avg_win:.1f}% / {avg_loss:.1f}%</div>
                         </div>
-                        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Best / Worst</div>
-                            <div style="font-family: 'Outfit', sans-serif; font-size: 1.15rem; font-weight: 800; color: #0f172a; margin-top: 1px;">+{best_tr:.1f}% / {worst_tr:.1f}%</div>
+                        <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                            <div style="font-family: 'Geist', sans-serif; font-size: 0.68rem; font-weight: 700; color: #5E6878; text-transform: uppercase;">Best / Worst</div>
+                            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.15rem; font-weight: 800; color: #0E1726; margin-top: 1px;">+{best_tr:.1f}% / {worst_tr:.1f}%</div>
                         </div>
                     </div>
                     """
@@ -875,19 +875,19 @@ def _render_parameter_sweep(
             return
 
         badge = {
-            "high": ("#dc2626", "HIGH — the winner is inside the noise"),
-            "moderate": ("#d97706", "MODERATE"),
-            "low": ("#059669", "LOW"),
-            "none": ("#64748b", "PARAMETERS HAD NO EFFECT"),
-            "unknown": ("#64748b", "UNKNOWN"),
-        }.get(result.overfitting_risk, ("#64748b", result.overfitting_risk.upper()))
+            "high": ("#B42318", "HIGH — the winner is inside the noise"),
+            "moderate": ("#B54708", "MODERATE"),
+            "low": ("#067647", "LOW"),
+            "none": ("#5E6878", "PARAMETERS HAD NO EFFECT"),
+            "unknown": ("#5E6878", "UNKNOWN"),
+        }.get(result.overfitting_risk, ("#5E6878", result.overfitting_risk.upper()))
 
         st.markdown(
             f"<div style=\"border-left: 3px solid {badge[0]}; background: {badge[0]}0D; "
             f"padding: 10px 14px; border-radius: 6px; margin: 10px 0; "
-            f"font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem;\">"
+            f"font-family: 'Geist Mono', monospace; font-size: 0.78rem;\">"
             f"<strong style=\"color:{badge[0]};\">Overfitting risk: {badge[1]}</strong>"
-            f"<div style=\"color:#475569; margin-top:4px;\">{result.risk_detail}</div>"
+            f"<div style=\"color:#3C4657; margin-top:4px;\">{result.risk_detail}</div>"
             f"</div>",
             unsafe_allow_html=True,
         )
@@ -897,17 +897,17 @@ def _render_parameter_sweep(
         if result.holdout_detail:
             rho = result.holdout_rho
             ho_clr = (
-                "#64748b" if rho is None
-                else "#dc2626" if rho < 0.2
-                else "#d97706" if rho < 0.5
-                else "#059669"
+                "#5E6878" if rho is None
+                else "#B42318" if rho < 0.2
+                else "#B54708" if rho < 0.5
+                else "#067647"
             )
             st.markdown(
                 f"<div style=\"border-left: 3px solid {ho_clr}; background: {ho_clr}0D; "
                 f"padding: 10px 14px; border-radius: 6px; margin: 10px 0; "
-                f"font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem;\">"
+                f"font-family: 'Geist Mono', monospace; font-size: 0.78rem;\">"
                 f"<strong style=\"color:{ho_clr};\">Holdout check</strong>"
-                f"<div style=\"color:#475569; margin-top:4px;\">{result.holdout_detail}</div>"
+                f"<div style=\"color:#3C4657; margin-top:4px;\">{result.holdout_detail}</div>"
                 f"</div>",
                 unsafe_allow_html=True,
             )

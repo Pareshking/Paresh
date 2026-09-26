@@ -211,8 +211,8 @@ def render_candlestick_drilldown(
                     high=_high,
                     low=_low,
                     close=_close,
-                    increasing_line_color="#059669",
-                    decreasing_line_color="#e11d48",
+                    increasing_line_color="#067647",
+                    decreasing_line_color="#B42318",
                     name="Price",
                     showlegend=False,
                 ),
@@ -228,7 +228,7 @@ def render_candlestick_drilldown(
                     # Price is the subject; the overlays are commentary. It gets
                     # the darkest, heaviest line so it stays readable with two
                     # moving averages crossing it.
-                    line={"color": "#0f172a", "width": 2.6},
+                    line={"color": "#0E1726", "width": 2.6},
                     name="Price",
                 ),
                 row=1,
@@ -241,7 +241,7 @@ def render_candlestick_drilldown(
         _ma_specs = [
             ("20 EMA", lambda c: c.ewm(span=20, min_periods=5).mean(), "#0ea5e9", 20),
             ("50 EMA", lambda c: c.ewm(span=50, min_periods=10).mean(), "#7c3aed", 20),
-            ("200 SMA", lambda c: c.rolling(200, min_periods=30).mean(), "#d97706", 50),
+            ("200 SMA", lambda c: c.rolling(200, min_periods=30).mean(), "#B54708", 50),
         ]
         for _ma_name, _ma_calc, _ma_colour, _ma_min_len in _ma_specs:
             if _ma_name not in overlays or len(_close) < _ma_min_len:
@@ -297,7 +297,7 @@ def render_candlestick_drilldown(
                     x=_vol_avg.index,
                     y=_vol_avg.values,
                     mode="lines",
-                    line={"color": "#64748b", "width": 1.2},
+                    line={"color": "#5E6878", "width": 1.2},
                     name="20D Vol Avg",
                     showlegend=False,
                 ),
@@ -333,7 +333,7 @@ def render_candlestick_drilldown(
                 )
                 fig.add_hline(
                     y=100,
-                    line_color="#64748b",
+                    line_color="#5E6878",
                     line_dash="dot",
                     line_width=1,
                     opacity=0.6,
@@ -346,12 +346,12 @@ def render_candlestick_drilldown(
             paper_bgcolor="#ffffff",
             plot_bgcolor="#ffffff",
             font={
-                "family": "Plus Jakarta Sans, sans-serif",
+                "family": "Geist, sans-serif",
                 "size": 10,
-                "color": "#334155",
+                "color": "#3C4657",
             },
             xaxis_rangeslider_visible=False,
-            yaxis={"title": "Price (₹)", "gridcolor": "#f1f5f9", "zeroline": False},
+            yaxis={"title": "Price (₹)", "gridcolor": "#F1F3F6", "zeroline": False},
             # rangemode="tozero" because a volume axis has no meaningful
             # negative half. Production rendered this panel with an axis
             # running to -250M and no bars at all; whatever left the trace
@@ -359,17 +359,17 @@ def render_candlestick_drilldown(
             # a plausible reading.
             yaxis2={
                 "title": "Volume",
-                "gridcolor": "#f1f5f9",
+                "gridcolor": "#F1F3F6",
                 "zeroline": False,
                 "rangemode": "tozero",
             },
             yaxis3={
                 "title": "Rel Strength vs Nifty 500",
-                "gridcolor": "#f1f5f9",
+                "gridcolor": "#F1F3F6",
                 "zeroline": False,
             },
-            xaxis2={"gridcolor": "#f1f5f9"},
-            xaxis3={"gridcolor": "#f1f5f9"},
+            xaxis2={"gridcolor": "#F1F3F6"},
+            xaxis3={"gridcolor": "#F1F3F6"},
             legend={
                 "orientation": "h",
                 "yanchor": "bottom",
@@ -377,7 +377,7 @@ def render_candlestick_drilldown(
                 "xanchor": "left",
                 "x": 0,
                 "bgcolor": "rgba(255, 255, 255, 0.9)",
-                "bordercolor": "#e2e8f0",
+                "bordercolor": "#E3E6EB",
             },
             margin={"l": 10, "r": 10, "t": 20, "b": 10},
             height=490,
@@ -388,12 +388,12 @@ def render_candlestick_drilldown(
             # is off and the modebar keeps the zoom tools for when it is wanted.
             dragmode=False,
         )
-        fig.update_xaxes(gridcolor="#f1f5f9")
+        fig.update_xaxes(gridcolor="#F1F3F6")
         if not _vol_available:
             fig.add_annotation(
                 text="Volume unavailable for this symbol",
                 xref="paper", yref="y2", x=0.5, y=0, showarrow=False,
-                font={"size": 10, "color": "#94a3b8"},
+                font={"size": 10, "color": "#6B7482"},
             )
         st.plotly_chart(
             fig,
@@ -615,7 +615,7 @@ def _build_treemap_html(data_json: str, return_col: str, size_label: str) -> str
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
 html,body{{width:100%;height:100%;overflow:hidden;background:transparent;
-  font-family:'Plus Jakarta Sans',system-ui,sans-serif}}
+  font-family:'Geist',system-ui,sans-serif}}
 #chart{{width:100%;height:100%}}
 </style>
 </head>
@@ -629,9 +629,9 @@ const DATA={data_json};
 const RETURN_COL={rc};
 const SIZE_LABEL={sl};
 const dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches;
-const bg=dark?'#0f172a':'#ffffff';
-const fg=dark?'#e2e8f0':'#0f172a';
-const bd=dark?'#334155':'#ffffff';
+const bg=dark?'#0E1726':'#ffffff';
+const fg=dark?'#E3E6EB':'#0E1726';
+const bd=dark?'#3C4657':'#ffffff';
 const chart=echarts.init(document.getElementById('chart'),null,{{renderer:'canvas',backgroundColor:bg}});
 function fmt(n){{return n.toLocaleString('en-IN',{{maximumFractionDigits:0}})}}
 const opt={{
@@ -639,9 +639,9 @@ const opt={{
   tooltip:{{
     trigger:'item',confine:true,enterable:false,
     backgroundColor:dark?'rgba(15,23,42,0.96)':'rgba(255,255,255,0.98)',
-    borderColor:dark?'#334155':'#e2e8f0',
+    borderColor:dark?'#3C4657':'#E3E6EB',
     borderWidth:1,
-    textStyle:{{color:fg,fontSize:12,fontFamily:'IBM Plex Mono,monospace'}},
+    textStyle:{{color:fg,fontSize:12,fontFamily:'Geist Mono,monospace'}},
     formatter:function(p){{
       const d=p.data;
       if(d.children!==undefined){{
@@ -649,7 +649,7 @@ const opt={{
         let s=`<span style="font-weight:700;font-size:13px">${{esc(d.name)}}</span>`;
         s+=`<br>Avg return: <b>${{d.avg_ret||'—'}}</b>`;
         s+=`<br>Stocks: <b>${{d.n_stocks||d.children.length}}</b>`;
-        s+=`<br><span style="color:#94a3b8;font-size:11px">Click to zoom into sector →</span>`;
+        s+=`<br><span style="color:#6B7482;font-size:11px">Click to zoom into sector →</span>`;
         return s;
       }}
       // Individual stock tile
@@ -659,7 +659,7 @@ const opt={{
       if(d.cmp!=null)s+=`<br>CMP: <b>₹${{fmt(d.cmp)}}</b>`;
       if(d.mcap!=null)s+=`<br>Mcap: <b>₹${{fmt(d.mcap)}} Cr</b>`;
       if(d.sharpe!=null)s+=`<br>3M Sharpe: <b>${{d.sharpe}}</b>`;
-      s+=`<br><span style="color:#94a3b8;font-size:11px">Sized by: ${{esc(SIZE_LABEL)}}</span>`;
+      s+=`<br><span style="color:#6B7482;font-size:11px">Sized by: ${{esc(SIZE_LABEL)}}</span>`;
       return s;
     }}
   }},
@@ -675,14 +675,14 @@ const opt={{
       height:24,
       emptyItemWidth:25,
       itemStyle:{{
-        color:dark?'#1e293b':'#f1f5f9',
-        borderColor:dark?'#334155':'#e2e8f0',
+        color:dark?'#1F2A3A':'#F1F3F6',
+        borderColor:dark?'#3C4657':'#E3E6EB',
         borderWidth:1,
         shadowBlur:0,
-        textStyle:{{color:fg,fontSize:11,fontFamily:'IBM Plex Mono,monospace',fontWeight:'600'}}
+        textStyle:{{color:fg,fontSize:11,fontFamily:'Geist Mono,monospace',fontWeight:'600'}}
       }},
       emphasis:{{
-        itemStyle:{{color:dark?'#334155':'#e2e8f0'}}
+        itemStyle:{{color:dark?'#3C4657':'#E3E6EB'}}
       }}
     }},
     levels:[
@@ -691,7 +691,7 @@ const opt={{
         upperLabel:{{
           show:true,height:26,
           color:'#ffffff',fontSize:12,fontWeight:'bold',
-          fontFamily:'IBM Plex Mono,monospace',
+          fontFamily:'Geist Mono,monospace',
           padding:[4,6],
           overflow:'truncate',
           backgroundColor:'rgba(0,0,0,0.35)'
@@ -701,9 +701,9 @@ const opt={{
         itemStyle:{{borderColor:bd,borderWidth:1,gapWidth:1}},
         label:{{
           show:true,
-          color:'#0f172a',
+          color:'#0E1726',
           fontSize:10,fontWeight:'bold',
-          fontFamily:'IBM Plex Mono,monospace',
+          fontFamily:'Geist Mono,monospace',
           lineOverflow:'truncate',
           formatter:function(p){{
             const d=p.data;
@@ -714,7 +714,7 @@ const opt={{
         }},
         emphasis:{{
           label:{{
-            color:'#0f172a',fontSize:11,fontWeight:'bold'
+            color:'#0E1726',fontSize:11,fontWeight:'bold'
           }},
           itemStyle:{{opacity:0.85}}
         }}
@@ -740,25 +740,25 @@ def _build_rrg_html(data_json: str) -> str:
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:transparent;height:100%;overflow:hidden}
-body{font-family:'Plus Jakarta Sans',system-ui,sans-serif}
+body{font-family:'Geist',system-ui,sans-serif}
 #wrap{position:relative;width:100%}
 canvas{display:block;width:100%;cursor:default}
 #controls{display:flex;gap:8px;align-items:center;justify-content:center;
   padding:8px 4px 2px;flex-wrap:wrap}
-.ctrl-btn{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;
-  padding:4px 14px;font-size:11.5px;cursor:pointer;color:#334155;
+.ctrl-btn{background:#F1F3F6;border:1px solid #E3E6EB;border-radius:6px;
+  padding:4px 14px;font-size:11.5px;cursor:pointer;color:#3C4657;
   font-family:inherit;transition:background .15s}
-.ctrl-btn:hover{background:#e2e8f0}
+.ctrl-btn:hover{background:#E3E6EB}
 .ctrl-btn.active{background:#1e40af;color:#fff;border-color:#1e40af}
 #scrub{width:180px;accent-color:#2563eb;cursor:pointer}
-#frame-lbl{font-size:10.5px;color:#64748b;font-family:'IBM Plex Mono',monospace;
+#frame-lbl{font-size:10.5px;color:#5E6878;font-family:'Geist Mono',monospace;
   min-width:58px;text-align:center}
 #tip{position:absolute;pointer-events:none;background:rgba(15,23,42,.92);
   color:#fff;padding:8px 11px;border-radius:8px;font-size:11px;line-height:1.65;
   display:none;z-index:10;max-width:195px;white-space:nowrap}
 @media(prefers-color-scheme:dark){
-  .ctrl-btn{background:#1e293b;border-color:#334155;color:#cbd5e1}
-  .ctrl-btn:hover{background:#334155}
+  .ctrl-btn{background:#1F2A3A;border-color:#3C4657;color:#D0D5DD}
+  .ctrl-btn:hover{background:#3C4657}
 }
 </style>"""
 
@@ -880,8 +880,8 @@ function drawArrow(x0, y0, x1, y1, color) {
 
 // ── Draw tick labels on axis ───────────────────────────────────────────────
 function drawTicks() {
-  ctx.font = '9px IBM Plex Mono,monospace';
-  ctx.fillStyle = '#94a3b8';
+  ctx.font = '9px Geist Mono,monospace';
+  ctx.fillStyle = '#6B7482';
   ctx.textAlign = 'center';
   const availW = W - PAD.l - PAD.r;
   const xStep = Math.max(2, Math.ceil((maxX - minX) / Math.floor(availW / 30)));
@@ -891,7 +891,7 @@ function drawTicks() {
     ctx.beginPath();
     ctx.moveTo(xp, H - PAD.b);
     ctx.lineTo(xp, H - PAD.b + 4);
-    ctx.strokeStyle = '#cbd5e1';
+    ctx.strokeStyle = '#D0D5DD';
     ctx.lineWidth = 0.8;
     ctx.stroke();
   }
@@ -913,10 +913,10 @@ function draw() {
   ctx.clearRect(0, 0, W, H);
 
   const dark = window.matchMedia('(prefers-color-scheme:dark)').matches;
-  const bg   = dark ? '#0f172a' : '#ffffff';
-  const gridC = dark ? '#1e293b' : '#e2e8f0';
-  const crossC = dark ? '#334155' : '#94a3b8';
-  const textC  = dark ? '#94a3b8' : '#64748b';
+  const bg   = dark ? '#0E1726' : '#ffffff';
+  const gridC = dark ? '#1F2A3A' : '#E3E6EB';
+  const crossC = dark ? '#3C4657' : '#6B7482';
+  const textC  = dark ? '#6B7482' : '#5E6878';
 
   // canvas background
   ctx.fillStyle = bg;
@@ -925,8 +925,8 @@ function draw() {
   // quadrant fills
   const quads = [
     {x0:minX, x1:100, y0:100, y1:maxY, fill:'rgba(224,231,255,0.45)', lbl:'Improving', lc:'#3b82f6', ax:'left',  lxr:0.04, lyr:0.07},
-    {x0:100,  x1:maxX,y0:100, y1:maxY, fill:'rgba(220,252,231,0.45)', lbl:'Leading',   lc:'#15803d', ax:'right', lxr:0.96, lyr:0.07},
-    {x0:minX, x1:100, y0:minY,y1:100,  fill:'rgba(254,226,226,0.45)', lbl:'Lagging',   lc:'#dc2626', ax:'left',  lxr:0.04, lyr:0.93},
+    {x0:100,  x1:maxX,y0:100, y1:maxY, fill:'rgba(220,252,231,0.45)', lbl:'Leading',   lc:'#067647', ax:'right', lxr:0.96, lyr:0.07},
+    {x0:minX, x1:100, y0:minY,y1:100,  fill:'rgba(254,226,226,0.45)', lbl:'Lagging',   lc:'#B42318', ax:'left',  lxr:0.04, lyr:0.93},
     {x0:100,  x1:maxX,y0:minY,y1:100,  fill:'rgba(254,249,195,0.45)', lbl:'Weakening', lc:'#ca8a04', ax:'right', lxr:0.96, lyr:0.93},
   ];
   for (const q of quads) {
@@ -935,7 +935,7 @@ function draw() {
     ctx.fillRect(px0, py0, px1 - px0, py1 - py0);
     const lx = PAD.l + q.lxr * (W - PAD.l - PAD.r);
     const ly = PAD.t + q.lyr * (H - PAD.t - PAD.b);
-    ctx.font = 'bold 12.5px Plus Jakarta Sans,system-ui';
+    ctx.font = 'bold 12.5px Geist,system-ui';
     ctx.fillStyle = q.lc;
     ctx.textAlign = q.ax;
     ctx.globalAlpha = 0.85;
@@ -944,7 +944,7 @@ function draw() {
   }
 
   // watermark
-  ctx.font = '10.5px Plus Jakarta Sans,system-ui';
+  ctx.font = '10.5px Geist,system-ui';
   ctx.fillStyle = textC;
   ctx.textAlign = 'center';
   ctx.globalAlpha = 0.28;
@@ -973,7 +973,7 @@ function draw() {
 
   // ticks and axis labels
   drawTicks();
-  ctx.font = 'bold 10px Plus Jakarta Sans,system-ui';
+  ctx.font = 'bold 10px Geist,system-ui';
   ctx.fillStyle = textC;
   ctx.textAlign = 'center';
   ctx.fillText('JdK RS-Ratio →', tx((minX + maxX) / 2), H - 6);
@@ -991,11 +991,11 @@ function draw() {
       const hr = sel.trail_r.length > 0 ? sel.trail_r[hIdx] : sel.rs_ratio;
       const hm = sel.trail_m.length > 0 ? sel.trail_m[hIdx] : sel.rs_momentum;
       ctx.save();
-      ctx.font = 'bold 12px Plus Jakarta Sans,system-ui';
+      ctx.font = 'bold 12px Geist,system-ui';
       ctx.fillStyle = sel.color;
       ctx.textAlign = 'center';
       ctx.fillText(sel.industry + '  ·  ' + sel.quadrant + '  ·  R:' + hr.toFixed(1) + '  M:' + hm.toFixed(1), W / 2, 18);
-      ctx.font = '10px Plus Jakarta Sans,system-ui';
+      ctx.font = '10px Geist,system-ui';
       ctx.fillStyle = textC;
       ctx.fillText('Tap dot again or empty area to deselect', W / 2, 31);
       ctx.restore();
@@ -1090,7 +1090,7 @@ function draw() {
     const showLabel = hasUserSel ? active : (W >= 420);
     if (active && showLabel) {
       ctx.globalAlpha = 1;
-      ctx.font = (active && hasUserSel ? 'bold 11px' : '9px') + ' Plus Jakarta Sans,system-ui';
+      ctx.font = (active && hasUserSel ? 'bold 11px' : '9px') + ' Geist,system-ui';
       ctx.fillStyle = s.color;
       ctx.textAlign = 'left';
       ctx.fillText(' ' + s.industry, hx + (hasUserSel ? 12 : 9), hy - 4);
@@ -1233,9 +1233,9 @@ def render_rrg_chart(
         return
 
     VIBRANT_PALETTE = [
-        "#ec4899", "#2563eb", "#16a34a", "#0891b2", "#8b5cf6",
-        "#d97706", "#dc2626", "#059669", "#ea580c", "#6366f1",
-        "#0284c7", "#9333ea", "#64748b",
+        "#ec4899", "#2563eb", "#067647", "#0891b2", "#8b5cf6",
+        "#B54708", "#B42318", "#067647", "#ea580c", "#6366f1",
+        "#0284c7", "#9333ea", "#5E6878",
     ]
 
     sectors_data = []
@@ -1275,7 +1275,7 @@ def _build_echarts_html(option_json: str) -> str:
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
 html,body{{width:100%;height:100%;overflow:hidden;background:transparent;
-  font-family:'Plus Jakarta Sans',system-ui,sans-serif}}
+  font-family:'Geist',system-ui,sans-serif}}
 #c{{width:100%;height:100%}}
 </style>
 </head>
@@ -1285,15 +1285,15 @@ html,body{{width:100%;height:100%;overflow:hidden;background:transparent;
 <script>
 (function(){{
 const dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches;
-const bg=dark?'#0f172a':'#ffffff';
-const fg=dark?'#e2e8f0':'#334155';
-const grid=dark?'#1e293b':'#f1f5f9';
+const bg=dark?'#0E1726':'#ffffff';
+const fg=dark?'#E3E6EB':'#3C4657';
+const grid=dark?'#1F2A3A':'#F1F3F6';
 const chart=echarts.init(document.getElementById('c'),null,{{backgroundColor:bg}});
 const opt={option_json};
 opt.backgroundColor=bg;
 if(!opt.textStyle)opt.textStyle={{}};
 opt.textStyle.color=fg;
-opt.textStyle.fontFamily='Plus Jakarta Sans,system-ui,sans-serif';
+opt.textStyle.fontFamily='Geist,system-ui,sans-serif';
 if(opt.title){{
   const t=Array.isArray(opt.title)?opt.title[0]:opt.title;
   if(!t.textStyle)t.textStyle={{}};
@@ -1318,7 +1318,7 @@ def _ts_ms(index: pd.Index) -> list[int]:
 
 def render_breadth_chart(breadth_df: pd.DataFrame, ma_type: str = "SMA") -> None:
     """Renders Moving Average Breadth time series with bull/bear zones."""
-    line_colors = ["#4f46e5", "#059669", "#0284c7", "#d97706", "#e11d48"]
+    line_colors = ["#4f46e5", "#067647", "#0284c7", "#B54708", "#B42318"]
     tms = _ts_ms(breadth_df.index)
     series: list[dict] = []
     for i, col in enumerate(breadth_df.columns):
@@ -1344,8 +1344,8 @@ def render_breadth_chart(breadth_df: pd.DataFrame, ma_type: str = "SMA") -> None
             entry["markLine"] = {
                 "silent": True, "symbol": ["none", "none"], "label": {"show": False},
                 "data": [
-                    {"yAxis": 60, "lineStyle": {"color": "#059669", "type": "dotted", "width": 1}},
-                    {"yAxis": 40, "lineStyle": {"color": "#e11d48", "type": "dotted", "width": 1}},
+                    {"yAxis": 60, "lineStyle": {"color": "#067647", "type": "dotted", "width": 1}},
+                    {"yAxis": 40, "lineStyle": {"color": "#B42318", "type": "dotted", "width": 1}},
                 ],
             }
         series.append(entry)
@@ -1359,7 +1359,7 @@ def render_breadth_chart(breadth_df: pd.DataFrame, ma_type: str = "SMA") -> None
         "xAxis": {"type": "time", "splitLine": {"show": False}},
         "yAxis": {"type": "value", "min": 0, "max": 100,
                   "axisLabel": {"formatter": "{value}%"},
-                  "splitLine": {"lineStyle": {"color": "#f1f5f9"}}},
+                  "splitLine": {"lineStyle": {"color": "#F1F3F6"}}},
         "series": series,
     }
     st.iframe(_build_echarts_html(_script_json(option)), height=400)
@@ -1388,18 +1388,18 @@ def render_hl_timeseries_chart(
         "yAxis": {"type": "value", "min": -y_max, "max": y_max,
                   "name": "% of Universe" if is_pct else "Stock Count",
                   "axisLabel": {"formatter": "{value}" + y_suf},
-                  "splitLine": {"lineStyle": {"color": "#f1f5f9"}}},
+                  "splitLine": {"lineStyle": {"color": "#F1F3F6"}}},
         "series": [
             {"name": f"New {window_label} Highs", "type": "line", "data": h_data,
-             "lineStyle": {"color": "#059669", "width": 1.8},
-             "itemStyle": {"color": "#059669"}, "symbol": "none",
+             "lineStyle": {"color": "#067647", "width": 1.8},
+             "itemStyle": {"color": "#067647"}, "symbol": "none",
              "areaStyle": {"color": "rgba(5,150,105,0.08)"}, "connectNulls": False,
              "markLine": {"silent": True, "symbol": ["none", "none"],
-                          "data": [{"yAxis": 0, "lineStyle": {"color": "#94a3b8", "width": 1}}],
+                          "data": [{"yAxis": 0, "lineStyle": {"color": "#6B7482", "width": 1}}],
                           "label": {"show": False}}},
             {"name": f"New {window_label} Lows", "type": "line", "data": l_data,
-             "lineStyle": {"color": "#e11d48", "width": 1.8},
-             "itemStyle": {"color": "#e11d48"}, "symbol": "none",
+             "lineStyle": {"color": "#B42318", "width": 1.8},
+             "itemStyle": {"color": "#B42318"}, "symbol": "none",
              "areaStyle": {"color": "rgba(225,29,72,0.08)"}, "connectNulls": False},
         ],
     }
@@ -1424,18 +1424,18 @@ def render_backtest_equity_chart(equity_curve: pd.Series, benchmark: pd.Series) 
         "xAxis": {"type": "time", "splitLine": {"show": False}},
         "yAxis": {"type": "value", "name": "Return %",
                   "axisLabel": {"formatter": "{value}%"},
-                  "splitLine": {"lineStyle": {"color": "#f1f5f9"}}},
+                  "splitLine": {"lineStyle": {"color": "#F1F3F6"}}},
         "series": [
             {"name": "Momentum Strategy (Net)", "type": "line", "data": s_data,
-             "lineStyle": {"color": "#059669", "width": 2.2},
-             "itemStyle": {"color": "#059669"}, "symbol": "none",
+             "lineStyle": {"color": "#067647", "width": 2.2},
+             "itemStyle": {"color": "#067647"}, "symbol": "none",
              "areaStyle": {"color": "rgba(5,150,105,0.06)"}, "connectNulls": False,
              "markLine": {"silent": True, "symbol": ["none", "none"],
-                          "data": [{"yAxis": 0, "lineStyle": {"color": "#cbd5e1", "width": 1}}],
+                          "data": [{"yAxis": 0, "lineStyle": {"color": "#D0D5DD", "width": 1}}],
                           "label": {"show": False}}},
             {"name": "Benchmark (Nifty 500 · ^CRSLDX)", "type": "line", "data": b_data,
-             "lineStyle": {"color": "#64748b", "width": 1.5, "type": "dotted"},
-             "itemStyle": {"color": "#64748b"}, "symbol": "none", "connectNulls": False},
+             "lineStyle": {"color": "#5E6878", "width": 1.5, "type": "dotted"},
+             "itemStyle": {"color": "#5E6878"}, "symbol": "none", "connectNulls": False},
         ],
     }
     st.iframe(_build_echarts_html(_script_json(option)), height=390)
@@ -1447,7 +1447,7 @@ def render_net_hl_bar_chart(net: pd.Series) -> None:
         return
     tms = _ts_ms(net.index)
     data = [{"value": [tms[j], None if pd.isna(v) else float(v)],
-              "itemStyle": {"color": "#059669" if pd.notna(v) and v >= 0 else "#e11d48"}}
+              "itemStyle": {"color": "#067647" if pd.notna(v) and v >= 0 else "#B42318"}}
             for j, v in enumerate(net)]
     option = {
         "title": {"text": "Daily Net New Highs (Highs − Lows)", "left": "left", "top": 5,
@@ -1455,11 +1455,11 @@ def render_net_hl_bar_chart(net: pd.Series) -> None:
         "tooltip": {"trigger": "axis"},
         "grid": {"left": 55, "right": 20, "top": 50, "bottom": 40},
         "xAxis": {"type": "time", "splitLine": {"show": False}},
-        "yAxis": {"type": "value", "splitLine": {"lineStyle": {"color": "#f1f5f9"}}},
+        "yAxis": {"type": "value", "splitLine": {"lineStyle": {"color": "#F1F3F6"}}},
         "series": [{
             "type": "bar", "data": data,
             "markLine": {"silent": True, "symbol": ["none", "none"],
-                         "data": [{"yAxis": 0, "lineStyle": {"color": "#94a3b8", "width": 1}}],
+                         "data": [{"yAxis": 0, "lineStyle": {"color": "#6B7482", "width": 1}}],
                          "label": {"show": False}},
         }],
     }
@@ -1488,7 +1488,7 @@ def render_correlation_heatmap(
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
 html,body{{width:100%;height:100%;overflow:hidden;background:transparent;
-  font-family:'Plus Jakarta Sans',system-ui,sans-serif}}
+  font-family:'Geist',system-ui,sans-serif}}
 #c{{width:100%;height:100%}}
 </style>
 </head>
@@ -1498,29 +1498,29 @@ html,body{{width:100%;height:100%;overflow:hidden;background:transparent;
 <script>
 (function(){{
 const dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches;
-const bg=dark?'#0f172a':'#ffffff';
-const fg=dark?'#e2e8f0':'#334155';
+const bg=dark?'#0E1726':'#ffffff';
+const fg=dark?'#E3E6EB':'#3C4657';
 const chart=echarts.init(document.getElementById('c'),null,{{backgroundColor:bg}});
 function esc(v){{return String(v).replace(/[&<>"']/g,function(c){{return {{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[c];}});}}
 const syms={syms_json};
 const data={data_json};
 chart.setOption({{
   backgroundColor:bg,
-  textStyle:{{color:fg,fontFamily:'Plus Jakarta Sans,system-ui,sans-serif',fontSize:11}},
+  textStyle:{{color:fg,fontFamily:'Geist,system-ui,sans-serif',fontSize:11}},
   tooltip:{{trigger:'item',formatter:function(p){{
     const d=p.data;
     return '<b>'+esc(d[0])+'</b> × <b>'+esc(d[1])+'</b><br>Corr: <b>'+(d[2]!=null?d[2].toFixed(2):'—')+'</b>';
   }}}},
   grid:{{left:60,right:70,top:20,bottom:60}},
   xAxis:{{type:'category',data:syms,splitArea:{{show:true}},
-    axisLabel:{{rotate:-45,fontSize:10,color:fg,fontFamily:'JetBrains Mono,monospace'}}}},
+    axisLabel:{{rotate:-45,fontSize:10,color:fg,fontFamily:'Geist Mono,monospace'}}}},
   yAxis:{{type:'category',data:syms,inverse:true,splitArea:{{show:true}},
-    axisLabel:{{fontSize:10,color:fg,fontFamily:'JetBrains Mono,monospace'}}}},
+    axisLabel:{{fontSize:10,color:fg,fontFamily:'Geist Mono,monospace'}}}},
   visualMap:{{min:-0.2,max:1.0,calculable:false,orient:'vertical',right:0,top:'center',
     inRange:{{color:['#ffffff','#f0f9ff','#bae6fd','#38bdf8','#0284c7']}},
     textStyle:{{fontSize:9,color:fg}}}},
   series:[{{type:'heatmap',data:data,
-    label:{{show:true,fontSize:10,color:'#0f172a',fontFamily:'JetBrains Mono,monospace',
+    label:{{show:true,fontSize:10,color:'#0E1726',fontFamily:'Geist Mono,monospace',
       formatter:function(p){{return p.data[2]!=null?p.data[2].toFixed(2):'—';}}
     }}
   }}]

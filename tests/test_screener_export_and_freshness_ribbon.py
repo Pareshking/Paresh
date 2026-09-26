@@ -138,8 +138,8 @@ def test_ribbon_marks_stale_amber_and_current_green(monkeypatch):
     components.render_freshness_ribbon()
 
     html_out = captured[0]
-    assert "#d97706" in html_out   # amber, the stale source
-    assert "#059669" in html_out   # green, the current one
+    assert "#B54708" in html_out   # amber, the stale source
+    assert "#067647" in html_out   # green, the current one
 
 
 def test_ribbon_says_today_rather_than_zero_days(monkeypatch):

@@ -92,15 +92,15 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
                     # not happen (0/N was 0); now it can, and `int(nan)` below
                     # raised ValueError and took the whole tab down.
                     kpi_items.append(f"""
-                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px;">
-                        <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Above {ma_lbl} {ma_type}</div>
-                        <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: #94a3b8; margin-top: 1px;">—</div>
-                        <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #94a3b8;">no prices on this session</div>
+                    <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px;">
+                        <div style="font-family: 'Geist', sans-serif; font-size: 0.70rem; font-weight: 700; color: #5E6878; text-transform: uppercase;">Above {ma_lbl} {ma_type}</div>
+                        <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.5rem; font-weight: 800; color: #6B7482; margin-top: 1px;">—</div>
+                        <div style="font-family: 'Geist Mono', monospace; font-size: 0.69rem; color: #6B7482;">no prices on this session</div>
                     </div>
                     """)
                     continue
                 clr = (
-                    "#059669" if val >= 60 else ("#e11d48" if val <= 40 else "#d97706")
+                    "#067647" if val >= 60 else ("#B42318" if val <= 40 else "#B54708")
                 )
                 sig = (
                     "Strong Bullish"
@@ -123,10 +123,10 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
                 )
                 n_stocks = int(round(val / 100 * n_observed))
                 kpi_items.append(f"""
-                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                        <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Above {ma_lbl} {ma_type}</div>
-                        <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: {clr}; margin-top: 1px;">{val:.0f}%</div>
-                        <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: {clr}; font-weight: 600;">{n_stocks} stocks · {sig}</div>
+                    <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                        <div style="font-family: 'Geist', sans-serif; font-size: 0.70rem; font-weight: 700; color: #5E6878; text-transform: uppercase;">Above {ma_lbl} {ma_type}</div>
+                        <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.5rem; font-weight: 800; color: {clr}; margin-top: 1px;">{val:.0f}%</div>
+                        <div style="font-family: 'Geist Mono', monospace; font-size: 0.69rem; color: {clr}; font-weight: 600;">{n_stocks} stocks · {sig}</div>
                     </div>
                     """)
         st.html(
@@ -173,21 +173,21 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
                     continue
                 pct = float((_last[_obs] > _ma[_obs]).sum() / _obs.sum() * 100)
                 clr = (
-                    "#059669" if pct >= 60 else ("#e11d48" if pct <= 40 else "#d97706")
+                    "#067647" if pct >= 60 else ("#B42318" if pct <= 40 else "#B54708")
                 )
 
                 st.html(f"""
-                    <div style="display: flex; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid #f1f5f9;">
-                        <div style="font-family: 'Outfit', sans-serif; font-size: 0.82rem; font-weight: 700; color: #334155; min-width: 160px;">
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid #F1F3F6;">
+                        <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 0.82rem; font-weight: 700; color: #3C4657; min-width: 160px;">
                             {idx_name}
                         </div>
-                        <div style="flex: 1; height: 6px; background-color: #f1f5f9; border-radius: 3px; overflow: hidden;">
+                        <div style="flex: 1; height: 6px; background-color: #F1F3F6; border-radius: 3px; overflow: hidden;">
                             <div style="width: {pct:.0f}%; height: 100%; background-color: {clr}; border-radius: 3px;"></div>
                         </div>
-                        <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; font-weight: 700; color: {clr}; min-width: 45px;">
+                        <div style="font-family: 'Geist Mono', monospace; font-size: 0.85rem; font-weight: 700; color: {clr}; min-width: 45px;">
                             {pct:.0f}%
                         </div>
-                        <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #64748b; min-width: 70px;">
+                        <div style="font-family: 'Geist Mono', monospace; font-size: 0.75rem; color: #5E6878; min-width: 70px;">
                             {int(_obs.sum())} stocks
                         </div>
                     </div>
@@ -235,7 +235,7 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
         today_l = int(hl_df["New Lows"].iloc[-1])
         hl_ratio = today_h / max(today_l, 1)
         ratio_clr = (
-            "#059669" if hl_ratio > 2 else ("#dc2626" if hl_ratio < 0.5 else "#d97706")
+            "#067647" if hl_ratio > 2 else ("#B42318" if hl_ratio < 0.5 else "#B54708")
         )
         ratio_sig = (
             "Bullish Expansion"
@@ -245,20 +245,20 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
 
         st.html(f"""
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px;">
-                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                    <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase;">New {hl_window}D Highs Today</div>
-                    <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: #059669; margin-top: 1px;">{today_h}</div>
-                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #059669; font-weight: 600;">Expanding Highs</div>
+                <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                    <div style="font-family: 'Geist', sans-serif; font-size: 0.70rem; font-weight: 700; color: #5E6878; text-transform: uppercase;">New {hl_window}D Highs Today</div>
+                    <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.5rem; font-weight: 800; color: #067647; margin-top: 1px;">{today_h}</div>
+                    <div style="font-family: 'Geist Mono', monospace; font-size: 0.69rem; color: #067647; font-weight: 600;">Expanding Highs</div>
                 </div>
-                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                    <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase;">New {hl_window}D Lows Today</div>
-                    <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: #dc2626; margin-top: 1px;">{today_l}</div>
-                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: #dc2626; font-weight: 600;">Expanding Lows</div>
+                <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                    <div style="font-family: 'Geist', sans-serif; font-size: 0.70rem; font-weight: 700; color: #5E6878; text-transform: uppercase;">New {hl_window}D Lows Today</div>
+                    <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.5rem; font-weight: 800; color: #B42318; margin-top: 1px;">{today_l}</div>
+                    <div style="font-family: 'Geist Mono', monospace; font-size: 0.69rem; color: #B42318; font-weight: 600;">Expanding Lows</div>
                 </div>
-                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                    <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.70rem; font-weight: 700; color: #64748b; text-transform: uppercase;">High / Low Ratio</div>
-                    <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: {ratio_clr}; margin-top: 1px;">{hl_ratio:.1f}×</div>
-                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; color: {ratio_clr}; font-weight: 600;">{ratio_sig}</div>
+                <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                    <div style="font-family: 'Geist', sans-serif; font-size: 0.70rem; font-weight: 700; color: #5E6878; text-transform: uppercase;">High / Low Ratio</div>
+                    <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.5rem; font-weight: 800; color: {ratio_clr}; margin-top: 1px;">{hl_ratio:.1f}×</div>
+                    <div style="font-family: 'Geist Mono', monospace; font-size: 0.69rem; color: {ratio_clr}; font-weight: 600;">{ratio_sig}</div>
                 </div>
             </div>
             """)

@@ -89,9 +89,9 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
     attempt_errors = sync_meta.get("last_attempt_errors") or {}
 
     st.markdown(
-        "<div style='font-size:0.83rem;font-weight:700;color:#0f172a;margin-bottom:2px;'>"
+        "<div style='font-size:0.83rem;font-weight:700;color:#0E1726;margin-bottom:2px;'>"
         "Official NSE Constituent Synchronization</div>"
-        "<div style='font-size:0.74rem;color:#64748b;margin-bottom:12px;'>"
+        "<div style='font-size:0.74rem;color:#5E6878;margin-bottom:12px;'>"
         "Synchronize constituent baskets directly with official CSV feeds on "
         "<code>niftyindices.com</code>.</div>",
         unsafe_allow_html=True,
@@ -100,7 +100,7 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
     failed_attempt_html = ""
     if sync_ok is False:
         failed_attempt_html = (
-            '<div style="font-size:0.74rem;color:#d97706;margin-top:6px;font-weight:600;">'
+            '<div style="font-size:0.74rem;color:#B54708;margin-top:6px;font-weight:600;">'
             f"⚠️ Last attempt {html.escape(str(last_attempt or 'unknown'))} "
             f"fetched {attempt_fetched if attempt_fetched is not None else '?'} index "
             f"file(s), {len(attempt_errors)} failed — figures above are from "
@@ -111,12 +111,12 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
     with status_c:
         st.html(
             f"""
-            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px;">
-                <div style="font-size:0.84rem;font-weight:700;color:#0f172a;">
+            <div style="background:#F4F5F8;border:1px solid #E3E6EB;border-radius:8px;padding:12px 16px;">
+                <div style="font-size:0.84rem;font-weight:700;color:#0E1726;">
                     NSE Constituents Cache
                 </div>
-                <div style="font-family:'JetBrains Mono',monospace;font-size:0.76rem;color:#64748b;margin-top:4px;">
-                    Last Synced: <strong style="color:#0f172a;">{last_sync}</strong>
+                <div style="font-family:'Geist Mono',monospace;font-size:0.76rem;color:#5E6878;margin-top:4px;">
+                    Last Synced: <strong style="color:#0E1726;">{last_sync}</strong>
                     &nbsp;·&nbsp;
                     Universe: <strong style="color:#4f46e5;">{tot_stk} stocks</strong>
                     &nbsp;·&nbsp;
@@ -185,9 +185,9 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
     st.divider()
 
     st.markdown(
-        "<div style='font-size:0.83rem;font-weight:700;color:#0f172a;margin-bottom:2px;'>"
+        "<div style='font-size:0.83rem;font-weight:700;color:#0E1726;margin-bottom:2px;'>"
         "Active Screening Universe</div>"
-        "<div style='font-size:0.74rem;color:#64748b;margin-bottom:10px;'>"
+        "<div style='font-size:0.74rem;color:#5E6878;margin-bottom:10px;'>"
         "Select which index constituent baskets are merged into the screening pipeline.</div>",
         unsafe_allow_html=True,
     )
@@ -234,16 +234,16 @@ def _section_momentum_signal() -> None:
     )
 
     st.markdown(
-        "<div style='font-size:0.83rem;font-weight:700;color:#0f172a;margin-bottom:2px;'>"
+        "<div style='font-size:0.83rem;font-weight:700;color:#0E1726;margin-bottom:2px;'>"
         "Momentum Lookback Multi-Window Weights</div>"
-        "<div style='font-size:0.74rem;color:#64748b;margin-bottom:10px;'>"
+        "<div style='font-size:0.74rem;color:#5E6878;margin-bottom:10px;'>"
         "Relative weights across 5 calendar-month windows. Sliders auto-normalize to 100%.</div>",
         unsafe_allow_html=True,
     )
 
     st.html(
         f"""
-        <div style="font-family:'JetBrains Mono',monospace;font-size:0.80rem;font-weight:700;
+        <div style="font-family:'Geist Mono',monospace;font-size:0.80rem;font-weight:700;
                     color:#4f46e5;background:#eef2ff;border:1px solid #c7d2fe;
                     padding:6px 14px;border-radius:6px;display:inline-block;margin-bottom:12px;">
             Weight vector: {norm_w[0]:.0%} · {norm_w[1]:.0%} · {norm_w[2]:.0%} · {norm_w[3]:.0%} · {norm_w[4]:.0%}
@@ -351,9 +351,9 @@ def _section_portfolio_risk() -> None:
     lc, rc = st.columns(2, gap="large")
     with lc:
         st.markdown(
-            "<div style='font-size:0.83rem;font-weight:700;color:#0f172a;margin-bottom:2px;'>"
+            "<div style='font-size:0.83rem;font-weight:700;color:#0E1726;margin-bottom:2px;'>"
             "Concentration Limits</div>"
-            "<div style='font-size:0.74rem;color:#64748b;margin-bottom:10px;'>"
+            "<div style='font-size:0.74rem;color:#5E6878;margin-bottom:10px;'>"
             "Maximum capital allocation per sector and per individual holding.</div>",
             unsafe_allow_html=True,
         )
@@ -372,9 +372,9 @@ def _section_portfolio_risk() -> None:
 
     with rc:
         st.markdown(
-            "<div style='font-size:0.83rem;font-weight:700;color:#0f172a;margin-bottom:2px;'>"
+            "<div style='font-size:0.83rem;font-weight:700;color:#0E1726;margin-bottom:2px;'>"
             "Volatility Targeting</div>"
-            "<div style='font-size:0.74rem;color:#64748b;margin-bottom:10px;'>"
+            "<div style='font-size:0.74rem;color:#5E6878;margin-bottom:10px;'>"
             "Dynamically scales cash allocation to maintain stable realized annual volatility.</div>",
             unsafe_allow_html=True,
         )
@@ -392,7 +392,7 @@ def _section_portfolio_risk() -> None:
 
 def _section_data_health(rank_df: pd.DataFrame) -> None:
     st.markdown(
-        "<div style='font-size:0.83rem;font-weight:700;color:#0f172a;margin-bottom:2px;'>"
+        "<div style='font-size:0.83rem;font-weight:700;color:#0E1726;margin-bottom:2px;'>"
         "Corporate Actions Detected in Price History</div>",
         unsafe_allow_html=True,
     )
@@ -446,7 +446,7 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
     st.divider()
 
     st.markdown(
-        "<div style='font-size:0.83rem;font-weight:700;color:#0f172a;margin-bottom:8px;'>"
+        "<div style='font-size:0.83rem;font-weight:700;color:#0E1726;margin-bottom:8px;'>"
         "Cache & Data Paths</div>",
         unsafe_allow_html=True,
     )
@@ -489,24 +489,24 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
     # ── Status bar (full-width) ───────────────────────────────────────────────
     st.html(
         f"""
-        <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;
+        <div style="background:#ffffff;border:1px solid #E3E6EB;border-radius:10px;
                     padding:14px 20px;margin-bottom:20px;
                     display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
             <div>
-                <div style="font-family:'Outfit',sans-serif;font-size:1.10rem;font-weight:800;color:#0f172a;">
+                <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:1.10rem;font-weight:800;color:#0E1726;">
                     ⚙️ System Configuration
                 </div>
-                <div style="font-size:0.76rem;color:#64748b;margin-top:2px;">
+                <div style="font-size:0.76rem;color:#5E6878;margin-top:2px;">
                     Constituent sync · momentum weights · portfolio risk · data health
                 </div>
             </div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                <span style="font-family:'JetBrains Mono',monospace;font-size:0.74rem;
-                             background:#f0fdf4;border:1px solid #86efac;color:#166534;
+                <span style="font-family:'Geist Mono',monospace;font-size:0.74rem;
+                             background:#E8F5EE;border:1px solid #86efac;color:#166534;
                              padding:4px 10px;border-radius:6px;font-weight:700;">
                     🟢 Engine Active ({engine_stocks} Stocks)
                 </span>
-                <span style="font-family:'JetBrains Mono',monospace;font-size:0.74rem;
+                <span style="font-family:'Geist Mono',monospace;font-size:0.74rem;
                              background:#eef2ff;border:1px solid #c7d2fe;color:#4338ca;
                              padding:4px 10px;border-radius:6px;font-weight:700;">
                     {mode_label}
@@ -521,7 +521,7 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
 
     with nav_col:
         st.markdown(
-            "<div style='font-size:0.68rem;font-weight:700;color:#94a3b8;"
+            "<div style='font-size:0.68rem;font-weight:700;color:#6B7482;"
             "text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;'>"
             "Settings</div>",
             unsafe_allow_html=True,
@@ -545,7 +545,7 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
         remember("cfg_nav_section_idx", _NAV_SECTIONS.index(section))
 
         st.markdown(
-            "<div style='font-size:0.68rem;color:#94a3b8;margin-top:16px;line-height:1.5;'>"
+            "<div style='font-size:0.68rem;color:#6B7482;margin-top:16px;line-height:1.5;'>"
             + _NAV_DESCRIPTIONS.get(section, "") + "</div>",
             unsafe_allow_html=True,
         )

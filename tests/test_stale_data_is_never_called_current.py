@@ -286,21 +286,21 @@ def test_the_header_shows_the_price_date_not_the_wall_clock(monkeypatch):
 
 def test_a_stale_header_is_flagged_amber_and_counts_the_days(monkeypatch):
     text, color = _header(monkeypatch, date(2026, 8, 31), price_as_of="2026-08-21")
-    assert color == "#d97706"
+    assert color == "#B54708"
     # 24-28 Aug and 31 Aug: six sessions the data does not cover.
     assert "6 trading days behind" in text
 
 
 def test_a_current_header_is_quiet(monkeypatch):
     text, color = _header(monkeypatch, date(2026, 8, 31), price_as_of="2026-08-28")
-    assert color == "#64748b"
+    assert color == "#5E6878"
     assert "28 Aug 2026" in text
 
 
 def test_an_unstamped_pipeline_admits_it_rather_than_inventing_a_date(monkeypatch):
     text, color = _header(monkeypatch, date(2026, 8, 31))
     assert text == "price date unknown"
-    assert color == "#d97706"
+    assert color == "#B54708"
 
 
 # ── Wording, shared by the header and the ribbon ─────────────────────────────

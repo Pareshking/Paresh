@@ -195,25 +195,25 @@ def render_portfolio_view(
     cap_note = " (relaxed)" if constrained_w.attrs.get("caps_relaxed") else ""
     kpi_port_html = f"""
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px;">
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Capital Sized</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-top: 2px;">₹{portfolio_capital:,.0f}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.70rem; color: #4f46e5; font-weight: 600;">Target Portfolio</div>
+        <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <div style="font-family: 'Geist', sans-serif; font-size: 0.72rem; font-weight: 700; color: #5E6878; text-transform: uppercase; letter-spacing: 0.05em;">Capital Sized</div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.5rem; font-weight: 800; color: #0E1726; margin-top: 2px;">₹{portfolio_capital:,.0f}</div>
+            <div style="font-family: 'Geist Mono', monospace; font-size: 0.70rem; color: #4f46e5; font-weight: 600;">Target Portfolio</div>
         </div>
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Allocated Capital</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: #059669; margin-top: 2px;">₹{total_allocated:,.0f}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.70rem; color: #059669; font-weight: 600;">{len(summary)} Stock Orders</div>
+        <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <div style="font-family: 'Geist', sans-serif; font-size: 0.72rem; font-weight: 700; color: #5E6878; text-transform: uppercase; letter-spacing: 0.05em;">Allocated Capital</div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.5rem; font-weight: 800; color: #067647; margin-top: 2px;">₹{total_allocated:,.0f}</div>
+            <div style="font-family: 'Geist Mono', monospace; font-size: 0.70rem; color: #067647; font-weight: 600;">{len(summary)} Stock Orders</div>
         </div>
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Remaining Cash Buffer</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-top: 2px;">₹{unallocated_cash:,.0f}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.70rem; color: #64748b;">{unallocated_cash/portfolio_capital*100:.1f}% Cash</div>
+        <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <div style="font-family: 'Geist', sans-serif; font-size: 0.72rem; font-weight: 700; color: #5E6878; text-transform: uppercase; letter-spacing: 0.05em;">Remaining Cash Buffer</div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.5rem; font-weight: 800; color: #0E1726; margin-top: 2px;">₹{unallocated_cash:,.0f}</div>
+            <div style="font-family: 'Geist Mono', monospace; font-size: 0.70rem; color: #5E6878;">{unallocated_cash/portfolio_capital*100:.1f}% Cash</div>
         </div>
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Top Sector Weight</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-top: 2px;">{top_sec:.1f}%</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.70rem; color: #64748b;">Cap: {enforced_sector_cap:.1%}{cap_note}</div>
+        <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <div style="font-family: 'Geist', sans-serif; font-size: 0.72rem; font-weight: 700; color: #5E6878; text-transform: uppercase; letter-spacing: 0.05em;">Top Sector Weight</div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.5rem; font-weight: 800; color: #0E1726; margin-top: 2px;">{top_sec:.1f}%</div>
+            <div style="font-family: 'Geist Mono', monospace; font-size: 0.70rem; color: #5E6878;">Cap: {enforced_sector_cap:.1%}{cap_note}</div>
         </div>
     </div>
     """
@@ -257,17 +257,17 @@ def render_portfolio_view(
             for _, r in sec_agg.iterrows():
                 ind_items_html.append(f"""
                     <div style="margin-bottom: 9px;">
-                        <div style="display: flex; justify-content: space-between; font-size: 0.76rem; font-family: 'Plus Jakarta Sans', sans-serif; margin-bottom: 3px;">
-                            <span style="font-weight: 600; color: #0f172a;">{html.escape(str(r['Industry']))}</span>
-                            <span style="font-family: 'JetBrains Mono', monospace; color: #475569; font-weight: 700;">{int(r['Count'])} stock{'s' if r['Count']>1 else ''} ({r['Weight']:.1f}%)</span>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.76rem; font-family: 'Geist', sans-serif; margin-bottom: 3px;">
+                            <span style="font-weight: 600; color: #0E1726;">{html.escape(str(r['Industry']))}</span>
+                            <span style="font-family: 'Geist Mono', monospace; color: #3C4657; font-weight: 700;">{int(r['Count'])} stock{'s' if r['Count']>1 else ''} ({r['Weight']:.1f}%)</span>
                         </div>
-                        <div style="width: 100%; height: 6px; background-color: #f1f5f9; border-radius: 99px; overflow: hidden;">
+                        <div style="width: 100%; height: 6px; background-color: #F1F3F6; border-radius: 99px; overflow: hidden;">
                             <div style="width: {min(100, r['Weight'])}%; height: 100%; background: linear-gradient(90deg, #4f46e5, #06b6d4); border-radius: 99px;"></div>
                         </div>
                     </div>
                     """)
             breakdown_html = f"""
-            <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); max-height: 320px; overflow-y: auto;">
+            <div style="background-color: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 14px 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); max-height: 320px; overflow-y: auto;">
                 {''.join(ind_items_html)}
             </div>
             """

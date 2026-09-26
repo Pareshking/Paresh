@@ -143,57 +143,57 @@ _CARD_CSS = """
 <style>
 .sq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;padding:4px 2px 12px;}
 @media(max-width:520px){.sq-grid{grid-template-columns:1fr;}}
-.sq-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px 15px;
+.sq-card{background:#fff;border:1px solid #E3E6EB;border-radius:14px;padding:14px 15px;
   position:relative;transition:box-shadow .15s;}
 .sq-card:hover{box-shadow:0 4px 16px rgba(79,70,229,.10);}
 .sq-top{display:flex;align-items:flex-start;gap:9px;margin-bottom:8px;}
-.sq-badge{flex-shrink:0;font-family:'JetBrains Mono',monospace;font-size:.7rem;font-weight:800;
+.sq-badge{flex-shrink:0;font-family:'Geist Mono',monospace;font-size:.7rem;font-weight:800;
   padding:3px 8px;border-radius:20px;border:1px solid;}
-.sq-badge-gold{background:#fef3c7;color:#92400e;border-color:#fcd34d;}
+.sq-badge-gold{background:#FEF6EA;color:#92400e;border-color:#fcd34d;}
 .sq-badge-indigo{background:#eef2ff;color:#4338ca;border-color:#c7d2fe;}
 .sq-nameblock{flex:1;min-width:0;}
-.sq-sym{font-family:'Outfit',sans-serif;font-weight:900;font-size:1.05rem;color:#0f172a;
-  text-decoration:none;border-bottom:1px dotted #94a3b8;}
+.sq-sym{font-family:'Bricolage Grotesque',sans-serif;font-weight:900;font-size:1.05rem;color:#0E1726;
+  text-decoration:none;border-bottom:1px dotted #6B7482;}
 .sq-sym:hover{color:#4f46e5;}
-.sq-ind{font-size:.7rem;color:#64748b;margin-top:1px;overflow:hidden;
+.sq-ind{font-size:.7rem;color:#5E6878;margin-top:1px;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap;}
 .sq-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;margin-left:auto;}
-.sq-cmp{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:1.0rem;
-  color:#0f172a;white-space:nowrap;}
-.sq-delta{font-family:'JetBrains Mono',monospace;
+.sq-cmp{font-family:'Geist Mono',monospace;font-weight:800;font-size:1.0rem;
+  color:#0E1726;white-space:nowrap;}
+.sq-delta{font-family:'Geist Mono',monospace;
   font-size:.62rem;font-weight:800;padding:2px 7px;border-radius:20px;white-space:nowrap;}
-.sq-delta-up{background:#d1fae5;color:#065f46;}
-.sq-delta-dn{background:#fecdd3;color:#9f1239;}
-.sq-delta-flat{background:#f1f5f9;color:#64748b;}
+.sq-delta-up{background:#D3EEDF;color:#054F31;}
+.sq-delta-dn{background:#F3C7C1;color:#9f1239;}
+.sq-delta-flat{background:#F1F3F6;color:#5E6878;}
 .sq-chips{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;}
 .sq-chip{font-size:.62rem;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid;white-space:nowrap;}
 .sq-chip-n50{background:#ede9fe;color:#5b21b6;border-color:#ddd6fe;}
 .sq-chip-nn50{background:#f3e8ff;color:#7e22ce;border-color:#e9d5ff;}
 .sq-chip-mid{background:#fff7ed;color:#9a3412;border-color:#fed7aa;}
-.sq-chip-sm{background:#fef9c3;color:#713f12;border-color:#fde68a;}
-.sq-chip-micro{background:#fef2f2;color:#991b1b;border-color:#fecaca;}
-.sq-chip-other{background:#f1f5f9;color:#475569;border-color:#e2e8f0;}
+.sq-chip-sm{background:#fef9c3;color:#713f12;border-color:#F5D7A8;}
+.sq-chip-micro{background:#FDEDEB;color:#991b1b;border-color:#F3C7C1;}
+.sq-chip-other{background:#F1F3F6;color:#3C4657;border-color:#E3E6EB;}
 .sq-range-wrap{position:relative;margin:7px 0 10px;padding-top:7px;}
-.sq-range-track{height:6px;background:#e2e8f0;border-radius:999px;position:relative;overflow:visible;}
-.sq-range-fill{height:6px;background:linear-gradient(90deg,#4f46e5,#059669);border-radius:999px 0 0 999px;}
-.sq-range-current{position:absolute;top:50%;width:10px;height:10px;border-radius:50%;background:#059669;border:2px solid #ffffff;box-shadow:0 0 0 1px #059669;transform:translate(-50%,-50%);z-index:3;}
-.sq-range-20{position:absolute;top:-6px;width:1px;height:18px;background:#d97706;border-left:1px dashed #d97706;z-index:2;}
-.sq-range-20-label{position:absolute;top:-19px;transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:.52rem;font-weight:800;color:#b45309;white-space:nowrap;}
-.sq-range-labels{display:flex;justify-content:space-between;gap:6px;margin-top:5px;font-family:'JetBrains Mono',monospace;font-size:.54rem;color:#94a3b8;}
+.sq-range-track{height:6px;background:#E3E6EB;border-radius:999px;position:relative;overflow:visible;}
+.sq-range-fill{height:6px;background:linear-gradient(90deg,#4f46e5,#067647);border-radius:999px 0 0 999px;}
+.sq-range-current{position:absolute;top:50%;width:10px;height:10px;border-radius:50%;background:#067647;border:2px solid #ffffff;box-shadow:0 0 0 1px #067647;transform:translate(-50%,-50%);z-index:3;}
+.sq-range-20{position:absolute;top:-6px;width:1px;height:18px;background:#B54708;border-left:1px dashed #B54708;z-index:2;}
+.sq-range-20-label{position:absolute;top:-19px;transform:translateX(-50%);font-family:'Geist Mono',monospace;font-size:.52rem;font-weight:800;color:#93370D;white-space:nowrap;}
+.sq-range-labels{display:flex;justify-content:space-between;gap:6px;margin-top:5px;font-family:'Geist Mono',monospace;font-size:.54rem;color:#6B7482;}
 .sq-range-labels span{white-space:nowrap;}
-.sq-range-current-label{color:#059669;font-weight:800;}
+.sq-range-current-label{color:#067647;font-weight:800;}
 .sq-metrics{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:2px;
-  border-top:1px solid #f1f5f9;padding-top:9px;margin-bottom:9px;}
+  border-top:1px solid #F1F3F6;padding-top:9px;margin-bottom:9px;}
 .sq-metric{text-align:center;}
-.sq-metric-label{font-size:.58rem;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
-.sq-metric-val{font-family:'JetBrains Mono',monospace;font-size:.78rem;font-weight:700;margin-top:1px;}
-.sq-pos{color:#059669;}.sq-neg{color:#e11d48;}.sq-warn{color:#d97706;}.sq-neu{color:#0f172a;}
+.sq-metric-label{font-size:.58rem;color:#6B7482;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+.sq-metric-val{font-family:'Geist Mono',monospace;font-size:.78rem;font-weight:700;margin-top:1px;}
+.sq-pos{color:#067647;}.sq-neg{color:#B42318;}.sq-warn{color:#B54708;}.sq-neu{color:#0E1726;}
 .sq-footer{display:flex;justify-content:space-between;align-items:center;
-  border-top:1px solid #f1f5f9;padding-top:8px;
-  font-family:'JetBrains Mono',monospace;font-size:.68rem;color:#64748b;}
-.sq-vol-high{color:#e11d48;font-weight:700;}
-.sq-vol-surge{color:#d97706;font-weight:700;}
-.sq-vol-normal{color:#64748b;}
+  border-top:1px solid #F1F3F6;padding-top:8px;
+  font-family:'Geist Mono',monospace;font-size:.68rem;color:#5E6878;}
+.sq-vol-high{color:#B42318;font-weight:700;}
+.sq-vol-surge{color:#B54708;font-weight:700;}
+.sq-vol-normal{color:#5E6878;}
 </style>"""
 
 
@@ -239,7 +239,7 @@ def _card_html(row: pd.Series) -> str:
     # Card wrapper style — 52W Hi highlight, below-EMA dimming
     card_style = ""
     if near_hi:
-        card_style += "border-color:#c7d2fe;background:linear-gradient(135deg,#fafbff 0%,#f8fafc 100%);"
+        card_style += "border-color:#c7d2fe;background:linear-gradient(135deg,#fafbff 0%,#F4F5F8 100%);"
     card_opacity = "" if above_ema else "opacity:.58;"
 
     # Rank badge
@@ -743,11 +743,11 @@ def render_ranking_view(
     n_ema = int(to_bool_mask(view.get("Above 50 EMA")).sum())
     n_hi = int(to_bool_mask(view.get("Near 52W High")).sum())
     c_info.markdown(
-        f"<div style='font-family:\"JetBrains Mono\",monospace;font-size:0.72rem;"
-        f"color:#64748b;padding:5px 10px;background:#f8fafc;border:1px solid #e2e8f0;"
+        f"<div style='font-family:\"Geist Mono\",monospace;font-size:0.72rem;"
+        f"color:#5E6878;padding:5px 10px;background:#F4F5F8;border:1px solid #E3E6EB;"
         f"border-radius:8px;line-height:1.5;'>"
-        f"Showing <strong style='color:#0f172a;'>{n_view}</strong> of {n_total} &nbsp;·&nbsp; "
-        f"<span style='color:#059669;font-weight:700;'>{n_ema}</span> &gt;50 EMA &nbsp;·&nbsp; "
+        f"Showing <strong style='color:#0E1726;'>{n_view}</strong> of {n_total} &nbsp;·&nbsp; "
+        f"<span style='color:#067647;font-weight:700;'>{n_ema}</span> &gt;50 EMA &nbsp;·&nbsp; "
         f"<span style='color:#4f46e5;font-weight:700;'>{n_hi}</span> near 52W Hi"
         f"</div>",
         unsafe_allow_html=True,
@@ -829,10 +829,10 @@ def render_ranking_view(
     except (ValueError, TypeError):
         month_label = ist_now().strftime("%b %Y")
     st.markdown(
-        f'<div style="font-size:0.73rem;font-weight:800;color:#0f172a;'
+        f'<div style="font-size:0.73rem;font-weight:800;color:#0E1726;'
         f'letter-spacing:0.01em;margin:14px 0 6px;padding-bottom:6px;'
         f'border-bottom:2px solid #eef2ff;">'
-        f'Top Ranked &nbsp;·&nbsp; <span style="color:#64748b;font-weight:500;">{month_label}</span>'
+        f'Top Ranked &nbsp;·&nbsp; <span style="color:#5E6878;font-weight:500;">{month_label}</span>'
         f'</div>',
         unsafe_allow_html=True,
     )

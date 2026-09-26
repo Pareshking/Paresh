@@ -31,12 +31,12 @@ import pandas as pd
 import streamlit as st
 
 # Palette shared with the rest of the app.
-UP = "#059669"
-DOWN = "#e11d48"
-INK = "#0f172a"
-GRID = "#f1f5f9"
-MUTED = "#94a3b8"
-MA_COLOURS = {"20 EMA": "#0ea5e9", "50 EMA": "#7c3aed", "200 SMA": "#d97706"}
+UP = "#067647"
+DOWN = "#B42318"
+INK = "#0E1726"
+GRID = "#F1F3F6"
+MUTED = "#6B7482"
+MA_COLOURS = {"20 EMA": "#0ea5e9", "50 EMA": "#7c3aed", "200 SMA": "#B54708"}
 
 # Half the sessions must carry a real range before the price is drawn as
 # candles. A single surviving high does not earn candle bodies for the other
@@ -137,15 +137,15 @@ def _base_chart(height: int) -> dict:
         "height": height,
         "layout": {
             "background": {"type": "solid", "color": "#ffffff"},
-            "textColor": "#475569",
-            "fontFamily": "IBM Plex Mono, monospace",
+            "textColor": "#3C4657",
+            "fontFamily": "Geist Mono, monospace",
         },
         "grid": {
             "vertLines": {"color": GRID},
             "horzLines": {"color": GRID},
         },
-        "rightPriceScale": {"borderColor": "#e2e8f0"},
-        "timeScale": {"borderColor": "#e2e8f0", "timeVisible": False},
+        "rightPriceScale": {"borderColor": "#E3E6EB"},
+        "timeScale": {"borderColor": "#E3E6EB", "timeVisible": False},
         "crosshair": {"mode": 1},
     }
 
@@ -272,7 +272,7 @@ def render_lightweight_chart(
     if rs_rows:
         rs_chart = _base_chart(120)
         rs_chart["rightPriceScale"] = {
-            "borderColor": "#e2e8f0",
+            "borderColor": "#E3E6EB",
             "autoScale": True,
             "scaleMargins": {"top": 0.1, "bottom": 0.1},
         }

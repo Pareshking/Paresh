@@ -208,10 +208,10 @@ def render_rrg_view(
     """Renders Relative Rotation Graph (RRG ®) rotational analysis and quadrant matrix."""
     st.markdown(
         """
-        <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.10rem; font-weight: 800; color: #0f172a; margin-bottom: 2px;">
+        <div style="font-family: 'Geist', sans-serif; font-size: 1.10rem; font-weight: 800; color: #0E1726; margin-bottom: 2px;">
             Relative Rotation Graph (RRG ®)
         </div>
-        <div style="font-size: 0.76rem; color: #64748b; margin-bottom: 14px;">
+        <div style="font-size: 0.76rem; color: #5E6878; margin-bottom: 14px;">
             Track clockwise relative strength and momentum rotation against benchmark indices.
         </div>
         """,
@@ -222,7 +222,7 @@ def render_rrg_view(
 
     with col_side:
         st.markdown(
-            "<div style='font-weight:700;font-size:0.85rem;margin-bottom:6px;color:#0f172a;'>Universe Scope</div>",
+            "<div style='font-weight:700;font-size:0.85rem;margin-bottom:6px;color:#0E1726;'>Universe Scope</div>",
             unsafe_allow_html=True,
         )
         scope_pill = st.segmented_control(
@@ -356,7 +356,7 @@ def render_rrg_view(
 
             # 4-Quadrant 1-Click Filters
             st.html(
-                "<div style='margin-top:10px;margin-bottom:6px;font-size:0.72rem;font-weight:700;color:#64748b;font-family:Plus Jakarta Sans;text-align:left;text-transform:uppercase;letter-spacing:0.05em;'>QUICK QUADRANT SELECTION:</div>"
+                "<div style='margin-top:10px;margin-bottom:6px;font-size:0.72rem;font-weight:700;color:#5E6878;font-family:Geist,sans-serif;text-align:left;text-transform:uppercase;letter-spacing:0.05em;'>QUICK QUADRANT SELECTION:</div>"
             )
             q_row1_c1, q_row1_c2 = st.columns(2)
             q_row1_c1.button(
@@ -396,7 +396,7 @@ def render_rrg_view(
 
             # Active Items Chips with Filled Quadrant Color Styling & 1-Click Remove
             st.html(
-                "<div style='margin-top:12px;margin-bottom:6px;font-size:0.72rem;font-weight:700;color:#64748b;font-family:Plus Jakarta Sans;text-align:left;text-transform:uppercase;letter-spacing:0.05em;'>ACTIVE SELECTION (CLICK TO REMOVE):</div>"
+                "<div style='margin-top:12px;margin-bottom:6px;font-size:0.72rem;font-weight:700;color:#5E6878;font-family:Geist,sans-serif;text-align:left;text-transform:uppercase;letter-spacing:0.05em;'>ACTIVE SELECTION (CLICK TO REMOVE):</div>"
             )
             active_list = spotlight if spotlight is not None else []
 
@@ -406,7 +406,7 @@ def render_rrg_view(
             quad_styles = {
                 "Leading": {
                     "bg": "#dcfce7",
-                    "text": "#15803d",
+                    "text": "#067647",
                     "border": "#86efac",
                     "icon": "🟢",
                 },
@@ -418,7 +418,7 @@ def render_rrg_view(
                 },
                 "Lagging": {
                     "bg": "#ffe4e6",
-                    "text": "#be123c",
+                    "text": "#912018",
                     "border": "#fca5a5",
                     "icon": "🔴",
                 },
@@ -459,13 +459,13 @@ def render_rrg_view(
 
             st.markdown(
                 """
-                <div style='margin-top:14px;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;font-size:0.75rem;color:#475569;line-height:1.45;'>
-                    <strong style='color:#0f172a;'>Tip:</strong> Click and drag on the chart to zoom.<br><br>
-                    <strong style='color:#0f172a;'>Lifecycle:</strong> Assets start in 
+                <div style='margin-top:14px;background-color:#F4F5F8;border:1px solid #E3E6EB;border-radius:8px;padding:12px;font-size:0.75rem;color:#3C4657;line-height:1.45;'>
+                    <strong style='color:#0E1726;'>Tip:</strong> Click and drag on the chart to zoom.<br><br>
+                    <strong style='color:#0E1726;'>Lifecycle:</strong> Assets start in 
                     <span style='color:#2563eb;font-weight:600;'>Improving</span>, rotate into 
-                    <span style='color:#15803d;font-weight:600;'>Leading</span>, transition to 
+                    <span style='color:#067647;font-weight:600;'>Leading</span>, transition to 
                     <span style='color:#ca8a04;font-weight:600;'>Weakening</span>, and finish in 
-                    <span style='color:#dc2626;font-weight:600;'>Lagging</span>.
+                    <span style='color:#B42318;font-weight:600;'>Lagging</span>.
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -480,7 +480,7 @@ def render_rrg_view(
             )
 
             st.markdown(
-                "<div style='margin-top:14px;margin-bottom:6px;font-weight:700;font-size:0.88rem;color:#0f172a;font-family:Plus Jakarta Sans;'>Relative Strength & Momentum Matrix</div>",
+                "<div style='margin-top:14px;margin-bottom:6px;font-weight:700;font-size:0.88rem;color:#0E1726;font-family:Geist,sans-serif;'>Relative Strength & Momentum Matrix</div>",
                 unsafe_allow_html=True,
             )
             view_cols = ["Industry", "RS_Ratio", "RS_Momentum", "Quadrant", "Stocks"]

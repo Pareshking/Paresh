@@ -25,10 +25,10 @@ def _render_qualified_section(
     st.markdown(
         f"""
         <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 10px; margin-bottom: 6px;">
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.15rem; font-weight: 800; color: #0f172a;">
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.15rem; font-weight: 800; color: #0E1726;">
                 {title}
             </div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: {theme_color}; font-weight: 700; background: #f8fafc; border: 1px solid #e2e8f0; padding: 3px 8px; border-radius: 6px;">
+            <div style="font-family: 'Geist Mono', monospace; font-size: 0.75rem; color: {theme_color}; font-weight: 700; background: #F4F5F8; border: 1px solid #E3E6EB; padding: 3px 8px; border-radius: 6px;">
                 {subtitle}
             </div>
         </div>
@@ -48,8 +48,8 @@ def _render_qualified_section(
     # These two were hard-coded emerald, so a -15.4% average printed green.
     # Colour that contradicts the number is worse than no colour: the reader
     # takes the colour first.
-    avg_3m_clr = "#059669" if avg_3m >= 0 else "#dc2626"
-    avg_6m_clr = "#059669" if avg_6m >= 0 else "#dc2626"
+    avg_3m_clr = "#067647" if avg_3m >= 0 else "#B42318"
+    avg_6m_clr = "#067647" if avg_6m >= 0 else "#B42318"
     syms = [s for s in df_subset["Symbol"] if s in adj_close.columns]
 
     corr_val: float | None = None
@@ -64,34 +64,34 @@ def _render_qualified_section(
     # a bad state beside a "—". Test for None explicitly and compare numbers as
     # numbers.
     if corr_val is None:
-        corr_status, corr_clr = "Not measurable", "#64748b"
+        corr_status, corr_clr = "Not measurable", "#5E6878"
     elif corr_val < 0.70:
-        corr_status, corr_clr = "Diversified", "#059669"
+        corr_status, corr_clr = "Diversified", "#067647"
     else:
-        corr_status, corr_clr = "High Correlation", "#d97706"
+        corr_status, corr_clr = "High Correlation", "#B54708"
     corr_str = f"{corr_val:.2f}" if corr_val is not None else "—"
 
     kpi_html = f"""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 12px;">
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); border-top: 3px solid {theme_color};">
-            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Qualified Count</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-top: 2px;">{len(df_subset)}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.70rem; color: #059669; font-weight: 600;">Top Selection</div>
+        <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); border-top: 3px solid {theme_color};">
+            <div style="font-family: 'Geist', sans-serif; font-size: 0.72rem; font-weight: 700; color: #5E6878; text-transform: uppercase; letter-spacing: 0.05em;">Qualified Count</div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.5rem; font-weight: 800; color: #0E1726; margin-top: 2px;">{len(df_subset)}</div>
+            <div style="font-family: 'Geist Mono', monospace; font-size: 0.70rem; color: #067647; font-weight: 600;">Top Selection</div>
         </div>
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Avg 3M Return</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: {avg_3m_clr}; margin-top: 2px;">{"—" if pd.isna(avg_3m) else f"{avg_3m:+.1%}"}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.70rem; color: #64748b;">Calendar 3 months</div>
+        <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <div style="font-family: 'Geist', sans-serif; font-size: 0.72rem; font-weight: 700; color: #5E6878; text-transform: uppercase; letter-spacing: 0.05em;">Avg 3M Return</div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.5rem; font-weight: 800; color: {avg_3m_clr}; margin-top: 2px;">{"—" if pd.isna(avg_3m) else f"{avg_3m:+.1%}"}</div>
+            <div style="font-family: 'Geist Mono', monospace; font-size: 0.70rem; color: #5E6878;">Calendar 3 months</div>
         </div>
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Avg 6M Return</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: {avg_6m_clr}; margin-top: 2px;">{"—" if pd.isna(avg_6m) else f"{avg_6m:+.1%}"}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.70rem; color: #64748b;">Calendar 6 months</div>
+        <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <div style="font-family: 'Geist', sans-serif; font-size: 0.72rem; font-weight: 700; color: #5E6878; text-transform: uppercase; letter-spacing: 0.05em;">Avg 6M Return</div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.5rem; font-weight: 800; color: {avg_6m_clr}; margin-top: 2px;">{"—" if pd.isna(avg_6m) else f"{avg_6m:+.1%}"}</div>
+            <div style="font-family: 'Geist Mono', monospace; font-size: 0.70rem; color: #5E6878;">Calendar 6 months</div>
         </div>
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Avg 90D Correlation</div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-top: 2px;">{corr_str}</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.70rem; color: {corr_clr}; font-weight: 600;">{corr_status}</div>
+        <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <div style="font-family: 'Geist', sans-serif; font-size: 0.72rem; font-weight: 700; color: #5E6878; text-transform: uppercase; letter-spacing: 0.05em;">Avg 90D Correlation</div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.5rem; font-weight: 800; color: #0E1726; margin-top: 2px;">{corr_str}</div>
+            <div style="font-family: 'Geist Mono', monospace; font-size: 0.70rem; color: {corr_clr}; font-weight: 600;">{corr_status}</div>
         </div>
     </div>
     """
@@ -114,17 +114,17 @@ def _render_qualified_section(
         for _, r in alloc.iterrows():
             ind_items_html.append(f"""
                 <div style="margin-bottom: 9px;">
-                    <div style="display: flex; justify-content: space-between; font-size: 0.76rem; font-family: 'Plus Jakarta Sans', sans-serif; margin-bottom: 3px;">
-                        <span style="font-weight: 600; color: #0f172a;">{html.escape(str(r['Industry']))}</span>
-                        <span style="font-family: 'JetBrains Mono', monospace; color: #475569; font-weight: 700;">{int(r['Count'])} stock{'s' if r['Count']>1 else ''} ({r['Pct']:.0f}%)</span>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.76rem; font-family: 'Geist', sans-serif; margin-bottom: 3px;">
+                        <span style="font-weight: 600; color: #0E1726;">{html.escape(str(r['Industry']))}</span>
+                        <span style="font-family: 'Geist Mono', monospace; color: #3C4657; font-weight: 700;">{int(r['Count'])} stock{'s' if r['Count']>1 else ''} ({r['Pct']:.0f}%)</span>
                     </div>
-                    <div style="width: 100%; height: 6px; background-color: #f1f5f9; border-radius: 99px; overflow: hidden;">
+                    <div style="width: 100%; height: 6px; background-color: #F1F3F6; border-radius: 99px; overflow: hidden;">
                         <div style="width: {r['Pct']}%; height: 100%; background: linear-gradient(90deg, {theme_color}, #06b6d4); border-radius: 99px;"></div>
                     </div>
                 </div>
                 """)
         breakdown_html = f"""
-        <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+        <div style="background-color: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 14px 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
             {''.join(ind_items_html)}
         </div>
         """
@@ -156,8 +156,8 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> Non
     c_filt, c_ctrl = st.columns([3, 1], vertical_alignment="center")
     with c_filt:
         st.markdown(
-            "<div style=\"font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.85rem; color: #475569; padding-top: 4px;\">"
-            'Institutional Strict Filter: <strong style="color: #059669;">Price > 50 EMA</strong> &nbsp;·&nbsp; <strong style="color: #4f46e5;">Within 20% of 52W High</strong>'
+            "<div style=\"font-family: 'Geist', sans-serif; font-size: 0.85rem; color: #3C4657; padding-top: 4px;\">"
+            'Institutional Strict Filter: <strong style="color: #067647;">Price > 50 EMA</strong> &nbsp;·&nbsp; <strong style="color: #4f46e5;">Within 20% of 52W High</strong>'
             "</div>",
             unsafe_allow_html=True,
         )

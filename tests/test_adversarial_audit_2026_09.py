@@ -707,8 +707,8 @@ def test_qualified_average_return_colour_follows_its_sign():
     from src.ui.views import qualified_view
 
     src = inspect.getsource(qualified_view._render_qualified_section)
-    assert 'color: #059669; margin-top: 2px;">{avg_3m' not in src
-    assert 'color: #059669; margin-top: 2px;">{avg_6m' not in src
+    assert 'color: #067647; margin-top: 2px;">{avg_3m' not in src
+    assert 'color: #067647; margin-top: 2px;">{avg_6m' not in src
     assert "avg_3m_clr" in src and "avg_6m_clr" in src
     # The sublabels asserted the 63/126-trading-row definition the README says
     # was removed in favour of calendar periods.

@@ -114,10 +114,15 @@ def test_every_page_is_reachable_from_the_rendered_navigation(offline_market_dat
     ]
     expected = _page_titles()
     assert expected, "app.py declares no pages"
-    assert labels == expected, (
-        f"navigation does not offer every page in order: rendered {labels}, "
+    # The ☰ menu is the complete list and renders last; the desktop link row
+    # before it is a shortcut to some of the same pages, never a different one.
+    menu = labels[-len(expected):]
+    assert menu == expected, (
+        f"the menu does not offer every page in order: rendered {menu}, "
         f"declared {expected}"
     )
+    shortcuts = labels[:-len(expected)]
+    assert set(shortcuts) <= set(expected), f"the link row offers unknown pages: {shortcuts}"
 
 
 def test_the_navigation_survives_being_on_a_different_page(offline_market_data):
@@ -129,7 +134,8 @@ def test_the_navigation_survives_being_on_a_different_page(offline_market_data):
         if getattr(e, "proto", None) is not None
         and e.proto.__class__.__name__ == "PageLink"
     )
-    assert count == len(_page_titles()) >= 5
+    # Every page in the menu, plus the desktop link row's shortcuts.
+    assert count >= len(_page_titles()) >= 5
 
 
 def test_navigation_marks_the_current_page_inside_the_popover():
