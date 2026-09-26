@@ -10,6 +10,7 @@ import pandas as pd
 import streamlit as st
 
 from src.engine.pipeline import price_fingerprint
+from src.ui import page_kit as kit
 from src.ui.charts import render_rrg_chart
 from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.theme import render_saas_table
@@ -206,29 +207,22 @@ def render_rrg_view(
     adj_close: pd.DataFrame,
 ) -> None:
     """Renders Relative Rotation Graph (RRG ®) rotational analysis and quadrant matrix."""
-    st.markdown(
-        """
-        <div style="font-family: 'Geist', sans-serif; font-size: 1.10rem; font-weight: 800; color: #0E1726; margin-bottom: 2px;">
-            Relative Rotation Graph (RRG ®)
-        </div>
-        <div style="font-size: 0.76rem; color: #5E6878; margin-bottom: 14px;">
-            Track clockwise relative strength and momentum rotation against benchmark indices.
-        </div>
-        """,
-        unsafe_allow_html=True,
+    kit.page_head(
+        "Relative rotation",
+        "Which industries are gaining strength against the market, and which are fading: "
+        "they rotate clockwise from Improving to Leading, Weakening and Lagging",
     )
 
     col_chart, col_side = st.columns([3.1, 1.1], gap="medium")
 
     with col_side:
-        st.markdown(
-            "<div style='font-weight:700;font-size:0.85rem;margin-bottom:6px;color:#0E1726;'>Universe Scope</div>",
-            unsafe_allow_html=True,
-        )
+        st.html('<div class="pg-card-h"><h2>Compare</h2></div>')
         scope_pill = st.segmented_control(
             "Selection Scope",
             ["Sector Indices", "Top Stocks", "TV Sectors"],
             default="Sector Indices",
+            format_func=lambda k: {"Sector Indices": "Industries", "Top Stocks": "Top stocks",
+                                   "TV Sectors": "TradingView sectors"}[k],
             key="rrg_scope_pill",
             label_visibility="collapsed",
         )
@@ -259,13 +253,14 @@ def render_rrg_view(
             ),
         )
         tf_choice = c_tf.selectbox(
-            "Candle Timeframe",
+            "Timeframe",
             ["Weekly candle", "Daily candle"],
+            format_func=lambda k: k.split()[0],
             index=0,
             key="rrg_tf_choice",
         )
         tail_w = c_tail.slider(
-            "Tail Length (Weeks)",
+            "Tail (weeks)",
             min_value=2,
             max_value=20,
             value=6,
@@ -273,7 +268,7 @@ def render_rrg_view(
             key="rrg_tl_w",
         )
         lookback_w = c_lb.number_input(
-            "RS Lookback", min_value=4, max_value=52, value=12, step=1, key="rrg_lb_w"
+            "Lookback (weeks)", min_value=4, max_value=52, value=12, step=1, key="rrg_lb_w"
         )
 
         n_total_dates = len(adj_close)
@@ -282,10 +277,10 @@ def render_rrg_view(
 
         if len(date_options) > 1:
             sel_date_str = st.select_slider(
-                "Historic Timeline Scrubbing",
+                "As of",
                 options=date_options,
                 value=date_options[-1],
-                format_func=lambda x: f"Showing data for {tail_w} weeks ending: {pd.to_datetime(x):%d %b %Y}",
+                format_func=lambda x: f"{tail_w} weeks to {pd.to_datetime(x):%d %b %Y}",
                 key="rrg_timeline_scrub",
             )
         else:
@@ -348,16 +343,14 @@ def render_rrg_view(
 
         with col_side:
             spotlight = st.multiselect(
-                "Search and add indices / stocks",
+                "Show",
                 all_inds,
                 key=ms_key,
                 placeholder="Search and add…",
             )
 
             # 4-Quadrant 1-Click Filters
-            st.html(
-                "<div style='margin-top:10px;margin-bottom:6px;font-size:0.72rem;font-weight:700;color:#5E6878;font-family:Geist,sans-serif;text-align:left;text-transform:uppercase;letter-spacing:0.05em;'>QUICK QUADRANT SELECTION:</div>"
-            )
+            kit.caption("Show the top of one quadrant:")
             q_row1_c1, q_row1_c2 = st.columns(2)
             q_row1_c1.button(
                 "Leading",
@@ -395,46 +388,16 @@ def render_rrg_view(
             )
 
             # Active Items Chips with Filled Quadrant Color Styling & 1-Click Remove
-            st.html(
-                "<div style='margin-top:12px;margin-bottom:6px;font-size:0.72rem;font-weight:700;color:#5E6878;font-family:Geist,sans-serif;text-align:left;text-transform:uppercase;letter-spacing:0.05em;'>ACTIVE SELECTION (CLICK TO REMOVE):</div>"
-            )
+            kit.caption("On the chart (click one to remove it):")
             active_list = spotlight if spotlight is not None else []
 
             if not active_list:
-                st.caption("No assets selected. Click a quadrant above or search.")
-
-            quad_styles = {
-                "Leading": {
-                    "bg": "#dcfce7",
-                    "text": "#067647",
-                    "border": "#86efac",
-                    "icon": "🟢",
-                },
-                "Weakening": {
-                    "bg": "#fef9c3",
-                    "text": "#a16207",
-                    "border": "#fde047",
-                    "icon": "🟡",
-                },
-                "Lagging": {
-                    "bg": "#ffe4e6",
-                    "text": "#912018",
-                    "border": "#fca5a5",
-                    "icon": "🔴",
-                },
-                "Improving": {
-                    "bg": "#e0f2fe",
-                    "text": "#0284c7",
-                    "border": "#7dd3fc",
-                    "icon": "🔵",
-                },
-            }
+                kit.caption("Nothing selected. Pick a quadrant above, or search.")
 
             for sym in active_list:
                 q_row = rrg_df[rrg_df["Industry"] == sym]
                 quad = q_row["Quadrant"].iloc[0] if not q_row.empty else "Leading"
-                q_cfg = quad_styles.get(quad, quad_styles["Leading"])
-                btn_lbl = f"{q_cfg['icon']}  {sym}  ·  {quad}"
+                btn_lbl = f"{sym} · {quad}  ✕"
 
                 clean_btn_key = re.sub(
                     r"[^a-zA-Z0-9_]", "_", f"del_rrg_{target_col}_{sym}"
@@ -450,25 +413,16 @@ def render_rrg_view(
 
             if active_list:
                 st.button(
-                    "Clear All Selections",
+                    "Clear all",
                     key=f"btn_rrg_clr_{target_col}",
                     help="Clear all selections",
                     width="stretch",
                     on_click=_clear_rrg_all,
                 )
 
-            st.markdown(
-                """
-                <div style='margin-top:14px;background-color:#F4F5F8;border:1px solid #E3E6EB;border-radius:8px;padding:12px;font-size:0.75rem;color:#3C4657;line-height:1.45;'>
-                    <strong style='color:#0E1726;'>Tip:</strong> Click and drag on the chart to zoom.<br><br>
-                    <strong style='color:#0E1726;'>Lifecycle:</strong> Assets start in 
-                    <span style='color:#2563eb;font-weight:600;'>Improving</span>, rotate into 
-                    <span style='color:#067647;font-weight:600;'>Leading</span>, transition to 
-                    <span style='color:#ca8a04;font-weight:600;'>Weakening</span>, and finish in 
-                    <span style='color:#B42318;font-weight:600;'>Lagging</span>.
-                </div>
-                """,
-                unsafe_allow_html=True,
+            kit.caption(
+                "Drag on the chart to zoom. A stock or industry usually moves "
+                "Improving → Leading → Weakening → Lagging."
             )
 
         with col_chart:
@@ -479,10 +433,8 @@ def render_rrg_view(
                 current_date_str=sel_date_str,
             )
 
-            st.markdown(
-                "<div style='margin-top:14px;margin-bottom:6px;font-weight:700;font-size:0.88rem;color:#0E1726;font-family:Geist,sans-serif;'>Relative Strength & Momentum Matrix</div>",
-                unsafe_allow_html=True,
-            )
+            st.html('<div class="pg-card-h" style="margin-top:14px"><h2>Strength and momentum, by name</h2>'
+                    "<span>RS ratio above 100 = stronger than the benchmark · momentum above 100 = gaining</span></div>")
             view_cols = ["Industry", "RS_Ratio", "RS_Momentum", "Quadrant", "Stocks"]
             view_df = (
                 rrg_df[view_cols]

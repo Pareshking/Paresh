@@ -616,6 +616,26 @@ def inject_custom_css() -> None:
         .pg-bar-v { font-family: var(--font-mono); font-size: 13px; text-align: right; color: #0E1726; }
         [class*="st-key-pg_actions_"] { gap: 10px !important; }
         .hm-wrap { overflow-x: auto; }
+        .cfg-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+        .cfg-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+        .cfg-pill { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 999px; background: #F1F3F6; color: #3C4657; font-size: 12.5px; font-weight: 600; }
+        .cfg-pill.ok { background: #E8F5EE; color: #054F31; }
+        .cfg-pill i { width: 7px; height: 7px; border-radius: 50%; background: #067647; }
+        .cfg-h { font-size: 15px; font-weight: 650; color: #0E1726; margin: 6px 0 2px; }
+        .cfg-s { font-size: 13px; color: #5E6878; margin-bottom: 10px; }
+        .st-key-cfg_tabs [role="radiogroup"] { gap: 4px !important; padding: 4px; border-radius: 12px; background: #ECEEF2; display: inline-flex !important; flex-wrap: wrap; }
+        .st-key-cfg_tabs [role="radiogroup"] label { margin: 0 !important; padding: 7px 14px !important; border-radius: 9px; cursor: pointer; }
+        .st-key-cfg_tabs [role="radiogroup"] label > div:has(input) { display: none !important; }
+        .st-key-cfg_tabs [role="radiogroup"] label input { position: absolute; opacity: 0; }
+        .st-key-cfg_tabs [role="radiogroup"] label:has(input:checked) { background: #FFFFFF; box-shadow: 0 1px 2px rgba(14,23,38,0.08); }
+        .st-key-cfg_tabs [role="radiogroup"] label p { font-size: 14px !important; font-weight: 600 !important; color: #3C4657 !important; }
+        .st-key-cfg_tabs [role="radiogroup"] label:has(input:checked) p { color: #0E1726 !important; }
+        .bt-sum {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; padding: 14px 20px;
+            background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 16px; font-size: 13.5px; color: #3C4657;
+        }
+        .bt-sum > b { font-size: 13px; font-weight: 600; color: #5E6878; }
+        .bt-sum span b { color: #0E1726; font-weight: 650; }
         .gc-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: #3C4657; }
         .gc-legend span { display: inline-flex; align-items: center; gap: 6px; }
         .gc-legend i { width: 14px; height: 3px; border-radius: 2px; background: #98A1AE; }
@@ -1230,6 +1250,14 @@ def inject_custom_css() -> None:
             border-color: #4f46e5 !important;
             color: #4f46e5 !important;
             background-color: #F4F5F8 !important;
+        }
+
+        /* The page's one main action: indigo, per the design. */
+        .stButton > button[kind="primary"] {
+            background-color: #4F46E5 !important; border-color: #4F46E5 !important; color: #FFFFFF !important;
+        }
+        .stButton > button[kind="primary"]:hover {
+            background-color: #4338CA !important; border-color: #4338CA !important; color: #FFFFFF !important;
         }
 
         [data-testid="stDownloadButton"] button {

@@ -7,22 +7,18 @@ parameter lookbacks, weight dependencies, trade execution protocols, and market 
 import pandas as pd
 import streamlit as st
 
+from src.ui import page_kit as kit
+
 from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.theme import render_saas_table
 
 
 def render_guide_view(rank_df: pd.DataFrame) -> None:
     """Renders the comprehensive Strategy Architecture & Factor Handbook with standardized typography."""
-    st.markdown(
-        """
-        <div style="font-family: 'Geist', sans-serif; font-size: 1.15rem; font-weight: 800; color: #0E1726; margin-bottom: 2px;">
-            Quantitative Strategy & Factor Architecture Handbook
-        </div>
-        <div style="font-family: 'Geist', sans-serif; font-size: 13px; color: #5E6878; margin-bottom: 14px;">
-            Institutional reference detailing mathematical formulations, parameter lookbacks, weight dependencies, risk engines, and regime playbooks.
-        </div>
-        """,
-        unsafe_allow_html=True,
+    kit.page_head(
+        "Guide",
+        "How the ranking, the filters, the backtest and the portfolio work, "
+        "the formulas behind them, and how to act on them",
     )
 
     section_tab = st.segmented_control(
@@ -97,7 +93,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px;">
                 <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:14px;">
                     <div style="font-weight:700; font-size:13px; color:#4f46e5; margin-bottom:6px;">
-                        👑 What it does
+                        What it does
                     </div>
                     <div style="font-size:13px; color:#3C4657; line-height:1.6;">
                         • <strong>Multi-Horizon Blend</strong>: five calendar horizons — 1M (10%), 3M (30%), 6M (30%), 9M (20%), 12M (10%).<br>
@@ -108,7 +104,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 </div>
                 <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:14px;">
                     <div style="font-weight:700; font-size:13px; color:#0284c7; margin-bottom:6px;">
-                        🚫 What was removed, and why
+                        What was removed, and why
                     </div>
                     <div style="font-size:13px; color:#3C4657; line-height:1.6;">
                         • <strong>Single-Window Sharpe, Multi-Window Pure Sharpe, Vectorised Exp-Regression, Residual Alpha, Industry-Relative, Momentum Acceleration</strong> — none ever fed the composite Rank. Each added columns and its own failure modes.<br>
@@ -426,7 +422,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
         zerodha_guide_html = """
         <div style="padding:18px; background-color:#ffffff; border:1px solid #E3E6EB; border-radius:12px; font-family:'Geist',sans-serif; font-size:13px; color:#3C4657; line-height:1.65; box-shadow:0 1px 3px rgba(0,0,0,0.02); margin-bottom:16px;">
             <div style="font-size:14px; font-weight:700; color:#0E1726; margin-bottom:12px;">
-                🚀 Zerodha Kite 1-Click Basket Execution Playbook
+                Zerodha Kite 1-Click Basket Execution Playbook
             </div>
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px;">
                 <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
