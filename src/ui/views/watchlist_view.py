@@ -37,10 +37,10 @@ def render_watchlist_view(rank_df: pd.DataFrame) -> None:
     """Renders user custom watchlist tracking view with cloud & local persistence."""
     st.markdown(
         """
-        <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.10rem; font-weight: 800; color: #0f172a; margin-bottom: 2px;">
+        <div style="font-family: 'Geist', sans-serif; font-size: 1.10rem; font-weight: 800; color: #0E1726; margin-bottom: 2px;">
             Personal Watchlist & Custom Monitor
         </div>
-        <div style="font-size: 0.76rem; color: #64748b; margin-bottom: 14px;">
+        <div style="font-size: 0.76rem; color: #5E6878; margin-bottom: 14px;">
             Track high-conviction stocks across multi-window momentum, trailing stops, and rank dynamics. Persists across local and Streamlit Cloud sessions.
         </div>
         """,

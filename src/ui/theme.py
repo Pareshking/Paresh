@@ -121,71 +121,56 @@ def inject_custom_css() -> None:
         clean_html("""
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Geist:wght@400..700&family=Geist+Mono:wght@400..700&display=swap" rel="stylesheet">
 
         <style>
-        /* ── Design Tokens (light default; dark override via media query) ── */
+        /* ── Design tokens: "Clear Ledger", light only ──────────────────
+           The owner asked for a light app, so there is no dark override: a
+           reader whose OS is in dark mode still gets the light palette the
+           design was checked against (4.5:1 text contrast, 12px minimum). */
         :root {
-            --c-bg: #ffffff;
-            --c-bg-subtle: #f8fafc;
-            --c-surface: #ffffff;
-            --c-border: #e2e8f0;
-            --c-text-primary: #0f172a;
-            --c-text-secondary: #475569;
-            --c-text-muted: #64748b;
-            --c-accent: #4f46e5;
-            --c-bull: #059669;
-            --c-bear: #e11d48;
-        }
-        @media (prefers-color-scheme: dark) {
-            :root:not([data-theme="light"]) {
-                --c-bg: #0f172a;
-                --c-bg-subtle: #1e293b;
-                --c-surface: #1e293b;
-                --c-border: #334155;
-                --c-text-primary: #f1f5f9;
-                --c-text-secondary: #94a3b8;
-                --c-text-muted: #64748b;
-                --c-accent: #818cf8;
-                --c-bull: #34d399;
-                --c-bear: #fb7185;
-            }
-        }
-        :root[data-theme="dark"] {
-            --c-bg: #0f172a;
-            --c-bg-subtle: #1e293b;
-            --c-surface: #1e293b;
-            --c-border: #334155;
-            --c-text-primary: #f1f5f9;
-            --c-text-secondary: #94a3b8;
-            --c-text-muted: #64748b;
-            --c-accent: #818cf8;
-            --c-bull: #34d399;
-            --c-bear: #fb7185;
+            --c-bg: #F6F7F9;
+            --c-bg-subtle: #F4F5F8;
+            --c-surface: #FFFFFF;
+            --c-border: #E3E6EB;
+            --c-border-strong: #D0D5DD;
+            --c-text-primary: #0E1726;
+            --c-text-secondary: #3C4657;
+            --c-text-muted: #5E6878;
+            --c-accent: #4F46E5;
+            --c-accent-text: #4338CA;
+            --c-bull: #067647;
+            --c-bull-tint: #E8F5EE;
+            --c-bear: #B42318;
+            --c-bear-tint: #FDEDEB;
+            --c-caution: #B54708;
+            --font-ui: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-display: 'Bricolage Grotesque', 'Geist', sans-serif;
+            --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
         }
 
         /* ── Base Reset & Typography Hierarchy ── */
         html, body, [class*="css"] {
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-            color: #0f172a !important;
-            background-color: #ffffff !important;
+            font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+            color: #0E1726 !important;
+            background-color: #F6F7F9 !important;
             -webkit-font-smoothing: antialiased;
         }
 
         /* ── Typography Classes ── */
         .font-display, h1, h2, h3, h4, [data-testid="stMetricValue"] {
-            font-family: 'Outfit', -apple-system, sans-serif !important;
+            font-family: 'Bricolage Grotesque', -apple-system, sans-serif !important;
             letter-spacing: -0.02em !important;
         }
         .font-mono, [data-testid="stMetricDelta"] {
-            font-family: 'JetBrains Mono', monospace !important;
+            font-family: 'Geist Mono', monospace !important;
             font-variant-numeric: tabular-nums !important;
         }
         .font-code, code, pre {
-            font-family: 'Fira Code', monospace !important;
+            font-family: 'Geist Mono', monospace !important;
         }
 .font-sans {
-            font-family: 'Plus Jakarta Sans', sans-serif !important;
+            font-family: 'Geist', sans-serif !important;
         }
 
         /* ── Completely Hide Clunky Grey Native Scrollbars Everywhere (Across All 11 Tabs) ── */
@@ -197,7 +182,7 @@ def inject_custom_css() -> None:
         div[role="alert"][aria-label="Market signals"],
         .ticker-ribbon {
             scrollbar-width: thin !important;
-            scrollbar-color: #cbd5e1 transparent !important;
+            scrollbar-color: #D0D5DD transparent !important;
             -ms-overflow-style: auto !important;
         }
         div[role="alert"][aria-label="Market signals"]::-webkit-scrollbar,
@@ -207,7 +192,7 @@ def inject_custom_css() -> None:
         }
         div[role="alert"][aria-label="Market signals"]::-webkit-scrollbar-thumb,
         .ticker-ribbon::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1 !important;
+            background-color: #D0D5DD !important;
             border-radius: 99px !important;
         }
         *::-webkit-scrollbar, 
@@ -229,7 +214,7 @@ def inject_custom_css() -> None:
         }
 
         .stApp {
-            background-color: #ffffff !important;
+            background-color: #F6F7F9 !important;
         }
 
         /* ── Completely Eliminate Top Space & Streamlit Header ── */
@@ -261,7 +246,11 @@ def inject_custom_css() -> None:
         }
 
         .main .block-container, [data-testid="stMainBlockContainer"], [data-testid="block-container"] {
-            max-width: 100% !important;
+            /* 1360px keeps a 13-column table readable without the lines
+               getting so long on a wide monitor that the eye loses the row. */
+            max-width: 1360px !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
             padding-top: 0.15rem !important;
             padding-bottom: 2rem !important;
             padding-left: 1.5rem !important;
@@ -325,10 +314,10 @@ def inject_custom_css() -> None:
             display: flex !important;
             width: 100% !important;
             gap: 4px !important;
-            background-color: #f8fafc !important;
+            background-color: #F4F5F8 !important;
             padding: 4px 5px !important;
             border-radius: 9px !important;
-            border: 1px solid #e2e8f0 !important;
+            border: 1px solid #E3E6EB !important;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
             margin-bottom: 0.85rem !important;
         }
@@ -350,10 +339,10 @@ def inject_custom_css() -> None:
             padding: 0 4px !important;
             background-color: transparent !important;
             border: 1px solid transparent !important;
-            font-family: 'Plus Jakarta Sans', sans-serif !important;
+            font-family: 'Geist', sans-serif !important;
             font-size: 12.5px !important;
             font-weight: 600 !important;
-            color: #64748b !important;
+            color: #5E6878 !important;
             white-space: nowrap !important;
             transition: all 0.15s ease !important;
             cursor: pointer !important;
@@ -361,8 +350,8 @@ def inject_custom_css() -> None:
 
         .stTabs [data-baseweb="tab"]:hover {
             background-color: #ffffff !important;
-            color: #0f172a !important;
-            border-color: #e2e8f0 !important;
+            color: #0E1726 !important;
+            border-color: #E3E6EB !important;
         }
 
         .stTabs [aria-selected="true"] {
@@ -381,36 +370,123 @@ def inject_custom_css() -> None:
            exists in the floating popover when the reader asks for it. */
         .st-key-app_header_shell {
             position: relative !important;
-            margin-bottom: 6px !important;
-            min-height: 0 !important;
-            padding: 0 !important;
-            border: 1px solid #e2e8f0 !important;
-            border-radius: 9px !important;
-            background: #ffffff !important;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+            margin: 6px 0 4px 0 !important;
+            min-height: 60px !important;
+            padding: 8px 60px 8px 14px !important;
+            border: 1px solid #E3E6EB !important;
+            border-radius: 14px !important;
+            background: #FFFFFF !important;
+            box-shadow: 0 1px 2px rgba(14, 23, 38, 0.04) !important;
             overflow: visible !important;
+            gap: 18px !important;
+        }
+
+        /* Brand: mark + name. */
+        .hdr-brand { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+        .hdr-mark {
+            width: 32px; height: 32px; border-radius: 9px; background: #4F46E5;
+            display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .hdr-mark { gap: 3px; align-items: flex-end; padding-bottom: 9px; box-sizing: border-box; }
+        .hdr-mark i { display: block; width: 4px; border-radius: 2px; background: #FFFFFF; }
+        .hdr-mark i:nth-child(1) { height: 6px; }
+        .hdr-mark i:nth-child(2) { height: 10px; }
+        .hdr-mark i:nth-child(3) { height: 14px; }
+        .hdr-name { display: flex; flex-direction: column; line-height: 1.1; }
+        .hdr-title {
+            font-family: var(--font-display); font-size: 17px; font-weight: 700;
+            letter-spacing: -0.2px; color: #0E1726;
+        }
+        .hdr-by { font-size: 12px; color: #5E6878; }
+
+        /* Desktop link row. Underlined, not boxed: it is a menu, not buttons. */
+        .st-key-app_toplinks { gap: 2px !important; flex-wrap: nowrap !important; overflow: hidden !important; }
+        .st-key-app_toplinks [data-testid="stPageLink"] a {
+            padding: 8px 10px !important;
+            border-radius: 8px !important;
+            border-bottom: 2px solid transparent !important;
+            color: #3C4657 !important;
+            text-decoration: none !important;
+            white-space: nowrap !important;
+            background: transparent !important;
+        }
+        .st-key-app_toplinks [data-testid="stPageLink"] a p,
+        .st-key-app_toplinks [data-testid="stPageLink"] a span {
+            font-family: var(--font-ui) !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            color: inherit !important;
+        }
+        .st-key-app_toplinks [data-testid="stPageLink"] a:hover {
+            background: #F4F5F8 !important;
+            color: #0E1726 !important;
+        }
+        .st-key-app_toplinks [class*="st-key-navon_"] [data-testid="stPageLink"] a {
+            color: #0E1726 !important;
+            border-bottom-color: #4F46E5 !important;
+            border-radius: 8px 8px 0 0 !important;
+        }
+        .st-key-app_toplinks [class*="st-key-navon_"] [data-testid="stPageLink"] a p {
+            font-weight: 650 !important;
+        }
+
+        /* Data status pill. Green when every source is current, amber naming
+           the stale one otherwise. */
+        .hdr-pill {
+            display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+            height: 32px; padding: 0 12px; border-radius: 999px;
+            background: #E8F5EE; color: #054F31; font-size: 13px; font-weight: 600;
+        }
+        .hdr-pill .hdr-dot { width: 8px; height: 8px; border-radius: 50%; background: #067647; }
+        .hdr-pill-warn { background: #FEF6EA; color: #7A2E0E; }
+        .hdr-pill-warn .hdr-dot { background: #B54708; }
+
+        /* Market line under the bar. Keeps "NIFTY" and "Universe:" visible:
+           the production QA probe reads them as its readiness signal. */
+        .mkt-line {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px;
+            padding: 4px 4px 10px; font-size: 13px; color: #3C4657;
+        }
+        .mkt-line strong { color: #0E1726; font-weight: 600; font-variant-numeric: tabular-nums; }
+        .mkt-line .mkt-sep { color: #A5ACB8; }
+        .mkt-line .mkt-regime { font-weight: 700; }
+        .mkt-line .mkt-up, .mkt-line strong.mkt-up { color: #067647; }
+        .mkt-line .mkt-down, .mkt-line strong.mkt-down { color: #B42318; }
+
+        @media (max-width: 900px) {
+            .st-key-app_toplinks { display: none !important; }
+        }
+        @media (max-width: 640px) {
+            .st-key-app_header_shell { min-height: 52px !important; padding: 6px 56px 6px 10px !important; gap: 10px !important; flex-wrap: nowrap !important; justify-content: space-between !important; }
+            .hdr-pill-lead { display: none; }
+            .mkt-line .mkt-sep { display: none; }
+            .hdr-by { display: none; }
+            .hdr-title { font-size: 16px; }
+            .hdr-pill { height: 28px; padding: 0 10px; font-size: 12px; }
+            .mkt-line { font-size: 12px; padding: 2px 2px 8px; }
         }
 
         /* Keep the Streamlit popover out of normal flow so mobile flex
            stacking cannot move it underneath the header. */
         .st-key-app_header_shell [class*="st-key-app_nav_menu_"] {
             position: absolute !important;
-            top: 8px !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
             right: 7px !important;
             z-index: 20 !important;
-            width: 38px !important;
-            min-width: 38px !important;
+            width: 40px !important;
+            min-width: 40px !important;
             margin: 0 !important;
         }
 
         [class*="st-key-app_nav_menu_"] button {
-            min-height: 34px !important;
-            width: 38px !important;
+            min-height: 40px !important;
+            width: 40px !important;
             padding: 0 !important;
-            border: 1px solid #e2e8f0 !important;
+            border: 1px solid #E3E6EB !important;
             border-radius: 8px !important;
-            background: #f8fafc !important;
-            color: #475569 !important;
+            background: #F4F5F8 !important;
+            color: #3C4657 !important;
             font-size: 18px !important;
             line-height: 1 !important;
         }
@@ -427,17 +503,17 @@ def inject_custom_css() -> None:
             min-height: 38px !important;
             padding: 7px 10px !important;
             border-radius: 7px !important;
-            color: #475569 !important;
+            color: #3C4657 !important;
             text-decoration: none !important;
-            font-family: 'Plus Jakarta Sans', sans-serif !important;
+            font-family: 'Geist', sans-serif !important;
             font-size: 13px !important;
             font-weight: 600 !important;
         }
 
         [data-testid="stPopover"] [data-testid="stPageLink"] a:hover,
         [data-testid="stPopoverBody"] [data-testid="stPageLink"] a:hover {
-            background: #f8fafc !important;
-            color: #0f172a !important;
+            background: #F4F5F8 !important;
+            color: #0E1726 !important;
         }
 
         [data-testid="stPopover"] [class*="st-key-navon_"] [data-testid="stPageLink"] a,
@@ -465,9 +541,9 @@ def inject_custom_css() -> None:
             font-weight: 600 !important;
             padding: 2px 10px !important;
             height: 36px !important;
-            border: 1px solid #e2e8f0 !important;
-            background-color: #f8fafc !important;
-            color: #475569 !important;
+            border: 1px solid #E3E6EB !important;
+            background-color: #F4F5F8 !important;
+            color: #3C4657 !important;
             white-space: nowrap !important;
             flex-shrink: 0 !important;
             transition: all 0.15s ease !important;
@@ -476,7 +552,7 @@ def inject_custom_css() -> None:
         [data-testid="stPills"] button:hover {
             background-color: #ffffff !important;
             color: #4f46e5 !important;
-            border-color: #cbd5e1 !important;
+            border-color: #D0D5DD !important;
         }
 
         [data-testid="stPills"] button[aria-checked="true"] {
@@ -491,8 +567,8 @@ def inject_custom_css() -> None:
         [data-testid="stSegmentedControl"] {
             height: 36px !important;
             border-radius: 8px !important;
-            background-color: #f8fafc !important;
-            border: 1px solid #e2e8f0 !important;
+            background-color: #F4F5F8 !important;
+            border: 1px solid #E3E6EB !important;
             padding: 2px !important;
         }
 
@@ -502,7 +578,7 @@ def inject_custom_css() -> None:
             font-size: 0.78rem !important;
             font-weight: 600 !important;
             padding: 0 10px !important;
-            color: #64748b !important;
+            color: #5E6878 !important;
             border: none !important;
         }
 
@@ -517,7 +593,7 @@ def inject_custom_css() -> None:
         div[data-testid="stSelectbox"] > div {
             min-height: 36px !important;
             border-radius: 8px !important;
-            border-color: #e2e8f0 !important;
+            border-color: #E3E6EB !important;
             font-size: 0.82rem !important;
         }
 
@@ -571,8 +647,8 @@ def inject_custom_css() -> None:
             gap: 16px;
             overflow-x: auto;
             padding: 8px 16px;
-            background-color: #f8fafc;
-            border: 1px solid #e2e8f0;
+            background-color: #F4F5F8;
+            border: 1px solid #E3E6EB;
             border-radius: 12px;
             margin-bottom: 16px;
             scrollbar-width: none;
@@ -584,52 +660,52 @@ def inject_custom_css() -> None:
             display: flex;
             align-items: center;
             gap: 8px;
-            font-family: 'IBM Plex Mono', monospace;
+            font-family: 'Geist Mono', monospace;
             font-size: 0.78rem;
             white-space: nowrap;
             padding: 4px 10px;
             background-color: #ffffff;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #E3E6EB;
             border-radius: 8px;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
         }
 
         /* ── Headings & Badges ── */
         h1, h2, h3, h4, h5, h6 {
-            color: #0f172a !important;
+            color: #0E1726 !important;
             font-weight: 700 !important;
             letter-spacing: -0.02em !important;
         }
 
         p, [data-testid="stMarkdownContainer"] p {
-            color: #334155 !important;
+            color: #3C4657 !important;
             font-size: 0.88rem;
         }
 
         [data-testid="stCaptionContainer"] {
             font-size: 0.78rem !important;
-            color: #64748b !important;
+            color: #5E6878 !important;
         }
 
         /* ── Slim Left Sidebar ── */
         [data-testid="stSidebar"] {
-            background-color: #f8fafc !important;
-            border-right: 1px solid #e2e8f0 !important;
+            background-color: #F4F5F8 !important;
+            border-right: 1px solid #E3E6EB !important;
             box-shadow: 1px 0 3px rgba(0, 0, 0, 0.02) !important;
         }
 
         [data-testid="stSidebarContent"] {
-            background-color: #f8fafc !important;
+            background-color: #F4F5F8 !important;
             padding: 1.2rem 1.1rem !important;
         }
 
         .sidebar-section-title {
-            font-family: 'IBM Plex Mono', monospace;
+            font-family: 'Geist Mono', monospace;
             font-size: 0.68rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            color: #64748b;
+            color: #5E6878;
             margin-top: 14px;
             margin-bottom: 6px;
         }
@@ -645,14 +721,14 @@ def inject_custom_css() -> None:
             background-color: transparent !important;
             font-weight: 600 !important;
             font-size: 0.85rem !important;
-            color: #334155 !important;
+            color: #3C4657 !important;
             transition: all 0.15s ease !important;
             cursor: pointer !important;
             width: 100% !important;
         }
         [data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
             background-color: #ffffff !important;
-            border-color: #e2e8f0 !important;
+            border-color: #E3E6EB !important;
             color: #4f46e5 !important;
         }
         [data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) {
@@ -664,8 +740,8 @@ def inject_custom_css() -> None:
 
         [data-testid="stSidebar"] .stButton > button {
             background-color: #ffffff !important;
-            border: 1px solid #e2e8f0 !important;
-            color: #1e293b !important;
+            border: 1px solid #E3E6EB !important;
+            color: #1F2A3A !important;
             font-weight: 600 !important;
             border-radius: 8px !important;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
@@ -681,7 +757,7 @@ def inject_custom_css() -> None:
         /* ── Metric Containers ── */
         [data-testid="metric-container"] {
             background-color: #ffffff !important;
-            border: 1px solid #e2e8f0 !important;
+            border: 1px solid #E3E6EB !important;
             border-radius: 14px !important;
             padding: 1.1rem 1.3rem !important;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02) !important;
@@ -689,36 +765,36 @@ def inject_custom_css() -> None:
         }
 
         [data-testid="metric-container"]:hover {
-            border-color: #cbd5e1 !important;
+            border-color: #D0D5DD !important;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -1px rgba(0, 0, 0, 0.04) !important;
         }
 
         [data-testid="stMetricLabel"] {
-            font-family: 'IBM Plex Mono', monospace !important;
+            font-family: 'Geist Mono', monospace !important;
             font-size: 0.72rem !important;
             font-weight: 600 !important;
             text-transform: uppercase !important;
             letter-spacing: 0.08em !important;
-            color: #64748b !important;
+            color: #5E6878 !important;
         }
 
         [data-testid="stMetricValue"] {
-            font-family: 'IBM Plex Mono', monospace !important;
+            font-family: 'Geist Mono', monospace !important;
             font-size: 1.6rem !important;
             font-weight: 700 !important;
-            color: #0f172a !important;
+            color: #0E1726 !important;
         }
 
         [data-testid="stMetricDelta"] {
-            font-family: 'IBM Plex Mono', monospace !important;
+            font-family: 'Geist Mono', monospace !important;
             font-size: 0.78rem !important;
             font-weight: 600 !important;
         }
 
         /* ── Navigation Tabs ── */
         [data-baseweb="tab-list"] {
-            background-color: #f8fafc !important;
-            border: 1px solid #e2e8f0 !important;
+            background-color: #F4F5F8 !important;
+            border: 1px solid #E3E6EB !important;
             border-radius: 12px !important;
             padding: 0.35rem !important;
             gap: 0.25rem !important;
@@ -728,23 +804,23 @@ def inject_custom_css() -> None:
         [data-baseweb="tab"] {
             border-radius: 8px !important;
             padding: 0.45rem 1rem !important;
-            font-family: 'IBM Plex Mono', monospace !important;
+            font-family: 'Geist Mono', monospace !important;
             font-size: 0.8rem !important;
             font-weight: 600 !important;
-            color: #64748b !important;
+            color: #5E6878 !important;
             border: none !important;
             transition: all 0.15s ease !important;
         }
 
         [data-baseweb="tab"]:hover {
-            color: #0f172a !important;
-            background-color: #f1f5f9 !important;
+            color: #0E1726 !important;
+            background-color: #F1F3F6 !important;
         }
 
         [aria-selected="true"][data-baseweb="tab"] {
             background-color: #ffffff !important;
             color: #4f46e5 !important;
-            border: 1px solid #e2e8f0 !important;
+            border: 1px solid #E3E6EB !important;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
         }
 
@@ -755,7 +831,7 @@ def inject_custom_css() -> None:
         /* ── Stock Screener Card (Tickerboom style) ── */
         .stock-card {
             background-color: #ffffff;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #E3E6EB;
             border-radius: 14px;
             padding: 16px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
@@ -767,7 +843,7 @@ def inject_custom_css() -> None:
         }
         .stock-card:hover {
             transform: translateY(-2px);
-            border-color: #cbd5e1;
+            border-color: #D0D5DD;
             box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.08);
         }
         .stock-card-header {
@@ -777,13 +853,13 @@ def inject_custom_css() -> None:
             margin-bottom: 8px;
         }
         .stock-card-sym {
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-family: 'Geist', sans-serif;
             font-size: 1.15rem;
             font-weight: 800;
-            color: #0f172a;
+            color: #0E1726;
         }
         .stock-card-rank {
-            font-family: 'IBM Plex Mono', monospace;
+            font-family: 'Geist Mono', monospace;
             font-size: 0.72rem;
             font-weight: 700;
             padding: 2px 8px;
@@ -794,23 +870,23 @@ def inject_custom_css() -> None:
         }
         .stock-card-company {
             font-size: 0.76rem;
-            color: #64748b;
+            color: #5E6878;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             margin-bottom: 12px;
         }
         .stock-card-price {
-            color: #0f172a !important;
+            color: #0E1726 !important;
             font-size: 1.35rem !important;
             font-weight: 800 !important;
-            font-family: 'IBM Plex Mono', monospace !important;
+            font-family: 'Geist Mono', monospace !important;
             letter-spacing: -0.02em !important;
         }
 
         /* ── Financial High-Density DataTables ── */
         [data-testid="stDataFrame"] {
-            border: 1px solid #e2e8f0 !important;
+            border: 1px solid #E3E6EB !important;
             border-radius: 12px !important;
             overflow: hidden !important;
             background-color: #ffffff !important;
@@ -820,9 +896,9 @@ def inject_custom_css() -> None:
         /* ── Form Inputs & Buttons ── */
         .stButton > button {
             background-color: #ffffff !important;
-            border: 1px solid #cbd5e1 !important;
+            border: 1px solid #D0D5DD !important;
             border-radius: 8px !important;
-            color: #334155 !important;
+            color: #3C4657 !important;
             font-size: 0.84rem !important;
             font-weight: 600 !important;
             padding: 0.4rem 0.9rem !important;
@@ -833,34 +909,34 @@ def inject_custom_css() -> None:
         .stButton > button:hover {
             border-color: #4f46e5 !important;
             color: #4f46e5 !important;
-            background-color: #f8fafc !important;
+            background-color: #F4F5F8 !important;
         }
 
         [data-testid="stDownloadButton"] > button {
-            background-color: #ecfdf5 !important;
-            color: #059669 !important;
+            background-color: #E8F5EE !important;
+            color: #067647 !important;
             border: 1px solid #a7f3d0 !important;
             font-weight: 600 !important;
             border-radius: 8px !important;
         }
 
         [data-testid="stDownloadButton"] > button:hover {
-            background-color: #d1fae5 !important;
+            background-color: #D3EEDF !important;
             border-color: #6ee7b7 !important;
             color: #047857 !important;
         }
 
         [data-baseweb="select"] > div {
             background-color: #ffffff !important;
-            border: 1px solid #cbd5e1 !important;
+            border: 1px solid #D0D5DD !important;
             border-radius: 8px !important;
-            color: #0f172a !important;
+            color: #0E1726 !important;
         }
 
         [data-baseweb="input"] input, [data-baseweb="textarea"] textarea {
             background-color: #ffffff !important;
-            border: 1px solid #cbd5e1 !important;
-            color: #0f172a !important;
+            border: 1px solid #D0D5DD !important;
+            color: #0E1726 !important;
             border-radius: 8px !important;
             font-size: 0.85rem !important;
         }
@@ -872,7 +948,7 @@ def inject_custom_css() -> None:
 
         [data-testid="stExpander"] {
             background-color: #ffffff !important;
-            border: 1px solid #e2e8f0 !important;
+            border: 1px solid #E3E6EB !important;
             border-radius: 12px !important;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
             margin-bottom: 0.8rem !important;
@@ -881,7 +957,7 @@ def inject_custom_css() -> None:
         [data-testid="stExpander"] summary {
             font-size: 0.86rem !important;
             font-weight: 600 !important;
-            color: #1e293b !important;
+            color: #1F2A3A !important;
         }
 
         [data-testid="stSlider"] [role="slider"] {
@@ -890,7 +966,7 @@ def inject_custom_css() -> None:
         }
 
         hr {
-            border-color: #f1f5f9 !important;
+            border-color: #F1F3F6 !important;
             margin: 1.2rem 0 !important;
         }
         </style>
@@ -902,11 +978,11 @@ def inject_custom_css() -> None:
 def generate_sparkline_svg(prices_arr, width: int = 74, height: int = 24) -> str:
     """Generates an ultra-lightweight inline SVG sparkline for price trajectories."""
     if prices_arr is None or len(prices_arr) < 2:
-        return '<span style="color:#cbd5e1;font-size:0.75rem;">—</span>'
+        return '<span style="color:#D0D5DD;font-size:0.75rem;">—</span>'
     try:
         p = [float(x) for x in prices_arr if pd.notna(x)]
         if len(p) < 2:
-            return '<span style="color:#cbd5e1;font-size:0.75rem;">—</span>'
+            return '<span style="color:#D0D5DD;font-size:0.75rem;">—</span>'
         p_min, p_max = min(p), max(p)
         rng = p_max - p_min
         if rng <= 0:
@@ -918,10 +994,10 @@ def generate_sparkline_svg(prices_arr, width: int = 74, height: int = 24) -> str
             y = round(height - 4 - ((val - p_min) / rng) * (height - 8), 1)
             pts.append(f"{x},{y}")
         path_d = "M " + " L ".join(pts)
-        color = "#059669" if p[-1] >= p[0] else "#e11d48"
+        color = "#067647" if p[-1] >= p[0] else "#B42318"
         return f'<svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" style="display:inline-block;vertical-align:middle;"><path d="{path_d}" fill="none" stroke="{color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
     except Exception:
-        return '<span style="color:#cbd5e1;font-size:0.75rem;">—</span>'
+        return '<span style="color:#D0D5DD;font-size:0.75rem;">—</span>'
 
 
 PERIOD_WINDOWS: tuple[int, ...] = (1, 3, 6, 9, 12)
@@ -955,7 +1031,7 @@ def _period_cells(row, months: int) -> dict[str, str]:
     }
 
 
-_SPARK_MISSING = '<span style="color:#cbd5e1;font-size:0.75rem;">—</span>'
+_SPARK_MISSING = '<span style="color:#D0D5DD;font-size:0.75rem;">—</span>'
 
 
 def _spark_window_key(sub_prices: pd.DataFrame) -> str:
@@ -1366,7 +1442,7 @@ def render_master_screener_table(
         sym_link = (
             f'<a href="?stock={_urlq(str(sym), safe="")}" '
             f'class="stock-ticker" data-stock="{sym_s}" '
-            f'style="text-decoration:none;border-bottom:1px dotted #94a3b8;'
+            f'style="text-decoration:none;border-bottom:1px dotted #6B7482;'
             f'cursor:pointer;" title="Open {sym_s}">{sym_s}</a>'
         )
 
@@ -1395,13 +1471,13 @@ def render_master_screener_table(
 <meta charset="utf-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Geist:wght@400..700&family=Geist+Mono:wght@400..700&display=swap" rel="stylesheet">
 <style>
 * {{ box-sizing: border-box; margin: 0; padding: 0; }}
 body {{
     background: transparent;
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    color: #0f172a;
+    font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #0E1726;
     -webkit-font-smoothing: antialiased;
     padding: 2px;
 }}
@@ -1409,7 +1485,7 @@ body {{
     width: 100%;
     max-height: {max_height}px;
     overflow: auto;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #E3E6EB;
     border-radius: 12px;
     background: #ffffff;
     box-shadow: 0 1px 3px rgba(0,0,0,0.03);
@@ -1429,9 +1505,9 @@ body::-webkit-scrollbar,
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
     font-size: 12.5px;
-    color: #0f172a;
+    color: #0E1726;
     white-space: nowrap;
 }}
 
@@ -1440,15 +1516,15 @@ body::-webkit-scrollbar,
     position: sticky;
     top: 0;
     z-index: 20;
-    background: #f8fafc;
-    color: #64748b;
-    font-family: 'JetBrains Mono', monospace;
+    background: #F4F5F8;
+    color: #5E6878;
+    font-family: 'Geist Mono', monospace;
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     padding: 7px 10px;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid #E3E6EB;
     border-left: none;
     border-right: none;
     text-align: center;
@@ -1460,8 +1536,8 @@ body::-webkit-scrollbar,
     left: 0;
     top: 0;
     z-index: 40;
-    background: #f1f5f9;
-    border-right: 1.5px solid #cbd5e1;
+    background: #F1F3F6;
+    border-right: 1.5px solid #D0D5DD;
     box-shadow: 3px 0 6px rgba(0,0,0,0.04);
 }}
 
@@ -1470,15 +1546,15 @@ body::-webkit-scrollbar,
     position: sticky;
     top: 28px;
     z-index: 20;
-    background: #f8fafc;
-    color: #334155;
-    font-family: 'JetBrains Mono', monospace;
+    background: #F4F5F8;
+    color: #3C4657;
+    font-family: 'Geist Mono', monospace;
     font-size: 11px;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     padding: 8px 10px;
-    border-bottom: 2px solid #cbd5e1;
+    border-bottom: 2px solid #D0D5DD;
     border-left: none;
     border-right: none;
     text-align: right;
@@ -1492,41 +1568,41 @@ body::-webkit-scrollbar,
     left: 0;
     top: 28px;
     z-index: 35;
-    background: #f1f5f9;
+    background: #F1F3F6;
     min-width: 48px;
     max-width: 48px;
     width: 48px;
     text-align: center;
-    border-right: 1px solid #e2e8f0;
+    border-right: 1px solid #E3E6EB;
 }}
 .modern-screener-table thead tr.sub-header-row th.sticky-col-symbol {{
     position: sticky;
     left: 48px;
     top: 28px;
     z-index: 35;
-    background: #f1f5f9;
+    background: #F1F3F6;
     min-width: 105px;
     max-width: 105px;
     width: 105px;
     text-align: left;
-    border-right: 1.5px solid #cbd5e1;
+    border-right: 1.5px solid #D0D5DD;
     box-shadow: 3px 0 6px rgba(0,0,0,0.04);
 }}
 
 /* ── Table Body Rows ── */
 .modern-screener-table tbody tr.screener-row {{
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid #F1F3F6;
     transition: background-color 0.12s ease;
 }}
 .modern-screener-table tbody tr.screener-row:hover td {{
-    background-color: #f8fafc !important;
+    background-color: #F4F5F8 !important;
 }}
 .modern-screener-table td {{
     padding: 6px 10px;
     vertical-align: middle;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Geist Mono', monospace;
     font-size: 12px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid #F1F3F6;
     border-left: none;
     border-right: none;
     background: #ffffff;
@@ -1543,8 +1619,8 @@ body::-webkit-scrollbar,
     width: 48px;
     text-align: center;
     font-weight: 800;
-    color: #0f172a;
-    border-right: 1px solid #f1f5f9;
+    color: #0E1726;
+    border-right: 1px solid #F1F3F6;
 }}
 .modern-screener-table td.sticky-col-symbol {{
     position: sticky;
@@ -1556,24 +1632,24 @@ body::-webkit-scrollbar,
     width: 105px;
     text-align: left;
     padding-left: 10px;
-    border-right: 1.5px solid #e2e8f0;
+    border-right: 1.5px solid #E3E6EB;
     box-shadow: 3px 0 6px rgba(0,0,0,0.04);
 }}
 
 .stock-ticker {{
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Geist', sans-serif;
     font-weight: 800;
     font-size: 11px;
-    color: #0f172a;
+    color: #0E1726;
     letter-spacing: 0.02em;
 }}
 .modern-screener-table td.td-center {{ text-align: center; }}
 .modern-screener-table td.td-num {{ text-align: right; }}
 .modern-screener-table td.td-sector {{
     text-align: left;
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Geist', sans-serif;
     font-size: 12px;
-    color: #475569;
+    color: #3C4657;
     max-width: 160px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1587,54 +1663,54 @@ body::-webkit-scrollbar,
 /* Badges & Pills */
 .badge-pill {{
     display: inline-block;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Geist Mono', monospace;
     font-size: 10.5px;
     font-weight: 700;
     padding: 1.5px 6px;
     border-radius: 5px;
 }}
 .badge-green {{
-    background: #f0fdf4;
-    color: #15803d;
+    background: #E8F5EE;
+    color: #067647;
 }}
 .badge-red {{
-    background: #fef2f2;
-    color: #b91c1c;
+    background: #FDEDEB;
+    color: #912018;
 }}
 .badge-neutral {{
-    color: #64748b;
+    color: #5E6878;
 }}
 .index-tag {{
     display: inline-block;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Geist Mono', monospace;
     font-size: 10px;
     font-weight: 700;
-    background: #f1f5f9;
-    color: #475569;
+    background: #F1F3F6;
+    color: #3C4657;
     padding: 1.5px 5px;
     border-radius: 4px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #E3E6EB;
 }}
 .vol-tag {{
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Geist Mono', monospace;
     font-size: 11px;
     font-weight: 700;
-    color: #059669;
+    color: #067647;
 }}
 .vol-surge {{
     color: #4f46e5;
 }}
-.ret-pos {{ color: #15803d; font-weight: 700; }}
-.ret-neg {{ color: #b91c1c; font-weight: 700; }}
-.td-sharpe {{ color: #16a34a; font-weight: 600; }}
+.ret-pos {{ color: #067647; font-weight: 700; }}
+.ret-neg {{ color: #912018; font-weight: 700; }}
+.td-sharpe {{ color: #067647; font-weight: 600; }}
 .modern-screener-table thead tr.sub-header-row th {{
     cursor: pointer;
     user-select: none;
     transition: background-color 0.15s ease, color 0.15s ease;
 }}
 .modern-screener-table thead tr.sub-header-row th:hover {{
-    background-color: #e2e8f0 !important;
-    color: #0f172a !important;
+    background-color: #E3E6EB !important;
+    color: #0E1726 !important;
 }}
 .sort-indicator {{
     display: inline-block;
@@ -1643,25 +1719,25 @@ body::-webkit-scrollbar,
     color: #4f46e5;
     vertical-align: middle;
 }}
-.td-dd {{ color: #dc2626; }}
-.td-sl {{ color: #be123c; }}
-.td-chand {{ color: #059669; font-weight: 600; }}
+.td-dd {{ color: #B42318; }}
+.td-sl {{ color: #912018; }}
+.td-chand {{ color: #067647; font-weight: 600; }}
 .hz-count {{
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Geist Mono', monospace;
     font-size: 11px;
     font-weight: 600;
-    color: #64748b;
+    color: #5E6878;
 }}
 /* Amber, not red: a partial composite is a caveat on how much history is
    behind the rank, not a data fault like a price gap. */
 .td-short-hz {{
-    color: #b45309;
+    color: #93370D;
     font-weight: 800;
-    background: #fef3c7;
+    background: #FEF6EA;
     border-radius: 5px;
     padding: 1px 5px;
 }}
-.text-muted {{ color: #94a3b8; font-size: 11px; }}
+.text-muted {{ color: #6B7482; font-size: 11px; }}
 </style>
 </head>
 <body>
@@ -1837,7 +1913,7 @@ def render_saas_table(
     df: pd.DataFrame,
     max_height: int | None = None,
 ) -> None:
-    """Renders a beautiful borderless SaaS table with sticky headers, interactive column sorting, and JetBrains Mono numerics."""
+    """Renders a beautiful borderless SaaS table with sticky headers, interactive column sorting, and Geist Mono numerics."""
     if df.empty:
         st.info("No data available to display.")
         return
@@ -2130,13 +2206,13 @@ def render_saas_table(
 <meta charset="utf-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Geist:wght@400..700&family=Geist+Mono:wght@400..700&display=swap" rel="stylesheet">
 <style>
 * {{ box-sizing: border-box; margin: 0; padding: 0; }}
 body {{
     background: transparent;
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    color: #0f172a;
+    font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #0E1726;
     -webkit-font-smoothing: antialiased;
     padding: 2px;
 }}
@@ -2144,7 +2220,7 @@ body {{
     width: 100%;
     max-height: {table_h}px;
     overflow: auto;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #E3E6EB;
     border-radius: 10px;
     background: #ffffff;
     box-shadow: 0 1px 2px rgba(0,0,0,0.02);
@@ -2163,24 +2239,24 @@ body::-webkit-scrollbar,
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
     font-size: 12px;
-    color: #0f172a;
+    color: #0E1726;
     white-space: nowrap;
 }}
 .saas-table thead tr th {{
     position: sticky;
     top: 0;
     z-index: 10;
-    background: #f8fafc;
-    color: #475569;
-    font-family: 'JetBrains Mono', monospace;
+    background: #F4F5F8;
+    color: #3C4657;
+    font-family: 'Geist Mono', monospace;
     font-size: 10.5px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     padding: 8px 10px;
-    border-bottom: 1.5px solid #cbd5e1;
+    border-bottom: 1.5px solid #D0D5DD;
     border-left: none;
     border-right: none;
     cursor: pointer;
@@ -2188,8 +2264,8 @@ body::-webkit-scrollbar,
     transition: background-color 0.15s ease, color 0.15s ease;
 }}
 .saas-table thead tr th:hover {{
-    background-color: #e2e8f0 !important;
-    color: #0f172a !important;
+    background-color: #E3E6EB !important;
+    color: #0E1726 !important;
 }}
 .saas-table thead tr th.th-left {{ text-align: left; }}
 .saas-table thead tr th.th-center {{ text-align: center; }}
@@ -2203,18 +2279,18 @@ body::-webkit-scrollbar,
 }}
 
 .saas-table tbody tr.screener-row {{
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid #F1F3F6;
     transition: background-color 0.12s ease;
 }}
 .saas-table tbody tr.screener-row:hover td {{
-    background-color: #f8fafc !important;
+    background-color: #F4F5F8 !important;
 }}
 .saas-table td {{
     padding: 7px 10px;
     vertical-align: middle;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Geist Mono', monospace;
     font-size: 12px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid #F1F3F6;
     border-left: none;
     border-right: none;
     background: #ffffff;
@@ -2223,36 +2299,36 @@ body::-webkit-scrollbar,
 .saas-table td.td-center {{ text-align: center; }}
 .saas-table td.td-right {{ text-align: right; }}
 .saas-table td.td-sector {{
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    color: #475569;
+    font-family: 'Geist', sans-serif;
+    color: #3C4657;
     max-width: 180px;
     overflow: hidden;
     text-overflow: ellipsis;
 }}
 .stock-ticker {{
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Geist', sans-serif;
     font-weight: 800;
     font-size: 11px;
-    color: #0f172a;
+    color: #0E1726;
     letter-spacing: 0.02em;
 }}
 .badge-pill {{
     display: inline-block;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Geist Mono', monospace;
     font-size: 10px;
     font-weight: 700;
     padding: 1.5px 6px;
     border-radius: 5px;
 }}
-.badge-green {{ background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }}
+.badge-green {{ background: #E8F5EE; color: #067647; border: 1px solid #bbf7d0; }}
 .badge-yellow {{ background: #fefce8; color: #a16207; border: 1px solid #fef08a; }}
-.badge-red {{ background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }}
+.badge-red {{ background: #FDEDEB; color: #912018; border: 1px solid #F3C7C1; }}
 .badge-blue {{ background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }}
-.badge-neutral {{ background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }}
-.ret-pos {{ color: #15803d; font-weight: 700; }}
-.ret-neg {{ color: #b91c1c; font-weight: 700; }}
-.td-sharpe {{ color: #16a34a; font-weight: 600; }}
-.text-muted {{ color: #94a3b8; }}
+.badge-neutral {{ background: #F4F5F8; color: #5E6878; border: 1px solid #E3E6EB; }}
+.ret-pos {{ color: #067647; font-weight: 700; }}
+.ret-neg {{ color: #912018; font-weight: 700; }}
+.td-sharpe {{ color: #067647; font-weight: 600; }}
+.text-muted {{ color: #6B7482; }}
 </style>
 </head>
 <body>

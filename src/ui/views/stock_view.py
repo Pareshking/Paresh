@@ -25,14 +25,14 @@ from src.ui.charts import render_stock_chart
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
 
 # ── Palette tokens ───────────────────────────────────────────────────────────
-POS   = "#059669"
-NEG   = "#e11d48"
-WARN  = "#d97706"
+POS   = "#067647"
+NEG   = "#B42318"
+WARN  = "#B54708"
 ACC   = "#4f46e5"
-INK   = "#0f172a"
-SUB   = "#475569"
-MUTED = "#64748b"
-LINE  = "#e2e8f0"
+INK   = "#0E1726"
+SUB   = "#3C4657"
+MUTED = "#5E6878"
+LINE  = "#E3E6EB"
 
 PERIODS = (1, 3, 6, 9, 12)
 
@@ -96,24 +96,24 @@ def _rank_ring(rank: int | None, total: int, score: float | None, size: int = 76
         f'xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">'
         f'<defs><linearGradient id="{uid}" x1="0" y1="0" x2="1" y2="1">'
         f'<stop offset="0%" stop-color="#4f46e5"/>'
-        f'<stop offset="100%" stop-color="#059669"/></linearGradient></defs>'
-        f'<circle cx="{cx}" cy="{cy}" r="{r:.1f}" fill="none" stroke="#e2e8f0" stroke-width="4.5"/>'
+        f'<stop offset="100%" stop-color="#067647"/></linearGradient></defs>'
+        f'<circle cx="{cx}" cy="{cy}" r="{r:.1f}" fill="none" stroke="#E3E6EB" stroke-width="4.5"/>'
         f'<circle cx="{cx}" cy="{cy}" r="{r:.1f}" fill="none" stroke="url(#{uid})"'
         f' stroke-width="5.5" stroke-dasharray="{circ:.1f}" stroke-dashoffset="{offset:.1f}"'
         f' transform="rotate(-90 {cx} {cy})" stroke-linecap="round"/>'
         f'<text x="{cx}" y="{y_rank:.1f}" text-anchor="middle" dominant-baseline="middle"'
-        f' font-family="Outfit,sans-serif" font-weight="900" font-size="{fs_rank}"'
+        f' font-family="Bricolage Grotesque,sans-serif" font-weight="900" font-size="{fs_rank}"'
         f' fill="#4f46e5">#{rank}</text>'
         f'<text x="{cx}" y="{y_sub:.1f}" text-anchor="middle" dominant-baseline="middle"'
-        f' font-family="Plus Jakarta Sans,sans-serif" font-size="{fs_sub}"'
-        f' fill="#94a3b8">{total_str}</text>'
+        f' font-family="Geist,sans-serif" font-size="{fs_sub}"'
+        f' fill="#6B7482">{total_str}</text>'
         f'</svg>'
     )
 
 
 # ── UI building blocks ───────────────────────────────────────────────────────
 
-def _chip(text: str, bg: str = "#f1f5f9", fg: str = SUB, border: str = LINE) -> str:
+def _chip(text: str, bg: str = "#F1F3F6", fg: str = SUB, border: str = LINE) -> str:
     return (
         f'<span style="display:inline-block;font-size:0.68rem;font-weight:700;'
         f'padding:2px 7px;border-radius:4px;background:{bg};color:{fg};'
@@ -128,7 +128,7 @@ def _gate(label: str, passed: bool) -> str:
     return (
         f'<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;'
         f'border-radius:20px;background:{colour}0D;border:1px solid {colour}30;'
-        f"font-family:'JetBrains Mono',monospace;font-size:0.68rem;font-weight:700;"
+        f"font-family:'Geist Mono',monospace;font-size:0.68rem;font-weight:700;"
         f'color:{colour};">{mark} {label}</span>'
     )
 
@@ -146,9 +146,9 @@ def _section(title: str, note: str = "") -> None:
 
 
 def _kpi_tile(label: str, value: str, colour: str = INK, sub: str = "") -> str:
-    """Large KPI band tile — Outfit 900 number."""
+    """Large KPI band tile — Bricolage Grotesque 900 number."""
     sub_html = (
-        f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:0.68rem;'
+        f'<div style="font-family:\'Geist Mono\',monospace;font-size:0.68rem;'
         f'color:{MUTED};margin-top:3px;">{sub}</div>'
         if sub else ""
     )
@@ -156,8 +156,8 @@ def _kpi_tile(label: str, value: str, colour: str = INK, sub: str = "") -> str:
         f'<div style="flex:1 1 0;min-width:110px;padding:14px 16px;background:#ffffff;'
         f'border:1px solid {LINE};border-radius:12px;">'
         f'<div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:.06em;'
-        f'color:{MUTED};font-weight:700;font-family:\'JetBrains Mono\',monospace;">{label}</div>'
-        f'<div style="font-family:\'Outfit\',sans-serif;font-size:1.55rem;font-weight:900;'
+        f'color:{MUTED};font-weight:700;font-family:\'Geist Mono\',monospace;">{label}</div>'
+        f'<div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:1.55rem;font-weight:900;'
         f'color:{colour};margin-top:4px;letter-spacing:-.02em;">{value}</div>'
         f'{sub_html}</div>'
     )
@@ -176,7 +176,7 @@ def _tile(label: str, value: str, *, sub: str = "", colour: str = INK,
         f'background:{bg};border:1px solid {LINE};border-radius:10px;">'
         f'<div style="font-size:0.63rem;text-transform:uppercase;letter-spacing:.04em;'
         f'color:{MUTED};font-weight:700;">{label}</div>'
-        f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:0.97rem;'
+        f'<div style="font-family:\'Geist Mono\',monospace;font-size:0.97rem;'
         f'font-weight:700;color:{colour};margin-top:3px;">{value}</div>'
         f'{sub_html}</div>'
     )
@@ -218,8 +218,8 @@ _INDEX_CHIP_STYLES: dict[str, tuple[str, str, str]] = {
     "N50": ("#ede9fe", "#5b21b6", "#ddd6fe"),
     "NN50": ("#f3e8ff", "#7e22ce", "#e9d5ff"),
     "MID150": ("#fff7ed", "#9a3412", "#fed7aa"),
-    "SMALL250": ("#fef9c3", "#713f12", "#fde68a"),
-    "MICRO250": ("#fef2f2", "#991b1b", "#fecaca"),
+    "SMALL250": ("#fef9c3", "#713f12", "#F5D7A8"),
+    "MICRO250": ("#FDEDEB", "#991b1b", "#F3C7C1"),
 }
 
 
@@ -246,12 +246,12 @@ def _render_identity(row: pd.Series, total_stocks: int) -> None:
         if style:
             idx_chips += _chip(idx_s.upper(), *style)
         else:
-            idx_chips += _chip(idx_s[:8], "#f1f5f9", SUB, LINE)
+            idx_chips += _chip(idx_s[:8], "#F1F3F6", SUB, LINE)
 
     # Industry chip
     if industry and industry != "—":
         ind_short = industry[:18] + "…" if len(industry) > 19 else industry
-        idx_chips += _chip(ind_short, "#f8fafc", MUTED, LINE)
+        idx_chips += _chip(ind_short, "#F4F5F8", MUTED, LINE)
 
     gates = "".join([
         _gate("Above 50 EMA",
@@ -291,11 +291,11 @@ def _render_identity(row: pd.Series, total_stocks: int) -> None:
         if _v is None:
             continue
         _pct_s = f"{_v * 100:+.1f}%"
-        _clr   = "#059669" if _v > 0 else "#e11d48"
-        _bg    = "#d1fae5" if _v > 0 else "#fecdd3"
+        _clr   = "#067647" if _v > 0 else "#B42318"
+        _bg    = "#D3EEDF" if _v > 0 else "#F3C7C1"
         _pill_parts.append(
             f'<span style="background:{_bg};color:{_clr};border-radius:6px;'
-            f'padding:3px 10px;font-family:\'JetBrains Mono\',monospace;'
+            f'padding:3px 10px;font-family:\'Geist Mono\',monospace;'
             f'font-size:.67rem;font-weight:700;">{_mo}M&nbsp;{_pct_s}</span>'
         )
     periods_pills = (
@@ -308,23 +308,23 @@ def _render_identity(row: pd.Series, total_stocks: int) -> None:
     # Mobile-responsive styles scoped with sv- class prefix
     mobile_css = (
         "<style>"
-        ".sv-hero{background:linear-gradient(150deg,#eef2ff 0%,#f0fdf4 55%,#faf5ff 100%);"
+        ".sv-hero{background:linear-gradient(150deg,#eef2ff 0%,#E8F5EE 55%,#faf5ff 100%);"
         f"border:1px solid {LINE};border-radius:16px;padding:20px 22px;margin-bottom:10px;}}"
         ".sv-top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}"
         ".sv-avatar{width:52px;height:52px;flex-shrink:0;border-radius:14px;"
         f"background:{av_bg};border:1px solid #c7d2fe;display:flex;align-items:center;"
-        f"justify-content:center;font-family:'Outfit',sans-serif;font-weight:900;"
+        f"justify-content:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:900;"
         f"font-size:1.2rem;color:{ACC};}}"
         ".sv-nameblock{flex:1;min-width:0;}"
-        f".sv-sym{{font-family:'Outfit',sans-serif;font-weight:900;font-size:1.6rem;"
+        f".sv-sym{{font-family:'Bricolage Grotesque',sans-serif;font-weight:900;font-size:1.6rem;"
         f"color:{INK};letter-spacing:-.025em;line-height:1;}}"
         f".sv-sector{{font-size:.72rem;color:{MUTED};margin-top:4px;}}"
         ".sv-chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;}"
         ".sv-ring{flex-shrink:0;}"
         ".sv-cmp{text-align:right;margin-left:auto;}"
-        f".sv-cmp-val{{font-family:'Outfit',sans-serif;font-weight:900;font-size:2rem;"
+        f".sv-cmp-val{{font-family:'Bricolage Grotesque',sans-serif;font-weight:900;font-size:2rem;"
         f"color:{INK};letter-spacing:-.03em;line-height:1;}}"
-        f".sv-cmp-delta{{font-family:'JetBrains Mono',monospace;font-size:.78rem;"
+        f".sv-cmp-delta{{font-family:'Geist Mono',monospace;font-size:.78rem;"
         f"font-weight:700;color:{r3_clr};margin-top:4px;}}"
         f".sv-gates{{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px;}}"
         "@media(max-width:520px){"
@@ -414,14 +414,14 @@ def _render_key_levels(row: pd.Series) -> None:
     # `is not None`, not truthiness: a stock AT its 52-week high has
     # pct_hi == 0, which read as false and painted the tile red.
     hi_bg  = (
-        "#f8fafc" if pct_hi is None
-        else "#f0fdf4" if pct_hi > -5
-        else "#fffbeb" if pct_hi > -15
-        else "#fff1f2"
+        "#F4F5F8" if pct_hi is None
+        else "#E8F5EE" if pct_hi > -5
+        else "#FEF6EA" if pct_hi > -15
+        else "#FDEDEB"
     )
-    sl_bg  = "#fff1f2"   # stop loss → always red-tinted (risk)
-    cex_bg = "#fffbeb"   # chandelier exit → amber (caution)
-    ema_bg = "#f0fdf4" if _sign_colour(row.get("% 50 EMA")) == POS else "#fff1f2"
+    sl_bg  = "#FDEDEB"   # stop loss → always red-tinted (risk)
+    cex_bg = "#FEF6EA"   # chandelier exit → amber (caution)
+    ema_bg = "#E8F5EE" if _sign_colour(row.get("% 50 EMA")) == POS else "#FDEDEB"
 
     tiles = [
         _tile("52W High", _money(hi_52), sub=hi_sub, colour=INK, bg=hi_bg,
@@ -468,34 +468,34 @@ def _render_performance_matrix(row: pd.Series) -> None:
         if v is None:
             return ""
         if positive_good:
-            if v > 0.3:   return "background:#bbf7d0;color:#065f46;"
-            if v > 0.1:   return "background:#d1fae5;color:#065f46;"
-            if v > 0:     return "background:#f0fdf4;color:#059669;"
-            if v > -0.1:  return "background:#fff1f2;color:#e11d48;"
-            if v > -0.2:  return "background:#fecdd3;color:#be123c;"
+            if v > 0.3:   return "background:#bbf7d0;color:#054F31;"
+            if v > 0.1:   return "background:#D3EEDF;color:#054F31;"
+            if v > 0:     return "background:#E8F5EE;color:#067647;"
+            if v > -0.1:  return "background:#FDEDEB;color:#B42318;"
+            if v > -0.2:  return "background:#F3C7C1;color:#912018;"
             return              "background:#fca5a5;color:#991b1b;"
         else:
             # drawdown: more negative = darker red
             if v < -20:   return "background:#fca5a5;color:#991b1b;"
-            if v < -15:   return "background:#fecdd3;color:#be123c;"
-            if v < -10:   return "background:#fff1f2;color:#e11d48;"
-            if v < -5:    return "background:#fffbeb;color:#92400e;"
-            return              "background:#f0fdf4;color:#065f46;"
+            if v < -15:   return "background:#F3C7C1;color:#912018;"
+            if v < -10:   return "background:#FDEDEB;color:#B42318;"
+            if v < -5:    return "background:#FEF6EA;color:#92400e;"
+            return              "background:#E8F5EE;color:#054F31;"
 
     def _sharpe_bg(v_raw) -> str:
         v = _num(v_raw)
         if v is None:
             return ""
-        if v > 2:    return "background:#bbf7d0;color:#065f46;"
-        if v > 1:    return "background:#d1fae5;color:#065f46;"
-        if v > 0.5:  return "background:#f0fdf4;color:#059669;"
-        if v > 0:    return "background:#fffbeb;color:#92400e;"
-        return              "background:#fff1f2;color:#e11d48;"
+        if v > 2:    return "background:#bbf7d0;color:#054F31;"
+        if v > 1:    return "background:#D3EEDF;color:#054F31;"
+        if v > 0.5:  return "background:#E8F5EE;color:#067647;"
+        if v > 0:    return "background:#FEF6EA;color:#92400e;"
+        return              "background:#FDEDEB;color:#B42318;"
 
     header = "".join(
         f'<th style="padding:8px 12px;text-align:right;font-size:0.65rem;'
         f'text-transform:uppercase;letter-spacing:.05em;color:{MUTED};'
-        f'font-weight:700;background:#f8fafc;">{m}M</th>'
+        f'font-weight:700;background:#F4F5F8;">{m}M</th>'
         for m in PERIODS
     )
 
@@ -511,7 +511,7 @@ def _render_performance_matrix(row: pd.Series) -> None:
             txt = fmt(raw)
             cells += (
                 f'<td style="padding:7px 12px;text-align:right;'
-                f"font-family:'JetBrains Mono',monospace;font-size:0.82rem;"
+                f"font-family:'Geist Mono',monospace;font-size:0.82rem;"
                 f'font-weight:700;{bg}">{txt}</td>'
             )
         return (
@@ -524,7 +524,7 @@ def _render_performance_matrix(row: pd.Series) -> None:
         f'border-radius:12px;margin-bottom:12px;">'
         f'<table style="width:100%;border-collapse:collapse;">'
         f'<thead><tr>'
-        f'<th style="padding:8px 12px;background:#f8fafc;text-align:left;'
+        f'<th style="padding:8px 12px;background:#F4F5F8;text-align:left;'
         f'font-size:0.65rem;color:{MUTED};font-weight:700;text-transform:uppercase;'
         f'letter-spacing:.05em;"></th>{header}</tr></thead>'
         f'<tbody>'
@@ -550,7 +550,7 @@ def _render_rank_dynamics(row: pd.Series, total_stocks: int) -> None:
         if v is None:
             return _tile(label, "—")
         arrow = "▲" if v > 0 else ("▼" if v < 0 else "—")
-        bg = "#f0fdf4" if v > 0 else ("#fff1f2" if v < 0 else "#f8fafc")
+        bg = "#E8F5EE" if v > 0 else ("#FDEDEB" if v < 0 else "#F4F5F8")
         return _tile(label, f"{arrow} {abs(int(v))}", colour=_sign_colour(v), bg=bg)
 
     tiles = [
@@ -580,17 +580,17 @@ def _render_data_health(row: pd.Series) -> None:
     tiles = [
         _tile("Gap-filled", _pct(ffill, signed=False) if ffill is not None else "—",
               colour=WARN if (ffill or 0) > 10 else INK,
-              bg="#fffbeb" if (ffill or 0) > 10 else "#f8fafc"),
+              bg="#FEF6EA" if (ffill or 0) > 10 else "#F4F5F8"),
         _tile("Data Gap", "Yes" if "🔴" in gap else "No",
               colour=NEG if "🔴" in gap else POS,
-              bg="#fff1f2" if "🔴" in gap else "#f0fdf4"),
+              bg="#FDEDEB" if "🔴" in gap else "#E8F5EE"),
         _tile("Latest price",
               "Last print" if CARRIED_MARK in gap else "Current",
               sub="no price on the ranking date" if CARRIED_MARK in gap else "",
               colour=WARN if CARRIED_MARK in gap else POS),
         _tile("Short history", short_hist, sub="< 126 sessions",
               colour=WARN if short_hist == "Yes" else POS,
-              bg="#fffbeb" if short_hist == "Yes" else "#f8fafc"),
+              bg="#FEF6EA" if short_hist == "Yes" else "#F4F5F8"),
         _tile("ATH source",
               "20y snapshot" if ath_src == "snapshot" else "2y window",
               colour=INK if ath_src == "snapshot" else WARN),
@@ -622,9 +622,9 @@ def _render_peers(row: pd.Series, rank_df: pd.DataFrame) -> None:
 def _render_peers_table(df: pd.DataFrame, highlight_sym: str) -> None:
     """Peers table with the current stock row highlighted in indigo."""
     headers = "".join(
-        f'<th style="padding:7px 10px;text-align:right;font-family:\'JetBrains Mono\',monospace;'
+        f'<th style="padding:7px 10px;text-align:right;font-family:\'Geist Mono\',monospace;'
         f'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;'
-        f'color:{MUTED};background:#f8fafc;white-space:nowrap;">{c}</th>'
+        f'color:{MUTED};background:#F4F5F8;white-space:nowrap;">{c}</th>'
         for c in df.columns
     )
 
@@ -662,12 +662,12 @@ def _render_peers_table(df: pd.DataFrame, highlight_sym: str) -> None:
                 clr = ACC if col == "Symbol" and is_hl else INK
             cells += (
                 f'<td style="padding:6px 10px;text-align:{align};font-weight:{fw};'
-                f"font-family:'JetBrains Mono',monospace;font-size:12px;"
+                f"font-family:'Geist Mono',monospace;font-size:12px;"
                 f'color:{clr};white-space:nowrap;">{txt}</td>'
             )
         rows_html.append(
             f'<tr style="background:{row_bg};{row_border}'
-            f'border-bottom:1px solid #f1f5f9;">{cells}</tr>'
+            f'border-bottom:1px solid #F1F3F6;">{cells}</tr>'
         )
 
     st.markdown(

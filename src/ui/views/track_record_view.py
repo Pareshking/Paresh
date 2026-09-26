@@ -109,10 +109,10 @@ def render_track_record_view(
 
     st.markdown(
         f"""
-        <div style='background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:7px 14px;margin-bottom:12px;font-family:IBM Plex Mono;font-size:0.76rem;color:#475569;display:flex;flex-wrap:wrap;gap:14px;align-items:center;'>
-            <span>📒 <strong>Record:</strong> <span style='color:#0f172a;font-weight:600;'>{len(months)} frozen month(s) from {INCEPTION}, plus the month in progress</span></span>
-            <span>📊 <strong>Benchmark:</strong> <span style='color:#0f172a;font-weight:600;'>Nifty 500 ({ledger.get('benchmark', '^CRSLDX')})</span></span>
-            <span>🔒 <strong>Policy:</strong> <span style='color:#0f172a;font-weight:600;'>Append-only — a closed month is never recalculated</span></span>
+        <div style='background:#F4F5F8;border:1px solid #E3E6EB;border-radius:8px;padding:7px 14px;margin-bottom:12px;font-family:Geist Mono,monospace;font-size:0.76rem;color:#3C4657;display:flex;flex-wrap:wrap;gap:14px;align-items:center;'>
+            <span>📒 <strong>Record:</strong> <span style='color:#0E1726;font-weight:600;'>{len(months)} frozen month(s) from {INCEPTION}, plus the month in progress</span></span>
+            <span>📊 <strong>Benchmark:</strong> <span style='color:#0E1726;font-weight:600;'>Nifty 500 ({ledger.get('benchmark', '^CRSLDX')})</span></span>
+            <span>🔒 <strong>Policy:</strong> <span style='color:#0E1726;font-weight:600;'>Append-only — a closed month is never recalculated</span></span>
         </div>
         """,
         unsafe_allow_html=True,

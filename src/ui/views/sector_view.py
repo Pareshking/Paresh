@@ -35,8 +35,8 @@ def render_sector_card(r: pd.Series) -> None:
     p_ema = r.get("% 20 EMA", 0.0)
     mcap = r.get("Total MCap (Cr)", 0.0)
 
-    ret_clr_3m = "#15803d" if ret_3m >= 0 else "#b91c1c"
-    ret_clr_6m = "#15803d" if ret_6m >= 0 else "#b91c1c"
+    ret_clr_3m = "#067647" if ret_3m >= 0 else "#912018"
+    ret_clr_6m = "#067647" if ret_6m >= 0 else "#912018"
 
     # Returns are stored as fractions (0.105 = 10.5%); multiply before display.
     ret_3m_pct = ret_3m * 100
@@ -48,42 +48,42 @@ def render_sector_card(r: pd.Series) -> None:
     )
 
     card_html = f"""
-    <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:14px; margin-bottom:12px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
+    <div style="background:#ffffff; border:1px solid #E3E6EB; border-radius:10px; padding:14px; margin-bottom:12px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
             <div>
-                <div style="font-family:'Outfit',sans-serif; font-weight:800; font-size:0.92rem; color:#0f172a; line-height:1.2;">
+                <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:0.92rem; color:#0E1726; line-height:1.2;">
                     {html.escape(str(ind_name))}
                 </div>
-                <div style="font-size:0.72rem; color:#64748b; margin-top:2px;">
+                <div style="font-size:0.72rem; color:#5E6878; margin-top:2px;">
                     {n_stocks} stocks · ₹{mcap:,.0f} Cr MCap
                 </div>
             </div>
-            <span style="font-family:'JetBrains Mono',monospace; font-size:0.72rem; font-weight:700; color:#4f46e5; background:#eef2ff; border:1px solid #c7d2fe; padding:2px 6px; border-radius:4px;">
+            <span style="font-family:Geist Mono,monospace; font-size:0.72rem; font-weight:700; color:#4f46e5; background:#eef2ff; border:1px solid #c7d2fe; padding:2px 6px; border-radius:4px;">
                 Rank #{int(r.get('Rank', 0))}
             </span>
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:#f8fafc; border-radius:6px; padding:8px; margin-bottom:10px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:#F4F5F8; border-radius:6px; padding:8px; margin-bottom:10px;">
             <div>
-                <div style="font-size:0.68rem; color:#64748b; font-weight:600; text-transform:uppercase;">3M Return</div>
-                <div style="font-family:'JetBrains Mono',monospace; font-size:0.84rem; font-weight:700; color:{ret_clr_3m};">{ret_3m_pct:+.1f}%</div>
+                <div style="font-size:0.68rem; color:#5E6878; font-weight:600; text-transform:uppercase;">3M Return</div>
+                <div style="font-family:Geist Mono,monospace; font-size:0.84rem; font-weight:700; color:{ret_clr_3m};">{ret_3m_pct:+.1f}%</div>
             </div>
             <div>
-                <div style="font-size:0.68rem; color:#64748b; font-weight:600; text-transform:uppercase;">6M Return</div>
-                <div style="font-family:'JetBrains Mono',monospace; font-size:0.84rem; font-weight:700; color:{ret_clr_6m};">{ret_6m_pct:+.1f}%</div>
+                <div style="font-size:0.68rem; color:#5E6878; font-weight:600; text-transform:uppercase;">6M Return</div>
+                <div style="font-family:Geist Mono,monospace; font-size:0.84rem; font-weight:700; color:{ret_clr_6m};">{ret_6m_pct:+.1f}%</div>
             </div>
             <div>
-                <div style="font-size:0.68rem; color:#64748b; font-weight:600; text-transform:uppercase;">Near 52W High</div>
-                <div style="font-family:'JetBrains Mono',monospace; font-size:0.78rem; font-weight:600; color:#0f172a;">{p_52w:.0f}% stocks</div>
+                <div style="font-size:0.68rem; color:#5E6878; font-weight:600; text-transform:uppercase;">Near 52W High</div>
+                <div style="font-family:Geist Mono,monospace; font-size:0.78rem; font-weight:600; color:#0E1726;">{p_52w:.0f}% stocks</div>
             </div>
             <div>
-                <div style="font-size:0.68rem; color:#64748b; font-weight:600; text-transform:uppercase;">Above 20 EMA</div>
-                <div style="font-family:'JetBrains Mono',monospace; font-size:0.78rem; font-weight:600; color:#0f172a;">{p_ema:.0f}% stocks</div>
+                <div style="font-size:0.68rem; color:#5E6878; font-weight:600; text-transform:uppercase;">Above 20 EMA</div>
+                <div style="font-family:Geist Mono,monospace; font-size:0.78rem; font-weight:600; color:#0E1726;">{p_ema:.0f}% stocks</div>
             </div>
         </div>
 
-        <div style="font-size:0.72rem; color:#475569; line-height:1.8;">
-            <strong style="color:#0f172a;">Leaders:</strong> {leaders_html}
+        <div style="font-size:0.72rem; color:#3C4657; line-height:1.8;">
+            <strong style="color:#0E1726;">Leaders:</strong> {leaders_html}
         </div>
     </div>
     """
@@ -98,10 +98,10 @@ def render_sector_view(
     """Renders comprehensive Industry & Sector momentum analytics."""
     st.markdown(
         """
-        <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.10rem; font-weight: 800; color: #0f172a; margin-bottom: 2px;">
+        <div style="font-family: 'Geist', sans-serif; font-size: 1.10rem; font-weight: 800; color: #0E1726; margin-bottom: 2px;">
             Sector & Industry Momentum Analytics
         </div>
-        <div style="font-size: 0.76rem; color: #64748b; margin-bottom: 14px;">
+        <div style="font-size: 0.76rem; color: #5E6878; margin-bottom: 14px;">
             Evaluate macro industry breadth, market capitalization weighting, and stage-2 sector leadership.
         </div>
         """,
@@ -132,7 +132,7 @@ def render_sector_view(
         }[ind_choice]
     else:
         c_tax.markdown(
-            "<span style='font-family:IBM Plex Mono;font-size:0.8rem;color:#475569;'>Classification: <strong>NSE Industry</strong></span>",
+            "<span style='font-family:Geist Mono,monospace;font-size:0.8rem;color:#3C4657;'>Classification: <strong>NSE Industry</strong></span>",
             unsafe_allow_html=True,
         )
         ind_col = "Industry"

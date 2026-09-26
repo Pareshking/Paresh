@@ -226,7 +226,14 @@ def open_page(frame, name: str, page=None) -> str:
     """Open one page through the real custom navigation."""
     _open_custom_popover(frame)
 
+    # The menu's own link first. The header also has a desktop link row, which
+    # is hidden on a phone; `.first` over every page link would pick that
+    # hidden copy there and time out clicking it.
     def page_link():
+        in_menu = frame.locator(
+            '[data-testid="stPopoverBody"] [data-testid="stPageLink"]').filter(has_text=name).first
+        if in_menu.count():
+            return in_menu
         return frame.locator('[data-testid="stPageLink"]').filter(has_text=name).first
 
     if page_link().count():

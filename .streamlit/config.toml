@@ -1,10 +1,23 @@
 [theme]
+# "Clear Ledger": the light design the owner approved. The same tokens are
+# repeated as CSS variables in src/ui/theme.py for the custom HTML.
 base = "light"
-primaryColor = "#4f46e5"
-backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#f8fafc"
-textColor = "#0f172a"
-font = "sans serif"
+primaryColor = "#4F46E5"
+backgroundColor = "#F6F7F9"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#0E1726"
+linkColor = "#4338CA"
+linkUnderline = false
+borderColor = "#D0D5DD"
+showWidgetBorder = true
+baseRadius = "10px"
+greenColor = "#067647"
+redColor = "#B42318"
+orangeColor = "#B54708"
+dataframeHeaderBackgroundColor = "#F4F5F8"
+font = "Geist:https://fonts.googleapis.com/css2?family=Geist:wght@400..700&display=swap, sans-serif"
+headingFont = "'Bricolage Grotesque':https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap, sans-serif"
+codeFont = "'Geist Mono':https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400..700&display=swap, monospace"
 
 [server]
 headless = true
