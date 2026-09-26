@@ -171,7 +171,7 @@ def compute_signals(
 # The pages that get a place in the desktop link row. Everything else is one
 # click away in the ☰ menu, which always lists all eleven in order.
 _TOP_ROW_PAGES = ("Screener", "Qualified", "Sectors", "RRG", "Portfolio",
-                  "Watchlist", "Track Record")
+                  "Exit Watch", "Watchlist", "Track Record")
 
 
 def _status_pill_html() -> str:
@@ -272,13 +272,13 @@ def render_header_kpi_bar(
                             st.page_link(_p)
 
                     st.markdown("**Monitoring**")
-                    for _i, _p in enumerate(nav_pages[5:9]):
+                    for _i, _p in enumerate(nav_pages[5:10], start=5):
                         _state = "navon" if _p is active_page else "navoff"
                         with st.container(key=f"{_state}_monitoring_{_i}", width="stretch"):
                             st.page_link(_p)
 
                     st.markdown("**System**")
-                    for _i, _p in enumerate(nav_pages[9:], start=9):
+                    for _i, _p in enumerate(nav_pages[10:], start=10):
                         _state = "navon" if _p is active_page else "navoff"
                         with st.container(key=f"{_state}_system_{_i}", width="stretch"):
                             st.page_link(_p)
