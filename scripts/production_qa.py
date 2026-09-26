@@ -30,6 +30,7 @@ import re
 import sys
 import time
 from pathlib import Path
+from urllib.parse import urlparse
 
 import requests
 
@@ -287,9 +288,15 @@ def app_frame(page):
                 return frame
         except Exception:
             continue
-    # Fall back to the largest non-blank frame, then the main frame.
+    # Fall back to the largest non-blank frame, then the main frame. Only
+    # frames on the app's own host: Community Cloud also embeds a
+    # statuspage.io widget, and on 2026-09-26 this fallback returned it, so
+    # the ticker probe searched the status widget for tickers.
+    app_host = urlparse(page.url).netloc
     for frame in page.frames:
         try:
+            if urlparse(frame.url).netloc not in ("", app_host):
+                continue
             if frame != page.main_frame and frame.locator("body").inner_text(
                     timeout=2_000).strip():
                 return frame
@@ -485,12 +492,26 @@ def audit_stock_link_navigation(page) -> dict:
     # Look for either, and record which was found and in which frame, because
     # the fix for the ugly URL differs between them.
     link = None
+    for _attempt in range(10):  # the Screener may still be rendering
+        link = _find_ticker_link(page, out)
+        if link is not None:
+            break
+        page.wait_for_timeout(2_000)
+    if link is None:
+        out["click"] = {
+            "error": "no ticker link found",
+            "frames": [f.url[:100] for f in page.frames],
+        }
+        return out
+    return _click_ticker(page, link, out)
+
+
+def _find_ticker_link(page, out: dict):
     for selector in ("a[data-stock]", "a.sq-sym", 'a[href*="stock="]'):
         for f in page.frames:
             try:
                 candidate = f.locator(selector).first
                 if candidate.count():
-                    link = candidate
                     out["link_found"] = {
                         "selector": selector,
                         "frame_url": f.url[:120],
@@ -498,18 +519,13 @@ def audit_stock_link_navigation(page) -> dict:
                         "href": candidate.get_attribute("href"),
                         "target": candidate.get_attribute("target"),
                     }
-                    break
+                    return candidate
             except Exception:
                 continue
-        if link is not None:
-            break
-    if link is None:
-        out["click"] = {
-            "error": "no ticker link found",
-            "frames": [f.url[:100] for f in page.frames],
-        }
-        return out
+    return None
 
+
+def _click_ticker(page, link, out: dict) -> dict:
     try:
         symbol = link.get_attribute("data-stock") or (link.inner_text() or "").strip()
         before = page.url
@@ -536,6 +552,12 @@ def audit_stock_link_navigation(page) -> dict:
                 pass
             page.wait_for_timeout(1_000)
         elapsed = round(time.perf_counter() - started, 1)
+        # The address bar follows the app's st.query_params write, which the
+        # host page applies on a message; give it a moment before reading.
+        for _ in range(10):
+            if "stock=" in page.url:
+                break
+            page.wait_for_timeout(500)
         try:
             body = app_frame(page).locator("body").inner_text(timeout=10_000)
         except Exception:
@@ -1219,6 +1241,12 @@ def main() -> None:
                 # Before the deep-link forms, because this one needs the
                 # screener as the browser actually left it.
                 report["stock_link"] = audit_stock_link_navigation(page)
+                click = report["stock_link"].get("click") or {}
+                if click.get("reached_stock_page") and "stock=" not in str(click.get("to")):
+                    failures.append(classify(
+                        "A ticker click opened the stock page but the address "
+                        f"bar did not follow, so it cannot be refreshed or "
+                        f"shared: {click}", "APPLICATION"))
 
                 # Last, because each form is a full navigation away from the
                 # warm session the walk above depends on.

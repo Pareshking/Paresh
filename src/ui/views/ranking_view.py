@@ -528,8 +528,21 @@ def render_ranking_view(
         r"[^A-Z0-9&._-]", "", str(st.query_params.get("stock") or "").strip().upper()
     )[:32]
     if requested:
+        # Write the parameter back, once per symbol. On Streamlit Cloud the app
+        # runs in a frame inside paresh.streamlit.app, and a ?stock= link
+        # navigates only that frame: the page opened while the address bar
+        # still read the bare domain, so a refresh, bookmark or shared link
+        # lost the stock. Streamlit reports a st.query_params write to the host
+        # page (SET_QUERY_PARAM), which is what updates the address bar -- the
+        # Back button's clear() already worked for exactly this reason. Once
+        # per symbol because each write also pushes a browser history entry.
+        if st.session_state.get("_stock_url_synced") != requested:
+            st.query_params["stock"] = requested
+            st.session_state["_stock_url_synced"] = requested
+
         def _back() -> None:
             if st.button("← Back to screener", key="stock_page_back"):
+                st.session_state.pop("_stock_url_synced", None)
                 st.query_params.clear()
                 st.rerun()
 

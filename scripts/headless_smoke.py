@@ -53,6 +53,57 @@ def _elements(at: AppTest, kind: str) -> list:
     return [e for e in at.main if getattr(e, "type", "") == kind]
 
 
+def _open_stock(symbol: str, page_hash: str | None) -> tuple[AppTest, list[dict]]:
+    """Run the app as a ?stock= link would open it; record query-param writes."""
+    from streamlit.runtime.state import query_params as qp_mod
+
+    sent: list[dict] = []
+    original = qp_mod.QueryParams._send_query_param_msg
+
+    def _spy(self):
+        sent.append(dict(self._query_params))
+        return original(self)
+
+    qp_mod.QueryParams._send_query_param_msg = _spy
+    try:
+        at = AppTest.from_file(APP, default_timeout=900)
+        at.query_params["stock"] = symbol
+        if page_hash:
+            at._page_hash = page_hash
+        at.run(timeout=900)
+    finally:
+        qp_mod.QueryParams._send_query_param_msg = original
+    return at, sent
+
+
+def _check_stock_links(at: AppTest) -> None:
+    """A ?stock= link opens the stock page from any page, and says so upward.
+
+    On Streamlit Cloud the app runs in a frame, so a link navigates only that
+    frame; the address bar follows only when the app writes st.query_params
+    (Streamlit forwards the write to the host page). Checked separately: a
+    card link on the Screener must write it (a redirect's own write would
+    otherwise hide a missing one), and a link from Sectors must land on the
+    stock page.
+    """
+    symbol = "RELIANCE"
+    direct, sent = _open_stock(symbol, None)
+    _check_clean(direct, "stock link on the Screener")
+    print(f"Stock link on the Screener: address-bar writes={sent}")
+    if {"stock": symbol} not in sent:
+        _fail("the stock page never wrote ?stock= back, so the address bar cannot follow")
+
+    sectors = [e for e in _elements(at, "page_link") if e.proto.label == "Sectors"]
+    if not sectors:
+        _fail("no Sectors link to start the stock-link check from")
+    routed, _ = _open_stock(symbol, sectors[0].proto.page_script_hash)
+    _check_clean(routed, "stock link from Sectors")
+    reached = "← Back to screener" in [b.label for b in routed.button]
+    print(f"Stock link from Sectors: reached the stock page={reached}")
+    if not reached:
+        _fail("a ?stock= link clicked on Sectors did not open the stock page")
+
+
 def main() -> int:
     at = AppTest.from_file(APP, default_timeout=900)
     at.run(timeout=900)
@@ -84,6 +135,8 @@ def main() -> int:
     print(f"Ranking table rows: {rows}")
     if rows < MIN_TABLE_ROWS:
         _fail(f"{rows} ranking table rows, expected at least {MIN_TABLE_ROWS}")
+
+    _check_stock_links(at)
 
     print("HEADLESS_STREAMLIT_SMOKE=PASS")
     return 0
