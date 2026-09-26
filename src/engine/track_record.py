@@ -37,6 +37,10 @@ from src.core.logger import logger
 # starts here; earlier "returns" would be pure hindsight simulation presented
 # beside real ones.
 INCEPTION = pd.Period("2026-01", freq="M")
+# The Returns grid shows empty rows for the years ahead up to this one, so the
+# page shows where the record is going. Rows past it appear on their own once
+# they hold data; this never truncates.
+TRACK_RECORD_SHOW_THROUGH = 2030
 
 # Repo-root anchored: see the note on LOG_PATH in corporate_actions.py. A
 # missing ledger reads as an empty track record rather than an error.
@@ -345,6 +349,7 @@ def build_combined_grid(
     mtd_period: pd.Period | None = None,
     mtd_values: dict[str, float | None] | None = None,
     years: Sequence[int] | None = None,
+    pad_through: int | None = None,
 ) -> pd.DataFrame:
     """All three series in one grid, three rows per year.
 
@@ -356,6 +361,10 @@ def build_combined_grid(
     Rows are grouped by year, then Strategy / Nifty 500 / Alpha, so a year reads
     as a block. Each row is built by `build_grid`, so the CY/FY/quarter
     conventions cannot drift between the combined and per-series views.
+
+    `pad_through` adds blank rows for the years ahead, up to that year, so the
+    page shows where the record is going. It never cuts rows off: a record
+    that has reached a later year still shows that year.
     """
     mtd_values = mtd_values or {}
 
@@ -370,7 +379,8 @@ def build_combined_grid(
             seen.add(int(mtd_period.year))
         if not seen:
             return pd.DataFrame()
-        years = range(min(seen), max(seen) + 1)
+        last = max(seen) if pad_through is None else max(max(seen), pad_through)
+        years = range(min(seen), last + 1)
 
     rows: list[dict[str, Any]] = []
     for year in years:

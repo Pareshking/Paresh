@@ -563,3 +563,29 @@ def test_without_mtd_the_headline_is_frozen_only():
     s = summary_stats(led)
     assert s["includes_mtd"] is False
     assert s["months"] == s["frozen_months"] == 1
+
+
+def test_the_grid_shows_blank_rows_for_the_years_ahead():
+    """Owner, 2026-09-26: show 2027-2030 now, not only once they hold data."""
+    from src.engine.track_record import TRACK_RECORD_SHOW_THROUGH, build_combined_grid
+
+    grid = build_combined_grid(_three_series_ledger(), pad_through=TRACK_RECORD_SHOW_THROUGH)
+    assert sorted(set(grid["YEAR"])) == list(range(2026, TRACK_RECORD_SHOW_THROUGH + 1))
+    assert len(grid) == 3 * (TRACK_RECORD_SHOW_THROUGH - 2025)
+    ahead = grid[grid["YEAR"] > 2026].drop(columns=["SERIES", "YEAR"])
+    assert ahead.isna().all().all(), "a future year shows a number"
+    by = grid[grid["YEAR"] == 2026].set_index("SERIES")
+    assert by.loc["Strategy", "JAN"] == pytest.approx(0.10)
+
+
+def test_padding_never_cuts_off_a_year_that_holds_data():
+    from src.engine.track_record import build_combined_grid
+
+    led = empty_ledger()
+    led["months"] = {
+        "2026-01": {"strategy": 0.10, "benchmark": 0.04, "alpha": 0.06},
+        "2031-01": {"strategy": 0.20, "benchmark": 0.05, "alpha": 0.15},
+    }
+    grid = build_combined_grid(led, pad_through=2030)
+    assert grid["YEAR"].max() == 2031
+    assert grid.set_index(["YEAR", "SERIES"]).loc[(2031, "Strategy"), "JAN"] == pytest.approx(0.20)

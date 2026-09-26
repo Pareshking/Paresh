@@ -21,6 +21,7 @@ from src.engine.pipeline import price_fingerprint
 from src.engine.track_record import (
     INCEPTION,
     TRACK_RECORD_CONFIG,
+    TRACK_RECORD_SHOW_THROUGH,
     build_combined_grid,
     load_ledger,
     months_to_cover,
@@ -287,6 +288,7 @@ def render_track_record_view(
                 "benchmark": mtd_bench,
                 "alpha": lm.get("mtd_alpha"),
             },
+            pad_through=TRACK_RECORD_SHOW_THROUGH,
         )
         if grid.empty:
             st.info("Nothing recorded yet.")
