@@ -669,6 +669,14 @@ def settle_after_nav(page, frame, budget_ms: int = 12_000) -> float:
 
 
 SECTION_CONTROL_WAIT_MS = 20_000
+# Configuration's sections, by the names this probe has always used, to the
+# anchors of the one-page layout's index links.
+SECTION_ANCHORS = {
+    "Data & Sync": "cfg-universe",
+    "Momentum Signal": "cfg-score",
+    "Portfolio Risk": "cfg-limits",
+    "Data Health": "cfg-health",
+}
 
 
 def _find_section_control(page, frame, section: str,
@@ -684,9 +692,17 @@ def _find_section_control(page, frame, section: str,
     """
     waited = 0
     while True:
-        # The Configuration tab's own radio, not some other tab's: `stRadio`
-        # appears in several tabs, so pick the group that offers the sections.
         try:
+            # One page since the redesign: every section is always rendered,
+            # and the index at the top links to each. Following the link is
+            # the reader's motion, and proves the section is on the page.
+            anchor = SECTION_ANCHORS.get(section)
+            if anchor:
+                link = frame.locator(f'.cfg-index a[href="#{anchor}"]').first
+                if link.count():
+                    return link, "label"
+            # The earlier tabbed layout, kept so the probe can still read a
+            # deploy that predates it.
             grp = frame.locator('[data-testid="stRadio"]').filter(
                 has_text="Momentum Signal")
             if grp.count():

@@ -130,13 +130,13 @@ def test_dragging_the_risk_caps_does_not_raise():
     at = _run({"nav_section": "Portfolio Risk"})
     at.slider(key="cfg_sc").set_value(45).run()
     at.slider(key="cfg_stc").set_value(12).run()
-    at.checkbox(key="cfg_vt").set_value(True).run()
+    at.toggle(key="cfg_vt").set_value(True).run()
     at.slider(key="cfg_vtv").set_value(35).run()
     assert not at.exception, [e.value[:200] for e in at.exception]
     shown = {s.label: s.value for s in at.slider}
-    assert shown["Sector Exposure Cap (%)"] == 45
-    assert shown["Individual Stock Cap (%)"] == 12
-    assert shown["Target Portfolio Volatility (%)"] == 35
+    assert shown["Most in one sector (%)"] == 45
+    assert shown["Most in one stock (%)"] == 12
+    assert shown["Target yearly volatility (%)"] == 35
 
 
 def test_a_dragged_weight_survives_navigation_and_eviction():

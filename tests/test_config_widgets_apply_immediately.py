@@ -63,10 +63,10 @@ def test_a_changed_weight_does_not_disturb_the_others():
 
 def test_sector_and_stock_caps_apply_on_the_same_pass():
     at = _app()
-    next(s for s in at.slider if "Sector Exposure Cap" in s.label).set_value(45).run()
+    next(s for s in at.slider if "Most in one sector" in s.label).set_value(45).run()
     assert _line(at, "SECTOR_CAP=") == "SECTOR_CAP=45"
 
-    next(s for s in at.slider if "Individual Stock Cap" in s.label).set_value(12).run()
+    next(s for s in at.slider if "Most in one stock" in s.label).set_value(12).run()
     assert _line(at, "STOCK_CAP=") == "STOCK_CAP=12"
 
 

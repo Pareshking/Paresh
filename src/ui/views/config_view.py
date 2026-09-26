@@ -61,19 +61,23 @@ def _refused_refresh(wait: float) -> None:
     )
 
 
-_NAV_SECTIONS = [
-    "Data & Sync",
-    "Momentum Signal",
-    "Portfolio Risk",
-    "Data Health",
+# The page's four sections, in order: anchor id, number, title, what it is
+# for, and which pages a change reaches. One list feeds the index and the
+# section headers, so the two cannot disagree.
+_SECTIONS = [
+    ("cfg-universe", "Universe",
+     "Which stocks are ranked. The app ranks the constituents of the indices chosen "
+     "here, from the official NSE lists.", "every page"),
+    ("cfg-score", "Momentum score",
+     "How much each lookback window counts in the composite score that sets every rank.",
+     "ranks on every page, and the backtest's starting weights"),
+    ("cfg-limits", "Portfolio limits",
+     "The most the model book may hold in one sector and one stock, and whether it "
+     "holds cash to damp volatility.", "Portfolio and Backtest"),
+    ("cfg-health", "Data health",
+     "What the app corrected in the price history before ranking, and whether its data "
+     "files are in place.", "nothing; this section only reports"),
 ]
-
-_NAV_DESCRIPTIONS = {
-    "Data & Sync": "Constituent universe & cache",
-    "Momentum Signal": "Lookback window weights",
-    "Portfolio Risk": "Concentration & volatility",
-    "Data Health": "Corporate actions & paths",
-}
 
 
 def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> None:
@@ -83,86 +87,77 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
     attempt_fetched = sync_meta.get("last_attempt_fetched")
     attempt_errors = sync_meta.get("last_attempt_errors") or {}
 
-    st.markdown(
-        "<div class='cfg-h'>"
-        "Official NSE Constituent Synchronization</div>"
-        "<div class='cfg-s'>"
-        "Synchronize constituent baskets directly with official CSV feeds on "
-        "<code>niftyindices.com</code>.</div>",
-        unsafe_allow_html=True,
+    st.html(
+        '<div class="cfg-stats">'
+        f'<div><span>Last synced</span><b>{html.escape(str(last_sync))}</b></div>'
+        f'<div><span>In the index files</span><b>{tot_stk} stocks</b></div>'
+        f'<div><span>Ranked now</span><b>{engine_stocks} stocks</b></div></div>'
     )
-
-    failed_attempt_html = ""
     if sync_ok is False:
-        failed_attempt_html = (
-            '<div style="font-size:0.74rem;color:#B54708;margin-top:6px;font-weight:600;">'
-            f"Last attempt {html.escape(str(last_attempt or 'unknown'))} "
-            f"fetched {attempt_fetched if attempt_fetched is not None else '?'} index "
-            f"file(s), {len(attempt_errors)} failed — figures above are from "
-            "the last complete sync.</div>"
+        kit.note(
+            f"The last sync ({last_attempt or 'time unknown'}) did not complete.",
+            f"It fetched {attempt_fetched if attempt_fetched is not None else '?'} index "
+            f"file(s) and {len(attempt_errors)} failed; the figures above are from the "
+            "last complete sync.",
         )
 
-    status_c, btn_c = st.columns([2.2, 1], vertical_alignment="center")
-    with status_c:
-        st.html(
-            f"""
-            <div style="background:#F4F5F8;border:1px solid #E3E6EB;border-radius:8px;padding:12px 16px;">
-                <div style="font-size:0.84rem;font-weight:700;color:#0E1726;">
-                    NSE Constituents Cache
-                </div>
-                <div style="font-family:'Geist Mono',monospace;font-size:0.76rem;color:#5E6878;margin-top:4px;">
-                    Last Synced: <strong style="color:#0E1726;">{last_sync}</strong>
-                    &nbsp;·&nbsp;
-                    Universe: <strong style="color:#4f46e5;">{tot_stk} stocks</strong>
-                    &nbsp;·&nbsp;
-                    Active in engine: <strong style="color:#166534;">{engine_stocks}</strong>
-                </div>
-                {failed_attempt_html}
-            </div>
-            """
-        )
-    with btn_c:
-        bc1, bc2 = st.columns(2)
-        with bc1:
-            if st.button("Sync", type="primary", key="btn_sync_indices", width="stretch"):
-                _wait = _claim_global_refresh()
-                if _wait:
-                    _refused_refresh(_wait)
-                else:
-                    with st.status("Syncing NSE constituents…", expanded=True) as _sync_status:
-                        _sync_status.write("Downloading index CSV files from niftyindices.com…")
-                        res = sync_official_nse_indices(force=True)
-                        st.session_state["force_refresh"] = True
-                        st.session_state.pop("data_loaded_key", None)
-                        st.cache_data.clear()
-                        if res.get("last_attempt_ok"):
-                            n = res["total_stocks"]
-                            _sync_status.update(
-                                label=f"Synced {n} constituents successfully",
-                                state="complete",
-                                expanded=False,
-                            )
-                        else:
-                            fetched = res.get("last_attempt_fetched", 0)
-                            errors = len(res.get("last_attempt_errors") or {})
-                            _sync_status.update(
-                                label=f"Sync incomplete — {fetched} downloaded, {errors} failed",
-                                state="error",
-                                expanded=False,
-                            )
-                        st.rerun()
-        with bc2:
-            if st.button("Purge", type="secondary", key="btn_purge_cache", width="stretch"):
-                _wait = _claim_global_refresh()
-                if _wait:
-                    _refused_refresh(_wait)
-                else:
+    # Which indices feed the ranking. Chosen first, synced second.
+    available_indices = list(INDICES_URLS.keys())
+    curr_indices = st.session_state.get("cfg_indices", ["NIFTY TOTAL MARKET"])
+    new_indices = st.multiselect(
+        "Indices to rank",
+        available_indices,
+        default=curr_indices,
+        key="cfg_indices_multiselect",
+    )
+    if new_indices != curr_indices:
+        st.session_state["cfg_indices"] = new_indices
+        st.session_state.pop("data_loaded_key", None)
+        st.rerun()
+
+    with st.container(horizontal=True, vertical_alignment="center", key="cfg_sync_row"):
+        if st.button("Sync from niftyindices.com", type="primary", key="btn_sync_indices"):
+            _wait = _claim_global_refresh()
+            if _wait:
+                _refused_refresh(_wait)
+            else:
+                with st.status("Syncing NSE constituents…", expanded=True) as _sync_status:
+                    _sync_status.write("Downloading index CSV files from niftyindices.com…")
+                    res = sync_official_nse_indices(force=True)
                     st.session_state["force_refresh"] = True
                     st.session_state.pop("data_loaded_key", None)
                     st.cache_data.clear()
+                    if res.get("last_attempt_ok"):
+                        n = res["total_stocks"]
+                        _sync_status.update(
+                            label=f"Synced {n} constituents successfully",
+                            state="complete",
+                            expanded=False,
+                        )
+                    else:
+                        fetched = res.get("last_attempt_fetched", 0)
+                        errors = len(res.get("last_attempt_errors") or {})
+                        _sync_status.update(
+                            label=f"Sync incomplete — {fetched} downloaded, {errors} failed",
+                            state="error",
+                            expanded=False,
+                        )
                     st.rerun()
+        if st.button("Clear cached files", type="secondary", key="btn_purge_cache",
+                     help="Drop the cached prices and index lists and load them again."):
+            _wait = _claim_global_refresh()
+            if _wait:
+                _refused_refresh(_wait)
+            else:
+                st.session_state["force_refresh"] = True
+                st.session_state.pop("data_loaded_key", None)
+                st.cache_data.clear()
+                st.rerun()
 
-    with st.expander("Local index files", expanded=False):
+        st.html('<span class="pg-cap">Sync fetches the latest official constituent lists. '
+                "One sync at a time, app-wide.</span>")
+
+    with st.expander(f"Index files on disk ({len(INDICES_LOCAL)})", expanded=False):
         for idx_name, path in INDICES_LOCAL.items():
             if os.path.exists(path):
                 size = os.path.getsize(path)
@@ -177,29 +172,6 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
             else:
                 st.caption(f"**{idx_name}**: File missing at `{path}`")
 
-    st.divider()
-
-    st.markdown(
-        "<div class='cfg-h'>"
-        "Active Screening Universe</div>"
-        "<div class='cfg-s'>"
-        "Select which index constituent baskets are merged into the screening pipeline.</div>",
-        unsafe_allow_html=True,
-    )
-
-    available_indices = list(INDICES_URLS.keys())
-    curr_indices = st.session_state.get("cfg_indices", ["NIFTY TOTAL MARKET"])
-    new_indices = st.multiselect(
-        "Target Index Universe",
-        available_indices,
-        default=curr_indices,
-        key="cfg_indices_multiselect",
-        label_visibility="collapsed",
-    )
-    if new_indices != curr_indices:
-        st.session_state["cfg_indices"] = new_indices
-        st.session_state.pop("data_loaded_key", None)
-        st.rerun()
 
 
 # The five lookback windows, their canonical keys, and the documented default
@@ -228,26 +200,22 @@ def _section_momentum_signal() -> None:
         else [w / sum(_fallback) for w in _fallback]
     )
 
-    st.markdown(
-        "<div class='cfg-h'>"
-        "Momentum Lookback Multi-Window Weights</div>"
-        "<div class='cfg-s'>"
-        "Relative weights across 5 calendar-month windows. Sliders auto-normalize to 100%.</div>",
-        unsafe_allow_html=True,
+    # The split as a bar, labelled. "Weight vector:" is also what the
+    # production QA probe reads back off the page, so the wording stays.
+    shades = ("#C7D2FE", "#818CF8", "#4F46E5", "#3730A3", "#1E1B4B")
+    segs = "".join(
+        f'<span style="width:{w * 100:.2f}%;background:{c};color:{"#0E1726" if i < 2 else "#FFFFFF"}">'
+        f"{html.escape(lbl)} {w:.0%}</span>"
+        for i, ((lbl, _k, _d), w, c) in enumerate(zip(_WINDOWS, norm_w, shades)) if w > 0
     )
-
     st.html(
-        f"""
-        <div style="font-family:'Geist Mono',monospace;font-size:0.80rem;font-weight:700;
-                    color:#4f46e5;background:#eef2ff;border:1px solid #c7d2fe;
-                    padding:6px 14px;border-radius:6px;display:inline-block;margin-bottom:12px;">
-            Weight vector: {norm_w[0]:.0%} · {norm_w[1]:.0%} · {norm_w[2]:.0%} · {norm_w[3]:.0%} · {norm_w[4]:.0%}
-        </div>
-        """
+        '<div class="cfg-wbar-h">How the score weighs each window · Weight vector: '
+        + " · ".join(f"{w:.0%}" for w in norm_w)
+        + f'</div><div class="cfg-wbar">{segs}</div>'
     )
 
-    _rc1, _rc2 = st.columns([3, 1], vertical_alignment="center")
-    if _rc2.button("↺ Reset to defaults", key="cfg_w_reset", width="stretch"):
+    _defaults_txt = " / ".join(f"{w * 100:.0f}" for w in DEFAULT_LOOKBACK_WEIGHTS)
+    if st.button(f"Reset to defaults ({_defaults_txt})", key="cfg_w_reset"):
         # Write the mirror and DROP the widget's own state, so the sliders read
         # the restored value on the next run. Writing the widget key instead is
         # legal only above the widget, and was the shape that crashed the tab.
@@ -285,33 +253,27 @@ def _section_momentum_signal() -> None:
             "All five lookback weights are zero, which cannot rank anything. "
             "Ranking is using the documented defaults "
             f"({' · '.join(f'{w:.0%}' for w in DEFAULT_LOOKBACK_WEIGHTS)}) "
-            "until you set one — press **↺ Reset to defaults** above."
+            "until you set one — press **Reset to defaults** above."
         )
 
-    lbl_col, pop_col = st.columns([4, 1], vertical_alignment="center")
-    lbl_col.caption(
-        "Weights normalize automatically. No window skips the most recent month: "
-        "each one runs from its calendar start to the latest observation."
+    kit.caption(
+        "Weights are normalised to 100%. No window skips the most recent month: "
+        "each runs from its calendar start to the latest close."
     )
-    with pop_col.popover("Window guide", icon=":material/help_outline:", width="stretch"):
-        st.markdown(
-            """
-**Lookback Windows**
-
-| Window | Calendar period | ≈ sessions | What it captures |
-|---|---|---|---|
-| **1M** | 1 month | ~21 | Short momentum / mean reversion boundary |
-| **3M** | 3 months | ~63 | Primary trend formation |
-| **6M** | 6 months | ~126 | Intermediate momentum |
-| **9M** | 9 months | ~189 | Extended trend persistence |
-| **12M** | 12 months | ~252 | Long-cycle momentum |
-
-Higher weight on **3M + 6M** favours fast breakouts.
-Higher weight on **9M + 12M** favours slow, persistent trends.
-
-*No window skips the most recent month. Windows are calendar-anchored, so the session counts above are approximate — the actual count varies with holidays and missing prints.*
-"""
-        )
+    st.html(
+        '<table class="cfg-guide"><thead><tr><th>Window</th><th>Period</th>'
+        '<th class="n">≈ sessions</th><th>What it captures</th></tr></thead><tbody>'
+        "<tr><td>1M</td><td>1 calendar month</td><td class='n'>21</td><td>Recent acceleration; noisy on its own</td></tr>"
+        "<tr><td>3M</td><td>3 months</td><td class='n'>63</td><td>The main swing of a trend</td></tr>"
+        "<tr><td>6M</td><td>6 months</td><td class='n'>126</td><td>An established trend</td></tr>"
+        "<tr><td>9M</td><td>9 months</td><td class='n'>189</td><td>Persistence</td></tr>"
+        "<tr><td>12M</td><td>12 months</td><td class='n'>252</td><td>The long base; guards against spikes</td></tr>"
+        "</tbody></table>"
+    )
+    kit.caption(
+        "More weight on 3M and 6M favours fast breakouts; more on 9M and 12M favours slow, "
+        "persistent trends. Session counts are approximate: windows are calendar-anchored."
+    )
 
 
 # Defaults for the on-demand Portfolio Risk widgets. Same reason as the weight
@@ -344,54 +306,47 @@ def _section_portfolio_risk() -> None:
     # both genuinely bind the portfolio and the backtest. Every widget below is
     # handed an explicit resolved value and mirrored afterwards.
     lc, rc = st.columns(2, gap="large")
-    with lc:
-        st.markdown(
-            "<div class='cfg-h'>"
-            "Concentration Limits</div>"
-            "<div class='cfg-s'>"
-            "Maximum capital allocation per sector and per individual holding.</div>",
-            unsafe_allow_html=True,
-        )
-        new_sc = st.slider(
-            "Sector Exposure Cap (%)", min_value=15, max_value=50, step=5,
-            value=_risk("cfg_sc"), key="cfg_sc",
-        )
-        remember("cfg_sc", int(new_sc))
-        new_stc = st.slider(
-            "Individual Stock Cap (%)", min_value=2, max_value=15, step=1,
-            value=_risk("cfg_stc"), key="cfg_stc",
-        )
-        remember("cfg_stc", int(new_stc))
-        if new_stc > new_sc:
-            st.warning(f"Stock cap ({new_stc}%) exceeds sector cap ({new_sc}%).")
+    new_sc = lc.slider(
+        "Most in one sector (%)", min_value=15, max_value=50, step=5,
+        value=_risk("cfg_sc"), key="cfg_sc",
+    )
+    remember("cfg_sc", int(new_sc))
+    new_stc = rc.slider(
+        "Most in one stock (%)", min_value=2, max_value=15, step=1,
+        value=_risk("cfg_stc"), key="cfg_stc",
+    )
+    remember("cfg_stc", int(new_stc))
+    if new_stc > new_sc:
+        kit.note(f"The stock cap ({new_stc}%) is above the sector cap ({new_sc}%).",
+                 "No book can satisfy both; lower the stock cap.")
+    else:
+        # The Portfolio page's holdings count (20 unless the reader changed it).
+        # A cap at or below 1/n admits exactly one fully invested book.
+        n_hold = int(st.session_state.get("port_top_n", 20) or 20)
+        if new_stc * n_hold <= 100:
+            kit.note(
+                f"At {new_stc}% per stock and {n_hold} holdings, every stock sits at the cap.",
+                "Equal weight and inverse volatility then give the same book. Raise it to "
+                f"{100 // n_hold + 2}% or more for the weighting to matter.",
+            )
 
-    with rc:
-        st.markdown(
-            "<div class='cfg-h'>"
-            "Volatility Targeting</div>"
-            "<div class='cfg-s'>"
-            "Dynamically scales cash allocation to maintain stable realized annual volatility.</div>",
-            unsafe_allow_html=True,
-        )
-        new_vt = st.checkbox(
-            "Enable Dynamic Volatility Targeting",
-            value=_risk("cfg_vt"), key="cfg_vt",
-        )
-        remember("cfg_vt", bool(new_vt))
-        new_vtv = st.slider(
-            "Target Portfolio Volatility (%)", min_value=10, max_value=40, step=5,
-            value=_risk("cfg_vtv"), key="cfg_vtv", disabled=not new_vt,
-        )
-        remember("cfg_vtv", int(new_vtv))
+    st.html('<div class="cfg-rule"></div>')
+    new_vt = st.toggle(
+        "Volatility targeting",
+        value=_risk("cfg_vt"), key="cfg_vt",
+        help="When on, the Portfolio page holds cash to keep the book near a target yearly volatility.",
+    )
+    remember("cfg_vt", bool(new_vt))
+    kit.caption("On: the Portfolio page holds cash to keep the book near the target below. "
+                "Off: fully invested.")
+    new_vtv = st.slider(
+        "Target yearly volatility (%)", min_value=10, max_value=40, step=5,
+        value=_risk("cfg_vtv"), key="cfg_vtv", disabled=not new_vt,
+    )
+    remember("cfg_vtv", int(new_vtv))
 
 
 def _section_data_health(rank_df: pd.DataFrame) -> None:
-    st.markdown(
-        "<div class='cfg-h'>"
-        "Corporate Actions Detected in Price History</div>",
-        unsafe_allow_html=True,
-    )
-
     _events = load_events()
     if not _events:
         st.success(
@@ -401,12 +356,16 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
     else:
         _split = sum(1 for e in _events if e.get("kind") == "split/bonus")
         _other = len(_events) - _split
-        st.info(
-            f"**{len(_events)} sessions flagged** — {_split} valid split/bonus, "
-            f"{_other} unmatched (probable demergers). Circuit-limit breaches "
-            "treated as corporate actions; neutralised before ranking and in the "
-            "backtest by rescaling history in memory — no stored-price edits, so provider restatements "
-            "aren't double-applied."
+        st.html(
+            '<div class="cfg-stats">'
+            f'<div><span>Price jumps neutralised</span><b>{len(_events)}</b><em>sessions, before ranking</em></div>'
+            f'<div><span>Splits the provider missed</span><b>{_split}</b><em>a re-fetch fixes these</em></div>'
+            f'<div class="warn"><span>Possible demergers</span><b>{_other}</b><em>no standard ratio</em></div></div>'
+        )
+        kit.caption(
+            "Each is neutralised in memory before ranking and in the backtest, by rescaling "
+            "the history before it. Stored prices are never edited, so a later correction "
+            "from the provider is not applied twice."
         )
         _rows = []
         for e in sorted(_events, key=lambda x: x.get("date", ""), reverse=True):
@@ -430,21 +389,16 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
                     ),
                 }
             )
-        render_saas_table(pd.DataFrame(_rows))
-        st.caption(
-            "A **split or bonus** should have been adjusted away by the data provider and was not — "
-            "re-fetching fixes it. A **possible demerger** matches no standard ratio; providers "
+        with st.expander(f"All {len(_events)} sessions, by date", expanded=False):
+            render_saas_table(pd.DataFrame(_rows))
+        kit.caption(
+            "A split or bonus should have been adjusted away by the data provider and was not; "
+            "re-fetching fixes it. A possible demerger matches no standard ratio; providers "
             "generally don't adjust for these because the parent's price genuinely falls while "
             "shareholders receive stock in the new entity."
         )
 
-    st.divider()
-
-    st.markdown(
-        "<div class='cfg-h'>"
-        "Cache & Data Paths</div>",
-        unsafe_allow_html=True,
-    )
+    st.html('<div class="cfg-sub">Data files</div>')
     cache_data = [
         ("Price History", PRICES_FILE),
         ("Market Caps", MCAPS_FILE),
@@ -462,17 +416,24 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
                 "Path": path,
             }
         )
-    st.dataframe(pd.DataFrame(cache_rows), hide_index=True, width="stretch")
+    render_saas_table(pd.DataFrame(cache_rows))
 
-    render_data_quality_footer(
-        total_stocks=len(rank_df),
-        gap_count=gap_count(rank_df),
-        short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
+
+
+def _section(i: int):
+    """One section: what it is on the left, its controls on the right."""
+    anchor, title, what, reaches = _SECTIONS[i]
+    box = st.container(key=f"cfgsec_{anchor.split('-')[1]}")
+    left, right = box.columns([1, 2.4], gap="large")
+    left.html(
+        f'<div class="cfg-intro" id="{anchor}"><span>{i + 1}</span><h2>{html.escape(title)}</h2>'
+        f"<p>{html.escape(what)}</p><small>Changes: {html.escape(reaches)}</small></div>"
     )
+    return right
 
 
 def render_config_view(rank_df: pd.DataFrame) -> None:
-    """Renders system configuration with Windows 11-style left-nav layout."""
+    """Everything that decides the ranking and the book, on one page."""
     sync_meta = get_sync_metadata()
     synced_stocks = sync_meta.get("total_stocks") or 0
     tot_stk = synced_stocks or len(rank_df)
@@ -481,44 +442,54 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
         "Streamlit Cloud" if STORAGE_MODE == "streamlit-cloud" else "Local Production"
     )
 
-    # ── Header, with what is running on the right ─────────────────────────────
     st.html(
         '<div class="cfg-top"><div class="scr-head"><h1>Configuration</h1>'
-        "<p>Which stocks are ranked, how the score weighs each window, the portfolio's "
-        "limits, and the health of the data behind it</p></div>"
+        "<p>Everything that decides the ranking and the book, on one page. "
+        "Changes apply as you make them.</p></div>"
         '<div class="cfg-pills">'
         f'<span class="cfg-pill ok"><i></i>Ranking {engine_stocks} stocks</span>'
         f'<span class="cfg-pill">{html.escape(mode_label)}</span></div></div>'
     )
 
-    # ── Left nav + right content ──────────────────────────────────────────────
-    # Explicit index, resolved through the mirror, for the same reason every
-    # other setting here carries an explicit value: this radio is itself
-    # evictable. Under st.navigation only the active page runs, so leaving
-    # the Configuration page discards this key and the reader would come
-    # back to "Data & Sync" every time instead of where they were.
-    _remembered = resolve("cfg_nav_section_idx", 0, lo=0, hi=len(_NAV_SECTIONS) - 1)
-    with st.container(key="cfg_tabs"):
-        section = st.radio(
-            "Settings",
-            _NAV_SECTIONS,
-            index=_remembered,
-            key="cfg_nav_section",
-            label_visibility="collapsed",
-            horizontal=True,
-        )
-    if not section:
-        section = _NAV_SECTIONS[0]
-    remember("cfg_nav_section_idx", _NAV_SECTIONS.index(section))
-    kit.caption(_NAV_DESCRIPTIONS.get(section, ""))
+    # What is in effect, read the same way the rest of the app reads it.
+    raw_w = [resolve(key, d, lo=0.0, hi=1.0) for _l, key, d in _WINDOWS]
+    tot = sum(raw_w)
+    norm = [w / tot for w in raw_w] if tot > 0 else list(DEFAULT_LOOKBACK_WEIGHTS)
+    is_default = all(abs(a - b) < 1e-6 for a, b in zip(norm, DEFAULT_LOOKBACK_WEIGHTS))
+    indices = st.session_state.get("cfg_indices", ["NIFTY TOTAL MARKET"])
+    vt_on = bool(_risk("cfg_vt"))
+    n_events = len(load_events() or [])
+    kit.readings([
+        kit.Reading("Universe", " + ".join(i.title() for i in indices) or "—",
+                    f"{engine_stocks} stocks ranked"),
+        kit.Reading("Score weights", "·".join(f"{w * 100:.0f}" for w in norm),
+                    "1M·3M·6M·9M·12M" + (", the default" if is_default else ", your own")),
+        kit.Reading("Portfolio limits", f"{_risk('cfg_stc')}% · {_risk('cfg_sc')}%",
+                    "per stock · per sector"),
+        kit.Reading("Volatility target", f"{_risk('cfg_vtv')}%" if vt_on else "Off",
+                    "holds cash to stay near it" if vt_on else "fully invested"),
+        kit.Reading("Data health", f"{n_events} fixed" if n_events else "Clean",
+                    "price jumps neutralised" if n_events else "no corporate actions flagged"),
+    ], "Settings in effect")
 
-    content_col = st.container(key="pgcard_cfg_body")
-    with content_col:
-        if section == "Data & Sync":
-            _section_data_sync(sync_meta, tot_stk, engine_stocks)
-        elif section == "Momentum Signal":
-            _section_momentum_signal()
-        elif section == "Portfolio Risk":
-            _section_portfolio_risk()
-        elif section == "Data Health":
-            _section_data_health(rank_df)
+    st.html(
+        '<nav class="cfg-index" aria-label="Sections">'
+        + "".join(f'<a href="#{a}">{i + 1} · {html.escape(t)}</a>'
+                  for i, (a, t, _w, _r) in enumerate(_SECTIONS))
+        + "</nav>"
+    )
+
+    with _section(0):
+        _section_data_sync(sync_meta, tot_stk, engine_stocks)
+    with _section(1):
+        _section_momentum_signal()
+    with _section(2):
+        _section_portfolio_risk()
+    with _section(3):
+        _section_data_health(rank_df)
+
+    render_data_quality_footer(
+        total_stocks=len(rank_df),
+        gap_count=gap_count(rank_df),
+        short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
+    )
