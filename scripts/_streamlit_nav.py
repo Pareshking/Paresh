@@ -106,12 +106,20 @@ def _open_custom_popover(frame) -> bool:
     if _menu_is_open(frame):
         return True
 
+    # The first VISIBLE match. Inside the header's horizontal row Streamlit
+    # 1.63 draws the popover button twice -- a copy wrapped in its tooltip
+    # that is display:none, then the real one -- and `.first` clicked the
+    # hidden copy until the 8s timeout, twice, on every page (production QA
+    # on f1ffd61). The header's ☰ still comes before any page popover.
     button = None
     for selector in _MENU_BUTTONS:
         try:
-            candidate = frame.locator(selector).first
-            if candidate.count():
-                button = candidate
+            matches = frame.locator(selector)
+            for i in range(min(matches.count(), 8)):
+                if matches.nth(i).is_visible():
+                    button = matches.nth(i)
+                    break
+            if button is not None:
                 break
         except Exception:
             continue
@@ -177,9 +185,11 @@ def _close_custom_popover(frame) -> None:
     try:
         if not frame.locator('[data-testid="stPopoverBody"]').count():
             return
-        button = frame.locator('[data-testid="stPopoverButton"]').first
-        if button.count():
-            button.click(timeout=5_000)
+        buttons = frame.locator('[data-testid="stPopoverButton"]')
+        for i in range(min(buttons.count(), 8)):
+            if buttons.nth(i).is_visible():
+                buttons.nth(i).click(timeout=5_000)
+                break
     except Exception:
         pass
 
@@ -226,15 +236,31 @@ def open_page(frame, name: str, page=None) -> str:
     """Open one page through the real custom navigation."""
     _open_custom_popover(frame)
 
-    # The menu's own link first. The header also has a desktop link row, which
-    # is hidden on a phone; `.first` over every page link would pick that
-    # hidden copy there and time out clicking it.
+    # A VISIBLE link, the menu's own first. The header also has a desktop link
+    # row, hidden on a phone; `.first` over every page link picked that hidden
+    # copy whenever the menu had not opened yet, and timed out clicking it
+    # (production QA on f1ffd61, mobile RRG/Portfolio/Watchlist).
+    def _visible(loc):
+        try:
+            for i in range(min(loc.count(), 12)):
+                if loc.nth(i).is_visible():
+                    return loc.nth(i)
+        except Exception:
+            pass
+        return None
+
     def page_link():
-        in_menu = frame.locator(
-            '[data-testid="stPopoverBody"] [data-testid="stPageLink"]').filter(has_text=name).first
-        if in_menu.count():
-            return in_menu
-        return frame.locator('[data-testid="stPageLink"]').filter(has_text=name).first
+        for sel in ('[data-testid="stPopoverBody"] [data-testid="stPageLink"]',
+                    '[data-testid="stPageLink"]'):
+            hit = _visible(frame.locator(sel).filter(has_text=name))
+            if hit is not None:
+                return hit
+        # Nothing visible: the menu is closed. Open it and take its link.
+        _open_custom_popover(frame)
+        hit = _visible(frame.locator(
+            '[data-testid="stPopoverBody"] [data-testid="stPageLink"]').filter(has_text=name))
+        return hit if hit is not None else frame.locator(
+            '[data-testid="stPageLink"]').filter(has_text=name).first
 
     if page_link().count():
         _click_with_retry(frame, page_link)

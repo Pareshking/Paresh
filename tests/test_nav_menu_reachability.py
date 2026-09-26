@@ -103,6 +103,9 @@ class _ToggleMenu:
                 @property
                 def first(self):
                     return self
+
+                def nth(self, i):
+                    return self
             return _Btn(["☰"])
         if "stPopoverBody" in sel and "stPageLink" in sel:
             self.polls += 1
@@ -120,3 +123,49 @@ def test_a_menu_that_is_still_opening_is_not_clicked_shut(monkeypatch):
     menu = _ToggleMenu(links_after_polls=3)
     assert nav._open_custom_popover(menu) is True
     assert menu.clicks == 1 and menu.expanded
+
+
+class _TwinButtonMenu:
+    """Streamlit 1.63 draws the ☰ twice in a horizontal row: hidden, then real."""
+
+    def __init__(self):
+        self.clicked = []
+        self.open = False
+
+    def locator(self, sel):
+        menu = self
+        if sel == '[data-testid="stPopoverButton"]':
+            class _Twins:
+                def count(self):
+                    return 2
+
+                def nth(self, i):
+                    class _B(_Loc):
+                        def click(self, timeout=None):
+                            menu.clicked.append(i)
+                            if i == 0:
+                                raise TimeoutError("element is not visible")
+                            menu.open = True
+
+                        def get_attribute(self, name):
+                            return "false"
+                    return _B(["☰"], visible=(i == 1))
+
+                @property
+                def first(self):
+                    return self.nth(0)
+            return _Twins()
+        if "stPopoverBody" in sel and "stPageLink" in sel:
+            return _Loc(["Screener"] if self.open else [], self.open)
+        return _Loc([])
+
+    def get_by_role(self, *a, **k):
+        return _Loc([])
+
+
+def test_the_hidden_twin_of_the_menu_button_is_never_clicked(monkeypatch):
+    """Production QA on f1ffd61 clicked the hidden copy on every page."""
+    monkeypatch.setattr(nav.time, "sleep", lambda s: None)
+    menu = _TwinButtonMenu()
+    assert nav._open_custom_popover(menu) is True
+    assert menu.clicked == [1]
