@@ -299,7 +299,7 @@ def open_page(frame, name: str, page=None) -> str:
     if page is not None:
         routes = {
             "Screener": "screener",
-            "Qualified": "qualified",
+            "Actions": "actions",
             "Sectors": "sectors",
             "RRG": "rrg",
             "Portfolio": "portfolio",

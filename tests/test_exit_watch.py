@@ -6,7 +6,7 @@ from src.engine.exit_watch import (
     CLEAR, SELL, UNKNOWN, WATCH, Rules, assess, holdings_from_kite_csv,
     parse_holdings, qualified_ranks,
 )
-from src.ui.views.exit_watch_view import next_rebalance
+from src.ui.views.actions_view import next_rebalance
 
 
 def _table():
@@ -75,3 +75,45 @@ def test_next_rebalance_is_the_last_weekday_then_the_next_first_weekday():
     # May 2026 ends on a Sunday: checked Friday 29th, filled Monday 1 June.
     check, fill = next_rebalance(pd.Timestamp("2026-05-20"))
     assert (check, fill) == (pd.Timestamp("2026-05-29"), pd.Timestamp("2026-06-01"))
+
+
+# ── Actions: the rebalance preview ──────────────────────────────────────────
+
+def _universe(n=12):
+    return pd.DataFrame({
+        "Symbol": [f"S{i}" for i in range(n)],
+        "Industry": ["X" if i % 2 else "Y" for i in range(n)],
+        "Rank": list(range(1, n + 1)),
+        "CMP": [100.0] * n,
+        "Above 50 EMA": [True] * n,
+        "Near 52W High": [True] * n,
+    })
+
+
+def test_plan_keeps_holdings_inside_the_buffer_and_replaces_the_rest():
+    from src.engine.actions import plan_rebalance
+
+    df = _universe()
+    df.loc[df.Symbol == "S1", "Above 50 EMA"] = False      # breaks a filter
+    # Held: S1 (fails), S9 (qualified #9, past a buffer of 6), S3 (inside).
+    p = plan_rebalance(df, ["S1", "S9", "S3", "NOPE"], top_n=3, buffer_n=6,
+                       stock_cap=1.0, sector_cap=1.0)
+    assert set(p.sells) == {"S1", "S9"}
+    assert p.holds == ["S3"]
+    # Fill from the top of the qualified list, skipping what is held.
+    assert p.buys == ["S0", "S2"]
+    assert p.next_in_line[:2] == ["S4", "S5"]
+    assert "NOPE" not in p.sells + p.holds       # unranked: not judged
+    assert p.weights.sum() == pytest.approx(1.0)
+
+
+def test_buy_orders_size_each_buy_at_its_weight_and_skip_sells():
+    from src.engine.actions import Plan, buy_orders
+
+    df = _universe()
+    plan = Plan(sells=["S5"], buys=["S0", "S1"], holds=["S2"], next_in_line=[],
+                weights=pd.Series({"S0": 0.05, "S1": 0.045, "S2": 0.9}))
+    orders = buy_orders(plan, df, capital=100_000)
+    assert orders["Instrument"].tolist() == ["S0", "S1"]
+    assert orders["Quantity"].tolist() == [50, 45]          # 5,000 and 4,500 at 100
+    assert set(orders["Action"]) == {"BUY"}
