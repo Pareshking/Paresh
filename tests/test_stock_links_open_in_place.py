@@ -56,11 +56,13 @@ def test_the_app_still_builds_stock_anchors_somewhere():
 # href exists only so middle-click and "copy link address" still behave.
 # tests/test_stock_page_and_navigation.py pins that mechanism, and it caught
 # this test's first version trying to "fix" it.
-SANDBOXED_TABLE_ANCHOR = "theme.py"
+# The Screener's own table (screener_table.py) lives in the same kind of frame
+# and uses the same mechanism; the stock-page tests pin both.
+SANDBOXED_TABLE_ANCHORS = {"theme.py", "screener_table.py"}
 
 
 def _in_app_document(path) -> bool:
-    return path.name != SANDBOXED_TABLE_ANCHOR
+    return path.name not in SANDBOXED_TABLE_ANCHORS
 
 
 @pytest.mark.parametrize(
@@ -83,13 +85,13 @@ def test_every_stock_anchor_opens_in_place(case):
 
 def test_the_sandboxed_table_anchor_stays_free_of_a_target():
     """It navigates by script injection; a target would break or mislead."""
-    src = (ROOT / "src" / "ui" / "theme.py").read_text()
     for path, lineno, line in _anchor_lines():
-        if path.name != SANDBOXED_TABLE_ANCHOR:
+        if path.name not in SANDBOXED_TABLE_ANCHORS:
             continue
+        src = path.read_text()
         window = " ".join(src.splitlines()[max(0, lineno - 1):lineno + 2])
         assert "target=" not in window, (
-            f"theme.py:{lineno} gives the sandboxed table ticker a target; it "
+            f"{path.name}:{lineno} gives the sandboxed table ticker a target; it "
             f"cannot navigate anything but itself, and its click is handled in "
             f"JS by injecting into the parent document"
         )

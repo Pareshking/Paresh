@@ -213,7 +213,7 @@ def _render_corporate_actions(symbol: str) -> None:
 
 # ── 1. HERO ──────────────────────────────────────────────────────────────────
 
-# Same palette as the screener cards (ranking_view._idx_chips_html).
+# Index chip colours on the stock page.
 _INDEX_CHIP_STYLES: dict[str, tuple[str, str, str]] = {
     "N50": ("#ede9fe", "#5b21b6", "#ddd6fe"),
     "NN50": ("#f3e8ff", "#7e22ce", "#e9d5ff"),

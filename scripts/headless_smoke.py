@@ -6,7 +6,7 @@ app uses neither (navigation is page links and segmented controls, tables are
 HTML). A page that rendered its header and nothing else passed it.
 
 This one asserts what a visitor needs to see: the navigation, the ranking in
-both layouts, and the export. Run from the repo root:
+both column sets, and the export. Run from the repo root:
 
     python scripts/headless_smoke.py
 """
@@ -22,7 +22,6 @@ from streamlit.testing.v1 import AppTest
 
 APP = str(Path(__file__).resolve().parents[1] / "app.py")
 MIN_NAV_LINKS = 10    # 11 pages today
-MIN_CARDS = 20        # the card grid shows 48
 MIN_TABLE_ROWS = 500  # the table shows the full 750-name universe
 
 
@@ -118,23 +117,26 @@ def main() -> int:
     if len(nav) < MIN_NAV_LINKS:
         _fail(f"{len(nav)} navigation links, expected at least {MIN_NAV_LINKS}")
 
-    grids = [m.value for m in at.markdown if 'class="sq-grid"' in m.value]
-    cards = grids[0].count('class="sq-sym"') if grids else 0
-    print(f"Ranking cards: {cards}")
-    if cards < MIN_CARDS:
-        _fail(f"{cards} ranking cards, expected at least {MIN_CARDS}")
-
-    downloads = [b.label for b in at.get("download_button")]
-    if not any(label.startswith("Download Rankings CSV") for label in downloads):
-        _fail(f"rankings export missing (download buttons: {downloads})")
-
-    at.segmented_control(key="rank_view_mode").set_value("Table").run(timeout=900)
-    _check_clean(at, "table view")
+    # One table now, for desktop and phone: every row of the universe is in
+    # it, so column sorting sees all of them.
     frames = _elements(at, "iframe")
-    rows = max((f.proto.srcdoc.count("<tr") - 1 for f in frames), default=0)
+    rows = max((f.proto.srcdoc.count("<tr data-stock=") for f in frames), default=0)
     print(f"Ranking table rows: {rows}")
     if rows < MIN_TABLE_ROWS:
         _fail(f"{rows} ranking table rows, expected at least {MIN_TABLE_ROWS}")
+
+    downloads = [b.label for b in at.get("download_button")]
+    if not any(label.startswith("Export CSV") for label in downloads):
+        _fail(f"rankings export missing (download buttons: {downloads})")
+
+    # The research view is still one click away and still draws every row.
+    at.segmented_control(key="rank_density_mode").set_value("Full Quant (35)").run(timeout=900)
+    _check_clean(at, "Full Quant table")
+    frames = _elements(at, "iframe")
+    wide = max((f.proto.srcdoc.count('<tr class="screener-row"') for f in frames), default=0)
+    print(f"Full Quant table rows: {wide}")
+    if wide < MIN_TABLE_ROWS:
+        _fail(f"{wide} Full Quant rows, expected at least {MIN_TABLE_ROWS}")
 
     _check_stock_links(at)
 

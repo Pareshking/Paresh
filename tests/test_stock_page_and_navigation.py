@@ -104,25 +104,44 @@ def _rank_df(cols: int = 8):
                              close_prices_df=px, high_prices_df=px * 1.01), px
 
 
-def test_card_symbol_links_to_the_stock_page(monkeypatch):
-    from src.ui.views import ranking_view
+def test_screener_row_links_to_the_stock_page():
+    from src.ui import screener_table
 
-    rank_df, _ = _rank_df()
-    captured = []
-    # Patch BOTH sinks. The card renderer moved from st.html() to st.markdown()
-    # in the mobile pass (16206a4, 2026-09-04) and this test kept patching
-    # st.html only, so it captured nothing and asserted against "". It has been
-    # red on main ever since -- through a workflow that runs pytest on every
-    # push -- while the feature it guards worked the whole time. Patching both
-    # means the next move of the sink cannot silently blind it again.
-    for sink in ("html", "markdown"):
-        monkeypatch.setattr(ranking_view.st, sink,
-                            lambda *a, **k: captured.append(a[0] if a else ""))
-    ranking_view.render_stock_card(rank_df.iloc[0])
-
-    html = " ".join(str(c) for c in captured)
+    rank_df, px = _rank_df()
+    html = screener_table.table_html(rank_df, px, "Core (17)")
     sym = rank_df.iloc[0]["Symbol"]
     assert f'href="?stock={sym}"' in html
+    assert f'<tr data-stock="{sym}">' in html
+
+
+def test_screener_table_opens_stocks_through_the_host_like_the_wide_table():
+    """Same sandbox, same working mechanism as the Full Quant table below."""
+    from src.ui import screener_table
+
+    rank_df, px = _rank_df()
+    html = screener_table.table_html(rank_df, px, "Executive (11)")
+    assert "host.document.createElement('script')" in html
+    assert "host.document.body.appendChild(s)" in html
+    assert "window.location.search=" in html
+    assert "window.open(search,'_blank')" in html
+    assert 'target="_parent"' not in html
+
+
+def test_screener_table_holds_every_row_and_shows_about_25():
+    """Sorting must see all rows; the frame shows ~25 before scrolling."""
+    from src.ui import screener_table
+
+    rank_df, px = _rank_df(cols=40)
+    captured = {}
+    orig = screener_table.st.iframe
+    screener_table.st.iframe = lambda h, **k: captured.update(html=h, **k)
+    try:
+        screener_table.render_screener_table(rank_df, px, "Core (17)")
+    finally:
+        screener_table.st.iframe = orig
+    assert captured["html"].count("<tr data-stock=") == len(rank_df)
+    shown = (captured["height"] - 48) / screener_table.ROW_PX
+    assert shown >= 25 or len(rank_df) < 25
 
 
 def test_table_symbol_opens_the_stock_page_by_injecting_into_the_host():
@@ -192,33 +211,10 @@ def test_the_table_view_has_no_redundant_stock_picker():
 
 # ── Card grid reaches every stock ───────────────────────────────────────────
 
-def test_card_grid_reports_how_many_of_how_many(monkeypatch):
-    from src.ui.views import ranking_view
-
-    rank_df, _ = _rank_df(cols=8)
-    captions = []
-    monkeypatch.setattr(ranking_view.st, "caption", lambda t, **k: captions.append(t))
-    monkeypatch.setattr(ranking_view.st, "markdown", lambda *a, **k: None)
-    monkeypatch.setattr(ranking_view.st, "columns",
-                        lambda n, **k: [ranking_view.st.container() for _ in range(n)])
-    monkeypatch.setattr(ranking_view.st, "button", lambda *a, **k: False)
-    monkeypatch.setattr(ranking_view, "render_stock_card", lambda row: None)
-
-    ranking_view._render_card_grid(rank_df)
-    assert any(f"of {len(rank_df)}" in c for c in captions)
-
-
-def test_card_grid_batch_size_is_not_a_hard_cap():
-    """48 is a page size, not a ceiling -- the old code silently truncated."""
-    from src.ui.views.ranking_view import CARD_BATCH
-
-    assert CARD_BATCH == 48
-
-
 def test_empty_result_says_so(monkeypatch):
-    from src.ui.views import ranking_view
+    from src.ui import screener_table
 
     infos = []
-    monkeypatch.setattr(ranking_view.st, "info", lambda t, **k: infos.append(t))
-    ranking_view._render_card_grid(pd.DataFrame(columns=["Symbol", "Rank"]))
+    monkeypatch.setattr(screener_table.st, "info", lambda t, **k: infos.append(t))
+    screener_table.render_screener_table(pd.DataFrame(columns=["Symbol", "Rank"]), None, "Core (17)")
     assert infos and "No stocks match" in infos[0]

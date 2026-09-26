@@ -67,11 +67,10 @@ def compute_signals(
             (rank_df_tmp["Rank"] <= 50) & (rank_df_tmp["Rank (-1M)"] > 50)
         ]
         if len(fresh) > 0:
-            syms = ", ".join(fresh.sort_values("Rank")["Symbol"].tolist())
             signals.append(
                 SignalAlert(
                     icon="🔺",
-                    text=f"{len(fresh)} stock(s) entered Top 50 this month: {syms}",
+                    text=f"{len(fresh)} entered the top 50 this month",
                     color="#067647",
                     category="momentum",
                 )
@@ -82,11 +81,10 @@ def compute_signals(
             (rank_df_tmp["Rank"] > 50) & (rank_df_tmp["Rank (-1M)"] <= 50)
         ]
         if len(fallen) > 0:
-            syms = ", ".join(fallen.sort_values("Rank")["Symbol"].tolist())
             signals.append(
                 SignalAlert(
                     icon="🔻",
-                    text=f"{len(fallen)} stock(s) exited Top 50: {syms}",
+                    text=f"{len(fallen)} left the top 50 this month",
                     color="#B42318",
                     category="momentum",
                 )
@@ -100,7 +98,7 @@ def compute_signals(
                 signals.append(
                     SignalAlert(
                         icon="🚀",
-                        text=f"{r['Symbol']} surged +{int(r['_delta_1m'])} ranks (#{int(r['Rank (-1M)'])} → #{int(r['Rank'])})",
+                        text=f"{r['Symbol']} jumped {int(r['_delta_1m'])} places, #{int(r['Rank (-1M)'])} → #{int(r['Rank'])}",
                         color="#4f46e5",
                         category="breakout",
                     )
@@ -130,7 +128,7 @@ def compute_signals(
         signals.append(
             SignalAlert(
                 icon="⚠️",
-                text=f"Only {len(qualified)} stocks qualify for portfolio construction (target is >= 20)",
+                text=f"Only {len(qualified)} stocks pass both filters (the portfolio wants at least 20)",
                 color="#B54708",
                 category="risk",
             )
@@ -141,7 +139,7 @@ def compute_signals(
         signals.append(
             SignalAlert(
                 icon="🔴",
-                text=f"Market breadth weak: only {pct_above_ema:.0f}% of stocks are trading above 50 EMA",
+                text=f"Weak breadth: only {pct_above_ema:.0f}% of stocks above their 50-day EMA",
                 color="#B42318",
                 category="breadth",
             )
@@ -150,7 +148,7 @@ def compute_signals(
         signals.append(
             SignalAlert(
                 icon="🟢",
-                text=f"Broad bullish participation: {pct_above_ema:.0f}% of universe trading above 50 EMA",
+                text=f"Broad participation: {pct_above_ema:.0f}% of stocks above their 50-day EMA",
                 color="#067647",
                 category="breadth",
             )
@@ -160,7 +158,7 @@ def compute_signals(
         signals.append(
             SignalAlert(
                 icon="🐻",
-                text=f"Benchmark regime BEARISH — Nifty is {dma_dist:+.1f}% below its 200 DMA",
+                text=f"Bearish: Nifty 500 is {abs(dma_dist):.1f}% below its 200-day average",
                 color="#B42318",
                 category="regime",
             )
@@ -194,7 +192,7 @@ def _status_pill_html() -> str:
         return ""
     # The lead words drop on a phone; the date and the colour carry it there.
     return (f'<span class="{cls}" title="{html.escape(lead + tail)}"><span class="hdr-dot"></span>'
-            f'<span class="hdr-pill-lead">{html.escape(lead)}</span>{html.escape(tail)}</span>')
+            f'<span><span class="hdr-pill-lead">{html.escape(lead)}</span>{html.escape(tail)}</span></span>')
 
 
 def render_header_kpi_bar(
@@ -298,11 +296,11 @@ def render_signal_alerts(signals: list[SignalAlert]) -> None:
             f'<div style="display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 9px; '
             f"background-color: {s.color}14; border: 1px solid {s.color}2E; font-family: var(--font-ui); "
             f'font-size: 13px; color: {s.color}; font-weight: 600; white-space: nowrap; flex-shrink: 0;">'
-            f"<span>{s.icon}</span><span>{esc_text}</span></div>"
+            f"<span>{esc_text}</span></div>"
         )
     ribbon_html = f"""
     <div role="alert" aria-live="polite" aria-label="Market signals" style="display: flex; align-items: center; gap: 8px; overflow-x: auto; padding: 0 0 6px; margin-bottom: 6px; scrollbar-width: thin; scrollbar-color: #D0D5DD transparent;">
-        {chips_html}
+        <span class="sig-label">Signals today</span>{chips_html}
     </div>
     """
     st.markdown(ribbon_html, unsafe_allow_html=True)

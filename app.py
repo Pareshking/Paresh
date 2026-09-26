@@ -908,6 +908,7 @@ def _page_screener() -> None:
     render_ranking_view(
         rank_df, adj_close, high_prices, low_prices, volume_data,
         open_prices=data.get("open_prices"),
+        regime=regime_data,
     )
 
 

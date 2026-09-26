@@ -8,8 +8,8 @@ import pandas as pd
 import pytest
 
 from src.engine.momentum import CARRIED_MARK
-from src.ui import charts, components
-from src.ui.views import breadth_view, ranking_view, stock_view
+from src.ui import charts, components, screener_table
+from src.ui.views import breadth_view, stock_view
 
 
 def _capture(monkeypatch, module):
@@ -42,11 +42,11 @@ def test_peers_table_formats_float32_prices(monkeypatch):
     assert "₹1,235" in out[0] and "1234.56" not in out[0]
 
 
-def test_ranking_card_float32_nan_drawdown_is_a_dash():
-    row = pd.Series({"Symbol": "YNG", "Rank": 9, "CMP": 100.0,
-                     "Max DD 12M": np.float32("nan"), "12M Return": np.nan})
-    html = ranking_view._card_html(row)
-    assert "nan%" not in html
+def test_ranking_row_float32_nan_drawdown_is_a_dash():
+    row = {"Symbol": "YNG", "Rank": 9, "CMP": 100.0,
+           "Max DD 12M": np.float32("nan"), "12M Return": np.nan}
+    html = screener_table._row_html(row, screener_table.columns_for("Core"), {})
+    assert "nan" not in html.lower()
 
 
 def test_gap_count_sees_a_gap_that_also_carries_the_mark():
