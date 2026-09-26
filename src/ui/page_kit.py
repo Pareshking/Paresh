@@ -12,6 +12,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Iterator
 
+import pandas as pd
 import streamlit as st
 
 
@@ -33,7 +34,7 @@ def page_head(title: str, sub: str, *, actions: bool = False):
     if not actions:
         st.html(head)
         return None
-    left, right = st.columns([3, 1.3], vertical_alignment="bottom")
+    left, right = st.columns([2.2, 1.8], vertical_alignment="bottom")
     with left:
         st.html(head)
     return right.container(horizontal=True, horizontal_alignment="right",
@@ -87,3 +88,50 @@ def caption(text: str) -> None:
 
 def _slug(s: str) -> str:
     return "".join(c.lower() if c.isalnum() else "_" for c in s).strip("_")
+
+
+def growth_chart(labels: list[str], strategy: list[float], benchmark: list[float] | None,
+                 names: tuple[str, str] = ("Strategy", "Nifty 500"), key: str = "growth") -> None:
+    """Growth of ₹100: two lines from a common start, with the end values in
+    a legend above. `strategy` and `benchmark` are growth factors (1.0 = start)
+    at each label. Drawn with Altair, which ships with Streamlit, so it needs
+    no CDN and survives the HTML sanitiser that strips inline SVG."""
+    import altair as alt
+
+    if len(strategy) < 2:
+        return
+
+    def end(s, cls, name):
+        v = s[-1]
+        return (f'<span class="{cls}"><i></i>{html.escape(name)} '
+                f'<b>₹{v * 100:,.0f}</b> ({"+" if v >= 1 else "−"}{abs(v - 1) * 100:.1f}%)</span>')
+
+    st.html('<div class="gc-legend">' + end(strategy, "gc-ls", names[0])
+            + (end(benchmark, "gc-lb", names[1]) if benchmark else "") + "</div>")
+
+    rows = [{"x": i, "label": lab, "series": names[0], "value": v * 100}
+            for i, (lab, v) in enumerate(zip(labels, strategy))]
+    if benchmark:
+        rows += [{"x": i, "label": lab, "series": names[1], "value": v * 100}
+                 for i, (lab, v) in enumerate(zip(labels, benchmark))]
+    data = pd.DataFrame(rows)
+    step = max(1, len(labels) // 8)
+    ticks = list(range(0, len(labels), step))
+    label_expr = "{" + ",".join(f"{i}:'{labels[i]}'" for i in ticks) + "}[datum.value]"
+    x = alt.X("x:Q", axis=alt.Axis(values=ticks, labelExpr=label_expr, title=None, grid=False,
+                                   labelColor="#5E6878", tickColor="#E3E6EB", domainColor="#E3E6EB"),
+              scale=alt.Scale(domain=[0, len(labels) - 1], nice=False))
+    y = alt.Y("value:Q", scale=alt.Scale(zero=False),
+              axis=alt.Axis(title=None, format=",.0f", labelColor="#5E6878", gridColor="#EDEFF3",
+                            domain=False, ticks=False))
+    colour = alt.Color("series:N", legend=None,
+                       scale=alt.Scale(domain=list(names), range=["#4F46E5", "#98A1AE"]))
+    lines = alt.Chart(data).mark_line(strokeWidth=2.5, interpolate="monotone").encode(
+        x=x, y=y, color=colour,
+        tooltip=[alt.Tooltip("label:N", title="When"), alt.Tooltip("series:N", title=""),
+                 alt.Tooltip("value:Q", title="₹", format=",.1f")],
+    )
+    base = alt.Chart(pd.DataFrame({"y": [100]})).mark_rule(strokeDash=[4, 4], color="#D0D5DD").encode(y="y:Q")
+    chart = (base + lines).properties(height=260).configure_view(strokeWidth=0).configure(background="#FFFFFF",
+        font="Geist, system-ui, sans-serif")
+    st.altair_chart(chart, width="stretch", key=f"gc_{key}")

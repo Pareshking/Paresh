@@ -616,6 +616,56 @@ def inject_custom_css() -> None:
         .pg-bar-v { font-family: var(--font-mono); font-size: 13px; text-align: right; color: #0E1726; }
         [class*="st-key-pg_actions_"] { gap: 10px !important; }
         .hm-wrap { overflow-x: auto; }
+        .gc-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: #3C4657; }
+        .gc-legend span { display: inline-flex; align-items: center; gap: 6px; }
+        .gc-legend i { width: 14px; height: 3px; border-radius: 2px; background: #98A1AE; }
+        .gc-ls i { background: #4F46E5 !important; }
+        .gc-legend b { font-family: var(--font-mono); font-weight: 600; color: #0E1726; }
+        .mo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+        .mo { padding: 12px 14px; border-radius: 12px; display: flex; flex-direction: column; gap: 3px; background: #F4F5F8; }
+        .mo.up { background: #E8F5EE; } .mo.down { background: #FDEDEB; }
+        .mo.live { background: #FFFFFF; border: 1.5px dashed #C7D2FE; }
+        .mo-h { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; font-weight: 600; color: #3C4657; }
+        .mo-h em { font-style: normal; font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 6px; background: rgba(255,255,255,0.7); color: #5E6878; }
+        .mo-v { font-family: var(--font-mono); font-size: 18px; font-weight: 600; }
+        .mo-v.up { color: #067647; } .mo-v.down { color: #B42318; }
+        .mo-s { font-size: 12px; color: #3C4657; }
+        /* Sectors: industry leaderboard */
+        .ib { border: 1px solid #E3E6EB; border-radius: 12px; overflow: hidden; }
+        .ib-row {
+            display: grid; align-items: center; gap: 12px; padding: 0 16px; min-height: 46px;
+            grid-template-columns: 32px minmax(0, 1.6fr) 56px 190px 76px 96px 104px 76px 72px minmax(0, 1.3fr);
+            border-bottom: 1px solid #EDEFF3; font-size: 14px; background: #FFFFFF;
+        }
+        .ib-row:nth-child(odd):not(.ib-head) { background: #FAFBFC; }
+        .ib-row:last-child { border-bottom: 0; }
+        .ib-head { min-height: 40px; background: #F4F5F8 !important; font-size: 12px; font-weight: 600; color: #5E6878; }
+        .ib-n { font-family: var(--font-mono); font-weight: 600; }
+        .ib-name { display: flex; flex-direction: column; min-width: 0; }
+        .ib-name b { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ib-name small { display: none; font-size: 12px; color: #5E6878; }
+        .ib-num { font-family: var(--font-mono); font-size: 13.5px; text-align: right; }
+        .ib-3m { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+        .ib-3m b { font-family: var(--font-mono); font-size: 13.5px; font-weight: 500; width: 62px; text-align: right; }
+        .ib-bar { position: relative; width: 96px; height: 8px; border-radius: 4px; background: #EDEFF3; }
+        .ib-bar i { position: absolute; top: 0; height: 8px; border-radius: 4px; background: #98A1AE; }
+        .ib-bar i.up { background: #067647; } .ib-bar i.down { background: #B42318; }
+        .ib-bar em { position: absolute; left: 50%; top: -2px; width: 1px; height: 12px; background: #98A1AE; }
+        .ib .up { color: #067647; } .ib .down { color: #B42318; }
+        .ib-leads { display: flex; gap: 6px; overflow: hidden; }
+        .ib-lead {
+            font-size: 12px; font-weight: 650; padding: 2px 7px; border-radius: 6px; background: #F4F5F8;
+            color: #0E1726 !important; text-decoration: none !important; white-space: nowrap;
+        }
+        .ib-lead:hover { background: #EEF0FF; }
+        @media (max-width: 1100px) { .ib-leads, .ib-head .ib-d:last-child { display: none; } .ib-row { grid-template-columns: 32px minmax(0, 1.6fr) 56px 190px 76px 96px 104px 76px 72px; } }
+        @media (max-width: 760px) {
+            .ib-row { grid-template-columns: 24px minmax(0, 1fr) 80px; padding: 8px 12px; }
+            .ib-d { display: none !important; }
+            .ib-name small { display: block; }
+            .ib-bar { display: none; }
+            .ib-head .ib-3m { justify-content: flex-end; }
+        }
         .hm { display: grid; gap: 3px; min-width: 520px; }
         .hm-x, .hm-y { font-family: var(--font-mono); font-size: 11px; color: #3C4657; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .hm-x { writing-mode: vertical-rl; transform: rotate(180deg); height: 76px; text-align: left; justify-self: center; }
@@ -1182,19 +1232,31 @@ def inject_custom_css() -> None:
             background-color: #F4F5F8 !important;
         }
 
-        [data-testid="stDownloadButton"] > button {
-            background-color: #E8F5EE !important;
-            color: #067647 !important;
-            border: 1px solid #a7f3d0 !important;
+        [data-testid="stDownloadButton"] button {
+            background-color: #FFFFFF !important;
+            color: #0E1726 !important;
+            border: 1px solid #D0D5DD !important;
             font-weight: 600 !important;
-            border-radius: 8px !important;
+            border-radius: 10px !important;
+            min-height: 40px !important;
         }
 
-        [data-testid="stDownloadButton"] > button:hover {
-            background-color: #D3EEDF !important;
-            border-color: #6ee7b7 !important;
-            color: #047857 !important;
+        [data-testid="stDownloadButton"] button:hover {
+            background-color: #F4F5F8 !important;
+            border-color: #4F46E5 !important;
+            color: #4338CA !important;
         }
+
+        [data-testid="stDownloadButton"] button[kind="primary"] {
+            background-color: #4F46E5 !important; color: #FFFFFF !important; border-color: #4F46E5 !important;
+        }
+        [data-testid="stDownloadButton"] button[kind="primary"]:hover {
+            background-color: #4338CA !important; color: #FFFFFF !important;
+        }
+        /* A page-wide paragraph colour reached into primary buttons and left
+           their labels grey on indigo. */
+        [data-testid="stBaseButton-primary"] p,
+        [data-testid="stBaseButton-primary"] span { color: #FFFFFF !important; }
 
         [data-baseweb="select"] > div {
             background-color: #ffffff !important;

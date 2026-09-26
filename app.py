@@ -786,8 +786,8 @@ def load_all_data(indices: list[str]):
         calc, rank_df = _build_engine_and_rank()
 
     return {
-        # A CALLABLE, not the engine. Only three of the eleven pages need it
-        # (Sectors, RRG, Portfolio); the Screener that every cold start lands on
+        # A CALLABLE, not the engine. Only Portfolio needs it now (Sectors
+        # and RRG read the ranking table directly); the Screener that every cold start lands on
         # does not, and building it eagerly made every reader pay 30 seconds for
         # an object their first page never touched. Pages that need it call this
         # and get the same memoised engine.
@@ -847,7 +847,7 @@ if not data:
 
 # The engine, only when a page actually needs it. `calc` is None whenever the
 # precomputed ranking was accepted, which is the common cold start -- see
-# _precomputed_ranking. Three pages call get_calc() and pay for it then.
+# _precomputed_ranking. Only Portfolio calls get_calc() and pays for it then.
 calc = data["calc"]
 get_calc = data["get_calc"]
 rank_df = data["rank_df"]
@@ -918,7 +918,7 @@ def _page_qualified() -> None:
 
 
 def _page_sectors() -> None:
-    render_sector_view(get_calc(), rank_df, adj_close)
+    render_sector_view(rank_df, adj_close)
 
 
 def _page_rrg() -> None:
