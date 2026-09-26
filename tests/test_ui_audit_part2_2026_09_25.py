@@ -25,14 +25,22 @@ def test_stock_page_index_badges_are_exact_tags(monkeypatch):
     row = pd.Series({"Symbol": "ABC", "Rank": 5, "Indices": "MID150", "Industry": "IT"})
     stock_view._render_identity(row, total_stocks=750)
     page = "".join(out)
-    assert ">MID150<" in page and ">N50<" not in page
+    assert ">Nifty Midcap 150<" in page and ">Nifty 50<" not in page
 
 
-def test_rank_ring_shows_standing_not_raw_score():
-    top = stock_view._rank_ring(1, 750, 1.0)
-    bottom = stock_view._rank_ring(750, 750, 0.0)
-    offset = lambda svg: float(re.findall(r'stroke-dashoffset="([\d.]+)"', svg)[0])
-    assert offset(top) < offset(bottom)
+def test_rank_path_reads_oldest_to_now():
+    out = []
+    import src.ui.views.stock_view as sv
+
+    orig = sv.st.markdown
+    sv.st.markdown = lambda h, **k: out.append(str(h))
+    try:
+        sv._render_identity(pd.Series({"Symbol": "ABC", "Rank": 1, "Rank (-1M)": 2,
+                                       "Rank (-3M)": 6}), total_stocks=750)
+    finally:
+        sv.st.markdown = orig
+    page = "".join(out)
+    assert page.index("#6") < page.index("#2") < page.index("<b>#1</b>")
 
 
 def test_peers_table_formats_float32_prices(monkeypatch):

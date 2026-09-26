@@ -1,19 +1,23 @@
-"""Single-stock detail page — redesigned light edition.
+"""Single-stock page, as drawn in the approved light design.
 
-Layout order (matches agreed design canvas StockLight):
-  1. HERO         symbol, rank ring (score arc / rank text), CMP, index chips, gates
-  2. KPI BAND     12M Return · 12M Sharpe · Rank Δ 3M · Max DD 12M
-  3. CHART        price action first — TradingView chart + RS pane
-  4. KEY LEVELS   52W high, ATH, stop loss, Chandelier, ATR (tinted tiles)
-  5. PERFORMANCE  return / Sharpe / drawdown matrix across all windows (heatmap cells)
-  6. DYNAMICS     rank dynamics (left) + data health (right) — two-column card
-  7. PEERS        industry peers table, current stock highlighted
+Order, top to bottom:
+  1. HERO       company, price with its close date, change chips; rank card
+                with the path from three months ago and the score
+  2. VERDICT    passes both screener filters, one, or neither -- by how much
+  3. NOTICES    corporate action in the price history, when there is one
+  4. CHART      price with EMAs and volume, relative strength beneath
+  5. LADDER     where the price sits: 52-week range, filter line, EMA, ATH,
+                stop levels when the source has intraday highs and lows
+  6. RETURNS    gain vs pain: each window's return beside the fall it took,
+                with the Nifty 500 and the typical stock on the same bars
+  7. PEERS      the industry's best-ranked stocks, linked
+  8. CHECKS     data caveats; opens itself when one needs reading
 """
 
 from __future__ import annotations
 
 import html as _html
-import math
+from urllib.parse import quote as _quote
 
 import numpy as np
 import pandas as pd
@@ -28,13 +32,19 @@ from src.ui.components import gap_count, render_data_quality_footer, to_bool_mas
 POS   = "#067647"
 NEG   = "#B42318"
 WARN  = "#B54708"
-ACC   = "#4f46e5"
+ACC   = "#4F46E5"
 INK   = "#0E1726"
 SUB   = "#3C4657"
 MUTED = "#5E6878"
 LINE  = "#E3E6EB"
 
 PERIODS = (1, 3, 6, 9, 12)
+_LONG = {1: "1 month", 3: "3 months", 6: "6 months", 9: "9 months", 12: "12 months"}
+
+INDEX_NAMES = {
+    "N50": "Nifty 50", "NN50": "Nifty Next 50", "MID150": "Nifty Midcap 150",
+    "SMALL250": "Nifty Smallcap 250", "MICRO250": "Nifty Microcap 250",
+}
 
 
 # ── Formatting primitives ────────────────────────────────────────────────────
@@ -74,123 +84,184 @@ def _sign_colour(value, neutral: str = INK) -> str:
     return POS if v > 0 else (NEG if v < 0 else neutral)
 
 
-# ── SVG rank ring ────────────────────────────────────────────────────────────
+def _signed_pct(frac: float | None, decimals: int = 1) -> str:
+    """A fraction as a signed percentage with a real minus sign."""
+    if frac is None:
+        return "—"
+    sign = "+" if frac > 0 else "−" if frac < 0 else ""
+    return f"{sign}{abs(frac) * 100:.{decimals}f}%"
 
-def _rank_ring(rank: int | None, total: int, score: float | None, size: int = 76) -> str:
-    """Partial-arc ring: score fills the arc (indigo→emerald gradient), rank in center."""
-    if rank is None:
+
+def _flag(row: pd.Series, col: str) -> bool:
+    return bool(to_bool_mask(pd.Series([row.get(col)])).iloc[0])
+
+
+def _date_label(raw) -> str:
+    if raw is None or str(raw).strip() in ("", "nan", "NaT", "None"):
         return ""
-    cx = cy = size / 2
-    r = size * 0.395          # ≈ 30px for 76px ring
-    circ = 2 * math.pi * r
-    s = max(0.0, min(1.0, float(score) if score is not None else 0.8))
-    offset = (1.0 - s) * circ
-    total_str = f"of {total}" if total else ""
-    fs_rank = int(size * 0.224)   # ≈ 17px
-    fs_sub  = int(size * 0.105)   # ≈ 8px
-    y_rank  = cy - size * 0.053   # slightly above center
-    y_sub   = cy + size * 0.118   # slightly below
-    uid = f"rg{rank}"
-    return (
-        f'<svg width="{size}" height="{size}" viewBox="0 0 {size} {size}" '
-        f'xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">'
-        f'<defs><linearGradient id="{uid}" x1="0" y1="0" x2="1" y2="1">'
-        f'<stop offset="0%" stop-color="#4f46e5"/>'
-        f'<stop offset="100%" stop-color="#067647"/></linearGradient></defs>'
-        f'<circle cx="{cx}" cy="{cy}" r="{r:.1f}" fill="none" stroke="#E3E6EB" stroke-width="4.5"/>'
-        f'<circle cx="{cx}" cy="{cy}" r="{r:.1f}" fill="none" stroke="url(#{uid})"'
-        f' stroke-width="5.5" stroke-dasharray="{circ:.1f}" stroke-dashoffset="{offset:.1f}"'
-        f' transform="rotate(-90 {cx} {cy})" stroke-linecap="round"/>'
-        f'<text x="{cx}" y="{y_rank:.1f}" text-anchor="middle" dominant-baseline="middle"'
-        f' font-family="Bricolage Grotesque,sans-serif" font-weight="900" font-size="{fs_rank}"'
-        f' fill="#4f46e5">#{rank}</text>'
-        f'<text x="{cx}" y="{y_sub:.1f}" text-anchor="middle" dominant-baseline="middle"'
-        f' font-family="Geist,sans-serif" font-size="{fs_sub}"'
-        f' fill="#6B7482">{total_str}</text>'
-        f'</svg>'
+    try:
+        return pd.Timestamp(str(raw)[:10]).strftime("%d %b %Y")
+    except (ValueError, TypeError):
+        return ""
+
+
+def _html_block(markup: str) -> None:
+    # st.markdown, not st.html: the page's tests read at.markdown, and the
+    # shared stylesheet styles both the same.
+    st.markdown(markup, unsafe_allow_html=True)
+
+
+def _price_day() -> pd.Timestamp | None:
+    from src.core import startup_metrics as _metrics
+
+    try:
+        day = pd.Timestamp(
+            str(_metrics.snapshot().get("facts", {}).get("price_as_of") or "")[:10])
+    except (ValueError, TypeError):
+        return None
+    return None if pd.isna(day) else day
+
+
+# ── 1. HERO ──────────────────────────────────────────────────────────────────
+
+def _render_identity(row: pd.Series, total_stocks: int) -> None:
+    sym = str(row["Symbol"])
+    name = str(row.get("Company Name") or "").strip() or sym
+    industry = str(row.get("Industry") or "").strip()
+    sector = str(row.get("TV_Sector") or "").strip()
+    tags = [t.strip().upper() for t in str(row.get("Indices") or "").split(",") if t.strip()]
+
+    # Exact tags, as indices_loader writes them (config.SHORT_FORMS). A
+    # substring test ("50" in tag) once gave every MID150/SMALL250/MICRO250
+    # stock a Nifty 50 badge.
+    chips = f'<span class="sp-sym">{_html.escape(sym)}</span>'
+    for t in tags:
+        if t in ("—", "NAN"):
+            continue
+        chips += f'<span class="sp-tag">{_html.escape(INDEX_NAMES.get(t, t))}</span>'
+
+    day = _price_day()
+    mcap = _num(row.get("Market Cap (Cr)"))
+    close_bits = [f"Close · {day:%a %d %b %Y}" if day is not None else "Close"]
+    if mcap is not None:
+        close_bits.append(f"Market cap ₹{mcap:,.0f} Cr")
+
+    changes = ""
+    for m in (1, 3, 12):
+        v = _num(row.get(f"{m}M Return"))
+        if v is None:
+            continue
+        cls = "up" if v > 0 else "down" if v < 0 else "flat"
+        arrow = "▲" if v > 0 else "▼" if v < 0 else "•"
+        changes += f'<span class="sp-chg {cls}">{arrow} {abs(v) * 100:.1f}% · {m}M</span>'
+
+    cls_parts = [p for p in (industry, sector) if p and p.lower() != "nan"]
+    if len(cls_parts) == 2 and cls_parts[0] == cls_parts[1]:
+        cls_parts = cls_parts[:1]
+    cls_line = " · ".join(_html.escape(p) for p in cls_parts)
+
+    rank = _num(row.get("Rank"))
+    path = []
+    for col, label in (("Rank (-3M)", "3M ago"), ("Rank (-1M)", "1M ago"), ("Rank", "now")):
+        v = _num(row.get(col))
+        if v is not None:
+            path.append((int(v), label))
+    path_html = ""
+    if len(path) >= 2:
+        steps = []
+        for i, (r, label) in enumerate(path):
+            cls = "now" if label == "now" else ""
+            steps.append(f'<span class="sp-step {cls}"><b>#{r}</b><i>{label}</i></span>')
+            if i < len(path) - 1:
+                steps.append('<span class="sp-arrow">→</span>')
+        path_html = f'<div class="sp-path">{"".join(steps)}</div>'
+    score = _num(row.get("Score"))
+    hz = _num(row.get("Horizons Scored"))
+    facts = []
+    if score is not None:
+        facts.append(f"<span>Score <b>{score:.3f}</b></span>")
+    if hz is not None:
+        facts.append(f"<span>Horizons scored <b>{int(hz)} of 5</b></span>")
+
+    _html_block(
+        '<section class="sp-hero">'
+        '<div class="sp-card sp-id">'
+        f'<div class="sp-chips">{chips}</div>'
+        f'<div class="sp-cls">{cls_line}</div>'
+        f'<h1 class="sp-name">{_html.escape(name)}</h1>'
+        '<div class="sp-price-row"><div class="sp-price-col">'
+        f'<span class="sp-price">{_money(row.get("CMP"), 2)}</span>'
+        f'<span class="sp-close">{_html.escape(" · ".join(close_bits))}</span></div>'
+        f'<div class="sp-changes">{changes}</div></div>'
+        '</div>'
+        '<div class="sp-card sp-rank">'
+        '<span class="sp-k">Momentum rank</span>'
+        f'<div class="sp-rank-big"><span>#{int(rank) if rank is not None else "—"}</span>'
+        f'<i>of {total_stocks} stocks</i></div>'
+        f'{path_html}'
+        f'<div class="sp-facts">{"".join(facts)}</div>'
+        '</div></section>'
     )
 
 
-# ── UI building blocks ───────────────────────────────────────────────────────
+# ── 2. VERDICT ───────────────────────────────────────────────────────────────
 
-def _chip(text: str, bg: str = "#F1F3F6", fg: str = SUB, border: str = LINE) -> str:
-    return (
-        f'<span style="display:inline-block;font-size:0.68rem;font-weight:700;'
-        f'padding:2px 7px;border-radius:4px;background:{bg};color:{fg};'
-        f'border:1px solid {border};letter-spacing:.03em;white-space:nowrap;">'
-        f'{_html.escape(str(text))}</span>'
+def _render_verdict(row: pd.Series) -> None:
+    above = _flag(row, "Above 50 EMA")
+    near = _flag(row, "Near 52W High")
+    cmp_v = _num(row.get("CMP"))
+    ema_pct = _num(row.get("% 50 EMA"))
+    hi = _num(row.get("52W High"))
+    pct_hi = _num(row.get("% High"))
+    ath = _num(row.get("ATH"))
+    pct_ath = _num(row.get("% ATH"))
+
+    if above and near:
+        state, title, sub = "pass", "Passes both filters", "Eligible for the portfolio"
+    elif above or near:
+        state, title, sub = "part", "Passes one filter of two", "Not eligible until both pass"
+    else:
+        state, title, sub = "fail", "Fails both filters", "Not eligible for the portfolio"
+
+    def dist(p: float | None) -> str:
+        if p is None:
+            return "—"
+        if abs(p) < 0.05:
+            return "At the high"
+        return f"{abs(p):.1f}% {'above' if p > 0 else 'below'}"
+
+    ema_val = cmp_v / (1 + ema_pct / 100) if cmp_v is not None and ema_pct is not None else None
+    ema_txt = "—" if ema_pct is None else f"{abs(ema_pct):.1f}% {'above' if ema_pct >= 0 else 'below'}"
+    ema_cell = (
+        f'<span class="v {"up" if above else "down"}">{ema_txt}</span>'
+        f'<span class="s">{"EMA ≈ " + _money(ema_val) if ema_val is not None else ""}</span>'
+    )
+    hi_date = _date_label(row.get("52W High Date"))
+    hi_sub = f"{_money(hi, 2)} set on {hi_date}" if hi_date else _money(hi, 2)
+    if not near and hi is not None:
+        hi_sub = f"High {_money(hi, 2)} · filter line {_money(hi * 0.8, 2)}"
+    hi_cell = (f'<span class="v {"up" if near else "down"}">{dist(pct_hi)}</span>'
+               f'<span class="s">{_html.escape(hi_sub)}</span>')
+    ath_src = str(row.get("ATH Source") or "").strip()
+    ath_date = _date_label(row.get("ATH Date"))
+    if ath_src == "in_memory_window":
+        ath_sub = "2-year high: no all-time record for this stock"
+    else:
+        ath_sub = f"{_money(ath, 2)} set on {ath_date}" if ath_date else _money(ath, 2)
+    ath_cell = (f'<span class="v">{dist(pct_ath)}</span>'
+                f'<span class="s">{_html.escape(ath_sub)}</span>')
+    mark = {"pass": "✓", "part": "!", "fail": "✕"}[state]
+    _html_block(
+        f'<section class="sp-verdict {state}" aria-label="Screener filters">'
+        f'<div class="vh"><span class="vm">{mark}</span><span><b>{title}</b><i>{sub}</i></span></div>'
+        f'<div class="vc"><span class="k">Above 50-day EMA</span>{ema_cell}</div>'
+        f'<div class="vc"><span class="k">Within 20% of 52-week high</span>{hi_cell}</div>'
+        f'<div class="vc"><span class="k">All-time high <em>(bonus)</em></span>{ath_cell}</div>'
+        '</section>'
     )
 
 
-def _gate(label: str, passed: bool) -> str:
-    colour = POS if passed else MUTED
-    mark = "✓" if passed else "✗"
-    return (
-        f'<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;'
-        f'border-radius:20px;background:{colour}0D;border:1px solid {colour}30;'
-        f"font-family:'Geist Mono',monospace;font-size:0.68rem;font-weight:700;"
-        f'color:{colour};">{mark} {label}</span>'
-    )
-
-
-def _section(title: str, note: str = "") -> None:
-    note_html = (
-        f'<span style="color:{MUTED};font-weight:500;"> · {note}</span>' if note else ""
-    )
-    st.markdown(
-        f'<div style="font-size:0.76rem;font-weight:800;color:{INK};letter-spacing:0.01em;'
-        f'margin:18px 0 8px;padding-bottom:6px;border-bottom:2px solid #eef2ff;">'
-        f'{title}{note_html}</div>',
-        unsafe_allow_html=True,
-    )
-
-
-def _kpi_tile(label: str, value: str, colour: str = INK, sub: str = "") -> str:
-    """Large KPI band tile — Bricolage Grotesque 900 number."""
-    sub_html = (
-        f'<div style="font-family:\'Geist Mono\',monospace;font-size:0.68rem;'
-        f'color:{MUTED};margin-top:3px;">{sub}</div>'
-        if sub else ""
-    )
-    return (
-        f'<div style="flex:1 1 0;min-width:110px;padding:14px 16px;background:#ffffff;'
-        f'border:1px solid {LINE};border-radius:12px;">'
-        f'<div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:.06em;'
-        f'color:{MUTED};font-weight:700;font-family:\'Geist Mono\',monospace;">{label}</div>'
-        f'<div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:1.55rem;font-weight:900;'
-        f'color:{colour};margin-top:4px;letter-spacing:-.02em;">{value}</div>'
-        f'{sub_html}</div>'
-    )
-
-
-def _tile(label: str, value: str, *, sub: str = "", colour: str = INK,
-          title: str = "", bg: str = "#ffffff") -> str:
-    """Detail tile for key levels and data rows."""
-    tip = f' title="{title}"' if title else ""
-    sub_html = (
-        f'<div style="font-size:0.65rem;color:{MUTED};margin-top:2px;">{sub}</div>'
-        if sub else ""
-    )
-    return (
-        f'<div{tip} style="flex:1 1 130px;min-width:120px;padding:10px 14px;'
-        f'background:{bg};border:1px solid {LINE};border-radius:10px;">'
-        f'<div style="font-size:0.63rem;text-transform:uppercase;letter-spacing:.04em;'
-        f'color:{MUTED};font-weight:700;">{label}</div>'
-        f'<div style="font-family:\'Geist Mono\',monospace;font-size:0.97rem;'
-        f'font-weight:700;color:{colour};margin-top:3px;">{value}</div>'
-        f'{sub_html}</div>'
-    )
-
-
-def _row(tiles: list[str]) -> str:
-    return (
-        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">'
-        + "".join(tiles)
-        + "</div>"
-    )
-
-
-# ── Corporate actions notice ─────────────────────────────────────────────────
+# ── 3. NOTICES ───────────────────────────────────────────────────────────────
 
 def _render_corporate_actions(symbol: str) -> None:
     events = [e for e in load_events() if e.get("symbol", "").upper() == symbol.upper()]
@@ -198,404 +269,226 @@ def _render_corporate_actions(symbol: str) -> None:
         return
     lines = []
     for e in sorted(events, key=lambda x: x.get("date", "")):
-        date = e.get("date", "—")
         move = e.get("move")
-        move_str = f"{move * 100:+.1f}%" if move is not None else "—"
-        kind = e.get("looks_like") or e.get("kind") or "unknown"
-        lines.append(f"**{date}** — {move_str} session · {kind}")
-    st.warning(
-        "**Corporate action detected in price history.** "
-        "The backtest rescales history before this event so the strategy sees the "
-        "real trajectory — the drop below is not a real loss.\n\n"
-        + "\n\n".join(lines)
-    )
-
-
-# ── 1. HERO ──────────────────────────────────────────────────────────────────
-
-# Index chip colours on the stock page.
-_INDEX_CHIP_STYLES: dict[str, tuple[str, str, str]] = {
-    "N50": ("#ede9fe", "#5b21b6", "#ddd6fe"),
-    "NN50": ("#f3e8ff", "#7e22ce", "#e9d5ff"),
-    "MID150": ("#fff7ed", "#9a3412", "#fed7aa"),
-    "SMALL250": ("#fef9c3", "#713f12", "#F5D7A8"),
-    "MICRO250": ("#FDEDEB", "#991b1b", "#F3C7C1"),
-}
-
-
-def _render_identity(row: pd.Series, total_stocks: int) -> None:
-    sym     = str(row["Symbol"])
-    rank    = _num(row.get("Rank"))
-    rank_i  = int(rank) if rank is not None else None
-    industry = row.get("Industry") or "—"
-    sector   = row.get("TV_Sector") or ""
-    indices  = str(row.get("Indices") or "").strip()
-    cmp_val  = _money(row.get("CMP"))
-    r3       = _num(row.get("3M Return"))
-
-    # Index chips
-    idx_chips = ""
-    for idx_raw in indices.split(","):
-        idx_s = idx_raw.strip()
-        if not idx_s or idx_s == "—":
-            continue
-        # Exact tags, as indices_loader writes them (config.SHORT_FORMS). The
-        # old substring test ("50" in tag) matched NN50, MID150, SMALL250 and
-        # MICRO250 too, so every one of those stocks wore an "N50" badge.
-        style = _INDEX_CHIP_STYLES.get(idx_s.upper())
-        if style:
-            idx_chips += _chip(idx_s.upper(), *style)
-        else:
-            idx_chips += _chip(idx_s[:8], "#F1F3F6", SUB, LINE)
-
-    # Industry chip
-    if industry and industry != "—":
-        ind_short = industry[:18] + "…" if len(industry) > 19 else industry
-        idx_chips += _chip(ind_short, "#F4F5F8", MUTED, LINE)
-
-    gates = "".join([
-        _gate("Above 50 EMA",
-              bool(to_bool_mask(pd.Series([row.get("Above 50 EMA")])).iloc[0])),
-        _gate("Near 52W High",
-              bool(to_bool_mask(pd.Series([row.get("Near 52W High")])).iloc[0])),
-        _gate("At ATH",
-              bool(to_bool_mask(pd.Series([row.get("At ATH")])).iloc[0])),
-    ])
-
-    # The arc shows standing in the universe. It used to be filled with the raw
-    # composite Score -- a z-score, roughly -2 to +1.5 -- clamped to 0..1, so
-    # every stock above average drew a full ring and every one below an empty one.
-    standing = (
-        1.0 - (rank_i - 1) / max(total_stocks - 1, 1)
-        if rank_i is not None and total_stocks else None
-    )
-    ring_svg = _rank_ring(rank_i, total_stocks, standing, size=76)
-
-    r3_str  = f"{r3 * 100:+.1f}% · 3M" if r3 is not None else ""
-    r3_clr  = _sign_colour(r3)
-    av_bg   = "linear-gradient(135deg,#eef2ff,#e0e7ff)"
-
-    ring_html = (
-        '<div class="sv-ring">'
-        + ring_svg
-        + "</div>"
-        if ring_svg else ""
-    )
-    industry_or_sector = sector if sector else industry
-
-    # Period return pills — 1M through 12M inline below the gates
-    _pill_parts = []
-    for _mo, _col in [(1, "1M Return"), (3, "3M Return"), (6, "6M Return"),
-                      (9, "9M Return"), (12, "12M Return")]:
-        _v = _num(row.get(_col))
-        if _v is None:
-            continue
-        _pct_s = f"{_v * 100:+.1f}%"
-        _clr   = "#067647" if _v > 0 else "#B42318"
-        _bg    = "#D3EEDF" if _v > 0 else "#F3C7C1"
-        _pill_parts.append(
-            f'<span style="background:{_bg};color:{_clr};border-radius:6px;'
-            f'padding:3px 10px;font-family:\'Geist Mono\',monospace;'
-            f'font-size:.67rem;font-weight:700;">{_mo}M&nbsp;{_pct_s}</span>'
+        move_str = f"{move * 100:+.1f}%" if move is not None else "a large amount"
+        kind = e.get("looks_like") or e.get("kind") or "corporate action"
+        day = _date_label(e.get("date")) or str(e.get("date", "—"))
+        lines.append(
+            f"On <b>{_html.escape(day)}</b> the price moved <b>{_html.escape(move_str)}</b> in "
+            f"one session, which looks like a {_html.escape(str(kind))}."
         )
-    periods_pills = (
-        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">'
-        + "".join(_pill_parts)
-        + "</div>"
-        if _pill_parts else ""
-    )
-
-    # Mobile-responsive styles scoped with sv- class prefix
-    mobile_css = (
-        "<style>"
-        ".sv-hero{background:linear-gradient(150deg,#eef2ff 0%,#E8F5EE 55%,#faf5ff 100%);"
-        f"border:1px solid {LINE};border-radius:16px;padding:20px 22px;margin-bottom:10px;}}"
-        ".sv-top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}"
-        ".sv-avatar{width:52px;height:52px;flex-shrink:0;border-radius:14px;"
-        f"background:{av_bg};border:1px solid #c7d2fe;display:flex;align-items:center;"
-        f"justify-content:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:900;"
-        f"font-size:1.2rem;color:{ACC};}}"
-        ".sv-nameblock{flex:1;min-width:0;}"
-        f".sv-sym{{font-family:'Bricolage Grotesque',sans-serif;font-weight:900;font-size:1.6rem;"
-        f"color:{INK};letter-spacing:-.025em;line-height:1;}}"
-        f".sv-sector{{font-size:.72rem;color:{MUTED};margin-top:4px;}}"
-        ".sv-chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;}"
-        ".sv-ring{flex-shrink:0;}"
-        ".sv-cmp{text-align:right;margin-left:auto;}"
-        f".sv-cmp-val{{font-family:'Bricolage Grotesque',sans-serif;font-weight:900;font-size:2rem;"
-        f"color:{INK};letter-spacing:-.03em;line-height:1;}}"
-        f".sv-cmp-delta{{font-family:'Geist Mono',monospace;font-size:.78rem;"
-        f"font-weight:700;color:{r3_clr};margin-top:4px;}}"
-        f".sv-gates{{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px;}}"
-        "@media(max-width:520px){"
-        ".sv-ring svg{width:56px!important;height:56px!important;}"
-        ".sv-cmp-val{font-size:1.5rem!important;}"
-        ".sv-sym{font-size:1.35rem!important;}"
-        ".sv-top{gap:10px;}"
-        "}"
-        "</style>"
-    )
-
-    html = (
-        mobile_css
-        + '<div class="sv-hero">'
-        + '<div class="sv-top">'
-        + f'<div class="sv-avatar">{_html.escape(sym[:2])}</div>'
-        + '<div class="sv-nameblock">'
-        + f'<div class="sv-sym">{_html.escape(sym)}</div>'
-        + f'<div class="sv-sector">{_html.escape(str(industry_or_sector))}</div>'
-        + f'<div class="sv-chips">{idx_chips}</div>'
-        + '</div>'
-        + ring_html
-        + '<div class="sv-cmp">'
-        + f'<div class="sv-cmp-val">{cmp_val}</div>'
-        + f'<div class="sv-cmp-delta">{r3_str}</div>'
-        + '</div>'
-        + '</div>'
-        + f'<div class="sv-gates">{gates}</div>'
-        + periods_pills
-        + '</div>'
-    )
-    st.markdown(html, unsafe_allow_html=True)
-
-
-# ── 2. KPI BAND ──────────────────────────────────────────────────────────────
-
-def _render_kpi_band(row: pd.Series) -> None:
-    r12  = _num(row.get("12M Return"))
-    s12  = _num(row.get("12M Sharpe"))
-    d3m  = _num(row.get("Rank Δ 3M"))
-    dd12 = _num(row.get("Max DD 12M"))
-
-    r12_str  = f"{r12 * 100:+.1f}%" if r12 is not None else "—"
-    s12_str  = f"{s12:.2f}" if s12 is not None else "—"
-    d3m_val  = int(d3m) if d3m is not None else None
-    d3m_str  = (f"▲ {d3m_val}" if d3m_val and d3m_val > 0
-                else (f"▼ {abs(d3m_val)}" if d3m_val and d3m_val < 0 else "—"))
-    dd12_str = f"{dd12:.1f}%" if dd12 is not None else "—"
-
-    tiles = "".join([
-        _kpi_tile("12M Return", r12_str, colour=_sign_colour(r12), sub="price return"),
-        _kpi_tile("12M Sharpe", s12_str,
-                  colour=POS if s12 and s12 > 1 else (WARN if s12 and s12 > 0 else NEG)),
-        _kpi_tile("Rank Δ 3M", d3m_str, colour=_sign_colour(d3m),
-                  sub="+ = climbed"),
-        _kpi_tile("Max DD 12M", dd12_str, colour=NEG if dd12 else INK,
-                  sub="worst drawdown"),
-    ])
-    st.markdown(
-        f'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">{tiles}</div>',
-        unsafe_allow_html=True,
+    _html_block(
+        '<section class="sp-notice" aria-label="Corporate action">'
+        '<b>Corporate action in the price history</b>'
+        f'<p>{" ".join(lines)} History before the event is rescaled, so the jump is '
+        'not counted as a real gain or loss in the ranking or the backtest.</p></section>'
     )
 
 
-# ── 4. KEY LEVELS ─────────────────────────────────────────────────────────────
+# ── 5. LADDER ────────────────────────────────────────────────────────────────
 
-def _render_key_levels(row: pd.Series) -> None:
-    _section("Key levels", "highs carry the date they were printed")
+def _year_low(symbol: str, adj_close: pd.DataFrame | None,
+              low_prices: pd.DataFrame | None) -> float | None:
+    for frame in (low_prices, adj_close):
+        if frame is not None and symbol in getattr(frame, "columns", []):
+            s = pd.to_numeric(frame[symbol], errors="coerce").dropna().tail(252)
+            if not s.empty:
+                return float(s.min())
+    return None
 
-    hi_52    = row.get("52W High")
-    pct_hi   = _num(row.get("% High"))
-    ath      = row.get("ATH")
-    pct_ath  = _num(row.get("% ATH"))
-    ath_date = str(row.get("ATH Date") or "").strip()
-    ath_src  = str(row.get("ATH Source") or "").strip()
 
-    ath_sub  = f"peak {ath_date}" if ath_date else ""
-    if ath_src == "in_memory_window":
-        ath_sub = "2y window, not all-time"
+def _render_price_ladder(row: pd.Series, year_low: float | None = None) -> None:
+    cmp_v = _num(row.get("CMP"))
+    hi = _num(row.get("52W High"))
+    pct_hi = _num(row.get("% High"))
+    ath = _num(row.get("ATH"))
+    ath_date = _date_label(row.get("ATH Date"))
+    ema_pct = _num(row.get("% 50 EMA"))
+    ema_val = cmp_v / (1 + ema_pct / 100) if cmp_v is not None and ema_pct is not None else None
+    line = hi * 0.8 if hi is not None else None
 
-    hi_52_date = str(row.get("52W High Date") or "").strip()
-    hi_sub = f"peak {hi_52_date}" if hi_52_date else (
-        f"{_pct(pct_hi)} away" if pct_hi is not None else ""
-    )
+    # The range bar: 52-week low to high, with the filter line and the EMA.
+    bar = ""
+    if hi is not None and year_low is not None and hi > year_low and cmp_v is not None:
+        span = hi - year_low
 
-    # Tile background tints: green = good/high, amber = caution, red = risk level
-    # `is not None`, not truthiness: a stock AT its 52-week high has
-    # pct_hi == 0, which read as false and painted the tile red.
-    hi_bg  = (
-        "#F4F5F8" if pct_hi is None
-        else "#E8F5EE" if pct_hi > -5
-        else "#FEF6EA" if pct_hi > -15
-        else "#FDEDEB"
-    )
-    sl_bg  = "#FDEDEB"   # stop loss → always red-tinted (risk)
-    cex_bg = "#FEF6EA"   # chandelier exit → amber (caution)
-    ema_bg = "#E8F5EE" if _sign_colour(row.get("% 50 EMA")) == POS else "#FDEDEB"
+        def x(v: float) -> float:
+            return max(0.0, min(100.0, (v - year_low) / span * 100))
 
-    tiles = [
-        _tile("52W High", _money(hi_52), sub=hi_sub, colour=INK, bg=hi_bg,
-              title=f"Peak printed {hi_52_date}" if hi_52_date else ""),
-        _tile("All-Time High", _money(ath), sub=ath_sub, colour=INK,
-              title=f"Peak printed {ath_date}" if ath_date else ""),
-        _tile("% from 52W High", _pct(pct_hi), colour=_sign_colour(pct_hi), bg=hi_bg),
-        _tile("% from ATH", _pct(pct_ath), colour=_sign_colour(pct_ath),
-              title=f"Peak printed {ath_date}" if ath_date else ""),
-    ]
+        marks = (f'<i class="m-line" style="left:{x(line):.1f}%" title="Filter line"></i>'
+                 if line is not None else "")
+        if ema_val is not None:
+            marks += f'<i class="m-ema" style="left:{x(ema_val):.1f}%" title="50-day EMA"></i>'
+        bar = (
+            '<div class="sp-range"><div class="track">'
+            f'<div class="fill" style="width:{x(cmp_v):.1f}%"></div>{marks}'
+            f'<span class="dot" style="left:{x(cmp_v):.1f}%"></span></div>'
+            f'<div class="ends"><span>52-week low {_money(year_low)}</span>'
+            '<span class="key"><i class="m-line"></i>filter line <i class="m-ema"></i>50-day EMA</span>'
+            f'<span>52-week high {_money(hi)}</span></div></div>'
+        )
 
-    # The three ATR tiles are DROPPED, not blanked, when the ranking carries no
-    # ATR. A history of closing prices has no intraday range, so the pipeline
-    # removes ATR_DERIVED_COLUMNS outright rather than derive a number from
-    # close-to-close moves that would read as a true ATR and size a stop about
-    # half as wide as intended. What reached the page instead was three tiles
-    # printing an em dash under "CMP − 2×ATR" and "22D high − 3×ATR" -- a
-    # formula with no number, on every stock, permanently.
+    rows = []
+
+    def item(label: str, value: str, sub: str = "", cls: str = "") -> None:
+        rows.append(
+            f'<div class="li"><span class="lk">{_html.escape(label)}</span>'
+            f'<span class="lv {cls}">{value}</span>'
+            f'<span class="ls">{_html.escape(sub)}</span></div>'
+        )
+
+    item("52W High", _money(hi, 2),
+         (f"price {_pct(pct_hi)}" if pct_hi and abs(pct_hi) >= 0.05 else "price is at the high"),
+         "down" if pct_hi and pct_hi <= -0.05 else "")
+    if ath is not None:
+        item("All-time high", _money(ath, 2),
+             (f"set on {ath_date}" if ath_date else "")
+             + (f" · price {_pct(row.get('% ATH'))}" if _num(row.get("% ATH")) is not None else ""))
+    if line is not None:
+        item("Filter line · 20% below high", _money(line),
+             "price is above it" if cmp_v is not None and cmp_v >= line else "price is below it",
+             "" if cmp_v is not None and cmp_v >= line else "down")
+    if ema_val is not None:
+        item("50-day EMA", _money(ema_val), f"price {_pct(ema_pct)}",
+             "up" if ema_pct >= 0 else "down")
+    if year_low is not None and cmp_v:
+        item("52-week low", _money(year_low), f"price {_pct((cmp_v / year_low - 1) * 100, 0)}")
+    dd = _num(row.get("Max DD 12M"))
+    if dd is not None:
+        item("Worst fall, 12 months", f"−{abs(dd):.1f}%", "peak to trough", "down")
+    pers = _num(row.get("Persistence"))
+    if pers is not None:
+        item("Up-days, last 6 months", f"{pers:.1f}%", "share of sessions that closed higher")
+    vol = str(row.get("Volume") or "").strip()
+    if vol:
+        item("Volume vs normal", _html.escape(vol), "")
+
+    # Stop levels are DROPPED, not blanked, when the ranking carries no ATR. A
+    # history of closing prices has no intraday range, so the pipeline removes
+    # ATR_DERIVED_COLUMNS rather than derive a number that would read as a
+    # true ATR and size a stop about half as wide as intended.
     if any(_num(row.get(col)) is not None for col in ATR_DERIVED_COLUMNS):
-        tiles += [
-            _tile("Stop Loss", _money(row.get("Stop Loss")),
-                  sub="CMP − 2×ATR", colour=NEG, bg=sl_bg),
-            _tile("Chandelier Exit", _money(row.get("Chand Exit")),
-                  sub="22D high − 3×ATR", colour=WARN, bg=cex_bg),
-            _tile("ATR", _money(row.get("ATR"), 1),
-                  sub=f"{_ratio(row.get('ATR %'))}% of price", colour=INK),
-        ]
+        item("Stop Loss", _money(row.get("Stop Loss")), "price − 2 × ATR", "down")
+        item("Chandelier Exit", _money(row.get("Chand Exit")), "22-day high − 3 × ATR", "warn")
+        item("ATR (14-day)", _money(row.get("ATR"), 1), f"{_ratio(row.get('ATR %'))}% of price")
 
-    tiles.append(
-        _tile("vs 50 EMA", _pct(row.get("% 50 EMA")),
-              colour=_sign_colour(row.get("% 50 EMA")), bg=ema_bg)
+    _html_block(
+        '<section class="sp-card sp-ladder" aria-label="Where the price sits">'
+        '<h2>Where the price sits</h2>'
+        f'{bar}<div class="list">{"".join(rows)}</div></section>'
     )
-    st.markdown(_row(tiles), unsafe_allow_html=True)
 
 
-# ── 5. PERFORMANCE MATRIX ────────────────────────────────────────────────────
+# ── 6. RETURNS: GAIN VS PAIN ─────────────────────────────────────────────────
 
-def _render_performance_matrix(row: pd.Series) -> None:
-    _section("Performance across every window",
-             "shape across windows says more than any single one")
+def _benchmark_returns(day: pd.Timestamp | None) -> dict[int, float]:
+    """Nifty 500 price return over each calendar window ending on the price day."""
+    try:
+        from src.loaders.price_loader import fetch_benchmark_history
 
-    def _cell_bg(value, positive_good: bool = True) -> str:
-        v = _num(value)
-        if v is None:
-            return ""
-        if positive_good:
-            if v > 0.3:   return "background:#bbf7d0;color:#054F31;"
-            if v > 0.1:   return "background:#D3EEDF;color:#054F31;"
-            if v > 0:     return "background:#E8F5EE;color:#067647;"
-            if v > -0.1:  return "background:#FDEDEB;color:#B42318;"
-            if v > -0.2:  return "background:#F3C7C1;color:#912018;"
-            return              "background:#fca5a5;color:#991b1b;"
+        s = fetch_benchmark_history(period="2y")
+    except Exception:
+        return {}
+    s = pd.to_numeric(s, errors="coerce").dropna()
+    if s.empty:
+        return {}
+    if day is not None:
+        s = s[s.index <= day + pd.Timedelta(days=1)]
+    if s.empty:
+        return {}
+    end_t = s.index[-1]
+    out = {}
+    for m in PERIODS:
+        start = s[s.index <= end_t - pd.DateOffset(months=m)]
+        if not start.empty:
+            out[m] = float(s.iloc[-1] / start.iloc[-1] - 1)
+    return out
+
+
+def _render_gain_vs_pain(row: pd.Series, rank_df: pd.DataFrame) -> None:
+    """Each window's return grows right, the fall it took grows left."""
+    bench = _benchmark_returns(_price_day())
+    dd_max, r_max = 30.0, 0.0
+    data = []
+    for m in PERIODS:
+        ret = _num(row.get(f"{m}M Return"))
+        dd = _num(row.get(f"Max DD {m}M"))
+        sh = _num(row.get(f"{m}M Sharpe"))
+        pct = None
+        col = rank_df.get(f"{m}M Return")
+        if ret is not None and col is not None:
+            vals = pd.to_numeric(col, errors="coerce").dropna()
+            if len(vals):
+                pct = float((vals < ret).mean() * 100)
+        med = None
+        med_col = rank_df.get(f"Max DD {m}M")
+        if med_col is not None:
+            med = _num(pd.to_numeric(med_col, errors="coerce").median())
+        data.append((m, ret, dd, sh, pct, med, bench.get(m)))
+        if ret is not None:
+            r_max = max(r_max, ret)
+        for v in (dd, med):
+            if v is not None:
+                dd_max = max(dd_max, abs(v))
+    r_scale = max(r_max * 1.15, 0.25)
+
+    rows_html = []
+    for m, ret, dd, sh, pct, med, nb in data:
+        dd_w = abs(dd) / dd_max * 100 if dd is not None else 0
+        r_w = max(0.0, ret) / r_scale * 100 if ret is not None else 0
+        n_w = max(0.0, nb) / r_scale * 100 if nb is not None else 0
+        neg = "neg" if ret is not None and ret < 0 else ""
+        med_mark = (f'<i class="gp-med" style="right:{abs(med) / dd_max * 100:.1f}%" '
+                    f'title="Typical stock: −{abs(med):.1f}%"></i>' if med is not None else "")
+        dots = "".join(
+            f'<i class="{"on" if sh is not None and sh >= k + 1 else "half" if sh is not None and sh > k else ""}"></i>'
+            for k in range(4)
+        )
+        if pct is None:
+            top, good = "—", ""
+        elif pct >= 50:
+            top, good = f"Top {max(1, int(np.ceil(100 - pct)))}%", "good"
         else:
-            # drawdown: more negative = darker red
-            if v < -20:   return "background:#fca5a5;color:#991b1b;"
-            if v < -15:   return "background:#F3C7C1;color:#912018;"
-            if v < -10:   return "background:#FDEDEB;color:#B42318;"
-            if v < -5:    return "background:#FEF6EA;color:#92400e;"
-            return              "background:#E8F5EE;color:#054F31;"
-
-    def _sharpe_bg(v_raw) -> str:
-        v = _num(v_raw)
-        if v is None:
-            return ""
-        if v > 2:    return "background:#bbf7d0;color:#054F31;"
-        if v > 1:    return "background:#D3EEDF;color:#054F31;"
-        if v > 0.5:  return "background:#E8F5EE;color:#067647;"
-        if v > 0:    return "background:#FEF6EA;color:#92400e;"
-        return              "background:#FDEDEB;color:#B42318;"
-
-    header = "".join(
-        f'<th style="padding:8px 12px;text-align:right;font-size:0.65rem;'
-        f'text-transform:uppercase;letter-spacing:.05em;color:{MUTED};'
-        f'font-weight:700;background:#F4F5F8;">{m}M</th>'
-        for m in PERIODS
-    )
-
-    def band(label: str, fmt, get_bg) -> str:
-        cells = ""
-        for m in PERIODS:
-            key = {"Return": f"{m}M Return",
-                   "Sharpe": f"{m}M Sharpe",
-                   "Max Drawdown": f"Max DD {m}M"}[label]
-            raw = row.get(key)
-            v = _num(raw)
-            bg = get_bg(v)
-            txt = fmt(raw)
-            cells += (
-                f'<td style="padding:7px 12px;text-align:right;'
-                f"font-family:'Geist Mono',monospace;font-size:0.82rem;"
-                f'font-weight:700;{bg}">{txt}</td>'
-            )
-        return (
-            f'<tr><td style="padding:7px 12px;font-size:0.72rem;font-weight:700;'
-            f'color:{INK};white-space:nowrap;background:#fafafa;">{label}</td>{cells}</tr>'
+            top, good = f"Bottom {max(1, int(np.ceil(pct)))}%", "poor"
+        dd_txt = f"−{abs(dd):.1f}%" if dd is not None else "—"
+        nb_txt = f"Nifty 500 {_signed_pct(nb)}" if nb is not None else ""
+        rows_html.append(
+            '<div class="gp-row">'
+            f'<span class="gp-w"><b>{m}M</b><i>{_LONG[m]}</i></span>'
+            f'<div class="gp-dd">{med_mark}<div class="bar" style="width:{dd_w:.1f}%"></div>'
+            f'<span class="lbl" style="right:calc({dd_w:.1f}% + 6px)">{dd_txt}</span></div>'
+            '<div class="gp-axis"></div>'
+            f'<div class="gp-ret"><div class="bar {neg}" style="width:{r_w:.1f}%"></div>'
+            f'<span class="lbl {neg}" style="left:calc({r_w:.1f}% + 8px)">{_signed_pct(ret)}</span>'
+            f'<div class="nb" style="width:{n_w:.2f}%"></div>'
+            f'<span class="nl" style="left:calc({n_w:.2f}% + 6px)">{nb_txt}</span></div>'
+            f'<span class="gp-sh"><span class="dots">{dots}</span><b>{_ratio(sh)}</b></span>'
+            f'<span class="gp-top"><em class="{good}">{top}</em></span>'
+            '</div>'
         )
 
-    st.markdown(
-        f'<div style="overflow-x:auto;background:#ffffff;border:1px solid {LINE};'
-        f'border-radius:12px;margin-bottom:12px;">'
-        f'<table style="width:100%;border-collapse:collapse;">'
-        f'<thead><tr>'
-        f'<th style="padding:8px 12px;background:#F4F5F8;text-align:left;'
-        f'font-size:0.65rem;color:{MUTED};font-weight:700;text-transform:uppercase;'
-        f'letter-spacing:.05em;"></th>{header}</tr></thead>'
-        f'<tbody>'
-        + band("Return",
-               lambda v: _pct((_num(v) or 0) * 100) if _num(v) is not None else "—",
-               lambda v: _cell_bg(v * 100 if v is not None else None))
-        + band("Sharpe", _ratio, _sharpe_bg)
-        + band("Max Drawdown",
-               lambda v: _pct(v, signed=False) if _num(v) is not None else "—",
-               lambda v: _cell_bg(v, positive_good=False))
-        + "</tbody></table></div>",
-        unsafe_allow_html=True,
+    # Say so when one fall is the worst drop in several windows: the old grid
+    # repeated the same number four times with no explanation.
+    dds = [(d[0], d[2]) for d in data if d[2] is not None]
+    note = ""
+    if len(dds) >= 2:
+        same = [m for m, v in dds if abs(v - dds[0][1]) < 0.01]
+        if len(same) >= 2:
+            note = (f"The same {abs(dds[0][1]):.1f}% fall is the worst drop in every window "
+                    f"from {same[0]}M to {same[-1]}M. ")
+    _html_block(
+        '<section class="sp-card sp-gp" aria-label="Returns and risk">'
+        '<div class="gp-head"><h2>Returns and risk by window</h2>'
+        '<span class="gp-legend"><span><i class="k-dd"></i>Max drawdown</span>'
+        '<span><i class="k-ret"></i>Return</span><span><i class="k-nb"></i>Nifty 500</span>'
+        '<span><i class="k-med"></i>Typical stock</span></span></div>'
+        '<div class="gp-row gp-hdr"><span>Window</span><span class="r">Max drawdown</span><span></span>'
+        '<span>Return</span><span class="r">Sharpe</span><span class="r">Among all</span></div>'
+        f'{"".join(rows_html)}'
+        f'<div class="gp-foot">{_html.escape(note)}Price return, excludes dividends. Sharpe is '
+        'annualised, one dot per full point. "Among all" ranks the return against every '
+        'ranked stock.</div></section>'
     )
-
-
-# ── 6a. RANK DYNAMICS ────────────────────────────────────────────────────────
-
-def _render_rank_dynamics(row: pd.Series, total_stocks: int) -> None:
-    _section("Rank dynamics")
-
-    def delta_tile(label: str, key: str) -> str:
-        v = _num(row.get(key))
-        if v is None:
-            return _tile(label, "—")
-        arrow = "▲" if v > 0 else ("▼" if v < 0 else "—")
-        bg = "#E8F5EE" if v > 0 else ("#FDEDEB" if v < 0 else "#F4F5F8")
-        return _tile(label, f"{arrow} {abs(int(v))}", colour=_sign_colour(v), bg=bg)
-
-    tiles = [
-        _tile("Score", _ratio(row.get("Score"), 3)),
-        _tile("Rank", f"#{int(_num(row.get('Rank')))}" if _num(row.get("Rank")) is not None else "—",
-              bg="#eef2ff", colour=ACC),
-        delta_tile("Rank Δ 1M", "Rank Δ 1M"),
-        delta_tile("Rank Δ 3M", "Rank Δ 3M"),
-        _tile("Persistence", _ratio(row.get("Persistence"))),
-        _tile("Volume", str(row.get("Volume") or "—")),
-        _tile("Market Cap",
-              f"₹{_num(row.get('Market Cap (Cr)')):,.0f} Cr"
-              if _num(row.get("Market Cap (Cr)")) is not None else "—"),
-    ]
-    st.markdown(_row(tiles), unsafe_allow_html=True)
-
-
-# ── 6b. DATA HEALTH ──────────────────────────────────────────────────────────
-
-def _render_data_health(row: pd.Series) -> None:
-    _section("Data health", "caveats before the chart")
-    gap       = str(row.get("Data Gap") or "🟢")
-    short_hist = str(row.get("Short History") or "No")
-    ffill     = _num(row.get("FFill %"))
-    ath_src   = str(row.get("ATH Source") or "")
-
-    tiles = [
-        _tile("Gap-filled", _pct(ffill, signed=False) if ffill is not None else "—",
-              colour=WARN if (ffill or 0) > 10 else INK,
-              bg="#FEF6EA" if (ffill or 0) > 10 else "#F4F5F8"),
-        _tile("Data Gap", "Yes" if "🔴" in gap else "No",
-              colour=NEG if "🔴" in gap else POS,
-              bg="#FDEDEB" if "🔴" in gap else "#E8F5EE"),
-        _tile("Latest price",
-              "Last print" if CARRIED_MARK in gap else "Current",
-              sub="no price on the ranking date" if CARRIED_MARK in gap else "",
-              colour=WARN if CARRIED_MARK in gap else POS),
-        _tile("Short history", short_hist, sub="< 126 sessions",
-              colour=WARN if short_hist == "Yes" else POS,
-              bg="#FEF6EA" if short_hist == "Yes" else "#F4F5F8"),
-        _tile("ATH source",
-              "20y snapshot" if ath_src == "snapshot" else "2y window",
-              colour=INK if ath_src == "snapshot" else WARN),
-    ]
-    st.markdown(_row(tiles), unsafe_allow_html=True)
 
 
 # ── 7. PEERS ─────────────────────────────────────────────────────────────────
@@ -604,81 +497,102 @@ def _render_peers(row: pd.Series, rank_df: pd.DataFrame) -> None:
     industry = row.get("Industry")
     if not industry or "Industry" not in rank_df.columns:
         return
-    peers = rank_df[rank_df["Industry"] == industry].sort_values("Rank").head(10)
+    in_ind = rank_df[rank_df["Industry"] == industry]
+    peers = in_ind.sort_values("Rank").head(8)
+    sym = str(row["Symbol"])
+    if sym not in set(peers["Symbol"].astype(str)):
+        peers = pd.concat([peers.head(7), in_ind[in_ind["Symbol"].astype(str) == sym]])
     if len(peers) <= 1:
         return
-    _section(f"Peers — {_html.escape(str(industry))}", f"{len(peers)} shown · highlighted = this stock")
-
-    sym = str(row["Symbol"])
     cols = [c for c in ["Rank", "Symbol", "CMP", "3M Return", "6M Return",
-                         "12M Return", "3M Sharpe", "% High", "% ATH", "Volume"]
-            if c in peers.columns]
-    peers_display = peers[cols].copy()
-
-    # Render as custom HTML to highlight the selected row
-    _render_peers_table(peers_display, highlight_sym=sym)
+                        "12M Return", "3M Sharpe", "% High"] if c in peers.columns]
+    _render_peers_table(peers[cols].copy(), highlight_sym=sym,
+                        title=f"Best-ranked {industry} stocks", total=len(in_ind))
 
 
-def _render_peers_table(df: pd.DataFrame, highlight_sym: str) -> None:
-    """Peers table with the current stock row highlighted in indigo."""
-    headers = "".join(
-        f'<th style="padding:7px 10px;text-align:right;font-family:\'Geist Mono\',monospace;'
-        f'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;'
-        f'color:{MUTED};background:#F4F5F8;white-space:nowrap;">{c}</th>'
+def _render_peers_table(df: pd.DataFrame, highlight_sym: str, title: str = "Peers",
+                        total: int | None = None) -> None:
+    """Peers with this stock highlighted; every other row links to its page."""
+    labels = {"Symbol": "Stock", "CMP": "Price", "3M Return": "3M", "6M Return": "6M",
+              "12M Return": "12M", "3M Sharpe": "Sharpe 3M", "% High": "From 52W high"}
+    head = "".join(
+        f'<th class="{"l" if c in ("Rank", "Symbol") else ""}">{_html.escape(labels.get(c, c))}</th>'
         for c in df.columns
     )
-
-    rows_html = []
+    body = []
     for _, r in df.iterrows():
-        is_hl = str(r.get("Symbol", "")).upper() == highlight_sym.upper()
-        row_bg = "#eef2ff" if is_hl else "#ffffff"
-        row_border = f"border-left:3px solid {ACC};" if is_hl else "border-left:3px solid transparent;"
-        cells = ""
+        sym = str(r.get("Symbol", ""))
+        is_hl = sym.upper() == highlight_sym.upper()
+        cells = []
         for col, val in r.items():
-            align = "left" if col in ("Symbol", "Industry") else "right"
-            fw = "800" if col == "Symbol" else "600"
+            if col == "Symbol":
+                if is_hl:
+                    cell = f'{_html.escape(sym)}<em>This stock</em>'
+                else:
+                    cell = (f'<a href="?stock={_quote(sym, safe="")}" target="_self">'
+                            f'{_html.escape(sym)}</a>')
+                cells.append(f'<td class="l s">{cell}</td>')
+                continue
             # np.floating too: CMP and % High come out of the engine as
             # float32, which is not a Python float, so they printed raw
             # ("1234.5677") instead of "₹1,235".
-            if isinstance(val, (float, np.floating)) and pd.notna(val):
+            if isinstance(val, (int, float, np.integer, np.floating)) and pd.notna(val):
                 val = float(val)
-                if "Return" in col or "Alpha" in col:
-                    txt = f"{val:+.1%}"
-                    clr = POS if val > 0 else NEG
-                elif "Sharpe" in col or "Score" in col:
-                    txt = f"{val:.2f}"
-                    clr = INK
-                elif "%" in col:
-                    txt = f"{val:.1f}%"
-                    clr = _sign_colour(val)
-                elif col in ("CMP", "Stop Loss"):
-                    txt = f"₹{val:,.0f}"
-                    clr = INK
+                if col == "Rank":
+                    cells.append(f'<td class="l">{int(val)}</td>')
+                elif "Return" in col:
+                    cls = "up" if val > 0 else "down" if val < 0 else ""
+                    cells.append(f'<td class="{cls}">{_signed_pct(val)}</td>')
+                elif "Sharpe" in col:
+                    cells.append(f"<td>{val:.2f}</td>")
+                elif col == "% High":
+                    cells.append(f'<td>{"At high" if val >= -0.05 else f"−{abs(val):.1f}%"}</td>')
+                elif col == "CMP":
+                    cells.append(f"<td>₹{val:,.0f}</td>")
                 else:
-                    txt = f"{val:.1f}"
-                    clr = INK
+                    cells.append(f"<td>{val:.1f}</td>")
             else:
-                txt = _html.escape(str(val)) if pd.notna(val) else "—"
-                clr = ACC if col == "Symbol" and is_hl else INK
-            cells += (
-                f'<td style="padding:6px 10px;text-align:{align};font-weight:{fw};'
-                f"font-family:'Geist Mono',monospace;font-size:12px;"
-                f'color:{clr};white-space:nowrap;">{txt}</td>'
-            )
-        rows_html.append(
-            f'<tr style="background:{row_bg};{row_border}'
-            f'border-bottom:1px solid #F1F3F6;">{cells}</tr>'
-        )
-
-    st.markdown(
-        f'<div style="overflow-x:auto;border:1px solid {LINE};border-radius:12px;'
-        f'margin-bottom:12px;">'
-        f'<table style="width:100%;border-collapse:collapse;white-space:nowrap;">'
-        f'<thead><tr>{headers}</tr></thead>'
-        f'<tbody>{"".join(rows_html)}</tbody>'
-        f'</table></div>',
-        unsafe_allow_html=True,
+                cells.append(f"<td>{_html.escape(str(val)) if pd.notna(val) else '—'}</td>")
+        body.append(f'<tr class="{"hl" if is_hl else ""}">{"".join(cells)}</tr>')
+    more = f"<span>{total} stocks in the industry</span>" if total else ""
+    _html_block(
+        '<section class="sp-card sp-peers" aria-label="Peers">'
+        f'<div class="ph"><h2>{_html.escape(title)}</h2>{more}</div>'
+        f'<div class="tw"><table><thead><tr>{head}</tr></thead>'
+        f'<tbody>{"".join(body)}</tbody></table></div></section>'
     )
+
+
+# ── 8. DATA CHECKS ───────────────────────────────────────────────────────────
+
+def _render_data_health(row: pd.Series) -> None:
+    gap = str(row.get("Data Gap") or "")
+    short_hist = str(row.get("Short History") or "No") == "Yes"
+    ffill = _num(row.get("FFill %")) or 0.0
+    ath_src = str(row.get("ATH Source") or "")
+    hz = _num(row.get("Horizons Scored"))
+
+    checks = [
+        (ffill > 10, f"Gap-filled prices: {ffill:.1f}%" if ffill else "No gap-filled prices"),
+        ("🔴" in gap, "A data gap in the price history" if "🔴" in gap else "No data gaps"),
+        (CARRIED_MARK in gap, "Price is the last print, not the ranking day's"
+         if CARRIED_MARK in gap else "Price is current"),
+        (short_hist, "Less than 6 months of history" if short_hist else "Full 12-month history"),
+        (ath_src != "snapshot", "All-time high from the 20-year record" if ath_src == "snapshot"
+         else "High from a 2-year window, not all-time"),
+    ]
+    if hz is not None and hz < 5:
+        checks.append((True, f"Ranked on {int(hz)} of 5 horizons"))
+    issues = sum(1 for bad, _ in checks if bad)
+    label = "Data checks · all clear" if not issues else f"Data checks · {issues} to review"
+    with st.expander(label, expanded=bool(issues),
+                     icon=":material/verified_user:" if not issues else ":material/warning:"):
+        _html_block(
+            '<div class="sp-checks">'
+            + "".join(f'<span class="{"bad" if bad else ""}">{_html.escape(text)}</span>'
+                      for bad, text in checks)
+            + "</div>"
+        )
 
 
 # ── Main entry ────────────────────────────────────────────────────────────────
@@ -703,22 +617,20 @@ def render_stock_view(
         return
     row = match.iloc[0]
     total_stocks = len(rank_df)
+    sym = str(row["Symbol"])
 
     if on_back:
         on_back()
 
-    # 1. Hero
     _render_identity(row, total_stocks)
+    _render_verdict(row)
+    _render_corporate_actions(sym)
 
-    # 2. KPI band
-    _render_kpi_band(row)
-
-    # 3. Chart — moved up so the most visual element follows the headline numbers
-    _render_corporate_actions(str(row["Symbol"]))
-    _section("Price action",
-             "drag to pan · 20/50 EMA toggleable · volume · Relative Strength")
+    _html_block('<div class="sp-sec"><h2>Price and relative strength</h2>'
+                '<span>Drag to pan · 20 and 50-day EMA · volume · strength against the '
+                'Nifty 500 underneath</span></div>')
     render_stock_chart(
-        str(row["Symbol"]),
+        sym,
         rank_df,
         adj_close,
         high_prices=high_prices,
@@ -727,21 +639,10 @@ def render_stock_view(
         open_prices=open_prices,
     )
 
-    # 4. Key levels
-    _render_key_levels(row)
-
-    # 5. Performance matrix
-    _render_performance_matrix(row)
-
-    # 6. Rank dynamics + data health — two columns
-    col_dyn, col_health = st.columns(2, gap="medium")
-    with col_dyn:
-        _render_rank_dynamics(row, total_stocks)
-    with col_health:
-        _render_data_health(row)
-
-    # 7. Peers
+    _render_price_ladder(row, _year_low(sym, adj_close, low_prices))
+    _render_gain_vs_pain(row, rank_df)
     _render_peers(row, rank_df)
+    _render_data_health(row)
 
     render_data_quality_footer(
         total_stocks=total_stocks,

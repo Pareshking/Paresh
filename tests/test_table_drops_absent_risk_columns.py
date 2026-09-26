@@ -110,7 +110,7 @@ def test_stock_page_drops_the_atr_tiles_when_there_is_no_atr(monkeypatch):
     captured: list[str] = []
     monkeypatch.setattr(sv.st, "markdown", lambda html, **kw: captured.append(html))
 
-    sv._render_key_levels(pd.Series({
+    sv._render_price_ladder(pd.Series({
         "52W High": 272.0, "% High": -12.9, "ATH": 847.0, "% ATH": -72.0,
         "ATH Date": "2018-10-16", "52W High Date": "2026-09-07", "% 50 EMA": -2.0,
     }))
@@ -126,7 +126,7 @@ def test_stock_page_keeps_the_atr_tiles_when_atr_is_present(monkeypatch):
     captured: list[str] = []
     monkeypatch.setattr(sv.st, "markdown", lambda html, **kw: captured.append(html))
 
-    sv._render_key_levels(pd.Series({
+    sv._render_price_ladder(pd.Series({
         "52W High": 272.0, "% High": -12.9, "ATH": 847.0, "% ATH": -72.0,
         "% 50 EMA": -2.0, "Stop Loss": 210.0, "Chand Exit": 224.0,
         "ATR": 13.5, "ATR %": 5.7,
