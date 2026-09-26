@@ -106,24 +106,7 @@ jobs:
           echo "DEPRECATED_STREAMLIT_HTML=NONE"
 
       - name: Headless Streamlit runtime smoke test
-        run: |
-          python - <<'PY'
-          from streamlit.testing.v1 import AppTest
-
-          at = AppTest.from_file("app.py", default_timeout=900)
-          at.run(timeout=900)
-          if at.exception:
-              for exc in at.exception:
-                  print("STREAMLIT_EXCEPTION:", exc.value)
-              raise SystemExit("Headless Streamlit runtime produced an exception")
-          if at.error:
-              for err in at.error:
-                  print("STREAMLIT_ERROR:", err.value)
-              raise SystemExit("Headless Streamlit runtime produced an error element")
-          print(f"Rendered tabs: {len(at.tabs)}")
-          print(f"Rendered dataframes: {len(at.dataframe)}")
-          print("HEADLESS_STREAMLIT_SMOKE=PASS")
-          PY
+        run: python scripts/headless_smoke.py
 
       - name: Upload V1 validation artifacts
         uses: actions/upload-artifact@v7
