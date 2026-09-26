@@ -1052,30 +1052,47 @@ def inject_custom_css() -> None:
         }
 
         /* ── RRG Active Selection Buttons: Universal Left Alignment ── */
-        div[class*="st-key-del_rrg_"] {
-            display: flex !important;
-            justify-content: flex-start !important;
-            width: 100% !important;
+        /* RRG: the chart's frame, the selection bar, the quadrant lists */
+        .st-key-rrg_frame iframe { height: 780px !important; width: 100% !important; }
+        .st-key-rrg_selbar { gap: 8px !important; flex-wrap: wrap !important; }
+        .st-key-rrg_selbar button { min-height: 32px !important; height: 32px !important; padding: 0 12px !important;
+            border-radius: 999px !important; font-size: 12.5px !important; font-weight: 600 !important; }
+        .st-key-rrg_selbar button p { font-size: 12.5px !important; font-weight: 600 !important; }
+        [class*="st-key-btn_rrg_lead_"] button { background: #E8F5EE !important; border-color: #BFE3CD !important; color: #067647 !important; border-radius: 10px !important; }
+        [class*="st-key-btn_rrg_imp_"] button { background: #EAF1FE !important; border-color: #C3D6FB !important; color: #2563EB !important; border-radius: 10px !important; }
+        [class*="st-key-btn_rrg_weak_"] button { background: #FEF6EA !important; border-color: #F5D7A8 !important; color: #B54708 !important; border-radius: 10px !important; }
+        [class*="st-key-btn_rrg_lag_"] button { background: #FDEDEB !important; border-color: #F3C7C1 !important; color: #B42318 !important; border-radius: 10px !important; }
+        [class*="st-key-btn_rrg_lead_"] button p { color: #067647 !important; }
+        [class*="st-key-btn_rrg_imp_"] button p { color: #2563EB !important; }
+        [class*="st-key-btn_rrg_weak_"] button p { color: #B54708 !important; }
+        [class*="st-key-btn_rrg_lag_"] button p { color: #B42318 !important; }
+        [class*="st-key-del_rrg_"] button { background: #FFFFFF !important; border: 1px solid #E3E6EB !important; }
+        /* Phone rules come after the base ones so they win at equal specificity. */
+        @media (max-width: 760px) {
+            .st-key-rrg_frame iframe { height: 480px !important; }
+            .st-key-rrg_frame .stElementContainer { height: auto !important; flex: 0 0 auto !important; }
+            /* One row that scrolls sideways, so the chart starts sooner. */
+            .st-key-rrg_selbar { flex-wrap: nowrap !important; overflow-x: auto !important; padding-bottom: 4px; }
+            .st-key-rrg_selbar > div { flex: none !important; }
+            .st-key-rrg_selbar button p { white-space: nowrap !important; }
         }
-        div[class*="st-key-del_rrg_"] button {
-            justify-content: flex-start !important;
-            text-align: left !important;
-            display: flex !important;
-            align-items: center !important;
-            width: 100% !important;
-        }
-        div[class*="st-key-del_rrg_"] button *,
-        div[class*="st-key-del_rrg_"] button div,
-        div[class*="st-key-del_rrg_"] button p,
-        div[class*="st-key-del_rrg_"] button span,
-        div[class*="st-key-del_rrg_"] button [data-testid="stMarkdownContainer"] {
-            justify-content: flex-start !important;
-            text-align: left !important;
-            display: flex !important;
-            align-items: center !important;
-            width: 100% !important;
-            margin: 0 !important;
-        }
+        .rq-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+        .rq { border: 1px solid #E3E6EB; border-radius: 14px; overflow: hidden; background: #FFFFFF; }
+        .rq-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 10px 14px; }
+        .rq-h b { font-size: 14px; }
+        .rq-h span { font-size: 12px; color: #3C4657; }
+        .rq.lead .rq-h { background: #E8F5EE; } .rq.lead .rq-h b { color: #067647; }
+        .rq.imp .rq-h { background: #EAF1FE; } .rq.imp .rq-h b { color: #2563EB; }
+        .rq.weak .rq-h { background: #FEF6EA; } .rq.weak .rq-h b { color: #B54708; }
+        .rq.lag .rq-h { background: #FDEDEB; } .rq.lag .rq-h b { color: #B42318; }
+        .rq-i { display: flex; justify-content: space-between; gap: 8px; margin: 0 14px; padding: 7px 0;
+            border-bottom: 1px solid #EDEFF3; font-size: 13px; }
+        .rq-i:last-child { border-bottom: 0; }
+        .rq-i span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .rq-i a { color: #0E1726 !important; text-decoration: none !important; font-weight: 600; }
+        .rq-i b { font-family: var(--font-mono); font-size: 12px; font-weight: 500; color: #3C4657; white-space: nowrap; }
+        .rq-none { color: #5E6878; }
+        @media (max-width: 900px) { .rq-grid { grid-template-columns: 1fr; } }
 
         /* ── Mac-Style Window Dots Bar ── */
         .mac-dots-container {

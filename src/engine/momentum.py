@@ -65,9 +65,13 @@ def compute_ffill_pct(raw_df: pd.DataFrame | None) -> pd.Series:
     cleaned = raw_df.loc[count <= limit]
     if cleaned.empty:
         return pd.Series(dtype=float)
-    n_rows = len(cleaned)
-    nan_per_col = cleaned.isna().sum()
-    return (nan_per_col / max(n_rows, 1) * 100).round(1)
+    # A stock has no price before it lists; those sessions are not gaps. Count
+    # only from each stock's first real print (IRCTC, listed Oct 2019, read as
+    # 22% gap-filled on a window reaching back to 2017).
+    listed = cleaned.notna().cummax()
+    n_rows = listed.sum()
+    nan_per_col = (cleaned.isna() & listed).sum()
+    return (nan_per_col / n_rows.clip(lower=1) * 100).round(1)
 
 
 
