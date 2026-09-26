@@ -13,7 +13,7 @@ from src.engine.breadth import (
 )
 from src.core.config import SHORT_FORMS
 from src.engine.pipeline import price_fingerprint
-from src.ui.charts import render_breadth_chart, render_hl_timeseries_chart, render_net_hl_bar_chart
+from src.ui import page_kit as kit
 from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.theme import render_saas_table
 
@@ -29,47 +29,109 @@ def index_members(rank_df: pd.DataFrame, index_name: str) -> list[str]:
     return rank_df.loc[tags.map(lambda ts: tag in ts), "Symbol"].tolist()
 
 
+def _participation_chart(pct: pd.DataFrame, ma_type: str) -> None:
+    """Share of stocks above each average, over time, with the 40% and 60%
+    bands shaded. Altair ships with Streamlit, so no CDN is needed."""
+    import altair as alt
+
+    data = pct.copy()
+    data.index.name = "Date"
+    long = data.reset_index().melt("Date", var_name="Average", value_name="Share").dropna()
+    long["Average"] = long["Average"].str.replace("D", "-day ", regex=False) + ma_type
+    order = sorted(long["Average"].unique(), key=lambda s: int(s.split("-")[0]))
+    palette = ["#4F46E5", "#98A1AE", "#0E1726", "#B54708", "#067647"]
+    bands = alt.Chart(pd.DataFrame({"lo": [60, 0], "hi": [100, 40], "c": ["#E8F5EE", "#FDEDEB"]})).mark_rect(
+        opacity=0.55).encode(y="lo:Q", y2="hi:Q", color=alt.Color("c:N", scale=None))
+    lines = alt.Chart(long).mark_line(strokeWidth=2.2).encode(
+        x=alt.X("Date:T", title=None, axis=alt.Axis(format="%d %b", labelColor="#5E6878", grid=False)),
+        y=alt.Y("Share:Q", title=None, scale=alt.Scale(domain=[0, 100]),
+                axis=alt.Axis(labelExpr="datum.value + '%'", labelColor="#5E6878", gridColor="#EDEFF3",
+                              domain=False, ticks=False)),
+        color=alt.Color("Average:N", sort=order, scale=alt.Scale(domain=order, range=palette[: len(order)]),
+                        legend=alt.Legend(orient="top", title=None, labelColor="#3C4657")),
+        tooltip=[alt.Tooltip("Date:T", format="%d %b %Y"), "Average:N",
+                 alt.Tooltip("Share:Q", format=".0f", title="% above")],
+    )
+    st.altair_chart((bands + lines).properties(height=280).configure_view(strokeWidth=0).configure(background="#FFFFFF"),
+                    width="stretch", key="br_part_chart")
+
+
+def _highs_lows_chart(hl_df: pd.DataFrame, is_pct: bool) -> None:
+    """New highs up in green, new lows down in red, one bar pair per session."""
+    import altair as alt
+
+    h_col, l_col = ("% New Highs", "% New Lows") if is_pct else ("New Highs", "New Lows")
+    data = pd.DataFrame({
+        "Date": hl_df.index,
+        "Highs": pd.to_numeric(hl_df[h_col], errors="coerce").to_numpy(),
+        "Lows": -pd.to_numeric(hl_df[l_col], errors="coerce").to_numpy(),
+    })
+    long = data.melt("Date", var_name="Kind", value_name="Value").dropna()
+    unit = "% of stocks" if is_pct else "stocks"
+    bars = alt.Chart(long).mark_bar(width={"band": 0.85}).encode(
+        x=alt.X("Date:T", title=None, axis=alt.Axis(format="%d %b", labelColor="#5E6878", grid=False)),
+        y=alt.Y("Value:Q", title=None,
+                axis=alt.Axis(labelExpr="abs(datum.value)", labelColor="#5E6878", gridColor="#EDEFF3",
+                              domain=False, ticks=False)),
+        color=alt.Color("Kind:N", scale=alt.Scale(domain=["Highs", "Lows"], range=["#067647", "#B42318"]),
+                        legend=alt.Legend(orient="top", title=None, labelColor="#3C4657")),
+        tooltip=[alt.Tooltip("Date:T", format="%d %b %Y"), "Kind:N",
+                 alt.Tooltip("abs_v:Q", format=".1f" if is_pct else ".0f", title=unit)],
+    ).transform_calculate(abs_v="abs(datum.Value)")
+    zero = alt.Chart(pd.DataFrame({"y": [0]})).mark_rule(color="#98A1AE").encode(y="y:Q")
+    st.altair_chart((bars + zero).properties(height=260).configure_view(strokeWidth=0).configure(background="#FFFFFF"),
+                    width="stretch", key="br_hl_chart")
+
+
+def _participation_word(val: float) -> tuple[str, str]:
+    """What a share of stocks above an average reads as, and its tone."""
+    if val >= 60:
+        return "strong participation", "up"
+    if val <= 40:
+        return "below 40% reads as weak", "down"
+    return "neutral", "warn"
+
+
+def _ratio_word(ratio: float) -> tuple[str, str]:
+    if ratio > 2:
+        return "highs outnumber lows: broadening", "up"
+    if ratio < 1:
+        return "below 1 = the market is narrowing", "down" if ratio < 0.5 else "warn"
+    return "roughly balanced", "warn"
+
+
 def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
-    """Renders the Market Breadth analytics view."""
-    # ── Section 1: MA Breadth ────────────────────────────────────────────────
-    bc1, bc2, bc3, bc4 = st.columns([1, 2, 1.2, 1.2], vertical_alignment="center")
-    ma_type = bc1.segmented_control(
-        "MA Type",
-        ["SMA", "EMA"],
-        default="EMA",
-        key="br_ma_type",
-        label_visibility="collapsed",
+    """How many stocks are taking part: trend participation, and new highs
+    against new lows."""
+    actions = kit.page_head(
+        "Market breadth",
+        f"How many stocks are taking part: trend participation and new highs against "
+        f"new lows, across the {len(rank_df)}",
+        actions=True,
     )
-    if not ma_type:
-        ma_type = "EMA"
-    sel_mas = bc2.multiselect(
-        "MA Periods",
-        ["10D", "20D", "50D", "100D", "200D"],
-        default=["50D", "200D"],
-        key="br_sel_mas",
-        placeholder="Select MA Periods…",
-        label_visibility="collapsed",
-    )
-    history_days = bc3.selectbox(
-        "Lookback",
-        [63, 126, 252],
-        index=1,
-        format_func=lambda x: {63: "3 Months", 126: "6 Months", 252: "1 Year"}[x],
-        key="br_lb_days",
-        label_visibility="collapsed",
-    )
-    bview = bc4.segmented_control(
-        "Breakdown",
-        ["Universe", "By Index"],
-        default="Universe",
-        key="br_bview",
-        label_visibility="collapsed",
-    )
-    if not bview:
-        bview = "Universe"
+    with actions:
+        history_days = st.selectbox(
+            "Period", [63, 126, 252], index=1,
+            format_func=lambda x: {63: "3 months", 126: "6 months", 252: "1 year"}[x],
+            key="br_lb_days", label_visibility="collapsed", width=130,
+        )
+        with st.popover("Chart settings", icon=":material/tune:"):
+            ma_type = st.segmented_control("Average", ["EMA", "SMA"], default="EMA",
+                                           key="br_ma_type") or "EMA"
+            sel_mas = st.multiselect("Periods", ["10D", "20D", "50D", "100D", "200D"],
+                                     default=["50D", "200D"], key="br_sel_mas")
+            bview = st.segmented_control("Participation by", ["Universe", "By Index"],
+                                         default="Universe", key="br_bview") or "Universe"
+            hl_window = st.selectbox(
+                "New high / low means", [52, 126, 252], index=2,
+                format_func=lambda x: {52: "52-day", 126: "126-day", 252: "52-week"}[x],
+                key="hl_win_sel",
+            )
+            hl_disp = st.segmented_control("Show highs and lows as", ["% of Universe", "Stock Count"],
+                                           default="% of Universe", key="hl_fmt_radio") or "% of Universe"
 
     if not sel_mas:
-        st.info("Select at least one moving average period above.")
+        st.info("Pick at least one moving average under Chart settings.")
         return
 
     # Whole-history fingerprint, not last date + shape (an intraday refresh
@@ -78,85 +140,61 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
     breadth_df = compute_ma_breadth(
         ph, adj_close, tuple(sel_mas), lookback=history_days, ma_type=ma_type
     )
+    hl_df = compute_hl_timeseries(ph, adj_close, window=hl_window, lookback=history_days)
+    hl_name = {52: "52-day", 126: "126-day", 252: "52-week"}[hl_window]
+
+    tiles: list[kit.Reading] = []
+    for ma_lbl in sel_mas:
+        if breadth_df.empty or ma_lbl not in breadth_df.columns:
+            continue
+        label = f"Above {ma_lbl.replace('D', '-day')} {ma_type}"
+        val = breadth_df[ma_lbl].iloc[-1]
+        if pd.isna(val):
+            # No symbol had both a price and an MA on this session -- a holiday
+            # row, a pre-close fetch, or a frame shorter than the MA's
+            # min_periods. `int(nan)` once took the whole page down here.
+            tiles.append(kit.Reading(label, "—", "no prices on this session"))
+            continue
+        # The denominator comes from the engine: stocks that have both a price
+        # and an average on this session, not the full column count.
+        n_obs = breadth_df.get(f"{ma_lbl}{OBSERVED_SUFFIX}")
+        n_observed = (
+            int(n_obs.iloc[-1])
+            if n_obs is not None and pd.notna(n_obs.iloc[-1])
+            else len(adj_close.columns)
+        )
+        word, tone = _participation_word(val)
+        tiles.append(kit.Reading(label, f"{val:.0f}%",
+                                 f"{int(round(val / 100 * n_observed))} stocks · {word}", tone))
+    if not hl_df.empty:
+        today_h = int(hl_df["New Highs"].iloc[-1])
+        today_l = int(hl_df["New Lows"].iloc[-1])
+        ratio = today_h / max(today_l, 1)
+        word, tone = _ratio_word(ratio)
+        tiles += [
+            kit.Reading(f"New {hl_name} highs", f"{today_h}", "today", "up" if today_h else ""),
+            kit.Reading(f"New {hl_name} lows", f"{today_l}",
+                        "today" + (" · more lows than highs" if today_l > today_h else ""),
+                        "down" if today_l else ""),
+            kit.Reading("Highs ÷ lows", f"{ratio:.1f}×", word, tone),
+        ]
+    if tiles:
+        kit.readings(tiles, "Breadth today")
 
     if not breadth_df.empty:
-        # KPI Cards for latest breadth readings
-        kpi_items = []
-        for ma_lbl in sel_mas:
-            if ma_lbl in breadth_df.columns:
-                val = breadth_df[ma_lbl].iloc[-1]
-                if pd.isna(val):
-                    # No symbol had both a price and an MA on this session -- a
-                    # holiday row, a pre-close fetch, or a frame shorter than the
-                    # MA's min_periods. Before the denominator change this could
-                    # not happen (0/N was 0); now it can, and `int(nan)` below
-                    # raised ValueError and took the whole tab down.
-                    kpi_items.append(f"""
-                    <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px;">
-                        <div style="font-family: 'Geist', sans-serif; font-size: 0.70rem; font-weight: 700; color: #5E6878; text-transform: uppercase;">Above {ma_lbl} {ma_type}</div>
-                        <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.5rem; font-weight: 800; color: #667080; margin-top: 1px;">—</div>
-                        <div style="font-family: 'Geist Mono', monospace; font-size: 0.69rem; color: #667080;">no prices on this session</div>
-                    </div>
-                    """)
-                    continue
-                clr = (
-                    "#067647" if val >= 60 else ("#B42318" if val <= 40 else "#B54708")
-                )
-                sig = (
-                    "Strong Bullish"
-                    if val >= 60
-                    else (
-                        "Weak / Deteriorating" if val <= 40 else "Neutral Participation"
-                    )
-                )
-                # The denominator now comes from the engine. Multiplying by the
-                # full column count invented a number for stocks that were never
-                # in the numerator -- wrong on 113 of 252 sessions, by up to 83
-                # stocks. And `.where(observed)` made the reading NaN-able for
-                # the first time, so `int(nan)` here killed the whole tab on a
-                # session where nothing printed.
-                n_obs = breadth_df.get(f"{ma_lbl}{OBSERVED_SUFFIX}")
-                n_observed = (
-                    int(n_obs.iloc[-1])
-                    if n_obs is not None and pd.notna(n_obs.iloc[-1])
-                    else len(adj_close.columns)
-                )
-                n_stocks = int(round(val / 100 * n_observed))
-                kpi_items.append(f"""
-                    <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                        <div style="font-family: 'Geist', sans-serif; font-size: 0.70rem; font-weight: 700; color: #5E6878; text-transform: uppercase;">Above {ma_lbl} {ma_type}</div>
-                        <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.5rem; font-weight: 800; color: {clr}; margin-top: 1px;">{val:.0f}%</div>
-                        <div style="font-family: 'Geist Mono', monospace; font-size: 0.69rem; color: {clr}; font-weight: 600;">{n_stocks} stocks · {sig}</div>
-                    </div>
-                    """)
-        st.html(
-            f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px;">{"".join(kpi_items)}</div>'
-        )
-
-        st.markdown(" ")
         if bview == "Universe":
-            # Percentage series only; the companion count columns are
-            # metadata for the KPI cards, not lines on the chart.
-            _pct_cols = [c for c in breadth_df.columns if not c.endswith(OBSERVED_SUFFIX)]
-            render_breadth_chart(breadth_df[_pct_cols], ma_type=ma_type)
+            with kit.card("Participation", "br_part",
+                          f"share of stocks above each {ma_type} · green band above 60%, red below 40%"):
+                # Percentage series only; the companion count columns are
+                # metadata for the readings, not lines on the chart.
+                _pct_cols = [c for c in breadth_df.columns if not c.endswith(OBSERVED_SUFFIX)]
+                _participation_chart(breadth_df[_pct_cols], ma_type)
         else:
-            # Per Index Breakdown
-            st.markdown("##### Breadth by Index (Above 50D " + ma_type + ")")
-            idx_order = [
-                "NIFTY 50",
-                "NIFTY NEXT 50",
-                "NIFTY MIDCAP 150",
-                "NIFTY SMALLCAP 250",
-                "NIFTY MICROCAP 250",
-            ]
-            # Exact tags, as indices_loader writes them (config.SHORT_FORMS).
-            # A substring test on "50" matched NN50, MID150, SMALL250 and
-            # MICRO250, so the NIFTY 50 row was nearly the whole universe --
-            # and "NEXT 50", "MIDCAP 150"... never matched their short tags,
-            # so those rows never rendered at all.
-            for idx_name in idx_order:
-                syms = index_members(rank_df, idx_name)
-                valid_syms = [s for s in syms if s in adj_close.columns]
+            rows = []
+            for idx_name in ("NIFTY 50", "NIFTY NEXT 50", "NIFTY MIDCAP 150",
+                             "NIFTY SMALLCAP 250", "NIFTY MICROCAP 250"):
+                # Exact tags, as indices_loader writes them (config.SHORT_FORMS).
+                valid_syms = [s for s in index_members(rank_df, idx_name) if s in adj_close.columns]
                 if not valid_syms:
                     continue
                 ma_s = (
@@ -172,136 +210,35 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
                 if not _obs.any():
                     continue
                 pct = float((_last[_obs] > _ma[_obs]).sum() / _obs.sum() * 100)
-                clr = (
-                    "#067647" if pct >= 60 else ("#B42318" if pct <= 40 else "#B54708")
-                )
-
-                st.html(f"""
-                    <div style="display: flex; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid #F1F3F6;">
-                        <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 0.82rem; font-weight: 700; color: #3C4657; min-width: 160px;">
-                            {idx_name}
-                        </div>
-                        <div style="flex: 1; height: 6px; background-color: #F1F3F6; border-radius: 3px; overflow: hidden;">
-                            <div style="width: {pct:.0f}%; height: 100%; background-color: {clr}; border-radius: 3px;"></div>
-                        </div>
-                        <div style="font-family: 'Geist Mono', monospace; font-size: 0.85rem; font-weight: 700; color: {clr}; min-width: 45px;">
-                            {pct:.0f}%
-                        </div>
-                        <div style="font-family: 'Geist Mono', monospace; font-size: 0.75rem; color: #5E6878; min-width: 70px;">
-                            {int(_obs.sum())} stocks
-                        </div>
-                    </div>
-                    """)
-
-    st.divider()
-
-    # ── Section 2: 52W Highs & Lows ──────────────────────────────────────────
-    st.markdown("#### 2. Daily New Highs & New Lows Time Series")
-    st.caption(
-        "Measures daily expansion of new highs vs new lows. Divergences frequently precede broad index turning points."
-    )
-
-    h1, h2, h3 = st.columns(3)
-    hl_window = h1.selectbox(
-        "High/Low Window",
-        [52, 126, 252],
-        index=2,
-        format_func=lambda x: {
-            52: "52 Days (Quarter)",
-            126: "126 Days (6 Months)",
-            252: "252 Days (52 Weeks)",
-        }[x],
-        key="hl_win_sel",
-    )
-    hl_history = h2.selectbox(
-        "History Period",
-        [63, 126, 252],
-        index=1,
-        format_func=lambda x: {63: "3 Months", 126: "6 Months", 252: "1 Year"}[x],
-        key="hl_hist_sel",
-    )
-    hl_disp = h3.segmented_control(
-        "Display Format",
-        ["% of Universe", "Stock Count"],
-        default="% of Universe",
-        key="hl_fmt_radio",
-    )
-    if not hl_disp:
-        hl_disp = "% of Universe"
-
-    hl_df = compute_hl_timeseries(ph, adj_close, window=hl_window, lookback=hl_history)
-    if not hl_df.empty:
-        today_h = int(hl_df["New Highs"].iloc[-1])
-        today_l = int(hl_df["New Lows"].iloc[-1])
-        hl_ratio = today_h / max(today_l, 1)
-        ratio_clr = (
-            "#067647" if hl_ratio > 2 else ("#B42318" if hl_ratio < 0.5 else "#B54708")
-        )
-        ratio_sig = (
-            "Bullish Expansion"
-            if hl_ratio > 2
-            else ("Bearish Contraction" if hl_ratio < 0.5 else "Neutral")
-        )
-
-        st.html(f"""
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px;">
-                <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                    <div style="font-family: 'Geist', sans-serif; font-size: 0.70rem; font-weight: 700; color: #5E6878; text-transform: uppercase;">New {hl_window}D Highs Today</div>
-                    <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.5rem; font-weight: 800; color: #067647; margin-top: 1px;">{today_h}</div>
-                    <div style="font-family: 'Geist Mono', monospace; font-size: 0.69rem; color: #067647; font-weight: 600;">Expanding Highs</div>
-                </div>
-                <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                    <div style="font-family: 'Geist', sans-serif; font-size: 0.70rem; font-weight: 700; color: #5E6878; text-transform: uppercase;">New {hl_window}D Lows Today</div>
-                    <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.5rem; font-weight: 800; color: #B42318; margin-top: 1px;">{today_l}</div>
-                    <div style="font-family: 'Geist Mono', monospace; font-size: 0.69rem; color: #B42318; font-weight: 600;">Expanding Lows</div>
-                </div>
-                <div style="background: #ffffff; border: 1px solid #E3E6EB; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                    <div style="font-family: 'Geist', sans-serif; font-size: 0.70rem; font-weight: 700; color: #5E6878; text-transform: uppercase;">High / Low Ratio</div>
-                    <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.5rem; font-weight: 800; color: {ratio_clr}; margin-top: 1px;">{hl_ratio:.1f}×</div>
-                    <div style="font-family: 'Geist Mono', monospace; font-size: 0.69rem; color: {ratio_clr}; font-weight: 600;">{ratio_sig}</div>
-                </div>
-            </div>
-            """)
-
-        st.markdown(" ")
-        is_pct = hl_disp == "% of Universe"
-        render_hl_timeseries_chart(hl_df, window_label=f"{hl_window}D", is_pct=is_pct)
-
-        # Net New Highs Chart & Historical Breakdown
-        with st.expander(
-            "📊 Net New Highs (Highs − Lows) & Breakout Stocks by Date", expanded=True
-        ):
-            render_net_hl_bar_chart(hl_df["Net New Highs"])
-
-            st.markdown("##### 📋 Stocks Hitting New Highs & Lows (Recent Breakdown)")
-            hl_events_df = get_recent_hl_events(
-                adj_close, rank_df, window=hl_window, lookback=20
-            )
-            if not hl_events_df.empty:
-                ef1, _ef2 = st.columns([1.5, 2.5], vertical_alignment="center")
-                ev_sel = ef1.segmented_control(
-                    "Filter Events",
-                    ["All Events", "🟢 52W Highs", "🔴 52W Lows"],
-                    default="All Events",
-                    key="hl_ev_filter",
-                    label_visibility="collapsed",
-                )
-                if ev_sel == "🟢 52W Highs":
-                    disp_events = hl_events_df[
-                        hl_events_df["Event"].str.contains("High")
-                    ]
-                elif ev_sel == "🔴 52W Lows":
-                    disp_events = hl_events_df[
-                        hl_events_df["Event"].str.contains("Low")
-                    ]
+                rows.append((idx_name.title(), pct,
+                             f"{pct:.0f}% · {int(_obs.sum())}", pct <= 40))
+            with kit.card(f"Participation by index · above the 50-day {ma_type}", "br_idx",
+                          "amber = 40% or less"):
+                if rows:
+                    st.html(kit.bar_list(rows, scale=100))
                 else:
-                    disp_events = hl_events_df
+                    kit.caption("No index tags on the ranked stocks.")
 
-                render_saas_table(
-                    disp_events, max_height=400
-                )
+    if not hl_df.empty:
+        with kit.card("New highs against new lows", "br_hl",
+                      "each session: green up = new highs · red down = new lows"):
+            _highs_lows_chart(hl_df, is_pct=hl_disp == "% of Universe")
+
+        hl_events_df = get_recent_hl_events(adj_close, rank_df, window=hl_window, lookback=20)
+        with kit.card("Stocks making new highs and lows", "br_events", "last 20 sessions"):
+            if hl_events_df.empty:
+                kit.caption("No stock made a new high or low in the last 20 sessions.")
             else:
-                st.caption("No new high/low breakouts recorded in the lookback window.")
+                ev_sel = st.segmented_control(
+                    "Filter Events", ["All", "Highs", "Lows"], default="All",
+                    key="hl_ev_filter", label_visibility="collapsed",
+                ) or "All"
+                disp = hl_events_df
+                if ev_sel == "Highs":
+                    disp = hl_events_df[hl_events_df["Event"].str.contains("High")]
+                elif ev_sel == "Lows":
+                    disp = hl_events_df[hl_events_df["Event"].str.contains("Low")]
+                render_saas_table(disp, max_height=420)
 
     render_data_quality_footer(
         total_stocks=len(rank_df),

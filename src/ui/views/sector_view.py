@@ -1,5 +1,9 @@
 """
-Industry & Sector Momentum Analytics View Controller.
+Sectors: industries ranked by how their stocks are doing, one row each.
+
+Every figure is read straight off the ranking table, so the page needs no
+momentum engine: a median of each group's returns, and shares of its stocks
+that pass the Screener's own filters.
 """
 
 import html
@@ -9,257 +13,179 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src.engine.momentum import MomentumEngine
+from src.ui import page_kit as kit
 from src.ui.charts import render_sector_treemap
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
-from src.ui.theme import render_saas_table
+from src.ui.screener_table import render_screener_table
+
+RANK_BY = {
+    "3M median": "3M Return",
+    "6M median": "6M Return",
+    "Share passing": "Pass %",
+    "Top-50 count": "Top 50",
+}
+# A group of one is a stock, not an industry trend.
+MIN_STOCKS = 2
 
 
 def _leader_link(sym: str) -> str:
     if not sym or sym == "—":
         return "—"
-    return (
-        f'<a href="?stock={quote(sym, safe="")}" target="_self" '
-        f'style="color:#4f46e5;font-weight:700;text-decoration:none;'
-        f'border-bottom:1px dotted #c7d2fe;">{html.escape(sym)}</a>'
-    )
+    return (f'<a class="ib-lead" href="?stock={quote(sym, safe="")}" target="_self">'
+            f'{html.escape(sym)}</a>')
 
 
-def render_sector_card(r: pd.Series) -> None:
-    """Renders a modern sector card with top holdings and breadth metrics."""
-    ind_name = r.get("Industry", "Sector")
-    n_stocks = int(r.get("Stocks", 0))
-    ret_3m = r.get("3M Return", 0.0)
-    ret_6m = r.get("6M Return", 0.0)
-    p_52w = r.get("% 52W High", 0.0)
-    p_ema = r.get("% 20 EMA", 0.0)
-    mcap = r.get("Total MCap (Cr)", 0.0)
+def _pct(v) -> str:
+    if v is None or pd.isna(v):
+        return "—"
+    return f"{'+' if v > 0 else '−' if v < 0 else ''}{abs(v) * 100:.1f}%"
 
-    ret_clr_3m = "#067647" if ret_3m >= 0 else "#912018"
-    ret_clr_6m = "#067647" if ret_6m >= 0 else "#912018"
 
-    # Returns are stored as fractions (0.105 = 10.5%); multiply before display.
-    ret_3m_pct = ret_3m * 100
-    ret_6m_pct = ret_6m * 100
+def _tone(v) -> str:
+    if v is None or pd.isna(v):
+        return ""
+    return "up" if v > 0 else "down" if v < 0 else ""
 
-    leaders_html = " &nbsp;·&nbsp; ".join(
-        _leader_link(r.get(f"Top {i}", "—")) for i in range(1, 6)
-        if r.get(f"Top {i}", "—") != "—"
-    )
 
-    card_html = f"""
-    <div style="background:#ffffff; border:1px solid #E3E6EB; border-radius:10px; padding:14px; margin-bottom:12px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
-            <div>
-                <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:0.92rem; color:#0E1726; line-height:1.2;">
-                    {html.escape(str(ind_name))}
-                </div>
-                <div style="font-size:0.72rem; color:#5E6878; margin-top:2px;">
-                    {n_stocks} stocks · ₹{mcap:,.0f} Cr MCap
-                </div>
-            </div>
-            <span style="font-family:Geist Mono,monospace; font-size:0.72rem; font-weight:700; color:#4f46e5; background:#eef2ff; border:1px solid #c7d2fe; padding:2px 6px; border-radius:4px;">
-                Rank #{int(r.get('Rank', 0))}
-            </span>
-        </div>
+def industry_board(rank_df: pd.DataFrame, col: str = "Industry") -> tuple[pd.DataFrame, list[str]]:
+    """One row per industry, and the names left out for having one stock.
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:#F4F5F8; border-radius:6px; padding:8px; margin-bottom:10px;">
-            <div>
-                <div style="font-size:0.68rem; color:#5E6878; font-weight:600; text-transform:uppercase;">3M Return</div>
-                <div style="font-family:Geist Mono,monospace; font-size:0.84rem; font-weight:700; color:{ret_clr_3m};">{ret_3m_pct:+.1f}%</div>
-            </div>
-            <div>
-                <div style="font-size:0.68rem; color:#5E6878; font-weight:600; text-transform:uppercase;">6M Return</div>
-                <div style="font-family:Geist Mono,monospace; font-size:0.84rem; font-weight:700; color:{ret_clr_6m};">{ret_6m_pct:+.1f}%</div>
-            </div>
-            <div>
-                <div style="font-size:0.68rem; color:#5E6878; font-weight:600; text-transform:uppercase;">Near 52W High</div>
-                <div style="font-family:Geist Mono,monospace; font-size:0.78rem; font-weight:600; color:#0E1726;">{p_52w:.0f}% stocks</div>
-            </div>
-            <div>
-                <div style="font-size:0.68rem; color:#5E6878; font-weight:600; text-transform:uppercase;">Above 20 EMA</div>
-                <div style="font-family:Geist Mono,monospace; font-size:0.78rem; font-weight:600; color:#0E1726;">{p_ema:.0f}% stocks</div>
-            </div>
-        </div>
-
-        <div style="font-size:0.72rem; color:#3C4657; line-height:1.8;">
-            <strong style="color:#0E1726;">Leaders:</strong> {leaders_html}
-        </div>
-    </div>
+    3M / 6M are medians, so one runaway stock cannot carry its group. "Above
+    50 EMA" and "Near 52W high" are the Screener's own flags, the same ones
+    its filters use.
     """
-    st.html(card_html)
+    if col not in rank_df.columns or rank_df.empty:
+        return pd.DataFrame(), []
+    df = rank_df.assign(
+        _grp=rank_df[col].replace("", np.nan),
+        _ema=to_bool_mask(rank_df.get("Above 50 EMA", pd.Series(False, index=rank_df.index))).to_numpy(),
+        _near=to_bool_mask(rank_df.get("Near 52W High", pd.Series(False, index=rank_df.index))).to_numpy(),
+        _rank=pd.to_numeric(rank_df.get("Rank"), errors="coerce"),
+    ).dropna(subset=["_grp"])
+    rows, singles = [], []
+    for name, g in df.groupby("_grp"):
+        if len(g) < MIN_STOCKS:
+            singles.append(str(name))
+            continue
+        lead = g.sort_values("_rank")["Symbol"].tolist()
+        rows.append({
+            "Industry": str(name),
+            "Stocks": len(g),
+            "3M Return": pd.to_numeric(g.get("3M Return"), errors="coerce").median(),
+            "6M Return": pd.to_numeric(g.get("6M Return"), errors="coerce").median(),
+            "EMA %": float(g["_ema"].mean()),
+            "Near %": float(g["_near"].mean()),
+            "Pass": int((g["_ema"] & g["_near"]).sum()),
+            "Pass %": float((g["_ema"] & g["_near"]).mean()),
+            "Top 50": int((g["_rank"] <= 50).sum()),
+            "Best": g["_rank"].min(),
+            "Leaders": lead[:3],
+        })
+    return pd.DataFrame(rows), sorted(singles)
 
 
-def render_sector_view(
-    calc: MomentumEngine,
-    rank_df: pd.DataFrame,
-    adj_close: pd.DataFrame,
-) -> None:
-    """Renders comprehensive Industry & Sector momentum analytics."""
-    st.markdown(
-        """
-        <div style="font-family: 'Geist', sans-serif; font-size: 1.10rem; font-weight: 800; color: #0E1726; margin-bottom: 2px;">
-            Sector & Industry Momentum Analytics
-        </div>
-        <div style="font-size: 0.76rem; color: #5E6878; margin-bottom: 14px;">
-            Evaluate macro industry breadth, market capitalization weighting, and stage-2 sector leadership.
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    c_tax, c_metric, c_view = st.columns([1.6, 1.4, 1.0], vertical_alignment="center")
-
-    has_tv_data = "TV_Sector" in rank_df.columns or "TV_Industry" in rank_df.columns
-    if has_tv_data:
-        tax_opts = ["NSE Industry"]
-        if "TV_Industry" in rank_df.columns:
-            tax_opts.append("TV Industry (119)")
-        if "TV_Sector" in rank_df.columns:
-            tax_opts.append("TV Sector (20)")
-        ind_choice = c_tax.selectbox(
-            "Taxonomy Classification",
-            tax_opts,
-            index=0,
-            key="sector_tax_choice",
+def board_html(board: pd.DataFrame) -> str:
+    """The leaderboard as a table; on a phone each row folds to name, one
+    line of detail and the 3M figure."""
+    lim = max(0.05, float(board["3M Return"].abs().max() or 0))
+    rows = []
+    for i, (_, r) in enumerate(board.iterrows(), start=1):
+        v = r["3M Return"]
+        w = 0 if pd.isna(v) else min(50.0, abs(v) / lim * 50)
+        side = "left:50%" if (v or 0) >= 0 else "right:50%"
+        leads = "".join(_leader_link(s) for s in r["Leaders"][:2])
+        rows.append(
+            f'<div class="ib-row" role="row">'
+            f'<span class="ib-n">{i}</span>'
+            f'<span class="ib-name"><b>{html.escape(r["Industry"])}</b>'
+            f'<small>{r["Stocks"]} stocks · {r["EMA %"] * 100:.0f}% above 50-day EMA · {r["Top 50"]} in top 50</small></span>'
+            f'<span class="ib-num ib-d">{r["Stocks"]}</span>'
+            f'<span class="ib-3m"><b class="{_tone(v)}">{_pct(v)}</b>'
+            f'<span class="ib-bar"><i class="{_tone(v)}" style="{side};width:{w:.1f}%"></i><em></em></span></span>'
+            f'<span class="ib-num ib-d {_tone(r["6M Return"])}">{_pct(r["6M Return"])}</span>'
+            f'<span class="ib-num ib-d">{r["EMA %"] * 100:.0f}%</span>'
+            f'<span class="ib-num ib-d">{r["Near %"] * 100:.0f}%</span>'
+            f'<span class="ib-num ib-d">{r["Pass"]}</span>'
+            f'<span class="ib-num ib-d">{r["Top 50"]}</span>'
+            f'<span class="ib-leads ib-d">{leads}</span></div>'
         )
-        if not ind_choice:
-            ind_choice = "NSE Industry"
-        ind_col = {
-            "NSE Industry": "Industry",
-            "TV Industry (119)": "TV_Industry",
-            "TV Sector (20)": "TV_Sector",
-        }[ind_choice]
+    head = ('<div class="ib-row ib-head" role="row"><span>#</span><span>Industry</span>'
+            '<span class="ib-num ib-d">Stocks</span><span class="ib-3m">3M (median)</span>'
+            '<span class="ib-num ib-d">6M</span><span class="ib-num ib-d" title="Share above their 50-day EMA">Above EMA</span>'
+            '<span class="ib-num ib-d" title="Share within 20% of their 52-week high">Near high</span><span class="ib-num ib-d">Pass both</span>'
+            '<span class="ib-num ib-d">Top 50</span><span class="ib-d">Leaders</span></div>')
+    return f'<div class="ib" role="table" aria-label="Industry leaderboard">{head}{"".join(rows)}</div>'
+
+
+def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
+    """Industries ranked, with the treemap as a second view."""
+    has_tv = [c for c in ("TV_Industry", "TV_Sector") if c in rank_df.columns]
+    tax = {"NSE industry": "Industry"}
+    if "TV_Industry" in has_tv:
+        tax["TradingView industry"] = "TV_Industry"
+    if "TV_Sector" in has_tv:
+        tax["TradingView sector"] = "TV_Sector"
+
+    by = st.session_state.get("sector_rank_by") or "3M median"
+    col = tax.get(st.session_state.get("sector_tax_choice") or "NSE industry", "Industry")
+    board, singles = industry_board(rank_df, col)
+    if not board.empty:
+        board = board.sort_values([RANK_BY[by], "3M Return"], ascending=False,
+                                  na_position="last").reset_index(drop=True)
+
+    actions = kit.page_head(
+        "Sectors",
+        f"{len(board)} {'industries' if col == 'Industry' else 'groups'} ranked by "
+        f"{by.replace('median', 'median return').replace('3M', '3-month').replace('6M', '6-month').lower()}"
+        " · pick one below to see its stocks",
+        actions=True,
+    )
+    with actions:
+        st.selectbox("Rank by", list(RANK_BY), key="sector_rank_by",
+                     format_func=lambda k: f"Rank by: {k}", label_visibility="collapsed", width=190)
+        if len(tax) > 1:
+            st.selectbox("Classification", list(tax), key="sector_tax_choice",
+                         label_visibility="collapsed", width=190)
+
+    if board.empty:
+        st.info("No industry has two or more ranked stocks to compare.")
+        return
+
+    lead = board.sort_values("3M Return", ascending=False).iloc[0]
+    weak = board.sort_values("3M Return").iloc[0]
+    most = board.sort_values(["Top 50", "3M Return"], ascending=False).iloc[0]
+    rising = int((board["3M Return"] > 0).sum())
+    best_sym = (rank_df[rank_df[col] == most.Industry].sort_values("Rank")["Symbol"].head(1).tolist() or ["—"])[0]
+    kit.readings([
+        kit.Reading("Leading", lead.Industry,
+                    f"median {_pct(lead['3M Return'])} in 3 months · {lead['Top 50']} of the top 50",
+                    _tone(lead["3M Return"])),
+        kit.Reading("Rising", f"{rising} of {len(board)}", "median 3-month return above zero"),
+        kit.Reading("Most in the top 50", most.Industry,
+                    f"{most['Top 50']} stocks · best rank #{int(most.Best)} {best_sym}"),
+        kit.Reading("Weakest", weak.Industry,
+                    f"median {_pct(weak['3M Return'])} · {weak.Pass} of {weak.Stocks} pass both filters",
+                    _tone(weak["3M Return"])),
+    ], "Industries today")
+
+    view = st.segmented_control("View", ["Table", "Treemap"], default="Table",
+                                key="sector_layout_choice", label_visibility="collapsed") or "Table"
+    if view == "Treemap":
+        with kit.card("Industry treemap", "sec_tree", "size = market cap · colour = 3-month return"):
+            render_sector_treemap(rank_df, taxonomy_col=col,
+                                  return_col="6M Return" if by == "6M median" else "3M Return",
+                                  size_by="Market Cap")
     else:
-        c_tax.markdown(
-            "<span style='font-family:Geist Mono,monospace;font-size:0.8rem;color:#3C4657;'>Classification: <strong>NSE Industry</strong></span>",
-            unsafe_allow_html=True,
-        )
-        ind_col = "Industry"
+        with kit.card("Industry leaderboard", "sec_board", "leaders link to their stock pages"):
+            st.html(board_html(board))
+            if singles:
+                kit.caption(f"Left out: {', '.join(singles)} (one stock each). One stock is not an industry trend.")
 
-    sort_metric = c_metric.segmented_control(
-        "Sort / Sizing Basis",
-        ["Market Cap", "3M Return", "6M Return", "Momentum"],
-        default="Market Cap",
-        key="sector_metric_choice",
-        label_visibility="collapsed",
-    )
-    if not sort_metric:
-        sort_metric = "Market Cap"
-
-    layout_choice = c_view.segmented_control(
-        "Sector Layout",
-        ["Cards", "Table", "Treemap"],
-        default="Cards",
-        key="sector_layout_choice",
-        label_visibility="collapsed",
-    )
-    if not layout_choice:
-        layout_choice = "Cards"
-
-    # Prepare Industry Table Data
-    work_df = rank_df.copy()
-    if ind_col != "Industry":
-        work_df["Industry"] = work_df[ind_col].replace("", np.nan)
-        work_df = work_df.dropna(subset=["Industry"])
-
-    ind_rank_df = calc.get_industry_rankings(work_df)
-
-    # Share of each group near its 52-week high, above its 20 EMA, and total
-    # market cap.
-    #
-    # "Near 52W High" is the SCREENER's own flag (within 20% of the canonical
-    # 52-week high, momentum.py). This used to recompute its own version --
-    # within 10%, over a raw rolling max -- under the same label, so the card
-    # and the screener counted different stocks as "near". The 20 EMA has no
-    # screener column, so it is computed here, once for the whole universe
-    # rather than once per group (a rolling max and an EWM over the full
-    # history, ~100 times per rerun).
-    near_mask = (
-        to_bool_mask(work_df["Near 52W High"])
-        if "Near 52W High" in work_df.columns
-        else pd.Series(False, index=work_df.index)
-    )
-    in_frame = [s for s in work_df["Symbol"].unique() if s in adj_close.columns]
-    if in_frame:
-        latest = adj_close[in_frame].iloc[-1]
-        ema20_last = adj_close[in_frame].ewm(span=20, min_periods=10).mean().iloc[-1]
-        above_ema20 = (latest > ema20_last)
-    else:
-        above_ema20 = pd.Series(dtype=bool)
-    work_df = work_df.assign(
-        _near=near_mask.to_numpy(),
-        _above20=work_df["Symbol"].map(above_ema20).fillna(False).astype(bool).to_numpy(),
-        _priced=work_df["Symbol"].isin(in_frame).to_numpy(),
-    )
-    ind_52w, ind_ema, ind_mcap = {}, {}, {}
-    for ind_name, grp in work_df.groupby("Industry"):
-        ind_mcap[ind_name] = (
-            grp["Market Cap (Cr)"].sum() if "Market Cap (Cr)" in grp.columns else 0.0
-        )
-        n = int(grp["_priced"].sum())
-        ind_52w[ind_name] = (grp.loc[grp["_priced"], "_near"].sum() / n * 100) if n else 0.0
-        ind_ema[ind_name] = (grp.loc[grp["_priced"], "_above20"].sum() / n * 100) if n else 0.0
-
-    if "Industry" in ind_rank_df.columns:
-        ind_rank_df["Total MCap (Cr)"] = ind_rank_df["Industry"].map(ind_mcap).fillna(0)
-        ind_rank_df["% 52W High"] = ind_rank_df["Industry"].map(ind_52w).fillna(0)
-        ind_rank_df["% 20 EMA"] = ind_rank_df["Industry"].map(ind_ema).fillna(0)
-
-        # Sort strictly according to selected metric
-        if sort_metric == "Market Cap":
-            ind_rank_df = ind_rank_df.sort_values(
-                "Total MCap (Cr)", ascending=False
-            ).reset_index(drop=True)
-        elif sort_metric == "3M Return":
-            ind_rank_df = ind_rank_df.sort_values(
-                "3M Return", ascending=False
-            ).reset_index(drop=True)
-        elif sort_metric == "6M Return":
-            ind_rank_df = ind_rank_df.sort_values(
-                "6M Return", ascending=False
-            ).reset_index(drop=True)
-        else:
-            ind_rank_df = ind_rank_df.sort_values("Rank", ascending=True).reset_index(
-                drop=True
-            )
-
-        ind_rank_df["Rank"] = range(1, len(ind_rank_df) + 1)
-
-    # ── Render Selected Layout ───────────────────────────────────────────────
-    if layout_choice == "Treemap":
-        ret_col = "6M Return" if sort_metric == "6M Return" else "3M Return"
-        render_sector_treemap(
-            rank_df, taxonomy_col=ind_col, return_col=ret_col, size_by=sort_metric
-        )
-
-    elif layout_choice == "Table":
-        disp_ind_cols = [
-            "Rank",
-            "Industry",
-            "Stocks",
-            "Total MCap (Cr)",
-            "3M Return",
-            "6M Return",
-            "% 52W High",
-            "% 20 EMA",
-            "Top 1",
-            "Top 2",
-            "Top 3",
-        ]
-        render_saas_table(
-            ind_rank_df[[c for c in disp_ind_cols if c in ind_rank_df.columns]],
-            max_height=520,
-        )
-
-    else:
-        # Cards View
-        n_cards = len(ind_rank_df)
-        for r_start in range(0, n_cards, 3):
-            cols = st.columns(3)
-            for c_idx, i in enumerate(range(r_start, min(r_start + 3, n_cards))):
-                with cols[c_idx]:
-                    render_sector_card(ind_rank_df.iloc[i])
+    with kit.card("Stocks in an industry", "sec_stocks"):
+        pick = st.selectbox("Industry", board["Industry"].tolist(), key="sector_pick",
+                            label_visibility="collapsed")
+        members = rank_df[rank_df[col] == pick].sort_values("Rank")
+        render_screener_table(members, adj_close, "Core")
 
     render_data_quality_footer(
         total_stocks=len(rank_df),

@@ -1316,96 +1316,6 @@ def _ts_ms(index: pd.Index) -> list[int]:
     return [int(pd.Timestamp(ts).timestamp() * 1000) for ts in index]
 
 
-def render_breadth_chart(breadth_df: pd.DataFrame, ma_type: str = "SMA") -> None:
-    """Renders Moving Average Breadth time series with bull/bear zones."""
-    line_colors = ["#4f46e5", "#067647", "#0284c7", "#B54708", "#B42318"]
-    tms = _ts_ms(breadth_df.index)
-    series: list[dict] = []
-    for i, col in enumerate(breadth_df.columns):
-        vals = breadth_df[col]
-        data = [[tms[j], None if pd.isna(v) else round(float(v), 4)] for j, v in enumerate(vals)]
-        entry: dict = {
-            "name": f"Above {col}",
-            "type": "line",
-            "data": data,
-            "lineStyle": {"color": line_colors[i % len(line_colors)], "width": 2},
-            "itemStyle": {"color": line_colors[i % len(line_colors)]},
-            "symbol": "none",
-            "connectNulls": False,
-        }
-        if i == 0:
-            entry["markArea"] = {
-                "silent": True,
-                "data": [
-                    [{"yAxis": 60, "itemStyle": {"color": "rgba(5,150,105,0.05)"}}, {"yAxis": 80}],
-                    [{"yAxis": 20, "itemStyle": {"color": "rgba(225,29,72,0.05)"}}, {"yAxis": 40}],
-                ],
-            }
-            entry["markLine"] = {
-                "silent": True, "symbol": ["none", "none"], "label": {"show": False},
-                "data": [
-                    {"yAxis": 60, "lineStyle": {"color": "#067647", "type": "dotted", "width": 1}},
-                    {"yAxis": 40, "lineStyle": {"color": "#B42318", "type": "dotted", "width": 1}},
-                ],
-            }
-        series.append(entry)
-
-    option = {
-        "title": {"text": f"Market Breadth (% Stocks Above {ma_type})", "left": "left", "top": 5,
-                  "textStyle": {"fontSize": 14, "fontWeight": "bold"}},
-        "tooltip": {"trigger": "axis", "axisPointer": {"type": "cross"}},
-        "legend": {"top": 38, "left": 0, "type": "scroll"},
-        "grid": {"left": 60, "right": 20, "top": 82, "bottom": 40},
-        "xAxis": {"type": "time", "splitLine": {"show": False}},
-        "yAxis": {"type": "value", "min": 0, "max": 100,
-                  "axisLabel": {"formatter": "{value}%"},
-                  "splitLine": {"lineStyle": {"color": "#F1F3F6"}}},
-        "series": series,
-    }
-    st.iframe(_build_echarts_html(_script_json(option)), height=400)
-
-
-def render_hl_timeseries_chart(
-    hl_df: pd.DataFrame, window_label: str = "52W", is_pct: bool = True
-) -> None:
-    """Renders Daily New Highs / New Lows mirrored area chart."""
-    h_col = "% New Highs" if is_pct else "New Highs"
-    l_col = "% New Lows" if is_pct else "New Lows"
-    y_suf = "%" if is_pct else ""
-
-    tms = _ts_ms(hl_df.index)
-    h_data = [[tms[j], None if pd.isna(v) else round(float(v), 4)] for j, v in enumerate(hl_df[h_col])]
-    l_data = [[tms[j], None if pd.isna(v) else round(-float(v), 4)] for j, v in enumerate(hl_df[l_col])]
-    y_max = float(max(hl_df[h_col].max(), hl_df[l_col].max()) * 1.15) if not hl_df.empty else 10
-
-    option = {
-        "title": {"text": f"Daily New {window_label} Highs & Lows", "left": "left", "top": 5,
-                  "textStyle": {"fontSize": 14, "fontWeight": "bold"}},
-        "tooltip": {"trigger": "axis", "axisPointer": {"type": "cross"}},
-        "legend": {"top": 38, "left": 0},
-        "grid": {"left": 60, "right": 20, "top": 82, "bottom": 40},
-        "xAxis": {"type": "time", "splitLine": {"show": False}},
-        "yAxis": {"type": "value", "min": -y_max, "max": y_max,
-                  "name": "% of Universe" if is_pct else "Stock Count",
-                  "axisLabel": {"formatter": "{value}" + y_suf},
-                  "splitLine": {"lineStyle": {"color": "#F1F3F6"}}},
-        "series": [
-            {"name": f"New {window_label} Highs", "type": "line", "data": h_data,
-             "lineStyle": {"color": "#067647", "width": 1.8},
-             "itemStyle": {"color": "#067647"}, "symbol": "none",
-             "areaStyle": {"color": "rgba(5,150,105,0.08)"}, "connectNulls": False,
-             "markLine": {"silent": True, "symbol": ["none", "none"],
-                          "data": [{"yAxis": 0, "lineStyle": {"color": "#667080", "width": 1}}],
-                          "label": {"show": False}}},
-            {"name": f"New {window_label} Lows", "type": "line", "data": l_data,
-             "lineStyle": {"color": "#B42318", "width": 1.8},
-             "itemStyle": {"color": "#B42318"}, "symbol": "none",
-             "areaStyle": {"color": "rgba(225,29,72,0.08)"}, "connectNulls": False},
-        ],
-    }
-    st.iframe(_build_echarts_html(_script_json(option)), height=370)
-
-
 def render_backtest_equity_chart(equity_curve: pd.Series, benchmark: pd.Series) -> None:
     """Renders cumulative strategy returns vs benchmark."""
     strat_pct = (equity_curve - 1) * 100
@@ -1439,31 +1349,6 @@ def render_backtest_equity_chart(equity_curve: pd.Series, benchmark: pd.Series) 
         ],
     }
     st.iframe(_build_echarts_html(_script_json(option)), height=390)
-
-
-def render_net_hl_bar_chart(net: pd.Series) -> None:
-    """Renders the Daily Net New Highs (Highs − Lows) bar chart."""
-    if net.empty:
-        return
-    tms = _ts_ms(net.index)
-    data = [{"value": [tms[j], None if pd.isna(v) else float(v)],
-              "itemStyle": {"color": "#067647" if pd.notna(v) and v >= 0 else "#B42318"}}
-            for j, v in enumerate(net)]
-    option = {
-        "title": {"text": "Daily Net New Highs (Highs − Lows)", "left": "left", "top": 5,
-                  "textStyle": {"fontSize": 13, "fontWeight": "bold"}},
-        "tooltip": {"trigger": "axis"},
-        "grid": {"left": 55, "right": 20, "top": 50, "bottom": 40},
-        "xAxis": {"type": "time", "splitLine": {"show": False}},
-        "yAxis": {"type": "value", "splitLine": {"lineStyle": {"color": "#F1F3F6"}}},
-        "series": [{
-            "type": "bar", "data": data,
-            "markLine": {"silent": True, "symbol": ["none", "none"],
-                         "data": [{"yAxis": 0, "lineStyle": {"color": "#667080", "width": 1}}],
-                         "label": {"show": False}},
-        }],
-    }
-    st.iframe(_build_echarts_html(_script_json(option)), height=300)
 
 
 def render_correlation_heatmap(
