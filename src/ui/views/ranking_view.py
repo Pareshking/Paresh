@@ -16,7 +16,7 @@ from src.core.config import SHORT_FORMS
 from src.core.market_time import ist_now
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
 from src.ui.views.stock_view import render_stock_view
-from src.ui.screener_table import column_count, render_screener_table
+from src.ui.screener_table import INDEX_NAMES, column_count, render_screener_table
 from src.ui.theme import render_master_screener_table, screener_column_count
 
 # Stored in session state by `rank_density_mode`, so these strings are an
@@ -314,7 +314,25 @@ def render_ranking_view(
             label_visibility="collapsed",
             width="content",
         )
-        with st.popover("Sort & columns", icon=":material/tune:", width="content"):
+        with st.popover("Filters & sort", icon=":material/tune:", width="content"), \
+                st.container(key="scr_filters"):
+            # On a phone theme.py pins this panel to the bottom of the screen
+            # as a sheet; on a desktop it is an ordinary dropdown.
+            # Largest companies first, in the names the table uses.
+            _order = ["N50", "NN50", "MID150", "SMALL250", "MICRO250"]
+            index_names = {
+                tag: INDEX_NAMES.get(tag, tag_to_name.get(tag, tag))
+                for tag in sorted(present_tags, key=lambda t: (_order.index(t) if t in _order else 99, t))
+            }
+            index_pick = st.pills(
+                "Index",
+                list(index_names),
+                selection_mode="multi",
+                format_func=lambda t: index_names.get(t, t),
+                key="rank_index_filter",
+            )
+            only_passing = st.toggle("Only stocks that pass both filters",
+                                     key="rank_only_passing")
             # Explicit index, resolved through the mirror. Under st.navigation
             # only the active page runs, so this key is discarded the moment
             # the reader looks at another page -- without it their chosen sort
@@ -349,6 +367,8 @@ def render_ranking_view(
                 key="rank_density_mode",
             )
             st.caption("Click a column header in the table to sort by it too.")
+            st.button("Reset", key="rank_filters_reset", type="tertiary",
+                      on_click=_reset_screener_filters)
     if not density_mode:
         density_mode = _DENSITY_OPTIONS[1]
 
@@ -407,6 +427,17 @@ def render_ranking_view(
     elif filt == "High Volume":
         view = view[view.get("Volume", "") == "High"]
 
+    if index_pick:
+        wanted = {t.upper() for t in index_pick}
+        view = view[
+            view["Indices"].fillna("").astype(str)
+            .apply(lambda v: bool(wanted & {t.strip().upper() for t in v.split(",")}))
+        ]
+    if only_passing:
+        view = view[
+            to_bool_mask(view.get("Above 50 EMA")) & to_bool_mask(view.get("Near 52W High"))
+        ]
+
     asc = sort_by == "Rank"
     if sort_by in view.columns and not (filt == "Momentum Movers" and sort_by == "Rank"):
         view = view.sort_values(sort_by, ascending=asc)
@@ -456,6 +487,16 @@ def render_ranking_view(
         gap_count=gap_count(rank_df),
         short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
     )
+
+
+def _reset_screener_filters() -> None:
+    # Popped, not assigned: each of these widgets passes its own default, and
+    # a session-state value on top of a default makes Streamlit print a
+    # warning on the page. The sort's mirror goes back to Rank as well.
+    for key in ("rank_index_filter", "rank_only_passing", "rank_sort_by",
+                "rank_density_mode", "rank_quick_pills"):
+        st.session_state.pop(key, None)
+    remember("rank_sort_by_idx", 0)
 
 
 def render_market_strip(rank_df: pd.DataFrame, regime) -> None:

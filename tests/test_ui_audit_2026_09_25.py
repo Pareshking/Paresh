@@ -19,10 +19,14 @@ def test_sector_leader_link_survives_an_ampersand_ticker():
     assert ">J&amp;KBANK</a>" in html
 
 
-def test_watchlist_never_reads_a_server_side_file(monkeypatch, tmp_path):
+def test_watchlist_never_reads_a_server_side_file():
     """The disk copy was shared by every visitor of the public deployment."""
-    monkeypatch.setattr(watchlist_view.st, "query_params", {})
-    assert watchlist_view._load_persisted_watchlist() == ""
-    watchlist_view._save_persisted_watchlist("ABB, TCS")
-    assert watchlist_view.st.query_params["wl"] == "ABB, TCS"
+    import inspect
+
+    from src.ui import watchlist_store
+
     assert not hasattr(watchlist_view, "WATCHLIST_FILE")
+    for mod in (watchlist_view, watchlist_store):
+        src = inspect.getsource(mod)
+        for call in ("open(", "write_text(", "read_text(", "json.dump", "json.load"):
+            assert call not in src, f"{mod.__name__} touches the server's disk: {call}"
