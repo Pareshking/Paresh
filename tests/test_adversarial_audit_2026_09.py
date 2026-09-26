@@ -668,32 +668,21 @@ def test_rrg_benchmark_selector_is_not_inert():
 
 
 def test_qualified_correlation_status_handles_zero_and_unknown():
-    """`corr_val and corr_val < 0.70` is a truthiness test, and 0.0 is falsy.
+    """`corr_val and corr_val < 0.70` was a truthiness test, and 0.0 is falsy.
 
     A perfectly uncorrelated book fell through to "High Correlation", and so did
     a single-name book where corr_val is None -- labelling an unknown as a bad
     state beside a "—".
     """
-    import inspect
+    from src.ui.views.qualified_view import correlation_note
 
-    from src.ui.views import qualified_view
-
-    src = inspect.getsource(qualified_view._render_qualified_section)
-    assert "if corr_val and corr_val < 0.70" not in src, (
-        "truthiness test reintroduced: 0.0 is falsy"
-    )
-    assert "corr_val is None" in src, "an unmeasurable correlation must be its own state"
-
-    def classify(corr_val):
-        if corr_val is None:
-            return "Not measurable"
-        return "Diversified" if corr_val < 0.70 else "High Correlation"
-
-    assert classify(0.0) == "Diversified"
-    assert classify(-0.3) == "Diversified"
-    assert classify(0.45) == "Diversified"
-    assert classify(0.85) == "High Correlation"
-    assert classify(None) == "Not measurable"
+    assert "low" in correlation_note(0.0)
+    assert "low" in correlation_note(-0.3)
+    assert "moderate" in correlation_note(0.45)
+    assert "high" in correlation_note(0.85)
+    unknown = correlation_note(None)
+    assert not any(w in unknown for w in ("low", "moderate", "high"))
+    assert not any(w in correlation_note(float("nan")) for w in ("low", "moderate", "high"))
 
 
 def test_qualified_average_return_colour_follows_its_sign():
@@ -702,18 +691,11 @@ def test_qualified_average_return_colour_follows_its_sign():
     Colour that contradicts the number is worse than no colour: the reader
     takes the colour first.
     """
-    import inspect
+    from src.ui.views.qualified_view import _pct, _tone
 
-    from src.ui.views import qualified_view
-
-    src = inspect.getsource(qualified_view._render_qualified_section)
-    assert 'color: #067647; margin-top: 2px;">{avg_3m' not in src
-    assert 'color: #067647; margin-top: 2px;">{avg_6m' not in src
-    assert "avg_3m_clr" in src and "avg_6m_clr" in src
-    # The sublabels asserted the 63/126-trading-row definition the README says
-    # was removed in favour of calendar periods.
-    assert "Trailing 63 Days" not in src and "Trailing 126 Days" not in src
-    assert "Calendar 3 months" in src and "Calendar 6 months" in src
+    assert _tone(-0.154) == "down" and _pct(-0.154) == "−15.4%"
+    assert _tone(0.42) == "up" and _pct(0.42) == "+42.0%"
+    assert _tone(0.0) == "" and _tone(float("nan")) == "" and _pct(None) == "—"
 
 
 # ─────────────────────────────────────────────────────────────────────────────

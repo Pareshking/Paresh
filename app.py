@@ -941,7 +941,7 @@ def _page_portfolio() -> None:
 
 
 def _page_watchlist() -> None:
-    render_watchlist_view(rank_df)
+    render_watchlist_view(rank_df, adj_close)
 
 
 def _page_breadth() -> None:
@@ -1020,13 +1020,15 @@ render_header_kpi_bar(
     active_page=_nav,
 )
 
-signals = compute_signals(
-    rank_df=rank_df,
-    regime_status=regime_data.status,
-    dma_dist=regime_data.distance_pct,
-    pct_above_ema=pct_above_ema,
-)
-render_signal_alerts(signals)
+# The signal chips are about the ranking, so they sit on the Screener only;
+# every page keeps the one-line market summary above.
+if _nav is _PAGES[0] and not st.query_params.get("stock"):
+    render_signal_alerts(compute_signals(
+        rank_df=rank_df,
+        regime_status=regime_data.status,
+        dma_dist=regime_data.distance_pct,
+        pct_above_ema=pct_above_ema,
+    ))
 
 # The reader's watchlist lives in their browser; bring it into the session
 # before any page reads it (src/ui/watchlist_store.py).
