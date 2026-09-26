@@ -49,6 +49,9 @@ def test_extract_ohlcv_does_not_widen_the_frames():
     from src.loaders.price_loader import extract_ohlcv
 
     adj, close_p, high_p, low_p, vol_p, open_p = extract_ohlcv(_frame(), ["AAA", "BBB"])
+    # The loop below skips absent frames; the two the engine cannot run without
+    # must be here, or it would pass on nothing.
+    assert not adj.empty and not close_p.empty
     for name, frame in [
         ("adj_close", adj), ("close", close_p), ("high", high_p),
         ("low", low_p), ("volume", vol_p), ("open", open_p),
@@ -83,11 +86,14 @@ def test_corporate_action_adjustment_does_not_widen_the_frames():
     from src.engine.corporate_actions import adjust_ohlc
 
     idx = pd.date_range("2026-01-01", periods=60, freq="B")
-    close = pd.DataFrame(
-        {"AAA": np.linspace(300, 330, len(idx), dtype="float32")}, index=idx
-    ).astype("float32")
+    prices = np.linspace(300, 330, len(idx), dtype="float32")
+    prices[30:] *= 0.5            # the 1:2 split the event describes
+    close = pd.DataFrame({"AAA": prices}, index=idx).astype("float32")
     event = {"symbol": "AAA", "date": str(idx[30].date()), "ratio": 0.5}
-    frames, _ = adjust_ohlc({"close": close}, [event])
+    frames, applied = adjust_ohlc({"close": close}, [event])
+    # A smooth series has no step, so the adjustment would be skipped and no
+    # multiply would happen at all -- the test would pass without testing.
+    assert applied, "the split was not applied; nothing was multiplied"
     assert all(d == np.float32 for d in frames["close"].dtypes), (
         f"adjust_ohlc returned {set(map(str, frames['close'].dtypes))}"
     )
