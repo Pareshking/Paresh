@@ -5,11 +5,11 @@ import hashlib
 import html
 import re
 import time
-from urllib.parse import quote
 
 import pandas as pd
 import streamlit as st
 
+from src.ui.system_param import keep_system_only, stock_href
 from src.ui.widget_state import remember, resolve
 
 from src.core.config import SHORT_FORMS
@@ -153,7 +153,7 @@ def render_ranking_view(
         def _back() -> None:
             if st.button("← Back to screener", key="stock_page_back"):
                 st.session_state.pop("_stock_url_synced", None)
-                st.query_params.clear()
+                keep_system_only()
                 st.rerun()
 
         render_stock_view(
@@ -174,7 +174,7 @@ def render_ranking_view(
     # stock: a refresh would have reopened it. Writing the parameters is what
     # updates the address bar, exactly as the Back button's clear() does.
     if st.session_state.pop("_stock_url_synced", None):
-        st.query_params.clear()
+        keep_system_only()
 
     # Build dynamic predictive search suggestions.
     #
@@ -563,7 +563,7 @@ def render_top50_changes(rank_df: pd.DataFrame, month: str) -> None:
 
     def chips(df: pd.DataFrame) -> str:
         return "".join(
-            f'<a class="t50-chip" href="?stock={quote(str(r.Symbol), safe="")}" target="_self">'
+            f'<a class="t50-chip" href="{stock_href(r.Symbol)}" target="_self">'
             f'{html.escape(str(r.Symbol))} <span>#{int(r.Rank)}</span></a>'
             for r in df.itertuples()
         ) or '<span class="t50-none">None</span>'

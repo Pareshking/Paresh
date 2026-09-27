@@ -44,7 +44,7 @@ from src.engine.corporate_actions import adjust_ohlc, load_events
 from src.loaders.indices_loader import fetch_indices_data
 from src.loaders import extra_universe_loader as extra_loader
 from src.engine.extra_universe import (
-    SYSTEM_750, SYSTEM_COMBINED, SYSTEM_INCEPTION, SYSTEM_NAMES, SYSTEM_NANO, SYSTEMS,
+    SYSTEM_750, SYSTEM_COMBINED, SYSTEM_INCEPTION, SYSTEM_NAMES, SYSTEM_NANO,
 )
 from src.core.universe_reconciliation import reconcile_symbols
 # R2-backed production readers are an explicit transport boundary; keep this import adjacent to the loader.
@@ -66,7 +66,7 @@ from src.ui.components import (
     render_signal_alerts,
 )
 from src.ui import page_kit as kit
-from src.ui import watchlist_store
+from src.ui import system_param, watchlist_store
 from src.ui.theme import inject_custom_css
 from src.ui.widget_state import resolve
 from src.ui.views.backtest_view import render_backtest_view
@@ -875,9 +875,8 @@ def load_all_data(indices: list[str], system: str = SYSTEM_750):
 # ── Load Market Data ─────────────────────────────────────────────────────────
 with st.spinner("Loading market data…"):
     with metrics.stage("data_pipeline_total"):
-        system = st.session_state.get("cfg_system", SYSTEM_750)
-        if system not in SYSTEMS:
-            system = SYSTEM_750
+        # ?sys= keeps the choice across a stock link's reload (system_param).
+        system = system_param.current()
         data = None
         try:
             data = load_all_data(selected_indices, system)
@@ -890,6 +889,8 @@ with st.spinner("Loading market data…"):
                        "Nifty 750.")
             system = SYSTEM_750
             data = load_all_data(selected_indices, system)
+        # The chosen system, not a fallback, is what the address keeps.
+        system_param.sync_url(system_param.current())
 
 def _emit_startup_metrics(outcome: str) -> None:
     """Publish this process's cold-start telemetry as a hidden, inert element.
@@ -1007,6 +1008,14 @@ def _system_line() -> None:
     )
 
 
+def _before_inception() -> bool:
+    """Nano Cap and Combined before their first book (the 30 Sep 2026 close)."""
+    if system == SYSTEM_750:
+        return False
+    as_of = pd.Timestamp(adj_close.index[-1]) if adj_close is not None and len(adj_close) else pd.Timestamp.now()
+    return pd.Period(as_of, freq="M") < pd.Period(SYSTEM_INCEPTION[system], freq="M")
+
+
 def _record_start() -> str:
     """For Nano Cap and Combined: when their book and record begin."""
     start = pd.Period(SYSTEM_INCEPTION[system], freq="M")
@@ -1089,7 +1098,8 @@ def _page_actions() -> None:
     # month-to-date (record_run), so the two pages describe one portfolio.
     render_actions_view(
         rank_df, deep_adj_close, fetch_benchmark_history(period="5y"),
-        model_book_note=None if system == SYSTEM_750 else _record_start(),
+        model_book_note=_record_start() if _before_inception() else None,
+        system=system,
     )
 
 
@@ -1097,13 +1107,12 @@ def _page_track_record() -> None:
     # The frozen record, plus a live MTD struck under the record's own pinned
     # configuration. fetch_benchmark_history is cached, so this is the same
     # round trip the Backtest page already made.
-    if system != SYSTEM_750:
-        kit.page_head("Track record", f"{system_name}'s live record, frozen month by month.")
+    if _before_inception():
         kit.note("Not started yet.", _record_start())
-        return
     render_track_record_view(
         adj_close=deep_adj_close,
         benchmark_close=fetch_benchmark_history(period="5y"),
+        system=system,
     )
 
 
@@ -1153,7 +1162,8 @@ _nav = st.navigation(_PAGES + [_moved_page(p) for p in _MOVED], position="hidden
 # arrives as /sectors?stock=X, and that page has no idea what to do with it:
 # the click reloaded Sectors. Send any stock request to the Screener.
 if st.query_params.get("stock") and _nav.title != _PAGES[0].title:
-    st.switch_page(_PAGES[0], query_params={"stock": st.query_params["stock"]})
+    st.switch_page(_PAGES[0], query_params={"stock": st.query_params["stock"],
+                                            **system_param.url_params()})
 
 # ── Top Header KPI Bar & Alerts ──────────────────────────────────────────────
 total_stocks = len(rank_df)

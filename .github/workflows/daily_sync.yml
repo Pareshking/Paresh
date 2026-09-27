@@ -158,6 +158,21 @@ jobs:
       - name: Refresh the F&O symbol list
         run: python scripts/sync_fo_symbols.py || echo "::warning::F&O list refresh failed; using the committed list."
 
+      # NSE's daily bundle for the last few sessions, so the month-end market
+      # caps the extra universe is built from are in R2 by the time the step
+      # below runs. The NSE collector has its own schedule, but GitHub has not
+      # fired it; this keeps the 30 Sep list from depending on it. Idempotent:
+      # a day already in R2 is skipped. Non-blocking.
+      - name: Collect the last NSE sessions
+        env:
+          PYTHONPATH: .
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: python scripts/nse_collect.py --recent 3 || echo "::warning::NSE collection failed; the extra universe keeps the last list."
+
       # The extra universe (every stock of ₹2,000 Cr or more outside the 750,
       # src/engine/extra_universe.py): rebuilt from NSE's market-cap file
       # only when a new month-end session is in R2, else a no-op. Written to

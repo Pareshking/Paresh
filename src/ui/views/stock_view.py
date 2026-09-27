@@ -24,6 +24,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from src.ui.system_param import stock_href
 from src.engine.corporate_actions import load_events
 from src.engine.momentum import CARRIED_MARK
 from src.ui.charts import render_stock_chart
@@ -523,7 +524,7 @@ def _render_peers_table(df: pd.DataFrame, highlight_sym: str, title: str = "Peer
                 if is_hl:
                     cell = f'{_html.escape(sym)}<em>This stock</em>'
                 else:
-                    cell = (f'<a href="?stock={_quote(sym, safe="")}" target="_self">'
+                    cell = (f'<a href="{stock_href(sym)}" target="_self">'
                             f'{_html.escape(sym)}</a>')
                 cells.append(f'<td class="l s">{cell}</td>')
                 continue

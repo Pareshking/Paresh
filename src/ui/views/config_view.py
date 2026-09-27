@@ -13,6 +13,7 @@ import pandas as pd
 import streamlit as st
 
 from src.ui import page_kit as kit
+from src.ui import system_param
 
 from src.core.config import (
     DEFAULT_LOOKBACK_WEIGHTS,
@@ -108,23 +109,22 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
     # Owner, 2026-09-27: three systems in one app; every page follows this.
     nano = membership_summary()
     options = list(SYSTEMS) if nano else [SYSTEM_750]
-    nano_note = (f"{nano.get('count', '?')} stocks, list of {nano.get('as_of', '?')}"
-                 if nano else "")
-    labels = {
-        SYSTEM_750: "Nifty 750 — NSE's Nifty Total Market; the default, record since Jan 2026",
-        SYSTEM_NANO: (f"Nano Cap — every stock of ₹2,000 Cr or more outside the 750 "
-                      f"({nano_note}), ranked among themselves"),
-        SYSTEM_COMBINED: "Combined — the 750 and Nano Cap ranked together as one list",
+    count = f"{nano.get('count', '?')} stocks · " if nano else ""
+    captions = {
+        SYSTEM_750: "Default · record since Jan 2026",
+        SYSTEM_NANO: f"₹2,000 Cr+ outside the 750 · {count}record from Oct 2026",
+        SYSTEM_COMBINED: "Both, ranked together · record from Oct 2026",
     }
-    current = st.session_state.get("cfg_system", SYSTEM_750)
+    current = system_param.current()
     chosen = st.radio(
         "System", options,
         index=options.index(current) if current in options else 0,
-        format_func=labels.get, key="cfg_system_radio",
-        help="Every page follows this: Screener, Actions, Sectors, RRG, Portfolio, "
-             "Watchlist, Breadth, Backtest and Track Record. Each system is ranked, "
-             "booked and recorded on its own; Nano Cap and Combined records start "
-             "with October 2026.",
+        format_func=SYSTEM_NAMES.get, captions=[captions[o] for o in options],
+        key="cfg_system_radio",
+        help="Every page follows this choice. Nano Cap is every stock of ₹2,000 Cr "
+             "or more outside the 750, fixed at each month-end"
+             + (f" (list of {nano.get('as_of')})" if nano else "")
+             + ", ranked among themselves; Combined ranks both as one list.",
     )
     if chosen != current:
         st.session_state["cfg_system"] = chosen

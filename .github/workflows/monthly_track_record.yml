@@ -61,11 +61,24 @@ jobs:
       - name: Freeze newly closed months
         run: python scripts/update_track_record.py
 
+      # Nano Cap and Combined keep their own records from October 2026 (owner,
+      # 2026-09-27), each on its own point-in-time membership. Their Nano Cap
+      # stocks are priced from the extra universe's own Yahoo file. A failure
+      # here never stops the 750's freeze above from being committed.
+      - name: Freeze Nano Cap and Combined
+        run: |
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/data-latest/prices_extra.parquet"
+          curl -fsSL "$URL" -o prices_extra.parquet || echo "::warning::prices_extra unavailable; downloading from Yahoo."
+          for SYSTEM in nano combined; do
+            python scripts/update_track_record.py --system "$SYSTEM" --extra-prices prices_extra.parquet \
+              || echo "::warning::$SYSTEM record freeze failed; the 750's record is unaffected."
+          done
+
       - name: Commit the ledger
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add data/track_record.json
+          git add data/track_record*.json
           if git diff --staged --quiet; then
             echo "No new closed months; ledger unchanged."
             exit 0
@@ -84,8 +97,8 @@ jobs:
               # The ledger is append-only, so on a conflict this run's version
               # is the one carrying the new month. Keep it and continue. In a
               # rebase that is --theirs (--ours is origin/main).
-              git checkout --theirs -- data/track_record.json 2>/dev/null || true
-              git add data/track_record.json
+              git checkout --theirs -- data/track_record*.json 2>/dev/null || true
+              git add data/track_record*.json
               GIT_EDITOR=true git rebase --continue || git rebase --abort
             }
             sleep $((i * 5))
