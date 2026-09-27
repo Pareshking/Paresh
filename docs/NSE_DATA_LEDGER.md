@@ -96,12 +96,17 @@ _Last updated: 2026-09-27_
    evening; first Nano Cap / Combined books on 1 Oct; their backtest shows
    September. Check each (`docs/THREE_SYSTEMS.md`, Calendar).
 2. **Early November**: October freezes into all three ledgers.
-3. **NSE adjustment layer** — built (`src/loaders/nse_adjusted.py`):
-   NSE's own previous-close step on each ex-date is the factor, applied
-   backwards; the Bc file's parsed splits and bonuses are the cross-check.
-   `nse_compare.yml` (dispatch, and Sundays) reports steps vs Bc, price
-   drift vs Screener, and the rankings of all three systems vs the published
-   ones. **Next: read the first report**, fix what it shows, then decide.
+3. **NSE adjustment layer** (`src/loaders/nse_adjusted.py`). First
+   reports (runs 36323013380, 36327550737): rankings already close
+   (Spearman 0.993 / 0.970 / 0.985; top 20 19/20 in each system), but
+   NSE's daily file does **not** adjust its previous close for splits
+   (ADANIPOWER 1:5, 22 Sep 2025: previous close 709.40, close 170.25), so
+   the first method missed every split and bonus (135 stocks off Screener
+   by 2-10x). Now: the Bc file's splits and bonuses, each applied only where
+   the price moved by its factor; moves beyond 1.8x with no action are
+   listed. The five sessions the report found missing (12 Nov 2023,
+   20 Jan, 2 Mar, 18 May 2024, 1 Feb 2026) were collected with
+   `nse_collect.yml` → dates. **Next: re-run `nse_compare.yml`**, then decide.
 4. **NSE as the middle price source** everywhere: Screener → NSE → Yahoo,
    once 3 is in.
 5. Timing: all three sources (NSE, Yahoo, Screener) in before 06:00 IST;

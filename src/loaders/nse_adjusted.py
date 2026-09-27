@@ -4,21 +4,24 @@ Owner, 2026-09-27: build NSE adjusted prices and compare the rankings they
 give with Screener's; only then make NSE the middle source (Screener, NSE,
 Yahoo). This module is the first half and changes nothing the app shows.
 
-The adjustment comes from NSE itself. On an ex-date NSE prints the previous
-close already adjusted for the action -- a 1:5 split's previous close is a
-fifth of the last traded price -- so
+The adjustment comes from NSE's corporate-actions file (Bc), checked against
+the price. NSE's daily price file does NOT adjust its previous close for an
+action: on ADANIPOWER's 1:5 split (ex 22 Sep 2025) it printed a previous close
+of 709.40 against a close of 170.25 (checked in the first comparison run,
+where every split and bonus was missed). So:
 
-    factor(day) = prev_close(day) / last close before day
+  1. each split, bonus or consolidation parsed from Bc (classify_purpose)
+     is placed on the first session on or after its ex-date;
+  2. it is applied only if the price agrees: the close that session over the
+     last close before it is nearer the action's factor than to 1, and
+     within 1.5x of it. Bc lists some actions twice under different dates;
+     only the date the price actually moved passes;
+  3. every price before the ex-date is multiplied by the factor, volumes
+     divided by it.
 
-is 1 on an ordinary day and the price factor on an ex-date, for splits,
-bonuses, consolidations and demergers alike, with no purpose text to parse.
-Every price before the ex-date is multiplied by it. Ordinary dividends are
-not adjusted (NSE does not adjust the previous close for them; neither does
-Screener), which keeps the series comparable with Screener's.
-
-The Bc file's parsed factors are a cross-check, not the source:
-`crosscheck_actions` lists the splits and bonuses whose Bc factor and NSE's
-step disagree, and the steps with no parsed action behind them.
+Ordinary dividends are not adjusted (neither does Screener), which keeps the
+series comparable with Screener's. Price jumps beyond 1.8x either way with
+no confirmed action are listed (demergers, special cases) but not adjusted.
 
 Pure functions; scripts/nse_compare.py does the I/O.
 """
@@ -52,18 +55,9 @@ def wide(prices: pd.DataFrame) -> dict[str, pd.DataFrame]:
 
 
 GAP_SHARE = 0.25              # more stocks than this stepping on one day: a missing session
-GAP_KEEP = 0.5                # on such a day, keep only steps beyond 1:2 either way
-
-
-def _raw_steps(close: pd.DataFrame, prev_close: pd.DataFrame,
-               tol: float = STEP_TOL) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    last = close.ffill().shift(1)
-    f = prev_close.reindex_like(close) / last
-    # NSE's previous close and our last close are all the factor needs; the
-    # day's own close can be absent (the stock printed no trade).
-    both = last.notna() & prev_close.reindex_like(close).notna()
-    step = ((f - 1).abs() > tol) & f.gt(0) & np.isfinite(f) & both
-    return f, step, both
+CONFIRM_BAND = np.log(1.5)    # the session's move must be within 1.5x of the action's factor
+JUMP = np.log(1.8)            # an unexplained move beyond this either way is listed
+ACTION_KINDS = ("split", "bonus", "consolidation")
 
 
 def gap_days(close: pd.DataFrame, prev_close: pd.DataFrame,
@@ -71,28 +65,70 @@ def gap_days(close: pd.DataFrame, prev_close: pd.DataFrame,
     """Days whose previous close is not our previous session's close for most stocks.
 
     That is a session missing from the record -- NSE traded (a Budget Sunday,
-    a muhurat session) and we hold no file for it -- not hundreds of
-    corporate actions. Returns the share of stocks stepping, for those days.
+    a muhurat session) and we hold no file for it. Returns the share of
+    stocks differing, for those days.
     """
-    _f, step, both = _raw_steps(close, prev_close, tol)
-    frac = step.sum(axis=1) / both.sum(axis=1).replace(0, np.nan)
+    last = close.ffill().shift(1)
+    pc = prev_close.reindex_like(close)
+    both = last.notna() & pc.notna()
+    differs = ((pc / last - 1).abs() > tol) & both
+    frac = differs.sum(axis=1) / both.sum(axis=1).replace(0, np.nan)
     return frac[frac > share]
 
 
-def step_factors(close: pd.DataFrame, prev_close: pd.DataFrame,
-                 tol: float = STEP_TOL) -> pd.DataFrame:
-    """NSE's adjustment on each day: prev_close / the stock's last close; 1 elsewhere.
+def _parsed(actions: pd.DataFrame) -> pd.DataFrame:
+    """One row per (symbol, ex-date): the product of its parsed price factors."""
+    a = actions[actions["kind"].isin(ACTION_KINDS)
+                & actions["price_factor"].notna() & actions["ex_date"].notna()].copy()
+    # One date type whatever the store held (dates, strings, other resolutions).
+    a["date"] = pd.to_datetime(a["ex_date"]).dt.normalize().astype("datetime64[ns]")
+    return (a.groupby(["symbol", "date"], as_index=False)
+             .agg(kind=("kind", lambda k: "+".join(sorted(set(k)))),
+                  bc_factor=("price_factor", "prod")))
 
-    On a day after a missing session (gap_days) the difference is mostly
-    that session's price move, so only steps beyond 1:2 either way -- a
-    split or bonus no single session's move reaches -- are kept.
+
+def action_factors(close: pd.DataFrame, actions: pd.DataFrame
+                   ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """(factors: dates x symbols, 1 except on a confirmed ex-date; one row per action).
+
+    Each action's verdict: "applied" (the price moved by its factor),
+    "no move" (it did not -- a duplicate date, or a factor the market did
+    not see), "no price" (no session for the stock on or after the ex-date).
     """
-    f, step, _both = _raw_steps(close, prev_close, tol)
-    gaps = gap_days(close, prev_close, tol).index
-    if len(gaps):
-        big = (np.log(f.loc[gaps].where(f.loc[gaps] > 0)).abs() > abs(np.log(GAP_KEEP)))
-        step.loc[gaps] = step.loc[gaps] & big
-    return f.where(step, 1.0)
+    close = close.copy()
+    close.index = pd.DatetimeIndex(close.index).astype("datetime64[ns]")
+    factors = pd.DataFrame(1.0, index=close.index, columns=close.columns)
+    rows = []
+    for r in _parsed(actions).itertuples(index=False):
+        out = {"symbol": r.symbol, "date": r.date, "kind": r.kind,
+               "bc_factor": r.bc_factor, "session": pd.NaT, "move": np.nan}
+        if r.symbol not in close.columns:
+            rows.append({**out, "verdict": "no price"})
+            continue
+        s = close[r.symbol]
+        after, before = s[s.index >= r.date].dropna(), s[s.index < r.date].dropna()
+        if after.empty or before.empty:
+            rows.append({**out, "verdict": "no price"})
+            continue
+        day, move = after.index[0], float(after.iloc[0] / before.iloc[-1])
+        off = abs(np.log(move / r.bc_factor))
+        ok = off < CONFIRM_BAND and off < abs(np.log(move))
+        if ok:
+            factors.at[day, r.symbol] *= r.bc_factor
+        rows.append({**out, "session": day, "move": move,
+                     "verdict": "applied" if ok else "no move"})
+    cols = ["symbol", "date", "kind", "bc_factor", "session", "move", "verdict"]
+    return factors, pd.DataFrame(rows, columns=cols)
+
+
+def unexplained_jumps(close: pd.DataFrame, factors: pd.DataFrame) -> pd.DataFrame:
+    """Session moves beyond 1.8x either way that no applied action explains."""
+    move = close / close.ffill().shift(1)
+    big = (np.log(move.where(move > 0)).abs() > JUMP) & (factors.reindex_like(close) == 1.0)
+    s = move.where(big).stack().dropna()
+    return (s.rename("move").reset_index()
+             .rename(columns={"level_0": "date", "level_1": "symbol"})
+             [["symbol", "date", "move"]].sort_values("date", ascending=False))
 
 
 def factor_after(factors: pd.DataFrame) -> pd.DataFrame:
@@ -106,15 +142,17 @@ def adjust(frame: pd.DataFrame, factors: pd.DataFrame) -> pd.DataFrame:
     return frame * factor_after(factors.reindex_like(frame))
 
 
-def adjusted_frames(prices: pd.DataFrame) -> tuple[dict[str, pd.DataFrame], pd.DataFrame]:
-    """({close, high, low, volume, value} adjusted, the step factors)."""
+def adjusted_frames(prices: pd.DataFrame, actions: pd.DataFrame
+                    ) -> tuple[dict[str, pd.DataFrame], pd.DataFrame, pd.DataFrame]:
+    """({close, high, low, volume, value} adjusted, the factors, each action's verdict)."""
     w = wide(prices)
-    f = step_factors(w["close"], w["prev_close"])
+    f, verdicts = action_factors(w["close"], actions)
+    f.index = w["close"].index
     out = {k: adjust(w[k], f) for k in ("close", "high", "low")}
     # Volume moves the other way: a 1:5 split quintuples the share count.
     out["volume"] = w["volume"] / factor_after(f.reindex_like(w["volume"]))
     out["value"] = w["value"]
-    return out, f
+    return out, f, verdicts
 
 
 def events(factors: pd.DataFrame) -> pd.DataFrame:
@@ -124,36 +162,6 @@ def events(factors: pd.DataFrame) -> pd.DataFrame:
     return (s.rename("factor").reset_index()
              .rename(columns={"level_0": "date", "level_1": "symbol"})
              [["symbol", "date", "factor"]])
-
-
-def crosscheck_actions(factors: pd.DataFrame, actions: pd.DataFrame,
-                       tol: float = 0.02) -> dict[str, pd.DataFrame]:
-    """Bc splits/bonuses against NSE's steps.
-
-    mismatched  a parsed factor NSE's step disagrees with by more than tol
-    missing     a parsed split/bonus with no step on its ex-date
-    unparsed    a step with no parsed split/bonus (demergers, special cases)
-    """
-    ev = events(factors)
-    a = actions[actions["kind"].isin(["split", "bonus", "consolidation"])
-                & actions["price_factor"].notna() & actions["ex_date"].notna()].copy()
-    # One date type on both sides: stored ex-dates arrive as dates, strings
-    # or timestamps of another resolution, and a mismatch matches nothing.
-    a["date"] = pd.to_datetime(a["ex_date"]).dt.normalize().astype("datetime64[ns]")
-    ev["date"] = pd.to_datetime(ev["date"]).astype("datetime64[ns]")
-    a = (a.groupby(["symbol", "date"], as_index=False)
-          .agg(kind=("kind", lambda k: "+".join(sorted(set(k)))),
-               bc_factor=("price_factor", "prod")))
-    both = a.merge(ev, on=["symbol", "date"], how="outer", indicator=True)
-    matched = both[both["_merge"] == "both"]
-    bad = matched[(matched["factor"] / matched["bc_factor"] - 1).abs() > tol]
-    in_window = both["date"].between(factors.index.min(), factors.index.max())
-    return {
-        "agreeing": matched.drop(index=bad.index).drop(columns="_merge"),
-        "mismatched": bad.drop(columns="_merge"),
-        "missing": both[(both["_merge"] == "left_only") & in_window].drop(columns="_merge"),
-        "unparsed": both[both["_merge"] == "right_only"].drop(columns="_merge"),
-    }
 
 
 def as_price_frames(adjusted: dict[str, pd.DataFrame], symbols: list[str] | None = None,
@@ -170,7 +178,7 @@ def as_price_frames(adjusted: dict[str, pd.DataFrame], symbols: list[str] | None
         high=adjusted["high"][cols] if intraday else None,
         low=adjusted["low"][cols] if intraday else None,
         volume=adjusted["volume"][cols], source="nse", intraday=intraday,
-        notes=["NSE closes, adjusted with NSE's own previous-close steps"],
+        notes=["NSE closes, adjusted with the Bc file's splits and bonuses, price-confirmed"],
     )
 
 

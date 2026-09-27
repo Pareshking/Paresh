@@ -8,8 +8,8 @@ changes nothing the app shows. The report goes to the job summary and to
 Steps
   1. Read every NSE day held on R2 (nse/prices_daily, nse/corporate_actions,
      the newest nse/market_caps).
-  2. Adjust with NSE's own previous-close steps (src/loaders/nse_adjusted.py);
-     cross-check the steps against the Bc file's parsed splits and bonuses.
+  2. Adjust with the Bc file's splits and bonuses, each applied only where
+     the price moved by its factor (src/loaders/nse_adjusted.py).
   3. Prices: per stock, how far NSE-adjusted / Screener wanders over the last
      400 sessions. Two correctly adjusted series differ by a constant at most.
   4. Rankings, for each system: the published table (Screener, Yahoo for
@@ -113,7 +113,9 @@ def main(argv: list[str] | None = None) -> int:
     from src.loaders.ranking_store import asset_name, read_snapshot
 
     prices, acts, mcap_frame, unreadable = read_nse()
-    adj, factors = na.adjusted_frames(prices)
+    if acts.empty:
+        acts = pd.DataFrame(columns=["symbol", "ex_date", "kind", "price_factor"])
+    adj, factors, verdicts = na.adjusted_frames(prices, acts)
     adj["close"].astype("float32").to_parquet(args.adjusted, compression="zstd")
     ev = na.events(factors)
     out = [f"# NSE adjusted prices against Screener — {date.today()}\n",
@@ -121,7 +123,7 @@ def main(argv: list[str] | None = None) -> int:
            f"- Sessions: **{adj['close'].shape[0]}** ({adj['close'].index.min().date()} → "
            f"{adj['close'].index.max().date()}); stocks: {adj['close'].shape[1]}",
            f"- Unreadable days: {len(unreadable)} {', '.join(unreadable[:10])}",
-           f"- Adjustments NSE made (previous-close steps): **{len(ev)}**\n"]
+           f"- Splits, bonuses and consolidations applied: **{len(ev)}**\n"]
 
     w = na.wide(prices)
     gaps = na.gap_days(w["close"], w["prev_close"])
@@ -138,16 +140,18 @@ def main(argv: list[str] | None = None) -> int:
     else:
         out.append("_none_\n")
 
-    cc = na.crosscheck_actions(factors, acts) if not acts.empty else None
-    out.append("## 2. Steps against the Bc file's splits and bonuses\n")
-    if cc is None:
-        out.append("_no corporate-action files_\n")
-    else:
-        out += [f"- Agreeing within 2%: **{len(cc['agreeing'])}**",
-                f"- **Disagreeing: {len(cc['mismatched'])}**", _md(cc["mismatched"]), "",
-                f"- Parsed split/bonus with no NSE step: {len(cc['missing'])}", _md(cc["missing"]), "",
-                f"- NSE step with no parsed split/bonus (demergers, specials): {len(cc['unparsed'])}",
-                _md(cc["unparsed"].sort_values("date", ascending=False)), ""]
+    w_close = w["close"].copy()
+    w_close.index = factors.index
+    jumps = na.unexplained_jumps(w_close, factors)
+    counts = verdicts["verdict"].value_counts()
+    out += ["## 2. The Bc file's splits and bonuses against the price\n",
+            f"- Applied (the price moved by the factor): **{int(counts.get('applied', 0))}**",
+            f"- **Not applied, the price did not move by it: {int(counts.get('no move', 0))}** "
+            "(a duplicate date, or a factor the market did not see)",
+            _md(verdicts[verdicts["verdict"] == "no move"].drop(columns="verdict")), "",
+            f"- No price on or after the ex-date: {int(counts.get('no price', 0))}", "",
+            f"- Moves beyond 1.8x in a session with no applied action (demergers, "
+            f"specials, genuine moves): {len(jumps)}", _md(jumps), ""]
 
     store = pd.read_parquet(args.screener)
     scr_close = store.xs("Close", axis=1, level=-1)
