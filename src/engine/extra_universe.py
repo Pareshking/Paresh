@@ -22,6 +22,10 @@ import pandas as pd
 from src.core.tickers import is_tradeable_symbol
 
 NAME = "NANO CAP"
+DISPLAY_NAME = "Nano Cap"
+# The Configuration choice (session key cfg_universe).
+UNIVERSE_750 = "750"
+UNIVERSE_NANO = "nano"
 SHORT_FORM = "NANO"
 FLOOR_RUPEES = 2_000 * 10_000_000        # ₹2,000 Cr
 SERIES = ("EQ", "BE")                     # main board; SME (SM/ST) is excluded

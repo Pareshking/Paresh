@@ -27,6 +27,8 @@ from src.core.config import (
     TV_CLASSIFICATION_FILE,
 )
 from src.engine.corporate_actions import load_events
+from src.engine.extra_universe import UNIVERSE_750, UNIVERSE_NANO
+from src.loaders.extra_universe_loader import membership_summary
 from src.loaders.indices_loader import get_sync_metadata, sync_official_nse_indices
 from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.widget_state import forget, remember, resolve
@@ -100,6 +102,33 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
             f"file(s) and {len(attempt_errors)} failed; the figures above are from the "
             "last complete sync.",
         )
+
+    # Owner, 2026-09-27: Nano Cap, ranked as its own index. The browsing pages
+    # follow this choice; Portfolio, Actions and Track Record never do.
+    nano = membership_summary()
+    options = [UNIVERSE_750, UNIVERSE_NANO] if nano else [UNIVERSE_750]
+    labels = {
+        UNIVERSE_750: "Nifty Total Market · 750 — the default, and the model portfolio's universe",
+        UNIVERSE_NANO: (f"Nano Cap · {nano.get('count', '?')} — every stock of ₹2,000 Cr or more "
+                        f"outside the 750 (list of {nano.get('as_of', '?')}, in use from "
+                        f"{nano.get('effective_from', '?')})") if nano else "",
+    }
+    current = st.session_state.get("cfg_universe", UNIVERSE_750)
+    chosen = st.radio(
+        "Ranking universe", options,
+        index=options.index(current) if current in options else 0,
+        format_func=labels.get, key="cfg_universe_radio",
+        help="Each universe is ranked among its own stocks only. Screener, Sectors, RRG, "
+             "Watchlist, Breadth and Backtest follow this; Portfolio, Actions and Track "
+             "Record always use the 750.",
+    )
+    if chosen != current:
+        st.session_state["cfg_universe"] = chosen
+        st.rerun()
+    if chosen == UNIVERSE_NANO:
+        kit.note("Portfolio, Actions and Track Record always use the 750.",
+                 "Choosing Nano Cap changes what you browse, never what the strategy "
+                 "holds or has recorded. The index choice below applies to the 750 only.")
 
     # Which indices feed the ranking. Chosen first, synced second.
     available_indices = list(INDICES_URLS.keys())
@@ -461,7 +490,9 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
     n_events = len(load_events() or [])
     kit.readings([
         kit.Reading("Universe", " + ".join(i.title() for i in indices) or "—",
-                    f"{engine_stocks} stocks ranked"),
+                    f"{engine_stocks} stocks ranked"
+                    + (" · browsing Nano Cap"
+                       if st.session_state.get("cfg_universe") == UNIVERSE_NANO else "")),
         kit.Reading("Score weights", "·".join(f"{w * 100:.0f}" for w in norm),
                     "1M·3M·6M·9M·12M" + (", the default" if is_default else ", your own")),
         kit.Reading("Portfolio limits", f"{_risk('cfg_stc')}% · {_risk('cfg_sc')}%",
