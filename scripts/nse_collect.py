@@ -49,7 +49,7 @@ DATASETS = {
 SOURCE = "nse_pr_bundle"
 PIPELINE = "nse-ledger-v1"
 DELAY_S = 2.5
-HISTORY_START = date(2016, 1, 1)
+HISTORY_START = date(2023, 10, 1)
 
 
 # ── What R2 already holds ────────────────────────────────────────────────────

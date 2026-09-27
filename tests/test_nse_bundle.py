@@ -156,7 +156,10 @@ def test_collect_publishes_each_table_and_stops_at_a_refusal(tmp_path):
 def test_backfill_takes_missing_sessions_newest_first():
     cal = [date(2016, 1, 4), date(2020, 5, 5), date(2026, 9, 24), date(2026, 9, 25)]
     have = {date(2026, 9, 25)}
-    assert nc.backfill_dates(cal, have, 2) == [date(2026, 9, 24), date(2020, 5, 5)]
+    assert nc.backfill_dates(cal, have, 2, start=date(2016, 1, 1)) == [
+        date(2026, 9, 24), date(2020, 5, 5)]
+    # The default reaches back three years only (owner, 2026-09-27).
+    assert nc.backfill_dates(cal, have, 9) == [date(2026, 9, 24)]
     assert nc.backfill_dates(cal, have, 9, start=date(2017, 1, 1)) == [
         date(2026, 9, 24), date(2020, 5, 5)]
 

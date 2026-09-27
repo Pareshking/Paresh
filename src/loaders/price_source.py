@@ -214,3 +214,75 @@ def display_name(source: str | None) -> str:
 
 def preferred() -> str:
     return RANKING_PRICE_SOURCE or "yahoo"
+
+
+# ── Backup source: Screener first, Yahoo for what it lacks ───────────────────
+
+# Owner, 2026-09-27: "Screener, NSE, and last is Yahoo". NSE takes the middle
+# place once its corporate-action layer exists; until then Yahoo fills.
+BACKUP_SESSION_COVERAGE = 0.98
+
+
+FILL_WINDOW_DAYS = 400    # the ranking's 12-month window, with room to spare
+
+
+def fill_from_backup(primary: pd.DataFrame, backup: pd.DataFrame | None,
+                     window_days: int = FILL_WINDOW_DAYS
+                     ) -> tuple[pd.DataFrame, int, list]:
+    """Primary closes with their gaps filled from the backup's daily MOVES.
+
+    A missing primary price is the last primary price carried forward by the
+    backup's one-day return, never the backup's own level: Yahoo adjusts for
+    dividends, so its level drifts a few percent from Screener's while its
+    daily move matches. Only gaps after a stock's first primary price are
+    filled -- before it, there is nothing to chain from.
+
+    A session newer than the primary's last is added only when the backup has
+    it for at least BACKUP_SESSION_COVERAGE of the stocks: a half-published
+    day is not a session to rank on.
+
+    Only the last `window_days` are filled: the ranking reads no further back,
+    and the nightly precompute and the app hold slightly different Yahoo
+    copies of older history, which would make their fingerprints disagree.
+
+    Returns (filled frame, cells filled, sessions added).
+    """
+    if backup is None or backup.empty or primary is None or primary.empty:
+        return primary, 0, []
+    backup = backup.reindex(columns=primary.columns)
+    last = primary.index.max()
+    newer = [d for d in backup.index if d > last
+             and backup.loc[d].notna().mean() >= BACKUP_SESSION_COVERAGE]
+    index = primary.index.union(pd.DatetimeIndex(newer))
+    frame = primary.reindex(index)
+    moves = backup.reindex(index.union(backup.index)).sort_index()
+    moves = (moves / moves.shift(1)).reindex(index)
+    before = int(frame.notna().sum().sum())
+    values = frame.to_numpy(copy=True)
+    step = moves.to_numpy()
+    first = int(index.searchsorted(index.max() - pd.Timedelta(days=window_days)))
+    for i in range(max(first, 1), len(values)):
+        gap = pd.isna(values[i]) & ~pd.isna(values[i - 1]) & ~pd.isna(step[i])
+        values[i][gap] = values[i - 1][gap] * step[i][gap]
+    filled = pd.DataFrame(values, index=index, columns=primary.columns)
+    return filled, int(filled.notna().sum().sum()) - before, newer
+
+
+def keep_and_fill(chosen: PriceFrames, symbols, backup_close: pd.DataFrame | None
+                  ) -> PriceFrames:
+    """The chosen frames cut to `symbols`, gaps filled from the backup.
+
+    The app and the nightly precompute both call this, so they rank the same
+    frame and the published ranking's contract still matches.
+    """
+    keep = [c for c in chosen.close.columns if c in set(symbols)]
+    close, n_cells, added = fill_from_backup(chosen.close[keep], backup_close)
+    chosen.adj_close = chosen.close = close
+    chosen.volume = chosen.volume.reindex(index=close.index, columns=keep)
+    if n_cells or added:
+        metrics.note("price_backup_cells", n_cells)
+        metrics.note("price_backup_sessions", ",".join(str(d.date()) for d in added))
+        chosen.notes = list(chosen.notes) + [
+            f"{n_cells} missing Screener prices filled from Yahoo's daily moves"
+            + (f"; sessions from Yahoo: {', '.join(str(d.date()) for d in added)}" if added else "")]
+    return chosen

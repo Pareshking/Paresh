@@ -514,9 +514,8 @@ def _resolve_price_source(price_hash, sym_key, adj_close, close_p, high_p, low_p
         if r2_streamlit.enabled():
             raise RuntimeError("Configured immutable Screener dataset has no requested symbols")
         return fallback
-    chosen.adj_close = chosen.close = chosen.close[keep]
-    chosen.volume = chosen.volume.reindex(columns=keep)
-    return chosen
+    # Screener first, Yahoo for what it lacks (owner, 2026-09-27).
+    return _ps.keep_and_fill(chosen, symbols, adj_close)
 
 
 @st.cache_data(show_spinner=False, ttl=86400)
