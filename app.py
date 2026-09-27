@@ -43,7 +43,9 @@ from src.engine import pipeline
 from src.engine.corporate_actions import adjust_ohlc, load_events
 from src.loaders.indices_loader import fetch_indices_data
 from src.loaders import extra_universe_loader as extra_loader
-from src.engine.extra_universe import UNIVERSE_750, UNIVERSE_NANO
+from src.engine.extra_universe import (
+    SYSTEM_750, SYSTEM_COMBINED, SYSTEM_INCEPTION, SYSTEM_NAMES, SYSTEM_NANO, SYSTEMS,
+)
 from src.core.universe_reconciliation import reconcile_symbols
 # R2-backed production readers are an explicit transport boundary; keep this import adjacent to the loader.
 from r2.consumers import r2_streamlit
@@ -589,15 +591,35 @@ def _nano_mcaps(symbols: list[str]) -> pd.Series:
     return caps.reindex(symbols).dropna()
 
 
-def load_all_data(indices: list[str], universe: str = UNIVERSE_750):
-    """The ranking and prices for one universe.
+def _system_universe(system: str, indices: list[str]) -> pd.DataFrame:
+    """The stocks a system ranks: the 750, Nano Cap, or both as one list."""
+    if system == SYSTEM_NANO:
+        return extra_loader.fetch_members()
+    base = fetch_indices_data(indices)
+    if system != SYSTEM_COMBINED:
+        return base
+    extra = extra_loader.fetch_members()
+    extra = extra[~extra["Symbol"].isin(set(base["Symbol"]))]
+    return pd.concat([base, extra], ignore_index=True)
 
-    UNIVERSE_750 (the default) is the app as it always was. UNIVERSE_NANO is
-    the extra universe, ranked among its own stocks, with its own member list,
-    Yahoo file and market caps, and no precomputed table (the nightly job ranks
-    only the 750). Its prices never enter the 750's cache.
+
+def _join_prices(a: pd.DataFrame, b: pd.DataFrame) -> pd.DataFrame:
+    frames = [f for f in (a, b) if f is not None and not f.empty]
+    if not frames:
+        return pd.DataFrame()
+    return frames[0] if len(frames) == 1 else pd.concat(frames, axis=1).sort_index()
+
+
+def load_all_data(indices: list[str], system: str = SYSTEM_750):
+    """The ranking and prices for one system.
+
+    SYSTEM_750 (the default) is the app as it always was, to the byte: same
+    caches, same keys, same precomputed table. Nano Cap brings its own member
+    list, Yahoo file and month-end market caps; Combined is both, ranked as
+    one list. The 750's Yahoo cache only ever holds the 750: extra stocks come
+    from their own file, so they cannot move the 750's coverage judgements.
     """
-    nano = universe == UNIVERSE_NANO
+    nano = system == SYSTEM_NANO
     force = st.session_state.pop("force_refresh", False)
     if force:
         st.cache_data.clear()
@@ -611,28 +633,39 @@ def load_all_data(indices: list[str], universe: str = UNIVERSE_750):
     })
 
     with metrics.stage("universe"):
-        idx_info = extra_loader.fetch_members() if nano else fetch_indices_data(indices)
+        idx_info = _system_universe(system, indices)
     if idx_info.empty:
         return None
 
     symbols = idx_info["Symbol"].unique().tolist()
     metrics.note("universe_symbols", len(symbols))
     sym_key = _symbols_hash(symbols)
+    # The part of the list the 750's caches serve, and the part they do not.
+    tags = idx_info.set_index("Symbol")["Indices"].astype(str) if "Indices" in idx_info else pd.Series(dtype=str)
+    extra_syms = [s for s in symbols if nano or tags.get(s, "") == extra_loader.xu.SHORT_FORM]
+    core_syms = [s for s in symbols if s not in set(extra_syms)]
+    core_key = sym_key if not extra_syms else _symbols_hash(core_syms)
+    extra_key = _symbols_hash(extra_syms)
+
+    def _mcaps_for_system() -> pd.Series:
+        caps = load_mcaps_cached(core_key, core_syms) if core_syms else pd.Series(dtype=float)
+        return pd.concat([caps, _nano_mcaps(extra_syms)]) if extra_syms else caps
 
     # mcaps + regime have no dependency on price_history — submit them to
     # background threads so the three fetches overlap on cold start.
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as _pool:
-        _fut_mcaps = (_pool.submit(_nano_mcaps, symbols) if nano
-                      else _pool.submit(load_mcaps_cached, sym_key, symbols))
+        _fut_mcaps = _pool.submit(_mcaps_for_system)
         _fut_regime = _pool.submit(get_market_regime)
         # Nothing about the download depends on the prices below, only the
         # CHECK does -- so it overlaps the price work instead of following it.
-        _fut_ranking = (_pool.submit(lambda: (None, None)) if nano
-                        else _pool.submit(_fetch_ranking_snapshot))
+        _fut_ranking = (_pool.submit(_fetch_ranking_snapshot) if system == SYSTEM_750
+                        else _pool.submit(lambda: (None, None)))
 
         with metrics.stage("price_history"):
-            raw_prices = (extra_loader.load_prices(sym_key, symbols) if nano
-                          else load_prices_cached(sym_key, symbols, period="2y"))
+            raw_prices = _join_prices(
+                load_prices_cached(core_key, core_syms, period="2y") if core_syms else None,
+                extra_loader.load_prices(extra_key, extra_syms) if extra_syms else None,
+            )
             if not r2_streamlit.enabled():
                 metrics.note("deep_price_provider", "yahoo")
                 logger.info(
@@ -842,7 +875,21 @@ def load_all_data(indices: list[str], universe: str = UNIVERSE_750):
 # ── Load Market Data ─────────────────────────────────────────────────────────
 with st.spinner("Loading market data…"):
     with metrics.stage("data_pipeline_total"):
-        data = load_all_data(selected_indices)
+        system = st.session_state.get("cfg_system", SYSTEM_750)
+        if system not in SYSTEMS:
+            system = SYSTEM_750
+        data = None
+        try:
+            data = load_all_data(selected_indices, system)
+        except Exception as exc:
+            if system == SYSTEM_750:
+                raise
+            logger.warning("%s failed to load (%s).", system, type(exc).__name__)
+        if system != SYSTEM_750 and (not data or data["rank_df"].empty):
+            st.warning(f"{SYSTEM_NAMES[system]} could not be loaded just now, so the app shows "
+                       "Nifty 750.")
+            system = SYSTEM_750
+            data = load_all_data(selected_indices, system)
 
 def _emit_startup_metrics(outcome: str) -> None:
     """Publish this process's cold-start telemetry as a hidden, inert element.
@@ -931,65 +978,37 @@ def _with_tv(frame: pd.DataFrame) -> pd.DataFrame:
 
 rank_df = _with_tv(rank_df)
 
-# ── The browsing universe ────────────────────────────────────────────────────
-# Owner, 2026-09-27: Nano Cap is ranked as its own index, selectable in
-# Configuration. Everything above is the 750 and stays the 750: the model
-# portfolio, Actions and the Track Record read only it. When Nano Cap is
-# chosen, the browsing pages (Screener and the stock page, Sectors, RRG,
-# Watchlist, Breadth, Backtest) read a second, separately ranked dataset.
-universe = st.session_state.get("cfg_universe", UNIVERSE_750)
-browse = data
-if universe == UNIVERSE_NANO:
-    # Loaded after the 750, so restore the 750's freshness facts afterwards:
-    # the ribbon and the QA probe describe the strategy's data, not this.
-    _facts = dict(metrics.snapshot().get("facts", {}))
-    try:
-        with st.spinner("Loading Nano Cap…"):
-            browse = load_all_data([], universe=UNIVERSE_NANO) or None
-    except Exception as exc:
-        logger.warning("Nano Cap failed to load (%s).", type(exc).__name__)
-        browse = None
-    for _k, _v in _facts.items():
-        metrics.note(_k, _v)
-    if not browse or browse["rank_df"].empty:
-        st.warning("Nano Cap could not be loaded just now, so these pages show the 750.")
-        universe, browse = UNIVERSE_750, data
-    else:
-        browse = dict(browse)
-        browse["rank_df"] = _with_tv(browse["rank_df"])
-        # TradingView covers few of these; fall back to the list's industry.
-        _blank = browse["rank_df"]["TV_Sector"].fillna("") == ""
-        browse["rank_df"].loc[_blank, "TV_Sector"] = browse["rank_df"].loc[_blank, "Industry"]
-
-b_rank = browse["rank_df"]
-b_adj = browse["adj_close"]
-b_deep = browse.get("deep_adj_close")
-if b_deep is None or b_deep.empty:
-    b_deep = b_adj
-on_nano = universe == UNIVERSE_NANO
+# ── The system ───────────────────────────────────────────────────────────────
+# Owner, 2026-09-27: three systems in one app, chosen in Configuration, and
+# every page follows the choice. The data above is the chosen system's.
+if system != SYSTEM_750:
+    # TradingView covers few Nano Cap stocks; fall back to the list's industry.
+    _blank = rank_df["TV_Sector"].fillna("") == ""
+    rank_df.loc[_blank, "TV_Sector"] = rank_df.loc[_blank, "Industry"]
+system_name = SYSTEM_NAMES[system]
 
 
-def _nano_badge() -> None:
-    """The Screener's universe line while Nano Cap is chosen."""
-    if not on_nano:
+def _system_line() -> None:
+    """The Screener's first line for Nano Cap and Combined: what is ranked."""
+    if system == SYSTEM_750:
         return
-    members = extra_loader.fetch_members()
-    unranked = sorted(set(members["Symbol"]) - set(b_rank["Symbol"]))
+    members = set(data["idx_info"]["Symbol"]) if data.get("idx_info") is not None else set()
+    unranked = sorted(members - set(rank_df["Symbol"]))
     kit.note(
-        f"Nano Cap · {len(b_rank)} of {len(members)} stocks ranked among themselves.",
-        ((f"{len(unranked)} too new to rank (under the minimum price history): "
-          + ", ".join(unranked[:12]) + (" and more. " if len(unranked) > 12 else ". "))
-         if unranked else "")
-        + "Portfolio, Actions and Track Record stay on the 750.",
+        f"{system_name} · {len(rank_df)} of {len(members)} stocks ranked"
+        + (" among themselves." if system == SYSTEM_NANO else " as one list."),
+        (f"{len(unranked)} too new to rank (under three months of prices): "
+         + ", ".join(unranked[:12]) + (" and more." if len(unranked) > 12 else "."))
+        if unranked else "",
     )
 
 
-def _stays_on_750() -> None:
-    """The note on the pages that never follow the universe choice."""
-    if on_nano:
-        kit.note("You are browsing Nano Cap.",
-                 "This page, Actions and the Track Record stay on the 750; the model "
-                 "portfolio never holds Nano Cap stocks. Change it in Configuration.")
+def _record_start() -> str:
+    """For Nano Cap and Combined: when their book and record begin."""
+    start = pd.Period(SYSTEM_INCEPTION[system], freq="M")
+    return (f"The {system_name} model book forms at the close of "
+            f"{(start - 1).strftime('%B %Y')}'s last session and its record starts "
+            f"with {start.strftime('%B %Y')}.")
 
 
 # ── Navigation ───────────────────────────────────────────────────────────────
@@ -1000,24 +1019,17 @@ def _stays_on_750() -> None:
 
 
 def _page_screener() -> None:
-    stock = str(st.query_params.get("stock") or "").strip().upper()
-    src = browse
-    # A stock page opened from Actions or Portfolio names a 750 stock; show
-    # it from the 750's data even while Nano Cap is being browsed.
-    if stock and on_nano and stock not in set(b_rank["Symbol"]) and stock in set(rank_df["Symbol"]):
-        src = dict(data, rank_df=rank_df)
-    if not stock:
-        _nano_badge()
+    if not st.query_params.get("stock"):
+        _system_line()
     render_ranking_view(
-        src["rank_df"], src["adj_close"], src["high_prices"], src["low_prices"],
-        src["volume_data"],
-        open_prices=src.get("open_prices"),
+        rank_df, adj_close, high_prices, low_prices, volume_data,
+        open_prices=data.get("open_prices"),
         regime=regime_data,
     )
 
 
 def _page_sectors() -> None:
-    render_sector_view(b_rank, b_adj)
+    render_sector_view(rank_df, adj_close)
 
 
 def _page_rrg() -> None:
@@ -1025,11 +1037,10 @@ def _page_rrg() -> None:
     # argument and ignored it -- so on the common cold start, where the
     # precomputed ranking is accepted and `calc` is still None, opening RRG
     # built the whole engine to satisfy an unused parameter.
-    render_rrg_view(b_rank, b_adj)
+    render_rrg_view(rank_df, adj_close)
 
 
 def _page_portfolio() -> None:
-    _stays_on_750()
     render_portfolio_view(
         calc=get_calc(),
         rank_df=rank_df,
@@ -1041,19 +1052,28 @@ def _page_portfolio() -> None:
 
 
 def _page_watchlist() -> None:
-    render_watchlist_view(b_rank, b_adj)
+    render_watchlist_view(rank_df, adj_close)
 
 
 def _page_breadth() -> None:
-    render_breadth_view(b_rank, b_adj)
+    render_breadth_view(rank_df, adj_close)
 
 
 def _page_backtest() -> None:
+    if system != SYSTEM_750:
+        # Owner: judged against today's list, a longer Nano Cap backtest would
+        # be wrong; it starts with the first month-end list and grows monthly.
+        kit.page_head("Backtest", f"{system_name} is replayed from September 2026, the "
+                      "first month with a point-in-time Nano Cap list, and gains a month at "
+                      "every month-end.")
+        kit.note("Building.", "The first month completes at the 30 Sep 2026 close. "
+                 + _record_start())
+        return
     render_backtest_view(
-        rank_df=b_rank,
+        rank_df=rank_df,
         # Depth, not freshness: a 12-month formation window before a 6-month
         # reported period needs ~18 months of continuous daily data.
-        adj_close=b_deep,
+        adj_close=deep_adj_close,
         stock_cap=stock_cap,
         sector_cap=sector_cap,
         weights=weights,
@@ -1063,9 +1083,9 @@ def _page_backtest() -> None:
 def _page_actions() -> None:
     # The model book comes from the same pinned run as the Track Record's
     # month-to-date (record_run), so the two pages describe one portfolio.
-    _stays_on_750()
     render_actions_view(
         rank_df, deep_adj_close, fetch_benchmark_history(period="5y"),
+        model_book_note=None if system == SYSTEM_750 else _record_start(),
     )
 
 
@@ -1073,7 +1093,10 @@ def _page_track_record() -> None:
     # The frozen record, plus a live MTD struck under the record's own pinned
     # configuration. fetch_benchmark_history is cached, so this is the same
     # round trip the Backtest page already made.
-    _stays_on_750()
+    if system != SYSTEM_750:
+        kit.page_head("Track record", f"{system_name}'s live record, frozen month by month.")
+        kit.note("Not started yet.", _record_start())
+        return
     render_track_record_view(
         adj_close=deep_adj_close,
         benchmark_close=fetch_benchmark_history(period="5y"),
@@ -1147,7 +1170,7 @@ render_header_kpi_bar(
 # every page keeps the one-line market summary above.
 if _nav is _PAGES[0] and not st.query_params.get("stock"):
     render_signal_alerts(compute_signals(
-        rank_df=b_rank,
+        rank_df=rank_df,
         regime_status=regime_data.status,
         dma_dist=regime_data.distance_pct,
         pct_above_ema=pct_above_ema,

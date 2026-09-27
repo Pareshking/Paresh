@@ -203,7 +203,11 @@ def buys_html(rank_df: pd.DataFrame, buys: list[str], qrank: pd.Series) -> str:
 
 
 def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
-                        benchmark_close: pd.Series | None) -> None:
+                        benchmark_close: pd.Series | None,
+                        model_book_note: str | None = None) -> None:
+    """model_book_note: set for a system whose model book has not formed yet
+    (Nano Cap and Combined until their first rebalance); the page then offers
+    your own holdings only and says when the book begins."""
     holdings_store.sync()
     cfg = TRACK_RECORD_CONFIG
     rules = Rules(buffer_n=int(cfg["buffer_n"]), high_pct=float(cfg["high_pct"]))
@@ -219,8 +223,11 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         actions=True,
     )
     with head:
-        source = st.segmented_control("Holdings", SOURCES, default=SOURCES[0], key="xw_source",
-                                      label_visibility="collapsed") or SOURCES[0]
+        sources = SOURCES if model_book_note is None else ["My holdings"]
+        source = st.segmented_control("Holdings", sources, default=sources[0], key="xw_source",
+                                      label_visibility="collapsed") or sources[0]
+    if model_book_note is not None:
+        kit.note("No model book yet.", model_book_note)
 
     book = None
     if source == "My holdings":
