@@ -66,6 +66,9 @@ OUT = Path(os.getenv("UMIYA_QA_OUT", "artifacts/production_qa"))
 # with the state the app was actually in, never silently retried at a larger N.
 READY_BUDGET_S = int(os.getenv("UMIYA_READY_BUDGET_S", "420"))
 POLL_S = 10
+# How long the previous page's menu may stay on screen while the new page's
+# run finishes before it counts as stuck open (audit_configuration).
+MENU_CLOSE_WAIT_MS = 10_000
 METRICS_ID = "umiya-startup-metrics"
 # Commit this run intends to test. The workflow passes github.sha; the app
 # publishes the revision it is actually serving. Without this the probe can
@@ -758,9 +761,21 @@ def audit_configuration(page, frame) -> dict:
     out: dict = {"panel_reached": False, "nav_trace": []}
     # The page was just chosen from the ☰ menu. A menu still open now is one
     # the reader has to dismiss by hand, covering part of the page.
+    #
+    # Judged after the page's run has had time to finish: Streamlit keeps the
+    # previous page's elements, the old menu included, on screen until the new
+    # run completes, so a check the moment the Configuration panel appears
+    # caught that old menu mid-run (runs on 9e64c72 and 7a4de54, with no
+    # header change behind either). A menu the reader must close by hand is
+    # one still open once the run is over; that is what fails.
     try:
         body = frame.locator('[data-testid="stPopoverBody"]').first
+        open_ms = 0
+        while open_ms <= MENU_CLOSE_WAIT_MS and body.count() and body.is_visible():
+            page.wait_for_timeout(500)
+            open_ms += 500
         out["menu_open_after_nav"] = bool(body.count() and body.is_visible())
+        out["menu_closed_after_ms"] = open_ms
     except Exception:
         out["menu_open_after_nav"] = None
 
