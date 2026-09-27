@@ -158,6 +158,21 @@ jobs:
       - name: Refresh the F&O symbol list
         run: python scripts/sync_fo_symbols.py || echo "::warning::F&O list refresh failed; using the committed list."
 
+      # The extra universe (every stock of ₹2,000 Cr or more outside the 750,
+      # src/engine/extra_universe.py): rebuilt from NSE's market-cap file
+      # only when a new month-end session is in R2, else a no-op. Written to
+      # data/ and committed with the rest. Non-blocking: a failure keeps the
+      # committed list, and nothing ranks off it by default.
+      - name: Refresh the extra universe at month-end
+        env:
+          PYTHONPATH: .
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: python scripts/build_extra_universe.py || echo "::warning::Extra universe refresh failed; keeping the committed list."
+
       - name: Run Automated Daily Market Sync
         env:
           PYTHONPATH: .
