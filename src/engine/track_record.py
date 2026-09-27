@@ -75,16 +75,28 @@ TRACK_RECORD_CONFIG: dict[str, Any] = {
 
 # ── Ledger I/O ───────────────────────────────────────────────────────────────
 
-def empty_ledger() -> dict[str, Any]:
+def ledger_inception(ledger: dict[str, Any] | None) -> pd.Period:
+    """The first month this ledger may hold: its own, else the 750's INCEPTION.
+
+    Nano Cap and Combined keep their own ledgers from October 2026 (owner,
+    2026-09-27); reading the start from the ledger keeps one set of functions
+    for all three records.
+    """
+    raw = (ledger or {}).get("inception")
+    return pd.Period(raw, freq="M") if raw else INCEPTION
+
+
+def empty_ledger(inception: pd.Period = INCEPTION) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
-        "inception": str(INCEPTION),
+        "inception": str(inception),
         "benchmark": "^CRSLDX",
         "months": {},
     }
 
 
-def load_ledger(path: Path | str = LEDGER_PATH) -> dict[str, Any]:
+def load_ledger(path: Path | str = LEDGER_PATH,
+                inception: pd.Period | None = None) -> dict[str, Any]:
     """Read the ledger, or an empty one. A corrupt file is never silently reset.
 
     Returning a fresh ledger on a JSON error would let one bad write erase the
@@ -94,7 +106,7 @@ def load_ledger(path: Path | str = LEDGER_PATH) -> dict[str, Any]:
     p = Path(path)
     if not p.exists():
         logger.warning("No track-record ledger at %s; reporting an empty record.", p)
-        return empty_ledger()
+        return empty_ledger(inception or INCEPTION)
     with p.open("r", encoding="utf-8") as fh:
         ledger = json.load(fh)
     if not isinstance(ledger, dict) or "months" not in ledger:
@@ -182,12 +194,13 @@ def finalize_months(
     bench = calendar_month_returns(benchmark_curve)
 
     current_month = pd.Period(pd.Timestamp(as_of), freq="M")
+    start = ledger_inception(ledger)
     months = dict(ledger.get("months", {}))
     added: list[str] = []
     skipped: list[str] = []
 
     for period in strat.index:
-        if period < INCEPTION:
+        if period < start:
             continue  # pre-inception is not this strategy's record
         if period >= current_month:
             continue  # the month in progress is not closed; MTD covers it
@@ -238,7 +251,7 @@ def finalize_months(
     out = dict(ledger)
     out["months"] = months
     out.setdefault("schema_version", SCHEMA_VERSION)
-    out.setdefault("inception", str(INCEPTION))
+    out.setdefault("inception", str(start))
     return out, added, skipped
 
 
@@ -297,9 +310,10 @@ def build_grid(
     labels it as partial.
     """
     series = _series_from(ledger, field)
+    start = ledger_inception(ledger)
     if mtd is not None:
         period, value = mtd
-        if value is not None and np.isfinite(value) and period >= INCEPTION:
+        if value is not None and np.isfinite(value) and period >= start:
             series.loc[period] = float(value)
             series = series.sort_index()
 
@@ -307,7 +321,7 @@ def build_grid(
         return pd.DataFrame()
 
     if years is None:
-        years = range(INCEPTION.year, int(series.index.max().year) + 1)
+        years = range(start.year, int(series.index.max().year) + 1)
 
     def _get(y: int, m: int) -> float | None:
         p = pd.Period(year=y, month=m, freq="M")

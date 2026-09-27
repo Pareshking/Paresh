@@ -11,11 +11,11 @@ before then. For the model book or for the reader's own holdings.
 from __future__ import annotations
 
 import html
-from urllib.parse import quote
 
 import pandas as pd
 import streamlit as st
 
+from src.ui.system_param import stock_href
 from src.core.market_time import ist_now
 from src.engine.exit_watch import (
     STATUS_LABEL,
@@ -76,7 +76,7 @@ def rows_html(a: pd.DataFrame, since: dict[str, float], rules: Rules) -> str:
     for _, r in a.iterrows():
         sym = str(r["Symbol"])
         status = r["status"]
-        link = f'<a href="?stock={quote(sym, safe="")}" target="_self">{html.escape(sym)}</a>'
+        link = f'<a href="{stock_href(sym)}" target="_self">{html.escape(sym)}</a>'
         if status == UNKNOWN:
             out.append(
                 f'<div class="xw-row unknown"><span class="xw-s">{link}<small>not ranked</small></span>'
@@ -170,7 +170,7 @@ def sells_html(a: pd.DataFrame, sells: list[str], since: dict[str, float], entri
         ret_txt = "—" if ret is None or pd.isna(ret) else f"{'+' if ret >= 0 else '−'}{abs(ret) * 100:.1f}%"
         cls = "" if ret is None or pd.isna(ret) else ("up" if ret >= 0 else "down")
         rows.append(
-            f'<div class="ac-row sell"><span class="xw-s"><a href="?stock={quote(s, safe="")}" target="_self">'
+            f'<div class="ac-row sell"><span class="xw-s"><a href="{stock_href(s)}" target="_self">'
             f'{html.escape(s)}</a><small>{html.escape(str(by.loc[s, "Industry"]) if s in by.index else "")}</small></span>'
             f'<span class="ac-why"><b>Sell</b> · {html.escape(why)}</span>'
             f'<span class="ac-when">{html.escape(entries(s))}</span>'
@@ -193,7 +193,7 @@ def buys_html(rank_df: pd.DataFrame, buys: list[str], qrank: pd.Series) -> str:
         hi = pd.to_numeric(r.get("% High"), errors="coerce")
         hi_txt = "—" if pd.isna(hi) else ("At high" if hi > -0.05 else f"−{abs(hi):.1f}%")
         rows.append(
-            f'<div class="ac-row buy"><span class="xw-s"><a href="?stock={quote(s, safe="")}" target="_self">'
+            f'<div class="ac-row buy"><span class="xw-s"><a href="{stock_href(s)}" target="_self">'
             f'{html.escape(s)}</a><small>{html.escape(str(r.get("Industry") or ""))}</small></span>'
             f'<span class="n">#{int(qrank.get(s, 0))}</span>'
             f'<span class="ac-why"><b class="up">Buy</b> · highest-ranked qualified stock not already held</span>'
@@ -204,7 +204,8 @@ def buys_html(rank_df: pd.DataFrame, buys: list[str], qrank: pd.Series) -> str:
 
 def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                         benchmark_close: pd.Series | None,
-                        model_book_note: str | None = None) -> None:
+                        model_book_note: str | None = None,
+                        system: str = "750") -> None:
     """model_book_note: set for a system whose model book has not formed yet
     (Nano Cap and Combined until their first rebalance); the page then offers
     your own holdings only and says when the book begins."""
@@ -237,7 +238,7 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         top_n = len(symbols)
     else:
         with st.spinner("Loading the model book…"):
-            res = record_run(adj_close, benchmark_close)
+            res = record_run(adj_close, benchmark_close, system)
         book = res.get("live_book", pd.DataFrame()) if res else pd.DataFrame()
         symbols = [] if book is None or book.empty else book["Symbol"].tolist()
         since = ({} if not symbols else
@@ -300,7 +301,7 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
             if plan.buys:
                 st.html(buys_html(rank_df, plan.buys, qrank))
                 chips = "".join(
-                    f'<a class="t50-chip" href="?stock={quote(s, safe="")}" target="_self">'
+                    f'<a class="t50-chip" href="{stock_href(s)}" target="_self">'
                     f'{html.escape(s)} <span>#{int(qrank.get(s, 0))}</span></a>'
                     for s in plan.next_in_line)
                 if chips:

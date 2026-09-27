@@ -8,6 +8,11 @@ is the entire contract -- see src/engine/track_record.py for why.
     python scripts/update_track_record.py              # write closed months
     python scripts/update_track_record.py --dry-run    # report, write nothing
     python scripts/update_track_record.py --force      # rewrite history (loud)
+    python scripts/update_track_record.py --system nano --extra-prices prices_extra.parquet
+
+--system picks the record: 750 (default, data/track_record.json), nano or
+combined (their own ledgers, from October 2026). Each is scored on its own
+point-in-time membership (src/engine/systems.py).
 """
 
 from __future__ import annotations
@@ -23,8 +28,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.core.config import BENCHMARK_SYMBOL  # noqa: E402
 from src.engine.backtester import run_backtest  # noqa: E402
 from src.engine.track_record import (  # noqa: E402
-    INCEPTION,
-    LEDGER_PATH,
     TRACK_RECORD_CONFIG,
     config_fingerprint,
     drift_report,
@@ -35,7 +38,10 @@ from src.engine.track_record import (  # noqa: E402
     summary_stats,
 )
 from src.engine.corporate_actions import load_events  # noqa: E402
-from src.engine.membership import HISTORY_PATH, describe, load_history  # noqa: E402
+from src.engine import systems  # noqa: E402
+from src.engine.extra_universe import SYSTEM_750, SYSTEM_NANO, SYSTEMS  # noqa: E402
+from src.engine.membership import describe  # noqa: E402
+from src.loaders import extra_universe_loader as xl  # noqa: E402
 from src.loaders.indices_loader import fetch_indices_data  # noqa: E402
 from src.loaders.price_loader import (  # noqa: E402
     extract_ohlcv,
@@ -46,7 +52,11 @@ from src.loaders.price_loader import (  # noqa: E402
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--ledger", default=str(LEDGER_PATH))
+    ap.add_argument("--system", default=SYSTEM_750, choices=list(SYSTEMS))
+    ap.add_argument("--ledger", default=None,
+                    help="defaults to the system's own ledger")
+    ap.add_argument("--extra-prices", default=None,
+                    help="prices_extra.parquet for Nano Cap stocks (else downloaded)")
     ap.add_argument("--indices", nargs="+", default=["NIFTY TOTAL MARKET"])
     ap.add_argument(
         "--period",
@@ -63,15 +73,34 @@ def main() -> int:
     )
     args = ap.parse_args()
 
-    print(f"→ universe: {args.indices}")
-    idx_info = fetch_indices_data(args.indices)
-    if idx_info.empty:
+    system = args.system
+    ledger_file = args.ledger or str(systems.ledger_path(system))
+    start = systems.inception(system)
+    print(f"→ system: {system} · ledger {ledger_file} · inception {start}")
+
+    core: list[str] = []
+    if system != SYSTEM_NANO:
+        print(f"→ universe: {args.indices}")
+        idx_info = fetch_indices_data(args.indices)
+        core = idx_info["Symbol"].unique().tolist() if not idx_info.empty else []
+    extra: list[str] = []
+    if system != SYSTEM_750:
+        extra = [s for s in xl.members()["Symbol"] if s not in set(core)]
+    symbols = core + extra
+    if not symbols:
         print("✗ universe is empty; refusing to write a record from no data")
         return 1
-    symbols = idx_info["Symbol"].unique().tolist()
-    print(f"  {len(symbols)} symbols")
+    print(f"  {len(symbols)} symbols ({len(core)} in the 750, {len(extra)} Nano Cap)")
 
-    raw = fetch_price_history(symbols, period=args.period)
+    parts = []
+    if core:
+        parts.append(fetch_price_history(core, period=args.period))
+    if extra:
+        ep = (pd.read_parquet(args.extra_prices) if args.extra_prices and Path(args.extra_prices).exists()
+              else xl.download(extra))
+        parts.append(ep.loc[:, [c for c in ep.columns if c[0] in set(extra)]])
+    parts = [p for p in parts if p is not None and not p.empty]
+    raw = pd.concat(parts, axis=1).sort_index() if parts else pd.DataFrame()
     if raw.empty:
         print("✗ no price history")
         return 1
@@ -87,36 +116,30 @@ def main() -> int:
         return 1
 
     as_of = pd.Timestamp(adj_close.index[-1])
-    months = months_to_cover(as_of)
+    months = months_to_cover(as_of, start)
     print(f"→ data as of {as_of:%d %b %Y}; covering {months} completed months "
-          f"back to {INCEPTION}")
+          f"back to {start}")
     if months <= 0:
         print("  nothing has closed since inception yet")
         return 0
 
     # Point-in-time index membership, where we have it. Without this the
     # backtest scores every month against TODAY's constituent list.
-    membership = None
-    try:
-        membership = load_history(HISTORY_PATH)
-        if membership.get("baseline"):
-            info = describe(membership)
-            print(f"→ membership history: {info['first']} → {info['last']}, "
-                  f"{info['current_size']} constituents, "
-                  f"{info['total_churn']} additions/removals recorded")
-        else:
-            membership = None
-            print("→ no membership history; months will use the current universe")
-    except (ValueError, OSError) as exc:
-        print(f"  ! membership history unreadable ({exc}); using current universe")
-        membership = None
+    membership = systems.membership_for(system)
+    if membership:
+        info = describe(membership)
+        print(f"→ membership history: {info['first']} → {info['last']}, "
+              f"{info['current_size']} constituents, "
+              f"{info['total_churn']} additions/removals recorded")
+    else:
+        print("→ no membership history; months will use the current universe")
 
     cfg = dict(TRACK_RECORD_CONFIG)
     fingerprint = config_fingerprint(**cfg)
     print(f"  config fingerprint: {fingerprint}")
 
     result = run_backtest(
-        f"trackrecord_{as_of:%Y%m%d}_{months}",
+        f"trackrecord_{system}_{as_of:%Y%m%d}_{months}",
         adj_close,
         top_n=cfg["top_n"],
         rebal_freq=cfg["rebal_freq"],
@@ -141,7 +164,7 @@ def main() -> int:
           f"{stats.get('pit_periods', 0) + stats.get('current_universe_periods', 0)}"
           + (f", from {pit_from}" if pit_from else ""))
 
-    ledger = load_ledger(args.ledger)
+    ledger = load_ledger(ledger_file, start)
     before = len(ledger.get("months", {}))
 
     for row in drift_report(ledger, result["equity_curve"]):
@@ -174,9 +197,9 @@ def main() -> int:
         print("→ no new closed months; file untouched")
         return 0
 
-    save_ledger(ledger, args.ledger)
+    save_ledger(ledger, ledger_file)
     s = summary_stats(ledger)
-    print(f"✓ wrote {args.ledger}: {s['months']} months, "
+    print(f"✓ wrote {ledger_file}: {s['months']} months, "
           f"{s['first']} → {s['last']}, total {s['total_return']:+.2%}")
     return 0
 

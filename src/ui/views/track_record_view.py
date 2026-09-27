@@ -16,10 +16,10 @@ import streamlit as st
 from src.core.market_time import ist_now
 from src.engine.backtester import run_backtest
 from src.engine.corporate_actions import load_events
-from src.engine.membership import load_history_or_none
+from src.engine.extra_universe import SYSTEM_750, SYSTEM_NAMES, SYSTEMS
+from src.engine.systems import inception, ledger_path, membership_for
 from src.engine.pipeline import price_fingerprint
 from src.engine.track_record import (
-    INCEPTION,
     TRACK_RECORD_CONFIG,
     build_combined_grid,
     load_ledger,
@@ -31,16 +31,25 @@ from src.ui import page_kit as kit
 from src.ui.theme import render_saas_table
 
 
-def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None) -> dict:
+def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
+               system: str = SYSTEM_750) -> dict:
     """The strategy under the RECORD's pinned configuration, through today.
 
     One cached run serves the month-to-date here and the model book on the
-    Exit watch page, so both describe the same portfolio.
+    Actions page, so both describe the same portfolio. Each system replays
+    from its own inception on its own point-in-time membership; Nano Cap and
+    Combined replay at least one month, so their first book (signalled at
+    the close before inception) exists from inception's first session.
     """
     if adj_close is None or adj_close.empty:
         return {}
     as_of = pd.Timestamp(adj_close.index[-1])
-    months = months_to_cover(as_of)
+    start = inception(system)
+    if pd.Period(as_of, freq="M") < start:
+        return {}
+    months = months_to_cover(as_of, start)
+    if system != SYSTEM_750:
+        months = max(months, 1)
     if months <= 0:
         return {}
     cfg = TRACK_RECORD_CONFIG
@@ -48,7 +57,7 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None) -> di
     # months) served an hour-stale MTD after a restatement or a new split.
     events = load_events()
     result = run_backtest(
-        f"trackrec_{price_fingerprint(adj_close)}_{actions_digest(events)}_{months}",
+        f"trackrec_{system}_{price_fingerprint(adj_close)}_{actions_digest(events)}_{months}",
         adj_close,
         top_n=cfg["top_n"],
         rebal_freq=cfg["rebal_freq"],
@@ -60,14 +69,14 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None) -> di
         buffer_n=cfg["buffer_n"],
         _benchmark_close=benchmark_close,
         backtest_months=months,
-        _membership=load_history_or_none(),
+        _membership=membership_for(system),
         _actions=events,
     )
     return result or {}
 
 
 def _record_mtd(
-    adj_close: pd.DataFrame, benchmark_close: pd.Series | None
+    adj_close: pd.DataFrame, benchmark_close: pd.Series | None, system: str = SYSTEM_750
 ) -> dict:
     """Month-to-date under the RECORD's configuration, not the Backtest tab's.
 
@@ -76,7 +85,7 @@ def _record_mtd(
     different strategy from every frozen month beside it, and the year-to-date
     column would silently mix the two. So run the pinned configuration.
     """
-    return record_run(adj_close, benchmark_close).get("live_meta", {}) or {}
+    return record_run(adj_close, benchmark_close, system).get("live_meta", {}) or {}
 
 
 def _pct(v: float | None) -> str:
@@ -142,11 +151,13 @@ def growth_series(months: dict, mtd_period, mtd_val, mtd_bench):
 def render_track_record_view(
     adj_close: pd.DataFrame | None = None,
     benchmark_close: pd.Series | None = None,
+    system: str = SYSTEM_750,
 ) -> None:
-    """The frozen monthly record with the live month beside it."""
-    live_meta = _record_mtd(adj_close, benchmark_close) if adj_close is not None else {}
+    """The frozen monthly record with the live month beside it, then all three systems."""
+    live_meta = _record_mtd(adj_close, benchmark_close, system) if adj_close is not None else {}
+    start = inception(system)
     try:
-        ledger = load_ledger()
+        ledger = load_ledger(ledger_path(system), start)
     except (ValueError, OSError) as exc:
         # A corrupt ledger is reported, never silently replaced with an empty
         # one -- that would present "no history" as a fact.
@@ -162,20 +173,20 @@ def render_track_record_view(
 
     actions = kit.page_head(
         "Track record",
-        f"Every month since {pd.Period(INCEPTION, freq='M').strftime('%B %Y')}, each frozen when it "
+        f"{SYSTEM_NAMES[system]}: every month since {start.strftime('%B %Y')}, each frozen when it "
         f"closes and never recalculated · benchmark {bench_name}",
         actions=True,
     )
 
     if not months:
         st.info(
-            "No months frozen yet. The ledger fills one month at a time: "
-            "`scripts/update_track_record.py` runs on the 2nd of each month and "
-            "commits the closed month to `data/track_record.json`. Run it "
-            f"manually to backfill from {INCEPTION} onward."
+            f"No months frozen yet. {SYSTEM_NAMES[system]}'s record starts with "
+            f"{start.strftime('%B %Y')}; each month is frozen early the next month "
+            "(scripts/update_track_record.py, on the 2nd-5th)."
         )
         if mtd_val is not None and mtd_period is not None:
             st.html(month_cards_html({}, mtd_period, mtd_val, mtd_bench))
+        render_comparison()
         return
 
     # The running month counts, everywhere. It is real money, and excluding it
@@ -324,3 +335,50 @@ def render_track_record_view(
                 "text/csv",
                 key="dl_tr_prov",
             )
+
+    render_comparison()
+
+
+def comparison_frame(ledgers: dict[str, dict]) -> pd.DataFrame:
+    """Month by month, every system's frozen return beside Nifty 500's.
+
+    Only frozen months: a system's live month-to-date belongs on its own
+    record, and mixing a live cell into a comparison of closed months would
+    compare unlike things. Months before a system's inception are blank.
+    """
+    keys = sorted({k for led in ledgers.values() for k in led.get("months", {})})
+    if not keys:
+        return pd.DataFrame()
+    rows = []
+    for key in keys[-12:][::-1]:
+        row = {"Month": pd.Period(key, freq="M").strftime("%b %Y")}
+        bench = None
+        for sys_id in SYSTEMS:
+            e = ledgers.get(sys_id, {}).get("months", {}).get(key)
+            row[SYSTEM_NAMES[sys_id]] = _pct(e.get("strategy")) if e else "—"
+            if e and e.get("benchmark") is not None and bench is None:
+                bench = e.get("benchmark")
+        row["Nifty 500"] = _pct(bench)
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def render_comparison() -> None:
+    """Owner, 2026-09-27: how the 750, Nano Cap and Combined each perform."""
+    ledgers = {}
+    for sys_id in SYSTEMS:
+        try:
+            ledgers[sys_id] = load_ledger(ledger_path(sys_id), inception(sys_id))
+        except (ValueError, OSError):
+            ledgers[sys_id] = {}
+    table = comparison_frame(ledgers)
+    with kit.card("Three systems, side by side", "tr_compare",
+                  "frozen months only · last 12"):
+        starts = ", ".join(f"{SYSTEM_NAMES[s]} from {inception(s).strftime('%b %Y')}"
+                           for s in SYSTEMS)
+        kit.caption(f"Each system's record starts on its own date: {starts}. "
+                    "A dash is a month before that system's record began.")
+        if table.empty:
+            st.info("Nothing frozen yet.")
+        else:
+            render_saas_table(table)
