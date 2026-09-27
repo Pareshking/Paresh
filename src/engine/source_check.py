@@ -29,8 +29,13 @@ CHECK_COLUMNS = ["date", "symbol", "check", "nse_close", "nse_return",
 
 
 def nse_closes(prices: pd.DataFrame) -> pd.DataFrame:
-    """One row per equity symbol: close and one-day return, EQ before BE."""
-    eq = prices[(prices["series"].isin(["EQ", "BE"])) & (prices["ind_sec"] != "Y")]
+    """One row per equity symbol: close and one-day return, EQ before BE.
+
+    Index rows are MKT = Y with no symbol. IND_SEC = Y marks index MEMBER
+    stocks (the Nifty 50 names), which are exactly the ones to keep.
+    """
+    eq = prices[(prices["series"].isin(["EQ", "BE"])) & (prices["mkt"] != "Y")
+                & (prices["symbol"] != "")]
     eq = eq.assign(_rank=(eq["series"] != "EQ").astype(int)).sort_values("_rank")
     eq = eq.drop_duplicates("symbol").set_index("symbol")
     ret = eq["close"] / eq["prev_close"] - 1

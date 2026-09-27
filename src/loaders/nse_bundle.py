@@ -115,7 +115,9 @@ PRICE_COLUMNS = ["date", "mkt", "series", "symbol", "security", "prev_close",
 def parse_prices(body: bytes, day: date) -> pd.DataFrame:
     """Pd<date>.csv: one row per traded security, as NSE printed it.
 
-    Index rows (IND_SEC = Y) stay in: they carry the day's index closes.
+    Index rows (MKT = Y, no symbol, the index name in SECURITY) stay in: they
+    carry the day's index closes. IND_SEC = Y is not an index row; it marks a
+    stock that is an index member.
     """
     raw = read_csv(body)
     out = pd.DataFrame({
