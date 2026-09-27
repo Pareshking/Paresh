@@ -151,9 +151,17 @@ ACTION_COLUMNS = ["date", "series", "symbol", "security", "record_date",
                   "face_to", "amount", "price_factor"]
 
 # Most price-changing first: a purpose naming several takes the first match.
+# NSE's Bc file abbreviates: a split reads "FVSPLT FRM RS 10 TO RE 1" (also
+# "FV SPLT", "FRMRS 100", "TO 1", "RE1"), and a bonus of preference shares
+# "SCH AGMT-BONUS NCRPS 4:1". The first sample year (2026-09-27) recognised
+# no split at all and counted NCRPS bonuses as equity bonuses; both are
+# pinned in tests/test_nse_bundle.py with NSE's own wording.
 _KINDS = [
-    ("split", re.compile(r"SPLIT|SUB[- ]?DIVISION|SUBDIVISION")),
+    ("split", re.compile(r"SPLIT|SPLT|SUB[- ]?DIVISION|SUBDIVISION")),
     ("consolidation", re.compile(r"CONSOLIDAT")),
+    # Preference shares issued as bonus: equity holders keep every share, so
+    # the equity price has no bonus step (TVSMOTOR 2025-08-25 moved -0.3%).
+    ("bonus_preference", re.compile(r"BONUS\s*(?:NCRPS|PREF|RPS|NCPS|DEBENTURE)")),
     ("bonus", re.compile(r"BONUS")),
     ("demerger", re.compile(r"DEMERGER|SPIN[- ]?OFF")),
     ("rights", re.compile(r"RIGHTS")),
@@ -161,7 +169,7 @@ _KINDS = [
     ("dividend", re.compile(r"DIVIDEND|\bDIV\b|DISTRIBUTION")),
 ]
 _RATIO = re.compile(r"(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)")
-_FACE = re.compile(r"FROM\s+R[S]?\.?\s*([\d.]+).*?TO\s+R[S]?\.?\s*([\d.]+)")
+_FACE = re.compile(r"(?:FROM|FRM)\s*R[SE]?\.?\s*([\d.]+).*?\bTO\s*(?:R[SE]?\.?)?\s*([\d.]+)")
 _AMOUNT = re.compile(r"(?:RS|RE|INR)\.?\s*([\d]+(?:\.\d+)?)")
 
 
