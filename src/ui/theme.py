@@ -181,23 +181,6 @@ def inject_custom_css() -> None:
             scrollbar-width: none !important;
             -ms-overflow-style: none !important;
         }
-        /* Restore visible thin scrollbar for horizontal overflow containers (accessibility) */
-        div[role="alert"][aria-label="Market signals"],
-        .ticker-ribbon {
-            scrollbar-width: thin !important;
-            scrollbar-color: #D0D5DD transparent !important;
-            -ms-overflow-style: auto !important;
-        }
-        div[role="alert"][aria-label="Market signals"]::-webkit-scrollbar,
-        .ticker-ribbon::-webkit-scrollbar {
-            height: 4px !important;
-            display: block !important;
-        }
-        div[role="alert"][aria-label="Market signals"]::-webkit-scrollbar-thumb,
-        .ticker-ribbon::-webkit-scrollbar-thumb {
-            background-color: #D0D5DD !important;
-            border-radius: 99px !important;
-        }
         *::-webkit-scrollbar, 
         ::-webkit-scrollbar,
         [data-testid="stDataFrame"] *::-webkit-scrollbar,
@@ -544,10 +527,7 @@ def inject_custom_css() -> None:
         .ms-v { font-family: var(--font-display); font-size: 26px; font-weight: 700; line-height: 1.1; color: #0E1726; }
         .ms-s { font-size: 13px; color: #3C4657; line-height: 1.4; }
         .ms-s b { font-weight: 600; }
-        .ms-dot { color: #A5ACB8; font-weight: 500; }
         .mkt-strip .up { color: #067647; } .mkt-strip .down { color: #B42318; }
-        .ms-bar { display: block; height: 6px; border-radius: 3px; background: #EDEFF3; }
-        .ms-bar i { display: block; height: 6px; border-radius: 3px; background: #0E1726; }
         .t50 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
         .t50-card { background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
         .t50-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
@@ -565,14 +545,20 @@ def inject_custom_css() -> None:
         .t50-none { font-size: 13px; color: #5E6878; }
         .st-key-scr_toolbar { gap: 10px !important; }
         .st-key-scr_toolbar [data-testid="stPopoverButton"] { height: 40px !important; }
-        .sig-label { font-size: 12.5px; font-weight: 600; color: #5E6878; margin-right: 2px; white-space: nowrap; }
+        .sig-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .sig-chip {
+            display: inline-flex; align-items: center; height: 30px; padding: 0 12px;
+            border: 1px solid; border-radius: 9px; font-size: 13px; font-weight: 600;
+            white-space: nowrap;
+        }
+        .st-key-scr_head { row-gap: 8px !important; }
         @media (max-width: 640px) {
             .scr-head h1 { font-size: 28px !important; }
             .scr-head p { font-size: 13.5px; }
+            .sig-chip { height: 28px; font-size: 12px; white-space: normal; }
             /* One sideways-scrolling row of cards, so the list starts sooner. */
             .mkt-strip { display: flex; overflow-x: auto; background: transparent; border: 0; border-radius: 0; gap: 10px; }
             .ms-tile { flex: 0 0 158px; padding: 12px 14px; background: #FFFFFF; border: 1px solid #E3E6EB !important; border-radius: 14px; gap: 3px; }
-            .ms-tile .ms-bar { display: none; }
             .st-key-dl_rank_csv { display: none !important; }
             /* Filters & sort opens as a bottom sheet on a phone. The panel is
                portalled outside the page, so it is found by what it holds. */
@@ -1095,52 +1081,7 @@ def inject_custom_css() -> None:
         .rq-none { color: #5E6878; }
         @media (max-width: 900px) { .rq-grid { grid-template-columns: 1fr; } }
 
-        /* ── Mac-Style Window Dots Bar ── */
-        .mac-dots-container {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 0px;
-        }
-        .mac-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-        .mac-dot-red { background-color: #ff5f56; }
-        .mac-dot-yellow { background-color: #ffbd2e; }
-        .mac-dot-green { background-color: #27c93f; }
 
-        /* ── Ticker Ribbon Bar ── */
-        .ticker-ribbon {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            overflow-x: auto;
-            padding: 8px 16px;
-            background-color: #F4F5F8;
-            border: 1px solid #E3E6EB;
-            border-radius: 12px;
-            margin-bottom: 16px;
-            scrollbar-width: none;
-        }
-        .ticker-ribbon::-webkit-scrollbar {
-            display: none;
-        }
-        .ticker-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-family: 'Geist Mono', monospace;
-            font-size: 0.78rem;
-            white-space: nowrap;
-            padding: 4px 10px;
-            background-color: #ffffff;
-            border: 1px solid #E3E6EB;
-            border-radius: 8px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-        }
 
         /* ── Headings & Badges ── */
         h1, h2, h3, h4, h5, h6 {
@@ -1171,16 +1112,6 @@ def inject_custom_css() -> None:
             padding: 1.2rem 1.1rem !important;
         }
 
-        .sidebar-section-title {
-            font-family: 'Geist Mono', monospace;
-            font-size: 0.68rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #5E6878;
-            margin-top: 14px;
-            margin-bottom: 6px;
-        }
 
         /* ── Sidebar Radio Navigation Items ── */
         [data-testid="stSidebar"] [data-testid="stRadio"] > div {
@@ -1300,61 +1231,6 @@ def inject_custom_css() -> None:
             display: none !important;
         }
 
-        /* ── Stock Screener Card (Tickerboom style) ── */
-        .stock-card {
-            background-color: #ffffff;
-            border: 1px solid #E3E6EB;
-            border-radius: 14px;
-            padding: 16px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            height: 100%;
-        }
-        .stock-card:hover {
-            transform: translateY(-2px);
-            border-color: #D0D5DD;
-            box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.08);
-        }
-        .stock-card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 8px;
-        }
-        .stock-card-sym {
-            font-family: 'Geist', sans-serif;
-            font-size: 1.15rem;
-            font-weight: 800;
-            color: #0E1726;
-        }
-        .stock-card-rank {
-            font-family: 'Geist Mono', monospace;
-            font-size: 0.72rem;
-            font-weight: 700;
-            padding: 2px 8px;
-            border-radius: 20px;
-            background-color: #eef2ff;
-            color: #4f46e5;
-            border: 1px solid #c7d2fe;
-        }
-        .stock-card-company {
-            font-size: 0.76rem;
-            color: #5E6878;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            margin-bottom: 12px;
-        }
-        .stock-card-price {
-            color: #0E1726 !important;
-            font-size: 1.35rem !important;
-            font-weight: 800 !important;
-            font-family: 'Geist Mono', monospace !important;
-            letter-spacing: -0.02em !important;
-        }
 
         /* ── Financial High-Density DataTables ── */
         [data-testid="stDataFrame"] {

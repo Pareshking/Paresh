@@ -14,7 +14,13 @@ from src.ui.widget_state import remember, resolve
 
 from src.core.config import SHORT_FORMS
 from src.core.market_time import ist_now
-from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
+from src.ui.components import (
+    compute_signals,
+    gap_count,
+    render_data_quality_footer,
+    signal_chips_html,
+    to_bool_mask,
+)
 from src.ui.views.stock_view import render_stock_view
 from src.ui.screener_table import INDEX_NAMES, column_count, render_screener_table
 from src.ui.theme import render_master_screener_table, screener_column_count
@@ -269,12 +275,15 @@ def render_ranking_view(
         month_label = ist_now().strftime("%B %Y")
 
     n_total = len(rank_df)
-    c_title, c_export = st.columns([4, 1], vertical_alignment="bottom")
-    c_title.html(
-        # The title alone: the count is the top bar's Universe and the date
-        # its "Prices · closes of" pill (owner, 2026-09-27: no repeats).
-        '<div class="scr-head"><h1>Screener</h1></div>'
-    )
+    # One row: the title, today's signal chips, Export CSV. The count is the
+    # top bar's Universe and the date its Prices pill, so no subtitle; the
+    # chips sit here rather than on a row of their own (owner, 2026-09-27:
+    # no repeats, and no space left where text was taken out).
+    head = st.container(key="scr_head", horizontal=True, vertical_alignment="center",
+                        gap="medium", wrap=True)
+    head.html('<div class="scr-head"><h1>Screener</h1></div>', width="content")
+    head.html(signal_chips_html(compute_signals(rank_df)) or "<span></span>", width="stretch")
+    c_export = head.container(width="content")
 
     # No tile strip: regime and breadth are the market line's, the pass count
     # is the "Pass both filters" button's, the top-50 moves the closing

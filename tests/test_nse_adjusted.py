@@ -108,3 +108,27 @@ def test_the_ex_date_matches_whatever_type_it_was_stored_as():
         _adj, f, v = na.adjusted_frames(_split_frame(), _actions(("ABC", "split", ex, 0.2)))
         assert v["verdict"].tolist() == ["applied"], ex
         assert np.isclose(f.at[pd.Timestamp("2026-01-07"), "ABC"], 0.2), ex
+
+
+def test_an_ex_date_printed_month_first_is_found_on_the_swapped_date():
+    # E2E's 1:10 split went ex on 6 Mar 2026; Bc printed it as 2026-06-03.
+    days = pd.bdate_range("2026-02-26", "2026-06-10")
+    close = pd.DataFrame({"E2E": np.where(days < pd.Timestamp("2026-03-06"), 100.0, 10.2)}, index=days)
+    f, v = na.action_factors(close, _actions(("E2E", "split", pd.Timestamp("2026-06-03"), 0.1)))
+    assert v["verdict"].tolist() == ["date swapped"]
+    assert v["session"].iat[0] == pd.Timestamp("2026-03-06")
+    assert np.isclose(f.at[pd.Timestamp("2026-03-06"), "E2E"], 0.1) and (f != 1.0).sum().sum() == 1
+    # A day past the 12th cannot be a swap: nothing is applied.
+    f, v = na.action_factors(close, _actions(("E2E", "split", pd.Timestamp("2026-05-20"), 0.1)))
+    assert v["verdict"].tolist() == ["no move"] and (f == 1.0).all().all()
+
+
+def test_a_demerger_is_priced_at_the_ex_dates_fall():
+    closes = [100.0, 101.0, 64.0, 65.0]                  # 36.6% left with the new company
+    w = na.wide(_rows("VEDL", closes, closes))
+    f, v = na.action_factors(w["close"], _actions(("VEDL", "demerger", pd.Timestamp("2026-01-07"), np.nan)))
+    assert v["verdict"].tolist() == ["demerger"]
+    assert np.isclose(f.at[pd.Timestamp("2026-01-07"), "VEDL"], 64 / 101)
+    rising = na.wide(_rows("X", [100.0, 101.0, 103.0, 104.0], [100.0] * 4))
+    f, v = na.action_factors(rising["close"], _actions(("X", "demerger", pd.Timestamp("2026-01-07"), np.nan)))
+    assert v["verdict"].tolist() == ["no move"] and (f == 1.0).all().all()

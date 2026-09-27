@@ -60,9 +60,7 @@ from src.loaders.tv_loader import load_tv_classification
 # UI Design System, Components & Views
 from src.ui.ema_utils import count_above_ema
 from src.ui.components import (
-    compute_signals,
     render_header_kpi_bar,
-    render_signal_alerts,
 )
 from src.ui import page_kit as kit
 from src.engine import liquidity, systems
@@ -1178,11 +1176,6 @@ render_header_kpi_bar(
     nav_pages=_PAGES,
     active_page=_nav,
 )
-
-# The signal chips are about the ranking, so they sit on the Screener only;
-# every page keeps the one-line market summary above.
-if _nav is _PAGES[0] and not st.query_params.get("stock"):
-    render_signal_alerts(compute_signals(rank_df))
 
 # The reader's watchlist lives in their browser; bring it into the session
 # before any page reads it (src/ui/watchlist_store.py).

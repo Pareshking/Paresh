@@ -123,7 +123,7 @@ def main(argv: list[str] | None = None) -> int:
            f"- Sessions: **{adj['close'].shape[0]}** ({adj['close'].index.min().date()} → "
            f"{adj['close'].index.max().date()}); stocks: {adj['close'].shape[1]}",
            f"- Unreadable days: {len(unreadable)} {', '.join(unreadable[:10])}",
-           f"- Splits, bonuses and consolidations applied: **{len(ev)}**\n"]
+           f"- Adjustments applied (splits, bonuses, consolidations, demergers): **{len(ev)}**\n"]
 
     w = na.wide(prices)
     gaps = na.gap_days(w["close"], w["prev_close"])
@@ -146,6 +146,9 @@ def main(argv: list[str] | None = None) -> int:
     counts = verdicts["verdict"].value_counts()
     out += ["## 2. The Bc file's splits and bonuses against the price\n",
             f"- Applied (the price moved by the factor): **{int(counts.get('applied', 0))}**",
+            f"- Applied on the date with day and month exchanged: "
+            f"**{int(counts.get('date swapped', 0))}**",
+            f"- Demergers, priced at the ex-date's fall: **{int(counts.get('demerger', 0))}**",
             f"- **Not applied, the price did not move by it: {int(counts.get('no move', 0))}** "
             "(a duplicate date, or a factor the market did not see)",
             _md(verdicts[verdicts["verdict"] == "no move"].drop(columns="verdict")), "",
