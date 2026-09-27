@@ -41,11 +41,13 @@ def _backtest_body(
     weights: tuple[float, ...],
     liquidity_floor_cr: float = 0.0,
     traded_value: pd.DataFrame | None = None,
+    months: int = DEFAULT_BACKTEST_MONTHS,
+    membership: dict | None = None,
 ) -> None:
     """Fragment: reruns only when backtest-tab widgets change, not on every global rerun."""
     actions = kit.page_head(
         "Backtest",
-        f"The strategy replayed on the last {DEFAULT_BACKTEST_MONTHS} completed months, "
+        f"The strategy replayed on the last {months} completed month{'s' if months != 1 else ''}, "
         "with the settings below",
         actions=True,
     )
@@ -131,7 +133,8 @@ def _backtest_body(
             sector_map=sec_map,
             cost_bps=cost_drag_bps,
             buffer_n=int(bt_n * buffer_mult),
-            _membership=load_history_or_none(),
+            _membership=membership if membership is not None else load_history_or_none(),
+            backtest_months=months,
             _actions=_events,
             liquidity_floor_cr=liquidity_floor_cr,
             _traded_value=traded_value,
@@ -140,7 +143,7 @@ def _backtest_body(
     if bt_res is None:
         st.warning(
             f"Insufficient price history to backtest the last "
-            f"{DEFAULT_BACKTEST_MONTHS} completed months. The strategy needs a "
+            f"{months} completed month{'s' if months != 1 else ''}. The strategy needs a "
             "full 12-month formation window BEFORE the reported period, so "
             "roughly 18 months of continuous daily data is required."
         )
@@ -161,7 +164,7 @@ def _backtest_body(
             st.caption(
                 f"Backtested on the long price history. The live screener ranks "
                 f"on {_display(_ranked_on)}, which does not yet reach far enough "
-                f"back for a {DEFAULT_BACKTEST_MONTHS}-month study."
+                f"back for a {months}-month study."
             )
     except Exception:
         pass
@@ -175,7 +178,7 @@ def _backtest_body(
     bt_window_label = (
         f"{_eq_idx[0]:%d %b} to {_eq_idx[-1]:%d %b %Y}"
         if len(_eq_idx)
-        else f"last {DEFAULT_BACKTEST_MONTHS} completed months"
+        else f"last {months} completed month{'s' if months != 1 else ''}"
     )
 
     # What was tested, in one line: the reader's first question of any result.
@@ -894,7 +897,9 @@ def render_backtest_view(
     weights: tuple[float, ...],
     liquidity_floor_cr: float = 0.0,
     traded_value: pd.DataFrame | None = None,
+    months: int = DEFAULT_BACKTEST_MONTHS,
+    membership: dict | None = None,
 ) -> None:
     """Renders the Walk-Forward Historical Strategy Backtesting Interface."""
     _backtest_body(rank_df, adj_close, stock_cap, sector_cap, weights,
-                   liquidity_floor_cr, traded_value)
+                   liquidity_floor_cr, traded_value, months, membership)

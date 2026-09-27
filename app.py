@@ -65,7 +65,7 @@ from src.ui.components import (
     render_signal_alerts,
 )
 from src.ui import page_kit as kit
-from src.engine import liquidity
+from src.engine import liquidity, systems
 from src.ui import system_param, watchlist_store
 from src.ui.theme import inject_custom_css
 from src.ui.widget_state import resolve
@@ -1064,15 +1064,19 @@ def _page_breadth() -> None:
 
 
 def _page_backtest() -> None:
-    if system != SYSTEM_750:
-        # Owner: judged against today's list, a longer Nano Cap backtest would
-        # be wrong; it starts with the first month-end list and grows monthly.
+    # Owner: judged against today's list, a longer Nano Cap backtest would be
+    # wrong; it starts with the first month-end list (September 2026) and
+    # gains a month at every month-end (src/engine/systems.backtest_months).
+    months = systems.backtest_months(system, deep_adj_close.index[-1])
+    if months == 0:
         kit.page_head("Backtest", f"{system_name} is replayed from September 2026, the "
                       "first month with a point-in-time Nano Cap list, and gains a month at "
                       "every month-end.")
         kit.note("Building.", "The first month completes at the 30 Sep 2026 close. "
                  + _record_start())
         return
+    extra_args = ({} if months is None
+                  else {"months": months, "membership": systems.membership_for(system)})
     render_backtest_view(
         rank_df=rank_df,
         # Depth, not freshness: a 12-month formation window before a 6-month
@@ -1083,6 +1087,7 @@ def _page_backtest() -> None:
         weights=weights,
         liquidity_floor_cr=liquidity_floor_cr,
         traded_value=_traded_value(),
+        **extra_args,
     )
 
 
