@@ -230,7 +230,8 @@ def test_rebase_store_leaves_symbols_the_reference_does_not_carry():
     assert list(out.columns) == list(stored.columns)
 
 
-def test_deep_check_is_due_a_week_after_the_last_one_and_when_never_run(tmp_path, monkeypatch):
+def test_deep_check_is_due_a_month_after_the_last_one_and_when_never_run(tmp_path, monkeypatch):
+    # Monthly since 2026-09-27 (owner: "once in month is OK"); was weekly.
     from datetime import date
 
     import scripts.sync_screener as sync
@@ -239,9 +240,10 @@ def test_deep_check_is_due_a_week_after_the_last_one_and_when_never_run(tmp_path
     state = str(tmp_path / "deep.json")
     assert sync._deep_check_due(date(2026, 9, 25), state) is True     # never run
     sync._record_deep_check(date(2026, 9, 25), state)
-    assert sync._deep_check_due(date(2026, 10, 1), state) is False    # 6 days
-    assert sync._deep_check_due(date(2026, 10, 2), state) is True     # 7 days
-    assert sync._deep_check_due(date(2026, 10, 9), state) is True     # a late run still checks
+    assert sync._deep_check_due(date(2026, 10, 2), state) is False    # 7 days
+    assert sync._deep_check_due(date(2026, 10, 24), state) is False   # 29 days
+    assert sync._deep_check_due(date(2026, 10, 25), state) is True    # 30 days
+    assert sync._deep_check_due(date(2026, 11, 3), state) is True     # a late run still checks
     monkeypatch.setenv("SCREENER_DEEP_CHECK", "1")
     assert sync._deep_check_due(date(2026, 9, 26), state) is True
 
