@@ -278,7 +278,8 @@ def main(argv: list[str] | None = None) -> int:
     if acts.empty:
         out.append("_no corporate-action files held_\n")
     else:
-        acts = acts.drop_duplicates(["symbol", "ex_date", "purpose"])
+        acts = nse_bundle.repair_swapped_dates(acts).drop_duplicates(
+            ["symbol", "ex_date", "purpose"])
         # Re-read NSE's wording with today's parser: the stored kind is what
         # the parser said on the day it was collected.
         reparsed = pd.DataFrame([nse_bundle.classify_purpose(p) for p in acts["purpose"]],

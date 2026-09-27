@@ -226,3 +226,24 @@ def test_nse_bc_wording(purpose, kind, factor):
         assert np.isnan(got["price_factor"])
     else:
         assert got["price_factor"] == pytest.approx(factor)
+
+
+def test_iso_dates_are_not_read_day_first():
+    got = nb._day(pd.Series(["2025-12-05", "05-12-2025", "05-Dec-2025", "26-Sep-2026", ""]))
+    assert list(got[:4]) == [pd.Timestamp("2025-12-05")] * 3 + [pd.Timestamp("2026-09-26")]
+    assert pd.isna(got[4])
+
+
+def test_stored_swapped_dates_are_repaired_by_the_listing_window():
+    # CAMS: listed in the 2025-11-28 bundle, record date 5 Dec 2025, stored as 12 May.
+    acts = pd.DataFrame({
+        "date": pd.to_datetime(["2025-11-28", "2025-11-28", "2026-03-02"]),
+        "symbol": ["CAMS", "LATE", "EARLY"],
+        "ex_date": pd.to_datetime(["2025-05-12", "2025-12-20", "2026-03-11"]),
+        "record_date": pd.to_datetime(["2025-05-12", pd.NaT, "2026-03-11"]),
+    })
+    out = nb.repair_swapped_dates(acts).set_index("symbol")
+    assert out.at["CAMS", "ex_date"] == pd.Timestamp("2025-12-05")
+    assert out.at["CAMS", "record_date"] == pd.Timestamp("2025-12-05")
+    assert out.at["LATE", "ex_date"] == pd.Timestamp("2025-12-20")   # day > 12: never swapped
+    assert out.at["EARLY", "ex_date"] == pd.Timestamp("2026-03-11")  # already in its window
