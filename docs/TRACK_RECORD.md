@@ -164,3 +164,26 @@ only survivorship-free evidence here.
 
 See `docs/V1_AUDIT_TRACKER.md` §5 for the standing decision to defer
 survivorship work.
+
+---
+
+## 8. Three systems
+
+Since 2026-09-27 the app runs three systems on the same pinned configuration
+(`docs/THREE_SYSTEMS.md`). Each has its own ledger and inception:
+
+| System | Ledger | First month |
+|---|---|---|
+| Nifty 750 | `data/track_record.json` | Jan 2026 (unchanged) |
+| Nano Cap | `data/track_record_nano.json` | Oct 2026 |
+| Combined | `data/track_record_combined.json` | Oct 2026 |
+
+`src/engine/systems.py` names the ledger, the inception and the point-in-time
+membership for each; `load_ledger(path, inception)` and `finalize_months` start
+from the ledger's own inception. Nano Cap and Combined have no backfilled
+months at all: their first book is signalled at the 30 Sep 2026 close, so
+their record is survivorship-free from the first month.
+
+The monthly workflow freezes the 750 first, then Nano Cap and Combined
+(`update_track_record.py --system nano|combined`), which warn rather than fail.
+The Track Record page ends with all three side by side.
