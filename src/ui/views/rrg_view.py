@@ -3,7 +3,6 @@ Relative Rotation Graph (RRG ®) View Controller.
 """
 
 import html
-from urllib.parse import quote
 from typing import Sequence
 import re
 
@@ -11,6 +10,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from src.ui.system_param import stock_href
 from src.engine.pipeline import price_fingerprint
 from src.ui import page_kit as kit
 from src.ui.charts import render_rrg_chart
@@ -213,7 +213,7 @@ def quadrant_lists_html(rrg_df: pd.DataFrame, is_stocks: bool) -> str:
         sub = rrg_df[rrg_df["Quadrant"] == quad].sort_values("RS_Ratio", ascending=False)
         items = "".join(
             '<div class="rq-i"><span>'
-            + (f'<a href="?stock={quote(str(r.Industry), safe="")}" target="_self">{html.escape(str(r.Industry))}</a>'
+            + (f'<a href="{stock_href(r.Industry)}" target="_self">{html.escape(str(r.Industry))}</a>'
                if is_stocks else html.escape(str(r.Industry)))
             + f'</span><b>{r.RS_Ratio:.1f} · {r.RS_Momentum:.1f}</b></div>'
             for r in sub.itertuples()

@@ -31,8 +31,9 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 SOURCES = sorted((ROOT / "src").rglob("*.py"))
 
-# The anchor opening a stock page, wherever it is built.
-STOCK_ANCHOR = re.compile(r"""<a\s+href=(?:"|')\?stock=""")
+# The anchor opening a stock page, wherever it is built: a literal ?stock=, or
+# system_param.stock_href, which adds &sys= so a reload keeps the system.
+STOCK_ANCHOR = re.compile(r"""<a\s+(?:class="[^"]*"\s+)?href=(?:"|')(?:\?stock=|\{stock_href\()""")
 
 
 def _anchor_lines():

@@ -15,13 +15,16 @@ column research view, stays on theme.render_master_screener_table.
 """
 from __future__ import annotations
 
+import json
+
 from html import escape as _esc
-from urllib.parse import quote as _urlq
 
 import numpy as np
 import pandas as pd
 import streamlit as st
 
+from src.ui.system_param import stock_href
+from src.ui.system_param import suffix as system_suffix
 from src.ui.theme import _spark_window_key, is_tick_true
 
 # Readable names for the index tags the ranking stores.
@@ -110,7 +113,7 @@ def _row_html(row: dict, cols: list, paths: dict) -> str:
     cells["rank"] = (f'<td class="c-rank" data-v="{rank if rank is not None else ""}">'
                      f'{int(rank) if rank is not None else "—"}</td>')
     cells["stock"] = (
-        f'<td class="c-stock" data-v="{sym_s}"><a href="?stock={_urlq(sym, safe="")}" '
+        f'<td class="c-stock" data-v="{sym_s}"><a href="{stock_href(sym)}" '
         f'data-stock="{sym_s}" title="Open {sym_s}"><span class="sym">{sym_s}</span>'
         f'<span class="sub">{_esc(sub)}</span></a></td>'
     )
@@ -216,7 +219,7 @@ td.c-flt{text-align:left}
 # opens the stock in a new tab instead.
 _JS = """
 function openStock(sym){
-  const search='?stock='+encodeURIComponent(sym);
+  const search='?stock='+encodeURIComponent(sym)+SYS;
   try{const host=window.parent;const s=host.document.createElement('script');
       s.textContent='window.location.search='+JSON.stringify(search)+';';
       host.document.body.appendChild(s);s.remove();}
@@ -289,7 +292,7 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str)
         "family=Geist+Mono:wght@400..700&display=swap' rel='stylesheet'>"
         f"<style>{_CSS}{extra}</style></head><body><div class='wrap'><table>"
         f"<thead><tr>{head}</tr></thead><tbody>{body_html}</tbody></table></div>"
-        f"<script>{_JS}</script></body></html>"
+        f"<script>const SYS={json.dumps(system_suffix())};{_JS}</script></body></html>"
     )
 
 

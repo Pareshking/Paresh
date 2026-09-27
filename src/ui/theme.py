@@ -1,13 +1,15 @@
 import hashlib
+import json
 import re
 import time
 from html import escape as _esc
-from urllib.parse import quote as _urlq
 
 import numpy as np
 import pandas as pd
 import streamlit as st
 
+from src.ui.system_param import stock_href
+from src.ui.system_param import suffix as system_suffix
 from src.engine.momentum import ATR_DERIVED_COLUMNS, CARRIED_MARK
 
 
@@ -1932,7 +1934,7 @@ def render_master_screener_table(
         # behave; the click itself is handled by the delegated listener in the
         # page script below, which is where the workaround lives.
         sym_link = (
-            f'<a href="?stock={_urlq(str(sym), safe="")}" '
+            f'<a href="{stock_href(sym)}" '
             f'class="stock-ticker" data-stock="{sym_s}" '
             f'style="text-decoration:none;border-bottom:1px dotted #667080;'
             f'cursor:pointer;" title="Open {sym_s}">{sym_s}</a>'
@@ -2260,7 +2262,7 @@ document.addEventListener('DOMContentLoaded', function() {{
         if (!link) return;
         ev.preventDefault();
         const sym = link.getAttribute('data-stock');
-        const search = '?stock=' + encodeURIComponent(sym);
+        const search = '?stock=' + encodeURIComponent(sym) + {json.dumps(system_suffix())};
         try {{
             const host = window.parent;
             const s = host.document.createElement('script');

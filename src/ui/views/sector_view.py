@@ -7,12 +7,12 @@ that pass the Screener's own filters.
 """
 
 import html
-from urllib.parse import quote
 
 import numpy as np
 import pandas as pd
 import streamlit as st
 
+from src.ui.system_param import stock_href
 from src.ui import page_kit as kit
 from src.ui.charts import render_sector_treemap
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
@@ -31,7 +31,7 @@ MIN_STOCKS = 2
 def _leader_link(sym: str) -> str:
     if not sym or sym == "—":
         return "—"
-    return (f'<a class="ib-lead" href="?stock={quote(sym, safe="")}" target="_self">'
+    return (f'<a class="ib-lead" href="{stock_href(sym)}" target="_self">'
             f'{html.escape(sym)}</a>')
 
 
