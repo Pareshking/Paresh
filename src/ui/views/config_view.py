@@ -14,6 +14,7 @@ import streamlit as st
 
 from src.ui import page_kit as kit
 from src.ui import system_param
+from src.engine.liquidity import DEFAULT_FLOOR_CR
 
 from src.core.config import (
     DEFAULT_LOOKBACK_WEIGHTS,
@@ -77,8 +78,9 @@ _SECTIONS = [
      "How much each lookback window counts in the composite score that sets every rank.",
      "ranks on every page, and the backtest's starting weights"),
     ("cfg-limits", "Portfolio limits",
-     "The most the model book may hold in one sector and one stock, and whether it "
-     "holds cash to damp volatility.", "Portfolio and Backtest"),
+     "The most the model book may hold in one sector and one stock, whether it "
+     "holds cash to damp volatility, and the least a stock must trade to be bought.",
+     "Portfolio and Backtest"),
     ("cfg-health", "Data health",
      "What the app corrected in the price history before ranking, and whether its data "
      "files are in place.", "nothing; this section only reports"),
@@ -319,6 +321,8 @@ _RISK_SETTINGS: dict[str, tuple] = {
     "cfg_stc": (round(DEFAULT_STOCK_CAP * 100), 2, 15),
     "cfg_vt": (False, None, None),
     "cfg_vtv": (round(DEFAULT_TARGET_VOL * 100), 10, 40),
+    "cfg_lf": (False, None, None),
+    "cfg_lfv": (DEFAULT_FLOOR_CR, 1, 500),
 }
 
 
@@ -373,6 +377,24 @@ def _section_portfolio_risk() -> None:
         value=_risk("cfg_vtv"), key="cfg_vtv", disabled=not new_vt,
     )
     remember("cfg_vtv", int(new_vtv))
+
+    # Owner, 2026-09-27: off by default; every system; the track record's
+    # pinned configuration never uses it (src/engine/liquidity.py).
+    st.html('<div class="cfg-rule"></div>')
+    new_lf = st.toggle(
+        "Liquidity floor",
+        value=_risk("cfg_lf"), key="cfg_lf",
+        help="A stock whose 20-day average traded value is below the floor is not "
+             "bought -- on the Portfolio page today, and at each rebalance in the Backtest.",
+    )
+    remember("cfg_lf", bool(new_lf))
+    kit.caption("20-day average traded value (close × volume). Off by default; "
+                "the track record is unaffected.")
+    new_lfv = st.number_input(
+        "Floor (₹ Cr a day)", min_value=1, max_value=500, step=1,
+        value=int(_risk("cfg_lfv")), key="cfg_lfv", disabled=not new_lf, width=220,
+    )
+    remember("cfg_lfv", int(new_lfv))
 
 
 def _section_data_health(rank_df: pd.DataFrame) -> None:
@@ -499,6 +521,8 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
                     "per stock · per sector"),
         kit.Reading("Volatility target", f"{_risk('cfg_vtv')}%" if vt_on else "Off",
                     "holds cash to stay near it" if vt_on else "fully invested"),
+        kit.Reading("Liquidity floor", f"₹{_risk('cfg_lfv')} Cr" if _risk("cfg_lf") else "Off",
+                    "20-day average traded value" if _risk("cfg_lf") else "no minimum"),
         kit.Reading("Data health", f"{n_events} fixed" if n_events else "Clean",
                     "price jumps neutralised" if n_events else "no corporate actions flagged"),
     ], "Settings in effect")

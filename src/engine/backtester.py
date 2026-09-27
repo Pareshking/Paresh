@@ -19,6 +19,7 @@ import streamlit as st
 from src.core.config import MOMENTUM_WINDOWS, RISK_FREE_RATE
 from src.engine.calendar_momentum import anchor_frame, period_sharpe_at, winsorised_z
 from src.engine.corporate_actions import adjust_prices
+from src.engine import liquidity
 from src.engine.membership import members_on
 from src.engine.portfolio import apply_caps
 
@@ -672,6 +673,8 @@ def run_backtest(
     backtest_months: int = DEFAULT_BACKTEST_MONTHS,
     _membership: dict[str, Any] | None = None,
     _actions: list[dict[str, Any]] | None = None,
+    liquidity_floor_cr: float = 0.0,
+    _traded_value: pd.DataFrame | None = None,
 ) -> dict[str, Any] | None:
     """
     Executes a walk-forward momentum backtest with zero look-ahead bias and friction modeling.
@@ -821,6 +824,12 @@ def run_backtest(
             pit_periods += 1
         else:
             current_universe_periods += 1
+        # The liquidity floor (src/engine/liquidity.py): on the value known
+        # at the signal date, never a later one.
+        liq_mask = liquidity.passes(_traded_value, prices.columns, dates[start_idx],
+                                    liquidity_floor_cr)
+        if liq_mask is not None:
+            valid &= liq_mask
 
         # ── Compute Causal Signal at Day T ───────────────────────────────────
         # One signal, the composite that drives every rank on screen. The
@@ -1183,6 +1192,10 @@ def run_backtest(
         p_idx_mask = _index_mask(_membership, prices.columns, prices.index[rebal_idx])
         if p_idx_mask is not None:
             p_valid &= p_idx_mask
+        p_liq = liquidity.passes(_traded_value, prices.columns, prices.index[rebal_idx],
+                                 liquidity_floor_cr)
+        if p_liq is not None:
+            p_valid &= p_liq
 
         p_score = _composite_z_score(
             prices, log_ret, rebal_idx, WINDOWS, norm_w if norm_w else [0.2] * 5,

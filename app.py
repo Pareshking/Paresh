@@ -65,6 +65,7 @@ from src.ui.components import (
     render_signal_alerts,
 )
 from src.ui import page_kit as kit
+from src.engine import liquidity
 from src.ui import system_param, watchlist_store
 from src.ui.theme import inject_custom_css
 from src.ui.widget_state import resolve
@@ -158,6 +159,9 @@ sector_cap = resolve("cfg_sc", round(DEFAULT_SECTOR_CAP * 100), lo=15, hi=50) / 
 stock_cap = resolve("cfg_stc", round(DEFAULT_STOCK_CAP * 100), lo=2, hi=15) / 100.0
 vol_target_on = resolve("cfg_vt", False)
 vol_target_val = resolve("cfg_vtv", round(DEFAULT_TARGET_VOL * 100), lo=10, hi=40) / 100.0
+# The liquidity floor, ₹ Cr of 20-day average traded value; 0 when off.
+liquidity_floor_cr = (float(resolve("cfg_lfv", liquidity.DEFAULT_FLOOR_CR, lo=1, hi=500))
+                      if resolve("cfg_lf", False) else 0.0)
 
 
 # ── Cached Data Pipeline ─────────────────────────────────────────────────────
@@ -907,6 +911,19 @@ low_prices = data["low_prices"]
 volume_data = data["volume_data"]
 regime_data = data["regime_data"]
 
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def _traded_value_cached(price_hash: str, _close: pd.DataFrame, _volume: pd.DataFrame):
+    return liquidity.traded_value_cr(_close, _volume)
+
+
+def _traded_value():
+    """The 20-day average traded value, only when the floor is on."""
+    if not liquidity_floor_cr:
+        return None
+    return _traded_value_cached(_price_hash(data["close_prices"]), data["close_prices"], volume_data)
+
+
 # An empty ranking is a pipeline failure, not a view to render. Twelve tabs of
 # empty frames produced a TypeError in the Qualified tab rather than telling
 # anyone what went wrong, so stop here and report what the engine actually saw.
@@ -1033,6 +1050,8 @@ def _page_portfolio() -> None:
         stock_cap=stock_cap,
         vol_target_on=vol_target_on,
         vol_target_val=vol_target_val,
+        liquidity_floor_cr=liquidity_floor_cr,
+        traded_value=_traded_value(),
     )
 
 
@@ -1062,6 +1081,8 @@ def _page_backtest() -> None:
         stock_cap=stock_cap,
         sector_cap=sector_cap,
         weights=weights,
+        liquidity_floor_cr=liquidity_floor_cr,
+        traded_value=_traded_value(),
     )
 
 

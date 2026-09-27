@@ -39,6 +39,8 @@ def _backtest_body(
     stock_cap: float,
     sector_cap: float,
     weights: tuple[float, ...],
+    liquidity_floor_cr: float = 0.0,
+    traded_value: pd.DataFrame | None = None,
 ) -> None:
     """Fragment: reruns only when backtest-tab widgets change, not on every global rerun."""
     actions = kit.page_head(
@@ -100,6 +102,11 @@ def _backtest_body(
     # for up to an hour.
     _events = load_events()
     ph = f"{price_fingerprint(adj_close)}_{actions_digest(_events)}"
+    if liquidity_floor_cr:
+        kit.caption(f"Liquidity floor on: a stock is bought only while its 20-day average "
+                    f"traded value is ₹{liquidity_floor_cr:g} Cr or more (Configuration).")
+        if traded_value is not None:
+            ph += f"_{price_fingerprint(traded_value)}"
     benchmark_close = fetch_benchmark_history(period="2y")
     if benchmark_close.empty:
         st.error("Nifty 500 benchmark (^CRSLDX) data is unavailable. Backtest stopped to prevent an invalid benchmark comparison.")
@@ -126,6 +133,8 @@ def _backtest_body(
             buffer_n=int(bt_n * buffer_mult),
             _membership=load_history_or_none(),
             _actions=_events,
+            liquidity_floor_cr=liquidity_floor_cr,
+            _traded_value=traded_value,
         )
 
     if bt_res is None:
@@ -883,6 +892,9 @@ def render_backtest_view(
     stock_cap: float,
     sector_cap: float,
     weights: tuple[float, ...],
+    liquidity_floor_cr: float = 0.0,
+    traded_value: pd.DataFrame | None = None,
 ) -> None:
     """Renders the Walk-Forward Historical Strategy Backtesting Interface."""
-    _backtest_body(rank_df, adj_close, stock_cap, sector_cap, weights)
+    _backtest_body(rank_df, adj_close, stock_cap, sector_cap, weights,
+                   liquidity_floor_cr, traded_value)

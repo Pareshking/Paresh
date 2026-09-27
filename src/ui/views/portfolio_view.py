@@ -4,10 +4,12 @@ Portfolio Construction View Controller with Capital Sizing & Zerodha Basket Expo
 
 import numpy as np
 import pandas as pd
+
 import streamlit as st
 
 from src.core.market_time import ist_now
 from src.core.types import WeightMethod
+from src.engine import liquidity
 from src.engine.momentum import MomentumEngine
 from src.engine.portfolio import PortfolioOptimizer
 from src.ui import page_kit as kit
@@ -22,6 +24,8 @@ def render_portfolio_view(
     stock_cap: float,
     vol_target_on: bool,
     vol_target_val: float,
+    liquidity_floor_cr: float = 0.0,
+    traded_value: pd.DataFrame | None = None,
 ) -> None:
     """Today's model book from the qualified list, sized and ready for Kite."""
     actions = kit.page_head(
@@ -64,7 +68,17 @@ def render_portfolio_view(
         if "Near 52W High" in rank_df.columns
         else pd.Series(True, index=rank_df.index, dtype=bool)
     )
-    port_universe = rank_df[ab_ema & nr_hi].sort_values("Rank").head(port_n)
+    qualified = rank_df[ab_ema & nr_hi]
+    # The liquidity floor (Configuration), on today's 20-day average.
+    liquid = liquidity.passes(traded_value, pd.Index(qualified["Symbol"]),
+                              traded_value.index[-1] if traded_value is not None else None,
+                              liquidity_floor_cr)
+    if liquid is not None:
+        dropped = int((~liquid).sum())
+        qualified = qualified[liquid.reindex(qualified["Symbol"]).to_numpy()]
+        kit.caption(f"Liquidity floor ₹{liquidity_floor_cr:g} Cr: {dropped} qualified "
+                    f"stock{'s' if dropped != 1 else ''} below it left out.")
+    port_universe = qualified.sort_values("Rank").head(port_n)
 
     if port_universe.empty:
         st.info("No stock passes both filters today, so there is no book to build.")
