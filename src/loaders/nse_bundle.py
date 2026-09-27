@@ -77,9 +77,22 @@ def member(files: dict[str, bytes], prefix: str) -> bytes | None:
 
 
 def read_csv(body: bytes) -> pd.DataFrame:
-    """Every value as stripped text, headers upper-cased and trimmed."""
+    """Every value as stripped text, headers upper-cased and trimmed.
+
+    A row with more fields than the header keeps them, joined back into its
+    last column: NSE writes some purposes with an unquoted comma ("INTERIM
+    DIVIDEND - RS 2, SPECIAL DIVIDEND - RS 1"), and the Bc file of 2024-08-22
+    stopped the whole backfill on one ("Expected 10 fields, saw 11").
+    """
+    header = body.split(b"\n", 1)[0].decode("utf-8", "replace")
+    width = len(header.split(","))
+
+    def _rejoin(fields: list[str]) -> list[str]:
+        return fields[:width - 1] + [",".join(fields[width - 1:])]
+
     frame = pd.read_csv(io.BytesIO(body), dtype=str, keep_default_na=False,
-                        skipinitialspace=True, encoding_errors="replace")
+                        skipinitialspace=True, encoding_errors="replace",
+                        engine="python", on_bad_lines=_rejoin)
     frame.columns = [str(c).strip().upper() for c in frame.columns]
     return frame.apply(lambda s: s.str.strip())
 
