@@ -14,7 +14,6 @@ import streamlit as st
 
 from src.ui.system_param import stock_href
 from src.ui import page_kit as kit
-from src.ui.charts import render_sector_treemap
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
 from src.ui.screener_table import render_screener_table
 
@@ -118,7 +117,7 @@ def board_html(board: pd.DataFrame) -> str:
 
 
 def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
-    """Industries ranked, with the treemap as a second view."""
+    """Industries ranked, then the stocks of the one picked."""
     has_tv = [c for c in ("TV_Industry", "TV_Sector") if c in rank_df.columns]
     tax = {"NSE industry": "Industry"}
     if "TV_Industry" in has_tv:
@@ -168,18 +167,10 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
                     _tone(weak["3M Return"])),
     ], "Industries today")
 
-    view = st.segmented_control("View", ["Table", "Treemap"], default="Table",
-                                key="sector_layout_choice", label_visibility="collapsed") or "Table"
-    if view == "Treemap":
-        with kit.card("Industry treemap", "sec_tree", "size = market cap · colour = 3-month return"):
-            render_sector_treemap(rank_df, taxonomy_col=col,
-                                  return_col="6M Return" if by == "6M median" else "3M Return",
-                                  size_by="Market Cap")
-    else:
-        with kit.card("Industry leaderboard", "sec_board", "leaders link to their stock pages"):
-            st.html(board_html(board))
-            if singles:
-                kit.caption(f"Left out: {', '.join(singles)} (one stock each). One stock is not an industry trend.")
+    with kit.card("Industry leaderboard", "sec_board", "leaders link to their stock pages"):
+        st.html(board_html(board))
+        if singles:
+            kit.caption(f"Left out: {', '.join(singles)} (one stock each). One stock is not an industry trend.")
 
     with kit.card("Stocks in an industry", "sec_stocks"):
         pick = st.selectbox("Industry", board["Industry"].tolist(), key="sector_pick",

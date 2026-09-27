@@ -548,8 +548,6 @@ def inject_custom_css() -> None:
         .mkt-strip .up { color: #067647; } .mkt-strip .down { color: #B42318; }
         .ms-bar { display: block; height: 6px; border-radius: 3px; background: #EDEFF3; }
         .ms-bar i { display: block; height: 6px; border-radius: 3px; background: #0E1726; }
-        .scr-count { font-size: 13.5px; color: #3C4657; padding: 2px 2px 0; }
-        .scr-count strong { color: #0E1726; }
         .t50 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
         .t50-card { background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
         .t50-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }

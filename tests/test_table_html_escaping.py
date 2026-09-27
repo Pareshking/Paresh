@@ -181,29 +181,6 @@ def test_rrg_chart_payload_cannot_close_its_script_block(monkeypatch):
     assert _script_tags_balance(html)
 
 
-def test_sector_treemap_payload_cannot_close_its_script_block(monkeypatch):
-    from src.ui import charts
-
-    box: dict[str, str] = {}
-    monkeypatch.setattr(charts.st, "iframe", lambda html, **kw: box.setdefault("html", html))
-    monkeypatch.setattr(charts.st, "info", lambda *a, **kw: None)
-    monkeypatch.setattr(charts.st, "warning", lambda *a, **kw: None)
-
-    charts.render_sector_treemap(pd.DataFrame({
-        "Symbol": ["AAA", "BBB"],
-        "Industry": [BREAKOUT, BREAKOUT],
-        "Rank": [1, 2],
-        "CMP": [10.0, 20.0],
-        "Market Cap (Cr)": [100.0, 200.0],
-        "3M Return": [0.1, 0.2],
-        "3M Sharpe": [1.0, 1.1],
-    }))
-
-    html = box["html"]
-    assert BREAKOUT not in html
-    assert _script_tags_balance(html)
-
-
 def test_script_json_preserves_the_value_it_escapes():
     """The escape must be invisible to JavaScript -- "<\\/" is just "/"."""
     import json

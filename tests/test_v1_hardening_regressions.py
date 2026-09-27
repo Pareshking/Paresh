@@ -10,7 +10,6 @@ from src.engine.calendar_momentum import (
 )
 from src.engine.momentum import MomentumEngine
 from src.ui.components import compute_signals
-from src.core.types import MarketRegime
 
 
 def _prices(rows: int = 80, cols: int = 3) -> pd.DataFrame:
@@ -268,5 +267,5 @@ def test_compute_signals_handles_pyarrow_backed_string_flags() -> None:
             "Composite Rank": pd.Series([1.0, np.nan, 3.0], dtype="float64"),
         }
     )
-    signals = compute_signals(rank_df, MarketRegime.BULLISH, 1.0, 50.0)
+    signals = compute_signals(rank_df)
     assert isinstance(signals, list)

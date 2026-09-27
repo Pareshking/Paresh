@@ -983,7 +983,7 @@ system_name = SYSTEM_NAMES[system]
 
 
 def _system_line() -> None:
-    """The Screener's first line for Nano Cap and Combined: what is ranked."""
+    """The Screener's footnote for Nano Cap and Combined: what is ranked."""
     if system == SYSTEM_750:
         return
     members = set(data["idx_info"]["Symbol"]) if data.get("idx_info") is not None else set()
@@ -1021,12 +1021,12 @@ def _record_start() -> str:
 
 
 def _page_screener() -> None:
-    if not st.query_params.get("stock"):
-        _system_line()
+    # What is ranked comes last, under the top-50 moves (owner, 2026-09-27).
     render_ranking_view(
         rank_df, adj_close, high_prices, low_prices, volume_data,
         open_prices=data.get("open_prices"),
         regime=regime_data,
+        footnote=_system_line,
     )
 
 
@@ -1174,6 +1174,7 @@ render_header_kpi_bar(
     total_stocks=total_stocks,
     above_ema=above_ema,
     pct_above_ema=pct_above_ema,
+    near_high=count_above_ema(rank_df, "Near 52W High"),
     nav_pages=_PAGES,
     active_page=_nav,
 )
@@ -1181,12 +1182,7 @@ render_header_kpi_bar(
 # The signal chips are about the ranking, so they sit on the Screener only;
 # every page keeps the one-line market summary above.
 if _nav is _PAGES[0] and not st.query_params.get("stock"):
-    render_signal_alerts(compute_signals(
-        rank_df=rank_df,
-        regime_status=regime_data.status,
-        dma_dist=regime_data.distance_pct,
-        pct_above_ema=pct_above_ema,
-    ))
+    render_signal_alerts(compute_signals(rank_df))
 
 # The reader's watchlist lives in their browser; bring it into the session
 # before any page reads it (src/ui/watchlist_store.py).

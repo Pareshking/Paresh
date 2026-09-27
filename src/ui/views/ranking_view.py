@@ -123,9 +123,14 @@ def render_ranking_view(
     volume_data: pd.DataFrame | None = None,
     open_prices: pd.DataFrame | None = None,
     regime=None,
+    footnote=None,
 ) -> None:
     """The Screener: market strip, search and presets, the ranking table, and
-    this month's top-50 moves. ?stock=SYMBOL opens that stock's page instead."""
+    this month's top-50 moves. ?stock=SYMBOL opens that stock's page instead.
+
+    footnote, if given, is called after the top-50 moves: Nano Cap and
+    Combined say there what is ranked and what is too new to rank.
+    """
     # ── Stock detail route ───────────────────────────────────────────────────
     # ?stock=SYMBOL opens the detail page instead of the screener. A query
     # parameter rather than session state on purpose: it survives a refresh,
@@ -251,9 +256,8 @@ def render_ranking_view(
     search_options = stock_opts + idx_opts + ind_opts + sec_opts + tv_ind_opts
 
     # ── Page header ──────────────────────────────────────────────────────────
-    # The ranking's own date, not the wall clock: on 1 Oct a table ranked on
-    # 30 Sep closes is September's ranking, and labelling it "Oct" said
-    # otherwise.
+    # The ranking's own month (for "Entered the top 50 in ..."), not the wall
+    # clock: on 1 Oct a table ranked on 30 Sep closes is September's ranking.
     from src.core import startup_metrics as _metrics
 
     try:
@@ -261,20 +265,20 @@ def render_ranking_view(
             str(_metrics.snapshot().get("facts", {}).get("price_as_of") or "")[:10]
         )
         month_label = price_day.strftime("%B %Y")
-        close_label = f"closes of {price_day:%a %d %b}"
     except (ValueError, TypeError):
         month_label = ist_now().strftime("%B %Y")
-        close_label = "latest closes"
 
     n_total = len(rank_df)
     c_title, c_export = st.columns([4, 1], vertical_alignment="bottom")
     c_title.html(
-        f'<div class="scr-head"><h1>Screener</h1><p>{n_total} NSE stocks ranked by '
-        f"risk-adjusted momentum · {html.escape(month_label)} ranking, "
-        f"{html.escape(close_label)}</p></div>"
+        # The title alone: the count is the top bar's Universe and the date
+        # its "Prices · closes of" pill (owner, 2026-09-27: no repeats).
+        '<div class="scr-head"><h1>Screener</h1></div>'
     )
 
-    render_market_strip(rank_df, regime)
+    # No tile strip: regime and breadth are the market line's, the pass count
+    # is the "Pass both filters" button's, the top-50 moves the closing
+    # section's (owner, 2026-09-27: no figure shown twice on a page).
 
     # ── Search, presets, sort and columns ────────────────────────────────────
     passes = (to_bool_mask(rank_df.get("Above 50 EMA"))
@@ -450,17 +454,6 @@ def render_ranking_view(
     if sort_by in view.columns and not (filt == "Momentum Movers" and sort_by == "Rank"):
         view = view.sort_values(sort_by, ascending=asc)
 
-    # Count through the boolean mask. Summing the raw column concatenates
-    # under the pandas 3 string dtype and yields '' for an empty view.
-    n_view = len(view)
-    n_ema = int(to_bool_mask(view.get("Above 50 EMA")).sum())
-    n_hi = int(to_bool_mask(view.get("Near 52W High")).sum())
-    st.html(
-        f'<div class="scr-count">Showing <strong>{n_view}</strong> of {n_total}'
-        f" · {n_ema} above 50-day EMA · {n_hi} within 20% of their 52-week high"
-        f" · click a column to sort, a row to open the stock</div>"
-    )
-
     if str(density_mode).startswith("Full"):
         # The research view: every window and every data-health column.
         render_master_screener_table(view, prices_df=adj_close, density=density_mode)
@@ -489,6 +482,8 @@ def render_ranking_view(
     )
 
     render_top50_changes(rank_df, month_label.split(" ")[0])
+    if footnote is not None:
+        footnote()
 
     render_data_quality_footer(
         total_stocks=len(rank_df),
@@ -505,44 +500,6 @@ def _reset_screener_filters() -> None:
                 "rank_density_mode", "rank_quick_pills"):
         st.session_state.pop(key, None)
     remember("rank_sort_by_idx", 0)
-
-
-def render_market_strip(rank_df: pd.DataFrame, regime) -> None:
-    """Regime, breadth, pass count and this month's top-50 moves."""
-    n = len(rank_df)
-    ema = int(to_bool_mask(rank_df.get("Above 50 EMA")).sum())
-    passes = int((to_bool_mask(rank_df.get("Above 50 EMA"))
-                  & to_bool_mask(rank_df.get("Near 52W High"))).sum())
-    pct = ema / n * 100 if n else 0.0
-    entered, left = top50_changes(rank_df)
-    tiles = []
-    if regime is not None:
-        bull = str(getattr(regime.status, "value", regime.status)).upper() == "BULLISH"
-        dist = float(regime.distance_pct)
-        tiles.append(
-            f'<div class="ms-tile"><span class="ms-k">Market regime</span>'
-            f'<span class="ms-v {"up" if bull else "down"}">{"Bullish" if bull else "Bearish"}</span>'
-            f'<span class="ms-s">Nifty 500 at {regime.current_price:,.0f} · '
-            f'<b class="{"up" if dist >= 0 else "down"}">{abs(dist):.1f}% '
-            f'{"above" if dist >= 0 else "below"}</b> its 200-day average</span></div>'
-        )
-    tiles.append(
-        f'<div class="ms-tile"><span class="ms-k">Breadth</span><span class="ms-v">{pct:.0f}%</span>'
-        f'<span class="ms-bar"><i style="width:{pct:.0f}%"></i></span>'
-        f'<span class="ms-s">{ema} of {n} above their 50-day EMA</span></div>'
-    )
-    tiles.append(
-        f'<div class="ms-tile"><span class="ms-k">Pass both filters</span><span class="ms-v">{passes}</span>'
-        f'<span class="ms-s">Above 50-day EMA and within 20% of their 52-week high</span></div>'
-    )
-    if entered is not None:
-        tiles.append(
-            f'<div class="ms-tile"><span class="ms-k">Top 50 this month</span>'
-            f'<span class="ms-v"><span class="up">{len(entered)} in</span> '
-            f'<span class="ms-dot">·</span> <span class="down">{len(left)} out</span></span>'
-            f'<span class="ms-s">See who moved, below the table</span></div>'
-        )
-    st.html(f'<section class="mkt-strip" aria-label="Market today">{"".join(tiles)}</section>')
 
 
 def top50_changes(rank_df: pd.DataFrame):

@@ -17,6 +17,9 @@ on:
       backfill:
         description: "Older trading days to fetch this run"
         default: "150"
+      dates:
+        description: "Extra days to collect, space-separated YYYY-MM-DD (weekend special sessions)"
+        default: ""
   pull_request:
     paths:
       - "src/loaders/nse_bundle.py"
@@ -67,10 +70,11 @@ jobs:
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
           BACKFILL: ${{ inputs.backfill || '150' }}
+          DATES: ${{ inputs.dates || '' }}
         run: |
           # Sample year signed off (owner, 2026-09-27). Three years, not ten:
           # the backtest needs ~18 months and the record starts Jan 2026
           # (owner: "we are never going to do such long back test").
-          python scripts/nse_collect.py --recent 7 --backfill "$BACKFILL" --since 2023-10-01 \
+          python scripts/nse_collect.py --recent 7 --backfill "$BACKFILL" --since 2023-10-01 --dates "$DATES" \
             --calendar prices_full.parquet --check \
             --screener screener_prices.parquet --yahoo prices.parquet

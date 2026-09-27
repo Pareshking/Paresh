@@ -51,13 +51,48 @@ def wide(prices: pd.DataFrame) -> dict[str, pd.DataFrame]:
     return out
 
 
-def step_factors(close: pd.DataFrame, prev_close: pd.DataFrame,
-                 tol: float = STEP_TOL) -> pd.DataFrame:
-    """NSE's adjustment on each day: prev_close / the stock's last close; 1 elsewhere."""
+GAP_SHARE = 0.25              # more stocks than this stepping on one day: a missing session
+GAP_KEEP = 0.5                # on such a day, keep only steps beyond 1:2 either way
+
+
+def _raw_steps(close: pd.DataFrame, prev_close: pd.DataFrame,
+               tol: float = STEP_TOL) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     last = close.ffill().shift(1)
     f = prev_close.reindex_like(close) / last
-    step = (f - 1).abs() > tol
-    return f.where(step & f.gt(0) & np.isfinite(f), 1.0)
+    # NSE's previous close and our last close are all the factor needs; the
+    # day's own close can be absent (the stock printed no trade).
+    both = last.notna() & prev_close.reindex_like(close).notna()
+    step = ((f - 1).abs() > tol) & f.gt(0) & np.isfinite(f) & both
+    return f, step, both
+
+
+def gap_days(close: pd.DataFrame, prev_close: pd.DataFrame,
+             tol: float = STEP_TOL, share: float = GAP_SHARE) -> pd.Series:
+    """Days whose previous close is not our previous session's close for most stocks.
+
+    That is a session missing from the record -- NSE traded (a Budget Sunday,
+    a muhurat session) and we hold no file for it -- not hundreds of
+    corporate actions. Returns the share of stocks stepping, for those days.
+    """
+    _f, step, both = _raw_steps(close, prev_close, tol)
+    frac = step.sum(axis=1) / both.sum(axis=1).replace(0, np.nan)
+    return frac[frac > share]
+
+
+def step_factors(close: pd.DataFrame, prev_close: pd.DataFrame,
+                 tol: float = STEP_TOL) -> pd.DataFrame:
+    """NSE's adjustment on each day: prev_close / the stock's last close; 1 elsewhere.
+
+    On a day after a missing session (gap_days) the difference is mostly
+    that session's price move, so only steps beyond 1:2 either way -- a
+    split or bonus no single session's move reaches -- are kept.
+    """
+    f, step, _both = _raw_steps(close, prev_close, tol)
+    gaps = gap_days(close, prev_close, tol).index
+    if len(gaps):
+        big = (np.log(f.loc[gaps].where(f.loc[gaps] > 0)).abs() > abs(np.log(GAP_KEEP)))
+        step.loc[gaps] = step.loc[gaps] & big
+    return f.where(step, 1.0)
 
 
 def factor_after(factors: pd.DataFrame) -> pd.DataFrame:
@@ -102,7 +137,10 @@ def crosscheck_actions(factors: pd.DataFrame, actions: pd.DataFrame,
     ev = events(factors)
     a = actions[actions["kind"].isin(["split", "bonus", "consolidation"])
                 & actions["price_factor"].notna() & actions["ex_date"].notna()].copy()
-    a["date"] = pd.to_datetime(a["ex_date"]).dt.normalize()
+    # One date type on both sides: stored ex-dates arrive as dates, strings
+    # or timestamps of another resolution, and a mismatch matches nothing.
+    a["date"] = pd.to_datetime(a["ex_date"]).dt.normalize().astype("datetime64[ns]")
+    ev["date"] = pd.to_datetime(ev["date"]).astype("datetime64[ns]")
     a = (a.groupby(["symbol", "date"], as_index=False)
           .agg(kind=("kind", lambda k: "+".join(sorted(set(k)))),
                bc_factor=("price_factor", "prod")))
@@ -111,6 +149,7 @@ def crosscheck_actions(factors: pd.DataFrame, actions: pd.DataFrame,
     bad = matched[(matched["factor"] / matched["bc_factor"] - 1).abs() > tol]
     in_window = both["date"].between(factors.index.min(), factors.index.max())
     return {
+        "agreeing": matched.drop(index=bad.index).drop(columns="_merge"),
         "mismatched": bad.drop(columns="_merge"),
         "missing": both[(both["_merge"] == "left_only") & in_window].drop(columns="_merge"),
         "unparsed": both[both["_merge"] == "right_only"].drop(columns="_merge"),
