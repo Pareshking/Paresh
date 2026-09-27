@@ -305,6 +305,22 @@ def app_frame(page):
     return page.main_frame
 
 
+def read_data_source(page, wait_s: float = 30.0) -> str:
+    """The footer's "Data from:" value: R2, or which files came from the release.
+
+    Empty when the footer never showed it (the loaders recorded nothing)."""
+    deadline = time.perf_counter() + wait_s
+    while True:
+        try:
+            body = app_frame(page).locator("body").inner_text(timeout=10_000)
+        except Exception:
+            body = ""
+        match = re.search(r"Data from:\s*([^\n·]+)", body)
+        if match or time.perf_counter() >= deadline:
+            return match.group(1).strip() if match else ""
+        time.sleep(POLL_S)
+
+
 def read_state(page) -> dict:
     """Classify what the browser is ACTUALLY showing right now."""
     frame = app_frame(page)
@@ -1066,6 +1082,8 @@ def main() -> None:
 
             report["ready_state"] = state["state"]
             report["ready_after_s"] = round(time.perf_counter() - started, 1)
+            if state["state"] == "ready":
+                report["data_source"] = read_data_source(page)
 
             # Deploy correspondence. If the app is still serving the previous
             # commit, this run's result says nothing about the commit that
@@ -1333,6 +1351,8 @@ def main() -> None:
                   + (f"  STALE: {len(report['stale_modules'])} src/ file(s) not running"
                      if report.get("stale_modules") else ""), flush=True)
     print(f"time to that state    : {report.get('ready_after_s')}s", flush=True)
+    if "data_source" in report:
+        print(f"data loaded from      : {report['data_source'] or 'not shown'}", flush=True)
     print(f"websocket established : {report['websocket_established']}", flush=True)
     print(f"page errors           : {len(page_errors)}", flush=True)
     print(f"console errors        : {len(console_errors)}", flush=True)

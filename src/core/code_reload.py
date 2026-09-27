@@ -28,6 +28,13 @@ import threading
 _PACKAGES = ("src", "r2")
 _PREFIXES = tuple(p + "." for p in _PACKAGES)
 
+# State other modules need to outlive a reload, keyed by its owner. A module
+# dropped here is re-imported with fresh globals, while its st.cache_data
+# results are served from the cache without running again -- so anything the
+# cached function records as a side effect (which source served a file) would
+# otherwise be lost for the life of the process.
+PERSISTENT: dict[str, dict] = {}
+
 # path -> (mtime_ns, size) as first seen after the module was loaded.
 _SEEN: dict[str, tuple[int, int]] = {}
 _LOCK = threading.Lock()

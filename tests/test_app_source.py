@@ -88,3 +88,20 @@ def test_summary_names_the_source():
     app_source.record("price_snapshot", "release")
     assert "price_snapshot: release" in app_source.summary()
     app_source.SOURCES.clear()
+
+
+def test_the_record_survives_a_code_reload():
+    # The loaders that fill SOURCES are cached, so after src/core/code_reload
+    # drops and re-imports this module they do not run again; the footer
+    # must still say where the data came from.
+    import importlib
+    import sys
+
+    app_source.SOURCES.clear()
+    app_source.record("rankings", "r2")
+    del sys.modules["src.loaders.app_source"]
+    fresh = importlib.import_module("src.loaders.app_source")
+    try:
+        assert fresh.summary() == "R2"
+    finally:
+        fresh.SOURCES.clear()
