@@ -133,7 +133,12 @@ def collect(days: list[date], *, fetch, publish, workdir: Path,
         if files is None:
             stats["absent"].append(day)
             continue
-        tables = nse_bundle.parse_bundle(files, day)
+        try:
+            tables = nse_bundle.parse_bundle(files, day)
+        except Exception as exc:                 # one bad file never stops the run
+            log(f"PARSE_ERROR {day}: {type(exc).__name__}: {exc}"[:300])
+            stats["failed"].append(day)
+            continue
         if "prices" not in tables or tables["prices"].empty:
             log(f"NO_PRICES {day}: bundle has {sorted(files)}")
             stats["failed"].append(day)

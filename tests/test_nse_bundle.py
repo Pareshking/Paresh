@@ -247,3 +247,22 @@ def test_stored_swapped_dates_are_repaired_by_the_listing_window():
     assert out.at["CAMS", "record_date"] == pd.Timestamp("2025-12-05")
     assert out.at["LATE", "ex_date"] == pd.Timestamp("2025-12-20")   # day > 12: never swapped
     assert out.at["EARLY", "ex_date"] == pd.Timestamp("2026-03-11")  # already in its window
+
+
+def test_an_unquoted_comma_joins_back_into_the_last_column():
+    bc = (BC + "EQ,JKL,Jkl Ltd,30-Sep-2026, , ,30-Sep-2026, , ,"
+               "INTERIM DIVIDEND - RS 2, SPECIAL DIVIDEND - RS 1\n")
+    a = nb.parse_corporate_actions(bc.encode(), DAY)
+    assert len(a) == 4
+    purpose = a.iloc[-1]["purpose"]
+    assert purpose.startswith("INTERIM DIVIDEND - RS 2,") and purpose.endswith("SPECIAL DIVIDEND - RS 1")
+    assert a.iloc[-1]["kind"] == "dividend"
+
+
+def test_a_file_that_cannot_be_parsed_is_skipped_not_fatal(tmp_path, monkeypatch):
+    days = [date(2026, 9, 25), date(2026, 9, 24)]
+    monkeypatch.setattr(nb, "parse_bundle", lambda files, day: (_ for _ in ()).throw(ValueError("bad"))
+                        if day == days[0] else {"prices": nb.parse_prices(PD.encode(), day)})
+    stats = nc.collect(days, fetch=lambda d: BUNDLE, publish=lambda *a, **k: None,
+                       workdir=tmp_path, sleep=lambda s: None, log=lambda *_: None)
+    assert stats["failed"] == [days[0]] and stats["published"] == [days[1]]
