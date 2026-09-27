@@ -1282,12 +1282,26 @@ def run_backtest(
             book = new_holdings
             book_wts = new_wts
 
+    # Month to date (owner, 2026-09-27: "what works and what didn't for the
+    # current month"). From the last close of the previous month for a name
+    # carried into this month; from its fill for a name bought this month,
+    # which was not owned before it.
+    month_start = as_of_dt.to_period("M").start_time
+    month_idx = int(prices.index.searchsorted(month_start))
+    prior_close_idx = month_idx - 1
+
     live_rows: list[dict[str, Any]] = []
     for s in book:
         pos = positions.get(s, {})
         entry_price = pos.get("entry_price", float("nan"))
         entry_dt = pos.get("entry_date")
         mark = _fill_price(prices, s, as_of_idx)
+        if entry_dt is not None and pd.Timestamp(entry_dt) >= month_start:
+            mtd_base = entry_price
+        elif prior_close_idx >= 0:
+            mtd_base = _fill_price(prices, s, prior_close_idx)
+        else:
+            mtd_base = float("nan")
         live_rows.append(
             {
                 "Symbol": s,
@@ -1296,6 +1310,7 @@ def run_backtest(
                 "Entry Price": entry_price,
                 "Price Now": mark,
                 "Return %": _round_trip_return(entry_price, mark),
+                "MTD %": _round_trip_return(mtd_base, mark),
                 "Holding (Days)": (
                     (as_of_dt - entry_dt).days if entry_dt is not None else 0
                 ),

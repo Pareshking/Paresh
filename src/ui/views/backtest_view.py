@@ -350,8 +350,21 @@ def _backtest_body(
                             (pd.to_datetime(live_book["Entry Date"], errors="coerce")
                              == _fill).sum()
                         )
+                    # The book's month so far: each name's MTD at its rebalance
+                    # weight (weights drift with prices; close enough to read).
+                    _mtd = live_book.get("MTD %", pd.Series(dtype=float))
+                    _w = live_book.get("Weight %", pd.Series(dtype=float))
+                    _ok = _mtd.notna() & _w.notna()
+                    book_mtd = (float((_mtd[_ok] * _w[_ok]).sum() / _w[_ok].sum() * 100)
+                                if _ok.any() and _w[_ok].sum() > 0 else float("nan"))
                     kit.readings([
                         kit.Reading("Holdings", f"{len(live_book)}", f"{n_new} added this month"),
+                        kit.Reading(
+                            "Book this month",
+                            "—" if book_mtd != book_mtd else f"{book_mtd:+.1f}%",
+                            "month to date, by weight",
+                            "" if book_mtd != book_mtd else ("up" if book_mtd >= 0 else "down"),
+                        ),
                         kit.Reading("In profit", f"{n_up}", "marked at the latest close", "up" if n_up else ""),
                         kit.Reading("In loss", f"{n_dn}", "", "down" if n_dn else ""),
                         kit.Reading("Average unrealised", f"{avg_r:+.1f}%", "", "up" if avg_r >= 0 else "down"),

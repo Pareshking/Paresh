@@ -70,6 +70,7 @@ FORMAT_MAP: dict[str, str] = {
     "6M Net Return": "{:+.1%}",
     "6M Alpha": "{:+.1%}",
     "Return %": "{:+.1%}",
+    "MTD %": "{:+.1%}",
     "Strategy Net": "{:+.1%}",
     "Benchmark": "{:+.1%}",
     "Outperform": "{:+.1%}",
