@@ -206,6 +206,8 @@ allegations investigated and rejected, and the remaining risks the corrections
 do **not** address — chiefly that 7 of the 8 recorded months are backfilled
 reconstructions, and that every figure in this application is **pre-tax**.
 
+What is still open, in one list: [`docs/TODO.md`](docs/TODO.md).
+
 See [`docs/PARKED_IDEAS.md`](docs/PARKED_IDEAS.md) for features and integrations that were researched and deliberately set aside, with recorded reasoning.
 
 ## Core capabilities
