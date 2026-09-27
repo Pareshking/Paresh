@@ -13,7 +13,7 @@ _Last updated: 2026-09-27_
 | Stocks | NSE's Nifty Total Market | every main-board stock ≥ ₹2,000 Cr outside the 750 | both, ranked as one list |
 | Key | `750` | `nano` | `combined` |
 | Membership | NSE constituents, `data/membership_history.json` | month-end list, `data/nanocap_membership.json` | union of the two on each date |
-| Industry | NSE industry | TradingView sector | TradingView sector |
+| Industry | NSE industry | TradingView sector (`scripts/classify_missing.py`) | TradingView sector |
 | Track record | since Jan 2026, `data/track_record.json` | from Oct 2026, `data/track_record_nano.json` | from Oct 2026, `data/track_record_combined.json` |
 | Backtest | last 6 completed months | from Sep 2026, a month more each month-end | same as Nano Cap |
 
@@ -107,4 +107,3 @@ backtest reports 1–30 Sep on the point-in-time list.
 
 ## Open items
 
-- "Unclassified" industries for stocks TradingView lacks.

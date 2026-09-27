@@ -188,6 +188,15 @@ jobs:
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: python scripts/build_extra_universe.py || echo "::warning::Extra universe refresh failed; keeping the committed list."
 
+      # A TradingView sector for every stock the lists hold: TradingView's
+      # screener first, then Screener.in mapped onto TradingView's names
+      # (scripts/classify_missing.py). Writes data/, committed below. A stock
+      # neither knows stays "Unclassified". Non-blocking.
+      - name: Fill in missing sectors
+        env:
+          PYTHONPATH: .
+        run: python scripts/classify_missing.py || echo "::warning::Sector lookup failed; unknown stocks stay Unclassified."
+
       - name: Run Automated Daily Market Sync
         env:
           PYTHONPATH: .
