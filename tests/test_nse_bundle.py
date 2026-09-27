@@ -17,7 +17,8 @@ DAY = date(2026, 9, 25)
 PD = (
     "MKT,SERIES,SYMBOL,SECURITY,PREV_CL_PR,OPEN_PRICE,HIGH_PRICE,LOW_PRICE,CLOSE_PRICE,"
     "NET_TRDVAL,NET_TRDQTY,IND_SEC,CORP_IND,TRADES,HI_52_WK,LO_52_WK\n"
-    "Y, ,Nifty 50,Nifty 50,25000,25010,25100,24900,25050,0,0,Y, ,0,26000,22000\n"
+    "Y, , ,Nifty 50,     25000.00,25010,25100,24900,     25050.00,0,0,Y, ,0,26000,22000\n"
+    "N,EQ,RELIANCE,Reliance Industries,1400,1401,1420,1395,1414.00,1,1,Y, ,1,1600,1200\n"
     "N,EQ,IRCTC,Indian Railway Catering,455.00,456,462,450.5,459.00,1234567.5,2690,N, ,5000,920,420\n"
     "N,BE,IRCTC,Indian Railway Catering,455.00,456,462,450.5,458.00,1,1,N, ,1,920,420\n"
     "N,EQ,J&KBANK,Jammu & Kashmir Bank,100,101,103,99,102,1,1,N,XD,1,150,90\n"
@@ -52,11 +53,12 @@ BUNDLE = {"Pd250926.csv": PD.encode(), "Bc250926.csv": BC.encode(),
 def test_prices_keep_every_series_and_the_index_rows_unadjusted():
     p = nb.parse_prices(PD.encode(), DAY)
     assert list(p.columns) == nb.PRICE_COLUMNS
-    assert len(p) == 4
+    assert len(p) == 5
     irctc = p[(p.symbol == "IRCTC") & (p.series == "EQ")].iloc[0]
     assert irctc.close == 459.0 and irctc.prev_close == 455.0 and irctc.volume == 2690
     assert irctc.value == pytest.approx(1234567.5)
-    assert p[p.ind_sec == "Y"].iloc[0].close == 25050
+    index_row = p[p.mkt == "Y"].iloc[0]
+    assert index_row.security == "Nifty 50" and index_row.symbol == "" and index_row.close == 25050
     assert p[p.symbol == "J&KBANK"].iloc[0].corp_ind == "XD"
 
 
@@ -193,7 +195,9 @@ def test_source_check_flags_level_and_return_gaps_only():
                    ("GONE", "missing_at_nse")}
 
 
-def test_source_check_uses_eq_before_be():
+def test_source_check_uses_eq_before_be_and_keeps_index_members():
     closes = source_check.nse_closes(nb.parse_prices(PD.encode(), DAY))
     assert closes.at["IRCTC", "close"] == 459.0
-    assert "Nifty 50".upper() not in closes.index
+    # IND_SEC = Y marks a Nifty member; the first live run dropped all fifty.
+    assert closes.at["RELIANCE", "close"] == 1414.0
+    assert "" not in closes.index and "NIFTY 50" not in closes.index
