@@ -105,3 +105,23 @@ def test_the_record_survives_a_code_reload():
         assert fresh.summary() == "R2"
     finally:
         fresh.SOURCES.clear()
+
+
+def test_an_older_code_reload_without_persistent_still_imports():
+    # code_reload is exempt from reloading, so production can hold a copy
+    # that predates PERSISTENT while this module is re-imported.
+    import importlib
+    import sys
+
+    from src.core import code_reload
+
+    saved = code_reload.__dict__.pop("PERSISTENT")
+    del sys.modules["src.loaders.app_source"]
+    try:
+        fresh = importlib.import_module("src.loaders.app_source")
+        fresh.record("rankings", "r2")
+        assert fresh.summary() == "R2"
+    finally:
+        code_reload.PERSISTENT = saved
+        del sys.modules["src.loaders.app_source"]
+        importlib.import_module("src.loaders.app_source")
