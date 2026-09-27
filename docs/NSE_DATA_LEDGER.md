@@ -72,8 +72,12 @@ _Last updated: 2026-09-27_
    - collection — next: Screener and Yahoo fetch these stocks too; Screener
      pacing gets random jitter; all three sources in before 06:00 IST
      (Screener runs ~21:35 UTC today, ~20 min for 750, ~+12 min for ~460).
-   - app — after collection: selectable in Configuration, default the 750;
-     never in the model portfolio, Actions or track record. Industries still
-     "Unclassified" looked up on Screener.in.
+   - app — **built**: Configuration › Ranking universe (750 default | Nano
+     Cap). Nano Cap is ranked among its own stocks (src/loaders/
+     extra_universe_loader.py: own list, own Yahoo file, list market caps).
+     Screener, Sectors, RRG, Watchlist, Breadth, Backtest follow the choice;
+     Portfolio, Actions, Track Record stay on the 750 and say so. Local run:
+     361 of 417 ranked, 56 too new (listed < minimum history). To do:
+     "Unclassified" industries from Screener.in.
 5. Adjusted-price layer from NSE raw + corporate actions; compare rankings
    with the Screener-based ones before any switch.

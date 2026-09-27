@@ -15,7 +15,8 @@ def _yf(batch):
 
 
 def test_download_batches_and_strips_the_suffix(monkeypatch):
-    monkeypatch.setattr(sx, "BATCH", 2)
+    from src.loaders import extra_universe_loader as xl
+    monkeypatch.setattr(xl, "BATCH", 2)
     calls = []
 
     def fetch(batch):

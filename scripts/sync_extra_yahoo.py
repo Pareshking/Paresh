@@ -20,9 +20,10 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.loaders.extra_universe_loader import BATCH, download, strip_suffix  # noqa: F401
+
 ROOT = Path(__file__).resolve().parents[1]
 LIST_PATH = ROOT / "data" / "indices" / "ind_nanocap_list.csv"
-BATCH = 100
 
 
 def tickers(path: Path = LIST_PATH) -> list[str]:
@@ -30,33 +31,6 @@ def tickers(path: Path = LIST_PATH) -> list[str]:
         return []
     syms = pd.read_csv(path)["Symbol"].dropna().astype(str).str.strip().str.upper()
     return sorted(s for s in set(syms) if s and not s.startswith("DUMMY"))
-
-
-def strip_suffix(frame: pd.DataFrame) -> pd.DataFrame:
-    """(SYM.NS, field) columns -> (SYM, field), rows with no price at all dropped."""
-    if frame.empty or not isinstance(frame.columns, pd.MultiIndex):
-        return pd.DataFrame()
-    frame = frame.copy()
-    frame.columns = pd.MultiIndex.from_tuples(
-        [(str(t).upper().removesuffix(".NS"), f) for t, f in frame.columns])
-    frame.index = pd.DatetimeIndex(frame.index).tz_localize(None).normalize()
-    return frame.dropna(how="all").sort_index()
-
-
-def download(symbols: list[str], period: str = "2y", fetch=None) -> pd.DataFrame:
-    if fetch is None:
-        import yfinance as yf
-
-        def fetch(batch):
-            return yf.download(batch, period=period, progress=False,
-                               group_by="ticker", threads=True, auto_adjust=True)
-    parts = []
-    for start in range(0, len(symbols), BATCH):
-        batch = [s + ".NS" for s in symbols[start:start + BATCH]]
-        got = strip_suffix(fetch(batch))
-        if not got.empty:
-            parts.append(got)
-    return pd.concat(parts, axis=1).sort_index() if parts else pd.DataFrame()
 
 
 def main(argv: list[str] | None = None) -> int:
