@@ -229,26 +229,15 @@ def render_header_kpi_bar(
     st.html(market_html)
 
 
-def render_signal_alerts(signals: list[SignalAlert]) -> None:
-    """Renders sleek 1-line horizontal alert chips."""
-    if not signals:
-        return
-
-    chips_html = ""
-    for s in signals:
-        esc_text = html.escape(str(s.text))
-        chips_html += (
-            f'<div style="display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 9px; '
-            f"background-color: {s.color}14; border: 1px solid {s.color}2E; font-family: var(--font-ui); "
-            f'font-size: 13px; color: {s.color}; font-weight: 600; white-space: nowrap; flex-shrink: 0;">'
-            f"<span>{esc_text}</span></div>"
-        )
-    ribbon_html = f"""
-    <div role="alert" aria-live="polite" aria-label="Market signals" style="display: flex; align-items: center; gap: 8px; overflow-x: auto; padding: 0 0 6px; margin-bottom: 6px; scrollbar-width: thin; scrollbar-color: #D0D5DD transparent;">
-        <span class="sig-label">Signals today</span>{chips_html}
-    </div>
-    """
-    st.markdown(ribbon_html, unsafe_allow_html=True)
+def signal_chips_html(signals: list[SignalAlert]) -> str:
+    """The Screener's signal chips, for its title row ("" when there are none)."""
+    chips = "".join(
+        f'<span class="sig-chip" style="color:{s.color};background:{s.color}14;'
+        f'border-color:{s.color}2E">{html.escape(str(s.text))}</span>'
+        for s in signals
+    )
+    return (f'<div class="sig-row" role="status" aria-label="Signals today">{chips}</div>'
+            if chips else "")
 
 
 def stat_pill(label: str, value: Any, color: str = "indigo") -> str:
