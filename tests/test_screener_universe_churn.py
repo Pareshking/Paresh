@@ -96,7 +96,8 @@ def test_run_forces_new_symbols_before_regular_sweep(monkeypatch):
     monkeypatch.setattr(sync.sl, "merge_into_store", fake_merge)
 
     assert sync.run() == 0
-    assert calls == [(["HEGAM"], 3650), (["AAA"], 365)]
+    # A newcomer gets ten years (weekly) and the daily year, then the sweep.
+    assert calls == [(["HEGAM"], 3650), (["HEGAM"], 365), (["AAA"], 365)]
     assert captured["symbols"] == ["AAA", "HEGAM"]
 
 
@@ -133,7 +134,8 @@ def test_extra_universe_is_fetched_after_the_750_and_never_gates_the_night(monke
 
     assert sync.run() == 0                   # XGONE unserved: the night still succeeds
     # The 750 first; then new extras with full history, then the rest.
-    assert calls == [(["AAA"], 365), (["XNEW"], 3650), (["XGONE", "XOLD"], 365)]
+    assert calls == [(["AAA"], 365), (["XNEW"], 3650), (["XNEW"], 365),
+                     (["XGONE", "XOLD"], 365)]
     assert captured["symbols"] == ["AAA", "XNEW", "XOLD"]
     assert sync.extra_symbols(["AAA"], str(extra)) == ["XGONE", "XNEW", "XOLD"]
 
@@ -145,3 +147,27 @@ def test_the_pause_adds_jitter_only_when_pacing(monkeypatch):
     sl._pause(0, sleep=slept.append)
     sl._pause(1.2, sleep=slept.append)
     assert slept[0] == 0 and 1.2 <= slept[1] <= 1.2 + sl.SCREENER_JITTER_S
+
+
+def test_a_newcomer_gets_the_daily_year_over_the_weekly_decade(monkeypatch):
+    import pandas as pd
+
+    import scripts.sync_screener as sync
+
+    weekly = pd.date_range("2026-08-28", periods=5, freq="7D")        # Fridays
+    daily = pd.bdate_range("2026-09-21", "2026-09-25")
+
+    def frame(idx, value):
+        cols = pd.MultiIndex.from_tuples([("NEW", "Close"), ("NEW", "Volume")])
+        return pd.DataFrame(value, index=idx, columns=cols)
+
+    def fake_fetch(symbols, days, **kwargs):
+        return (frame(weekly, 1.0) if days == 3650 else frame(daily, 2.0)), kwargs["ids"], []
+
+    monkeypatch.setattr(sync.sl, "fetch_universe", fake_fetch)
+    got, _ids, _un = sync.fetch_new_history(["NEW"], {})
+    close = got[("NEW", "Close")]
+    # Every weekday of the last week is priced, from the daily request.
+    assert close.loc["2026-09-21":"2026-09-25"].tolist() == [2.0] * 5
+    # Older weekly points survive.
+    assert close.loc["2026-08-28"] == 1.0
