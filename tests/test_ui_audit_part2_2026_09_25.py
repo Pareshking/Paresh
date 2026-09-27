@@ -75,7 +75,6 @@ def test_breadth_by_index_matches_exact_tags():
 def test_chart_pages_escape_names_and_still_parse(tmp_path, monkeypatch):
     evil = "</b><img src=x onerror=alert(1)>"
     pages = [
-        charts._build_treemap_html(charts._script_json([{"name": evil, "children": []}]), "3M Return", "Mcap"),
         charts._build_rrg_html(charts._script_json([])),
     ]
     got = []

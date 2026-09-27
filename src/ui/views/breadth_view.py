@@ -105,8 +105,8 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
     against new lows."""
     actions = kit.page_head(
         "Market breadth",
-        f"How many stocks are taking part: trend participation and new highs against "
-        f"new lows, across the {len(rank_df)}",
+        "How many stocks are taking part: trend participation and new highs against "
+        "new lows",
         actions=True,
     )
     with actions:
@@ -147,6 +147,8 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
     for ma_lbl in sel_mas:
         if breadth_df.empty or ma_lbl not in breadth_df.columns:
             continue
+        if ma_type == "EMA" and ma_lbl == "50D":
+            continue  # the market line's "Above 50-day EMA"; the chart still plots it
         label = f"Above {ma_lbl.replace('D', '-day')} {ma_type}"
         val = breadth_df[ma_lbl].iloc[-1]
         if pd.isna(val):

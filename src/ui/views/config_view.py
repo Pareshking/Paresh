@@ -498,7 +498,6 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
         "<p>Everything that decides the ranking and the book, on one page. "
         "Changes apply as you make them.</p></div>"
         '<div class="cfg-pills">'
-        f'<span class="cfg-pill ok"><i></i>Ranking {engine_stocks} stocks</span>'
         f'<span class="cfg-pill">{html.escape(mode_label)}</span></div></div>'
     )
 
@@ -512,9 +511,9 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
     n_events = len(load_events() or [])
     kit.readings([
         kit.Reading("Universe", " + ".join(i.title() for i in indices) or "—",
-                    f"{engine_stocks} stocks ranked"
-                    + (f" · system: {SYSTEM_NAMES.get(st.session_state.get('cfg_system'), '')}"
-                       if st.session_state.get("cfg_system", SYSTEM_750) != SYSTEM_750 else "")),
+                    # The count is the market line's Universe.
+                    (f"system: {SYSTEM_NAMES.get(st.session_state.get('cfg_system'), '')}"
+                     if st.session_state.get("cfg_system", SYSTEM_750) != SYSTEM_750 else "")),
         kit.Reading("Score weights", "·".join(f"{w * 100:.0f}" for w in norm),
                     "1M·3M·6M·9M·12M" + (", the default" if is_default else ", your own")),
         kit.Reading("Portfolio limits", f"{_risk('cfg_stc')}% · {_risk('cfg_sc')}%",

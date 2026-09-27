@@ -15,9 +15,9 @@ from src.ui.theme import is_tick_true
 
 
 
-def count_above_ema(rank_df: pd.DataFrame) -> int:
-    """Count stocks with 'Above 50 EMA' truthy, handling duplicate/unexpected columns."""
-    ema_col = rank_df.get("Above 50 EMA")
+def count_above_ema(rank_df: pd.DataFrame, column: str = "Above 50 EMA") -> int:
+    """Count stocks with `column` truthy, handling duplicate/unexpected columns."""
+    ema_col = rank_df.get(column)
     if ema_col is None:
         return 0
     if isinstance(ema_col, pd.DataFrame):
@@ -49,56 +49,24 @@ def to_bool_mask(values: "pd.Series | None") -> pd.Series:
     )
 
 
-def compute_signals(
-    rank_df: pd.DataFrame,
-    regime_status: MarketRegime,
-    dma_dist: float,
-    pct_above_ema: float,
-) -> list[SignalAlert]:
-    """Generates automated market & momentum signals."""
+def compute_signals(rank_df: pd.DataFrame) -> list[SignalAlert]:
+    """The Screener's signal chips: only what no other line on the page says.
+
+    Regime and breadth are the market line's; the top-50 moves are the
+    Screener's closing section (owner, 2026-09-27: no figure shown twice).
+    """
     signals: list[SignalAlert] = []
 
     if "Rank (-1M)" in rank_df.columns:
-        rank_df_tmp = rank_df.copy()
-        rank_df_tmp["_delta_1m"] = rank_df_tmp["Rank (-1M)"] - rank_df_tmp["Rank"]
-
-        # Fresh entries into top 50
-        fresh = rank_df_tmp[
-            (rank_df_tmp["Rank"] <= 50) & (rank_df_tmp["Rank (-1M)"] > 50)
-        ]
-        if len(fresh) > 0:
-            signals.append(
-                SignalAlert(
-                    icon="🔺",
-                    text=f"{len(fresh)} entered the top 50 this month",
-                    color="#067647",
-                    category="momentum",
-                )
-            )
-
-        # Exited top 50
-        fallen = rank_df_tmp[
-            (rank_df_tmp["Rank"] > 50) & (rank_df_tmp["Rank (-1M)"] <= 50)
-        ]
-        if len(fallen) > 0:
-            signals.append(
-                SignalAlert(
-                    icon="🔻",
-                    text=f"{len(fallen)} left the top 50 this month",
-                    color="#B42318",
-                    category="momentum",
-                )
-            )
-
-        # Biggest single-stock jump
-        biggest = rank_df_tmp.nlargest(1, "_delta_1m")
-        if not biggest.empty:
-            r = biggest.iloc[0]
-            if r["_delta_1m"] > 75:
+        delta = rank_df["Rank (-1M)"] - rank_df["Rank"]
+        if delta.notna().any():
+            r = rank_df.loc[delta.idxmax()]
+            jump = delta.max()
+            if jump > 75:
                 signals.append(
                     SignalAlert(
                         icon="🚀",
-                        text=f"{r['Symbol']} jumped {int(r['_delta_1m'])} places, #{int(r['Rank (-1M)'])} → #{int(r['Rank'])}",
+                        text=f"{r['Symbol']} jumped {int(jump)} places, #{int(r['Rank (-1M)'])} → #{int(r['Rank'])}",
                         color="#4f46e5",
                         category="breakout",
                     )
@@ -131,36 +99,6 @@ def compute_signals(
                 text=f"Only {len(qualified)} stocks pass both filters (the portfolio wants at least 20)",
                 color="#B54708",
                 category="risk",
-            )
-        )
-
-    # Breadth alert
-    if pct_above_ema < 40:
-        signals.append(
-            SignalAlert(
-                icon="🔴",
-                text=f"Weak breadth: only {pct_above_ema:.0f}% of stocks above their 50-day EMA",
-                color="#B42318",
-                category="breadth",
-            )
-        )
-    elif pct_above_ema > 75:
-        signals.append(
-            SignalAlert(
-                icon="🟢",
-                text=f"Broad participation: {pct_above_ema:.0f}% of stocks above their 50-day EMA",
-                color="#067647",
-                category="breadth",
-            )
-        )
-
-    if regime_status == MarketRegime.BEARISH:
-        signals.append(
-            SignalAlert(
-                icon="🐻",
-                text=f"Bearish: Nifty 500 is {abs(dma_dist):.1f}% below its 200-day average",
-                color="#B42318",
-                category="regime",
             )
         )
 
@@ -200,6 +138,7 @@ def render_header_kpi_bar(
     total_stocks: int,
     above_ema: int,
     pct_above_ema: float,
+    near_high: int | None = None,
     nav_pages: list | None = None,
     active_page: object | None = None,
 ) -> None:
@@ -212,6 +151,11 @@ def render_header_kpi_bar(
     regime_cls = "mkt-up" if bullish else "mkt-down"
     dist = regime.distance_pct
     dist_text = f"{abs(dist):.1f}% {'above' if dist >= 0 else 'below'}"
+    # The universe's share within 20% of its 52-week high: the second of the
+    # two qualification filters, beside the first (owner, 2026-09-27).
+    near_html = "" if near_high is None else (
+        '<span class="mkt-sep">·</span><span>Within 20% of 52W high: '
+        f"<strong>{near_high} ({near_high / total_stocks * 100 if total_stocks else 0:.0f}%)</strong></span>")
     market_html = f"""
     <div role="status" aria-label="Market status dashboard" class="mkt-line">
         <span class="{regime_cls} mkt-regime">● {html.escape(regime.status.value.title())}</span>
@@ -221,7 +165,7 @@ def render_header_kpi_bar(
         <span class="mkt-sep">·</span>
         <span>Universe: <strong>{total_stocks}</strong></span>
         <span class="mkt-sep">·</span>
-        <span>Above 50-day EMA: <strong>{above_ema} ({pct_above_ema:.0f}%)</strong></span>
+        <span>Above 50-day EMA: <strong>{above_ema} ({pct_above_ema:.0f}%)</strong></span>{near_html}
     </div>
     """
 
@@ -457,19 +401,6 @@ def data_freshness() -> list[dict]:
         basis = str(facts.get("price_high_basis") or "").strip()
         if basis:
             prices["high_basis"] = basis
-        if str(facts.get("price_intraday") or "").strip() == "no":
-            items.append({
-                "label": "52W high",
-                "as_of": "closing prices",
-                "date": None,
-                "behind": 0,
-                "is_today": False,
-                # Not a fault: it is what this source can measure. Amber here
-                # would read as breakage and train the reader to ignore it.
-                "stale": False,
-                "phrase": " · no intraday high in this feed",
-                "source": source,
-            })
 
     deferred_day = str(facts.get("price_deferred_as_of") or "").strip()
     if deferred_day:

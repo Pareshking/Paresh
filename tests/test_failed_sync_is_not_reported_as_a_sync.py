@@ -163,7 +163,9 @@ def test_the_tab_reports_the_engines_real_universe_not_the_recorded_zero(
 
     This is the whole reason the badge could read "Engine Active (0 Stocks)"
     while 750 stocks were ranked on the next tab along. Rendered through the
-    real view (its status bar is the first st.html call), not re-derived here.
+    real view's own figures, not re-derived here. The status bar's
+    "Ranking N stocks" pill is gone (the market line's Universe says it);
+    the counts now live in Data sync, whose arguments are checked.
     """
     from src.ui.views import config_view
 
@@ -172,18 +174,17 @@ def test_the_tab_reports_the_engines_real_universe_not_the_recorded_zero(
     ))
     rank_df = pd.DataFrame({"Symbol": [f"SYM{i}" for i in range(750)]})
 
-    class _StatusBarRendered(Exception):
+    class _Rendered(Exception):
         pass
 
-    captured = []
+    captured = {}
 
-    def _html(body, **kwargs):
-        captured.append(body)
-        raise _StatusBarRendered  # the rest of the view is not under test
+    def _section(sync_meta, tot_stk, engine_stocks):
+        captured.update(tot_stk=tot_stk, engine_stocks=engine_stocks)
+        raise _Rendered  # the rest of the view is not under test
 
-    monkeypatch.setattr(config_view.st, "html", _html)
-    with pytest.raises(_StatusBarRendered):
+    monkeypatch.setattr(config_view, "_section_data_sync", _section)
+    with pytest.raises(_Rendered):
         config_view.render_config_view(rank_df)
 
-    assert "Ranking 750 stocks" in captured[0]
-    assert "Ranking 0 stocks" not in captured[0]
+    assert captured == {"tot_stk": 750, "engine_stocks": 750}
