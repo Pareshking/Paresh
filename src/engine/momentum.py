@@ -55,8 +55,15 @@ def clean_holidays(df: pd.DataFrame | None) -> pd.DataFrame:
     return df.loc[~holidays]
 
 
-def compute_ffill_pct(raw_df: pd.DataFrame | None) -> pd.Series:
-    """Computes per-stock % of rows that were gap-filled after dropping holidays."""
+def compute_ffill_pct(raw_df: pd.DataFrame | None,
+                      months: int = max(MOMENTUM_WINDOWS)) -> pd.Series:
+    """Per-stock % of sessions gap-filled inside the ranking window.
+
+    Only the last `months` calendar months count: that is all the score and
+    the 52-week high read, so a hole from years ago cannot move today's rank
+    and must not flag it (on 2026-09-25 eight stocks read 12-62% on holes
+    all older than a year, SKYGOLD among the Actions page's buys).
+    """
     if raw_df is None or raw_df.empty:
         return pd.Series(dtype=float)
     n_cols = raw_df.shape[1]
@@ -65,9 +72,10 @@ def compute_ffill_pct(raw_df: pd.DataFrame | None) -> pd.Series:
     cleaned = raw_df.loc[count <= limit]
     if cleaned.empty:
         return pd.Series(dtype=float)
-    # A stock has no price before it lists; those sessions are not gaps. Count
-    # only from each stock's first real print (IRCTC, listed Oct 2019, read as
-    # 22% gap-filled on a window reaching back to 2017).
+    if isinstance(cleaned.index, pd.DatetimeIndex) and months:
+        cleaned = cleaned.loc[cleaned.index >= cleaned.index[-1] - pd.DateOffset(months=months)]
+    # A stock has no price before its history starts; those sessions are not
+    # gaps (Short History reports them). Count from each first real print.
     listed = cleaned.notna().cummax()
     n_rows = listed.sum()
     nan_per_col = (cleaned.isna() & listed).sum()

@@ -675,7 +675,7 @@ def render_data_quality_footer(
     <div style="display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding: 6px 0 24px; font-family: var(--font-ui); font-size: 12.5px; color: #5E6878;">
         <span><strong style="color: #0E1726;">{total_stocks}</strong> stocks tracked</span>
         <span style="color: #A5ACB8;">·</span>
-        <span>Gap-filled over 10%: <strong style="color: {"#B54708" if gap_count else "#0E1726"};">{gap_count}</strong></span>
+        <span>Gap-filled over 10% (12 months): <strong style="color: {"#B54708" if gap_count else "#0E1726"};">{gap_count}</strong></span>
         <span style="color: #A5ACB8;">·</span>
         <span>Short history (under 126 sessions): <strong style="color: #0E1726;">{short_count}</strong></span>
         {stop_loss_note}

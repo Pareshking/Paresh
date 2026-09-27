@@ -576,8 +576,9 @@ def _render_data_health(row: pd.Series) -> None:
     hz = _num(row.get("Horizons Scored"))
 
     checks = [
-        (ffill > 10, f"Gap-filled prices: {ffill:.1f}%" if ffill else "No gap-filled prices"),
-        ("🔴" in gap, "A data gap in the price history" if "🔴" in gap else "No data gaps"),
+        (ffill > 10, f"Gap-filled prices, last 12 months: {ffill:.1f}%" if ffill
+         else "No gap-filled prices in the last 12 months"),
+        ("🔴" in gap, "A data gap in the last 12 months" if "🔴" in gap else "No data gaps"),
         (CARRIED_MARK in gap, "Price is the last print, not the ranking day's"
          if CARRIED_MARK in gap else "Price is current"),
         (short_hist, "Less than 6 months of history" if short_hist else "Full 12-month history"),
