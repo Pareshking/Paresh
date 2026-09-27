@@ -671,6 +671,16 @@ def render_data_quality_footer(
         else '<span style="color: #A5ACB8;">·</span>'
              '<span>Stop loss: <strong style="color: #0E1726;">price \u2212 2\u00d7ATR</strong></span>'
     )
+    # Where this process loaded its published data from: R2 first, the
+    # release files when R2 was unavailable (src/loaders/app_source.py).
+    from src.loaders import app_source as _src
+
+    _where = _src.summary()
+    source_note = (
+        f'<span style="color: #A5ACB8;">·</span><span>Data from: '
+        f'<strong style="color: #0E1726;">{html.escape(_where)}</strong></span>'
+        if _where else ""
+    )
     footer_html = f"""
     <div style="display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding: 6px 0 24px; font-family: var(--font-ui); font-size: 12.5px; color: #5E6878;">
         <span><strong style="color: #0E1726;">{total_stocks}</strong> stocks tracked</span>
@@ -681,6 +691,7 @@ def render_data_quality_footer(
         {stop_loss_note}
         <span style="color: #A5ACB8;">·</span>
         <span>Returns exclude dividends</span>
+        {source_note}
         <span style="margin-left: auto; color: #3C4657;">© Paresh Patel</span>
     </div>
     """

@@ -262,11 +262,17 @@ jobs:
             --pipeline-version "r2-daily-${GITHUB_SHA}" \
             --release-tag data-latest
 
-          # prices.parquet is NOT published to R2 (owner, 2026-09-25). It is a
-          # 2-year cut of prices_full.parquet above; the app reads it from the
-          # release asset, and nothing ever read it from R2 (snapshots/application,
-          # 137 MB in 14 copies). Its existing copies are left for the owner
-          # to delete.
+          # The app's two-year snapshot, which the app now reads from R2 first
+          # (owner, 2026-09-27; src/loaders/app_source.py). Its own dataset,
+          # not the retired snapshots/application: retention keeps only the
+          # newest three dates of it, because each copy is the whole two years.
+          python scripts/r2_publish.py \
+            --path prices.parquet \
+            --dataset app/prices_snapshot \
+            --source yahoo \
+            --key-root snapshots/app_prices \
+            --pipeline-version "r2-daily-${GITHUB_SHA}" \
+            --release-tag data-latest
 
           if [ -f rankings.parquet ]; then
             python scripts/r2_publish.py \

@@ -36,6 +36,7 @@ import requests
 from src.core import startup_metrics as metrics
 from src.core.config import PRICE_SNAPSHOT_URL, PRICES_FILE
 from src.core.logger import logger
+from src.loaders import app_source
 
 # Generous, because the alternative to waiting is a 38-second Yahoo download.
 DOWNLOAD_TIMEOUT_S: int = int(os.getenv("UMIYA_SNAPSHOT_TIMEOUT_S", "60"))
@@ -79,6 +80,44 @@ def _last_session(frame: pd.DataFrame):
         return pd.Timestamp(frame.index[-1]).date()
     except Exception:
         return None
+
+
+def _snapshot_from_r2(fact: str):
+    """The price snapshot from R2, verified and parsed, or None."""
+    body = app_source.fetch_latest(app_source.PRICE_SNAPSHOT, "price_snapshot")
+    if body is None or len(body) < MIN_PLAUSIBLE_BYTES:
+        return None
+    started = time.perf_counter()
+    tmp_path = None
+    try:
+        os.makedirs(os.path.dirname(PRICES_FILE), exist_ok=True)
+        fd, tmp_path = tempfile.mkstemp(suffix=".parquet", dir=os.path.dirname(PRICES_FILE))
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(body)
+        frame = pd.read_parquet(tmp_path)
+        if frame.empty or len(frame.columns) == 0:
+            raise ValueError("empty frame")
+    except Exception as exc:
+        logger.info("Price snapshot from R2 unusable (%s).", type(exc).__name__)
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        return None
+    metrics.note(fact, "r2")
+    app_source.record("price_snapshot", "r2")
+    return _Snapshot(frame=frame, tmp_path=tmp_path, size=len(body),
+                     elapsed=time.perf_counter() - started)
+
+
+def _snapshot(url: str | None, fact: str):
+    """R2 first when no URL was named, then the release file."""
+    if url is None:
+        snap = _snapshot_from_r2(fact)
+        if snap is not None:
+            return snap
+    snap = _download_snapshot(url or PRICE_SNAPSHOT_URL, fact)
+    if snap is not None and url is None:
+        app_source.record("price_snapshot", "release")
+    return snap
 
 
 def _download_snapshot(url: str, fact: str):
@@ -180,7 +219,7 @@ def seed_price_cache_from_snapshot(url: str | None = None) -> bool:
         metrics.note("price_snapshot", "cache_present")
         return False
 
-    snap = _download_snapshot(url or PRICE_SNAPSHOT_URL, "price_snapshot")
+    snap = _snapshot(url, "price_snapshot")
     if snap is None or not snap.adopt():
         return False
 
@@ -208,7 +247,7 @@ def snapshot_frame_if_newer(current_last, url: str | None = None):
     not adopted: overwriting a cache with the same sessions would throw away a
     top-up Yahoo did manage to deliver, in exchange for nothing.
     """
-    snap = _download_snapshot(url or PRICE_SNAPSHOT_URL, "price_recovery")
+    snap = _snapshot(url, "price_recovery")
     if snap is None:
         return None
 
