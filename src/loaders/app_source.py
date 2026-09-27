@@ -26,6 +26,7 @@ import time
 from typing import Any
 
 from src.core import startup_metrics as metrics
+from src.core.code_reload import PERSISTENT
 from src.core.logger import logger
 
 # Dataset each published file is archived under (the --dataset its workflow
@@ -38,7 +39,9 @@ _KEYS = ("R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY",
          "R2_ENDPOINT", "R2_BUCKET")
 
 # file label -> "r2" or "release", for the footer.
-SOURCES: dict[str, str] = {}
+# Kept in code_reload.PERSISTENT: the loaders that fill it are cached, so after
+# a code reload they are not run again and a fresh dict would stay empty.
+SOURCES: dict[str, str] = PERSISTENT.setdefault("app_source.SOURCES", {})
 
 
 def _from_secrets() -> dict[str, str]:

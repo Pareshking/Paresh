@@ -51,10 +51,14 @@ _Last updated: 2026-09-27_
      and `data/corporate_actions_log.json`; list the misses;
    - measured storage per day → projection for ten years.
 2. Owner signs off → move `--since` back to 2016-01-01.
-3. App reads from R2 — **in progress** (src/loaders/app_source.py): rankings
-   (`snapshots/rankings`), Screener store (`prices/screener`) and the two-year
-   price snapshot (`app/prices_snapshot`, newest 3 kept), each verified by
-   SHA-256; release files only as fallback. Footer shows "Data from: R2".
+3. App reads from R2 — **live since #223** (src/loaders/app_source.py):
+   rankings (`snapshots/rankings`), Screener store (`prices/screener`) and
+   the two-year price snapshot (`app/prices_snapshot`, newest 3 kept), each
+   verified by SHA-256; release files only as fallback. First
+   `app/prices_snapshot` publication verified 2026-09-27 (2026-09-25 data);
+   production process loaded 3017392. Production QA now prints the footer's
+   "Data from:" value (`data loaded from`) so the source is checked on every
+   deploy; the record of it survives a code reload (it used to go blank).
 4. Extra universe: build (see decisions); industries from the TV
    classification file, the rest from Screener.in's company page.
 5. Adjusted-price layer from NSE raw + corporate actions; compare rankings
