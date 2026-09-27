@@ -1,4 +1,24 @@
-# Production Status — 2026-09-25
+# Production Status — 2026-09-27
+
+## 2026-09-27 — three systems
+
+Live from main, production QA green on every merge (#240, #242–#246):
+
+- **Three systems** — Nifty 750 (default), Nano Cap, Combined — chosen in
+  Configuration; every page follows; the choice survives a stock link
+  (`?sys=`). See `docs/THREE_SYSTEMS.md`.
+- **Data from R2 first**, release files as fallback (#223); QA prints the source.
+- **Precomputed rankings for all three** (#244). Nano Cap and Combined are
+  verified locally; the first nightly publish is being confirmed.
+- **Per-system track records** from Oct 2026, comparison panel (#242);
+  backtest for Nano Cap and Combined from Sep 2026 (#246).
+- **Liquidity floor** option, off by default (#245).
+- **Fixed**: under Combined, a stock that left the 750 for Nano Cap (HEG) was
+  priced from the stale 750 copy (#244).
+- **R2 retention**: the weekly apply ran as approved (10 superseded
+  revisions, 32 MB); its audit now covers only the datasets it deletes from,
+  after the whole-bucket audit ran out of time (#243).
+
 
 ## Current state
 

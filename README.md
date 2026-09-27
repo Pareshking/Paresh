@@ -49,6 +49,12 @@ reporting itself as MVO (audit F1). Delivery Accumulation was removed with them.
 re-import or a stray column reference cannot quietly resurrect a half-wired
 feature.
 
+### Three systems
+
+Nifty 750 (default), Nano Cap (every stock ≥ ₹2,000 Cr outside the 750) and
+Combined, chosen in Configuration; every page follows. Definitions,
+membership, records and the month-end calendar: `docs/THREE_SYSTEMS.md`.
+
 ## Canonical V1 conventions
 
 ### Benchmark

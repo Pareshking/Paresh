@@ -11,23 +11,29 @@ _Last updated: 2026-09-27_
 |---|---|
 | 2026-09-27 | Collect everything NSE publishes daily into R2; **Screener stays the price the ranking uses** until NSE's record is complete and compared. |
 | 2026-09-27 | Cross-source rule: flag any day a source's one-day move differs from NSE's by more than **7%** (moves, not levels: Yahoo's dividend adjustment drifts its level). Same-day Screener close must match NSE within 1%. |
-| 2026-09-27 | **Sample first:** collect back to 2025-04-01 (~370 sessions), run every check on it, then extend to ten years. |
+| 2026-09-27 | **Sample first:** collect back to 2025-04-01 (~370 sessions), run every check on it, then extend to ten years. _(Done; extent later cut to three years, below.)_ |
 | 2026-09-27 | Deleted from R2: `snapshots/application`, `prices/yahoo/bootstrap` (432 → 300 MB). |
-| 2026-09-27 | Extra universe ("Nano Cap", name TBC): option **A** — selectable in Configuration, default stays the 750; the model portfolio, Actions and track record are **not** changed. Membership refreshed on the **last trading day of each month**, used from the 1st. |
+| 2026-09-27 | Extra universe ("Nano Cap", name TBC): option **A** — selectable in Configuration, default stays the 750; the model portfolio, Actions and track record are **not** changed. Membership refreshed on the **last trading day of each month**, used from the 1st. _(Superseded the same day by the three systems, below: every page follows the choice.)_ |
 | 2026-09-27 | App should read its data from R2 (owner added the R2 keys to Streamlit secrets). |
-| 2026-09-27 | Sample year checked (368/368 days, all read back). Owner: **start the ten-year backfill** (`--since 2016-01-01`, 150 days a run). Screener's weekly deep check: every **30** days, not 7. Nano Cap is ranked **as its own index**, never combined with the 750. |
+| 2026-09-27 | Sample year checked (368/368 days, all read back). Owner: **start the ten-year backfill** (`--since 2016-01-01`, 150 days a run) _(cut to three years, below)_. Screener's weekly deep check: every **30** days, not 7. Nano Cap is ranked **as its own index**, never combined with the 750. _(Superseded: Combined is now a third system, ranked as one list.)_ |
 | 2026-09-27 | NSE history: **three years** (from 2023-10-01), not ten — the backtest needs ~18 months. Price order everywhere: **Screener → NSE → Yahoo** (NSE once its adjustment layer exists). Three systems: **Nifty 750** (default), **Nano Cap**, **Combined**; every page follows; B and C records from Oct 2026; comparison panel; liquidity floor option (off). |
 | 2026-09-27 | Extra universe: **every stock ≥ ₹2,000 Cr** outside the 750 (458 on 25 Sep), not a fixed 250. Screener pacing to be tuned so NSE, Yahoo and Screener all land before 06:00 IST. |
 
 ## What is running
 
-- `nse_collect.yml`, every 4 hours: newest days + up to 100 older, 2.5 s
-  apart, floor `--since 2025-04-01`. Stops quietly if NSE refuses.
+- `nse_collect.yml`, scheduled every 4 hours but **GitHub has not fired the
+  schedule**; runs are dispatched by hand. Newest 7 days + up to 150 older,
+  2.5 s apart, floor `--since 2023-10-01` (three years). Stops quietly if NSE
+  refuses.
+- `daily_sync.yml` also collects the last 3 NSE sessions itself, before it
+  builds the month-end Nano Cap list, so that list never waits on the
+  collector's schedule.
 - R2 datasets, one file per trading day: `nse/prices_daily` (~3,800
   securities, unadjusted OHLC + index closes), `nse/corporate_actions`
   (Bc file, purpose parsed to kind + price factor), `nse/market_caps`
   (~3,190 securities), `nse/source_checks` (disagreements, newest day).
-- Held: 147 sessions (2026-02-20 → 2026-09-25) as of 2026-09-27 02:30 UTC.
+- Held: ~720 sessions (back to Nov 2023) as of 2026-09-27; one more
+  backfill run reaches 2023-10-01.
 
 ## Findings so far
 
@@ -58,44 +64,41 @@ _Last updated: 2026-09-27_
   repaired on read by `repair_swapped_dates` (a date outside the listing's
   window whose swap falls inside it).
 
-## Next steps
+## Done (2026-09-27)
 
-1. **Sample checks** once ~370 sessions are in — run `nse_sample_check.yml`
-   (scripts/nse_sample_check.py; read only, report in the job summary):
-   - every stored day parses; row counts steady; no gaps against the
-     trading calendar;
-   - cross-source check over every day, not just the newest: level and 7%
-     move rules, list of disagreements per stock and date;
-   - corporate actions: every split/bonus in the sample shows as a step in
-     NSE's unadjusted prices on its ex-date, matches Screener's restatement
-     and `data/corporate_actions_log.json`; list the misses;
-   - measured storage per day → projection for ten years.
-2. Owner signs off → move `--since` back to 2016-01-01.
-3. App reads from R2 — **live since #223** (src/loaders/app_source.py):
-   rankings (`snapshots/rankings`), Screener store (`prices/screener`) and
-   the two-year price snapshot (`app/prices_snapshot`, newest 3 kept), each
-   verified by SHA-256; release files only as fallback. First
-   `app/prices_snapshot` publication verified 2026-09-27 (2026-09-25 data);
-   production process loaded 3017392. Production QA now prints the footer's
-   "Data from:" value (`data loaded from`) so the source is checked on every
-   deploy; the record of it survives a code reload (it used to go blank).
-4. Extra universe ("Nano Cap", name TBC; src/engine/extra_universe.py):
-   - **membership — built**: `scripts/build_extra_universe.py` runs in the
-     daily sync, and only acts when a new month-end session is in R2. It
-     reads NSE's own market-cap file for that session: EQ/BE series, ≥ ₹2,000
-     Cr, not in the 750, not an ETF, category Listed. It writes
-     `data/indices/ind_nanocap_list.csv` (NSE index-file columns) and
-     `data/nanocap_membership.json` (every month, point in time; in use from
-     the 1st). Industry is the TradingView sector, else "Unclassified".
-   - collection — next: Screener and Yahoo fetch these stocks too; Screener
-     pacing gets random jitter; all three sources in before 06:00 IST
-     (Screener runs ~21:35 UTC today, ~20 min for 750, ~+12 min for ~460).
-   - app — **built**: Configuration › Ranking universe (750 default | Nano
-     Cap). Nano Cap is ranked among its own stocks (src/loaders/
-     extra_universe_loader.py: own list, own Yahoo file, list market caps).
-     Screener, Sectors, RRG, Watchlist, Breadth, Backtest follow the choice;
-     Portfolio, Actions, Track Record stay on the 750 and say so. Local run:
-     361 of 417 ranked, 56 too new (listed < minimum history). To do:
-     "Unclassified" industries from Screener.in.
-5. Adjusted-price layer from NSE raw + corporate actions; compare rankings
-   with the Screener-based ones before any switch.
+- Sample year checked; parser reads every split wording (`FVSPLT FRM RS 10
+  TO RE 1`, `RS 2 TO 1`, `RS 5 TO RS 1`), preference-share bonuses, ISO dates
+  (CAMS), extra commas in the Bc file (#235, #238, #239).
+- App reads rankings, Screener store and price snapshot from R2 first,
+  release files as fallback (#223); production QA prints the source.
+- Extra universe built: every stock ≥ ₹2,000 Cr outside the 750, month-end
+  lists, point in time. Screener and Yahoo fetch these stocks (Yahoo in
+  batches; a new stock in any universe gets its full history automatically).
+  Screener pacing has random jitter; its deep check is monthly.
+- Three systems — Nifty 750, Nano Cap, Combined — every page follows;
+  per-system track records from Oct 2026, comparison panel, nightly
+  precompute, backtest from Sep 2026, liquidity floor option.
+  See `docs/THREE_SYSTEMS.md`.
+- Missing Screener days filled from Yahoo's daily moves (400-day window).
+- Open/high/low features removed (candles, ATR, stop loss, chandelier).
+- R2 retention audit limited to the datasets it deletes from (#243).
+
+## To do
+
+1. **Confirm the nightly publish** of the Nano Cap and Combined rankings and
+   that production accepts them (daily sync dispatched 2026-09-27).
+2. **30 Sep → 1 Oct**: the October Nano Cap list builds on the 30 Sep
+   evening; first Nano Cap / Combined books on 1 Oct; their backtest shows
+   September. Check each (`docs/THREE_SYSTEMS.md`, Calendar).
+3. **Early November**: October freezes into all three ledgers.
+4. **NSE backfill**: one more run to reach 2023-10-01; then find out why the
+   `nse_collect.yml` schedule never fires.
+5. **NSE adjustment layer**: adjusted prices from NSE's unadjusted closes and
+   the Bc corporate actions; compare the rankings with Screener's before any
+   switch.
+6. **NSE as the middle price source** everywhere: Screener → NSE → Yahoo,
+   once 5 is in.
+7. "Unclassified" industries for Nano Cap stocks TradingView lacks
+   (Screener.in lookup).
+8. Timing: all three sources (NSE, Yahoo, Screener) in before 06:00 IST;
+   Screener's nightly run for 1,167 stocks takes ~37 min.
