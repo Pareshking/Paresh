@@ -263,3 +263,21 @@ def test_a_retired_manifest_naming_a_payload_elsewhere_refuses_the_run(monkeypat
     monkeypatch.setattr("sys.argv", ["r2_retention.py"])
     assert rr.main() == 1
     assert a.deleted == []
+
+
+def test_a_retired_dataset_also_loses_its_first_publisher_manifests():
+    """2026-09-21 layout: archive/manifests/<ds>/<as_of>.json -> <root>/<as_of>/<file>."""
+    a = FakeArchive()
+    publish(a, "prices/yahoo", "archive/prices/yahoo", "2026-09-18", 1)
+    legacy_obj = "archive/prices/yahoo/bootstrap/2026-09-18/prices_full.parquet"
+    a.put(legacy_obj, size=50)
+    a.put("archive/manifests/prices/yahoo/bootstrap/2026-09-18.json",
+          json.dumps({"object_key": legacy_obj}).encode())
+    # The live dataset's own flat-looking neighbour is never matched.
+    a.put("archive/manifests/prices/yahoo/2026-09-18.json",
+          json.dumps({"object_key": "archive/prices/yahoo/2026-09-18/x.parquet"}).encode())
+    plan = rr.plan_retired(a, "prices/yahoo/bootstrap", "archive/prices/yahoo/bootstrap",
+                           dict(a.list_objects("")))
+    assert not plan.refused
+    assert plan.delete_keys == ["archive/manifests/prices/yahoo/bootstrap/2026-09-18.json",
+                                legacy_obj]

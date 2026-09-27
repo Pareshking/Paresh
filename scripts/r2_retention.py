@@ -76,6 +76,10 @@ _ENTRY = re.compile(
     r"^(?P<as_of>\d{4}-\d{2}-\d{2})/"
     r"(?:current\.json|revisions/(?P<sha>[0-9a-f]{64})\.json)$"
 )
+# The first publisher (2026-09-21, before revisions) wrote one flat manifest
+# per date, archive/manifests/<dataset>/<as_of>.json, naming the payload at
+# <root>/<as_of>/<file>. Only a retired dataset looks for these.
+_LEGACY = re.compile(r"^(?P<as_of>\d{4}-\d{2}-\d{2})\.json$")
 
 
 @dataclass
@@ -222,11 +226,13 @@ def plan_retired(archive: R2Archive, dataset: str, root: str,
     pointer_keys, manifest_keys = [], []
     dates: set[str] = set()
     for key in archive.list_keys(prefix):
-        m = _ENTRY.fullmatch(key[len(prefix):])
-        if not m:
+        rest = key[len(prefix):]
+        m = _ENTRY.fullmatch(rest)
+        legacy = None if m else _LEGACY.fullmatch(rest)
+        if not (m or legacy):
             continue  # a nested dataset's manifest, never this one's
-        dates.add(m["as_of"])
-        (manifest_keys if m["sha"] else pointer_keys).append(key)
+        dates.add((m or legacy)["as_of"])
+        (pointer_keys if m and not m["sha"] else manifest_keys).append(key)
     plan = DatasetPlan(dataset, sorted(dates), [], sorted(dates))
     for mk in manifest_keys:
         body = json.loads(archive.get_bytes(mk).decode("utf-8"))
