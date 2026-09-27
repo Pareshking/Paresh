@@ -82,10 +82,13 @@ def test_screener_frames_report_no_intraday_data():
     assert got.high_basis == "closing prices"
 
 
-def test_yahoo_frames_report_intraday_data():
+def test_yahoo_frames_are_closes_only_like_screener():
+    """Owner, 2026-09-27: no open/high/low anywhere, so the 52-week high is on
+    closes whichever source ranked the day."""
     f = pd.DataFrame({"AAA": [1.0, 2.0]})
     got = ps.from_yahoo(f, f, f, f, f)
-    assert got.intraday is True and got.high_basis == "intraday highs"
+    assert got.intraday is False and got.high is None and got.low is None
+    assert got.high_basis == ps.from_screener(_store()).high_basis
 
 
 def test_the_limits_are_carried_with_the_frames():
@@ -197,7 +200,7 @@ def test_an_unusable_screener_store_leaves_yahoo_untouched():
     f = pd.DataFrame({"AAA": [1.0, 2.0]})
     fallback = ps.from_yahoo(f, f, f, f, f)
     assert ps.from_screener(None) is None
-    assert fallback.source == "yahoo" and fallback.intraday is True
+    assert fallback.source == "yahoo" and fallback.adj_close is f
 
 
 # ── The served page must not name the vendor ─────────────────────────────────
@@ -374,40 +377,14 @@ def test_the_portfolio_page_survives_a_missing_stop_loss():
     )
 
 
-def test_a_missing_stop_loss_column_maps_to_nothing_rather_than_nan():
-    """Mapping an empty dict would fill the column with NaN and still show it."""
+def test_no_stop_loss_anywhere_in_portfolio_or_footer():
+    """Owner, 2026-09-27: the app has no stops; neither page mentions one."""
     import inspect
+    from src.ui import components
     from src.ui.views import portfolio_view
 
-    src = inspect.getsource(portfolio_view)
-    assert "if sl_map:" in src, (
-        "an absent Stop Loss is being written as an all-NaN column instead of "
-        "left out, so the table shows an empty column rather than no column"
-    )
-
-
-def test_the_footer_drops_the_stop_loss_formula_without_intraday_data():
-    import inspect
-    from src.ui import components
-
-    src = inspect.getsource(components)
-    assert "stop_loss_note" in src, (
-        "the footer states the 2xATR formula unconditionally, describing a "
-        "number the reader cannot find when the column is absent"
-    )
-    assert 'price_intraday' in src
-
-
-def test_the_footer_keeps_the_formula_on_yahoo_data():
-    """It must not disappear for the source that does have ATR."""
-    import inspect
-    from src.ui import components
-
-    src = inspect.getsource(components)
-    assert '_intraday == "no"' in src, (
-        "the footer note is gated on something other than the absence of "
-        "intraday data; it would vanish for Yahoo too"
-    )
+    assert "Stop Loss" not in inspect.getsource(portfolio_view)
+    assert "ATR" not in inspect.getsource(components).split("def render_data_quality_footer")[1]
 
 
 

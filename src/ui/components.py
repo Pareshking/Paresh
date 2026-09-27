@@ -659,18 +659,6 @@ def render_data_quality_footer(
     # stop-loss convention.
     render_freshness_ribbon()
 
-    # ATR needs an intraday high and low. When the ranking came from a source
-    # without them the Stop Loss column does not exist, and stating the formula
-    # anyway would describe a number the reader cannot find anywhere on screen.
-    from src.core import startup_metrics as _m
-
-    _intraday = str(_m.snapshot().get("facts", {}).get("price_intraday", "")).strip()
-    stop_loss_note = (
-        ""
-        if _intraday == "no"
-        else '<span style="color: #A5ACB8;">·</span>'
-             '<span>Stop loss: <strong style="color: #0E1726;">price \u2212 2\u00d7ATR</strong></span>'
-    )
     # Where this process loaded its published data from: R2 first, the
     # release files when R2 was unavailable (src/loaders/app_source.py).
     from src.loaders import app_source as _src
@@ -688,7 +676,6 @@ def render_data_quality_footer(
         <span>Gap-filled over 10% (12 months): <strong style="color: {"#B54708" if gap_count else "#0E1726"};">{gap_count}</strong></span>
         <span style="color: #A5ACB8;">·</span>
         <span>Short history (under 126 sessions): <strong style="color: #0E1726;">{short_count}</strong></span>
-        {stop_loss_note}
         <span style="color: #A5ACB8;">·</span>
         <span>Returns exclude dividends</span>
         {source_note}

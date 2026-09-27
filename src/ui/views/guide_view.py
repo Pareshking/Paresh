@@ -76,8 +76,8 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 </div>
                 <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
                     <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#0284c7;">STEP 05</div>
-                    <div style="font-weight:600; font-size:13px; color:#0E1726; margin-top:2px;">Execution & Stops</div>
-                    <div style="font-size:13px; color:#5E6878; line-height:1.5; margin-top:4px;">2×ATR initial stop & 3×ATR Chandelier trailing exit + 1-Click Zerodha Kite Basket CSV export.</div>
+                    <div style="font-weight:600; font-size:13px; color:#0E1726; margin-top:2px;">Execution</div>
+                    <div style="font-size:13px; color:#5E6878; line-height:1.5; margin-top:4px;">Trade at the next session after the month-end signal; exits happen at the rebalance. 1-Click Zerodha Kite Basket CSV export.</div>
                 </div>
             </div>
         </div>
@@ -166,7 +166,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                         <ul style="margin:6px 0 0 16px; padding:0; line-height:1.6; font-size:13px;">
                             <li><strong>Top 20 Holdings</strong> (Equal-Weighted or Inverse-Vol Sizing)</li>
                             <li><strong>Rank-persistence buffer</strong>: retains an existing position while its rank stays inside the buffer (2.0× the book size by default), so a drift from #18 to #24 is not sold and re-bought</li>
-                            <li><strong>Risk Limits</strong>: 30 bps round-trip friction, 2×ATR stop loss & 3×ATR Chandelier trailing exit</li>
+                            <li><strong>Costs</strong>: 30 bps round-trip friction. No intraday stops: a holding leaves at the monthly rebalance when its rank leaves the buffer or it fails a filter</li>
                         </ul>
                     </div>
                 </div>
@@ -179,7 +179,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
         sizing_risk_html = """
         <div style="padding:20px; background-color:#ffffff; border:1px solid #E3E6EB; border-radius:12px; font-family:'Geist',sans-serif; font-size:13px; color:#3C4657; line-height:1.65; box-shadow:0 1px 3px rgba(0,0,0,0.02); margin-bottom:16px;">
             <div style="font-size:14px; font-weight:700; color:#0E1726; margin-bottom:14px;">
-                Position Sizing Models & Risk Management Architecture
+                Position Sizing Models
             </div>
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
                 <div>
@@ -200,30 +200,6 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                             w_i = (1 / &sigma;_i) / &sum;(1 / &sigma;_j)
                         </div>
                         Reduces overall portfolio volatility and minimizes maximum drawdowns during choppy or high-VIX environments.
-                    </div>
-                </div>
-                <div>
-                    <div style="color:#0E1726; font-weight:600; font-size:13px; margin-bottom:4px;">
-                        2×ATR Initial Stop Loss
-                    </div>
-                    <div style="color:#3C4657; font-size:13px; line-height:1.6;">
-                        Sets an immediate volatility-calibrated stop loss upon entry:
-                        <div style="font-family:'Geist Mono',monospace; font-size:12px; background-color:#F4F5F8; border:1px solid #E3E6EB; border-radius:6px; padding:6px 10px; margin-top:8px; font-weight:600; color:#1F2A3A;">
-                            Stop Loss = Entry Price - 2.0 &times; ATR(14)
-                        </div>
-                        Prevents catastrophic single-stock gap-down losses while accommodating normal market noise.
-                    </div>
-                </div>
-                <div>
-                    <div style="color:#0E1726; font-weight:600; font-size:13px; margin-bottom:4px;">
-                        3×ATR Chandelier Trailing Exit
-                    </div>
-                    <div style="color:#3C4657; font-size:13px; line-height:1.6;">
-                        Ratchets profit stops higher as the stock trends, protecting accumulated compounding gains:
-                        <div style="font-family:'Geist Mono',monospace; font-size:12px; background-color:#F4F5F8; border:1px solid #E3E6EB; border-radius:6px; padding:6px 10px; margin-top:8px; font-weight:600; color:#1F2A3A;">
-                            Chandelier Exit = Highest High(22D) - 3.0 &times; ATR(14)
-                        </div>
-                        Allows multi-bagger runners to breathe while triggering prompt exits when the trend breaks.
                     </div>
                 </div>
             </div>
@@ -271,7 +247,6 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
             [
                 "Composite Sharpe",
                 "Relative Rotation Graph",
-                "Risk & Stop-Loss Engine",
             ],
             default="Composite Sharpe",
             key="guide_strat_choice_pill",
@@ -332,22 +307,6 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                   * **Improving (<100, >100)**: Momentum inflecting upward; watchlist for early entry.
                 """)
 
-        elif strat_choice == "Risk & Stop-Loss Engine":
-            st.markdown(r"""
-                ##### 10. Quantitative Risk, Volatility & Stop-Loss Engine
-                
-                **Mathematical Formulation:**
-                1. **True Range (TR)**:
-                   $$\text{TR}_t = \max\left(H_t - L_t, |H_t - C_{t-1}|, |L_t - C_{t-1}|\right)$$
-                2. **Average True Range (ATR)**:
-                   $$\text{ATR}_{14, t} = \frac{\text{ATR}_{14, t-1} \times 13 + \text{TR}_t}{14}$$
-                3. **2.0× Initial Stop Loss**:
-                   $$\text{Initial Stop} = P_{\text{Entry}} - 2.0 \times \text{ATR}_{14}$$
-                4. **3.0× Chandelier Trailing Exit**:
-                   $$\text{Chandelier Exit}_t = \max_{i \in [0, 21]} \left(H_{t-i}\right) - 3.0 \times \text{ATR}_{14, t}$$
-
-                * **Execution Rule**: If current market price breaches the Chandelier trailing stop, exit the position at next open ($T+1$) with 0 hesitation.
-                """)
 
     # ── TAB 4: Market Regime Playbooks ───────────────────────────────────────
     elif section_tab == "Market Regime Playbooks":
@@ -438,8 +397,8 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                     <div style="font-size:13px; color:#3C4657; margin-top:4px;">Execute the entire basket between 09:20 AM and 09:30 AM on the 1st trading day of the month using Market/Limit orders.</div>
                 </div>
                 <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
-                    <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#7c3aed;">STEP 4: SET GTT STOPS</div>
-                    <div style="font-size:13px; color:#3C4657; margin-top:4px;">Place Zerodha GTT (Good-Till-Triggered) OCO stop loss orders matching the table's 2×ATR Initial Stop and 3×ATR Chandelier values.</div>
+                    <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#7c3aed;">STEP 4: HOLD TO THE NEXT REBALANCE</div>
+                    <div style="font-size:13px; color:#3C4657; margin-top:4px;">No stop orders. The Actions page lists what to sell at the next month-end signal: holdings whose rank left the buffer or that failed a filter.</div>
                 </div>
             </div>
         </div>
@@ -462,7 +421,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                     When should I rebalance my portfolio?
                 </div>
                 <div style="font-size:13px; color:#3C4657; line-height:1.6;">
-                    Rebalance on the <strong>first trading day of every calendar month</strong> (or every 21 trading days). Avoid intra-month knee-jerk changes unless a holding breaches its 2×ATR Stop Loss or Chandelier Trailing Exit.
+                    Rebalance on the <strong>first trading day of every calendar month</strong> (or every 21 trading days). Avoid intra-month changes: the strategy has no stops, so a holding waits for the next rebalance.
                 </div>
             </div>
 

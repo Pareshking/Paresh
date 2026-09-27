@@ -104,7 +104,8 @@ def test_the_footer_keeps_what_only_it_reports(monkeypatch):
     assert "750" in out["footer"]
     assert "Gap-filled" in out["footer"]
     assert "Short history" in out["footer"]
-    assert "stop loss" in out["footer"].lower()
+    # No stop-loss formula: the app has no stops (owner, 2026-09-27).
+    assert "stop loss" not in out["footer"].lower()
 
 
 def test_a_stale_source_is_flagged_once_in_the_ribbon(monkeypatch):

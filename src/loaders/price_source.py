@@ -189,9 +189,17 @@ def from_screener(store: pd.DataFrame) -> PriceFrames | None:
 
 
 def from_yahoo(adj_close, close, high, low, volume) -> PriceFrames:
+    """Yahoo as the ranking source: closes only, like Screener.
+
+    Owner, 2026-09-27: the app needs no open, high or low -- no candles, ATR,
+    stop loss or chandelier exit. Dropping them here as well means a day
+    ranked from Yahoo measures the 52-week high on closes exactly as a
+    Screener day does, instead of switching definition with the source.
+    """
     return PriceFrames(
-        adj_close=adj_close, close=close, high=high, low=low, volume=volume,
-        source="yahoo", intraday=True, notes=[],
+        adj_close=adj_close, close=close, high=None, low=None, volume=volume,
+        source="yahoo", intraday=False,
+        notes=["52-week high measured on closing prices, not intraday highs"],
     )
 
 
