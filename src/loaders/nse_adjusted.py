@@ -15,7 +15,11 @@ where every split and bonus was missed). So:
   2. it is applied only if the price agrees: the close that session over the
      last close before it is nearer the action's factor than to 1, and
      within 1.5x of it. Bc lists some actions twice under different dates;
-     only the date the price actually moved passes;
+     only the date the price actually moved passes. Bc also prints some
+     ex-dates month-first; when the listed date fails, the date with day
+     and month exchanged is tried;
+  2b. a demerger has no factor in its text: it is priced at the ex-date's
+     own fall (the value that left with the new company);
   3. every price before the ex-date is multiplied by the factor, volumes
      divided by it.
 
@@ -58,6 +62,7 @@ GAP_SHARE = 0.25              # more stocks than this stepping on one day: a mis
 CONFIRM_BAND = np.log(1.5)    # the session's move must be within 1.5x of the action's factor
 JUMP = np.log(1.8)            # an unexplained move beyond this either way is listed
 ACTION_KINDS = ("split", "bonus", "consolidation")
+DEMERGER_FLOOR, DEMERGER_CAP = 0.05, 0.98   # a demerger's fall is applied only inside this
 
 
 def gap_days(close: pd.DataFrame, prev_close: pd.DataFrame,
@@ -77,23 +82,53 @@ def gap_days(close: pd.DataFrame, prev_close: pd.DataFrame,
 
 
 def _parsed(actions: pd.DataFrame) -> pd.DataFrame:
-    """One row per (symbol, ex-date): the product of its parsed price factors."""
-    a = actions[actions["kind"].isin(ACTION_KINDS)
-                & actions["price_factor"].notna() & actions["ex_date"].notna()].copy()
+    """One row per (symbol, ex-date): the product of its parsed price factors.
+
+    Demergers carry no factor in their text (it depends on the prices); they
+    are kept with a NaN factor and priced from the move on the ex-date.
+    """
+    known = actions["kind"].isin(ACTION_KINDS) & actions["price_factor"].notna()
+    a = actions[(known | actions["kind"].eq("demerger")) & actions["ex_date"].notna()].copy()
     # One date type whatever the store held (dates, strings, other resolutions).
     a["date"] = pd.to_datetime(a["ex_date"]).dt.normalize().astype("datetime64[ns]")
     return (a.groupby(["symbol", "date"], as_index=False)
              .agg(kind=("kind", lambda k: "+".join(sorted(set(k)))),
-                  bc_factor=("price_factor", "prod")))
+                  bc_factor=("price_factor", lambda f: f.prod() if f.notna().any() else np.nan)))
+
+
+def _swapped(day: pd.Timestamp) -> pd.Timestamp | None:
+    """The date with day and month exchanged, when that is a different date."""
+    if day.day > 12 or day.day == day.month:
+        return None
+    return pd.Timestamp(year=day.year, month=day.day, day=day.month)
+
+
+def _move_at(s: pd.Series, when: pd.Timestamp):
+    """(first session on or after `when`, its close over the last close before it)."""
+    after, before = s[s.index >= when].dropna(), s[s.index < when].dropna()
+    if after.empty or before.empty:
+        return None, np.nan
+    return after.index[0], float(after.iloc[0] / before.iloc[-1])
+
+
+def _confirms(move: float, factor: float) -> bool:
+    off = abs(np.log(move / factor))
+    return off < CONFIRM_BAND and off < abs(np.log(move))
 
 
 def action_factors(close: pd.DataFrame, actions: pd.DataFrame
                    ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """(factors: dates x symbols, 1 except on a confirmed ex-date; one row per action).
 
-    Each action's verdict: "applied" (the price moved by its factor),
-    "no move" (it did not -- a duplicate date, or a factor the market did
-    not see), "no price" (no session for the stock on or after the ex-date).
+    Each action's verdict:
+      applied        the price moved by its factor on the ex-date
+      date swapped   it did so on the date with day and month exchanged (Bc
+                     files print some ex-dates month-first: E2E, MCX, VGL)
+      demerger       a demerger, priced at the ex-date's own fall (the value
+                     that left with the new company), as Screener does
+      no move        the price did not move by it -- a duplicate date, or a
+                     factor the market did not see
+      no price       no session for the stock around the ex-date
     """
     close = close.copy()
     close.index = pd.DatetimeIndex(close.index).astype("datetime64[ns]")
@@ -106,17 +141,25 @@ def action_factors(close: pd.DataFrame, actions: pd.DataFrame
             rows.append({**out, "verdict": "no price"})
             continue
         s = close[r.symbol]
-        after, before = s[s.index >= r.date].dropna(), s[s.index < r.date].dropna()
-        if after.empty or before.empty:
+        day, move = _move_at(s, r.date)
+        if day is None:
             rows.append({**out, "verdict": "no price"})
             continue
-        day, move = after.index[0], float(after.iloc[0] / before.iloc[-1])
-        off = abs(np.log(move / r.bc_factor))
-        ok = off < CONFIRM_BAND and off < abs(np.log(move))
-        if ok:
-            factors.at[day, r.symbol] *= r.bc_factor
-        rows.append({**out, "session": day, "move": move,
-                     "verdict": "applied" if ok else "no move"})
+        verdict, factor = "no move", np.nan
+        if np.isnan(r.bc_factor):                      # demerger
+            if DEMERGER_FLOOR < move < DEMERGER_CAP:
+                verdict, factor = "demerger", move
+        elif _confirms(move, r.bc_factor):
+            verdict, factor = "applied", r.bc_factor
+        else:
+            alt = _swapped(r.date)
+            if alt is not None:
+                alt_day, alt_move = _move_at(s, alt)
+                if alt_day is not None and _confirms(alt_move, r.bc_factor):
+                    verdict, factor, day, move = "date swapped", r.bc_factor, alt_day, alt_move
+        if verdict != "no move":
+            factors.at[day, r.symbol] *= factor
+        rows.append({**out, "session": day, "move": move, "verdict": verdict})
     cols = ["symbol", "date", "kind", "bc_factor", "session", "move", "verdict"]
     return factors, pd.DataFrame(rows, columns=cols)
 

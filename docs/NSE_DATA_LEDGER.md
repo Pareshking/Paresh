@@ -106,7 +106,12 @@ _Last updated: 2026-09-27_
    the price moved by its factor; moves beyond 1.8x with no action are
    listed. The five sessions the report found missing (12 Nov 2023,
    20 Jan, 2 Mar, 18 May 2024, 1 Feb 2026) were collected with
-   `nse_collect.yml` → dates. **Next: re-run `nse_compare.yml`**, then decide.
+   `nse_collect.yml` → dates. Third report (run 36329721602): 300 applied,
+   drift beyond 1% down from 135 to 58, Spearman 0.9993 / 0.9934 / 0.9975,
+   top 20 20/20, 19/20, 20/20. What remained: ex-dates Bc prints
+   month-first (E2E, MCX, VGL, SILVERTUC: now tried swapped) and demergers
+   (VEDL, HEG, SIEMENS, RAYMOND, ABFRL: now priced at the ex-date's fall).
+   **Next: the fourth report**, then decide.
 4. **NSE as the middle price source** everywhere: Screener → NSE → Yahoo,
    once 3 is in.
 5. Timing: all three sources (NSE, Yahoo, Screener) in before 06:00 IST;
