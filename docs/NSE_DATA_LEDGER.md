@@ -60,7 +60,19 @@ _Last updated: 2026-09-27_
    production process loaded 3017392. Production QA now prints the footer's
    "Data from:" value (`data loaded from`) so the source is checked on every
    deploy; the record of it survives a code reload (it used to go blank).
-4. Extra universe: build (see decisions); industries from the TV
-   classification file, the rest from Screener.in's company page.
+4. Extra universe ("Nano Cap", name TBC; src/engine/extra_universe.py):
+   - **membership — built**: `scripts/build_extra_universe.py` runs in the
+     daily sync, and only acts when a new month-end session is in R2. It
+     reads NSE's own market-cap file for that session: EQ/BE series, ≥ ₹2,000
+     Cr, not in the 750, not an ETF, category Listed. It writes
+     `data/indices/ind_nanocap_list.csv` (NSE index-file columns) and
+     `data/nanocap_membership.json` (every month, point in time; in use from
+     the 1st). Industry is the TradingView sector, else "Unclassified".
+   - collection — next: Screener and Yahoo fetch these stocks too; Screener
+     pacing gets random jitter; all three sources in before 06:00 IST
+     (Screener runs ~21:35 UTC today, ~20 min for 750, ~+12 min for ~460).
+   - app — after collection: selectable in Configuration, default the 750;
+     never in the model portfolio, Actions or track record. Industries still
+     "Unclassified" looked up on Screener.in.
 5. Adjusted-price layer from NSE raw + corporate actions; compare rankings
    with the Screener-based ones before any switch.
