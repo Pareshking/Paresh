@@ -454,14 +454,12 @@ def test_the_app_keeps_a_deep_frame_separate_from_the_ranking_frame():
 
 def test_the_backtest_and_track_record_read_the_deep_frame():
     src = open("app.py", encoding="utf-8").read()
-    # The Backtest reads the deep frame of the universe being browsed (the 750,
-    # or Nano Cap since 2026-09-27); the Track Record always the 750's.
-    assert 'b_deep = browse.get("deep_adj_close")' in src
-    assert "b_deep = b_adj" in src
-    for page, name in (("_page_backtest", "b_deep"), ("_page_track_record", "deep_adj_close")):
+    # Both read the deep frame of the chosen system (owner, 2026-09-27: every
+    # page follows the system).
+    for page, name in (("_page_backtest", "deep_adj_close"), ("_page_track_record", "deep_adj_close")):
         # From the page function itself, not the import line that shares the name.
         start = src.index(f"def {page}(")
-        window = src[start:start + 700]
+        window = src[start:start + 1500]
         assert f"adj_close={name}" in window, (
             f"{page} still receives the ranking frame, which may be a year "
             "shorter than the study it is asked to run"

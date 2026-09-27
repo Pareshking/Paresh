@@ -23,9 +23,18 @@ from src.core.tickers import is_tradeable_symbol
 
 NAME = "NANO CAP"
 DISPLAY_NAME = "Nano Cap"
-# The Configuration choice (session key cfg_universe).
-UNIVERSE_750 = "750"
-UNIVERSE_NANO = "nano"
+# The three systems (owner, 2026-09-27), chosen in Configuration (session key
+# cfg_system). Every page follows the choice; each system is ranked, booked and
+# recorded on its own.
+SYSTEM_750 = "750"
+SYSTEM_NANO = "nano"
+SYSTEM_COMBINED = "combined"
+SYSTEMS = (SYSTEM_750, SYSTEM_NANO, SYSTEM_COMBINED)
+SYSTEM_NAMES = {SYSTEM_750: "Nifty 750", SYSTEM_NANO: "Nano Cap", SYSTEM_COMBINED: "Combined"}
+# The month each system's live record starts. The 750's is the record's own
+# INCEPTION (src/engine/track_record.py); the other two start with the first
+# book signalled after they were built, at the 30 Sep 2026 close.
+SYSTEM_INCEPTION = {SYSTEM_NANO: "2026-10", SYSTEM_COMBINED: "2026-10"}
 SHORT_FORM = "NANO"
 FLOOR_RUPEES = 2_000 * 10_000_000        # ₹2,000 Cr
 SERIES = ("EQ", "BE")                     # main board; SME (SM/ST) is excluded
