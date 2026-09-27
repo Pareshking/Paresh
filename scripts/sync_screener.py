@@ -111,6 +111,28 @@ def _concat_fresh(*frames: pd.DataFrame) -> pd.DataFrame:
     return result.sort_index()
 
 
+def fetch_new_history(symbols: list[str], ids: dict[str, str]):
+    """Full history for stocks the store has never held: ten years AND the daily year.
+
+    Screener answers a ten-year request with WEEKLY prices, so a newcomer
+    fetched only that way sat in the store with one price a week until the
+    next night's daily pass. On 2026-09-27 the 416 new extra stocks showed
+    807/1167 priced on 21-24 Sep for exactly that reason, and a stock ranked
+    on weekly closes for a day is ranked wrong. So a newcomer gets both
+    requests in the same run, the daily year laid over the weekly decade.
+    """
+    deep, ids, unresolved = sl.fetch_universe(
+        symbols, days=SCREENER_DEEP_HISTORY_DAYS, ids=ids, delay_s=SCREENER_DELAY_S)
+    if deep.empty or str(metrics.snapshot().get("facts", {}).get("screener_run_complete")) == "no":
+        return deep, ids, unresolved
+    served = sorted(set(sl.closes(deep).columns))
+    daily, ids, _ = sl.fetch_universe(served, days=SCREENER_DAYS, ids=ids,
+                                      delay_s=SCREENER_DELAY_S)
+    if daily.empty:
+        return deep, ids, unresolved
+    return daily.combine_first(deep).sort_index(), ids, unresolved
+
+
 def _deep_check_due(today: date | None = None, path: str = SCREENER_DEEP_CHECK_FILE) -> bool:
     """Is tonight the night to compare the whole history with Screener's?
 
@@ -185,12 +207,7 @@ def run() -> int:
     forced = pd.DataFrame()
     forced_unresolved: list[str] = []
     if new_current:
-        forced, ids, forced_unresolved = sl.fetch_universe(
-            new_current,
-            days=SCREENER_DEEP_HISTORY_DAYS,
-            ids=ids,
-            delay_s=SCREENER_DELAY_S,
-        )
+        forced, ids, forced_unresolved = fetch_new_history(new_current, ids)
         forced_closes = sl.closes(forced)
         forced_missing, forced_empty = _validate_current_price_coverage(new_current, forced_closes)
         if forced_missing or forced_empty:
@@ -233,11 +250,14 @@ def run() -> int:
         extra_old = [x for x in extras if x in have]
         parts = []
         extra_unresolved: list[str] = []
-        for group, group_days in ((extra_new, SCREENER_DEEP_HISTORY_DAYS), (extra_old, days)):
+        for group, is_new in ((extra_new, True), (extra_old, False)):
             if not group:
                 continue
-            got, ids, miss = sl.fetch_universe(group, days=group_days, ids=ids,
-                                               delay_s=SCREENER_DELAY_S)
+            if is_new:
+                got, ids, miss = fetch_new_history(group, ids)
+            else:
+                got, ids, miss = sl.fetch_universe(group, days=days, ids=ids,
+                                                   delay_s=SCREENER_DELAY_S)
             parts.append(got)
             extra_unresolved += miss
             if str(metrics.snapshot().get("facts", {}).get("screener_run_complete")) == "no":
@@ -245,7 +265,7 @@ def run() -> int:
         frame_extra = _concat_fresh(*parts)
         served = frame_extra.shape[1] // 2 if not frame_extra.empty else 0
         print(f"Extra universe: {served}/{len(extras)} served "
-              f"({len(extra_new)} new, fetched with full history); "
+              f"({len(extra_new)} new, fetched with ten years weekly plus the daily year); "
               f"{len(extra_unresolved)} not served: {extra_unresolved[:20]}")
     elif extras:
         print("Extra universe skipped: the site asked us to stop during the 750.")
