@@ -21,10 +21,10 @@ _Last updated: 2026-09-27_
 
 ## What is running
 
-- `nse_collect.yml`, scheduled every 4 hours but **GitHub has not fired the
-  schedule**; runs are dispatched by hand. Newest 7 days + up to 150 older,
-  2.5 s apart, floor `--since 2023-10-01` (three years). Stops quietly if NSE
-  refuses.
+- `nse_collect.yml`, every 4 hours: the schedule fired for the first time on
+  2026-09-27 (10:04 UTC, ~1.5 h late; GitHub schedules run late). Newest 7
+  days + up to 150 older, 2.5 s apart, floor `--since 2023-10-01` (three
+  years). Stops quietly if NSE refuses.
 - `daily_sync.yml` also collects the last 3 NSE sessions itself, before it
   builds the month-end Nano Cap list, so that list never waits on the
   collector's schedule.
@@ -32,8 +32,9 @@ _Last updated: 2026-09-27_
   securities, unadjusted OHLC + index closes), `nse/corporate_actions`
   (Bc file, purpose parsed to kind + price factor), `nse/market_caps`
   (~3,190 securities), `nse/source_checks` (disagreements, newest day).
-- Held: ~720 sessions (back to Nov 2023) as of 2026-09-27; one more
-  backfill run reaches 2023-10-01.
+- Held: **complete back to 2023-10-03**, the first session of the three-year
+  window (1 Oct 2023 was a Sunday, 2 Oct a holiday), as of 2026-09-27.
+  From here each run only adds the newest days.
 
 ## Findings so far
 
@@ -83,6 +84,7 @@ _Last updated: 2026-09-27_
 - Missing Screener days filled from Yahoo's daily moves (400-day window).
 - Open/high/low features removed (candles, ATR, stop loss, chandelier).
 - R2 retention audit limited to the datasets it deletes from (#243).
+- NSE history complete back to 2023-10-03; the collector's schedule fires.
 
 ## To do
 
@@ -90,14 +92,12 @@ _Last updated: 2026-09-27_
    evening; first Nano Cap / Combined books on 1 Oct; their backtest shows
    September. Check each (`docs/THREE_SYSTEMS.md`, Calendar).
 2. **Early November**: October freezes into all three ledgers.
-3. **NSE backfill**: one more run to reach 2023-10-01; then find out why the
-   `nse_collect.yml` schedule never fires.
-4. **NSE adjustment layer**: adjusted prices from NSE's unadjusted closes and
+3. **NSE adjustment layer**: adjusted prices from NSE's unadjusted closes and
    the Bc corporate actions; compare the rankings with Screener's before any
    switch.
-5. **NSE as the middle price source** everywhere: Screener → NSE → Yahoo,
-   once 4 is in.
-6. "Unclassified" industries for Nano Cap stocks TradingView lacks
+4. **NSE as the middle price source** everywhere: Screener → NSE → Yahoo,
+   once 3 is in.
+5. "Unclassified" industries for Nano Cap stocks TradingView lacks
    (Screener.in lookup).
-7. Timing: all three sources (NSE, Yahoo, Screener) in before 06:00 IST;
+6. Timing: all three sources (NSE, Yahoo, Screener) in before 06:00 IST;
    Screener's nightly run for 1,167 stocks takes ~37 min.
