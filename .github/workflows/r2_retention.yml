@@ -83,4 +83,6 @@ jobs:
       # resolve and read end to end after a deletion.
       - name: Recovery audit after apply
         if: ${{ steps.apply.outcome == 'success' }}
-        run: python scripts/r2_recovery_audit.py --json
+        # Only the datasets retention deletes from: the whole bucket (the NSE
+        # archive adds thousands of days) outgrew the time limit on 2026-09-27.
+        run: python scripts/r2_recovery_audit.py --json --retention-scope
