@@ -43,7 +43,12 @@ import pandas as pd
 import requests
 
 from src.core import startup_metrics as metrics
-from src.core.config import RANKINGS_SNAPSHOT_URL
+from src.core.config import (
+    PRICE_SNAPSHOT_REPO,
+    PRICE_SNAPSHOT_TAG,
+    RANKINGS_SNAPSHOT_ASSET,
+    RANKINGS_SNAPSHOT_URL,
+)
 from src.loaders import app_source
 from src.core.logger import logger
 
@@ -189,9 +194,23 @@ def read_snapshot(path: str) -> tuple[pd.DataFrame | None, dict[str, Any] | None
         return None, None
 
 
-def _snapshot_from_r2() -> tuple[pd.DataFrame | None, dict[str, Any] | None]:
+def asset_name(system: str = "750") -> str:
+    """The release asset a system's precomputed ranking is published as."""
+    return RANKINGS_SNAPSHOT_ASSET if system == "750" else f"rankings_{system}.parquet"
+
+
+def dataset_name(system: str = "750") -> str:
+    """The R2 dataset a system's precomputed ranking is archived under."""
+    return app_source.RANKINGS if system == "750" else f"{app_source.RANKINGS}_{system}"
+
+
+def _label(system: str) -> str:
+    return "rankings" if system == "750" else f"rankings_{system}"
+
+
+def _snapshot_from_r2(system: str = "750") -> tuple[pd.DataFrame | None, dict[str, Any] | None]:
     """The ranking table from R2, verified, or (None, None)."""
-    body = app_source.fetch_latest(app_source.RANKINGS, "rankings")
+    body = app_source.fetch_latest(dataset_name(system), _label(system))
     if body is None or len(body) < MIN_PLAUSIBLE_BYTES:
         return None, None
     fd, tmp_path = tempfile.mkstemp(suffix=".parquet")
@@ -206,21 +225,24 @@ def _snapshot_from_r2() -> tuple[pd.DataFrame | None, dict[str, Any] | None]:
             pass
     if frame is None or frame.empty:
         return None, None
-    app_source.record("rankings", "r2")
+    app_source.record(_label(system), "r2")
     return frame, published
 
 
-def fetch_snapshot(url: str | None = None) -> tuple[pd.DataFrame | None, dict[str, Any] | None]:
+def fetch_snapshot(url: str | None = None,
+                   system: str = "750") -> tuple[pd.DataFrame | None, dict[str, Any] | None]:
     """Download the published ranking table, or return (None, None).
 
     Never raises and never blocks indefinitely. The caller's fallback is to
     compute the ranking, which is what it did before this existed.
     """
     if url is None:
-        got = _snapshot_from_r2()
+        got = _snapshot_from_r2(system)
         if got[0] is not None:
             return got
-    target = url or RANKINGS_SNAPSHOT_URL
+    target = url or (RANKINGS_SNAPSHOT_URL if system == "750" else (
+        f"https://github.com/{PRICE_SNAPSHOT_REPO}/releases/download/"
+        f"{PRICE_SNAPSHOT_TAG}/{asset_name(system)}"))
     started = time.perf_counter()
     tmp_path = None
     resp = None  # streamed: holds a pooled connection until closed
@@ -260,7 +282,7 @@ def fetch_snapshot(url: str | None = None) -> tuple[pd.DataFrame | None, dict[st
             len(frame), size / 1024**2, elapsed,
         )
         if url is None:
-            app_source.record("rankings", "release")
+            app_source.record(_label(system), "release")
         return frame, published
 
     except Exception as exc:

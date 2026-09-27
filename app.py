@@ -7,7 +7,6 @@ otherwise), and routes the pages through st.navigation.
 
 import concurrent.futures
 import json
-import os
 import warnings
 
 import pandas as pd
@@ -44,7 +43,7 @@ from src.engine.corporate_actions import adjust_ohlc, load_events
 from src.loaders.indices_loader import fetch_indices_data
 from src.loaders import extra_universe_loader as extra_loader
 from src.engine.extra_universe import (
-    SYSTEM_750, SYSTEM_COMBINED, SYSTEM_INCEPTION, SYSTEM_NAMES, SYSTEM_NANO,
+    SYSTEM_750, SYSTEM_INCEPTION, SYSTEM_NAMES, SYSTEM_NANO,
 )
 from src.core.universe_reconciliation import reconcile_symbols
 # R2-backed production readers are an explicit transport boundary; keep this import adjacent to the loader.
@@ -256,7 +255,7 @@ _RANKING_SNAPSHOT_TTL_S = 600
 
 
 @st.cache_data(show_spinner=False, ttl=_RANKING_SNAPSHOT_TTL_S)
-def _fetch_ranking_snapshot() -> tuple:
+def _fetch_ranking_snapshot(system: str = SYSTEM_750) -> tuple:
     """Download the published ranking. Validated separately, and later.
 
     Split from the check on purpose. The contract cannot be evaluated until the
@@ -268,7 +267,7 @@ def _fetch_ranking_snapshot() -> tuple:
     """
     from src.loaders import ranking_store
 
-    return ranking_store.fetch_snapshot()
+    return ranking_store.fetch_snapshot(system=system)
 
 
 @st.cache_data(show_spinner=False, ttl=_RANKING_SNAPSHOT_TTL_S)
@@ -578,36 +577,11 @@ def run_momentum_pipeline(
     )
 
 
-def _nano_mcaps(symbols: list[str]) -> pd.Series:
-    """The extra universe's market caps: its own month-end list, in rupees.
-
-    Not fetch_market_caps: production cannot reach NSE, its repo snapshot
-    holds only the 750, and the fallback is one Yahoo request per stock.
-    """
-    listed = pd.read_csv(extra_loader.LIST_PATH) if os.path.exists(extra_loader.LIST_PATH) else None
-    if listed is None or "MarketCapCr" not in listed.columns:
-        return pd.Series(dtype=float)
-    caps = listed.set_index("Symbol")["MarketCapCr"] * 1e7
-    return caps.reindex(symbols).dropna()
-
-
 def _system_universe(system: str, indices: list[str]) -> pd.DataFrame:
     """The stocks a system ranks: the 750, Nano Cap, or both as one list."""
-    if system == SYSTEM_NANO:
-        return extra_loader.fetch_members()
-    base = fetch_indices_data(indices)
-    if system != SYSTEM_COMBINED:
-        return base
-    extra = extra_loader.fetch_members()
-    extra = extra[~extra["Symbol"].isin(set(base["Symbol"]))]
-    return pd.concat([base, extra], ignore_index=True)
-
-
-def _join_prices(a: pd.DataFrame, b: pd.DataFrame) -> pd.DataFrame:
-    frames = [f for f in (a, b) if f is not None and not f.empty]
-    if not frames:
-        return pd.DataFrame()
-    return frames[0] if len(frames) == 1 else pd.concat(frames, axis=1).sort_index()
+    base = fetch_indices_data(indices) if system != SYSTEM_NANO else pd.DataFrame(columns=["Symbol"])
+    extra = extra_loader.fetch_members() if system != SYSTEM_750 else pd.DataFrame(columns=["Symbol"])
+    return extra_loader.system_universe(system, base, extra)
 
 
 def load_all_data(indices: list[str], system: str = SYSTEM_750):
@@ -619,7 +593,6 @@ def load_all_data(indices: list[str], system: str = SYSTEM_750):
     one list. The 750's Yahoo cache only ever holds the 750: extra stocks come
     from their own file, so they cannot move the 750's coverage judgements.
     """
-    nano = system == SYSTEM_NANO
     force = st.session_state.pop("force_refresh", False)
     if force:
         st.cache_data.clear()
@@ -641,15 +614,13 @@ def load_all_data(indices: list[str], system: str = SYSTEM_750):
     metrics.note("universe_symbols", len(symbols))
     sym_key = _symbols_hash(symbols)
     # The part of the list the 750's caches serve, and the part they do not.
-    tags = idx_info.set_index("Symbol")["Indices"].astype(str) if "Indices" in idx_info else pd.Series(dtype=str)
-    extra_syms = [s for s in symbols if nano or tags.get(s, "") == extra_loader.xu.SHORT_FORM]
-    core_syms = [s for s in symbols if s not in set(extra_syms)]
+    core_syms, extra_syms = extra_loader.split_symbols(system, idx_info)
     core_key = sym_key if not extra_syms else _symbols_hash(core_syms)
     extra_key = _symbols_hash(extra_syms)
 
     def _mcaps_for_system() -> pd.Series:
         caps = load_mcaps_cached(core_key, core_syms) if core_syms else pd.Series(dtype=float)
-        return pd.concat([caps, _nano_mcaps(extra_syms)]) if extra_syms else caps
+        return pd.concat([caps, extra_loader.list_market_caps(extra_syms)]) if extra_syms else caps
 
     # mcaps + regime have no dependency on price_history — submit them to
     # background threads so the three fetches overlap on cold start.
@@ -658,13 +629,14 @@ def load_all_data(indices: list[str], system: str = SYSTEM_750):
         _fut_regime = _pool.submit(get_market_regime)
         # Nothing about the download depends on the prices below, only the
         # CHECK does -- so it overlaps the price work instead of following it.
-        _fut_ranking = (_pool.submit(_fetch_ranking_snapshot) if system == SYSTEM_750
-                        else _pool.submit(lambda: (None, None)))
+        # Each system has its own table (scripts/precompute_systems.py).
+        _fut_ranking = _pool.submit(_fetch_ranking_snapshot, system)
 
         with metrics.stage("price_history"):
-            raw_prices = _join_prices(
+            raw_prices = extra_loader.join_prices(
                 load_prices_cached(core_key, core_syms, period="2y") if core_syms else None,
                 extra_loader.load_prices(extra_key, extra_syms) if extra_syms else None,
+                extra_syms,
             )
             if not r2_streamlit.enabled():
                 metrics.note("deep_price_provider", "yahoo")

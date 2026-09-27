@@ -54,6 +54,66 @@ def fetch_members() -> pd.DataFrame:
     return members()
 
 
+def system_universe(system: str, base: pd.DataFrame, extra: pd.DataFrame) -> pd.DataFrame:
+    """The stocks a system ranks: the 750 (base), Nano Cap (extra), or both.
+
+    One definition for the app and the nightly precompute
+    (scripts/precompute_systems.py): the published ranking is accepted only
+    for exactly this universe.
+    """
+    if system == xu.SYSTEM_NANO:
+        return extra
+    if system != xu.SYSTEM_COMBINED:
+        return base
+    extra = extra[~extra["Symbol"].isin(set(base["Symbol"]))]
+    return pd.concat([base, extra], ignore_index=True)
+
+
+def split_symbols(system: str, idx_info: pd.DataFrame) -> tuple[list[str], list[str]]:
+    """(core, extra): the part the 750's price files serve, and the rest."""
+    symbols = idx_info["Symbol"].unique().tolist()
+    tags = (idx_info.set_index("Symbol")["Indices"].astype(str)
+            if "Indices" in idx_info else pd.Series(dtype=str))
+    nano = system == xu.SYSTEM_NANO
+    extra = [s for s in symbols if nano or tags.get(s, "") == xu.SHORT_FORM]
+    extra_set = set(extra)
+    return [s for s in symbols if s not in extra_set], extra
+
+
+def list_market_caps(symbols: list[str], path: str = LIST_PATH) -> pd.Series:
+    """The extra universe's market caps from its month-end list, in rupees.
+
+    Not fetch_market_caps: production cannot reach NSE, its repo snapshot
+    holds only the 750, and the fallback is one Yahoo request per stock.
+    """
+    listed = pd.read_csv(path) if os.path.exists(path) else None
+    if listed is None or "MarketCapCr" not in listed.columns:
+        return pd.Series(dtype=float)
+    caps = listed.set_index("Symbol")["MarketCapCr"] * 1e7
+    return caps.reindex(symbols).dropna()
+
+
+def join_prices(core: pd.DataFrame | None, extra: pd.DataFrame | None,
+                extra_symbols: list[str]) -> pd.DataFrame:
+    """The 750's price frame beside the extra universe's, one copy per stock.
+
+    The 750's Yahoo files keep every stock they ever held, so a stock that
+    left the 750 for Nano Cap (HEG, 2026-09) is in both: two copies of the
+    same columns, and the stale one was taken. The extra universe's file is
+    the current one for its members, so the 750's copy is dropped.
+    """
+    parts = []
+    if core is not None and not core.empty:
+        drop = set(extra_symbols)
+        parts.append(core.loc[:, [c for c in core.columns if c[0] not in drop]] if drop else core)
+    if extra is not None and not extra.empty:
+        parts.append(extra)
+    parts = [f for f in parts if not f.empty]
+    if not parts:
+        return pd.DataFrame()
+    return parts[0] if len(parts) == 1 else pd.concat(parts, axis=1).sort_index()
+
+
 # ── Yahoo prices ─────────────────────────────────────────────────────────────
 
 def strip_suffix(frame: pd.DataFrame) -> pd.DataFrame:

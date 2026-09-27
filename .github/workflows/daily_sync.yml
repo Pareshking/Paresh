@@ -202,6 +202,15 @@ jobs:
           PYTHONPATH: .
         run: python scripts/sync_extra_yahoo.py --out prices_extra.parquet || echo "::warning::Extra-universe Yahoo download failed; the 750 are unaffected."
 
+      # The Nano Cap and Combined rankings, precomputed like the 750's (owner,
+      # 2026-09-27: nightly precompute for all systems). Ranked from the same
+      # frames the app builds; the app uses a table only when its contract
+      # matches. Non-blocking: without it the app computes the ranking itself.
+      - name: Precompute the Nano Cap and Combined rankings
+        env:
+          PYTHONPATH: .
+        run: python scripts/precompute_systems.py --extra prices_extra.parquet || echo "::warning::Nano Cap / Combined precompute failed; the app will compute them."
+
       # Explicitly save, with the SAME rotating key the restore asked for, so
       # there is exactly one writer. Splitting restore from save also removes
       # the combined action's own post-job save, which used to fire alongside
@@ -263,6 +272,16 @@ jobs:
               --repo "$GITHUB_REPOSITORY" --clobber
             echo "Uploaded prices_extra.parquet to release data-latest."
           fi
+
+          for SYS in nano combined; do
+            R="${{ github.workspace }}/data_cache/rankings_${SYS}.parquet"
+            if [ -f "$R" ]; then
+              cp "$R" "${{ github.workspace }}/rankings_${SYS}.parquet"
+              gh release upload data-latest "${{ github.workspace }}/rankings_${SYS}.parquet" \
+                --repo "$GITHUB_REPOSITORY" --clobber
+              echo "Uploaded rankings_${SYS}.parquet to release data-latest."
+            fi
+          done
 
           RANK="${{ github.workspace }}/data_cache/rankings.parquet"
           if [ -f "$RANK" ]; then
@@ -329,6 +348,19 @@ jobs:
               --pipeline-version "r2-daily-${GITHUB_SHA}" \
               --release-tag data-latest
           fi
+
+          # Nano Cap and Combined rankings, when the precompute produced them.
+          for SYS in nano combined; do
+            if [ -f "rankings_${SYS}.parquet" ]; then
+              python scripts/r2_publish.py \
+                --path "rankings_${SYS}.parquet" \
+                --dataset "snapshots/rankings_${SYS}" \
+                --source system1 \
+                --key-root "snapshots/rankings_${SYS}" \
+                --pipeline-version "r2-daily-${GITHUB_SHA}" \
+                --release-tag data-latest
+            fi
+          done
 
           if [ -f rankings.parquet ]; then
             python scripts/r2_publish.py \
