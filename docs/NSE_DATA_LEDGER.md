@@ -85,6 +85,10 @@ _Last updated: 2026-09-27_
 - Open/high/low features removed (candles, ATR, stop loss, chandelier).
 - R2 retention audit limited to the datasets it deletes from (#243).
 - NSE history complete back to 2023-10-03; the collector's schedule fires.
+- Every Nano Cap stock has a TradingView sector (41 were Unclassified): the
+  nightly sync asks TradingView's screener, then Screener.in (NSE's sector
+  mapped onto TradingView's). Value Research Online answers scripts with a
+  Cloudflare challenge, so it cannot be a source.
 
 ## To do
 
@@ -97,7 +101,5 @@ _Last updated: 2026-09-27_
    switch.
 4. **NSE as the middle price source** everywhere: Screener → NSE → Yahoo,
    once 3 is in.
-5. "Unclassified" industries for Nano Cap stocks TradingView lacks
-   (Screener.in lookup).
-6. Timing: all three sources (NSE, Yahoo, Screener) in before 06:00 IST;
+5. Timing: all three sources (NSE, Yahoo, Screener) in before 06:00 IST;
    Screener's nightly run for 1,167 stocks takes ~37 min.

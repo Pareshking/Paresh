@@ -202,6 +202,7 @@ ATMASTCO,Producer Manufacturing,Metal Fabrication
 ATUL,Process Industries,Chemicals: Agricultural
 ATULAUTO,Consumer Durables,Motor Vehicles
 AUBANK,Finance,Regional Banks
+AUGMONT,Retail Trade,Specialty Stores
 AURIONPRO,Technology Services,Information Technology Services
 AUROPHARMA,Health Technology,Pharmaceuticals: Other
 AURUM,Technology Services,Packaged Software
@@ -234,6 +235,7 @@ BAGDIGITAL,Consumer Services,Broadcasting
 BAGFILMS,Consumer Services,Broadcasting
 BAHETI,Producer Manufacturing,Metal Fabrication
 BAIDFIN,Finance,Finance/Rental/Leasing
+BAJAJ-AUTO,Consumer Durables,Motor Vehicles
 BAJAJCON,Consumer Non-Durables,Household/Personal Care
 BAJAJELEC,Consumer Durables,Electronics/Appliances
 BAJAJFINSV,Finance,Life/Health Insurance
@@ -334,6 +336,7 @@ BORANA,Process Industries,Textiles
 BOROLTD,Producer Manufacturing,Miscellaneous Manufacturing
 BORORENEW,Process Industries,Industrial Specialties
 BOROSCI,Process Industries,Containers/Packaging
+BOSCH-HCIL,Consumer Durables,Electronics/Appliances
 BOSCHLTD,Producer Manufacturing,Auto Parts: OEM
 BOSCH_HCIL,Consumer Durables,Electronics/Appliances
 BPCL,Energy Minerals,Oil Refining/Marketing
@@ -349,6 +352,7 @@ BSHSL,Process Industries,Chemicals: Agricultural
 BSL,Process Industries,Textiles
 BSOFT,Technology Services,Packaged Software
 BTML,Consumer Services,Movies/Entertainment
+BUILDPRO,Distribution Services,Wholesale Distributors
 BUTTERFLY,Consumer Durables,Electronics/Appliances
 BYKE,Consumer Services,Hotels/Resorts/Cruise lines
 C2C,Technology Services,Packaged Software
@@ -414,9 +418,13 @@ CINELINE,Consumer Services,Movies/Entertainment
 CIPLA,Health Technology,Pharmaceuticals: Other
 CKKRETAIL,Distribution Services,Food Distributors
 CLEAN,Process Industries,Chemicals: Specialty
+CLEANMAX,Utilities,Alternative Power Generation
 CLEDUCATE,Commercial Services,Miscellaneous Commercial Services
 CLSEL,Process Industries,Agricultural Commodities/Milling
+CMLL,Energy Minerals,Coal
 CMNL,Non-Energy Minerals,Steel
+CMPDI,Commercial Services,Miscellaneous Commercial Services
+CMRGREEN,Producer Manufacturing,Metal Fabrication
 CMSINFO,Finance,Investment Managers
 CNL,Distribution Services,Electronics Distributors
 COALINDIA,Energy Minerals,Coal
@@ -437,6 +445,7 @@ CONSOFINVT,Finance,Financial Conglomerates
 CONTROLPR,Electronic Technology,Computer Peripherals
 COOLCAPS,Producer Manufacturing,Miscellaneous Manufacturing
 CORALFINAC,Finance,Investment Managers
+CORDELIA,Consumer Services,Hotels/Resorts/Cruise lines
 CORDSCABLE,Producer Manufacturing,Electrical Products
 COROMANDEL,Process Industries,Chemicals: Specialty
 CORONA,Health Technology,Pharmaceuticals: Major
@@ -513,6 +522,7 @@ DHANUKA,Process Industries,Chemicals: Specialty
 DHARARAIL,Industrial Services,Engineering & Construction
 DHARIWAL,Consumer Non-Durables,Household/Personal Care
 DHARMAJ,Process Industries,Chemicals: Agricultural
+DHOOTTRANS,Producer Manufacturing,Electrical Products
 DHUNINV,Process Industries,Chemicals: Specialty
 DIACABS,Producer Manufacturing,Electrical Products
 DIAMINESQ,Process Industries,Chemicals: Major Diversified
@@ -688,6 +698,7 @@ FWSTC,Commercial Services,Miscellaneous Commercial Services
 GABRIEL,Producer Manufacturing,Auto Parts: OEM
 GAEL,Consumer Non-Durables,Food: Specialty/Candy
 GAIL,Utilities,Gas Distributors
+GAJA,Finance,Investment Managers
 GALAPREC,Producer Manufacturing,Metal Fabrication
 GALAXYSURF,Consumer Non-Durables,Household/Personal Care
 GALLANTT,Non-Energy Minerals,Steel
@@ -794,6 +805,7 @@ GRWRHITECH,Process Industries,Chemicals: Specialty
 GSFC,Process Industries,Chemicals: Agricultural
 GSLSU,Non-Energy Minerals,Construction Materials
 GSMFOILS,Non-Energy Minerals,Aluminum
+GSPCROP,Process Industries,Chemicals: Agricultural
 GSPL,Utilities,Gas Distributors
 GTL,Technology Services,Information Technology Services
 GTLINFRA,Industrial Services,Engineering & Construction
@@ -801,6 +813,7 @@ GTPL,Communications,Specialty Telecommunications
 GUFICBIO,Health Technology,Pharmaceuticals: Major
 GUJALKALI,Process Industries,Chemicals: Specialty
 GUJAPOLLO,Producer Manufacturing,Trucks/Construction/Farm Machinery
+GUJENERGY,Utilities,Gas Distributors
 GUJGASLTD,Utilities,Gas Distributors
 GUJTHEM,Health Technology,Pharmaceuticals: Major
 GULFOILLUB,Energy Minerals,Oil Refining/Marketing
@@ -835,6 +848,7 @@ HDFCLIFE,Finance,Multi-Line Insurance
 HDIL,Finance,Real Estate Development
 HECPROJECT,Industrial Services,Engineering & Construction
 HEG,Electronic Technology,Electronic Components
+HEGAM,Electronic Technology,Electronic Components
 HEIDELBERG,Non-Energy Minerals,Construction Materials
 HEMIPROP,Finance,Real Estate Development
 HERANBA,Process Industries,Chemicals: Agricultural
@@ -875,6 +889,7 @@ HOMEFIRST,Finance,Finance/Rental/Leasing
 HONASA,Retail Trade,Specialty Stores
 HONAUT,Electronic Technology,Electronic Equipment/Instruments
 HONDAPOWER,Producer Manufacturing,Electrical Products
+HORIZONIND,Finance,Real Estate Development
 HPAL,Non-Energy Minerals,Construction Materials
 HPIL,Process Industries,Chemicals: Specialty
 HPL,Electronic Technology,Electronic Equipment/Instruments
@@ -920,6 +935,7 @@ IL&FSENGG,Industrial Services,Engineering & Construction
 IMAGICAA,Consumer Services,Movies/Entertainment
 IMFA,Non-Energy Minerals,Other Metals/Minerals
 IMPAL,Distribution Services,Wholesale Distributors
+INA,Electronic Technology,Semiconductors
 INCREDIBLE,Non-Energy Minerals,Steel
 INDBANK,Finance,Investment Banks/Brokers
 INDGN,Health Technology,Pharmaceuticals: Major
@@ -939,6 +955,7 @@ INDOAMIN,Process Industries,Chemicals: Major Diversified
 INDOBORAX,Process Industries,Chemicals: Specialty
 INDOCO,Health Technology,Pharmaceuticals: Major
 INDOFARM,Producer Manufacturing,Trucks/Construction/Farm Machinery
+INDOMIM,Producer Manufacturing,Industrial Machinery
 INDORAMA,Process Industries,Textiles
 INDOSTAR,Finance,Finance/Rental/Leasing
 INDOTECH,Producer Manufacturing,Electrical Products
@@ -1042,6 +1059,7 @@ JLHL,Health Services,Hospital/Nursing Management
 JMA,Producer Manufacturing,Auto Parts: OEM
 JMFINANCIL,Finance,Investment Banks/Brokers
 JNKINDIA,Producer Manufacturing,Building Products
+JNPR,Utilities,Alternative Power Generation
 JOCIL,Process Industries,Chemicals: Specialty
 JPASSOCIAT,Producer Manufacturing,Industrial Conglomerates
 JPOLYINVST,Finance,Investment Managers
@@ -1050,6 +1068,7 @@ JSFB,Finance,Regional Banks
 JSL,Non-Energy Minerals,Steel
 JSLL,Health Services,Medical/Nursing Services
 JSWCEMENT,Non-Energy Minerals,Construction Materials
+JSWDULUX,Consumer Durables,Consumer Durables
 JSWENERGY,Utilities,Electric Utilities
 JSWHL,Finance,Investment Banks/Brokers
 JSWINFRA,Industrial Services,Engineering & Construction
@@ -1113,10 +1132,12 @@ KIRLOSBROS,Producer Manufacturing,Industrial Machinery
 KIRLOSENG,Producer Manufacturing,Electrical Products
 KIRLOSIND,Non-Energy Minerals,Steel
 KIRLPNU,Producer Manufacturing,Industrial Machinery
+KISSHT,Finance,Finance/Rental/Leasing
 KITEX,Process Industries,Textiles
 KKCL,Consumer Non-Durables,Apparel/Footwear
 KMEW,Producer Manufacturing,Trucks/Construction/Farm Machinery
 KMSUGAR,Process Industries,Agricultural Commodities/Milling
+KNACK,Process Industries,Containers/Packaging
 KNAGRI,Process Industries,Agricultural Commodities/Milling
 KNRCON,Industrial Services,Engineering & Construction
 KODYTECH,Technology Services,Packaged Software
@@ -1157,19 +1178,25 @@ KSL,Non-Energy Minerals,Steel
 KSOLVES,Technology Services,Packaged Software
 KTKBANK,Finance,Regional Banks
 KUANTUM,Process Industries,Pulp & Paper
+KUSUMGAR,Process Industries,Textiles
+KWIL,Consumer Non-Durables,Food: Meat/Fish/Dairy
 LAGNAM,Process Industries,Textiles
 LAKSHYA,Industrial Services,Engineering & Construction
 LAL,Consumer Non-Durables,Apparel/Footwear
+LALITHAA,Retail Trade,Specialty Stores
 LALPATHLAB,Health Services,Medical/Nursing Services
 LAMBODHARA,Process Industries,Textiles
 LANCORHOL,Finance,Real Estate Development
 LANDMARK,Retail Trade,Specialty Stores
 LAOPALA,Consumer Durables,Home Furnishings
+LASERPOWER,Producer Manufacturing,Electrical Products
 LATENTVIEW,Commercial Services,Miscellaneous Commercial Services
 LATTEYS,Producer Manufacturing,Industrial Machinery
 LAURUSLABS,Health Technology,Pharmaceuticals: Major
 LAXMIDENTL,Health Services,Medical/Nursing Services
 LAXMIINDIA,Finance,Finance/Rental/Leasing
+LCL,Producer Manufacturing,Industrial Machinery
+LEAPIND,Transportation,Air Freight/Couriers
 LEMERITE,Process Industries,Textiles
 LEMONTREE,Consumer Services,Hotels/Resorts/Cruise lines
 LENSKART,Health Technology,Medical Specialties
@@ -1199,6 +1226,7 @@ LT,Industrial Services,Engineering & Construction
 LTF,Finance,Finance/Rental/Leasing
 LTFOODS,Process Industries,Agricultural Commodities/Milling
 LTIM,Technology Services,Data Processing Services
+LTM,Technology Services,Data Processing Services
 LTTS,Commercial Services,Miscellaneous Commercial Services
 LUMAXIND,Producer Manufacturing,Auto Parts: OEM
 LUMAXTECH,Producer Manufacturing,Auto Parts: OEM
@@ -1243,6 +1271,7 @@ MANCREDIT,Finance,Finance/Rental/Leasing
 MANGLMCEM,Non-Energy Minerals,Construction Materials
 MANINDS,Producer Manufacturing,Industrial Machinery
 MANINFRA,Finance,Real Estate Development
+MANIPALHOS,Health Services,Hospital/Nursing Management
 MANKIND,Health Technology,Pharmaceuticals: Major
 MANOMAY,Process Industries,Textiles
 MANORAMA,Consumer Non-Durables,Food: Specialty/Candy
@@ -1256,6 +1285,7 @@ MARICO,Consumer Non-Durables,Household/Personal Care
 MARINE,Distribution Services,Wholesale Distributors
 MARKOLINES,Industrial Services,Engineering & Construction
 MARKSANS,Health Technology,Pharmaceuticals: Major
+MARSONS,Producer Manufacturing,Electrical Products
 MARUTI,Consumer Durables,Motor Vehicles
 MASFIN,Finance,Finance/Rental/Leasing
 MASON,Industrial Services,Engineering & Construction
@@ -1300,6 +1330,7 @@ MHRIL,Consumer Services,Other Consumer Services
 MICEL,Health Technology,Medical Specialties
 MIDHANI,Non-Energy Minerals,Other Metals/Minerals
 MIDWESTLTD,Non-Energy Minerals,Construction Materials
+MILKYMIST,Consumer Non-Durables,Food: Meat/Fish/Dairy
 MINDACORP,Producer Manufacturing,Auto Parts: OEM
 MINDSPACE.RR,Finance,Real Estate Investment Trusts
 MINDTECK,Technology Services,Information Technology Services
@@ -1318,6 +1349,7 @@ MODTHREAD,Process Industries,Textiles
 MOIL,Non-Energy Minerals,Other Metals/Minerals
 MOKSH,Consumer Durables,Other Consumer Specialties
 MOL,Process Industries,Chemicals: Specialty
+MOLBIO,Health Technology,Medical Specialties
 MOLDTECH,Industrial Services,Engineering & Construction
 MOLDTKPAC,Producer Manufacturing,Miscellaneous Manufacturing
 MONARCH,Finance,Investment Banks/Brokers
@@ -1352,6 +1384,7 @@ MURUDCERA,Producer Manufacturing,Building Products
 MUTHOOTCAP,Finance,Finance/Rental/Leasing
 MUTHOOTFIN,Finance,Finance/Rental/Leasing
 MUTHOOTMF,Finance,Finance/Rental/Leasing
+MVELECTRO,Producer Manufacturing,Trucks/Construction/Farm Machinery
 MVGJL,Retail Trade,Specialty Stores
 MVKAGRO,Process Industries,Agricultural Commodities/Milling
 MWL,Non-Energy Minerals,Steel
@@ -1361,6 +1394,7 @@ NAHARCAP,Finance,Investment Managers
 NAHARINDUS,Process Industries,Textiles
 NAHARPOLY,Process Industries,Textiles
 NAHARSPING,Process Industries,Textiles
+NAM-INDIA,Finance,Investment Managers
 NAMOEWASTE,Industrial Services,Environmental Services
 NAM_INDIA,Finance,Investment Managers
 NARMADA,Process Industries,Agricultural Commodities/Milling
@@ -1453,6 +1487,7 @@ OMAXAUTO,Producer Manufacturing,Auto Parts: OEM
 OMAXE,Finance,Real Estate Development
 OMFREIGHT,Transportation,Air Freight/Couriers
 OMINFRAL,Industrial Services,Engineering & Construction
+OMNI,Producer Manufacturing,Metal Fabrication
 ONEPOINT,Commercial Services,Miscellaneous Commercial Services
 ONESOURCE,Health Technology,Pharmaceuticals: Major
 ONGC,Energy Minerals,Oil Refining/Marketing
@@ -1559,6 +1594,7 @@ PONNIERODE,Process Industries,Agricultural Commodities/Milling
 POONAWALLA,Finance,Finance/Rental/Leasing
 POSITRON,Utilities,Gas Distributors
 POWERGRID,Utilities,Alternative Power Generation
+POWERICA,Producer Manufacturing,Electrical Products
 POWERINDIA,Electronic Technology,Electronic Equipment/Instruments
 POWERMECH,Industrial Services,Engineering & Construction
 PPAP,Producer Manufacturing,Auto Parts: OEM
@@ -1752,6 +1788,7 @@ SAHASRA,Electronic Technology,Electronic Production Equipment
 SAHYADRI,Non-Energy Minerals,Construction Materials
 SAIL,Non-Energy Minerals,Steel
 SAILIFE,Commercial Services,Miscellaneous Commercial Services
+SAIPARENT,Health Technology,Pharmaceuticals: Major
 SAKAR,Health Technology,Pharmaceuticals: Major
 SAKHTISUG,Process Industries,Agricultural Commodities/Milling
 SAKSOFT,Technology Services,Information Technology Services
@@ -1794,6 +1831,7 @@ SBCL,Non-Energy Minerals,Other Metals/Minerals
 SBFC,Finance,Finance/Rental/Leasing
 SBGLP,Finance,Real Estate Development
 SBICARD,Finance,Finance/Rental/Leasing
+SBIFUNDS,Finance,Investment Managers
 SBILIFE,Finance,Life/Health Insurance
 SBIN,Finance,Regional Banks
 SCHAEFFLER,Producer Manufacturing,Metal Fabrication
@@ -1808,6 +1846,7 @@ SDBL,Consumer Non-Durables,Beverages: Alcoholic
 SDREAMS,Consumer Non-Durables,Apparel/Footwear
 SEAMECLTD,Industrial Services,Oilfield Services/Equipment
 SECMARK,Technology Services,Information Technology Services
+SEDEMAC,Producer Manufacturing,Auto Parts: OEM
 SEJALLTD,Process Industries,Industrial Specialties
 SELMC,Process Industries,Textiles
 SENCO,Consumer Durables,Other Consumer Specialties
@@ -1842,6 +1881,7 @@ SHETHJI,Consumer Non-Durables,Food: Major Diversified
 SHIGAN,Electronic Technology,Electronic Equipment/Instruments
 SHILCTECH,Producer Manufacturing,Electrical Products
 SHILPAMED,Health Technology,Pharmaceuticals: Major
+SHIPROCKET,Technology Services,Packaged Software
 SHIVALIK,Process Industries,Chemicals: Agricultural
 SHIVAMAUTO,Producer Manufacturing,Auto Parts: OEM
 SHIVASHRIT,Consumer Non-Durables,Food: Specialty/Candy
@@ -1894,6 +1934,7 @@ SJLOGISTIC,Transportation,Airlines
 SJS,Producer Manufacturing,Auto Parts: OEM
 SJVN,Utilities,Electric Utilities
 SKFINDIA,Producer Manufacturing,Metal Fabrication
+SKFINDUS,Producer Manufacturing,Auto Parts: OEM
 SKIPPER,Producer Manufacturing,Metal Fabrication
 SKMEGGPROD,Process Industries,Agricultural Commodities/Milling
 SKP,Producer Manufacturing,Metal Fabrication
@@ -2066,6 +2107,7 @@ TEGA,Distribution Services,Wholesale Distributors
 TEJASCARGO,Transportation,Air Freight/Couriers
 TEJASNET,Electronic Technology,Telecommunications Equipment
 TEMBO,Producer Manufacturing,Metal Fabrication
+TEMPSENS,Electronic Technology,Electronic Equipment/Instruments
 TENNIND,Producer Manufacturing,Auto Parts: OEM
 TERASOFT,Technology Services,Information Technology Services
 TEXINFRA,Utilities,Electric Utilities
@@ -2127,6 +2169,7 @@ TTKPRESTIG,Consumer Durables,Home Furnishings
 TTL,Process Industries,Textiles
 TTML,Communications,Specialty Telecommunications
 TUNWAL,Consumer Durables,Motor Vehicles
+TURTLEMINT,Finance,Insurance Brokers/Services
 TVSELECT,Electronic Technology,Electronic Equipment/Instruments
 TVSHLTD,Producer Manufacturing,Auto Parts: OEM
 TVSMOTOR,Consumer Durables,Motor Vehicles
@@ -2183,6 +2226,7 @@ VAIBHAVGBL,Consumer Durables,Other Consumer Specialties
 VAKRANGEE,Retail Trade,Internet Retail
 VALIANTLAB,Health Technology,Pharmaceuticals: Major
 VALIANTORG,Process Industries,Chemicals: Specialty
+VAML,Non-Energy Minerals,Aluminum
 VARDHACRLC,Consumer Non-Durables,Apparel/Footwear
 VARDMNPOLY,Process Industries,Textiles
 VARROC,Producer Manufacturing,Auto Parts: OEM
@@ -2190,6 +2234,7 @@ VASCONEQ,Industrial Services,Engineering & Construction
 VASWANI,Non-Energy Minerals,Steel
 VBL,Consumer Non-Durables,Beverages: Non-Alcoholic
 VEDL,Non-Energy Minerals,Aluminum
+VEDPOWER,Utilities,Electric Utilities
 VEEDOL,Energy Minerals,Oil Refining/Marketing
 VENKEYS,Process Industries,Agricultural Commodities/Milling
 VENTIVE,Consumer Services,Hotels/Resorts/Cruise lines
@@ -2231,6 +2276,7 @@ VISASTEEL,Non-Energy Minerals,Steel
 VISHNU,Process Industries,Chemicals: Specialty
 VISHNUINFR,Non-Energy Minerals,Construction Materials
 VISHWARAJ,Process Industries,Agricultural Commodities/Milling
+VISL,Non-Energy Minerals,Steel
 VITAL,Process Industries,Chemicals: Specialty
 VIVIANA,Industrial Services,Engineering & Construction
 VIYASH,Health Technology,Pharmaceuticals: Major
@@ -2240,6 +2286,7 @@ VMARCIND,Producer Manufacturing,Electrical Products
 VMART,Retail Trade,Specialty Stores
 VMM,Retail Trade,Apparel/Footwear Retail
 VMSTMT,Non-Energy Minerals,Steel
+VOGL,Energy Minerals,Oil & Gas Production
 VOLERCAR,Transportation,Other Transportation
 VOLTAMP,Producer Manufacturing,Electrical Products
 VOLTAS,Producer Manufacturing,Industrial Machinery
@@ -2313,9 +2360,3 @@ ZUARI,Process Industries,Chemicals: Agricultural
 ZUARIIND,Process Industries,Agricultural Commodities/Milling
 ZYDUSLIFE,Health Technology,Pharmaceuticals: Major
 ZYDUSWELL,Consumer Non-Durables,Food: Major Diversified
-BAJAJ-AUTO,Automobile and Auto Components,Automobile and Auto Components
-LTM,Information Technology,Information Technology
-NAM-INDIA,Financial Services,Financial Services
-JSWDULUX,Consumer Durables,Consumer Durables
-SKFINDUS,Capital Goods,Capital Goods
-HEGAM,Capital Goods,Capital Goods
