@@ -104,6 +104,13 @@ SCREENER_DEEP_CHECK_FILE: Final[str] = os.path.join(DATA_DIR, "screener_deep_che
 # browsing it.
 SCREENER_DELAY_S: Final[float] = 1.2
 
+# Plus a random 0-SCREENER_JITTER_S on every pause (owner, 2026-09-27: "sleep
+# time increase, random sleep"), so the walk has no fixed rhythm. Averages
+# +0.4 s a request: about 40 minutes a night for the 750 and the ~420-stock
+# extra universe together, which lands before 06:00 IST from the ~03:05 IST
+# start GitHub actually gives the 00:15 IST slot.
+SCREENER_JITTER_S: Final[float] = 0.8
+
 # Which source the RANKING is computed from. The other is still collected and
 # still published; this only decides which one the engine scores.
 #

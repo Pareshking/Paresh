@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import json
 import os
+import random
 import re
 import time
 from typing import Sequence
@@ -45,6 +46,7 @@ from src.core import startup_metrics as metrics
 from src.core.config import (
     SCREENER_DAYS,
     SCREENER_DELAY_S,
+    SCREENER_JITTER_S,
     SCREENER_IDS_FILE,
     SCREENER_PRICES_FILE,
 )
@@ -154,6 +156,11 @@ def fetch_series(
 # ── The whole universe ───────────────────────────────────────────────────────
 
 
+def _pause(delay_s: float, sleep=time.sleep) -> None:
+    """The fixed pause plus a random share of SCREENER_JITTER_S (none when 0)."""
+    sleep(delay_s + (random.uniform(0, SCREENER_JITTER_S) if delay_s > 0 else 0.0))
+
+
 def fetch_universe(
     symbols: Sequence[str],
     days: int = SCREENER_DAYS,
@@ -186,10 +193,10 @@ def fetch_universe(
                 cid = resolve_id(sym, sess)
                 if cid:
                     known[sym] = cid
-                    time.sleep(delay_s)
+                    _pause(delay_s)
                 else:
                     unresolved.append(sym)
-                    time.sleep(delay_s)
+                    _pause(delay_s)
                     continue
             got = fetch_series(cid, sess, days=days)
             if got is None:
@@ -210,7 +217,7 @@ def fetch_universe(
         except requests.RequestException as exc:
             unresolved.append(sym)
             logger.debug("screener %s: %s", sym, type(exc).__name__)
-        time.sleep(delay_s)
+        _pause(delay_s)
 
     metrics.note("screener_symbols_fetched", len(closes))
     metrics.note("screener_symbols_unresolved", len(unresolved))
