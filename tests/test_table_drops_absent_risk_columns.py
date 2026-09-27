@@ -120,7 +120,8 @@ def test_stock_page_drops_the_atr_tiles_when_there_is_no_atr(monkeypatch):
         assert label not in html, f"'{label}' rendered with no ATR behind it"
 
 
-def test_stock_page_keeps_the_atr_tiles_when_atr_is_present(monkeypatch):
+def test_stock_page_shows_no_stop_levels_even_if_a_frame_carries_them(monkeypatch):
+    """The app has no stops (owner, 2026-09-27): no Stop Loss, Chandelier or ATR tiles."""
     import src.ui.views.stock_view as sv
 
     captured: list[str] = []
@@ -132,8 +133,8 @@ def test_stock_page_keeps_the_atr_tiles_when_atr_is_present(monkeypatch):
         "ATR": 13.5, "ATR %": 5.7,
     }))
     html = "".join(captured)
-    assert "Stop Loss" in html and "Chandelier Exit" in html
-    assert "210" in html and "224" in html
+    assert "Stop Loss" not in html and "Chandelier Exit" not in html and "ATR (14" not in html
+    assert "52" in html                                  # the rest of the ladder still renders
 
 
 # ── The density label must not become a second, drifting copy of the count ───

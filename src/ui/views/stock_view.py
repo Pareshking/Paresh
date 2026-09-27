@@ -25,7 +25,7 @@ import pandas as pd
 import streamlit as st
 
 from src.engine.corporate_actions import load_events
-from src.engine.momentum import ATR_DERIVED_COLUMNS, CARRIED_MARK
+from src.engine.momentum import CARRIED_MARK
 from src.ui.charts import render_stock_chart
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
 
@@ -365,15 +365,6 @@ def _render_price_ladder(row: pd.Series, year_low: float | None = None) -> None:
     vol = str(row.get("Volume") or "").strip()
     if vol:
         item("Volume vs normal", _html.escape(vol), "")
-
-    # Stop levels are DROPPED, not blanked, when the ranking carries no ATR. A
-    # history of closing prices has no intraday range, so the pipeline removes
-    # ATR_DERIVED_COLUMNS rather than derive a number that would read as a
-    # true ATR and size a stop about half as wide as intended.
-    if any(_num(row.get(col)) is not None for col in ATR_DERIVED_COLUMNS):
-        item("Stop Loss", _money(row.get("Stop Loss")), "price − 2 × ATR", "down")
-        item("Chandelier Exit", _money(row.get("Chand Exit")), "22-day high − 3 × ATR", "warn")
-        item("ATR (14-day)", _money(row.get("ATR"), 1), f"{_ratio(row.get('ATR %'))}% of price")
 
     _html_block(
         '<section class="sp-card sp-ladder" aria-label="Where the price sits">'
