@@ -144,3 +144,13 @@ def test_nested_dataset_names_are_resolved_whole():
     result = _run_with(Reader, [key])
     assert seen == [("prices/yahoo/raw", "2026-09-21")]
     assert result["status"] == "PASS"
+
+
+def test_scope_keeps_only_the_named_datasets_not_their_nested_ones():
+    k = "archive/manifests/{}/2026-09-25/current.json".format
+    scope = ("prices/yahoo", "app/prices_extra")
+    assert r2_recovery_audit._in_scope(k("prices/yahoo"), scope)
+    assert r2_recovery_audit._in_scope(k("app/prices_extra"), scope)
+    assert not r2_recovery_audit._in_scope(k("prices/yahoo/raw"), scope)
+    assert not r2_recovery_audit._in_scope(k("nse/prices_daily"), scope)
+    assert r2_recovery_audit._in_scope(k("nse/prices_daily"), None)
