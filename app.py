@@ -982,9 +982,13 @@ rank_df = _with_tv(rank_df)
 # Owner, 2026-09-27: three systems in one app, chosen in Configuration, and
 # every page follows the choice. The data above is the chosen system's.
 if system != SYSTEM_750:
-    # TradingView covers few Nano Cap stocks; fall back to the list's industry.
+    # One taxonomy per system. NSE's industry names exist only for the 750, so
+    # Combined would mix two (37 "industries" where there are ~20): Nano Cap
+    # and Combined group every stock by its TradingView sector, falling back
+    # to the list's industry where TradingView has none.
     _blank = rank_df["TV_Sector"].fillna("") == ""
     rank_df.loc[_blank, "TV_Sector"] = rank_df.loc[_blank, "Industry"]
+    rank_df["Industry"] = rank_df["TV_Sector"]
 system_name = SYSTEM_NAMES[system]
 
 
