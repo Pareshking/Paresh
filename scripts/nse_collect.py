@@ -196,6 +196,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--recent", type=int, default=0)
     ap.add_argument("--backfill", type=int, default=0)
     ap.add_argument("--calendar", help="parquet whose index lists trading sessions")
+    ap.add_argument("--since", default=HISTORY_START.isoformat(),
+                    help="oldest trading day the backfill may reach (YYYY-MM-DD)")
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--screener", help="Screener store parquet, for --check")
     ap.add_argument("--yahoo", help="Yahoo price parquet, for --check")
@@ -235,7 +237,8 @@ def main(argv: list[str] | None = None) -> int:
         cal = load_calendar(args.calendar)
         if not cal:
             print("::warning::no calendar; backfill skipped")
-        days += [d for d in backfill_dates(cal, have | set(days), args.backfill)]
+        since = date.fromisoformat(args.since)
+        days += [d for d in backfill_dates(cal, have | set(days), args.backfill, start=since)]
 
     blocked = False
     with tempfile.TemporaryDirectory() as tmp:

@@ -68,6 +68,9 @@ jobs:
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
           BACKFILL: ${{ inputs.backfill || '100' }}
         run: |
-          python scripts/nse_collect.py --recent 7 --backfill "$BACKFILL" \
+          # Sample year first (owner, 2026-09-27): test everything on about
+          # 18 months before reaching back ten years. Move this date back
+          # once the sample checks are signed off.
+          python scripts/nse_collect.py --recent 7 --backfill "$BACKFILL" --since 2025-04-01 \
             --calendar prices_full.parquet --check \
             --screener screener_prices.parquet --yahoo prices.parquet
