@@ -123,12 +123,27 @@ def main(argv: list[str] | None = None) -> int:
            f"- Unreadable days: {len(unreadable)} {', '.join(unreadable[:10])}",
            f"- Adjustments NSE made (previous-close steps): **{len(ev)}**\n"]
 
+    w = na.wide(prices)
+    gaps = na.gap_days(w["close"], w["prev_close"])
+    sessions = w["close"].index
+    out += ["## 1b. Sessions missing from the record\n",
+            "A day where most stocks' previous close is not our previous session's "
+            "close follows a session we hold no file for (a Budget Sunday, a muhurat "
+            "session). Collect it: `nse_collect.yml` → dates.\n"]
+    if len(gaps):
+        rows = [{"gap before": d.date(),
+                 "last held": sessions[sessions.get_loc(d) - 1].date() if sessions.get_loc(d) else "-",
+                 "stocks stepping": f"{v:.0%}"} for d, v in gaps.items()]
+        out += [_md(pd.DataFrame(rows), 40), ""]
+    else:
+        out.append("_none_\n")
+
     cc = na.crosscheck_actions(factors, acts) if not acts.empty else None
     out.append("## 2. Steps against the Bc file's splits and bonuses\n")
     if cc is None:
         out.append("_no corporate-action files_\n")
     else:
-        out += [f"- Agreeing within 2%: {len(ev) - len(cc['unparsed']) - len(cc['mismatched'])}",
+        out += [f"- Agreeing within 2%: **{len(cc['agreeing'])}**",
                 f"- **Disagreeing: {len(cc['mismatched'])}**", _md(cc["mismatched"]), "",
                 f"- Parsed split/bonus with no NSE step: {len(cc['missing'])}", _md(cc["missing"]), "",
                 f"- NSE step with no parsed split/bonus (demergers, specials): {len(cc['unparsed'])}",

@@ -209,6 +209,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--probe", action="append", default=[],
                     help="YYYY-MM-DD, or 'latest'; repeatable")
     ap.add_argument("--delay", type=float, default=DELAY_S)
+    ap.add_argument("--dates", default="",
+                    help="YYYY-MM-DD days to collect if R2 lacks them, space- or "
+                         "comma-separated; weekend special sessions included "
+                         "(a Budget Sunday, a muhurat session)")
     args = ap.parse_args(argv)
 
     session = requests.Session()
@@ -226,7 +230,7 @@ def main(argv: list[str] | None = None) -> int:
                     break
         probe(datetime.strptime(p, "%Y-%m-%d").date(), fetch)
         time.sleep(args.delay)
-    if not (args.recent or args.backfill or args.check):
+    if not (args.recent or args.backfill or args.check or args.dates.strip()):
         return 0
 
     from scripts.r2_publish import publish
@@ -238,6 +242,8 @@ def main(argv: list[str] | None = None) -> int:
           + (f", {min(have)} to {max(have)}" if have else ""))
 
     days = [d for d in recent_weekdays(args.recent, today) if d not in have] if args.recent else []
+    extra = [date.fromisoformat(x) for x in args.dates.replace(",", " ").split()]
+    days += [d for d in extra if d not in have and d not in days]
     if args.backfill:
         cal = load_calendar(args.calendar)
         if not cal:

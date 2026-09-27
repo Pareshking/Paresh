@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from src.storage.r2 import R2Archive, R2Config
@@ -28,7 +29,8 @@ def _in_scope(key: str, datasets: tuple[str, ...] | None) -> bool:
 
 
 def audit_recovery(archive: R2Archive,
-                   datasets: tuple[str, ...] | None = None) -> dict[str, Any]:
+                   datasets: tuple[str, ...] | None = None,
+                   workers: int = 10) -> dict[str, Any]:
     """Every pointer and revision, or only those of `datasets` when given.
 
     The retention job passes the datasets it may delete from: the whole
@@ -41,12 +43,10 @@ def audit_recovery(archive: R2Archive,
         if "/revisions/" in key and key.endswith(".json")
     )
     pointers = sorted(key for key in keys if key.endswith("/current.json"))
-    verified = []
-    immutable_verified = []
-    for key in manifest_keys:
+    def check_revision(key: str) -> dict[str, Any] | None:
         parts = key.split("/")
         if len(parts) < 7:
-            continue
+            return None
         dataset = "/".join(parts[2:-3])
         as_of = parts[-3]
         revision_sha256 = parts[-1][:-5]
@@ -54,27 +54,28 @@ def audit_recovery(archive: R2Archive,
             raise RuntimeError(f"Invalid immutable manifest revision key: {key}")
         ref = reader.resolve_revision(dataset, as_of, revision_sha256)
         body = reader.read_bytes(ref)
-        immutable_verified.append({
-            "dataset": dataset,
-            "as_of": as_of,
-            "revision_sha256": ref.revision_sha256,
-            "size_bytes": len(body),
-        })
+        return {"dataset": dataset, "as_of": as_of,
+                "revision_sha256": ref.revision_sha256, "size_bytes": len(body)}
 
-    for key in pointers:
+    def check_pointer(key: str) -> dict[str, Any] | None:
         parts = key.split("/")
         if len(parts) < 5 or parts[-1] != "current.json":
-            continue
+            return None
         dataset = "/".join(parts[2:-2])
         as_of = parts[-2]
         ref = reader.resolve_current(dataset, as_of=as_of)
         body = reader.read_bytes(ref)
-        verified.append({
-            "dataset": dataset,
-            "as_of": as_of,
-            "revision_sha256": ref.revision_sha256,
-            "size_bytes": len(body),
-        })
+        return {"dataset": dataset, "as_of": as_of,
+                "revision_sha256": ref.revision_sha256, "size_bytes": len(body)}
+
+    # Many small reads, each a network round trip: in parallel (10, the size
+    # of the boto3 client's connection pool), so the whole
+    # bucket (the NSE archive adds thousands of days) fits the job's time
+    # limit (2026-09-27: one at a time, it ran out at 15 minutes). The first
+    # failure still raises, as before.
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        immutable_verified = [r for r in pool.map(check_revision, manifest_keys) if r]
+        verified = [r for r in pool.map(check_pointer, pointers) if r]
     return {
         "status": "PASS",
         "current_pointers": len(pointers),

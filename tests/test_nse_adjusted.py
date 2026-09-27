@@ -65,3 +65,33 @@ def test_compare_rankings_reports_overlap_and_order():
     r = na.compare_rankings(a, b, top=(2,))
     assert r["common"] == 3 and r["top2_overlap"] == 2
     assert r["only_a"] == ["D"] and r["only_b"] == ["E"]
+
+
+def test_a_missing_session_is_not_read_as_hundreds_of_corporate_actions():
+    # Day 3's previous close is a session we never collected (a Budget Sunday):
+    # every stock "steps" by that session's move. Only a real split survives.
+    days = pd.bdate_range("2026-01-05", periods=4)
+    rows = []
+    for i, sym in enumerate(["A", "B", "C", "D"]):
+        closes = [100.0, 100.0, 103.0, 104.0]
+        prevs = [100.0, 100.0, 102.0, 103.0]          # 102: the missing session's close
+        if sym == "D":
+            closes, prevs = [100.0, 100.0, 21.0, 21.0], [100.0, 100.0, 20.0, 21.0]  # 1:5 split
+        rows.append(pd.DataFrame({"date": days, "series": "EQ", "symbol": sym, "mkt": "N",
+                                  "close": closes, "prev_close": prevs, "high": closes,
+                                  "low": closes, "volume": 1.0, "value": 1.0}))
+    w = na.wide(pd.concat(rows))
+    assert list(na.gap_days(w["close"], w["prev_close"]).index) == [days[2]]
+    f = na.step_factors(w["close"], w["prev_close"])
+    assert (f.loc[days[2], ["A", "B", "C"]] == 1.0).all()
+    assert np.isclose(f.at[days[2], "D"], 0.2)
+
+
+def test_crosscheck_matches_whatever_type_the_ex_date_was_stored_as():
+    _adj, f = na.adjusted_frames(_split_frame())
+    for ex in (pd.Timestamp("2026-01-07").date(), "2026-01-07",
+               pd.Timestamp("2026-01-07").as_unit("ms")):
+        actions = pd.DataFrame({"symbol": ["ABC"], "kind": ["split"], "ex_date": [ex],
+                                "price_factor": [0.2]})
+        c = na.crosscheck_actions(f, actions)
+        assert len(c["agreeing"]) == 1 and c["mismatched"].empty and c["missing"].empty, ex
