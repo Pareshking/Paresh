@@ -100,3 +100,22 @@ def membership_for(system: str) -> dict[str, Any] | None:
     if system == SYSTEM_NANO:
         return hnano
     return combined_history(h750, hnano)
+
+
+# Owner, 2026-09-27: a Nano Cap or Combined backtest starts with the first
+# month-end list (signalled at the 31 Aug 2026 close, so September is its first
+# month) and gains a month at every month-end -- never judged against a list
+# that did not exist yet.
+BACKTEST_START = {SYSTEM_NANO: "2026-09", SYSTEM_COMBINED: "2026-09"}
+
+
+def backtest_months(system: str, last_session) -> int | None:
+    """Completed months a system's backtest may report as of `last_session`.
+
+    None for the 750 (its own default applies); 0 while the first month is
+    still running.
+    """
+    if system not in BACKTEST_START:
+        return None
+    last_completed = pd.Timestamp(last_session).to_period("M") - 1
+    return max(0, (last_completed - pd.Period(BACKTEST_START[system], freq="M")).n + 1)
