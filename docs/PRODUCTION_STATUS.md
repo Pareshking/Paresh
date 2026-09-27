@@ -8,8 +8,9 @@ Live from main, production QA green on every merge (#240, #242–#246):
   Configuration; every page follows; the choice survives a stock link
   (`?sys=`). See `docs/THREE_SYSTEMS.md`.
 - **Data from R2 first**, release files as fallback (#223); QA prints the source.
-- **Precomputed rankings for all three** (#244). Nano Cap and Combined are
-  verified locally; the first nightly publish is being confirmed.
+- **Precomputed rankings for all three** (#244). First Nano Cap / Combined
+  publish 2026-09-27 (396 / 1,146 rows, release + R2); production's
+  acceptance check replayed on the published files: all three accepted.
 - **Per-system track records** from Oct 2026, comparison panel (#242);
   backtest for Nano Cap and Combined from Sep 2026 (#246).
 - **Liquidity floor** option, off by default (#245).

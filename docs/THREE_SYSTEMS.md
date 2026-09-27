@@ -61,8 +61,11 @@ ranks Nano Cap and Combined with the same function as the 750 and stamps each
 table with the same contract. Published as `rankings_nano.parquet` /
 `rankings_combined.parquet` (release) and `snapshots/rankings_nano` /
 `snapshots/rankings_combined` (R2). The app uses a table only when every
-contract term matches; otherwise it ranks live, as before. Verified locally:
-both accepted, engine skipped.
+contract term matches; otherwise it ranks live, as before. First published
+2026-09-27 (daily sync run 36313661283: Nano Cap 396 rows, Combined 1,146,
+both release and R2, verified). Production's acceptance check, replayed from
+the published files and main's code with the 750 as control: all three
+accepted, no contract term differs.
 
 ## Track record and model book
 
@@ -104,6 +107,4 @@ backtest reports 1–30 Sep on the point-in-time list.
 
 ## Open items
 
-- Confirm the nightly publish of `rankings_nano` / `rankings_combined` and that
-  production accepts them.
 - "Unclassified" industries for stocks TradingView lacks.

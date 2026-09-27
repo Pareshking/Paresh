@@ -77,7 +77,8 @@ _Last updated: 2026-09-27_
   Screener pacing has random jitter; its deep check is monthly.
 - Three systems — Nifty 750, Nano Cap, Combined — every page follows;
   per-system track records from Oct 2026, comparison panel, nightly
-  precompute, backtest from Sep 2026, liquidity floor option.
+  precompute (first publish accepted, 27 Sep), backtest from Sep 2026,
+  liquidity floor option.
   See `docs/THREE_SYSTEMS.md`.
 - Missing Screener days filled from Yahoo's daily moves (400-day window).
 - Open/high/low features removed (candles, ATR, stop loss, chandelier).
@@ -85,20 +86,18 @@ _Last updated: 2026-09-27_
 
 ## To do
 
-1. **Confirm the nightly publish** of the Nano Cap and Combined rankings and
-   that production accepts them (daily sync dispatched 2026-09-27).
-2. **30 Sep → 1 Oct**: the October Nano Cap list builds on the 30 Sep
+1. **30 Sep → 1 Oct**: the October Nano Cap list builds on the 30 Sep
    evening; first Nano Cap / Combined books on 1 Oct; their backtest shows
    September. Check each (`docs/THREE_SYSTEMS.md`, Calendar).
-3. **Early November**: October freezes into all three ledgers.
-4. **NSE backfill**: one more run to reach 2023-10-01; then find out why the
+2. **Early November**: October freezes into all three ledgers.
+3. **NSE backfill**: one more run to reach 2023-10-01; then find out why the
    `nse_collect.yml` schedule never fires.
-5. **NSE adjustment layer**: adjusted prices from NSE's unadjusted closes and
+4. **NSE adjustment layer**: adjusted prices from NSE's unadjusted closes and
    the Bc corporate actions; compare the rankings with Screener's before any
    switch.
-6. **NSE as the middle price source** everywhere: Screener → NSE → Yahoo,
-   once 5 is in.
-7. "Unclassified" industries for Nano Cap stocks TradingView lacks
+5. **NSE as the middle price source** everywhere: Screener → NSE → Yahoo,
+   once 4 is in.
+6. "Unclassified" industries for Nano Cap stocks TradingView lacks
    (Screener.in lookup).
-8. Timing: all three sources (NSE, Yahoo, Screener) in before 06:00 IST;
+7. Timing: all three sources (NSE, Yahoo, Screener) in before 06:00 IST;
    Screener's nightly run for 1,167 stocks takes ~37 min.
