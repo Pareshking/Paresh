@@ -15,6 +15,7 @@ _Last updated: 2026-09-27_
 | 2026-09-27 | Deleted from R2: `snapshots/application`, `prices/yahoo/bootstrap` (432 → 300 MB). |
 | 2026-09-27 | Extra universe ("Nano Cap", name TBC): option **A** — selectable in Configuration, default stays the 750; the model portfolio, Actions and track record are **not** changed. Membership refreshed on the **last trading day of each month**, used from the 1st. |
 | 2026-09-27 | App should read its data from R2 (owner added the R2 keys to Streamlit secrets). |
+| 2026-09-27 | Extra universe: **every stock ≥ ₹2,000 Cr** outside the 750 (458 on 25 Sep), not a fixed 250. Screener pacing to be tuned so NSE, Yahoo and Screener all land before 06:00 IST. |
 
 ## What is running
 
@@ -50,7 +51,10 @@ _Last updated: 2026-09-27_
      and `data/corporate_actions_log.json`; list the misses;
    - measured storage per day → projection for ten years.
 2. Owner signs off → move `--since` back to 2016-01-01.
-3. App reads from R2 (rankings, Screener store), release files as fallback.
+3. App reads from R2 — **in progress** (src/loaders/app_source.py): rankings
+   (`snapshots/rankings`), Screener store (`prices/screener`) and the two-year
+   price snapshot (`app/prices_snapshot`, newest 3 kept), each verified by
+   SHA-256; release files only as fallback. Footer shows "Data from: R2".
 4. Extra universe: build (see decisions); industries from the TV
    classification file, the rest from Screener.in's company page.
 5. Adjusted-price layer from NSE raw + corporate actions; compare rankings

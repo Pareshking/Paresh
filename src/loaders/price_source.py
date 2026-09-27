@@ -36,6 +36,7 @@ internally, so this decides in advance what the engine would decide silently.
 
 from __future__ import annotations
 
+import io
 import os
 import tempfile
 import time
@@ -51,6 +52,7 @@ from src.core.config import (
     SCREENER_STORE_URL,
 )
 from src.core.logger import logger
+from src.loaders import app_source
 
 DOWNLOAD_TIMEOUT_S: int = 30
 
@@ -92,6 +94,17 @@ def reaches_longest_lookback(index: pd.Index, months: int | None = None) -> bool
 
 def fetch_screener_store(url: str | None = None) -> pd.DataFrame | None:
     """The published screener history, or None. Never raises."""
+    if url is None:
+        body = app_source.fetch_latest(app_source.SCREENER_STORE, "screener_store")
+        if body is not None:
+            try:
+                frame = pd.read_parquet(io.BytesIO(body))
+                if not frame.empty:
+                    metrics.note("screener_store_fetch", "ok_r2")
+                    app_source.record("screener_store", "r2")
+                    return frame
+            except Exception as exc:
+                logger.info("Screener store from R2 unreadable (%s).", type(exc).__name__)
     target = url or SCREENER_STORE_URL
     started = time.perf_counter()
     tmp_path = None
@@ -108,6 +121,8 @@ def fetch_screener_store(url: str | None = None) -> pd.DataFrame | None:
                 fh.write(chunk)
         frame = pd.read_parquet(tmp_path)
         metrics.note("screener_store_fetch", "ok")
+        if url is None:
+            app_source.record("screener_store", "release")
         metrics.note("screener_store_fetch_s", round(time.perf_counter() - started, 2))
         return frame
     except Exception as exc:

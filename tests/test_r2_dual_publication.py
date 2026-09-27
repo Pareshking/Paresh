@@ -42,13 +42,14 @@ def test_daily_sync_publishes_all_three_production_release_artifacts():
     assert "snapshots/rankings" in run
 
 
-def test_the_application_snapshot_is_not_republished_to_r2():
-    """Owner, 2026-09-25: prices.parquet is a cut of prices_full.parquet, read
-    from the release asset; its R2 copy (snapshots/application) had no reader."""
+def test_the_app_snapshot_goes_to_its_own_dataset_not_the_retired_one():
+    """Owner, 2026-09-27: the app reads its two-year snapshot from R2 first.
+    It is published as app/prices_snapshot; snapshots/application stays retired."""
     steps = _steps("daily_sync.yml")
     step = next(s for s in steps if s.get("name") == "Publish validated datasets to R2")
     run = str(step["run"])
-    assert "--path prices.parquet" not in run
+    assert "--path prices.parquet" in run
+    assert "--dataset app/prices_snapshot" in run
     assert "--dataset snapshots/application" not in run
 
 

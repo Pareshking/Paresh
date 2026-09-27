@@ -63,6 +63,14 @@ KEEP_DAILY = 7
 RETAINED_DATASETS: dict[str, str] = {
     "prices/yahoo": "archive/prices/yahoo",
     "prices/screener": "archive/prices/screener",
+    "app/prices_snapshot": "snapshots/app_prices",
+}
+
+# Datasets that keep only their newest N dates, no month-ends: the app's
+# two-year snapshot is a working copy (each is the whole two years; the
+# history lives in prices/yahoo), republished nightly since 2026-09-27.
+KEEP_LATEST_ONLY: dict[str, int] = {
+    "app/prices_snapshot": 3,
 }
 
 # dataset -> key root, deleted whole. Neither root is a prefix of another
@@ -96,14 +104,16 @@ class DatasetPlan:
     skipped: list[str] = field(default_factory=list)     # kept dates left whole, and why
 
 
-def keep_dates(as_of_dates: list[str], keep_daily: int = KEEP_DAILY) -> set[str]:
+def keep_dates(as_of_dates: list[str], keep_daily: int = KEEP_DAILY,
+               month_ends: bool = True) -> set[str]:
     """The last `keep_daily` dates plus the last date of every calendar month."""
     ordered = sorted(set(as_of_dates))
     keep = set(ordered[-keep_daily:]) if keep_daily > 0 else set()
-    month_end: dict[str, str] = {}
-    for d in ordered:
-        month_end[d[:7]] = d  # sorted, so the last one per month wins
-    keep.update(month_end.values())
+    if month_ends:
+        month_end: dict[str, str] = {}
+        for d in ordered:
+            month_end[d[:7]] = d  # sorted, so the last one per month wins
+        keep.update(month_end.values())
     if ordered:
         keep.add(ordered[-1])
     return keep
@@ -125,7 +135,10 @@ def plan_dataset(archive: R2Archive, dataset: str, root: str,
             pointers[as_of] = key
 
     dates = sorted(set(pointers) | set(manifests))
-    keep = keep_dates(dates)
+    if dataset in KEEP_LATEST_ONLY:
+        keep = keep_dates(dates, KEEP_LATEST_ONLY[dataset], month_ends=False)
+    else:
+        keep = keep_dates(dates)
     drop = [d for d in dates if d not in keep]
     plan = DatasetPlan(dataset, dates, sorted(keep), drop)
 

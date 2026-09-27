@@ -44,6 +44,7 @@ import requests
 
 from src.core import startup_metrics as metrics
 from src.core.config import RANKINGS_SNAPSHOT_URL
+from src.loaders import app_source
 from src.core.logger import logger
 
 DOWNLOAD_TIMEOUT_S: int = int(os.getenv("UMIYA_RANKINGS_TIMEOUT_S", "30"))
@@ -188,12 +189,37 @@ def read_snapshot(path: str) -> tuple[pd.DataFrame | None, dict[str, Any] | None
         return None, None
 
 
+def _snapshot_from_r2() -> tuple[pd.DataFrame | None, dict[str, Any] | None]:
+    """The ranking table from R2, verified, or (None, None)."""
+    body = app_source.fetch_latest(app_source.RANKINGS, "rankings")
+    if body is None or len(body) < MIN_PLAUSIBLE_BYTES:
+        return None, None
+    fd, tmp_path = tempfile.mkstemp(suffix=".parquet")
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(body)
+        frame, published = read_snapshot(tmp_path)
+    finally:
+        try:
+            os.remove(tmp_path)
+        except OSError:
+            pass
+    if frame is None or frame.empty:
+        return None, None
+    app_source.record("rankings", "r2")
+    return frame, published
+
+
 def fetch_snapshot(url: str | None = None) -> tuple[pd.DataFrame | None, dict[str, Any] | None]:
     """Download the published ranking table, or return (None, None).
 
     Never raises and never blocks indefinitely. The caller's fallback is to
     compute the ranking, which is what it did before this existed.
     """
+    if url is None:
+        got = _snapshot_from_r2()
+        if got[0] is not None:
+            return got
     target = url or RANKINGS_SNAPSHOT_URL
     started = time.perf_counter()
     tmp_path = None
@@ -233,6 +259,8 @@ def fetch_snapshot(url: str | None = None) -> tuple[pd.DataFrame | None, dict[st
             "Ranking snapshot fetched: %d rows, %.2f MB in %.1fs",
             len(frame), size / 1024**2, elapsed,
         )
+        if url is None:
+            app_source.record("rankings", "release")
         return frame, published
 
     except Exception as exc:

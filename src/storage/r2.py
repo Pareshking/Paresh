@@ -47,13 +47,19 @@ class R2Config:
 
     @classmethod
     def from_env(cls) -> "R2Config":
-        values = {
-            "account_id": os.getenv("R2_ACCOUNT_ID", "").strip(),
-            "access_key_id": os.getenv("R2_ACCESS_KEY_ID", "").strip(),
-            "secret_access_key": os.getenv("R2_SECRET_ACCESS_KEY", "").strip(),
-            "endpoint": os.getenv("R2_ENDPOINT", "").strip().rstrip("/"),
-            "bucket": os.getenv("R2_BUCKET", "").strip(),
-        }
+        return cls.from_values({
+            "account_id": os.getenv("R2_ACCOUNT_ID", ""),
+            "access_key_id": os.getenv("R2_ACCESS_KEY_ID", ""),
+            "secret_access_key": os.getenv("R2_SECRET_ACCESS_KEY", ""),
+            "endpoint": os.getenv("R2_ENDPOINT", ""),
+            "bucket": os.getenv("R2_BUCKET", ""),
+        })
+
+    @classmethod
+    def from_values(cls, raw: dict[str, str]) -> "R2Config":
+        values = {k: str(raw.get(k) or "").strip() for k in
+                  ("account_id", "access_key_id", "secret_access_key", "endpoint", "bucket")}
+        values["endpoint"] = values["endpoint"].rstrip("/")
         missing = [name for name, value in values.items() if not value]
         if missing:
             raise R2ConfigurationError(

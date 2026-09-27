@@ -81,7 +81,7 @@ def test_plan_drops_only_the_retained_datasets_and_only_unkept_dates():
         len(a.objects[k]) for k in yahoo.delete_keys if k.startswith("archive/manifests/"))
     # Screener follows the same policy (owner, 2026-09-25).
     assert set(plans["prices/screener"].drop) == dropped
-    assert set(plans) == {"prices/yahoo", "prices/screener",
+    assert set(plans) == {"prices/yahoo", "prices/screener", "app/prices_snapshot",
                           "snapshots/application", "prices/yahoo/bootstrap"}
     every = [k for p in plans.values() for k in p.delete_keys]
     assert not [k for k in every
@@ -101,6 +101,8 @@ def test_apply_deletes_exactly_the_plan_and_keeps_readers_whole():
     assert set(a.objects) == before - planned
     # The newest date of each retained dataset still resolves end to end.
     for ds, root in rr.RETAINED_DATASETS.items():
+        if f"archive/manifests/{ds}/2026-09-24/current.json" not in before:
+            continue  # not in this fixture
         ptr = json.loads(a.objects[f"archive/manifests/{ds}/2026-09-25/current.json"])
         assert ptr["object_key"] in a.objects
 
@@ -281,3 +283,15 @@ def test_a_retired_dataset_also_loses_its_first_publisher_manifests():
     assert not plan.refused
     assert plan.delete_keys == ["archive/manifests/prices/yahoo/bootstrap/2026-09-18.json",
                                 legacy_obj]
+
+
+def test_the_app_snapshot_keeps_only_its_newest_three_dates():
+    a = FakeArchive()
+    for i, d in enumerate(AUG + SEP):
+        publish(a, "app/prices_snapshot", "snapshots/app_prices", d, 3000 + i)
+    plan = rr.plan_dataset(a, "app/prices_snapshot", "snapshots/app_prices",
+                           dict(a.list_objects("")))
+    assert plan.keep == SEP[-3:]                 # no month-ends
+    assert "2026-08-31" in plan.drop
+    assert all(k.startswith(("archive/manifests/app/prices_snapshot/", "snapshots/app_prices/"))
+               for k in plan.delete_keys)
