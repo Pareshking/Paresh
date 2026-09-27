@@ -2360,7 +2360,7 @@ document.addEventListener('DOMContentLoaded', function() {{
 # case of a return between -100% and +100%.
 FRACTION_PERCENT_COLUMNS: frozenset[str] = frozenset({
     # Backtest — trades, periods and stats
-    "RETURN %", "STRATEGY NET", "BENCHMARK", "ALPHA VS BENCHMARK",
+    "RETURN %", "MTD %", "STRATEGY NET", "BENCHMARK", "ALPHA VS BENCHMARK",
     "TOTAL RETURN", "GROSS RETURN", "NET RETURN", "ALPHA", "OUTPERFORM",
     "CAGR", "ANN RETURN", "WIN RATE", "MAX DRAWDOWN", "MAX DD",
     "6M NET RETURN", "6M ALPHA",
@@ -2565,6 +2565,7 @@ def render_saas_table(
                         for w in [
                             "RETURN",
                             "RET",
+                            "MTD",
                             "ALPHA",
                             "CAGR",
                             "DAY CHG",
