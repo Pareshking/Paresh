@@ -264,6 +264,15 @@ def main(argv: list[str] | None = None) -> int:
         acts = acts.drop_duplicates(["symbol", "ex_date", "purpose"])
         out.append("Announced in the sample, by kind: " + ", ".join(
             f"{k} {v}" for k, v in acts["kind"].value_counts().items()) + "\n")
+        # NSE's own wording for anything that may move the price, as parsed.
+        # The parser learns its phrasing from this list (2026-09-27: no split
+        # was recognised at all in the first sample).
+        wording = acts[acts["purpose"].str.upper().str.contains(
+            "SPLIT|SUB-DIV|SUBDIV|BONUS|DEMERG|CONSOLID|FV|FACE VALUE", regex=True, na=False)]
+        common = (wording.groupby(["kind", "purpose"]).size().rename("n").reset_index()
+                  .sort_values("n", ascending=False))
+        out += ["NSE's wording for splits, bonuses, demergers and consolidations, "
+                "with the kind the parser gave it:\n", _table(common, 60)]
         end = max(days)
         steps_in = acts[acts["kind"].isin(["split", "bonus"]) & acts["price_factor"].notna()
                         & (acts["ex_date"] >= pd.Timestamp(since)) & (acts["ex_date"] <= pd.Timestamp(end))]

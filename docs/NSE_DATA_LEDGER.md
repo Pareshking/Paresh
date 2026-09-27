@@ -15,6 +15,7 @@ _Last updated: 2026-09-27_
 | 2026-09-27 | Deleted from R2: `snapshots/application`, `prices/yahoo/bootstrap` (432 → 300 MB). |
 | 2026-09-27 | Extra universe ("Nano Cap", name TBC): option **A** — selectable in Configuration, default stays the 750; the model portfolio, Actions and track record are **not** changed. Membership refreshed on the **last trading day of each month**, used from the 1st. |
 | 2026-09-27 | App should read its data from R2 (owner added the R2 keys to Streamlit secrets). |
+| 2026-09-27 | Sample year checked (368/368 days, all read back). Owner: **start the ten-year backfill** (`--since 2016-01-01`, 150 days a run). Screener's weekly deep check: every **30** days, not 7. Nano Cap is ranked **as its own index**, never combined with the 750. |
 | 2026-09-27 | Extra universe: **every stock ≥ ₹2,000 Cr** outside the 750 (458 on 25 Sep), not a fixed 250. Screener pacing to be tuned so NSE, Yahoo and Screener all land before 06:00 IST. |
 
 ## What is running
