@@ -39,7 +39,7 @@ from src.loaders.price_loader import fetch_price_history
 from src.loaders.tv_loader import reconcile_and_update_tv_classification
 
 
-def _precompute_rankings(symbols, universe_df, mcaps) -> None:
+def _precompute_rankings(symbols, universe_df, mcaps, raw=None, out_name=None) -> None:
     """Rank the published snapshot, and stamp the answer with its own contract.
 
     Runs the SAME two functions the app runs -- src/engine/pipeline -- so the
@@ -62,13 +62,15 @@ def _precompute_rankings(symbols, universe_df, mcaps) -> None:
     from src.loaders.price_loader import extract_ohlcv
     from src.loaders.ranking_store import contract, write_snapshot
 
+    # raw and out_name: another system's frame and file (Nano Cap, Combined;
+    # scripts/precompute_systems.py). Default: the 750 from the snapshot.
     here = os.path.dirname(PRICES_FILE)
-    snapshot_path = os.path.join(here, "prices_snapshot.parquet")
-    if not os.path.exists(snapshot_path):
-        print("No published snapshot to rank; skipping.")
-        return
-
-    raw = pd.read_parquet(snapshot_path)
+    if raw is None:
+        snapshot_path = os.path.join(here, "prices_snapshot.parquet")
+        if not os.path.exists(snapshot_path):
+            print("No published snapshot to rank; skipping.")
+            return
+        raw = pd.read_parquet(snapshot_path)
     adj_close, close_p, high_p, low_p, vol_p, _open_p = extract_ohlcv(raw, list(symbols))
     if adj_close is None or adj_close.empty:
         print("Snapshot produced no usable prices; skipping.")
@@ -147,7 +149,7 @@ def _precompute_rankings(symbols, universe_df, mcaps) -> None:
         # fingerprint cannot see the difference.
         applied_actions=applied,
     )
-    out = os.path.join(here, RANKINGS_SNAPSHOT_ASSET)
+    out = os.path.join(here, out_name or RANKINGS_SNAPSHOT_ASSET)
     write_snapshot(out, rank_df, terms)
     mb = os.path.getsize(out) / 1024**2
     print(
