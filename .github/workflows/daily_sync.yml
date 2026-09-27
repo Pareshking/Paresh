@@ -179,6 +179,14 @@ jobs:
         run: |
           python scripts/sync_data.py
 
+      # Yahoo's two years for the extra universe, in its own file so it cannot
+      # move any judgement the 750's pipeline makes (scripts/sync_extra_yahoo.py).
+      # Non-blocking: the 750's publication never waits on it.
+      - name: Yahoo prices for the extra universe
+        env:
+          PYTHONPATH: .
+        run: python scripts/sync_extra_yahoo.py --out prices_extra.parquet || echo "::warning::Extra-universe Yahoo download failed; the 750 are unaffected."
+
       # Explicitly save, with the SAME rotating key the restore asked for, so
       # there is exactly one writer. Splitting restore from save also removes
       # the combined action's own post-job save, which used to fire alongside
@@ -235,6 +243,12 @@ jobs:
             echo "::warning::No price archive was produced; skipping archive upload."
           fi
 
+          if [ -f "${{ github.workspace }}/prices_extra.parquet" ]; then
+            gh release upload data-latest "${{ github.workspace }}/prices_extra.parquet" \
+              --repo "$GITHUB_REPOSITORY" --clobber
+            echo "Uploaded prices_extra.parquet to release data-latest."
+          fi
+
           RANK="${{ github.workspace }}/data_cache/rankings.parquet"
           if [ -f "$RANK" ]; then
             ls -lh "$RANK"
@@ -288,6 +302,18 @@ jobs:
             --key-root snapshots/app_prices \
             --pipeline-version "r2-daily-${GITHUB_SHA}" \
             --release-tag data-latest
+
+          # The extra universe's Yahoo file, when the step above produced one.
+          # Optional: its absence never fails the 750's publication.
+          if [ -f prices_extra.parquet ]; then
+            python scripts/r2_publish.py \
+              --path prices_extra.parquet \
+              --dataset app/prices_extra \
+              --source yahoo \
+              --key-root snapshots/app_prices_extra \
+              --pipeline-version "r2-daily-${GITHUB_SHA}" \
+              --release-tag data-latest
+          fi
 
           if [ -f rankings.parquet ]; then
             python scripts/r2_publish.py \
