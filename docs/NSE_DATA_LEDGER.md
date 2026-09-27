@@ -41,7 +41,8 @@ _Last updated: 2026-09-27_
 
 ## Next steps
 
-1. **Sample checks** once ~370 sessions are in (about a day):
+1. **Sample checks** once ~370 sessions are in — run `nse_sample_check.yml`
+   (scripts/nse_sample_check.py; read only, report in the job summary):
    - every stored day parses; row counts steady; no gaps against the
      trading calendar;
    - cross-source check over every day, not just the newest: level and 7%

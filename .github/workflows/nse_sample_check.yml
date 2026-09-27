@@ -1,0 +1,65 @@
+name: NSE sample-year check
+
+# Read-only checks on the NSE record before the ten-year backfill (owner,
+# 2026-09-27): coverage against the calendar, every day read back, the
+# cross-source check over every day, corporate actions against each source's
+# price step, and storage per day. See scripts/nse_sample_check.py. The report
+# is in the job summary and the log; the per-day flags are an artifact.
+on:
+  workflow_dispatch:
+    inputs:
+      since:
+        description: "First day of the sample (YYYY-MM-DD)"
+        default: "2025-04-01"
+  pull_request:
+    paths:
+      - "scripts/nse_sample_check.py"
+      - "tests/test_nse_sample_check.py"
+      - ".github/workflows/nse_sample_check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest
+      - name: Unit tests
+        run: python -m pytest -q tests/test_nse_sample_check.py tests/test_nse_bundle.py
+      - name: Fetch the calendar and the sources to check against
+        if: github.event_name != 'pull_request'
+        run: |
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/data-latest"
+          for f in prices_full.parquet screener_prices.parquet prices.parquet; do
+            curl -sSfL -o "$f" "$base/$f" || echo "::warning::could not fetch $f"
+          done
+      - name: Sample checks
+        if: github.event_name != 'pull_request'
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          SINCE: ${{ inputs.since || '2025-04-01' }}
+        run: |
+          python scripts/nse_sample_check.py --since "$SINCE" \
+            --calendar prices_full.parquet --screener screener_prices.parquet \
+            --yahoo prices.parquet
+      - uses: actions/upload-artifact@v7
+        if: github.event_name != 'pull_request'
+        with:
+          name: nse-sample-check
+          path: |
+            nse_sample_report.md
+            nse_sample_flags.csv
+            nse_sample_actions.csv
