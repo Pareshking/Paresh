@@ -100,9 +100,50 @@ def _num(s: pd.Series) -> pd.Series:
                          errors="coerce")
 
 
+_ISO_DAY = r"^\s*\d{4}-\d{1,2}-\d{1,2}"
+
+
 def _day(s: pd.Series) -> pd.Series:
-    return pd.to_datetime(s.replace({"": None, "-": None}), errors="coerce",
-                          dayfirst=True, format="mixed")
+    """NSE's dates, whichever way a file writes them.
+
+    Most files write day first ("05-Dec-2025", "05-12-2025"), but the Bc file
+    also writes ISO ("2025-12-05"), and pandas applies dayfirst to ISO too:
+    "2025-12-05" became 12 May. CAMS's split (record date 5 Dec 2025) was
+    stored as 2025-05-12 until 2026-09-27. ISO is read as ISO; the rest day
+    first.
+    """
+    s = s.replace({"": None, "-": None})
+    iso = s.fillna("").astype(str).str.match(_ISO_DAY)
+    out = pd.to_datetime(s.where(~iso), errors="coerce", dayfirst=True, format="mixed")
+    if iso.any():
+        out[iso] = pd.to_datetime(s[iso].str.strip().str[:10], errors="coerce", format="%Y-%m-%d")
+    return out
+
+
+ACTION_DATE_COLUMNS = ["record_date", "bc_start", "bc_end", "ex_date", "nd_start", "nd_end"]
+
+
+def repair_swapped_dates(actions: pd.DataFrame, before_days: int = 45,
+                         after_days: int = 120) -> pd.DataFrame:
+    """Undo the day/month swap in corporate actions stored before 2026-09-27.
+
+    A Bc file lists closures around the day it was published. A stored date
+    far outside that window whose day and month, swapped, land inside it was
+    an ISO date read day-first; swap it back. Dates past the 12th could never
+    be swapped and are left alone, as is anything the swap does not explain.
+    """
+    out = actions.copy()
+    listed = pd.to_datetime(out["date"])
+    lo, hi = listed - pd.Timedelta(days=before_days), listed + pd.Timedelta(days=after_days)
+    for col in [c for c in ACTION_DATE_COLUMNS if c in out.columns]:
+        d = pd.to_datetime(out[col])
+        ok = d.notna() & (d.dt.day <= 12)
+        swapped = pd.to_datetime(
+            {"year": d.dt.year.where(ok, 2000), "month": d.dt.day.where(ok, 1),
+             "day": d.dt.month.where(ok, 1)}, errors="coerce")
+        fix = ok & ~d.between(lo, hi) & swapped.between(lo, hi)
+        out.loc[fix, col] = swapped[fix]
+    return out
 
 
 # ── Prices ───────────────────────────────────────────────────────────────────

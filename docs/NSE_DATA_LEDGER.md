@@ -50,6 +50,14 @@ _Last updated: 2026-09-27_
   bonus 4:1 × split 2:1 = 0.1). Days stored before the fix keep NSE's raw
   wording, and readers re-parse it, so nothing in R2 needs rewriting.
 
+- 2026-09-27: NSE's Bc file also writes ISO dates (`2025-12-05`), which the
+  reader parsed day-first (12 May): every action dated on the 1st-12th of a
+  month in such a file was stored with day and month swapped. Found through
+  CAMS (1:5 split, record date 5 Dec 2025, stored as 2025-05-12; owner asked
+  for a news check). The reader now reads ISO as ISO; stored rows are
+  repaired on read by `repair_swapped_dates` (a date outside the listing's
+  window whose swap falls inside it).
+
 ## Next steps
 
 1. **Sample checks** once ~370 sessions are in — run `nse_sample_check.yml`
