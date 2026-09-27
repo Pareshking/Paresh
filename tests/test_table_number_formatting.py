@@ -138,3 +138,11 @@ def test_alpha_is_a_fraction_in_both_renderers():
 
     assert _format_claims(FORMAT_MAP["Alpha"]) == "fraction"
     assert percent_unit("Alpha") == "fraction"
+
+
+def test_mtd_is_a_signed_coloured_fraction(monkeypatch):
+    # 2026-09-27: MTD % printed raw ("0.1%" for +10%) with no sign or colour,
+    # because the column had no unit and no return styling.
+    out = _render(pd.DataFrame({"MTD %": [0.1, -0.023]}), monkeypatch)
+    assert "+10.0%" in out and "-2.3%" in out
+    assert "ret-pos" in out and "ret-neg" in out
