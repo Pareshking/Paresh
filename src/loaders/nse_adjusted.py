@@ -165,7 +165,10 @@ def compare_rankings(a: pd.DataFrame, b: pd.DataFrame, top: tuple[int, ...] = (2
     out = {
         "a_rows": int(a["Rank"].notna().sum()), "b_rows": int(b["Rank"].notna().sum()),
         "common": len(both),
-        "spearman": float(both["Rank_a"].corr(both["Rank_b"], method="spearman")) if len(both) > 2 else float("nan"),
+        # Spearman as the Pearson correlation of ranks: pandas' own
+        # method="spearman" needs scipy, which the app does not install.
+        "spearman": (float(both["Rank_a"].rank().corr(both["Rank_b"].rank()))
+                     if len(both) > 2 else float("nan")),
         "only_a": sorted(m.loc[m["Rank_b"].isna(), "Symbol"]),
         "only_b": sorted(m.loc[m["Rank_a"].isna(), "Symbol"]),
     }
