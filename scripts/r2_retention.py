@@ -64,6 +64,7 @@ RETAINED_DATASETS: dict[str, str] = {
     "prices/yahoo": "archive/prices/yahoo",
     "prices/screener": "archive/prices/screener",
     "app/prices_snapshot": "snapshots/app_prices",
+    "app/prices_extra": "snapshots/app_prices_extra",
 }
 
 # Datasets that keep only their newest N dates, no month-ends: the app's
@@ -71,6 +72,7 @@ RETAINED_DATASETS: dict[str, str] = {
 # history lives in prices/yahoo), republished nightly since 2026-09-27.
 KEEP_LATEST_ONLY: dict[str, int] = {
     "app/prices_snapshot": 3,
+    "app/prices_extra": 3,
 }
 
 # dataset -> key root, deleted whole. Neither root is a prefix of another

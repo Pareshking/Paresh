@@ -81,7 +81,7 @@ def test_plan_drops_only_the_retained_datasets_and_only_unkept_dates():
         len(a.objects[k]) for k in yahoo.delete_keys if k.startswith("archive/manifests/"))
     # Screener follows the same policy (owner, 2026-09-25).
     assert set(plans["prices/screener"].drop) == dropped
-    assert set(plans) == {"prices/yahoo", "prices/screener", "app/prices_snapshot",
+    assert set(plans) == {"prices/yahoo", "prices/screener", "app/prices_snapshot", "app/prices_extra",
                           "snapshots/application", "prices/yahoo/bootstrap"}
     every = [k for p in plans.values() for k in p.delete_keys]
     assert not [k for k in every
