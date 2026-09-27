@@ -1,0 +1,58 @@
+name: NSE adjusted prices vs Screener
+
+# Owner, 2026-09-27: build NSE adjusted prices and compare the rankings they
+# give with Screener's before NSE becomes the middle price source. Read only:
+# the report is in the job summary; the adjusted closes are an artifact.
+# See scripts/nse_compare.py and src/loaders/nse_adjusted.py.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "40 6 * * 0"   # Sunday, after the week's NSE and Screener runs
+  pull_request:
+    paths:
+      - "scripts/nse_compare.py"
+      - "src/loaders/nse_adjusted.py"
+      - "tests/test_nse_adjusted.py"
+      - ".github/workflows/nse_compare.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest
+      - name: Unit tests
+        run: python -m pytest -q tests/test_nse_adjusted.py tests/test_nse_bundle.py
+      - name: Fetch Screener and the published rankings
+        if: github.event_name != 'pull_request'
+        run: |
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/data-latest"
+          for f in screener_prices.parquet rankings.parquet rankings_nano.parquet rankings_combined.parquet; do
+            curl -sSfL -o "$f" "$base/$f" || echo "::warning::could not fetch $f"
+          done
+      - name: Compare
+        if: github.event_name != 'pull_request'
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: python scripts/nse_compare.py --screener screener_prices.parquet --published-dir .
+      - uses: actions/upload-artifact@v7
+        if: github.event_name != 'pull_request'
+        with:
+          name: nse-compare
+          path: |
+            nse_compare_report.md
+            nse_adjusted_close.parquet
