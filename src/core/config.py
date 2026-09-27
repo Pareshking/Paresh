@@ -94,7 +94,7 @@ SCREENER_DEEP_HISTORY_DAYS: Final[int] = 3650
 # window. Skipping one night's daily fetch loses nothing: the next night's
 # rolling year covers it again. The date of the last deep check lives next to
 # the store, in the same cache.
-SCREENER_DEEP_CHECK_DAYS: Final[int] = 7
+SCREENER_DEEP_CHECK_DAYS: Final[int] = 30
 SCREENER_DEEP_CHECK_FILE: Final[str] = os.path.join(DATA_DIR, "screener_deep_check.json")
 
 # One request per symbol per night, with a pause between them. 30 symbols

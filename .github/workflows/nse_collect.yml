@@ -6,7 +6,7 @@ name: NSE daily bundle collection
 # still uses Screener (owner, 2026-09-27) until this history is complete and
 # compared. See scripts/nse_collect.py.
 #
-# Every four hours: the newest days first, then up to 100 older ones, 2.5 s
+# Every four hours: the newest days first, then up to 150 older ones, 2.5 s
 # apart (about 18 s a day with publishing, so a run takes ~30 min). A refusal from NSE ends the run quietly and the next run resumes, so
 # the ten-year backfill takes a few days and never hammers the site.
 on:
@@ -16,7 +16,7 @@ on:
     inputs:
       backfill:
         description: "Older trading days to fetch this run"
-        default: "100"
+        default: "150"
   pull_request:
     paths:
       - "src/loaders/nse_bundle.py"
@@ -66,11 +66,10 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
-          BACKFILL: ${{ inputs.backfill || '100' }}
+          BACKFILL: ${{ inputs.backfill || '150' }}
         run: |
-          # Sample year first (owner, 2026-09-27): test everything on about
-          # 18 months before reaching back ten years. Move this date back
-          # once the sample checks are signed off.
-          python scripts/nse_collect.py --recent 7 --backfill "$BACKFILL" --since 2025-04-01 \
+          # Sample year checked and signed off (owner, 2026-09-27): the full
+          # ten years now, 150 older days a run (~4 days to 2016).
+          python scripts/nse_collect.py --recent 7 --backfill "$BACKFILL" --since 2016-01-01 \
             --calendar prices_full.parquet --check \
             --screener screener_prices.parquet --yahoo prices.parquet
