@@ -10,6 +10,7 @@ on:
     workflows:
       - Daily NSE Momentum Data Sync
       - Monthly Track Record Freeze
+      - NSE daily bundle collection
       - R2 historical evidence bootstrap
       - R2 archive inventory
       - R2 Cost Observability
