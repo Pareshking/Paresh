@@ -101,7 +101,8 @@ def test_as_of_dates_appear_once_not_twice(monkeypatch):
 
 def test_the_footer_keeps_what_only_it_reports(monkeypatch):
     out = _footer_html(monkeypatch, ITEMS)
-    assert "750" in out["footer"]
+    # The count is the market line's Universe (owner, 2026-09-27: no repeats).
+    assert "stocks tracked" not in out["footer"]
     assert "Gap-filled" in out["footer"]
     assert "Short history" in out["footer"]
     # No stop-loss formula: the app has no stops (owner, 2026-09-27).
