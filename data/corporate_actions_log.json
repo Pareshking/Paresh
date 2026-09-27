@@ -22,7 +22,9 @@
       "close": 148.2,
       "looks_like": "unmatched \u2014 possible demerger or spin-off",
       "kind": "unclassified",
-      "first_seen": "2026-09-18"
+      "first_seen": "2026-09-18",
+      "verdict": "price_move",
+      "verdict_note": "Owner check, 2026-09-27: Indiabulls Real Estate's real +40% on a demerger PLAN announced that day (Business Standard, 17 Apr 2017); nothing was effected, so not a corporate action."
     },
     "2017-07-03:CDSL": {
       "date": "2017-07-03",
@@ -99,7 +101,9 @@
       "close": 12.0925,
       "looks_like": "unmatched \u2014 possible demerger or spin-off",
       "kind": "unclassified",
-      "first_seen": "2026-09-18"
+      "first_seen": "2026-09-18",
+      "verdict": "price_move",
+      "verdict_note": "Owner check, 2026-09-27: Infibeam's real -71% crash on a WhatsApp rumour, closing at Rs 58.45 (Business Standard / Inc42, 28 Sep 2018); not a corporate action."
     },
     "2019-10-11:ABREL": {
       "date": "2019-10-11",
@@ -189,7 +193,9 @@
       "close": 16.85,
       "looks_like": "5:1 reverse split",
       "kind": "split/bonus",
-      "first_seen": "2026-09-18"
+      "first_seen": "2026-09-18",
+      "verdict": "corporate_action",
+      "verdict_note": "Owner check, 2026-09-27: face value cut from Rs 10 to Re 1 in the insolvency resolution (record date 3 Feb 2020), trading resumed after it; a corporate action, correctly neutralised."
     },
     "2020-02-19:IDEA": {
       "date": "2020-02-19",
@@ -345,7 +351,9 @@
       "close": 245.5197,
       "looks_like": "unmatched \u2014 possible demerger or spin-off",
       "kind": "unclassified",
-      "first_seen": "2026-09-18"
+      "first_seen": "2026-09-18",
+      "verdict": "price_move",
+      "verdict_note": "Owner check, 2026-09-27: a real +40% rally on Invesco's EGM requisition to remove the MD (Business Standard, 14 Sep 2021); not a corporate action."
     },
     "2023-09-18:DIACABS": {
       "date": "2023-09-18",
