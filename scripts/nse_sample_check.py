@@ -39,6 +39,7 @@ import pandas as pd
 
 from scripts.nse_collect import DATASETS, _closes, load_calendar, present_dates
 from src.engine import source_check
+from src.loaders import nse_bundle
 
 ROOT = Path(__file__).resolve().parents[1]
 TRADING_DAYS = ROOT / "data" / "nse_trading_days.json"
@@ -113,6 +114,22 @@ def action_steps(actions: pd.DataFrame, nse_close: pd.DataFrame, nse_prev: pd.Da
                                 if pd.notna(v) and pd.notna(row["factor"]) else None)
         rows.append(row)
     return pd.DataFrame(rows)
+
+
+def combine_same_day(actions: pd.DataFrame) -> pd.DataFrame:
+    """One row per stock and ex-date, the factors multiplied.
+
+    BAJFINANCE went ex a 4:1 bonus and a 2:1 split on 2025-06-16: the price
+    fell to a tenth, and each action alone explains only part of it.
+    """
+    if actions.empty:
+        return actions
+    grouped = actions.groupby(["symbol", "ex_date"], as_index=False).agg(
+        kind=("kind", lambda k: "+".join(sorted(set(k)))),
+        purpose=("purpose", lambda p: " / ".join(p)),
+        price_factor=("price_factor", "prod"),
+    )
+    return grouped
 
 
 # ── Report helpers ───────────────────────────────────────────────────────────
@@ -262,6 +279,11 @@ def main(argv: list[str] | None = None) -> int:
         out.append("_no corporate-action files held_\n")
     else:
         acts = acts.drop_duplicates(["symbol", "ex_date", "purpose"])
+        # Re-read NSE's wording with today's parser: the stored kind is what
+        # the parser said on the day it was collected.
+        reparsed = pd.DataFrame([nse_bundle.classify_purpose(p) for p in acts["purpose"]],
+                                index=acts.index)
+        acts[["kind", "price_factor"]] = reparsed[["kind", "price_factor"]]
         out.append("Announced in the sample, by kind: " + ", ".join(
             f"{k} {v}" for k, v in acts["kind"].value_counts().items()) + "\n")
         # NSE's own wording for anything that may move the price, as parsed.
@@ -276,7 +298,8 @@ def main(argv: list[str] | None = None) -> int:
         end = max(days)
         steps_in = acts[acts["kind"].isin(["split", "bonus"]) & acts["price_factor"].notna()
                         & (acts["ex_date"] >= pd.Timestamp(since)) & (acts["ex_date"] <= pd.Timestamp(end))]
-        steps = action_steps(steps_in, nse_close, nse_prev, screener, yahoo, log_keys)
+        steps = action_steps(combine_same_day(steps_in), nse_close, nse_prev, screener,
+                             yahoo, log_keys)
         steps.to_csv(args.actions_csv, index=False)
         if not steps.empty:
             def rate(col):

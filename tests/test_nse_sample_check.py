@@ -40,3 +40,15 @@ def test_table_renders_without_tabulate():
     text = sc._table(pd.DataFrame({"a": [1.5], "b": ["x|y"]}))
     assert "| a | b |" in text and "1.5000" in text and "x/y" in text
     assert sc._table(pd.DataFrame()) == "_none_\n"
+
+
+def test_same_day_actions_multiply():
+    acts = pd.DataFrame({
+        "symbol": ["BAJFINANCE", "BAJFINANCE", "OTHER"],
+        "ex_date": pd.to_datetime(["2025-06-16", "2025-06-16", "2025-06-16"]),
+        "kind": ["bonus", "split", "bonus"], "purpose": ["BONUS 4:1", "FVSPLT FRM RS 2 TO RE 1", "BONUS 1:1"],
+        "price_factor": [0.2, 0.5, 0.5]})
+    out = sc.combine_same_day(acts).set_index("symbol")
+    assert abs(out.at["BAJFINANCE", "price_factor"] - 0.1) < 1e-12
+    assert out.at["BAJFINANCE", "kind"] == "bonus+split"
+    assert out.at["OTHER", "price_factor"] == 0.5

@@ -40,6 +40,15 @@ _Last updated: 2026-09-27_
 - Outside our 750: 458 stocks ≥ ₹2,000 Cr, 293 ≥ ₹3,000 Cr, 153 ≥ ₹5,000 Cr.
   The largest 250 run ₹1,66,876 → ₹3,527 Cr.
 
+## Parser fixes
+
+- 2026-09-27: NSE writes splits as `FVSPLT FRM RS 10 TO RE 1` (and spacing
+  variants) — the first sample recognised none; now read, factor = to/from.
+  `SCH AGMT-BONUS NCRPS 4:1` (preference-share bonus) is its own kind with no
+  equity price factor. Same-day actions multiply (BAJFINANCE 2025-06-16:
+  bonus 4:1 × split 2:1 = 0.1). Days stored before the fix keep NSE's raw
+  wording, and readers re-parse it, so nothing in R2 needs rewriting.
+
 ## Next steps
 
 1. **Sample checks** once ~370 sessions are in — run `nse_sample_check.yml`

@@ -201,3 +201,25 @@ def test_source_check_uses_eq_before_be_and_keeps_index_members():
     # IND_SEC = Y marks a Nifty member; the first live run dropped all fifty.
     assert closes.at["RELIANCE", "close"] == 1414.0
     assert "" not in closes.index and "NIFTY 50" not in closes.index
+
+
+@pytest.mark.parametrize("purpose,kind,factor", [
+    # NSE's own Bc wording, from the 2025-04 to 2026-09 sample.
+    ("FVSPLT FRM RS 10 TO RE 1", "split", 0.1),
+    ("FV SPLT FRM RS 10 TO RS 2", "split", 0.2),
+    ("FVSPLT FRMRS 100 TO RE 1", "split", 0.01),
+    ("FV SPLT FRM RS 10 TO 1", "split", 0.1),
+    ("FV SPLT FRM RS 10 TO RE1", "split", 0.1),
+    ("FV SPLT FRM RS 4 TO RS 2", "split", 0.5),
+    ("BONUS 17:25", "bonus", 25 / 42),
+    ("SCH AGMT-BONUS NCRPS 4:1", "bonus_preference", None),
+    ("SCH AGMT-BONUS NCRPS46:1", "bonus_preference", None),
+    ("MERGER/DEMERGER", "demerger", None),
+])
+def test_nse_bc_wording(purpose, kind, factor):
+    got = nb.classify_purpose(purpose)
+    assert got["kind"] == kind
+    if factor is None:
+        assert np.isnan(got["price_factor"])
+    else:
+        assert got["price_factor"] == pytest.approx(factor)
