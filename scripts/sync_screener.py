@@ -128,6 +128,23 @@ def _deep_check_due(today: date | None = None, path: str = SCREENER_DEEP_CHECK_F
     return ((today or date.today()) - last).days >= SCREENER_DEEP_CHECK_DAYS
 
 
+EXTRA_LIST = os.path.join(os.path.dirname(__file__), "..", "data", "indices", "ind_nanocap_list.csv")
+
+
+def extra_symbols(core: list[str], path: str | None = None) -> list[str]:
+    """The extra universe's stocks not already in the 750 (empty without a list).
+
+    Collected after the 750 and best effort: none of them is part of the
+    coverage gate, so a stock Screener cannot serve never fails the night the
+    750 depend on (src/engine/extra_universe.py).
+    """
+    path = path or EXTRA_LIST
+    if not os.path.exists(path):
+        return []
+    frame = pd.read_csv(path)
+    return sorted(set(_tradable_universe_symbols(frame["Symbol"].dropna().tolist())) - set(core))
+
+
 def _record_deep_check(today: date | None = None, path: str = SCREENER_DEEP_CHECK_FILE) -> None:
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
@@ -148,7 +165,10 @@ def run() -> int:
     stored = sl.load_store()
     stored_closes = sl.closes(stored)
     stored_symbols = stored_closes.columns.astype(str).str.strip().str.upper().tolist() if not stored_closes.empty else []
-    new_current, exited = current_universe_delta(symbols, stored_symbols)
+    extras = extra_symbols(symbols)
+    print(f"Extra universe (best effort, after the 750): {len(extras)} symbols")
+    new_current, _ = current_universe_delta(symbols, stored_symbols)
+    _, exited = current_universe_delta(symbols + extras, stored_symbols)
     print(f"Stored Screener symbols: {len(set(stored_symbols))}")
     print(f"New current symbols requiring history: {len(new_current)}")
     if new_current:
@@ -206,7 +226,30 @@ def run() -> int:
         frame_regular, ids, unresolved = sl.fetch_universe(
             regular_symbols, days=days, ids=ids, delay_s=SCREENER_DELAY_S
         )
-    frame = _concat_fresh(forced, frame_regular)
+    frame_extra = pd.DataFrame()
+    if extras and str(metrics.snapshot().get("facts", {}).get("screener_run_complete")) != "no":
+        have = set(stored_symbols)
+        extra_new = [x for x in extras if x not in have]
+        extra_old = [x for x in extras if x in have]
+        parts = []
+        extra_unresolved: list[str] = []
+        for group, group_days in ((extra_new, SCREENER_DEEP_HISTORY_DAYS), (extra_old, days)):
+            if not group:
+                continue
+            got, ids, miss = sl.fetch_universe(group, days=group_days, ids=ids,
+                                               delay_s=SCREENER_DELAY_S)
+            parts.append(got)
+            extra_unresolved += miss
+            if str(metrics.snapshot().get("facts", {}).get("screener_run_complete")) == "no":
+                break
+        frame_extra = _concat_fresh(*parts)
+        served = frame_extra.shape[1] // 2 if not frame_extra.empty else 0
+        print(f"Extra universe: {served}/{len(extras)} served "
+              f"({len(extra_new)} new, fetched with full history); "
+              f"{len(extra_unresolved)} not served: {extra_unresolved[:20]}")
+    elif extras:
+        print("Extra universe skipped: the site asked us to stop during the 750.")
+    frame = _concat_fresh(forced, frame_regular, frame_extra)
     unresolved = forced_unresolved + unresolved
     sl.save_ids(ids)
     print(f"Fetched {frame.shape[1] // 2 if not frame.empty else 0} symbols; "

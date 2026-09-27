@@ -43,7 +43,9 @@ permissions:
 jobs:
   screener:
     runs-on: ubuntu-latest
-    # ~22 minutes projected for 750 symbols at the measured rate. The ceiling is
+    # ~22 minutes measured for 750 symbols; with the extra universe (~420,
+    # fetched after the 750) and the random jitter, ~40 minutes a night, and
+    # ~50 on the first night the extras need their full history. The ceiling is
     # generous because a paced walk must never be killed halfway by a timeout:
     # the store would still be written, but the run would be marked failed and
     # the reason would be invisible.
