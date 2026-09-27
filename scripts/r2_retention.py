@@ -1,9 +1,15 @@
 """R2 retention for the two large daily datasets. Dry run unless told otherwise.
 
-Owner-approved policy, 2026-09-25: for `prices/yahoo`,
-`snapshots/application` and (added the same day) `prices/screener`, keep the
-last KEEP_DAILY as_of dates plus the last as_of of every calendar month. Every other dataset keeps its full history and
-is never touched here.
+Owner-approved policy, 2026-09-25: for `prices/yahoo` and (added the same
+day) `prices/screener`, keep the last KEEP_DAILY as_of dates plus the last
+as_of of every calendar month. Every other dataset keeps its full history and
+is never touched here -- except a RETIRED dataset, which goes entirely.
+
+Retired (owner, 2026-09-27: "Delete both folders"): `snapshots/application`,
+no longer published since 2026-09-25 and never read from R2, and
+`prices/yahoo/bootstrap`, the one-off seed the nightly `prices/yahoo` history
+has covered since. Every pointer, manifest and payload under each goes; a
+manifest naming a payload outside the dataset's own root refuses the run.
 
 What goes, for each as_of date that is not kept:
     archive/manifests/<dataset>/<as_of>/current.json        (the pointer)
@@ -56,8 +62,14 @@ KEEP_DAILY = 7
 # like every nested one, is never matched here.
 RETAINED_DATASETS: dict[str, str] = {
     "prices/yahoo": "archive/prices/yahoo",
-    "snapshots/application": "snapshots/application",
     "prices/screener": "archive/prices/screener",
+}
+
+# dataset -> key root, deleted whole. Neither root is a prefix of another
+# dataset's (the trailing "/" is part of every match below).
+RETIRED_DATASETS: dict[str, str] = {
+    "snapshots/application": "snapshots/application",
+    "prices/yahoo/bootstrap": "archive/prices/yahoo/bootstrap",
 }
 
 _ENTRY = re.compile(
@@ -203,10 +215,36 @@ def _survivors(archive: R2Archive, pointer_key: str | None, mks: list[str],
     return {named, newest}
 
 
+def plan_retired(archive: R2Archive, dataset: str, root: str,
+                 sizes: dict[str, int]) -> DatasetPlan:
+    """Everything a retired dataset holds, pointers first, payloads last."""
+    prefix = f"archive/manifests/{dataset}/"
+    pointer_keys, manifest_keys = [], []
+    dates: set[str] = set()
+    for key in archive.list_keys(prefix):
+        m = _ENTRY.fullmatch(key[len(prefix):])
+        if not m:
+            continue  # a nested dataset's manifest, never this one's
+        dates.add(m["as_of"])
+        (manifest_keys if m["sha"] else pointer_keys).append(key)
+    plan = DatasetPlan(dataset, sorted(dates), [], sorted(dates))
+    for mk in manifest_keys:
+        body = json.loads(archive.get_bytes(mk).decode("utf-8"))
+        obj = str(body.get("object_key", "")) if isinstance(body, dict) else ""
+        if not obj.startswith(f"{root}/"):
+            plan.refused.append(f"{mk}: object_key {obj!r} is outside {root}/")
+    payloads = list(archive.list_keys(f"{root}/"))
+    plan.delete_keys = sorted(pointer_keys) + sorted(manifest_keys) + sorted(payloads)
+    plan.delete_bytes = sum(sizes.get(k, 0) for k in plan.delete_keys)
+    return plan
+
+
 def make_plan(archive: R2Archive,
-              datasets: dict[str, str] = RETAINED_DATASETS) -> list[DatasetPlan]:
+              datasets: dict[str, str] = RETAINED_DATASETS,
+              retired: dict[str, str] = RETIRED_DATASETS) -> list[DatasetPlan]:
     sizes = dict(archive.list_objects(""))
-    return [plan_dataset(archive, ds, root, sizes) for ds, root in datasets.items()]
+    return ([plan_dataset(archive, ds, root, sizes) for ds, root in datasets.items()]
+            + [plan_retired(archive, ds, root, sizes) for ds, root in retired.items()])
 
 
 def apply_plan(archive: R2Archive, plans: list[DatasetPlan]) -> int:
@@ -257,6 +295,12 @@ def main() -> int:
     plans = make_plan(archive)
     rep = report(plans)
     for ds, row in rep["datasets"].items():
+        if ds in RETIRED_DATASETS:
+            print(f"RETIRE={ds} DATES={row['as_of_dates']} "
+                  f"DELETE_KEYS={row['delete_count']} FREES={_mb(row['delete_bytes'])}")
+            for why in row["refused"]:
+                print(f"  REFUSED {why}")
+            continue
         print(f"RETENTION={ds} DATES={row['as_of_dates']} KEEP={len(row['keep'])} "
               f"DROP={len(row['drop'])} DELETE_KEYS={row['delete_count']} "
               f"SUPERSEDED={row['superseded_revisions']} "

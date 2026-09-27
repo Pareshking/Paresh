@@ -1,8 +1,9 @@
 name: R2 retention
 
-# Owner-approved policy (2026-09-25): prices/yahoo, snapshots/application and
-# prices/screener keep the last 7 as_of dates plus every month-end; everything
-# else keeps its full history. See scripts/r2_retention.py.
+# Owner-approved policy (2026-09-25): prices/yahoo and prices/screener keep
+# the last 7 as_of dates plus every month-end; everything else keeps its full
+# history. Retired datasets go whole (owner, 2026-09-27: snapshots/application
+# and prices/yahoo/bootstrap). See scripts/r2_retention.py.
 #
 # WEEKLY, IT DELETES (owner, 2026-09-25: "Yes" to automatic weekly apply;
 # without it prices/yahoo alone grows ~36 MB a day). The Sunday run plans,

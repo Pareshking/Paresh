@@ -81,7 +81,8 @@ def test_plan_drops_only_the_retained_datasets_and_only_unkept_dates():
         len(a.objects[k]) for k in yahoo.delete_keys if k.startswith("archive/manifests/"))
     # Screener follows the same policy (owner, 2026-09-25).
     assert set(plans["prices/screener"].drop) == dropped
-    assert set(plans) == {"prices/yahoo", "snapshots/application", "prices/screener"}
+    assert set(plans) == {"prices/yahoo", "prices/screener",
+                          "snapshots/application", "prices/yahoo/bootstrap"}
     every = [k for p in plans.values() for k in p.delete_keys]
     assert not [k for k in every
                 if "/raw/" in k or "/bootstrap/" in k or "market_caps" in k]
@@ -212,3 +213,53 @@ def test_a_pointer_without_manifest_key_is_resolved_by_revision_sha():
     a.put(ptr_key, json.dumps(ptr).encode())
     plan = rr.plan_dataset(a, "prices/yahoo", "archive/prices/yahoo", dict(a.list_objects("")))
     assert len(plan.superseded) == 2 and not plan.skipped
+
+
+# ── Retired datasets: deleted whole (owner, 2026-09-27) ──────────────────────
+
+def test_a_retired_dataset_goes_whole_and_nothing_beside_it():
+    a = FakeArchive()
+    for i, d in enumerate(SEP[-3:]):
+        publish(a, "prices/yahoo", "archive/prices/yahoo", d, i)
+        publish(a, "prices/yahoo/raw", "archive/prices/yahoo/raw", d, 100 + i)
+        publish(a, "snapshots/application", "snapshots/application", d, 200 + i)
+    publish(a, "prices/yahoo/bootstrap", "archive/prices/yahoo/bootstrap", "2026-09-21", 300)
+    plans = {p.dataset: p for p in rr.make_plan(a)}
+
+    boot = plans["prices/yahoo/bootstrap"]
+    assert set(boot.delete_keys) == {
+        k for k in a.objects
+        if k.startswith(("archive/prices/yahoo/bootstrap/",
+                         "archive/manifests/prices/yahoo/bootstrap/"))}
+    app = plans["snapshots/application"]
+    assert set(app.delete_keys) == {
+        k for k in a.objects
+        if k.startswith(("snapshots/application/",
+                         "archive/manifests/snapshots/application/"))}
+    assert len(app.delete_keys) == 3 * 3        # pointer + manifest + payload per date
+    # Pointers first, payloads last.
+    assert app.delete_keys[0].endswith("/current.json")
+    assert not app.delete_keys[-1].startswith("archive/manifests/")
+
+    rr.apply_plan(a, [boot, app])
+    # The nightly Yahoo history and the raw dataset beside the bootstrap are whole.
+    for d in SEP[-3:]:
+        for ds in ("prices/yahoo", "prices/yahoo/raw"):
+            ptr = json.loads(a.objects[f"archive/manifests/{ds}/{d}/current.json"])
+            assert ptr["object_key"] in a.objects
+    assert not [k for k in a.objects if "bootstrap" in k or "application" in k]
+
+
+def test_a_retired_manifest_naming_a_payload_elsewhere_refuses_the_run(monkeypatch):
+    a = FakeArchive()
+    publish(a, "prices/yahoo", "archive/prices/yahoo", "2026-09-25", 1)
+    publish(a, "prices/yahoo/bootstrap", "archive/prices/yahoo/bootstrap", "2026-09-21", 2,
+            object_key="archive/prices/yahoo/2026-09-25/revisions/x/file.parquet")
+    plan = rr.plan_retired(a, "prices/yahoo/bootstrap", "archive/prices/yahoo/bootstrap",
+                           dict(a.list_objects("")))
+    assert plan.refused
+    monkeypatch.setattr(rr, "R2Archive", lambda cfg: a)
+    monkeypatch.setattr(rr.R2Config, "from_env", classmethod(lambda cls: None))
+    monkeypatch.setattr("sys.argv", ["r2_retention.py"])
+    assert rr.main() == 1
+    assert a.deleted == []
