@@ -276,3 +276,28 @@ def test_tape_ending_on_a_month_end_previews_the_prior_month_signal():
     assert meta["signal_date"] == pd.Timestamp("2026-07-31")
     assert meta["fill_date"] == pd.Timestamp("2026-08-03")
     assert not res["live_book"].empty
+
+
+def test_mtd_runs_from_last_month_end_or_from_this_months_fill():
+    """MTD (owner, 2026-09-27): what each holding did this month.
+
+    A name carried into September is measured from the 31 Aug close; one
+    bought at the September fill from its fill, since it was not owned before.
+    """
+    px = _prices()
+    res = _run(px, "lb_mtd")
+    lb = res["live_book"]
+    as_of = res["live_meta"]["as_of"]
+    month_start = as_of.to_period("M").start_time
+    prior = px.index[px.index < month_start][-1]
+    seen_new = seen_carried = False
+    for _, row in lb.iterrows():
+        now = px.loc[as_of, row["Symbol"]]
+        if pd.Timestamp(row["Entry Date"]) >= month_start:
+            assert row["MTD %"] == pytest.approx(row["Return %"])
+            seen_new = True
+        else:
+            assert row["MTD %"] == pytest.approx(now / px.loc[prior, row["Symbol"]] - 1)
+            seen_carried = True
+    assert seen_carried, "fixture must carry a name into the month"
+    assert seen_new or seen_carried
