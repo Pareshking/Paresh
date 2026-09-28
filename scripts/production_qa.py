@@ -69,6 +69,8 @@ POLL_S = 10
 # How long the previous page's menu may stay on screen while the new page's
 # run finishes before it counts as stuck open (audit_configuration).
 MENU_CLOSE_WAIT_MS = 10_000
+# How long the page's own run may take before the menu is judged at all.
+MENU_RUN_WAIT_MS = 60_000
 METRICS_ID = "umiya-startup-metrics"
 # Commit this run intends to test. The workflow passes github.sha; the app
 # publishes the revision it is actually serving. Without this the probe can
@@ -768,14 +770,24 @@ def audit_configuration(page, frame) -> dict:
     # caught that old menu mid-run (runs on 9e64c72 and 7a4de54, with no
     # header change behind either). A menu the reader must close by hand is
     # one still open once the run is over; that is what fails.
+    #
+    # "Once the run is over" is read from Streamlit's own running indicator,
+    # not a fixed wait: minutes after a deploy a cold page run takes longer
+    # than MENU_CLOSE_WAIT_MS (run on 2ae8c88: Portfolio and Breadth took 16s
+    # in the same pass, and Configuration's menu was judged mid-run).
     try:
         body = frame.locator('[data-testid="stPopoverBody"]').first
-        open_ms = 0
+        running = frame.locator('[data-testid="stStatusWidget"]')
+        open_ms = run_ms = 0
+        while run_ms <= MENU_RUN_WAIT_MS and running.count():
+            page.wait_for_timeout(500)
+            run_ms += 500
         while open_ms <= MENU_CLOSE_WAIT_MS and body.count() and body.is_visible():
             page.wait_for_timeout(500)
             open_ms += 500
         out["menu_open_after_nav"] = bool(body.count() and body.is_visible())
         out["menu_closed_after_ms"] = open_ms
+        out["page_run_ms"] = run_ms
     except Exception:
         out["menu_open_after_nav"] = None
 
