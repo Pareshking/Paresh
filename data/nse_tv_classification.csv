@@ -233,6 +233,7 @@ AZAD,Producer Manufacturing,Metal Fabrication
 BAFNAPH,Health Technology,Pharmaceuticals: Major
 BAGDIGITAL,Consumer Services,Broadcasting
 BAGFILMS,Consumer Services,Broadcasting
+BAGMANE,Finance,Real Estate Investment Trusts (REITs)
 BAHETI,Producer Manufacturing,Metal Fabrication
 BAIDFIN,Finance,Finance/Rental/Leasing
 BAJAJ-AUTO,Consumer Durables,Motor Vehicles
@@ -311,6 +312,7 @@ BIGBLOC,Non-Energy Minerals,Construction Materials
 BIKAJI,Consumer Non-Durables,Food: Specialty/Candy
 BIL,Consumer Non-Durables,Consumer Sundries
 BIOCON,Health Technology,Pharmaceuticals: Major
+BIRET,Finance,Real Estate Investment Trusts (REITs)
 BIRET.RR,Finance,Real Estate Investment Trusts
 BIRLACABLE,Producer Manufacturing,Electrical Products
 BIRLACORPN,Non-Energy Minerals,Construction Materials
@@ -602,6 +604,7 @@ EMAMILTD,Consumer Non-Durables,Household/Personal Care
 EMAMIPAP,Process Industries,Pulp & Paper
 EMAMIREAL,Finance,Real Estate Development
 EMAPARTNER,Commercial Services,Personnel Services
+EMBASSY,Finance,Real Estate Investment Trusts (REITs)
 EMBASSY.RR,Finance,Real Estate Investment Trusts
 EMBDL,Finance,Real Estate Development
 EMCURE,Health Technology,Pharmaceuticals: Major
@@ -2130,6 +2133,7 @@ TIIL,Producer Manufacturing,Metal Fabrication
 TIINDIA,Non-Energy Minerals,Steel
 TIL,Producer Manufacturing,Trucks/Construction/Farm Machinery
 TIMETECHNO,Process Industries,Containers/Packaging
+TIMEX,Consumer Durables,Consumer Durables
 TIMKEN,Producer Manufacturing,Industrial Machinery
 TINNARUBR,Process Industries,Industrial Specialties
 TIPSFILMS,Consumer Services,Movies/Entertainment
@@ -2360,7 +2364,3 @@ ZUARI,Process Industries,Chemicals: Agricultural
 ZUARIIND,Process Industries,Agricultural Commodities/Milling
 ZYDUSLIFE,Health Technology,Pharmaceuticals: Major
 ZYDUSWELL,Consumer Non-Durables,Food: Major Diversified
-EMBASSY,Realty,Realty
-BAGMANE,Realty,Realty
-BIRET,Realty,Realty
-TIMEX,Consumer Durables,Consumer Durables
