@@ -82,8 +82,11 @@ def _membership_intervals(history: dict[str, Any], index_name: str | None = None
     }
     rows: list[dict[str, Any]] = []
 
+    cutoff = pd.Timestamp(as_of).date()
     for change in history.get("changes", []):
         effective = pd.Timestamp(change["date"]).date()
+        if effective > cutoff:
+            break
         for symbol in sorted(change.get("removed", [])):
             start = starts.pop(symbol, None)
             if start is None:
@@ -107,7 +110,11 @@ def _membership_intervals(history: dict[str, Any], index_name: str | None = None
 
     last_evidence = max(
         [pd.Timestamp(baseline["date"]).date()]
-        + [pd.Timestamp(change["date"]).date() for change in history.get("changes", [])]
+        + [
+            pd.Timestamp(change["date"]).date()
+            for change in history.get("changes", [])
+            if pd.Timestamp(change["date"]).date() <= cutoff
+        ]
     )
 
     for symbol in sorted(state):

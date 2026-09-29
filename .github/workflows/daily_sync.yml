@@ -202,6 +202,7 @@ jobs:
           PYTHONPATH: .
         run: |
           python scripts/sync_data.py
+          python scripts/update_membership_history.py
 
       # Yahoo's two years for the extra universe, in its own file so it cannot
       # move any judgement the 750's pipeline makes (scripts/sync_extra_yahoo.py).

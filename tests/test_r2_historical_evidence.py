@@ -75,6 +75,8 @@ def test_real_membership_history_is_consistent_and_covers_sync_date(tmp_path):
     assert (starts <= pd.Timestamp(MEMBERSHIP_AS_OF)).any(), "no membership rows cover the acceptance date"
     assert (ends.isna() | (ends >= starts)).all()
     for change in history["changes"]:
+        if pd.Timestamp(change["date"]) > sync_date:
+            continue
         for symbol in change.get("added", []):
             rows = generated.loc[generated["symbol"].eq(symbol)]
             assert change["date"] in set(rows["effective_from"])
