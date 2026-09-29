@@ -1,6 +1,5 @@
 """Refresh point-in-time membership history from synchronized NSE CSVs."""
 from __future__ import annotations
-import 
 import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
