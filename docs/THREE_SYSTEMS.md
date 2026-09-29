@@ -4,7 +4,7 @@ One app, three universes, one strategy. Owner decisions of 2026-09-27; built in
 #240 and #242–#246. Update this file with every PR that changes how a system is
 defined, ranked, booked or recorded.
 
-_Last updated: 2026-09-27_
+_Last updated: 2026-09-30_
 
 ## The systems
 
@@ -34,6 +34,9 @@ in `src/engine/systems.py` and nowhere else.
 - If Nano Cap or Combined cannot be loaded, the app says so and shows the 750.
 
 ## Membership
+
+The 750 system's point-in-time membership is backed by the multi-index `data/membership_history.json` produced by the daily sync. The 2026-09-30 rollout covers NIFTY TOTAL MARKET, NIFTY 50, NIFTY NEXT 50, MIDCAP 150, SMALLCAP 250 and MICROCAP 250. `DUMMY*` NSE placeholders are excluded from the recorded membership. The implementation was merged in PR #258 (merge commit `73b095a49b52ab1a4a968e21e364610e94ed02a5`), and post-merge R2 historical-evidence bootstrap run `36646326268` published the membership histories successfully.
+
 
 - `scripts/build_extra_universe.py` runs in the daily sync and acts only when
   a new month-end session is in R2. It reads NSE's market-cap file for that
