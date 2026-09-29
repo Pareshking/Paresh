@@ -298,6 +298,18 @@
       "kind": "split/bonus",
       "first_seen": "2026-09-18"
     },
+    "2020-11-14:MBAPL": {
+      "date": "2020-11-14",
+      "symbol": "MBAPL",
+      "move": 9.007144,
+      "ratio": 10.007144,
+      "prev_close": 3.4705,
+      "close": 34.7296,
+      "looks_like": "10:1 reverse split",
+      "kind": "split/bonus",
+      "first_seen": "2026-09-29",
+      "source": "yahoo"
+    },
     "2020-11-14:THYROCARE": {
       "date": "2020-11-14",
       "symbol": "THYROCARE",
@@ -330,6 +342,18 @@
       "looks_like": "1:2 split or 1:1 bonus",
       "kind": "split/bonus",
       "first_seen": "2026-09-18"
+    },
+    "2020-11-17:MBAPL": {
+      "date": "2020-11-17",
+      "symbol": "MBAPL",
+      "move": -0.9,
+      "ratio": 0.1,
+      "prev_close": 34.7296,
+      "close": 3.473,
+      "looks_like": "1:10 split",
+      "kind": "split/bonus",
+      "first_seen": "2026-09-29",
+      "source": "yahoo"
     },
     "2020-11-17:THYROCARE": {
       "date": "2020-11-17",
