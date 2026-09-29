@@ -96,8 +96,7 @@ those, so a month scored on today's list flatters the strategy by an amount
 that cannot be measured from the shipped data. The coverage figure is therefore
 reported rather than estimated.
 
-The history accumulates for free from the daily sync's committed index
-snapshots. Its baseline is recent, so most reported months currently fall back.
+The history accumulates from the daily sync's committed NSE index snapshots. As of the 2026-09-30 membership-history rollout, `data/membership_history.json` records point-in-time history for NIFTY TOTAL MARKET, NIFTY 50, NIFTY NEXT 50, MIDCAP 150, SMALLCAP 250 and MICROCAP 250, with `DUMMY*` placeholders excluded. The legacy top-level Total Market shape is retained for compatibility while the canonical multi-index data lives under `indices`. PR #258 (`73b095a49b52ab1a4a968e21e364610e94ed02a5`) merged this implementation into `main`; post-merge R2 historical-evidence bootstrap run `36646326268` completed successfully, including publication of membership histories and the downstream historical datasets.
 
 ### Concentration caps
 
@@ -318,6 +317,10 @@ The production application uses a strict separation between the canonical rankin
 - **Streamlit reruns:** contract validation and Screener-frame shaping are memoized using the complete logical contract and immutable R2 revision identity respectively. Repeated reruns therefore avoid repeating equivalent work while still invalidating when the underlying ranking contract or R2 revision changes.
 
 The 2026-09-23 production deployment verified the full path: 750-row ranking accepted from the R2 Screener store, Yahoo deep history loaded from its separate R2 archive, and the runtime engine skipped after canonical precomputed acceptance.
+
+## Verified production data state
+
+As of 2026-09-30, the membership-history implementation is merged to `main` and its post-merge R2 publication is green. The verified production pipeline includes index constituent snapshots, point-in-time membership histories, the combined universe, historical sector/industry classification, confirmed trading sessions, historical market caps, and corporate-action evidence. The canonical ranking publication is also green (R2 ranking calculation archive run `36646326289`). This is the verified state; do not describe membership history as merely a recent/current-list fallback where the recorded history covers the signal date.
 
 ## Data integrity
 
