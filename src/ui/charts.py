@@ -101,23 +101,13 @@ def render_stock_chart(
     if _bench_full is not None and not full_close.empty:
         rs_full = compute_rs_series(full_close, _bench_full)
 
-    try:
-        from src.ui.lightweight_chart import render_lightweight_chart
-
-        render_lightweight_chart(
-            symbol,
-            close,
-            open_=_col(open_prices),
-            high=_col(high_prices),
-            low=_col(low_prices),
-            volume=_col(volume_data),
-            overlays=chosen,
-            rs=rs_full,
-        )
-        return
-    except Exception as exc:  # ChartUnavailable or anything the component throws
-        logger.info("Lightweight chart unavailable (%s); using Plotly.", exc)
-
+    # Streamlit Cloud can load the third-party Lightweight Charts frontend
+    # but lose the component server during a live app reload. In that state the
+    # browser renders "not connected to a server" instead of raising a Python
+    # exception, so the caller never reaches the fallback below. Keep the
+    # Plotly renderer as the production path; it is native to Streamlit and
+    # cannot enter that component-server failure mode.
+    logger.info("Using native Plotly stock chart renderer.")
     render_candlestick_drilldown(
         symbol,
         rank_df,
