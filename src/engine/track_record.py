@@ -95,6 +95,11 @@ def empty_ledger(inception: pd.Period = INCEPTION) -> dict[str, Any]:
     }
 
 
+def _current_month() -> pd.Period:
+    """Current UTC calendar month used only to classify missing ledgers."""
+    return pd.Timestamp.now(tz="UTC").to_period("M")
+
+
 def load_ledger(path: Path | str = LEDGER_PATH,
                 inception: pd.Period | None = None) -> dict[str, Any]:
     """Read the ledger, or an empty one. A corrupt file is never silently reset.
@@ -105,8 +110,16 @@ def load_ledger(path: Path | str = LEDGER_PATH,
     """
     p = Path(path)
     if not p.exists():
-        logger.warning("No track-record ledger at %s; reporting an empty record.", p)
-        return empty_ledger(inception or INCEPTION)
+        expected_start = pd.Period(inception, freq="M") if inception is not None else None
+        if expected_start is not None and _current_month() < expected_start:
+            logger.info(
+                "Track-record ledger %s has not started yet; first month is %s.",
+                p,
+                expected_start,
+            )
+        else:
+            logger.warning("No track-record ledger at %s; reporting an empty record.", p)
+        return empty_ledger(expected_start or INCEPTION)
     with p.open("r", encoding="utf-8") as fh:
         ledger = json.load(fh)
     if not isinstance(ledger, dict) or "months" not in ledger:
