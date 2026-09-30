@@ -300,77 +300,103 @@ def _year_low(symbol: str, adj_close: pd.DataFrame | None,
 
 
 def _render_price_ladder(row: pd.Series, year_low: float | None = None) -> None:
+    """Render the compact price-position scale used on the stock page."""
     cmp_v = _num(row.get("CMP"))
     hi = _num(row.get("52W High"))
-    pct_hi = _num(row.get("% High"))
-    ath = _num(row.get("ATH"))
-    ath_date = _date_label(row.get("ATH Date"))
     ema_pct = _num(row.get("% 50 EMA"))
     ema_val = cmp_v / (1 + ema_pct / 100) if cmp_v is not None and ema_pct is not None else None
     line = hi * 0.8 if hi is not None else None
 
-    # The range bar: 52-week low to high, with the filter line and the EMA.
-    bar = ""
-    if hi is not None and year_low is not None and hi > year_low and cmp_v is not None:
-        span = hi - year_low
-
-        def x(v: float) -> float:
-            return max(0.0, min(100.0, (v - year_low) / span * 100))
-
-        marks = (f'<i class="m-line" style="left:{x(line):.1f}%" title="-20% 52W High"></i>'
-                 if line is not None else "")
+    if hi is None or year_low is None or hi <= year_low:
+        # Some unit tests exercise the renderer with only ranking columns.
+        # Keep the section visible without inventing a range position.
+        fallback_items = []
+        if hi is not None:
+            fallback_items.append(f'<span><b>52W High</b><strong>{_money(hi)}</strong></span>')
         if ema_val is not None:
-            marks += f'<i class="m-ema" style="left:{x(ema_val):.1f}%" title="50D EMA"></i>'
-        bar = (
-            '<div class="sp-range"><div class="track">'
-            f'<div class="fill" style="width:{x(cmp_v):.1f}%"></div>{marks}'
-            f'<span class="dot" style="left:{x(cmp_v):.1f}%"></span></div>'
-            f'<div class="ends"><span>52W Low {_money(year_low)}</span>'
-            f'<span class="key"><i class="m-line"></i>-20% 52W High {_money(line)}'
-            + (f' <i class="m-ema"></i>50-day EMA {_money(ema_val)}' if ema_val is not None else "")
-            + '</span>'
-            f'<span>52W High {_money(hi)}</span></div></div>'
+            fallback_items.append(f'<span><b>50D EMA</b><strong>{_money(ema_val)}</strong></span>')
+        if line is not None:
+            fallback_items.append(f'<span><b>-20% 52W High</b><strong>{_money(line)}</strong></span>')
+        if not fallback_items:
+            return
+        _html_block(
+            '<section class="sp-card sp-ladder sp-price-position" aria-label="Where the price sits">'
+            '<h2>Where the price sits</h2>'
+            '<div class="sp-range-fallback">'
+            + "".join(fallback_items)
+            + '</div></section>'
+            '<style>'
+            '.sp-range-fallback{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}'
+            '.sp-range-fallback span{display:flex;flex-direction:column;gap:3px;min-width:120px;padding:10px 12px;border-radius:10px;background:#F6F7F9;}'
+            '.sp-range-fallback b{font-size:12px;color:#5E6878;}'
+            '.sp-range-fallback strong{font-family:var(--font-mono);font-size:16px;color:#0E1726;}'
+            '</style>'
+            '</section>'
         )
+        return
 
-    rows = []
+    span = hi - year_low
 
-    def item(label: str, value: str, sub: str = "", cls: str = "") -> None:
-        rows.append(
-            f'<div class="li"><span class="lk">{_html.escape(label)}</span>'
-            f'<span class="lv {cls}">{value}</span>'
-            f'<span class="ls">{_html.escape(sub)}</span></div>'
-        )
+    def x(value: float | None) -> float:
+        if value is None:
+            return 0.0
+        return max(0.0, min(100.0, (value - year_low) / span * 100))
 
-    item("52W High", _money(hi, 2),
-         (f"price {_pct(pct_hi)}" if pct_hi and abs(pct_hi) >= 0.05 else "price is at the high"),
-         "down" if pct_hi and pct_hi <= -0.05 else "")
-    if ath is not None:
-        item("All-time high", _money(ath, 2),
-             (f"set on {ath_date}" if ath_date else "")
-             + (f" · price {_pct(row.get('% ATH'))}" if _num(row.get("% ATH")) is not None else ""))
-    if line is not None:
-        item("-20% 52W High", _money(line),
-             "price is above it" if cmp_v is not None and cmp_v >= line else "price is below it",
-             "" if cmp_v is not None and cmp_v >= line else "down")
-    if ema_val is not None:
-        item("50D EMA", _money(ema_val), f"price {_pct(ema_pct)}",
-             "up" if ema_pct >= 0 else "down")
-    if year_low is not None and cmp_v:
-        item("52W Low", _money(year_low), f"price {_pct((cmp_v / year_low - 1) * 100, 0)}")
-    dd = _num(row.get("Max DD 12M"))
-    if dd is not None:
-        item("Worst fall, 12 months", f"−{abs(dd):.1f}%", "peak to trough", "down")
-    pers = _num(row.get("Persistence"))
-    if pers is not None:
-        item("Up-days, last 6 months", f"{pers:.1f}%", "share of sessions that closed higher")
-    vol = str(row.get("Volume") or "").strip()
-    if vol:
-        item("Volume vs normal", _html.escape(vol), "")
+    ema_x = x(ema_val)
+    line_x = x(line)
 
     _html_block(
-        '<section class="sp-card sp-ladder" aria-label="Where the price sits">'
+        '<section class="sp-card sp-ladder sp-price-position" aria-label="Where the price sits">'
         '<h2>Where the price sits</h2>'
-        f'{bar}<div class="list">{"".join(rows)}</div></section>'
+        '<div class="sp-range-clean">'
+        '<div class="sp-range-labels">'
+        f'<div class="sp-range-marker" style="left:0%">'
+        f'<span class="sp-range-k">52W Low</span><b>{_money(year_low)}</b></div>'
+        f'<div class="sp-range-marker" style="left:{ema_x:.1f}%">'
+        f'<span class="sp-range-k">50D EMA</span><b>{_money(ema_val)}</b></div>'
+        f'<div class="sp-range-marker" style="left:{line_x:.1f}%">'
+        f'<span class="sp-range-k">-20% 52W High</span><b>{_money(line)}</b></div>'
+        f'<div class="sp-range-marker" style="left:100%">'
+        f'<span class="sp-range-k">52W High</span><b>{_money(hi)}</b></div>'
+        '</div>'
+        '<div class="sp-range-track" aria-hidden="true">'
+        f'<span class="sp-range-segment muted" style="left:0%;width:{ema_x:.1f}%"></span>'
+        f'<span class="sp-range-segment positive" style="left:{ema_x:.1f}%;width:{100 - ema_x:.1f}%"></span>'
+        f'<i class="sp-range-dot low" style="left:0%"></i>'
+        f'<i class="sp-range-dot ema" style="left:{ema_x:.1f}%"></i>'
+        f'<i class="sp-range-dot threshold" style="left:{line_x:.1f}%"></i>'
+        f'<i class="sp-range-dot high" style="left:100%"></i>'
+        '</div>'
+        '</div>'
+        '</section>'
+        '<style>'
+        '.sp-price-position{margin:14px 0;}'
+        '.sp-range-clean{margin-top:22px;padding:0 2px 2px;}'
+        '.sp-range-labels{position:relative;height:58px;}'
+        '.sp-range-marker{position:absolute;top:0;width:118px;text-align:center;transform:translateX(-50%);}'
+        '.sp-range-marker:first-child{transform:translateX(0);text-align:left;}'
+        '.sp-range-marker:last-child{transform:translateX(-100%);text-align:right;}'
+        '.sp-range-k{display:block;font-family:var(--font-ui);font-size:12.5px;line-height:1.2;color:#5E6878;white-space:nowrap;}'
+        '.sp-range-marker b{display:block;margin-top:4px;font-family:var(--font-mono);font-size:17px;line-height:1;color:#0E1726;font-weight:700;white-space:nowrap;}'
+        '.sp-range-track{position:relative;height:18px;margin:0 10px;}'
+        '.sp-range-segment{position:absolute;top:4px;height:10px;border-radius:5px;}'
+        '.sp-range-segment.muted{background:#EDEFF3;}'
+        '.sp-range-segment.positive{background:#58D6A1;}'
+        '.sp-range-dot{position:absolute;top:0;width:18px;height:18px;margin-left:-9px;border:3px solid #fff;border-radius:50%;box-sizing:border-box;}'
+        '.sp-range-dot.low{background:#FF6267;box-shadow:0 0 0 1px #FF6267;}'
+        '.sp-range-dot.ema{background:#4F46E5;box-shadow:0 0 0 1px #4F46E5;}'
+        '.sp-range-dot.threshold{background:#F4B400;box-shadow:0 0 0 1px #F4B400;}'
+        '.sp-range-dot.high{background:#067647;box-shadow:0 0 0 1px #067647;}'
+        '@media (max-width:640px){'
+        '.sp-price-position{padding:14px 12px;border-radius:16px;}'
+        '.sp-range-clean{margin-top:20px;padding:0;}'
+        '.sp-range-labels{height:62px;}'
+        '.sp-range-marker{width:92px;}'
+        '.sp-range-k{font-size:11px;line-height:1.15;white-space:normal;}'
+        '.sp-range-marker b{font-size:16px;margin-top:3px;}'
+        '.sp-range-track{margin:0 8px;height:18px;}'
+        '}'
+        '</style>'
     )
 
 
