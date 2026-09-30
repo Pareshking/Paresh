@@ -49,7 +49,7 @@ mark_loaded = _code_reload.mark_loaded
 reload_if_changed = _code_reload.reload_if_changed
 
 with app_import_guard():
-        _code_reloaded = reload_if_changed()
+    _code_reloaded = reload_if_changed()
     
     # Core & Loaders
     from src.core import startup_metrics as metrics
