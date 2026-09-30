@@ -308,6 +308,31 @@ def _render_price_ladder(row: pd.Series, year_low: float | None = None) -> None:
     line = hi * 0.8 if hi is not None else None
 
     if hi is None or year_low is None or hi <= year_low:
+        # Some unit tests exercise the renderer with only ranking columns.
+        # Keep the section visible without inventing a range position.
+        fallback_items = []
+        if hi is not None:
+            fallback_items.append(f'<span><b>52W High</b><strong>{_money(hi)}</strong></span>')
+        if ema_val is not None:
+            fallback_items.append(f'<span><b>50D EMA</b><strong>{_money(ema_val)}</strong></span>')
+        if line is not None:
+            fallback_items.append(f'<span><b>-20% 52W High</b><strong>{_money(line)}</strong></span>')
+        if not fallback_items:
+            return
+        _html_block(
+            '<section class="sp-card sp-ladder sp-price-position" aria-label="Where the price sits">'
+            '<h2>Where the price sits</h2>'
+            '<div class="sp-range-fallback">'
+            + "".join(fallback_items)
+            + '</div></section>'
+            '<style>'
+            '.sp-range-fallback{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}'
+            '.sp-range-fallback span{display:flex;flex-direction:column;gap:3px;min-width:120px;padding:10px 12px;border-radius:10px;background:#F6F7F9;}'
+            '.sp-range-fallback b{font-size:12px;color:#5E6878;}'
+            '.sp-range-fallback strong{font-family:var(--font-mono);font-size:16px;color:#0E1726;}'
+            '</style>'
+            '</section>'
+        )
         return
 
     span = hi - year_low
