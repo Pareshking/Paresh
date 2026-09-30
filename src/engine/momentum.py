@@ -562,7 +562,7 @@ class MomentumEngine:
             # evaluated at calendar offsets. 6M and 2M are not new momentum
             # factors: they are simply historical snapshots of the existing
             # daily composite, ranked with the same paired-name rule.
-            for months in (6, 3, 2, 1):
+            for months in pipeline.RANK_HISTORY_MONTHS:
                 idx_hist = int(hist_starts[months][-1])
                 rank_col = f"Rank (-{months}M)"
                 delta_col = f"Rank Δ {months}M"
@@ -574,10 +574,9 @@ class MomentumEngine:
                     rank_df[rank_col] = np.nan
                     rank_df[delta_col] = np.nan
         else:
-            rank_df["Rank (-1M)"] = np.nan
-            rank_df["Rank Δ 1M"] = np.nan
-            rank_df["Rank (-3M)"] = np.nan
-            rank_df["Rank Δ 3M"] = np.nan
+            for months in pipeline.RANK_HISTORY_MONTHS:
+                rank_df[f"Rank (-{months}M)"] = np.nan
+                rank_df[f"Rank Δ {months}M"] = np.nan
 
         if self._static_signals is None:
             # Cold start or a caller that skipped build_engine. There used to be
