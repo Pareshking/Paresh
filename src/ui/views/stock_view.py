@@ -363,6 +363,11 @@ def _render_price_ladder(row: pd.Series, year_low: float | None = None) -> None:
     ema_x = x(ema_val)
     line_x = x(line)
 
+    # Keep the label row collision-free on narrow screens. The 52W High
+    # marker is right-aligned, so when the EMA marker gets close to it the
+    # EMA label also anchors to its right edge instead of overlapping it.
+    ema_near_high = (100.0 - ema_x) < 20.0
+
     _html_block(
         '<section class="sp-card sp-ladder sp-price-position" aria-label="Where the price sits">'
         '<h2>Where the price sits</h2>'
@@ -370,7 +375,7 @@ def _render_price_ladder(row: pd.Series, year_low: float | None = None) -> None:
         '<div class="sp-range-labels">'
         f'<div class="sp-range-marker" style="left:0%">'
         f'<span class="sp-range-k">52W Low</span><b>{_money(year_low)}</b></div>'
-        f'<div class="sp-range-marker" style="left:{ema_x:.1f}%">'
+        f'<div class="sp-range-marker {"near-high" if ema_near_high else ""}" style="left:{ema_x:.1f}%">'
         f'<span class="sp-range-k">50D EMA</span><b>{_money(ema_val)}</b></div>'
         f'<div class="sp-range-marker" style="left:{line_x:.1f}%">'
         f'<span class="sp-range-k">-20% 52W High</span><b>{_money(line)}</b></div>'
@@ -414,6 +419,7 @@ def _render_price_ladder(row: pd.Series, year_low: float | None = None) -> None:
         '.sp-range-marker b{font-size:15px;margin-top:3px;}'
         '.sp-range-marker:nth-child(3){transform:translateX(-100%);text-align:right;}'
         '.sp-range-marker:nth-child(2){transform:translateX(-50%);text-align:center;}'
+        '.sp-range-marker.near-high{transform:translateX(-100%);text-align:right;}'
         '.sp-range-marker:nth-child(4){transform:translateX(-100%);text-align:right;}'
         '.sp-range-track{margin:0 8px;height:18px;}'
         '}'
