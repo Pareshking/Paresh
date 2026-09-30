@@ -36,6 +36,12 @@ _PIPELINE_TAG: str = "v4_calendar_periods"
 # a 749-row table. Keep this policy in the pipeline contract fingerprint too.
 RANKING_COVERAGE_FLOOR: float = 1.00
 
+# Historical rank snapshots displayed on stock pages. These are outputs of the
+# same canonical composite score, not additional momentum factors. Include the
+# set in the pipeline digest so an older published ranking cannot be accepted
+# after the stock-page history has been expanded.
+RANK_HISTORY_MONTHS: tuple[int, ...] = (6, 3, 2, 1)
+
 
 def _settings_digest() -> str:
     """Fingerprint the CONSTANTS that decide the numbers, not just the tag.

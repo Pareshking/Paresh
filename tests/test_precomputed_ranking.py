@@ -436,3 +436,8 @@ def test_a_missing_artifact_is_retried_well_inside_an_hour():
     assert re.search(r"ttl=_RANKING_SNAPSHOT_TTL_S", src), (
         "the fetch no longer uses the named TTL"
     )
+
+
+def test_stock_page_rank_history_set_is_canonical():
+    """The stock page and engine share one explicit historical-rank output set."""
+    assert pipeline.RANK_HISTORY_MONTHS == (6, 3, 2, 1)
