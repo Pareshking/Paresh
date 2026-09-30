@@ -126,3 +126,30 @@ NSE PR/market-cap retrieval has previously encountered HTTP 429 rate limiting; t
 - Do not lower the complete-session coverage requirement below 100%, or widen the straggler carry (5 symbols, 5 sessions), without a deliberate methodology change and new validation.
 - Do not create a second ranking engine in the AI/research layer.
 - Keep R2 production workflows isolated from Stage-4B research workflows.
+
+
+## 2026-09-30 — changes since the previous production status entry
+
+### Dynamic Nano Cap universe
+
+PR #273 (`811c3f5a6eb89074d39618fd47e2629f9d254834`) is merged. Effective Nano now always subtracts the current Nifty 750 and asserts the hard disjointness invariant. Nightly precompute uses the same universe definition as production. The existing ₹2,000 Cr cutoff and historical membership records are unchanged. Post-merge data-plane verification of the published Nano/Combined artifacts remains a separate verification step.
+
+### Momentum rank history
+
+The canonical momentum ranking history is now `6M → 3M → 2M → 1M → Now`. `RANK_HISTORY_MONTHS = (6, 3, 2, 1)` is part of the pipeline settings fingerprint, so ranking artifacts created under a different history configuration are not silently accepted. The stock-page path always renders all five positions; a genuinely unavailable historical rank is shown as `—` rather than collapsing the path. This was validated and merged through PRs #270–#272.
+
+### Price ladder and stock-page UI
+
+The price ladder labels are standardized to `52W Low`, `-20% 52W High`, `50D EMA`, and `52W High`. Marker positions remain tied to the actual price coordinates; labels are laid out in equal columns with matching marker-colour dots/text to avoid overlap when prices cluster. The Lightweight Charts renderer remains the default chart; Plotly is fallback only.
+
+### Streamlit reload reliability
+
+PR #263 (`3529e834352156fafbd8f8f8b359ac8fb13219fc`) made the custom hot-reload/import window concurrency-safe with a process-wide re-entrant guard and regression coverage. It also made missing Nano/Combined track-record ledgers informational before their October 2026 inception while preserving warnings after inception and existing corrupt-ledger handling.
+
+### Membership history
+
+PR #258 (`73b095a49b52ab1a4a968e21e364610e94ed02a5`) introduced dynamic multi-index point-in-time membership history for NIFTY TOTAL MARKET, NIFTY 50, NIFTY NEXT 50, MIDCAP 150, SMALLCAP 250 and MICROCAP 250, excluding `DUMMY*` placeholders. R2 historical publication completed successfully. The 2026-09-23 `HEG → HEGAM` event is retained as a constituent change between different symbols.
+
+### Documentation / validation record
+
+Relevant green gates include the membership-history rollout, UI price-ladder changes, rank-history expansion/fingerprint correction, Streamlit reload fix, and Nano disjointness correction. The latest Nano PR passed Lint #285, V1 Full Validation #1109 and R2 Streamlit read-path gate #306 before merge.
