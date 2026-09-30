@@ -151,10 +151,6 @@ def render_header_kpi_bar(
     regime_cls = "mkt-up" if bullish else "mkt-down"
     dist = regime.distance_pct
     dist_text = f"{abs(dist):.1f}% {'above' if dist >= 0 else 'below'}"
-    # The universe's share within 20% of its 52-week high: the second of the
-    # two qualification filters, beside the first (owner, 2026-09-27).
-        '<span class="mkt-sep">·</span><span>Within 20% of 52W high: '
-        f"<strong>{near_high} ({near_high / total_stocks * 100 if total_stocks else 0:.0f}%)</strong></span>")
     market_html = f"""
     <div role="status" aria-label="Market status dashboard" class="mkt-snapshot">
         <div class="mkt-item mkt-regime-item">
