@@ -349,6 +349,26 @@ def _precomputed_ranking(
     if frame is None:
         return None
 
+    # PR #262 expanded the stock-page rank path to 6M/3M/2M/1M/Now.
+    # Older published artifacts can still have a matching input contract
+    # because that output schema was not part of the historical contract.
+    # Never serve such a table: fall through to the same canonical engine that
+    # produced the artifact in the first place. The next scheduled publication
+    # will replace the stale table once it is rebuilt with the new columns.
+    required_rank_history = [
+        f"Rank (-{months}M)" for months in pipeline.RANK_HISTORY_MONTHS
+    ]
+    missing_rank_history = [
+        column for column in required_rank_history if column not in frame.columns
+    ]
+    if missing_rank_history:
+        logger.info(
+            "Precomputed ranking rejected (missing rank history columns): %s",
+            ", ".join(missing_rank_history),
+        )
+        metrics.note("ranking_precompute", "miss_missing_rank_history_columns")
+        return None
+
     expected = ranking_store.contract(
         price_fingerprint=price_hash,
         price_source=price_source,
