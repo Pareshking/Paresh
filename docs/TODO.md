@@ -50,6 +50,8 @@ _Last updated: 2026-09-30_
 
 ## Done (30 Sep 2026)
 
+- Streamlit hot-reload race and misleading pre-inception track-record warnings fixed in PR #263 (merge commit `3529e834352156fafbd8f8f8b359ac8fb13219fc`); concurrent reload regression and future-ledger regression added. Lint #237, V1 Full Validation #1061 and R2 Streamlit read-path gate #283 all green.
+
 - Dynamic point-in-time membership history for all six production NSE indices merged in PR #258 (merge commit `73b095a49b52ab1a4a968e21e364610e94ed02a5`); pre-merge Lint, V1 Full Validation, R2 Focused Validation and R2 Streamlit read-path gates were green.
 - Post-merge R2 historical evidence bootstrap run `36646326268` completed green: index constituent snapshots, point-in-time membership histories, combined universe, historical sector/industry classification, confirmed trading sessions, historical market caps and corporate-action evidence all published successfully.
 - Post-merge R2 ranking calculation archive run `36646326289` completed green: canonical ranking artifact validated, published immutably and audited successfully.
