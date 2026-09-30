@@ -260,7 +260,6 @@ def render_portfolio_view(
     monthly = history["monthly"]
     trades = history["trades"]
     tradebook = history["tradebook"]
-    current_return = total_value / float(portfolio_capital) - 1.0 if portfolio_capital else np.nan
     closed = trades[trades["Status"] == "Closed"] if not trades.empty and "Status" in trades.columns else trades
     closed_valid = closed[closed["Return %"].notna()] if not closed.empty and "Return %" in closed.columns else closed
     wins = int((closed_valid["Return %"] > 0).sum()) if not closed_valid.empty else 0
