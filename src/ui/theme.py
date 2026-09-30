@@ -459,7 +459,7 @@ def inject_custom_css() -> None:
             display: inline-flex; align-items: center; gap: 5px;
             font-weight: 700;
         }
-        .mkt-dot { font-size: 10px; }
+        .mkt-dot { font-size: 11px; }
         .mkt-up, .mkt-item strong.mkt-up { color: #067647 !important; }
         .mkt-down, .mkt-item strong.mkt-down { color: #B42318 !important; }
         .mkt-regime.mkt-down { color: #B42318; }
@@ -501,7 +501,7 @@ def inject_custom_css() -> None:
             .mkt-item strong {
                 overflow: hidden; text-overflow: ellipsis;
             }
-            .mkt-item em { font-size: 10.5px; }
+            .mkt-item em { font-size: 11px; }
         }
 
         /* Keep the Streamlit popover out of normal flow so mobile flex
