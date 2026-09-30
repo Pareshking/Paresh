@@ -51,3 +51,32 @@ def test_the_month_end_session_sets_the_list():
     assert xu.membership_day(held | {date(2026, 9, 29)}, date(2026, 10, 1)) == date(2026, 9, 29)
     assert xu.membership_day(set(), date(2026, 9, 27)) is None
     assert xu.effective_from(date(2026, 12, 31)) == date(2027, 1, 1)
+
+
+def test_effective_nano_always_excludes_current_750():
+    from src.loaders.extra_universe_loader import effective_nano
+
+    base = pd.DataFrame({"Symbol": ["SIGMAADV", "IN750"]})
+    extra = pd.DataFrame({
+        "Symbol": ["SIGMAADV", "NANO1", "NANO2"],
+        "Company Name": ["Sigma", "Nano 1", "Nano 2"],
+        "Industry": ["Technology", "Technology", "Finance"],
+        "Indices": ["NANO", "NANO", "NANO"],
+    })
+    out = effective_nano(base, extra)
+    assert out["Symbol"].tolist() == ["NANO1", "NANO2"]
+    assert set(out["Symbol"]).isdisjoint(set(base["Symbol"]))
+
+
+def test_effective_nano_handles_stock_leaving_750():
+    from src.loaders.extra_universe_loader import effective_nano
+
+    base = pd.DataFrame({"Symbol": ["STAYS750"]})
+    extra = pd.DataFrame({
+        "Symbol": ["STAYS750", "LEAVES750"],
+        "Company Name": ["Current", "Former"],
+        "Industry": ["Technology", "Finance"],
+        "Indices": ["NANO", "NANO"],
+    })
+    out = effective_nano(base, extra)
+    assert out["Symbol"].tolist() == ["LEAVES750"]

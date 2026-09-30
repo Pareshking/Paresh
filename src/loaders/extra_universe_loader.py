@@ -54,19 +54,42 @@ def fetch_members() -> pd.DataFrame:
     return members()
 
 
-def system_universe(system: str, base: pd.DataFrame, extra: pd.DataFrame) -> pd.DataFrame:
-    """The stocks a system ranks: the 750 (base), Nano Cap (extra), or both.
+def effective_nano(base: pd.DataFrame, extra: pd.DataFrame) -> pd.DataFrame:
+    """Return Nano Cap candidates after giving the current 750 priority.
 
-    One definition for the app and the nightly precompute
-    (scripts/precompute_systems.py): the published ranking is accepted only
-    for exactly this universe.
+    The persisted Nano list is a month-end candidate set. Index rebalancing
+    can move a candidate into the 750 before the next Nano rebuild, so the
+    effective live Nano universe must always subtract the current 750.
     """
+    base_symbols = set(base["Symbol"].astype(str).str.upper()) if not base.empty else set()
+    out = extra[~extra["Symbol"].astype(str).str.upper().isin(base_symbols)].copy()
+    assert_disjoint(base, out)
+    return out.reset_index(drop=True)
+
+
+def assert_disjoint(base: pd.DataFrame, nano: pd.DataFrame) -> None:
+    """Hard invariant: effective Nano and the current 750 may never overlap."""
+    base_symbols = set(base["Symbol"].astype(str).str.upper()) if not base.empty else set()
+    nano_symbols = set(nano["Symbol"].astype(str).str.upper()) if not nano.empty else set()
+    overlap = sorted(base_symbols & nano_symbols)
+    if overlap:
+        raise ValueError(
+            "NANO universe disjointness invariant violated: " + ", ".join(overlap)
+        )
+
+
+def system_universe(system: str, base: pd.DataFrame, extra: pd.DataFrame) -> pd.DataFrame:
+    """The stocks a system ranks: 750, effective Nano Cap, or their union.
+
+    One definition for the app and the nightly precompute. The persisted Nano
+    list is only a candidate list; the current 750 always has priority.
+    """
+    nano = effective_nano(base, extra)
     if system == xu.SYSTEM_NANO:
-        return extra
+        return nano
     if system != xu.SYSTEM_COMBINED:
         return base
-    extra = extra[~extra["Symbol"].isin(set(base["Symbol"]))]
-    return pd.concat([base, extra], ignore_index=True)
+    return pd.concat([base, nano], ignore_index=True)
 
 
 def split_symbols(system: str, idx_info: pd.DataFrame) -> tuple[list[str], list[str]]:
