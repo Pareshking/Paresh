@@ -902,7 +902,10 @@ def render_backtest_view(
     traded_value: pd.DataFrame | None = None,
     months: int = DEFAULT_BACKTEST_MONTHS,
     membership: dict | None = None,
+    history_start: pd.Timestamp | None = None,
 ) -> None:
     """Renders the Walk-Forward Historical Strategy Backtesting Interface."""
-    _backtest_body(rank_df, adj_close, stock_cap, sector_cap, weights,
-                   liquidity_floor_cr, traded_value, months, membership)
+    _backtest_body(
+        rank_df, adj_close, stock_cap, sector_cap, weights,
+        liquidity_floor_cr, traded_value, months, membership, history_start
+    )
