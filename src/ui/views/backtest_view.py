@@ -135,6 +135,7 @@ def _backtest_body(
             buffer_n=int(bt_n * buffer_mult),
             _membership=membership if membership is not None else load_history_or_none(),
             backtest_months=months,
+            stateful_history=True,
             _actions=_events,
             liquidity_floor_cr=liquidity_floor_cr,
             _traded_value=traded_value,

@@ -264,6 +264,8 @@ def _build_rebalance_schedule(
     start_offset: int,
     rebal_freq: int,
     backtest_months: int,
+    *,
+    stateful_history: bool = False,
 ) -> tuple[list[int], list[int], int, pd.Timestamp] | None:
     """Which sessions the book is rebalanced on, and where the simulation stops.
 
@@ -300,10 +302,15 @@ def _build_rebalance_schedule(
     # window. Filter on the EXECUTION date (T+1), because a rebalance signalled
     # on the last session of January is the trade that holds through February.
     window_start, window_end = completed_month_window(dates, backtest_months)
-    rebal_dates = [
-        i for i in rebal_dates if window_start <= dates[i + 1] <= window_end
-    ]
-    if not rebal_dates:
+    if stateful_history:
+        rebal_dates = [i for i in rebal_dates if dates[i + 1] <= window_end]
+    else:
+        rebal_dates = [
+            i for i in rebal_dates if window_start <= dates[i + 1] <= window_end
+        ]
+    if not rebal_dates or not any(
+        window_start <= dates[i + 1] <= window_end for i in rebal_dates
+    ):
         return None
 
     # The final holding period must stop at the window, not run into the month
@@ -672,6 +679,7 @@ def run_backtest(
     _benchmark_close: pd.Series | None = None,
     backtest_months: int = DEFAULT_BACKTEST_MONTHS,
     _membership: dict[str, Any] | None = None,
+    stateful_history: bool = False,
     _actions: list[dict[str, Any]] | None = None,
     liquidity_floor_cr: float = 0.0,
     _traded_value: pd.DataFrame | None = None,
@@ -756,13 +764,14 @@ def run_backtest(
 
     start_offset = max_lb + ema_period
     _schedule = _build_rebalance_schedule(
-        prices, start_offset, rebal_freq, backtest_months
+        prices, start_offset, rebal_freq, backtest_months,
+        stateful_history=stateful_history,
     )
     if _schedule is None:
         return None
     rebal_dates, all_signal_idx, last_sim_idx, window_end = _schedule
     dates = pd.DatetimeIndex(prices.index)
-
+    window_start, _ = completed_month_window(dates, backtest_months)
 
     strat_net_daily: list[float] = []
     strat_gross_daily: list[float] = []
@@ -821,9 +830,11 @@ def run_backtest(
         idx_mask = _index_mask(_membership, prices.columns, dates[start_idx])
         if idx_mask is not None:
             valid &= idx_mask
-            pit_periods += 1
+            if (not stateful_history) or dates[start_idx + 1] >= window_start:
+                pit_periods += 1
         else:
-            current_universe_periods += 1
+            if (not stateful_history) or dates[start_idx + 1] >= window_start:
+                current_universe_periods += 1
         # The liquidity floor (src/engine/liquidity.py): on the value known
         # at the signal date, never a later one.
         liq_mask = liquidity.passes(_traded_value, prices.columns, dates[start_idx],
@@ -860,7 +871,9 @@ def run_backtest(
             holdings, log_ret, start_idx, weight_method,
             sector_map=sec_map, stock_cap=stock_cap, sector_cap=sector_cap,
         )
-        if wts.attrs.get("scheme_neutralised"):
+        if wts.attrs.get("scheme_neutralised") and (
+            (not stateful_history) or dates[start_idx + 1] >= window_start
+        ):
             scheme_neutralised_seen = True
 
         # ── Turnover & Transaction Drag ──────────────────────────────────────
@@ -887,6 +900,7 @@ def run_backtest(
         # held between those two prints earned.
         p_start_dt = prices.index[fwd_start]
         p_end_dt = prices.index[exit_idx]
+        in_report_window = (not stateful_history) or p_start_dt >= window_start
         period_lbl = (
             f"{p_start_dt:%d %b %Y} → {p_end_dt:%d %b %Y}"
             if p_start_dt
@@ -1021,6 +1035,8 @@ def run_backtest(
         for d_idx, j in enumerate(range(fwd_start + 1, exit_idx + 1)):
             if j >= len(prices_ff):
                 break
+            if not in_report_window:
+                continue
             equity_dates.append(prices.index[j])
             if held_cols:
                 px = prices_ff[held_cols].iloc[j].to_numpy(dtype=float)
@@ -1043,7 +1059,7 @@ def run_backtest(
             bench_daily.append(bench_r)
             period_strat_rets.append(net_r)
 
-        if period_strat_rets:
+        if period_strat_rets and in_report_window:
             s_ret_c = float(np.prod([1 + r for r in period_strat_rets]) - 1)
             b_rets = [
                 float(benchmark_ret.iloc[j])
@@ -1444,6 +1460,18 @@ def run_backtest(
         "n_sold": sum(1 for r in change_rows if r["Action"] == "🔴 SOLD"),
         "n_held": sum(1 for r in change_rows if r["Action"] == "⚪ HELD"),
     }
+
+    if stateful_history:
+        if closed_trades:
+            closed_trades = [
+                r for r in closed_trades
+                if pd.to_datetime(r.get("Exit Date"), errors="coerce") >= window_start
+            ]
+        if trade_records:
+            trade_records = [
+                r for r in trade_records
+                if pd.to_datetime(r.get("Period Start"), errors="coerce") >= window_start
+            ]
 
     closed_trades_df = pd.DataFrame(closed_trades)
 
