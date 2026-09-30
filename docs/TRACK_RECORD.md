@@ -180,10 +180,26 @@ Since 2026-09-27 the app runs three systems on the same pinned configuration
 
 `src/engine/systems.py` names the ledger, the inception and the point-in-time
 membership for each; `load_ledger(path, inception)` and `finalize_months` start
-from the ledger's own inception. Nano Cap and Combined have no backfilled
-months at all: their first book is signalled at the 30 Sep 2026 close, so
-their record is survivorship-free from the first month.
+from the ledger's own inception.
 
-The monthly workflow freezes the 750 first, then Nano Cap and Combined
-(`update_track_record.py --system nano|combined`), which warn rather than fail.
-The Track Record page ends with all three side by side.
+### Pre-inception ledger behavior
+
+Nano Cap and Combined ledger files are intentionally absent before their
+October 2026 inception. Their first live book is signalled at the 30-Sep-2026
+close and filled on 1-Oct-2026. Therefore a missing Nano/Combined ledger on
+30 September is not evidence of a failed publication.
+
+As of PR #263 (merge commit `3529e834352156fafbd8f8f8b359ac8fb13219fc`),
+`load_ledger(path, inception)` distinguishes the two cases:
+
+- **before inception:** return an empty ledger anchored to its declared
+  inception and log informationally;
+- **at/after inception:** log a warning because the ledger should now exist;
+- **corrupt existing ledger:** raise/report the error and never silently reset
+  it.
+
+This distinction is deliberate: "not started yet" and "missing after start"
+are different operational states.
+
+Nano Cap and Combined have no backfilled months at all: their first book is
+signalled at the 30 Sep 2026 close.
