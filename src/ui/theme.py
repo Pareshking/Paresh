@@ -821,7 +821,7 @@ def inject_custom_css() -> None:
         .sp-changes { display: flex; gap: 8px; flex-wrap: wrap; padding-bottom: 4px; }
         .sp-changes { display: flex; gap: 8px; flex-wrap: wrap; padding-bottom: 2px; }
         .sp-chg { min-width: 82px; display: flex; flex-direction: column; gap: 2px; padding: 7px 11px; border-radius: 10px; }
-        .sp-chg i { font-style: normal; font-size: 10.5px; font-weight: 650; color: #5E6878; }
+        .sp-chg i { font-style: normal; font-size: 11.5px; font-weight: 650; color: #5E6878; }
         .sp-chg b { font-family: var(--font-mono); font-size: 13.5px; font-weight: 700; }
         .sp-chg.up { background: #E8F5EE; color: #067647; } .sp-chg.down { background: #FDEDEB; color: #B42318; }
         .sp-chg.flat { background: #F1F3F6; color: #5E6878; }
@@ -833,7 +833,7 @@ def inject_custom_css() -> None:
         .sp-path { display: flex; align-items: center; gap: 6px; }
         .sp-step { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 8px; border-radius: 10px; background: #F4F5F8; min-width: 50px; }
         .sp-step b { font-family: var(--font-mono); font-size: 13px; color: #0E1726; }
-        .sp-step i { font-style: normal; font-size: 10.5px; color: #5E6878; }
+        .sp-step i { font-style: normal; font-size: 11.5px; color: #5E6878; }
         .sp-step.now { background: #EEF0FF; } .sp-step.now b { color: #3730A3; }
         .sp-arrow { color: #98A1AE; font-size: 12px; }
         .sp-facts { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: #3C4657; }
