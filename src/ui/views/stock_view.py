@@ -245,15 +245,7 @@ def _render_verdict(row: pd.Series) -> None:
     ema_val = cmp_v / (1 + ema_pct / 100) if cmp_v is not None and ema_pct is not None else None
     ema_txt = "—" if ema_pct is None else f"{abs(ema_pct):.1f}% {'above' if ema_pct >= 0 else 'below'}"
     hi_date = _date_label(row.get("52W High Date"))
-    hi_sub = f"{_money(hi, 2)} set on {hi_date}" if hi_date else _money(hi, 2)
-    if not near and hi is not None:
-        hi_sub = f"High {_money(hi, 2)} · filter line {_money(hi * 0.8, 2)}"
-    ath_src = str(row.get("ATH Source") or "").strip()
     ath_date = _date_label(row.get("ATH Date"))
-    if ath_src == "in_memory_window":
-        ath_sub = "2-year high: no all-time record for this stock"
-    else:
-        ath_sub = f"{_money(ath, 2)} set on {ath_date}" if ath_date else _money(ath, 2)
 
     def card_icon(kind: str) -> str:
         return f'<span class="sv-icon {kind}" aria-hidden="true"></span>'
