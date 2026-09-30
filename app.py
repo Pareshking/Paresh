@@ -1110,9 +1110,9 @@ def _page_breadth() -> None:
 
 
 def _page_backtest() -> None:
-    # Owner: judged against today's list, a longer Nano Cap backtest would be
-    # wrong; it starts with the first month-end list (September 2026) and
-    # gains a month at every month-end (src/engine/systems.backtest_months).
+    # Backtest reporting starts at the system's canonical inception and
+    # expands by one completed month at each month-end. Older price history is
+    # still used for signal formation, but never becomes portfolio ownership.
     months = systems.backtest_months(system, deep_adj_close.index[-1])
     if months == 0:
         kit.page_head("Backtest", f"{system_name} is replayed from September 2026, the "
@@ -1121,8 +1121,13 @@ def _page_backtest() -> None:
         kit.note("Building.", "The first month completes at the 30 Sep 2026 close. "
                  + _record_start())
         return
-    extra_args = ({} if months is None
-                  else {"months": months, "membership": systems.membership_for(system)})
+    extra_args = ({
+        "months": months,
+        "membership": systems.membership_for(system),
+        "history_start": systems.inception(system).start_time,
+    } if months is not None else {
+        "history_start": systems.inception(system).start_time,
+    })
     render_backtest_view(
         rank_df=rank_df,
         # Depth, not freshness: a 12-month formation window before a 6-month
