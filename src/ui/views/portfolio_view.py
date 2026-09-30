@@ -112,6 +112,26 @@ def build_portfolio_tracker(
     ).reset_index(drop=True)
 
 
+def build_portfolio_history(record: dict, capital: float) -> dict:
+    """Scale the canonical Track Record replay into portfolio-level history."""
+    equity = pd.to_numeric(pd.Series(record.get("equity_curve", pd.Series(dtype=float))), errors="coerce").dropna()
+    benchmark = pd.to_numeric(pd.Series(record.get("benchmark", pd.Series(dtype=float))), errors="coerce").reindex(equity.index).ffill()
+    equity_value = equity * float(capital)
+    peak = equity_value.cummax()
+    drawdown = equity_value / peak - 1.0
+    monthly = record.get("monthly", pd.DataFrame())
+    trades = record.get("closed_trades", pd.DataFrame())
+    tradebook = record.get("tradebook", pd.DataFrame())
+    return {
+        "equity": equity_value,
+        "benchmark": benchmark * float(capital),
+        "drawdown": drawdown,
+        "max_drawdown": float(drawdown.min()) if not drawdown.empty else float("nan"),
+        "monthly": monthly.copy() if isinstance(monthly, pd.DataFrame) else pd.DataFrame(),
+        "trades": trades.copy() if isinstance(trades, pd.DataFrame) else pd.DataFrame(),
+        "tradebook": tradebook.copy() if isinstance(tradebook, pd.DataFrame) else pd.DataFrame(),
+    }
+
 def render_portfolio_view(
     calc,
     rank_df: pd.DataFrame,
@@ -138,7 +158,7 @@ def render_portfolio_view(
             "Model capital (₹)",
             min_value=50000,
             max_value=100000000,
-            value=1000000,
+            value=2000000,
             step=50000,
             format="%d",
             key="port_total_capital_input",
