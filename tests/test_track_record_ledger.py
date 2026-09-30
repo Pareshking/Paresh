@@ -10,6 +10,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
+import src.engine.track_record as track_record
+
 from src.engine.track_record import (
     INCEPTION,
     TRACK_RECORD_CONFIG,
@@ -563,3 +565,27 @@ def test_without_mtd_the_headline_is_frozen_only():
     s = summary_stats(led)
     assert s["includes_mtd"] is False
     assert s["months"] == s["frozen_months"] == 1
+
+
+def test_missing_future_ledger_is_expected_and_not_a_warning(tmp_path, monkeypatch):
+    """Nano/Combined ledgers do not exist until their October 2026 inception."""
+    warnings = []
+    monkeypatch.setattr(
+        track_record,
+        "_current_month",
+        lambda: pd.Period("2026-09", freq="M"),
+    )
+    monkeypatch.setattr(
+        track_record.logger,
+        "warning",
+        lambda *args, **kwargs: warnings.append(args),
+    )
+
+    led = track_record.load_ledger(
+        tmp_path / "track_record_nano.json",
+        pd.Period("2026-10", freq="M"),
+    )
+
+    assert led["inception"] == "2026-10"
+    assert led["months"] == {}
+    assert warnings == []

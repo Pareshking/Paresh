@@ -19,75 +19,76 @@ warnings.filterwarnings("ignore", message=".*st\\.components\\.v1\\.html.*")
 
 # Before any other app import: load the current src/ and r2/ code if a pull
 # changed it since this process imported it (src/core/code_reload.py).
-from src.core.code_reload import mark_loaded, reload_if_changed
+from src.core.code_reload import app_import_guard, mark_loaded, reload_if_changed
 
-_code_reloaded = reload_if_changed()
-
-# Core & Loaders
-from src.core import startup_metrics as metrics
-from src.core.config import (
-    DEFAULT_LOOKBACK_WEIGHTS,
-    DEFAULT_SECTOR_CAP,
-    DEFAULT_STOCK_CAP,
-    DEFAULT_TARGET_VOL,
-    MCAP_PR_FILE,
-    MCAPS_FILE,
-    PRICES_FILE,
-    REPO_MCAP_FILE,
-    REPO_ATH_FILE,
-)
-from src.core.logger import logger
-
-from src.engine import pipeline
-from src.engine.corporate_actions import adjust_ohlc, load_events
-from src.loaders.indices_loader import fetch_indices_data
-from src.loaders import extra_universe_loader as extra_loader
-from src.engine.extra_universe import (
-    SYSTEM_750, SYSTEM_INCEPTION, SYSTEM_NAMES, SYSTEM_NANO,
-)
-from src.core.universe_reconciliation import reconcile_symbols
-# R2-backed production readers are an explicit transport boundary; keep this import adjacent to the loader.
-from r2.consumers import r2_streamlit
-from src.loaders.mcap_loader import fetch_market_caps
-from src.loaders.price_loader import (
-    extract_ohlcv,
-    fetch_benchmark_history,
-    fetch_price_history,
-    get_market_regime,
-)
-from src.loaders.tv_loader import load_tv_classification
-
-# UI Design System, Components & Views
-from src.ui.ema_utils import count_above_ema
-from src.ui.components import (
-    render_header_kpi_bar,
-)
-from src.ui import page_kit as kit
-from src.engine import liquidity, systems
-from src.ui import system_param, watchlist_store
-from src.ui.theme import inject_custom_css
-from src.ui.widget_state import resolve
-from src.ui.views.backtest_view import render_backtest_view
-from src.ui.views.breadth_view import render_breadth_view
-from src.ui.views.config_view import render_config_view
-from src.ui.views.guide_view import render_guide_view
-from src.ui.views.portfolio_view import render_portfolio_view
-from src.ui.views.actions_view import render_actions_view
-from src.ui.views.ranking_view import render_ranking_view
-from src.ui.views.rrg_view import render_rrg_view
-from src.ui.views.sector_view import render_sector_view
-from src.ui.views.track_record_view import render_track_record_view
-from src.ui.views.watchlist_view import render_watchlist_view
-
-# Page Config: 100% Widescreen, Sidebar Collapsed
-st.set_page_config(
-    page_title="Paresh Patel",
-    page_icon="📈",
-    layout="wide",
-    initial_sidebar_state="collapsed",
-)
-
-mark_loaded()  # the baseline reload_if_changed() compares against next run
+with app_import_guard():
+    _code_reloaded = reload_if_changed()
+    
+    # Core & Loaders
+    from src.core import startup_metrics as metrics
+    from src.core.config import (
+        DEFAULT_LOOKBACK_WEIGHTS,
+        DEFAULT_SECTOR_CAP,
+        DEFAULT_STOCK_CAP,
+        DEFAULT_TARGET_VOL,
+        MCAP_PR_FILE,
+        MCAPS_FILE,
+        PRICES_FILE,
+        REPO_MCAP_FILE,
+        REPO_ATH_FILE,
+    )
+    from src.core.logger import logger
+    
+    from src.engine import pipeline
+    from src.engine.corporate_actions import adjust_ohlc, load_events
+    from src.loaders.indices_loader import fetch_indices_data
+    from src.loaders import extra_universe_loader as extra_loader
+    from src.engine.extra_universe import (
+        SYSTEM_750, SYSTEM_INCEPTION, SYSTEM_NAMES, SYSTEM_NANO,
+    )
+    from src.core.universe_reconciliation import reconcile_symbols
+    # R2-backed production readers are an explicit transport boundary; keep this import adjacent to the loader.
+    from r2.consumers import r2_streamlit
+    from src.loaders.mcap_loader import fetch_market_caps
+    from src.loaders.price_loader import (
+        extract_ohlcv,
+        fetch_benchmark_history,
+        fetch_price_history,
+        get_market_regime,
+    )
+    from src.loaders.tv_loader import load_tv_classification
+    
+    # UI Design System, Components & Views
+    from src.ui.ema_utils import count_above_ema
+    from src.ui.components import (
+        render_header_kpi_bar,
+    )
+    from src.ui import page_kit as kit
+    from src.engine import liquidity, systems
+    from src.ui import system_param, watchlist_store
+    from src.ui.theme import inject_custom_css
+    from src.ui.widget_state import resolve
+    from src.ui.views.backtest_view import render_backtest_view
+    from src.ui.views.breadth_view import render_breadth_view
+    from src.ui.views.config_view import render_config_view
+    from src.ui.views.guide_view import render_guide_view
+    from src.ui.views.portfolio_view import render_portfolio_view
+    from src.ui.views.actions_view import render_actions_view
+    from src.ui.views.ranking_view import render_ranking_view
+    from src.ui.views.rrg_view import render_rrg_view
+    from src.ui.views.sector_view import render_sector_view
+    from src.ui.views.track_record_view import render_track_record_view
+    from src.ui.views.watchlist_view import render_watchlist_view
+    
+    # Page Config: 100% Widescreen, Sidebar Collapsed
+    st.set_page_config(
+        page_title="Paresh Patel",
+        page_icon="📈",
+        layout="wide",
+        initial_sidebar_state="collapsed",
+    )
+    
+    mark_loaded()  # the baseline reload_if_changed() compares against next run
 metrics.mark_code_current()  # loaded_revision: the src/ now running is disk's
 if _code_reloaded:
     logger.info("Reloaded app code changed on disk: %s", ", ".join(_code_reloaded))

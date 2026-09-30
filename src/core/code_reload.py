@@ -24,6 +24,7 @@ from __future__ import annotations
 import os
 import sys
 import threading
+from contextlib import contextmanager
 
 _PACKAGES = ("src", "r2")
 _PREFIXES = tuple(p + "." for p in _PACKAGES)
@@ -37,7 +38,21 @@ PERSISTENT: dict[str, dict] = {}
 
 # path -> (mtime_ns, size) as first seen after the module was loaded.
 _SEEN: dict[str, tuple[int, int]] = {}
-_LOCK = threading.Lock()
+_LOCK = threading.RLock()
+
+
+@contextmanager
+def app_import_guard():
+    """Serialize the reload + app-import window across Streamlit script threads.
+
+    reload_if_changed() deliberately removes all application modules from
+    sys.modules before app.py imports them again. That operation is safe only
+    if no second script run can import from the same cache in between those
+    two steps. Streamlit can execute multiple script threads concurrently, so
+    app.py holds this re-entrant lock across the complete reload/import window.
+    """
+    with _LOCK:
+        yield
 
 
 def _is_app_module(name: str) -> bool:
