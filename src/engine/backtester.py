@@ -771,7 +771,7 @@ def run_backtest(
         return None
     rebal_dates, all_signal_idx, last_sim_idx, window_end = _schedule
     dates = pd.DatetimeIndex(prices.index)
-
+    window_start, _ = completed_month_window(dates, backtest_months)
 
     strat_net_daily: list[float] = []
     strat_gross_daily: list[float] = []
