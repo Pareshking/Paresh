@@ -72,6 +72,35 @@ def test_the_ladder_shows_the_all_time_high():
     assert "52W High" in body
 
 
+def test_momentum_rank_path_has_six_three_two_one_and_now():
+    from src.engine.momentum import MomentumEngine
+
+    n = 400
+    idx = pd.bdate_range(end="2026-09-29", periods=n)
+    rng = np.random.default_rng(9)
+    px = pd.DataFrame(
+        100 * np.exp(np.cumsum(rng.normal(0.0003, 0.012, (n, 3)), axis=0)),
+        index=idx, columns=["S0", "S1", "S2"],
+    )
+    info = pd.DataFrame({
+        "Symbol": ["S0", "S1", "S2"],
+        "Industry": ["IT", "IT", "Bank"],
+        "Indices": ["N50"] * 3,
+    })
+    calc = MomentumEngine(
+        px, high_df=px * 1.01, low_df=px * 0.99, close_df=px,
+        volume_df=pd.DataFrame(1e5, index=idx, columns=px.columns),
+    )
+    frame = calc.get_rankings(
+        info, pd.Series(1e4, index=px.columns),
+        close_prices_df=px, high_prices_df=px * 1.01,
+    )
+    for col in ("Rank (-6M)", "Rank (-3M)", "Rank (-2M)", "Rank (-1M)", "Rank"):
+        assert col in frame.columns
+    assert frame["Rank (-6M)"].notna().any()
+    assert frame["Rank (-2M)"].notna().any()
+
+
 def test_returns_and_risk_cover_every_window():
     at = _app(stock="S3")
     body = " ".join(m.value for m in at.markdown)

@@ -258,7 +258,9 @@ def _render_verdict(row: pd.Series) -> None:
     def card_icon(kind: str) -> str:
         return f'<span class="sv-icon {kind}" aria-hidden="true"></span>'
 
-    mark = {"pass": "✓", "part": "!", "fail": "✕"}[state]\n\n    ema_status = "PASS" if above else "FAIL"
+    mark = {"pass": "✓", "part": "!", "fail": "✕"}[state]
+
+    ema_status = "PASS" if above else "FAIL"
     hi_status = "PASS" if near else "FAIL"
     ema_value = ema_txt
     hi_value = dist(pct_hi)
