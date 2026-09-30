@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-09-30 — Streamlit reload and track-record warning hardening
+
+- Fixed a concurrency race in the custom Streamlit hot-reload path. The reload/import window is now serialized across script threads, preventing transient `KeyError` failures while `src.*` and `r2.*` modules are rebuilt.
+- Added a concurrent reload regression test.
+- Confirmed that `data/track_record_nano.json` and `data/track_record_combined.json` are intentionally absent before their October 2026 inception.
+- Changed pre-inception missing-ledger logging from WARNING to INFO; missing ledgers at/after inception remain warnings, and corrupt ledgers still fail safely rather than being replaced with an empty record.
+- PR #263 merged as `3529e834352156fafbd8f8f8b359ac8fb13219fc`.
+- Validation: Lint #237, V1 Full Validation #1061, R2 Streamlit read-path gate #283 — all green.
+
+
 ## 2026-09-25 — Full code audit (merged up to #177)
 
 - Owner decisions shipped:
