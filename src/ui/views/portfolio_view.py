@@ -1,24 +1,119 @@
+"""Current model Portfolio view.
+
+Portfolio is an accounting/presentation view of the Track Record's canonical
+current book. It does not select stocks or calculate a competing model book.
 """
-Portfolio Construction View Controller with Capital Sizing & Zerodha Basket Exports.
-"""
+from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-
 import streamlit as st
 
 from src.core.market_time import ist_now
-from src.core.types import WeightMethod
-from src.engine import liquidity
-from src.engine.momentum import MomentumEngine
-from src.engine.portfolio import PortfolioOptimizer
+from src.engine.extra_universe import SYSTEM_750
+from src.loaders.price_loader import fetch_benchmark_history
 from src.ui import page_kit as kit
-from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
+from src.ui import system_param
+from src.ui.canonical_book import current_book
 from src.ui.theme import render_saas_table
 
 
+def build_portfolio_tracker(
+    book: pd.DataFrame,
+    rank_df: pd.DataFrame,
+    capital: float,
+    prices: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Enrich the canonical Track Record book with portfolio accounting.
+
+    Membership and target weights come only from the canonical book. Ranking
+    data supplies labels/current observations; prices are used only for day-P&L.
+    """
+    if book is None or book.empty:
+        return pd.DataFrame()
+
+    out = book.copy()
+    lookup = (
+        rank_df.drop_duplicates("Symbol").set_index("Symbol")
+        if rank_df is not None and not rank_df.empty
+        else pd.DataFrame()
+    )
+
+    def mapped(column: str, default=np.nan):
+        if isinstance(lookup, pd.DataFrame) and column in lookup.columns:
+            return out["Symbol"].map(lookup[column])
+        return pd.Series(default, index=out.index)
+
+    out["Company"] = mapped("Company Name", "").replace("", np.nan).fillna(
+        mapped("Company", "").replace("", np.nan)
+    ).fillna(out["Symbol"])
+    out["Sector / Industry"] = mapped("TV_Sector", "").replace("", np.nan).fillna(
+        mapped("Industry", "—")
+    )
+    out["Current Rank"] = pd.to_numeric(mapped("Rank"), errors="coerce")
+    out["Market Cap (Cr)"] = pd.to_numeric(mapped("Market Cap (Cr)"), errors="coerce")
+
+    for months in (1, 3, 6, 12):
+        out[f"{months}M Return"] = pd.to_numeric(
+            mapped(f"{months}M Return"), errors="coerce"
+        )
+
+    out["Target Weight %"] = pd.to_numeric(out["Weight %"], errors="coerce").fillna(0.0)
+    out["Entry Price"] = pd.to_numeric(out["Entry Price"], errors="coerce")
+    out["Current Price"] = pd.to_numeric(out["Price Now"], errors="coerce")
+    out["Shares"] = (
+        (capital * out["Target Weight %"] / 100.0)
+        / out["Entry Price"].replace(0, np.nan)
+    ).fillna(0.0).apply(np.floor).astype(int)
+    out["Invested Value (₹)"] = (out["Shares"] * out["Entry Price"]).round(0)
+    out["Current Value (₹)"] = (out["Shares"] * out["Current Price"]).round(0)
+    out["P&L (₹)"] = (out["Current Value (₹)"] - out["Invested Value (₹)"]).round(0)
+    out["P&L %"] = np.where(
+        out["Invested Value (₹)"] > 0,
+        out["P&L (₹)"] / out["Invested Value (₹)"] * 100.0,
+        np.nan,
+    )
+
+    total_invested = float(out["Invested Value (₹)"].sum())
+    total_current = float(out["Current Value (₹)"].sum())
+    cash = max(float(capital) - total_invested, 0.0)
+    total_value = total_current + cash
+    out["Weight %"] = np.where(
+        total_value > 0, out["Current Value (₹)"] / total_value * 100.0, 0.0
+    )
+    out["Weight Drift %"] = out["Weight %"] - out["Target Weight %"]
+
+    entry = pd.to_datetime(out["Entry Date"], errors="coerce")
+    as_of = pd.to_datetime(book.attrs.get("as_of"), errors="coerce")
+    if pd.isna(as_of):
+        as_of = pd.Timestamp.now().normalize()
+    out["Holding Days"] = (as_of - entry).dt.days.fillna(0).astype(int)
+
+    if prices is not None and not prices.empty and len(prices.index) >= 2:
+        p = prices.reindex(columns=out["Symbol"].tolist()).ffill()
+        prev = pd.to_numeric(p.iloc[-2], errors="coerce")
+        curr = pd.to_numeric(p.iloc[-1], errors="coerce")
+        out["Day P&L (₹)"] = out.apply(
+            lambda r: float(r["Shares"]) * (
+                float(curr.get(r["Symbol"], np.nan))
+                - float(prev.get(r["Symbol"], np.nan))
+            )
+            if pd.notna(curr.get(r["Symbol"], np.nan))
+            and pd.notna(prev.get(r["Symbol"], np.nan))
+            else np.nan,
+            axis=1,
+        )
+    else:
+        out["Day P&L (₹)"] = np.nan
+
+    out["Status"] = "Held"
+    return out.sort_values(
+        ["Current Value (₹)", "Symbol"], ascending=[False, True]
+    ).reset_index(drop=True)
+
+
 def render_portfolio_view(
-    calc: MomentumEngine,
+    calc,
     rank_df: pd.DataFrame,
     sector_cap: float,
     stock_cap: float,
@@ -27,234 +122,158 @@ def render_portfolio_view(
     liquidity_floor_cr: float = 0.0,
     traded_value: pd.DataFrame | None = None,
 ) -> None:
-    """Today's model book from the qualified list, sized and ready for Kite."""
-    actions = kit.page_head(
+    """Render the current model portfolio from the canonical Track Record book."""
+    del sector_cap, stock_cap, vol_target_on, vol_target_val, liquidity_floor_cr, traded_value
+
+    head = kit.page_head(
         "Portfolio",
-        "Today's model book from the qualified list, sized to your capital, ready to send to Zerodha Kite",
+        "The current model portfolio from the Track Record, with live accounting and position-level P&L.",
         actions=True,
     )
 
-    # ── Settings, in one bar ─────────────────────────────────────────────────
-    with st.container(key="pgcard_port_settings", horizontal=True, vertical_alignment="center"):
-        selected_method = st.segmented_control(
-            "Weighting",
-            [WeightMethod.EQUAL_WEIGHT.value, WeightMethod.INVERSE_VOLATILITY.value],
-            default=WeightMethod.EQUAL_WEIGHT.value,
-            key="port_weight_method_seg",
-        ) or WeightMethod.EQUAL_WEIGHT.value
-        port_n = st.slider("Holdings", 10, 40, 20, 5, key="port_top_n", width=220)
+    with st.container(
+        key="pgcard_port_settings", horizontal=True, vertical_alignment="center"
+    ):
         portfolio_capital = st.number_input(
-            "Capital (₹)", min_value=50000, max_value=100000000, value=1000000,
-            step=50000, format="%d", key="port_total_capital_input", width=200,
+            "Model capital (₹)",
+            min_value=50000,
+            max_value=100000000,
+            value=1000000,
+            step=50000,
+            format="%d",
+            key="port_total_capital_input",
+            width=220,
         )
-        st.html(f'<span class="pg-cap">Caps: {stock_cap:.0%} per stock · '
-                f"{sector_cap:.0%} per sector (Configuration)</span>")
+        st.caption("Capital changes sizing only; it cannot change which stocks are held.")
 
-    if stock_cap > sector_cap:
-        kit.note(f"The stock cap ({stock_cap:.0%}) is above the sector cap ({sector_cap:.0%}).",
-                 "Lower it in Configuration → Portfolio risk.")
-        return
+    system = system_param.current() or SYSTEM_750
+    adj_close = getattr(calc, "prices", pd.DataFrame())
+    benchmark_close = fetch_benchmark_history(period="5y")
 
-    # .map() preserves the source dtype when there are no rows to infer from,
-    # so on an empty frame these came back str and float64 and "ab_ema & nr_hi"
-    # died in Arrow's and_kleene. to_bool_mask always yields a real bool mask.
-    ab_ema = (
-        to_bool_mask(rank_df["Above 50 EMA"])
-        if "Above 50 EMA" in rank_df.columns
-        else pd.Series(True, index=rank_df.index, dtype=bool)
-    )
-    nr_hi = (
-        to_bool_mask(rank_df["Near 52W High"])
-        if "Near 52W High" in rank_df.columns
-        else pd.Series(True, index=rank_df.index, dtype=bool)
-    )
-    qualified = rank_df[ab_ema & nr_hi]
-    # The liquidity floor (Configuration), on today's 20-day average.
-    liquid = liquidity.passes(traded_value, pd.Index(qualified["Symbol"]),
-                              traded_value.index[-1] if traded_value is not None else None,
-                              liquidity_floor_cr)
-    if liquid is not None:
-        dropped = int((~liquid).sum())
-        qualified = qualified[liquid.reindex(qualified["Symbol"]).to_numpy()]
-        kit.caption(f"Liquidity floor ₹{liquidity_floor_cr:g} Cr: {dropped} qualified "
-                    f"stock{'s' if dropped != 1 else ''} below it left out.")
-    port_universe = qualified.sort_values("Rank").head(port_n)
-
-    if port_universe.empty:
-        st.info("No stock passes both filters today, so there is no book to build.")
-        return
-
-    notes: list[tuple[str, str]] = []
-    vol_tiles: list[kit.Reading] = []
-    port_syms = port_universe["Symbol"].tolist()
-    sector_map = rank_df.set_index("Symbol")["Industry"].to_dict()
-    log_ret = calc.log_ret
-    pc = PortfolioOptimizer(log_ret, sector_map=sector_map)
-
-    # Compute raw weights
-    if selected_method == WeightMethod.INVERSE_VOLATILITY.value:
-        raw_w = pc.inverse_volatility(port_syms)
-    else:
-        raw_w = pc.equal_weight(port_syms)
-
-    # Apply constraints
     try:
-        constrained_w = pc.apply_constraints(
-            raw_w, sector_cap=sector_cap, stock_cap=stock_cap
-        )
-    except ValueError as e:
-        st.error(f"Constraint error: {e}")
+        book, record = current_book(adj_close, benchmark_close, system)
+    except (ValueError, KeyError) as exc:
+        st.error(f"Canonical Track Record book is invalid: {exc}")
         return
 
-    # A cap the projection could not honour is reported, not quietly applied.
-    # Twenty names across two industries cannot hold a 30% sector cap: the
-    # tightest achievable is 50%, and showing "Cap: 30%" beside a 50% sector
-    # tells the reader the limit held when it did not.
-    # A stock cap at or below 1/N admits exactly one fully-invested portfolio,
-    # so the weighting scheme the user picked has no effect whatsoever. At the
-    # shipped defaults (Top 20, 5% stock cap) that is precisely the case, and
-    # "Inverse Volatility" produced a book identical to Equal Weight with the
-    # selector still lit on the user's choice.
-    if constrained_w.attrs.get("scheme_neutralised") and len(constrained_w) > 1:
-        notes.append((
-            "Equal weight and inverse volatility give the same book here.",
-            f"A {stock_cap:.0%} stock cap across {len(constrained_w)} holdings "
-            f"allows only one fully-invested book, {1/len(constrained_w):.1%} in "
-            "every name. Raise the stock cap in Configuration → Portfolio risk, "
-            "or hold fewer names, for the weighting to matter.",
-        ))
-
-    if constrained_w.attrs.get("caps_relaxed"):
-        notes.append((
-            "Your caps cannot both be met by this book.",
-            f"Stock {stock_cap:.0%} and sector {sector_cap:.0%} cannot hold across "
-            f"{len(constrained_w)} names in "
-            f"{len(set(sector_map.get(s, 'Other') for s in constrained_w.index))} "
-            "industries. Enforced instead: stock "
-            f"{constrained_w.attrs['effective_stock_cap']:.1%}, sector "
-            f"{constrained_w.attrs['effective_sector_cap']:.1%}, the tightest "
-            "limits this book can satisfy.",
-        ))
-
-    # Volatility targeting
-    real_vol = 0.0
-    scale = 1.0
-    if vol_target_on:
-        try:
-            constrained_w, scale, real_vol = pc.volatility_target(
-                constrained_w, target_vol=vol_target_val
-            )
-            cash_pct = (1.0 - scale) * 100
-            vol_tiles = [
-                kit.Reading("Realised volatility", f"{real_vol:.1%}", "annualised, this book"),
-                kit.Reading("Target volatility", f"{vol_target_val:.0%}",
-                            f"{scale:.0%} invested" + (f" · {cash_pct:.0f}% held as cash" if cash_pct > 1 else "")),
-            ]
-        except ValueError as e:
-            st.error(f"Volatility target error: {e}")
-            return
-
-    summary = pc.summary(constrained_w, rank_df)
-    if summary.empty:
-        st.info("Unable to calculate non-zero portfolio allocation.")
+    if book.empty:
+        st.info("The Track Record has no current model book for this system yet.")
         return
 
-    # Enrich with Capital, Share Counts, and CMP
-    cmp_map = rank_df.set_index("Symbol")["CMP"].to_dict()
-    summary["CMP"] = summary["Symbol"].map(cmp_map)
-    summary["Target Value (₹)"] = (
-        summary["Weight %"] / 100.0 * portfolio_capital
-    ).round(0)
-    summary["Shares to Buy"] = (
-        (summary["Target Value (₹)"] / summary["CMP"].replace(0, np.nan))
-        .fillna(0)
-        .astype(int)
+    meta = record.get("live_meta", {}) or {}
+    book.attrs["as_of"] = meta.get("as_of")
+    table = build_portfolio_tracker(
+        book, rank_df, float(portfolio_capital), adj_close
     )
-    summary["Actual Value (₹)"] = (summary["Shares to Buy"] * summary["CMP"]).round(0)
 
-    total_allocated = summary["Actual Value (₹)"].sum()
-    unallocated_cash = max(0, portfolio_capital - total_allocated)
+    if table.empty:
+        st.info("The canonical model book could not be sized.")
+        return
 
-    # Zerodha Kite basket: one CNC market buy per holding with shares to buy.
-    kite_df = pd.DataFrame([
-        {
-            "Instrument": r["Symbol"],
-            "Exchange": "NSE",
-            "Order Type": "MARKET",
-            "Action": "BUY",
-            "Quantity": int(r["Shares to Buy"]),
-            "Price": 0,
-            "ProductType": "CNC",
-            "TriggerPrice": 0,
-        }
-        for _, r in summary.iterrows()
-        if r["Shares to Buy"] > 0
-    ])
-    with actions:
+    invested = float(table["Invested Value (₹)"].sum())
+    current = float(table["Current Value (₹)"].sum())
+    cash = max(float(portfolio_capital) - invested, 0.0)
+    total_value = current + cash
+    pnl = current - invested
+    pnl_pct = pnl / invested * 100.0 if invested else np.nan
+    day_pnl = float(table["Day P&L (₹)"].sum(skipna=True))
+    last_rebalance = meta.get("fill_date")
+    as_of = meta.get("as_of")
+
+    with head:
         st.download_button(
-            "Download Kite basket",
-            kite_df.to_csv(index=False).encode(),
-            f"zerodha_kite_basket_{ist_now():%Y%m%d}.csv",
-            "text/csv",
-            type="primary",
-            key="dl_kite_basket_btn",
-            icon=":material/download:",
-            help="Import in Zerodha Kite → Orders → Baskets",
-        )
-        st.download_button(
-            "Export CSV",
-            summary.to_csv(index=False).encode(),
+            "Export portfolio CSV",
+            table.to_csv(index=False).encode(),
             f"portfolio_{ist_now():%Y%m%d}.csv",
             "text/csv",
             key="dl_port_csv",
         )
 
-    for lead, text in notes:
-        kit.note(lead, text)
+    kit.readings([
+        kit.Reading("Portfolio value", f"₹{total_value:,.0f}", "capital + current holdings"),
+        kit.Reading("Invested", f"₹{invested:,.0f}", f"{len(table)} holdings"),
+        kit.Reading("Cash", f"₹{cash:,.0f}", f"{cash / portfolio_capital:.1%} of capital"),
+        kit.Reading("Total P&L", f"₹{pnl:+,.0f}",
+                    "unrealised, model entry to latest close",
+                    "up" if pnl >= 0 else "down"),
+        kit.Reading("P&L %", "—" if not np.isfinite(pnl_pct) else f"{pnl_pct:+.1f}%",
+                    "on invested capital",
+                    "" if not np.isfinite(pnl_pct) else ("up" if pnl_pct >= 0 else "down")),
+        kit.Reading("Day P&L", f"₹{day_pnl:+,.0f}", "latest close versus previous close",
+                    "up" if day_pnl >= 0 else "down"),
+    ], "Current model portfolio")
 
-    sec_agg = (
-        summary.groupby("Industry")
-        .agg(Weight=("Weight %", "sum"), Count=("Symbol", "count"))
+    if as_of is not None or last_rebalance is not None:
+        kit.caption(
+            (f"Marked as of {pd.Timestamp(as_of):%d %b %Y}" if as_of is not None else "Latest available mark")
+            + (f" · last rebalance filled {pd.Timestamp(last_rebalance):%d %b %Y}"
+               if last_rebalance is not None else "")
+            + " · membership and target weights come from the Track Record."
+        )
+
+    display_cols = [
+        "Symbol", "Company", "Sector / Industry",
+        "Entry Date", "Entry Price", "Current Price", "Shares",
+        "Invested Value (₹)", "Current Value (₹)", "P&L (₹)", "P&L %",
+        "Weight %", "Target Weight %", "Weight Drift %",
+        "Rank at Rebalance", "Rank at Entry", "Current Rank",
+        "Holding Days", "1M Return", "3M Return", "6M Return", "12M Return",
+        "Status",
+    ]
+    view = table[[c for c in display_cols if c in table.columns]].copy()
+    if "Entry Date" in view.columns:
+        view["Entry Date"] = (
+            pd.to_datetime(view["Entry Date"], errors="coerce")
+            .dt.strftime("%d %b %Y")
+            .fillna("—")
+        )
+    for col in (
+        "P&L %",
+        "Weight %",
+        "Target Weight %",
+        "Weight Drift %",
+        "1M Return",
+        "3M Return",
+        "6M Return",
+        "12M Return",
+    ):
+        if col in view.columns:
+            view[col] = pd.to_numeric(view[col], errors="coerce").map(
+                lambda x: "—" if pd.isna(x) else f"{x:+.1f}%"
+            )
+
+    with kit.card(
+        "Current holdings",
+        "portfolio_current",
+        "the same positions recorded by Track Record and used by Actions",
+    ):
+        render_saas_table(view, max_height=620)
+
+    sector = (
+        table.groupby("Sector / Industry", dropna=False)
+        .agg(Weight=("Weight %", "sum"), Holdings=("Symbol", "count"))
         .sort_values("Weight", ascending=False)
         .reset_index()
-        if "Industry" in summary.columns
-        else pd.DataFrame(columns=["Industry", "Weight", "Count"])
     )
-    enforced_sector_cap = constrained_w.attrs.get("effective_sector_cap", sector_cap)
-    top = sec_agg.iloc[0] if len(sec_agg) else None
-    at_cap = top is not None and top["Weight"] >= enforced_sector_cap * 100 - 0.05
-    kit.readings([
-        kit.Reading("Capital", f"₹{portfolio_capital:,.0f}", "the amount you entered"),
-        kit.Reading("Invested", f"₹{total_allocated:,.0f}", f"{len(kite_df)} buy orders", "up"),
-        kit.Reading("Cash left", f"₹{unallocated_cash:,.0f}",
-                    f"{unallocated_cash / portfolio_capital * 100:.1f}% · whole shares only"),
-        kit.Reading("Largest sector", "—" if top is None else f"{top['Weight']:.0f}%",
-                    "" if top is None else
-                    f"{top['Industry']} · {'at' if at_cap else 'under'} the {enforced_sector_cap:.0%} cap"
-                    + (" (relaxed)" if constrained_w.attrs.get("caps_relaxed") else ""),
-                    "warn" if at_cap else ""),
-        *vol_tiles,
-    ], "This book")
+    with kit.card(
+        "Exposure by sector", "portfolio_sectors", "current portfolio weight"
+    ):
+        st.html(
+            kit.bar_list(
+                [
+                    (
+                        str(r["Sector / Industry"]),
+                        float(r["Weight"]),
+                        f"{r['Weight']:.1f}% · {int(r['Holdings'])}",
+                        False,
+                    )
+                    for _, r in sector.iterrows()
+                ],
+                scale=max(float(sector["Weight"].max()) if not sector.empty else 0.0, 1.0),
+            )
+        )
 
-    left, right = st.columns([1.6, 1], gap="medium")
-    with left, kit.card("Orders", "port_orders", "CNC market orders · the Kite basket holds the same"):
-        orders = summary.rename(columns={
-            "Symbol": "Stock", "CMP": "Price", "Shares to Buy": "Shares",
-            "Actual Value (₹)": "Value (₹)", "Weight %": "Weight %",
-        })
-        cols = ["Stock", "Industry", "Weight %", "Price", "Shares", "Value (₹)"]
-        render_saas_table(orders[[c for c in cols if c in orders.columns]], max_height=560)
-    with right, kit.card("By sector", "port_sectors", "orange = at the sector cap"):
-        st.html(kit.bar_list(
-            [(str(r["Industry"]), float(r["Weight"]),
-              f"{r['Weight']:.0f}% · {int(r['Count'])}",
-              r["Weight"] >= enforced_sector_cap * 100 - 0.05)
-             for _, r in sec_agg.iterrows()],
-            scale=max(enforced_sector_cap * 100, float(sec_agg["Weight"].max() if len(sec_agg) else 0)),
-        ))
-
-    render_data_quality_footer(
-        total_stocks=len(rank_df),
-        gap_count=gap_count(rank_df),
-        short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
+    render_saas_table(
+        table[["Symbol", "Day P&L (₹)", "P&L (₹)", "Weight Drift %"]].copy(),
+        max_height=260,
     )

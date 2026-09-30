@@ -33,7 +33,7 @@ from src.ui import holdings_store
 from src.ui import page_kit as kit
 from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.views.qualified_view import render_qualified_view
-from src.ui.views.track_record_view import record_run
+from src.ui.canonical_book import current_book
 
 SOURCES = ["Model book", "My holdings"]
 
@@ -206,9 +206,11 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                         benchmark_close: pd.Series | None,
                         model_book_note: str | None = None,
                         system: str = "750") -> None:
-    """model_book_note: set for a system whose model book has not formed yet
-    (Nano Cap and Combined until their first rebalance); the page then offers
-    your own holdings only and says when the book begins."""
+    """Show next-rebalance actions from the canonical Track Record book.
+
+    record_run().live_book is exposed through current_book(); Actions does
+    not maintain a second model-book implementation.
+    """
     holdings_store.sync()
     cfg = TRACK_RECORD_CONFIG
     rules = Rules(buffer_n=int(cfg["buffer_n"]), high_pct=float(cfg["high_pct"]))
@@ -238,8 +240,7 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         top_n = len(symbols)
     else:
         with st.spinner("Loading the model book…"):
-            res = record_run(adj_close, benchmark_close, system)
-        book = res.get("live_book", pd.DataFrame()) if res else pd.DataFrame()
+            book, _record = current_book(adj_close, benchmark_close, system)
         symbols = [] if book is None or book.empty else book["Symbol"].tolist()
         since = ({} if not symbols else
                  dict(zip(book["Symbol"], pd.to_numeric(book["Return %"], errors="coerce"))))
