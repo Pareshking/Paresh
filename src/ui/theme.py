@@ -845,11 +845,11 @@ def inject_custom_css() -> None:
         .sv-head { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid rgba(14, 23, 38, 0.08); }
         .sv-head-mark { width: 38px; height: 38px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 800; font-size: 19px; background: #067647; }
         .sp-verdict.part .sv-head-mark { background: #B54708; } .sp-verdict.fail .sv-head-mark { background: #B42318; }
-        .sv-head b { display: block; font-size: 17px; font-weight: 700; color: #0E1726; }
-        .sv-head i { display: block; margin-top: 2px; font-style: normal; font-size: 13px; color: #3C4657; }
+        .sv-head b { display: block; font-size: 15px; font-weight: 700; color: #0E1726; }
+        .sv-head i { display: block; margin-top: 2px; font-style: normal; font-size: 12px; color: #3C4657; }
         .sv-state { margin-left: auto; padding: 9px 18px; border-radius: 999px; background: #DDF7E9; color: #067647; font-weight: 750; font-size: 13px; }
         .sp-verdict.part .sv-state { background: #FEF0D5; color: #9A6700; } .sp-verdict.fail .sv-state { background: #FDE5E2; color: #B42318; }
-        .sv-card { display: grid; grid-template-columns: 58px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 18px 20px; min-width: 0; }
+        .sv-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 18px 20px; min-width: 0; }
         .sv-card + .sv-card { border-left: 1px solid rgba(14, 23, 38, 0.08); }
         .sv-icon { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #DDF7E9; position: relative; }
         .sv-icon::before { color: #067647; font-size: 28px; font-weight: 800; line-height: 1; }
