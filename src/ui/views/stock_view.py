@@ -260,19 +260,19 @@ def _render_verdict(row: pd.Series) -> None:
         f'<div class="sv-head"><span class="sv-head-mark">{mark}</span>'
         f'<div><b>{title}</b><i>{sub}</i></div>'
         f'<span class="sv-state">{ "ELIGIBLE" if state == "pass" else "REVIEW" }</span></div>'
-        f'<div class="sv-card ema">
+        f'<div class="sv-card ema">'
         f'<div class="sv-main"><span class="sv-k">50D EMA</span>'
         f'<strong>{_html.escape(ema_value)}</strong>'
         f'<b class="sv-price">{_money(ema_val)}</b></div>'
         f'<div class="sv-side"><em class="{"pass" if above else "fail"}">{ema_status}</em>'
         f'<span>CMP</span><b>{_money(cmp_v)}</b></div></div>'
-        f'<div class="sv-card high">
+        f'<div class="sv-card high">'
         f'<div class="sv-main"><span class="sv-k">52W High</span>'
         f'<strong>{_html.escape(hi_value)}</strong>'
         f'<b class="sv-price">{_money(hi)}</b></div>'
         f'<div class="sv-side"><em class="{"pass" if near else "fail"}">{hi_status}</em>'
         f'<span>Date</span><b>{_html.escape(hi_date or "—")}</b></div></div>'
-        f'<div class="sv-card ath">
+        f'<div class="sv-card ath">'
         f'<div class="sv-main"><span class="sv-k">ATH</span>'
         f'<strong>{_html.escape(ath_value)}</strong>'
         f'<b class="sv-price">{_money(ath)}</b></div>'
