@@ -102,11 +102,15 @@ def membership_for(system: str) -> dict[str, Any] | None:
     return combined_history(h750, hnano)
 
 
-# Owner, 2026-09-27: a Nano Cap or Combined backtest starts with the first
-# month-end list (signalled at the 31 Aug 2026 close, so September is its first
-# month) and gains a month at every month-end -- never judged against a list
-# that did not exist yet.
-BACKTEST_START = {SYSTEM_NANO: "2026-09", SYSTEM_COMBINED: "2026-09"}
+# Backtest reporting starts at each system's canonical live inception.
+# Price history before these months remains available for signal formation
+# (12-month momentum + EMA warm-up), but it is never presented as portfolio
+# ownership or performance history.
+BACKTEST_START = {
+    SYSTEM_750: str(INCEPTION),
+    SYSTEM_NANO: "2026-09",
+    SYSTEM_COMBINED: "2026-09",
+}
 
 
 def backtest_months(system: str, last_session) -> int | None:
