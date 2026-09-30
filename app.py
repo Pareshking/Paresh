@@ -19,9 +19,37 @@ warnings.filterwarnings("ignore", message=".*st\\.components\\.v1\\.html.*")
 
 # Before any other app import: load the current src/ and r2/ code if a pull
 # changed it since this process imported it (src/core/code_reload.py).
-from src.core.code_reload import mark_loaded, reload_if_changed
+#
+# Streamlit Cloud can keep an already-imported code_reload module alive while
+# pulling a newer app.py. Keep this bootstrap compatible with both versions so
+# a mixed deployment can never fail merely because app_import_guard was added
+# in a later commit. If the old module is still resident, reload it first;
+# if even that is unavailable, use its existing lock for the import window.
+import importlib
+import threading
+from contextlib import contextmanager
 
-_code_reloaded = reload_if_changed()
+from src.core import code_reload as _code_reload
+
+if not hasattr(_code_reload, "app_import_guard"):
+    _code_reload = importlib.reload(_code_reload)
+
+app_import_guard = getattr(_code_reload, "app_import_guard", None)
+if app_import_guard is None:
+    _legacy_lock = getattr(_code_reload, "_LOCK", None)
+    if _legacy_lock is None:
+        _legacy_lock = threading.RLock()
+
+    @contextmanager
+    def app_import_guard():
+        with _legacy_lock:
+            yield
+
+mark_loaded = _code_reload.mark_loaded
+reload_if_changed = _code_reload.reload_if_changed
+
+with app_import_guard():
+    _code_reloaded = reload_if_changed()
 
 # Core & Loaders
 from src.core import startup_metrics as metrics
