@@ -153,7 +153,6 @@ def render_header_kpi_bar(
     dist_text = f"{abs(dist):.1f}% {'above' if dist >= 0 else 'below'}"
     # The universe's share within 20% of its 52-week high: the second of the
     # two qualification filters, beside the first (owner, 2026-09-27).
-    near_html = "" if near_high is None else (
         '<span class="mkt-sep">·</span><span>Within 20% of 52W high: '
         f"<strong>{near_high} ({near_high / total_stocks * 100 if total_stocks else 0:.0f}%)</strong></span>")
     market_html = f"""
