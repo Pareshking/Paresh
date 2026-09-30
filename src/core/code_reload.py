@@ -56,9 +56,9 @@ def app_import_guard():
 
 
 def _is_app_module(name: str) -> bool:
-    # This module stays loaded: it holds the record of what was seen.
-    if name == __name__:
-        return False
+    # Include this module too. Streamlit Cloud can keep code_reload.py itself
+    # imported across a pull; excluding it would leave newly added helpers
+    # (notably app_import_guard) stale forever until a full process restart.
     return name in _PACKAGES or name.startswith(_PREFIXES)
 
 
