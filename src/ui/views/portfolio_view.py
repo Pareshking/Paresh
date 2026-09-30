@@ -17,6 +17,8 @@ from src.ui import system_param
 from src.ui.canonical_book import current_book
 from src.ui.theme import render_saas_table
 
+PORTFOLIO_STARTING_CAPITAL = 2_000_000.0
+
 
 def build_portfolio_tracker(
     book: pd.DataFrame,
@@ -154,17 +156,12 @@ def render_portfolio_view(
     with st.container(
         key="pgcard_port_settings", horizontal=True, vertical_alignment="center"
     ):
-        portfolio_capital = st.number_input(
-            "Model capital (₹)",
-            min_value=50000,
-            max_value=100000000,
-            value=2000000,
-            step=50000,
-            format="%d",
-            key="port_total_capital_input",
-            width=220,
+        portfolio_capital = PORTFOLIO_STARTING_CAPITAL
+        st.markdown(
+            f"**Starting capital · ₹{portfolio_capital:,.0f}**"
+            "  ·  fixed model portfolio  ·  canonical Track Record ledger"
         )
-        st.caption("Capital changes sizing only; it cannot change which stocks are held.")
+        st.caption("Capital is fixed at ₹20 lakh. Portfolio never changes membership, ranking or target weights.")
 
     system = system_param.current() or SYSTEM_750
     adj_close = getattr(calc, "prices", pd.DataFrame())
@@ -223,20 +220,89 @@ def render_portfolio_view(
     wins = int((closed_valid["Return %"] > 0).sum()) if not closed_valid.empty else 0
     losses = int((closed_valid["Return %"] < 0).sum()) if not closed_valid.empty else 0
 
+    record_stats = record.get("stats", {}) or {}
+    historical_return = (
+        float(equity.iloc[-1] / portfolio_capital - 1.0)
+        if not equity.empty and portfolio_capital else np.nan
+    )
     kit.readings([
-        kit.Reading("Starting capital", f"₹{portfolio_capital:,.0f}", "fixed model capital"),
-        kit.Reading("Current value", f"₹{total_value:,.0f}", "cash + current holdings"),
-        kit.Reading("Since start", f"{current_return:+.1%}" if np.isfinite(current_return) else "—", "current book vs ₹20 lakh", "up" if current_return >= 0 else "down"),
+        kit.Reading("Portfolio value", f"₹{total_value:,.0f}", "live current book"),
+        kit.Reading("Since inception", f"{historical_return:+.1%}" if np.isfinite(historical_return) else "—", "canonical Track Record equity", "up" if historical_return >= 0 else "down"),
+        kit.Reading("Max drawdown", "—" if not np.isfinite(history["max_drawdown"]) else f"{history['max_drawdown']:.1%}", "completed-history equity", "down" if np.isfinite(history["max_drawdown"]) and history["max_drawdown"] < 0 else ""),
         kit.Reading("Closed trades", f"{len(closed_valid)}", f"{wins} winners · {losses} losers"),
-        kit.Reading("Max drawdown", "—" if not np.isfinite(history["max_drawdown"]) else f"{history['max_drawdown']:.1%}", "from portfolio equity curve", "down" if np.isfinite(history["max_drawdown"]) and history["max_drawdown"] < 0 else ""),
-        kit.Reading("Rebalance periods", f"{len(monthly)}", "completed model periods"),
-    ], "Portfolio history")
+        kit.Reading("Rebalances", f"{len(monthly)}", "completed model periods"),
+        kit.Reading("Benchmark", f"{(benchmark.iloc[-1] / portfolio_capital - 1.0):+.1%}" if not benchmark.empty else "—", "same ₹20 lakh base"),
+    ], "Portfolio performance")
 
     history_view = st.segmented_control(
         "Portfolio history",
-        ["Equity curve", "Past trades", "Rebalance log", "Month by month", "Drawdown"],
-        default="Equity curve", key="portfolio_history_view", label_visibility="collapsed"
+        ["Overview", "Equity curve", "Past trades", "Rebalance log", "Month by month", "Drawdown"],
+        default="Overview", key="portfolio_history_view", label_visibility="collapsed"
     ) or "Equity curve"
+
+    if history_view == "Overview":
+        with kit.card(
+            "Portfolio performance",
+            "portfolio_overview",
+            "the Track Record, expressed as the actual ₹20 lakh portfolio",
+        ):
+            if equity.empty:
+                st.info("No completed portfolio history is available yet.")
+            else:
+                left, right = st.columns([1.7, 1])
+                with left:
+                    kit.growth_chart(
+                        [f"{d:%b %Y}" for d in equity.index],
+                        equity.tolist(),
+                        benchmark.tolist() if not benchmark.empty else None,
+                        key="portfolio_overview_curve",
+                    )
+                with right:
+                    kit.readings([
+                        kit.Reading("Starting capital", f"₹{portfolio_capital:,.0f}", "fixed"),
+                        kit.Reading("Historical ending value", f"₹{equity.iloc[-1]:,.0f}", "completed Track Record"),
+                        kit.Reading("Historical return", f"{historical_return:+.1%}" if np.isfinite(historical_return) else "—", "from ₹20 lakh", "up" if historical_return >= 0 else "down"),
+                        kit.Reading("Max drawdown", f"{history['max_drawdown']:.1%}" if np.isfinite(history["max_drawdown"]) else "—", "peak to trough", "down" if np.isfinite(history["max_drawdown"]) and history["max_drawdown"] < 0 else ""),
+                    ], "At a glance")
+            kit.caption(
+                "This is the frozen Track Record carried into Portfolio: completed months are historical evidence; "
+                "the live current book is shown separately below. Portfolio does not recompute or select a different book."
+            )
+
+        with kit.card("Monthly record", "portfolio_monthly_record", "the same frozen month-by-month record shown by Track Record"):
+            if monthly.empty:
+                st.info("No completed monthly record is available yet.")
+            else:
+                mv = monthly.copy()
+                if "Period Start" in mv.columns:
+                    mv["Month"] = pd.to_datetime(mv["Period Start"], errors="coerce").dt.strftime("%b %Y")
+                if "Strategy Net" in mv.columns:
+                    mv["Portfolio Return"] = pd.to_numeric(mv["Strategy Net"], errors="coerce").map(
+                        lambda x: "—" if pd.isna(x) else f"{x:+.1%}"
+                    )
+                if "Benchmark" in mv.columns:
+                    mv["Nifty 500"] = pd.to_numeric(mv["Benchmark"], errors="coerce").map(
+                        lambda x: "—" if pd.isna(x) else f"{x:+.1%}"
+                    )
+                if "Alpha vs Benchmark" in mv.columns:
+                    mv["Gap"] = pd.to_numeric(mv["Alpha vs Benchmark"], errors="coerce").map(
+                        lambda x: "—" if pd.isna(x) else f"{x:+.1%}"
+                    )
+                cols = [c for c in ["Month", "Portfolio Return", "Nifty 500", "Gap", "Buys", "Sells", "Holdings", "Turnover %", "Cost Drag %"] if c in mv.columns]
+                render_saas_table(mv[cols], max_height=480)
+                st.download_button(
+                    "Export portfolio monthly record CSV",
+                    mv[cols].to_csv(index=False).encode(),
+                    f"portfolio_monthly_record_{ist_now():%Y%m%d}.csv",
+                    "text/csv",
+                    key="dl_port_monthly_record_csv",
+                )
+
+        if record_stats:
+            kit.caption(
+                f"Record window: {len(monthly)} completed periods · "
+                f"strategy metrics remain those of the canonical Track Record replay."
+            )
 
     if history_view == "Equity curve":
         with kit.card("Portfolio equity curve", "portfolio_equity", "₹20 lakh starting capital · canonical Track Record replay"):
