@@ -19,7 +19,18 @@ warnings.filterwarnings("ignore", message=".*st\\.components\\.v1\\.html.*")
 
 # Before any other app import: load the current src/ and r2/ code if a pull
 # changed it since this process imported it (src/core/code_reload.py).
-from src.core.code_reload import app_import_guard, mark_loaded, reload_if_changed
+#
+# Compatibility bootstrap: Streamlit Cloud can keep an already-imported
+# code_reload module alive across a pull. If app.py is newer than that module,
+# reload it once so newly added helpers (such as app_import_guard) exist before
+# the guarded import window begins.
+import importlib
+from src.core import code_reload as _code_reload
+if not hasattr(_code_reload, "app_import_guard"):
+    _code_reload = importlib.reload(_code_reload)
+app_import_guard = _code_reload.app_import_guard
+mark_loaded = _code_reload.mark_loaded
+reload_if_changed = _code_reload.reload_if_changed
 
 with app_import_guard():
     _code_reloaded = reload_if_changed()
@@ -1167,25 +1178,3 @@ total_stocks = len(rank_df)
 
 above_ema = count_above_ema(rank_df)
 pct_above_ema = (above_ema / total_stocks * 100) if total_stocks > 0 else 0.0
-
-render_header_kpi_bar(
-    regime=regime_data,
-    total_stocks=total_stocks,
-    above_ema=above_ema,
-    pct_above_ema=pct_above_ema,
-    near_high=count_above_ema(rank_df, "Near 52W High"),
-    nav_pages=_PAGES,
-    active_page=_nav,
-)
-
-# The reader's watchlist lives in their browser; bring it into the session
-# before any page reads it (src/ui/watchlist_store.py).
-watchlist_store.sync()
-
-
-_nav.run()
-
-# ── Cold-start telemetry ─────────────────────────────────────────────────────
-# Hidden, inert element carrying this process's startup measurements so a
-# production probe can read a real cold start from outside the container.
-_emit_startup_metrics("ok")
