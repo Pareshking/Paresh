@@ -70,6 +70,7 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
         _benchmark_close=benchmark_close,
         backtest_months=months,
         _membership=membership_for(system),
+        stateful_history=True,
         _actions=events,
     )
     return result or {}
