@@ -21,7 +21,6 @@ The same investigation confirmed that missing `data/track_record_nano.json` and 
 
 **Fixed in PR #263:** a missing ledger before its declared inception is now informational; a missing ledger at or after inception remains a warning. Existing corrupt-ledger protection is unchanged.
 
-# Production Status — 2026-09-27
 ## 2026-09-27 — three systems
 
 Live from main, production QA green on every merge (#240, #242–#246):
