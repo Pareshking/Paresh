@@ -46,7 +46,7 @@ def test_a_changed_file_unloads_every_app_module_but_nothing_else(tmp_path, monk
     menu.write_text("x = 22\n")
     os.utime(menu, None)
     assert cr.reload_if_changed(mods) == [str(menu)]
-    assert set(mods) == {"pandas", cr.__name__}  # app code gone; libraries and the reloader stay
+    assert set(mods) == {"pandas"}  # all application modules, including the reloader, are re-imported
 
 
 def test_a_module_first_seen_after_its_file_changed_is_not_missed(tmp_path, monkeypatch):
