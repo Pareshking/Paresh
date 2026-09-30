@@ -51,7 +51,8 @@ def frame_for(core: list[str], extra: list[str], snapshot: pd.DataFrame | None,
 
 
 def run(system: str, extra_path: str) -> None:
-    # The 750 has priority even for Nano: effective_nano() removes current 750 members.\n    base = fetch_indices_data(DEFAULT_INDICES)
+    # The 750 has priority even for Nano: effective_nano() removes current 750 members.
+    base = fetch_indices_data(DEFAULT_INDICES)
     idx_info = xl.system_universe(system, base, xl.members())
     if idx_info.empty:
         print(f"[{system}] no universe; skipping.")
