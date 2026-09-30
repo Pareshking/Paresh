@@ -151,21 +151,28 @@ def render_header_kpi_bar(
     regime_cls = "mkt-up" if bullish else "mkt-down"
     dist = regime.distance_pct
     dist_text = f"{abs(dist):.1f}% {'above' if dist >= 0 else 'below'}"
-    # The universe's share within 20% of its 52-week high: the second of the
-    # two qualification filters, beside the first (owner, 2026-09-27).
-    near_html = "" if near_high is None else (
-        '<span class="mkt-sep">·</span><span>Within 20% of 52W high: '
-        f"<strong>{near_high} ({near_high / total_stocks * 100 if total_stocks else 0:.0f}%)</strong></span>")
     market_html = f"""
-    <div role="status" aria-label="Market status dashboard" class="mkt-line">
-        <span class="{regime_cls} mkt-regime">● {html.escape(regime.status.value.title())}</span>
-        <span class="mkt-sep">·</span>
-        <span>NIFTY 500 <strong>{regime.current_price:,.0f}</strong>,
-            <strong class="{'mkt-up' if dist >= 0 else 'mkt-down'}">{dist_text}</strong> its 200-day average</span>
-        <span class="mkt-sep">·</span>
-        <span>Universe: <strong>{total_stocks}</strong></span>
-        <span class="mkt-sep">·</span>
-        <span>Above 50-day EMA: <strong>{above_ema} ({pct_above_ema:.0f}%)</strong></span>{near_html}
+    <div role="status" aria-label="Market status dashboard" class="mkt-snapshot">
+        <div class="mkt-item mkt-regime-item">
+            <span class="{regime_cls} mkt-regime"><span class="mkt-dot">●</span>{html.escape(regime.status.value.title())}</span>
+        </div>
+        <div class="mkt-item mkt-index">
+            <span class="mkt-label">NIFTY 500</span>
+            <strong>{regime.current_price:,.0f}</strong>
+        </div>
+        <div class="mkt-item mkt-distance">
+            <strong class="{'mkt-up' if dist >= 0 else 'mkt-down'}">{dist_text}</strong>
+            <span class="mkt-label">200D average</span>
+        </div>
+        <div class="mkt-item">
+            <span class="mkt-label">Universe</span>
+            <strong>{total_stocks}</strong>
+        </div>
+        <div class="mkt-item">
+            <span class="mkt-label">Above 50D EMA</span>
+            <strong>{above_ema} <em>({pct_above_ema:.0f}%)</em></strong>
+        </div>
+        {"" if near_high is None else f'<div class="mkt-item"><span class="mkt-label">Within 20% 52W High</span><strong>{near_high} <em>({near_high / total_stocks * 100 if total_stocks else 0:.0f}%)</em></strong></div>'}
     </div>
     """
 

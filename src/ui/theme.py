@@ -428,28 +428,80 @@ def inject_custom_css() -> None:
         .hdr-pill-warn { background: #FEF6EA; color: #7A2E0E; }
         .hdr-pill-warn .hdr-dot { background: #B54708; }
 
-        /* Market line under the bar. Keeps "NIFTY" and "Universe:" visible:
-           the production QA probe reads them as its readiness signal. */
-        .mkt-line {
-            display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px;
-            padding: 4px 4px 10px; font-size: 13px; color: #3C4657;
+        /* Compact market snapshot: same footprint as the legacy market line,
+           but with a stronger visual hierarchy and the same design language as
+           the rest of the page. Desktop stays one row; mobile becomes two
+           compact rows without adding vertical bulk. */
+        .mkt-snapshot {
+            display: flex; align-items: stretch; flex-wrap: nowrap;
+            min-height: 40px; margin: 4px 0 8px; overflow: hidden;
+            border: 1px solid #E3E6EB; border-radius: 12px;
+            background: #FFFFFF;
         }
-        .mkt-line strong { color: #0E1726; font-weight: 600; font-variant-numeric: tabular-nums; }
-        .mkt-line .mkt-sep { color: #A5ACB8; }
-        .mkt-line .mkt-regime { font-weight: 700; }
-        .mkt-line .mkt-up, .mkt-line strong.mkt-up { color: #067647; }
-        .mkt-line .mkt-down, .mkt-line strong.mkt-down { color: #B42318; }
-
+        .mkt-item {
+            display: flex; align-items: center; gap: 7px;
+            min-width: 0; padding: 7px 12px;
+            border-right: 1px solid #EDEFF3;
+            color: #3C4657; white-space: nowrap;
+            font-size: 12.5px; line-height: 1.1;
+        }
+        .mkt-item:last-child { border-right: 0; }
+        .mkt-item strong {
+            color: #0E1726; font-weight: 650;
+            font-variant-numeric: tabular-nums;
+        }
+        .mkt-label { color: #5E6878; font-weight: 550; }
+        .mkt-item em {
+            color: #5E6878; font-style: normal; font-weight: 500;
+            margin-left: 2px;
+        }
+        .mkt-regime {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-weight: 700;
+        }
+        .mkt-dot { font-size: 11px; }
+        .mkt-up, .mkt-item strong.mkt-up { color: #067647 !important; }
+        .mkt-down, .mkt-item strong.mkt-down { color: #B42318 !important; }
+        .mkt-regime.mkt-down { color: #B42318; }
+        .mkt-regime.mkt-up { color: #067647; }
+        .mkt-regime-item { padding-left: 12px; padding-right: 14px; }
+        .mkt-index { gap: 8px; }
+        .mkt-index strong { font-family: var(--font-display); font-size: 15px; }
+        .mkt-distance { gap: 5px; }
+        .mkt-distance strong { font-size: 12.5px; }
+        
         @media (max-width: 900px) {
             .st-key-app_toplinks { display: none !important; }
         }
         @media (max-width: 640px) {
             .st-key-app_header_shell { min-height: 52px !important; padding: 6px 56px 6px 10px !important; gap: 10px !important; flex-wrap: nowrap !important; justify-content: space-between !important; }
             .hdr-pill-lead { display: none; }
-            .mkt-line .mkt-sep { display: none; }
-            .hdr-title { font-size: 16px; }
-            .hdr-pill { height: 28px; padding: 0 10px; font-size: 12px; }
-            .mkt-line { font-size: 12px; padding: 2px 2px 8px; }
+            .mkt-snapshot {
+                display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+                min-height: 64px; margin: 3px 0 8px;
+                border-radius: 11px;
+            }
+            .mkt-item {
+                min-height: 32px; padding: 5px 8px;
+                gap: 4px; border-right: 1px solid #EDEFF3;
+                font-size: 11.5px; overflow: hidden;
+            }
+            .mkt-item:nth-child(3n) { border-right: 0; }
+            .mkt-item:nth-child(n+4) { border-top: 1px solid #EDEFF3; }
+            .mkt-regime-item { padding-left: 9px; }
+            .mkt-index { gap: 5px; }
+            .mkt-index .mkt-label { display: inline; }
+            .mkt-index strong { font-size: 13.5px; }
+            .mkt-distance { gap: 4px; }
+            .mkt-distance .mkt-label { display: none; }
+            .mkt-distance strong { font-size: 11.5px; }
+            .mkt-label {
+                overflow: hidden; text-overflow: ellipsis;
+            }
+            .mkt-item strong {
+                overflow: hidden; text-overflow: ellipsis;
+            }
+            .mkt-item em { font-size: 11px; }
         }
 
         /* Keep the Streamlit popover out of normal flow so mobile flex
