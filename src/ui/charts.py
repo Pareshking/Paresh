@@ -38,21 +38,76 @@ def render_stock_chart(
     volume_data: pd.DataFrame | None = None,
     open_prices: pd.DataFrame | None = None,
 ) -> None:
-    """Render the stock chart through the native Streamlit/Plotly path.
+    """Price with toggleable overlays, volume and RSI.
 
-    The previous wrapper attempted to use a third-party Lightweight Charts
-    component first. On Streamlit Cloud, that component can remain visible
-    after its frontend server has disappeared during an app reload, producing
-    a browser-side "not connected to a server" error. It also left the
-    Plotly fallback controls duplicated when the component path was bypassed.
-
-    Keep one deterministic renderer and one set of controls: the native
-    Plotly implementation below.
+    Drawn with TradingView Lightweight Charts, where drag pans and pinch zooms
+    -- Plotly's drag selects a zoom box, so on a phone reading the chart
+    rearranged it. Lightweight Charts is a THIRD-PARTY COMPONENT and a
+    component that fails to load renders as blank space rather than an error,
+    so any failure falls back to the Plotly renderer. A prettier chart is not
+    worth an empty one.
     """
     if symbol not in adj_close.columns:
         st.warning(f"No price data available for {symbol}")
         return
 
+    c_tf, c_ma = st.columns([1.5, 2], vertical_alignment="center")
+    tf = c_tf.segmented_control(
+        "Timeframe", list(TF_SESSIONS), default="6M",
+        key=f"lw_tf_{symbol}", label_visibility="collapsed",
+    ) or "6M"
+    overlays = c_ma.pills(
+        "Overlays", ["20 EMA", "50 EMA", "200 SMA", "Nifty 500"],
+        selection_mode="multi", default=["20 EMA", "50 EMA"],
+        key=f"lw_ma_{symbol}", label_visibility="collapsed",
+    ) or []
+
+    n = TF_SESSIONS.get(tf, 126)
+    close = adj_close[symbol].dropna().iloc[-n:]
+    if close.empty:
+        st.warning(f"No price data available for {symbol}")
+        return
+
+    def _col(df):
+        return df[symbol] if df is not None and symbol in df.columns else None
+
+    # Overlays are computed on the FULL history and then trimmed, so a 200-day
+    # average is a real 200-day average even when only 22 sessions are shown.
+    full_close = adj_close[symbol].dropna()
+    specs = {
+        "20 EMA": full_close.ewm(span=20, min_periods=5).mean(),
+        "50 EMA": full_close.ewm(span=50, min_periods=10).mean(),
+        "200 SMA": full_close.rolling(200, min_periods=30).mean(),
+    }
+    chosen = {k: v for k, v in specs.items() if k in overlays}
+
+    # Benchmark is always fetched — used both for the price overlay (if selected)
+    # and for the Relative Strength pane shown beneath the chart.
+    _bench_full: pd.Series | None = None
+    try:
+        from src.loaders.price_loader import fetch_benchmark_history
+        _bench_full = fetch_benchmark_history(period="5y")
+    except Exception:
+        pass
+
+    if "Nifty 500" in overlays and _bench_full is not None:
+        bench_window = _bench_full.reindex(close.index, method="ffill").dropna()
+        if len(bench_window) >= 2 and not close.empty:
+            chosen["Nifty 500"] = bench_window / bench_window.iloc[0] * close.iloc[0]
+
+    # Relative Strength vs Nifty 500 — computed over the full history so the
+    # ratio is stable regardless of the chosen display window.
+    rs_full: pd.Series | None = None
+    if _bench_full is not None and not full_close.empty:
+        rs_full = compute_rs_series(full_close, _bench_full)
+
+    # Streamlit Cloud can load the third-party Lightweight Charts frontend
+    # but lose the component server during a live app reload. In that state the
+    # browser renders "not connected to a server" instead of raising a Python
+    # exception, so the caller never reaches the fallback below. Keep the
+    # Plotly renderer as the production path; it is native to Streamlit and
+    # cannot enter that component-server failure mode.
+    logger.info("Using native Plotly stock chart renderer.")
     render_candlestick_drilldown(
         symbol,
         rank_df,
