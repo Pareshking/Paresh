@@ -172,11 +172,18 @@ def test_portfolio_history_scales_canonical_equity_and_preserves_trades():
         "closed_trades": pd.DataFrame([{"Symbol": "AAA", "Status": "Closed", "Return %": 5.0}]),
         "tradebook": pd.DataFrame([{"Action": "BUY", "Symbol": "AAA"}]),
     }
-    out = build_portfolio_history(record, 2_000_000)
+    ledger = {
+        "months": {
+            "2026-01": {"strategy": 0.05, "benchmark": 0.03, "origin": "recorded", "universe": "point_in_time"},
+            "2026-02": {"strategy": -0.0285714286, "benchmark": -0.0194174757, "origin": "recorded", "universe": "point_in_time"},
+        }
+    }
+    out = build_portfolio_history(record, 2_000_000, ledger)
 
     assert out["equity"].iloc[0] == pytest.approx(2_000_000)
     assert out["equity"].iloc[1] == pytest.approx(2_100_000)
-    assert out["benchmark"].iloc[-1] == pytest.approx(2_020_000)
-    assert out["max_drawdown"] == pytest.approx(1.02 / 1.05 - 1.0)
+    assert out["equity"].iloc[2] == pytest.approx(2_040_000)
+    assert out["benchmark"].iloc[-1] == pytest.approx(2_010_000)
+    assert out["max_drawdown"] == pytest.approx(2.04 / 2.10 - 1.0)
     assert out["trades"]["Symbol"].tolist() == ["AAA"]
     assert out["tradebook"]["Action"].tolist() == ["BUY"]
