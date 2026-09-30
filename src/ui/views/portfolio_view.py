@@ -473,6 +473,8 @@ def render_portfolio_view(
             .dt.strftime("%d %b %Y")
             .fillna("—")
         )
+    # Keep percentage columns numeric. render_saas_table owns the canonical
+    # fraction/scaled units, typography and positive/negative colours.
     for col in (
         "P&L %",
         "Weight %",
@@ -484,9 +486,7 @@ def render_portfolio_view(
         "12M Return",
     ):
         if col in view.columns:
-            view[col] = pd.to_numeric(view[col], errors="coerce").map(
-                lambda x: "—" if pd.isna(x) else f"{x:+.1f}%"
-            )
+            view[col] = pd.to_numeric(view[col], errors="coerce")
 
     with kit.card(
         "Current holdings",
@@ -519,7 +519,8 @@ def render_portfolio_view(
             )
         )
 
-    render_saas_table(
-        table[["Symbol", "Day P&L (₹)", "P&L (₹)", "Weight Drift %"]].copy(),
-        max_height=260,
-    )
+    accounting_view = table[["Symbol", "Day P&L (₹)", "P&L (₹)", "Weight Drift %"]].copy()
+    with kit.card(
+        "Position accounting", "portfolio_accounting", "latest mark, unrealised P&L and target-weight drift"
+    ):
+        render_saas_table(accounting_view, max_height=260)
