@@ -125,3 +125,14 @@ backtest reports 1–30 Sep on the point-in-time list.
 
 - NSE as the middle price source, once its adjusted prices rank like
   Screener's (`docs/NSE_DATA_LEDGER.md`, To do 3–4).
+
+
+## 2026-09-30 — Nano/750 universe correction
+
+PR #273, merged as `811c3f5a6eb89074d39618fd47e2629f9d254834`, made the effective Nano Cap universe dynamically disjoint from the current Nifty 750. The persisted Nano list remains the month-end candidate/history source. Effective Nano is now the qualifying candidate set minus the current 750, with the hard invariant `intersection(NIFTY_750, NANO) == ∅`.
+
+The existing ₹2,000 Cr cutoff and eligibility rules are unchanged. A stock entering the 750 leaves effective Nano immediately; a stock leaving the 750 can enter effective Nano immediately if it remains a qualifying candidate. Historical Nano membership records are not rewritten.
+
+Production and nightly precompute now use the same definition. `extra_universe_loader.system_universe()` applies the effective-Nano subtraction for Nano and Combined, and `scripts/precompute_systems.py` always loads the current 750 before building Nano/Combined artifacts. Regression tests cover both a current-750 overlap and a stock leaving the 750.
+
+**Identity note:** HEG and HEGAM are different companies/symbols. The September 2026 `HEG → HEGAM` event is an index constituent change, not duplicate-company evidence.
