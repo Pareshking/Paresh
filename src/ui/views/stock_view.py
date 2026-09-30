@@ -155,7 +155,11 @@ def _render_identity(row: pd.Series, total_stocks: int) -> None:
             continue
         cls = "up" if v > 0 else "down" if v < 0 else "flat"
         arrow = "▲" if v > 0 else "▼" if v < 0 else "•"
-        changes += f'<span class="sp-chg {cls}">{arrow} {abs(v) * 100:.1f}% · {m}M</span>'
+        changes += (
+            f'<span class="sp-chg {cls}">'
+            f'<i>{m}M</i><b>{arrow} {abs(v) * 100:.1f}%</b>'
+            '</span>'
+        )
 
     cls_parts = [p for p in (industry, sector) if p and p.lower() != "nan"]
     if len(cls_parts) == 2 and cls_parts[0] == cls_parts[1]:
@@ -164,7 +168,13 @@ def _render_identity(row: pd.Series, total_stocks: int) -> None:
 
     rank = _num(row.get("Rank"))
     path = []
-    for col, label in (("Rank (-3M)", "3M ago"), ("Rank (-1M)", "1M ago"), ("Rank", "now")):
+    for col, label in (
+        ("Rank (-6M)", "6M"),
+        ("Rank (-3M)", "3M"),
+        ("Rank (-2M)", "2M"),
+        ("Rank (-1M)", "1M"),
+        ("Rank", "Now"),
+    ):
         v = _num(row.get(col))
         if v is not None:
             path.append((int(v), label))
@@ -234,34 +244,51 @@ def _render_verdict(row: pd.Series) -> None:
 
     ema_val = cmp_v / (1 + ema_pct / 100) if cmp_v is not None and ema_pct is not None else None
     ema_txt = "—" if ema_pct is None else f"{abs(ema_pct):.1f}% {'above' if ema_pct >= 0 else 'below'}"
-    ema_cell = (
-        f'<span class="v {"up" if above else "down"}">{ema_txt}</span>'
-        f'<span class="s">{"EMA ≈ " + _money(ema_val) if ema_val is not None else ""}</span>'
-    )
     hi_date = _date_label(row.get("52W High Date"))
     hi_sub = f"{_money(hi, 2)} set on {hi_date}" if hi_date else _money(hi, 2)
     if not near and hi is not None:
         hi_sub = f"High {_money(hi, 2)} · filter line {_money(hi * 0.8, 2)}"
-    hi_cell = (f'<span class="v {"up" if near else "down"}">{dist(pct_hi)}</span>'
-               f'<span class="s">{_html.escape(hi_sub)}</span>')
     ath_src = str(row.get("ATH Source") or "").strip()
     ath_date = _date_label(row.get("ATH Date"))
     if ath_src == "in_memory_window":
         ath_sub = "2-year high: no all-time record for this stock"
     else:
         ath_sub = f"{_money(ath, 2)} set on {ath_date}" if ath_date else _money(ath, 2)
-    ath_cell = (f'<span class="v">{dist(pct_ath)}</span>'
-                f'<span class="s">{_html.escape(ath_sub)}</span>')
-    mark = {"pass": "✓", "part": "!", "fail": "✕"}[state]
+
+    def card_icon(kind: str) -> str:
+        return f'<span class="sv-icon {kind}" aria-hidden="true"></span>'
+
+    mark = {"pass": "✓", "part": "!", "fail": "✕"}[state]\n\n    ema_status = "PASS" if above else "FAIL"
+    hi_status = "PASS" if near else "FAIL"
+    ema_value = ema_txt
+    hi_value = dist(pct_hi)
+    ath_value = dist(pct_ath)
+
     _html_block(
         f'<section class="sp-verdict {state}" aria-label="Screener filters">'
-        f'<div class="vh"><span class="vm">{mark}</span><span><b>{title}</b><i>{sub}</i></span></div>'
-        f'<div class="vc"><span class="k">Above 50-day EMA</span>{ema_cell}</div>'
-        f'<div class="vc"><span class="k">Within 20% of 52-week high</span>{hi_cell}</div>'
-        f'<div class="vc"><span class="k">All-time high <em>(bonus)</em></span>{ath_cell}</div>'
+        f'<div class="sv-head"><span class="sv-head-mark">{mark}</span>'
+        f'<div><b>{title}</b><i>{sub}</i></div>'
+        f'<span class="sv-state">{ "ELIGIBLE" if state == "pass" else "REVIEW" }</span></div>'
+        f'<div class="sv-card ema">{card_icon("trend")}'
+        f'<div class="sv-main"><span class="sv-k">50D EMA</span>'
+        f'<strong>{_html.escape(ema_value)}</strong>'
+        f'<b class="sv-price">{_money(ema_val)}</b></div>'
+        f'<div class="sv-side"><em class="{"pass" if above else "fail"}">{ema_status}</em>'
+        f'<span>CMP</span><b>{_money(cmp_v)}</b></div></div>'
+        f'<div class="sv-card high">{card_icon("target")}'
+        f'<div class="sv-main"><span class="sv-k">52W High</span>'
+        f'<strong>{_html.escape(hi_value)}</strong>'
+        f'<b class="sv-price">{_money(hi)}</b></div>'
+        f'<div class="sv-side"><em class="{"pass" if near else "fail"}">{hi_status}</em>'
+        f'<span>Date</span><b>{_html.escape(hi_date or "—")}</b></div></div>'
+        f'<div class="sv-card ath">{card_icon("trophy")}'
+        f'<div class="sv-main"><span class="sv-k">ATH</span>'
+        f'<strong>{_html.escape(ath_value)}</strong>'
+        f'<b class="sv-price">{_money(ath)}</b></div>'
+        f'<div class="sv-side"><em class="bonus">BONUS</em>'
+        f'<span>Date</span><b>{_html.escape(ath_date or "—")}</b></div></div>'
         '</section>'
     )
-
 
 # ── 3. NOTICES ───────────────────────────────────────────────────────────────
 
