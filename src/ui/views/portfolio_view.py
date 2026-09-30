@@ -304,7 +304,7 @@ def render_portfolio_view(
                 f"strategy metrics remain those of the canonical Track Record replay."
             )
 
-    if history_view == "Equity curve":
+    elif history_view == "Equity curve":
         with kit.card("Portfolio equity curve", "portfolio_equity", "₹20 lakh starting capital · canonical Track Record replay"):
             if equity.empty:
                 st.info("No completed portfolio history is available yet.")
