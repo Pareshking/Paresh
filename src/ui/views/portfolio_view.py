@@ -11,6 +11,8 @@ import streamlit as st
 
 from src.core.market_time import ist_now
 from src.engine.extra_universe import SYSTEM_750
+from src.engine.systems import inception, ledger_path
+from src.engine.track_record import load_ledger
 from src.loaders.price_loader import fetch_benchmark_history
 from src.ui import page_kit as kit
 from src.ui import system_param
@@ -114,23 +116,62 @@ def build_portfolio_tracker(
     ).reset_index(drop=True)
 
 
-def build_portfolio_history(record: dict, capital: float) -> dict:
-    """Scale the canonical Track Record replay into portfolio-level history."""
-    equity = pd.to_numeric(pd.Series(record.get("equity_curve", pd.Series(dtype=float))), errors="coerce").dropna()
-    benchmark = pd.to_numeric(pd.Series(record.get("benchmark", pd.Series(dtype=float))), errors="coerce").reindex(equity.index).ffill()
-    equity_value = equity * float(capital)
-    peak = equity_value.cummax()
-    drawdown = equity_value / peak - 1.0
-    monthly = record.get("monthly", pd.DataFrame())
-    trades = record.get("closed_trades", pd.DataFrame())
-    tradebook = record.get("tradebook", pd.DataFrame())
+def build_portfolio_history(record: dict, capital: float, ledger: dict | None = None) -> dict:
+    """Build historical portfolio performance from the frozen Track Record ledger."""
+    months = (ledger or {}).get("months", {})
+    ordered = sorted(months)
+    strategy_value = float(capital)
+    benchmark_value = float(capital)
+    equity_dates = []
+    equity_rows = []
+    benchmark_dates = []
+    benchmark_rows = []
+    monthly_rows = []
+    if ordered:
+        first = pd.Period(ordered[0], freq="M")
+        base = first.start_time - pd.Timedelta(days=1)
+        equity_dates.append(base)
+        equity_rows.append(strategy_value)
+        benchmark_dates.append(base)
+        benchmark_rows.append(benchmark_value)
+        for key in ordered:
+            entry = months[key] or {}
+            s_ret = pd.to_numeric(entry.get("strategy"), errors="coerce")
+            b_ret = pd.to_numeric(entry.get("benchmark"), errors="coerce")
+            if pd.notna(s_ret):
+                strategy_value *= 1.0 + float(s_ret)
+            if pd.notna(b_ret):
+                benchmark_value *= 1.0 + float(b_ret)
+            period = pd.Period(key, freq="M")
+            equity_dates.append(period.end_time)
+            equity_rows.append(strategy_value)
+            benchmark_dates.append(period.end_time)
+            benchmark_rows.append(benchmark_value)
+            monthly_rows.append({
+                "Month": period.strftime("%b %Y"),
+                "Period": key,
+                "Strategy Net": float(s_ret) if pd.notna(s_ret) else np.nan,
+                "Benchmark": float(b_ret) if pd.notna(b_ret) else np.nan,
+                "Alpha vs Benchmark": float(s_ret - b_ret) if pd.notna(s_ret) and pd.notna(b_ret) else np.nan,
+                "Origin": "Recorded" if entry.get("origin") == "recorded" else "Backfilled",
+                "Universe": "Point-in-time" if entry.get("universe") == "point_in_time" else "Current list",
+                "Frozen On": entry.get("finalized_on") or "—",
+                "Priced From": entry.get("data_as_of") or "—",
+                "Config": entry.get("config") or "—",
+            })
+    equity = pd.Series(equity_rows, index=pd.DatetimeIndex(equity_dates), dtype=float)
+    benchmark = pd.Series(benchmark_rows, index=pd.DatetimeIndex(benchmark_dates), dtype=float)
+    peak = equity.cummax()
+    drawdown = equity / peak - 1.0
+    closed = record.get("closed_trades")
+    tradebook = record.get("tradebook")
     return {
-        "equity": equity_value,
-        "benchmark": benchmark * float(capital),
+        "equity": equity,
+        "benchmark": benchmark,
         "drawdown": drawdown,
         "max_drawdown": float(drawdown.min()) if not drawdown.empty else float("nan"),
-        "monthly": monthly.copy() if isinstance(monthly, pd.DataFrame) else pd.DataFrame(),
-        "trades": trades.copy() if isinstance(trades, pd.DataFrame) else pd.DataFrame(),
+        "monthly": pd.DataFrame(monthly_rows),
+        "trades": closed.copy() if isinstance(closed, pd.DataFrame) else pd.DataFrame(),
         "tradebook": tradebook.copy() if isinstance(tradebook, pd.DataFrame) else pd.DataFrame(),
     }
 
@@ -207,7 +248,12 @@ def render_portfolio_view(
         )
 
     # Historical portfolio ledger comes from the same canonical Track Record replay.
-    history = build_portfolio_history(record, float(portfolio_capital))
+    try:
+        portfolio_ledger = load_ledger(ledger_path(system), inception(system))
+    except (ValueError, OSError) as exc:
+        st.error(f"Portfolio track record could not be read: {exc}")
+        return
+    history = build_portfolio_history(record, float(portfolio_capital), portfolio_ledger)
     equity = history["equity"]
     benchmark = history["benchmark"]
     drawdown = history["drawdown"]
