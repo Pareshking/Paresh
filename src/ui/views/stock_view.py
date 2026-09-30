@@ -317,19 +317,19 @@ def _render_price_ladder(row: pd.Series, year_low: float | None = None) -> None:
         def x(v: float) -> float:
             return max(0.0, min(100.0, (v - year_low) / span * 100))
 
-        marks = (f'<i class="m-line" style="left:{x(line):.1f}%" title="Filter line"></i>'
+        marks = (f'<i class="m-line" style="left:{x(line):.1f}%" title="-20% 52W High"></i>'
                  if line is not None else "")
         if ema_val is not None:
-            marks += f'<i class="m-ema" style="left:{x(ema_val):.1f}%" title="50-day EMA"></i>'
+            marks += f'<i class="m-ema" style="left:{x(ema_val):.1f}%" title="50D EMA"></i>'
         bar = (
             '<div class="sp-range"><div class="track">'
             f'<div class="fill" style="width:{x(cmp_v):.1f}%"></div>{marks}'
             f'<span class="dot" style="left:{x(cmp_v):.1f}%"></span></div>'
-            f'<div class="ends"><span>52-week low {_money(year_low)}</span>'
-            f'<span class="key"><i class="m-line"></i>filter line {_money(line)}'
+            f'<div class="ends"><span>52W Low {_money(year_low)}</span>'
+            f'<span class="key"><i class="m-line"></i>-20% 52W High {_money(line)}'
             + (f' <i class="m-ema"></i>50-day EMA {_money(ema_val)}' if ema_val is not None else "")
             + '</span>'
-            f'<span>52-week high {_money(hi)}</span></div></div>'
+            f'<span>52W High {_money(hi)}</span></div></div>'
         )
 
     rows = []
@@ -349,14 +349,14 @@ def _render_price_ladder(row: pd.Series, year_low: float | None = None) -> None:
              (f"set on {ath_date}" if ath_date else "")
              + (f" · price {_pct(row.get('% ATH'))}" if _num(row.get("% ATH")) is not None else ""))
     if line is not None:
-        item("Filter line · 20% below high", _money(line),
+        item("-20% 52W High", _money(line),
              "price is above it" if cmp_v is not None and cmp_v >= line else "price is below it",
              "" if cmp_v is not None and cmp_v >= line else "down")
     if ema_val is not None:
-        item("50-day EMA", _money(ema_val), f"price {_pct(ema_pct)}",
+        item("50D EMA", _money(ema_val), f"price {_pct(ema_pct)}",
              "up" if ema_pct >= 0 else "down")
     if year_low is not None and cmp_v:
-        item("52-week low", _money(year_low), f"price {_pct((cmp_v / year_low - 1) * 100, 0)}")
+        item("52W Low", _money(year_low), f"price {_pct((cmp_v / year_low - 1) * 100, 0)}")
     dd = _num(row.get("Max DD 12M"))
     if dd is not None:
         item("Worst fall, 12 months", f"−{abs(dd):.1f}%", "peak to trough", "down")
