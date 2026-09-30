@@ -52,9 +52,10 @@ def test_a_ledger_freezes_nothing_before_its_own_inception():
     assert out["inception"] == "2026-10"
 
 
-def test_nano_and_combined_backtests_start_with_september_and_grow_monthly():
+def test_each_backtest_starts_at_canonical_inception_and_grows_monthly():
     from src.engine.systems import backtest_months
-    assert backtest_months("750", "2026-09-25") is None
+    assert backtest_months("750", "2026-02-01") == 1
+    assert backtest_months("750", "2026-09-25") == 8
     assert backtest_months("nano", "2026-09-30") == 0        # September still running
     assert backtest_months("nano", "2026-10-01") == 1        # September complete
     assert backtest_months("combined", "2026-11-02") == 2

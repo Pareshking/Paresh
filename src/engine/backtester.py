@@ -266,6 +266,7 @@ def _build_rebalance_schedule(
     backtest_months: int,
     *,
     stateful_history: bool = False,
+    history_start: pd.Timestamp | None = None,
 ) -> tuple[list[int], list[int], int, pd.Timestamp] | None:
     """Which sessions the book is rebalanced on, and where the simulation stops.
 
@@ -304,6 +305,9 @@ def _build_rebalance_schedule(
     window_start, window_end = completed_month_window(dates, backtest_months)
     if stateful_history:
         rebal_dates = [i for i in rebal_dates if dates[i + 1] <= window_end]
+        if history_start is not None:
+            history_start = pd.Timestamp(history_start).normalize()
+            rebal_dates = [i for i in rebal_dates if dates[i + 1] >= history_start]
     else:
         rebal_dates = [
             i for i in rebal_dates if window_start <= dates[i + 1] <= window_end
@@ -683,6 +687,7 @@ def run_backtest(
     _actions: list[dict[str, Any]] | None = None,
     liquidity_floor_cr: float = 0.0,
     _traded_value: pd.DataFrame | None = None,
+    history_start: pd.Timestamp | None = None,
 ) -> dict[str, Any] | None:
     """
     Executes a walk-forward momentum backtest with zero look-ahead bias and friction modeling.
@@ -766,6 +771,7 @@ def run_backtest(
     _schedule = _build_rebalance_schedule(
         prices, start_offset, rebal_freq, backtest_months,
         stateful_history=stateful_history,
+        history_start=history_start,
     )
     if _schedule is None:
         return None
