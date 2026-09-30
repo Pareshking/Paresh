@@ -75,6 +75,19 @@ accepted, no contract term differs.
 - Each system has its own append-only ledger. Nano Cap and Combined start
   with **October 2026**: the first book is signalled at the **30 Sep 2026**
   close and filled 1 Oct. The 750's record is untouched.
+- The absence of the Nano Cap and Combined ledger files before their October
+  inception is intentional. The loader now treats that pre-inception state as
+  informational rather than an operational warning. Once a system has reached
+  its inception, a missing ledger is again a warning.
+- `monthly_track_record.yml` (2nd–5th of each month) freezes all three; the
+  Nano Cap and Combined step warns rather than fails.
+- Actions shows the selected system's model book; before October, Nano Cap and Combined show "My holdings" only, with a "No model book yet" note.
+- Track Record ends with **Three systems, side by side**: the last 12 frozen
+  months for each, and the Nifty 500.
+
+- Each system has its own append-only ledger. Nano Cap and Combined start
+  with **October 2026**: the first book is signalled at the **30 Sep 2026**
+  close and filled 1 Oct. The 750's record is untouched.
 - `monthly_track_record.yml` (2nd–5th of each month) freezes all three; the
   Nano Cap and Combined step warns rather than fails.
 - Actions shows the selected system's model book; before October, Nano Cap and
