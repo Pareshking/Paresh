@@ -1115,11 +1115,17 @@ def _page_backtest() -> None:
     # still used for signal formation, but never becomes portfolio ownership.
     months = systems.backtest_months(system, deep_adj_close.index[-1])
     if months == 0:
-        kit.page_head("Backtest", f"{system_name} is replayed from September 2026, the "
-                      "first month with a point-in-time Nano Cap list, and gains a month at "
-                      "every month-end.")
-        kit.note("Building.", "The first month completes at the 30 Sep 2026 close. "
-                 + _record_start())
+        start_label = systems.inception(system).strftime("%B %Y")
+        kit.page_head(
+            "Backtest",
+            f"{system_name} starts its canonical history in {start_label} and gains "
+            "one completed month at every month-end.",
+        )
+        kit.note(
+            "Building.",
+            f"The first reported month completes at the end of {start_label}. "
+            + _record_start(),
+        )
         return
     extra_args = ({
         "months": months,
@@ -1130,8 +1136,9 @@ def _page_backtest() -> None:
     })
     render_backtest_view(
         rank_df=rank_df,
-        # Depth, not freshness: a 12-month formation window before a 6-month
-        # reported period needs ~18 months of continuous daily data.
+        # Depth, not freshness: the 12-month formation window is warm-up only.
+        # The reported portfolio history starts at canonical inception and
+        # expands one completed month at a time.
         adj_close=deep_adj_close,
         stock_cap=stock_cap,
         sector_cap=sector_cap,
