@@ -71,6 +71,7 @@ def _settings_digest() -> str:
             MIN_OBSERVATIONS,
             ANCHOR_STALENESS_LIMIT,
             RANKING_COVERAGE_FLOOR,
+            list(RANK_HISTORY_MONTHS),
         )
     )
     return hashlib.md5(payload.encode()).hexdigest()[:8]
