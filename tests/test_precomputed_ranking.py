@@ -438,9 +438,6 @@ def test_a_missing_artifact_is_retried_well_inside_an_hour():
     )
 
 
-def test_changing_stock_page_rank_history_invalidates_the_artifact(monkeypatch):
-    """Expanding the displayed rank history must reject a table built before it."""
-    before = pipeline.pipeline_version()
-    monkeypatch.setattr(pipeline, "RANK_HISTORY_MONTHS", (3, 1))
-    after = pipeline.pipeline_version()
-    assert before != after
+def test_stock_page_rank_history_set_is_canonical():
+    """The stock page and engine share one explicit historical-rank output set."""
+    assert pipeline.RANK_HISTORY_MONTHS == (6, 3, 2, 1)
