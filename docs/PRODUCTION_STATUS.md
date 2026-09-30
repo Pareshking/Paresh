@@ -1,5 +1,27 @@
-# Production Status — 2026-09-27
+# Production Status — 2026-09-30
 
+## 2026-09-30 — Streamlit reload race and track-record ledger semantics
+
+Production log investigation found two transient import failures during Streamlit code reload:
+
+- `KeyError: 'src.core.startup_metrics'`
+- `KeyError: 'src.ui'`
+
+Root cause: the custom hot-reloader removed application modules from `sys.modules` and released its lock before `app.py` completed re-importing them. Concurrent Streamlit script threads could therefore enter the import window while the application module cache was being rebuilt. The ranking path itself remained healthy and continued accepting the canonical 750-row precomputed artifact.
+
+**Fixed in PR #263, merge commit `3529e834352156fafbd8f8f8b359ac8fb13219fc`:**
+
+- added a process-wide re-entrant application import guard;
+- held the guard across reload detection, application imports and `mark_loaded()`;
+- added a concurrent-thread regression test.
+
+Validation was green: Lint #237, R2 Streamlit read-path gate #283 and V1 Full Validation #1061.
+
+The same investigation confirmed that missing `data/track_record_nano.json` and `data/track_record_combined.json` on 30 Sep are **expected**, because both ledgers begin with October 2026. The first books are signalled by the 30-Sep close and filled on 1 Oct. The old generic loader message was misleading because it logged a warning for a ledger whose inception had not yet arrived.
+
+**Fixed in PR #263:** a missing ledger before its declared inception is now informational; a missing ledger at or after inception remains a warning. Existing corrupt-ledger protection is unchanged.
+
+# Production Status — 2026-09-27
 ## 2026-09-27 — three systems
 
 Live from main, production QA green on every merge (#240, #242–#246):
