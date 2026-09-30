@@ -852,10 +852,10 @@ def inject_custom_css() -> None:
         .sv-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 18px 20px; min-width: 0; }
         .sv-card + .sv-card { border-left: 1px solid rgba(14, 23, 38, 0.08); }
         .sv-main { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-        .sv-k { font-size: 14px; font-weight: 650; color: #0E1726; }
-        .sv-main strong { font-family: var(--font-display); font-size: 27px; line-height: 1.05; font-weight: 750; color: #067647; white-space: nowrap; }
+        .sv-k { font-size: 13px; line-height: 1.2; font-weight: 650; color: #0E1726; }
+        .sv-main strong { font-family: var(--font-display); font-size: 25px; line-height: 1.08; font-weight: 750; color: #067647; white-space: nowrap; }
         .sp-verdict.fail .sv-main strong { color: #B42318; }
-        .sv-price { font-family: var(--font-mono); font-size: 19px; font-weight: 650; color: #0E1726; }
+        .sv-price { font-family: var(--font-mono); font-size: 17px; line-height: 1.15; font-weight: 650; color: #0E1726; }
         .sv-side { min-width: 72px; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; padding-left: 14px; border-left: 1px solid rgba(14, 23, 38, 0.08); }
         .sv-side em { font-style: normal; font-size: 13px; font-weight: 750; padding: 8px 14px; border-radius: 999px; background: #DDF7E9; color: #067647; }
         .sv-side em.fail { background: #FDE5E2; color: #B42318; }
