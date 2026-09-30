@@ -863,6 +863,12 @@ def inject_custom_css() -> None:
         .sv-side span { font-size: 12px; color: #5E6878; }
         .sv-side b { font-family: var(--font-mono); font-size: 14px; font-weight: 600; color: #3C4657; text-align: right; }
         .sp-notice { background: #FEF6EA; border: 1px solid #F5D7A8; border-radius: 16px; padding: 16px 20px; margin-bottom: 14px; color: #7A2E0E; }
+        .sp-exit { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin: 4px 0 14px; padding: 0 2px; color: #0E1726; line-height: 1.45; }
+        .sp-exit .lbl { color: #0E1726; }
+        .sp-exit b { font-weight: 700; }
+        .sp-exit span { color: #0E1726; }
+        .sp-exit a { margin-left: 2px; color: #4338CA !important; text-decoration: none !important; white-space: nowrap; }
+        .sp-exit a:hover { text-decoration: underline !important; }
         .sp-notice p { margin: 6px 0 0; font-size: 14px; line-height: 1.5; color: #3C4657; }
         .sp-sec { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 6px 2px 6px; }
         .sp-sec span { font-size: 12.5px; color: #5E6878; }
@@ -950,6 +956,8 @@ def inject_custom_css() -> None:
         }
         @media (max-width: 640px) {
             .sp-card { padding: 16px; border-radius: 16px; }
+            .sp-exit { gap: 6px; font-size: 14px; line-height: 1.5; }
+            .sp-exit .lbl, .sp-exit b, .sp-exit span, .sp-exit a { display: inline; }
             h1.sp-name { font-size: 28px !important; }
             .sp-price { font-size: 30px; }
             .sp-rank-big span { font-size: 44px; }
