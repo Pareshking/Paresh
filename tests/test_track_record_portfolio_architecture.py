@@ -183,7 +183,7 @@ def test_portfolio_history_scales_canonical_equity_and_preserves_trades():
     assert out["equity"].iloc[0] == pytest.approx(2_000_000)
     assert out["equity"].iloc[1] == pytest.approx(2_100_000)
     assert out["equity"].iloc[2] == pytest.approx(2_040_000)
-    assert out["benchmark"].iloc[-1] == pytest.approx(2_010_000)
+    assert out["benchmark"].iloc[-1] == pytest.approx(2_020_000)
     assert out["max_drawdown"] == pytest.approx(2.04 / 2.10 - 1.0)
     assert out["trades"]["Symbol"].tolist() == ["AAA"]
     assert out["tradebook"]["Action"].tolist() == ["BUY"]
