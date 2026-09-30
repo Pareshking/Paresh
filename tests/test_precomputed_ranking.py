@@ -436,3 +436,11 @@ def test_a_missing_artifact_is_retried_well_inside_an_hour():
     assert re.search(r"ttl=_RANKING_SNAPSHOT_TTL_S", src), (
         "the fetch no longer uses the named TTL"
     )
+
+
+def test_changing_stock_page_rank_history_invalidates_the_artifact(monkeypatch):
+    """Expanding the displayed rank history must reject a table built before it."""
+    before = pipeline.pipeline_version()
+    monkeypatch.setattr(pipeline, "RANK_HISTORY_MONTHS", (3, 1))
+    after = pipeline.pipeline_version()
+    assert before != after
