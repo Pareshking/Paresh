@@ -25,6 +25,7 @@ from src.core.config import (
 )
 from src.core.tickers import normalise_symbol
 from src.core.logger import logger
+from src.engine import pipeline
 from src.engine.calendar_momentum import (
     _calendar_period_metrics,
     calendar_start_positions,
