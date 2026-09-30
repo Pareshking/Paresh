@@ -2,6 +2,7 @@
 
 import os
 import time
+import threading
 import types
 
 from src.core import code_reload as cr
@@ -82,3 +83,35 @@ def test_mark_code_current_moves_loaded_revision_to_disk(monkeypatch):
     assert metrics.snapshot()["loaded_revision"] == "a" * 40
     metrics.mark_code_current()
     assert metrics.snapshot()["loaded_revision"] == "b" * 40
+
+
+def test_app_import_guard_serializes_reload_and_import_windows():
+    """A second Streamlit script thread cannot enter while one run reloads/imports."""
+    from src.core.code_reload import app_import_guard
+
+    first_entered = threading.Event()
+    release_first = threading.Event()
+    second_entered = threading.Event()
+
+    def first():
+        with app_import_guard():
+            first_entered.set()
+            assert release_first.wait(timeout=2)
+
+    def second():
+        assert first_entered.wait(timeout=2)
+        with app_import_guard():
+            second_entered.set()
+
+    t1 = threading.Thread(target=first)
+    t2 = threading.Thread(target=second)
+    t1.start()
+    assert first_entered.wait(timeout=2)
+    t2.start()
+    assert not second_entered.wait(timeout=0.1)
+    release_first.set()
+    t1.join(timeout=2)
+    t2.join(timeout=2)
+    assert not t1.is_alive()
+    assert not t2.is_alive()
+    assert second_entered.is_set()
