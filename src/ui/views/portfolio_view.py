@@ -185,189 +185,189 @@ def render_portfolio_view(
     liquidity_floor_cr: float = 0.0,
     traded_value: pd.DataFrame | None = None,
 ) -> None:
-    """Render the current model portfolio from the canonical Track Record book."""
+    """Render the canonical ₹20 lakh model portfolio as a portfolio dashboard."""
     del sector_cap, stock_cap, vol_target_on, vol_target_val, liquidity_floor_cr, traded_value
 
-    head = kit.page_head(
-        "Portfolio",
-        "The current model portfolio from the Track Record, with live accounting and position-level P&L.",
-        actions=True,
-    )
-
-    with st.container(
-        key="pgcard_port_settings", horizontal=True, vertical_alignment="center"
-    ):
-        portfolio_capital = PORTFOLIO_STARTING_CAPITAL
-        st.markdown(
-            f"**Starting capital · ₹{portfolio_capital:,.0f}**"
-            "  ·  fixed model portfolio  ·  canonical Track Record ledger"
-        )
-        st.caption("Capital is fixed at ₹20 lakh. Portfolio never changes membership, ranking or target weights.")
-
+    capital = PORTFOLIO_STARTING_CAPITAL
     system = system_param.current() or SYSTEM_750
-    adj_close = getattr(calc, "prices", pd.DataFrame())
+    prices = getattr(calc, "prices", pd.DataFrame())
     benchmark_close = fetch_benchmark_history(period="5y")
 
     try:
-        book, record = current_book(adj_close, benchmark_close, system)
+        book, record = current_book(prices, benchmark_close, system)
     except (ValueError, KeyError) as exc:
         st.error(f"Canonical Track Record book is invalid: {exc}")
         return
-
     if book.empty:
         st.info("The Track Record has no current model book for this system yet.")
         return
 
     meta = record.get("live_meta", {}) or {}
     book.attrs["as_of"] = meta.get("as_of")
-    table = build_portfolio_tracker(
-        book, rank_df, float(portfolio_capital), adj_close
-    )
-
+    table = build_portfolio_tracker(book, rank_df, capital, prices)
     if table.empty:
         st.info("The canonical model book could not be sized.")
         return
 
     invested = float(table["Invested Value (₹)"].sum())
     current = float(table["Current Value (₹)"].sum())
-    cash = max(float(portfolio_capital) - invested, 0.0)
-    total_value = current + cash
+    cash = max(capital - invested, 0.0)
+    value = current + cash
     pnl = current - invested
     pnl_pct = pnl / invested * 100.0 if invested else np.nan
     day_pnl = float(table["Day P&L (₹)"].sum(skipna=True))
-    last_rebalance = meta.get("fill_date")
+    exposure = current / value * 100.0 if value else 0.0
     as_of = meta.get("as_of")
+    fill_date = meta.get("fill_date")
+    n_holdings = len(table)
 
-    with head:
-        st.download_button(
-            "Export portfolio CSV",
-            table.to_csv(index=False).encode(),
-            f"portfolio_{ist_now():%Y%m%d}.csv",
-            "text/csv",
-            key="dl_port_csv",
-        )
-
-    # Historical portfolio ledger comes from the same canonical Track Record replay.
     try:
-        portfolio_ledger = load_ledger(ledger_path(system), inception(system))
+        ledger = load_ledger(ledger_path(system), inception(system))
     except (ValueError, OSError) as exc:
-        st.error(f"Portfolio track record could not be read: {exc}")
+        st.error(f"Portfolio Track Record could not be read: {exc}")
         return
-    history = build_portfolio_history(record, float(portfolio_capital), portfolio_ledger)
+
+    history = build_portfolio_history(record, capital, ledger)
     equity = history["equity"]
     benchmark = history["benchmark"]
     drawdown = history["drawdown"]
     monthly = history["monthly"]
     trades = history["trades"]
     tradebook = history["tradebook"]
+
     closed = trades[trades["Status"] == "Closed"] if not trades.empty and "Status" in trades.columns else trades
     closed_valid = closed[closed["Return %"].notna()] if not closed.empty and "Return %" in closed.columns else closed
     wins = int((closed_valid["Return %"] > 0).sum()) if not closed_valid.empty else 0
     losses = int((closed_valid["Return %"] < 0).sum()) if not closed_valid.empty else 0
+    historical_return = float(equity.iloc[-1] / capital - 1.0) if not equity.empty else np.nan
+    benchmark_return = float(benchmark.iloc[-1] / capital - 1.0) if not benchmark.empty else np.nan
 
-    record_stats = record.get("stats", {}) or {}
-    historical_return = (
-        float(equity.iloc[-1] / portfolio_capital - 1.0)
-        if not equity.empty and portfolio_capital else np.nan
+    head = kit.page_head(
+        "Portfolio",
+        "Your ₹20 lakh model portfolio — current positions first, then the complete frozen performance and trade history.",
+        actions=True,
     )
+    with head:
+        st.download_button(
+            "Export holdings CSV",
+            table.to_csv(index=False).encode(),
+            f"portfolio_{ist_now():%Y%m%d}.csv",
+            "text/csv",
+            key="dl_port_csv_v2",
+        )
+
+    with kit.card(
+        "₹20 lakh model portfolio",
+        "portfolio_identity",
+        "canonical Track Record book · accounting only",
+    ):
+        left, mid, right = st.columns([1.2, 1.2, 1], vertical_alignment="center")
+        with left:
+            st.markdown("### Current portfolio")
+            st.caption(
+                (f"Marked at {pd.Timestamp(as_of):%d %b %Y}" if as_of is not None else "Latest available market mark")
+                + (f" · last rebalance filled {pd.Timestamp(fill_date):%d %b %Y}" if fill_date is not None else "")
+            )
+        with mid:
+            st.markdown(f"**₹{value:,.0f}**")
+            st.caption(
+                f"{pnl:+,.0f} ({pnl_pct:+.1f}%) unrealised P&L · {n_holdings} holdings"
+                if np.isfinite(pnl_pct) else f"{n_holdings} holdings"
+            )
+        with right:
+            st.markdown("**Canonical book**")
+            st.caption("Same positions and target weights used by Actions and Track Record.")
+
     kit.readings([
-        kit.Reading("Portfolio value", f"₹{total_value:,.0f}", "live current book"),
-        kit.Reading("Since inception", f"{historical_return:+.1%}" if np.isfinite(historical_return) else "—", "canonical Track Record equity", "up" if historical_return >= 0 else "down"),
-        kit.Reading("Max drawdown", "—" if not np.isfinite(history["max_drawdown"]) else f"{history['max_drawdown']:.1%}", "completed-history equity", "down" if np.isfinite(history["max_drawdown"]) and history["max_drawdown"] < 0 else ""),
-        kit.Reading("Closed trades", f"{len(closed_valid)}", f"{wins} winners · {losses} losers"),
-        kit.Reading("Rebalances", f"{len(monthly)}", "completed model periods"),
-        kit.Reading("Benchmark", f"{(benchmark.iloc[-1] / portfolio_capital - 1.0):+.1%}" if not benchmark.empty else "—", "same ₹20 lakh base"),
-    ], "Portfolio performance")
+        kit.Reading("Portfolio value", f"₹{value:,.0f}", "₹20 lakh starting capital"),
+        kit.Reading("Invested", f"₹{invested:,.0f}", f"{exposure:.1f}% exposure"),
+        kit.Reading("Cash", f"₹{cash:,.0f}", f"{100.0 - exposure:.1f}% of value"),
+        kit.Reading("Total P&L", f"₹{pnl:+,.0f}", "entry price → latest close", "up" if pnl >= 0 else "down"),
+        kit.Reading("P&L %", "—" if not np.isfinite(pnl_pct) else f"{pnl_pct:+.1f}%", "on invested capital", "" if not np.isfinite(pnl_pct) else ("up" if pnl >= 0 else "down")),
+        kit.Reading("Day P&L", f"₹{day_pnl:+,.0f}", "latest close vs previous close", "up" if day_pnl >= 0 else "down"),
+    ], "Live portfolio")
 
-    history_view = st.segmented_control(
+    display_cols = [
+        "Symbol", "Company", "Sector / Industry", "Entry Date", "Entry Price",
+        "Current Price", "Shares", "Invested Value (₹)", "Current Value (₹)",
+        "P&L (₹)", "P&L %", "Weight %", "Target Weight %",
+        "Weight Drift %", "Rank at Rebalance", "Rank at Entry", "Current Rank",
+        "Holding Days", "1M Return", "3M Return", "6M Return", "12M Return", "Status",
+    ]
+    current_view = table[[c for c in display_cols if c in table.columns]].copy()
+    if "Entry Date" in current_view.columns:
+        current_view["Entry Date"] = pd.to_datetime(current_view["Entry Date"], errors="coerce").dt.strftime("%d %b %Y").fillna("—")
+    for col in ("P&L %", "Weight %", "Target Weight %", "Weight Drift %", "1M Return", "3M Return", "6M Return", "12M Return"):
+        if col in current_view.columns:
+            current_view[col] = pd.to_numeric(current_view[col], errors="coerce")
+
+    with kit.card("Current holdings", "portfolio_current", f"{n_holdings} positions · canonical book · horizontal scroll on small screens"):
+        render_saas_table(current_view, max_height=620)
+
+    sector = table.groupby("Sector / Industry", dropna=False).agg(
+        Weight=("Weight %", "sum"), Holdings=("Symbol", "count")
+    ).sort_values("Weight", ascending=False).reset_index()
+    with kit.card("Current exposure", "portfolio_exposure", "portfolio weight by sector / industry"):
+        st.html(kit.bar_list([
+            (str(row["Sector / Industry"]), float(row["Weight"]), f"{row['Weight']:.1f}% · {int(row['Holdings'])}", False)
+            for _, row in sector.iterrows()
+        ], scale=max(float(sector["Weight"].max()) if not sector.empty else 0.0, 1.0)))
+
+    history_tab = st.segmented_control(
         "Portfolio history",
-        ["Overview", "Equity curve", "Past trades", "Rebalance log", "Month by month", "Drawdown"],
-        default="Overview", key="portfolio_history_view", label_visibility="collapsed"
-    ) or "Equity curve"
+        ["Overview", "Equity", "Trades", "Rebalances", "Monthly", "Drawdown"],
+        default="Overview",
+        key="portfolio_history_view_v2",
+        label_visibility="collapsed",
+    ) or "Overview"
 
-    if history_view == "Overview":
+    with kit.card("Portfolio history", "portfolio_history_header", "historical performance is the frozen Track Record; it never changes the current book"):
+        st.caption(
+            f"Portfolio inception · {inception(system).strftime('%b %Y')}  · "
+            f"₹{capital:,.0f} fixed capital  · {len(monthly)} completed recorded months"
+        )
+
+    if history_tab in ("Overview", "Equity"):
         with kit.card(
-            "Portfolio performance",
-            "portfolio_overview",
-            "the Track Record, expressed as the actual ₹20 lakh portfolio",
+            "Equity curve" if history_tab == "Equity" else "Performance overview",
+            "portfolio_equity",
+            "₹20 lakh starting point · strategy vs benchmark · completed months only",
         ):
             if equity.empty:
                 st.info("No completed portfolio history is available yet.")
             else:
-                left, right = st.columns([1.7, 1])
-                with left:
-                    kit.growth_chart(
-                        [f"{d:%b %Y}" for d in equity.index],
-                        equity.tolist(),
-                        benchmark.tolist() if not benchmark.empty else None,
-                        key="portfolio_overview_curve",
-                    )
-                with right:
-                    kit.readings([
-                        kit.Reading("Starting capital", f"₹{portfolio_capital:,.0f}", "fixed"),
-                        kit.Reading("Historical ending value", f"₹{equity.iloc[-1]:,.0f}", "completed Track Record"),
-                        kit.Reading("Historical return", f"{historical_return:+.1%}" if np.isfinite(historical_return) else "—", "from ₹20 lakh", "up" if historical_return >= 0 else "down"),
-                        kit.Reading("Max drawdown", f"{history['max_drawdown']:.1%}" if np.isfinite(history["max_drawdown"]) else "—", "peak to trough", "down" if np.isfinite(history["max_drawdown"]) and history["max_drawdown"] < 0 else ""),
-                    ], "At a glance")
-            kit.caption(
-                "This is the frozen Track Record carried into Portfolio: completed months are historical evidence; "
-                "the live current book is shown separately below. Portfolio does not recompute or select a different book."
-            )
-
-        with kit.card("Monthly record", "portfolio_monthly_record", "the same frozen month-by-month record shown by Track Record"):
-            if monthly.empty:
-                st.info("No completed monthly record is available yet.")
-            else:
-                mv = monthly.copy()
-                if "Period Start" in mv.columns:
-                    mv["Month"] = pd.to_datetime(mv["Period Start"], errors="coerce").dt.strftime("%b %Y")
-                if "Strategy Net" in mv.columns:
-                    mv["Portfolio Return"] = pd.to_numeric(mv["Strategy Net"], errors="coerce").map(
-                        lambda x: "—" if pd.isna(x) else f"{x:+.1%}"
-                    )
-                if "Benchmark" in mv.columns:
-                    mv["Nifty 500"] = pd.to_numeric(mv["Benchmark"], errors="coerce").map(
-                        lambda x: "—" if pd.isna(x) else f"{x:+.1%}"
-                    )
-                if "Alpha vs Benchmark" in mv.columns:
-                    mv["Gap"] = pd.to_numeric(mv["Alpha vs Benchmark"], errors="coerce").map(
-                        lambda x: "—" if pd.isna(x) else f"{x:+.1%}"
-                    )
-                cols = [c for c in ["Month", "Portfolio Return", "Nifty 500", "Gap", "Buys", "Sells", "Holdings", "Turnover %", "Cost Drag %"] if c in mv.columns]
-                render_saas_table(mv[cols], max_height=480)
-                st.download_button(
-                    "Export portfolio monthly record CSV",
-                    mv[cols].to_csv(index=False).encode(),
-                    f"portfolio_monthly_record_{ist_now():%Y%m%d}.csv",
-                    "text/csv",
-                    key="dl_port_monthly_record_csv",
-                )
-
-        if record_stats:
-            kit.caption(
-                f"Record window: {len(monthly)} completed periods · "
-                f"strategy metrics remain those of the canonical Track Record replay."
-            )
-
-    elif history_view == "Equity curve":
-        with kit.card("Portfolio equity curve", "portfolio_equity", "₹20 lakh starting capital · canonical Track Record replay"):
-            if equity.empty:
-                st.info("No completed portfolio history is available yet.")
-            else:
                 kit.growth_chart(
-                    [f"{d:%b %Y}" for d in equity.index],
+                    [d.strftime("%b %Y") for d in equity.index],
                     equity.tolist(),
                     benchmark.tolist() if not benchmark.empty else None,
-                    key="portfolio_equity_curve",
+                    key="portfolio_equity_curve_v2",
                 )
-                st.caption("Historical curve ends at the latest completed reporting period; the current book above is marked through the latest available close.")
+                a, b, c, d = st.columns(4)
+                with a:
+                    st.metric("Historical ending value", f"₹{equity.iloc[-1]:,.0f}")
+                with b:
+                    st.metric("Since inception", f"{historical_return:+.1%}" if np.isfinite(historical_return) else "—")
+                with c:
+                    st.metric("Benchmark", f"{benchmark_return:+.1%}" if np.isfinite(benchmark_return) else "—")
+                with d:
+                    st.metric("Max drawdown", f"{history['max_drawdown']:.1%}" if np.isfinite(history["max_drawdown"]) else "—")
+                st.caption("The curve comes from the append-only Track Record ledger, not today's ranking or prices.")
 
-    elif history_view == "Past trades":
-        with kit.card("Past trades", "portfolio_trades", "realised trades plus positions still open at the historical window close"):
+    if history_tab == "Overview":
+        recent = tradebook.tail(20).copy() if not tradebook.empty else pd.DataFrame()
+        with kit.card("Latest portfolio activity", "portfolio_recent_activity", "most recent canonical BUY / SELL / HOLD records"):
+            if recent.empty:
+                st.info("No rebalance activity is available yet.")
+            else:
+                cols = [c for c in ["Period", "Action", "Symbol", "Price", "Weight %", "Return %", "Reason / Signal"] if c in recent.columns]
+                render_saas_table(recent[cols], max_height=360)
+
+    elif history_tab == "Trades":
+        with kit.card("Past trades", "portfolio_trades", "closed trades plus positions still open at the historical window close"):
             if trades.empty:
                 st.info("No historical trades are available yet.")
             else:
-                outcome = st.pills("Outcome", ["All", "Winners", "Losers", "Still open"], default="All", key="portfolio_trade_outcome")
+                outcome = st.pills("Outcome", ["All", "Winners", "Losers", "Still open"], default="All", key="portfolio_trade_outcome_v2")
                 tv = trades.copy()
                 if outcome == "Winners":
                     tv = tv[tv["Return %"] > 0]
@@ -376,150 +376,52 @@ def render_portfolio_view(
                 elif outcome == "Still open":
                     tv = tv[tv["Status"] == "Open"]
                 cols = [c for c in ["Month", "Symbol", "Entry Date", "Entry Price", "Exit Date", "Exit Price", "Return %", "Holding (Days)", "Reason for Exit", "Status"] if c in tv.columns]
-                render_saas_table(tv[cols], max_height=560)
-                st.download_button(
-                    "Export past trades CSV", tv[cols].to_csv(index=False).encode(),
-                    f"portfolio_trades_{ist_now():%Y%m%d}.csv", "text/csv",
-                    key="dl_port_trades_csv",
-                )
+                render_saas_table(tv[cols], max_height=600)
+                st.caption(f"{len(closed_valid)} closed trades · {wins} winners · {losses} losers")
+                st.download_button("Export past trades CSV", tv[cols].to_csv(index=False).encode(), f"portfolio_trades_{ist_now():%Y%m%d}.csv", "text/csv", key="dl_port_trades_csv_v2")
 
-    elif history_view == "Rebalance log":
+    elif history_tab == "Rebalances":
         with kit.card("Rebalance history", "portfolio_rebalances", "every BUY, SELL and HOLD from the canonical model replay"):
             if tradebook.empty:
                 st.info("No rebalance history is available yet.")
             else:
-                af = st.pills("Action", ["All", "Buy", "Sell", "Hold"], default="All", key="portfolio_rebalance_action")
+                action = st.pills("Action", ["All", "Buy", "Sell", "Hold"], default="All", key="portfolio_rebalance_action_v2")
                 rv = tradebook.copy()
-                if af == "Buy":
+                if action == "Buy":
                     rv = rv[rv["Action"].str.contains("BUY", na=False)]
-                elif af == "Sell":
+                elif action == "Sell":
                     rv = rv[rv["Action"].str.contains("SELL", na=False)]
-                elif af == "Hold":
+                elif action == "Hold":
                     rv = rv[rv["Action"].str.contains("HOLD", na=False)]
                 cols = [c for c in ["Period", "Action", "Symbol", "Price", "Return %", "Weight %", "Reason / Signal"] if c in rv.columns]
-                render_saas_table(rv[cols], max_height=560)
-                st.download_button(
-                    "Export rebalance log CSV", rv[cols].to_csv(index=False).encode(),
-                    f"portfolio_rebalance_{ist_now():%Y%m%d}.csv", "text/csv",
-                    key="dl_port_rebalance_csv",
-                )
+                render_saas_table(rv[cols], max_height=600)
+                st.download_button("Export rebalance CSV", rv[cols].to_csv(index=False).encode(), f"portfolio_rebalances_{ist_now():%Y%m%d}.csv", "text/csv", key="dl_port_rebalance_csv_v2")
 
-    elif history_view == "Month by month":
-        with kit.card("Month by month", "portfolio_monthly", "completed portfolio periods from the canonical replay"):
+    elif history_tab == "Monthly":
+        with kit.card("Month-by-month performance", "portfolio_monthly", "frozen monthly record · no current-month partial return"):
             if monthly.empty:
                 st.info("No monthly history is available yet.")
             else:
-                mv = monthly.copy()
-                for c in ("Period Start", "Period End"):
-                    if c in mv.columns:
-                        mv[c] = pd.to_datetime(mv[c], errors="coerce").dt.strftime("%d %b %Y")
-                cols = [c for c in ["Period Start", "Period End", "Strategy Net", "Benchmark", "Alpha vs Benchmark", "Turnover %", "Cost Drag %", "Buys", "Sells", "Holdings"] if c in mv.columns]
-                render_saas_table(mv[cols])
-                st.download_button(
-                    "Export monthly performance CSV", mv[cols].to_csv(index=False).encode(),
-                    f"portfolio_monthly_{ist_now():%Y%m%d}.csv", "text/csv",
-                    key="dl_port_monthly_csv",
-                )
+                cols = [c for c in ["Month", "Strategy Net", "Benchmark", "Alpha vs Benchmark", "Origin", "Universe", "Frozen On", "Priced From"] if c in monthly.columns]
+                render_saas_table(monthly[cols], max_height=600)
+                st.download_button("Export monthly performance CSV", monthly[cols].to_csv(index=False).encode(), f"portfolio_monthly_{ist_now():%Y%m%d}.csv", "text/csv", key="dl_port_monthly_csv_v2")
 
-    else:
-        with kit.card("Portfolio drawdown", "portfolio_drawdown", "peak-to-trough decline of portfolio equity"):
+    elif history_tab == "Drawdown":
+        with kit.card("Drawdown", "portfolio_drawdown", "peak-to-trough decline of the frozen portfolio equity curve"):
             if drawdown.empty:
                 st.info("No drawdown history is available yet.")
             else:
-                kit.growth_chart(
-                    [f"{d:%b %Y}" for d in drawdown.index],
-                    drawdown.tolist(),
-                    None,
-                    key="portfolio_drawdown_curve",
-                )
-                st.caption(f"Maximum drawdown over the displayed completed history: {history['max_drawdown']:.1%}.")
+                kit.growth_chart([d.strftime("%b %Y") for d in drawdown.index], drawdown.tolist(), None, key="portfolio_drawdown_curve_v2")
+                st.caption(f"Maximum drawdown over completed history: {history['max_drawdown']:.1%}.")
 
-    kit.readings([
-        kit.Reading("Portfolio value", f"₹{total_value:,.0f}", "capital + current holdings"),
-        kit.Reading("Invested", f"₹{invested:,.0f}", f"{len(table)} holdings"),
-        kit.Reading("Cash", f"₹{cash:,.0f}", f"{cash / portfolio_capital:.1%} of capital"),
-        kit.Reading("Total P&L", f"₹{pnl:+,.0f}",
-                    "unrealised, model entry to latest close",
-                    "up" if pnl >= 0 else "down"),
-        kit.Reading("P&L %", "—" if not np.isfinite(pnl_pct) else f"{pnl_pct:+.1f}%",
-                    "on invested capital",
-                    "" if not np.isfinite(pnl_pct) else ("up" if pnl_pct >= 0 else "down")),
-        kit.Reading("Day P&L", f"₹{day_pnl:+,.0f}", "latest close versus previous close",
-                    "up" if day_pnl >= 0 else "down"),
-    ], "Current model portfolio")
+    with kit.card("Portfolio accounting", "portfolio_accounting", "entry cost, current value, P&L and target-weight drift"):
+        accounting_cols = [c for c in [
+            "Symbol", "Entry Date", "Entry Price", "Current Price", "Shares",
+            "Invested Value (₹)", "Current Value (₹)", "P&L (₹)", "P&L %",
+            "Weight %", "Target Weight %", "Weight Drift %", "Holding Days", "Day P&L (₹)",
+        ] if c in table.columns]
+        accounting = table[accounting_cols].copy()
+        if "Entry Date" in accounting.columns:
+            accounting["Entry Date"] = pd.to_datetime(accounting["Entry Date"], errors="coerce").dt.strftime("%d %b %Y").fillna("—")
+        render_saas_table(accounting, max_height=360)
 
-    if as_of is not None or last_rebalance is not None:
-        kit.caption(
-            (f"Marked as of {pd.Timestamp(as_of):%d %b %Y}" if as_of is not None else "Latest available mark")
-            + (f" · last rebalance filled {pd.Timestamp(last_rebalance):%d %b %Y}"
-               if last_rebalance is not None else "")
-            + " · membership and target weights come from the Track Record."
-        )
-
-    display_cols = [
-        "Symbol", "Company", "Sector / Industry",
-        "Entry Date", "Entry Price", "Current Price", "Shares",
-        "Invested Value (₹)", "Current Value (₹)", "P&L (₹)", "P&L %",
-        "Weight %", "Target Weight %", "Weight Drift %",
-        "Rank at Rebalance", "Rank at Entry", "Current Rank",
-        "Holding Days", "1M Return", "3M Return", "6M Return", "12M Return",
-        "Status",
-    ]
-    view = table[[c for c in display_cols if c in table.columns]].copy()
-    if "Entry Date" in view.columns:
-        view["Entry Date"] = (
-            pd.to_datetime(view["Entry Date"], errors="coerce")
-            .dt.strftime("%d %b %Y")
-            .fillna("—")
-        )
-    # Keep percentage columns numeric. render_saas_table owns the canonical
-    # fraction/scaled units, typography and positive/negative colours.
-    for col in (
-        "P&L %",
-        "Weight %",
-        "Target Weight %",
-        "Weight Drift %",
-        "1M Return",
-        "3M Return",
-        "6M Return",
-        "12M Return",
-    ):
-        if col in view.columns:
-            view[col] = pd.to_numeric(view[col], errors="coerce")
-
-    with kit.card(
-        "Current holdings",
-        "portfolio_current",
-        "the same positions recorded by Track Record and used by Actions",
-    ):
-        render_saas_table(view, max_height=620)
-
-    sector = (
-        table.groupby("Sector / Industry", dropna=False)
-        .agg(Weight=("Weight %", "sum"), Holdings=("Symbol", "count"))
-        .sort_values("Weight", ascending=False)
-        .reset_index()
-    )
-    with kit.card(
-        "Exposure by sector", "portfolio_sectors", "current portfolio weight"
-    ):
-        st.html(
-            kit.bar_list(
-                [
-                    (
-                        str(r["Sector / Industry"]),
-                        float(r["Weight"]),
-                        f"{r['Weight']:.1f}% · {int(r['Holdings'])}",
-                        False,
-                    )
-                    for _, r in sector.iterrows()
-                ],
-                scale=max(float(sector["Weight"].max()) if not sector.empty else 0.0, 1.0),
-            )
-        )
-
-    accounting_view = table[["Symbol", "Day P&L (₹)", "P&L (₹)", "Weight Drift %"]].copy()
-    with kit.card(
-        "Position accounting", "portfolio_accounting", "latest mark, unrealised P&L and target-weight drift"
-    ):
-        render_saas_table(accounting_view, max_height=260)
