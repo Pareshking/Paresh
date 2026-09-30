@@ -176,14 +176,14 @@ def _render_identity(row: pd.Series, total_stocks: int) -> None:
         ("Rank", "Now"),
     ):
         v = _num(row.get(col))
-        if v is not None:
-            path.append((int(v), label))
+        path.append((int(v) if v is not None else None, label))
     path_html = ""
     if len(path) >= 2:
         steps = []
         for i, (r, label) in enumerate(path):
-            cls = "now" if label == "now" else ""
-            steps.append(f'<span class="sp-step {cls}"><b>#{r}</b><i>{label}</i></span>')
+            cls = "now" if label == "Now" else ""
+            rank_text = f"#{r}" if r is not None else "—"
+            steps.append(f'<span class="sp-step {cls}"><b>{rank_text}</b><i>{label}</i></span>')
             if i < len(path) - 1:
                 steps.append('<span class="sp-arrow">→</span>')
         path_html = f'<div class="sp-path">{"".join(steps)}</div>'
