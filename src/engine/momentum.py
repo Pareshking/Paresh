@@ -513,7 +513,7 @@ class MomentumEngine:
             as_of = latest_as_of_date(score_idx)
             hist_starts = {
                 m: calendar_start_positions(score_idx, m, latest_as_of=as_of)
-                for m in (1, 3)
+                for m in (1, 2, 3, 6)
             }
             # A rank delta is only meaningful between two ranks over the SAME
             # set of names, and neither of the obvious ways to build it is.
@@ -558,23 +558,21 @@ class MomentumEngine:
                 now = today_scores.reindex(paired).rank(ascending=False, method="min")
                 return then, then - now
 
-            idx_1m = int(hist_starts[1][-1])
-            if idx_1m < n_rows:
-                r_1m, d_1m = _paired_rank_delta(idx_1m)
-                rank_df["Rank (-1M)"] = rank_df["Symbol"].map(r_1m)
-                rank_df["Rank Δ 1M"] = rank_df["Symbol"].map(d_1m)
-            else:
-                rank_df["Rank (-1M)"] = np.nan
-                rank_df["Rank Δ 1M"] = np.nan
-
-            idx_3m = int(hist_starts[3][-1])
-            if idx_3m < n_rows:
-                r_3m, d_3m = _paired_rank_delta(idx_3m)
-                rank_df["Rank (-3M)"] = rank_df["Symbol"].map(r_3m)
-                rank_df["Rank Δ 3M"] = rank_df["Symbol"].map(d_3m)
-            else:
-                rank_df["Rank (-3M)"] = np.nan
-                rank_df["Rank Δ 3M"] = np.nan
+            # The stock-page path uses the same canonical composite score,
+            # evaluated at calendar offsets. 6M and 2M are not new momentum
+            # factors: they are simply historical snapshots of the existing
+            # daily composite, ranked with the same paired-name rule.
+            for months in (6, 3, 2, 1):
+                idx_hist = int(hist_starts[months][-1])
+                rank_col = f"Rank (-{months}M)"
+                delta_col = f"Rank Δ {months}M"
+                if idx_hist < n_rows:
+                    r_hist, d_hist = _paired_rank_delta(idx_hist)
+                    rank_df[rank_col] = rank_df["Symbol"].map(r_hist)
+                    rank_df[delta_col] = rank_df["Symbol"].map(d_hist)
+                else:
+                    rank_df[rank_col] = np.nan
+                    rank_df[delta_col] = np.nan
         else:
             rank_df["Rank (-1M)"] = np.nan
             rank_df["Rank Δ 1M"] = np.nan
