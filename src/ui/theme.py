@@ -2319,7 +2319,7 @@ SCALED_PERCENT_COLUMNS: frozenset[str] = frozenset({
     "% HIGH", "% ATH", "% 50 EMA", "% 20 EMA", "% 52W HIGH",
     "ATR %", "PERSISTENCE", "FFILL %",
     "DEL %", "DEL% 20D AVG", "DEL% PREV20D",
-    "DAY CHG %", "PRICE_CHG_%",
+    "DAY CHG %", "PRICE_CHG_%", "P&L %",
 })
 
 # Window-parameterised families, so adding a horizon to MOMENTUM_WINDOWS does
@@ -2345,7 +2345,7 @@ def percent_unit(column: object) -> str | None:
 # means an entry of 157.65 and an exit of 168.40 print as 158 and 168, and the
 # +6.8% beside them looks wrong because, at the precision shown, it is.
 _PER_SHARE_PRICE_KEYS = ("CMP", "PRICE", "STOP LOSS", "CHAND", "ENTRY", "EXIT")
-_AGGREGATE_MONEY_KEYS = ("VALUE", "CAPITAL", "MCAP")
+_AGGREGATE_MONEY_KEYS = ("VALUE", "CAPITAL", "MCAP", "P&L", "DAY P&L")
 
 
 def render_saas_table(
@@ -2447,6 +2447,16 @@ def render_saas_table(
                 }.get(q_val, "⚪")
                 cells_html.append(
                     f'<td class="td-center"><span class="badge-pill {q_badge}">{q_ico} {_esc(q_val)}</span></td>'
+                )
+            elif "STATUS" in c_str:
+                status_str = str(val).strip()
+                status_class = (
+                    "badge-green" if status_str.upper() in {"HELD", "OPEN", "ACTIVE"}
+                    else ("badge-red" if status_str.upper() in {"CLOSED", "SOLD"}
+                          else "badge-neutral")
+                )
+                cells_html.append(
+                    f'<td class="td-center"><span class="badge-pill {status_class}">{_esc(status_str)}</span></td>'
                 )
             elif "ACTION" in c_str:
                 act_str = str(val).upper()
@@ -2676,7 +2686,8 @@ body::-webkit-scrollbar,
     background: transparent !important;
 }}
 .saas-table {{
-    width: 100%;
+    width: max-content;
+    min-width: 100%;
     border-collapse: separate;
     border-spacing: 0;
     font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -2718,6 +2729,35 @@ body::-webkit-scrollbar,
     vertical-align: middle;
 }}
 
+.saas-table-wrapper {{
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
+}}
+@media (max-width: 640px) {{
+    .saas-table {{
+        font-size: 11px;
+    }}
+    .saas-table thead tr th {{
+        padding: 8px 8px;
+        font-size: 10px;
+    }}
+    .saas-table td {{
+        padding: 7px 8px;
+        font-size: 11px;
+    }}
+    .saas-table th:first-child,
+    .saas-table td:first-child {{
+        position: sticky;
+        left: 0;
+        z-index: 12;
+        background: #FFFFFF;
+        box-shadow: 6px 0 8px -8px rgba(14, 23, 38, 0.35);
+    }}
+    .saas-table thead th:first-child {{
+        background: #F4F5F8;
+    }}
+}}
 .saas-table tbody tr.screener-row {{
     border-bottom: 1px solid #F1F3F6;
     transition: background-color 0.12s ease;
