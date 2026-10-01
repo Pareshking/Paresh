@@ -456,5 +456,5 @@ def render_portfolio_view(
                 st.info("No drawdown history is available yet.")
             else:
                 kit.drawdown_chart([d.strftime("%b %Y") for d in drawdown.index], drawdown.tolist(), key="portfolio_drawdown_curve_v2")
-                st.caption(f"Maximum drawdown over completed history: {history['max_drawdown']:.1%}.")
+                st.caption(f"Maximum drawdown including the current live month-to-date point: {history['max_drawdown']:.1%}.")
 
