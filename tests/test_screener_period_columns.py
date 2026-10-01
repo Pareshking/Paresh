@@ -100,7 +100,7 @@ def _render(rank_df, px, density):
 
 
 def _width(html: str) -> tuple[int, int]:
-    head = re.search(r"<thead><tr>(.*?)</tr></thead>", html, re.S).group(1)
+    head = re.search(r'<tr class="hdr">(.*?)</tr></thead>', html, re.S).group(1)
     first = re.search(r"<tbody><tr[^>]*>(.*?)</tr>", html, re.S).group(1)
     return len(re.findall(r"<th[ >]", head)), len(re.findall(r"<td[ >]", first))
 
@@ -170,3 +170,11 @@ def test_an_all_nan_column_does_not_break_the_52w_high_date():
     rank_df = calc.get_rankings(info, pd.Series(dtype=float),
                                 close_prices_df=px, high_prices_df=px)
     assert "52W High Date" in rank_df.columns          # must not raise
+
+
+def test_executive_and_core_are_quant_with_columns_hidden():
+    from src.ui import screener_table as st_
+
+    quant = {c[0] for c in st_.columns_for("Full Quant (35)", ["ATR"])}
+    for density in ("Executive (11)", "Core (17)"):
+        assert {c[0] for c in st_.columns_for(density)} <= quant, density

@@ -23,7 +23,6 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src.engine.momentum import CARRIED_MARK
 from src.ui.system_param import stock_href
 from src.ui.system_param import suffix as system_suffix
 from src.ui.theme import _spark_window_key, is_tick_true
@@ -49,6 +48,9 @@ _ALL = {
     "gap": ("Data gap", "text"), "ffill": ("Fill %", "num"),
     "hz": ("Horizons", "num"), "path": ("12-month path", None),
     "flt": ("Filters", "num"),
+    "idx": ("Index", "text"), "ind": ("Industry", "text"),
+    "above": ("> 50 EMA", "num"), "near": ("Near 52W", "num"),
+    "athf": ("At ATH", "num"), "spark": ("60D trend", None),
 }
 for _w in PERIOD_WINDOWS:
     _ALL[f"r{_w}"] = (f"{_w}M", "num")
@@ -60,10 +62,24 @@ _EXEC_KEYS = ("rank", "stock", "price", "d1m", "r3", "r12", "path", "flt")
 # drawdown shown outside it is the 3M one; Quant carries every window.
 _CORE_KEYS = ("rank", "stock", "price", "d1m", "r1", "r3", "r6", "r12",
               "dd3", "hi", "path", "flt")
+# Full Quant is the master: every column the research view has. Executive and
+# Core are this set with columns hidden, plus the combined Filters column.
 _QUANT_KEYS = (
-    ("rank", "stock", "price", "d1m", "d3m", "mcap")
+    ("rank", "stock", "price", "d1m", "d3m", "idx", "ind", "mcap")
     + tuple(f"{k}{w}" for w in PERIOD_WINDOWS for k in ("r", "sh", "dd"))
-    + ("hi", "ath", "ema", "vol", "flt", "stop", "chand", "gap", "ffill", "hz", "path")
+    + ("hi", "ath", "ema", "vol", "above", "near", "athf", "flt", "stop", "chand",
+       "gap", "ffill", "hz", "path", "spark")
+)
+# Group labels over the Quant columns, in order.
+_QUANT_GROUPS = (
+    ("Identity", ("rank", "stock", "price")),
+    ("Rank dynamics", ("d1m", "d3m")),
+    ("Classification", ("idx", "ind", "mcap")),
+    *((f"{w}M factor momentum", (f"r{w}", f"sh{w}", f"dd{w}")) for w in PERIOD_WINDOWS),
+    ("Technicals & filters", ("hi", "ath", "ema", "vol", "above", "near", "athf", "flt")),
+    ("Risk & exits", ("stop", "chand")),
+    ("Data health", ("gap", "ffill", "hz")),
+    ("Trend", ("path", "spark")),
 )
 _RISK_KEYS = ("stop", "chand")
 # A ranking built from closing prices carries no ATR, so those columns would be
@@ -129,7 +145,8 @@ def _pct_cell(v: float | None, cls_extra: str = "") -> tuple[str, str]:
     return f'<td class="n {cls} {cls_extra}" data-v="{v:.6f}">{txt}</td>', txt
 
 
-def _row_html(row: dict, cols: list, paths: dict) -> str:
+def _row_html(row: dict, cols: list, paths: dict, paths60: dict | None = None) -> str:
+    paths60 = paths60 or {}
     sym = str(row.get("Symbol", ""))
     sym_s = _esc(sym)
     name = str(row.get("Company Name") or "").strip()
@@ -192,6 +209,8 @@ def _row_html(row: dict, cols: list, paths: dict) -> str:
         v = _num(row.get(col))
         cells[key] = (f'<td class="n" data-v="{"" if v is None else v}">'
                       f'{"—" if v is None else "₹" + format(v, ",.0f")}</td>')
+    from src.engine.momentum import CARRIED_MARK
+
     gap = str(row.get("Data Gap") or "🟢")
     carried = CARRIED_MARK in gap
     gap_title = (' title="No price on the ranking date; ranked on its last print"'
@@ -204,6 +223,16 @@ def _row_html(row: dict, cols: list, paths: dict) -> str:
     n_w = len(PERIOD_WINDOWS)
     cells["hz"] = (f'<td class="n{" muted" if hz is None else "" if hz >= n_w else " neg"}" '
                    f'data-v="{"" if hz is None else hz}">{"—" if hz is None else f"{int(hz)}/{n_w}"}</td>')
+    tag = str(row.get("Indices") or "").split(",")[0].strip()
+    idx_html = (f'<span class="tag">{_esc(INDEX_NAMES.get(tag, tag))}</span>' if tag
+                else '<span class="muted">—</span>')
+    cells["idx"] = f'<td data-v="{_esc(tag)}">{idx_html}</td>'
+    ind_full = str(row.get("Industry") or "").strip()
+    ind_txt = ind_full if len(ind_full) <= 21 else ind_full[:20] + "…"
+    cells["ind"] = f'<td data-v="{_esc(ind_full)}" title="{_esc(ind_full)}">{_esc(ind_txt) or "—"}</td>'
+    for key, col in (("above", "Above 50 EMA"), ("near", "Near 52W High"), ("athf", "At ATH")):
+        on = is_tick_true(row.get(col))
+        cells[key] = f'<td class="c-tick" data-v="{int(on)}">{"🟢" if on else "⚪"}</td>'
     hi = _num(row.get("% High"))
     if hi is None:
         cells["hi"] = '<td class="n muted" data-v="">—</td>'
@@ -214,6 +243,13 @@ def _row_html(row: dict, cols: list, paths: dict) -> str:
         # print as "−0.0%".
         cells["hi"] = f'<td class="n" data-v="{hi}">−{abs(hi):.{2 if abs(hi) < 0.1 else 1}f}%</td>'
     poly, up = paths.get(sym, ("", True))
+    poly60, up60 = paths60.get(sym, ("", True))
+    cells["spark"] = (
+        f'<td class="c-path"><svg width="88" height="26" viewBox="0 0 88 26" aria-hidden="true">'
+        f'<polyline fill="none" stroke="{"#067647" if up60 else "#B42318"}" stroke-width="1.7" '
+        f'stroke-linejoin="round" stroke-linecap="round" points="{poly60}"/></svg></td>'
+        if poly60 else '<td class="c-path muted">—</td>'
+    )
     cells["path"] = (
         f'<td class="c-path"><svg width="88" height="26" viewBox="0 0 88 26" aria-hidden="true">'
         f'<polyline fill="none" stroke="{"#067647" if up else "#B42318"}" stroke-width="1.7" '
@@ -237,6 +273,10 @@ table{border-collapse:separate;border-spacing:0;width:100%;min-width:1180px}
 thead th{position:sticky;top:0;z-index:3;background:#F4F5F8;border-bottom:1px solid #E3E6EB;height:42px;padding:0 10px;
   font-size:12px;font-weight:600;color:#5E6878;text-align:right;white-space:nowrap;cursor:pointer;user-select:none}
 thead th.t-left{text-align:left}
+thead tr.grp-row th{top:0;height:28px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;text-align:center;color:#5E6878;border-bottom:1px solid #E3E6EB;border-left:1px solid #E3E6EB;cursor:default}
+thead tr.grp-row + tr.hdr th{top:28px}
+.tag{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 6px;border-radius:6px;background:#F1F3F6;color:#3C4657;border:1px solid #E3E6EB}
+td.c-tick{text-align:center}
 thead th[data-type=""]{cursor:default}
 thead th .ar{color:#A5ACB8;margin-left:3px}
 thead th.on{color:#0E1726}
@@ -297,7 +337,7 @@ document.addEventListener('click',function(ev){
   if(ev.target.closest('a')&&(ev.metaKey||ev.ctrlKey||ev.shiftKey||ev.button===1))return;
   ev.preventDefault();openStock(tr.getAttribute('data-stock'));
 });
-const ths=document.querySelectorAll('thead th');const tbody=document.querySelector('tbody');
+const ths=document.querySelectorAll('thead tr.hdr th');const tbody=document.querySelector('tbody');
 ths.forEach(function(th,i){
   const type=th.getAttribute('data-type');if(!type)return;
   th.addEventListener('click',function(){
@@ -325,10 +365,14 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str)
     if prices_df is not None and not prices_df.empty:
         window = prices_df.iloc[-min(252, len(prices_df)):]
         paths = _year_paths(_spark_window_key(window), window)
-    phone_keep = {"rank", "stock", "path", "price"}
+    paths60: dict = {}
+    if prices_df is not None and not prices_df.empty and any(c[0] == "spark" for c in cols):
+        w60 = prices_df.iloc[-min(60, len(prices_df)):]
+        paths60 = _year_paths(_spark_window_key(w60) + "_60", w60)
+    phone_keep = {"rank", "stock", "path", "spark", "price"}
     head_cells = []
     for k, label, t in cols:
-        cls = ("t-left " if k in ("rank", "stock", "flt") else "") + ("" if k in phone_keep else "d-only")
+        cls = ("t-left " if (k in ("rank", "stock", "flt") or t == "text") else "") + ("" if k in phone_keep else "d-only")
         if k == "rank":
             cls += " on"
         arrow = ('<span class="ar">' + ("↑" if k == "rank" else "↕") + "</span>") if t else ""
@@ -338,9 +382,18 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str)
             f'<span class="{"lbl-d" if k == "path" else ""}">{_esc(label)}</span>{arrow}</th>'
         )
     head = "".join(head_cells)
+    group_row = ""
+    if len(cols) > len(_CORE_KEYS):
+        present = [c[0] for c in cols]
+        parts = []
+        for label, keys in _QUANT_GROUPS:
+            n = sum(1 for k in keys if k in present)
+            if n:
+                parts.append(f'<th colspan="{n}" class="grp">{_esc(label)}</th>')
+        group_row = '<tr class="grp-row">' + "".join(parts) + "</tr>"
     body = []
     for row in view.to_dict("records"):
-        tr = _row_html(row, cols, paths)
+        tr = _row_html(row, cols, paths, paths60)
         body.append(tr)
     # Desktop-only cells carry the d-only class too, so the phone hides whole
     # columns rather than leaving a header without its cells.
@@ -357,7 +410,7 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str)
         "<link href='https://fonts.googleapis.com/css2?family=Geist:wght@400..700&"
         "family=Geist+Mono:wght@400..700&display=swap' rel='stylesheet'>"
         f"<style>{_CSS}table{{min-width:{max(1180, len(cols) * 92)}px}}{extra}</style></head><body><div class='wrap'><table>"
-        f"<thead><tr>{head}</tr></thead><tbody>{body_html}</tbody></table></div>"
+        f"<thead>{group_row}<tr class=\"hdr\">{head}</tr></thead><tbody>{body_html}</tbody></table></div>"
         f"<script>const SYS={json.dumps(system_suffix())};{_JS}</script></body></html>"
     )
 
@@ -368,6 +421,6 @@ def render_screener_table(view: pd.DataFrame, prices_df: pd.DataFrame | None,
         st.info("No stocks match these filters. Clear the search or pick another preset.")
         return
     rows = min(len(view), VISIBLE_ROWS)
-    height = 44 + rows * ROW_PX + 4
+    height = 44 + rows * ROW_PX + 4 + (28 if str(density).startswith(('Full', 'Quant')) else 0)
     st.iframe(table_html(view, prices_df, density), height=height)
 

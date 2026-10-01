@@ -48,7 +48,7 @@ def _render(monkeypatch, frame: pd.DataFrame, density: str) -> str:
 
 
 def _widths(html: str) -> tuple[int, int]:
-    head = re.search(r"<thead><tr>(.*?)</tr></thead>", html, re.S)
+    head = re.search(r'<tr class="hdr">(.*?)</tr></thead>', html, re.S)
     body = re.search(r"<tbody><tr[^>]*>(.*?)</tr>", html, re.S)
     assert head and body, "table rows not found"
     return len(re.findall(r"<th[ >]", head.group(1))), len(re.findall(r"<td[ >]", body.group(1)))

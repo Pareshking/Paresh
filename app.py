@@ -1185,10 +1185,10 @@ def _page_guide() -> None:
 # rename here without one there is a failing build, not a silent drift.
 _PAGES = [
     st.Page(_page_screener, title="Screener", url_path="screener", default=True),
+    st.Page(_page_portfolio, title="Portfolio", url_path="portfolio"),
     st.Page(_page_actions, title="Actions", url_path="actions"),
     st.Page(_page_sectors, title="Sectors", url_path="sectors"),
     st.Page(_page_rrg, title="RRG", url_path="rrg"),
-    st.Page(_page_portfolio, title="Portfolio", url_path="portfolio"),
     st.Page(_page_watchlist, title="Watchlist", url_path="watchlist"),
     st.Page(_page_breadth, title="Market Breadth", url_path="breadth"),
     st.Page(_page_backtest, title="Backtest", url_path="backtest"),
@@ -1205,7 +1205,7 @@ _MOVED = {"qualified": "Qualified", "exit-watch": "Exit Watch"}
 
 def _moved_page(path: str):
     def _go() -> None:
-        st.switch_page(_PAGES[1])
+        st.switch_page(next(p for p in _PAGES if p.title == "Actions"))
     _go.__name__ = f"_moved_{path.replace('-', '_')}"
     return st.Page(_go, title=_MOVED[path], url_path=path)
 

@@ -47,7 +47,7 @@ POLL_S = 5
 # The telemetry element lands only after the whole script run finishes.
 METRICS_WAIT_S = int(os.getenv("UMIYA_METRICS_WAIT_S", "600"))
 TABS = [
-    "Screener", "Actions", "Sectors", "RRG", "Portfolio",
+    "Screener", "Portfolio", "Actions", "Sectors", "RRG",
     "Watchlist", "Market Breadth", "Backtest", "Track Record", "Configuration",
     "Guide",
 ]

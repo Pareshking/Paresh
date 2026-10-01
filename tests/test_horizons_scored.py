@@ -198,7 +198,7 @@ def test_every_density_tier_keeps_its_headers_over_its_cells(density):
         for row in re.findall(r"<tr data-stock[^>]*>(.*?)</tr>", html, re.S)
     }
     assert len(cells) == 1, "rows disagree on their own column count"
-    head = re.search(r"<thead><tr>(.*?)</tr></thead>", html, re.S).group(1)
+    head = re.search(r'<tr class="hdr">(.*?)</tr></thead>', html, re.S).group(1)
     assert cells.pop() == len(re.findall(r"<th[ >]", head))
 
 
