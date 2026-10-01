@@ -71,6 +71,12 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
         backtest_months=months,
         _membership=membership_for(system),
         stateful_history=True,
+        # The backtest needs warm-up prices before inception, but its stateful
+        # tradebook must not create portfolio ownership before the canonical
+        # Track Record start. Backtest UI already enforces this boundary; the
+        # Track Record caller must pass the same boundary to keep Actions and
+        # Portfolio history on the identical canonical book.
+        history_start=start.start_time,
         _actions=events,
     )
     return result or {}
