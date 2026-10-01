@@ -504,7 +504,7 @@ def audit_stock_link_navigation(page) -> dict:
     #   Screener table  <a data-stock=...> (and the whole <tr data-stock>)
     #               inside a SANDBOXED COMPONENT IFRAME; the click is
     #               intercepted and a script injected into window.parent
-    #               (src/ui/screener_table.py, and theme.py for Full Quant)
+    #               (src/ui/screener_table.py, all three column sets)
     #   Plain links <a href="?stock=..." target="_self"> in the app document:
     #               Top 50 this month, peers on the stock page, sector leaders
     #
