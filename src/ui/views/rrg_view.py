@@ -3,13 +3,13 @@ Relative Rotation Graph (RRG ®) View Controller.
 """
 
 import html
-from typing import Sequence
 import re
 
 import numpy as np
 import pandas as pd
 import streamlit as st
 
+from src.loaders.price_loader import fetch_benchmark_history
 from src.ui.system_param import stock_href
 from src.engine.pipeline import price_fingerprint
 from src.ui import page_kit as kit
@@ -17,13 +17,13 @@ from src.ui.charts import render_rrg_chart
 from src.ui.components import gap_count, render_data_quality_footer
 
 
-# The benchmark options, named once so the selector and the dispatch cannot
-# disagree. Each is an EQUAL-WEIGHTED proxy computed from the loaded universe,
-# not the NSE index of a similar name.
-BENCHMARK_UNIVERSE: str = "Loaded universe (equal-weighted)"
-BENCHMARK_TOP50: str = "Top 50 by market cap (equal-weighted)"
-BENCHMARK_MID: str = "Market-cap ranks 101-250 (equal-weighted)"
-BENCHMARK_OPTIONS: list[str] = [BENCHMARK_UNIVERSE, BENCHMARK_TOP50, BENCHMARK_MID]
+# The benchmarks, named once so the selector and the dispatch cannot disagree.
+# Real NSE indices, as every other page measures against (Nifty 500 is the
+# portfolio's benchmark). Value: the Yahoo symbol of the index.
+BENCHMARK_N500: str = "Nifty 500"
+BENCHMARK_N50: str = "Nifty 50"
+BENCHMARK_SYMBOLS: dict[str, str] = {BENCHMARK_N500: "^CRSLDX", BENCHMARK_N50: "^NSEI"}
+BENCHMARK_OPTIONS: list[str] = list(BENCHMARK_SYMBOLS)
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -35,8 +35,9 @@ def compute_rrg_data(
     lookback_weeks: int = 12,
     tail_weeks: int = 6,
     timeframe: str = "Weekly candle",
-    benchmark_choice: str = BENCHMARK_UNIVERSE,
+    benchmark_choice: str = BENCHMARK_N500,
     end_date_str: str | None = None,
+    _benchmark: pd.Series | None = None,
 ) -> pd.DataFrame:
     """Computes Sharpely / JdK Relative Rotation Graph (RRG) coordinates and rotation trails."""
     if _adj_close.empty or len(_adj_close) < 25:
@@ -53,37 +54,15 @@ def compute_rrg_data(
 
     daily_ret = prices.pct_change(fill_method=None)
 
-    # Benchmark calculation.
-    #
-    # This dispatched on `"50" in benchmark_choice`, and ALL THREE option
-    # labels contain "50" -- "Nifty 500 (Universe Equal-Weighted)", "Nifty 50
-    # (Large-Cap 50)" and "Nifty Midcap 150". The first branch therefore always
-    # won: the Midcap branch was unreachable, the whole-universe branch was
-    # unreachable, and the three benchmarks were one series. Changing the
-    # selector did nothing to the chart. Same defect class as the screener's
-    # N50/NN50 collision -- a substring test standing in for an identity.
-    #
-    # The labels were also claims the code does not honour. None of these is an
-    # NSE index: they are EQUAL-WEIGHTED proxies built from whatever universe
-    # the Configuration tab has loaded. The README requires ^CRSLDX wherever a
-    # V1 module needs a market benchmark "unless a module has an explicitly
-    # documented reason not to" -- RRG compares sector breadth against a peer
-    # group rather than against a capitalisation-weighted index, so an
-    # equal-weighted proxy is the intended input. That is the documented
-    # reason; the labels now say what they are.
-    has_mcap = "Market Cap (Cr)" in _rank_df.columns
-
-    def _equal_weighted(symbols: Sequence[str]) -> pd.Series | None:
-        valid = [s for s in symbols if s in daily_ret.columns]
-        return daily_ret[valid].mean(axis=1) if len(valid) >= 5 else None
-
+    # The benchmark is the chosen index's own return series. If it could not be
+    # fetched, the loaded universe's equal-weighted return stands in, so the
+    # chart still draws; the caption on the page says which was used.
     benchmark_ret = None
-    if has_mcap and benchmark_choice == BENCHMARK_TOP50:
-        ordered = _rank_df.sort_values("Market Cap (Cr)", ascending=False)["Symbol"]
-        benchmark_ret = _equal_weighted(ordered.head(50))
-    elif has_mcap and benchmark_choice == BENCHMARK_MID:
-        ordered = _rank_df.sort_values("Market Cap (Cr)", ascending=False)["Symbol"]
-        benchmark_ret = _equal_weighted(ordered.iloc[100:250])
+    if _benchmark is not None and len(_benchmark) > 20:
+        level = pd.to_numeric(_benchmark, errors="coerce").dropna()
+        benchmark_ret = level.pct_change(fill_method=None).reindex(daily_ret.index)
+        if benchmark_ret.notna().sum() < 20:
+            benchmark_ret = None
     if benchmark_ret is None:
         benchmark_ret = daily_ret.mean(axis=1)
 
@@ -207,7 +186,7 @@ QUADRANTS = [("Leading", "lead"), ("Improving", "imp"), ("Weakening", "weak"), (
 
 
 def quadrant_lists_html(rrg_df: pd.DataFrame, is_stocks: bool) -> str:
-    """Four lists, one per quadrant, strongest first, with ratio · momentum."""
+    """Four lists, one per quadrant, strongest first, with RS · Momentum."""
     cols = []
     for quad, cls in QUADRANTS:
         sub = rrg_df[rrg_df["Quadrant"] == quad].sort_values("RS_Ratio", ascending=False)
@@ -219,7 +198,7 @@ def quadrant_lists_html(rrg_df: pd.DataFrame, is_stocks: bool) -> str:
             for r in sub.itertuples()
         ) or '<div class="rq-i"><span class="rq-none">None</span></div>'
         cols.append(f'<div class="rq {cls}"><div class="rq-h"><b>{quad}</b>'
-                    f'<span>{len(sub)} · ratio · momentum</span></div>{items}</div>')
+                    f'<span>{len(sub)}</span></div>{items}</div>')
     return f'<div class="rq-grid">{"".join(cols)}</div>'
 
 
@@ -258,13 +237,7 @@ def render_rrg_view(
             BENCHMARK_OPTIONS,
             index=0,
             key="rrg_bm_choice",
-            help=(
-                "Equal-weighted proxies built from the universe loaded in the "
-                "Configuration tab — not the NSE indices of similar names. RRG "
-                "compares a sector against its peer group, so an equal-weighted "
-                "proxy is the intended input rather than the ^CRSLDX benchmark "
-                "used elsewhere in V1."
-            ),
+            help="Each industry's strength is measured against this index.",
         )
         tf_choice = st.segmented_control(
             "Timeframe",
@@ -291,10 +264,11 @@ def render_rrg_view(
         else:
             sel_date_str = adj_close.index[-1].strftime("%Y-%m-%d")
 
-    bm_short = "all stocks, equal-weighted" if bm_choice == BENCHMARK_OPTIONS[0] else bm_choice.lower()
+    bm_series = fetch_benchmark_history(period="5y", symbol=BENCHMARK_SYMBOLS[bm_choice])
+    bm_used = bm_choice if len(bm_series) > 20 else "equal-weighted universe (index unavailable)"
     kit.caption(
-        f"vs {bm_short} · {tf_choice.split()[0].lower()} · tail {tail_w} weeks · lookback "
-        f"{lookback_w} weeks · as of {pd.to_datetime(sel_date_str):%d %b %Y}"
+        f"Benchmark {bm_used} · {tf_choice.split()[0].lower()} · tail {tail_w}w · lookback "
+        f"{lookback_w}w · {pd.to_datetime(sel_date_str):%d %b %Y}"
     )
 
     ph = f"{sel_date_str}_{price_fingerprint(adj_close)}_{bm_choice}_{tf_choice}_{target_col}"
@@ -308,6 +282,7 @@ def render_rrg_view(
         timeframe=tf_choice,
         benchmark_choice=bm_choice,
         end_date_str=sel_date_str,
+        _benchmark=bm_series,
     )
 
     if rrg_df.empty:
@@ -384,10 +359,8 @@ def render_rrg_view(
                 "above or a dot to bring it forward. Drag on the chart to zoom."
             )
 
-        with kit.card("By quadrant", "rrg_quads", "strongest first · RS-ratio · RS-momentum"):
+        with kit.card("Quadrants", "rrg_quads", "RS · Momentum, 100 = benchmark"):
             st.html(quadrant_lists_html(rrg_df, is_stocks=(target_col == "Symbol")))
-            kit.caption("RS-ratio above 100 = stronger than the benchmark; RS-momentum above "
-                        "100 = gaining on it.")
             st.download_button(
                 "Export CSV",
                 rrg_df.drop(columns=[c for c in ("Trail_R", "Trail_M") if c in rrg_df.columns])
