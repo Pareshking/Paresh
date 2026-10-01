@@ -56,3 +56,11 @@ def test_portfolio_history_is_grouped_into_performance_and_activity():
     assert '["Overview", "Equity", "Drawdown", "Monthly"]' in source
     assert '["Trades", "Rebalances"]' in source
     assert 'Latest portfolio activity' not in source
+
+
+def test_portfolio_pnl_cells_use_explicit_sign_semantics():
+    source = THEME.read_text(encoding="utf-8")
+    assert 'portfolio_sign_class = "portfolio-pos" if val > 0' in source
+    assert 'portfolio-neg' in source
+    assert '.saas-table-wrapper.portfolio .portfolio-pos' in source
+    assert '.saas-table-wrapper.portfolio .portfolio-neg' in source

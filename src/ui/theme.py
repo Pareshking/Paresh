@@ -2423,6 +2423,9 @@ def render_saas_table(
         for col in df.columns:
             val = row[col]
             c_str = str(col).upper()
+            portfolio_sign_class = ""
+            if variant == "portfolio" and c_str in {"P&L (₹)", "P&L %", "DAY P&L (₹)", "DAY P&L %"}:
+                portfolio_sign_class = "portfolio-pos" if val > 0 else ("portfolio-neg" if val < 0 else "portfolio-flat")
 
             if pd.isna(val) or val is None or str(val).strip() in ("", "nan", "None"):
                 cells_html.append('<td class="td-center text-muted">—</td>')
@@ -2547,12 +2550,14 @@ def render_saas_table(
                         else (abs(val) <= 1.0 and val != 0)
                     )
                     if as_fraction:
+                        combined_clr = portfolio_sign_class or clr
                         cells_html.append(
-                            f'<td class="td-right {clr}"><strong>{val:+.1%}</strong></td>'
+                            f'<td class="td-right {combined_clr}"><strong>{val:+.1%}</strong></td>'
                         )
                     else:
+                        combined_clr = portfolio_sign_class or clr
                         cells_html.append(
-                            f'<td class="td-right {clr}"><strong>{val:+.1f}%</strong></td>'
+                            f'<td class="td-right {combined_clr}"><strong>{val:+.1f}%</strong></td>'
                         )
                 # 2. Percentages (e.g. Del %, Win Rate, Turnover %, Cost Drag %, ATR %, Weight %)
                 elif any(
@@ -2611,7 +2616,7 @@ def render_saas_table(
                         )
                     else:
                         cells_html.append(
-                            f'<td class="td-right">₹{float(val):,.0f}</td>'
+                            f'<td class="td-right {portfolio_sign_class}">₹{float(val):,.0f}</td>'
                         )
                 # 4. Multipliers & Ratios (e.g. Sharpe, Sortino, Calmar, Beta, Surge, Multiplier, Profit Factor, RS_Ratio, RS_Momentum)
                 elif any(
@@ -2753,6 +2758,9 @@ body::-webkit-scrollbar,
 .saas-table-wrapper.portfolio .saas-table tbody td:nth-child(n+11) {{
     color: #667085;
 }}
+.saas-table-wrapper.portfolio .portfolio-pos {{ color: #067647 !important; font-weight: 700 !important; }}
+.saas-table-wrapper.portfolio .portfolio-neg {{ color: #912018 !important; font-weight: 700 !important; }}
+.saas-table-wrapper.portfolio .portfolio-flat {{ color: #5E6878 !important; }}
 @media (max-width: 640px) {{
     .saas-table-wrapper.portfolio .saas-table {{
         font-size: 11px;
