@@ -13,6 +13,8 @@ from __future__ import annotations
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
+import pandas as pd
+
 INDIA_TZ = ZoneInfo("Asia/Kolkata")
 
 # When a session's daily bar can be trusted as final. NSE's equity close is
@@ -34,6 +36,35 @@ def ist_now() -> datetime:
 def ist_today() -> date:
     """Today's date as the Indian market sees it."""
     return ist_now().date()
+
+def current_calendar_period(*, now: datetime | None = None) -> pd.Period:
+    """The current IST calendar month, independent of the latest price row."""
+    return pd.Period((now or ist_now()).date(), freq="M")
+
+
+def last_closed_calendar_period(
+    data_as_of: pd.Timestamp | date,
+    *,
+    now: datetime | None = None,
+) -> pd.Period:
+    """Latest calendar month closed and represented by the available data.
+
+    Calendar closure and data availability are deliberately separate. On
+    1-Oct with prices ending 30-Sep, September is closed even though there is
+    no October close yet. On 30-Sep before the session settles, September is
+    still the current/open month.
+    """
+    reference = now or ist_now()
+    data_period = pd.Period(pd.Timestamp(data_as_of).date(), freq="M")
+    current_period = current_calendar_period(now=reference)
+    if data_period < current_period:
+        return data_period
+    if data_period > current_period:
+        return current_period
+    if session_is_complete(pd.Timestamp(data_as_of).date(), now=reference):
+        return data_period
+    return data_period - 1
+
 
 
 def recent_trading_days(
