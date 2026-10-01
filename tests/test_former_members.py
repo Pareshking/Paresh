@@ -144,6 +144,7 @@ def test_the_rebuilt_ledger_is_one_regime_on_the_index_as_it_stood():
     assert len({m["config"] for m in months.values()}) == 1
     assert {m["universe"] for m in months.values()} == {"point_in_time"}
     assert {m["origin"] for m in months.values()} == {"backfill"}
-    rb = led["rebuilds"][-1]
-    assert rb["membership"].startswith("point in time") and "5b356a6ba93b" in rb["replaced_configs"]
-    assert set(rb["months"]) == set(months) and rb["former_members_unpriceable"]
+    first, last = led["rebuilds"][0], led["rebuilds"][-1]
+    assert first["membership"].startswith("point in time") and "5b356a6ba93b" in first["replaced_configs"]
+    assert set(first["months"]) == set(months) and first["former_members_unpriceable"]   # Yahoo had none
+    assert last["config"] == next(iter(months.values()))["config"]                      # the NSE rebuild

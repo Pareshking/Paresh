@@ -26,7 +26,7 @@ from src.engine.track_record import (
     months_to_cover,
     summary_stats,
 )
-from src.loaders import former_members
+from src.loaders import former_members, nse_prices
 from src.loaders.ranking_store import actions_digest
 from src.ui import page_kit as kit
 from src.ui.theme import render_saas_table
@@ -61,6 +61,12 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
     # held and has since dropped must have prices (loaders/former_members.py).
     membership = membership_for(system)
     prices = former_members.with_former_members(adj_close, membership)
+    if system == SYSTEM_750:
+        # The 750's record is struck on NSE's closes as published, so this run
+        # must be too or its month-to-date would disagree with the frozen months.
+        nse, _ = nse_prices.basis_frame(adj_close, membership, months=months)
+        if nse is not None:
+            prices, events = nse, []
     result = run_backtest(
         f"trackrec_{system}_{price_fingerprint(prices)}_{actions_digest(events)}_{months}",
         prices,
@@ -239,10 +245,11 @@ def render_track_record_view(
     )
     incl = stats.get("includes_mtd")
 
-    # Not Jensen's alpha, and not like-for-like: the strategy trades
-    # dividend-adjusted prices (auto_adjust=True) while ^CRSLDX is the Nifty 500
-    # PRICE index, which excludes dividends. The constituents' yield -- roughly
-    # 1-1.5% a year -- therefore lands in the gap as if it were skill.
+    # Not Jensen's alpha. On the Yahoo basis the strategy trades dividend-adjusted
+    # prices (auto_adjust=True) while ^CRSLDX is the Nifty 500 PRICE index, which
+    # excludes dividends, so the constituents' yield -- roughly 1-1.5% a year --
+    # lands in the gap as if it were skill. On the NSE basis (ledger["price_basis"])
+    # both sides are price only.
     beat = stats["beat_rate"]
     n_beat = None if beat is None else round(beat * stats["months"])
     since = "after costs, before tax" + (f" · includes {mtd_period.strftime('%B')} so far" if incl else "")
@@ -263,7 +270,9 @@ def render_track_record_view(
         + (f" (scaled up from {elapsed:.2f} years, not a CAGR)" if elapsed < 1 else "")
         + f" · positive months {stats['positive_months']} of {stats['months']}"
         + f" · worst fall, month to month, {_pct(stats['max_drawdown'])}"
-        + " · about 1–1.5% a year of the gap is dividends the price index leaves out."
+        + (" · prices are NSE closes as published, with no dividends added back, like the index."
+           if ledger.get("price_basis") == "nse_as_published"
+           else " · about 1–1.5% a year of the gap is dividends the price index leaves out.")
     )
 
     # How much of this record is EVIDENCE and how much is reconstruction. A

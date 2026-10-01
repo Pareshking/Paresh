@@ -70,6 +70,13 @@ TRACK_RECORD_CONFIG: dict[str, Any] = {
     # fills (buy and hold) instead of re-weighting it to target every session;
     # months frozen before that stay as they are and read as a separate regime.
     "accrual": "buy_and_hold",
+    # The price basis, also not a run_backtest argument. From 2026-10-01 the 750's
+    # record is struck on NSE's own closes as published, adjusted only for splits,
+    # bonuses and demergers (src/loaders/nse_prices.py), not on Yahoo's restated
+    # adjusted closes: a rebuilt month ranks on what was published, and a stock
+    # that has since merged away keeps its prices. scripts/update_track_record.py
+    # records "yahoo_adjusted" instead for a record that has no NSE file.
+    "prices": "nse_as_published",
 }
 
 

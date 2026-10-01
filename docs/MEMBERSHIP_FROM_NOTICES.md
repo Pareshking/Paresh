@@ -73,8 +73,6 @@ committed files at any time.
   drops them everywhere, and with no price they could never be selected anyway.
 - **Before 2025-12-31** there is no record, so `members_on` answers `None` and the
   backtester reports those rebalances as scored on today's list.
-- The **Track Record's frozen months** (Jan–Aug, `origin: backfill`) were computed
-  before this and are not recomputed by it.
 
 ## Extending further back
 
@@ -113,8 +111,8 @@ the dropped names are mostly the weaker ones). Measured on the 2026 month ends,
   `members_on(..., canonical=True)`: `HEG` -> `HEGAM` on 2026-09-23 (identical
   prices on every overlapping day). Yahoo files a renamed stock's whole past under
   its new ticker.
-- **Unpriceable:** `CIGNITITEC`, `GSPL`, `GUJGASLTD`, `JBCHEPHARM` were merged away
-  and Yahoo has nothing. Four names of 750 (under 1%) can still not be selected.
+- **Merged away:** `CIGNITITEC`, `GSPL`, `GUJGASLTD`, `JBCHEPHARM` have nothing on Yahoo,
+  but NSE's own record has all four (see `docs/NSE_PRICE_BASIS.md`), so none is unpriceable now.
 - **Sector cap:** a former member has no NSE industry on file, so its TradingView
   industry is mapped to the NSE industry most current members with that
   TradingView industry carry (82% correct leave-one-out on the 750).

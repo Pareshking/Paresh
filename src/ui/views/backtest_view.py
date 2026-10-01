@@ -20,7 +20,7 @@ from src.engine.parameter_sweep import (
 )
 from src.engine.pipeline import price_fingerprint
 from src.loaders.price_loader import fetch_benchmark_history
-from src.loaders import former_members
+from src.loaders import former_members, nse_prices
 from src.loaders.ranking_store import actions_digest
 from src.ui import page_kit as kit
 from src.ui.components import gap_count, render_data_quality_footer
@@ -107,8 +107,20 @@ def _backtest_body(
     # Score on the index as it stood: the stocks it once held and has since
     # dropped need prices too, or the pool is only the survivors.
     membership = membership if membership is not None else load_history_or_none()
-    adj_close = former_members.with_former_members(adj_close, membership)
-    _events = load_events()
+    # Prices as NSE published them (loaders/nse_prices.py): a past month ranks
+    # on what was known then, not on a vendor's later restatement. Where the
+    # file does not reach back far enough, the long Yahoo history stands.
+    _nse, _nse_info = nse_prices.basis_frame(adj_close, membership, months=months)
+    if _nse is not None:
+        adj_close, _events = _nse, []
+        kit.caption(
+            "Prices: NSE closes as published, adjusted for splits, bonuses and demergers "
+            "(dividends are not added back, as with the Nifty 500 price index it is measured against)."
+        )
+    else:
+        adj_close = former_members.with_former_members(adj_close, membership)
+        _events = load_events()
+        kit.caption("Prices: Yahoo adjusted closes, which are restated for later dividends and corrections.")
     ph = f"{price_fingerprint(adj_close)}_{actions_digest(_events)}"
     if liquidity_floor_cr:
         kit.caption(f"Liquidity floor on: a stock is bought only while its 20-day average "

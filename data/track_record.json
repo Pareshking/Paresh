@@ -10,77 +10,77 @@
       "origin": "backfill",
       "universe": "point_in_time",
       "finalized_on": "2026-10-01",
-      "config": "2aa2cb53f4d1",
+      "config": "65d84ba7dcd4",
       "data_as_of": "2026-09-30"
     },
     "2026-02": {
-      "strategy": 0.027311,
+      "strategy": 0.024629,
       "benchmark": 0.003785,
-      "alpha": 0.023526,
+      "alpha": 0.020844,
       "origin": "backfill",
       "universe": "point_in_time",
       "finalized_on": "2026-10-01",
-      "config": "2aa2cb53f4d1",
+      "config": "65d84ba7dcd4",
       "data_as_of": "2026-09-30"
     },
     "2026-03": {
-      "strategy": -0.122998,
+      "strategy": -0.118538,
       "benchmark": -0.113904,
-      "alpha": -0.009094,
+      "alpha": -0.004634,
       "origin": "backfill",
       "universe": "point_in_time",
       "finalized_on": "2026-10-01",
-      "config": "2aa2cb53f4d1",
+      "config": "65d84ba7dcd4",
       "data_as_of": "2026-09-30"
     },
     "2026-04": {
-      "strategy": 0.195161,
+      "strategy": 0.198395,
       "benchmark": 0.105003,
-      "alpha": 0.090158,
+      "alpha": 0.093393,
       "origin": "backfill",
       "universe": "point_in_time",
       "finalized_on": "2026-10-01",
-      "config": "2aa2cb53f4d1",
+      "config": "65d84ba7dcd4",
       "data_as_of": "2026-09-30"
     },
     "2026-05": {
-      "strategy": 0.106191,
+      "strategy": 0.115302,
       "benchmark": -0.00117,
-      "alpha": 0.107361,
+      "alpha": 0.116472,
       "origin": "backfill",
       "universe": "point_in_time",
       "finalized_on": "2026-10-01",
-      "config": "2aa2cb53f4d1",
+      "config": "65d84ba7dcd4",
       "data_as_of": "2026-09-30"
     },
     "2026-06": {
-      "strategy": 0.073031,
+      "strategy": 0.072482,
       "benchmark": 0.014947,
-      "alpha": 0.058084,
+      "alpha": 0.057535,
       "origin": "backfill",
       "universe": "point_in_time",
       "finalized_on": "2026-10-01",
-      "config": "2aa2cb53f4d1",
+      "config": "65d84ba7dcd4",
       "data_as_of": "2026-09-30"
     },
     "2026-07": {
-      "strategy": -0.014517,
+      "strategy": -0.02203,
       "benchmark": 0.020223,
-      "alpha": -0.034741,
+      "alpha": -0.042253,
       "origin": "backfill",
       "universe": "point_in_time",
       "finalized_on": "2026-10-01",
-      "config": "2aa2cb53f4d1",
+      "config": "65d84ba7dcd4",
       "data_as_of": "2026-09-30"
     },
     "2026-08": {
-      "strategy": 0.151064,
+      "strategy": 0.14427,
       "benchmark": -0.000441,
-      "alpha": 0.151505,
+      "alpha": 0.144711,
       "origin": "backfill",
       "universe": "point_in_time",
       "finalized_on": "2026-10-01",
-      "config": "2aa2cb53f4d1",
+      "config": "65d84ba7dcd4",
       "data_as_of": "2026-09-30"
     }
   },
@@ -119,6 +119,38 @@
         "2026-08": 0.126149
       },
       "note": "Rebuilt on point-in-time Nifty Total Market membership (from NSE notices) with prices for former members, under the current pinned config (adds accrual=buy_and_hold, which the 2026-09-03 months pre-date). Replaces the Jan-Aug block, which was scored on today's list under the earlier accrual convention."
+    },
+    {
+      "on": "2026-10-01",
+      "months": [
+        "2026-01",
+        "2026-02",
+        "2026-03",
+        "2026-04",
+        "2026-05",
+        "2026-06",
+        "2026-07",
+        "2026-08"
+      ],
+      "replaced_configs": [
+        "2aa2cb53f4d1"
+      ],
+      "config": "65d84ba7dcd4",
+      "prices": "nse_as_published",
+      "membership": "point in time from 2025-12-31",
+      "former_members_unpriceable": [],
+      "previous_values": {
+        "2026-01": 0.001721,
+        "2026-02": 0.027311,
+        "2026-03": -0.122998,
+        "2026-04": 0.195161,
+        "2026-05": 0.106191,
+        "2026-06": 0.073031,
+        "2026-07": -0.014517,
+        "2026-08": 0.151064
+      },
+      "note": "Struck on NSE closes as published (data/nse_prices) instead of Yahoo's restated adjusted closes, so each month ranks and applies its entry/exit gates on what was published that day; the four names the index absorbed (CIGNITITEC, GSPL, GUJGASLTD, JBCHEPHARM) now have prices."
     }
-  ]
+  ],
+  "price_basis": "nse_as_published"
 }
