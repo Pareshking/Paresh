@@ -2351,8 +2351,9 @@ _AGGREGATE_MONEY_KEYS = ("VALUE", "CAPITAL", "MCAP", "P&L", "DAY P&L")
 def render_saas_table(
     df: pd.DataFrame,
     max_height: int | None = None,
+    variant: str = "default",
 ) -> None:
-    """Renders a beautiful borderless SaaS table with sticky headers, interactive column sorting, and Geist Mono numerics."""
+    """Render a borderless SaaS table with optional page-specific presentation variants."""
     if df.empty:
         st.info("No data available to display.")
         return
