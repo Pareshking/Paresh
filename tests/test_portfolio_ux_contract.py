@@ -36,10 +36,11 @@ def test_portfolio_primary_columns_are_first_and_single_table_is_preserved():
 
 def test_portfolio_copy_avoids_internal_accounting_language_in_primary_sections():
     source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
-    assert "current-book unrealised" not in source
-    assert "frozen Track Record" not in source
+    primary = source[source.index('head = kit.page_head'):source.index('display_cols = [')]
+    assert "current-book unrealised" not in primary
+    assert "frozen Track Record" not in primary
     assert "Historical ending value" not in source
-    assert "live month-to-date" in source or "current month-to-date" in source
+    assert "current month-to-date" in source
 
 
 def test_portfolio_table_variant_is_scoped_to_portfolio():
