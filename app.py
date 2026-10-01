@@ -1145,6 +1145,7 @@ def _page_backtest() -> None:
         weights=weights,
         liquidity_floor_cr=liquidity_floor_cr,
         traded_value=_traded_value(),
+        system=system,
         **extra_args,
     )
 
