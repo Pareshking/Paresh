@@ -18,6 +18,7 @@ point-in-time membership (src/engine/systems.py).
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import sys
 from pathlib import Path
 
@@ -41,6 +42,7 @@ from src.engine.corporate_actions import load_events  # noqa: E402
 from src.engine import systems  # noqa: E402
 from src.engine.extra_universe import SYSTEM_750, SYSTEM_NANO, SYSTEMS  # noqa: E402
 from src.engine.membership import describe  # noqa: E402
+from src.loaders import former_members, nse_prices  # noqa: E402
 from src.loaders import extra_universe_loader as xl  # noqa: E402
 from src.loaders.indices_loader import fetch_indices_data  # noqa: E402
 from src.loaders.price_loader import (  # noqa: E402
@@ -64,7 +66,16 @@ def main() -> int:
         help="Price history to fetch. Must cover inception plus a 12-month "
         "formation window before it.",
     )
+    ap.add_argument("--prices", choices=["nse", "yahoo"], default=None,
+                    help="price basis: nse (NSE closes as published, data/nse_prices; the "
+                    "750's default) or yahoo (restated adjusted closes; the default for "
+                    "Nano Cap and Combined, which have no NSE file)")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument(
+        "--note",
+        default="",
+        help="Why a --force rebuild was done; stored in the ledger's `rebuilds` log.",
+    )
     ap.add_argument(
         "--force",
         action="store_true",
@@ -134,7 +145,46 @@ def main() -> int:
     else:
         print("→ no membership history; months will use the current universe")
 
+    # The index's former members need prices too, or the record is scored
+    # against survivors only (data/former_member_prices.parquet, kept by
+    # scripts/sync_former_member_prices.py).
     cfg = dict(TRACK_RECORD_CONFIG)
+    basis = args.prices or ("nse" if system == SYSTEM_750 else "yahoo")
+    actions = load_events()
+    if basis == "nse":
+        # NSE's closes as published, adjusted only for splits, bonuses and
+        # demergers: a month ranks on what was known that day, not on a vendor's
+        # later restatement. Yahoo's frame supplies only what NSE's equity series
+        # lacks (REITs) and the sessions after the file's last. Its corporate-
+        # action log is Yahoo's correction, so it is not applied to NSE's series.
+        nse, info = nse_prices.basis_frame(adj_close, membership, months=months)
+        if nse is None:
+            print(f"✗ NSE price basis unavailable ({info.get('why')}); refusing to freeze "
+                  "months on a different basis under the NSE fingerprint (use --prices yahoo)")
+            return 1
+        print(f"→ prices: NSE as published, {info['symbols_priced']} of {info['symbols_wanted']} "
+              f"names, sessions to {info['last_session_on_file']} on file "
+              f"(frame to {info['frame_last_session']}); from the other source: "
+              f"{', '.join(info['other_source_names'] + info['other_source_history']) or 'none'}")
+        # A frozen month needs NSE's own closes through its last session, not Yahoo's
+        # moves carried over the gap.
+        closed_end = pd.Period(as_of, freq="M") - (0 if as_of.is_month_end else 1)
+        final = nse.index[nse.index <= closed_end.end_time]
+        if len(final) and pd.Timestamp(info["last_session_on_file"]) < final[-1]:
+            print(f"✗ the NSE file ends {info['last_session_on_file']}, before the last closed "
+                  f"session {final[-1]:%Y-%m-%d}; run scripts/sync_nse_prices.py --update first")
+            return 1
+        adj_close, actions = nse, []
+    else:
+        cfg["prices"] = "yahoo_adjusted"
+        print("→ prices: Yahoo adjusted closes (restated)")
+    n_before = adj_close.shape[1]
+    adj_close = former_members.with_former_members(adj_close, membership)
+    unpriceable = [s for s in former_members.unavailable() if s not in adj_close.columns]
+    print(f"→ former members priced: {adj_close.shape[1] - n_before} added to the "
+          f"{n_before}-stock frame; unpriceable: "
+          f"{', '.join(unpriceable) or 'none'}")
+
     fingerprint = config_fingerprint(**cfg)
     print(f"  config fingerprint: {fingerprint}")
 
@@ -152,7 +202,7 @@ def main() -> int:
         _benchmark_close=benchmark,
         backtest_months=months,
         _membership=membership,
-        _actions=load_events(),
+        _actions=actions,
     )
     if result is None:
         print("✗ backtest produced no result (insufficient history?)")
@@ -166,6 +216,7 @@ def main() -> int:
 
     ledger = load_ledger(ledger_file, start)
     before = len(ledger.get("months", {}))
+    prior_months = dict(ledger.get("months", {}))
 
     for row in drift_report(ledger, result["equity_curve"]):
         print(f"  ! drift {row['month']}: stored {row['stored']:+.2%} vs "
@@ -182,6 +233,28 @@ def main() -> int:
         force=args.force,
     )
 
+    if args.force and added:
+        # A rebuild replaces frozen numbers, so the file says so: when, which
+        # months, what they were struck under before, and what they are now.
+        replaced = sorted({m.get("config") for m in prior_months.values() if m.get("config")})
+        ledger.setdefault("rebuilds", []).append({
+            "on": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "months": added,
+            "replaced_configs": replaced,
+            "config": fingerprint,
+            "prices": cfg["prices"],
+            "membership": ("point in time" + (f" from {pit_from}" if pit_from else "")),
+            "former_members_unpriceable": unpriceable,
+            "previous_values": {k: prior_months[k]["strategy"] for k in added if k in prior_months},
+            "note": args.note,
+        })
+    # One basis for the whole file, or none claimed: a ledger that mixes months struck
+    # on different bases must not label them all with one.
+    configs = {m.get("config") for m in ledger["months"].values()}
+    if configs <= {fingerprint}:
+        ledger["price_basis"] = cfg["prices"]
+    else:
+        ledger.pop("price_basis", None)
     print(f"→ {before} months on file; {len(added)} added, {len(skipped)} "
           f"already frozen")
     for key in added:

@@ -6,14 +6,26 @@ Lives in the engine, not in a view, so no page imports another page for it.
 from __future__ import annotations
 
 import pandas as pd
+import streamlit as st
 
 from src.engine.backtester import run_backtest
 from src.engine.corporate_actions import load_events
 from src.engine.extra_universe import SYSTEM_750
 from src.engine.pipeline import price_fingerprint
+from src.engine.rank_history import month_books
 from src.engine.systems import inception, membership_for
 from src.engine.track_record import TRACK_RECORD_CONFIG, months_to_cover
+from src.loaders import former_members, nse_prices
 from src.loaders.ranking_store import actions_digest
+
+
+@st.cache_data(show_spinner=False, max_entries=6)
+def _month_books(key: str, _prices: pd.DataFrame, _tradebook: pd.DataFrame, _membership: dict | None) -> dict:
+    """Each month's book with its start and end ranks and gates (engine/rank_history.py)."""
+    cfg = TRACK_RECORD_CONFIG
+    return month_books(_prices, _tradebook, membership=_membership,
+                       ema_period=cfg["ema_period"], high_pct=cfg["high_pct"],
+                       config_weights=cfg["config_weights"])
 
 
 def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
@@ -41,9 +53,19 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
     # Whole-history fingerprint + applied events: the old key (date, width,
     # months) served an hour-stale MTD after a restatement or a new split.
     events = load_events()
+    # The pinned run is scored on the index as it stood, so the names it once
+    # held and has since dropped must have prices (loaders/former_members.py).
+    membership = membership_for(system)
+    prices = former_members.with_former_members(adj_close, membership)
+    if system == SYSTEM_750:
+        # The 750's record is struck on NSE's closes as published, so this run
+        # must be too or its month-to-date would disagree with the frozen months.
+        nse, _ = nse_prices.basis_frame(adj_close, membership, months=months)
+        if nse is not None:
+            prices, events = nse, []
     result = run_backtest(
-        f"trackrec_{system}_{price_fingerprint(adj_close)}_{actions_digest(events)}_{months}",
-        adj_close,
+        f"trackrec_{system}_{price_fingerprint(prices)}_{actions_digest(events)}_{months}",
+        prices,
         top_n=cfg["top_n"],
         rebal_freq=cfg["rebal_freq"],
         ema_period=cfg["ema_period"],
@@ -54,7 +76,7 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
         buffer_n=cfg["buffer_n"],
         _benchmark_close=benchmark_close,
         backtest_months=months,
-        _membership=membership_for(system),
+        _membership=membership,
         stateful_history=True,
         # The backtest needs warm-up prices before inception, but its stateful
         # tradebook must not create portfolio ownership before the canonical
@@ -86,6 +108,10 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
             exit_date.ge(start.start_time) | exit_date.isna()
         ].reset_index(drop=True)
 
+    tb = result.get("tradebook")
+    if isinstance(tb, pd.DataFrame) and not tb.empty:
+        result["month_books"] = _month_books(
+            f"{system}_{price_fingerprint(prices)}_{months}", prices, tb, membership)
     return with_live_month(result)
 
 
