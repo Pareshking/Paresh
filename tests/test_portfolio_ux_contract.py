@@ -95,3 +95,26 @@ def test_portfolio_equity_view_reports_current_mtd_not_cumulative_return():
     assert '"MTD gap"' in equity
     assert 'st.metric("Since inception", f"{historical_return:+.1%}"' not in equity
 
+
+
+def test_calendar_grid_renders_from_the_real_history_builder():
+    # Rendered, not grepped: the grid read "Strategy Net" off itertuples()
+    # rows, which rename spaced columns, and every Monthly view raised
+    # KeyError in production (1 Oct 2026) while the source-text tests passed.
+    # pipeline first: src.engine.momentum and src.engine.pipeline import each
+    # other, and only this order resolves (the app's own order).
+    import src.engine.pipeline  # noqa: F401
+    from src.ui.views.portfolio_view import _calendar_grid_html, build_portfolio_history
+
+    ledger = {"months": {
+        "2026-01": {"strategy": 0.10, "benchmark": -0.02, "origin": "recorded"},
+        "2026-02": {"strategy": -0.05, "benchmark": 0.01},
+        "2026-08": {"strategy": 0.03, "benchmark": 0.00},
+    }}
+    meta = {"strategy_mtd": 0.027, "benchmark_mtd": -0.054, "mtd_period": "2026-09", "as_of": "2026-09-30"}
+    h = build_portfolio_history({}, 2_000_000, ledger, meta)
+    html = _calendar_grid_html(h["monthly_grid"], h["mtd_period"])
+    assert html.count('class="pcg-mtd">MTD<') == 1          # the live September cell only
+    assert "+10.0%" in html and "+2.7%" in html
+    assert "Δ +8.1%" in html                                 # 2.7% − (−5.4%)
+    assert h["strategy_mtd"] == 0.027 and h["benchmark_mtd"] == -0.054

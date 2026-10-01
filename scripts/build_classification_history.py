@@ -71,7 +71,14 @@ def build(output: Path, path: Path = DEFAULT_PATH) -> dict:
         part["evidence_date"] = pd.Timestamp(evidence_date)
         part["evidence_commit"] = commit
         part["source"] = "repository TV classification snapshot"
-        snapshots.append(part)
+        # One snapshot per day: the daily sync can commit twice in a day (30 Sep
+        # 2026: 21:32 and 23:22 UTC), and two snapshots with one effective date
+        # gave every symbol two rows for it. The day's last commit is the one
+        # in force from that date.
+        if snapshots and snapshots[-1]["evidence_date"].iat[0] == part["evidence_date"].iat[0]:
+            snapshots[-1] = part
+        else:
+            snapshots.append(part)
         previous_digest = digest
 
     if not snapshots:
