@@ -61,6 +61,11 @@ jobs:
           # blaming this commit for it.
           UMIYA_EXPECTED_SHA: ${{ github.sha }}
         run: python scripts/production_qa.py
+      - name: Portfolio visual QA
+        if: always()
+        env:
+          UMIYA_EXPECTED_SHA: ${{ github.sha }}
+        run: python scripts/portfolio_production_qa.py
       - name: Upload QA evidence
         if: always()
         uses: actions/upload-artifact@v7
