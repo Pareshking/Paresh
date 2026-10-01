@@ -15,6 +15,19 @@ _Last updated: 2026-10-01_
 | 3 | Decide: NSE as the middle price source (Screener → NSE → Yahoo) | Owner says yes or no after item 2 (Claude recommends yes, skipping the ~50 stocks still off) | [ ] waiting on owner |
 | 4 | If yes: switch the price order in the app | PR merged; precompute accepted in production; docs updated | [ ] |
 
+## UI and data overhaul (raised 1 Oct 2026)
+
+Full findings and work packages: `docs/UI_OVERHAUL_PLAN.md`.
+
+| # | What | How we know it is done | Status |
+|---|---|---|---|
+| U0 | Owner approves the plan and decisions D1-D6 | Owner reply | [ ] waiting on owner |
+| U1 | Engine fixes: open trades kept (NaT filter), live-month changes in the tradebook, `record_run` moved out of the view | Tests; Portfolio shows Open trades and rebalances after Aug | [ ] |
+| U2 | Design tokens, one stock table, one chart component (WP1, WP2) | PR merged; Production QA green | [ ] |
+| U3 | Portfolio rebuild and Track Record merge (WP3, WP4) | same | [ ] |
+| U4 | Screener (WP5), Breadth (WP6), RRG and Configuration wording (WP7), text sweep (WP8, WP9) | same | [ ] |
+| U5 | Data catalogue, NSE vs Yahoo comparison, R2 policy (WP10) | `docs/DATA_CATALOGUE.md`; comparison report | [ ] |
+
 ## Dated
 
 | # | When | What | How we know it is done | Status |
