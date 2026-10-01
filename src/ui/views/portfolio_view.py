@@ -328,9 +328,32 @@ def render_portfolio_view(
             f"₹{capital:,.0f} fixed capital  · {len(monthly)} completed recorded months"
         )
 
-    if history_tab in ("Overview", "Equity"):
+    if history_tab == "Overview":
         with kit.card(
-            "Equity curve" if history_tab == "Equity" else "Performance overview",
+            "Performance overview",
+            "portfolio_performance_overview",
+            "frozen since-inception record · completed months only",
+        ):
+            if equity.empty:
+                st.info("No completed portfolio history is available yet.")
+            else:
+                a, b, c, d = st.columns(4)
+                with a:
+                    st.metric("Historical ending value", f"₹{equity.iloc[-1]:,.0f}")
+                with b:
+                    st.metric("Since inception", f"{historical_return:+.1%}" if np.isfinite(historical_return) else "—")
+                with c:
+                    st.metric("Benchmark", f"{benchmark_return:+.1%}" if np.isfinite(benchmark_return) else "—")
+                with d:
+                    st.metric("Max drawdown", f"{history['max_drawdown']:.1%}" if np.isfinite(history["max_drawdown"]) else "—")
+                st.caption(
+                    "Since inception includes the full frozen portfolio record, including positions that were already closed. "
+                    "The current-book P&L above is unrealised and only covers today's holdings, so the two percentages are not expected to match."
+                )
+
+    elif history_tab == "Equity":
+        with kit.card(
+            "Equity curve",
             "portfolio_equity",
             "₹20 lakh starting point · strategy vs benchmark · completed months only",
         ):
@@ -412,7 +435,7 @@ def render_portfolio_view(
             if drawdown.empty:
                 st.info("No drawdown history is available yet.")
             else:
-                kit.growth_chart([d.strftime("%b %Y") for d in drawdown.index], drawdown.tolist(), None, key="portfolio_drawdown_curve_v2")
+                kit.drawdown_chart([d.strftime("%b %Y") for d in drawdown.index], drawdown.tolist(), key="portfolio_drawdown_curve_v2")
                 st.caption(f"Maximum drawdown over completed history: {history['max_drawdown']:.1%}.")
 
     with kit.card("Portfolio accounting", "portfolio_accounting", "entry cost, current value, P&L and target-weight drift"):
