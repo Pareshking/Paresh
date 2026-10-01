@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
+import src.engine.pipeline  # noqa: F401  (pipeline first: it and momentum import each other)
 from src.ui import page_kit as kit
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -69,6 +70,8 @@ MIGRATED = {
     "rrg_tf_choice": "rrg_view.py",
     "qual_top_n": "qualified_view.py",
     "sector_rank_by": "sector_view.py",
+    "rank_sort_by": "ranking_view.py",
+    "cfg_system_radio": "config_view.py",
 }
 
 
@@ -126,3 +129,79 @@ def test_growth_chart_rebases_growth_factors_to_100():
     assert not at.exception, [e.value for e in at.exception]
     legend = at.get("html")[0].value
     assert "₹120" in legend and "₹105" in legend
+
+
+# ── Grids, drill-down dialogs and the pickers added in the second pass ───────
+
+def test_stock_grid_config_covers_only_the_columns_asked_for():
+    cfg = kit.stock_grid_config(["Rank", "Symbol", "3M Return", "Score", "Chart", "Nope"],
+                                score_range=(-1.0, 3.0))
+    assert list(cfg) == ["Rank", "Symbol", "3M Return", "Score", "Chart"]
+    assert kit.stock_grid_config([]) == {}
+
+
+def test_tradingview_url_is_encoded_and_external():
+    url = kit.tradingview_url("M&M")
+    assert url.startswith("https://www.tradingview.com/chart/?symbol=")
+    assert "M%26M" in url and "NSE%3A" in url
+
+
+def test_the_grid_frame_follows_the_density_and_adds_a_chart_link():
+    import pandas as pd
+
+    from src.ui.views import ranking_view as rv
+
+    df = pd.DataFrame({
+        "Rank": [1, 2], "Symbol": ["A", "B"], "Industry": ["X", "Y"], "CMP": [10.0, 20.0],
+        "Score": [1.5, 1.0], "Rank Δ 1M": [1, -1], "1M Return": [0.1, 0.0],
+        "3M Return": [0.2, 0.1], "6M Return": [0.3, 0.2], "12M Return": [0.5, 0.4],
+        "3M Sharpe": [1.0, 0.5], "Max DD 12M": [-10.0, -20.0], "% High": [0.0, -5.0],
+        "Above 50 EMA": ["✅", ""], "Near 52W High": [True, False],
+    })
+    ex = rv._grid_frame(df, "Executive (8)")
+    core = rv._grid_frame(df, "Core (13)")
+    assert list(ex.columns) == ["Rank", "Symbol", "CMP", "Rank Δ 1M", "3M Return", "12M Return",
+                                "% High", "Above 50 EMA", "Near 52W High", "Chart"]
+    assert "Score" in core.columns and "Industry" in core.columns and len(core.columns) > len(ex.columns)
+    assert ex["Above 50 EMA"].tolist() == [True, False]
+    assert ex["Chart"].iloc[0].endswith("NSE%3AA")
+    # the data itself is untouched: same rows, same order, same values
+    assert ex["Symbol"].tolist() == ["A", "B"] and ex["3M Return"].tolist() == [0.2, 0.1]
+
+
+PROBE = str(Path(__file__).parent / "_stock_page_probe_app.py")
+
+
+def test_the_screener_draws_a_grid_with_row_selection():
+    at = AppTest.from_file(PROBE, default_timeout=180).run()
+    assert not at.exception
+    at.segmented_control(key="rank_table_style").set_value("Grid").run()
+    assert not at.exception, [e.value for e in at.exception]
+    assert len(at.dataframe) == 1
+
+
+def test_the_stock_page_offers_a_factsheet_that_opens_without_error():
+    at = AppTest.from_file(PROBE, default_timeout=180)
+    at.query_params["stock"] = "S3"
+    at.run()
+    assert not at.exception
+    at.button(key="sp_factsheet").click().run()
+    assert not at.exception, [e.value for e in at.exception]
+
+
+def test_the_sort_picker_keeps_its_key_and_survives_a_click():
+    at = AppTest.from_file(PROBE, default_timeout=180).run()
+    ctl = at.segmented_control(key="rank_sort_by")
+    assert ctl.value == "Rank"
+    ctl.set_value("3M Return").run()
+    assert not at.exception
+    assert at.segmented_control(key="rank_sort_by").value == "3M Return"
+
+
+def test_the_portfolio_and_stock_dialogs_are_module_level():
+    for fname, expected in (("portfolio_view.py", {"_holding_dialog"}),
+                            ("stock_view.py", {"_factsheet_dialog", "_peers_dialog"})):
+        tree = ast.parse((VIEWS / fname).read_text(encoding="utf-8"))
+        top = {n.name for n in tree.body if isinstance(n, ast.FunctionDef)
+               and any("dialog" in ast.unparse(d) for d in n.decorator_list)}
+        assert top == expected, fname

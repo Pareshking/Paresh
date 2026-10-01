@@ -142,16 +142,18 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
         SYSTEM_COMBINED: "Both, ranked together · record from Oct 2026",
     }
     current = system_param.current()
-    chosen = st.radio(
+    chosen = st.segmented_control(
         "System", options,
-        index=options.index(current) if current in options else 0,
-        format_func=SYSTEM_NAMES.get, captions=[captions[o] for o in options],
+        default=current if current in options else options[0],
+        required=True,
+        format_func=SYSTEM_NAMES.get,
         key="cfg_system_radio",
         help="Every page follows this choice. Nano Cap is every stock of ₹2,000 Cr "
              "or more outside the 750, fixed at each month-end"
              + (f" (list of {nano.get('as_of')})" if nano else "")
              + ", ranked among themselves; Combined ranks both as one list.",
-    )
+    ) or (current if current in options else options[0])
+    st.caption(captions[chosen])
     if chosen != current:
         st.session_state["cfg_system"] = chosen
         st.rerun()
@@ -267,7 +269,7 @@ def _section_momentum_signal() -> None:
             forget(key)
         st.rerun()
 
-    wc = st.columns(5)
+    wc = st.columns(5, vertical_alignment="top")
     for col, (label, key, default) in zip(wc, _WINDOWS):
         # Hand the widget an EXPLICIT value. Relying on session state alone is
         # what produced the reported defect: measured against the live app on
@@ -350,7 +352,7 @@ def _section_portfolio_risk() -> None:
     # PLAUSIBLE number -- a 30% sector cap as 15%, a 5% stock cap as 2% -- and
     # both genuinely bind the portfolio and the backtest. Every widget below is
     # handed an explicit resolved value and mirrored afterwards.
-    lc, rc = st.columns(2, gap="large")
+    lc, rc = st.columns(2, gap="large", vertical_alignment="top")
     new_sc = lc.slider(
         "Most in one sector (%)", min_value=15, max_value=50, step=5,
         value=_risk("cfg_sc"), key="cfg_sc",

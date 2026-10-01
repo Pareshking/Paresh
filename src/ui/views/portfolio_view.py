@@ -5,6 +5,8 @@ current book. It does not select stocks or calculate a competing model book.
 """
 from __future__ import annotations
 
+import html
+
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -421,6 +423,89 @@ def build_portfolio_history(
         "tradebook": tradebook.copy() if isinstance(tradebook, pd.DataFrame) else pd.DataFrame(),
     }
 
+def _fnum(v) -> float | None:
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return f if np.isfinite(f) else None
+
+
+def _rupees(v, sign: bool = False) -> str:
+    f = _fnum(v)
+    if f is None:
+        return "—"
+    if not sign:
+        return f"₹{f:,.0f}"
+    return f"{'+' if f >= 0 else '−'}₹{abs(f):,.0f}"
+
+
+@st.dialog("Position", width="large")
+def _holding_dialog(h: dict) -> None:
+    """A trade ticket for one holding: where it was bought, where it is, and
+    how far it sits from its target weight. Figures only, nothing keyed."""
+    sym = str(h.get("Symbol", ""))
+    st.caption(" · ".join(str(x) for x in (h.get("Company"), h.get("Sector / Industry"))
+                          if x and str(x) != "nan") or sym)
+    pnl_pct = _fnum(h.get("P&L %"))
+    day_pct = _fnum(h.get("Day P&L %"))
+    kit.metric_row([
+        kit.Metric("Price", f"₹{_fnum(h.get('Current Price')):,.2f}" if _fnum(h.get("Current Price")) is not None else "—"),
+        kit.Metric("Value", _rupees(h.get("Current Value (₹)"))),
+        kit.Metric("P&L", _rupees(h.get("P&L (₹)"), sign=True),
+                   delta=f"{pnl_pct:+.1f}%" if pnl_pct is not None else None, tone="normal"),
+        kit.Metric("Today", _rupees(h.get("Day P&L (₹)"), sign=True),
+                   delta=f"{day_pct:+.1f}%" if day_pct is not None else None, tone="normal"),
+    ], key="hd_value")
+    w, t, d = _fnum(h.get("Weight %")), _fnum(h.get("Target Weight %")), _fnum(h.get("Weight Drift %"))
+    kit.metric_row([
+        kit.Metric("Weight", f"{w:.1f}%" if w is not None else "—"),
+        kit.Metric("Target", f"{t:.1f}%" if t is not None else "—"),
+        kit.Metric("Drift", f"{d:+.1f}%" if d is not None else "—"),
+        kit.Metric("Shares", f"{int(_fnum(h.get('Shares'))):,}" if _fnum(h.get("Shares")) is not None else "—"),
+    ], key="hd_weight")
+    kit.metric_row([
+        kit.Metric("Bought", str(h.get("Entry Date") or "—")),
+        kit.Metric("At", f"₹{_fnum(h.get('Entry Price')):,.2f}" if _fnum(h.get("Entry Price")) is not None else "—"),
+        kit.Metric("Held", f"{int(_fnum(h.get('Holding Days'))):,} days" if _fnum(h.get("Holding Days")) is not None else "—"),
+        kit.Metric("Rank now", f"#{int(_fnum(h.get('Current Rank')))}" if _fnum(h.get("Current Rank")) is not None else "—",
+                   help="Rank at entry: " + (f"#{int(_fnum(h.get('Rank at Entry')))}" if _fnum(h.get("Rank at Entry")) is not None else "—")),
+    ], key="hd_entry")
+    st.html(f'<a href="{system_param.stock_href(sym)}" target="_self" class="pg-link">'
+            f'Open {html.escape(sym)} →</a>')
+
+
+def _render_book_grid(book: pd.DataFrame) -> None:
+    """The current book as an st.dataframe, with a bar for each weight. Ticking
+    a row opens that position's ticket. The HTML table stays the default: it
+    colours profit and loss and is the layout the Portfolio tests pin."""
+    grid = book.copy()
+    if "Symbol" in grid.columns:
+        grid["Chart"] = grid["Symbol"].astype(str).map(kit.tradingview_url)
+    shown = [c for c in ["Symbol", "Company", "Sector / Industry", "Current Price", "P&L (₹)",
+                         "P&L %", "Weight %", "Target Weight %", "Weight Drift %",
+                         "Day P&L (₹)", "Current Value (₹)", "Shares", "Entry Price",
+                         "Holding Days", "Current Rank", "3M Return", "Chart"]
+             if c in grid.columns]
+    grid = grid[shown].reset_index(drop=True)
+    event = st.dataframe(
+        grid, hide_index=True, width="stretch",
+        height=min(620, 44 + 35 * len(grid)),
+        column_config=kit.stock_grid_config(grid.columns),
+        on_select="rerun", selection_mode="single-row", key="portfolio_book_grid",
+    )
+    st.caption("Tick a row's box for that position's ticket. Click a column header to sort.")
+    rows = list(getattr(getattr(event, "selection", None), "rows", []) or [])
+    picked = int(rows[0]) if rows and 0 <= rows[0] < len(grid) else None
+    # Open once per pick: the selection outlives the dialog, so a later rerun
+    # (switching a view below, say) must not open it again.
+    if picked is None:
+        st.session_state.pop("_pf_book_seen", None)
+    elif st.session_state.get("_pf_book_seen") != picked:
+        st.session_state["_pf_book_seen"] = picked
+        _holding_dialog(book.reset_index(drop=True).iloc[picked].to_dict())
+
+
 def render_portfolio_view(
     calc,
     rank_df: pd.DataFrame,
@@ -555,7 +640,14 @@ def render_portfolio_view(
         "portfolio_current",
         f"{n_holdings} positions · primary metrics first · swipe horizontally for detail",
     ):
-        render_saas_table(current_view, max_height=620, variant="portfolio")
+        book_style = st.segmented_control(
+            "Book style", ["Table", "Grid"], default="Table",
+            key="portfolio_book_style", label_visibility="collapsed",
+        ) or "Table"
+        if book_style == "Grid":
+            _render_book_grid(current_view)
+        else:
+            render_saas_table(current_view, max_height=620, variant="portfolio")
 
     sector = table.groupby("Sector / Industry", dropna=False).agg(
         Weight=("Weight %", "sum"), Holdings=("Symbol", "count")

@@ -309,3 +309,25 @@ navigation contract changed.
   commit while the Backtest and Track Record pages still called it, so both
   raised `AttributeError`. It is back as a wrapper over `equity_chart`, and
   `tests/test_ui_kit_v2.py` fails if any `kit.<name>` the UI calls is missing.
+
+### 9.1 Second pass: grids and drill-downs
+
+- **Grid view** (`rank_table_style`, `portfolio_book_style`, both default
+  "Table"): the Screener and the Portfolio's current book can be drawn as an
+  `st.dataframe` with `kit.stock_grid_config` (rupee and percent formats, a bar
+  for Score and for Portfolio weight, checkboxes for the filters, an external
+  TradingView `LinkColumn`). The HTML tables stay the default: they carry the
+  12-month paths, the phone list, sign colouring and the tests that pin them.
+- **Row pick**: ticking a row in the Screener grid opens that stock in place
+  (`st.query_params["stock"]`, exactly as the search box does); a fresh grid
+  key (`_rank_grid_n`) follows each pick so coming back does not reopen it.
+  In the Portfolio grid it opens the `_holding_dialog` ticket once per pick
+  (`_pf_book_seen`).
+- **Stock page**: `Factsheet` (tabs: returns and risk, trend and levels, data
+  quality), `All N stocks in <industry>` and an external `Chart` button. The
+  Data-checks expander stays an expander (a test reads it by label).
+- **Pickers**: Screener sort and the Configuration system choice are segmented
+  controls with the same keys; `rank_sort_by` still resolves through the
+  `rank_sort_by_idx` mirror, `cfg_system_radio` keeps the `chosen != current`
+  rerun protocol, and its per-option captions became one caption under the
+  control.

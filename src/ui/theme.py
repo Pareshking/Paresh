@@ -1280,6 +1280,15 @@ def inject_custom_css() -> None:
         .pg-callout.warn { border-left-color: var(--c-caution); background: var(--c-caution-tint); }
         .pg-callout.warn b { color: var(--c-caution-ink); }
 
+        a.pg-link {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 14px; border: 1px solid var(--c-border-strong);
+            border-radius: var(--r-md); background: var(--c-surface);
+            color: var(--c-accent-text) !important; font-size: var(--fs-13);
+            font-weight: 600; text-decoration: none;
+        }
+        a.pg-link:hover { border-color: var(--c-accent); background: var(--c-accent-tint); }
+
         [data-testid="stDialog"] [role="dialog"] {
             border-radius: var(--r-xl) !important;
             box-shadow: var(--sh-pop) !important;
