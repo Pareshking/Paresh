@@ -17,7 +17,7 @@ import pandas as pd
 import streamlit as st
 
 from src.core.config import MOMENTUM_WINDOWS, RISK_FREE_RATE
-from src.core.market_time import current_calendar_period, ist_now, last_closed_calendar_period
+from src.core.market_time import current_calendar_period, last_closed_calendar_period
 from src.engine.calendar_momentum import anchor_frame, period_sharpe_at, winsorised_z
 from src.engine.corporate_actions import adjust_prices
 from src.engine import liquidity
