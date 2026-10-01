@@ -430,6 +430,17 @@ def build_portfolio_history(
         "monthly_grid": pd.DataFrame(monthly_grid_rows),
         "mtd_period": live_period_key,
         "mtd_state": live_month_state(live_period_key, today),
+        # Account-level cumulative returns are derived from the exact equity
+        # series displayed on this page. They therefore chain the same frozen
+        # months plus the same live/closed-awaiting-freeze month as Track Record.
+        "strategy_total_return": (
+            float(equity.iloc[-1] / capital - 1.0)
+            if not equity.empty and capital > 0 else np.nan
+        ),
+        "benchmark_total_return": (
+            float(benchmark.iloc[-1] / capital - 1.0)
+            if not benchmark.empty and capital > 0 else np.nan
+        ),
         "strategy_mtd": float(live_mtd["strategy"]) if pd.notna(live_mtd["strategy"]) else np.nan,
         "benchmark_mtd": float(live_mtd["benchmark"]) if pd.notna(live_mtd["benchmark"]) else np.nan,
         "trades": closed.copy() if isinstance(closed, pd.DataFrame) else pd.DataFrame(),
@@ -715,12 +726,22 @@ def render_portfolio_view(
                 st.info("No completed portfolio history is available yet.")
             else:
                 mtd_gap = strategy_mtd - benchmark_mtd if np.isfinite(strategy_mtd) and np.isfinite(benchmark_mtd) else np.nan
+                total_alpha = (
+                    history["strategy_total_return"] - history["benchmark_total_return"]
+                    if np.isfinite(history["strategy_total_return"])
+                    and np.isfinite(history["benchmark_total_return"]) else np.nan
+                )
                 kit.metric_row([
-                    kit.Metric("Ending value", f"₹{equity.iloc[-1]:,.0f}"),
+                    kit.Metric("Portfolio value", f"₹{equity.iloc[-1]:,.0f}"),
+                    kit.Metric("Since inception · Strategy", kit.pct(history["strategy_total_return"])),
+                    kit.Metric("Since inception · Nifty 500", kit.pct(history["benchmark_total_return"])),
+                    kit.Metric("Since inception · Alpha", kit.pct(total_alpha)),
+                ], key="pf_overview")
+                kit.metric_row([
                     kit.Metric(f"{labels['prefix']} · Strategy", kit.pct(strategy_mtd)),
                     kit.Metric(f"{labels['prefix']} · Nifty 500", kit.pct(benchmark_mtd)),
                     kit.Metric(f"{labels['prefix']} · Alpha", kit.pct(mtd_gap)),
-                ], key="pf_overview")
+                ], key="pf_overview_mtd")
                 st.caption(_overview_note(labels, mtd_state))
 
     elif history_tab == "Equity":
