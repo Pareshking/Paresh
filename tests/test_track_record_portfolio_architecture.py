@@ -247,6 +247,40 @@ def test_record_run_passes_canonical_inception_to_stateful_backtest(monkeypatch)
 
 
 
+def test_record_run_defensively_filters_pre_inception_history(monkeypatch):
+    from src.ui.views import track_record_view
+
+    monkeypatch.setattr(track_record_view, "load_events", lambda: [])
+    monkeypatch.setattr(track_record_view, "price_fingerprint", lambda _prices: "fp")
+    monkeypatch.setattr(track_record_view, "membership_for", lambda _system: None)
+
+    pre_start = pd.DataFrame(
+        [
+            {"Period Start": pd.Timestamp("2022-08-05"), "Action": "BUY", "Symbol": "OLD"},
+            {"Period Start": pd.Timestamp("2026-08-03"), "Action": "BUY", "Symbol": "NEW"},
+        ]
+    )
+    closed = pd.DataFrame(
+        [
+            {"Exit Date": "02 Sep 2022", "Symbol": "OLD", "Status": "Closed"},
+            {"Exit Date": "02 Sep 2026", "Symbol": "NEW", "Status": "Closed"},
+        ]
+    )
+
+    def fake_run_backtest(*args, **kwargs):
+        return {"tradebook": pre_start, "closed_trades": closed}
+
+    monkeypatch.setattr(track_record_view, "run_backtest", fake_run_backtest)
+
+    dates = pd.bdate_range("2025-01-01", "2026-09-30")
+    prices = pd.DataFrame({"AAA": range(len(dates))}, index=dates)
+
+    result = track_record_view.record_run(prices, None, "750")
+
+    assert result["tradebook"]["Symbol"].tolist() == ["NEW"]
+    assert result["closed_trades"]["Symbol"].tolist() == ["NEW"]
+
+
 def test_portfolio_history_includes_live_month_to_date_without_rewriting_frozen_months():
     record = {
         "closed_trades": pd.DataFrame(),
