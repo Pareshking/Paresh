@@ -51,9 +51,10 @@ def build_portfolio_tracker(
     out["Company"] = mapped("Company Name", "").replace("", np.nan).fillna(
         mapped("Company", "").replace("", np.nan)
     ).fillna(out["Symbol"])
-    out["Sector / Industry"] = mapped("TV_Sector", "").replace("", np.nan).fillna(
-        mapped("Industry", "—")
-    )
+    # For Nifty 750, Industry is the canonical NSE industry taxonomy.  The
+    # app may also carry TradingView sector/industry fields for other systems,
+    # but Portfolio exposure must not silently replace the NSE taxonomy here.
+    out["Sector / Industry"] = mapped("Industry", "—").replace("", np.nan).fillna("—")
     out["Current Rank"] = pd.to_numeric(mapped("Rank"), errors="coerce")
     out["Market Cap (Cr)"] = pd.to_numeric(mapped("Market Cap (Cr)"), errors="coerce")
 
@@ -301,13 +302,13 @@ def render_portfolio_view(
         if col in current_view.columns:
             current_view[col] = pd.to_numeric(current_view[col], errors="coerce")
 
-    with kit.card("Current holdings", "portfolio_current", f"{n_holdings} positions · canonical book · horizontal scroll on small screens"):
+    with kit.card("Current book", "portfolio_current", f"{n_holdings} positions · canonical book · horizontal scroll on small screens"):
         render_saas_table(current_view, max_height=620)
 
     sector = table.groupby("Sector / Industry", dropna=False).agg(
         Weight=("Weight %", "sum"), Holdings=("Symbol", "count")
     ).sort_values("Weight", ascending=False).reset_index()
-    with kit.card("Current exposure", "portfolio_exposure", "portfolio weight by sector / industry"):
+    with kit.card("Current exposure", "portfolio_exposure", "portfolio weight by NSE industry"):
         st.html(kit.bar_list([
             (str(row["Sector / Industry"]), float(row["Weight"]), f"{row['Weight']:.1f}% · {int(row['Holdings'])}", False)
             for _, row in sector.iterrows()
