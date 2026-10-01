@@ -110,7 +110,8 @@ def _backtest_body(
     # Prices as NSE published them (loaders/nse_prices.py): a past month ranks
     # on what was known then, not on a vendor's later restatement. Where the
     # file does not reach back far enough, the long Yahoo history stands.
-    _nse, _nse_info = nse_prices.basis_frame(adj_close, membership, months=months)
+    _nse, _nse_info = nse_prices.basis_frame(
+        adj_close, membership, months=months, until=adj_close.index[-1])
     if _nse is not None:
         adj_close, _events = _nse, []
         kit.caption(

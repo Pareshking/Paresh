@@ -119,10 +119,42 @@ def update(pause: float, source: str = "r2") -> int:
     return 0
 
 
+def verify_r2(days: int = 10) -> int:
+    """Read the last sessions on file back from R2 and compare their closes.
+
+    Proves the R2 read works with the live credentials (an `--update` with nothing
+    new never touches R2) and that R2 and the committed file agree.
+    """
+    data = npx.load()
+    if data is None:
+        print("nothing committed to compare")
+        return 1
+    closes = data["closes"]
+    tail = closes.index[-days:]
+    try:
+        prices, _, bad = nh.read_r2(tail[0].date(), tail[-1].date())
+    except Exception as exc:  # noqa: BLE001
+        print(f"R2 unreadable: {type(exc).__name__}: {exc}")
+        return 1
+    wide = na.wide(prices)["close"] if len(prices) else pd.DataFrame()
+    wide.index = pd.DatetimeIndex(wide.index)
+    cols = [c for c in wide.columns if c in closes.columns]
+    both = wide.reindex(index=tail, columns=cols)
+    diff = (both - closes.loc[tail, cols]).abs()
+    off = int((diff.stack() > 0.01).sum()) if len(cols) else -1
+    missing = [str(d.date()) for d in tail if d not in wide.index]
+    print(f"R2 read: {len(wide)} of the last {len(tail)} sessions on file, {len(cols)} symbols, "
+          f"{off} closes differ by more than 0.01; sessions missing on R2: {missing or 'none'}; "
+          f"unreadable: {bad or 'none'}")
+    return 0 if (off == 0 and not missing and not bad) else 1
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     mode = ap.add_mutually_exclusive_group(required=True)
     mode.add_argument("--build", action="store_true", help="rebuild from a bundle cache")
+    mode.add_argument("--verify-r2", action="store_true",
+                      help="read the last sessions back from R2 and compare with the file")
     mode.add_argument("--update", action="store_true", help="append the sessions since the last one on file")
     ap.add_argument("--cache", default="data_cache/nse_bundles")
     ap.add_argument("--since", default="2024-09-30")
@@ -131,6 +163,8 @@ def main() -> int:
                     help="r2: the days the collector already stored (default); nse: download them")
     ap.add_argument("--pause", type=float, default=1.0)
     args = ap.parse_args()
+    if args.verify_r2:
+        return verify_r2()
     if args.build:
         until = date.fromisoformat(args.until) if args.until else date.today()
         return build(Path(args.cache), date.fromisoformat(args.since), until)

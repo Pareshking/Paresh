@@ -122,7 +122,7 @@ def _carry_forward(base: pd.DataFrame, other: pd.DataFrame) -> pd.DataFrame:
 
 
 def basis_frame(other: pd.DataFrame, history: dict | None, *, months: int,
-                directory: Path = DIR) -> tuple[pd.DataFrame | None, dict[str, Any]]:
+                directory: Path = DIR, until: pd.Timestamp | None = None) -> tuple[pd.DataFrame | None, dict[str, Any]]:
     """The record's price frame: NSE as published, for the 750 and the names it dropped.
 
     `other` is the alternative source's adjusted closes (Yahoo's); it fills the
@@ -131,6 +131,12 @@ def basis_frame(other: pd.DataFrame, history: dict | None, *, months: int,
     file. Returns (None, {...}) when no NSE file is committed or it does not
     reach back far enough for a `months`-month study with a 12-month formation
     window, and the caller keeps `other`.
+
+    The frame runs to NSE's last session on file, or `other`'s if that is later.
+    Callers count completed months back from the END of the frame they receive, so
+    one that fixed `months` against `other` passes `until=other.index[-1]` to keep
+    the two ends the same; the record's own runs take the later end, so a month
+    closes the day NSE's first session of the next one is on file.
     """
     from src.loaders import former_members
 
@@ -150,9 +156,8 @@ def basis_frame(other: pd.DataFrame, history: dict | None, *, months: int,
             f"{need_from:%d %b %Y}")}
 
     frame = _carry_forward(nse.astype(float), other.astype(float).reindex(columns=nse.columns))
-    # Never later than `other`: callers count completed months back from the end
-    # of the frame they hand over, and the two must agree on where that is.
-    frame = frame.loc[: pd.Timestamp(other.index[-1])]
+    if until is not None:
+        frame = frame.loc[: pd.Timestamp(until)]
     # Names NSE's equity series lacks, and names that joined its file after the
     # window began: the other source, joined at the first NSE session by level.
     filled, joined = [], []

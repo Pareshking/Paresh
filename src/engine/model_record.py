@@ -63,6 +63,9 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
         nse, _ = nse_prices.basis_frame(adj_close, membership, months=months)
         if nse is not None:
             prices, events = nse, []
+            # The frame may run past the other source's last session (NSE's file is
+            # ahead on the first working day): the window is counted back from its end.
+            months = months_to_cover(pd.Timestamp(prices.index[-1]), start)
     result = run_backtest(
         f"trackrec_{system}_{price_fingerprint(prices)}_{actions_digest(events)}_{months}",
         prices,
