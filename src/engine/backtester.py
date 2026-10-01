@@ -1392,66 +1392,113 @@ def run_backtest(
         )
 
     # ── Month-To-Date ────────────────────────────────────────────────────────
-    # Measure it the way the engine accrues everywhere else: from the CLOSE the
-    # book was filled at, on the book actually held this month. That is the
-    # rebalanced book from its fill date whenever the fill lands in this month.
+    # MTD must cover the full calendar month from the prior month-end close.
+    # When a rebalance fills in this month, the old book earns the close-to-close
+    # return through the fill session, turnover cost is charged on that session,
+    # and the new book earns returns from the next session onward. Starting MTD
+    # at the fill close loses the transition-day return and can omit the entire
+    # rebalance cost when the latest mark is the fill date itself.
     mtd_period = as_of_dt.to_period("M")
-    mtd_holdings: Sequence[str] = book
-    mtd_wts = book_wts
     mtd_basis = "standing book"
-    mtd_base_idx: int | None = None
-
+    mtd_fill_idx: int | None = None
     if (
         rebal_idx is not None
         and rebal_fill_dt is not None
         and rebal_fill_dt.to_period("M") == mtd_period
     ):
-        mtd_base_idx = rebal_idx + 1
+        mtd_fill_idx = rebal_idx + 1
         mtd_basis = "rebalanced book"
-    else:
-        earlier = np.flatnonzero(
-            prices.index.to_period("M").astype("period[M]") < mtd_period
-        )
-        mtd_base_idx = int(earlier[-1]) if earlier.size else None
 
-    # Friction on the month's rebalance. Every FROZEN month in the track record
-    # is net -- it comes off `eq_strat_net`, which charges
-    # `turnover x cost_bps` on each fill. The live month-to-date charged
-    # nothing, and `summary_stats` compounds the two into one series, so
-    # "Strategy since inception" mixed a gross month with net ones and the
-    # error grew with the month's turnover -- up to a full 100% book
-    # establishment carried for free. Charge it the same way the loop does.
+    mtd_base_idx: int | None = prior_close_idx if prior_close_idx >= 0 else None
+
+    # Friction on the month's rebalance. The old book is drifted through the
+    # fill close before its turnover against the new target is charged.
     mtd_cost = 0.0
-    if mtd_basis == "rebalanced book" and len(mtd_wts):
+    if mtd_fill_idx is not None and len(book_wts):
         _new_full = pd.Series(0.0, index=prices.columns, dtype=float)
-        _shared = [s for s in mtd_wts.index if s in _new_full.index]
-        _new_full.loc[_shared] = [float(mtd_wts[s]) for s in _shared]
-        # Same drift correction as the in-window loop: the book this fill
-        # trades out of is the last target carried forward to `mtd_base_idx`,
-        # not the target itself. Without it the in-window months and the live
-        # month would charge friction on two different quantities.
-        _standing = _drift_holdings(prev_weights, prices_ff, prev_fill_idx, mtd_base_idx)
+        _shared = [s for s in book_wts.index if s in _new_full.index]
+        _new_full.loc[_shared] = [float(book_wts[s]) for s in _shared]
+        _standing = _drift_holdings(
+            prev_weights, prices_ff, prev_fill_idx, mtd_fill_idx
+        )
         mtd_turnover = float((_new_full - _standing).abs().sum() / 2.0)
         mtd_cost = mtd_turnover * (cost_bps / 10000.0)
 
     strategy_mtd: float | None = None
+    strategy_mtd_gross: float | None = None
     benchmark_mtd: float | None = None
+    fill_equity_factor: float | None = None
+    mtd_pre_fill_net_return: float | None = None
+    mtd_post_fill_return: float | None = None
+
     if mtd_base_idx is not None and mtd_base_idx < as_of_idx:
-        # No renormalisation over names that failed to price: a missing leg
-        # contributes nothing, exactly as it does in the daily accrual loop.
-        acc = 0.0
-        priced = 0.0
-        for s in mtd_holdings:
-            r = _round_trip_return(
-                _fill_price(prices, s, mtd_base_idx),
-                _fill_price(prices, s, as_of_idx),
+        gross_daily: list[float] = []
+        net_daily: list[float] = []
+        fill_position: int | None = None
+
+        for day_idx in range(mtd_base_idx + 1, as_of_idx + 1):
+            # Before and on the fill close the old book is still exposed.
+            # After the fill close the new target book is exposed.
+            if mtd_fill_idx is not None and day_idx > mtd_fill_idx:
+                target_wts = book_wts
+                target_fill_idx = mtd_fill_idx
+            else:
+                target_wts = prev_weights
+                target_fill_idx = prev_fill_idx
+
+            weights_at_previous_close = _drift_holdings(
+                target_wts, prices_ff, target_fill_idx, day_idx - 1
             )
-            w = float(mtd_wts.get(s, 0.0))
-            if np.isfinite(r) and w > 0:
-                acc += w * r
-                priced += w
-        # Net, like every frozen month it will sit beside.
-        strategy_mtd = (acc - mtd_cost) if priced > 0 else None
+            p0 = prices_ff.iloc[day_idx - 1]
+            p1 = prices_ff.iloc[day_idx]
+            gross_return = 0.0
+            for symbol, weight in weights_at_previous_close.items():
+                if weight <= 0 or symbol not in prices.columns:
+                    continue
+                previous_price = float(p0.get(symbol, np.nan))
+                current_price = float(p1.get(symbol, np.nan))
+                if (
+                    np.isfinite(previous_price)
+                    and previous_price > 0
+                    and np.isfinite(current_price)
+                ):
+                    gross_return += float(weight) * (
+                        current_price / previous_price - 1.0
+                    )
+
+            fill_cost = (
+                mtd_cost
+                if mtd_fill_idx is not None and day_idx == mtd_fill_idx
+                else 0.0
+            )
+            gross_daily.append(gross_return)
+            net_daily.append(gross_return - fill_cost)
+
+            if mtd_fill_idx is not None and day_idx == mtd_fill_idx:
+                fill_position = len(net_daily) - 1
+                fill_equity_factor = float(
+                    np.prod(1.0 + np.asarray(net_daily, dtype=float))
+                )
+                mtd_pre_fill_net_return = fill_equity_factor - 1.0
+
+        has_book = (
+            float(prev_weights.sum()) > 0.0 or float(book_wts.sum()) > 0.0
+        )
+        if gross_daily and has_book:
+            strategy_mtd_gross = float(
+                np.prod(1.0 + np.asarray(gross_daily, dtype=float)) - 1.0
+            )
+            strategy_mtd = float(
+                np.prod(1.0 + np.asarray(net_daily, dtype=float)) - 1.0
+            )
+            if fill_position is not None and fill_position + 1 < len(net_daily):
+                mtd_post_fill_return = float(
+                    np.prod(
+                        1.0 + np.asarray(net_daily[fill_position + 1 :], dtype=float)
+                    ) - 1.0
+                )
+            elif fill_position is not None:
+                mtd_post_fill_return = 0.0
 
         if benchmark_level is not None:
             b0 = benchmark_level.iloc[mtd_base_idx]
@@ -1469,7 +1516,10 @@ def run_backtest(
         "mtd_basis": mtd_basis,
         "strategy_mtd": strategy_mtd,
         "mtd_cost": mtd_cost,
-        "strategy_mtd_gross": (strategy_mtd + mtd_cost) if strategy_mtd is not None else None,
+        "strategy_mtd_gross": strategy_mtd_gross,
+        "fill_equity_factor": fill_equity_factor,
+        "mtd_pre_fill_net_return": mtd_pre_fill_net_return,
+        "mtd_post_fill_return": mtd_post_fill_return,
         "benchmark_mtd": benchmark_mtd,
         "mtd_alpha": (
             strategy_mtd - benchmark_mtd
