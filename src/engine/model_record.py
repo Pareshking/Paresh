@@ -28,6 +28,26 @@ def _month_books(key: str, _prices: pd.DataFrame, _tradebook: pd.DataFrame, _mem
                        config_weights=cfg["config_weights"])
 
 
+def record_sector_map(symbols) -> dict[str, str]:
+    """The industry each symbol is capped under in the canonical record.
+
+    One source for the live replay and the monthly ledger update, so the two
+    cannot cap different groupings. The same labels Actions and the research
+    backtest read: the NSE index file's industry, TradingView mapped onto it
+    for names that have left the index.
+    """
+    syms = [str(s) for s in symbols]
+    idx = pd.read_csv(former_members.INDEX_FILE)
+    idx.columns = [str(c).strip() for c in idx.columns]
+    nse = dict(zip(idx["Symbol"].astype(str), idx["Industry"].astype(str)))
+    out = {s: nse[s] for s in syms if s in nse}
+    # industry_for maps TradingView labels for EVERY name it is given, current
+    # members included, so it must only see the names the index file lacks
+    # (as in the research backtest); for 3 of 2026-10's 20 names it disagreed.
+    out.update(former_members.industry_for([s for s in syms if s not in out]))
+    return out
+
+
 def _benchmark_key(benchmark_close: pd.Series | None, start: pd.Period) -> str:
     """Cache-key component for the benchmark the record is measured against.
 
@@ -98,6 +118,9 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
         config_weights=cfg["config_weights"],
         cost_bps=cfg["cost_bps"],
         buffer_n=cfg["buffer_n"],
+        stock_cap=cfg["stock_cap"],
+        sector_cap=cfg["sector_cap"],
+        sector_map=record_sector_map(prices.columns),
         _benchmark_close=benchmark_close,
         backtest_months=months,
         _membership=membership,

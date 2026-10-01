@@ -250,6 +250,15 @@ def _backtest_body(
     # The Weighting Scheme control is inert whenever the stock cap admits only
     # one fully-invested book. The backtester reports it; nothing displayed it,
     # so the selector stayed lit while making no difference to the simulation.
+    _cash = float(stats.get("cap_cash_max", 0.0) or 0.0)
+    if _cash > 1e-6:
+        kit.note(
+            f"The caps left up to {_cash:.1%} of the book in cash.",
+            "Stock and industry caps are hard limits and are never raised: weight "
+            "these settings cannot place in a qualifying name is held as cash at 0%. "
+            "Hold more names, or loosen the stock cap in Configuration → Portfolio risk.",
+        )
+
     if stats.get("scheme_neutralised"):
         kit.note(
             f"The {bt_weight.lower()} weighting made no difference to this run.",

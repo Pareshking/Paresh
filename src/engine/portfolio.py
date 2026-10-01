@@ -22,10 +22,19 @@ def apply_caps(
     weights: pd.Series,
     sector_map: dict[str, str] | None,
     *,
-    sector_cap: float = 0.30,
+    sector_cap: float = 0.40,
     stock_cap: float = 0.10,
+    hard: bool = True,
 ) -> pd.Series:
     """Project weights onto the stock and sector caps. Both are actually binding.
+
+    HARD by default (owner, 2026-10-02): a cap is never raised. Weight the caps
+    cannot place stays as cash (``attrs["cash"]``) instead of being scaled back
+    into names through the cap. Selection (backtester._select_holdings with a
+    per-industry slot limit) keeps the canonical book fully invested; cash
+    appears only when the settings themselves cannot be met, e.g. a stock cap
+    below 1/n. ``hard=False`` keeps the earlier relax-to-feasible behaviour
+    described below; nothing in the app passes it.
 
     Two callers need this and only one had it. ``run_backtest`` accepted
     ``stock_cap`` and ``sector_cap``, put them in its cache key, and never
@@ -60,6 +69,14 @@ def apply_caps(
     n = len(w)
     if n == 0:
         return w
+    if n == 1 and hard:
+        only = pd.Series([min(1.0, stock_cap, sector_cap if sector_map else 1.0)], index=w.index)
+        only.attrs["effective_stock_cap"] = stock_cap
+        only.attrs["effective_sector_cap"] = sector_cap
+        only.attrs["caps_relaxed"] = False
+        only.attrs["scheme_neutralised"] = True
+        only.attrs["cash"] = 1.0 - float(only.iloc[0])
+        return only
     if n == 1:
         only = pd.Series([1.0], index=w.index)
         # One name is 100% of the book whatever the cap says. Report that rather
@@ -85,8 +102,8 @@ def apply_caps(
     # Total capacity is sum_sectors min(sector_cap, n_i x stock_cap), which is
     # exactly linear in a common scale factor, so the smallest relaxation that
     # admits a fully-invested portfolio is 1/capacity applied to both caps.
-    eff_stock_cap = max(stock_cap, 1.0 / n + 1e-9)
-    eff_sector_cap = max(sector_cap, 1.0 / num_sec + 1e-9)
+    eff_stock_cap = stock_cap if hard else max(stock_cap, 1.0 / n + 1e-9)
+    eff_sector_cap = sector_cap if hard else max(sector_cap, 1.0 / num_sec + 1e-9)
     # A cap raised to its own floor is ALREADY a relaxation, and `relaxed` used
     # to be set only by the joint-capacity test below -- so the commonest case
     # never flagged and the caller's warning was dead for it. Twenty names in
@@ -103,8 +120,8 @@ def apply_caps(
         min(eff_sector_cap, len(syms) * eff_stock_cap)
         for syms in (sec_groups.values() or [list(w.index)])
     ) or 1.0
-    relaxed = floor_relaxed or capacity < 1.0 - 1e-12
-    if capacity < 1.0 - 1e-12:
+    relaxed = floor_relaxed or (capacity < 1.0 - 1e-12 and not hard)
+    if capacity < 1.0 - 1e-12 and not hard:
         eff_stock_cap /= capacity
         eff_sector_cap /= capacity
         logger.warning(
@@ -188,7 +205,14 @@ def apply_caps(
         )
 
     total = float(w.sum())
-    out = w / total if total > 0 else pd.Series(1.0 / n, index=w.index)
+    if hard:
+        # Never scale UP: that is how a clipped name goes back through its cap.
+        out = w / total if total > 1.0 else w.copy()
+        if total <= 0:
+            out = pd.Series(min(1.0 / n, eff_stock_cap), index=w.index)
+    else:
+        out = w / total if total > 0 else pd.Series(1.0 / n, index=w.index)
+    out.attrs["cash"] = max(0.0, 1.0 - float(out.sum()))
     # What was ACTUALLY enforced, so a caller showing "Cap: 30%" can show the
     # relaxation instead of the number the user typed.
     out.attrs["effective_stock_cap"] = eff_stock_cap
@@ -235,7 +259,7 @@ class PortfolioOptimizer:
     def apply_constraints(
         self,
         weights: pd.Series,
-        sector_cap: float = 0.30,
+        sector_cap: float = 0.40,
         stock_cap: float = 0.10,
     ) -> pd.Series:
         """Project weights onto the stock and sector caps. See ``apply_caps``."""

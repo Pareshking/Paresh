@@ -35,6 +35,7 @@ def _single_stock_run(tag: str, px: pd.DataFrame):
     """One holding, no costs: the period return IS that stock's return."""
     return run_backtest(
         tag, px, top_n=1, rebal_freq=21, ema_period=20, high_pct=0.0,
+        stock_cap=1.0, sector_cap=1.0,  # accounting under test, not the (hard) caps
         cost_bps=0.0, buffer_n=1,
     )
 
@@ -148,8 +149,10 @@ def test_establishment_cost_is_charged_against_the_reported_return():
     """A free run and a costed run must differ by the friction, not by zero."""
     px = _prices()
     free = run_backtest("free", px, top_n=5, rebal_freq=21, ema_period=20,
+                          stock_cap=1.0, sector_cap=1.0,
                         high_pct=0.0, cost_bps=0.0, buffer_n=8)
     costed = run_backtest("costed", px, top_n=5, rebal_freq=21, ema_period=20,
+                          stock_cap=1.0, sector_cap=1.0,
                           high_pct=0.0, cost_bps=30.0, buffer_n=8)
     assert costed["stats"]["total_return"] < free["stats"]["total_return"]
     # Establishing the book BUYS 100% and sells nothing -- half a round trip.
