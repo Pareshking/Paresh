@@ -231,7 +231,7 @@ def render_track_record_view(
         + (f" (scaled up from {elapsed:.2f} years, not a CAGR)" if elapsed < 1 else "")
         + f" · positive months {stats['positive_months']} of {stats['months']}"
         + f" · worst fall, month to month, {_pct(stats['max_drawdown'])}"
-        + (" · prices are Screener's closes (NSE's where Screener has none), with no dividends "
+        + (" · prices are Personal closes (NSE where Personal data is unavailable), with no dividends "
            "added back, like the index."
            if ledger.get("price_basis") == "screener_primary"
            else " · prices are NSE closes as published, with no dividends added back, like the index."
