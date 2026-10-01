@@ -11,6 +11,9 @@ import streamlit as st
 from src.core.config import DEFAULT_TRANSACTION_COST_BPS
 from src.core.market_time import ist_now
 from src.engine.backtester import DEFAULT_BACKTEST_MONTHS, run_backtest
+from src.engine.extra_universe import SYSTEM_750
+from src.engine.systems import inception, ledger_path
+from src.engine.track_record import load_ledger, summary_stats
 from src.engine.corporate_actions import load_events
 from src.engine.membership import load_history_or_none
 from src.engine.parameter_sweep import (
@@ -24,6 +27,7 @@ from src.loaders import former_members, nse_prices
 from src.loaders.ranking_store import actions_digest
 from src.ui import page_kit as kit
 from src.ui.components import gap_count, render_data_quality_footer
+from src.ui.canonical_book import current_book
 from src.ui.theme import render_saas_table
 
 
@@ -32,6 +36,25 @@ def _tone(v) -> str:
     if v is None or pd.isna(v):
         return ""
     return "up" if v > 0 else "down" if v < 0 else ""
+
+
+def _canonical_account_stats(ledger: dict, live_meta: dict | None) -> dict:
+    """Use the same frozen monthly ledger and live mark as Track Record."""
+    meta = live_meta or {}
+    period = meta.get("mtd_period")
+    mtd = None
+    if period:
+        mtd = {
+            "period": pd.Period(period, freq="M"),
+            "strategy": meta.get("strategy_mtd"),
+            "benchmark": meta.get("benchmark_mtd"),
+            "as_of": meta.get("as_of"),
+        }
+    return summary_stats(ledger, mtd=mtd)
+
+
+def _pct_or_dash(value) -> str:
+    return "—" if value is None or pd.isna(value) else f"{float(value):+.1%}"
 
 
 def _backtest_body(
@@ -45,8 +68,12 @@ def _backtest_body(
     months: int = DEFAULT_BACKTEST_MONTHS,
     membership: dict | None = None,
     history_start: pd.Timestamp | None = None,
+    system: str = SYSTEM_750,
 ) -> None:
     """Fragment: reruns only when backtest-tab widgets change, not on every global rerun."""
+    # Keep the original deep history for the canonical record. The research
+    # simulation below may replace its local frame with an NSE-specific basis.
+    canonical_prices = adj_close
     actions = kit.page_head(
         "Backtest",
         f"The strategy replayed on the last {months} completed month{'s' if months != 1 else ''}, "
@@ -204,6 +231,70 @@ def _backtest_body(
 
     stats = bt_res["stats"]
 
+    # Canonical account performance is deliberately sourced from the same
+    # pinned record replay and monthly ledger as Track Record and Portfolio.
+    # The controls below remain a research simulation and must not masquerade
+    # as the user's canonical account return or live holdings.
+    canonical_book = pd.DataFrame()
+    canonical_record: dict = {}
+    canonical_ledger: dict = {"months": {}}
+    canonical_stats: dict = {}
+    canonical_error = None
+    try:
+        canonical_book, canonical_record = current_book(
+            canonical_prices, benchmark_close, system
+        )
+        canonical_ledger = load_ledger(ledger_path(system), inception(system))
+        canonical_stats = _canonical_account_stats(
+            canonical_ledger, canonical_record.get("live_meta")
+        )
+    except (ValueError, KeyError, OSError) as exc:
+        canonical_error = str(exc)
+
+    with kit.card(
+        "Canonical account performance",
+        "bt_canonical_account",
+        "Same pinned monthly record as Track Record and Portfolio; independent of research controls below.",
+    ):
+        if canonical_error:
+            st.error(f"Canonical account data could not be loaded: {canonical_error}")
+        elif not canonical_stats or canonical_stats.get("total_return") is None:
+            st.info("The canonical account record does not yet contain a return series.")
+        else:
+            kit.readings([
+                kit.Reading(
+                    "Since inception · Strategy",
+                    _pct_or_dash(canonical_stats.get("total_return")),
+                    f"{canonical_stats.get('months', 0)} marked months · after costs, before tax",
+                    _tone(canonical_stats.get("total_return")),
+                ),
+                kit.Reading(
+                    "Since inception · Nifty 500",
+                    _pct_or_dash(canonical_stats.get("bench_return")),
+                    "same months and benchmark basis",
+                    _tone(canonical_stats.get("bench_return")),
+                ),
+                kit.Reading(
+                    "Gap vs Nifty 500",
+                    _pct_or_dash(canonical_stats.get("alpha")),
+                    "simple return difference, not beta-adjusted",
+                    _tone(canonical_stats.get("alpha")),
+                ),
+            ], "Canonical account")
+            _cm = canonical_record.get("live_meta", {}) or {}
+            _cp = _cm.get("mtd_period")
+            _cs = _cm.get("strategy_mtd")
+            st.caption(
+                "Account return uses the frozen monthly ledger plus the same latest marked month "
+                f"as Track Record and Portfolio. Latest mark: {_cm.get('as_of') or 'unavailable'}; "
+                + (f"{_cp}: {_pct_or_dash(_cs)}." if _cp and _cs is not None else
+                   "the new book has no return yet, or a live monthly mark is not available.")
+            )
+            st.caption(
+                f"Canonical live book: {len(canonical_book)} holdings. "
+                "The configurable research backtest below is a separate simulation, not account performance."
+            )
+
     # Say which window these numbers describe. The backtest reports the last
     # completed calendar months only -- the month in progress is excluded, so a
     # part-month return is never shown beside whole ones.
@@ -311,14 +402,14 @@ def _backtest_body(
 
     view = st.segmented_control(
         "Backtest detail",
-        ["Current book", "This month's changes", "Month by month", "Every trade",
-         "Rebalance log", "Method"],
-        default="Current book",
+        ["Canonical book", "Canonical changes", "Research book", "Research changes",
+         "Month by month", "Every trade", "Rebalance log", "Method"],
+        default="Canonical book",
         key="bt_view",
         label_visibility="collapsed",
-    ) or "Current book"
+    ) or "Canonical book"
 
-    # ── Current Book & This Month's Changes ──────────────────────────────────
+    # ── Canonical live book beside the independent research simulation ────────
     # The tables below stop at the last completed month, which is right for
     # PERFORMANCE and wrong for a person holding the portfolio. They need
     # today's book and this month's trades, so that is what this section is,
@@ -329,17 +420,26 @@ def _backtest_body(
     # this one, so by the time anyone reads this it has already executed --
     # showing the pre-rebalance book here would be showing last month's
     # portfolio under the heading "current".
-    live_book = bt_res.get("live_book", pd.DataFrame())
-    changes = bt_res.get("month_changes", pd.DataFrame())
-    lmeta = bt_res.get("live_meta", {}) or {}
+    research_book = bt_res.get("live_book", pd.DataFrame())
+    research_changes = bt_res.get("month_changes", pd.DataFrame())
+    research_meta = bt_res.get("live_meta", {}) or {}
+    canonical_changes = canonical_record.get("month_changes", pd.DataFrame())
+    if not isinstance(canonical_changes, pd.DataFrame):
+        canonical_changes = pd.DataFrame()
 
-    if view in ("Current book", "This month's changes"):
+    canonical_view = view in ("Canonical book", "Canonical changes")
+    live_book = canonical_book if canonical_view else research_book
+    changes = canonical_changes if canonical_view else research_changes
+    lmeta = (canonical_record.get("live_meta", {}) or {}) if canonical_view else research_meta
+
+    if view in ("Canonical book", "Canonical changes", "Research book", "Research changes"):
         _as_of = lmeta.get("as_of")
         _sig = lmeta.get("signal_date")
         _fill = lmeta.get("fill_date")
         with kit.card(view, "bt_live"):
             kit.caption(
-                "The portfolio as it stands"
+                ("The canonical model portfolio shared with Actions and Portfolio" if canonical_view
+                 else "The research simulation portfolio for the settings selected above")
                 + (f" on {_as_of:%d %b %Y}" if _as_of is not None else "")
                 + (
                     f", after the rebalance signalled at the {_sig:%d %b %Y} close "
@@ -371,7 +471,7 @@ def _backtest_body(
                     "signal is struck at the close of this month's final session."
                 )
 
-            live_sub = "holdings" if view == "Current book" else "changes"
+            live_sub = "holdings" if view in ("Canonical book", "Research book") else "changes"
 
             def _fmt_dates(frame: pd.DataFrame) -> pd.DataFrame:
                 out = frame.copy()
@@ -413,7 +513,7 @@ def _backtest_body(
                         kit.Reading("In profit", f"{n_up}", "marked at the latest close", "up" if n_up else ""),
                         kit.Reading("In loss", f"{n_dn}", "", "down" if n_dn else ""),
                         kit.Reading("Average unrealised", f"{avg_r:+.1f}%", "", "up" if avg_r >= 0 else "down"),
-                    ], "Current book")
+                    ], "Canonical book" if canonical_view else "Research book")
                     render_saas_table(lb)
                     st.download_button(
                         "Export holdings CSV",
@@ -440,7 +540,8 @@ def _backtest_body(
                     if act_filter and act_filter != "All":
                         ch = ch[ch["Action"] == act_filter]
                     st.caption(
-                        "What the "
+                        ("Canonical rebalance" if canonical_view else "Research simulation rebalance")
+                        + ": "
                         + (f"{_fill:%d %b %Y} " if _fill is not None else "")
                         + "rebalance did. **Return %** on a SOLD row is the "
                         "realised round trip; on a BOUGHT or HELD row it is "
@@ -941,9 +1042,10 @@ def render_backtest_view(
     months: int = DEFAULT_BACKTEST_MONTHS,
     membership: dict | None = None,
     history_start: pd.Timestamp | None = None,
+    system: str = SYSTEM_750,
 ) -> None:
-    """Renders the Walk-Forward Historical Strategy Backtesting Interface."""
+    """Renders the canonical account alongside a separate configurable research backtest."""
     _backtest_body(
         rank_df, adj_close, stock_cap, sector_cap, weights,
-        liquidity_floor_cr, traded_value, months, membership, history_start
+        liquidity_floor_cr, traded_value, months, membership, history_start, system
     )
