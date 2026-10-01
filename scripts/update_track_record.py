@@ -31,9 +31,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.core.config import BENCHMARK_SYMBOL  # noqa: E402
 from src.engine.backtester import run_backtest  # noqa: E402
-from src.engine.model_record import record_run  # noqa: E402
 from src.engine.pipeline import price_fingerprint  # noqa: E402
 from src.loaders import ranking_store  # noqa: E402
+from src.ui.canonical_book import current_book  # noqa: E402
 from src.engine.parity_audit import compare_monthly_ledger  # noqa: E402
 from src.engine.track_record import (  # noqa: E402
     TRACK_RECORD_CONFIG,
@@ -57,6 +57,29 @@ from src.loaders.price_loader import (  # noqa: E402
     fetch_benchmark_history,
     fetch_price_history,
 )
+
+def _json_safe(value):
+    """Convert pandas/numpy audit output to strict JSON primitives."""
+    if value is None or value is pd.NA or value is pd.NaT:
+        return None
+    if isinstance(value, (pd.Timestamp, pd.Period)):
+        return str(value)
+    if isinstance(value, dict):
+        return {str(k): _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    if isinstance(value, np.generic):
+        return _json_safe(value.item())
+    if isinstance(value, float) and not np.isfinite(value):
+        return None
+    if isinstance(value, (str, int, float, bool)):
+        return value
+    return str(value)
+
+
+def _frame_records(frame: pd.DataFrame) -> list[dict]:
+    """Serialize a frame while preserving date fields and representing NaN as null."""
+    return json.loads(frame.to_json(orient="records", date_format="iso", double_precision=15))
 
 
 def main() -> int:
@@ -284,9 +307,7 @@ def main() -> int:
         # by Portfolio, Actions and Backtest. Both receive the same raw acquired
         # prices; current_book/record_run applies the canonical price/membership
         # path independently rather than trusting the updater's prepared frame.
-        canonical_book, canonical_result = __import__(
-            "src.ui.canonical_book", fromlist=["current_book"]
-        ).current_book(raw_adj_close, benchmark, system)
+        canonical_book, canonical_result = current_book(raw_adj_close, benchmark, system)
         replay_book = result.get("live_book")
         required = [
             "Symbol", "Entry Date", "Entry Price", "Price Now", "Weight %",
@@ -294,7 +315,7 @@ def main() -> int:
         ]
         book_parity = {
             "exact_match": False,
-            "missing_from_canonical": [],
+            "missing_from_replay": [],
             "additional_in_replay": [],
             "field_mismatches": {},
             "replay_weight_sum_pct": None,
@@ -306,8 +327,8 @@ def main() -> int:
             left["Symbol"] = left["Symbol"].astype(str)
             right["Symbol"] = right["Symbol"].astype(str)
             ls, rs = set(left["Symbol"]), set(right["Symbol"])
-            book_parity["missing_from_canonical"] = sorted(ls - rs)
-            book_parity["additional_in_replay"] = sorted(rs - ls)
+            book_parity["missing_from_replay"] = sorted(rs - ls)
+            book_parity["additional_in_replay"] = sorted(ls - rs)
             li = left.drop_duplicates("Symbol").set_index("Symbol").sort_index()
             ri = right.drop_duplicates("Symbol").set_index("Symbol").sort_index()
             common = sorted(set(li.index) & set(ri.index))
@@ -333,7 +354,7 @@ def main() -> int:
             book_parity["replay_weight_sum_pct"] = float(pd.to_numeric(left.get("Weight %"), errors="coerce").sum())
             book_parity["canonical_weight_sum_pct"] = float(pd.to_numeric(right.get("Weight %"), errors="coerce").sum())
             book_parity["exact_match"] = (
-                not book_parity["missing_from_canonical"]
+                not book_parity["missing_from_replay"]
                 and not book_parity["additional_in_replay"]
                 and all(v["count"] == 0 for v in book_parity["field_mismatches"].values())
             )
@@ -370,9 +391,7 @@ def main() -> int:
                 "symbol_fingerprint": hashlib.sha256(
                     "\n".join(sorted(map(str, adj_close.columns))).encode("utf-8")
                 ).hexdigest(),
-                "actions_digest": __import__(
-                    "src.loaders.ranking_store", fromlist=["actions_digest"]
-                ).actions_digest(actions),
+                "actions_digest": ranking_store.actions_digest(actions),
                 "price_rows": int(len(adj_close.index)),
                 "price_symbols": int(len(adj_close.columns)),
                 "price_start": str(pd.Timestamp(adj_close.index[0]).date()),
@@ -428,7 +447,10 @@ def main() -> int:
         }
         args_path = Path(args.report_json)
         args_path.parent.mkdir(parents=True, exist_ok=True)
-        args_path.write_text(json.dumps(report, indent=2, default=str, allow_nan=False), encoding="utf-8")
+        args_path.write_text(
+            json.dumps(_json_safe(report), indent=2, allow_nan=False),
+            encoding="utf-8",
+        )
         print(f"→ machine-readable parity snapshot: {args_path}")
 
     ledger, added, skipped = finalize_months(
