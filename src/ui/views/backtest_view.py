@@ -24,6 +24,7 @@ from src.loaders import former_members, nse_prices
 from src.loaders.ranking_store import actions_digest
 from src.ui import page_kit as kit
 from src.ui.components import gap_count, render_data_quality_footer
+from src.ui.canonical_book import current_book
 from src.ui.theme import render_saas_table
 
 
@@ -45,8 +46,12 @@ def _backtest_body(
     months: int = DEFAULT_BACKTEST_MONTHS,
     membership: dict | None = None,
     history_start: pd.Timestamp | None = None,
+    system: str = "750",
 ) -> None:
     """Fragment: reruns only when backtest-tab widgets change, not on every global rerun."""
+    # Preserve the shared, unmodified input before the research backtest may
+    # substitute a different historical price basis below.
+    canonical_prices = adj_close
     actions = kit.page_head(
         "Backtest",
         f"The strategy replayed on the last {months} completed month{'s' if months != 1 else ''}, "
@@ -136,7 +141,7 @@ def _backtest_body(
                     f"traded value is ₹{liquidity_floor_cr:g} Cr or more (Configuration).")
         if traded_value is not None:
             ph += f"_{price_fingerprint(traded_value)}"
-    benchmark_close = fetch_benchmark_history(period="2y")
+    benchmark_close = fetch_benchmark_history(period="5y")
     if benchmark_close.empty:
         st.error("Nifty 500 benchmark (^CRSLDX) data is unavailable. Backtest stopped to prevent an invalid benchmark comparison.")
         return
@@ -332,6 +337,16 @@ def _backtest_body(
     live_book = bt_res.get("live_book", pd.DataFrame())
     changes = bt_res.get("month_changes", pd.DataFrame())
     lmeta = bt_res.get("live_meta", {}) or {}
+    if view == "Current book":
+        # Current Book is the live strategy portfolio shared with Actions and
+        # Portfolio. The sliders above tune the historical research simulation;
+        # they must not silently create a second live book.
+        try:
+            live_book, canonical_record = current_book(canonical_prices, benchmark_close, system)
+        except (ValueError, KeyError) as exc:
+            st.error(f"Canonical Track Record book is invalid: {exc}")
+            return
+        lmeta = canonical_record.get("live_meta", {}) or {}
 
     if view in ("Current book", "This month's changes"):
         _as_of = lmeta.get("as_of")
@@ -339,7 +354,7 @@ def _backtest_body(
         _fill = lmeta.get("fill_date")
         with kit.card(view, "bt_live"):
             kit.caption(
-                "The portfolio as it stands"
+                ("The canonical strategy portfolio as it stands" if view == "Current book" else "The backtest simulation's portfolio as it stands")
                 + (f" on {_as_of:%d %b %Y}" if _as_of is not None else "")
                 + (
                     f", after the rebalance signalled at the {_sig:%d %b %Y} close "
@@ -350,6 +365,9 @@ def _backtest_body(
                 + ". Marked at the latest close — these figures sit outside the "
                 "completed-month window the performance tables below report on."
             )
+            if view == "Current book":
+                kit.caption("This is the pinned Track Record book shared with Actions and Portfolio. "
+                            "The Backtest controls affect the historical research results, not this book.")
 
             if lmeta.get("rebalanced"):
                 n_b = lmeta.get("n_bought", 0)
@@ -941,9 +959,10 @@ def render_backtest_view(
     months: int = DEFAULT_BACKTEST_MONTHS,
     membership: dict | None = None,
     history_start: pd.Timestamp | None = None,
+    system: str = "750",
 ) -> None:
     """Renders the Walk-Forward Historical Strategy Backtesting Interface."""
     _backtest_body(
         rank_df, adj_close, stock_cap, sector_cap, weights,
-        liquidity_floor_cr, traded_value, months, membership, history_start
+        liquidity_floor_cr, traded_value, months, membership, history_start, system
     )
