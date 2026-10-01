@@ -524,22 +524,20 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
     indices = st.session_state.get("cfg_indices", ["NIFTY TOTAL MARKET"])
     vt_on = bool(_risk("cfg_vt"))
     n_events = len(load_events() or [])
-    kit.readings([
-        kit.Reading("Universe", " + ".join(i.title() for i in indices) or "—",
-                    # The count is the market line's Universe.
-                    (f"system: {SYSTEM_NAMES.get(st.session_state.get('cfg_system'), '')}"
-                     if st.session_state.get("cfg_system", SYSTEM_750) != SYSTEM_750 else "")),
-        kit.Reading("Score weights", "·".join(f"{w * 100:.0f}" for w in norm),
-                    "1M·3M·6M·9M·12M" + (", the default" if is_default else ", your own")),
-        kit.Reading("Portfolio limits", f"{_risk('cfg_stc')}% · {_risk('cfg_sc')}%",
-                    "per stock · per sector"),
-        kit.Reading("Volatility target", f"{_risk('cfg_vtv')}%" if vt_on else "Off",
-                    "holds cash to stay near it" if vt_on else "fully invested"),
-        kit.Reading("Liquidity floor", f"₹{_risk('cfg_lfv')} Cr" if _risk("cfg_lf") else "Off",
-                    "20-day average traded value" if _risk("cfg_lf") else "no minimum"),
-        kit.Reading("Data health", f"{n_events} fixed" if n_events else "Clean",
-                    "price jumps neutralised" if n_events else "no corporate actions flagged"),
-    ], "Settings in effect")
+    system_note = (f" · {SYSTEM_NAMES.get(st.session_state.get('cfg_system'), '')}"
+                   if st.session_state.get("cfg_system", SYSTEM_750) != SYSTEM_750 else "")
+    rows = [
+        ("Universe", (" + ".join(i.title() for i in indices) or "—") + system_note),
+        ("Score weights 1M·3M·6M·9M·12M",
+         "·".join(f"{w * 100:.0f}" for w in norm) + (" (default)" if is_default else " (yours)")),
+        ("Max per stock · per sector", f"{_risk('cfg_stc')}% · {_risk('cfg_sc')}%"),
+        ("Volatility target", f"{_risk('cfg_vtv')}%" if vt_on else "Off"),
+        ("Liquidity floor", f"₹{_risk('cfg_lfv')} Cr" if _risk("cfg_lf") else "Off"),
+        ("Corporate actions adjusted", f"{n_events}" if n_events else "None"),
+    ]
+    st.html('<div class="cfg-kv">' + "".join(
+        f"<div><span>{html.escape(k)}</span><b>{html.escape(v)}</b></div>" for k, v in rows
+    ) + "</div>")
 
     st.html(
         '<nav class="cfg-index" aria-label="Sections">'

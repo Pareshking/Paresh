@@ -651,21 +651,24 @@ def test_rrg_benchmark_selector_is_not_inert():
         "Market Cap (Cr)": np.linspace(500000, 500, N),
     })
 
+    # The selector must change the chart: each index is its own return series.
+    bench = {
+        opt: pd.Series(100 * np.exp(np.cumsum(np.random.default_rng(10 + i).normal(0.0004, 0.01, T))), index=idx)
+        for i, opt in enumerate(BENCHMARK_OPTIONS)
+    }
     results = {}
     for opt in BENCHMARK_OPTIONS:
-        out = compute_rrg_data(f"rrg_{opt}", px, rank_df, benchmark_choice=opt)
+        out = compute_rrg_data(f"rrg_{opt}", px, rank_df, benchmark_choice=opt, _benchmark=bench[opt])
         assert not out.empty, f"{opt} produced no coordinates"
         results[opt] = out.set_index("Industry")["RS_Ratio"].round(6)
+    a, b = (results[o] for o in BENCHMARK_OPTIONS)
+    assert not a.equals(b), "the benchmarks give identical output"
 
-    a, b, c = (results[o] for o in BENCHMARK_OPTIONS)
-    assert not a.equals(b), "universe and top-50 benchmarks give identical output"
-    assert not b.equals(c), "top-50 and midcap benchmarks give identical output"
-    assert not a.equals(c), "universe and midcap benchmarks give identical output"
-
-    # And no option may claim to be an NSE index it does not compute.
+    # Real indices only: every option is an NSE index and says so.
     for opt in BENCHMARK_OPTIONS:
-        assert "Nifty" not in opt, f"{opt!r} names an index it does not compute"
-        assert "equal-weighted" in opt.lower()
+        assert opt.startswith("Nifty"), opt
+    # No benchmark available: the chart still draws, from the universe's own return.
+    assert not compute_rrg_data("rrg_fallback", px, rank_df).empty
 
 
 def test_qualified_correlation_status_handles_zero_and_unknown():

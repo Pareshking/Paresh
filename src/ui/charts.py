@@ -664,7 +664,6 @@ function draw() {
   ctx.fillStyle = textC;
   ctx.textAlign = 'center';
   ctx.globalAlpha = 0.28;
-  ctx.fillText('RRG ®  Quantum Momentum', tx(100), ty(maxY - (maxY - 100) * 0.13));
   ctx.globalAlpha = 1;
 
   // axis grid lines
@@ -692,11 +691,11 @@ function draw() {
   ctx.font = 'bold 10px Geist,system-ui';
   ctx.fillStyle = textC;
   ctx.textAlign = 'center';
-  ctx.fillText('JdK RS-Ratio →', tx((minX + maxX) / 2), H - 6);
+  ctx.fillText('RS →', tx((minX + maxX) / 2), H - 6);
   ctx.save();
   ctx.translate(13, ty((minY + maxY) / 2));
   ctx.rotate(-Math.PI / 2);
-  ctx.fillText('↑ JdK RS-Momentum', 0, 0);
+  ctx.fillText('↑ Momentum', 0, 0);
   ctx.restore();
 
   // ── Selected sector banner ────────────────────────────────────────────────
@@ -911,8 +910,8 @@ canvas.addEventListener('mousemove', function(e) {
     tip.innerHTML =
       '<b style="color:' + nearest.color + '">' + esc(nearest.industry) + '</b><br>' +
       'Quadrant: <b>' + esc(nearest.quadrant) + '</b><br>' +
-      'RS-Ratio: <b>' + hr.toFixed(2) + '</b><br>' +
-      'RS-Momentum: <b>' + hm.toFixed(2) + '</b><br>' +
+      'RS: <b>' + hr.toFixed(2) + '</b><br>' +
+      'Momentum: <b>' + hm.toFixed(2) + '</b><br>' +
       'Stocks: ' + nearest.stocks;
     canvas.style.cursor = 'pointer';
   } else {

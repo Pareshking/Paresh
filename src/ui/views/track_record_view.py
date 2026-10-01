@@ -18,7 +18,6 @@ from src.engine.extra_universe import SYSTEM_750, SYSTEM_NAMES, SYSTEMS
 from src.engine.model_record import record_run
 from src.engine.systems import inception, ledger_path
 from src.engine.track_record import (
-    build_combined_grid,
     load_ledger,
     summary_stats,
 )
@@ -43,7 +42,7 @@ def _pct(v: float | None) -> str:
     return "—" if v is None or pd.isna(v) else f"{v * 100:+.1f}%"
 
 
-def _grid_display(grid: pd.DataFrame) -> pd.DataFrame:
+def grid_display(grid: pd.DataFrame) -> pd.DataFrame:
     if grid.empty:
         return grid
     out = grid.copy()
@@ -138,12 +137,15 @@ def _render_rank_months(books: dict) -> None:
                            f"ranks_{month}.csv", "text/csv", key="dl_tr_ranks")
 
 
-def render_track_record_view(
+def render_record_sections(
     adj_close: pd.DataFrame | None = None,
     benchmark_close: pd.Series | None = None,
     system: str = SYSTEM_750,
 ) -> None:
-    """The frozen monthly record with the live month beside it, then all three systems."""
+    """The frozen record under the Portfolio's live book: since-inception figures,
+    how much of it is evidence, each month, each month's ranks, provenance, and
+    the three systems side by side. The equity curve and the calendar grid are
+    the Portfolio's own cards, so they are not drawn twice."""
     live_meta = _record_mtd(adj_close, benchmark_close, system) if adj_close is not None else {}
     start = inception(system)
     try:
@@ -159,39 +161,21 @@ def render_track_record_view(
     mtd_val = lm.get("strategy_mtd")
     mtd_bench = lm.get("benchmark_mtd")
     mtd_period = pd.Period(lm["mtd_period"], freq="M") if lm.get("mtd_period") else None
-    bench_name = f"Nifty 500 ({ledger.get('benchmark', '^CRSLDX')})"
-
-    actions = kit.page_head(
-        "Track record",
-        f"{SYSTEM_NAMES[system]}: every month since {start.strftime('%B %Y')}, each frozen when it "
-        f"closes and never recalculated · benchmark {bench_name}",
-        actions=True,
-    )
 
     if not months:
-        st.info(
-            f"No months frozen yet. {SYSTEM_NAMES[system]}'s record starts with "
-            f"{start.strftime('%B %Y')}; each month is frozen early the next month "
-            "(scripts/update_track_record.py, on the 1st-5th)."
-        )
+        st.info(f"No months frozen yet. {SYSTEM_NAMES[system]}'s record starts with "
+                f"{start.strftime('%B %Y')}; each month is frozen early the next month.")
         if mtd_val is not None and mtd_period is not None:
             st.html(month_cards_html({}, mtd_period, mtd_val, mtd_bench))
         render_comparison()
         return
 
-    # The running month counts, everywhere. It is real money, and excluding it
-    # from the headline while the grid below compounds it into CY gave two
-    # different answers to the same question.
+    # The running month counts, everywhere: it is real money, and excluding it
+    # from the headline while the grid compounds it gave two answers.
     stats = summary_stats(
         ledger,
-        mtd={
-            "period": mtd_period,
-            "strategy": mtd_val,
-            "benchmark": mtd_bench,
-            "as_of": lm.get("as_of"),
-        }
-        if mtd_period is not None
-        else None,
+        mtd={"period": mtd_period, "strategy": mtd_val, "benchmark": mtd_bench,
+             "as_of": lm.get("as_of")} if mtd_period is not None else None,
     )
     incl = stats.get("includes_mtd")
     if mtd_val is None and lm.get("rebalanced") and lm.get("fill_date") is not None:
@@ -206,20 +190,17 @@ def render_track_record_view(
             "See Ranks by month for the book and its ranks.",
         )
 
-    # Not Jensen's alpha. On the Yahoo basis the strategy trades dividend-adjusted
-    # prices (auto_adjust=True) while ^CRSLDX is the Nifty 500 PRICE index, which
-    # excludes dividends, so the constituents' yield -- roughly 1-1.5% a year --
-    # lands in the gap as if it were skill. On the NSE basis (ledger["price_basis"])
-    # both sides are price only.
+    # Not Jensen's alpha: a simple difference, price only on both sides.
     beat = stats["beat_rate"]
     n_beat = None if beat is None else round(beat * stats["months"])
-    since = "after costs, before tax" + (f" · includes {mtd_period.strftime('%B')} so far" if incl else "")
     kit.readings([
-        kit.Reading("Since inception", _pct(stats["total_return"]), since, _tone(stats["total_return"])),
-        kit.Reading("Nifty 500", _pct(stats["bench_return"]), "price index, same period", _tone(stats["bench_return"])),
+        kit.Reading("Since inception", _pct(stats["total_return"]),
+                    "after costs" + (f" · incl. {mtd_period.strftime('%b')} so far" if incl else ""),
+                    _tone(stats["total_return"])),
+        kit.Reading("Nifty 500", _pct(stats["bench_return"]), "price index", _tone(stats["bench_return"])),
         kit.Reading("Ahead of the index", _pct(stats["alpha"]).replace("%", " pts"),
-                    (f"{n_beat} of {stats['months']} months beat it · " if n_beat is not None else "")
-                    + "simple difference, not beta-adjusted", _tone(stats["alpha"])),
+                    (f"{n_beat} of {stats['months']} months beat it" if n_beat is not None else ""),
+                    _tone(stats["alpha"])),
         kit.Reading("Worst month", _pct(stats["worst_month"]),
                     f"best {_pct(stats['best_month'])}", _tone(stats["worst_month"])),
     ], "Track record")
@@ -228,99 +209,43 @@ def render_track_record_view(
     elapsed = float(stats.get("elapsed_months", 0) or 0) / 12.0
     kit.caption(
         f"Annualised {_pct(stats['ann_return'])}"
-        + (f" (scaled up from {elapsed:.2f} years, not a CAGR)" if elapsed < 1 else "")
-        + f" · positive months {stats['positive_months']} of {stats['months']}"
-        + f" · worst fall, month to month, {_pct(stats['max_drawdown'])}"
-        + (" · prices are Personal closes (NSE where Personal data is unavailable), with no dividends "
-           "added back, like the index."
+        + (f" (from {elapsed:.2f} yr, not a CAGR)" if elapsed < 1 else "")
+        + f" · {stats['positive_months']} of {stats['months']} months positive"
+        + f" · worst month-to-month fall {_pct(stats['max_drawdown'])}"
+        + (" · prices are Personal closes (NSE where unavailable), no dividends, like the index."
            if ledger.get("price_basis") == "screener_primary"
-           else " · prices are NSE closes as published, with no dividends added back, like the index."
+           else " · prices are NSE closes, no dividends, like the index."
            if ledger.get("price_basis") == "nse_as_published"
            else " · about 1–1.5% a year of the gap is dividends the price index leaves out.")
     )
 
-    # How much of this record is EVIDENCE and how much is reconstruction. A
-    # backfilled month carries the backtest's survivorship and index-membership
-    # biases; a recorded month was frozen as it closed and carries none of
-    # them. That difference is the evidential value of the page, so it sits
-    # above the chart, not in a tooltip.
+    # How much of this record is EVIDENCE and how much is reconstruction.
     _backfilled = int(stats.get("backfilled", 0) or 0)
     _recorded = int(stats.get("recorded", 0) or 0)
     if _backfilled:
-        _lead = (f"{_backfilled} of {_backfilled + _recorded} frozen months are backfilled"
+        _lead = (f"{_backfilled} of {_backfilled + _recorded} months are backfilled"
                  + (": the whole record is a reconstruction." if not _recorded else "."))
-        if int(stats.get("current_universe", 0) or 0) == 0:
-            # Every month was scored on the index as it stood (membership from
-            # NSE's own notices), so today's lists cannot flatter them.
-            kit.note(
-                _lead,
-                "They were rebuilt later, not frozen as each month closed, but every one is "
-                "scored on the index as it stood, so today's index lists do not flatter them. "
-                "They use today's price history, and a few stocks that merged away have none. "
-                "Only months marked recorded were frozen as they closed.",
-            )
-        else:
-            kit.note(
-                _lead,
-                "They were rebuilt later from today's index lists and prices, so they carry "
-                "the backtest's survivorship bias. Only months marked recorded were frozen "
-                "as they closed. Each month card says which it is.",
-            )
+        kit.note(_lead, "Rebuilt later, not frozen as each month closed; only months marked "
+                        "recorded were frozen as they closed."
+                 + (" Each is scored on the index as it stood." if int(stats.get("current_universe", 0) or 0) == 0
+                    else " They carry the backtest's survivorship bias."))
     if len(stats.get("configs", [])) > 1:
-        kit.note(
-            "This record spans more than one strategy configuration.",
-            f"({', '.join(stats['configs'])}) Months under different settings are not "
-            "one continuous series; the Provenance view shows where the change lands.",
-        )
-
-    labels, s_curve, b_curve = growth_series(months, mtd_period, mtd_val, mtd_bench)
-    with kit.card("Growth of ₹100", "tr_growth",
-                  "indigo = strategy · grey = Nifty 500" + (" · * = month to date" if incl else "")):
-        kit.growth_chart(labels, s_curve, b_curve, key="tr")
-
-    grid = build_combined_grid(
-        ledger,
-        mtd_period=mtd_period,
-        mtd_values={"strategy": mtd_val, "benchmark": mtd_bench, "alpha": lm.get("mtd_alpha")},
-    )
-    with actions:
-        st.download_button(
-            "Export CSV", grid.to_csv(index=False).encode(),
-            f"track_record_{ist_now():%Y%m%d}.csv", "text/csv",
-            key="dl_tr_combined", icon=":material/download:", disabled=grid.empty,
-        )
+        kit.note("More than one strategy configuration.",
+                 f"({', '.join(stats['configs'])}) Months under different settings are not one "
+                 "continuous series; Provenance shows where it changes.")
 
     which = st.segmented_control(
-        "Track Record View",
-        ["Month by month", "Ranks by month", "Calendar grid", "Provenance"],
-        default="Month by month",
-        key="tr_series_seg",
-        label_visibility="collapsed",
+        "Record view", ["Month by month", "Ranks by month", "Provenance"],
+        default="Month by month", key="tr_series_seg", label_visibility="collapsed",
     ) or "Month by month"
 
     if which == "Month by month":
-        with kit.card("Month by month", "tr_months", "rows for later years appear as they fill"):
+        with kit.card("Month by month", "tr_months"):
             st.html(month_cards_html(months, mtd_period, mtd_val, mtd_bench))
-
     elif which == "Ranks by month":
         _render_rank_months(
             (record_run(adj_close, benchmark_close, system).get("month_books") or {})
             if adj_close is not None else {})
-
-    elif which == "Calendar grid":
-        with kit.card("Calendar grid", "tr_grid", "strategy, Nifty 500 and the gap, per year"):
-            if grid.empty:
-                st.info("Nothing recorded yet.")
-            else:
-                has_mtd = mtd_period is not None and mtd_val is not None
-                kit.caption(
-                    "Calendar quarters (Q1 = Jan·Feb·Mar). CY compounds Jan–Dec; "
-                    "FY compounds Apr of the row's year through Mar of the next. "
-                    + (f"The {mtd_period.strftime('%b')} cells are live month-to-date, not frozen."
-                       if has_mtd else "Frozen months only.")
-                )
-                render_saas_table(_grid_display(grid))
-
     else:
         # Origin, universe, freeze date and price date for every month: the
         # ledger records them, and they are what makes a month evidence.
@@ -344,13 +269,9 @@ def render_track_record_view(
                 for key, e in sorted(months.items())
             ]
         )
-        with kit.card("Provenance", "tr_prov", "where each month's figure came from"):
-            kit.caption(
-                "Recorded = frozen as the month closed, from the data as it then stood. "
-                "Backfilled = reconstructed later, so it carries the backtest's biases and "
-                "is weaker evidence. Universe says whether the month was scored against the "
-                "index as it stood then or against today's list."
-            )
+        with kit.card("Provenance", "tr_prov"):
+            kit.caption("Recorded = frozen as the month closed. Backfilled = rebuilt later, "
+                        "weaker evidence. Universe: the index as it stood, or today's list.")
             render_saas_table(prov)
             st.download_button(
                 "Export provenance CSV",

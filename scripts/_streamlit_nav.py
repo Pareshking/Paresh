@@ -306,7 +306,6 @@ def open_page(frame, name: str, page=None) -> str:
             "Watchlist": "watchlist",
             "Market Breadth": "breadth",
             "Backtest": "backtest",
-            "Track Record": "track-record",
             "Configuration": "configuration",
             "Guide": "guide",
         }

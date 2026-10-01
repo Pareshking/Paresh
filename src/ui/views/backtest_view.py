@@ -72,8 +72,7 @@ def _backtest_body(
     """Fragment: reruns only when backtest-tab widgets change, not on every global rerun."""
     actions = kit.page_head(
         "Backtest",
-        f"The strategy replayed on the last {months} completed month{'s' if months != 1 else ''}, "
-        "with the settings below",
+        f"Last {months} completed month{'s' if months != 1 else ''}",
         actions=True,
     )
     with actions, st.popover("Change settings", icon=":material/tune:"):
@@ -146,16 +145,14 @@ def _backtest_body(
             months = max(months, int((pd.Period(adj_close.index[-1], freq="M")
                                       - pd.Period(history_start, freq="M")).n))
         kit.caption(
-            "Prices: Personal closes, with NSE closes only where Personal data is unavailable "
-            "(dividends are not added back, consistent with the Nifty 500 price index used as benchmark)."
+            "Prices: Personal closes, NSE only where Personal data is unavailable; no dividends."
             if _nse_info.get("basis") == "screener_primary" else
-            "Prices: NSE closes as published, adjusted for splits, bonuses and demergers "
-            "(dividends are not added back, as with the Nifty 500 price index it is measured against)."
+            "Prices: NSE closes, adjusted for splits, bonuses and demergers; no dividends."
         )
     else:
         adj_close = former_members.with_former_members(adj_close, membership)
         _events = load_events()
-        kit.caption("Prices: Yahoo adjusted closes, which are restated for later dividends and corrections.")
+        kit.caption("Prices: Yahoo adjusted closes (restated for dividends).")
     ph = f"{price_fingerprint(adj_close)}_{actions_digest(_events)}"
     if liquidity_floor_cr:
         kit.caption(f"Liquidity floor on: a stock is bought only while its 20-day average "
@@ -221,9 +218,8 @@ def _backtest_body(
         _ranked_on = str(_m.snapshot().get("facts", {}).get("price_source") or "")
         if _ranked_on and _ranked_on != "yahoo":
             st.caption(
-                f"Backtested on the long price history. The live screener ranks "
-                f"on {_display(_ranked_on)}, which does not yet reach far enough "
-                f"back for a {months}-month study."
+                f"Long price history used: {_display(_ranked_on)} does not yet "
+                f"reach far enough back for {months} months."
             )
     except Exception:
         pass
@@ -331,8 +327,8 @@ def _backtest_body(
 
     eq = bt_res["equity_curve"]
     bm = bt_res["benchmark"].reindex(eq.index).ffill() if bt_res.get("benchmark") is not None else None
-    with kit.card("Growth of ₹100", "bt_growth", "indigo = strategy · grey = Nifty 500 · daily"):
-        kit.growth_chart([f"{d:%d %b}" for d in eq.index], eq.tolist(),
+    with kit.card("Growth of ₹100", "bt_growth", "daily"):
+        kit.growth_chart(eq.index, eq.tolist(),
                          None if bm is None else bm.tolist(), key="bt")
 
     view = st.segmented_control(
@@ -410,40 +406,22 @@ def _backtest_body(
         _fill = lmeta.get("fill_date")
         with kit.card(view, "bt_live"):
             kit.caption(
-                "Canonical Track Record book — shared with Actions and Portfolio. "
-                "Historical performance, trade history and parameter sweeps below use "
-                "the Backtest settings and may therefore describe a different strategy. "
-                "The portfolio as it stands"
-                + (f" on {_as_of:%d %b %Y}" if _as_of is not None else "")
-                + (
-                    f", after the rebalance signalled at the {_sig:%d %b %Y} close "
-                    f"and filled on {_fill:%d %b %Y}"
-                    if _fill is not None
-                    else ""
-                )
-                + ". Marked at the latest close — these figures sit outside the "
-                "completed-month window the performance tables below report on."
+                "The canonical book, shared with Actions and Portfolio"
+                + (f", marked {_as_of:%d %b %Y}" if _as_of is not None else "")
+                + ". Historical performance, trade history and parameter sweeps below use "
+                "the Backtest settings and may describe a different strategy."
             )
 
             if lmeta.get("rebalanced"):
                 n_b = lmeta.get("n_bought", 0)
                 n_s = lmeta.get("n_sold", 0)
                 n_h = lmeta.get("n_held", 0)
-                if n_b == 0 and n_s == 0:
-                    kit.caption(
-                        f"No change this month. The rebalance ran on {_fill:%d %b %Y} "
-                        f"and every one of the {n_h} holdings stayed inside the buffer."
-                    )
-                else:
-                    kit.caption(
-                        f"Rebalanced {_fill:%d %b %Y}: {n_s} sold · {n_b} bought · "
-                        f"{n_h} held. This month's changes gives the reason for each."
-                    )
-            else:
                 kit.caption(
-                    "No rebalance has run since the last reported month. The next "
-                    "signal is struck at the close of this month's final session."
+                    f"{_fill:%d %b} rebalance: {n_s} sold · {n_b} bought · {n_h} held"
+                    + (" · nothing changed" if n_b == 0 and n_s == 0 else "")
                 )
+            else:
+                kit.caption("No rebalance yet this month; the next signal is at the month's last close.")
 
             live_sub = "holdings" if view == "Current book" else "changes"
 
@@ -460,6 +438,11 @@ def _backtest_body(
                     st.info("No open positions.")
                 else:
                     lb = _fmt_dates(live_book)
+                    _order = ["Symbol", "Price Now", "Return %", "MTD %", "Weight %", "Entry Date",
+                              "Entry Price", "Holding (Days)", "Rank at Entry",
+                              "Rank at Rebalance", "Industry"]
+                    lb = lb[[c for c in _order if c in lb.columns]
+                            + [c for c in lb.columns if c not in _order]]
                     n_up = int((live_book["Return %"] > 0).sum())
                     n_dn = int((live_book["Return %"] < 0).sum())
                     avg_r = float(live_book["Return %"].mean(skipna=True) * 100)
@@ -654,7 +637,7 @@ def _backtest_body(
 
                     tr_filter = tf2.pills(
                         "Filter Outcome",
-                        ["All", "Winners", "Losers", "Still open"],
+                        ["All", "Winners", "Losers", "Open"],
                         default="All",
                         key="bt_ct_outcome_filter",
                     )
@@ -666,7 +649,7 @@ def _backtest_body(
                         ct_df = ct_df[ct_df["Return %"] > 0]
                     elif tr_filter == "Losers":
                         ct_df = ct_df[ct_df["Return %"] < 0]
-                    elif tr_filter == "Still open":
+                    elif tr_filter == "Open":
                         ct_df = ct_df[ct_df["Status"] == "Open"]
 
                     disp_trade_cols = [

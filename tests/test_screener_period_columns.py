@@ -17,7 +17,6 @@ import pytest
 
 from src.core.config import MOMENTUM_WINDOWS
 from src.engine.momentum import MomentumEngine
-from src.ui import theme
 from src.ui.views.ranking_view import DISPLAY_COLS
 
 
@@ -94,55 +93,47 @@ def test_reused_period_metrics_match_a_direct_recompute(ranked):
 
 # ── Table column arithmetic ─────────────────────────────────────────────────
 
-def _span(block: str) -> int:
-    total = 0
-    for m in re.finditer(r"<th([^>]*)>", block):
-        cs = re.search(r'colspan="(\d+)"', m.group(1))
-        total += int(cs.group(1)) if cs else 1
-    return total
-
-
 def _render(rank_df, px, density):
-    captured = {}
-    orig_iframe, orig_info = theme.st.iframe, theme.st.info
-    theme.st.iframe = lambda h, **k: captured.setdefault("html", h)
-    theme.st.info = lambda *a, **k: None
-    try:
-        theme.render_master_screener_table(
-            rank_df, prices_df=px, density=density
-        )
-    finally:
-        theme.st.iframe, theme.st.info = orig_iframe, orig_info
-    return captured["html"]
+    from src.ui import screener_table
+
+    return screener_table.table_html(rank_df, px, density)
+
+
+def _width(html: str) -> tuple[int, int]:
+    head = re.search(r'<tr class="hdr">(.*?)</tr></thead>', html, re.S).group(1)
+    first = re.search(r"<tbody><tr[^>]*>(.*?)</tr>", html, re.S).group(1)
+    return len(re.findall(r"<th[ >]", head)), len(re.findall(r"<td[ >]", first))
 
 
 @pytest.mark.parametrize("density", ["Executive (11)", "Core (17)", "Full Quant (35)"])
-def test_header_groups_subheaders_and_cells_all_agree(ranked, density):
+def test_headers_and_cells_agree(ranked, density):
     rank_df, px = ranked
-    html = _render(rank_df, px, density)
-    groups = re.search(r'<tr class="group-header-row">(.*?)</tr>', html, re.S).group(1)
-    subs = re.search(r'<tr class="sub-header-row">(.*?)</tr>', html, re.S).group(1)
-    first = re.search(r'<tr class="screener-row">(.*?)</tr>', html, re.S).group(1)
-
-    assert _span(groups) == _span(subs) == len(re.findall(r"<td", first))
+    headers, cells = _width(_render(rank_df, px, density))
+    assert headers == cells
 
 
 @pytest.mark.parametrize("months", MOMENTUM_WINDOWS)
 def test_full_quant_renders_a_column_for_every_window(ranked, months):
     rank_df, px = ranked
     html = _render(rank_df, px, "Full Quant (35)")
-    assert f"{months}M RET" in html
-    assert f"{months}M SHARPE" in html
-    assert f"MAX DD {months}M" in html
+    assert f"{months}M Ret" in html
+    assert f"{months}M Sharpe" in html
+    assert f"Max DD {months}M" in html
+
+
+def test_sharpe_is_quant_only_and_core_shows_3m_drawdown(ranked):
+    rank_df, px = ranked
+    for d in ("Executive (11)", "Core (17)"):
+        html = _render(rank_df, px, d)
+        assert "Sharpe" not in html
+        assert "Max DD 12M" not in html
+    assert "Max DD 3M" in _render(rank_df, px, "Core (17)")
 
 
 def test_full_quant_is_wider_than_core_which_is_wider_than_executive(ranked):
     rank_df, px = ranked
-    widths = []
-    for d in ("Executive (11)", "Core (17)", "Full Quant (35)"):
-        html = _render(rank_df, px, d)
-        first = re.search(r'<tr class="screener-row">(.*?)</tr>', html, re.S).group(1)
-        widths.append(len(re.findall(r"<td", first)))
+    widths = [_width(_render(rank_df, px, d))[1]
+              for d in ("Executive (11)", "Core (17)", "Full Quant (35)")]
     assert widths[0] < widths[1] < widths[2]
 
 
@@ -179,3 +170,26 @@ def test_an_all_nan_column_does_not_break_the_52w_high_date():
     rank_df = calc.get_rankings(info, pd.Series(dtype=float),
                                 close_prices_df=px, high_prices_df=px)
     assert "52W High Date" in rank_df.columns          # must not raise
+
+
+def test_executive_and_core_are_quant_with_columns_hidden():
+    from src.ui import screener_table as st_
+
+    quant = {c[0] for c in st_.columns_for("Full Quant (35)", ["ATR"])}
+    for density in ("Executive (11)", "Core (17)"):
+        assert {c[0] for c in st_.columns_for(density)} <= quant, density
+
+
+def test_new_high_counts_are_per_session_over_the_last_month_and_three():
+    import numpy as np
+    import pandas as pd
+
+    from src.engine.breadth import new_extreme_counts
+
+    idx = pd.bdate_range("2025-06-02", periods=330)
+    up = np.linspace(100, 140, len(idx))                 # a new high nearly every session
+    old = np.concatenate([np.linspace(100, 200, 200), np.linspace(200, 120, 130)])  # peaked long ago
+    c = new_extreme_counts(pd.DataFrame({"UP": up, "OLD": old}, index=idx))
+    assert c["high"].at["UP", "1M"] >= 20
+    assert c["high"].at["UP", "3M"] > c["high"].at["UP", "1M"]
+    assert c["high"].at["OLD", "1M"] == 0 and c["high"].at["OLD", "3M"] == 0

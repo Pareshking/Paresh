@@ -108,8 +108,8 @@ def compute_signals(rank_df: pd.DataFrame) -> list[SignalAlert]:
 
 # The pages that get a place in the desktop link row. Everything else is one
 # click away in the ☰ menu, which always lists all eleven in order.
-_TOP_ROW_PAGES = ("Screener", "Actions", "Sectors", "RRG", "Portfolio",
-                  "Watchlist", "Track Record")
+_TOP_ROW_PAGES = ("Screener", "Portfolio", "Actions", "Sectors", "RRG",
+                  "Watchlist")
 
 
 def _status_pill_html() -> str:
@@ -601,8 +601,6 @@ def render_data_quality_footer(
         <span>Gap-filled over 10% (12 months): <strong style="color: {"#B54708" if gap_count else "#0E1726"};">{gap_count}</strong></span>
         <span style="color: #A5ACB8;">·</span>
         <span>Short history (under 126 sessions): <strong style="color: #0E1726;">{short_count}</strong></span>
-        <span style="color: #A5ACB8;">·</span>
-        <span>Returns exclude dividends</span>
         {source_note}
         <span style="margin-left: auto; color: #3C4657;">© Paresh Patel</span>
     </div>

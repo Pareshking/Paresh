@@ -88,4 +88,4 @@ def test_a_month_with_a_book_but_no_return_yet_is_named_on_the_portfolio_calenda
     labels = pv._month_labels("2026-10", "mtd")
     note = pv._calendar_note(labels, "2026-10", "mtd", pending=True)
     assert "Oct MTD has no return yet" in note and "MTD" in note
-    assert "live month-to-date, not frozen" in pv._calendar_note(labels, "2026-10", "mtd")
+    assert "live month-to-date" in pv._calendar_note(labels, "2026-10", "mtd")

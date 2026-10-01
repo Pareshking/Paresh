@@ -456,7 +456,7 @@ def test_the_backtest_and_track_record_read_the_deep_frame():
     src = open("app.py", encoding="utf-8").read()
     # Both read the deep frame of the chosen system (owner, 2026-09-27: every
     # page follows the system).
-    for page, name in (("_page_backtest", "deep_adj_close"), ("_page_track_record", "deep_adj_close")):
+    for page, name in (("_page_backtest", "deep_adj_close"),):
         # From the page function itself, not the import line that shares the name.
         start = src.index(f"def {page}(")
         window = src[start:start + 1500]
@@ -488,7 +488,7 @@ def test_the_backtest_says_when_it_used_a_different_history():
     """Two sources with different adjustment bases must not be conflated in
     silence -- a demerged name sits at a different level in each."""
     src = open("src/ui/views/backtest_view.py", encoding="utf-8").read()
-    assert "price_source" in src and "does not yet reach far enough" in src, (
+    assert "price_source" in src and "does not yet" in src and "reach far enough back" in src, (
         "the backtest can run on a different price history than the screener "
         "ranks on and says nothing about it"
     )

@@ -133,7 +133,7 @@ def main() -> int:
     at.segmented_control(key="rank_density_mode").set_value("Full Quant (35)").run(timeout=900)
     _check_clean(at, "Full Quant table")
     frames = _elements(at, "iframe")
-    wide = max((f.proto.srcdoc.count('<tr class="screener-row"') for f in frames), default=0)
+    wide = max((f.proto.srcdoc.count('<tr data-stock=') for f in frames), default=0)
     print(f"Full Quant table rows: {wide}")
     if wide < MIN_TABLE_ROWS:
         _fail(f"{wide} Full Quant rows, expected at least {MIN_TABLE_ROWS}")

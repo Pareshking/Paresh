@@ -16,10 +16,9 @@ import re
 
 import pandas as pd
 import pytest
-import streamlit as st
 
 from src.engine.momentum import ATR_DERIVED_COLUMNS
-from src.ui.theme import render_master_screener_table
+from src.ui import screener_table
 
 DENSITIES = ("Executive (11)", "Core (17)", "Full Quant (35)")
 
@@ -45,35 +44,23 @@ def _frame(with_risk: bool) -> pd.DataFrame:
 
 
 def _render(monkeypatch, frame: pd.DataFrame, density: str) -> str:
-    captured: list[str] = []
-    monkeypatch.setattr(st, "iframe", lambda html, **kw: captured.append(html))
-    render_master_screener_table(frame, density=density)
-    assert captured, f"{density}: nothing was rendered"
-    return captured[0]
+    return screener_table.table_html(frame, None, density)
 
 
-def _widths(html: str) -> tuple[int, int, int]:
-    group = re.search(r'<tr class="group-header-row">(.*?)</tr>', html, re.S)
-    sub = re.search(r'<tr class="sub-header-row">(.*?)</tr>', html, re.S)
-    body = re.search(r'<tr class="screener-row">(.*?)</tr>', html, re.S)
-    assert group and sub and body, "table rows not found"
-    spans = sum(
-        int(m) if m else 1
-        for m in re.findall(r'<th(?:[^>]*?colspan="(\d+)")?[^>]*>', group.group(1))
-    )
-    return spans, len(re.findall(r"<th", sub.group(1))), len(re.findall(r"<td", body.group(1)))
+def _widths(html: str) -> tuple[int, int]:
+    head = re.search(r'<tr class="hdr">(.*?)</tr></thead>', html, re.S)
+    body = re.search(r"<tbody><tr[^>]*>(.*?)</tr>", html, re.S)
+    assert head and body, "table rows not found"
+    return len(re.findall(r"<th[ >]", head.group(1))), len(re.findall(r"<td[ >]", body.group(1)))
 
 
 @pytest.mark.parametrize("density", DENSITIES)
 @pytest.mark.parametrize("with_risk", [True, False])
 def test_headers_and_cells_stay_aligned(monkeypatch, density, with_risk):
     html = _render(monkeypatch, _frame(with_risk), density)
-    spans, headers, cells = _widths(html)
+    headers, cells = _widths(html)
     assert headers == cells, (
         f"{density} (risk={with_risk}): {headers} headers over {cells} cells"
-    )
-    assert spans == headers, (
-        f"{density} (risk={with_risk}): group row spans {spans} of {headers} columns"
     )
 
 
@@ -81,18 +68,15 @@ def test_headers_and_cells_stay_aligned(monkeypatch, density, with_risk):
 def test_no_risk_column_survives_without_atr(monkeypatch, density):
     """Absent ATR must take the LABELS with it, not leave a column of dashes."""
     html = _render(monkeypatch, _frame(with_risk=False), density)
-    for label in ("STOP LOSS", "CHAND EXIT", "RISK & EXITS"):
+    for label in ("Stop Loss", "Chand Exit"):
         assert label not in html, f"{density}: '{label}' survived without ATR"
 
 
-@pytest.mark.parametrize("density", ["Core (17)", "Full Quant (35)"])
-def test_risk_columns_still_render_when_atr_is_present(monkeypatch, density):
+def test_risk_columns_still_render_when_atr_is_present(monkeypatch):
     """The drop is conditional, not a deletion: Yahoo's ranking still shows them."""
-    html = _render(monkeypatch, _frame(with_risk=True), density)
-    assert "STOP LOSS" in html
-    assert "₹210" in html
-    if density.startswith("Full"):
-        assert "CHAND EXIT" in html and "₹224" in html
+    html = _render(monkeypatch, _frame(with_risk=True), "Full Quant (35)")
+    assert "Stop Loss" in html and "₹210" in html
+    assert "Chand Exit" in html and "₹224" in html
 
 
 def test_the_drop_is_keyed_to_the_canonical_column_names():
@@ -142,10 +126,8 @@ def test_stock_page_shows_no_stop_levels_even_if_a_frame_carries_them(monkeypatc
 @pytest.mark.parametrize("density", DENSITIES)
 @pytest.mark.parametrize("with_risk", [True, False])
 def test_column_count_matches_the_table_it_describes(monkeypatch, density, with_risk):
-    """`Full Quant (35)` sat over a 36-column table. Read the count, don't type it."""
-    from src.ui.theme import screener_column_count
-
+    """The density label's count is read from the table, not typed."""
     frame = _frame(with_risk)
     html = _render(monkeypatch, frame, density)
-    _, headers, _ = _widths(html)
-    assert screener_column_count(density, frame.columns) == headers
+    _, cells = _widths(html)
+    assert screener_table.column_count(density, frame.columns) == cells
