@@ -58,3 +58,25 @@ def test_a_month_book_carries_start_and_end_ranks_and_the_next_decision():
     assert row.loc["SA", "Rank at start"] == s.loc["SA", "rank"]
     # the month in progress ends at the latest session
     assert books["2026-03"].attrs["in_progress"] and books["2026-03"].attrs["end"] == str(IDX[-1].date())
+
+
+def test_the_month_in_progress_is_added_before_the_books_are_built():
+    """Else the last completed month reads 'held to date' with no new book beside it."""
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[1] / "src" / "engine" / "model_record.py").read_text()
+    live, books = src.index("result = with_live_month(result)"), src.index('result["month_books"]')
+    assert live < books
+
+
+def test_a_month_ends_on_the_signal_date_of_the_next_book():
+    p = _prices()
+    sigs = [pd.Timestamp(x) for x in ("2025-12-31", "2026-01-30", "2026-02-27")]
+    fills = [IDX[IDX.get_loc(d) + 1] for d in sigs]                      # Jan 2, Feb 2, Mar 2
+    p = p.loc[:fills[-1]]                                                # the last book is filled on the final session
+    rows = [{"Period Start": f, "Action": "🟢 BUY (Entry)", "Symbol": "SA", "Weight %": 100.0,
+             "Reason / Signal": "x"} for f in fills]
+    books = month_books(p, pd.DataFrame(rows))
+    assert books["2026-02"].attrs["end"] == "2026-02-27" and not books["2026-02"].attrs["in_progress"]
+    assert books["2026-02"]["Next rebalance"].iloc[0] in {"Held on", "Sold"}
+    assert books["2026-03"].attrs["start"] == "2026-02-27" and books["2026-03"].attrs["in_progress"]
+    assert books["2026-03"].attrs["end"] == str(fills[-1].date())

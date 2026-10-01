@@ -110,10 +110,15 @@ def _backtest_body(
     # Prices as NSE published them (loaders/nse_prices.py): a past month ranks
     # on what was known then, not on a vendor's later restatement. Where the
     # file does not reach back far enough, the long Yahoo history stands.
-    _nse, _nse_info = nse_prices.basis_frame(
-        adj_close, membership, months=months, until=adj_close.index[-1])
+    _nse, _nse_info = nse_prices.basis_frame(adj_close, membership, months=months)
     if _nse is not None:
         adj_close, _events = _nse, []
+        # NSE's file runs to the latest session, often a day ahead of the long Yahoo history
+        # (on the 1st its first session of the month is already in). Months are counted back
+        # from the frame's end, so a month that has just closed needs one more in the window.
+        if history_start is not None:
+            months = max(months, int((pd.Period(adj_close.index[-1], freq="M")
+                                      - pd.Period(history_start, freq="M")).n))
         kit.caption(
             "Prices: NSE closes as published, adjusted for splits, bonuses and demergers "
             "(dividends are not added back, as with the Nifty 500 price index it is measured against)."

@@ -111,11 +111,15 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
             exit_date.ge(start.start_time) | exit_date.isna()
         ].reset_index(drop=True)
 
+    # Add the month in progress first: its rebalance (signalled on the last session of the
+    # month before, filled on the 1st) sits outside the backtest window, and without it the
+    # last completed month would read as "held to date" with no new book beside it.
+    result = with_live_month(result)
     tb = result.get("tradebook")
     if isinstance(tb, pd.DataFrame) and not tb.empty:
         result["month_books"] = _month_books(
             f"{system}_{price_fingerprint(prices)}_{months}", prices, tb, membership)
-    return with_live_month(result)
+    return result
 
 
 _TRADE_ACTION = {
