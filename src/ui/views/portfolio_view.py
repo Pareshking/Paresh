@@ -22,6 +22,125 @@ from src.ui.theme import render_saas_table
 PORTFOLIO_STARTING_CAPITAL = 2_000_000.0
 
 
+def _compound_returns(values: list[float]) -> float | None:
+    """Compound a sequence of period returns into one period return."""
+    valid = [float(v) for v in values if pd.notna(v)]
+    if not valid:
+        return None
+    return float(np.prod([1.0 + v for v in valid]) - 1.0)
+
+
+def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
+    """Render calendar-month performance from the canonical monthly record."""
+    if monthly.empty:
+        return '<div class="pg-note">No monthly performance is available yet.</div>'
+
+    frame = monthly.copy()
+    frame["Period"] = pd.PeriodIndex(frame["Period"], freq="M")
+    frame["Year"] = frame["Period"].dt.year
+    frame["MonthNo"] = frame["Period"].dt.month
+    frame["Strategy Net"] = pd.to_numeric(frame["Strategy Net"], errors="coerce")
+    frame["Benchmark"] = pd.to_numeric(frame["Benchmark"], errors="coerce")
+    lookup = {
+        (int(row.Year), int(row.MonthNo)): row
+        for row in frame.itertuples(index=False)
+    }
+    live = pd.Period(live_period, freq="M") if live_period else None
+    month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+    def fmt(value: float | None) -> str:
+        return "—" if value is None or pd.isna(value) else f"{value:+.1%}"
+
+    def cell(row, live_cell=False):
+        if row is None:
+            return '<div class="pcg-cell pcg-empty">—</div>'
+        strategy = float(row._asdict()["Strategy Net"]) if pd.notna(row._asdict()["Strategy Net"]) else None
+        benchmark = float(row._asdict()["Benchmark"]) if pd.notna(row._asdict()["Benchmark"]) else None
+        gap = strategy - benchmark if strategy is not None and benchmark is not None else None
+        badge = '<span class="pcg-mtd">MTD</span>' if live_cell else ""
+        return (
+            f'<div class="pcg-cell">'
+            f'<div class="pcg-top">{badge}</div>'
+            f'<div class="pcg-s">{fmt(strategy)}</div>'
+            f'<div class="pcg-b">{fmt(benchmark)}</div>'
+            f'<div class="pcg-g">Δ {fmt(gap)}</div>'
+            f'</div>'
+        )
+
+    def aggregate(periods):
+        s = [lookup[(p.year, p.month)]._asdict()["Strategy Net"] for p in periods if (p.year, p.month) in lookup]
+        b = [lookup[(p.year, p.month)]._asdict()["Benchmark"] for p in periods if (p.year, p.month) in lookup]
+        return _compound_returns(s), _compound_returns(b)
+
+    years = sorted(frame["Year"].unique())
+    rows = []
+    for year in years:
+        cells = []
+        for month_no in range(1, 13):
+            row = lookup.get((int(year), month_no))
+            is_live = live is not None and row is not None and row._asdict()["Period"] == live
+            cells.append(cell(row, is_live))
+        cy_s, cy_b = aggregate([pd.Period(f"{year}-{m:02d}", freq="M") for m in range(1, 13)])
+        fy_periods = [
+            pd.Period(
+                f"{year if m <= 12 else year + 1:04d}-{m if m <= 12 else m - 12:02d}",
+                freq="M",
+            )
+            for m in range(4, 16)
+        ]
+        fy_s, fy_b = aggregate(fy_periods) if all(
+            (p.year, p.month) in lookup for p in fy_periods
+        ) else (None, None)
+        cy_gap = cy_s - cy_b if cy_s is not None and cy_b is not None else None
+        fy_gap = fy_s - fy_b if fy_s is not None and fy_b is not None else None
+        def aggregate_cell(s, b, gap):
+            if s is None:
+                return '<div class="pcg-cell pcg-empty">—</div>'
+            return (
+                '<div class="pcg-cell">'
+                f'<div class="pcg-s">{fmt(s)}</div>'
+                f'<div class="pcg-b">{fmt(b)}</div>'
+                f'<div class="pcg-g">Δ {fmt(gap)}</div>'
+                '</div>'
+            )
+        rows.append(
+            f'<div class="pcg-row"><div class="pcg-year">{year}</div>'
+            + "".join(cells)
+            + aggregate_cell(cy_s, cy_b, cy_gap)
+            + aggregate_cell(fy_s, fy_b, fy_gap)
+            + "</div>"
+        )
+
+    return (
+        '<style>'
+        '.pcg-wrap{font-family:var(--font-ui,system-ui,sans-serif);}'
+        '.pcg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid #E3E6EB;border-radius:14px;background:#fff;}'
+        '.pcg-grid{min-width:1560px;}'
+        '.pcg-row{display:grid;grid-template-columns:64px repeat(12,minmax(105px,1fr)) 110px 110px;}'
+        '.pcg-row:not(.pcg-head){border-top:1px solid #EDEFF3;}'
+        '.pcg-head{background:#F7F8FA;position:sticky;top:0;z-index:2;}'
+        '.pcg-year,.pcg-month{padding:9px 8px;font-size:11px;font-weight:700;color:#5E6878;text-align:center;}'
+        '.pcg-year{background:#fff;position:sticky;left:0;z-index:3;border-right:1px solid #EDEFF3;}'
+        '.pcg-cell{min-height:70px;padding:8px 7px;border-left:1px solid #F0F1F4;display:flex;flex-direction:column;justify-content:center;gap:2px;}'
+        '.pcg-empty{align-items:center;color:#98A1AE;}'
+        '.pcg-top{height:12px;text-align:right;}'
+        '.pcg-mtd{display:inline-block;padding:2px 5px;border-radius:5px;background:#EEF2FF;color:#4338CA;font-size:9px;font-weight:800;letter-spacing:.3px;}'
+        '.pcg-s,.pcg-b,.pcg-g{font-family:var(--font-mono,ui-monospace,monospace);font-size:11px;line-height:1.35;white-space:nowrap;}'
+        '.pcg-s{font-weight:750;color:#0E1726;}.pcg-b{color:#5E6878;}.pcg-g{font-weight:650;color:#4F46E5;}'
+        '.pcg-key{display:flex;flex-wrap:wrap;gap:14px;margin-top:9px;font-size:11.5px;color:#5E6878;}'
+        '@media(max-width:640px){.pcg-grid{min-width:1500px}.pcg-row{grid-template-columns:58px repeat(12,105px) 108px 108px}.pcg-cell{min-height:64px;padding:7px 6px}.pcg-s,.pcg-b,.pcg-g{font-size:10.5px}}'
+        '</style>'
+        '<div class="pcg-wrap"><div class="pcg-scroll"><div class="pcg-grid">'
+        '<div class="pcg-row pcg-head"><div class="pcg-year">Year</div>'
+        + "".join(f'<div class="pcg-month">{m}</div>' for m in month_names)
+        + '<div class="pcg-month">CY</div><div class="pcg-month">FY</div></div>'
+        + "".join(rows)
+        + '</div></div>'
+        '<div class="pcg-key"><span><b>Strategy</b></span><span><b>Nifty 500</b></span><span><b>Gap</b> = Strategy − Nifty 500</span></div></div>'
+    )
+
+
 def build_portfolio_tracker(
     book: pd.DataFrame,
     rank_df: pd.DataFrame,
@@ -145,6 +264,7 @@ def build_portfolio_history(
     benchmark_dates = []
     benchmark_rows = []
     monthly_rows = []
+    monthly_grid_rows = []
     if ordered:
         first = pd.Period(ordered[0], freq="M")
         base = first.start_time - pd.Timedelta(days=1)
@@ -180,15 +300,22 @@ def build_portfolio_history(
     equity = pd.Series(equity_rows, index=pd.DatetimeIndex(equity_dates), dtype=float)
     benchmark = pd.Series(benchmark_rows, index=pd.DatetimeIndex(benchmark_dates), dtype=float)
 
+    monthly_grid_rows = list(monthly_rows)
+    live_period_key = None
+    live_mtd = {"strategy": np.nan, "benchmark": np.nan}
+
     # The ledger deliberately stops at the last closed month. Portfolio must
     # also show the current live month-to-date point, otherwise its
     # "since-inception" figure lags the same live record used by Track Record.
     live_meta = live_meta or {}
     live_s = pd.to_numeric(live_meta.get("strategy_mtd"), errors="coerce")
     live_b = pd.to_numeric(live_meta.get("benchmark_mtd"), errors="coerce")
+    live_mtd["strategy"] = live_s
+    live_mtd["benchmark"] = live_b
     live_period_raw = live_meta.get("mtd_period")
     if pd.notna(live_s) and live_period_raw:
         live_period = pd.Period(live_period_raw, freq="M")
+        live_period_key = str(live_period)
         live_end = live_period.end_time
         if live_end > equity.index[-1] if not equity.empty else True:
             base_value = float(equity.iloc[-1]) if not equity.empty else float(capital)
@@ -196,6 +323,19 @@ def build_portfolio_history(
             equity = pd.concat([equity, pd.Series([base_value * (1.0 + float(live_s))], index=[live_end])])
             if pd.notna(live_b):
                 benchmark = pd.concat([benchmark, pd.Series([base_benchmark * (1.0 + float(live_b))], index=[live_end])])
+            if pd.notna(live_s) or pd.notna(live_b):
+                monthly_grid_rows.append({
+                    "Month": live_period.strftime("%b %Y"),
+                    "Period": str(live_period),
+                    "Strategy Net": float(live_s) if pd.notna(live_s) else np.nan,
+                    "Benchmark": float(live_b) if pd.notna(live_b) else np.nan,
+                    "Alpha vs Benchmark": float(live_s - live_b) if pd.notna(live_s) and pd.notna(live_b) else np.nan,
+                    "Origin": "Live MTD",
+                    "Universe": "Current list",
+                    "Frozen On": "—",
+                    "Priced From": live_meta.get("as_of") or "—",
+                    "Config": "Live month-to-date",
+                })
     peak = equity.cummax()
     drawdown = equity / peak - 1.0
     closed = record.get("closed_trades")
@@ -206,6 +346,10 @@ def build_portfolio_history(
         "drawdown": drawdown,
         "max_drawdown": float(drawdown.min()) if not drawdown.empty else float("nan"),
         "monthly": pd.DataFrame(monthly_rows),
+        "monthly_grid": pd.DataFrame(monthly_grid_rows),
+        "mtd_period": live_period_key,
+        "strategy_mtd": float(live_mtd["strategy"]) if pd.notna(live_mtd["strategy"]) else np.nan,
+        "benchmark_mtd": float(live_mtd["benchmark"]) if pd.notna(live_mtd["benchmark"]) else np.nan,
         "trades": closed.copy() if isinstance(closed, pd.DataFrame) else pd.DataFrame(),
         "tradebook": tradebook.copy() if isinstance(tradebook, pd.DataFrame) else pd.DataFrame(),
     }
@@ -269,6 +413,10 @@ def render_portfolio_view(
     benchmark = history["benchmark"]
     drawdown = history["drawdown"]
     monthly = history["monthly"]
+    monthly_grid = history["monthly_grid"]
+    mtd_period = history["mtd_period"]
+    strategy_mtd = history["strategy_mtd"]
+    benchmark_mtd = history["benchmark_mtd"]
     trades = history["trades"]
     tradebook = history["tradebook"]
 
@@ -394,15 +542,17 @@ def render_portfolio_view(
             if equity.empty:
                 st.info("No completed portfolio history is available yet.")
             else:
+                mtd_label = pd.Period(mtd_period, freq="M").strftime("%b MTD") if mtd_period else "MTD"
+                mtd_gap = strategy_mtd - benchmark_mtd if np.isfinite(strategy_mtd) and np.isfinite(benchmark_mtd) else np.nan
                 a, b, c, d = st.columns(4)
                 with a:
                     st.metric("Ending value", f"₹{equity.iloc[-1]:,.0f}")
                 with b:
-                    st.metric("Since inception", f"{historical_return:+.1%}" if np.isfinite(historical_return) else "—")
+                    st.metric(f"{mtd_label} · Strategy", f"{strategy_mtd:+.1%}" if np.isfinite(strategy_mtd) else "—")
                 with c:
-                    st.metric("Benchmark", f"{benchmark_return:+.1%}" if np.isfinite(benchmark_return) else "—")
+                    st.metric(f"{mtd_label} · Nifty 500", f"{benchmark_mtd:+.1%}" if np.isfinite(benchmark_mtd) else "—")
                 with d:
-                    st.metric("Max drawdown", f"{history['max_drawdown']:.1%}" if np.isfinite(history["max_drawdown"]) else "—")
+                    st.metric("MTD gap", f"{mtd_gap:+.1%}" if np.isfinite(mtd_gap) else "—")
                 st.caption(
                     "Since inception compounds the frozen record through the latest completed month and the current live month-to-date return. "
                     "Current-book P&L is the unrealised return on today's holdings, so it can differ."
@@ -470,13 +620,30 @@ def render_portfolio_view(
                 st.download_button("Export rebalance CSV", rv[cols].to_csv(index=False).encode(), f"portfolio_rebalances_{ist_now():%Y%m%d}.csv", "text/csv", key="dl_port_rebalance_csv_v2")
 
     elif history_tab == "Monthly":
-        with kit.card("Month-by-month performance", "portfolio_monthly", "frozen monthly record · no current-month partial return"):
-            if monthly.empty:
+        with kit.card(
+            "Calendar grid",
+            "portfolio_monthly",
+            "Strategy, Nifty 500 and the gap, per year",
+        ):
+            if monthly_grid.empty:
                 st.info("No monthly history is available yet.")
             else:
-                cols = [c for c in ["Month", "Strategy Net", "Benchmark", "Alpha vs Benchmark", "Origin", "Priced From", "Frozen On", "Universe"] if c in monthly.columns]
-                render_saas_table(monthly[cols], max_height=600)
-                st.download_button("Export monthly performance CSV", monthly[cols].to_csv(index=False).encode(), f"portfolio_monthly_{ist_now():%Y%m%d}.csv", "text/csv", key="dl_port_monthly_csv_v2")
+                st.html(_calendar_grid_html(monthly_grid, mtd_period))
+                st.caption(
+                    "Calendar quarters (Q1 = Jan·Feb·Mar). CY compounds Jan–Dec; "
+                    "FY compounds Apr of the row's year through Mar of the next. "
+                    f"The {pd.Period(mtd_period, freq='M').strftime('%b')} cells are live month-to-date, not frozen."
+                    if mtd_period else
+                    "Calendar quarters (Q1 = Jan·Feb·Mar). CY compounds Jan–Dec; FY compounds Apr of the row's year through Mar of the next."
+                )
+                cols = [c for c in ["Month", "Strategy Net", "Benchmark", "Alpha vs Benchmark", "Origin", "Priced From", "Frozen On", "Universe"] if c in monthly_grid.columns]
+                st.download_button(
+                    "Export monthly performance CSV",
+                    monthly_grid[cols].to_csv(index=False).encode(),
+                    f"portfolio_monthly_{ist_now():%Y%m%d}.csv",
+                    "text/csv",
+                    key="dl_port_monthly_csv_v3",
+                )
 
     elif history_tab == "Drawdown":
         with kit.card("Drawdown", "portfolio_drawdown", "peak-to-trough decline in portfolio value"):
