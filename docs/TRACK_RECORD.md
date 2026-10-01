@@ -113,6 +113,13 @@ away have no prices (`former_members.unavailable()`), and the prices are today's
 vintage. Treat the block as a careful reconstruction, not as a record frozen as
 each month closed.
 
+Two further rebuilds on 2026-10-01 moved the price basis to NSE as published and
+then to Screener-primary (`docs/NSE_PRICE_BASIS.md`). **The fourth, for the owner's
+decision of 2026-10-02, made the 5% stock and 40% industry caps hard** (config
+`4cc739e503d7`): previously the replay passed no sector map and no industry cap
+bound at all. Jan–Sep moved by −1.77 to +1.96 pp; cumulative +46.57% → +44.40%.
+Full record: `docs/CANONICAL_RECONCILIATION_2026-10-02.md`.
+
 ---
 
 ## 4. Conventions
@@ -155,7 +162,16 @@ Backtest tab's defaults:
 top_n 20 · monthly rebalance · 50 EMA · 80% of 52W high
 equal weight · 30 bps cost · 2× persistence buffer (top 40)
 weights 10/30/30/20/10 · benchmark ^CRSLDX
+hard caps: 5% per stock · 40% per NSE industry (≤ 8 of 20 names), never relaxed
 ```
+
+The caps are enforced at **selection** (`backtester._select_holdings` with
+`sector_slots`): an over-full industry keeps its best-ranked names and the free slot
+goes to the next-ranked name in an industry with room. The weight projection
+(`portfolio.apply_caps`) never raises a cap; anything it cannot place is cash.
+Between rebalances the book is held, so prices can carry an industry past 40% until
+the next rebalance. Industry labels are the NSE index file's (TradingView mapped
+only for former members) — today's labels, not point-in-time.
 
 It is pinned rather than read from the UI because a track record must come from
 one fixed setup or its months are not comparable. **Changing anything in this
@@ -247,3 +263,14 @@ are different operational states.
 
 Nano Cap and Combined have no backfilled months at all: their first book is
 signalled at the 30 Sep 2026 close.
+
+### Parity gate
+
+`.github/workflows/canonical_parity.yml` runs `scripts/canonical_parity_check.py` on
+every push/PR to `main` and after each daily sync and monthly freeze. It fails when
+any frozen month stops reproducing, when the ledger was struck under a config other
+than today's, when a rebalance breaches the hard caps, when Portfolio and Actions
+would show different books, when Actions' planner disagrees with the executed
+rebalance, or when the research defaults stop reproducing the account. A failure
+after a scheduled sync opens an issue. A failing `ledger_parity` after a vendor
+restatement is expected: the stored value stands until the owner decides to rebuild.
