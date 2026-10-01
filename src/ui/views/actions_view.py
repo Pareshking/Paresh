@@ -218,11 +218,23 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     as_of = pd.Timestamp(adj_close.index[-1]) if adj_close is not None and len(adj_close) else pd.Timestamp(ist_now().date())
     check, fill = next_rebalance(as_of)
     n_sess = _sessions_between(as_of, check)
+    calendar_today = pd.Timestamp(ist_now().date())
+    fill_due_today = (
+        fill.normalize() == calendar_today
+        and as_of.to_period("M") < calendar_today.to_period("M")
+    )
+    timing_note = (
+        f" The calendar is now {calendar_today:%b %Y}, while the latest available "
+        f"price close is {as_of:%d %b}. The rebalance fill is due today and awaits "
+        "today's closing price."
+        if fill_due_today else ""
+    )
 
     head = kit.page_head(
         "Actions",
         "What the strategy would do at the next rebalance if prices stayed where they are "
-        f"today. Checked at the {_day(check)} close; orders fill on {_day(fill)}.",
+        f"today. Checked at the {_day(check)} close; orders fill on {_day(fill)}."
+        + timing_note,
         actions=True,
     )
     with head:
