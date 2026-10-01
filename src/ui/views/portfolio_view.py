@@ -55,8 +55,8 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
     def cell(row, live_cell=False):
         if row is None:
             return '<div class="pcg-cell pcg-empty">—</div>'
-        strategy = float(row["Strategy Net"]) if pd.notna(row["Strategy Net"]) else None
-        benchmark = float(row["Benchmark"]) if pd.notna(row["Benchmark"]) else None
+        strategy = float(row._asdict()["Strategy Net"]) if pd.notna(row._asdict()["Strategy Net"]) else None
+        benchmark = float(row._asdict()["Benchmark"]) if pd.notna(row._asdict()["Benchmark"]) else None
         gap = strategy - benchmark if strategy is not None and benchmark is not None else None
         badge = '<span class="pcg-mtd">MTD</span>' if live_cell else ""
         return (
@@ -83,7 +83,7 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
             cells.append(cell(row, is_live))
         cy_s, cy_b = aggregate([pd.Period(f"{year}-{m:02d}", freq="M") for m in range(1, 13)])
         fy_s, fy_b = aggregate(
-            [pd.Period(f"{year + (m >= 4):04d}-{((m - 4) % 12) + 1:02d}", freq="M") for m in range(4, 16)]
+            [pd.Period(f"{year if m <= 12 else year + 1:04d}-{m if m <= 12 else m - 12:02d}", freq="M") for m in range(4, 16)]
         )
         cy_gap = cy_s - cy_b if cy_s is not None and cy_b is not None else None
         fy_gap = fy_s - fy_b if fy_s is not None and fy_b is not None else None
@@ -106,6 +106,24 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
         )
 
     return (
+        '<style>'
+        '.pcg-wrap{font-family:var(--font-ui,system-ui,sans-serif);}'
+        '.pcg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid #E3E6EB;border-radius:14px;background:#fff;}'
+        '.pcg-grid{min-width:1560px;}'
+        '.pcg-row{display:grid;grid-template-columns:64px repeat(12,minmax(105px,1fr)) 110px 110px;}'
+        '.pcg-row:not(.pcg-head){border-top:1px solid #EDEFF3;}'
+        '.pcg-head{background:#F7F8FA;position:sticky;top:0;z-index:2;}'
+        '.pcg-year,.pcg-month{padding:9px 8px;font-size:11px;font-weight:700;color:#5E6878;text-align:center;}'
+        '.pcg-year{background:#fff;position:sticky;left:0;z-index:3;border-right:1px solid #EDEFF3;}'
+        '.pcg-cell{min-height:70px;padding:8px 7px;border-left:1px solid #F0F1F4;display:flex;flex-direction:column;justify-content:center;gap:2px;}'
+        '.pcg-empty{align-items:center;color:#98A1AE;}'
+        '.pcg-top{height:12px;text-align:right;}'
+        '.pcg-mtd{display:inline-block;padding:2px 5px;border-radius:5px;background:#EEF2FF;color:#4338CA;font-size:9px;font-weight:800;letter-spacing:.3px;}'
+        '.pcg-s,.pcg-b,.pcg-g{font-family:var(--font-mono,ui-monospace,monospace);font-size:11px;line-height:1.35;white-space:nowrap;}'
+        '.pcg-s{font-weight:750;color:#0E1726;}.pcg-b{color:#5E6878;}.pcg-g{font-weight:650;color:#4F46E5;}'
+        '.pcg-key{display:flex;flex-wrap:wrap;gap:14px;margin-top:9px;font-size:11.5px;color:#5E6878;}'
+        '@media(max-width:640px){.pcg-grid{min-width:1500px}.pcg-row{grid-template-columns:58px repeat(12,105px) 108px 108px}.pcg-cell{min-height:64px;padding:7px 6px}.pcg-s,.pcg-b,.pcg-g{font-size:10.5px}}'
+        '</style>'
         '<div class="pcg-wrap"><div class="pcg-scroll"><div class="pcg-grid">'
         '<div class="pcg-row pcg-head"><div class="pcg-year">Year</div>'
         + "".join(f'<div class="pcg-month">{m}</div>' for m in month_names)
