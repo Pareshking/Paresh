@@ -9,6 +9,7 @@ import time
 import pandas as pd
 import streamlit as st
 
+from src.ui import page_kit as kit
 from src.ui.system_param import keep_system_only, stock_href
 from src.ui.widget_state import remember, resolve
 
@@ -335,6 +336,15 @@ def render_ranking_view(
             label_visibility="collapsed",
             width="content",
         )
+        table_style = st.segmented_control(
+            "Table style",
+            ["Table", "Grid"],
+            default="Table",
+            format_func=lambda o: {"Table": "Table", "Grid": "Grid"}[o],
+            key="rank_table_style",
+            label_visibility="collapsed",
+            width="content",
+        ) or "Table"
         with st.popover("Filters & sort", icon=":material/tune:", width="content"), \
                 st.container(key="scr_filters"):
             # On a phone theme.py pins this panel to the bottom of the screen
@@ -361,12 +371,18 @@ def render_ranking_view(
             _SORT_OPTIONS = [
                 "Rank", "3M Return", "6M Return", "3M Sharpe", "% High", "Market Cap (Cr)",
             ]
-            sort_by = st.selectbox(
+            # A short fixed list, so a segmented control rather than a dropdown.
+            # Still resolved through the mirror: the key is discarded when the
+            # reader visits another page, and `default` is what brings it back.
+            # required=True means a click on the chosen one cannot clear it.
+            sort_by = st.segmented_control(
                 "Sort by",
                 _SORT_OPTIONS,
-                index=resolve("rank_sort_by_idx", 0, lo=0, hi=len(_SORT_OPTIONS) - 1),
+                default=_SORT_OPTIONS[resolve("rank_sort_by_idx", 0, lo=0,
+                                              hi=len(_SORT_OPTIONS) - 1)],
+                required=True,
                 key="rank_sort_by",
-            )
+            ) or _SORT_OPTIONS[0]
             remember("rank_sort_by_idx", _SORT_OPTIONS.index(sort_by))
 
             # The option VALUES are fixed strings: they are what session state
@@ -463,7 +479,9 @@ def render_ranking_view(
     if sort_by in view.columns and not (filt == "Momentum Movers" and sort_by == "Rank"):
         view = view.sort_values(sort_by, ascending=asc)
 
-    if str(density_mode).startswith("Full"):
+    if table_style == "Grid":
+        _render_rank_grid(view, rank_df, density_mode)
+    elif str(density_mode).startswith("Full"):
         # The research view: every window and every data-health column.
         render_master_screener_table(view, prices_df=adj_close, density=density_mode)
     else:
@@ -501,12 +519,74 @@ def render_ranking_view(
     )
 
 
+# The grid's columns per density, in display order. Executive and Core mirror
+# the HTML table's sets; Full Quant is every ranking column the table carries.
+_GRID_EXECUTIVE = ["Rank", "Symbol", "CMP", "Rank Δ 1M", "3M Return", "12M Return",
+                   "% High", "Above 50 EMA", "Near 52W High", "Chart"]
+_GRID_CORE = ["Rank", "Symbol", "Industry", "CMP", "Score", "Rank Δ 1M", "1M Return",
+              "3M Return", "6M Return", "12M Return", "3M Sharpe", "Max DD 12M",
+              "% High", "Above 50 EMA", "Near 52W High", "Chart"]
+_GRID_BOOLEANS = ("Above 50 EMA", "Near 52W High", "At ATH")
+
+
+def _grid_frame(view: pd.DataFrame, density_mode: str) -> pd.DataFrame:
+    """The rows being shown, narrowed to the density's columns for a grid."""
+    wanted = (_GRID_EXECUTIVE if str(density_mode).startswith("Exec")
+              else _GRID_CORE if str(density_mode).startswith("Core")
+              else [c for c in DISPLAY_COLS if c not in ("Data Gap", "Short History")]
+              + ["Score", "Chart"])
+    out = view.copy()
+    if "Symbol" in out.columns:
+        out["Chart"] = out["Symbol"].astype(str).map(kit.tradingview_url)
+    for col in _GRID_BOOLEANS:
+        if col in out.columns:
+            out[col] = to_bool_mask(out[col])
+    cols = list(dict.fromkeys(c for c in wanted if c in out.columns))
+    return out[cols].reset_index(drop=True)
+
+
+def _render_rank_grid(view: pd.DataFrame, rank_df: pd.DataFrame, density_mode: str) -> None:
+    """The ranking as an st.dataframe: sortable and resizable, with bars for the
+    score and checkboxes for the two filters. Ticking a row opens that stock's
+    page in place, the way the search box does; the HTML table stays the
+    default because it carries the 12-month paths and the phone list.
+    """
+    frame = _grid_frame(view, density_mode)
+    if frame.empty:
+        st.info("No stocks match the current filters.")
+        return
+    score_range = None
+    if "Score" in rank_df.columns:
+        sc = pd.to_numeric(rank_df["Score"], errors="coerce")
+        if sc.notna().any():
+            score_range = (float(sc.min()), float(sc.max()))
+    # A fresh key after each pick: the dataframe keeps its selection, so the
+    # same key would reopen the stock the moment the reader came back.
+    nonce = int(st.session_state.get("_rank_grid_n", 0))
+    event = st.dataframe(
+        frame,
+        hide_index=True,
+        width="stretch",
+        height=min(760, 44 + 35 * len(frame)),
+        column_config=kit.stock_grid_config(frame.columns, score_range=score_range),
+        on_select="rerun",
+        selection_mode="single-row",
+        key=f"rank_grid_{nonce}",
+    )
+    st.caption("Tick a row's box to open that stock. Click a column header to sort.")
+    rows = list(getattr(getattr(event, "selection", None), "rows", []) or [])
+    if rows and 0 <= rows[0] < len(frame):
+        st.session_state["_rank_grid_n"] = nonce + 1
+        st.query_params["stock"] = str(frame.iloc[rows[0]]["Symbol"])
+        st.rerun()
+
+
 def _reset_screener_filters() -> None:
     # Popped, not assigned: each of these widgets passes its own default, and
     # a session-state value on top of a default makes Streamlit print a
     # warning on the page. The sort's mirror goes back to Rank as well.
     for key in ("rank_index_filter", "rank_only_passing", "rank_sort_by",
-                "rank_density_mode", "rank_quick_pills"):
+                "rank_density_mode", "rank_quick_pills", "rank_table_style"):
         st.session_state.pop(key, None)
     remember("rank_sort_by_idx", 0)
 

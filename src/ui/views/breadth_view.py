@@ -110,11 +110,11 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
         actions=True,
     )
     with actions:
-        history_days = st.selectbox(
-            "Period", [63, 126, 252], index=1,
-            format_func=lambda x: {63: "3 months", 126: "6 months", 252: "1 year"}[x],
-            key="br_lb_days", label_visibility="collapsed", width=130,
-        )
+        history_days = st.segmented_control(
+            "Period", [63, 126, 252], default=126, required=True,
+            format_func=lambda x: {63: "3M", 126: "6M", 252: "1Y"}[x],
+            key="br_lb_days", label_visibility="collapsed",
+        ) or 126
         with st.popover("Chart settings", icon=":material/tune:"):
             ma_type = st.segmented_control("Average", ["EMA", "SMA"], default="EMA",
                                            key="br_ma_type") or "EMA"
@@ -122,11 +122,11 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
                                      default=["50D", "200D"], key="br_sel_mas")
             bview = st.segmented_control("Participation by", ["Universe", "By Index"],
                                          default="Universe", key="br_bview") or "Universe"
-            hl_window = st.selectbox(
-                "New high / low means", [52, 126, 252], index=2,
+            hl_window = st.segmented_control(
+                "New high / low means", [52, 126, 252], default=252, required=True,
                 format_func=lambda x: {52: "52-day", 126: "126-day", 252: "52-week"}[x],
                 key="hl_win_sel",
-            )
+            ) or 252
             hl_disp = st.segmented_control("Show highs and lows as", ["% of Universe", "Stock Count"],
                                            default="% of Universe", key="hl_fmt_radio") or "% of Universe"
 

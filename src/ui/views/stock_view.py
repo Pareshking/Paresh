@@ -24,6 +24,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from src.ui import page_kit as kit
 from src.ui.system_param import stock_href
 from src.engine.corporate_actions import load_events
 from src.engine.momentum import CARRIED_MARK
@@ -558,6 +559,14 @@ def _render_peers(row: pd.Series, rank_df: pd.DataFrame) -> None:
                         "12M Return", "3M Sharpe", "% High"] if c in peers.columns]
     _render_peers_table(peers[cols].copy(), highlight_sym=sym,
                         title=f"Best-ranked {industry} stocks", total=len(in_ind))
+    if len(in_ind) > len(peers):
+        if st.button(f"All {len(in_ind)} stocks in {industry}", type="tertiary",
+                     icon=":material/open_in_full:", key="sp_peers_all"):
+            full = in_ind.sort_values("Rank")
+            full = full.assign(Chart=full["Symbol"].astype(str).map(kit.tradingview_url))
+            keep = [c for c in ["Rank", "Symbol", "CMP", "1M Return", "3M Return", "6M Return",
+                                "12M Return", "3M Sharpe", "% High", "Chart"] if c in full.columns]
+            _peers_dialog(str(industry), full[keep].reset_index(drop=True))
 
 
 def _render_peers_table(df: pd.DataFrame, highlight_sym: str, title: str = "Peers",
@@ -610,6 +619,88 @@ def _render_peers_table(df: pd.DataFrame, highlight_sym: str, title: str = "Peer
         f'<div class="ph"><h2>{_html.escape(title)}</h2>{more}</div>'
         f'<div class="tw"><table><thead><tr>{head}</tr></thead>'
         f'<tbody>{"".join(body)}</tbody></table></div></section>'
+    )
+
+
+# ── Drill-downs (modal, read-only) ───────────────────────────────────────────
+# Dialogs run as fragments and drop their widgets when closed, so they hold
+# figures only: nothing keyed, nothing the engine reads.
+
+def _factsheet_frame(row: dict) -> pd.DataFrame:
+    """One line per lookback window: return, Sharpe and the worst fall in it."""
+    return pd.DataFrame([
+        {"Window": f"{m} month" + ("s" if m > 1 else ""),
+         "Return": _num(row.get(f"{m}M Return")),
+         "Sharpe": _num(row.get(f"{m}M Sharpe")),
+         "Max drawdown": _num(row.get(f"Max DD {m}M"))}
+        for m in PERIODS
+    ])
+
+
+@st.dialog("Factsheet", width="large")
+def _factsheet_dialog(row: dict) -> None:
+    """Every figure the ranking holds for this stock, grouped."""
+    r = pd.Series(row)
+    sym = str(r.get("Symbol", ""))
+    st.caption(f"{str(r.get('Company Name') or sym)} · {sym}")
+    t_ret, t_trend, t_data = st.tabs(["Returns and risk", "Trend and levels", "Data quality"])
+
+    with t_ret:
+        st.dataframe(
+            _factsheet_frame(row), hide_index=True, width="stretch",
+            column_config={
+                "Window": st.column_config.TextColumn("Window", pinned=True),
+                "Return": st.column_config.NumberColumn("Return", format="percent"),
+                "Sharpe": st.column_config.NumberColumn("Sharpe", format="%.2f"),
+                "Max drawdown": st.column_config.NumberColumn("Max drawdown", format="%.1f%%"),
+            },
+        )
+        st.caption("Return is the price change over the window; the drawdown is the "
+                   "deepest fall from a peak inside it.")
+
+    with t_trend:
+        kit.metric_row([
+            kit.Metric("Rank", f"#{int(_num(r.get('Rank')))}" if _num(r.get("Rank")) is not None else "—"),
+            kit.Metric("Score", _ratio(r.get("Score"), 3)),
+            kit.Metric("From 52W high", _pct(r.get("% High"))),
+            kit.Metric("vs 50 EMA", _pct(r.get("% 50 EMA"))),
+        ], key="fs_trend")
+        kit.metric_row([
+            kit.Metric("Price", _money(r.get("CMP"), 2)),
+            kit.Metric("52W high", _money(r.get("52W High"), 2)),
+            kit.Metric("All-time high", _money(r.get("ATH"), 2)),
+            kit.Metric("Stop loss", _money(r.get("Stop Loss"), 2)),
+            kit.Metric("Chandelier exit", _money(r.get("Chand Exit"), 2)),
+        ], key="fs_levels")
+        with st.container(horizontal=True, vertical_alignment="center", gap="small"):
+            for label, col in (("Above 50 EMA", "Above 50 EMA"),
+                               ("Near 52W high", "Near 52W High"),
+                               ("At all-time high", "At ATH")):
+                kit.badge(label, "up" if _flag(r, col) else "")
+
+    with t_data:
+        gap = str(r.get("Data Gap") or "").strip()
+        hz = _num(r.get("Horizons Scored"))
+        kit.metric_row([
+            kit.Metric("Horizons scored", f"{int(hz)} of 5" if hz is not None else "—"),
+            kit.Metric("Gap-filled prices", _pct(r.get("FFill %"), signed=False)),
+            kit.Metric("History", "Under 6 months" if str(r.get("Short History") or "No") == "Yes" else "Full"),
+        ], key="fs_data")
+        if gap and gap.lower() not in ("nan", "none", "—"):
+            kit.callout("Data gap", gap, "warn")
+        else:
+            kit.callout("No data gaps flagged", "", "up")
+
+
+@st.dialog("Industry peers", width="large")
+def _peers_dialog(industry: str, frame: pd.DataFrame) -> None:
+    """Every ranked stock in the industry, best rank first."""
+    st.caption(f"{len(frame)} stocks in {industry}, best rank first. Click a column "
+               "header to sort.")
+    st.dataframe(
+        frame, hide_index=True, width="stretch",
+        height=min(560, 44 + 35 * len(frame)),
+        column_config=kit.stock_grid_config(frame.columns),
     )
 
 
@@ -686,7 +777,7 @@ def _render_exit_status(sym: str, rank_df: pd.DataFrame) -> None:
     )
 
 
-def _render_actions(sym: str, on_back=None) -> None:
+def _render_actions(sym: str, on_back=None, row: dict | None = None) -> None:
     from src.ui import watchlist_store
 
     on_list = sym.upper() in watchlist_store.symbols()
@@ -705,6 +796,12 @@ def _render_actions(sym: str, on_back=None) -> None:
             help=("Remove from your watchlist" if on_list else
                   "Save to your watchlist, kept in this browser"),
         )
+        if row is not None and st.button("Factsheet", icon=":material/table_view:",
+                                         key="sp_factsheet", type="secondary",
+                                         help="Every figure the ranking holds for this stock"):
+            _factsheet_dialog(row)
+        st.link_button("Chart", kit.tradingview_url(sym), icon=":material/open_in_new:",
+                       help="Opens this stock on TradingView in a new tab")
         with st.popover("Share", icon=":material/link:", key="sp_share"):
             st.caption("Link to this stock's page. Use the copy button on the right.")
             st.code(_share_url(sym), language=None, wrap_lines=True)
@@ -734,7 +831,7 @@ def render_stock_view(
     total_stocks = len(rank_df)
     sym = str(row["Symbol"])
 
-    _render_actions(sym, on_back)
+    _render_actions(sym, on_back, row.to_dict())
     _render_identity(row, total_stocks)
     _render_verdict(row)
     _render_exit_status(sym, rank_df)

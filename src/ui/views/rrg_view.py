@@ -266,13 +266,14 @@ def render_rrg_view(
                 "used elsewhere in V1."
             ),
         )
-        tf_choice = st.selectbox(
+        tf_choice = st.segmented_control(
             "Timeframe",
             ["Weekly candle", "Daily candle"],
             format_func=lambda k: k.split()[0],
-            index=0,
+            default="Weekly candle",
+            required=True,
             key="rrg_tf_choice",
-        )
+        ) or "Weekly candle"
         tail_w = st.slider("Tail (weeks)", min_value=2, max_value=20, value=6, step=1,
                            key="rrg_tl_w")
         lookback_w = st.number_input("Lookback (weeks)", min_value=4, max_value=52, value=12,

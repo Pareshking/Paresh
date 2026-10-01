@@ -115,9 +115,9 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, *,
         )
     view = passing.head(top_n).copy()
     with actions:
-        st.selectbox("Show", [10, 15, 20, 25, 30], index=4, key="qual_top_n",
-                     format_func=lambda n: f"Top {n}", label_visibility="collapsed",
-                     width=120)
+        st.segmented_control("Show", [10, 15, 20, 25, 30], default=30, required=True,
+                             key="qual_top_n", format_func=lambda n: f"Top {n}",
+                             label_visibility="collapsed")
         st.download_button("Export CSV", view.to_csv(index=False).encode(),
                            f"qualified_{ist_now():%Y%m%d}.csv", "text/csv",
                            key="dl_qual_csv", icon=":material/download:",

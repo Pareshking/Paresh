@@ -274,3 +274,60 @@ The QA probes still accept every navigation shape (`scripts/_streamlit_nav.py`).
 `missing_pages` now reports a page that is absent from an opened menu. It used
 to return nothing whenever the ☰ button existed.
 
+
+
+## 9. UI kit v2 (2026-10-01)
+
+An additive pass on the shared kit; no key, query parameter, formula or
+navigation contract changed.
+
+- **Tokens** (`:root` in `src/ui/theme.py`): type steps `--fs-*`, radii `--r-*`,
+  depth `--sh-*`, spacing `--sp-*`, plus the caution/accent tints. New CSS lives
+  in one `UI kit v2` block after the Command Bar marker, outside every block
+  `tests/test_redesign_legibility.py` slices.
+- **`src/ui/page_kit.py`**: `Metric` / `metric_tile` / `metric_row` (bordered
+  `st.metric`, wraps on a phone), `pct` (display-only formatting),
+  `callout` (escaped, tone-tinted, replaces inline-hex blocks), `badge`,
+  `toolbar`, `df_card` with `col_pct` / `col_rupee` / `col_num` / `col_rank`
+  `column_config` helpers. No `LinkColumn` for stocks: it opens a new tab, and
+  `tests/test_stock_links_open_in_place.py` requires in-place links.
+- **Pickers**: short fixed option sets are now `st.segmented_control` with
+  `required=True`, a `default` and an `or <default>` read (Breadth period and
+  high/low window, RRG timeframe, Qualified top-N, Sectors rank-by). Long or
+  data-dependent lists stay selectboxes; the Configuration system radio stays a
+  radio (its captions and rerun protocol, and the production QA probe).
+- **Dialogs** (`@st.dialog`, module level, read-only content only): Configuration's
+  "Index files on disk" and "All sessions, by date". A dialog's widgets are
+  discarded when it closes, so nothing keyed or engine-bound belongs in one. The
+  Stock page "Data checks" expander and the Actions "Buy candidates" expander
+  stay expanders: a test reads the former by label and the latter embeds keyed
+  widgets.
+- **Backtest sweep**: the result is not a dialog, because it exists only on the
+  run where "Run sweep" returned True. Holdout detail is a tab beside the main
+  table instead of a nested expander.
+- **Fixed on the way**: `page_kit.growth_chart` was removed by the equity-chart
+  commit while the Backtest and Track Record pages still called it, so both
+  raised `AttributeError`. It is back as a wrapper over `equity_chart`, and
+  `tests/test_ui_kit_v2.py` fails if any `kit.<name>` the UI calls is missing.
+
+### 9.1 Second pass: grids and drill-downs
+
+- **Grid view** (`rank_table_style`, `portfolio_book_style`, both default
+  "Table"): the Screener and the Portfolio's current book can be drawn as an
+  `st.dataframe` with `kit.stock_grid_config` (rupee and percent formats, a bar
+  for Score and for Portfolio weight, checkboxes for the filters, an external
+  TradingView `LinkColumn`). The HTML tables stay the default: they carry the
+  12-month paths, the phone list, sign colouring and the tests that pin them.
+- **Row pick**: ticking a row in the Screener grid opens that stock in place
+  (`st.query_params["stock"]`, exactly as the search box does); a fresh grid
+  key (`_rank_grid_n`) follows each pick so coming back does not reopen it.
+  In the Portfolio grid it opens the `_holding_dialog` ticket once per pick
+  (`_pf_book_seen`).
+- **Stock page**: `Factsheet` (tabs: returns and risk, trend and levels, data
+  quality), `All N stocks in <industry>` and an external `Chart` button. The
+  Data-checks expander stays an expander (a test reads it by label).
+- **Pickers**: Screener sort and the Configuration system choice are segmented
+  controls with the same keys; `rank_sort_by` still resolves through the
+  `rank_sort_by_idx` mirror, `cfg_system_radio` keeps the `chosen != current`
+  rerun protocol, and its per-option captions became one caption under the
+  control.

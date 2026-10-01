@@ -150,6 +150,20 @@ def inject_custom_css() -> None:
             --font-ui: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             --font-display: 'Bricolage Grotesque', 'Geist', sans-serif;
             --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+            /* UI kit v2 scale: one set of steps for type, corners, depth and
+               spacing, so identical kinds of block read with identical weight. */
+            --fs-11: 11px; --fs-12: 12px; --fs-13: 13px; --fs-14: 14px;
+            --fs-15: 15px; --fs-17: 17px; --fs-20: 20px; --fs-26: 26px;
+            --r-sm: 6px; --r-md: 10px; --r-lg: 12px; --r-xl: 16px;
+            --sh-1: 0 1px 2px rgba(14, 23, 38, 0.04);
+            --sh-2: 0 4px 12px -2px rgba(14, 23, 38, 0.08);
+            --sh-pop: 0 12px 32px -8px rgba(14, 23, 38, 0.18);
+            --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+            --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
+            --c-caution-tint: #FEF6EA;
+            --c-caution-ink: #7A2E0E;
+            --c-accent-tint: #EEF0FF;
         }
 
         /* ── Base Reset & Typography Hierarchy ── */
@@ -647,12 +661,13 @@ def inject_custom_css() -> None:
         .pg-card-h span { font-size: 12.5px; color: #5E6878; }
         .pg-cap { margin: 0; font-size: 12.5px; line-height: 1.5; color: #5E6878; }
         .pg-bars { display: flex; flex-direction: column; gap: 4px; }
-        .pg-bar { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 76px; align-items: center; gap: 12px; min-height: 30px; }
+        .pg-bar { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 150px; align-items: center; gap: 12px; min-height: 30px; }
         .pg-bar-l { font-size: 13.5px; color: #0E1726; }
         .pg-bar-t { position: relative; height: 10px; border-radius: 5px; background: #EDEFF3; }
         .pg-bar-t i { position: absolute; left: 0; top: 0; height: 10px; border-radius: 5px; background: #4F46E5; }
         .pg-bar-t i.warn { background: #B54708; }
         .pg-bar-v { font-family: var(--font-mono); font-size: 13px; text-align: right; color: #0E1726; }
+        @media (min-width: 641px) { .pg-bar-v { white-space: nowrap; } }
         [class*="st-key-pg_actions_"] { gap: 10px !important; }
         .hm-wrap { overflow-x: auto; }
         /* Exit watch */
@@ -1226,6 +1241,57 @@ def inject_custom_css() -> None:
             background-color: #eef2ff !important;
             border-color: #c7d2fe !important;
             color: #4f46e5 !important;
+        }
+
+        /* ── UI kit v2 ───────────────────────────────────────────────────
+           Shared by the page_kit helpers. st.metric(border=True) draws its own
+           1px border; this sets the radius, surface and depth so a figure in a
+           card looks the same on every page. Sits after the Command Bar marker,
+           outside every block the legibility tests slice. */
+        [data-testid="stMetric"] {
+            background: var(--c-surface) !important;
+            border-radius: var(--r-lg) !important;
+            box-shadow: var(--sh-1) !important;
+            min-width: 0;
+        }
+        [data-testid="stMetric"] [data-testid="stMetricValue"] {
+            font-variant-numeric: tabular-nums;
+        }
+        [class*="st-key-mrow_"] { align-items: stretch; }
+        [class*="st-key-mrow_"] > [data-testid="stMetric"],
+        [class*="st-key-mrow_"] > div { flex: 1 1 180px; min-width: 0; }
+
+        .pg-callout {
+            border-left: 3px solid var(--c-border-strong);
+            background: var(--c-bg-subtle);
+            border-radius: var(--r-md);
+            padding: 10px 14px;
+            margin: 0;
+            font-size: var(--fs-13);
+            line-height: 1.45;
+            color: var(--c-text-secondary);
+        }
+        .pg-callout b { display: block; font-size: var(--fs-13); color: var(--c-text-primary); }
+        .pg-callout span { display: block; margin-top: 4px; }
+        .pg-callout.up { border-left-color: var(--c-bull); background: var(--c-bull-tint); }
+        .pg-callout.up b { color: var(--c-bull); }
+        .pg-callout.down { border-left-color: var(--c-bear); background: var(--c-bear-tint); }
+        .pg-callout.down b { color: var(--c-bear); }
+        .pg-callout.warn { border-left-color: var(--c-caution); background: var(--c-caution-tint); }
+        .pg-callout.warn b { color: var(--c-caution-ink); }
+
+        a.pg-link {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 14px; border: 1px solid var(--c-border-strong);
+            border-radius: var(--r-md); background: var(--c-surface);
+            color: var(--c-accent-text) !important; font-size: var(--fs-13);
+            font-weight: 600; text-decoration: none;
+        }
+        a.pg-link:hover { border-color: var(--c-accent); background: var(--c-accent-tint); }
+
+        [data-testid="stDialog"] [role="dialog"] {
+            border-radius: var(--r-xl) !important;
+            box-shadow: var(--sh-pop) !important;
         }
 
         /* ── Metric Containers ── */

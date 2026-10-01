@@ -140,8 +140,8 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
         actions=True,
     )
     with actions:
-        st.selectbox("Rank by", list(RANK_BY), key="sector_rank_by",
-                     format_func=lambda k: f"Rank by: {k}", label_visibility="collapsed", width=190)
+        st.segmented_control("Rank by", list(RANK_BY), default="3M median", required=True,
+                             key="sector_rank_by", label_visibility="collapsed")
         if len(tax) > 1:
             st.selectbox("Classification", list(tax), key="sector_tax_choice",
                          label_visibility="collapsed", width=190)
