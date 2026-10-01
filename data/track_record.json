@@ -4,14 +4,14 @@
   "benchmark": "^CRSLDX",
   "months": {
     "2026-01": {
-      "strategy": 0.001721,
+      "strategy": 0.00172,
       "benchmark": -0.03318,
-      "alpha": 0.034901,
+      "alpha": 0.0349,
       "origin": "backfill",
       "universe": "point_in_time",
       "finalized_on": "2026-10-01",
-      "config": "65d84ba7dcd4",
-      "data_as_of": "2026-09-30"
+      "config": "7632b1dd09ca",
+      "data_as_of": "2026-10-01"
     },
     "2026-02": {
       "strategy": 0.024629,
@@ -20,28 +20,28 @@
       "origin": "backfill",
       "universe": "point_in_time",
       "finalized_on": "2026-10-01",
-      "config": "65d84ba7dcd4",
-      "data_as_of": "2026-09-30"
+      "config": "7632b1dd09ca",
+      "data_as_of": "2026-10-01"
     },
     "2026-03": {
-      "strategy": -0.118538,
+      "strategy": -0.118536,
       "benchmark": -0.113904,
-      "alpha": -0.004634,
+      "alpha": -0.004632,
       "origin": "backfill",
       "universe": "point_in_time",
       "finalized_on": "2026-10-01",
-      "config": "65d84ba7dcd4",
-      "data_as_of": "2026-09-30"
+      "config": "7632b1dd09ca",
+      "data_as_of": "2026-10-01"
     },
     "2026-04": {
-      "strategy": 0.198395,
+      "strategy": 0.198394,
       "benchmark": 0.105003,
-      "alpha": 0.093393,
+      "alpha": 0.093392,
       "origin": "backfill",
       "universe": "point_in_time",
       "finalized_on": "2026-10-01",
-      "config": "65d84ba7dcd4",
-      "data_as_of": "2026-09-30"
+      "config": "7632b1dd09ca",
+      "data_as_of": "2026-10-01"
     },
     "2026-05": {
       "strategy": 0.115302,
@@ -50,8 +50,8 @@
       "origin": "backfill",
       "universe": "point_in_time",
       "finalized_on": "2026-10-01",
-      "config": "65d84ba7dcd4",
-      "data_as_of": "2026-09-30"
+      "config": "7632b1dd09ca",
+      "data_as_of": "2026-10-01"
     },
     "2026-06": {
       "strategy": 0.072482,
@@ -60,8 +60,8 @@
       "origin": "backfill",
       "universe": "point_in_time",
       "finalized_on": "2026-10-01",
-      "config": "65d84ba7dcd4",
-      "data_as_of": "2026-09-30"
+      "config": "7632b1dd09ca",
+      "data_as_of": "2026-10-01"
     },
     "2026-07": {
       "strategy": -0.02203,
@@ -70,8 +70,8 @@
       "origin": "backfill",
       "universe": "point_in_time",
       "finalized_on": "2026-10-01",
-      "config": "65d84ba7dcd4",
-      "data_as_of": "2026-09-30"
+      "config": "7632b1dd09ca",
+      "data_as_of": "2026-10-01"
     },
     "2026-08": {
       "strategy": 0.14427,
@@ -80,17 +80,17 @@
       "origin": "backfill",
       "universe": "point_in_time",
       "finalized_on": "2026-10-01",
-      "config": "65d84ba7dcd4",
-      "data_as_of": "2026-09-30"
+      "config": "7632b1dd09ca",
+      "data_as_of": "2026-10-01"
     },
     "2026-09": {
-      "strategy": 0.009457,
+      "strategy": 0.009901,
       "benchmark": -0.058773,
-      "alpha": 0.06823,
-      "origin": "recorded",
+      "alpha": 0.068674,
+      "origin": "backfill",
       "universe": "point_in_time",
       "finalized_on": "2026-10-01",
-      "config": "65d84ba7dcd4",
+      "config": "7632b1dd09ca",
       "data_as_of": "2026-10-01"
     }
   },
@@ -160,7 +160,40 @@
         "2026-08": 0.151064
       },
       "note": "Struck on NSE closes as published (data/nse_prices) instead of Yahoo's restated adjusted closes, so each month ranks and applies its entry/exit gates on what was published that day; the four names the index absorbed (CIGNITITEC, GSPL, GUJGASLTD, JBCHEPHARM) now have prices."
+    },
+    {
+      "on": "2026-10-01",
+      "months": [
+        "2026-01",
+        "2026-02",
+        "2026-03",
+        "2026-04",
+        "2026-05",
+        "2026-06",
+        "2026-07",
+        "2026-08",
+        "2026-09"
+      ],
+      "replaced_configs": [
+        "65d84ba7dcd4"
+      ],
+      "config": "7632b1dd09ca",
+      "prices": "screener_primary",
+      "membership": "point in time from 2025-12-31",
+      "former_members_unpriceable": [],
+      "previous_values": {
+        "2026-01": 0.001721,
+        "2026-02": 0.024629,
+        "2026-03": -0.118538,
+        "2026-04": 0.198395,
+        "2026-05": 0.115302,
+        "2026-06": 0.072482,
+        "2026-07": -0.02203,
+        "2026-08": 0.14427,
+        "2026-09": 0.009457
+      },
+      "note": "Struck on Screener's closes, as the live ranking is (owner, 2026-10-01), with NSE's closes as published only where Screener has none (7 names, incl. the four merged away) and Yahoo only where neither has. Monthly returns equal the NSE-basis rebuild to the rounded percent (Sep +0.99% vs +0.95%): the two sources agree once both are price-only."
     }
   ],
-  "price_basis": "nse_as_published"
+  "price_basis": "screener_primary"
 }

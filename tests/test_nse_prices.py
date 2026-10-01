@@ -100,7 +100,7 @@ def test_a_caller_can_pin_the_frame_to_the_other_sources_end(tmp_path):
     """Callers that fixed their month count against the other source ask for the same end."""
     d = _write(tmp_path, _closes(AAA=_flat(100)))
     other = _other(IDX[:-5], AAA=_flat(90, len(IDX) - 5))
-    frame, rep = npx.basis_frame(other, None, months=1, directory=d, until=other.index[-1])
+    frame, rep = npx.basis_frame(other, None, months=1, directory=d, until=other.index[-1], screener=None)
     assert frame.index[-1] == IDX[-6] and rep["used"]
     assert float(frame["AAA"].iloc[-1]) == 100.0           # NSE's level, not the other source's
 
@@ -108,7 +108,7 @@ def test_a_caller_can_pin_the_frame_to_the_other_sources_end(tmp_path):
 def test_sessions_after_the_file_are_carried_forward_on_the_other_sources_moves(tmp_path):
     d = _write(tmp_path, _closes(AAA=_flat(100)).iloc[:-5])
     other = _other(IDX, AAA=np.linspace(90, 99, len(IDX)))
-    frame, _ = npx.basis_frame(other, None, months=1, directory=d)
+    frame, _ = npx.basis_frame(other, None, months=1, directory=d, screener=None)
     assert frame.index[-1] == IDX[-1] and len(frame) == len(IDX)
     ratio = float(other["AAA"].iloc[-1] / other["AAA"].iloc[-6])
     assert float(frame["AAA"].iloc[-1]) == pytest.approx(100 * ratio, rel=1e-5)
@@ -117,13 +117,13 @@ def test_sessions_after_the_file_are_carried_forward_on_the_other_sources_moves(
 def test_a_name_nse_lacks_comes_from_the_other_source_and_is_listed(tmp_path):
     d = _write(tmp_path, _closes(AAA=_flat(100)))
     other = _other(IDX, AAA=_flat(90, len(IDX)), REIT=_flat(300, len(IDX)))
-    frame, rep = npx.basis_frame(other, None, months=1, directory=d)
+    frame, rep = npx.basis_frame(other, None, months=1, directory=d, screener=None)
     assert float(frame["REIT"].iloc[0]) == 300.0 and rep["other_source_names"] == ["REIT"]
 
 
 def test_a_file_too_short_for_the_study_is_refused_so_the_caller_keeps_its_own(tmp_path):
     d = _write(tmp_path, _closes(AAA=_flat(100)))
-    frame, rep = npx.basis_frame(_other(IDX, AAA=_flat(90, len(IDX))), None, months=24, directory=d)
+    frame, rep = npx.basis_frame(_other(IDX, AAA=_flat(90, len(IDX))), None, months=24, directory=d, screener=None)
     assert frame is None and rep["used"] is False and "needs" in rep["why"]
 
 
@@ -232,16 +232,16 @@ def test_the_special_sessions_nse_held_are_in_the_file(committed):
 # ── the record's basis is part of its identity ───────────────────────────────
 
 def test_the_price_basis_is_in_the_config_fingerprint():
-    assert TRACK_RECORD_CONFIG["prices"] == "nse_as_published"
+    assert TRACK_RECORD_CONFIG["prices"] == "screener_primary"
     yahoo = {**TRACK_RECORD_CONFIG, "prices": "yahoo_adjusted"}
     assert config_fingerprint(**yahoo) != config_fingerprint(**TRACK_RECORD_CONFIG)
 
 
 def test_the_committed_ledger_is_one_basis_one_config_and_says_so():
     led = json.loads((systems.ledger_path("750")).read_text())
-    assert led["price_basis"] == "nse_as_published"
+    assert led["price_basis"] == "screener_primary"
     assert {m["config"] for m in led["months"].values()} == {config_fingerprint(**TRACK_RECORD_CONFIG)}
-    assert led["rebuilds"][-1]["prices"] == "nse_as_published"
+    assert led["rebuilds"][-1]["prices"] == "screener_primary"
     assert led["rebuilds"][-1]["former_members_unpriceable"] == []
 
 
@@ -291,8 +291,8 @@ def test_an_unreadable_r2_day_is_reported_not_skipped_silently():
 def test_the_frame_runs_to_nses_last_session_unless_a_caller_pins_it(tmp_path):
     d = _write(tmp_path, _closes(AAA=_flat(100)))
     other = _other(IDX[:-3], AAA=_flat(90, len(IDX) - 3))        # the other source is 3 sessions behind
-    ahead, _ = npx.basis_frame(other, None, months=1, directory=d)
-    pinned, _ = npx.basis_frame(other, None, months=1, directory=d, until=other.index[-1])
+    ahead, _ = npx.basis_frame(other, None, months=1, directory=d, screener=None)
+    pinned, _ = npx.basis_frame(other, None, months=1, directory=d, until=other.index[-1], screener=None)
     assert ahead.index[-1] == IDX[-1] and pinned.index[-1] == IDX[-4]
 
 
@@ -307,3 +307,56 @@ def test_the_monthly_job_tries_on_the_first_working_day():
     from pathlib import Path
     wf = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "monthly_track_record.yml").read_text()
     assert "- cron: '0 19 1-5 * *'" in wf and "--verify-r2" in wf
+
+
+# ── Screener first, NSE only where Screener has none ─────────────────────────
+
+def _store(**series):
+    cols = pd.MultiIndex.from_tuples([(k, f) for k in series for f in ("Close", "Volume")])
+    idx = sorted({d for v in series.values() for d in v.index})
+    df = pd.DataFrame(index=pd.DatetimeIndex(idx), columns=cols, dtype=float)
+    for k, v in series.items():
+        df[(k, "Close")] = v
+        df[(k, "Volume")] = 1.0
+    return df
+
+
+def test_screener_closes_win_wherever_screener_has_one():
+    base = pd.DataFrame({"AAA": _flat(100)}, index=IDX)
+    scr = _store(AAA=pd.Series(102.0, index=IDX))
+    out, rep = npx.blend_screener(base, scr)
+    assert rep["screener"] and (out["AAA"] == 102.0).all()
+    assert rep["share_of_cells_from_screener"] == 1.0
+
+
+def test_dates_screener_lacks_are_nse_scaled_to_screeners_level_with_no_step_at_the_seam():
+    base = pd.DataFrame({"AAA": np.linspace(100, 130, len(IDX))}, index=IDX)
+    sparse = pd.Series(base["AAA"].to_numpy() * 1.02, index=IDX).iloc[len(IDX) // 2:]   # Screener holds only the later half
+    out, _ = npx.blend_screener(base, _store(AAA=sparse))
+    assert out["AAA"].iloc[-1] == pytest.approx(sparse.iloc[-1], rel=1e-5)
+    early = out["AAA"].iloc[: len(IDX) // 2]
+    assert (early / base["AAA"].iloc[: len(IDX) // 2]).round(4).eq(1.02).all()          # NSE's shape on Screener's level
+    assert abs(out["AAA"].iloc[len(IDX) // 2] / out["AAA"].iloc[len(IDX) // 2 - 1] - 1) < 0.01
+
+
+def test_a_stock_screener_never_held_stays_on_nse_and_one_only_screener_holds_is_added():
+    base = pd.DataFrame({"AAA": _flat(100), "BBB": _flat(50)}, index=IDX)
+    scr = _store(AAA=pd.Series(101.0, index=IDX), REIT=pd.Series(300.0, index=IDX))
+    out, rep = npx.blend_screener(base, scr, extra=["REIT", "AAA"])
+    assert (out["BBB"] == 50.0).all() and rep["base_only_names"] == ["BBB"]
+    assert (out["REIT"] == 300.0).all() and rep["screener_only_names"] == ["REIT"]
+
+
+def test_no_screener_store_leaves_the_nse_frame_untouched():
+    base = pd.DataFrame({"AAA": _flat(100)}, index=IDX)
+    out, rep = npx.blend_screener(base, None)
+    assert out is base and rep == {"screener": False}
+
+
+def test_basis_frame_reports_the_screener_basis_only_when_screener_was_used(tmp_path):
+    d = _write(tmp_path, _closes(AAA=_flat(100)))
+    other = _other(IDX, AAA=_flat(90, len(IDX)))
+    _, none = npx.basis_frame(other, None, months=1, directory=d, screener=None)
+    _, some = npx.basis_frame(other, None, months=1, directory=d,
+                              screener=_store(AAA=pd.Series(101.0, index=IDX)))
+    assert none["basis"] == npx.BASIS and some["basis"] == npx.BASIS_SCREENER
