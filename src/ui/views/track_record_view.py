@@ -32,7 +32,7 @@ from src.ui.theme import render_saas_table
 
 
 def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
-               system: str = SYSTEM_750, *, now=None) -> dict:
+               system: str = SYSTEM_750, now=None) -> dict:
     """The strategy under the RECORD's pinned configuration, through today.
 
     One cached run serves the month-to-date here and the model book on the
