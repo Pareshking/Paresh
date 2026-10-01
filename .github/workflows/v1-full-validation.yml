@@ -76,7 +76,7 @@ jobs:
         run: |
           mkdir -p data_cache artifacts/portfolio_reconciliation
           curl -fsSL "https://github.com/${GITHUB_REPOSITORY}/releases/download/data-latest/prices_full.parquet" -o data_cache/prices.parquet
-          python scripts/update_track_record.py --dry-run --report-json artifacts/portfolio_reconciliation/portfolio_parity.json 2>&1 | tee artifacts/portfolio_reconciliation/portfolio_parity.log
+          python scripts/update_track_record.py --dry-run --report-json artifacts/portfolio_reconciliation/portfolio_parity.json
 
       - name: Stage-2 canonical ranking artifact hand-off
         run: |
