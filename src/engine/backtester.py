@@ -17,6 +17,7 @@ import pandas as pd
 import streamlit as st
 
 from src.core.config import MOMENTUM_WINDOWS, RISK_FREE_RATE
+from src.core.market_time import current_calendar_period, last_closed_calendar_period
 from src.engine.calendar_momentum import anchor_frame, period_sharpe_at, winsorised_z
 from src.engine.corporate_actions import adjust_prices
 from src.engine import liquidity
@@ -31,7 +32,10 @@ DEFAULT_BACKTEST_MONTHS: int = 6
 
 
 def completed_month_window(
-    dates: pd.DatetimeIndex, months: int = DEFAULT_BACKTEST_MONTHS
+    dates: pd.DatetimeIndex,
+    months: int = DEFAULT_BACKTEST_MONTHS,
+    *,
+    now=None,
 ) -> tuple[pd.Timestamp, pd.Timestamp]:
     """First and last day of the most recent `months` COMPLETED calendar months.
 
@@ -44,9 +48,9 @@ def completed_month_window(
         raise ValueError("completed_month_window requires at least one date")
     if months <= 0:
         raise ValueError("months must be positive")
-    current_month_start = pd.Timestamp(dates[-1]).normalize().replace(day=1)
-    window_end = current_month_start - pd.Timedelta(days=1)
-    window_start = current_month_start - pd.DateOffset(months=months)
+    closed_period = last_closed_calendar_period(dates[-1], now=now)
+    window_end = closed_period.end_time.normalize()
+    window_start = closed_period.start_time - pd.DateOffset(months=months - 1)
     return window_start, window_end
 
 
@@ -1320,7 +1324,7 @@ def run_backtest(
     # current month"). From the last close of the previous month for a name
     # carried into this month; from its fill for a name bought this month,
     # which was not owned before it.
-    month_start = as_of_dt.to_period("M").start_time
+    month_start = mtd_period.start_time
     month_idx = int(prices.index.searchsorted(month_start))
     prior_close_idx = month_idx - 1
 
@@ -1373,7 +1377,11 @@ def run_backtest(
     # Measure it the way the engine accrues everywhere else: from the CLOSE the
     # book was filled at, on the book actually held this month. That is the
     # rebalanced book from its fill date whenever the fill lands in this month.
-    mtd_period = as_of_dt.to_period("M")
+    # MTD belongs to the wall-clock current month, not the month of the
+    # latest available price row. If the current month's close is not in the
+    # data yet, the live values remain unavailable rather than relabelling the
+    # previous closed month as MTD.
+    mtd_period = current_calendar_period()
     mtd_holdings: Sequence[str] = book
     mtd_wts = book_wts
     mtd_basis = "standing book"
