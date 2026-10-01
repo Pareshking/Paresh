@@ -2736,6 +2736,28 @@ body::-webkit-scrollbar,
     overscroll-behavior-x: contain;
     touch-action: pan-x pan-y;
 }}
+
+/* Portfolio table hierarchy: identity first, accounting second, analytics last. */
+.saas-table-wrapper.portfolio .saas-table {{
+    font-size: 12px;
+}}
+.saas-table-wrapper.portfolio .saas-table thead th:nth-child(-n+3) {{
+    background: #EEF0F4;
+}}
+.saas-table-wrapper.portfolio .saas-table tbody td:nth-child(1) {{
+    font-weight: 700;
+}}
+.saas-table-wrapper.portfolio .saas-table tbody td:nth-child(n+4):nth-child(-n+10) {{
+    font-weight: 650;
+}}
+.saas-table-wrapper.portfolio .saas-table tbody td:nth-child(n+11) {{
+    color: #667085;
+}}
+@media (max-width: 640px) {{
+    .saas-table-wrapper.portfolio .saas-table {{
+        font-size: 11px;
+    }}
+}}
 @media (max-width: 640px) {{
     .saas-table {{
         font-size: 11px;
