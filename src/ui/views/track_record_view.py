@@ -32,7 +32,7 @@ from src.ui.theme import render_saas_table
 
 
 def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
-               system: str = SYSTEM_750) -> dict:
+               system: str = SYSTEM_750, *, now=None) -> dict:
     """The strategy under the RECORD's pinned configuration, through today.
 
     One cached run serves the month-to-date here and the model book on the
@@ -47,7 +47,7 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
     start = inception(system)
     if pd.Period(as_of, freq="M") < start:
         return {}
-    months = months_to_cover(as_of, start)
+    months = months_to_cover(as_of, start, now=now)
     if system != SYSTEM_750:
         months = max(months, 1)
     if months <= 0:
@@ -77,6 +77,7 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
         # Track Record caller must pass the same boundary to keep Actions and
         # Portfolio history on the identical canonical book.
         history_start=start.start_time,
+        reporting_now=now,
         _actions=events,
     )
     result = result or {}
@@ -114,7 +115,7 @@ def _record_mtd(
     different strategy from every frozen month beside it, and the year-to-date
     column would silently mix the two. So run the pinned configuration.
     """
-    return record_run(adj_close, benchmark_close, system).get("live_meta", {}) or {}
+    return record_run(adj_close, benchmark_close, system, now=ist_now()).get("live_meta", {}) or {}
 
 
 def _pct(v: float | None) -> str:
