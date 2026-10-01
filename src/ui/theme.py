@@ -622,6 +622,9 @@ def inject_custom_css() -> None:
             .mkt-strip { display: flex; overflow-x: auto; background: transparent; border: 0; border-radius: 0; gap: 10px; }
             .ms-tile { flex: 0 0 158px; padding: 12px 14px; background: #FFFFFF; border: 1px solid #E3E6EB !important; border-radius: 14px; gap: 3px; }
             .st-key-dl_rank_csv { display: none !important; }
+            /* Page figures read as a 2-wide block, not a sideways scroll. */
+            .mkt-strip.pg-strip { display: grid; grid-template-columns: 1fr 1fr; overflow: visible; }
+            .mkt-strip.pg-strip .ms-tile { flex: none; min-width: 0; }
             /* Filters & sort opens as a bottom sheet on a phone. The panel is
                portalled outside the page, so it is found by what it holds. */
             [data-testid="stPopoverBody"]:has(.st-key-scr_filters) {

@@ -488,7 +488,7 @@ def test_the_backtest_says_when_it_used_a_different_history():
     """Two sources with different adjustment bases must not be conflated in
     silence -- a demerged name sits at a different level in each."""
     src = open("src/ui/views/backtest_view.py", encoding="utf-8").read()
-    assert "price_source" in src and "does not yet reach far enough" in src, (
+    assert "price_source" in src and "does not yet" in src and "reach far enough back" in src, (
         "the backtest can run on a different price history than the screener "
         "ranks on and says nothing about it"
     )
