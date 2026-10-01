@@ -99,18 +99,20 @@ def main() -> int:
                     while time.perf_counter() < deadline:
                         frame = app_frame(page)
                         body = frame.locator("body").inner_text(timeout=15_000)
+                        body_folded = body.casefold()
                         spinner = frame.locator('[data-testid="stSpinner"]').count()
                         exception = frame.locator('[data-testid="stException"]').count()
                         if exception:
                             break
                         if not spinner and (
-                            "Current Book" in body or "Portfolio value" in body
+                            "current book" in body_folded or "portfolio value" in body_folded
                         ):
                             break
                         time.sleep(3)
 
                     frame = app_frame(page)
                     body = frame.locator("body").inner_text(timeout=15_000)
+                    body_folded = body.casefold()
                     exception = frame.locator('[data-testid="stException"]').count()
                     overflow = page.evaluate(
                         "document.documentElement.scrollWidth - window.innerWidth"
@@ -118,10 +120,10 @@ def main() -> int:
 
                     checks = {
                         "opened_via": how,
-                        "current_book_present": "Current Book" in body,
-                        "portfolio_value_present": "Portfolio value" in body,
-                        "performance_group_present": "Performance" in body,
-                        "activity_group_present": "Activity" in body,
+                        "current_book_present": "current book" in body_folded,
+                        "portfolio_value_present": "portfolio value" in body_folded,
+                        "performance_group_present": "performance" in body_folded,
+                        "activity_group_present": "activity" in body_folded,
                         "pre_inception_2022_visible": "2022" in body,
                         "runtime_exception": bool(exception),
                         "horizontal_overflow_px": overflow,
