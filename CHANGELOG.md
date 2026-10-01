@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-02 — Canonical reconciliation, hard caps, parity gate
+
+- Reconciled every account representation on the published data: Portfolio, Actions and Backtest books identical; Actions reproduces the 1-Oct rebalance; ledger 9/9 against the replay.
+- Fixed: `record_run`'s cache ignored the benchmark, so one failed benchmark download served a 0% benchmark (alpha = strategy return) to every page for up to an hour.
+- Owner decision: hard caps everywhere — 5% per stock, 40% per NSE industry, enforced at selection, never relaxed; the shortfall is cash. Defaults moved 30% → 40%.
+- Track record rebuilt under the capped config (`4cc739e503d7`, logged in `rebuilds`): cumulative +46.57% → +44.40%; benchmark unchanged.
+- New: canonical parity gate (`scripts/canonical_parity_check.py`, `canonical_parity.yml`) fails CI on any disagreement.
+- Record: `docs/CANONICAL_RECONCILIATION_2026-10-02.md`.
+
 ## 2026-10-01 — UI overhaul (draft PR)
 
 - Open trades and the current month's rebalances now reach Portfolio (engine fix).
