@@ -108,8 +108,20 @@ def build_portfolio_tracker(
             else np.nan,
             axis=1,
         )
+        out["Previous Value (₹)"] = out.apply(
+            lambda r: float(r["Shares"]) * float(prev.get(r["Symbol"], np.nan))
+            if pd.notna(prev.get(r["Symbol"], np.nan)) else np.nan,
+            axis=1,
+        )
+        out["Day P&L %"] = np.where(
+            out["Previous Value (₹)"] > 0,
+            out["Day P&L (₹)"] / out["Previous Value (₹)"] * 100.0,
+            np.nan,
+        )
     else:
         out["Day P&L (₹)"] = np.nan
+        out["Previous Value (₹)"] = np.nan
+        out["Day P&L %"] = np.nan
 
     out["Status"] = "Held"
     return out.sort_values(
@@ -217,6 +229,8 @@ def render_portfolio_view(
     pnl = current - invested
     pnl_pct = pnl / invested * 100.0 if invested else np.nan
     day_pnl = float(table["Day P&L (₹)"].sum(skipna=True))
+    previous_value = float(table["Previous Value (₹)"].sum(skipna=True))
+    day_pnl_pct = day_pnl / previous_value * 100.0 if previous_value > 0 else np.nan
     exposure = current / value * 100.0 if value else 0.0
     as_of = meta.get("as_of")
     fill_date = meta.get("fill_date")
@@ -272,7 +286,7 @@ def render_portfolio_view(
         with mid:
             st.markdown(f"**₹{value:,.0f}**")
             st.caption(
-                f"{pnl:+,.0f} ({pnl_pct:+.1f}%) unrealised P&L · {n_holdings} holdings"
+                f"{pnl:+,.0f} ({pnl_pct:+.1f}%) current-book unrealised P&L · {n_holdings} holdings"
                 if np.isfinite(pnl_pct) else f"{n_holdings} holdings"
             )
         with right:
@@ -284,8 +298,8 @@ def render_portfolio_view(
         kit.Reading("Invested", f"₹{invested:,.0f}", f"{exposure:.1f}% exposure"),
         kit.Reading("Cash", f"₹{cash:,.0f}", f"{100.0 - exposure:.1f}% of value"),
         kit.Reading("Total P&L", f"₹{pnl:+,.0f}", "entry price → latest close", "up" if pnl >= 0 else "down"),
-        kit.Reading("P&L %", "—" if not np.isfinite(pnl_pct) else f"{pnl_pct:+.1f}%", "on invested capital", "" if not np.isfinite(pnl_pct) else ("up" if pnl >= 0 else "down")),
-        kit.Reading("Day P&L", f"₹{day_pnl:+,.0f}", "latest close vs previous close", "up" if day_pnl >= 0 else "down"),
+        kit.Reading("P&L %", "—" if not np.isfinite(pnl_pct) else f"{pnl_pct:+.1f}%", "current-book unrealised · on invested capital", "" if not np.isfinite(pnl_pct) else ("up" if pnl >= 0 else "down")),
+        kit.Reading("Day P&L", f"₹{day_pnl:+,.0f} ({day_pnl_pct:+.1f}%)" if np.isfinite(day_pnl_pct) else f"₹{day_pnl:+,.0f}", "latest close vs previous close", "up" if day_pnl >= 0 else "down"),
     ], "Live portfolio")
 
     display_cols = [
@@ -442,7 +456,7 @@ def render_portfolio_view(
         accounting_cols = [c for c in [
             "Symbol", "Entry Date", "Entry Price", "Current Price", "Shares",
             "Invested Value (₹)", "Current Value (₹)", "P&L (₹)", "P&L %",
-            "Weight %", "Target Weight %", "Weight Drift %", "Holding Days", "Day P&L (₹)",
+            "Weight %", "Target Weight %", "Weight Drift %", "Holding Days", "Previous Value (₹)", "Day P&L (₹)", "Day P&L %",
         ] if c in table.columns]
         accounting = table[accounting_cols].copy()
         if "Entry Date" in accounting.columns:
