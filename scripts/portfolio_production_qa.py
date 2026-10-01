@@ -5,8 +5,9 @@ Captures the Portfolio page at the two viewports that matter most for the UX
 review and records simple, deterministic contract checks:
 - page renders without runtime exception
 - canonical Portfolio history does not expose pre-inception 2022 records
-- grouped Performance/Activity history navigation is present
 - the canonical Current Book table is present
+- the combined Equity & drawdown chart and Calendar returns are present
+- Trades and Rebalances sections are present
 - mobile has no material horizontal overflow
 
 This is intentionally a visual-evidence supplement, not a second accounting engine.
@@ -148,8 +149,13 @@ def main() -> int:
                         "opened_via": how,
                         "current_book_present": "current book" in body_folded,
                         "portfolio_value_present": "portfolio value" in body_folded,
-                        "performance_group_present": "performance" in body_folded,
-                        "activity_group_present": "activity" in body_folded,
+                        "equity_drawdown_present": "equity & drawdown" in body_folded,
+                        "calendar_returns_present": "calendar returns" in body_folded,
+                        "trades_section_present": "trades" in body_folded,
+                        "rebalances_section_present": "rebalances" in body_folded,
+                        "calendar_series_present": all(
+                            label in body_folded for label in ("strategy", "nifty 500", "alpha")
+                        ),
                         "pre_inception_2022_visible": "2022" in body,
                         "runtime_exception": bool(exception),
                         "horizontal_overflow_px": overflow,
@@ -165,12 +171,15 @@ def main() -> int:
                         report["failures"].append(
                             f"{name}: Portfolio value KPI is not visible"
                         )
-                    if not checks["performance_group_present"] or not checks[
-                        "activity_group_present"
-                    ]:
-                        report["failures"].append(
-                            f"{name}: grouped Performance/Activity navigation missing"
-                        )
+                    for key, label in (
+                        ("equity_drawdown_present", "Equity & drawdown section"),
+                        ("calendar_returns_present", "Calendar returns section"),
+                        ("trades_section_present", "Trades section"),
+                        ("rebalances_section_present", "Rebalances section"),
+                        ("calendar_series_present", "Strategy/Nifty 500/Alpha calendar series"),
+                    ):
+                        if not checks[key]:
+                            report["failures"].append(f"{name}: {label} is missing")
                     if checks["pre_inception_2022_visible"]:
                         report["failures"].append(
                             f"{name}: visible Portfolio content contains 2022"
@@ -184,51 +193,13 @@ def main() -> int:
                             f"{name}: horizontal overflow {overflow}px"
                         )
 
-                    # Exercise the two history views that contain live MTD/calendar evidence.
-                    try:
-                        equity_control = frame.get_by_text("Equity", exact=True)
-                        equity_control.click(timeout=10_000)
-                        equity_body = settle_view(page, "equity curve")
-                        equity_folded = equity_body.casefold()
-                        equity_checks = {
-                            # The marked month is "Sep MTD" while it runs and
-                            # "Sep (closed)" from the 1st until the Track Record
-                            # freezes it; either wording is correct.
-                            "equity_mtd_strategy_present": any(
-                                f"{w} · strategy" in equity_folded for w in ("mtd", "(closed)")),
-                            "equity_mtd_benchmark_present": any(
-                                f"{w} · nifty 500" in equity_folded for w in ("mtd", "(closed)")),
-                            "equity_mtd_gap_present": any(
-                                f"{w} · alpha" in equity_folded for w in ("mtd", "(closed)")),
-                            "cumulative_42pct_visible": "+42.4%" in equity_body,
-                        }
-                        checks.update(equity_checks)
-                        if not equity_checks["equity_mtd_strategy_present"] or not equity_checks["equity_mtd_benchmark_present"] or not equity_checks["equity_mtd_gap_present"]:
-                            report["failures"].append(f"{name}: Equity view MTD summary is incomplete")
-                        if equity_checks["cumulative_42pct_visible"]:
-                            report["failures"].append(f"{name}: Equity view still exposes the old cumulative +42.4% headline")
-                        page.screenshot(path=str(OUT / f"{name}_equity.png"), full_page=True)
-
-                        frame = app_frame(page)
-                        frame.get_by_text("Monthly", exact=True).click(timeout=10_000)
-                        monthly_body = settle_view(page, "calendar grid")
-                        monthly_folded = monthly_body.casefold()
-                        monthly_checks = {
-                            "calendar_grid_present": "calendar grid" in monthly_folded,
-                            "strategy_present": "strategy" in monthly_folded,
-                            "nifty_500_present": "nifty 500" in monthly_folded,
-                            "gap_present": "alpha" in monthly_folded,
-                            "mtd_present": "mtd" in monthly_folded,
-                        }
-                        checks.update(monthly_checks)
-                        if not all(monthly_checks.values()):
-                            report["failures"].append(f"{name}: Calendar grid MTD evidence is incomplete")
-                        page.screenshot(path=str(OUT / f"{name}_monthly.png"), full_page=True)
-                    except Exception as exc:
-                        report["failures"].append(
-                            f"{name}: could not exercise Equity/Monthly history views: "
-                            f"{type(exc).__name__}: {exc}"
-                        )
+                    # The current Portfolio is a single flowing page, not the old
+                    # Equity/Monthly tab set. Capture the rendered page itself and
+                    # validate the actual sections introduced by the merged redesign.
+                    page.screenshot(
+                        path=str(OUT / f"{name}_portfolio_sections.png"),
+                        full_page=True,
+                    )
 
                     page.screenshot(
                         path=str(OUT / f"{name}.png"),
