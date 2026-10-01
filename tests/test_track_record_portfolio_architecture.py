@@ -435,3 +435,40 @@ def test_portfolio_total_return_matches_track_record_summary_with_same_mtd():
 
     assert out["strategy_total_return"] == pytest.approx(stats["total_return"])
     assert out["benchmark_total_return"] == pytest.approx(stats["bench_return"])
+
+
+def test_portfolio_positions_size_from_equity_before_each_fill():
+    book = pd.DataFrame([
+        {
+            "Symbol": "AAA", "Industry": "Alpha",
+            "Entry Date": pd.Timestamp("2026-02-02"), "Entry Price": 100.0,
+            "Price Now": 120.0, "Return %": 0.20, "MTD %": 0.10,
+            "Holding (Days)": 26, "Weight %": 10.0,
+            "Rank at Entry": 1, "Rank at Rebalance": 1,
+        },
+        {
+            "Symbol": "BBB", "Industry": "Beta",
+            "Entry Date": pd.Timestamp("2026-03-02"), "Entry Price": 200.0,
+            "Price Now": 220.0, "Return %": 0.10, "MTD %": 0.05,
+            "Holding (Days)": 1, "Weight %": 10.0,
+            "Rank at Entry": 2, "Rank at Rebalance": 2,
+        },
+    ])
+    book.attrs["as_of"] = pd.Timestamp("2026-03-02")
+    equity = pd.Series(
+        [2_000_000.0, 2_100_000.0],
+        index=pd.to_datetime(["2026-01-31", "2026-02-28"]),
+    )
+
+    out = build_portfolio_tracker(
+        book, pd.DataFrame(), 2_000_000.0, equity_curve=equity
+    ).set_index("Symbol")
+
+    # February's buy uses January-end account equity; March's buy uses
+    # February-end equity, rather than reusing the original ₹20 lakh base.
+    assert out.loc["AAA", "Capital at Entry (₹)"] == pytest.approx(2_000_000)
+    assert out.loc["AAA", "Shares"] == 2_000
+    assert out.loc["BBB", "Capital at Entry (₹)"] == pytest.approx(2_100_000)
+    assert out.loc["BBB", "Shares"] == 1_050
+    assert out.loc["AAA", "Weight %"] == pytest.approx(240_000 / 2_100_000 * 100)
+    assert out.loc["BBB", "Weight %"] == pytest.approx(231_000 / 2_100_000 * 100)
