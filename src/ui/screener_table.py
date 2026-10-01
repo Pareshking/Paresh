@@ -46,6 +46,7 @@ _ALL = {
     "hi": ("% 52W HI", "num"), "ath": ("% ATH", "num"), "ema": ("% 50 EMA", "num"),
     "vol": ("Volume", "text"),
     "above": ("> 50 EMA", "num"), "near": ("Near 52W", "num"), "athf": ("At ATH", "num"),
+    "nh1": ("New Highs 1M", "num"), "nh3": ("New Highs 3M", "num"),
     "stop": ("Stop Loss", "num"), "chand": ("Chand Exit", "num"),
     "gap": ("Gap", "text"), "ffill": ("FFill %", "num"), "hz": ("Horizons", "num"),
     "spark": ("60D Spark", None),
@@ -62,7 +63,7 @@ for _w in PERIOD_WINDOWS:
 _QUANT_KEYS = (
     ("rank", "stock", "price", "d1m", "d3m", "idx", "ind", "mcap")
     + tuple(f"{k}{w}" for w in PERIOD_WINDOWS for k in ("r", "sh", "dd"))
-    + ("hi", "ath", "ema", "vol", "above", "near", "athf", "stop", "chand",
+    + ("hi", "ath", "ema", "vol", "above", "near", "athf", "nh1", "nh3", "stop", "chand",
        "gap", "ffill", "hz", "spark")
 )
 _CORE_KEYS = ("rank", "stock", "price", "d1m", "d3m", "idx", "ind", "mcap",
@@ -75,7 +76,7 @@ _QUANT_GROUPS = (
     ("Rank dynamics", ("d1m", "d3m")),
     ("Classification", ("idx", "ind", "mcap")),
     *((f"{w}M factor momentum", (f"r{w}", f"sh{w}", f"dd{w}")) for w in PERIOD_WINDOWS),
-    ("Technicals & filters", ("hi", "ath", "ema", "vol", "above", "near", "athf")),
+    ("Technicals & filters", ("hi", "ath", "ema", "vol", "above", "near", "athf", "nh1", "nh3")),
     ("Risk & exits", ("stop", "chand")),
     ("Data health", ("gap", "ffill", "hz")),
     ("Trend", ("spark",)),
@@ -230,6 +231,10 @@ def _row_html(row: dict, cols: list, paths: dict) -> str:
     for key, col in (("above", "Above 50 EMA"), ("near", "Near 52W High"), ("athf", "At ATH")):
         on = is_tick_true(row.get(col))
         cells[key] = f'<td class="c-tick" data-v="{int(on)}">{"🟢" if on else "⚪"}</td>'
+    for key, col in (("nh1", "New Highs 1M"), ("nh3", "New Highs 3M")):
+        n = _num(row.get(col))
+        cells[key] = (f'<td class="n" data-v="{"" if n is None else n}">'
+                      f'{"—" if n is None else int(n)}</td>')
     hi = _num(row.get("% High"))
     cells["hi"] = (f'<td class="n" data-v="{"" if hi is None else hi}">'
                    f'{"—" if hi is None else f"{hi:.1f}%"}</td>')

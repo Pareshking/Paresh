@@ -178,3 +178,18 @@ def test_executive_and_core_are_quant_with_columns_hidden():
     quant = {c[0] for c in st_.columns_for("Full Quant (35)", ["ATR"])}
     for density in ("Executive (11)", "Core (17)"):
         assert {c[0] for c in st_.columns_for(density)} <= quant, density
+
+
+def test_new_high_counts_are_per_session_over_the_last_month_and_three():
+    import numpy as np
+    import pandas as pd
+
+    from src.engine.breadth import new_extreme_counts
+
+    idx = pd.bdate_range("2025-06-02", periods=330)
+    up = np.linspace(100, 140, len(idx))                 # a new high nearly every session
+    old = np.concatenate([np.linspace(100, 200, 200), np.linspace(200, 120, 130)])  # peaked long ago
+    c = new_extreme_counts(pd.DataFrame({"UP": up, "OLD": old}, index=idx))
+    assert c["high"].at["UP", "1M"] >= 20
+    assert c["high"].at["UP", "3M"] > c["high"].at["UP", "1M"]
+    assert c["high"].at["OLD", "1M"] == 0 and c["high"].at["OLD", "3M"] == 0

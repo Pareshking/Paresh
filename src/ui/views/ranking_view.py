@@ -22,6 +22,7 @@ from src.ui.components import (
     to_bool_mask,
 )
 from src.ui.views.stock_view import render_stock_view
+from src.engine.breadth import new_extreme_counts
 from src.ui.screener_table import INDEX_NAMES, column_count, render_screener_table
 
 # Stored in session state by `rank_density_mode`, so these strings are an
@@ -387,6 +388,11 @@ def render_ranking_view(
         density_mode = _DENSITY_OPTIONS[1]
 
     view = rank_df.copy()
+    # Sessions at a new 52-week high in the last month and three: a stock that
+    # keeps making them is strong.
+    _nh = _new_high_counts(f"{adj_close.index[-1]}_{adj_close.shape}", adj_close)
+    view["New Highs 1M"] = view["Symbol"].map(_nh["1M"]).fillna(0).astype(int)
+    view["New Highs 3M"] = view["Symbol"].map(_nh["3M"]).fillna(0).astype(int)
     if selected_search and str(selected_search).strip():
         s_val = str(selected_search).strip()
         if s_val.startswith("[INDUSTRY] "):
@@ -504,6 +510,11 @@ def _reset_screener_filters() -> None:
                 "rank_density_mode", "rank_quick_pills"):
         st.session_state.pop(key, None)
     remember("rank_sort_by_idx", 0)
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def _new_high_counts(_key: str, _prices: pd.DataFrame) -> pd.DataFrame:
+    return new_extreme_counts(_prices)["high"]
 
 
 def top50_changes(rank_df: pd.DataFrame):

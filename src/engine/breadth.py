@@ -103,6 +103,36 @@ def compute_hl_timeseries(
     return df.iloc[-lookback:]
 
 
+def new_extreme_counts(
+    prices_df: pd.DataFrame, window: int = 252, as_of: pd.Timestamp | None = None
+) -> dict[str, pd.DataFrame]:
+    """How many sessions each stock printed a new 52-week high, or low, in the last
+    calendar month and the last three.
+
+    Same test as the events table (a close at or within 0.1% of the rolling
+    extreme, today included), counted per session: a stock that makes new highs
+    on 15 Aug and 19 Aug scores 2 for August. Repeated highs are strength.
+
+    Returns {"high": df, "low": df}, each indexed by symbol with columns "1M" and "3M".
+    """
+    empty = pd.DataFrame(columns=["1M", "3M"], dtype=float)
+    if prices_df is None or prices_df.empty:
+        return {"high": empty, "low": empty.copy()}
+    min_p = max(int(window * 0.6), 20)
+    tol = prices_df * 0.001
+    is_high = prices_df >= prices_df.rolling(window, min_periods=min_p).max() - tol
+    is_low = prices_df <= prices_df.rolling(window, min_periods=min_p).min() + tol
+    end = pd.Timestamp(as_of if as_of is not None else prices_df.index[-1])
+    out = {}
+    for name, flags in (("high", is_high), ("low", is_low)):
+        cols = {}
+        for label, months in (("1M", 1), ("3M", 3)):
+            since = end - pd.DateOffset(months=months)
+            cols[label] = flags.loc[(flags.index > since) & (flags.index <= end)].sum()
+        out[name] = pd.DataFrame(cols).astype(int)
+    return out
+
+
 def get_recent_hl_events(
     prices_df: pd.DataFrame,
     rank_df: pd.DataFrame,
@@ -140,6 +170,7 @@ def get_recent_hl_events(
         else {}
     )
 
+    counts = new_extreme_counts(prices_df, window)
     records: list[dict[str, Any]] = []
     for dt in reversed(sub_high.index):
         dt_str = pd.to_datetime(dt).strftime("%d %b %Y")
@@ -158,6 +189,8 @@ def get_recent_hl_events(
                     "CMP": cmp_val,
                     "3M Return": ret_map.get(sym, np.nan),
                     "Rank": rk_map.get(sym, np.nan),
+                    "Count 1M": int(counts["high"].at[sym, "1M"]) if sym in counts["high"].index else 0,
+                    "Count 3M": int(counts["high"].at[sym, "3M"]) if sym in counts["high"].index else 0,
                 }
             )
         # Lows
@@ -175,6 +208,8 @@ def get_recent_hl_events(
                     "CMP": cmp_val,
                     "3M Return": ret_map.get(sym, np.nan),
                     "Rank": rk_map.get(sym, np.nan),
+                    "Count 1M": int(counts["low"].at[sym, "1M"]) if sym in counts["low"].index else 0,
+                    "Count 3M": int(counts["low"].at[sym, "3M"]) if sym in counts["low"].index else 0,
                 }
             )
 
