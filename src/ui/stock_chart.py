@@ -1,24 +1,12 @@
-"""TradingView Lightweight Charts renderer for the stock page (third-party component).
+"""Stock page chart: panes for price (candles or line), overlays, volume and RS.
 
-KEPT FOR REVERTING, NOT CALLED BY THE APP. The stock page now draws through
-src/ui/stock_chart.py and src/ui/lw_chart.py, which inline the same library with no
-component. To go back, call render_lightweight_chart from charts.render_stock_chart.
-The Plotly fallback this module used to pair with has been removed from the repo.
-
-Why this and not Plotly: Plotly's interaction model is built for analysis
-notebooks -- drag selects a box, and on a touch screen that means reading the
-chart rearranges it. Lightweight Charts is built for price series, so drag pans,
-pinch zooms, and the crosshair is the reading tool. It is also what most broker
-terminals use, so the behaviour is already familiar.
-
-It is a THIRD-PARTY COMPONENT, which is a real risk on Streamlit Cloud: a
-component that fails to load renders as a blank space, not an error. So the
-caller keeps the Plotly renderer and falls back to it whenever this module
-cannot produce a chart. A prettier chart is not worth an empty one.
+TradingView Lightweight Charts (src/ui/lw_chart.py, library inlined, no third-party
+component): drag pans, pinch zooms, and the crosshair is the reading tool, with a
+legend that shows every series' value under the pointer.
 
 WHAT IT DRAWS FOLLOWS WHAT THE SOURCE HAS. Yahoo carries a real open, high and
 low, so the price reads as candles, and the candles use the REAL open -- the
-Plotly version synthesised it as the previous close, which draws bodies
+earlier versions synthesised it as the previous close, which draws bodies
 spanning close-to-close, not what a candle means.
 
 Screener carries CLOSE AND VOLUME ONLY; no intraday range exists in that source
@@ -26,7 +14,7 @@ at all. There the price reads as a single dark line. This module used to degrade
 each bar to a flat close instead, which drew a column of dojis -- 250 one-pixel
 dashes that read as a rendering fault rather than as a price. A line is not a
 worse candle. It is the honest shape of a close-only series, and it is what the
-Plotly renderer already fell back to.
+app always drew for a close-only source.
 """
 
 from __future__ import annotations
@@ -34,6 +22,8 @@ from __future__ import annotations
 import pandas as pd
 
 import streamlit as st
+
+from src.ui import lw_chart
 
 # Palette shared with the rest of the app.
 UP = "#067647"
@@ -137,26 +127,11 @@ def _volume(idx, vol, rising) -> list[dict]:
     return rows
 
 
-def _base_chart(height: int) -> dict:
-    return {
-        "height": height,
-        "layout": {
-            "background": {"type": "solid", "color": "#ffffff"},
-            "textColor": "#3C4657",
-            "fontFamily": "Geist Mono, monospace",
-        },
-        "grid": {
-            "vertLines": {"color": GRID},
-            "horzLines": {"color": GRID},
-        },
-        "rightPriceScale": {"borderColor": "#E3E6EB"},
-        "timeScale": {"borderColor": "#E3E6EB", "timeVisible": False},
-        "crosshair": {"mode": 1},
-    }
+def _tuples(idx, values) -> list[tuple[str, float]]:
+    return [(t, float(v)) for t, v in zip(_times(idx), values) if pd.notna(v)]
 
 
-def render_lightweight_chart(
-    symbol: str,
+def build_panes(
     close: pd.Series,
     *,
     open_: pd.Series | None = None,
@@ -166,22 +141,15 @@ def render_lightweight_chart(
     overlays: dict[str, pd.Series] | None = None,
     rs: pd.Series | None = None,
     height: int = 420,
-) -> None:
-    """Render price (+ overlays, volume) and a Relative Strength pane beneath it.
+) -> tuple[list[dict], bool]:
+    """The price pane (candles or a close line, overlays, volume) and an RS pane.
 
-    Candles when the source carries a real intraday range, a dark close line
-    when it does not. Raises ChartUnavailable when the component is missing or
-    the data cannot make a chart, so the caller can fall back to Plotly.
+    Returns (panes, has_volume). Raises ChartUnavailable when the data cannot
+    make a chart.
     """
-    try:
-        from streamlit_lightweight_charts import renderLightweightCharts
-    except Exception as exc:  # pragma: no cover - import guard
-        raise ChartUnavailable(f"component unavailable: {exc}") from exc
-
     close = close.dropna()
     if close.empty:
         raise ChartUnavailable("no close prices")
-
     idx = close.index
 
     def _align(s: pd.Series | None) -> pd.Series:
@@ -189,116 +157,57 @@ def render_lightweight_chart(
             return pd.Series(index=idx, dtype=float)
         return s.reindex(idx)
 
-    o, h, l = _align(open_), _align(high), _align(low)
-
+    o, h, lo = _align(open_), _align(high), _align(low)
     # An explicit None is the source saying it has no intraday data; an all-NaN
     # column is a source that stalled. Neither can be drawn as a candle.
-    intraday = (
-        high is not None
-        and low is not None
-        and has_intraday_range(close, h, l)
-    )
+    intraday = high is not None and low is not None and has_intraday_range(close, h, lo)
 
     if intraday:
-        price = _candles(idx, o.values, h.values, l.values, close.values)
-        if not price:
+        rows = [(r["time"], r["open"], r["high"], r["low"], r["close"])
+                for r in _candles(idx, o.values, h.values, lo.values, close.values)]
+        if not rows:
             raise ChartUnavailable("no candle rows")
-        price_series = {
-            "type": "Candlestick",
-            "data": price,
-            "options": {
-                "upColor": UP, "downColor": DOWN,
-                "borderUpColor": UP, "borderDownColor": DOWN,
-                "wickUpColor": UP, "wickDownColor": DOWN,
-            },
-        }
+        price = {"name": "Price", "type": "candlestick", "color": INK, "up": UP, "down": DOWN, "fmt": "num",
+                 "data": rows}
     else:
-        price = _series(idx, close.values)
-        if not price:
+        rows = _tuples(idx, close.values)
+        if not rows:
             raise ChartUnavailable("no close rows")
-        price_series = {
-            "type": "Line",
-            "data": price,
-            # Black, and heavier than the overlays. The price is the subject;
-            # the moving averages are commentary, and it has to stay readable
-            # with two of them crossing it. It does NOT change colour with the
-            # session: without an open there is no up or down bar to colour,
-            # and a line that switched would assert something the source does
-            # not carry.
-            "options": {
-                "color": INK,
-                "lineWidth": 2,
-                "priceLineVisible": True,
-                "lastValueVisible": True,
-                "crosshairMarkerVisible": True,
-            },
-        }
+        # Dark and heavier than the overlays: the price is the subject. It does not
+        # change colour with the session; without an open there is no up or down
+        # bar, and a line that switched would assert something the source lacks.
+        price = {"name": "Price", "type": "line", "color": INK, "width": 2, "fmt": "num",
+                 "data": rows}
 
-    series: list[dict] = [price_series]
-
+    series: list[dict] = [price]
     for name, values in (overlays or {}).items():
-        data = _series(idx, _align(values).values)
+        data = _tuples(idx, _align(values).values)
         if data:
-            series.append({
-                "type": "Line",
-                "data": data,
-                "options": {
-                    "color": MA_COLOURS.get(name, MUTED),
-                    "lineWidth": 2,
-                    "priceLineVisible": False,
-                    "lastValueVisible": False,
-                    "title": name,
-                },
-            })
+            series.append({"name": name, "type": "line", "color": MA_COLOURS.get(name, MUTED),
+                           "width": 2, "fmt": "num", "data": data})
 
     vol_rows = _volume(idx, _align(volume).values, _rising(close, o).values)
     if vol_rows:
-        # Volume shares the price pane on its own hidden scale, pinned to the
-        # bottom fifth -- the standard terminal layout, and it keeps the price
-        # scale from being squashed by share counts.
-        series.append({
-            "type": "Histogram",
-            "data": vol_rows,
-            "options": {
-                "priceFormat": {"type": "volume"},
-                "priceScaleId": "volume",
-                "lastValueVisible": False,
-                "priceLineVisible": False,
-            },
-            "priceScale": {
-                "scaleMargins": {"top": 0.8, "bottom": 0.0},
-                "visible": False,
-            },
-        })
+        series.append({"name": "Volume", "type": "histogram", "volume": True, "fmt": "int",
+                       "color": "rgba(5,150,105,0.5)",
+                       "data": [(r["time"], r["value"]) for r in vol_rows],
+                       "colors": [r["color"] for r in vol_rows]})
 
-    charts = [{"chart": _base_chart(height), "series": series}]
-
-    rs_rows = _series(idx, _align(rs).values) if rs is not None else []
+    panes = [{"height": height, "series": series}]
+    rs_rows = _tuples(idx, _align(rs).values) if rs is not None else []
     if rs_rows:
-        rs_chart = _base_chart(120)
-        rs_chart["rightPriceScale"] = {
-            "borderColor": "#E3E6EB",
-            "autoScale": True,
-            "scaleMargins": {"top": 0.1, "bottom": 0.1},
-        }
-        charts.append({
-            "chart": rs_chart,
-            "series": [{
-                "type": "Line",
-                "data": rs_rows,
-                "options": {
-                    "color": "#7c3aed", "lineWidth": 2,
-                    "priceLineVisible": False,
-                    "title": "RS vs Nifty 500",
-                    "lastValueVisible": True,
-                },
-            }],
-        })
+        panes.append({"height": 120, "series": [
+            {"name": "RS vs Nifty 500", "type": "line", "color": "#7c3aed", "width": 2,
+             "fmt": "num", "data": rs_rows}]})
+    return panes, bool(vol_rows)
 
+
+def render_stock_panes(symbol: str, close: pd.Series, **kw) -> None:
+    """Draw the stock chart. Raises ChartUnavailable when the data cannot make one."""
+    panes, has_volume = build_panes(close, **kw)
     try:
-        renderLightweightCharts(charts, key=f"lw_{symbol}")
+        lw_chart.render(panes, key=f"lw_{symbol}")
     except Exception as exc:
         raise ChartUnavailable(f"render failed: {exc}") from exc
-
-    if not vol_rows:
+    if not has_volume:
         st.caption("Volume unavailable for this symbol.")

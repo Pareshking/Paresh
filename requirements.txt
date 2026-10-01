@@ -25,7 +25,6 @@ numpy==2.4.6
 # when the daily sync starts failing on Yahoo, check for a newer yfinance first.
 yfinance==1.7.0
 requests==2.34.2
-plotly==7.1.0
 # Pinned to the exact version, not capped below a range.
 #
 # pyarrow 25.0.1 segfaults (apache/arrow#50471) and Streamlit Cloud knows it:
@@ -38,8 +37,8 @@ plotly==7.1.0
 # reason and a way out: when arrow#50471 closes, bump this deliberately and
 # let the QA run confirm it.
 pyarrow==24.0.0
-streamlit-lightweight-charts==0.7.20
 # S3-compatible Cloudflare R2 archive adapter. Left as a range on purpose:
 # boto3 releases almost daily, its S3 API is stable within a major, and the
 # R2 read-path gate re-runs on main whenever this file changes.
 boto3>=1.35.0,<2
+streamlit-lightweight-charts==0.7.20

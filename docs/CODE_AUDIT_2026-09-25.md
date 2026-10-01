@@ -529,7 +529,7 @@ test named in the row.
 | U12 | 11 views | Gap counts used `== "🔴"`. | Gapped stocks that also carry the ⏸ mark were missed. Now one `components.gap_count` helper. |
 | U13 | `momentum.py`, `theme.py`, `stock_view.py` | The 2B carried-price mark reused ⏳, which already means "short history". | Now ⏸, and shown as a "Latest price: last print" tile on the stock page. |
 | U14 | `charts.py` | The treemap, RRG and correlation tooltips inserted names into HTML unescaped (inside a same-origin iframe). | A JavaScript `esc()` is used at each sink. The pages are checked with `node --check`. |
-| U15 | `charts.py` | The Plotly fallback's header, KPI row and spec panel were unreachable, because the only caller passes `chrome=False`. Its high/low series each dropped their own NaNs. | Dead code removed. High and low are aligned to the close's dates, so candles no longer shift. |
+| U15 | `charts.py` | The old fallback chart's header, KPI row and spec panel were unreachable, because the only caller passes `chrome=False`. Its high/low series each dropped their own NaNs. | Dead code removed. High and low are aligned to the close's dates, so candles no longer shift. |
 | U16 | `sector_view.py` | "Near 52W High" meant within 10% here but within 20% in the screener. A rolling max and an EWM were computed per industry on every rerun. | Uses the screener's flag. The 20 EMA is computed once for the whole universe. |
 | U17 | `theme.py` | The sort comparator returned 1 for two blanks. | The comparator was inconsistent, so browsers could scramble rows. Blanks now compare equal. |
 | U18 | `theme.py` | Whole-number counts stored as floats printed "3.00" and "42.00 days". | Now integers. |
@@ -549,7 +549,7 @@ the 50 EMA, ±3σ), the track record and portfolio views, and the RRG maths.
 
 | # | Where | Found | Now |
 |---|---|---|---|
-| S1 | `requirements.txt` | pandas, numpy, yfinance, requests and plotly were floors (`pandas>=2.0.0`). Every container boot chose its own versions, while CI had tested one. | Pinned to the tested versions (#173). boto3 remains a documented range. |
+| S1 | `requirements.txt` | pandas, numpy, yfinance, requests were floors (`pandas>=2.0.0`). Every container boot chose its own versions, while CI had tested one. | Pinned to the tested versions (#173). boto3 remains a documented range. |
 | S2 | R2 read-path gate | Red on every Dependabot PR: GitHub gives those PRs no secrets. | Skipped for Dependabot PRs. It now re-runs on main when `requirements.txt` changes, and did so green after #173 (run 156). |
 | S3 | `dependabot.yml` | The grouped actions bump (#158) rewrote the Stage-4B workflow, so it could not be merged. | Stage-4B workflow excluded. |
 | S4 | `_streamlit_nav.missing_pages` | Returned "nothing missing" whenever the ☰ button existed, even after opening and reading the menu. A page dropped from the menu passed QA on every viewport. The full walk could not catch it either, because it falls back to the page URL. | Only a menu that would not open falls back to the button. |

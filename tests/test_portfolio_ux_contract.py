@@ -56,10 +56,10 @@ def test_portfolio_table_variant_is_scoped_to_portfolio():
 def test_portfolio_is_one_flowing_page_with_no_history_tabs():
     source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
     assert "history_tab" not in source and "segmented_control" not in source
-    for card in ("Equity & drawdown", "Calendar returns", "Trades", "Rebalances", "Industry exposure"):
+    for card in ("Equity & drawdown", "Calendar returns", "Trades", "Rebalances", "Industry exposure", "How they move together"):
         assert f'kit.card("{card}"' in source
     # Equity and drawdown share one card, so one tab fewer.
-    assert "drawdown=drawdown" in source and "kit.drawdown_chart(" not in source
+    assert "drawdown=dd_d.tolist()" in source and "kit.drawdown_chart(" not in source
     assert 'Latest portfolio activity' not in source
 
 

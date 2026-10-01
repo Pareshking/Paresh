@@ -4,7 +4,8 @@
 
 - Open trades and the current month's rebalances now reach Portfolio (engine fix).
 - One table for the Screener: Full Quant is the master, Executive and Core hide columns; Table/Grid toggles removed.
-- One chart component (Lightweight Charts, hover legend) for Breadth, Portfolio, Backtest.
+- Time series use TradingView Lightweight Charts (hover legend; Breadth, Portfolio, Backtest, stock page with candles, volume, overlays and RS); Highcharts for the Relative Rotation Graph, the holdings correlation heatmap and the Sectors industry map. The component-based Lightweight renderer (`src/ui/lightweight_chart.py`, `streamlit-lightweight-charts`) is kept for reverting. The old fallback chart and its extra dependencies are gone.
+- Portfolio sizes holdings at the latest rebalance (fixes negative cash / over 100% invested). Configuration has a data-freshness table.
 - Portfolio absorbs the Track Record page; `/track-record` redirects.
 - RRG benchmarks are Nifty 500 / Nifty 50; Configuration summary is a tidy list.
 - New highs: 1M and 3M counts in Breadth and Full Quant.

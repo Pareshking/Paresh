@@ -13,7 +13,10 @@ A pane is a dict:
      "series": [{"name": "Strategy", "type": "line", "color": "#4F46E5",
                  "fmt": "rupee", "data": [("2026-01-31", 2_000_000.0), ...]}],
      "levels": [{"value": 60, "color": "#067647", "title": "60%"}]}
-Series types: line, area, histogram, baseline (fills above/below zero).
+Series types: line, area, histogram, baseline (fills above/below zero), candlestick
+(rows of (t, o, h, l, c); "up"/"down" colours; the legend reads the close).
+A histogram with "volume": True sits on its own hidden scale in the bottom fifth of
+the pane; an optional "colors" list colours each bar.
 fmt: pct (value is already in percent, signed), share (percent, unsigned),
 num, int, rupee. A series may set "range": [lo, hi] to pin the value axis.
 A series may set "abs": True to show magnitudes in the legend (new lows are
@@ -59,6 +62,22 @@ def series_points(index, values, *, scale: float = 1.0) -> list[tuple[str, float
     return sorted(out.items())
 
 
+def _rows(s: dict) -> list[dict]:
+    colors = s.get("colors")
+    out = []
+    for i, row in enumerate(s["data"]):
+        if len(row) == 5:
+            t, o, h, lo, c = row
+            r = {"time": t, "open": o, "high": h, "low": lo, "close": c, "value": c}
+        else:
+            t, v = row
+            r = {"time": t, "value": v}
+        if colors:
+            r["color"] = colors[i]
+        out.append(r)
+    return out
+
+
 def chart_html(panes: list[dict]) -> str:
     spec = [
         {
@@ -66,7 +85,7 @@ def chart_html(panes: list[dict]) -> str:
             "levels": p.get("levels", []),
             "top": p.get("top"),
             "series": [
-                {**s, "data": [{"time": t, "value": v} for t, v in s["data"]]}
+                {**s, "data": _rows(s)}
                 for s in p["series"]
             ],
         }
@@ -113,7 +132,7 @@ SPEC.forEach((p,pi)=>{
     width:wrap.clientWidth,height:p.height,
     layout:{background:{type:'solid',color:'transparent'},textColor:'#5E6878',fontFamily:"Geist,system-ui,sans-serif",fontSize:12},
     grid:{vertLines:{visible:false},horzLines:{color:'#EDEFF3'}},
-    rightPriceScale:{borderVisible:false,scaleMargins:{top:(p.top!==null&&p.top!==undefined)?p.top:0.16,bottom:0.06}},
+    rightPriceScale:{borderVisible:false,scaleMargins:{top:(p.top!==null&&p.top!==undefined)?p.top:0.16,bottom:p.series.some(x=>x.volume)?0.24:0.06}},
     timeScale:{visible:pi===SPEC.length-1,borderVisible:false,timeVisible:false,fixLeftEdge:true,fixRightEdge:true,rightOffset:0},
     crosshair:{mode:0,vertLine:{color:'#98A1AE',width:1,style:3,labelBackgroundColor:'#0E1726'},horzLine:{color:'#98A1AE',width:1,style:3,labelBackgroundColor:'#0E1726'}},
     handleScroll:{mouseWheel:false,pressedMouseMove:true,horzTouchDrag:true,vertTouchDrag:false},
@@ -125,7 +144,12 @@ SPEC.forEach((p,pi)=>{
     let ser;
     const f=fmts[s.fmt||'num'];
     const pf={type:'custom',formatter:f,minMove:0.01};
-    if(s.type==='histogram'){
+    if(s.type==='candlestick'){
+      ser=chart.addCandlestickSeries({upColor:s.up||'#067647',downColor:s.down||'#B42318',borderUpColor:s.up||'#067647',borderDownColor:s.down||'#B42318',wickUpColor:s.up||'#067647',wickDownColor:s.down||'#B42318',priceFormat:pf,priceLineVisible:false,lastValueVisible:false});
+    }else if(s.type==='histogram'&&s.volume){
+      ser=chart.addHistogramSeries({color:colorOf(s),priceFormat:pf,priceScaleId:'vol',priceLineVisible:false,lastValueVisible:false});
+      chart.priceScale('vol').applyOptions({scaleMargins:{top:0.8,bottom:0},visible:false});
+    }else if(s.type==='histogram'){
       ser=chart.addHistogramSeries({color:colorOf(s),priceFormat:pf,priceLineVisible:false,lastValueVisible:false});
     }else if(s.type==='area'){
       ser=chart.addAreaSeries({lineColor:colorOf(s),topColor:colorOf(s)+'33',bottomColor:colorOf(s)+'05',lineWidth:2,priceFormat:pf,priceLineVisible:false,lastValueVisible:false});
@@ -139,7 +163,7 @@ SPEC.forEach((p,pi)=>{
       ser=chart.addLineSeries({color:colorOf(s),lineWidth:s.width||2,priceFormat:pf,priceLineVisible:false,lastValueVisible:false,crosshairMarkerRadius:4});
     }
     if(s.range){ser.applyOptions({autoscaleInfoProvider:()=>({priceRange:{minValue:s.range[0],maxValue:s.range[1]}})});}
-    ser.setData(s.data);
+    ser.setData(s.data.map(d=>d.open!==undefined?{time:d.time,open:d.open,high:d.high,low:d.low,close:d.close}:(d.color?{time:d.time,value:d.value,color:d.color}:{time:d.time,value:d.value})));
     ss.push(ser);
   });
   (p.levels||[]).forEach(l=>{
