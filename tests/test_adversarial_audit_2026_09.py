@@ -411,9 +411,10 @@ def test_every_in_app_backtest_call_site_passes_point_in_time_membership():
     but by an argument nobody passed.
     """
     from src.engine import parameter_sweep
-    from src.ui.views import backtest_view, track_record_view
+    from src.engine import model_record
+    from src.ui.views import backtest_view
 
-    for module in (backtest_view, track_record_view, parameter_sweep):
+    for module in (backtest_view, model_record, parameter_sweep):
         source = inspect.getsource(module)
         assert "run_backtest(" in source
         assert "_membership=" in source, f"{module.__name__} scores against today's universe"

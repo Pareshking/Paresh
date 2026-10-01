@@ -1,0 +1,171 @@
+"""The model portfolio's record run, shared by Portfolio, Actions and Track Record.
+
+Lives in the engine, not in a view, so no page imports another page for it.
+"""
+
+from __future__ import annotations
+
+import pandas as pd
+
+from src.engine.backtester import run_backtest
+from src.engine.corporate_actions import load_events
+from src.engine.extra_universe import SYSTEM_750
+from src.engine.pipeline import price_fingerprint
+from src.engine.systems import inception, membership_for
+from src.engine.track_record import TRACK_RECORD_CONFIG, months_to_cover
+from src.loaders.ranking_store import actions_digest
+
+
+def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
+               system: str = SYSTEM_750) -> dict:
+    """The strategy under the RECORD's pinned configuration, through today.
+
+    One cached run serves the month-to-date here and the model book on the
+    Actions page, so both describe the same portfolio. Each system replays
+    from its own inception on its own point-in-time membership; Nano Cap and
+    Combined replay at least one month, so their first book (signalled at
+    the close before inception) exists from inception's first session.
+    """
+    if adj_close is None or adj_close.empty:
+        return {}
+    as_of = pd.Timestamp(adj_close.index[-1])
+    start = inception(system)
+    if pd.Period(as_of, freq="M") < start:
+        return {}
+    months = months_to_cover(as_of, start)
+    if system != SYSTEM_750:
+        months = max(months, 1)
+    if months <= 0:
+        return {}
+    cfg = TRACK_RECORD_CONFIG
+    # Whole-history fingerprint + applied events: the old key (date, width,
+    # months) served an hour-stale MTD after a restatement or a new split.
+    events = load_events()
+    result = run_backtest(
+        f"trackrec_{system}_{price_fingerprint(adj_close)}_{actions_digest(events)}_{months}",
+        adj_close,
+        top_n=cfg["top_n"],
+        rebal_freq=cfg["rebal_freq"],
+        ema_period=cfg["ema_period"],
+        high_pct=cfg["high_pct"],
+        weight_method=cfg["weight_method"],
+        config_weights=cfg["config_weights"],
+        cost_bps=cfg["cost_bps"],
+        buffer_n=cfg["buffer_n"],
+        _benchmark_close=benchmark_close,
+        backtest_months=months,
+        _membership=membership_for(system),
+        stateful_history=True,
+        # The backtest needs warm-up prices before inception, but its stateful
+        # tradebook must not create portfolio ownership before the canonical
+        # Track Record start. Backtest UI already enforces this boundary; the
+        # Track Record caller must pass the same boundary to keep Actions and
+        # Portfolio history on the identical canonical book.
+        history_start=start.start_time,
+        _actions=events,
+    )
+    result = result or {}
+
+    # The backtest is the canonical accounting engine and already receives
+    # history_start above. Keep this adapter boundary defensive as well: a
+    # stale cache or a future engine regression must never expose pre-inception
+    # ownership in Actions/Portfolio history. This filters presentation records
+    # only; it does not change the simulated equity curve, selection, sizing,
+    # or P&L calculation.
+    tradebook = result.get("tradebook")
+    if isinstance(tradebook, pd.DataFrame) and "Period Start" in tradebook.columns:
+        period_start = pd.to_datetime(tradebook["Period Start"], errors="coerce")
+        result["tradebook"] = tradebook.loc[
+            period_start.ge(start.start_time) | period_start.isna()
+        ].reset_index(drop=True)
+
+    closed_trades = result.get("closed_trades")
+    if isinstance(closed_trades, pd.DataFrame) and "Exit Date" in closed_trades.columns:
+        exit_date = pd.to_datetime(closed_trades["Exit Date"], errors="coerce")
+        result["closed_trades"] = closed_trades.loc[
+            exit_date.ge(start.start_time) | exit_date.isna()
+        ].reset_index(drop=True)
+
+    return with_live_month(result)
+
+
+_TRADE_ACTION = {
+    "🟢 BOUGHT": "🟢 BUY (Entry)",
+    "🔴 SOLD": "🔴 SELL (Exit)",
+    "⚪ HELD": "⚪ HOLD (Retained)",
+}
+
+
+def with_live_month(result: dict) -> dict:
+    """Add the month the backtest window does not cover to the history tables.
+
+    The window ends at the last completed month, so the rebalance filled on the
+    1st of this month, the names it sold, and the open positions' live marks
+    sit only in `month_changes` and `live_book`. Without this the rebalance
+    history and trades stop a month early. Frames are replaced, not mutated.
+    """
+    changes = result.get("month_changes")
+    meta = result.get("live_meta") or {}
+    fill = meta.get("fill_date")
+    as_of = meta.get("as_of")
+    if not isinstance(changes, pd.DataFrame) or changes.empty or fill is None or as_of is None:
+        return result
+    fill, as_of = pd.Timestamp(fill), pd.Timestamp(as_of)
+
+    label = f"{fill:%d %b %Y} → {as_of:%d %b %Y}"
+    rows = []
+    for r in changes.to_dict("records"):
+        action = r.get("Action")
+        price = r.get("Entry Price") if action == "🟢 BOUGHT" else r.get("Exit Price")
+        rows.append({
+            "Period": label,
+            "Period Start": fill,
+            "Action": _TRADE_ACTION.get(action, action),
+            "Symbol": r.get("Symbol"),
+            "Price": price,
+            "Return %": r.get("Return %"),
+            "Weight %": r.get("Weight %"),
+            "Reason / Signal": r.get("Reason"),
+        })
+    live = pd.DataFrame(rows)
+    book = result.get("tradebook")
+    if isinstance(book, pd.DataFrame) and not book.empty and "Period Start" in book.columns:
+        book = book.loc[pd.to_datetime(book["Period Start"], errors="coerce") != fill]
+        result["tradebook"] = pd.concat([book, live], ignore_index=True)
+    else:
+        result["tradebook"] = live
+
+    closed = result.get("closed_trades")
+    keep = pd.DataFrame()
+    if isinstance(closed, pd.DataFrame) and not closed.empty:
+        status = closed["Status"] if "Status" in closed.columns else pd.Series("", index=closed.index)
+        keep = closed.loc[status != "Open"]
+        exits = pd.to_datetime(keep.get("Exit Date"), errors="coerce")
+        keep = keep.loc[~(exits == fill)]
+    extra = []
+    for r in changes.loc[changes["Action"] == "🔴 SOLD"].to_dict("records"):
+        entry = pd.Timestamp(r["Entry Date"]) if pd.notna(r.get("Entry Date")) else None
+        extra.append({
+            "Month": f"{fill:%b-%Y}", "Symbol": r["Symbol"],
+            "Entry Date": f"{entry:%d %b %Y}" if entry is not None else "—",
+            "Entry Price": r.get("Entry Price"),
+            "Exit Date": f"{fill:%d %b %Y}", "Exit Price": r.get("Exit Price"),
+            "Return %": r.get("Return %"),
+            "Holding (Days)": (fill - entry).days if entry is not None else None,
+            "Reason for Exit": r.get("Reason"), "Status": "Closed",
+        })
+    book_now = result.get("live_book")
+    if isinstance(book_now, pd.DataFrame):
+        for r in book_now.to_dict("records"):
+            entry = pd.Timestamp(r["Entry Date"]) if pd.notna(r.get("Entry Date")) else None
+            extra.append({
+                "Month": f"🟢 Open (as of {as_of:%d %b %Y})", "Symbol": r["Symbol"],
+                "Entry Date": f"{entry:%d %b %Y}" if entry is not None else "—",
+                "Entry Price": r.get("Entry Price"),
+                "Exit Date": f"Not exited (mark {as_of:%d %b %Y})",
+                "Exit Price": r.get("Price Now"), "Return %": r.get("Return %"),
+                "Holding (Days)": r.get("Holding (Days)"),
+                "Reason for Exit": "🟢 Still held", "Status": "Open",
+            })
+    result["closed_trades"] = pd.concat([keep, pd.DataFrame(extra)], ignore_index=True)
+    return result

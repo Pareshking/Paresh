@@ -14,94 +14,16 @@ import pandas as pd
 import streamlit as st
 
 from src.core.market_time import ist_now
-from src.engine.backtester import run_backtest
-from src.engine.corporate_actions import load_events
 from src.engine.extra_universe import SYSTEM_750, SYSTEM_NAMES, SYSTEMS
-from src.engine.systems import inception, ledger_path, membership_for
-from src.engine.pipeline import price_fingerprint
+from src.engine.model_record import record_run
+from src.engine.systems import inception, ledger_path
 from src.engine.track_record import (
-    TRACK_RECORD_CONFIG,
     build_combined_grid,
     load_ledger,
-    months_to_cover,
     summary_stats,
 )
-from src.loaders.ranking_store import actions_digest
 from src.ui import page_kit as kit
 from src.ui.theme import render_saas_table
-
-
-def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
-               system: str = SYSTEM_750) -> dict:
-    """The strategy under the RECORD's pinned configuration, through today.
-
-    One cached run serves the month-to-date here and the model book on the
-    Actions page, so both describe the same portfolio. Each system replays
-    from its own inception on its own point-in-time membership; Nano Cap and
-    Combined replay at least one month, so their first book (signalled at
-    the close before inception) exists from inception's first session.
-    """
-    if adj_close is None or adj_close.empty:
-        return {}
-    as_of = pd.Timestamp(adj_close.index[-1])
-    start = inception(system)
-    if pd.Period(as_of, freq="M") < start:
-        return {}
-    months = months_to_cover(as_of, start)
-    if system != SYSTEM_750:
-        months = max(months, 1)
-    if months <= 0:
-        return {}
-    cfg = TRACK_RECORD_CONFIG
-    # Whole-history fingerprint + applied events: the old key (date, width,
-    # months) served an hour-stale MTD after a restatement or a new split.
-    events = load_events()
-    result = run_backtest(
-        f"trackrec_{system}_{price_fingerprint(adj_close)}_{actions_digest(events)}_{months}",
-        adj_close,
-        top_n=cfg["top_n"],
-        rebal_freq=cfg["rebal_freq"],
-        ema_period=cfg["ema_period"],
-        high_pct=cfg["high_pct"],
-        weight_method=cfg["weight_method"],
-        config_weights=cfg["config_weights"],
-        cost_bps=cfg["cost_bps"],
-        buffer_n=cfg["buffer_n"],
-        _benchmark_close=benchmark_close,
-        backtest_months=months,
-        _membership=membership_for(system),
-        stateful_history=True,
-        # The backtest needs warm-up prices before inception, but its stateful
-        # tradebook must not create portfolio ownership before the canonical
-        # Track Record start. Backtest UI already enforces this boundary; the
-        # Track Record caller must pass the same boundary to keep Actions and
-        # Portfolio history on the identical canonical book.
-        history_start=start.start_time,
-        _actions=events,
-    )
-    result = result or {}
-
-    # The backtest is the canonical accounting engine and already receives
-    # history_start above. Keep this adapter boundary defensive as well: a
-    # stale cache or a future engine regression must never expose pre-inception
-    # ownership in Actions/Portfolio history. This filters presentation records
-    # only; it does not change the simulated equity curve, selection, sizing,
-    # or P&L calculation.
-    tradebook = result.get("tradebook")
-    if isinstance(tradebook, pd.DataFrame) and "Period Start" in tradebook.columns:
-        period_start = pd.to_datetime(tradebook["Period Start"], errors="coerce")
-        result["tradebook"] = tradebook.loc[
-            period_start.ge(start.start_time) | period_start.isna()
-        ].reset_index(drop=True)
-
-    closed_trades = result.get("closed_trades")
-    if isinstance(closed_trades, pd.DataFrame) and "Exit Date" in closed_trades.columns:
-        exit_date = pd.to_datetime(closed_trades["Exit Date"], errors="coerce")
-        result["closed_trades"] = closed_trades.loc[
-            exit_date.ge(start.start_time) | exit_date.isna()
-        ].reset_index(drop=True)
-
-    return result
 
 
 def _record_mtd(

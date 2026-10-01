@@ -21,8 +21,8 @@ Full findings and work packages: `docs/UI_OVERHAUL_PLAN.md`.
 
 | # | What | How we know it is done | Status |
 |---|---|---|---|
-| U0 | Owner approves the plan and decisions D1-D6 | Owner reply | [ ] waiting on owner |
-| U1 | Engine fixes: open trades kept (NaT filter), live-month changes in the tradebook, `record_run` moved out of the view | Tests; Portfolio shows Open trades and rebalances after Aug | [ ] |
+| U0 | Owner approves the plan and decisions D1-D6 | Owner reply | [x] 1 Oct (all approved) |
+| U1 | Engine fixes: open trades kept (NaT filter), live-month changes in the tradebook, `record_run` moved out of the view | Tests; Portfolio shows Open trades and rebalances after Aug | [x] 1 Oct, branch ccr-31392d93-bokbml (1,817 tests pass); live check after merge |
 | U2 | Design tokens, one stock table, one chart component (WP1, WP2) | PR merged; Production QA green | [ ] |
 | U3 | Portfolio rebuild and Track Record merge (WP3, WP4) | same | [ ] |
 | U4 | Screener (WP5), Breadth (WP6), RRG and Configuration wording (WP7), text sweep (WP8, WP9) | same | [ ] |
