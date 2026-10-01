@@ -220,11 +220,15 @@ def build_portfolio_tracker(
     rank_df: pd.DataFrame,
     capital: float,
     prices: pd.DataFrame | None = None,
+    equity_curve: pd.Series | None = None,
 ) -> pd.DataFrame:
     """Enrich the canonical Track Record book with portfolio accounting.
 
     Membership and target weights come only from the canonical book. Ranking
     data supplies labels/current observations; prices are used only for day-P&L.
+    When the account equity curve is supplied, new positions are sized from the
+    account value immediately before their fill, and current weights are marked
+    against the same account value shown in performance history.
     """
     if book is None or book.empty:
         return pd.DataFrame()
@@ -259,8 +263,27 @@ def build_portfolio_tracker(
     out["Target Weight %"] = pd.to_numeric(out["Weight %"], errors="coerce").fillna(0.0)
     out["Entry Price"] = pd.to_numeric(out["Entry Price"], errors="coerce")
     out["Current Price"] = pd.to_numeric(out["Price Now"], errors="coerce")
+    entry = pd.to_datetime(out["Entry Date"], errors="coerce")
+
+    # The account compounds between rebalances. Size a position from account
+    # equity immediately before its fill, rather than repeatedly pretending
+    # every month's holdings were bought with the original starting capital.
+    # The baseline point before inception ensures the first book starts at the
+    # configured starting capital. Keep the fixed-capital fallback for callers
+    # that only use this helper in isolated presentation tests.
+    curve = pd.Series(dtype=float)
+    if isinstance(equity_curve, pd.Series) and not equity_curve.empty:
+        curve = pd.to_numeric(equity_curve, errors="coerce").dropna().sort_index()
+
+    def _capital_before_fill(fill_date) -> float:
+        if pd.isna(fill_date) or curve.empty:
+            return float(capital)
+        prior = curve.loc[curve.index < pd.Timestamp(fill_date)]
+        return float(prior.iloc[-1]) if not prior.empty else float(capital)
+
+    out["Capital at Entry (₹)"] = entry.map(_capital_before_fill).astype(float)
     out["Shares"] = (
-        (capital * out["Target Weight %"] / 100.0)
+        (out["Capital at Entry (₹)"] * out["Target Weight %"] / 100.0)
         / out["Entry Price"].replace(0, np.nan)
     ).fillna(0.0).apply(np.floor).astype(int)
     out["Invested Value (₹)"] = (out["Shares"] * out["Entry Price"]).round(0)
@@ -274,14 +297,15 @@ def build_portfolio_tracker(
 
     total_invested = float(out["Invested Value (₹)"].sum())
     total_current = float(out["Current Value (₹)"].sum())
-    cash = max(float(capital) - total_invested, 0.0)
-    total_value = total_current + cash
+    total_value = (
+        float(curve.iloc[-1]) if not curve.empty and float(curve.iloc[-1]) > 0
+        else float(capital)
+    )
     out["Weight %"] = np.where(
         total_value > 0, out["Current Value (₹)"] / total_value * 100.0, 0.0
     )
     out["Weight Drift %"] = out["Weight %"] - out["Target Weight %"]
 
-    entry = pd.to_datetime(out["Entry Date"], errors="coerce")
     as_of = pd.to_datetime(book.attrs.get("as_of"), errors="coerce")
     if pd.isna(as_of):
         as_of = pd.Timestamp.now().normalize()
@@ -559,24 +583,6 @@ def render_portfolio_view(
 
     meta = record.get("live_meta", {}) or {}
     book.attrs["as_of"] = meta.get("as_of")
-    table = build_portfolio_tracker(book, rank_df, capital, prices)
-    if table.empty:
-        st.info("The canonical model book could not be sized.")
-        return
-
-    invested = float(table["Invested Value (₹)"].sum())
-    current = float(table["Current Value (₹)"].sum())
-    cash = max(capital - invested, 0.0)
-    value = current + cash
-    pnl = current - invested
-    pnl_pct = pnl / invested * 100.0 if invested else np.nan
-    day_pnl = float(table["Day P&L (₹)"].sum(skipna=True))
-    previous_value = float(table["Previous Value (₹)"].sum(skipna=True))
-    day_pnl_pct = day_pnl / previous_value * 100.0 if previous_value > 0 else np.nan
-    exposure = current / value * 100.0 if value else 0.0
-    # Mark/fill dates remain available through live_meta and the canonical book;
-    # the compact header no longer duplicates them.
-    n_holdings = len(table)
 
     try:
         ledger = load_ledger(ledger_path(system), inception(system))
@@ -587,6 +593,27 @@ def render_portfolio_view(
     history = build_portfolio_history(record, capital, ledger, meta)
     equity = history["equity"]
     benchmark = history["benchmark"]
+    table = build_portfolio_tracker(book, rank_df, capital, prices, equity_curve=equity)
+    if table.empty:
+        st.info("The canonical model book could not be sized.")
+        return
+
+    invested = float(table["Invested Value (₹)"].sum())
+    current = float(table["Current Value (₹)"].sum())
+    # Total account value is sourced from the same compounded ledger/replay
+    # series as Track Record. Cash is the residual after marking current
+    # positions, so realized P&L from sold positions is not lost.
+    value = float(equity.iloc[-1]) if not equity.empty else float(capital)
+    cash = value - current
+    pnl = current - invested
+    pnl_pct = pnl / invested * 100.0 if invested else np.nan
+    day_pnl = float(table["Day P&L (₹)"].sum(skipna=True))
+    previous_value = float(table["Previous Value (₹)"].sum(skipna=True))
+    day_pnl_pct = day_pnl / previous_value * 100.0 if previous_value > 0 else np.nan
+    exposure = current / value * 100.0 if value else 0.0
+    # Mark/fill dates remain available through live_meta and the canonical book;
+    # the compact header no longer duplicates them.
+    n_holdings = len(table)
     drawdown = history["drawdown"]
     monthly = history["monthly"]
     monthly_grid = history["monthly_grid"]
@@ -633,7 +660,7 @@ def render_portfolio_view(
             "latest close vs previous close",
             "up" if day_pnl >= 0 else "down",
         ),
-        kit.Reading("Cash", f"₹{cash:,.0f}", f"{100.0 - exposure:.1f}% of portfolio"),
+        kit.Reading("Cash / realised balance", f"₹{cash:,.0f}", f"{100.0 - exposure:.1f}% of account value"),
     ], "Portfolio snapshot")
     as_of_text = meta.get("as_of") or "latest available close"
     as_of_display = as_of_text if isinstance(as_of_text, str) else pd.Timestamp(as_of_text).strftime("%d %b %Y")
