@@ -410,16 +410,14 @@ def _backtest_body(
     ) or "Canonical book"
 
     # ── Canonical live book beside the independent research simulation ────────
-    # The tables below stop at the last completed month, which is right for
-    # PERFORMANCE and wrong for a person holding the portfolio. They need
-    # today's book and this month's trades, so that is what this section is,
-    # and it is deliberately first on the page.
+    # The canonical book and changes use the same pinned record replay as
+    # Actions and Portfolio. The separately labelled research views continue
+    # to show the configurable simulation's own book and changes.
     #
     # "Today's book" means AFTER this month's rebalance. That rebalance is
     # signalled on the last session of last month and fills on the first of
-    # this one, so by the time anyone reads this it has already executed --
-    # showing the pre-rebalance book here would be showing last month's
-    # portfolio under the heading "current".
+    # this one, so the canonical book here is the post-fill book, not last
+    # month's holdings.
     research_book = bt_res.get("live_book", pd.DataFrame())
     research_changes = bt_res.get("month_changes", pd.DataFrame())
     research_meta = bt_res.get("live_meta", {}) or {}
