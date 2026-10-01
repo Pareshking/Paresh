@@ -167,70 +167,6 @@ def _backtest_body(
     if benchmark_close.empty:
         st.error("Nifty 500 benchmark (^CRSLDX) data is unavailable. Backtest stopped to prevent an invalid benchmark comparison.")
         return
-    sec_map = (
-        rank_df.set_index("Symbol")["Industry"].to_dict()
-        if "Industry" in rank_df.columns
-        else {}
-    )
-    if sec_map:
-        # The sector cap needs an industry for every name it can hold, and the
-        # index files only label the current members.
-        sec_map.update(former_members.industry_for([c for c in adj_close.columns if c not in sec_map]))
-
-    with st.spinner("Running walk-forward backtest with friction & turnover modeling…"):
-        bt_res = run_backtest(
-            ph,
-            adj_close,
-            _benchmark_close=benchmark_close,
-            top_n=bt_n,
-            rebal_freq=bt_rebal,
-            weight_method=bt_weight,
-            config_weights=active_weights,
-            stock_cap=stock_cap,
-            sector_cap=sector_cap,
-            sector_map=sec_map,
-            cost_bps=cost_drag_bps,
-            buffer_n=int(bt_n * buffer_mult),
-            _membership=membership,
-            backtest_months=months,
-            stateful_history=True,
-            history_start=history_start,
-            _actions=_events,
-            liquidity_floor_cr=liquidity_floor_cr,
-            _traded_value=traded_value,
-        )
-
-    if bt_res is None:
-        st.warning(
-            f"Insufficient price history to backtest the last "
-            f"{months} completed month{'s' if months != 1 else ''}. The strategy needs a "
-            "full 12-month formation window BEFORE the reported period, so "
-            "roughly 18 months of continuous daily data is required."
-        )
-        return
-
-    # The backtest runs on the DEEPEST history available, which is not always
-    # the history the live screener ranks on -- a ranking wants the freshest
-    # complete session, a backtest wants years. When the two differ, say so:
-    # they do not share a corporate-action adjustment basis, so a name with a
-    # demerger can sit at a different level in each, and a reader comparing a
-    # backtest holding against today's table deserves to know why.
-    try:
-        from src.core import startup_metrics as _m
-        from src.loaders.price_source import display_name as _display
-
-        _ranked_on = str(_m.snapshot().get("facts", {}).get("price_source") or "")
-        if _ranked_on and _ranked_on != "yahoo":
-            st.caption(
-                f"Backtested on the long price history. The live screener ranks "
-                f"on {_display(_ranked_on)}, which does not yet reach far enough "
-                f"back for a {months}-month study."
-            )
-    except Exception:
-        pass
-
-    stats = bt_res["stats"]
-
     # Canonical account performance is deliberately sourced from the same
     # pinned record replay and monthly ledger as Track Record and Portfolio.
     # The controls below remain a research simulation and must not masquerade
@@ -294,6 +230,70 @@ def _backtest_body(
                 f"Canonical live book: {len(canonical_book)} holdings. "
                 "The configurable research backtest below is a separate simulation, not account performance."
             )
+
+    sec_map = (
+        rank_df.set_index("Symbol")["Industry"].to_dict()
+        if "Industry" in rank_df.columns
+        else {}
+    )
+    if sec_map:
+        # The sector cap needs an industry for every name it can hold, and the
+        # index files only label the current members.
+        sec_map.update(former_members.industry_for([c for c in adj_close.columns if c not in sec_map]))
+
+    with st.spinner("Running walk-forward backtest with friction & turnover modeling…"):
+        bt_res = run_backtest(
+            ph,
+            adj_close,
+            _benchmark_close=benchmark_close,
+            top_n=bt_n,
+            rebal_freq=bt_rebal,
+            weight_method=bt_weight,
+            config_weights=active_weights,
+            stock_cap=stock_cap,
+            sector_cap=sector_cap,
+            sector_map=sec_map,
+            cost_bps=cost_drag_bps,
+            buffer_n=int(bt_n * buffer_mult),
+            _membership=membership,
+            backtest_months=months,
+            stateful_history=True,
+            history_start=history_start,
+            _actions=_events,
+            liquidity_floor_cr=liquidity_floor_cr,
+            _traded_value=traded_value,
+        )
+
+    if bt_res is None:
+        st.warning(
+            f"Insufficient price history to backtest the last "
+            f"{months} completed month{'s' if months != 1 else ''}. The strategy needs a "
+            "full 12-month formation window BEFORE the reported period, so "
+            "roughly 18 months of continuous daily data is required."
+        )
+        return
+
+    # The backtest runs on the DEEPEST history available, which is not always
+    # the history the live screener ranks on -- a ranking wants the freshest
+    # complete session, a backtest wants years. When the two differ, say so:
+    # they do not share a corporate-action adjustment basis, so a name with a
+    # demerger can sit at a different level in each, and a reader comparing a
+    # backtest holding against today's table deserves to know why.
+    try:
+        from src.core import startup_metrics as _m
+        from src.loaders.price_source import display_name as _display
+
+        _ranked_on = str(_m.snapshot().get("facts", {}).get("price_source") or "")
+        if _ranked_on and _ranked_on != "yahoo":
+            st.caption(
+                f"Backtested on the long price history. The live screener ranks "
+                f"on {_display(_ranked_on)}, which does not yet reach far enough "
+                f"back for a {months}-month study."
+            )
+    except Exception:
+        pass
+
+    stats = bt_res["stats"]
 
     # Say which window these numbers describe. The backtest reports the last
     # completed calendar months only -- the month in progress is excluded, so a
