@@ -306,7 +306,7 @@ def test_the_record_script_counts_months_from_the_nse_frame_not_the_other_source
 def test_the_monthly_job_tries_on_the_first_working_day():
     from pathlib import Path
     wf = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "monthly_track_record.yml").read_text()
-    assert "- cron: '0 19 1-5 * *'" in wf and "--verify-r2" in wf
+    assert "- cron: '0 19 1-5 * *'" in wf and "--verify-r2" in wf and "--rehearse-append" in wf
 
 
 # ── Screener first, NSE only where Screener has none ─────────────────────────
@@ -360,3 +360,33 @@ def test_basis_frame_reports_the_screener_basis_only_when_screener_was_used(tmp_
     _, some = npx.basis_frame(other, None, months=1, directory=d,
                               screener=_store(AAA=pd.Series(101.0, index=IDX)))
     assert none["basis"] == npx.BASIS and some["basis"] == npx.BASIS_SCREENER
+
+
+# ── appending sessions to the committed file ─────────────────────────────────
+
+def _script():
+    import importlib.util
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location(
+        "sync_nse_prices", Path(__file__).resolve().parents[1] / "scripts" / "sync_nse_prices.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _session(day, **close):
+    return pd.DataFrame([[pd.Timestamp(day), "CM", "EQ", s, c, c, c, c, 1, 1.0] for s, c in close.items()],
+                        columns=nh.KEEP)
+
+
+def test_new_sessions_are_appended_and_stored_closes_are_never_overwritten(monkeypatch):
+    mod = _script()
+    monkeypatch.setattr(mod, "needed", lambda notes: ["AAA", "BBB"])
+    closes = pd.DataFrame({"AAA": [10.0], "BBB": [20.0]}, index=pd.DatetimeIndex(["2026-02-02"]))
+    prices = pd.concat([_session("2026-02-02", AAA=99.0, BBB=99.0),       # already on file: must not change
+                        _session("2026-02-03", AAA=11.0, BBB=21.0)])
+    merged, acts, added = mod.merge_sessions(closes, pd.DataFrame(columns=npx.ACTION_COLS), prices,
+                                             pd.DataFrame(), {})
+    assert added == 1 and list(merged.index.strftime("%Y-%m-%d")) == ["2026-02-02", "2026-02-03"]
+    assert merged.loc["2026-02-02", "AAA"] == 10.0 and merged.loc["2026-02-03", "BBB"] == 21.0
+    assert acts.empty

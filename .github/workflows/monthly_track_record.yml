@@ -80,6 +80,15 @@ jobs:
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: python scripts/sync_nse_prices.py --verify-r2 || echo "::warning::R2 and the committed NSE file disagree, or R2 could not be read."
 
+      - name: Rehearse the append (cut the last sessions, re-append them from R2, compare)
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: python scripts/sync_nse_prices.py --rehearse-append || echo "::warning::The R2 append rehearsal did not match the committed file."
+
       - name: Extend NSE closes from R2
         env:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}

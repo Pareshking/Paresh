@@ -74,6 +74,22 @@ def build(cache: Path, since: date, until: date) -> int:
     return 0
 
 
+def merge_sessions(closes: pd.DataFrame, actions: pd.DataFrame, prices: pd.DataFrame,
+                   new_actions: pd.DataFrame, notes: dict) -> tuple[pd.DataFrame, pd.DataFrame, int]:
+    """(closes, actions, sessions appended): the committed file plus newly read sessions.
+
+    Sessions already on file keep their stored closes; only dates not yet there are added.
+    """
+    wide = na.wide(prices)["close"]
+    wide.index = pd.DatetimeIndex(wide.index)
+    cols = [s for s in needed(notes) if s in wide.columns or s in closes.columns]
+    merged = pd.concat([closes.reindex(columns=cols), wide.reindex(columns=cols)]).sort_index()
+    merged = merged[~merged.index.duplicated(keep="first")]
+    acts = pd.concat([actions, keep_actions(new_actions, set(cols))], ignore_index=True)
+    acts = acts.drop_duplicates(subset=["symbol", "series", "kind", "ex_date", "purpose"]).reset_index(drop=True)
+    return merged, acts, int(len(merged) - len(closes))
+
+
 def update(pause: float, source: str = "r2") -> int:
     data = npx.load()
     if data is None:
@@ -107,16 +123,50 @@ def update(pause: float, source: str = "r2") -> int:
     if prices.empty:
         print("no new sessions; committed file kept")
         return 0
-    wide = na.wide(prices)["close"]
-    wide.index = pd.DatetimeIndex(wide.index)
-    cols = [s for s in needed(notes) if s in wide.columns or s in closes.columns]
-    merged = pd.concat([closes.reindex(columns=cols), wide.reindex(columns=cols)]).sort_index()
-    merged = merged[~merged.index.duplicated(keep="first")]
-    acts = pd.concat([actions, keep_actions(new_actions, set(cols))], ignore_index=True)
-    acts = acts.drop_duplicates(subset=["symbol", "series", "kind", "ex_date", "purpose"]).reset_index(drop=True)
+    merged, acts, added = merge_sessions(closes, actions, prices, new_actions, notes)
     write(merged, acts)
-    print(f"appended {len(wide)} sessions; file now ends {merged.index[-1]:%Y-%m-%d}")
+    print(f"appended {added} sessions; file now ends {merged.index[-1]:%Y-%m-%d}")
     return 0
+
+
+def rehearse_append(sessions: int = 5) -> int:
+    """Run the real append path on a copy of the file with its last sessions cut off.
+
+    Reads those sessions from R2, merges them back through `merge_sessions` and checks the
+    result equals what is committed. Nothing is written. It proves the append works with
+    live R2 without waiting for a new trading day. A session R2 does not hold yet (the
+    collector runs every four hours) is skipped, not counted as a failure.
+    """
+    data = npx.load()
+    if data is None:
+        print("nothing committed to rehearse on")
+        return 1
+    closes, actions, notes = data["closes"], data["actions"], data["notes"]
+    try:
+        from src.storage.r2 import R2Archive, R2Config
+
+        r2 = nh.r2_days(R2Archive(R2Config.from_env()))
+    except Exception as exc:  # noqa: BLE001
+        print(f"R2 unreadable: {type(exc).__name__}: {exc}")
+        return 1
+    held = [d for d in closes.index if d.date() in r2]
+    cut = held[-sessions:]
+    if not cut:
+        print("no committed session is on R2 to rehearse with")
+        return 1
+    trimmed = closes.loc[~closes.index.isin(cut)]
+    prices, new_actions, bad = nh.read_r2(cut[0].date(), cut[-1].date())
+    if bad:
+        print(f"unreadable on R2: {bad}")
+        return 1
+    merged, _acts, added = merge_sessions(trimmed, actions, prices, new_actions, notes)
+    back = merged.reindex(index=cut, columns=closes.columns)
+    off = int(((back - closes.loc[cut]).abs().stack() > 0.01).sum())
+    behind = [str(d.date()) for d in closes.index[-3:] if d.date() not in r2]
+    print(f"rehearsal: cut {len(cut)} sessions ({cut[0]:%Y-%m-%d} to {cut[-1]:%Y-%m-%d}), re-read from R2, "
+          f"{added} appended, {off} closes differ from the committed file; "
+          f"committed but not yet on R2: {behind or 'none'}")
+    return 0 if (added == len(cut) and off == 0) else 1
 
 
 def verify_r2(days: int = 10) -> int:
@@ -155,6 +205,8 @@ def main() -> int:
     mode.add_argument("--build", action="store_true", help="rebuild from a bundle cache")
     mode.add_argument("--verify-r2", action="store_true",
                       help="read the last sessions back from R2 and compare with the file")
+    mode.add_argument("--rehearse-append", action="store_true",
+                      help="cut the last committed sessions, re-append them from R2, compare; writes nothing")
     mode.add_argument("--update", action="store_true", help="append the sessions since the last one on file")
     ap.add_argument("--cache", default="data_cache/nse_bundles")
     ap.add_argument("--since", default="2024-09-30")
@@ -165,6 +217,8 @@ def main() -> int:
     args = ap.parse_args()
     if args.verify_r2:
         return verify_r2()
+    if args.rehearse_append:
+        return rehearse_append()
     if args.build:
         until = date.fromisoformat(args.until) if args.until else date.today()
         return build(Path(args.cache), date.fromisoformat(args.since), until)
