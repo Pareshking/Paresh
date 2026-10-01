@@ -154,6 +154,24 @@ def test_portfolio_tracker_capital_changes_sizing_not_membership():
     assert b["Target Weight %"].tolist() == a["Target Weight %"].tolist()
 
 
+def test_portfolio_tracker_sizes_shares_from_original_entry_weight_after_rebalance():
+    book = _book()
+    # AAA entered at 10% of account equity; a later rebalance cut its target to
+    # 5%. The held share count must not be retroactively cut in half.
+    book.loc[book["Symbol"] == "AAA", "Entry Weight %"] = 10.0
+    book.loc[book["Symbol"] == "AAA", "Weight %"] = 5.0
+
+    out = build_portfolio_tracker(book, _ranking(), 1_000_000)
+    aaa = out.set_index("Symbol").loc["AAA"]
+
+    assert aaa["Entry Weight %"] == pytest.approx(10.0)
+    assert aaa["Target Weight %"] == pytest.approx(5.0)
+    assert aaa["Shares"] == 1000
+    assert aaa["Invested Value (₹)"] == pytest.approx(100_000.0)
+    assert aaa["Current Value (₹)"] == pytest.approx(120_000.0)
+    assert aaa["P&L (₹)"] == pytest.approx(20_000.0)
+
+
 def test_portfolio_tracker_current_weight_and_pnl_are_accounting_fields():
     out = build_portfolio_tracker(_book(), _ranking(), 1_000_000)
 
@@ -370,3 +388,105 @@ def test_open_trades_survive_the_stateful_window_filter():
     closed = res["closed_trades"]
     assert not closed.empty
     assert (closed["Status"] == "Open").any()
+
+
+def test_portfolio_performance_overview_uses_canonical_account_return_series():
+    record = {"closed_trades": pd.DataFrame(), "tradebook": pd.DataFrame()}
+    ledger = {
+        "months": {
+            "2026-01": {"strategy": 0.10, "benchmark": 0.02, "origin": "recorded"},
+        }
+    }
+    live_meta = {
+        "mtd_period": "2026-02",
+        "strategy_mtd": 0.05,
+        "benchmark_mtd": 0.01,
+        "as_of": pd.Timestamp("2026-02-27"),
+    }
+
+    out = build_portfolio_history(
+        record, 1_000_000, ledger, live_meta, today=pd.Timestamp("2026-03-01")
+    )
+
+    # Same frozen month + live month series used by Track Record; no 100x
+    # fraction/percentage conversion and no substitution of current-book P&L.
+    assert out["equity"].iloc[-1] == pytest.approx(1_155_000)
+    assert out["benchmark"].iloc[-1] == pytest.approx(1_030_200)
+    assert out["strategy_total_return"] == pytest.approx(0.155)
+    assert out["benchmark_total_return"] == pytest.approx(0.0302)
+    assert out["mtd_period"] == "2026-02"
+    assert out["mtd_state"] == "closed"
+    feb = out["monthly_grid"].set_index("Period").loc["2026-02"]
+    assert feb["Strategy Net"] == pytest.approx(0.05)
+    assert feb["Benchmark"] == pytest.approx(0.01)
+    assert feb["Origin"] == "Closed, awaiting freeze"
+
+
+def test_portfolio_total_return_matches_track_record_summary_with_same_mtd():
+    from src.engine.track_record import summary_stats
+
+    record = {"closed_trades": pd.DataFrame(), "tradebook": pd.DataFrame()}
+    ledger = {
+        "months": {
+            "2026-01": {"strategy": -0.02, "benchmark": 0.01, "origin": "recorded"},
+            "2026-02": {"strategy": 0.04, "benchmark": -0.03, "origin": "recorded"},
+        }
+    }
+    live_meta = {
+        "mtd_period": "2026-03",
+        "strategy_mtd": 0.03,
+        "benchmark_mtd": 0.02,
+        "as_of": pd.Timestamp("2026-03-31"),
+    }
+    out = build_portfolio_history(
+        record, 2_000_000, ledger, live_meta, today=pd.Timestamp("2026-03-31")
+    )
+    stats = summary_stats(
+        ledger,
+        mtd={
+            "period": pd.Period("2026-03", freq="M"),
+            "strategy": 0.03,
+            "benchmark": 0.02,
+            "as_of": pd.Timestamp("2026-03-31"),
+        },
+    )
+
+    assert out["strategy_total_return"] == pytest.approx(stats["total_return"])
+    assert out["benchmark_total_return"] == pytest.approx(stats["bench_return"])
+
+
+def test_portfolio_positions_size_from_equity_before_each_fill():
+    book = pd.DataFrame([
+        {
+            "Symbol": "AAA", "Industry": "Alpha",
+            "Entry Date": pd.Timestamp("2026-02-02"), "Entry Price": 100.0,
+            "Price Now": 120.0, "Return %": 0.20, "MTD %": 0.10,
+            "Holding (Days)": 26, "Weight %": 10.0,
+            "Rank at Entry": 1, "Rank at Rebalance": 1,
+        },
+        {
+            "Symbol": "BBB", "Industry": "Beta",
+            "Entry Date": pd.Timestamp("2026-03-02"), "Entry Price": 200.0,
+            "Price Now": 220.0, "Return %": 0.10, "MTD %": 0.05,
+            "Holding (Days)": 1, "Weight %": 10.0,
+            "Rank at Entry": 2, "Rank at Rebalance": 2,
+        },
+    ])
+    book.attrs["as_of"] = pd.Timestamp("2026-03-02")
+    equity = pd.Series(
+        [2_000_000.0, 2_100_000.0],
+        index=pd.to_datetime(["2026-01-31", "2026-02-28"]),
+    )
+
+    out = build_portfolio_tracker(
+        book, pd.DataFrame(), 2_000_000.0, equity_curve=equity
+    ).set_index("Symbol")
+
+    # February's buy uses January-end account equity; March's buy uses
+    # February-end equity, rather than reusing the original ₹20 lakh base.
+    assert out.loc["AAA", "Capital at Entry (₹)"] == pytest.approx(2_000_000)
+    assert out.loc["AAA", "Shares"] == 2_000
+    assert out.loc["BBB", "Capital at Entry (₹)"] == pytest.approx(2_100_000)
+    assert out.loc["BBB", "Shares"] == 1_050
+    assert out.loc["AAA", "Weight %"] == pytest.approx(240_000 / 2_100_000 * 100)
+    assert out.loc["BBB", "Weight %"] == pytest.approx(231_000 / 2_100_000 * 100)

@@ -178,6 +178,18 @@ def render_record_sections(
              "as_of": lm.get("as_of")} if mtd_period is not None else None,
     )
     incl = stats.get("includes_mtd")
+    if mtd_val is None and lm.get("rebalanced") and lm.get("fill_date") is not None:
+        # The book is struck at the close of its fill session, so its first day of P&L is
+        # the next one: the month has a portfolio but no return yet.
+        _fill = pd.Timestamp(lm["fill_date"])
+        kit.note(
+            f"{_fill:%B %Y} has a new book but no return yet.",
+            f"It was signalled on {pd.Timestamp(lm['signal_date']):%d %b} and bought at the "
+            f"{_fill:%d %b} close ({lm.get('n_bought', 0)} bought, {lm.get('n_sold', 0)} sold, "
+            f"{lm.get('n_held', 0)} kept). Month-to-date starts accruing the next session. "
+            "See Ranks by month for the book and its ranks.",
+        )
+
     # Not Jensen's alpha: a simple difference, price only on both sides.
     beat = stats["beat_rate"]
     n_beat = None if beat is None else round(beat * stats["months"])
@@ -200,6 +212,11 @@ def render_record_sections(
         + (f" (from {elapsed:.2f} yr, not a CAGR)" if elapsed < 1 else "")
         + f" · {stats['positive_months']} of {stats['months']} months positive"
         + f" · worst month-to-month fall {_pct(stats['max_drawdown'])}"
+        + (" · prices are Personal closes (NSE where unavailable), no dividends, like the index."
+           if ledger.get("price_basis") == "screener_primary"
+           else " · prices are NSE closes, no dividends, like the index."
+           if ledger.get("price_basis") == "nse_as_published"
+           else " · about 1–1.5% a year of the gap is dividends the price index leaves out.")
     )
 
     # How much of this record is EVIDENCE and how much is reconstruction.

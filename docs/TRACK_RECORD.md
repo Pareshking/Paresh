@@ -41,6 +41,35 @@ It is a diagnostic, not a correction: prices get revised and universes change.
 
 ---
 
+## Portfolio performance relationship
+
+The pinned replay (`record_run()`) is the source for the current model book and
+live month-to-date return. Portfolio consumes that book and presents the same
+account-level performance series: frozen monthly returns from this ledger,
+plus the pinned replay's live MTD return until the month is frozen. The benchmark
+uses the corresponding frozen/live benchmark series.
+
+Portfolio equity must be the starting capital compounded by that same monthly
+series. The displayed since-inception strategy and benchmark returns must
+therefore reconcile to Track Record for the same system and as-of date. Internal
+returns are decimal fractions; only the UI converts them to percentages.
+
+Do not compare account-level return with the current holdings table's
+unrealised P&L as if they were the same measure. Current-book unrealised P&L
+excludes realised gains/losses on sold positions; total account performance
+includes the full sequence of monthly portfolio returns and modeled costs.
+Day P&L is a third measure, calculated from current positions between marks.
+
+The current month may be **live MTD**, or **closed but awaiting freeze** after
+the calendar month changes. It remains visible until the scheduled updater
+freezes it. Existing frozen months remain immutable during normal runs; drift
+is diagnostic and a history rebuild must be deliberate and recorded.
+
+See [`track_record_portfolio_architecture.md`](track_record_portfolio_architecture.md)
+for exact invariants and required cross-view reconciliation tests.
+
+---
+
 ## 3. Entry shape
 
 ```json

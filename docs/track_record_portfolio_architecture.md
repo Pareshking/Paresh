@@ -205,6 +205,80 @@ The two systems intentionally answer different questions.
 
 A change to Backtest reporting windows must therefore not change the Track Record canonical book or Portfolio membership.
 
+## 7A. Performance accounting contract (required)
+
+The current-book contract above is necessary but not sufficient: matching symbols
+does not prove that Track Record and Portfolio report the same portfolio
+performance.
+
+### One performance series
+
+For a given system and as-of date, the canonical performance series is the
+pinned Track Record replay and its append-only monthly ledger. Portfolio must
+present that same series, not calculate a second cumulative return from the
+current holdings. The ledger is the frozen source for closed months; the
+replay's `live_meta` is the source for the not-yet-frozen month. The month
+being shown must be identified as live MTD or closed/awaiting freeze.
+
+The frozen monthly series and the live month must use the same:
+- strategy configuration and rebalance timing;
+- canonical price basis and benchmark basis;
+- point-in-time membership and former-member treatment where available;
+- corporate-action treatment;
+- transaction-cost convention; and
+- return units (decimal fractions internally; percent only at presentation).
+
+Never silently force a recomputed month over a frozen ledger value. Report drift
+as a diagnostic, with provenance, and preserve the append-only guarantee unless
+an explicit, audited rebuild is requested.
+
+### Account value versus current-position P&L
+
+These are different, valid measures and must not be presented as interchangeable:
+
+- **Portfolio value / since-inception return:** the ₹20 lakh starting account
+  compounded by the canonical net portfolio-return series, including realized
+  results, cash/unallocated capital and modeled trading costs.
+- **Current-book unrealized P&L:** the marked value of positions currently held
+  minus their entry cost. It excludes gains/losses already realized on sold
+  positions and is not the account's cumulative return.
+- **Position sizing:** size each share-level entry from account equity immediately
+  before that fill, then mark current weights against the latest account equity.
+  Cash / realised balance is account equity less current position market value;
+  do not reset it to starting capital after sells or pretend each rebalance began
+  with the original ₹20 lakh.
+- **Day P&L:** the change in the current held positions between the two marks,
+  using unchanged share quantities for that interval.
+- **Monthly return:** a net account-level period return from the canonical
+  replay, not an average of individual position returns.
+
+Portfolio's headline performance must reconcile to its equity curve and the
+Track Record headline for the same system, dates and return convention. The
+holdings table's unrealized P&L may differ; label it as such and never use it as
+a substitute for total portfolio return.
+
+### Required reconciliation gates
+
+Automated tests must check, on identical price/membership/configuration inputs:
+
+1. Track Record's frozen months equal the corresponding canonical replay months
+   when first finalized; existing frozen values remain unchanged on ordinary
+   reruns.
+2. Track Record and Portfolio use the same live MTD strategy/benchmark values,
+   as-of date, price basis and configuration fingerprint.
+3. Portfolio equity values equal starting capital compounded by the exact
+   monthly series it displays; no percent/fraction 100x scaling.
+4. The Portfolio and Track Record headline return, equity endpoint, calendar
+   cells and benchmark endpoint reconcile for the same as-of snapshot.
+5. Current-book holdings still reconcile row-by-row to
+   `record_run().live_book` and Actions; this is a separate invariant from
+   performance equality.
+6. Unrealized current-book P&L is labelled separately from cumulative account
+   performance; cash, transaction costs and realized results are accounted for
+   exactly once.
+7. A closed month awaiting the scheduled freeze remains visible and is not
+   accidentally replaced by the next month's MTD or omitted from CY/FY totals.
+
 ## 8. Portfolio presentation target
 
 Portfolio should become a real model-portfolio tracker rather than a second stock-selection screen.

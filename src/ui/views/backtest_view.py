@@ -23,8 +23,31 @@ from src.loaders.price_loader import fetch_benchmark_history
 from src.loaders import former_members, nse_prices
 from src.loaders.ranking_store import actions_digest
 from src.ui import page_kit as kit
+from src.ui.canonical_book import current_book
+from src.engine.extra_universe import SYSTEM_750
+from src.engine.systems import inception, ledger_path
+from src.engine.track_record import load_ledger, summary_stats
 from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.theme import render_saas_table
+
+
+def _canonical_account_stats(ledger: dict, live_meta: dict | None) -> dict:
+    """Summarise the canonical account using Track Record's frozen months and live mark."""
+    meta = live_meta or {}
+    period = meta.get("mtd_period")
+    mtd = None
+    if period:
+        mtd = {
+            "period": pd.Period(period, freq="M"),
+            "strategy": meta.get("strategy_mtd"),
+            "benchmark": meta.get("benchmark_mtd"),
+            "as_of": meta.get("as_of"),
+        }
+    return summary_stats(ledger, mtd=mtd)
+
+
+def _pct_or_dash(value) -> str:
+    return "—" if value is None or pd.isna(value) else f"{float(value):+.1%}"
 
 
 @st.fragment
@@ -105,6 +128,9 @@ def _backtest_body(
     # for up to an hour.
     # Score on the index as it stood: the stocks it once held and has since
     # dropped need prices too, or the pool is only the survivors.
+    # Preserve the original app price frame for the canonical live-book adapter.
+    # The exploratory backtest may replace adj_close with an alternate price basis below.
+    canonical_adj_close = adj_close
     membership = membership if membership is not None else load_history_or_none()
     # Prices as NSE published them (loaders/nse_prices.py): a past month ranks
     # on what was known then, not on a vendor's later restatement. Where the
@@ -112,7 +138,17 @@ def _backtest_body(
     _nse, _nse_info = nse_prices.basis_frame(adj_close, membership, months=months)
     if _nse is not None:
         adj_close, _events = _nse, []
-        kit.caption("Prices: NSE closes, adjusted for splits, bonuses and demergers; no dividends.")
+        # NSE's file runs to the latest session, often a day ahead of the long Yahoo history
+        # (on the 1st its first session of the month is already in). Months are counted back
+        # from the frame's end, so a month that has just closed needs one more in the window.
+        if history_start is not None:
+            months = max(months, int((pd.Period(adj_close.index[-1], freq="M")
+                                      - pd.Period(history_start, freq="M")).n))
+        kit.caption(
+            "Prices: Personal closes, NSE only where Personal data is unavailable; no dividends."
+            if _nse_info.get("basis") == "screener_primary" else
+            "Prices: NSE closes, adjusted for splits, bonuses and demergers; no dividends."
+        )
     else:
         adj_close = former_members.with_former_members(adj_close, membership)
         _events = load_events()
@@ -315,15 +351,67 @@ def _backtest_body(
     # this one, so by the time anyone reads this it has already executed --
     # showing the pre-rebalance book here would be showing last month's
     # portfolio under the heading "current".
-    live_book = bt_res.get("live_book", pd.DataFrame())
-    changes = bt_res.get("month_changes", pd.DataFrame())
-    lmeta = bt_res.get("live_meta", {}) or {}
+    # Current holdings and the current rebalance are not an exploratory
+    # backtest result. They must be the exact pinned Track Record replay that
+    # Actions and Portfolio consume, regardless of the controls selected above.
+    # Keep the configurable run for historical performance/trades only.
+    canonical_result: dict = {}
+    try:
+        live_book, canonical_result = current_book(
+            canonical_adj_close, benchmark_close, SYSTEM_750
+        )
+    except (ValueError, KeyError) as exc:
+        st.error(f"Canonical model book is unavailable: {exc}")
+        live_book = pd.DataFrame()
+    changes = canonical_result.get("month_changes", pd.DataFrame())
+    lmeta = canonical_result.get("live_meta", {}) or {}
+
+    # Account performance is not the configurable research simulation above.
+    # Use the exact same frozen ledger and current live mark as Track Record.
+    try:
+        account_ledger = load_ledger(ledger_path(SYSTEM_750), inception(SYSTEM_750))
+        account_stats = _canonical_account_stats(account_ledger, lmeta)
+        with kit.card(
+            "Canonical account performance",
+            "bt_canonical_account",
+            "Same January 2026-onward recorded account as Track Record and Portfolio; "
+            "closed months are frozen and the latest month is a live mark.",
+        ):
+            kit.readings([
+                kit.Reading(
+                    "Since-inception strategy",
+                    _pct_or_dash(account_stats.get("total_return")),
+                    "canonical account return, not a configurable backtest",
+                    "up" if account_stats.get("total_return", 0) >= 0 else "down",
+                ),
+                kit.Reading(
+                    "Nifty 500",
+                    _pct_or_dash(account_stats.get("bench_return")),
+                    "same dates and compounding basis",
+                    "up" if account_stats.get("bench_return", 0) >= 0 else "down",
+                ),
+                kit.Reading(
+                    "Alpha",
+                    _pct_or_dash(account_stats.get("alpha")),
+                    "strategy return minus benchmark return",
+                    "up" if account_stats.get("alpha", 0) >= 0 else "down",
+                ),
+            ], "Canonical account")
+    except (ValueError, KeyError, TypeError) as exc:
+        st.error(f"Canonical account performance is unavailable: {exc}")
 
     if view in ("Current book", "This month's changes"):
         _as_of = lmeta.get("as_of")
         _sig = lmeta.get("signal_date")
         _fill = lmeta.get("fill_date")
         with kit.card(view, "bt_live"):
+            kit.caption(
+                "The canonical book, shared with Actions and Portfolio"
+                + (f", marked {_as_of:%d %b %Y}" if _as_of is not None else "")
+                + ". Historical performance, trade history and parameter sweeps below use "
+                "the Backtest settings and may describe a different strategy."
+            )
+
             if lmeta.get("rebalanced"):
                 n_b = lmeta.get("n_bought", 0)
                 n_s = lmeta.get("n_sold", 0)

@@ -57,7 +57,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
                     <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#4f46e5;">STEP 01</div>
                     <div style="font-weight:600; font-size:13px; color:#0E1726; margin-top:2px;">Universe Ingestion</div>
-                    <div style="font-size:13px; color:#5E6878; line-height:1.5; margin-top:4px;">~750 Nifty Total Market constituents, adjusted daily closes from Yahoo Finance, with flagged split/bonus discontinuities neutralised in memory at read time.</div>
+                    <div style="font-size:13px; color:#5E6878; line-height:1.5; margin-top:4px;">~750 Nifty Total Market constituents, using Personal price history for ranking and official NSE/Yahoo history where needed, with flagged split/bonus discontinuities neutralised in memory at read time.</div>
                 </div>
                 <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
                     <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#067647;">STEP 02</div>

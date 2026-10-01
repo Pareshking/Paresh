@@ -66,10 +66,10 @@ def main() -> int:
         help="Price history to fetch. Must cover inception plus a 12-month "
         "formation window before it.",
     )
-    ap.add_argument("--prices", choices=["nse", "yahoo"], default=None,
-                    help="price basis: nse (NSE closes as published, data/nse_prices; the "
-                    "750's default) or yahoo (restated adjusted closes; the default for "
-                    "Nano Cap and Combined, which have no NSE file)")
+    ap.add_argument("--prices", choices=["screener", "nse", "yahoo"], default=None,
+                    help="price basis: screener (Screener's closes, NSE's where it has none; "
+                    "the 750's default), nse (NSE closes as published, data/nse_prices) or "
+                    "yahoo (restated adjusted closes; the default for Nano Cap and Combined)")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument(
         "--note",
@@ -149,31 +149,43 @@ def main() -> int:
     # against survivors only (data/former_member_prices.parquet, kept by
     # scripts/sync_former_member_prices.py).
     cfg = dict(TRACK_RECORD_CONFIG)
-    basis = args.prices or ("nse" if system == SYSTEM_750 else "yahoo")
+    basis = args.prices or ("screener" if system == SYSTEM_750 else "yahoo")
     actions = load_events()
-    if basis == "nse":
-        # NSE's closes as published, adjusted only for splits, bonuses and
-        # demergers: a month ranks on what was known that day, not on a vendor's
-        # later restatement. Yahoo's frame supplies only what NSE's equity series
-        # lacks (REITs) and the sessions after the file's last. Its corporate-
-        # action log is Yahoo's correction, so it is not applied to NSE's series.
-        nse, info = nse_prices.basis_frame(adj_close, membership, months=months)
+    if basis in ("screener", "nse"):
+        # Screener's closes, as on the live ranking (owner, 2026-10-01); NSE's closes as
+        # published, adjusted only for splits, bonuses and demergers, fill what Screener
+        # lacks, and Yahoo's frame only what neither has. Yahoo's corporate-action log
+        # corrects Yahoo, so it is not applied to these series.
+        nse, info = nse_prices.basis_frame(adj_close, membership, months=months,
+                                           screener="auto" if basis == "screener" else None)
         if nse is None:
-            print(f"✗ NSE price basis unavailable ({info.get('why')}); refusing to freeze "
+            print(f"✗ price basis unavailable ({info.get('why')}); refusing to freeze "
                   "months on a different basis under the NSE fingerprint (use --prices yahoo)")
             return 1
-        print(f"→ prices: NSE as published, {info['symbols_priced']} of {info['symbols_wanted']} "
+        if basis == "screener" and info["basis"] != nse_prices.BASIS_SCREENER:
+            print("✗ Screener's store is unavailable; refusing to freeze months on another basis "
+                  "under the Screener fingerprint (use --prices nse to choose NSE deliberately)")
+            return 1
+        cfg["prices"] = info["basis"]
+        print(f"→ prices: {info['basis']}"
+              + (f" ({info.get('share_of_cells_from_screener', 0):.0%} of cells from Screener; NSE only: "
+                 f"{len(info.get('base_only_names', []))} names)" if info.get("screener") else "")
+              + f"; NSE file {info['symbols_priced']} of {info['symbols_wanted']} "
               f"names, sessions to {info['last_session_on_file']} on file "
               f"(frame to {info['frame_last_session']}); from the other source: "
               f"{', '.join(info['other_source_names'] + info['other_source_history']) or 'none'}")
-        # A frozen month needs NSE's own closes through its last session, not Yahoo's
-        # moves carried over the gap.
-        closed_end = pd.Period(as_of, freq="M") - (0 if as_of.is_month_end else 1)
-        final = nse.index[nse.index <= closed_end.end_time]
-        if len(final) and pd.Timestamp(info["last_session_on_file"]) < final[-1]:
-            print(f"✗ the NSE file ends {info['last_session_on_file']}, before the last closed "
-                  f"session {final[-1]:%Y-%m-%d}; run scripts/sync_nse_prices.py --update first")
+        # A frozen month needs NSE's own closes through its last session, not the other
+        # source's moves carried over a gap: refuse a file that lags it by days.
+        if pd.Timestamp(info["last_session_on_file"]) < as_of - pd.Timedelta(days=3):
+            print(f"✗ the NSE file ends {info['last_session_on_file']}, behind the price data "
+                  f"({as_of:%Y-%m-%d}); run scripts/sync_nse_prices.py --update first")
             return 1
+        # The window is counted back from the frame's end, and NSE's file is the
+        # earlier to reach a new month: on the first working day Yahoo's cache has no
+        # bar yet but NSE's first session of the month is already on R2.
+        as_of = pd.Timestamp(nse.index[-1])
+        months = months_to_cover(as_of, start)
+        print(f"→ NSE sessions through {as_of:%d %b %Y}; covering {months} completed months")
         adj_close, actions = nse, []
     else:
         cfg["prices"] = "yahoo_adjusted"
