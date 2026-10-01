@@ -10,6 +10,7 @@ from typing import Any
 
 import pandas as pd
 
+from src.core.market_time import ist_now
 from src.engine.extra_universe import SYSTEM_750
 
 
@@ -40,7 +41,7 @@ def current_book(
     """
     from src.ui.views.track_record_view import record_run
 
-    result = record_run(adj_close, benchmark_close, system)
+    result = record_run(adj_close, benchmark_close, system, now=ist_now())
     result = result or {}
     book = result.get("live_book", pd.DataFrame())
 
