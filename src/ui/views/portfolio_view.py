@@ -69,8 +69,8 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
         )
 
     def aggregate(periods):
-        s = [lookup[(p.year, p.month)]["Strategy Net"] for p in periods if (p.year, p.month) in lookup]
-        b = [lookup[(p.year, p.month)]["Benchmark"] for p in periods if (p.year, p.month) in lookup]
+        s = [lookup[(p.year, p.month)]._asdict()["Strategy Net"] for p in periods if (p.year, p.month) in lookup]
+        b = [lookup[(p.year, p.month)]._asdict()["Benchmark"] for p in periods if (p.year, p.month) in lookup]
         return _compound_returns(s), _compound_returns(b)
 
     years = sorted(frame["Year"].unique())
@@ -79,7 +79,7 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
         cells = []
         for month_no in range(1, 13):
             row = lookup.get((int(year), month_no))
-            is_live = live is not None and row is not None and row["Period"] == live
+            is_live = live is not None and row is not None and row._asdict()["Period"] == live
             cells.append(cell(row, is_live))
         cy_s, cy_b = aggregate([pd.Period(f"{year}-{m:02d}", freq="M") for m in range(1, 13)])
         fy_s, fy_b = aggregate(
