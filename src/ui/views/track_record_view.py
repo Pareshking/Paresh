@@ -19,6 +19,7 @@ from src.engine.corporate_actions import load_events
 from src.engine.extra_universe import SYSTEM_750, SYSTEM_NAMES, SYSTEMS
 from src.engine.systems import inception, ledger_path, membership_for
 from src.engine.pipeline import price_fingerprint
+from src.engine.rank_history import month_books
 from src.engine.track_record import (
     TRACK_RECORD_CONFIG,
     build_combined_grid,
@@ -26,9 +27,19 @@ from src.engine.track_record import (
     months_to_cover,
     summary_stats,
 )
+from src.loaders import former_members, nse_prices
 from src.loaders.ranking_store import actions_digest
 from src.ui import page_kit as kit
 from src.ui.theme import render_saas_table
+
+
+@st.cache_data(show_spinner=False, max_entries=6)
+def _month_books(key: str, _prices: pd.DataFrame, _tradebook: pd.DataFrame, _membership: dict | None) -> dict:
+    """Each month's book with its start and end ranks and gates (engine/rank_history.py)."""
+    cfg = TRACK_RECORD_CONFIG
+    return month_books(_prices, _tradebook, membership=_membership,
+                       ema_period=cfg["ema_period"], high_pct=cfg["high_pct"],
+                       config_weights=cfg["config_weights"])
 
 
 def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
@@ -56,9 +67,19 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
     # Whole-history fingerprint + applied events: the old key (date, width,
     # months) served an hour-stale MTD after a restatement or a new split.
     events = load_events()
+    # The pinned run is scored on the index as it stood, so the names it once
+    # held and has since dropped must have prices (loaders/former_members.py).
+    membership = membership_for(system)
+    prices = former_members.with_former_members(adj_close, membership)
+    if system == SYSTEM_750:
+        # The 750's record is struck on NSE's closes as published, so this run
+        # must be too or its month-to-date would disagree with the frozen months.
+        nse, _ = nse_prices.basis_frame(adj_close, membership, months=months)
+        if nse is not None:
+            prices, events = nse, []
     result = run_backtest(
-        f"trackrec_{system}_{price_fingerprint(adj_close)}_{actions_digest(events)}_{months}",
-        adj_close,
+        f"trackrec_{system}_{price_fingerprint(prices)}_{actions_digest(events)}_{months}",
+        prices,
         top_n=cfg["top_n"],
         rebal_freq=cfg["rebal_freq"],
         ema_period=cfg["ema_period"],
@@ -69,7 +90,7 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
         buffer_n=cfg["buffer_n"],
         _benchmark_close=benchmark_close,
         backtest_months=months,
-        _membership=membership_for(system),
+        _membership=membership,
         stateful_history=True,
         # The backtest needs warm-up prices before inception, but its stateful
         # tradebook must not create portfolio ownership before the canonical
@@ -101,6 +122,10 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
             exit_date.ge(start.start_time) | exit_date.isna()
         ].reset_index(drop=True)
 
+    tb = result.get("tradebook")
+    if isinstance(tb, pd.DataFrame) and not tb.empty:
+        result["month_books"] = _month_books(
+            f"{system}_{price_fingerprint(prices)}_{months}", prices, tb, membership)
     return result
 
 
@@ -177,6 +202,45 @@ def growth_series(months: dict, mtd_period, mtd_val, mtd_bench):
     return labels, s_curve, b_curve
 
 
+def _render_rank_months(books: dict) -> None:
+    """For a month: the book, each name's rank and entry gates at its start and end, and
+    what the next rebalance did with it."""
+    if not books:
+        with kit.card("Ranks by month", "tr_ranks", "needs the price history"):
+            st.info("No monthly books to show yet.")
+        return
+    keys = sorted(books)
+    month = st.selectbox("Month", keys, index=len(keys) - 1, key="tr_rank_month",
+                         format_func=lambda k: pd.Period(k, freq="M").strftime("%B %Y"))
+    df = books[month]
+    a = df.attrs
+    end_word = "latest session" if a.get("in_progress") else "month end"
+    with kit.card(f"{pd.Period(month, freq='M').strftime('%B %Y')} book", "tr_ranks",
+                  f"ranked on {a.get('start')} (start) and {a.get('end')} ({end_word})"):
+        kit.caption(
+            "Start = the signal date that opened the month; the book is bought at the next close. "
+            "A name qualifies only while it is above its 50-day EMA, within 20% of its 52-week high "
+            "and in the index; a blank end rank means it no longer qualified. The next rebalance "
+            "sells it once it falls out of qualifying or past rank 40.")
+        show = df.assign(**{
+            "Above EMA start": df["Above EMA start"].map({True: "yes", False: "no"}),
+            "Above EMA end": df["Above EMA end"].map({True: "yes", False: "no"}),
+            "In index end": df["In index end"].map({True: "yes", False: "no"}),
+        })
+        st.dataframe(
+            show, hide_index=True, width="stretch",
+            column_config={
+                "Weight %": kit.col_num("Weight %", "%.1f"),
+                "Rank at start": kit.col_num("Rank at start", "%d"),
+                "Rank at end": kit.col_num("Rank at end", "%d", help="Blank: failed a gate that day"),
+                "% of 52w high start": kit.col_pct("% of 52w high start"),
+                "% of 52w high end": kit.col_pct("% of 52w high end"),
+            },
+        )
+        st.download_button("Export CSV", df.to_csv(index=False).encode(),
+                           f"ranks_{month}.csv", "text/csv", key="dl_tr_ranks")
+
+
 def render_track_record_view(
     adj_close: pd.DataFrame | None = None,
     benchmark_close: pd.Series | None = None,
@@ -234,10 +298,11 @@ def render_track_record_view(
     )
     incl = stats.get("includes_mtd")
 
-    # Not Jensen's alpha, and not like-for-like: the strategy trades
-    # dividend-adjusted prices (auto_adjust=True) while ^CRSLDX is the Nifty 500
-    # PRICE index, which excludes dividends. The constituents' yield -- roughly
-    # 1-1.5% a year -- therefore lands in the gap as if it were skill.
+    # Not Jensen's alpha. On the Yahoo basis the strategy trades dividend-adjusted
+    # prices (auto_adjust=True) while ^CRSLDX is the Nifty 500 PRICE index, which
+    # excludes dividends, so the constituents' yield -- roughly 1-1.5% a year --
+    # lands in the gap as if it were skill. On the NSE basis (ledger["price_basis"])
+    # both sides are price only.
     beat = stats["beat_rate"]
     n_beat = None if beat is None else round(beat * stats["months"])
     since = "after costs, before tax" + (f" · includes {mtd_period.strftime('%B')} so far" if incl else "")
@@ -258,7 +323,9 @@ def render_track_record_view(
         + (f" (scaled up from {elapsed:.2f} years, not a CAGR)" if elapsed < 1 else "")
         + f" · positive months {stats['positive_months']} of {stats['months']}"
         + f" · worst fall, month to month, {_pct(stats['max_drawdown'])}"
-        + " · about 1–1.5% a year of the gap is dividends the price index leaves out."
+        + (" · prices are NSE closes as published, with no dividends added back, like the index."
+           if ledger.get("price_basis") == "nse_as_published"
+           else " · about 1–1.5% a year of the gap is dividends the price index leaves out.")
     )
 
     # How much of this record is EVIDENCE and how much is reconstruction. A
@@ -269,13 +336,25 @@ def render_track_record_view(
     _backfilled = int(stats.get("backfilled", 0) or 0)
     _recorded = int(stats.get("recorded", 0) or 0)
     if _backfilled:
-        kit.note(
-            f"{_backfilled} of {_backfilled + _recorded} frozen months are backfilled"
-            + (": the whole record is a reconstruction." if not _recorded else "."),
-            "They were rebuilt later from today's index lists and prices, so they carry "
-            "the backtest's survivorship bias. Only months marked recorded were frozen "
-            "as they closed. Each month card says which it is.",
-        )
+        _lead = (f"{_backfilled} of {_backfilled + _recorded} frozen months are backfilled"
+                 + (": the whole record is a reconstruction." if not _recorded else "."))
+        if int(stats.get("current_universe", 0) or 0) == 0:
+            # Every month was scored on the index as it stood (membership from
+            # NSE's own notices), so today's lists cannot flatter them.
+            kit.note(
+                _lead,
+                "They were rebuilt later, not frozen as each month closed, but every one is "
+                "scored on the index as it stood, so today's index lists do not flatter them. "
+                "They use today's price history, and a few stocks that merged away have none. "
+                "Only months marked recorded were frozen as they closed.",
+            )
+        else:
+            kit.note(
+                _lead,
+                "They were rebuilt later from today's index lists and prices, so they carry "
+                "the backtest's survivorship bias. Only months marked recorded were frozen "
+                "as they closed. Each month card says which it is.",
+            )
     if len(stats.get("configs", [])) > 1:
         kit.note(
             "This record spans more than one strategy configuration.",
@@ -302,7 +381,7 @@ def render_track_record_view(
 
     which = st.segmented_control(
         "Track Record View",
-        ["Month by month", "Calendar grid", "Provenance"],
+        ["Month by month", "Ranks by month", "Calendar grid", "Provenance"],
         default="Month by month",
         key="tr_series_seg",
         label_visibility="collapsed",
@@ -311,6 +390,11 @@ def render_track_record_view(
     if which == "Month by month":
         with kit.card("Month by month", "tr_months", "rows for later years appear as they fill"):
             st.html(month_cards_html(months, mtd_period, mtd_val, mtd_bench))
+
+    elif which == "Ranks by month":
+        _render_rank_months(
+            (record_run(adj_close, benchmark_close, system).get("month_books") or {})
+            if adj_close is not None else {})
 
     elif which == "Calendar grid":
         with kit.card("Calendar grid", "tr_grid", "strategy, Nifty 500 and the gap, per year"):

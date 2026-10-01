@@ -1,0 +1,578 @@
+{
+  "index": "NIFTY TOTAL MARKET",
+  "source": "NSE Indices press releases, https://www.niftyindices.com/press-release",
+  "note": "Total Market changes read from each notice's own 'Nifty Total Market' tables. Placeholder (DUMMY) symbols are dropped by is_tradeable_symbol.",
+  "known_unexplained": {},
+  "symbol_aliases": {
+    "SUNDARMHLD": {
+      "new_symbol": "TSFINV",
+      "effective": "2025-10-16",
+      "company": "Sundaram Finance Holdings Ltd. -> TSF Investments Ltd.",
+      "isin": "INE202Z01029",
+      "evidence": "A name and ticker change, so NSE Indices issued no replacement notice. Seen in the data: TSFINV is in the list continuously from 2025-12-31 to 2026-09-29, and ind_prs10082026.pdf lists 'TSF Investments Ltd. TSFINV' among the 2026-09-30 exclusions. NSE approval ref NSE/LIST/362 (2025-10-10) as relayed by the owner."
+    },
+    "HEG": {
+      "new_symbol": "HEGAM",
+      "effective": "2026-09-23",
+      "company": "HEG Ltd.",
+      "evidence": "The daily sync recorded HEG out and HEGAM in on 2026-09-23. Yahoo's HEG.NS and HEGAM.NS carry identical adjusted closes on every overlapping day (24-30 Sep 2026), and the whole earlier history is filed under HEGAM."
+    }
+  },
+  "notices": [
+    {
+      "notice": "ind_prs15092025_1.pdf",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs15092025_1.pdf",
+      "sha256": "3e7fc25c2e90266a8201f31794595cb0855a3d9a6eb06d5437fd1a0c94112881",
+      "issued": "2025-09-15",
+      "effective": "2025-09-23",
+      "included": [
+        "KITEX"
+      ],
+      "excluded": [
+        "PEL"
+      ]
+    },
+    {
+      "notice": "ind_prs22082025.pdf",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs22082025.pdf",
+      "sha256": "731113af85aad6b54cce359d5465d84e6062b28b03c21cd9922a20a3f44d2de1",
+      "issued": "2025-08-22",
+      "effective": "2025-09-30",
+      "included": [
+        "ABLBL",
+        "AEGISVOPAK",
+        "AGARWALEYE",
+        "AJAXENGG",
+        "ANURAS",
+        "ATHERENERG",
+        "BAJAJELEC",
+        "BELRISE",
+        "DHANUKA",
+        "DIACABS",
+        "ENRIN",
+        "GALLANTT",
+        "HEXT",
+        "ITCHOTELS",
+        "KRN",
+        "LUMAXTECH",
+        "MANORAMA",
+        "ONESOURCE",
+        "OSWALPUMPS",
+        "PGHH",
+        "PRIVISCL",
+        "PURVA",
+        "QUESS",
+        "RELAXO",
+        "SANDUMA",
+        "SHARDAMOTR",
+        "SKYGOLD",
+        "STYRENIX",
+        "SUNDARMHLD",
+        "THELEELA",
+        "THYROCARE",
+        "V2RETAIL",
+        "VINATIORGA",
+        "WAAREERTL"
+      ],
+      "excluded": [
+        "AVL",
+        "BAJAJHIND",
+        "BANSALWIRE",
+        "BEPL",
+        "BOMDYEING",
+        "BOROLTD",
+        "CHEMPLASTS",
+        "DCXINDIA",
+        "FCL",
+        "GOPAL",
+        "GREENPLY",
+        "HATHWAY",
+        "HEIDELBERG",
+        "JAICORPLTD",
+        "JSWHL",
+        "JTLIND",
+        "KANSAINER",
+        "NOCIL",
+        "ORISSAMINE",
+        "PAISALO",
+        "RAYMOND",
+        "REDTAPE",
+        "RESPONIND",
+        "ROSSARI",
+        "SBCL",
+        "SHOPERSTOP",
+        "SPANDANA",
+        "STYLAMIND",
+        "SULA",
+        "SUPRAJIT",
+        "TIIL",
+        "TIRUMALCHM",
+        "VENUSPIPES",
+        "WONDERLA"
+      ]
+    },
+    {
+      "notice": "ind_prs20102025.pdf",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs20102025.pdf",
+      "sha256": "a8b71b34f5c6611455af7bbb9d636064a33e94c7eda51467950c96a36b26671f",
+      "issued": "2025-10-20",
+      "effective": "2025-10-28",
+      "included": [
+        "RATNAMANI"
+      ],
+      "excluded": [
+        "DHANI"
+      ]
+    },
+    {
+      "notice": "ind_prs23122025.pdf",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs23122025.pdf",
+      "sha256": "cd58220e4906e138c76cf14ec2d5f3a6e46dbcf428e5480eccf40f48938d5fb7",
+      "issued": "2025-12-23",
+      "effective": "2025-12-26",
+      "included": [
+        "KANSAINER"
+      ],
+      "excluded": [
+        "RAJESHEXPO"
+      ]
+    },
+    {
+      "notice": "ind_prs11122025.pdf",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs11122025.pdf",
+      "sha256": "fe0137becd78f2771f448f19a85943ceaf5952375608c14094dda327d80d7091",
+      "issued": "2025-12-11",
+      "effective": "2025-12-31",
+      "included": [
+        "JSWCEMENT"
+      ],
+      "excluded": [
+        "SKFINDIA"
+      ]
+    },
+    {
+      "notice": "ind_prs23022026.pdf",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs23022026.pdf",
+      "sha256": "cb5830aff1e8715997d9204509315f393ed961838ebc14e986fcb800c62e5a0b",
+      "issued": "2026-02-23",
+      "effective": "2026-03-30",
+      "included": [
+        "AEQUS",
+        "ANTHEM",
+        "APOLLO",
+        "ASHAPURMIN",
+        "ATLANTAELE",
+        "AVL",
+        "AXISCADES",
+        "BBOX",
+        "BLUESTONE",
+        "CANHLIFE",
+        "CAPILLARY",
+        "CORONA",
+        "CPPLUS",
+        "CRAMC",
+        "CRIZAC",
+        "CUPID",
+        "ELLEN",
+        "EMMVEE",
+        "FEDFINA",
+        "GOKULAGRO",
+        "GROWW",
+        "HDBFS",
+        "ICICIAMC",
+        "JAINREC",
+        "JAYNECOIND",
+        "JLHL",
+        "JSLL",
+        "LENSKART",
+        "LGEINDIA",
+        "LOTUSDEV",
+        "MEESHO",
+        "ORKLAINDIA",
+        "PARKHOSPS",
+        "PFOCUS",
+        "PICCADIL",
+        "PINELABS",
+        "PIRAMALFIN",
+        "PWL",
+        "QPOWER",
+        "REDTAPE",
+        "RUBICON",
+        "SAATVIKGL",
+        "SKFINDIA",
+        "SKFINDUS",
+        "SMARTWORKS",
+        "SMLMAH",
+        "SPLPETRO",
+        "STYL",
+        "SUDEEPPHRM",
+        "TATACAP",
+        "TENNIND",
+        "TMB",
+        "TMCV",
+        "TRAVELFOOD",
+        "URBANCO",
+        "UTLSOLAR",
+        "VIKRAMSOLR",
+        "WAKEFIT",
+        "WEWORK"
+      ],
+      "excluded": [
+        "AGI",
+        "AJAXENGG",
+        "ALLCARGO",
+        "ASTRAZEN",
+        "BASF",
+        "BBL",
+        "BOSCH-HCIL",
+        "CEIGALL",
+        "CYIENTDLM",
+        "DCAL",
+        "DHANUKA",
+        "DODLA",
+        "EASEMYTRIP",
+        "EMUDHRA",
+        "EPIGRAL",
+        "FDC",
+        "FINEORG",
+        "GANECOS",
+        "GANESHHOU",
+        "GARFIBRES",
+        "GATEWAY",
+        "GREENPANEL",
+        "GRINFRA",
+        "GUJGASLTD",
+        "GULFOILLUB",
+        "HIKAL",
+        "IMAGICAA",
+        "INGERRAND",
+        "INNOVACAP",
+        "ISGEC",
+        "JINDWORLD",
+        "JISLJALEQS",
+        "JKIL",
+        "KSL",
+        "LMW",
+        "LUXIND",
+        "MAHLIFE",
+        "MANINFRA",
+        "MAXESTATES",
+        "ORCHPHARMA",
+        "PARKHOTELS",
+        "PATELENG",
+        "PGHH",
+        "POLYPLEX",
+        "PRINCEPIPE",
+        "RATNAMANI",
+        "RELINFRA",
+        "SANOFI",
+        "SANOFICONR",
+        "SHARDAMOTR",
+        "SUNDRMFAST",
+        "SUNFLAG",
+        "SYMPHONY",
+        "TEAMLEASE",
+        "UNIMECH",
+        "VENTIVE",
+        "VESUVIUS",
+        "VINATIORGA",
+        "VSTIND"
+      ]
+    },
+    {
+      "notice": "ind_prs04052026.pdf",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs04052026.pdf",
+      "sha256": "686327d0d4c7d096cab36bdd2e548fdc4d5f0b18b402cc3f3038cfc62c2d23b6",
+      "issued": "2026-05-04",
+      "effective": "2026-05-12",
+      "included": [
+        "RATNAMANI"
+      ],
+      "excluded": [
+        "GSPL"
+      ]
+    },
+    {
+      "notice": "ind_prs08052026.pdf",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs08052026.pdf",
+      "sha256": "ac16a24c6d15e691dafcdf5b81d8900a9959a09da482085b954573223eb23c83",
+      "issued": "2026-05-08",
+      "effective": "2026-05-15",
+      "included": [
+        "SANOFICONR"
+      ],
+      "excluded": [
+        "CIGNITITEC"
+      ]
+    },
+    {
+      "notice": "ind_prs13072026_1.pdf",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs13072026_1.pdf",
+      "sha256": "9787f269558fe9c112011671615700ae9effaec482aad18bfafeeb477104286e",
+      "issued": "2026-07-13",
+      "effective": "2026-07-17",
+      "included": [
+        "GRINDWELL"
+      ],
+      "excluded": [
+        "JBCHEPHARM"
+      ]
+    },
+    {
+      "notice": "ind_prs10082026.pdf",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs10082026.pdf",
+      "sha256": "56a3d162e4aabd8767686010afb01eb8dd21dc089d5cf8995a8a34091eef9bff",
+      "issued": "2026-08-10",
+      "effective": "2026-09-30",
+      "included": [
+        "AEROFLEX",
+        "AMAGI",
+        "BAGMANE",
+        "BAJAJCON",
+        "BHARATCOAL",
+        "BIRET",
+        "CEIGALL",
+        "CENTUM",
+        "CLEANMAX",
+        "CMPDI",
+        "CMRGREEN",
+        "E2E",
+        "EBGNG",
+        "EMBASSY",
+        "FRACTAL",
+        "GENUSPOWER",
+        "GOLDIAM",
+        "GUJALKALI",
+        "HAPPYFORGE",
+        "KISSHT",
+        "KMEW",
+        "KWIL",
+        "LUMAXIND",
+        "MBAPL",
+        "NEPHROPLUS",
+        "NORTHARC",
+        "OMNI",
+        "PAISALO",
+        "PDSL",
+        "PGHL",
+        "POWERICA",
+        "PRECWIRE",
+        "RESPONIND",
+        "SEDEMAC",
+        "SENORES",
+        "SGMART",
+        "SHADOWFAX",
+        "SHILCTECH",
+        "SHREEJISPG",
+        "SIGMAADV",
+        "SJS",
+        "STYLAMIND",
+        "SUNDRMFAST",
+        "SUNFLAG",
+        "SUVEN",
+        "TIMEX",
+        "TTKPRESTIG",
+        "UNIMECH",
+        "VAML",
+        "VEDPOWER",
+        "VESUVIUS",
+        "VISL",
+        "VOGL"
+      ],
+      "excluded": [
+        "3MINDIA",
+        "AARTIDRUGS",
+        "AGARWALEYE",
+        "AHLUCONT",
+        "ALIVUS",
+        "ALOKINDS",
+        "ANUP",
+        "APLLTD",
+        "ASKAUTOLTD",
+        "AWFIS",
+        "BAJAJELEC",
+        "BAYERCROP",
+        "BBTC",
+        "BIKAJI",
+        "BLUEDART",
+        "CENTURYPLY",
+        "CORONA",
+        "CRIZAC",
+        "DCMSHRIRAM",
+        "ETHOSLTD",
+        "EUREKAFORB",
+        "GHCL",
+        "GMMPFAUDLR",
+        "GODIGIT",
+        "HEMIPROP",
+        "INDIASHLTR",
+        "INOXGREEN",
+        "JKLAKSHMI",
+        "JLHL",
+        "JSWDULUX",
+        "MAHSCOOTER",
+        "MAHSEAMLES",
+        "NESCO",
+        "OPTIEMUS",
+        "ORIENTCEM",
+        "ORKLAINDIA",
+        "PFIZER",
+        "PRSMJOHNSN",
+        "PRUDENT",
+        "REDTAPE",
+        "RTNINDIA",
+        "SAATVIKGL",
+        "SANOFICONR",
+        "SKFINDIA",
+        "SKFINDUS",
+        "SMARTWORKS",
+        "STARCEMENT",
+        "STYL",
+        "STYRENIX",
+        "TRAVELFOOD",
+        "TRIVENI",
+        "TSFINV",
+        "VARROC"
+      ]
+    }
+  ],
+  "placeholder_notices": [
+    {
+      "notice": "ind_prs03092026.pdf",
+      "issued": "2026-09-03",
+      "effective": [
+        "2026-09-07"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name"
+    },
+    {
+      "notice": "ind_prs07112025.pdf",
+      "issued": "2025-11-07",
+      "effective": [
+        "2025-11-12"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name"
+    },
+    {
+      "notice": "ind_prs11122025_1.pdf",
+      "issued": "2025-12-11",
+      "effective": [
+        "2025-10-15",
+        "2025-12-15"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name"
+    },
+    {
+      "notice": "ind_prs13112025.pdf",
+      "issued": "2025-11-13",
+      "effective": [
+        "2025-10-14",
+        "2025-11-17"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name"
+    },
+    {
+      "notice": "ind_prs17062026.pdf",
+      "issued": "2026-06-17",
+      "effective": [
+        "2026-04-30",
+        "2026-06-19"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name"
+    },
+    {
+      "notice": "ind_prs17072026.pdf",
+      "issued": "2026-07-17",
+      "effective": [
+        "2026-07-22",
+        "2026-07-22"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name"
+    },
+    {
+      "notice": "ind_prs19062026.pdf",
+      "issued": "2026-06-19",
+      "effective": [
+        "2026-04-30",
+        "2026-06-23"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name"
+    },
+    {
+      "notice": "ind_prs20022026_1.pdf",
+      "issued": "2026-02-20",
+      "effective": [
+        "2025-12-05",
+        "2026-02-24"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name"
+    },
+    {
+      "notice": "ind_prs20072026.pdf",
+      "issued": "2026-07-20",
+      "effective": [
+        "2025-11-12",
+        "2026-07-22"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name"
+    },
+    {
+      "notice": "ind_prs22062026.pdf",
+      "issued": "2026-06-22",
+      "effective": [
+        "2026-04-30",
+        "2026-06-24"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name"
+    },
+    {
+      "notice": "ind_prs22092025.pdf",
+      "issued": "2025-09-22",
+      "effective": [
+        "2025-04-24",
+        "2025-09-24"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name"
+    },
+    {
+      "notice": "ind_prs23042026.pdf",
+      "issued": "2026-04-23",
+      "effective": [
+        "2026-04-30",
+        "2026-04-30"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name"
+    },
+    {
+      "notice": "ind_prs26082026_1.pdf",
+      "issued": "2026-08-26",
+      "effective": [],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name"
+    },
+    {
+      "notice": "ind_prs26112025.pdf",
+      "issued": "2025-11-26",
+      "effective": [
+        "2025-07-18",
+        "2025-11-28"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name"
+    },
+    {
+      "notice": "ind_prs28072026_1.pdf",
+      "issued": "2026-07-28",
+      "effective": [
+        "2026-07-31"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name"
+    },
+    {
+      "notice": "ind_prs28112025.pdf",
+      "issued": "2025-11-28",
+      "effective": [
+        "2025-12-05"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name"
+    }
+  ]
+}

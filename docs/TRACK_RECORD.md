@@ -66,8 +66,23 @@ survivorship bias and flatters results by an unknown amount. Assigned
 automatically: the month that just closed is `recorded`, anything older in the
 same write is `backfill`. No flag to remember.
 
-The Jan–Aug 2026 block was backfilled on 2026-09-03; only August is recorded.
-Treat the backfilled block as the strategy's *shape*, not its record.
+The Jan–Aug 2026 block was first backfilled on 2026-09-03 (only August recorded),
+on today's index list and under the earlier accrual convention. **It was rebuilt on
+2026-10-01** with `--force`, because two things had changed underneath it:
+
+1. the pinned config gained `accrual: buy_and_hold` (fingerprint `5b356a6ba93b` ->
+   `2aa2cb53f4d1`), so the old months and any new month would have been two series;
+2. point-in-time membership now reaches back to 2025-12-31 (built from NSE's own
+   notices, `docs/MEMBERSHIP_FROM_NOTICES.md`) and the stocks the index has since
+   dropped have prices (`data/former_member_prices.parquet`), so every month is
+   scored on the index as it stood (`universe: point_in_time`, 8 of 8 rebalances).
+
+A forced rewrite is a reconstruction, so every rebuilt month is `backfill`,
+August included. The ledger's `rebuilds` log keeps when, which months, the config
+replaced and each month's previous value. Residual limits: four stocks that merged
+away have no prices (`former_members.unavailable()`), and the prices are today's
+vintage. Treat the block as a careful reconstruction, not as a record frozen as
+each month closed.
 
 ---
 

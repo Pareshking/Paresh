@@ -149,8 +149,16 @@ def record_snapshot(
     return out, True
 
 
-def members_on(history: dict[str, Any], on: Any) -> set[str] | None:
+def members_on(history: dict[str, Any], on: Any, *, canonical: bool = False) -> set[str] | None:
     """Constituents as of `on`, or None when the date predates coverage.
+
+    `canonical=True` follows ticker changes recorded under ``history["aliases"]``
+    ({"HEG": {"new_symbol": "HEGAM", ...}}): a name listed under an old ticker is
+    returned under the one its prices are filed under. A ticker change is not an
+    exit, and the price history lives under the current symbol (Yahoo serves a
+    renamed stock's whole past under its new ticker), so the backtester asks for
+    the canonical form. The default stays the raw record, which is what the daily
+    sync diffs against.
 
     None is the honest answer, and callers must treat it as "unknown" rather
     than falling back to the current list. Returning today's membership for a
@@ -171,6 +179,9 @@ def members_on(history: dict[str, Any], on: Any) -> set[str] | None:
             break
         members |= set(change.get("added") or [])
         members -= set(change.get("removed") or [])
+    if canonical:
+        aliases = history.get("aliases") or {}
+        members = {(aliases[s]["new_symbol"] if s in aliases else s) for s in members}
     return members
 
 

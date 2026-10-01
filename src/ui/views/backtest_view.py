@@ -20,6 +20,7 @@ from src.engine.parameter_sweep import (
 )
 from src.engine.pipeline import price_fingerprint
 from src.loaders.price_loader import fetch_benchmark_history
+from src.loaders import former_members, nse_prices
 from src.loaders.ranking_store import actions_digest
 from src.ui import page_kit as kit
 from src.ui.components import gap_count, render_data_quality_footer
@@ -103,7 +104,23 @@ def _backtest_body(
     # old key (last date + shape) missed an intraday refresh, a vendor
     # restatement and a newly logged split alike, and served the cached answer
     # for up to an hour.
-    _events = load_events()
+    # Score on the index as it stood: the stocks it once held and has since
+    # dropped need prices too, or the pool is only the survivors.
+    membership = membership if membership is not None else load_history_or_none()
+    # Prices as NSE published them (loaders/nse_prices.py): a past month ranks
+    # on what was known then, not on a vendor's later restatement. Where the
+    # file does not reach back far enough, the long Yahoo history stands.
+    _nse, _nse_info = nse_prices.basis_frame(adj_close, membership, months=months)
+    if _nse is not None:
+        adj_close, _events = _nse, []
+        kit.caption(
+            "Prices: NSE closes as published, adjusted for splits, bonuses and demergers "
+            "(dividends are not added back, as with the Nifty 500 price index it is measured against)."
+        )
+    else:
+        adj_close = former_members.with_former_members(adj_close, membership)
+        _events = load_events()
+        kit.caption("Prices: Yahoo adjusted closes, which are restated for later dividends and corrections.")
     ph = f"{price_fingerprint(adj_close)}_{actions_digest(_events)}"
     if liquidity_floor_cr:
         kit.caption(f"Liquidity floor on: a stock is bought only while its 20-day average "
@@ -119,6 +136,10 @@ def _backtest_body(
         if "Industry" in rank_df.columns
         else {}
     )
+    if sec_map:
+        # The sector cap needs an industry for every name it can hold, and the
+        # index files only label the current members.
+        sec_map.update(former_members.industry_for([c for c in adj_close.columns if c not in sec_map]))
 
     with st.spinner("Running walk-forward backtest with friction & turnover modeling…"):
         bt_res = run_backtest(
@@ -134,7 +155,7 @@ def _backtest_body(
             sector_map=sec_map,
             cost_bps=cost_drag_bps,
             buffer_n=int(bt_n * buffer_mult),
-            _membership=membership if membership is not None else load_history_or_none(),
+            _membership=membership,
             backtest_months=months,
             stateful_history=True,
             history_start=history_start,
@@ -416,6 +437,27 @@ def _backtest_body(
                         "realised round trip; on a BOUGHT or HELD row it is "
                         "unrealised, marked at the latest close."
                     )
+                    _not_in = (changes[changes["Reason"].astype(str).str.startswith("Not in the index")]
+                               if "Reason" in changes.columns else changes.iloc[0:0])
+                    if not _not_in.empty:
+                        _mem = membership if membership is not None else load_history_or_none()
+                        _since = ((_mem or {}).get("baseline") or {}).get("date")
+                        _entered = pd.to_datetime(_not_in["Entry Date"], errors="coerce")
+                        _early = (_not_in[_entered < pd.Timestamp(_since)]
+                                  if _since else _not_in.iloc[0:0])
+                        kit.note(
+                            f"{len(_not_in)} sold "
+                            f"{'name was' if len(_not_in) == 1 else 'names were'} not in the "
+                            f"index on the {_sig:%d %b %Y} signal date: "
+                            f"{', '.join(_not_in['Symbol'].astype(str))}.",
+                            (f"{', '.join(_early['Symbol'].astype(str))} entered the book before "
+                             f"the index record begins ({_since}), when the backtest scored on "
+                             "today's constituent list, so they were picked with hindsight. "
+                             "This is the first rebalance scored on the index as it stood, and "
+                             "it sells them."
+                             if not _early.empty else
+                             "They have left the index list, so the rules sell them."),
+                        )
                     render_saas_table(ch)
                     st.download_button(
                         "Export changes CSV",
