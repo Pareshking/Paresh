@@ -166,6 +166,14 @@ def main() -> int:
               f"names, sessions to {info['last_session_on_file']} on file "
               f"(frame to {info['frame_last_session']}); from the other source: "
               f"{', '.join(info['other_source_names'] + info['other_source_history']) or 'none'}")
+        # A frozen month needs NSE's own closes through its last session, not Yahoo's
+        # moves carried over the gap.
+        closed_end = pd.Period(as_of, freq="M") - (0 if as_of.is_month_end else 1)
+        final = nse.index[nse.index <= closed_end.end_time]
+        if len(final) and pd.Timestamp(info["last_session_on_file"]) < final[-1]:
+            print(f"✗ the NSE file ends {info['last_session_on_file']}, before the last closed "
+                  f"session {final[-1]:%Y-%m-%d}; run scripts/sync_nse_prices.py --update first")
+            return 1
         adj_close, actions = nse, []
     else:
         cfg["prices"] = "yahoo_adjusted"

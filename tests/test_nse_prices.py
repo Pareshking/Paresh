@@ -243,3 +243,44 @@ def test_the_committed_ledger_is_one_basis_one_config_and_says_so():
     assert {m["config"] for m in led["months"].values()} == {config_fingerprint(**TRACK_RECORD_CONFIG)}
     assert led["rebuilds"][-1]["prices"] == "nse_as_published"
     assert led["rebuilds"][-1]["former_members_unpriceable"] == []
+
+
+# ── reading the sessions from R2 ─────────────────────────────────────────────
+
+class _FakeR2:
+    """Just enough of R2Archive/R2DatasetReader for read_r2."""
+
+    def __init__(self, days, bad=()):
+        self.days, self.bad = days, set(bad)
+        self.archive = self
+
+    def list_keys(self, prefix):
+        if "prices_daily" in prefix:
+            return [f"{prefix}{d}/current.json" for d in self.days]
+        return [f"{prefix}{self.days[0]}/current.json"]
+
+    def resolve_current(self, dataset, *, as_of):
+        return (dataset, as_of)
+
+    def read_parquet(self, ref):
+        dataset, d = ref
+        if d in self.bad:
+            raise OSError("boom")
+        if dataset == nh.R2_PRICES:
+            return pd.DataFrame([[pd.Timestamp(d), "CM", s, "AAA", 10.0, 9.0, 11.0, 9.0, 1, 1.0]
+                                 for s in ("EQ", "SM")], columns=nh.KEEP)
+        return pd.DataFrame({"date": [pd.Timestamp(d)], "symbol": ["AAA"], "ex_date": [pd.Timestamp("2026-02-02")],
+                             "purpose": ["BONUS 1:1"], "series": ["EQ"]})
+
+
+def test_sessions_are_read_from_r2_with_eq_be_rows_only_and_actions_classified():
+    fake = _FakeR2(["2026-02-02", "2026-02-03"])
+    p, a, bad = nh.read_r2(dt.date(2026, 2, 1), dt.date(2026, 2, 28), reader=fake)
+    assert bad == [] and set(p["series"]) == {"EQ"} and len(p) == 2
+    assert a["kind"].iloc[0] == "bonus" and a["price_factor"].iloc[0] == pytest.approx(0.5)
+
+
+def test_an_unreadable_r2_day_is_reported_not_skipped_silently():
+    fake = _FakeR2(["2026-02-02", "2026-02-03"], bad=["2026-02-03"])
+    p, _, bad = nh.read_r2(dt.date(2026, 2, 1), dt.date(2026, 2, 28), reader=fake)
+    assert len(p) == 1 and bad and bad[0].startswith("2026-02-03")

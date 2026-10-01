@@ -6,8 +6,9 @@
 
 `--build` keeps the stocks the record needs (the Nifty Total Market, every name the
 membership history lists, and the old symbols of the renames in notes.json).
-`--update` downloads the days after the last committed session and appends them. A
-refusal from NSE ends it quietly and leaves the committed file as it was.
+`--update` appends the sessions after the last committed one, read from R2 where
+scripts/nse_collect.py stores them (`--source nse` downloads them instead). A source
+that cannot be read leaves the committed file as it was.
 See src/loaders/nse_prices.py.
 """
 from __future__ import annotations
@@ -73,7 +74,7 @@ def build(cache: Path, since: date, until: date) -> int:
     return 0
 
 
-def update(pause: float) -> int:
+def update(pause: float, source: str = "r2") -> int:
     data = npx.load()
     if data is None:
         print("nothing committed to extend; run --build first")
@@ -85,13 +86,27 @@ def update(pause: float) -> int:
     if not days:
         print(f"up to date ({last})")
         return 0
-    with tempfile.TemporaryDirectory() as tmp:
-        tally = nh.fetch_days(days, Path(tmp), pause=pause)
-        prices, new_actions, _ = nh.read_cache(Path(tmp), days[0], days[-1], special(notes))
-    print(f"{len(days)} weekdays since {last}: {tally}")
+    if source == "r2":
+        # The collector keeps every session on R2 (nse_collect.yml); read them there.
+        try:
+            prices, new_actions, bad = nh.read_r2(days[0], days[-1])
+        except Exception as exc:  # noqa: BLE001  no credentials, no network: keep the file
+            print(f"R2 unreadable ({type(exc).__name__}: {exc}); committed file kept")
+            return 1
+        print(f"{len(days)} weekdays since {last}: {prices['date'].nunique() if len(prices) else 0} on R2"
+              + (f", unreadable: {bad}" if bad else ""))
+        if bad:
+            return 1                       # a half-read month would be a silent gap
+    else:
+        with tempfile.TemporaryDirectory() as tmp:
+            tally = nh.fetch_days(days, Path(tmp), pause=pause)
+            prices, new_actions, _ = nh.read_cache(Path(tmp), days[0], days[-1], special(notes))
+        print(f"{len(days)} weekdays since {last}: {tally}")
+        if prices.empty and tally["blocked"]:
+            return 1
     if prices.empty:
         print("no new sessions; committed file kept")
-        return 0 if not tally["blocked"] else 1
+        return 0
     wide = na.wide(prices)["close"]
     wide.index = pd.DatetimeIndex(wide.index)
     cols = [s for s in needed(notes) if s in wide.columns or s in closes.columns]
@@ -112,12 +127,14 @@ def main() -> int:
     ap.add_argument("--cache", default="data_cache/nse_bundles")
     ap.add_argument("--since", default="2024-09-30")
     ap.add_argument("--until", default=None)
+    ap.add_argument("--source", choices=["r2", "nse"], default="r2",
+                    help="r2: the days the collector already stored (default); nse: download them")
     ap.add_argument("--pause", type=float, default=1.0)
     args = ap.parse_args()
     if args.build:
         until = date.fromisoformat(args.until) if args.until else date.today()
         return build(Path(args.cache), date.fromisoformat(args.since), until)
-    return update(args.pause)
+    return update(args.pause, args.source)
 
 
 if __name__ == "__main__":

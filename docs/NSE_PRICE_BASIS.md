@@ -29,8 +29,11 @@ double-adjust). Three REITs (BAGMANE, BIRET, EMBASSY) and JSLL's early history c
 listed in the run report. A file too short for the requested window is refused and the caller keeps Yahoo.
 
 ## Operating it
-- `python scripts/sync_nse_prices.py --update` appends the sessions since the last one (the monthly
-  workflow runs it before the freeze; if NSE refuses, the freeze refuses rather than mix bases).
+- `python scripts/sync_nse_prices.py --update` appends the sessions since the last one, read from R2
+  (`nse/prices_daily`, `nse/corporate_actions`, stored every few hours by `nse_collect.yml`; needs the R2
+  secrets). `--source nse` downloads them from NSE instead. The monthly workflow runs it before the freeze;
+  if R2 is unreadable the file is kept, and the freeze refuses to record a month the file does not cover.
+  Only 2026 onward is ever needed: no deep history is downloaded.
 - `--build --cache DIR` rebuilds from `scripts/fetch_nse_history.py` output. A weekend session goes in
   `notes.json` `special_sessions`.
 - The config fingerprint includes `prices: nse_as_published`; the ledger records `price_basis`.
@@ -38,3 +41,10 @@ listed in the run report. A file too short for the requested window is refused a
   at most 0.9 points, Jan to Aug compounded +45.1%.
 - A stock that joins the index later is given its pre-join history from Yahoo, joined by level; a new
   ticker change needs a `renames` entry.
+
+## Ranks by month
+`src/engine/rank_history.py` re-reads the backtester's own score (`_composite_z_score`) on each signal
+date. The Track Record page's **Ranks by month** view shows, for each month Jan 2026 to date, the book,
+each name's rank and gates (above the 50-day EMA, within 20% of its 52-week high, in the index) at the
+month's start and end, and what the next rebalance did with it and why. The month in progress ends at the
+latest session. The R2 read path is covered by a fake-reader test; it has not been run against live R2.

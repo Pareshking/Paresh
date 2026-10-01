@@ -19,6 +19,7 @@ from src.engine.corporate_actions import load_events
 from src.engine.extra_universe import SYSTEM_750, SYSTEM_NAMES, SYSTEMS
 from src.engine.systems import inception, ledger_path, membership_for
 from src.engine.pipeline import price_fingerprint
+from src.engine.rank_history import month_books
 from src.engine.track_record import (
     TRACK_RECORD_CONFIG,
     build_combined_grid,
@@ -30,6 +31,15 @@ from src.loaders import former_members, nse_prices
 from src.loaders.ranking_store import actions_digest
 from src.ui import page_kit as kit
 from src.ui.theme import render_saas_table
+
+
+@st.cache_data(show_spinner=False, max_entries=6)
+def _month_books(key: str, _prices: pd.DataFrame, _tradebook: pd.DataFrame, _membership: dict | None) -> dict:
+    """Each month's book with its start and end ranks and gates (engine/rank_history.py)."""
+    cfg = TRACK_RECORD_CONFIG
+    return month_books(_prices, _tradebook, membership=_membership,
+                       ema_period=cfg["ema_period"], high_pct=cfg["high_pct"],
+                       config_weights=cfg["config_weights"])
 
 
 def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
@@ -112,6 +122,10 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
             exit_date.ge(start.start_time) | exit_date.isna()
         ].reset_index(drop=True)
 
+    tb = result.get("tradebook")
+    if isinstance(tb, pd.DataFrame) and not tb.empty:
+        result["month_books"] = _month_books(
+            f"{system}_{price_fingerprint(prices)}_{months}", prices, tb, membership)
     return result
 
 
@@ -186,6 +200,45 @@ def growth_series(months: dict, mtd_period, mtd_val, mtd_bench):
         b_curve.append(b_curve[-1] * (1 + (mtd_bench or 0.0)))
         labels.append(mtd_period.strftime("%b") + "*")
     return labels, s_curve, b_curve
+
+
+def _render_rank_months(books: dict) -> None:
+    """For a month: the book, each name's rank and entry gates at its start and end, and
+    what the next rebalance did with it."""
+    if not books:
+        with kit.card("Ranks by month", "tr_ranks", "needs the price history"):
+            st.info("No monthly books to show yet.")
+        return
+    keys = sorted(books)
+    month = st.selectbox("Month", keys, index=len(keys) - 1, key="tr_rank_month",
+                         format_func=lambda k: pd.Period(k, freq="M").strftime("%B %Y"))
+    df = books[month]
+    a = df.attrs
+    end_word = "latest session" if a.get("in_progress") else "month end"
+    with kit.card(f"{pd.Period(month, freq='M').strftime('%B %Y')} book", "tr_ranks",
+                  f"ranked on {a.get('start')} (start) and {a.get('end')} ({end_word})"):
+        kit.caption(
+            "Start = the signal date that opened the month; the book is bought at the next close. "
+            "A name qualifies only while it is above its 50-day EMA, within 20% of its 52-week high "
+            "and in the index; a blank end rank means it no longer qualified. The next rebalance "
+            "sells it once it falls out of qualifying or past rank 40.")
+        show = df.assign(**{
+            "Above EMA start": df["Above EMA start"].map({True: "yes", False: "no"}),
+            "Above EMA end": df["Above EMA end"].map({True: "yes", False: "no"}),
+            "In index end": df["In index end"].map({True: "yes", False: "no"}),
+        })
+        st.dataframe(
+            show, hide_index=True, width="stretch",
+            column_config={
+                "Weight %": kit.col_num("Weight %", "%.1f"),
+                "Rank at start": kit.col_num("Rank at start", "%d"),
+                "Rank at end": kit.col_num("Rank at end", "%d", help="Blank: failed a gate that day"),
+                "% of 52w high start": kit.col_pct("% of 52w high start"),
+                "% of 52w high end": kit.col_pct("% of 52w high end"),
+            },
+        )
+        st.download_button("Export CSV", df.to_csv(index=False).encode(),
+                           f"ranks_{month}.csv", "text/csv", key="dl_tr_ranks")
 
 
 def render_track_record_view(
@@ -328,7 +381,7 @@ def render_track_record_view(
 
     which = st.segmented_control(
         "Track Record View",
-        ["Month by month", "Calendar grid", "Provenance"],
+        ["Month by month", "Ranks by month", "Calendar grid", "Provenance"],
         default="Month by month",
         key="tr_series_seg",
         label_visibility="collapsed",
@@ -337,6 +390,11 @@ def render_track_record_view(
     if which == "Month by month":
         with kit.card("Month by month", "tr_months", "rows for later years appear as they fill"):
             st.html(month_cards_html(months, mtd_period, mtd_val, mtd_bench))
+
+    elif which == "Ranks by month":
+        _render_rank_months(
+            (record_run(adj_close, benchmark_close, system).get("month_books") or {})
+            if adj_close is not None else {})
 
     elif which == "Calendar grid":
         with kit.card("Calendar grid", "tr_grid", "strategy, Nifty 500 and the gap, per year"):

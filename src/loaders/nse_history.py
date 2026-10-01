@@ -121,3 +121,61 @@ def dedupe_actions(actions: pd.DataFrame) -> pd.DataFrame:
         return actions
     key = [c for c in ACTION_KEY if c in actions.columns]
     return actions.drop_duplicates(subset=key).reset_index(drop=True)
+
+
+# ── NSE's days as already collected on R2 ────────────────────────────────────
+# scripts/nse_collect.py stores each trading day under these datasets every few
+# hours, so the monthly job reads them from there instead of asking NSE again.
+
+R2_PRICES = "nse/prices_daily"
+R2_ACTIONS = "nse/corporate_actions"
+
+
+def r2_days(archive, dataset: str = R2_PRICES) -> set[date]:
+    """Every session date held on R2 for `dataset`."""
+    prefix = f"archive/manifests/{dataset}/"
+    out: set[date] = set()
+    for key in archive.list_keys(prefix):
+        rest = key[len(prefix):]
+        if rest.endswith("/current.json"):
+            try:
+                out.add(date.fromisoformat(rest.split("/", 1)[0]))
+            except ValueError:
+                continue
+    return out
+
+
+def read_r2(since: date, until: date, *, archive=None, reader=None
+            ) -> tuple[pd.DataFrame, pd.DataFrame, list[date]]:
+    """(prices, actions, days that could not be read) for the sessions R2 holds in [since, until].
+
+    Prices keep the EQ/BE rows and the columns a price series needs; actions are
+    re-classified with nse_bundle.classify_purpose, as scripts/nse_compare.py does.
+    """
+    if reader is None:
+        from src.storage.r2 import R2Archive, R2Config
+        from src.storage.reader import R2DatasetReader
+
+        archive = archive or R2Archive(R2Config.from_env())
+        reader = R2DatasetReader(archive)
+    elif archive is None:
+        archive = reader.archive
+    days = sorted(d for d in r2_days(archive) if since <= d <= until)
+    ca_days = r2_days(archive, R2_ACTIONS)
+    prices, actions, unreadable = [], [], []
+    for d in days:
+        try:
+            p = reader.read_parquet(reader.resolve_current(R2_PRICES, as_of=d.isoformat()))
+            prices.append(p[p["series"].isin(na.SERIES)][KEEP])
+            if d in ca_days:
+                actions.append(reader.read_parquet(
+                    reader.resolve_current(R2_ACTIONS, as_of=d.isoformat())))
+        except Exception as exc:  # noqa: BLE001  one bad day must not lose the rest
+            unreadable.append(f"{d}: {type(exc).__name__}")
+    acts = pd.concat(actions, ignore_index=True) if actions else pd.DataFrame()
+    if not acts.empty:
+        acts = nb.repair_swapped_dates(acts).drop_duplicates(["symbol", "ex_date", "purpose"])
+        parsed = pd.DataFrame([nb.classify_purpose(p) for p in acts["purpose"]], index=acts.index)
+        acts[["kind", "price_factor"]] = parsed[["kind", "price_factor"]]
+    p = pd.concat(prices, ignore_index=True) if prices else pd.DataFrame(columns=KEEP)
+    return p, acts, unreadable
