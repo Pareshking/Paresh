@@ -71,7 +71,13 @@ def _overview_note(labels: dict, state: str) -> str:
     )
 
 
-def _calendar_note(labels: dict, live_period: str | None, state: str) -> str:
+def _no_return_clause(labels: dict) -> str:
+    marked = labels["prefix"].split(" ")[0]
+    return (f" {marked} MTD has no return yet: the new book was bought at the first close of "
+            "the month and starts accruing the next session.")
+
+
+def _calendar_note(labels: dict, live_period: str | None, state: str, pending: bool = False) -> str:
     base = ("Calendar quarters (Q1 = Jan·Feb·Mar). CY compounds Jan–Dec; "
             "FY compounds Apr of the row's year through Mar of the next.")
     if not live_period:
@@ -80,6 +86,8 @@ def _calendar_note(labels: dict, live_period: str | None, state: str) -> str:
     if state == "closed":
         return (f"{base} The {marked} cells are closed but not yet frozen into the Track Record. "
                 f"{labels['next']}: not available until the first close of the new month.")
+    if pending:
+        return base + _no_return_clause(labels)
     return f"{base} The {marked} cells are live month-to-date, not frozen."
 
 
@@ -380,6 +388,11 @@ def build_portfolio_history(
     live_mtd["strategy"] = live_s
     live_mtd["benchmark"] = live_b
     live_period_raw = live_meta.get("mtd_period")
+    if live_period_raw and not pd.notna(live_s):
+        # The first session of a month: the new book is bought at its close, so there is a
+        # month and a book but no return yet. Name the month so the page says so, and add
+        # no point to the equity curve or the calendar grid.
+        live_period_key = str(pd.Period(live_period_raw, freq="M"))
     if pd.notna(live_s) and live_period_raw:
         live_period = pd.Period(live_period_raw, freq="M")
         live_period_key = str(live_period)
@@ -785,7 +798,8 @@ def render_portfolio_view(
                 st.info("No monthly history is available yet.")
             else:
                 st.html(_calendar_grid_html(monthly_grid, mtd_period, mtd_state))
-                st.caption(_calendar_note(labels, mtd_period, mtd_state))
+                st.caption(_calendar_note(labels, mtd_period, mtd_state,
+                                          pending=bool(mtd_period) and not np.isfinite(strategy_mtd)))
                 cols = [c for c in ["Month", "Strategy Net", "Benchmark", "Alpha vs Benchmark", "Origin", "Priced From", "Frozen On", "Universe"] if c in monthly_grid.columns]
                 st.download_button(
                     "Export monthly performance CSV",

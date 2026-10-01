@@ -80,3 +80,12 @@ def test_a_month_ends_on_the_signal_date_of_the_next_book():
     assert books["2026-02"]["Next rebalance"].iloc[0] in {"Held on", "Sold"}
     assert books["2026-03"].attrs["start"] == "2026-02-27" and books["2026-03"].attrs["in_progress"]
     assert books["2026-03"].attrs["end"] == str(fills[-1].date())
+
+
+def test_a_month_with_a_book_but_no_return_yet_is_named_on_the_portfolio_calendar():
+    """On the 1st the new book is bought at the close, so the month has no return; the page says so."""
+    from src.ui.views import portfolio_view as pv
+    labels = pv._month_labels("2026-10", "mtd")
+    note = pv._calendar_note(labels, "2026-10", "mtd", pending=True)
+    assert "Oct MTD has no return yet" in note and "MTD" in note
+    assert "live month-to-date, not frozen" in pv._calendar_note(labels, "2026-10", "mtd")
