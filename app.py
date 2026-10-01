@@ -65,6 +65,7 @@ with app_import_guard():
         REPO_ATH_FILE,
     )
     from src.core.logger import logger
+    from src.core.market_time import ist_now
     
     from src.engine import pipeline
     from src.engine.corporate_actions import adjust_ohlc, load_events
