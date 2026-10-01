@@ -242,6 +242,11 @@ These are different, valid measures and must not be presented as interchangeable
 - **Current-book unrealized P&L:** the marked value of positions currently held
   minus their entry cost. It excludes gains/losses already realized on sold
   positions and is not the account's cumulative return.
+- **Position sizing:** size each share-level entry from account equity immediately
+  before that fill, then mark current weights against the latest account equity.
+  Cash / realised balance is account equity less current position market value;
+  do not reset it to starting capital after sells or pretend each rebalance began
+  with the original ₹20 lakh.
 - **Day P&L:** the change in the current held positions between the two marks,
   using unchanged share quantities for that interval.
 - **Monthly return:** a net account-level period return from the canonical
