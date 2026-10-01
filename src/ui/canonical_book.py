@@ -41,7 +41,7 @@ def current_book(
     """
     from src.ui.views.track_record_view import record_run
 
-    result = record_run(adj_close, benchmark_close, system, now=ist_now())
+    result = record_run(adj_close, benchmark_close, system, ist_now())
     result = result or {}
     book = result.get("live_book", pd.DataFrame())
 
