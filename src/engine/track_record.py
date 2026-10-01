@@ -193,6 +193,7 @@ def finalize_months(
     data_as_of: pd.Timestamp | None = None,
     pit_from: str | None = None,
     force: bool = False,
+    now=None,
 ) -> tuple[dict[str, Any], list[str], list[str]]:
     """Write newly CLOSED months into the ledger. Never rewrite a stored one.
 
@@ -210,7 +211,7 @@ def finalize_months(
     # A month is closed by the IST calendar, not by whether the latest
     # available price row happens to be dated inside that month. On 1-Oct,
     # 30-Sep data therefore makes September eligible for freezing.
-    current_month = last_closed_calendar_period(as_of) + 1
+    current_month = last_closed_calendar_period(as_of, now=now) + 1
     start = ledger_inception(ledger)
     months = dict(ledger.get("months", {}))
     added: list[str] = []
@@ -535,11 +536,11 @@ def summary_stats(
     }
 
 
-def months_to_cover(as_of: pd.Timestamp, inception: pd.Period = INCEPTION) -> int:
+def months_to_cover(as_of: pd.Timestamp, inception: pd.Period = INCEPTION, *, now=None) -> int:
     """How many completed months a backtest must report to reach inception.
 
     The backtest window is counted back from the month in progress, so covering
     January from September means asking for the eight completed months Jan-Aug.
     """
-    closed = last_closed_calendar_period(as_of)
+    closed = last_closed_calendar_period(as_of, now=now)
     return max(int((closed - inception).n) + 1, 0)
