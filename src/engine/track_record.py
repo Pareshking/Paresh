@@ -66,10 +66,14 @@ TRACK_RECORD_CONFIG: dict[str, Any] = {
     "buffer_n": 40,
     "benchmark": "^CRSLDX",
     # Not a run_backtest argument: it names the ACCOUNTING, so the fingerprint
-    # changes with it. From 2026-09-25 the backtest holds each book between
-    # fills (buy and hold) instead of re-weighting it to target every session;
-    # months frozen before that stay as they are and read as a separate regime.
+    # changes with it. Canonical account replays must pass stateful_history=True
+    # and history_start=inception; positions drift between T+1 fills and are
+    # not reset to target weights every session.
     "accrual": "buy_and_hold",
+    # The replay implementation is part of the provenance contract. Older
+    # frozen rows were produced without stateful_history and remain immutable;
+    # new rows use this canonical mode and therefore a distinct fingerprint.
+    "replay_mode": "stateful_history",
     # The price basis, also not a run_backtest argument. From 2026-10-01 the 750's record
     # is struck on Screener's closes, as the live ranking is, with NSE's closes as
     # published (then Yahoo's) only where Screener has none (src/loaders/nse_prices.py).
