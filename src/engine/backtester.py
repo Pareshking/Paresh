@@ -1486,9 +1486,14 @@ def run_backtest(
 
     if stateful_history:
         if closed_trades:
+            # Open positions have no exit date ("Not exited (mark ...)", NaT),
+            # and NaT >= window_start is False, so this filter used to drop
+            # every one of them and "Still open" was always empty. They are
+            # held through the window, so they belong in it.
             closed_trades = [
                 r for r in closed_trades
-                if pd.to_datetime(r.get("Exit Date"), errors="coerce") >= window_start
+                if r.get("Status") == "Open"
+                or pd.to_datetime(r.get("Exit Date"), errors="coerce") >= window_start
             ]
         if trade_records:
             history_floor = (

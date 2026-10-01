@@ -94,7 +94,7 @@ def test_canonical_current_book_is_the_track_record_live_book(monkeypatch):
         return {"live_book": expected, "live_meta": {"as_of": pd.Timestamp("2026-09-30")}}
 
     monkeypatch.setattr(
-        "src.ui.views.track_record_view.record_run",
+        "src.engine.model_record.record_run",
         fake_record_run,
     )
 
@@ -114,7 +114,7 @@ def test_canonical_current_book_rejects_duplicate_positions(monkeypatch):
     duplicate = pd.concat([_book(), _book().iloc[[0]]], ignore_index=True)
 
     monkeypatch.setattr(
-        "src.ui.views.track_record_view.record_run",
+        "src.engine.model_record.record_run",
         lambda *_args: {"live_book": duplicate},
     )
 
@@ -222,24 +222,24 @@ def test_portfolio_history_uses_fractional_ledger_returns():
     assert out["benchmark"].iloc[-1] == pytest.approx(1_964_712.7, rel=1e-6)
 
 def test_record_run_passes_canonical_inception_to_stateful_backtest(monkeypatch):
-    from src.ui.views import track_record_view
+    from src.engine import model_record
 
     captured = {}
 
-    monkeypatch.setattr(track_record_view, "load_events", lambda: [])
-    monkeypatch.setattr(track_record_view, "price_fingerprint", lambda _prices: "fp")
-    monkeypatch.setattr(track_record_view, "membership_for", lambda _system: None)
+    monkeypatch.setattr(model_record, "load_events", lambda: [])
+    monkeypatch.setattr(model_record, "price_fingerprint", lambda _prices: "fp")
+    monkeypatch.setattr(model_record, "membership_for", lambda _system: None)
 
     def fake_run_backtest(*args, **kwargs):
         captured.update(kwargs)
         return {}
 
-    monkeypatch.setattr(track_record_view, "run_backtest", fake_run_backtest)
+    monkeypatch.setattr(model_record, "run_backtest", fake_run_backtest)
 
     dates = pd.bdate_range("2025-01-01", "2026-09-30")
     prices = pd.DataFrame({"AAA": range(len(dates))}, index=dates)
 
-    track_record_view.record_run(prices, None, "750")
+    model_record.record_run(prices, None, "750")
 
     assert captured["stateful_history"] is True
     assert captured["history_start"] == pd.Timestamp("2026-01-01")
@@ -248,11 +248,11 @@ def test_record_run_passes_canonical_inception_to_stateful_backtest(monkeypatch)
 
 
 def test_record_run_defensively_filters_pre_inception_history(monkeypatch):
-    from src.ui.views import track_record_view
+    from src.engine import model_record
 
-    monkeypatch.setattr(track_record_view, "load_events", lambda: [])
-    monkeypatch.setattr(track_record_view, "price_fingerprint", lambda _prices: "fp")
-    monkeypatch.setattr(track_record_view, "membership_for", lambda _system: None)
+    monkeypatch.setattr(model_record, "load_events", lambda: [])
+    monkeypatch.setattr(model_record, "price_fingerprint", lambda _prices: "fp")
+    monkeypatch.setattr(model_record, "membership_for", lambda _system: None)
 
     pre_start = pd.DataFrame(
         [
@@ -270,12 +270,12 @@ def test_record_run_defensively_filters_pre_inception_history(monkeypatch):
     def fake_run_backtest(*args, **kwargs):
         return {"tradebook": pre_start, "closed_trades": closed}
 
-    monkeypatch.setattr(track_record_view, "run_backtest", fake_run_backtest)
+    monkeypatch.setattr(model_record, "run_backtest", fake_run_backtest)
 
     dates = pd.bdate_range("2025-01-01", "2026-09-30")
     prices = pd.DataFrame({"AAA": range(len(dates))}, index=dates)
 
-    result = track_record_view.record_run(prices, None, "750")
+    result = model_record.record_run(prices, None, "750")
 
     assert result["tradebook"]["Symbol"].tolist() == ["NEW"]
     assert result["closed_trades"]["Symbol"].tolist() == ["NEW"]
@@ -321,3 +321,52 @@ def test_portfolio_tracker_calculates_day_pnl_percentage_from_previous_value():
     assert by_symbol.loc["AAA", "Previous Value (₹)"] == pytest.approx(5000.0)
     assert by_symbol.loc["AAA", "Day P&L (₹)"] == pytest.approx(250.0)
     assert by_symbol.loc["AAA", "Day P&L %"] == pytest.approx(5.0)
+
+
+def test_live_month_reaches_rebalances_and_trades():
+    from src.engine.model_record import with_live_month
+
+    fill, as_of = pd.Timestamp("2026-09-01"), pd.Timestamp("2026-09-30")
+    res = {
+        "tradebook": pd.DataFrame([{"Period": "p", "Period Start": pd.Timestamp("2026-08-03"),
+                                    "Action": "x", "Symbol": "OLD"}]),
+        "closed_trades": pd.DataFrame([
+            {"Symbol": "A", "Exit Date": "03 Aug 2026", "Status": "Closed"},
+            {"Symbol": "B", "Exit Date": "Not exited (mark 31 Aug 2026)", "Status": "Open"},
+        ]),
+        "month_changes": pd.DataFrame([
+            {"Action": "🔴 SOLD", "Symbol": "A2", "Entry Date": pd.Timestamp("2026-03-02"),
+             "Entry Price": 10.0, "Exit Price": 12.0, "Return %": 0.2, "Weight %": 0.0, "Reason": "r"},
+            {"Action": "🟢 BOUGHT", "Symbol": "N", "Entry Date": fill, "Entry Price": 5.0,
+             "Exit Price": 6.0, "Return %": 0.2, "Weight %": 5.0, "Reason": "new"},
+        ]),
+        "live_book": pd.DataFrame([{"Symbol": "N", "Entry Date": fill, "Entry Price": 5.0,
+                                    "Price Now": 6.0, "Return %": 0.2, "Holding (Days)": 29}]),
+        "live_meta": {"fill_date": fill, "as_of": as_of},
+    }
+    out = with_live_month(res)
+    assert set(out["tradebook"]["Symbol"]) == {"OLD", "A2", "N"}
+    assert out["tradebook"]["Period Start"].max() == fill
+    ct = out["closed_trades"]
+    assert ct.loc[ct["Status"] == "Open", "Symbol"].tolist() == ["N"]
+    assert "A2" in ct.loc[ct["Status"] == "Closed", "Symbol"].tolist()
+
+
+def test_open_trades_survive_the_stateful_window_filter():
+    import numpy as np
+
+    from src.engine.backtester import run_backtest
+
+    rng = np.random.default_rng(42)
+    dates = pd.bdate_range("2023-06-01", periods=800)
+    px = pd.DataFrame(
+        {f"S{i}": 100 * np.exp(np.cumsum(rng.normal(0.001, 0.018, 800))) for i in range(60)},
+        index=dates,
+    )
+    res = run_backtest(
+        "open_trades_regression", px, top_n=20, backtest_months=6,
+        stateful_history=True, history_start=dates[-1].replace(day=1) - pd.DateOffset(months=6),
+    )
+    closed = res["closed_trades"]
+    assert not closed.empty
+    assert (closed["Status"] == "Open").any()

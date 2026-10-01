@@ -31,14 +31,12 @@ def current_book(
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Return the Track Record's canonical current model book.
 
-    The import is intentionally lazy: record_run lives in the Track Record view,
-    while Portfolio and Actions consume this adapter. Keeping the import inside
-    the function avoids a module-level UI cycle.
+    record_run lives in the engine; Portfolio and Actions consume this adapter.
 
     The returned frame is a validated snapshot. It is not a new portfolio
     calculation.
     """
-    from src.ui.views.track_record_view import record_run
+    from src.engine.model_record import record_run
 
     result = record_run(adj_close, benchmark_close, system)
     result = result or {}
