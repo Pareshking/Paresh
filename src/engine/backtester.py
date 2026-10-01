@@ -1360,6 +1360,10 @@ def run_backtest(
                 "Industry": sec_map.get(s, "—"),
                 "Entry Date": entry_dt,
                 "Entry Price": entry_price,
+                # Preserve original fill weight separately from the latest target
+                # weight. Portfolio share accounting must size shares from the
+                # weight used when this position was opened, not today's rebalance.
+                "Entry Weight %": float(pos.get("entry_weight", book_wts.get(s, 0.0) * 100.0)),
                 "Price Now": mark,
                 "Return %": _round_trip_return(entry_price, mark),
                 "MTD %": _round_trip_return(mtd_base, mark),
