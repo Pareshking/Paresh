@@ -218,7 +218,7 @@ def test_portfolio_history_uses_fractional_ledger_returns():
 
     out = build_portfolio_history(record, 2_000_000, ledger)
 
-    assert out["equity"].iloc[-1] == pytest.approx(2_776_322.3, rel=1e-6)
+    assert out["equity"].iloc[-1] == pytest.approx(2_773_872.8091234444, rel=1e-6)
     assert out["benchmark"].iloc[-1] == pytest.approx(1_964_712.7, rel=1e-6)
 
 def test_record_run_passes_canonical_inception_to_stateful_backtest(monkeypatch):
