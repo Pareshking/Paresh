@@ -1124,7 +1124,6 @@ def run_backtest(
         # KeyError: ['Period Start'] rather than reporting no result.
         return None
     monthly_df = pd.DataFrame(period_records).dropna(subset=["Period Start"])
-    tradebook_df = pd.DataFrame(trade_records)
 
     # Append remaining active open positions, marked at the LAST SIMULATED
     # session. Marking them at prices.index[-1] priced them in the month still
@@ -1474,11 +1473,21 @@ def run_backtest(
                 if pd.to_datetime(r.get("Exit Date"), errors="coerce") >= window_start
             ]
         if trade_records:
+            history_floor = (
+                pd.Timestamp(history_start).normalize()
+                if history_start is not None
+                else window_start
+            )
             trade_records = [
                 r for r in trade_records
-                if pd.to_datetime(r.get("Period Start"), errors="coerce") >= window_start
+                if pd.to_datetime(r.get("Period Start"), errors="coerce") >= history_floor
             ]
 
+    # Build the rebalance blotter only AFTER the stateful history boundary is
+    # applied. trade_records is also consumed by Portfolio Rebalances; building
+    # it before the filter can leak pre-inception rows even when the backtest
+    # itself has the correct history floor.
+    tradebook_df = pd.DataFrame(trade_records)
     closed_trades_df = pd.DataFrame(closed_trades)
 
     return {
