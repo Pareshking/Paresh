@@ -108,8 +108,20 @@ def build_portfolio_tracker(
             else np.nan,
             axis=1,
         )
+        out["Previous Value (₹)"] = out.apply(
+            lambda r: float(r["Shares"]) * float(prev.get(r["Symbol"], np.nan))
+            if pd.notna(prev.get(r["Symbol"], np.nan)) else np.nan,
+            axis=1,
+        )
+        out["Day P&L %"] = np.where(
+            out["Previous Value (₹)"] > 0,
+            out["Day P&L (₹)"] / out["Previous Value (₹)"] * 100.0,
+            np.nan,
+        )
     else:
         out["Day P&L (₹)"] = np.nan
+        out["Previous Value (₹)"] = np.nan
+        out["Day P&L %"] = np.nan
 
     out["Status"] = "Held"
     return out.sort_values(
@@ -117,8 +129,13 @@ def build_portfolio_tracker(
     ).reset_index(drop=True)
 
 
-def build_portfolio_history(record: dict, capital: float, ledger: dict | None = None) -> dict:
-    """Build historical portfolio performance from the frozen Track Record ledger."""
+def build_portfolio_history(
+    record: dict,
+    capital: float,
+    ledger: dict | None = None,
+    live_meta: dict | None = None,
+) -> dict:
+    """Build frozen history plus the current live month-to-date point."""
     months = (ledger or {}).get("months", {})
     ordered = sorted(months)
     strategy_value = float(capital)
@@ -162,6 +179,23 @@ def build_portfolio_history(record: dict, capital: float, ledger: dict | None = 
             })
     equity = pd.Series(equity_rows, index=pd.DatetimeIndex(equity_dates), dtype=float)
     benchmark = pd.Series(benchmark_rows, index=pd.DatetimeIndex(benchmark_dates), dtype=float)
+
+    # The ledger deliberately stops at the last closed month. Portfolio must
+    # also show the current live month-to-date point, otherwise its
+    # "since-inception" figure lags the same live record used by Track Record.
+    live_meta = live_meta or {}
+    live_s = pd.to_numeric(live_meta.get("strategy_mtd"), errors="coerce")
+    live_b = pd.to_numeric(live_meta.get("benchmark_mtd"), errors="coerce")
+    live_period_raw = live_meta.get("mtd_period")
+    if pd.notna(live_s) and live_period_raw:
+        live_period = pd.Period(live_period_raw, freq="M")
+        live_end = live_period.end_time
+        if live_end > equity.index[-1] if not equity.empty else True:
+            base_value = float(equity.iloc[-1]) if not equity.empty else float(capital)
+            base_benchmark = float(benchmark.iloc[-1]) if not benchmark.empty else float(capital)
+            equity = pd.concat([equity, pd.Series([base_value * (1.0 + float(live_s))], index=[live_end])])
+            if pd.notna(live_b):
+                benchmark = pd.concat([benchmark, pd.Series([base_benchmark * (1.0 + float(live_b))], index=[live_end])])
     peak = equity.cummax()
     drawdown = equity / peak - 1.0
     closed = record.get("closed_trades")
@@ -217,9 +251,11 @@ def render_portfolio_view(
     pnl = current - invested
     pnl_pct = pnl / invested * 100.0 if invested else np.nan
     day_pnl = float(table["Day P&L (₹)"].sum(skipna=True))
+    previous_value = float(table["Previous Value (₹)"].sum(skipna=True))
+    day_pnl_pct = day_pnl / previous_value * 100.0 if previous_value > 0 else np.nan
     exposure = current / value * 100.0 if value else 0.0
-    as_of = meta.get("as_of")
-    fill_date = meta.get("fill_date")
+    # Mark/fill dates remain available through live_meta and the canonical book;
+    # the compact header no longer duplicates them.
     n_holdings = len(table)
 
     try:
@@ -228,7 +264,7 @@ def render_portfolio_view(
         st.error(f"Portfolio Track Record could not be read: {exc}")
         return
 
-    history = build_portfolio_history(record, capital, ledger)
+    history = build_portfolio_history(record, capital, ledger, meta)
     equity = history["equity"]
     benchmark = history["benchmark"]
     drawdown = history["drawdown"]
@@ -257,43 +293,23 @@ def render_portfolio_view(
             key="dl_port_csv_v2",
         )
 
-    with kit.card(
-        "₹20 lakh model portfolio",
-        "portfolio_identity",
-        "canonical Track Record book · accounting only",
-    ):
-        left, mid, right = st.columns([1.2, 1.2, 1], vertical_alignment="center")
-        with left:
-            st.markdown("### Current portfolio")
-            st.caption(
-                (f"Marked at {pd.Timestamp(as_of):%d %b %Y}" if as_of is not None else "Latest available market mark")
-                + (f" · last rebalance filled {pd.Timestamp(fill_date):%d %b %Y}" if fill_date is not None else "")
-            )
-        with mid:
-            st.markdown(f"**₹{value:,.0f}**")
-            st.caption(
-                f"{pnl:+,.0f} ({pnl_pct:+.1f}%) unrealised P&L · {n_holdings} holdings"
-                if np.isfinite(pnl_pct) else f"{n_holdings} holdings"
-            )
-        with right:
-            st.markdown("**Canonical book**")
-            st.caption("Same positions and target weights used by Actions and Track Record.")
-
+    # Header detail is intentionally minimal; readings and the Current book table carry the accounting data.
     kit.readings([
         kit.Reading("Portfolio value", f"₹{value:,.0f}", "₹20 lakh starting capital"),
         kit.Reading("Invested", f"₹{invested:,.0f}", f"{exposure:.1f}% exposure"),
         kit.Reading("Cash", f"₹{cash:,.0f}", f"{100.0 - exposure:.1f}% of value"),
-        kit.Reading("Total P&L", f"₹{pnl:+,.0f}", "entry price → latest close", "up" if pnl >= 0 else "down"),
-        kit.Reading("P&L %", "—" if not np.isfinite(pnl_pct) else f"{pnl_pct:+.1f}%", "on invested capital", "" if not np.isfinite(pnl_pct) else ("up" if pnl >= 0 else "down")),
-        kit.Reading("Day P&L", f"₹{day_pnl:+,.0f}", "latest close vs previous close", "up" if day_pnl >= 0 else "down"),
+        kit.Reading("Total P&L", f"₹{pnl:+,.0f}", "current book · entry → latest close", "up" if pnl >= 0 else "down"),
+        kit.Reading("P&L %", "—" if not np.isfinite(pnl_pct) else f"{pnl_pct:+.1f}%", "current-book unrealised", "" if not np.isfinite(pnl_pct) else ("up" if pnl >= 0 else "down")),
+        kit.Reading("Day P&L", f"₹{day_pnl:+,.0f} ({day_pnl_pct:+.1f}%)" if np.isfinite(day_pnl_pct) else f"₹{day_pnl:+,.0f}", "latest close vs previous close", "up" if day_pnl >= 0 else "down"),
     ], "Live portfolio")
 
     display_cols = [
-        "Symbol", "Company", "Sector / Industry", "Entry Date", "Entry Price",
-        "Current Price", "Shares", "Invested Value (₹)", "Current Value (₹)",
-        "P&L (₹)", "P&L %", "Weight %", "Target Weight %",
-        "Weight Drift %", "Rank at Rebalance", "Rank at Entry", "Current Rank",
-        "Holding Days", "1M Return", "3M Return", "6M Return", "12M Return", "Status",
+        "Symbol", "Company", "Sector / Industry", "Current Price", "Shares",
+        "Current Value (₹)", "P&L (₹)", "P&L %", "Weight %", "Target Weight %",
+        "Weight Drift %", "Day P&L (₹)", "Day P&L %", "Entry Date", "Entry Price",
+        "Invested Value (₹)", "Previous Value (₹)", "Holding Days",
+        "Rank at Rebalance", "Rank at Entry", "Current Rank",
+        "1M Return", "3M Return", "6M Return", "12M Return", "Status",
     ]
     current_view = table[[c for c in display_cols if c in table.columns]].copy()
     if "Entry Date" in current_view.columns:
@@ -302,7 +318,11 @@ def render_portfolio_view(
         if col in current_view.columns:
             current_view[col] = pd.to_numeric(current_view[col], errors="coerce")
 
-    with kit.card("Current book", "portfolio_current", f"{n_holdings} positions · canonical book · horizontal scroll on small screens"):
+    with kit.card(
+        "Current book",
+        "portfolio_current",
+        f"{n_holdings} positions · accounting + position detail · horizontal scroll on small screens",
+    ):
         render_saas_table(current_view, max_height=620)
 
     sector = table.groupby("Sector / Industry", dropna=False).agg(
@@ -328,11 +348,34 @@ def render_portfolio_view(
             f"₹{capital:,.0f} fixed capital  · {len(monthly)} completed recorded months"
         )
 
-    if history_tab in ("Overview", "Equity"):
+    if history_tab == "Overview":
         with kit.card(
-            "Equity curve" if history_tab == "Equity" else "Performance overview",
+            "Performance overview",
+            "portfolio_performance_overview",
+            "since-inception performance · frozen months + live month-to-date",
+        ):
+            if equity.empty:
+                st.info("No completed portfolio history is available yet.")
+            else:
+                a, b, c, d = st.columns(4)
+                with a:
+                    st.metric("Ending value", f"₹{equity.iloc[-1]:,.0f}")
+                with b:
+                    st.metric("Since inception", f"{historical_return:+.1%}" if np.isfinite(historical_return) else "—")
+                with c:
+                    st.metric("Benchmark", f"{benchmark_return:+.1%}" if np.isfinite(benchmark_return) else "—")
+                with d:
+                    st.metric("Max drawdown", f"{history['max_drawdown']:.1%}" if np.isfinite(history["max_drawdown"]) else "—")
+                st.caption(
+                    "Since inception compounds the frozen record through the latest completed month and the current live month-to-date return. "
+                    "Current-book P&L is the unrealised return on today's holdings, so it can differ."
+                )
+
+    elif history_tab == "Equity":
+        with kit.card(
+            "Equity curve",
             "portfolio_equity",
-            "₹20 lakh starting point · strategy vs benchmark · completed months only",
+            "₹20 lakh starting point · strategy vs benchmark · frozen months + live MTD",
         ):
             if equity.empty:
                 st.info("No completed portfolio history is available yet.")
@@ -352,7 +395,7 @@ def render_portfolio_view(
                     st.metric("Benchmark", f"{benchmark_return:+.1%}" if np.isfinite(benchmark_return) else "—")
                 with d:
                     st.metric("Max drawdown", f"{history['max_drawdown']:.1%}" if np.isfinite(history["max_drawdown"]) else "—")
-                st.caption("The curve comes from the append-only Track Record ledger, not today's ranking or prices.")
+                st.caption("Frozen months come from the append-only ledger; the final point is the current live month-to-date mark.")
 
     if history_tab == "Overview":
         recent = tradebook.tail(20).copy() if not tradebook.empty else pd.DataFrame()
@@ -412,17 +455,6 @@ def render_portfolio_view(
             if drawdown.empty:
                 st.info("No drawdown history is available yet.")
             else:
-                kit.growth_chart([d.strftime("%b %Y") for d in drawdown.index], drawdown.tolist(), None, key="portfolio_drawdown_curve_v2")
-                st.caption(f"Maximum drawdown over completed history: {history['max_drawdown']:.1%}.")
-
-    with kit.card("Portfolio accounting", "portfolio_accounting", "entry cost, current value, P&L and target-weight drift"):
-        accounting_cols = [c for c in [
-            "Symbol", "Entry Date", "Entry Price", "Current Price", "Shares",
-            "Invested Value (₹)", "Current Value (₹)", "P&L (₹)", "P&L %",
-            "Weight %", "Target Weight %", "Weight Drift %", "Holding Days", "Day P&L (₹)",
-        ] if c in table.columns]
-        accounting = table[accounting_cols].copy()
-        if "Entry Date" in accounting.columns:
-            accounting["Entry Date"] = pd.to_datetime(accounting["Entry Date"], errors="coerce").dt.strftime("%d %b %Y").fillna("—")
-        render_saas_table(accounting, max_height=360)
+                kit.drawdown_chart([d.strftime("%b %Y") for d in drawdown.index], drawdown.tolist(), key="portfolio_drawdown_curve_v2")
+                st.caption(f"Maximum drawdown including the current live month-to-date point: {history['max_drawdown']:.1%}.")
 

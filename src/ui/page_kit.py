@@ -135,3 +135,45 @@ def growth_chart(labels: list[str], strategy: list[float], benchmark: list[float
     chart = (base + lines).properties(height=260).configure_view(strokeWidth=0).configure(background="#FFFFFF",
         font="Geist, system-ui, sans-serif")
     st.altair_chart(chart, width="stretch", key=f"gc_{key}")
+
+
+def drawdown_chart(labels: list[str], drawdown: list[float], key: str = "drawdown") -> None:
+    """Render portfolio drawdown as a percentage, not as an equity-value chart."""
+    import altair as alt
+
+    if len(drawdown) < 2:
+        return
+
+    rows = [{"x": i, "label": lab, "drawdown": value * 100.0}
+            for i, (lab, value) in enumerate(zip(labels, drawdown))]
+    data = pd.DataFrame(rows)
+    step = max(1, len(labels) // 8)
+    ticks = list(range(0, len(labels), step))
+    label_expr = "{" + ",".join(f"{i}:'{labels[i]}'" for i in ticks) + "}[datum.value]"
+    x = alt.X(
+        "x:Q",
+        axis=alt.Axis(values=ticks, labelExpr=label_expr, title=None, grid=False,
+                      labelColor="#5E6878", tickColor="#E3E6EB", domainColor="#E3E6EB"),
+        scale=alt.Scale(domain=[0, len(labels) - 1], nice=False),
+    )
+    y = alt.Y(
+        "drawdown:Q",
+        scale=alt.Scale(domain=[min(0.0, float(data["drawdown"].min())), 0.0], nice=False),
+        axis=alt.Axis(title="%", format=".1f", labelColor="#5E6878", gridColor="#EDEFF3",
+                      domain=False, ticks=False),
+    )
+    area = alt.Chart(data).mark_area(opacity=0.16).encode(x=x, y=y)
+    line = alt.Chart(data).mark_line(strokeWidth=2.5, interpolate="monotone").encode(
+        x=x, y=y,
+        tooltip=[
+            alt.Tooltip("label:N", title="When"),
+            alt.Tooltip("drawdown:Q", title="Drawdown (%)", format=".1f"),
+        ],
+    )
+    zero = alt.Chart(pd.DataFrame({"y": [0.0]})).mark_rule(
+        strokeDash=[4, 4], color="#D0D5DD"
+    ).encode(y="y:Q")
+    chart = (zero + area + line).properties(height=260).configure_view(
+        strokeWidth=0
+    ).configure(background="#FFFFFF", font="Geist, system-ui, sans-serif")
+    st.altair_chart(chart, width="stretch", key=f"dd_{key}")
