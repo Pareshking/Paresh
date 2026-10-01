@@ -344,6 +344,13 @@ def main() -> int:
                         "count": int(mismatches.sum()),
                         "max_abs_difference": float(diff.max()) if diff.notna().any() else None,
                     }
+                elif col == "Entry Date":
+                    lv = pd.to_datetime(li.loc[common, col], errors="coerce").dt.normalize()
+                    rv = pd.to_datetime(ri.loc[common, col], errors="coerce").dt.normalize()
+                    book_parity["field_mismatches"][col] = {
+                        "count": int(((lv != rv) | (lv.isna() != rv.isna())).sum()),
+                        "max_abs_difference": None,
+                    }
                 else:
                     lv = li.loc[common, col].astype(str).replace("NaT", "")
                     rv = ri.loc[common, col].astype(str).replace("NaT", "")
