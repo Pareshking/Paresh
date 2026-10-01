@@ -31,9 +31,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.core.config import BENCHMARK_SYMBOL  # noqa: E402
 from src.engine.backtester import run_backtest  # noqa: E402
-from src.engine.pipeline import price_fingerprint  # noqa: E402
+from src.engine.actions import plan_rebalance  # noqa: E402
+from src.engine.pipeline import price_fingerprint, ranking_as_of  # noqa: E402
 from src.loaders import ranking_store  # noqa: E402
 from src.ui.canonical_book import current_book  # noqa: E402
+from src.ui.views.actions_view import next_rebalance, rebalance_dates_for_view  # noqa: E402
 from src.engine.parity_audit import compare_monthly_ledger  # noqa: E402
 from src.engine.track_record import (  # noqa: E402
     TRACK_RECORD_CONFIG,
@@ -385,6 +387,86 @@ def main() -> int:
         strategy_monthly = calendar_month_returns(result["equity_curve"])
         benchmark_monthly = calendar_month_returns(result["benchmark"])
         curve_index = result["equity_curve"].index.union(result["benchmark"].index).sort_values()
+
+        rank_as_of = ranking_as_of(raw_adj_close)
+        if rank_as_of is None:
+            rank_as_of = pd.Timestamp(
+                (snap_meta or {}).get("price_as_of")
+                or (snap_meta or {}).get("as_of")
+                or raw_adj_close.index[-1]
+            )
+        else:
+            rank_as_of = pd.Timestamp(rank_as_of)
+        canonical_live_meta = (canonical_result or {}).get("live_meta") or {}
+        book_as_of = pd.Timestamp(canonical_live_meta.get("as_of") or as_of)
+        legacy_check, legacy_fill = next_rebalance(rank_as_of)
+        corrected_basis, corrected_check, corrected_fill = rebalance_dates_for_view(
+            rank_as_of, book_as_of, model_book=True
+        )
+        current_changes = (canonical_result or {}).get("month_changes")
+        def _change_symbols(action: str) -> list[str]:
+            if not isinstance(current_changes, pd.DataFrame) or current_changes.empty:
+                return []
+            if "Action" not in current_changes.columns or "Symbol" not in current_changes.columns:
+                return []
+            return sorted(
+                current_changes.loc[
+                    current_changes["Action"].eq(action), "Symbol"
+                ].astype(str).tolist()
+            )
+
+        actions_alignment = {
+            "ranking_as_of": str(rank_as_of.date()),
+            "canonical_book_as_of": str(book_as_of.date()),
+            "legacy_preview_check_date": str(legacy_check.date()),
+            "legacy_preview_fill_date": str(legacy_fill.date()),
+            "corrected_preview_check_date": str(corrected_check.date()),
+            "corrected_preview_fill_date": str(corrected_fill.date()),
+            "legacy_fill_already_reflected_in_book": (
+                canonical_live_meta.get("fill_date") is not None
+                and pd.Timestamp(canonical_live_meta["fill_date"]).normalize()
+                == legacy_fill.normalize()
+            ),
+            "canonical_fill_date": (
+                str(pd.Timestamp(canonical_live_meta["fill_date"]).date())
+                if canonical_live_meta.get("fill_date") is not None else None
+            ),
+            "canonical_fill_orders": {
+                "buys": _change_symbols("🟢 BOUGHT"),
+                "sells": _change_symbols("🔴 SOLD"),
+                "holds": _change_symbols("⚪ HELD"),
+            },
+            "next_preview": None,
+            "note": (
+                "The preview is for the next scheduled rebalance and uses the last "
+                "published ranking snapshot; its order sets are not expected to equal "
+                "the already-executed canonical fill."
+            ),
+        }
+        if (
+            isinstance(snap_frame, pd.DataFrame) and not snap_frame.empty
+            and isinstance(canonical_book, pd.DataFrame) and not canonical_book.empty
+        ):
+            actions_plan = plan_rebalance(
+                snap_frame,
+                canonical_book["Symbol"].astype(str).tolist(),
+                top_n=int(cfg["top_n"]),
+                buffer_n=int(cfg["buffer_n"]),
+                stock_cap=0.05,
+                sector_cap=0.30,
+            )
+            actions_alignment["next_preview"] = {
+                "buys": sorted(map(str, actions_plan.buys)),
+                "sells": sorted(map(str, actions_plan.sells)),
+                "holds": sorted(map(str, actions_plan.holds)),
+                "target_weights_pct": {
+                    str(k): float(v) * 100.0
+                    for k, v in actions_plan.weights.items()
+                },
+                "turnover": float(actions_plan.turnover),
+                "next_in_line": list(map(str, actions_plan.next_in_line)),
+            }
+
         report = {
             "schema_version": 1,
             "system": system,
@@ -431,6 +513,7 @@ def main() -> int:
             },
             "monthly_parity": parity,
             "current_book_parity": book_parity,
+            "actions_plan_alignment": actions_alignment,
             "replay": {
                 "strategy_monthly_returns": {str(k): float(v) for k, v in strategy_monthly.items()},
                 "benchmark_monthly_returns": {str(k): float(v) for k, v in benchmark_monthly.items()},
@@ -471,6 +554,10 @@ def main() -> int:
         print(
             "→ ranking snapshot baseline: "
             + json.dumps(_json_safe(report["baseline"]["ranking_snapshot"]), sort_keys=True, allow_nan=False)
+        )
+        print(
+            "→ Actions date/order alignment: "
+            + json.dumps(_json_safe(actions_alignment), sort_keys=True, allow_nan=False)
         )
         display_cols = [
             c for c in ("Symbol", "Entry Date", "Entry Price", "Price Now", "Weight %",
