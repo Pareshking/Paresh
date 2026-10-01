@@ -374,7 +374,7 @@ def render_portfolio_view(
     benchmark_close = fetch_benchmark_history(period="5y")
 
     try:
-        book, record = current_book(prices, benchmark_close, system)
+        book, record = current_book(prices, benchmark_close, system, now=ist_now())
     except (ValueError, KeyError) as exc:
         st.error(f"Canonical Track Record book is invalid: {exc}")
         return
