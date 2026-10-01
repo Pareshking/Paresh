@@ -187,3 +187,25 @@ def test_portfolio_history_scales_canonical_equity_and_preserves_trades():
     assert out["max_drawdown"] == pytest.approx(2.04 / 2.10 - 1.0)
     assert out["trades"]["Symbol"].tolist() == ["AAA"]
     assert out["tradebook"]["Action"].tolist() == ["BUY"]
+def test_record_run_passes_canonical_inception_to_stateful_backtest(monkeypatch):
+    from src.ui.views import track_record_view
+
+    captured = {}
+
+    monkeypatch.setattr(track_record_view, "load_events", lambda: [])
+    monkeypatch.setattr(track_record_view, "price_fingerprint", lambda _prices: "fp")
+    monkeypatch.setattr(track_record_view, "membership_for", lambda _system: None)
+
+    def fake_run_backtest(*args, **kwargs):
+        captured.update(kwargs)
+        return {}
+
+    monkeypatch.setattr(track_record_view, "run_backtest", fake_run_backtest)
+
+    dates = pd.bdate_range("2025-01-01", "2026-09-30")
+    prices = pd.DataFrame({"AAA": range(len(dates))}, index=dates)
+
+    track_record_view.record_run(prices, None, "750")
+
+    assert captured["stateful_history"] is True
+    assert captured["history_start"] == pd.Timestamp("2026-01-01")
