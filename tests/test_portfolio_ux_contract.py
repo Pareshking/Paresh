@@ -64,3 +64,13 @@ def test_portfolio_pnl_cells_use_explicit_sign_semantics():
     assert 'portfolio-neg' in source
     assert '.saas-table-wrapper.portfolio .portfolio-pos' in source
     assert '.saas-table-wrapper.portfolio .portfolio-neg' in source
+
+def test_portfolio_equity_chart_uses_absolute_values_without_growth_factor_scaling():
+    page_kit = (ROOT / "src/ui/page_kit.py").read_text(encoding="utf-8")
+    portfolio = PORTFOLIO_VIEW.read_text(encoding="utf-8")
+    assert "def equity_chart(" in page_kit
+    assert "v * 100" not in page_kit
+    assert "kit.equity_chart(" in portfolio
+    assert "kit.growth_chart(" not in portfolio
+    assert '"value": float(v)' in page_kit
+
