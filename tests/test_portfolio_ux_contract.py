@@ -92,6 +92,14 @@ def test_portfolio_equity_view_reports_current_mtd_not_cumulative_return():
     equity = source[source.index('elif history_tab == "Equity":'):source.index('elif history_tab == "Trades":')]
     assert 'f"{mtd_label} · Strategy"' in equity
     assert 'f"{mtd_label} · Nifty 500"' in equity
-    assert '"MTD gap"' in equity
+    assert '"MTD Alpha"' in equity
     assert 'st.metric("Since inception", f"{historical_return:+.1%}"' not in equity
 
+
+
+def test_portfolio_calendar_grid_uses_record_dicts_and_alpha_label():
+    source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
+    assert 'frame.to_dict("records")' in source
+    assert "_asdict()" not in source
+    assert '"MTD Alpha"' in source
+    assert "Strategy, Nifty 500 and Alpha, per year" in source
