@@ -28,7 +28,7 @@ _Last updated: 2026-10-01_
 | # | What | How we know it is done | Status |
 |---|---|---|---|
 | P1 | Monthly view no longer crashes; Equity shows the marked month | #297 merged | [x] 1 Oct (#297) |
-| P2 | On 1 Oct, September reads "Sep (closed)", not "Sep MTD"; Oct MTD says it is unavailable; "gap" → "Alpha"; Actions explains a fill due on the 1st. No ledger logic changed | #298 merged; V1 Production QA green on the merge commit | [ ] #298 merged 1 Oct (2e1e71e); QA run 36837606465: phone all pass, desktop Equity read too early (fixed in the follow-up PR) |
+| P2 | On 1 Oct, September reads "Sep (closed)", not "Sep MTD"; Oct MTD says it is unavailable; "gap" → "Alpha"; Actions explains a fill due on the 1st. No ledger logic changed | #298 merged; V1 Production QA green on the merge commit | [x] 1 Oct: #298 (2e1e71e) and the QA wait fix #299 (a16a911); Production QA run 36839738078 incl. Portfolio visual QA, Full Validation 1214: green |
 | P3 | PR #296 (another session): changes which month the ledger finalises (`ist_now()`); 19 tests fail. Owner to decide whether any of it is wanted; its Alpha rename and Actions note are in P2 | #296 closed, or rebased and green | [ ] owner |
 
 ## Ongoing
@@ -52,6 +52,7 @@ _Last updated: 2026-10-01_
 - Four flagged stocks in the production log resolved (#251)
 - Top bar gains "Within 20% of 52W high"; repeated figures removed from every page; treemap and unused code removed (#252)
 - Screener header on one row, so the table starts higher (#254)
+- Portfolio (1 Oct): Monthly view crash fixed and Equity shows the marked month (#297); September reads "Sep (closed)", Alpha, Actions timing note (#298); Portfolio QA waits for the view to render (#299)
 - R2 recovery audit no longer times out (#252: 7.5 and 15.5 min runs)
 - NSE adjusted prices: splits and bonuses from the Bc file, confirmed by the price (#253); month-first ex-dates and demergers (#254); five missing sessions collected
 
