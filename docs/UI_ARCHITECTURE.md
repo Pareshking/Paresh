@@ -274,3 +274,38 @@ The QA probes still accept every navigation shape (`scripts/_streamlit_nav.py`).
 `missing_pages` now reports a page that is absent from an opened menu. It used
 to return nothing whenever the ☰ button existed.
 
+
+
+## 9. UI kit v2 (2026-10-01)
+
+An additive pass on the shared kit; no key, query parameter, formula or
+navigation contract changed.
+
+- **Tokens** (`:root` in `src/ui/theme.py`): type steps `--fs-*`, radii `--r-*`,
+  depth `--sh-*`, spacing `--sp-*`, plus the caution/accent tints. New CSS lives
+  in one `UI kit v2` block after the Command Bar marker, outside every block
+  `tests/test_redesign_legibility.py` slices.
+- **`src/ui/page_kit.py`**: `Metric` / `metric_tile` / `metric_row` (bordered
+  `st.metric`, wraps on a phone), `pct` (display-only formatting),
+  `callout` (escaped, tone-tinted, replaces inline-hex blocks), `badge`,
+  `toolbar`, `df_card` with `col_pct` / `col_rupee` / `col_num` / `col_rank`
+  `column_config` helpers. No `LinkColumn` for stocks: it opens a new tab, and
+  `tests/test_stock_links_open_in_place.py` requires in-place links.
+- **Pickers**: short fixed option sets are now `st.segmented_control` with
+  `required=True`, a `default` and an `or <default>` read (Breadth period and
+  high/low window, RRG timeframe, Qualified top-N, Sectors rank-by). Long or
+  data-dependent lists stay selectboxes; the Configuration system radio stays a
+  radio (its captions and rerun protocol, and the production QA probe).
+- **Dialogs** (`@st.dialog`, module level, read-only content only): Configuration's
+  "Index files on disk" and "All sessions, by date". A dialog's widgets are
+  discarded when it closes, so nothing keyed or engine-bound belongs in one. The
+  Stock page "Data checks" expander and the Actions "Buy candidates" expander
+  stay expanders: a test reads the former by label and the latter embeds keyed
+  widgets.
+- **Backtest sweep**: the result is not a dialog, because it exists only on the
+  run where "Run sweep" returned True. Holdout detail is a tab beside the main
+  table instead of a nested expander.
+- **Fixed on the way**: `page_kit.growth_chart` was removed by the equity-chart
+  commit while the Backtest and Track Record pages still called it, so both
+  raised `AttributeError`. It is back as a wrapper over `equity_chart`, and
+  `tests/test_ui_kit_v2.py` fails if any `kit.<name>` the UI calls is missing.

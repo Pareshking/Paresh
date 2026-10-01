@@ -8,9 +8,10 @@ classes the shared stylesheet in src/ui/theme.py already styles.
 from __future__ import annotations
 
 import html
+import math
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Iterator
+from typing import Iterator, Literal
 
 import pandas as pd
 import streamlit as st
@@ -80,6 +81,101 @@ def bar_list(rows: list[tuple[str, float, str, bool]], scale: float) -> str:
             f'<span class="pg-bar-v">{html.escape(shown)}</span></div>'
         )
     return f'<div class="pg-bars">{"".join(out)}</div>'
+
+
+@dataclass(frozen=True)
+class Metric:
+    """One figure inside a card: a label, the figure, and optionally how it moved.
+
+    `tone` is st.metric's delta_color: "normal" (up is good), "inverse" (up is
+    bad) or "off" (no colour). Delta colour is the only judgement drawn here.
+    """
+
+    label: str
+    value: str
+    delta: str | None = None
+    tone: Literal["normal", "inverse", "off"] = "off"
+    help: str | None = None
+
+
+def pct(x: float | None, signed: bool = True) -> str:
+    """A fraction as a percentage for display; an em dash when it is not a
+    finite number. Formatting only: no figure is computed here."""
+    try:
+        v = float(x)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return "\u2014"
+    if not math.isfinite(v):
+        return "\u2014"
+    return f"{v:+.1%}" if signed else f"{v:.1%}"
+
+
+def metric_tile(m: Metric) -> None:
+    """One bordered figure. Every tile in the app is drawn by this call, so a
+    figure has the same border, radius and delta colouring on every page."""
+    st.metric(m.label, m.value, delta=m.delta, delta_color=m.tone, help=m.help,
+              border=True)
+
+
+def metric_row(tiles: list[Metric], key: str) -> None:
+    """A row of bordered figures, aligned to one baseline. The row wraps on a
+    phone instead of squeezing four columns into 360px."""
+    with st.container(horizontal=True, gap="small", vertical_alignment="top",
+                      key=f"mrow_{key}"):
+        for m in tiles:
+            metric_tile(m)
+
+
+def toolbar(key: str):
+    """The bar that holds a page's pickers and buttons, centred on one line."""
+    return st.container(horizontal=True, vertical_alignment="center",
+                        gap="small", key=f"tb_{key}")
+
+
+def callout(title: str, body: str = "", tone: str = "muted") -> None:
+    """A bordered, tinted block for a result that needs a word of explanation.
+    Tones: "up", "down", "warn" or "muted". Text is escaped."""
+    tone = tone if tone in ("up", "down", "warn", "muted") else "muted"
+    st.html(f'<div class="pg-callout {tone}" role="note"><b>{html.escape(title)}</b>'
+            + (f"<span>{html.escape(body)}</span>" if body else "") + "</div>")
+
+
+_BADGE_COLOURS = {"up": "green", "down": "red", "warn": "orange", "info": "blue"}
+
+
+def badge(label: str, tone: str = "") -> None:
+    """A small status pill, drawn by Streamlit so it follows the theme."""
+    st.badge(label, color=_BADGE_COLOURS.get(tone, "gray"))
+
+
+def df_card(title: str, key: str, df: pd.DataFrame, *, column_config: dict | None = None,
+            aside: str = "", height: int | str = "auto") -> None:
+    """A card holding a configured st.dataframe, for tables that need no
+    per-cell colouring or stock links (those stay on the HTML table renderers)."""
+    with card(title, key, aside):
+        st.dataframe(df, hide_index=True, width="stretch", height=height,
+                     column_config=column_config or None)
+
+
+def col_pct(label: str, *, fmt: str = "percent", help: str | None = None):
+    """A column of fractions shown as percentages (0.123 -> 12.3%)."""
+    return st.column_config.NumberColumn(label, format=fmt, help=help)
+
+
+def col_rupee(label: str, *, help: str | None = None):
+    """A column of rupee amounts, whole rupees with thousands separators."""
+    return st.column_config.NumberColumn(label, format="\u20b9%,.0f", help=help)
+
+
+def col_num(label: str, fmt: str = "%.2f", *, help: str | None = None):
+    return st.column_config.NumberColumn(label, format=fmt, help=help)
+
+
+def col_rank(label: str = "Rank", *, top: int = 750):
+    """A rank drawn as a bar scaled to the list length (a longer bar is a
+    larger rank number, i.e. a worse position)."""
+    return st.column_config.ProgressColumn(label, min_value=0, max_value=top,
+                                           format="%d")
 
 
 def caption(text: str) -> None:
@@ -192,6 +288,29 @@ def equity_chart(
         .configure(background="#FFFFFF", font="Geist, system-ui, sans-serif")
     )
     st.altair_chart(chart, width="stretch", key=f"ec_{key}")
+
+
+def growth_chart(
+    labels: list[str],
+    strategy: list[float],
+    benchmark: list[float] | None,
+    names: tuple[str, str] = ("Strategy", "Nifty 500"),
+    key: str = "growth",
+) -> None:
+    """Growth of ₹100: `strategy` and `benchmark` are growth factors (1.0 =
+    the start) at each label. They are re-based to a ₹100 start here and drawn
+    by equity_chart, so the two charts cannot drift apart. The Backtest and
+    Track Record pages draw this; equity_chart takes absolute rupee values."""
+    base = 100.0
+    equity_chart(
+        labels,
+        [float(v) * base for v in strategy],
+        None if not benchmark else [float(v) * base for v in benchmark],
+        names=names,
+        key=f"growth_{key}",
+    )
+
+
 def drawdown_chart(labels: list[str], drawdown: list[float], key: str = "drawdown") -> None:
     """Render portfolio drawdown as a percentage, not as an equity-value chart."""
     import altair as alt

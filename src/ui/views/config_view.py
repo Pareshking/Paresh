@@ -87,6 +87,30 @@ _SECTIONS = [
 ]
 
 
+@st.dialog("Index files on disk", width="medium")
+def _index_files_dialog() -> None:
+    """Read-only: which constituent lists are on disk, and how fresh."""
+    for idx_name, path in INDICES_LOCAL.items():
+        if os.path.exists(path):
+            size = os.path.getsize(path)
+            mtime = datetime.fromtimestamp(os.path.getmtime(path)).strftime(
+                "%d %b %Y, %H:%M"
+            )
+            with open(path, "r", encoding="utf-8") as f:
+                lines = sum(1 for _ in f) - 1
+            st.caption(
+                f"**{idx_name}**: `{lines}` constituents ({size/1024:.1f} KB) · {mtime}"
+            )
+        else:
+            st.caption(f"**{idx_name}**: File missing at `{path}`")
+
+
+@st.dialog("Spike sessions, by date", width="large")
+def _spike_sessions_dialog(rows: list[dict]) -> None:
+    """Read-only: every flagged session, newest first."""
+    render_saas_table(pd.DataFrame(rows))
+
+
 def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> None:
     last_sync = sync_meta.get("last_synced") or "Never synced"
     sync_ok = sync_meta.get("last_attempt_ok")
@@ -188,21 +212,9 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
         st.html('<span class="pg-cap">Sync fetches the latest official constituent lists. '
                 "One sync at a time, app-wide.</span>")
 
-    with st.expander(f"Index files on disk ({len(INDICES_LOCAL)})", expanded=False):
-        for idx_name, path in INDICES_LOCAL.items():
-            if os.path.exists(path):
-                size = os.path.getsize(path)
-                mtime = datetime.fromtimestamp(os.path.getmtime(path)).strftime(
-                    "%d %b %Y, %H:%M"
-                )
-                with open(path, "r", encoding="utf-8") as f:
-                    lines = sum(1 for _ in f) - 1
-                st.caption(
-                    f"**{idx_name}**: `{lines}` constituents ({size/1024:.1f} KB) · {mtime}"
-                )
-            else:
-                st.caption(f"**{idx_name}**: File missing at `{path}`")
-
+    if st.button(f"Index files on disk ({len(INDICES_LOCAL)})", type="tertiary",
+                 icon=":material/folder_open:", key="dlg_cfg_index_files"):
+        _index_files_dialog()
 
 
 # The five lookback windows, their canonical keys, and the documented default
@@ -440,8 +452,9 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
                     ),
                 }
             )
-        with st.expander(f"All {len(_events)} sessions, by date", expanded=False):
-            render_saas_table(pd.DataFrame(_rows))
+        if st.button(f"All {len(_events)} sessions, by date", type="tertiary",
+                     icon=":material/table_rows:", key="dlg_cfg_sessions"):
+            _spike_sessions_dialog(_rows)
         kit.caption(
             "A split or bonus should have been adjusted away by the data provider and was not; "
             "re-fetching fixes it. A possible demerger matches no standard ratio; providers "

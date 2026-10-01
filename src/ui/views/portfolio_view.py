@@ -610,15 +610,12 @@ def render_portfolio_view(
                 st.info("No completed portfolio history is available yet.")
             else:
                 mtd_gap = strategy_mtd - benchmark_mtd if np.isfinite(strategy_mtd) and np.isfinite(benchmark_mtd) else np.nan
-                a, b, c, d = st.columns(4)
-                with a:
-                    st.metric("Ending value", f"₹{equity.iloc[-1]:,.0f}")
-                with b:
-                    st.metric(f"{labels['prefix']} · Strategy", f"{strategy_mtd:+.1%}" if np.isfinite(strategy_mtd) else "—")
-                with c:
-                    st.metric(f"{labels['prefix']} · Nifty 500", f"{benchmark_mtd:+.1%}" if np.isfinite(benchmark_mtd) else "—")
-                with d:
-                    st.metric(f"{labels['prefix']} · Alpha", f"{mtd_gap:+.1%}" if np.isfinite(mtd_gap) else "—")
+                kit.metric_row([
+                    kit.Metric("Ending value", f"₹{equity.iloc[-1]:,.0f}"),
+                    kit.Metric(f"{labels['prefix']} · Strategy", kit.pct(strategy_mtd)),
+                    kit.Metric(f"{labels['prefix']} · Nifty 500", kit.pct(benchmark_mtd)),
+                    kit.Metric(f"{labels['prefix']} · Alpha", kit.pct(mtd_gap)),
+                ], key="pf_overview")
                 st.caption(_overview_note(labels, mtd_state))
 
     elif history_tab == "Equity":
@@ -639,15 +636,12 @@ def render_portfolio_view(
                 # This month's figures: the curve's own legend already carries
                 # the since-inception values (owner, 1 Oct 2026).
                 mtd_gap = strategy_mtd - benchmark_mtd if np.isfinite(strategy_mtd) and np.isfinite(benchmark_mtd) else np.nan
-                a, b, c, d = st.columns(4)
-                with a:
-                    st.metric(f"{labels['prefix']} · Strategy", f"{strategy_mtd:+.1%}" if np.isfinite(strategy_mtd) else "—")
-                with b:
-                    st.metric(f"{labels['prefix']} · Nifty 500", f"{benchmark_mtd:+.1%}" if np.isfinite(benchmark_mtd) else "—")
-                with c:
-                    st.metric(f"{labels['prefix']} · Alpha", f"{mtd_gap:+.1%}" if np.isfinite(mtd_gap) else "—")
-                with d:
-                    st.metric("Max drawdown", f"{history['max_drawdown']:.1%}" if np.isfinite(history["max_drawdown"]) else "—")
+                kit.metric_row([
+                    kit.Metric(f"{labels['prefix']} · Strategy", kit.pct(strategy_mtd)),
+                    kit.Metric(f"{labels['prefix']} · Nifty 500", kit.pct(benchmark_mtd)),
+                    kit.Metric(f"{labels['prefix']} · Alpha", kit.pct(mtd_gap)),
+                    kit.Metric("Max drawdown", kit.pct(history["max_drawdown"], signed=False)),
+                ], key="pf_equity")
                 st.caption(
                     "Completed months come from the recorded performance history; "
                     + ("the final point is the current month-to-date mark." if mtd_state == "mtd"

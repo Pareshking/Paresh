@@ -822,60 +822,40 @@ def _render_parameter_sweep(
             st.info("No combination produced a backtest over this window.")
             return
 
-        badge = {
-            "high": ("#B42318", "HIGH — the winner is inside the noise"),
-            "moderate": ("#B54708", "MODERATE"),
-            "low": ("#067647", "LOW"),
-            "none": ("#5E6878", "PARAMETERS HAD NO EFFECT"),
-            "unknown": ("#5E6878", "UNKNOWN"),
-        }.get(result.overfitting_risk, ("#5E6878", result.overfitting_risk.upper()))
+        risk_tone, risk_label = {
+            "high": ("down", "HIGH — the winner is inside the noise"),
+            "moderate": ("warn", "MODERATE"),
+            "low": ("up", "LOW"),
+            "none": ("muted", "PARAMETERS HAD NO EFFECT"),
+            "unknown": ("muted", "UNKNOWN"),
+        }.get(result.overfitting_risk, ("muted", result.overfitting_risk.upper()))
 
-        st.markdown(
-            f"<div style=\"border-left: 3px solid {badge[0]}; background: {badge[0]}0D; "
-            f"padding: 10px 14px; border-radius: 6px; margin: 10px 0; "
-            f"font-family: 'Geist Mono', monospace; font-size: 0.78rem;\">"
-            f"<strong style=\"color:{badge[0]};\">Overfitting risk: {badge[1]}</strong>"
-            f"<div style=\"color:#3C4657; margin-top:4px;\">{result.risk_detail}</div>"
-            f"</div>",
-            unsafe_allow_html=True,
-        )
+        kit.callout(f"Overfitting risk: {risk_label}", result.risk_detail, risk_tone)
         for w in result.warnings:
             st.caption(f"⚠️ {w}")
 
         if result.holdout_detail:
             rho = result.holdout_rho
-            ho_clr = (
-                "#5E6878" if rho is None
-                else "#B42318" if rho < 0.2
-                else "#B54708" if rho < 0.5
-                else "#067647"
+            kit.callout(
+                "Holdout check", result.holdout_detail,
+                "muted" if rho is None else "down" if rho < 0.2 else "warn" if rho < 0.5 else "up",
             )
-            st.markdown(
-                f"<div style=\"border-left: 3px solid {ho_clr}; background: {ho_clr}0D; "
-                f"padding: 10px 14px; border-radius: 6px; margin: 10px 0; "
-                f"font-family: 'Geist Mono', monospace; font-size: 0.78rem;\">"
-                f"<strong style=\"color:{ho_clr};\">Holdout check</strong>"
-                f"<div style=\"color:#3C4657; margin-top:4px;\">{result.holdout_detail}</div>"
-                f"</div>",
-                unsafe_allow_html=True,
-            )
-
-        st.dataframe(
-            _sweep_display_frame(result.table),
-            width="stretch",
-            hide_index=True,
-            column_config=_sweep_column_config(),
-        )
 
         if result.holdout is not None and not result.holdout.empty:
-            with st.expander(
-                "🎯 Holdout detail — how each combination ranked in each half",
-                expanded=False,
-            ):
+            t_all, t_half = st.tabs(["All combinations", "Holdout halves"])
+            with t_all:
+                st.dataframe(
+                    _sweep_display_frame(result.table),
+                    width="stretch",
+                    hide_index=True,
+                    column_config=_sweep_column_config(),
+                )
+            with t_half:
                 st.caption(
-                    "A combination near the top of both columns is reproducible. "
-                    "One that tops the in-sample half and sinks in the other was "
-                    "fitted to the first half of the window."
+                    "How each combination ranked in each half. A combination near the "
+                    "top of both columns is reproducible. One that tops the in-sample "
+                    "half and sinks in the other was fitted to the first half of the "
+                    "window."
                 )
                 st.dataframe(
                     _sweep_display_frame(result.holdout),
@@ -883,6 +863,13 @@ def _render_parameter_sweep(
                     hide_index=True,
                     column_config=_sweep_column_config(),
                 )
+        else:
+            st.dataframe(
+                _sweep_display_frame(result.table),
+                width="stretch",
+                hide_index=True,
+                column_config=_sweep_column_config(),
+            )
 
         st.download_button(
             f"Download sweep results ({len(result.table)} rows)",
