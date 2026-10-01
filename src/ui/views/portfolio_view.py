@@ -565,7 +565,7 @@ def _render_book_grid(book: pd.DataFrame) -> None:
 
 
 def render_portfolio_view(
-    calc,
+    prices: pd.DataFrame,
     rank_df: pd.DataFrame,
     sector_cap: float,
     stock_cap: float,
@@ -579,7 +579,6 @@ def render_portfolio_view(
 
     capital = PORTFOLIO_STARTING_CAPITAL
     system = system_param.current() or SYSTEM_750
-    prices = getattr(calc, "prices", pd.DataFrame())
     benchmark_close = fetch_benchmark_history(period="5y")
 
     try:
