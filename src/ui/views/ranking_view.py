@@ -314,7 +314,7 @@ def render_ranking_view(
             key="rank_search_predictive",
             label_visibility="collapsed",
             on_change=_open_searched_stock,
-            width=340,
+            width=260,
         )
         filt = st.pills(
             "Presets",

@@ -163,7 +163,7 @@ def _row_html(row: dict, cols: list, paths: dict) -> str:
     cells["stock"] = (
         f'<td class="c-stock" data-v="{sym_s}"><a href="{stock_href(sym)}" '
         f'data-stock="{sym_s}" title="Open {sym_s}"><span class="sym">{sym_s}</span>'
-        f'{f"<span class=sub>{_esc(sub)}</span>" if "ind" not in {c[0] for c in cols} else ""}</a></td>'
+        f'<span class="sub">{_esc(sub)}</span></a></td>'
     )
     r3_txt = "—" if r3 is None else f"{'+' if r3 > 0 else '−' if r3 < 0 else ''}{abs(r3) * 100:.1f}%"
     r3_cls = "" if r3 is None else ("pos" if r3 > 0 else "neg" if r3 < 0 else "")
@@ -259,6 +259,7 @@ thead tr.grp-row th{top:0;height:28px;font-size:11px;font-weight:600;letter-spac
 thead tr.grp-row + tr.hdr th{top:28px}
 .tag{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 6px;border-radius:6px;background:#F1F3F6;color:#3C4657;border:1px solid #E3E6EB}
 td.c-tick{text-align:center}
+td.c-stock .sub{display:none}
 .wide .m-only{display:none!important}
 thead th[data-type=""]{cursor:default}
 thead th .ar{color:#A5ACB8;margin-left:3px}
@@ -271,7 +272,7 @@ td.n{text-align:right;font-family:'Geist Mono',ui-monospace,Menlo,monospace;font
 .pos{color:#067647}.neg{color:#B42318}.muted{color:#667080}
 th:nth-child(1),td.c-rank{position:sticky;left:0;z-index:2;width:52px;min-width:52px;text-align:left}
 thead th:nth-child(1){z-index:4}
-th:nth-child(2),td.c-stock{position:sticky;left:52px;z-index:2;text-align:left;max-width:380px;min-width:260px;box-shadow:1px 0 0 #EDEFF3}
+th:nth-child(2),td.c-stock{position:sticky;left:52px;z-index:2;text-align:left;max-width:380px;box-shadow:1px 0 0 #EDEFF3}
 thead th:nth-child(2){z-index:4}
 td.c-rank{font-family:'Geist Mono',ui-monospace,monospace;font-weight:600}
 td.c-stock a{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;line-height:1.2;text-decoration:none;color:inherit}
@@ -290,9 +291,12 @@ td.c-flt{text-align:left}
   td{height:""" + str(PHONE_ROW_PX) + """px}
   .d-only{display:none}
   th:nth-child(1),td.c-rank{width:34px;min-width:34px}
-  th:nth-child(2),td.c-stock{left:34px;box-shadow:none;max-width:none}
+  th:nth-child(2),td.c-stock{left:34px;box-shadow:none;max-width:150px}
   td.c-stock .sym{font-size:14px}
-  td.c-stock .sub{font-size:12px;max-width:130px}
+  td.c-stock .sub{display:block;font-size:12px;max-width:130px}
+  .wide td.c-stock .sub{display:none}
+  .wrap:not(.wide) tr.grp-row{display:none}
+  .wrap:not(.wide) thead tr.hdr th{top:0}
   td.c-path{padding-left:0}
   td.c-path svg{width:54px}
   th .lbl-d{display:none}
@@ -372,7 +376,9 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str)
         for label, keys in _QUANT_GROUPS:
             n = sum(1 for k in keys if k in present)
             if n:
-                parts.append(f'<th colspan="{n}" class="grp">{_esc(label)}</th>')
+                # A momentum group cut down to one column keeps just its window.
+                shown = label.split(" ")[0] if (n < len(keys) and "momentum" in label) else label
+                parts.append(f'<th colspan="{n}" class="grp">{_esc(shown)}</th>')
         group_row = '<tr class="grp-row">' + "".join(parts) + "</tr>"
     body = []
     for row in view.to_dict("records"):
@@ -395,7 +401,7 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str)
         "<link rel='preconnect' href='https://fonts.googleapis.com'>"
         "<link href='https://fonts.googleapis.com/css2?family=Geist:wght@400..700&"
         "family=Geist+Mono:wght@400..700&display=swap' rel='stylesheet'>"
-        f"<style>{_CSS}table{{min-width:{max(1180, len(cols) * 92)}px}}{extra}</style></head><body><div class='wrap{wide_cls}'><table>"
+        f"<style>{_CSS}@media (min-width:641px){{table{{min-width:{max(1180, len(cols) * 92)}px}}}}{extra}</style></head><body><div class='wrap{wide_cls}'><table>"
         f"<thead>{group_row}<tr class=\"hdr\">{head}</tr></thead><tbody>{body_html}</tbody></table></div>"
         f"<script>const SYS={json.dumps(system_suffix())};{_JS}</script></body></html>"
     )
@@ -407,6 +413,6 @@ def render_screener_table(view: pd.DataFrame, prices_df: pd.DataFrame | None,
         st.info("No stocks match these filters. Clear the search or pick another preset.")
         return
     rows = min(len(view), VISIBLE_ROWS)
-    height = 44 + rows * ROW_PX + 4 + (28 if str(density).startswith(('Full', 'Quant')) else 0)
+    height = 44 + rows * ROW_PX + 4 + 28
     st.iframe(table_html(view, prices_df, density), height=height)
 
