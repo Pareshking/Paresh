@@ -19,16 +19,20 @@ def test_portfolio_primary_columns_are_first_and_single_table_is_preserved():
 
     expected = [
         '"Symbol"',
-        '"Company"',
-        '"Sector / Industry"',
         '"Current Price"',
-        '"P&L (₹)"',
         '"P&L %"',
+        '"P&L (₹)"',
         '"Weight %"',
         '"Target Weight %"',
         '"Weight Drift %"',
         '"Day P&L (₹)"',
+        '"Sector / Industry"',
     ]
+    # Company is not a column (the symbol is enough, and on a phone it pushed
+    # price and P&L off screen); Status was always "Held"; 3M/6M/12M returns
+    # belong to the screener.
+    for dropped in ('"Company"', '"Status"', '"3M Return"', '"6M Return"', '"12M Return"'):
+        assert dropped not in block
     positions = [block.index(item) for item in expected]
     assert positions == sorted(positions)
     assert 'render_saas_table(current_view, max_height=620, variant="portfolio")' in source
@@ -36,11 +40,10 @@ def test_portfolio_primary_columns_are_first_and_single_table_is_preserved():
 
 def test_portfolio_copy_avoids_internal_accounting_language_in_primary_sections():
     source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
-    primary = source[source.index('head = kit.page_head'):source.index('display_cols = [')]
+    primary = source[source.index('kit.page_head('):source.index('display_cols = [')]
     assert "current-book unrealised" not in primary
     assert "frozen Track Record" not in primary
     assert "Historical ending value" not in source
-    assert "current month-to-date" in source
 
 
 def test_portfolio_table_variant_is_scoped_to_portfolio():
@@ -50,11 +53,13 @@ def test_portfolio_table_variant_is_scoped_to_portfolio():
     assert ".saas-table-wrapper.portfolio" in source
 
 
-def test_portfolio_history_is_grouped_into_performance_and_activity():
+def test_portfolio_is_one_flowing_page_with_no_history_tabs():
     source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
-    assert '["Performance", "Activity"]' in source
-    assert '["Overview", "Equity", "Drawdown", "Monthly"]' in source
-    assert '["Trades", "Rebalances"]' in source
+    assert "history_tab" not in source and "segmented_control" not in source
+    for card in ("Equity & drawdown", "Calendar returns", "Trades", "Rebalances", "Industry exposure"):
+        assert f'kit.card("{card}"' in source
+    # Equity and drawdown share one card, so one tab fewer.
+    assert source.index("kit.equity_chart(") < source.index("kit.drawdown_chart(")
     assert 'Latest portfolio activity' not in source
 
 
@@ -81,18 +86,16 @@ def test_portfolio_monthly_view_is_calendar_grid_with_live_mtd():
     assert '"monthly_grid": pd.DataFrame(monthly_grid_rows)' in source
     assert '"mtd_period": live_period_key' in source
     assert 'Origin": "Live MTD"' in source
-    assert "Calendar quarters (Q1 = Jan·Feb·Mar)." in source
-    assert "CY compounds Jan–Dec" in source
-    assert "FY compounds Apr of the row's year through Mar of the next" in source
-    assert "live month-to-date, not frozen" in source
+    assert "Quarters are calendar (Q1 = Jan–Mar); FY runs Apr–Mar." in source
+    assert "is live month-to-date." in source
 
 
-def test_portfolio_equity_view_reports_the_marked_month_not_cumulative_return():
+def test_portfolio_equity_card_reports_the_marked_month_not_cumulative_return():
     source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
-    equity = source[source.index('elif history_tab == "Equity":'):source.index('elif history_tab == "Trades":')]
-    assert 'f"{labels[\'prefix\']} · Strategy"' in equity
-    assert 'f"{labels[\'prefix\']} · Nifty 500"' in equity
-    assert 'f"{labels[\'prefix\']} · Alpha"' in equity
+    equity = source[source.index('kit.card("Equity & drawdown"'):source.index('kit.card("Calendar returns"')]
+    assert 'labels["prefix"].split(" ")[0]' in equity
+    assert 'f"{month} strategy"' in equity and 'f"{month} Nifty 500"' in equity
+    assert 'f"{month} alpha"' in equity
     assert "MTD gap" not in source
     assert 'st.metric("Since inception", f"{historical_return:+.1%}"' not in equity
 
@@ -128,8 +131,8 @@ def test_a_closed_month_awaiting_freeze_is_not_called_mtd():
 
     from src.ui.views.portfolio_view import (
         _calendar_grid_html,
+        _calendar_note,
         _month_labels,
-        _overview_note,
         build_portfolio_history,
         live_month_state,
     )
@@ -143,9 +146,8 @@ def test_a_closed_month_awaiting_freeze_is_not_called_mtd():
     labels = _month_labels("2026-09", "closed", oct1)
     assert labels == {"prefix": "Sep (closed)", "badge": "CLOSED", "next": "Oct MTD"}
     assert _month_labels("2026-09", "mtd", sep15)["prefix"] == "Sep MTD"
-    note = _overview_note(labels, "closed")
-    assert "closed but not yet frozen" in note and "Oct MTD is not available" in note
-    assert "MTD" not in _overview_note(_month_labels("2026-09", "mtd", sep15), "mtd").replace("month-to-date", "")
+    assert "closed, not yet frozen" in _calendar_note(labels, "2026-09", "closed")
+    assert "live month-to-date" in _calendar_note(_month_labels("2026-09", "mtd", sep15), "2026-09", "mtd")
 
     ledger = {"months": {"2026-08": {"strategy": 0.03, "benchmark": 0.0}}}
     meta = {"strategy_mtd": 0.027, "benchmark_mtd": -0.054, "mtd_period": "2026-09", "as_of": "2026-09-30"}

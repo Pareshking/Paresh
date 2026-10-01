@@ -850,6 +850,11 @@ def inject_custom_css() -> None:
         @media (max-width: 640px) {
             [class*="st-key-pgcard_"] { padding: 14px 14px !important; border-radius: 14px; }
             .pg-bar { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 64px; gap: 8px; }
+            /* Four figures read as a 2 x 2 block, not four tall tiles. */
+            [class*="st-key-mrow_"] { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px !important; }
+            [class*="st-key-mrow_"] > div { width: auto !important; min-width: 0 !important; }
+            [class*="st-key-mrow_"] [data-testid="stMetric"] { padding: 10px 12px !important; }
+            [class*="st-key-mrow_"] [data-testid="stMetricLabel"] { font-size: 11px; }
         }
 
         /* The watchlist bridge has no visible output. */
@@ -1955,21 +1960,9 @@ body::-webkit-scrollbar,
     touch-action: pan-x pan-y;
 }}
 
-/* Portfolio table hierarchy: identity first, accounting second, analytics last. */
-.saas-table-wrapper.portfolio .saas-table thead th:nth-child(-n+3) {{
-    background: #EEF0F4;
-}}
-.saas-table-wrapper.portfolio .saas-table tbody td:nth-child(1) {{
-    font-weight: 700;
-}}
-.saas-table-wrapper.portfolio .saas-table tbody td:nth-child(n+4):nth-child(-n+10) {{
-    font-weight: 650;
-}}
-.saas-table-wrapper.portfolio .saas-table tbody td:nth-child(n+11) {{
-    color: #667085;
-}}
-.saas-table-wrapper.portfolio .portfolio-pos {{ color: #067647 !important; font-weight: 700 !important; }}
-.saas-table-wrapper.portfolio .portfolio-neg {{ color: #912018 !important; font-weight: 700 !important; }}
+/* Portfolio: sign colours only; type weight follows the other tables. */
+.saas-table-wrapper.portfolio .portfolio-pos {{ color: #067647 !important; }}
+.saas-table-wrapper.portfolio .portfolio-neg {{ color: #912018 !important; }}
 .saas-table-wrapper.portfolio .portfolio-flat {{ color: #5E6878 !important; }}
 @media (max-width: 640px) {{
     .saas-table thead tr th {{
