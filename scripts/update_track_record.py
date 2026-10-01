@@ -32,7 +32,6 @@ from src.engine.parity_audit import compare_monthly_ledger  # noqa: E402
 from src.engine.track_record import (  # noqa: E402
     TRACK_RECORD_CONFIG,
     config_fingerprint,
-    drift_report,
     finalize_months,
     load_ledger,
     months_to_cover,
