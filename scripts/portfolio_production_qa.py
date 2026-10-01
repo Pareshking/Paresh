@@ -170,9 +170,15 @@ def main() -> int:
                         equity_body = app_frame(page).locator("body").inner_text(timeout=15_000)
                         equity_folded = equity_body.casefold()
                         equity_checks = {
-                            "equity_mtd_strategy_present": "mtd · strategy" in equity_folded,
-                            "equity_mtd_benchmark_present": "mtd · nifty 500" in equity_folded,
-                            "equity_mtd_gap_present": "mtd gap" in equity_folded,
+                            # The marked month is "Sep MTD" while it runs and
+                            # "Sep (closed)" from the 1st until the Track Record
+                            # freezes it; either wording is correct.
+                            "equity_mtd_strategy_present": any(
+                                f"{w} · strategy" in equity_folded for w in ("mtd", "(closed)")),
+                            "equity_mtd_benchmark_present": any(
+                                f"{w} · nifty 500" in equity_folded for w in ("mtd", "(closed)")),
+                            "equity_mtd_gap_present": any(
+                                f"{w} · alpha" in equity_folded for w in ("mtd", "(closed)")),
                             "cumulative_42pct_visible": "+42.4%" in equity_body,
                         }
                         checks.update(equity_checks)
@@ -191,7 +197,7 @@ def main() -> int:
                             "calendar_grid_present": "calendar grid" in monthly_folded,
                             "strategy_present": "strategy" in monthly_folded,
                             "nifty_500_present": "nifty 500" in monthly_folded,
-                            "gap_present": "gap" in monthly_folded,
+                            "gap_present": "alpha" in monthly_folded,
                             "mtd_present": "mtd" in monthly_folded,
                         }
                         checks.update(monthly_checks)

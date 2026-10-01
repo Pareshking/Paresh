@@ -22,6 +22,65 @@ from src.ui.theme import render_saas_table
 PORTFOLIO_STARTING_CAPITAL = 2_000_000.0
 
 
+def live_month_state(live_period: str | None, today: pd.Timestamp | None = None) -> str:
+    """Is the latest marked month still running, or closed but not yet frozen?
+
+    "mtd"     the marked month is the calendar month in India now.
+    "closed"  the calendar has moved on (1 Oct, with the 30 Sep close the
+              latest price): the marked month is finished, but the Track
+              Record freezes it only in the first days of the next month.
+    "none"    nothing is marked.
+
+    Presentation only: the ledger, the book and every return are unchanged.
+    """
+    if not live_period:
+        return "none"
+    now = pd.Timestamp(today if today is not None else ist_now().date())
+    return "mtd" if pd.Period(live_period, freq="M") >= now.to_period("M") else "closed"
+
+
+def _month_labels(live_period: str | None, state: str, today: pd.Timestamp | None = None) -> dict:
+    """The words for the marked month and for the month now running."""
+    now = pd.Timestamp(today if today is not None else ist_now().date())
+    marked = pd.Period(live_period, freq="M").strftime("%b") if live_period else ""
+    if state == "closed":
+        return {
+            "prefix": f"{marked} (closed)",
+            "badge": "CLOSED",
+            "next": f"{now.to_period('M').strftime('%b')} MTD",
+        }
+    return {"prefix": f"{marked} MTD" if marked else "MTD", "badge": "MTD", "next": ""}
+
+
+def _overview_note(labels: dict, state: str) -> str:
+    base = ("Since inception compounds the frozen record through the latest completed month "
+            "and the marked month. ")
+    if state == "closed":
+        marked = labels["prefix"].split(" ")[0]
+        return (
+            base + f"{marked} is closed but not yet frozen into the Track Record, which freezes it "
+            f"in the first days of the month. {labels['next']} is not available until the first "
+            "close of the new month. "
+            "Current-book P&L is the unrealised return on today's holdings, so it can differ."
+        )
+    return (
+        base.replace("the marked month", "the current live month-to-date return")
+        + "Current-book P&L is the unrealised return on today's holdings, so it can differ."
+    )
+
+
+def _calendar_note(labels: dict, live_period: str | None, state: str) -> str:
+    base = ("Calendar quarters (Q1 = Jan·Feb·Mar). CY compounds Jan–Dec; "
+            "FY compounds Apr of the row's year through Mar of the next.")
+    if not live_period:
+        return base
+    marked = labels["prefix"].split(" ")[0]
+    if state == "closed":
+        return (f"{base} The {marked} cells are closed but not yet frozen into the Track Record. "
+                f"{labels['next']}: not available until the first close of the new month.")
+    return f"{base} The {marked} cells are live month-to-date, not frozen."
+
+
 def _compound_returns(values: list[float]) -> float | None:
     """Compound a sequence of period returns into one period return."""
     valid = [float(v) for v in values if pd.notna(v)]
@@ -30,7 +89,8 @@ def _compound_returns(values: list[float]) -> float | None:
     return float(np.prod([1.0 + v for v in valid]) - 1.0)
 
 
-def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
+def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None,
+                        live_state: str = "mtd") -> str:
     """Render calendar-month performance from the canonical monthly record."""
     if monthly.empty:
         return '<div class="pg-note">No monthly performance is available yet.</div>'
@@ -61,13 +121,14 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
         strategy = float(row["Strategy Net"]) if pd.notna(row["Strategy Net"]) else None
         benchmark = float(row["Benchmark"]) if pd.notna(row["Benchmark"]) else None
         gap = strategy - benchmark if strategy is not None and benchmark is not None else None
-        badge = '<span class="pcg-mtd">MTD</span>' if live_cell else ""
+        badge = (f'<span class="pcg-mtd">{"CLOSED" if live_state == "closed" else "MTD"}</span>'
+                 if live_cell else "")
         return (
             f'<div class="pcg-cell">'
             f'<div class="pcg-top">{badge}</div>'
             f'<div class="pcg-s">{fmt(strategy)}</div>'
             f'<div class="pcg-b">{fmt(benchmark)}</div>'
-            f'<div class="pcg-g">Δ {fmt(gap)}</div>'
+            f'<div class="pcg-g">Alpha {fmt(gap)}</div>'
             f'</div>'
         )
 
@@ -104,7 +165,7 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
                 '<div class="pcg-cell">'
                 f'<div class="pcg-s">{fmt(s)}</div>'
                 f'<div class="pcg-b">{fmt(b)}</div>'
-                f'<div class="pcg-g">Δ {fmt(gap)}</div>'
+                f'<div class="pcg-g">Alpha {fmt(gap)}</div>'
                 '</div>'
             )
         rows.append(
@@ -140,7 +201,7 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
         + '<div class="pcg-month">CY</div><div class="pcg-month">FY</div></div>'
         + "".join(rows)
         + '</div></div>'
-        '<div class="pcg-key"><span><b>Strategy</b></span><span><b>Nifty 500</b></span><span><b>Gap</b> = Strategy − Nifty 500</span></div></div>'
+        '<div class="pcg-key"><span><b>Strategy</b></span><span><b>Nifty 500</b></span><span><b>Alpha</b> = Strategy − Nifty 500</span></div></div>'
     )
 
 
@@ -256,6 +317,7 @@ def build_portfolio_history(
     capital: float,
     ledger: dict | None = None,
     live_meta: dict | None = None,
+    today: pd.Timestamp | None = None,
 ) -> dict:
     """Build frozen history plus the current live month-to-date point."""
     months = (ledger or {}).get("months", {})
@@ -319,6 +381,7 @@ def build_portfolio_history(
     if pd.notna(live_s) and live_period_raw:
         live_period = pd.Period(live_period_raw, freq="M")
         live_period_key = str(live_period)
+        live_state = live_month_state(live_period_key, today)
         live_end = live_period.end_time
         if live_end > equity.index[-1] if not equity.empty else True:
             base_value = float(equity.iloc[-1]) if not equity.empty else float(capital)
@@ -333,11 +396,11 @@ def build_portfolio_history(
                     "Strategy Net": float(live_s) if pd.notna(live_s) else np.nan,
                     "Benchmark": float(live_b) if pd.notna(live_b) else np.nan,
                     "Alpha vs Benchmark": float(live_s - live_b) if pd.notna(live_s) and pd.notna(live_b) else np.nan,
-                    "Origin": "Live MTD",
+                    "Origin": "Live MTD" if live_state == "mtd" else "Closed, awaiting freeze",
                     "Universe": "Current list",
                     "Frozen On": "—",
                     "Priced From": live_meta.get("as_of") or "—",
-                    "Config": "Live month-to-date",
+                    "Config": "Live month-to-date" if live_state == "mtd" else "Closed month, not yet frozen",
                 })
     peak = equity.cummax()
     drawdown = equity / peak - 1.0
@@ -351,6 +414,7 @@ def build_portfolio_history(
         "monthly": pd.DataFrame(monthly_rows),
         "monthly_grid": pd.DataFrame(monthly_grid_rows),
         "mtd_period": live_period_key,
+        "mtd_state": live_month_state(live_period_key, today),
         "strategy_mtd": float(live_mtd["strategy"]) if pd.notna(live_mtd["strategy"]) else np.nan,
         "benchmark_mtd": float(live_mtd["benchmark"]) if pd.notna(live_mtd["benchmark"]) else np.nan,
         "trades": closed.copy() if isinstance(closed, pd.DataFrame) else pd.DataFrame(),
@@ -418,6 +482,8 @@ def render_portfolio_view(
     monthly = history["monthly"]
     monthly_grid = history["monthly_grid"]
     mtd_period = history["mtd_period"]
+    mtd_state = history["mtd_state"]
+    labels = _month_labels(mtd_period, mtd_state)
     strategy_mtd = history["strategy_mtd"]
     benchmark_mtd = history["benchmark_mtd"]
     trades = history["trades"]
@@ -528,7 +594,7 @@ def render_portfolio_view(
             label_visibility="collapsed",
         ) or "Trades"
 
-    with kit.card("Portfolio history", "portfolio_history_header", "performance history · current month marked to latest close"):
+    with kit.card("Portfolio history", "portfolio_history_header", "performance history · latest month marked to the latest close"):
         st.caption(
             f"Inception · {inception(system).strftime('%b %Y')}  · "
             f"₹{capital:,.0f} starting capital  · {len(monthly)} completed months"
@@ -538,32 +604,28 @@ def render_portfolio_view(
         with kit.card(
             "Performance overview",
             "portfolio_performance_overview",
-            "since inception · completed months plus the current month-to-date mark",
+            "since inception · completed months plus the latest marked month",
         ):
             if equity.empty:
                 st.info("No completed portfolio history is available yet.")
             else:
-                mtd_label = pd.Period(mtd_period, freq="M").strftime("%b MTD") if mtd_period else "MTD"
                 mtd_gap = strategy_mtd - benchmark_mtd if np.isfinite(strategy_mtd) and np.isfinite(benchmark_mtd) else np.nan
                 a, b, c, d = st.columns(4)
                 with a:
                     st.metric("Ending value", f"₹{equity.iloc[-1]:,.0f}")
                 with b:
-                    st.metric(f"{mtd_label} · Strategy", f"{strategy_mtd:+.1%}" if np.isfinite(strategy_mtd) else "—")
+                    st.metric(f"{labels['prefix']} · Strategy", f"{strategy_mtd:+.1%}" if np.isfinite(strategy_mtd) else "—")
                 with c:
-                    st.metric(f"{mtd_label} · Nifty 500", f"{benchmark_mtd:+.1%}" if np.isfinite(benchmark_mtd) else "—")
+                    st.metric(f"{labels['prefix']} · Nifty 500", f"{benchmark_mtd:+.1%}" if np.isfinite(benchmark_mtd) else "—")
                 with d:
-                    st.metric("MTD gap", f"{mtd_gap:+.1%}" if np.isfinite(mtd_gap) else "—")
-                st.caption(
-                    "Since inception compounds the frozen record through the latest completed month and the current live month-to-date return. "
-                    "Current-book P&L is the unrealised return on today's holdings, so it can differ."
-                )
+                    st.metric(f"{labels['prefix']} · Alpha", f"{mtd_gap:+.1%}" if np.isfinite(mtd_gap) else "—")
+                st.caption(_overview_note(labels, mtd_state))
 
     elif history_tab == "Equity":
         with kit.card(
             "Equity curve",
             "portfolio_equity",
-            "₹20 lakh starting point · strategy vs benchmark · latest month marked to date",
+            "₹20 lakh starting point · strategy vs benchmark · latest month marked",
         ):
             if equity.empty:
                 st.info("No completed portfolio history is available yet.")
@@ -576,18 +638,21 @@ def render_portfolio_view(
                 )
                 # This month's figures: the curve's own legend already carries
                 # the since-inception values (owner, 1 Oct 2026).
-                mtd_label = pd.Period(mtd_period, freq="M").strftime("%b MTD") if mtd_period else "MTD"
                 mtd_gap = strategy_mtd - benchmark_mtd if np.isfinite(strategy_mtd) and np.isfinite(benchmark_mtd) else np.nan
                 a, b, c, d = st.columns(4)
                 with a:
-                    st.metric(f"{mtd_label} · Strategy", f"{strategy_mtd:+.1%}" if np.isfinite(strategy_mtd) else "—")
+                    st.metric(f"{labels['prefix']} · Strategy", f"{strategy_mtd:+.1%}" if np.isfinite(strategy_mtd) else "—")
                 with b:
-                    st.metric(f"{mtd_label} · Nifty 500", f"{benchmark_mtd:+.1%}" if np.isfinite(benchmark_mtd) else "—")
+                    st.metric(f"{labels['prefix']} · Nifty 500", f"{benchmark_mtd:+.1%}" if np.isfinite(benchmark_mtd) else "—")
                 with c:
-                    st.metric("MTD gap", f"{mtd_gap:+.1%}" if np.isfinite(mtd_gap) else "—")
+                    st.metric(f"{labels['prefix']} · Alpha", f"{mtd_gap:+.1%}" if np.isfinite(mtd_gap) else "—")
                 with d:
                     st.metric("Max drawdown", f"{history['max_drawdown']:.1%}" if np.isfinite(history["max_drawdown"]) else "—")
-                st.caption("Completed months come from the recorded performance history; the final point is the current month-to-date mark.")
+                st.caption(
+                    "Completed months come from the recorded performance history; "
+                    + ("the final point is the current month-to-date mark." if mtd_state == "mtd"
+                       else f"the final point is {labels['prefix'].split(' ')[0]}, closed but not yet frozen.")
+                )
 
     elif history_tab == "Trades":
         with kit.card("Past trades", "portfolio_trades", "closed trades plus positions still open at the historical window close"):
@@ -628,19 +693,13 @@ def render_portfolio_view(
         with kit.card(
             "Calendar grid",
             "portfolio_monthly",
-            "Strategy, Nifty 500 and the gap, per year",
+            "Strategy, Nifty 500 and Alpha, per year",
         ):
             if monthly_grid.empty:
                 st.info("No monthly history is available yet.")
             else:
-                st.html(_calendar_grid_html(monthly_grid, mtd_period))
-                st.caption(
-                    "Calendar quarters (Q1 = Jan·Feb·Mar). CY compounds Jan–Dec; "
-                    "FY compounds Apr of the row's year through Mar of the next. "
-                    f"The {pd.Period(mtd_period, freq='M').strftime('%b')} cells are live month-to-date, not frozen."
-                    if mtd_period else
-                    "Calendar quarters (Q1 = Jan·Feb·Mar). CY compounds Jan–Dec; FY compounds Apr of the row's year through Mar of the next."
-                )
+                st.html(_calendar_grid_html(monthly_grid, mtd_period, mtd_state))
+                st.caption(_calendar_note(labels, mtd_period, mtd_state))
                 cols = [c for c in ["Month", "Strategy Net", "Benchmark", "Alpha vs Benchmark", "Origin", "Priced From", "Frozen On", "Universe"] if c in monthly_grid.columns]
                 st.download_button(
                     "Export monthly performance CSV",
