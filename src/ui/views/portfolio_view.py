@@ -295,8 +295,6 @@ def build_portfolio_tracker(
         np.nan,
     )
 
-    total_invested = float(out["Invested Value (₹)"].sum())
-    total_current = float(out["Current Value (₹)"].sum())
     total_value = (
         float(curve.iloc[-1]) if not curve.empty and float(curve.iloc[-1]) > 0
         else float(capital)
