@@ -578,12 +578,12 @@ def render_portfolio_view(
                 with a:
                     st.metric("Ending value", f"₹{equity.iloc[-1]:,.0f}")
                 with b:
-                    st.metric("Since inception", f"{historical_return:+.1%}" if np.isfinite(historical_return) else "—")
+                    st.metric(f"{mtd_label} · Strategy", f"{strategy_mtd:+.1%}" if np.isfinite(strategy_mtd) else "—")
                 with c:
-                    st.metric("Benchmark", f"{benchmark_return:+.1%}" if np.isfinite(benchmark_return) else "—")
+                    st.metric(f"{mtd_label} · Nifty 500", f"{benchmark_mtd:+.1%}" if np.isfinite(benchmark_mtd) else "—")
                 with d:
-                    st.metric("Max drawdown", f"{history['max_drawdown']:.1%}" if np.isfinite(history["max_drawdown"]) else "—")
-                st.caption("Completed months come from the recorded performance history; the final point is the current month-to-date mark.")
+                    st.metric("MTD Alpha", f"{mtd_gap:+.1%}" if np.isfinite(mtd_gap) else "—")
+                st.caption("The equity curve is cumulative; the summary above reports the current calendar month-to-date return.")
 
     elif history_tab == "Trades":
         with kit.card("Past trades", "portfolio_trades", "closed trades plus positions still open at the historical window close"):
