@@ -351,3 +351,47 @@ def render_correlation_heatmap(corr: pd.DataFrame, syms: list[str]) -> None:
         "})();</script></body></html>"
     )
     st.iframe(page, height=height + 8)
+
+
+def render_industry_map(board: pd.DataFrame) -> None:
+    """Industries as bubbles: median 3M return across, share passing both filters up,
+    size = number of stocks. Top-right is strong and broad; bottom-left is weak and narrow."""
+    from src.ui.highcharts_lib import lib, script_json
+
+    need = {"Industry", "3M Return", "Pass %", "Stocks", "Top 50"}
+    if board.empty or not need <= set(board.columns):
+        return
+    rows = []
+    for _, r in board.iterrows():
+        if pd.isna(r["3M Return"]):
+            continue
+        rows.append({"name": str(r["Industry"]), "x": round(float(r["3M Return"]) * 100, 1),
+                     "y": round(float(r["Pass %"]) * 100, 1), "z": int(r["Stocks"]),
+                     "top50": int(r["Top 50"])})
+    if len(rows) < 2:
+        return
+    page = (
+        "<!DOCTYPE html><html><head><meta charset='utf-8'><style>*{box-sizing:border-box;margin:0}"
+        "html,body{background:transparent;font-family:'Geist',system-ui,sans-serif}</style></head>"
+        "<body><div id='c' style='width:100%;height:420px'></div><script>"
+        + lib("highcharts-more.js") + "</script><script>(function(){"
+        "const rows=" + script_json(rows) + ";"
+        "const e=v=>String(v).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));"
+        "const col=r=>r.x>=0?'#067647':'#B42318';"
+        "Highcharts.chart('c',{chart:{type:'bubble',backgroundColor:'transparent',animation:false,spacing:[8,12,4,4],"
+        "style:{fontFamily:'Geist,system-ui,sans-serif'},zooming:{type:null}},"
+        "credits:{enabled:false},accessibility:{enabled:false},title:{text:null},legend:{enabled:false},exporting:{enabled:false},"
+        "xAxis:{title:{text:'Median 3-month return \\u2192',style:{color:'#5E6878',fontSize:'12px'}},gridLineWidth:0,"
+        "labels:{format:'{value}%',style:{color:'#5E6878',fontSize:'12px'}},plotLines:[{value:0,color:'#98A1AE',width:1,dashStyle:'Dash'}]},"
+        "yAxis:{title:{text:'\\u2191 Share passing both filters',style:{color:'#5E6878',fontSize:'12px'}},min:0,max:100,gridLineColor:'#EDEFF3',"
+        "labels:{format:'{value}%',style:{color:'#5E6878',fontSize:'12px'}}},"
+        "tooltip:{useHTML:true,backgroundColor:'rgba(15,23,42,.94)',borderWidth:0,shadow:false,style:{color:'#fff',fontSize:'12px'},"
+        "formatter:function(){const p=this.point;return '<b>'+e(p.name)+'</b><br>3M median <b>'+(p.x>0?'+':'')+p.x.toFixed(1)+'%</b>"
+        "<br>Passing both <b>'+p.y.toFixed(0)+'%</b><br>'+p.z+' stocks \\u00b7 '+p.top50+' in the top 50';}},"
+        "plotOptions:{bubble:{fillOpacity:0.62,minSize:10,maxSize:46,animation:false,marker:{lineWidth:1,lineColor:'#fff'},"
+        "dataLabels:{enabled:true,allowOverlap:false,crop:false,overflow:'allow',style:{fontSize:'11px',fontWeight:'600',color:'#3C4657',textOutline:'2px #fff'},"
+        "formatter:function(){return this.point.z>=Math.max.apply(null,rows.map(r=>r.z))*0.35||this.point.top50>=3?e(this.point.name):null;}}}},"
+        "series:[{data:rows.map(r=>({name:r.name,x:r.x,y:r.y,z:r.z,top50:r.top50,color:col(r)}))}]});"
+        "})();</script></body></html>"
+    )
+    st.iframe(page, height=428)
