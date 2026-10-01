@@ -355,8 +355,8 @@ def render_rrg_view(
                 current_date_str=sel_date_str,
             )
             kit.caption(
-                f"Tails show the last {tail_w} weeks. Grey dots are the others; click a quadrant "
-                "above or a dot to bring it forward. Drag on the chart to zoom."
+                f"Tails show the last {tail_w} weeks. Faded lines are the others; tap a dot to isolate it, "
+                "tap again to clear."
             )
 
         with kit.card("Quadrants", "rrg_quads", "RS · Momentum, 100 = benchmark"):

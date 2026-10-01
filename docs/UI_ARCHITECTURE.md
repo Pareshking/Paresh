@@ -337,7 +337,7 @@ navigation contract changed.
 ## 7. October 2026 overhaul: where things live now
 
 - **Tables.** `src/ui/screener_table.py` draws every stock table in the Screener from one column registry; Full Quant is the master and Executive/Core are its columns hidden. `render_saas_table` (theme.py) is the generic table for everything else and shares its type scale.
-- **Charts.** `src/ui/lw_chart.py` is the one time-series chart (Lightweight Charts, vendored under `src/ui/vendor/`, no CDN): stacked synced panes, crosshair, legend with every value. Plotly stays only for the RRG scatter and correlation heatmap.
+- **Charts.** Highcharts Stock is the one chart library (vendored under `src/ui/vendor/highstock.js`, no CDN; Highsoft EULA, non-commercial personal use, see `HIGHCHARTS_LICENSE.txt`). `src/ui/hc_chart.py` draws every time series (stacked synced panes, crosshair, legend with every value, candlesticks and volume); `src/ui/stock_chart.py` builds the stock page's panes; the Relative Rotation Graph is a Highcharts page in `src/ui/charts.py` (trails, quadrants, play/scrub, tap to isolate). Plotly, Lightweight Charts and the correlation heatmap are gone.
 - **Type.** One UI family (Geist) and Geist Mono for numbers; no per-view font stacks.
 - **Pages.** Portfolio owns the model portfolio's live book and its record (the Track Record page is gone; `/track-record` redirects). `record_run` lives in `src/engine/model_record.py`.
 - **Method.** Every UI change is checked on the running app, before and after, at desktop and phone width (Playwright against `streamlit run app.py`), not only by tests.

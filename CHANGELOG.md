@@ -4,7 +4,8 @@
 
 - Open trades and the current month's rebalances now reach Portfolio (engine fix).
 - One table for the Screener: Full Quant is the master, Executive and Core hide columns; Table/Grid toggles removed.
-- One chart component (Lightweight Charts, hover legend) for Breadth, Portfolio, Backtest.
+- One chart library everywhere: Highcharts Stock (vendored, no CDN) with a hover legend for Breadth, Portfolio, Backtest and the stock page (candles, volume, overlays, RS); the Relative Rotation Graph is rebuilt on it. Plotly, Lightweight Charts and the correlation heatmap are removed.
+- Portfolio sizes holdings at the latest rebalance (fixes negative cash / over 100% invested). Configuration has a data-freshness table.
 - Portfolio absorbs the Track Record page; `/track-record` redirects.
 - RRG benchmarks are Nifty 500 / Nifty 50; Configuration summary is a tidy list.
 - New highs: 1M and 3M counts in Breadth and Full Quant.

@@ -516,7 +516,7 @@ def test_open_prices_are_dropped_when_the_source_has_none():
 def test_a_bar_with_no_open_degrades_to_a_flat_close():
     """None is safe precisely because the chart handles it honestly."""
     import inspect
-    from src.ui import lightweight_chart
+    from src.ui import stock_chart as lightweight_chart
 
     src = inspect.getsource(lightweight_chart._candles)
     assert "float(cv)" in src and "pd.notna(ov)" in src, (

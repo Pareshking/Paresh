@@ -315,7 +315,7 @@ the pin, let **V1 Production QA** verify against the live app, then keep it.
 `tests/test_no_diagnostics_in_the_ui.py` fails if the pin is loosened.
 
 The rest of the runtime stack is pinned for the same reason: pandas, numpy,
-pyarrow, yfinance, requests and plotly (`tests/test_dependency_pins.py`).
+pyarrow, yfinance, requests (`tests/test_dependency_pins.py`).
 boto3 is the one documented range. Dependabot opens a PR for each new
 release. pyarrow 25.0.1 segfaults (apache/arrow#50471), so do not take it.
 

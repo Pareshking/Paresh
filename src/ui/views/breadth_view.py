@@ -13,7 +13,7 @@ from src.engine.breadth import (
 )
 from src.core.config import SHORT_FORMS
 from src.engine.pipeline import price_fingerprint
-from src.ui import lw_chart as lw
+from src.ui import hc_chart as lw
 from src.ui import page_kit as kit
 from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.theme import render_saas_table

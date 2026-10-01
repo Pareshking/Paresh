@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 
-from src.ui import lw_chart as lw
+from src.ui import hc_chart as lw
 
 
 def test_series_points_drops_nan_and_keeps_one_point_per_day():
@@ -20,10 +20,10 @@ def test_the_document_carries_the_library_and_the_data_and_no_cdn():
     html = lw.chart_html([{"height": 200, "series": [
         {"name": "Strategy", "type": "line", "fmt": "rupee",
          "data": [("2026-01-01", 2e6), ("2026-02-01", 2.1e6)]}]}])
-    assert "TradingView Lightweight Charts" in html          # vendored, inlined
+    assert "Highcharts Stock" in html          # vendored, inlined
     assert '"value":2100000.0' in html and "Strategy" in html
     assert "cdn" not in html.split("</script>")[1].lower()   # nothing loaded from the network
-    assert "subscribeCrosshairMove" in html                  # the hover legend
+    assert "Highcharts.stockChart" in html                  # the hover legend
 
 
 def test_a_script_closing_tag_in_a_series_name_cannot_break_out():
