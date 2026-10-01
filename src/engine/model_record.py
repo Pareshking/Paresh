@@ -28,6 +28,26 @@ def _month_books(key: str, _prices: pd.DataFrame, _tradebook: pd.DataFrame, _mem
                        config_weights=cfg["config_weights"])
 
 
+def _benchmark_key(benchmark_close: pd.Series | None, start: pd.Period) -> str:
+    """Cache-key component for the benchmark the record is measured against.
+
+    run_backtest receives the benchmark as `_benchmark_close`, which
+    st.cache_data does not hash, and the key string above used to omit it. A
+    page whose benchmark download failed (an empty series) therefore cached a
+    flat 0% benchmark under the same key a healthy page then read, so every page
+    showed alpha equal to the strategy return until the cache expired.
+
+    Only the slice that can reach the record is fingerprinted (from shortly
+    before inception), so a 2-year and a 5-year download of the same index
+    still share one cached replay.
+    """
+    if benchmark_close is None or benchmark_close.empty:
+        return "nobench"
+    window = pd.to_numeric(benchmark_close, errors="coerce").loc[
+        start.start_time - pd.Timedelta(days=40):]
+    return price_fingerprint(window.to_frame())
+
+
 def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
                system: str = SYSTEM_750) -> dict:
     """The strategy under the RECORD's pinned configuration, through today.
@@ -67,7 +87,8 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
             # ahead on the first working day): the window is counted back from its end.
             months = months_to_cover(pd.Timestamp(prices.index[-1]), start)
     result = run_backtest(
-        f"trackrec_{system}_{price_fingerprint(prices)}_{actions_digest(events)}_{months}",
+        f"trackrec_{system}_{price_fingerprint(prices)}_{actions_digest(events)}_{months}"
+        f"_{_benchmark_key(benchmark_close, start)}",
         prices,
         top_n=cfg["top_n"],
         rebal_freq=cfg["rebal_freq"],
