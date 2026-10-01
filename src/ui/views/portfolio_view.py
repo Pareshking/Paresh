@@ -254,8 +254,8 @@ def render_portfolio_view(
     previous_value = float(table["Previous Value (₹)"].sum(skipna=True))
     day_pnl_pct = day_pnl / previous_value * 100.0 if previous_value > 0 else np.nan
     exposure = current / value * 100.0 if value else 0.0
-    as_of = meta.get("as_of")
-    fill_date = meta.get("fill_date")
+    # Mark/fill dates remain available through live_meta and the canonical book;
+    # the compact header no longer duplicates them.
     n_holdings = len(table)
 
     try:
