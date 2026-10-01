@@ -215,9 +215,13 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     cfg = TRACK_RECORD_CONFIG
     rules = Rules(buffer_n=int(cfg["buffer_n"]), high_pct=float(cfg["high_pct"]))
 
-    as_of = pd.Timestamp(adj_close.index[-1]) if adj_close is not None and len(adj_close) else pd.Timestamp(ist_now().date())
-    check, fill = next_rebalance(as_of)
-    n_sess = _sessions_between(as_of, check)
+    # Rebalance dates are calendar events. Do not anchor them to the
+    # latest price row: on 1-Oct with data ending 30-Sep, that would replay the
+    # Sep-end check and report the Oct-1 fill as if it were still upcoming.
+    calendar_today = pd.Timestamp(ist_now().date())
+    data_as_of = pd.Timestamp(adj_close.index[-1]) if adj_close is not None and len(adj_close) else calendar_today
+    check, fill = next_rebalance(calendar_today)
+    n_sess = _sessions_between(data_as_of, check)
 
     head = kit.page_head(
         "Actions",
