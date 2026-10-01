@@ -372,7 +372,7 @@ def _backtest_body(
 
     _yrs = stats.get("window_years", 0) or 0
     kit.readings([
-        kit.Reading("Strategy return", f"{stats['total_return']:+.1%}",
+        kit.Reading("Research return", f"{stats['total_return']:+.1%}",
                     f"after {cost_drag_bps:.0f} bps costs · {stats['gross_return']:+.1%} before",
                     _tone(stats["total_return"])),
         kit.Reading("Annualised", f"{stats['ann_return']:+.1%}",
@@ -380,7 +380,7 @@ def _backtest_body(
                     _tone(stats["ann_return"])),
         kit.Reading("Ahead of Nifty 500", f"{stats['alpha'] * 100:+.1f} pts",
                     f"Nifty 500 {stats['bench_return']:+.1%} over the same months", _tone(stats["alpha"])),
-    ], "Backtest returns")
+    ], "Research backtest returns")
     kit.readings([
         kit.Reading("Sharpe", f"{stats['sharpe']:.2f}",
                     (f"{sharpe_se_txt.strip()} · " if sharpe_se_txt else "")
@@ -392,11 +392,11 @@ def _backtest_body(
                     f"{stats['win_rate']:.0%} of months were profitable · turnover "
                     f"{stats['avg_turnover']:.1f}% per rebalance",
                     "up" if stats.get("beat_rate", 0) >= 0.5 else "down"),
-    ], "Backtest risk")
+    ], "Research backtest risk")
 
     eq = bt_res["equity_curve"]
     bm = bt_res["benchmark"].reindex(eq.index).ffill() if bt_res.get("benchmark") is not None else None
-    with kit.card("Growth of ₹100", "bt_growth", "indigo = strategy · grey = Nifty 500 · daily"):
+    with kit.card("Research simulation · Growth of ₹100", "bt_growth", "indigo = research strategy · grey = Nifty 500 · daily"):
         kit.growth_chart([f"{d:%d %b}" for d in eq.index], eq.tolist(),
                          None if bm is None else bm.tolist(), key="bt")
 
