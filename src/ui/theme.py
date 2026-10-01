@@ -668,7 +668,6 @@ def inject_custom_css() -> None:
         .pg-bar-v { font-family: var(--font-mono); font-size: 13px; text-align: right; color: #0E1726; }
         @media (min-width: 641px) { .pg-bar-v { white-space: nowrap; } }
         [class*="st-key-pg_actions_"] { gap: 10px !important; }
-        .hm-wrap { overflow-x: auto; }
         /* Exit watch */
         .xw { border: 1px solid #E3E6EB; border-radius: 12px; overflow: hidden; }
         .xw-row { display: grid; grid-template-columns: 150px 150px 1fr 1fr 1fr minmax(0, 1.4fr) 80px;
@@ -852,11 +851,6 @@ def inject_custom_css() -> None:
             .ib-bar { display: none; }
             .ib-head .ib-3m { justify-content: flex-end; }
         }
-        .hm { display: grid; gap: 3px; min-width: 520px; }
-        .hm-x, .hm-y { font-family: var(--font-mono); font-size: 11px; color: #3C4657; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .hm-x { writing-mode: vertical-rl; transform: rotate(180deg); height: 76px; text-align: left; justify-self: center; }
-        .hm-y { display: flex; align-items: center; }
-        .hm-c { height: 28px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 11px; background: #F4F5F8; color: #0E1726; }
         @media (max-width: 640px) {
             [class*="st-key-pgcard_"] { padding: 14px 14px !important; border-radius: 14px; }
             .pg-bar { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 64px; gap: 8px; }

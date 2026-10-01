@@ -1,5 +1,4 @@
 """The redesigned pages: the figures they show are the right figures."""
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -68,13 +67,6 @@ def test_bar_list_clamps_and_flags():
     assert "A &amp; B" in out
     assert 'class="warn" style="width:100.0%"' in out
     assert 'style="width:0.0%"' in out
-
-
-def test_heatmap_escapes_symbols_and_handles_a_missing_value():
-    corr = pd.DataFrame([[1.0, np.nan], [np.nan, 1.0]], index=["A", "<x>"], columns=["A", "<x>"])
-    out = qualified_view.heatmap_html(corr, ["A", "<x>"])
-    assert "<x>" not in out and "&lt;x&gt;" in out
-    assert out.count('<span class="hm-c">—</span>') == 2
 
 
 def test_industry_rows_fold_the_tail_into_others():
