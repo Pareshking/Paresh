@@ -90,53 +90,107 @@ def _slug(s: str) -> str:
     return "".join(c.lower() if c.isalnum() else "_" for c in s).strip("_")
 
 
-def growth_chart(labels: list[str], strategy: list[float], benchmark: list[float] | None,
-                 names: tuple[str, str] = ("Strategy", "Nifty 500"), key: str = "growth") -> None:
-    """Growth of ₹100: two lines from a common start, with the end values in
-    a legend above. `strategy` and `benchmark` are growth factors (1.0 = start)
-    at each label. Drawn with Altair, which ships with Streamlit, so it needs
-    no CDN and survives the HTML sanitiser that strips inline SVG."""
+def equity_chart(
+    labels: list[str],
+    strategy: list[float],
+    benchmark: list[float] | None,
+    names: tuple[str, str] = ("Strategy", "Nifty 500"),
+    key: str = "equity",
+) -> None:
+    """Render absolute portfolio equity values, not growth factors.
+
+    The Portfolio history builder supplies rupee-denominated ending values.
+    Keeping this chart contract explicit prevents a growth-factor formatter
+    from accidentally multiplying real portfolio values by 100.
+    """
     import altair as alt
 
     if len(strategy) < 2:
         return
 
+    start_value = float(strategy[0])
+
     def end(s, cls, name):
-        v = s[-1]
-        return (f'<span class="{cls}"><i></i>{html.escape(name)} '
-                f'<b>₹{v * 100:,.0f}</b> ({"+" if v >= 1 else "−"}{abs(v - 1) * 100:.1f}%)</span>')
+        v = float(s[-1])
+        pct = (v / start_value - 1.0) * 100.0 if start_value else 0.0
+        sign = "+" if pct >= 0 else "−"
+        return (
+            f'<span class="{cls}"><i></i>{html.escape(name)} '
+            f'<b>₹{v:,.0f}</b> ({sign}{abs(pct):.1f}%)</span>'
+        )
 
-    st.html('<div class="gc-legend">' + end(strategy, "gc-ls", names[0])
-            + (end(benchmark, "gc-lb", names[1]) if benchmark else "") + "</div>")
+    st.html(
+        '<div class="gc-legend">'
+        + end(strategy, "gc-ls", names[0])
+        + (end(benchmark, "gc-lb", names[1]) if benchmark else "")
+        + "</div>"
+    )
 
-    rows = [{"x": i, "label": lab, "series": names[0], "value": v * 100}
-            for i, (lab, v) in enumerate(zip(labels, strategy))]
+    rows = [
+        {"x": i, "label": lab, "series": names[0], "value": float(v)}
+        for i, (lab, v) in enumerate(zip(labels, strategy))
+    ]
     if benchmark:
-        rows += [{"x": i, "label": lab, "series": names[1], "value": v * 100}
-                 for i, (lab, v) in enumerate(zip(labels, benchmark))]
+        rows += [
+            {"x": i, "label": lab, "series": names[1], "value": float(v)}
+            for i, (lab, v) in enumerate(zip(labels, benchmark))
+        ]
     data = pd.DataFrame(rows)
     step = max(1, len(labels) // 8)
     ticks = list(range(0, len(labels), step))
     label_expr = "{" + ",".join(f"{i}:'{labels[i]}'" for i in ticks) + "}[datum.value]"
-    x = alt.X("x:Q", axis=alt.Axis(values=ticks, labelExpr=label_expr, title=None, grid=False,
-                                   labelColor="#5E6878", tickColor="#E3E6EB", domainColor="#E3E6EB"),
-              scale=alt.Scale(domain=[0, len(labels) - 1], nice=False))
-    y = alt.Y("value:Q", scale=alt.Scale(zero=False),
-              axis=alt.Axis(title=None, format=",.0f", labelColor="#5E6878", gridColor="#EDEFF3",
-                            domain=False, ticks=False))
-    colour = alt.Color("series:N", legend=None,
-                       scale=alt.Scale(domain=list(names), range=["#4F46E5", "#98A1AE"]))
-    lines = alt.Chart(data).mark_line(strokeWidth=2.5, interpolate="monotone").encode(
-        x=x, y=y, color=colour,
-        tooltip=[alt.Tooltip("label:N", title="When"), alt.Tooltip("series:N", title=""),
-                 alt.Tooltip("value:Q", title="₹", format=",.1f")],
+    x = alt.X(
+        "x:Q",
+        axis=alt.Axis(
+            values=ticks,
+            labelExpr=label_expr,
+            title=None,
+            grid=False,
+            labelColor="#5E6878",
+            tickColor="#E3E6EB",
+            domainColor="#E3E6EB",
+        ),
+        scale=alt.Scale(domain=[0, len(labels) - 1], nice=False),
     )
-    base = alt.Chart(pd.DataFrame({"y": [100]})).mark_rule(strokeDash=[4, 4], color="#D0D5DD").encode(y="y:Q")
-    chart = (base + lines).properties(height=260).configure_view(strokeWidth=0).configure(background="#FFFFFF",
-        font="Geist, system-ui, sans-serif")
-    st.altair_chart(chart, width="stretch", key=f"gc_{key}")
-
-
+    y = alt.Y(
+        "value:Q",
+        scale=alt.Scale(zero=False),
+        axis=alt.Axis(
+            title=None,
+            format=",.0f",
+            labelColor="#5E6878",
+            gridColor="#EDEFF3",
+            domain=False,
+            ticks=False,
+        ),
+    )
+    colour = alt.Color(
+        "series:N",
+        legend=None,
+        scale=alt.Scale(domain=list(names), range=["#4F46E5", "#98A1AE"]),
+    )
+    lines = alt.Chart(data).mark_line(
+        strokeWidth=2.5, interpolate="monotone"
+    ).encode(
+        x=x,
+        y=y,
+        color=colour,
+        tooltip=[
+            alt.Tooltip("label:N", title="When"),
+            alt.Tooltip("series:N", title=""),
+            alt.Tooltip("value:Q", title="₹", format=",.0f"),
+        ],
+    )
+    base = alt.Chart(pd.DataFrame({"y": [start_value]})).mark_rule(
+        strokeDash=[4, 4], color="#D0D5DD"
+    ).encode(y="y:Q")
+    chart = (
+        (base + lines)
+        .properties(height=260)
+        .configure_view(strokeWidth=0)
+        .configure(background="#FFFFFF", font="Geist, system-ui, sans-serif")
+    )
+    st.altair_chart(chart, width="stretch", key=f"ec_{key}")
 def drawdown_chart(labels: list[str], drawdown: list[float], key: str = "drawdown") -> None:
     """Render portfolio drawdown as a percentage, not as an equity-value chart."""
     import altair as alt
