@@ -416,6 +416,27 @@ def _backtest_body(
                         "realised round trip; on a BOUGHT or HELD row it is "
                         "unrealised, marked at the latest close."
                     )
+                    _not_in = (changes[changes["Reason"].astype(str).str.startswith("Not in the index")]
+                               if "Reason" in changes.columns else changes.iloc[0:0])
+                    if not _not_in.empty:
+                        _mem = membership if membership is not None else load_history_or_none()
+                        _since = ((_mem or {}).get("baseline") or {}).get("date")
+                        _entered = pd.to_datetime(_not_in["Entry Date"], errors="coerce")
+                        _early = (_not_in[_entered < pd.Timestamp(_since)]
+                                  if _since else _not_in.iloc[0:0])
+                        kit.note(
+                            f"{len(_not_in)} sold "
+                            f"{'name was' if len(_not_in) == 1 else 'names were'} not in the "
+                            f"index on the {_sig:%d %b %Y} signal date: "
+                            f"{', '.join(_not_in['Symbol'].astype(str))}.",
+                            (f"{', '.join(_early['Symbol'].astype(str))} entered the book before "
+                             f"the index record begins ({_since}), when the backtest scored on "
+                             "today's constituent list, so they were picked with hindsight. "
+                             "This is the first rebalance scored on the index as it stood, and "
+                             "it sells them."
+                             if not _early.empty else
+                             "They have left the index list, so the rules sell them."),
+                        )
                     render_saas_table(ch)
                     st.download_button(
                         "Export changes CSV",

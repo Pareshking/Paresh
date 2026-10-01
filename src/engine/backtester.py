@@ -225,8 +225,18 @@ def _exit_reason(
     ema_period: int,
     high_pct: float,
     effective_buffer: int,
+    *,
+    index_mask: pd.Series | None = None,
+    liq_mask: pd.Series | None = None,
+    signal_date: Any = None,
 ) -> str:
-    """Why a held name is being sold, in the order the filters actually bind."""
+    """Why a held name is being sold, in the order the filters actually bind.
+
+    The last two gates are the ones a name can fail with its price filters
+    intact: it is not in the index on the signal date, or it trades below the
+    liquidity floor. Without them such a sale read "Rebalance Exit", which
+    explained nothing. The masks are the same ones that decided the ranking.
+    """
     if symbol in full_ranked.index:
         rk = full_ranked.index.get_loc(symbol) + 1
         return f"Rank Dropped (#{rk} > Buffer {effective_buffer})"
@@ -234,6 +244,11 @@ def _exit_reason(
         return f"Trend Breakdown (< {ema_period} EMA)"
     if not near_high.get(symbol, False):
         return f"Failed 52W High Filter (< {high_pct*100:.0f}%)"
+    if index_mask is not None and not bool(index_mask.get(symbol, False)):
+        when = f" on {pd.Timestamp(signal_date):%d %b %Y}" if signal_date is not None else ""
+        return f"Not in the index{when}"
+    if liq_mask is not None and not bool(liq_mask.get(symbol, False)):
+        return "Below the liquidity floor"
     return "Rebalance Exit"
 
 
@@ -919,6 +934,7 @@ def run_backtest(
             reason = _exit_reason(
                 s, full_ranked, above_ema, near_high,
                 ema_period, high_pct, effective_buffer,
+                index_mask=idx_mask, liq_mask=liq_mask, signal_date=dates[start_idx],
             )
 
             pos = open_positions.pop(s, None)
@@ -1260,6 +1276,8 @@ def run_backtest(
                         "Reason": _exit_reason(
                             s, p_ranked, p_above_ema, p_near_high,
                             ema_period, high_pct, effective_buffer,
+                            index_mask=p_idx_mask, liq_mask=p_liq,
+                            signal_date=prices.index[rebal_idx],
                         ),
                     }
                 )
