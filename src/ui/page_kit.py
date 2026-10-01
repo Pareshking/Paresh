@@ -110,13 +110,14 @@ def equity_chart(
 
     start_value = float(strategy[0])
 
+    # The legend names each line's latest value only. The since-inception
+    # percentage is not repeated here: the Equity view's figures are this
+    # month's, and a cumulative % beside them read as the headline.
     def end(s, cls, name):
         v = float(s[-1])
-        pct = (v / start_value - 1.0) * 100.0 if start_value else 0.0
-        sign = "+" if pct >= 0 else "−"
         return (
             f'<span class="{cls}"><i></i>{html.escape(name)} '
-            f'<b>₹{v:,.0f}</b> ({sign}{abs(pct):.1f}%)</span>'
+            f'<b>₹{v:,.0f}</b></span>'
         )
 
     st.html(

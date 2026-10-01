@@ -41,9 +41,12 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
     frame["MonthNo"] = frame["Period"].dt.month
     frame["Strategy Net"] = pd.to_numeric(frame["Strategy Net"], errors="coerce")
     frame["Benchmark"] = pd.to_numeric(frame["Benchmark"], errors="coerce")
+    # Plain dicts by column name: itertuples() renames columns that are not
+    # identifiers ("Strategy Net" became "_2"), and reading them back by name
+    # raised KeyError on every Monthly render (production, 1 Oct 2026).
     lookup = {
-        (int(row.Year), int(row.MonthNo)): row
-        for row in frame.itertuples(index=False)
+        (int(row["Year"]), int(row["MonthNo"])): row
+        for row in frame.to_dict("records")
     }
     live = pd.Period(live_period, freq="M") if live_period else None
     month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -55,8 +58,8 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
     def cell(row, live_cell=False):
         if row is None:
             return '<div class="pcg-cell pcg-empty">—</div>'
-        strategy = float(row._asdict()["Strategy Net"]) if pd.notna(row._asdict()["Strategy Net"]) else None
-        benchmark = float(row._asdict()["Benchmark"]) if pd.notna(row._asdict()["Benchmark"]) else None
+        strategy = float(row["Strategy Net"]) if pd.notna(row["Strategy Net"]) else None
+        benchmark = float(row["Benchmark"]) if pd.notna(row["Benchmark"]) else None
         gap = strategy - benchmark if strategy is not None and benchmark is not None else None
         badge = '<span class="pcg-mtd">MTD</span>' if live_cell else ""
         return (
@@ -69,8 +72,8 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
         )
 
     def aggregate(periods):
-        s = [lookup[(p.year, p.month)]._asdict()["Strategy Net"] for p in periods if (p.year, p.month) in lookup]
-        b = [lookup[(p.year, p.month)]._asdict()["Benchmark"] for p in periods if (p.year, p.month) in lookup]
+        s = [lookup[(p.year, p.month)]["Strategy Net"] for p in periods if (p.year, p.month) in lookup]
+        b = [lookup[(p.year, p.month)]["Benchmark"] for p in periods if (p.year, p.month) in lookup]
         return _compound_returns(s), _compound_returns(b)
 
     years = sorted(frame["Year"].unique())
@@ -79,7 +82,7 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
         cells = []
         for month_no in range(1, 13):
             row = lookup.get((int(year), month_no))
-            is_live = live is not None and row is not None and row._asdict()["Period"] == live
+            is_live = live is not None and row is not None and row["Period"] == live
             cells.append(cell(row, is_live))
         cy_s, cy_b = aggregate([pd.Period(f"{year}-{m:02d}", freq="M") for m in range(1, 13)])
         fy_periods = [
@@ -424,8 +427,6 @@ def render_portfolio_view(
     closed_valid = closed[closed["Return %"].notna()] if not closed.empty and "Return %" in closed.columns else closed
     wins = int((closed_valid["Return %"] > 0).sum()) if not closed_valid.empty else 0
     losses = int((closed_valid["Return %"] < 0).sum()) if not closed_valid.empty else 0
-    historical_return = float(equity.iloc[-1] / capital - 1.0) if not equity.empty else np.nan
-    benchmark_return = float(benchmark.iloc[-1] / capital - 1.0) if not benchmark.empty else np.nan
 
     head = kit.page_head(
         "Portfolio",
@@ -573,13 +574,17 @@ def render_portfolio_view(
                     benchmark.tolist() if not benchmark.empty else None,
                     key="portfolio_equity_curve_v2",
                 )
+                # This month's figures: the curve's own legend already carries
+                # the since-inception values (owner, 1 Oct 2026).
+                mtd_label = pd.Period(mtd_period, freq="M").strftime("%b MTD") if mtd_period else "MTD"
+                mtd_gap = strategy_mtd - benchmark_mtd if np.isfinite(strategy_mtd) and np.isfinite(benchmark_mtd) else np.nan
                 a, b, c, d = st.columns(4)
                 with a:
-                    st.metric("Ending value", f"₹{equity.iloc[-1]:,.0f}")
+                    st.metric(f"{mtd_label} · Strategy", f"{strategy_mtd:+.1%}" if np.isfinite(strategy_mtd) else "—")
                 with b:
-                    st.metric("Since inception", f"{historical_return:+.1%}" if np.isfinite(historical_return) else "—")
+                    st.metric(f"{mtd_label} · Nifty 500", f"{benchmark_mtd:+.1%}" if np.isfinite(benchmark_mtd) else "—")
                 with c:
-                    st.metric("Benchmark", f"{benchmark_return:+.1%}" if np.isfinite(benchmark_return) else "—")
+                    st.metric("MTD gap", f"{mtd_gap:+.1%}" if np.isfinite(mtd_gap) else "—")
                 with d:
                     st.metric("Max drawdown", f"{history['max_drawdown']:.1%}" if np.isfinite(history["max_drawdown"]) else "—")
                 st.caption("Completed months come from the recorded performance history; the final point is the current month-to-date mark.")
