@@ -159,7 +159,7 @@ def drawdown_chart(labels: list[str], drawdown: list[float], key: str = "drawdow
     y = alt.Y(
         "drawdown:Q",
         scale=alt.Scale(domain=[min(0.0, float(data["drawdown"].min())), 0.0], nice=False),
-        axis=alt.Axis(title=None, format=".1f", labelColor="#5E6878", gridColor="#EDEFF3",
+        axis=alt.Axis(title="%", format=".1f", labelColor="#5E6878", gridColor="#EDEFF3",
                       domain=False, ticks=False),
     )
     area = alt.Chart(data).mark_area(opacity=0.16).encode(x=x, y=y)
@@ -167,7 +167,7 @@ def drawdown_chart(labels: list[str], drawdown: list[float], key: str = "drawdow
         x=x, y=y,
         tooltip=[
             alt.Tooltip("label:N", title="When"),
-            alt.Tooltip("drawdown:Q", title="Drawdown", format=".1f"),
+            alt.Tooltip("drawdown:Q", title="Drawdown (%)", format=".1f"),
         ],
     )
     zero = alt.Chart(pd.DataFrame({"y": [0.0]})).mark_rule(
