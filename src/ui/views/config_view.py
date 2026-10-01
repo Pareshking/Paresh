@@ -34,7 +34,7 @@ from src.engine.extra_universe import (
 )
 from src.loaders.extra_universe_loader import membership_summary
 from src.loaders.indices_loader import get_sync_metadata, sync_official_nse_indices
-from src.ui.components import gap_count, render_data_quality_footer
+from src.ui.components import age_phrase, data_freshness, gap_count, render_data_quality_footer
 from src.ui.widget_state import forget, remember, resolve
 from src.ui.theme import render_saas_table
 
@@ -111,6 +111,23 @@ def _spike_sessions_dialog(rows: list[dict]) -> None:
     render_saas_table(pd.DataFrame(rows))
 
 
+def _freshness_table() -> None:
+    """Every source's latest date and whether it is current: the one place to check."""
+    try:
+        items = data_freshness()
+    except Exception:
+        items = []
+    if not items:
+        return
+    rows = [{
+        "Source": str(i["label"]),
+        "Latest": str(i["as_of"]) + (f" · {i['coverage']}" if i.get("coverage") else ""),
+        "Age": age_phrase(i).strip(" ·()") or "current",
+        "Status": "Behind" if i["stale"] else "Current",
+    } for i in items]
+    render_saas_table(pd.DataFrame(rows))
+
+
 def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> None:
     last_sync = sync_meta.get("last_synced") or "Never synced"
     sync_ok = sync_meta.get("last_attempt_ok")
@@ -124,6 +141,7 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
         f'<div><span>In the index files</span><b>{tot_stk} stocks</b></div>'
         f'<div><span>Ranked now</span><b>{engine_stocks} stocks</b></div></div>'
     )
+    _freshness_table()
     if sync_ok is False:
         kit.note(
             f"The last sync ({last_attempt or 'time unknown'}) did not complete.",

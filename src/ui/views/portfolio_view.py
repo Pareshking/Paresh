@@ -156,10 +156,27 @@ def build_portfolio_tracker(
         return float(prior.iloc[-1]) if not prior.empty else float(capital)
 
     out["Capital at Entry (₹)"] = entry.map(_capital_before_fill).astype(float)
-    out["Shares"] = (
-        (out["Capital at Entry (₹)"] * out["Entry Weight %"] / 100.0)
-        / out["Entry Price"].replace(0, np.nan)
-    ).fillna(0.0).apply(np.floor).astype(int)
+    # The model trades the whole book back to its target weights at every rebalance, so the
+    # shares held today are those the latest fill bought: account value before that fill x
+    # target weight / price at that fill. Sizing a retained name from its first entry would
+    # let winners outgrow the account (holdings above 100% of it, negative cash).
+    fill = pd.to_datetime(book.attrs.get("fill_date"), errors="coerce")
+    fill_px = pd.Series(np.nan, index=out.index)
+    if pd.notna(fill) and prices is not None and not prices.empty:
+        hist = prices.reindex(columns=out["Symbol"].tolist()).ffill().loc[:fill]
+        if not hist.empty:
+            fill_px = out["Symbol"].map(pd.to_numeric(hist.iloc[-1], errors="coerce"))
+    if fill_px.notna().any():
+        base = _capital_before_fill(fill)
+        size_px = fill_px.where(fill_px.notna(), out["Entry Price"])
+        out["Shares"] = (
+            (base * out["Target Weight %"] / 100.0) / size_px.replace(0, np.nan)
+        ).fillna(0.0).apply(np.floor).astype(int)
+    else:
+        out["Shares"] = (
+            (out["Capital at Entry (₹)"] * out["Entry Weight %"] / 100.0)
+            / out["Entry Price"].replace(0, np.nan)
+        ).fillna(0.0).apply(np.floor).astype(int)
     out["Invested Value (₹)"] = (out["Shares"] * out["Entry Price"]).round(0)
     out["Current Value (₹)"] = (out["Shares"] * out["Current Price"]).round(0)
     out["P&L (₹)"] = (out["Current Value (₹)"] - out["Invested Value (₹)"]).round(0)
@@ -375,6 +392,7 @@ def render_portfolio_view(
 
     meta = record.get("live_meta", {}) or {}
     book.attrs["as_of"] = meta.get("as_of")
+    book.attrs["fill_date"] = meta.get("fill_date")
 
     try:
         ledger = load_ledger(ledger_path(system), inception(system))

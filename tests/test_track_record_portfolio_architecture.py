@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -490,3 +491,15 @@ def test_portfolio_positions_size_from_equity_before_each_fill():
     assert out.loc["BBB", "Shares"] == 1_050
     assert out.loc["AAA", "Weight %"] == pytest.approx(240_000 / 2_100_000 * 100)
     assert out.loc["BBB", "Weight %"] == pytest.approx(231_000 / 2_100_000 * 100)
+
+
+def test_portfolio_shares_follow_the_latest_rebalance_so_holdings_never_exceed_the_account():
+    book = _book()
+    book.attrs["fill_date"] = "2026-03-02"
+    syms = book["Symbol"].tolist()
+    idx = pd.to_datetime(["2026-03-02", "2026-03-03"])
+    prices = pd.DataFrame({s: [100.0, 300.0] for s in syms}, index=idx)
+    equity = pd.Series([1_000_000.0], index=[pd.Timestamp("2026-02-28")])
+    out = build_portfolio_tracker(book, _ranking(), 1_000_000, prices, equity_curve=equity)
+    expect = (1_000_000 * out["Target Weight %"] / 100.0 / 100.0).apply(np.floor)
+    assert out["Shares"].tolist() == expect.astype(int).tolist()

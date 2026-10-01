@@ -65,8 +65,6 @@ whole window and the app labels which.
 
 ## Freshness in the app
 
-The header pill shows the price date. Configuration lists which constituent
-lists are on disk and how fresh they are, and has the manual refresh (rate
-limited to one global refresh per cooldown). A single compact table of every
-dataset's latest date against its expected cadence (the Writer column above)
-is still to do; it replaces the long Data section in Configuration (TODO U5).
+The header pill shows the price date. Configuration → Universe has a table of
+every source's latest date, how many trading days behind it is, and whether it
+is current, plus the manual refresh (one global refresh per cooldown).
