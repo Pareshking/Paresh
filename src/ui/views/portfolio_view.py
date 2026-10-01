@@ -351,17 +351,33 @@ def render_portfolio_view(
     )
     with kit.card("Current exposure", "portfolio_exposure", largest_industry):
         st.html(kit.bar_list([
-            (str(row["Sector / Industry"]), float(row["Weight"]), f"{row['Weight']:.1f}% · {int(row['Holdings'])}", False)
+            (str(row["Sector / Industry"]), float(row["Weight"]), f"{row['Weight']:.1f}% · {int(row['Holdings'])} holdings", False)
             for _, row in sector.iterrows()
         ], scale=max(float(sector["Weight"].max()) if not sector.empty else 0.0, 1.0)))
 
-    history_tab = st.segmented_control(
+    history_group = st.segmented_control(
         "Portfolio history",
-        ["Overview", "Equity", "Trades", "Rebalances", "Monthly", "Drawdown"],
-        default="Overview",
-        key="portfolio_history_view_v2",
+        ["Performance", "Activity"],
+        default="Performance",
+        key="portfolio_history_group_v3",
         label_visibility="collapsed",
-    ) or "Overview"
+    ) or "Performance"
+    if history_group == "Performance":
+        history_tab = st.segmented_control(
+            "Performance view",
+            ["Overview", "Equity", "Drawdown", "Monthly"],
+            default="Overview",
+            key="portfolio_history_performance_v3",
+            label_visibility="collapsed",
+        ) or "Overview"
+    else:
+        history_tab = st.segmented_control(
+            "Activity view",
+            ["Trades", "Rebalances"],
+            default="Trades",
+            key="portfolio_history_activity_v3",
+            label_visibility="collapsed",
+        ) or "Trades"
 
     with kit.card("Portfolio history", "portfolio_history_header", "performance history · current month marked to latest close"):
         st.caption(
@@ -418,15 +434,6 @@ def render_portfolio_view(
                     st.metric("Max drawdown", f"{history['max_drawdown']:.1%}" if np.isfinite(history["max_drawdown"]) else "—")
                 st.caption("Completed months come from the recorded performance history; the final point is the current month-to-date mark.")
 
-    if history_tab == "Overview":
-        recent = tradebook.tail(20).copy() if not tradebook.empty else pd.DataFrame()
-        with kit.card("Latest portfolio activity", "portfolio_recent_activity", "most recent canonical BUY / SELL / HOLD records"):
-            if recent.empty:
-                st.info("No rebalance activity is available yet.")
-            else:
-                cols = [c for c in ["Period", "Action", "Symbol", "Price", "Weight %", "Return %", "Reason / Signal"] if c in recent.columns]
-                render_saas_table(recent[cols], max_height=360)
-
     elif history_tab == "Trades":
         with kit.card("Past trades", "portfolio_trades", "closed trades plus positions still open at the historical window close"):
             if trades.empty:
@@ -440,7 +447,7 @@ def render_portfolio_view(
                     tv = tv[tv["Return %"] < 0]
                 elif outcome == "Still open":
                     tv = tv[tv["Status"] == "Open"]
-                cols = [c for c in ["Month", "Symbol", "Entry Date", "Entry Price", "Exit Date", "Exit Price", "Return %", "Holding (Days)", "Reason for Exit", "Status"] if c in tv.columns]
+                cols = [c for c in ["Symbol", "Status", "Entry Date", "Entry Price", "Exit Date", "Exit Price", "Return %", "Holding (Days)", "Reason for Exit"] if c in tv.columns]
                 render_saas_table(tv[cols], max_height=600)
                 st.caption(f"{len(closed_valid)} closed trades · {wins} winners · {losses} losers")
                 st.download_button("Export past trades CSV", tv[cols].to_csv(index=False).encode(), f"portfolio_trades_{ist_now():%Y%m%d}.csv", "text/csv", key="dl_port_trades_csv_v2")
@@ -458,7 +465,7 @@ def render_portfolio_view(
                     rv = rv[rv["Action"].str.contains("SELL", na=False)]
                 elif action == "Hold":
                     rv = rv[rv["Action"].str.contains("HOLD", na=False)]
-                cols = [c for c in ["Period", "Action", "Symbol", "Price", "Return %", "Weight %", "Reason / Signal"] if c in rv.columns]
+                cols = [c for c in ["Period", "Action", "Symbol", "Price", "Weight %", "Return %", "Reason / Signal"] if c in rv.columns]
                 render_saas_table(rv[cols], max_height=600)
                 st.download_button("Export rebalance CSV", rv[cols].to_csv(index=False).encode(), f"portfolio_rebalances_{ist_now():%Y%m%d}.csv", "text/csv", key="dl_port_rebalance_csv_v2")
 
@@ -467,7 +474,7 @@ def render_portfolio_view(
             if monthly.empty:
                 st.info("No monthly history is available yet.")
             else:
-                cols = [c for c in ["Month", "Strategy Net", "Benchmark", "Alpha vs Benchmark", "Origin", "Universe", "Frozen On", "Priced From"] if c in monthly.columns]
+                cols = [c for c in ["Month", "Strategy Net", "Benchmark", "Alpha vs Benchmark", "Origin", "Priced From", "Frozen On", "Universe"] if c in monthly.columns]
                 render_saas_table(monthly[cols], max_height=600)
                 st.download_button("Export monthly performance CSV", monthly[cols].to_csv(index=False).encode(), f"portfolio_monthly_{ist_now():%Y%m%d}.csv", "text/csv", key="dl_port_monthly_csv_v2")
 

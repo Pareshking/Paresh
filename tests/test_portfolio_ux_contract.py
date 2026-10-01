@@ -48,3 +48,11 @@ def test_portfolio_table_variant_is_scoped_to_portfolio():
     assert 'variant: str = "default"' in source
     assert 'portfolio_class = "portfolio" if variant == "portfolio" else ""' in source
     assert ".saas-table-wrapper.portfolio" in source
+
+
+def test_portfolio_history_is_grouped_into_performance_and_activity():
+    source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
+    assert '["Performance", "Activity"]' in source
+    assert '["Overview", "Equity", "Drawdown", "Monthly"]' in source
+    assert '["Trades", "Rebalances"]' in source
+    assert 'Latest portfolio activity' not in source
