@@ -425,8 +425,6 @@ def render_portfolio_view(
     closed_valid = closed[closed["Return %"].notna()] if not closed.empty and "Return %" in closed.columns else closed
     wins = int((closed_valid["Return %"] > 0).sum()) if not closed_valid.empty else 0
     losses = int((closed_valid["Return %"] < 0).sum()) if not closed_valid.empty else 0
-    historical_return = float(equity.iloc[-1] / capital - 1.0) if not equity.empty else np.nan
-    benchmark_return = float(benchmark.iloc[-1] / capital - 1.0) if not benchmark.empty else np.nan
 
     head = kit.page_head(
         "Portfolio",
