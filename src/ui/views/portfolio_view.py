@@ -42,8 +42,8 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
     frame["Strategy Net"] = pd.to_numeric(frame["Strategy Net"], errors="coerce")
     frame["Benchmark"] = pd.to_numeric(frame["Benchmark"], errors="coerce")
     lookup = {
-        (int(row.Year), int(row.MonthNo)): row
-        for row in frame.itertuples(index=False)
+        (int(row["Year"]), int(row["MonthNo"])): row
+        for row in frame.to_dict("records")
     }
     live = pd.Period(live_period, freq="M") if live_period else None
     month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -55,8 +55,10 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
     def cell(row, live_cell=False):
         if row is None:
             return '<div class="pcg-cell pcg-empty">—</div>'
-        strategy = float(row._asdict()["Strategy Net"]) if pd.notna(row._asdict()["Strategy Net"]) else None
-        benchmark = float(row._asdict()["Benchmark"]) if pd.notna(row._asdict()["Benchmark"]) else None
+        strategy_raw = row.get("Strategy Net")
+        benchmark_raw = row.get("Benchmark")
+        strategy = float(strategy_raw) if pd.notna(strategy_raw) else None
+        benchmark = float(benchmark_raw) if pd.notna(benchmark_raw) else None
         gap = strategy - benchmark if strategy is not None and benchmark is not None else None
         badge = '<span class="pcg-mtd">MTD</span>' if live_cell else ""
         return (
@@ -64,13 +66,13 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
             f'<div class="pcg-top">{badge}</div>'
             f'<div class="pcg-s">{fmt(strategy)}</div>'
             f'<div class="pcg-b">{fmt(benchmark)}</div>'
-            f'<div class="pcg-g">Δ {fmt(gap)}</div>'
+            f'<div class="pcg-g">Alpha {fmt(gap)}</div>'
             f'</div>'
         )
 
     def aggregate(periods):
-        s = [lookup[(p.year, p.month)]._asdict()["Strategy Net"] for p in periods if (p.year, p.month) in lookup]
-        b = [lookup[(p.year, p.month)]._asdict()["Benchmark"] for p in periods if (p.year, p.month) in lookup]
+        s = [lookup[(p.year, p.month)]["Strategy Net"] for p in periods if (p.year, p.month) in lookup]
+        b = [lookup[(p.year, p.month)]["Benchmark"] for p in periods if (p.year, p.month) in lookup]
         return _compound_returns(s), _compound_returns(b)
 
     years = sorted(frame["Year"].unique())
@@ -79,7 +81,7 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
         cells = []
         for month_no in range(1, 13):
             row = lookup.get((int(year), month_no))
-            is_live = live is not None and row is not None and row._asdict()["Period"] == live
+            is_live = live is not None and row is not None and row["Period"] == live
             cells.append(cell(row, is_live))
         cy_s, cy_b = aggregate([pd.Period(f"{year}-{m:02d}", freq="M") for m in range(1, 13)])
         fy_periods = [
@@ -101,7 +103,7 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
                 '<div class="pcg-cell">'
                 f'<div class="pcg-s">{fmt(s)}</div>'
                 f'<div class="pcg-b">{fmt(b)}</div>'
-                f'<div class="pcg-g">Δ {fmt(gap)}</div>'
+                f'<div class="pcg-g">Alpha {fmt(gap)}</div>'
                 '</div>'
             )
         rows.append(
@@ -313,18 +315,17 @@ def build_portfolio_history(
     live_mtd["strategy"] = live_s
     live_mtd["benchmark"] = live_b
     live_period_raw = live_meta.get("mtd_period")
-    if pd.notna(live_s) and live_period_raw:
+    if live_period_raw:
         live_period = pd.Period(live_period_raw, freq="M")
         live_period_key = str(live_period)
         live_end = live_period.end_time
-        if live_end > equity.index[-1] if not equity.empty else True:
+        if pd.notna(live_s) and (equity.empty or live_end > equity.index[-1]):
             base_value = float(equity.iloc[-1]) if not equity.empty else float(capital)
-            base_benchmark = float(benchmark.iloc[-1]) if not benchmark.empty else float(capital)
             equity = pd.concat([equity, pd.Series([base_value * (1.0 + float(live_s))], index=[live_end])])
-            if pd.notna(live_b):
-                benchmark = pd.concat([benchmark, pd.Series([base_benchmark * (1.0 + float(live_b))], index=[live_end])])
-            if pd.notna(live_s) or pd.notna(live_b):
-                monthly_grid_rows.append({
+        if pd.notna(live_b) and (benchmark.empty or live_end > benchmark.index[-1]):
+            base_benchmark = float(benchmark.iloc[-1]) if not benchmark.empty else float(capital)
+            benchmark = pd.concat([benchmark, pd.Series([base_benchmark * (1.0 + float(live_b))], index=[live_end])])
+        monthly_grid_rows.append({
                     "Month": live_period.strftime("%b %Y"),
                     "Period": str(live_period),
                     "Strategy Net": float(live_s) if pd.notna(live_s) else np.nan,
@@ -552,7 +553,7 @@ def render_portfolio_view(
                 with c:
                     st.metric(f"{mtd_label} · Nifty 500", f"{benchmark_mtd:+.1%}" if np.isfinite(benchmark_mtd) else "—")
                 with d:
-                    st.metric("MTD gap", f"{mtd_gap:+.1%}" if np.isfinite(mtd_gap) else "—")
+                    st.metric("MTD Alpha", f"{mtd_gap:+.1%}" if np.isfinite(mtd_gap) else "—")
                 st.caption(
                     "Since inception compounds the frozen record through the latest completed month and the current live month-to-date return. "
                     "Current-book P&L is the unrealised return on today's holdings, so it can differ."
@@ -623,7 +624,7 @@ def render_portfolio_view(
         with kit.card(
             "Calendar grid",
             "portfolio_monthly",
-            "Strategy, Nifty 500 and the gap, per year",
+            "Strategy, Nifty 500 and Alpha, per year",
         ):
             if monthly_grid.empty:
                 st.info("No monthly history is available yet.")
