@@ -281,7 +281,7 @@ def render_portfolio_view(
 
     head = kit.page_head(
         "Portfolio",
-        "Your ₹20 lakh model portfolio — current positions first, then the complete frozen performance and trade history.",
+        "₹20 lakh model portfolio · current holdings, exposure and performance.",
         actions=True,
     )
     with head:
@@ -293,22 +293,39 @@ def render_portfolio_view(
             key="dl_port_csv_v2",
         )
 
-    # Header detail is intentionally minimal; readings and the Current book table carry the accounting data.
+    # Primary readings answer the three questions users need first:
+    # how much is here, how is the current book doing, and what happened today.
     kit.readings([
         kit.Reading("Portfolio value", f"₹{value:,.0f}", "₹20 lakh starting capital"),
-        kit.Reading("Invested", f"₹{invested:,.0f}", f"{exposure:.1f}% exposure"),
-        kit.Reading("Cash", f"₹{cash:,.0f}", f"{100.0 - exposure:.1f}% of value"),
-        kit.Reading("Total P&L", f"₹{pnl:+,.0f}", "current book · entry → latest close", "up" if pnl >= 0 else "down"),
-        kit.Reading("P&L %", "—" if not np.isfinite(pnl_pct) else f"{pnl_pct:+.1f}%", "current-book unrealised", "" if not np.isfinite(pnl_pct) else ("up" if pnl >= 0 else "down")),
-        kit.Reading("Day P&L", f"₹{day_pnl:+,.0f} ({day_pnl_pct:+.1f}%)" if np.isfinite(day_pnl_pct) else f"₹{day_pnl:+,.0f}", "latest close vs previous close", "up" if day_pnl >= 0 else "down"),
-    ], "Live portfolio")
+        kit.Reading(
+            "Current-book P&L",
+            "—" if not np.isfinite(pnl_pct) else f"{pnl_pct:+.1f}%",
+            f"₹{pnl:+,.0f} · unrealised",
+            "" if not np.isfinite(pnl_pct) else ("up" if pnl >= 0 else "down"),
+        ),
+        kit.Reading(
+            "Day P&L",
+            f"₹{day_pnl:+,.0f} ({day_pnl_pct:+.1f}%)" if np.isfinite(day_pnl_pct) else f"₹{day_pnl:+,.0f}",
+            "latest close vs previous close",
+            "up" if day_pnl >= 0 else "down",
+        ),
+        kit.Reading("Cash", f"₹{cash:,.0f}", f"{100.0 - exposure:.1f}% of portfolio"),
+    ], "Portfolio snapshot")
+    as_of_text = meta.get("as_of") or "latest available close"
+    as_of_display = as_of_text if isinstance(as_of_text, str) else pd.Timestamp(as_of_text).strftime("%d %b %Y")
+    st.caption(
+        f"Marked {as_of_display} · {n_holdings} positions · "
+        f"{exposure:.1f}% invested · ₹{invested:,.0f} invested"
+    )
 
+    # One canonical table; the columns users scan first come first.
     display_cols = [
-        "Symbol", "Company", "Sector / Industry", "Current Price", "Shares",
-        "Current Value (₹)", "P&L (₹)", "P&L %", "Weight %", "Target Weight %",
-        "Weight Drift %", "Day P&L (₹)", "Day P&L %", "Entry Date", "Entry Price",
-        "Invested Value (₹)", "Previous Value (₹)", "Holding Days",
-        "Rank at Rebalance", "Rank at Entry", "Current Rank",
+        "Symbol", "Company", "Sector / Industry", "Current Price",
+        "P&L (₹)", "P&L %", "Weight %", "Target Weight %",
+        "Weight Drift %", "Day P&L (₹)",
+        "Current Value (₹)", "Shares", "Day P&L %", "Entry Date",
+        "Entry Price", "Invested Value (₹)", "Previous Value (₹)",
+        "Holding Days", "Rank at Rebalance", "Rank at Entry", "Current Rank",
         "1M Return", "3M Return", "6M Return", "12M Return", "Status",
     ]
     current_view = table[[c for c in display_cols if c in table.columns]].copy()
@@ -321,14 +338,18 @@ def render_portfolio_view(
     with kit.card(
         "Current book",
         "portfolio_current",
-        f"{n_holdings} positions · accounting + position detail · horizontal scroll on small screens",
+        f"{n_holdings} positions · primary metrics first · swipe horizontally for detail",
     ):
-        render_saas_table(current_view, max_height=620)
+        render_saas_table(current_view, max_height=620, variant="portfolio")
 
     sector = table.groupby("Sector / Industry", dropna=False).agg(
         Weight=("Weight %", "sum"), Holdings=("Symbol", "count")
     ).sort_values("Weight", ascending=False).reset_index()
-    with kit.card("Current exposure", "portfolio_exposure", "portfolio weight by NSE industry"):
+    largest_industry = (
+        f"Largest industry exposure · {sector.iloc[0]['Weight']:.1f}%"
+        if not sector.empty else "NSE industry exposure"
+    )
+    with kit.card("Current exposure", "portfolio_exposure", largest_industry):
         st.html(kit.bar_list([
             (str(row["Sector / Industry"]), float(row["Weight"]), f"{row['Weight']:.1f}% · {int(row['Holdings'])}", False)
             for _, row in sector.iterrows()
@@ -342,17 +363,17 @@ def render_portfolio_view(
         label_visibility="collapsed",
     ) or "Overview"
 
-    with kit.card("Portfolio history", "portfolio_history_header", "historical performance is the frozen Track Record; it never changes the current book"):
+    with kit.card("Portfolio history", "portfolio_history_header", "performance history · current month marked to latest close"):
         st.caption(
-            f"Portfolio inception · {inception(system).strftime('%b %Y')}  · "
-            f"₹{capital:,.0f} fixed capital  · {len(monthly)} completed recorded months"
+            f"Inception · {inception(system).strftime('%b %Y')}  · "
+            f"₹{capital:,.0f} starting capital  · {len(monthly)} completed months"
         )
 
     if history_tab == "Overview":
         with kit.card(
             "Performance overview",
             "portfolio_performance_overview",
-            "since-inception performance · frozen months + live month-to-date",
+            "since inception · completed months plus the current month-to-date mark",
         ):
             if equity.empty:
                 st.info("No completed portfolio history is available yet.")
@@ -375,7 +396,7 @@ def render_portfolio_view(
         with kit.card(
             "Equity curve",
             "portfolio_equity",
-            "₹20 lakh starting point · strategy vs benchmark · frozen months + live MTD",
+            "₹20 lakh starting point · strategy vs benchmark · latest month marked to date",
         ):
             if equity.empty:
                 st.info("No completed portfolio history is available yet.")
@@ -388,14 +409,14 @@ def render_portfolio_view(
                 )
                 a, b, c, d = st.columns(4)
                 with a:
-                    st.metric("Historical ending value", f"₹{equity.iloc[-1]:,.0f}")
+                    st.metric("Ending value", f"₹{equity.iloc[-1]:,.0f}")
                 with b:
                     st.metric("Since inception", f"{historical_return:+.1%}" if np.isfinite(historical_return) else "—")
                 with c:
                     st.metric("Benchmark", f"{benchmark_return:+.1%}" if np.isfinite(benchmark_return) else "—")
                 with d:
                     st.metric("Max drawdown", f"{history['max_drawdown']:.1%}" if np.isfinite(history["max_drawdown"]) else "—")
-                st.caption("Frozen months come from the append-only ledger; the final point is the current live month-to-date mark.")
+                st.caption("Completed months come from the recorded performance history; the final point is the current month-to-date mark.")
 
     if history_tab == "Overview":
         recent = tradebook.tail(20).copy() if not tradebook.empty else pd.DataFrame()
@@ -451,10 +472,10 @@ def render_portfolio_view(
                 st.download_button("Export monthly performance CSV", monthly[cols].to_csv(index=False).encode(), f"portfolio_monthly_{ist_now():%Y%m%d}.csv", "text/csv", key="dl_port_monthly_csv_v2")
 
     elif history_tab == "Drawdown":
-        with kit.card("Drawdown", "portfolio_drawdown", "peak-to-trough decline of the frozen portfolio equity curve"):
+        with kit.card("Drawdown", "portfolio_drawdown", "peak-to-trough decline in portfolio value"):
             if drawdown.empty:
                 st.info("No drawdown history is available yet.")
             else:
                 kit.drawdown_chart([d.strftime("%b %Y") for d in drawdown.index], drawdown.tolist(), key="portfolio_drawdown_curve_v2")
-                st.caption(f"Maximum drawdown including the current live month-to-date point: {history['max_drawdown']:.1%}.")
+                st.caption(f"Maximum drawdown including the current month-to-date point: {history['max_drawdown']:.1%}.")
 

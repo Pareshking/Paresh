@@ -2351,8 +2351,9 @@ _AGGREGATE_MONEY_KEYS = ("VALUE", "CAPITAL", "MCAP", "P&L", "DAY P&L")
 def render_saas_table(
     df: pd.DataFrame,
     max_height: int | None = None,
+    variant: str = "default",
 ) -> None:
-    """Renders a beautiful borderless SaaS table with sticky headers, interactive column sorting, and Geist Mono numerics."""
+    """Render a borderless SaaS table with optional page-specific presentation variants."""
     if df.empty:
         st.info("No data available to display.")
         return
@@ -2407,6 +2408,7 @@ def render_saas_table(
         else:
             headers_html.append(f'<th class="th-right">{_esc(str(col))}</th>')
 
+    portfolio_class = "portfolio" if variant == "portfolio" else ""
     rows_html = []
     # Plain dicts rather than iterrows(): a Series per row is ~3.4x the cost
     # over a large frame and nothing here needs one. Unlike the screener table
@@ -2734,6 +2736,28 @@ body::-webkit-scrollbar,
     overscroll-behavior-x: contain;
     touch-action: pan-x pan-y;
 }}
+
+/* Portfolio table hierarchy: identity first, accounting second, analytics last. */
+.saas-table-wrapper.portfolio .saas-table {{
+    font-size: 12px;
+}}
+.saas-table-wrapper.portfolio .saas-table thead th:nth-child(-n+3) {{
+    background: #EEF0F4;
+}}
+.saas-table-wrapper.portfolio .saas-table tbody td:nth-child(1) {{
+    font-weight: 700;
+}}
+.saas-table-wrapper.portfolio .saas-table tbody td:nth-child(n+4):nth-child(-n+10) {{
+    font-weight: 650;
+}}
+.saas-table-wrapper.portfolio .saas-table tbody td:nth-child(n+11) {{
+    color: #667085;
+}}
+@media (max-width: 640px) {{
+    .saas-table-wrapper.portfolio .saas-table {{
+        font-size: 11px;
+    }}
+}}
 @media (max-width: 640px) {{
     .saas-table {{
         font-size: 11px;
@@ -2812,7 +2836,7 @@ body::-webkit-scrollbar,
 </style>
 </head>
 <body>
-<div class="saas-table-wrapper">
+<div class="saas-table-wrapper {portfolio_class}">
     <table class="saas-table">
         <thead>
             <tr>{"".join(headers_html)}</tr>
