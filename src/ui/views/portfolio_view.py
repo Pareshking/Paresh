@@ -417,7 +417,7 @@ def render_portfolio_view(
             if equity.empty:
                 st.info("No completed portfolio history is available yet.")
             else:
-                kit.growth_chart(
+                kit.equity_chart(
                     [d.strftime("%b %Y") for d in equity.index],
                     equity.tolist(),
                     benchmark.tolist() if not benchmark.empty else None,
