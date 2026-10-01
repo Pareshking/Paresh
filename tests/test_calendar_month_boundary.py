@@ -1,6 +1,7 @@
 """Regression contracts for calendar closure vs latest price availability."""
 
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pandas as pd
@@ -10,7 +11,7 @@ from src.engine.backtester import completed_month_window
 from src.engine.systems import backtest_months
 from src.engine.track_record import INCEPTION, months_to_cover
 
-ROOT = __import__("pathlib").Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[1]
 
 
 IST = ZoneInfo("Asia/Kolkata")
