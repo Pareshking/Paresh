@@ -116,8 +116,8 @@ def test_headers_and_cells_agree(ranked, density):
 def test_full_quant_renders_a_column_for_every_window(ranked, months):
     rank_df, px = ranked
     html = _render(rank_df, px, "Full Quant (35)")
-    assert f">{months}M<" in html
-    assert f"Sharpe {months}M" in html
+    assert f"{months}M Ret" in html
+    assert f"{months}M Sharpe" in html
     assert f"Max DD {months}M" in html
 
 

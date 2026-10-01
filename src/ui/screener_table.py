@@ -39,47 +39,46 @@ INDEX_NAMES = {
 # 3M return under the price.
 PERIOD_WINDOWS = (1, 3, 6, 9, 12)
 _ALL = {
-    "rank": ("#", "num"), "stock": ("Stock", "text"), "price": ("Price", "num"),
-    "d1m": ("Rank Δ 1M", "num"), "d3m": ("Rank Δ 3M", "num"),
-    "mcap": ("Mkt cap (Cr)", "num"),
-    "hi": ("From 52W high", "num"), "ath": ("From ATH", "num"),
-    "ema": ("vs 50 EMA", "num"), "vol": ("Volume", "text"),
-    "stop": ("Stop loss", "num"), "chand": ("Chandelier exit", "num"),
-    "gap": ("Data gap", "text"), "ffill": ("Fill %", "num"),
-    "hz": ("Horizons", "num"), "path": ("12-month path", None),
-    "flt": ("Filters", "num"),
+    "rank": ("Rank", "num"), "stock": ("Symbol", "text"), "price": ("CMP", "num"),
+    "d1m": ("1M Δ", "num"), "d3m": ("3M Δ", "num"),
     "idx": ("Index", "text"), "ind": ("Industry", "text"),
-    "above": ("> 50 EMA", "num"), "near": ("Near 52W", "num"),
-    "athf": ("At ATH", "num"), "spark": ("60D trend", None),
+    "mcap": ("MCAP (Cr)", "num"),
+    "hi": ("% 52W HI", "num"), "ath": ("% ATH", "num"), "ema": ("% 50 EMA", "num"),
+    "vol": ("Volume", "text"),
+    "above": ("> 50 EMA", "num"), "near": ("Near 52W", "num"), "athf": ("At ATH", "num"),
+    "stop": ("Stop Loss", "num"), "chand": ("Chand Exit", "num"),
+    "gap": ("Gap", "text"), "ffill": ("FFill %", "num"), "hz": ("Horizons", "num"),
+    "spark": ("60D Spark", None),
 }
 for _w in PERIOD_WINDOWS:
-    _ALL[f"r{_w}"] = (f"{_w}M", "num")
-    _ALL[f"sh{_w}"] = (f"Sharpe {_w}M", "num")
+    _ALL[f"r{_w}"] = (f"{_w}M Ret", "num")
+    _ALL[f"sh{_w}"] = (f"{_w}M Sharpe", "num")
     _ALL[f"dd{_w}"] = (f"Max DD {_w}M", "num")
 
-_EXEC_KEYS = ("rank", "stock", "price", "d1m", "r3", "r12", "path", "flt")
-# Sharpe is a quant-view statistic (not comparable like a return), and the
-# drawdown shown outside it is the 3M one; Quant carries every window.
-_CORE_KEYS = ("rank", "stock", "price", "d1m", "r1", "r3", "r6", "r12",
-              "dd3", "hi", "path", "flt")
-# Full Quant is the master: every column the research view has. Executive and
-# Core are this set with columns hidden, plus the combined Filters column.
+# Full Quant is the master: the research view's own columns, in its own order.
+# Executive and Core are this set with columns hidden, nothing else. Sharpe is
+# a quant-view statistic (not comparable like a return) and the drawdown shown
+# outside Quant is the 3M one.
 _QUANT_KEYS = (
     ("rank", "stock", "price", "d1m", "d3m", "idx", "ind", "mcap")
     + tuple(f"{k}{w}" for w in PERIOD_WINDOWS for k in ("r", "sh", "dd"))
-    + ("hi", "ath", "ema", "vol", "above", "near", "athf", "flt", "stop", "chand",
-       "gap", "ffill", "hz", "path", "spark")
+    + ("hi", "ath", "ema", "vol", "above", "near", "athf", "stop", "chand",
+       "gap", "ffill", "hz", "spark")
 )
-# Group labels over the Quant columns, in order.
+_CORE_KEYS = ("rank", "stock", "price", "d1m", "d3m", "idx", "ind", "mcap",
+              "r1", "r3", "r6", "r12", "dd3", "hi", "ema", "vol", "above", "near", "spark")
+_EXEC_KEYS = ("rank", "stock", "price", "d1m", "idx", "ind", "r3", "r12", "dd3",
+              "hi", "ema", "above", "near", "spark")
+# Group labels over the columns, in order.
 _QUANT_GROUPS = (
     ("Identity", ("rank", "stock", "price")),
     ("Rank dynamics", ("d1m", "d3m")),
     ("Classification", ("idx", "ind", "mcap")),
     *((f"{w}M factor momentum", (f"r{w}", f"sh{w}", f"dd{w}")) for w in PERIOD_WINDOWS),
-    ("Technicals & filters", ("hi", "ath", "ema", "vol", "above", "near", "athf", "flt")),
+    ("Technicals & filters", ("hi", "ath", "ema", "vol", "above", "near", "athf")),
     ("Risk & exits", ("stop", "chand")),
     ("Data health", ("gap", "ffill", "hz")),
-    ("Trend", ("path", "spark")),
+    ("Trend", ("spark",)),
 )
 _RISK_KEYS = ("stop", "chand")
 # A ranking built from closing prices carries no ATR, so those columns would be
@@ -145,8 +144,7 @@ def _pct_cell(v: float | None, cls_extra: str = "") -> tuple[str, str]:
     return f'<td class="n {cls} {cls_extra}" data-v="{v:.6f}">{txt}</td>', txt
 
 
-def _row_html(row: dict, cols: list, paths: dict, paths60: dict | None = None) -> str:
-    paths60 = paths60 or {}
+def _row_html(row: dict, cols: list, paths: dict) -> str:
     sym = str(row.get("Symbol", ""))
     sym_s = _esc(sym)
     name = str(row.get("Company Name") or "").strip()
@@ -165,13 +163,13 @@ def _row_html(row: dict, cols: list, paths: dict, paths60: dict | None = None) -
     cells["stock"] = (
         f'<td class="c-stock" data-v="{sym_s}"><a href="{stock_href(sym)}" '
         f'data-stock="{sym_s}" title="Open {sym_s}"><span class="sym">{sym_s}</span>'
-        f'<span class="sub">{_esc(sub)}</span></a></td>'
+        f'{f"<span class=sub>{_esc(sub)}</span>" if "ind" not in {c[0] for c in cols} else ""}</a></td>'
     )
     r3_txt = "—" if r3 is None else f"{'+' if r3 > 0 else '−' if r3 < 0 else ''}{abs(r3) * 100:.1f}%"
     r3_cls = "" if r3 is None else ("pos" if r3 > 0 else "neg" if r3 < 0 else "")
     cells["price"] = (
         f'<td class="n c-price" data-v="{cmp_v if cmp_v is not None else ""}">'
-        f'{"₹" + format(cmp_v, ",.2f") if cmp_v is not None else "—"}'
+        f'{"₹" + format(cmp_v, ",.0f") if cmp_v is not None else "—"}'
         f'<span class="m-only {r3_cls}">{r3_txt} 3M</span></td>'
     )
     for key, col in (("d1m", "Rank Δ 1M"), ("d3m", "Rank Δ 3M")):
@@ -179,7 +177,7 @@ def _row_html(row: dict, cols: list, paths: dict, paths60: dict | None = None) -
         if d is None:
             cells[key] = '<td class="n" data-v="">—</td>'
         else:
-            chip = ("up", f"▲ {int(d)}") if d > 0 else ("down", f"▼ {abs(int(d))}") if d < 0 else ("flat", "—")
+            chip = ("up", f"▲ {int(d)}") if d > 0 else ("down", f"▼ {abs(int(d))}") if d < 0 else ("flat", "— 0")
             cells[key] = f'<td class="n" data-v="{d}"><span class="chip {chip[0]}">{chip[1]}</span></td>'
     mc = _num(row.get("Market Cap (Cr)"))
     cells["mcap"] = (f'<td class="n" data-v="{"" if mc is None else mc}">'
@@ -187,7 +185,7 @@ def _row_html(row: dict, cols: list, paths: dict, paths60: dict | None = None) -
     for w in PERIOD_WINDOWS:
         cells[f"r{w}"] = _pct_cell(_num(row.get(f"{w}M Return")))[0]
         sh = _num(row.get(f"{w}M Sharpe"))
-        cells[f"sh{w}"] = (f'<td class="n" data-v="{"" if sh is None else sh}">'
+        cells[f"sh{w}"] = (f'<td class="n sharpe" data-v="{"" if sh is None else sh}">'
                            f'{"—" if sh is None else f"{sh:.2f}"}</td>')
         dd = _num(row.get(f"Max DD {w}M"))
         cells[f"dd{w}"] = (f'<td class="n neg" data-v="{"" if dd is None else dd}">'
@@ -201,9 +199,8 @@ def _row_html(row: dict, cols: list, paths: dict, paths60: dict | None = None) -
     cells["ema"] = (f'<td class="n {"" if em is None else "pos" if em > 0 else "neg"}" '
                     f'data-v="{"" if em is None else em}">{"—" if em is None else f"{em:+.1f}%"}</td>')
     vol = str(row.get("Volume") or "Normal")
-    vchip = ('<span class="chip up">High</span>' if vol == "High"
-             else '<span class="chip up">Surge</span>' if vol == "Surge"
-             else '<span class="muted">Normal</span>')
+    vchip = ("🔥 High" if vol == "High" else "⚡ Surge" if vol == "Surge"
+             else '<span class="muted">• Normal</span>')
     cells["vol"] = f'<td data-v="{_esc(vol)}">{vchip}</td>'
     for key, col in (("stop", "Stop Loss"), ("chand", "Chand Exit")):
         v = _num(row.get(col))
@@ -224,7 +221,7 @@ def _row_html(row: dict, cols: list, paths: dict, paths60: dict | None = None) -
     cells["hz"] = (f'<td class="n{" muted" if hz is None else "" if hz >= n_w else " neg"}" '
                    f'data-v="{"" if hz is None else hz}">{"—" if hz is None else f"{int(hz)}/{n_w}"}</td>')
     tag = str(row.get("Indices") or "").split(",")[0].strip()
-    idx_html = (f'<span class="tag">{_esc(INDEX_NAMES.get(tag, tag))}</span>' if tag
+    idx_html = (f'<span class="tag">{_esc(tag)}</span>' if tag
                 else '<span class="muted">—</span>')
     cells["idx"] = f'<td data-v="{_esc(tag)}">{idx_html}</td>'
     ind_full = str(row.get("Industry") or "").strip()
@@ -234,34 +231,15 @@ def _row_html(row: dict, cols: list, paths: dict, paths60: dict | None = None) -
         on = is_tick_true(row.get(col))
         cells[key] = f'<td class="c-tick" data-v="{int(on)}">{"🟢" if on else "⚪"}</td>'
     hi = _num(row.get("% High"))
-    if hi is None:
-        cells["hi"] = '<td class="n muted" data-v="">—</td>'
-    elif hi >= -0.005:
-        cells["hi"] = f'<td class="n" data-v="{hi}"><span class="chip up">At high</span></td>'
-    else:
-        # Two decimals under 0.1% so a stock a hair below its high does not
-        # print as "−0.0%".
-        cells["hi"] = f'<td class="n" data-v="{hi}">−{abs(hi):.{2 if abs(hi) < 0.1 else 1}f}%</td>'
+    cells["hi"] = (f'<td class="n" data-v="{"" if hi is None else hi}">'
+                   f'{"—" if hi is None else f"{hi:.1f}%"}</td>')
     poly, up = paths.get(sym, ("", True))
-    poly60, up60 = paths60.get(sym, ("", True))
     cells["spark"] = (
-        f'<td class="c-path"><svg width="88" height="26" viewBox="0 0 88 26" aria-hidden="true">'
-        f'<polyline fill="none" stroke="{"#067647" if up60 else "#B42318"}" stroke-width="1.7" '
-        f'stroke-linejoin="round" stroke-linecap="round" points="{poly60}"/></svg></td>'
-        if poly60 else '<td class="c-path muted">—</td>'
-    )
-    cells["path"] = (
         f'<td class="c-path"><svg width="88" height="26" viewBox="0 0 88 26" aria-hidden="true">'
         f'<polyline fill="none" stroke="{"#067647" if up else "#B42318"}" stroke-width="1.7" '
         f'stroke-linejoin="round" stroke-linecap="round" points="{poly}"/></svg></td>'
         if poly else '<td class="c-path muted">—</td>'
     )
-    passed = is_tick_true(row.get("Above 50 EMA")) and is_tick_true(row.get("Near 52W High"))
-    ath = is_tick_true(row.get("At ATH"))
-    flt = ('<span class="pass">✓ Pass</span>' if passed else '<span class="fail">Fails</span>')
-    if ath:
-        flt += '<span class="ath">ATH</span>'
-    cells["flt"] = f'<td class="c-flt" data-v="{int(passed) * 2 + int(ath)}">{flt}</td>'
     return f'<tr data-stock="{sym_s}">' + "".join(cells[c[0]] for c in cols) + "</tr>"
 
 
@@ -273,10 +251,15 @@ table{border-collapse:separate;border-spacing:0;width:100%;min-width:1180px}
 thead th{position:sticky;top:0;z-index:3;background:#F4F5F8;border-bottom:1px solid #E3E6EB;height:42px;padding:0 10px;
   font-size:12px;font-weight:600;color:#5E6878;text-align:right;white-space:nowrap;cursor:pointer;user-select:none}
 thead th.t-left{text-align:left}
+thead th{text-transform:uppercase;letter-spacing:.04em;font-size:11.5px}
+thead tr.grp-row th{font-size:11px}
+td.sharpe{color:#067647;font-weight:600}
+td.n.pos,td.n.neg{font-weight:600}
 thead tr.grp-row th{top:0;height:28px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;text-align:center;color:#5E6878;border-bottom:1px solid #E3E6EB;border-left:1px solid #E3E6EB;cursor:default}
 thead tr.grp-row + tr.hdr th{top:28px}
 .tag{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 6px;border-radius:6px;background:#F1F3F6;color:#3C4657;border:1px solid #E3E6EB}
 td.c-tick{text-align:center}
+.wide .m-only{display:none!important}
 thead th[data-type=""]{cursor:default}
 thead th .ar{color:#A5ACB8;margin-left:3px}
 thead th.on{color:#0E1726}
@@ -363,27 +346,27 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str)
     cols = columns_for(density, view.columns)
     paths: dict = {}
     if prices_df is not None and not prices_df.empty:
-        window = prices_df.iloc[-min(252, len(prices_df)):]
+        window = prices_df.iloc[-min(60, len(prices_df)):]
         paths = _year_paths(_spark_window_key(window), window)
-    paths60: dict = {}
-    if prices_df is not None and not prices_df.empty and any(c[0] == "spark" for c in cols):
-        w60 = prices_df.iloc[-min(60, len(prices_df)):]
-        paths60 = _year_paths(_spark_window_key(w60) + "_60", w60)
-    phone_keep = {"rank", "stock", "path", "spark", "price"}
+    # Full Quant keeps every column on a phone and scrolls sideways, as before;
+    # the compact phone list is for the shorter Executive and Core sets.
+    wide = len(cols) > len(_CORE_KEYS)
+    phone_keep = {"rank", "stock", "spark", "price"}
     head_cells = []
     for k, label, t in cols:
-        cls = ("t-left " if (k in ("rank", "stock", "flt") or t == "text") else "") + ("" if k in phone_keep else "d-only")
+        cls = ("t-left " if (k in ("rank", "stock") or t == "text") else "") + (
+            "" if (k in phone_keep or wide) else "d-only")
         if k == "rank":
             cls += " on"
         arrow = ('<span class="ar">' + ("↑" if k == "rank" else "↕") + "</span>") if t else ""
         dir_attr = ' data-dir="asc"' if k == "rank" else ""
         head_cells.append(
             f'<th class="{cls.strip()}" data-type="{t or ""}"{dir_attr}>'
-            f'<span class="{"lbl-d" if k == "path" else ""}">{_esc(label)}</span>{arrow}</th>'
+            f'<span class="{"lbl-d" if k == "spark" else ""}">{_esc(label)}</span>{arrow}</th>'
         )
     head = "".join(head_cells)
     group_row = ""
-    if len(cols) > len(_CORE_KEYS):
+    if True:
         present = [c[0] for c in cols]
         parts = []
         for label, keys in _QUANT_GROUPS:
@@ -393,23 +376,26 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str)
         group_row = '<tr class="grp-row">' + "".join(parts) + "</tr>"
     body = []
     for row in view.to_dict("records"):
-        tr = _row_html(row, cols, paths, paths60)
+        tr = _row_html(row, cols, paths)
         body.append(tr)
     # Desktop-only cells carry the d-only class too, so the phone hides whole
     # columns rather than leaving a header without its cells.
-    hide = [i for i, c in enumerate(cols) if c[0] not in phone_keep]
+    hide = [] if wide else [i for i, c in enumerate(cols) if c[0] not in phone_keep]
     body_html = "".join(body)
     if hide:
         css_hide = ",".join(f"td:nth-child({i + 1})" for i in hide)
         extra = "@media (max-width:640px){" + css_hide + "{display:none}}"
     else:
         extra = ""
+    wide_cls = " wide" if wide else ""
+    if wide:
+        extra += "@media (max-width:640px){table{min-width:%dpx}}" % (len(cols) * 92)
     return (
         "<!DOCTYPE html><html><head><meta charset='utf-8'>"
         "<link rel='preconnect' href='https://fonts.googleapis.com'>"
         "<link href='https://fonts.googleapis.com/css2?family=Geist:wght@400..700&"
         "family=Geist+Mono:wght@400..700&display=swap' rel='stylesheet'>"
-        f"<style>{_CSS}table{{min-width:{max(1180, len(cols) * 92)}px}}{extra}</style></head><body><div class='wrap'><table>"
+        f"<style>{_CSS}table{{min-width:{max(1180, len(cols) * 92)}px}}{extra}</style></head><body><div class='wrap{wide_cls}'><table>"
         f"<thead>{group_row}<tr class=\"hdr\">{head}</tr></thead><tbody>{body_html}</tbody></table></div>"
         f"<script>const SYS={json.dumps(system_suffix())};{_JS}</script></body></html>"
     )

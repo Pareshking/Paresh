@@ -68,15 +68,15 @@ def test_headers_and_cells_stay_aligned(monkeypatch, density, with_risk):
 def test_no_risk_column_survives_without_atr(monkeypatch, density):
     """Absent ATR must take the LABELS with it, not leave a column of dashes."""
     html = _render(monkeypatch, _frame(with_risk=False), density)
-    for label in ("Stop loss", "Chandelier exit"):
+    for label in ("Stop Loss", "Chand Exit"):
         assert label not in html, f"{density}: '{label}' survived without ATR"
 
 
 def test_risk_columns_still_render_when_atr_is_present(monkeypatch):
     """The drop is conditional, not a deletion: Yahoo's ranking still shows them."""
     html = _render(monkeypatch, _frame(with_risk=True), "Full Quant (35)")
-    assert "Stop loss" in html and "₹210" in html
-    assert "Chandelier exit" in html and "₹224" in html
+    assert "Stop Loss" in html and "₹210" in html
+    assert "Chand Exit" in html and "₹224" in html
 
 
 def test_the_drop_is_keyed_to_the_canonical_column_names():
