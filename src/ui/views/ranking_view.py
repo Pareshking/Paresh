@@ -24,12 +24,11 @@ from src.ui.components import (
 )
 from src.ui.views.stock_view import render_stock_view
 from src.ui.screener_table import INDEX_NAMES, column_count, render_screener_table
-from src.ui.theme import render_master_screener_table, screener_column_count
 
 # Stored in session state by `rank_density_mode`, so these strings are an
 # on-disk contract, not labels -- see the format_func in the density control.
-# Executive and Core draw the design's table (src/ui/screener_table.py); Full
-# Quant keeps the wide research table.
+# All three draw the one table in src/ui/screener_table.py; they differ only
+# in which columns they show.
 _DENSITY_OPTIONS = ["Executive (11)", "Core (17)", "Full Quant (35)"]
 
 
@@ -390,10 +389,7 @@ def render_ranking_view(
             # next run is a crash, not a relabel. Only the TEXT is computed,
             # from the table that will actually be drawn.
             def _density_label(option: str) -> str:
-                if option.startswith("Full"):
-                    n = screener_column_count(option, rank_df.columns)
-                else:
-                    n = column_count(option)
+                n = column_count(option, rank_df.columns)
                 return f"{option.split(' (')[0]} ({n})"
 
             density_mode = st.segmented_control(
@@ -481,9 +477,6 @@ def render_ranking_view(
 
     if table_style == "Grid":
         _render_rank_grid(view, rank_df, density_mode)
-    elif str(density_mode).startswith("Full"):
-        # The research view: every window and every data-health column.
-        render_master_screener_table(view, prices_df=adj_close, density=density_mode)
     else:
         render_screener_table(view, adj_close, density_mode)
 

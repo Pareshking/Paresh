@@ -10,8 +10,8 @@ Every row of the view is in the table -- sorting a page of 25 would sort the
 wrong 25 -- and the frame is tall enough to show about 25 rows at once; the
 rest scroll inside it.
 
-Two column sets are drawn here, Executive and Core. Full Quant, the 30-odd
-column research view, stays on theme.render_master_screener_table.
+Three column sets are drawn from one registry: Executive, Core and Full Quant.
+The sector, index and company name sit under the symbol in every one of them.
 """
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from src.engine.momentum import CARRIED_MARK
 from src.ui.system_param import stock_href
 from src.ui.system_param import suffix as system_suffix
 from src.ui.theme import _spark_window_key, is_tick_true
@@ -33,30 +34,60 @@ INDEX_NAMES = {
     "SMALL250": "Smallcap 250", "MICRO250": "Microcap 250",
 }
 
-# (key, header, sort type). The phone list keeps only rank, stock, path and
-# the price cell, which carries the 3M return under the price.
-_CORE = [
-    ("rank", "#", "num"), ("stock", "Stock", "text"), ("price", "Price", "num"),
-    ("d1m", "Rank Δ 1M", "num"), ("r1", "1M", "num"), ("r3", "3M", "num"),
-    ("r6", "6M", "num"), ("r12", "12M", "num"), ("sh3", "Sharpe 3M", "num"),
-    ("dd12", "Max DD 12M", "num"), ("hi", "From 52W high", "num"),
-    ("path", "12-month path", None), ("flt", "Filters", "num"),
-]
+# (key, header, sort type). One registry; Executive, Core and Quant are column
+# sets drawn from it, so a column looks and sorts the same in every view. The
+# phone list keeps only rank, stock, path and the price cell, which carries the
+# 3M return under the price.
+PERIOD_WINDOWS = (1, 3, 6, 9, 12)
+_ALL = {
+    "rank": ("#", "num"), "stock": ("Stock", "text"), "price": ("Price", "num"),
+    "d1m": ("Rank Δ 1M", "num"), "d3m": ("Rank Δ 3M", "num"),
+    "mcap": ("Mkt cap (Cr)", "num"),
+    "hi": ("From 52W high", "num"), "ath": ("From ATH", "num"),
+    "ema": ("vs 50 EMA", "num"), "vol": ("Volume", "text"),
+    "stop": ("Stop loss", "num"), "chand": ("Chandelier exit", "num"),
+    "gap": ("Data gap", "text"), "ffill": ("Fill %", "num"),
+    "hz": ("Horizons", "num"), "path": ("12-month path", None),
+    "flt": ("Filters", "num"),
+}
+for _w in PERIOD_WINDOWS:
+    _ALL[f"r{_w}"] = (f"{_w}M", "num")
+    _ALL[f"sh{_w}"] = (f"Sharpe {_w}M", "num")
+    _ALL[f"dd{_w}"] = (f"Max DD {_w}M", "num")
+
 _EXEC_KEYS = ("rank", "stock", "price", "d1m", "r3", "r12", "path", "flt")
+# Sharpe is a quant-view statistic (not comparable like a return), and the
+# drawdown shown outside it is the 3M one; Quant carries every window.
+_CORE_KEYS = ("rank", "stock", "price", "d1m", "r1", "r3", "r6", "r12",
+              "dd3", "hi", "path", "flt")
+_QUANT_KEYS = (
+    ("rank", "stock", "price", "d1m", "d3m", "mcap")
+    + tuple(f"{k}{w}" for w in PERIOD_WINDOWS for k in ("r", "sh", "dd"))
+    + ("hi", "ath", "ema", "vol", "flt", "stop", "chand", "gap", "ffill", "hz", "path")
+)
+_RISK_KEYS = ("stop", "chand")
+# A ranking built from closing prices carries no ATR, so those columns would be
+# an em dash on every row; they are dropped with their headers.
+_ATR_COLUMNS = ("ATR", "ATR %", "Stop Loss", "Chand Exit")
 
 ROW_PX = 44
 PHONE_ROW_PX = 44
 VISIBLE_ROWS = 25
 
 
-def columns_for(density: str) -> list[tuple[str, str, str | None]]:
-    if str(density).startswith("Executive"):
-        return [c for c in _CORE if c[0] in _EXEC_KEYS]
-    return list(_CORE)
+def columns_for(density: str, available=None) -> list[tuple[str, str, str | None]]:
+    """The columns of a view. `available` is the ranking's column names, used to
+    drop the ATR-derived ones when the ranking carries none."""
+    d = str(density)
+    keys = _EXEC_KEYS if d.startswith("Executive") else (
+        _QUANT_KEYS if d.startswith(("Full", "Quant")) else _CORE_KEYS)
+    if available is not None and not any(c in available for c in _ATR_COLUMNS):
+        keys = tuple(k for k in keys if k not in _RISK_KEYS)
+    return [(k, *_ALL[k]) for k in keys]
 
 
-def column_count(density: str) -> int:
-    return len(columns_for(density))
+def column_count(density: str, available=None) -> int:
+    return len(columns_for(density, available))
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -104,7 +135,9 @@ def _row_html(row: dict, cols: list, paths: dict) -> str:
     name = str(row.get("Company Name") or "").strip()
     ind = str(row.get("Industry") or "").strip()
     tag = str(row.get("Indices") or "").split(",")[0].strip()
-    sub = " · ".join(p for p in (name, ind, INDEX_NAMES.get(tag, tag)) if p and p != "nan")
+    # Sector and index first, company last: the symbol already names the
+    # stock, and the name is the part that can be cut off when it is long.
+    sub = " · ".join(p for p in (ind, INDEX_NAMES.get(tag, tag), name) if p and p != "nan")
     rank = _num(row.get("Rank"))
     cmp_v = _num(row.get("CMP"))
     r3 = _num(row.get("3M Return"))
@@ -124,19 +157,53 @@ def _row_html(row: dict, cols: list, paths: dict) -> str:
         f'{"₹" + format(cmp_v, ",.2f") if cmp_v is not None else "—"}'
         f'<span class="m-only {r3_cls}">{r3_txt} 3M</span></td>'
     )
-    d1 = _num(row.get("Rank Δ 1M"))
-    if d1 is None:
-        cells["d1m"] = '<td class="n" data-v="">—</td>'
-    else:
-        chip = ("up", f"▲ {int(d1)}") if d1 > 0 else ("down", f"▼ {abs(int(d1))}") if d1 < 0 else ("flat", "—")
-        cells["d1m"] = f'<td class="n" data-v="{d1}"><span class="chip {chip[0]}">{chip[1]}</span></td>'
-    for key, col in (("r1", "1M Return"), ("r3", "3M Return"), ("r6", "6M Return"), ("r12", "12M Return")):
-        cells[key] = _pct_cell(_num(row.get(col)))[0]
-    sh = _num(row.get("3M Sharpe"))
-    cells["sh3"] = f'<td class="n" data-v="{"" if sh is None else sh}">{"—" if sh is None else f"{sh:.2f}"}</td>'
-    dd = _num(row.get("Max DD 12M"))
-    cells["dd12"] = (f'<td class="n neg" data-v="{"" if dd is None else dd}">'
-                     f'{"—" if dd is None else f"−{abs(dd):.1f}%"}</td>')
+    for key, col in (("d1m", "Rank Δ 1M"), ("d3m", "Rank Δ 3M")):
+        d = _num(row.get(col))
+        if d is None:
+            cells[key] = '<td class="n" data-v="">—</td>'
+        else:
+            chip = ("up", f"▲ {int(d)}") if d > 0 else ("down", f"▼ {abs(int(d))}") if d < 0 else ("flat", "—")
+            cells[key] = f'<td class="n" data-v="{d}"><span class="chip {chip[0]}">{chip[1]}</span></td>'
+    mc = _num(row.get("Market Cap (Cr)"))
+    cells["mcap"] = (f'<td class="n" data-v="{"" if mc is None else mc}">'
+                     f'{"—" if mc is None else "₹" + format(mc, ",.0f")}</td>')
+    for w in PERIOD_WINDOWS:
+        cells[f"r{w}"] = _pct_cell(_num(row.get(f"{w}M Return")))[0]
+        sh = _num(row.get(f"{w}M Sharpe"))
+        cells[f"sh{w}"] = (f'<td class="n" data-v="{"" if sh is None else sh}">'
+                           f'{"—" if sh is None else f"{sh:.2f}"}</td>')
+        dd = _num(row.get(f"Max DD {w}M"))
+        cells[f"dd{w}"] = (f'<td class="n neg" data-v="{"" if dd is None else dd}">'
+                           f'{"—" if dd is None else f"−{abs(dd):.1f}%"}</td>')
+    ath_v = _num(row.get("% ATH"))
+    peak = str(row.get("ATH Date") or "").strip()
+    ath_title = f' title="Peak printed {_esc(peak)}"' if peak else ""
+    cells["ath"] = (f'<td class="n" data-v="{"" if ath_v is None else ath_v}"{ath_title}>'
+                    f'{"—" if ath_v is None else f"{ath_v:.1f}%"}</td>')
+    em = _num(row.get("% 50 EMA"))
+    cells["ema"] = (f'<td class="n {"" if em is None else "pos" if em > 0 else "neg"}" '
+                    f'data-v="{"" if em is None else em}">{"—" if em is None else f"{em:+.1f}%"}</td>')
+    vol = str(row.get("Volume") or "Normal")
+    vchip = ('<span class="chip up">High</span>' if vol == "High"
+             else '<span class="chip up">Surge</span>' if vol == "Surge"
+             else '<span class="muted">Normal</span>')
+    cells["vol"] = f'<td data-v="{_esc(vol)}">{vchip}</td>'
+    for key, col in (("stop", "Stop Loss"), ("chand", "Chand Exit")):
+        v = _num(row.get(col))
+        cells[key] = (f'<td class="n" data-v="{"" if v is None else v}">'
+                      f'{"—" if v is None else "₹" + format(v, ",.0f")}</td>')
+    gap = str(row.get("Data Gap") or "🟢")
+    carried = CARRIED_MARK in gap
+    gap_title = (' title="No price on the ranking date; ranked on its last print"'
+                 if carried else "")
+    cells["gap"] = (f'<td data-v="{1 if "🔴" in gap else 0}"{gap_title}>'
+                    f'{"🔴" if "🔴" in gap else "🟢"}{CARRIED_MARK if carried else ""}</td>')
+    ff = _num(row.get("FFill %"))
+    cells["ffill"] = f'<td class="n" data-v="{0 if ff is None else ff}">{0 if ff is None else ff:.1f}%</td>'
+    hz = _num(row.get("Horizons Scored"))
+    n_w = len(PERIOD_WINDOWS)
+    cells["hz"] = (f'<td class="n{" muted" if hz is None else "" if hz >= n_w else " neg"}" '
+                   f'data-v="{"" if hz is None else hz}">{"—" if hz is None else f"{int(hz)}/{n_w}"}</td>')
     hi = _num(row.get("% High"))
     if hi is None:
         cells["hi"] = '<td class="n muted" data-v="">—</td>'
@@ -181,12 +248,12 @@ td.n{text-align:right;font-family:'Geist Mono',ui-monospace,Menlo,monospace;font
 .pos{color:#067647}.neg{color:#B42318}.muted{color:#667080}
 th:nth-child(1),td.c-rank{position:sticky;left:0;z-index:2;width:52px;min-width:52px;text-align:left}
 thead th:nth-child(1){z-index:4}
-th:nth-child(2),td.c-stock{position:sticky;left:52px;z-index:2;text-align:left;max-width:330px;box-shadow:1px 0 0 #EDEFF3}
+th:nth-child(2),td.c-stock{position:sticky;left:52px;z-index:2;text-align:left;max-width:380px;min-width:260px;box-shadow:1px 0 0 #EDEFF3}
 thead th:nth-child(2){z-index:4}
 td.c-rank{font-family:'Geist Mono',ui-monospace,monospace;font-weight:600}
-td.c-stock a{display:flex;align-items:baseline;gap:8px;min-width:0;text-decoration:none;color:inherit}
+td.c-stock a{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;line-height:1.2;text-decoration:none;color:inherit}
 td.c-stock .sym{font-weight:650;font-size:14px;color:#0E1726}
-td.c-stock .sub{font-size:12.5px;color:#5E6878;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+td.c-stock .sub{font-size:12px;color:#5E6878;overflow:hidden;text-overflow:ellipsis;max-width:340px}
 .chip{display:inline-block;font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;font-weight:600;padding:2px 7px;border-radius:7px}
 .chip.up{background:#E8F5EE;color:#067647}.chip.down{background:#FDEDEB;color:#B42318}.chip.flat{background:#F1F3F6;color:#5E6878}
 td.c-path{padding-left:14px}
@@ -201,7 +268,6 @@ td.c-flt{text-align:left}
   .d-only{display:none}
   th:nth-child(1),td.c-rank{width:34px;min-width:34px}
   th:nth-child(2),td.c-stock{left:34px;box-shadow:none;max-width:none}
-  td.c-stock a{flex-direction:column;align-items:flex-start;gap:1px}
   td.c-stock .sym{font-size:14px}
   td.c-stock .sub{font-size:12px;max-width:130px}
   td.c-path{padding-left:0}
@@ -254,7 +320,7 @@ ths.forEach(function(th,i){
 
 def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str) -> str:
     """The whole table document, for st.iframe. Split out so tests can read it."""
-    cols = columns_for(density)
+    cols = columns_for(density, view.columns)
     paths: dict = {}
     if prices_df is not None and not prices_df.empty:
         window = prices_df.iloc[-min(252, len(prices_df)):]
@@ -290,7 +356,7 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str)
         "<link rel='preconnect' href='https://fonts.googleapis.com'>"
         "<link href='https://fonts.googleapis.com/css2?family=Geist:wght@400..700&"
         "family=Geist+Mono:wght@400..700&display=swap' rel='stylesheet'>"
-        f"<style>{_CSS}{extra}</style></head><body><div class='wrap'><table>"
+        f"<style>{_CSS}table{{min-width:{max(1180, len(cols) * 92)}px}}{extra}</style></head><body><div class='wrap'><table>"
         f"<thead><tr>{head}</tr></thead><tbody>{body_html}</tbody></table></div>"
         f"<script>const SYS={json.dumps(system_suffix())};{_JS}</script></body></html>"
     )

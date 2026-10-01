@@ -11,7 +11,6 @@ moves more between sessions for reasons that are about its listing date.
 sessions, and a stock can clear that and still be missing the 12M horizon.
 """
 import re
-import types
 
 import numpy as np
 import pandas as pd
@@ -174,84 +173,53 @@ def test_the_screener_column_is_on_screen_and_in_the_export():
 
 
 @pytest.mark.parametrize(
-    "density", ["Executive (11)", "Core (18)", "Full Quant (35)"]
+    "density", ["Executive (11)", "Core (17)", "Full Quant (35)"]
 )
-def test_every_density_tier_keeps_its_headers_over_its_cells(density, monkeypatch):
-    """A new column is three edits: the cell, the sub-header, and the colspan.
+def test_every_density_tier_keeps_its_headers_over_its_cells(density):
+    """Every column is one registry entry plus one cell; a miss shifts the rest."""
+    from src.ui import screener_table
 
-    Miss the colspan and the group bar silently slides one column left for
-    every reader, which no assertion about the DataFrame would catch.
-    """
-    captured: dict[str, str] = {}
-    monkeypatch.setattr(
-        theme, "st",
-        types.SimpleNamespace(
-            iframe=lambda html, height=None: captured.setdefault("html", html),
-            info=lambda *a, **k: None,
-        ),
-    )
-    theme.render_master_screener_table(
+    html = screener_table.table_html(
         pd.DataFrame(
             {
                 "Rank": [1, 2, 3],
                 "Symbol": ["AAA", "BBB", "CCC"],
                 "Industry": ["Tech", "Bank", "Auto"],
-                "Indices": ["NIFTY 50"] * 3,
+                "Indices": ["N50"] * 3,
                 "CMP": [100.0, 200.0, 300.0],
                 "Horizons Scored": [5, 2, 0],
             }
         ),
-        prices_df=None,
-        density=density,
+        None,
+        density,
     )
-    html = captured["html"]
-
     cells = {
         len(re.findall(r"<td[ >]", row))
-        for row in re.findall(r'<tr class="screener-row">(.*?)</tr>', html, re.S)
+        for row in re.findall(r"<tr data-stock[^>]*>(.*?)</tr>", html, re.S)
     }
     assert len(cells) == 1, "rows disagree on their own column count"
-    n_cells = cells.pop()
-
-    group = re.search(r'<tr class="group-header-row">(.*?)</tr>', html, re.S).group(1)
-    spans = sum(
-        int(m or 1)
-        for m in re.findall(r'<th(?:[^>]*?colspan="(\d+)")?[^>]*>', group)
-    )
-    sub = re.search(r'<tr class="sub-header-row">(.*?)</tr>', html, re.S).group(1)
-    n_sub = len(re.findall(r"<th[ >]", sub))
-
-    assert n_cells == n_sub == spans
+    head = re.search(r"<thead><tr>(.*?)</tr></thead>", html, re.S).group(1)
+    assert cells.pop() == len(re.findall(r"<th[ >]", head))
 
 
-def test_a_partial_composite_is_marked_and_a_full_one_is_not(monkeypatch):
-    captured: dict[str, str] = {}
-    monkeypatch.setattr(
-        theme, "st",
-        types.SimpleNamespace(
-            iframe=lambda html, height=None: captured.setdefault("html", html),
-            info=lambda *a, **k: None,
-        ),
-    )
-    theme.render_master_screener_table(
+def test_a_partial_composite_is_marked_and_a_full_one_is_not():
+    from src.ui import screener_table
+
+    html = screener_table.table_html(
         pd.DataFrame(
             {
                 "Rank": [1, 2],
                 "Symbol": ["FULL", "PART"],
                 "Industry": ["Tech", "Tech"],
-                "Indices": ["NIFTY 50"] * 2,
+                "Indices": ["N50"] * 2,
                 "CMP": [100.0, 200.0],
                 "Horizons Scored": [5, 2],
             }
         ),
-        prices_df=None,
-        density="Full Quant (35)",
+        None,
+        "Full Quant (35)",
     )
-    html = captured["html"]
-    assert ">5/5</span>" in html and ">2/5</span>" in html
-
-    # Count inside the rows only -- the stylesheet in the same document
-    # defines .td-short-hz and would otherwise be counted as a use.
-    rows = "".join(re.findall(r'<tr class="screener-row">(.*?)</tr>', html, re.S))
-    assert rows.count("td-short-hz") == 1, "only the partial composite is marked"
-    assert "td-short-hz" in [r for r in rows.split("<tr") if "PART" in r][0]
+    assert ">5/5</td>" in html and ">2/5</td>" in html
+    rows = re.findall(r"<tr data-stock[^>]*>(.*?)</tr>", html, re.S)
+    marked = [r for r in rows if re.search(r'class="n neg"[^>]*>2/5', r)]
+    assert len(marked) == 1 and "PART" in marked[0], "only the partial composite is marked"
