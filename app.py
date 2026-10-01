@@ -942,9 +942,9 @@ if not data:
     _emit_startup_metrics("data_init_failed")
     st.stop()
 
-# The engine, only when a page actually needs it. `calc` is None whenever the
-# precomputed ranking was accepted, which is the common cold start -- see
-# _precomputed_ranking. Only Portfolio calls get_calc() and pays for it then.
+# The engine is only built when a page needs ranking-derived calculations.
+# Portfolio now consumes the same deep price frame as Actions/Backtest and does
+# not need a second engine merely to retrieve prices.
 rank_df = data["rank_df"]
 adj_close = data["adj_close"]
 deep_adj_close = data.get("deep_adj_close")
