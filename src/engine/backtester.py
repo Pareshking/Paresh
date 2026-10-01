@@ -17,7 +17,7 @@ import pandas as pd
 import streamlit as st
 
 from src.core.config import MOMENTUM_WINDOWS, RISK_FREE_RATE
-from src.core.market_time import current_calendar_period, last_closed_calendar_period
+from src.core.market_time import current_calendar_period, ist_now, last_closed_calendar_period
 from src.engine.calendar_momentum import anchor_frame, period_sharpe_at, winsorised_z
 from src.engine.corporate_actions import adjust_prices
 from src.engine import liquidity
@@ -48,9 +48,14 @@ def completed_month_window(
         raise ValueError("completed_month_window requires at least one date")
     if months <= 0:
         raise ValueError("months must be positive")
-    closed_period = last_closed_calendar_period(dates[-1], now=now)
-    window_end = closed_period.end_time.normalize()
-    window_start = closed_period.start_time - pd.DateOffset(months=months - 1)
+    if now is None:
+        current_month_start = pd.Timestamp(dates[-1]).normalize().replace(day=1)
+        window_end = current_month_start - pd.Timedelta(days=1)
+        window_start = current_month_start - pd.DateOffset(months=months)
+    else:
+        closed_period = last_closed_calendar_period(dates[-1], now=now)
+        window_end = closed_period.end_time.normalize()
+        window_start = closed_period.start_time - pd.DateOffset(months=months - 1)
     return window_start, window_end
 
 
@@ -692,6 +697,7 @@ def run_backtest(
     liquidity_floor_cr: float = 0.0,
     _traded_value: pd.DataFrame | None = None,
     history_start: pd.Timestamp | None = None,
+    reporting_now=None,
 ) -> dict[str, Any] | None:
     """
     Executes a walk-forward momentum backtest with zero look-ahead bias and friction modeling.
@@ -776,12 +782,13 @@ def run_backtest(
         prices, start_offset, rebal_freq, backtest_months,
         stateful_history=stateful_history,
         history_start=history_start,
+        now=reporting_now,
     )
     if _schedule is None:
         return None
     rebal_dates, all_signal_idx, last_sim_idx, window_end = _schedule
     dates = pd.DatetimeIndex(prices.index)
-    window_start, _ = completed_month_window(dates, backtest_months)
+    window_start, _ = completed_month_window(dates, backtest_months, now=reporting_now)
 
     strat_net_daily: list[float] = []
     strat_gross_daily: list[float] = []
@@ -1324,7 +1331,11 @@ def run_backtest(
     # current month"). From the last close of the previous month for a name
     # carried into this month; from its fill for a name bought this month,
     # which was not owned before it.
-    mtd_period = current_calendar_period()
+    mtd_period = (
+        current_calendar_period(now=reporting_now)
+        if reporting_now is not None
+        else as_of_dt.to_period("M")
+    )
     month_start = mtd_period.start_time
     month_idx = int(prices.index.searchsorted(month_start))
     prior_close_idx = month_idx - 1
