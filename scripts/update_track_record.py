@@ -28,10 +28,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.core.config import BENCHMARK_SYMBOL  # noqa: E402
 from src.engine.backtester import run_backtest  # noqa: E402
+from src.engine.parity_audit import compare_monthly_ledger  # noqa: E402
 from src.engine.track_record import (  # noqa: E402
     TRACK_RECORD_CONFIG,
     config_fingerprint,
-    drift_report,
     finalize_months,
     load_ledger,
     months_to_cover,
@@ -230,9 +230,36 @@ def main() -> int:
     before = len(ledger.get("months", {}))
     prior_months = dict(ledger.get("months", {}))
 
-    for row in drift_report(ledger, result["equity_curve"]):
-        print(f"  ! drift {row['month']}: stored {row['stored']:+.2%} vs "
-              f"recomputed {row['recomputed']:+.2%} — stored value stands")
+    # Read-only comparison of both frozen return series. Drift is diagnostic:
+    # stored closed months remain authoritative and are never silently rewritten.
+    parity = compare_monthly_ledger(
+        ledger, result["equity_curve"], result["benchmark"]
+    )
+    counts = parity["counts"]
+    print(
+        "→ frozen-ledger parity: "
+        f"{counts['match']} match, {counts['drift']} drift, "
+        f"{counts['missing_recomputed_period']} missing periods, "
+        f"{counts['not_comparable']} not comparable "
+        f"(tolerance ±{parity['tolerance']:.4%})"
+    )
+    for row in parity["rows"]:
+        if row["status"] == "drift":
+            series = row.get("drifted_series", [])
+            details = ", ".join(
+                f"{name} {row[f'{name}_stored']:+.2%} → "
+                f"{row[f'{name}_recomputed']:+.2%} "
+                f"(Δ {row[f'{name}_drift']:+.2%})"
+                for name in series
+            )
+            print(f"  ! drift {row['month']}: {details} — stored value stands")
+        elif row["status"] == "missing_recomputed_period":
+            print(
+                f"  ! missing recomputed data for {row['month']}: "
+                f"{', '.join(row['missing_series'])}"
+            )
+        elif row["status"] == "not_comparable":
+            print(f"  ! {row['month']}: ledger row has no comparable returns")
 
     ledger, added, skipped = finalize_months(
         ledger,
