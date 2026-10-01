@@ -27,7 +27,7 @@ Full findings and work packages: `docs/UI_OVERHAUL_PLAN.md`.
 | U2b | Full Quant moves onto the one Screener table (WP5.2): one column registry; Core drops Sharpe, uses 3M DD; sub-line fixed (sector · index · company). Table/Grid toggles next (WP1.3) | PR merged | [ ] in PR |
 | U2c | One chart component (WP2): `src/ui/lw_chart.py`, Lightweight Charts vendored, crosshair + all-series legend; Breadth, Portfolio equity+drawdown, Backtest and Track Record growth moved onto it. RRG and sector charts still Plotly | PR merged; check hover on the live site | [ ] in PR |
 | U3 | Portfolio rebuild and Track Record merge (WP3, WP4) | same | [ ] |
-| U4 | Screener (WP5), Breadth (WP6), RRG and Configuration wording (WP7), text sweep (WP8, WP9) | same | [ ] |
+| U4 | Screener (WP5): done in PR (Quant master table, movers tabs, not-qualified preset, new-highs counts). Breadth charts, RRG benchmark/wording and Configuration summary done in PR. Still open: Track Record merge into Portfolio, text sweep of the remaining pages (Track Record, Sectors, Actions, Guide), heading glossary pass | PR merged; live check | [ ] partly in PR |
 | U5 | Data catalogue, NSE vs Yahoo comparison, R2 policy (WP10) | `docs/DATA_CATALOGUE.md`; comparison report | [ ] |
 
 ## Dated

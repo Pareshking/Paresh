@@ -764,6 +764,11 @@ def inject_custom_css() -> None:
         .cfg-stats > div { padding: 12px 14px; border-radius: 12px; background: #F4F5F8; display: flex; flex-direction: column; gap: 2px; }
         .cfg-stats > div.warn { background: #FEF6EA; }
         .cfg-stats span { font-size: 12px; font-weight: 600; color: #5E6878; }
+        .cfg-kv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin: 0 0 18px; padding: 0; background: #E3E6EB; border: 1px solid #E3E6EB; border-radius: 12px; overflow: hidden; }
+        .cfg-kv > div { background: #FFFFFF; padding: 12px 16px; }
+        .cfg-kv span { display: block; font-size: 12px; font-weight: 600; color: #5E6878; margin: 0 0 3px; }
+        .cfg-kv b { display: block; font-size: 15px; font-weight: 600; color: #0E1726; }
+        @media (max-width: 640px) { .cfg-kv { grid-template-columns: 1fr 1fr; } }
         .cfg-stats b { font-family: var(--font-mono); font-size: 17px; font-weight: 600; color: #0E1726; }
         .cfg-stats .warn b { color: #B54708; }
         .cfg-stats em { font-style: normal; font-size: 12px; color: #3C4657; }
