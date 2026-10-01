@@ -30,6 +30,7 @@ from typing import Any, Iterable, Sequence
 
 import numpy as np
 import pandas as pd
+from src.core.market_time import last_closed_calendar_period
 
 from src.core.logger import logger
 
@@ -206,7 +207,10 @@ def finalize_months(
     strat = calendar_month_returns(strategy_curve)
     bench = calendar_month_returns(benchmark_curve)
 
-    current_month = pd.Period(pd.Timestamp(as_of), freq="M")
+    # A month is closed by the IST calendar, not by whether the latest
+    # available price row happens to be dated inside that month. On 1-Oct,
+    # 30-Sep data therefore makes September eligible for freezing.
+    current_month = last_closed_calendar_period(as_of) + 1
     start = ledger_inception(ledger)
     months = dict(ledger.get("months", {}))
     added: list[str] = []
@@ -537,5 +541,5 @@ def months_to_cover(as_of: pd.Timestamp, inception: pd.Period = INCEPTION) -> in
     The backtest window is counted back from the month in progress, so covering
     January from September means asking for the eight completed months Jan-Aug.
     """
-    current = pd.Period(pd.Timestamp(as_of), freq="M")
-    return max(int((current - inception).n), 0)
+    closed = last_closed_calendar_period(as_of)
+    return max(int((closed - inception).n) + 1, 0)
