@@ -1695,6 +1695,7 @@ def render_master_screener_table(
     # mixed-dtype and iterrows() was already boxing values to native Python --
     # the isinstance(x, (int, float)) checks throughout see exactly what they
     # saw before.
+    portfolio_class = "portfolio" if variant == "portfolio" else ""
     rows_html = []
     for row in df.to_dict("records"):
         rk = row.get("Rank", "—")
@@ -2813,7 +2814,7 @@ body::-webkit-scrollbar,
 </style>
 </head>
 <body>
-<div class="saas-table-wrapper">
+<div class="saas-table-wrapper {portfolio_class}">
     <table class="saas-table">
         <thead>
             <tr>{"".join(headers_html)}</tr>
