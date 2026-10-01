@@ -93,3 +93,38 @@ def test_a_ranking_that_is_always_empty_holds_cash_and_books_nothing():
     assert empty["closed_trades"].empty or (
         empty["closed_trades"]["Status"] != "Open"
     ).all()
+
+
+def test_live_mtd_includes_transition_day_return_and_fill_cost():
+    """The fill date belongs to the new calendar month even if it is the last mark."""
+    px = _prices(seed=13, n=498, end="2026-10-01")
+    # Keep all symbols flat on the fill session: the old book earns 0% that
+    # session, so net MTD must equal the rebalance cost rather than None/0%.
+    px.iloc[-1] = px.iloc[-2]
+    benchmark = pd.Series(
+        100 * np.exp(np.cumsum(np.full(len(px), 0.0002))),
+        index=px.index,
+        name="benchmark",
+    )
+    benchmark.iloc[-1] = benchmark.iloc[-2]
+
+    result = run_backtest(
+        "mtd-fill-date-cost", px,
+        top_n=4, rebal_freq=21, ema_period=20, high_pct=0.0,
+        weight_method="Equal Weight", cost_bps=30.0, buffer_n=4,
+        stock_cap=1.0, sector_cap=1.0,
+        _benchmark_close=benchmark,
+        backtest_months=6,
+        stateful_history=True,
+        history_start=pd.Timestamp("2026-01-01"),
+    )
+    assert result is not None
+    meta = result["live_meta"]
+    assert pd.Timestamp(meta["as_of"]) == pd.Timestamp("2026-10-01")
+    assert pd.Timestamp(meta["fill_date"]) == pd.Timestamp("2026-10-01")
+    assert pd.Timestamp(meta["mtd_from"]) == pd.Timestamp("2026-09-30")
+    assert meta["mtd_cost"] > 0.0
+    assert meta["strategy_mtd"] is not None
+    assert meta["strategy_mtd"] == pytest.approx(-meta["mtd_cost"], abs=1e-10)
+    assert meta["benchmark_mtd"] == pytest.approx(0.0, abs=1e-12)
+    assert meta["fill_equity_factor"] == pytest.approx(1.0 - meta["mtd_cost"], abs=1e-10)
