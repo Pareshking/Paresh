@@ -10,6 +10,8 @@ from src.engine.backtester import completed_month_window
 from src.engine.systems import backtest_months
 from src.engine.track_record import INCEPTION, months_to_cover
 
+ROOT = __import__("pathlib").Path(__file__).resolve().parents[1]
+
 
 IST = ZoneInfo("Asia/Kolkata")
 
@@ -23,7 +25,7 @@ def test_october_first_closes_september_even_when_prices_stop_on_september_30():
 
 def test_september_30_before_close_does_not_close_september():
     now = datetime(2026, 9, 30, 12, 51, tzinfo=IST)
-    assert last_closed_calendar_period(pd.Timestamp("2026-09-29"), now=now) == pd.Period(
+    assert last_closed_calendar_period(pd.Timestamp("2026-09-30"), now=now) == pd.Period(
         "2026-08", freq="M"
     )
 
@@ -48,3 +50,9 @@ def test_track_record_and_backtest_month_counts_include_closed_september():
     as_of = pd.Timestamp("2026-09-30")
     assert months_to_cover(as_of, INCEPTION, now=now) == 9
     assert backtest_months("750", as_of, now=now) == 9
+
+
+def test_actions_source_anchors_rebalance_schedule_to_calendar_today():
+    source = (ROOT / "src/ui/views/actions_view.py").read_text(encoding="utf-8")
+    assert "calendar_today = pd.Timestamp(ist_now().date())" in source
+    assert "check, fill = next_rebalance(calendar_today)" in source
