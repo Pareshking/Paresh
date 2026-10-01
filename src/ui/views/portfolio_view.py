@@ -281,7 +281,7 @@ def render_portfolio_view(
 
     head = kit.page_head(
         "Portfolio",
-        "Your ₹20 lakh model portfolio — current positions first, then the complete frozen performance and trade history.",
+        "₹20 lakh model portfolio · current holdings, exposure and performance.",
         actions=True,
     )
     with head:
@@ -293,22 +293,39 @@ def render_portfolio_view(
             key="dl_port_csv_v2",
         )
 
-    # Header detail is intentionally minimal; readings and the Current book table carry the accounting data.
+    # Primary readings answer the three questions users need first:
+    # how much is here, how is the current book doing, and what happened today.
     kit.readings([
         kit.Reading("Portfolio value", f"₹{value:,.0f}", "₹20 lakh starting capital"),
-        kit.Reading("Invested", f"₹{invested:,.0f}", f"{exposure:.1f}% exposure"),
-        kit.Reading("Cash", f"₹{cash:,.0f}", f"{100.0 - exposure:.1f}% of value"),
-        kit.Reading("Total P&L", f"₹{pnl:+,.0f}", "current book · entry → latest close", "up" if pnl >= 0 else "down"),
-        kit.Reading("P&L %", "—" if not np.isfinite(pnl_pct) else f"{pnl_pct:+.1f}%", "current-book unrealised", "" if not np.isfinite(pnl_pct) else ("up" if pnl >= 0 else "down")),
-        kit.Reading("Day P&L", f"₹{day_pnl:+,.0f} ({day_pnl_pct:+.1f}%)" if np.isfinite(day_pnl_pct) else f"₹{day_pnl:+,.0f}", "latest close vs previous close", "up" if day_pnl >= 0 else "down"),
-    ], "Live portfolio")
+        kit.Reading(
+            "Current-book P&L",
+            "—" if not np.isfinite(pnl_pct) else f"{pnl_pct:+.1f}%",
+            f"₹{pnl:+,.0f} · unrealised",
+            "" if not np.isfinite(pnl_pct) else ("up" if pnl >= 0 else "down"),
+        ),
+        kit.Reading(
+            "Day P&L",
+            f"₹{day_pnl:+,.0f} ({day_pnl_pct:+.1f}%)" if np.isfinite(day_pnl_pct) else f"₹{day_pnl:+,.0f}",
+            "latest close vs previous close",
+            "up" if day_pnl >= 0 else "down",
+        ),
+        kit.Reading("Cash", f"₹{cash:,.0f}", f"{100.0 - exposure:.1f}% of portfolio"),
+    ], "Portfolio snapshot")
+    as_of_text = meta.get("as_of") or "latest available close"
+    as_of_display = as_of_text if isinstance(as_of_text, str) else pd.Timestamp(as_of_text).strftime("%d %b %Y")
+    st.caption(
+        f"Marked {as_of_display} · {n_holdings} positions · "
+        f"{exposure:.1f}% invested · ₹{invested:,.0f} invested"
+    )
 
+    # One canonical table; the columns users scan first come first.
     display_cols = [
-        "Symbol", "Company", "Sector / Industry", "Current Price", "Shares",
-        "Current Value (₹)", "P&L (₹)", "P&L %", "Weight %", "Target Weight %",
-        "Weight Drift %", "Day P&L (₹)", "Day P&L %", "Entry Date", "Entry Price",
-        "Invested Value (₹)", "Previous Value (₹)", "Holding Days",
-        "Rank at Rebalance", "Rank at Entry", "Current Rank",
+        "Symbol", "Company", "Sector / Industry", "Current Price",
+        "P&L (₹)", "P&L %", "Weight %", "Target Weight %",
+        "Weight Drift %", "Day P&L (₹)",
+        "Current Value (₹)", "Shares", "Day P&L %", "Entry Date",
+        "Entry Price", "Invested Value (₹)", "Previous Value (₹)",
+        "Holding Days", "Rank at Rebalance", "Rank at Entry", "Current Rank",
         "1M Return", "3M Return", "6M Return", "12M Return", "Status",
     ]
     current_view = table[[c for c in display_cols if c in table.columns]].copy()
@@ -323,7 +340,7 @@ def render_portfolio_view(
         "portfolio_current",
         f"{n_holdings} positions · accounting + position detail · horizontal scroll on small screens",
     ):
-        render_saas_table(current_view, max_height=620)
+        render_saas_table(current_view, max_height=620, variant="portfolio")
 
     sector = table.groupby("Sector / Industry", dropna=False).agg(
         Weight=("Weight %", "sum"), Holdings=("Symbol", "count")
