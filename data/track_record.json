@@ -4,76 +4,121 @@
   "benchmark": "^CRSLDX",
   "months": {
     "2026-01": {
-      "strategy": -0.026879,
+      "strategy": 0.001721,
       "benchmark": -0.03318,
-      "alpha": 0.006301,
+      "alpha": 0.034901,
       "origin": "backfill",
-      "finalized_on": "2026-09-03",
-      "config": "5b356a6ba93b",
-      "data_as_of": "2026-09-03"
+      "universe": "point_in_time",
+      "finalized_on": "2026-10-01",
+      "config": "2aa2cb53f4d1",
+      "data_as_of": "2026-09-30"
     },
     "2026-02": {
-      "strategy": 0.036104,
+      "strategy": 0.027311,
       "benchmark": 0.003785,
-      "alpha": 0.032319,
+      "alpha": 0.023526,
       "origin": "backfill",
-      "finalized_on": "2026-09-03",
-      "config": "5b356a6ba93b",
-      "data_as_of": "2026-09-03"
+      "universe": "point_in_time",
+      "finalized_on": "2026-10-01",
+      "config": "2aa2cb53f4d1",
+      "data_as_of": "2026-09-30"
     },
     "2026-03": {
-      "strategy": -0.122179,
+      "strategy": -0.122998,
       "benchmark": -0.113904,
-      "alpha": -0.008275,
+      "alpha": -0.009094,
       "origin": "backfill",
-      "finalized_on": "2026-09-03",
-      "config": "5b356a6ba93b",
-      "data_as_of": "2026-09-03"
+      "universe": "point_in_time",
+      "finalized_on": "2026-10-01",
+      "config": "2aa2cb53f4d1",
+      "data_as_of": "2026-09-30"
     },
     "2026-04": {
-      "strategy": 0.184092,
+      "strategy": 0.195161,
       "benchmark": 0.105003,
-      "alpha": 0.079089,
+      "alpha": 0.090158,
       "origin": "backfill",
-      "finalized_on": "2026-09-03",
-      "config": "5b356a6ba93b",
-      "data_as_of": "2026-09-03"
+      "universe": "point_in_time",
+      "finalized_on": "2026-10-01",
+      "config": "2aa2cb53f4d1",
+      "data_as_of": "2026-09-30"
     },
     "2026-05": {
-      "strategy": 0.10194,
+      "strategy": 0.106191,
       "benchmark": -0.00117,
-      "alpha": 0.10311,
+      "alpha": 0.107361,
       "origin": "backfill",
-      "finalized_on": "2026-09-03",
-      "config": "5b356a6ba93b",
-      "data_as_of": "2026-09-03"
+      "universe": "point_in_time",
+      "finalized_on": "2026-10-01",
+      "config": "2aa2cb53f4d1",
+      "data_as_of": "2026-09-30"
     },
     "2026-06": {
-      "strategy": 0.090069,
+      "strategy": 0.073031,
       "benchmark": 0.014947,
-      "alpha": 0.075122,
+      "alpha": 0.058084,
       "origin": "backfill",
-      "finalized_on": "2026-09-03",
-      "config": "5b356a6ba93b",
-      "data_as_of": "2026-09-03"
+      "universe": "point_in_time",
+      "finalized_on": "2026-10-01",
+      "config": "2aa2cb53f4d1",
+      "data_as_of": "2026-09-30"
     },
     "2026-07": {
-      "strategy": -0.021666,
+      "strategy": -0.014517,
       "benchmark": 0.020223,
-      "alpha": -0.041889,
+      "alpha": -0.034741,
       "origin": "backfill",
-      "finalized_on": "2026-09-03",
-      "config": "5b356a6ba93b",
-      "data_as_of": "2026-09-03"
+      "universe": "point_in_time",
+      "finalized_on": "2026-10-01",
+      "config": "2aa2cb53f4d1",
+      "data_as_of": "2026-09-30"
     },
     "2026-08": {
-      "strategy": 0.126149,
+      "strategy": 0.151064,
       "benchmark": -0.000441,
-      "alpha": 0.12659,
-      "origin": "recorded",
-      "finalized_on": "2026-09-03",
-      "config": "5b356a6ba93b",
-      "data_as_of": "2026-09-03"
+      "alpha": 0.151505,
+      "origin": "backfill",
+      "universe": "point_in_time",
+      "finalized_on": "2026-10-01",
+      "config": "2aa2cb53f4d1",
+      "data_as_of": "2026-09-30"
     }
-  }
+  },
+  "rebuilds": [
+    {
+      "on": "2026-10-01",
+      "months": [
+        "2026-01",
+        "2026-02",
+        "2026-03",
+        "2026-04",
+        "2026-05",
+        "2026-06",
+        "2026-07",
+        "2026-08"
+      ],
+      "replaced_configs": [
+        "5b356a6ba93b"
+      ],
+      "config": "2aa2cb53f4d1",
+      "membership": "point in time from 2025-12-31",
+      "former_members_unpriceable": [
+        "CIGNITITEC",
+        "GSPL",
+        "GUJGASLTD",
+        "JBCHEPHARM"
+      ],
+      "previous_values": {
+        "2026-01": -0.026879,
+        "2026-02": 0.036104,
+        "2026-03": -0.122179,
+        "2026-04": 0.184092,
+        "2026-05": 0.10194,
+        "2026-06": 0.090069,
+        "2026-07": -0.021666,
+        "2026-08": 0.126149
+      },
+      "note": "Rebuilt on point-in-time Nifty Total Market membership (from NSE notices) with prices for former members, under the current pinned config (adds accrual=buy_and_hold, which the 2026-09-03 months pre-date). Replaces the Jan-Aug block, which was scored on today's list under the earlier accrual convention."
+    }
+  ]
 }

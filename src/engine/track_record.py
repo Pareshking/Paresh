@@ -232,7 +232,9 @@ def finalize_months(
         # Both are frozen once written; they are not equally strong evidence,
         # and the record should say which is which rather than leave it to be
         # inferred from a finalisation date.
-        origin = "recorded" if period == current_month - 1 else "backfill"
+        # A forced rewrite is a reconstruction by definition, whatever the month:
+        # nothing it writes was frozen as that month closed.
+        origin = "recorded" if (period == current_month - 1 and not force) else "backfill"
         # Which universe the month was scored against. A month whose rebalances
         # knew the real index membership is survivorship-free; one scored
         # against today's constituent list is not, and the difference is worth

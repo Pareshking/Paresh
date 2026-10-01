@@ -18,6 +18,7 @@ point-in-time membership (src/engine/systems.py).
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import sys
 from pathlib import Path
 
@@ -41,6 +42,7 @@ from src.engine.corporate_actions import load_events  # noqa: E402
 from src.engine import systems  # noqa: E402
 from src.engine.extra_universe import SYSTEM_750, SYSTEM_NANO, SYSTEMS  # noqa: E402
 from src.engine.membership import describe  # noqa: E402
+from src.loaders import former_members  # noqa: E402
 from src.loaders import extra_universe_loader as xl  # noqa: E402
 from src.loaders.indices_loader import fetch_indices_data  # noqa: E402
 from src.loaders.price_loader import (  # noqa: E402
@@ -65,6 +67,11 @@ def main() -> int:
         "formation window before it.",
     )
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument(
+        "--note",
+        default="",
+        help="Why a --force rebuild was done; stored in the ledger's `rebuilds` log.",
+    )
     ap.add_argument(
         "--force",
         action="store_true",
@@ -134,6 +141,15 @@ def main() -> int:
     else:
         print("→ no membership history; months will use the current universe")
 
+    # The index's former members need prices too, or the record is scored
+    # against survivors only (data/former_member_prices.parquet, kept by
+    # scripts/sync_former_member_prices.py).
+    n_before = adj_close.shape[1]
+    adj_close = former_members.with_former_members(adj_close, membership)
+    print(f"→ former members priced: {adj_close.shape[1] - n_before} added to the "
+          f"{n_before}-stock frame; unpriceable (merged away): "
+          f"{', '.join(former_members.unavailable()) or 'none'}")
+
     cfg = dict(TRACK_RECORD_CONFIG)
     fingerprint = config_fingerprint(**cfg)
     print(f"  config fingerprint: {fingerprint}")
@@ -166,6 +182,7 @@ def main() -> int:
 
     ledger = load_ledger(ledger_file, start)
     before = len(ledger.get("months", {}))
+    prior_months = dict(ledger.get("months", {}))
 
     for row in drift_report(ledger, result["equity_curve"]):
         print(f"  ! drift {row['month']}: stored {row['stored']:+.2%} vs "
@@ -182,6 +199,20 @@ def main() -> int:
         force=args.force,
     )
 
+    if args.force and added:
+        # A rebuild replaces frozen numbers, so the file says so: when, which
+        # months, what they were struck under before, and what they are now.
+        replaced = sorted({m.get("config") for m in prior_months.values() if m.get("config")})
+        ledger.setdefault("rebuilds", []).append({
+            "on": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "months": added,
+            "replaced_configs": replaced,
+            "config": fingerprint,
+            "membership": ("point in time" + (f" from {pit_from}" if pit_from else "")),
+            "former_members_unpriceable": former_members.unavailable(),
+            "previous_values": {k: prior_months[k]["strategy"] for k in added if k in prior_months},
+            "note": args.note,
+        })
     print(f"→ {before} months on file; {len(added)} added, {len(skipped)} "
           f"already frozen")
     for key in added:

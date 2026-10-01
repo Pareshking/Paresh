@@ -61,12 +61,12 @@ committed files at any time.
 
 ## What it does not cover
 
-- **`SUNDARMHLD`** was included 2025-09-30 and is absent on 2026-08-19, with no
-  exit notice among the press releases. It is in neither the 08-19 nor the 09-30
-  list, so it is not in the app's price universe and cannot be selected. The
-  ledger records it as unexplained rather than hiding it. If a notice for it
-  exists that this run did not find, it would also have swapped in one other
-  name; that cannot be ruled out, only bounded to one name for part of the year.
+- **Ticker changes** are not exits, so NSE issues no notice for them. The one in
+  the window, `SUNDARMHLD` -> `TSFINV` (Sundaram Finance Holdings -> TSF Investments,
+  ISIN INE202Z01029, effective 2025-10-16), is recorded under `symbol_aliases` in the
+  ledger. It is visible in our own data: `TSFINV` is in the list continuously from
+  2025-12-31 to 2026-09-29, and the 30 Sep notice lists it among the exclusions. The
+  NSE approval reference (NSE/LIST/362) comes from the owner and was not fetched.
 - **Demerger placeholders** (`DUMMYVEDL1…4`, `DUMMYHDLVR`, `DUMMYALCAR`,
   `DUMMYINXGN`, `DUMMYTRVN`, `DUMMYHEG`, `DUMMYINGL1/2`) are held at zero price
   for a few weeks and are not tradeable. The central `is_tradeable_symbol` filter
@@ -91,3 +91,31 @@ python scripts/extend_membership_from_notices.py check
 `ledger` rebuilds the whole file from the PDFs in the folder, so keep every notice
 from the earliest one wanted through today. The press-release page lists every
 notice with its title and date.
+
+## Prices for the names the index dropped
+
+Membership alone is half of it. The deep price history is the *current* 750's, so a
+name the index held in March and dropped by September had no prices, and the
+backtest could only pick from survivors (the mirror image of the hindsight bias:
+the dropped names are mostly the weaker ones). Measured on the 2026 month ends,
+54 to 98 of the 750 members had no prices at all.
+
+- `data/former_member_prices.parquet` (+ `.json`): adjusted closes from Yahoo for
+  the 104 former members that have history, filed under their current ticker.
+  `scripts/sync_former_member_prices.py` rebuilds it; the monthly workflow runs it
+  before freezing a month.
+- `src/loaders/former_members.py` joins it onto a price frame, adding only names the
+  membership record lists. The backtester's mask still decides who may be held on
+  each date; the extra columns select nothing on their own.
+- Wired in at the Backtest page, `record_run` (Track Record, Actions and Portfolio)
+  and `scripts/update_track_record.py`.
+- **Ticker changes** are recorded in the history's `aliases` and followed by
+  `members_on(..., canonical=True)`: `HEG` -> `HEGAM` on 2026-09-23 (identical
+  prices on every overlapping day). Yahoo files a renamed stock's whole past under
+  its new ticker.
+- **Unpriceable:** `CIGNITITEC`, `GSPL`, `GUJGASLTD`, `JBCHEPHARM` were merged away
+  and Yahoo has nothing. Four names of 750 (under 1%) can still not be selected.
+- **Sector cap:** a former member has no NSE industry on file, so its TradingView
+  industry is mapped to the NSE industry most current members with that
+  TradingView industry carry (82% correct leave-one-out on the 750).
+

@@ -267,7 +267,7 @@ def _index_mask(
     """
     if membership is None:
         return None
-    members = members_on(membership, pd.Timestamp(on).date())
+    members = members_on(membership, pd.Timestamp(on).date(), canonical=True)
     if members is None:
         return None
     return pd.Series(columns.isin(members), index=columns)

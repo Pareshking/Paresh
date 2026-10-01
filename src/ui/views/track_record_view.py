@@ -26,6 +26,7 @@ from src.engine.track_record import (
     months_to_cover,
     summary_stats,
 )
+from src.loaders import former_members
 from src.loaders.ranking_store import actions_digest
 from src.ui import page_kit as kit
 from src.ui.theme import render_saas_table
@@ -56,9 +57,13 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
     # Whole-history fingerprint + applied events: the old key (date, width,
     # months) served an hour-stale MTD after a restatement or a new split.
     events = load_events()
+    # The pinned run is scored on the index as it stood, so the names it once
+    # held and has since dropped must have prices (loaders/former_members.py).
+    membership = membership_for(system)
+    prices = former_members.with_former_members(adj_close, membership)
     result = run_backtest(
-        f"trackrec_{system}_{price_fingerprint(adj_close)}_{actions_digest(events)}_{months}",
-        adj_close,
+        f"trackrec_{system}_{price_fingerprint(prices)}_{actions_digest(events)}_{months}",
+        prices,
         top_n=cfg["top_n"],
         rebal_freq=cfg["rebal_freq"],
         ema_period=cfg["ema_period"],
@@ -69,7 +74,7 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
         buffer_n=cfg["buffer_n"],
         _benchmark_close=benchmark_close,
         backtest_months=months,
-        _membership=membership_for(system),
+        _membership=membership,
         stateful_history=True,
         # The backtest needs warm-up prices before inception, but its stateful
         # tradebook must not create portfolio ownership before the canonical
@@ -269,13 +274,25 @@ def render_track_record_view(
     _backfilled = int(stats.get("backfilled", 0) or 0)
     _recorded = int(stats.get("recorded", 0) or 0)
     if _backfilled:
-        kit.note(
-            f"{_backfilled} of {_backfilled + _recorded} frozen months are backfilled"
-            + (": the whole record is a reconstruction." if not _recorded else "."),
-            "They were rebuilt later from today's index lists and prices, so they carry "
-            "the backtest's survivorship bias. Only months marked recorded were frozen "
-            "as they closed. Each month card says which it is.",
-        )
+        _lead = (f"{_backfilled} of {_backfilled + _recorded} frozen months are backfilled"
+                 + (": the whole record is a reconstruction." if not _recorded else "."))
+        if int(stats.get("current_universe", 0) or 0) == 0:
+            # Every month was scored on the index as it stood (membership from
+            # NSE's own notices), so today's lists cannot flatter them.
+            kit.note(
+                _lead,
+                "They were rebuilt later, not frozen as each month closed, but every one is "
+                "scored on the index as it stood, so today's index lists do not flatter them. "
+                "They use today's price history, and a few stocks that merged away have none. "
+                "Only months marked recorded were frozen as they closed.",
+            )
+        else:
+            kit.note(
+                _lead,
+                "They were rebuilt later from today's index lists and prices, so they carry "
+                "the backtest's survivorship bias. Only months marked recorded were frozen "
+                "as they closed. Each month card says which it is.",
+            )
     if len(stats.get("configs", [])) > 1:
         kit.note(
             "This record spans more than one strategy configuration.",

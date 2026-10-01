@@ -164,6 +164,19 @@ def test_an_older_notice_that_contradicts_the_rewound_list_stops_the_run():
     assert report["known_unexplained_skipped"] == ["A"] and "A" not in out["baseline"]["symbols"]
 
 
+def test_a_ticker_change_is_followed_not_mistaken_for_an_exit():
+    # OLD was included on 2025-10-01 under its old ticker and trades as NEW from
+    # 2025-10-16 on; NSE issues no notice for a plain ticker change.
+    notice = _n("n1", "2026-03-30", {"CCC"}, {"DDD"})
+    old = _n("old", "2025-10-01", {"OLD"}, set())
+    plain = _ledger(old, notice)
+    with pytest.raises(emn.ReconstructionError, match="contradicts notices"):
+        emn.reconstruct(_history({"BBB", "NEW", "CCC"}), plain, "2025-12-31")
+    aliased = dict(plain, symbol_aliases={"OLD": {"new_symbol": "NEW", "effective": "2025-10-16"}})
+    out, report = emn.reconstruct(_history({"BBB", "NEW", "CCC"}), aliased, "2025-12-31")
+    assert report["aliases_followed"] == ["OLD"] and "NEW" in out["baseline"]["symbols"]
+
+
 def test_the_two_copies_in_the_file_must_agree_before_either_is_rewritten():
     flat = _history({"A", "E"})
     ext, _ = emn.reconstruct(flat, _ledger(_n("n1", "2026-03-30", {"E"}, {"B"})), "2025-12-31")
@@ -197,6 +210,15 @@ def test_the_committed_history_now_reaches_back_to_the_first_signal_of_2026():
 
 def test_the_committed_history_agrees_with_every_notice_in_the_ledger():
     assert emn.check(HISTORY, LEDGER) == []
+
+
+def test_nothing_is_left_unexplained_and_the_one_ticker_change_is_recorded():
+    assert LEDGER["known_unexplained"] == {}
+    a = LEDGER["symbol_aliases"]["SUNDARMHLD"]
+    assert a["new_symbol"] == "TSFINV" and a["isin"] == "INE202Z01029"
+    # the same security stays in the list through the whole window, under its new ticker
+    for day in ("2025-12-31", "2026-03-30", "2026-08-19", "2026-09-29"):
+        assert "TSFINV" in members_on(HISTORY, day) and "SUNDARMHLD" not in members_on(HISTORY, day)
 
 
 def test_the_list_is_750_names_on_every_date_it_changes():

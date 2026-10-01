@@ -3118,5 +3118,11 @@
         "VARROC"
       ]
     }
-  ]
+  ],
+  "aliases": {
+    "HEG": {
+      "new_symbol": "HEGAM",
+      "effective": "2026-09-23"
+    }
+  }
 }

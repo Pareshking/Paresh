@@ -20,6 +20,7 @@ from src.engine.parameter_sweep import (
 )
 from src.engine.pipeline import price_fingerprint
 from src.loaders.price_loader import fetch_benchmark_history
+from src.loaders import former_members
 from src.loaders.ranking_store import actions_digest
 from src.ui import page_kit as kit
 from src.ui.components import gap_count, render_data_quality_footer
@@ -103,6 +104,10 @@ def _backtest_body(
     # old key (last date + shape) missed an intraday refresh, a vendor
     # restatement and a newly logged split alike, and served the cached answer
     # for up to an hour.
+    # Score on the index as it stood: the stocks it once held and has since
+    # dropped need prices too, or the pool is only the survivors.
+    membership = membership if membership is not None else load_history_or_none()
+    adj_close = former_members.with_former_members(adj_close, membership)
     _events = load_events()
     ph = f"{price_fingerprint(adj_close)}_{actions_digest(_events)}"
     if liquidity_floor_cr:
@@ -119,6 +124,10 @@ def _backtest_body(
         if "Industry" in rank_df.columns
         else {}
     )
+    if sec_map:
+        # The sector cap needs an industry for every name it can hold, and the
+        # index files only label the current members.
+        sec_map.update(former_members.industry_for([c for c in adj_close.columns if c not in sec_map]))
 
     with st.spinner("Running walk-forward backtest with friction & turnover modeling…"):
         bt_res = run_backtest(
@@ -134,7 +143,7 @@ def _backtest_body(
             sector_map=sec_map,
             cost_bps=cost_drag_bps,
             buffer_n=int(bt_n * buffer_mult),
-            _membership=membership if membership is not None else load_history_or_none(),
+            _membership=membership,
             backtest_months=months,
             stateful_history=True,
             history_start=history_start,

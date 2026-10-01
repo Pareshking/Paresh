@@ -99,10 +99,28 @@ def build_ledger(pdf_dir: Path) -> dict[str, Any]:
         "source": "NSE Indices press releases, https://www.niftyindices.com/press-release",
         "note": ("Total Market changes read from each notice's own 'Nifty Total Market' "
                  "tables. Placeholder (DUMMY) symbols are dropped by is_tradeable_symbol."),
-        "known_unexplained": {
-            "SUNDARMHLD": ("Included 2025-09-30 (ind_prs22082025.pdf) and absent from the "
-                           "2026-08-19 list, with no exit notice among the press releases. "
-                           "Not in the app's price universe, so it cannot affect a backtest."),
+        "known_unexplained": {},
+        "symbol_aliases": {
+            "SUNDARMHLD": {
+                "new_symbol": "TSFINV",
+                "effective": "2025-10-16",
+                "company": "Sundaram Finance Holdings Ltd. -> TSF Investments Ltd.",
+                "isin": "INE202Z01029",
+                "evidence": ("A name and ticker change, so NSE Indices issued no replacement "
+                             "notice. Seen in the data: TSFINV is in the list continuously from "
+                             "2025-12-31 to 2026-09-29, and ind_prs10082026.pdf lists "
+                             "'TSF Investments Ltd. TSFINV' among the 2026-09-30 exclusions. "
+                             "NSE approval ref NSE/LIST/362 (2025-10-10) as relayed by the owner."),
+            },
+            "HEG": {
+                "new_symbol": "HEGAM",
+                "effective": "2026-09-23",
+                "company": "HEG Ltd.",
+                "evidence": ("The daily sync recorded HEG out and HEGAM in on 2026-09-23. Yahoo's "
+                             "HEG.NS and HEGAM.NS carry identical adjusted closes on every "
+                             "overlapping day (24-30 Sep 2026), and the whole earlier history "
+                             "is filed under HEGAM."),
+            },
         },
         "notices": notices,
         "placeholder_notices": placeholders,
@@ -147,14 +165,22 @@ def reconstruct(history: dict[str, Any], ledger: dict[str, Any],
     # Independent notices from the other side of `start`: the last thing each
     # names about a symbol is what the rewound list must say about it.
     known = set(ledger.get("known_unexplained") or {})
+    aliases = ledger.get("symbol_aliases") or {}
+
+    def current_symbol(sym: str, on: str) -> str:
+        """The symbol a notice's name trades under on `start`: a ticker change
+        is not an exit, so an older notice's name is followed to its new ticker."""
+        a = aliases.get(sym)
+        return a["new_symbol"] if a and _iso(on) < _iso(a["effective"]) <= start_d else sym
+
     last: dict[str, tuple[bool, str]] = {}
     for n in sorted(ledger["notices"], key=lambda n: (n["effective"], n["issued"] or "")):
         if not (_iso(ANCHOR_FROM) <= _iso(n["effective"]) <= start_d):
             continue
         for s in n["excluded"]:
-            last[s] = (False, n["notice"])
+            last[current_symbol(s, n["effective"])] = (False, n["notice"])
         for s in n["included"]:
-            last[s] = (True, n["notice"])
+            last[current_symbol(s, n["effective"])] = (True, n["notice"])
     contradicted = sorted(s for s, (want, _) in last.items()
                           if (s in state) != want and s not in known)
     if contradicted:
@@ -185,9 +211,21 @@ def reconstruct(history: dict[str, Any], ledger: dict[str, Any],
         "notices_used": [n["notice"] for n in notices],
         "list_sizes_seen": sorted(sizes),
         "anchor_symbols_checked": len(last),
+        "aliases_followed": sorted(a for a in aliases if aliases[a]["new_symbol"] in last),
         "known_unexplained_skipped": sorted(s for s in last if s in known),
     }
     return out, report
+
+
+def relevant_aliases(history: dict[str, Any], ledger: dict[str, Any]) -> dict[str, Any]:
+    """The ledger's ticker changes whose OLD symbol appears in the history, in the
+    shape members_on(canonical=True) reads. A change whose old symbol the history
+    never names (SUNDARMHLD: already listed as TSFINV) needs no entry."""
+    named = set(history["baseline"]["symbols"])
+    for c in history.get("changes") or []:
+        named |= set(c.get("added") or []) | set(c.get("removed") or [])
+    return {old: {"new_symbol": a["new_symbol"], "effective": a["effective"]}
+            for old, a in (ledger.get("symbol_aliases") or {}).items() if old in named}
 
 
 def _apply_to_file(history: dict[str, Any], extended: dict[str, Any]) -> dict[str, Any]:
@@ -269,10 +307,17 @@ def main() -> int:
         return 1 if problems else 0
 
     extended, report = reconstruct(history, ledger, args.start)
+    aliases = relevant_aliases(extended, ledger)
+    report["aliases_written"] = sorted(aliases)
     print(json.dumps(report, indent=2))
-    if report["status"] == "extended" and not args.dry_run:
-        _save(args.history, _apply_to_file(history, extended))
+    if args.dry_run:
+        return 0
+    if report["status"] == "extended":
+        _save(args.history, {**_apply_to_file(history, extended), "aliases": aliases})
         print(f"wrote {args.history}")
+    elif (history.get("aliases") or {}) != aliases:
+        _save(args.history, {**history, "aliases": aliases})
+        print(f"wrote {args.history} (aliases only)")
     return 0
 
 
