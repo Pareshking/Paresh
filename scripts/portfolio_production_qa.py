@@ -162,6 +162,48 @@ def main() -> int:
                             f"{name}: horizontal overflow {overflow}px"
                         )
 
+                    # Exercise the two history views that contain live MTD/calendar evidence.
+                    try:
+                        equity_control = frame.get_by_text("Equity", exact=True)
+                        equity_control.click(timeout=10_000)
+                        page.wait_for_timeout(700)
+                        equity_body = app_frame(page).locator("body").inner_text(timeout=15_000)
+                        equity_folded = equity_body.casefold()
+                        equity_checks = {
+                            "equity_mtd_strategy_present": "mtd · strategy" in equity_folded,
+                            "equity_mtd_benchmark_present": "mtd · nifty 500" in equity_folded,
+                            "equity_mtd_gap_present": "mtd gap" in equity_folded,
+                            "cumulative_42pct_visible": "+42.4%" in equity_body,
+                        }
+                        checks.update(equity_checks)
+                        if not equity_checks["equity_mtd_strategy_present"] or not equity_checks["equity_mtd_benchmark_present"] or not equity_checks["equity_mtd_gap_present"]:
+                            report["failures"].append(f"{name}: Equity view MTD summary is incomplete")
+                        if equity_checks["cumulative_42pct_visible"]:
+                            report["failures"].append(f"{name}: Equity view still exposes the old cumulative +42.4% headline")
+                        page.screenshot(path=str(OUT / f"{name}_equity.png"), full_page=True)
+
+                        frame = app_frame(page)
+                        frame.get_by_text("Monthly", exact=True).click(timeout=10_000)
+                        page.wait_for_timeout(700)
+                        monthly_body = app_frame(page).locator("body").inner_text(timeout=15_000)
+                        monthly_folded = monthly_body.casefold()
+                        monthly_checks = {
+                            "calendar_grid_present": "calendar grid" in monthly_folded,
+                            "strategy_present": "strategy" in monthly_folded,
+                            "nifty_500_present": "nifty 500" in monthly_folded,
+                            "gap_present": "gap" in monthly_folded,
+                            "mtd_present": "mtd" in monthly_folded,
+                        }
+                        checks.update(monthly_checks)
+                        if not all(monthly_checks.values()):
+                            report["failures"].append(f"{name}: Calendar grid MTD evidence is incomplete")
+                        page.screenshot(path=str(OUT / f"{name}_monthly.png"), full_page=True)
+                    except Exception as exc:
+                        report["failures"].append(
+                            f"{name}: could not exercise Equity/Monthly history views: "
+                            f"{type(exc).__name__}: {exc}"
+                        )
+
                     page.screenshot(
                         path=str(OUT / f"{name}.png"),
                         full_page=True,
