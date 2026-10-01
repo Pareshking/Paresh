@@ -88,7 +88,11 @@ def main() -> int:
                     frame = app_frame(page)
                     try:
                         how = open_page(frame, "Portfolio", page)
-                        # Navigation is a means to reach the page, not part of the page visual evidence.\n                        # Close the hamburger after routing so mobile screenshots validate the Portfolio content itself.\n                        _close_custom_popover(frame)\n                        page.wait_for_timeout(300)\n                    except Exception as exc:
+                        # Navigation is a means to reach the page, not part of the page visual evidence.
+                        # Close the hamburger after routing so mobile screenshots validate the Portfolio content itself.
+                        _close_custom_popover(frame)
+                        page.wait_for_timeout(300)
+                    except Exception as exc:
                         report["failures"].append(
                             f"{name}: could not open Portfolio: "
                             f"{type(exc).__name__}: {exc}"
