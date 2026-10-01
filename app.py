@@ -1113,7 +1113,7 @@ def _page_backtest() -> None:
     # Backtest reporting starts at the system's canonical inception and
     # expands by one completed month at each month-end. Older price history is
     # still used for signal formation, but never becomes portfolio ownership.
-    months = systems.backtest_months(system, deep_adj_close.index[-1])
+    months = systems.backtest_months(system, deep_adj_close.index[-1], now=ist_now())
     if months == 0:
         start_label = systems.inception(system).strftime("%B %Y")
         kit.page_head(
