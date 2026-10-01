@@ -10,7 +10,6 @@ from typing import Any
 
 import pandas as pd
 
-from src.core.market_time import ist_now
 from src.engine.extra_universe import SYSTEM_750
 
 
@@ -29,6 +28,7 @@ def current_book(
     adj_close: pd.DataFrame,
     benchmark_close: pd.Series | None,
     system: str = SYSTEM_750,
+    now=None,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Return the Track Record's canonical current model book.
 
@@ -41,7 +41,8 @@ def current_book(
     """
     from src.ui.views.track_record_view import record_run
 
-    result = record_run(adj_close, benchmark_close, system, ist_now())
+    result = (record_run(adj_close, benchmark_close, system, now=now)
+              if now is not None else record_run(adj_close, benchmark_close, system))
     result = result or {}
     book = result.get("live_book", pd.DataFrame())
 
