@@ -17,7 +17,7 @@ import json
 import os
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from pathlib import Path
 
@@ -174,7 +174,7 @@ def main() -> int:
                         ist = ZoneInfo("Asia/Kolkata")
                         now_ist = datetime.now(ist)
                         current_month = now_ist.strftime("%b").casefold()
-                        previous_month = (now_ist.replace(day=1) - __import__("datetime").timedelta(days=1)).strftime("%b").casefold()
+                        previous_month = (now_ist.replace(day=1) - timedelta(days=1)).strftime("%b").casefold()
                         equity_checks = {
                             "equity_mtd_strategy_present": "mtd · strategy" in equity_folded,
                             "equity_mtd_benchmark_present": "mtd · nifty 500" in equity_folded,
