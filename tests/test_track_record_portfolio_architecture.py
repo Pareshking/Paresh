@@ -243,3 +243,15 @@ def test_record_run_passes_canonical_inception_to_stateful_backtest(monkeypatch)
 
     assert captured["stateful_history"] is True
     assert captured["history_start"] == pd.Timestamp("2026-01-01")
+
+
+def test_portfolio_tracker_calculates_day_pnl_percentage_from_previous_value():
+    prices = pd.DataFrame(
+        {"AAA": [100.0, 105.0], "BBB": [200.0, 198.0]},
+        index=pd.date_range("2026-09-29", periods=2),
+    )
+    out = build_portfolio_tracker(_book(), _ranking(), 1_000_000, prices)
+    by_symbol = out.set_index("Symbol")
+    assert by_symbol.loc["AAA", "Previous Value (₹)"] == pytest.approx(5000.0)
+    assert by_symbol.loc["AAA", "Day P&L (₹)"] == pytest.approx(250.0)
+    assert by_symbol.loc["AAA", "Day P&L %"] == pytest.approx(5.0)
