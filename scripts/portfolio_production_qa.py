@@ -17,6 +17,8 @@ import json
 import os
 import sys
 import time
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -169,14 +171,20 @@ def main() -> int:
                         page.wait_for_timeout(700)
                         equity_body = app_frame(page).locator("body").inner_text(timeout=15_000)
                         equity_folded = equity_body.casefold()
+                        ist = ZoneInfo("Asia/Kolkata")
+                        now_ist = datetime.now(ist)
+                        current_month = now_ist.strftime("%b").casefold()
+                        previous_month = (now_ist.replace(day=1) - __import__("datetime").timedelta(days=1)).strftime("%b").casefold()
                         equity_checks = {
                             "equity_mtd_strategy_present": "mtd · strategy" in equity_folded,
                             "equity_mtd_benchmark_present": "mtd · nifty 500" in equity_folded,
                             "equity_mtd_alpha_present": "mtd alpha" in equity_folded,
+                            "current_calendar_mtd_present": f"{current_month} mtd" in equity_folded,
+                            "previous_calendar_mtd_absent": f"{previous_month} mtd" not in equity_folded,
                             "cumulative_42pct_visible": "+42.4%" in equity_body,
                         }
                         checks.update(equity_checks)
-                        if not equity_checks["equity_mtd_strategy_present"] or not equity_checks["equity_mtd_benchmark_present"] or not equity_checks["equity_mtd_alpha_present"]:
+                        if not equity_checks["equity_mtd_strategy_present"] or not equity_checks["equity_mtd_benchmark_present"] or not equity_checks["equity_mtd_alpha_present"] or not equity_checks["current_calendar_mtd_present"] or not equity_checks["previous_calendar_mtd_absent"]:
                             report["failures"].append(f"{name}: Equity view MTD summary is incomplete")
                         if equity_checks["cumulative_42pct_visible"]:
                             report["failures"].append(f"{name}: Equity view still exposes the old cumulative +42.4% headline")
