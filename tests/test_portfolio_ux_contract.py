@@ -75,3 +75,23 @@ def test_portfolio_equity_chart_uses_absolute_values_without_growth_factor_scali
     assert "kit.growth_chart(" not in portfolio
     assert '"value": float(v)' in page_kit
 
+def test_portfolio_monthly_view_is_calendar_grid_with_live_mtd():
+    source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
+    assert "def _calendar_grid_html(" in source
+    assert '"monthly_grid": pd.DataFrame(monthly_grid_rows)' in source
+    assert '"mtd_period": live_period_key' in source
+    assert 'Origin": "Live MTD"' in source
+    assert "Calendar quarters (Q1 = Jan·Feb·Mar)." in source
+    assert "CY compounds Jan–Dec" in source
+    assert "FY compounds Apr of the row's year through Mar of the next" in source
+    assert "live month-to-date, not frozen" in source
+
+
+def test_portfolio_equity_view_reports_current_mtd_not_cumulative_return():
+    source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
+    equity = source[source.index('elif history_tab == "Equity":'):source.index('elif history_tab == "Trades":')]
+    assert 'f"{mtd_label} · Strategy"' in equity
+    assert 'f"{mtd_label} · Nifty 500"' in equity
+    assert '"MTD gap"' in equity
+    assert 'st.metric("Since inception", f"{historical_return:+.1%}"' not in equity
+
