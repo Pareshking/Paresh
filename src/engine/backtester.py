@@ -276,6 +276,7 @@ def _build_rebalance_schedule(
     *,
     stateful_history: bool = False,
     history_start: pd.Timestamp | None = None,
+    now=None,
 ) -> tuple[list[int], list[int], int, pd.Timestamp] | None:
     """Which sessions the book is rebalanced on, and where the simulation stops.
 
@@ -311,7 +312,7 @@ def _build_rebalance_schedule(
     # full 12-month lookback; we simply do not report periods outside the
     # window. Filter on the EXECUTION date (T+1), because a rebalance signalled
     # on the last session of January is the trade that holds through February.
-    window_start, window_end = completed_month_window(dates, backtest_months)
+    window_start, window_end = completed_month_window(dates, backtest_months, now=now)
     if stateful_history:
         rebal_dates = [i for i in rebal_dates if dates[i + 1] <= window_end]
         if history_start is not None:
