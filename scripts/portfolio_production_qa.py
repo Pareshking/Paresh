@@ -99,6 +99,7 @@ def main() -> int:
                     while time.perf_counter() < deadline:
                         frame = app_frame(page)
                         body = frame.locator("body").inner_text(timeout=15_000)
+                        body_folded = body.casefold()
                         spinner = frame.locator('[data-testid="stSpinner"]').count()
                         exception = frame.locator('[data-testid="stException"]').count()
                         if exception:
