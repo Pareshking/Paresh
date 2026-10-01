@@ -28,6 +28,7 @@ from src.engine.exit_watch import (
     qualified_ranks,
 )
 from src.engine.actions import buy_orders, plan_rebalance
+from src.engine.pipeline import ranking_as_of
 from src.engine.track_record import TRACK_RECORD_CONFIG
 from src.ui import holdings_store
 from src.ui import page_kit as kit
@@ -63,6 +64,22 @@ def next_rebalance(as_of: pd.Timestamp) -> tuple[pd.Timestamp, pd.Timestamp]:
     if fill.weekday() >= 5:
         fill = fill + pd.offsets.BDay(1)
     return check, fill
+
+def rebalance_dates_for_view(
+    rank_as_of: pd.Timestamp,
+    book_as_of: pd.Timestamp | None = None,
+    *,
+    model_book: bool = True,
+) -> tuple[pd.Timestamp, pd.Timestamp, pd.Timestamp]:
+    """Use the marked model-book date for the next plan, not a stale rank date."""
+    rank_date = pd.Timestamp(rank_as_of)
+    date_basis = (
+        pd.Timestamp(book_as_of)
+        if model_book and book_as_of is not None
+        else rank_date
+    )
+    check, fill = next_rebalance(date_basis)
+    return date_basis, check, fill
 
 
 def _day(t: pd.Timestamp, weekday: bool = False) -> str:
@@ -242,6 +259,8 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
 
     sources = SOURCES if model_book_note is None else ["My holdings"]
     selected_source = st.session_state.get("xw_source", sources[0]) or sources[0]
+    if selected_source not in sources:
+        selected_source = sources[0]
     book = None
     _record = None
     book_as_of = pd.Timestamp(rank_as_of)
@@ -256,10 +275,11 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     # while the ranking snapshot is still on the prior complete session. Use the
     # book date for the next calendar rebalance, and disclose the rank-data date
     # rather than showing a fill date that has already happened.
-    date_basis = (
-        book_as_of if selected_source == "Model book" else pd.Timestamp(rank_as_of)
+    date_basis, check, fill = rebalance_dates_for_view(
+        pd.Timestamp(rank_as_of),
+        book_as_of,
+        model_book=selected_source == "Model book",
     )
-    check, fill = next_rebalance(date_basis)
     n_sess = _sessions_between(date_basis, check)
     timing_note = fill_due_note(
         date_basis, fill, pd.Timestamp(ist_now().date())
