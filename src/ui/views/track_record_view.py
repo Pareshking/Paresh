@@ -79,7 +79,29 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
         history_start=start.start_time,
         _actions=events,
     )
-    return result or {}
+    result = result or {}
+
+    # The backtest is the canonical accounting engine and already receives
+    # history_start above. Keep this adapter boundary defensive as well: a
+    # stale cache or a future engine regression must never expose pre-inception
+    # ownership in Actions/Portfolio history. This filters presentation records
+    # only; it does not change the simulated equity curve, selection, sizing,
+    # or P&L calculation.
+    tradebook = result.get("tradebook")
+    if isinstance(tradebook, pd.DataFrame) and "Period Start" in tradebook.columns:
+        period_start = pd.to_datetime(tradebook["Period Start"], errors="coerce")
+        result["tradebook"] = tradebook.loc[
+            period_start.ge(start.start_time) | period_start.isna()
+        ].reset_index(drop=True)
+
+    closed_trades = result.get("closed_trades")
+    if isinstance(closed_trades, pd.DataFrame) and "Exit Date" in closed_trades.columns:
+        exit_date = pd.to_datetime(closed_trades["Exit Date"], errors="coerce")
+        result["closed_trades"] = closed_trades.loc[
+            exit_date.ge(start.start_time) | exit_date.isna()
+        ].reset_index(drop=True)
+
+    return result
 
 
 def _record_mtd(
