@@ -82,9 +82,16 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
             is_live = live is not None and row is not None and row._asdict()["Period"] == live
             cells.append(cell(row, is_live))
         cy_s, cy_b = aggregate([pd.Period(f"{year}-{m:02d}", freq="M") for m in range(1, 13)])
-        fy_s, fy_b = aggregate(
-            [pd.Period(f"{year if m <= 12 else year + 1:04d}-{m if m <= 12 else m - 12:02d}", freq="M") for m in range(4, 16)]
-        )
+        fy_periods = [
+            pd.Period(
+                f"{year if m <= 12 else year + 1:04d}-{m if m <= 12 else m - 12:02d}",
+                freq="M",
+            )
+            for m in range(4, 16)
+        ]
+        fy_s, fy_b = aggregate(fy_periods) if all(
+            (p.year, p.month) in lookup for p in fy_periods
+        ) else (None, None)
         cy_gap = cy_s - cy_b if cy_s is not None and cy_b is not None else None
         fy_gap = fy_s - fy_b if fy_s is not None and fy_b is not None else None
         def aggregate_cell(s, b, gap):
