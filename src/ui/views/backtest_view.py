@@ -25,8 +25,29 @@ from src.loaders.ranking_store import actions_digest
 from src.ui import page_kit as kit
 from src.ui.canonical_book import current_book
 from src.engine.extra_universe import SYSTEM_750
+from src.engine.systems import inception, ledger_path
+from src.engine.track_record import load_ledger, summary_stats
 from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.theme import render_saas_table
+
+
+def _canonical_account_stats(ledger: dict, live_meta: dict | None) -> dict:
+    """Summarise the canonical account using Track Record's frozen months and live mark."""
+    meta = live_meta or {}
+    period = meta.get("mtd_period")
+    mtd = None
+    if period:
+        mtd = {
+            "period": pd.Period(period, freq="M"),
+            "strategy": meta.get("strategy_mtd"),
+            "benchmark": meta.get("benchmark_mtd"),
+            "as_of": meta.get("as_of"),
+        }
+    return summary_stats(ledger, mtd=mtd)
+
+
+def _pct_or_dash(value) -> str:
+    return "—" if value is None or pd.isna(value) else f"{float(value):+.1%}"
 
 
 @st.fragment
@@ -348,6 +369,40 @@ def _backtest_body(
         live_book = pd.DataFrame()
     changes = canonical_result.get("month_changes", pd.DataFrame())
     lmeta = canonical_result.get("live_meta", {}) or {}
+
+    # Account performance is not the configurable research simulation above.
+    # Use the exact same frozen ledger and current live mark as Track Record.
+    try:
+        account_ledger = load_ledger(ledger_path(SYSTEM_750), inception(SYSTEM_750))
+        account_stats = _canonical_account_stats(account_ledger, lmeta)
+        with kit.card(
+            "Canonical account performance",
+            "bt_canonical_account",
+            "Same January 2026-onward recorded account as Track Record and Portfolio; "
+            "closed months are frozen and the latest month is a live mark.",
+        ):
+            kit.readings([
+                kit.Reading(
+                    "Since-inception strategy",
+                    _pct_or_dash(account_stats.get("total_return")),
+                    "canonical account return, not a configurable backtest",
+                    "up" if account_stats.get("total_return", 0) >= 0 else "down",
+                ),
+                kit.Reading(
+                    "Nifty 500",
+                    _pct_or_dash(account_stats.get("bench_return")),
+                    "same dates and compounding basis",
+                    "up" if account_stats.get("bench_return", 0) >= 0 else "down",
+                ),
+                kit.Reading(
+                    "Alpha",
+                    _pct_or_dash(account_stats.get("alpha")),
+                    "strategy return minus benchmark return",
+                    "up" if account_stats.get("alpha", 0) >= 0 else "down",
+                ),
+            ], "Canonical account")
+    except (ValueError, KeyError, TypeError) as exc:
+        st.error(f"Canonical account performance is unavailable: {exc}")
 
     if view in ("Current book", "This month's changes"):
         _as_of = lmeta.get("as_of")
