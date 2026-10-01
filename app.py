@@ -945,6 +945,7 @@ if not data:
 # The engine is only built when a page needs ranking-derived calculations.
 # Portfolio now consumes the same deep price frame as Actions/Backtest and does
 # not need a second engine merely to retrieve prices.
+calc = data["calc"]  # Used only for diagnostics if live ranking fails.
 rank_df = data["rank_df"]
 adj_close = data["adj_close"]
 deep_adj_close = data.get("deep_adj_close")
