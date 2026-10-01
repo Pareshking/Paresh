@@ -23,7 +23,7 @@ from playwright.sync_api import sync_playwright
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from production_qa import URL, EXPECTED_SHA, app_frame, read_revision, read_state  # noqa: E402
-from _streamlit_nav import open_page  # noqa: E402
+from _streamlit_nav import _close_custom_popover, open_page  # noqa: E402
 
 OUT = Path(os.getenv("UMIYA_QA_OUT", "artifacts/production_qa"))
 OUT.mkdir(parents=True, exist_ok=True)
@@ -88,6 +88,10 @@ def main() -> int:
                     frame = app_frame(page)
                     try:
                         how = open_page(frame, "Portfolio", page)
+                        # Navigation is a means to reach the page, not part of the page visual evidence.
+                        # Close the hamburger after routing so mobile screenshots validate the Portfolio content itself.
+                        _close_custom_popover(frame)
+                        page.wait_for_timeout(300)
                     except Exception as exc:
                         report["failures"].append(
                             f"{name}: could not open Portfolio: "
