@@ -1098,6 +1098,7 @@ def _page_portfolio() -> None:
         vol_target_val=vol_target_val,
         liquidity_floor_cr=liquidity_floor_cr,
         traded_value=_traded_value(),
+        canonical_prices=deep_adj_close,
     )
 
 
@@ -1145,6 +1146,7 @@ def _page_backtest() -> None:
         weights=weights,
         liquidity_floor_cr=liquidity_floor_cr,
         traded_value=_traded_value(),
+        system=system,
         **extra_args,
     )
 
