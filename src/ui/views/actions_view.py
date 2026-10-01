@@ -244,7 +244,7 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         top_n = len(symbols)
     else:
         with st.spinner("Loading the model book…"):
-            book, _record = current_book(adj_close, benchmark_close, system)
+            book, _record = current_book(adj_close, benchmark_close, system, now=ist_now())
         symbols = [] if book is None or book.empty else book["Symbol"].tolist()
         since = ({} if not symbols else
                  dict(zip(book["Symbol"], pd.to_numeric(book["Return %"], errors="coerce"))))
