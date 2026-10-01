@@ -228,32 +228,77 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     cfg = TRACK_RECORD_CONFIG
     rules = Rules(buffer_n=int(cfg["buffer_n"]), high_pct=float(cfg["high_pct"]))
 
-    as_of = pd.Timestamp(adj_close.index[-1]) if adj_close is not None and len(adj_close) else pd.Timestamp(ist_now().date())
-    check, fill = next_rebalance(as_of)
-    n_sess = _sessions_between(as_of, check)
-    timing_note = fill_due_note(as_of, fill, pd.Timestamp(ist_now().date()))
+    rank_as_of = (
+        ranking_as_of(adj_close)
+        if adj_close is not None and len(adj_close)
+        else None
+    )
+    if rank_as_of is None:
+        rank_as_of = (
+            pd.Timestamp(adj_close.index[-1])
+            if adj_close is not None and len(adj_close)
+            else pd.Timestamp(ist_now().date())
+        )
+
+    sources = SOURCES if model_book_note is None else ["My holdings"]
+    selected_source = st.session_state.get("xw_source", sources[0]) or sources[0]
+    book = None
+    _record = None
+    book_as_of = pd.Timestamp(rank_as_of)
+    if model_book_note is None and selected_source == "Model book":
+        with st.spinner("Loading the model book…"):
+            book, _record = current_book(adj_close, benchmark_close, system)
+        live_meta = (_record or {}).get("live_meta") or {}
+        if live_meta.get("as_of") is not None:
+            book_as_of = pd.Timestamp(live_meta["as_of"])
+
+    # A canonical System-750 book may already be marked at the latest NSE close
+    # while the ranking snapshot is still on the prior complete session. Use the
+    # book date for the next calendar rebalance, and disclose the rank-data date
+    # rather than showing a fill date that has already happened.
+    date_basis = (
+        book_as_of if selected_source == "Model book" else pd.Timestamp(rank_as_of)
+    )
+    check, fill = next_rebalance(date_basis)
+    n_sess = _sessions_between(date_basis, check)
+    timing_note = fill_due_note(
+        date_basis, fill, pd.Timestamp(ist_now().date())
+    )
+    rank_lag_note = ""
+    if (
+        selected_source == "Model book"
+        and pd.Timestamp(rank_as_of) < book_as_of
+    ):
+        rank_lag_note = (
+            f" Ranking data is as of {_day(pd.Timestamp(rank_as_of))}; "
+            f"the canonical book is marked {_day(book_as_of)}. "
+            "The preview uses the last published ranks."
+        )
 
     head = kit.page_head(
         "Actions",
-        f"Next rebalance if prices hold. Checked {_day(check)} close, fills {_day(fill)}." + timing_note,
+        (
+            f"Ranks as of {_day(pd.Timestamp(rank_as_of))}. "
+            f"Next rebalance if prices hold: check {_day(check)} close, "
+            f"fills {_day(fill)}.{timing_note}{rank_lag_note}"
+        ),
         actions=True,
     )
     with head:
-        sources = SOURCES if model_book_note is None else ["My holdings"]
         source = st.segmented_control("Holdings", sources, default=sources[0], key="xw_source",
                                       label_visibility="collapsed") or sources[0]
     if model_book_note is not None:
         kit.note("No model book yet.", model_book_note)
 
-    book = None
     if source == "My holdings":
         _edit_holdings()
         symbols, since, _basis = _my_holdings(rank_df)
         entries = lambda s: ""  # noqa: E731 -- buy dates are not recorded for your holdings
         top_n = len(symbols)
     else:
-        with st.spinner("Loading the model book…"):
-            book, _record = current_book(adj_close, benchmark_close, system)
+        if book is None:
+            with st.spinner("Loading the model book…"):
+                book, _record = current_book(adj_close, benchmark_close, system)
         symbols = [] if book is None or book.empty else book["Symbol"].tolist()
         since = ({} if not symbols else
                  dict(zip(book["Symbol"], pd.to_numeric(book["Return %"], errors="coerce"))))
