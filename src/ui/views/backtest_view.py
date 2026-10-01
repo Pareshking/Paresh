@@ -108,6 +108,9 @@ def _backtest_body(
     # for up to an hour.
     # Score on the index as it stood: the stocks it once held and has since
     # dropped need prices too, or the pool is only the survivors.
+    # Preserve the original app price frame for the canonical live-book adapter.
+    # The exploratory backtest may replace adj_close with an alternate price basis below.
+    canonical_adj_close = adj_close
     membership = membership if membership is not None else load_history_or_none()
     # Prices as NSE published them (loaders/nse_prices.py): a past month ranks
     # on what was known then, not on a vendor's later restatement. Where the
@@ -338,7 +341,7 @@ def _backtest_body(
     canonical_result: dict = {}
     try:
         live_book, canonical_result = current_book(
-            adj_close, benchmark_close, SYSTEM_750
+            canonical_adj_close, benchmark_close, SYSTEM_750
         )
     except (ValueError, KeyError) as exc:
         st.error(f"Canonical model book is unavailable: {exc}")
