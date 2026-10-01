@@ -172,11 +172,11 @@ def main() -> int:
                         equity_checks = {
                             "equity_mtd_strategy_present": "mtd · strategy" in equity_folded,
                             "equity_mtd_benchmark_present": "mtd · nifty 500" in equity_folded,
-                            "equity_mtd_gap_present": "mtd gap" in equity_folded,
+                            "equity_mtd_alpha_present": "mtd alpha" in equity_folded,
                             "cumulative_42pct_visible": "+42.4%" in equity_body,
                         }
                         checks.update(equity_checks)
-                        if not equity_checks["equity_mtd_strategy_present"] or not equity_checks["equity_mtd_benchmark_present"] or not equity_checks["equity_mtd_gap_present"]:
+                        if not equity_checks["equity_mtd_strategy_present"] or not equity_checks["equity_mtd_benchmark_present"] or not equity_checks["equity_mtd_alpha_present"]:
                             report["failures"].append(f"{name}: Equity view MTD summary is incomplete")
                         if equity_checks["cumulative_42pct_visible"]:
                             report["failures"].append(f"{name}: Equity view still exposes the old cumulative +42.4% headline")
@@ -191,7 +191,7 @@ def main() -> int:
                             "calendar_grid_present": "calendar grid" in monthly_folded,
                             "strategy_present": "strategy" in monthly_folded,
                             "nifty_500_present": "nifty 500" in monthly_folded,
-                            "gap_present": "gap" in monthly_folded,
+                            "alpha_present": "alpha" in monthly_folded,
                             "mtd_present": "mtd" in monthly_folded,
                         }
                         checks.update(monthly_checks)
