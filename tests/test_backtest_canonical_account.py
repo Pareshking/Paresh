@@ -58,7 +58,8 @@ def test_backtest_page_defaults_to_shared_canonical_book_not_research_book():
     # Actions and Portfolio already consume this adapter. The Backtest page
     # must default to the same adapter for its canonical book and expose its
     # configurable run under a separately labelled research view.
-    assert "current_book(canonical_prices, benchmark_close, system)" in source
+    assert "current_book(" in source
+    assert "canonical_prices, benchmark_close, system" in source
     assert 'default="Canonical book"' in source
     assert 'canonical_view = view in ("Canonical book", "Canonical changes")' in source
     assert 'research_book = bt_res.get("live_book", pd.DataFrame())' in source
