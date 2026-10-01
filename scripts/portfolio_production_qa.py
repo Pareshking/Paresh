@@ -51,6 +51,28 @@ def wait_ready(page):
     return app_frame(page), last or {"state": "timeout"}
 
 
+def settle_view(page, marker: str, timeout_s: int = 45) -> str:
+    """Page text once a clicked history view has rendered, not a fixed 0.7s later.
+
+    Choosing Equity or Monthly reruns the page on the server; a cold production
+    container takes longer than 700ms (run 36837606465: the desktop read ran
+    before the rerun finished while the phone, a few seconds later, passed).
+    Waits for Streamlit's running indicator to clear and for `marker` (lower
+    case) to appear, up to timeout_s, then returns whatever is there so a real
+    absence is still reported as one.
+    """
+    deadline = time.perf_counter() + timeout_s
+    text = ""
+    while time.perf_counter() < deadline:
+        frame = app_frame(page)
+        text = frame.locator("body").inner_text(timeout=15_000)
+        running = frame.locator('[data-testid="stStatusWidget"]').count()
+        if not running and marker in text.casefold():
+            return text
+        time.sleep(1)
+    return text
+
+
 def main() -> int:
     report = {
         "url": URL,
@@ -166,8 +188,7 @@ def main() -> int:
                     try:
                         equity_control = frame.get_by_text("Equity", exact=True)
                         equity_control.click(timeout=10_000)
-                        page.wait_for_timeout(700)
-                        equity_body = app_frame(page).locator("body").inner_text(timeout=15_000)
+                        equity_body = settle_view(page, "equity curve")
                         equity_folded = equity_body.casefold()
                         equity_checks = {
                             # The marked month is "Sep MTD" while it runs and
@@ -190,8 +211,7 @@ def main() -> int:
 
                         frame = app_frame(page)
                         frame.get_by_text("Monthly", exact=True).click(timeout=10_000)
-                        page.wait_for_timeout(700)
-                        monthly_body = app_frame(page).locator("body").inner_text(timeout=15_000)
+                        monthly_body = settle_view(page, "calendar grid")
                         monthly_folded = monthly_body.casefold()
                         monthly_checks = {
                             "calendar_grid_present": "calendar grid" in monthly_folded,
