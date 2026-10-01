@@ -945,8 +945,6 @@ if not data:
 # The engine, only when a page actually needs it. `calc` is None whenever the
 # precomputed ranking was accepted, which is the common cold start -- see
 # _precomputed_ranking. Only Portfolio calls get_calc() and pays for it then.
-calc = data["calc"]
-get_calc = data["get_calc"]
 rank_df = data["rank_df"]
 adj_close = data["adj_close"]
 deep_adj_close = data.get("deep_adj_close")
@@ -1090,7 +1088,7 @@ def _page_rrg() -> None:
 
 def _page_portfolio() -> None:
     render_portfolio_view(
-        calc=get_calc(),
+        prices=deep_adj_close,
         rank_df=rank_df,
         sector_cap=sector_cap,
         stock_cap=stock_cap,
