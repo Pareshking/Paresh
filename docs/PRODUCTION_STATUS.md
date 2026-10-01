@@ -140,7 +140,7 @@ The canonical momentum ranking history is now `6M → 3M → 2M → 1M → Now`.
 
 ### Price ladder and stock-page UI
 
-The price ladder labels are standardized to `52W Low`, `-20% 52W High`, `50D EMA`, and `52W High`. Marker positions remain tied to the actual price coordinates; labels are laid out in equal columns with matching marker-colour dots/text to avoid overlap when prices cluster. The Lightweight Charts renderer remains the default chart; Plotly is fallback only.
+The price ladder labels are standardized to `52W Low`, `-20% 52W High`, `50D EMA`, and `52W High`. Marker positions remain tied to the actual price coordinates; labels are laid out in equal columns with matching marker-colour dots/text to avoid overlap when prices cluster. The Lightweight Charts renderer remains the default chart; there is no fallback chart.
 
 ### Streamlit reload reliability
 

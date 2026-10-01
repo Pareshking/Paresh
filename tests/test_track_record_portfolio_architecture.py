@@ -503,3 +503,23 @@ def test_portfolio_shares_follow_the_latest_rebalance_so_holdings_never_exceed_t
     out = build_portfolio_tracker(book, _ranking(), 1_000_000, prices, equity_curve=equity)
     expect = (1_000_000 * out["Target Weight %"] / 100.0 / 100.0).apply(np.floor)
     assert out["Shares"].tolist() == expect.astype(int).tolist()
+
+
+def test_daily_path_ends_on_each_ledger_month_and_keeps_the_days_between():
+    from src.ui.views.portfolio_view import _daily_path
+
+    days = pd.bdate_range("2026-01-01", "2026-02-27")
+    replay = pd.Series(np.linspace(1.0, 1.3, len(days)), index=days)
+    months = {"2026-01": {"strategy": 0.10}, "2026-02": {"strategy": -0.05}}
+    out = _daily_path(replay, months, "strategy", 1_000_000)
+    jan_end = out.loc[:"2026-01-31"].iloc[-1]
+    assert jan_end == pytest.approx(1_100_000)
+    assert out.iloc[-1] == pytest.approx(1_100_000 * 0.95)
+    assert len(out) > 30            # a point per session, not one per month
+
+
+def test_daily_path_without_a_replay_falls_back_to_month_ends():
+    from src.ui.views.portfolio_view import _daily_path
+
+    out = _daily_path(None, {"2026-01": {"strategy": 0.02}}, "strategy", 100.0)
+    assert out.iloc[-1] == pytest.approx(102.0) and len(out) == 2

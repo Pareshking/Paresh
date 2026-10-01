@@ -12,7 +12,7 @@ ship as separate PRs; the order at the bottom is the proposal.
    (`portfolio_view.py`, variant `portfolio`) and Backtest "Current book"
    (`backtest_view.py:306`) build the same table separately, so fonts, columns
    and behaviour differ. Same for Portfolio vs Track Record (calendar grid, equity).
-2. **Mixed chart stacks.** Altair (Portfolio equity, Breadth), Plotly (RRG,
+2. **Mixed chart stacks.** Altair (Portfolio equity, Breadth), a second chart stack (RRG,
    correlation), ECharts (heatmap), Lightweight Charts (stock page only).
    Altair has hover tooltips but no crosshair or all-series readout.
 3. **No shared type scale.** `theme.py` is 2,991 lines of per-view CSS; fonts
@@ -36,7 +36,7 @@ ship as separate PRs; the order at the bottom is the proposal.
 | 2.1 | **Recommendation: TradingView Lightweight Charts everywhere** (already on the stock page, you rate it). Extend `lightweight_chart.py` to line, area, histogram, baseline and multi-series with crosshair and legend values. |
 | 2.2 | Replace: Portfolio/Track Record equity and drawdown (merged into one chart, see WP4), Breadth participation and highs/lows, Sector/RRG trails where feasible. |
 | 2.3 | Crosshair shows date + every series value on hover/touch. Same colours and pointer styling on every page |
-| 2.4 | Keep Plotly only for RRG scatter and correlation heatmap unless Lightweight cannot do them (it cannot: scatter). Style those to the same tokens |
+| 2.4 | Keep a separate library only for RRG scatter and correlation heatmap unless Lightweight cannot do them (it cannot: scatter). Style those to the same tokens |
 | 2.5 | Caveat (Opus review): the app uses the third-party `streamlit-lightweight-charts==0.7.20`, not its own component. "Multi-pane" there is stacked separate charts (`lightweight_chart.py:271-292`); the wrapper has no value legend or crosshair callback; and the fallback only catches Python exceptions, so a browser-side load failure still renders blank. **Prototype first** (multi-series, legend with values, drawdown pane); if the wrapper cannot do it, write a small own component (`components.html`/declared component) with the Lightweight Charts JS, which also removes the silent-failure risk |
 
 **Decision needed (D1):** confirm Lightweight Charts as the standard. Alternative

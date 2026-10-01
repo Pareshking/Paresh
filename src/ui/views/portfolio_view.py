@@ -18,7 +18,9 @@ from src.loaders.price_loader import fetch_benchmark_history
 from src.ui import page_kit as kit
 from src.ui import system_param
 from src.ui.canonical_book import current_book
+from src.ui.charts import render_correlation_heatmap
 from src.ui.theme import render_saas_table
+from src.ui.views.qualified_view import correlation, correlation_note
 from src.ui.views.track_record_view import grid_display, render_record_sections
 
 PORTFOLIO_STARTING_CAPITAL = 2_000_000.0
@@ -238,6 +240,46 @@ def build_portfolio_tracker(
     ).reset_index(drop=True)
 
 
+def _daily_path(replay: pd.Series | None, months: dict, key: str, capital: float) -> pd.Series:
+    """Daily account value through the frozen months.
+
+    The ledger gives one return per month; the backtest replay gives the path inside it.
+    Each month's replay path is bent so it ends exactly on the ledger's month return
+    (frozen months are the record), then chained from the previous month-end value.
+    A month the replay does not cover contributes only its month-end point.
+    """
+    ordered = sorted(months)
+    if not ordered:
+        return pd.Series(dtype=float)
+    rp = pd.to_numeric(replay, errors="coerce").dropna() if replay is not None else pd.Series(dtype=float)
+    if not rp.empty:
+        rp = rp[~rp.index.duplicated()].sort_index()
+    first = pd.Period(ordered[0], freq="M")
+    dates = [first.start_time - pd.Timedelta(days=1)]
+    values = [float(capital)]
+    value = float(capital)
+    for m in ordered:
+        period = pd.Period(m, freq="M")
+        ret = pd.to_numeric((months[m] or {}).get(key), errors="coerce")
+        end_value = value * (1.0 + float(ret)) if pd.notna(ret) else value
+        days = rp.loc[period.start_time:period.end_time] if not rp.empty else rp
+        before = rp.loc[:period.start_time - pd.Timedelta(days=1)] if not rp.empty else rp
+        prev = float(before.iloc[-1]) if not before.empty else (float(days.iloc[0]) if len(days) else np.nan)
+        if len(days) >= 2 and np.isfinite(prev) and prev > 0 and pd.notna(ret):
+            ratio_end = float(days.iloc[-1]) / prev
+            fix = (1.0 + float(ret)) / ratio_end if ratio_end > 0 else 1.0
+            n = len(days)
+            for k, (d, v) in enumerate(days.items(), start=1):
+                dates.append(pd.Timestamp(d))
+                values.append(value * (float(v) / prev) * fix ** (k / n))
+            values[-1] = end_value
+        else:
+            dates.append(period.end_time)
+            values.append(end_value)
+        value = end_value
+    return pd.Series(values, index=pd.DatetimeIndex(dates), dtype=float)
+
+
 def build_portfolio_history(
     record: dict,
     capital: float,
@@ -333,6 +375,8 @@ def build_portfolio_history(
                     "Priced From": live_meta.get("as_of") or "—",
                     "Config": "Live month-to-date" if live_state == "mtd" else "Closed month, not yet frozen",
                 })
+    equity_daily = _daily_path(record.get("equity_curve"), months, "strategy", capital)
+    benchmark_daily = _daily_path(record.get("benchmark"), months, "benchmark", capital)
     peak = equity.cummax()
     drawdown = equity / peak - 1.0
     closed = record.get("closed_trades")
@@ -340,6 +384,8 @@ def build_portfolio_history(
     return {
         "equity": equity,
         "benchmark": benchmark,
+        "equity_daily": equity_daily,
+        "benchmark_daily": benchmark_daily,
         "drawdown": drawdown,
         "max_drawdown": float(drawdown.min()) if not drawdown.empty else float("nan"),
         "monthly": pd.DataFrame(monthly_rows),
@@ -362,6 +408,36 @@ def build_portfolio_history(
         "trades": closed.copy() if isinstance(closed, pd.DataFrame) else pd.DataFrame(),
         "tradebook": tradebook.copy() if isinstance(tradebook, pd.DataFrame) else pd.DataFrame(),
     }
+
+def _daily_with_live(history: dict, table: pd.DataFrame, prices: pd.DataFrame | None, meta: dict,
+                     benchmark_close: pd.Series | None, value: float, current: float):
+    """The daily curves: frozen months, then the live month from today's holdings.
+
+    The live month is the sized holdings marked each session since the latest fill, plus
+    the cash residual, so its last point is the account value shown at the top.
+    Falls back to the month-end curve if no daily path exists.
+    """
+    eq = history["equity_daily"]
+    bm = history["benchmark_daily"]
+    if len(eq) < 2:
+        return history["equity"], history["benchmark"]
+    fill = pd.to_datetime(meta.get("fill_date"), errors="coerce")
+    if pd.notna(fill) and prices is not None and not prices.empty and not table.empty:
+        px = prices.reindex(columns=table["Symbol"].tolist()).ffill().loc[fill:]
+        px = px[px.index > eq.index[-1]]
+        if len(px):
+            shares = table.set_index("Symbol")["Shares"].reindex(px.columns).fillna(0.0)
+            cash = float(value) - float(current)
+            live = (px * shares).sum(axis=1) + cash
+            eq = pd.concat([eq, live])
+            if benchmark_close is not None and len(benchmark_close):
+                bc = pd.to_numeric(benchmark_close, errors="coerce").dropna()
+                base = bc.loc[:history["equity_daily"].index[-1]]
+                if len(base) and len(bm):
+                    ratio = bc.reindex(live.index, method="ffill") / float(base.iloc[-1])
+                    bm = pd.concat([bm, (ratio * float(bm.iloc[-1])).dropna()])
+    return eq[~eq.index.duplicated()], bm[~bm.index.duplicated()]
+
 
 def render_portfolio_view(
     calc,
@@ -402,7 +478,6 @@ def render_portfolio_view(
 
     history = build_portfolio_history(record, capital, ledger, meta)
     equity = history["equity"]
-    benchmark = history["benchmark"]
     table = build_portfolio_tracker(book, rank_df, capital, prices, equity_curve=equity)
     if table.empty:
         st.info("The canonical model book could not be sized.")
@@ -424,7 +499,6 @@ def render_portfolio_view(
     # Mark/fill dates remain available through live_meta and the canonical book;
     # the compact header no longer duplicates them.
     n_holdings = len(table)
-    drawdown = history["drawdown"]
     monthly_grid = history["monthly_grid"]
     mtd_period = history["mtd_period"]
     mtd_state = history["mtd_state"]
@@ -497,6 +571,15 @@ def render_portfolio_view(
             for _, row in sector.iterrows()
         ], scale=max(float(sector["Weight"].max()) if not sector.empty else 0.0, 1.0)))
 
+    with kit.card("How they move together", "portfolio_corr", "90-day correlation of the holdings"):
+        _corr, _corr_mean = correlation(prices, table["Symbol"].tolist())
+        if _corr is None:
+            st.caption("Not enough price history to compare these holdings.")
+        else:
+            render_correlation_heatmap(_corr, table["Symbol"].tolist())
+            st.caption(f"Average {_corr_mean:.2f}, {correlation_note(_corr_mean)}. "
+                       "1.00 = move exactly together; near 0 = unrelated.")
+
     # ── Performance: one card, equity and drawdown together ─────────────────
     with kit.card("Equity & drawdown", "portfolio_equity"):
         if equity.empty:
@@ -505,18 +588,21 @@ def render_portfolio_view(
             mtd_gap = (strategy_mtd - benchmark_mtd
                        if np.isfinite(strategy_mtd) and np.isfinite(benchmark_mtd) else np.nan)
             month = labels["prefix"].split(" ")[0]
+            eq_d, bm_d = _daily_with_live(history, table, prices, meta, benchmark_close, value, current)
+            dd_d = eq_d / eq_d.cummax() - 1.0
             kit.metric_row([
                 kit.Metric(f"{month} strategy", kit.pct(strategy_mtd)),
                 kit.Metric(f"{month} Nifty 500", kit.pct(benchmark_mtd)),
                 kit.Metric(f"{month} alpha", kit.pct(mtd_gap)),
-                kit.Metric("Max drawdown", kit.pct(history["max_drawdown"], signed=False)),
+                kit.Metric("Max drawdown", kit.pct(float(dd_d.min()), signed=False)),
             ], key="pf_equity")
             kit.equity_chart(
-                equity.index, equity.tolist(),
-                benchmark.tolist() if not benchmark.empty else None,
-                key="portfolio_equity_curve_v3",
-                drawdown=drawdown.reindex(equity.index).tolist() if not drawdown.empty else None,
+                eq_d.index, eq_d.tolist(),
+                bm_d.reindex(eq_d.index, method="ffill").tolist() if not bm_d.empty else None,
+                key="portfolio_equity_curve_v4",
+                drawdown=dd_d.tolist(),
             )
+            st.caption("Daily account value; frozen months follow the Track Record's month returns.")
 
     with kit.card("Calendar returns", "portfolio_monthly", "Strategy, Nifty 500 and Alpha, per year"):
         grid = build_combined_grid(

@@ -1,9 +1,8 @@
-"""Highcharts Stock renderer for the stock page.
+"""Stock page chart: panes for price (candles or line), overlays, volume and RS.
 
-One chart library for the whole app (src/ui/hc_chart.py): drag pans, pinch
-zooms, and the crosshair is the reading tool, with a legend that shows every
-series' value under the pointer. The library is inlined in the page, so there is
-no component to fail to load.
+TradingView Lightweight Charts (src/ui/lw_chart.py, library inlined, no third-party
+component): drag pans, pinch zooms, and the crosshair is the reading tool, with a
+legend that shows every series' value under the pointer.
 
 WHAT IT DRAWS FOLLOWS WHAT THE SOURCE HAS. Yahoo carries a real open, high and
 low, so the price reads as candles, and the candles use the REAL open -- the
@@ -24,7 +23,7 @@ import pandas as pd
 
 import streamlit as st
 
-from src.ui import hc_chart
+from src.ui import lw_chart
 
 # Palette shared with the rest of the app.
 UP = "#067647"
@@ -168,7 +167,7 @@ def build_panes(
                 for r in _candles(idx, o.values, h.values, lo.values, close.values)]
         if not rows:
             raise ChartUnavailable("no candle rows")
-        price = {"name": "Price", "type": "candlestick", "up": UP, "down": DOWN, "fmt": "num",
+        price = {"name": "Price", "type": "candlestick", "color": INK, "up": UP, "down": DOWN, "fmt": "num",
                  "data": rows}
     else:
         rows = _tuples(idx, close.values)
@@ -207,7 +206,7 @@ def render_stock_panes(symbol: str, close: pd.Series, **kw) -> None:
     """Draw the stock chart. Raises ChartUnavailable when the data cannot make one."""
     panes, has_volume = build_panes(close, **kw)
     try:
-        hc_chart.render(panes, key=f"hc_{symbol}")
+        lw_chart.render(panes, key=f"lw_{symbol}")
     except Exception as exc:
         raise ChartUnavailable(f"render failed: {exc}") from exc
     if not has_volume:

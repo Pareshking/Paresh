@@ -265,7 +265,7 @@ def equity_chart(
     given. Values are drawn as passed (rupees, not growth factors), so a
     growth-factor formatter cannot multiply a portfolio value by 100. Hover for
     the date and every value."""
-    from src.ui import hc_chart as lw
+    from src.ui import lw_chart as lw
 
     if len(strategy) < 2:
         return
