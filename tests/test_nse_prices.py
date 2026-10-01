@@ -237,10 +237,17 @@ def test_the_price_basis_is_in_the_config_fingerprint():
     assert config_fingerprint(**yahoo) != config_fingerprint(**TRACK_RECORD_CONFIG)
 
 
-def test_the_committed_ledger_is_one_basis_one_config_and_says_so():
+def test_the_committed_ledger_keeps_its_frozen_legacy_config_separate_from_new_replay():
     led = json.loads((systems.ledger_path("750")).read_text())
     assert led["price_basis"] == "screener_primary"
-    assert {m["config"] for m in led["months"].values()} == {config_fingerprint(**TRACK_RECORD_CONFIG)}
+    fingerprints = {m["config"] for m in led["months"].values()}
+    # The frozen January-September rows were explicitly rebuilt before the
+    # updater used the canonical stateful_history path. They must keep their
+    # historical fingerprint; the new mode is a distinct future regime.
+    assert len(fingerprints) == 1
+    assert fingerprints != {config_fingerprint(**TRACK_RECORD_CONFIG)}
+    assert TRACK_RECORD_CONFIG["replay_mode"] == "stateful_history"
+    assert all(m.get("origin") == "backfill" for m in led["months"].values())
     assert led["rebuilds"][-1]["prices"] == "screener_primary"
     assert led["rebuilds"][-1]["former_members_unpriceable"] == []
 
