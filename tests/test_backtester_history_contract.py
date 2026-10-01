@@ -4,6 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BACKTESTER = ROOT / "src/engine/backtester.py"
+ACTIONS = ROOT / "src/ui/views/actions_view.py"
 
 
 def test_stateful_rebalance_blotter_is_built_after_inception_filter():
@@ -31,3 +32,10 @@ def test_live_mtd_uses_ist_calendar_month_not_last_price_month():
     assert "mtd_period = pd.Period(ist_now(), freq=\"M\")" in source
     assert "mtd_has_current_month_data = as_of_dt.to_period(\"M\") == mtd_period" in source
     assert "and mtd_has_current_month_data" in source
+
+
+def test_actions_explains_month_boundary_when_fill_is_due_today():
+    source = ACTIONS.read_text(encoding="utf-8")
+    assert "fill_due_today" in source
+    assert "latest available " in source
+    assert "rebalance fill is due today" in source
