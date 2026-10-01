@@ -22,6 +22,8 @@ from typing import Any
 
 import pandas as pd
 
+from src.core.market_time import last_closed_calendar_period
+
 from src.engine.extra_universe import (
     SYSTEM_750,
     SYSTEM_COMBINED,
@@ -121,5 +123,5 @@ def backtest_months(system: str, last_session) -> int | None:
     """
     if system not in BACKTEST_START:
         return None
-    last_completed = pd.Timestamp(last_session).to_period("M") - 1
+    last_completed = last_closed_calendar_period(pd.Timestamp(last_session))
     return max(0, (last_completed - pd.Period(BACKTEST_START[system], freq="M")).n + 1)
