@@ -19,18 +19,25 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import hashlib
+import json
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.core.config import BENCHMARK_SYMBOL  # noqa: E402
 from src.engine.backtester import run_backtest  # noqa: E402
+from src.engine.model_record import record_run  # noqa: E402
+from src.engine.pipeline import price_fingerprint  # noqa: E402
+from src.loaders import ranking_store  # noqa: E402
 from src.engine.parity_audit import compare_monthly_ledger  # noqa: E402
 from src.engine.track_record import (  # noqa: E402
     TRACK_RECORD_CONFIG,
+    calendar_month_returns,
     config_fingerprint,
     finalize_months,
     load_ledger,
@@ -71,6 +78,11 @@ def main() -> int:
                     "the 750's default), nse (NSE closes as published, data/nse_prices) or "
                     "yahoo (restated adjusted closes; the default for Nano Cap and Combined)")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument(
+        "--report-json",
+        default=None,
+        help="Write a machine-readable, read-only replay/ledger parity snapshot.",
+    )
     ap.add_argument(
         "--note",
         default="",
@@ -116,6 +128,10 @@ def main() -> int:
         print("✗ no price history")
         return 1
     adj_close, *_ = extract_ohlcv(raw, symbols)
+    # Preserve the raw acquisition frame: record_run() must receive the same
+    # input as the Portfolio/Actions/Backtest adapters and build its canonical
+    # NSE/Screener basis itself. The updater's replay below is compared against it.
+    raw_adj_close = adj_close.copy()
     if adj_close.empty:
         print("✗ no adjusted closes")
         return 1
@@ -214,6 +230,8 @@ def main() -> int:
         _benchmark_close=benchmark,
         backtest_months=months,
         _membership=membership,
+        stateful_history=True,
+        history_start=start.start_time,
         _actions=actions,
     )
     if result is None:
@@ -260,6 +278,158 @@ def main() -> int:
             )
         elif row["status"] == "not_comparable":
             print(f"  ! {row['month']}: ledger row has no comparable returns")
+
+    if args.report_json:
+        # Compare the updater's replay against the actual canonical adapter used
+        # by Portfolio, Actions and Backtest. Both receive the same raw acquired
+        # prices; current_book/record_run applies the canonical price/membership
+        # path independently rather than trusting the updater's prepared frame.
+        canonical_book, canonical_result = __import__(
+            "src.ui.canonical_book", fromlist=["current_book"]
+        ).current_book(raw_adj_close, benchmark, system)
+        replay_book = result.get("live_book")
+        required = [
+            "Symbol", "Entry Date", "Entry Price", "Price Now", "Weight %",
+            "Rank at Entry", "Rank at Rebalance",
+        ]
+        book_parity = {
+            "exact_match": False,
+            "missing_from_canonical": [],
+            "additional_in_replay": [],
+            "field_mismatches": {},
+            "replay_weight_sum_pct": None,
+            "canonical_weight_sum_pct": None,
+        }
+        if isinstance(replay_book, pd.DataFrame) and not replay_book.empty and not canonical_book.empty:
+            left = replay_book.copy()
+            right = canonical_book.copy()
+            left["Symbol"] = left["Symbol"].astype(str)
+            right["Symbol"] = right["Symbol"].astype(str)
+            ls, rs = set(left["Symbol"]), set(right["Symbol"])
+            book_parity["missing_from_canonical"] = sorted(ls - rs)
+            book_parity["additional_in_replay"] = sorted(rs - ls)
+            li = left.drop_duplicates("Symbol").set_index("Symbol").sort_index()
+            ri = right.drop_duplicates("Symbol").set_index("Symbol").sort_index()
+            common = sorted(set(li.index) & set(ri.index))
+            for col in required:
+                if col == "Symbol" or col not in li.columns or col not in ri.columns:
+                    continue
+                if col in {"Entry Price", "Price Now", "Weight %", "Rank at Entry", "Rank at Rebalance"}:
+                    lv = pd.to_numeric(li.loc[common, col], errors="coerce")
+                    rv = pd.to_numeric(ri.loc[common, col], errors="coerce")
+                    diff = (lv - rv).abs()
+                    mismatches = diff.gt(1e-8) | (lv.isna() != rv.isna())
+                    book_parity["field_mismatches"][col] = {
+                        "count": int(mismatches.sum()),
+                        "max_abs_difference": float(diff.max()) if diff.notna().any() else None,
+                    }
+                else:
+                    lv = li.loc[common, col].astype(str).replace("NaT", "")
+                    rv = ri.loc[common, col].astype(str).replace("NaT", "")
+                    book_parity["field_mismatches"][col] = {
+                        "count": int((lv != rv).sum()),
+                        "max_abs_difference": None,
+                    }
+            book_parity["replay_weight_sum_pct"] = float(pd.to_numeric(left.get("Weight %"), errors="coerce").sum())
+            book_parity["canonical_weight_sum_pct"] = float(pd.to_numeric(right.get("Weight %"), errors="coerce").sum())
+            book_parity["exact_match"] = (
+                not book_parity["missing_from_canonical"]
+                and not book_parity["additional_in_replay"]
+                and all(v["count"] == 0 for v in book_parity["field_mismatches"].values())
+            )
+        else:
+            book_parity["error"] = "Replay or canonical current book is empty."
+
+        snap_frame, snap_meta = ranking_store.fetch_snapshot(system=system)
+        snap_columns = [
+            c for c in (
+                "Symbol", "Rank", "CMP", "Price", "Industry", "Company Name",
+                "1M Return", "3M Return", "6M Return", "12M Return",
+            ) if isinstance(snap_frame, pd.DataFrame) and c in snap_frame.columns
+        ]
+        snap_symbols = (
+            sorted(snap_frame["Symbol"].astype(str).unique().tolist())
+            if isinstance(snap_frame, pd.DataFrame) and "Symbol" in snap_frame.columns
+            else []
+        )
+        membership_summary = describe(membership) if membership else {}
+        ledger_months = ledger.get("months", {})
+        strategy_monthly = calendar_month_returns(result["equity_curve"])
+        benchmark_monthly = calendar_month_returns(result["benchmark"])
+        curve_index = result["equity_curve"].index.union(result["benchmark"].index).sort_values()
+        report = {
+            "schema_version": 1,
+            "system": system,
+            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "baseline": {
+                "inception": str(start),
+                "data_as_of": str(pd.Timestamp(as_of).date()),
+                "price_basis": cfg["prices"],
+                "config_fingerprint": fingerprint,
+                "price_fingerprint": price_fingerprint(adj_close),
+                "symbol_fingerprint": hashlib.sha256(
+                    "\n".join(sorted(map(str, adj_close.columns))).encode("utf-8")
+                ).hexdigest(),
+                "actions_digest": __import__(
+                    "src.loaders.ranking_store", fromlist=["actions_digest"]
+                ).actions_digest(actions),
+                "price_rows": int(len(adj_close.index)),
+                "price_symbols": int(len(adj_close.columns)),
+                "price_start": str(pd.Timestamp(adj_close.index[0]).date()),
+                "price_end": str(pd.Timestamp(adj_close.index[-1]).date()),
+                "membership": membership_summary,
+                "ranking_snapshot": {
+                    "available": isinstance(snap_frame, pd.DataFrame) and not snap_frame.empty,
+                    "rows": int(len(snap_frame)) if isinstance(snap_frame, pd.DataFrame) else 0,
+                    "symbols": snap_symbols,
+                    "metadata": snap_meta,
+                    "selected_columns": snap_columns,
+                    "rows_data": (
+                        json.loads(snap_frame[snap_columns].to_json(
+                            orient="records", date_format="iso", double_precision=15
+                        )) if snap_columns else []
+                    ),
+                },
+            },
+            "ledger": {
+                "month_count": len(ledger_months),
+                "first_month": min(ledger_months) if ledger_months else None,
+                "last_month": max(ledger_months) if ledger_months else None,
+                "months": ledger_months,
+            },
+            "monthly_parity": parity,
+            "current_book_parity": book_parity,
+            "replay": {
+                "strategy_monthly_returns": {str(k): float(v) for k, v in strategy_monthly.items()},
+                "benchmark_monthly_returns": {str(k): float(v) for k, v in benchmark_monthly.items()},
+                "live_book": json.loads(replay_book.to_json(orient="records", date_format="iso", double_precision=15))
+                    if isinstance(replay_book, pd.DataFrame) else [],
+                "canonical_book": json.loads(canonical_book.to_json(orient="records", date_format="iso", double_precision=15))
+                    if isinstance(canonical_book, pd.DataFrame) else [],
+                "tradebook": json.loads(result["tradebook"].to_json(orient="records", date_format="iso", double_precision=15))
+                    if isinstance(result.get("tradebook"), pd.DataFrame) else [],
+                "closed_trades": json.loads(result["closed_trades"].to_json(orient="records", date_format="iso", double_precision=15))
+                    if isinstance(result.get("closed_trades"), pd.DataFrame) else [],
+                "equity_curve": [
+                    {
+                        "date": str(pd.Timestamp(d).date()),
+                        "strategy_equity": (
+                            float(result["equity_curve"].loc[d])
+                            if d in result["equity_curve"].index else None
+                        ),
+                        "benchmark_equity": (
+                            float(result["benchmark"].loc[d])
+                            if d in result["benchmark"].index else None
+                        ),
+                    } for d in curve_index
+                ],
+                "canonical_live_meta": (canonical_result or {}).get("live_meta", {}),
+            },
+        }
+        args_path = Path(args.report_json)
+        args_path.parent.mkdir(parents=True, exist_ok=True)
+        args_path.write_text(json.dumps(report, indent=2, default=str, allow_nan=False), encoding="utf-8")
+        print(f"→ machine-readable parity snapshot: {args_path}")
 
     ledger, added, skipped = finalize_months(
         ledger,
