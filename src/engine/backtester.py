@@ -1324,6 +1324,7 @@ def run_backtest(
     # current month"). From the last close of the previous month for a name
     # carried into this month; from its fill for a name bought this month,
     # which was not owned before it.
+    mtd_period = current_calendar_period()
     month_start = mtd_period.start_time
     month_idx = int(prices.index.searchsorted(month_start))
     prior_close_idx = month_idx - 1
@@ -1381,7 +1382,6 @@ def run_backtest(
     # latest available price row. If the current month's close is not in the
     # data yet, the live values remain unavailable rather than relabelling the
     # previous closed month as MTD.
-    mtd_period = current_calendar_period()
     mtd_holdings: Sequence[str] = book
     mtd_wts = book_wts
     mtd_basis = "standing book"
