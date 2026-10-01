@@ -115,7 +115,7 @@ BACKTEST_START = {
 }
 
 
-def backtest_months(system: str, last_session) -> int | None:
+def backtest_months(system: str, last_session, *, now=None) -> int | None:
     """Completed months a system's backtest may report as of `last_session`.
 
     None for the 750 (its own default applies); 0 while the first month is
@@ -123,5 +123,5 @@ def backtest_months(system: str, last_session) -> int | None:
     """
     if system not in BACKTEST_START:
         return None
-    last_completed = last_closed_calendar_period(pd.Timestamp(last_session))
+    last_completed = last_closed_calendar_period(pd.Timestamp(last_session), now=now)
     return max(0, (last_completed - pd.Period(BACKTEST_START[system], freq="M")).n + 1)
