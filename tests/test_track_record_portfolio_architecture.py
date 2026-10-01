@@ -245,6 +245,36 @@ def test_record_run_passes_canonical_inception_to_stateful_backtest(monkeypatch)
     assert captured["history_start"] == pd.Timestamp("2026-01-01")
 
 
+
+
+def test_portfolio_history_includes_live_month_to_date_without_rewriting_frozen_months():
+    record = {
+        "closed_trades": pd.DataFrame(),
+        "tradebook": pd.DataFrame(),
+    }
+    ledger = {
+        "months": {
+            "2026-08": {"strategy": 0.126149, "benchmark": -0.000441},
+        }
+    }
+    out = build_portfolio_history(
+        record,
+        2_000_000,
+        ledger,
+        {
+            "strategy_mtd": 0.09493520755905593,
+            "benchmark_mtd": -0.01,
+            "mtd_period": "2026-09",
+        },
+    )
+
+    assert out["equity"].iloc[-2] == pytest.approx(2_252_298.0, rel=1e-6)
+    assert out["equity"].iloc[-1] == pytest.approx(2_466_235.0, rel=1e-6)
+    assert out["equity"].index[-1] == pd.Timestamp("2026-09-30 23:59:59.999999999")
+    assert out["benchmark"].iloc[-1] == pytest.approx(
+        out["benchmark"].iloc[-2] * 0.99, rel=1e-6
+    )
+
 def test_portfolio_tracker_calculates_day_pnl_percentage_from_previous_value():
     prices = pd.DataFrame(
         {"AAA": [100.0, 105.0], "BBB": [200.0, 198.0]},
