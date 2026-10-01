@@ -172,7 +172,7 @@ def render_track_record_view(
         st.info(
             f"No months frozen yet. {SYSTEM_NAMES[system]}'s record starts with "
             f"{start.strftime('%B %Y')}; each month is frozen early the next month "
-            "(scripts/update_track_record.py, on the 2nd-5th)."
+            "(scripts/update_track_record.py, on the 1st-5th)."
         )
         if mtd_val is not None and mtd_period is not None:
             st.html(month_cards_html({}, mtd_period, mtd_val, mtd_bench))

@@ -166,14 +166,18 @@ def main() -> int:
               f"names, sessions to {info['last_session_on_file']} on file "
               f"(frame to {info['frame_last_session']}); from the other source: "
               f"{', '.join(info['other_source_names'] + info['other_source_history']) or 'none'}")
-        # A frozen month needs NSE's own closes through its last session, not Yahoo's
-        # moves carried over the gap.
-        closed_end = pd.Period(as_of, freq="M") - (0 if as_of.is_month_end else 1)
-        final = nse.index[nse.index <= closed_end.end_time]
-        if len(final) and pd.Timestamp(info["last_session_on_file"]) < final[-1]:
-            print(f"✗ the NSE file ends {info['last_session_on_file']}, before the last closed "
-                  f"session {final[-1]:%Y-%m-%d}; run scripts/sync_nse_prices.py --update first")
+        # A frozen month needs NSE's own closes through its last session, not the other
+        # source's moves carried over a gap: refuse a file that lags it by days.
+        if pd.Timestamp(info["last_session_on_file"]) < as_of - pd.Timedelta(days=3):
+            print(f"✗ the NSE file ends {info['last_session_on_file']}, behind the price data "
+                  f"({as_of:%Y-%m-%d}); run scripts/sync_nse_prices.py --update first")
             return 1
+        # The window is counted back from the frame's end, and NSE's file is the
+        # earlier to reach a new month: on the first working day Yahoo's cache has no
+        # bar yet but NSE's first session of the month is already on R2.
+        as_of = pd.Timestamp(nse.index[-1])
+        months = months_to_cover(as_of, start)
+        print(f"→ NSE sessions through {as_of:%d %b %Y}; covering {months} completed months")
         adj_close, actions = nse, []
     else:
         cfg["prices"] = "yahoo_adjusted"

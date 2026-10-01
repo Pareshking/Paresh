@@ -96,11 +96,11 @@ def _other(idx, **cols):
     return pd.DataFrame({k: np.asarray(v, dtype=float) for k, v in cols.items()}, index=idx)
 
 
-def test_the_frame_ends_where_the_other_source_ends(tmp_path):
-    """Callers count completed months back from the frame's last row; two ends would shift the window."""
+def test_a_caller_can_pin_the_frame_to_the_other_sources_end(tmp_path):
+    """Callers that fixed their month count against the other source ask for the same end."""
     d = _write(tmp_path, _closes(AAA=_flat(100)))
     other = _other(IDX[:-5], AAA=_flat(90, len(IDX) - 5))
-    frame, rep = npx.basis_frame(other, None, months=1, directory=d)
+    frame, rep = npx.basis_frame(other, None, months=1, directory=d, until=other.index[-1])
     assert frame.index[-1] == IDX[-6] and rep["used"]
     assert float(frame["AAA"].iloc[-1]) == 100.0           # NSE's level, not the other source's
 
@@ -284,3 +284,26 @@ def test_an_unreadable_r2_day_is_reported_not_skipped_silently():
     fake = _FakeR2(["2026-02-02", "2026-02-03"], bad=["2026-02-03"])
     p, _, bad = nh.read_r2(dt.date(2026, 2, 1), dt.date(2026, 2, 28), reader=fake)
     assert len(p) == 1 and bad and bad[0].startswith("2026-02-03")
+
+
+# ── a month closes the day NSE's first session of the next one is on file ────
+
+def test_the_frame_runs_to_nses_last_session_unless_a_caller_pins_it(tmp_path):
+    d = _write(tmp_path, _closes(AAA=_flat(100)))
+    other = _other(IDX[:-3], AAA=_flat(90, len(IDX) - 3))        # the other source is 3 sessions behind
+    ahead, _ = npx.basis_frame(other, None, months=1, directory=d)
+    pinned, _ = npx.basis_frame(other, None, months=1, directory=d, until=other.index[-1])
+    assert ahead.index[-1] == IDX[-1] and pinned.index[-1] == IDX[-4]
+
+
+def test_the_record_script_counts_months_from_the_nse_frame_not_the_other_source():
+    import re
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[1] / "scripts" / "update_track_record.py").read_text()
+    assert re.search(r"as_of = pd\.Timestamp\(nse\.index\[-1\]\)\s+months = months_to_cover\(as_of, start\)", src)
+
+
+def test_the_monthly_job_tries_on_the_first_working_day():
+    from pathlib import Path
+    wf = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "monthly_track_record.yml").read_text()
+    assert "- cron: '0 19 1-5 * *'" in wf and "--verify-r2" in wf
