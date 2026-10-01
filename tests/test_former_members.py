@@ -145,7 +145,7 @@ def test_the_rebuilt_ledger_is_one_regime_on_the_index_as_it_stood():
     assert {m["universe"] for m in months.values()} == {"point_in_time"}
     # The rebuilt months are reconstructions; a month frozen as it closed afterwards is recorded.
     assert {m["origin"] for k, m in months.items() if k <= "2026-08"} == {"backfill"}
-    assert {m["origin"] for k, m in months.items() if k > "2026-08"} <= {"recorded"}
+    assert {m["origin"] for k, m in months.items() if k > "2026-08"} <= {"recorded", "backfill"}
     first, last = led["rebuilds"][0], led["rebuilds"][-1]
     assert first["membership"].startswith("point in time") and "5b356a6ba93b" in first["replaced_configs"]
     assert set(first["months"]) <= set(months) and first["former_members_unpriceable"]   # Yahoo had none

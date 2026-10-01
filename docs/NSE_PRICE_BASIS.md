@@ -1,4 +1,19 @@
-# NSE price basis for the Track Record
+# Price basis for the Track Record: Screener first, NSE where Screener has none
+
+**Update 2026-10-01 (owner):** use Screener everywhere, as the live ranking does; NSE (then Yahoo) only where
+Screener has no data. `nse_prices.blend_screener` takes Screener's close wherever it has one. A date or stock
+it lacks is filled from NSE's adjusted close scaled to Screener's own level at the nearest date it holds (so no
+step at the seam); a stock it never held stays on NSE; Yahoo only where neither has it. Screener's store is
+daily for roughly the last year and sparser before it, so about a third of the cells in the Jan to Sep window
+(the 12-month formation window before January) come from NSE on Screener's level; 7 names (the 4 merged away,
+ALLCARGO, GREENPANEL, TEAMLEASE) are NSE only. The config fingerprint is now `7632b1dd09ca` (`prices:
+screener_primary`); the ledger was rebuilt with `--force`. Screener and NSE agree once both are price-only, so
+Jan to Aug are unchanged to the rounded percent and September is +0.99% (+0.95% on NSE). The freeze refuses
+to run if Screener's store is unreachable, unless `--prices nse` is passed on purpose.
+
+(The rest of this page describes the NSE series that fills the gaps.)
+
+# NSE price series
 
 **Status:** applied 2026-10-01. The 750's record, its month-to-date, the Actions model book and the
 Backtest page run on NSE's closes as published.
