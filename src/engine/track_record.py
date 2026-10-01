@@ -64,6 +64,19 @@ TRACK_RECORD_CONFIG: dict[str, Any] = {
     "config_weights": [0.10, 0.30, 0.30, 0.20, 0.10],
     "cost_bps": 30.0,
     "buffer_n": 40,
+    # Position and industry caps (owner, 2026-10-02), HARD: no stock above 5%
+    # and no NSE industry above 40% of the book at any rebalance. Enforced at
+    # selection (at most 8 of 20 names per industry; the rest go to the
+    # next-ranked name) and never relaxed by the weight projection. Between
+    # rebalances the book is held (accrual buy_and_hold), so price moves can
+    # carry an industry past 40% until the next rebalance trims it.
+    # Industry labels are the NSE index file's, with TradingView mapped onto them
+    # for former members (loaders/former_members.industry_for) -- today's labels,
+    # not point-in-time ones; no classification history is committed.
+    "stock_cap": 0.05,
+    "sector_cap": 0.40,
+    "caps": "hard_at_rebalance",
+    "sector_labels": "nse_index_industry_tv_fallback",
     "benchmark": "^CRSLDX",
     # Not a run_backtest argument: it names the ACCOUNTING, so the fingerprint
     # changes with it. From 2026-09-25 the backtest holds each book between

@@ -40,6 +40,7 @@ from src.engine.track_record import (  # noqa: E402
 )
 from src.engine.corporate_actions import load_events  # noqa: E402
 from src.engine import systems  # noqa: E402
+from src.engine.model_record import record_sector_map  # noqa: E402
 from src.engine.extra_universe import SYSTEM_750, SYSTEM_NANO, SYSTEMS  # noqa: E402
 from src.engine.membership import describe  # noqa: E402
 from src.loaders import former_members, nse_prices  # noqa: E402
@@ -211,6 +212,9 @@ def main() -> int:
         config_weights=cfg["config_weights"],
         cost_bps=cfg["cost_bps"],
         buffer_n=cfg["buffer_n"],
+        stock_cap=cfg["stock_cap"],
+        sector_cap=cfg["sector_cap"],
+        sector_map=record_sector_map(adj_close.columns),
         _benchmark_close=benchmark,
         backtest_months=months,
         _membership=membership,

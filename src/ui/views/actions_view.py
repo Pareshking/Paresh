@@ -267,10 +267,11 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                 "history to form one.")
     else:
         a = assess(rank_df, symbols, rules)
-        # The caps the model book's own run uses (run_backtest's defaults, which
-        # record_run does not override), so the weights here are its weights.
+        # The caps the model book's own run uses, read from the pinned record
+        # config, so the weights here are its weights.
         plan = plan_rebalance(rank_df, symbols, top_n=top_n, buffer_n=rules.buffer_n,
-                              stock_cap=0.05, sector_cap=0.30)
+                              stock_cap=float(cfg["stock_cap"]),
+                              sector_cap=float(cfg["sector_cap"]))
         n_unknown = int((a["status"] == UNKNOWN).sum())
         n_watch = int(a[a["Symbol"].isin(plan.holds)]["status"].eq(WATCH).sum())
         kit.readings([

@@ -187,7 +187,12 @@ def test_a_retained_name_keeps_its_original_entry_date():
 def test_current_book_weights_sum_to_one_book():
     px = _prices()
     res = _run(px, "reb_wts")
-    assert res["live_book"]["Weight %"].sum() == pytest.approx(100.0, abs=1e-6)
+    book = res["live_book"]
+    # One book, not two stacked: each name at most the 5% hard stock cap, and the
+    # whole at most 100%. With fewer names than top_n qualifying, the rest is cash
+    # (owner, 2026-10-02: caps are never raised).
+    assert (book["Weight %"] <= 5.0 + 1e-6).all()
+    assert book["Weight %"].sum() == pytest.approx(min(100.0, 5.0 * len(book)), abs=1e-6)
 
 
 def test_every_sale_states_why_and_reports_a_realised_return():
