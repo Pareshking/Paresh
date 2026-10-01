@@ -295,9 +295,12 @@ def build_portfolio_tracker(
         np.nan,
     )
 
+    total_invested = float(out["Invested Value (₹)"].sum())
+    total_current = float(out["Current Value (₹)"].sum())
     total_value = (
-        float(curve.iloc[-1]) if not curve.empty and float(curve.iloc[-1]) > 0
-        else float(capital)
+        float(curve.iloc[-1])
+        if not curve.empty and float(curve.iloc[-1]) > 0
+        else total_current + max(float(capital) - total_invested, 0.0)
     )
     out["Weight %"] = np.where(
         total_value > 0, out["Current Value (₹)"] / total_value * 100.0, 0.0
