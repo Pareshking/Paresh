@@ -388,13 +388,15 @@ def main() -> int:
         benchmark_monthly = calendar_month_returns(result["benchmark"])
         curve_index = result["equity_curve"].index.union(result["benchmark"].index).sort_values()
 
-        rank_as_of = ranking_as_of(raw_adj_close)
+        snapshot_meta = snap_meta or {}
+        snapshot_rank_date = snapshot_meta.get("price_as_of") or snapshot_meta.get("as_of")
+        rank_as_of = (
+            pd.Timestamp(snapshot_rank_date)
+            if snapshot_rank_date is not None
+            else ranking_as_of(raw_adj_close)
+        )
         if rank_as_of is None:
-            rank_as_of = pd.Timestamp(
-                (snap_meta or {}).get("price_as_of")
-                or (snap_meta or {}).get("as_of")
-                or raw_adj_close.index[-1]
-            )
+            rank_as_of = pd.Timestamp(raw_adj_close.index[-1])
         else:
             rank_as_of = pd.Timestamp(rank_as_of)
         canonical_live_meta = (canonical_result or {}).get("live_meta") or {}
