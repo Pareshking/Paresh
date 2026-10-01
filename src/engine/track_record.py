@@ -211,7 +211,11 @@ def finalize_months(
     # A month is closed by the IST calendar, not by whether the latest
     # available price row happens to be dated inside that month. On 1-Oct,
     # 30-Sep data therefore makes September eligible for freezing.
-    current_month = last_closed_calendar_period(as_of, now=now) + 1
+    current_month = (
+        last_closed_calendar_period(as_of, now=now) + 1
+        if now is not None
+        else pd.Period(pd.Timestamp(as_of), freq="M")
+    )
     start = ledger_inception(ledger)
     months = dict(ledger.get("months", {}))
     added: list[str] = []
@@ -542,5 +546,8 @@ def months_to_cover(as_of: pd.Timestamp, inception: pd.Period = INCEPTION, *, no
     The backtest window is counted back from the month in progress, so covering
     January from September means asking for the eight completed months Jan-Aug.
     """
+    if now is None:
+        current = pd.Period(pd.Timestamp(as_of), freq="M")
+        return max(int((current - inception).n), 0)
     closed = last_closed_calendar_period(as_of, now=now)
     return max(int((closed - inception).n) + 1, 0)
