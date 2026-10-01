@@ -14,6 +14,8 @@ from typing import Any, Sequence
 
 import numpy as np
 import pandas as pd
+
+from src.core.market_time import ist_now
 import streamlit as st
 
 from src.core.config import MOMENTUM_WINDOWS, RISK_FREE_RATE
@@ -1373,7 +1375,10 @@ def run_backtest(
     # Measure it the way the engine accrues everywhere else: from the CLOSE the
     # book was filled at, on the book actually held this month. That is the
     # rebalanced book from its fill date whenever the fill lands in this month.
-    mtd_period = as_of_dt.to_period("M")
+    # MTD follows the current IST month, not the month of the last available close.
+    # If no current-month close exists yet, leave the MTD return unavailable.
+    mtd_period = pd.Period(ist_now(), freq="M")
+    mtd_has_current_month_data = as_of_dt.to_period("M") == mtd_period
     mtd_holdings: Sequence[str] = book
     mtd_wts = book_wts
     mtd_basis = "standing book"
@@ -1414,7 +1419,11 @@ def run_backtest(
 
     strategy_mtd: float | None = None
     benchmark_mtd: float | None = None
-    if mtd_base_idx is not None and mtd_base_idx < as_of_idx:
+    if (
+        mtd_has_current_month_data
+        and mtd_base_idx is not None
+        and mtd_base_idx < as_of_idx
+    ):
         # No renormalisation over names that failed to price: a missing leg
         # contributes nothing, exactly as it does in the daily accrual loop.
         acc = 0.0
