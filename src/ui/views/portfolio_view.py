@@ -37,13 +37,14 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
 
     frame = monthly.copy()
     frame["Period"] = pd.PeriodIndex(frame["Period"], freq="M")
-    frame["Year"] = frame["Period"].dt.year
-    frame["MonthNo"] = frame["Period"].dt.month
+    frame["Year"] = frame["Period"].map(lambda period: period.year)
+    frame["MonthNo"] = frame["Period"].map(lambda period: period.month)
     frame["Strategy Net"] = pd.to_numeric(frame["Strategy Net"], errors="coerce")
     frame["Benchmark"] = pd.to_numeric(frame["Benchmark"], errors="coerce")
+    # itertuples() renames "Strategy Net" to "Strategy_Net", causing a KeyError.
     lookup = {
-        (int(row.Year), int(row.MonthNo)): row
-        for row in frame.itertuples(index=False)
+        (int(row["Year"]), int(row["MonthNo"])): row
+        for row in frame.to_dict("records")
     }
     live = pd.Period(live_period, freq="M") if live_period else None
     month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -55,8 +56,8 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
     def cell(row, live_cell=False):
         if row is None:
             return '<div class="pcg-cell pcg-empty">—</div>'
-        strategy = float(row._asdict()["Strategy Net"]) if pd.notna(row._asdict()["Strategy Net"]) else None
-        benchmark = float(row._asdict()["Benchmark"]) if pd.notna(row._asdict()["Benchmark"]) else None
+        strategy = float(row["Strategy Net"]) if pd.notna(row["Strategy Net"]) else None
+        benchmark = float(row["Benchmark"]) if pd.notna(row["Benchmark"]) else None
         gap = strategy - benchmark if strategy is not None and benchmark is not None else None
         badge = '<span class="pcg-mtd">MTD</span>' if live_cell else ""
         return (
@@ -64,7 +65,7 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
             f'<div class="pcg-top">{badge}</div>'
             f'<div class="pcg-s">{fmt(strategy)}</div>'
             f'<div class="pcg-b">{fmt(benchmark)}</div>'
-            f'<div class="pcg-g">Δ {fmt(gap)}</div>'
+            f'<div class="pcg-g">Alpha {fmt(gap)}</div>'
             f'</div>'
         )
 
@@ -79,7 +80,7 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
         cells = []
         for month_no in range(1, 13):
             row = lookup.get((int(year), month_no))
-            is_live = live is not None and row is not None and row._asdict()["Period"] == live
+            is_live = live is not None and row is not None and row["Period"] == live
             cells.append(cell(row, is_live))
         cy_s, cy_b = aggregate([pd.Period(f"{year}-{m:02d}", freq="M") for m in range(1, 13)])
         fy_periods = [
@@ -101,7 +102,7 @@ def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None) -> str:
                 '<div class="pcg-cell">'
                 f'<div class="pcg-s">{fmt(s)}</div>'
                 f'<div class="pcg-b">{fmt(b)}</div>'
-                f'<div class="pcg-g">Δ {fmt(gap)}</div>'
+                f'<div class="pcg-g">Alpha {fmt(gap)}</div>'
                 '</div>'
             )
         rows.append(
@@ -552,7 +553,7 @@ def render_portfolio_view(
                 with c:
                     st.metric(f"{mtd_label} · Nifty 500", f"{benchmark_mtd:+.1%}" if np.isfinite(benchmark_mtd) else "—")
                 with d:
-                    st.metric("MTD gap", f"{mtd_gap:+.1%}" if np.isfinite(mtd_gap) else "—")
+                    st.metric("MTD Alpha", f"{mtd_gap:+.1%}" if np.isfinite(mtd_gap) else "—")
                 st.caption(
                     "Since inception compounds the frozen record through the latest completed month and the current live month-to-date return. "
                     "Current-book P&L is the unrealised return on today's holdings, so it can differ."
