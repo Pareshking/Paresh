@@ -154,6 +154,24 @@ def test_portfolio_tracker_capital_changes_sizing_not_membership():
     assert b["Target Weight %"].tolist() == a["Target Weight %"].tolist()
 
 
+def test_portfolio_tracker_sizes_shares_from_original_entry_weight_after_rebalance():
+    book = _book()
+    # AAA entered at 10% of account equity; a later rebalance cut its target to
+    # 5%. The held share count must not be retroactively cut in half.
+    book.loc[book["Symbol"] == "AAA", "Entry Weight %"] = 10.0
+    book.loc[book["Symbol"] == "AAA", "Weight %"] = 5.0
+
+    out = build_portfolio_tracker(book, _ranking(), 1_000_000)
+    aaa = out.set_index("Symbol").loc["AAA"]
+
+    assert aaa["Entry Weight %"] == pytest.approx(10.0)
+    assert aaa["Target Weight %"] == pytest.approx(5.0)
+    assert aaa["Shares"] == 1000
+    assert aaa["Invested Value (₹)"] == pytest.approx(100_000.0)
+    assert aaa["Current Value (₹)"] == pytest.approx(120_000.0)
+    assert aaa["P&L (₹)"] == pytest.approx(20_000.0)
+
+
 def test_portfolio_tracker_current_weight_and_pnl_are_accounting_fields():
     out = build_portfolio_tracker(_book(), _ranking(), 1_000_000)
 
