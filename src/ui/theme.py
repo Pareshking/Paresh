@@ -697,6 +697,7 @@ def inject_custom_css() -> None:
         .xw-g.broken > i > i { background: #B42318; }
         .xw-why { font-size: 12.5px; line-height: 1.4; color: #3C4657; }
         .xw-ret { font-family: var(--font-mono); font-size: 13px; text-align: right; }
+        .xw-head .xw-ret, .xw-ret.hdr { font-family: var(--font-ui); font-size: 12px; }
         .xw-ret.up { color: #067647; } .xw-ret.down { color: #B42318; }
         .st-key-xw_editbar { gap: 10px !important; }
         .ac-row { display: grid; align-items: center; gap: 16px; padding: 12px 16px; border-bottom: 1px solid #EDEFF3; }
@@ -824,6 +825,7 @@ def inject_custom_css() -> None:
         .ib-row:nth-child(odd):not(.ib-head) { background: #FAFBFC; }
         .ib-row:last-child { border-bottom: 0; }
         .ib-head { min-height: 40px; background: #F4F5F8 !important; font-size: 12px; font-weight: 600; color: #5E6878; }
+        .ib-head .ib-num { font-family: var(--font-ui); font-size: 12px; }
         .ib-n { font-family: var(--font-mono); font-weight: 600; }
         .ib-name { display: flex; flex-direction: column; min-width: 0; }
         .ib-name b { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

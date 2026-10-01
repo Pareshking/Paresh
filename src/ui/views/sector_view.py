@@ -135,8 +135,7 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
     actions = kit.page_head(
         "Sectors",
         f"{len(board)} {'industries' if col == 'Industry' else 'groups'} ranked by "
-        f"{by.replace('median', 'median return').replace('3M', '3-month').replace('6M', '6-month').lower()}"
-        " · pick one below to see its stocks",
+        f"{by.replace('median', 'median return').replace('3M', '3-month').replace('6M', '6-month').lower()}",
         actions=True,
     )
     with actions:

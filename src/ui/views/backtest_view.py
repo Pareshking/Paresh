@@ -549,7 +549,7 @@ def _backtest_body(
 
                     tr_filter = tf2.pills(
                         "Filter Outcome",
-                        ["All", "Winners", "Losers", "Still open"],
+                        ["All", "Winners", "Losers", "Open"],
                         default="All",
                         key="bt_ct_outcome_filter",
                     )
@@ -561,7 +561,7 @@ def _backtest_body(
                         ct_df = ct_df[ct_df["Return %"] > 0]
                     elif tr_filter == "Losers":
                         ct_df = ct_df[ct_df["Return %"] < 0]
-                    elif tr_filter == "Still open":
+                    elif tr_filter == "Open":
                         ct_df = ct_df[ct_df["Status"] == "Open"]
 
                     disp_trade_cols = [

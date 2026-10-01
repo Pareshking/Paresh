@@ -110,7 +110,6 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                         • <strong>Single-Window Sharpe, Multi-Window Pure Sharpe, Vectorised Exp-Regression, Residual Alpha, Industry-Relative, Momentum Acceleration</strong> — none ever fed the composite Rank. Each added columns and its own failure modes.<br>
                         • <strong>Mean-Variance Optimisation</strong> — it degraded to Equal Weight on any exception while still reporting itself as MVO.<br>
                         • <strong>R-squared</strong> — not part of System-1 and not used to scale its score.<br>
-                        • <code>tests/test_removed_systems_stay_removed.py</code> asserts their absence, so a stray import cannot quietly resurrect one.
                     </div>
                 </div>
             </div>

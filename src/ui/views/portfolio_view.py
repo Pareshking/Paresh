@@ -367,7 +367,7 @@ def render_portfolio_view(
     kit.readings([
         kit.Reading("Portfolio value", f"₹{value:,.0f}", "₹20 lakh starting capital"),
         kit.Reading(
-            "Current-book P&L",
+            "Unrealised P&L",
             "—" if not np.isfinite(pnl_pct) else f"{pnl_pct:+.1f}%",
             f"₹{pnl:+,.0f} · unrealised",
             "" if not np.isfinite(pnl_pct) else ("up" if pnl >= 0 else "down"),
