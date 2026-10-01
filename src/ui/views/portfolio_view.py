@@ -261,6 +261,15 @@ def build_portfolio_tracker(
         )
 
     out["Target Weight %"] = pd.to_numeric(out["Weight %"], errors="coerce").fillna(0.0)
+    # Shares are fixed at the original fill. A later rebalance may change the
+    # target weight of a retained holding, but must never retroactively resize
+    # its historical entry quantity.
+    entry_weight = (
+        pd.to_numeric(out["Entry Weight %"], errors="coerce")
+        if "Entry Weight %" in out.columns
+        else pd.Series(np.nan, index=out.index)
+    )
+    out["Entry Weight %"] = entry_weight.where(entry_weight.notna(), out["Target Weight %"])
     out["Entry Price"] = pd.to_numeric(out["Entry Price"], errors="coerce")
     out["Current Price"] = pd.to_numeric(out["Price Now"], errors="coerce")
     entry = pd.to_datetime(out["Entry Date"], errors="coerce")
@@ -283,7 +292,7 @@ def build_portfolio_tracker(
 
     out["Capital at Entry (₹)"] = entry.map(_capital_before_fill).astype(float)
     out["Shares"] = (
-        (out["Capital at Entry (₹)"] * out["Target Weight %"] / 100.0)
+        (out["Capital at Entry (₹)"] * out["Entry Weight %"] / 100.0)
         / out["Entry Price"].replace(0, np.nan)
     ).fillna(0.0).apply(np.floor).astype(int)
     out["Invested Value (₹)"] = (out["Shares"] * out["Entry Price"]).round(0)
@@ -650,9 +659,15 @@ def render_portfolio_view(
     kit.readings([
         kit.Reading("Portfolio value", f"₹{value:,.0f}", "₹20 lakh starting capital"),
         kit.Reading(
-            "Current-book P&L",
+            "Since-inception account return",
+            kit.pct(history["strategy_total_return"]),
+            "Canonical compounded return · same basis as Track Record",
+            "up" if history["strategy_total_return"] >= 0 else "down",
+        ),
+        kit.Reading(
+            "Open holdings · unrealised",
             "—" if not np.isfinite(pnl_pct) else f"{pnl_pct:+.1f}%",
-            f"₹{pnl:+,.0f} · unrealised",
+            f"₹{pnl:+,.0f} · return on current holdings' cost, not account return",
             "" if not np.isfinite(pnl_pct) else ("up" if pnl >= 0 else "down"),
         ),
         kit.Reading(

@@ -120,8 +120,8 @@ def _backtest_body(
             months = max(months, int((pd.Period(adj_close.index[-1], freq="M")
                                       - pd.Period(history_start, freq="M")).n))
         kit.caption(
-            "Prices: Screener's closes, as on the ranking page, with NSE's closes only where Screener has "
-            "none (dividends are not added back, as with the Nifty 500 price index it is measured against)."
+            "Prices: Personal closes, with NSE closes only where Personal data is unavailable "
+            "(dividends are not added back, consistent with the Nifty 500 price index used as benchmark)."
             if _nse_info.get("basis") == "screener_primary" else
             "Prices: NSE closes as published, adjusted for splits, bonuses and demergers "
             "(dividends are not added back, as with the Nifty 500 price index it is measured against)."
