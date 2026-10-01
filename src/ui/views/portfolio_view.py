@@ -13,13 +13,13 @@ import streamlit as st
 from src.core.market_time import ist_now
 from src.engine.extra_universe import SYSTEM_750
 from src.engine.systems import inception, ledger_path
-from src.engine.track_record import load_ledger
+from src.engine.track_record import build_combined_grid, load_ledger
 from src.loaders.price_loader import fetch_benchmark_history
 from src.ui import page_kit as kit
 from src.ui import system_param
 from src.ui.canonical_book import current_book
 from src.ui.theme import render_saas_table
-from src.ui.views.track_record_view import render_record_sections
+from src.ui.views.track_record_view import grid_display, render_record_sections
 
 PORTFOLIO_STARTING_CAPITAL = 2_000_000.0
 
@@ -70,122 +70,6 @@ def _compound_returns(values: list[float]) -> float | None:
     if not valid:
         return None
     return float(np.prod([1.0 + v for v in valid]) - 1.0)
-
-
-def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None,
-                        live_state: str = "mtd") -> str:
-    """Render calendar-month performance from the canonical monthly record."""
-    if monthly.empty:
-        return '<div class="pg-note">No monthly performance is available yet.</div>'
-
-    frame = monthly.copy()
-    frame["Period"] = pd.PeriodIndex(frame["Period"], freq="M")
-    frame["Year"] = frame["Period"].dt.year
-    frame["MonthNo"] = frame["Period"].dt.month
-    frame["Strategy Net"] = pd.to_numeric(frame["Strategy Net"], errors="coerce")
-    frame["Benchmark"] = pd.to_numeric(frame["Benchmark"], errors="coerce")
-    # Plain dicts by column name: itertuples() renames columns that are not
-    # identifiers ("Strategy Net" became "_2"), and reading them back by name
-    # raised KeyError on every Monthly render (production, 1 Oct 2026).
-    lookup = {
-        (int(row["Year"]), int(row["MonthNo"])): row
-        for row in frame.to_dict("records")
-    }
-    live = pd.Period(live_period, freq="M") if live_period else None
-    month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-
-    def fmt(value: float | None) -> str:
-        return "—" if value is None or pd.isna(value) else f"{value:+.1%}"
-
-    def cell(row, live_cell=False):
-        if row is None:
-            return '<div class="pcg-cell pcg-empty">—</div>'
-        strategy = float(row["Strategy Net"]) if pd.notna(row["Strategy Net"]) else None
-        benchmark = float(row["Benchmark"]) if pd.notna(row["Benchmark"]) else None
-        gap = strategy - benchmark if strategy is not None and benchmark is not None else None
-        badge = (f'<span class="pcg-mtd">{"CLOSED" if live_state == "closed" else "MTD"}</span>'
-                 if live_cell else "")
-        return (
-            f'<div class="pcg-cell">'
-            f'<div class="pcg-top">{badge}</div>'
-            f'<div class="pcg-s">{fmt(strategy)}</div>'
-            f'<div class="pcg-b">{fmt(benchmark)}</div>'
-            f'<div class="pcg-g">Alpha {fmt(gap)}</div>'
-            f'</div>'
-        )
-
-    def aggregate(periods):
-        s = [lookup[(p.year, p.month)]["Strategy Net"] for p in periods if (p.year, p.month) in lookup]
-        b = [lookup[(p.year, p.month)]["Benchmark"] for p in periods if (p.year, p.month) in lookup]
-        return _compound_returns(s), _compound_returns(b)
-
-    years = sorted(frame["Year"].unique())
-    rows = []
-    for year in years:
-        cells = []
-        for month_no in range(1, 13):
-            row = lookup.get((int(year), month_no))
-            is_live = live is not None and row is not None and row["Period"] == live
-            cells.append(cell(row, is_live))
-        cy_s, cy_b = aggregate([pd.Period(f"{year}-{m:02d}", freq="M") for m in range(1, 13)])
-        fy_periods = [
-            pd.Period(
-                f"{year if m <= 12 else year + 1:04d}-{m if m <= 12 else m - 12:02d}",
-                freq="M",
-            )
-            for m in range(4, 16)
-        ]
-        fy_s, fy_b = aggregate(fy_periods) if all(
-            (p.year, p.month) in lookup for p in fy_periods
-        ) else (None, None)
-        cy_gap = cy_s - cy_b if cy_s is not None and cy_b is not None else None
-        fy_gap = fy_s - fy_b if fy_s is not None and fy_b is not None else None
-        def aggregate_cell(s, b, gap):
-            if s is None:
-                return '<div class="pcg-cell pcg-empty">—</div>'
-            return (
-                '<div class="pcg-cell">'
-                f'<div class="pcg-s">{fmt(s)}</div>'
-                f'<div class="pcg-b">{fmt(b)}</div>'
-                f'<div class="pcg-g">Alpha {fmt(gap)}</div>'
-                '</div>'
-            )
-        rows.append(
-            f'<div class="pcg-row"><div class="pcg-year">{year}</div>'
-            + "".join(cells)
-            + aggregate_cell(cy_s, cy_b, cy_gap)
-            + aggregate_cell(fy_s, fy_b, fy_gap)
-            + "</div>"
-        )
-
-    return (
-        '<style>'
-        '.pcg-wrap{font-family:var(--font-ui,system-ui,sans-serif);}'
-        '.pcg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid #E3E6EB;border-radius:14px;background:#fff;}'
-        '.pcg-grid{min-width:1560px;}'
-        '.pcg-row{display:grid;grid-template-columns:64px repeat(12,minmax(105px,1fr)) 110px 110px;}'
-        '.pcg-row:not(.pcg-head){border-top:1px solid #EDEFF3;}'
-        '.pcg-head{background:#F7F8FA;position:sticky;top:0;z-index:2;}'
-        '.pcg-year,.pcg-month{padding:9px 8px;font-size:11px;font-weight:700;color:#5E6878;text-align:center;}'
-        '.pcg-year{background:#fff;position:sticky;left:0;z-index:3;border-right:1px solid #EDEFF3;}'
-        '.pcg-cell{min-height:70px;padding:8px 7px;border-left:1px solid #F0F1F4;display:flex;flex-direction:column;justify-content:center;gap:2px;}'
-        '.pcg-empty{align-items:center;color:#98A1AE;}'
-        '.pcg-top{height:12px;text-align:right;}'
-        '.pcg-mtd{display:inline-block;padding:2px 5px;border-radius:5px;background:#EEF2FF;color:#4338CA;font-size:9px;font-weight:800;letter-spacing:.3px;}'
-        '.pcg-s,.pcg-b,.pcg-g{font-family:var(--font-mono,ui-monospace,monospace);font-size:11px;line-height:1.35;white-space:nowrap;}'
-        '.pcg-s{font-weight:750;color:#0E1726;}.pcg-b{color:#5E6878;}.pcg-g{font-weight:650;color:#4F46E5;}'
-        '.pcg-key{display:flex;flex-wrap:wrap;gap:14px;margin-top:9px;font-size:11.5px;color:#5E6878;}'
-        '@media(max-width:640px){.pcg-grid{min-width:1500px}.pcg-row{grid-template-columns:58px repeat(12,105px) 108px 108px}.pcg-cell{min-height:64px;padding:7px 6px}.pcg-s,.pcg-b,.pcg-g{font-size:10.5px}}'
-        '</style>'
-        '<div class="pcg-wrap"><div class="pcg-scroll"><div class="pcg-grid">'
-        '<div class="pcg-row pcg-head"><div class="pcg-year">Year</div>'
-        + "".join(f'<div class="pcg-month">{m}</div>' for m in month_names)
-        + '<div class="pcg-month">CY</div><div class="pcg-month">FY</div></div>'
-        + "".join(rows)
-        + '</div></div>'
-        '<div class="pcg-key"><span><b>Strategy</b></span><span><b>Nifty 500</b></span><span><b>Alpha</b> = Strategy − Nifty 500</span></div></div>'
-    )
 
 
 def build_portfolio_tracker(
@@ -549,11 +433,18 @@ def render_portfolio_view(
                 drawdown=drawdown.reindex(equity.index).tolist() if not drawdown.empty else None,
             )
 
-    with kit.card("Calendar returns", "portfolio_monthly"):
-        if monthly_grid.empty:
+    with kit.card("Calendar returns", "portfolio_monthly", "Strategy, Nifty 500 and Alpha, per year"):
+        grid = build_combined_grid(
+            ledger,
+            mtd_period=pd.Period(mtd_period, freq="M") if mtd_period else None,
+            mtd_values={"strategy": strategy_mtd, "benchmark": benchmark_mtd,
+                        "alpha": (strategy_mtd - benchmark_mtd
+                                  if np.isfinite(strategy_mtd) and np.isfinite(benchmark_mtd) else None)},
+        )
+        if grid.empty:
             st.info("No monthly history is available yet.")
         else:
-            st.html(_calendar_grid_html(monthly_grid, mtd_period, mtd_state))
+            render_saas_table(grid_display(grid))
             st.caption(_calendar_note(labels, mtd_period, mtd_state))
 
     # ── The frozen record: since inception, each month, provenance, the 3 systems ──

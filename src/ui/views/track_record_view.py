@@ -42,7 +42,7 @@ def _pct(v: float | None) -> str:
     return "—" if v is None or pd.isna(v) else f"{v * 100:+.1f}%"
 
 
-def _grid_display(grid: pd.DataFrame) -> pd.DataFrame:
+def grid_display(grid: pd.DataFrame) -> pd.DataFrame:
     if grid.empty:
         return grid
     out = grid.copy()

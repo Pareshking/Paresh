@@ -1586,7 +1586,7 @@ def render_saas_table(
 
     n_rows = len(df)
     if max_height is None:
-        table_h = min(600, (n_rows * 36) + 48)
+        table_h = min(600, (n_rows * 44) + 48)
     else:
         table_h = max_height
 
