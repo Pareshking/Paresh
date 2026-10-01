@@ -109,7 +109,7 @@ def compute_signals(rank_df: pd.DataFrame) -> list[SignalAlert]:
 # The pages that get a place in the desktop link row. Everything else is one
 # click away in the ☰ menu, which always lists all eleven in order.
 _TOP_ROW_PAGES = ("Screener", "Portfolio", "Actions", "Sectors", "RRG",
-                  "Watchlist", "Track Record")
+                  "Watchlist")
 
 
 def _status_pill_html() -> str:

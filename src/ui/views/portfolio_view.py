@@ -19,6 +19,7 @@ from src.ui import page_kit as kit
 from src.ui import system_param
 from src.ui.canonical_book import current_book
 from src.ui.theme import render_saas_table
+from src.ui.views.track_record_view import render_record_sections
 
 PORTFOLIO_STARTING_CAPITAL = 2_000_000.0
 
@@ -513,7 +514,7 @@ def render_portfolio_view(
     with kit.card(
         "Current book",
         "portfolio_current",
-        f"{n_holdings} positions · primary metrics first · swipe horizontally for detail",
+        f"{n_holdings} positions",
     ):
         render_saas_table(current_view, max_height=620, variant="portfolio")
 
@@ -554,6 +555,9 @@ def render_portfolio_view(
         else:
             st.html(_calendar_grid_html(monthly_grid, mtd_period, mtd_state))
             st.caption(_calendar_note(labels, mtd_period, mtd_state))
+
+    # ── The frozen record: since inception, each month, provenance, the 3 systems ──
+    render_record_sections(prices, benchmark_close, system)
 
     # ── Activity ────────────────────────────────────────────────────────────
     with kit.card("Trades", "portfolio_trades"):

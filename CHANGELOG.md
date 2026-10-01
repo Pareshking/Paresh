@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-01 — UI overhaul (draft PR)
+
+- Open trades and the current month's rebalances now reach Portfolio (engine fix).
+- One table for the Screener: Full Quant is the master, Executive and Core hide columns; Table/Grid toggles removed.
+- One chart component (Lightweight Charts, hover legend) for Breadth, Portfolio, Backtest.
+- Portfolio absorbs the Track Record page; `/track-record` redirects.
+- RRG benchmarks are Nifty 500 / Nifty 50; Configuration summary is a tidy list.
+- New highs: 1M and 3M counts in Breadth and Full Quant.
+
+
 ## 2026-09-30 — Streamlit reload and track-record warning hardening
 
 - Fixed a concurrency race in the custom Streamlit hot-reload path. The reload/import window is now serialized across script threads, preventing transient `KeyError` failures while `src.*` and `r2.*` modules are rebuilt.
