@@ -1695,7 +1695,6 @@ def render_master_screener_table(
     # mixed-dtype and iterrows() was already boxing values to native Python --
     # the isinstance(x, (int, float)) checks throughout see exactly what they
     # saw before.
-    portfolio_class = "portfolio" if variant == "portfolio" else ""
     rows_html = []
     for row in df.to_dict("records"):
         rk = row.get("Rank", "—")
@@ -2409,6 +2408,7 @@ def render_saas_table(
         else:
             headers_html.append(f'<th class="th-right">{_esc(str(col))}</th>')
 
+    portfolio_class = "portfolio" if variant == "portfolio" else ""
     rows_html = []
     # Plain dicts rather than iterrows(): a Series per row is ~3.4x the cost
     # over a large frame and nothing here needs one. Unlike the screener table
