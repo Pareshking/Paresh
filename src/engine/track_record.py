@@ -31,6 +31,8 @@ from typing import Any, Iterable, Sequence
 import numpy as np
 import pandas as pd
 
+from src.core.market_time import ist_now
+
 from src.core.logger import logger
 
 # Nothing before this month is ever recorded. The strategy's live history
@@ -206,7 +208,8 @@ def finalize_months(
     strat = calendar_month_returns(strategy_curve)
     bench = calendar_month_returns(benchmark_curve)
 
-    current_month = pd.Period(pd.Timestamp(as_of), freq="M")
+    # Calendar closure follows IST; as_of remains the provenance date for curve data.
+    current_month = pd.Period(ist_now(), freq="M")
     start = ledger_inception(ledger)
     months = dict(ledger.get("months", {}))
     added: list[str] = []
@@ -537,5 +540,6 @@ def months_to_cover(as_of: pd.Timestamp, inception: pd.Period = INCEPTION) -> in
     The backtest window is counted back from the month in progress, so covering
     January from September means asking for the eight completed months Jan-Aug.
     """
-    current = pd.Period(pd.Timestamp(as_of), freq="M")
+    # The completed-month boundary follows the IST calendar, not the last price row.
+    current = pd.Period(ist_now(), freq="M")
     return max(int((current - inception).n), 0)
