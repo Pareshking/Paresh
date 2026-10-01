@@ -82,6 +82,16 @@
       "finalized_on": "2026-10-01",
       "config": "65d84ba7dcd4",
       "data_as_of": "2026-09-30"
+    },
+    "2026-09": {
+      "strategy": 0.009457,
+      "benchmark": -0.058773,
+      "alpha": 0.06823,
+      "origin": "recorded",
+      "universe": "point_in_time",
+      "finalized_on": "2026-10-01",
+      "config": "65d84ba7dcd4",
+      "data_as_of": "2026-10-01"
     }
   },
   "rebuilds": [
