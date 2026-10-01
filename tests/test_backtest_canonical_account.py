@@ -83,3 +83,16 @@ def test_canonical_book_adapter_is_the_shared_portfolio_book_contract():
     assert "record_run(adj_close, benchmark_close, system)" in source
     assert "duplicate symbols" in source
     assert "REQUIRED_BOOK_COLUMNS" in source
+
+def test_all_canonical_book_pages_receive_the_same_deep_price_history():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    app_source = (root / "app.py").read_text(encoding="utf-8")
+    portfolio_source = (root / "src/ui/views/portfolio_view.py").read_text(encoding="utf-8")
+
+    assert "prices=deep_adj_close" in app_source
+    assert "render_actions_view(\n        rank_df, deep_adj_close" in app_source
+    assert "adj_close=deep_adj_close" in app_source
+    assert "prices: pd.DataFrame" in portfolio_source
+    assert 'getattr(calc, "prices"' not in portfolio_source
