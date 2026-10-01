@@ -573,13 +573,17 @@ def render_portfolio_view(
     vol_target_val: float,
     liquidity_floor_cr: float = 0.0,
     traded_value: pd.DataFrame | None = None,
+    canonical_prices: pd.DataFrame | None = None,
 ) -> None:
     """Render the canonical ₹20 lakh model portfolio as a portfolio dashboard."""
     del sector_cap, stock_cap, vol_target_on, vol_target_val, liquidity_floor_cr, traded_value
 
     capital = PORTFOLIO_STARTING_CAPITAL
     system = system_param.current() or SYSTEM_750
-    prices = getattr(calc, "prices", pd.DataFrame())
+    # Use the same unmodified deep price frame as Actions and Track Record.
+    # `calc.prices` may be a narrower/transformed calculation frame and must not
+    # become a second input to the canonical model-book replay.
+    prices = canonical_prices if canonical_prices is not None else getattr(calc, "prices", pd.DataFrame())
     benchmark_close = fetch_benchmark_history(period="5y")
 
     try:
