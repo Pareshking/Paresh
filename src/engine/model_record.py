@@ -119,7 +119,47 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
     if isinstance(tb, pd.DataFrame) and not tb.empty:
         result["month_books"] = _month_books(
             f"{system}_{price_fingerprint(prices)}_{months}", prices, tb, membership)
+    result["live_book"] = _attach_live_price_marks(
+        result.get("live_book"), prices, result.get("live_meta") or {}
+    )
     return result
+
+
+def _attach_live_price_marks(
+    live_book: pd.DataFrame | None,
+    prices: pd.DataFrame,
+    live_meta: dict,
+) -> pd.DataFrame:
+    """Attach canonical fill/current/previous prices for account-view accounting."""
+    if not isinstance(live_book, pd.DataFrame) or live_book.empty or prices.empty:
+        return live_book if isinstance(live_book, pd.DataFrame) else pd.DataFrame()
+
+    canonical_prices = prices.ffill()
+    as_of_idx = len(canonical_prices.index) - 1
+    as_of_date = canonical_prices.index[as_of_idx]
+    previous_date = canonical_prices.index[as_of_idx - 1] if as_of_idx > 0 else None
+    previous_prices = (
+        canonical_prices.iloc[as_of_idx - 1]
+        if as_of_idx > 0
+        else pd.Series(float("nan"), index=canonical_prices.columns)
+    )
+
+    fill_date = live_meta.get("fill_date")
+    fill_prices = pd.Series(float("nan"), index=canonical_prices.columns)
+    actual_fill_date = None
+    if fill_date is not None:
+        fill_history = canonical_prices.loc[:pd.Timestamp(fill_date)]
+        if not fill_history.empty:
+            actual_fill_date = fill_history.index[-1]
+            fill_prices = fill_history.iloc[-1]
+
+    marked = live_book.copy()
+    marked["Last Fill Date"] = actual_fill_date
+    marked["Last Fill Price"] = marked["Symbol"].map(fill_prices)
+    marked["Previous Price Date"] = previous_date
+    marked["Previous Price"] = marked["Symbol"].map(previous_prices)
+    marked["Price As Of"] = as_of_date
+    return marked
 
 
 _TRADE_ACTION = {
