@@ -124,7 +124,7 @@ def inject_custom_css() -> None:
         clean_html("""
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Geist:wght@400..700&family=Geist+Mono:wght@400..700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..700&display=swap" rel="stylesheet">
 
         <style>
         /* ── Design tokens: "Clear Ledger", light only ──────────────────
@@ -148,7 +148,7 @@ def inject_custom_css() -> None:
             --c-bear-tint: #FDEDEB;
             --c-caution: #B54708;
             --font-ui: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            --font-display: 'Bricolage Grotesque', 'Geist', sans-serif;
+            --font-display: var(--font-ui);
             --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
             /* UI kit v2 scale: one set of steps for type, corners, depth and
@@ -168,7 +168,7 @@ def inject_custom_css() -> None:
 
         /* ── Base Reset & Typography Hierarchy ── */
         html, body, [class*="css"] {
-            font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+            font-family: var(--font-ui) !important;
             color: #0E1726 !important;
             background-color: #F6F7F9 !important;
             -webkit-font-smoothing: antialiased;
@@ -176,18 +176,18 @@ def inject_custom_css() -> None:
 
         /* ── Typography Classes ── */
         .font-display, h1, h2, h3, h4, [data-testid="stMetricValue"] {
-            font-family: 'Bricolage Grotesque', -apple-system, sans-serif !important;
+            font-family: var(--font-ui) !important;
             letter-spacing: -0.02em !important;
         }
         .font-mono, [data-testid="stMetricDelta"] {
-            font-family: 'Geist Mono', monospace !important;
+            font-family: var(--font-mono) !important;
             font-variant-numeric: tabular-nums !important;
         }
         .font-code, code, pre {
-            font-family: 'Geist Mono', monospace !important;
+            font-family: var(--font-mono) !important;
         }
 .font-sans {
-            font-family: 'Geist', sans-serif !important;
+            font-family: var(--font-ui) !important;
         }
 
         /* ── Completely Hide Clunky Grey Native Scrollbars Everywhere (Across All 11 Tabs) ── */
@@ -339,7 +339,7 @@ def inject_custom_css() -> None:
             padding: 0 4px !important;
             background-color: transparent !important;
             border: 1px solid transparent !important;
-            font-family: 'Geist', sans-serif !important;
+            font-family: var(--font-ui) !important;
             font-size: 12.5px !important;
             font-weight: 600 !important;
             color: #5E6878 !important;
@@ -557,7 +557,7 @@ def inject_custom_css() -> None:
             border-radius: 7px !important;
             color: #3C4657 !important;
             text-decoration: none !important;
-            font-family: 'Geist', sans-serif !important;
+            font-family: var(--font-ui) !important;
             font-size: 13px !important;
             font-weight: 600 !important;
         }
@@ -1310,7 +1310,7 @@ def inject_custom_css() -> None:
         }
 
         [data-testid="stMetricLabel"] {
-            font-family: 'Geist Mono', monospace !important;
+            font-family: var(--font-mono) !important;
             font-size: 0.72rem !important;
             font-weight: 600 !important;
             text-transform: uppercase !important;
@@ -1319,14 +1319,14 @@ def inject_custom_css() -> None:
         }
 
         [data-testid="stMetricValue"] {
-            font-family: 'Geist Mono', monospace !important;
+            font-family: var(--font-mono) !important;
             font-size: 1.6rem !important;
             font-weight: 700 !important;
             color: #0E1726 !important;
         }
 
         [data-testid="stMetricDelta"] {
-            font-family: 'Geist Mono', monospace !important;
+            font-family: var(--font-mono) !important;
             font-size: 0.78rem !important;
             font-weight: 600 !important;
         }
@@ -1344,7 +1344,7 @@ def inject_custom_css() -> None:
         [data-baseweb="tab"] {
             border-radius: 8px !important;
             padding: 0.45rem 1rem !important;
-            font-family: 'Geist Mono', monospace !important;
+            font-family: var(--font-mono) !important;
             font-size: 0.8rem !important;
             font-weight: 600 !important;
             color: #5E6878 !important;
@@ -1976,7 +1976,7 @@ def render_master_screener_table(
 <meta charset="utf-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Geist:wght@400..700&family=Geist+Mono:wght@400..700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..700&display=swap" rel="stylesheet">
 <style>
 * {{ box-sizing: border-box; margin: 0; padding: 0; }}
 body {{
@@ -2023,11 +2023,10 @@ body::-webkit-scrollbar,
     z-index: 20;
     background: #F4F5F8;
     color: #5E6878;
-    font-family: 'Geist Mono', monospace;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    font-family: 'Geist', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
     padding: 7px 10px;
     border-bottom: 1px solid #E3E6EB;
     border-left: none;
@@ -2052,14 +2051,13 @@ body::-webkit-scrollbar,
     top: 28px;
     z-index: 20;
     background: #F4F5F8;
-    color: #3C4657;
-    font-family: 'Geist Mono', monospace;
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 8px 10px;
-    border-bottom: 2px solid #D0D5DD;
+    color: #5E6878;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 0 10px;
+    height: 42px;
+    border-bottom: 1px solid #E3E6EB;
     border-left: none;
     border-right: none;
     text-align: right;
@@ -2103,11 +2101,12 @@ body::-webkit-scrollbar,
     background-color: #F4F5F8 !important;
 }}
 .modern-screener-table td {{
-    padding: 6px 10px;
+    height: 44px;
+    padding: 0 10px;
     vertical-align: middle;
-    font-family: 'Geist Mono', monospace;
-    font-size: 12px;
-    border-bottom: 1px solid #F1F3F6;
+    font-family: 'Geist', sans-serif;
+    font-size: 13.5px;
+    border-bottom: 1px solid #EDEFF3;
     border-left: none;
     border-right: none;
     background: #ffffff;
@@ -2143,17 +2142,16 @@ body::-webkit-scrollbar,
 
 .stock-ticker {{
     font-family: 'Geist', sans-serif;
-    font-weight: 800;
-    font-size: 11px;
+    font-weight: 650;
+    font-size: 14px;
     color: #0E1726;
-    letter-spacing: 0.02em;
 }}
 .modern-screener-table td.td-center {{ text-align: center; }}
-.modern-screener-table td.td-num {{ text-align: right; }}
+.modern-screener-table td.td-num {{ text-align: right; font-family: 'Geist Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }}
 .modern-screener-table td.td-sector {{
     text-align: left;
     font-family: 'Geist', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     color: #3C4657;
     max-width: 160px;
     overflow: hidden;
@@ -2169,10 +2167,10 @@ body::-webkit-scrollbar,
 .badge-pill {{
     display: inline-block;
     font-family: 'Geist Mono', monospace;
-    font-size: 10.5px;
-    font-weight: 700;
-    padding: 1.5px 6px;
-    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 7px;
 }}
 .badge-green {{
     background: #E8F5EE;
@@ -2461,6 +2459,7 @@ def render_saas_table(
                 "TAXONOMY",
                 "DESCRIPTION",
                 "NAME",
+                "COMPANY",
                 "PERIOD",
                 "MODEL",
                 "OBJECTIVE",
@@ -2729,7 +2728,7 @@ def render_saas_table(
 <meta charset="utf-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Geist:wght@400..700&family=Geist+Mono:wght@400..700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..700&display=swap" rel="stylesheet">
 <style>
 * {{ box-sizing: border-box; margin: 0; padding: 0; }}
 body {{
@@ -2764,7 +2763,7 @@ body::-webkit-scrollbar,
     border-collapse: separate;
     border-spacing: 0;
     font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 12px;
+    font-size: 13.5px;
     color: #0E1726;
     white-space: nowrap;
 }}
@@ -2773,14 +2772,13 @@ body::-webkit-scrollbar,
     top: 0;
     z-index: 10;
     background: #F4F5F8;
-    color: #3C4657;
-    font-family: 'Geist Mono', monospace;
-    font-size: 10.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 8px 10px;
-    border-bottom: 1.5px solid #D0D5DD;
+    color: #5E6878;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    height: 42px;
+    padding: 0 10px;
+    border-bottom: 1px solid #E3E6EB;
     border-left: none;
     border-right: none;
     cursor: pointer;
@@ -2809,9 +2807,6 @@ body::-webkit-scrollbar,
 }}
 
 /* Portfolio table hierarchy: identity first, accounting second, analytics last. */
-.saas-table-wrapper.portfolio .saas-table {{
-    font-size: 12px;
-}}
 .saas-table-wrapper.portfolio .saas-table thead th:nth-child(-n+3) {{
     background: #EEF0F4;
 }}
@@ -2828,21 +2823,11 @@ body::-webkit-scrollbar,
 .saas-table-wrapper.portfolio .portfolio-neg {{ color: #912018 !important; font-weight: 700 !important; }}
 .saas-table-wrapper.portfolio .portfolio-flat {{ color: #5E6878 !important; }}
 @media (max-width: 640px) {{
-    .saas-table-wrapper.portfolio .saas-table {{
-        font-size: 11px;
-    }}
-}}
-@media (max-width: 640px) {{
-    .saas-table {{
-        font-size: 11px;
-    }}
     .saas-table thead tr th {{
-        padding: 8px 8px;
-        font-size: 10px;
+        padding: 0 8px;
     }}
     .saas-table td {{
-        padding: 7px 8px;
-        font-size: 11px;
+        padding: 0 8px;
     }}
     .saas-table th:first-child,
     .saas-table td:first-child {{
@@ -2864,18 +2849,19 @@ body::-webkit-scrollbar,
     background-color: #F4F5F8 !important;
 }}
 .saas-table td {{
-    padding: 7px 10px;
+    height: 44px;
+    padding: 0 10px;
     vertical-align: middle;
-    font-family: 'Geist Mono', monospace;
-    font-size: 12px;
-    border-bottom: 1px solid #F1F3F6;
+    font-family: 'Geist', sans-serif;
+    font-size: 13.5px;
+    border-bottom: 1px solid #EDEFF3;
     border-left: none;
     border-right: none;
     background: #ffffff;
 }}
 .saas-table td.td-left {{ text-align: left; }}
 .saas-table td.td-center {{ text-align: center; }}
-.saas-table td.td-right {{ text-align: right; }}
+.saas-table td.td-right {{ text-align: right; font-family: 'Geist Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }}
 .saas-table td.td-sector {{
     font-family: 'Geist', sans-serif;
     color: #3C4657;
@@ -2885,18 +2871,17 @@ body::-webkit-scrollbar,
 }}
 .stock-ticker {{
     font-family: 'Geist', sans-serif;
-    font-weight: 800;
-    font-size: 11px;
+    font-weight: 650;
+    font-size: 14px;
     color: #0E1726;
-    letter-spacing: 0.02em;
 }}
 .badge-pill {{
     display: inline-block;
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 1.5px 6px;
-    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 7px;
 }}
 .badge-green {{ background: #E8F5EE; color: #067647; border: 1px solid #bbf7d0; }}
 .badge-yellow {{ background: #fefce8; color: #a16207; border: 1px solid #fef08a; }}
