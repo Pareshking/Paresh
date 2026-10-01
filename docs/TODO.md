@@ -28,7 +28,7 @@ _Last updated: 2026-10-01_
 | # | What | How we know it is done | Status |
 |---|---|---|---|
 | P1 | Monthly view no longer crashes; Equity shows the marked month | #297 merged | [x] 1 Oct (#297) |
-| P2 | On 1 Oct, September reads "Sep (closed)", not "Sep MTD"; Oct MTD says it is unavailable; "gap" → "Alpha"; Actions explains a fill due on the 1st. No ledger logic changed | This PR merged; V1 Production QA green | [ ] |
+| P2 | On 1 Oct, September reads "Sep (closed)", not "Sep MTD"; Oct MTD says it is unavailable; "gap" → "Alpha"; Actions explains a fill due on the 1st. No ledger logic changed | #298 merged; V1 Production QA green on the merge commit | [ ] #298 merged 1 Oct (2e1e71e); QA run 36837606465: phone all pass, desktop Equity read too early (fixed in the follow-up PR) |
 | P3 | PR #296 (another session): changes which month the ledger finalises (`ist_now()`); 19 tests fail. Owner to decide whether any of it is wanted; its Alpha rename and Actions note are in P2 | #296 closed, or rebased and green | [ ] owner |
 
 ## Ongoing
