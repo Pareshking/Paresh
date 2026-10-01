@@ -8,6 +8,7 @@ import pytest
 from src.engine.track_record import summary_stats
 from src.ui import canonical_book
 from src.ui.views import backtest_view
+from src.ui.views.portfolio_view import build_portfolio_history
 
 
 def test_backtest_canonical_stats_use_track_record_monthly_ledger_and_live_mark():
@@ -50,6 +51,16 @@ def test_backtest_canonical_stats_use_track_record_monthly_ledger_and_live_mark(
     assert actual["alpha"] == pytest.approx(expected["alpha"])
     assert actual["includes_mtd"] is True
     assert actual["mtd_period"] == "2026-03"
+
+    portfolio = build_portfolio_history(
+        {"closed_trades": pd.DataFrame(), "tradebook": pd.DataFrame()},
+        2_000_000.0,
+        ledger,
+        live_meta,
+        today=pd.Timestamp("2026-03-16"),
+    )
+    assert portfolio["strategy_total_return"] == pytest.approx(actual["total_return"])
+    assert portfolio["benchmark_total_return"] == pytest.approx(actual["bench_return"])
 
 
 def test_backtest_page_defaults_to_shared_canonical_book_not_research_book():
