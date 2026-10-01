@@ -392,6 +392,12 @@ def main() -> int:
             "baseline": {
                 "inception": str(start),
                 "data_as_of": str(pd.Timestamp(as_of).date()),
+                "raw_price_start": str(pd.Timestamp(raw_adj_close.index[0]).date()),
+                "raw_price_end": str(pd.Timestamp(raw_adj_close.index[-1]).date()),
+                "raw_price_rows": int(len(raw_adj_close.index)),
+                "raw_price_symbols": int(len(raw_adj_close.columns)),
+                "canonical_price_start": str(pd.Timestamp(adj_close.index[0]).date()),
+                "canonical_price_end": str(pd.Timestamp(adj_close.index[-1]).date()),
                 "price_basis": cfg["prices"],
                 "config_fingerprint": fingerprint,
                 "price_fingerprint": price_fingerprint(adj_close),
@@ -457,6 +463,23 @@ def main() -> int:
         args_path.write_text(
             json.dumps(_json_safe(report), indent=2, allow_nan=False),
             encoding="utf-8",
+        )
+        print(
+            "→ canonical current-book parity: "
+            + json.dumps(_json_safe(book_parity), sort_keys=True, allow_nan=False)
+        )
+        print(
+            "→ ranking snapshot baseline: "
+            + json.dumps(_json_safe(report["baseline"]["ranking_snapshot"]), sort_keys=True, allow_nan=False)
+        )
+        display_cols = [
+            c for c in ("Symbol", "Entry Date", "Entry Price", "Price Now", "Weight %",
+                        "Rank at Entry", "Rank at Rebalance")
+            if isinstance(canonical_book, pd.DataFrame) and c in canonical_book.columns
+        ]
+        print(
+            "→ canonical current book: "
+            + json.dumps(_json_safe(canonical_book[display_cols].to_dict("records")), allow_nan=False)
         )
         print(f"→ machine-readable parity snapshot: {args_path}")
 
