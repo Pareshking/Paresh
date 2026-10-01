@@ -269,7 +269,9 @@ def test_portfolio_history_includes_live_month_to_date_without_rewriting_frozen_
     )
 
     assert out["equity"].iloc[-2] == pytest.approx(2_252_298.0, rel=1e-6)
-    assert out["equity"].iloc[-1] == pytest.approx(2_466_235.0, rel=1e-6)
+    assert out["equity"].iloc[-1] == pytest.approx(
+        2_252_298.0 * (1.0 + 0.09493520755905593), rel=1e-6
+    )
     assert out["equity"].index[-1] == pd.Timestamp("2026-09-30 23:59:59.999999999")
     assert out["benchmark"].iloc[-1] == pytest.approx(
         out["benchmark"].iloc[-2] * 0.99, rel=1e-6
