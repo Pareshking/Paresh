@@ -65,7 +65,7 @@ def test_portfolio_pnl_cells_use_explicit_sign_semantics():
     assert '.saas-table-wrapper.portfolio .portfolio-pos' in source
     assert '.saas-table-wrapper.portfolio .portfolio-neg' in source
 
-def test_portfolio_equity_chart_uses_absolute_values_without_growth_factor_scaling():
+def test_portfolio_equity_chart_uses_absolute_values_without_growth_factor_scaling():\n    # Guard the chart contract against accidental 100x factor formatting.
     page_kit = (ROOT / "src/ui/page_kit.py").read_text(encoding="utf-8")
     portfolio = PORTFOLIO_VIEW.read_text(encoding="utf-8")
     assert "def equity_chart(" in page_kit
