@@ -370,3 +370,68 @@ def test_open_trades_survive_the_stateful_window_filter():
     closed = res["closed_trades"]
     assert not closed.empty
     assert (closed["Status"] == "Open").any()
+
+
+def test_portfolio_performance_overview_uses_canonical_account_return_series():
+    record = {"closed_trades": pd.DataFrame(), "tradebook": pd.DataFrame()}
+    ledger = {
+        "months": {
+            "2026-01": {"strategy": 0.10, "benchmark": 0.02, "origin": "recorded"},
+        }
+    }
+    live_meta = {
+        "mtd_period": "2026-02",
+        "strategy_mtd": 0.05,
+        "benchmark_mtd": 0.01,
+        "as_of": pd.Timestamp("2026-02-27"),
+    }
+
+    out = build_portfolio_history(
+        record, 1_000_000, ledger, live_meta, today=pd.Timestamp("2026-03-01")
+    )
+
+    # Same frozen month + live month series used by Track Record; no 100x
+    # fraction/percentage conversion and no substitution of current-book P&L.
+    assert out["equity"].iloc[-1] == pytest.approx(1_155_000)
+    assert out["benchmark"].iloc[-1] == pytest.approx(1_030_200)
+    assert out["strategy_total_return"] == pytest.approx(0.155)
+    assert out["benchmark_total_return"] == pytest.approx(0.0302)
+    assert out["mtd_period"] == "2026-02"
+    assert out["mtd_state"] == "closed"
+    feb = out["monthly_grid"].set_index("Period").loc["2026-02"]
+    assert feb["Strategy Net"] == pytest.approx(0.05)
+    assert feb["Benchmark"] == pytest.approx(0.01)
+    assert feb["Origin"] == "Closed, awaiting freeze"
+
+
+def test_portfolio_total_return_matches_track_record_summary_with_same_mtd():
+    from src.engine.track_record import summary_stats
+
+    record = {"closed_trades": pd.DataFrame(), "tradebook": pd.DataFrame()}
+    ledger = {
+        "months": {
+            "2026-01": {"strategy": -0.02, "benchmark": 0.01, "origin": "recorded"},
+            "2026-02": {"strategy": 0.04, "benchmark": -0.03, "origin": "recorded"},
+        }
+    }
+    live_meta = {
+        "mtd_period": "2026-03",
+        "strategy_mtd": 0.03,
+        "benchmark_mtd": 0.02,
+        "as_of": pd.Timestamp("2026-03-31"),
+    }
+    out = build_portfolio_history(
+        record, 2_000_000, ledger, live_meta, today=pd.Timestamp("2026-03-31")
+    )
+    stats = summary_stats(
+        ledger,
+        mtd={
+            "period": pd.Period("2026-03", freq="M"),
+            "strategy": 0.03,
+            "benchmark": 0.02,
+            "as_of": pd.Timestamp("2026-03-31"),
+        },
+    )
+
+    assert out["strategy_total_return"] == pytest.approx(stats["total_return"])
+    assert out["benchmark_total_return"] == pytest.approx(stats["bench_return"])
