@@ -38,6 +38,19 @@ from src.ui.canonical_book import current_book
 SOURCES = ["Model book", "My holdings"]
 
 
+def fill_due_note(as_of: pd.Timestamp, fill: pd.Timestamp, today: pd.Timestamp) -> str:
+    """Why the page still talks about a rebalance that is due today.
+
+    On the first day of a month the latest close is the previous month's last
+    one, and the fill the page names is today's: said once, so the dates read
+    as consistent rather than stale. Empty on every other day.
+    """
+    if fill.normalize() == today.normalize() and as_of.to_period("M") < today.to_period("M"):
+        return (f" The calendar is now {today:%b %Y}; the latest close is {as_of:%d %b}. "
+                "Today's fill awaits today's closing price.")
+    return ""
+
+
 def next_rebalance(as_of: pd.Timestamp) -> tuple[pd.Timestamp, pd.Timestamp]:
     """The check (last weekday of this month) and the fill (first weekday of
     the next). Exchange holidays are not known here, so these are weekdays."""
@@ -218,11 +231,12 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     as_of = pd.Timestamp(adj_close.index[-1]) if adj_close is not None and len(adj_close) else pd.Timestamp(ist_now().date())
     check, fill = next_rebalance(as_of)
     n_sess = _sessions_between(as_of, check)
+    timing_note = fill_due_note(as_of, fill, pd.Timestamp(ist_now().date()))
 
     head = kit.page_head(
         "Actions",
         "What the strategy would do at the next rebalance if prices stayed where they are "
-        f"today. Checked at the {_day(check)} close; orders fill on {_day(fill)}.",
+        f"today. Checked at the {_day(check)} close; orders fill on {_day(fill)}." + timing_note,
         actions=True,
     )
     with head:
