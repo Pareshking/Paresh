@@ -23,6 +23,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.core.market_time import ist_now
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.core.config import BENCHMARK_SYMBOL  # noqa: E402
@@ -116,7 +118,7 @@ def main() -> int:
         return 1
 
     as_of = pd.Timestamp(adj_close.index[-1])
-    months = months_to_cover(as_of, start)
+    months = months_to_cover(as_of, start, now=ist_now())
     print(f"→ data as of {as_of:%d %b %Y}; covering {months} completed months "
           f"back to {start}")
     if months <= 0:
@@ -180,6 +182,7 @@ def main() -> int:
         data_as_of=as_of,
         pit_from=pit_from,
         force=args.force,
+        now=ist_now(),
     )
 
     print(f"→ {before} months on file; {len(added)} added, {len(skipped)} "
