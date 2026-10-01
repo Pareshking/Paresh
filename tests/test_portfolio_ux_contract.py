@@ -59,7 +59,7 @@ def test_portfolio_is_one_flowing_page_with_no_history_tabs():
     for card in ("Equity & drawdown", "Calendar returns", "Trades", "Rebalances", "Industry exposure"):
         assert f'kit.card("{card}"' in source
     # Equity and drawdown share one card, so one tab fewer.
-    assert source.index("kit.equity_chart(") < source.index("kit.drawdown_chart(")
+    assert "drawdown=drawdown" in source and "kit.drawdown_chart(" not in source
     assert 'Latest portfolio activity' not in source
 
 
@@ -78,7 +78,7 @@ def test_portfolio_equity_chart_uses_absolute_values_without_growth_factor_scali
     assert "v * 100" not in page_kit
     assert "kit.equity_chart(" in portfolio
     assert "kit.growth_chart(" not in portfolio
-    assert '"value": float(v)' in page_kit
+    assert "lw.series_points(dates, strategy)" in page_kit
 
 def test_portfolio_monthly_view_is_calendar_grid_with_live_mtd():
     source = PORTFOLIO_VIEW.read_text(encoding="utf-8")

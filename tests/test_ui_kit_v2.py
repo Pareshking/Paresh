@@ -122,13 +122,16 @@ def test_every_page_kit_helper_the_views_call_exists():
 
 def test_growth_chart_rebases_growth_factors_to_100():
     def app():
+        import pandas as pd
+
         from src.ui import page_kit as k
-        k.growth_chart(["a", "b", "c"], [1.0, 1.1, 1.2], [1.0, 1.0, 1.05], key="t")
+        k.growth_chart(pd.to_datetime(["2026-01-01", "2026-02-01", "2026-03-01"]),
+                       [1.0, 1.1, 1.2], [1.0, 1.0, 1.05], key="t")
 
     at = AppTest.from_function(app).run()
     assert not at.exception, [e.value for e in at.exception]
-    legend = at.get("html")[0].value
-    assert "₹120" in legend and "₹105" in legend
+    doc = at.get("iframe")[0].proto.srcdoc
+    assert '"value":120.0' in doc and '"value":105.0' in doc
 
 
 # ── Grids, drill-down dialogs and the pickers added in the second pass ───────

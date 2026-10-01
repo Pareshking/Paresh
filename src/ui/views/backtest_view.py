@@ -291,8 +291,8 @@ def _backtest_body(
 
     eq = bt_res["equity_curve"]
     bm = bt_res["benchmark"].reindex(eq.index).ffill() if bt_res.get("benchmark") is not None else None
-    with kit.card("Growth of ₹100", "bt_growth", "indigo = strategy · grey = Nifty 500 · daily"):
-        kit.growth_chart([f"{d:%d %b}" for d in eq.index], eq.tolist(),
+    with kit.card("Growth of ₹100", "bt_growth", "daily"):
+        kit.growth_chart(eq.index, eq.tolist(),
                          None if bm is None else bm.tolist(), key="bt")
 
     view = st.segmented_control(

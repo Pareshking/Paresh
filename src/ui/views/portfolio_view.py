@@ -542,14 +542,11 @@ def render_portfolio_view(
                 kit.Metric("Max drawdown", kit.pct(history["max_drawdown"], signed=False)),
             ], key="pf_equity")
             kit.equity_chart(
-                [d.strftime("%b %Y") for d in equity.index],
-                equity.tolist(),
+                equity.index, equity.tolist(),
                 benchmark.tolist() if not benchmark.empty else None,
-                key="portfolio_equity_curve_v2",
+                key="portfolio_equity_curve_v3",
+                drawdown=drawdown.reindex(equity.index).tolist() if not drawdown.empty else None,
             )
-            if not drawdown.empty:
-                kit.drawdown_chart([d.strftime("%b %Y") for d in drawdown.index],
-                                   drawdown.tolist(), key="portfolio_drawdown_curve_v2")
 
     with kit.card("Calendar returns", "portfolio_monthly"):
         if monthly_grid.empty:

@@ -261,8 +261,12 @@ def render_track_record_view(
 
     labels, s_curve, b_curve = growth_series(months, mtd_period, mtd_val, mtd_bench)
     with kit.card("Growth of ₹100", "tr_growth",
-                  "indigo = strategy · grey = Nifty 500" + (" · * = month to date" if incl else "")):
-        kit.growth_chart(labels, s_curve, b_curve, key="tr")
+                  "incl. month to date" if incl else ""):
+        _dates = [pd.Period(sorted(months)[0], freq="M").start_time - pd.Timedelta(days=1)] + [
+            pd.Period(k, freq="M").end_time.normalize() for k in sorted(months)]
+        if len(labels) > len(_dates) and mtd_period is not None:
+            _dates.append(mtd_period.end_time.normalize())
+        kit.growth_chart(_dates, s_curve, b_curve, key="tr")
 
     grid = build_combined_grid(
         ledger,
