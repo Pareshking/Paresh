@@ -71,20 +71,17 @@ def main() -> int:
                 report["failures"].append(
                     f"Portfolio visual QA could not reach ready state: {state.get('state')}"
                 )
-                return_code = 1
             else:
                 served, reason = read_revision(page, wait_s=30)
                 report["served_revision"] = (served or "unknown")[:7]
                 report["revision_reason"] = reason
-                if EXPECTED_SHA and served and not (
-                    EXPECTED_SHA.startswith(served.lower()[:7])
-                    or os.getenv("UMIYA_ALLOW_NEWER_BUILD", "1") == "1"
+                if EXPECTED_SHA and served and not EXPECTED_SHA.startswith(
+                    served.lower()[:7]
                 ):
                     report["failures"].append(
                         f"Unexpected served revision {served[:7]} for {EXPECTED_SHA[:7]}"
                     )
 
-                return_code = 0
                 for name, (width, height) in VIEWPORTS.items():
                     page.set_viewport_size({"width": width, "height": height})
                     page.wait_for_timeout(500)
@@ -168,7 +165,6 @@ def main() -> int:
             report["failures"].append(
                 f"Portfolio visual QA browser error: {type(exc).__name__}: {exc}"
             )
-            return_code = 1
         finally:
             try:
                 (OUT / "portfolio_final_dom.html").write_text(
