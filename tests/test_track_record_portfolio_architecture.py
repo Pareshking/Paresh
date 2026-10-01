@@ -187,6 +187,40 @@ def test_portfolio_history_scales_canonical_equity_and_preserves_trades():
     assert out["max_drawdown"] == pytest.approx(2.04 / 2.10 - 1.0)
     assert out["trades"]["Symbol"].tolist() == ["AAA"]
     assert out["tradebook"]["Action"].tolist() == ["BUY"]
+
+def test_portfolio_tracker_uses_canonical_nse_industry_for_750():
+    out = build_portfolio_tracker(_book(), _ranking(), 1_000_000)
+
+    by_symbol = out.set_index("Symbol")
+    assert by_symbol.loc["AAA", "Sector / Industry"] == "Alpha"
+    assert by_symbol.loc["BBB", "Sector / Industry"] == "Beta"
+    assert by_symbol.loc["AAA", "Sector / Industry"] != "Industrials"
+    assert by_symbol.loc["BBB", "Sector / Industry"] != "Financials"
+
+
+def test_portfolio_history_uses_fractional_ledger_returns():
+    record = {
+        "closed_trades": pd.DataFrame(),
+        "tradebook": pd.DataFrame(),
+    }
+    ledger = {
+        "months": {
+            "2026-01": {"strategy": -0.026879, "benchmark": -0.03318},
+            "2026-02": {"strategy": 0.036104, "benchmark": 0.003785},
+            "2026-03": {"strategy": -0.122179, "benchmark": -0.113904},
+            "2026-04": {"strategy": 0.184092, "benchmark": 0.105003},
+            "2026-05": {"strategy": 0.10194, "benchmark": -0.00117},
+            "2026-06": {"strategy": 0.090069, "benchmark": 0.014947},
+            "2026-07": {"strategy": -0.021666, "benchmark": 0.020223},
+            "2026-08": {"strategy": 0.126149, "benchmark": -0.000441},
+        }
+    }
+
+    out = build_portfolio_history(record, 2_000_000, ledger)
+
+    assert out["equity"].iloc[-1] == pytest.approx(2_773_872.8091234444, rel=1e-6)
+    assert out["benchmark"].iloc[-1] == pytest.approx(1_964_712.7, rel=1e-6)
+
 def test_record_run_passes_canonical_inception_to_stateful_backtest(monkeypatch):
     from src.ui.views import track_record_view
 
