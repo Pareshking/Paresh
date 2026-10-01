@@ -24,3 +24,10 @@ def test_stateful_trade_records_fall_back_to_window_start_without_history_start(
 
     assert "if history_start is not None" in block
     assert "else window_start" in block
+
+
+def test_live_mtd_uses_ist_calendar_month_not_last_price_month():
+    source = BACKTESTER.read_text(encoding="utf-8")
+    assert "mtd_period = pd.Period(ist_now(), freq=\"M\")" in source
+    assert "mtd_has_current_month_data = as_of_dt.to_period(\"M\") == mtd_period" in source
+    assert "and mtd_has_current_month_data" in source
