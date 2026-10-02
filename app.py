@@ -74,8 +74,6 @@ with app_import_guard():
         SYSTEM_750, SYSTEM_INCEPTION, SYSTEM_NAMES, SYSTEM_NANO,
     )
     from src.core.universe_reconciliation import reconcile_symbols
-    # R2-backed production readers are an explicit transport boundary; keep this import adjacent to the loader.
-    from r2.consumers import r2_streamlit
     from src.loaders.mcap_loader import fetch_market_caps
     from src.loaders.price_loader import (
         extract_ohlcv,
