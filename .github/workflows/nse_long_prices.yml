@@ -56,8 +56,8 @@ jobs:
           ls -lh pack
       - name: Build
         run: |
-          PACK=""; [ -f pack/nse_raw_pack.parquet ] && PACK="--pack pack/nse_raw_pack.parquet"
-          python scripts/build_nse_long_prices.py --since "${{ inputs.since || '2008-01-01' }}" --out data_cache/nse_long $PACK
+          # A missing pack (first run, or full=yes) reads every session.
+          python scripts/build_nse_long_prices.py --since "${{ inputs.since || '2008-01-01' }}" --out data_cache/nse_long --pack pack/nse_raw_pack.parquet
           ls -lh data_cache/nse_long
           {
             echo "## NSE long price file"
