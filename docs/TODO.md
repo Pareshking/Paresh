@@ -12,7 +12,7 @@ _Last updated: 2026-10-01_
 |---|---|---|---|
 | 1 | Merge PR #255: Production QA waits for the page's run before judging the ☰ menu | #255 merged; post-merge V1 Production QA green | [x] 28 Sep (#255) |
 | 2 | Read the 4th NSE comparison (run on b1cb342: demergers and month-first ex-dates handled) | Report read, results given to the owner: drift beyond 1% (was 58), Spearman and top 20/50 per system | [x] 27 Sep, run 36331991821: 50 stocks, Spearman 0.9997 / 0.9984 / 0.9991 |
-| 3 | Decide: NSE as the middle price source (Screener → NSE → Yahoo) | Owner says yes or no after item 2 (Claude recommends yes, skipping the ~50 stocks still off) | [ ] waiting on owner |
+| 3 | Decide: NSE as the middle price source (Screener → NSE → Yahoo) | Owner says yes or no after item 2 (Claude recommends yes, skipping the ~50 stocks still off) | [x] 2 Oct: owner said yes |
 | 4 | If yes: switch the price order in the app | PR merged; precompute accepted in production; docs updated | [ ] |
 
 ## UI and data overhaul (raised 1 Oct 2026)
@@ -36,7 +36,7 @@ Full findings and work packages: `docs/UI_OVERHAUL_PLAN.md`.
 |---|---|---|---|---|
 | 5 | 30 Sep 2026, evening (check 18:30 UTC) | October Nano Cap list built; Nano Cap and Combined rankings published | `data/nanocap_membership.json` gains `2026-09-30`; `rankings_nano` / `rankings_combined` published and accepted | [x] 30 Sep, daily sync 36790408819: 429 stocks, Nano 391 / Combined 1,141 ranked |
 | 6 | 1 Oct 2026 | First Nano Cap and Combined model books; their backtest shows September | Actions and Backtest with `?sys=nano` / `?sys=combined` | [ ] 2 Oct: daily sync 36941400234 green (precompute and R2 publish passed); `backtest_months` is 1 for both. Model-book render not yet seen live |
-| 7 | 2–5 Nov 2026 | October frozen in all three ledgers | Track Record's "Three systems, side by side" shows Oct 2026 | [ ] |
+| 7 | 1–5 Nov 2026 | October frozen in all three ledgers | Track Record's "Three systems, side by side" shows Oct 2026 | [ ] |
 
 ## Portfolio (1 Oct 2026)
 

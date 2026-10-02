@@ -184,7 +184,7 @@ the record spans more than one fingerprint.
 ## 6. Operations
 
 Automatic: `.github/workflows/monthly_track_record.yml` runs at 19:00 UTC on the
-**2nd–5th** of each month. Four days rather than one because the 1st can fall on
+**1st–5th** of each month. Five days rather than one because the 1st can fall on
 a weekend, a holiday, or a missed sync; re-running is free precisely because the
 ledger only appends. It commits the ledger back to the repo — the same
 persistence path the daily data sync uses, and the only durable one, since

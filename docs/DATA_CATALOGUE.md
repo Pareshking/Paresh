@@ -41,7 +41,7 @@ Policy and recovery: `docs/R2_RECOVERY_AND_RETENTION.md`. Layout and rules
 | `former_member_prices.parquet/.json` | Prices for stocks that left the universe, so past months replay faithfully | `daily_sync` |
 | `nse_prices/closes.parquet`, `actions.parquet` | Local NSE close and action copies for the adjustment layer | `nse_collect` |
 | `nse_market_caps.csv`, `nse_all_time_highs.csv`, `nse_tv_classification.csv`, `nse_fo_symbols.json`, `nse_trading_days.json`, `screener_company_ids.json` | Reference tables: market cap, all-time highs, industry labels, F&O list, trading calendar, Screener ids | `daily_sync` / collectors |
-| `track_record.json` | The frozen monthly Track Record ledger | `monthly_track_record`, 2nd–5th of the month, 19:00 |
+| `track_record.json` | The frozen monthly Track Record ledger | `monthly_track_record`, 1st–5th of the month, 19:00 |
 
 ## Which source wins (decision D3)
 
@@ -59,9 +59,11 @@ whole window and the app labels which.
 - Adjusted NSE vs Screener (third report): drift beyond 1% fell from 135 stocks
   to 58 after applying splits and bonuses; rank correlation 0.9993 / 0.9934 /
   0.9975, top-20 overlap 20/20, 19/20, 20/20.
-- Left: ex-dates Bc prints month-first (E2E, MCX, VGL, SILVERTUC) and demergers
-  (VEDL, HEG, SIEMENS, RAYMOND, ABFRL). The fourth report decides whether NSE
-  becomes the middle source.
+- Fourth report (27 Sep): 1,117 of 1,167 stocks within 1% throughout, 50
+  beyond; rank correlation 0.9997 / 0.9984 / 0.9991, top 20 in common 20/20,
+  19/20, 20/20, top 50 50/50.
+- Decision (owner, 2 Oct 2026): NSE becomes the middle source, skipping the
+  ~50 stocks still beyond 1%. Not yet wired in; until then Yahoo fills.
 
 ## Freshness in the app
 

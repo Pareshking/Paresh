@@ -111,8 +111,13 @@ _Last updated: 2026-09-27_
    top 20 20/20, 19/20, 20/20. What remained: ex-dates Bc prints
    month-first (E2E, MCX, VGL, SILVERTUC: now tried swapped) and demergers
    (VEDL, HEG, SIEMENS, RAYMOND, ABFRL: now priced at the ex-date's fall).
-   **Next: the fourth report**, then decide.
-4. **NSE as the middle price source** everywhere: Screener → NSE → Yahoo,
-   once 3 is in.
+   Fourth report (run 36331991821, 27 Sep): 1,117 of 1,167 stocks within 1%
+   of Screener throughout, 50 beyond; Spearman 0.9997 / 0.9984 / 0.9991, top
+   20 in common 20/20, 19/20, 20/20, top 50 50/50 in all three. **Owner
+   decision, 2 Oct 2026: yes, NSE becomes the middle source**, skipping the
+   ~50 stocks still beyond 1% (largest: PGIL, GOLDIAM, HCC, UTKARSHBNK,
+   STALLION, LLOYDSENGG). Not yet wired in.
+4. **NSE as the middle price source** everywhere: Screener → NSE → Yahoo.
+   Approved 2 Oct 2026; wiring is the next change (see 3).
 5. Timing: all three sources (NSE, Yahoo, Screener) in before 06:00 IST;
    Screener's nightly run for 1,167 stocks takes ~37 min.
