@@ -10,6 +10,7 @@ is the later list with those changes undone.
 from __future__ import annotations
 
 import copy
+import csv
 import json
 import sys
 from datetime import date
@@ -270,13 +271,79 @@ def test_the_backtester_now_scores_the_whole_2026_window_on_the_index_as_it_stoo
     assert _index_mask(HISTORY, cols, pd.Timestamp("2025-12-30")) is None  # before the record
 
 
-def test_full_2026_coverage_is_explicit_not_inferred_from_live_snapshots():
-    gaps = coverage_gaps(HISTORY)
-    assert gaps["nifty_total_market"]["status"] == "covered"
-    assert all(gaps[k]["status"] in {"covered", "gap"} for k in gaps)
-    # A 2026-09-29 baseline is not full-year historical coverage.
-    assert gaps["nifty_50"]["status"] == "gap"
-    assert gaps["nifty_next_50"]["status"] == "gap"
-    assert gaps["nifty_midcap_150"]["status"] == "gap"
-    assert gaps["nifty_smallcap_250"]["status"] == "gap"
-    assert gaps["nifty_microcap_250"]["status"] == "gap"
+MULTI_HISTORY = json.loads((ROOT / "data" / "membership_history.json").read_text(encoding="utf-8"))
+
+
+def _members_on_index(key: str, on: str) -> set[str]:
+    entry = MULTI_HISTORY["indices"][key]
+    target = date.fromisoformat(on)
+    members = set(entry["baseline"]["symbols"])
+    if target < date.fromisoformat(entry["baseline"]["date"]):
+        raise ValueError("requested date predates membership baseline")
+    for change in entry["changes"]:
+        if date.fromisoformat(change["date"]) > target:
+            break
+        members.update(change.get("added", []))
+        members.difference_update(change.get("removed", []))
+    return members
+
+
+def test_all_six_histories_cover_the_start_of_2026():
+    gaps = coverage_gaps(MULTI_HISTORY)
+    assert set(gaps) == {
+        "nifty_50", "nifty_next_50", "nifty_midcap_150",
+        "nifty_smallcap_250", "nifty_microcap_250", "nifty_total_market",
+    }
+    assert all(g["status"] == "covered" for g in gaps.values())
+    assert all(g["actual_start"] == "2025-12-31" for g in gaps.values())
+
+
+def test_reconstructed_histories_replay_to_today_csvs_without_dummy_symbols():
+    paths = {
+        "nifty_50": "data/indices/ind_nifty50list.csv",
+        "nifty_next_50": "data/indices/ind_niftynext50list.csv",
+        "nifty_midcap_150": "data/indices/ind_niftymidcap150list.csv",
+        "nifty_smallcap_250": "data/indices/ind_niftysmallcap250list.csv",
+        "nifty_microcap_250": "data/indices/ind_niftymicrocap250_list.csv",
+        "nifty_total_market": "data/indices/ind_niftytotalmarket_list.csv",
+    }
+    expected_counts = {
+        "nifty_50": 50, "nifty_next_50": 50, "nifty_midcap_150": 150,
+        "nifty_smallcap_250": 250, "nifty_microcap_250": 250,
+        "nifty_total_market": 750,
+    }
+    for key, relative_path in paths.items():
+        entry = MULTI_HISTORY["indices"][key]
+        assert entry["baseline"]["date"] == "2025-12-31"
+        members = set(entry["baseline"]["symbols"])
+        assert not any(s.startswith("DUMMY") for s in members)
+        previous_date = entry["baseline"]["date"]
+        for change in entry["changes"]:
+            assert change["date"] > previous_date
+            previous_date = change["date"]
+            members.update(change["added"])
+            members.difference_update(change["removed"])
+            assert not any(s.startswith("DUMMY") for s in members)
+            if key == "nifty_microcap_250" and change["date"] == "2025-12-31":
+                continue
+            if change["date"] >= "2026-03-30":
+                assert len(members) == expected_counts[key], (key, change["date"], len(members))
+        with (ROOT / relative_path).open(encoding="utf-8", newline="") as fh:
+            rows = csv.DictReader(fh)
+            symbol_col = next(k for k in rows.fieldnames if k.lower() == "symbol")
+            current = {row[symbol_col].strip().upper() for row in rows
+                       if row[symbol_col].strip() and not row[symbol_col].strip().upper().startswith("DUMMY")}
+        assert members == current, (key, sorted(current - members), sorted(members - current))
+
+
+def test_rename_and_midyear_replacements_are_real_timeline_events():
+    small = MULTI_HISTORY["indices"]["nifty_smallcap_250"]
+    rename = next(c for c in small["changes"] if c["date"] == "2026-04-15")
+    assert rename["added"] == ["JSWDULUX"] and rename["removed"] == ["AKZOINDIA"]
+    july = next(c for c in small["changes"] if c["date"] == "2026-07-17")
+    assert july["added"] == ["PFOCUS"] and july["removed"] == ["JBCHEPHARM"]
+    micro = MULTI_HISTORY["indices"]["nifty_microcap_250"]
+    july_micro = next(c for c in micro["changes"] if c["date"] == "2026-07-17")
+    assert july_micro["added"] == ["GRINDWELL"] and july_micro["removed"] == ["PFOCUS"]
+    assert "TSFINV" in _members_on_index("nifty_microcap_250", "2026-09-29")
+    assert "TSFINV" not in _members_on_index("nifty_microcap_250", "2026-09-30")
