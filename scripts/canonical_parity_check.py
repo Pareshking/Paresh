@@ -94,7 +94,7 @@ def main() -> int:
     symbols = list(meta["universe"])
     yahoo, *_ = extract_ohlcv(pd.read_parquet(_download(PRICE_SNAPSHOT_URL, tmp)), symbols)
     chosen = ps.from_screener(pd.read_parquet(_download(SCREENER_STORE_URL, tmp)))
-    screener = ps.keep_and_fill(chosen, symbols, yahoo).close
+    screener = ps.keep_and_fill(chosen, symbols, yahoo, nse_prices.middle_close(symbols)).close
     bench = fetch_benchmark_history(period="5y")
     if bench.empty:
         print("FAIL  benchmark unavailable; nothing can be compared")

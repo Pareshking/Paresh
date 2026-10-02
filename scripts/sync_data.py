@@ -86,7 +86,9 @@ def _precompute_rankings(symbols, universe_df, mcaps, raw=None, out_name=None) -
         chosen = price_source.from_screener(store) if store is not None else None
         if chosen is not None:
             # The same call the app makes, so both rank the same frame.
-            src = price_source.keep_and_fill(chosen, symbols, adj_close)
+            from src.loaders import nse_prices
+            src = price_source.keep_and_fill(
+                chosen, symbols, adj_close, nse_prices.middle_close(symbols))
         else:
             print("Screener history not usable yet; ranking from Yahoo.")
     print(f"Ranking source: {src.source} "

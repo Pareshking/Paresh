@@ -46,8 +46,8 @@ Policy and recovery: `docs/R2_RECOVERY_AND_RETENTION.md`. Layout and rules
 ## Which source wins (decision D3)
 
 Prices: **Screener → NSE → Yahoo.** Screener is the primary adjusted series.
-NSE is the middle source once its adjustment layer is accepted
-(`docs/NSE_DATA_LEDGER.md`, to-do 3 and 4). Yahoo is the last fallback. Sources
+NSE is the middle source (adopted 2026-10-02; `docs/NSE_DATA_LEDGER.md`,
+to-do 3 and 4). Yahoo is the last fallback. Sources
 are never spliced inside one series (spec §10); a stock uses one source for its
 whole window and the app labels which.
 
@@ -63,7 +63,8 @@ whole window and the app labels which.
   beyond; rank correlation 0.9997 / 0.9984 / 0.9991, top 20 in common 20/20,
   19/20, 20/20, top 50 50/50.
 - Decision (owner, 2 Oct 2026): NSE becomes the middle source, skipping the
-  ~50 stocks still beyond 1%. Not yet wired in; until then Yahoo fills.
+  ~50 stocks still beyond 1%. Wired in 2 Oct: gaps in Screener fill from NSE first,
+  then Yahoo.
 
 ## Freshness in the app
 

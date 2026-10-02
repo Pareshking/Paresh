@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-02 — NSE is the middle price source
+
+- Owner decision: Screener → NSE → Yahoo. A missing Screener price is now filled from NSE's adjusted daily move first, then Yahoo's. Stocks whose NSE and Screener levels drift past 1% (about 50 in the 27 Sep report) are skipped and fall through to Yahoo. Missing NSE data leaves the old Screener → Yahoo order.
+- Industry map always labels the five strongest industries; October freeze window documented as 1st–5th.
+
 ## 2026-10-02 — Canonical reconciliation, hard caps, parity gate
 
 - Reconciled every account representation on the published data: Portfolio, Actions and Backtest books identical; Actions reproduces the 1-Oct rebalance; ledger 9/9 against the replay.

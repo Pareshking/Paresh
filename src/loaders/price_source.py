@@ -226,8 +226,8 @@ def preferred() -> str:
 
 # ── Backup source: Screener first, Yahoo for what it lacks ───────────────────
 
-# Owner, 2026-09-27: "Screener, NSE, and last is Yahoo". NSE takes the middle
-# place once its corporate-action layer exists; until then Yahoo fills.
+# Owner, 2026-09-27: "Screener, NSE, and last is Yahoo". NSE took the middle
+# place on 2026-10-02 (its corporate-action layer passed the fourth report).
 BACKUP_SESSION_COVERAGE = 0.98
 
 
@@ -276,17 +276,51 @@ def fill_from_backup(primary: pd.DataFrame, backup: pd.DataFrame | None,
     return filled, int(filled.notna().sum().sum()) - before, newer
 
 
-def keep_and_fill(chosen: PriceFrames, symbols, backup_close: pd.DataFrame | None
-                  ) -> PriceFrames:
-    """The chosen frames cut to `symbols`, gaps filled from the backup.
+MIDDLE_MAX_DRIFT = 0.01   # a stock whose NSE and Screener levels drift past 1% is left to Yahoo
+
+
+def eligible_middle(primary: pd.DataFrame, middle: pd.DataFrame | None
+                    ) -> pd.DataFrame | None:
+    """NSE's adjusted closes cut to the stocks that track Screener within 1%.
+
+    Owner, 2026-10-02: NSE is the middle source, "skipping the ~50 stocks still
+    off by more than 1%" (fourth NSE report). Those stocks keep falling through
+    to Yahoo. Imported lazily: nse_adjusted imports this module.
+    """
+    if middle is None or middle.empty or primary is None or primary.empty:
+        return None
+    from src.loaders import nse_adjusted as na
+
+    drift = na.level_drift(middle, primary)
+    good = [c for c in middle.columns if c in drift.index
+            and drift.at[c, "max_drift"] <= MIDDLE_MAX_DRIFT]
+    return middle[good] if good else None
+
+
+def keep_and_fill(chosen: PriceFrames, symbols, backup_close: pd.DataFrame | None,
+                  middle_close: pd.DataFrame | None = None) -> PriceFrames:
+    """The chosen frames cut to `symbols`, gaps filled Screener -> NSE -> Yahoo.
 
     The app and the nightly precompute both call this, so they rank the same
-    frame and the published ranking's contract still matches.
+    frame and the published ranking's contract still matches. `middle_close`
+    is NSE's adjusted closes (None leaves the old Screener -> Yahoo order).
     """
     keep = [c for c in chosen.close.columns if c in set(symbols)]
-    close, n_cells, added = fill_from_backup(chosen.close[keep], backup_close)
+    close = chosen.close[keep]
+    mid_cells, mid_added = 0, []
+    middle = eligible_middle(close, middle_close)
+    if middle is not None:
+        close, mid_cells, mid_added = fill_from_backup(close, middle)
+    close, n_cells, added = fill_from_backup(close, backup_close)
     chosen.adj_close = chosen.close = close
     chosen.volume = chosen.volume.reindex(index=close.index, columns=keep)
+    if mid_cells or mid_added:
+        metrics.note("price_nse_cells", mid_cells)
+        metrics.note("price_nse_sessions", ",".join(str(d.date()) for d in mid_added))
+        chosen.notes = list(chosen.notes) + [
+            f"{mid_cells} missing Screener prices filled from NSE's daily moves"
+            + (f"; sessions from NSE: {', '.join(str(d.date()) for d in mid_added)}"
+               if mid_added else "")]
     if n_cells or added:
         metrics.note("price_backup_cells", n_cells)
         metrics.note("price_backup_sessions", ",".join(str(d.date()) for d in added))
