@@ -32,7 +32,14 @@ jobs:
       - name: Fetch NSE reference feeds
         run: python scripts/sync_nse_reference.py
 
+      # Today's index lists from two NSE hosts against data/membership_history.json, recorded daily in
+      # data/reference/nse/anchor_checks.jsonl (protocol gate G4: agreement on separate days). The snapshot below is
+      # committed even if this step fails, and a failed fetch still turns the run red.
+      - name: Check the history's current lists against NSE's published lists
+        run: python scripts/check_index_anchor.py
+
       - name: Commit and push the snapshot
+        if: ${{ !cancelled() }}
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'

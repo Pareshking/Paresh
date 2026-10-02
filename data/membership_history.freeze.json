@@ -1,0 +1,56 @@
+{
+  "frozen_through": "2026-09-30",
+  "sha256": "315aeff8968993097e698959e3d08b687bd419a40b96709606601dc325d29b89",
+  "indices": {
+    "nifty_50": {
+      "first_date": "2010-01-01",
+      "changes_through_freeze": 33,
+      "members_on_freeze_date": 50
+    },
+    "nifty_500": {
+      "first_date": "2010-01-01",
+      "changes_through_freeze": 133,
+      "members_on_freeze_date": 500
+    },
+    "nifty_microcap_250": {
+      "first_date": "2021-09-30",
+      "changes_through_freeze": 31,
+      "members_on_freeze_date": 250
+    },
+    "nifty_midcap_150": {
+      "first_date": "2016-04-01",
+      "changes_through_freeze": 38,
+      "members_on_freeze_date": 150
+    },
+    "nifty_next_50": {
+      "first_date": "2010-01-01",
+      "changes_through_freeze": 47,
+      "members_on_freeze_date": 50
+    },
+    "nifty_smallcap_250": {
+      "first_date": "2016-04-01",
+      "changes_through_freeze": 61,
+      "members_on_freeze_date": 250
+    },
+    "nifty_total_market": {
+      "first_date": "2021-10-29",
+      "changes_through_freeze": 40,
+      "members_on_freeze_date": 750
+    }
+  },
+  "changelog": [
+    {
+      "date_utc": "2026-10-02",
+      "sha256_before": null,
+      "sha256_after": "56712b5c5bd0df8e68171a1af6fc87c046289385e17661162b0390f433857ee7",
+      "reason": "Initial freeze: reconstruction 2010 to 2026-09-30 for seven indices, after the junction-date fix and PEL/PIRAMALFIN correction (#335), the Gayatri evidence note (#338) and NSE-feed evidence for the four symbols"
+    },
+    {
+      "date_utc": "2026-10-02",
+      "sha256_before": "56712b5c5bd0df8e68171a1af6fc87c046289385e17661162b0390f433857ee7",
+      "sha256_after": "315aeff8968993097e698959e3d08b687bd419a40b96709606601dc325d29b89",
+      "reason": "Corrected effective dates in 10 notices with several dates (54 events: 2010-04, 2011-03, 2011-05, 2013-11, 2015-03, 2017-03, 2017-09, 2018-03, 2020-09), added the 4 Nifty 500 events of ind_prs04042012 that the parser had skipped, and resolved the 2012-03-07 and 2020 items from NSE's IndexInclExcl.xls (caveats now empty); found by cross-checking against that workbook"
+    }
+  ],
+  "note": "Hash covers each index's baseline and changes up to frozen_through, plus aliases, caveats, symbol_changes and adjustments_applied. See nse_index_rebuild/freeze_history.py."
+}
