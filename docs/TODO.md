@@ -35,7 +35,7 @@ Full findings and work packages: `docs/UI_OVERHAUL_PLAN.md`.
 | # | When | What | How we know it is done | Status |
 |---|---|---|---|---|
 | 5 | 30 Sep 2026, evening (check 18:30 UTC) | October Nano Cap list built; Nano Cap and Combined rankings published | `data/nanocap_membership.json` gains `2026-09-30`; `rankings_nano` / `rankings_combined` published and accepted | [x] 30 Sep, daily sync 36790408819: 429 stocks, Nano 391 / Combined 1,141 ranked |
-| 6 | 1 Oct 2026 | First Nano Cap and Combined model books; their backtest shows September | Actions and Backtest with `?sys=nano` / `?sys=combined` | [ ] |
+| 6 | 1 Oct 2026 | First Nano Cap and Combined model books; their backtest shows September | Actions and Backtest with `?sys=nano` / `?sys=combined` | [ ] 2 Oct: daily sync 36941400234 green (precompute and R2 publish steps passed); `backtest_months` is 1 for both. Model-book render not yet seen live |
 | 7 | 2–5 Nov 2026 | October frozen in all three ledgers | Track Record's "Three systems, side by side" shows Oct 2026 | [ ] |
 
 ## Portfolio (1 Oct 2026)
@@ -45,6 +45,8 @@ Full findings and work packages: `docs/UI_OVERHAUL_PLAN.md`.
 | P1 | Monthly view no longer crashes; Equity shows the marked month | #297 merged | [x] 1 Oct (#297) |
 | P2 | On 1 Oct, September reads "Sep (closed)", not "Sep MTD"; Oct MTD says it is unavailable; "gap" → "Alpha"; Actions explains a fill due on the 1st. No ledger logic changed | #298 merged; V1 Production QA green on the merge commit | [x] 1 Oct: #298 (2e1e71e) and the QA wait fix #299 (a16a911); Production QA run 36839738078 incl. Portfolio visual QA, Full Validation 1214: green |
 | P3 | PR #296 (another session): changes which month the ledger finalises (`ist_now()`); 19 tests fail. Owner to decide whether any of it is wanted; its Alpha rename and Actions note are in P2 | #296 closed, or rebased and green | [ ] owner |
+
+| P4 | V1 Production QA has been red on main since #317 (runs 753–756): `portfolio_production_qa.py` still looks for the Equity/Monthly toggle, which the single Performance card replaced. Full Validation is green. Update the script to the new Portfolio layout | Production QA green on main | [ ] |
 
 ## Ongoing
 
