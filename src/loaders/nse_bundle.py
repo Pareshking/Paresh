@@ -210,12 +210,15 @@ ACTION_COLUMNS = ["date", "series", "symbol", "security", "record_date",
 # "SCH AGMT-BONUS NCRPS 4:1". The first sample year (2026-09-27) recognised
 # no split at all and counted NCRPS bonuses as equity bonuses; both are
 # pinned in tests/test_nse_bundle.py with NSE's own wording.
+_SPLIT = re.compile(r"SPLIT|SPLT|SUB[- ]?DIVISION|SUBDIVISION")
+_CONSOLIDATION = re.compile(r"CONSOLIDAT")
+# Preference shares issued as bonus: equity holders keep every share, so
+# the equity price has no bonus step (TVSMOTOR 2025-08-25 moved -0.3%).
+_BONUS_PREFERENCE = re.compile(r"BONUS\s*(?:NCRPS|PREF|RPS|NCPS|DEBENTURE)")
 _KINDS = [
-    ("split", re.compile(r"SPLIT|SPLT|SUB[- ]?DIVISION|SUBDIVISION")),
-    ("consolidation", re.compile(r"CONSOLIDAT")),
-    # Preference shares issued as bonus: equity holders keep every share, so
-    # the equity price has no bonus step (TVSMOTOR 2025-08-25 moved -0.3%).
-    ("bonus_preference", re.compile(r"BONUS\s*(?:NCRPS|PREF|RPS|NCPS|DEBENTURE)")),
+    ("split", _SPLIT),
+    ("consolidation", _CONSOLIDATION),
+    ("bonus_preference", _BONUS_PREFERENCE),
     ("bonus", re.compile(r"BONUS")),
     ("demerger", re.compile(r"DEMERGER|SPIN[- ]?OFF")),
     ("rights", re.compile(r"RIGHTS")),
@@ -223,7 +226,12 @@ _KINDS = [
     ("dividend", re.compile(r"DIVIDEND|\bDIV\b|DISTRIBUTION")),
 ]
 _RATIO = re.compile(r"(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)")
-_FACE = re.compile(r"(?:FROM|FRM)\s*R[SE]?\.?\s*([\d.]+).*?\bTO\s*(?:R[SE]?\.?)?\s*([\d.]+)")
+# NSE's yearly list often leaves out the "from": "FV SPLIT RS.10/- TO RE.1/-",
+# "Face Value Split Rs 10 To Re 1" (ASIANPAINT, M&MFIN 2013). 95 splits from
+# 2008 to 2021 read as no factor and were never applied (2026-10-03). Read
+# from the split's own word on, with no digit between the two face values.
+_FACE = re.compile(r"(?:(?:FROM|FRM)\s*(?:R[SE]\.?)?|\bR[SE]\.?)\s*([\d.]+)[^\d]*?\bTO\s*"
+                   r"(?:FACE\s*VALUE\s*)?(?:R[SE]\.?)?\s*([\d.]+)")
 _AMOUNT = re.compile(r"(?:RS|RE|INR)\.?\s*([\d]+(?:\.\d+)?)")
 
 
@@ -243,12 +251,23 @@ def classify_purpose(purpose: str) -> dict:
             "face_from": np.nan, "face_to": np.nan, "amount": np.nan,
             "price_factor": np.nan}
     if kind in ("split", "consolidation"):
-        m = _FACE.search(text)
+        word = (_SPLIT if kind == "split" else _CONSOLIDATION).search(text)
+        m = _FACE.search(text, word.start())
         if m:
             f_from, f_to = float(m.group(1)), float(m.group(2))
             info.update(face_from=f_from, face_to=f_to)
             if f_from > 0 and f_to > 0:
                 info["price_factor"] = f_to / f_from
+        # One row for both: "Bonus 1:1 And Face Value Split Rs 10 To Rs 2"
+        # (CCL 2013) is 0.5 x 0.2, not the split's 0.2 alone.
+        bonus = re.search(r"BONUS", text)
+        if (kind == "split" and bonus and np.isfinite(info["price_factor"])
+                and not _BONUS_PREFERENCE.search(text)):
+            r = _RATIO.search(text, bonus.start())
+            if r and float(r.group(1)) > 0 and float(r.group(2)) > 0:
+                new, held = float(r.group(1)), float(r.group(2))
+                info.update(ratio_new=new, ratio_held=held)
+                info["price_factor"] *= held / (new + held)
     elif kind in ("bonus", "rights"):
         m = _RATIO.search(text)
         if m:

@@ -218,6 +218,19 @@ def test_source_check_uses_eq_before_be_and_keeps_index_members():
     ("SCH AGMT-BONUS NCRPS 4:1", "bonus_preference", None),
     ("SCH AGMT-BONUS NCRPS46:1", "bonus_preference", None),
     ("MERGER/DEMERGER", "demerger", None),
+    # NSE's yearly list: no "from" (95 splits 2008-2021 went unapplied).
+    ("Face Value Split Rs 10 To Re 1", "split", 0.1),
+    ("FV SPLIT RS.10/- TO RE.1/", "split", 0.1),
+    ("FV SPLIT-RS2/- TO RE.1/-", "split", 0.5),
+    ("FV SPLIT RS.10/- TO RS.2/RD DATE REVISED", "split", 0.2),
+    ("Bonus 1:1 / Face Value Split From 10/- To Face Value 2/-", "split", 0.1),
+    # A bonus and a split in one row: both apply.
+    ("Bonus 1:1 And Face Value Split From Rs.10/- To Rs.2/-", "split", 0.1),
+    ("Bonus 1:2 And Face Value Split Rs.10/- To Rs.5/-", "split", 1 / 3),
+    ("Face Value Split From Rs.5/- To Re.1/- And Bonus 1:1", "split", 0.1),
+    ("Bonus 1:2/Face Value Split (Sub-Division) From Rs 2/- Per Share To Re 1/- Per Share",
+     "split", 1 / 3),
+    ("Dividend Rs 8/- Per Share / Face Value Split From Rs 10 To Rs 5", "split", 0.5),
 ])
 def test_nse_bc_wording(purpose, kind, factor):
     got = nb.classify_purpose(purpose)
