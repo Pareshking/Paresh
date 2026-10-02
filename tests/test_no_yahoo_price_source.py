@@ -189,3 +189,11 @@ def test_the_committed_benchmark_file_is_daily_and_recent():
     last_year = n500[n500.index >= n500.index[-1] - pd.DateOffset(years=1)]
     assert len(last_year) >= 200, "the last year must be daily for the 200-day regime average"
     assert (frame["source"] == "nse").any()
+
+
+def test_backfill_asks_only_for_weekdays():
+    from datetime import date
+    from scripts.build_benchmarks import weekdays_between
+
+    days = weekdays_between(date(2026, 9, 25), date(2026, 9, 30))   # Fri .. Wed
+    assert days == [date(2026, 9, 25), date(2026, 9, 28), date(2026, 9, 29), date(2026, 9, 30)]

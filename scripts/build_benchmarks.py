@@ -2,6 +2,8 @@
 
     python scripts/build_benchmarks.py --seed      # Screener history, then NSE days
     python scripts/build_benchmarks.py --update    # NSE days since the last row
+    python scripts/build_benchmarks.py --backfill-from 2021-10-01 --nse-days 400
+                                                   # weekdays the file lacks (weekly era)
 
 NSE's daily bundle (the index rows of Pd<ddmmyy>.csv) is the record. Screener's
 index chart fills what NSE does not give: the seed's older history, which
@@ -68,6 +70,8 @@ def nse_rows(days: list[date], *, fetch=nse_bundle.fetch_bundle, sleep=time.slee
         except Exception as exc:  # noqa: BLE001  one bad day must not end the run
             log(f"{day}: {type(exc).__name__}")
             continue
+        if (i + 1) % 50 == 0:
+            log(f"  {i + 1}/{len(days)} days asked, {len(rows)} sessions so far")
         if not files:
             continue  # a holiday, or not published yet
         body = nse_bundle.member(files, "pd")
@@ -80,6 +84,16 @@ def nse_rows(days: list[date], *, fetch=nse_bundle.fetch_bundle, sleep=time.slee
     frame.index.name = "date"
     frame["source"] = "nse"
     return frame.dropna(how="all", subset=bs.FIELDS[1:3])
+
+
+def weekdays_between(start: date, end: date) -> list[date]:
+    """Every weekday from `start` to `end` inclusive."""
+    out, d = [], start
+    while d <= end:
+        if d.weekday() < 5:
+            out.append(d)
+        d += timedelta(days=1)
+    return out
 
 
 def weekdays_after(last: date | None, today: date, limit: int) -> list[date]:
@@ -98,11 +112,14 @@ def main(argv=None) -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--seed", action="store_true", help="start from Screener's history")
     ap.add_argument("--update", action="store_true", help="add the NSE days since the last row")
+    ap.add_argument("--backfill-from", type=date.fromisoformat, default=None,
+                    help="also ask NSE for weekdays from this date that have no row "
+                         "(Screener's older history is weekly), newest first")
     ap.add_argument("--nse-days", type=int, default=30,
                     help="most NSE bundles to request this run (default 30)")
     args = ap.parse_args(argv)
-    if not (args.seed or args.update):
-        ap.error("pass --seed and/or --update")
+    if not (args.seed or args.update or args.backfill_from):
+        ap.error("pass --seed, --update and/or --backfill-from")
 
     frame = bs.read()
     before = len(frame)
@@ -115,6 +132,16 @@ def main(argv=None) -> int:
     days = weekdays_after(last, today, args.nse_days)
     if days:
         frame = bs.merge(frame, nse_rows(days))
+    if args.backfill_from:
+        # Weekdays with no row at all: a Screener row (daily for its last year,
+        # Fridays before) already carries the right close for its date.
+        have = set(frame.index.date)
+        gaps = [d for d in weekdays_between(args.backfill_from, today) if d not in have]
+        gaps = sorted(gaps, reverse=True)[: args.nse_days]
+        print(f"Backfill: {len(gaps)} weekdays with no row, newest first")
+        if gaps:
+            frame = bs.merge(frame, nse_rows(sorted(gaps)))
+            bs.write(frame)  # keep what was fetched even if a later step fails
     if args.update and not args.seed:
         # Anything NSE did not give (a refusal, a late bundle) from Screener's
         # last year; an NSE row for the same date still wins.
