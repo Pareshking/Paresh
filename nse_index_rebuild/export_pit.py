@@ -28,7 +28,7 @@ def caveats(index, sym, a, b):
     out = []
     end = b or "9999-12-31"
     if sym.startswith("UNMAPPED:"): out.append("UNMAPPED_NAME_ONLY_NOTICE")
-    if index == "NIFTY_500" and sym in ("JINDALSAW", "PROVOGUE") and a <= "2012-03-31" and end >= "2011-11-22":
+    if index == "NIFTY_500" and sym in ("JINDALSAW", "PROVOGE") and a <= "2012-03-31" and end >= "2011-11-22":
         out.append("WEB_SECONDARY_2012-03-07")
     if index == "NIFTY_SMALLCAP_250" and sym in ("GAYAPROJ", "FLUOROCHEM") and a <= "2020-06-25" and end >= "2020-03-27":
         out.append("AMBIGUOUS_2020-03-27_TO_2020-06-25")
