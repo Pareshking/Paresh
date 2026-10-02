@@ -1,0 +1,61 @@
+name: NSE reference feeds sync
+
+# Daily copy of NSE's ticker-change, name-change, listed-equities and corporate-action feeds into
+# data/reference/nse/. It records what is new and which of it touches an index member
+# (data/reference/nse/CHANGES.json, ::warning:: lines in the log). It never edits the membership history:
+# a rename or a demerger needs a decision. NSE sometimes refuses cloud runners, so the script retries and
+# FAILS the job (visible through the scheduled-failure alert) rather than overwrite good data with nothing.
+# See nse_index_rebuild/FEEDS.md. GitHub's schedule queue can be hours late; nothing here depends on the minute.
+on:
+  schedule:
+    - cron: '45 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nse-reference-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+      - run: pip install requests
+
+      - name: Fetch NSE reference feeds
+        run: python scripts/sync_nse_reference.py
+
+      - name: Commit and push the snapshot
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add -A data/reference/nse/
+          if git diff --staged --quiet; then
+            echo "No reference-feed changes to commit."
+            exit 0
+          fi
+          git commit -m "chore(data): NSE reference feeds sync [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              echo "Pushed on attempt $attempt."
+              exit 0
+            fi
+            echo "Push rejected on attempt $attempt; rebasing onto origin/main."
+            git fetch origin main
+            git rebase origin/main || {
+              # In a rebase --theirs is the commit being replayed, i.e. this run's snapshot.
+              git checkout --theirs -- data/reference/nse/ 2>/dev/null || true
+              git add -A data/reference/nse/
+              GIT_EDITOR=true git rebase --continue || git rebase --abort
+            }
+            sleep $((attempt * 3))
+          done
+          echo "::error::Could not push the reference-feed snapshot after 5 attempts."
+          exit 1
