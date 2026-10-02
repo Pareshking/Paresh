@@ -44,7 +44,7 @@ def _snapshot(commit: str, path: str) -> pd.DataFrame:
 
 
 def build(output: Path, path: Path = DEFAULT_PATH) -> dict:
-    rel = str(path.relative_to(ROOT))
+    rel = path.relative_to(ROOT).as_posix()   # git's <commit>:<path> takes forward slashes
     commits = _git(
         "log", "--follow", "--reverse", "--date=short", "--format=%H %ad", "--", rel
     ).strip()
