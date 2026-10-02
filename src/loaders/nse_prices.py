@@ -116,6 +116,34 @@ def correct(close: pd.DataFrame, corrections: Iterable[dict[str, Any]] | None) -
     return out
 
 
+def uncovered(corrections: Iterable[dict[str, Any]] | None, factors: pd.DataFrame,
+              renames: dict[str, Any] | None, days: int = 3
+              ) -> tuple[list[dict[str, Any]], list[str]]:
+    """(the corrections no applied action already covers, those it does).
+
+    A correction stands in for an action NSE's file never listed. Once a list
+    does carry it, both applied: SHRIRAMFIN's 1:5 split of 2025-01-10, in
+    notes.json and then in NSE's yearly list, left every earlier close at a
+    twenty-fifth (audit against Yahoo, 2026-10-03). A correction is skipped
+    when the stock (or a symbol it was renamed from) has an applied factor
+    within `days` of its date.
+    """
+    back: dict[str, set[str]] = {}
+    for old, a in (renames or {}).items():
+        back.setdefault(a["new_symbol"] if isinstance(a, dict) else a, set()).add(old)
+    keep, skipped = [], []
+    for c in corrections or []:
+        names = {c["symbol"]} | back.get(c["symbol"], set())
+        day = pd.Timestamp(c["before"])
+        window = factors.loc[day - pd.Timedelta(days=days): day + pd.Timedelta(days=days)]
+        cols = [n for n in names if n in window.columns]
+        if cols and (window[cols].fillna(1.0) != 1.0).to_numpy().any():
+            skipped.append(f"{c['symbol']} {c['before']}")
+        else:
+            keep.append(c)
+    return keep, skipped
+
+
 def on_trading_symbol(actions: pd.DataFrame, closes: pd.DataFrame,
                       renames: dict[str, Any] | None, days: int = 10) -> pd.DataFrame:
     """Each action filed under the symbol that traded on its ex-date.
@@ -178,7 +206,8 @@ def adjusted_close(closes: pd.DataFrame, actions: pd.DataFrame, symbols: Iterabl
     factors.index = closes.index
     not_joined: list[str] = []
     close = chain_symbols(na.adjust(closes, factors), renames, not_joined)
-    close = correct(close, notes.get("corrections"))
+    corrections, superseded = uncovered(notes.get("corrections"), factors, renames)
+    close = correct(close, corrections)
     wanted = list(dict.fromkeys(symbols))
     # A name asked for by its old symbol gets the joined series of its successor.
     for s in wanted:
@@ -197,6 +226,7 @@ def adjusted_close(closes: pd.DataFrame, actions: pd.DataFrame, symbols: Iterabl
         "last_session": str(out.index[-1].date()) if len(out) else None,
         "corporate_action_steps": int(len(na.events(factors))),
         "actions_moved_to_old_symbol": actions_moved,
+        "corrections_superseded_by_an_action": superseded,
         "renames_joined": int(sum(1 for o in renames if o in closes.columns)) - len(not_joined),
         "renames_not_joined": not_joined,
     }

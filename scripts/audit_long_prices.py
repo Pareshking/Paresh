@@ -15,14 +15,21 @@ flat. Three checks:
    median of the next 10 common days against the previous 10). Whichever
    series moved that day is the one at fault: ours jumping while the
    reference is flat is an action we missed, or applied wrongly.
-3. BIG MOVES. Every day our close moved more than 21% either way. Confirmed
-   when a reference moved the same way that day (within 5%, or over the two
-   days around it, as references sometimes date a split a day apart); fake
-   when every reference covering the day moved less than 10%; otherwise
-   disputed, or unverified when no reference covers it.
+3. BIG MOVES. Every day our close moved more than 21% either way. Each
+   reference covering the day either agrees (moved the same way within 5%,
+   or over the two days around it, as references sometimes date a split a
+   day apart) or is flat (moved less than 10%). Confirmed when more agree
+   than are flat, fake when more are flat, disputed on a tie, unverified
+   when no reference covers it.
 
 A reference is wide (dates x symbols), or a (symbol, field) frame with a Close
 field. Nothing here reaches the network.
+
+--no-confirm names references that leave some older actions unadjusted (NSE's
+MarketLens keeps BHARTIARTL's 2009 and TATACONSUM's 2010 splits as raw falls;
+TejHQ adjusts only within an ISIN, and a split changes it). Such a reference
+can show a move is fake -- flat on the day ours jumped -- but its own jump
+never confirms ours.
 """
 
 from __future__ import annotations
@@ -93,7 +100,8 @@ def breaks(ours: pd.DataFrame, ref: pd.DataFrame, name: str) -> pd.DataFrame:
                                        "ref_move", "who"])
 
 
-def big_moves(ours: pd.DataFrame, refs: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def big_moves(ours: pd.DataFrame, refs: dict[str, pd.DataFrame],
+              no_confirm: frozenset[str] = frozenset()) -> pd.DataFrame:
     """Every move beyond 21% in ours, with what each reference did that day."""
     prev = ours.ffill().shift(1)
     move = ours / prev
@@ -121,12 +129,18 @@ def big_moves(ours: pd.DataFrame, refs: dict[str, pd.DataFrame]) -> pd.DataFrame
             seen += 1
             if (np.isfinite(o1) and abs(np.log(r1 / o1)) <= SAME) or (
                     np.isfinite(o2) and abs(np.log(r2 / o2)) <= SAME and abs(np.log(r2)) > BIG / 2):
-                agree += 1
+                if name in no_confirm:
+                    seen -= 1          # its jump says nothing either way
+                else:
+                    agree += 1
             elif abs(np.log(r1)) < FLAT and abs(np.log(r2)) < FLAT:
                 flat += 1
         row["refs"] = seen
-        row["verdict"] = ("unverified" if not seen else "confirmed" if agree
-                          else "fake" if flat == seen else "disputed")
+        # A majority, not any one: a reference missing the same adjustment
+        # "confirmed" SHRIRAMFIN's x4.7 jump while Yahoo and eod2 were flat.
+        row["agree"], row["flat"] = agree, flat
+        row["verdict"] = ("unverified" if not seen else "confirmed" if agree > flat
+                          else "fake" if flat > agree else "disputed")
         rows.append(row)
     return pd.DataFrame(rows)
 
@@ -144,6 +158,8 @@ def main(argv=None) -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--ours", type=Path, required=True)
     ap.add_argument("--ref", action="append", default=[], help="name=path, repeatable")
+    ap.add_argument("--no-confirm", action="append", default=[],
+                    help="a reference whose own big moves never confirm ours (repeatable)")
     ap.add_argument("--out", type=Path, required=True)
     args = ap.parse_args(argv)
     args.out.mkdir(parents=True, exist_ok=True)
@@ -170,11 +186,13 @@ def main(argv=None) -> int:
     br.to_csv(args.out / "breaks.csv", index=False)
     summary["breaks"] = br.groupby(["ref", "who"]).size().rename("n").reset_index().to_dict("records")
 
-    bm = big_moves(ours, refs)
+    bm = big_moves(ours, refs, frozenset(args.no_confirm))
     if not bm.empty:
         bm["looks_like"] = bm["move"].map(ratio_name)
+        bm["direction"] = np.where(bm["move"] > 1, "up", "down")
     bm.to_csv(args.out / "big_moves.csv", index=False)
-    summary["big_moves"] = bm["verdict"].value_counts().to_dict() if not bm.empty else {}
+    summary["big_moves"] = ({f"{d} {v}": int(n) for (d, v), n in
+                             bm.groupby(["direction", "verdict"]).size().items()} if not bm.empty else {})
     (args.out / "summary.json").write_text(json.dumps(summary, indent=1, default=str))
     print(json.dumps(summary, indent=1, default=str))
     return 0
