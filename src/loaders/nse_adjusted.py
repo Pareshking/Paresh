@@ -155,12 +155,17 @@ def action_factors(close: pd.DataFrame, actions: pd.DataFrame
                      that left with the new company), as Screener does
       no move        the price did not move by it -- a duplicate date, or a
                      factor the market did not see
+      duplicate      the same action already applied on that session: the Bc
+                     file's 2 Jan and the yearly list's 1 Feb (month-first) for
+                     MCX's 2026 split both landed on 2 Jan and both confirmed,
+                     so the split was applied twice (audit, 2026-10-03)
       no price       no session for the stock around the ex-date
     """
     close = close.copy()
     close.index = pd.DatetimeIndex(close.index).astype("datetime64[ns]")
     factors = pd.DataFrame(1.0, index=close.index, columns=close.columns)
     rows = []
+    done: set[tuple] = set()
     for r in _parsed(actions).itertuples(index=False):
         out = {"symbol": r.symbol, "date": r.date, "kind": r.kind,
                "bc_factor": r.bc_factor, "session": pd.NaT, "move": np.nan}
@@ -184,7 +189,11 @@ def action_factors(close: pd.DataFrame, actions: pd.DataFrame
                 alt_day, alt_move = _move_at(s, alt)
                 if alt_day is not None and _confirms(alt_move, r.bc_factor):
                     verdict, factor, day, move = "date swapped", r.bc_factor, alt_day, alt_move
-        if verdict != "no move":
+        key = (r.symbol, day, r.kind, round(float(factor), 6) if verdict != "demerger" else "d")
+        if verdict != "no move" and key in done:
+            verdict = "duplicate"
+        elif verdict != "no move":
+            done.add(key)
             factors.at[day, r.symbol] *= factor
         rows.append({**out, "session": day, "move": move, "verdict": verdict})
     cols = ["symbol", "date", "kind", "bc_factor", "session", "move", "verdict"]

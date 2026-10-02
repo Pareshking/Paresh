@@ -116,18 +116,66 @@ def correct(close: pd.DataFrame, corrections: Iterable[dict[str, Any]] | None) -
     return out
 
 
+def on_trading_symbol(actions: pd.DataFrame, closes: pd.DataFrame,
+                      renames: dict[str, Any] | None, days: int = 10) -> pd.DataFrame:
+    """Each action filed under the symbol that traded on its ex-date.
+
+    NSE's corporate-action list files old actions under today's symbol:
+    TATACONSUM's 2010 split, when the stock traded as TATAGLOBAL; ZYDUSLIFE's
+    2015 split (CADILAHC); UNITDSPR's 2018 split (MCDOWELL-N). Matched against
+    the price of a symbol that did not exist yet, the action found no price
+    and was never applied -- the series then joined across the rename with
+    the split's fall still in it (audit against Yahoo, 2026-10-03). An action
+    whose symbol has no close in the `days` before its ex-date moves to the
+    predecessor (following rename chains back) that has one.
+    """
+    if actions is None or actions.empty or not renames:
+        return actions
+    back: dict[str, list[str]] = {}
+    for old, a in renames.items():
+        new = a["new_symbol"] if isinstance(a, dict) else a
+        back.setdefault(new, []).append(old)
+    have = closes.notna()
+    idx = closes.index
+
+    def traded(sym: str, ex: pd.Timestamp) -> bool:
+        if sym not in have.columns:
+            return False
+        lo, hi = idx.searchsorted(ex - pd.Timedelta(days=days)), idx.searchsorted(ex)
+        return bool(have[sym].iloc[lo:hi].any())
+
+    out = actions.copy()
+    ex_dates = pd.to_datetime(out["ex_date"], errors="coerce")
+    for i, (sym, ex) in enumerate(zip(out["symbol"], ex_dates)):
+        if pd.isna(ex) or sym not in back or traded(sym, ex):
+            continue
+        seen, todo = {sym}, list(back[sym])
+        while todo:
+            old = todo.pop(0)
+            if old in seen:
+                continue
+            seen.add(old)
+            if traded(old, ex):
+                out.iat[i, out.columns.get_loc("symbol")] = old
+                break
+            todo += back.get(old, [])
+    return out
+
+
 def adjusted_close(closes: pd.DataFrame, actions: pd.DataFrame, symbols: Iterable[str],
                    *, notes: dict[str, Any] | None = None
                    ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """(adjusted closes for `symbols`, a report of what was and was not found)."""
     notes = notes or {}
-    factors, _ = na.action_factors(closes, actions)
-    factors.index = closes.index
     # Renames: NSE's symbol-change list and ISINs (nse_identity), each joined
     # only where the series meet; the ledger in notes.json overrides them.
     from src.loaders.nse_identity import auto_renames
 
     renames = {**auto_renames(set(closes.columns)), **(notes.get("renames") or {})}
+    moved = on_trading_symbol(actions, closes, renames)
+    actions_moved = int((moved["symbol"] != actions["symbol"]).sum()) if len(actions) else 0
+    factors, _ = na.action_factors(closes, moved)
+    factors.index = closes.index
     not_joined: list[str] = []
     close = chain_symbols(na.adjust(closes, factors), renames, not_joined)
     close = correct(close, notes.get("corrections"))
@@ -148,6 +196,7 @@ def adjusted_close(closes: pd.DataFrame, actions: pd.DataFrame, symbols: Iterabl
         "first_session": str(out.index[0].date()) if len(out) else None,
         "last_session": str(out.index[-1].date()) if len(out) else None,
         "corporate_action_steps": int(len(na.events(factors))),
+        "actions_moved_to_old_symbol": actions_moved,
         "renames_joined": int(sum(1 for o in renames if o in closes.columns)) - len(not_joined),
         "renames_not_joined": not_joined,
     }

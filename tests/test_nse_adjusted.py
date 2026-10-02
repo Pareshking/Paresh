@@ -150,6 +150,19 @@ def test_one_action_listed_twice_is_applied_once():
     assert np.allclose(adj["close"]["ABC"].tolist(), [20.0, 20.4, 21.0, 22.0])
 
 
+def test_the_same_split_under_a_month_first_date_is_not_applied_again():
+    """MCX 2026: the Bc file said 2 Jan, the yearly list 1 Feb (month-first).
+    Both found the 2 Jan fall; applied twice, the long file showed a x5 jump."""
+    days = pd.DatetimeIndex(["2026-01-05", "2026-01-06", "2026-01-07", "2026-01-08",
+                             "2026-06-30", "2026-07-01", "2026-07-02"])
+    close = pd.DataFrame({"ABC": [100.0, 102.0, 21.0, 22.0, 23.0, 23.1, 23.2]}, index=days)
+    rows = _actions(("ABC", "split", pd.Timestamp("2026-01-07"), 0.2),
+                    ("ABC", "split", pd.Timestamp("2026-07-01"), 0.2))
+    f, v = na.action_factors(close, rows)
+    assert np.isclose(f.at[pd.Timestamp("2026-01-07"), "ABC"], 0.2) and (f != 1.0).sum().sum() == 1
+    assert sorted(v["verdict"]) == ["applied", "duplicate"]
+
+
 def test_two_different_actions_on_one_day_still_multiply():
     both = _actions(("ABC", "bonus", pd.Timestamp("2026-01-07"), 0.5),
                     ("ABC", "split", pd.Timestamp("2026-01-07"), 0.4))
