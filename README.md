@@ -111,6 +111,11 @@ pair that no book of that shape can satisfy — twenty names across two
 industries cannot hold a 30% sector cap — is relaxed to the tightest feasible
 pair, logged, and reported on screen as relaxed. It is never silently applied.
 
+Two share lines of one company count as one (owner, 2026-10-02): Tata Motors'
+DVR (TATAMTRDVR, an index member until 2024-08-29) and its ordinary shares
+(TATAMOTORS, now TMPV) take one slot in a book (`backtester.SAME_COMPANY`), so
+the per-stock cap holds for the company.
+
 ### Monthly backtest convention
 
 For monthly V1 rebalancing:

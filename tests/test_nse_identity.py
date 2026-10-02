@@ -104,3 +104,17 @@ def test_an_old_name_asked_for_gets_its_successors_series():
     actions = pd.DataFrame(columns=npx.ACTION_COLS)
     out, rep = npx.adjusted_close(closes, actions, ["OLD"], notes={"renames": {"OLD": {"new_symbol": "NEW"}}})
     assert rep["unpriced"] == [] and out["OLD"].notna().all()
+
+
+# ── Tata Motors and its DVR: one company, one slot (owner, 2026-10-02) ───────────────
+
+def test_a_book_holds_one_share_line_of_a_company():
+    from src.engine.backtester import _select_holdings
+
+    ranked = pd.Series(range(5, 0, -1), index=["TATAMOTORS", "TATAMTRDVR", "AAA", "BBB", "CCC"], dtype=float)
+    assert _select_holdings(ranked, [], 3, 5) == ["TATAMOTORS", "AAA", "BBB"]
+    # held DVR, ordinary shares now rank first: the better-ranked line is kept, the other not added
+    assert _select_holdings(ranked, ["TATAMTRDVR"], 3, 5) == ["TATAMTRDVR", "AAA", "BBB"]
+    # with the industry cap in force too
+    sectors = {s: "Autos" for s in ranked.index}
+    assert _select_holdings(ranked, [], 3, 5, sector_map=sectors, max_per_sector=2) == ["TATAMOTORS", "AAA"]
