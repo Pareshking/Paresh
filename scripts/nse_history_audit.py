@@ -61,7 +61,7 @@ def read_history(reader, days: list[date], workers: int = 16, log=print) -> pd.D
     """Every session's price rows (stock series only, the columns the audit needs)."""
     def one(d):
         p = reader.read_parquet(reader.resolve_current(nh.R2_PRICES, as_of=d.isoformat()))
-        return p[p["series"].isin(na.SERIES)][nh.KEEP]
+        return p[p["series"].isin(na.PRICE_SERIES)][nh.KEEP]
 
     frames, bad = [], []
     with ThreadPoolExecutor(max_workers=workers) as pool:

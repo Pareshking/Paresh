@@ -104,6 +104,30 @@
    "before": "2025-01-10",
    "factor": 0.2,
    "evidence": "1:5 split of Shriram Finance (face value 10 to 2) that NSE's corporate-action file never listed: the close fell 80.9% on 2025-01-10 while Yahoo's adjusted close moved -5.3%"
+  },
+  {
+   "symbol": "RAJESHEXPO",
+   "before": "2008-01-29",
+   "factor": 0.166667,
+   "evidence": "1:6 adjustment (split with bonus) in no corporate-action list (NSE's yearly list starts sparse in 2008-2009; TejHQ from 2010): NSE's close moved x0.1712 on 2008-01-29 while 2 independent daily series (Yahoo, eod2, Tijori) moved x1.0274, implying 0.1667 (audit_long_prices, 2026-10-03)"
+  },
+  {
+   "symbol": "RAMCOCEM",
+   "before": "2008-10-01",
+   "factor": 0.05,
+   "evidence": "1:20 adjustment (split with bonus) in no corporate-action list (NSE's yearly list starts sparse in 2008-2009; TejHQ from 2010): NSE's close moved x0.0528 on 2008-10-01 while 2 independent daily series (Yahoo, eod2, Tijori) moved x1.0566, implying 0.0500 (audit_long_prices, 2026-10-03)"
+  },
+  {
+   "symbol": "JINDALSTEL",
+   "before": "2009-09-14",
+   "factor": 0.166667,
+   "evidence": "1:6 adjustment (split with bonus) in no corporate-action list (NSE's yearly list starts sparse in 2008-2009; TejHQ from 2010): NSE's close moved x0.1706 on 2009-09-14 while 3 independent daily series (Yahoo, eod2, Tijori) moved x1.0233, implying 0.1667 (audit_long_prices, 2026-10-03)"
+  },
+  {
+   "symbol": "RAMCOIND",
+   "before": "2009-09-14",
+   "factor": 0.05,
+   "evidence": "1:20 adjustment (split with bonus) in no corporate-action list (NSE's yearly list starts sparse in 2008-2009; TejHQ from 2010): NSE's close moved x0.0525 on 2009-09-14 while 3 independent daily series (Yahoo, eod2, Tijori) moved x1.0514, implying 0.0500 (audit_long_prices, 2026-10-03)"
   }
  ],
  "special_sessions": {

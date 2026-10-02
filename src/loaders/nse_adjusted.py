@@ -38,17 +38,25 @@ import pandas as pd
 from src.loaders.price_source import PriceFrames
 
 SERIES = ("EQ", "BE", "RR")    # main board, EQ preferred; RR: REITs, members of the indices
+# Prices also read BZ, NSE's trade-for-trade series for companies in default
+# or out of compliance, ranked last. A stock moved there dropped out of the
+# price file for those stretches -- 4,921 stock-days over 33 stocks, 2008 on
+# (UNITECH, JYOTISTRUC, SUPREMEINF) -- and its return to EQ read as one fake
+# jump over the gap (audit against NSE MarketLens, 2026-10-03). SERIES itself
+# stays as it was: it also picks the Nano Cap universe (extra_universe).
+PRICE_SERIES = (*SERIES, "BZ")
+SERIES_RANK = {"EQ": 0, "BE": 1, "RR": 1, "BZ": 2}
 STEP_TOL = 1e-3                # |factor - 1| above this is an adjustment
 
 
 def wide(prices: pd.DataFrame) -> dict[str, pd.DataFrame]:
     """Long NSE rows -> {field: dates x symbols} for close, prev_close, high, low, volume, value.
 
-    Stocks only (index rows dropped), EQ before BE for a symbol that traded
-    in both on a day.
+    Stocks only (index rows dropped), EQ before BE before BZ for a symbol that
+    traded in more than one on a day.
     """
-    p = prices[prices["series"].isin(SERIES) & (prices["symbol"].fillna("") != "")].copy()
-    p["_r"] = (p["series"] != "EQ").astype(int)
+    p = prices[prices["series"].isin(PRICE_SERIES) & (prices["symbol"].fillna("") != "")].copy()
+    p["_r"] = p["series"].map(SERIES_RANK).fillna(9)
     p = (p.sort_values(["date", "symbol", "_r"])
           .drop_duplicates(["date", "symbol"], keep="first"))
     out = {}
