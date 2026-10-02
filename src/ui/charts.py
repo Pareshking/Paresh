@@ -377,7 +377,7 @@ def render_industry_map(board: pd.DataFrame) -> None:
         + lib("highcharts-more.js") + "</script><script>(function(){"
         "const rows=" + script_json(rows) + ";"
         "const e=v=>String(v).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));"
-        "const xmax=Math.max.apply(null,rows.map(r=>r.x));const ymax=Math.min(100,Math.max(10,Math.ceil(Math.max.apply(null,rows.map(r=>r.y))*1.15/10)*10));const col=r=>r.x>=0?'#067647':'#B42318';"
+        "const xmax=Math.max.apply(null,rows.map(r=>r.x));const ymax=Math.min(100,Math.max(10,Math.ceil(Math.max.apply(null,rows.map(r=>r.y))*1.15/10)*10));const top5=new Set(rows.slice().sort((a,b)=>b.x-a.x).slice(0,5).map(r=>r.name));const col=r=>r.x>=0?'#067647':'#B42318';"
         "Highcharts.chart('c',{chart:{type:'bubble',backgroundColor:'transparent',animation:false,spacing:[8,12,4,4],"
         "style:{fontFamily:'Geist,system-ui,sans-serif'},zooming:{type:null}},"
         "credits:{enabled:false},accessibility:{enabled:false},title:{text:null},legend:{enabled:false},exporting:{enabled:false},"
@@ -391,7 +391,7 @@ def render_industry_map(board: pd.DataFrame) -> None:
         "plotOptions:{bubble:{fillOpacity:0.62,minSize:10,maxSize:46,animation:false,marker:{lineWidth:1,lineColor:'#fff'},"
         "dataLabels:{enabled:true,allowOverlap:false,crop:false,overflow:'allow',style:{fontSize:'11px',fontWeight:'600',color:'#3C4657',textOutline:'2px #fff'},"
         "formatter:function(){return e(this.point.name);}}}},"
-        "series:[{data:rows.map(r=>({name:r.name,x:r.x,y:r.y,z:r.z,top50:r.top50,color:col(r),labelrank:r.z,dataLabels:{align:(r.x>=(xmax*0.7)?'right':'center'),x:(r.x>=(xmax*0.7)?-14:0)}}))}]});"
+        "series:[{data:rows.map(r=>({name:r.name,x:r.x,y:r.y,z:r.z,top50:r.top50,color:col(r),labelrank:(top5.has(r.name)?1e6:0)+(r.x>=0?1000:0)+r.z,dataLabels:{allowOverlap:top5.has(r.name),align:(r.x>=(xmax*0.7)?'right':'center'),x:(r.x>=(xmax*0.7)?-14:0)}}))}]});"
         "})();</script></body></html>"
     )
     st.iframe(page, height=428)
