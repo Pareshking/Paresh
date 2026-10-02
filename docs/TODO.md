@@ -46,7 +46,7 @@ Full findings and work packages: `docs/UI_OVERHAUL_PLAN.md`.
 | P2 | On 1 Oct, September reads "Sep (closed)", not "Sep MTD"; Oct MTD says it is unavailable; "gap" → "Alpha"; Actions explains a fill due on the 1st. No ledger logic changed | #298 merged; V1 Production QA green on the merge commit | [x] 1 Oct: #298 (2e1e71e) and the QA wait fix #299 (a16a911); Production QA run 36839738078 incl. Portfolio visual QA, Full Validation 1214: green |
 | P3 | PR #296 (another session): changes which month the ledger finalises (`ist_now()`); 19 tests fail. Owner to decide whether any of it is wanted; its Alpha rename and Actions note are in P2 | #296 closed, or rebased and green | [ ] owner |
 
-| P4 | V1 Production QA has been red on main since #317 (runs 753–756): `portfolio_production_qa.py` still looks for the Equity/Monthly toggle, which the single Performance card replaced. Full Validation is green. Update the script to the new Portfolio layout | Production QA green on main | [ ] |
+| P4 | V1 Production QA has been red on main since #317 (runs 753–756): `portfolio_production_qa.py` looked for the Equity/Monthly toggle, which the single Portfolio page replaced. Script updated to check the Equity & drawdown, Calendar returns and Trades cards, Alpha, Max drawdown and no +42.4% (could not run live from the sandbox) | Production QA green on main | [ ] script updated; confirm green after merge |
 
 ## Ongoing
 

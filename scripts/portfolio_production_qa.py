@@ -148,8 +148,9 @@ def main() -> int:
                         "opened_via": how,
                         "current_book_present": "current book" in body_folded,
                         "portfolio_value_present": "portfolio value" in body_folded,
-                        "performance_group_present": "performance" in body_folded,
-                        "activity_group_present": "activity" in body_folded,
+                        "equity_card_present": "equity & drawdown" in body_folded,
+                        "calendar_card_present": "calendar returns" in body_folded,
+                        "trades_card_present": "trades" in body_folded,
                         "pre_inception_2022_visible": "2022" in body,
                         "runtime_exception": bool(exception),
                         "horizontal_overflow_px": overflow,
@@ -165,11 +166,10 @@ def main() -> int:
                         report["failures"].append(
                             f"{name}: Portfolio value KPI is not visible"
                         )
-                    if not checks["performance_group_present"] or not checks[
-                        "activity_group_present"
-                    ]:
+                    if not (checks["equity_card_present"] and checks["calendar_card_present"]
+                            and checks["trades_card_present"]):
                         report["failures"].append(
-                            f"{name}: grouped Performance/Activity navigation missing"
+                            f"{name}: Equity & drawdown / Calendar returns / Trades card missing"
                         )
                     if checks["pre_inception_2022_visible"]:
                         report["failures"].append(
@@ -184,51 +184,24 @@ def main() -> int:
                             f"{name}: horizontal overflow {overflow}px"
                         )
 
-                    # Exercise the two history views that contain live MTD/calendar evidence.
-                    try:
-                        equity_control = frame.get_by_text("Equity", exact=True)
-                        equity_control.click(timeout=10_000)
-                        equity_body = settle_view(page, "equity curve")
-                        equity_folded = equity_body.casefold()
-                        equity_checks = {
-                            # The marked month is "Sep MTD" while it runs and
-                            # "Sep (closed)" from the 1st until the Track Record
-                            # freezes it; either wording is correct.
-                            "equity_mtd_strategy_present": any(
-                                f"{w} · strategy" in equity_folded for w in ("mtd", "(closed)")),
-                            "equity_mtd_benchmark_present": any(
-                                f"{w} · nifty 500" in equity_folded for w in ("mtd", "(closed)")),
-                            "equity_mtd_gap_present": any(
-                                f"{w} · alpha" in equity_folded for w in ("mtd", "(closed)")),
-                            "cumulative_42pct_visible": "+42.4%" in equity_body,
-                        }
-                        checks.update(equity_checks)
-                        if not equity_checks["equity_mtd_strategy_present"] or not equity_checks["equity_mtd_benchmark_present"] or not equity_checks["equity_mtd_gap_present"]:
-                            report["failures"].append(f"{name}: Equity view MTD summary is incomplete")
-                        if equity_checks["cumulative_42pct_visible"]:
-                            report["failures"].append(f"{name}: Equity view still exposes the old cumulative +42.4% headline")
-                        page.screenshot(path=str(OUT / f"{name}_equity.png"), full_page=True)
-
-                        frame = app_frame(page)
-                        frame.get_by_text("Monthly", exact=True).click(timeout=10_000)
-                        monthly_body = settle_view(page, "calendar grid")
-                        monthly_folded = monthly_body.casefold()
-                        monthly_checks = {
-                            "calendar_grid_present": "calendar grid" in monthly_folded,
-                            "strategy_present": "strategy" in monthly_folded,
-                            "nifty_500_present": "nifty 500" in monthly_folded,
-                            "gap_present": "alpha" in monthly_folded,
-                            "mtd_present": "mtd" in monthly_folded,
-                        }
-                        checks.update(monthly_checks)
-                        if not all(monthly_checks.values()):
-                            report["failures"].append(f"{name}: Calendar grid MTD evidence is incomplete")
-                        page.screenshot(path=str(OUT / f"{name}_monthly.png"), full_page=True)
-                    except Exception as exc:
-                        report["failures"].append(
-                            f"{name}: could not exercise Equity/Monthly history views: "
-                            f"{type(exc).__name__}: {exc}"
-                        )
+                    # The Performance card shows equity and drawdown together and the
+                    # calendar grid sits below it on the same page; there are no tabs.
+                    # The marked month is "<Mon> MTD" while it runs and closed from the
+                    # 1st until the Track Record freezes it; the KPI labels use the month name.
+                    perf_checks = {
+                        "equity_strategy_present": " strategy" in body_folded,
+                        "equity_benchmark_present": " nifty 500" in body_folded,
+                        "equity_alpha_present": " alpha" in body_folded,
+                        "max_drawdown_present": "max drawdown" in body_folded,
+                        "cumulative_42pct_visible": "+42.4%" in body,
+                    }
+                    checks.update(perf_checks)
+                    if not all(perf_checks[k] for k in (
+                            "equity_strategy_present", "equity_benchmark_present",
+                            "equity_alpha_present", "max_drawdown_present")):
+                        report["failures"].append(f"{name}: Equity & drawdown summary is incomplete")
+                    if perf_checks["cumulative_42pct_visible"]:
+                        report["failures"].append(f"{name}: still exposes the old cumulative +42.4% headline")
 
                     page.screenshot(
                         path=str(OUT / f"{name}.png"),
