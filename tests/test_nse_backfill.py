@@ -97,7 +97,8 @@ def test_import_prices_stops_when_its_time_is_spent(tmp_path):
     mirror = _mirror(tmp_path / "m", [date(2010, 6, 10), date(2010, 6, 11)])
     ticks = iter([0, 0, 61])
     stats = imp.import_prices(mirror, set, tmp_path / "w", since=date(2010, 1, 1),
-                              until=date(2026, 10, 1), max_minutes=1, clock=lambda: next(ticks),
+                              until=date(2026, 10, 1), max_minutes=1, refresh=1,
+                              clock=lambda: next(ticks),
                               publish=lambda *a: None)
     assert stats["published"] == 1 and stats["left"] == 1
 
