@@ -2,7 +2,7 @@ import re, glob, os, csv
 IDX = {"NIFTY_50": r"(?:s&p\s*)?(?:cnx\s*)?nifty(?:\s*50)?(?:\s+index)?", "NIFTY_NEXT_50": r"(?:cnx\s*)?nifty\s*(?:next\s*50|junior)(?:\s+index)?",
        "NIFTY_MIDCAP_150": r"nifty\s*midcap\s*150(?:\s+index)?", "NIFTY_SMALLCAP_250": r"nifty\s*smallcap\s*250(?:\s+index)?",
        "NIFTY_MICROCAP_250": r"nifty\s*microcap\s*250(?:\s+index)?", "NIFTY_TOTAL_MARKET": r"nifty\s*total\s*market(?:\s+index)?", "NIFTY_500": r"(?:s&p\s*)?(?:cnx|nifty)\s*500(?:\s+index)?"}
-HEAD = re.compile(r"^\s*(?:\(?\d+[\).]|[A-Za-z][\).])?\s*((?:s&p\s*)?(?:cnx|nifty)[^\n]{0,60}?)\s*(?:indices|index)?\s*:?\s*$", re.I)
+HEAD = re.compile(r"^\s*(?:\(?\d+[\).]|[A-Za-z][\).])?\s*((?:s&p\s*)?(?:cnx|nifty)[^\n()]{0,60}?)\s*(?:indices|index)?\s*:?\s*$", re.I)
 _ROW_STRICT = re.compile(r"^\s*(\d+)\s+(.+?)\s{2,}([A-Z0-9&\-_]+)\s*$")
 _ROW_RELAXED = re.compile(r"^\s*(\d+)\s+(.*[a-z].*?)\s+([A-Z][A-Z0-9&\-_]{1,19})\s*$")
 class _Row:
@@ -11,7 +11,7 @@ class _Row:
 ROW = _Row()
 MON = "January February March April May June July August September October November December".split()
 def eff(t):
-    m = re.search(r"(?:effective from|with effect from|w\.e\.f\.?)\s+([A-Z][a-z]+)\s*(\d{1,2})[,\s]*(?:\d{1,2}[,\s]+)?(\d{4})", t)
+    m = re.search(r"(?:effective(?:\s+from)?|with effect from|w\.e\.f\.?)\s+([A-Z][a-z]+)\s*(\d{1,2})[,\s]*(?:\d{1,2}[,\s]+)?(\d{4})", t)
     return f"{m.group(3)}-{MON.index(m.group(1))+1:02d}-{int(m.group(2)):02d}" if m and m.group(1) in MON else ""
 def idx_of(h):
     h = re.sub(r"\s+", " ", h.strip().lower())
@@ -27,7 +27,7 @@ for _f in sorted(glob.glob("announcements/txt/*.txt")):
     for _l in open(_f, errors="ignore").read().split("About NSE Indices")[0].splitlines():
         _m = ROW.match(_l)
         if _m: NAME2SYM[norm_name(_m.group(2))] = _m.group(3)
-MANUAL_NAMES = {"sesa goa": "SESAGOA"}  # name-only 2010 tables; symbol from NSE symbol-change file (SESAGOA -> SSLT -> VEDL)
+MANUAL_NAMES = {"sesa goa": "SESAGOA", "core projects and technologies": "COREPROTEC", "orissa mineral development": "ORISSAMINE", "pipavav shipyard": "PIPAVAVYD", "jindal southwest hold": "JINDALSWHL"}  # name-only 2010 tables; symbol from NSE symbol-change file (SESAGOA -> SSLT -> VEDL)
 NAME2SYM.update(MANUAL_NAMES)
 ROWN = re.compile(r"^\s*(\d+)\s+([A-Za-z].+?)\s*$")
 NOSYM_HDR = re.compile(r"Sr\.?\s*No\.?\s+(?:Company|Scrip)\s+Name\s*$", re.I)
@@ -47,11 +47,22 @@ for f in sorted(glob.glob("announcements/txt/*.txt")):
     if pub < "2010-01-01": continue
     e = eff(re.sub(r"\s+", " ", raw)); cur = None; mode = None; nosym = False
     lines = [l for l in raw.splitlines() if l.strip()]
+    _merged = []
+    for _l in lines:
+        if _merged and re.match(r"^\s+[A-Za-z][^\n]*?\s{2,}[A-Z][A-Z0-9&\-_]+\s*$", _l) and re.match(r"^\s*\d+\s+[A-Za-z][^\n]*$", _merged[-1]) and not ROW.match(_merged[-1]):
+            _merged[-1] = _merged[-1].rstrip() + " " + _l.strip()
+        else:
+            _merged.append(_l)
+    lines = _merged
+    has_headings = any(HEAD.match(_l) or PAREN.match(_l) or SEC.match(_l) for _l in lines)
     PFX = re.compile(r"^\s*\(?[0-9A-Za-z]{1,3}[\).]\s+\S")
     for i, line in enumerate(lines):
         s = line.strip()
         if NOSYM_HDR.search(s): nosym = True; continue
         if re.search(r"Sr\.?\s*No\.?.*Symbol", s, re.I): nosym = False; continue
+        if cur is None and not has_headings and i < 25 and re.search(r"being (?:in|ex)cluded|are (?:in|ex)cluded|is (?:in|ex)cluded", s, re.I) and not ROW.match(line):
+            _ctx = " ".join(lines[max(0, i - 8):i])
+            cur = idx_in_heading(_ctx)
         if re.search(r"being included|are included|is included|to be included", s, re.I) and not ROW.match(line): mode = "IN"; continue
         if re.search(r"being excluded|are excluded|is excluded|to be excluded", s, re.I) and not ROW.match(line): mode = "OUT"; continue
         h = HEAD.match(line)
@@ -65,9 +76,7 @@ for f in sorted(glob.glob("announcements/txt/*.txt")):
             nxt = lines[i+1] if i+1 < len(lines) else ""
             ok = bool(PFX.match(line)) or bool(re.search(r"following|being (in|ex)cluded|replace", nxt, re.I))
             if ok:
-                new = idx_of(h.group(1))
-                if PFX.match(line) or new:
-                    cur, mode = new, None
+                cur, mode = idx_of(h.group(1)), None
             continue
         r = ROW.match(line)
         if r and cur and mode:
