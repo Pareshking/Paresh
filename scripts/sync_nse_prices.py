@@ -39,10 +39,12 @@ def needed(notes: dict) -> list[str]:
 
 
 def keep_actions(actions: pd.DataFrame, symbols: set[str]) -> pd.DataFrame:
-    """The rows that can move a price: splits, bonuses, consolidations, demergers."""
+    """The rows that can move a price: splits, bonuses, consolidations, demergers,
+    and rights issues (kept for their terms: src/engine/reconcile.py computes
+    the rights factor; adjusted_close applies only the split/bonus kinds)."""
     if actions.empty:
         return pd.DataFrame(columns=npx.ACTION_COLS)
-    a = actions[actions["kind"].isin(na.ACTION_KINDS + ("demerger",)) & actions["symbol"].isin(symbols)]
+    a = actions[actions["kind"].isin(na.ACTION_KINDS + ("demerger", "rights")) & actions["symbol"].isin(symbols)]
     a = nh.dedupe_actions(a.assign(record_date=a.get("record_date"), bc_start=a.get("bc_start"),
                                    bc_end=a.get("bc_end")))
     return a[npx.ACTION_COLS].reset_index(drop=True)

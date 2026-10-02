@@ -21,7 +21,7 @@ it gives it from facts that were published that day.
 
 Committed in data/nse_prices/:
     closes.parquet   raw closes as NSE filed them (sessions x symbols, EQ before BE)
-    actions.parquet  its split/bonus/consolidation/demerger rows, one per action
+    actions.parquet  its split/bonus/consolidation/demerger/rights rows, one per action
     notes.json       ticker renames and one-off corrections, each with its evidence
 scripts/sync_nse_prices.py builds and extends them.
 """
