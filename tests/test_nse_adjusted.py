@@ -190,3 +190,17 @@ def test_a_stretch_in_bz_is_priced_and_eq_still_wins_a_shared_day():
     close = na.wide(pd.concat([eq, bz], ignore_index=True))["close"]["UNITECH"]
     assert close.tolist() == [7.0, 7.2, 7.5, 7.4]          # EQ on its days, BZ between
     assert "BZ" not in na.SERIES                           # the Nano Cap universe is unchanged
+
+
+def test_a_scheme_is_priced_as_a_demerger_only_on_a_deep_fall():
+    """ALEMBICLTD 2011: 'Scheme Of Arrangement' (Alembic Pharma demerged), -65%
+    on the ex-date; a scheme day that fell 3% stays a real move."""
+    from src.loaders import nse_bundle as nb
+
+    assert nb.classify_purpose("Scheme Of Arrangement")["kind"] == "scheme"
+    deep = na.wide(_rows("ALEMBICLTD", [100.0, 101.0, 35.0, 36.0], [100.0] * 4))["close"]
+    f, v = na.action_factors(deep, _actions(("ALEMBICLTD", "scheme", pd.Timestamp("2026-01-07"), np.nan)))
+    assert v["verdict"].tolist() == ["demerger"] and np.isclose(f.at[pd.Timestamp("2026-01-07"), "ALEMBICLTD"], 35 / 101)
+    mild = na.wide(_rows("X", [100.0, 101.0, 98.0, 99.0], [100.0] * 4))["close"]
+    f, v = na.action_factors(mild, _actions(("X", "scheme", pd.Timestamp("2026-01-07"), np.nan)))
+    assert v["verdict"].tolist() == ["no move"] and (f == 1.0).all().all()

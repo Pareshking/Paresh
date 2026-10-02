@@ -221,6 +221,11 @@ _KINDS = [
     ("bonus_preference", _BONUS_PREFERENCE),
     ("bonus", re.compile(r"BONUS")),
     ("demerger", re.compile(r"DEMERGER|SPIN[- ]?OFF")),
+    # NSE's yearly list files many demergers only as a scheme: ALEMBICLTD
+    # 2011 (Alembic Pharma), TCI 2016, GRASIM 2017, CESC 2018. A scheme can
+    # also be a merger or a capital change, so nse_adjusted prices one only
+    # where the stock fell enough that day (SCHEME_CAP).
+    ("scheme", re.compile(r"SCHEME\s+OF\s+ARR?ANGEMENT|COMPOSITE\s+SCHEME")),
     ("rights", re.compile(r"RIGHTS")),
     ("buyback", re.compile(r"BUY[- ]?BACK")),
     ("dividend", re.compile(r"DIVIDEND|\bDIV\b|DISTRIBUTION")),
