@@ -140,3 +140,23 @@ items are listed under the top-level `caveats` key (Jindal Saw / Provogue 2012-0
 2020 Gayatri / Fluorochemicals window, the inferred PEL / PIRAMALFIN rename, and 2010-2011 exits named without a
 symbol). Not done: independent checkpoints against archived constituent files, a blind second review, a data freeze.
 Evidence, rules and checks are in `nse_index_rebuild/` (`PROTOCOL.md`).
+
+## Joining a bhavcopy to the history (`scripts/index_symbol_map.py`)
+
+`data/membership_history.json` files members under today's ticker; a bhavcopy carries the ticker of its day. The helper
+turns one into the other with the dated ticker-change ledger (`symbol_changes`) in the same file.
+
+```
+python scripts/index_symbol_map.py NIFTY_50 2025-03-28
+    ZOMATO    (history: ETERNAL)          # the bhavcopy of that day says ZOMATO
+python scripts/index_symbol_map.py NIFTY_500 2012-01-02 --bhavcopy cm02JAN2012bhav.csv
+    0 of 500 ... / "no bhavcopy row:" lines for members the file does not carry
+```
+
+Library calls: `members(h, index, date)`, `bhavcopy_symbols(h, index, date)` (`{ticker that day: history symbol}`),
+`symbol_on(h, symbol, date)`, `coverage(h, index, date, tickers)`. Old (`SYMBOL`) and new (`TckrSymb`) bhavcopy layouts are read.
+
+What it does not do: the ledger covers renames of index members found in NSE's notices, not every rename on the exchange, so
+a member with no bhavcopy row is reported, never guessed (suspended, delisted, or renamed outside the ledger). Mergers and
+demergers are exits and entries on their real dates, not renames. Joining on ISIN, where the bhavcopy has one, covers renames
+the ledger misses.
