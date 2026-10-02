@@ -66,6 +66,23 @@ def _guarded_connect(self, address, *args, **kwargs):
 # suite needs a real socket -- Streamlit's AppTest runs the script in-process.
 _socket.socket.connect = _guarded_connect
 
+# Windows has no AF_UNIX socketpair: Python builds one by connecting a socket to
+# a listener of its own on 127.0.0.1, and asyncio's event loop needs one to start
+# (Streamlit's AppTest runs one). That connection never leaves the process, so it
+# is let through; nothing else is. On Linux socketpair() never calls connect().
+_real_socketpair = _socket.socketpair
+
+
+def _socketpair(*args, **kwargs):
+    _socket.socket.connect = _real_connect
+    try:
+        return _real_socketpair(*args, **kwargs)
+    finally:
+        _socket.socket.connect = _guarded_connect
+
+
+_socket.socketpair = _socketpair
+
 
 @pytest.fixture
 def offline_market_data(monkeypatch):
