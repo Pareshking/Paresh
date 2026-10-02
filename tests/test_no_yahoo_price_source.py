@@ -214,3 +214,20 @@ def test_the_benchmark_is_daily_for_the_whole_backtest_window():
     s = bs.read()["nifty500"].dropna()
     recent = s[s.index >= s.index[-1] - pd.DateOffset(years=5)]
     assert recent.index.to_series().diff().dt.days.max() <= 6, "a gap longer than a long weekend"
+
+
+def test_kaggle_rows_rank_below_nse_and_ss_but_above_screener():
+    day = pd.Timestamp("2015-10-08")
+
+    def row(src, v):
+        return pd.DataFrame({"nifty500": [v], "nifty50": [v], "source": [src]},
+                            index=pd.DatetimeIndex([day], name="date"))
+
+    assert bs.merge(row("kaggle", 1.0), row("ss", 2.0)).iloc[0]["source"] == "ss"
+    assert bs.merge(row("screener", 1.0), row("kaggle", 2.0)).iloc[0]["source"] == "kaggle"
+
+
+def test_the_benchmark_reaches_back_before_the_2010_ranking():
+    s = bs.read()["nifty500"].dropna()
+    assert s.index[0] <= pd.Timestamp("2009-01-02")
+    assert (s.index.year == 2009).sum() >= 240        # daily through 2009
