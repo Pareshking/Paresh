@@ -1,0 +1,50 @@
+{
+  "frozen_through": "2026-09-30",
+  "sha256": "56712b5c5bd0df8e68171a1af6fc87c046289385e17661162b0390f433857ee7",
+  "indices": {
+    "nifty_50": {
+      "first_date": "2010-01-01",
+      "changes_through_freeze": 33,
+      "members_on_freeze_date": 50
+    },
+    "nifty_500": {
+      "first_date": "2010-01-01",
+      "changes_through_freeze": 130,
+      "members_on_freeze_date": 500
+    },
+    "nifty_microcap_250": {
+      "first_date": "2021-09-30",
+      "changes_through_freeze": 31,
+      "members_on_freeze_date": 250
+    },
+    "nifty_midcap_150": {
+      "first_date": "2016-04-01",
+      "changes_through_freeze": 37,
+      "members_on_freeze_date": 150
+    },
+    "nifty_next_50": {
+      "first_date": "2010-01-01",
+      "changes_through_freeze": 47,
+      "members_on_freeze_date": 50
+    },
+    "nifty_smallcap_250": {
+      "first_date": "2016-04-01",
+      "changes_through_freeze": 59,
+      "members_on_freeze_date": 250
+    },
+    "nifty_total_market": {
+      "first_date": "2021-10-29",
+      "changes_through_freeze": 40,
+      "members_on_freeze_date": 750
+    }
+  },
+  "changelog": [
+    {
+      "date_utc": "2026-10-02",
+      "sha256_before": null,
+      "sha256_after": "56712b5c5bd0df8e68171a1af6fc87c046289385e17661162b0390f433857ee7",
+      "reason": "Initial freeze: reconstruction 2010 to 2026-09-30 for seven indices, after the junction-date fix and PEL/PIRAMALFIN correction (#335), the Gayatri evidence note (#338) and NSE-feed evidence for the four symbols"
+    }
+  ],
+  "note": "Hash covers each index's baseline and changes up to frozen_through, plus aliases, caveats, symbol_changes and adjustments_applied. See nse_index_rebuild/freeze_history.py."
+}

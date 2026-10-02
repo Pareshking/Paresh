@@ -13616,38 +13616,10 @@
     "intervals": [
       {
         "index": "nifty_500",
-        "symbol": "ASIANHOTNR",
-        "from": "2010-01-01",
-        "to": "2010-02-23",
-        "caveat": "SYMBOL_WEB_SECONDARY"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "PGIL",
-        "from": "2010-01-01",
-        "to": "2011-03-24",
-        "caveat": "SYMBOL_WEB_SECONDARY"
-      },
-      {
-        "index": "nifty_500",
         "symbol": "PROVOGE",
         "from": "2010-01-01",
         "to": "2012-03-06",
         "caveat": "WEB_SECONDARY_2012-03-07"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "SIRPAPER",
-        "from": "2010-01-01",
-        "to": "2010-04-07",
-        "caveat": "SYMBOL_WEB_SECONDARY"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "SMARTLINK",
-        "from": "2010-01-01",
-        "to": "2010-04-07",
-        "caveat": "SYMBOL_WEB_SECONDARY"
       },
       {
         "index": "nifty_500",
@@ -13657,25 +13629,11 @@
         "caveat": "WEB_SECONDARY_2012-03-07"
       },
       {
-        "index": "nifty_microcap_250",
-        "symbol": "PGIL",
-        "from": "2025-03-28",
-        "to": null,
-        "caveat": "SYMBOL_WEB_SECONDARY"
-      },
-      {
         "index": "nifty_smallcap_250",
         "symbol": "GAYAPROJ",
         "from": "2018-09-28",
         "to": "2020-06-25",
         "caveat": "AMBIGUOUS_2020-03-27_TO_2020-06-25"
-      },
-      {
-        "index": "nifty_total_market",
-        "symbol": "PGIL",
-        "from": "2025-03-28",
-        "to": null,
-        "caveat": "SYMBOL_WEB_SECONDARY"
       }
     ]
   },

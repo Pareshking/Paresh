@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - "nse_index_rebuild/**"
+      - "data/membership_history.json"
+      - "data/membership_history.freeze.json"
       - ".github/workflows/nse-index-membership-rebuild.yml"
   workflow_dispatch:
 
@@ -28,6 +30,9 @@ jobs:
       - name: Check data/membership_history.json against the reconstruction
         working-directory: nse_index_rebuild
         run: python validate_history.py
+      - name: Check the frozen history is unchanged or its change is recorded
+        working-directory: nse_index_rebuild
+        run: python freeze_history.py --check
       - name: Retain unresolved-event audit
         if: always()
         uses: actions/upload-artifact@v4
