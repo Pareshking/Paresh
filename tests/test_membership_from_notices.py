@@ -203,9 +203,11 @@ LEDGER = json.loads((ROOT / "data" / "membership_notices.json").read_text(encodi
 HISTORY = load_history()
 
 
-def test_the_committed_history_now_reaches_back_to_the_first_signal_of_2026():
+def test_the_committed_history_reaches_back_to_the_total_market_launch_window():
+    # Extended from 2025-12-31 back to 2021-10-29 by nse_index_rebuild/merge_into_history.py;
+    # the notices-based ledger below still covers 2025-12-31 onward.
     first, last = coverage(HISTORY)
-    assert first == date(2025, 12, 31) and last >= date(2026, 9, 30)
+    assert first == date(2021, 10, 29) and last >= date(2026, 9, 30)
 
 
 def test_the_committed_history_agrees_with_every_notice_in_the_ledger():
@@ -222,8 +224,10 @@ def test_nothing_is_left_unexplained_and_the_one_ticker_change_is_recorded():
 
 
 def test_the_list_is_750_names_on_every_date_it_changes():
+    # Tata Motors DVR was an additional security above the 750 until NSE removed it on 2024-08-30.
     dates = [HISTORY["baseline"]["date"]] + [c["date"] for c in HISTORY["changes"]]
-    assert {len(members_on(HISTORY, d)) for d in dates} == {750}
+    sizes = {d: len(members_on(HISTORY, d)) - sum(s.endswith("DVR") for s in members_on(HISTORY, d)) for d in dates}
+    assert set(sizes.values()) == {750}, sizes
 
 
 def test_the_30_sep_notice_matches_what_the_daily_sync_recorded_for_that_day():
@@ -266,4 +270,4 @@ def test_the_backtester_now_scores_the_whole_2026_window_on_the_index_as_it_stoo
     cols = pd.Index(["SIGMAADV", "LENSKART", "TCS"])
     jan = _index_mask(HISTORY, cols, pd.Timestamp("2026-01-30"))
     assert jan is not None and jan.to_dict() == {"SIGMAADV": False, "LENSKART": False, "TCS": True}
-    assert _index_mask(HISTORY, cols, pd.Timestamp("2025-12-30")) is None  # before the record
+    assert _index_mask(HISTORY, cols, pd.Timestamp("2021-10-28")) is None  # before the record

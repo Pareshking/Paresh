@@ -1,6 +1,6 @@
 """Export every reconstructed index into ONE point-in-time CSV for backtests.
 
-Output: ../data/index_membership_pit.csv  (one row per index/symbol membership interval)
+Output: pit_export.csv (intermediate, git-ignored; merge_into_history.py folds it into data/membership_history.json)  (one row per index/symbol membership interval)
   index, symbol, current_symbol, from_date, to_date, caveat
 from_date = first day the symbol is a member; to_date = last day (blank = member today).
 Membership on day d: from_date <= d and (to_date == "" or d <= to_date).
@@ -10,7 +10,7 @@ Verifies the export by replaying it against every reconstructed snapshot and aga
 import csv, datetime as dt, os, sys
 import reverse2
 
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "index_membership_pit.csv")
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pit_export.csv")
 # Coverage start per index. None = start at the first reconstructed snapshot (launch state not documented).
 START = {"NIFTY_50": "2010-01-01", "NIFTY_NEXT_50": "2010-01-01", "NIFTY_500": "2010-01-01",
          "NIFTY_MIDCAP_150": "2016-04-01", "NIFTY_SMALLCAP_250": "2016-04-01",
