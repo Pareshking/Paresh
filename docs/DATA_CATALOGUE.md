@@ -41,7 +41,7 @@ Policy and recovery: `docs/R2_RECOVERY_AND_RETENTION.md`. Layout and rules
 | `former_member_prices.parquet/.json` | Prices for stocks that left the universe, so past months replay faithfully | `daily_sync` |
 | `nse_prices/closes.parquet`, `actions.parquet` | Local NSE close and action copies for the adjustment layer | `nse_collect` |
 | `nse_market_caps.csv`, `nse_all_time_highs.csv`, `nse_tv_classification.csv`, `nse_fo_symbols.json`, `nse_trading_days.json`, `screener_company_ids.json` | Reference tables: market cap, all-time highs, industry labels, F&O list, trading calendar, Screener ids | `daily_sync` / collectors |
-| `track_record.json` | The frozen monthly Track Record ledger | `monthly_track_record`, 2nd–5th of the month, 19:00 |
+| `track_record.json` | The frozen monthly Track Record ledger | `monthly_track_record`, 1st–5th of the month, 19:00 |
 
 ## Which source wins (decision D3)
 

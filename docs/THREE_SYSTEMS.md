@@ -79,7 +79,7 @@ accepted, no contract term differs.
   inception is intentional. The loader now treats that pre-inception state as
   informational rather than an operational warning. Once a system has reached
   its inception, a missing ledger is again a warning.
-- `monthly_track_record.yml` (2nd–5th of each month) freezes all three; the
+- `monthly_track_record.yml` (1st–5th of each month) freezes all three; the
   Nano Cap and Combined step warns rather than fails.
 - Actions shows the selected system's model book; before October, Nano Cap and Combined show "My holdings" only, with a "No model book yet" note.
 - Track Record ends with **Three systems, side by side**: the last 12 frozen
@@ -88,7 +88,7 @@ accepted, no contract term differs.
 - Each system has its own append-only ledger. Nano Cap and Combined start
   with **October 2026**: the first book is signalled at the **30 Sep 2026**
   close and filled 1 Oct. The 750's record is untouched.
-- `monthly_track_record.yml` (2nd–5th of each month) freezes all three; the
+- `monthly_track_record.yml` (1st–5th of each month) freezes all three; the
   Nano Cap and Combined step warns rather than fails.
 - Actions shows the selected system's model book; before October, Nano Cap and
   Combined show "My holdings" only, with a "No model book yet" note.
@@ -115,7 +115,7 @@ every system. The track record never uses it (`src/engine/liquidity.py`).
 |---|---|---|
 | 30 Sep 2026 (Wed) evening | daily sync collects NSE, builds the October Nano Cap list | `nanocap_membership.json` gains `2026-09-30` |
 | 1 Oct 2026 | first Nano Cap / Combined books filled; their backtest shows September | Actions and Backtest with `?sys=nano` |
-| 2–5 Nov 2026 | October frozen in all three ledgers | comparison panel shows Oct 2026 |
+| 1–5 Nov 2026 | October frozen in all three ledgers | comparison panel shows Oct 2026 |
 
 Rehearsed on today's data (synthetic 1 Oct and 3 Nov sessions): books of 20
 signalled 30 Sep, filled 1 Oct; October frozen into both new ledgers; the
