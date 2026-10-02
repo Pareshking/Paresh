@@ -74,12 +74,12 @@ HISTORICAL_INDUSTRIES = Path(__file__).resolve().parents[3] / "data" / "referenc
 
 @st.cache_data(show_spinner=False)
 def _historical_industries() -> dict[str, str]:
-    """NSE sector for stocks no current list labels: {symbol: industry}."""
+    """NSE sector (the 22-name level the app ranks on) for stocks no current list labels."""
     try:
         frame = pd.read_csv(HISTORICAL_INDUSTRIES)
     except (OSError, ValueError):
         return {}
-    return dict(zip(frame["symbol"], frame["industry"]))
+    return dict(zip(frame["NSE_SYMBOL"], frame["SECTOR"]))
 
 
 def _history_inputs(rank_df: pd.DataFrame, liquidity_floor_cr: float) -> dict | None:

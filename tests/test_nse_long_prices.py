@@ -170,7 +170,7 @@ def test_the_historical_industries_use_nse_sector_names_and_fill_the_gaps():
     from src.ui.views import backtest_view
 
     frame = pd.read_csv(backtest_view.HISTORICAL_INDUSTRIES)
-    assert not frame["symbol"].duplicated().any()
+    assert not frame["NSE_SYMBOL"].duplicated().any()
     allowed = {
         "Automobile and Auto Components", "Capital Goods", "Chemicals", "Construction",
         "Construction Materials", "Consumer Durables", "Consumer Services", "Diversified",
@@ -179,10 +179,10 @@ def test_the_historical_industries_use_nse_sector_names_and_fill_the_gaps():
         "Oil Gas & Consumable Fuels", "Power", "Realty", "Services", "Telecommunication",
         "Textiles", "Utilities",
     }
-    assert set(frame["industry"]) <= allowed
+    assert set(frame["SECTOR"]) <= allowed and (frame["SOURCE_URL"] != "").all()
     # Every stock any index ever listed now has an industry for the cap.
     syms = sorted(iu.all_ever_members())
     known = former_members.industry_for(syms)
-    past = dict(zip(frame["symbol"], frame["industry"]))
+    past = dict(zip(frame["NSE_SYMBOL"], frame["SECTOR"]))
     left = [s for s in syms if known.get(s, "Other") == "Other" and s not in past]
     assert len(left) <= 5, left

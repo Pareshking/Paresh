@@ -1,218 +1,218 @@
-symbol,company,industry,confidence,basis,source_url
-3IINFOTECH,3i Infotech Ltd.,Information Technology,high,IT services and software,
-8KMILES,8K Miles Soft Services Ltd.,Information Technology,medium,cloud computing / IT services,
-ABGSHIP,ABG Shipyard Ltd.,Capital Goods,high,shipbuilding,
-ABIRLANUVO,Aditya Birla Nuvo Ltd.,Diversified,high,"conglomerate (rayon, insulators, telecom, financial services)",
-ACLGATI,Allcargo Gati Ltd.,Services,high,express logistics,
-ADVANTA,Advanta Ltd.,Fast Moving Consumer Goods,medium,hybrid seeds (agri products),https://www.dealstreetasia.com/stories/india-agri-seed-company-adavanta-to-merge-with-group-company-upl-20672
-AFTEK,Aftek Ltd.,Information Technology,medium,software services,
-AGCNET,AGC Networks Ltd.,Information Technology,medium,ICT solutions and systems integration,https://www.morningstar.com/stocks/xnse/agcnet/quote
-AKSHOPTFBR,Aksh Optifibre Ltd.,Telecommunication,high,optical fibre / telecom equipment,
-ALBK,Allahabad Bank,Financial Services,high,public sector bank,
-ALFALAVAL,Alfa Laval (India) Limited,Capital Goods,high,"industrial equipment (heat exchangers, separators)",
-ALOKTEXT,Alok Industries Ltd.,Textiles,high,integrated textiles,
-AMTEKAUTO,Amtek Auto Ltd.,Automobile and Auto Components,high,"auto components (forgings, castings)",
-ANDHRABANK,Andhra Bank,Financial Services,high,public sector bank,
-ANDPAPER,Andhra Paper Ltd.,Forest Materials,high,paper manufacturing (Andhra Paper),
-ANSALAPI,Ansal Properties & Infrastructure Ltd.,Realty,high,real estate developer,
-ARSHIYA,Arshiya International Ltd.,Services,high,logistics / FTWZ,
-ARSSINFRA,ARSS Infrastructure Projects Ltd.,Construction,high,civil construction EPC,
-ASIANELEC,Asian Electronics Ltd.,Capital Goods,medium,energy-efficient lighting systems,https://www.indiainfoline.com/company/asian-electronics-ltd/summary
-ATFL,Agro Tech Foods Ltd.,Fast Moving Consumer Goods,high,edible oils and packaged foods,
-BALLARPUR,Ballarpur Industries Ltd.,Forest Materials,high,paper manufacturing,
-BARBEQUE,Barbeque Nation Hospitality Ltd.,Consumer Services,high,restaurants,
-BHARATFIN,Bharat Financial Inclusion Ltd.,Financial Services,high,microfinance NBFC,
-BINANICEM,Binani Cement Ltd.,Construction Materials,high,cement,
-BRFL,Bombay Rayon Fashions Ltd.,Textiles,high,fabrics and garments,
-CAIRN,Cairn India Ltd.,Oil Gas & Consumable Fuels,high,oil and gas exploration and production,
-CAPF,Capital First Ltd.,Financial Services,high,NBFC,
-CAROLINFO,Carol Info Services Limited,Fast Moving Consumer Goods,low,Wockhardt promoter-group co; nutrition contract manufacturing,https://www.zaubacorp.com/CAROL-INFO-SERVICES-LIMITED-U74999MH1979PLC021942
-CASTEXTECH,Castex Technologies Ltd.,Automobile and Auto Components,high,iron castings for automobiles (ex-Amtek India),https://www.investing.com/equities/amtek-india-company-profile
-CASTROL,Castrol (India) Ltd.,Oil Gas & Consumable Fuels,high,lubricants,
-CHEMPLAST,Chemplast Sanmar Limited,Chemicals,high,PVC and chemicals,
-CLNINDIA,Clariant Chemicals (India) Ltd.,Chemicals,high,specialty chemicals,
-CMC,CMC Ltd.,Information Technology,high,IT services (Tata group),
-COREEDUTEC,CORE Education & Technologies Ltd.,Consumer Services,medium,education technology / services,
-CORPBANK,Corporation Bank,Financial Services,high,public sector bank,
-COX&KINGS,Cox & Kings Ltd.,Consumer Services,high,tour and travel services,
-DALMIABHA,Dalmia Bharat Ltd.,Construction Materials,high,cement (holding co of Dalmia cement),
-DCHL,Deccan Chronicle Holdings Limited,Media Entertainment & Publication,high,newspaper publishing,
-DENABANK,Dena Bank,Financial Services,high,public sector bank,
-DFMFOODS,DFM Foods Ltd.,Fast Moving Consumer Goods,high,packaged snack foods,
-DHANI,Dhani Services Ltd.,Financial Services,high,financial services (Indiabulls Ventures),
-DHFL,Dewan Housing Finance Corporation Ltd.,Financial Services,high,housing finance,
-DISHMAN,Dishman Pharmaceuticals & Chemicals Ltd.,Healthcare,high,pharma CRAMS / APIs,
-DRDATSONS,Dr. Datsons Labs Ltd.,Healthcare,medium,pharma APIs / formulations,
-DSKULKARNI,D. S. Kulkarni Developers Ltd.,Realty,high,real estate developer,
-EDUCOMP,Educomp Solutions Ltd.,Consumer Services,medium,education services / edtech,
-ELDERPHARM,Elder Pharmaceuticals Ltd.,Healthcare,high,pharmaceuticals,
-EQUITAS,Equitas Holdings Ltd.,Financial Services,high,holding co of small finance bank / microfinance,
-ERAINFRA,Era Infra Engineering Ltd.,Construction,high,infrastructure EPC,
-EROSMEDIA,Eros Intl Media Ltd.,Media Entertainment & Publication,high,film production and distribution,
-ESSAROIL,Essar Oil Ltd.,Oil Gas & Consumable Fuels,high,oil refining and marketing,
-ESSARSHIP,Essar Shipping Ports & Logistics Limited,Services,high,"shipping, ports and logistics",
-ESSDEE,Ess Dee Aluminium Ltd.,Capital Goods,medium,aluminium foil pharma packaging (NSE Packaging is under Capital Goods),https://www.indiainfoline.com/company/ess-dee-aluminium-ltd/summary
-EXCELCROP,Excel Crop Care Ltd.,Chemicals,high,agrochemicals,
-FCONSUMER,Future Consumer Ltd.,Fast Moving Consumer Goods,high,FMCG and food brands,
-FEL,Future Enterprises Ltd.,Consumer Services,medium,"retail (Future group, retail infrastructure)",
-FIRSTLEASE,First Leasing Co. of India Ltd.,Financial Services,high,NBFC leasing,
-FKONCO,Fresenius Kabi Oncology Limited,Healthcare,high,oncology pharmaceuticals,
-FLEXITUFF,Flexituff International Ltd.,Textiles,medium,technical textiles / FIBC bags,
-FLFL,Future Lifestyle Fashions Ltd.,Consumer Services,high,fashion retail,
-FRETAIL,Future Retail Ltd.,Consumer Services,high,retail chains (Big Bazaar),
-FUTUREVENT,Future Ventures India Limited,Fast Moving Consumer Goods,medium,Future group consumer brands (later Future Consumer),
-GAMMNINFRA,Gammon Infrastructure Projects Ltd.,Construction,high,infrastructure project developer,
-GAMMONIND,Gammon India Ltd.,Construction,high,EPC construction,
-GARDENSILK,Garden Silk Mills Ltd.,Textiles,high,polyester yarn and fabrics,
-GDL,Gateway Distriparks Ltd.,Services,high,container freight stations / logistics,
-GEODESIC,Geodesic Ltd.,Information Technology,medium,software products,
-GEOMETRIC,Geometric Ltd.,Information Technology,high,engineering software services,
-GITANJALI,Gitanjali Gems Ltd.,Consumer Durables,high,gems and jewellery,
-GLOBOFFS,Global Offshore Services Ltd.,Oil Gas & Consumable Fuels,medium,offshore support vessels for oil and gas (NSE oil equipment & services),https://trendlyne.com/equity/about/467/GLOBOFFS/global-offshore-services-ltd/
-GOODYEAR,Goodyear India Ltd.,Automobile and Auto Components,high,tyres,
-GRAUWEIL,Grauer & Weil (India) Ltd.,Chemicals,medium,"surface finishing chemicals, paints, lubricants",
-GRUH,Gruh Finance Ltd.*,Financial Services,high,housing finance,
-GSKCONS,GlaxoSmithkline Consumer Healthcare Ltd.*,Fast Moving Consumer Goods,high,health food drinks (Horlicks),
-GTOFFSHORE,GOL Offshore Ltd.,Oil Gas & Consumable Fuels,medium,offshore oilfield vessels and services,
-GUJFLUORO,Gujarat Fluorochemicals Ltd.,Chemicals,high,fluorochemicals and refrigerants,
-GUJNRECOKE,Gujarat NRE Coke Ltd.,Oil Gas & Consumable Fuels,medium,met coke and coking coal mining (NSE Coal covers coke),https://www.bloomberg.com/profile/company/GNC:IN
-GUJRATGAS,Gujarat Gas Co. Ltd.,Oil Gas & Consumable Fuels,high,city gas distribution,
-HCL-INSYS,HCL Infosystems Ltd.,Information Technology,high,IT hardware and services,
-HDFC,Housing Development Finance Corporation Ltd.,Financial Services,high,housing finance,
-HEXAWARE,Hexaware Technologies Ltd.*,Information Technology,high,IT services,
-HIL,HIL Ltd.,Construction Materials,medium,fibre cement roofing sheets and building products (kaggle 2024 basic industry is home furnishing),https://www.hil-limited.in/company-profile.html
-HIMACHLFUT,Himachal Futuristic Communications,Telecommunication,high,telecom equipment and services (HFCL),
-HINDMOTOR,Hindustan Motors Ltd.,Automobile and Auto Components,high,passenger cars (Ambassador),
-HINVDIR,HSBC Invest Direct (India) Limited,Financial Services,high,stockbroking,
-HOTELEELA,Hotel Leela Venture Ltd.,Consumer Services,high,hotels,
-ICSA,ICSA (India) Ltd.,Information Technology,medium,IT solutions for power utilities,
-IDFC,IDFC Ltd.,Financial Services,high,infrastructure finance / holding company,
-IL&FSTRANS,IL&FS Transportation Networks Ltd.,Construction,high,road BOT developer,
-INDIABULLS,Indiabulls Financial Services Limited,Financial Services,high,NBFC,
-INEOSSTYRO,INEOS Styrolution India Ltd.,Chemicals,high,styrenics / ABS polymers,
-INFINITE,Infinite Computer Solutions (India) Ltd,Information Technology,high,IT services,
-INGVYSYABK,ING Vysya Bank Ltd.,Financial Services,high,private bank,
-INNOIND,Innoventive Industries Ltd.,Metals & Mining,medium,"precision steel tubes, CR coils, auto components",https://in.investing.com/equities/innoventive-industries-ltd-company-profile
-INOXLEISUR,Inox Leisure Ltd.,Media Entertainment & Publication,high,multiplex cinemas (NSE film exhibition),
-ISEC,ICICI Securities Ltd.,Financial Services,high,stockbroking,
-IVRCLINFRA,IVRCL Ltd.,Construction,high,EPC construction,
-JBFIND,JBF Industries Ltd.,Textiles,medium,polyester yarn and PET chips,
-JETAIRWAYS,Jet Airways (India) Ltd.,Services,high,airline,
-JMCPROJECT,JMC Projects (India) Ltd.,Construction,high,civil construction,
-JMTAUTOLTD,JMT Auto Ltd.,Automobile and Auto Components,high,auto components,
-JPINFRATEC,Jaypee Infratech Ltd.,Construction,medium,Yamuna Expressway and land/real estate development (Realty also plausible),https://en.wikipedia.org/wiki/Jaypee_Infratech
-JSLHISAR,Jindal Stainless (Hisar) Ltd.,Metals & Mining,high,stainless steel,
-JSWISPAT,JSW ISPAT Steel Limited,Metals & Mining,high,steel,
-JSWISPL,JSW Ispat Special Products Ltd.,Metals & Mining,high,sponge iron and steel (ex-Monnet Ispat),
-KEMROCK,Kemrock Industries and Exports Ltd.,Capital Goods,medium,FRP/GRP composite products,https://www.indiainfoline.com/company/kemrock-industries-exports-ltd/summary
-KENNAMET,Kennametal India Ltd.,Capital Goods,high,cutting tools and machine tools,
-KGL,Karuturi Global Ltd.,Fast Moving Consumer Goods,medium,cut roses floriculture and agriculture,https://www.ide.go.jp/English/Data/Africa_file/Company/ethiopia03.html
-KIRLFER,Kirloskar Ferrous Industries Ltd.,Metals & Mining,medium,pig iron and grey iron castings,
-KIRLOSOIL,Kirloskar Oil Engines Limited,Capital Goods,high,"diesel engines, gensets",
-KOHINOOR,Kohinoor Foods Ltd.,Fast Moving Consumer Goods,high,basmati rice and packaged foods,
-KOUTONS,Koutons Retail India Ltd.,Textiles,medium,"apparel brands and retail (Koutons, Charlie Outlaw)",
-KPIT,KPIT Technologies Ltd.,Information Technology,high,"IT services (old KPIT, later Birlasoft)",
-KSK,KSK Energy Ventures Ltd.,Power,high,thermal power developer,
-KSOILS,K S Oils Limited,Fast Moving Consumer Goods,high,edible oils,
-KWALITY,Kwality Ltd.,Fast Moving Consumer Goods,high,dairy products,
-LAKSHMIEFL,Lakshmi Energy & Foods Ltd.,Fast Moving Consumer Goods,medium,"rice milling/processing, biomass power",
-LAKSHVILAS,Lakshmi Vilas Bank Ltd.,Financial Services,high,private sector bank,
-LITL,Lanco Infratech Ltd.,Construction,medium,EPC/infrastructure contractor with power assets,
-MAHINDUGIN,Mahindra Ugine Steel Co. Ltd.,Metals & Mining,high,alloy steel,
-MANDHANA,Mandhana Industries Ltd.,Textiles,high,fabrics and garments,
-MANGCHEFER,Mangalore Chemicals & Fertilizers Ltd.,Chemicals,high,fertilisers,
-MANPASAND,Manpasand Beverages Ltd.,Fast Moving Consumer Goods,high,fruit beverages,
-MAXINDIA,Max India Ltd.,Healthcare,medium,"2016-20 holding co of Max Healthcare, Max Bupa health insurance, Antara senior care",https://www.screener.in/company/MAXIND/consolidated/
-MERCATOR,Mercator Ltd.,Services,medium,"shipping (tankers, bulk), dredging; plus coal mining",https://en.wikipedia.org/wiki/Mercator_(company)
-METALFORGE,Metalyst Forgings Ltd.,Automobile and Auto Components,high,"auto forgings (Metalyst, ex-Amtek group)",
-MICRO,Micro Inks Limited,Chemicals,high,printing inks (later Hubergroup India),https://www.printweek.in/article/micro-inks-renamed-hubergroup-india/4pkj4vvqvxt2xrjmjaa8sxyd5r
-MID-DAY,Mid-Day Multimedia Ltd.,Media Entertainment & Publication,high,newspaper publishing,
-MINDTREE,MindTree Ltd.,Information Technology,high,IT services,
-MONNETISPA,Monnet Ispat and Energy Ltd.,Metals & Mining,high,"sponge iron, steel",
-MONSANTO,Monsanto India Ltd.,Chemicals,high,agrochemicals (herbicides) and seeds,
-MOSERBAER,Moser Baer India Ltd.,Information Technology,medium,"optical storage media, solar (NSE: computer hardware)",
-MTEDUCARE,MT Educare Ltd.,Consumer Services,high,education/coaching,
-MVL,MVL Ltd.,Realty,high,"real estate developer, Gurgaon",https://www.indiainfoline.com/company/mvl-ltd/summary
-MYSOREBANK,State Bank of Mysore,Financial Services,high,public sector bank (SBI associate),
-NAGARFERT,Nagarjuna Fertilizers & Chemicals Ltd.,Chemicals,high,fertilisers,
-NIRMA,Nirma Ltd.,Fast Moving Consumer Goods,high,"detergents, soaps (also soda ash)",
-NITINFIRE,Nitin Fire Protection Industries Ltd.,Capital Goods,medium,"fire detection/suppression systems, extinguishers",https://www.screener.in/company/NITINFIRE/consolidated/
-NOIDATOLL,Noida-Toll Bridge Co. Ltd.,Construction,high,toll road asset (NSE road assets under Construction),
-NOVARTIND,Novartis India Ltd.,Healthcare,high,pharmaceuticals,
-OCCL,Oriental Carbon & Chemicals Ltd.,Chemicals,high,"insoluble sulphur, sulphuric acid",
-OCL,OCL India Ltd.,Construction Materials,high,cement (also refractories),
-ONELIFECAP,Onelife Capital Advisors Ltd.,Financial Services,high,stockbroking/advisory,
-ONIDA,,Consumer Durables,medium,Onida TVs/appliances (MIRC Electronics),
-OPTOCIRCUI,Opto Circuits (I) Ltd.,Healthcare,high,medical devices,
-ORBITCORP,Orbit Corporation Ltd.,Realty,high,Mumbai real estate developer,
-ORCHIDPHAR,,Healthcare,high,Orchid Chemicals & Pharmaceuticals - antibiotic APIs,
-ORIENTBANK,Oriental Bank of Commerce,Financial Services,high,public sector bank,
-PATNI,Patni Computer Systems Ltd.,Information Technology,high,IT services,
-PEL,Piramal Enterprises Ltd.,Healthcare,medium,Piramal Enterprises: pharma + financial services (lending larger by 2018-20); was in Nifty Pharma,
-POLARIS,Polaris Consulting & Services Ltd.,Information Technology,high,IT services/banking software,
-PRICOL,Pricol Ltd.,Automobile and Auto Components,high,auto instruments/components,
-PROVOGE,Provogue (India) Ltd.,Textiles,medium,apparel brand and retail,
-PSL,PSL Ltd.,Metals & Mining,medium,welded steel pipes,
-PUNJLLOYD,Punj Lloyd Ltd.,Construction,high,EPC contractor,
-RANBAXY,Ranbaxy Laboratories Ltd.,Healthcare,high,pharmaceuticals,
-RASOYPR,Rasoya Proteins Ltd.,Fast Moving Consumer Goods,medium,"soya processing, edible oil",
-REIAGROLTD,Rei Agro Ltd.,Fast Moving Consumer Goods,high,basmati rice,
-RELCAPITAL,Reliance Capital Ltd.,Financial Services,high,"financial services holding (AMC, insurance, lending)",
-RELMEDIA,Reliance MediaWorks Ltd.,Media Entertainment & Publication,high,"film processing, cinemas, post-production",
-RNAVAL,Reliance Naval and Engineering Ltd.,Capital Goods,high,shipbuilding/defence,
-RNRL,Reliance Natural Resources Ltd.,Oil Gas & Consumable Fuels,medium,gas supply/transport business (merged into RPower 2010),
-ROLTA,Rolta India Ltd.,Information Technology,high,IT/geospatial software,
-RUCHISOYA,Ruchi Soya Industries Ltd.,Fast Moving Consumer Goods,high,"edible oils, soya foods",
-SBBJ,State Bank of Bikaner & Jaipur Ltd.,Financial Services,high,public sector bank (SBI associate),
-SBT,State Bank of Travancore,Financial Services,high,public sector bank (SBI associate),
-SEINV,S.E. Investments Ltd.,Financial Services,medium,"NBFC, Agra",https://www.zaubacorp.com/S-E-INVESTMENT-LIMITED-U65921UP1992PLC014135
-SFCL,Star Ferro & Cement Ltd.,Construction Materials,medium,holding co of Star Cement (ferro alloys demerged 2014),https://www.business-standard.com/article/news-cm/board-of-star-ferro-and-cement-approves-demerger-of-ferro-alloys-division-114082600460_1.html
-SHASUNPHAR,Shasun Pharmaceuticals Ltd.,Healthcare,high,pharma APIs,
-SHILPI,Shilpi Cable Tech Ltd.,Capital Goods,high,wires and cables,
-SHLAKSHMI,Shri Lakshmi Cotsyn Ltd.,Textiles,high,cotton yarn/fabric,
-SHREEASHTA,Shree Ashtavinayak Cine Vision Ltd.,Media Entertainment & Publication,high,film production/distribution,
-SHRENUJ,Shrenuj & Co. Ltd.,Consumer Durables,medium,diamonds and jewellery,
-SHRIRAMCIT,Shriram City Union Finance Ltd.,Financial Services,high,NBFC,
-SINTEX,Sintex Industries Ltd.,Capital Goods,medium,plastics/building products until 2017 demerger; textiles after,
-SIRPAPER,Sirpur Paper Mills Ltd.,Forest Materials,high,paper,
-SITINET,Siti Networks Ltd.,Media Entertainment & Publication,high,cable TV distribution,
-SKUMARSYNF,S. Kumars Nationwide Ltd.,Textiles,high,suiting fabrics/apparel,
-SONASTEER,Sona Koyo Steering Systems Ltd.,Automobile and Auto Components,high,steering systems,
-SPICEJET,Spicejet Ltd.,Services,high,airline,
-SPTL,Sintex Plastics Technology Ltd.,Capital Goods,medium,"plastic products (water tanks, custom moulding)",
-SREINFRA,SREI Infrastructure Finance Ltd.,Financial Services,high,infrastructure finance NBFC,
-SRIPIPES,Srikalahasthi Pipes Ltd.,Metals & Mining,medium,"ductile iron pipes, pig iron",
-STER,Sterlite Industries (India) Ltd.,Metals & Mining,high,"copper, zinc, aluminium (Vedanta group)",
-STERLINBIO,Sterling Biotech Ltd,Healthcare,high,"gelatin, pharma APIs",
-SUJANATOW,Sujana Towers Ltd.,Capital Goods,medium,galvanised steel transmission/telecom towers,https://in.marketscreener.com/quote/stock/SUJANA-TOWERS-LIMITED-9059896/company/
-SUNCLAYLTD,Sundaram Clayton Ltd.,Automobile and Auto Components,high,aluminium die castings; TVS Motor parent,
-SUPPETRO,Supreme Petrochem Ltd.,Chemicals,high,"polystyrene, petrochemicals",
-SYNDIBANK,Syndicate Bank,Financial Services,high,public sector bank,
-TATACOFFEE,Tata Coffee Ltd.,Fast Moving Consumer Goods,high,"coffee and tea plantations, instant coffee",
-TATAMETALI,Tata Metaliks Ltd.,Metals & Mining,high,"pig iron, ductile iron pipes",
-TATAMTRDVR,Tata Motors Ltd DVR,Automobile and Auto Components,high,Tata Motors DVR shares,
-TATASTLBSL,Tata Steel BSL Ltd.,Metals & Mining,high,steel (ex-Bhushan Steel),
-TATASTLLP,Tata Steel Long Products Ltd.,Metals & Mining,high,steel long products/sponge iron,
-TCNSBRANDS,TCNS Clothing Co. Ltd.,Textiles,high,women apparel brands,
-TECHNO,Techno Electric & Engineering Co. Ltd.,Construction,medium,power transmission/substation EPC; wind assets,https://www.screener.in/company/TECHNOE/consolidated/
-TIDEWATER,Tide Water Oil (India) Ltd.,Oil Gas & Consumable Fuels,high,lubricants (Veedol),
-TINPLATE,Tinplate Company of India Ltd.,Metals & Mining,high,tinplate,
-TREEHOUSE,Tree House Education & Accessories Ltd.,Consumer Services,high,preschools/education,
-TUBEINVEST,Tube Investments of India Ltd.,Automobile and Auto Components,medium,"old Tube Investments: bicycles, auto components, tubes (renamed Cholamandalam Financial Holdings 2017)",
-TULIP,Tulip Telecom Ltd.,Telecommunication,high,enterprise data connectivity,
-TV-18,Television Eighteen India Limited,Media Entertainment & Publication,high,TV news broadcasting,
-TV18BRDCST,TV18 Broadcast Ltd.,Media Entertainment & Publication,high,TV broadcasting,
-UBHOLDINGS,United Breweries (Holdings) Ltd.,Financial Services,low,"UB group holding company (investments, engineering)",
-UJJIVAN,Ujjivan Financial Services Ltd.,Financial Services,high,microfinance/SFB holding,
-UNITEDBNK,United Bank of India,Financial Services,high,public sector bank,
-UNITY,Unity Infraprojects Ltd.,Construction,high,infrastructure contractor,
-UTTAMSTL,Uttam Galva Steels Ltd.,Metals & Mining,high,galvanised/cold rolled steel,
-UTVSOF,UTV Software Communications Limited,Media Entertainment & Publication,high,films and TV,
-VARUNSHIP,Varun Shipping Co. Ltd.,Services,high,"shipping (LPG, tankers)",
-VIDEOIND,Videocon Industries Ltd.,Consumer Durables,medium,consumer electronics/appliances; also oil & gas E&P,
-VIJAYABANK,Vijaya Bank,Financial Services,high,public sector bank,
-VIVIDHA,Visagar Polytex Ltd.,Textiles,high,garments/fabrics,
-WYETH,Wyeth Limited,Healthcare,high,pharmaceuticals,
-YAARII,,Services,low,"ex-Indiabulls Wholesale/Integrated Services: maintenance, equipment hire, later fintech app",https://www.investing.com/equities/indiabulls-wholesale-services-company-profile
-ZEENEWS,Zee News Limited,Media Entertainment & Publication,high,TV news (now Zee Media),
-ZUARIAGRO,Zuari Industries Limited,Chemicals,high,fertilisers (Zuari Industries pre-2012),
+ISIN,NSE_SYMBOL,COMPANY_NAME,MACRO_SECTOR,SECTOR,INDUSTRY,BASIC_INDUSTRY,CONFIDENCE,SOURCE_URL,NOTES
+INE748C01020,3IINFOTECH,3i Infotech Ltd.,Information Technology,Information Technology,IT - Software,Computers - Software & Consulting,high,https://www.screener.in/company/3IINFOLTD/consolidated/,Now trades as 3IINFOLTD; Screener breadcrumb.
+INE650K01021,8KMILES,8K Miles Soft Services Ltd.,Information Technology,Information Technology,IT - Services,IT Enabled Services,medium,https://www.screener.in/company/512161/,Cloud/IT services; NSE label taken from same company now SecureKloud Technologies (BSE 512161).
+INE067H01016,ABGSHIP,ABG Shipyard Ltd.,Industrials,Capital Goods,Aerospace & Defense,Ship Building & Allied Services,medium,https://www.screener.in/company/ABGSHIP/,Shipbuilder/ship repair (Wikipedia; Moneyworks4me 'Ship Building'). Screener breadcrumb oddly shows Commercial Vehicles; used NSE's shipbuilding basic industry (as for Cochin Shipyard/GRSE).
+INE069A01017,ABIRLANUVO,Aditya Birla Nuvo Ltd.,Diversified,Diversified,Diversified,Diversified,high,https://www.screener.in/company/ABIRLANUVO/consolidated/,Screener breadcrumb Diversified x4; conglomerate merged into Grasim 2017.
+,ACLGATI,Allcargo Gati Ltd.,Services,Services,Transport Services,Logistics Solution Provider,high,https://www.screener.in/company/ACLGATI/,Formerly Gati Ltd; ISIN blank in input and not verified here.
+INE517H01028,ADVANTA,Advanta Ltd.,Fast Moving Consumer Goods,Fast Moving Consumer Goods,Agricultural Food & other Products,Other Agricultural Products,high,https://www.screener.in/company/ADVANTA/,Hybrid seeds; Screener breadcrumb.
+INE796A01023,AFTEK,Aftek Ltd.,Information Technology,Information Technology,IT - Software,Computers - Software & Consulting,high,https://www.screener.in/company/AFTEK/,IT software services/products; no screener breadcrumb (delisted).
+INE676A01019,AGCNET,AGC Networks Ltd.,Information Technology,Information Technology,IT - Services,IT Enabled Services,medium,https://www.screener.in/company/BBOX/,Renamed Black Box Ltd (BBOX); successor's breadcrumb. ICT/system-integration business.
+INE523B01011,AKSHOPTFBR,Aksh Optifibre Ltd.,Telecommunication,Telecommunication,Telecom - Equipment & Accessories,Telecom - Equipment & Accessories,high,https://www.screener.in/company/AKSHOPTFBR/consolidated/,Optical fibre/cable maker; Screener breadcrumb.
+INE428A01015,ALBK,Allahabad Bank,Financial Services,Financial Services,Banks,Public Sector Bank,high,https://en.wikipedia.org/wiki/Allahabad_Bank,Nationalised bank merged into Indian Bank 2020; NSE label as for peer PSU banks.
+INE427A01017,ALFALAVAL,Alfa Laval (India) Limited,Industrials,Capital Goods,Industrial Manufacturing,Industrial Machinery,high,https://www.screener.in/company/ALFALAVAL/,Screener breadcrumb; heat transfer/separation equipment; delisted Apr 2012.
+INE270A01011,ALOKTEXT,Alok Industries Ltd.,Consumer Discretionary,Textiles,Textiles & Apparels,Other Textile Products,high,https://www.screener.in/company/ALOKINDS/consolidated/,Screener breadcrumb (now ALOKINDS).
+INE130C01021,AMTEKAUTO,Amtek Auto Ltd.,Consumer Discretionary,Automobile and Auto Components,Auto Components,Auto Components & Equipments,high,https://www.screener.in/company/AMTEKAUTO/,Screener breadcrumb.
+INE434A01013,ANDHRABANK,Andhra Bank,Financial Services,Financial Services,Banks,Public Sector Bank,high,https://en.wikipedia.org/wiki/Andhra_Bank,Public sector bank merged into Union Bank 2020.
+INE435A01028,ANDPAPER,Andhra Paper Ltd.,Commodities,Forest Materials,"Paper, Forest & Jute Products",Paper & Paper Products,high,https://www.screener.in/company/ANDHRAPAP/,Screener breadcrumb (now ANDHRAPAP).
+INE436A01026,ANSALAPI,Ansal Properties & Infrastructure Ltd.,Consumer Discretionary,Realty,Realty,"Residential, Commercial Projects",high,https://www.screener.in/company/ANSALAPI/consolidated/,Screener breadcrumb; matches kaggle industry.
+INE968D01022,ARSHIYA,Arshiya International Ltd.,Services,Services,Transport Services,Logistics Solution Provider,high,https://www.screener.in/company/ARSHIYA/,FTWZ/rail logistics; Screener breadcrumb.
+INE267I01010,ARSSINFRA,ARSS Infrastructure Projects Ltd.,Industrials,Construction,Construction,Civil Construction,high,https://www.screener.in/company/ARSSINFRA/,Railway/road EPC; Screener breadcrumb.
+INE441A01026,ASIANELEC,Asian Electronics Ltd.,Industrials,Capital Goods,Electrical Equipment,Other Electrical Equipment,medium,https://www.screener.in/company/ASIANELEC/,"Energy-efficient lighting, capacitor systems, load management; no screener breadcrumb; basic industry inferred."
+INE209A01019,ATFL,Agro Tech Foods Ltd.,Fast Moving Consumer Goods,Fast Moving Consumer Goods,Agricultural Food & other Products,Edible Oil,medium,https://www.screener.in/company/SUNDROP/,Kaggle 2024 NSE list says Edible Oil (Sundrop oils); successor Sundrop Brands now shown as Food Products > Packaged Foods.
+INE294A01037,BALLARPUR,Ballarpur Industries Ltd.,Commodities,Forest Materials,"Paper, Forest & Jute Products",Paper & Paper Products,high,https://www.screener.in/company/BALLARPUR/,Screener breadcrumb.
+INE382M01027,BARBEQUE,Barbeque Nation Hospitality Ltd.,Consumer Discretionary,Consumer Services,Leisure Services,Restaurants,high,https://www.screener.in/company/UFBL/,Renamed United Foodbrands (UFBL); Screener breadcrumb.
+INE180K01011,BHARATFIN,Bharat Financial Inclusion Ltd.,Financial Services,Financial Services,Finance,Microfinance Institutions,high,https://en.wikipedia.org/wiki/Bharat_Financial_Inclusion,NBFC-MFI (ex-SKS Microfinance); merged into IndusInd Bank 2019.
+,BINANICEM,Binani Cement Ltd.,Commodities,Construction Materials,Cement & Cement Products,Cement & Cement Products,high,https://www.business-standard.com/article/companies/binani-cement-delisted-from-bourses-111053100205_1.html,Cement maker delisted May 2011; NSE names per Star Cement breadcrumb.
+INE589G01011,BRFL,Bombay Rayon Fashions Ltd.,Consumer Discretionary,Textiles,Textiles & Apparels,Other Textile Products,high,https://www.screener.in/company/BRFL/,Fabrics+garments; Screener breadcrumb.
+INE910H01017,CAIRN,Cairn India Ltd.,Energy,Oil Gas & Consumable Fuels,Oil,Oil Exploration & Production,high,https://en.wikipedia.org/wiki/Cairn_India,Upstream E&P; merged into Vedanta 2017; same NSE label as ONGC.
+INE688I01017,CAPF,Capital First Ltd.,Financial Services,Financial Services,Finance,Non Banking Financial Company (NBFC),high,https://www.screener.in/company/CAPF/consolidated/,RBI-registered NBFC (MSME/consumer loans); screener breadcrumb basic is 'Other Financial Services' - used NBFC as more accurate; merged into IDFC First Bank Dec 2018.
+INE198A01014,CAROLINFO,Carol Info Services Limited,Healthcare,Healthcare,Pharmaceuticals,Pharmaceuticals & Drugs,high,https://www.screener.in/company/CAROLINFO/consolidated/,Owner-supplied classification used. SECTOR changed from FMCG. Note Screener currently shows FMCG > Food Products > Packaged Foods (ex-Wockhardt Life Sciences).
+INE068D01021,CASTEXTECH,Castex Technologies Ltd.,Consumer Discretionary,Automobile and Auto Components,Auto Components,Auto Components & Equipments,high,https://www.screener.in/company/CASTEXTECH/consolidated/,Formerly Amtek India; now Revent Metalcast; Screener breadcrumb.
+INE172A01019,CASTROL,Castrol (India) Ltd.,Energy,Oil Gas & Consumable Fuels,Petroleum Products,Lubricants,high,https://www.screener.in/company/CASTROLIND/,Now trades as CASTROLIND; Screener breadcrumb.
+INE488A01027,CHEMPLAST,Chemplast Sanmar Limited,Commodities,Chemicals,Chemicals & Petrochemicals,Commodity Chemicals,medium,https://en.wikipedia.org/wiki/Chemplast_Sanmar,"PVC resin, caustic soda, hydrogen peroxide; delisted Jun 2012 (relisted 2021 as CHEMPLASTS); basic industry inferred."
+INE492A01029,CLNINDIA,Clariant Chemicals (India) Ltd.,Commodities,Chemicals,Chemicals & Petrochemicals,Dyes And Pigments,medium,https://en.wikipedia.org/wiki/Heubach_Colorants_India,Pigments maker; renamed Heubach Colorants India (HEUBACHIND) 2022; sources cite Dyes And Pigments industry.
+INE314A01017,CMC,CMC Ltd.,Information Technology,Information Technology,IT - Software,Computers - Software & Consulting,medium,https://www.screener.in/company/CMC/consolidated/,"Tata IT services co merged into TCS Oct-2015; breadcrumb not loaded, standard NSE IT services chain."
+INE247G01024,COREEDUTEC,CORE Education & Technologies Ltd.,Consumer Discretionary,Consumer Services,Other Consumer Services,Education,medium,https://www.screener.in/company/COREEDUTEC/,Education solutions/assessment; some sources list IT software; mapped like peer Educomp.
+INE112A01023,CORPBANK,Corporation Bank,Financial Services,Financial Services,Banks,Public Sector Bank,high,https://en.wikipedia.org/wiki/Corporation_Bank,Public sector bank; merged into Union Bank of India Apr 2020.
+INE008I01026,COX&KINGS,Cox & Kings Ltd.,Consumer Discretionary,Consumer Services,Leisure Services,"Tour, Travel Related Services",high,https://www.screener.in/company/COX&KINGS/,Screener breadcrumb.
+INE439L01019,DALMIABHA,Dalmia Bharat Ltd.,Commodities,Construction Materials,Cement & Cement Products,Cement & Cement Products,high,https://trendlyne.com/equity/Dividend/DALMIABHA/304/dalmia-bharat-limited-dividend/,Old Dalmia Bharat (cement holding co) merged into Odisha Cement / new DALBHARAT 2018; listed as Cement & Cement Products.
+INE137G01027,DCHL,Deccan Chronicle Holdings Limited,Consumer Discretionary,Media Entertainment & Publication,Media,Print Media,high,https://www.screener.in/company/DCHL/,Newspaper publisher; NSE label as peer DB Corp.
+INE077A01010,DENABANK,Dena Bank,Financial Services,Financial Services,Banks,Public Sector Bank,high,https://en.wikipedia.org/wiki/Dena_Bank,Public sector bank; merged into Bank of Baroda Apr 2019.
+INE456C01020,DFMFOODS,DFM Foods Ltd.,Fast Moving Consumer Goods,Fast Moving Consumer Goods,Food Products,Packaged Foods,high,https://www.screener.in/company/DFMFOODS/,Screener breadcrumb.
+INE274G01010,DHANI,Dhani Services Ltd.,Financial Services,Financial Services,Finance,Other Financial Services,high,https://www.screener.in/company/DHANI/consolidated/,Formerly Indiabulls Ventures; Screener breadcrumb.
+INE202B01012,DHFL,Dewan Housing Finance Corporation Ltd.,Financial Services,Financial Services,Finance,Housing Finance Company,high,https://www.investonline.in/markets/stocks/INE202B07IO3/935840/dhfl/np/dewan-housing-finance-corporation-ltd-925dhfl23b,Housing finance company; label as peer LIC Housing Finance.
+INE353G01020,DISHMAN,Dishman Pharmaceuticals & Chemicals Ltd.,Healthcare,Healthcare,Pharmaceuticals,Pharmaceuticals & Drugs,high,https://www.screener.in/company/DISHMAN/,Screener breadcrumb Healthcare>Pharmaceuticals & Biotechnology>Pharmaceuticals; INDUSTRY/BASIC labels follow owner's example convention. CRAMS/API; merged into Dishman Carbogen Amcis 2017.
+INE928K01013,DRDATSONS,Dr. Datsons Labs Ltd.,Healthcare,Healthcare,Pharmaceuticals,Pharmaceuticals & Drugs,high,https://www.screener.in/company/DRDATSONS/,Screener breadcrumb.
+INE891A01014,DSKULKARNI,D. S. Kulkarni Developers Ltd.,Consumer Discretionary,Realty,Realty,"Residential, Commercial Projects",high,https://www.screener.in/company/DSKULKARNI/,Pune real estate developer; Screener breadcrumb.
+INE216H01027,EDUCOMP,Educomp Solutions Ltd.,Consumer Discretionary,Consumer Services,Other Consumer Services,Education,high,https://www.screener.in/company/EDUCOMP/,Screener breadcrumb.
+INE975A01015,ELDERPHARM,Elder Pharmaceuticals Ltd.,Healthcare,Healthcare,Pharmaceuticals,Pharmaceuticals & Drugs,high,https://www.screener.in/company/ELDERPHARM/,Screener breadcrumb Healthcare>Pharmaceuticals & Biotechnology>Pharmaceuticals; INDUSTRY/BASIC labels follow owner's example convention.
+INE988K01017,EQUITAS,Equitas Holdings Ltd.,Financial Services,Financial Services,Finance,Investment Company,high,https://www.screener.in/company/EQUITAS/consolidated/,Screener breadcrumb; holding co of Equitas SFB.
+INE039E01020,ERAINFRA,Era Infra Engineering Ltd.,Industrials,Construction,Construction,Civil Construction,high,https://www.screener.in/company/ERAINFRA/,"EPC construction contractor; breadcrumb not loaded, peers (IVRCL, ITNL) show Civil Construction."
+INE416L01017,EROSMEDIA,Eros Intl Media Ltd.,Consumer Discretionary,Media Entertainment & Publication,Entertainment,"Film Production, Distribution & Exhibition",high,https://www.screener.in/company/EROSMEDIA/,Screener breadcrumb; matches kaggle.
+INE011A01019,ESSAROIL,Essar Oil Ltd.,Energy,Oil Gas & Consumable Fuels,Petroleum Products,Refineries & Marketing,high,https://www.business-standard.com/article/companies/essar-oil-completes-largest-delisting-115123000303_1.html,Vadinar refinery + fuel retail (now Nayara Energy); delisted 2016.
+,ESSARSHIP,Essar Shipping Ports & Logistics Limited,Services,Services,Transport Services,Shipping,medium,https://www.screener.in/company/ESSARSHPNG/,Old Essar Shipping Ports & Logistics (shipping main business); NSE names from successor Essar Shipping breadcrumb.
+INE825H01017,ESSDEE,Ess Dee Aluminium Ltd.,Fast Moving Consumer Goods,Fast Moving Consumer Goods,Household Products,Household Products,medium,https://www.screener.in/company/ESSDEE/,"SECTOR changed from Capital Goods: Screener (NSE-based) breadcrumb shows FMCG > Household Products for this pharma aluminium-foil packaging maker; by business, Capital Goods > Packaging would also be defensible."
+INE223G01017,EXCELCROP,Excel Crop Care Ltd.,Commodities,Chemicals,Fertilizers & Agrochemicals,Pesticides & Agrochemicals,high,https://www.screener.in/company/EXCELCROP/,Agrochemicals; merged into Sumitomo Chemical India 2019 (same label).
+INE220J01025,FCONSUMER,Future Consumer Ltd.,Consumer Discretionary,Consumer Services,Retailing,Diversified Retail,high,https://www.screener.in/company/FCONSUMER/consolidated/,"SECTOR CHANGED from FMCG: screener (NSE) breadcrumb puts it in Retailing > Diversified Retail, though business is food/FMCG sourcing and brands."
+INE623B01027,FEL,Future Enterprises Ltd.,Consumer Discretionary,Consumer Services,Retailing,Diversified Retail,high,https://www.screener.in/company/FEL/,Screener breadcrumb; matches kaggle.
+INE492B01019,FIRSTLEASE,First Leasing Co. of India Ltd.,Financial Services,Financial Services,Finance,Non Banking Financial Company (NBFC),high,https://www.moneyworks4me.com/indianstocks/small-cap/bfsi/finance-nbfc/first-leasing-co/company-info,Leasing/asset finance NBFC; delisted 2018.
+INE575G01010,FKONCO,Fresenius Kabi Oncology Limited,Healthcare,Healthcare,Pharmaceuticals,Pharmaceuticals & Drugs,high,https://www.screener.in/company/FKONCO/,Oncology drugs; Screener breadcrumb.
+INE060J01017,FLEXITUFF,Flexituff International Ltd.,Consumer Discretionary,Textiles,Textiles & Apparels,Other Textile Products,high,https://www.screener.in/company/FLEXITUFF/consolidated/,Screener breadcrumb; matches kaggle (FIBC/technical textiles).
+INE452O01016,FLFL,Future Lifestyle Fashions Ltd.,Consumer Discretionary,Consumer Services,Retailing,Diversified Retail,high,https://www.screener.in/company/FLFL/,Screener breadcrumb; matches kaggle.
+INE752P01024,FRETAIL,Future Retail Ltd.,Consumer Discretionary,Consumer Services,Retailing,Diversified Retail,high,https://www.screener.in/company/FRETAIL/,Big Bazaar operator; Screener breadcrumb.
+INE220J01017,FUTUREVENT,Future Ventures India Limited,Consumer Discretionary,Consumer Services,Retailing,Diversified Retail,low,https://www.screener.in/company/FCONSUMER/,"Became Future Consumer (FCONSUMER), labelled Diversified Retail; in 2010-13 a Future Group consumer-brands venture company, so FMCG also plausible. Sector differs from first pass (FMCG)."
+INE181G01025,GAMMNINFRA,Gammon Infrastructure Projects Ltd.,Industrials,Construction,Construction,Civil Construction,high,https://www.screener.in/company/532959/,Screener breadcrumb for AJR Infra & Tolling (renamed Gammon Infrastructure Projects).
+INE259B01020,GAMMONIND,Gammon India Ltd.,Industrials,Construction,Construction,Civil Construction,high,https://www.screener.in/company/GAMMONIND/consolidated/,Screener breadcrumb.
+INE526A01016,GARDENSILK,Garden Silk Mills Ltd.,Consumer Discretionary,Textiles,Textiles & Apparels,Other Textile Products,medium,https://www.indiantextilemagazine.in/garden-silk-mills-reinvents-integrated-polyester-manufacturing/,Polyester filament yarn/fabrics maker; breadcrumb not loaded; basic industry inferred from peer Filatex (Other Textile Products).
+INE852F01015,GDL,Gateway Distriparks Ltd.,Services,Services,Transport Services,Logistics Solution Provider,high,https://www.screener.in/company/GDL/,CFS/ICD logistics; Screener breadcrumb.
+INE371D01029,GEODESIC,Geodesic Ltd.,Information Technology,Information Technology,IT - Software,Computers - Software & Consulting,high,https://www.moneyworks4me.com/indianstocks/small-cap/it-ites/it-software/geodesic/company-info,Software products (Mundu IM/VoIP); IT-Software per Moneyworks4me; no screener breadcrumb.
+INE797A01021,GEOMETRIC,Geometric Ltd.,Information Technology,Information Technology,IT - Software,Computers - Software & Consulting,medium,https://www.moneyworks4me.com/indianstocks/small-cap/it-ites/it-software/geometric/company-info,PLM/engineering software services; merged into HCL Tech 2016; basic industry inferred.
+INE346H01014,GITANJALI,Gitanjali Gems Ltd.,Consumer Discretionary,Consumer Durables,Consumer Durables,"Gems, Jewellery And Watches",high,https://www.screener.in/company/GITANJALI/,Screener breadcrumb.
+INE446C01013,GLOBOFFS,Global Offshore Services Ltd.,Services,Services,Transport Services,Shipping,high,https://www.screener.in/company/GLOBOFFS/,Offshore support vessels; Screener breadcrumb. Sector differs from first pass (Oil Gas): NSE puts vessel operators under Shipping.
+INE533A01012,GOODYEAR,Goodyear India Ltd.,Consumer Discretionary,Automobile and Auto Components,Auto Components,Tyres & Rubber Products,high,https://www.screener.in/company/GOODYEAR/,Screener breadcrumb.
+,GRAUWEIL,Grauer & Weil (India) Ltd.,Commodities,Chemicals,Chemicals & Petrochemicals,Commodity Chemicals,high,https://www.screener.in/company/GRAUWEIL/consolidated/,Screener breadcrumb.
+INE580B01029,GRUH,Gruh Finance Ltd.*,Financial Services,Financial Services,Finance,Housing Finance Company,high,https://upstox.com/banking/gruh-finance-and-bandhan-bank-merger/,HDFC-promoted affordable housing finance co; merged into Bandhan Bank Oct-2019.
+INE264A01014,GSKCONS,GlaxoSmithkline Consumer Healthcare Ltd.*,Fast Moving Consumer Goods,Fast Moving Consumer Goods,Food Products,Packaged Foods,high,https://www.screener.in/company/GSKCONS/,Horlicks; merged into HUL 2020; Screener breadcrumb.
+INE892H01017,GTOFFSHORE,GOL Offshore Ltd.,Energy,Oil Gas & Consumable Fuels,Oil,Oil Equipment & Services,high,https://www.screener.in/company/GTOFFSHORE/,Screener breadcrumb; offshore oilfield services (ex-Great Offshore).
+INE538A01037,GUJFLUORO,Gujarat Fluorochemicals Ltd.,Commodities,Chemicals,Chemicals & Petrochemicals,Specialty Chemicals,medium,https://www.screener.in/company/FLUOROCHEM/,Pre-2019 fluorochemicals business (demerged to new GFL/FLUOROCHEM 2019); this ISIN later became GFL Ltd holding co.
+INE110D01013,GUJNRECOKE,Gujarat NRE Coke Ltd.,Energy,Oil Gas & Consumable Fuels,Consumable Fuels,Coal,high,https://www.screener.in/company/GUJNRECOKE/,Met coke + Australian coking coal; Screener breadcrumb.
+INE374A01029,GUJRATGAS,Gujarat Gas Co. Ltd.,Energy,Oil Gas & Consumable Fuels,Gas,LPG/CNG/PNG/LNG Supplier,high,https://en.wikipedia.org/wiki/Gujarat_Gas,City gas distributor merged into GSPC Gas (new Gujarat Gas) 2015; CGD label as Gujarat group gas cos on Screener.
+INE236A01020,HCL-INSYS,HCL Infosystems Ltd.,Information Technology,Information Technology,IT - Hardware,Computers Hardware & Equipments,high,https://www.screener.in/company/HCL-INSYS/,Screener breadcrumb; matches kaggle.
+INE001A01036,HDFC,Housing Development Finance Corporation Ltd.,Financial Services,Financial Services,Finance,Housing Finance Company,high,https://www.screener.in/company/HDFC/,Screener breadcrumb.
+INE093A01033,HEXAWARE,Hexaware Technologies Ltd.*,Information Technology,Information Technology,IT - Software,Computers - Software & Consulting,high,https://www.screener.in/company/HEXT/consolidated/,"Delisted 2020, relisted 2025 as HEXT; Screener breadcrumb."
+INE557A01011,HIL,HIL Ltd.,Commodities,Construction Materials,Other Construction Materials,Other Construction Materials,high,https://www.screener.in/company/509675/,Fibre cement roofing/AAC blocks (now BirlaNu); kaggle 2024 Furniture label reflects later flooring business.
+,HIMACHLFUT,Himachal Futuristic Communications,Telecommunication,Telecommunication,Telecom - Services,Telecom - Infrastructure,high,https://www.screener.in/company/HFCL/consolidated/,"Now HFCL; screener breadcrumb (optical fibre cable, telecom equipment and infra). No ISIN in input."
+,HINDMOTOR,Hindustan Motors Ltd.,Consumer Discretionary,Automobile and Auto Components,Automobiles,Passenger Cars & Utility Vehicles,high,https://www.screener.in/company/HINDMOTORS/,Screener breadcrumb (symbol HINDMOTORS); ISIN not in input.
+INE800B01013,HINVDIR,HSBC Invest Direct (India) Limited,Financial Services,Financial Services,Finance,Other Financial Services,medium,https://www.screener.in/company/id/1272648/consolidated/,ISIN INE800B01013 from search (blank in input). Broking + NBFC; Screener breadcrumb says Other Financial Services.
+INE102A01024,HOTELEELA,Hotel Leela Venture Ltd.,Consumer Discretionary,Consumer Services,Leisure Services,Hotels & Resorts,high,https://www.screener.in/company/HLVLTD/,Now HLV Ltd; Screener breadcrumb.
+INE306B01029,ICSA,ICSA (India) Ltd.,Industrials,Construction,Construction,Civil Construction,high,https://www.screener.in/company/ICSA/,SECTOR CHANGED from Information Technology: screener breadcrumb is Construction > Civil Construction (power T&D contracts were main revenue alongside embedded solutions).
+INE043D01016,IDFC,IDFC Ltd.,Financial Services,Financial Services,Finance,Holding Company,high,https://www.screener.in/company/IDFC/,Screener breadcrumb; matches kaggle.
+INE975G01012,IL&FSTRANS,IL&FS Transportation Networks Ltd.,Industrials,Construction,Construction,Civil Construction,high,https://www.screener.in/company/IL&FSTRANS/,BOT roads developer; Screener breadcrumb.
+INE894F01025,INDIABULLS,Indiabulls Financial Services Limited,Financial Services,Financial Services,Finance,Other Financial Services,medium,https://www.screener.in/company/INDIABULLS/,Screener breadcrumb; business was NBFC/housing finance (reverse-merged into Indiabulls Housing 2013).
+INE189B01011,INEOSSTYRO,INEOS Styrolution India Ltd.,Commodities,Chemicals,Chemicals & Petrochemicals,Specialty Chemicals,high,https://www.screener.in/company/STYRENIX/,Screener breadcrumb (renamed Styrenix Performance Materials 2023); ABS/SAN/polystyrene.
+INE486J01014,INFINITE,Infinite Computer Solutions (India) Ltd,Information Technology,Information Technology,IT - Software,Computers - Software & Consulting,medium,https://www.business-standard.com/article/markets/infinite-computer-solutions-zooms-20-on-voluntary-delisting-plan-118010900368_1.html,IT services company delisted Dec 2018; basic industry inferred.
+INE166A01011,INGVYSYABK,ING Vysya Bank Ltd.,Financial Services,Financial Services,Banks,Private Sector Bank,high,https://www.globenewswire.com/news-release/2015/04/07/721979/0/en/ING-Vysya-Bank-completes-merger-with-Kotak-Mahindra-Bank.html,Private sector bank merged into Kotak Mahindra Bank Apr-2015.
+INE549I01011,INNOIND,Innoventive Industries Ltd.,Industrials,Capital Goods,Industrial Products,Iron & Steel Products,high,https://www.screener.in/company/INNOIND/,Precision steel tubes; Screener breadcrumb. Sector differs from first pass (Metals & Mining): tube makers are NSE Iron & Steel Products.
+INE312H01016,INOXLEISUR,Inox Leisure Ltd.,Consumer Discretionary,Media Entertainment & Publication,Entertainment,"Film Production, Distribution & Exhibition",high,https://www.screener.in/company/INOXLEISUR/consolidated/,"Screener breadcrumb; multiplex operator, merged into PVR 2023."
+INE763G01038,ISEC,ICICI Securities Ltd.,Financial Services,Financial Services,Capital Markets,Stockbroking & Allied,high,https://www.screener.in/company/ISEC/,Screener breadcrumb; matches kaggle.
+INE875A01025,IVRCLINFRA,IVRCL Ltd.,Industrials,Construction,Construction,Civil Construction,high,https://www.screener.in/company/IVRCLINFRA/,Screener breadcrumb.
+INE187A01017,JBFIND,JBF Industries Ltd.,Commodities,Chemicals,Chemicals & Petrochemicals,Petrochemicals,high,https://www.screener.in/company/JBFIND/,Polyester chips/PET resin and POY; Screener breadcrumb. Sector differs from first pass (Textiles).
+INE802G01018,JETAIRWAYS,Jet Airways (India) Ltd.,Services,Services,Transport Services,Airline,high,https://www.screener.in/company/JETAIRWAYS/,Screener breadcrumb; matches kaggle.
+INE890A01024,JMCPROJECT,JMC Projects (India) Ltd.,Industrials,Construction,Construction,Civil Construction,high,https://www.screener.in/company/JMCPROJECT/,Screener breadcrumb.
+INE988E01036,JMTAUTOLTD,JMT Auto Ltd.,Consumer Discretionary,Automobile and Auto Components,Auto Components,Auto Components & Equipments,high,https://www.screener.in/company/JMTAUTOLTD/,Gears/transmission parts; Screener breadcrumb.
+INE099J01015,JPINFRATEC,Jaypee Infratech Ltd.,Industrials,Construction,Construction,Civil Construction,high,https://www.screener.in/company/JPINFRATEC/,Yamuna Expressway + land development; Screener breadcrumb (some sources say Realty).
+INE455T01018,JSLHISAR,Jindal Stainless (Hisar) Ltd.,Industrials,Capital Goods,Industrial Products,Iron & Steel Products,high,https://www.screener.in/company/JSLHISAR/consolidated/,SECTOR CHANGED from Metals & Mining: screener (NSE) breadcrumb is Capital Goods > Industrial Products > Iron & Steel Products (stainless flat products).
+INE136A01022,JSWISPAT,JSW ISPAT Steel Limited,Commodities,Metals & Mining,Ferrous Metals,Iron & Steel,high,https://en.wikipedia.org/wiki/JSW_Ispat_Steel,Integrated steel maker (ex-Ispat Industries) merged into JSW Steel; NSE names per JSWSTEEL breadcrumb.
+INE743C01021,JSWISPL,JSW Ispat Special Products Ltd.,Industrials,Capital Goods,Industrial Products,Iron & Steel Products,medium,https://www.screener.in/company/JSWISPL/consolidated/,SECTOR changed from Metals & Mining: Screener (NSE-based) breadcrumb shows Capital Goods > Iron & Steel Products. Formerly Monnet Ispat & Energy (sponge iron/steel); merged into JSW Steel 2023.
+INE990B01012,KEMROCK,Kemrock Industries and Exports Ltd.,Industrials,Capital Goods,Industrial Products,Plastic Products - Industrial,medium,https://www.screener.in/company/KEMROCK/,"FRP/GRP composites and carbon fibre; no NSE label found, mapped like industrial plastics peers (Supreme Inds)."
+INE717A01029,KENNAMET,Kennametal India Ltd.,Industrials,Capital Goods,Industrial Manufacturing,Industrial Products,high,https://www.screener.in/company/KENNAMET/,Screener breadcrumb; carbide tools/machining solutions.
+INE299C01024,KGL,Karuturi Global Ltd.,Fast Moving Consumer Goods,Fast Moving Consumer Goods,Agricultural Food & other Products,Other Agricultural Products,high,https://www.screener.in/company/KGL/,Screener breadcrumb (cut roses/floriculture).
+INE884B01025,KIRLFER,Kirloskar Ferrous Industries Ltd.,Commodities,Metals & Mining,Ferrous Metals,Pig Iron,high,https://www.screener.in/company/KIRLFER/,Screener breadcrumb.
+,KIRLOSOIL,Kirloskar Oil Engines Limited,Industrials,Capital Goods,Industrial Products,"Compressors, Pumps & Diesel Engines",high,https://www.screener.in/company/KIRLOSENG/,Diesel engines/gensets; now NSE KIRLOSENG; no ISIN in input.
+INE080B01012,KOHINOOR,Kohinoor Foods Ltd.,Fast Moving Consumer Goods,Fast Moving Consumer Goods,Agricultural Food & other Products,Other Agricultural Products,high,https://www.screener.in/company/KOHINOOR/,Screener breadcrumb; matches kaggle.
+INE406I01014,KOUTONS,Koutons Retail India Ltd.,Consumer Discretionary,Textiles,Textiles & Apparels,Garments & Apparels,low,https://www.moneyworks4me.com/indianstocks/small-cap/textiles-apparels/textile/koutons-retail-india/company-info,Integrated own-brand apparel maker/retailer; Consumer Services > Retailing > Speciality Retail also plausible.
+INE836A01035,KPIT,KPIT Technologies Ltd.,Information Technology,Information Technology,IT - Software,Computers - Software & Consulting,high,https://www.birlasoft.com/company/investors/mergers-and-acquisitions,"ISIN INE836A01035 = old KPIT Technologies, renamed Birlasoft (BSOFT) Jan-2019 after engineering demerger; IT services either way."
+INE143H01015,KSK,KSK Energy Ventures Ltd.,Utilities,Power,Power,Power Generation,high,https://www.screener.in/company/KSK/,Thermal IPP; Screener breadcrumb.
+INE727D01022,KSOILS,K S Oils Limited,Fast Moving Consumer Goods,Fast Moving Consumer Goods,Agricultural Food & other Products,Edible Oil,high,https://www.crunchbase.com/organization/k-s-oils,"Integrated edible oil (mustard/soya/palm, Kalash brand); no screener breadcrumb."
+INE775B01025,KWALITY,Kwality Ltd.,Fast Moving Consumer Goods,Fast Moving Consumer Goods,Food Products,Dairy Products,high,https://www.screener.in/company/KWALITY/,Screener breadcrumb.
+INE992B01026,LAKSHMIEFL,Lakshmi Energy & Foods Ltd.,Fast Moving Consumer Goods,Fast Moving Consumer Goods,Agricultural Food & other Products,Other Agricultural Products,high,https://www.screener.in/company/LAKSHMIEFL/,Basmati rice processor; Screener breadcrumb.
+INE694C01018,LAKSHVILAS,Lakshmi Vilas Bank Ltd.,Financial Services,Financial Services,Banks,Private Sector Bank,high,https://en.wikipedia.org/wiki/Lakshmi_Vilas_Bank,Private bank merged into DBS India 2020.
+INE785C01048,LITL,Lanco Infratech Ltd.,Industrials,Construction,Construction,Civil Construction,medium,https://www.screener.in/company/LITL/,EPC/construction plus power generation (claimed largest IPP 2011); no screener breadcrumb. Classified as EPC/construction; Power > Integrated Power Utilities is a plausible alternative.
+INE850A01010,MAHINDUGIN,Mahindra Ugine Steel Co. Ltd.,Commodities,Metals & Mining,Ferrous Metals,Iron & Steel,medium,https://www.indiainfoline.com/company/mahindra-ugine-steel-company-ltd-merged/summary,Alloy/special steel maker (also auto stampings); merged into Mahindra CIE 2014; basic industry inferred.
+INE087J01010,MANDHANA,Mandhana Industries Ltd.,Consumer Discretionary,Textiles,Textiles & Apparels,Garments & Apparels,high,https://www.screener.in/company/GBGLOBAL/,Renamed GB Global Ltd; Screener breadcrumb.
+INE558B01017,MANGCHEFER,Mangalore Chemicals & Fertilizers Ltd.,Commodities,Chemicals,Fertilizers & Agrochemicals,Fertilizers,high,https://www.screener.in/company/MANGCHEFER/,Screener breadcrumb; matches kaggle.
+INE122R01018,MANPASAND,Manpasand Beverages Ltd.,Fast Moving Consumer Goods,Fast Moving Consumer Goods,Beverages,Other Beverages,high,https://www.screener.in/company/MANPASAND/,Screener breadcrumb; fruit drinks (Mango Sip).
+INE153U01017,MAXINDIA,Max India Ltd.,Financial Services,Financial Services,Finance,Holding Company,low,https://www.screener.in/company/MAXINDIA/,Old Max India (2016-2020) = investment holding co of Max Healthcare/Max Bupa/Antara. SECTOR changed from Healthcare; Healthcare > Hospital also plausible.
+INE934B01028,MERCATOR,Mercator Ltd.,Energy,Oil Gas & Consumable Fuels,Consumable Fuels,Coal,medium,https://www.screener.in/company/MERCATOR/consolidated/,SECTOR changed from Services: Screener breadcrumb shows Coal; coal mining/trading was ~58% of revenue already in FY11 (shipping/dredging the rest).
+INE425A01011,METALFORGE,Metalyst Forgings Ltd.,Consumer Discretionary,Automobile and Auto Components,Auto Components,Auto Components & Equipments,high,https://www.screener.in/company/METALFORGE/,Axle beams/crankshafts; Screener breadcrumb.
+,MICRO,Micro Inks Limited,Commodities,Chemicals,Chemicals & Petrochemicals,Specialty Chemicals,medium,https://packagingsouthasia.com/type-of-packaging/labels/micro-inks-renamed/,"Printing inks maker (Hubergroup subsidiary, renamed Hubergroup India 2015, delisted); basic industry inferred. No ISIN in input."
+,MID-DAY,Mid-Day Multimedia Ltd.,Consumer Discretionary,Media Entertainment & Publication,Media,Print Media,medium,https://en.wikipedia.org/wiki/Mid-Day,Newspaper publisher (print business sold to Jagran 2010); basic industry inferred; ISIN not in input.
+INE018I01017,MINDTREE,MindTree Ltd.,Information Technology,Information Technology,IT - Software,Computers - Software & Consulting,high,https://en.wikipedia.org/wiki/Mindtree,IT services; merged with LTI Nov-2022 (LTIMindtree). Standard NSE IT services chain.
+INE743C01013,MONNETISPA,Monnet Ispat and Energy Ltd.,Industrials,Capital Goods,Industrial Products,Iron & Steel Products,medium,https://www.screener.in/company/JSWISPL/,"Sponge iron/steel/ferro alloys; renamed JSW Ispat Special Products, labelled Iron & Steel Products. Sector differs from first pass (Metals & Mining); Ferrous Metals > Iron & Steel also plausible."
+INE274B01011,MONSANTO,Monsanto India Ltd.,Commodities,Chemicals,Fertilizers & Agrochemicals,Pesticides & Agrochemicals,high,https://www.screener.in/company/MONSANTO/,Herbicides (Roundup) + hybrid seeds; screener text says Agro Chemicals; merged into Bayer CropScience.
+INE739A01015,MOSERBAER,Moser Baer India Ltd.,Information Technology,Information Technology,IT - Hardware,Computers Hardware & Equipments,medium,https://www.topstockresearch.com/INDIAN_STOCKS/COMPUTERS_HARDWARE/Moser_Baer_India_Ltd.html,Optical/storage media maker classed Computers-Hardware; liquidated 2018.
+INE472M01018,MTEDUCARE,MT Educare Ltd.,Consumer Discretionary,Consumer Services,Other Consumer Services,Education,high,https://www.screener.in/company/MTEDUCARE/consolidated/,Screener breadcrumb.
+INE744I01034,MVL,MVL Ltd.,Consumer Discretionary,Realty,Realty,"Residential, Commercial Projects",high,https://www.screener.in/company/MVL/,Screener breadcrumb.
+INE651A01020,MYSOREBANK,State Bank of Mysore,Financial Services,Financial Services,Banks,Public Sector Bank,high,https://en.wikipedia.org/wiki/State_Bank_of_Mysore,SBI associate (public sector) bank; merged into SBI Apr 2017.
+INE580A01013,NAGARFERT,Nagarjuna Fertilizers & Chemicals Ltd.,Commodities,Chemicals,Fertilizers & Agrochemicals,Fertilizers,high,https://www.screener.in/company/NAGAFERT/,Breadcrumb of successor NAGAFERT; old NFCL restructured 2011.
+INE091A01029,NIRMA,Nirma Ltd.,Fast Moving Consumer Goods,Fast Moving Consumer Goods,Household Products,Household Products,medium,https://www.nirmalbang.com/company/nirma/100308,ISIN INE091A01029 from search (blank in input). Detergents/soaps; also large soda ash/LAB chemicals business; delisted Mar-2012.
+INE489H01020,NITINFIRE,Nitin Fire Protection Industries Ltd.,Industrials,Capital Goods,Industrial Manufacturing,Industrial Products,high,https://www.screener.in/company/NITINFIRE/,Fire protection systems; Screener breadcrumb.
+INE781B01015,NOIDATOLL,Noida-Toll Bridge Co. Ltd.,Services,Services,Transport Infrastructure,"Road Assets-Toll, Annuity, Hybrid-Annuity",high,https://www.screener.in/company/NOIDATOLL/,SECTOR CHANGED from Construction: screener (NSE) breadcrumb is Services > Transport Infrastructure > Road Assets (DND Flyway toll); matches kaggle basic.
+INE234A01025,NOVARTIND,Novartis India Ltd.,Healthcare,Healthcare,Pharmaceuticals,Pharmaceuticals & Drugs,high,https://www.screener.in/company/NOVARTIND/,Screener breadcrumb.
+INE321D01016,OCCL,Oriental Carbon & Chemicals Ltd.,Commodities,Chemicals,Chemicals & Petrochemicals,Commodity Chemicals,high,https://www.screener.in/company/OCCL/,Insoluble sulphur; old-ISIN entity now AG Ventures after demerger; Screener breadcrumb.
+INE290B01025,OCL,OCL India Ltd.,Commodities,Construction Materials,Cement & Cement Products,Cement & Cement Products,high,https://www.screener.in/company/OCL/,Cement + refractories; Screener breadcrumb.
+INE912L01015,ONELIFECAP,Onelife Capital Advisors Ltd.,Financial Services,Financial Services,Capital Markets,Stockbroking & Allied,high,https://www.screener.in/company/ONELIFECAP/,Screener breadcrumb; matches kaggle.
+,ONIDA,MIRC Electronics Ltd (Onida),Consumer Discretionary,Consumer Durables,Consumer Durables,Consumer Electronics,high,https://www.screener.in/company/ONIDA/,"MIRC Electronics Ltd (Onida brand; ex-symbol MIRCELECTR), renamed Onida Electronics 2026; ISIN not in input."
+INE808B01016,OPTOCIRCUI,Opto Circuits (I) Ltd.,Healthcare,Healthcare,Healthcare Equipment & Supplies,Medical Equipment & Supplies,high,https://www.screener.in/company/OPTOCIRCUI/,Screener breadcrumb.
+INE628H01015,ORBITCORP,Orbit Corporation Ltd.,Consumer Discretionary,Realty,Realty,"Residential, Commercial Projects",high,https://www.screener.in/company/ORBITCORP/,Mumbai real estate developer.
+INE191A01019,ORCHIDPHAR,Orchid Chemicals & Pharmaceuticals Ltd.,Healthcare,Healthcare,Pharmaceuticals,Pharmaceuticals & Drugs,high,https://www.screener.in/company/ORCHPHARMA/,"Orchid Chemicals & Pharmaceuticals (renamed Orchid Pharma, now ORCHPHARMA). Screener breadcrumb Healthcare>Pharmaceuticals & Biotechnology>Pharmaceuticals; INDUSTRY/BASIC labels follow owner's example convention. Company name blank in input."
+INE141A01014,ORIENTBANK,Oriental Bank of Commerce,Financial Services,Financial Services,Banks,Public Sector Bank,high,https://en.wikipedia.org/wiki/Oriental_Bank_of_Commerce,PSU bank merged into PNB Apr 2020.
+INE660F01012,PATNI,Patni Computer Systems Ltd.,Information Technology,Information Technology,IT - Software,Computers - Software & Consulting,high,https://en.wikipedia.org/wiki/Patni_Computer_Systems,IT services; delisted 2012 after iGate takeover. Standard NSE IT services chain.
+INE140A01024,PEL,Piramal Enterprises Ltd.,Financial Services,Financial Services,Finance,Non Banking Financial Company (NBFC),medium,https://www.screener.in/company/PEL/,NSE/Screener/kaggle label NBFC; pharma was main business ~2010-15 and financial services became largest later. Sector differs from first pass (Healthcare).
+INE763A01023,POLARIS,Polaris Consulting & Services Ltd.,Information Technology,Information Technology,IT - Software,Computers - Software & Consulting,high,https://www.screener.in/company/532254/,"IT services/software for financial services; acquired by Virtusa 2016, delisted 2018."
+INE605A01026,PRICOL,Pricol Ltd.,Consumer Discretionary,Automobile and Auto Components,Auto Components,Auto Components & Equipments,high,https://www.screener.in/company/PRICOLLTD/,Old Pricol merged into Pricol Pune (now Pricol Ltd) 2016; successor breadcrumb.
+INE968G01033,PROVOGE,Provogue (India) Ltd.,Consumer Discretionary,Textiles,Textiles & Apparels,Garments & Apparels,medium,https://www.screener.in/company/PROVOGE/consolidated/,Branded apparel maker/retailer; breadcrumb not loaded; could alternatively be Speciality Retail.
+INE474B01017,PSL,PSL Ltd.,Industrials,Capital Goods,Industrial Products,Iron & Steel Products,high,https://www.screener.in/company/PSL/,Coated steel pipes; Screener breadcrumb. Sector differs from first pass (Metals & Mining).
+INE701B01021,PUNJLLOYD,Punj Lloyd Ltd.,Industrials,Construction,Construction,Civil Construction,high,https://www.screener.in/company/PUNJLLOYD/,Screener breadcrumb; EPC contractor.
+INE015A01028,RANBAXY,Ranbaxy Laboratories Ltd.,Healthcare,Healthcare,Pharmaceuticals,Pharmaceuticals & Drugs,high,https://www.screener.in/company/RANBAXY/,Screener breadcrumb.
+INE904G01038,RASOYPR,Rasoya Proteins Ltd.,Fast Moving Consumer Goods,Fast Moving Consumer Goods,Agricultural Food & other Products,Edible Oil,medium,https://www.investing.com/equities/rasoya-prot-company-profile,"Soyabean solvent extraction/refined oil; breadcrumb not loaded, chain from peer Patanjali Foods."
+INE385B01031,REIAGROLTD,Rei Agro Ltd.,Fast Moving Consumer Goods,Fast Moving Consumer Goods,Food Products,Packaged Foods,high,https://www.screener.in/company/REIAGROLTD/,Basmati rice; Screener breadcrumb.
+INE013A01015,RELCAPITAL,Reliance Capital Ltd.,Financial Services,Financial Services,Finance,Investment Company,high,https://www.screener.in/company/RELCAPITAL/consolidated/,"Screener breadcrumb; holding co. for ADAG financial businesses (insurance, lending, AMC)."
+INE540B01015,RELMEDIA,Reliance MediaWorks Ltd.,Consumer Discretionary,Media Entertainment & Publication,Entertainment,"Film Production, Distribution & Exhibition",medium,https://en.wikipedia.org/wiki/Reliance_MediaWorks,Film exhibition (BIG Cinemas) and film/media services; basic industry inferred.
+INE542F01012,RNAVAL,Reliance Naval and Engineering Ltd.,Industrials,Capital Goods,Industrial Manufacturing,Ship Building & Allied Services,high,https://www.screener.in/company/SWANDEF/,Now Swan Defence and Heavy Industries; Screener breadcrumb.
+,RNRL,Reliance Natural Resources Ltd.,Energy,Oil Gas & Consumable Fuels,Gas,Trading - Gas,medium,https://en.wikipedia.org/wiki/Reliance_Natural_Resources_Limited,Gas/coal sourcing and supply; merged into Reliance Power 2010; no ISIN in input.
+INE293A01013,ROLTA,Rolta India Ltd.,Information Technology,Information Technology,IT - Services,IT Enabled Services,high,https://www.screener.in/company/ROLTA/consolidated/,Screener breadcrumb.
+INE619A01027,RUCHISOYA,Ruchi Soya Industries Ltd.,Fast Moving Consumer Goods,Fast Moving Consumer Goods,Agricultural Food & other Products,Edible Oil,high,https://www.screener.in/company/PATANJALI/,Now Patanjali Foods; screener breadcrumb.
+INE648A01026,SBBJ,State Bank of Bikaner & Jaipur Ltd.,Financial Services,Financial Services,Banks,Public Sector Bank,high,https://en.wikipedia.org/wiki/State_Bank_of_Bikaner_&_Jaipur,SBI associate bank merged into SBI Apr-2017.
+INE654A01024,SBT,State Bank of Travancore,Financial Services,Financial Services,Banks,Public Sector Bank,high,https://www.screener.in/company/SBT/,SBI associate bank merged into SBI 2017.
+INE420C01042,SEINV,S.E. Investments Ltd.,Financial Services,Financial Services,Finance,Non Banking Financial Company (NBFC),medium,https://tracxn.com/d/legal-entities/india/s.e.investment-limited/__AE0u79TBnZMCYNPIozP9kqQrEDheNKg3Tt4nCWjVZYc,Agra-based NBFC (hire-purchase/loan financing); no screener page.
+INE935O01010,SFCL,Star Ferro & Cement Ltd.,Commodities,Construction Materials,Cement & Cement Products,Cement & Cement Products,medium,https://www.screener.in/company/STARCEMENT/,Parent of Star Cement (also ferroalloys until 2015); merged into Star Cement 2017.
+INE317A01028,SHASUNPHAR,Shasun Pharmaceuticals Ltd.,Healthcare,Healthcare,Pharmaceuticals,Pharmaceuticals & Drugs,high,https://www.screener.in/company/SHASUNPHAR/consolidated/,API/formulations; merged into Strides 2015. Pharma INDUSTRY/BASIC follow owner example naming; Screener shows Pharmaceuticals & Biotechnology > Pharmaceuticals.
+INE510K01019,SHILPI,Shilpi Cable Tech Ltd.,Industrials,Capital Goods,Industrial Products,Cables - Electricals,high,https://www.screener.in/company/SHILPI/,Wires and cables; label as peer Polycab.
+INE851B01016,SHLAKSHMI,Shri Lakshmi Cotsyn Ltd.,Consumer Discretionary,Textiles,Textiles & Apparels,Other Textile Products,high,https://www.screener.in/company/SHLAKSHMI/,"Screener breadcrumb; denim, home and technical textiles."
+INE538H01024,SHREEASHTA,Shree Ashtavinayak Cine Vision Ltd.,Consumer Discretionary,Media Entertainment & Publication,Entertainment,"Film Production, Distribution & Exhibition",high,https://en.wikipedia.org/wiki/Shree_Ashtavinayak_Cine_Vision,Hindi film production/distribution.
+INE633A01028,SHRENUJ,Shrenuj & Co. Ltd.,Consumer Discretionary,Consumer Durables,Consumer Durables,"Gems, Jewellery And Watches",medium,https://www.screener.in/company/SHRENUJ/,"Polished diamonds (>80%) + jewellery; breadcrumb not loaded, chain as peer Gitanjali."
+INE722A01011,SHRIRAMCIT,Shriram City Union Finance Ltd.,Financial Services,Financial Services,Finance,Non Banking Financial Company (NBFC),high,https://www.screener.in/company/SHRIRAMCIT/,Screener breadcrumb.
+INE429C01035,SINTEX,Sintex Industries Ltd.,Industrials,Capital Goods,Industrial Products,Plastic Products - Industrial,medium,https://www.screener.in/company/SINTEX/consolidated/,"Current screener/NSE breadcrumb is Textiles > Other Textile Products, but classified by 2010-2017 main business (plastics: water tanks, prefab, custom moulding) when it was a large listed co; plastics demerged to Sintex Plastics in 2017 leaving textiles. Agrees with first_pass."
+INE202C01010,SIRPAPER,Sirpur Paper Mills Ltd.,Commodities,Forest Materials,"Paper, Forest & Jute Products",Paper & Paper Products,high,https://www.screener.in/company/SIRPAPER/,Screener breadcrumb.
+INE965H01011,SITINET,Siti Networks Ltd.,Consumer Discretionary,Media Entertainment & Publication,Entertainment,TV Broadcasting & Software Production,high,https://www.screener.in/company/SITINET/consolidated/,Cable MSO; Screener breadcrumb.
+INE772A01016,SKUMARSYNF,S. Kumars Nationwide Ltd.,Consumer Discretionary,Textiles,Textiles & Apparels,Other Textile Products,high,https://www.screener.in/company/SKUMARSYNF/,"Suiting fabrics/apparel; label as fabric peers Siyaram, Donear."
+INE643A01035,SONASTEER,Sona Koyo Steering Systems Ltd.,Consumer Discretionary,Automobile and Auto Components,Auto Components,Auto Components & Equipments,high,https://www.screener.in/company/JTEKTINDIA/,Screener breadcrumb for JTEKT India (renamed Sona Koyo Steering); steering systems.
+INE285B01017,SPICEJET,Spicejet Ltd.,Services,Services,Transport Services,Airline,high,https://www.screener.in/company/SPICEJET/,Screener breadcrumb.
+INE501W01021,SPTL,Sintex Plastics Technology Ltd.,Industrials,Capital Goods,Industrial Products,Plastic Products - Industrial,high,https://www.screener.in/company/SPTL/,Screener breadcrumb.
+INE872A01014,SREINFRA,SREI Infrastructure Finance Ltd.,Financial Services,Financial Services,Finance,Financial Institution,high,https://www.screener.in/company/SREINFRA/,Infrastructure finance company; Screener breadcrumb.
+INE943C01027,SRIPIPES,Srikalahasthi Pipes Ltd.,Industrials,Capital Goods,Industrial Products,Iron & Steel Products,high,https://www.screener.in/company/SRIPIPES/,SECTOR CHANGED from Metals & Mining: screener (NSE) breadcrumb is Capital Goods > Industrial Products > Iron & Steel Products (ductile iron pipes); merged into Electrosteel Castings.
+INE268A01049,STER,Sterlite Industries (India) Ltd.,Commodities,Metals & Mining,Non - Ferrous Metals,Copper,high,https://www.screener.in/company/STER/,Screener breadcrumb (merged into Sesa Sterlite 2013).
+INE324C01038,STERLINBIO,Sterling Biotech Ltd,Healthcare,Healthcare,Pharmaceuticals,Pharmaceuticals & Drugs,high,https://www.screener.in/company/STERLINBIO/consolidated/,Pharma gelatin/APIs. Pharma INDUSTRY/BASIC follow owner example naming; Screener shows Pharmaceuticals & Biotechnology > Pharmaceuticals.
+INE333I01028,SUJANATOW,Sujana Towers Ltd.,Industrials,Capital Goods,Electrical Equipment,Heavy Electrical Equipment,medium,https://www.screener.in/company/NEUEON/,"Transmission towers; renamed Neueon Towers/Neueon Corporation, labelled Heavy Electrical Equipment."
+INE105A01035,SUNCLAYLTD,Sundaram Clayton Ltd.,Consumer Discretionary,Automobile and Auto Components,Auto Components,Auto Components & Equipments,high,https://www.screener.in/company/SUNCLAY/consolidated/,Screener breadcrumb (aluminium die-castings; held TVS Motor stake).
+INE663A01017,SUPPETRO,Supreme Petrochem Ltd.,Commodities,Chemicals,Chemicals & Petrochemicals,Petrochemicals,high,https://www.screener.in/company/SPLPETRO/,Screener breadcrumb.
+INE667A01018,SYNDIBANK,Syndicate Bank,Financial Services,Financial Services,Banks,Public Sector Bank,high,https://en.wikipedia.org/wiki/Syndicate_Bank,PSU bank merged into Canara Bank Apr-2020.
+INE493A01027,TATACOFFEE,Tata Coffee Ltd.,Fast Moving Consumer Goods,Fast Moving Consumer Goods,Agricultural Food & other Products,Tea & Coffee,high,https://www.screener.in/company/TATACOFFEE/,Screener breadcrumb.
+INE056C01010,TATAMETALI,Tata Metaliks Ltd.,Commodities,Metals & Mining,Ferrous Metals,Pig Iron,high,https://www.screener.in/company/TATAMETALI/,Screener breadcrumb.
+IN9155A01020,TATAMTRDVR,Tata Motors Ltd DVR,Consumer Discretionary,Automobile and Auto Components,Automobiles,Passenger Cars & Utility Vehicles,high,https://stocktwits.com/symbol/TATAMTRDVR.NSE/about,Matches kaggle industry and stated sector/industry.
+INE824B01021,TATASTLBSL,Tata Steel BSL Ltd.,Commodities,Metals & Mining,Ferrous Metals,Iron & Steel,high,https://www.screener.in/company/TATASTLBSL/consolidated/,Formerly Bhushan Steel; merged into Tata Steel; Screener breadcrumb.
+INE674A01014,TATASTLLP,Tata Steel Long Products Ltd.,Industrials,Capital Goods,Industrial Products,Iron & Steel Products,high,https://www.screener.in/company/TATASTLLP/,Sponge iron + alloy steel long products; Screener breadcrumb. Sector differs from first pass (Metals & Mining).
+INE778U01029,TCNSBRANDS,TCNS Clothing Co. Ltd.,Consumer Discretionary,Textiles,Textiles & Apparels,Garments & Apparels,high,https://www.screener.in/company/TCNSBRANDS/,Screener breadcrumb; matches kaggle.
+INE286K01024,TECHNO,Techno Electric & Engineering Co. Ltd.,Industrials,Construction,Construction,Civil Construction,high,https://www.screener.in/company/TECHNOE/,Merged into Techno Electric (TECHNOE) 2018; successor breadcrumb (power EPC).
+INE484C01022,TIDEWATER,Tide Water Oil (India) Ltd.,Energy,Oil Gas & Consumable Fuels,Petroleum Products,Lubricants,high,https://www.screener.in/company/VEEDOL/consolidated/,Renamed Veedol Corporation 2024; Screener breadcrumb.
+INE422C01014,TINPLATE,Tinplate Company of India Ltd.,Industrials,Capital Goods,Industrial Products,Packaging,high,https://www.screener.in/company/TINPLATE/,Tinplate; Screener breadcrumb. Sector differs from first pass (Metals & Mining).
+INE040M01013,TREEHOUSE,Tree House Education & Accessories Ltd.,Consumer Discretionary,Consumer Services,Other Consumer Services,Education,high,https://www.screener.in/company/TREEHOUSE/,Screener breadcrumb; matches kaggle.
+INE149A01025,TUBEINVEST,Tube Investments of India Ltd.,Consumer Discretionary,Automobile and Auto Components,Auto Components,Auto Components & Equipments,medium,https://www.screener.in/company/TIINDIA/,Pre-2017 manufacturing business (now TIINDIA). This ISIN became Cholamandalam Financial Holdings (Investment Company) after 2017 demerger.
+INE122H01027,TULIP,Tulip Telecom Ltd.,Telecommunication,Telecommunication,Telecom - Services,Other Telecom Services,high,https://www.screener.in/company/TULIP/,MPLS VPN/data centre provider; Screener breadcrumb.
+,TV-18,Television Eighteen India Limited,Consumer Discretionary,Media Entertainment & Publication,Entertainment,TV Broadcasting & Software Production,medium,https://en.wikipedia.org/wiki/TV18,Business news channels (CNBC-TV18); merged into Network18 group 2011; no ISIN in input.
+INE886H01027,TV18BRDCST,TV18 Broadcast Ltd.,Consumer Discretionary,Media Entertainment & Publication,Entertainment,TV Broadcasting & Software Production,high,https://www.screener.in/company/TV18BRDCST/consolidated/,Screener breadcrumb; matches kaggle.
+INE696A01025,UBHOLDINGS,United Breweries (Holdings) Ltd.,Financial Services,Financial Services,Finance,Holding Company,medium,https://www.marketscreener.com/quote/stock/UNITED-BREWERIES-HOLDINGS-46731476/company/,UB group investment holding company; basic industry inferred.
+INE334L01012,UJJIVAN,Ujjivan Financial Services Ltd.,Financial Services,Financial Services,Finance,Non Banking Financial Company (NBFC),high,https://www.screener.in/company/UJJIVAN/consolidated/,Holding co (CIC) of Ujjivan SFB; merged into it 2024; Screener breadcrumb.
+INE695A01019,UNITEDBNK,United Bank of India,Financial Services,Financial Services,Banks,Public Sector Bank,high,https://www.screener.in/company/UNITEDBNK/,Nationalised bank merged into PNB 2020.
+INE466H01028,UNITY,Unity Infraprojects Ltd.,Industrials,Construction,Construction,Civil Construction,high,https://www.screener.in/company/UNITY/,Screener breadcrumb.
+INE699A01011,UTTAMSTL,Uttam Galva Steels Ltd.,Industrials,Capital Goods,Industrial Products,Iron & Steel Products,high,https://www.screener.in/company/UTTAMSTL/,Screener breadcrumb. SECTOR changed from Metals & Mining: NSE puts CR/galvanised Iron & Steel Products under Capital Goods.
+INE507B01022,UTVSOF,UTV Software Communications Limited,Consumer Discretionary,Media Entertainment & Publication,Entertainment,"Film Production, Distribution & Exhibition",medium,https://thewaltdisneycompany.com/press-releases/disney-to-acquire-controlling-interest-in-utv-software-communications-limited-utv-in-india/,Films + TV channels + games; delisted 2012 (Disney). Basic industry could be TV Broadcasting & Software Production or Media & Entertainment.
+INE702A01013,VARUNSHIP,Varun Shipping Co. Ltd.,Services,Services,Transport Services,Shipping,high,https://www.screener.in/company/VARUNSHIP/,Screener breadcrumb.
+INE703A01011,VIDEOIND,Videocon Industries Ltd.,Consumer Discretionary,Consumer Durables,Consumer Durables,Consumer Electronics,high,https://www.screener.in/company/VIDEOIND/,Screener breadcrumb; also had oil and gas (Ravva) and telecom segments.
+INE705A01016,VIJAYABANK,Vijaya Bank,Financial Services,Financial Services,Banks,Public Sector Bank,high,https://en.wikipedia.org/wiki/Vijaya_Bank,PSU bank merged into Bank of Baroda Apr 2019.
+INE370E01029,VIVIDHA,Visagar Polytex Ltd.,Consumer Discretionary,Textiles,Textiles & Apparels,Garments & Apparels,high,https://www.screener.in/company/VIVIDHA/,Ethnic wear; Screener breadcrumb.
+INE378A01012,WYETH,Wyeth Limited,Healthcare,Healthcare,Pharmaceuticals,Pharmaceuticals & Drugs,high,https://www.screener.in/company/WYETH/,Screener breadcrumb.
+INE126M01010,YAARII,Yaari Digital Integrated Services Ltd.,Services,Services,Commercial Services & Supplies,Diversified Commercial Services,medium,https://www.screener.in/company/533520/,"ISIN INE126M01010 = Yaari Digital Integrated Services (ex-Indiabulls Integrated/Wholesale Services; now Indiabulls Ltd). Breadcrumb is for current entity; business: facility management, equipment hire, Yaarii fintech app. Company name blank in input."
+INE966H01019,ZEENEWS,Zee News Limited,Consumer Discretionary,Media Entertainment & Publication,Entertainment,TV Broadcasting & Software Production,high,https://www.screener.in/company/ZEEMEDIA/,Renamed Zee Media Corporation 2013; screener breadcrumb.
+INE217A01012,ZUARIAGRO,Zuari Industries Limited,Commodities,Chemicals,Fertilizers & Agrochemicals,Fertilizers,medium,https://www.screener.in/company/ZUARI/,ISIN INE217A01012 is Zuari Industries (fertiliser maker until demerger into Zuari Agro Chemicals 2011-12; residual co later sugar). Classified by fertiliser business; chain from Zuari Agro Chemicals Screener page.
