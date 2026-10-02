@@ -30,6 +30,7 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -72,9 +73,27 @@ def build(prices: pd.DataFrame, actions: pd.DataFrame, notes: dict, renames: dic
           keep: list[str]) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     """(adjusted closes, traded value in Rs Cr, report) for `keep`, from NSE's raw rows."""
     w = na.wide(prices)
+    for k in w:
+        w[k].index = pd.DatetimeIndex(w[k].index)
+    # A holiday stored as a copy of the session before is not a trading day: it
+    # would add a zero-return day to every window (nse_adjusted.copied_sessions).
+    copies = na.copied_sessions(w["close"], w["volume"])
+    w = {k: f.drop(index=copies.index, errors="ignore") for k, f in w.items()}
     close, value = w["close"], w["value"]
-    close.index = value.index = pd.DatetimeIndex(close.index)
+    # Rupees on every day: R2's mirror rows for 2010-2018 carry value x 1e5
+    # (the mirror's TURNOVER_LACS held rupees then); a day's value over close x
+    # volume is ~1, so a day near 1e5 is scaled back. R2 is never rewritten.
+    day_ratio = (value / (close * w["volume"])).replace([np.inf, -np.inf], np.nan).median(axis=1)
+    rescaled = day_ratio[day_ratio > 1e3].index
+    value = value.copy()
+    value.loc[rescaled] = value.loc[rescaled] / 1e5
     adj, report = npx.adjusted_close(close, actions, keep, notes=notes)
+    report["copied_sessions_dropped"] = [str(d.date()) for d in copies.index]
+    # Left after that, a day NSE cannot have traded (src/loaders/nse_calendar.py):
+    # an announced special session missing from its list, or a new kind of error.
+    from src.loaders.nse_calendar import impossible_sessions
+
+    report["calendar_flags"] = {str(d): why for d, why in impossible_sessions(close.index).items()}
     # Traded value is not adjusted (a split changes the share count, not the rupees
     # traded); it is joined across renames exactly as the closes were.
     val = npx.chain_symbols(value, joined_renames(renames, report["renames_not_joined"]))
@@ -87,8 +106,10 @@ def build(prices: pd.DataFrame, actions: pd.DataFrame, notes: dict, renames: dic
     val = (val.reindex(index=adj.index, columns=adj.columns) / CRORE).astype("float32")
     # Units check: NSE's value over close x volume is ~1 (the day's average price
     # over its close) whatever the file format; a year far from 1 means a unit slip.
-    ratio = (value / (close * w["volume"].set_axis(close.index))).stack()
-    ratio = ratio[(ratio > 0) & (ratio < 100)]
+    # No filter on the ratio: a unit slip must show in the table, not drop out of it.
+    ratio = (value / (close * w["volume"])).replace([np.inf, -np.inf], np.nan).stack()
+    ratio = ratio[ratio > 0]
+    report["value_days_rescaled_from_x1e5"] = int(len(rescaled))
     report["value_over_close_x_volume_by_year"] = {
         int(y): round(float(r), 3) for y, r in ratio.groupby(ratio.index.get_level_values(0).year).median().items()}
     return adj, val, report
@@ -134,7 +155,8 @@ def main(argv=None) -> int:
     sizes = {f: round((args.out / f).stat().st_size / 1e6, 1) for f in (CLOSE_FILE, VALUE_FILE)}
     print(f"wrote {close.shape[1]} symbols x {len(close)} sessions "
           f"({report['first_session']} to {report['last_session']}); MB {sizes}; "
-          f"{len(report['unpriced'])} unpriced; {len(report['renames_not_joined'])} renames refused")
+          f"{len(report['unpriced'])} unpriced; {len(report['renames_not_joined'])} renames refused; "
+          f"{len(report['copied_sessions_dropped'])} copied sessions (holidays) dropped")
     return 0
 
 

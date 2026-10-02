@@ -156,3 +156,14 @@ def test_two_different_actions_on_one_day_still_multiply():
     _adj, f, v = na.adjusted_frames(_split_frame(), both)
     assert np.isclose(f.at[pd.Timestamp("2026-01-07"), "ABC"], 0.2)
     assert v["verdict"].tolist() == ["applied"]
+
+
+def test_a_holiday_stored_as_a_copy_of_the_session_before_is_found():
+    days = pd.bdate_range("2024-01-22", periods=5)
+    rng = np.random.default_rng(3)
+    close = pd.DataFrame(100 * np.exp(np.cumsum(rng.normal(0, 0.01, (5, 40)), axis=0)), index=days)
+    vol = pd.DataFrame(rng.integers(1_000, 9_000, (5, 40)).astype(float), index=days)
+    close.iloc[2], vol.iloc[2] = close.iloc[1], vol.iloc[1]      # 24 Jan repeats 23 Jan
+    close.iloc[4, :3] = close.iloc[3, :3]                      # a few unchanged stocks: normal
+    out = na.copied_sessions(close, vol)
+    assert list(out.index) == [days[2]]

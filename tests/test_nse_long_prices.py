@@ -122,3 +122,22 @@ def test_the_loader_returns_none_when_nothing_is_reachable(tmp_path):
 
     assert nse_long.load(base="http://127.0.0.1:9/unreachable", cache=tmp_path) is None
 
+
+
+def test_the_long_file_drops_a_holiday_copied_from_the_day_before():
+    p = _prices()
+    copy = p[p["date"] == pd.Timestamp("2010-01-20")].assign(date=pd.Timestamp("2010-01-21"))
+    p = pd.concat([p[p["date"] != pd.Timestamp("2010-01-21")], copy], ignore_index=True)
+    close, _value, report = long.build(p, SPLIT, {"renames": RENAMES}, RENAMES, ["AAA", "NEWX"])
+    assert report["copied_sessions_dropped"] == ["2010-01-21"]
+    assert pd.Timestamp("2010-01-21") not in close.index
+
+
+def test_a_day_whose_value_is_1e5_too_large_is_scaled_back():
+    p = _prices()
+    bad = p["date"].dt.year.eq(2010) & p["date"].dt.month.eq(2)
+    p.loc[bad, "value"] *= 1e5                      # R2's mirror rows for 2010-2018
+    _close, value, report = long.build(p, SPLIT, {"renames": RENAMES}, RENAMES, ["AAA", "NEWX"])
+    assert report["value_days_rescaled_from_x1e5"] == int(p.loc[bad, "date"].nunique())
+    assert value.loc["2010-02-01":].max().max() < 1.0          # Rs Cr, not Rs 1e5 Cr
+    assert report["value_over_close_x_volume_by_year"] == {2010: 1.0}

@@ -1,0 +1,21 @@
+date,description,evidence
+2009-10-17,"Muhurat trading (Diwali), Saturday","previous close of the next session (nse_history_audit, 3 Oct 2026)"
+2010-02-06,Special Saturday session,"previous close of the next session (nse_history_audit, 3 Oct 2026); NSE bundle collected"
+2012-01-07,Special Saturday session,"previous close of the next session (nse_history_audit, 3 Oct 2026); NSE bundle collected"
+2012-03-03,Special Saturday session,"previous close of the next session (nse_history_audit, 3 Oct 2026); NSE bundle collected"
+2012-04-28,Special Saturday session,"previous close of the next session (nse_history_audit, 3 Oct 2026); NSE bundle collected"
+2012-09-08,Special Saturday session,"previous close of the next session (nse_history_audit, 3 Oct 2026); NSE bundle collected"
+2013-05-11,Special Saturday session,"previous close of the next session (nse_history_audit, 3 Oct 2026); NSE bundle collected"
+2013-11-03,"Muhurat trading (Diwali), Sunday","previous close of the next session (nse_history_audit, 3 Oct 2026); NSE bundle collected"
+2014-03-22,Special Saturday session,"previous close of the next session (nse_history_audit, 3 Oct 2026); NSE bundle collected"
+2015-02-28,"Union Budget, a Saturday session","previous close of the next session (nse_history_audit, 3 Oct 2026); NSE bundle collected"
+2016-10-30,"Muhurat trading (Diwali), Sunday","previous close of the next session (nse_history_audit, 3 Oct 2026); NSE bundle collected"
+2019-10-27,"Muhurat trading (Diwali), Sunday","previous close of the next session (nse_history_audit, 3 Oct 2026); NSE bundle collected"
+2020-02-01,"Union Budget, a Saturday session","previous close of the next session (nse_history_audit, 3 Oct 2026); NSE bundle collected"
+2020-11-14,"Muhurat trading (Diwali), Saturday","previous close of the next session (nse_history_audit, 3 Oct 2026); NSE bundle collected"
+2023-11-12,"Muhurat trading (Diwali), Sunday","held on R2 with its own prices (not a copy of the day before); flagged by the calendar check, 3 Oct 2026"
+2024-01-20,Special Saturday session (disaster-recovery site switch),"held on R2 with its own prices (not a copy of the day before); flagged by the calendar check, 3 Oct 2026"
+2024-03-02,Special Saturday session (disaster-recovery site switch),"held on R2 with its own prices (not a copy of the day before); flagged by the calendar check, 3 Oct 2026"
+2024-05-18,Special Saturday session (disaster-recovery site switch),"held on R2 with its own prices (not a copy of the day before); flagged by the calendar check, 3 Oct 2026"
+2025-02-01,"Union Budget, a Saturday session",data/nse_prices/notes.json
+2026-02-01,"Union Budget, a Sunday session",data/nse_prices/notes.json

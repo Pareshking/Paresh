@@ -62,9 +62,14 @@ def main(argv=None) -> int:
     args.out.mkdir(parents=True, exist_ok=True)
     session = requests.Session()
     got, holidays, refused = 0, [], 0
+    # Weekdays, and the weekend sessions NSE announced (Muhurat, Budget days):
+    # data/reference/nse/special_sessions.csv (17 Oct 2009, a Muhurat Saturday).
+    from src.loaders.nse_calendar import _lists
+
+    special = _lists()[2]
     day = args.since
     while day <= args.until:
-        if day.weekday() < 5:
+        if day.weekday() < 5 or day in special:
             target = args.out / f"cm{day.strftime('%d%b%Y').upper()}bhav.csv"
             if not target.exists():
                 try:

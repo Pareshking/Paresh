@@ -5,7 +5,7 @@ adjustment automatic. Owner, 2026-10-02: "all the adjustment should be
 automatic and no manual work, we have 3 source and those can give hints to
 each other along with official read from NSE."
 
-_Last updated: 2026-10-02_
+_Last updated: 2026-10-03_
 
 ## The three sources and NSE's own record
 
@@ -133,6 +133,45 @@ read for series EQ, BE and RR (REITs, which are index members).
 The mirror is NSE's file unchanged: equal to NSE's own on close and volume for
 every row of 2 Jan 2012 (1,491) and 10 Aug 2026 (2,712). Imported 2 Oct by
 `nse_history_import.yml` (8 sessions at a time, 0 failures).
+
+### Which days are sessions (3 Oct 2026)
+
+NSE never publishes a bhavcopy on a holiday (its bundle URL answers 404). The
+GitHub mirror, though, files a copy of the previous session under every holiday
+from 2021 (`sec_bhavdata_full_26012024.csv` is 25 Jan's file, `DATE1`
+25-Jan-2024), and 73 such copies reached R2 as trading days. Three checks now:
+
+1. **The file's own date:** the importer refuses a file whose rows are dated
+   another day (`nse_backfill.NotThatDay`).
+2. **Copies:** a session repeating the one before for over 90% of stocks (close
+   and volume) is dropped by the long-file builder and listed by the audit
+   (`nse_adjusted.copied_sessions`).
+3. **The calendar** (`src/loaders/nse_calendar.py`): no session on a weekend
+   unless NSE announced it (`data/reference/nse/special_sessions.csv`: Muhurat,
+   Budget days, special Saturdays), on a fixed holiday (26 Jan, 1 May, 15 Aug,
+   2 Oct, 25 Dec), or on NSE's published list (`data/reference/nse/holidays.csv`,
+   from its holiday-master API; a `muhurat` day there is a holiday with an
+   evening session).
+
+**Traded value:** the mirror's `TURNOVER_LACS` holds rupees, not lakhs, in its
+2010 – 2018 files; R2's rows for those years carry value x 1e5. The importer now
+reads the unit off average price x quantity, and the long-file builder scales a
+day back when its value over close x volume is near 1e5 (R2 is not rewritten).
+
+**One action, once:** NSE lists an action in its daily Bc file and its yearly
+list, worded differently; `nse_adjusted._parsed` keeps one row per symbol,
+ex-date, kind and factor (500 splits and bonuses had gone unapplied, #348).
+
+## The long price file (backtests from 2010)
+
+`scripts/build_nse_long_prices.py` (weekly, `nse_long_prices.yml`) reads every
+session on R2 from 2008 and writes to the `data-latest` release: closes adjusted
+for splits, bonuses, consolidations and demergers, renames joined, no dividends,
+no rights (owner, 3 Oct 2026), for every stock any index ever listed (1,418);
+traded value in Rs Cr; and a report (units by year, copies dropped, calendar
+flags). `src/loaders/nse_long.py` reads it; the Backtest page's "History from
+2010" mode runs on it with each index's own point-in-time list
+(`src/engine/index_universe.py`; Nifty 100 = Nifty 50 + Next 50).
 
 ## Running it by hand
 
