@@ -18,16 +18,16 @@
  "NIFTY_MIDCAP_150": {
   "expected_size_incl_dummies": 150,
   "snapshots": 25,
-  "snapshots_wrong_size": 13,
-  "chain_breaks": 2,
-  "latest_chain_break": "2022-05-04",
+  "snapshots_wrong_size": 1,
+  "chain_breaks": 0,
+  "latest_chain_break": null,
   "oldest_snapshot": "2019-03-29"
  },
  "NIFTY_SMALLCAP_250": {
   "expected_size_incl_dummies": 250,
   "snapshots": 51,
   "snapshots_wrong_size": 28,
-  "chain_breaks": 8,
+  "chain_breaks": 5,
   "latest_chain_break": "2022-09-30",
   "oldest_snapshot": "2019-01-28"
  },
@@ -35,7 +35,7 @@
   "expected_size_incl_dummies": 250,
   "snapshots": 35,
   "snapshots_wrong_size": 23,
-  "chain_breaks": 7,
+  "chain_breaks": 6,
   "latest_chain_break": "2024-09-30",
   "oldest_snapshot": "2021-09-30"
  }

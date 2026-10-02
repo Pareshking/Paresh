@@ -1,17 +1,16 @@
 import csv, glob, os, subprocess
 import reverse2
 base = [dict(r) for r in csv.DictReader(open("rules/aliases.csv"))]
-cands = [("ADANIGAS","ATGL"),("ANGELBRKG","ANGELONE"),("AMARAJABAT","ARE&M"),("FLUOROCHEM","GUJFLUORO"),("GANESHHOUC","GANESHHOU"),
- ("HBLPOWER","HBLENGINE"),("HSIL","HIL"),("IIFLSEC","IIFLCAPS"),("L&TFH","LTF"),("LSIL","LLOYDSENT"),("MAHINDCIE","CIEINDIA"),
- ("MINDAIND","UNOMINDA"),("NIITTECH","COFORGE"),("PAPERPROD","HUHTAMAKI"),("SRTRANSFIN","SHRIRAMFIN"),("STRTECH","STLTECH"),
- ("TIPSINDLTD","TIPSMUSIC"),("TWL","TITAGARH"),("ACRYSIL","CARYSIL"),("CENTURYTEX","ABREL"),("SWANENERGY","SWANDEF"),("MFL","EPIGRAL"),
- ("INFRATEL","INDUSTOWER"),("IBULHSGFIN","SAMMAANCAP"),("LTI","LTIM"),("ITDCEM","CEMPRO"),("INFIBEAM","INFIBEAM")]
+cands = [("WABCOINDIA","ZFCVINDIA"),("BURGERKING","RBA"),("IIFLWAM","360ONE"),("SUVENPHAR","COHANCE"),("GMRINFRA","GMRAIRPORT"),("SEQUENT","VIYASH"),("IIFLSEC","IIFLCAPS")]
 ev = reverse2.ev
 def mentions(sym):
     out = subprocess.run(["grep","-lw","--",sym]+glob.glob("announcements/txt/*.txt"),capture_output=True,text=True).stdout.split()
     ds=[]
     for f in out:
         b=os.path.basename(f)[7:15]; ds.append(b[4:]+"-"+b[2:4]+"-"+b[:2])
+    for f in glob.glob("current/*.csv"):
+        if f.endswith("MANIFEST.csv"): continue
+        if any(r["Symbol"]==sym for r in csv.DictReader(open(f))): ds.append("2026-10-02")
     return sorted(ds)
 def score():
     res, prob = reverse2.run()
@@ -38,4 +37,4 @@ for old, new in cands:
         print("ACCEPT", old, "->", new, f"(-{s_before[0]-s1[0]} violations)")
     else: print("reject", old, "->", new, "no improvement")
 reverse2.al = base + acc; print("final:", score())
-w = csv.DictWriter(open("rules/aliases_trial_out.csv","w",newline=""), fieldnames=["old_symbol","new_symbol","last_old_date","first_new_date","evidence","status"]); w.writeheader(); w.writerows(base+acc)
+w = csv.DictWriter(open("rules/aliases.csv","w",newline=""), fieldnames=["old_symbol","new_symbol","last_old_date","first_new_date","evidence","status"]); w.writeheader(); w.writerows(base+acc)
