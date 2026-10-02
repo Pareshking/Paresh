@@ -75,6 +75,10 @@ CONFIRM_BAND = np.log(1.5)    # the session's move must be within 1.5x of the ac
 JUMP = np.log(1.8)            # an unexplained move beyond this either way is listed
 ACTION_KINDS = ("split", "bonus", "consolidation")
 DEMERGER_FLOOR, DEMERGER_CAP = 0.05, 0.98   # a demerger's fall is applied only inside this
+# A scheme of arrangement is priced as a demerger only on a fall beyond 15%:
+# a merger or capital change under the same words leaves the price where it
+# trades, and an ordinary down day on its ex-date must stay a real move.
+SCHEME_CAP = 0.85
 
 
 def gap_days(close: pd.DataFrame, prev_close: pd.DataFrame,
@@ -120,7 +124,7 @@ def _parsed(actions: pd.DataFrame) -> pd.DataFrame:
     are kept with a NaN factor and priced from the move on the ex-date.
     """
     known = actions["kind"].isin(ACTION_KINDS) & actions["price_factor"].notna()
-    a = actions[(known | actions["kind"].eq("demerger")) & actions["ex_date"].notna()].copy()
+    a = actions[(known | actions["kind"].isin(("demerger", "scheme"))) & actions["ex_date"].notna()].copy()
     # One date type whatever the store held (dates, strings, other resolutions).
     a["date"] = pd.to_datetime(a["ex_date"]).dt.normalize().astype("datetime64[ns]")
     # One action, once. NSE lists the same split in its daily Bc file and in its
@@ -190,8 +194,9 @@ def action_factors(close: pd.DataFrame, actions: pd.DataFrame
             rows.append({**out, "verdict": "no price"})
             continue
         verdict, factor = "no move", np.nan
-        if np.isnan(r.bc_factor):                      # demerger
-            if DEMERGER_FLOOR < move < DEMERGER_CAP:
+        if np.isnan(r.bc_factor):                      # demerger, or a scheme
+            cap = SCHEME_CAP if r.kind == "scheme" else DEMERGER_CAP
+            if DEMERGER_FLOOR < move < cap:
                 verdict, factor = "demerger", move
         elif _confirms(move, r.bc_factor):
             verdict, factor = "applied", r.bc_factor
