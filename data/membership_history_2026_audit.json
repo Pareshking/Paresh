@@ -1,0 +1,223 @@
+{
+  "schema_version": 1,
+  "built_on": "2026-10-02",
+  "scope": "2025-12-31 through 2026-09-30; six current broad indices.",
+  "reference_repository": {
+    "url": "https://github.com/aditya-jha/nse-historical-membership",
+    "use": "Cross-check and parsed NSE notice tables through 2026-05-15. Not copied blindly because inferred snapshot closures and global ticker canonicalization can distort event dates."
+  },
+  "anchor": "Current data/indices/*.csv on 2026-10-02, with all DUMMY* placeholders excluded from tradeable membership.",
+  "events": [
+    {
+      "effective": "2026-03-30",
+      "issued": "2026-02-23",
+      "notice": "ind_prs23022026.pdf",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs23022026.pdf",
+      "indices": [
+        "nifty_next_50",
+        "nifty_midcap_150",
+        "nifty_smallcap_250",
+        "nifty_microcap_250",
+        "nifty_total_market"
+      ],
+      "notes": "Nifty 50 has no replacement. Microcap 250 has 63 additions and 62 tradeable exclusions because the Allcargo/DUMMYALCAR treatment is special; the 2025-12-31 baseline therefore has 249 tradeable names and becomes 250 on this effective date."
+    },
+    {
+      "effective": "2026-04-15",
+      "type": "ticker_alias",
+      "from": "AKZOINDIA",
+      "to": "JSWDULUX",
+      "indices": [
+        "nifty_smallcap_250",
+        "nifty_total_market"
+      ],
+      "notes": "Symbol continuity, not an index exit. Owner-confirmed name/ticker change; recorded as a symbol swap to preserve date-specific tickers."
+    },
+    {
+      "effective": "2026-04-30",
+      "issued": "2026-04-23",
+      "notice": "ind_prs23042026.pdf",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs23042026.pdf",
+      "indices": [
+        "nifty_next_50",
+        "nifty_total_market"
+      ],
+      "ignored_placeholders": [
+        "DUMMYVEDL1",
+        "DUMMYVEDL2",
+        "DUMMYVEDL3",
+        "DUMMYVEDL4"
+      ],
+      "notes": "Corporate-action placeholders excluded from tradable membership arrays."
+    },
+    {
+      "effective": "2026-05-12",
+      "issued": "2026-05-04",
+      "notice": "ind_prs04052026.pdf",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs04052026.pdf",
+      "indices": [
+        "nifty_smallcap_250",
+        "nifty_microcap_250",
+        "nifty_total_market"
+      ]
+    },
+    {
+      "effective": "2026-05-15",
+      "issued": "2026-05-08",
+      "notice": "ind_prs08052026.pdf",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs08052026.pdf",
+      "indices": [
+        "nifty_microcap_250",
+        "nifty_total_market"
+      ]
+    },
+    {
+      "effective": "2026-06-15",
+      "type": "demerger_listing_transition",
+      "indices": [
+        "nifty_next_50",
+        "nifty_total_market"
+      ],
+      "added": [
+        "VAML",
+        "VEDPOWER",
+        "VOGL",
+        "VISL"
+      ],
+      "notes": "Real listed symbols are represented from listing until the applicable official exclusion; DUMMYVEDL* placeholders are never counted."
+    },
+    {
+      "effective": "2026-06-19",
+      "issued": "2026-06-17",
+      "notice": "ind_prs17062026.pdf",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs17062026.pdf",
+      "indices": [
+        "nifty_next_50",
+        "nifty_total_market"
+      ],
+      "removed": [
+        "VEDPOWER",
+        "VISL"
+      ]
+    },
+    {
+      "effective": "2026-06-23",
+      "issued": "2026-06-19",
+      "notice": "ind_prs19062026.pdf",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs19062026.pdf",
+      "indices": [
+        "nifty_next_50",
+        "nifty_total_market"
+      ],
+      "removed": [
+        "VAML"
+      ]
+    },
+    {
+      "effective": "2026-06-24",
+      "issued": "2026-06-22",
+      "notice": "ind_prs22062026.pdf",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs22062026.pdf",
+      "indices": [
+        "nifty_next_50",
+        "nifty_total_market"
+      ],
+      "removed": [
+        "VOGL"
+      ]
+    },
+    {
+      "effective": "2026-07-17",
+      "issued": "2026-07-13",
+      "notice": "ind_prs13072026_1.pdf",
+      "url": "https://niftyindices.com/Press_Release/ind_prs13072026_1.pdf",
+      "indices": [
+        "nifty_smallcap_250",
+        "nifty_microcap_250",
+        "nifty_total_market"
+      ],
+      "notes": "Official replacements: Smallcap 250 JBCHEPHARM -> PFOCUS; Microcap 250 PFOCUS -> GRINDWELL; Total Market JBCHEPHARM -> GRINDWELL."
+    },
+    {
+      "effective": "2026-07-22",
+      "issued": "2026-07-17",
+      "notice": "ind_prs17072026.pdf",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs17072026.pdf",
+      "indices": [
+        "nifty_microcap_250",
+        "nifty_total_market"
+      ],
+      "ignored_placeholders": [
+        "DUMMYTRVN"
+      ]
+    },
+    {
+      "effective": "2026-09-07",
+      "issued": "2026-09-03",
+      "notice": "ind_prs03092026.pdf",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs03092026.pdf",
+      "indices": [
+        "nifty_smallcap_250",
+        "nifty_total_market"
+      ],
+      "ignored_placeholders": [
+        "DUMMYHEG"
+      ]
+    },
+    {
+      "effective": "2026-09-23",
+      "type": "demerger_listing_transition",
+      "indices": [
+        "nifty_smallcap_250",
+        "nifty_total_market"
+      ],
+      "added": [
+        "HEGAM"
+      ],
+      "removed": [
+        "HEG"
+      ],
+      "notes": "HEG Graphite Ltd. is a demerged entity, not a simple ticker rename."
+    },
+    {
+      "effective": "2026-09-30",
+      "issued": "2026-08-10",
+      "notice": "ind_prs10082026.pdf",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs10082026.pdf",
+      "indices": [
+        "nifty_50",
+        "nifty_next_50",
+        "nifty_midcap_150",
+        "nifty_smallcap_250",
+        "nifty_microcap_250",
+        "nifty_total_market"
+      ]
+    }
+  ],
+  "alias_notes": [
+    {
+      "from": "SUNDARMHLD",
+      "to": "TSFINV",
+      "effective": "2025-10-16",
+      "notes": "Continuity across rename. The 2026-09-30 TSFINV removal from Microcap 250 is an official review exit, not a rename inference."
+    },
+    {
+      "from": "AKZOINDIA",
+      "to": "JSWDULUX",
+      "effective": "2026-04-15",
+      "notes": "Continuity across rename. The September JSWDULUX removal remains a genuine official review event."
+    }
+  ],
+  "final_validation": {
+    "snapshot_date": "2026-10-02",
+    "counts_after_dummy_filter": {
+      "nifty_50": 50,
+      "nifty_next_50": 50,
+      "nifty_midcap_150": 150,
+      "nifty_smallcap_250": 250,
+      "nifty_microcap_250": 250,
+      "nifty_total_market": 750
+    },
+    "replay_matches_current_csv": true
+  }
+}
