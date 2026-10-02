@@ -38,22 +38,26 @@ import pandas as pd
 from src.loaders.price_source import PriceFrames
 
 SERIES = ("EQ", "BE", "RR")    # main board, EQ preferred; RR: REITs, members of the indices
-# Prices also read BZ, NSE's trade-for-trade series for companies in default
-# or out of compliance, ranked last. A stock moved there dropped out of the
-# price file for those stretches -- 4,921 stock-days over 33 stocks, 2008 on
-# (UNITECH, JYOTISTRUC, SUPREMEINF) -- and its return to EQ read as one fake
-# jump over the gap (audit against NSE MarketLens, 2026-10-03). SERIES itself
-# stays as it was: it also picks the Nano Cap universe (extra_universe).
-PRICE_SERIES = (*SERIES, "BZ")
-SERIES_RANK = {"EQ": 0, "BE": 1, "RR": 1, "BZ": 2}
+# Prices read every series that is the company's ordinary share, ranked so a
+# day traded in more than one takes the main board's price (owner,
+# 2026-10-03: the right stock and the right price, whatever the series). A
+# stock moved to BZ (trade-for-trade, companies in default or out of
+# compliance) dropped out of the price file -- 4,921 stock-days over 33
+# stocks since 2008 (UNITECH, JYOTISTRUC, SUPREMEINF) -- and its return to EQ
+# read as one fake jump over the gap. Not read: bonds (N1-N9, NA-NZ), gold
+# bonds and G-secs (GB, GS), MF, depository receipts (DR), warrants (W*),
+# partly paid shares (P1, another price), block deals (BL, negotiated) and
+# E1/X1. SERIES itself is unchanged: it also picks the Nano Cap universe.
+SERIES_RANK = {"EQ": 0, "BE": 1, "RR": 1, "IV": 1, "BZ": 2, "T0": 3, "SM": 4, "ST": 4, "SZ": 5}
+PRICE_SERIES = tuple(SERIES_RANK)
 STEP_TOL = 1e-3                # |factor - 1| above this is an adjustment
 
 
 def wide(prices: pd.DataFrame) -> dict[str, pd.DataFrame]:
     """Long NSE rows -> {field: dates x symbols} for close, prev_close, high, low, volume, value.
 
-    Stocks only (index rows dropped), EQ before BE before BZ for a symbol that
-    traded in more than one on a day.
+    Stocks only (index rows dropped); a symbol traded in more than one series
+    on a day takes the best ranked (SERIES_RANK: EQ, then BE, then BZ ...).
     """
     p = prices[prices["series"].isin(PRICE_SERIES) & (prices["symbol"].fillna("") != "")].copy()
     p["_r"] = p["series"].map(SERIES_RANK).fillna(9)
