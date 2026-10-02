@@ -4,6 +4,7 @@
     python scripts/sync_ss.py --symbols RELIANCE TCS --full
     python scripts/sync_ss.py --limit 20 --dry-run  # fetch and check, write nothing
     python scripts/sync_ss.py --stale-hours 12 --limit 40   # nightly: the next 40 not yet updated
+    python scripts/sync_ss.py --needs-history --limit 40    # back to listing, stocks held on page 1 only
 
 The universe is every symbol the app has ever needed: the Nifty Total Market
 list, the Nano Cap list, every name the point-in-time membership record ever
@@ -130,6 +131,9 @@ def main(argv=None) -> int:
     ap.add_argument("--stale-hours", type=float, default=None,
                     help="only symbols last fetched more than this many hours ago "
                          "(the nightly update: each round moves on through the universe)")
+    ap.add_argument("--needs-history", action="store_true",
+                    help="only stocks held without their whole history, fetched back to listing "
+                         "(implies --full; for the 2008+ price check, owner 2026-10-03)")
     ap.add_argument("--delay", type=float, default=ss.DELAY_S)
     ap.add_argument("--checkpoint", type=int, default=100)
     ap.add_argument("--report", type=int, default=10, help="progress line every N symbols")
@@ -144,6 +148,11 @@ def main(argv=None) -> int:
     if args.skip_done:
         dead = {s for s, why in manifest.get("failed", {}).items() if "no prices" in str(why)}
         symbols = [s for s in symbols if s not in manifest["symbols"] and s not in dead]
+    if args.needs_history:
+        args.full = True
+        held = manifest["symbols"]
+        symbols = [s for s in symbols if s in held and not held[s].get("full_history")
+                   and held[s].get("more_available", True)]
     if args.stale_hours is not None:
         dead = {s for s, why in manifest.get("failed", {}).items() if "no prices" in str(why)}
         symbols = [s for s in symbols if s not in dead

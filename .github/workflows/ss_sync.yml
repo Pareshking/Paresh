@@ -16,13 +16,17 @@ name: SS price sync (gentle)
 #      this run's summary and is saved to the release. It never changes a price.
 #
 # mode=backfill (manual) fetches only stocks the store has never held.
+# mode=history (manual) fetches the whole history, back to listing, of stocks
+# held on page 1 only -- the independent check of the 2008+ NSE price file
+# (owner, 2026-10-03). Same pace; about 4-5 pages a stock, so ~40 stocks a
+# round take 13 minutes. Run it twice for the universe; it resumes.
 on:
   schedule:
     - cron: "32 16 * * 1-5"   # 22:02 IST, Monday to Friday
   workflow_dispatch:
     inputs:
       mode:
-        description: "daily (update every stock) or backfill (only stocks never stored)"
+        description: "daily (update every stock), backfill (only stocks never stored) or history (back to listing, stocks held on page 1 only)"
         default: "daily"
       rounds:
         description: "Rounds this run (5-minute rest between rounds)"
@@ -76,6 +80,8 @@ jobs:
           round() {
             if [ "$MODE" = "backfill" ]; then
               python scripts/sync_ss.py --skip-done --delay 4 --limit "$PER_ROUND"
+            elif [ "$MODE" = "history" ]; then
+              python scripts/sync_ss.py --needs-history --delay 4 --limit "$PER_ROUND"
             else
               python scripts/sync_ss.py --stale-hours 12 --delay 4 --limit "$PER_ROUND"
             fi

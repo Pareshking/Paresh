@@ -263,3 +263,27 @@ def test_the_nightly_round_skips_what_tonight_already_updated():
     assert fetched_within({"fetched_at": "2026-10-02T17:30:00+00:00"}, 12, now)
     assert not fetched_within({"fetched_at": "2026-10-01T17:30:00+00:00"}, 12, now)
     assert not fetched_within(None, 12, now) and not fetched_within({}, 12, now)
+
+
+def test_history_mode_takes_only_stocks_held_without_their_whole_history(monkeypatch, tmp_path):
+    import json
+
+    import scripts.sync_ss as sync
+
+    (tmp_path / "manifest.json").write_text(json.dumps({"failed": {}, "symbols": {
+        "OLD": {"full_history": False, "more_available": True},
+        "NEW": {"full_history": True, "more_available": False},
+    }}))
+    asked = []
+
+    def fake_history(symbol, pages, **kw):
+        asked.append((symbol, pages))
+        return _round2(_rows(symbol, [10.0, 11.0])), False
+
+    monkeypatch.setattr(sync.ss, "fetch_history", fake_history)
+    monkeypatch.setattr(sync.time, "sleep", lambda s: None)
+    sync.main(["--symbols", "OLD", "NEW", "NEVER", "--needs-history",
+               "--out", str(tmp_path), "--delay", "0"])
+    # back to listing (pages=None), and only the stock held on page 1
+    assert asked == [("OLD", None)]
+    assert json.loads((tmp_path / "manifest.json").read_text())["symbols"]["OLD"]["full_history"]
