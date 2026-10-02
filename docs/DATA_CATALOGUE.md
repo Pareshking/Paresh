@@ -37,6 +37,10 @@ Policy and recovery: `docs/R2_RECOVERY_AND_RETENTION.md`. Layout and rules
 |---|---|---|
 | `indices/ind_*.csv` | Current NSE index constituent lists (Total Market, Nifty 50, Next 50, Midcap 150, Smallcap 250, Microcap 250, Nano Cap) | `daily_sync` |
 | `membership_history.json`, `membership_notices.json` | Point-in-time membership and the notices it is built from | membership scripts (`docs/MEMBERSHIP_FROM_NOTICES.md`) |
+| `membership_history.json` (extended) | Seven indices from 2010, the ticker-change ledger (`symbol_changes`), caveats, applied rules | `nse_index_rebuild/merge_into_history.py`; the daily sync still appends changes |
+| `membership_history.freeze.json` | SHA-256 of the history through 2026-09-30 and its change log | `nse_index_rebuild/freeze_history.py` (checked in CI) |
+| `reference/nse/*` | Daily copy of NSE's ticker-change, name-change, listed-equities and corporate-action feeds, `MANIFEST.json`, `CHANGES.json`, `anchor_checks.jsonl` (today's lists on two NSE hosts against the history) | `nse_reference_sync` (`scripts/sync_nse_reference.py`, `scripts/check_index_anchor.py`) |
+| `reference/nse/isin_history.csv` | ISIN history used to follow renames in prices | `scripts/build_isin_history.py` |
 | `nanocap_membership.json` | Month-end Nano Cap list | `daily_sync` (builds on the last session of the month) |
 | `corporate_actions_log.json` | Corporate actions applied | `daily_sync` |
 | `former_member_prices.parquet/.json` | Prices for stocks that left the universe, so past months replay faithfully | `daily_sync` |

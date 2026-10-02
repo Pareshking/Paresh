@@ -1,5 +1,7 @@
 # Open items (2026-10-02), in the order to close them
 
+**Status 2026-10-02:** items 1 to 6, 8 and 9 closed; item 7 done by an AI reader (a person has not re-derived a sample); item 10 open and not known to affect these indices; `caveats` in the history is empty. Open beyond this list: compliance sign-off (the owner's), and outside constituent lists for Midcap 150, Smallcap 250, Microcap 250 and Total Market before today.
+
 Each row: what is unproven, what would close it, and where it shows up (`caveats` in `data/membership_history.json`).
 
 | # | Item | What closes it | State |
