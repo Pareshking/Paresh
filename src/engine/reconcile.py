@@ -165,8 +165,13 @@ def rights_events(actions: pd.DataFrame, closes: pd.DataFrame,
         after = closes[sym].loc[ex:].dropna()
         if before.empty or after.empty:
             continue  # the closes do not straddle the ex-date
-        assumed = sym not in face_values
-        fv = float(face_values.get(sym, DEFAULT_FACE_VALUE))
+        stated = act.get("face_value") if hasattr(act, "get") else None
+        if sym in face_values:
+            fv, assumed = float(face_values[sym]), False
+        elif stated is not None and pd.notna(stated) and float(stated) > 0:
+            fv, assumed = float(stated), False        # NSE's list states it
+        else:
+            fv, assumed = DEFAULT_FACE_VALUE, True
         issue = terms["price"] + fv if terms["premium"] else terms["price"]
         raw_before = raw[sym].loc[:ex - pd.Timedelta(days=1)].dropna() \
             if raw is not None and sym in raw.columns else pd.Series(dtype=float)

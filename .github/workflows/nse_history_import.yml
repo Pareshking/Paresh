@@ -1,0 +1,58 @@
+name: NSE history import (2010 onwards)
+
+# One-off fill of R2's NSE history (owner, 2026-10-02: "waiting 3 days not a
+# good idea"). Prices come from a public GitHub mirror of NSE's full
+# bhavcopy (checked equal to NSE's own file, close and volume, on every row of
+# two sample days); corporate actions from NSE's own list, one request a year.
+# No daily bundle is asked of NSE. Re-running is safe: only what R2 lacks is
+# published. See scripts/import_nse_history.py.
+on:
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: "Minutes to spend publishing prices (at most 320)"
+        default: "320"
+      actions:
+        description: "Also import corporate actions (yes/no)"
+        default: "yes"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nse-history-import
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 345
+    env:
+      PYTHONPATH: .
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      MINUTES: ${{ inputs.minutes || '320' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+      - run: pip install -r requirements.txt
+
+      - name: Corporate actions, 2010 to date (NSE's list, one request a year)
+        if: inputs.actions != 'no'
+        run: python scripts/import_nse_history.py --actions --from-year 2010
+
+      - name: Fetch the bhavcopy mirror (data/ only)
+        run: |
+          git clone --depth 1 --filter=blob:none --sparse https://github.com/tilak999/NSE-Data-bank mirror
+          git -C mirror sparse-checkout set data
+          ls mirror/data | wc -l
+
+      - name: Prices R2 lacks, oldest first
+        run: |
+          [ "${MINUTES%.*}" -gt 320 ] && MINUTES=320
+          python scripts/import_nse_history.py --prices --mirror mirror/data --max-minutes "$MINUTES"

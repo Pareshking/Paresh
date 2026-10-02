@@ -129,6 +129,9 @@ def dedupe_actions(actions: pd.DataFrame) -> pd.DataFrame:
 
 R2_PRICES = "nse/prices_daily"
 R2_ACTIONS = "nse/corporate_actions"
+# NSE's corporate-action list, one file per ex-date year (scripts/import_nse_history.py):
+# the history before the daily bundles were collected, with face values.
+R2_ACTIONS_HISTORY = "nse/corporate_actions_history"
 
 
 def r2_days(archive, dataset: str = R2_PRICES) -> set[date]:
@@ -172,6 +175,15 @@ def read_r2(since: date, until: date, *, archive=None, reader=None
                     reader.resolve_current(R2_ACTIONS, as_of=d.isoformat())))
         except Exception as exc:  # noqa: BLE001  one bad day must not lose the rest
             unreadable.append(f"{d}: {type(exc).__name__}")
+    for d in sorted(r2_days(archive, R2_ACTIONS_HISTORY)):
+        if not (since.year <= d.year <= until.year):
+            continue
+        try:
+            h = reader.read_parquet(reader.resolve_current(R2_ACTIONS_HISTORY, as_of=d.isoformat()))
+            ex = pd.to_datetime(h["ex_date"])
+            actions.append(h[(ex >= pd.Timestamp(since)) & (ex <= pd.Timestamp(until))])
+        except Exception as exc:  # noqa: BLE001
+            unreadable.append(f"actions history {d}: {type(exc).__name__}")
     acts = pd.concat(actions, ignore_index=True) if actions else pd.DataFrame()
     if not acts.empty:
         acts = nb.repair_swapped_dates(acts).drop_duplicates(["symbol", "ex_date", "purpose"])
