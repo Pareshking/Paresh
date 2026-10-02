@@ -82,6 +82,44 @@ def chain_symbols(close: pd.DataFrame, renames: dict[str, Any] | None,
     return out
 
 
+def chain_raw(close: pd.DataFrame, factors: pd.DataFrame, renames: dict[str, Any] | None,
+              skipped: list[str] | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Join renamed stocks' raw closes and their factors, before any adjustment.
+
+    Adjusting each ticker first and joining after left the old ticker's prices
+    without every split and bonus that came after the rename: INFOSYSTCH ran
+    on into an INFY carrying three later bonuses, the join read as a -87% fall
+    and was refused, and INFY lost 2008 - 2011 (46 renames so, incl.
+    BAJAUTOFIN, SRTRANSFIN, MOTHERSUMI, NIITTECH, SSLT; audit 2026-10-03).
+    Joined raw, the series meet at the price that traded; an action on the
+    join day itself is taken out of the move before continuous() judges it.
+    The two factor columns join under the same decisions.
+    """
+    out, f = close.copy(), factors.reindex_like(close).fillna(1.0).copy()
+    for old, a in (renames or {}).items():
+        new = a["new_symbol"] if isinstance(a, dict) else str(a)
+        if old not in out.columns:
+            continue
+        if isinstance(a, dict) and a.get("auto") and new in out.columns:
+            o = out[old].dropna()
+            n = out[new].copy()
+            first = n[n.index > o.index[-1]].first_valid_index() if len(o) else None
+            if first is not None:
+                n.loc[first] = n.loc[first] / f.at[first, new]
+            why = continuous(out[old], n)
+            if why:
+                if skipped is not None:
+                    skipped.append(f"{old}->{new}: {why}")
+                continue
+        if new in out.columns:
+            out[new] = out[new].combine_first(out[old])
+            f[new] = f[new] * f[old]
+        else:
+            out[new], f[new] = out[old], f[old]
+        out, f = out.drop(columns=[old]), f.drop(columns=[old])
+    return out, f
+
+
 def continuous(old: pd.Series, new: pd.Series) -> str:
     """Why `old` does not run on into `new` ("" when it does): the last old
     session and the first new one at most MAX_GAP_DAYS apart, the close
@@ -205,8 +243,9 @@ def adjusted_close(closes: pd.DataFrame, actions: pd.DataFrame, symbols: Iterabl
     factors, _ = na.action_factors(closes, moved)
     factors.index = closes.index
     not_joined: list[str] = []
-    close = chain_symbols(na.adjust(closes, factors), renames, not_joined)
-    corrections, superseded = uncovered(notes.get("corrections"), factors, renames)
+    raw, joined = chain_raw(closes, factors, renames, not_joined)
+    close = na.adjust(raw, joined)
+    corrections, superseded = uncovered(notes.get("corrections"), joined, renames)
     close = correct(close, corrections)
     wanted = list(dict.fromkeys(symbols))
     # A name asked for by its old symbol gets the joined series of its successor.
