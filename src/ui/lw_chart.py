@@ -130,7 +130,7 @@ SPEC.forEach((p,pi)=>{
   root.appendChild(wrap);
   const chart=LightweightCharts.createChart(wrap,{
     width:wrap.clientWidth,height:p.height,
-    layout:{background:{type:'solid',color:'transparent'},textColor:'#5E6878',fontFamily:"Geist,system-ui,sans-serif",fontSize:12},
+    layout:{background:{type:'solid',color:'transparent'},textColor:'#5E6878',fontFamily:"Geist,system-ui,sans-serif",fontSize:12,attributionLogo:false},
     grid:{vertLines:{visible:false},horzLines:{color:'#EDEFF3'}},
     rightPriceScale:{borderVisible:false,scaleMargins:{top:(p.top!==null&&p.top!==undefined)?p.top:0.16,bottom:p.series.some(x=>x.volume)?0.24:0.06}},
     timeScale:{visible:pi===SPEC.length-1,borderVisible:false,timeVisible:false,fixLeftEdge:true,fixRightEdge:true,rightOffset:0},
