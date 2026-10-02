@@ -80,7 +80,8 @@ def load(base: str = NSE_LONG_BASE_URL, cache: Path | str = DATA_DIR
     value.index = pd.DatetimeIndex(value.index)
     if close.empty:
         return None
-    return close.astype(float), value.astype(float), report
+    # float32 as stored: 16 years x 1,400 names is ~27 MB a field, not 54.
+    return close.astype("float32"), value.astype("float32"), report
 
 
 def average_value(value: pd.DataFrame) -> pd.DataFrame:

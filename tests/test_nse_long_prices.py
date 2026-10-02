@@ -28,7 +28,9 @@ def test_nifty_100_is_nifty_50_plus_next_50_on_every_date():
     assert members_on(h, "2012-01-02", canonical=True) == {"AAA", "BBB", "CCC", "DDD"}
     # A stock moving from one half to the other on the same day stays in the 100.
     assert members_on(h, "2014-03-28", canonical=True) == {"AAA", "BBB", "CCC", "DDD"}
-    assert members_on(h, "2009-12-31") is None
+    # The 1 Jan 2010 list also answers for the 31 Dec close that signals January's book.
+    assert members_on(h, "2009-12-31", canonical=True) == {"AAA", "BBB", "CCC", "DDD"}
+    assert members_on(h, "2009-12-30") is None
 
 
 def test_an_index_starts_at_its_own_first_whole_month():

@@ -41,8 +41,16 @@ def _stored(full: dict[str, Any], key: str) -> dict[str, Any] | None:
     sub = (full.get("indices") or {}).get(key)
     if not sub or not sub.get("baseline"):
         return None
+    baseline = dict(sub["baseline"])
+    # A list that starts on the 1st (2010-01-01, 2016-04-01) also answers for the
+    # month-end close before it: that close signals the first month's book, and
+    # NSE announces index changes about four weeks before they take effect, so
+    # the list was public on the signal date.
+    start = pd.Timestamp(baseline["date"])
+    if start.day == 1:
+        baseline["date"] = (start - pd.Timedelta(days=1)).date().isoformat()
     return {"schema_version": full.get("schema_version", 2), "index": key,
-            "baseline": sub["baseline"], "changes": list(sub.get("changes") or []),
+            "baseline": baseline, "changes": list(sub.get("changes") or []),
             "aliases": full.get("aliases") or {}}
 
 
@@ -66,7 +74,7 @@ def first_month(history: dict[str, Any] | None) -> pd.Period | None:
         return None
     start = pd.Timestamp(history["baseline"]["date"])
     month = start.to_period("M")
-    return month if start.day == 1 else month + 1
+    return month if start.day == 1 else month + 1   # a list from the 31st serves the next month
 
 
 def ever_members(history: dict[str, Any] | None) -> set[str]:

@@ -57,6 +57,84 @@ def _tone(v) -> str:
     return "up" if v > 0 else "down" if v < 0 else ""
 
 
+MODE_LIVE = "Live system"
+MODE_HISTORY = "History from 2010"
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def _long_file():
+    from src.loaders import nse_long
+
+    return nse_long.load()
+
+
+def _history_inputs(rank_df: pd.DataFrame, liquidity_floor_cr: float) -> dict | None:
+    """The long backtest's controls and inputs, or None when it cannot run.
+
+    Owner, 2026-10-03: any index from Jan 2010, a start and end month, and a
+    traded-value floor; size from the index tier, no market-cap cutoff. Prices
+    are NSE's own (src/loaders/nse_long.py), membership each index's own point-in-
+    time timeline (src/engine/index_universe.py).
+    """
+    from src.engine import index_universe as iu
+    from src.loaders import nse_long
+
+    loaded = _long_file()
+    if loaded is None:
+        kit.note("The long price file is not available yet.",
+                 "It is built weekly from NSE's bhavcopy by the 'NSE long price file' workflow "
+                 "and published to the data-latest release.")
+        return None
+    close, value, report = loaded
+
+    c1, c2 = st.columns([1, 2])
+    key = c1.selectbox("Index", list(iu.INDICES), format_func=iu.INDICES.get,
+                       index=list(iu.INDICES).index(iu.DEFAULT_INDEX), key="bt_hist_index")
+    membership = iu.index_history(key)
+    if membership is None:
+        kit.note(f"No membership history for {iu.INDICES[key]}.")
+        return None
+    # A year of prices before the first month, for the 12-month lookback and the EMA.
+    first = max(iu.first_month(membership), pd.Period(close.index[0], freq="M") + 13)
+    last = pd.Period(close.index[-1], freq="M") - 1
+    if first > last:
+        kit.note(f"{iu.INDICES[key]} has no completed month to test yet.")
+        return None
+    months_all = list(pd.period_range(first, last, freq="M"))
+    start, end = c2.select_slider(
+        "Months", months_all, value=(months_all[0], months_all[-1]),
+        format_func=lambda p: p.strftime("%b %Y"), key=f"bt_hist_months_{key}",
+        help=f"{iu.INDICES[key]}'s point-in-time list begins {first:%b %Y}.",
+    )
+    floor = st.number_input(
+        "Minimum traded value (₹ Cr, 20-day average; 0 = off)", min_value=0.0, max_value=500.0,
+        value=float(liquidity_floor_cr or 0.0), step=1.0, key="bt_hist_floor",
+    )
+
+    # The frame ends at the first session after the end month: the engine reports
+    # the completed months before its last session's month.
+    after = close.index[close.index >= (end + 1).start_time]
+    cut = after[0] if len(after) else close.index[-1]
+    cols = sorted(iu.ever_members(membership) & set(close.columns))
+    frame = close.loc[:cut, cols]
+
+    # Industry for the cap: the current lists, then TradingView mapped to NSE's
+    # names. A stock nothing can place (mostly ones that left before today's
+    # lists) is its own group, not one shared "Other" the cap would squeeze.
+    sec = rank_df.set_index("Symbol")["Industry"].to_dict() if "Industry" in rank_df.columns else {}
+    sec.update(former_members.industry_for([c for c in cols if c not in sec]))
+    unlabelled = [c for c in cols if sec.get(c, "Other") == "Other"]
+    sec.update({c: f"Unlabelled · {c}" for c in unlabelled})
+
+    return {
+        "close": frame, "membership": membership, "start": start, "end": end,
+        "months": (end - start).n + 1, "floor": floor,
+        "traded_value": nse_long.average_value(value[cols].loc[:cut]) if floor else None,
+        "sector_map": sec, "unlabelled": len(unlabelled), "name": iu.INDICES[key],
+        "built": report.get("built"), "last_session": report.get("last_session"),
+    }
+
+
 def _backtest_body(
     rank_df: pd.DataFrame,
     adj_close: pd.DataFrame,
@@ -70,11 +148,18 @@ def _backtest_body(
     history_start: pd.Timestamp | None = None,
 ) -> None:
     """Fragment: reruns only when backtest-tab widgets change, not on every global rerun."""
+    history_mode = st.session_state.get("bt_mode") == MODE_HISTORY
     actions = kit.page_head(
         "Backtest",
+        "Any index, any months from 2010, on NSE's own prices" if history_mode else
         f"Last {months} completed month{'s' if months != 1 else ''}",
         actions=True,
     )
+    st.segmented_control("Backtest mode", [MODE_LIVE, MODE_HISTORY], default=MODE_LIVE,
+                         key="bt_mode", label_visibility="collapsed")
+    history = _history_inputs(rank_df, liquidity_floor_cr) if history_mode else None
+    if history_mode and history is None:
+        return
     with actions, st.popover("Change settings", icon=":material/tune:"):
         c1, c2 = st.columns(2)
         bt_n = c1.selectbox("Holdings", [10, 15, 20, 30, 50], index=2, key="bt_holdings_n")
@@ -135,8 +220,18 @@ def _backtest_body(
     # Prices as NSE published them (loaders/nse_prices.py): a past month ranks
     # on what was known then, not on a vendor's later restatement. Where the
     # file does not reach back far enough, the long Personal (Screener) history stands.
-    _nse, _nse_info = nse_prices.basis_frame(adj_close, membership, months=months)
-    if _nse is not None:
+    _nse, _nse_info = (None, {}) if history else nse_prices.basis_frame(adj_close, membership, months=months)
+    if history:
+        adj_close, _events = history["close"], []
+        membership, months = history["membership"], history["months"]
+        history_start = history["start"].start_time
+        liquidity_floor_cr, traded_value = history["floor"], history["traded_value"]
+        kit.caption(
+            f"{history['name']}, point in time · Prices: NSE closes, adjusted for splits, bonuses "
+            "and demergers; no dividends or rights · file built "
+            f"{history.get('built') or '—'}, last session {history.get('last_session') or '—'}."
+        )
+    elif _nse is not None:
         adj_close, _events = _nse, []
         # NSE's file runs to the latest session, often a day ahead of the long Screener history
         # (on the 1st its first session of the month is already in). Months are counted back
@@ -156,19 +251,23 @@ def _backtest_body(
     ph = f"{price_fingerprint(adj_close)}_{actions_digest(_events)}"
     if liquidity_floor_cr:
         kit.caption(f"Liquidity floor on: a stock is bought only while its 20-day average "
-                    f"traded value is ₹{liquidity_floor_cr:g} Cr or more (Configuration).")
+                    f"traded value is ₹{liquidity_floor_cr:g} Cr or more"
+                    + ("." if history else " (Configuration)."))
         if traded_value is not None:
             ph += f"_{price_fingerprint(traded_value)}"
-    benchmark_close = fetch_benchmark_history(period="2y")
+    benchmark_close = fetch_benchmark_history(period="max" if history else "2y")
     if benchmark_close.empty:
         st.error("Nifty 500 benchmark (^CRSLDX) data is unavailable. Backtest stopped to prevent an invalid benchmark comparison.")
         return
-    sec_map = (
+    sec_map = history["sector_map"] if history else (
         rank_df.set_index("Symbol")["Industry"].to_dict()
         if "Industry" in rank_df.columns
         else {}
     )
-    if sec_map:
+    if history and history["unlabelled"]:
+        kit.caption(f"{history['unlabelled']} of these stocks have no industry on record (mostly ones "
+                    "that left before today's lists); each counts as its own group for the industry cap.")
+    if sec_map and not history:
         # The sector cap needs an industry for every name it can hold, and the
         # index files only label the current members.
         sec_map.update(former_members.industry_for([c for c in adj_close.columns if c not in sec_map]))
@@ -225,7 +324,8 @@ def _backtest_body(
         from src.loaders.price_source import display_name as _display
 
         _ranked_on = str(_m.snapshot().get("facts", {}).get("price_source") or "")
-        if _ranked_on and _ranked_on != "yahoo":
+        # In history mode the long NSE file is the history: nothing to explain.
+        if _ranked_on and _ranked_on != "yahoo" and not history:
             st.caption(
                 f"Long price history used: {_display(_ranked_on)} does not yet "
                 f"reach far enough back for {months} months."
@@ -349,14 +449,18 @@ def _backtest_body(
         kit.growth_chart(eq.index, eq.tolist(),
                          None if bm is None else bm.tolist(), key="bt")
 
+    # The live book and the canonical account belong to the live system, not to
+    # a study of another index or another decade.
+    _views = (["Month by month", "Every trade", "Rebalance log", "Method"] if history else
+              ["Current book", "This month's changes", "Month by month", "Every trade",
+               "Rebalance log", "Method"])
     view = st.segmented_control(
         "Backtest detail",
-        ["Current book", "This month's changes", "Month by month", "Every trade",
-         "Rebalance log", "Method"],
-        default="Current book",
-        key="bt_view",
+        _views,
+        default=_views[0],
+        key="bt_hist_view" if history else "bt_view",
         label_visibility="collapsed",
-    ) or "Current book"
+    ) or _views[0]
 
     # ── Current Book & This Month's Changes ──────────────────────────────────
     # The tables below stop at the last completed month, which is right for
@@ -374,49 +478,53 @@ def _backtest_body(
     # Actions and Portfolio consume, regardless of the controls selected above.
     # Keep the configurable run for historical performance/trades only.
     canonical_result: dict = {}
-    try:
-        live_book, canonical_result = current_book(
-            canonical_adj_close, benchmark_close, SYSTEM_750
-        )
-    except (ValueError, KeyError) as exc:
-        st.error(f"Canonical model book is unavailable: {exc}")
-        live_book = pd.DataFrame()
+    live_book = pd.DataFrame()
+    # History mode studies another index or decade: no live book or account.
+    if not history:
+        try:
+            live_book, canonical_result = current_book(
+                canonical_adj_close, benchmark_close, SYSTEM_750
+            )
+        except (ValueError, KeyError) as exc:
+            st.error(f"Canonical model book is unavailable: {exc}")
+            live_book = pd.DataFrame()
     changes = canonical_result.get("month_changes", pd.DataFrame())
     lmeta = canonical_result.get("live_meta", {}) or {}
 
-    # Account performance is not the configurable research simulation above.
-    # Use the exact same frozen ledger and current live mark as Track Record.
-    try:
-        account_ledger = load_ledger(ledger_path(SYSTEM_750), inception(SYSTEM_750))
-        account_stats = _canonical_account_stats(account_ledger, lmeta)
-        with kit.card(
-            "Canonical account performance",
-            "bt_canonical_account",
-            "Same January 2026-onward recorded account as Track Record and Portfolio; "
-            "closed months are frozen and the latest month is a live mark.",
-        ):
-            kit.readings([
-                kit.Reading(
-                    "Since-inception strategy",
-                    _pct_or_dash(account_stats.get("total_return")),
-                    "canonical account return, not a configurable backtest",
-                    "up" if account_stats.get("total_return", 0) >= 0 else "down",
-                ),
-                kit.Reading(
-                    "Nifty 500",
-                    _pct_or_dash(account_stats.get("bench_return")),
-                    "same dates and compounding basis",
-                    "up" if account_stats.get("bench_return", 0) >= 0 else "down",
-                ),
-                kit.Reading(
-                    "Alpha",
-                    _pct_or_dash(account_stats.get("alpha")),
-                    "strategy return minus benchmark return",
-                    "up" if account_stats.get("alpha", 0) >= 0 else "down",
-                ),
-            ], "Canonical account")
-    except (ValueError, KeyError, TypeError) as exc:
-        st.error(f"Canonical account performance is unavailable: {exc}")
+    if not history:
+        # Account performance is not the configurable research simulation above.
+        # Use the exact same frozen ledger and current live mark as Track Record.
+        try:
+            account_ledger = load_ledger(ledger_path(SYSTEM_750), inception(SYSTEM_750))
+            account_stats = _canonical_account_stats(account_ledger, lmeta)
+            with kit.card(
+                "Canonical account performance",
+                "bt_canonical_account",
+                "Same January 2026-onward recorded account as Track Record and Portfolio; "
+                "closed months are frozen and the latest month is a live mark.",
+            ):
+                kit.readings([
+                    kit.Reading(
+                        "Since-inception strategy",
+                        _pct_or_dash(account_stats.get("total_return")),
+                        "canonical account return, not a configurable backtest",
+                        "up" if account_stats.get("total_return", 0) >= 0 else "down",
+                    ),
+                    kit.Reading(
+                        "Nifty 500",
+                        _pct_or_dash(account_stats.get("bench_return")),
+                        "same dates and compounding basis",
+                        "up" if account_stats.get("bench_return", 0) >= 0 else "down",
+                    ),
+                    kit.Reading(
+                        "Alpha",
+                        _pct_or_dash(account_stats.get("alpha")),
+                        "strategy return minus benchmark return",
+                        "up" if account_stats.get("alpha", 0) >= 0 else "down",
+                    ),
+                ], "Canonical account")
+        except (ValueError, KeyError, TypeError) as exc:
+            st.error(f"Canonical account performance is unavailable: {exc}")
 
     if view in ("Current book", "This month's changes"):
         _as_of = lmeta.get("as_of")
