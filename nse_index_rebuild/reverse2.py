@@ -1,5 +1,5 @@
 import csv, collections, sys
-INDS = ["NIFTY_50","NIFTY_NEXT_50","NIFTY_MIDCAP_150","NIFTY_SMALLCAP_250","NIFTY_MICROCAP_250"]
+INDS = ["NIFTY_50","NIFTY_NEXT_50","NIFTY_MIDCAP_150","NIFTY_SMALLCAP_250","NIFTY_MICROCAP_250","NIFTY_TOTAL_MARKET"]
 cur = {k: {r["Symbol"].strip() for r in csv.DictReader(open(f"current/{k}.csv"))} for k in INDS}
 ev = list(csv.DictReader(open("events_raw.csv")))
 ov = list(csv.DictReader(open("rules/overrides.csv")))
