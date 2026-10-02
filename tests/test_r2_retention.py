@@ -295,3 +295,18 @@ def test_the_app_snapshot_keeps_only_its_newest_three_dates(monkeypatch):
     assert "2026-08-31" in plan.drop
     assert all(k.startswith(("archive/manifests/app/prices_snapshot/", "snapshots/app_prices/"))
                for k in plan.delete_keys)
+
+
+def test_protected_reference_datasets_can_never_be_pruned_or_retired():
+    import pytest
+
+    from scripts import r2_retention as rr
+
+    rr.check_protected(rr.RETAINED_DATASETS, rr.RETIRED_DATASETS)   # today's tables are fine
+    with pytest.raises(ValueError, match="protected"):
+        rr.check_protected({"reference/yahoo_close": "archive/reference/yahoo_close"}, {})
+    with pytest.raises(ValueError, match="protected"):
+        rr.check_protected({}, {"prices/screener/max_history": "archive/prices/screener/max_history"})
+    # A root that would sweep a protected dataset's objects is refused too.
+    with pytest.raises(ValueError, match="would reach"):
+        rr.check_protected({}, {"old/thing": "archive/reference"})
