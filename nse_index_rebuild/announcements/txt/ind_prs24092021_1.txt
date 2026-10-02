@@ -1,0 +1,287 @@
+                                          PRESS RELEASE
+                                                                          Mumbai, September 24, 2021
+
+
+
+                      Quarterly Review of Nifty Banking and PSU Bond indices
+      NSE Indices Limited, an NSE group company, as part of its periodic review, announces the following
+      changes in Nifty Corporate Bond Indices.
+
+      These changes shall become effective from October 01, 2021 (close of September 30, 2021)
+
+      The following companies are being excluded:
+
+Sr.     Index name                        ISIN           Issuer                          Maturity
+No.                                                                                      Date
+1       Nifty Banking & PSU Ultra Short   INE020B08872   REC LIMITED                     04-Dec-21
+        Duration Bond Index
+2       Nifty Banking & PSU Ultra Short   INE053F07942   INDIAN RAILWAY FINANCE          24-Nov-21
+        Duration Bond Index                              CORPORATION LIMITED
+3       Nifty Banking & PSU Ultra Short   INE134E08GT3   POWER FINANCE CORPORATION       09-Dec-21
+        Duration Bond Index                              LIMITED
+4       Nifty Banking & PSU Ultra Short   INE906B07FE6   NATIONAL HIGHWAYS               23-Dec-21
+        Duration Bond Index                              AUTHORITY OF INDIA
+5       Nifty Banking & PSU Ultra Short   INE752E07OD2   POWER GRID CORPORATION OF       21-Dec-21
+        Duration Bond Index                              INDIA LIMITED
+6       Nifty Banking & PSU Ultra Short   INE733E07KH1   NTPC LIMITED                    24-Nov-21
+        Duration Bond Index
+7       Nifty Banking & PSU Low           INE906B07FT4   NATIONAL HIGHWAYS               06-Jun-22
+        Duration Bond Index                              AUTHORITY OF INDIA
+8       Nifty Banking & PSU Low           INE020B08CE1   REC LIMITED                     30-Jun-22
+        Duration Bond Index
+9       Nifty Banking & PSU Low           INE134E08KB3   POWER FINANCE CORPORATION       27-May-22
+        Duration Bond Index                              LIMITED
+10      Nifty Banking & PSU Low           INE261F08BJ3   NATIONAL BANK FOR               23-May-22
+        Duration Bond Index                              AGRICULTURE AND RURAL
+                                                         DEVELOPMENT
+11      Nifty Banking & PSU Low           INE031A08723   HOUSING AND URBAN               15-Jul-22
+        Duration Bond Index                              DEVELOPMENT CORPORATION
+                                                         LIMITED
+12      Nifty Banking & PSU Low           INE053F09EN8   INDIAN RAILWAY FINANCE          07-Jun-22
+        Duration Bond Index                              CORPORATION LIMITED
+13      Nifty Banking & PSU Short         INE261F08CU8   NATIONAL BANK FOR               05-Feb-24
+        Duration Bond Index                              AGRICULTURE AND RURAL
+                                                         DEVELOPMENT
+14   Nifty Banking & PSU Short       INE134E08LB1   POWER FINANCE CORPORATION   19-Aug-23
+     Duration Bond Index                            LIMITED
+15   Nifty Banking & PSU Short       INE557F08FM9   NATIONAL HOUSING BANK       02-Apr-24
+     Duration Bond Index
+16   Nifty Banking & PSU Short       INE242A08460   INDIAN OIL CORPORATION      25-Nov-22
+     Duration Bond Index                            LIMITED
+17   Nifty Banking & PSU Short       INE213A08040   OIL AND NATURAL GAS         09-Feb-24
+     Duration Bond Index                            CORPORATION LIMITED
+18   Nifty Banking & PSU Medium      INE242A08452   INDIAN OIL CORPORATION      06-Mar-25
+     Duration Bond Index                            LIMITED
+19   Nifty Banking & PSU Medium      INE206D08261   NUCLEAR POWER               25-Mar-26
+     Duration Bond Index                            CORPORATION OF INDIA
+                                                    LIMITED
+20   Nifty Banking & PSU Medium      INE752E08643   POWER GRID CORPORATION OF   15-Apr-25
+     Duration Bond Index                            INDIA LIMITED
+21   Nifty Banking & PSU Medium      INE848E07377   NHPC LIMITED                11-Feb-26
+     Duration Bond Index
+22   Nifty Banking & PSU Medium      INE261F08CI3   NATIONAL BANK FOR           11-Apr-25
+     Duration Bond Index                            AGRICULTURE AND RURAL
+                                                    DEVELOPMENT
+23   Nifty Banking & PSU Medium      INE053F09GV6   INDIAN RAILWAY FINANCE      10-Mar-25
+     Duration Bond Index                            CORPORATION LIMITED
+24   Nifty Banking & PSU Medium      INE213A08016   OIL AND NATURAL GAS         11-Apr-25
+     Duration Bond Index                            CORPORATION LIMITED
+25   Nifty Banking & PSU Medium to   INE020B08CU7   REC LIMITED                 11-May-30
+     Long Duration Bond Index
+26   Nifty Banking & PSU Medium to   INE134E08KL2   POWER FINANCE CORPORATION   25-Feb-30
+     Long Duration Bond Index                       LIMITED
+27   Nifty Banking & PSU Medium to   INE261F08AX6   NATIONAL BANK FOR           26-Dec-28
+     Long Duration Bond Index                       AGRICULTURE AND RURAL
+                                                    DEVELOPMENT
+28   Nifty Banking & PSU Long        INE261F08DA8   NATIONAL BANK FOR           21-Mar-31
+     Duration Bond Index                            AGRICULTURE AND RURAL
+                                                    DEVELOPMENT
+29   Nifty Banking & PSU Long        INE053F07CS5   INDIAN RAILWAY FINANCE      29-Oct-40
+     Duration Bond Index                            CORPORATION LIMITED
+30   Nifty Banking & PSU Long        INE906B07II1   NATIONAL HIGHWAYS           30-Dec-36
+     Duration Bond Index                            AUTHORITY OF INDIA
+31   Nifty Banking & PSU Long        INE020B08DN0   REC LIMITED                 28-Jan-31
+     Duration Bond Index
+32   Nifty Banking & PSU Long        INE733E07KG3   NTPC LIMITED                07-Nov-31
+     Duration Bond Index
+33   Nifty Banking & PSU Long        INE134E08LA3   POWER FINANCE CORPORATION   10-Aug-35
+     Duration Bond Index                            LIMITED
+34   Nifty Banking & PSU Long        INE094A08093   HINDUSTAN PETROLEUM         11-Apr-31
+     Duration Bond Index                            CORPORATION LIMITED
+35   Nifty Banking & PSU Long        INE206D08477   NUCLEAR POWER               21-Mar-31
+     Duration Bond Index                            CORPORATION OF INDIA
+                                                    LIMITED
+36   Nifty Banking & PSU Long        INE787H07057   INDIA INFRASTRUCTURE        27-Jul-37
+     Duration Bond Index                            FINANCE COMPANY LIMITED
+37      Nifty Banking & PSU Short         INE092T08CA0   IDFC FIRST BANK LIMITED     28-Jul-23
+        Duration Bond Index
+38      Nifty Banking & PSU Medium to     INE202E07294   INDIAN RENEWABLE ENERGY     03-Mar-30
+        Long Duration Bond Index                         DEVELOPMENT AGENCY
+                                                         LIMITED
+39      Nifty Banking & PSU Short         INE114A07950   STEEL AUTHORITY OF INDIA    01-Aug-23
+        Duration Bond Index                              LIMITED
+40      Nifty Banking & PSU Short         INE549F08491   KARNATAKA STATE FINANCIAL   02-Jan-23
+        Duration Bond Index                              CORPORATION
+41      Nifty Banking & PSU Medium        INE949L08418   AU SMALL FINANCE BANK       30-May-25
+        Duration Bond Index                              LIMITED
+42      Nifty Banking & PSU Low           INE092T08DZ5   IDFC FIRST BANK LIMITED     13-Apr-22
+        Duration Bond Index
+43      Nifty Banking & PSU Short         INE160A08043   PUNJAB NATIONAL BANK        09-Sep-24
+        Duration Bond Index
+44      Nifty Banking & PSU Short         INE084A08037   BANK OF INDIA               25-Sep-23
+        Duration Bond Index
+45      Nifty Banking & PSU Short         INE014N07054   NATIONAL COOPERATIVE        26-May-23
+        Duration Bond Index                              DEVELOPMENT CORPORATION
+46      Nifty Banking & PSU Medium        INE092T08BY2   IDFC FIRST BANK LIMITED     23-Jun-25
+        Duration Bond Index
+47      Nifty Banking & PSU Medium to     INE812V07039   THDC INDIA LIMITED          24-Jul-30
+        Long Duration Bond Index
+48      Nifty Banking & PSU Medium to     INE688I08053   IDFC FIRST BANK LIMITED     17-May-28
+        Long Duration Bond Index
+49      Nifty Banking & PSU Low           INE202E07070   INDIAN RENEWABLE ENERGY     04-Jun-22
+        Duration Bond Index                              DEVELOPMENT AGENCY
+                                                         LIMITED
+50      Nifty Banking & PSU Ultra Short   INE092T08DS0   IDFC FIRST BANK LIMITED     21-Dec-21
+        Duration Bond Index
+51      Nifty Banking & PSU Low           INE580B07471   BANDHAN BANK LIMITED        28-Apr-22
+        Duration Bond Index
+52      Nifty Banking & PSU Low           INE114A07828   STEEL AUTHORITY OF INDIA    25-May-22
+        Duration Bond Index                              LIMITED
+
+
+
+      The following companies are being included:
+
+Sr.     Index name                        ISIN           Issuer                      Maturity
+No.                                                                                  Date
+1       Nifty Banking & PSU Ultra Short   INE020B08CV5   REC LIMITED                 21-Mar-22
+        Duration Bond Index
+2       Nifty Banking & PSU Ultra Short   INE906B07FG1   NATIONAL HIGHWAYS           18-Mar-22
+        Duration Bond Index                              AUTHORITY OF INDIA
+3       Nifty Banking & PSU Ultra Short   INE261F08AI7   NATIONAL BANK FOR           31-Jan-22
+        Duration Bond Index                              AGRICULTURE AND RURAL
+                                                         DEVELOPMENT
+4       Nifty Banking & PSU Ultra Short   INE556F08JI1   SMALL INDUSTRIES            25-Jan-22
+        Duration Bond Index                              DEVELOPMENT BANK OF INDIA
+5       Nifty Banking & PSU Ultra Short   INE752E07MF1   POWER GRID CORPORATION OF   23-Jan-22
+        Duration Bond Index                              INDIA LIMITED
+6    Nifty Banking & PSU Ultra Short   INE134E08JW1   POWER FINANCE CORPORATION   19-Mar-22
+     Duration Bond Index                              LIMITED
+7    Nifty Banking & PSU Ultra Short   INE861G08035   FOOD CORPORATION OF INDIA   07-Mar-22
+     Duration Bond Index
+8    Nifty Banking & PSU Low           INE261F08CS2   NATIONAL BANK FOR           29-Jul-22
+     Duration Bond Index                              AGRICULTURE AND RURAL
+                                                      DEVELOPMENT
+9    Nifty Banking & PSU Low           INE020B08AK2   REC LIMITED                 07-Sep-22
+     Duration Bond Index
+10   Nifty Banking & PSU Low           INE134E08JD1   POWER FINANCE CORPORATION   08-Aug-22
+     Duration Bond Index                              LIMITED
+11   Nifty Banking & PSU Low           INE556F08JN1   SMALL INDUSTRIES            08-Aug-22
+     Duration Bond Index                              DEVELOPMENT BANK OF INDIA
+12   Nifty Banking & PSU Low           INE514E08BK6   EXPORT-IMPORT BANK OF       05-Sep-22
+     Duration Bond Index                              INDIA
+13   Nifty Banking & PSU Short         INE261F08DF7   NATIONAL BANK FOR           23-Jul-24
+     Duration Bond Index                              AGRICULTURE AND RURAL
+                                                      DEVELOPMENT
+14   Nifty Banking & PSU Short         INE134E08KH0   POWER FINANCE CORPORATION   19-Nov-24
+     Duration Bond Index                              LIMITED
+15   Nifty Banking & PSU Short         INE557F08FL1   NATIONAL HOUSING BANK       12-Feb-24
+     Duration Bond Index
+16   Nifty Banking & PSU Medium        INE242A08486   INDIAN OIL CORPORATION      20-Oct-25
+     Duration Bond Index                              LIMITED
+17   Nifty Banking & PSU Medium        INE848E07AY3   NHPC LIMITED                11-Feb-26
+     Duration Bond Index
+18   Nifty Banking & PSU Medium        INE053F09HN1   INDIAN RAILWAY FINANCE      31-Mar-26
+     Duration Bond Index                              CORPORATION LIMITED
+19   Nifty Banking & PSU Medium        INE178A08029   CHENNAI PETROLEUM           17-Jul-25
+     Duration Bond Index                              CORPORATION LIMITED
+20   Nifty Banking & PSU Medium        INE752E07LZ1   POWER GRID CORPORATION OF   20-Oct-25
+     Duration Bond Index                              INDIA LIMITED
+21   Nifty Banking & PSU Medium to     INE134E08LK2   POWER FINANCE CORPORATION   27-Aug-26
+     Long Duration Bond Index                         LIMITED
+22   Nifty Banking & PSU Medium to     INE261F08CM5   NATIONAL BANK FOR           19-Nov-27
+     Long Duration Bond Index                         AGRICULTURE AND RURAL
+                                                      DEVELOPMENT
+23   Nifty Banking & PSU Medium to     INE090A08UE8   ICICI BANK LIMITED          15-Jun-28
+     Long Duration Bond Index
+24   Nifty Banking & PSU Medium to     INE020B08AA3   REC LIMITED                 07-Nov-26
+     Long Duration Bond Index
+25   Nifty Banking & PSU Medium to     INE733E07KJ7   NTPC LIMITED                15-Jan-29
+     Long Duration Bond Index
+26   Nifty Banking & PSU Long          INE053F08122   INDIAN RAILWAY FINANCE      31-Aug-31
+     Duration Bond Index                              CORPORATION LIMITED
+27   Nifty Banking & PSU Long          INE861G08084   FOOD CORPORATION OF INDIA   13-Aug-31
+     Duration Bond Index
+28   Nifty Banking & PSU Long          INE261F08DG5   NATIONAL BANK FOR           29-Jul-36
+     Duration Bond Index                              AGRICULTURE AND RURAL
+                                                      DEVELOPMENT
+29   Nifty Banking & PSU Long          INE906B07IY8   NATIONAL HIGHWAYS           10-Aug-38
+     Duration Bond Index                              AUTHORITY OF INDIA
+30   Nifty Banking & PSU Long          INE134E08LL0   POWER FINANCE CORPORATION   27-Aug-36
+     Duration Bond Index                              LIMITED
+31   Nifty Banking & PSU Long          INE020B08BX3   REC LIMITED                 16-Sep-34
+     Duration Bond Index
+32   Nifty Banking & PSU Long          INE733E07KI9   NTPC LIMITED                13-Dec-31
+     Duration Bond Index
+33   Nifty Banking & PSU Long          INE848E07BX3   NHPC LIMITED                12-Feb-36
+     Duration Bond Index
+34   Nifty Banking & PSU Long          INE752E07OB6   POWER GRID CORPORATION OF   21-Sep-31
+     Duration Bond Index                              INDIA LIMITED
+35   Nifty Banking & PSU Long          INE514E08FS0   EXPORT-IMPORT BANK OF       14-Mar-33
+     Duration Bond Index                              INDIA
+36   Nifty Banking & PSU Short         INE139F07063   KONKAN RAILWAY              25-Sep-24
+     Duration Bond Index                              CORPORATION LIMITED
+37   Nifty Banking & PSU Medium to     INE202E07252   INDIAN RENEWABLE ENERGY     29-Mar-27
+     Long Duration Bond Index                         DEVELOPMENT AGENCY
+                                                      LIMITED
+38   Nifty Banking & PSU Medium to     INE139F07105   KONKAN RAILWAY              22-Sep-26
+     Long Duration Bond Index                         CORPORATION LIMITED
+39   Nifty Banking & PSU Low           INE092T08EK5   IDFC FIRST BANK LIMITED     14-Jul-22
+     Duration Bond Index
+40   Nifty Banking & PSU Short         INE092T08BS4   IDFC FIRST BANK LIMITED     03-Jan-25
+     Duration Bond Index
+41   Nifty Banking & PSU Short         INE114A07869   STEEL AUTHORITY OF INDIA    14-Oct-24
+     Duration Bond Index                              LIMITED
+42   Nifty Banking & PSU Short         INE141A08019   PUNJAB NATIONAL BANK        27-Oct-24
+     Duration Bond Index
+43   Nifty Banking & PSU Medium        INE092T08626   IDFC FIRST BANK LIMITED     06-Jan-26
+     Duration Bond Index
+44   Nifty Banking & PSU Medium        INE0GVF24022   GHAZIABAD NAGAR NIGAM       06-Apr-26
+     Duration Bond Index
+45   Nifty Banking & PSU Medium to     INE812V07021   THDC INDIA LIMITED          06-Sep-29
+     Long Duration Bond Index
+46   Nifty Banking & PSU Medium to     INE477Z08022   GREATER HYDERABAD           14-Aug-28
+     Long Duration Bond Index                         MUNICIPAL CORPORATION
+47   Nifty Banking & PSU Medium to     INE0GVF24048   GHAZIABAD NAGAR NIGAM       06-Apr-28
+     Long Duration Bond Index
+48   Nifty Banking & PSU Long          INE812V07054   THDC INDIA LIMITED          25-Aug-31
+     Duration Bond Index
+49   Nifty Banking & PSU Short         INE05OC24017   LUCKNOW MUNICIPAL           18-Nov-24
+     Duration Bond Index                              CORPORATION
+50   Nifty Banking & PSU Medium        INE05OC24025   LUCKNOW MUNICIPAL           18-Nov-25
+     Duration Bond Index                              CORPORATION
+51   Nifty Banking & PSU Medium to     INE05OC24074   LUCKNOW MUNICIPAL           18-Nov-30
+     Long Duration Bond Index                         CORPORATION
+52   Nifty Banking & PSU Ultra Short   INE095A08041   INDUSIND BANK LIMITED       31-Mar-22
+     Duration Bond Index
+53   Nifty Banking & PSU Ultra Short   INE580B07489   BANDHAN BANK LIMITED        29-Mar-22
+     Duration Bond Index
+54   Nifty Banking & PSU Short         INE976G08064   RBL BANK LIMITED            15-Apr-23
+     Duration Bond Index
+About National Stock Exchange of India Limited (NSE):
+
+National Stock Exchange of India (NSE) is the world’s largest derivatives exchange by trading volume
+(contracts) as per the statistics maintained by Futures Industry Association (FIA) for calendar year
+2020. NSE is ranked 4th in the world in the cash equities by number of trades as per the statistics
+maintained by the World Federation of Exchanges (WFE) for calendar year 2020. NSE was the first
+exchange in India to implement electronic or screen-based trading. It began operations in 1994 and is
+ranked as the largest stock exchange in India in terms of total and average daily turnover for equity
+shares every year since 1995, based on SEBI data. NSE has a fully-integrated business model
+comprising exchange listings, trading services, clearing and settlement services, indices, market data
+feeds, technology solutions and financial education offerings. NSE also oversees compliance by
+trading, clearing members and listed companies with the rules and regulations of SEBI and the
+exchange. NSE is a pioneer in technology and ensures the reliability and performance of its systems
+through a culture of innovation and investment in technology.
+For more information, please visit: www.nseindia.com
+
+
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary
+of NSE, provides a variety of indices and index related services for the capital markets. The company
+focuses on the index as a core product. The company owns and manages a portfolio of indices under
+the NIFTY brand of NSE, including the flagship index, the NIFTY 50. NIFTY equity indices
+comprises of broad-based benchmark indices, sectoral indices, strategy indices, thematic indices and
+customised indices. NSE Indices Limited also maintains fixed income indices based on Government
+of India securities, corporate bonds, money market instruments and hybrid indices. Many investment
+products based on NIFTY indices have been developed within India and abroad. These include index
+based derivatives traded on NSE, NSE IFSC and Singapore Exchange Ltd. (SGX) and a number of
+index funds and exchange traded funds. The flagship 'NIFTY 50' index is widely tracked and traded
+as the benchmark for Indian Capital Markets.
+For more information, please visit: www.niftyindices.com
+For any clarifications please contact:
+Arijit Sengupta
+Chief Marketing & Communications Officer
+Kumar Kartikey
+Chief Manager, Corporate Communication
+Email id: cc@nse.co.in
+

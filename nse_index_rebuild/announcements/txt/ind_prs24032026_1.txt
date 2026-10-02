@@ -1,0 +1,122 @@
+PRESS RELEASE
+Mumbai, March 24, 2026
+
+
+                         Changes in Nifty Fixed Income indices
+
+     The Index Maintenance Sub-Committee (Debt) of NSE Indices Limited has decided to make changes
+     as listed hereunder.
+
+     A. Monthly review of Fixed Income Indices:
+     These changes shall become effective from March 30, 2026.
+     1. Nifty India Government Fully Accessible Route (FAR) Select 7 Bonds Index (USD)
+
+     The following security is being Excluded:
+       Sr. No.        ISIN                  Security Name                  Maturity Date
+          1       IN0020180454       7.26% GOVT. STOCK 2029                 14-Jan-2029
+
+
+     The following security is being Included:
+       Sr. No.        ISIN                  Security Name                    Maturity
+          1       IN0020230077       7.18% GOVT. STOCK 2037                 24-Jul-2037
+
+     The above replacements will also be applicable to Nifty India Government Fully Accessible Route
+     (FAR) Select 7 Bonds Index (INR)
+     2. Nifty 5yr Benchmark G-sec Index
+
+     No changes are being made to the Index
+
+
+
+     B. Re-investment schedule of Nifty Target Maturity Indices effective from March 30, 2026.
+
+
+     1. Nifty AAA Bond Plus SDL Apr 2026 50:50 Index
+
+     The following security is being Included:
+       Sr. No.       ISIN                         Issuer State                   Maturity Date
+          1      IN1520160020     GUJARAT                                        27-Apr-2026
+2. Nifty AAA PSU Bond Plus SDL Sep 2026 50:50 Index
+
+The following security is being Included:
+ Sr. No.       ISIN                         Issuer State                 Maturity Date
+    1      IN1520190092 GUJARAT                                          28-Aug-2026
+
+
+3. Nifty CPSE Bond Plus SDL Sep 2026 50:50 Index
+
+The following security is being Included:
+
+ Sr. No.       ISIN                         Issuer State                 Maturity Date
+    1      IN1520220097 GUJARAT                                           28-Sep-2026
+
+
+4. Nifty SDL Apr 2026 Top 20 Equal Weight Index
+
+The following security is being Included:
+
+ Sr. No.       ISIN                         Issuer State                 Maturity Date
+    1      IN1520160020 GUJARAT                                          27-Apr-2026
+
+
+C. Re-investment schedule of Nifty Target Maturity Indices effective from March 27, 2026.
+
+
+1. Nifty AAA Bond Plus SDL Apr 2026 70:30 Index
+
+The following security is being Included:
+
+ Sr. No.        ISIN                Issuer State                          Maturity Date
+                        INDIAN RAILWAY FINANCE
+    1      INE053F08239                                                    18-Apr-2026
+                        CORPORATION LIMITED
+
+
+2. Nifty AAA PSU Bond Plus SDL Sep 2026 50:50 Index
+
+The following security is being Included:
+
+ Sr. No.        ISIN                Issuer State                          Maturity Date
+                        INDIAN RAILWAY FINANCE
+    1      INE053F09HP6                                                    10-May-2026
+                        CORPORATION LIMITED
+3. Nifty CPSE Bond Plus SDL Sep 2026 50:50 Index
+
+The following security is being Included:
+
+ Sr. No.         ISIN               Issuer State                                  Maturity Date
+                        INDIAN RAILWAY FINANCE
+    1      INE053F09HP6                                                           10-May-2026
+                        CORPORATION LIMITED
+
+
+4. Nifty SDL Plus PSU Bond Sep 2026 60:40 Index
+
+The following security is being Included:
+
+ Sr. No.         ISIN               Issuer State                                  Maturity Date
+                        INDIAN RAILWAY FINANCE
+    1      INE053F09HP6                                                           10-May-2026
+                        CORPORATION LIMITED
+
+
+
+
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary
+of NSE, provides a variety of indices and index related services for the capital markets. The company
+focuses on the index as a core product. The company owns and manages a portfolio of indices under
+the Nifty brand of NSE, including the flagship index, the Nifty 50. Nifty equity indices comprise of
+broad-based benchmark indices, sectoral indices, strategy indices, thematic indices and customised
+indices. NSE Indices Limited also maintains fixed income indices based on Government of India
+securities, corporate bonds, money market instruments and hybrid indices. Many investment products
+based on Nifty indices have been developed within India and abroad. These include index based
+derivatives traded on NSE and NSE International Exchange IFSC Limited (NSE IX) and a number of
+index funds and exchange traded funds. The flagship 'Nifty 50' index is widely tracked and traded as
+the benchmark for Indian Capital Markets.
+
+For more information, please visit: www.niftyindices.com
+
+Press contact:
+Email ID: cc@nse.co.in
+

@@ -1,0 +1,39 @@
+                   Changes in Nifty Fixed Income indices
+
+The Index Maintenance Sub-Committee (Debt) of NSE Indices Limited has decided to make changes
+as listed hereunder.
+
+  1. Nifty AAA Bond Plus SDL Apr 2031 70:30 Index
+On account of downgrade in conservative issuer rating for Mahanagar Telephone Nigam Limited
+from AAA to AA+, the below security will be excluded from the index.
+These changes shall become effective from September 17, 2024.
+The following security is being Excluded:
+
+     ISIN                        Issuer                        Maturity
+ INE153A08089      Mahanagar Telephone Nigam Limited         11-Oct-2030
+
+  2. Nifty CPSE Bond Plus SDL Sep 2024 50:50 index
+These changes shall become effective from September 12, 2024.
+The following security is being Included:
+
+      ISIN                         Issuer                     Maturity
+ INE514E14RU9      EXPORT-IMPORT BANK OF INDIA              20-Sept-24
+
+
+
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary of
+NSE, provides a variety of indices and index related services for the capital markets. The company
+focuses on the index as a core product. The company owns and manages a portfolio of indices under
+the Nifty brand of NSE, including the flagship index, the Nifty 50. Nifty equity indices comprises
+broad-based benchmark indices, sectoral indices, strategy indices, thematic indices, and customised
+indices. NSE Indices Limited also maintains fixed income indices based on Government of India
+securities, corporate bonds, money market instruments and hybrid indices. Many investment products
+based on Nifty indices have been developed within India and abroad. These include index-based
+derivatives traded on NSE and NSE International Exchange IFSC Limited (NSE IX) and a number of
+index funds and exchange traded funds. The flagship 'Nifty 50' index is widely tracked and traded as
+the benchmark for Indian Capital Markets.
+For more information, please visit: www.niftyindices.com
+Press contact:
+Email ID: cc@nse.co.in
+

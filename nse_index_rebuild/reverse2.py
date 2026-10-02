@@ -7,7 +7,11 @@ al = list(csv.DictReader(open("rules/aliases.csv")))
 cancel = {(o["file"], o["index"], o["action"], o["symbol"]) for o in ov if o["kind"] == "CANCEL"}
 for o in ov:
     if o["kind"] == "ADD": ev.append({"published":"","effective":o["effective"],"file":o["file"],"index":o["index"],"action":o["action"],"symbol":o["symbol"],"company":"(manual)"})
-ev = [r for r in ev if (r["file"], r["index"], r["action"], r["symbol"]) not in cancel]
+void = {(o["file"], o["index"]) for o in ov if o["kind"] == "VOID"}
+for o in ov:
+    if o["kind"] == "ADD_EFF":
+        ev.append({"published":"","effective":o["evidence"].split("|")[1],"file":o["file"],"index":o["index"],"action":o["action"],"symbol":o["symbol"],"company":"(manual)"})
+ev = [r for r in ev if (r["file"], r["index"], r["action"], r["symbol"]) not in cancel and (r["file"], r["index"]) not in void]
 def run(verbose=True):
     results = {}; problems = []
     for k in INDS:
