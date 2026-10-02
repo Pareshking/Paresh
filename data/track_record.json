@@ -5,8 +5,8 @@
   "months": {
     "2026-01": {
       "strategy": -0.002123,
-      "benchmark": -0.03318,
-      "alpha": 0.031057,
+      "benchmark": -0.034716,
+      "alpha": 0.032593,
       "origin": "backfill",
       "universe": "point_in_time",
       "finalized_on": "2026-10-01",
@@ -226,6 +226,32 @@
         "2026-09": 0.009901
       },
       "note": "Owner decision 2026-10-02: hard caps, 5% per stock and 40% per NSE industry, at every rebalance. Enforced at selection (at most 8 of 20 names per industry; incumbents beyond that are sold best-rank-first-kept and the slot goes to the next-ranked name) and never relaxed by the weight projection; anything the caps cannot place is cash. Previously the replay passed no sector map, so no industry cap bound (single industries reached 40-60%). Between rebalances the book is held, so price moves can carry an industry past 40% until the next rebalance. Labels: NSE index file industry, TradingView mapped only for names the file lacks; today's labels, not point-in-time."
+    },
+    {
+      "on": "2026-10-02",
+      "kind": "benchmark_correction",
+      "months": [
+        "2026-01"
+      ],
+      "fields": [
+        "benchmark",
+        "alpha"
+      ],
+      "config": "4cc739e503d7",
+      "prices": "screener_primary",
+      "previous_values": {
+        "2026-01": {
+          "benchmark": -0.03318,
+          "alpha": 0.031057
+        }
+      },
+      "new_values": {
+        "2026-01": {
+          "benchmark": -0.034716,
+          "alpha": 0.032593
+        }
+      },
+      "note": "Benchmark only; the strategy return is unchanged. Yahoo's ^CRSLDX had no row for 2026-01-01, a full NSE session, so the backtest carried the 2025-12-31 close into it and January's Nifty 500 return was measured from 31 Dec while the strategy's runs from its 1 Jan execution. The benchmark now comes from NSE's own closes (data/benchmarks.csv), which hold the real 1 Jan close, so both sides start on the same session. Every other month's benchmark already matched to the sixth decimal."
     }
   ],
   "price_basis": "screener_primary"
