@@ -91,13 +91,18 @@ Each is proven by the company name, ISIN or listing date in NSE's own files:
   - **METROBRAND, TVSHLTD:** low free float. NSE ranks on free-float market cap.
 - **Not checked before about 2023:** NSE's bundle carries no market-cap file then.
 
-## 4. Proposed fix (not applied; needs your OK)
+## 4. Fix (applied 2 Oct 2026 on the owner's go-ahead)
 
 `data/membership_history.json` needs **no change**. The fix is in the join:
 
 - **`scripts/index_symbol_map.py`, `symbol_on()`:** also follow NSE's `data/reference/nse/symbolchange.csv` after the history's own `symbol_changes`.
   - Tested on a scratch copy: Nifty 50, Next 50 and Midcap 150 reach 100% on all 35 dates.
 - **Add the 3 renames in 2b** as dated aliases, with their evidence, wherever you prefer: `aliases`, a ledger beside the helper, or `data/nse_prices/notes.json` for the price join. With these, every member on every sample date has a bhavcopy row except the four no-trade days in 2c.
+
+**Applied:**
+- `scripts/index_symbol_map.load()` extends the ticker ledger in memory with NSE's `symbolchange.csv` and the 3 renames (`EXTRA_RENAMES`). `--notice-ledger-only` keeps the old behaviour. The history file is untouched.
+- The 3 renames are in `data/nse_prices/notes.json` for the price join.
+- `nse_adjusted.SERIES` includes RR.
 - **Price readers must include series RR (REITs)** alongside EQ and BE.
 
 ## 5. Using the history in backtests (proposal)

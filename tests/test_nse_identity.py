@@ -52,9 +52,13 @@ def test_records_that_disagree_are_a_conflict_and_not_applied():
 
 
 def test_every_rename_in_the_ledger_is_found_by_the_committed_records():
+    """Except those the ledger holds because no NSE record has them (KBL, ASIANHOTEL, PROVOGUE)."""
     ledger = json.loads((ROOT / "data/nse_prices/notes.json").read_text())["renames"]
     auto = ni.auto_renames()
     for old, a in ledger.items():
+        if "In no NSE symbol-change list" in a.get("evidence", ""):
+            assert old not in auto, f"{old} is now in NSE's records: drop it from notes.json"
+            continue
         assert auto.get(old, {}).get("new_symbol") == a["new_symbol"], old
 
 

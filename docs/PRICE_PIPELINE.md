@@ -114,8 +114,12 @@ kept by hand in `data/nse_prices/notes.json` are all among them, plus
 GUJGASLTD → GUJENERGY (1 Jul 2026). An automatic rename is joined only where
 the two price series meet (at most 15 days apart, within ±25%): a company
 restructured in insolvency keeps its issuer code but not its price (DHFL →
-PIRAMALFIN). `notes.json` still overrides. Asking for an old name returns its
-successor's joined series.
+PIRAMALFIN). `notes.json` still overrides, and holds the three renames no NSE record
+has (KBL → KIRLOSBROS, ASIANHOTEL → ASIANHOTNR, PROVOGUE → PROVOGE), found by
+joining index membership to the bhavcopy (`reports/membership_bhavcopy_check_2026-10-02.md`).
+The membership join (`scripts/index_symbol_map.py`) uses the same NSE list.
+Asking for an old name returns its successor's joined series. NSE prices are
+read for series EQ, BE and RR (REITs, which are index members).
 
 ## NSE history back to 2010 (R2)
 

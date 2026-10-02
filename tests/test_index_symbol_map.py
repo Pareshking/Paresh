@@ -62,3 +62,31 @@ def test_a_file_without_a_symbol_column_is_rejected(tmp_path):
     bad.write_text("NAME,CLOSE\nx,1\n")
     with pytest.raises(ValueError):
         m.read_bhavcopy_symbols(bad)
+
+
+# ── Renames outside the history's notice ledger (bhavcopy check, 2 Oct 2026) ─────────────
+
+def test_nses_symbol_change_list_joins_a_member_renamed_without_a_notice():
+    # TATAMOTORS became TMPV on 2025-10-24; no index notice named it, so the history's ledger lacks it.
+    assert m.symbol_on(H, "TMPV", "2025-03-21") == "TATAMOTORS"
+    assert m.symbol_on(H, "INFY", "2010-12-31") == "INFOSYSTCH"
+    assert m.symbol_on(H, "TMPV", "2025-10-24") == "TMPV"
+
+
+def test_the_three_renames_nse_lists_nowhere():
+    assert m.symbol_on(H, "KIRLOSBROS", "2010-01-04") == "KBL"
+    assert m.symbol_on(H, "ASIANHOTNR", "2010-01-04") == "ASIANHOTEL"
+    assert m.symbol_on(H, "PROVOGE", "2011-12-30") == "PROVOGUE"
+    assert m.symbol_on(H, "PROVOGE", "2012-03-26") == "PROVOGE"
+
+
+def test_the_notice_ledger_alone_is_still_available_and_the_file_is_untouched():
+    bare = m.load(renames=False)
+    assert m.symbol_on(bare, "TMPV", "2025-03-21") == "TMPV"
+    assert len(bare["symbol_changes"]["changes"]) < len(H["symbol_changes"]["changes"])
+    assert m.load(renames=False) == bare        # loading never writes the ledger back
+
+
+def test_nifty_50_on_old_dates_names_the_day_s_tickers():
+    on = m.bhavcopy_symbols(H, "nifty_50", "2010-12-31")
+    assert "INFOSYSTCH" in on and "HEROHONDA" in on and len(on) == 50
