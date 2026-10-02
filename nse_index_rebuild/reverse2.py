@@ -15,11 +15,16 @@ def run(verbose=True):
         g = collections.defaultdict(list)
         for r in ev:
             if r["index"] == k: g[(r["effective"], r["file"])].append(r)
-        for (e, f), rows in g.items(): items.append((e, 1, f, rows))
-        for a in al: items.append((a["first_new_date"], 0, "ALIAS", a))
-        items.sort(key=lambda x: (x[0], x[1]), reverse=True)
+        for (e, f), rows in g.items():
+            published = max((r["published"] for r in rows), default="")
+            items.append((e, published, 1, f, rows))
+        for a in al:
+            items.append((a["first_new_date"], "", 0, "ALIAS", a))
+        # Rewind same-effective-date announcements in reverse publication order.
+        # Filename ordering is not chronological (e.g. February vs August notices).
+        items.sort(key=lambda x: (x[0], x[1], x[2], x[3]), reverse=True)
         snaps = []
-        for e, kind, f, payload in items:
+        for e, published, kind, f, payload in items:
             if kind == 0:
                 if payload["new_symbol"] in state:
                     state.discard(payload["new_symbol"]); state.add(payload["old_symbol"])
