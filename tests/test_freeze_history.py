@@ -30,7 +30,7 @@ def test_a_change_after_the_freeze_date_does_not_move_the_hash():
     lambda h: h["indices"]["nifty_50"]["baseline"]["symbols"].append("X"),
     lambda h: h["indices"]["nifty_500"]["changes"][0].update(date="2010-02-25"),
     lambda h: h["symbol_changes"]["changes"].pop(),
-    lambda h: h["caveats"]["intervals"].pop(),
+    lambda h: h["caveats"]["intervals"].append({"index": "nifty_50", "symbol": "X", "from": "2020-01-01", "to": None, "caveat": "C"}),
 ])
 def test_an_edit_inside_the_frozen_range_is_detected(edit):
     changed = copy.deepcopy(HIST)
