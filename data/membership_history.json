@@ -3579,13 +3579,22 @@
           "notice": "ind_prs15062017.pdf"
         },
         {
+          "date": "2017-09-05",
+          "added": [
+            "MFSL"
+          ],
+          "removed": [
+            "RELCAPITAL"
+          ],
+          "notice": "ind_prs29082017.pdf"
+        },
+        {
           "date": "2017-09-29",
           "added": [
             "ADANIENSOL",
             "DIVISLAB",
             "FINCABLES",
             "JMFINANCIL",
-            "MFSL",
             "SUNDRMFAST",
             "UBL",
             "VBL",
@@ -3601,10 +3610,9 @@
             "HONAUT",
             "JAGRAN",
             "MRF",
-            "RELAXO",
-            "RELCAPITAL"
+            "RELAXO"
           ],
-          "notice": "ind_prs29082017.pdf"
+          "notice": "ind_prs28082017.pdf"
         },
         {
           "date": "2017-10-30",
@@ -4761,11 +4769,24 @@
           "notice": "ind_prs16012017.pdf"
         },
         {
+          "date": "2017-03-16",
+          "added": [
+            "FRETAIL",
+            "MAXINDIA",
+            "MGL"
+          ],
+          "removed": [
+            "MYSOREBANK",
+            "SBBJ",
+            "SBT"
+          ],
+          "notice": "ind_prs07032017.pdf"
+        },
+        {
           "date": "2017-03-31",
           "added": [
             "DBL",
             "FMGOETZE",
-            "FRETAIL",
             "GHCL",
             "GNFC",
             "GUJALKALI",
@@ -4773,8 +4794,6 @@
             "JETAIRWAYS",
             "JUSTDIAL",
             "KNRCON",
-            "MAXINDIA",
-            "MGL",
             "MINDACORP",
             "NAVA",
             "NAVNETEDUL",
@@ -4810,9 +4829,6 @@
             "MANAPPURAM",
             "MAYURUNIQ",
             "MOTILALOFS",
-            "MYSOREBANK",
-            "SBBJ",
-            "SBT",
             "SHOPERSTOP",
             "SIMPLEXINF",
             "SINTEX",
@@ -4820,7 +4836,7 @@
             "SUPRAJIT",
             "VIYASH"
           ],
-          "notice": "ind_prs07032017.pdf"
+          "notice": "ind_prs16022017.pdf"
         },
         {
           "date": "2017-05-26",
@@ -4941,6 +4957,16 @@
           "notice": "ind_prs08012018.pdf"
         },
         {
+          "date": "2018-03-13",
+          "added": [
+            "ERIS"
+          ],
+          "removed": [
+            "VIDEOIND"
+          ],
+          "notice": "ind_prs06032018.pdf"
+        },
+        {
           "date": "2018-04-02",
           "added": [
             "ASAHIINDIA",
@@ -4948,7 +4974,6 @@
             "DBCORP",
             "DCAL",
             "DIXON",
-            "ERIS",
             "GPPL",
             "GRAPHITE",
             "HEGAM",
@@ -5001,10 +5026,9 @@
             "SUPRAJIT",
             "UNITEDBNK",
             "VESUVIUS",
-            "VIDEOIND",
             "ZENSARTECH"
           ],
-          "notice": "ind_prs06032018.pdf"
+          "notice": "ind_prs21022018.pdf"
         },
         {
           "date": "2018-06-29",
@@ -5411,18 +5435,10 @@
         {
           "date": "2020-09-14",
           "added": [
-            "JTEKTINDIA",
-            "NOCIL",
-            "PSPPROJECT",
-            "SWARAJENG",
-            "TATACOFFEE"
+            "JTEKTINDIA"
           ],
           "removed": [
-            "ARVINDFASN",
-            "ASAHIINDIA",
-            "KPITTECH",
-            "REPCOHOME",
-            "SPANDANA"
+            "ASAHIINDIA"
           ],
           "notice": "ind_prs07092020.pdf"
         },
@@ -5443,16 +5459,21 @@
             "IOB",
             "IOLCP",
             "NAVNETEDUL",
+            "NOCIL",
             "PNBHOUSING",
             "POLYPLEX",
             "POWERINDIA",
+            "PSPPROJECT",
             "QUESS",
             "SHILPAMED",
             "SOLARA",
             "SUPPETRO",
+            "SWARAJENG",
+            "TATACOFFEE",
             "UCOBANK"
           ],
           "removed": [
+            "ARVINDFASN",
             "ASTRAZEN",
             "CIEINDIA",
             "GVT&D",
@@ -5463,20 +5484,23 @@
             "ITDC",
             "ITI",
             "JMFINANCIL",
+            "KPITTECH",
             "KPRMILL",
             "METROPOLIS",
             "NAVA",
             "NAVINFLUOR",
             "RENUKA",
+            "REPCOHOME",
             "SADBHAV",
             "SFL",
+            "SPANDANA",
             "TAKE",
             "TIINDIA",
             "TIMETECHNO",
             "VESUVIUS",
             "ZYDUSWELL"
           ],
-          "notice": "ind_prs20082020.pdf"
+          "notice": "ind_prs07092020.pdf"
         },
         {
           "date": "2020-11-02",
@@ -8192,6 +8216,7 @@
           "AKSHOPTFBR",
           "ALBK",
           "ALEMBICLTD",
+          "ALFALAVAL",
           "ALLCARGO",
           "ALOKTEXT",
           "AMBUJACEM",
@@ -8425,7 +8450,6 @@
           "JINDALSAW",
           "JINDALSTEL",
           "JISLJALEQS",
-          "JKIL",
           "JMFINANCIL",
           "JPASSOCIAT",
           "JSL",
@@ -8635,7 +8659,6 @@
           "TV18BRDCST",
           "TVSMOTOR",
           "TVTODAY",
-          "UBHOLDINGS",
           "UBL",
           "UCOBANK",
           "UFLEX",
@@ -8670,6 +8693,7 @@
           "ZEENEWS",
           "ZENSARTECH",
           "ZODIACLOTH",
+          "ZUARIAGRO",
           "ZYDUSLIFE"
         ]
       },
@@ -8723,7 +8747,7 @@
           "notice": "ind_prs24022010.pdf"
         },
         {
-          "date": "2010-04-21",
+          "date": "2010-04-15",
           "added": [
             "ADANIPOWER",
             "OIL"
@@ -8849,6 +8873,7 @@
             "DELTACORP",
             "EMAMILTD",
             "FEL",
+            "GODREJPROP",
             "JKTYRE",
             "KEMROCK",
             "OPTOCIRCUI",
@@ -8876,16 +8901,7 @@
             "PVP",
             "RAMCOSYS",
             "SAREGAMA",
-            "V2RETAIL"
-          ],
-          "notice": "ind_prs10022011.pdf"
-        },
-        {
-          "date": "2011-03-29",
-          "added": [
-            "GODREJPROP"
-          ],
-          "removed": [
+            "V2RETAIL",
             "VTL"
           ],
           "notice": "ind_prs23032011.pdf"
@@ -8923,20 +8939,12 @@
         {
           "date": "2011-05-18",
           "added": [
-            "ARSSINFRA"
-          ],
-          "removed": [
-            "ESSARSHIP"
-          ],
-          "notice": "ind_prs12052011.pdf"
-        },
-        {
-          "date": "2011-05-23",
-          "added": [
+            "ARSSINFRA",
             "IL&FSENGG"
           ],
           "removed": [
-            "BINANICEM"
+            "BINANICEM",
+            "ESSARSHIP"
           ],
           "notice": "ind_prs16052011.pdf"
         },
@@ -9059,6 +9067,26 @@
             "UTVSOF"
           ],
           "notice": "ind_prs29022012.pdf"
+        },
+        {
+          "date": "2012-04-09",
+          "added": [
+            "UBHOLDINGS"
+          ],
+          "removed": [
+            "ZUARIAGRO"
+          ],
+          "notice": "ind_prs04042012.pdf"
+        },
+        {
+          "date": "2012-04-12",
+          "added": [
+            "JKIL"
+          ],
+          "removed": [
+            "ALFALAVAL"
+          ],
+          "notice": "ind_prs04042012.pdf"
         },
         {
           "date": "2012-04-27",
@@ -9321,7 +9349,7 @@
           "notice": "ind_prs29102013.pdf"
         },
         {
-          "date": "2013-11-15",
+          "date": "2013-11-18",
           "added": [
             "FEL",
             "RAJTV"
@@ -9471,16 +9499,10 @@
         {
           "date": "2015-03-24",
           "added": [
-            "CEMPRO",
-            "MAYURUNIQ",
-            "MUNJALSHOW",
-            "SUVEN"
+            "CEMPRO"
           ],
           "removed": [
-            "BALKRISIND",
-            "CMC",
-            "MASTEK",
-            "SHASUNPHAR"
+            "BALKRISIND"
           ],
           "notice": "ind_prs18032015_2.pdf"
         },
@@ -9495,12 +9517,16 @@
             "KPRMILL",
             "LGBBROSLTD",
             "MARKSANS",
+            "MAYURUNIQ",
+            "MUNJALSHOW",
             "NDTV",
             "PENIND",
+            "SUVEN",
             "UNITDSPR",
             "VINATIORGA"
           ],
           "removed": [
+            "CMC",
             "DCW",
             "EDUCOMP",
             "ELDERPHARM",
@@ -9508,13 +9534,15 @@
             "IL&FSENGG",
             "IMFA",
             "LOVABLE",
+            "MASTEK",
             "PFOCUS",
             "RAJTV",
             "REIAGROLTD",
+            "SHASUNPHAR",
             "TI",
             "VENKEYS"
           ],
-          "notice": "ind_prs20022015.pdf"
+          "notice": "ind_prs18032015_2.pdf"
         },
         {
           "date": "2015-05-29",
@@ -9868,12 +9896,25 @@
           "notice": "ind_prs16012017.pdf"
         },
         {
+          "date": "2017-03-16",
+          "added": [
+            "FRETAIL",
+            "MAXINDIA",
+            "MGL"
+          ],
+          "removed": [
+            "MYSOREBANK",
+            "SBBJ",
+            "SBT"
+          ],
+          "notice": "ind_prs07032017.pdf"
+        },
+        {
           "date": "2017-03-31",
           "added": [
             "DBL",
             "ENDURANCE",
             "FMGOETZE",
-            "FRETAIL",
             "GHCL",
             "GNFC",
             "GUJALKALI",
@@ -9881,8 +9922,6 @@
             "KNRCON",
             "LTM",
             "LTTS",
-            "MAXINDIA",
-            "MGL",
             "MINDACORP",
             "NAVA",
             "NAVNETEDUL",
@@ -9913,9 +9952,6 @@
             "LITL",
             "MAHLIFE",
             "MAYURUNIQ",
-            "MYSOREBANK",
-            "SBBJ",
-            "SBT",
             "SHOPERSTOP",
             "SIMPLEXINF",
             "SINTEX",
@@ -9923,7 +9959,7 @@
             "SUPRAJIT",
             "VIYASH"
           ],
-          "notice": "ind_prs07032017.pdf"
+          "notice": "ind_prs16022017.pdf"
         },
         {
           "date": "2017-05-26",
@@ -9950,6 +9986,16 @@
           "notice": "ind_prs15062017.pdf"
         },
         {
+          "date": "2017-09-05",
+          "added": [
+            "MFSL"
+          ],
+          "removed": [
+            "RELCAPITAL"
+          ],
+          "notice": "ind_prs29082017.pdf"
+        },
+        {
           "date": "2017-09-29",
           "added": [
             "BRFL",
@@ -9968,7 +10014,6 @@
             "JSL",
             "JSLHISAR",
             "LINDEINDIA",
-            "MFSL",
             "NFL",
             "RUPA",
             "SHOPERSTOP",
@@ -9994,7 +10039,6 @@
             "PUNJLLOYD",
             "RATNAMANI",
             "RELAXO",
-            "RELCAPITAL",
             "RIIL",
             "ROLTA",
             "RUCHISOYA",
@@ -10005,7 +10049,7 @@
             "WONDERLA",
             "ZYDUSWELL"
           ],
-          "notice": "ind_prs29082017.pdf"
+          "notice": "ind_prs28082017.pdf"
         },
         {
           "date": "2017-10-30",
@@ -10056,6 +10100,16 @@
           "notice": "ind_prs08012018.pdf"
         },
         {
+          "date": "2018-03-13",
+          "added": [
+            "ERIS"
+          ],
+          "removed": [
+            "VIDEOIND"
+          ],
+          "notice": "ind_prs06032018.pdf"
+        },
+        {
           "date": "2018-04-02",
           "added": [
             "ABCAPITAL",
@@ -10063,7 +10117,6 @@
             "CDSL",
             "DCAL",
             "DIXON",
-            "ERIS",
             "GICRE",
             "GODREJAGRO",
             "GRAPHITE",
@@ -10108,10 +10161,9 @@
             "SUPRAJIT",
             "UNITEDBNK",
             "VESUVIUS",
-            "VIDEOIND",
             "ZENSARTECH"
           ],
-          "notice": "ind_prs06032018.pdf"
+          "notice": "ind_prs21022018.pdf"
         },
         {
           "date": "2018-06-29",
@@ -10502,18 +10554,10 @@
         {
           "date": "2020-09-14",
           "added": [
-            "JTEKTINDIA",
-            "NOCIL",
-            "PSPPROJECT",
-            "SWARAJENG",
-            "TATACOFFEE"
+            "JTEKTINDIA"
           ],
           "removed": [
-            "ARVINDFASN",
-            "ASAHIINDIA",
-            "KPITTECH",
-            "REPCOHOME",
-            "SPANDANA"
+            "ASAHIINDIA"
           ],
           "notice": "ind_prs07092020.pdf"
         },
@@ -10530,16 +10574,21 @@
             "HUHTAMAKI",
             "IOLCP",
             "NAVNETEDUL",
+            "NOCIL",
             "POLYPLEX",
             "POWERINDIA",
+            "PSPPROJECT",
             "SHILPAMED",
             "SOLARA",
             "SUPPETRO",
+            "SWARAJENG",
             "TATACHEM",
+            "TATACOFFEE",
             "YESBANK"
           ],
           "removed": [
             "ADANIPOWER",
+            "ARVINDFASN",
             "CIEINDIA",
             "GVT&D",
             "HEXAWARE",
@@ -10549,15 +10598,18 @@
             "INTELLECT",
             "ITDC",
             "JUBLPHARMA",
+            "KPITTECH",
             "KPRMILL",
             "NAVA",
             "RENUKA",
+            "REPCOHOME",
             "SADBHAV",
+            "SPANDANA",
             "TAKE",
             "TIMETECHNO",
             "VESUVIUS"
           ],
-          "notice": "ind_prs20082020.pdf"
+          "notice": "ind_prs07092020.pdf"
         },
         {
           "date": "2020-11-02",
@@ -13613,29 +13665,7 @@
   },
   "caveats": {
     "note": "Reconstruction from NSE press releases; these intervals rest on open items. See docs/INDEX_MEMBERSHIP_PIT.md.",
-    "intervals": [
-      {
-        "index": "nifty_500",
-        "symbol": "PROVOGE",
-        "from": "2010-01-01",
-        "to": "2012-03-06",
-        "caveat": "WEB_SECONDARY_2012-03-07"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "JINDALSAW",
-        "from": "2012-03-07",
-        "to": "2016-04-28",
-        "caveat": "WEB_SECONDARY_2012-03-07"
-      },
-      {
-        "index": "nifty_smallcap_250",
-        "symbol": "GAYAPROJ",
-        "from": "2018-09-28",
-        "to": "2020-06-25",
-        "caveat": "AMBIGUOUS_2020-03-27_TO_2020-06-25"
-      }
-    ]
+    "intervals": []
   },
   "symbol_changes": {
     "note": "Ticker/name changes found while rebuilding 2010-to-date. A rename is never an index entry or exit; membership above uses today's ticker except the old names listed under 'aliases'.",
@@ -15860,7 +15890,7 @@
         "index": "NIFTY_500",
         "action": "IN",
         "symbol": "JINDALSAW",
-        "evidence": "WEB_SECONDARY: Scribd 347502942 (reference/scribd_347502942_nifty500_2012_excerpt.txt) lists Jindal Saw and Provogue under Nifty 500 on 07-03-2012; ind_prs17112011 excluded Jindal Saw on 2011-11-22 and ind_prs14032012 has it in CNX 200/Metal from 2012-04-27; primary notice ind_prs02032012 unavailable|2012-03-07"
+        "evidence": "CONFIRMED_NSE_INCLEXCL_FILE: NSE IndexInclExcl.xls (reference/IndexInclExcl.xls, sheet Nifty 500) lists 07-03-2012 Jindal Saw Ltd. Inclusion into Index; the same sheet lists its exclusion on 22-11-2011 (matches ind_prs17112011). The press release ind_prs02032012 is unavailable; the workbook is NSE's own table|2012-03-07"
       },
       {
         "kind": "ADD_EFF",
@@ -15868,7 +15898,7 @@
         "index": "NIFTY_500",
         "action": "OUT",
         "symbol": "PROVOGE",
-        "evidence": "WEB_SECONDARY: same Scribd list shows Provogue (India) Ltd. at 07-03-2012 and no notice found lists its exit; direction inferred (not in any later list); corroborated by corporate-action timing: blog neerajmarathe.wordpress.com/2012/02/14/provogue-india-ltd-demerger reports the Provogue demerger (Prozone Capital, 1:1) with ex-date 2012-03-07 (blog, secondary); with this row Nifty 500 is exactly 500 at all 32 snapshots 2010-02-24 to 2012-05; primary notice ind_prs02032012 unavailable|2012-03-07"
+        "evidence": "CONFIRMED_NSE_INCLEXCL_FILE: NSE IndexInclExcl.xls (sheet Nifty 500) lists 07-03-2012 Provogue (India) Ltd. Exclusion from Index; NSE corporate-action timing agrees (Provogue demerger ex-date 2012-03-07, per a blog post, secondary). NSE ticker is PROVOGE (corporate-actions feed)|2012-03-07"
       }
     ]
   }

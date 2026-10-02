@@ -30,6 +30,11 @@ jobs:
       - name: Check data/membership_history.json against the reconstruction
         working-directory: nse_index_rebuild
         run: python validate_history.py
+      - name: Install the workbook reader
+        run: pip install pandas xlrd
+      - name: Cross-check events against NSE's own IndexInclExcl.xls
+        working-directory: nse_index_rebuild
+        run: python crosscheck_inclexcl.py --assert
       - name: Check the frozen history is unchanged or its change is recorded
         working-directory: nse_index_rebuild
         run: python freeze_history.py --check

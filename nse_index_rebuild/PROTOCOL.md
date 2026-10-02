@@ -18,11 +18,11 @@ Scope: Nifty 50, Nifty Next 50, Nifty Midcap 150, Nifty Smallcap 250, Nifty Micr
 | G1 Source integrity | Every document used is archived with URL, fetch time (UTC) and SHA-256. A second fetch on a different day returns identical bytes for historical PDFs. | `current/MANIFEST.csv`, `announcements/` |
 | G2 Event traceability | Every membership change cites a document and section. Parsed rows come from `events_raw.csv`. Every hand-made rule in `rules/overrides.csv` cites a document. Rows marked `INFERRED_*` are not allowed in a production range. | `rules/*.csv` evidence column |
 | G3 Chain closure | Replaying all events backward from the anchor gives exactly N members (plus dummy placeholders, listed) at every effective date. No event adds a symbol already present or removes one that is absent. | `reverse2.py`, `open_issues.csv` empty for the range |
-| G4 Anchor independence | The current list matches a second source with zero diff: NSE's website view and the index factsheet. Fetched on two different days. | to do |
-| G5 Independent checkpoints | At least 5 historical dates per index are compared with a source outside the press releases (archived constituent files, factsheets, fund holdings disclosures). A single symbol mismatch fails that date and sends the range back to G3. | to do |
+| G4 Anchor independence | The current list matches a second source with zero diff: NSE's website view and the index factsheet. Fetched on two different days. | `scripts/check_index_anchor.py` compares www.niftyindices.com and nsearchives.nseindia.com with the history daily; first run 2026-10-02 agreed on all 7 indices; log in `data/reference/nse/anchor_checks.jsonl` |
+| G5 Independent checkpoints | At least 5 historical dates per index are compared with a source outside the press releases (archived constituent files, factsheets, fund holdings disclosures). A single symbol mismatch fails that date and sends the range back to G3. | `crosscheck_inclexcl.py` against NSE's own IndexInclExcl.xls: every event 2010 to 2020 for Nifty 50, Next 50 and Nifty 500; not available for Midcap 150, Smallcap 250, Microcap 250, Total Market |
 | G6 Corporate-action ledger | Renames, mergers, demergers, dummy placeholders, trading-segment shifts (BE/BZ/RR series), deferments and revocations each appear in the ledger with a document. | `rules/` |
 | G7 Blind second review | A second reviewer re-derives at least 10% of events (random sample plus every manual override) from the PDFs without seeing the output. Zero discrepancies. | to do |
-| G8 Freeze and change control | Released data carries a hash and a change log. Any edit re-runs G3 to G7 for the affected range. | to do |
+| G8 Freeze and change control | Released data carries a hash and a change log. Any edit re-runs G3 to G7 for the affected range. | `data/membership_history.freeze.json`, `freeze_history.py --check` in CI |
 
 ## Event types that must be handled explicitly
 
@@ -43,10 +43,10 @@ A date range is `PRODUCTION` only if G1 to G8 all pass. A range with open items 
 |---|---|---|---|---|
 | Nifty 50 | 33 | 0 | 0 | none |
 | Nifty Next 50 | 47 | 0 | 0 | none |
-| Nifty Midcap 150 | 37 | 0 | 0 | none |
-| Nifty Smallcap 250 | 59 | 0 | 0 | none |
+| Nifty Midcap 150 | 38 | 0 | 0 | none |
+| Nifty Smallcap 250 | 61 | 0 | 0 | none |
 | Nifty Microcap 250 | 32 | 0 | 0 | none |
-| Nifty 500 | 130 | 0 | 0 | none |
+| Nifty 500 | 133 | 0 | 0 | none |
 
 - G3 (chain closure) holds for every index over its whole reconstructed range, and the gate script (`reverse2.py`) exits 0 with zero unresolved events: Nifty 50 and Next 50 from 2010-04-08, Smallcap 250 from 2016-04-29, Midcap 150 from 2016-09-30 and Microcap 250 from 2021-09-30 (its launch). Midcap 150 and Smallcap 250 only came into existence on 2016-04-01 (NSE restructuring notice of 2016-02-22), so nothing earlier is reconstructed for them. For all five, the earliest snapshot is the state implied before the first parsed event; the announcement archive downloaded here starts in January 2010, so membership before that is not claimed.
 - Nifty 50 correctly holds 51 securities from 2016-04-01 to 2017-05-26 because Tata Motors DVR was an additional security (stated in the 2016-02-22 notice); the size check allows for DVR shares.
@@ -59,3 +59,5 @@ A date range is `PRODUCTION` only if G1 to G8 all pass. A range with open items 
 - G4, G5, G7 and G8 have not been done, so nothing is `PRODUCTION` yet. Chain closure shows the announcements are internally consistent and agree with today's NSE lists; it does not prove each announcement was complete.
 - G5 first pass (`wayback_check.py`, `wayback_results.csv`): of 70 attempted checkpoints none produced a usable archived constituent file (42 nearest capture too far from target, 19 no capture, 9 fetch or parse failures). G5 therefore remains not done; no archive result confirms or contradicts the reconstruction.
 - Single-file export for backtests: `data/index_membership_pit.csv` (`export_pit.py`, `docs/INDEX_MEMBERSHIP_PIT.md`). Adopted for production use by the repo owner on 2026-10-02 with the open items above carried as `caveat` codes; gates G4, G5, G7 and G8 remain not done.
+- Cross-check against NSE's own workbook (2026-10-02): `IndexInclExcl.xls` (NSE, last saved 2020-09-22) lists every inclusion and exclusion. Comparing it with the reconstruction event by event found and fixed two parser faults: (1) a notice with several dates was given one date (54 events moved to the date the notice states for their section; the Nifty 50 change of September 2020 had been dated 14 instead of 25 September), (2) a table with an Effective Date column was skipped (4 Nifty 500 events, April 2012). It also resolved the 2012-03-07 and 2020 items. Afterwards Nifty 50 matches 76 of 76 events, Next 50 213 of 214, Nifty 500 1078 with no date difference; 38 differences remain, all explained in `rules/inclexcl_known_differences.csv`.
+- Gates still not met: G7 (a blind second review of parsed events), and G5 for Midcap 150, Smallcap 250, Microcap 250 and Total Market.

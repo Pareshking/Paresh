@@ -17,7 +17,7 @@
  },
  "NIFTY_MIDCAP_150": {
   "expected_size_incl_dummies": 150,
-  "snapshots": 37,
+  "snapshots": 38,
   "snapshots_wrong_size": 0,
   "chain_breaks": 0,
   "latest_chain_break": null,
@@ -25,7 +25,7 @@
  },
  "NIFTY_SMALLCAP_250": {
   "expected_size_incl_dummies": 250,
-  "snapshots": 59,
+  "snapshots": 61,
   "snapshots_wrong_size": 0,
   "chain_breaks": 0,
   "latest_chain_break": null,
@@ -41,7 +41,7 @@
  },
  "NIFTY_500": {
   "expected_size_incl_dummies": 500,
-  "snapshots": 130,
+  "snapshots": 133,
   "snapshots_wrong_size": 0,
   "chain_breaks": 0,
   "latest_chain_break": null,

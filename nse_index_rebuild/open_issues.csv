@@ -1,1 +1,1 @@
-index,effective_date,announcement,symbols_in_announcement_but_not_in_reconstructed_state,symbols_excluded_but_still_in_state,size_after_undo,status
+index,effective_date,announcement,in_but_not_in_state,out_but_still_in_state,size_after_undo,status
