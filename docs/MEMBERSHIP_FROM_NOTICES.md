@@ -1,6 +1,6 @@
 # Point-in-time membership from NSE's own notices
 
-**Date:** 2026-10-01 · **Status:** applied, covers 2025-12-31 onward
+**Date:** 2026-10-01 · **Status:** applied. The Total Market notices ledger below covers 2025-12-31 onward; the file itself now reaches back to 2010 for seven indices (see "Extension to 2010" near the end)
 
 ## The problem
 
@@ -131,15 +131,36 @@ the dropped names are mostly the weaker ones). Measured on the 2026 month ends,
 | `nifty_total_market` (flat keys kept identical) | 2021-10-29 |
 
 Existing baselines and changes are untouched; the reconstruction is prepended after checking that it lands on each
-existing baseline exactly. Symbols use today's ticker (renames are not exits), except tickers this file already
-records under their old name (`HEG`, `GUJGASLTD`). Tata Motors DVR, an additional security above the nominal size,
-is a member while NSE counted it.
+existing baseline exactly, with the last prepended change keeping its real date. Symbols use today's ticker (a rename is
+not an exit), except tickers this file already records under their old name (`HEG`, `GUJGASLTD`); `aliases` is left as it
+was because the price stores are keyed by the tickers they were built with. Tata Motors DVR, an additional security above
+the nominal size, is a member while NSE counted it.
 
-**Status: research-grade reconstruction, adopted for production use by the repo owner.** Intervals resting on open
-items are listed under the top-level `caveats` key (Jindal Saw / Provogue 2012-03-07 from a secondary source, the
-2020 Gayatri / Fluorochemicals window, the inferred PEL / PIRAMALFIN rename, and 2010-2011 exits named without a
-symbol). Not done: independent checkpoints against archived constituent files, a blind second review, a data freeze.
-Evidence, rules and checks are in `nse_index_rebuild/` (`PROTOCOL.md`).
+What the file carries besides membership (all top-level keys, read by nothing that existed before):
+
+| key | content |
+|---|---|
+| `symbol_changes` | 105 ticker and name changes found while rebuilding: old and new symbol, company, last old date, first new date, status, evidence (NSE's symbol-change file or an NSE circular) |
+| `caveats` | intervals resting on an open item; **empty** since 2026-10-02, when the last items were closed |
+| `adjustments_applied` | the 160 hand-made rules (revocations, deferments, manual events), each citing its document |
+| `notice` on a change | the NSE press release a prepended change comes from |
+
+**Status: reconstructed from NSE press releases, cross-checked against NSE's own workbook, adopted for production use by the
+repository owner.** It is not an NSE-certified record and nothing here certifies it for regulatory use.
+
+How it is checked (CI job `reconstruct`, `nse-index-membership-rebuild.yml`):
+
+1. `reverse2.py`: the chain closes at exact sizes on every date.
+2. `validate_history.py`: the history file equals the reconstruction on all 384 end-of-day states.
+3. `crosscheck_inclexcl.py --assert`: every event for Nifty 50, Next 50 and Nifty 500 (2010 to 2020) agrees with NSE's
+   `IndexInclExcl.xls`, apart from 38 differences explained in `rules/inclexcl_known_differences.csv`.
+4. `freeze_history.py --check`: the history through 2026-09-30 matches `data/membership_history.freeze.json`; an edit must be
+   recorded there with a reason (the daily sync's later appends do not move the hash).
+
+Daily (`nse_reference_sync.yml`): `scripts/sync_nse_reference.py` copies NSE's ticker-change, name-change, listed-equities and
+corporate-action feeds into `data/reference/nse/`, and `scripts/check_index_anchor.py` compares today's lists on two NSE
+hosts with the history (`data/reference/nse/anchor_checks.jsonl`). Evidence, rules and the protocol are in
+`nse_index_rebuild/` (`PROTOCOL.md`, `OPEN_ITEMS.md`, `FEEDS.md`, `reference/blind_review/`).
 
 ## Joining a bhavcopy to the history (`scripts/index_symbol_map.py`)
 

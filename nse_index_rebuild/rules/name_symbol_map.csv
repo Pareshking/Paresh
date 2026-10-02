@@ -1,15 +1,15 @@
 name,symbol,status,evidence
-Asian Electronics Ltd.,ASIANELEC,NSE_CORPORATE_ACTION_FEED,NSE corporate-actions API 2010-2026 lists company "Asian Electronics Limited" under symbol ASIANELEC (data/reference/nse/ and nse_index_rebuild/FEEDS.md)
-BPL Ltd.,BPL,NSE_CORPORATE_ACTION_FEED,NSE corporate-actions API lists "BPL Limited" under symbol BPL
+Asian Electronics Ltd.,ASIANELEC,NSE_CORPORATE_ACTION_FEED,"NSE corporate-actions API 2010-2026 lists company ""Asian Electronics Limited"" under symbol ASIANELEC (data/reference/nse/ and nse_index_rebuild/FEEDS.md)"
+BPL Ltd.,BPL,NSE_CORPORATE_ACTION_FEED,"NSE corporate-actions API lists ""BPL Limited"" under symbol BPL"
 Consolidated Finvest & Holdings Ltd.,CONSOFINVT,NSE_CORPORATE_ACTION_FEED,NSE corporate-actions API lists the company under symbol CONSOFINVT
 Donear Industries Ltd.,DONEAR,NSE_CORPORATE_ACTION_FEED,NSE corporate-actions API lists the company under symbol DONEAR
 Kohinoor Foods Ltd.,KOHINOOR,NSE_CORPORATE_ACTION_FEED,NSE corporate-actions API lists the company under symbol KOHINOOR
 Mukta Arts Ltd.,MUKTAARTS,NSE_CORPORATE_ACTION_FEED,NSE corporate-actions API lists the company under symbol MUKTAARTS
 Omax Autos Ltd.,OMAXAUTO,NSE_CORPORATE_ACTION_FEED,NSE corporate-actions API lists the company under symbol OMAXAUTO
 PVP Ventures Ltd.,PVP,NSE_CORPORATE_ACTION_FEED,NSE corporate-actions API lists the company under symbol PVP
-Sirpur Paper Mills Ltd.,SIRPAPER,WEB_SECONDARY,screener.in/company/SIRPAPER lists NSE symbol SIRPAPER; acquired by JK Paper in 2018
-Smartlink Network Systems Ltd.,SMARTLINK,WEB_SECONDARY,Zerodha and screener list NSE:SMARTLINK for Smartlink Holdings Ltd (formerly Smartlink Network Systems Ltd)
-House of Pearl Fashions Ltd.,PGIL,WEB_SECONDARY,Renamed Pearl Global Industries Ltd on 2012-01-12; chittorgarh lists NSE symbol PGIL. History uses today's ticker
-Asian Hotels Ltd.,ASIANHOTNR,WEB_SECONDARY,Renamed Asian Hotels (North) Ltd w.e.f. 2010-02-16 after the demerger effective 2010-02-11 (NSE: ASIANHOTNR); notice ind_prs19022010 is dated after the rename
+Sirpur Paper Mills Ltd.,SIRPAPER,NSE_CORPORATE_ACTION_FEED,"NSE corporate-actions API (nse_index_rebuild/FEEDS.md) lists 'The Sirpur Paper Mills Limited' under symbol SIRPAPER, ISIN INE202C01010, with rows from 2010 to 2017 (acquired by JK Paper 2018)"
+Smartlink Network Systems Ltd.,SMARTLINK,NSE_CORPORATE_ACTION_FEED,"NSE corporate-actions API lists 'Smartlink Holdings Limited' (formerly Smartlink Network Systems) under symbol SMARTLINK, ISIN INE178C01020, rows 2010-2026"
+House of Pearl Fashions Ltd.,PGIL,NSE_CORPORATE_ACTION_FEED,"NSE corporate-actions API lists 'Pearl Global Industries Limited' (formerly House of Pearl Fashions, renamed 2012-01-12) under symbol PGIL, ISIN INE940H01014, rows from 2010, so PGIL was the NSE symbol in 2011. History uses today's ticker"
+Asian Hotels Ltd.,ASIANHOTNR,NSE_CORPORATE_ACTION_FEED,"NSE corporate-actions API lists 'Asian Hotels (North) Limited' under symbol ASIANHOTNR, ISIN INE363A01022, rows from 2010 (renamed from Asian Hotels Ltd w.e.f. 2010-02-16 after the demerger effective 2010-02-11)"
 Micro Inks Limited,MICRO,CONFIRMED_NSE_SYMBOLCHANGE_FILE,"NSE Changes in Symbols file (reference/nse_symbolchange.csv sha256 948ccc56...): Micro Inks Limited HINDINKS -> MICRO on 26-MAR-2004, so MICRO was the symbol at the 2010-04-06 exit; delisted April 2010"
 Vishal Retail Ltd.,VISHALRET,CONFIRMED_NSE_SYMBOLCHANGE_FILE,"NSE Changes in Symbols file (sha256 948ccc56...): V2 Retail Limited VISHALRET -> V2RETAIL on 24-FEB-2012, so VISHALRET was the symbol at the 2011-03-25 exit"

@@ -9,10 +9,54 @@ class _Row:
     def match(self, line):
         return _ROW_STRICT.match(line) or _ROW_RELAXED.match(line)
 ROW = _Row()
+_ROW_DATED = re.compile(r"^\s*(\d+)\s+(.+?)\s{2,}([A-Z0-9&\-_]+)\s{2,}([A-Z][a-z]+)\s+(\d{1,2}),\s*(\d{4})\s*$")  # a table with an Effective Date column
 MON = "January February March April May June July August September October November December".split()
+_EFF = re.compile(r"(?:effective(?:\s+from)?|with effect from|w\.e\.f\.?)\s+([A-Z][a-z]+)\s*(\d{1,2})[,\s]*(?:\d{1,2}[,\s]+)?(\d{4})")
+def _dates(t):
+    """[(score, position, iso date)] for every date phrase in t; score 2 when the sentence it sits in makes an index change."""
+    out = []
+    for m in _EFF.finditer(t):
+        if m.group(1) not in MON:
+            continue
+        before = t[max(0, m.start() - 160):m.start()]
+        sentence = re.split(r"[.]\s", before)[-1]
+        score = 2 if re.search(r"index|indices|replace|change|become|shall|decided", sentence, re.I) and not re.search(r"suspend|ex-date|ex date|trading|revok|null and void|cancel", sentence, re.I) else 0
+        out.append((score, m.start(), f"{m.group(3)}-{MON.index(m.group(1))+1:02d}-{int(m.group(2)):02d}"))
+    return out
+def bind_dates(t):
+    """{index: date} from the intro clauses of a notice: each date is bound to the indices named in the clause that
+    ends with it ("The changes in CNX 200, CNX 500 ... shall be effective from February 2, 2015 and change in Nifty Midcap 50
+    ... February 23, 2015"). Only text before the first include/exclude list is used."""
+    cut = re.search(r"being\s+(?:in|ex)cluded|are\s+(?:in|ex)cluded|Sr\.?\s*No", t, re.I)
+    intro = t[:cut.start()] if cut else t
+    out, prev, last = {}, 0, ""
+    for score, pos, day in sorted(_dates(intro), key=lambda d: d[1]):
+        if score == 0:
+            continue
+        last = day
+        end = next((m.end() for m in _EFF.finditer(intro) if m.start() == pos), pos)
+        seg = intro[prev:end]
+        for k, pat in SEARCH.items():
+            if re.search(pat, seg, re.I):
+                out.setdefault(k, day)
+        prev = end
+    out["_last"] = last  # the change date nearest the lists: governs an index no clause names
+    return out
 def eff(t):
-    m = re.search(r"(?:effective(?:\s+from)?|with effect from|w\.e\.f\.?)\s+([A-Z][a-z]+)\s*(\d{1,2})[,\s]*(?:\d{1,2}[,\s]+)?(\d{4})", t)
-    return f"{m.group(3)}-{MON.index(m.group(1))+1:02d}-{int(m.group(2)):02d}" if m and m.group(1) in MON else ""
+    """The effective date of the index change. A notice can carry other dates (a trading suspension, an ex-date), so
+    prefer a date in the sentence that makes the index change ('... changes ... will become effective from ...'), and
+    fall back to the first date only when no sentence says so."""
+    best = None
+    for m in _EFF.finditer(t):
+        if m.group(1) not in MON:
+            continue
+        before = t[max(0, m.start() - 160):m.start()]
+        sentence = re.split(r"[.]\s", before)[-1]  # the sentence this date sits in
+        score = 2 if re.search(r"index|indices|replace|change|become|shall|decided", sentence, re.I) and not re.search(r"suspend|ex-date|ex date|trading|revok|null and void|cancel", sentence, re.I) else 0
+        cand = (score, -m.start(), f"{m.group(3)}-{MON.index(m.group(1))+1:02d}-{int(m.group(2)):02d}")
+        if best is None or cand > best:
+            best = cand
+    return best[2] if best else ""
 def idx_of(h):
     h = re.sub(r"\s+", " ", h.strip().lower())
     for k, p in IDX.items():
@@ -46,7 +90,7 @@ for f in sorted(glob.glob("announcements/txt/*.txt")):
     raw = re.split(r"About NSE Indices", raw)[0]
     m = re.match(r"ind_prs(\d{2})(\d{2})(\d{4})", base); pub = f"{m.group(3)}-{m.group(2)}-{m.group(1)}"
     if pub < "2010-01-01": continue
-    e = eff(re.sub(r"\s+", " ", raw)); cur = None; mode = None; nosym = False
+    e0 = eff(re.sub(r"\s+", " ", raw)); bound = bind_dates(re.sub(r"\s+", " ", raw)); sec = None; seen_table = False; cur = None; mode = None; nosym = False
     lines = [l for l in raw.splitlines() if l.strip()]
     _merged = []
     for _l in lines:
@@ -59,13 +103,19 @@ for f in sorted(glob.glob("announcements/txt/*.txt")):
     PFX = re.compile(r"^\s*\(?[0-9A-Za-z]{1,3}[\).]\s+\S")
     for i, line in enumerate(lines):
         s = line.strip()
+        if not ROW.match(line) and not NOSYM_HDR.search(s):
+            # a prose line that states the change date sets the date for the tables that follow (notices can carry several)
+            _win = re.sub(r"\s+", " ", " ".join(lines[i:i + 2]))
+            _hits = [d for d in _dates(_win) if d[0] > 0 and d[1] < len(re.sub(r"\s+", " ", line)) + 1]
+            if _hits and seen_table:
+                sec = _hits[0][2]
         if NOSYM_HDR.search(s): nosym = True; continue
         if re.search(r"Sr\.?\s*No\.?.*Symbol", s, re.I): nosym = False; continue
         if cur is None and not has_headings and i < 25 and re.search(r"being (?:in|ex)cluded|are (?:in|ex)cluded|is (?:in|ex)cluded", s, re.I) and not ROW.match(line):
             _ctx = " ".join(lines[max(0, i - 8):i])
             cur = idx_in_heading(_ctx)
-        if re.search(r"being included|are included|is included|to be included", s, re.I) and not ROW.match(line): mode = "IN"; continue
-        if re.search(r"being excluded|are excluded|is excluded|to be excluded", s, re.I) and not ROW.match(line): mode = "OUT"; continue
+        if re.search(r"being included|are included|is included|to be included", s, re.I) and not ROW.match(line): mode = "IN"; seen_table = True; continue
+        if re.search(r"being excluded|are excluded|is excluded|to be excluded", s, re.I) and not ROW.match(line): mode = "OUT"; seen_table = True; continue
         h = HEAD.match(line)
         if PAREN.match(line) and not h and not ROW.match(line):
             cur, mode = None, None
@@ -79,13 +129,18 @@ for f in sorted(glob.glob("announcements/txt/*.txt")):
             if ok:
                 cur, mode = idx_of(h.group(1)), None
             continue
+        dm = _ROW_DATED.match(line)
+        if dm and cur and mode and dm.group(4) in ("January February March April May June July August September October November December".split()):
+            day = f"{dm.group(6)}-{('January February March April May June July August September October November December'.split()).index(dm.group(4)) + 1:02d}-{int(dm.group(5)):02d}"
+            out.append([pub, day, base, cur, mode, dm.group(3), dm.group(2).strip()])
+            continue
         r = ROW.match(line)
         if r and cur and mode:
-            out.append([pub, e, base, cur, mode, r.group(3), r.group(2).strip()])
+            out.append([pub, sec or bound.get(cur) or bound.get("_last") or e0, base, cur, mode, r.group(3), r.group(2).strip()])
         elif nosym and cur and mode:
             rn = ROWN.match(line)
             if rn and not re.search(r"page|iisl", rn.group(2), re.I):
-                nm = rn.group(2).strip(); out.append([pub, e, base, cur, mode, NAME2SYM.get(norm_name(nm), "UNMAPPED:" + nm), nm])
+                nm = rn.group(2).strip(); out.append([pub, sec or bound.get(cur) or bound.get("_last") or e0, base, cur, mode, NAME2SYM.get(norm_name(nm), "UNMAPPED:" + nm), nm])
 with open("events_raw.csv", "w", newline="") as o:
     w = csv.writer(o); w.writerow(["published","effective","file","index","action","symbol","company"]); w.writerows(out)
 from collections import Counter

@@ -1,395 +1,45 @@
 ================================================================================
-NSE INDEX VERIFICATION PROJECT - COMPLETION SUMMARY
+NSE INDEX MEMBERSHIP REBUILD - STATUS SUMMARY
 ================================================================================
 
-PROJECT STATUS: PHASE 1 DATA COLLECTION COMPLETE; NOT PRODUCTION GRADE
-Date: October 2, 2026
-Branch: claude/gracious-euler-tfma5e
-
-================================================================================
-PROJECT SCOPE
-================================================================================
-
-Objective: 
-  Verify NSE index historical constituent data for production use in trading
-  systems, regulatory reporting, and fund strategy decisions.
-
-Candidate data collected (not yet verified as point-in-time history):
-  • NIFTY_50
-  • NIFTY_NEXT_50
-  • NIFTY_MIDCAP_150
-  • NIFTY_SMALLCAP_250
-  • NIFTY_MICROCAP_250
-  • NIFTY_TOTAL_MARKET (current anchor added in this branch)
-
-Production gate: FAIL until every unresolved event is reconciled, all historical
-constituent counts and known transitions pass, and all six indices have explicit
-source-backed membership intervals. The initial five-index reconstruction had
-51 unresolved announcement-chain issues; changes in this branch must be rerun
-through the dedicated GitHub Actions validation before that number is updated.
-The 2020–2026 timeline is not yet certified.
-
-Timeline Coverage:
-  • Start: September 2019
-  • End: October 2, 2026
-  • Duration: 7+ years
-
-Total Data Points: 22,822 rows across 3 indices
-
-================================================================================
-PHASE 1 DELIVERABLES (✓ COMPLETE)
-================================================================================
-
-1. ✓ Data Collection & Organization
-   - Organized 3 CSV files with clean naming
-   - Created structured directory layout (data/, reports/, scripts/)
-   - Size: ~437 KB data files
-
-2. ✓ Baseline Quality Assessment
-   - No duplicate entries found
-   - Valid CSV format verified
-   - Proper date formatting (YYYY-MM-DD)
-   - All indices have October 2, 2026 snapshot
-   - Logical constituent progression confirmed
-
-3. ✓ Anomaly Detection & Documentation
-   - Identified 20+ constituent count anomalies
-   - Severity classification (critical, major, minor)
-   - Deviation analysis with percentages
-   - Timeline tracking of anomalies
-
-   Critical Anomalies Found:
-   - 2024-03-28: NIFTY_MICROCAP_250 with 325 (target 250) [+30%] ⛔ CRITICAL
-   - 2022-03-31: NIFTY_SMALLCAP_250 with 291 (target 250) [+16%] ⛔ CRITICAL
-   - 2022-03-31: NIFTY_MICROCAP_250 with 323 (target 250) [+29%] ⛔ CRITICAL
-   - 15 additional anomalies flagged for investigation
-
-4. ✓ Analysis Framework Created
-   - Python analysis script (analyze_anomalies.py)
-   - Generates detailed JSON anomaly reports
-   - Symbol history tracking capability
-   - Constituent stability analysis
-
-5. ✓ Comprehensive Documentation
-   
-   a) START_HERE.md (Critical Quick Reference)
-      - Decision matrix for different user types
-      - Risk assessment summary
-      - Recommended action plans
-      - File navigation guide
-      
-   b) PRODUCTION_READINESS_PROTOCOL.md (Strict Standards)
-      - Risk assessment (Financial & Regulatory)
-      - 5-gate verification framework
-      - Mandatory documentation requirements
-      - Sign-off checklist for production use
-      - Timeline to production (4+ weeks)
-      
-   c) README.md (Project Overview)
-      - Directory structure
-      - Key findings summary
-      - Phase status tracking
-      - How to use the verification project
-      
-   d) VERIFICATION_CHECKLIST.md (Detailed Tasks)
-      - Phase-by-phase verification tasks
-      - Sample dates for cross-reference testing
-      - NSE document search patterns
-      - Symbol case study (JPASSOCIAT)
-      
-   e) DATA_VERIFICATION_REPORT.md (Technical Analysis)
-      - Detailed anomaly breakdown by index
-      - Temporal cascade relationship
-      - Data quality metrics
-      - Recommendations
-
-6. ✓ Git Repository Integration
-   - All files committed with detailed messages
-   - Branch: claude/gracious-euler-tfma5e
-   - Commit 1: Main verification project setup
-   - Commit 2: START_HERE guide
-
-================================================================================
-CURRENT STATUS
-================================================================================
-
-Verification Progress:
-  ✓ Phase 1: Baseline Data Quality - COMPLETE (65-75% confidence)
-  ⏳ Phase 2: Anomaly Documentation - NOT STARTED (0% of 20+ anomalies)
-  ⏳ Phase 3: Cross-Validation - NOT STARTED (0/5 sample dates)
-  ⏳ Phase 4: Regulatory Compliance - NOT STARTED (0% documentation)
-  ⏳ Phase 5: Fund Compliance - NOT STARTED (0% assessment)
-
-Production Readiness: ❌ NOT APPROVED
-  Current Confidence: 65-75%
-  Required Confidence: 99.5%
-  Gap: -24.5 to -34.5%
-
-Approval Gates: 0/5 Passing
-  [ ] Gate 1: Source Verification - NOT PASSED
-  [ ] Gate 2: Anomaly Resolution - NOT PASSED
-  [ ] Gate 3: Cross-Validation - NOT PASSED
-  [ ] Gate 4: Regulatory Compliance - NOT PASSED
-  [ ] Gate 5: Fund Compliance - NOT PASSED
-
-================================================================================
-CRITICAL FINDINGS
-================================================================================
-
-1. Data Structure: ✓ SOUND
-   - Format integrity: Valid
-   - No duplicates: Confirmed
-   - Latest data: Present (Oct 2, 2026)
-   - Logical progression: Confirmed
-
-2. Anomalies: ⚠️ REQUIRE VERIFICATION
-   - Total anomalies identified: 20+
-   - Explained anomalies: 0%
-   - NSE documentation obtained: 0%
-   - Severity: 3 critical, 5 major, 12+ minor
-
-3. Data Quality: ⚠️ UNKNOWN (NOT VERIFIED)
-   - Cross-checked with NSE official: NO
-   - Match rate to official data: UNKNOWN
-   - Source documentation: INCOMPLETE
-   - Audit trail: NOT ESTABLISHED
-
-================================================================================
-RECOMMENDATIONS FOR PRODUCTION USE
-================================================================================
-
-**IMMEDIATE ACTION (This Week):**
-1. DO NOT use this data for production trading
-2. DO NOT use for regulatory reporting
-3. DO NOT use for fund strategy decisions
-
-**RECOMMENDED HYBRID APPROACH:**
-  ✓ Use licensed NSE/Bloomberg/Reuters data for production
-  ✓ Use this data for research/backtesting in parallel
-  ✓ Run verification verification in background (4 weeks)
-  ✓ Cost: $2K-10K/month for licensed data
-  ✓ Risk: MINIMAL
-  ✓ Timeline: IMMEDIATE
-
-**IF COMPLETING VERIFICATION (4+ Weeks):**
-  1. Complete Phase 2: Explain all 20+ anomalies with NSE docs
-  2. Complete Phase 3: Verify 5 sample dates against NSE official
-  3. Complete Phase 4: Build full regulatory compliance documentation
-  4. Complete Phase 5: Verify fund system compatibility
-  5. Obtain external auditor sign-off ($5K-15K)
-  6. Get CRO/Compliance/Legal approvals
-  7. Deploy with continuous monitoring
-
-**MINIMUM REQUIREMENTS FOR PRODUCTION:**
-  • 99.5%+ confidence level achieved
-  • All 5 verification gates passed
-  • External auditor sign-off obtained
-  • Legal compliance documentation complete
-  • CRO/Compliance approval documented
-  • Fund prospectus updated as needed
-  • Regulatory filing contingency plan in place
-
-================================================================================
-FILES CREATED
-================================================================================
-
-Directory: nse_verification/
-
-Data Files:
-  ✓ data/NIFTY_MIDCAP_150.csv (66 KB, 3,482 rows)
-  ✓ data/NIFTY_SMALLCAP_250.csv (201 KB, 10,576 rows)
-  ✓ data/NIFTY_MICROCAP_250.csv (170 KB, 8,764 rows)
-
-Report Files:
-  ✓ reports/DATA_VERIFICATION_REPORT.md (10 KB, comprehensive)
-  ✓ reports/DATA_CONSISTENCY_NOTES.md (3 KB, temporal cascade)
-  ✓ reports/INDEX_HISTORY_OVERVIEW.md (7 KB, high-level overview)
-
-Script Files:
-  ✓ scripts/analyze_anomalies.py (intelligent analysis tool)
-
-Documentation Files:
-  ✓ START_HERE.md (Critical quick reference)
-  ✓ README.md (Project overview)
-  ✓ VERIFICATION_CHECKLIST.md (Phase-by-phase tasks)
-  ✓ PRODUCTION_READINESS_PROTOCOL.md (Strict standards)
-
-Total Documentation: 25 KB of detailed guides
-
-================================================================================
-NEXT STEPS FOR TEAM
-================================================================================
-
-Week 1 (Immediate):
-  [ ] Decision: Choose data source (licensed vs. verify vs. hybrid)
-  [ ] Review: START_HERE.md and PRODUCTION_READINESS_PROTOCOL.md
-  [ ] Approval: Get CRO/Compliance sign-off on approach
-  [ ] If licensing: Subscribe to NSE/Bloomberg/Reuters data
-  [ ] If verifying: Contact NSE for official confirmation
-
-Week 2-3 (If Proceeding with Verification):
-  [ ] Phase 2: Investigate all 20+ anomalies (NSE docs)
-  [ ] Phase 3: Cross-validate 5 sample dates vs NSE official
-  [ ] Document: Update VERIFICATION_CHECKLIST.md with findings
-  [ ] Resolve: Explain each anomaly with NSE reference
-
-Week 4 (Final Verification):
-  [ ] Phase 4: Build regulatory compliance audit trail
-  [ ] Phase 5: Verify fund system integration
-  [ ] Audit: Engage external auditor for sign-off
-  [ ] Approve: Obtain all required signatures
-
-Week 5+ (Deployment):
-  [ ] Deploy: Migrate production systems
-  [ ] Monitor: Track data quality continuously
-  [ ] Document: Maintain audit trail for regulators
-  [ ] Review: Quarterly data quality assessments
-
-================================================================================
-RISK ASSESSMENT
-================================================================================
-
-Financial Risk: HIGH ⛔
-  - Using unverified data in production could cause millions in losses
-  - Portfolio tracking errors
-  - Tracking error penalties
-  - Investor liability
-
-Regulatory Risk: SEVERE ⛔
-  - SEC/SEBI could reject unverified data in filings
-  - Regulatory fines and sanctions
-  - License suspension risk
-  - Audit failures
-
-Operational Risk: MAJOR ⚠️
-  - Delisted stocks appearing in holdings
-  - Constituent tracking errors
-  - NAV calculation discrepancies
-  - Index replication failures
-
-Reputational Risk: HIGH ⛔
-  - Fund manager trust erosion
-  - Investor confidence loss
-  - Market perception damage
-  - Competitor advantages
-
-MITIGATION: Use licensed data until verification complete
-
-================================================================================
-PROJECT STATISTICS
-================================================================================
-
-Data Coverage:
-  - Time Span: 7+ years (Sep 2019 - Oct 2026)
-  - Indices: 3 (MIDCAP_150, SMALLCAP_250, MICROCAP_250)
-  - Snapshots: 94 total (22, 40, 32 respectively)
-  - Unique Symbols: 1,587 across all indices and dates
-  - Total Rows: 22,822
-
-Analysis Results:
-  - Duplicate Entries: 0 (✓ PASS)
-  - Format Errors: 0 (✓ PASS)
-  - Anomalies Detected: 20+ (⚠️ REQUIRES INVESTIGATION)
-  - Anomalies Explained: 0 (❌ NOT STARTED)
-  - Cross-Validated Dates: 0/5 (❌ NOT STARTED)
-
-Documentation Quality:
-  - Analysis Pages: 5 detailed reports
-  - Process Pages: 4 protocol/checklist documents
-  - Total Documentation: ~25 KB
-  - Verification Tasks: 50+ specific items
-
-================================================================================
-SUCCESS CRITERIA FOR PRODUCTION
-================================================================================
-
-Technical Requirements:
-  ✓ No duplicate entries (PASSED)
-  ✓ Valid CSV format (PASSED)
-  ✓ Proper date formatting (PASSED)
-  ✓ Latest data present (PASSED)
-  ✓ Logical progression (PASSED)
-  ⏳ >99.5% match with NSE official (NOT TESTED)
-  ⏳ All anomalies explained (0/20+ EXPLAINED)
-
-Documentation Requirements:
-  ✓ Analysis framework created (DONE)
-  ✓ Anomalies identified (DONE)
-  ⏳ Anomalies documented (NOT STARTED)
-  ⏳ Regulatory compliance docs (NOT STARTED)
-  ⏳ Audit trail established (NOT STARTED)
-
-Approval Requirements:
-  ⏳ NSE confirmation (NOT REQUESTED)
-  ⏳ External auditor sign-off (NOT OBTAINED)
-  ⏳ CRO approval (NOT REQUESTED)
-  ⏳ Legal clearance (NOT REQUESTED)
-  ⏳ Compliance sign-off (NOT REQUESTED)
-
-================================================================================
-CONCLUSION
-================================================================================
-
-Project Status: ✓ Phase 1 COMPLETE - Ready for Phase 2
-
-What Was Accomplished:
-  • Comprehensive baseline assessment of NSE index data
-  • 20+ anomalies identified and documented
-  • Analysis framework and tools created
-  • Complete verification protocol established
-  • Detailed documentation for all stakeholders
-
-What Was NOT Accomplished (By Design):
-  • Verification against official NSE sources (Phase 2+)
-  • Cross-validation with NSE official data (Phase 3)
-  • Regulatory compliance documentation (Phase 4)
-  • Fund system integration testing (Phase 5)
-  • External auditor approval (Phase 5)
-
-Current Status for Production Use: ❌ NOT APPROVED
-  Confidence Level: 65-75% (Need: 99.5%)
-  Approval Gates: 0/5 passed
-  Recommended: Use licensed data + verify in parallel
-
-Timeline to Production (If Proceeding): 4+ weeks
-Cost to Production (If Proceeding): $5K-15K (audit + verification)
-
-================================================================================
-CONTACT & ACCOUNTABILITY
-================================================================================
-
-Project Owner: Claude Haiku 4.5
-Repository: pareshking/paresh
-Branch: claude/gracious-euler-tfma5e
-Commits: 2 (verified)
-
-For Questions:
-  - Technical: See README.md and scripts/
-  - Risk/Compliance: See PRODUCTION_READINESS_PROTOCOL.md
-  - Verification Progress: See VERIFICATION_CHECKLIST.md
-  - Quick Reference: See START_HERE.md
-
-Sign-Off Authority:
-  - CRO/Chief Risk Officer (Risk approval)
-  - Fund Compliance Officer (Regulatory approval)
-  - External Auditor (Technical sign-off)
-  - Legal Counsel (Liability clearance)
-
-================================================================================
-VERSION & HISTORY
-================================================================================
-
-Document Version: 1.0
-Project Version: Phase 1 Complete
-Date: October 2, 2026
-Status: Ready for Phase 2 Verification
-
-Git Commits:
-  1. Add NSE Index Historical Data Verification Project (11 files)
-  2. Add START_HERE guide for NSE verification project (1 file)
-
-Next Review: October 4, 2026 (Phase 2 progress check)
-
-================================================================================
-END OF COMPLETION SUMMARY
+Date: 2026-10-02 (supersedes the earlier "phase 1" summary)
+
+WHAT EXISTS
+  data/membership_history.json holds point-in-time membership for seven indices,
+  rebuilt announcement by announcement from NSE press releases, backward from
+  NSE's current lists:
+    Nifty 50, Nifty Next 50, Nifty 500 ........ from 2010-01-01
+    Nifty Midcap 150, Nifty Smallcap 250 ...... from 2016-04-01 (launch)
+    Nifty Microcap 250 ........................ from 2021-09-30
+    Nifty Total Market ........................ from 2021-10-29
+  It also carries the 105 ticker and name changes found on the way
+  (symbol_changes), the hand-made rules applied, and an (empty) caveats list.
+  The daily sync keeps appending changes after 2026-09-30.
+
+HOW IT WAS CHECKED
+  - The chain of announcements closes at exact sizes on every date (50/50/150/
+    250/250/750/500) with zero unresolved events.
+  - The history file equals the reconstruction on all 384 end-of-day states.
+  - NSE's own IndexInclExcl.xls agrees event by event for Nifty 50 (76 of 76),
+    Next 50 (213 of 214) and Nifty 500 (1,078, no date difference), 2010-2020;
+    38 differences remain, each explained.
+  - Today's lists on two NSE hosts equal the history's current members (daily).
+  - An independent AI reader re-derived 22 random notices (1,126 events) for the
+    four indices the workbook does not cover: zero differences.
+  - A frozen hash of the history through 2026-09-30 is checked in CI.
+
+STATUS
+  Adopted for production use by the repository owner on 2026-10-02. It is a
+  reconstruction from NSE press releases cross-checked against NSE's workbook,
+  not an NSE-certified record. Not met: an outside constituent list for Midcap
+  150, Smallcap 250, Microcap 250 and Total Market before today; a person
+  re-deriving a sample; compliance sign-off for regulatory use (not something
+  this repository supplies).
+
+WHERE
+  nse_index_rebuild/PROTOCOL.md       gates and results
+  nse_index_rebuild/OPEN_ITEMS.md     what is left
+  nse_index_rebuild/FEEDS.md          NSE feeds checked and the daily sync
+  docs/MEMBERSHIP_FROM_NOTICES.md     how the file is built and checked
+  scripts/index_symbol_map.py         join a day's bhavcopy tickers to the history
 ================================================================================
