@@ -71,9 +71,12 @@ class IndexAnalyzer:
         print(f"Constituent Count Statistics:")
         print(f"  Min: {min(counts)}")
         print(f"  Max: {max(counts)}")
-        print(f"  Average: {sum(counts)/len(counts):.1f}")
-        print(f"  Mode: {max(set(counts), key=counts.count)}")
-        print(f"  Snapshots with exact count: {sum(1 for c in counts if c == self.expected_constituents)}/{len(counts)}")
+        avg = sum(counts) / len(counts)
+        print(f"  Average: {avg:.1f}")
+        mode = max(set(counts), key=counts.count)
+        print(f"  Mode: {mode}")
+        exact = sum(1 for c in counts if c == self.expected_constituents)
+        print(f"  Snapshots with exact count: {exact}/{len(counts)}")
 
     def print_anomalies(self, top_n=20):
         """Print anomalies sorted by deviation"""
@@ -85,7 +88,9 @@ class IndexAnalyzer:
         print(f"ANOMALIES (sorted by absolute deviation)")
         print(f"{'='*80}\n")
 
-        sorted_anomalies = sorted(self.anomalies, key=lambda x: abs(x['deviation']), reverse=True)
+        sorted_anomalies = sorted(
+            self.anomalies, key=lambda x: abs(x['deviation']), reverse=True
+        )
 
         header = (
             f"{'Date':<12} {'Count':<8} {'Expected':<8} {'Deviation':<12} "
@@ -173,7 +178,8 @@ def main():
         'indices': [a.to_dict() for a in analyzers]
     }
 
-    report_file = Path(__file__).parent.parent / 'reports' / 'anomaly_analysis.json'
+    report_dir = Path(__file__).parent.parent / 'reports'
+    report_file = report_dir / 'anomaly_analysis.json'
     with open(report_file, 'w') as f:
         json.dump(report, f, indent=2)
 
