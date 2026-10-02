@@ -24,6 +24,7 @@ on:
       - R2 ranking calculation archive
       - R2 recovery audit
       - R2 session continuity audit
+      - SS price sync (gentle)
       - Screener daily price sync (overnight)
       - V1 Production QA
       - Weekly Full Sync (Friday night)
