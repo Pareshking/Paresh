@@ -21,6 +21,7 @@ import argparse
 import sys
 import tempfile
 import time
+from concurrent.futures import ProcessPoolExecutor
 from datetime import date
 from pathlib import Path
 
@@ -69,40 +70,66 @@ def import_actions(from_year: int, to_year: int, workdir: Path, publish=_publish
     return done
 
 
+def _publish_day(source: Path, day: date, workdir: Path, publish=_publish) -> str | None:
+    """Convert and publish one session; the error text, or None when it went."""
+    try:
+        rows = bf.mirror_prices(source, day)
+        if rows.empty:
+            raise ValueError("no rows")
+        path = workdir / day.isoformat() / "prices.parquet"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        rows.to_parquet(path, index=False, compression="zstd")
+        publish(path, R2_PRICES, "nse_bhavdata_full_mirror")
+        return None
+    except Exception as exc:  # noqa: BLE001  one bad file never stops the run
+        return f"{type(exc).__name__}: {exc}"[:200]
+
+
 def import_prices(mirror: Path, have, workdir: Path, *, since: date, until: date,
-                  max_minutes: float | None = None, refresh: int = 50,
+                  max_minutes: float | None = None, refresh: int = 50, workers: int = 1,
                   publish=_publish, clock=time.monotonic, log=print) -> dict:
-    """Publish the mirror's sessions R2 lacks, oldest first. `have()` re-reads R2."""
+    """Publish the mirror's sessions R2 lacks, oldest first. `have()` re-reads R2.
+
+    Each session is several round trips to R2 (object, verification, manifest,
+    pointer), about 6 s; `workers` processes publish that many sessions at once
+    (processes, not threads: each has its own boto3 session). Work goes out in
+    batches of `refresh` sessions, R2 re-read between them.
+    """
     files = bf.mirror_days(mirror)
     known = have()
     todo = sorted(d for d in files if since <= d <= until and d not in known)
     log(f"MIRROR {len(files)} sessions, {min(files) if files else '-'} to "
-        f"{max(files) if files else '-'}; R2 lacks {len(todo)} of them in [{since}, {until}]")
+        f"{max(files) if files else '-'}; R2 lacks {len(todo)} of them in [{since}, {until}]"
+        f"; {workers} at a time")
     deadline = clock() + max_minutes * 60 if max_minutes else None
     stats = {"published": 0, "skipped": 0, "failed": [], "left": 0}
-    for i, day in enumerate(todo):
-        if deadline is not None and clock() >= deadline:
-            stats["left"] = len(todo) - i
-            log(f"MIRROR time budget spent; {stats['left']} sessions left for the next run")
-            break
-        if i and i % refresh == 0:
-            known = have()
-        if day in known:
-            stats["skipped"] += 1
-            continue
-        try:
-            rows = bf.mirror_prices(files[day], day)
-            if rows.empty:
-                raise ValueError("no rows")
-            path = workdir / day.isoformat() / "prices.parquet"
-            path.parent.mkdir(parents=True, exist_ok=True)
-            rows.to_parquet(path, index=False, compression="zstd")
-            publish(path, R2_PRICES, "nse_bhavdata_full_mirror")
-            stats["published"] += 1
-        except Exception as exc:  # noqa: BLE001  one bad file never stops the run
-            stats["failed"].append(f"{day}: {type(exc).__name__}: {exc}"[:200])
-        if (i + 1) % 100 == 0:
-            log(f"  {i + 1}/{len(todo)} sessions, {stats['published']} published, through {day}")
+    pool = ProcessPoolExecutor(max_workers=workers) if workers > 1 else None
+    try:
+        for start in range(0, len(todo), refresh):
+            if deadline is not None and clock() >= deadline:
+                stats["left"] = len(todo) - start
+                log(f"MIRROR time budget spent; {stats['left']} sessions left for the next run")
+                break
+            if start:
+                known = have()
+            batch = [d for d in todo[start:start + refresh] if d not in known]
+            stats["skipped"] += min(refresh, len(todo) - start) - len(batch)
+            if pool is None:
+                results = [_publish_day(files[d], d, workdir, publish) for d in batch]
+            else:
+                results = list(pool.map(_publish_day, [files[d] for d in batch], batch,
+                                        [workdir] * len(batch)))
+            for day, err in zip(batch, results):
+                if err:
+                    stats["failed"].append(f"{day}: {err}")
+                else:
+                    stats["published"] += 1
+            if batch:
+                log(f"  {min(start + refresh, len(todo))}/{len(todo)} sessions, "
+                    f"{stats['published']} published, through {batch[-1]}")
+    finally:
+        if pool is not None:
+            pool.shutdown()
     return stats
 
 
@@ -118,6 +145,7 @@ def main(argv=None) -> int:
     ap.add_argument("--until", type=date.fromisoformat, default=date.today())
     ap.add_argument("--max-minutes", type=float, default=None)
     ap.add_argument("--refresh", type=int, default=50, help="re-read R2 every N sessions")
+    ap.add_argument("--workers", type=int, default=8, help="sessions published at once")
     args = ap.parse_args(argv)
     if args.actions == args.prices:
         ap.error("pass exactly one of --actions or --prices")
@@ -134,7 +162,7 @@ def main(argv=None) -> int:
         archive = R2Archive(R2Config.from_env())
         stats = import_prices(args.mirror, lambda: r2_days(archive, R2_PRICES), Path(tmp),
                               since=args.since, until=args.until, max_minutes=args.max_minutes,
-                              refresh=args.refresh)
+                              refresh=args.refresh, workers=args.workers)
     print(f"MIRROR_IMPORT published={stats['published']} skipped={stats['skipped']} "
           f"failed={len(stats['failed'])} left={stats['left']}")
     for line in stats["failed"][:20]:

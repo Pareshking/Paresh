@@ -55,4 +55,4 @@ jobs:
       - name: Prices R2 lacks, oldest first
         run: |
           [ "${MINUTES%.*}" -gt 320 ] && MINUTES=320
-          python scripts/import_nse_history.py --prices --mirror mirror/data --max-minutes "$MINUTES"
+          python scripts/import_nse_history.py --prices --mirror mirror/data --max-minutes "$MINUTES" --workers 8
