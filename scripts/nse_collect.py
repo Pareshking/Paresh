@@ -10,14 +10,18 @@ same immutable publisher as every other archive dataset:
   nse/prices_daily       every security's OHLC, previous close, value, volume
   nse/corporate_actions  the book closures NSE listed that day, parsed
   nse/market_caps        every listed security's market cap
-  nse/source_checks      where Screener or Yahoo disagree with NSE that day
+  nse/source_checks      where Screener disagrees with NSE that day
+  nse/closed_days        a day NSE has no bundle for, a week or more after it
+                         (a holiday): remembered so it is never asked again
 
 Modes (combinable; each stops the whole run on the first refusal from NSE):
 
   --recent N     the last N weekdays NSE may have published and R2 lacks
-  --backfill N   up to N older trading days R2 lacks, newest first, from the
-                 calendar in --calendar (the Yahoo archive's sessions)
-  --check        compare the newest NSE day with Screener and Yahoo
+  --backfill N   up to N older weekdays R2 lacks (neither a trading day nor a
+                 known closed day), newest first, back to --since; NSE's
+                 bundle archive reaches back to January 2010
+  --max-minutes  stop starting new days after this long (inside the job limit)
+  --check        compare the newest NSE day with Screener
   --probe DATE   print what a bundle holds and how it parses; writes nothing
 
     python scripts/nse_collect.py --recent 7 --backfill 120 --check
@@ -45,11 +49,14 @@ DATASETS = {
     "corporate_actions": ("nse/corporate_actions", "archive/nse/corporate_actions"),
     "market_caps": ("nse/market_caps", "archive/nse/market_caps"),
     "source_checks": ("nse/source_checks", "archive/nse/source_checks"),
+    "closed_days": ("nse/closed_days", "archive/nse/closed_days"),
 }
 SOURCE = "nse_pr_bundle"
 PIPELINE = "nse-ledger-v1"
 DELAY_S = 2.5
 HISTORY_START = date(2023, 10, 1)
+ARCHIVE_START = date(2010, 1, 1)   # NSE's PR bundles exist from here (probed 2026-10-02)
+CLOSED_AFTER_DAYS = 7              # no bundle this long after the day: NSE was closed
 
 
 # ── What R2 already holds ────────────────────────────────────────────────────
@@ -78,12 +85,25 @@ def recent_weekdays(n: int, today: date) -> list[date]:
 
 
 def load_calendar(path: str | None) -> list[date]:
-    """Trading sessions from a price archive's index (the Yahoo history)."""
+    """Trading sessions from a price archive's index, when one is given."""
     if not path or not Path(path).exists():
         return []
     frame = pd.read_parquet(path, columns=[])
     idx = pd.DatetimeIndex(frame.index).normalize().unique()
     return sorted(d.date() for d in idx)
+
+
+def weekdays(start: date, end: date) -> list[date]:
+    """Every weekday from `start` to `end`: the calendar when none is given.
+
+    A holiday costs one request, once: it is then recorded in nse/closed_days.
+    """
+    out, d = [], start
+    while d <= end:
+        if d.weekday() < 5:
+            out.append(d)
+        d += timedelta(days=1)
+    return out
 
 
 def backfill_dates(calendar: list[date], have: set[date], n: int,
@@ -114,10 +134,19 @@ def publish_tables(tables: dict[str, pd.DataFrame], day: date, workdir: Path,
 
 
 def collect(days: list[date], *, fetch, publish, workdir: Path,
-            delay_s: float = DELAY_S, sleep=time.sleep, log=print) -> dict:
-    """Fetch, parse and publish each day. Stops at the first refusal."""
-    stats = {"published": [], "absent": [], "failed": [], "blocked": False}
+            delay_s: float = DELAY_S, sleep=time.sleep, log=print,
+            deadline: float | None = None, today: date | None = None,
+            clock=time.monotonic) -> dict:
+    """Fetch, parse and publish each day. Stops at the first refusal, or once
+    `deadline` (a `clock` reading) has passed. A day with no bundle a week or
+    more after it is published to nse/closed_days."""
+    stats = {"published": [], "absent": [], "failed": [], "blocked": False,
+             "closed": [], "out_of_time": False}
     for i, day in enumerate(days):
+        if deadline is not None and clock() >= deadline:
+            log(f"NSE_TIME budget spent; {len(days) - i} days left for the next run")
+            stats["out_of_time"] = True
+            break
         if i:
             sleep(delay_s)
         try:
@@ -132,6 +161,10 @@ def collect(days: list[date], *, fetch, publish, workdir: Path,
             continue
         if files is None:
             stats["absent"].append(day)
+            if today is not None and (today - day).days >= CLOSED_AFTER_DAYS:
+                closed = pd.DataFrame({"date": [day], "reason": ["no NSE bundle"]})
+                publish_tables({"closed_days": closed}, day, workdir, publish)
+                stats["closed"].append(day)
             continue
         try:
             tables = nse_bundle.parse_bundle(files, day)
@@ -200,12 +233,14 @@ def main(argv: list[str] | None = None) -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--recent", type=int, default=0)
     ap.add_argument("--backfill", type=int, default=0)
-    ap.add_argument("--calendar", help="parquet whose index lists trading sessions")
+    ap.add_argument("--calendar", help="parquet whose index lists trading sessions "
+                                       "(default: weekdays, less known closed days)")
     ap.add_argument("--since", default=HISTORY_START.isoformat(),
                     help="oldest trading day the backfill may reach (YYYY-MM-DD)")
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--screener", help="Screener store parquet, for --check")
-    ap.add_argument("--yahoo", help="Yahoo price parquet, for --check")
+    ap.add_argument("--max-minutes", type=float, default=None,
+                    help="stop starting new days after this many minutes")
     ap.add_argument("--probe", action="append", default=[],
                     help="YYYY-MM-DD, or 'latest'; repeatable")
     ap.add_argument("--delay", type=float, default=DELAY_S)
@@ -245,19 +280,23 @@ def main(argv: list[str] | None = None) -> int:
     extra = [date.fromisoformat(x) for x in args.dates.replace(",", " ").split()]
     days += [d for d in extra if d not in have and d not in days]
     if args.backfill:
-        cal = load_calendar(args.calendar)
-        if not cal:
-            print("::warning::no calendar; backfill skipped")
         since = date.fromisoformat(args.since)
-        days += [d for d in backfill_dates(cal, have | set(days), args.backfill, start=since)]
+        closed = present_dates(archive, DATASETS["closed_days"][0])
+        cal = load_calendar(args.calendar) or weekdays(since, today - timedelta(days=1))
+        known = have | closed | set(days)
+        days += [d for d in backfill_dates(cal, known, args.backfill, start=since)]
+        print(f"NSE_BACKFILL since {since}: {sum(1 for d in cal if d >= since and d not in known)} "
+              f"days to go ({len(closed)} known closed days), {len(days)} this run")
 
     blocked = False
     with tempfile.TemporaryDirectory() as tmp:
+        deadline = time.monotonic() + args.max_minutes * 60 if args.max_minutes else None
         stats = collect(days, fetch=fetch, publish=publish, workdir=Path(tmp),
-                        delay_s=args.delay)
+                        delay_s=args.delay, deadline=deadline, today=today)
         blocked = stats["blocked"]
         print(f"NSE_COLLECT published={len(stats['published'])} "
-              f"absent={len(stats['absent'])} failed={len(stats['failed'])} "
+              f"absent={len(stats['absent'])} closed={len(stats['closed'])} "
+              f"failed={len(stats['failed'])} "
               f"blocked={int(blocked)}")
         if stats["absent"]:
             print("  no bundle: " + ", ".join(d.isoformat() for d in stats["absent"][:20]))
@@ -272,7 +311,7 @@ def main(argv: list[str] | None = None) -> int:
                 reader = R2DatasetReader(archive)
                 prices = reader.read_parquet(
                     reader.resolve_current(DATASETS["prices"][0], as_of=newest.isoformat()))
-                flags = run_check(prices, args.screener, args.yahoo)
+                flags = run_check(prices, args.screener, None)
                 counts = flags["check"].value_counts().to_dict() if len(flags) else {}
                 print(f"NSE_CHECK {newest} flags={len(flags)} {counts}")
                 if len(flags):

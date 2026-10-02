@@ -27,6 +27,7 @@ on:
       - R2 session continuity audit
       - SS price sync (gentle)
       - Screener daily price sync (overnight)
+      - SS price sync (gentle)
       - V1 Production QA
       - Weekly Full Sync (Friday night)
     types: [completed]

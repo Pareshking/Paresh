@@ -34,6 +34,10 @@ def test_every_writer_of_the_screener_store_shares_one_queue():
     groups = set()
     for path in WORKFLOWS:
         text = path.read_text(encoding="utf-8")
-        if "gh release upload" in text and "screener_prices.parquet" in text:
+        # A writer uploads the store; a workflow that only downloads it to
+        # read (ss_sync.yml: curl ... screener_prices.parquet) is no writer.
+        mentions = [ln for ln in text.splitlines() if "screener_prices.parquet" in ln
+                    and not re.search(r"\bcurl\b|gh release download", ln)]
+        if "gh release upload" in text and mentions:
             groups.add(re.search(r"concurrency:\s*\n(?:\s*#.*\n)*\s*group:\s*(\S+)", text).group(1))
     assert len(groups) == 1, groups

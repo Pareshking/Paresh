@@ -2,13 +2,15 @@ name: NSE daily bundle collection
 
 # NSE's own end-of-day record into R2, one file per trading day: prices
 # (unadjusted OHLC), corporate actions and market caps, plus a check of
-# where Screener and Yahoo disagree with it. Record only -- the ranking
-# still uses Screener (owner, 2026-09-27) until this history is complete and
-# compared. See scripts/nse_collect.py.
+# where Screener disagrees with it. See scripts/nse_collect.py.
 #
-# Every four hours: the newest days first, then up to 150 older ones, 2.5 s
-# apart (about 18 s a day with publishing, so a run takes ~30 min). A refusal from NSE ends the run quietly and the next run resumes, so
-# the ten-year backfill takes a few days and never hammers the site.
+# Every four hours: the newest days first, then older ones back to January
+# 2010 (owner, 2026-10-02: "bhav copy download starting today back to 2010";
+# NSE's archive serves the same bundle back to 4 Jan 2010), 2.5 s apart --
+# about 18 s a day with publishing. A scheduled run spends at most 50
+# minutes; a manual run can spend up to 330. A refusal from NSE ends the
+# run quietly and the next run resumes. Holidays are remembered in
+# nse/closed_days, so each is asked once.
 on:
   schedule:
     - cron: "25 */4 * * *"
@@ -17,6 +19,12 @@ on:
       backfill:
         description: "Older trading days to fetch this run"
         default: "150"
+      minutes:
+        description: "Minutes this run may spend collecting (at most 330)"
+        default: "50"
+      since:
+        description: "Oldest day to backfill to (YYYY-MM-DD)"
+        default: "2010-01-01"
       dates:
         description: "Extra days to collect, space-separated YYYY-MM-DD (weekend special sessions)"
         default: ""
@@ -38,7 +46,7 @@ concurrency:
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 350
     env:
       PYTHONPATH: .
     steps:
@@ -54,13 +62,12 @@ jobs:
       - name: Probe live bundles
         if: github.event_name == 'pull_request'
         run: python scripts/nse_collect.py --probe latest --probe 2017-03-15
-      - name: Fetch the calendar and the sources to check against
+      - name: Fetch Screener's store to check against
         if: github.event_name != 'pull_request'
         run: |
           base="https://github.com/${GITHUB_REPOSITORY}/releases/download/data-latest"
-          for f in prices_full.parquet screener_prices.parquet prices.parquet; do
-            curl -sSfL -o "$f" "$base/$f" || echo "::warning::could not fetch $f"
-          done
+          curl -sSfL -o screener_prices.parquet "$base/screener_prices.parquet" \
+            || echo "::warning::could not fetch screener_prices.parquet"
       - name: Collect and check
         if: github.event_name != 'pull_request'
         env:
@@ -70,11 +77,11 @@ jobs:
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
           BACKFILL: ${{ inputs.backfill || '150' }}
+          MINUTES: ${{ inputs.minutes || '50' }}
+          SINCE: ${{ inputs.since || '2010-01-01' }}
           DATES: ${{ inputs.dates || '' }}
         run: |
-          # Sample year signed off (owner, 2026-09-27). Three years, not ten:
-          # the backtest needs ~18 months and the record starts Jan 2026
-          # (owner: "we are never going to do such long back test").
-          python scripts/nse_collect.py --recent 7 --backfill "$BACKFILL" --since 2023-10-01 --dates "$DATES" \
-            --calendar prices_full.parquet --check \
-            --screener screener_prices.parquet --yahoo prices.parquet
+          [ "${MINUTES%.*}" -gt 330 ] && MINUTES=330
+          python scripts/nse_collect.py --recent 7 --backfill "$BACKFILL" --since "$SINCE" \
+            --max-minutes "$MINUTES" --dates "$DATES" \
+            --check --screener screener_prices.parquet
