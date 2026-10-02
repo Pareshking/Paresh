@@ -255,7 +255,9 @@ def basis_frame(other: pd.DataFrame, history: dict | None, *, months: int,
         if len(have) and have.index[0] > first + pd.Timedelta(days=10) and len(early) \
                 and have.index[0] in o.index:
             early = early.reindex(frame.index).dropna()
-            frame.loc[early.index, s] = early * (have.iloc[0] / o.loc[have.index[0]])
+            # float32 column, float64 values: pandas refuses the lossy set.
+            frame.loc[early.index, s] = (
+                (early * (have.iloc[0] / o.loc[have.index[0]])).astype(frame[s].dtype))
             joined.append(s)
     frame = frame.sort_index().astype("float32")
     report.update(blend)

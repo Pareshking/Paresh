@@ -205,6 +205,15 @@ def _backtest_body(
         )
         return
 
+    if not bt_res.get("stats", {}).get("total_return") and bt_res["equity_curve"].empty:
+        # The first month of a system: its first book exists (Actions, Portfolio)
+        # but no month has completed, so there is no return to report yet.
+        st.info(
+            "No completed month yet. The first book is on Actions and Portfolio; "
+            "returns appear here when the month closes."
+        )
+        return
+
     # The backtest runs on the DEEPEST history available, which is not always
     # the history the live screener ranks on -- a ranking wants the freshest
     # complete session, a backtest wants years. When the two differ, say so:

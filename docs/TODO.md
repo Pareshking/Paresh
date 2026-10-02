@@ -35,7 +35,7 @@ Full findings and work packages: `docs/UI_OVERHAUL_PLAN.md`.
 | # | When | What | How we know it is done | Status |
 |---|---|---|---|---|
 | 5 | 30 Sep 2026, evening (check 18:30 UTC) | October Nano Cap list built; Nano Cap and Combined rankings published | `data/nanocap_membership.json` gains `2026-09-30`; `rankings_nano` / `rankings_combined` published and accepted | [x] 30 Sep, daily sync 36790408819: 429 stocks, Nano 391 / Combined 1,141 ranked |
-| 6 | 1 Oct 2026 | First Nano Cap and Combined model books; their backtest shows September | Actions and Backtest with `?sys=nano` / `?sys=combined` | [ ] 2 Oct: daily sync 36941400234 green (precompute and R2 publish passed); `backtest_months` is 1 for both. Model-book render not yet seen live |
+| 6 | 1 Oct 2026 | First Nano Cap and Combined model books; their backtest shows September | Actions and Backtest with `?sys=nano` / `?sys=combined` | [ ] 2 Oct: daily sync green, `backtest_months` is 1 for both. Live check found the model book empty (engine returned nothing in a system's first month); fixed in the first-month book PR. Confirm on the live site after it deploys |
 | 7 | 1–5 Nov 2026 | October frozen in all three ledgers | Track Record's "Three systems, side by side" shows Oct 2026 | [ ] |
 
 ## Portfolio (1 Oct 2026)
