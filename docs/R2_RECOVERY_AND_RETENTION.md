@@ -25,6 +25,33 @@ two datasets that are republished in full every day: `prices/yahoo`
   about 1 GB.
 - **Every other dataset:** full history, never touched.
 
+### Protected datasets (owner, 2026-10-03)
+
+The reference histories the long price file is checked against must never be
+lost to a clean-up. `PROTECTED_DATASETS` in `scripts/r2_retention.py` lists
+`reference/` (every dataset under it) and `prices/screener/max_history`;
+`make_plan` refuses a run whose retention or retirement table names one, or
+whose retired key root would hold one (`tests/test_r2_retention.py`).
+
+| Dataset | What it is | Published |
+|---|---|---|
+| `reference/yahoo_close` | Yahoo split-adjusted closes, 1,205 stocks, daily from 2007 | 3 Oct 2026 |
+| `reference/eod2_close` | eod2_data (GitHub) closes, split and bonus adjusted, 1,206 stocks, from 1995 | 3 Oct 2026 |
+| `reference/tijori_close_verified` | Tijori adjusted closes, 1,088 stocks whose level matches NSE MarketLens | 3 Oct 2026 |
+| `reference/tijori_close_raw` | Tijori as fetched, 1,308 stocks (217 matched to the wrong company) | 3 Oct 2026 |
+| `reference/marketlens_close` | NSE MarketLens price history (30Y), 1,415 stocks incl. delisted; some old splits unadjusted | 3 Oct 2026 |
+| `reference/tejhq_adjusted_close` | TejHQ adjusted closes (adjusted only within an ISIN), from 2010 | 3 Oct 2026 |
+| `reference/ss_close` | The SS store as a wide close table (page 1, mostly from Sep 2022) | 3 Oct 2026 |
+| `prices/screener/max_history` | Screener's full chart history, weekly before the latest year, from 2000, 1,345 stocks | 3 Oct 2026 |
+
+Each is also on the `data-latest` release (`ref_*.parquet`,
+`screener_max_history.parquet`) and in the owner's local backup,
+`C:\Users\Quali\Paresh_reference_backup\2026-10-03\` (with NSE's raw yearly
+action lists 2008 - 2026, TejHQ's action files and the audit outputs). The
+release also carries `ref_nse_action_list_api_2008_2026.zip`,
+`ref_long_price_audit_2026-10-03.zip` and `ref_marketlens_sectors.csv`.
+Published by hand with `r2_publish_release_asset.yml`.
+
 _Current list (2026-10-02, `RETAINED_DATASETS` in `scripts/r2_retention.py`):_
 `prices/screener` and `prices/ss` (the SS store, one whole-history file
 published each weeknight by `ss_sync.yml`) keep 7 dates plus month-ends.

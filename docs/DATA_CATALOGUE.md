@@ -19,6 +19,8 @@ the repo copy the app reads at run time.
 | `nse/corporate_actions` | NSE Bc file: splits, bonuses, rights, demergers parsed to kind and price factor | action, per listing day | Oct 2023 to date | `nse_collect` | `src/loaders/nse_adjusted.py`, `src/engine/reconcile.py` | Full history |
 | `nse/corporate_actions_history` | NSE's corporate-action list, with face values | action, one file per ex-date year | 2010 – 2026 | `nse_history_import` (one request a year) | `nse_history.read_r2` (with the daily files) | Full history |
 | `nse/closed_days` | Weekdays with no NSE bundle a week later (holidays) | day | grows | `nse_collect` | `nse_collect` (asks each once) | Full history |
+| `reference/*` (yahoo_close, eod2_close, tijori_close_verified, tijori_close_raw, marketlens_close, tejhq_adjusted_close, ss_close) | Independent price histories the long NSE file is audited against | stock x day | 1995 / 2002 / 2007 / 2010 to Oct 2026 by source | `r2_publish_release_asset` (by hand, 3 Oct 2026) | `scripts/audit_long_prices.py` | **Protected** (`PROTECTED_DATASETS`) |
+| `prices/screener/max_history` | Screener's full chart history, weekly before the latest year, 1,345 stocks | stock x week | 2000 to Oct 2026 | `r2_publish_release_asset` (3 Oct 2026) | the audit | **Protected** |
 | `prices/ss` | The SS store: daily OHLCV, 1,216 stocks, 1,000 sessions each, one whole-history file | stock × day | from 2018 (most from Sep 2022) | `ss_sync` weekdays 22:02 IST | Three-source check; to become the app's primary source | 7 dates + month-ends |
 | `nse/market_caps` | NSE market cap per security | security × day | 3 years | `nse_collect` | Nano Cap list, screener MCAP column | Full history |
 | `nse/source_checks` | Disagreements between NSE and the other sources, newest day | check | newest day | `nse_compare`, `nse_sample_check` | Data-health review | Overwritten daily |
@@ -44,6 +46,8 @@ Policy and recovery: `docs/R2_RECOVERY_AND_RETENTION.md`. Layout and rules
 | `membership_history.freeze.json` | SHA-256 of the history through 2026-09-30 and its change log | `nse_index_rebuild/freeze_history.py` (checked in CI) |
 | `reference/nse/*` | Daily copy of NSE's ticker-change, name-change, listed-equities and corporate-action feeds, `MANIFEST.json`, `CHANGES.json`, `anchor_checks.jsonl` (today's lists on two NSE hosts against the history) | `nse_reference_sync` (`scripts/sync_nse_reference.py`, `scripts/check_index_anchor.py`) |
 | `reference/nse/isin_history.csv` | ISIN history used to follow renames in prices | `scripts/build_isin_history.py` |
+| `nse_prices/notes.json` corrections | 19 hand corrections for actions in no list (2008-09 splits, rights and schemes of index stocks), each with its evidence; skipped when an action covers the day | owner and the long-price audit |
+| release `nse_long_close/value.parquet`, `nse_long_report.json` | The 2008+ NSE price file for "History from 2010" backtests: 1,418 series, every equity series, adjusted | `nse_long_prices` (Saturdays) |
 | `nanocap_membership.json` | Month-end Nano Cap list | `daily_sync` (builds on the last session of the month) |
 | `corporate_actions_log.json` | Corporate actions applied | `daily_sync` |
 | `former_member_prices.parquet/.json` | Prices for stocks that left the universe, so past months replay faithfully | `daily_sync` |
