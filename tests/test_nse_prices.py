@@ -90,6 +90,21 @@ def test_an_action_filed_under_todays_symbol_applies_to_the_one_that_traded():
     assert out["TATACONSUM"].nunique() == 1 and float(out["TATACONSUM"].iloc[0]) == 10.0
 
 
+def test_a_split_after_a_rename_reaches_back_into_the_old_symbols_years():
+    # INFOSYSTCH became INFY in June 2011; INFY's later 1:1 bonuses must also scale
+    # INFOSYSTCH's closes, or the join reads as a fall and is refused (INFY began 2011).
+    ren, bonus = IDX.get_loc(pd.Timestamp("2025-06-02")), IDX.get_loc(pd.Timestamp("2026-01-01"))
+    old = np.r_[_flat(2900, ren), np.full(len(IDX) - ren, np.nan)]
+    new = np.r_[np.full(ren, np.nan), _flat(2900, bonus - ren), _flat(1450, len(IDX) - bonus)]
+    closes = _closes(INFOSYSTCH=old, INFY=new)
+    actions = pd.DataFrame([{"symbol": "INFY", "series": "EQ", "kind": "bonus", "purpose": "BONUS 1:1",
+                             "ex_date": pd.Timestamp("2026-01-01"), "price_factor": 0.5}])
+    out, rep = npx.adjusted_close(closes, actions, ["INFY"])
+    assert not rep["renames_not_joined"]
+    assert out["INFY"].notna().all() and out["INFY"].nunique() == 1
+    assert float(out["INFY"].iloc[0]) == 1450.0
+
+
 def test_an_action_on_a_symbol_that_traded_stays_where_it_is():
     closes, actions = _split_inputs()
     moved = npx.on_trading_symbol(actions, closes, {"OLDSPLT": {"new_symbol": "SPLT"}})

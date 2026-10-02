@@ -82,6 +82,25 @@ def chain_symbols(close: pd.DataFrame, renames: dict[str, Any] | None,
     return out
 
 
+def chain_factors(factors: pd.DataFrame, renames: dict[str, Any] | None,
+                  skipped: list[str] | None = None) -> pd.DataFrame:
+    """Join each renamed stock's adjustment factors as chain_symbols joined its closes.
+
+    `skipped` is the list chain_symbols filled: those renames stay apart here
+    too. Joined, the new symbol's later splits and bonuses reach back into the
+    old symbol's years, so the closes are adjusted once, after the join.
+    """
+    no = {s.split("->", 1)[0] for s in skipped or []}
+    out = factors.copy()
+    for old, a in (renames or {}).items():
+        new = a["new_symbol"] if isinstance(a, dict) else str(a)
+        if old not in out.columns or old in no:
+            continue
+        out[new] = (out[new].fillna(1.0) * out[old].fillna(1.0)) if new in out.columns else out[old]
+        out = out.drop(columns=[old])
+    return out
+
+
 def continuous(old: pd.Series, new: pd.Series) -> str:
     """Why `old` does not run on into `new` ("" when it does): the last old
     session and the first new one at most MAX_GAP_DAYS apart, the close
@@ -176,8 +195,14 @@ def adjusted_close(closes: pd.DataFrame, actions: pd.DataFrame, symbols: Iterabl
     actions_moved = int((moved["symbol"] != actions["symbol"]).sum()) if len(actions) else 0
     factors, _ = na.action_factors(closes, moved)
     factors.index = closes.index
+    # Join first, on NSE's raw closes, then adjust: a split or bonus filed under
+    # the new symbol must reach back into the old symbol's years. Adjusted
+    # first, the old series kept its raw level and the continuity check refused
+    # the join (INFOSYSTCH -> INFY: three 1:1 bonuses after the 2011 rename read
+    # as an 87% fall, so INFY began in June 2011).
     not_joined: list[str] = []
-    close = chain_symbols(na.adjust(closes, factors), renames, not_joined)
+    raw = chain_symbols(closes, renames, not_joined)
+    close = na.adjust(raw, chain_factors(factors, renames, not_joined))
     close = correct(close, notes.get("corrections"))
     wanted = list(dict.fromkeys(symbols))
     # A name asked for by its old symbol gets the joined series of its successor.
