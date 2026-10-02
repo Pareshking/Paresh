@@ -146,6 +146,9 @@ def _history_inputs(rank_df: pd.DataFrame, liquidity_floor_cr: float) -> dict | 
     return {
         "close": frame, "membership": membership, "start": start, "end": end,
         "months": (end - start).n + 1, "floor": floor,
+        # The Nifty 50 against its own index; the others against the Nifty 500,
+        # the broadest index on file (data/benchmarks.csv holds the two).
+        "benchmark": ("^NSEI", "Nifty 50") if key == "nifty_50" else ("^CRSLDX", "Nifty 500"),
         "traded_value": nse_long.average_value(value[cols].loc[:cut]) if floor else None,
         "sector_map": sec, "unlabelled": len(unlabelled), "name": iu.INDICES[key],
         "built": report.get("built"), "last_session": report.get("last_session"),
@@ -298,9 +301,11 @@ def _backtest_tab(
                     + ("." if history else " (Configuration)."))
         if traded_value is not None:
             ph += f"_{price_fingerprint(traded_value)}"
-    benchmark_close = fetch_benchmark_history(period="max" if history else "2y")
+    bench_symbol, bench_name = history["benchmark"] if history else ("^CRSLDX", "Nifty 500")
+    benchmark_close = fetch_benchmark_history(period="max" if history else "2y", symbol=bench_symbol)
     if benchmark_close.empty:
-        st.error("Nifty 500 benchmark (^CRSLDX) data is unavailable. Backtest stopped to prevent an invalid benchmark comparison.")
+        st.error(f"{bench_name} benchmark ({bench_symbol}) data is unavailable. Backtest stopped to "
+                 "prevent an invalid benchmark comparison.")
         return
     sec_map = history["sector_map"] if history else (
         rank_df.set_index("Symbol")["Industry"].to_dict()
@@ -469,10 +474,10 @@ def _backtest_tab(
                     f"after {cost_drag_bps:.0f} bps costs · {stats['gross_return']:+.1%} before",
                     _tone(stats["total_return"])),
         kit.Reading("Annualised", f"{stats['ann_return']:+.1%}",
-                    f"scaled up from {_yrs:.2f} years, not a CAGR · Nifty 500 {stats['ann_bench']:+.1%}",
+                    f"scaled up from {_yrs:.2f} years, not a CAGR · {bench_name} {stats['ann_bench']:+.1%}",
                     _tone(stats["ann_return"])),
-        kit.Reading("Ahead of Nifty 500", f"{stats['alpha'] * 100:+.1f} pts",
-                    f"Nifty 500 {stats['bench_return']:+.1%} over the same months", _tone(stats["alpha"])),
+        kit.Reading(f"Ahead of {bench_name}", f"{stats['alpha'] * 100:+.1f} pts",
+                    f"{bench_name} {stats['bench_return']:+.1%} over the same months", _tone(stats["alpha"])),
     ], "Backtest returns")
     kit.readings([
         kit.Reading("Sharpe", f"{stats['sharpe']:.2f}",
