@@ -84,6 +84,18 @@
   "HEG": {
    "new_symbol": "HEGAM",
    "evidence": "last HEG 2026-09-21, first HEGAM 2026-09-22; identical closes on every day both filed (see data/membership_history.json aliases)"
+  },
+  "KBL": {
+   "new_symbol": "KIRLOSBROS",
+   "evidence": "NSE Pd040110.csv: KBL = KIRLOSKAR BROTHERS LTD; equity_l.csv: KIRLOSBROS listed 20-APR-2010. In no NSE symbol-change list (bhavcopy check, 2026-10-02)"
+  },
+  "ASIANHOTEL": {
+   "new_symbol": "ASIANHOTNR",
+   "evidence": "NSE Pd040110.csv: ASIANHOTEL = ASIAN HOTELS LTD; equity_l.csv: ASIANHOTNR listed 07-APR-2010, ISIN INE363A01022. In no NSE symbol-change list (bhavcopy check, 2026-10-02)"
+  },
+  "PROVOGUE": {
+   "new_symbol": "PROVOGE",
+   "evidence": "isin_history.csv: PROVOGUE INE968G01025 to 2012-03-06, PROVOGE INE968G01033 from 2012-03-26 (issuer prefix INE968G01). In no NSE symbol-change list (bhavcopy check, 2026-10-02)"
   }
  },
  "corrections": [

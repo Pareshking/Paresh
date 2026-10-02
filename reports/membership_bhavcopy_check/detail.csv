@@ -1,0 +1,647 @@
+date,index,ticker,history_symbol,kind
+2013-11-01,nifty_50,TMPV,TMPV,missing
+2013-11-01,nifty_500,CASTEXTECH,CASTEXTECH,missing
+2013-11-01,nifty_500,CYIENT,CYIENT,missing
+2013-11-01,nifty_500,DCMSHRIRAM,DCMSHRIRAM,missing
+2013-11-01,nifty_500,DYNAMATECH,DYNAMATECH,missing
+2013-11-01,nifty_500,GEPIL,GVPIL,missing
+2013-11-01,nifty_500,IBVENTURES,DHANI,missing
+2013-11-01,nifty_500,IIFL,IIFL,missing
+2013-11-01,nifty_500,KPIL,KPIL,missing
+2013-11-01,nifty_500,NLCINDIA,NLCINDIA,missing
+2013-11-01,nifty_500,PGHL,PGHL,missing
+2013-11-01,nifty_500,SCHAEFFLER,SCHAEFFLER,missing
+2013-11-01,nifty_500,TMPV,TMPV,missing
+2013-11-01,nifty_500,BINDALAGRO,OSWALGREEN,series BE
+2013-11-01,nifty_500,DRDATSONS,DRDATSONS,series BE
+2013-11-01,nifty_500,GAMMONIND,GAMMONIND,series BE
+2013-11-01,nifty_500,HINDOILEXP,HINDOILEXP,series BE
+2013-11-01,nifty_500,KGL,KGL,series BE
+2013-11-01,nifty_500,MERCATOR,MERCATOR,series BE
+2013-11-01,nifty_500,SHREEASHTA,SHREEASHTA,series BE
+2013-11-01,nifty_500,SKUMARSYNF,SKUMARSYNF,series BE
+2010-01-04,nifty_50,HEROMOTOCO,HEROMOTOCO,missing
+2010-01-04,nifty_50,INFY,INFY,missing
+2010-01-04,nifty_50,TMPV,TMPV,missing
+2010-01-04,nifty_next_50,ADANIPORTS,ADANIPORTS,missing
+2010-01-04,nifty_next_50,UPL,UPL,missing
+2010-01-04,nifty_500,ADANIPORTS,ADANIPORTS,missing
+2010-01-04,nifty_500,AGCNET,AGCNET,missing
+2010-01-04,nifty_500,AKZOINDIA,JSWDULUX,missing
+2010-01-04,nifty_500,ANSALAPI,ANSALAPI,missing
+2010-01-04,nifty_500,ASIANHOTNR,ASIANHOTNR,missing
+2010-01-04,nifty_500,BAJFINANCE,BAJFINANCE,missing
+2010-01-04,nifty_500,CAPF,CAPF,missing
+2010-01-04,nifty_500,CASTEXTECH,CASTEXTECH,missing
+2010-01-04,nifty_500,CHOLAFIN,CHOLAFIN,missing
+2010-01-04,nifty_500,CYIENT,CYIENT,missing
+2010-01-04,nifty_500,DCMSHRIRAM,DCMSHRIRAM,missing
+2010-01-04,nifty_500,GEPIL,GVPIL,missing
+2010-01-04,nifty_500,HEROMOTOCO,HEROMOTOCO,missing
+2010-01-04,nifty_500,HUBTOWN,HUBTOWN,missing
+2010-01-04,nifty_500,IBVENTURES,DHANI,missing
+2010-01-04,nifty_500,IIFL,IIFL,missing
+2010-01-04,nifty_500,INFY,INFY,missing
+2010-01-04,nifty_500,JSWISPAT,JSWISPAT,missing
+2010-01-04,nifty_500,KIRLOSBROS,KIRLOSBROS,missing
+2010-01-04,nifty_500,KPIL,KPIL,missing
+2010-01-04,nifty_500,LINDEINDIA,LINDEINDIA,missing
+2010-01-04,nifty_500,MERCATOR,MERCATOR,missing
+2010-01-04,nifty_500,NAVNETEDUL,NAVNETEDUL,missing
+2010-01-04,nifty_500,NCC,NCC,missing
+2010-01-04,nifty_500,NLCINDIA,NLCINDIA,missing
+2010-01-04,nifty_500,PEL,PEL,missing
+2010-01-04,nifty_500,PGHL,PGHL,missing
+2010-01-04,nifty_500,PGIL,PGIL,missing
+2010-01-04,nifty_500,PROVOGE,PROVOGE,missing
+2010-01-04,nifty_500,RAMCOCEM,RAMCOCEM,missing
+2010-01-04,nifty_500,SANOFI,SANOFI,missing
+2010-01-04,nifty_500,SCHAEFFLER,SCHAEFFLER,missing
+2010-01-04,nifty_500,SHASUNPHAR,SHASUNPHAR,missing
+2010-01-04,nifty_500,SREINFRA,SREINFRA,missing
+2010-01-04,nifty_500,TATAGLOBAL,TATACONSUM,missing
+2010-01-04,nifty_500,TMPV,TMPV,missing
+2010-01-04,nifty_500,TRIDENT,TRIDENT,missing
+2010-01-04,nifty_500,TV18BRDCST,TV18BRDCST,missing
+2010-01-04,nifty_500,UPL,UPL,missing
+2010-01-04,nifty_500,WELCORP,WELCORP,missing
+2010-01-04,nifty_500,BEPL,BEPL,series BE
+2010-01-04,nifty_500,BPL,BPL,series BE
+2010-01-04,nifty_500,DONEAR,DONEAR,series BE
+2010-01-04,nifty_500,HINDMOTOR,HINDMOTOR,series BE
+2010-01-04,nifty_500,PRICOL,PRICOL,series BE
+2010-01-04,nifty_500,SAREGAMA,SAREGAMA,series BE
+2010-01-04,nifty_500,VISHALRET,V2RETAIL,series BE
+2010-06-10,nifty_50,HEROMOTOCO,HEROMOTOCO,missing
+2010-06-10,nifty_50,INFY,INFY,missing
+2010-06-10,nifty_50,TMPV,TMPV,missing
+2010-06-10,nifty_next_50,ADANIPORTS,ADANIPORTS,missing
+2010-06-10,nifty_next_50,UPL,UPL,missing
+2010-06-10,nifty_500,ADANIPORTS,ADANIPORTS,missing
+2010-06-10,nifty_500,BAJFINANCE,BAJFINANCE,missing
+2010-06-10,nifty_500,CAPF,CAPF,missing
+2010-06-10,nifty_500,CASTEXTECH,CASTEXTECH,missing
+2010-06-10,nifty_500,CHOLAFIN,CHOLAFIN,missing
+2010-06-10,nifty_500,CYIENT,CYIENT,missing
+2010-06-10,nifty_500,DCMSHRIRAM,DCMSHRIRAM,missing
+2010-06-10,nifty_500,GEPIL,GVPIL,missing
+2010-06-10,nifty_500,HEROMOTOCO,HEROMOTOCO,missing
+2010-06-10,nifty_500,HUBTOWN,HUBTOWN,missing
+2010-06-10,nifty_500,IBVENTURES,DHANI,missing
+2010-06-10,nifty_500,IIFL,IIFL,missing
+2010-06-10,nifty_500,INFY,INFY,missing
+2010-06-10,nifty_500,JSWISPAT,JSWISPAT,missing
+2010-06-10,nifty_500,KPIL,KPIL,missing
+2010-06-10,nifty_500,LINDEINDIA,LINDEINDIA,missing
+2010-06-10,nifty_500,MERCATOR,MERCATOR,missing
+2010-06-10,nifty_500,NAVNETEDUL,NAVNETEDUL,missing
+2010-06-10,nifty_500,NCC,NCC,missing
+2010-06-10,nifty_500,NLCINDIA,NLCINDIA,missing
+2010-06-10,nifty_500,PEL,PEL,missing
+2010-06-10,nifty_500,PGHL,PGHL,missing
+2010-06-10,nifty_500,PGIL,PGIL,missing
+2010-06-10,nifty_500,PROVOGE,PROVOGE,missing
+2010-06-10,nifty_500,RAMCOCEM,RAMCOCEM,missing
+2010-06-10,nifty_500,SANOFI,SANOFI,missing
+2010-06-10,nifty_500,SCHAEFFLER,SCHAEFFLER,missing
+2010-06-10,nifty_500,SHASUNPHAR,SHASUNPHAR,missing
+2010-06-10,nifty_500,SREINFRA,SREINFRA,missing
+2010-06-10,nifty_500,TATAGLOBAL,TATACONSUM,missing
+2010-06-10,nifty_500,TMPV,TMPV,missing
+2010-06-10,nifty_500,TRIDENT,TRIDENT,missing
+2010-06-10,nifty_500,TV18BRDCST,TV18BRDCST,missing
+2010-06-10,nifty_500,UPL,UPL,missing
+2010-06-10,nifty_500,HIMACHLFUT,HIMACHLFUT,series BE
+2010-06-10,nifty_500,VISHALRET,V2RETAIL,series BE
+2025-03-11,nifty_total_market,TMPV,TMPV,missing
+2025-03-11,nifty_total_market,BORORENEW,BORORENEW,series BE
+2025-03-11,nifty_total_market,ITI,ITI,series BE
+2025-03-11,nifty_total_market,SUNFLAG,SUNFLAG,series BE
+2025-03-11,nifty_50,TMPV,TMPV,missing
+2025-03-11,nifty_smallcap_250,ITI,ITI,series BE
+2025-03-11,nifty_microcap_250,BORORENEW,BORORENEW,series BE
+2025-03-11,nifty_microcap_250,SUNFLAG,SUNFLAG,series BE
+2025-03-11,nifty_500,TMPV,TMPV,missing
+2025-03-11,nifty_500,ITI,ITI,series BE
+2025-03-21,nifty_total_market,TMPV,TMPV,missing
+2025-03-21,nifty_total_market,BORORENEW,BORORENEW,series BE
+2025-03-21,nifty_total_market,ITI,ITI,series BE
+2025-03-21,nifty_total_market,SUNFLAG,SUNFLAG,series BE
+2025-03-21,nifty_50,TMPV,TMPV,missing
+2025-03-21,nifty_smallcap_250,ITI,ITI,series BE
+2025-03-21,nifty_microcap_250,BORORENEW,BORORENEW,series BE
+2025-03-21,nifty_microcap_250,SUNFLAG,SUNFLAG,series BE
+2025-03-21,nifty_500,TMPV,TMPV,missing
+2025-03-21,nifty_500,ITI,ITI,series BE
+2020-09-25,nifty_50,TMPV,TMPV,missing
+2020-09-25,nifty_smallcap_250,KPIL,KPIL,missing
+2020-09-25,nifty_smallcap_250,HATHWAY,HATHWAY,series BE
+2020-09-25,nifty_500,KPIL,KPIL,missing
+2020-09-25,nifty_500,TMPV,TMPV,missing
+2020-09-25,nifty_500,HATHWAY,HATHWAY,series BE
+2019-09-27,nifty_50,TMPV,TMPV,missing
+2019-09-27,nifty_smallcap_250,KPIL,KPIL,missing
+2019-09-27,nifty_smallcap_250,DEN,DEN,series BE
+2019-09-27,nifty_500,KPIL,KPIL,missing
+2019-09-27,nifty_500,TMPV,TMPV,missing
+2019-09-27,nifty_500,DEN,DEN,series BE
+2023-04-28,nifty_total_market,KPIL,KPIL,missing
+2023-04-28,nifty_total_market,LTFOODS,LTFOODS,missing
+2023-04-28,nifty_total_market,TMPV,TMPV,missing
+2023-04-28,nifty_total_market,VEEDOL,VEEDOL,missing
+2023-04-28,nifty_total_market,PATANJALI,PATANJALI,series BE
+2023-04-28,nifty_50,TMPV,TMPV,missing
+2023-04-28,nifty_midcap_150,PATANJALI,PATANJALI,series BE
+2023-04-28,nifty_smallcap_250,KPIL,KPIL,missing
+2023-04-28,nifty_microcap_250,LTFOODS,LTFOODS,missing
+2023-04-28,nifty_microcap_250,VEEDOL,VEEDOL,missing
+2023-04-28,nifty_500,KPIL,KPIL,missing
+2023-04-28,nifty_500,TMPV,TMPV,missing
+2023-04-28,nifty_500,PATANJALI,PATANJALI,series BE
+2019-06-28,nifty_50,TMPV,TMPV,missing
+2019-06-28,nifty_smallcap_250,KPIL,KPIL,missing
+2019-06-28,nifty_smallcap_250,JETAIRWAYS,JETAIRWAYS,series BE
+2019-06-28,nifty_500,KPIL,KPIL,missing
+2019-06-28,nifty_500,TMPV,TMPV,missing
+2019-06-28,nifty_500,JETAIRWAYS,JETAIRWAYS,series BE
+2016-04-29,nifty_50,TMPV,TMPV,missing
+2016-04-29,nifty_midcap_150,NLCINDIA,NLCINDIA,missing
+2016-04-29,nifty_midcap_150,SCHAEFFLER,SCHAEFFLER,missing
+2016-04-29,nifty_smallcap_250,GEPIL,GVPIL,missing
+2016-04-29,nifty_smallcap_250,KPIL,KPIL,missing
+2016-04-29,nifty_smallcap_250,PGHL,PGHL,missing
+2016-04-29,nifty_500,GEPIL,GVPIL,missing
+2016-04-29,nifty_500,KPIL,KPIL,missing
+2016-04-29,nifty_500,NLCINDIA,NLCINDIA,missing
+2016-04-29,nifty_500,PGHL,PGHL,missing
+2016-04-29,nifty_500,SCHAEFFLER,SCHAEFFLER,missing
+2016-04-29,nifty_500,TMPV,TMPV,missing
+2015-05-29,nifty_50,TMPV,TMPV,missing
+2015-05-29,nifty_500,CASTEXTECH,CASTEXTECH,missing
+2015-05-29,nifty_500,GEPIL,GVPIL,missing
+2015-05-29,nifty_500,KPIL,KPIL,missing
+2015-05-29,nifty_500,NLCINDIA,NLCINDIA,missing
+2015-05-29,nifty_500,PGHL,PGHL,missing
+2015-05-29,nifty_500,SCHAEFFLER,SCHAEFFLER,missing
+2015-05-29,nifty_500,TMPV,TMPV,missing
+2018-06-29,nifty_50,TMPV,TMPV,missing
+2018-06-29,nifty_midcap_150,IBVENTURES,DHANI,"series BE,E1"
+2018-06-29,nifty_smallcap_250,KPIL,KPIL,missing
+2018-06-29,nifty_smallcap_250,PGHL,PGHL,missing
+2018-06-29,nifty_smallcap_250,BRFL,BRFL,series BE
+2018-06-29,nifty_smallcap_250,JBFIND,JBFIND,series BE
+2018-06-29,nifty_500,KPIL,KPIL,missing
+2018-06-29,nifty_500,PGHL,PGHL,missing
+2018-06-29,nifty_500,TMPV,TMPV,missing
+2018-06-29,nifty_500,BRFL,BRFL,series BE
+2018-06-29,nifty_500,IBVENTURES,DHANI,"series BE,E1"
+2018-06-29,nifty_500,JBFIND,JBFIND,series BE
+2023-09-29,nifty_total_market,LTFOODS,LTFOODS,missing
+2023-09-29,nifty_total_market,TMPV,TMPV,missing
+2023-09-29,nifty_total_market,VEEDOL,VEEDOL,missing
+2023-09-29,nifty_total_market,DHANI,DHANI,series BE
+2023-09-29,nifty_total_market,EMIL,EMIL,series BE
+2023-09-29,nifty_total_market,JBMA,JBMA,series BE
+2023-09-29,nifty_total_market,LSIL,LLOYDSENGG,series BE
+2023-09-29,nifty_total_market,PATANJALI,PATANJALI,series BE
+2023-09-29,nifty_total_market,RELINFRA,RELINFRA,series BE
+2023-09-29,nifty_total_market,SWSOLAR,SWSOLAR,series BE
+2023-09-29,nifty_total_market,THOMASCOOK,THOMASCOOK,series BE
+2023-09-29,nifty_total_market,ZENTEC,ZENTEC,series BE
+2023-09-29,nifty_50,TMPV,TMPV,missing
+2023-09-29,nifty_midcap_150,PATANJALI,PATANJALI,series BE
+2023-09-29,nifty_smallcap_250,JBMA,JBMA,series BE
+2023-09-29,nifty_smallcap_250,SWSOLAR,SWSOLAR,series BE
+2023-09-29,nifty_microcap_250,LTFOODS,LTFOODS,missing
+2023-09-29,nifty_microcap_250,VEEDOL,VEEDOL,missing
+2023-09-29,nifty_microcap_250,DHANI,DHANI,series BE
+2023-09-29,nifty_microcap_250,EMIL,EMIL,series BE
+2023-09-29,nifty_microcap_250,LSIL,LLOYDSENGG,series BE
+2023-09-29,nifty_microcap_250,RELINFRA,RELINFRA,series BE
+2023-09-29,nifty_microcap_250,THOMASCOOK,THOMASCOOK,series BE
+2023-09-29,nifty_microcap_250,ZENTEC,ZENTEC,series BE
+2023-09-29,nifty_500,TMPV,TMPV,missing
+2023-09-29,nifty_500,JBMA,JBMA,series BE
+2023-09-29,nifty_500,PATANJALI,PATANJALI,series BE
+2023-09-29,nifty_500,SWSOLAR,SWSOLAR,series BE
+2021-10-29,nifty_total_market,DOLATALGO,DOLATALGO,missing
+2021-10-29,nifty_total_market,HINDWAREAP,HINDWAREAP,missing
+2021-10-29,nifty_total_market,KPIL,KPIL,missing
+2021-10-29,nifty_total_market,LTFOODS,LTFOODS,missing
+2021-10-29,nifty_total_market,STYRENIX,STYRENIX,missing
+2021-10-29,nifty_total_market,TMPV,TMPV,missing
+2021-10-29,nifty_total_market,VEEDOL,VEEDOL,missing
+2021-10-29,nifty_total_market,ADANITRANS,ADANIENSOL,series BE
+2021-10-29,nifty_total_market,ANANTRAJ,ANANTRAJ,series BE
+2021-10-29,nifty_total_market,ATGL,ATGL,series BE
+2021-10-29,nifty_total_market,BLS,BLS,series BE
+2021-10-29,nifty_total_market,CGPOWER,CGPOWER,series BE
+2021-10-29,nifty_total_market,DISHTV,DISHTV,series BE
+2021-10-29,nifty_total_market,EASEMYTRIP,EASEMYTRIP,series BE
+2021-10-29,nifty_total_market,GPIL,GPIL,series BE
+2021-10-29,nifty_total_market,HAPPSTMNDS,HAPPSTMNDS,series BE
+2021-10-29,nifty_total_market,HGS,HGS,series BE
+2021-10-29,nifty_total_market,IMFA,IMFA,series BE
+2021-10-29,nifty_total_market,JSWENERGY,JSWENERGY,series BE
+2021-10-29,nifty_total_market,NAZARA,NAZARA,series BE
+2021-10-29,nifty_total_market,OLECTRA,OLECTRA,series BE
+2021-10-29,nifty_total_market,PRAJIND,PRAJIND,series BE
+2021-10-29,nifty_total_market,RELINFRA,RELINFRA,series BE
+2021-10-29,nifty_total_market,SAREGAMA,SAREGAMA,series BE
+2021-10-29,nifty_total_market,SEAMECLTD,SEAMECLTD,series BE
+2021-10-29,nifty_total_market,SSWL,SSWL,series BE
+2021-10-29,nifty_50,TMPV,TMPV,missing
+2021-10-29,nifty_next_50,ADANITRANS,ADANIENSOL,series BE
+2021-10-29,nifty_midcap_150,ATGL,ATGL,series BE
+2021-10-29,nifty_midcap_150,JSWENERGY,JSWENERGY,series BE
+2021-10-29,nifty_smallcap_250,KPIL,KPIL,missing
+2021-10-29,nifty_smallcap_250,CGPOWER,CGPOWER,series BE
+2021-10-29,nifty_smallcap_250,HAPPSTMNDS,HAPPSTMNDS,series BE
+2021-10-29,nifty_smallcap_250,HGS,HGS,series BE
+2021-10-29,nifty_smallcap_250,NAZARA,NAZARA,series BE
+2021-10-29,nifty_smallcap_250,PRAJIND,PRAJIND,series BE
+2021-10-29,nifty_microcap_250,DOLATALGO,DOLATALGO,missing
+2021-10-29,nifty_microcap_250,HINDWAREAP,HINDWAREAP,missing
+2021-10-29,nifty_microcap_250,LTFOODS,LTFOODS,missing
+2021-10-29,nifty_microcap_250,STYRENIX,STYRENIX,missing
+2021-10-29,nifty_microcap_250,VEEDOL,VEEDOL,missing
+2021-10-29,nifty_microcap_250,ANANTRAJ,ANANTRAJ,series BE
+2021-10-29,nifty_microcap_250,BLS,BLS,series BE
+2021-10-29,nifty_microcap_250,DISHTV,DISHTV,series BE
+2021-10-29,nifty_microcap_250,EASEMYTRIP,EASEMYTRIP,series BE
+2021-10-29,nifty_microcap_250,GPIL,GPIL,series BE
+2021-10-29,nifty_microcap_250,IMFA,IMFA,series BE
+2021-10-29,nifty_microcap_250,OLECTRA,OLECTRA,series BE
+2021-10-29,nifty_microcap_250,RELINFRA,RELINFRA,series BE
+2021-10-29,nifty_microcap_250,SAREGAMA,SAREGAMA,series BE
+2021-10-29,nifty_microcap_250,SEAMECLTD,SEAMECLTD,series BE
+2021-10-29,nifty_microcap_250,SSWL,SSWL,series BE
+2021-10-29,nifty_500,KPIL,KPIL,missing
+2021-10-29,nifty_500,TMPV,TMPV,missing
+2021-10-29,nifty_500,ADANITRANS,ADANIENSOL,series BE
+2021-10-29,nifty_500,ATGL,ATGL,series BE
+2021-10-29,nifty_500,CGPOWER,CGPOWER,series BE
+2021-10-29,nifty_500,HAPPSTMNDS,HAPPSTMNDS,series BE
+2021-10-29,nifty_500,HGS,HGS,series BE
+2021-10-29,nifty_500,JSWENERGY,JSWENERGY,series BE
+2021-10-29,nifty_500,NAZARA,NAZARA,series BE
+2021-10-29,nifty_500,PRAJIND,PRAJIND,series BE
+2017-12-29,nifty_50,TMPV,TMPV,missing
+2017-12-29,nifty_smallcap_250,KPIL,KPIL,missing
+2017-12-29,nifty_smallcap_250,PGHL,PGHL,missing
+2017-12-29,nifty_smallcap_250,GVKPIL,GVKPIL,series BE
+2017-12-29,nifty_500,KPIL,KPIL,missing
+2017-12-29,nifty_500,PGHL,PGHL,missing
+2017-12-29,nifty_500,TMPV,TMPV,missing
+2017-12-29,nifty_500,GVKPIL,GVKPIL,series BE
+2023-12-29,nifty_total_market,TMPV,TMPV,missing
+2023-12-29,nifty_total_market,VEEDOL,VEEDOL,missing
+2023-12-29,nifty_total_market,ADANIPOWER,ADANIPOWER,series BE
+2023-12-29,nifty_total_market,GET&D,GVT&D,series BE
+2023-12-29,nifty_total_market,LLOYDSENGG,LLOYDSENGG,series BE
+2023-12-29,nifty_total_market,NEWGEN,NEWGEN,series BE
+2023-12-29,nifty_total_market,SAKSOFT,SAKSOFT,series BE
+2023-12-29,nifty_total_market,SUZLON,SUZLON,series BE
+2023-12-29,nifty_total_market,ZENTEC,ZENTEC,series BE
+2023-12-29,nifty_50,TMPV,TMPV,missing
+2023-12-29,nifty_midcap_150,ADANIPOWER,ADANIPOWER,series BE
+2023-12-29,nifty_smallcap_250,SUZLON,SUZLON,series BE
+2023-12-29,nifty_microcap_250,VEEDOL,VEEDOL,missing
+2023-12-29,nifty_microcap_250,GET&D,GVT&D,series BE
+2023-12-29,nifty_microcap_250,LLOYDSENGG,LLOYDSENGG,series BE
+2023-12-29,nifty_microcap_250,NEWGEN,NEWGEN,series BE
+2023-12-29,nifty_microcap_250,SAKSOFT,SAKSOFT,series BE
+2023-12-29,nifty_microcap_250,ZENTEC,ZENTEC,series BE
+2023-12-29,nifty_500,TMPV,TMPV,missing
+2023-12-29,nifty_500,ADANIPOWER,ADANIPOWER,series BE
+2023-12-29,nifty_500,SUZLON,SUZLON,series BE
+2016-09-30,nifty_50,TMPV,TMPV,missing
+2016-09-30,nifty_midcap_150,SCHAEFFLER,SCHAEFFLER,missing
+2016-09-30,nifty_smallcap_250,KPIL,KPIL,missing
+2016-09-30,nifty_smallcap_250,PGHL,PGHL,missing
+2016-09-30,nifty_500,KPIL,KPIL,missing
+2016-09-30,nifty_500,PGHL,PGHL,missing
+2016-09-30,nifty_500,SCHAEFFLER,SCHAEFFLER,missing
+2016-09-30,nifty_500,TMPV,TMPV,missing
+2022-09-30,nifty_total_market,FRETAIL,FRETAIL,missing
+2022-09-30,nifty_total_market,KPIL,KPIL,missing
+2022-09-30,nifty_total_market,LTFOODS,LTFOODS,missing
+2022-09-30,nifty_total_market,STYRENIX,STYRENIX,missing
+2022-09-30,nifty_total_market,TMPV,TMPV,missing
+2022-09-30,nifty_total_market,VEEDOL,VEEDOL,missing
+2022-09-30,nifty_total_market,ALOKINDS,ALOKINDS,series BE
+2022-09-30,nifty_total_market,INDOSTAR,INDOSTAR,series BE
+2022-09-30,nifty_total_market,ORISSAMINE,ORISSAMINE,series BE
+2022-09-30,nifty_total_market,PATANJALI,PATANJALI,series BE
+2022-09-30,nifty_total_market,RELINFRA,RELINFRA,series BE
+2022-09-30,nifty_total_market,RPOWER,RPOWER,series BE
+2022-09-30,nifty_total_market,SPANDANA,SPANDANA,series BE
+2022-09-30,nifty_total_market,TTML,TTML,series BE
+2022-09-30,nifty_50,TMPV,TMPV,missing
+2022-09-30,nifty_midcap_150,PATANJALI,PATANJALI,series BE
+2022-09-30,nifty_midcap_150,TTML,TTML,series BE
+2022-09-30,nifty_smallcap_250,KPIL,KPIL,missing
+2022-09-30,nifty_smallcap_250,ALOKINDS,ALOKINDS,series BE
+2022-09-30,nifty_microcap_250,FRETAIL,FRETAIL,missing
+2022-09-30,nifty_microcap_250,LTFOODS,LTFOODS,missing
+2022-09-30,nifty_microcap_250,STYRENIX,STYRENIX,missing
+2022-09-30,nifty_microcap_250,VEEDOL,VEEDOL,missing
+2022-09-30,nifty_microcap_250,INDOSTAR,INDOSTAR,series BE
+2022-09-30,nifty_microcap_250,ORISSAMINE,ORISSAMINE,series BE
+2022-09-30,nifty_microcap_250,RELINFRA,RELINFRA,series BE
+2022-09-30,nifty_microcap_250,RPOWER,RPOWER,series BE
+2022-09-30,nifty_microcap_250,SPANDANA,SPANDANA,series BE
+2022-09-30,nifty_500,KPIL,KPIL,missing
+2022-09-30,nifty_500,TMPV,TMPV,missing
+2022-09-30,nifty_500,ALOKINDS,ALOKINDS,series BE
+2022-09-30,nifty_500,PATANJALI,PATANJALI,series BE
+2022-09-30,nifty_500,TTML,TTML,series BE
+2026-09-30,nifty_total_market,BAGMANE,BAGMANE,series RR
+2026-09-30,nifty_total_market,BIRET,BIRET,series RR
+2026-09-30,nifty_total_market,DIACABS,DIACABS,series BE
+2026-09-30,nifty_total_market,E2E,E2E,series BE
+2026-09-30,nifty_total_market,EMBASSY,EMBASSY,series RR
+2026-09-30,nifty_total_market,HFCL,HFCL,series BE
+2026-09-30,nifty_total_market,LOTUSDEV,LOTUSDEV,series BE
+2026-09-30,nifty_total_market,MTARTECH,MTARTECH,series BE
+2026-09-30,nifty_total_market,SIGMAADV,SIGMAADV,series BE
+2026-09-30,nifty_total_market,STLTECH,STLTECH,series BE
+2026-09-30,nifty_midcap_150,EMBASSY,EMBASSY,series RR
+2026-09-30,nifty_smallcap_250,BAGMANE,BAGMANE,series RR
+2026-09-30,nifty_smallcap_250,BIRET,BIRET,series RR
+2026-09-30,nifty_smallcap_250,HFCL,HFCL,series BE
+2026-09-30,nifty_smallcap_250,MTARTECH,MTARTECH,series BE
+2026-09-30,nifty_smallcap_250,STLTECH,STLTECH,series BE
+2026-09-30,nifty_microcap_250,DIACABS,DIACABS,series BE
+2026-09-30,nifty_microcap_250,E2E,E2E,series BE
+2026-09-30,nifty_microcap_250,LOTUSDEV,LOTUSDEV,series BE
+2026-09-30,nifty_microcap_250,SIGMAADV,SIGMAADV,series BE
+2026-09-30,nifty_500,BAGMANE,BAGMANE,series RR
+2026-09-30,nifty_500,BIRET,BIRET,series RR
+2026-09-30,nifty_500,EMBASSY,EMBASSY,series RR
+2026-09-30,nifty_500,HFCL,HFCL,series BE
+2026-09-30,nifty_500,MTARTECH,MTARTECH,series BE
+2026-09-30,nifty_500,STLTECH,STLTECH,series BE
+2011-12-30,nifty_50,TMPV,TMPV,missing
+2011-12-30,nifty_next_50,ADANIPORTS,ADANIPORTS,missing
+2011-12-30,nifty_next_50,UPL,UPL,missing
+2011-12-30,nifty_500,ADANIPORTS,ADANIPORTS,missing
+2011-12-30,nifty_500,CAPF,CAPF,missing
+2011-12-30,nifty_500,CASTEXTECH,CASTEXTECH,missing
+2011-12-30,nifty_500,CYIENT,CYIENT,missing
+2011-12-30,nifty_500,DCMSHRIRAM,DCMSHRIRAM,missing
+2011-12-30,nifty_500,GEPIL,GVPIL,missing
+2011-12-30,nifty_500,IBVENTURES,DHANI,missing
+2011-12-30,nifty_500,IIFL,IIFL,missing
+2011-12-30,nifty_500,KPIL,KPIL,missing
+2011-12-30,nifty_500,LINDEINDIA,LINDEINDIA,missing
+2011-12-30,nifty_500,NAVNETEDUL,NAVNETEDUL,missing
+2011-12-30,nifty_500,NLCINDIA,NLCINDIA,missing
+2011-12-30,nifty_500,PEL,PEL,missing
+2011-12-30,nifty_500,PGHL,PGHL,missing
+2011-12-30,nifty_500,PROVOGE,PROVOGE,missing
+2011-12-30,nifty_500,RAMCOCEM,RAMCOCEM,missing
+2011-12-30,nifty_500,SANOFI,SANOFI,missing
+2011-12-30,nifty_500,SCHAEFFLER,SCHAEFFLER,missing
+2011-12-30,nifty_500,TMPV,TMPV,missing
+2011-12-30,nifty_500,UPL,UPL,missing
+2016-12-30,nifty_50,TMPV,TMPV,missing
+2016-12-30,nifty_midcap_150,SCHAEFFLER,SCHAEFFLER,missing
+2016-12-30,nifty_smallcap_250,KPIL,KPIL,missing
+2016-12-30,nifty_smallcap_250,PGHL,PGHL,missing
+2016-12-30,nifty_500,KPIL,KPIL,missing
+2016-12-30,nifty_500,PGHL,PGHL,missing
+2016-12-30,nifty_500,SCHAEFFLER,SCHAEFFLER,missing
+2016-12-30,nifty_500,TMPV,TMPV,missing
+2022-12-30,nifty_total_market,KPIL,KPIL,missing
+2022-12-30,nifty_total_market,LTFOODS,LTFOODS,missing
+2022-12-30,nifty_total_market,STYRENIX,STYRENIX,missing
+2022-12-30,nifty_total_market,TMPV,TMPV,missing
+2022-12-30,nifty_total_market,VEEDOL,VEEDOL,missing
+2022-12-30,nifty_total_market,ALOKINDS,ALOKINDS,series BE
+2022-12-30,nifty_total_market,HNDFDS,HNDFDS,series BE
+2022-12-30,nifty_total_market,INDOSTAR,INDOSTAR,series BE
+2022-12-30,nifty_total_market,PATANJALI,PATANJALI,series BE
+2022-12-30,nifty_50,TMPV,TMPV,missing
+2022-12-30,nifty_midcap_150,PATANJALI,PATANJALI,series BE
+2022-12-30,nifty_smallcap_250,KPIL,KPIL,missing
+2022-12-30,nifty_smallcap_250,ALOKINDS,ALOKINDS,series BE
+2022-12-30,nifty_microcap_250,LTFOODS,LTFOODS,missing
+2022-12-30,nifty_microcap_250,STYRENIX,STYRENIX,missing
+2022-12-30,nifty_microcap_250,VEEDOL,VEEDOL,missing
+2022-12-30,nifty_microcap_250,HNDFDS,HNDFDS,series BE
+2022-12-30,nifty_microcap_250,INDOSTAR,INDOSTAR,series BE
+2022-12-30,nifty_500,KPIL,KPIL,missing
+2022-12-30,nifty_500,TMPV,TMPV,missing
+2022-12-30,nifty_500,ALOKINDS,ALOKINDS,series BE
+2022-12-30,nifty_500,PATANJALI,PATANJALI,series BE
+2022-03-31,nifty_total_market,HINDWAREAP,HINDWAREAP,missing
+2022-03-31,nifty_total_market,KPIL,KPIL,missing
+2022-03-31,nifty_total_market,LTFOODS,LTFOODS,missing
+2022-03-31,nifty_total_market,STYRENIX,STYRENIX,missing
+2022-03-31,nifty_total_market,TMPV,TMPV,missing
+2022-03-31,nifty_total_market,VEEDOL,VEEDOL,missing
+2022-03-31,nifty_total_market,BCG,BCG,series BE
+2022-03-31,nifty_total_market,FLUOROCHEM,FLUOROCHEM,series BE
+2022-03-31,nifty_total_market,JSWENERGY,JSWENERGY,series BE
+2022-03-31,nifty_total_market,TRIDENT,TRIDENT,series BE
+2022-03-31,nifty_50,TMPV,TMPV,missing
+2022-03-31,nifty_midcap_150,FLUOROCHEM,FLUOROCHEM,series BE
+2022-03-31,nifty_midcap_150,JSWENERGY,JSWENERGY,series BE
+2022-03-31,nifty_midcap_150,TRIDENT,TRIDENT,series BE
+2022-03-31,nifty_smallcap_250,KPIL,KPIL,missing
+2022-03-31,nifty_smallcap_250,BCG,BCG,series BE
+2022-03-31,nifty_microcap_250,HINDWAREAP,HINDWAREAP,missing
+2022-03-31,nifty_microcap_250,LTFOODS,LTFOODS,missing
+2022-03-31,nifty_microcap_250,STYRENIX,STYRENIX,missing
+2022-03-31,nifty_microcap_250,VEEDOL,VEEDOL,missing
+2022-03-31,nifty_500,KPIL,KPIL,missing
+2022-03-31,nifty_500,TMPV,TMPV,missing
+2022-03-31,nifty_500,BCG,BCG,series BE
+2022-03-31,nifty_500,FLUOROCHEM,FLUOROCHEM,series BE
+2022-03-31,nifty_500,JSWENERGY,JSWENERGY,series BE
+2022-03-31,nifty_500,TRIDENT,TRIDENT,series BE
+2020-07-31,nifty_50,TMPV,TMPV,missing
+2020-07-31,nifty_smallcap_250,KPIL,KPIL,missing
+2020-07-31,nifty_smallcap_250,HATHWAY,HATHWAY,series BE
+2020-07-31,nifty_500,KPIL,KPIL,missing
+2020-07-31,nifty_500,TMPV,TMPV,missing
+2020-07-31,nifty_500,HATHWAY,HATHWAY,series BE
+2010-12-31,nifty_50,HEROMOTOCO,HEROMOTOCO,missing
+2010-12-31,nifty_50,INFY,INFY,missing
+2010-12-31,nifty_50,TMPV,TMPV,missing
+2010-12-31,nifty_next_50,ADANIPORTS,ADANIPORTS,missing
+2010-12-31,nifty_next_50,UPL,UPL,missing
+2010-12-31,nifty_500,ADANIPORTS,ADANIPORTS,missing
+2010-12-31,nifty_500,CAPF,CAPF,missing
+2010-12-31,nifty_500,CASTEXTECH,CASTEXTECH,missing
+2010-12-31,nifty_500,CYIENT,CYIENT,missing
+2010-12-31,nifty_500,DCMSHRIRAM,DCMSHRIRAM,missing
+2010-12-31,nifty_500,GEPIL,GVPIL,missing
+2010-12-31,nifty_500,HEROMOTOCO,HEROMOTOCO,missing
+2010-12-31,nifty_500,HUBTOWN,HUBTOWN,missing
+2010-12-31,nifty_500,IBVENTURES,DHANI,missing
+2010-12-31,nifty_500,IIFL,IIFL,missing
+2010-12-31,nifty_500,INFY,INFY,missing
+2010-12-31,nifty_500,JSWISPAT,JSWISPAT,missing
+2010-12-31,nifty_500,KPIL,KPIL,missing
+2010-12-31,nifty_500,LINDEINDIA,LINDEINDIA,missing
+2010-12-31,nifty_500,MERCATOR,MERCATOR,missing
+2010-12-31,nifty_500,NAVNETEDUL,NAVNETEDUL,missing
+2010-12-31,nifty_500,NCC,NCC,missing
+2010-12-31,nifty_500,NLCINDIA,NLCINDIA,missing
+2010-12-31,nifty_500,PEL,PEL,missing
+2010-12-31,nifty_500,PGHL,PGHL,missing
+2010-12-31,nifty_500,PGIL,PGIL,missing
+2010-12-31,nifty_500,PROVOGE,PROVOGE,missing
+2010-12-31,nifty_500,RAMCOCEM,RAMCOCEM,missing
+2010-12-31,nifty_500,SANOFI,SANOFI,missing
+2010-12-31,nifty_500,SCHAEFFLER,SCHAEFFLER,missing
+2010-12-31,nifty_500,SHASUNPHAR,SHASUNPHAR,missing
+2010-12-31,nifty_500,TMPV,TMPV,missing
+2010-12-31,nifty_500,TRIDENT,TRIDENT,missing
+2010-12-31,nifty_500,TV18BRDCST,TV18BRDCST,missing
+2010-12-31,nifty_500,UPL,UPL,missing
+2010-12-31,nifty_500,HIMACHLFUT,HIMACHLFUT,series BE
+2010-12-31,nifty_500,HIMATSEIDE,HIMATSEIDE,series BE
+2010-12-31,nifty_500,MIRZAINT,MIRZAINT,series BE
+2010-12-31,nifty_500,WOCKPHARMA,WOCKPHARMA,series BE
+2012-12-31,nifty_50,TMPV,TMPV,missing
+2012-12-31,nifty_next_50,UPL,UPL,missing
+2012-12-31,nifty_500,CASTEXTECH,CASTEXTECH,missing
+2012-12-31,nifty_500,CYIENT,CYIENT,missing
+2012-12-31,nifty_500,DCMSHRIRAM,DCMSHRIRAM,missing
+2012-12-31,nifty_500,GEPIL,GVPIL,missing
+2012-12-31,nifty_500,IBVENTURES,DHANI,missing
+2012-12-31,nifty_500,IIFL,IIFL,missing
+2012-12-31,nifty_500,KPIL,KPIL,missing
+2012-12-31,nifty_500,LINDEINDIA,LINDEINDIA,missing
+2012-12-31,nifty_500,NAVNETEDUL,NAVNETEDUL,missing
+2012-12-31,nifty_500,NLCINDIA,NLCINDIA,missing
+2012-12-31,nifty_500,PGHL,PGHL,missing
+2012-12-31,nifty_500,RAMCOCEM,RAMCOCEM,missing
+2012-12-31,nifty_500,SCHAEFFLER,SCHAEFFLER,missing
+2012-12-31,nifty_500,TMPV,TMPV,missing
+2012-12-31,nifty_500,UPL,UPL,missing
+2012-12-31,nifty_500,CANFINHOME,CANFINHOME,series BE
+2012-12-31,nifty_500,DCHL,DCHL,series BE
+2012-12-31,nifty_500,KEMROCK,KEMROCK,series BE
+2012-12-31,nifty_500,L&TFH,LTF,series BE
+2012-12-31,nifty_500,SHREEASHTA,SHREEASHTA,series BE
+2012-12-31,nifty_500,SUJANATOW,SUJANATOW,series BE
+2013-12-31,nifty_50,TMPV,TMPV,missing
+2013-12-31,nifty_500,CASTEXTECH,CASTEXTECH,missing
+2013-12-31,nifty_500,CYIENT,CYIENT,missing
+2013-12-31,nifty_500,DCMSHRIRAM,DCMSHRIRAM,missing
+2013-12-31,nifty_500,GEPIL,GVPIL,missing
+2013-12-31,nifty_500,IBVENTURES,DHANI,missing
+2013-12-31,nifty_500,IIFL,IIFL,missing
+2013-12-31,nifty_500,KPIL,KPIL,missing
+2013-12-31,nifty_500,NLCINDIA,NLCINDIA,missing
+2013-12-31,nifty_500,PGHL,PGHL,missing
+2013-12-31,nifty_500,SCHAEFFLER,SCHAEFFLER,missing
+2013-12-31,nifty_500,TMPV,TMPV,missing
+2013-12-31,nifty_500,ZODIACLOTH,ZODIACLOTH,missing
+2013-12-31,nifty_500,BFUTILITIE,BFUTILITIE,series BE
+2013-12-31,nifty_500,EDUCOMP,EDUCOMP,series BE
+2013-12-31,nifty_500,GTLINFRA,GTLINFRA,series BE
+2013-12-31,nifty_500,INNOIND,INNOIND,series BE
+2013-12-31,nifty_500,KGL,KGL,series BE
+2013-12-31,nifty_500,SKUMARSYNF,SKUMARSYNF,series BE
+2013-12-31,nifty_500,SUPREMEINF,SUPREMEINF,series BE
+2013-12-31,nifty_500,TINPLATE,TINPLATE,series BE
+2014-12-31,nifty_50,TMPV,TMPV,missing
+2014-12-31,nifty_500,CASTEXTECH,CASTEXTECH,missing
+2014-12-31,nifty_500,GEPIL,GVPIL,missing
+2014-12-31,nifty_500,IBVENTURES,DHANI,missing
+2014-12-31,nifty_500,KPIL,KPIL,missing
+2014-12-31,nifty_500,NLCINDIA,NLCINDIA,missing
+2014-12-31,nifty_500,PGHL,PGHL,missing
+2014-12-31,nifty_500,SCHAEFFLER,SCHAEFFLER,missing
+2014-12-31,nifty_500,TMPV,TMPV,missing
+2015-12-31,nifty_50,TMPV,TMPV,missing
+2015-12-31,nifty_500,GEPIL,GVPIL,missing
+2015-12-31,nifty_500,KPIL,KPIL,missing
+2015-12-31,nifty_500,NLCINDIA,NLCINDIA,missing
+2015-12-31,nifty_500,PGHL,PGHL,missing
+2015-12-31,nifty_500,SCHAEFFLER,SCHAEFFLER,missing
+2015-12-31,nifty_500,TMPV,TMPV,missing
+2018-12-31,nifty_50,TMPV,TMPV,missing
+2018-12-31,nifty_smallcap_250,KPIL,KPIL,missing
+2018-12-31,nifty_smallcap_250,PGHL,PGHL,missing
+2018-12-31,nifty_500,KPIL,KPIL,missing
+2018-12-31,nifty_500,PGHL,PGHL,missing
+2018-12-31,nifty_500,TMPV,TMPV,missing
+2019-12-31,nifty_50,TMPV,TMPV,missing
+2019-12-31,nifty_smallcap_250,KPIL,KPIL,missing
+2019-12-31,nifty_smallcap_250,NETWORK18,NETWORK18,series BE
+2019-12-31,nifty_500,KPIL,KPIL,missing
+2019-12-31,nifty_500,TMPV,TMPV,missing
+2019-12-31,nifty_500,NETWORK18,NETWORK18,series BE
+2020-12-31,nifty_50,TMPV,TMPV,missing
+2020-12-31,nifty_smallcap_250,KPIL,KPIL,missing
+2020-12-31,nifty_smallcap_250,SUZLON,SUZLON,series BE
+2020-12-31,nifty_500,KPIL,KPIL,missing
+2020-12-31,nifty_500,TMPV,TMPV,missing
+2020-12-31,nifty_500,SUZLON,SUZLON,series BE
+2021-12-31,nifty_total_market,HINDWAREAP,HINDWAREAP,missing
+2021-12-31,nifty_total_market,KPIL,KPIL,missing
+2021-12-31,nifty_total_market,LTFOODS,LTFOODS,missing
+2021-12-31,nifty_total_market,STYRENIX,STYRENIX,missing
+2021-12-31,nifty_total_market,TMPV,TMPV,missing
+2021-12-31,nifty_total_market,VEEDOL,VEEDOL,missing
+2021-12-31,nifty_total_market,ADANITRANS,ADANIENSOL,series BE
+2021-12-31,nifty_total_market,ATGL,ATGL,series BE
+2021-12-31,nifty_total_market,BLS,BLS,series BE
+2021-12-31,nifty_total_market,CGPOWER,CGPOWER,series BE
+2021-12-31,nifty_total_market,DISHTV,DISHTV,series BE
+2021-12-31,nifty_total_market,EASEMYTRIP,EASEMYTRIP,series BE
+2021-12-31,nifty_total_market,JSWENERGY,JSWENERGY,series BE
+2021-12-31,nifty_total_market,NAZARA,NAZARA,series BE
+2021-12-31,nifty_total_market,OLECTRA,OLECTRA,series BE
+2021-12-31,nifty_total_market,RELINFRA,RELINFRA,series BE
+2021-12-31,nifty_total_market,SAREGAMA,SAREGAMA,series BE
+2021-12-31,nifty_total_market,SEAMECLTD,SEAMECLTD,series BE
+2021-12-31,nifty_total_market,TTML,TTML,series BE
+2021-12-31,nifty_50,TMPV,TMPV,missing
+2021-12-31,nifty_next_50,ADANITRANS,ADANIENSOL,series BE
+2021-12-31,nifty_midcap_150,ATGL,ATGL,series BE
+2021-12-31,nifty_midcap_150,JSWENERGY,JSWENERGY,series BE
+2021-12-31,nifty_smallcap_250,KPIL,KPIL,missing
+2021-12-31,nifty_smallcap_250,CGPOWER,CGPOWER,series BE
+2021-12-31,nifty_smallcap_250,NAZARA,NAZARA,series BE
+2021-12-31,nifty_smallcap_250,TTML,TTML,series BE
+2021-12-31,nifty_microcap_250,HINDWAREAP,HINDWAREAP,missing
+2021-12-31,nifty_microcap_250,LTFOODS,LTFOODS,missing
+2021-12-31,nifty_microcap_250,STYRENIX,STYRENIX,missing
+2021-12-31,nifty_microcap_250,VEEDOL,VEEDOL,missing
+2021-12-31,nifty_microcap_250,BLS,BLS,series BE
+2021-12-31,nifty_microcap_250,DISHTV,DISHTV,series BE
+2021-12-31,nifty_microcap_250,EASEMYTRIP,EASEMYTRIP,series BE
+2021-12-31,nifty_microcap_250,OLECTRA,OLECTRA,series BE
+2021-12-31,nifty_microcap_250,RELINFRA,RELINFRA,series BE
+2021-12-31,nifty_microcap_250,SAREGAMA,SAREGAMA,series BE
+2021-12-31,nifty_microcap_250,SEAMECLTD,SEAMECLTD,series BE
+2021-12-31,nifty_500,KPIL,KPIL,missing
+2021-12-31,nifty_500,TMPV,TMPV,missing
+2021-12-31,nifty_500,ADANITRANS,ADANIENSOL,series BE
+2021-12-31,nifty_500,ATGL,ATGL,series BE
+2021-12-31,nifty_500,CGPOWER,CGPOWER,series BE
+2021-12-31,nifty_500,JSWENERGY,JSWENERGY,series BE
+2021-12-31,nifty_500,NAZARA,NAZARA,series BE
+2021-12-31,nifty_500,TTML,TTML,series BE
+2024-12-31,nifty_total_market,TMPV,TMPV,missing
+2024-12-31,nifty_total_market,BORORENEW,BORORENEW,series BE
+2024-12-31,nifty_total_market,GVT&D,GVT&D,series BE
+2024-12-31,nifty_total_market,SUNFLAG,SUNFLAG,series BE
+2024-12-31,nifty_50,TMPV,TMPV,missing
+2024-12-31,nifty_smallcap_250,GVT&D,GVT&D,series BE
+2024-12-31,nifty_microcap_250,BORORENEW,BORORENEW,series BE
+2024-12-31,nifty_microcap_250,SUNFLAG,SUNFLAG,series BE
+2024-12-31,nifty_500,TMPV,TMPV,missing
+2024-12-31,nifty_500,GVT&D,GVT&D,series BE
+2025-12-31,nifty_total_market,RELINFRA,RELINFRA,missing
+2025-12-31,nifty_total_market,EMBDL,EMBDL,series BE
+2025-12-31,nifty_smallcap_250,RELINFRA,RELINFRA,missing
+2025-12-31,nifty_microcap_250,EMBDL,EMBDL,series BE
+2025-12-31,nifty_500,RELINFRA,RELINFRA,missing

@@ -37,7 +37,7 @@ import pandas as pd
 
 from src.loaders.price_source import PriceFrames
 
-SERIES = ("EQ", "BE")          # main board, EQ preferred when both trade
+SERIES = ("EQ", "BE", "RR")    # main board, EQ preferred; RR: REITs, members of the indices
 STEP_TOL = 1e-3                # |factor - 1| above this is an adjustment
 
 

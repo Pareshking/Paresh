@@ -1,7 +1,9 @@
 name: NSE history import (2010 onwards)
 
 # One-off fill of R2's NSE history (owner, 2026-10-02: "waiting 3 days not a
-# good idea"). Prices come from a public GitHub mirror of NSE's full
+# good idea"). With pre2010_since, also the years before NSE's daily bundles
+# begin (4 Jan 2010), from NSE's classic bhavcopy archive: a ranking on
+# 1 Jan 2010 needs a year of history before it. Prices come from a public GitHub mirror of NSE's full
 # bhavcopy (checked equal to NSE's own file, close and volume, on every row of
 # two sample days); corporate actions from NSE's own list, one request a year.
 # No daily bundle is asked of NSE. Re-running is safe: only what R2 lacks is
@@ -15,6 +17,12 @@ on:
       actions:
         description: "Also import corporate actions (yes/no)"
         default: "yes"
+      actions_from:
+        description: "First year of corporate actions to import"
+        default: "2008"
+      pre2010_since:
+        description: "Also fetch NSE's classic bhavcopy from this day to 2009-12-31 (YYYY-MM-DD; empty: skip)"
+        default: ""
 
 permissions:
   contents: read
@@ -44,7 +52,13 @@ jobs:
 
       - name: Corporate actions, 2010 to date (NSE's list, one request a year)
         if: inputs.actions != 'no'
-        run: python scripts/import_nse_history.py --actions --from-year 2010
+        run: python scripts/import_nse_history.py --actions --from-year "${{ inputs.actions_from || '2008' }}"
+
+      - name: Before 2010, NSE's classic bhavcopy (one request a session, 2 s apart)
+        if: inputs.pre2010_since != ''
+        run: |
+          python scripts/fetch_nse_bhavcopy.py --since "${{ inputs.pre2010_since }}" --until 2009-12-31 --out bhav_pre2010
+          python scripts/import_nse_history.py --prices --mirror bhav_pre2010 --since "${{ inputs.pre2010_since }}" --until 2009-12-31 --workers 8
 
       - name: Fetch the bhavcopy mirror (data/ only)
         run: |

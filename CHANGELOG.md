@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-02 — SS, the three-source check, NSE history from 2010
+
+- **SS store**: daily OHLCV for 1,216 stocks (1,000 sessions each), downloaded gently (4 s apart, 40 a round, 5-minute rests), saved to the release. From tonight `ss_sync.yml` updates it each weeknight at 22:02 IST and publishes it to R2 (`prices/ss`, 7 copies + month-ends kept).
+- **Three-source check** (`src/engine/reconcile.py`, `scripts/reconcile_report.py`), the last step of the nightly run: rights factors from NSE's terms, applied only where NSE shows a source left the issue raw (SS had adjusted 8 of 10 itself); face values from NSE's list; a two-of-three vote on every day's move with NSE as judge; level shifts tagged with their corporate action. It reports; it changes no stored price.
+- **Renames automatic** (`src/loaders/nse_identity.py`): NSE's symbol-change list plus ISINs (the owner's suggestion) find 575 renames with no conflict, the 21 kept by hand among them and GUJGASLTD → GUJENERGY, which the hand list lacked. A rename is joined only where the two price series meet.
+- **NSE history from 10 Jun 2010** on R2: NSE's full bhavcopy imported from a public GitHub mirror (equal to NSE's own file on every row checked), corporate actions 2010 – 2026 from NSE's yearly list. The bundle collector, whose backfill had silently stopped when the Yahoo calendar was deleted, now runs on a weekday calendar back to 2010.
+- Rules and status: `docs/PRICE_PIPELINE.md`.
+
 ## 2026-10-02 — Nano Cap and Combined show their first book
 
 - Fixed: with Nano Cap or Combined selected, Actions said "the model book is not available: the strategy needs about 18 months of price history". The cause was not history. Their first book is signalled at the 30 Sep close and filled 1 Oct, which sits outside the window of completed months, and no earlier month holds a rebalance, so the replay returned nothing for the whole of October. The engine now returns that first book (current book, this month's changes, month-to-date) when no month has completed yet. Equity curve, monthly table and stats stay empty until the month closes. Existing results are unchanged.

@@ -14,9 +14,10 @@ As a library:
     bhavcopy_symbols(h, "nifty_50", "2015-06-30")   # {ticker in that day's bhavcopy: history symbol}
     coverage(h, "nifty_50", "2015-06-30", symbols)  # matched / members with no bhavcopy row
 
-Renames are never exits; mergers and demergers are (the old ticker simply stops being a member). A member with no
-bhavcopy row on its date is reported, not guessed: it is usually suspended, delisted or renamed outside the ledger,
-which only covers renames of index members found in NSE's notices (see nse_index_rebuild/OPEN_ITEMS.md).
+Renames are never exits; mergers and demergers are (the old ticker simply stops being a member). load() joins
+renames with the history's ledger, NSE's own symbolchange.csv and three renames NSE lists nowhere; checked on 35
+dates 2010-2026 every member then has a bhavcopy row except on days it did not trade (FRETAIL, RELINFRA ...).
+A member with no row is reported, not guessed.
 """
 from __future__ import annotations
 
@@ -24,13 +25,62 @@ import argparse
 import csv
 import json
 import sys
+from datetime import datetime, timedelta
 from pathlib import Path
 
 HISTORY = Path(__file__).resolve().parents[1] / "data" / "membership_history.json"
+SYMBOLCHANGE = Path(__file__).resolve().parents[1] / "data" / "reference" / "nse" / "symbolchange.csv"
+
+# Renames in no NSE list, each proven from NSE's own files (reports/membership_bhavcopy_check_2026-10-02.md).
+EXTRA_RENAMES = [
+    {"old_symbol": "KBL", "new_symbol": "KIRLOSBROS", "last_old_date": "2010-04-19", "first_new_date": "2010-04-20",
+     "status": "NSE_FILES", "evidence": "Pd040110.csv: KBL = KIRLOSKAR BROTHERS LTD; equity_l.csv: KIRLOSBROS listed 20-APR-2010"},
+    {"old_symbol": "ASIANHOTEL", "new_symbol": "ASIANHOTNR", "last_old_date": "2010-04-06", "first_new_date": "2010-04-07",
+     "status": "NSE_FILES", "evidence": "Pd040110.csv: ASIANHOTEL = ASIAN HOTELS LTD; equity_l.csv: ASIANHOTNR listed "
+                                        "07-APR-2010, ISIN INE363A01022"},
+    {"old_symbol": "PROVOGUE", "new_symbol": "PROVOGE", "last_old_date": "2012-03-06", "first_new_date": "2012-03-26",
+     "status": "NSE_FILES", "evidence": "isin_history.csv: PROVOGUE INE968G01025 to 2012-03-06, PROVOGE INE968G01033 "
+                                        "from 2012-03-26 (issuer prefix INE968G01)"},
+]
 
 
-def load(path: Path = HISTORY) -> dict:
-    return json.loads(Path(path).read_text(encoding="utf-8"))
+def nse_symbol_changes(path: Path = SYMBOLCHANGE) -> list[dict]:
+    """NSE's own list of ticker changes (headerless: company, old, new, date), as ledger entries."""
+    out = []
+    try:
+        with open(path, newline="", encoding="latin1") as fh:
+            rows = list(csv.reader(fh))
+    except OSError:
+        return out
+    for row in rows:
+        if len(row) < 4:
+            continue
+        old, new, when = row[1].strip().upper(), row[2].strip().upper(), row[3].strip()
+        try:
+            first = datetime.strptime(when, "%d-%b-%Y").date()
+        except ValueError:
+            continue
+        if old and new and old != new:
+            out.append({"old_symbol": old, "new_symbol": new, "first_new_date": first.isoformat(),
+                        "last_old_date": (first - timedelta(days=1)).isoformat(), "status": "NSE_SYMBOLCHANGE_LIST"})
+    return out
+
+
+def load(path: Path = HISTORY, renames: bool = True) -> dict:
+    """The history; with `renames`, its ticker ledger extended in memory (never on disk).
+
+    The history's `symbol_changes` covers renames named in index notices. A member renamed while no
+    notice mentioned it (TATAMOTORS -> TMPV, INFOSYSTCH -> INFY, ...) is joined by NSE's own
+    symbolchange.csv and the three renames NSE lists nowhere (EXTRA_RENAMES). The history's own
+    entries come first, so they win where the two disagree.
+    """
+    history = json.loads(Path(path).read_text(encoding="utf-8"))
+    if renames:
+        ledger = history.setdefault("symbol_changes", {}).setdefault("changes", [])
+        have = {(c["old_symbol"], c["new_symbol"]) for c in ledger}
+        ledger.extend(c for c in nse_symbol_changes() + EXTRA_RENAMES
+                      if (c["old_symbol"], c["new_symbol"]) not in have)
+    return history
 
 
 def _entry(history: dict, index: str) -> dict:
@@ -110,8 +160,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("date", help="YYYY-MM-DD")
     ap.add_argument("--bhavcopy", type=Path, help="a bhavcopy CSV for that date: report members with no row")
     ap.add_argument("--history", type=Path, default=HISTORY)
+    ap.add_argument("--notice-ledger-only", action="store_true",
+                    help="join with the history's own ledger only, not NSE's symbolchange.csv")
     args = ap.parse_args(argv)
-    history = load(args.history)
+    history = load(args.history, renames=not args.notice_ledger_only)
     if args.bhavcopy:
         rep = coverage(history, args.index, args.date, read_bhavcopy_symbols(args.bhavcopy))
         if not rep["recorded"]:

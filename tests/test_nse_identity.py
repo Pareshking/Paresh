@@ -52,9 +52,13 @@ def test_records_that_disagree_are_a_conflict_and_not_applied():
 
 
 def test_every_rename_in_the_ledger_is_found_by_the_committed_records():
+    """Except those the ledger holds because no NSE record has them (KBL, ASIANHOTEL, PROVOGUE)."""
     ledger = json.loads((ROOT / "data/nse_prices/notes.json").read_text())["renames"]
     auto = ni.auto_renames()
     for old, a in ledger.items():
+        if "In no NSE symbol-change list" in a.get("evidence", ""):
+            assert old not in auto, f"{old} is now in NSE's records: drop it from notes.json"
+            continue
         assert auto.get(old, {}).get("new_symbol") == a["new_symbol"], old
 
 
@@ -100,3 +104,17 @@ def test_an_old_name_asked_for_gets_its_successors_series():
     actions = pd.DataFrame(columns=npx.ACTION_COLS)
     out, rep = npx.adjusted_close(closes, actions, ["OLD"], notes={"renames": {"OLD": {"new_symbol": "NEW"}}})
     assert rep["unpriced"] == [] and out["OLD"].notna().all()
+
+
+# ── Tata Motors and its DVR: one company, one slot (owner, 2026-10-02) ───────────────
+
+def test_a_book_holds_one_share_line_of_a_company():
+    from src.engine.backtester import _select_holdings
+
+    ranked = pd.Series(range(5, 0, -1), index=["TATAMOTORS", "TATAMTRDVR", "AAA", "BBB", "CCC"], dtype=float)
+    assert _select_holdings(ranked, [], 3, 5) == ["TATAMOTORS", "AAA", "BBB"]
+    # held DVR, ordinary shares now rank first: the better-ranked line is kept, the other not added
+    assert _select_holdings(ranked, ["TATAMTRDVR"], 3, 5) == ["TATAMTRDVR", "AAA", "BBB"]
+    # with the industry cap in force too
+    sectors = {s: "Autos" for s in ranked.index}
+    assert _select_holdings(ranked, [], 3, 5, sector_map=sectors, max_per_sector=2) == ["TATAMOTORS", "AAA"]

@@ -147,6 +147,18 @@ def _composite_z_score(
     return composite.div(available_weight.replace(0.0, np.nan))
 
 
+# Share lines of one company: a book holds at most one, so the 5% per-stock
+# cap holds for the company (owner, 2026-10-02: "Tata Motors DVR: count it"
+# -- the DVR is an index member in its own right, Nifty 50 2016-04-01 to
+# 2017-05-26, Nifty 500 and Total Market until 2024-08-29). TMPV is today's
+# ticker for Tata Motors' ordinary shares (TATAMOTORS until 2025-10-24).
+SAME_COMPANY: dict[str, str] = {
+    "TATAMTRDVR": "TATAMOTORS",
+    "TATAMOTORS": "TATAMOTORS",
+    "TMPV": "TATAMOTORS",
+}
+
+
 def _select_holdings(
     full_ranked: pd.Series,
     prev_holdings: Sequence[str],
@@ -169,6 +181,10 @@ def _select_holdings(
     and re-bought for a rank wobble. Only once it falls past the buffer, or
     fails a filter and drops out of `full_ranked` entirely, does it go.
 
+    Two share lines of one company (SAME_COMPANY: Tata Motors and its DVR)
+    take one slot: a line already held keeps it (the buffer rule, no churn),
+    otherwise the better-ranked line takes it and the other is skipped.
+
     Shared by the backtest loop and the pending-rebalance preview. Keeping one
     implementation is the point: a preview that told you to sell a name the
     backtest would have retained is worse than no preview, and a second copy of
@@ -176,14 +192,19 @@ def _select_holdings(
     """
     limit = max_per_sector if (max_per_sector and sector_map is not None) else None
     used: dict[str, int] = {}
+    companies: set[str] = set()
 
     def fits(s: str) -> bool:
-        if limit is None:
-            return True
-        g = sector_map.get(s, "Other")
-        if used.get(g, 0) >= limit:
-            return False
-        used[g] = used.get(g, 0) + 1
+        company = SAME_COMPANY.get(s)
+        if company is not None and company in companies:
+            return False          # another share line of a company already held
+        if limit is not None:
+            g = sector_map.get(s, "Other")
+            if used.get(g, 0) >= limit:
+                return False
+            used[g] = used.get(g, 0) + 1
+        if company is not None:
+            companies.add(company)
         return True
 
     incumbents = list(prev_holdings)

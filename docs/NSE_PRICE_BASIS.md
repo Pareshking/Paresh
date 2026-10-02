@@ -35,8 +35,10 @@ basis, against 7 of 20 on Yahoo's.
   included).
 - `actions.parquet`: NSE's split, bonus, consolidation and demerger rows, one per action. Each is applied
   only where the price actually moved by its factor (`src/loaders/nse_adjusted.py`).
-- `notes.json`: 21 ticker renames, each with its evidence (a series ends and its successor starts the next
-  session, returns correlate), and one correction: SHRIRAMFIN's 1:5 split, never listed by NSE.
+- `notes.json`: one correction (SHRIRAMFIN's 1:5 split, never listed by NSE) and 21 ticker renames with
+  their evidence. Since 2 Oct 2026 renames are found automatically (`src/loaders/nse_identity.py`: NSE's
+  symbol-change list and ISINs, 575 of them, these 21 included); `notes.json` entries now only override.
+  See `docs/PRICE_PIPELINE.md`.
 
 Dividends are not added back, so the strategy is price-only like the Nifty 500 price index it is compared
 with. The Yahoo corporate-actions log is not applied to NSE series (it corrects Yahoo, and would
@@ -48,14 +50,17 @@ listed in the run report. A file too short for the requested window is refused a
   (`nse/prices_daily`, `nse/corporate_actions`, stored every few hours by `nse_collect.yml`; needs the R2
   secrets). `--source nse` downloads them from NSE instead. The monthly workflow runs it before the freeze;
   if R2 is unreadable the file is kept, and the freeze refuses to record a month the file does not cover.
-  Only 2026 onward is ever needed: no deep history is downloaded.
+  (Superseded 2 Oct 2026: R2's `nse/prices_daily` now holds NSE's history from 10 Jun 2010, with
+  `nse/corporate_actions_history` for 2010 – 2026, for long backtests; `docs/PRICE_PIPELINE.md`.)
 - `--build --cache DIR` rebuilds from `scripts/fetch_nse_history.py` output. A weekend session goes in
   `notes.json` `special_sessions`.
 - The config fingerprint includes `prices: nse_as_published`; the ledger records `price_basis`.
   `data/track_record.json` was rebuilt with `--force` (logged in `rebuilds`): monthly returns moved by
   at most 0.9 points, Jan to Aug compounded +45.1%.
-- A stock that joins the index later is given its pre-join history from Yahoo, joined by level; a new
-  ticker change needs a `renames` entry.
+- A new ticker change needs nothing: NSE's symbol-change list (refreshed daily into
+  `data/reference/nse/symbolchange.csv`) and the ISIN find it, and the series are joined where they meet
+  (at most 15 days apart, within ±25%). Rights issues are adjusted by the three-source check
+  (`src/engine/reconcile.py`), not by this layer.
 
 ## Ranks by month
 `src/engine/rank_history.py` re-reads the backtester's own score (`_composite_z_score`) on each signal
