@@ -223,9 +223,14 @@ def test_nothing_is_left_unexplained_and_the_one_ticker_change_is_recorded():
         assert "TSFINV" in members_on(HISTORY, day) and "SUNDARMHLD" not in members_on(HISTORY, day)
 
 
-def test_the_list_is_750_names_on_every_date_it_changes():
+def test_total_market_tracks_temporary_listed_corporate_action_members():
     dates = [HISTORY["baseline"]["date"]] + [c["date"] for c in HISTORY["changes"]]
-    assert {len(members_on(HISTORY, d)) for d in dates} == {750, 751, 752, 754}
+    counts = {d: len(members_on(HISTORY, d)) for d in dates}
+    assert counts["2026-06-15"] == 754
+    assert counts["2026-06-19"] == 752
+    assert counts["2026-06-23"] == 751
+    assert counts["2026-06-24"] == 750
+    assert counts["2026-07-17"] == counts["2026-09-30"] == 750
 
 
 def test_the_30_sep_notice_matches_what_the_daily_sync_recorded_for_that_day():
