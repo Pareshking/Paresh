@@ -1,0 +1,29 @@
+        IISL
+        INDIA INDEX SERVICES & PRODUCTS LIMITED
+        (A joint venture of NSE & CRISIL)
+
+                                  PRESS RELEASE
+
+Futures and Options contracts have not been issued by National Stock Exchange of India
+Limited for new expiry months for IVRCL Limited.
+
+The Index Maintenance Sub-Committee has decided to make the following change in
+CNX Infrastructure Index in this regard which will become effective from May 31, 2013.
+
+The following company is being excluded:
+
+  Sr.    Company Name                                Symbol
+  No.
+   1     IVRCL Limited                               IVRCLINFRA
+
+The following company is being included:
+
+  Sr.    Company Name                                Symbol
+  No.
+   1     Jaiprakash Power Ventures Limited           JPPOWER
+
+
+Place: Mumbai
+
+Date: May 03, 2013
+

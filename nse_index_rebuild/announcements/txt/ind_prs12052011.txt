@@ -1,0 +1,49 @@
+        IISL
+        INDIA INDEX SERVICES & PRODUCTS LIMITED
+         (A joint venture of NSE & CRISIL)
+
+                                    PRESS RELEASE
+
+Securities of Essar Shipping Ports & Logistics Limited will be suspended for trading on the
+National Stock Exchange with effect from May 18, 2011 on account of the Scheme of
+Arrangement being the amalgamation of Essar Ports & Terminals Limited and Essar International
+Limited with the company and Demerger between Essar Shipping Ports & Logistics Limited
+(Demerged Company) and Essar Shipping Limited (Resulting Company).
+
+The Index Maintenance Sub-Committee has decided to make the following changes in various
+indices in this regard which will become effective from May 18, 2011:
+
+
+1) S&P CNX 500 Index
+
+The following company is being excluded:
+
+  Sr.                 Company Name                         Symbol
+  No.
+   1      Essar Shipping Ports & Logistics Limited       ESSARSHIP
+
+The following company is being included:
+
+  Sr.                 Company Name                         Symbol
+  No.
+   1     ARSS Infrastructure Projects Limited            ARSSINFRA
+
+2) CNX Smallcap Index
+
+The following company is being excluded:
+
+  Sr.                 Company Name                         Symbol
+  No.
+   1      Essar Shipping Ports & Logistics Limited       ESSARSHIP
+
+The following company is being included:
+
+  Sr.                 Company Name                         Symbol
+  No.
+   1     Tata Coffee Limited                            TATACOFFEE
+
+
+
+Place: Mumbai
+Date: May 12, 2011
+

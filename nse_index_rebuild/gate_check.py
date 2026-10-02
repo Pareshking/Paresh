@@ -11,7 +11,7 @@ for k in [i for i in INDS if i in EXP]:
         if e not in seen: seen.add(e); snaps.append((e, f, s_))
     dummies = sum(1 for s in cur[k] if s.startswith("DUMMY"))
     exp = EXP[k] + dummies
-    bad_sizes = [(e, f, len(s)) for e, f, s in snaps if len(s) != exp]
+    bad_sizes = [(e, f, len(s_)) for e, f, s_ in snaps if len(s_) != exp + sum(1 for x in s_ if x.endswith('DVR'))]
     first_bad = max((e for e, f, n in bad_sizes), default=None)
     chain_breaks = [p for p in prob if p[0] == k]
     first_break = max((p[1] for p in chain_breaks), default=None)

@@ -1,0 +1,22 @@
+       IISL
+       INDIA INDEX SERVICES & PRODUCTS LIMITED
+
+                                  PRESS RELEASE
+
+The following change in the GSEC10 NSE Index shall come into effect from October 13,
+2014.
+
+The following security is being excluded:
+
+ Sr. No.                Security                           ISIN
+    1      8.20% GOVT.STOCK 2025                      IN0020120047
+
+The following security is being included:
+
+ Sr. No.                Security                           ISIN
+    1      8.28% GOVT.STOCK 2027                      IN0020070069
+
+
+Place: Mumbai
+Date: October 1, 2014
+

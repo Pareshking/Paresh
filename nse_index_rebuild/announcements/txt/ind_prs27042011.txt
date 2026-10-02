@@ -1,0 +1,49 @@
+        IISL
+        INDIA INDEX SERVICES & PRODUCTS LIMITED
+         (A joint venture of NSE & CRISIL)
+
+                                     PRESS RELEASE
+
+Securities of Triveni Engineering & Industries Limited will be traded on an ex-entitlement
+                                                                            ex             basis
+with effect from May 3,, 2011 on account of the Scheme of Arrangement and D  Demerger between
+Triveni Engineering & Industries Limited (Demerged Company) and Triveni Turbine Limited
+(Resulting Company).
+
+The Index Maintenance Sub-Committee
+                          Sub Committee has decided to make the following changes in various
+indices in this regard which will become effective from May 3, 2011:
+
+
+1) S&P CNX 500 Index
+
+The following company is being excluded:
+
+  Sr.                  Company Name                          Symbol
+  No.
+   1      Triveni Engineering & Industries Limited          TRIVENI
+
+The following company is being included:
+
+  Sr.                  Company Name                          Symbol
+  No.
+   1      Prestige Estates Projects Limited                 PRESTIGE
+
+2) CNX Smallcap Index
+
+The following company is being excluded:
+
+  Sr.                  Company Name                          Symbol
+  No.
+   1      Triveni Engineering & Industries Limited          TRIVENI
+
+The following company is being included:
+
+  Sr.                  Company Name                          Symbol
+  No.
+   1      MOIL Limited                                        MOIL
+
+
+Place: Mumbai
+Date: April 27, 2011
+

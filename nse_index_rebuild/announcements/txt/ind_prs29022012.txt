@@ -1,0 +1,61 @@
+        IISL
+        INDIA INDEX SERVICES & PRODUCTS LIMITED
+         (A joint venture of NSE & CRISIL)
+
+                                  PRESS RELEASE
+
+Securities of UTV Software Communications Limited and Carol Info Services Limited
+will be suspended for trading on National Stock Exchange w.e.f. March 9, 2012 and
+March 12, 2012 respectively on account of voluntary delisting pursuant to SEBI
+(Delisting of Equity Shares) Regulations, 2009.
+
+The Index Maintenance Sub-Committee has decided to make the following changes in
+various indices in this regard which will become effective from March 9, 2012:
+
+1) S&P CNX 500 Index
+
+The following companies are being excluded:
+
+  Sr.                 Company Name                    Symbol
+  No.
+   1     UTV Software Communications Limited       UTVSOF
+   2     Carol Info Services Limited               CAROLINFO
+
+The following companies are being included:
+
+  Sr.                 Company Name                    Symbol
+  No.
+   1     Indiabulls Real Estate Limited            IBREALEST
+   2     L&T Finance Holdings Limited              L&TFH
+
+2) CNX Smallcap Index
+
+The following company is being excluded:
+
+  Sr.                 Company Name                    Symbol
+  No.
+   1     UTV Software Communications Limited       UTVSOF
+
+The following company is being included:
+
+  Sr.                 Company Name                    Symbol
+  No.
+   1     Dena Bank                                 DENABANK
+3) CNX Media Index
+
+The following company is being excluded:
+
+  Sr.                 Company Name               Symbol
+  No.
+   1     UTV Software Communications Limited   UTVSOF
+
+The following company is being included:
+
+  Sr.                 Company Name               Symbol
+  No.
+   1    Eros International Media Limited       EROSMEDIA
+
+
+Place: Mumbai
+Date: February 29, 2012
+

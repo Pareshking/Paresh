@@ -19,6 +19,12 @@ for o in ov:
     if o["kind"] == "ADD_EFF":
         ev.append({"published":_pub(o["file"]),"effective":o["evidence"].split("|")[1],"file":o["file"],"index":o["index"],"action":o["action"],"symbol":o["symbol"],"company":"(manual)"})
 ev = [r for r in ev if (r["file"], r["index"], r["action"], r["symbol"]) not in cancel and (r["file"], r["index"]) not in void]
+# The same (effective date, index, action, symbol) announced twice is one event: keep the later-published copy.
+_best = {}
+for r in ev:
+    k = (r["effective"], r["index"], r["action"], r["symbol"])
+    if k not in _best or (r["published"], r["file"]) > (_best[k]["published"], _best[k]["file"]): _best[k] = r
+ev = [r for r in ev if _best[(r["effective"], r["index"], r["action"], r["symbol"])] is r]
 def run(verbose=True):
     results = {}; problems = []
     for k in INDS:

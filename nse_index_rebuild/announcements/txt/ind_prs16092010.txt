@@ -1,0 +1,51 @@
+IISL
+INDIA INDEX SERVICES & PRODUCTS LIMITED
+(A joint venture of NSE & CRISIL)
+
+                                  PRESS RELEASE
+The ex-date for Pantaloon Retail (India) Limited is September 17, 2010 in connection
+with the Scheme of Arrangement for issue of Equity Shares of Future Mall Management
+Limited.
+
+The Index Maintenance Sub-Committee has decided to make the following changes in
+this regard which will become effective from September 17, 2010:
+
+S&P CNX 500 Index
+
+The following company is being excluded:
+
+ Sr. No. Company Name                           Symbol
+   1     Pantaloon Retail (India) Ltd.          PANTALOONR
+
+The following company is being included:
+
+ Sr. No. Company Name                           Symbol
+   1     Jaypee Infratech Ltd.                  JPINFRATEC
+
+CNX Midcap Index
+
+The following company is being excluded:
+
+ Sr. No. Company Name                           Symbol
+   1     Pantaloon Retail (India) Ltd.          PANTALOONR
+
+The following company is being included:
+
+ Sr. No. Company Name                           Symbol
+   1     Sun TV Network Ltd.                    SUNTV
+
+CNX FMCG Index
+
+The following company is being excluded:
+
+ Sr. No. Company Name                           Symbol
+   1     Pantaloon Retail (India) Ltd.          PANTALOONR
+
+The following company is being included:
+ Sr. No. Company Name            Symbol
+   1     United Breweries Ltd.   UBL
+
+
+Place: Mumbai
+Date: September 16, 2010
+

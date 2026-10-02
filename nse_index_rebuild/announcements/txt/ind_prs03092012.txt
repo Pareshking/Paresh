@@ -1,0 +1,48 @@
+       IISL
+       INDIA INDEX SERVICES & PRODUCTS LIMITED
+        (A joint venture of NSE & CRISIL)
+
+                                  PRESS RELEASE
+
+Futures and Options contracts have not been introduced by National Stock Exchange of
+India Limited vide its circular NSE/FAOP/21511 dated August 21, 2012 for NCC
+Limited, Shipping Corporation Of India Limited and The South Indian Bank Limited.
+
+In view of the above, the Index Maintenance Sub-Committee has decided to make the
+following changes in various indices which will become effective from September 28,
+2012.
+
+1) Nifty Midcap 50
+
+The following companies are being excluded:
+
+ Sr. No.               Company Name                       Symbol
+    1      NCC limited                                NCC
+    2      Shipping Corporation Of India Limited      SCI
+    3      The South Indian Bank Limited              SOUTHBANK
+
+Earlier, vide IISL press release dated August 16, 2012, The South Indian Bank Limited
+was proposed to be included in Nifty Midcap 50 index w.e.f. September 28, 2012.
+
+The following companies are being included:
+
+ Sr. No.               Company Name                        Symbol
+    1      Apollo Tyres Limited                       APOLLOTYRE
+    2      Bhushan Steel Limited                      BHUSANSTL
+    3      Dish TV India Limited                      DISHTV
+
+2) CNX Infrastructure Index
+
+The following company is being excluded:
+
+ Sr. No.               Company Name                         Symbol
+    1      Shipping Corporation Of India Limited      SCI
+
+The following company is being included:
+
+ Sr. No.             Company Name                         Symbol
+    1      IVRCL Limited                              IVRCLINFRA
+
+Place: Mumbai
+Date: September 3, 2012
+

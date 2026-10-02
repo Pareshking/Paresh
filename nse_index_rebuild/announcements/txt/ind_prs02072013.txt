@@ -1,0 +1,81 @@
+       IISL
+       INDIA INDEX SERVICES & PRODUCTS LIMITED
+       (A joint venture of NSE & CRISIL)
+
+                                   PRESS RELEASE
+
+
+The Index Maintenance Sub-Committee has decided to make the following changes in CNX
+Alpha, CNX High Beta & CNX Low Volatility as part of the quarterly periodic review.
+These changes shall become effective from July 08, 2013.
+
+(1)    CNX Alpha Index
+
+The following companies are being excluded:
+
+  Sr. No.   Company Name                                  Symbol
+    1       Bajaj Finserv Ltd.                            BAJAJFINSV
+    2       Divi's Laboratories Ltd.                      DIVISLAB
+    3       Federal Bank Ltd.                             FEDERALBNK
+    4       Financial Technologies (India) Ltd.           FINANTECH
+    5       Gitanjali Gems Ltd.                           GITANJALI
+    6       Jubilant Foodworks Ltd.                       JUBLFOOD
+    7       Max India Ltd.                                MAX
+    8       McLeod Russel India Ltd.                      MCLEODRUSS
+    9       Sobha Developers Ltd.                         SOBHA
+   10       Titan Industries Ltd.                         TITAN
+
+The following companies are being included:
+
+  Sr. No.   Company Name                                  Symbol
+    1       CMC Ltd.                                      CMC
+    2       Eicher Motors Ltd.                            EICHERMOT
+    3       Emami Ltd.                                    EMAMILTD
+    4       GlaxoSmithkline Consumer Healthcare Ltd.      GSKCONS
+    5       Gruh Finance Ltd.                             GRUH
+    6       Idea Cellular Ltd.                            IDEA
+    7       Mahindra & Mahindra Financial Services Ltd.   M&MFIN
+    8       Pidilite Industries Ltd.                      PIDILITIND
+    9       Reliance Communications Ltd.                  RCOM
+   10       SKS Microfinance Ltd.                         SKSMICRO
+(2)    CNX High Beta Index
+
+The following companies are being excluded:
+
+  Sr. No.   Company Name                               Symbol
+    1       Anant Raj Ltd.                             ANANTRAJ
+    2       GVK Power & Infrastructures Ltd.           GVKPIL
+    3       India Infoline Ltd.                        INDIAINFO
+    4       IVRCL Ltd.                                 IVRCLINFRA
+    5       Lanco Infratech Ltd.                       LITL
+
+The following companies are being included:
+
+  Sr. No.   Company Name                               Symbol
+    1       D B Realty Ltd.                            DBREALTY
+    2       Jaiprakash Power Ventures Ltd.             JPPOWER
+    3       Opto Circuits (I) Ltd.                     OPTOCIRCUI
+    4       SREI Infrastructure Finance Ltd.           SREINFRA
+    5       Union Bank of India                        UNIONBANK
+
+
+(3)    CNX Low Volatility Index
+
+The following companies are being excluded:
+
+  Sr. No.   Company Name                               Symbol
+    1       ABB Ltd.                                   ABB
+    2       GlaxoSmithkline Consumer Healthcare Ltd.   GSKCONS
+    3       Infosys Ltd.                               INFY
+
+The following companies are being included:
+
+  Sr. No.   Company Name                               Symbol
+    1       ING Vysya Bank Ltd.                        INGVYSYABK
+    2       Petronet LNG Ltd.                          PETRONET
+    3       S.E. Investments Ltd.                      SEINV
+
+
+Place: Mumbai
+Date: July 02, 2013
+

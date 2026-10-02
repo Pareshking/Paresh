@@ -1,0 +1,80 @@
+       IISL
+       INDIA INDEX SERVICES & PRODUCTS LIMITED
+        (A joint venture of NSE & CRISIL)
+
+                                   PRESS RELEASE
+
+Securities of Indiabulls Financial Limited will be suspended on National Stock Exchange
+with effect from March 19, 2013 on account of Scheme of Arrangement for
+amalgamation of Indiabulls Financial Services Limited (IBFSL) with Indiabulls Housing
+Finance Limited (IHFL).
+
+
+The Index Maintenance Sub-Committee has decided to make the following changes in
+various indices in this regard to be effective March 19,2013.
+
+1) CNX 500 Index
+
+The following companies are being excluded:
+
+ Sr. No.                   Company Name                           Symbol
+    1      Indiabulls Financial Services Limited             INDIABULLS
+
+The following companies are being included:
+
+ Sr. No.                  Company Name                              Symbol
+    1      PVR Limited                                       PVR
+
+2) CNX 200 Index
+
+The following company is being excluded:
+
+ Sr. No.                   Company Name                           Symbol
+    1      Indiabulls Financial Services Limited             INDIABULLS
+
+The following company is being included:
+
+ Sr. No.                  Company Name                            Symbol
+    1      Bajaj Finance Limited                             BAJFINANCE
+
+3) CNX Midcap Index
+
+The following company is being excluded:
+
+ Sr. No.                   Company Name                           Symbol
+    1      Indiabulls Financial Services Limited             INDIABULLS
+The following company is being included:
+
+ Sr. No.                 Company Name                    Symbol
+    1      IPCA Laboratories Limited                IPCALAB
+
+
+4) CNX Dividend Opportunities Index
+
+The following company is being excluded:
+
+ Sr. No.                   Company Name                  Symbol
+    1      Indiabulls Financial Services Limited    INDIABULLS
+
+The following company is being included:
+
+ Sr. No.                 Company Name                   Symbol
+    1      Mphasis Limited                          MPHASIS
+
+
+5) CNX Alpha Index
+
+The following company is being excluded:
+
+ Sr. No.                   Company Name                  Symbol
+    1      Indiabulls Financial Services Limited    INDIABULLS
+
+The following company is being included:
+
+ Sr. No.                  Company Name                   Symbol
+    1      Financial Technologies (India) Limited   FINANTECH
+
+
+Place: Mumbai
+Date: March 15, 2013
+

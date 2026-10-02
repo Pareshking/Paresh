@@ -1,0 +1,90 @@
+        IISL
+        INDIA INDEX SERVICES & PRODUCTS LIMITED
+         (A joint venture of NSE & CRISIL)
+
+                                     PRESS RELEASE
+
+Securities of Patni Computer System
+                                Systems Limited will be suspended fromom trading on
+National Stock Exchange w.e.f. May 21, 2012 on account of voluntary delisting pursuant
+to SEBI (Delisting of Equity Shares) Regulations, 2009.
+
+The Index Maintenance Sub  Sub-Committee
+                               Committee has decided to make the following changes in
+various indices in this regard which will become effective from May 21,, 2012:
+
+
+1) CNX 200 Index
+
+The following company is being excluded
+                               excluded:
+
+  Sr.
+                       Company Name                       Symbol
+  No.
+   1     Patni Computer System
+                        Systems Ltd.                  PATNI
+
+The following company is being included:
+
+  Sr.
+                       Company Name                       Symbol
+  No.
+   1     Britannia Industries Ltd.                    BRITANNIA
+
+
+2) S&P CNX 500 Index
+
+The following company is being excluded
+                               excluded:
+
+  Sr.
+                       Company Name                       Symbol
+  No.
+   1     Patni Computer System
+                        Systems Ltd..                 PATNI
+
+The following company is being included:
+
+  Sr.
+                       Company Name                       Symbol
+  No.
+   1     S.E. Investments Ltd.                        SEINV
+3) CNX Smallcap Index
+
+The following company is being excluded:
+
+  Sr.
+                      Company Name            Symbol
+  No.
+   1     Patni Computer Systems Ltd.       PATNI
+
+The following company is being included:
+
+  Sr.
+                      Company Name            Symbol
+  No.
+   1    Jet Airways (India) Ltd.           JETAIRWAYS
+
+4) CNX IT Index
+
+The following company is being excluded:
+
+  Sr.
+                      Company Name            Symbol
+  No.
+   1     Patni Computer Systems Ltd.       PATNI
+
+The following company is being included:
+
+  Sr.
+                      Company Name            Symbol
+  No.
+   1    eClerx Services Ltd.               ECLERX
+
+
+
+
+Place: Mumbai
+Date: May 16, 2012
+

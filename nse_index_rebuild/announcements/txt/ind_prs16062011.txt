@@ -1,0 +1,49 @@
+        IISL
+        INDIA INDEX SERVICES & PRODUCTS LIMITED
+         (A joint venture of NSE & CRISIL)
+
+                                    PRESS RELEASE
+
+Securities of Television Eighteen India Limited will be suspended from trading on the National
+Stock Exchange with effect from June 21, 2011 on account of the Scheme of Arrangement being
+demerger of ‘News Business Undertaking’ of Television Eighteen India Limited into IBN 18
+Broadcast Limited & merger of the demerged Television Eighteen India Limited into Network 18
+Media & Investments Limited.
+
+The Index Maintenance Sub-Committee has decided to make the following changes in various
+indices in this regard which will become effective from June 21, 2011:
+
+
+1) S&P CNX 500 Index
+
+The following company is being excluded:
+
+  Sr.                 Company Name                          Symbol
+  No.
+   1      Television Eighteen India Limited                  TV-18
+
+The following company is being included:
+
+  Sr.                 Company Name                          Symbol
+  No.
+   1     Indiabulls Real Estate Limited                  IBREALEST
+
+2) CNX Smallcap Index
+
+The following company is being excluded:
+
+  Sr.                 Company Name                          Symbol
+  No.
+   1      Television Eighteen India Limited                  TV-18
+
+The following company is being included:
+
+  Sr.                 Company Name                          Symbol
+  No.
+   1     TTK Prestige Limited                            TTKPRESTIG
+
+
+
+Place: Mumbai
+Date: June 16, 2011
+

@@ -1,0 +1,40 @@
+       IISL
+       INDIA INDEX SERVICES & PRODUCTS LIMITED
+
+                                  PRESS RELEASE
+
+The following change in the G-SEC Indices shall come into effect from June 08, 2015.
+
+   1) GSEC10 NSE Index
+
+The following security is being excluded:
+
+ Sr. No.                Security                             ISIN
+    1      8.24% GOVT.STOCK 2027                        IN0020060078
+
+The following security is being included:
+
+ Sr. No.                 Security                            ISIN
+    1      8.60% GOVT. STOCK 2028                       IN0020140011
+
+
+   2) GSECBM NSE Index
+
+The following security is being excluded:
+
+ Sr. No.                Security                             ISIN
+    1      8.40% GOVT.STOCK 2024                        IN0020140045
+
+The following security is being included:
+
+ Sr. No.                Security                             ISIN
+    1      7.72% GOVT.STOCK 2025                        IN0020150036
+
+The replacement in GSECBM NSE Index as stated above will also be applicable to NSE
+GSECBM Clean Price Index.
+
+
+
+Place: Mumbai
+Date: June 1, 2015
+

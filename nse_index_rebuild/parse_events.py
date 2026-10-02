@@ -1,9 +1,14 @@
 import re, glob, os, csv
-IDX = {"NIFTY_50": r"nifty\s*50(?:\s+index)?", "NIFTY_NEXT_50": r"nifty\s*next\s*50(?:\s+index)?",
+IDX = {"NIFTY_50": r"(?:s&p\s*)?(?:cnx\s*)?nifty(?:\s*50)?(?:\s+index)?", "NIFTY_NEXT_50": r"(?:cnx\s*)?nifty\s*(?:next\s*50|junior)(?:\s+index)?",
        "NIFTY_MIDCAP_150": r"nifty\s*midcap\s*150(?:\s+index)?", "NIFTY_SMALLCAP_250": r"nifty\s*smallcap\s*250(?:\s+index)?",
        "NIFTY_MICROCAP_250": r"nifty\s*microcap\s*250(?:\s+index)?", "NIFTY_TOTAL_MARKET": r"nifty\s*total\s*market(?:\s+index)?"}
-HEAD = re.compile(r"^\s*(?:\(?\d+[\).]|[A-Za-z][\).])?\s*(nifty[^\n]{0,60}?)\s*(?:indices|index)?\s*:?\s*$", re.I)
-ROW = re.compile(r"^\s*(\d+)\s+(.+?)\s{2,}([A-Z0-9&\-_]+)\s*$")
+HEAD = re.compile(r"^\s*(?:\(?\d+[\).]|[A-Za-z][\).])?\s*((?:s&p\s*)?(?:cnx|nifty)[^\n]{0,60}?)\s*(?:indices|index)?\s*:?\s*$", re.I)
+_ROW_STRICT = re.compile(r"^\s*(\d+)\s+(.+?)\s{2,}([A-Z0-9&\-_]+)\s*$")
+_ROW_RELAXED = re.compile(r"^\s*(\d+)\s+(.*[a-z].*?)\s+([A-Z][A-Z0-9&\-_]{1,19})\s*$")
+class _Row:
+    def match(self, line):
+        return _ROW_STRICT.match(line) or _ROW_RELAXED.match(line)
+ROW = _Row()
 MON = "January February March April May June July August September October November December".split()
 def eff(t):
     m = re.search(r"(?:effective from|with effect from|w\.e\.f\.?)\s+([A-Z][a-z]+)\s*(\d{1,2}),?\s*(\d{4})", t)
@@ -13,8 +18,21 @@ def idx_of(h):
     for k, p in IDX.items():
         if re.fullmatch(p, h): return k
     return None
+def norm_name(n):
+    n = n.lower().replace("&", " and ")
+    n = re.sub(r"\b(ltd|limited|india|the|company|co|corporation|corp|industries|enterprises|inc)\b", " ", n)
+    return re.sub(r"[^a-z0-9]+", " ", n).strip()
+NAME2SYM = {}
+for _f in sorted(glob.glob("announcements/txt/*.txt")):
+    for _l in open(_f, errors="ignore").read().split("About NSE Indices")[0].splitlines():
+        _m = ROW.match(_l)
+        if _m: NAME2SYM[norm_name(_m.group(2))] = _m.group(3)
+MANUAL_NAMES = {"sesa goa": "SESAGOA"}  # name-only 2010 tables; symbol from NSE symbol-change file (SESAGOA -> SSLT -> VEDL)
+NAME2SYM.update(MANUAL_NAMES)
+ROWN = re.compile(r"^\s*(\d+)\s+([A-Za-z].+?)\s*$")
+NOSYM_HDR = re.compile(r"Sr\.?\s*No\.?\s+(?:Company|Scrip)\s+Name\s*$", re.I)
 SEC = re.compile(r"^\s*[A-Z]\.\s+\S")
-SEARCH = {"NIFTY_50": r"nifty\s*50\b(?!\s*(?:value|equal|shariah|alpha|low|high|arbitrage|\d))", "NIFTY_NEXT_50": r"nifty\s*next\s*50\b(?!\s*equal)",
+SEARCH = {"NIFTY_50": r"(?:cnx\s*)?nifty\s*50\b(?!\s*(?:value|equal|shariah|alpha|low|high|arbitrage|\d))|s&p\s*cnx\s*nifty\s*index", "NIFTY_NEXT_50": r"nifty\s*(?:next\s*50\b(?!\s*equal)|junior)",
           "NIFTY_MIDCAP_150": r"nifty\s*midcap\s*150\b(?!\s*(?:quality|momentum))", "NIFTY_SMALLCAP_250": r"nifty\s*smallcap\s*250\b(?!\s*(?:quality|momentum))",
           "NIFTY_MICROCAP_250": r"nifty\s*microcap\s*250\b", "NIFTY_TOTAL_MARKET": r"nifty\s*total\s*market\b"}
 def idx_in_heading(t):
@@ -25,12 +43,14 @@ for f in sorted(glob.glob("announcements/txt/*.txt")):
     base = os.path.basename(f)[:-4]; raw = open(f, errors="ignore").read()
     raw = re.split(r"About NSE Indices", raw)[0]
     m = re.match(r"ind_prs(\d{2})(\d{2})(\d{4})", base); pub = f"{m.group(3)}-{m.group(2)}-{m.group(1)}"
-    if pub < "2019-01-01": continue
-    e = eff(re.sub(r"\s+", " ", raw)); cur = None; mode = None
+    if pub < "2010-01-01": continue
+    e = eff(re.sub(r"\s+", " ", raw)); cur = None; mode = None; nosym = False
     lines = [l for l in raw.splitlines() if l.strip()]
     PFX = re.compile(r"^\s*\(?[0-9A-Za-z]{1,3}[\).]\s+\S")
     for i, line in enumerate(lines):
         s = line.strip()
+        if NOSYM_HDR.search(s): nosym = True; continue
+        if re.search(r"Sr\.?\s*No\.?.*Symbol", s, re.I): nosym = False; continue
         if re.search(r"being included|are included|is included|to be included", s, re.I) and not ROW.match(line): mode = "IN"; continue
         if re.search(r"being excluded|are excluded|is excluded|to be excluded", s, re.I) and not ROW.match(line): mode = "OUT"; continue
         h = HEAD.match(line)
@@ -48,6 +68,10 @@ for f in sorted(glob.glob("announcements/txt/*.txt")):
         r = ROW.match(line)
         if r and cur and mode:
             out.append([pub, e, base, cur, mode, r.group(3), r.group(2).strip()])
+        elif nosym and cur and mode:
+            rn = ROWN.match(line)
+            if rn and not re.search(r"page|iisl", rn.group(2), re.I):
+                nm = rn.group(2).strip(); out.append([pub, e, base, cur, mode, NAME2SYM.get(norm_name(nm), "UNMAPPED:" + nm), nm])
 with open("events_raw.csv", "w", newline="") as o:
     w = csv.writer(o); w.writerow(["published","effective","file","index","action","symbol","company"]); w.writerows(out)
 from collections import Counter

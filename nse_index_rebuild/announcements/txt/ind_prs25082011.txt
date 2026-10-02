@@ -1,0 +1,240 @@
+       IISL
+       INDIA INDEX SERVICES & PRODUCTS LIMITED
+       (A joint venture of NSE & CRISIL)
+
+                                    PRESS RELEASE
+The Index Maintenance Sub-Committee has decided to make the following changes in
+various indices during its periodic review. These changes shall become effective from
+October 10, 2011.
+
+(1)    S&P CNX Nifty Index
+
+The following company is being excluded:
+
+  Sr. No. Company Name                               Symbol
+    1     Reliance Capital Ltd.                      RELCAPITAL
+
+The following company is being included:
+
+  Sr. No. Company Name                               Symbol
+    1     Coal India Ltd.                            COALINDIA
+
+(2)    CNX Nifty Junior Index
+
+The following companies are being excluded:
+
+  Sr. No.   Company Name                              Symbol
+    1       Coal India Ltd.                           COALINDIA
+    2       Patni Computer Systems Ltd.               PATNI
+    3       Punj Lloyd Ltd.                           PUNJLLOYD
+    4       Syndicate Bank                            SYNDIBANK
+
+The following companies are being included:
+
+  Sr. No.   Company Name                             Symbol
+     1      Bosch Ltd.                               BOSCHLTD
+     2      Dabur India Ltd.                         DABUR
+     3      Idea Cellular Ltd.                       IDEA
+     4      Reliance Capital Ltd.                    RELCAPITAL
+
+(3)    CNX 100 Index
+
+The following companies are being excluded:
+
+  Sr. No.   Company Name                              Symbol
+    1       Patni Computer Systems Ltd.               PATNI
+    2       Punj Lloyd Ltd.                           PUNJLLOYD
+    3       Syndicate Bank                            SYNDIBANK
+The following companies are being included:
+
+  Sr. No.   Company Name                                Symbol
+     1      Bosch Ltd.                                  BOSCHLTD
+     2      Dabur India Ltd.                            DABUR
+     3      Idea Cellular Ltd.                          IDEA
+
+(4)    S&P CNX 500 Index
+
+The following companies are being excluded:
+
+ Sr. No.    Company Name                                Symbol
+   1        Ador Welding Ltd.                           ADORWELD
+   2        Aftek Ltd.                                  AFTEK
+   3        Aksh Optifibre Ltd.                         AKSHOPTFBR
+   4        Andhra Sugars Ltd.                          ANDHRSUGAR
+   5        B L Kashyap & Sons Ltd.                     BLKASHYAP
+   6        Cosmo Films Ltd.                            COSMOFILMS
+   7        D. S. Kulkarni Developers Ltd.              DSKULKARNI
+   8        Everest Industries Ltd.                     EVERESTIND
+   9        Heritage Foods (India) Ltd.                 HERITGFOOD
+  10        Hikal Ltd.                                  HIKAL
+  11        Koutons Retail India Ltd.                   KOUTONS
+  12        NRB Bearings Ltd.                           NRBBEARING
+  13        PNB Gilts Ltd.                              PNBGILTS
+  14        Pricol Ltd.                                 PRICOL
+  15        Rico Auto Industries Ltd.                   RICOAUTO
+  16        Sakthi Sugars Ltd.                          SAKHTISUG
+  17        SEAMEC Ltd.                                 SEAMECLTD
+  18        Tamilnadu Petroproducts Ltd.                TNPETRO
+  19        Tourism Finance Corporation of India Ltd.   TFCILTD
+  20        Trident Ltd.                                TRIDENT
+
+The following companies are being included:
+
+  Sr. No.   Company Name                                Symbol
+    1       AIA Engineering Ltd.                        AIAENG
+    2       BF Utilities Ltd.                           BFUTILITIE
+    3       Central Bank of India                       CENTRALBK
+    4       Development Credit Bank Ltd.                DCB
+    5       Dewan Housing Finance Corporation Ltd.      DEWANHOUS
+    6       Dhanlaxmi Bank Ltd.                         DHANBANK
+    7       eClerx Services Ltd.                        ECLERX
+    8       Gujarat Pipavav Port Ltd.                   GPPL
+    9       Himachal Futuristic Communications Ltd.     HFCL
+   10       Indiabulls Power Ltd.                       IBPOW
+   11       Indian Bank                                 INDIANB
+   12       Jubilant Life Sciences Ltd.                 JUBILANT
+  Sr. No.   Company Name                              Symbol
+   13       KSK Energy Ventures Ltd.                  KSK
+   14       Network18 Media & Investments Ltd.        NETWORK18
+   15       Page Industries Ltd.                      PAGEIND
+   16       Persistent Systems Ltd.                   PERSISTENT
+   17       SKS Microfinance Ltd.                     SKSMICRO
+   18       State Bank of Bikaner & Jaipur Ltd.       SBBJ
+   19       State Bank of Travancore                  SBT
+   20       Sujana Towers Ltd.                        SUJANATOW
+
+(5)    CNX Midcap Index
+
+The following companies are being excluded:
+
+  Sr. No.   Company Name                              Symbol
+    1       Ackruti City Ltd.                         ACKRUTI
+    2       Anant Raj Industries Ltd.                 ANANTRAJ
+    3       Bank of Maharashtra                       MAHABANK
+    4       Deccan Chronicle Holdings Ltd.            DCHL
+    5       Gillette India Ltd.                       GILLETTE
+    6       Jet Airways (India) Ltd.                  JETAIRWAYS
+    7       KSK Energy Ventures Ltd.                  KSK
+    8       Lupin Ltd.                                LUPIN
+    9       Patni Computer Systems Ltd.               PATNI
+
+The following companies are being included:
+
+  Sr. No.   Company Name                              Symbol
+    1       Bharat Electronics Ltd.                   BEL
+    2       Castrol (India) Ltd.                      CASTROL
+    3       GMR Infrastructure Ltd.                   GMRINFRA
+    4       Hindustan Zinc Ltd.                       HINDZINC
+    5       Indiabulls Financial Services Ltd.        INDIABULLS
+    6       Indiabulls Real Estate Ltd.               IBREALEST
+    7       NHPC Ltd.                                 NHPC
+    8       Oracle Financial Services Software Ltd.   OFSS
+    9       Voltas Ltd.                               VOLTAS
+
+(6)    CNX FMCG Index
+
+The following company is being excluded:
+
+  Sr. No. Company Name                                Symbol
+    1     Procter & Gamble Hygiene & Health Care      PGHH
+          Ltd.
+The following company is being included:
+
+ Sr. No. Company Name                         Symbol
+    1    McLeod Russel India Ltd.             MCLEODRUSS
+
+(7)    CNX Infrastructure Index
+
+The following companies are being excluded:
+
+  Sr. No.   Company Name                      Symbol
+    1       DLF Ltd.                          DLF
+    2       Indian Hotels Co. Ltd.            INDHOTEL
+    3       Unitech Ltd.                      UNITECH
+
+The following companies are being included:
+
+ Sr. No.    Company Name                      Symbol
+    1       Adani Power Ltd.                  ADANIPOWER
+    2       NHPC Ltd.                         NHPC
+    3       Voltas Ltd.                       VOLTAS
+
+(8)    CNX IT Index
+
+The following company is being excluded:
+
+  Sr. No. Company Name                        Symbol
+    1     3i Infotech Ltd.                    3IINFOTECH
+
+The following company is being included:
+
+  Sr. No. Company Name                        Symbol
+     1    Hexaware Technologies Ltd.          HEXAWARE
+
+(9)    CNX PSE Index
+
+The following company is being excluded:
+
+  Sr. No. Company Name                        Symbol
+    1     BEML Ltd.                           BEML
+
+The following company is being included:
+
+  Sr. No. Company Name                        Symbol
+     1    Coal India Ltd.                     COALINDIA
+(10)   CNX Realty Index
+
+The following company is being excluded:
+
+ Sr. No. Company Name                         Symbol
+   1     Orbit Corporation Ltd.               ORBITCORP
+
+The following company is being included:
+
+ Sr. No. Company Name                         Symbol
+    1    Indiabulls Real Estate Ltd.          IBREALEST
+
+(11)   CNX Bank Index
+
+The following company is being excluded:
+
+ Sr. No. Company Name                         Symbol
+   1     Oriental Bank of Commerce            ORIENTBANK
+
+The following company is being included:
+
+ Sr. No. Company Name                         Symbol
+    1    IndusInd Bank Ltd.                   INDUSINDBK
+
+(12)   CNX MNC Index
+
+The following companies are being excluded:
+
+ Sr. No. Company Name                         Symbol
+   1     Castrol (India) Ltd.                 CASTROL
+   2     KSK Energy Ventures Ltd.             KSK
+
+The following companies are being included:
+
+ Sr. No. Company Name                         Symbol
+    1    Ambuja Cements Ltd.                  AMBUJACEM
+    2    Sterlite Industries (India) Ltd.     STER
+
+(13)   Nifty Midcap 50 Index
+
+The following companies are being excluded:
+
+ Sr. No. Company Name                         Symbol
+   1     Lupin Ltd.                           LUPIN
+   2     Moser Baer India Ltd.                MOSERBAER
+The following companies are being included:
+
+ Sr. No. Company Name                         Symbol
+    1    Jain Irrigation Systems Ltd.         JISLJALEQS
+    2    Unitech Ltd.                         UNITECH
+
+
+
+Place: Mumbai
+Date: August 25, 2011
+

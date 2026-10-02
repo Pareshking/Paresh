@@ -1,0 +1,64 @@
+        IISL
+        INDIA INDEX SERVICES & PRODUCTS LIMITED
+         (A joint venture of NSE & CRISIL)
+
+                                   PRESS RELEASE
+
+Securities of Areva T&D India Limited will be traded on an ex-entitlement basis with
+effect from December 14, 2011 on account of Scheme of Arrangement involving the
+demerger of the Distribution Undertaking of Areva T&D India Limited into Smartgrid
+Automation Distribution and Switchgear Limited.
+
+The Index Maintenance Sub-Committee has decided to make the following changes in
+various indices in this regard which will become effective from December 14, 2011:
+
+
+1) CNX 200 Index
+
+The following company is being excluded:
+
+  Sr.              Company Name                      Symbol
+  No.
+   1     Areva T&D India Limited                   AREVAT&D
+
+The following company is being included:
+
+  Sr.              Company Name                      Symbol
+  No.
+   1     Glaxo Smithkline Consumer                  GSKCONS
+         Healthcare Limited
+
+
+2) S&P CNX 500 Index
+
+The following company is being excluded:
+
+  Sr.              Company Name                      Symbol
+  No.
+   1     Areva T&D India Limited                   AREVAT&D
+
+The following company is being included:
+
+  Sr.              Company Name                      Symbol
+  No.
+   1     MVL Limited                                  MVL
+3) CNX Midcap Index
+
+The following company is being excluded:
+
+  Sr.              Company Name              Symbol
+  No.
+   1     Areva T&D India Limited           AREVAT&D
+
+The following company is being included:
+
+  Sr.              Company Name              Symbol
+  No.
+   1    Jain Irrigation Systems Limited    JISLJALEQS
+
+
+
+
+Place: Mumbai
+Date: December 12, 2011
+

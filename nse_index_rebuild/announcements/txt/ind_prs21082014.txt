@@ -1,0 +1,22 @@
+       IISL
+       INDIA INDEX SERVICES & PRODUCTS LIMITED
+
+                                  PRESS RELEASE
+
+The following change in the GSECBM NSE Index shall come into effect from August
+28, 2014.
+
+The following security is being excluded:
+
+ Sr. No.                   Security                    ISIN
+    1      8.83% – Govt. Security 2023            IN0020130061
+
+The following security is being included:
+
+ Sr. No.                   Security                     ISIN
+    1      8.40% -Govt. Security 2024              IN0020140045
+
+
+Place: Mumbai
+Date: August 21, 2014
+

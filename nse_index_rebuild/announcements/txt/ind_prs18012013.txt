@@ -1,0 +1,46 @@
+        IISL
+        INDIA INDEX SERVICES & PRODUCTS LIMITED
+         (A joint venture of NSE & CRISIL)
+
+                                  PRESS RELEASE
+
+Securities of Deccan Chronicle Holdings Limited will be suspended for trading on
+National Stock Exchange w.e.f. January 23, 2013 on account of non-compliance with
+provisions of Listing Agreement.
+
+The Index Maintenance Sub-Committee has decided to make the following changes in
+this regard in S&P CNX 500 and CNX Media index which will become effective from
+January 23, 2013:
+
+
+1) S&P CNX 500 Index
+
+The following company is being excluded:
+
+  Sr.                    Company Name                  Symbol
+  No.
+   1     Deccan Chronicle Holdings Limited         DCHL
+
+The following company is being included:
+
+  Sr.                    Company Name                  Symbol
+  No.
+   1     MOIL Ltd.                                 MOIL
+
+2) CNX Media Index
+
+The following company is being excluded:
+
+  Sr.                    Company Name                  Symbol
+  No.
+   1     Deccan Chronicle Holdings Limited         DCHL
+
+The following company is being included:
+
+  Sr.                    Company Name                  Symbol
+  No.
+   1     Hinduja Ventures Ltd.                     HINDUJAVEN
+
+Place: Mumbai
+Date: January 18, 2013
+

@@ -1,0 +1,95 @@
+       IISL
+       INDIA INDEX SERVICES & PRODUCTS LIMITED
+        (A joint venture of NSE & CRISIL)
+
+                                   PRESS RELEASE
+
+Securities of Future Retail Limited, formerly known as Pantaloon Retail (India) Limited
+will be traded on an ex-entitlement basis on National Stock Exchange with effect from
+April 17, 2013 on account of Scheme of Arrangement between Pantaloon Retail (India)
+Limited (Demerged Company) and Peter England Fashions and Retail Limited
+(Resulting Company).
+
+The Index Maintenance Sub-Committee has decided to make the following changes in
+various indices in this regard which will become effective from April 17, 2013.
+
+(1)    CNX 200 Index
+
+The following company is being excluded:
+
+  Sr. No. Company Name                                    Symbol
+    1     Future Retail Ltd.                              FRL
+
+The following company is being included:
+
+  Sr. No. Company Name                                    Symbol
+    1     Container Corporation of India Ltd.             CONCOR
+
+
+(2)    CNX 500 Index
+
+The following company is being excluded:
+
+  Sr. No. Company Name                                    Symbol
+    1     Future Retail Ltd.                              FRL
+
+The following company is being included:
+
+  Sr. No. Company Name                                    Symbol
+    1     Geodesic Ltd.                                   GEODESIC
+
+
+(3)    CNX Midcap Index
+
+The following company is being excluded:
+
+  Sr. No. Company Name                                    Symbol
+    1     Future Retail Ltd.                              FRL
+The following company is being included:
+
+  Sr. No. Company Name                     Symbol
+    1     Siemens Ltd.                     SIEMENS
+
+
+(4)    Nifty Midcap 50 Index
+
+The following company is being excluded:
+
+  Sr. No. Company Name                     Symbol
+    1     Future Retail Ltd.               FRL
+
+The following company is being included:
+
+  Sr. No. Company Name                     Symbol
+    1     JSW Energy Ltd.                  JSWENERGY
+
+
+(5)    CNX Consumption Index
+
+The following company is being excluded:
+
+  Sr. No. Company Name                     Symbol
+    1     Future Retail Ltd.               FRL
+
+The following company is being included:
+
+  Sr. No. Company Name                     Symbol
+    1     Trent Ltd.                       TRENT
+
+
+(6)    CNX High Beta Index
+
+The following company is being excluded:
+
+  Sr. No. Company Name                     Symbol
+    1     Future Retail Ltd.               FRL
+
+The following company is being included:
+
+  Sr. No. Company Name                     Symbol
+    1     Oriental Bank of Commerce        ORIENTBANK
+
+
+Place: Mumbai
+Date: April 11, 2013
+

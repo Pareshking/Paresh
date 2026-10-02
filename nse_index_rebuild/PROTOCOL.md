@@ -41,14 +41,16 @@ A date range is `PRODUCTION` only if G1 to G8 all pass. A range with open items 
 
 | Index | Snapshots reconstructed | Sizes wrong | Open chain breaks | Latest break |
 |---|---|---|---|---|
-| Nifty 50 | 14 | 0 | 0 | none |
-| Nifty Next 50 | 21 | 0 | 0 | none |
-| Nifty Midcap 150 | 23 | 0 | 0 | none |
-| Nifty Smallcap 250 | 44 | 0 | 0 | none |
+| Nifty 50 | 33 | 0 | 0 | none |
+| Nifty Next 50 | 47 | 0 | 0 | none |
+| Nifty Midcap 150 | 37 | 0 | 0 | none |
+| Nifty Smallcap 250 | 59 | 0 | 0 | none |
 | Nifty Microcap 250 | 32 | 0 | 0 | none |
 
-- G3 (chain closure) now holds for all five indices over their whole reconstructed range: Nifty 50, Next 50, Midcap 150 and Smallcap 250 back to 2019, and Microcap 250 back to its September 2021 start. The gate script (`reverse2.py`) exits 0, with zero unresolved events, also for Nifty Total Market.
+- G3 (chain closure) holds for every index over its whole reconstructed range, and the gate script (`reverse2.py`) exits 0 with zero unresolved events: Nifty 50 and Next 50 from 2010-04-08, Smallcap 250 from 2016-04-29, Midcap 150 from 2016-09-30 and Microcap 250 from 2021-09-30 (its launch). Midcap 150 and Smallcap 250 only came into existence on 2016-04-01 (NSE restructuring notice of 2016-02-22), so nothing earlier is reconstructed for them. For all five, the earliest snapshot is the state implied before the first parsed event; the announcement archive downloaded here starts in January 2010, so membership before that is not claimed.
+- Nifty 50 correctly holds 51 securities from 2016-04-01 to 2017-05-26 because Tata Motors DVR was an additional security (stated in the 2016-02-22 notice); the size check allows for DVR shares.
 - G2 (traceability): 46 of the 47 symbol changes in `rules/aliases.csv` are confirmed by NSE documents: 36 by NSE's "Changes in Symbols" file (`reference/nse_symbolchange.csv`, hashed and dated), 10 by individual NSE circulars (one read from a broker-hosted copy, one via an NSE Clearing circular). The remaining one, PEL to PIRAMALFIN, is a merger successor and is `INFERRED_MERGER_SUCCESSOR`, so it still fails G2 for production use. Ranges that involve it are `RESEARCH_ONLY`.
 - Known ambiguity: Smallcap 250 membership of GAYAPROJ and FLUOROCHEM between 2020-03-27 and 2020-06-25 is unresolved (`rules/ambiguities.csv`); ranges overlapping that window are not production-grade.
 - Eight announcements were image-only and were read by OCR (`ocr_pdf.py`; 344 of 345 symbols matched on a text-layer control). One line (the effective date of `ind_prs23082021`) was transcribed by hand. OCR output has not been blind-reviewed (G7).
+- Known source limits: 10 announcement links on the NSE Indices site return the website shell instead of a PDF (`announcements/dead_links.txt`); none is known to affect these indices, but absence of a notice cannot be proven. Releases before 2012 list companies without symbols, so symbols were resolved by company name from later releases (`parse_events.py`, one manual mapping for Sesa Goa). The same change announced in two releases for one effective date is counted once (the later-published copy), which is an assumption the gate cannot independently test.
 - G4, G5, G7 and G8 have not been done, so nothing is `PRODUCTION` yet. Chain closure shows the announcements are internally consistent and agree with today's NSE lists; it does not prove each announcement was complete.

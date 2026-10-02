@@ -1,0 +1,52 @@
+        IISL
+        INDIA INDEX SERVICES & PRODUCTS LIMITED
+        (A joint venture of NSE & CRISIL)
+
+
+                                      PRESS RELEASE
+
+                          LAUNCH OF CNX SMALLCAP INDEX
+
+In continuation of its efforts to develop indices that meet the requirements of market
+participants, IISL proposes to launch “CNX Smallcap Index”.
+
+The CNX Smallcap Index is designed to reflect the behaviour and performance of the small
+capitalised segment of the financial market.
+
+Methodology:
+
+The index is calculated using free float market capitalisation methodology with a base date of
+January 1, 2004 indexed to a base value of 1000.
+
+Selection Criteria:
+
+The criteria for the CNX Smallcap Index include the following:
+
+a) All the companies that are listed on NSE, which individually constitute more than 5%
+   free-float market capitalization of the universe, shall be excluded in order to reduce the
+   skewness in the weightage of the companies in the universe.
+b) After step (a), the weightage of the remaining companies in the universe will be
+   determined again.
+c) After step (b), the cumulative weightage will be calculated.
+d) After step (c), companies which form part of the cumulative percentage in ascending
+   order upto the first 90 percent (i.e. up to 89.99 percent) of the revised universe shall be
+   excluded.
+e) After step (d), companies within the range of 90th to 95th percentile shall be ranked in the
+   descending order of aggregate turnover for the last six months.
+f) After step (e), the top 100 companies shall constitute the CNX Smallcap Index subject to
+   fulfilment of the following additional criteria:
+      i)    The company must have a 3 years’ track record of operations with positive net
+            worth.
+      ii)   Companies must have demonstrated a trading frequency of at least 90 % in the
+            last six months.
+     iii)   All constituents of the CNX Smallcap Index must have a minimum listing
+            record of 6 months.
+g) The review will be carried out on a semi-annual basis.
+
+The index will be maintained by IISL and will be launched with effect from March 30, 2011.
+
+
+Place: Mumbai
+
+Date: March 29, 2011
+
