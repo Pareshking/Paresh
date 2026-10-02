@@ -3,6 +3,7 @@
     python scripts/sync_ss.py                       # page 1 (1,000 sessions) for everyone
     python scripts/sync_ss.py --symbols RELIANCE TCS --full
     python scripts/sync_ss.py --limit 20 --dry-run  # fetch and check, write nothing
+    python scripts/sync_ss.py --stale-hours 12 --limit 40   # nightly: the next 40 not yet updated
 
 The universe is every symbol the app has ever needed: the Nifty Total Market
 list, the Nano Cap list, every name the point-in-time membership record ever
@@ -126,6 +127,9 @@ def main(argv=None) -> int:
     ap.add_argument("--limit", type=int, default=None, help="first N symbols only")
     ap.add_argument("--skip-done", action="store_true",
                     help="skip symbols this store already holds (resume a first batch)")
+    ap.add_argument("--stale-hours", type=float, default=None,
+                    help="only symbols last fetched more than this many hours ago "
+                         "(the nightly update: each round moves on through the universe)")
     ap.add_argument("--delay", type=float, default=ss.DELAY_S)
     ap.add_argument("--checkpoint", type=int, default=100)
     ap.add_argument("--report", type=int, default=10, help="progress line every N symbols")
@@ -140,6 +144,10 @@ def main(argv=None) -> int:
     if args.skip_done:
         dead = {s for s, why in manifest.get("failed", {}).items() if "no prices" in str(why)}
         symbols = [s for s in symbols if s not in manifest["symbols"] and s not in dead]
+    if args.stale_hours is not None:
+        dead = {s for s, why in manifest.get("failed", {}).items() if "no prices" in str(why)}
+        symbols = [s for s in symbols if s not in dead
+                   and not fetched_within(manifest["symbols"].get(s), args.stale_hours)]
     if args.limit:
         symbols = symbols[: args.limit]
     print(f"SS: {len(symbols)} symbols, {'full history' if args.full else f'{args.pages} page(s)'} "
@@ -234,6 +242,16 @@ def main(argv=None) -> int:
     for symbol, why in sorted(failed.items()):
         print(f"  FAILED {symbol}: {why}")
     return 0 if fetched or not symbols else 1
+
+
+def fetched_within(entry: dict | None, hours: float, now: datetime | None = None) -> bool:
+    """True when a manifest entry was fetched less than `hours` ago."""
+    try:
+        at = datetime.fromisoformat(str((entry or {})["fetched_at"]))
+    except (KeyError, ValueError):
+        return False
+    now = now or datetime.now(timezone.utc)
+    return (now - at).total_seconds() < hours * 3600
 
 
 def _flush(store: pd.DataFrame, pending: list) -> pd.DataFrame:

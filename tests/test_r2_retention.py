@@ -77,7 +77,7 @@ def test_plan_drops_only_the_retained_datasets_and_only_unkept_dates():
     assert set(yahoo.drop) == dropped
     # pointer + manifest + payload per dropped date
     assert len(yahoo.delete_keys) == 3 * len(dropped)
-    assert set(plans) == {"prices/screener", "snapshots/application", "prices/yahoo/bootstrap",
+    assert set(plans) == {"prices/screener", "prices/ss", "snapshots/application", "prices/yahoo/bootstrap",
                           "prices/yahoo", "prices/yahoo/raw", "app/prices_snapshot",
                           "app/prices_extra"}
     # Every Yahoo dataset goes whole, each key planned once.

@@ -266,3 +266,33 @@ def test_a_file_that_cannot_be_parsed_is_skipped_not_fatal(tmp_path, monkeypatch
     stats = nc.collect(days, fetch=lambda d: BUNDLE, publish=lambda *a, **k: None,
                        workdir=tmp_path, sleep=lambda s: None, log=lambda *_: None)
     assert stats["failed"] == [days[0]] and stats["published"] == [days[1]]
+
+
+# ── Backfill back to 2010 without the Yahoo calendar ─────────────────────────
+
+def test_weekdays_is_the_calendar_when_none_is_given():
+    assert nc.weekdays(date(2010, 1, 1), date(2010, 1, 6)) == [
+        date(2010, 1, 1), date(2010, 1, 4), date(2010, 1, 5), date(2010, 1, 6)]
+
+
+def test_an_old_day_without_a_bundle_is_remembered_as_closed(tmp_path):
+    sent = []
+    stats = nc.collect([date(2010, 1, 26), date(2026, 9, 30)], fetch=lambda d: None,
+                       publish=lambda path, **k: sent.append(k["dataset"]), workdir=tmp_path,
+                       sleep=lambda s: None, today=date(2026, 10, 1))
+    assert stats["closed"] == [date(2010, 1, 26)]          # Republic Day; yesterday may be late
+    assert sent == ["nse/closed_days"]
+
+
+def test_the_run_stops_starting_days_when_its_time_is_spent(tmp_path):
+    ticks = iter([0, 10, 101])
+    stats = nc.collect([date(2010, 1, 4), date(2010, 1, 5), date(2010, 1, 6)],
+                       fetch=lambda d: None, publish=lambda *a, **k: None, workdir=tmp_path,
+                       sleep=lambda s: None, deadline=100, clock=lambda: next(ticks))
+    assert stats["out_of_time"] and len(stats["absent"]) == 2
+
+
+def test_known_closed_days_are_not_asked_again():
+    cal = nc.weekdays(date(2010, 1, 25), date(2010, 1, 27))
+    assert nc.backfill_dates(cal, {date(2010, 1, 26)}, 10, start=date(2010, 1, 1)) == [
+        date(2010, 1, 27), date(2010, 1, 25)]

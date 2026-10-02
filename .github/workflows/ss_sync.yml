@@ -1,21 +1,38 @@
 name: SS price sync (gentle)
 
-# Downloads the SS store a few symbols at a time, well under the site's
-# rate limit (site owner, 2026-10-02: "do not hammer my site by downloading
-# entire universe in one go, give some breathing to my website").
-# Resumable: each run continues where the last one stopped. Runs nightly
-# until everything is downloaded, then each run finds nothing to do.
+# The nightly price update (owner, 2026-10-02: start at 10:02 PM IST).
+#
+#   1. SS, gently: the latest page (1,000 sessions) for each stock, 40 stocks a
+#      round, 4 s apart, a 5-minute rest between rounds (site owner: "do not
+#      hammer my site by downloading entire universe in one go, give some
+#      breathing to my website"). A stock whose history SS restated, or that
+#      jumped past the limit, re-downloads whole (sync_ss.py). About four hours
+#      for the whole universe; each round takes the next 40 not yet updated
+#      tonight, so a stopped run loses nothing.
+#   2. Saved to the data-latest release (the store the next run resumes from)
+#      and published to R2 as prices/ss (r2_retention.py keeps 7 + month-ends).
+#   3. The three-source check (scripts/reconcile_report.py): SS, Screener and
+#      NSE, NSE as judge, rights issues adjusted automatically. The report is
+#      this run's summary and is saved to the release. It never changes a price.
+#
+# mode=backfill (manual) fetches only stocks the store has never held.
 on:
   schedule:
-    - cron: "17 21 * * *"   # 02:47 IST, when the site is quietest
+    - cron: "32 16 * * 1-5"   # 22:02 IST, Monday to Friday
   workflow_dispatch:
     inputs:
+      mode:
+        description: "daily (update every stock) or backfill (only stocks never stored)"
+        default: "daily"
       rounds:
         description: "Rounds this run (5-minute rest between rounds)"
-        default: "5"
+        default: "35"
       per_round:
-        description: "Symbols per round"
+        description: "Stocks per round"
         default: "40"
+      report_days:
+        description: "Days the three-source check covers"
+        default: "45"
 
 permissions:
   contents: write
@@ -27,12 +44,14 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 330
+    timeout-minutes: 340
     env:
       PYTHONPATH: .
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      ROUNDS: ${{ inputs.rounds || '5' }}
+      MODE: ${{ inputs.mode || 'daily' }}
+      ROUNDS: ${{ inputs.rounds || '35' }}
       PER_ROUND: ${{ inputs.per_round || '40' }}
+      REPORT_DAYS: ${{ inputs.report_days || '45' }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -54,11 +73,18 @@ jobs:
           SS_BASE_URL: ${{ secrets.SS_BASE_URL }}
         run: |
           set -o pipefail
+          round() {
+            if [ "$MODE" = "backfill" ]; then
+              python scripts/sync_ss.py --skip-done --delay 4 --limit "$PER_ROUND"
+            else
+              python scripts/sync_ss.py --stale-hours 12 --delay 4 --limit "$PER_ROUND"
+            fi
+          }
           for i in $(seq 1 "$ROUNDS"); do
-            echo "=== Round $i ==="
-            python scripts/sync_ss.py --skip-done --delay 4 --limit "$PER_ROUND" | tee round.log \
+            echo "=== Round $i ($MODE) ==="
+            round | tee round.log \
               || { echo "Stopped (refused or nothing fetched); saving progress."; break; }
-            if grep -q "^SS: 0 symbols" round.log; then echo "Everything is downloaded."; break; fi
+            if grep -q "^SS: 0 symbols" round.log; then echo "Every stock is up to date."; break; fi
             if [ "$i" -lt "$ROUNDS" ]; then sleep 300; fi
           done
           echo "Done."
@@ -72,3 +98,56 @@ jobs:
           cp manifest.json ss_manifest.json
           gh release upload data-latest ss_prices_*.parquet ss_manifest.json --repo "$GITHUB_REPOSITORY" --clobber
           python -c "import json; m=json.load(open('manifest.json')); print('SYMBOLS SAVED:', len(m['symbols']), '| FAILED:', len(m['failed']), '| ROWS:', m.get('rows'))"
+
+      - name: Publish to R2
+        if: always()
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          set -euo pipefail
+          [ -f data_cache/ss/manifest.json ] || { echo "Nothing to publish."; exit 0; }
+          python -c "from pathlib import Path; from src.loaders import ss_prices as s; \
+          f = s.read_store(Path('data_cache/ss')); f.to_parquet('ss_prices.parquet', index=False, compression='zstd'); \
+          print('SS store for R2:', len(f), 'rows,', f['symbol'].nunique(), 'stocks')"
+          python scripts/r2_publish.py \
+            --path ss_prices.parquet \
+            --dataset prices/ss \
+            --source ss \
+            --key-root archive/prices/ss \
+            --pipeline-version "ss-nightly-${GITHUB_SHA}" \
+            --release-tag data-latest
+
+      - name: Three-source check (SS, Screener, NSE as judge)
+        if: always()
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          set -euo pipefail
+          [ -f data_cache/ss/manifest.json ] || { echo "No SS store to check."; exit 0; }
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/data-latest"
+          curl -sSfL -o screener_prices.parquet "$base/screener_prices.parquet"
+          START=$(date -u -d "$REPORT_DAYS days ago" +%F)
+          python scripts/reconcile_report.py --ss data_cache/ss --screener screener_prices.parquet \
+            --start "$START" --out reports/reconcile
+          cat reports/reconcile/report.md >> "$GITHUB_STEP_SUMMARY"
+          cd reports/reconcile
+          for f in report.md summary.json rights.csv votes.csv drifts.csv filled.csv; do
+            cp "$f" "reconcile_$f"
+          done
+          gh release upload data-latest reconcile_* --repo "$GITHUB_REPOSITORY" --clobber
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: reconcile-report
+          path: reports/reconcile/
+          if-no-files-found: ignore
+          retention-days: 30
