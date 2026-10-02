@@ -8469,6 +8469,7 @@
           "MCLEODRUSS",
           "MERCATOR",
           "MFSL",
+          "MICRO",
           "MID-DAY",
           "MINDTREE",
           "MIRZAINT",
@@ -8644,12 +8645,11 @@
           "UNITDSPR",
           "UNITECH",
           "UNITY",
-          "UNMAPPED:Micro Inks Limited",
-          "UNMAPPED:Vishal Retail Ltd.",
           "UPL",
           "USHAMART",
           "UTTAMSTL",
           "UTVSOF",
+          "V2RETAIL",
           "VARUNSHIP",
           "VEDL",
           "VENKEYS",
@@ -8700,7 +8700,7 @@
             "NHPC"
           ],
           "removed": [
-            "UNMAPPED:Micro Inks Limited"
+            "MICRO"
           ],
           "notice": "ind_prs05042010.pdf"
         },
@@ -8876,7 +8876,7 @@
             "PVP",
             "RAMCOSYS",
             "SAREGAMA",
-            "UNMAPPED:Vishal Retail Ltd."
+            "V2RETAIL"
           ],
           "notice": "ind_prs10022011.pdf"
         },
@@ -13651,20 +13651,6 @@
       },
       {
         "index": "nifty_500",
-        "symbol": "UNMAPPED:Micro Inks Limited",
-        "from": "2010-01-01",
-        "to": "2010-04-05",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "UNMAPPED:Vishal Retail Ltd.",
-        "from": "2010-01-01",
-        "to": "2011-03-24",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
         "symbol": "JINDALSAW",
         "from": "2012-03-07",
         "to": "2016-04-28",
@@ -13722,6 +13708,15 @@
         "first_new_date": "2011-09-29",
         "status": "CONFIRMED_NSE_SYMBOLCHANGE_FILE",
         "evidence": "NSE 'Changes in Symbols' file (reference/nse_symbolchange.csv; sha256 948ccc56...): Reliance Naval and Engineering Limited, PIPAVAVYD -> PIPAVAVDOC, effective 2011-09-29"
+      },
+      {
+        "old_symbol": "VISHALRET",
+        "new_symbol": "V2RETAIL",
+        "company": "V2 Retail Limited",
+        "last_old_date": "2012-02-23",
+        "first_new_date": "2012-02-24",
+        "status": "CONFIRMED_NSE_SYMBOLCHANGE_FILE",
+        "evidence": "NSE Changes in Symbols file (reference/nse_symbolchange.csv; sha256 948ccc56...): V2 Retail Limited VISHALRET -> V2RETAIL 24-FEB-2012"
       },
       {
         "old_symbol": "AREVAT&D",

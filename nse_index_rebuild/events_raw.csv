@@ -359,7 +359,7 @@ published,effective,file,index,action,symbol,company
 2024-10-04,2024-10-10,ind_prs04102024,NIFTY_TOTAL_MARKET,IN,EMCURE,Emcure Pharmaceuticals Ltd.
 2013-03-05,2013-03-07,ind_prs05032013,NIFTY_500,OUT,ORIENTPPR,Orient Paper & Industries Limited
 2013-03-05,2013-03-07,ind_prs05032013,NIFTY_500,IN,SPARC,Sun Pharma Advanced Research Company Limited
-2010-04-05,2010-04-06,ind_prs05042010,NIFTY_500,OUT,UNMAPPED:Micro Inks Limited,Micro Inks Limited
+2010-04-05,2010-04-06,ind_prs05042010,NIFTY_500,OUT,MICRO,Micro Inks Limited
 2010-04-05,2010-04-06,ind_prs05042010,NIFTY_500,IN,NHPC,NHPC Limited
 2022-04-05,2022-05-04,ind_prs05042022,NIFTY_500,OUT,AARTIIND,Aarti Industries Ltd.
 2022-04-05,2022-05-04,ind_prs05042022,NIFTY_500,IN,GMRINFRA,GMR Infrastructure Ltd.
@@ -533,7 +533,7 @@ published,effective,file,index,action,symbol,company
 2011-02-10,2011-03-25,ind_prs10022011,NIFTY_500,OUT,PVP,PVP Ventures Ltd.
 2011-02-10,2011-03-25,ind_prs10022011,NIFTY_500,OUT,RAMCOSYS,Ramco Systems Ltd.
 2011-02-10,2011-03-25,ind_prs10022011,NIFTY_500,OUT,SAREGAMA,Saregama India Ltd
-2011-02-10,2011-03-25,ind_prs10022011,NIFTY_500,OUT,UNMAPPED:Vishal Retail Ltd.,Vishal Retail Ltd.
+2011-02-10,2011-03-25,ind_prs10022011,NIFTY_500,OUT,VISHALRET,Vishal Retail Ltd.
 2011-02-10,2011-03-25,ind_prs10022011,NIFTY_500,IN,ADSL,Allied Digital Services Ltd.
 2011-02-10,2011-03-25,ind_prs10022011,NIFTY_500,IN,BAJAJELEC,Bajaj Electricals Ltd
 2011-02-10,2011-03-25,ind_prs10022011,NIFTY_500,IN,BGRENERGY,BGR Energy Systems Ltd.

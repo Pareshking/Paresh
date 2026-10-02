@@ -4,11 +4,11 @@ Each row: what is unproven, what would close it, and where it shows up (`caveats
 
 | # | Item | What closes it | State |
 |---|---|---|---|
-| 1 | Two names with no symbol: Micro Inks Ltd (Nifty 500 exit 2010-04-06) and Vishal Retail Ltd (exit 2011-03-25) | NSE symbol as of that date, from any NSE or broker source | `UNMAPPED:` rows, 2 |
+| 1 | ~~Two names with no symbol~~ closed: Micro Inks = MICRO, Vishal Retail = VISHALRET (now V2RETAIL), both from NSE's symbol-change file | - | closed |
 | 2 | Four symbols from public listings, not NSE: SIRPAPER, SMARTLINK, PGIL (House of Pearl), ASIANHOTNR | NSE symbol-change record or a 2010-2012 NSE notice naming the symbol | `SYMBOL_WEB_SECONDARY`, 4 |
 | 3 | Jindal Saw in / Provogue out of Nifty 500 on 2012-03-07 | The NSE notice `ind_prs02032012` (dead link) from any copy | `WEB_SECONDARY_2012-03-07`, 2 |
 | 4 | Gayatri Projects / Gujarat Fluorochemicals swap in Smallcap 250, 2020-03-27 vs 2020-06-26 | NSE statement of the effective date, or the Smallcap 250 list on a date inside the window | ambiguity, 1 |
-| 5 | PEL to PIRAMALFIN treated as a rename; ISINs differ (INE140A01024 vs INE202B01038) | NSE notice for the merger: exit and entry, or substitution, and the date | `INFERRED_MERGER_SUCCESSOR`, 12 |
+| 5 | ~~PEL to PIRAMALFIN~~ closed: NSE notice `ind_prs15092025_1` removes PEL for the amalgamation (2025-09-23); PIRAMALFIN is a separate inclusion on 2026-03-30 | - | closed |
 | 6 | G5 independent checkpoints: archived constituent files at 5+ dates per index | Wayback or fund-factsheet copies; first pass found none usable | not done |
 | 7 | G7 blind second review of parsed events and the 8 OCR notices | A second reader, no sight of the output | not done |
 | 8 | G4 anchor independence: today's lists against a second source on two days | NSE website view or factsheet, fetched twice | not done |
