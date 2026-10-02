@@ -59,9 +59,11 @@ whole window and the app labels which.
 - Adjusted NSE vs Screener (third report): drift beyond 1% fell from 135 stocks
   to 58 after applying splits and bonuses; rank correlation 0.9993 / 0.9934 /
   0.9975, top-20 overlap 20/20, 19/20, 20/20.
-- Left: ex-dates Bc prints month-first (E2E, MCX, VGL, SILVERTUC) and demergers
-  (VEDL, HEG, SIEMENS, RAYMOND, ABFRL). The fourth report decides whether NSE
-  becomes the middle source.
+- Fourth report (27 Sep): 1,117 of 1,167 stocks within 1% throughout, 50
+  beyond; rank correlation 0.9997 / 0.9984 / 0.9991, top 20 in common 20/20,
+  19/20, 20/20, top 50 50/50.
+- Decision (owner, 2 Oct 2026): NSE becomes the middle source, skipping the
+  ~50 stocks still beyond 1%. Not yet wired in; until then Yahoo fills.
 
 ## Freshness in the app
 
