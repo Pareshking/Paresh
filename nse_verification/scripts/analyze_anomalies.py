@@ -87,10 +87,14 @@ class IndexAnalyzer:
 
         sorted_anomalies = sorted(self.anomalies, key=lambda x: abs(x['deviation']), reverse=True)
 
-        print(f"{'Date':<12} {'Count':<8} {'Expected':<8} {'Deviation':<12} {'% Dev':<8} {'Status':<20}")
+        header = (
+            f"{'Date':<12} {'Count':<8} {'Expected':<8} {'Deviation':<12} "
+            f"{'% Dev':<8} {'Status':<20}"
+        )
+        print(header)
         print("-" * 80)
 
-        for i, anom in enumerate(sorted_anomalies[:top_n], 1):
+        for anom in sorted_anomalies[:top_n]:
             dev = abs(anom['deviation'])
             if dev > 50:
                 status = "⚠️  CRITICAL"
