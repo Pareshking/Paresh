@@ -24,7 +24,7 @@
   "oldest_snapshot": "2019-03-29"
  },
  "NIFTY_SMALLCAP_250": {
-  "expected_size_incl_dummies": 251,
+  "expected_size_incl_dummies": 250,
   "snapshots": 50,
   "snapshots_wrong_size": 32,
   "chain_breaks": 13,
@@ -32,11 +32,11 @@
   "oldest_snapshot": "2019-01-28"
  },
  "NIFTY_MICROCAP_250": {
-  "expected_size_incl_dummies": 254,
+  "expected_size_incl_dummies": 250,
   "snapshots": 34,
-  "snapshots_wrong_size": 26,
-  "chain_breaks": 9,
-  "latest_chain_break": "2025-09-30",
+  "snapshots_wrong_size": 22,
+  "chain_breaks": 8,
+  "latest_chain_break": "2024-09-30",
   "oldest_snapshot": "2021-09-30"
  }
 }

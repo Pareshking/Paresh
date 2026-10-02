@@ -4,7 +4,7 @@ EXP = {"NIFTY_50":50,"NIFTY_NEXT_50":50,"NIFTY_MIDCAP_150":150,"NIFTY_SMALLCAP_2
 res, prob = run()
 al = list(csv.DictReader(open("rules/aliases.csv"))); ov = list(csv.DictReader(open("rules/overrides.csv")))
 out = {}
-for k in INDS:
+for k in [i for i in INDS if i in EXP]:
     state, snaps = res[k]
     dummies = sum(1 for s in cur[k] if s.startswith("DUMMY"))
     exp = EXP[k] + dummies
