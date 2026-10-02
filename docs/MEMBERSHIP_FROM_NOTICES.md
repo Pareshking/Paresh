@@ -117,3 +117,31 @@ the dropped names are mostly the weaker ones). Measured on the 2026 month ends,
   industry is mapped to the NSE industry most current members with that
   TradingView industry carry (82% correct leave-one-out on the 750).
 
+
+
+## Multi-index 2026 reconstruction
+
+The same PIT timeline now covers all six index families from **2025-12-31** through the **2026-09-30** review. The source audit is in `data/membership_history_2026_audit.json`; it records the reference dataset, official notice URLs, corporate-action dates, aliases, and the placeholder policy.
+
+| Index | Baseline | Final CSV count after dropping `DUMMY*` |
+|---|---:|---:|
+| Nifty 50 | 2025-12-31 | 50 |
+| Nifty Next 50 | 2025-12-31 | 50 |
+| Nifty Midcap 150 | 2025-12-31 | 150 |
+| Nifty Smallcap 250 | 2025-12-31 | 250 |
+| Nifty Microcap 250 | 2025-12-31 | 250 |
+| Nifty Total Market | 2025-12-31 | 750 |
+
+The current CSVs are the end-state anchor. The independent [aditya-jha/nse-historical-membership](https://github.com/aditya-jha/nse-historical-membership) project accelerated extraction of the March and May notice tables, but its inferred closures and ticker canonicalization were not treated as authoritative membership events.
+
+2026 transitions added beyond the semi-annual reviews include:
+
+- **15–24 June:** real listed Vedanta demerged entities enter and are removed on the dates specified by NSE; the DUMMY placeholders are never counted.
+- **15 April:** `AKZOINDIA → JSWDULUX` is a ticker/name continuity event, not a membership exit.
+- **17 July:** NSE replacement tables specify Smallcap 250 `JBCHEPHARM → PFOCUS`, Microcap 250 `PFOCUS → GRINDWELL`, and Total Market `JBCHEPHARM → GRINDWELL`.
+- **7–23 September:** `DUMMYHEG` is excluded from tradable counts; the resulting listed entity is recorded as `HEGAM` from 23 September, replacing `HEG` in Smallcap 250 and Total Market.
+- **30 September:** official semi-annual replacement events remain the final event in each timeline.
+
+Nifty Microcap 250 has **249 tradable names at the 2025-12-31 baseline** and reaches 250 on the 2026-03-30 review. This reflects the March notice's special Allcargo/DUMMYALCAR handling after excluding placeholders; the history does not pad the baseline with a fake symbol. Temporary counts of 54, 52 and 51 in Next 50 and Total Market during 15–24 June reflect real listed demerged entities before their official exclusions, not DUMMY rows.
+
+The regression tests replay each timeline against today's CSV after the shared DUMMY filter, assert chronological event ordering, and verify the alias and mid-year replacement events. This is a 2026 completion, not a claim that all six histories are reconstructed back to their index launch dates.
