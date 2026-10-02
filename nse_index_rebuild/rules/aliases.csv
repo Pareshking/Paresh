@@ -1,3 +1,4 @@
 old_symbol,new_symbol,last_old_date,first_new_date,evidence
-ZOMATO,ETERNAL,2025-03-28,2025-06-06,"old: ind_prs21022025 (Zomato Ltd. ZOMATO into Nifty 50); new: ind_prs06062025 (Eternal Ltd. ETERNAL). Rename confirmed only by symbol continuity - NSE circular still to be located"
-AKZOINDIA,JSWDULUX,2025-09-30,2026-06-10,"old: ind_prs22082025 (Akzo Nobel India Ltd.); new: ind_prs10062026 (JSW Dulux Ltd. JSWDULUX). NSE circular still to be located"
+ZOMATO,ETERNAL,2025-06-05,2025-06-06,"Zomato Ltd. ticker continuity to Eternal Ltd.; old symbol valid through 2025-06-05, new symbol from 2025-06-06; confirm exchange circular in evidence packet"
+SUNDARMHLD,TSFINV,2025-10-15,2025-10-16,"Sundaram Finance Holdings Ltd. symbol/name continuity to TSF Investments Ltd.; old symbol valid through 2025-10-15, new symbol from 2025-10-16; treat later TSFINV index removal only when supported by official removal notice"
+AKZOINDIA,JSWDULUX,2026-04-14,2026-04-15,"Akzo Nobel India Ltd. ticker/name continuity to JSW Dulux Ltd.; old symbol valid through 2026-04-14, new symbol from 2026-04-15; corporate-action evidence must be retained"
