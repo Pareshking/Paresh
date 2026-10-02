@@ -128,6 +128,90 @@
    "before": "2009-09-14",
    "factor": 0.05,
    "evidence": "1:20 adjustment (split with bonus) in no corporate-action list (NSE's yearly list starts sparse in 2008-2009; TejHQ from 2010): NSE's close moved x0.0525 on 2009-09-14 while 3 independent daily series (Yahoo, eod2, Tijori) moved x1.0514, implying 0.0500 (audit_long_prices, 2026-10-03)"
+  },
+  {
+   "symbol": "BHARTIARTL",
+   "before": "2009-07-24",
+   "factor": 0.5,
+   "evidence": "Face value split Rs 10 to Rs 5 (2:1), ex 24 Jul 2009, in no action list for 2009. NSE's close fell x0.511 while Yahoo and Tijori moved x1.02 (web search 2026-10-03: trendlyne.com/equity/Split/BHARTIARTL)"
+  },
+  {
+   "symbol": "ALLCARGO",
+   "before": "2009-11-19",
+   "factor": 0.2,
+   "evidence": "Face value split Rs 10 to Rs 2 (5:1), ex 19 Nov 2009, record 20 Nov. NSE's close fell x0.194 while Yahoo moved x0.968 (web search 2026-10-03: trendlyne.com/equity/Split/ALLCARGO)"
+  },
+  {
+   "symbol": "GAMMNINFRA",
+   "before": "2009-10-26",
+   "factor": 0.2,
+   "evidence": "Face value split Rs 10 to Rs 2 in Oct 2009, in no action list. NSE's close fell x0.207 on 26 Oct 2009 (web search 2026-10-03: Gammon Infrastructure company history)"
+  },
+  {
+   "symbol": "ENGINERSIN",
+   "before": "2010-05-06",
+   "factor": 0.166667,
+   "evidence": "2:1 bonus (record 6 May 2010) with a face value split Rs 10 to Rs 5 (7 May): 1/3 x 1/2. NSE's close fell x0.200 while Yahoo, eod2 and Tijori moved x1.200, implying 1/6 (web search 2026-10-03: trendlyne.com/equity/Bonus/ENGINERSIN)"
+  },
+  {
+   "symbol": "NEXTMEDIA",
+   "before": "2011-01-20",
+   "factor": 0.218,
+   "evidence": "Demerger: Mid-Day Multimedia's print business went to Jagran Prakashan under a court scheme (effective 1 Apr 2010), shareholders receiving Jagran shares. Priced at the ex-date fall, as every demerger here (x0.218 on 20 Jan 2011) (web search 2026-10-03: nishithdesai.com deal corner)"
+  },
+  {
+   "symbol": "ZEEMEDIA",
+   "before": "2010-04-15",
+   "factor": 0.2435,
+   "evidence": "Zee News 2010 scheme: the close fell from 75.35 to 18.35 on 15 Apr 2010, the same in MarketLens, Screener and eod2, while Yahoo's already-adjusted series rose; priced at the ex-date fall, like a demerger (audit 2026-10-03)"
+  },
+  {
+   "symbol": "ABIRLANUVO",
+   "before": "2016-01-20",
+   "factor": 0.4662,
+   "evidence": "Aditya Birla Nuvo, 20 Jan 2016: NSE's close fell from 2065.55 to 882.15 with no news of a loss; Screener's adjusted series already reads 939.55 on 15 Jan against NSE's 2015.25 and matches NSE from 22 Jan, so its factor 0.4662 is used (audit 2026-10-03)"
+  },
+  {
+   "symbol": "KARURVYSYA",
+   "before": "2011-02-17",
+   "factor": 0.7951,
+   "evidence": "Rights issue ex-date: NSE's close fell, while NSE MarketLens, Yahoo and Tijori (all adjusting for rights) were flat; factor = NSE's move over theirs. Applied for index stocks so the ex-rights fall is not read as a loss (owner, 2026-10-03: correct data first)"
+  },
+  {
+   "symbol": "KESORAMIND",
+   "before": "2013-05-15",
+   "factor": 0.79,
+   "evidence": "Rights issue ex-date: NSE's close fell, while NSE MarketLens, Yahoo and Tijori (all adjusting for rights) were flat; factor = NSE's move over theirs. Applied for index stocks so the ex-rights fall is not read as a loss (owner, 2026-10-03: correct data first)"
+  },
+  {
+   "symbol": "KTKBANK",
+   "before": "2016-10-24",
+   "factor": 0.8145,
+   "evidence": "Rights issue ex-date: NSE's close fell, while NSE MarketLens, Yahoo and Tijori (all adjusting for rights) were flat; factor = NSE's move over theirs. Applied for index stocks so the ex-rights fall is not read as a loss (owner, 2026-10-03: correct data first)"
+  },
+  {
+   "symbol": "IDEA",
+   "before": "2019-03-29",
+   "factor": 0.6024,
+   "evidence": "Rights issue ex-date: NSE's close fell, while NSE MarketLens, Yahoo and Tijori (all adjusting for rights) were flat; factor = NSE's move over theirs. Applied for index stocks so the ex-rights fall is not read as a loss (owner, 2026-10-03: correct data first)"
+  },
+  {
+   "symbol": "PATELENG",
+   "before": "2019-09-17",
+   "factor": 0.7621,
+   "evidence": "Rights issue ex-date: NSE's close fell, while NSE MarketLens, Yahoo and Tijori (all adjusting for rights) were flat; factor = NSE's move over theirs. Applied for index stocks so the ex-rights fall is not read as a loss (owner, 2026-10-03: correct data first)"
+  },
+  {
+   "symbol": "HERITGFOOD",
+   "before": "2023-01-20",
+   "factor": 0.5071,
+   "evidence": "Rights issue ex-date: NSE's close fell, while NSE MarketLens, Yahoo and Tijori (all adjusting for rights) were flat; factor = NSE's move over theirs. Applied for index stocks so the ex-rights fall is not read as a loss (owner, 2026-10-03: correct data first)"
+  },
+  {
+   "symbol": "CCAVENUE",
+   "before": "2025-06-26",
+   "factor": 0.8933,
+   "evidence": "Rights issue ex-date: NSE's close fell, while NSE MarketLens, Yahoo and Tijori (all adjusting for rights) were flat; factor = NSE's move over theirs. Applied for index stocks so the ex-rights fall is not read as a loss (owner, 2026-10-03: correct data first)"
   }
  ],
  "special_sessions": {
