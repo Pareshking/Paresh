@@ -46,6 +46,7 @@ from src.loaders import nse_prices as npx  # noqa: E402
 CLOSE_FILE = "nse_long_close.parquet"
 VALUE_FILE = "nse_long_value.parquet"
 REPORT_FILE = "nse_long_report.json"
+PACK_FILE = "nse_raw_pack.parquet"
 CRORE = 1e7
 
 
@@ -151,6 +152,9 @@ def main(argv=None) -> int:
     ap.add_argument("--until", type=date.fromisoformat, default=None)
     ap.add_argument("--out", type=Path, default=Path("data_cache/nse_long"))
     ap.add_argument("--workers", type=int, default=16)
+    ap.add_argument("--pack", type=Path, default=None,
+                    help="raw-history pack from the last build: only sessions it lacks are read "
+                         "from R2, and the updated pack is written to --out")
     args = ap.parse_args(argv)
 
     from src.loaders.nse_identity import auto_renames
@@ -164,7 +168,24 @@ def main(argv=None) -> int:
     days = sorted(d for d in nh.r2_days(archive, nh.R2_PRICES) if args.since <= d <= until)
     print(f"R2 holds {len(days)} sessions in [{args.since}, {until}]")
 
-    prices = read_history(reader, days, args.workers)
+    # The raw-history pack (nse_raw_pack.parquet on the release): every row a
+    # build has read, so the next reads from R2 only the sessions since. One
+    # request per session made a full build ~35 minutes (owner, 2026-10-03:
+    # speed it up); workflow input full=yes reads every session again.
+    packed = pd.DataFrame()
+    if args.pack is not None and args.pack.exists():
+        packed = pd.read_parquet(args.pack)
+        packed["date"] = pd.to_datetime(packed["date"])
+        print(f"pack: {len(packed):,} rows, {packed['date'].nunique()} sessions to "
+              f"{packed['date'].max().date()}")
+    have = set(packed["date"].dt.date) if len(packed) else set()
+    fresh = read_history(reader, [d for d in days if d not in have], args.workers)
+    print(f"read from R2: {len(fresh):,} rows, {fresh['date'].nunique() if len(fresh) else 0} sessions")
+    prices = pd.concat([packed, fresh], ignore_index=True) if len(packed) else fresh
+    prices["date"] = pd.to_datetime(prices["date"])
+    args.out.mkdir(parents=True, exist_ok=True)
+    prices.to_parquet(args.out / PACK_FILE, index=False, compression="zstd")
+    prices = prices[prices["date"].dt.date.isin(set(days))]
     renames = {**auto_renames(set(prices["symbol"].dropna().unique())), **(notes.get("renames") or {})}
     keep, raw = wanted_symbols(notes, renames)
     prices = prices[prices["symbol"].isin(raw)]

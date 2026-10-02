@@ -15,6 +15,9 @@ on:
       since:
         description: "First session to read (YYYY-MM-DD)"
         default: "2008-01-01"
+      full:
+        description: "Read every session from R2 again, not only those the raw pack lacks (yes/no)"
+        default: "no"
 
 permissions:
   contents: write
@@ -40,9 +43,21 @@ jobs:
         with:
           python-version-file: .python-version
       - run: pip install -r requirements.txt
+      # The raw-history pack: every row the last build read, so only newer
+      # sessions come from R2 (a full read is ~4,700 requests, ~35 minutes).
+      - name: The raw-history pack from the last build
+        if: inputs.full != 'yes'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p pack
+          gh release download data-latest --repo "$GITHUB_REPOSITORY" --pattern nse_raw_pack.parquet --dir pack \
+            || echo "No pack yet: every session is read from R2."
+          ls -lh pack
       - name: Build
         run: |
-          python scripts/build_nse_long_prices.py --since "${{ inputs.since || '2008-01-01' }}" --out data_cache/nse_long
+          # A missing pack (first run, or full=yes) reads every session.
+          python scripts/build_nse_long_prices.py --since "${{ inputs.since || '2008-01-01' }}" --out data_cache/nse_long --pack pack/nse_raw_pack.parquet
           ls -lh data_cache/nse_long
           {
             echo "## NSE long price file"
@@ -64,11 +79,14 @@ jobs:
             data_cache/nse_long/nse_long_close.parquet \
             data_cache/nse_long/nse_long_value.parquet \
             data_cache/nse_long/nse_long_report.json \
+            data_cache/nse_long/nse_raw_pack.parquet \
             --repo "$GITHUB_REPOSITORY" --clobber
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: nse-long-prices
-          path: data_cache/nse_long/
+          path: |
+            data_cache/nse_long/
+            !data_cache/nse_long/nse_raw_pack.parquet
           if-no-files-found: ignore
           retention-days: 14
