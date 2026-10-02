@@ -38,7 +38,8 @@ ISIN_HISTORY = REFERENCE / "isin_history.csv"
 EQUITY_L = REFERENCE / "equity_l.csv"
 
 ISSUER_PREFIX = 9          # "INE144J01": country, issuer, security type
-MAX_GAP_DAYS = 15          # last old session to first new session
+MAX_GAP_DAYS = 100         # last old session to first new session: a rename often comes with a
+                           # suspension of weeks (CASTROL -> CASTROLIND 16 days, AVANTI -> AVANTIFEED 82)
 MAX_JUMP = 0.25            # adjusted close across the join
 
 
@@ -78,7 +79,8 @@ def isin_history(path: Path = ISIN_HISTORY) -> pd.DataFrame:
 def resolve(changes: pd.DataFrame | None = None, history: pd.DataFrame | None = None,
             current: dict[str, str] | None = None) -> pd.DataFrame:
     """old, new, source ("nse_list", "isin", "isin_prefix", or "nse_list+isin..."),
-    conflict -- one row per old symbol that leads to a symbol listed today."""
+    conflict -- one row per old symbol: NSE's list chain to its last ticker
+    (listed today or not), or the ISIN to a ticker listed today."""
     changes = symbol_changes() if changes is None else changes
     history = isin_history() if history is None else history
     current = current_isins() if current is None else current
@@ -90,11 +92,15 @@ def resolve(changes: pd.DataFrame | None = None, history: pd.DataFrame | None = 
     step = dict(zip(changes["old"], changes["new"]))       # oldest first: the latest wins
 
     def follow(sym: str) -> str | None:
+        """The last ticker of NSE's chain, listed today or not: a company later
+        merged or delisted (BHUSANSTL -> TATASTLBSL, merged into Tata Steel in
+        2021) still traded under its new ticker, and a backtest of those years
+        must hold it under one series."""
         seen = set()
         while sym in step and sym not in seen:
             seen.add(sym)
             sym = step[sym]
-        return sym if sym in listed and seen else None
+        return sym if seen else None
 
     last = history.sort_values("last").groupby("symbol").tail(1).set_index("symbol")["isin"] \
         if len(history) else pd.Series(dtype=str)
@@ -114,6 +120,8 @@ def resolve(changes: pd.DataFrame | None = None, history: pd.DataFrame | None = 
             continue                     # a listed symbol is never re-pointed
         by_list = follow(sym)
         via, how = by_isin(sym)
+        if by_list and by_list not in listed and via:
+            by_list = None               # a listed ticker by ISIN beats a list chain that ends unlisted
         if by_list and via and by_list != via:
             rows.append({"old": sym, "new": None, "source": f"nse_list|{how}",
                          "conflict": f"NSE list says {by_list}, {how} says {via}"})
