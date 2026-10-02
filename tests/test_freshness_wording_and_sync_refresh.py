@@ -104,35 +104,6 @@ def test_the_daily_sync_does_not_reuse_the_market_cap_cache():
     assert kw["force_refresh"].value is True
 
 
-def test_prices_stay_incremental():
-    """A daily full re-download would be slow and rude; only the weekly
-    FORCE_FULL run should do that.
-
-    Asserted through the syntax tree rather than a source string: the previous
-    version matched the call's exact text, so reformatting it or widening the
-    window failed the test while the behaviour it guards -- force_refresh comes
-    from FORCE_FULL, never a hardcoded True -- was untouched.
-    """
-    import ast
-    import pathlib
-
-    tree = ast.parse(
-        (pathlib.Path(__file__).resolve().parents[1] / "scripts/sync_data.py").read_text()
-    )
-    calls = [
-        n for n in ast.walk(tree)
-        if isinstance(n, ast.Call)
-        and getattr(n.func, "id", None) == "fetch_price_history"
-    ]
-    assert len(calls) == 1, "expected exactly one price fetch in the sync"
-    kw = {k.arg: k.value for k in calls[0].keywords}
-    assert "force_refresh" in kw, "the fetch must not silently default"
-    assert isinstance(kw["force_refresh"], ast.Name), (
-        "force_refresh must come from FORCE_FULL, not a literal"
-    )
-    assert kw["force_refresh"].id == "FORCE_FULL"
-
-
 def test_the_archive_is_longer_than_the_screener_window():
     """Two windows, on purpose.
 

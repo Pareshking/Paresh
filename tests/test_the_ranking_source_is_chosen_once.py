@@ -398,7 +398,7 @@ def test_no_stop_loss_anywhere_in_portfolio_or_footer():
 
 def test_the_as_of_metric_is_recorded_after_the_source_is_chosen():
     src = open("app.py", encoding="utf-8").read()
-    resolve_at = src.index("_src = _resolve_price_source(")
+    resolve_at = src.index("_src, _deep_close = _resolve_price_source(")
     as_of_at = src.index('metrics.note("price_as_of"')
     assert as_of_at > resolve_at, (
         "price_as_of is recorded before the source is resolved, so the ribbon "
@@ -408,7 +408,7 @@ def test_the_as_of_metric_is_recorded_after_the_source_is_chosen():
 
 def test_the_coverage_metric_is_recorded_after_the_source_is_chosen():
     src = open("app.py", encoding="utf-8").read()
-    resolve_at = src.index("_src = _resolve_price_source(")
+    resolve_at = src.index("_src, _deep_close = _resolve_price_source(")
     cov_at = src.index('metrics.note("price_coverage"')
     assert cov_at > resolve_at
 
@@ -504,13 +504,14 @@ def test_the_backtest_says_when_it_used_a_different_history():
 
 def test_open_prices_are_dropped_when_the_source_has_none():
     src = open("app.py", encoding="utf-8").read()
-    start = src.index("_src = _resolve_price_source(")
+    start = src.index("_src, _deep_close = _resolve_price_source(")
     window = src[start:start + 1600]
+    # Both sources (Screener, NSE) are close-only since Yahoo was retired
+    # (2026-10-02), so open is dropped unconditionally.
     assert "open_p = None" in window, (
         "open survives the source switch while close is replaced, so the "
         "candlestick mixes two price series"
     )
-    assert "if not _src.intraday:" in window
 
 
 def test_a_bar_with_no_open_degrades_to_a_flat_close():

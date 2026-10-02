@@ -116,17 +116,6 @@ def test_learned_closures_and_human_ones_coexist(tmp_path):
     assert load_closed(path) == {"2026-09-14", "2026-05-28"}
 
 
-def test_the_sync_records_what_the_loader_found():
-    """The wiring itself: a finding must not stop at the log line."""
-    src = open("scripts/sync_data.py", encoding="utf-8").read()
-    assert "price_zero_trade_dates" in src, (
-        "the sync never reads the dates the volume test found, so the calendar "
-        "cannot learn and the test re-derives them from scratch every run"
-    )
-    assert "record_closed(" in src
-    assert "zero-volume evidence" in src, "findings are recorded without their source"
-
-
 def test_a_live_session_is_never_learned_as_closed(monkeypatch):
     """The false positive that would matter: real trading, recorded as a holiday."""
     from src.core import startup_metrics as m

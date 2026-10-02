@@ -24,35 +24,6 @@ def _steps(name: str) -> list[dict]:
     return spec["jobs"][next(iter(spec["jobs"]))]["steps"]
 
 
-def test_daily_sync_has_r2_dual_publication_after_release():
-    steps = _steps("daily_sync.yml")
-    names = [str(step.get("name", "")) for step in steps]
-    release = names.index("Publish price snapshot")
-    r2 = names.index("Publish validated datasets to R2")
-    assert release < r2
-
-
-def test_daily_sync_publishes_all_three_production_release_artifacts():
-    steps = _steps("daily_sync.yml")
-    step = next(s for s in steps if s.get("name") == "Publish validated datasets to R2")
-    run = str(step["run"])
-    for asset in ("prices_full.parquet", "rankings.parquet"):
-        assert f"--path {asset}" in run
-    assert "archive/prices/yahoo" in run
-    assert "snapshots/rankings" in run
-
-
-def test_the_app_snapshot_goes_to_its_own_dataset_not_the_retired_one():
-    """Owner, 2026-09-27: the app reads its two-year snapshot from R2 first.
-    It is published as app/prices_snapshot; snapshots/application stays retired."""
-    steps = _steps("daily_sync.yml")
-    step = next(s for s in steps if s.get("name") == "Publish validated datasets to R2")
-    run = str(step["run"])
-    assert "--path prices.parquet" in run
-    assert "--dataset app/prices_snapshot" in run
-    assert "--dataset snapshots/application" not in run
-
-
 def test_screener_sync_has_r2_dual_publication_after_release():
     steps = _steps("screener_sync.yml")
     names = [str(step.get("name", "")) for step in steps]

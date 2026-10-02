@@ -1371,26 +1371,18 @@ def fetch_price_history(
 def fetch_benchmark_history(
     period: str = "2y", symbol: str = BENCHMARK_SYMBOL
 ) -> pd.Series:
-    """Return a benchmark price series, the V1 benchmark by default."""
+    """Return a benchmark price series, the V1 benchmark by default.
+
+    Read from data/benchmarks.csv (NSE's daily index closes, Screener's for
+    older history), not Yahoo (owner, 2026-10-02). Same signature and the same
+    empty-series contract as before, so no caller changes.
+    """
+    from src.loaders import benchmark_store
+
     try:
-        data = yf.download(
-            symbol, period=period, progress=False, threads=False,
-            auto_adjust=True,
-        )
-        if data is None or data.empty:
-            return pd.Series(dtype=float, name=symbol)
-        if data.index.tz is not None:
-            data.index = data.index.tz_localize(None)
-        if isinstance(data.columns, pd.MultiIndex):
-            close_df = _extract_field(data, ["Close", "Adj Close", "AdjClose"])
-            series = close_df.iloc[:, 0] if not close_df.empty else data.iloc[:, 0]
-        else:
-            series = data["Close"] if "Close" in data.columns else data.iloc[:, 0]
-        series = pd.to_numeric(series, errors="coerce").dropna()
-        series.name = symbol
-        return series
+        return benchmark_store.history(period=period, symbol=symbol)
     except Exception as e:
-        logger.warning(f"Failed to fetch benchmark {symbol}: {e}")
+        logger.warning(f"Failed to read benchmark {symbol}: {e}")
         return pd.Series(dtype=float, name=symbol)
 
 

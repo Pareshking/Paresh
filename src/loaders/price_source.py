@@ -42,6 +42,7 @@ import tempfile
 import time
 from dataclasses import dataclass, field
 
+import numpy as np
 import pandas as pd
 import requests
 
@@ -221,7 +222,61 @@ def display_name(source: str | None) -> str:
 
 
 def preferred() -> str:
-    return RANKING_PRICE_SOURCE or "yahoo"
+    """Always "screener": Yahoo is no longer a price source (owner, 2026-10-02).
+
+    RANKING_PRICE_SOURCE is still read so an old UMIYA_PRICE_SOURCE=yahoo
+    setting is reported rather than silently honoured.
+    """
+    if RANKING_PRICE_SOURCE and RANKING_PRICE_SOURCE != "screener":
+        logger.warning("UMIYA_PRICE_SOURCE=%s ignored: Screener is the only primary source.",
+                       RANKING_PRICE_SOURCE)
+    return "screener"
+
+
+def from_nse(middle_close: pd.DataFrame | None, symbols) -> PriceFrames | None:
+    """NSE's adjusted closes as the whole source, for a night Screener cannot serve.
+
+    NSE's committed file carries closes only, so volume is all-missing: the
+    liquidity columns go blank rather than being invented.
+    """
+    if middle_close is None or middle_close.empty:
+        return None
+    keep = [c for c in middle_close.columns if c in set(symbols)]
+    if not keep:
+        return None
+    close = middle_close[keep].astype(float)
+    if not reaches_longest_lookback(close.index):
+        metrics.note("price_source_rejected", "nse_too_short")
+        return None
+    volume = pd.DataFrame(np.nan, index=close.index, columns=keep)
+    return PriceFrames(
+        adj_close=close, close=close, high=None, low=None, volume=volume,
+        source="nse", intraday=False,
+        notes=["Screener unavailable: ranked on NSE's own closes (split/bonus adjusted)",
+               "52-week high measured on closing prices, not intraday highs",
+               "Volume unavailable from NSE's committed file"],
+    )
+
+
+def ranking_frames(store: pd.DataFrame | None, symbols,
+                   middle_close: pd.DataFrame | None = None) -> PriceFrames | None:
+    """The frame the ranking scores: Screener first, NSE for what it lacks.
+
+    The ONE place the app and the nightly precompute build it, so both rank
+    the same frame and the published ranking's contract matches. No Yahoo
+    tier (owner, 2026-10-02). When Screener cannot serve, NSE's closes are the
+    whole source; None when neither can.
+    """
+    return frames_from(from_screener(store) if store is not None else None,
+                       symbols, middle_close)
+
+
+def frames_from(chosen: PriceFrames | None, symbols,
+                middle_close: pd.DataFrame | None = None) -> PriceFrames | None:
+    """ranking_frames for a store already shaped by from_screener (the app memoises that)."""
+    if chosen is not None and any(c in set(symbols) for c in chosen.close.columns):
+        return keep_and_fill(chosen, symbols, None, middle_close)
+    return from_nse(middle_close, symbols)
 
 
 # ── Backup source: Screener first, Yahoo for what it lacks ───────────────────

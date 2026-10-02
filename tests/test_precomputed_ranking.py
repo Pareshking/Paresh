@@ -200,21 +200,6 @@ def test_the_app_and_the_job_share_the_pipeline_functions():
     )
 
 
-def test_the_job_ranks_the_snapshot_it_publishes():
-    """Ranking the 10y archive instead would fingerprint a frame production
-    never sees, and every cold start would miss."""
-    import pathlib
-
-    job = (pathlib.Path(__file__).resolve().parents[1] / "scripts/sync_data.py").read_text()
-    body = job[job.index("def _precompute_rankings"):job.index("def run_daily_sync")]
-    assert "prices_snapshot.parquet" in body, (
-        "the precompute no longer ranks the frame production seeds from"
-    )
-    assert "adjust_ohlc" in body, (
-        "the precompute skips the corporate action step the live path applies"
-    )
-
-
 def test_the_pipeline_version_is_recorded_not_hardcoded_at_the_call_site():
     """A bumped engine must invalidate the artifact, which only works if both
     sides read the same constant."""

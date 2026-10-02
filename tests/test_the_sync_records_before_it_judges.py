@@ -50,59 +50,6 @@ def _call_lines(fn, name):
     return sorted(out)
 
 
-def test_nse_is_asked_before_the_price_fetch():
-    fn = _daily_sync()
-    mcaps = _call_lines(fn, "fetch_market_caps")
-    prices = _call_lines(fn, "fetch_price_history")
-    assert mcaps and prices, "the sync no longer fetches market caps or prices"
-    assert max(mcaps) < min(prices), (
-        "market caps are fetched AFTER prices again. The bhavcopy request is "
-        "the only thing that confirms a trading day, so the newest session is "
-        "back to being judged on coverage alone."
-    )
-
-
-def test_the_confirmation_is_written_down_before_the_price_fetch():
-    """Fetching early is not enough -- the record must be WRITTEN first.
-
-    _drop_phantom_sessions reads the file, not the in-memory metrics, so a
-    confirmation still sitting in metrics when prices are loaded rescues
-    nothing.
-    """
-    fn = _daily_sync()
-    recorded = _call_lines(fn, "record_confirmed")
-    prices = _call_lines(fn, "fetch_price_history")
-    assert recorded, "the sync no longer records NSE's confirmations at all"
-    assert max(recorded) < min(prices), (
-        "the trading-day record is written after the price fetch that needs "
-        "it; the newest session is judged before the answer exists"
-    )
-
-
-def test_the_price_fetch_still_happens_before_the_rankings_are_precomputed():
-    """The reorder must not have pushed prices past what consumes them."""
-    fn = _daily_sync()
-    prices = _call_lines(fn, "fetch_price_history")
-    precompute = _call_lines(fn, "_precompute_rankings")
-    # Asserted, not `if precompute:` -- a vanished call would otherwise pass.
-    assert precompute, "the sync no longer precomputes the rankings"
-    assert min(prices) < min(precompute), (
-        "rankings are precomputed before the price cache is updated"
-    )
-
-
-def test_prices_are_never_read_before_they_are_fetched():
-    """A cheap guard on the reorder itself: no use-before-assignment."""
-    fn = _daily_sync()
-    stores, loads = [], []
-    for n in ast.walk(fn):
-        if isinstance(n, ast.Name) and n.id == "prices_df":
-            (stores if isinstance(n.ctx, ast.Store) else loads).append(n.lineno)
-    assert stores, "prices_df is no longer assigned in run_daily_sync"
-    early = [ln for ln in loads if ln < min(stores)]
-    assert not early, f"prices_df is read at {early} before it is assigned"
-
-
 # ── What gets PUBLISHED must pass the same guards the app reads with ─────────
 #
 # Everything the publish step writes is consumed by something that does not
@@ -116,35 +63,4 @@ def test_prices_are_never_read_before_they_are_fetched():
 # did not, so the two would rank different frames while every field of the
 # contract still matched. A wrong answer served fast is worse than no artifact.
 
-def test_the_published_snapshot_is_read_through_the_guards():
-    src = open(SCRIPT, encoding="utf-8").read()
-    assert "_read_local_price_cache()" in src, (
-        "the publish step no longer reads through the price-cache guards, so "
-        "non-sessions reach the published snapshot and the precomputed ranking"
-    )
 
-
-def test_the_publish_step_does_not_bypass_them_with_a_bare_read():
-    """A fallback is fine; reaching for it first is not."""
-    import ast
-
-    tree = ast.parse(open(SCRIPT, encoding="utf-8").read())
-    fn = next(
-        n for n in ast.walk(tree)
-        if isinstance(n, ast.FunctionDef) and n.name == "run_daily_sync"
-    )
-    guarded, bare = [], []
-    for n in ast.walk(fn):
-        if isinstance(n, ast.Call):
-            f = n.func
-            name = f.attr if isinstance(f, ast.Attribute) else getattr(f, "id", None)
-            if name == "_read_local_price_cache":
-                guarded.append(n.lineno)
-            elif name == "read_parquet":
-                bare.append(n.lineno)
-    assert guarded, "the guarded reader is gone from the publish step"
-    for b in bare:
-        assert any(g < b for g in guarded), (
-            f"a bare read_parquet at line {b} runs before any guarded read; "
-            "the published artifact would carry whatever is on disk"
-        )

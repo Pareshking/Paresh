@@ -72,41 +72,19 @@ jobs:
           path: ${{ github.workspace }}/data_cache/
           key: price-data-${{ runner.os }}-${{ github.run_id }}
 
-      # Without this the entire point of the job was lost. A full refresh is
-      # the ONLY path that re-reads history the incremental top-up can never
-      # revisit -- a close the vendor backfilled, a split it restated weeks
-      # after the fact -- and this job rebuilt all of it and then published
-      # none of it. Production kept seeding from the daily snapshot, which is
-      # built by appending to a cache that has never been re-read.
-      - name: Publish price snapshot
+      # The precomputed ranking only. No Yahoo price file is produced any more
+      # (owner, 2026-10-02), so nothing else is published; the restored cache
+      # may still hold an old Yahoo snapshot and it must not be re-uploaded.
+      - name: Publish ranking
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          SNAP="${{ github.workspace }}/data_cache/prices_snapshot.parquet"
-          if [ ! -f "$SNAP" ]; then
-            echo "::warning::No price snapshot was produced; skipping upload."
-            exit 0
-          fi
-          ls -lh "$SNAP"
           gh release view data-latest --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
             gh release create data-latest \
               --repo "$GITHUB_REPOSITORY" \
               --title "Latest data snapshots" \
-              --notes "Rolling price history published by the sync jobs." \
+              --notes "Rolling data published by the sync jobs." \
               --latest=false
-          cp "$SNAP" "${{ github.workspace }}/prices.parquet"
-          gh release upload data-latest "${{ github.workspace }}/prices.parquet" \
-            --repo "$GITHUB_REPOSITORY" --clobber
-          echo "Uploaded the fully-refreshed prices.parquet to release data-latest."
-
-          ARCH="${{ github.workspace }}/data_cache/prices_archive.parquet"
-          if [ -f "$ARCH" ]; then
-            cp "$ARCH" "${{ github.workspace }}/prices_full.parquet"
-            gh release upload data-latest "${{ github.workspace }}/prices_full.parquet" \
-              --repo "$GITHUB_REPOSITORY" --clobber
-            echo "Uploaded prices_full.parquet to release data-latest."
-          fi
-
           RANK="${{ github.workspace }}/data_cache/rankings.parquet"
           if [ -f "$RANK" ]; then
             ls -lh "$RANK"

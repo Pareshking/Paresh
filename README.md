@@ -324,14 +324,15 @@ release. pyarrow 25.0.1 segfaults (apache/arrow#50471), so do not take it.
 The production application uses a strict separation between the canonical ranking path and auxiliary deep-history data:
 
 - **Canonical V1 ranking source:** Screener data published to Cloudflare R2 at `prices/screener`. The ranking artifact is consumed through the canonical ranking-store contract; Yahoo downloads must not replace this path.
-- **Deep-history/archive source:** Yahoo-origin data published separately to R2 at `prices/yahoo/raw`. It is available for deep history, archive/healing and research support, not as a replacement ranking engine.
+- **Second source:** NSE's own daily closes (committed `data/nse_prices`, split/bonus/demerger adjusted) fill what Screener lacks. Order: Screener, then NSE (`src/loaders/price_source.ranking_frames`, the one function the app and the nightly precompute both call).
+- **No Yahoo (owner, 2026-10-02).** Prices, deep history (Screener's ~10-year store), the track record, market caps (NSE, then the committed snapshot), all-time highs (Screener closes) and the Nifty 500 / Nifty 50 benchmark (`data/benchmarks.csv`, from NSE's daily bundle with Screener for older history) are all Yahoo-free. Existing Yahoo objects on R2 (`prices/yahoo*`, `app/prices_*`) are no longer published or read.
 - **Universe:** the current NIFTY TOTAL MARKET production universe is the reconciled set of **750 tradable symbols**. NSE `DUMMY*` placeholders are discarded; aliases must not be invented to repair missing symbols.
 - **Ranking completeness:** the canonical ranking pipeline requires **100% current-universe coverage**. This prevents a valid-looking 749/750 ranking from being published.
   The one exception is owner decision 2B. Up to 5 stragglers that printed within the last 5 sessions are ranked on their last print, flagged ⏸, and count toward that 100%. Any other gap makes the session ineligible, and the ranking falls back to the previous complete one.
 - **Published artifact:** when a validated precomputed ranking is available, Streamlit accepts the canonical artifact and **skips the runtime ranking engine**. This is an intentional performance path, not a degraded mode.
 - **Streamlit reruns:** contract validation and Screener-frame shaping are memoized using the complete logical contract and immutable R2 revision identity respectively. Repeated reruns therefore avoid repeating equivalent work while still invalidating when the underlying ranking contract or R2 revision changes.
 
-The 2026-09-23 production deployment verified the full path: 750-row ranking accepted from the R2 Screener store, Yahoo deep history loaded from its separate R2 archive, and the runtime engine skipped after canonical precomputed acceptance.
+The 2026-09-23 production deployment verified the full path: 750-row ranking accepted from the R2 Screener store, Yahoo deep history loaded from its separate R2 archive (since retired, 2026-10-02), and the runtime engine skipped after canonical precomputed acceptance.
 
 ## Verified production data state
 

@@ -5,8 +5,9 @@
     python scripts/sync_former_member_prices.py --dry-run  # say what it would fetch
 
 Reads the membership record, takes every name it ever lists as a member that the
-current universe lacks, downloads their adjusted closes from Yahoo (the same
-origin as the app's deep history) and writes data/former_member_prices.parquet.
+current universe lacks, takes their closes from Screener's store (the app's own
+basis), NSE's committed closes for any Screener lacks, and writes
+data/former_member_prices.parquet. No Yahoo (owner, 2026-10-02).
 Run it before the monthly Track Record update so a name that has just left the
 index still has prices for the sale. Idempotent: it rewrites the whole file.
 """
@@ -19,7 +20,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
-import yfinance as yf
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -28,22 +28,31 @@ from src.loaders.former_members import (  # noqa: E402
     META_FILE, MIN_SESSIONS, PRICES_FILE, symbols_needed,
 )
 from src.loaders.indices_loader import fetch_indices_data  # noqa: E402
-from src.loaders.price_loader import extract_ohlcv  # noqa: E402
+from src.loaders import nse_prices  # noqa: E402
 
 START = "2024-09-30"   # the deep frame's own start: a 12-month window before 2026
-BATCH = 25
 
 
-def fetch(symbols: list[str], start: str = START) -> pd.DataFrame:
-    frames = []
-    for i in range(0, len(symbols), BATCH):
-        batch = symbols[i:i + BATCH]
-        raw = yf.download([s + ".NS" for s in batch], start=start,
-                          end=(pd.Timestamp.now() + pd.Timedelta(days=2)).strftime("%Y-%m-%d"),
-                          progress=False, auto_adjust=False, group_by="ticker", threads=True)
-        print(f"  batch {i // BATCH + 1}: {len(batch)} symbols -> {raw.shape}")
-        frames.append(raw)
-    return pd.concat(frames, axis=1) if frames else pd.DataFrame()
+def fetch(symbols: list[str], start: str = START) -> tuple[pd.DataFrame, dict[str, str]]:
+    """(closes from `start`, symbol -> source): Screener first, NSE for the rest."""
+    out, source = {}, {}
+    store = nse_prices.screener_store()
+    if store is not None and isinstance(store.columns, pd.MultiIndex):
+        close = store.xs("Close", axis=1, level=-1)
+        close.index = pd.DatetimeIndex(close.index).normalize()
+        for s in symbols:
+            if s in close.columns and close[s].notna().any():
+                out[s] = close[s]
+                source[s] = "screener"
+    rest = [s for s in symbols if s not in out]
+    nse = nse_prices.middle_close(rest) if rest else None
+    if nse is not None:
+        for s in nse.columns:
+            if nse[s].notna().any():
+                out[s] = nse[s]
+                source[s] = "nse"
+    frame = pd.DataFrame(out).sort_index()
+    return frame[frame.index >= pd.Timestamp(start)], source
 
 
 def main() -> int:
@@ -59,8 +68,7 @@ def main() -> int:
         print(", ".join(needed))
         return 0
 
-    raw = fetch(needed)
-    adj, *_ = extract_ohlcv(raw, needed)
+    adj, source = fetch(needed)
     counts = adj.notna().sum()
     usable = sorted(s for s in adj.columns if counts[s] >= MIN_SESSIONS)
     missing = sorted(set(needed) - set(usable))
@@ -68,12 +76,13 @@ def main() -> int:
     adj.to_parquet(PRICES_FILE)
     META_FILE.write_text(json.dumps({
         "fetched_on": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-        "source": "Yahoo Finance (.NS), Adj Close",
+        "source": "Screener closes; NSE closes (split/bonus adjusted) where Screener has none",
+        "by_source": {k: sum(1 for s in usable if source.get(s) == k) for k in ("screener", "nse")},
         "symbols": len(usable),
         "first_session": str(adj.index[0].date()), "last_session": str(adj.index[-1].date()),
         "unavailable": missing,
-        "note": ("No usable history on Yahoo (fewer than %d sessions): names merged out of "
-                 "existence. They stay unpriceable and cannot be selected." % MIN_SESSIONS),
+        "note": ("No usable history on Screener or NSE (fewer than %d sessions): names merged "
+                 "out of existence. They stay unpriceable and cannot be selected." % MIN_SESSIONS),
     }, indent=2) + "\n", encoding="utf-8")
     print(f"wrote {PRICES_FILE.name}: {len(usable)} symbols, {len(adj)} sessions; "
           f"unavailable: {missing}")

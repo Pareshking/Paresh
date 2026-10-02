@@ -74,14 +74,6 @@ def test_the_cache_still_falls_back_to_the_newest_previous_entry(steps):
     )
 
 
-def test_the_snapshot_is_published_after_the_sync_runs(steps):
-    """Order matters: the upload reads a file the sync step writes."""
-    names = [str(s.get("name", "")) for s in steps]
-    sync = next(i for i, n in enumerate(names) if "Market Sync" in n)
-    publish = next(i for i, n in enumerate(names) if "Publish price snapshot" in n)
-    assert sync < publish
-
-
 def test_the_save_step_writes_the_key_the_restore_step_asked_for():
     """Where the rotation was almost missed.
 
@@ -178,22 +170,3 @@ def test_the_two_slots_cannot_run_over_each_other(spec):
     )
 
 
-def test_the_morning_run_actually_re_downloads(spec):
-    """The download gate would otherwise make it a no-op.
-
-    last_downloadable_session() is already past by 08:00 IST and the cache
-    holds that session, so the incremental path would return the cache
-    untouched. heal_days bypasses the gate deliberately, which is the only
-    reason this slot fetches anything at all.
-    """
-    from src.core.config import PRICE_HEAL_DAYS
-
-    assert PRICE_HEAL_DAYS > 0, (
-        "with heal_days at 0 the morning slot returns the cache without asking "
-        "the vendor for anything, and the second attempt is worthless"
-    )
-    src = (pathlib.Path(__file__).resolve().parents[1] / "scripts/sync_data.py").read_text()
-    assert "heal_days=0 if FORCE_FULL else PRICE_HEAL_DAYS" in src, (
-        "the daily sync no longer heals, so the morning slot cannot recover a "
-        "session the night run missed"
-    )

@@ -8,7 +8,7 @@ is the entire contract -- see src/engine/track_record.py for why.
     python scripts/update_track_record.py              # write closed months
     python scripts/update_track_record.py --dry-run    # report, write nothing
     python scripts/update_track_record.py --force      # rewrite history (loud)
-    python scripts/update_track_record.py --system nano --extra-prices prices_extra.parquet
+    python scripts/update_track_record.py --system nano
 
 --system picks the record: 750 (default, data/track_record.json), nano or
 combined (their own ledgers, from October 2026). Each is scored on its own
@@ -38,7 +38,6 @@ from src.engine.track_record import (  # noqa: E402
     save_ledger,
     summary_stats,
 )
-from src.engine.corporate_actions import load_events  # noqa: E402
 from src.engine import systems  # noqa: E402
 from src.engine.model_record import record_sector_map  # noqa: E402
 from src.engine.extra_universe import SYSTEM_750, SYSTEM_NANO, SYSTEMS  # noqa: E402
@@ -46,11 +45,7 @@ from src.engine.membership import describe  # noqa: E402
 from src.loaders import former_members, nse_prices  # noqa: E402
 from src.loaders import extra_universe_loader as xl  # noqa: E402
 from src.loaders.indices_loader import fetch_indices_data  # noqa: E402
-from src.loaders.price_loader import (  # noqa: E402
-    extract_ohlcv,
-    fetch_benchmark_history,
-    fetch_price_history,
-)
+from src.loaders.price_loader import fetch_benchmark_history  # noqa: E402
 
 
 def main() -> int:
@@ -59,18 +54,18 @@ def main() -> int:
     ap.add_argument("--ledger", default=None,
                     help="defaults to the system's own ledger")
     ap.add_argument("--extra-prices", default=None,
-                    help="prices_extra.parquet for Nano Cap stocks (else downloaded)")
+                    help="ignored; kept so older workflow calls still parse")
     ap.add_argument("--indices", nargs="+", default=["NIFTY TOTAL MARKET"])
     ap.add_argument(
         "--period",
         default="5y",
-        help="Price history to fetch. Must cover inception plus a 12-month "
+        help="Benchmark history to read. Must cover inception plus a 12-month "
         "formation window before it.",
     )
-    ap.add_argument("--prices", choices=["screener", "nse", "yahoo"], default=None,
+    ap.add_argument("--prices", choices=["screener", "nse"], default="screener",
                     help="price basis: screener (Screener's closes, NSE's where it has none; "
-                    "the 750's default), nse (NSE closes as published, data/nse_prices) or "
-                    "yahoo (restated adjusted closes; the default for Nano Cap and Combined)")
+                    "the default for every system) or nse (NSE closes as published, "
+                    "data/nse_prices). No Yahoo basis since 2026-10-02.")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument(
         "--note",
@@ -104,22 +99,21 @@ def main() -> int:
         return 1
     print(f"  {len(symbols)} symbols ({len(core)} in the 750, {len(extra)} Nano Cap)")
 
-    parts = []
-    if core:
-        parts.append(fetch_price_history(core, period=args.period))
-    if extra:
-        ep = (pd.read_parquet(args.extra_prices) if args.extra_prices and Path(args.extra_prices).exists()
-              else xl.download(extra))
-        parts.append(ep.loc[:, [c for c in ep.columns if c[0] in set(extra)]])
-    parts = [p for p in parts if p is not None and not p.empty]
-    raw = pd.concat(parts, axis=1).sort_index() if parts else pd.DataFrame()
-    if raw.empty:
-        print("✗ no price history")
+    # Screener's store holds both the 750 and the Nano Cap list; it is the
+    # frame's base, and basis_frame below lays NSE under it (owner, 2026-10-02:
+    # Screener first, NSE second, no Yahoo).
+    store = nse_prices.screener_store()
+    if store is None or store.empty or not isinstance(store.columns, pd.MultiIndex):
+        print("✗ Screener's store is unavailable; refusing to freeze months without it")
         return 1
-    adj_close, *_ = extract_ohlcv(raw, symbols)
+    closes = store.xs("Close", axis=1, level=-1)
+    closes.index = pd.DatetimeIndex(closes.index).normalize()
+    closes = closes[~closes.index.duplicated(keep="last")].sort_index()
+    adj_close = closes[[s for s in symbols if s in closes.columns]].astype(float)
     if adj_close.empty:
-        print("✗ no adjusted closes")
+        print("✗ no Screener closes for this universe")
         return 1
+    print(f"  Screener closes for {adj_close.shape[1]} of {len(symbols)} symbols")
 
     benchmark = fetch_benchmark_history(period=args.period)
     if benchmark.empty:
@@ -150,8 +144,7 @@ def main() -> int:
     # against survivors only (data/former_member_prices.parquet, kept by
     # scripts/sync_former_member_prices.py).
     cfg = dict(TRACK_RECORD_CONFIG)
-    basis = args.prices or ("screener" if system == SYSTEM_750 else "yahoo")
-    actions = load_events()
+    basis = args.prices
     if basis in ("screener", "nse"):
         # Screener's closes, as on the live ranking (owner, 2026-10-01); NSE's closes as
         # published, adjusted only for splits, bonuses and demergers, fill what Screener
@@ -181,16 +174,13 @@ def main() -> int:
             print(f"✗ the NSE file ends {info['last_session_on_file']}, behind the price data "
                   f"({as_of:%Y-%m-%d}); run scripts/sync_nse_prices.py --update first")
             return 1
-        # The window is counted back from the frame's end, and NSE's file is the
-        # earlier to reach a new month: on the first working day Yahoo's cache has no
-        # bar yet but NSE's first session of the month is already on R2.
+        # The window is counted back from the frame's end, and NSE's file can be
+        # the earlier to reach a new month: its first session of the month may be
+        # on file before Screener's store has that bar.
         as_of = pd.Timestamp(nse.index[-1])
         months = months_to_cover(as_of, start)
         print(f"→ NSE sessions through {as_of:%d %b %Y}; covering {months} completed months")
         adj_close, actions = nse, []
-    else:
-        cfg["prices"] = "yahoo_adjusted"
-        print("→ prices: Yahoo adjusted closes (restated)")
     n_before = adj_close.shape[1]
     adj_close = former_members.with_former_members(adj_close, membership)
     unpriceable = [s for s in former_members.unavailable() if s not in adj_close.columns]

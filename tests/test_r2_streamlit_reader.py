@@ -6,8 +6,8 @@ from r2.consumers.r2_streamlit import (
     configuration_key,
     enabled,
     read_historical,
-    DEEP_HISTORY_DATASET,
 )
+import r2.consumers.r2_streamlit as r2_streamlit_module
 
 
 def test_streamlit_reader_disabled_by_default(monkeypatch):
@@ -36,36 +36,8 @@ def test_streamlit_reader_dataset_can_be_configured(monkeypatch):
     assert configuration_key() == "r2|prices/custom|current"
 
 
-def test_streamlit_reader_deep_history_dataset():
-    # The adjusted archive the daily sync republishes, not the frozen,
-    # unadjusted raw capture.
-    assert DEEP_HISTORY_DATASET == "prices/yahoo"
-
-
-def test_streamlit_reader_deep_history_is_current_pointer(monkeypatch):
-    monkeypatch.setenv("R2_STREAMLIT_READER_ENABLED", "1")
-    import r2.consumers.r2_streamlit as mod
-
-    class Ref:
-        dataset = "prices/yahoo"
-        as_of = "2026-09-21"
-        revision_sha256 = "b" * 64
-
-    class Reader:
-        def __init__(self, archive):
-            self.archive = archive
-        def resolve_current(self, dataset):
-            assert dataset == "prices/yahoo"
-            return Ref()
-        def read_parquet(self, ref):
-            return {"ok": True}
-
-    monkeypatch.setattr(mod, "R2DatasetReader", Reader)
-    monkeypatch.setattr(mod, "R2Archive", lambda cfg: object())
-    monkeypatch.setattr(mod, "R2Config", type("Cfg", (), {"from_env": classmethod(lambda cls: object())}))
-
-    frame, pin = mod.read_configured_deep_history()
-    assert frame == {"ok": True}
-    assert pin.dataset == "prices/yahoo"
-    assert pin.as_of == "2026-09-21"
-    assert pin.revision_sha256 == "b" * 64
+def test_streamlit_reader_has_no_yahoo_deep_history():
+    # Yahoo is no longer a source (owner, 2026-10-02): the app's deep history
+    # is Screener's own store, so the R2 Yahoo reader is gone.
+    assert not hasattr(r2_streamlit_module, "read_configured_deep_history")
+    assert not hasattr(r2_streamlit_module, "DEEP_HISTORY_DATASET")

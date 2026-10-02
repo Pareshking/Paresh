@@ -5,9 +5,10 @@ two-year window because every calendar-momentum pass walks that frame row by
 row, so lengthening it multiplies the cold start rather than the storage.
 
 The daily sync job on GitHub Actions has neither constraint -- nobody is
-waiting on it, and NSE and Yahoo both answer it -- so it computes the highs
-once a day from ATH_HISTORY_PERIOD of data and commits one small row per
-symbol. Production reads that file in milliseconds.
+waiting on it -- so it computes the highs once a day from Screener's whole
+store (about ten years of closes, the basis the ranking uses; no Yahoo since
+2026-10-02) and commits one small row per symbol. Production reads that file
+in milliseconds.
 
 When the snapshot is missing the caller falls back to the high water mark of
 whatever history is already in memory. That is NOT an all-time high, and the
@@ -18,7 +19,6 @@ from __future__ import annotations
 
 import os
 import threading
-import time
 
 import pandas as pd
 
@@ -133,93 +133,47 @@ def ath_date_series(path: str | None = None) -> pd.Series:
     return df.set_index("Symbol")["ATHDate"]
 
 
-def build_ath_snapshot(
-    symbols: list[str],
-    period: str | None = None,
-    *,
-    download=None,
-    batch_size: int = 100,
-) -> pd.DataFrame:
-    """Compute per-symbol all-time highs from a long history.
+def build_ath_snapshot(symbols: list[str], store: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Per-symbol all-time highs from Screener's whole close history.
 
     Run by the daily sync job on GitHub Actions, never by the app.
 
-    THE ADJUSTMENT BASIS MUST MATCH THE APP'S. The screener's prices come from
-    yf.download with auto_adjust left at its default, which is True in yfinance
-    1.x -- adjusted for splits and dividends. An all-time high fetched with
-    auto_adjust=False is on a different scale entirely, and comparing the two
-    is meaningless: a stock that split 1:5 would carry a pre-split high five
-    times its adjusted price, so a genuine new high would read as ~76% BELOW
-    its all-time high. Hence auto_adjust=True here, explicitly, with this note
-    -- the default is easy to change and the failure would be silent.
+    THE ADJUSTMENT BASIS MUST MATCH THE APP'S. The ranking now reads
+    Screener's closes (split and bonus adjusted, not dividends), so the high
+    is taken from the same series: a high on any other basis would put a stock
+    that split 1:5 at ~80% below a high it never had. Screener carries closes
+    only, so this is a closing high, over as far back as the store reaches
+    (about ten years; weekly through 2023-24).
 
-    `download` is injectable so the batching and the adjustment basis can be
-    tested without touching the network.
+    `store` is the Screener store (columns (symbol, field)); None fetches the
+    published one.
     """
-    from src.core.config import ATH_HISTORY_PERIOD
-    from src.loaders.price_loader import _extract_field
+    empty = pd.DataFrame(columns=["Symbol", "ATH", "ATHDate", "AsOf"])
+    if store is None:  # pragma: no cover - exercised only against the network
+        from src.loaders import price_source
 
-    window = period or ATH_HISTORY_PERIOD
-    fetch = download
-    if fetch is None:  # pragma: no cover - exercised only against the network
-        import yfinance as yf
-
-        def fetch(tickers, **kwargs):
-            return yf.download(tickers, **kwargs)
-
-    tickers = [
-        sym if str(sym).upper().endswith(".NS") else f"{sym}.NS" for sym in symbols
-    ]
-    started = time.perf_counter()
-    frames = []
-    for i in range(0, len(tickers), batch_size):
-        got = fetch(
-            tickers[i : i + batch_size],
-            period=window,
-            progress=False,
-            group_by="ticker",
-            threads=True,
-            auto_adjust=True,
-        )
-        if got is not None and not got.empty:
-            frames.append(got)
-
-    if not frames:
-        return pd.DataFrame(columns=["Symbol", "ATH", "ATHDate", "AsOf"])
-
-    raw = pd.concat(frames, axis=1)
-    elapsed = time.perf_counter() - started
-    highs = _extract_field(raw, ["High"])
-    if highs is None or highs.empty:
-        return pd.DataFrame(columns=["Symbol", "ATH", "ATHDate", "AsOf"])
-
-    ath = highs.max()
+        store = price_source.fetch_screener_store()
+    if store is None or store.empty or not isinstance(store.columns, pd.MultiIndex):
+        return empty
+    try:
+        closes = store.xs("Close", axis=1, level=-1)
+    except Exception:  # noqa: BLE001
+        return empty
+    wanted = [s for s in dict.fromkeys(str(x).upper() for x in symbols) if s in closes.columns]
+    closes = closes[wanted].apply(pd.to_numeric, errors="coerce")
+    if closes.empty:
+        return empty
+    ath = closes.max()
     ath = ath[ath > 0].dropna()
     if ath.empty:
-        return pd.DataFrame(columns=["Symbol", "ATH", "ATHDate", "AsOf"])
-
-    peak_date = highs.idxmax().reindex(ath.index)
-    last_session = pd.DatetimeIndex(highs.index)[-1]
-
-    # Report what the window actually cost and reached. Lengthening
-    # ATH_HISTORY_PERIOD is cheap for production and paid entirely here, so the
-    # price of that constant should be visible in this job's log rather than
-    # assumed. "reaches back to" is the honest measure of the window: asking
-    # for 20y does not mean Yahoo has 20y for these symbols.
-    first_session = pd.DatetimeIndex(highs.index)[0]
-    logger.info(
-        "All-time highs over %s: %d symbols, %d sessions, %.1fs, "
-        "data reaches back to %s (oldest peak %s)",
-        window, len(ath), len(highs), elapsed,
-        pd.Timestamp(first_session).date(),
-        pd.Timestamp(peak_date.dropna().min()).date() if peak_date.notna().any() else "n/a",
-    )
-
+        return empty
+    peak_date = closes[ath.index].idxmax()
+    index = pd.DatetimeIndex(closes.index)
+    logger.info("All-time highs from Screener: %d symbols, %d sessions, %s to %s",
+                len(ath), len(index), index[0].date(), index[-1].date())
     return pd.DataFrame({
         "Symbol": ath.index,
         "ATH": ath.values,
-        "ATHDate": [
-            str(pd.Timestamp(d).date()) if pd.notna(d) else "" for d in peak_date.values
-        ],
-        "AsOf": str(pd.Timestamp(last_session).date()),
+        "ATHDate": [str(pd.Timestamp(d).date()) if pd.notna(d) else "" for d in peak_date.values],
+        "AsOf": str(index[-1].date()),
     }).sort_values("Symbol").reset_index(drop=True)

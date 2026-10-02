@@ -102,12 +102,12 @@ def _mb(n: int) -> str:
 # stops moving, something upstream has stopped -- the historical evidence
 # bootstrap sat at 2026-09-22 for days in September 2026 while every
 # individual step still looked "fine" in isolation. Datasets published once
-# (prices/yahoo/raw, parked by design) or whose as_of is fixed by the evidence
+# (prices/yahoo/raw, parked by design; prices/yahoo, no longer published since
+# 2026-10-02) or whose as_of is fixed by the evidence
 # itself (trading_sessions/*, market_caps/nse_snapshot, corporate_actions/*)
 # are deliberately not listed.
 DAILY_DATASETS = (
     "prices/screener",
-    "prices/yahoo",
     "snapshots/rankings",
     "calculations/rankings",
     "market_caps/nse_history",
