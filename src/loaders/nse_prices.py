@@ -57,20 +57,51 @@ def load(directory: Path = DIR) -> dict[str, Any] | None:
     return {"closes": closes.astype(float), "actions": actions, "notes": notes}
 
 
-def chain_symbols(close: pd.DataFrame, renames: dict[str, Any] | None) -> pd.DataFrame:
+def chain_symbols(close: pd.DataFrame, renames: dict[str, Any] | None,
+                  skipped: list[str] | None = None) -> pd.DataFrame:
     """Join a renamed stock's two NSE series into one, under its current symbol.
 
     NSE files the days before a ticker change under the old symbol and the days
-    after under the new one. `renames` is {old: {"new_symbol": new, ...}}.
+    after under the new one. `renames` is {old: {"new_symbol": new, ...}}. An
+    entry marked "auto" (src/loaders/nse_identity.py) is joined only where the
+    two series meet -- see continuous(); the others are appended to `skipped`.
     """
     out = close.copy()
     for old, a in (renames or {}).items():
         new = a["new_symbol"] if isinstance(a, dict) else str(a)
         if old not in out.columns:
             continue
+        if isinstance(a, dict) and a.get("auto") and new in out.columns:
+            why = continuous(out[old], out[new])
+            if why:
+                if skipped is not None:
+                    skipped.append(f"{old}->{new}: {why}")
+                continue
         out[new] = out[new].combine_first(out[old]) if new in out.columns else out[old]
         out = out.drop(columns=[old])
     return out
+
+
+def continuous(old: pd.Series, new: pd.Series) -> str:
+    """Why `old` does not run on into `new` ("" when it does): the last old
+    session and the first new one at most MAX_GAP_DAYS apart, the close
+    within MAX_JUMP across the join. A company whose equity was extinguished
+    in insolvency keeps its issuer code but not its price."""
+    from src.loaders.nse_identity import MAX_GAP_DAYS, MAX_JUMP
+
+    o, n = old.dropna(), new.dropna()
+    if o.empty or n.empty:
+        return ""
+    after = n[n.index > o.index[-1]]
+    if after.empty:
+        return "the new symbol has no session after the old one's last"
+    gap = (after.index[0] - o.index[-1]).days
+    if gap > MAX_GAP_DAYS:
+        return f"{gap} days between the series"
+    jump = after.iloc[0] / o.iloc[-1] - 1
+    if abs(jump) > MAX_JUMP:
+        return f"price moves {jump:+.0%} across the join"
+    return ""
 
 
 def correct(close: pd.DataFrame, corrections: Iterable[dict[str, Any]] | None) -> pd.DataFrame:
@@ -92,9 +123,21 @@ def adjusted_close(closes: pd.DataFrame, actions: pd.DataFrame, symbols: Iterabl
     notes = notes or {}
     factors, _ = na.action_factors(closes, actions)
     factors.index = closes.index
-    close = chain_symbols(na.adjust(closes, factors), notes.get("renames"))
+    # Renames: NSE's symbol-change list and ISINs (nse_identity), each joined
+    # only where the series meet; the ledger in notes.json overrides them.
+    from src.loaders.nse_identity import auto_renames
+
+    renames = {**auto_renames(set(closes.columns)), **(notes.get("renames") or {})}
+    not_joined: list[str] = []
+    close = chain_symbols(na.adjust(closes, factors), renames, not_joined)
     close = correct(close, notes.get("corrections"))
     wanted = list(dict.fromkeys(symbols))
+    # A name asked for by its old symbol gets the joined series of its successor.
+    for s in wanted:
+        a = renames.get(s)
+        succ = (a["new_symbol"] if isinstance(a, dict) else a) if a is not None else None
+        if s not in close.columns and succ in close.columns:
+            close[s] = close[succ]
     cols = [s for s in wanted if s in close.columns and close[s].notna().sum() > 0]
     out = close[cols].sort_index().astype("float32")
     report = {
@@ -105,6 +148,8 @@ def adjusted_close(closes: pd.DataFrame, actions: pd.DataFrame, symbols: Iterabl
         "first_session": str(out.index[0].date()) if len(out) else None,
         "last_session": str(out.index[-1].date()) if len(out) else None,
         "corporate_action_steps": int(len(na.events(factors))),
+        "renames_joined": int(sum(1 for o in renames if o in closes.columns)) - len(not_joined),
+        "renames_not_joined": not_joined,
     }
     return out, report
 
