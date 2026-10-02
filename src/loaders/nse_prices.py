@@ -57,67 +57,107 @@ def load(directory: Path = DIR) -> dict[str, Any] | None:
     return {"closes": closes.astype(float), "actions": actions, "notes": notes}
 
 
+def _target(a: Any) -> str:
+    return a["new_symbol"] if isinstance(a, dict) else str(a)
+
+
 def chain_symbols(close: pd.DataFrame, renames: dict[str, Any] | None,
-                  skipped: list[str] | None = None) -> pd.DataFrame:
-    """Join a renamed stock's two NSE series into one, under its current symbol.
+                  skipped: list[str] | None = None,
+                  landed: dict[str, str] | None = None) -> pd.DataFrame:
+    """Join a renamed stock's NSE series into one, under its current symbol.
 
     NSE files the days before a ticker change under the old symbol and the days
-    after under the new one. `renames` is {old: {"new_symbol": new, ...}}. An
-    entry marked "auto" (src/loaders/nse_identity.py) is joined only where the
-    two series meet -- see continuous(); the others are appended to `skipped`.
+    after under the new one. `renames` is {old: {"new_symbol": new, ...}}, each
+    old symbol pointing at the last ticker of its chain. A chain is joined one
+    step at a time, each old series onto the one that began where it ended
+    (SESAGOA -> SSLT -> VEDL), latest step first, so each step is checked
+    against its own successor, not a ticker that began years later. An entry
+    marked "auto" (src/loaders/nse_identity.py) is joined only where the two
+    series meet -- see continuous(); the others are appended to `skipped`.
+    `landed`, when given, receives {old: the column it was joined into}, for
+    joining another field the same way (join_landed).
     """
     out = close.copy()
+    land: dict[str, str] = {} if landed is None else landed
+    groups: dict[str, list[str]] = {}
     for old, a in (renames or {}).items():
-        new = a["new_symbol"] if isinstance(a, dict) else str(a)
+        new = _target(a)
+        if old in out.columns and old != new:
+            groups.setdefault(new, []).append(old)
+    for new, olds in groups.items():
+        span = {s: (out[s].first_valid_index(), out[s].last_valid_index()) for s in olds}
+        olds = [s for s in olds if span[s][0] is not None]
+        if not olds:
+            continue
+        if new not in out.columns:            # no series under the new ticker: the latest old one is it
+            last = max(olds, key=lambda s: span[s][0])
+            out = out.rename(columns={last: new})
+            land[last] = new
+            olds.remove(last)
+        span[new] = (out[new].first_valid_index(), out[new].last_valid_index())
+        members = [*olds, new]
+        for old in sorted(olds, key=lambda s: span[s][1], reverse=True):
+            # Its successor: the member whose series begins first after this one ends.
+            ends = span[old][1] - pd.Timedelta(days=5)
+            later = [m for m in members if m != old and span[m][0] is not None and span[m][0] > ends]
+            nxt = min(later, key=lambda m: span[m][0]) if later else new
+            while nxt in land:
+                nxt = land[nxt]
+            a = renames[old]
+            if isinstance(a, dict) and a.get("auto"):
+                why = continuous(out[old], out[nxt])
+                if why:
+                    if skipped is not None:
+                        skipped.append(f"{old}->{nxt}: {why}")
+                    continue
+            out[nxt] = out[nxt].combine_first(out[old])
+            out = out.drop(columns=[old])
+            land[old] = nxt
+    return out
+
+
+def landed_in(landed: dict[str, str], sym: str) -> str:
+    """The column `sym` ended up in after chain_symbols."""
+    seen = set()
+    while sym in landed and sym not in seen:
+        seen.add(sym)
+        sym = landed[sym]
+    return sym
+
+
+def join_landed(frame: pd.DataFrame, landed: dict[str, str], *, product: bool = False) -> pd.DataFrame:
+    """Join `frame`'s columns as chain_symbols joined the closes (its `landed` map).
+
+    product=True multiplies (adjustment factors: the new symbol's later splits
+    reach back into the old symbol's years); otherwise the old values fill in.
+    """
+    out = frame.copy()
+    for old in landed:
         if old not in out.columns:
             continue
-        if isinstance(a, dict) and a.get("auto") and new in out.columns:
-            why = continuous(out[old], out[new])
-            if why:
-                if skipped is not None:
-                    skipped.append(f"{old}->{new}: {why}")
-                continue
-        out[new] = out[new].combine_first(out[old]) if new in out.columns else out[old]
+        to = landed_in(landed, old)
+        if to not in out.columns:
+            out[to] = out[old]
+        elif product:
+            out[to] = out[to].fillna(1.0) * out[old].fillna(1.0)
+        else:
+            out[to] = out[to].combine_first(out[old])
         out = out.drop(columns=[old])
     return out
 
 
 def chain_raw(close: pd.DataFrame, factors: pd.DataFrame, renames: dict[str, Any] | None,
               skipped: list[str] | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Join renamed stocks' raw closes and their factors, before any adjustment.
+    """(raw closes joined across renames, their factors joined the same way).
 
-    Adjusting each ticker first and joining after left the old ticker's prices
-    without every split and bonus that came after the rename: INFOSYSTCH ran
-    on into an INFY carrying three later bonuses, the join read as a -87% fall
-    and was refused, and INFY lost 2008 - 2011 (46 renames so, incl.
-    BAJAUTOFIN, SRTRANSFIN, MOTHERSUMI, NIITTECH, SSLT; audit 2026-10-03).
-    Joined raw, the series meet at the price that traded; an action on the
-    join day itself is taken out of the move before continuous() judges it.
-    The two factor columns join under the same decisions.
+    Joined before any adjustment, so a split or bonus filed under the new
+    symbol reaches back into the old symbol's years (INFOSYSTCH -> INFY: three
+    later 1:1 bonuses read as an 87% fall and refused the join, so INFY began
+    in June 2011).
     """
-    out, f = close.copy(), factors.reindex_like(close).fillna(1.0).copy()
-    for old, a in (renames or {}).items():
-        new = a["new_symbol"] if isinstance(a, dict) else str(a)
-        if old not in out.columns:
-            continue
-        if isinstance(a, dict) and a.get("auto") and new in out.columns:
-            o = out[old].dropna()
-            n = out[new].copy()
-            first = n[n.index > o.index[-1]].first_valid_index() if len(o) else None
-            if first is not None:
-                n.loc[first] = n.loc[first] / f.at[first, new]
-            why = continuous(out[old], n)
-            if why:
-                if skipped is not None:
-                    skipped.append(f"{old}->{new}: {why}")
-                continue
-        if new in out.columns:
-            out[new] = out[new].combine_first(out[old])
-            f[new] = f[new] * f[old]
-        else:
-            out[new], f[new] = out[old], f[old]
-        out, f = out.drop(columns=[old]), f.drop(columns=[old])
-    return out, f
+    landed: dict[str, str] = {}
+    raw = chain_symbols(close, renames, skipped, landed)
+    return raw, join_landed(factors.reindex(index=close.index), landed, product=True)
 
 
 def continuous(old: pd.Series, new: pd.Series) -> str:
@@ -243,15 +283,16 @@ def adjusted_close(closes: pd.DataFrame, actions: pd.DataFrame, symbols: Iterabl
     factors, _ = na.action_factors(closes, moved)
     factors.index = closes.index
     not_joined: list[str] = []
-    raw, joined = chain_raw(closes, factors, renames, not_joined)
+    landed: dict[str, str] = {}
+    raw = chain_symbols(closes, renames, not_joined, landed)
+    joined = join_landed(factors, landed, product=True)
     close = na.adjust(raw, joined)
     corrections, superseded = uncovered(notes.get("corrections"), joined, renames)
     close = correct(close, corrections)
     wanted = list(dict.fromkeys(symbols))
     # A name asked for by its old symbol gets the joined series of its successor.
     for s in wanted:
-        a = renames.get(s)
-        succ = (a["new_symbol"] if isinstance(a, dict) else a) if a is not None else None
+        succ = landed_in(landed, s)
         if s not in close.columns and succ in close.columns:
             close[s] = close[succ]
     cols = [s for s in wanted if s in close.columns and close[s].notna().sum() > 0]
@@ -266,8 +307,9 @@ def adjusted_close(closes: pd.DataFrame, actions: pd.DataFrame, symbols: Iterabl
         "corporate_action_steps": int(len(na.events(factors))),
         "actions_moved_to_old_symbol": actions_moved,
         "corrections_superseded_by_an_action": superseded,
-        "renames_joined": int(sum(1 for o in renames if o in closes.columns)) - len(not_joined),
+        "renames_joined": len(landed),
         "renames_not_joined": not_joined,
+        "renames_landed": dict(sorted(landed.items())),
     }
     return out, report
 
