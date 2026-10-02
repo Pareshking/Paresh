@@ -138,10 +138,19 @@ python scripts/sync_ss.py --stale-hours 12 --limit 40                      # one
 python scripts/import_nse_history.py --prices --mirror mirror/data --workers 8
 python scripts/import_nse_history.py --actions --from-year 2010
 python scripts/build_isin_history.py --mirror mirror/historic_data         # once; history
+python scripts/nse_history_audit.py --since 2010-01-01                     # the history audit
 ```
 
+**The history audit** (`nse_history_audit.yml`, on demand; read only) checks
+R2's NSE history: missing days, both by the calendar (weekdays neither held nor
+a known closed day) and independently by NSE's own previous closes (a session
+whose previous close does not match our previous session for most stocks);
+every split, bonus and demerger with whether the price confirms it;
+unexplained one-day moves beyond 1.8×; renames refused by the continuity
+check.
+
 Workflows on demand: `ss_sync.yml` (mode daily/backfill), `nse_collect.yml`
-(backfill, minutes, since), `nse_history_import.yml`.
+(backfill, minutes, since), `nse_history_import.yml`, `nse_history_audit.yml`.
 
 ## To do
 

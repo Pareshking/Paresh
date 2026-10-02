@@ -1,0 +1,45 @@
+name: NSE history audit
+
+# Read-only check of R2's NSE history, 2010 to date: missing days (by the
+# calendar and, independently, by NSE's own previous closes), every split /
+# bonus / demerger and whether the price confirms it, unexplained jumps, and
+# automatic renames refused by the continuity check. The report is the run's
+# summary and an artifact. See scripts/nse_history_audit.py.
+on:
+  workflow_dispatch:
+    inputs:
+      since:
+        description: "First day to audit (YYYY-MM-DD)"
+        default: "2010-01-01"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      PYTHONPATH: .
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+      - run: pip install -r requirements.txt
+      - name: Audit
+        run: |
+          python scripts/nse_history_audit.py --since "${{ inputs.since || '2010-01-01' }}" --out reports/nse_audit
+          cat reports/nse_audit/report.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: nse-history-audit
+          path: reports/nse_audit/
+          if-no-files-found: ignore
+          retention-days: 30
