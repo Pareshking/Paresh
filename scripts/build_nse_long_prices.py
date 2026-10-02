@@ -125,11 +125,10 @@ def build(prices: pd.DataFrame, actions: pd.DataFrame, notes: dict, renames: dic
     report["calendar_flags"] = {str(d): why for d, why in impossible_sessions(close.index).items()}
     # Traded value is not adjusted (a split changes the share count, not the rupees
     # traded); it is joined across renames exactly as the closes were.
-    val = npx.chain_symbols(value, joined_renames(renames, report["renames_not_joined"]))
+    val = npx.join_landed(value, report["renames_landed"])
     for s in adj.columns:
         if s not in val.columns:
-            a = renames.get(s)
-            succ = (a["new_symbol"] if isinstance(a, dict) else a) if a is not None else None
+            succ = npx.landed_in(report["renames_landed"], s)
             if succ in val.columns:
                 val[s] = val[succ]
     val = (val.reindex(index=adj.index, columns=adj.columns) / CRORE).astype("float32")

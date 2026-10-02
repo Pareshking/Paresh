@@ -38,10 +38,24 @@ def test_both_records_agreeing_is_recorded():
     assert _resolve().loc["AMIORG", "source"] == "nse_list+isin"
 
 
-def test_a_listed_symbol_is_never_re_pointed_and_a_dead_end_is_no_rename():
+def test_a_listed_symbol_is_never_re_pointed_and_an_unknown_isin_is_no_rename():
     t = _resolve()
     assert "20MICRONS" not in t.index                  # still listed, though its ISIN changed
-    assert "DELISTED" not in t.index and "OLDA" not in t.index   # OLDA -> MIDB -> GONE: not listed
+    assert "DELISTED" not in t.index                   # its ISIN leads nowhere listed, and no list names it
+
+
+def test_nses_chain_is_followed_to_its_last_ticker_even_one_delisted_since():
+    # OLDA -> MIDB -> GONE: GONE later merged away, but its years traded under one
+    # company (BHUSANSTL -> TATASTLBSL, merged into Tata Steel in 2021).
+    t = _resolve()
+    assert t.loc["OLDA", ["new", "source"]].tolist() == ["GONE", "nse_list"]
+    assert t.loc["MIDB", "new"] == "GONE"
+
+
+def test_a_listed_ticker_by_isin_beats_a_chain_that_ends_unlisted():
+    changes = pd.DataFrame({"old": ["BURGERKING"], "new": ["GONE"], "date": [pd.Timestamp("2022-01-01")]})
+    t = ni.resolve(changes=changes, history=HISTORY, current=CURRENT).set_index("old")
+    assert t.loc["BURGERKING", ["new", "source", "conflict"]].tolist() == ["RBA", "isin", ""]
 
 
 def test_records_that_disagree_are_a_conflict_and_not_applied():
@@ -64,7 +78,7 @@ def test_every_rename_in_the_ledger_is_found_by_the_committed_records():
 
 # ── Joining two series only where they meet ──────────────────────────────────
 
-DAYS = pd.bdate_range("2021-01-04", periods=40)
+DAYS = pd.bdate_range("2021-01-04", periods=160)
 
 
 def _close(old_last, new_first, jump=0.0):
@@ -83,8 +97,41 @@ def test_an_auto_rename_joins_where_the_series_meet():
 
 def test_an_auto_rename_across_a_long_gap_is_not_joined():
     skipped = []
-    out = npx.chain_symbols(_close(5, 30), {"OLD": {"new_symbol": "NEW", "auto": True}}, skipped)
+    out = npx.chain_symbols(_close(5, 120), {"OLD": {"new_symbol": "NEW", "auto": True}}, skipped)
     assert set(out.columns) == {"OLD", "NEW"} and "days between" in skipped[0]
+
+
+def test_a_rename_with_weeks_of_suspension_is_joined():
+    """CASTROL -> CASTROLIND: 16 days without trading, the price unchanged."""
+    skipped = []
+    out = npx.chain_symbols(_close(5, 30), {"OLD": {"new_symbol": "NEW", "auto": True}}, skipped)
+    assert list(out.columns) == ["NEW"] and not skipped
+
+
+def test_a_chain_is_joined_step_by_step_through_its_middle_ticker():
+    """SESAGOA -> SSLT -> VEDL: both old tickers point at VEDL; SESAGOA ended
+    years before VEDL began, so it must join onto SSLT, not VEDL directly."""
+    close = pd.DataFrame({"VEDL": np.r_[np.full(100, np.nan), np.full(60, 50.0)],
+                          "SESAGOA": np.r_[np.full(40, 50.0), np.full(120, np.nan)],
+                          "SSLT": np.r_[np.full(40, np.nan), np.full(60, 50.0), np.full(60, np.nan)]},
+                         index=DAYS)
+    renames = {"SESAGOA": {"new_symbol": "VEDL", "auto": True}, "SSLT": {"new_symbol": "VEDL", "auto": True}}
+    skipped, landed = [], {}
+    out = npx.chain_symbols(close, renames, skipped, landed)
+    assert list(out.columns) == ["VEDL"] and out["VEDL"].notna().all() and not skipped
+    assert landed == {"SSLT": "VEDL", "SESAGOA": "VEDL"}
+
+
+def test_factors_and_value_follow_the_joins_the_closes_took():
+    close = _close(19, 20)
+    landed = {}
+    npx.chain_symbols(close, {"OLD": {"new_symbol": "NEW", "auto": True}}, [], landed)
+    f = pd.DataFrame(1.0, index=DAYS, columns=["OLD", "NEW"])
+    f.loc[DAYS[30], "NEW"] = 0.5
+    f.loc[DAYS[10], "OLD"] = 0.25
+    joined = npx.join_landed(f, landed, product=True)
+    assert list(joined.columns) == ["NEW"]
+    assert joined.loc[DAYS[30], "NEW"] == 0.5 and joined.loc[DAYS[10], "NEW"] == 0.25
 
 
 def test_an_auto_rename_with_a_price_cliff_is_not_joined():
@@ -95,7 +142,7 @@ def test_an_auto_rename_with_a_price_cliff_is_not_joined():
 
 
 def test_the_ledger_joins_without_the_check():
-    out = npx.chain_symbols(_close(5, 30), {"OLD": {"new_symbol": "NEW"}})
+    out = npx.chain_symbols(_close(5, 120), {"OLD": {"new_symbol": "NEW"}})
     assert list(out.columns) == ["NEW"]
 
 
