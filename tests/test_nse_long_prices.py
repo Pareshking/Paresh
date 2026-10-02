@@ -1,5 +1,6 @@
 """The long 2010+ backtest's data: index timelines (Nifty 100) and the long NSE price file."""
 import pandas as pd
+import pytest
 
 from scripts import build_nse_long_prices as long
 from src.engine import index_universe as iu
@@ -141,3 +142,21 @@ def test_a_day_whose_value_is_1e5_too_large_is_scaled_back():
     assert report["value_days_rescaled_from_x1e5"] == int(p.loc[bad, "date"].nunique())
     assert value.loc["2010-02-01":].max().max() < 1.0          # Rs Cr, not Rs 1e5 Cr
     assert report["value_over_close_x_volume_by_year"] == {2010: 1.0}
+
+
+def test_tejhq_fills_only_gaps_in_nses_list(tmp_path):
+    from scripts.build_nse_long_prices import with_tejhq
+
+    path = tmp_path / "t.csv"
+    pd.DataFrame([
+        {"symbol": "ABC", "isin": "X", "ex_date": "2016-07-14", "kind": "bonus",
+         "price_factor": 2 / 3, "purpose": "Bonus 1:2"},             # NSE has it: skipped
+        {"symbol": "SUPRAJIT", "isin": "Y", "ex_date": "2010-03-18", "kind": "split",
+         "price_factor": 0.1, "purpose": "Bon 1:1/Fv Spl Rs.5tore.1"},  # a gap: added
+    ]).to_csv(path, index=False)
+    nse = pd.DataFrame([{"symbol": "ABC", "ex_date": pd.Timestamp("2016-07-15"), "kind": "bonus",
+                         "price_factor": 2 / 3, "purpose": "BONUS 1:2"}])
+    out, n = with_tejhq(nse, path)
+    assert n == 1 and out["symbol"].tolist() == ["ABC", "SUPRAJIT"]
+    assert out.iloc[1]["price_factor"] == pytest.approx(0.1)
+    assert with_tejhq(nse, tmp_path / "missing.csv") == (nse, 0)

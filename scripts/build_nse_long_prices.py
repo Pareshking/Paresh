@@ -69,6 +69,35 @@ def joined_renames(renames: dict, refused: list[str]) -> dict[str, dict]:
             for old, a in renames.items() if old not in no}
 
 
+TEJHQ_ACTIONS = Path(__file__).resolve().parents[1] / "data" / "reference" / "tejhq_actions.csv"
+PRICE_KINDS = ("split", "bonus", "consolidation", "demerger", "bonus_preference")
+
+
+def with_tejhq(actions: pd.DataFrame, path: Path = TEJHQ_ACTIONS,
+               days: int = 5) -> tuple[pd.DataFrame, int]:
+    """NSE's actions plus TejHQ's where NSE lists none for that stock nearby.
+
+    Gaps only (scripts/build_tejhq_actions.py): one event worded two ways must
+    not multiply into a factor no price confirms (#348). Each added row still
+    has to be confirmed by the price, like every action.
+    """
+    try:
+        t = pd.read_csv(path, parse_dates=["ex_date"])
+    except OSError:
+        return actions, 0
+    ours = actions[actions["kind"].isin(PRICE_KINDS)] if len(actions) else actions
+    near: dict[str, list[pd.Timestamp]] = {}
+    for sym, ex in zip(ours.get("symbol", []), pd.to_datetime(ours.get("ex_date", []), errors="coerce")):
+        if pd.notna(ex):
+            near.setdefault(sym, []).append(ex)
+    gap = pd.Timedelta(days=days)
+    add = t[[not any(abs(ex - e) <= gap for e in near.get(sym, []))
+             for sym, ex in zip(t["symbol"], t["ex_date"])]]
+    rows = add.assign(series="EQ", date=add["ex_date"])[
+        ["date", "series", "symbol", "ex_date", "purpose", "kind", "price_factor"]]
+    return pd.concat([actions, rows], ignore_index=True), int(len(rows))
+
+
 def build(prices: pd.DataFrame, actions: pd.DataFrame, notes: dict, renames: dict,
           keep: list[str]) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     """(adjusted closes, traded value in Rs Cr, report) for `keep`, from NSE's raw rows."""
@@ -139,7 +168,7 @@ def main(argv=None) -> int:
     renames = {**auto_renames(set(prices["symbol"].dropna().unique())), **(notes.get("renames") or {})}
     keep, raw = wanted_symbols(notes, renames)
     prices = prices[prices["symbol"].isin(raw)]
-    actions = read_actions(reader, archive, args.since, until)
+    actions, from_tejhq = with_tejhq(read_actions(reader, archive, args.since, until))
     actions = actions[actions["symbol"].isin(raw)] if len(actions) else actions
     print(f"keeping {len(keep)} symbols ({len(raw)} raw tickers): "
           f"{len(prices):,} price rows, {len(actions):,} actions")
@@ -148,7 +177,8 @@ def main(argv=None) -> int:
     args.out.mkdir(parents=True, exist_ok=True)
     close.to_parquet(args.out / CLOSE_FILE, compression="zstd")
     value.to_parquet(args.out / VALUE_FILE, compression="zstd")
-    report = {**report, "built": date.today().isoformat(), "since": str(args.since),
+    report = {**report, "actions_from_tejhq": from_tejhq,
+              "built": date.today().isoformat(), "since": str(args.since),
               "until": str(until), "sessions_on_r2": len(days),
               "basis": "nse_raw_adjusted_split_bonus_consolidation_demerger"}
     (args.out / REPORT_FILE).write_text(json.dumps(report, indent=1) + "\n", encoding="utf-8")
