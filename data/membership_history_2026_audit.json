@@ -206,6 +206,13 @@
       "to": "JSWDULUX",
       "effective": "2026-04-15",
       "notes": "Continuity across rename. The September JSWDULUX removal remains a genuine official review event."
+    },
+    {
+      "user_reported_name": "KZOINDIA",
+      "canonical_symbol": "AKZOINDIA",
+      "to": "JSWDULUX",
+      "effective": "2026-04-15",
+      "notes": "The canonical NSE symbol used in the data is AKZOINDIA; it is treated as the same ticker/name continuity chain, not a separate membership event."
     }
   ],
   "final_validation": {
@@ -219,5 +226,112 @@
       "nifty_total_market": 750
     },
     "replay_matches_current_csv": true
-  }
+  },
+  "placeholder_notices": [
+    {
+      "notice": "ind_prs03092026.pdf",
+      "issued": "2026-09-03",
+      "effective": [
+        "2026-09-07"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs03092026.pdf",
+      "note": "Placeholder-only evidence; DUMMY* symbols are not represented in membership_history.json and do not count as tradeable constituents."
+    },
+    {
+      "notice": "ind_prs17062026.pdf",
+      "issued": "2026-06-17",
+      "effective": [
+        "2026-04-30",
+        "2026-06-19"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs17062026.pdf",
+      "note": "Placeholder-only evidence; DUMMY* symbols are not represented in membership_history.json and do not count as tradeable constituents."
+    },
+    {
+      "notice": "ind_prs17072026.pdf",
+      "issued": "2026-07-17",
+      "effective": [
+        "2026-07-22",
+        "2026-07-22"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs17072026.pdf",
+      "note": "Placeholder-only evidence; DUMMY* symbols are not represented in membership_history.json and do not count as tradeable constituents."
+    },
+    {
+      "notice": "ind_prs19062026.pdf",
+      "issued": "2026-06-19",
+      "effective": [
+        "2026-04-30",
+        "2026-06-23"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs19062026.pdf",
+      "note": "Placeholder-only evidence; DUMMY* symbols are not represented in membership_history.json and do not count as tradeable constituents."
+    },
+    {
+      "notice": "ind_prs20022026_1.pdf",
+      "issued": "2026-02-20",
+      "effective": [
+        "2025-12-05",
+        "2026-02-24"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs20022026_1.pdf",
+      "note": "Placeholder-only evidence; DUMMY* symbols are not represented in membership_history.json and do not count as tradeable constituents."
+    },
+    {
+      "notice": "ind_prs20072026.pdf",
+      "issued": "2026-07-20",
+      "effective": [
+        "2025-11-12",
+        "2026-07-22"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs20072026.pdf",
+      "note": "Placeholder-only evidence; DUMMY* symbols are not represented in membership_history.json and do not count as tradeable constituents."
+    },
+    {
+      "notice": "ind_prs22062026.pdf",
+      "issued": "2026-06-22",
+      "effective": [
+        "2026-04-30",
+        "2026-06-24"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs22062026.pdf",
+      "note": "Placeholder-only evidence; DUMMY* symbols are not represented in membership_history.json and do not count as tradeable constituents."
+    },
+    {
+      "notice": "ind_prs23042026.pdf",
+      "issued": "2026-04-23",
+      "effective": [
+        "2026-04-30",
+        "2026-04-30"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs23042026.pdf",
+      "note": "Placeholder-only evidence; DUMMY* symbols are not represented in membership_history.json and do not count as tradeable constituents."
+    },
+    {
+      "notice": "ind_prs26082026_1.pdf",
+      "issued": "2026-08-26",
+      "effective": [],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs26082026_1.pdf",
+      "note": "Placeholder-only evidence; DUMMY* symbols are not represented in membership_history.json and do not count as tradeable constituents."
+    },
+    {
+      "notice": "ind_prs28072026_1.pdf",
+      "issued": "2026-07-28",
+      "effective": [
+        "2026-07-31"
+      ],
+      "kind": "demerger placeholder (DUMMY symbol), not a tradeable name",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs28072026_1.pdf",
+      "note": "Placeholder-only evidence; DUMMY* symbols are not represented in membership_history.json and do not count as tradeable constituents."
+    }
+  ]
 }
