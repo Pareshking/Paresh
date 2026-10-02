@@ -8520,7 +8520,7 @@
           "POWERGRID",
           "PRAJIND",
           "PRICOL",
-          "PROVOGUE",
+          "PROVOGE",
           "PRSMJOHNSN",
           "PSL",
           "PTC",
@@ -9044,7 +9044,7 @@
             "JINDALSAW"
           ],
           "removed": [
-            "PROVOGUE"
+            "PROVOGE"
           ],
           "notice": "ind_prs14032012.pdf"
         },
@@ -13623,7 +13623,7 @@
       },
       {
         "index": "nifty_500",
-        "symbol": "PROVOGUE",
+        "symbol": "PROVOGE",
         "from": "2010-01-01",
         "to": "2012-03-06",
         "caveat": "WEB_SECONDARY_2012-03-07"
@@ -16049,7 +16049,7 @@
         "file": "ind_prs14032012",
         "index": "NIFTY_500",
         "action": "OUT",
-        "symbol": "PROVOGUE",
+        "symbol": "PROVOGE",
         "evidence": "WEB_SECONDARY: same Scribd list shows Provogue (India) Ltd. at 07-03-2012 and no notice found lists its exit; direction inferred (not in any later list); corroborated by corporate-action timing: blog neerajmarathe.wordpress.com/2012/02/14/provogue-india-ltd-demerger reports the Provogue demerger (Prozone Capital, 1:1) with ex-date 2012-03-07 (blog, secondary); with this row Nifty 500 is exactly 500 at all 32 snapshots 2010-02-24 to 2012-05; primary notice ind_prs02032012 unavailable|2012-03-07"
       }
     ]
