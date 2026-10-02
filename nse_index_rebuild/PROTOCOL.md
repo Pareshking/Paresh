@@ -47,6 +47,8 @@ A date range is `PRODUCTION` only if G1 to G8 all pass. A range with open items 
 | Nifty Smallcap 250 | 44 | 0 | 0 | none |
 | Nifty Microcap 250 | 32 | 0 | 0 | none |
 
-- G3 holds for Nifty 50 back to 2019-03-29. G4, G5, G7 and G8 have not been done, so nothing is `PRODUCTION` yet.
-- The 47 symbol changes in `rules/aliases.csv` are all `INFERRED_FROM_SYMBOL_CONTINUITY`: each was accepted because it removed a chain violation, not because an NSE circular was found. They fail G2 for production use until each circular is located.
-- Every other range is `RESEARCH_ONLY` until its open items are closed.
+- G3 (chain closure) now holds for all five indices over their whole reconstructed range: Nifty 50, Next 50, Midcap 150 and Smallcap 250 back to 2019, and Microcap 250 back to its September 2021 start. The gate script (`reverse2.py`) exits 0, with zero unresolved events, also for Nifty Total Market.
+- G2 (traceability): 46 of the 47 symbol changes in `rules/aliases.csv` are confirmed by NSE documents: 36 by NSE's "Changes in Symbols" file (`reference/nse_symbolchange.csv`, hashed and dated), 10 by individual NSE circulars (one read from a broker-hosted copy, one via an NSE Clearing circular). The remaining one, PEL to PIRAMALFIN, is a merger successor and is `INFERRED_MERGER_SUCCESSOR`, so it still fails G2 for production use. Ranges that involve it are `RESEARCH_ONLY`.
+- Known ambiguity: Smallcap 250 membership of GAYAPROJ and FLUOROCHEM between 2020-03-27 and 2020-06-25 is unresolved (`rules/ambiguities.csv`); ranges overlapping that window are not production-grade.
+- Eight announcements were image-only and were read by OCR (`ocr_pdf.py`; 344 of 345 symbols matched on a text-layer control). One line (the effective date of `ind_prs23082021`) was transcribed by hand. OCR output has not been blind-reviewed (G7).
+- G4, G5, G7 and G8 have not been done, so nothing is `PRODUCTION` yet. Chain closure shows the announcements are internally consistent and agree with today's NSE lists; it does not prove each announcement was complete.
