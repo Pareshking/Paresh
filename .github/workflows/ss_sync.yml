@@ -1,17 +1,18 @@
 name: SS price sync (manual, gentle)
 
 # Downloads the SS store a few symbols at a time, well under the site's
-# rate limit (site owner's permission, 2026-10-02: "don't break my site").
-# Resumable: each run continues where the last stopped.
+# rate limit (site owner, 2026-10-02: "do not hammer my site by downloading
+# entire universe in one go, give some breathing to my website").
+# Resumable: each run continues where the last one stopped.
 on:
   workflow_dispatch:
     inputs:
       rounds:
-        description: "Rounds this run (60 symbols each, 5-minute rest between)"
-        default: "20"
+        description: "Rounds this run (5-minute rest between rounds)"
+        default: "5"
       per_round:
         description: "Symbols per round"
-        default: "60"
+        default: "40"
 
 permissions:
   contents: write
@@ -49,8 +50,9 @@ jobs:
         run: |
           for i in $(seq 1 ${{ inputs.rounds }}); do
             echo "=== Round $i ==="
-            python scripts/sync_ss.py --skip-done --delay 4 --limit ${{ inputs.per_round }} || { echo "Stopped (refused or nothing fetched); saving progress."; break; }
-            if grep -q "STOCKSCANS\|SS fetched=0" /dev/null; then break; fi
+            python scripts/sync_ss.py --skip-done --delay 4 --limit ${{ inputs.per_round }} | tee round.log \
+              || { echo "Stopped (refused or nothing fetched); saving progress."; break; }
+            if grep -q "^SS: 0 symbols" round.log; then echo "Everything is downloaded."; break; fi
             [ "$i" -lt "${{ inputs.rounds }}" ] && sleep 300
           done
 
