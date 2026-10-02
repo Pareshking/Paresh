@@ -331,9 +331,12 @@ def test_reconstructed_histories_replay_to_today_csvs_without_dummy_symbols():
             assert not any(s.startswith("DUMMY") for s in members)
             if change["date"] >= "2026-03-30":
                 expected = expected_counts[key]
-                if key in {"nifty_next_50", "nifty_total_market"}:
+                if key == "nifty_next_50":
                     expected = {"2026-06-15": 54, "2026-06-19": 52,
                                 "2026-06-23": 51, "2026-06-24": 50}.get(change["date"], expected)
+                elif key == "nifty_total_market":
+                    expected = {"2026-06-15": 754, "2026-06-19": 752,
+                                "2026-06-23": 751, "2026-06-24": 750}.get(change["date"], expected)
                 assert len(members) == expected, (key, change["date"], len(members))
         with (ROOT / relative_path).open(encoding="utf-8", newline="") as fh:
             rows = csv.DictReader(fh)
