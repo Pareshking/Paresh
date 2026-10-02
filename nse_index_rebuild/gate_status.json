@@ -17,25 +17,25 @@
  },
  "NIFTY_MIDCAP_150": {
   "expected_size_incl_dummies": 150,
-  "snapshots": 24,
-  "snapshots_wrong_size": 18,
-  "chain_breaks": 6,
-  "latest_chain_break": "2024-03-28",
+  "snapshots": 25,
+  "snapshots_wrong_size": 13,
+  "chain_breaks": 2,
+  "latest_chain_break": "2022-05-04",
   "oldest_snapshot": "2019-03-29"
  },
  "NIFTY_SMALLCAP_250": {
   "expected_size_incl_dummies": 250,
-  "snapshots": 50,
-  "snapshots_wrong_size": 32,
-  "chain_breaks": 13,
-  "latest_chain_break": "2024-03-28",
+  "snapshots": 51,
+  "snapshots_wrong_size": 28,
+  "chain_breaks": 8,
+  "latest_chain_break": "2022-09-30",
   "oldest_snapshot": "2019-01-28"
  },
  "NIFTY_MICROCAP_250": {
   "expected_size_incl_dummies": 250,
-  "snapshots": 34,
-  "snapshots_wrong_size": 22,
-  "chain_breaks": 8,
+  "snapshots": 35,
+  "snapshots_wrong_size": 23,
+  "chain_breaks": 7,
   "latest_chain_break": "2024-09-30",
   "oldest_snapshot": "2021-09-30"
  }

@@ -124,3 +124,11 @@ CANCEL,ind_prs19032020,NIFTY_MIDCAP_150,OUT,YESBANK,Cancelled per official ind_p
 CANCEL,ind_prs19032020,NIFTY_MIDCAP_150,IN,PVR,Cancelled per official ind_prs23032020.pdf: broad rebalancing scheduled for 2020-03-27 was deferred; the explicit exception is the separate GAYAPROJ -> FLUOROCHEM notice.
 CANCEL,ind_prs19032020,NIFTY_SMALLCAP_250,OUT,PVR,Cancelled per official ind_prs23032020.pdf: broad rebalancing scheduled for 2020-03-27 was deferred; the explicit exception is the separate GAYAPROJ -> FLUOROCHEM notice.
 CANCEL,ind_prs19032020,NIFTY_SMALLCAP_250,IN,ALKYLAMINE,Cancelled per official ind_prs23032020.pdf: broad rebalancing scheduled for 2020-03-27 was deferred; the explicit exception is the separate GAYAPROJ -> FLUOROCHEM notice.
+CANCEL,ind_prs28022024,NIFTY_MIDCAP_150,IN,IREDA,"ind_prs19032024 revocation table (effective 2024-03-28): Midcap 150 row 2, IREDA inclusion revoked (impact cost)"
+CANCEL,ind_prs28022024,NIFTY_SMALLCAP_250,OUT,VGUARD,"ind_prs19032024 revocation table (effective 2024-03-28): Smallcap 250 row 3, V-Guard exclusion revoked"
+CANCEL,ind_prs28022024,NIFTY_MICROCAP_250,IN,VGUARD,"ind_prs19032024 revocation table (effective 2024-03-28): Microcap 250 row 10, V-Guard inclusion revoked"
+CANCEL,ind_prs28022024,NIFTY_TOTAL_MARKET,IN,IREDA,"ind_prs19032024 revocation table (effective 2024-03-28): Total Market row 11, IREDA inclusion revoked"
+ADD_EFF,ind_prs19032024,NIFTY_MIDCAP_150,IN,BSE,"ind_prs19032024 revocation table (effective 2024-03-28): Midcap 150 row 2, BSE inclusion|2024-03-28"
+ADD_EFF,ind_prs19032024,NIFTY_SMALLCAP_250,OUT,BSE,"ind_prs19032024 revocation table (effective 2024-03-28): Smallcap 250 row 3, BSE exclusion (on account of inclusion in Midcap 150)|2024-03-28"
+ADD_EFF,ind_prs19032024,NIFTY_MICROCAP_250,IN,JYOTICNC,"ind_prs19032024 revocation table (effective 2024-03-28): Microcap 250 row 10, Jyoti CNC inclusion|2024-03-28"
+ADD_EFF,ind_prs19032024,NIFTY_TOTAL_MARKET,IN,JYOTICNC,"ind_prs19032024 revocation table (effective 2024-03-28): Total Market row 11, Jyoti CNC inclusion|2024-03-28"

@@ -43,10 +43,10 @@ A date range is `PRODUCTION` only if G1 to G8 all pass. A range with open items 
 |---|---|---|---|---|
 | Nifty 50 | 14 | 0 | 0 | none |
 | Nifty Next 50 | 20 | 15 | 6 | 2021-03-31 |
-| Nifty Midcap 150 | 24 | 18 | 6 | 2024-03-28 |
-| Nifty Smallcap 250 | 50 | 32 | 13 | 2024-03-28 |
-| Nifty Microcap 250 | 34 | 22 | 8 | 2024-09-30 |
+| Nifty Midcap 150 | 25 | 13 | 2 | 2022-05-04 |
+| Nifty Smallcap 250 | 51 | 28 | 8 | 2022-09-30 |
+| Nifty Microcap 250 | 35 | 23 | 7 | 2024-09-30 |
 
 - G3 holds for Nifty 50 back to 2019-03-29. G4, G5, G7 and G8 have not been done, so nothing is `PRODUCTION` yet.
-- The five renames in `rules/aliases.csv` (ZOMATO to ETERNAL, SUNDARMHLD to TSFINV, AKZOINDIA to JSWDULUX, GET&D to GVT&D, PEL to PIRAMALFIN) are `INFERRED_FROM_SYMBOL_CONTINUITY`. The NSE circulars are still to be found, so they fail G2 for production use.
+- The 26 symbol changes in `rules/aliases.csv` are all `INFERRED_FROM_SYMBOL_CONTINUITY`: each was accepted because it removed a chain violation, not because an NSE circular was found. They fail G2 for production use until each circular is located.
 - Every other range is `RESEARCH_ONLY` until its open items are closed.
