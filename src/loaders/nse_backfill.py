@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import re
 import time
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 import numpy as np
@@ -35,6 +35,10 @@ from src.loaders import nse_bundle as nb
 MIRROR_REPO = "https://github.com/tilak999/NSE-Data-bank"
 MIRROR_START = date(2010, 6, 10)
 _MIRROR_NAME = re.compile(r"sec_bhavdata_full_(\d{2})(\d{2})(\d{4})\.csv$")
+# NSE's classic bhavcopy (cm02JAN2009bhav.csv): the mirror's historic_data/, and
+# NSE's own archive before its daily bundles begin (4 Jan 2010).
+_CM_NAME = re.compile(r"cm(\d{2}[A-Z]{3}\d{4})bhav\.csv$")
+CM_URL = "https://nsearchives.nseindia.com/content/historical/EQUITIES/{yyyy}/{MON}/cm{DDMONYYYY}bhav.csv.zip"
 
 API_URL = "https://www.nseindia.com/api/corporates-corporateActions"
 API_INDICES = ("equities", "sme")
@@ -49,9 +53,17 @@ API_DELAY_S = 3.0
 # ── Prices from the mirror ───────────────────────────────────────────────────
 
 def mirror_days(directory: Path) -> dict[date, Path]:
-    """{session: file} for every sec_bhavdata_full file in the mirror's data/."""
+    """{session: file} for every bhavcopy file in `directory`: the full layout
+    (sec_bhavdata_full_DDMMYYYY.csv) or the classic one (cmDDMONYYYYbhav.csv)."""
     out = {}
-    for path in Path(directory).glob("sec_bhavdata_full_*.csv"):
+    for path in Path(directory).glob("cm*bhav.csv"):
+        m = _CM_NAME.search(path.name)
+        if m:
+            try:
+                out[datetime.strptime(m.group(1), "%d%b%Y").date()] = path
+            except ValueError:
+                continue
+    for path in Path(directory).glob("sec_bhavdata_full_*.csv"):   # the full file wins a day both hold
         m = _MIRROR_NAME.search(path.name)
         if m:
             dd, mm, yyyy = (int(x) for x in m.groups())
@@ -75,6 +87,11 @@ def mirror_prices(path: Path, day: date) -> pd.DataFrame:
     """
     raw = pd.read_csv(path, skipinitialspace=True, dtype=str)
     raw.columns = [c.strip().upper() for c in raw.columns]
+    if "TOTTRDQTY" in raw.columns:           # the classic layout: value in rupees, no 52-week range
+        raw = raw.rename(columns={"OPEN": "OPEN_PRICE", "HIGH": "HIGH_PRICE", "LOW": "LOW_PRICE",
+                                  "CLOSE": "CLOSE_PRICE", "PREVCLOSE": "PREV_CLOSE",
+                                  "TOTTRDQTY": "TTL_TRD_QNTY", "TOTALTRADES": "NO_OF_TRADES"})
+        raw["TURNOVER_LACS"] = (_num(raw["TOTTRDVAL"]) / 1e5).astype(str)
     sym = raw["SYMBOL"].astype(str).str.strip()
     out = pd.DataFrame({
         "date": pd.Timestamp(day),
@@ -95,7 +112,7 @@ def mirror_prices(path: Path, day: date) -> pd.DataFrame:
         "lo_52w": np.nan,
         "ind_sec": "",
     })
-    out = out[(out["symbol"] != "") & out["close"].notna()]
+    out = out[(out["symbol"] != "") & (out["symbol"] != "NAN") & out["close"].notna()]
     return out[nb.PRICE_COLUMNS].reset_index(drop=True)
 
 

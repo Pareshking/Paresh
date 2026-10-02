@@ -125,9 +125,9 @@ read for series EQ, BE and RR (REITs, which are index members).
 
 | Dataset | Coverage | Source |
 |---|---|---|
-| `nse/prices_daily` | 10 Jun 2010 – today; Jan–Jun 2010 being collected | NSE's daily bundle (`nse_collect`), and for history the GitHub mirror [tilak999/NSE-Data-bank](https://github.com/tilak999/NSE-Data-bank) of NSE's full bhavcopy |
+| `nse/prices_daily` | **2008 – today** (4,216 sessions from 4 Jan 2010 confirmed complete, 0 days missing; 2008–2009 being imported) | NSE's daily bundle (`nse_collect`, from 4 Jan 2010); NSE's classic bhavcopy archive for 2008–2009 (`fetch_nse_bhavcopy.py`: a ranking on 1 Jan 2010 needs a year of history before it); the GitHub mirror [tilak999/NSE-Data-bank](https://github.com/tilak999/NSE-Data-bank) of NSE's full bhavcopy for Jun 2010 – Sep 2023 |
 | `nse/corporate_actions` | Oct 2023 – today, per listing day | NSE's daily Bc file |
-| `nse/corporate_actions_history` | 2010 – 2026, one file per ex-date year, with face values | NSE's corporate-action list, one request a year |
+| `nse/corporate_actions_history` | 2008 – 2026, one file per ex-date year, with face values | NSE's corporate-action list, one request a year |
 | `nse/closed_days` | Days with no bundle a week later | `nse_collect`, so each holiday is asked once |
 
 The mirror is NSE's file unchanged: equal to NSE's own on close and volume for

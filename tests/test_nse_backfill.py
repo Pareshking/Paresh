@@ -2,6 +2,7 @@
 from datetime import date
 
 import pandas as pd
+import pytest
 
 from scripts import import_nse_history as imp
 from src.loaders import nse_backfill as bf
@@ -113,3 +114,54 @@ def test_import_actions_publishes_one_file_a_year_and_stops_on_a_refusal(tmp_pat
     n = imp.import_actions(2010, 2014, tmp_path, publish=lambda path, ds, src: sent.append(ds),
                            fetch=fetch, sleep=lambda s: None, log=lambda *a: None)
     assert n == 2 and sent == ["nse/corporate_actions_history"] * 2
+
+
+# NSE's classic bhavcopy, the layout of its archive before 2010 (cm02JAN2009bhav.csv).
+CLASSIC = """SYMBOL,SERIES,OPEN,HIGH,LOW,CLOSE,LAST,PREVCLOSE,TOTTRDQTY,TOTTRDVAL,TIMESTAMP,
+RELIANCE,EQ,1235,1260,1230,1254.65,1255,1232.75,2856335,3570530000.5,1-JAN-2009,
+TATAMOTORS,EQ,160,171,159,170.5,170.6,159.85,1606898,266282600,1-JAN-2009,
+"""
+
+
+def test_the_classic_layout_is_read_like_the_full_one(tmp_path):
+    path = tmp_path / "cm01JAN2009bhav.csv"
+    path.write_text(CLASSIC)
+    assert bf.mirror_days(tmp_path) == {date(2009, 1, 1): path}
+    rows = bf.mirror_prices(path, date(2009, 1, 1))
+    assert list(rows.columns) == nb.PRICE_COLUMNS
+    rel = rows[rows["symbol"] == "RELIANCE"].iloc[0]
+    assert (rel["close"], rel["prev_close"], rel["volume"]) == (1254.65, 1232.75, 2856335)
+    assert rel["value"] == pytest.approx(3570530000.5, rel=1e-6)
+
+
+def test_a_day_held_in_both_layouts_reads_the_full_one(tmp_path):
+    (tmp_path / "cm10AUG2026bhav.csv").write_text(CLASSIC)
+    (tmp_path / "sec_bhavdata_full_10082026.csv").write_text(MIRROR)
+    assert bf.mirror_days(tmp_path)[date(2026, 8, 10)].name.startswith("sec_bhavdata_full")
+
+
+def test_the_downloader_skips_holidays_and_stops_on_refusals(tmp_path, monkeypatch):
+    import io
+    import zipfile
+
+    from scripts import fetch_nse_bhavcopy as fb
+
+    def zipped(text):
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as z:
+            z.writestr("cm.csv", text)
+        return buf.getvalue()
+
+    class Resp:
+        def __init__(self, code, body=b""):
+            self.status_code, self.content = code, body
+
+        def raise_for_status(self):
+            pass
+
+    answers = {"02JAN2009": Resp(200, zipped(CLASSIC)), "05JAN2009": Resp(404)}
+    monkeypatch.setattr(fb.time, "sleep", lambda s: None)
+    monkeypatch.setattr(fb.requests.Session, "get",
+                        lambda self, url, **k: answers.get(url.split("/cm")[-1][:9], Resp(403)))
+    fb.main(["--since", "2009-01-02", "--until", "2009-01-08", "--out", str(tmp_path)])
+    assert [p.name for p in tmp_path.glob("cm*bhav.csv")] == ["cm02JAN2009bhav.csv"]   # 5 Jan: holiday; then refused

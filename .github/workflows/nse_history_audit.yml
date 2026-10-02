@@ -10,7 +10,7 @@ on:
     inputs:
       since:
         description: "First day to audit (YYYY-MM-DD)"
-        default: "2010-01-01"
+        default: "2008-01-01"
 
 permissions:
   contents: read
@@ -34,7 +34,7 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Audit
         run: |
-          python scripts/nse_history_audit.py --since "${{ inputs.since || '2010-01-01' }}" --out reports/nse_audit
+          python scripts/nse_history_audit.py --since "${{ inputs.since || '2008-01-01' }}" --out reports/nse_audit
           cat reports/nse_audit/report.md >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7
         if: always()

@@ -173,7 +173,7 @@ def write(result: dict, out: Path, since: date, until: date) -> str:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--since", type=date.fromisoformat, default=date(2010, 1, 1))
+    ap.add_argument("--since", type=date.fromisoformat, default=date(2008, 1, 1))
     ap.add_argument("--until", type=date.fromisoformat, default=None)
     ap.add_argument("--out", type=Path, default=Path("reports/nse_audit"))
     ap.add_argument("--workers", type=int, default=16)
