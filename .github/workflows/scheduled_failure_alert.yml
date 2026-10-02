@@ -12,6 +12,7 @@ on:
       - Daily NSE Momentum Data Sync
       - Monthly Track Record Freeze
       - NSE daily bundle collection
+      - NSE long price file (backtests from 2010)
       - NSE adjusted prices vs Screener
       - NSE reference feeds sync
       - R2 historical evidence bootstrap

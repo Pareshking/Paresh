@@ -335,3 +335,9 @@ SCREENER_STORE_URL: Final[str] = os.getenv("UMIYA_SCREENER_URL") or (
     f"https://github.com/{PRICE_SNAPSHOT_REPO}/releases/download/"
     f"{PRICE_SNAPSHOT_TAG}/{SCREENER_STORE_ASSET}"
 )
+
+# The long NSE price file for backtests from 2010 (scripts/build_nse_long_prices.py,
+# weekly by nse_long_prices.yml): adjusted closes and traded value, 2008 to date.
+NSE_LONG_BASE_URL: Final[str] = os.getenv("UMIYA_NSE_LONG_URL") or (
+    f"https://github.com/{PRICE_SNAPSHOT_REPO}/releases/download/{PRICE_SNAPSHOT_TAG}"
+)
