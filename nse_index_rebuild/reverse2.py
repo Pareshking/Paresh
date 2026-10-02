@@ -1,20 +1,23 @@
-import csv, collections, sys
+import csv, collections, re, sys
 INDS = ["NIFTY_50","NIFTY_NEXT_50","NIFTY_MIDCAP_150","NIFTY_SMALLCAP_250","NIFTY_MICROCAP_250","NIFTY_TOTAL_MARKET"]
 cur = {k: {r["Symbol"].strip().upper() for r in csv.DictReader(open(f"current/{k}.csv")) if r["Symbol"].strip() and not r["Symbol"].strip().upper().startswith("DUMMY")} for k in INDS}
 TARGET = {"NIFTY_50": 50, "NIFTY_NEXT_50": 50, "NIFTY_MIDCAP_150": 150, "NIFTY_SMALLCAP_250": 250, "NIFTY_MICROCAP_250": 250, "NIFTY_TOTAL_MARKET": 750}
 bad_snapshots = [(k, len(v), TARGET[k]) for k, v in cur.items() if len(v) != TARGET[k]]
 if bad_snapshots:
     raise SystemExit(f"current snapshot cardinality failure: {bad_snapshots}")
+def _pub(f):
+    m = re.match(r"ind_prs(\d{2})(\d{2})(\d{4})", f)
+    return f"{m.group(3)}-{m.group(2)}-{m.group(1)}" if m else ""
 ev = list(csv.DictReader(open("events_raw.csv")))
 ov = list(csv.DictReader(open("rules/overrides.csv")))
 al = list(csv.DictReader(open("rules/aliases.csv")))
 cancel = {(o["file"], o["index"], o["action"], o["symbol"]) for o in ov if o["kind"] == "CANCEL"}
 for o in ov:
-    if o["kind"] == "ADD": ev.append({"published":"","effective":o["effective"],"file":o["file"],"index":o["index"],"action":o["action"],"symbol":o["symbol"],"company":"(manual)"})
+    if o["kind"] == "ADD": ev.append({"published":_pub(o["file"]),"effective":o["effective"],"file":o["file"],"index":o["index"],"action":o["action"],"symbol":o["symbol"],"company":"(manual)"})
 void = {(o["file"], o["index"]) for o in ov if o["kind"] == "VOID"}
 for o in ov:
     if o["kind"] == "ADD_EFF":
-        ev.append({"published":"","effective":o["evidence"].split("|")[1],"file":o["file"],"index":o["index"],"action":o["action"],"symbol":o["symbol"],"company":"(manual)"})
+        ev.append({"published":_pub(o["file"]),"effective":o["evidence"].split("|")[1],"file":o["file"],"index":o["index"],"action":o["action"],"symbol":o["symbol"],"company":"(manual)"})
 ev = [r for r in ev if (r["file"], r["index"], r["action"], r["symbol"]) not in cancel and (r["file"], r["index"]) not in void]
 def run(verbose=True):
     results = {}; problems = []

@@ -5,7 +5,10 @@ res, prob = run()
 al = list(csv.DictReader(open("rules/aliases.csv"))); ov = list(csv.DictReader(open("rules/overrides.csv")))
 out = {}
 for k in [i for i in INDS if i in EXP]:
-    state, snaps = res[k]
+    state, snaps_all = res[k]
+    seen = set(); snaps = []
+    for e, f, s_ in snaps_all:
+        if e not in seen: seen.add(e); snaps.append((e, f, s_))
     dummies = sum(1 for s in cur[k] if s.startswith("DUMMY"))
     exp = EXP[k] + dummies
     bad_sizes = [(e, f, len(s)) for e, f, s in snaps if len(s) != exp]
