@@ -2,7 +2,7 @@
 NSE INDEX VERIFICATION PROJECT - COMPLETION SUMMARY
 ================================================================================
 
-PROJECT STATUS: ✓ PHASE 1 COMPLETE
+PROJECT STATUS: PHASE 1 DATA COLLECTION COMPLETE; NOT PRODUCTION GRADE
 Date: October 2, 2026
 Branch: claude/gracious-euler-tfma5e
 
@@ -14,10 +14,20 @@ Objective:
   Verify NSE index historical constituent data for production use in trading
   systems, regulatory reporting, and fund strategy decisions.
 
-Data Verified:
-  • NIFTY_MIDCAP_150 (150 constituents, 22 snapshots)
-  • NIFTY_SMALLCAP_250 (250 constituents, 40 snapshots)  
-  • NIFTY_MICROCAP_250 (250 constituents, 32 snapshots)
+Candidate data collected (not yet verified as point-in-time history):
+  • NIFTY_50
+  • NIFTY_NEXT_50
+  • NIFTY_MIDCAP_150
+  • NIFTY_SMALLCAP_250
+  • NIFTY_MICROCAP_250
+  • NIFTY_TOTAL_MARKET (current anchor added in this branch)
+
+Production gate: FAIL until every unresolved event is reconciled, all historical
+constituent counts and known transitions pass, and all six indices have explicit
+source-backed membership intervals. The initial five-index reconstruction had
+51 unresolved announcement-chain issues; changes in this branch must be rerun
+through the dedicated GitHub Actions validation before that number is updated.
+The 2020–2026 timeline is not yet certified.
 
 Timeline Coverage:
   • Start: September 2019
