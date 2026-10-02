@@ -28,23 +28,39 @@ Rules and status: `docs/PRICE_PIPELINE.md`.
 | S5 | Missing-days check 2010 – today: every weekday R2 lacks asked of NSE once (a bundle = a missing day, now saved; none = a holiday, recorded in `nse/closed_days`), incl. Jan – 9 Jun 2010 (the mirror starts 10 Jun) | `nse_collect` run shows 0 days to go since 2010-01-01 | [x] 2 Oct: 114 sessions found and saved, 130 holidays recorded; confirmation run 37037900424: 4,216 sessions 2010-01-04 to 2026-10-01, **0 days to go** |
 | S14 | History before 2010 for the 1 Jan 2010 ranking: 2008 – 2009 from NSE's classic bhavcopy, corporate actions from 2008 | `nse_history_import` with `pre2010_since=2008-01-01` | [x] 2 Oct, run 37039302479: 488 sessions, 0 failed; the 17 Oct 2009 Muhurat session fetched 3 Oct (run 37057071481) |
 | S15 | History audit 2008 – 2026 and its fixes | Audit run green; each finding fixed or explained | [x] 3 Oct, run 37047812302: (1) 500 of 584 unconfirmed splits/bonuses were one action counted twice (daily Bc + yearly list) — fixed (#348); (2) 13 weekend special sessions 2010 – 2020 missing — collected (run 37054756653); (3) every holiday from 2021 held as a copy of the day before (the mirror files one) — importer reads the file's own date, builder drops copies, calendar check (`nse_calendar.py`); (4) mirror turnover in rupees, not lakhs, 2010 – 2018 (value x 1e5) — importer reads the unit, builder rescales |
-| S16 | Long NSE price file for backtests (`nse_long_*.parquet`, release) | Built, units ~1 every year, no copies, 0 calendar flags | [x] 3 Oct: rebuilt after S15 and S19's fixes (runs 37059058243, 37065716385, 37073091299); units ~1 every year, 73 copies dropped, 0 calendar flags |
-| S17 | Backtest "History from 2010": any index (Nifty 50/100/500, Midcap, Smallcap, Microcap, Total Market), months, traded-value floor; no market-cap cutoff, no rights (owner, 3 Oct) | #346 merged; Nifty 500 from Jan 2010 run on the real file | [ ] #346: two tabs (Live system, History from 2010), lazily run (owner, 3 Oct); checked in the app: Nifty 500 Jan 2010 - Sep 2026 +18.1% a year vs 10.3%. Merge after CI |
+| S16 | Long NSE price file for backtests (`nse_long_*.parquet`, release) | Built, units ~1 every year, no copies, 0 calendar flags | [ ] rebuild with every fix (#355, #358, #359, #361, #362) running: run 37076597258, started 2026-10-02 23:14 UTC, the first with no raw pack (~37 min); later rebuilds read only new sessions (#359) |
+| S17 | Backtest "History from 2010": any index (Nifty 50/100/500, Midcap, Smallcap, Microcap, Total Market), months, traded-value floor; no market-cap cutoff, no rights (owner, 3 Oct) | #346 merged; Nifty 500 from Jan 2010 run on the real file | [x] 3 Oct (#346, #360): two tabs, lazily run; Nifty 50 against the Nifty 50 (#360) |
 | S18 | Industry for the 217 index members no current list labels | `data/reference/historical_industries.csv`: NSE's four levels, each web-checked (owner's format) | [x] 3 Oct (#346): 171 high, 43 medium, 3 low |
 | S19 | The long file against independent prices, every stock, every day (owner, 3 Oct: production-level price series for every index stock) | `scripts/audit_long_prices.py` against Yahoo, eod2, Tijori, Screener, SS, TejHQ, NSE MarketLens; every move beyond 21% up or down confirmed or explained | [x] 3 Oct: faults and fixes in `docs/PRICE_PIPELINE.md` (#348, #350, #353, #354, #355); 94% of 3.7M stock-days within 2% of eod2, 32 fake moves left before #355's fixes |
 | S20 | Reference histories backed up, protected from R2 clean-up | `reference/*` and `prices/screener/max_history` on R2, `PROTECTED_DATASETS` in `r2_retention.py`, local copy | [x] 3 Oct: 8 datasets on R2 (#352, #355), release `ref_*`, `C:\Users\Quali\Paresh_reference_backup\2026-10-03` |
-| S21 | Re-audit the file built with #355 (BZ days, 19 corrections) | Fake moves in index windows explained or fixed | [ ] |
+| S21 | Re-audit the file built with #355 (BZ days, 19 corrections) | Fake moves in index windows explained or fixed | [ ] after run 37076597258: (1) report: renames_not_joined far below 96; INFY, VEDL, SHRIRAMFIN, TATASTLBSL, BHARATFIN, MOTHERSON, COFORGE start 2008-2010; (2) index coverage (baseline: Nifty 500 2.31% of member-months unpriced, Nifty 50 0.72%; target < 0.5%); (3) audit_long_prices against all references; one-day moves > 50% left; (4) every History trade worse than -25% checked against references (Engineers India 2010 fixed in #355, Alembic 2011 in #361); (5) both backtests rerun |
 | S22 | J&K Bank 2015-02-09: -18% that MarketLens shows and Yahoo does not | Find the action; correct or leave | [ ] |
 | S23 | Decide: fill Screener's sparse history (weekly before the latest year) with NSE's daily closes in the app's price frame | Owner decision: Screener's 9M/12M momentum windows reach further than a year on the sparse stretch (2026 Total Market backtest: ~1 holding a month differs) | [ ] owner |
 | S24 | SS full history (history mode, 912 stocks back to listing) | `ss_sync` mode=history runs complete; SS added to the audit | [ ] run 37061786684 started 3 Oct |
+| S25 | Renames refused for a consolidation on the rename day (NANDAN -> NDL +976%, SIGNET -> SIGIND +688%, SEINVEST -> PAISALO +854%) | Take that day's factor out of the move before the continuity check | [ ] low (small caps) |
+| S26 | TUBEINVEST -> CHOLAHLDNG (-26%, a demerger at the rename) refused | Demerger factor or notes.json entry, if it matters | [ ] |
+| S27 | Suspended or delisted holdings are valued at their last price | Checked 3 Oct: 7 of 1,570 History exits used a price 9 - 28 days old, all takeovers/open offers (UTV, Alfa Laval, Patni, Nirma, Chemplast) where holders were bought out near the last price | [x] no change needed |
+| S28 | data/benchmarks.csv rewritten by the daily sync with formatting only (19384.30 -> 19384.3) | benchmark_store.write uses float_format="%.2f" and keeps 19384.30 locally on the same code; the sync run 37066457318 still dropped the zero: find which step rewrites it | [ ] small |
+| S29 | Screener full history (weekly before the latest year) as a source | On R2 `prices/screener/max_history` and release; kept apart from the app's store | [x] 3 Oct |
+| S30 | Tapetide MCP (needs the owner's token) for disputed cases only | Owner adds a token if wanted | [ ] owner, optional |
 | S6 | Renames from NSE's symbol-change list and ISINs | 575 found, 0 conflicts, all 21 ledger renames among them | [x] 2 Oct (#341) |
 | S7 | Adjustment check across 2010 – 2026 (splits, bonuses, rights, demergers, renames) | Report: unexplained jumps listed and explained or fixed | [x] 3 Oct: see S19 |
 | S8 | Long backtests on the 2010+ NSE history, Nifty 500 universe (S13) | Owner reviews the results | [ ] owner reviews: Nifty 500 2010 - 2026 18.3% a year (Sharpe 0.63, max DD -38%), Total Market Nov 2021 - Sep 2026 19.2% (vs 7.9%) |
 | S9 | SS as the app's primary source? | Owner decision | [x] 2 Oct, owner: **keep Screener as the app's source for now** (and its NSE + BSE volume for the liquidity floor); SS stays collected and checked nightly |
-| S10 | Remove dead Yahoo code and the `yfinance` dependency | PR merged | [ ] |
+| S10 | Remove dead Yahoo code and the `yfinance` dependency | PR merged | [ ] (other session's list too) |
 | S11 | Membership × bhavcopy check and its fixes (join follows NSE's symbol-change list; KBL, ASIANHOTEL, PROVOGUE; REIT series RR) | Report; owner approves fixes | [x] 2 Oct, `reports/membership_bhavcopy_check_2026-10-02.md`; owner approved |
 | S12 | Tata Motors DVR counted with Tata Motors (one company, one slot) | Owner decision; test | [x] 2 Oct (`backtester.SAME_COMPANY`) |
 | S13 | Long backtest universe: **Nifty 500, 2010 to date** (no point-in-time Total Market list before 29 Oct 2021; the 750 backtest starts Nov 2021) | Owner decision | [x] 2 Oct, owner: Nifty 500 |
+
+## Handover (2026-10-03, 04:50 IST)
+
+Merged today: #345 - #355, #357 - #362 (long price file, its audit and every
+fix, raw pack, the Backtest page's two tabs, docs). #356 closed (superseded by
+#358 and #362). Running on GitHub while the laptop is off: the long price
+rebuild (run 37076597258) and the SS history download (ss_sync mode=history,
+run 37061786684). Next session: S21, then S23 (owner decision), S22, S25,
+S26, S28, S10. Backups: R2 `reference/*` + `prices/screener/max_history`
+(protected), release `ref_*`, local `C:\Users\Quali\Paresh_reference_backup\2026-10-03`.
 
 ## UI and data overhaul (raised 1 Oct 2026)
 
