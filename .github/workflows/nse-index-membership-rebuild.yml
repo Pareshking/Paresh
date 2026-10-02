@@ -25,8 +25,8 @@ jobs:
       - name: Validate point-in-time reverse reconstruction
         working-directory: nse_index_rebuild
         run: python reverse2.py 1000
-
       - name: Check data/membership_history.json against the reconstruction
+        working-directory: nse_index_rebuild
         run: python validate_history.py
       - name: Retain unresolved-event audit
         if: always()
