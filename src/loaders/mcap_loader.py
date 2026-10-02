@@ -1,27 +1,23 @@
 """
 Market Capitalization loader with 3-tier fallback architecture:
 1. NSE PR Bhavcopy zip (single request covering ~2800 stocks)
-2. Cached yfinance market caps (parquet)
-3. Multi-threaded live yfinance scraper with multiple fallbacks
+2. The market caps the daily sync committed to the repository
+No Yahoo layer since 2026-10-02 (owner: Screener first, NSE second).
 """
 
 from __future__ import annotations
 
-import concurrent.futures
 import io
 import os
-import time
 import zipfile
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import Sequence
 
-import numpy as np
 import pandas as pd
 import requests
-import yfinance as yf
 
 from src.core import startup_metrics as metrics
-from src.core.config import HTTP_HEADERS, MCAP_PR_FILE, MCAPS_FILE, REPO_MCAP_FILE
+from src.core.config import HTTP_HEADERS, MCAP_PR_FILE, REPO_MCAP_FILE
 from src.core.market_time import recent_trading_days
 from src.core.logger import logger
 
@@ -182,105 +178,6 @@ def _is_mcap_cache_fresh() -> bool:
         return False
 
 
-def _fetch_single_mcap(symbol: str) -> tuple[str, float]:
-    """Single ticker market cap fetcher with fast_info and info fallbacks."""
-    time.sleep(0.03)
-    ticker_name = symbol + ".NS" if not symbol.endswith(".NS") else symbol
-    tkr = yf.Ticker(ticker_name)
-
-    # Method 1: fast_info.market_cap
-    try:
-        mcap = getattr(tkr.fast_info, "market_cap", None)
-        if mcap and not (isinstance(mcap, float) and np.isnan(mcap)):
-            return symbol, float(mcap)
-    except Exception:
-        pass
-
-    # Method 2: price * shares
-    try:
-        p = getattr(tkr.fast_info, "last_price", None)
-        s = getattr(tkr.fast_info, "shares", None)
-        if p and s:
-            return symbol, float(p * s)
-    except Exception:
-        pass
-
-    # Method 3: info dict
-    try:
-        mcap = tkr.info.get("marketCap")
-        if mcap:
-            return symbol, float(mcap)
-    except Exception:
-        pass
-
-    return symbol, np.nan
-
-
-def fetch_mcaps_from_yfinance(symbols: Sequence[str]) -> pd.Series:
-    """Ask Yahoo for every symbol's market cap, ignoring every cache.
-
-    The layered fetch in fetch_market_caps deliberately reaches yfinance LAST
-    and only for symbols nothing else covered, because the live app cannot
-    afford 750 individual lookups on a cold start -- there is no bulk endpoint
-    for market cap the way there is for prices, so it is one request per
-    company.
-
-    The nightly job has the opposite trade-off: nobody is waiting on it, and it
-    is the only place that can pay this cost once on everyone's behalf. When
-    NSE genuinely has nothing to give -- an outage, a real 403, an archive not
-    published yet at that hour -- this is how the caps still come back with a
-    date attached instead of being served undated.
-
-    It is a backstop, not the main road. NSE publishes the official figure;
-    this derives one from price x Yahoo's own share count. Measured on the
-    runner 2026-08-19, a full sweep resolved 400 of 750 symbols in 43s, which
-    is why the caller requires a coverage floor before adopting it.
-    """
-    resolved = _fetch_mcaps_yfinance(list(symbols))
-    clean = {
-        s: float(v) for s, v in resolved.items()
-        if v is not None and not (isinstance(v, float) and np.isnan(v)) and float(v) > 0
-    }
-    metrics.note("mcap_yfinance_sweep_requested", len(symbols))
-    metrics.note("mcap_yfinance_sweep_resolved", len(clean))
-    return pd.Series(clean, dtype=float)
-
-
-def _fetch_mcaps_yfinance(symbols: Sequence[str]) -> dict[str, float]:
-    """Multi-threaded yfinance market cap scraper."""
-    if not symbols:
-        return {}
-
-    result: dict[str, float] = {}
-    failed: list[str] = []
-    metrics.note("mcap_threaded_requested", len(symbols))
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
-        futs = {pool.submit(_fetch_single_mcap, s): s for s in symbols}
-        for f in concurrent.futures.as_completed(futs):
-            try:
-                sym, mc = f.result(timeout=25)
-                if mc is not None and not np.isnan(mc):
-                    result[sym] = mc
-                else:
-                    failed.append(futs[f])
-            except Exception:
-                failed.append(futs[f])
-
-    metrics.note("mcap_threaded_failed", len(failed))
-    for sym in failed:
-        metrics.incr("mcap_sequential_retries")
-        try:
-            _, mc = _fetch_single_mcap(sym)
-            if mc is not None and not np.isnan(mc):
-                metrics.incr("mcap_sequential_recovered")
-                result[sym] = mc
-        except Exception:
-            pass
-
-    return result
-
-
 def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd.Series:
     """
     Fetches market caps in Rs for requested symbols.
@@ -352,14 +249,12 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
     # Layer 1c: market caps committed to the repository by the daily sync.
     # Used in two situations:
     # (a) Production cannot reach the NSE PR archive at all (NSE blocks the
-    #     cloud host's IP) -- without this layer the only source would be
-    #     750 individual yfinance lookups on every cold start.
+    #     cloud host's IP) -- this file is then the only source.
     # (b) The live NSE PR zip succeeded but did not cover all constituents:
     #     a stock that hit a circuit breaker or was temporarily moved to the
     #     BE/BL series on that specific day is absent from the EQ bhavcopy,
     #     but is still a valid index member with a known market cap from the
-    #     prior day's sync.  Without this top-up those stocks fell through to
-    #     yfinance even though a perfectly good recent figure sat in the repo.
+    #     prior day's sync, which this top-up supplies.
     if os.path.exists(REPO_MCAP_FILE):
         gap = [s for s in symbols if s not in master]
         if not master or gap:
@@ -392,52 +287,13 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
                 if not master:
                     master = {}
 
-    # Layer 2: yfinance disk cache
+    # No Yahoo layer (owner, 2026-10-02): a stock neither NSE's bhavcopy nor
+    # the committed snapshot carries stays without a cap, and says so.
     missing = [s for s in symbols if s not in master]
-    if missing and not force_refresh and os.path.exists(MCAPS_FILE):
-        try:
-            yf_cache = pd.read_parquet(MCAPS_FILE)
-            yf_cache["LastUpdated"] = pd.to_datetime(yf_cache["LastUpdated"])
-            cutoff = datetime.now() - timedelta(hours=30)
-            fresh = yf_cache[
-                yf_cache["Symbol"].isin(missing) & (yf_cache["LastUpdated"] > cutoff)
-            ]
-            if not fresh.empty:
-                yf_cached_map = fresh.set_index("Symbol")["MarketCap"].to_dict()
-                master.update(yf_cached_map)
-                missing = [s for s in symbols if s not in master]
-        except Exception as e:
-            logger.warning(f"yfinance mcap cache read error: {e}")
-
-    # Layer 3: Live yfinance fetch
     if missing:
-        metrics.note("mcap_yfinance_fallback_symbols", len(missing))
-        metrics.note("mcap_yfinance_fallback_list", ",".join(sorted(missing)))
-        logger.warning(
-            "mcap yfinance fallback: %d symbols not in any cache/snapshot: %s",
-            len(missing), ", ".join(sorted(missing)),
-        )
-        logger.info(f"Fetching market caps from yfinance for {len(missing)} stocks…")
-        yf_map = _fetch_mcaps_yfinance(missing)
-        master.update(yf_map)
-
-        if yf_map:
-            try:
-                new_rows = pd.DataFrame(
-                    [
-                        {"Symbol": k, "MarketCap": v, "LastUpdated": datetime.now()}
-                        for k, v in yf_map.items()
-                    ]
-                )
-                if os.path.exists(MCAPS_FILE):
-                    existing = pd.read_parquet(MCAPS_FILE)
-                    existing = existing[~existing["Symbol"].isin(yf_map.keys())]
-                    updated = pd.concat([existing, new_rows], ignore_index=True)
-                else:
-                    updated = new_rows
-                updated.to_parquet(MCAPS_FILE, compression="snappy")
-            except Exception as exc:
-                logger.warning("Market-cap cache write failed (%s).", type(exc).__name__)
+        metrics.note("mcap_unresolved_list", ",".join(sorted(missing)))
+        logger.warning("No market cap from NSE or the snapshot for %d symbols: %s",
+                       len(missing), ", ".join(sorted(missing)))
 
     vmap = {s: master[s] for s in symbols if s in master}
     metrics.note("mcap_symbols_requested", len(symbols))

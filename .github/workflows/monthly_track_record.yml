@@ -44,22 +44,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Seed the cache from the ARCHIVE, not the app snapshot. The app snapshot
-      # carries only the screener's trailing window; the record needs every
-      # month since inception plus a 12-month formation window before the
-      # earliest one. Without this the freeze would run on a short frame and,
-      # once the record outgrows that window, quietly stop producing months.
-      - name: Seed price cache from the full archive
-        run: |
-          mkdir -p data_cache
-          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/data-latest/prices_full.parquet"
-          if curl -fsSL "$URL" -o data_cache/prices.parquet; then
-            ls -lh data_cache/prices.parquet
-          else
-            echo "::warning::Archive unavailable; the freeze will fetch from Yahoo instead."
-            rm -f data_cache/prices.parquet
-          fi
-
       # Stocks the index has dropped since still need prices: a month is scored
       # on the index as it stood, and a name that has just left must have a
       # price for its sale. A failure keeps the committed file, which is
@@ -102,15 +86,13 @@ jobs:
         run: python scripts/update_track_record.py
 
       # Nano Cap and Combined keep their own records from October 2026 (owner,
-      # 2026-09-27), each on its own point-in-time membership. Their Nano Cap
-      # stocks are priced from the extra universe's own Yahoo file. A failure
+      # 2026-09-27), each on its own point-in-time membership, priced from
+      # Screener's store like the 750 (no Yahoo since 2026-10-02). A failure
       # here never stops the 750's freeze above from being committed.
       - name: Freeze Nano Cap and Combined
         run: |
-          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/data-latest/prices_extra.parquet"
-          curl -fsSL "$URL" -o prices_extra.parquet || echo "::warning::prices_extra unavailable; downloading from Yahoo."
           for SYSTEM in nano combined; do
-            python scripts/update_track_record.py --system "$SYSTEM" --extra-prices prices_extra.parquet \
+            python scripts/update_track_record.py --system "$SYSTEM" \
               || echo "::warning::$SYSTEM record freeze failed; the 750's record is unaffected."
           done
 

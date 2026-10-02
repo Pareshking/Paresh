@@ -1,9 +1,8 @@
 """Market caps committed to the repo by the daily sync.
 
 NSE refuses the production host's IP, so production cannot fetch the PR
-archive itself. Without a repo-side source the only fallback is yfinance,
-which on a cold start meant 750 individual lookups and the slowest startup
-stage measured (45.9s). The sync runs on GitHub Actions, where NSE is
+archive itself. The repo-side file is the only fallback: the yfinance layers
+were removed with Yahoo (owner, 2026-10-02). The sync runs on GitHub Actions, where NSE is
 reachable, and leaves its result in the repository.
 """
 import importlib
@@ -21,10 +20,8 @@ def loader(tmp_path, monkeypatch):
 
     importlib.reload(ml)
     monkeypatch.setattr(ml, "MCAP_PR_FILE", str(tmp_path / "pr.parquet"))
-    monkeypatch.setattr(ml, "MCAPS_FILE", str(tmp_path / "yf.parquet"))
     # No network in tests: the live PR walk must find nothing.
     monkeypatch.setattr(ml, "_fetch_mcap_from_pr_zip", lambda *a, **k: {})
-    monkeypatch.setattr(ml, "_fetch_mcaps_yfinance", lambda syms: {})
     return ml
 
 
@@ -81,3 +78,12 @@ def test_live_nse_still_wins_over_the_snapshot(loader, tmp_path, monkeypatch):
 
 def test_repo_mcap_path_is_inside_the_committed_data_dir():
     assert REPO_MCAP_FILE.replace("\\", "/").endswith("data/nse_market_caps.csv")
+
+
+def test_there_is_no_yahoo_layer():
+    """A symbol neither NSE nor the snapshot carries stays missing (2026-10-02)."""
+    import src.loaders.mcap_loader as ml
+
+    assert not hasattr(ml, "_fetch_mcaps_yfinance")
+    assert not hasattr(ml, "fetch_mcaps_from_yfinance")
+    assert "yfinance" not in open(ml.__file__, encoding="utf-8").read()

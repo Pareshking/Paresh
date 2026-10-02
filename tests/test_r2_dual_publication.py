@@ -27,7 +27,7 @@ def _steps(name: str) -> list[dict]:
 def test_daily_sync_has_r2_dual_publication_after_release():
     steps = _steps("daily_sync.yml")
     names = [str(step.get("name", "")) for step in steps]
-    release = names.index("Publish price snapshot")
+    release = names.index("Publish rankings to the release")
     r2 = names.index("Publish validated datasets to R2")
     assert release < r2
 

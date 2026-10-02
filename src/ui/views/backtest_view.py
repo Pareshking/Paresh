@@ -134,11 +134,11 @@ def _backtest_body(
     membership = membership if membership is not None else load_history_or_none()
     # Prices as NSE published them (loaders/nse_prices.py): a past month ranks
     # on what was known then, not on a vendor's later restatement. Where the
-    # file does not reach back far enough, the long Yahoo history stands.
+    # file does not reach back far enough, the long Personal (Screener) history stands.
     _nse, _nse_info = nse_prices.basis_frame(adj_close, membership, months=months)
     if _nse is not None:
         adj_close, _events = _nse, []
-        # NSE's file runs to the latest session, often a day ahead of the long Yahoo history
+        # NSE's file runs to the latest session, often a day ahead of the long Screener history
         # (on the 1st its first session of the month is already in). Months are counted back
         # from the frame's end, so a month that has just closed needs one more in the window.
         if history_start is not None:
@@ -152,7 +152,7 @@ def _backtest_body(
     else:
         adj_close = former_members.with_former_members(adj_close, membership)
         _events = load_events()
-        kit.caption("Prices: Yahoo adjusted closes (restated for dividends).")
+        kit.caption("Prices: Personal closes, adjusted for splits and bonuses; no dividends.")
     ph = f"{price_fingerprint(adj_close)}_{actions_digest(_events)}"
     if liquidity_floor_cr:
         kit.caption(f"Liquidity floor on: a stock is bought only while its 20-day average "

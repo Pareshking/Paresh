@@ -173,6 +173,15 @@ jobs:
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: python scripts/nse_collect.py --recent 3 || echo "::warning::NSE collection failed; the extra universe keeps the last list."
 
+      # The Nifty 500 / Nifty 50 benchmark closes (data/benchmarks.csv),
+      # extended from NSE's daily bundle, Screener for any session NSE does
+      # not give. Replaces the Yahoo download (owner, 2026-10-02). Committed
+      # with the rest of data/ below. Non-blocking: a failure keeps the file.
+      - name: Extend the benchmark closes
+        env:
+          PYTHONPATH: .
+        run: python scripts/build_benchmarks.py --update || echo "::warning::Benchmark update failed; the committed file is used."
+
       # The extra universe (every stock of ₹2,000 Cr or more outside the 750,
       # src/engine/extra_universe.py): rebuilt from NSE's market-cap file
       # only when a new month-end session is in R2, else a no-op. Written to
@@ -204,14 +213,6 @@ jobs:
           python scripts/sync_data.py
           python scripts/update_membership_history.py
 
-      # Yahoo's two years for the extra universe, in its own file so it cannot
-      # move any judgement the 750's pipeline makes (scripts/sync_extra_yahoo.py).
-      # Non-blocking: the 750's publication never waits on it.
-      - name: Yahoo prices for the extra universe
-        env:
-          PYTHONPATH: .
-        run: python scripts/sync_extra_yahoo.py --out prices_extra.parquet || echo "::warning::Extra-universe Yahoo download failed; the 750 are unaffected."
-
       # The Nano Cap and Combined rankings, precomputed like the 750's (owner,
       # 2026-09-27: nightly precompute for all systems). Ranked from the same
       # frames the app builds; the app uses a table only when its contract
@@ -219,7 +220,7 @@ jobs:
       - name: Precompute the Nano Cap and Combined rankings
         env:
           PYTHONPATH: .
-        run: python scripts/precompute_systems.py --extra prices_extra.parquet || echo "::warning::Nano Cap / Combined precompute failed; the app will compute them."
+        run: python scripts/precompute_systems.py || echo "::warning::Nano Cap / Combined precompute failed; the app will compute them."
 
       # Explicitly save, with the SAME rotating key the restore asked for, so
       # there is exactly one writer. Splitting restore from save also removes
@@ -232,56 +233,22 @@ jobs:
           path: ${{ github.workspace }}/data_cache/
           key: price-data-${{ runner.os }}-${{ github.run_id }}
 
-      # Published as a release asset, not committed. At ~10.5 MB a daily commit
-      # would add roughly 2.5 GB a year of git history to a repository against
-      # GitHub's ~1 GB soft limit; a release asset is replaced in place and
-      # carries none. Production seeds its empty /tmp cache from this in one
-      # HTTPS GET instead of re-downloading two years from Yahoo.
-      - name: Publish price snapshot
+      # The precomputed rankings, published as release assets (replaced in
+      # place, so no git history accumulates). No Yahoo price file is produced
+      # any more (owner, 2026-10-02): the app reads Screener's store and NSE's
+      # committed closes.
+      - name: Publish rankings to the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          SNAP="${{ github.workspace }}/data_cache/prices_snapshot.parquet"
-          if [ ! -f "$SNAP" ]; then
-            echo "::warning::No price snapshot was produced; skipping upload."
-            exit 0
-          fi
-          ls -lh "$SNAP"
-          # A single rolling tag. The release is created once and its asset
-          # replaced every run, so there is exactly one snapshot to fetch and
-          # no accumulation of stale ones.
+          # A single rolling tag. The release is created once and its assets
+          # replaced every run.
           gh release view data-latest --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
             gh release create data-latest \
               --repo "$GITHUB_REPOSITORY" \
               --title "Latest data snapshots" \
-              --notes "Rolling price history published by the daily sync. Replaced in place; not intended as a versioned release." \
+              --notes "Rolling data published by the daily sync. Replaced in place; not intended as a versioned release." \
               --latest=false
-          cp "$SNAP" "${{ github.workspace }}/prices.parquet"
-          gh release upload data-latest "${{ github.workspace }}/prices.parquet" \
-            --repo "$GITHUB_REPOSITORY" --clobber
-          echo "Uploaded prices.parquet to release data-latest."
-
-          # The full archive, alongside the app snapshot. The app never reads
-          # this -- it exists so the monthly track-record freeze has the depth
-          # it needs (each month wants a 12-month formation window before it,
-          # and the record only grows). Uploaded separately so lengthening the
-          # archive never slows the app's cold start.
-          ARCH="${{ github.workspace }}/data_cache/prices_archive.parquet"
-          if [ -f "$ARCH" ]; then
-            ls -lh "$ARCH"
-            cp "$ARCH" "${{ github.workspace }}/prices_full.parquet"
-            gh release upload data-latest "${{ github.workspace }}/prices_full.parquet" \
-              --repo "$GITHUB_REPOSITORY" --clobber
-            echo "Uploaded prices_full.parquet to release data-latest."
-          else
-            echo "::warning::No price archive was produced; skipping archive upload."
-          fi
-
-          if [ -f "${{ github.workspace }}/prices_extra.parquet" ]; then
-            gh release upload data-latest "${{ github.workspace }}/prices_extra.parquet" \
-              --repo "$GITHUB_REPOSITORY" --clobber
-            echo "Uploaded prices_extra.parquet to release data-latest."
-          fi
 
           for SYS in nano combined; do
             R="${{ github.workspace }}/data_cache/rankings_${SYS}.parquet"
@@ -304,11 +271,10 @@ jobs:
             echo "::warning::No precomputed ranking was produced; the app will compute it."
           fi
 
-      # The same validated artifacts published to the rolling GitHub Release are
-      # also published to the durable R2 archive. R2 publication is immutable:
-      # a retry verifies an existing identical object rather than replacing it.
-      # A missing critical artifact is a hard failure -- the run must not claim
-      # dual publication when only one side was written.
+      # The rankings published to the rolling GitHub Release are also published
+      # to the durable R2 archive. R2 publication is immutable: a retry
+      # verifies an existing identical object rather than replacing it. No
+      # Yahoo price file is produced or published any more (owner, 2026-10-02).
       - name: Publish validated datasets to R2
         env:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
@@ -319,10 +285,6 @@ jobs:
           PYTHONPATH: .
         run: |
           set -euo pipefail
-
-          # Yahoo data is no longer published to R2 (owner: delete all Yahoo
-          # data from R2). prices.parquet, prices_full.parquet and
-          # prices_extra.parquet live on the data-latest release only.
 
           # Nano Cap and Combined rankings, when the precompute produced them.
           for SYS in nano combined; do

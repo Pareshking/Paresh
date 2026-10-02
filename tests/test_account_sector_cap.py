@@ -51,6 +51,7 @@ def test_ledger_months_are_struck_under_the_capped_config():
     import json
     from src.engine.track_record import LEDGER_PATH
     ledger = json.loads(open(LEDGER_PATH, encoding="utf-8").read())
-    last = ledger["rebuilds"][-1]
+    # The latest STRATEGY rebuild; a benchmark-only correction re-strikes no month.
+    last = [r for r in ledger["rebuilds"] if r.get("kind") != "benchmark_correction"][-1]
     assert {m["config"] for m in ledger["months"].values()} == {last["config"]}
     assert "40%" in last["note"]

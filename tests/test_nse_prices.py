@@ -241,8 +241,14 @@ def test_the_committed_ledger_is_one_basis_one_config_and_says_so():
     led = json.loads((systems.ledger_path("750")).read_text())
     assert led["price_basis"] == "screener_primary"
     assert {m["config"] for m in led["months"].values()} == {config_fingerprint(**TRACK_RECORD_CONFIG)}
-    assert led["rebuilds"][-1]["prices"] == "screener_primary"
-    assert led["rebuilds"][-1]["former_members_unpriceable"] == []
+    strategy = [r for r in led["rebuilds"] if r.get("kind") != "benchmark_correction"]
+    assert strategy[-1]["prices"] == "screener_primary"
+    assert strategy[-1]["former_members_unpriceable"] == []
+    # A benchmark correction keeps the basis and touches only benchmark and alpha.
+    for r in led["rebuilds"]:
+        if r.get("kind") == "benchmark_correction":
+            assert r["prices"] == led["price_basis"]
+            assert set(r["fields"]) <= {"benchmark", "alpha"}
 
 
 # ── reading the sessions from R2 ─────────────────────────────────────────────

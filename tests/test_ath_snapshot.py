@@ -1,10 +1,10 @@
 """All-time highs: built in CI, read by the app, on the SAME price basis.
 
-The screener downloads prices with yfinance's default auto_adjust=True, so its
-prices are adjusted for splits and dividends. An all-time high fetched with
-auto_adjust=False sits on a different scale, and comparing the two is
-meaningless -- a stock that split 1:5 carries a pre-split high five times its
-adjusted price, so a genuine new high reads as ~76% BELOW its all-time high.
+The ranking reads Screener's closes (split and bonus adjusted, no dividends;
+no Yahoo since 2026-10-02), so the all-time high is taken from that same
+series. A high on any other basis sits on a different scale: a stock that
+split 1:5 would carry a pre-split high five times its adjusted price, and a
+genuine new high would read as ~80% BELOW its all-time high.
 
 That mismatch shipped once. These tests pin the basis, because the failure is
 silent: no error, no NaN, just a wrong number in a column people trade on.
@@ -16,87 +16,55 @@ import pytest
 from src.loaders.ath_loader import ath_series, build_ath_snapshot, load_ath_snapshot
 
 IDX = pd.bdate_range(end="2026-08-18", periods=40)
-FIELDS = ["Open", "High", "Low", "Close", "Volume"]
 
 
-def _fake_download(peaks: dict[str, float], record: list | None = None):
-    """Stand-in for yf.download that records the kwargs it was called with."""
-
-    def _download(tickers, **kwargs):
-        if record is not None:
-            record.append({**kwargs, "_tickers": list(tickers)})
-        frames = []
-        for t in tickers:
-            base = peaks.get(t, 100.0)
-            highs = np.linspace(base * 0.5, base, len(IDX))
-            data = np.column_stack([highs] * len(FIELDS))
-            frames.append(pd.DataFrame(
-                data, index=IDX,
-                columns=pd.MultiIndex.from_product([[t], FIELDS]),
-            ))
-        return pd.concat(frames, axis=1)
-
-    return _download
+def _store(peaks: dict[str, float]) -> pd.DataFrame:
+    """A Screener-shaped store: (symbol, Close) and (symbol, Volume), rising to each peak."""
+    cols = {}
+    for sym, peak in peaks.items():
+        cols[(sym, "Close")] = pd.Series(np.linspace(peak * 0.5, peak, len(IDX)), index=IDX)
+        cols[(sym, "Volume")] = pd.Series(1e5, index=IDX)
+    store = pd.DataFrame(cols)
+    store.columns = pd.MultiIndex.from_tuples(store.columns)
+    return store
 
 
-def test_snapshot_is_built_on_the_adjusted_basis():
-    """The property that broke: it MUST request adjusted prices."""
-    calls: list = []
-    build_ath_snapshot(
-        ["RELIANCE", "TCS"], "10y", download=_fake_download({}, calls)
-    )
-    assert calls, "the downloader was never called"
-    for kwargs in calls:
-        assert kwargs["auto_adjust"] is True, (
-            "unadjusted highs cannot be compared against the app's adjusted prices"
-        )
+def test_snapshot_is_built_from_screener_closes_not_another_basis():
+    """The property that broke: the high must come from the ranking's own closes."""
+    store = _store({"RELIANCE": 900.0})
+    # A volume spike must never be read as a price.
+    store[("RELIANCE", "Volume")] = 1e9
+    snap = build_ath_snapshot(["RELIANCE"], store)
+    assert snap.loc[0, "ATH"] == pytest.approx(900.0)
 
 
-def test_snapshot_requests_the_configured_window():
-    calls: list = []
-    build_ath_snapshot(["RELIANCE"], "10y", download=_fake_download({}, calls))
-    assert calls[0]["period"] == "10y"
-
-
-def test_symbols_are_suffixed_for_yahoo_but_stored_bare():
-    calls: list = []
-    snap = build_ath_snapshot(
-        ["RELIANCE", "TCS.NS"], "10y",
-        download=_fake_download({"RELIANCE.NS": 900.0, "TCS.NS": 400.0}, calls),
-    )
-    # Tickers go positionally, so the old `calls[0]["tickers"] if "tickers" in
-    # calls[0] else True` was always True. Record them and check the suffix.
-    assert calls[0]["_tickers"] == ["RELIANCE.NS", "TCS.NS"]   # TCS.NS not doubled
+def test_symbols_are_matched_case_insensitively_and_stored_bare():
+    snap = build_ath_snapshot(["reliance", "TCS"], _store({"RELIANCE": 900.0, "TCS": 400.0}))
     assert sorted(snap["Symbol"]) == ["RELIANCE", "TCS"]
 
 
-def test_the_high_is_the_maximum_over_the_window():
-    snap = build_ath_snapshot(
-        ["RELIANCE"], "10y", download=_fake_download({"RELIANCE.NS": 900.0})
-    )
+def test_symbols_the_store_lacks_are_left_out():
+    snap = build_ath_snapshot(["RELIANCE", "NOPE"], _store({"RELIANCE": 900.0}))
+    assert list(snap["Symbol"]) == ["RELIANCE"]
+
+
+def test_the_high_is_the_maximum_over_the_history():
+    snap = build_ath_snapshot(["RELIANCE"], _store({"RELIANCE": 900.0}))
     assert snap.loc[0, "ATH"] == pytest.approx(900.0)
 
 
 def test_snapshot_records_when_the_peak_happened_and_how_current_it_is():
-    snap = build_ath_snapshot(
-        ["RELIANCE"], "10y", download=_fake_download({"RELIANCE.NS": 900.0})
-    )
+    snap = build_ath_snapshot(["RELIANCE"], _store({"RELIANCE": 900.0}))
     assert snap.loc[0, "ATHDate"] == str(IDX[-1].date())   # rising series peaks last
     assert snap.loc[0, "AsOf"] == str(IDX[-1].date())
 
 
-def test_batching_covers_every_symbol():
-    symbols = [f"S{i}" for i in range(250)]
-    calls: list = []
-    snap = build_ath_snapshot(
-        symbols, "10y", download=_fake_download({}, calls), batch_size=100
-    )
-    assert len(calls) == 3               # 100 + 100 + 50
-    assert len(snap) == 250
-
-
-def test_an_empty_download_returns_an_empty_frame_not_an_error():
-    snap = build_ath_snapshot(["A"], "10y", download=lambda t, **k: pd.DataFrame())
+@pytest.mark.parametrize("store", [pd.DataFrame(), None,
+                                   pd.DataFrame({"flat": [1.0]})])
+def test_an_unusable_store_returns_an_empty_frame_not_an_error(store, monkeypatch):
+    from src.loaders import price_source
+    monkeypatch.setattr(price_source, "fetch_screener_store", lambda *a, **k: None)
+    snap = build_ath_snapshot(["A"], store)
     assert snap.empty
     assert list(snap.columns) == ["Symbol", "ATH", "ATHDate", "AsOf"]
 
@@ -104,10 +72,7 @@ def test_an_empty_download_returns_an_empty_frame_not_an_error():
 # ── Reading it back ─────────────────────────────────────────────────────────
 
 def test_round_trip_through_the_csv(tmp_path):
-    snap = build_ath_snapshot(
-        ["RELIANCE", "TCS"], "10y",
-        download=_fake_download({"RELIANCE.NS": 900.0, "TCS.NS": 400.0}),
-    )
+    snap = build_ath_snapshot(["RELIANCE", "TCS"], _store({"RELIANCE": 900.0, "TCS": 400.0}))
     path = tmp_path / "ath.csv"
     snap.to_csv(path, index=False)
 
@@ -189,7 +154,7 @@ def test_source_is_labelled_so_a_two_year_high_is_never_called_all_time(monkeypa
 def test_peak_date_reaches_the_ranking(monkeypatch, tmp_path):
     """The peak date must travel with the number, not stay in the CSV.
 
-    Over a 20-year window one bad tick sets a permanent phantom high. A stock
+    Over a long window one bad tick sets a permanent phantom high. A stock
     reading -90% from a peak dated 2007 is a very different claim from one
     dated last month, and the screener has to let a reader tell them apart.
     """

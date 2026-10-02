@@ -82,7 +82,10 @@ def offline_market_data(monkeypatch):
     import pandas as pd
 
     from src.core.types import MarketRegime, RegimeData
-    from src.loaders import indices_loader, mcap_loader, price_loader, ranking_store, tv_loader
+    from src.loaders import (
+        indices_loader, mcap_loader, nse_prices, price_loader, price_source, ranking_store,
+        tv_loader,
+    )
 
     symbols = [f"SYM{i:02d}" for i in range(12)]
     idx = pd.bdate_range(end="2026-09-15", periods=320)
@@ -118,10 +121,17 @@ def offline_market_data(monkeypatch):
     )
 
     monkeypatch.setattr(indices_loader, "fetch_indices_data", lambda *a, **k: idx_info)
-    monkeypatch.setattr(price_loader, "fetch_price_history", lambda *a, **k: raw)
+    # The app's prices: Screener's store (Close and Volume per symbol), NSE's
+    # committed file under it. No Yahoo since 2026-10-02.
+    store = pd.DataFrame({(sym, field): (close[sym] if field == "Close"
+                                         else pd.Series(1_000_000.0, index=idx))
+                          for sym in symbols for field in ("Close", "Volume")})
+    store.columns = pd.MultiIndex.from_tuples(store.columns)
+    monkeypatch.setattr(price_source, "fetch_screener_store", lambda *a, **k: store)
+    monkeypatch.setattr(nse_prices, "middle_close", lambda *a, **k: None)
     monkeypatch.setattr(price_loader, "fetch_benchmark_history", lambda *a, **k: bench)
     monkeypatch.setattr(price_loader, "get_market_regime", lambda *a, **k: regime)
     monkeypatch.setattr(mcap_loader, "fetch_market_caps", lambda *a, **k: mcaps)
     monkeypatch.setattr(tv_loader, "load_tv_classification", lambda *a, **k: {})
     monkeypatch.setattr(ranking_store, "fetch_snapshot", lambda *a, **k: (None, None))
-    return {"symbols": symbols, "idx_info": idx_info, "prices": raw}
+    return {"symbols": symbols, "idx_info": idx_info, "prices": raw, "store": store}

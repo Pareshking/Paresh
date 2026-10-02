@@ -82,19 +82,6 @@ def test_the_cache_key_changes_every_run(steps):
     )
 
 
-def test_it_publishes_the_snapshot_production_actually_reads(steps):
-    """The step whose absence made the whole job pointless."""
-    uploads = [
-        s for s in steps
-        if "gh release upload" in str(s.get("run", ""))
-        and "prices.parquet" in str(s.get("run", ""))
-    ]
-    assert uploads, (
-        "the weekly full refresh never reaches production: nothing uploads "
-        "prices.parquet to the data-latest release"
-    )
-
-
 def test_publishing_is_permitted(job, steps):
     """A release upload needs contents: write. It declared contents: read."""
     perms = job.get("permissions") or {}

@@ -15,9 +15,9 @@ raw-price store would need.
     python scripts/check_corporate_actions.py            # report and log
     python scripts/check_corporate_actions.py --dry-run
     python scripts/check_corporate_actions.py --fail-on-new   # exit 1 on a new find
-    python scripts/check_corporate_actions.py --source screener
 
---source screener scans the Screener store instead. Screener re-adjusts its
+It scans the Screener store (the ranking's own prices; no Yahoo since
+2026-10-02). Screener re-adjusts its
 history after an event, but only some days later -- the lag is not fixed. Until
 then the event is a step in that series too, and it is logged here so
 adjust_ohlc neutralises it before ranking; once Screener restates, the step is
@@ -38,7 +38,6 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.engine.corporate_actions import IMPLAUSIBLE_MOVE, detect, summarise  # noqa: E402
-from src.loaders.price_loader import extract_ohlcv  # noqa: E402
 
 LOG_PATH = Path("data/corporate_actions_log.json")
 
@@ -74,12 +73,7 @@ def _closes(source: str) -> tuple[pd.DataFrame, pd.Timestamp | None]:
         store = screener_loader.load_store(SCREENER_PRICES_FILE)
         closes = screener_loader.closes(store)
         return closes, daily_start(closes.index) if not closes.empty else None
-    from src.core.config import PRICES_FILE
-
-    if not Path(PRICES_FILE).exists():
-        return pd.DataFrame(), None
-    adj, *_ = extract_ohlcv(pd.read_parquet(PRICES_FILE))
-    return adj, None
+    return pd.DataFrame(), None
 
 
 def confirm_restated(events: dict, closes: pd.DataFrame, since: pd.Timestamp | None,
@@ -133,8 +127,8 @@ def main() -> int:
         help="Exit non-zero when a session is flagged for the first time, so a "
         "scheduled run surfaces it instead of burying it in a log.",
     )
-    ap.add_argument("--source", choices=("yahoo", "screener"), default="yahoo",
-                    help="which price history to scan (default: the Yahoo cache)")
+    ap.add_argument("--source", choices=("screener",), default="screener",
+                    help="which price history to scan (only the Screener store since 2026-10-02)")
     args = ap.parse_args()
 
     adj, since = _closes(args.source)

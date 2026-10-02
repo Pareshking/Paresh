@@ -5,42 +5,22 @@ Executed locally or via GitHub Actions at 9:00 PM IST.
 
 import os
 import sys
-import time
 from datetime import datetime
 
-# Determine if a full 2‑year refresh is required (weekly run)
+# The weekly run sets this; it no longer changes what the sync fetches.
 FORCE_FULL = os.getenv("FORCE_FULL", "false").lower() == "true"
-# How much of the universe Yahoo must cover before its sweep may replace the
-# committed snapshot. A thin result would trade coverage for a date, and the
-# caps exist to say which size bucket a stock is in -- a stock with no cap at
-# all is worse than one whose cap is a day old.
-MIN_MCAP_COVERAGE = float(os.getenv("UMIYA_MIN_MCAP_COVERAGE", "0.9"))
-
-
-def mcap_sweep_is_adoptable(resolved: int, universe: int) -> bool:
-    """Does a Yahoo market-cap sweep cover enough of the universe to replace
-    the snapshot? Coverage outranks freshness: a stock with no cap is worse
-    than one whose cap is a day old."""
-    return resolved / max(universe, 1) >= MIN_MCAP_COVERAGE
-
-
 # Ensure repository root is in python path
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
 from src.loaders.indices_loader import fetch_indices_data, sync_official_nse_indices
-from src.core.market_time import recent_trading_days
-from src.loaders.mcap_loader import (
-    fetch_mcaps_from_yfinance,
-    fetch_market_caps,
-)
-from src.loaders.price_loader import fetch_price_history
+from src.loaders.mcap_loader import fetch_market_caps
 from src.loaders.tv_loader import reconcile_and_update_tv_classification
 
 
-def _precompute_rankings(symbols, universe_df, mcaps, raw=None, out_name=None) -> None:
-    """Rank the published snapshot, and stamp the answer with its own contract.
+def _precompute_rankings(symbols, universe_df, mcaps, out_name=None) -> None:
+    """Rank the Screener frame the app will rank, and stamp it with its own contract.
 
     Runs the SAME two functions the app runs -- src/engine/pipeline -- so the
     published table is what production would have computed, not a second
@@ -52,45 +32,31 @@ def _precompute_rankings(symbols, universe_df, mcaps, raw=None, out_name=None) -
     live path has already removed, and the two would disagree on exactly the
     names the guard exists for.
     """
-    import pandas as pd
-
     from src.core.config import PRICES_FILE, RANKINGS_SNAPSHOT_ASSET
     from src.core.config import DEFAULT_LOOKBACK_WEIGHTS
     from src.engine.corporate_actions import adjust_ohlc, load_events
     from src.engine import pipeline
     from src.loaders import price_source, screener_loader
-    from src.loaders.price_loader import extract_ohlcv
     from src.loaders.ranking_store import contract, write_snapshot
 
-    # raw and out_name: another system's frame and file (Nano Cap, Combined;
-    # scripts/precompute_systems.py). Default: the 750 from the snapshot.
     here = os.path.dirname(PRICES_FILE)
-    if raw is None:
-        snapshot_path = os.path.join(here, "prices_snapshot.parquet")
-        if not os.path.exists(snapshot_path):
-            print("No published snapshot to rank; skipping.")
-            return
-        raw = pd.read_parquet(snapshot_path)
-    adj_close, close_p, high_p, low_p, vol_p, _open_p = extract_ohlcv(raw, list(symbols))
-    if adj_close is None or adj_close.empty:
-        print("Snapshot produced no usable prices; skipping.")
-        return
 
-    # Which history to rank. The app asks the same module, so the two cannot
-    # drift onto different sources while the contract still matches.
-    src = price_source.from_yahoo(adj_close, close_p, high_p, low_p, vol_p)
-    if price_source.preferred() == "screener":
-        store = screener_loader.load_store()
-        if store is None or store.empty:
-            store = price_source.fetch_screener_store()
-        chosen = price_source.from_screener(store) if store is not None else None
-        if chosen is not None:
-            # The same call the app makes, so both rank the same frame.
-            from src.loaders import nse_prices
-            src = price_source.keep_and_fill(
-                chosen, symbols, adj_close, nse_prices.middle_close(symbols))
-        else:
-            print("Screener history not usable yet; ranking from Yahoo.")
+    # out_name: another system's file (Nano Cap, Combined;
+    # scripts/precompute_systems.py). Default: the 750's.
+    #
+    # Which history to rank. The app asks the same function
+    # (price_source.ranking_frames), so the two cannot drift onto different
+    # data while the contract still matches. Screener first, NSE for what it
+    # lacks; no Yahoo (owner, 2026-10-02).
+    from src.loaders import nse_prices
+
+    store = screener_loader.load_store()
+    if store is None or store.empty:
+        store = price_source.fetch_screener_store()
+    src = price_source.ranking_frames(store, list(symbols), nse_prices.middle_close(symbols))
+    if src is None:
+        print("Neither Screener nor NSE can serve a ranking frame; skipping.")
+        return
     print(f"Ranking source: {src.source} "
           f"({src.adj_close.shape[0]} sessions x {src.adj_close.shape[1]} symbols, "
           f"52-week high on {src.high_basis})")
@@ -241,73 +207,10 @@ def run_daily_sync() -> None:
     except Exception as exc:
         print(f"Trading-day record skipped: {type(exc).__name__}: {exc}")
 
-    # 4. Fetch and cache price histories (the ARCHIVE window)
-    #
-    # NOTE: lengthening this only takes effect on a FORCE_FULL run. The
-    # incremental path tops the cache up from its last date forward and never
-    # backfills earlier history, so a longer period against an existing shorter
-    # cache returns the shorter cache unchanged. The weekly full sync
-    # (FORCE_FULL=true) is what actually deepens the archive.
-    from src.core.config import PRICE_ARCHIVE_PERIOD, PRICE_HEAL_DAYS
-
-    print(f"\n--- 4. Fetching and Caching {PRICE_ARCHIVE_PERIOD.upper()} OHLCV Price Histories ---")
-    # heal_days re-asks for history this cache already holds. Yahoo backfills
-    # an Indian close days after the session and restates a split-adjusted
-    # series for weeks afterwards, and the incremental path -- which asks only
-    # from the last cached date FORWARD -- can never see either. The published
-    # snapshot carries 572 such holes across 337 symbols to prove it.
-    #
-    # It is the same single request with an earlier start, so it costs one job
-    # nothing and no reader anything. Skipped on a FORCE_FULL run, which is
-    # re-downloading the whole window regardless.
-    prices_df = fetch_price_history(
-        symbols,
-        period=PRICE_ARCHIVE_PERIOD,
-        force_refresh=FORCE_FULL,
-        heal_days=0 if FORCE_FULL else PRICE_HEAL_DAYS,
-    )
-    print(f"Price cache updated with shape {prices_df.shape}.")
-
-    # 4a. Let the calendar learn the holidays the volume test found.
-    #
-    # The zero-volume test reads something no coverage threshold can: a session
-    # where every priced symbol is flat at zero volume is one on which nothing
-    # changed hands, and two of the four it found sat at 100% vendor coverage.
-    # Writing them down turns a test that must re-derive the answer from the
-    # whole frame on every read into a fact the calendar simply knows -- and
-    # one a human can audit, which a heuristic buried in a loader is not.
-    #
-    # This is evidence, not an assertion of an NSE holiday. The source string
-    # says exactly what was observed and at what coverage, so a wrong entry can
-    # be traced to the run that made it rather than appearing as an anonymous
-    # date somebody once decided was closed. record_closed already refuses any
-    # date NSE published a bhavcopy for, so the exchange still outranks this.
-    try:
-        from src.core import startup_metrics as _m
-        from src.loaders.trading_days import record_closed
-
-        _facts = _m.snapshot().get("facts", {})
-        _dead = [d for d in str(_facts.get("price_zero_trade_dates") or "").split(",") if d]
-        if _dead:
-            _cov = dict(
-                part.split(":", 1)
-                for part in str(_facts.get("price_zero_trade_coverage") or "").split(",")
-                if ":" in part
-            )
-            for _day in _dead:
-                _pct = _cov.get(_day, "?")
-                added, total = record_closed(
-                    [_day],
-                    source=f"zero-volume evidence ({_pct}% priced, all flat at zero volume)",
-                )
-                if added:
-                    print(f"Calendar learned {_day} is a non-session ({_pct}% priced); {total} on record.")
-        else:
-            print("No zero-volume non-sessions found in this frame.")
-    except Exception as exc:
-        # Strictly an enrichment: the volume test already dropped these rows
-        # from the frame this run, with or without the calendar entry.
-        print(f"Calendar learning skipped: {type(exc).__name__}: {exc}")
+    # 4. (Removed 2026-10-02.) The Yahoo price download and the zero-volume
+    # calendar learning that read it. Prices come from Screener's store
+    # (scripts/sync_screener.py, its own workflow) and NSE's committed file;
+    # the owner retired Yahoo as a source.
 
     # 5b. Commit the result to the repository.
     # This job runs on GitHub Actions, where NSE is reachable. Whether
@@ -315,71 +218,22 @@ def run_daily_sync() -> None:
     # claim that NSE refuses that host traces back to the same silent failure
     # that turned out to be our own logging bug, so treat it as unverified
     # until someone reads mcap_path from a live session. Either way, writing
-    # the snapshot here is worth it: production reads one committed file
-    # instead of making 750 individual yfinance lookups, the slowest stage of
-    # a cold start.
+    # the snapshot here is worth it: production reads one committed file.
     from src.core import startup_metrics as _metrics
 
     _facts = _metrics.snapshot().get("facts", {})
     _mcap_path = str(_facts.get("mcap_path") or "unknown")
     _as_of = _facts.get("mcap_pr_date")
 
-    if _mcap_path == "repo_snapshot":
-        # The loader fell through to the file THIS JOB wrote last time, which
-        # means nothing new was fetched. Rewriting it as-is would launder a
-        # stale snapshot as a fresh one and reset nothing but the commit date.
-        #
-        # This is not hypothetical: on 2026-08-18 the 22:00 IST slot fired at
-        # 22:29 and NSE had not yet published the PR archive -- the same file
-        # fetched cleanly at 22:51 -- so the job read its own output and wrote
-        # it straight back. A closed loop with no signal that the fetch failed.
-        #
-        # A second door, for when the first genuinely will not open.
-        #
-        # Do NOT read this branch as evidence that NSE blocks CI. That was
-        # believed here for months and it was false: the archive answered every
-        # request, and a logging bug in _fetch_mcap_from_pr_zip threw the parsed
-        # result away, which looked identical to a refusal from out here.
-        # Measured 2026-08-19 from two different hosts: HTTP 200 and a valid
-        # 644,058 byte zip.
-        #
-        # So this fires for the cases that remain real -- an outage, a genuine
-        # 403, an archive still unpublished at this hour. Yahoo answers fine;
-        # the daily prices come from there. It is skipped everywhere else only
-        # because market cap has no bulk endpoint, so it costs one request per
-        # company and the LIVE app cannot spend 750 of those on a cold start.
-        print(
-            "::warning::No market caps from NSE; asking Yahoo for the full "
-            "universe instead so the caps still carry a date."
-        )
-        _started = time.perf_counter()
-        _yf_caps = fetch_mcaps_from_yfinance(symbols)
-        _elapsed = time.perf_counter() - _started
-        _coverage = len(_yf_caps) / max(len(symbols), 1)
-        print(
-            f"Yahoo market cap sweep: {len(_yf_caps)}/{len(symbols)} resolved "
-            f"({_coverage:.0%}) in {_elapsed:.0f}s"
-        )
-
-        if mcap_sweep_is_adoptable(len(_yf_caps), len(symbols)):
-            # Adopted WHOLESALE, never merged with the older snapshot. Keeping
-            # yesterday's rows for whatever Yahoo missed would put two
-            # different days under one AsOf, which is the exact dishonesty the
-            # guard above exists to prevent.
-            mcaps = _yf_caps
-            _mcap_path = "yfinance_sweep"
-            _as_of = recent_trading_days(1)[0].isoformat()
-        else:
-            print(
-                f"::warning::Yahoo covered only {_coverage:.0%} of the universe, "
-                f"below the {MIN_MCAP_COVERAGE:.0%} required to replace the "
-                "snapshot. Leaving the existing one untouched."
-            )
-
-    # Still the repo snapshot means neither door opened, so the committed file
+    # If the loader fell through to the file THIS JOB wrote last time,
+    # nothing new was fetched: rewriting it as-is would launder a stale
+    # snapshot as a fresh one (2026-08-18: NSE's archive was not yet
+    # published at 22:29 IST). There is no second door any more -- the Yahoo
+    # sweep went with Yahoo (owner, 2026-10-02) -- so the file stands.
+    # Still the repo snapshot means NSE did not answer, so the committed file
     # stands as it is -- undated, but not re-dated to today either.
     if _mcap_path == "repo_snapshot":
-        print("No fresh market caps from either source; snapshot left untouched.")
+        print("No fresh market caps from NSE; snapshot left untouched.")
     elif len(mcaps) > 0:
         import pandas as pd
 
@@ -407,20 +261,19 @@ def run_daily_sync() -> None:
     else:
         print("No market caps resolved; leaving the repository snapshot untouched.")
 
-    # 5b. All-time highs from a long history.
+    # 5b. All-time highs from Screener's whole history (about ten years).
     #
-    # Production runs the screener on a two-year window because every
-    # calendar-momentum pass walks that frame row by row, so a ten-year window
-    # would multiply the cold start rather than the storage. This job has no
-    # such constraint -- nobody waits on it -- so it pays the ten-year download
-    # once a day and commits one row per symbol. Production then gets a genuine
-    # all-time high for the price of reading a small CSV.
+    # Production ranks on a shorter window because every calendar-momentum
+    # pass walks that frame row by row. This job has no such constraint, so it
+    # takes the high once a day from the store and commits one row per symbol.
     print("\n--- 5b. Computing All-Time Highs ---")
     try:
-        from src.core.config import ATH_HISTORY_PERIOD, REPO_ATH_FILE
+        from src.core.config import REPO_ATH_FILE
+        from src.loaders import screener_loader
         from src.loaders.ath_loader import build_ath_snapshot
 
-        snapshot = build_ath_snapshot(symbols, ATH_HISTORY_PERIOD)
+        store = screener_loader.load_store()
+        snapshot = build_ath_snapshot(symbols, store if store is not None and not store.empty else None)
         if snapshot.empty:
             print("No long-history highs returned; leaving the ATH snapshot untouched.")
         else:
@@ -428,87 +281,21 @@ def run_daily_sync() -> None:
             snapshot.to_csv(REPO_ATH_FILE, index=False)
             print(
                 f"All-time-high snapshot written: {len(snapshot)} symbols "
-                f"over {ATH_HISTORY_PERIOD} -> {REPO_ATH_FILE}"
+                f"(Screener closes) -> {REPO_ATH_FILE}"
             )
     except Exception as exc:
         # A failure here must not cost the rest of the sync. Production falls
         # back to its in-memory window and labels the column accordingly.
         print(f"All-time-high snapshot skipped: {type(exc).__name__}: {exc}")
 
-    # 5c. Publish the price history for production to seed from.
-    #
-    # Written as float32 + zstd: 18.7 MB becomes 10.5 MB, and prices carry
-    # nowhere near seven significant figures of meaning. The workflow uploads
-    # this as a release asset rather than committing it -- 10.5 MB a day is
-    # ~2.5 GB a year of git history against GitHub's ~1 GB soft limit.
-    print("\n--- 5c. Publishing Price Snapshot ---")
-    try:
-        import pandas as pd
-
-        from src.core.config import PRICE_HISTORY_PERIOD, PRICES_FILE
-        from src.loaders.price_loader import _read_local_price_cache
-
-        if os.path.exists(PRICES_FILE):
-            # Through the SAME guards the app reads with, not a bare
-            # read_parquet. Everything published here is consumed by something
-            # that does not re-check: the app's cold start, the monthly
-            # track-record freeze, and _precompute_rankings, which reads the
-            # snapshot file straight back off disk.
-            #
-            # A bare read shipped four non-sessions -- 2026-01-15, 2026-05-01,
-            # 2026-05-28, 2026-06-26, every priced symbol flat at zero volume,
-            # two of them at 100% vendor coverage. The app stripped them on
-            # read and the precomputed ranking did not, so the two would have
-            # ranked different frames while the contract matched: a wrong
-            # answer served fast, which is worse than no artifact at all.
-            frame = _read_local_price_cache()
-            if frame is None or frame.empty:
-                frame = pd.read_parquet(PRICES_FILE)
-            compact = frame.astype("float32", errors="ignore")
-            here = os.path.dirname(PRICES_FILE)
-
-            # The full archive, for jobs where nobody is waiting: the monthly
-            # track-record freeze and any long backtest.
-            archive = os.path.join(here, "prices_archive.parquet")
-            compact.to_parquet(archive, compression="zstd")
-            a_mb = os.path.getsize(archive) / 1024**2
-            print(
-                f"Price ARCHIVE written: {len(frame)} rows, "
-                f"{len(frame.columns)} series, {a_mb:.1f} MB -> {archive}"
-            )
-
-            # The app's cold-start snapshot: only the trailing screener window.
-            # The screener walks this frame row by row, so shipping the whole
-            # archive here would slow every cold start for data the screener
-            # never reads.
-            years = float(str(PRICE_HISTORY_PERIOD).rstrip("y") or 2)
-            cutoff = frame.index.max() - pd.DateOffset(years=int(years))
-            recent = compact.loc[compact.index >= cutoff]
-            out = os.path.join(here, "prices_snapshot.parquet")
-            recent.to_parquet(out, compression="zstd")
-            mb = os.path.getsize(out) / 1024**2
-            print(
-                f"Price snapshot written: {len(recent)} rows "
-                f"(trailing {PRICE_HISTORY_PERIOD}), "
-                f"{len(recent.columns)} series, {mb:.1f} MB -> {out}"
-            )
-        else:
-            print("No price cache on disk; nothing to publish.")
-    except Exception as exc:
-        print(f"Price snapshot skipped: {type(exc).__name__}: {exc}")
-
-    # 5d. Precompute the ranking from the snapshot just published.
+    # 5d. Precompute the ranking.
     #
     # Thirty of the eighty-nine seconds of a production cold start were spent
     # here, deriving five calendar-period passes and every signal column over
     # 750 symbols while a reader watched a spinner. It is the same arithmetic
-    # on the same frame every time, and this job already holds that frame on a
-    # runner where nobody is waiting.
-    #
-    # Ranked from `recent` -- the exact bytes published as prices.parquet --
-    # and NOT from the ten-year archive. The contract production checks is a
-    # fingerprint of the frame that was ranked, so ranking anything other than
-    # what production will seed from would miss on every single cold start.
+    # on the same frame every time, and this job holds that frame on a runner
+    # where nobody is waiting. The frame is price_source.ranking_frames -- the
+    # same call the app makes -- so production's fingerprint check matches.
     print("\n--- 5d. Precomputing the Ranking ---")
     try:
         _precompute_rankings(symbols, universe_df, mcaps)

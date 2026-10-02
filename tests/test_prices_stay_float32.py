@@ -99,17 +99,6 @@ def test_corporate_action_adjustment_does_not_widen_the_frames():
     )
 
 
-def test_the_published_snapshot_is_written_single_precision():
-    """The line in sync_data that halves what every cold start downloads."""
-    import pathlib
-
-    job = (pathlib.Path(__file__).resolve().parents[1] / "scripts/sync_data.py").read_text()
-    assert 'astype("float32"' in job, (
-        "the daily sync no longer compacts the snapshot to float32; the asset "
-        "production downloads on every cold start just doubled"
-    )
-
-
 def test_float32_is_precise_enough_for_a_price():
     """Seven significant figures against a number needing six. No rupee lost."""
     for rupees in (49.05, 1269.84, 7009.75, 89999.5):

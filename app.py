@@ -76,9 +76,7 @@ with app_import_guard():
     from src.core.universe_reconciliation import reconcile_symbols
     from src.loaders.mcap_loader import fetch_market_caps
     from src.loaders.price_loader import (
-        extract_ohlcv,
         fetch_benchmark_history,
-        fetch_price_history,
         get_market_regime,
     )
     from src.loaders.tv_loader import load_tv_classification
@@ -197,29 +195,9 @@ _symbols_hash = pipeline.symbols_fingerprint
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def load_prices_cached(
-    sym_key: str, _symbols: list[str], period: str = "2y"
-) -> pd.DataFrame:
-    # Bumped only when the memo actually misses. If the surrounding stage ran
-    # but this stayed at zero, Streamlit served a warm cache and the timing is
-    # not a cold one.
-    metrics.incr("memo_miss_prices")
-    return fetch_price_history(list(_symbols), period=period, force_refresh=False)
-
-
-@st.cache_data(show_spinner=False, ttl=3600)
 def load_mcaps_cached(sym_key: str, _symbols: list[str]) -> pd.Series:
     metrics.incr("memo_miss_market_caps")
     return fetch_market_caps(list(_symbols), force_refresh=False)
-
-
-@st.cache_data(show_spinner=False, ttl=3600)
-def _extract_ohlcv_cached(price_hash: str, sym_key: str, _raw_prices: pd.DataFrame, _symbols: list[str]):
-    # extract_ohlcv is O(m) over the full MultiIndex on every call. Cache it so
-    # reruns triggered by UI interactions (tab switches, slider ticks after the
-    # engine cache warms up) skip the decomposition entirely.
-    metrics.incr("memo_miss_ohlcv_extract")
-    return extract_ohlcv(_raw_prices, _symbols)
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -518,44 +496,39 @@ def _shape_screener_store(store_revision: str, _store: pd.DataFrame):
     return _ps.from_screener(_store)
 
 
-def _resolve_price_source(price_hash, sym_key, adj_close, close_p, high_p, low_p, vol_p, symbols):
-    """Pick the history the engine scores, falling back rather than failing.
+def _resolve_price_source(symbols):
+    """(frames the engine scores, the deep close history) -- Screener, then NSE.
 
-    Screener finishes a session where Yahoo can stall for days, but it carries
-    no intraday high, so the 52-week high is measured on closes and the ATR
-    columns are dropped rather than computed at half their true width. A
-    screener store that cannot reach the 12-month lookback is refused here, so
-    the table never ships with an empty 12M column.
+    No Yahoo (owner, 2026-10-02). Screener carries no intraday high, so the
+    52-week high is measured on closes and the ATR columns are dropped. A
+    store that cannot reach the 12-month lookback is refused, and NSE's own
+    closes rank instead; (None, None) when neither can serve.
+
+    The deep history is Screener's whole store for these symbols (about ten
+    years): the backtest and the track record want depth, not the ranking's
+    400-day fill window.
     """
     from r2.consumers import r2_streamlit
+    from src.loaders import nse_prices as _nse
     from src.loaders import price_source as _ps
 
-    fallback = _ps.from_yahoo(adj_close, close_p, high_p, low_p, vol_p)
-    if _ps.preferred() != "screener":
-        return fallback
+    _ps.preferred()  # reports a stale UMIYA_PRICE_SOURCE setting
     store_result = _fetch_screener_store(r2_streamlit.configuration_key())
-    if store_result is None:
-        chosen = None
-    else:
+    chosen = None
+    if store_result is not None:
         store, store_revision = store_result
-        chosen = (
-            _shape_screener_store(store_revision, store)
-            if store is not None
-            else None
-        )
-    if chosen is None:
-        if r2_streamlit.enabled():
-            raise RuntimeError("Configured immutable Screener dataset is not usable")
-        return fallback
-    keep = [c for c in chosen.close.columns if c in set(symbols)]
-    if not keep:
-        if r2_streamlit.enabled():
-            raise RuntimeError("Configured immutable Screener dataset has no requested symbols")
-        return fallback
-    # Screener first, then NSE, then Yahoo for what neither has (owner,
-    # 2026-09-27; NSE as the middle source approved 2026-10-02).
-    from src.loaders import nse_prices as _nse
-    return _ps.keep_and_fill(chosen, symbols, adj_close, _nse.middle_close(symbols))
+        if store is not None:
+            chosen = _shape_screener_store(store_revision, store)
+    if chosen is None and r2_streamlit.enabled():
+        raise RuntimeError("Configured immutable Screener dataset is not usable")
+    deep = None
+    if chosen is not None:
+        keep = [c for c in chosen.close.columns if c in set(symbols)]
+        deep = chosen.close[keep].copy() if keep else None
+    src = _ps.frames_from(chosen, symbols, _nse.middle_close(symbols))
+    if src is not None and deep is None:
+        deep = src.close
+    return src, deep
 
 
 @st.cache_data(show_spinner=False, ttl=86400)
@@ -655,7 +628,6 @@ def load_all_data(indices: list[str], system: str = SYSTEM_750):
     # The part of the list the 750's caches serve, and the part they do not.
     core_syms, extra_syms = extra_loader.split_symbols(system, idx_info)
     core_key = sym_key if not extra_syms else _symbols_hash(core_syms)
-    extra_key = _symbols_hash(extra_syms)
 
     def _mcaps_for_system() -> pd.Series:
         caps = load_mcaps_cached(core_key, core_syms) if core_syms else pd.Series(dtype=float)
@@ -671,67 +643,24 @@ def load_all_data(indices: list[str], system: str = SYSTEM_750):
         # Each system has its own table (scripts/precompute_systems.py).
         _fut_ranking = _pool.submit(_fetch_ranking_snapshot, system)
 
-        with metrics.stage("price_history"):
-            raw_prices = extra_loader.join_prices(
-                load_prices_cached(core_key, core_syms, period="2y") if core_syms else None,
-                extra_loader.load_prices(extra_key, extra_syms) if extra_syms else None,
-                extra_syms,
-            )
-            metrics.note("deep_price_provider", "yahoo")
-            logger.info(
-                "Deep price history loaded: provider=Yahoo (release files); this feed "
-                "is separate from the ranking Screener/object-storage source."
-            )
-        if raw_prices.empty:
-            return None
-
-        with metrics.stage("extract_ohlcv"):
-            # The raw 10-year download is too big to hash whole on every rerun;
-            # this key only memoises the extraction. The ranking itself is
-            # keyed on price_fingerprint of the extracted frames below.
-            p_hash_raw = pipeline.frame_memo_key(raw_prices)
-            adj_close, close_p, high_p, low_p, vol_p, open_p = _extract_ohlcv_cached(
-                p_hash_raw, sym_key, raw_prices, symbols
-            )
-
-        # Every PRICE frame, together. Adjusting the close but not the high
-        # would leave a split-adjusted price measured against an unadjusted
-        # 52-week high -- a stock permanently "67% below its high" on a split
-        # that cost its holders nothing. Volume is left alone on purpose; see
-        # adjust_ohlc.
-        # Which history to rank. price_source decides for BOTH the app and the
-        # nightly precompute, so the two cannot end up scoring different data
-        # while the ranking contract still matches -- a wrong answer served
-        # fast, which nothing downstream could detect.
+        # Every PRICE frame, together, from one source decision. price_source
+        # decides for BOTH the app and the nightly precompute, so the two
+        # cannot end up scoring different data while the ranking contract
+        # still matches -- a wrong answer served fast, which nothing
+        # downstream could detect. Screener first, NSE for what it lacks; no
+        # Yahoo (owner, 2026-10-02).
         with metrics.stage("price_source"):
-            # Keep the Yahoo frame before the switch. The RANKING wants the
-            # freshest complete session; the BACKTEST and the track record want
-            # DEPTH, and those are different requirements from the same app.
-            #
-            # Screener serves about a year and grows one session a night, which
-            # is ample to rank on and nowhere near the ~18 months a 12-month
-            # formation window plus a 6-month reported period needs. Handing
-            # them the ranking frame silently emptied both pages.
-            _deep_adj_close, _deep_close = adj_close, close_p
-            _deep_high, _deep_low = high_p, low_p
-
-            _src = _resolve_price_source(
-                p_hash_raw, sym_key, adj_close, close_p, high_p, low_p, vol_p, symbols
-            )
+            _src, _deep_close = _resolve_price_source(symbols)
+            if _src is None:
+                return None
             adj_close, close_p = _src.adj_close, _src.close
             high_p, low_p, vol_p = _src.high, _src.low, _src.volume
-            if not _src.intraday:
-                # OPEN MUST TRAVEL WITH CLOSE. It is extracted once from the
-                # Yahoo frame and was never reassigned, so a screener-ranked app
-                # drew candles with a Yahoo open against a screener close --
-                # different lengths and, worse, different corporate-action
-                # bases. On a demerged name that is a fictional body: HEG sits
-                # at 728 in one and 267 in the other on the same session.
-                #
-                # None rather than a substitute. The chart degrades a bar with
-                # no open to a flat close, which is exactly the honest picture
-                # for a close-only feed.
-                open_p = None
+            # Close-only sources: no open, so the chart draws a flat close
+            # rather than a candle with a fictional body.
+            open_p = None
+            # Memo key for the corporate-action pass below.
+            p_hash_raw = pipeline.frame_memo_key(adj_close)
+            _deep_adj_close = _deep_close
             metrics.note("price_source", _src.source)
             metrics.note("price_high_basis", _src.high_basis)
             metrics.note("price_intraday", "yes" if _src.intraday else "no")
