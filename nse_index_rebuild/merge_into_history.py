@@ -20,7 +20,8 @@ KEY = {"NIFTY_50": "nifty_50", "NIFTY_NEXT_50": "nifty_next_50", "NIFTY_MIDCAP_1
 TITLE = {"nifty_500": "NIFTY 500"}
 
 def main(write=True):
-    hist = json.load(open(PATH))
+    base = next((a.split("=",1)[1] for a in sys.argv if a.startswith("--base=")), PATH)
+    hist = json.load(open(base))  # pass --base=<pre-merge file> to regenerate from the original history
     res, problems = reverse2.run()
     if problems: sys.exit("unresolved chain problems; refusing to merge")
     explicit = {}  # per index: old tickers the file already uses, kept as they are so the junction matches
@@ -37,20 +38,20 @@ def main(write=True):
     report = {}
     for idx, (initial, snaps, timeline) in export_all(res).items():
         key = KEY[idx]
-        states = [(d, {cur(s, key) for s in m}) for d, m, _ in timeline]
+        states = [(d, {cur(s, key) for s in m}, f) for d, m, f in timeline]
         old = hist["indices"].get(key)
         if old:
             bdate = old["baseline"]["date"]
-            states = [(d, m) for d, m in states if d <= bdate]
+            states = [x for x in states if x[0] <= bdate]
             if not states or states[-1][1] != set(old["baseline"]["symbols"]):
                 diff = sorted(states[-1][1] ^ set(old["baseline"]["symbols"])) if states else "no overlap"
                 sys.exit(f"{key}: reconstruction does not land on the existing baseline {bdate}: {diff}")
-            states[-1] = (bdate, states[-1][1]); 
-        base_d, base = states[0]
+            states[-1] = (bdate, states[-1][1], states[-1][2])
+        base_d, base, _ = states[0]
         changes = []
-        for (d0, s0), (d1, s1) in zip(states, states[1:]):
+        for (d0, s0, _f0), (d1, s1, f1) in zip(states, states[1:]):
             added, removed = sorted(s1 - s0), sorted(s0 - s1)
-            if added or removed: changes.append({"date": d1, "added": added, "removed": removed})
+            if added or removed: changes.append({"date": d1, "added": added, "removed": removed, "notice": f1 + ".pdf"})
         if old:
             # the junction date may carry a change of its own; the existing baseline is the state after it
             new = {"baseline": {"date": base_d, "symbols": sorted(base)}, "changes": changes + old["changes"]}
@@ -65,6 +66,24 @@ def main(write=True):
     hist["caveats"] = {"note": "Reconstruction from NSE press releases; these intervals rest on open items. See docs/INDEX_MEMBERSHIP_PIT.md.",
                        "intervals": [{"index": KEY[r["index"]], "symbol": r["current_symbol"], "from": r["from_date"],
                                       "to": r["to_date"] or None, "caveat": r["caveat"]} for r in rows if r["caveat"]]}
+    named = set()
+    for ix in hist["indices"].values():
+        named |= set(ix["baseline"]["symbols"])
+        for c in ix["changes"]: named |= set(c["added"]) | set(c["removed"])
+    companies = {}
+    for r in csv.reader(open("reference/nse_symbolchange.csv")):
+        if len(r) >= 4: companies[(r[1].strip().upper(), r[2].strip().upper())] = r[0].strip()
+    changes_ledger = []
+    for old, a in sorted(export_pit.aliases.items(), key=lambda kv: kv[1]["first_new_date"]):
+        changes_ledger.append({"old_symbol": old, "new_symbol": a["new_symbol"], "company": companies.get((old, a["new_symbol"])),
+                               "last_old_date": a["last_old_date"], "first_new_date": a["first_new_date"], "status": a["status"],
+                               "evidence": a["evidence"]})
+    hist["symbol_changes"] = {"note": "Ticker/name changes found while rebuilding 2010-to-date. A rename is never an index entry or exit; "
+                              "membership above uses today's ticker except the old names listed under 'aliases'.", "changes": changes_ledger}
+    # `aliases` is left as the repo had it: the price stores are keyed by the tickers they were built with, and a
+    # new alias there silently unprices a name (GUJGASLTD -> GUJENERGY did). Full renames live in symbol_changes.
+    hist["adjustments_applied"] = {"note": "Hand-made rules that corrected or completed the parsed NSE notices (revocations, deferments, manual events). Each cites its document.",
+                                   "rules": [{k: r[k] for k in ("kind", "file", "index", "action", "symbol", "evidence")} for r in csv.DictReader(open("rules/overrides.csv"))]}
     for k, v in report.items(): print(k, v)
     if write:
         with open(PATH, "w") as fh: json.dump(hist, fh, indent=2); fh.write("\n")
