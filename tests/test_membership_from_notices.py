@@ -19,6 +19,7 @@ import pytest
 
 import src.engine.pipeline  # noqa: F401  (pipeline first: it and momentum import each other)
 from src.engine.membership import coverage, load_history, members_on, record_snapshot
+from src.core.membership_history import coverage_gaps
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -267,3 +268,15 @@ def test_the_backtester_now_scores_the_whole_2026_window_on_the_index_as_it_stoo
     jan = _index_mask(HISTORY, cols, pd.Timestamp("2026-01-30"))
     assert jan is not None and jan.to_dict() == {"SIGMAADV": False, "LENSKART": False, "TCS": True}
     assert _index_mask(HISTORY, cols, pd.Timestamp("2025-12-30")) is None  # before the record
+
+
+def test_full_2026_coverage_is_explicit_not_inferred_from_live_snapshots():
+    gaps = coverage_gaps(HISTORY)
+    assert gaps["nifty_total_market"]["status"] == "covered"
+    assert all(gaps[k]["status"] in {"covered", "gap"} for k in gaps)
+    # A 2026-09-29 baseline is not full-year historical coverage.
+    assert gaps["nifty_50"]["status"] == "gap"
+    assert gaps["nifty_next_50"]["status"] == "gap"
+    assert gaps["nifty_midcap_150"]["status"] == "gap"
+    assert gaps["nifty_smallcap_250"]["status"] == "gap"
+    assert gaps["nifty_microcap_250"]["status"] == "gap"
