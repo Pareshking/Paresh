@@ -20,8 +20,11 @@ All fetched without login through the agent proxy (NSE needs a browser User-Agen
   (INE140A01024 vs INE202B01038), so it is a merger successor, not a rename, as `rules/aliases.csv` already labels it.
 - Zerodha adds nothing for history. It is useful only to confirm a ticker is live today.
 
-## Daily sync proposal
+## Daily sync (built)
 
-Fetch `symbolchange.csv`, `namechange.csv`, `EQUITY_L.csv` and the last 30 days of corporate actions; store dated copies with a
-hash; open an issue when a change touches a current or recent index member. NSE may block GitHub-hosted runners, so the job
-must retry and fail visibly rather than write an empty file.
+`scripts/sync_nse_reference.py`, run by `.github/workflows/nse_reference_sync.yml` (daily, 02:45 UTC, also manual):
+fetches `symbolchange.csv`, `namechange.csv`, `EQUITY_L.csv` and the last 45 days of corporate actions into
+`data/reference/nse/` with `MANIFEST.json` (fetch time, rows, SHA-256) and `CHANGES.json` (new rows since the last run, and
+those touching a name in the membership record, also printed as `::warning::` lines). It retries, refuses an empty or shrunken
+feed, and fails the job on any fetch problem, which the scheduled-failure alert watches. It never edits
+`data/membership_history.json`. Zerodha is not synced: it adds nothing beyond today's tickers.
