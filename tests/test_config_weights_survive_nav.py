@@ -144,7 +144,7 @@ def test_the_portfolio_risk_widgets_survive_navigation_too():
         return {s.label: s.value for s in a.slider}
 
     before = caps(at)
-    assert before["Most in one sector (%)"] == 30
+    assert before["Most in one sector (%)"] == 40
     assert before["Most in one stock (%)"] == 5
 
     at.session_state["nav_section"] = "Momentum Signal"

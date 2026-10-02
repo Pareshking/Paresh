@@ -13,6 +13,7 @@ from src.engine.breadth import (
 )
 from src.core.config import SHORT_FORMS
 from src.engine.pipeline import price_fingerprint
+from src.ui import lw_chart as lw
 from src.ui import page_kit as kit
 from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.theme import render_saas_table
@@ -30,57 +31,34 @@ def index_members(rank_df: pd.DataFrame, index_name: str) -> list[str]:
 
 
 def _participation_chart(pct: pd.DataFrame, ma_type: str) -> None:
-    """Share of stocks above each average, over time, with the 40% and 60%
-    bands shaded. Altair ships with Streamlit, so no CDN is needed."""
-    import altair as alt
-
-    data = pct.copy()
-    data.index.name = "Date"
-    long = data.reset_index().melt("Date", var_name="Average", value_name="Share").dropna()
-    long["Average"] = long["Average"].str.replace("D", "-day ", regex=False) + ma_type
-    order = sorted(long["Average"].unique(), key=lambda s: int(s.split("-")[0]))
-    palette = ["#4F46E5", "#98A1AE", "#0E1726", "#B54708", "#067647"]
-    bands = alt.Chart(pd.DataFrame({"lo": [60, 0], "hi": [100, 40], "c": ["#E8F5EE", "#FDEDEB"]})).mark_rect(
-        opacity=0.55).encode(y="lo:Q", y2="hi:Q", color=alt.Color("c:N", scale=None))
-    lines = alt.Chart(long).mark_line(strokeWidth=2.2).encode(
-        x=alt.X("Date:T", title=None, axis=alt.Axis(format="%d %b", labelColor="#5E6878", grid=False)),
-        y=alt.Y("Share:Q", title=None, scale=alt.Scale(domain=[0, 100]),
-                axis=alt.Axis(labelExpr="datum.value + '%'", labelColor="#5E6878", gridColor="#EDEFF3",
-                              domain=False, ticks=False)),
-        color=alt.Color("Average:N", sort=order, scale=alt.Scale(domain=order, range=palette[: len(order)]),
-                        legend=alt.Legend(orient="top", title=None, labelColor="#3C4657")),
-        tooltip=[alt.Tooltip("Date:T", format="%d %b %Y"), "Average:N",
-                 alt.Tooltip("Share:Q", format=".0f", title="% above")],
-    )
-    st.altair_chart((bands + lines).properties(height=280).configure_view(strokeWidth=0).configure(background="#FFFFFF"),
-                    width="stretch", key="br_part_chart")
+    """Share of stocks above each average, over time, with the 40% and 60% lines.
+    Hover for the date and every average's value."""
+    palette = [lw.INDIGO, lw.GREY, lw.INK, lw.AMBER, lw.GREEN]
+    names = {c: str(c).replace("D", "-day ") + ma_type for c in pct.columns}
+    order = sorted(pct.columns, key=lambda c: int(str(c).rstrip("D")))
+    series = [
+        {"name": names[c], "type": "line", "color": palette[i % len(palette)], "fmt": "share",
+         "range": [0, 100], "data": lw.series_points(pct.index, pct[c])}
+        for i, c in enumerate(order)
+    ]
+    lw.render([{"height": 300, "top": 0.04, "series": series, "levels": [
+        {"value": 60, "color": lw.GREEN, "title": "60%"},
+        {"value": 40, "color": lw.RED, "title": "40%"}]}], key="br_part_chart")
 
 
 def _highs_lows_chart(hl_df: pd.DataFrame, is_pct: bool) -> None:
-    """New highs up in green, new lows down in red, one bar pair per session."""
-    import altair as alt
-
+    """New highs up in green, new lows down in red, one bar pair per session.
+    Hover for the date and both counts."""
     h_col, l_col = ("% New Highs", "% New Lows") if is_pct else ("New Highs", "New Lows")
-    data = pd.DataFrame({
-        "Date": hl_df.index,
-        "Highs": pd.to_numeric(hl_df[h_col], errors="coerce").to_numpy(),
-        "Lows": -pd.to_numeric(hl_df[l_col], errors="coerce").to_numpy(),
-    })
-    long = data.melt("Date", var_name="Kind", value_name="Value").dropna()
-    unit = "% of stocks" if is_pct else "stocks"
-    bars = alt.Chart(long).mark_bar(width={"band": 0.85}).encode(
-        x=alt.X("Date:T", title=None, axis=alt.Axis(format="%d %b", labelColor="#5E6878", grid=False)),
-        y=alt.Y("Value:Q", title=None,
-                axis=alt.Axis(labelExpr="abs(datum.value)", labelColor="#5E6878", gridColor="#EDEFF3",
-                              domain=False, ticks=False)),
-        color=alt.Color("Kind:N", scale=alt.Scale(domain=["Highs", "Lows"], range=["#067647", "#B42318"]),
-                        legend=alt.Legend(orient="top", title=None, labelColor="#3C4657")),
-        tooltip=[alt.Tooltip("Date:T", format="%d %b %Y"), "Kind:N",
-                 alt.Tooltip("abs_v:Q", format=".1f" if is_pct else ".0f", title=unit)],
-    ).transform_calculate(abs_v="abs(datum.Value)")
-    zero = alt.Chart(pd.DataFrame({"y": [0]})).mark_rule(color="#98A1AE").encode(y="y:Q")
-    st.altair_chart((bars + zero).properties(height=260).configure_view(strokeWidth=0).configure(background="#FFFFFF"),
-                    width="stretch", key="br_hl_chart")
+    fmt = "share1" if is_pct else "int"
+    highs = pd.to_numeric(hl_df[h_col], errors="coerce")
+    lows = -pd.to_numeric(hl_df[l_col], errors="coerce")
+    lw.render([{"height": 280, "series": [
+        {"name": "New highs", "type": "histogram", "color": lw.GREEN, "fmt": fmt,
+         "data": lw.series_points(hl_df.index, highs)},
+        {"name": "New lows", "type": "histogram", "color": lw.RED, "fmt": fmt, "abs": True,
+         "data": lw.series_points(hl_df.index, lows)},
+    ]}], key="br_hl_chart")
 
 
 def _participation_word(val: float) -> tuple[str, str]:
@@ -110,11 +88,11 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
         actions=True,
     )
     with actions:
-        history_days = st.selectbox(
-            "Period", [63, 126, 252], index=1,
-            format_func=lambda x: {63: "3 months", 126: "6 months", 252: "1 year"}[x],
-            key="br_lb_days", label_visibility="collapsed", width=130,
-        )
+        history_days = st.segmented_control(
+            "Period", [63, 126, 252], default=126, required=True,
+            format_func=lambda x: {63: "3M", 126: "6M", 252: "1Y"}[x],
+            key="br_lb_days", label_visibility="collapsed",
+        ) or 126
         with st.popover("Chart settings", icon=":material/tune:"):
             ma_type = st.segmented_control("Average", ["EMA", "SMA"], default="EMA",
                                            key="br_ma_type") or "EMA"
@@ -122,11 +100,11 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
                                      default=["50D", "200D"], key="br_sel_mas")
             bview = st.segmented_control("Participation by", ["Universe", "By Index"],
                                          default="Universe", key="br_bview") or "Universe"
-            hl_window = st.selectbox(
-                "New high / low means", [52, 126, 252], index=2,
+            hl_window = st.segmented_control(
+                "New high / low means", [52, 126, 252], default=252, required=True,
                 format_func=lambda x: {52: "52-day", 126: "126-day", 252: "52-week"}[x],
                 key="hl_win_sel",
-            )
+            ) or 252
             hl_disp = st.segmented_control("Show highs and lows as", ["% of Universe", "Stock Count"],
                                            default="% of Universe", key="hl_fmt_radio") or "% of Universe"
 

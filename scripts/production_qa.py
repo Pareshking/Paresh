@@ -143,8 +143,8 @@ DEPLOY_WAIT_S = int(os.getenv("UMIYA_DEPLOY_WAIT_S", "300"))
 METRICS_WAIT_S = int(os.getenv("UMIYA_METRICS_WAIT_S", "180"))
 
 TABS = [
-    "Screener", "Actions", "Sectors", "RRG", "Portfolio",
-    "Watchlist", "Market Breadth", "Backtest", "Track Record", "Configuration",
+    "Screener", "Portfolio", "Actions", "Sectors", "RRG",
+    "Watchlist", "Market Breadth", "Backtest", "Configuration",
     "Guide",
 ]
 VIEWPORTS = {
@@ -504,7 +504,7 @@ def audit_stock_link_navigation(page) -> dict:
     #   Screener table  <a data-stock=...> (and the whole <tr data-stock>)
     #               inside a SANDBOXED COMPONENT IFRAME; the click is
     #               intercepted and a script injected into window.parent
-    #               (src/ui/screener_table.py, and theme.py for Full Quant)
+    #               (src/ui/screener_table.py, all three column sets)
     #   Plain links <a href="?stock=..." target="_self"> in the app document:
     #               Top 50 this month, peers on the stock page, sector leaders
     #

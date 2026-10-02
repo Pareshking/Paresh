@@ -1,4 +1,9 @@
-"""TradingView Lightweight Charts renderer for the stock page.
+"""TradingView Lightweight Charts renderer for the stock page (third-party component).
+
+KEPT FOR REVERTING, NOT CALLED BY THE APP. The stock page now draws through
+src/ui/stock_chart.py and src/ui/lw_chart.py, which inline the same library with no
+component. To go back, call render_lightweight_chart from charts.render_stock_chart.
+The Plotly fallback this module used to pair with has been removed from the repo.
 
 Why this and not Plotly: Plotly's interaction model is built for analysis
 notebooks -- drag selects a box, and on a touch screen that means reading the

@@ -4,76 +4,229 @@
   "benchmark": "^CRSLDX",
   "months": {
     "2026-01": {
-      "strategy": -0.026879,
+      "strategy": -0.002123,
       "benchmark": -0.03318,
-      "alpha": 0.006301,
+      "alpha": 0.031057,
       "origin": "backfill",
-      "finalized_on": "2026-09-03",
-      "config": "5b356a6ba93b",
-      "data_as_of": "2026-09-03"
+      "universe": "point_in_time",
+      "finalized_on": "2026-10-01",
+      "config": "4cc739e503d7",
+      "data_as_of": "2026-10-01"
     },
     "2026-02": {
-      "strategy": 0.036104,
+      "strategy": 0.006951,
       "benchmark": 0.003785,
-      "alpha": 0.032319,
+      "alpha": 0.003166,
       "origin": "backfill",
-      "finalized_on": "2026-09-03",
-      "config": "5b356a6ba93b",
-      "data_as_of": "2026-09-03"
+      "universe": "point_in_time",
+      "finalized_on": "2026-10-01",
+      "config": "4cc739e503d7",
+      "data_as_of": "2026-10-01"
     },
     "2026-03": {
-      "strategy": -0.122179,
+      "strategy": -0.098934,
       "benchmark": -0.113904,
-      "alpha": -0.008275,
+      "alpha": 0.01497,
       "origin": "backfill",
-      "finalized_on": "2026-09-03",
-      "config": "5b356a6ba93b",
-      "data_as_of": "2026-09-03"
+      "universe": "point_in_time",
+      "finalized_on": "2026-10-01",
+      "config": "4cc739e503d7",
+      "data_as_of": "2026-10-01"
     },
     "2026-04": {
-      "strategy": 0.184092,
+      "strategy": 0.18778,
       "benchmark": 0.105003,
-      "alpha": 0.079089,
+      "alpha": 0.082777,
       "origin": "backfill",
-      "finalized_on": "2026-09-03",
-      "config": "5b356a6ba93b",
-      "data_as_of": "2026-09-03"
+      "universe": "point_in_time",
+      "finalized_on": "2026-10-01",
+      "config": "4cc739e503d7",
+      "data_as_of": "2026-10-01"
     },
     "2026-05": {
-      "strategy": 0.10194,
+      "strategy": 0.11775,
       "benchmark": -0.00117,
-      "alpha": 0.10311,
+      "alpha": 0.11892,
       "origin": "backfill",
-      "finalized_on": "2026-09-03",
-      "config": "5b356a6ba93b",
-      "data_as_of": "2026-09-03"
+      "universe": "point_in_time",
+      "finalized_on": "2026-10-01",
+      "config": "4cc739e503d7",
+      "data_as_of": "2026-10-01"
     },
     "2026-06": {
-      "strategy": 0.090069,
+      "strategy": 0.067578,
       "benchmark": 0.014947,
-      "alpha": 0.075122,
+      "alpha": 0.052631,
       "origin": "backfill",
-      "finalized_on": "2026-09-03",
-      "config": "5b356a6ba93b",
-      "data_as_of": "2026-09-03"
+      "universe": "point_in_time",
+      "finalized_on": "2026-10-01",
+      "config": "4cc739e503d7",
+      "data_as_of": "2026-10-01"
     },
     "2026-07": {
-      "strategy": -0.021666,
+      "strategy": -0.021417,
       "benchmark": 0.020223,
-      "alpha": -0.041889,
+      "alpha": -0.04164,
       "origin": "backfill",
-      "finalized_on": "2026-09-03",
-      "config": "5b356a6ba93b",
-      "data_as_of": "2026-09-03"
+      "universe": "point_in_time",
+      "finalized_on": "2026-10-01",
+      "config": "4cc739e503d7",
+      "data_as_of": "2026-10-01"
     },
     "2026-08": {
-      "strategy": 0.126149,
+      "strategy": 0.147919,
       "benchmark": -0.000441,
-      "alpha": 0.12659,
-      "origin": "recorded",
-      "finalized_on": "2026-09-03",
-      "config": "5b356a6ba93b",
-      "data_as_of": "2026-09-03"
+      "alpha": 0.14836,
+      "origin": "backfill",
+      "universe": "point_in_time",
+      "finalized_on": "2026-10-01",
+      "config": "4cc739e503d7",
+      "data_as_of": "2026-10-01"
+    },
+    "2026-09": {
+      "strategy": 0.001663,
+      "benchmark": -0.058773,
+      "alpha": 0.060436,
+      "origin": "backfill",
+      "universe": "point_in_time",
+      "finalized_on": "2026-10-01",
+      "config": "4cc739e503d7",
+      "data_as_of": "2026-10-01"
     }
-  }
+  },
+  "rebuilds": [
+    {
+      "on": "2026-10-01",
+      "months": [
+        "2026-01",
+        "2026-02",
+        "2026-03",
+        "2026-04",
+        "2026-05",
+        "2026-06",
+        "2026-07",
+        "2026-08"
+      ],
+      "replaced_configs": [
+        "5b356a6ba93b"
+      ],
+      "config": "2aa2cb53f4d1",
+      "membership": "point in time from 2025-12-31",
+      "former_members_unpriceable": [
+        "CIGNITITEC",
+        "GSPL",
+        "GUJGASLTD",
+        "JBCHEPHARM"
+      ],
+      "previous_values": {
+        "2026-01": -0.026879,
+        "2026-02": 0.036104,
+        "2026-03": -0.122179,
+        "2026-04": 0.184092,
+        "2026-05": 0.10194,
+        "2026-06": 0.090069,
+        "2026-07": -0.021666,
+        "2026-08": 0.126149
+      },
+      "note": "Rebuilt on point-in-time Nifty Total Market membership (from NSE notices) with prices for former members, under the current pinned config (adds accrual=buy_and_hold, which the 2026-09-03 months pre-date). Replaces the Jan-Aug block, which was scored on today's list under the earlier accrual convention."
+    },
+    {
+      "on": "2026-10-01",
+      "months": [
+        "2026-01",
+        "2026-02",
+        "2026-03",
+        "2026-04",
+        "2026-05",
+        "2026-06",
+        "2026-07",
+        "2026-08"
+      ],
+      "replaced_configs": [
+        "2aa2cb53f4d1"
+      ],
+      "config": "65d84ba7dcd4",
+      "prices": "nse_as_published",
+      "membership": "point in time from 2025-12-31",
+      "former_members_unpriceable": [],
+      "previous_values": {
+        "2026-01": 0.001721,
+        "2026-02": 0.027311,
+        "2026-03": -0.122998,
+        "2026-04": 0.195161,
+        "2026-05": 0.106191,
+        "2026-06": 0.073031,
+        "2026-07": -0.014517,
+        "2026-08": 0.151064
+      },
+      "note": "Struck on NSE closes as published (data/nse_prices) instead of Yahoo's restated adjusted closes, so each month ranks and applies its entry/exit gates on what was published that day; the four names the index absorbed (CIGNITITEC, GSPL, GUJGASLTD, JBCHEPHARM) now have prices."
+    },
+    {
+      "on": "2026-10-01",
+      "months": [
+        "2026-01",
+        "2026-02",
+        "2026-03",
+        "2026-04",
+        "2026-05",
+        "2026-06",
+        "2026-07",
+        "2026-08",
+        "2026-09"
+      ],
+      "replaced_configs": [
+        "65d84ba7dcd4"
+      ],
+      "config": "7632b1dd09ca",
+      "prices": "screener_primary",
+      "membership": "point in time from 2025-12-31",
+      "former_members_unpriceable": [],
+      "previous_values": {
+        "2026-01": 0.001721,
+        "2026-02": 0.024629,
+        "2026-03": -0.118538,
+        "2026-04": 0.198395,
+        "2026-05": 0.115302,
+        "2026-06": 0.072482,
+        "2026-07": -0.02203,
+        "2026-08": 0.14427,
+        "2026-09": 0.009457
+      },
+      "note": "Struck on Screener's closes, as the live ranking is (owner, 2026-10-01), with NSE's closes as published only where Screener has none (7 names, incl. the four merged away) and Yahoo only where neither has. Monthly returns equal the NSE-basis rebuild to the rounded percent (Sep +0.99% vs +0.95%): the two sources agree once both are price-only."
+    },
+    {
+      "on": "2026-10-01",
+      "months": [
+        "2026-01",
+        "2026-02",
+        "2026-03",
+        "2026-04",
+        "2026-05",
+        "2026-06",
+        "2026-07",
+        "2026-08",
+        "2026-09"
+      ],
+      "replaced_configs": [
+        "7632b1dd09ca"
+      ],
+      "config": "4cc739e503d7",
+      "prices": "screener_primary",
+      "membership": "point in time from 2025-12-31",
+      "former_members_unpriceable": [],
+      "previous_values": {
+        "2026-01": 0.00172,
+        "2026-02": 0.024629,
+        "2026-03": -0.118536,
+        "2026-04": 0.198394,
+        "2026-05": 0.115302,
+        "2026-06": 0.072482,
+        "2026-07": -0.02203,
+        "2026-08": 0.14427,
+        "2026-09": 0.009901
+      },
+      "note": "Owner decision 2026-10-02: hard caps, 5% per stock and 40% per NSE industry, at every rebalance. Enforced at selection (at most 8 of 20 names per industry; incumbents beyond that are sold best-rank-first-kept and the slot goes to the next-ranked name) and never relaxed by the weight projection; anything the caps cannot place is cash. Previously the replay passed no sector map, so no industry cap bound (single industries reached 40-60%). Between rebalances the book is held, so price moves can carry an industry past 40% until the next rebalance. Labels: NSE index file industry, TradingView mapped only for names the file lacks; today's labels, not point-in-time."
+    }
+  ],
+  "price_basis": "screener_primary"
 }

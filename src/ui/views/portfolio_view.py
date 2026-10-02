@@ -5,6 +5,7 @@ current book. It does not select stocks or calculate a competing model book.
 """
 from __future__ import annotations
 
+
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -12,12 +13,15 @@ import streamlit as st
 from src.core.market_time import ist_now
 from src.engine.extra_universe import SYSTEM_750
 from src.engine.systems import inception, ledger_path
-from src.engine.track_record import load_ledger
+from src.engine.track_record import build_combined_grid, load_ledger
 from src.loaders.price_loader import fetch_benchmark_history
 from src.ui import page_kit as kit
 from src.ui import system_param
 from src.ui.canonical_book import current_book
+from src.ui.charts import render_correlation_heatmap
 from src.ui.theme import render_saas_table
+from src.ui.views.qualified_view import correlation, correlation_note
+from src.ui.views.track_record_view import grid_display, render_record_sections
 
 PORTFOLIO_STARTING_CAPITAL = 2_000_000.0
 
@@ -52,33 +56,22 @@ def _month_labels(live_period: str | None, state: str, today: pd.Timestamp | Non
     return {"prefix": f"{marked} MTD" if marked else "MTD", "badge": "MTD", "next": ""}
 
 
-def _overview_note(labels: dict, state: str) -> str:
-    base = ("Since inception compounds the frozen record through the latest completed month "
-            "and the marked month. ")
-    if state == "closed":
-        marked = labels["prefix"].split(" ")[0]
-        return (
-            base + f"{marked} is closed but not yet frozen into the Track Record, which freezes it "
-            f"in the first days of the month. {labels['next']} is not available until the first "
-            "close of the new month. "
-            "Current-book P&L is the unrealised return on today's holdings, so it can differ."
-        )
-    return (
-        base.replace("the marked month", "the current live month-to-date return")
-        + "Current-book P&L is the unrealised return on today's holdings, so it can differ."
-    )
+def _no_return_clause(labels: dict) -> str:
+    marked = labels["prefix"].split(" ")[0]
+    return (f" {marked} MTD has no return yet: the new book was bought at the first close of "
+            "the month and starts accruing the next session.")
 
 
-def _calendar_note(labels: dict, live_period: str | None, state: str) -> str:
-    base = ("Calendar quarters (Q1 = Jan·Feb·Mar). CY compounds Jan–Dec; "
-            "FY compounds Apr of the row's year through Mar of the next.")
+def _calendar_note(labels: dict, live_period: str | None, state: str, pending: bool = False) -> str:
+    base = "Quarters are calendar (Q1 = Jan–Mar); FY runs Apr–Mar."
     if not live_period:
         return base
     marked = labels["prefix"].split(" ")[0]
     if state == "closed":
-        return (f"{base} The {marked} cells are closed but not yet frozen into the Track Record. "
-                f"{labels['next']}: not available until the first close of the new month.")
-    return f"{base} The {marked} cells are live month-to-date, not frozen."
+        return f"{base} {marked} is closed, not yet frozen."
+    if pending:
+        return base + _no_return_clause(labels)
+    return f"{base} {marked} is live month-to-date."
 
 
 def _compound_returns(values: list[float]) -> float | None:
@@ -89,132 +82,20 @@ def _compound_returns(values: list[float]) -> float | None:
     return float(np.prod([1.0 + v for v in valid]) - 1.0)
 
 
-def _calendar_grid_html(monthly: pd.DataFrame, live_period: str | None,
-                        live_state: str = "mtd") -> str:
-    """Render calendar-month performance from the canonical monthly record."""
-    if monthly.empty:
-        return '<div class="pg-note">No monthly performance is available yet.</div>'
-
-    frame = monthly.copy()
-    frame["Period"] = pd.PeriodIndex(frame["Period"], freq="M")
-    frame["Year"] = frame["Period"].dt.year
-    frame["MonthNo"] = frame["Period"].dt.month
-    frame["Strategy Net"] = pd.to_numeric(frame["Strategy Net"], errors="coerce")
-    frame["Benchmark"] = pd.to_numeric(frame["Benchmark"], errors="coerce")
-    # Plain dicts by column name: itertuples() renames columns that are not
-    # identifiers ("Strategy Net" became "_2"), and reading them back by name
-    # raised KeyError on every Monthly render (production, 1 Oct 2026).
-    lookup = {
-        (int(row["Year"]), int(row["MonthNo"])): row
-        for row in frame.to_dict("records")
-    }
-    live = pd.Period(live_period, freq="M") if live_period else None
-    month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-
-    def fmt(value: float | None) -> str:
-        return "—" if value is None or pd.isna(value) else f"{value:+.1%}"
-
-    def cell(row, live_cell=False):
-        if row is None:
-            return '<div class="pcg-cell pcg-empty">—</div>'
-        strategy = float(row["Strategy Net"]) if pd.notna(row["Strategy Net"]) else None
-        benchmark = float(row["Benchmark"]) if pd.notna(row["Benchmark"]) else None
-        gap = strategy - benchmark if strategy is not None and benchmark is not None else None
-        badge = (f'<span class="pcg-mtd">{"CLOSED" if live_state == "closed" else "MTD"}</span>'
-                 if live_cell else "")
-        return (
-            f'<div class="pcg-cell">'
-            f'<div class="pcg-top">{badge}</div>'
-            f'<div class="pcg-s">{fmt(strategy)}</div>'
-            f'<div class="pcg-b">{fmt(benchmark)}</div>'
-            f'<div class="pcg-g">Alpha {fmt(gap)}</div>'
-            f'</div>'
-        )
-
-    def aggregate(periods):
-        s = [lookup[(p.year, p.month)]["Strategy Net"] for p in periods if (p.year, p.month) in lookup]
-        b = [lookup[(p.year, p.month)]["Benchmark"] for p in periods if (p.year, p.month) in lookup]
-        return _compound_returns(s), _compound_returns(b)
-
-    years = sorted(frame["Year"].unique())
-    rows = []
-    for year in years:
-        cells = []
-        for month_no in range(1, 13):
-            row = lookup.get((int(year), month_no))
-            is_live = live is not None and row is not None and row["Period"] == live
-            cells.append(cell(row, is_live))
-        cy_s, cy_b = aggregate([pd.Period(f"{year}-{m:02d}", freq="M") for m in range(1, 13)])
-        fy_periods = [
-            pd.Period(
-                f"{year if m <= 12 else year + 1:04d}-{m if m <= 12 else m - 12:02d}",
-                freq="M",
-            )
-            for m in range(4, 16)
-        ]
-        fy_s, fy_b = aggregate(fy_periods) if all(
-            (p.year, p.month) in lookup for p in fy_periods
-        ) else (None, None)
-        cy_gap = cy_s - cy_b if cy_s is not None and cy_b is not None else None
-        fy_gap = fy_s - fy_b if fy_s is not None and fy_b is not None else None
-        def aggregate_cell(s, b, gap):
-            if s is None:
-                return '<div class="pcg-cell pcg-empty">—</div>'
-            return (
-                '<div class="pcg-cell">'
-                f'<div class="pcg-s">{fmt(s)}</div>'
-                f'<div class="pcg-b">{fmt(b)}</div>'
-                f'<div class="pcg-g">Alpha {fmt(gap)}</div>'
-                '</div>'
-            )
-        rows.append(
-            f'<div class="pcg-row"><div class="pcg-year">{year}</div>'
-            + "".join(cells)
-            + aggregate_cell(cy_s, cy_b, cy_gap)
-            + aggregate_cell(fy_s, fy_b, fy_gap)
-            + "</div>"
-        )
-
-    return (
-        '<style>'
-        '.pcg-wrap{font-family:var(--font-ui,system-ui,sans-serif);}'
-        '.pcg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid #E3E6EB;border-radius:14px;background:#fff;}'
-        '.pcg-grid{min-width:1560px;}'
-        '.pcg-row{display:grid;grid-template-columns:64px repeat(12,minmax(105px,1fr)) 110px 110px;}'
-        '.pcg-row:not(.pcg-head){border-top:1px solid #EDEFF3;}'
-        '.pcg-head{background:#F7F8FA;position:sticky;top:0;z-index:2;}'
-        '.pcg-year,.pcg-month{padding:9px 8px;font-size:11px;font-weight:700;color:#5E6878;text-align:center;}'
-        '.pcg-year{background:#fff;position:sticky;left:0;z-index:3;border-right:1px solid #EDEFF3;}'
-        '.pcg-cell{min-height:70px;padding:8px 7px;border-left:1px solid #F0F1F4;display:flex;flex-direction:column;justify-content:center;gap:2px;}'
-        '.pcg-empty{align-items:center;color:#98A1AE;}'
-        '.pcg-top{height:12px;text-align:right;}'
-        '.pcg-mtd{display:inline-block;padding:2px 5px;border-radius:5px;background:#EEF2FF;color:#4338CA;font-size:9px;font-weight:800;letter-spacing:.3px;}'
-        '.pcg-s,.pcg-b,.pcg-g{font-family:var(--font-mono,ui-monospace,monospace);font-size:11px;line-height:1.35;white-space:nowrap;}'
-        '.pcg-s{font-weight:750;color:#0E1726;}.pcg-b{color:#5E6878;}.pcg-g{font-weight:650;color:#4F46E5;}'
-        '.pcg-key{display:flex;flex-wrap:wrap;gap:14px;margin-top:9px;font-size:11.5px;color:#5E6878;}'
-        '@media(max-width:640px){.pcg-grid{min-width:1500px}.pcg-row{grid-template-columns:58px repeat(12,105px) 108px 108px}.pcg-cell{min-height:64px;padding:7px 6px}.pcg-s,.pcg-b,.pcg-g{font-size:10.5px}}'
-        '</style>'
-        '<div class="pcg-wrap"><div class="pcg-scroll"><div class="pcg-grid">'
-        '<div class="pcg-row pcg-head"><div class="pcg-year">Year</div>'
-        + "".join(f'<div class="pcg-month">{m}</div>' for m in month_names)
-        + '<div class="pcg-month">CY</div><div class="pcg-month">FY</div></div>'
-        + "".join(rows)
-        + '</div></div>'
-        '<div class="pcg-key"><span><b>Strategy</b></span><span><b>Nifty 500</b></span><span><b>Alpha</b> = Strategy − Nifty 500</span></div></div>'
-    )
-
-
 def build_portfolio_tracker(
     book: pd.DataFrame,
     rank_df: pd.DataFrame,
     capital: float,
     prices: pd.DataFrame | None = None,
+    equity_curve: pd.Series | None = None,
 ) -> pd.DataFrame:
     """Enrich the canonical Track Record book with portfolio accounting.
 
     Membership and target weights come only from the canonical book. Ranking
     data supplies labels/current observations; prices are used only for day-P&L.
+    When the account equity curve is supplied, new positions are sized from the
+    account value immediately before their fill, and current weights are marked
+    against the same account value shown in performance history.
     """
     if book is None or book.empty:
         return pd.DataFrame()
@@ -247,12 +128,57 @@ def build_portfolio_tracker(
         )
 
     out["Target Weight %"] = pd.to_numeric(out["Weight %"], errors="coerce").fillna(0.0)
+    # Shares are fixed at the original fill. A later rebalance may change the
+    # target weight of a retained holding, but must never retroactively resize
+    # its historical entry quantity.
+    entry_weight = (
+        pd.to_numeric(out["Entry Weight %"], errors="coerce")
+        if "Entry Weight %" in out.columns
+        else pd.Series(np.nan, index=out.index)
+    )
+    out["Entry Weight %"] = entry_weight.where(entry_weight.notna(), out["Target Weight %"])
     out["Entry Price"] = pd.to_numeric(out["Entry Price"], errors="coerce")
     out["Current Price"] = pd.to_numeric(out["Price Now"], errors="coerce")
-    out["Shares"] = (
-        (capital * out["Target Weight %"] / 100.0)
-        / out["Entry Price"].replace(0, np.nan)
-    ).fillna(0.0).apply(np.floor).astype(int)
+    entry = pd.to_datetime(out["Entry Date"], errors="coerce")
+
+    # The account compounds between rebalances. Size a position from account
+    # equity immediately before its fill, rather than repeatedly pretending
+    # every month's holdings were bought with the original starting capital.
+    # The baseline point before inception ensures the first book starts at the
+    # configured starting capital. Keep the fixed-capital fallback for callers
+    # that only use this helper in isolated presentation tests.
+    curve = pd.Series(dtype=float)
+    if isinstance(equity_curve, pd.Series) and not equity_curve.empty:
+        curve = pd.to_numeric(equity_curve, errors="coerce").dropna().sort_index()
+
+    def _capital_before_fill(fill_date) -> float:
+        if pd.isna(fill_date) or curve.empty:
+            return float(capital)
+        prior = curve.loc[curve.index < pd.Timestamp(fill_date)]
+        return float(prior.iloc[-1]) if not prior.empty else float(capital)
+
+    out["Capital at Entry (₹)"] = entry.map(_capital_before_fill).astype(float)
+    # The model trades the whole book back to its target weights at every rebalance, so the
+    # shares held today are those the latest fill bought: account value before that fill x
+    # target weight / price at that fill. Sizing a retained name from its first entry would
+    # let winners outgrow the account (holdings above 100% of it, negative cash).
+    fill = pd.to_datetime(book.attrs.get("fill_date"), errors="coerce")
+    fill_px = pd.Series(np.nan, index=out.index)
+    if pd.notna(fill) and prices is not None and not prices.empty:
+        hist = prices.reindex(columns=out["Symbol"].tolist()).ffill().loc[:fill]
+        if not hist.empty:
+            fill_px = out["Symbol"].map(pd.to_numeric(hist.iloc[-1], errors="coerce"))
+    if fill_px.notna().any():
+        base = _capital_before_fill(fill)
+        size_px = fill_px.where(fill_px.notna(), out["Entry Price"])
+        out["Shares"] = (
+            (base * out["Target Weight %"] / 100.0) / size_px.replace(0, np.nan)
+        ).fillna(0.0).apply(np.floor).astype(int)
+    else:
+        out["Shares"] = (
+            (out["Capital at Entry (₹)"] * out["Entry Weight %"] / 100.0)
+            / out["Entry Price"].replace(0, np.nan)
+        ).fillna(0.0).apply(np.floor).astype(int)
     out["Invested Value (₹)"] = (out["Shares"] * out["Entry Price"]).round(0)
     out["Current Value (₹)"] = (out["Shares"] * out["Current Price"]).round(0)
     out["P&L (₹)"] = (out["Current Value (₹)"] - out["Invested Value (₹)"]).round(0)
@@ -264,14 +190,16 @@ def build_portfolio_tracker(
 
     total_invested = float(out["Invested Value (₹)"].sum())
     total_current = float(out["Current Value (₹)"].sum())
-    cash = max(float(capital) - total_invested, 0.0)
-    total_value = total_current + cash
+    total_value = (
+        float(curve.iloc[-1])
+        if not curve.empty and float(curve.iloc[-1]) > 0
+        else total_current + max(float(capital) - total_invested, 0.0)
+    )
     out["Weight %"] = np.where(
         total_value > 0, out["Current Value (₹)"] / total_value * 100.0, 0.0
     )
     out["Weight Drift %"] = out["Weight %"] - out["Target Weight %"]
 
-    entry = pd.to_datetime(out["Entry Date"], errors="coerce")
     as_of = pd.to_datetime(book.attrs.get("as_of"), errors="coerce")
     if pd.isna(as_of):
         as_of = pd.Timestamp.now().normalize()
@@ -310,6 +238,46 @@ def build_portfolio_tracker(
     return out.sort_values(
         ["Current Value (₹)", "Symbol"], ascending=[False, True]
     ).reset_index(drop=True)
+
+
+def _daily_path(replay: pd.Series | None, months: dict, key: str, capital: float) -> pd.Series:
+    """Daily account value through the frozen months.
+
+    The ledger gives one return per month; the backtest replay gives the path inside it.
+    Each month's replay path is bent so it ends exactly on the ledger's month return
+    (frozen months are the record), then chained from the previous month-end value.
+    A month the replay does not cover contributes only its month-end point.
+    """
+    ordered = sorted(months)
+    if not ordered:
+        return pd.Series(dtype=float)
+    rp = pd.to_numeric(replay, errors="coerce").dropna() if replay is not None else pd.Series(dtype=float)
+    if not rp.empty:
+        rp = rp[~rp.index.duplicated()].sort_index()
+    first = pd.Period(ordered[0], freq="M")
+    dates = [first.start_time - pd.Timedelta(days=1)]
+    values = [float(capital)]
+    value = float(capital)
+    for m in ordered:
+        period = pd.Period(m, freq="M")
+        ret = pd.to_numeric((months[m] or {}).get(key), errors="coerce")
+        end_value = value * (1.0 + float(ret)) if pd.notna(ret) else value
+        days = rp.loc[period.start_time:period.end_time] if not rp.empty else rp
+        before = rp.loc[:period.start_time - pd.Timedelta(days=1)] if not rp.empty else rp
+        prev = float(before.iloc[-1]) if not before.empty else (float(days.iloc[0]) if len(days) else np.nan)
+        if len(days) >= 2 and np.isfinite(prev) and prev > 0 and pd.notna(ret):
+            ratio_end = float(days.iloc[-1]) / prev
+            fix = (1.0 + float(ret)) / ratio_end if ratio_end > 0 else 1.0
+            n = len(days)
+            for k, (d, v) in enumerate(days.items(), start=1):
+                dates.append(pd.Timestamp(d))
+                values.append(value * (float(v) / prev) * fix ** (k / n))
+            values[-1] = end_value
+        else:
+            dates.append(period.end_time)
+            values.append(end_value)
+        value = end_value
+    return pd.Series(values, index=pd.DatetimeIndex(dates), dtype=float)
 
 
 def build_portfolio_history(
@@ -378,6 +346,11 @@ def build_portfolio_history(
     live_mtd["strategy"] = live_s
     live_mtd["benchmark"] = live_b
     live_period_raw = live_meta.get("mtd_period")
+    if live_period_raw and not pd.notna(live_s):
+        # The first session of a month: the new book is bought at its close, so there is a
+        # month and a book but no return yet. Name the month so the page says so, and add
+        # no point to the equity curve or the calendar grid.
+        live_period_key = str(pd.Period(live_period_raw, freq="M"))
     if pd.notna(live_s) and live_period_raw:
         live_period = pd.Period(live_period_raw, freq="M")
         live_period_key = str(live_period)
@@ -402,6 +375,8 @@ def build_portfolio_history(
                     "Priced From": live_meta.get("as_of") or "—",
                     "Config": "Live month-to-date" if live_state == "mtd" else "Closed month, not yet frozen",
                 })
+    equity_daily = _daily_path(record.get("equity_curve"), months, "strategy", capital)
+    benchmark_daily = _daily_path(record.get("benchmark"), months, "benchmark", capital)
     peak = equity.cummax()
     drawdown = equity / peak - 1.0
     closed = record.get("closed_trades")
@@ -409,17 +384,60 @@ def build_portfolio_history(
     return {
         "equity": equity,
         "benchmark": benchmark,
+        "equity_daily": equity_daily,
+        "benchmark_daily": benchmark_daily,
         "drawdown": drawdown,
         "max_drawdown": float(drawdown.min()) if not drawdown.empty else float("nan"),
         "monthly": pd.DataFrame(monthly_rows),
         "monthly_grid": pd.DataFrame(monthly_grid_rows),
         "mtd_period": live_period_key,
         "mtd_state": live_month_state(live_period_key, today),
+        # Account-level cumulative returns are derived from the exact equity
+        # series displayed on this page. They therefore chain the same frozen
+        # months plus the same live/closed-awaiting-freeze month as Track Record.
+        "strategy_total_return": (
+            float(equity.iloc[-1] / capital - 1.0)
+            if not equity.empty and capital > 0 else np.nan
+        ),
+        "benchmark_total_return": (
+            float(benchmark.iloc[-1] / capital - 1.0)
+            if not benchmark.empty and capital > 0 else np.nan
+        ),
         "strategy_mtd": float(live_mtd["strategy"]) if pd.notna(live_mtd["strategy"]) else np.nan,
         "benchmark_mtd": float(live_mtd["benchmark"]) if pd.notna(live_mtd["benchmark"]) else np.nan,
         "trades": closed.copy() if isinstance(closed, pd.DataFrame) else pd.DataFrame(),
         "tradebook": tradebook.copy() if isinstance(tradebook, pd.DataFrame) else pd.DataFrame(),
     }
+
+def _daily_with_live(history: dict, table: pd.DataFrame, prices: pd.DataFrame | None, meta: dict,
+                     benchmark_close: pd.Series | None, value: float, current: float):
+    """The daily curves: frozen months, then the live month from today's holdings.
+
+    The live month is the sized holdings marked each session since the latest fill, plus
+    the cash residual, so its last point is the account value shown at the top.
+    Falls back to the month-end curve if no daily path exists.
+    """
+    eq = history["equity_daily"]
+    bm = history["benchmark_daily"]
+    if len(eq) < 2:
+        return history["equity"], history["benchmark"]
+    fill = pd.to_datetime(meta.get("fill_date"), errors="coerce")
+    if pd.notna(fill) and prices is not None and not prices.empty and not table.empty:
+        px = prices.reindex(columns=table["Symbol"].tolist()).ffill().loc[fill:]
+        px = px[px.index > eq.index[-1]]
+        if len(px):
+            shares = table.set_index("Symbol")["Shares"].reindex(px.columns).fillna(0.0)
+            cash = float(value) - float(current)
+            live = (px * shares).sum(axis=1) + cash
+            eq = pd.concat([eq, live])
+            if benchmark_close is not None and len(benchmark_close):
+                bc = pd.to_numeric(benchmark_close, errors="coerce").dropna()
+                base = bc.loc[:history["equity_daily"].index[-1]]
+                if len(base) and len(bm):
+                    ratio = bc.reindex(live.index, method="ffill") / float(base.iloc[-1])
+                    bm = pd.concat([bm, (ratio * float(bm.iloc[-1])).dropna()])
+    return eq[~eq.index.duplicated()], bm[~bm.index.duplicated()]
+
 
 def render_portfolio_view(
     calc,
@@ -450,24 +468,7 @@ def render_portfolio_view(
 
     meta = record.get("live_meta", {}) or {}
     book.attrs["as_of"] = meta.get("as_of")
-    table = build_portfolio_tracker(book, rank_df, capital, prices)
-    if table.empty:
-        st.info("The canonical model book could not be sized.")
-        return
-
-    invested = float(table["Invested Value (₹)"].sum())
-    current = float(table["Current Value (₹)"].sum())
-    cash = max(capital - invested, 0.0)
-    value = current + cash
-    pnl = current - invested
-    pnl_pct = pnl / invested * 100.0 if invested else np.nan
-    day_pnl = float(table["Day P&L (₹)"].sum(skipna=True))
-    previous_value = float(table["Previous Value (₹)"].sum(skipna=True))
-    day_pnl_pct = day_pnl / previous_value * 100.0 if previous_value > 0 else np.nan
-    exposure = current / value * 100.0 if value else 0.0
-    # Mark/fill dates remain available through live_meta and the canonical book;
-    # the compact header no longer duplicates them.
-    n_holdings = len(table)
+    book.attrs["fill_date"] = meta.get("fill_date")
 
     try:
         ledger = load_ledger(ledger_path(system), inception(system))
@@ -477,9 +478,27 @@ def render_portfolio_view(
 
     history = build_portfolio_history(record, capital, ledger, meta)
     equity = history["equity"]
-    benchmark = history["benchmark"]
-    drawdown = history["drawdown"]
-    monthly = history["monthly"]
+    table = build_portfolio_tracker(book, rank_df, capital, prices, equity_curve=equity)
+    if table.empty:
+        st.info("The canonical model book could not be sized.")
+        return
+
+    invested = float(table["Invested Value (₹)"].sum())
+    current = float(table["Current Value (₹)"].sum())
+    # Total account value is sourced from the same compounded ledger/replay
+    # series as Track Record. Cash is the residual after marking current
+    # positions, so realized P&L from sold positions is not lost.
+    value = float(equity.iloc[-1]) if not equity.empty else float(capital)
+    cash = value - current
+    pnl = current - invested
+    pnl_pct = pnl / invested * 100.0 if invested else np.nan
+    day_pnl = float(table["Day P&L (₹)"].sum(skipna=True))
+    previous_value = float(table["Previous Value (₹)"].sum(skipna=True))
+    day_pnl_pct = day_pnl / previous_value * 100.0 if previous_value > 0 else np.nan
+    exposure = current / value * 100.0 if value else 0.0
+    # Mark/fill dates remain available through live_meta and the canonical book;
+    # the compact header no longer duplicates them.
+    n_holdings = len(table)
     monthly_grid = history["monthly_grid"]
     mtd_period = history["mtd_period"]
     mtd_state = history["mtd_state"]
@@ -494,28 +513,22 @@ def render_portfolio_view(
     wins = int((closed_valid["Return %"] > 0).sum()) if not closed_valid.empty else 0
     losses = int((closed_valid["Return %"] < 0).sum()) if not closed_valid.empty else 0
 
-    head = kit.page_head(
-        "Portfolio",
-        "₹20 lakh model portfolio · current holdings, exposure and performance.",
-        actions=True,
-    )
-    with head:
-        st.download_button(
-            "Export holdings CSV",
-            table.to_csv(index=False).encode(),
-            f"portfolio_{ist_now():%Y%m%d}.csv",
-            "text/csv",
-            key="dl_port_csv_v2",
-        )
+    kit.page_head("Portfolio", "₹20 lakh model portfolio")
 
     # Primary readings answer the three questions users need first:
     # how much is here, how is the current book doing, and what happened today.
     kit.readings([
         kit.Reading("Portfolio value", f"₹{value:,.0f}", "₹20 lakh starting capital"),
         kit.Reading(
-            "Current-book P&L",
+            "Since inception",
+            kit.pct(history["strategy_total_return"]),
+            "account return · same basis as Track Record",
+            "up" if history["strategy_total_return"] >= 0 else "down",
+        ),
+        kit.Reading(
+            "Unrealised P&L",
             "—" if not np.isfinite(pnl_pct) else f"{pnl_pct:+.1f}%",
-            f"₹{pnl:+,.0f} · unrealised",
+            f"₹{pnl:+,.0f} · on cost of open holdings",
             "" if not np.isfinite(pnl_pct) else ("up" if pnl >= 0 else "down"),
         ),
         kit.Reading(
@@ -524,196 +537,136 @@ def render_portfolio_view(
             "latest close vs previous close",
             "up" if day_pnl >= 0 else "down",
         ),
-        kit.Reading("Cash", f"₹{cash:,.0f}", f"{100.0 - exposure:.1f}% of portfolio"),
+        kit.Reading("Cash / realised balance", f"₹{cash:,.0f}", f"{100.0 - exposure:.1f}% of account value"),
     ], "Portfolio snapshot")
-    as_of_text = meta.get("as_of") or "latest available close"
-    as_of_display = as_of_text if isinstance(as_of_text, str) else pd.Timestamp(as_of_text).strftime("%d %b %Y")
-    st.caption(
-        f"Marked {as_of_display} · {n_holdings} positions · "
-        f"{exposure:.1f}% invested · ₹{invested:,.0f} invested"
-    )
-
     # One canonical table; the columns users scan first come first.
     display_cols = [
-        "Symbol", "Company", "Sector / Industry", "Current Price",
-        "P&L (₹)", "P&L %", "Weight %", "Target Weight %",
-        "Weight Drift %", "Day P&L (₹)",
-        "Current Value (₹)", "Shares", "Day P&L %", "Entry Date",
-        "Entry Price", "Invested Value (₹)", "Previous Value (₹)",
-        "Holding Days", "Rank at Rebalance", "Rank at Entry", "Current Rank",
-        "1M Return", "3M Return", "6M Return", "12M Return", "Status",
+        "Symbol", "Current Price", "P&L %", "P&L (₹)", "Weight %", "Target Weight %",
+        "Weight Drift %", "Day P&L (₹)", "Day P&L %", "Current Value (₹)", "Shares",
+        "Entry Date", "Entry Price", "Invested Value (₹)", "Holding Days",
+        "Rank at Rebalance", "Rank at Entry", "Current Rank", "1M Return",
+        "Sector / Industry",
     ]
     current_view = table[[c for c in display_cols if c in table.columns]].copy()
     if "Entry Date" in current_view.columns:
         current_view["Entry Date"] = pd.to_datetime(current_view["Entry Date"], errors="coerce").dt.strftime("%d %b %Y").fillna("—")
-    for col in ("P&L %", "Weight %", "Target Weight %", "Weight Drift %", "1M Return", "3M Return", "6M Return", "12M Return"):
+    for col in ("P&L %", "Weight %", "Target Weight %", "Weight Drift %", "1M Return"):
         if col in current_view.columns:
             current_view[col] = pd.to_numeric(current_view[col], errors="coerce")
 
     with kit.card(
         "Current book",
         "portfolio_current",
-        f"{n_holdings} positions · primary metrics first · swipe horizontally for detail",
+        f"{n_holdings} positions",
     ):
         render_saas_table(current_view, max_height=620, variant="portfolio")
 
     sector = table.groupby("Sector / Industry", dropna=False).agg(
         Weight=("Weight %", "sum"), Holdings=("Symbol", "count")
     ).sort_values("Weight", ascending=False).reset_index()
-    largest_industry = (
-        f"Largest industry exposure · {sector.iloc[0]['Weight']:.1f}%"
-        if not sector.empty else "NSE industry exposure"
-    )
-    with kit.card("Current exposure", "portfolio_exposure", largest_industry):
+    with kit.card("Industry exposure", "portfolio_exposure"):
         st.html(kit.bar_list([
-            (str(row["Sector / Industry"]), float(row["Weight"]), f"{row['Weight']:.1f}% · {int(row['Holdings'])} holdings", False)
+            (f"{row['Sector / Industry']} ({int(row['Holdings'])})", float(row["Weight"]),
+             f"{row['Weight']:.1f}%", False)
             for _, row in sector.iterrows()
         ], scale=max(float(sector["Weight"].max()) if not sector.empty else 0.0, 1.0)))
 
-    history_group = st.segmented_control(
-        "Portfolio history",
-        ["Performance", "Activity"],
-        default="Performance",
-        key="portfolio_history_group_v3",
-        label_visibility="collapsed",
-    ) or "Performance"
-    if history_group == "Performance":
-        history_tab = st.segmented_control(
-            "Performance view",
-            ["Overview", "Equity", "Drawdown", "Monthly"],
-            default="Overview",
-            key="portfolio_history_performance_v3",
-            label_visibility="collapsed",
-        ) or "Overview"
-    else:
-        history_tab = st.segmented_control(
-            "Activity view",
-            ["Trades", "Rebalances"],
-            default="Trades",
-            key="portfolio_history_activity_v3",
-            label_visibility="collapsed",
-        ) or "Trades"
+    with kit.card("How they move together", "portfolio_corr", "90-day correlation of the holdings"):
+        _corr, _corr_mean = correlation(prices, table["Symbol"].tolist())
+        if _corr is None:
+            st.caption("Not enough price history to compare these holdings.")
+        else:
+            render_correlation_heatmap(_corr, table["Symbol"].tolist())
+            st.caption(f"Average {_corr_mean:.2f}, {correlation_note(_corr_mean)}. "
+                       "1.00 = move exactly together; near 0 = unrelated.")
 
-    with kit.card("Portfolio history", "portfolio_history_header", "performance history · latest month marked to the latest close"):
-        st.caption(
-            f"Inception · {inception(system).strftime('%b %Y')}  · "
-            f"₹{capital:,.0f} starting capital  · {len(monthly)} completed months"
+    # ── Performance: one card, equity and drawdown together ─────────────────
+    with kit.card("Equity & drawdown", "portfolio_equity"):
+        if equity.empty:
+            st.info("No completed portfolio history is available yet.")
+        else:
+            mtd_gap = (strategy_mtd - benchmark_mtd
+                       if np.isfinite(strategy_mtd) and np.isfinite(benchmark_mtd) else np.nan)
+            month = labels["prefix"].split(" ")[0]
+            eq_d, bm_d = _daily_with_live(history, table, prices, meta, benchmark_close, value, current)
+            dd_d = eq_d / eq_d.cummax() - 1.0
+            kit.metric_row([
+                kit.Metric(f"{month} strategy", kit.pct(strategy_mtd)),
+                kit.Metric(f"{month} Nifty 500", kit.pct(benchmark_mtd)),
+                kit.Metric(f"{month} alpha", kit.pct(mtd_gap)),
+                kit.Metric("Max drawdown", kit.pct(float(dd_d.min()), signed=False)),
+            ], key="pf_equity")
+            kit.equity_chart(
+                eq_d.index, eq_d.tolist(),
+                bm_d.reindex(eq_d.index, method="ffill").tolist() if not bm_d.empty else None,
+                key="portfolio_equity_curve_v4",
+                drawdown=dd_d.tolist(),
+            )
+            st.caption("Daily account value; frozen months follow the Track Record's month returns.")
+
+    with kit.card("Calendar returns", "portfolio_monthly", "Strategy, Nifty 500 and Alpha, per year"):
+        grid = build_combined_grid(
+            ledger,
+            mtd_period=pd.Period(mtd_period, freq="M") if mtd_period else None,
+            mtd_values={"strategy": strategy_mtd, "benchmark": benchmark_mtd,
+                        "alpha": (strategy_mtd - benchmark_mtd
+                                  if np.isfinite(strategy_mtd) and np.isfinite(benchmark_mtd) else None)},
         )
+        if grid.empty:
+            st.info("No monthly history is available yet.")
+        else:
+            render_saas_table(grid_display(grid))
+            st.caption(_calendar_note(labels, mtd_period, mtd_state,
+                                      pending=bool(mtd_period) and not np.isfinite(strategy_mtd)))
 
-    if history_tab == "Overview":
-        with kit.card(
-            "Performance overview",
-            "portfolio_performance_overview",
-            "since inception · completed months plus the latest marked month",
-        ):
-            if equity.empty:
-                st.info("No completed portfolio history is available yet.")
-            else:
-                mtd_gap = strategy_mtd - benchmark_mtd if np.isfinite(strategy_mtd) and np.isfinite(benchmark_mtd) else np.nan
-                a, b, c, d = st.columns(4)
-                with a:
-                    st.metric("Ending value", f"₹{equity.iloc[-1]:,.0f}")
-                with b:
-                    st.metric(f"{labels['prefix']} · Strategy", f"{strategy_mtd:+.1%}" if np.isfinite(strategy_mtd) else "—")
-                with c:
-                    st.metric(f"{labels['prefix']} · Nifty 500", f"{benchmark_mtd:+.1%}" if np.isfinite(benchmark_mtd) else "—")
-                with d:
-                    st.metric(f"{labels['prefix']} · Alpha", f"{mtd_gap:+.1%}" if np.isfinite(mtd_gap) else "—")
-                st.caption(_overview_note(labels, mtd_state))
+    # ── The frozen record: since inception, each month, provenance, the 3 systems ──
+    render_record_sections(prices, benchmark_close, system)
 
-    elif history_tab == "Equity":
-        with kit.card(
-            "Equity curve",
-            "portfolio_equity",
-            "₹20 lakh starting point · strategy vs benchmark · latest month marked",
-        ):
-            if equity.empty:
-                st.info("No completed portfolio history is available yet.")
-            else:
-                kit.equity_chart(
-                    [d.strftime("%b %Y") for d in equity.index],
-                    equity.tolist(),
-                    benchmark.tolist() if not benchmark.empty else None,
-                    key="portfolio_equity_curve_v2",
-                )
-                # This month's figures: the curve's own legend already carries
-                # the since-inception values (owner, 1 Oct 2026).
-                mtd_gap = strategy_mtd - benchmark_mtd if np.isfinite(strategy_mtd) and np.isfinite(benchmark_mtd) else np.nan
-                a, b, c, d = st.columns(4)
-                with a:
-                    st.metric(f"{labels['prefix']} · Strategy", f"{strategy_mtd:+.1%}" if np.isfinite(strategy_mtd) else "—")
-                with b:
-                    st.metric(f"{labels['prefix']} · Nifty 500", f"{benchmark_mtd:+.1%}" if np.isfinite(benchmark_mtd) else "—")
-                with c:
-                    st.metric(f"{labels['prefix']} · Alpha", f"{mtd_gap:+.1%}" if np.isfinite(mtd_gap) else "—")
-                with d:
-                    st.metric("Max drawdown", f"{history['max_drawdown']:.1%}" if np.isfinite(history["max_drawdown"]) else "—")
-                st.caption(
-                    "Completed months come from the recorded performance history; "
-                    + ("the final point is the current month-to-date mark." if mtd_state == "mtd"
-                       else f"the final point is {labels['prefix'].split(' ')[0]}, closed but not yet frozen.")
-                )
+    # ── Activity ────────────────────────────────────────────────────────────
+    with kit.card("Trades", "portfolio_trades"):
+        if trades.empty:
+            st.info("No trades are available yet.")
+        else:
+            outcome = st.pills("Outcome", ["All", "Winners", "Losers", "Open"], default="All",
+                               key="portfolio_trade_outcome_v3", label_visibility="collapsed")
+            tv = trades.copy()
+            if outcome == "Winners":
+                tv = tv[tv["Return %"] > 0]
+            elif outcome == "Losers":
+                tv = tv[tv["Return %"] < 0]
+            elif outcome == "Open":
+                tv = tv[tv["Status"] == "Open"]
+            cols = [c for c in ["Symbol", "Status", "Entry Date", "Entry Price", "Exit Date",
+                                "Exit Price", "Return %", "Holding (Days)", "Reason for Exit"]
+                    if c in tv.columns]
+            render_saas_table(tv[cols], max_height=600)
+            st.caption(f"{len(closed_valid)} closed · {wins} winners · {losses} losers")
 
-    elif history_tab == "Trades":
-        with kit.card("Past trades", "portfolio_trades", "closed trades plus positions still open at the historical window close"):
-            if trades.empty:
-                st.info("No historical trades are available yet.")
-            else:
-                outcome = st.pills("Outcome", ["All", "Winners", "Losers", "Still open"], default="All", key="portfolio_trade_outcome_v2")
-                tv = trades.copy()
-                if outcome == "Winners":
-                    tv = tv[tv["Return %"] > 0]
-                elif outcome == "Losers":
-                    tv = tv[tv["Return %"] < 0]
-                elif outcome == "Still open":
-                    tv = tv[tv["Status"] == "Open"]
-                cols = [c for c in ["Symbol", "Status", "Entry Date", "Entry Price", "Exit Date", "Exit Price", "Return %", "Holding (Days)", "Reason for Exit"] if c in tv.columns]
-                render_saas_table(tv[cols], max_height=600)
-                st.caption(f"{len(closed_valid)} closed trades · {wins} winners · {losses} losers")
-                st.download_button("Export past trades CSV", tv[cols].to_csv(index=False).encode(), f"portfolio_trades_{ist_now():%Y%m%d}.csv", "text/csv", key="dl_port_trades_csv_v2")
+    with kit.card("Rebalances", "portfolio_rebalances"):
+        if tradebook.empty:
+            st.info("No rebalances are available yet.")
+        else:
+            action = st.pills("Action", ["All", "Buy", "Sell", "Hold"], default="All",
+                              key="portfolio_rebalance_action_v3", label_visibility="collapsed")
+            rv = tradebook.copy()
+            if action in ("Buy", "Sell", "Hold"):
+                rv = rv[rv["Action"].str.contains(action.upper(), na=False)]
+            cols = [c for c in ["Period", "Action", "Symbol", "Price", "Weight %", "Return %",
+                                "Reason / Signal"] if c in rv.columns]
+            render_saas_table(rv[cols], max_height=600)
 
-    elif history_tab == "Rebalances":
-        with kit.card("Rebalance history", "portfolio_rebalances", "every BUY, SELL and HOLD from the canonical model replay"):
-            if tradebook.empty:
-                st.info("No rebalance history is available yet.")
-            else:
-                action = st.pills("Action", ["All", "Buy", "Sell", "Hold"], default="All", key="portfolio_rebalance_action_v2")
-                rv = tradebook.copy()
-                if action == "Buy":
-                    rv = rv[rv["Action"].str.contains("BUY", na=False)]
-                elif action == "Sell":
-                    rv = rv[rv["Action"].str.contains("SELL", na=False)]
-                elif action == "Hold":
-                    rv = rv[rv["Action"].str.contains("HOLD", na=False)]
-                cols = [c for c in ["Period", "Action", "Symbol", "Price", "Weight %", "Return %", "Reason / Signal"] if c in rv.columns]
-                render_saas_table(rv[cols], max_height=600)
-                st.download_button("Export rebalance CSV", rv[cols].to_csv(index=False).encode(), f"portfolio_rebalances_{ist_now():%Y%m%d}.csv", "text/csv", key="dl_port_rebalance_csv_v2")
-
-    elif history_tab == "Monthly":
-        with kit.card(
-            "Calendar grid",
-            "portfolio_monthly",
-            "Strategy, Nifty 500 and Alpha, per year",
-        ):
-            if monthly_grid.empty:
-                st.info("No monthly history is available yet.")
-            else:
-                st.html(_calendar_grid_html(monthly_grid, mtd_period, mtd_state))
-                st.caption(_calendar_note(labels, mtd_period, mtd_state))
-                cols = [c for c in ["Month", "Strategy Net", "Benchmark", "Alpha vs Benchmark", "Origin", "Priced From", "Frozen On", "Universe"] if c in monthly_grid.columns]
-                st.download_button(
-                    "Export monthly performance CSV",
-                    monthly_grid[cols].to_csv(index=False).encode(),
-                    f"portfolio_monthly_{ist_now():%Y%m%d}.csv",
-                    "text/csv",
-                    key="dl_port_monthly_csv_v3",
-                )
-
-    elif history_tab == "Drawdown":
-        with kit.card("Drawdown", "portfolio_drawdown", "peak-to-trough decline in portfolio value"):
-            if drawdown.empty:
-                st.info("No drawdown history is available yet.")
-            else:
-                kit.drawdown_chart([d.strftime("%b %Y") for d in drawdown.index], drawdown.tolist(), key="portfolio_drawdown_curve_v2")
-                st.caption(f"Maximum drawdown including the current month-to-date point: {history['max_drawdown']:.1%}.")
-
+    with st.popover("Export", icon=":material/download:"):
+        st.download_button("Holdings CSV", table.to_csv(index=False).encode(),
+                           f"portfolio_{ist_now():%Y%m%d}.csv", "text/csv", key="dl_port_csv_v3")
+        if not trades.empty:
+            st.download_button("Trades CSV", trades.to_csv(index=False).encode(),
+                               f"portfolio_trades_{ist_now():%Y%m%d}.csv", "text/csv",
+                               key="dl_port_trades_csv_v3")
+        if not tradebook.empty:
+            st.download_button("Rebalances CSV", tradebook.to_csv(index=False).encode(),
+                               f"portfolio_rebalances_{ist_now():%Y%m%d}.csv", "text/csv",
+                               key="dl_port_rebalance_csv_v3")
+        if not monthly_grid.empty:
+            st.download_button("Monthly returns CSV", monthly_grid.to_csv(index=False).encode(),
+                               f"portfolio_monthly_{ist_now():%Y%m%d}.csv", "text/csv",
+                               key="dl_port_monthly_csv_v4")

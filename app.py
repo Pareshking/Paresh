@@ -104,7 +104,6 @@ with app_import_guard():
     from src.ui.views.ranking_view import render_ranking_view
     from src.ui.views.rrg_view import render_rrg_view
     from src.ui.views.sector_view import render_sector_view
-    from src.ui.views.track_record_view import render_track_record_view
     from src.ui.views.watchlist_view import render_watchlist_view
     
     # Page Config: 100% Widescreen, Sidebar Collapsed
@@ -1159,19 +1158,6 @@ def _page_actions() -> None:
     )
 
 
-def _page_track_record() -> None:
-    # The frozen record, plus a live MTD struck under the record's own pinned
-    # configuration. fetch_benchmark_history is cached, so this is the same
-    # round trip the Backtest page already made.
-    if _before_inception():
-        kit.note("Not started yet.", _record_start())
-    render_track_record_view(
-        adj_close=deep_adj_close,
-        benchmark_close=fetch_benchmark_history(period="5y"),
-        system=system,
-    )
-
-
 def _page_configuration() -> None:
     render_config_view(rank_df)
 
@@ -1185,14 +1171,13 @@ def _page_guide() -> None:
 # rename here without one there is a failing build, not a silent drift.
 _PAGES = [
     st.Page(_page_screener, title="Screener", url_path="screener", default=True),
+    st.Page(_page_portfolio, title="Portfolio", url_path="portfolio"),
     st.Page(_page_actions, title="Actions", url_path="actions"),
     st.Page(_page_sectors, title="Sectors", url_path="sectors"),
     st.Page(_page_rrg, title="RRG", url_path="rrg"),
-    st.Page(_page_portfolio, title="Portfolio", url_path="portfolio"),
     st.Page(_page_watchlist, title="Watchlist", url_path="watchlist"),
     st.Page(_page_breadth, title="Market Breadth", url_path="breadth"),
     st.Page(_page_backtest, title="Backtest", url_path="backtest"),
-    st.Page(_page_track_record, title="Track Record", url_path="track-record"),
     st.Page(_page_configuration, title="Configuration", url_path="configuration"),
     st.Page(_page_guide, title="Guide", url_path="guide"),
 ]
@@ -1200,12 +1185,14 @@ _PAGES = [
 # Addresses that moved: Qualified and Exit Watch became Actions. A bookmark to
 # either still lands there. These are redirects, not pages -- they are left out
 # of _PAGES, so no menu shows them, and their titles are not the app's tabs.
-_MOVED = {"qualified": "Qualified", "exit-watch": "Exit Watch"}
+_MOVED = {"qualified": "Qualified", "exit-watch": "Exit Watch", "track-record": "Track Record"}
+# Where a moved address now lands (Actions unless listed): the record is part of Portfolio.
+_MOVED_TO = {"track-record": "Portfolio"}
 
 
 def _moved_page(path: str):
     def _go() -> None:
-        st.switch_page(_PAGES[1])
+        st.switch_page(next(p for p in _PAGES if p.title == _MOVED_TO.get(path, "Actions")))
     _go.__name__ = f"_moved_{path.replace('-', '_')}"
     return st.Page(_go, title=_MOVED[path], url_path=path)
 

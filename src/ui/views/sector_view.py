@@ -14,6 +14,7 @@ import streamlit as st
 
 from src.ui.system_param import stock_href
 from src.ui import page_kit as kit
+from src.ui.charts import render_industry_map
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
 from src.ui.screener_table import render_screener_table
 
@@ -135,13 +136,12 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
     actions = kit.page_head(
         "Sectors",
         f"{len(board)} {'industries' if col == 'Industry' else 'groups'} ranked by "
-        f"{by.replace('median', 'median return').replace('3M', '3-month').replace('6M', '6-month').lower()}"
-        " · pick one below to see its stocks",
+        f"{by.replace('median', 'median return').replace('3M', '3-month').replace('6M', '6-month').lower()}",
         actions=True,
     )
     with actions:
-        st.selectbox("Rank by", list(RANK_BY), key="sector_rank_by",
-                     format_func=lambda k: f"Rank by: {k}", label_visibility="collapsed", width=190)
+        st.segmented_control("Rank by", list(RANK_BY), default="3M median", required=True,
+                             key="sector_rank_by", label_visibility="collapsed")
         if len(tax) > 1:
             st.selectbox("Classification", list(tax), key="sector_tax_choice",
                          label_visibility="collapsed", width=190)
@@ -166,6 +166,9 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
                     f"median {_pct(weak['3M Return'])} · {weak.Pass} of {weak.Stocks} pass both filters",
                     _tone(weak["3M Return"])),
     ], "Industries today")
+
+    with kit.card("Industry map", "sec_map", "bubble size = stocks"):
+        render_industry_map(board)
 
     with kit.card("Industry leaderboard", "sec_board", "leaders link to their stock pages"):
         st.html(board_html(board))

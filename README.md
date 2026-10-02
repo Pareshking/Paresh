@@ -165,10 +165,25 @@ Portfolio/risk mathematics is intentionally separate from System-1 signal mathem
 
 Examples include realized-volatility targeting, inverse-volatility weighting, covariance estimation and constrained ERC. These retain their approved session counts and annualization conventions.
 
-## Track record
+## Track Record, Portfolio and Actions
 
-`data/track_record.json` is an **append-only** monthly record of what the
-strategy posted, from January 2026, against Nifty 500.
+The Track Record's pinned replay is the canonical current-book source for
+Portfolio and Actions. Portfolio adds capital sizing, shares, valuation and
+accounting presentation; it must not independently select or weight holdings.
+Actions reconciles its starting holdings against the same canonical book.
+Backtest remains independently configurable for historical research and is
+not the live Portfolio's source of truth.
+
+`data/track_record.json` is an **append-only** monthly record of the strategy's
+net account-level performance, from January 2026, against Nifty 500. Portfolio's
+equity curve and since-inception return use the same frozen monthly ledger plus
+the same live month-to-date result from the pinned replay. The current holdings
+table's unrealised P&L is a separate measure: it excludes realised P&L on sold
+positions and must not be confused with cumulative account performance.
+
+See [`docs/track_record_portfolio_architecture.md`](docs/track_record_portfolio_architecture.md)
+for the source-of-truth rules, accounting definitions and row-level acceptance
+gates.
 
 The backtest recomputes from live prices on every run, which is correct for a
 backtest and useless as a record: a vendor price revision, an index change or a
@@ -217,7 +232,7 @@ Tabs, in the order the app renders them:
 2. **Qualified**: High-conviction screening and concentration analysis.
 3. **Sectors**: Industry rankings.
 4. **RRG**: Relative Rotation Graph analysis.
-5. **Portfolio**: Equal Weight and Inverse Volatility construction with capital sizing and broker-basket export. Note this is a *top-N snapshot* of the current ranking — it has no persistence buffer and no memory of existing holdings, so it is not the same book the backtest runs.
+5. **Portfolio**: Canonical Track Record model book with capital sizing, current marks, holdings P&L, account equity/performance history and rebalance activity. It does not run an independent stock-selection engine.
 6. **Watchlist**: Custom portfolio tracking against quantitative rankings.
 7. **Market Breadth**: Moving-average breadth and high/low statistics.
 8. **Backtest**: Walk-forward backtesting over the last six completed months, rank at T close and execution at T+1, plus the current book and this month's changes. The entire tab runs as an independent Streamlit fragment — its controls rerun only the backtest, not the screener or any other tab.
@@ -300,7 +315,7 @@ the pin, let **V1 Production QA** verify against the live app, then keep it.
 `tests/test_no_diagnostics_in_the_ui.py` fails if the pin is loosened.
 
 The rest of the runtime stack is pinned for the same reason: pandas, numpy,
-pyarrow, yfinance, requests and plotly (`tests/test_dependency_pins.py`).
+pyarrow, yfinance, requests (`tests/test_dependency_pins.py`).
 boto3 is the one documented range. Dependabot opens a PR for each new
 release. pyarrow 25.0.1 segfaults (apache/arrow#50471), so do not take it.
 

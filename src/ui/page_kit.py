@@ -8,9 +8,11 @@ classes the shared stylesheet in src/ui/theme.py already styles.
 from __future__ import annotations
 
 import html
+import math
+from urllib.parse import quote
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Iterator
+from typing import Iterator, Literal
 
 import pandas as pd
 import streamlit as st
@@ -82,6 +84,166 @@ def bar_list(rows: list[tuple[str, float, str, bool]], scale: float) -> str:
     return f'<div class="pg-bars">{"".join(out)}</div>'
 
 
+@dataclass(frozen=True)
+class Metric:
+    """One figure inside a card: a label, the figure, and optionally how it moved.
+
+    `tone` is st.metric's delta_color: "normal" (up is good), "inverse" (up is
+    bad) or "off" (no colour). Delta colour is the only judgement drawn here.
+    """
+
+    label: str
+    value: str
+    delta: str | None = None
+    tone: Literal["normal", "inverse", "off"] = "off"
+    help: str | None = None
+
+
+def pct(x: float | None, signed: bool = True) -> str:
+    """A fraction as a percentage for display; an em dash when it is not a
+    finite number. Formatting only: no figure is computed here."""
+    try:
+        v = float(x)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return "\u2014"
+    if not math.isfinite(v):
+        return "\u2014"
+    return f"{v:+.1%}" if signed else f"{v:.1%}"
+
+
+def metric_tile(m: Metric) -> None:
+    """One bordered figure. Every tile in the app is drawn by this call, so a
+    figure has the same border, radius and delta colouring on every page."""
+    st.metric(m.label, m.value, delta=m.delta, delta_color=m.tone, help=m.help,
+              border=True)
+
+
+def metric_row(tiles: list[Metric], key: str) -> None:
+    """A row of bordered figures, aligned to one baseline. The row wraps on a
+    phone instead of squeezing four columns into 360px."""
+    with st.container(horizontal=True, gap="small", vertical_alignment="top",
+                      key=f"mrow_{key}"):
+        for m in tiles:
+            metric_tile(m)
+
+
+def toolbar(key: str):
+    """The bar that holds a page's pickers and buttons, centred on one line."""
+    return st.container(horizontal=True, vertical_alignment="center",
+                        gap="small", key=f"tb_{key}")
+
+
+def callout(title: str, body: str = "", tone: str = "muted") -> None:
+    """A bordered, tinted block for a result that needs a word of explanation.
+    Tones: "up", "down", "warn" or "muted". Text is escaped."""
+    tone = tone if tone in ("up", "down", "warn", "muted") else "muted"
+    st.html(f'<div class="pg-callout {tone}" role="note"><b>{html.escape(title)}</b>'
+            + (f"<span>{html.escape(body)}</span>" if body else "") + "</div>")
+
+
+_BADGE_COLOURS = {"up": "green", "down": "red", "warn": "orange", "info": "blue"}
+
+
+def badge(label: str, tone: str = "") -> None:
+    """A small status pill, drawn by Streamlit so it follows the theme."""
+    st.badge(label, color=_BADGE_COLOURS.get(tone, "gray"))
+
+
+def df_card(title: str, key: str, df: pd.DataFrame, *, column_config: dict | None = None,
+            aside: str = "", height: int | str = "auto") -> None:
+    """A card holding a configured st.dataframe, for tables that need no
+    per-cell colouring or stock links (those stay on the HTML table renderers)."""
+    with card(title, key, aside):
+        st.dataframe(df, hide_index=True, width="stretch", height=height,
+                     column_config=column_config or None)
+
+
+def col_pct(label: str, *, fmt: str = "percent", help: str | None = None):
+    """A column of fractions shown as percentages (0.123 -> 12.3%)."""
+    return st.column_config.NumberColumn(label, format=fmt, help=help)
+
+
+def col_rupee(label: str, *, help: str | None = None):
+    """A column of rupee amounts, whole rupees with thousands separators."""
+    return st.column_config.NumberColumn(label, format="\u20b9%,.0f", help=help)
+
+
+def col_num(label: str, fmt: str = "%.2f", *, help: str | None = None):
+    return st.column_config.NumberColumn(label, format=fmt, help=help)
+
+
+def col_rank(label: str = "Rank", *, top: int = 750):
+    """A rank drawn as a bar scaled to the list length (a longer bar is a
+    larger rank number, i.e. a worse position)."""
+    return st.column_config.ProgressColumn(label, min_value=0, max_value=top,
+                                           format="%d")
+
+
+# ── Data grids ────────────────────────────────────────────────────────────
+# One column vocabulary for every st.dataframe that lists stocks, so Rank,
+# returns and flags read the same in the Screener grid, the Portfolio grid and
+# the stock dialogs. Units follow the ranking frame: returns are fractions
+# (0.123 = 12.3%); "% High", "% 50 EMA", "Max DD" and the Portfolio's
+# weight and P&L % columns are already in percent.
+_FRACTION_COLS = ("1M Return", "3M Return", "6M Return", "9M Return", "12M Return")
+
+
+def tradingview_url(symbol: str) -> str:
+    """The symbol's chart on TradingView: an external site, so a new tab is right."""
+    return "https://www.tradingview.com/chart/?symbol=" + quote(f"NSE:{symbol}", safe="")
+
+
+def stock_grid_config(columns, *, score_range: tuple[float, float] | None = None) -> dict:
+    """st.column_config entries for whichever of `columns` are stock columns."""
+    cc = st.column_config
+    known: dict = {
+        "Rank": cc.NumberColumn("#", format="%d", width="small", pinned=True),
+        "Current Rank": cc.NumberColumn("Rank", format="%d", width="small"),
+        "Symbol": cc.TextColumn("Stock", width="medium", pinned=True),
+        "Industry": cc.TextColumn("Industry"),
+        "Sector / Industry": cc.TextColumn("Industry"),
+        "Company": cc.TextColumn("Company"),
+        "Indices": cc.TextColumn("Index"),
+        "Rank Δ 1M": cc.NumberColumn("Rank Δ 1M", format="%+d", width="small"),
+        "Rank Δ 3M": cc.NumberColumn("Rank Δ 3M", format="%+d", width="small"),
+        "CMP": cc.NumberColumn("Price", format="₹%,.2f"),
+        "Current Price": cc.NumberColumn("Price", format="₹%,.2f"),
+        "% High": cc.NumberColumn("From 52W high", format="%.1f%%",
+                                  help="Distance of the price from its 52-week high"),
+        "% ATH": cc.NumberColumn("From ATH", format="%.1f%%"),
+        "% 50 EMA": cc.NumberColumn("vs 50 EMA", format="%+.1f%%"),
+        "Max DD 12M": cc.NumberColumn("Max DD 12M", format="%.1f%%"),
+        "Market Cap (Cr)": cc.NumberColumn("Mkt cap (₹ Cr)", format="%,.0f"),
+        "Above 50 EMA": cc.CheckboxColumn("Above 50 EMA", width="small"),
+        "Near 52W High": cc.CheckboxColumn("Near 52W high", width="small"),
+        "At ATH": cc.CheckboxColumn("At ATH", width="small"),
+        "Score": cc.ProgressColumn("Score", format="%.2f",
+                                   min_value=float(score_range[0]) if score_range else 0.0,
+                                   max_value=float(score_range[1]) if score_range else 1.0),
+        "Chart": cc.LinkColumn("Chart", display_text="TradingView ↗", width="small",
+                               help="Opens the chart on TradingView in a new tab"),
+        "Shares": cc.NumberColumn("Shares", format="%,d"),
+        "P&L (₹)": cc.NumberColumn("P&L (₹)", format="₹%,.0f"),
+        "Day P&L (₹)": cc.NumberColumn("Day P&L (₹)", format="₹%,.0f"),
+        "Current Value (₹)": cc.NumberColumn("Value (₹)", format="₹%,.0f"),
+        "Invested Value (₹)": cc.NumberColumn("Invested (₹)", format="₹%,.0f"),
+        "Entry Price": cc.NumberColumn("Entry price", format="₹%,.2f"),
+        "Holding Days": cc.NumberColumn("Days held", format="%d", width="small"),
+    }
+    for c in _FRACTION_COLS:
+        known.setdefault(c, cc.NumberColumn(c, format="percent"))
+    for c in ("1M Sharpe", "3M Sharpe", "6M Sharpe", "9M Sharpe", "12M Sharpe"):
+        known[c] = cc.NumberColumn(c, format="%.2f", width="small")
+    # Portfolio weights and P&L are percentages already; weight shows as a bar.
+    known["Weight %"] = cc.ProgressColumn("Weight", format="%.1f%%", min_value=0.0,
+                                          max_value=20.0)
+    known["P&L %"] = cc.NumberColumn("P&L %", format="%+.1f%%")
+    known["Target Weight %"] = cc.NumberColumn("Target", format="%.1f%%")
+    known["Weight Drift %"] = cc.NumberColumn("Drift", format="%+.1f%%")
+    known["Day P&L %"] = cc.NumberColumn("Day %", format="%+.1f%%")
+    return {c: known[c] for c in columns if c in known}
+
+
 def caption(text: str) -> None:
     st.html(f'<p class="pg-cap">{html.escape(text)}</p>')
 
@@ -91,144 +253,48 @@ def _slug(s: str) -> str:
 
 
 def equity_chart(
-    labels: list[str],
+    dates,
     strategy: list[float],
     benchmark: list[float] | None,
     names: tuple[str, str] = ("Strategy", "Nifty 500"),
     key: str = "equity",
+    fmt: str = "rupee",
+    drawdown: list[float] | None = None,
 ) -> None:
-    """Render absolute portfolio equity values, not growth factors.
-
-    The Portfolio history builder supplies rupee-denominated ending values.
-    Keeping this chart contract explicit prevents a growth-factor formatter
-    from accidentally multiplying real portfolio values by 100.
-    """
-    import altair as alt
+    """Strategy against benchmark on real dates, with the drawdown under it when
+    given. Values are drawn as passed (rupees, not growth factors), so a
+    growth-factor formatter cannot multiply a portfolio value by 100. Hover for
+    the date and every value."""
+    from src.ui import lw_chart as lw
 
     if len(strategy) < 2:
         return
-
-    start_value = float(strategy[0])
-
-    # The legend names each line's latest value only. The since-inception
-    # percentage is not repeated here: the Equity view's figures are this
-    # month's, and a cumulative % beside them read as the headline.
-    def end(s, cls, name):
-        v = float(s[-1])
-        return (
-            f'<span class="{cls}"><i></i>{html.escape(name)} '
-            f'<b>₹{v:,.0f}</b></span>'
-        )
-
-    st.html(
-        '<div class="gc-legend">'
-        + end(strategy, "gc-ls", names[0])
-        + (end(benchmark, "gc-lb", names[1]) if benchmark else "")
-        + "</div>"
-    )
-
-    rows = [
-        {"x": i, "label": lab, "series": names[0], "value": float(v)}
-        for i, (lab, v) in enumerate(zip(labels, strategy))
-    ]
+    series = [{"name": names[0], "type": "line", "color": lw.INDIGO, "fmt": fmt,
+               "data": lw.series_points(dates, strategy)}]
     if benchmark:
-        rows += [
-            {"x": i, "label": lab, "series": names[1], "value": float(v)}
-            for i, (lab, v) in enumerate(zip(labels, benchmark))
-        ]
-    data = pd.DataFrame(rows)
-    step = max(1, len(labels) // 8)
-    ticks = list(range(0, len(labels), step))
-    label_expr = "{" + ",".join(f"{i}:'{labels[i]}'" for i in ticks) + "}[datum.value]"
-    x = alt.X(
-        "x:Q",
-        axis=alt.Axis(
-            values=ticks,
-            labelExpr=label_expr,
-            title=None,
-            grid=False,
-            labelColor="#5E6878",
-            tickColor="#E3E6EB",
-            domainColor="#E3E6EB",
-        ),
-        scale=alt.Scale(domain=[0, len(labels) - 1], nice=False),
-    )
-    y = alt.Y(
-        "value:Q",
-        scale=alt.Scale(zero=False),
-        axis=alt.Axis(
-            title=None,
-            format=",.0f",
-            labelColor="#5E6878",
-            gridColor="#EDEFF3",
-            domain=False,
-            ticks=False,
-        ),
-    )
-    colour = alt.Color(
-        "series:N",
-        legend=None,
-        scale=alt.Scale(domain=list(names), range=["#4F46E5", "#98A1AE"]),
-    )
-    lines = alt.Chart(data).mark_line(
-        strokeWidth=2.5, interpolate="monotone"
-    ).encode(
-        x=x,
-        y=y,
-        color=colour,
-        tooltip=[
-            alt.Tooltip("label:N", title="When"),
-            alt.Tooltip("series:N", title=""),
-            alt.Tooltip("value:Q", title="₹", format=",.0f"),
-        ],
-    )
-    base = alt.Chart(pd.DataFrame({"y": [start_value]})).mark_rule(
-        strokeDash=[4, 4], color="#D0D5DD"
-    ).encode(y="y:Q")
-    chart = (
-        (base + lines)
-        .properties(height=260)
-        .configure_view(strokeWidth=0)
-        .configure(background="#FFFFFF", font="Geist, system-ui, sans-serif")
-    )
-    st.altair_chart(chart, width="stretch", key=f"ec_{key}")
-def drawdown_chart(labels: list[str], drawdown: list[float], key: str = "drawdown") -> None:
-    """Render portfolio drawdown as a percentage, not as an equity-value chart."""
-    import altair as alt
+        series.append({"name": names[1], "type": "line", "color": lw.GREY, "fmt": fmt,
+                       "data": lw.series_points(dates, benchmark)})
+    panes = [{"height": 300, "series": series}]
+    if drawdown:
+        panes.append({"height": 150, "series": [
+            {"name": "Drawdown", "type": "baseline", "color": lw.RED, "negColor": lw.RED,
+             "fmt": "pct", "data": lw.series_points(dates, drawdown, scale=100.0)}]})
+    lw.render(panes, key=key)
 
-    if len(drawdown) < 2:
-        return
 
-    rows = [{"x": i, "label": lab, "drawdown": value * 100.0}
-            for i, (lab, value) in enumerate(zip(labels, drawdown))]
-    data = pd.DataFrame(rows)
-    step = max(1, len(labels) // 8)
-    ticks = list(range(0, len(labels), step))
-    label_expr = "{" + ",".join(f"{i}:'{labels[i]}'" for i in ticks) + "}[datum.value]"
-    x = alt.X(
-        "x:Q",
-        axis=alt.Axis(values=ticks, labelExpr=label_expr, title=None, grid=False,
-                      labelColor="#5E6878", tickColor="#E3E6EB", domainColor="#E3E6EB"),
-        scale=alt.Scale(domain=[0, len(labels) - 1], nice=False),
+def growth_chart(
+    dates,
+    strategy: list[float],
+    benchmark: list[float] | None,
+    names: tuple[str, str] = ("Strategy", "Nifty 500"),
+    key: str = "growth",
+) -> None:
+    """Growth of 100: `strategy` and `benchmark` are growth factors (1.0 = the
+    start), re-based to a start of 100 and drawn by equity_chart so the two
+    charts cannot drift apart."""
+    equity_chart(
+        dates,
+        [float(v) * 100.0 for v in strategy],
+        None if not benchmark else [float(v) * 100.0 for v in benchmark],
+        names=names, key=f"growth_{key}", fmt="num",
     )
-    y = alt.Y(
-        "drawdown:Q",
-        scale=alt.Scale(domain=[min(0.0, float(data["drawdown"].min())), 0.0], nice=False),
-        axis=alt.Axis(title="%", format=".1f", labelColor="#5E6878", gridColor="#EDEFF3",
-                      domain=False, ticks=False),
-    )
-    area = alt.Chart(data).mark_area(opacity=0.16).encode(x=x, y=y)
-    line = alt.Chart(data).mark_line(strokeWidth=2.5, interpolate="monotone").encode(
-        x=x, y=y,
-        tooltip=[
-            alt.Tooltip("label:N", title="When"),
-            alt.Tooltip("drawdown:Q", title="Drawdown (%)", format=".1f"),
-        ],
-    )
-    zero = alt.Chart(pd.DataFrame({"y": [0.0]})).mark_rule(
-        strokeDash=[4, 4], color="#D0D5DD"
-    ).encode(y="y:Q")
-    chart = (zero + area + line).properties(height=260).configure_view(
-        strokeWidth=0
-    ).configure(background="#FFFFFF", font="Geist, system-ui, sans-serif")
-    st.altair_chart(chart, width="stretch", key=f"dd_{key}")

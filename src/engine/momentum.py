@@ -25,7 +25,6 @@ from src.core.config import (
 )
 from src.core.tickers import normalise_symbol
 from src.core.logger import logger
-from src.engine import pipeline
 from src.engine.calendar_momentum import (
     _calendar_period_metrics,
     calendar_start_positions,
@@ -563,6 +562,9 @@ class MomentumEngine:
             # evaluated at calendar offsets. 6M and 2M are not new momentum
             # factors: they are simply historical snapshots of the existing
             # daily composite, ranked with the same paired-name rule.
+            # Imported here: pipeline imports this module at load time.
+            from src.engine import pipeline
+
             for months in pipeline.RANK_HISTORY_MONTHS:
                 idx_hist = int(hist_starts[months][-1])
                 rank_col = f"Rank (-{months}M)"
@@ -575,6 +577,8 @@ class MomentumEngine:
                     rank_df[rank_col] = np.nan
                     rank_df[delta_col] = np.nan
         else:
+            from src.engine import pipeline
+
             for months in pipeline.RANK_HISTORY_MONTHS:
                 rank_df[f"Rank (-{months}M)"] = np.nan
                 rank_df[f"Rank Δ {months}M"] = np.nan

@@ -129,7 +129,7 @@ def test_screener_table_opens_stocks_through_the_host_like_the_wide_table():
     html = screener_table.table_html(rank_df, px, "Executive (11)")
     assert "host.document.createElement('script')" in html
     assert "host.document.body.appendChild(s)" in html
-    assert "window.location.search=" in html
+    assert "window.location.search='+JSON.stringify(search)" in html
     assert "window.open(search,'_blank')" in html
     assert 'target="_parent"' not in html
 
@@ -169,20 +169,10 @@ def test_table_symbol_opens_the_stock_page_by_injecting_into_the_host():
     document; that script runs as the parent, which is not sandboxed, and a page
     navigating itself is never blocked.
     """
-    from src.ui import theme
+    from src.ui import screener_table
 
     rank_df, px = _rank_df()
-    captured = {}
-    orig_iframe, orig_info = theme.st.iframe, theme.st.info
-    theme.st.iframe = lambda h, **k: captured.setdefault("html", h)
-    theme.st.info = lambda *a, **k: None
-    try:
-        theme.render_master_screener_table(rank_df, prices_df=px,
-                                   density="Full Quant (35)")
-    finally:
-        theme.st.iframe, theme.st.info = orig_iframe, orig_info
-
-    html = captured["html"]
+    html = screener_table.table_html(rank_df, px, "Full Quant (35)")
     # A real href survives for middle-click and "copy link address"...
     assert 'href="?stock=' in html
     # ...and the symbol carries the payload the delegated handler reads.
@@ -191,9 +181,9 @@ def test_table_symbol_opens_the_stock_page_by_injecting_into_the_host():
     assert "window.parent" in html
     assert "host.document.createElement('script')" in html
     assert "host.document.body.appendChild(s)" in html
-    assert "window.location.search=" in html
+    assert "window.location.search='+JSON.stringify(search)" in html
     # A cross-origin parent would throw; allow-popups still gets the user there.
-    assert "window.open(search, '_blank')" in html
+    assert "window.open(search,'_blank')" in html
     # Every mechanism a browser refused must stay gone.
     assert 'target="_parent"' not in html
     assert 'target="_self"' not in html

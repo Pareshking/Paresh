@@ -18,6 +18,16 @@ from src.engine.parameter_sweep import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _no_real_membership(monkeypatch):
+    """These tests sweep synthetic symbols (S0..S39). run_parameter_sweep reads the
+    committed membership file, which describes the real index, so once that record
+    covered the fixture's dates every synthetic name was filtered out and the grid
+    was empty. The fixture ends 2026-08-18, one day before the old record began,
+    which is the only reason this ever passed."""
+    monkeypatch.setattr("src.engine.parameter_sweep.load_history_or_none", lambda: None)
+
+
 @pytest.fixture(scope="module")
 def prices():
     n, cols = 760, 40

@@ -34,7 +34,7 @@ from src.engine.extra_universe import (
 )
 from src.loaders.extra_universe_loader import membership_summary
 from src.loaders.indices_loader import get_sync_metadata, sync_official_nse_indices
-from src.ui.components import gap_count, render_data_quality_footer
+from src.ui.components import age_phrase, data_freshness, gap_count, render_data_quality_footer
 from src.ui.widget_state import forget, remember, resolve
 from src.ui.theme import render_saas_table
 
@@ -87,6 +87,47 @@ _SECTIONS = [
 ]
 
 
+@st.dialog("Index files on disk", width="medium")
+def _index_files_dialog() -> None:
+    """Read-only: which constituent lists are on disk, and how fresh."""
+    for idx_name, path in INDICES_LOCAL.items():
+        if os.path.exists(path):
+            size = os.path.getsize(path)
+            mtime = datetime.fromtimestamp(os.path.getmtime(path)).strftime(
+                "%d %b %Y, %H:%M"
+            )
+            with open(path, "r", encoding="utf-8") as f:
+                lines = sum(1 for _ in f) - 1
+            st.caption(
+                f"**{idx_name}**: `{lines}` constituents ({size/1024:.1f} KB) · {mtime}"
+            )
+        else:
+            st.caption(f"**{idx_name}**: File missing at `{path}`")
+
+
+@st.dialog("Spike sessions, by date", width="large")
+def _spike_sessions_dialog(rows: list[dict]) -> None:
+    """Read-only: every flagged session, newest first."""
+    render_saas_table(pd.DataFrame(rows))
+
+
+def _freshness_table() -> None:
+    """Every source's latest date and whether it is current: the one place to check."""
+    try:
+        items = data_freshness()
+    except Exception:
+        items = []
+    if not items:
+        return
+    rows = [{
+        "Source": str(i["label"]),
+        "Latest": str(i["as_of"]) + (f" · {i['coverage']}" if i.get("coverage") else ""),
+        "Age": age_phrase(i).strip(" ·()") or "current",
+        "Status": "Behind" if i["stale"] else "Current",
+    } for i in items]
+    render_saas_table(pd.DataFrame(rows))
+
+
 def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> None:
     last_sync = sync_meta.get("last_synced") or "Never synced"
     sync_ok = sync_meta.get("last_attempt_ok")
@@ -100,6 +141,7 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
         f'<div><span>In the index files</span><b>{tot_stk} stocks</b></div>'
         f'<div><span>Ranked now</span><b>{engine_stocks} stocks</b></div></div>'
     )
+    _freshness_table()
     if sync_ok is False:
         kit.note(
             f"The last sync ({last_attempt or 'time unknown'}) did not complete.",
@@ -118,16 +160,18 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
         SYSTEM_COMBINED: "Both, ranked together · record from Oct 2026",
     }
     current = system_param.current()
-    chosen = st.radio(
+    chosen = st.segmented_control(
         "System", options,
-        index=options.index(current) if current in options else 0,
-        format_func=SYSTEM_NAMES.get, captions=[captions[o] for o in options],
+        default=current if current in options else options[0],
+        required=True,
+        format_func=SYSTEM_NAMES.get,
         key="cfg_system_radio",
         help="Every page follows this choice. Nano Cap is every stock of ₹2,000 Cr "
              "or more outside the 750, fixed at each month-end"
              + (f" (list of {nano.get('as_of')})" if nano else "")
              + ", ranked among themselves; Combined ranks both as one list.",
-    )
+    ) or (current if current in options else options[0])
+    st.caption(captions[chosen])
     if chosen != current:
         st.session_state["cfg_system"] = chosen
         st.rerun()
@@ -188,21 +232,9 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
         st.html('<span class="pg-cap">Sync fetches the latest official constituent lists. '
                 "One sync at a time, app-wide.</span>")
 
-    with st.expander(f"Index files on disk ({len(INDICES_LOCAL)})", expanded=False):
-        for idx_name, path in INDICES_LOCAL.items():
-            if os.path.exists(path):
-                size = os.path.getsize(path)
-                mtime = datetime.fromtimestamp(os.path.getmtime(path)).strftime(
-                    "%d %b %Y, %H:%M"
-                )
-                with open(path, "r", encoding="utf-8") as f:
-                    lines = sum(1 for _ in f) - 1
-                st.caption(
-                    f"**{idx_name}**: `{lines}` constituents ({size/1024:.1f} KB) · {mtime}"
-                )
-            else:
-                st.caption(f"**{idx_name}**: File missing at `{path}`")
-
+    if st.button(f"Index files on disk ({len(INDICES_LOCAL)})", type="tertiary",
+                 icon=":material/folder_open:", key="dlg_cfg_index_files"):
+        _index_files_dialog()
 
 
 # The five lookback windows, their canonical keys, and the documented default
@@ -255,7 +287,7 @@ def _section_momentum_signal() -> None:
             forget(key)
         st.rerun()
 
-    wc = st.columns(5)
+    wc = st.columns(5, vertical_alignment="top")
     for col, (label, key, default) in zip(wc, _WINDOWS):
         # Hand the widget an EXPLICIT value. Relying on session state alone is
         # what produced the reported defect: measured against the live app on
@@ -338,7 +370,7 @@ def _section_portfolio_risk() -> None:
     # PLAUSIBLE number -- a 30% sector cap as 15%, a 5% stock cap as 2% -- and
     # both genuinely bind the portfolio and the backtest. Every widget below is
     # handed an explicit resolved value and mirrored afterwards.
-    lc, rc = st.columns(2, gap="large")
+    lc, rc = st.columns(2, gap="large", vertical_alignment="top")
     new_sc = lc.slider(
         "Most in one sector (%)", min_value=15, max_value=50, step=5,
         value=_risk("cfg_sc"), key="cfg_sc",
@@ -440,8 +472,9 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
                     ),
                 }
             )
-        with st.expander(f"All {len(_events)} sessions, by date", expanded=False):
-            render_saas_table(pd.DataFrame(_rows))
+        if st.button(f"All {len(_events)} sessions, by date", type="tertiary",
+                     icon=":material/table_rows:", key="dlg_cfg_sessions"):
+            _spike_sessions_dialog(_rows)
         kit.caption(
             "A split or bonus should have been adjusted away by the data provider and was not; "
             "re-fetching fixes it. A possible demerger matches no standard ratio; providers "
@@ -509,22 +542,20 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
     indices = st.session_state.get("cfg_indices", ["NIFTY TOTAL MARKET"])
     vt_on = bool(_risk("cfg_vt"))
     n_events = len(load_events() or [])
-    kit.readings([
-        kit.Reading("Universe", " + ".join(i.title() for i in indices) or "—",
-                    # The count is the market line's Universe.
-                    (f"system: {SYSTEM_NAMES.get(st.session_state.get('cfg_system'), '')}"
-                     if st.session_state.get("cfg_system", SYSTEM_750) != SYSTEM_750 else "")),
-        kit.Reading("Score weights", "·".join(f"{w * 100:.0f}" for w in norm),
-                    "1M·3M·6M·9M·12M" + (", the default" if is_default else ", your own")),
-        kit.Reading("Portfolio limits", f"{_risk('cfg_stc')}% · {_risk('cfg_sc')}%",
-                    "per stock · per sector"),
-        kit.Reading("Volatility target", f"{_risk('cfg_vtv')}%" if vt_on else "Off",
-                    "holds cash to stay near it" if vt_on else "fully invested"),
-        kit.Reading("Liquidity floor", f"₹{_risk('cfg_lfv')} Cr" if _risk("cfg_lf") else "Off",
-                    "20-day average traded value" if _risk("cfg_lf") else "no minimum"),
-        kit.Reading("Data health", f"{n_events} fixed" if n_events else "Clean",
-                    "price jumps neutralised" if n_events else "no corporate actions flagged"),
-    ], "Settings in effect")
+    system_note = (f" · {SYSTEM_NAMES.get(st.session_state.get('cfg_system'), '')}"
+                   if st.session_state.get("cfg_system", SYSTEM_750) != SYSTEM_750 else "")
+    rows = [
+        ("Universe", (" + ".join(i.title() for i in indices) or "—") + system_note),
+        ("Score weights 1M·3M·6M·9M·12M",
+         "·".join(f"{w * 100:.0f}" for w in norm) + (" (default)" if is_default else " (yours)")),
+        ("Max per stock · per sector", f"{_risk('cfg_stc')}% · {_risk('cfg_sc')}%"),
+        ("Volatility target", f"{_risk('cfg_vtv')}%" if vt_on else "Off"),
+        ("Liquidity floor", f"₹{_risk('cfg_lfv')} Cr" if _risk("cfg_lf") else "Off"),
+        ("Corporate actions adjusted", f"{n_events}" if n_events else "None"),
+    ]
+    st.html('<div class="cfg-kv">' + "".join(
+        f"<div><span>{html.escape(k)}</span><b>{html.escape(v)}</b></div>" for k, v in rows
+    ) + "</div>")
 
     st.html(
         '<nav class="cfg-index" aria-label="Sections">'

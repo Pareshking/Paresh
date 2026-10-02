@@ -152,8 +152,17 @@ def _select_holdings(
     prev_holdings: Sequence[str],
     top_n: int,
     effective_buffer: int,
+    *,
+    sector_map: dict[str, str] | None = None,
+    max_per_sector: int | None = None,
 ) -> list[str]:
     """Buffer-zone selection: retain incumbents inside the buffer, then top up.
+
+    With `max_per_sector` (the hard industry cap, owner 2026-10-02) no
+    industry gets more than that many names: incumbents are retained best rank
+    first, so an over-full industry keeps its strongest and sells the rest, and
+    the top-up skips a full industry for the next-ranked name. Unlabelled names
+    share the group "Other", as in portfolio.apply_caps.
 
     A name already held keeps its slot while it ranks inside `effective_buffer`
     (wider than `top_n`), so a holding that drifts from #18 to #24 is not sold
@@ -165,19 +174,46 @@ def _select_holdings(
     backtest would have retained is worse than no preview, and a second copy of
     this logic is exactly how the two drift apart.
     """
+    limit = max_per_sector if (max_per_sector and sector_map is not None) else None
+    used: dict[str, int] = {}
+
+    def fits(s: str) -> bool:
+        if limit is None:
+            return True
+        g = sector_map.get(s, "Other")
+        if used.get(g, 0) >= limit:
+            return False
+        used[g] = used.get(g, 0) + 1
+        return True
+
+    incumbents = list(prev_holdings)
+    if limit is not None:
+        incumbents.sort(key=lambda s: full_ranked.index.get_loc(s)
+                        if s in full_ranked.index else len(full_ranked) + 1)
     selected: list[str] = []
-    for s in prev_holdings:
+    for s in incumbents:
         if len(selected) >= top_n:
             break
         if s in full_ranked.index:
-            if full_ranked.index.get_loc(s) + 1 <= effective_buffer:
+            if full_ranked.index.get_loc(s) + 1 <= effective_buffer and fits(s):
                 selected.append(s)
     for s in full_ranked.index:
         if len(selected) >= top_n:
             break
-        if s not in selected:
+        if s not in selected and fits(s):
             selected.append(s)
     return selected[:top_n]
+
+
+def sector_slots(top_n: int, stock_cap: float, sector_cap: float) -> int:
+    """Most names one industry may hold so the hard cap holds at target weights.
+
+    Each name targets min(1/top_n, stock_cap); an industry of k names then
+    weighs k times that, so k = floor(sector_cap / per-name weight). 20 names,
+    5% and 40% give 8.
+    """
+    per_name = min(1.0 / max(int(top_n), 1), float(stock_cap))
+    return max(1, int(np.floor(float(sector_cap) / per_name + 1e-9)))
 
 
 def _compute_weights(
@@ -225,8 +261,18 @@ def _exit_reason(
     ema_period: int,
     high_pct: float,
     effective_buffer: int,
+    *,
+    index_mask: pd.Series | None = None,
+    liq_mask: pd.Series | None = None,
+    signal_date: Any = None,
 ) -> str:
-    """Why a held name is being sold, in the order the filters actually bind."""
+    """Why a held name is being sold, in the order the filters actually bind.
+
+    The last two gates are the ones a name can fail with its price filters
+    intact: it is not in the index on the signal date, or it trades below the
+    liquidity floor. Without them such a sale read "Rebalance Exit", which
+    explained nothing. The masks are the same ones that decided the ranking.
+    """
     if symbol in full_ranked.index:
         rk = full_ranked.index.get_loc(symbol) + 1
         return f"Rank Dropped (#{rk} > Buffer {effective_buffer})"
@@ -234,6 +280,11 @@ def _exit_reason(
         return f"Trend Breakdown (< {ema_period} EMA)"
     if not near_high.get(symbol, False):
         return f"Failed 52W High Filter (< {high_pct*100:.0f}%)"
+    if index_mask is not None and not bool(index_mask.get(symbol, False)):
+        when = f" on {pd.Timestamp(signal_date):%d %b %Y}" if signal_date is not None else ""
+        return f"Not in the index{when}"
+    if liq_mask is not None and not bool(liq_mask.get(symbol, False)):
+        return "Below the liquidity floor"
     return "Rebalance Exit"
 
 
@@ -252,7 +303,7 @@ def _index_mask(
     """
     if membership is None:
         return None
-    members = members_on(membership, pd.Timestamp(on).date())
+    members = members_on(membership, pd.Timestamp(on).date(), canonical=True)
     if members is None:
         return None
     return pd.Series(columns.isin(members), index=columns)
@@ -676,7 +727,7 @@ def run_backtest(
     weight_method: str = "Equal Weight",
     config_weights: Sequence[float] = (0.10, 0.30, 0.30, 0.20, 0.10),
     stock_cap: float = 0.05,
-    sector_cap: float = 0.30,
+    sector_cap: float = 0.40,
     sector_map: dict[str, str] | None = None,
     cost_bps: float = 30.0,
     buffer_n: int | None = None,
@@ -799,6 +850,7 @@ def run_backtest(
     current_universe_periods = 0
     # Local to this run, so concurrent sessions cannot see each other's.
     scheme_neutralised_seen = False
+    cap_cash_max = 0.0  # largest share a hard cap left uninvested at a reported rebalance
 
     for i, start_idx in enumerate(rebal_dates):
         # Three distinct indices, previously collapsed into two:
@@ -869,7 +921,9 @@ def run_backtest(
 
         # ── Buffer Zone Selection (Turnover Reduction) ───────────────────────
         holdings = _select_holdings(
-            full_ranked, prev_holdings, top_n, effective_buffer
+            full_ranked, prev_holdings, top_n, effective_buffer,
+            sector_map=sec_map or None,
+            max_per_sector=sector_slots(top_n, stock_cap, sector_cap) if sec_map else None,
         )
 
         # ── Portfolio Weighting ──────────────────────────────────────────────
@@ -881,6 +935,8 @@ def run_backtest(
             (not stateful_history) or dates[start_idx + 1] >= window_start
         ):
             scheme_neutralised_seen = True
+        if (not stateful_history) or dates[start_idx + 1] >= window_start:
+            cap_cash_max = max(cap_cash_max, float(wts.attrs.get("cash", 0.0) or 0.0))
 
         # ── Turnover & Transaction Drag ──────────────────────────────────────
         # Against the book as it STANDS at this fill, not the targets last
@@ -919,6 +975,7 @@ def run_backtest(
             reason = _exit_reason(
                 s, full_ranked, above_ema, near_high,
                 ema_period, high_pct, effective_buffer,
+                index_mask=idx_mask, liq_mask=liq_mask, signal_date=dates[start_idx],
             )
 
             pos = open_positions.pop(s, None)
@@ -1231,7 +1288,9 @@ def run_backtest(
             rebal_fill_dt = prices.index[fill_idx]
 
             new_holdings = _select_holdings(
-                p_ranked, prev_holdings, top_n, effective_buffer
+                p_ranked, prev_holdings, top_n, effective_buffer,
+                sector_map=sec_map or None,
+                max_per_sector=sector_slots(top_n, stock_cap, sector_cap) if sec_map else None,
             )
             new_wts = _compute_weights(
                 new_holdings, log_ret, rebal_idx, weight_method,
@@ -1260,6 +1319,8 @@ def run_backtest(
                         "Reason": _exit_reason(
                             s, p_ranked, p_above_ema, p_near_high,
                             ema_period, high_pct, effective_buffer,
+                            index_mask=p_idx_mask, liq_mask=p_liq,
+                            signal_date=prices.index[rebal_idx],
                         ),
                     }
                 )
@@ -1342,6 +1403,10 @@ def run_backtest(
                 "Industry": sec_map.get(s, "—"),
                 "Entry Date": entry_dt,
                 "Entry Price": entry_price,
+                # Preserve original fill weight separately from the latest target
+                # weight. Portfolio share accounting must size shares from the
+                # weight used when this position was opened, not today's rebalance.
+                "Entry Weight %": float(pos.get("entry_weight", book_wts.get(s, 0.0) * 100.0)),
                 "Price Now": mark,
                 "Return %": _round_trip_return(entry_price, mark),
                 "MTD %": _round_trip_return(mtd_base, mark),
@@ -1468,9 +1533,14 @@ def run_backtest(
 
     if stateful_history:
         if closed_trades:
+            # Open positions have no exit date ("Not exited (mark ...)", NaT),
+            # and NaT >= window_start is False, so this filter used to drop
+            # every one of them and "Still open" was always empty. They are
+            # held through the window, so they belong in it.
             closed_trades = [
                 r for r in closed_trades
-                if pd.to_datetime(r.get("Exit Date"), errors="coerce") >= window_start
+                if r.get("Status") == "Open"
+                or pd.to_datetime(r.get("Exit Date"), errors="coerce") >= window_start
             ]
         if trade_records:
             history_floor = (
@@ -1504,5 +1574,5 @@ def run_backtest(
             eq_strat_net, eq_strat_gross, eq_bench, dates, strat_net_daily,
             monthly_df, prices, rebal_dates, _membership, pit_periods,
             current_universe_periods, actions_applied, scheme_neutralised_seen,
-        ),
+        ) | {"cap_cash_max": cap_cash_max},
     }

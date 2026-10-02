@@ -1,0 +1,101 @@
+{
+ "source": "NSE daily bundles (Bhavcopy PR zip), series EQ then BE",
+ "renames": {
+  "AMIORG": {
+   "new_symbol": "ACUTAAS",
+   "evidence": "Ami Organics became Acutaas Chemicals; last AMIORG close 2025-05-30, first ACUTAAS 2025-06-02, close ratio 0.956"
+  },
+  "GLS": {
+   "new_symbol": "ALIVUS",
+   "evidence": "last GLS 2025-01-17, first ALIVUS 2025-01-20; daily-return correlation with Yahoo's ALIVUS over 75 days 1.000"
+  },
+  "JCHAC": {
+   "new_symbol": "BOSCH-HCIL",
+   "evidence": "last JCHAC 2025-12-23, first BOSCH-HCIL 2025-12-24; correlation 0.995 over 305 days"
+  },
+  "INFIBEAM": {
+   "new_symbol": "CCAVENUE",
+   "evidence": "last INFIBEAM 2026-02-02, first CCAVENUE 2026-02-03; correlation 0.954 over 331 days"
+  },
+  "ITDCEM": {
+   "new_symbol": "CEMPRO",
+   "evidence": "last ITDCEM 2025-09-16, first CEMPRO 2025-09-17, ratio 1.000; correlation 0.999 over 238 days"
+  },
+  "SUVENPHAR": {
+   "new_symbol": "COHANCE",
+   "evidence": "last SUVENPHAR 2025-05-16, first COHANCE 2025-05-19; correlation 0.987 over 153 days"
+  },
+  "ZOMATO": {
+   "new_symbol": "ETERNAL",
+   "evidence": "last ZOMATO 2025-04-08, first ETERNAL 2025-04-09; correlation 0.923 over 129 days"
+  },
+  "GANESHHOUC": {
+   "new_symbol": "GANESHHOU",
+   "evidence": "last GANESHHOUC 2025-09-12, first GANESHHOU 2025-09-15; correlation 0.998 over 236 days"
+  },
+  "GMRINFRA": {
+   "new_symbol": "GMRAIRPORT",
+   "evidence": "last GMRINFRA 2024-12-10, first GMRAIRPORT 2024-12-11; correlation 1.000 over 48 days"
+  },
+  "GET&D": {
+   "new_symbol": "GVT&D",
+   "evidence": "last GET&D 2024-11-04 at 1771.1, first GVT&D 2024-11-05 at 1743.0; correlation 1.000 over 24 days"
+  },
+  "HBLPOWER": {
+   "new_symbol": "HBLENGINE",
+   "evidence": "last HBLPOWER 2024-12-20, first HBLENGINE 2024-12-23; correlation 1.000 over 56 days"
+  },
+  "IIFLSEC": {
+   "new_symbol": "IIFLCAPS",
+   "evidence": "last IIFLSEC 2024-12-02, first IIFLCAPS 2024-12-03; correlation 1.000 over 42 days"
+  },
+  "AKZOINDIA": {
+   "new_symbol": "JSWDULUX",
+   "evidence": "last AKZOINDIA 2026-04-13, first JSWDULUX 2026-04-15; correlation 0.988 over 377 days"
+  },
+  "LTIM": {
+   "new_symbol": "LTM",
+   "evidence": "last LTIM 2026-02-26, first LTM 2026-02-27; correlation 0.996 over 349 days"
+  },
+  "MEGASOFT": {
+   "new_symbol": "SIGMAADV",
+   "evidence": "last MEGASOFT 2026-02-06, first SIGMAADV 2026-02-09; correlation 1.000 over 335 days"
+  },
+  "SMLISUZU": {
+   "new_symbol": "SMLMAH",
+   "evidence": "last SMLISUZU 2025-11-07, first SMLMAH 2025-11-10; correlation 0.995 over 273 days"
+  },
+  "SWANENERGY": {
+   "new_symbol": "SWANCORP",
+   "evidence": "last SWANENERGY 2025-09-03, first SWANCORP 2025-09-04; correlation 0.992 over 229 days"
+  },
+  "TATAMOTORS": {
+   "new_symbol": "TMPV",
+   "evidence": "last TATAMOTORS 2025-10-23, first TMPV 2025-10-24 (the demerger's ex-date, priced from the move); correlation 0.996 over 263 days"
+  },
+  "SUNDARMHLD": {
+   "new_symbol": "TSFINV",
+   "evidence": "Sundaram Finance Holdings became TSF Investments (ISIN INE202Z01029), effective 2025-10-16; last SUNDARMHLD 2025-10-15; correlation 0.993 over 258 days"
+  },
+  "SEQUENT": {
+   "new_symbol": "VIYASH",
+   "evidence": "last SEQUENT 2026-01-22, first VIYASH 2026-01-23; correlation 0.985 over 325 days"
+  },
+  "HEG": {
+   "new_symbol": "HEGAM",
+   "evidence": "last HEG 2026-09-21, first HEGAM 2026-09-22; identical closes on every day both filed (see data/membership_history.json aliases)"
+  }
+ },
+ "corrections": [
+  {
+   "symbol": "SHRIRAMFIN",
+   "before": "2025-01-10",
+   "factor": 0.2,
+   "evidence": "1:5 split of Shriram Finance (face value 10 to 2) that NSE's corporate-action file never listed: the close fell 80.9% on 2025-01-10 while Yahoo's adjusted close moved -5.3%"
+  }
+ ],
+ "special_sessions": {
+  "2025-02-01": "Union Budget, a Saturday session",
+  "2026-02-01": "Union Budget, a Sunday session"
+ }
+}

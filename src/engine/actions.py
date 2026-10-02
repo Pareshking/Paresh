@@ -8,11 +8,13 @@ struck at the rebalance close, so a name can still move in or out before then.
 """
 from __future__ import annotations
 
+from collections import Counter
+
 from dataclasses import dataclass, field
 
 import pandas as pd
 
-from src.engine.backtester import _select_holdings
+from src.engine.backtester import _select_holdings, sector_slots
 from src.engine.exit_watch import qualified_ranks
 from src.engine.portfolio import apply_caps
 
@@ -33,7 +35,7 @@ def plan_rebalance(
     top_n: int = 20,
     buffer_n: int = 40,
     stock_cap: float = 0.05,
-    sector_cap: float = 0.30,
+    sector_cap: float = 0.40,
     spare: int = 4,
 ) -> Plan:
     """Sells, buys and holds if the rebalance were struck at today's close.
@@ -48,15 +50,20 @@ def plan_rebalance(
     full_ranked = pd.Series(range(len(q), 0, -1), index=q.index, dtype=float)
     ranked = set(rank_df["Symbol"])
     known = [s for s in holdings if s in ranked]
-    new_book = _select_holdings(full_ranked, known, top_n, buffer_n)
+    sector_map = (rank_df.drop_duplicates("Symbol").set_index("Symbol")["Industry"].to_dict()
+                  if "Industry" in rank_df.columns else {})
+    # The same hard industry limit the backtest's selection applies.
+    slots = sector_slots(top_n, stock_cap, sector_cap) if sector_map else None
+    new_book = _select_holdings(full_ranked, known, top_n, buffer_n,
+                                sector_map=sector_map or None, max_per_sector=slots)
     sells = [s for s in known if s not in new_book]
     buys = [s for s in new_book if s not in known]
     holds = [s for s in known if s in new_book]
     in_book = set(new_book)
-    nxt = [s for s in q.index if s not in in_book][:spare]
+    filled = Counter(sector_map.get(s, "Other") for s in new_book)
+    nxt = [s for s in q.index if s not in in_book
+           and (slots is None or filled[sector_map.get(s, "Other")] < slots)][:spare]
 
-    sector_map = (rank_df.drop_duplicates("Symbol").set_index("Symbol")["Industry"].to_dict()
-                  if "Industry" in rank_df.columns else {})
     weights = pd.Series(dtype=float)
     if new_book:
         equal = pd.Series(1.0 / len(new_book), index=new_book)

@@ -73,14 +73,9 @@ def test_breadth_by_index_matches_exact_tags():
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="needs node to parse the page scripts")
 def test_chart_pages_escape_names_and_still_parse(tmp_path, monkeypatch):
-    evil = "</b><img src=x onerror=alert(1)>"
     pages = [
         charts._build_rrg_html(charts._script_json([])),
     ]
-    got = []
-    monkeypatch.setattr(charts.st, "iframe", lambda h, **k: got.append(h))
-    charts.render_correlation_heatmap(pd.DataFrame(np.eye(2), index=["A", evil], columns=["A", evil]), ["A", evil], 2)
-    pages += got
     for i, page in enumerate(pages):
         assert "function esc(" in page
         js = tmp_path / f"p{i}.js"

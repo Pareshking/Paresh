@@ -64,12 +64,32 @@ TRACK_RECORD_CONFIG: dict[str, Any] = {
     "config_weights": [0.10, 0.30, 0.30, 0.20, 0.10],
     "cost_bps": 30.0,
     "buffer_n": 40,
+    # Position and industry caps (owner, 2026-10-02), HARD: no stock above 5%
+    # and no NSE industry above 40% of the book at any rebalance. Enforced at
+    # selection (at most 8 of 20 names per industry; the rest go to the
+    # next-ranked name) and never relaxed by the weight projection. Between
+    # rebalances the book is held (accrual buy_and_hold), so price moves can
+    # carry an industry past 40% until the next rebalance trims it.
+    # Industry labels are the NSE index file's, with TradingView mapped onto them
+    # for former members (loaders/former_members.industry_for) -- today's labels,
+    # not point-in-time ones; no classification history is committed.
+    "stock_cap": 0.05,
+    "sector_cap": 0.40,
+    "caps": "hard_at_rebalance",
+    "sector_labels": "nse_index_industry_tv_fallback",
     "benchmark": "^CRSLDX",
     # Not a run_backtest argument: it names the ACCOUNTING, so the fingerprint
     # changes with it. From 2026-09-25 the backtest holds each book between
     # fills (buy and hold) instead of re-weighting it to target every session;
     # months frozen before that stay as they are and read as a separate regime.
     "accrual": "buy_and_hold",
+    # The price basis, also not a run_backtest argument. From 2026-10-01 the 750's record
+    # is struck on Screener's closes, as the live ranking is, with NSE's closes as
+    # published (then Yahoo's) only where Screener has none (src/loaders/nse_prices.py).
+    # Not Yahoo's restated adjusted closes: a rebuilt month ranks on what was published,
+    # and a stock that has since merged away keeps its prices.
+    # scripts/update_track_record.py records the basis it actually used.
+    "prices": "screener_primary",
 }
 
 
@@ -232,7 +252,9 @@ def finalize_months(
         # Both are frozen once written; they are not equally strong evidence,
         # and the record should say which is which rather than leave it to be
         # inferred from a finalisation date.
-        origin = "recorded" if period == current_month - 1 else "backfill"
+        # A forced rewrite is a reconstruction by definition, whatever the month:
+        # nothing it writes was frozen as that month closed.
+        origin = "recorded" if (period == current_month - 1 and not force) else "backfill"
         # Which universe the month was scored against. A month whose rebalances
         # knew the real index membership is survivorship-free; one scored
         # against today's constituent list is not, and the difference is worth

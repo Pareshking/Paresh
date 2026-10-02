@@ -21,7 +21,7 @@ from html.parser import HTMLParser
 import pandas as pd
 import pytest
 
-from src.ui import theme
+from src.ui import screener_table, theme
 
 
 class _Markup(HTMLParser):
@@ -106,8 +106,8 @@ def _screener_row(**overrides) -> pd.DataFrame:
 @pytest.mark.parametrize("payload", PAYLOADS)
 @pytest.mark.parametrize("column", ["Symbol", "Industry", "Indices", "ATH Date"])
 def test_master_screener_escapes_third_party_cells(captured, column, payload):
-    theme.render_master_screener_table(_screener_row(**{column: payload}))
-    _assert_inert(captured["html"], payload)
+    html = screener_table.table_html(_screener_row(**{column: payload}), None, "Full Quant (35)")
+    _assert_inert(html, payload)
 
 
 @pytest.mark.parametrize("payload", PAYLOADS)
@@ -127,25 +127,23 @@ def test_saas_table_escapes_column_headers(captured, payload):
 
 def test_symbol_link_target_is_url_encoded(captured):
     """The href carries the symbol, so it must not be able to grow attributes."""
-    theme.render_master_screener_table(_screener_row(Symbol='A" onclick="alert(1)'))
-    html = captured["html"]
+    html = screener_table.table_html(_screener_row(Symbol='A" onclick="alert(1)'), None, "Full Quant (35)")
     assert "onclick" not in [a for a in _parsed(html).attrs]
     assert '<a href="?stock=A%22%20onclick%3D%22alert%281%29"' in html
 
 
 def test_ordinary_symbols_still_render_and_link(captured):
     """Escaping must be invisible to the alphanumeric tickers that exist today."""
-    theme.render_master_screener_table(_screener_row(Symbol="RELIANCE"))
-    html = captured["html"]
+    html = screener_table.table_html(_screener_row(Symbol="RELIANCE"), None, "Full Quant (35)")
     assert 'href="?stock=RELIANCE"' in html
     assert 'data-stock="RELIANCE"' in html
-    assert ">RELIANCE</a>" in html
+    assert ">RELIANCE</span>" in html
 
 
 def test_ampersand_industry_survives_as_text(captured):
     """An escaped "&" is still the right character once the browser parses it."""
-    theme.render_master_screener_table(_screener_row(Industry="Oil & Gas"))
-    assert "Oil &amp; Gas" in captured["html"]
+    html = screener_table.table_html(_screener_row(Industry="Oil & Gas"), None, "Full Quant (35)")
+    assert "Oil &amp; Gas" in html
 
 
 # ── Chart pages: JSON inside a <script> block ────────────────────────────────

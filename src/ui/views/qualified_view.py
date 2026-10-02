@@ -3,7 +3,6 @@ Qualified: the best-ranked stocks that pass both filters -- above their
 50-day EMA and within 20% of their 52-week high.
 """
 
-import html
 
 import numpy as np
 import pandas as pd
@@ -17,7 +16,6 @@ from src.ui.views.stock_view import _benchmark_returns, _price_day
 
 # Industries shown by name before the rest fold into "others".
 TOP_INDUSTRIES = 6
-MATRIX_SIZES = [8, 10, 12, 15]
 
 
 def _pct(v: float | None) -> str:
@@ -66,30 +64,9 @@ def industry_rows(df: pd.DataFrame) -> list[tuple[str, float, str, bool]]:
     return rows
 
 
-def heatmap_html(corr: pd.DataFrame, syms: list[str]) -> str:
-    """The matrix as a grid of cells: darker indigo = moves together more."""
-    syms = [s for s in syms if s in corr.index]
-    head = '<span></span>' + "".join(
-        f'<span class="hm-x">{html.escape(s)}</span>' for s in syms)
-    body = ""
-    for a in syms:
-        body += f'<span class="hm-y">{html.escape(a)}</span>'
-        for b in syms:
-            v = corr.at[a, b]
-            if pd.isna(v):
-                body += '<span class="hm-c">—</span>'
-                continue
-            alpha = max(0.0, min(1.0, float(v))) * 0.85
-            ink = "#FFFFFF" if alpha > 0.45 else "#0E1726"
-            body += (f'<span class="hm-c" style="background:rgba(79,70,229,{alpha:.2f});color:{ink}" '
-                     f'title="{html.escape(a)} × {html.escape(b)}: {float(v):.2f}">{float(v):.2f}</span>')
-    return (f'<div class="hm-wrap"><div class="hm" style="grid-template-columns:92px repeat({len(syms)},minmax(0,1fr))">'
-            f'{head}{body}</div></div>')
-
-
 def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, *,
                           embedded: bool = False) -> None:
-    """The qualified list: readings, the table, where they come from, how they move.
+    """The qualified list: readings, the table, where they come from.
 
     `embedded` draws it as the Actions page's "Buy candidates" section: no page
     header or footer, the picker and export in a bar of their own.
@@ -115,9 +92,9 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, *,
         )
     view = passing.head(top_n).copy()
     with actions:
-        st.selectbox("Show", [10, 15, 20, 25, 30], index=4, key="qual_top_n",
-                     format_func=lambda n: f"Top {n}", label_visibility="collapsed",
-                     width=120)
+        st.segmented_control("Show", [10, 15, 20, 25, 30], default=30, required=True,
+                             key="qual_top_n", format_func=lambda n: f"Top {n}",
+                             label_visibility="collapsed")
         st.download_button("Export CSV", view.to_csv(index=False).encode(),
                            f"qualified_{ist_now():%Y%m%d}.csv", "text/csv",
                            key="dl_qual_csv", icon=":material/download:",
@@ -129,7 +106,7 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, *,
         return
 
     bench = _benchmark_returns(_price_day())
-    corr, corr_mean = correlation(adj_close, view["Symbol"].tolist())
+    _corr, corr_mean = correlation(adj_close, view["Symbol"].tolist())
     avg3 = pd.to_numeric(view.get("3M Return"), errors="coerce").mean()
     avg6 = pd.to_numeric(view.get("6M Return"), errors="coerce").mean()
     kit.readings([
@@ -146,24 +123,13 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, *,
     with kit.card("The list", "qual_list", "Same table as the Screener · click a row to open the stock"):
         render_screener_table(view, adj_close, "Core")
 
-    left, right = st.columns(2, gap="medium")
-    with left, kit.card("Where they come from", "qual_ind", "by industry"):
+    with kit.card("Where they come from", "qual_ind", "by industry"):
         rows = industry_rows(view)
         st.html(kit.bar_list(rows, scale=max(r[1] for r in rows)))
         top2 = sum(r[1] for r in rows[:2]) / len(view)
         if top2 >= 0.4:
             kit.caption(f"{rows[0][0]} and {rows[1][0]} hold {top2:.0%} of the list; "
                         "worth knowing before sizing a portfolio.")
-    with right, kit.card("How they move together", "qual_corr", "90-day correlation"):
-        if corr is None:
-            kit.caption("Not enough price history to compare these stocks.")
-        else:
-            n = st.segmented_control("Stocks shown", MATRIX_SIZES, default=10,
-                                     key="qual_composite_corr_matrix_size",
-                                     format_func=lambda k: f"Top {k}") or 10
-            st.html(heatmap_html(corr, view["Symbol"].tolist()[: int(n)]))
-            kit.caption("Correlation of daily returns over 90 sessions. 1.00 = move "
-                        "exactly together; near 0 = unrelated. Darker = closer.")
 
     if embedded:
         return

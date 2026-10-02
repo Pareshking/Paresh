@@ -1,4 +1,4 @@
-"""The TradingView chart, and the fallback that keeps a failure from going blank.
+"""The component-based TradingView chart (kept for reverting; not used by the app).
 
 Plotly's drag selects a zoom box, so on a phone reading the chart rearranged it.
 Lightweight Charts pans on drag and zooms on pinch, which is what a price chart
@@ -113,37 +113,6 @@ def test_a_component_failure_raises_so_the_caller_can_fall_back(monkeypatch):
     monkeypatch.setattr(slc, "renderLightweightCharts", _boom)
     with pytest.raises(ChartUnavailable):
         render_lightweight_chart("TEST", CLOSE, open_=OPEN, high=HIGH, low=LOW)
-
-
-def test_render_stock_chart_falls_back_to_plotly(monkeypatch):
-    """The whole point of the guard: a broken component must not blank the page."""
-    from src.ui import charts
-
-    monkeypatch.setattr(
-        charts, "render_lightweight_chart", None, raising=False
-    )
-
-    import src.ui.lightweight_chart as lw
-    monkeypatch.setattr(
-        lw, "render_lightweight_chart",
-        lambda *a, **k: (_ for _ in ()).throw(ChartUnavailable("no frontend")),
-    )
-
-    used = {}
-    monkeypatch.setattr(charts, "render_candlestick_drilldown",
-                        lambda *a, **k: used.setdefault("plotly", True))
-
-    class _C:
-        def __enter__(self): return self
-        def __exit__(self, *a): return False
-        def segmented_control(self, *a, **k): return "6M"
-        def pills(self, *a, **k): return ["20 EMA"]
-    monkeypatch.setattr(charts.st, "columns", lambda *a, **k: [_C(), _C()])
-    monkeypatch.setattr(charts.st, "warning", lambda *a, **k: None)
-
-    rank_df = pd.DataFrame([{"Symbol": "TEST", "Rank": 1}])
-    charts.render_stock_chart("TEST", rank_df, CLOSE.to_frame("TEST"))
-    assert used.get("plotly") is True
 
 
 # ── The close-only source ────────────────────────────────────────────────────

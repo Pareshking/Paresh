@@ -235,8 +235,7 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
 
     head = kit.page_head(
         "Actions",
-        "What the strategy would do at the next rebalance if prices stayed where they are "
-        f"today. Checked at the {_day(check)} close; orders fill on {_day(fill)}." + timing_note,
+        f"Next rebalance if prices hold. Checked {_day(check)} close, fills {_day(fill)}." + timing_note,
         actions=True,
     )
     with head:
@@ -268,10 +267,11 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                 "history to form one.")
     else:
         a = assess(rank_df, symbols, rules)
-        # The caps the model book's own run uses (run_backtest's defaults, which
-        # record_run does not override), so the weights here are its weights.
+        # The caps the model book's own run uses, read from the pinned record
+        # config, so the weights here are its weights.
         plan = plan_rebalance(rank_df, symbols, top_n=top_n, buffer_n=rules.buffer_n,
-                              stock_cap=0.05, sector_cap=0.30)
+                              stock_cap=float(cfg["stock_cap"]),
+                              sector_cap=float(cfg["sector_cap"]))
         n_unknown = int((a["status"] == UNKNOWN).sum())
         n_watch = int(a[a["Symbol"].isin(plan.holds)]["status"].eq(WATCH).sum())
         kit.readings([
@@ -301,7 +301,7 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                       "does not know how many shares you hold, so sell each in full yourself."),
             )
 
-        with kit.card(f"Sell {len(plan.sells)}", "ac_sell", "each reason is the rule that sells it"):
+        with kit.card(f"Sell {len(plan.sells)}", "ac_sell"):
             if plan.sells:
                 st.html(sells_html(a, plan.sells, since, entries))
                 kit.caption("Sell each in full. Not in the Kite basket: the app does not know how "
@@ -311,8 +311,7 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
 
         qrank = qualified_ranks(rank_df)
         with kit.card(f"Buy {len(plan.buys)}", "ac_buy",
-                      f"the strategy's own selection: keep holdings inside the top {rules.buffer_n}, "
-                      "fill from the top of the qualified list"):
+                      f"holdings stay inside the top {rules.buffer_n}"):
             if plan.buys:
                 st.html(buys_html(rank_df, plan.buys, qrank))
                 chips = "".join(

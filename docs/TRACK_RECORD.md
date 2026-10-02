@@ -41,6 +41,35 @@ It is a diagnostic, not a correction: prices get revised and universes change.
 
 ---
 
+## Portfolio performance relationship
+
+The pinned replay (`record_run()`) is the source for the current model book and
+live month-to-date return. Portfolio consumes that book and presents the same
+account-level performance series: frozen monthly returns from this ledger,
+plus the pinned replay's live MTD return until the month is frozen. The benchmark
+uses the corresponding frozen/live benchmark series.
+
+Portfolio equity must be the starting capital compounded by that same monthly
+series. The displayed since-inception strategy and benchmark returns must
+therefore reconcile to Track Record for the same system and as-of date. Internal
+returns are decimal fractions; only the UI converts them to percentages.
+
+Do not compare account-level return with the current holdings table's
+unrealised P&L as if they were the same measure. Current-book unrealised P&L
+excludes realised gains/losses on sold positions; total account performance
+includes the full sequence of monthly portfolio returns and modeled costs.
+Day P&L is a third measure, calculated from current positions between marks.
+
+The current month may be **live MTD**, or **closed but awaiting freeze** after
+the calendar month changes. It remains visible until the scheduled updater
+freezes it. Existing frozen months remain immutable during normal runs; drift
+is diagnostic and a history rebuild must be deliberate and recorded.
+
+See [`track_record_portfolio_architecture.md`](track_record_portfolio_architecture.md)
+for exact invariants and required cross-view reconciliation tests.
+
+---
+
 ## 3. Entry shape
 
 ```json
@@ -66,8 +95,30 @@ survivorship bias and flatters results by an unknown amount. Assigned
 automatically: the month that just closed is `recorded`, anything older in the
 same write is `backfill`. No flag to remember.
 
-The Jan–Aug 2026 block was backfilled on 2026-09-03; only August is recorded.
-Treat the backfilled block as the strategy's *shape*, not its record.
+The Jan–Aug 2026 block was first backfilled on 2026-09-03 (only August recorded),
+on today's index list and under the earlier accrual convention. **It was rebuilt on
+2026-10-01** with `--force`, because two things had changed underneath it:
+
+1. the pinned config gained `accrual: buy_and_hold` (fingerprint `5b356a6ba93b` ->
+   `2aa2cb53f4d1`), so the old months and any new month would have been two series;
+2. point-in-time membership now reaches back to 2025-12-31 (built from NSE's own
+   notices, `docs/MEMBERSHIP_FROM_NOTICES.md`) and the stocks the index has since
+   dropped have prices (`data/former_member_prices.parquet`), so every month is
+   scored on the index as it stood (`universe: point_in_time`, 8 of 8 rebalances).
+
+A forced rewrite is a reconstruction, so every rebuilt month is `backfill`,
+August included. The ledger's `rebuilds` log keeps when, which months, the config
+replaced and each month's previous value. Residual limits: four stocks that merged
+away have no prices (`former_members.unavailable()`), and the prices are today's
+vintage. Treat the block as a careful reconstruction, not as a record frozen as
+each month closed.
+
+Two further rebuilds on 2026-10-01 moved the price basis to NSE as published and
+then to Screener-primary (`docs/NSE_PRICE_BASIS.md`). **The fourth, for the owner's
+decision of 2026-10-02, made the 5% stock and 40% industry caps hard** (config
+`4cc739e503d7`): previously the replay passed no sector map and no industry cap
+bound at all. Jan–Sep moved by −1.77 to +1.96 pp; cumulative +46.57% → +44.40%.
+Full record: `docs/CANONICAL_RECONCILIATION_2026-10-02.md`.
 
 ---
 
@@ -111,7 +162,16 @@ Backtest tab's defaults:
 top_n 20 · monthly rebalance · 50 EMA · 80% of 52W high
 equal weight · 30 bps cost · 2× persistence buffer (top 40)
 weights 10/30/30/20/10 · benchmark ^CRSLDX
+hard caps: 5% per stock · 40% per NSE industry (≤ 8 of 20 names), never relaxed
 ```
+
+The caps are enforced at **selection** (`backtester._select_holdings` with
+`sector_slots`): an over-full industry keeps its best-ranked names and the free slot
+goes to the next-ranked name in an industry with room. The weight projection
+(`portfolio.apply_caps`) never raises a cap; anything it cannot place is cash.
+Between rebalances the book is held, so prices can carry an industry past 40% until
+the next rebalance. Industry labels are the NSE index file's (TradingView mapped
+only for former members) — today's labels, not point-in-time.
 
 It is pinned rather than read from the UI because a track record must come from
 one fixed setup or its months are not comparable. **Changing anything in this
@@ -203,3 +263,14 @@ are different operational states.
 
 Nano Cap and Combined have no backfilled months at all: their first book is
 signalled at the 30 Sep 2026 close.
+
+### Parity gate
+
+`.github/workflows/canonical_parity.yml` runs `scripts/canonical_parity_check.py` on
+every push/PR to `main` and after each daily sync and monthly freeze. It fails when
+any frozen month stops reproducing, when the ledger was struck under a config other
+than today's, when a rebalance breaches the hard caps, when Portfolio and Actions
+would show different books, when Actions' planner disagrees with the executed
+rebalance, or when the research defaults stop reproducing the account. A failure
+after a scheduled sync opens an issue. A failing `ledger_parity` after a vendor
+restatement is expected: the stored value stands until the owner decides to rebuild.

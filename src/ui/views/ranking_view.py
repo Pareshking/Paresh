@@ -22,13 +22,13 @@ from src.ui.components import (
     to_bool_mask,
 )
 from src.ui.views.stock_view import render_stock_view
+from src.engine.breadth import new_extreme_counts
 from src.ui.screener_table import INDEX_NAMES, column_count, render_screener_table
-from src.ui.theme import render_master_screener_table, screener_column_count
 
 # Stored in session state by `rank_density_mode`, so these strings are an
 # on-disk contract, not labels -- see the format_func in the density control.
-# Executive and Core draw the design's table (src/ui/screener_table.py); Full
-# Quant keeps the wide research table.
+# All three draw the one table in src/ui/screener_table.py; they differ only
+# in which columns they show.
 _DENSITY_OPTIONS = ["Executive (11)", "Core (17)", "Full Quant (35)"]
 
 
@@ -262,17 +262,6 @@ def render_ranking_view(
     search_options = stock_opts + idx_opts + ind_opts + sec_opts + tv_ind_opts
 
     # ── Page header ──────────────────────────────────────────────────────────
-    # The ranking's own month (for "Entered the top 50 in ..."), not the wall
-    # clock: on 1 Oct a table ranked on 30 Sep closes is September's ranking.
-    from src.core import startup_metrics as _metrics
-
-    try:
-        price_day = pd.Timestamp(
-            str(_metrics.snapshot().get("facts", {}).get("price_as_of") or "")[:10]
-        )
-        month_label = price_day.strftime("%B %Y")
-    except (ValueError, TypeError):
-        month_label = ist_now().strftime("%B %Y")
 
     n_total = len(rank_df)
     # One row: the title, today's signal chips, Export CSV. The count is the
@@ -295,6 +284,7 @@ def render_ranking_view(
     preset_counts = {
         "All Universe": n_total,
         "Top 50 Qualified": int(((rank_df["Rank"] <= 50) & passes).sum()),
+        "Top 50 Not Qualified": int(((rank_df["Rank"] <= 50) & ~passes).sum()),
         "Passed Filters": int(passes.sum()),
         "Momentum Movers": int((rank_df["Rank Δ 1M"].abs() >= 15).sum())
         if "Rank Δ 1M" in rank_df.columns else 0,
@@ -302,6 +292,7 @@ def render_ranking_view(
     }
     preset_names = {
         "All Universe": "All", "Top 50 Qualified": "Top 50 qualified",
+        "Top 50 Not Qualified": "Top 50 not qualified",
         "Passed Filters": "Pass both filters", "Momentum Movers": "Big movers",
         "High Volume": "High volume",
     }
@@ -324,7 +315,7 @@ def render_ranking_view(
             key="rank_search_predictive",
             label_visibility="collapsed",
             on_change=_open_searched_stock,
-            width=340,
+            width=260,
         )
         filt = st.pills(
             "Presets",
@@ -361,12 +352,18 @@ def render_ranking_view(
             _SORT_OPTIONS = [
                 "Rank", "3M Return", "6M Return", "3M Sharpe", "% High", "Market Cap (Cr)",
             ]
-            sort_by = st.selectbox(
+            # A short fixed list, so a segmented control rather than a dropdown.
+            # Still resolved through the mirror: the key is discarded when the
+            # reader visits another page, and `default` is what brings it back.
+            # required=True means a click on the chosen one cannot clear it.
+            sort_by = st.segmented_control(
                 "Sort by",
                 _SORT_OPTIONS,
-                index=resolve("rank_sort_by_idx", 0, lo=0, hi=len(_SORT_OPTIONS) - 1),
+                default=_SORT_OPTIONS[resolve("rank_sort_by_idx", 0, lo=0,
+                                              hi=len(_SORT_OPTIONS) - 1)],
+                required=True,
                 key="rank_sort_by",
-            )
+            ) or _SORT_OPTIONS[0]
             remember("rank_sort_by_idx", _SORT_OPTIONS.index(sort_by))
 
             # The option VALUES are fixed strings: they are what session state
@@ -374,10 +371,7 @@ def render_ranking_view(
             # next run is a crash, not a relabel. Only the TEXT is computed,
             # from the table that will actually be drawn.
             def _density_label(option: str) -> str:
-                if option.startswith("Full"):
-                    n = screener_column_count(option, rank_df.columns)
-                else:
-                    n = column_count(option)
+                n = column_count(option, rank_df.columns)
                 return f"{option.split(' (')[0]} ({n})"
 
             density_mode = st.segmented_control(
@@ -394,6 +388,11 @@ def render_ranking_view(
         density_mode = _DENSITY_OPTIONS[1]
 
     view = rank_df.copy()
+    # Sessions at a new 52-week high in the last month and three: a stock that
+    # keeps making them is strong.
+    _nh = _new_high_counts(f"{adj_close.index[-1]}_{adj_close.shape}", adj_close)
+    view["New Highs 1M"] = view["Symbol"].map(_nh["1M"]).fillna(0).astype(int)
+    view["New Highs 3M"] = view["Symbol"].map(_nh["3M"]).fillna(0).astype(int)
     if selected_search and str(selected_search).strip():
         s_val = str(selected_search).strip()
         if s_val.startswith("[INDUSTRY] "):
@@ -435,6 +434,12 @@ def render_ranking_view(
             & to_bool_mask(view.get("Above 50 EMA"))
             & to_bool_mask(view.get("Near 52W High"))
         ]
+    elif filt == "Top 50 Not Qualified":
+        view = view[
+            (view["Rank"] <= 50)
+            & ~(to_bool_mask(view.get("Above 50 EMA"))
+                & to_bool_mask(view.get("Near 52W High")))
+        ]
     elif filt == "Passed Filters":
         view = view[
             to_bool_mask(view.get("Above 50 EMA"))
@@ -463,11 +468,7 @@ def render_ranking_view(
     if sort_by in view.columns and not (filt == "Momentum Movers" and sort_by == "Rank"):
         view = view.sort_values(sort_by, ascending=asc)
 
-    if str(density_mode).startswith("Full"):
-        # The research view: every window and every data-health column.
-        render_master_screener_table(view, prices_df=adj_close, density=density_mode)
-    else:
-        render_screener_table(view, adj_close, density_mode)
+    render_screener_table(view, adj_close, density_mode)
 
     # Export EVERY column the ranking carries, not just the ones on screen.
     # DISPLAY_COLS is a screen-layout decision -- it drops Score, the raw
@@ -490,7 +491,7 @@ def render_ranking_view(
         width="stretch",
     )
 
-    render_top50_changes(rank_df, month_label.split(" ")[0])
+    render_top50_changes(rank_df)
     if footnote is not None:
         footnote()
 
@@ -511,6 +512,11 @@ def _reset_screener_filters() -> None:
     remember("rank_sort_by_idx", 0)
 
 
+@st.cache_data(show_spinner=False, ttl=3600)
+def _new_high_counts(_key: str, _prices: pd.DataFrame) -> pd.DataFrame:
+    return new_extreme_counts(_prices)["high"]
+
+
 def top50_changes(rank_df: pd.DataFrame):
     """Stocks that entered and left the top 50 since last month, by rank."""
     if "Rank (-1M)" not in rank_df.columns:
@@ -522,23 +528,37 @@ def top50_changes(rank_df: pd.DataFrame):
     return entered, left
 
 
-def render_top50_changes(rank_df: pd.DataFrame, month: str) -> None:
+def biggest_jumps(rank_df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
+    """The n stocks that climbed most places since last month-end."""
+    if "Rank (-1M)" not in rank_df.columns:
+        return rank_df.iloc[0:0]
+    prev = pd.to_numeric(rank_df["Rank (-1M)"], errors="coerce")
+    now = pd.to_numeric(rank_df["Rank"], errors="coerce")
+    gain = (prev - now)
+    out = rank_df.assign(Places_gained=gain, Rank_last_month=prev)[gain > 0]
+    return out.sort_values("Places_gained", ascending=False).head(n)
+
+
+def render_top50_changes(rank_df: pd.DataFrame) -> None:
     entered, left = top50_changes(rank_df)
-    if entered is None or (entered.empty and left.empty):
+    if entered is None:
         return
+    jumps = biggest_jumps(rank_df)
 
-    def chips(df: pd.DataFrame) -> str:
-        return "".join(
-            f'<a class="t50-chip" href="{stock_href(r.Symbol)}" target="_self">'
-            f'{html.escape(str(r.Symbol))} <span>#{int(r.Rank)}</span></a>'
-            for r in df.itertuples()
-        ) or '<span class="t50-none">None</span>'
+    def chip(sym, tail: str) -> str:
+        return (f'<a class="t50-chip" href="{stock_href(sym)}" target="_self">'
+                f'{html.escape(str(sym))} <span>{tail}</span></a>')
 
-    st.html(
-        '<section class="t50" aria-label="Top 50 this month">'
-        f'<div class="t50-card"><div class="t50-h"><h2>Entered the top 50 in {html.escape(month)}</h2>'
-        f'<span class="up">{len(entered)} stocks</span></div><div class="t50-chips">{chips(entered)}</div></div>'
-        f'<div class="t50-card"><div class="t50-h"><h2>Left the top 50</h2>'
-        f'<span class="down">{len(left)} stocks · now ranked</span></div>'
-        f'<div class="t50-chips">{chips(left)}</div></div></section>'
-    )
+    def block(items: list[str]) -> str:
+        return ('<div class="t50-chips">' + ("".join(items) or '<span class="t50-none">None</span>')
+                + "</div>")
+
+    tab_jumps, tab_in, tab_out = st.tabs(["Biggest jumps", "Entered top 50", "Left top 50"])
+    with tab_jumps:
+        st.html(block([chip(r.Symbol, f"+{int(r.Places_gained)} · #{int(r.Rank_last_month)} → #{int(r.Rank)}")
+                       for r in jumps.itertuples()]))
+    with tab_in:
+        st.html(block([chip(r.Symbol, f"#{int(r.Rank)}") for r in entered.itertuples()]))
+    with tab_out:
+        st.html(block([chip(r.Symbol, f"now #{int(r.Rank)}") for r in left.itertuples()]))
+    st.caption("Rank change since the last month-end.")

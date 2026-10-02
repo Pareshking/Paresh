@@ -20,10 +20,34 @@ from src.engine.parameter_sweep import (
 )
 from src.engine.pipeline import price_fingerprint
 from src.loaders.price_loader import fetch_benchmark_history
+from src.loaders import former_members, nse_prices
 from src.loaders.ranking_store import actions_digest
 from src.ui import page_kit as kit
+from src.ui.canonical_book import current_book
+from src.engine.extra_universe import SYSTEM_750
+from src.engine.systems import inception, ledger_path
+from src.engine.track_record import load_ledger, summary_stats
 from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.theme import render_saas_table
+
+
+def _canonical_account_stats(ledger: dict, live_meta: dict | None) -> dict:
+    """Summarise the canonical account using Track Record's frozen months and live mark."""
+    meta = live_meta or {}
+    period = meta.get("mtd_period")
+    mtd = None
+    if period:
+        mtd = {
+            "period": pd.Period(period, freq="M"),
+            "strategy": meta.get("strategy_mtd"),
+            "benchmark": meta.get("benchmark_mtd"),
+            "as_of": meta.get("as_of"),
+        }
+    return summary_stats(ledger, mtd=mtd)
+
+
+def _pct_or_dash(value) -> str:
+    return "—" if value is None or pd.isna(value) else f"{float(value):+.1%}"
 
 
 @st.fragment
@@ -48,8 +72,7 @@ def _backtest_body(
     """Fragment: reruns only when backtest-tab widgets change, not on every global rerun."""
     actions = kit.page_head(
         "Backtest",
-        f"The strategy replayed on the last {months} completed month{'s' if months != 1 else ''}, "
-        "with the settings below",
+        f"Last {months} completed month{'s' if months != 1 else ''}",
         actions=True,
     )
     with actions, st.popover("Change settings", icon=":material/tune:"):
@@ -103,7 +126,33 @@ def _backtest_body(
     # old key (last date + shape) missed an intraday refresh, a vendor
     # restatement and a newly logged split alike, and served the cached answer
     # for up to an hour.
-    _events = load_events()
+    # Score on the index as it stood: the stocks it once held and has since
+    # dropped need prices too, or the pool is only the survivors.
+    # Preserve the original app price frame for the canonical live-book adapter.
+    # The exploratory backtest may replace adj_close with an alternate price basis below.
+    canonical_adj_close = adj_close
+    membership = membership if membership is not None else load_history_or_none()
+    # Prices as NSE published them (loaders/nse_prices.py): a past month ranks
+    # on what was known then, not on a vendor's later restatement. Where the
+    # file does not reach back far enough, the long Yahoo history stands.
+    _nse, _nse_info = nse_prices.basis_frame(adj_close, membership, months=months)
+    if _nse is not None:
+        adj_close, _events = _nse, []
+        # NSE's file runs to the latest session, often a day ahead of the long Yahoo history
+        # (on the 1st its first session of the month is already in). Months are counted back
+        # from the frame's end, so a month that has just closed needs one more in the window.
+        if history_start is not None:
+            months = max(months, int((pd.Period(adj_close.index[-1], freq="M")
+                                      - pd.Period(history_start, freq="M")).n))
+        kit.caption(
+            "Prices: Personal closes, NSE only where Personal data is unavailable; no dividends."
+            if _nse_info.get("basis") == "screener_primary" else
+            "Prices: NSE closes, adjusted for splits, bonuses and demergers; no dividends."
+        )
+    else:
+        adj_close = former_members.with_former_members(adj_close, membership)
+        _events = load_events()
+        kit.caption("Prices: Yahoo adjusted closes (restated for dividends).")
     ph = f"{price_fingerprint(adj_close)}_{actions_digest(_events)}"
     if liquidity_floor_cr:
         kit.caption(f"Liquidity floor on: a stock is bought only while its 20-day average "
@@ -119,6 +168,10 @@ def _backtest_body(
         if "Industry" in rank_df.columns
         else {}
     )
+    if sec_map:
+        # The sector cap needs an industry for every name it can hold, and the
+        # index files only label the current members.
+        sec_map.update(former_members.industry_for([c for c in adj_close.columns if c not in sec_map]))
 
     with st.spinner("Running walk-forward backtest with friction & turnover modeling…"):
         bt_res = run_backtest(
@@ -134,7 +187,7 @@ def _backtest_body(
             sector_map=sec_map,
             cost_bps=cost_drag_bps,
             buffer_n=int(bt_n * buffer_mult),
-            _membership=membership if membership is not None else load_history_or_none(),
+            _membership=membership,
             backtest_months=months,
             stateful_history=True,
             history_start=history_start,
@@ -165,9 +218,8 @@ def _backtest_body(
         _ranked_on = str(_m.snapshot().get("facts", {}).get("price_source") or "")
         if _ranked_on and _ranked_on != "yahoo":
             st.caption(
-                f"Backtested on the long price history. The live screener ranks "
-                f"on {_display(_ranked_on)}, which does not yet reach far enough "
-                f"back for a {months}-month study."
+                f"Long price history used: {_display(_ranked_on)} does not yet "
+                f"reach far enough back for {months} months."
             )
     except Exception:
         pass
@@ -198,6 +250,15 @@ def _backtest_body(
     # The Weighting Scheme control is inert whenever the stock cap admits only
     # one fully-invested book. The backtester reports it; nothing displayed it,
     # so the selector stayed lit while making no difference to the simulation.
+    _cash = float(stats.get("cap_cash_max", 0.0) or 0.0)
+    if _cash > 1e-6:
+        kit.note(
+            f"The caps left up to {_cash:.1%} of the book in cash.",
+            "Stock and industry caps are hard limits and are never raised: weight "
+            "these settings cannot place in a qualifying name is held as cash at 0%. "
+            "Hold more names, or loosen the stock cap in Configuration → Portfolio risk.",
+        )
+
     if stats.get("scheme_neutralised"):
         kit.note(
             f"The {bt_weight.lower()} weighting made no difference to this run.",
@@ -275,8 +336,8 @@ def _backtest_body(
 
     eq = bt_res["equity_curve"]
     bm = bt_res["benchmark"].reindex(eq.index).ffill() if bt_res.get("benchmark") is not None else None
-    with kit.card("Growth of ₹100", "bt_growth", "indigo = strategy · grey = Nifty 500 · daily"):
-        kit.growth_chart([f"{d:%d %b}" for d in eq.index], eq.tolist(),
+    with kit.card("Growth of ₹100", "bt_growth", "daily"):
+        kit.growth_chart(eq.index, eq.tolist(),
                          None if bm is None else bm.tolist(), key="bt")
 
     view = st.segmented_control(
@@ -299,9 +360,54 @@ def _backtest_body(
     # this one, so by the time anyone reads this it has already executed --
     # showing the pre-rebalance book here would be showing last month's
     # portfolio under the heading "current".
-    live_book = bt_res.get("live_book", pd.DataFrame())
-    changes = bt_res.get("month_changes", pd.DataFrame())
-    lmeta = bt_res.get("live_meta", {}) or {}
+    # Current holdings and the current rebalance are not an exploratory
+    # backtest result. They must be the exact pinned Track Record replay that
+    # Actions and Portfolio consume, regardless of the controls selected above.
+    # Keep the configurable run for historical performance/trades only.
+    canonical_result: dict = {}
+    try:
+        live_book, canonical_result = current_book(
+            canonical_adj_close, benchmark_close, SYSTEM_750
+        )
+    except (ValueError, KeyError) as exc:
+        st.error(f"Canonical model book is unavailable: {exc}")
+        live_book = pd.DataFrame()
+    changes = canonical_result.get("month_changes", pd.DataFrame())
+    lmeta = canonical_result.get("live_meta", {}) or {}
+
+    # Account performance is not the configurable research simulation above.
+    # Use the exact same frozen ledger and current live mark as Track Record.
+    try:
+        account_ledger = load_ledger(ledger_path(SYSTEM_750), inception(SYSTEM_750))
+        account_stats = _canonical_account_stats(account_ledger, lmeta)
+        with kit.card(
+            "Canonical account performance",
+            "bt_canonical_account",
+            "Same January 2026-onward recorded account as Track Record and Portfolio; "
+            "closed months are frozen and the latest month is a live mark.",
+        ):
+            kit.readings([
+                kit.Reading(
+                    "Since-inception strategy",
+                    _pct_or_dash(account_stats.get("total_return")),
+                    "canonical account return, not a configurable backtest",
+                    "up" if account_stats.get("total_return", 0) >= 0 else "down",
+                ),
+                kit.Reading(
+                    "Nifty 500",
+                    _pct_or_dash(account_stats.get("bench_return")),
+                    "same dates and compounding basis",
+                    "up" if account_stats.get("bench_return", 0) >= 0 else "down",
+                ),
+                kit.Reading(
+                    "Alpha",
+                    _pct_or_dash(account_stats.get("alpha")),
+                    "strategy return minus benchmark return",
+                    "up" if account_stats.get("alpha", 0) >= 0 else "down",
+                ),
+            ], "Canonical account")
+    except (ValueError, KeyError, TypeError) as exc:
+        st.error(f"Canonical account performance is unavailable: {exc}")
 
     if view in ("Current book", "This month's changes"):
         _as_of = lmeta.get("as_of")
@@ -309,37 +415,22 @@ def _backtest_body(
         _fill = lmeta.get("fill_date")
         with kit.card(view, "bt_live"):
             kit.caption(
-                "The portfolio as it stands"
-                + (f" on {_as_of:%d %b %Y}" if _as_of is not None else "")
-                + (
-                    f", after the rebalance signalled at the {_sig:%d %b %Y} close "
-                    f"and filled on {_fill:%d %b %Y}"
-                    if _fill is not None
-                    else ""
-                )
-                + ". Marked at the latest close — these figures sit outside the "
-                "completed-month window the performance tables below report on."
+                "The canonical book, shared with Actions and Portfolio"
+                + (f", marked {_as_of:%d %b %Y}" if _as_of is not None else "")
+                + ". Historical performance, trade history and parameter sweeps below use "
+                "the Backtest settings and may describe a different strategy."
             )
 
             if lmeta.get("rebalanced"):
                 n_b = lmeta.get("n_bought", 0)
                 n_s = lmeta.get("n_sold", 0)
                 n_h = lmeta.get("n_held", 0)
-                if n_b == 0 and n_s == 0:
-                    kit.caption(
-                        f"No change this month. The rebalance ran on {_fill:%d %b %Y} "
-                        f"and every one of the {n_h} holdings stayed inside the buffer."
-                    )
-                else:
-                    kit.caption(
-                        f"Rebalanced {_fill:%d %b %Y}: {n_s} sold · {n_b} bought · "
-                        f"{n_h} held. This month's changes gives the reason for each."
-                    )
-            else:
                 kit.caption(
-                    "No rebalance has run since the last reported month. The next "
-                    "signal is struck at the close of this month's final session."
+                    f"{_fill:%d %b} rebalance: {n_s} sold · {n_b} bought · {n_h} held"
+                    + (" · nothing changed" if n_b == 0 and n_s == 0 else "")
                 )
+            else:
+                kit.caption("No rebalance yet this month; the next signal is at the month's last close.")
 
             live_sub = "holdings" if view == "Current book" else "changes"
 
@@ -356,6 +447,11 @@ def _backtest_body(
                     st.info("No open positions.")
                 else:
                     lb = _fmt_dates(live_book)
+                    _order = ["Symbol", "Price Now", "Return %", "MTD %", "Weight %", "Entry Date",
+                              "Entry Price", "Holding (Days)", "Rank at Entry",
+                              "Rank at Rebalance", "Industry"]
+                    lb = lb[[c for c in _order if c in lb.columns]
+                            + [c for c in lb.columns if c not in _order]]
                     n_up = int((live_book["Return %"] > 0).sum())
                     n_dn = int((live_book["Return %"] < 0).sum())
                     avg_r = float(live_book["Return %"].mean(skipna=True) * 100)
@@ -416,6 +512,27 @@ def _backtest_body(
                         "realised round trip; on a BOUGHT or HELD row it is "
                         "unrealised, marked at the latest close."
                     )
+                    _not_in = (changes[changes["Reason"].astype(str).str.startswith("Not in the index")]
+                               if "Reason" in changes.columns else changes.iloc[0:0])
+                    if not _not_in.empty:
+                        _mem = membership if membership is not None else load_history_or_none()
+                        _since = ((_mem or {}).get("baseline") or {}).get("date")
+                        _entered = pd.to_datetime(_not_in["Entry Date"], errors="coerce")
+                        _early = (_not_in[_entered < pd.Timestamp(_since)]
+                                  if _since else _not_in.iloc[0:0])
+                        kit.note(
+                            f"{len(_not_in)} sold "
+                            f"{'name was' if len(_not_in) == 1 else 'names were'} not in the "
+                            f"index on the {_sig:%d %b %Y} signal date: "
+                            f"{', '.join(_not_in['Symbol'].astype(str))}.",
+                            (f"{', '.join(_early['Symbol'].astype(str))} entered the book before "
+                             f"the index record begins ({_since}), when the backtest scored on "
+                             "today's constituent list, so they were picked with hindsight. "
+                             "This is the first rebalance scored on the index as it stood, and "
+                             "it sells them."
+                             if not _early.empty else
+                             "They have left the index list, so the rules sell them."),
+                        )
                     render_saas_table(ch)
                     st.download_button(
                         "Export changes CSV",
@@ -529,7 +646,7 @@ def _backtest_body(
 
                     tr_filter = tf2.pills(
                         "Filter Outcome",
-                        ["All", "Winners", "Losers", "Still open"],
+                        ["All", "Winners", "Losers", "Open"],
                         default="All",
                         key="bt_ct_outcome_filter",
                     )
@@ -541,7 +658,7 @@ def _backtest_body(
                         ct_df = ct_df[ct_df["Return %"] > 0]
                     elif tr_filter == "Losers":
                         ct_df = ct_df[ct_df["Return %"] < 0]
-                    elif tr_filter == "Still open":
+                    elif tr_filter == "Open":
                         ct_df = ct_df[ct_df["Status"] == "Open"]
 
                     disp_trade_cols = [
@@ -822,60 +939,40 @@ def _render_parameter_sweep(
             st.info("No combination produced a backtest over this window.")
             return
 
-        badge = {
-            "high": ("#B42318", "HIGH — the winner is inside the noise"),
-            "moderate": ("#B54708", "MODERATE"),
-            "low": ("#067647", "LOW"),
-            "none": ("#5E6878", "PARAMETERS HAD NO EFFECT"),
-            "unknown": ("#5E6878", "UNKNOWN"),
-        }.get(result.overfitting_risk, ("#5E6878", result.overfitting_risk.upper()))
+        risk_tone, risk_label = {
+            "high": ("down", "HIGH — the winner is inside the noise"),
+            "moderate": ("warn", "MODERATE"),
+            "low": ("up", "LOW"),
+            "none": ("muted", "PARAMETERS HAD NO EFFECT"),
+            "unknown": ("muted", "UNKNOWN"),
+        }.get(result.overfitting_risk, ("muted", result.overfitting_risk.upper()))
 
-        st.markdown(
-            f"<div style=\"border-left: 3px solid {badge[0]}; background: {badge[0]}0D; "
-            f"padding: 10px 14px; border-radius: 6px; margin: 10px 0; "
-            f"font-family: 'Geist Mono', monospace; font-size: 0.78rem;\">"
-            f"<strong style=\"color:{badge[0]};\">Overfitting risk: {badge[1]}</strong>"
-            f"<div style=\"color:#3C4657; margin-top:4px;\">{result.risk_detail}</div>"
-            f"</div>",
-            unsafe_allow_html=True,
-        )
+        kit.callout(f"Overfitting risk: {risk_label}", result.risk_detail, risk_tone)
         for w in result.warnings:
             st.caption(f"⚠️ {w}")
 
         if result.holdout_detail:
             rho = result.holdout_rho
-            ho_clr = (
-                "#5E6878" if rho is None
-                else "#B42318" if rho < 0.2
-                else "#B54708" if rho < 0.5
-                else "#067647"
+            kit.callout(
+                "Holdout check", result.holdout_detail,
+                "muted" if rho is None else "down" if rho < 0.2 else "warn" if rho < 0.5 else "up",
             )
-            st.markdown(
-                f"<div style=\"border-left: 3px solid {ho_clr}; background: {ho_clr}0D; "
-                f"padding: 10px 14px; border-radius: 6px; margin: 10px 0; "
-                f"font-family: 'Geist Mono', monospace; font-size: 0.78rem;\">"
-                f"<strong style=\"color:{ho_clr};\">Holdout check</strong>"
-                f"<div style=\"color:#3C4657; margin-top:4px;\">{result.holdout_detail}</div>"
-                f"</div>",
-                unsafe_allow_html=True,
-            )
-
-        st.dataframe(
-            _sweep_display_frame(result.table),
-            width="stretch",
-            hide_index=True,
-            column_config=_sweep_column_config(),
-        )
 
         if result.holdout is not None and not result.holdout.empty:
-            with st.expander(
-                "🎯 Holdout detail — how each combination ranked in each half",
-                expanded=False,
-            ):
+            t_all, t_half = st.tabs(["All combinations", "Holdout halves"])
+            with t_all:
+                st.dataframe(
+                    _sweep_display_frame(result.table),
+                    width="stretch",
+                    hide_index=True,
+                    column_config=_sweep_column_config(),
+                )
+            with t_half:
                 st.caption(
-                    "A combination near the top of both columns is reproducible. "
-                    "One that tops the in-sample half and sinks in the other was "
-                    "fitted to the first half of the window."
+                    "How each combination ranked in each half. A combination near the "
+                    "top of both columns is reproducible. One that tops the in-sample "
+                    "half and sinks in the other was fitted to the first half of the "
+                    "window."
                 )
                 st.dataframe(
                     _sweep_display_frame(result.holdout),
@@ -883,6 +980,13 @@ def _render_parameter_sweep(
                     hide_index=True,
                     column_config=_sweep_column_config(),
                 )
+        else:
+            st.dataframe(
+                _sweep_display_frame(result.table),
+                width="stretch",
+                hide_index=True,
+                column_config=_sweep_column_config(),
+            )
 
         st.download_button(
             f"Download sweep results ({len(result.table)} rows)",

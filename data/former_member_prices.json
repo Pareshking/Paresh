@@ -1,0 +1,14 @@
+{
+  "fetched_on": "2026-10-01",
+  "source": "Yahoo Finance (.NS), Adj Close",
+  "symbols": 104,
+  "first_session": "2024-09-30",
+  "last_session": "2026-09-30",
+  "unavailable": [
+    "CIGNITITEC",
+    "GSPL",
+    "GUJGASLTD",
+    "JBCHEPHARM"
+  ],
+  "note": "No usable history on Yahoo (fewer than 60 sessions): names merged out of existence. They stay unpriceable and cannot be selected."
+}

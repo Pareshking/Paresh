@@ -1,0 +1,43 @@
+name: Canonical parity gate
+
+# Every representation of the canonical account must keep agreeing: Portfolio,
+# Actions and Backtest books, the frozen ledger, the pinned config it was struck
+# under, the hard 5% / 40% caps, Actions' planner and the research defaults.
+# scripts/canonical_parity_check.py runs the real code on the published data
+# and fails on any disagreement. Owner, 2026-10-02.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # New data can break agreement as surely as new code: check after each sync.
+  workflow_run:
+    workflows: [Daily NSE Momentum Data Sync, Monthly Track Record Freeze]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  parity:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+      - run: pip install -r requirements.txt
+      - name: Canonical parity check
+        run: python scripts/canonical_parity_check.py --report parity_report.json
+      - name: Keep the parity report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: canonical-parity-report
+          path: parity_report.json
+          if-no-files-found: warn

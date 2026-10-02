@@ -8,6 +8,7 @@ name: Scheduled job failure alert
 on:
   workflow_run:
     workflows:
+      - Canonical parity gate
       - Daily NSE Momentum Data Sync
       - Monthly Track Record Freeze
       - NSE daily bundle collection

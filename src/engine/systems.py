@@ -84,7 +84,7 @@ def combined_history(h750: dict[str, Any] | None,
     history: dict[str, Any] = {"schema_version": 1, "index": "COMBINED",
                                "baseline": None, "changes": []}
     for d in dates:
-        a, b = members_on(h750, d), members_on(hnano, d)
+        a, b = members_on(h750, d, canonical=True), members_on(hnano, d, canonical=True)
         if a is None or b is None:
             continue
         history, _ = record_snapshot(history, d, a | b)

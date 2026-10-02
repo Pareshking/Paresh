@@ -198,6 +198,7 @@ def test_caps_are_enforced_or_reported_never_silently_missed():
             raw, smap,
             sector_cap=float(rng.uniform(0.05, 1.0)),
             stock_cap=float(rng.uniform(0.01, 0.5)),
+            hard=False,  # the retained relax-to-feasible path; hard caps: tests/test_hard_caps.py
         )
         by_sector = pd.Series(w.to_numpy(), index=[smap[s] for s in w.index]).groupby(level=0).sum()
 
@@ -211,7 +212,8 @@ def test_an_infeasible_cap_pair_is_flagged_not_quietly_relaxed():
     """Twenty names in two industries cannot hold a 40% sector cap."""
     syms = [f"S{i}" for i in range(20)]
     smap = {s: ("ALPHA" if i < 14 else "BETA") for i, s in enumerate(syms)}
-    w = apply_caps(pd.Series(1 / 20, index=syms), smap, sector_cap=0.40, stock_cap=0.06)
+    w = apply_caps(pd.Series(1 / 20, index=syms), smap, sector_cap=0.40, stock_cap=0.06,
+                  hard=False)
 
     assert w.attrs["caps_relaxed"] is True
     assert w.attrs["effective_sector_cap"] > 0.40
@@ -411,9 +413,10 @@ def test_every_in_app_backtest_call_site_passes_point_in_time_membership():
     but by an argument nobody passed.
     """
     from src.engine import parameter_sweep
-    from src.ui.views import backtest_view, track_record_view
+    from src.engine import model_record
+    from src.ui.views import backtest_view
 
-    for module in (backtest_view, track_record_view, parameter_sweep):
+    for module in (backtest_view, model_record, parameter_sweep):
         source = inspect.getsource(module)
         assert "run_backtest(" in source
         assert "_membership=" in source, f"{module.__name__} scores against today's universe"
@@ -650,21 +653,24 @@ def test_rrg_benchmark_selector_is_not_inert():
         "Market Cap (Cr)": np.linspace(500000, 500, N),
     })
 
+    # The selector must change the chart: each index is its own return series.
+    bench = {
+        opt: pd.Series(100 * np.exp(np.cumsum(np.random.default_rng(10 + i).normal(0.0004, 0.01, T))), index=idx)
+        for i, opt in enumerate(BENCHMARK_OPTIONS)
+    }
     results = {}
     for opt in BENCHMARK_OPTIONS:
-        out = compute_rrg_data(f"rrg_{opt}", px, rank_df, benchmark_choice=opt)
+        out = compute_rrg_data(f"rrg_{opt}", px, rank_df, benchmark_choice=opt, _benchmark=bench[opt])
         assert not out.empty, f"{opt} produced no coordinates"
         results[opt] = out.set_index("Industry")["RS_Ratio"].round(6)
+    a, b = (results[o] for o in BENCHMARK_OPTIONS)
+    assert not a.equals(b), "the benchmarks give identical output"
 
-    a, b, c = (results[o] for o in BENCHMARK_OPTIONS)
-    assert not a.equals(b), "universe and top-50 benchmarks give identical output"
-    assert not b.equals(c), "top-50 and midcap benchmarks give identical output"
-    assert not a.equals(c), "universe and midcap benchmarks give identical output"
-
-    # And no option may claim to be an NSE index it does not compute.
+    # Real indices only: every option is an NSE index and says so.
     for opt in BENCHMARK_OPTIONS:
-        assert "Nifty" not in opt, f"{opt!r} names an index it does not compute"
-        assert "equal-weighted" in opt.lower()
+        assert opt.startswith("Nifty"), opt
+    # No benchmark available: the chart still draws, from the universe's own return.
+    assert not compute_rrg_data("rrg_fallback", px, rank_df).empty
 
 
 def test_qualified_correlation_status_handles_zero_and_unknown():
@@ -753,7 +759,7 @@ def test_caps_relaxed_fires_when_a_cap_is_raised_to_its_own_floor():
     syms = [f"S{i}" for i in range(20)]
     one_sector = {s: "ONLY" for s in syms}
     w = apply_caps(pd.Series(1 / 20, index=syms), one_sector,
-                   sector_cap=0.30, stock_cap=0.10)
+                   sector_cap=0.30, stock_cap=0.10, hard=False)
     by_sector = w.sum()
     assert by_sector == pytest.approx(1.0), "20 names in one sector IS 100% of it"
     assert w.attrs["caps_relaxed"] is True, "a 100% single-sector book must be flagged"
@@ -761,7 +767,7 @@ def test_caps_relaxed_fires_when_a_cap_is_raised_to_its_own_floor():
 
 def test_single_name_book_still_reports_its_caps():
     w = apply_caps(pd.Series([1.0], index=["X"]), {"X": "A"},
-                   sector_cap=0.30, stock_cap=0.10)
+                   sector_cap=0.30, stock_cap=0.10, hard=False)
     assert w["X"] == pytest.approx(1.0)
     assert w.attrs["caps_relaxed"] is True
     assert w.attrs["scheme_neutralised"] is True

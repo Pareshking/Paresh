@@ -30,7 +30,7 @@ This document records the material production, data, ranking, UI, reliability an
 - Decoupled labels from crowded marker positions using equal-width layout.
 - Added matching coloured dots/text so labels remain visually associated with their markers.
 - Mobile typography was tightened to avoid overlap.
-- Default stock chart remains **Lightweight Charts**; Plotly is fallback only.
+- Default stock chart remains **Lightweight Charts**; there is no fallback chart.
 
 ## 3. Momentum rank history — PRs #270–#272
 

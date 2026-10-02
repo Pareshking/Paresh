@@ -1,5 +1,4 @@
 import hashlib
-import json
 import re
 import time
 from html import escape as _esc
@@ -8,9 +7,6 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src.ui.system_param import stock_href
-from src.ui.system_param import suffix as system_suffix
-from src.engine.momentum import ATR_DERIVED_COLUMNS, CARRIED_MARK
 
 
 TICK_TRUE = frozenset({"✅", "TRUE", "1", "YES", "Y"})
@@ -124,7 +120,7 @@ def inject_custom_css() -> None:
         clean_html("""
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Geist:wght@400..700&family=Geist+Mono:wght@400..700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..700&display=swap" rel="stylesheet">
 
         <style>
         /* ── Design tokens: "Clear Ledger", light only ──────────────────
@@ -148,13 +144,27 @@ def inject_custom_css() -> None:
             --c-bear-tint: #FDEDEB;
             --c-caution: #B54708;
             --font-ui: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            --font-display: 'Bricolage Grotesque', 'Geist', sans-serif;
+            --font-display: var(--font-ui);
             --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+            /* UI kit v2 scale: one set of steps for type, corners, depth and
+               spacing, so identical kinds of block read with identical weight. */
+            --fs-11: 11px; --fs-12: 12px; --fs-13: 13px; --fs-14: 14px;
+            --fs-15: 15px; --fs-17: 17px; --fs-20: 20px; --fs-26: 26px;
+            --r-sm: 6px; --r-md: 10px; --r-lg: 12px; --r-xl: 16px;
+            --sh-1: 0 1px 2px rgba(14, 23, 38, 0.04);
+            --sh-2: 0 4px 12px -2px rgba(14, 23, 38, 0.08);
+            --sh-pop: 0 12px 32px -8px rgba(14, 23, 38, 0.18);
+            --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+            --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
+            --c-caution-tint: #FEF6EA;
+            --c-caution-ink: #7A2E0E;
+            --c-accent-tint: #EEF0FF;
         }
 
         /* ── Base Reset & Typography Hierarchy ── */
         html, body, [class*="css"] {
-            font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+            font-family: var(--font-ui) !important;
             color: #0E1726 !important;
             background-color: #F6F7F9 !important;
             -webkit-font-smoothing: antialiased;
@@ -162,18 +172,18 @@ def inject_custom_css() -> None:
 
         /* ── Typography Classes ── */
         .font-display, h1, h2, h3, h4, [data-testid="stMetricValue"] {
-            font-family: 'Bricolage Grotesque', -apple-system, sans-serif !important;
+            font-family: var(--font-ui) !important;
             letter-spacing: -0.02em !important;
         }
         .font-mono, [data-testid="stMetricDelta"] {
-            font-family: 'Geist Mono', monospace !important;
+            font-family: var(--font-mono) !important;
             font-variant-numeric: tabular-nums !important;
         }
         .font-code, code, pre {
-            font-family: 'Geist Mono', monospace !important;
+            font-family: var(--font-mono) !important;
         }
 .font-sans {
-            font-family: 'Geist', sans-serif !important;
+            font-family: var(--font-ui) !important;
         }
 
         /* ── Completely Hide Clunky Grey Native Scrollbars Everywhere (Across All 11 Tabs) ── */
@@ -325,7 +335,7 @@ def inject_custom_css() -> None:
             padding: 0 4px !important;
             background-color: transparent !important;
             border: 1px solid transparent !important;
-            font-family: 'Geist', sans-serif !important;
+            font-family: var(--font-ui) !important;
             font-size: 12.5px !important;
             font-weight: 600 !important;
             color: #5E6878 !important;
@@ -543,7 +553,7 @@ def inject_custom_css() -> None:
             border-radius: 7px !important;
             color: #3C4657 !important;
             text-decoration: none !important;
-            font-family: 'Geist', sans-serif !important;
+            font-family: var(--font-ui) !important;
             font-size: 13px !important;
             font-weight: 600 !important;
         }
@@ -612,6 +622,9 @@ def inject_custom_css() -> None:
             .mkt-strip { display: flex; overflow-x: auto; background: transparent; border: 0; border-radius: 0; gap: 10px; }
             .ms-tile { flex: 0 0 158px; padding: 12px 14px; background: #FFFFFF; border: 1px solid #E3E6EB !important; border-radius: 14px; gap: 3px; }
             .st-key-dl_rank_csv { display: none !important; }
+            /* Page figures read as a 2-wide block, not a sideways scroll. */
+            .mkt-strip.pg-strip { display: grid; grid-template-columns: 1fr 1fr; overflow: visible; }
+            .mkt-strip.pg-strip .ms-tile { flex: none; min-width: 0; }
             /* Filters & sort opens as a bottom sheet on a phone. The panel is
                portalled outside the page, so it is found by what it holds. */
             [data-testid="stPopoverBody"]:has(.st-key-scr_filters) {
@@ -647,14 +660,14 @@ def inject_custom_css() -> None:
         .pg-card-h span { font-size: 12.5px; color: #5E6878; }
         .pg-cap { margin: 0; font-size: 12.5px; line-height: 1.5; color: #5E6878; }
         .pg-bars { display: flex; flex-direction: column; gap: 4px; }
-        .pg-bar { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 76px; align-items: center; gap: 12px; min-height: 30px; }
+        .pg-bar { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 150px; align-items: center; gap: 12px; min-height: 30px; }
         .pg-bar-l { font-size: 13.5px; color: #0E1726; }
         .pg-bar-t { position: relative; height: 10px; border-radius: 5px; background: #EDEFF3; }
         .pg-bar-t i { position: absolute; left: 0; top: 0; height: 10px; border-radius: 5px; background: #4F46E5; }
         .pg-bar-t i.warn { background: #B54708; }
         .pg-bar-v { font-family: var(--font-mono); font-size: 13px; text-align: right; color: #0E1726; }
+        @media (min-width: 641px) { .pg-bar-v { white-space: nowrap; } }
         [class*="st-key-pg_actions_"] { gap: 10px !important; }
-        .hm-wrap { overflow-x: auto; }
         /* Exit watch */
         .xw { border: 1px solid #E3E6EB; border-radius: 12px; overflow: hidden; }
         .xw-row { display: grid; grid-template-columns: 150px 150px 1fr 1fr 1fr minmax(0, 1.4fr) 80px;
@@ -683,6 +696,7 @@ def inject_custom_css() -> None:
         .xw-g.broken > i > i { background: #B42318; }
         .xw-why { font-size: 12.5px; line-height: 1.4; color: #3C4657; }
         .xw-ret { font-family: var(--font-mono); font-size: 13px; text-align: right; }
+        .xw-head .xw-ret, .xw-ret.hdr { font-family: var(--font-ui); font-size: 12px; }
         .xw-ret.up { color: #067647; } .xw-ret.down { color: #B42318; }
         .st-key-xw_editbar { gap: 10px !important; }
         .ac-row { display: grid; align-items: center; gap: 16px; padding: 12px 16px; border-bottom: 1px solid #EDEFF3; }
@@ -750,6 +764,11 @@ def inject_custom_css() -> None:
         .cfg-stats > div { padding: 12px 14px; border-radius: 12px; background: #F4F5F8; display: flex; flex-direction: column; gap: 2px; }
         .cfg-stats > div.warn { background: #FEF6EA; }
         .cfg-stats span { font-size: 12px; font-weight: 600; color: #5E6878; }
+        .cfg-kv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin: 0 0 18px; padding: 0; background: #E3E6EB; border: 1px solid #E3E6EB; border-radius: 12px; overflow: hidden; }
+        .cfg-kv > div { background: #FFFFFF; padding: 12px 16px; }
+        .cfg-kv span { display: block; font-size: 12px; font-weight: 600; color: #5E6878; margin: 0 0 3px; }
+        .cfg-kv b { display: block; font-size: 15px; font-weight: 600; color: #0E1726; }
+        @media (max-width: 640px) { .cfg-kv { grid-template-columns: 1fr 1fr; } }
         .cfg-stats b { font-family: var(--font-mono); font-size: 17px; font-weight: 600; color: #0E1726; }
         .cfg-stats .warn b { color: #B54708; }
         .cfg-stats em { font-style: normal; font-size: 12px; color: #3C4657; }
@@ -805,6 +824,7 @@ def inject_custom_css() -> None:
         .ib-row:nth-child(odd):not(.ib-head) { background: #FAFBFC; }
         .ib-row:last-child { border-bottom: 0; }
         .ib-head { min-height: 40px; background: #F4F5F8 !important; font-size: 12px; font-weight: 600; color: #5E6878; }
+        .ib-head .ib-num { font-family: var(--font-ui); font-size: 12px; }
         .ib-n { font-family: var(--font-mono); font-weight: 600; }
         .ib-name { display: flex; flex-direction: column; min-width: 0; }
         .ib-name b { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -831,14 +851,14 @@ def inject_custom_css() -> None:
             .ib-bar { display: none; }
             .ib-head .ib-3m { justify-content: flex-end; }
         }
-        .hm { display: grid; gap: 3px; min-width: 520px; }
-        .hm-x, .hm-y { font-family: var(--font-mono); font-size: 11px; color: #3C4657; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .hm-x { writing-mode: vertical-rl; transform: rotate(180deg); height: 76px; text-align: left; justify-self: center; }
-        .hm-y { display: flex; align-items: center; }
-        .hm-c { height: 28px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 11px; background: #F4F5F8; color: #0E1726; }
         @media (max-width: 640px) {
             [class*="st-key-pgcard_"] { padding: 14px 14px !important; border-radius: 14px; }
             .pg-bar { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 64px; gap: 8px; }
+            /* Four figures read as a 2 x 2 block, not four tall tiles. */
+            [class*="st-key-mrow_"] { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px !important; }
+            [class*="st-key-mrow_"] > div { width: auto !important; min-width: 0 !important; }
+            [class*="st-key-mrow_"] [data-testid="stMetric"] { padding: 10px 12px !important; }
+            [class*="st-key-mrow_"] [data-testid="stMetricLabel"] { font-size: 11px; }
         }
 
         /* The watchlist bridge has no visible output. */
@@ -1228,6 +1248,57 @@ def inject_custom_css() -> None:
             color: #4f46e5 !important;
         }
 
+        /* ── UI kit v2 ───────────────────────────────────────────────────
+           Shared by the page_kit helpers. st.metric(border=True) draws its own
+           1px border; this sets the radius, surface and depth so a figure in a
+           card looks the same on every page. Sits after the Command Bar marker,
+           outside every block the legibility tests slice. */
+        [data-testid="stMetric"] {
+            background: var(--c-surface) !important;
+            border-radius: var(--r-lg) !important;
+            box-shadow: var(--sh-1) !important;
+            min-width: 0;
+        }
+        [data-testid="stMetric"] [data-testid="stMetricValue"] {
+            font-variant-numeric: tabular-nums;
+        }
+        [class*="st-key-mrow_"] { align-items: stretch; }
+        [class*="st-key-mrow_"] > [data-testid="stMetric"],
+        [class*="st-key-mrow_"] > div { flex: 1 1 180px; min-width: 0; }
+
+        .pg-callout {
+            border-left: 3px solid var(--c-border-strong);
+            background: var(--c-bg-subtle);
+            border-radius: var(--r-md);
+            padding: 10px 14px;
+            margin: 0;
+            font-size: var(--fs-13);
+            line-height: 1.45;
+            color: var(--c-text-secondary);
+        }
+        .pg-callout b { display: block; font-size: var(--fs-13); color: var(--c-text-primary); }
+        .pg-callout span { display: block; margin-top: 4px; }
+        .pg-callout.up { border-left-color: var(--c-bull); background: var(--c-bull-tint); }
+        .pg-callout.up b { color: var(--c-bull); }
+        .pg-callout.down { border-left-color: var(--c-bear); background: var(--c-bear-tint); }
+        .pg-callout.down b { color: var(--c-bear); }
+        .pg-callout.warn { border-left-color: var(--c-caution); background: var(--c-caution-tint); }
+        .pg-callout.warn b { color: var(--c-caution-ink); }
+
+        a.pg-link {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 14px; border: 1px solid var(--c-border-strong);
+            border-radius: var(--r-md); background: var(--c-surface);
+            color: var(--c-accent-text) !important; font-size: var(--fs-13);
+            font-weight: 600; text-decoration: none;
+        }
+        a.pg-link:hover { border-color: var(--c-accent); background: var(--c-accent-tint); }
+
+        [data-testid="stDialog"] [role="dialog"] {
+            border-radius: var(--r-xl) !important;
+            box-shadow: var(--sh-pop) !important;
+        }
+
         /* ── Metric Containers ── */
         [data-testid="metric-container"] {
             background-color: #ffffff !important;
@@ -1244,7 +1315,7 @@ def inject_custom_css() -> None:
         }
 
         [data-testid="stMetricLabel"] {
-            font-family: 'Geist Mono', monospace !important;
+            font-family: var(--font-mono) !important;
             font-size: 0.72rem !important;
             font-weight: 600 !important;
             text-transform: uppercase !important;
@@ -1253,14 +1324,14 @@ def inject_custom_css() -> None:
         }
 
         [data-testid="stMetricValue"] {
-            font-family: 'Geist Mono', monospace !important;
+            font-family: var(--font-mono) !important;
             font-size: 1.6rem !important;
             font-weight: 700 !important;
             color: #0E1726 !important;
         }
 
         [data-testid="stMetricDelta"] {
-            font-family: 'Geist Mono', monospace !important;
+            font-family: var(--font-mono) !important;
             font-size: 0.78rem !important;
             font-weight: 600 !important;
         }
@@ -1278,7 +1349,7 @@ def inject_custom_css() -> None:
         [data-baseweb="tab"] {
             border-radius: 8px !important;
             padding: 0.45rem 1rem !important;
-            font-family: 'Geist Mono', monospace !important;
+            font-family: var(--font-mono) !important;
             font-size: 0.8rem !important;
             font-weight: 600 !important;
             color: #5E6878 !important;
@@ -1414,65 +1485,6 @@ def inject_custom_css() -> None:
     )
 
 
-def generate_sparkline_svg(prices_arr, width: int = 74, height: int = 24) -> str:
-    """Generates an ultra-lightweight inline SVG sparkline for price trajectories."""
-    if prices_arr is None or len(prices_arr) < 2:
-        return '<span style="color:#D0D5DD;font-size:0.75rem;">—</span>'
-    try:
-        p = [float(x) for x in prices_arr if pd.notna(x)]
-        if len(p) < 2:
-            return '<span style="color:#D0D5DD;font-size:0.75rem;">—</span>'
-        p_min, p_max = min(p), max(p)
-        rng = p_max - p_min
-        if rng <= 0:
-            rng = 1.0
-        n = len(p)
-        pts = []
-        for i, val in enumerate(p):
-            x = round((i / (n - 1)) * (width - 8) + 4, 1)
-            y = round(height - 4 - ((val - p_min) / rng) * (height - 8), 1)
-            pts.append(f"{x},{y}")
-        path_d = "M " + " L ".join(pts)
-        color = "#067647" if p[-1] >= p[0] else "#B42318"
-        return f'<svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" style="display:inline-block;vertical-align:middle;"><path d="{path_d}" fill="none" stroke="{color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-    except Exception:
-        return '<span style="color:#D0D5DD;font-size:0.75rem;">—</span>'
-
-
-PERIOD_WINDOWS: tuple[int, ...] = (1, 3, 6, 9, 12)
-
-
-def _period_cells(row, months: int) -> dict[str, str]:
-    """Return/Sharpe/drawdown cells for one calendar window.
-
-    Five windows are shown, so the per-period formatting is written once here
-    rather than copied five times; the 3M and 6M blocks were already duplicates
-    of each other and adding 1M, 9M and 12M by hand would have made five.
-    """
-    label = f"{months}M"
-    ret = row.get(f"{label} Return")
-    ret_num = isinstance(ret, (int, float)) and pd.notna(ret)
-    sharpe = row.get(f"{label} Sharpe")
-    dd = row.get(f"Max DD {label}")
-    return {
-        "ret": f"{float(ret):+.1%}" if ret_num else "—",
-        "clr": "ret-pos" if (ret_num and ret > 0) else ("ret-neg" if (ret_num and ret < 0) else ""),
-        "sharpe": (
-            f"{float(sharpe):.2f}"
-            if pd.notna(sharpe) and isinstance(sharpe, (int, float))
-            else "—"
-        ),
-        "dd": (
-            f"{float(dd):.1f}%"
-            if pd.notna(dd) and isinstance(dd, (int, float))
-            else "—"
-        ),
-    }
-
-
-_SPARK_MISSING = '<span style="color:#D0D5DD;font-size:0.75rem;">—</span>'
-
-
 def _spark_window_key(sub_prices: pd.DataFrame) -> str:
     """Fingerprint the 60-session window the sparklines are drawn from.
 
@@ -1493,21 +1505,6 @@ def _spark_window_key(sub_prices: pd.DataFrame) -> str:
         return f"nokey_{id(sub_prices)}_{time.time()}"
 
 
-@st.cache_data(show_spinner=False, ttl=3600)
-def _sparkline_svgs(window_key: str, _sub_prices: pd.DataFrame) -> dict[str, str]:
-    """Every symbol's sparkline for one price window, built once.
-
-    Keyed on the WINDOW, not on the symbols being displayed, so the screener's
-    filters and presets all read the same cached map instead of each rebuilding
-    the subset they happen to show. Measured at ~118ms for 750 symbols, paid on
-    every Table-mode render before this.
-    """
-    return {
-        str(col): generate_sparkline_svg(_sub_prices[col].values)
-        for col in _sub_prices.columns
-    }
-
-
 # ── Column headers ──────────────────────────────────────────────────────────
 # Module level, and the ONLY place the table's shape is written down. The
 # density labels used to carry their own hand-typed column counts -- "Full
@@ -1515,781 +1512,6 @@ def _sparkline_svgs(window_key: str, _sub_prices: pd.DataFrame) -> dict[str, str
 # number is a copy that drifts. `screener_column_count` now reads the count
 # back out of these very blocks, so a column added here reaches the label
 # with no second edit.
-def _headers_block(is_exec: bool, is_core: bool, has_risk: bool) -> str:
-    # Dropped together: a group label spanning no columns leaves a stray cell
-    # in the top header row, which shifts every column after it by one.
-    risk_group_core = "<th>RISK</th>" if has_risk else ""
-    risk_sub_core = "<th>STOP LOSS</th>" if has_risk else ""
-    risk_group_full = '<th colspan="2">RISK & EXITS</th>' if has_risk else ""
-    risk_sub_full = (
-        "<th>STOP LOSS</th>\n                <th>CHAND EXIT</th>" if has_risk else ""
-    )
-
-    # Assemble headers based on density
-    if is_exec:
-        headers_block = """
-            <tr class="group-header-row">
-                <th colspan="3" class="sticky-group-id">IDENTITY</th>
-                <th>DYNAMICS</th>
-                <th colspan="2">CLASSIFICATION</th>
-                <th colspan="2">3M MOMENTUM</th>
-                <th colspan="2">FILTERS</th>
-                <th>TREND</th>
-            </tr>
-            <tr class="sub-header-row">
-                <th class="sticky-col-rank">RANK</th>
-                <th class="sticky-col-symbol">SYMBOL</th>
-                <th>CMP</th>
-                <th class="th-center">1M Δ</th>
-                <th class="th-center">INDEX</th>
-                <th class="th-left">INDUSTRY</th>
-                <th>3M RET</th>
-                <th>3M SHARPE</th>
-                <th>% 52W HI</th>
-                <th>% 50 EMA</th>
-                <th class="th-center">60D SPARK</th>
-            </tr>"""
-    elif is_core:
-        headers_block = f"""
-            <tr class="group-header-row">
-                <th colspan="3" class="sticky-group-id">IDENTITY</th>
-                <th colspan="2">RANK DYNAMICS</th>
-                <th colspan="3">CLASSIFICATION</th>
-                <th colspan="2">3M MOMENTUM</th>
-                <th colspan="2">6M MOMENTUM</th>
-                <th colspan="3">FILTERS</th>
-                {risk_group_core}
-                <th>TREND</th>
-            </tr>
-            <tr class="sub-header-row">
-                <th class="sticky-col-rank">RANK</th>
-                <th class="sticky-col-symbol">SYMBOL</th>
-                <th>CMP</th>
-                <th class="th-center">1M Δ</th>
-                <th class="th-center">3M Δ</th>
-                <th class="th-center">INDEX</th>
-                <th class="th-left">INDUSTRY</th>
-                <th>MCAP (CR)</th>
-                <th>3M RET</th>
-                <th>3M SHARPE</th>
-                
-                <th>6M RET</th>
-                <th>6M SHARPE</th>
-                <th>% 52W HI</th>
-                <th>% 50 EMA</th>
-                <th class="th-center">VOLUME</th>
-                {risk_sub_core}
-                <th class="th-center">60D SPARK</th>
-            </tr>"""
-    else:
-        headers_block = f"""
-            <tr class="group-header-row">
-                <th colspan="3" class="sticky-group-id">IDENTITY</th>
-                <th colspan="2">RANK DYNAMICS</th>
-                <th colspan="3">CLASSIFICATION</th>
-                <th colspan="3">1M FACTOR MOMENTUM</th>
-                <th colspan="3">3M FACTOR MOMENTUM</th>
-                <th colspan="3">6M FACTOR MOMENTUM</th>
-                <th colspan="3">9M FACTOR MOMENTUM</th>
-                <th colspan="3">12M FACTOR MOMENTUM</th>
-                <th colspan="7">TECHNICALS & FILTERS</th>
-                {risk_group_full}
-                <th colspan="3">DATA HEALTH</th>
-                <th>TREND</th>
-            </tr>
-            <tr class="sub-header-row">
-                <th class="sticky-col-rank">RANK</th>
-                <th class="sticky-col-symbol">SYMBOL</th>
-                <th>CMP</th>
-                <th class="th-center">1M Δ</th>
-                <th class="th-center">3M Δ</th>
-                <th class="th-center">INDEX</th>
-                <th class="th-left">INDUSTRY</th>
-                <th>MCAP (CR)</th>
-                <th>1M RET</th>
-                <th>1M SHARPE</th>
-                <th>MAX DD 1M</th>
-                <th>3M RET</th>
-                <th>3M SHARPE</th>
-                <th>MAX DD 3M</th>
-                <th>6M RET</th>
-                <th>6M SHARPE</th>
-                <th>MAX DD 6M</th>
-                <th>9M RET</th>
-                <th>9M SHARPE</th>
-                <th>MAX DD 9M</th>
-                <th>12M RET</th>
-                <th>12M SHARPE</th>
-                <th>MAX DD 12M</th>
-                <th>% 52W HI</th>
-                <th>% ATH</th>
-                <th>% 50 EMA</th>
-                <th class="th-center">VOLUME</th>
-                <th class="th-center">&gt; 50 EMA</th>
-                <th class="th-center">NEAR 52W</th>
-                <th class="th-center">AT ATH</th>
-                {risk_sub_full}
-                <th class="th-center">GAP</th>
-                <th>FFILL %</th>
-                <th class="th-center">HORIZONS</th>
-                <th class="th-center">60D SPARK</th>
-            </tr>"""
-    return headers_block
-
-
-def screener_column_count(density: str, columns) -> int:
-    """How many columns the table will actually draw at this density."""
-    return len(
-        re.findall(
-            r"<th",
-            re.search(
-                r'<tr class="sub-header-row">(.*?)</tr>',
-                _headers_block(
-                    str(density).startswith("Executive"),
-                    str(density).startswith("Core"),
-                    any(c in columns for c in ATR_DERIVED_COLUMNS),
-                ),
-                re.S,
-            ).group(1),
-        )
-    )
-
-
-def render_master_screener_table(
-    df: pd.DataFrame,
-    prices_df: pd.DataFrame | None = None,
-    max_height: int = 750,
-    density: str = "Full Quant (35)",
-) -> None:
-    """Renders Institutional SaaS Screener Table with Multi-Tier Column Density, Sticky Headers & Sparklines."""
-    if df.empty:
-        st.info("No matching stocks found for the active filter criteria.")
-        return
-
-    # Determine density tier
-    is_exec = str(density).startswith("Executive")
-    is_core = str(density).startswith("Core")
-
-    # A ranking built from CLOSING prices carries no ATR, so the Core and Full
-    # densities were printing a STOP LOSS column -- and, at Full, a CHAND EXIT
-    # column beside it -- in which every one of 750 rows was an em dash. The
-    # columns are dropped with their headers and their group label instead.
-    # The card grid already did this (it emits an empty footer span), which is
-    # why only the table showed it.
-    has_risk = any(col in df.columns for col in ATR_DERIVED_COLUMNS)
-
-    # Pre-extract 60-day price sparklines
-    spark_map = {}
-    if prices_df is not None and not prices_df.empty:
-        spark_window = min(60, len(prices_df))
-        sub_prices = prices_df.iloc[-spark_window:]
-        all_svgs = _sparkline_svgs(_spark_window_key(sub_prices), sub_prices)
-        spark_map = {sym: all_svgs.get(sym, _SPARK_MISSING) for sym in df["Symbol"]}
-
-    # Build HTML Rows for All Records (Continuous Scrollable)
-    #
-    # to_dict("records") rather than iterrows(): iterrows() rebuilds a pandas
-    # Series per row, which measured ~3.4x the cost of plain dicts over 750
-    # rows. Every read below is row.get(...), which a dict answers identically.
-    # The frame here always carries Symbol and Industry as text, so it is
-    # mixed-dtype and iterrows() was already boxing values to native Python --
-    # the isinstance(x, (int, float)) checks throughout see exactly what they
-    # saw before.
-    rows_html = []
-    for row in df.to_dict("records"):
-        rk = row.get("Rank", "—")
-        sym = row.get("Symbol", "—")
-        # Every value below originates in a third-party feed (the
-        # niftyindices.com constituent CSVs, the NSE PR bhavcopy, Yahoo) and
-        # lands in an st.iframe srcdoc, which Streamlit renders with
-        # allow-scripts AND allow-same-origin -- markup in a cell would
-        # execute on the app's own origin. Escape at the sink, once, where
-        # it cannot be forgotten by a new column.
-        rk_s = _esc(str(rk))
-        sym_s = _esc(str(sym))
-
-        cmp_val = row.get("CMP")
-        cmp_str = (
-            f"₹{float(cmp_val):,.0f}"
-            if pd.notna(cmp_val) and isinstance(cmp_val, (int, float))
-            else "—"
-        )
-
-        # Rank moves
-        d1m = row.get("Rank Δ 1M")
-        if pd.notna(d1m) and isinstance(d1m, (int, float)):
-            if d1m > 0:
-                d1m_html = f"<span class='badge-pill badge-green'>▲ {int(d1m)}</span>"
-            elif d1m < 0:
-                d1m_html = (
-                    f"<span class='badge-pill badge-red'>▼ {abs(int(d1m))}</span>"
-                )
-            else:
-                d1m_html = "<span class='badge-pill badge-neutral'>— 0</span>"
-        else:
-            d1m_html = "<span class='text-muted'>—</span>"
-
-        d3m = row.get("Rank Δ 3M")
-        if pd.notna(d3m) and isinstance(d3m, (int, float)):
-            if d3m > 0:
-                d3m_html = f"<span class='badge-pill badge-green'>▲ {int(d3m)}</span>"
-            elif d3m < 0:
-                d3m_html = (
-                    f"<span class='badge-pill badge-red'>▼ {abs(int(d3m))}</span>"
-                )
-            else:
-                d3m_html = "<span class='badge-pill badge-neutral'>— 0</span>"
-        else:
-            d3m_html = "<span class='text-muted'>—</span>"
-
-        # Classification
-        idx_raw = str(row.get("Indices", "—")).split(",")[0].strip()
-        idx_html = (
-            f"<span class='index-tag'>{_esc(idx_raw)}</span>"
-            if idx_raw and idx_raw != "—"
-            else "<span class='text-muted'>—</span>"
-        )
-
-        ind_raw = str(row.get("Industry", "—"))
-        ind_disp = ind_raw[:20] + "…" if len(ind_raw) > 21 else ind_raw
-        ind_raw_s = _esc(ind_raw)
-        ind_disp_s = _esc(ind_disp)
-
-        mcap_val = row.get("Market Cap (Cr)")
-        mcap_str = (
-            f"₹{float(mcap_val):,.0f}"
-            if pd.notna(mcap_val) and isinstance(mcap_val, (int, float))
-            else "—"
-        )
-
-        # 3M and 6M are read from `pc` below, like every other window. They used
-        # to be formatted by hand here, twice, because the Executive and Core
-        # tiers predate _period_cells and only Full Quant was migrated to it --
-        # which is how the dead dd_3m_str/dd_6m_str pair survived in this block
-        # long after nothing rendered them.
-
-        # Technicals & Filters
-        pct_hi = row.get("% High")
-        hi_str = (
-            f"{float(pct_hi):.1f}%"
-            if pd.notna(pct_hi) and isinstance(pct_hi, (int, float))
-            else "—"
-        )
-
-        pct_ath = row.get("% ATH")
-        ath_peak = str(row.get("ATH Date") or "").strip()
-        ath_title = f' title="Peak printed {_esc(ath_peak)}"' if ath_peak else ""
-        ath_str = (
-            f"{float(pct_ath):.1f}%"
-            if pd.notna(pct_ath) and isinstance(pct_ath, (int, float))
-            else "—"
-        )
-
-        pct_ema = row.get("% 50 EMA")
-        ema_str = (
-            f"{float(pct_ema):+.1f}%"
-            if pd.notna(pct_ema) and isinstance(pct_ema, (int, float))
-            else "—"
-        )
-
-        vol_val = str(row.get("Volume", "Normal"))
-        vol_badge = (
-            "<span class='vol-tag'>🔥 High</span>"
-            if vol_val == "High"
-            else (
-                "<span class='vol-tag vol-surge'>⚡ Surge</span>"
-                if vol_val == "Surge"
-                else "<span class='text-muted'>• Normal</span>"
-            )
-        )
-
-        above_ema_icon = "🟢" if is_tick_true(row.get("Above 50 EMA")) else "⚪"
-        near_hi_icon = "🟢" if is_tick_true(row.get("Near 52W High")) else "⚪"
-        at_ath_icon = "🟢" if is_tick_true(row.get("At ATH")) else "⚪"
-
-        # Risk & Exits
-        sl_val = row.get("Stop Loss")
-        sl_str = (
-            f"₹{float(sl_val):,.0f}"
-            if pd.notna(sl_val) and isinstance(sl_val, (int, float))
-            else "—"
-        )
-
-        chand_val = row.get("Chand Exit")
-        chand_str = (
-            f"₹{float(chand_val):,.0f}"
-            if pd.notna(chand_val) and isinstance(chand_val, (int, float))
-            else "—"
-        )
-
-        sl_cell = f'<td class="td-num td-sl">{sl_str}</td>' if has_risk else ""
-        chand_cell = (
-            f'<td class="td-num td-chand">{chand_str}</td>' if has_risk else ""
-        )
-
-        # Data Health
-        gap_val = str(row.get("Data Gap", "🟢"))
-        gap_icon = "🔴" if "🔴" in gap_val else "🟢"
-        if CARRIED_MARK in gap_val:
-            # Ranked on its last print: no price on the ranking session.
-            gap_icon = f'<span title="No price on the ranking date; ranked on its last print">{gap_icon}{CARRIED_MARK}</span>'
-
-        ffill_val = row.get("FFill %")
-        ffill_str = (
-            f"{float(ffill_val):.1f}%"
-            if pd.notna(ffill_val) and isinstance(ffill_val, (int, float))
-            else "0.0%"
-        )
-
-        # How many of the five calendar horizons actually scored this stock.
-        # The composite renormalises over the ones that did, so a 2-of-5 name
-        # sits on the same scale as a 5-of-5 name while averaging fewer, noisier
-        # terms -- its rank moves more between sessions for reasons that are
-        # about its listing date, not its momentum. Anything short of the full
-        # five is worth seeing, so only the full count renders unmarked.
-        hz_val = row.get("Horizons Scored")
-        if pd.notna(hz_val) and isinstance(hz_val, (int, float)):
-            hz_n = int(hz_val)
-            hz_cls = "" if hz_n >= len(PERIOD_WINDOWS) else " td-short-hz"
-            hz_str = (
-                f'<span class="hz-count{hz_cls}" title="Scored on {hz_n} of '
-                f'{len(PERIOD_WINDOWS)} calendar horizons'
-                f'{"" if hz_n >= len(PERIOD_WINDOWS) else "; the composite is an average over fewer, noisier terms"}'
-                f'">{hz_n}/{len(PERIOD_WINDOWS)}</span>'
-            )
-        else:
-            hz_str = "<span class='text-muted'>—</span>"
-
-        spark_svg = spark_map.get(sym, '<span class="text-muted">—</span>')
-
-        # Every calendar window, formatted once. pc[3]["ret"] is the 3M return
-        # cell, and so on; the Full Quant tier below renders all five.
-        #
-        # The symbol opens the stock page. Getting there is not as simple as an
-        # href: this table lives in a Streamlit iframe sandboxed with
-        #   allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox
-        #   allow-same-origin allow-scripts allow-downloads
-        # and NO allow-top-navigation, so the browser refuses any attempt by
-        # this frame to navigate the page around it -- a plain link, target
-        #="_parent", and assigning parent.location alike. Chrome rejects the
-        # last one out loud: "The current window does not have permission to
-        # navigate the target frame."
-        #
-        # The href stays a real URL so middle-click and "copy link address"
-        # behave; the click itself is handled by the delegated listener in the
-        # page script below, which is where the workaround lives.
-        sym_link = (
-            f'<a href="{stock_href(sym)}" '
-            f'class="stock-ticker" data-stock="{sym_s}" '
-            f'style="text-decoration:none;border-bottom:1px dotted #667080;'
-            f'cursor:pointer;" title="Open {sym_s}">{sym_s}</a>'
-        )
-
-        pc = {m: _period_cells(row, m) for m in PERIOD_WINDOWS}
-        period_cells_html = "".join(
-            f'<td class="td-num {pc[m]["clr"]}"><strong>{pc[m]["ret"]}</strong></td>'
-            f'<td class="td-num td-sharpe">{pc[m]["sharpe"]}</td>'
-            f'<td class="td-num td-dd">{pc[m]["dd"]}</td>'
-            for m in PERIOD_WINDOWS
-        )
-
-        if is_exec:
-            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk_s}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw_s}">{ind_disp_s}</td><td class="td-num {pc[3]['clr']}"><strong>{pc[3]['ret']}</strong></td><td class="td-num td-sharpe">{pc[3]['sharpe']}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
-        elif is_core:
-            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk_s}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw_s}">{ind_disp_s}</td><td class="td-num">{mcap_str}</td><td class="td-num {pc[3]['clr']}"><strong>{pc[3]['ret']}</strong></td><td class="td-num td-sharpe">{pc[3]['sharpe']}</td><td class="td-num {pc[6]['clr']}"><strong>{pc[6]['ret']}</strong></td><td class="td-num td-sharpe">{pc[6]['sharpe']}</td><td class="td-num">{hi_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td>{sl_cell}<td class="td-spark">{spark_svg}</td></tr>"""
-        else:
-            row_h = f"""<tr class="screener-row"><td class="sticky-col-rank"><strong>{rk_s}</strong></td><td class="sticky-col-symbol">{sym_link}</td><td class="td-num"><strong>{cmp_str}</strong></td><td class="td-center">{d1m_html}</td><td class="td-center">{d3m_html}</td><td class="td-center">{idx_html}</td><td class="td-sector" title="{ind_raw_s}">{ind_disp_s}</td><td class="td-num">{mcap_str}</td>{period_cells_html}<td class="td-num">{hi_str}</td><td class="td-num"{ath_title}>{ath_str}</td><td class="td-num">{ema_str}</td><td class="td-center">{vol_badge}</td><td class="td-center">{above_ema_icon}</td><td class="td-center">{near_hi_icon}</td><td class="td-center">{at_ath_icon}</td>{sl_cell}{chand_cell}<td class="td-center">{gap_icon}</td><td class="td-num">{ffill_str}</td><td class="td-center">{hz_str}</td><td class="td-spark">{spark_svg}</td></tr>"""
-        rows_html.append(row_h)
-
-    headers_block = _headers_block(is_exec, is_core, has_risk)
-
-    # Master Table Assembly - Rendered via st.iframe with 2D Sticky Freeze
-    full_page_html = f"""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Geist:wght@400..700&family=Geist+Mono:wght@400..700&display=swap" rel="stylesheet">
-<style>
-* {{ box-sizing: border-box; margin: 0; padding: 0; }}
-body {{
-    background: transparent;
-    font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
-    color: #0E1726;
-    -webkit-font-smoothing: antialiased;
-    padding: 2px;
-}}
-.modern-screener-wrapper {{
-    width: 100%;
-    max-height: {max_height}px;
-    overflow: auto;
-    border: 1px solid #E3E6EB;
-    border-radius: 12px;
-    background: #ffffff;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-    position: relative;
-    scrollbar-width: none !important;
-    -ms-overflow-style: none !important;
-}}
-.modern-screener-wrapper::-webkit-scrollbar,
-body::-webkit-scrollbar,
-*::-webkit-scrollbar {{
-    width: 0px !important;
-    height: 0px !important;
-    display: none !important;
-    background: transparent !important;
-}}
-.modern-screener-table {{
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 12.5px;
-    color: #0E1726;
-    white-space: nowrap;
-}}
-
-/* ── Sticky Top Group Headers ── */
-.modern-screener-table thead tr.group-header-row th {{
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    background: #F4F5F8;
-    color: #5E6878;
-    font-family: 'Geist Mono', monospace;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    padding: 7px 10px;
-    border-bottom: 1px solid #E3E6EB;
-    border-left: none;
-    border-right: none;
-    text-align: center;
-}}
-
-/* ── 2D Frozen Top-Left Header Group (Identity) ── */
-.modern-screener-table thead tr.group-header-row th.sticky-group-id {{
-    position: sticky;
-    left: 0;
-    top: 0;
-    z-index: 40;
-    background: #F1F3F6;
-    border-right: 1.5px solid #D0D5DD;
-    box-shadow: 3px 0 6px rgba(0,0,0,0.04);
-}}
-
-/* ── Sticky Column Sub-Headers ── */
-.modern-screener-table thead tr.sub-header-row th {{
-    position: sticky;
-    top: 28px;
-    z-index: 20;
-    background: #F4F5F8;
-    color: #3C4657;
-    font-family: 'Geist Mono', monospace;
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 8px 10px;
-    border-bottom: 2px solid #D0D5DD;
-    border-left: none;
-    border-right: none;
-    text-align: right;
-}}
-.modern-screener-table thead tr.sub-header-row th.th-center {{ text-align: center; }}
-.modern-screener-table thead tr.sub-header-row th.th-left {{ text-align: left; }}
-
-/* ── 2D Frozen Column Headers ── */
-.modern-screener-table thead tr.sub-header-row th.sticky-col-rank {{
-    position: sticky;
-    left: 0;
-    top: 28px;
-    z-index: 35;
-    background: #F1F3F6;
-    min-width: 48px;
-    max-width: 48px;
-    width: 48px;
-    text-align: center;
-    border-right: 1px solid #E3E6EB;
-}}
-.modern-screener-table thead tr.sub-header-row th.sticky-col-symbol {{
-    position: sticky;
-    left: 48px;
-    top: 28px;
-    z-index: 35;
-    background: #F1F3F6;
-    min-width: 105px;
-    max-width: 105px;
-    width: 105px;
-    text-align: left;
-    border-right: 1.5px solid #D0D5DD;
-    box-shadow: 3px 0 6px rgba(0,0,0,0.04);
-}}
-
-/* ── Table Body Rows ── */
-.modern-screener-table tbody tr.screener-row {{
-    border-bottom: 1px solid #F1F3F6;
-    transition: background-color 0.12s ease;
-}}
-.modern-screener-table tbody tr.screener-row:hover td {{
-    background-color: #F4F5F8 !important;
-}}
-.modern-screener-table td {{
-    padding: 6px 10px;
-    vertical-align: middle;
-    font-family: 'Geist Mono', monospace;
-    font-size: 12px;
-    border-bottom: 1px solid #F1F3F6;
-    border-left: none;
-    border-right: none;
-    background: #ffffff;
-}}
-
-/* ── 2D Frozen Columns (Body Data) ── */
-.modern-screener-table td.sticky-col-rank {{
-    position: sticky;
-    left: 0;
-    z-index: 10;
-    background: #ffffff;
-    min-width: 48px;
-    max-width: 48px;
-    width: 48px;
-    text-align: center;
-    font-weight: 800;
-    color: #0E1726;
-    border-right: 1px solid #F1F3F6;
-}}
-.modern-screener-table td.sticky-col-symbol {{
-    position: sticky;
-    left: 48px;
-    z-index: 10;
-    background: #ffffff;
-    min-width: 105px;
-    max-width: 105px;
-    width: 105px;
-    text-align: left;
-    padding-left: 10px;
-    border-right: 1.5px solid #E3E6EB;
-    box-shadow: 3px 0 6px rgba(0,0,0,0.04);
-}}
-
-.stock-ticker {{
-    font-family: 'Geist', sans-serif;
-    font-weight: 800;
-    font-size: 11px;
-    color: #0E1726;
-    letter-spacing: 0.02em;
-}}
-.modern-screener-table td.td-center {{ text-align: center; }}
-.modern-screener-table td.td-num {{ text-align: right; }}
-.modern-screener-table td.td-sector {{
-    text-align: left;
-    font-family: 'Geist', sans-serif;
-    font-size: 12px;
-    color: #3C4657;
-    max-width: 160px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}}
-.modern-screener-table td.td-spark {{
-    text-align: center;
-    padding: 2px 8px;
-    width: 80px;
-}}
-
-/* Badges & Pills */
-.badge-pill {{
-    display: inline-block;
-    font-family: 'Geist Mono', monospace;
-    font-size: 10.5px;
-    font-weight: 700;
-    padding: 1.5px 6px;
-    border-radius: 5px;
-}}
-.badge-green {{
-    background: #E8F5EE;
-    color: #067647;
-}}
-.badge-red {{
-    background: #FDEDEB;
-    color: #912018;
-}}
-.badge-neutral {{
-    color: #5E6878;
-}}
-.index-tag {{
-    display: inline-block;
-    font-family: 'Geist Mono', monospace;
-    font-size: 10px;
-    font-weight: 700;
-    background: #F1F3F6;
-    color: #3C4657;
-    padding: 1.5px 5px;
-    border-radius: 4px;
-    border: 1px solid #E3E6EB;
-}}
-.vol-tag {{
-    font-family: 'Geist Mono', monospace;
-    font-size: 11px;
-    font-weight: 700;
-    color: #067647;
-}}
-.vol-surge {{
-    color: #4f46e5;
-}}
-.ret-pos {{ color: #067647; font-weight: 700; }}
-.ret-neg {{ color: #912018; font-weight: 700; }}
-.td-sharpe {{ color: #067647; font-weight: 600; }}
-.modern-screener-table thead tr.sub-header-row th {{
-    cursor: pointer;
-    user-select: none;
-    transition: background-color 0.15s ease, color 0.15s ease;
-}}
-.modern-screener-table thead tr.sub-header-row th:hover {{
-    background-color: #E3E6EB !important;
-    color: #0E1726 !important;
-}}
-.sort-indicator {{
-    display: inline-block;
-    margin-left: 4px;
-    font-size: 8.5px;
-    color: #4f46e5;
-    vertical-align: middle;
-}}
-.td-dd {{ color: #B42318; }}
-.td-sl {{ color: #912018; }}
-.td-chand {{ color: #067647; font-weight: 600; }}
-.hz-count {{
-    font-family: 'Geist Mono', monospace;
-    font-size: 11px;
-    font-weight: 600;
-    color: #5E6878;
-}}
-/* Amber, not red: a partial composite is a caveat on how much history is
-   behind the rank, not a data fault like a price gap. */
-.td-short-hz {{
-    color: #93370D;
-    font-weight: 800;
-    background: #FEF6EA;
-    border-radius: 5px;
-    padding: 1px 5px;
-}}
-.text-muted {{ color: #667080; font-size: 11px; }}
-</style>
-</head>
-<body>
-<div class="modern-screener-wrapper">
-    <table class="modern-screener-table">
-        <thead>
-            {headers_block}
-        </thead>
-        <tbody>
-            {''.join(rows_html)}
-        </tbody>
-    </table>
-</div>
-<script>
-document.addEventListener('DOMContentLoaded', function() {{
-    // Symbol -> stock page. This frame may not navigate the page around it
-    // (no allow-top-navigation), but it DOES have allow-same-origin, so it can
-    // reach into the parent document -- which is not sandboxed -- and add a
-    // script there. That script runs as the parent and navigating yourself is
-    // always allowed, so the route opens in the same tab like the card view.
-    //
-    // If the parent is ever cross-origin (the injection throws), allow-popups
-    // is granted, so the page opens in a new tab instead. Losing the tab is a
-    // worse experience than keeping it; having no way in at all is worse than
-    // both.
-    document.addEventListener('click', function(ev) {{
-        const link = ev.target.closest ? ev.target.closest('a[data-stock]') : null;
-        if (!link) return;
-        ev.preventDefault();
-        const sym = link.getAttribute('data-stock');
-        const search = '?stock=' + encodeURIComponent(sym) + {json.dumps(system_suffix())};
-        try {{
-            const host = window.parent;
-            const s = host.document.createElement('script');
-            s.textContent = 'window.location.search=' + JSON.stringify(search) + ';';
-            host.document.body.appendChild(s);
-            s.remove();
-        }} catch (e) {{
-            window.open(search, '_blank');
-        }}
-    }});
-
-    const table = document.querySelector('.modern-screener-table');
-    if (!table) return;
-    const thList = table.querySelectorAll('thead tr.sub-header-row th');
-    const tbody = table.querySelector('tbody');
-
-    thList.forEach((th, colIdx) => {{
-        if (th.classList.contains('th-spark') || th.innerText.includes('SPARK')) return;
-        let currentDir = 'none';
-
-        th.addEventListener('click', function() {{
-            currentDir = (currentDir === 'asc') ? 'desc' : 'asc';
-
-            thList.forEach(otherTh => {{
-                const icon = otherTh.querySelector('.sort-indicator');
-                if (icon) icon.remove();
-                if (otherTh !== th) otherTh.removeAttribute('data-sort-dir');
-            }});
-
-            th.setAttribute('data-sort-dir', currentDir);
-            const ind = document.createElement('span');
-            ind.className = 'sort-indicator';
-            ind.textContent = currentDir === 'asc' ? ' ▲' : ' ▼';
-            th.appendChild(ind);
-
-            const rows = Array.from(tbody.querySelectorAll('tr.screener-row'));
-            rows.sort((rowA, rowB) => {{
-                const cellA = rowA.children[colIdx];
-                const cellB = rowB.children[colIdx];
-                if (!cellA || !cellB) return 0;
-
-                let txtA = cellA.innerText.trim();
-                let txtB = cellB.innerText.trim();
-
-                // Blanks sink to the bottom in both directions. Two blanks
-                // compare EQUAL: returning 1 for both orders made the
-                // comparator inconsistent, and the browser's sort may then
-                // scramble the rows.
-                const blankA = (txtA === '—' || txtA === '');
-                const blankB = (txtB === '—' || txtB === '');
-                if (blankA || blankB) return (blankA === blankB) ? 0 : (blankA ? 1 : -1);
-
-                if (txtA.startsWith('▲') || txtA.startsWith('▼') || txtA.startsWith('—')) {{
-                    let numA = parseFloat(txtA.replace(/[▲▼—\\s]/g, '')) * (txtA.startsWith('▼') ? -1 : 1);
-                    let numB = parseFloat(txtB.replace(/[▲▼—\\s]/g, '')) * (txtB.startsWith('▼') ? -1 : 1);
-                    if (!isNaN(numA) && !isNaN(numB)) {{
-                        return currentDir === 'asc' ? (numA - numB) : (numB - numA);
-                    }}
-                }}
-
-                let cleanA = txtA.replace(/[₹,×%+#]/g, '').trim();
-                let cleanB = txtB.replace(/[₹,×%+#]/g, '').trim();
-                let valA = parseFloat(cleanA);
-                let valB = parseFloat(cleanB);
-
-                if (!isNaN(valA) && !isNaN(valB) && cleanA !== '' && cleanB !== '') {{
-                    return currentDir === 'asc' ? (valA - valB) : (valB - valA);
-                }}
-
-                return currentDir === 'asc' ? txtA.localeCompare(txtB) : txtB.localeCompare(txtA);
-            }});
-
-            rows.forEach(r => tbody.appendChild(r));
-        }});
-    }});
-}});
-</script>
-</body>
-</html>"""
-    st.iframe(full_page_html, height=max_height)
-
-
 # ── Percentage units ────────────────────────────────────────────────────────
 # Two conventions meet in these tables. Some columns carry a FRACTION (0.0734
 # means +7.34%); others carry a value already multiplied by 100 (7.34 means
@@ -2360,7 +1582,7 @@ def render_saas_table(
 
     n_rows = len(df)
     if max_height is None:
-        table_h = min(600, (n_rows * 36) + 48)
+        table_h = min(600, (n_rows * 44) + 48)
     else:
         table_h = max_height
 
@@ -2395,6 +1617,7 @@ def render_saas_table(
                 "TAXONOMY",
                 "DESCRIPTION",
                 "NAME",
+                "COMPANY",
                 "PERIOD",
                 "MODEL",
                 "OBJECTIVE",
@@ -2663,7 +1886,7 @@ def render_saas_table(
 <meta charset="utf-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Geist:wght@400..700&family=Geist+Mono:wght@400..700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..700&display=swap" rel="stylesheet">
 <style>
 * {{ box-sizing: border-box; margin: 0; padding: 0; }}
 body {{
@@ -2698,7 +1921,7 @@ body::-webkit-scrollbar,
     border-collapse: separate;
     border-spacing: 0;
     font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 12px;
+    font-size: 13.5px;
     color: #0E1726;
     white-space: nowrap;
 }}
@@ -2707,14 +1930,13 @@ body::-webkit-scrollbar,
     top: 0;
     z-index: 10;
     background: #F4F5F8;
-    color: #3C4657;
-    font-family: 'Geist Mono', monospace;
-    font-size: 10.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 8px 10px;
-    border-bottom: 1.5px solid #D0D5DD;
+    color: #5E6878;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    height: 42px;
+    padding: 0 10px;
+    border-bottom: 1px solid #E3E6EB;
     border-left: none;
     border-right: none;
     cursor: pointer;
@@ -2742,41 +1964,16 @@ body::-webkit-scrollbar,
     touch-action: pan-x pan-y;
 }}
 
-/* Portfolio table hierarchy: identity first, accounting second, analytics last. */
-.saas-table-wrapper.portfolio .saas-table {{
-    font-size: 12px;
-}}
-.saas-table-wrapper.portfolio .saas-table thead th:nth-child(-n+3) {{
-    background: #EEF0F4;
-}}
-.saas-table-wrapper.portfolio .saas-table tbody td:nth-child(1) {{
-    font-weight: 700;
-}}
-.saas-table-wrapper.portfolio .saas-table tbody td:nth-child(n+4):nth-child(-n+10) {{
-    font-weight: 650;
-}}
-.saas-table-wrapper.portfolio .saas-table tbody td:nth-child(n+11) {{
-    color: #667085;
-}}
-.saas-table-wrapper.portfolio .portfolio-pos {{ color: #067647 !important; font-weight: 700 !important; }}
-.saas-table-wrapper.portfolio .portfolio-neg {{ color: #912018 !important; font-weight: 700 !important; }}
+/* Portfolio: sign colours only; type weight follows the other tables. */
+.saas-table-wrapper.portfolio .portfolio-pos {{ color: #067647 !important; }}
+.saas-table-wrapper.portfolio .portfolio-neg {{ color: #912018 !important; }}
 .saas-table-wrapper.portfolio .portfolio-flat {{ color: #5E6878 !important; }}
 @media (max-width: 640px) {{
-    .saas-table-wrapper.portfolio .saas-table {{
-        font-size: 11px;
-    }}
-}}
-@media (max-width: 640px) {{
-    .saas-table {{
-        font-size: 11px;
-    }}
     .saas-table thead tr th {{
-        padding: 8px 8px;
-        font-size: 10px;
+        padding: 0 8px;
     }}
     .saas-table td {{
-        padding: 7px 8px;
-        font-size: 11px;
+        padding: 0 8px;
     }}
     .saas-table th:first-child,
     .saas-table td:first-child {{
@@ -2798,18 +1995,19 @@ body::-webkit-scrollbar,
     background-color: #F4F5F8 !important;
 }}
 .saas-table td {{
-    padding: 7px 10px;
+    height: 44px;
+    padding: 0 10px;
     vertical-align: middle;
-    font-family: 'Geist Mono', monospace;
-    font-size: 12px;
-    border-bottom: 1px solid #F1F3F6;
+    font-family: 'Geist', sans-serif;
+    font-size: 13.5px;
+    border-bottom: 1px solid #EDEFF3;
     border-left: none;
     border-right: none;
     background: #ffffff;
 }}
 .saas-table td.td-left {{ text-align: left; }}
 .saas-table td.td-center {{ text-align: center; }}
-.saas-table td.td-right {{ text-align: right; }}
+.saas-table td.td-right {{ text-align: right; font-family: 'Geist Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }}
 .saas-table td.td-sector {{
     font-family: 'Geist', sans-serif;
     color: #3C4657;
@@ -2819,18 +2017,17 @@ body::-webkit-scrollbar,
 }}
 .stock-ticker {{
     font-family: 'Geist', sans-serif;
-    font-weight: 800;
-    font-size: 11px;
+    font-weight: 650;
+    font-size: 14px;
     color: #0E1726;
-    letter-spacing: 0.02em;
 }}
 .badge-pill {{
     display: inline-block;
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 1.5px 6px;
-    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 7px;
 }}
 .badge-green {{ background: #E8F5EE; color: #067647; border: 1px solid #bbf7d0; }}
 .badge-yellow {{ background: #fefce8; color: #a16207; border: 1px solid #fef08a; }}

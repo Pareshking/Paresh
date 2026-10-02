@@ -1,16 +1,12 @@
 """
 Interactive visualizations for NSE Momentum Dashboard.
-Includes Candlestick + Volume + Relative Strength drilldown, animated Canvas RRG,
-and ECharts-powered charts.
+Stock chart and the Relative Rotation Graph, both Highcharts.
 """
 
 import json
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
-from plotly.subplots import make_subplots
 
-from src.core.logger import logger
 
 
 def compute_rs_series(stock: pd.Series, benchmark: pd.Series) -> pd.Series:
@@ -38,15 +34,7 @@ def render_stock_chart(
     volume_data: pd.DataFrame | None = None,
     open_prices: pd.DataFrame | None = None,
 ) -> None:
-    """Price with toggleable overlays, volume and RSI.
-
-    Drawn with TradingView Lightweight Charts, where drag pans and pinch zooms
-    -- Plotly's drag selects a zoom box, so on a phone reading the chart
-    rearranged it. Lightweight Charts is a THIRD-PARTY COMPONENT and a
-    component that fails to load renders as blank space rather than an error,
-    so any failure falls back to the Plotly renderer. A prettier chart is not
-    worth an empty one.
-    """
+    """Price with toggleable overlays, volume and a relative-strength pane (Highcharts Stock)."""
     if symbol not in adj_close.columns:
         st.warning(f"No price data available for {symbol}")
         return
@@ -101,10 +89,10 @@ def render_stock_chart(
     if _bench_full is not None and not full_close.empty:
         rs_full = compute_rs_series(full_close, _bench_full)
 
-    try:
-        from src.ui.lightweight_chart import render_lightweight_chart
+    from src.ui.stock_chart import ChartUnavailable, render_stock_panes
 
-        render_lightweight_chart(
+    try:
+        render_stock_panes(
             symbol,
             close,
             open_=_col(open_prices),
@@ -114,299 +102,8 @@ def render_stock_chart(
             overlays=chosen,
             rs=rs_full,
         )
-        return
-    except Exception as exc:  # ChartUnavailable or anything the component throws
-        logger.info("Lightweight chart unavailable (%s); using Plotly.", exc)
-
-    render_candlestick_drilldown(
-        symbol,
-        rank_df,
-        adj_close,
-        high_prices=high_prices,
-        low_prices=low_prices,
-        volume_data=volume_data,
-    )
-
-
-def render_candlestick_drilldown(
-    symbol: str,
-    rank_df: pd.DataFrame,
-    adj_close: pd.DataFrame,
-    high_prices: pd.DataFrame | None = None,
-    low_prices: pd.DataFrame | None = None,
-    volume_data: pd.DataFrame | None = None,
-) -> None:
-    """Renders the single-stock technical terminal: candlesticks with optional
-    moving-average overlays, volume, and RSI (14).
-
-    No exit levels are drawn on the price panel. Both the 2xATR stop and the
-    chandelier exit were horizontal lines a few percent apart that crowded the
-    price action; both numbers are stated exactly in the key-level tiles.
-
-    Only the Plotly fallback for the stock page, which draws its own identity
-    band, statistics and key levels above the chart. The header card, KPI row
-    and spec panel this function used to draw (behind a `chrome` flag that its
-    one caller always turned off) were removed as unreachable.
-    """
-    if symbol not in adj_close.columns:
-        st.warning(f"No price data available for {symbol}")
-        return
-
-    # Timeframe and overlay pills. The moving averages are toggleable because
-    # they answer a question ("is it above its 20?") rather than being a
-    # permanent fixture -- and three always-on lines make the price itself hard
-    # to read on a phone.
-    c_tf, c_ma = st.columns([1.5, 2], vertical_alignment="center")
-    tf_choice = c_tf.segmented_control(
-        "Timeframe",
-        ["1M", "3M", "6M", "1Y", "All"],
-        default="6M",
-        key=f"tf_choice_{symbol}",
-        label_visibility="collapsed",
-    )
-    if not tf_choice:
-        tf_choice = "6M"
-
-    overlays = c_ma.pills(
-        "Overlays",
-        ["20 EMA", "50 EMA", "200 SMA"],
-        selection_mode="multi",
-        default=["20 EMA", "50 EMA"],
-        key=f"ma_overlays_{symbol}",
-        label_visibility="collapsed",
-    ) or []
-
-    tf_days_map = {"1M": 22, "3M": 64, "6M": 126, "1Y": 252, "All": 500}
-    _n_days = tf_days_map.get(tf_choice, 126)
-
-    _close = adj_close[symbol].dropna().iloc[-_n_days:]
-    _has_ohlc = (
-        high_prices is not None
-        and symbol in high_prices.columns
-        and low_prices is not None
-        and symbol in low_prices.columns
-    )
-
-    with st.container():
-        fig = make_subplots(
-            rows=3,
-            cols=1,
-            shared_xaxes=True,
-            row_heights=[0.62, 0.18, 0.20],
-            vertical_spacing=0.03,
-        )
-
-        # 1. Main Candlestick / Price Chart
-        if _has_ohlc:
-            # On the CLOSE's dates. Each series dropped its own NaNs, so a
-            # missing high shifted every later candle onto the wrong day.
-            _high = high_prices[symbol].reindex(_close.index)
-            _low = low_prices[symbol].reindex(_close.index)
-            _open = _close.shift(1).fillna(_close)
-            fig.add_trace(
-                go.Candlestick(
-                    x=_close.index,
-                    open=_open,
-                    high=_high,
-                    low=_low,
-                    close=_close,
-                    increasing_line_color="#067647",
-                    decreasing_line_color="#B42318",
-                    name="Price",
-                    showlegend=False,
-                ),
-                row=1,
-                col=1,
-            )
-        else:
-            fig.add_trace(
-                go.Scatter(
-                    x=_close.index,
-                    y=_close.values,
-                    mode="lines",
-                    # Price is the subject; the overlays are commentary. It gets
-                    # the darkest, heaviest line so it stays readable with two
-                    # moving averages crossing it.
-                    line={"color": "#0E1726", "width": 2.6},
-                    name="Price",
-                ),
-                row=1,
-                col=1,
-            )
-
-        # Moving-average overlays, drawn only when their pill is selected.
-        # Distinct hues rather than dash patterns: at this line weight a dotted
-        # indigo and a dashed amber read as the same grey on a phone screen.
-        _ma_specs = [
-            ("20 EMA", lambda c: c.ewm(span=20, min_periods=5).mean(), "#0ea5e9", 20),
-            ("50 EMA", lambda c: c.ewm(span=50, min_periods=10).mean(), "#7c3aed", 20),
-            ("200 SMA", lambda c: c.rolling(200, min_periods=30).mean(), "#B54708", 50),
-        ]
-        for _ma_name, _ma_calc, _ma_colour, _ma_min_len in _ma_specs:
-            if _ma_name not in overlays or len(_close) < _ma_min_len:
-                continue
-            _ma_series = _ma_calc(_close)
-            fig.add_trace(
-                go.Scatter(
-                    x=_ma_series.index,
-                    y=_ma_series.values,
-                    mode="lines",
-                    line={"color": _ma_colour, "width": 1.6},
-                    name=_ma_name,
-                ),
-                row=1,
-                col=1,
-            )
-
-        # No exit levels are drawn on the price panel any more. Both the 2xATR
-        # stop and the chandelier exit were horizontal lines a few percent
-        # apart, crowding the price action they were meant to annotate, and
-        # both numbers are stated exactly in the key-level tiles above -- where
-        # they can be read rather than estimated off an axis.
-        # 2. Volume Subplot
-        _vol_available = (
-            volume_data is not None
-            and symbol in volume_data.columns
-            and volume_data[symbol].dropna().gt(0).any()
-        )
-        if _vol_available:
-            _vol = volume_data[symbol].dropna().iloc[-_n_days:]
-            _vol_avg = _vol.rolling(20, min_periods=10).mean()
-            _vol_colors = [
-                (
-                    "rgba(5, 150, 105, 0.6)"
-                    if (pd.notna(a) and v > a)
-                    else "rgba(225, 29, 72, 0.4)"
-                )
-                for v, a in zip(_vol.values, _vol_avg.values)
-            ]
-            fig.add_trace(
-                go.Bar(
-                    x=_vol.index,
-                    y=_vol.values,
-                    marker_color=_vol_colors,
-                    name="Volume",
-                    showlegend=False,
-                ),
-                row=2,
-                col=1,
-            )
-            fig.add_trace(
-                go.Scatter(
-                    x=_vol_avg.index,
-                    y=_vol_avg.values,
-                    mode="lines",
-                    line={"color": "#5E6878", "width": 1.2},
-                    name="20D Vol Avg",
-                    showlegend=False,
-                ),
-                row=2,
-                col=1,
-            )
-
-        # 3. Relative Strength vs Nifty 500 subplot
-        full_stock_close = adj_close[symbol].dropna()
-        _bench_fb: pd.Series | None = None
-        try:
-            from src.loaders.price_loader import fetch_benchmark_history
-            _bench_fb = fetch_benchmark_history(period="5y")
-        except Exception:
-            pass
-        if _bench_fb is not None and not full_stock_close.empty:
-            rs_plotly = compute_rs_series(full_stock_close, _bench_fb)
-            rs_plotly = rs_plotly.iloc[-_n_days:]
-            if not rs_plotly.empty:
-                fig.add_trace(
-                    go.Scatter(
-                        x=rs_plotly.index,
-                        y=rs_plotly.values,
-                        mode="lines",
-                        line={"color": "#7c3aed", "width": 1.5},
-                        name="Rel Strength",
-                        showlegend=False,
-                        fill="tozeroy",
-                        fillcolor="rgba(124,58,237,0.06)",
-                    ),
-                    row=3,
-                    col=1,
-                )
-                fig.add_hline(
-                    y=100,
-                    line_color="#5E6878",
-                    line_dash="dot",
-                    line_width=1,
-                    opacity=0.6,
-                    row=3,
-                    col=1,
-                )
-
-        fig.update_layout(
-            template="plotly_white",
-            paper_bgcolor="#ffffff",
-            plot_bgcolor="#ffffff",
-            font={
-                "family": "Geist, sans-serif",
-                "size": 10,
-                "color": "#3C4657",
-            },
-            xaxis_rangeslider_visible=False,
-            yaxis={"title": "Price (₹)", "gridcolor": "#F1F3F6", "zeroline": False},
-            # rangemode="tozero" because a volume axis has no meaningful
-            # negative half. Production rendered this panel with an axis
-            # running to -250M and no bars at all; whatever left the trace
-            # empty, an axis that cannot go below zero cannot present that as
-            # a plausible reading.
-            yaxis2={
-                "title": "Volume",
-                "gridcolor": "#F1F3F6",
-                "zeroline": False,
-                "rangemode": "tozero",
-            },
-            yaxis3={
-                "title": "Rel Strength vs Nifty 500",
-                "gridcolor": "#F1F3F6",
-                "zeroline": False,
-            },
-            xaxis2={"gridcolor": "#F1F3F6"},
-            xaxis3={"gridcolor": "#F1F3F6"},
-            legend={
-                "orientation": "h",
-                "yanchor": "bottom",
-                "y": 1.02,
-                "xanchor": "left",
-                "x": 0,
-                "bgcolor": "rgba(255, 255, 255, 0.9)",
-                "bordercolor": "#E3E6EB",
-            },
-            margin={"l": 10, "r": 10, "t": 20, "b": 10},
-            height=490,
-            hovermode="x unified",
-            # Plotly's default drag is box-zoom, which on a touch screen means
-            # every stray tap zooms the chart and there is no obvious way back.
-            # Reading is the common case and zooming is the rare one, so drag
-            # is off and the modebar keeps the zoom tools for when it is wanted.
-            dragmode=False,
-        )
-        fig.update_xaxes(gridcolor="#F1F3F6")
-        if not _vol_available:
-            fig.add_annotation(
-                text="Volume unavailable for this symbol",
-                xref="paper", yref="y2", x=0.5, y=0, showarrow=False,
-                font={"size": 10, "color": "#667080"},
-            )
-        st.plotly_chart(
-            fig,
-            width="stretch",
-            key=f"drill_chart_{symbol}",
-            config={
-                "scrollZoom": False,
-                "doubleClick": "reset",
-                "displaylogo": False,
-                "modeBarButtonsToRemove": [
-                    "select2d", "lasso2d", "autoScale2d", "toggleSpikelines",
-                ],
-            },
-        )
+    except ChartUnavailable as exc:
+        st.warning(f"No chart for {symbol}: {exc}")
 
 
 def _script_json(obj) -> str:
@@ -436,514 +133,130 @@ def _script_json(obj) -> str:
 
 
 def _build_rrg_html(data_json: str) -> str:
-    """Build the self-contained animated Canvas RRG HTML component."""
-    _CSS = """
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{background:transparent;height:100%;overflow:hidden}
-body{font-family:'Geist',system-ui,sans-serif}
-#wrap{position:relative;width:100%}
-canvas{display:block;width:100%;cursor:default}
-#controls{display:flex;gap:8px;align-items:center;justify-content:center;
-  padding:8px 4px 2px;flex-wrap:wrap}
-.ctrl-btn{background:#F1F3F6;border:1px solid #E3E6EB;border-radius:6px;
-  padding:4px 14px;font-size:11.5px;cursor:pointer;color:#3C4657;
-  font-family:inherit;transition:background .15s}
-.ctrl-btn:hover{background:#E3E6EB}
-.ctrl-btn.active{background:#1e40af;color:#fff;border-color:#1e40af}
-#scrub{width:180px;accent-color:#2563eb;cursor:pointer}
-#frame-lbl{font-size:10.5px;color:#5E6878;font-family:'Geist Mono',monospace;
-  min-width:58px;text-align:center}
-#tip{position:absolute;pointer-events:none;background:rgba(15,23,42,.92);
-  color:#fff;padding:8px 11px;border-radius:8px;font-size:11px;line-height:1.65;
-  display:none;z-index:10;max-width:195px;white-space:nowrap}
-@media(prefers-color-scheme:dark){
-  .ctrl-btn{background:#1F2A3A;border-color:#3C4657;color:#D0D5DD}
-  .ctrl-btn:hover{background:#3C4657}
-}
-</style>"""
+    """The Relative Rotation Graph as a self-contained Highcharts page.
 
-    _HTML_WRAP = """
-<div id="wrap"><canvas id="rrg"></canvas><div id="tip"></div></div>
+    One line series per industry (its trail, ending in a larger dot), quadrants
+    drawn behind, a tooltip with RS and Momentum, play/scrub through the trail,
+    and tap-to-isolate. Highcharts is inlined, so nothing loads from the network.
+    """
+    from src.ui.highcharts_lib import lib as _lib
+
+    _CSS = """<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:transparent;height:100%;overflow:hidden;font-family:'Geist',system-ui,sans-serif}
+#c{width:100%}
+#controls{display:flex;gap:8px;align-items:center;justify-content:center;padding:6px 4px 2px;flex-wrap:wrap}
+.ctrl-btn{background:#F1F3F6;border:1px solid #E3E6EB;border-radius:6px;padding:4px 14px;font-size:12px;
+  cursor:pointer;color:#3C4657;font-family:inherit}
+.ctrl-btn:hover{background:#E3E6EB}
+.ctrl-btn.active{background:#4F46E5;color:#fff;border-color:#4F46E5}
+#scrub{width:180px;accent-color:#4F46E5;cursor:pointer}
+#frame-lbl{font-size:12px;color:#5E6878;font-family:'Geist Mono',monospace;min-width:58px;text-align:center}
+</style>"""
+    _BODY = """<div id="c"></div>
 <div id="controls">
   <button class="ctrl-btn" id="btn-play">&#9654; Play</button>
   <input type="range" id="scrub" min="0" value="100">
   <span id="frame-lbl">Current</span>
   <button class="ctrl-btn" id="btn-rst">&#8635; Reset</button>
 </div>"""
-
     _JS = r"""
-<script>
 const DATA = """ + data_json + r""";
-
-// Industry names come from third-party feeds and the tooltip is HTML.
 function esc(v){return String(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-const canvas = document.getElementById('rrg');
-const ctx    = canvas.getContext('2d');
-const tip    = document.getElementById('tip');
-const btnPlay = document.getElementById('btn-play');
-const scrub   = document.getElementById('scrub');
-const frameLbl = document.getElementById('frame-lbl');
-
-// ── Bounds ─────────────────────────────────────────────────────────────────
-// Every current position, plus the trails of what is shown: a trail nobody
-// looks at must not stretch the plot and squeeze everything else into a corner.
-const _shown = s => !DATA.highlight.length || DATA.highlight.indexOf(s.industry) >= 0;
-const allR = DATA.sectors.flatMap(s => (_shown(s) && s.trail_r.length) ? s.trail_r.concat([s.rs_ratio]) : [s.rs_ratio]);
-const allM = DATA.sectors.flatMap(s => (_shown(s) && s.trail_m.length) ? s.trail_m.concat([s.rs_momentum]) : [s.rs_momentum]);
+const shown = s => !DATA.highlight.length || DATA.highlight.indexOf(s.industry) >= 0;
+const allR = DATA.sectors.flatMap(s => (shown(s) && s.trail_r.length) ? s.trail_r.concat([s.rs_ratio]) : [s.rs_ratio]);
+const allM = DATA.sectors.flatMap(s => (shown(s) && s.trail_m.length) ? s.trail_m.concat([s.rs_momentum]) : [s.rs_momentum]);
 const minX = Math.min(88,  allR.length ? Math.min(...allR) - 2 : 90);
 const maxX = Math.max(112, allR.length ? Math.max(...allR) + 2 : 110);
 const minY = Math.min(96,  allM.length ? Math.min(...allM) - 1.5 : 97);
 const maxY = Math.max(105, allM.length ? Math.max(...allM) + 1.5 : 104.5);
-
 const maxFrames = Math.max(...DATA.sectors.map(s => s.trail_r.length), 1);
-let frame = maxFrames - 1;
-let playing = false;
-let pulsePhase = 0;
-let playTimer = null;
-let selectedSector = null;
-
-scrub.max   = maxFrames - 1;
-scrub.value = maxFrames - 1;
-
-// ── Padding ────────────────────────────────────────────────────────────────
-const PAD = {t:40, r:16, b:52, l:50};
-
-// ── Hit test (returns industry name or null) ───────────────────────────────
-function hitTest(mx, my) {
-  const radius = 36;
-  let hit = null, minD = radius;
-  for (let i = 0; i < DATA.sectors.length; i++) {
-    const s = DATA.sectors[i];
-    const hIdx = Math.max(Math.min(frame, s.trail_r.length - 1), 0);
-    const hx = s.trail_r.length > 0 ? tx(s.trail_r[hIdx]) : tx(s.rs_ratio);
-    const hy = s.trail_m.length > 0 ? ty(s.trail_m[hIdx]) : ty(s.rs_momentum);
-    const d = Math.hypot(mx - hx, my - hy);
-    if (d < minD) { minD = d; hit = s.industry; }
-  }
-  return hit;
+let frame = maxFrames - 1, playing = false, playTimer = null, selected = null;
+const btnPlay = document.getElementById('btn-play'), scrub = document.getElementById('scrub'), lbl = document.getElementById('frame-lbl');
+scrub.max = maxFrames - 1; scrub.value = maxFrames - 1;
+const QUADS = [
+  {n:'Improving', x0:minX, x1:100, y0:100, y1:maxY, c:'rgba(79,70,229,.07)', t:'#4F46E5', ax:'left', ay:'top'},
+  {n:'Leading',   x0:100, x1:maxX, y0:100, y1:maxY, c:'rgba(6,118,71,.08)',  t:'#067647', ax:'right', ay:'top'},
+  {n:'Lagging',   x0:minX, x1:100, y0:minY, y1:100, c:'rgba(180,35,24,.07)', t:'#B42318', ax:'left', ay:'bottom'},
+  {n:'Weakening', x0:100, x1:maxX, y0:minY, y1:100, c:'rgba(181,71,8,.08)',  t:'#B54708', ax:'right', ay:'bottom'}];
+function pts(s, f){
+  const n = s.trail_r.length;
+  if(!n) return [{x:s.rs_ratio, y:s.rs_momentum}];
+  const e = Math.min(f, n-1);
+  return s.trail_r.slice(0, e+1).map((r,i)=>({x:r, y:s.trail_m[i]}));
 }
-
-// ── DPI-aware setup ────────────────────────────────────────────────────────
-let W = 0, H = 0, dpr = 1;
-function setupCanvas() {
-  dpr = window.devicePixelRatio || 1;
-  const rect = canvas.parentElement.getBoundingClientRect();
-  W = Math.max(rect.width, 300);
-  // Fill the frame the page gives the chart (taller on desktop, square-ish on
-  // a phone), less the play controls underneath.
-  const ctrl = document.getElementById('controls');
-  const ctrlH = ctrl ? ctrl.getBoundingClientRect().height + 6 : 48;
-  H = Math.max(280, Math.round(window.innerHeight - ctrlH));
-  canvas.width  = W * dpr;
-  canvas.height = H * dpr;
-  canvas.style.width  = W + 'px';
-  canvas.style.height = H + 'px';
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+function seriesFor(s){
+  const on = shown(s) && (selected===null || selected===s.industry);
+  const d = pts(s, frame), last = d.length-1;
+  d[last] = {x:d[last].x, y:d[last].y, marker:{enabled:true, radius:on?8:4, fillColor:s.color, lineColor:'#fff', lineWidth:2},
+    dataLabels:{enabled:on, format:esc(s.industry), align:'left', x:10, y:-6, allowOverlap:false, crop:false, overflow:'allow',
+      style:{color:s.color, fontSize:'11px', fontWeight:'600', textOutline:'2px #fff'}}};
+  return {name:s.industry, data:d, color:s.color, lineWidth:on?2:1, opacity:on?1:0.14, type:'line',
+    marker:{enabled:on, radius:3, symbol:'circle'}, states:{inactive:{opacity:on?1:0.14}, hover:{lineWidthPlus:0}},
+    custom:{s:s}, enableMouseTracking:on};
 }
-
-// ── Coordinate mapping ─────────────────────────────────────────────────────
-function tx(rx) { return PAD.l + (rx - minX) / (maxX - minX) * (W - PAD.l - PAD.r); }
-function ty(ry) { return (H - PAD.b) - (ry - minY) / (maxY - minY) * (H - PAD.t - PAD.b); }
-
-// ── Catmull-Rom smooth path ────────────────────────────────────────────────
-function drawSmooth(pts, alpha) {
-  if (pts.length < 2) return;
-  ctx.beginPath();
-  ctx.moveTo(pts[0][0], pts[0][1]);
-  for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[Math.max(i - 1, 0)];
-    const p1 = pts[i];
-    const p2 = pts[i + 1];
-    const p3 = pts[Math.min(i + 2, pts.length - 1)];
-    const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
-    const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
-    const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
-    const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
-    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2[0], p2[1]);
-  }
-  ctx.stroke();
+function quadrants(chart){
+  if(chart.quadG) chart.quadG.destroy();
+  const g = chart.quadG = chart.renderer.g('q').attr({zIndex:0}).add();
+  const X = chart.xAxis[0], Y = chart.yAxis[0];
+  QUADS.forEach(q=>{
+    const x0=X.toPixels(q.x0,false), x1=X.toPixels(q.x1,false), y0=Y.toPixels(q.y1,false), y1=Y.toPixels(q.y0,false);
+    chart.renderer.rect(x0,y0,x1-x0,y1-y0).attr({fill:q.c,zIndex:0}).add(g);
+    chart.renderer.text(q.n, q.ax==='left'?x0+10:x1-10, q.ay==='top'?y0+22:y1-12)
+      .attr({align:q.ax==='left'?'left':'right',zIndex:1}).css({color:q.t,fontSize:'13px',fontWeight:'700',opacity:.85}).add(g);
+  });
 }
-
-// ── Arrowhead at (x1,y1) pointing FROM (x0,y0) ────────────────────────────
-function drawArrow(x0, y0, x1, y1, color) {
-  const dx = x1 - x0, dy = y1 - y0;
-  const len = Math.hypot(dx, dy);
-  if (len < 4) return;
-  const ang = Math.atan2(dy, dx);
-  const sz = 9;
-  ctx.save();
-  ctx.translate(x1, y1);
-  ctx.rotate(ang);
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.lineTo(-sz, -sz * 0.42);
-  ctx.lineTo(-sz * 0.55, 0);
-  ctx.lineTo(-sz, sz * 0.42);
-  ctx.closePath();
-  ctx.fillStyle = color;
-  ctx.fill();
-  ctx.restore();
+let chart;
+function build(){
+  const ctrlH = document.getElementById('controls').getBoundingClientRect().height + 6;
+  const h = Math.max(300, window.innerHeight - ctrlH);
+  document.getElementById('c').style.height = h + 'px';
+  chart = Highcharts.chart('c', {
+    chart:{height:h, backgroundColor:'transparent', style:{fontFamily:"Geist,system-ui,sans-serif"}, animation:false, spacing:[8,8,4,4],
+      events:{render:function(){quadrants(this);}}},
+    credits:{enabled:false}, accessibility:{enabled:false}, title:{text:null}, legend:{enabled:false}, exporting:{enabled:false},
+    xAxis:{min:minX, max:maxX, startOnTick:false, endOnTick:false, gridLineWidth:0, lineColor:'#E3E6EB', tickColor:'#E3E6EB',
+      title:{text:'RS →', style:{color:'#5E6878', fontSize:'12px'}}, labels:{style:{color:'#5E6878', fontSize:'12px'}},
+      plotLines:[{value:100, color:'#0E1726', width:1, zIndex:3}]},
+    yAxis:{min:minY, max:maxY, startOnTick:false, endOnTick:false, gridLineWidth:0, title:{text:'↑ Momentum', style:{color:'#5E6878', fontSize:'12px'}},
+      labels:{style:{color:'#5E6878', fontSize:'12px'}}, plotLines:[{value:100, color:'#0E1726', width:1, zIndex:3}]},
+    tooltip:{useHTML:true, outside:false, backgroundColor:'rgba(15,23,42,.94)', borderWidth:0, shadow:false, style:{color:'#fff', fontSize:'12px'},
+      formatter:function(){
+        const s=this.series.options.custom.s;
+        return '<b style="color:#fff">'+esc(s.industry)+'</b><br>Quadrant: <b>'+esc(s.quadrant)+'</b><br>RS: <b>'+this.x.toFixed(2)+
+          '</b><br>Momentum: <b>'+this.y.toFixed(2)+'</b><br>Stocks: '+s.stocks;}},
+    plotOptions:{series:{animation:false, turboThreshold:0, stickyTracking:false, cursor:'pointer', states:{inactive:{enabled:true}},
+      point:{events:{click:function(){const n=this.series.name; selected=(selected===n)?null:n; draw();}}}}},
+    series: DATA.sectors.map(seriesFor)
+  });
 }
-
-// ── Draw tick labels on axis ───────────────────────────────────────────────
-// A readable step: one label per `px` pixels at most, rounded to 1/2/2.5/5.
-function niceStep(range, avail, px) {
-  const raw = range / Math.max(1, Math.floor(avail / px));
-  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
-  for (const m of [1, 2, 2.5, 5, 10]) { if (m * mag >= raw) return m * mag; }
-  return 10 * mag;
+function draw(){
+  DATA.sectors.forEach((s,i)=>{
+    const o = seriesFor(s);
+    chart.series[i].update({data:o.data, lineWidth:o.lineWidth, opacity:o.opacity, marker:o.marker, enableMouseTracking:o.enableMouseTracking, states:o.states}, false);
+  });
+  chart.redraw(false);
 }
-
-function drawTicks() {
-  ctx.font = '11px Geist Mono,monospace';
-  ctx.fillStyle = '#5E6878';
-  ctx.textAlign = 'center';
-  const availW = W - PAD.l - PAD.r;
-  const xStep = niceStep(maxX - minX, availW, 56);
-  for (let v = Math.ceil(minX / xStep) * xStep; v <= maxX; v += xStep) {
-    const xp = tx(v);
-    ctx.fillText(Number.isInteger(xStep) ? v.toFixed(0) : v.toFixed(1), xp, H - PAD.b + 16);
-    ctx.beginPath();
-    ctx.moveTo(xp, H - PAD.b);
-    ctx.lineTo(xp, H - PAD.b + 4);
-    ctx.strokeStyle = '#D0D5DD';
-    ctx.lineWidth = 0.8;
-    ctx.stroke();
-  }
-  ctx.textAlign = 'right';
-  const yStep = niceStep(maxY - minY, H - PAD.t - PAD.b, 34);
-  for (let v = Math.ceil(minY / yStep) * yStep; v <= maxY; v += yStep) {
-    const yp = ty(v);
-    ctx.fillText(yStep < 1 ? v.toFixed(1) : v.toFixed(0), PAD.l - 6, yp + 4);
-    ctx.beginPath();
-    ctx.moveTo(PAD.l - 4, yp);
-    ctx.lineTo(PAD.l, yp);
-    ctx.stroke();
-  }
+function updateLabel(){const off=frame-(maxFrames-1); lbl.textContent = off===0 ? 'Current' : ('T'+off);}
+function stop(){playing=false; clearTimeout(playTimer); btnPlay.textContent='▶ Play'; btnPlay.classList.remove('active');}
+function stepPlay(){
+  if(!playing) return;
+  frame++; scrub.value=frame; updateLabel(); draw();
+  if(frame>=maxFrames-1){stop(); return;}
+  playTimer=setTimeout(stepPlay,130);
 }
-
-// ── Main draw ─────────────────────────────────────────────────────────────
-function draw() {
-  setupCanvas();
-  ctx.clearRect(0, 0, W, H);
-
-  const dark = window.matchMedia('(prefers-color-scheme:dark)').matches;
-  const bg   = dark ? '#0E1726' : '#ffffff';
-  const gridC = dark ? '#1F2A3A' : '#E3E6EB';
-  const crossC = dark ? '#3C4657' : '#667080';
-  const textC  = dark ? '#667080' : '#5E6878';
-
-  // canvas background
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
-
-  // quadrant fills
-  const quads = [
-    {x0:minX, x1:100, y0:100, y1:maxY, fill:'rgba(224,231,255,0.45)', lbl:'Improving', lc:'#3b82f6', ax:'left',  lxr:0.04, lyr:0.07},
-    {x0:100,  x1:maxX,y0:100, y1:maxY, fill:'rgba(220,252,231,0.45)', lbl:'Leading',   lc:'#067647', ax:'right', lxr:0.96, lyr:0.07},
-    {x0:minX, x1:100, y0:minY,y1:100,  fill:'rgba(254,226,226,0.45)', lbl:'Lagging',   lc:'#B42318', ax:'left',  lxr:0.04, lyr:0.93},
-    {x0:100,  x1:maxX,y0:minY,y1:100,  fill:'rgba(254,249,195,0.45)', lbl:'Weakening', lc:'#ca8a04', ax:'right', lxr:0.96, lyr:0.93},
-  ];
-  for (const q of quads) {
-    const px0 = tx(q.x0), py0 = ty(q.y1), px1 = tx(q.x1), py1 = ty(q.y0);
-    ctx.fillStyle = q.fill;
-    ctx.fillRect(px0, py0, px1 - px0, py1 - py0);
-    const lx = PAD.l + q.lxr * (W - PAD.l - PAD.r);
-    const ly = PAD.t + q.lyr * (H - PAD.t - PAD.b);
-    ctx.font = 'bold 12.5px Geist,system-ui';
-    ctx.fillStyle = q.lc;
-    ctx.textAlign = q.ax;
-    ctx.globalAlpha = 0.85;
-    ctx.fillText(q.lbl, lx, ly);
-    ctx.globalAlpha = 1;
-  }
-
-  // watermark
-  ctx.font = '10.5px Geist,system-ui';
-  ctx.fillStyle = textC;
-  ctx.textAlign = 'center';
-  ctx.globalAlpha = 0.28;
-  ctx.fillText('RRG ®  Quantum Momentum', tx(100), ty(maxY - (maxY - 100) * 0.13));
-  ctx.globalAlpha = 1;
-
-  // axis grid lines
-  ctx.strokeStyle = gridC;
-  ctx.lineWidth = 0.7;
-  ctx.setLineDash([]);
-  const availW2 = W - PAD.l - PAD.r;
-  const xStepG = Math.max(2, Math.ceil((maxX - minX) / Math.floor(availW2 / 30)));
-  for (let v = Math.ceil(minX / xStepG) * xStepG; v <= maxX; v += xStepG) {
-    ctx.beginPath(); ctx.moveTo(tx(v), PAD.t); ctx.lineTo(tx(v), H - PAD.b); ctx.stroke();
-  }
-  const yStep = (maxY - minY) > 8 ? 1 : 0.5;
-  for (let v = Math.ceil(minY*2)/2; v <= maxY; v += yStep) {
-    ctx.beginPath(); ctx.moveTo(PAD.l, ty(v)); ctx.lineTo(W - PAD.r, ty(v)); ctx.stroke();
-  }
-
-  // crosshairs at (100, 100)
-  ctx.strokeStyle = crossC;
-  ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(PAD.l, ty(100)); ctx.lineTo(W - PAD.r, ty(100)); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(tx(100), PAD.t); ctx.lineTo(tx(100), H - PAD.b); ctx.stroke();
-
-  // ticks and axis labels
-  drawTicks();
-  ctx.font = 'bold 10px Geist,system-ui';
-  ctx.fillStyle = textC;
-  ctx.textAlign = 'center';
-  ctx.fillText('JdK RS-Ratio →', tx((minX + maxX) / 2), H - 6);
-  ctx.save();
-  ctx.translate(13, ty((minY + maxY) / 2));
-  ctx.rotate(-Math.PI / 2);
-  ctx.fillText('↑ JdK RS-Momentum', 0, 0);
-  ctx.restore();
-
-  // ── Selected sector banner ────────────────────────────────────────────────
-  if (selectedSector) {
-    const sel = DATA.sectors.find(s => s.industry === selectedSector);
-    if (sel) {
-      const hIdx = Math.max(Math.min(frame, sel.trail_r.length - 1), 0);
-      const hr = sel.trail_r.length > 0 ? sel.trail_r[hIdx] : sel.rs_ratio;
-      const hm = sel.trail_m.length > 0 ? sel.trail_m[hIdx] : sel.rs_momentum;
-      ctx.save();
-      ctx.font = 'bold 12px Geist,system-ui';
-      ctx.fillStyle = sel.color;
-      ctx.textAlign = 'center';
-      ctx.fillText(sel.industry + '  ·  ' + sel.quadrant + '  ·  R:' + hr.toFixed(1) + '  M:' + hm.toFixed(1), W / 2, 18);
-      ctx.font = '10px Geist,system-ui';
-      ctx.fillStyle = textC;
-      ctx.fillText('Tap dot again or empty area to deselect', W / 2, 31);
-      ctx.restore();
-    }
-  }
-
-  // ── Sectors ──────────────────────────────────────────────────────────────
-  const hasFilter = DATA.highlight.length > 0;
-  const hasUserSel = selectedSector !== null;
-
-  for (let si = 0; si < DATA.sectors.length; si++) {
-    const s = DATA.sectors[si];
-    let active, alpha;
-    if (hasUserSel) {
-      active = (s.industry === selectedSector);
-      alpha  = active ? 1.0 : 0.07;
-    } else if (hasFilter) {
-      active = DATA.highlight.indexOf(s.industry) >= 0;
-      alpha  = active ? 1.0 : 0.12;
-    } else {
-      active = true;
-      alpha  = 1.0;
-    }
-    const trailN = s.trail_r.length;
-    const fend   = Math.min(frame + 1, trailN);
-    // The axes are fitted to the shown trails; faded ones may run past them.
-    ctx.save();
-    if (!active) {
-      ctx.beginPath();
-      ctx.rect(PAD.l, PAD.t, W - PAD.l - PAD.r, H - PAD.t - PAD.b);
-      ctx.clip();
-    }
-
-    // build pixel trail points up to current frame
-    const pts = [];
-    for (let i = 0; i < fend; i++) pts.push([tx(s.trail_r[i]), ty(s.trail_m[i])]);
-
-    if (pts.length >= 2) {
-      // smooth trail with graduated opacity
-      for (let j = 1; j < pts.length; j++) {
-        const segAlpha = 0.18 + 0.82 * (j / pts.length);
-        ctx.globalAlpha = alpha * segAlpha;
-        ctx.strokeStyle = s.color;
-        ctx.lineWidth   = active ? 2.5 : 1.2;
-        ctx.lineCap     = 'round';
-        ctx.lineJoin    = 'round';
-        drawSmooth(pts.slice(Math.max(j - 1, 0), j + 1), alpha * segAlpha);
-      }
-      // small historical dots on trail
-      if (active) {
-        for (let j = 0; j < pts.length - 1; j++) {
-          const segAlpha = 0.22 + 0.6 * (j / pts.length);
-          ctx.globalAlpha = alpha * segAlpha * 0.7;
-          ctx.beginPath();
-          ctx.arc(pts[j][0], pts[j][1], 3, 0, Math.PI * 2);
-          ctx.fillStyle = s.color;
-          ctx.fill();
-        }
-      }
-      // direction arrow at tip
-      if (active && pts.length >= 2) {
-        ctx.globalAlpha = alpha;
-        const last = pts[pts.length - 1];
-        const prev = pts[pts.length - 2];
-        drawArrow(prev[0], prev[1], last[0], last[1], s.color);
-      }
-    }
-
-    // head dot position
-    const hIdx = Math.max(Math.min(frame, trailN - 1), 0);
-    const hx   = trailN > 0 ? tx(s.trail_r[hIdx]) : tx(s.rs_ratio);
-    const hy   = trailN > 0 ? ty(s.trail_m[hIdx]) : ty(s.rs_momentum);
-
-    // pulsing ring (only active sectors at the final / current frame)
-    if (active && frame >= trailN - 1) {
-      const pulse = 0.5 + 0.5 * Math.sin(pulsePhase);
-      const ringR = 13 + pulse * 5;
-      ctx.globalAlpha = alpha * (0.25 + 0.25 * pulse);
-      ctx.beginPath();
-      ctx.arc(hx, hy, ringR, 0, Math.PI * 2);
-      ctx.strokeStyle = s.color;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    // white border circle
-    ctx.globalAlpha = alpha;
-    ctx.beginPath();
-    ctx.arc(hx, hy, active ? 9 : 5, 0, Math.PI * 2);
-    ctx.fillStyle = bg;
-    ctx.fill();
-    // coloured fill
-    ctx.beginPath();
-    ctx.arc(hx, hy, active ? 7.5 : 4, 0, Math.PI * 2);
-    ctx.fillStyle = s.color;
-    ctx.fill();
-
-    // label beside head — on mobile only show for selected; on wide show all
-    const showLabel = hasUserSel ? active : (W >= 420);
-    if (active && showLabel) {
-      ctx.globalAlpha = 1;
-      ctx.font = (active && hasUserSel ? 'bold 11px' : '9px') + ' Geist,system-ui';
-      ctx.fillStyle = s.color;
-      ctx.textAlign = 'left';
-      ctx.fillText(' ' + s.industry, hx + (hasUserSel ? 12 : 9), hy - 4);
-    }
-
-    ctx.restore();
-    ctx.globalAlpha = 1;
-  }
-}
-
-// ── RAF loop ──────────────────────────────────────────────────────────────
-function tick() {
-  pulsePhase += 0.07;
-  draw();
-  requestAnimationFrame(tick);
-}
-
-// ── Playback ──────────────────────────────────────────────────────────────
-function updateLabel() {
-  const off = frame - (maxFrames - 1);
-  frameLbl.textContent = off === 0 ? 'Current' : ('T' + off);
-}
-
-function stepPlay() {
-  if (!playing) return;
-  frame++;
-  scrub.value = frame;
-  updateLabel();
-  if (frame >= maxFrames - 1) {
-    playing = false;
-    btnPlay.textContent = '▶ Play';
-    btnPlay.classList.remove('active');
-    return;
-  }
-  playTimer = setTimeout(stepPlay, 130);
-}
-
-btnPlay.addEventListener('click', function() {
-  if (playing) {
-    playing = false;
-    clearTimeout(playTimer);
-    btnPlay.textContent = '▶ Play';
-    btnPlay.classList.remove('active');
-  } else {
-    playing = true;
-    frame = 0;
-    scrub.value = 0;
-    updateLabel();
-    btnPlay.textContent = '⏸ Pause';
-    btnPlay.classList.add('active');
-    stepPlay();
-  }
+btnPlay.addEventListener('click',function(){
+  if(playing){stop(); return;}
+  playing=true; frame=0; scrub.value=0; updateLabel(); draw();
+  btnPlay.textContent='⏸ Pause'; btnPlay.classList.add('active'); playTimer=setTimeout(stepPlay,130);
 });
-
-scrub.addEventListener('input', function() {
-  playing = false;
-  clearTimeout(playTimer);
-  btnPlay.textContent = '▶ Play';
-  btnPlay.classList.remove('active');
-  frame = parseInt(scrub.value);
-  updateLabel();
-});
-
-document.getElementById('btn-rst').addEventListener('click', function() {
-  playing = false;
-  clearTimeout(playTimer);
-  btnPlay.textContent = '▶ Play';
-  btnPlay.classList.remove('active');
-  frame = maxFrames - 1;
-  scrub.value = maxFrames - 1;
-  updateLabel();
-});
-
-// ── Hover tooltip ─────────────────────────────────────────────────────────
-canvas.addEventListener('mousemove', function(e) {
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
-  let nearest = null, minD = 20;
-  for (let i = 0; i < DATA.sectors.length; i++) {
-    const s    = DATA.sectors[i];
-    const hIdx = Math.max(Math.min(frame, s.trail_r.length - 1), 0);
-    const hx   = s.trail_r.length > 0 ? tx(s.trail_r[hIdx]) : tx(s.rs_ratio);
-    const hy   = s.trail_m.length > 0 ? ty(s.trail_m[hIdx]) : ty(s.rs_momentum);
-    const d    = Math.hypot(mx - hx, my - hy);
-    if (d < minD) { minD = d; nearest = s; }
-  }
-  if (nearest) {
-    const hIdx = Math.max(Math.min(frame, nearest.trail_r.length - 1), 0);
-    const hr   = nearest.trail_r.length > 0 ? nearest.trail_r[hIdx] : nearest.rs_ratio;
-    const hm   = nearest.trail_m.length > 0 ? nearest.trail_m[hIdx] : nearest.rs_momentum;
-    tip.style.display = 'block';
-    tip.style.left    = (mx + 14) + 'px';
-    tip.style.top     = (my - 8)  + 'px';
-    tip.innerHTML =
-      '<b style="color:' + nearest.color + '">' + esc(nearest.industry) + '</b><br>' +
-      'Quadrant: <b>' + esc(nearest.quadrant) + '</b><br>' +
-      'RS-Ratio: <b>' + hr.toFixed(2) + '</b><br>' +
-      'RS-Momentum: <b>' + hm.toFixed(2) + '</b><br>' +
-      'Stocks: ' + nearest.stocks;
-    canvas.style.cursor = 'pointer';
-  } else {
-    tip.style.display  = 'none';
-    canvas.style.cursor = 'default';
-  }
-});
-canvas.addEventListener('mouseleave', function() { tip.style.display = 'none'; });
-
-// ── Click / Tap to highlight ───────────────────────────────────────────────
-canvas.addEventListener('click', function(e) {
-  const rect = canvas.getBoundingClientRect();
-  const hit = hitTest(e.clientX - rect.left, e.clientY - rect.top);
-  selectedSector = (hit === selectedSector) ? null : hit;
-});
-
-canvas.addEventListener('touchend', function(e) {
-  e.preventDefault();
-  const t = e.changedTouches[0];
-  const rect = canvas.getBoundingClientRect();
-  const hit = hitTest(t.clientX - rect.left, t.clientY - rect.top);
-  selectedSector = (hit === selectedSector) ? null : hit;
-  tip.style.display = 'none';
-}, {passive: false});
-
-window.addEventListener('resize', setupCanvas);
-updateLabel();
-tick();
-</script>"""
-
-    return "<!DOCTYPE html><html><head><meta charset='utf-8'>" + _CSS + "</head><body>" + _HTML_WRAP + _JS + "</body></html>"
+scrub.addEventListener('input',function(){stop(); frame=parseInt(scrub.value); updateLabel(); draw();});
+document.getElementById('btn-rst').addEventListener('click',function(){stop(); frame=maxFrames-1; scrub.value=maxFrames-1; selected=null; updateLabel(); draw();});
+window.addEventListener('resize',function(){chart.destroy(); build();});
+build(); updateLabel();
+"""
+    return ("<!DOCTYPE html><html><head><meta charset='utf-8'>" + _CSS + "</head><body>" + _BODY
+            + "<script>" + _lib() + "</script><script>" + _JS + "</script></body></html>")
 
 
 def render_rrg_chart(
@@ -951,7 +264,7 @@ def render_rrg_chart(
     highlight_industries: list[str] | None = None,
     current_date_str: str = "",
 ) -> None:
-    """Animated Canvas RRG — 60 fps, Catmull-Rom trails, direction arrows, pulsing dots."""
+    """Relative Rotation Graph (Highcharts): trails, quadrants, play/scrub, tap to isolate."""
     if rrg_df.empty:
         st.info("Not enough historical data to compute Relative Rotation Graph.")
         return
@@ -993,122 +306,92 @@ def render_rrg_chart(
         st.iframe(_build_rrg_html(payload), height=780)
 
 
-def _build_echarts_html(option_json: str) -> str:
-    """Generic self-contained ECharts 5.4 HTML page with dark-mode awareness."""
-    return f"""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<style>
-*{{box-sizing:border-box;margin:0;padding:0}}
-html,body{{width:100%;height:100%;overflow:hidden;background:transparent;
-  font-family:'Geist',system-ui,sans-serif}}
-#c{{width:100%;height:100%}}
-</style>
-</head>
-<body>
-<div id="c"></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
-<script>
-(function(){{
-const dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches;
-const bg=dark?'#0E1726':'#ffffff';
-const fg=dark?'#E3E6EB':'#3C4657';
-const grid=dark?'#1F2A3A':'#F1F3F6';
-const chart=echarts.init(document.getElementById('c'),null,{{backgroundColor:bg}});
-const opt={option_json};
-opt.backgroundColor=bg;
-if(!opt.textStyle)opt.textStyle={{}};
-opt.textStyle.color=fg;
-opt.textStyle.fontFamily='Geist,system-ui,sans-serif';
-if(opt.title){{
-  const t=Array.isArray(opt.title)?opt.title[0]:opt.title;
-  if(!t.textStyle)t.textStyle={{}};
-  t.textStyle.color=fg;
-}}
-(opt.yAxis?[].concat(opt.yAxis):[]).forEach(a=>{{
-  if(a.splitLine&&!a.splitLine.lineStyle)a.splitLine.lineStyle={{}};
-  if(a.splitLine)a.splitLine.lineStyle.color=grid;
-}});
-chart.setOption(opt);
-window.addEventListener('resize',()=>chart.resize());
-}})();
-</script>
-</body>
-</html>"""
+def render_correlation_heatmap(corr: pd.DataFrame, syms: list[str]) -> None:
+    """Pairwise correlation of the given stocks as a Highcharts heatmap.
+
+    Darker indigo = move together more; the tooltip names both stocks and the
+    value, and cells carry the number when there is room for it.
+    """
+    from src.ui.highcharts_lib import lib, script_json
+
+    syms = [s for s in syms if s in corr.index]
+    if len(syms) < 2:
+        return
+    sub = corr.loc[syms, syms]
+    data = []
+    for yi, b in enumerate(syms):
+        for xi, a in enumerate(syms):
+            v = sub.at[a, b]
+            if pd.notna(v):
+                data.append([xi, yi, round(float(v), 2)])
+    n = len(syms)
+    height = min(720, 90 + 26 * n)
+    page = (
+        "<!DOCTYPE html><html><head><meta charset='utf-8'><style>*{box-sizing:border-box;margin:0}"
+        "html,body{background:transparent;font-family:'Geist',system-ui,sans-serif}</style></head>"
+        "<body><div id='c' style='width:100%;height:" + str(height) + "px'></div><script>"
+        + lib("highcharts-heatmap.js") + "</script><script>(function(){"
+        "const syms=" + script_json(syms) + ", data=" + script_json(data) + ";"
+        "const wide=document.getElementById('c').clientWidth/syms.length>=30;"
+        "Highcharts.chart('c',{chart:{type:'heatmap',backgroundColor:'transparent',spacing:[4,4,4,4],"
+        "style:{fontFamily:'Geist,system-ui,sans-serif'},animation:false},"
+        "credits:{enabled:false},accessibility:{enabled:false},title:{text:null},legend:{enabled:true,"
+        "align:'right',layout:'vertical',verticalAlign:'middle',symbolHeight:150,itemStyle:{color:'#5E6878',fontSize:'11px'}},"
+        "exporting:{enabled:false},"
+        "xAxis:{categories:syms,opposite:true,labels:{rotation:-60,style:{color:'#3C4657',fontSize:'11px'}},lineWidth:0,tickLength:0},"
+        "yAxis:{categories:syms,reversed:true,title:{text:null},labels:{style:{color:'#3C4657',fontSize:'11px'}},gridLineWidth:0},"
+        "colorAxis:{min:-0.2,max:1,startOnTick:false,endOnTick:false,tickPositions:[0,0.25,0.5,0.75,1],labels:{format:'{value:.2f}',style:{color:'#5E6878',fontSize:'11px'}},stops:[[0,'#F4F5F8'],[0.17,'#FFFFFF'],[0.6,'#A5A0F0'],[1,'#4338CA']]},"
+        "tooltip:{useHTML:true,backgroundColor:'rgba(15,23,42,.94)',borderWidth:0,shadow:false,style:{color:'#fff',fontSize:'12px'},"
+        "formatter:function(){const s=this.series.xAxis.categories,t=this.series.yAxis.categories;"
+        "const e=v=>String(v).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));"
+        "return '<b>'+e(t[this.point.y])+' \\u00d7 '+e(s[this.point.x])+'</b><br>Correlation <b>'+this.point.value.toFixed(2)+'</b>';}},"
+        "plotOptions:{heatmap:{borderWidth:1,borderColor:'#fff',animation:false}},"
+        "series:[{name:'Correlation',data:data,dataLabels:{enabled:wide,style:{fontSize:'10px',fontWeight:'500',textOutline:'none'},"
+        "formatter:function(){return this.point.value.toFixed(2);}}}]});"
+        "})();</script></body></html>"
+    )
+    st.iframe(page, height=height + 8)
 
 
-def _ts_ms(index: pd.Index) -> list[int]:
-    """Convert pandas DatetimeIndex to Unix millisecond timestamps."""
-    return [int(pd.Timestamp(ts).timestamp() * 1000) for ts in index]
+def render_industry_map(board: pd.DataFrame) -> None:
+    """Industries as bubbles: median 3M return across, share passing both filters up,
+    size = number of stocks. Top-right is strong and broad; bottom-left is weak and narrow."""
+    from src.ui.highcharts_lib import lib, script_json
 
-
-def render_correlation_heatmap(
-    corr_df: pd.DataFrame, syms: list[str], n_disp: int
-) -> None:
-    """Renders a 90-day return correlation matrix heatmap via ECharts."""
-    try:
-        disp = list(syms[: int(n_disp)])
-        sub = corr_df.loc[disp, disp]
-        # Data: [x_sym, y_sym, corr_value]
-        heat_data = [
-            [xs, ys, None if pd.isna(sub.at[xs, ys]) else round(float(sub.at[xs, ys]), 2)]
-            for xs in disp
-            for ys in disp
-        ]
-        syms_json = _script_json(disp)
-        data_json = _script_json(heat_data)
-        html = f"""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<style>
-*{{box-sizing:border-box;margin:0;padding:0}}
-html,body{{width:100%;height:100%;overflow:hidden;background:transparent;
-  font-family:'Geist',system-ui,sans-serif}}
-#c{{width:100%;height:100%}}
-</style>
-</head>
-<body>
-<div id="c"></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
-<script>
-(function(){{
-const dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches;
-const bg=dark?'#0E1726':'#ffffff';
-const fg=dark?'#E3E6EB':'#3C4657';
-const chart=echarts.init(document.getElementById('c'),null,{{backgroundColor:bg}});
-function esc(v){{return String(v).replace(/[&<>"']/g,function(c){{return {{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[c];}});}}
-const syms={syms_json};
-const data={data_json};
-chart.setOption({{
-  backgroundColor:bg,
-  textStyle:{{color:fg,fontFamily:'Geist,system-ui,sans-serif',fontSize:11}},
-  tooltip:{{trigger:'item',formatter:function(p){{
-    const d=p.data;
-    return '<b>'+esc(d[0])+'</b> × <b>'+esc(d[1])+'</b><br>Corr: <b>'+(d[2]!=null?d[2].toFixed(2):'—')+'</b>';
-  }}}},
-  grid:{{left:60,right:70,top:20,bottom:60}},
-  xAxis:{{type:'category',data:syms,splitArea:{{show:true}},
-    axisLabel:{{rotate:-45,fontSize:10,color:fg,fontFamily:'Geist Mono,monospace'}}}},
-  yAxis:{{type:'category',data:syms,inverse:true,splitArea:{{show:true}},
-    axisLabel:{{fontSize:10,color:fg,fontFamily:'Geist Mono,monospace'}}}},
-  visualMap:{{min:-0.2,max:1.0,calculable:false,orient:'vertical',right:0,top:'center',
-    inRange:{{color:['#ffffff','#f0f9ff','#bae6fd','#38bdf8','#0284c7']}},
-    textStyle:{{fontSize:9,color:fg}}}},
-  series:[{{type:'heatmap',data:data,
-    label:{{show:true,fontSize:10,color:'#0E1726',fontFamily:'Geist Mono,monospace',
-      formatter:function(p){{return p.data[2]!=null?p.data[2].toFixed(2):'—';}}
-    }}
-  }}]
-}});
-window.addEventListener('resize',()=>chart.resize());
-}})();
-</script>
-</body>
-</html>"""
-        st.iframe(html, height=420)
-    except Exception:
-        st.info("Unable to render correlation heatmap.")
-
-
+    need = {"Industry", "3M Return", "Pass %", "Stocks", "Top 50"}
+    if board.empty or not need <= set(board.columns):
+        return
+    rows = []
+    for _, r in board.iterrows():
+        if pd.isna(r["3M Return"]):
+            continue
+        rows.append({"name": str(r["Industry"]), "x": round(float(r["3M Return"]) * 100, 1),
+                     "y": round(float(r["Pass %"]) * 100, 1), "z": int(r["Stocks"]),
+                     "top50": int(r["Top 50"])})
+    if len(rows) < 2:
+        return
+    page = (
+        "<!DOCTYPE html><html><head><meta charset='utf-8'><style>*{box-sizing:border-box;margin:0}"
+        "html,body{background:transparent;font-family:'Geist',system-ui,sans-serif}</style></head>"
+        "<body><div id='c' style='width:100%;height:420px'></div><script>"
+        + lib("highcharts-more.js") + "</script><script>(function(){"
+        "const rows=" + script_json(rows) + ";"
+        "const e=v=>String(v).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));"
+        "const xmax=Math.max.apply(null,rows.map(r=>r.x));const ymax=Math.min(100,Math.max(10,Math.ceil(Math.max.apply(null,rows.map(r=>r.y))*1.15/10)*10));const col=r=>r.x>=0?'#067647':'#B42318';"
+        "Highcharts.chart('c',{chart:{type:'bubble',backgroundColor:'transparent',animation:false,spacing:[8,12,4,4],"
+        "style:{fontFamily:'Geist,system-ui,sans-serif'},zooming:{type:null}},"
+        "credits:{enabled:false},accessibility:{enabled:false},title:{text:null},legend:{enabled:false},exporting:{enabled:false},"
+        "xAxis:{maxPadding:0.06,title:{text:'Median 3-month return \\u2192',style:{color:'#5E6878',fontSize:'12px'}},gridLineWidth:0,"
+        "labels:{format:'{value}%',style:{color:'#5E6878',fontSize:'12px'}},plotLines:[{value:0,color:'#98A1AE',width:1,dashStyle:'Dash'}]},"
+        "yAxis:{title:{text:'\\u2191 Share passing both filters',style:{color:'#5E6878',fontSize:'12px'}},min:0,max:ymax,endOnTick:false,tickInterval:ymax>60?20:10,gridLineColor:'#EDEFF3',"
+        "labels:{format:'{value}%',style:{color:'#5E6878',fontSize:'12px'}}},"
+        "tooltip:{useHTML:true,backgroundColor:'rgba(15,23,42,.94)',borderWidth:0,shadow:false,style:{color:'#fff',fontSize:'12px'},"
+        "formatter:function(){const p=this.point;return '<b>'+e(p.name)+'</b><br>3M median <b>'+(p.x>0?'+':'')+p.x.toFixed(1)+'%</b>"
+        "<br>Passing both <b>'+p.y.toFixed(0)+'%</b><br>'+p.z+' stocks \\u00b7 '+p.top50+' in the top 50';}},"
+        "plotOptions:{bubble:{fillOpacity:0.62,minSize:10,maxSize:46,animation:false,marker:{lineWidth:1,lineColor:'#fff'},"
+        "dataLabels:{enabled:true,allowOverlap:false,crop:false,overflow:'allow',style:{fontSize:'11px',fontWeight:'600',color:'#3C4657',textOutline:'2px #fff'},"
+        "formatter:function(){return e(this.point.name);}}}},"
+        "series:[{data:rows.map(r=>({name:r.name,x:r.x,y:r.y,z:r.z,top50:r.top50,color:col(r),labelrank:r.z,dataLabels:{align:(r.x>=(xmax*0.7)?'right':'center'),x:(r.x>=(xmax*0.7)?-14:0)}}))}]});"
+        "})();</script></body></html>"
+    )
+    st.iframe(page, height=428)
