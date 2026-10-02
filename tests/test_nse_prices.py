@@ -90,6 +90,20 @@ def test_an_action_filed_under_todays_symbol_applies_to_the_one_that_traded():
     assert out["TATACONSUM"].nunique() == 1 and float(out["TATACONSUM"].iloc[0]) == 10.0
 
 
+def test_a_correction_steps_aside_once_an_action_covers_it():
+    # SHRIRAMFIN 2025: a notes.json correction for a split NSE's yearly list later carried too.
+    closes, actions = _split_inputs()
+    notes = {"corrections": [{"symbol": "SPLT", "before": "2026-02-16", "factor": 0.5,
+                              "evidence": "test"}]}
+    out, rep = npx.adjusted_close(closes, actions.iloc[:1], ["SPLT"], notes=notes)
+    assert rep["corrections_superseded_by_an_action"] == ["SPLT 2026-02-16"]
+    assert out["SPLT"].nunique() == 1 and float(out["SPLT"].iloc[0]) == 50.0
+    # With no action listed, the correction alone does the job.
+    out, rep = npx.adjusted_close(closes, actions.iloc[:0], ["SPLT"], notes=notes)
+    assert rep["corrections_superseded_by_an_action"] == []
+    assert out["SPLT"].nunique() == 1
+
+
 def test_an_action_on_a_symbol_that_traded_stays_where_it_is():
     closes, actions = _split_inputs()
     moved = npx.on_trading_symbol(actions, closes, {"OLDSPLT": {"new_symbol": "SPLT"}})

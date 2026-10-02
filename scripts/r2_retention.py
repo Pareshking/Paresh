@@ -85,6 +85,35 @@ RETIRED_DATASETS: dict[str, str] = {
     "app/prices_extra": "snapshots/app_prices_extra",
 }
 
+# Never pruned, never retired (owner, 2026-10-03: the reference histories the
+# long price file is checked against must not be lost to a clean-up). A
+# dataset here, or under a prefix ending in "/", may not appear in either
+# table above, and no retired dataset's key root may hold one: make_plan
+# refuses the run otherwise.
+PROTECTED_DATASETS: tuple[str, ...] = (
+    "reference/",                       # Yahoo, eod2, Tijori, MarketLens, TejHQ, SS ...
+    "prices/screener/max_history",      # Screener's full history, weekly before the latest year
+)
+
+
+def _protected(dataset: str) -> bool:
+    return any(dataset == p or (p.endswith("/") and dataset.startswith(p))
+               for p in PROTECTED_DATASETS)
+
+
+def check_protected(datasets: dict[str, str], retired: dict[str, str]) -> None:
+    """Raise if a retention or retirement entry would reach a protected dataset."""
+    for ds in {**datasets, **retired}:
+        if _protected(ds):
+            raise ValueError(f"{ds} is protected (PROTECTED_DATASETS) and may not be pruned or retired")
+    # Pruning deletes only what a dataset's own manifests name; a retired
+    # dataset goes whole, so its key root must not hold a protected one.
+    for ds, root in retired.items():
+        for p in PROTECTED_DATASETS:
+            if f"archive/{p.rstrip('/')}/".startswith(root.rstrip("/") + "/"):
+                raise ValueError(f"{ds}'s key root {root} would reach protected {p}")
+
+
 _ENTRY = re.compile(
     r"^(?P<as_of>\d{4}-\d{2}-\d{2})/"
     r"(?:current\.json|revisions/(?P<sha>[0-9a-f]{64})\.json)$"
@@ -270,6 +299,7 @@ def plan_retired(archive: R2Archive, dataset: str, root: str,
 def make_plan(archive: R2Archive,
               datasets: dict[str, str] = RETAINED_DATASETS,
               retired: dict[str, str] = RETIRED_DATASETS) -> list[DatasetPlan]:
+    check_protected(datasets, retired)
     sizes = dict(archive.list_objects(""))
     return ([plan_dataset(archive, ds, root, sizes) for ds, root in datasets.items()]
             + [plan_retired(archive, ds, root, sizes, retired) for ds, root in retired.items()])

@@ -180,3 +180,13 @@ def test_a_holiday_stored_as_a_copy_of_the_session_before_is_found():
     close.iloc[4, :3] = close.iloc[3, :3]                      # a few unchanged stocks: normal
     out = na.copied_sessions(close, vol)
     assert list(out.index) == [days[2]]
+
+
+def test_a_stretch_in_bz_is_priced_and_eq_still_wins_a_shared_day():
+    """UNITECH, SUPREMEINF: moved to trade-for-trade (BZ), they dropped out of
+    the price file, and the return to EQ read as one fake jump over the gap."""
+    eq = _rows("UNITECH", [7.0, np.nan, np.nan, 7.4], [7.0] * 4).dropna(subset=["close"])
+    bz = _rows("UNITECH", [7.1, 7.2, 7.5, 9.9], [7.0] * 4, series="BZ")
+    close = na.wide(pd.concat([eq, bz], ignore_index=True))["close"]["UNITECH"]
+    assert close.tolist() == [7.0, 7.2, 7.5, 7.4]          # EQ on its days, BZ between
+    assert "BZ" not in na.SERIES                           # the Nano Cap universe is unchanged
