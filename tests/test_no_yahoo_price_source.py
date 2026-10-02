@@ -197,3 +197,20 @@ def test_backfill_asks_only_for_weekdays():
 
     days = weekdays_between(date(2026, 9, 25), date(2026, 9, 30))   # Fri .. Wed
     assert days == [date(2026, 9, 25), date(2026, 9, 28), date(2026, 9, 29), date(2026, 9, 30)]
+
+
+def test_source_rank_nse_then_ss_then_screener():
+    day = pd.Timestamp("2026-09-30")
+
+    def row(src, v):
+        return pd.DataFrame({"nifty500": [v], "nifty50": [v], "source": [src]},
+                            index=pd.DatetimeIndex([day], name="date"))
+
+    assert bs.merge(row("screener", 1.0), row("ss", 2.0)).iloc[0]["source"] == "ss"
+    assert bs.merge(row("ss", 2.0), row("nse", 3.0)).iloc[0]["source"] == "nse"
+
+
+def test_the_benchmark_is_daily_for_the_whole_backtest_window():
+    s = bs.read()["nifty500"].dropna()
+    recent = s[s.index >= s.index[-1] - pd.DateOffset(years=5)]
+    assert recent.index.to_series().diff().dt.days.max() <= 6, "a gap longer than a long weekend"

@@ -7,8 +7,9 @@ data/benchmarks.csv, one row per session:
     date, nifty500, nifty50, source
 
 `source` says where each row came from: "nse" (NSE's own daily bundle, the
-index rows of Pd<ddmmyy>.csv), or "screener" (Screener's index chart, which
-is daily for the last year and weekly before it). Checked on 2026-10-01: NSE
+index rows of Pd<ddmmyy>.csv), "ss" (its index chart, daily back to
+the index's start), or "screener" (Screener's index chart, daily for the
+last year and weekly before it). Checked on 2026-10-01: NSE
 printed Nifty 500 at 21857.75 and Screener's CNX500 the same.
 
 scripts/build_benchmarks.py builds and extends it; the daily sync commits it
@@ -32,6 +33,7 @@ COLUMNS: dict[str, str] = {
 # NSE's name for each column in the bundle's index rows, and Screener's id.
 NSE_NAMES: dict[str, str] = {"nifty500": "NIFTY 500", "nifty50": "NIFTY 50"}
 SCREENER_IDS: dict[str, str] = {"nifty500": "CNX500", "nifty50": "NIFTY"}
+SS_IDS: dict[str, str] = {"nifty500": "CNX500", "nifty50": "NIFTY"}
 FIELDS = ["date", "nifty500", "nifty50", "source"]
 
 
@@ -87,10 +89,15 @@ def index_closes(prices: pd.DataFrame) -> dict[str, float]:
     return out
 
 
+# Which row wins for the same date: NSE's own bundle, then SS (daily
+# back to the index's start), then Screener (weekly beyond its last year).
+SOURCE_RANK = {"nse": 0, "ss": 1, "screener": 2}
+
+
 def merge(existing: pd.DataFrame, new: pd.DataFrame) -> pd.DataFrame:
-    """Rows of `new` added to `existing`; an NSE row always beats a Screener one."""
+    """Rows of `new` added to `existing`; for one date the better-ranked source wins."""
     both = pd.concat([existing, new])
-    rank = (both["source"] != "nse").astype(int)  # nse sorts first
+    rank = both["source"].map(SOURCE_RANK).fillna(len(SOURCE_RANK)).astype(int)
     both = both.assign(_rank=rank.values).sort_values("_rank", kind="stable")
     both = both[~both.index.duplicated(keep="first")].drop(columns="_rank")
     return both.sort_index()

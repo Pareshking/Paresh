@@ -2,11 +2,14 @@
 
     python scripts/build_benchmarks.py --seed      # Screener history, then NSE days
     python scripts/build_benchmarks.py --update    # NSE days since the last row
+    python scripts/build_benchmarks.py --seed --ss --nse-days 0
+                                                   # SS' whole daily history
     python scripts/build_benchmarks.py --backfill-from 2021-10-01 --nse-days 400
                                                    # weekdays the file lacks (weekly era)
 
-NSE's daily bundle (the index rows of Pd<ddmmyy>.csv) is the record. Screener's
-index chart fills what NSE does not give: the seed's older history, which
+NSE's daily bundle (the index rows of Pd<ddmmyy>.csv) is the record. SS'
+index chart (daily, back to the index's start) and Screener's fill what NSE
+does not give: the seed's older history, which
 Screener serves weekly beyond its last year, and any recent session NSE
 refuses. An NSE row always replaces a Screener row for the same date.
 
@@ -51,6 +54,27 @@ def screener_rows(days: int, session: requests.Session | None = None) -> pd.Data
     frame = pd.DataFrame(cols).dropna(how="all")
     frame.index.name = "date"
     frame["source"] = "screener"
+    return frame
+
+
+def ss_rows(pages: int | None = None) -> pd.DataFrame:
+    """Both indices from SS, daily (pages=None: back to the index's start)."""
+    from src.loaders import ss_prices
+
+    cols = {}
+    for i, (column, symbol) in enumerate(bs.SS_IDS.items()):
+        if i:
+            time.sleep(ss_prices.DELAY_S)
+        rows, _ = ss_prices.fetch_history(symbol, pages)
+        if ss_prices.quality_problems(rows):
+            continue
+        cols[column] = pd.Series(rows["close"].astype(float).values,
+                                 index=pd.DatetimeIndex(pd.to_datetime(rows["date"])))
+    if not cols:
+        return pd.DataFrame(columns=bs.FIELDS[1:])
+    frame = pd.DataFrame(cols).dropna(how="all")
+    frame.index.name = "date"
+    frame["source"] = "ss"
     return frame
 
 
@@ -111,6 +135,8 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--seed", action="store_true", help="start from Screener's history")
+    ap.add_argument("--ss", action="store_true",
+                    help="add SS' daily index history (whole history with --seed)")
     ap.add_argument("--update", action="store_true", help="add the NSE days since the last row")
     ap.add_argument("--backfill-from", type=date.fromisoformat, default=None,
                     help="also ask NSE for weekdays from this date that have no row "
@@ -118,7 +144,7 @@ def main(argv=None) -> int:
     ap.add_argument("--nse-days", type=int, default=30,
                     help="most NSE bundles to request this run (default 30)")
     args = ap.parse_args(argv)
-    if not (args.seed or args.update or args.backfill_from):
+    if not (args.seed or args.update or args.backfill_from or args.ss):
         ap.error("pass --seed, --update and/or --backfill-from")
 
     frame = bs.read()
@@ -126,6 +152,11 @@ def main(argv=None) -> int:
     if args.seed:
         frame = bs.merge(frame, screener_rows(SEED_DAYS))
         frame = bs.merge(frame, screener_rows(365))  # daily for the last year
+    if args.ss:
+        try:
+            frame = bs.merge(frame, ss_rows(None if args.seed else 1))
+        except Exception as exc:  # noqa: BLE001  NSE and Screener still serve
+            print(f"SS skipped: {type(exc).__name__}: {exc}")
     today = ist_now().date()
     last_nse = frame.index[frame["source"] == "nse"].max() if len(frame) else None
     last = None if last_nse is None or pd.isna(last_nse) else last_nse.date()
@@ -157,10 +188,10 @@ def main(argv=None) -> int:
         print("::error::no benchmark rows from NSE or Screener")
         return 1
     bs.write(frame)
-    nse_n = int((frame["source"] == "nse").sum())
-    print(f"BENCHMARKS rows={len(frame)} (+{len(frame) - before}) nse={nse_n} "
-          f"screener={len(frame) - nse_n} first={frame.index.min().date()} "
-          f"last={frame.index.max().date()}")
+    counts = frame["source"].value_counts()
+    print(f"BENCHMARKS rows={len(frame)} (+{len(frame) - before}) "
+          + " ".join(f"{k}={int(counts.get(k, 0))}" for k in bs.SOURCE_RANK)
+          + f" first={frame.index.min().date()} last={frame.index.max().date()}")
     return 0
 
 
