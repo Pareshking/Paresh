@@ -4,6 +4,7 @@ Strategy Backtesting View Controller with Friction & Turnover Attribution.
 
 import html
 import math
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
@@ -68,6 +69,19 @@ def _long_file():
     return nse_long.load()
 
 
+HISTORICAL_INDUSTRIES = Path(__file__).resolve().parents[3] / "data" / "reference" / "historical_industries.csv"
+
+
+@st.cache_data(show_spinner=False)
+def _historical_industries() -> dict[str, str]:
+    """NSE sector for stocks no current list labels: {symbol: industry}."""
+    try:
+        frame = pd.read_csv(HISTORICAL_INDUSTRIES)
+    except (OSError, ValueError):
+        return {}
+    return dict(zip(frame["symbol"], frame["industry"]))
+
+
 def _history_inputs(rank_df: pd.DataFrame, liquidity_floor_cr: float) -> dict | None:
     """The long backtest's controls and inputs, or None when it cannot run.
 
@@ -119,10 +133,13 @@ def _history_inputs(rank_df: pd.DataFrame, liquidity_floor_cr: float) -> dict | 
     frame = close.loc[:cut, cols]
 
     # Industry for the cap: the current lists, then TradingView mapped to NSE's
-    # names. A stock nothing can place (mostly ones that left before today's
-    # lists) is its own group, not one shared "Other" the cap would squeeze.
+    # names, then data/reference/historical_industries.csv (NSE's sector for the
+    # names that left before today's lists, looked up 3 Oct 2026). A stock
+    # nothing places is its own group, not one shared "Other" the cap would squeeze.
     sec = rank_df.set_index("Symbol")["Industry"].to_dict() if "Industry" in rank_df.columns else {}
     sec.update(former_members.industry_for([c for c in cols if c not in sec]))
+    past = _historical_industries()
+    sec.update({c: past[c] for c in cols if sec.get(c, "Other") == "Other" and c in past})
     unlabelled = [c for c in cols if sec.get(c, "Other") == "Other"]
     sec.update({c: f"Unlabelled · {c}" for c in unlabelled})
 

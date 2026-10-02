@@ -162,3 +162,27 @@ def test_tejhq_fills_only_gaps_in_nses_list(tmp_path):
     assert n == 1 and out["symbol"].tolist() == ["ABC", "SUPRAJIT"]
     assert out.iloc[1]["price_factor"] == pytest.approx(0.1)
     assert with_tejhq(nse, tmp_path / "missing.csv") == (nse, 0)
+
+
+def test_the_historical_industries_use_nse_sector_names_and_fill_the_gaps():
+    import src.engine.pipeline  # noqa: F401
+    from src.loaders import former_members
+    from src.ui.views import backtest_view
+
+    frame = pd.read_csv(backtest_view.HISTORICAL_INDUSTRIES)
+    assert not frame["symbol"].duplicated().any()
+    allowed = {
+        "Automobile and Auto Components", "Capital Goods", "Chemicals", "Construction",
+        "Construction Materials", "Consumer Durables", "Consumer Services", "Diversified",
+        "Fast Moving Consumer Goods", "Financial Services", "Forest Materials", "Healthcare",
+        "Information Technology", "Media Entertainment & Publication", "Metals & Mining",
+        "Oil Gas & Consumable Fuels", "Power", "Realty", "Services", "Telecommunication",
+        "Textiles", "Utilities",
+    }
+    assert set(frame["industry"]) <= allowed
+    # Every stock any index ever listed now has an industry for the cap.
+    syms = sorted(iu.all_ever_members())
+    known = former_members.industry_for(syms)
+    past = dict(zip(frame["symbol"], frame["industry"]))
+    left = [s for s in syms if known.get(s, "Other") == "Other" and s not in past]
+    assert len(left) <= 5, left
