@@ -1,0 +1,83 @@
+PRESS RELEASE
+Mumbai, July 27, 2022
+
+                               Changes in Nifty Fixed Income indices
+
+      The Index Maintenance Sub-Committee - Debt of NSE Indices Limited, as part of its periodic review,
+      announces the following changes in below indices:
+
+      These changes shall become effective from August 01, 2022.
+      The following securities are being Excluded:
+                                         Sr.
+                Index Name                           ISIN               Security            Maturity
+                                         No.
+       Nifty 5yr Benchmark G-Sec                                5.74% GOVT. STOCK
+                                         1     IN0020210186                                15-Nov-26
+       Index                                                    2026
+       Nifty India Select 7 Government                          6.10% GOVT. STOCK
+                                         1     IN0020210095                                12-Jul-31
+       Bond Index (INR)                                         2031
+       Nifty India Select 7 Government                          7.17% GOVT. STOCK
+                                         2     IN0020170174                                08-Jan-28
+       Bond Index (INR)                                         2028
+       Nifty India Select 7 Government                          6.10% GOVT. STOCK
+                                         1     IN0020210095                                12-Jul-31
+       Bond Index (USD)                                         2031
+       Nifty India Select 7 Government                          7.17% GOVT. STOCK
+                                         2     IN0020170174                                08-Jan-28
+       Bond Index (USD)                                         2028
+
+
+      The following securities are being Included:
+                                         Sr.
+                Index Name                           ISIN               Security            Maturity
+                                         No.
+       Nifty 5yr Benchmark G-Sec                                7.38% GOVT. STOCK
+                                         1     IN0020220037                                20-Jun-27
+       Index                                                    2027
+       Nifty India Select 7 Government                          7.38% GOVT. STOCK
+                                         1     IN0020220037                                20-Jun-27
+       Bond Index (INR)                                         2027
+       Nifty India Select 7 Government                          7.10% GOVT. STOCK
+                                         2     IN0020220011                                18-Apr-29
+       Bond Index (INR)                                         2029
+       Nifty India Select 7 Government                          7.38% GOVT. STOCK
+                                         1     IN0020220037                                20-Jun-27
+       Bond Index (USD)                                         2027
+       Nifty India Select 7 Government                          7.10% GOVT. STOCK
+                                         2     IN0020220011                                18-Apr-29
+       Bond Index (USD)                                         2029
+About National Stock Exchange of India Limited (NSE):
+National Stock Exchange of India (NSE) is the world’s largest derivatives exchange by trading volume
+(contracts) as per the statistics maintained by Futures Industry Association (FIA) for calendar year 2021.
+NSE is ranked 4th in the world in the cash equities by number of trades as per the statistics maintained by
+the World Federation of Exchanges (WFE) for calendar year 2021. NSE was the first exchange in India to
+implement electronic or screen-based trading. It began operations in 1994 and is ranked as the largest stock
+exchange in India in terms of total and average daily turnover for equity shares every year since 1995,
+based on SEBI data. NSE has a fully integrated business model comprising exchange listings, trading
+services, clearing and settlement services, indices, market data feeds, technology solutions and financial
+education offerings. NSE also oversees compliance by trading, clearing members and listed companies
+with the rules and regulations of SEBI and the exchange. NSE is a pioneer in technology and ensures the
+reliability and performance of its systems through a culture of innovation and investment in technology.
+For more information, please visit: www.nseindia.com
+
+
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary of
+NSE, provides a variety of indices and index related services for the capital markets. The company focuses
+on the index as a core product. The company owns and manages a portfolio of indices under the NIFTY
+brand of NSE, including the flagship index, the NIFTY 50. NIFTY equity indices comprises of broad-
+based benchmark indices, sectoral indices, strategy indices, thematic indices and customised indices. NSE
+Indices Limited also maintains fixed income indices based on Government of India securities, corporate
+bonds, money market instruments and hybrid indices. Many investment products based on NIFTY indices
+have been developed within India and abroad. These include index based derivatives traded on NSE, NSE
+IFSC and Singapore Exchange Ltd. (SGX) and a number of index funds and exchange traded funds. The
+flagship 'NIFTY 50' index is widely tracked and traded as the benchmark for Indian Capital Markets.
+For more information, please visit: www.niftyindices.com
+
+
+Press contact:
+Kumar Kartikey - Associate Vice President, Corporate Communications
+Priyanka Roy - Manager, Corporate Communications
+Email ID: cc@nse.co.in
+

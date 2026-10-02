@@ -1,0 +1,98 @@
+PRESS RELEASE
+Mumbai, April 23, 2025
+
+                           Changes in Nifty Fixed Income indices
+         A. Changes in weights of Nifty Fixed Income PRC Indices
+      These changes shall become effective from April 30, 2025.
+                                                                                   Revised
+                                                                        Existing
+          Index Name                         Sub-indices                           weights w.e.f.
+                                                                        weights
+                                                                                   April 30, 2025
+                            NIFTY 182 Day T-Bill Index                   17.26%             7.81%
+                            NIFTY 3 Month CD Index - A                   19.83%           10.64%
+       NIFTY Ultra Short    NIFTY 3 Month CP Index - A                    7.15%             4.92%
+       Duration Debt        NIFTY 6 Month CD Index - A                   20.17%           39.65%
+       Index A-I            NIFTY 6 Month CP Index - A                    3.43%           12.17%
+                            NIFTY 91 Day T-Bill Index                    17.26%             7.81%
+                            NIFTY AAA Ultra Short Duration Bond Index    14.91%           16.99%
+                            NIFTY 1 Year CD Index - A                    32.85%           39.96%
+                            NIFTY 1 Year CP Index - A                    10.55%             4.40%
+                            NIFTY 1 Year T-Bill Index                     3.33%             3.33%
+                            NIFTY 3 Month CD Index - A                   13.82%             5.10%
+       NIFTY Low            NIFTY 3 Month CP Index - A                    4.61%             2.34%
+       Duration Debt
+       Index A-I            NIFTY 6 Month CD Index - A                   12.18%           19.38%
+                            NIFTY 6 Month CP Index - A                    1.91%             5.96%
+                            NIFTY 60 Day T-Bill Index                     3.33%             3.33%
+                            NIFTY 91 Day T-Bill Index                     3.33%             3.33%
+                            NIFTY AAA Low Duration Bond Index            14.07%           12.85%
+                            NIFTY 1 Month CD Index - A                    5.60%           14.73%
+                            NIFTY 1 Month CP Index - A                    3.59%             7.37%
+                            NIFTY 1 Year CD Index - A                    24.09%           30.86%
+                            NIFTY 1 Year CP Index - A                     2.38%             1.58%
+       NIFTY Money          NIFTY 1 Year T-Bill Index                     3.00%             3.00%
+       Market Index A-I     NIFTY 182 Day T-Bill Index                    3.00%             3.00%
+                            NIFTY 2 Month CD Index - A                   10.40%             5.09%
+                            NIFTY 2 Month CP Index - A                    7.10%             2.51%
+                            NIFTY 3 Month CD Index - A                   12.47%             4.03%
+                            NIFTY 3 Month CP Index - A                    6.96%             1.85%
+                                                                            Revised
+                                                                 Existing
+  Index Name                      Sub-indices                               weights w.e.f.
+                                                                 weights
+                                                                            April 30, 2025
+                  NIFTY 30 Day T-Bill Index                        3.00%             3.00%
+                  NIFTY 6 Month CD Index - A                       9.87%           14.71%
+                  NIFTY 6 Month CP Index - A                       2.54%             2.26%
+                  NIFTY 60 Day T-Bill Index                        3.00%             3.00%
+                  NIFTY 91 Day T-Bill Index                        3.00%             3.00%
+                  NIFTY 1 Month CD Index - A                      10.57%           29.05%
+                  NIFTY 1 Month CP Index - A                       3.97%           14.74%
+                  NIFTY 1D Rate Index                             15.00%           15.00%
+                  NIFTY 2 Month CD Index - A                      19.54%             9.79%
+NIFTY Liquid      NIFTY 2 Month CP Index - A                       7.75%             5.07%
+Index A-I         NIFTY 3 Month CD Index - A                      21.31%             7.79%
+                  NIFTY 3 Month CP Index - A                       6.86%             3.56%
+                  NIFTY 30 Day T-Bill Index                        5.00%             5.00%
+                  NIFTY 60 Day T-Bill Index                        5.00%             5.00%
+                  NIFTY 91 Day T-Bill Index                        5.00%             5.00%
+                  NIFTY 1 Year CD Index - A                       17.97%           23.60%
+                  NIFTY 1 Year CP Index - A                        1.45%             1.78%
+                  NIFTY 3 Month CD Index - A                       7.93%             3.15%
+NIFTY Short       NIFTY 3 Month CP Index - A                       2.64%             1.46%
+Duration Debt     NIFTY AAA Short Duration Bond Index             28.60%           29.10%
+Index A-II        NIFTY Medium Duration G-Sec Index               10.00%           10.00%
+                  NIFTY Short Duration G-Sec Index                 5.00%             5.00%
+                  Nifty AAA Ultra Short to Medium Residual (ex
+                                                                  26.41%           25.91%
+                  Pvt Financial Services) Index
+                  NIFTY 1 Month CD Index - A                       2.76%            6.39%
+                  NIFTY 1 Year CD Index - A                       11.85%           13.37%
+                  NIFTY 2 Month CD Index - A                       5.10%            2.16%
+                  NIFTY 3 Month CD Index - A                       5.64%            1.71%
+NIFTY Banking &
+PSU Debt Index    NIFTY 6 Month CD Index - A                       4.65%            6.36%
+A-II              Nifty Banking & PSU Medium Duration Bond
+                                                                  12.76%           13.08%
+                  Index - A
+                  Nifty Banking & PSU Short Duration Bond
+                                                                  29.24%           28.93%
+                  Index - A
+                  NIFTY Short Duration G-Sec Index                28.00%           28.00%
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary of
+NSE, provides a variety of indices and index related services for the capital markets. The company
+focuses on the index as a core product. The company owns and manages a portfolio of indices under
+the Nifty brand of NSE, including the flagship index, the Nifty 50. Nifty equity indices comprises
+broad-based benchmark indices, sectoral indices, strategy indices, thematic indices, and customised
+indices. NSE Indices Limited also maintains fixed income indices based on Government of India
+securities, corporate bonds, money market instruments and hybrid indices. Many investment products
+based on Nifty indices have been developed within India and abroad. These include index-based
+derivatives traded on NSE and NSE International Exchange IFSC Limited (NSE IX) and a number of
+index funds and exchange traded funds. The flagship 'Nifty 50' index is widely tracked and traded as
+the benchmark for Indian Capital Markets.
+For more information, please visit: www.niftyindices.com
+Press contact:
+Email ID: cc@nse.co.in
+

@@ -1,0 +1,3 @@
+kind,file,index,action,symbol,evidence
+CANCEL,ind_prs21022025,NIFTY_MICROCAP_250,IN,RAYMONDLSL,"Revoked by ind_prs17032025 section 4 (Inclusion revoked)"
+CANCEL,ind_prs21022025,NIFTY_MICROCAP_250,OUT,TIRUMALCHM,"Revoked by ind_prs17032025 section 4 (Exclusion revoked)"

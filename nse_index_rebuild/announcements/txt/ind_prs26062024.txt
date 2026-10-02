@@ -1,0 +1,71 @@
+                   Changes in Nifty Fixed Income indices
+
+The Index Maintenance Sub-Committee (Debt) of NSE Indices Limited has decided to make changes
+as listed hereunder.
+
+On account of revision in the conservative issuer rating of Indian Renewable Energy Development
+Agency Limited (from AA+ to AAA) the Index Maintenance Sub-Committee (Debt) of NSE Indices
+Limited announces the following revision in Nifty fixed income indices:
+
+
+These changes shall become effective from June 28, 2024.
+
+
+1. Nifty Corporate Bond Indices
+
+ Index Name             ISIN              Issuer Name           Maturity Date    Remarks
+                                     Indian Renewable
+ Nifty AA+ Short                     Energy Development                          Inclusion
+                        INE202E07252                            29-Mar-27
+ Duration Bond Index                 Agency Limited                              announced
+                                                                                 earlier
+ Nifty AA+ Medium                    Indian Renewable                            proposed to
+ to long Duration       INE202E08193 Energy Development         26-Jul-34        be cancelled
+ Bond Index                          Agency Limited
+                                     Indian Renewable
+ Nifty AA+ Low                       Energy Development
+                        INE202E08078 Agency Limited             16-Apr-25        Proposed to
+ Duration Bond Index
+                                                                                 be excluded
+                                                                                 from the
+                                     Indian Renewable                            index
+ Nifty AA+ Medium
+                        INE202E07096 Energy Development         10-May-28
+ Duration Bond Index
+                                     Agency Limited
+   2. Changes in weights of Nifty Fixed Income PRC Indices
+                                                                                  Weights
+                                                                   Existing
+ Index name              Sub-indices                                              w.e.f. June
+                                                                   weights
+                                                                                  28, 2024.
+                         NIFTY Short Duration G-Sec Index                30.00%        30.00%
+                         NIFTY AAA Low Duration Bond Index                3.37%         3.11%
+                         NIFTY AA+ Low Duration Bond Index                0.26%         0.28%
+                         NIFTY AA+ Short Duration Bond Index              1.36%         1.61%
+ NIFTY Credit Risk       NIFTY AA Low Duration Bond Index                 9.78%         1.01%
+ Bond Index B-II         NIFTY AA- Low Duration Bond Index                2.91%         2.43%
+                         NIFTY AA Short Duration Bond Index              23.00%        23.67%
+                         NIFTY AA- Short Duration Bond Index              7.57%         8.76%
+                         Nifty AA & AA- Ultra Short to Medium
+                         to Long Residual (ex Pvt Financial              21.75%        29.13%
+                         Services) Index
+
+
+
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary of
+NSE, provides a variety of indices and index related services for the capital markets. The company
+focuses on the index as a core product. The company owns and manages a portfolio of indices under
+the Nifty brand of NSE, including the flagship index, the Nifty 50. Nifty equity indices comprises
+broad-based benchmark indices, sectoral indices, strategy indices, thematic indices, and customised
+indices. NSE Indices Limited also maintains fixed income indices based on Government of India
+securities, corporate bonds, money market instruments and hybrid indices. Many investment products
+based on Nifty indices have been developed within India and abroad. These include index-based
+derivatives traded on NSE and NSE International Exchange IFSC Limited (NSE IX) and a number of
+index funds and exchange traded funds. The flagship 'Nifty 50' index is widely tracked and traded as
+the benchmark for Indian Capital Markets.
+For more information, please visit: www.niftyindices.com
+Press contact:
+Email ID: cc@nse.co.in
+

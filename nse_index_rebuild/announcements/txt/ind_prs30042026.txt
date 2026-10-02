@@ -1,0 +1,47 @@
+PRESS RELEASE
+Mumbai, April 30, 2026
+
+
+                             Changes in Nifty Fixed Income indices
+
+      The Index Maintenance Sub-Committee (Debt) of NSE Indices Limited has decided to make changes
+      as listed hereunder. These changes shall become effective from May 06, 2026 (close of May 05, 2026).
+
+         A. Nifty AAA PSU Bond Plus SDL Sep 2026 50:50 Index
+      The following security is being included:
+
+        Sr. No.    Issuer State                          ISIN                          Maturity Date
+           1       HARYANA                               IN1620160177                  24-Aug-2026
+
+         B. Nifty AAA CPSE Bond Plus SDL Apr 2027 60:40 Index
+      The following security is being included:
+
+        Sr. No.    Issuer State                          ISIN                          Maturity Date
+           1       HARYANA                               IN1620160292                  29-Mar-2027
+
+
+         C. Nifty SDL Apr 2027 Index
+      The following security is being included:
+
+        Sr. No.    Issuer State                          ISIN                          Maturity Date
+           1       HARYANA                               IN1620160292                  29-Mar-2027
+
+
+
+      About NSE Indices Limited:
+      NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary
+      of NSE, provides a variety of indices and index related services for the capital markets. The company
+      focuses on the index as a core product. The company owns and manages a portfolio of indices under
+      the Nifty brand of NSE, including the flagship index, the Nifty 50. Nifty equity indices comprise of
+      broad-based benchmark indices, sectoral indices, strategy indices, thematic indices and customised
+      indices. NSE Indices Limited also maintains fixed income indices based on Government of India
+      securities, corporate bonds, money market instruments and hybrid indices. Many investment products
+      based on Nifty indices have been developed within India and abroad. These include index based
+      derivatives traded on NSE and NSE International Exchange IFSC Limited (NSE IX) and a number of
+index funds and exchange traded funds. The flagship 'Nifty 50' index is widely tracked and traded as
+the benchmark for Indian Capital Markets.
+
+For more information, please visit: www.niftyindices.com
+Press contact:
+Email ID: cc@nse.co.in
+

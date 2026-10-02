@@ -1,0 +1,138 @@
+PRESS RELEASE
+Mumbai, October 24, 2025
+
+                              Changes in Nifty Fixed Income indices
+
+      The Index Maintenance Sub-Committee (Debt) of NSE Indices Limited has decided to make changes
+      as listed hereunder.
+
+
+         A. Nifty G-Sec (Maturity) based indices
+      These changes shall become effective from October 31, 2025.
+         1. Nifty 4-8 yr G-Sec Index:
+      The following security is being Excluded:
+           ISIN                SECURITY NAME            MATURITY DATE
+       IN0020240076        7.02% GOVT. STOCK 2031         18-Jun-2031
+
+      The following security is being Included:
+           ISIN                SECURITY NAME            MATURITY DATE
+       IN0020210244        6.54% GOVT. STOCK 2032         17-Jan-2032
+
+
+         2. Nifty 8-13 yr G-Sec Index:
+      The following security is being Excluded:
+           ISIN                SECURITY NAME            MATURITY DATE
+       IN0020240019        7.10% GOVT. STOCK 2034         08-Apr-2034
+
+      The following security is being Included:
+           ISIN                SECURITY NAME            MATURITY DATE
+       IN0020250091        6.48% GOVT. STOCK 2035         06-Oct-2035
+
+
+         3. Nifty Composite G-sec Index:
+      The following securities are being Excluded:
+           ISIN                SECURITY NAME            MATURITY DATE
+       IN0020240035        7.34% GOVT. STOCK 2064         22-Apr-2064
+ IN0020240134        6.92% GOVT. STOCK 2039             18-Nov-2039
+
+The following securities are being Included:
+     ISIN                SECURITY NAME                 MATURITY DATE
+ IN0020250091        6.48% GOVT. STOCK 2035              06-Oct-2035
+ IN0020250067        6.01% GOVT. STOCK 2030              21-Jul-2030
+
+No changes are being made to the Nifty 11-15 yr G-Sec Index and Nifty 15 yr and above G-Sec Index.
+   B. Changes in weights of Nifty Fixed Income PRC Indices
+These changes shall become effective from October 31, 2025.
+
+                                                              Existing    Revised weights w.e.f.
+       Index                     Sub-indices
+                                                              weights         Oct 31, 2025
+                      Nifty 182 Day T-Bill Index                  7.46%                   5.00%
+                      Nifty 3 Month CD Index - A                31.07%                  34.05%
+                      Nifty 3 Month CP Index - A                  4.22%                   6.47%
+ Nifty Ultra Short
+                      Nifty 6 Month CD Index - A                35.49%                  33.12%
+ Duration Debt
+ Index A-I            Nifty 6 Month CP Index - A                  4.38%                   5.38%
+                      Nifty 91 Day T-Bill Index                   7.46%                   5.00%
+                      Nifty AAA Ultra Short Duration
+                      Bond Index                                 9.93%                   10.97%
+                      Nifty 1 Year CD Index - A                  8.33%                    7.59%
+                      Nifty 1 Year CP Index - A                  1.07%                    2.80%
+                      Nifty 1 Year T-Bill Index                  3.33%                    3.33%
+                      Nifty 3 Month CD Index - A                26.12%                   26.01%
+ Nifty Low            Nifty 3 Month CP Index - A                 4.05%                    6.73%
+ Duration Debt        Nifty 6 Month CD Index - A                29.82%                   25.52%
+ Index A-I            Nifty 6 Month CP Index - A                 3.68%                    4.16%
+                      Nifty 60 Day T-Bill Index                  3.33%                    3.33%
+                      Nifty 91 Day T-Bill Index                  3.33%                    3.33%
+                      Nifty AAA Low Duration Bond
+                      Index                                     16.94%                   17.19%
+                      Nifty 1 Month CD Index - A                 5.10%                    9.21%
+                      Nifty 1 Month CP Index - A                 2.78%                    4.57%
+                      Nifty 1 Year CD Index - A                  6.60%                    7.28%
+ Nifty Money          Nifty 1 Year CP Index - A                  0.93%                    0.61%
+ Market Index A-I     Nifty 1 Year T-Bill Index                  3.00%                    3.00%
+                      Nifty 182 Day T-Bill Index                 3.00%                    3.00%
+                      Nifty 2 Month CD Index - A                 7.60%                    7.10%
+                      Nifty 2 Month CP Index - A                 3.35%                    0.69%
+                                                         Existing    Revised weights w.e.f.
+     Index                    Sub-indices
+                                                         weights         Oct 31, 2025
+                  Nifty 3 Month CD Index - A               25.33%                  25.94%
+                  Nifty 3 Month CP Index - A                 3.32%                   1.42%
+                  Nifty 30 Day T-Bill Index                  3.00%                   3.00%
+                  Nifty 6 Month CD Index - A               26.78%                  24.18%
+                  Nifty 6 Month CP Index - A                 3.22%                   3.99%
+                  Nifty 60 Day T-Bill Index                  3.00%                   3.00%
+                  Nifty 91 Day T-Bill Index                  3.00%                   3.00%
+                  Nifty 1 Month CD Index - A                 7.84%                 13.47%
+                  Nifty 1 Month CP Index - A                 4.54%                   6.50%
+                  Nifty 1D Rate Index                      15.00%                  15.00%
+                  Nifty 2 Month CD Index - A               12.12%                  10.17%
+Nifty Liquid      Nifty 2 Month CP Index - A                 5.29%                   0.98%
+Index A-I         Nifty 3 Month CD Index - A               35.39%                  36.86%
+                  Nifty 3 Month CP Index - A                 4.81%                   2.01%
+                  Nifty 30 Day T-Bill Index                  5.00%                   5.00%
+                  Nifty 60 Day T-Bill Index                  5.00%                   5.00%
+                  Nifty 91 Day T-Bill Index                  5.00%                   5.00%
+                  Nifty 1 Year CD Index - A                  6.09%                   6.46%
+                  Nifty 1 Year CP Index - A                  0.91%                   0.63%
+                  Nifty 3 Month CD Index - A               20.10%                  21.39%
+                  Nifty 3 Month CP Index - A                 2.89%                   1.52%
+Nifty Short       Nifty AAA Short Duration Bond
+Duration Debt     Index                                    32.47%                  30.99%
+Index A-II        Nifty Medium Duration G-Sec Index        10.00%                  10.00%
+                  Nifty Short Duration G-Sec Index          5.00%                   5.00%
+                  Nifty AAA Ultra Short to Medium
+                  Residual (ex Pvt Financial Services)
+                  Index                                    22.54%                  24.01%
+                  Nifty 1 Month CD Index - A                2.16%                   3.92%
+                  Nifty 1 Year CD Index - A                 2.79%                   2.97%
+                  Nifty 2 Month CD Index - A                3.26%                   2.86%
+                  Nifty 3 Month CD Index - A               10.40%                  10.32%
+                  Nifty 6 Month CD Index - A               11.38%                   9.93%
+Nifty Banking &   Nifty Banking & PSU Medium
+PSU Debt Index    Duration Bond Index - A                  10.74%                  10.67%
+A-II              Nifty Banking & PSU Short
+                  Duration Bond Index - A                  30.63%                  30.69%
+                  Nifty Short Duration G-Sec Index         28.00%                  28.00%
+                  Nifty Banking & PSU Ultra Short to
+                  Medium Residual (ex Financial
+                  Services) Index - A                       0.64%                    0.64%
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary of
+NSE, provides a variety of indices and index related services for the capital markets. The company
+focuses on the index as a core product. The company owns and manages a portfolio of indices under
+the Nifty brand of NSE, including the flagship index, the Nifty 50. Nifty equity indices comprises
+broad-based benchmark indices, sectoral indices, strategy indices, thematic indices, and customised
+indices. NSE Indices Limited also maintains fixed income indices based on Government of India
+securities, corporate bonds, money market instruments and hybrid indices. Many investment products
+based on Nifty indices have been developed within India and abroad. These include index-based
+derivatives traded on NSE and NSE International Exchange IFSC Limited (NSE IX) and a number of
+index funds and exchange traded funds. The flagship 'Nifty 50' index is widely tracked and traded as
+the benchmark for Indian Capital Markets.
+For more information, please visit: www.Niftyindices.com
+Press contact:
+Email ID: cc@nse.co.in
+

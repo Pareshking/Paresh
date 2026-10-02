@@ -1,0 +1,220 @@
+                                PRESS RELEASE
+                                                                     Mumbai, March 25, 2022
+
+                      Annual Review of NIFTY Fixed Income Indices
+The Index Maintenance Sub-Committee - Debt (IMSC) of NSE Indices Limited has decided to make
+changes in NIFTY Fixed Income Indices as part of its annual review as given hereunder. These
+changes shall become effective from April 04, 2022 (close of April 03, 2022)
+
+A. Weights to sub-indices for various NIFTY Aggregate indices are reviewed as part of the
+   annual review exercise. The new weights for these aggregate indices are as detailed below:
+
+                                                                       Existing          Revised
+      Index Name                         Sub-Indices
+                                                                    Allocation (%)    Allocation (%)
+                           NIFTY 1D Rate Index                                   30                30
+                           NIFTY 91 Day T-Bill Index                              5                 5
+                           NIFTY 1 Month CP Index                                30                30
+                           NIFTY 2 Month CP Index                                11                11
+ NIFTY Liquid Index
+                           NIFTY 3 Month CP Index                                 7                 7
+                           NIFTY 1 Month CD Index                                10                10
+                           NIFTY 2 Month CD Index                                 4                 4
+                           NIFTY 3 Month CD Index                                 3                 3
+                           NIFTY All Maturity T-Bill Index                       15                15
+ NIFTY Money Market
+                           NIFTY All Maturity CP Index                           50                50
+ Index
+                           NIFTY All Maturity CD Index                           35                35
+                           NIFTY 3 Month CP Index                                19                19
+                           NIFTY 3 Month CD Index                                 6                 6
+                           NIFTY 6 Month CP Index                                 7                 7
+                           NIFTY 1 Year CP Index                                 19                12
+ NIFTY Low Duration
+                           NIFTY 6 Month CD Index                                 3                 3
+ Debt Index
+                           NIFTY 1 Year CD Index                                  6                13
+                           NIFTY AA Low Duration Bond Index                       6                 3
+                           NIFTY AA+ Low Duration Bond Index                      2                 3
+                           NIFTY AAA Low Duration Bond Index                     32                34
+                        NIFTY Short Duration G-Sec Index         15   15
+                        NIFTY AAA Short Duration Bond Index      51   54
+NIFTY Short Duration    NIFTY AA+ Short Duration Bond Index       4    6
+Debt Index              NIFTY AA Short Duration Bond Index       10    5
+                        NIFTY All Maturity CP Index              15   15
+                        NIFTY All Maturity CD Index               5    5
+                        NIFTY Medium Duration G-Sec Index        30   30
+                        NIFTY AAA Medium Duration Bond Index     47   45
+                        NIFTY AA+ Medium Duration Bond Index      4    4
+NIFTY Medium Duration   NIFTY AA Medium Duration Bond Index
+Debt Index                                                        4    6
+                        NIFTY AAA Short Duration Bond Index      12   12
+                        NIFTY AA+ Short Duration Bond Index       1    2
+                        NIFTY AA Short Duration Bond Index        2    1
+                        NIFTY Medium to Long Duration G-Sec
+                        Index                                    35   35
+                        NIFTY 10 Year SDL Index                  10   10
+                        NIFTY AAA Medium to Long Duration Bond
+                        Index                                    30   30
+NIFTY Medium to Long    NIFTY AA+ Medium to Long Duration Bond
+Duration Debt Index     Index                                     3    2
+                        NIFTY AA Medium to Long Duration Bond
+                        Index                                     3    3
+                        NIFTY AAA Medium Duration Bond Index     17   17
+                        NIFTY AA+ Medium Duration Bond Index      1    1
+                        NIFTY AA Medium Duration Bond Index       1    2
+                        NIFTY Long Duration G-Sec Index          45   45
+                        NIFTY 10 Year SDL Index                  10   10
+                        NIFTY AAA Long Duration Bond Index       15   15
+NIFTY Long Duration     NIFTY AAA Medium to Long Duration Bond
+Debt Index              Index                                    25   25
+                        NIFTY AA+ Medium to Long Duration Bond
+                        Index                                     2    2
+                        NIFTY AA Medium to Long Duration Bond
+                        Index                                     3    3
+                         NIFTY 10 Year SDL Index                    5    5
+                         NIFTY AA Medium Duration Bond Index        1    2
+                         NIFTY AA Medium to Long Duration Bond
+                         Index                                      2    2
+                         NIFTY AA Short Duration Bond Index         4    2
+                         NIFTY AA+ Medium Duration Bond Index       1    1
+NIFTY Composite Debt     NIFTY AA+ Medium to Long Duration Bond
+Index                    Index                                      1    1
+                         NIFTY AA+ Short Duration Bond Index        2    2
+                         NIFTY AAA Medium Duration Bond Index      13   12
+                         NIFTY AAA Medium to Long Duration Bond
+                         Index                                     17   17
+                         NIFTY AAA Short Duration Bond Index       20   21
+                         NIFTY All Duration G-Sec Index            35   35
+                         NIFTY AAA Short Duration Bond Index       63   61
+                         NIFTY AAA Medium Duration Bond Index      16   16
+                         NIFTY AA Short Duration Bond Index         9    8
+NIFTY Corporate Bond     NIFTY AA Medium Duration Bond Index        2    2
+Index                    NIFTY AA- Short Duration Bond Index        3    4
+                         NIFTY AA- Medium Duration Bond Index       1    1
+                         NIFTY AA+ Short Duration Bond Index        5    7
+                         NIFTY AA+ Medium Duration Bond Index       1    1
+                         NIFTY AAA Short Duration Bond Index       15   15
+                         NIFTY AA Short Duration Bond Index        39   34
+NIFTY Credit Risk Bond   NIFTY AA- Short Duration Bond Index
+Index                                                              11   16
+                         NIFTY AA+ Short Duration Bond Index       15   15
+                         NIFTY A Short-Term Bond Index             20   20
+                         NIFTY Banking & PSU Short Duration Bond
+                         Index                                     40   40
+                         NIFTY Banking & PSU Medium Duration
+NIFTY Banking & PSU      Bond Index                                15   15
+Debt Index               NIFTY Banking & PSU Medium to Long
+                         Duration Bond Index                       20   20
+                         NIFTY All Maturity CD Index               25   25
+                        NIFTY Short Duration G-Sec Index            10   10
+                        NIFTY Medium Duration G-Sec Index           10   14
+NIFTY All Duration G-
+Sec Index               NIFTY Medium to Long Duration G-Sec
+                        Index                                       51   40
+                        NIFTY Long Duration G-Sec Index             29   36
+                        NIFTY 3 Month CP Index                      37   37
+                        NIFTY 3 Month CD Index                      13   13
+                        NIFTY 6 Month CP Index                      19   18
+NIFTY Ultra Short       NIFTY 6 Month CD Index
+Duration Debt Index                                                  6    7
+                        NIFTY AAA Ultra Short Duration Bond Index   19   18
+                        NIFTY AA+ Ultra Short Duration Bond Index    2    2
+                        NIFTY AA Ultra Short Duration Bond Index     4    5
+                        NIFTY 30 Day T-Bill Index                   10   10
+                        NIFTY 60 Day T-Bill Index                   10   10
+NIFTY All Maturity T-   NIFTY 91 Day T-Bill Index
+Bill Index                                                          37   40
+                        NIFTY 182 Day T-Bill Index                  22   20
+                        NIFTY 364 Day T-Bill Index                  21   20
+                        NIFTY 1 Month CD Index                      10   10
+                        NIFTY 2 Month CD Index                      10   10
+NIFTY All Maturity CD   NIFTY 3 Month CD Index
+Index                                                               34   28
+                        NIFTY 6 Month CD Index                      19   17
+                        NIFTY 1 Year CD Index                       27   35
+                        NIFTY 1 Month CP Index                      18   21
+                        NIFTY 2 Month CP Index                      12   11
+NIFTY All Maturity CP   NIFTY 3 Month CP Index
+Index                                                               52   48
+                        NIFTY 6 Month CP Index                      10   10
+                        NIFTY 1 Year CP Index                       10   10
+NIFTY AA Category       NIFTY AA+ Ultra Short Duration Bond Index   33   23
+Ultra Short Duration    NIFTY AA Ultra Short Duration Bond Index    48   62
+Bond Index              NIFTY AA- Ultra Short Duration Bond Index   19   15
+                        NIFTY AA+ Low Duration Bond Index           17   42
+NIFTY AA Category       NIFTY AA Low Duration Bond Index
+Low Duration Bond Index                                             56   36
+                        NIFTY AA- Low Duration Bond Index           27   22
+NIFTY AA Category       NIFTY AA+ Short Duration Bond Index         24   41
+Short Duration Bond     NIFTY AA Short Duration Bond Index          59   41
+Index                   NIFTY AA- Short Duration Bond Index         17   18
+ NIFTY AA Category       NIFTY AA+ Medium Duration Bond Index               38             31
+ Medium Duration Bond    NIFTY AA Medium Duration Bond Index                44             52
+ Index                   NIFTY AA- Medium Duration Bond Index               18             17
+                         NIFTY AA+ Medium to Long Duration Bond
+                         Index                                              44             36
+ NIFTY AA Category
+                         NIFTY AA Medium to Long Duration Bond
+ Medium to Long Duration
+                         Index                                              45             51
+ Bond Index
+                         NIFTY AA- Medium to Long Duration Bond
+                         Index                                              11             13
+ NIFTY AA Category       NIFTY AA+ Long Duration Bond Index                 48             72
+ Long Duration Bond      NIFTY AA Long Duration Bond Index                  33             22
+ Index                   NIFTY AA- Long Duration Bond Index                 19              6
+
+
+B. As part of the annual review of composition of states of NIFTY 10 Year SDL index, the
+   changes in the index portfolio are as detailed below:
+
+
+Following states are excluded:
+ Sr. No.   State
+ 1         Andhra Pradesh
+ 2         Chhattisgarh
+ 3         Jammu and Kashmir
+
+
+Following states are included:
+ Sr. No.    State
+ 1          Punjab
+ 2          Kerala
+ 3          Bihar
+About National Stock Exchange of India Limited (NSE):
+National Stock Exchange of India (NSE) is the world’s largest derivatives exchange by trading volume
+(contracts) as per the statistics maintained by Futures Industry Association (FIA) for calendar year 2021.
+NSE is ranked 4th in the world in the cash equities by number of trades as per the statistics maintained by
+the World Federation of Exchanges (WFE) for calendar year 2021. NSE was the first exchange in India to
+implement electronic or screen-based trading. It began operations in 1994 and is ranked as the largest stock
+exchange in India in terms of total and average daily turnover for equity shares every year since 1995,
+based on SEBI data. NSE has a fully integrated business model comprising exchange listings, trading
+services, clearing and settlement services, indices, market data feeds, technology solutions and financial
+education offerings. NSE also oversees compliance by trading, clearing members and listed companies
+with the rules and regulations of SEBI and the exchange. NSE is a pioneer in technology and ensures the
+reliability and performance of its systems through a culture of innovation and investment in technology.
+For more information, please visit: www.nseindia.com
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary of
+NSE, provides a variety of indices and index related services for the capital markets. The company focuses
+on the index as a core product. The company owns and manages a portfolio of indices under the NIFTY
+brand of NSE, including the flagship index, the NIFTY 50. NIFTY equity indices comprises of broad-
+based benchmark indices, sectoral indices, strategy indices, thematic indices and customised indices. NSE
+Indices Limited also maintains fixed income indices based on Government of India securities, corporate
+bonds, money market instruments and hybrid indices. Many investment products based on NIFTY indices
+have been developed within India and abroad. These include index based derivatives traded on NSE, NSE
+IFSC and Singapore Exchange Ltd. (SGX) and a number of index funds and exchange traded funds. The
+flagship 'NIFTY 50' index is widely tracked and traded as the benchmark for Indian Capital Markets.
+For more information, please visit: www.niftyindices.com
+
+
+For any clarifications please contact:
+Arijit Sengupta
+Chief Marketing & Communications Officer
+
+
+Kumar Kartikey
+Chief Manager, Corporate Communication
+Email id: cc@nse.co.in
+
