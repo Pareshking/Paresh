@@ -143,6 +143,7 @@ def _base_chart(height: int) -> dict:
         "layout": {
             "background": {"type": "solid", "color": "#ffffff"},
             "textColor": "#3C4657",
+            "attributionLogo": False,
             "fontFamily": "Geist Mono, monospace",
         },
         "grid": {
