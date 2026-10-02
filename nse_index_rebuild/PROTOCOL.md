@@ -46,6 +46,7 @@ A date range is `PRODUCTION` only if G1 to G8 all pass. A range with open items 
 | Nifty Midcap 150 | 37 | 0 | 0 | none |
 | Nifty Smallcap 250 | 59 | 0 | 0 | none |
 | Nifty Microcap 250 | 32 | 0 | 0 | none |
+| Nifty 500 | 119 | 38 | 9 | 2014-03-28 |
 
 - G3 (chain closure) holds for every index over its whole reconstructed range, and the gate script (`reverse2.py`) exits 0 with zero unresolved events: Nifty 50 and Next 50 from 2010-04-08, Smallcap 250 from 2016-04-29, Midcap 150 from 2016-09-30 and Microcap 250 from 2021-09-30 (its launch). Midcap 150 and Smallcap 250 only came into existence on 2016-04-01 (NSE restructuring notice of 2016-02-22), so nothing earlier is reconstructed for them. For all five, the earliest snapshot is the state implied before the first parsed event; the announcement archive downloaded here starts in January 2010, so membership before that is not claimed.
 - Nifty 50 correctly holds 51 securities from 2016-04-01 to 2017-05-26 because Tata Motors DVR was an additional security (stated in the 2016-02-22 notice); the size check allows for DVR shares.

@@ -38,5 +38,13 @@
   "chain_breaks": 0,
   "latest_chain_break": null,
   "oldest_snapshot": "2021-09-30"
+ },
+ "NIFTY_500": {
+  "expected_size_incl_dummies": 500,
+  "snapshots": 119,
+  "snapshots_wrong_size": 38,
+  "chain_breaks": 9,
+  "latest_chain_break": "2014-03-28",
+  "oldest_snapshot": ""
  }
 }

@@ -1,6 +1,6 @@
 import csv, json
 from reverse2 import run, INDS, cur
-EXP = {"NIFTY_50":50,"NIFTY_NEXT_50":50,"NIFTY_MIDCAP_150":150,"NIFTY_SMALLCAP_250":250,"NIFTY_MICROCAP_250":250}
+EXP = {"NIFTY_50":50,"NIFTY_NEXT_50":50,"NIFTY_MIDCAP_150":150,"NIFTY_SMALLCAP_250":250,"NIFTY_MICROCAP_250":250,"NIFTY_500":500}
 res, prob = run()
 al = list(csv.DictReader(open("rules/aliases.csv"))); ov = list(csv.DictReader(open("rules/overrides.csv")))
 out = {}

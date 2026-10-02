@@ -1,7 +1,7 @@
 import csv, collections, re, sys
-INDS = ["NIFTY_50","NIFTY_NEXT_50","NIFTY_MIDCAP_150","NIFTY_SMALLCAP_250","NIFTY_MICROCAP_250","NIFTY_TOTAL_MARKET"]
+INDS = ["NIFTY_50","NIFTY_NEXT_50","NIFTY_MIDCAP_150","NIFTY_SMALLCAP_250","NIFTY_MICROCAP_250","NIFTY_TOTAL_MARKET","NIFTY_500"]
 cur = {k: {r["Symbol"].strip().upper() for r in csv.DictReader(open(f"current/{k}.csv")) if r["Symbol"].strip() and not r["Symbol"].strip().upper().startswith("DUMMY")} for k in INDS}
-TARGET = {"NIFTY_50": 50, "NIFTY_NEXT_50": 50, "NIFTY_MIDCAP_150": 150, "NIFTY_SMALLCAP_250": 250, "NIFTY_MICROCAP_250": 250, "NIFTY_TOTAL_MARKET": 750}
+TARGET = {"NIFTY_50": 50, "NIFTY_NEXT_50": 50, "NIFTY_MIDCAP_150": 150, "NIFTY_SMALLCAP_250": 250, "NIFTY_MICROCAP_250": 250, "NIFTY_TOTAL_MARKET": 750, "NIFTY_500": 500}
 bad_snapshots = [(k, len(v), TARGET[k]) for k, v in cur.items() if len(v) != TARGET[k]]
 if bad_snapshots:
     raise SystemExit(f"current snapshot cardinality failure: {bad_snapshots}")
@@ -25,6 +25,17 @@ for r in ev:
     k = (r["effective"], r["index"], r["action"], r["symbol"])
     if k not in _best or (r["published"], r["file"]) > (_best[k]["published"], _best[k]["file"]): _best[k] = r
 ev = [r for r in ev if _best[(r["effective"], r["index"], r["action"], r["symbol"])] is r]
+# The same (index, action, symbol) announced again within 45 days is a revision of the earlier notice: keep the later-published one.
+import datetime as _dt
+_grp = collections.defaultdict(list)
+for r in ev: _grp[(r["index"], r["action"], r["symbol"])].append(r)
+_drop = set()
+for _k, _rows in _grp.items():
+    _rows.sort(key=lambda x: (x["published"], x["file"]))
+    for _a, _b in zip(_rows, _rows[1:]):
+        if _a["file"] != _b["file"] and _a["published"] and _b["published"] and (_dt.date.fromisoformat(_b["published"]) - _dt.date.fromisoformat(_a["published"])).days <= 45 and _a["effective"] != _b["effective"]:
+            _drop.add(id(_a))
+ev = [r for r in ev if id(r) not in _drop]
 def run(verbose=True):
     results = {}; problems = []
     for k in INDS:

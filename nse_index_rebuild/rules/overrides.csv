@@ -147,3 +147,13 @@ CANCEL,ind_prs21022025,NIFTY_TOTAL_MARKET,IN,RAYMONDLSL,"ind_prs17032025 section
 CANCEL,ind_prs21022025,NIFTY_TOTAL_MARKET,OUT,TIRUMALCHM,"ind_prs17032025 section 5 (Nifty Total Market): Raymond Lifestyle inclusion effective 2025-03-28 revoked; Thirumalai Chemicals exclusion revoked, because Raymond Lifestyle was included in Nifty 500 effective 2025-03-21"
 CANCEL,ind_prs23082024,NIFTY_TOTAL_MARKET,OUT,IDEA,ind_prs25092024 row 11 (Nifty Total Market): Vodafone Idea exclusion revoked; Prism Johnson exclusion
 ADD_EFF,ind_prs25092024,NIFTY_TOTAL_MARKET,OUT,PRSMJOHNSN,ind_prs25092024 row 11 (Nifty Total Market): Vodafone Idea exclusion revoked; Prism Johnson exclusion|2024-09-30
+VOID,ind_prs18022020,NIFTY_500,*,*,"Voided by ind_prs13052020 A.1 (replacements effective 2020-03-27 from press releases of Feb 18, Mar 12, Mar 19 2020 'stand null and void')"
+VOID,ind_prs12032020,NIFTY_500,*,*,"Voided by ind_prs13052020 A.1 (replacements effective 2020-03-27 from press releases of Feb 18, Mar 12, Mar 19 2020 'stand null and void')"
+VOID,ind_prs19032020,NIFTY_500,*,*,"Voided by ind_prs13052020 A.1 (replacements effective 2020-03-27 from press releases of Feb 18, Mar 12, Mar 19 2020 'stand null and void')"
+VOID,ind_prs23082021,NIFTY_500,*,*,ind_prs15092021 revokes the REIT/InvIT inclusions announced on 2021-08-23 and revises the list of replacements; the revised Nifty 500 list in ind_prs15092021 supersedes the Aug 23 list
+CANCEL,ind_prs28022024,NIFTY_500,IN,IREDA,ind_prs19032024 revocation table row 1 (Nifty 500): IREDA inclusion revoked (impact cost); V-Guard exclusion revoked
+CANCEL,ind_prs28022024,NIFTY_500,OUT,VGUARD,ind_prs19032024 revocation table row 1 (Nifty 500): IREDA inclusion revoked (impact cost); V-Guard exclusion revoked
+CANCEL,ind_prs23082024,NIFTY_500,OUT,IDEA,ind_prs25092024 row 1 (Nifty 500): Vodafone Idea exclusion revoked; Prism Johnson exclusion
+ADD_EFF,ind_prs25092024,NIFTY_500,OUT,PRSMJOHNSN,ind_prs25092024 row 1 (Nifty 500): Vodafone Idea exclusion revoked; Prism Johnson exclusion|2024-09-30
+ADD_EFF,ind_prs23082024_1,NIFTY_500,OUT,TATAMTRDVR,ind_prs23082024_1 section A: Tata Motors Ltd 'A' Ordinary Shares - DVR (TATAMTRDVR) excluded from Nifty 500 / Nifty Total Market w.e.f. 2024-08-30 on cancellation of the DVR shares; no replacement (additional security)|2024-08-30
+ADD_EFF,ind_prs23082024_1,NIFTY_TOTAL_MARKET,OUT,TATAMTRDVR,ind_prs23082024_1 section A: Tata Motors Ltd 'A' Ordinary Shares - DVR (TATAMTRDVR) excluded from Nifty Total Market w.e.f. 2024-08-30 on cancellation of the DVR shares; no replacement (additional security)|2024-08-30

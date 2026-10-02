@@ -1,7 +1,7 @@
 import re, glob, os, csv
 IDX = {"NIFTY_50": r"(?:s&p\s*)?(?:cnx\s*)?nifty(?:\s*50)?(?:\s+index)?", "NIFTY_NEXT_50": r"(?:cnx\s*)?nifty\s*(?:next\s*50|junior)(?:\s+index)?",
        "NIFTY_MIDCAP_150": r"nifty\s*midcap\s*150(?:\s+index)?", "NIFTY_SMALLCAP_250": r"nifty\s*smallcap\s*250(?:\s+index)?",
-       "NIFTY_MICROCAP_250": r"nifty\s*microcap\s*250(?:\s+index)?", "NIFTY_TOTAL_MARKET": r"nifty\s*total\s*market(?:\s+index)?"}
+       "NIFTY_MICROCAP_250": r"nifty\s*microcap\s*250(?:\s+index)?", "NIFTY_TOTAL_MARKET": r"nifty\s*total\s*market(?:\s+index)?", "NIFTY_500": r"(?:s&p\s*)?(?:cnx|nifty)\s*500(?:\s+index)?"}
 HEAD = re.compile(r"^\s*(?:\(?\d+[\).]|[A-Za-z][\).])?\s*((?:s&p\s*)?(?:cnx|nifty)[^\n]{0,60}?)\s*(?:indices|index)?\s*:?\s*$", re.I)
 _ROW_STRICT = re.compile(r"^\s*(\d+)\s+(.+?)\s{2,}([A-Z0-9&\-_]+)\s*$")
 _ROW_RELAXED = re.compile(r"^\s*(\d+)\s+(.*[a-z].*?)\s+([A-Z][A-Z0-9&\-_]{1,19})\s*$")
@@ -11,7 +11,7 @@ class _Row:
 ROW = _Row()
 MON = "January February March April May June July August September October November December".split()
 def eff(t):
-    m = re.search(r"(?:effective from|with effect from|w\.e\.f\.?)\s+([A-Z][a-z]+)\s*(\d{1,2}),?\s*(\d{4})", t)
+    m = re.search(r"(?:effective from|with effect from|w\.e\.f\.?)\s+([A-Z][a-z]+)\s*(\d{1,2})[,\s]*(?:\d{1,2}[,\s]+)?(\d{4})", t)
     return f"{m.group(3)}-{MON.index(m.group(1))+1:02d}-{int(m.group(2)):02d}" if m and m.group(1) in MON else ""
 def idx_of(h):
     h = re.sub(r"\s+", " ", h.strip().lower())
@@ -31,10 +31,11 @@ MANUAL_NAMES = {"sesa goa": "SESAGOA"}  # name-only 2010 tables; symbol from NSE
 NAME2SYM.update(MANUAL_NAMES)
 ROWN = re.compile(r"^\s*(\d+)\s+([A-Za-z].+?)\s*$")
 NOSYM_HDR = re.compile(r"Sr\.?\s*No\.?\s+(?:Company|Scrip)\s+Name\s*$", re.I)
+PAREN = re.compile(r"^\s*\(?\d{1,2}\)\s+[A-Za-z]")
 SEC = re.compile(r"^\s*[A-Z]\.\s+\S")
 SEARCH = {"NIFTY_50": r"(?:cnx\s*)?nifty\s*50\b(?!\s*(?:value|equal|shariah|alpha|low|high|arbitrage|\d))|s&p\s*cnx\s*nifty\s*index", "NIFTY_NEXT_50": r"nifty\s*(?:next\s*50\b(?!\s*equal)|junior)",
           "NIFTY_MIDCAP_150": r"nifty\s*midcap\s*150\b(?!\s*(?:quality|momentum))", "NIFTY_SMALLCAP_250": r"nifty\s*smallcap\s*250\b(?!\s*(?:quality|momentum))",
-          "NIFTY_MICROCAP_250": r"nifty\s*microcap\s*250\b", "NIFTY_TOTAL_MARKET": r"nifty\s*total\s*market\b"}
+          "NIFTY_MICROCAP_250": r"nifty\s*microcap\s*250\b", "NIFTY_TOTAL_MARKET": r"nifty\s*total\s*market\b", "NIFTY_500": r"(?:cnx|nifty)\s*500\b(?!\s*(?:multicap|equal|shariah|ahimsa|value|low|quality|flexicap|largemidsmall))"}
 def idx_in_heading(t):
     hits = [k for k, p in SEARCH.items() if re.search(p, t, re.I)]
     return hits[0] if len(hits) == 1 else None
@@ -54,6 +55,9 @@ for f in sorted(glob.glob("announcements/txt/*.txt")):
         if re.search(r"being included|are included|is included|to be included", s, re.I) and not ROW.match(line): mode = "IN"; continue
         if re.search(r"being excluded|are excluded|is excluded|to be excluded", s, re.I) and not ROW.match(line): mode = "OUT"; continue
         h = HEAD.match(line)
+        if PAREN.match(line) and not h and not ROW.match(line):
+            cur, mode = None, None
+            continue
         if SEC.match(line) and not ROW.match(line) and not h:
             cur, mode = idx_in_heading(line), None
             continue

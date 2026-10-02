@@ -6,7 +6,7 @@ with open("open_issues.csv", "w", newline="") as o:
     for p in sorted(prob, key=lambda p: (p[0], p[1]), reverse=True): w.writerow([p[0], p[1], p[2], ";".join(p[3]), ";".join(p[4]), p[5], "OPEN"])
 import subprocess; subprocess.run(["python3", "gate_check.py"], capture_output=True)
 g = json.load(open("gate_status.json"))
-names = {"NIFTY_50":"Nifty 50","NIFTY_NEXT_50":"Nifty Next 50","NIFTY_MIDCAP_150":"Nifty Midcap 150","NIFTY_SMALLCAP_250":"Nifty Smallcap 250","NIFTY_MICROCAP_250":"Nifty Microcap 250"}
+names = {"NIFTY_50":"Nifty 50","NIFTY_NEXT_50":"Nifty Next 50","NIFTY_MIDCAP_150":"Nifty Midcap 150","NIFTY_SMALLCAP_250":"Nifty Smallcap 250","NIFTY_MICROCAP_250":"Nifty Microcap 250","NIFTY_500":"Nifty 500"}
 rows = "\n".join(f"| {names[k]} | {v['snapshots']} | {v['snapshots_wrong_size']} | {v['chain_breaks']} | {v['latest_chain_break'] or 'none'} |" for k, v in g.items())
 n = len(list(csv.DictReader(open("rules/aliases.csv"))))
 p = open("PROTOCOL.md").read()
