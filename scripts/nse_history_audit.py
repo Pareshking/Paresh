@@ -107,6 +107,10 @@ def audit(prices: pd.DataFrame, actions: pd.DataFrame, held: set[date], closed: 
     factors.index = close.index
     jumps = na.unexplained_jumps(close, factors)
     gaps = na.gap_days(close, w["prev_close"].set_axis(close.index))
+    copies = na.copied_sessions(close, w["volume"].set_axis(close.index))
+    from src.loaders.nse_calendar import impossible_sessions
+
+    calendar = impossible_sessions(close.index)
     renames = auto_renames(set(close.columns))
     refused: list[str] = []
     npx.chain_symbols(na.adjust(close, factors), renames, refused)
@@ -114,6 +118,8 @@ def audit(prices: pd.DataFrame, actions: pd.DataFrame, held: set[date], closed: 
         "per_year": pd.Series([d.year for d in held]).value_counts().sort_index(),
         "missing": missing_weekdays(held, closed, since, until),
         "gap_days": gaps,
+        "copies": copies,
+        "calendar": calendar,
         "verdicts": verdicts,
         "jumps": jumps,
         "renames": len([o for o in renames if o in close.columns]),
@@ -142,6 +148,14 @@ def write(result: dict, out: Path, since: date, until: date) -> str:
               f"{len(result['gap_days'])}**"]
     for d, share in result["gap_days"].head(20).items():
         lines.append(f"- {pd.Timestamp(d).date()}: {share:.0%} of stocks")
+    copies = result.get("copies", pd.Series(dtype=float))
+    lines += ["", f"**Sessions that copy the one before (a holiday stored as a trading day): "
+              f"{len(copies)}**" + (f" — {', '.join(str(pd.Timestamp(d).date()) for d in copies.index[:40])}"
+                                   if len(copies) else "")]
+    cal = result.get("calendar", {})
+    lines += ["", f"**Sessions on a day NSE cannot trade (weekend not announced, fixed or published "
+              f"holiday): {len(cal)}**"]
+    lines += [f"- {d}: {why}" for d, why in sorted(cal.items())[:40]]
     lines += ["", "## 2. Corporate actions (split, bonus, consolidation, demerger)", "",
               "| Verdict | Actions |", "|---|---|"]
     lines += [f"| {k} | {n} |" for k, n in v["verdict"].value_counts().items()] if len(v) else ["| — | 0 |"]
@@ -164,6 +178,8 @@ def write(result: dict, out: Path, since: date, until: date) -> str:
     (out / "summary.json").write_text(json.dumps({
         "sessions": int(sum(result["per_year"])), "stocks": int(result["stocks"]),
         "missing_weekdays": len(result["missing"]), "gap_days": int(len(result["gap_days"])),
+        "copied_sessions": int(len(result.get("copies", ()))),
+        "calendar_flags": int(len(result.get("calendar", {}))),
         "actions": {k: int(n) for k, n in v["verdict"].value_counts().items()} if len(v) else {},
         "unexplained_jumps": int(len(j)), "renames": result["renames"],
         "renames_refused": len(result["refused"])}, indent=1) + "\n")

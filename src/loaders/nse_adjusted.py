@@ -81,6 +81,26 @@ def gap_days(close: pd.DataFrame, prev_close: pd.DataFrame,
     return frac[frac > share]
 
 
+COPY_SHARE = 0.9              # more stocks than this unchanged in close AND volume: a copy
+
+
+def copied_sessions(close: pd.DataFrame, volume: pd.DataFrame,
+                    share: float = COPY_SHARE) -> pd.Series:
+    """Sessions that repeat the one before: an NSE holiday stored as a trading day.
+
+    R2 holds a file for nearly every NSE holiday from 2021 (26 Jan, 15 Aug,
+    Diwali...; 2024 shows 265 "sessions" in a year of 262 weekdays), each a copy
+    of the session before it, so the next day's previous close still matches.
+    A real session never leaves nearly every stock's close and volume exactly
+    unchanged. Returns the share of stocks repeated, for those days.
+    """
+    c, v = close.sort_index(), volume.reindex_like(close.sort_index())
+    both = c.notna() & c.shift(1).notna() & v.notna() & v.shift(1).notna()
+    same = (c == c.shift(1)) & (v == v.shift(1)) & both
+    frac = same.sum(axis=1) / both.sum(axis=1).replace(0, np.nan)
+    return frac[frac > share]
+
+
 def _parsed(actions: pd.DataFrame) -> pd.DataFrame:
     """One row per (symbol, ex-date): the product of its parsed price factors.
 

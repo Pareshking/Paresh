@@ -15,10 +15,26 @@ DEEDEV, BE, 10-Aug-2026, 629.70, 630.00, 631.00, 620.00, 626.00, 626.20, 625.00,
 """
 
 
-def _mirror(tmp_path, days):
+def _mirror(tmp_path, days, dated=None):
+    """One file per day, its rows dated that day (or `dated`: a holiday copy)."""
     for d in days:
-        (tmp_path / f"sec_bhavdata_full_{d.strftime('%d%m%Y')}.csv").write_text(MIRROR)
+        rows = MIRROR.replace("10-Aug-2026", (dated or d).strftime("%d-%b-%Y"))
+        (tmp_path / f"sec_bhavdata_full_{d.strftime('%d%m%Y')}.csv").write_text(rows)
     return tmp_path
+
+
+def test_a_holiday_filed_as_a_copy_of_the_day_before_is_not_imported(tmp_path):
+    """The mirror's sec_bhavdata_full_26012024 is 25 Jan's file (DATE1 25-Jan-2024)."""
+    (tmp_path / "m").mkdir()
+    mirror = _mirror(tmp_path / "m", [date(2024, 1, 25)])
+    _mirror(mirror, [date(2024, 1, 26)], dated=date(2024, 1, 25))
+    with pytest.raises(bf.NotThatDay):
+        bf.mirror_prices(mirror / "sec_bhavdata_full_26012024.csv", date(2024, 1, 26))
+    sent = []
+    stats = imp.import_prices(mirror, set, tmp_path / "w", since=date(2024, 1, 1),
+                              until=date(2024, 12, 31),
+                              publish=lambda path, ds, src: sent.append(path.parent.name))
+    assert sent == ["2024-01-25"] and stats["copies"] == 1 and not stats["failed"]
 
 
 def test_a_mirror_file_becomes_the_rows_nses_bundle_gives(tmp_path):
@@ -165,3 +181,16 @@ def test_the_downloader_skips_holidays_and_stops_on_refusals(tmp_path, monkeypat
                         lambda self, url, **k: answers.get(url.split("/cm")[-1][:9], Resp(403)))
     fb.main(["--since", "2009-01-02", "--until", "2009-01-08", "--out", str(tmp_path)])
     assert [p.name for p in tmp_path.glob("cm*bhav.csv")] == ["cm02JAN2009bhav.csv"]   # 5 Jan: holiday; then refused
+
+
+def test_turnover_held_in_rupees_is_not_multiplied_again(tmp_path):
+    """The mirror's 2010-2018 files put rupees in TURNOVER_LACS (RELIANCE read as
+    Rs 2.8 crore crore a day); the column's unit is read off avg price x quantity."""
+    rupees = MIRROR.replace(", 119.43, ", ", 11942740.00, ").replace(", 6.25, ", ", 625000.00, ")
+    path = tmp_path / "sec_bhavdata_full_10082026.csv"
+    path.write_text(rupees)
+    til = bf.mirror_prices(path, date(2026, 8, 10)).set_index("symbol").loc["TIL"]
+    assert til["value"] == pytest.approx(11942740.0)
+    _mirror(tmp_path, [date(2026, 8, 10)])                 # the lakhs file is unchanged
+    til = bf.mirror_prices(path, date(2026, 8, 10)).set_index("symbol").loc["TIL"]
+    assert til["value"] == pytest.approx(119.43 * 1e5)

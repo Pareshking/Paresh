@@ -4,7 +4,7 @@ The one list of what is still open. Tick an item when it is done and verified,
 with the date and the PR or run that proves it; move it to **Done** at the
 bottom. Add anything promised in a conversation here the same day.
 
-_Last updated: 2026-10-02_
+_Last updated: 2026-10-03_
 
 ## Now
 
@@ -26,7 +26,11 @@ Rules and status: `docs/PRICE_PIPELINE.md`.
 | S3 | Nightly 22:02 IST: SS update, release + R2 `prices/ss`, three-source report | First scheduled run's summary shows the report; `prices/ss` on R2 | [ ] first run tonight (2 Oct) |
 | S4 | NSE history on R2 back to 2010 | `nse/prices_daily` from 10 Jun 2010 (0 failures), `nse/corporate_actions_history` 2010 – 2026 | [x] 2 Oct (#336, #342) |
 | S5 | Missing-days check 2010 – today: every weekday R2 lacks asked of NSE once (a bundle = a missing day, now saved; none = a holiday, recorded in `nse/closed_days`), incl. Jan – 9 Jun 2010 (the mirror starts 10 Jun) | `nse_collect` run shows 0 days to go since 2010-01-01 | [x] 2 Oct: 114 sessions found and saved, 130 holidays recorded; confirmation run 37037900424: 4,216 sessions 2010-01-04 to 2026-10-01, **0 days to go** |
-| S14 | History before 2010 for the 1 Jan 2010 ranking: 2008 – 2009 from NSE's classic bhavcopy, corporate actions from 2008 | `nse_history_import` with `pre2010_since=2008-01-01` | [ ] |
+| S14 | History before 2010 for the 1 Jan 2010 ranking: 2008 – 2009 from NSE's classic bhavcopy, corporate actions from 2008 | `nse_history_import` with `pre2010_since=2008-01-01` | [x] 2 Oct, run 37039302479: 488 sessions, 0 failed; 17 Oct 2009 Muhurat (a Saturday) to fetch: [ ] |
+| S15 | History audit 2008 – 2026 and its fixes | Audit run green; each finding fixed or explained | [x] 3 Oct, run 37047812302: (1) 500 of 584 unconfirmed splits/bonuses were one action counted twice (daily Bc + yearly list) — fixed (#348); (2) 13 weekend special sessions 2010 – 2020 missing — collected (run 37054756653); (3) every holiday from 2021 held as a copy of the day before (the mirror files one) — importer reads the file's own date, builder drops copies, calendar check (`nse_calendar.py`); (4) mirror turnover in rupees, not lakhs, 2010 – 2018 (value x 1e5) — importer reads the unit, builder rescales |
+| S16 | Long NSE price file for backtests (`nse_long_*.parquet`, release) | Built, units ~1 every year, no copies, 0 calendar flags | [ ] rebuild after S15's fixes (#345 merged; first build 37051588704 predates them) |
+| S17 | Backtest "History from 2010": any index (Nifty 50/100/500, Midcap, Smallcap, Microcap, Total Market), months, traded-value floor; no market-cap cutoff, no rights (owner, 3 Oct) | #346 merged; Nifty 500 from Jan 2010 run on the real file | [ ] |
+| S18 | Industry for the 217 index members no current list labels | `data/reference/historical_industries.csv`: NSE's four levels, each web-checked (owner's format) | [x] 3 Oct (#346): 171 high, 43 medium, 3 low |
 | S6 | Renames from NSE's symbol-change list and ISINs | 575 found, 0 conflicts, all 21 ledger renames among them | [x] 2 Oct (#341) |
 | S7 | Adjustment check across 2010 – 2026 (splits, bonuses, rights, demergers, renames) | Report: unexplained jumps listed and explained or fixed | [ ] after S5 |
 | S8 | Long backtests on the 2010+ NSE history, Nifty 500 universe (S13) | Owner reviews the results | [ ] after S7 |

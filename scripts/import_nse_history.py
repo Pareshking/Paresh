@@ -81,6 +81,8 @@ def _publish_day(source: Path, day: date, workdir: Path, publish=_publish) -> st
         rows.to_parquet(path, index=False, compression="zstd")
         publish(path, R2_PRICES, "nse_bhavdata_full_mirror")
         return None
+    except bf.NotThatDay as exc:              # a holiday filed as a copy of the day before
+        return f"copy: {exc}"
     except Exception as exc:  # noqa: BLE001  one bad file never stops the run
         return f"{type(exc).__name__}: {exc}"[:200]
 
@@ -120,7 +122,9 @@ def import_prices(mirror: Path, have, workdir: Path, *, since: date, until: date
                 results = list(pool.map(_publish_day, [files[d] for d in batch], batch,
                                         [workdir] * len(batch)))
             for day, err in zip(batch, results):
-                if err:
+                if err and err.startswith("copy:"):
+                    stats["copies"] = stats.get("copies", 0) + 1
+                elif err:
                     stats["failed"].append(f"{day}: {err}")
                 else:
                     stats["published"] += 1

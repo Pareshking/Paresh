@@ -79,20 +79,49 @@ def _num(series: pd.Series) -> pd.Series:
                          errors="coerce")
 
 
+class NotThatDay(ValueError):
+    """The file's own date is not the one its name gives: a holiday copy."""
+
+
+def file_dates(raw: pd.DataFrame) -> set[date]:
+    """The session dates a bhavcopy states in its rows (DATE1, or TIMESTAMP in the classic file)."""
+    col = "DATE1" if "DATE1" in raw.columns else "TIMESTAMP" if "TIMESTAMP" in raw.columns else None
+    if col is None:
+        return set()
+    parsed = pd.to_datetime(raw[col].astype(str).str.strip(), format="%d-%b-%Y", errors="coerce")
+    return {d.date() for d in parsed.dropna().unique()}
+
+
 def mirror_prices(path: Path, day: date) -> pd.DataFrame:
     """One mirror file as nse_bundle.PRICE_COLUMNS rows (stocks: mkt "N").
 
     TURNOVER_LACS is in lakhs (value / 1e5, two decimals); fields NSE's Pd
     file has and the mirror does not (security name, 52-week range) are empty.
+
+    Raises NotThatDay when the rows are dated another day: the mirror files a
+    copy of the previous session under each NSE holiday (sec_bhavdata_full_26012024
+    is 25 Jan's file, DATE1 25-Jan-2024), and those were stored as trading days.
     """
     raw = pd.read_csv(path, skipinitialspace=True, dtype=str)
     raw.columns = [c.strip().upper() for c in raw.columns]
+    stated = file_dates(raw)
+    if stated and stated != {day}:
+        raise NotThatDay(f"{path.name} is dated {', '.join(sorted(map(str, stated)))}, not {day}")
     if "TOTTRDQTY" in raw.columns:           # the classic layout: value in rupees, no 52-week range
         raw = raw.rename(columns={"OPEN": "OPEN_PRICE", "HIGH": "HIGH_PRICE", "LOW": "LOW_PRICE",
                                   "CLOSE": "CLOSE_PRICE", "PREVCLOSE": "PREV_CLOSE",
                                   "TOTTRDQTY": "TTL_TRD_QNTY", "TOTALTRADES": "NO_OF_TRADES"})
         raw["TURNOVER_LACS"] = (_num(raw["TOTTRDVAL"]) / 1e5).astype(str)
     sym = raw["SYMBOL"].astype(str).str.strip()
+    # TURNOVER_LACS holds rupees, not lakhs, in the mirror's 2010-2018 files:
+    # the column's own unit is read off the day's average price x quantity.
+    turnover = _num(raw["TURNOVER_LACS"])
+    traded = _num(raw["AVG_PRICE"]) * _num(raw["TTL_TRD_QNTY"]) if "AVG_PRICE" in raw else None
+    lakh = 1e5
+    if traded is not None:
+        r = (turnover * 1e5 / traded).replace([np.inf, -np.inf], np.nan).dropna()
+        if len(r) and r.median() > 1e3:
+            lakh = 1.0
     out = pd.DataFrame({
         "date": pd.Timestamp(day),
         "mkt": "N",
@@ -104,7 +133,7 @@ def mirror_prices(path: Path, day: date) -> pd.DataFrame:
         "high": _num(raw["HIGH_PRICE"]),
         "low": _num(raw["LOW_PRICE"]),
         "close": _num(raw["CLOSE_PRICE"]),
-        "value": _num(raw["TURNOVER_LACS"]) * 1e5,
+        "value": turnover * lakh,
         "volume": _num(raw["TTL_TRD_QNTY"]),
         "trades": _num(raw["NO_OF_TRADES"]) if "NO_OF_TRADES" in raw else np.nan,
         "corp_ind": "",

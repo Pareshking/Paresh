@@ -48,7 +48,10 @@ Policy and recovery: `docs/R2_RECOVERY_AND_RETENTION.md`. Layout and rules
 | `corporate_actions_log.json` | Corporate actions applied | `daily_sync` |
 | `former_member_prices.parquet/.json` | Prices for stocks that left the universe, so past months replay faithfully | `daily_sync` |
 | `nse_prices/closes.parquet`, `actions.parquet`, `notes.json` | Local NSE close and action copies (2 years) for the adjustment layer; `notes.json` holds one-off corrections and rename overrides | `sync_nse_prices` (monthly) |
-| `benchmarks.csv` | Nifty 500 and Nifty 50 daily closes from 8 Oct 2015 (NSE rows win, then SS, then Screener) | `daily_sync` (`build_benchmarks.py --update`) |
+| `benchmarks.csv` | Nifty 500 and Nifty 50 daily closes from 7 Jun 1999 (NSE rows win, then SS, then the Kaggle NSE dataset's index files, then Screener) | `daily_sync` (`build_benchmarks.py --update`); Kaggle rows once (#344) |
+| `reference/nse/holidays.csv`, `special_sessions.csv` | NSE's published trading holidays (its holiday-master API) and the weekend sessions it announced (Muhurat, Budget days, special Saturdays), for the calendar check `src/loaders/nse_calendar.py` | by hand / audit (3 Oct 2026) |
+| `reference/historical_industries.csv` | NSE's four-level classification for the 217 index members no current list labels (mostly gone before 2021), each web-checked, with source | 3 Oct 2026 (#346) |
+| Release `nse_long_close.parquet`, `nse_long_value.parquet`, `nse_long_report.json` | The long NSE price file, 2008 to date: adjusted closes and traded value (Rs Cr) for every stock any index ever listed; the Backtest page's "History from 2010" | `nse_long_prices.yml` weekly (`scripts/build_nse_long_prices.py`) |
 | `reference/nse/symbolchange.csv`, `namechange.csv`, `equity_l.csv` | NSE's ticker changes (1999 on), name changes and today's listed equities with ISINs | `sync_nse_reference` daily |
 | `reference/nse/isin_history.csv` | Every symbol–ISIN pair in NSE's bhavcopy, Jun 2011 – Jun 2021, first and last day | `build_isin_history.py`, once (history) |
 | `nse_market_caps.csv`, `nse_all_time_highs.csv`, `nse_tv_classification.csv`, `nse_fo_symbols.json`, `nse_trading_days.json`, `screener_company_ids.json` | Reference tables: market cap, all-time highs, industry labels, F&O list, trading calendar, Screener ids | `daily_sync` / collectors |
