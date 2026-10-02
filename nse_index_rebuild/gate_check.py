@@ -1,4 +1,4 @@
-import csv, collections, json
+import csv, json
 from reverse2 import run, INDS, cur
 EXP = {"NIFTY_50":50,"NIFTY_NEXT_50":50,"NIFTY_MIDCAP_150":150,"NIFTY_SMALLCAP_250":250,"NIFTY_MICROCAP_250":250}
 res, prob = run()

@@ -1,4 +1,4 @@
-import csv, re, glob, os, subprocess
+import csv, glob, os, subprocess
 rows = list(csv.DictReader(open("rules/aliases.csv")))
 def files_with(sym):
     out = subprocess.run(["grep","-lw","--",sym]+glob.glob("announcements/txt/*.txt"),capture_output=True,text=True).stdout.split()
