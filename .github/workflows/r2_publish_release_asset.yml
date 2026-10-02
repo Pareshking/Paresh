@@ -1,0 +1,71 @@
+name: R2 publish a release file (manual)
+
+# Publishes one file already on the data-latest release to an R2 dataset, as an
+# immutable revision with its manifest and checksum (scripts/r2_publish.py).
+# For one-off reference pulls made outside a scheduled job -- first use:
+# Screener's full price history (weekly before the latest year, back to 2005),
+# kept apart from the app's prices/screener store (owner, 2026-10-03: "at least
+# save it separately on R2"). A dataset r2_retention.py does not list is never
+# touched by retention.
+on:
+  workflow_dispatch:
+    inputs:
+      asset:
+        description: "File name on the data-latest release"
+        required: true
+      dataset:
+        description: "R2 dataset, e.g. prices/screener/max_history"
+        required: true
+      source:
+        description: "Source name recorded in the manifest"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: r2-publish-release-asset
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      PYTHONPATH: .
+      ASSET: ${{ inputs.asset }}
+      DATASET: ${{ inputs.dataset }}
+      SOURCE: ${{ inputs.source }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Download the release file
+        run: |
+          set -euo pipefail
+          case "$DATASET" in
+            */*) ;;
+            *) echo "::error::dataset must look like prices/screener/max_history"; exit 1 ;;
+          esac
+          mkdir -p asset
+          gh release download data-latest --repo "$GITHUB_REPOSITORY" --pattern "$ASSET" --dir asset
+          test -s "asset/$ASSET"
+          ls -la asset
+      - name: Publish to R2
+        run: |
+          python scripts/r2_publish.py \
+            --path "asset/$ASSET" \
+            --dataset "$DATASET" \
+            --source "$SOURCE" \
+            --key-root "archive/$DATASET" \
+            --pipeline-version "release-asset-${GITHUB_SHA}" \
+            --release-tag data-latest
