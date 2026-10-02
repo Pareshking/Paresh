@@ -16,6 +16,7 @@ START = {"NIFTY_50": "2010-01-01", "NIFTY_NEXT_50": "2010-01-01", "NIFTY_500": "
          "NIFTY_MIDCAP_150": "2016-04-01", "NIFTY_SMALLCAP_250": "2016-04-01",
          "NIFTY_MICROCAP_250": None, "NIFTY_TOTAL_MARKET": None}
 aliases = {r["old_symbol"]: r for r in csv.DictReader(open("rules/aliases.csv"))}
+web_symbols = {r["symbol"] for r in csv.DictReader(open("rules/name_symbol_map.csv")) if r["status"] == "WEB_SECONDARY"}
 
 def current_symbol(s):
     seen = set()
@@ -32,6 +33,7 @@ def caveats(index, sym, a, b):
         out.append("WEB_SECONDARY_2012-03-07")
     if index == "NIFTY_SMALLCAP_250" and sym in ("GAYAPROJ", "FLUOROCHEM") and a <= "2020-06-25" and end >= "2020-03-27":
         out.append("AMBIGUOUS_2020-03-27_TO_2020-06-25")
+    if sym in web_symbols: out.append("SYMBOL_WEB_SECONDARY")
     if sym in ("PEL", "PIRAMALFIN"): out.append("INFERRED_MERGER_SUCCESSOR")
     if sym in aliases and aliases[sym]["status"] not in ("CONFIRMED_NSE_CIRCULAR", "CONFIRMED_NSE_CLEARING_CIRCULAR",
             "CONFIRMED_NSE_CIRCULAR_BROKER_COPY", "CONFIRMED_NSE_SYMBOLCHANGE_FILE"):

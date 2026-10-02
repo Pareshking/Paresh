@@ -8207,6 +8207,8 @@
           "ARVIND",
           "ASAHIINDIA",
           "ASHOKLEY",
+          "ASIANELEC",
+          "ASIANHOTNR",
           "ASIANPAINT",
           "ASTRAZEN",
           "ATFL",
@@ -8243,6 +8245,7 @@
           "BOMDYEING",
           "BOSCHLTD",
           "BPCL",
+          "BPL",
           "BRFL",
           "BRITANNIA",
           "CAIRN",
@@ -8266,6 +8269,7 @@
           "CMC",
           "COLPAL",
           "CONCOR",
+          "CONSOFINVT",
           "COROMANDEL",
           "CORPBANK",
           "COSMOFIRST",
@@ -8285,6 +8289,7 @@
           "DISHMAN",
           "DIVISLAB",
           "DLF",
+          "DONEAR",
           "DREDGECORP",
           "DRREDDY",
           "DSKULKARNI",
@@ -8437,6 +8442,7 @@
           "KESORAMIND",
           "KIRLOSBROS",
           "KIRLOSOIL",
+          "KOHINOOR",
           "KOTAKBANK",
           "KOUTONS",
           "KPIL",
@@ -8475,6 +8481,7 @@
           "MRF",
           "MRPL",
           "MTNL",
+          "MUKTAARTS",
           "MUNJALSHOW",
           "NAGARFERT",
           "NATIONALUM",
@@ -8494,6 +8501,7 @@
           "NRBBEARING",
           "NTPC",
           "OFSS",
+          "OMAXAUTO",
           "OMAXE",
           "ONGC",
           "ONIDA",
@@ -8511,6 +8519,7 @@
           "PFIZER",
           "PGHH",
           "PGHL",
+          "PGIL",
           "PHOENIXLTD",
           "PIDILITIND",
           "PIRAMALFIN",
@@ -8526,6 +8535,7 @@
           "PTC",
           "PUNJLLOYD",
           "PURVA",
+          "PVP",
           "RADICO",
           "RAJESHEXPO",
           "RALLIS",
@@ -8567,8 +8577,10 @@
           "SIEMENS",
           "SIMPLEXINF",
           "SINTEX",
+          "SIRPAPER",
           "SKFINDIA",
           "SKUMARSYNF",
+          "SMARTLINK",
           "SOBHA",
           "SONASTEER",
           "SONATSOFTW",
@@ -8632,19 +8644,7 @@
           "UNITDSPR",
           "UNITECH",
           "UNITY",
-          "UNMAPPED:Asian Electronics Ltd.",
-          "UNMAPPED:Asian Hotels Ltd.",
-          "UNMAPPED:BPL Ltd.",
-          "UNMAPPED:Consolidated Finvest & Holdings Ltd.",
-          "UNMAPPED:Donear Industries Ltd.",
-          "UNMAPPED:House of Pearl Fashions Ltd.",
-          "UNMAPPED:Kohinoor Foods Ltd.",
           "UNMAPPED:Micro Inks Limited",
-          "UNMAPPED:Mukta Arts Ltd.",
-          "UNMAPPED:Omax Autos Ltd.",
-          "UNMAPPED:PVP Ventures Ltd.",
-          "UNMAPPED:Sirpur Paper Mills Ltd.",
-          "UNMAPPED:Smartlink Network Systems Ltd.",
           "UNMAPPED:Vishal Retail Ltd.",
           "UPL",
           "USHAMART",
@@ -8680,7 +8680,7 @@
             "PENINLAND"
           ],
           "removed": [
-            "UNMAPPED:Asian Hotels Ltd."
+            "ASIANHOTNR"
           ],
           "notice": "ind_prs19022010.pdf"
         },
@@ -8714,11 +8714,11 @@
             "KGL"
           ],
           "removed": [
-            "UNMAPPED:Consolidated Finvest & Holdings Ltd.",
-            "UNMAPPED:Donear Industries Ltd.",
-            "UNMAPPED:Mukta Arts Ltd.",
-            "UNMAPPED:Sirpur Paper Mills Ltd.",
-            "UNMAPPED:Smartlink Network Systems Ltd."
+            "CONSOFINVT",
+            "DONEAR",
+            "MUKTAARTS",
+            "SIRPAPER",
+            "SMARTLINK"
           ],
           "notice": "ind_prs24022010.pdf"
         },
@@ -8862,20 +8862,20 @@
           "removed": [
             "AGCNET",
             "AJANTPHARM",
+            "ASIANELEC",
+            "BPL",
             "DWARKESH",
             "GOKEX",
             "HMT",
+            "KOHINOOR",
             "MAHINDUGIN",
             "MIRZAINT",
             "MUNJALSHOW",
+            "OMAXAUTO",
+            "PGIL",
+            "PVP",
             "RAMCOSYS",
             "SAREGAMA",
-            "UNMAPPED:Asian Electronics Ltd.",
-            "UNMAPPED:BPL Ltd.",
-            "UNMAPPED:House of Pearl Fashions Ltd.",
-            "UNMAPPED:Kohinoor Foods Ltd.",
-            "UNMAPPED:Omax Autos Ltd.",
-            "UNMAPPED:PVP Ventures Ltd.",
             "UNMAPPED:Vishal Retail Ltd."
           ],
           "notice": "ind_prs10022011.pdf"
@@ -13630,52 +13630,17 @@
       },
       {
         "index": "nifty_500",
-        "symbol": "UNMAPPED:Asian Electronics Ltd.",
-        "from": "2010-01-01",
-        "to": "2011-03-24",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "UNMAPPED:Asian Hotels Ltd.",
+        "symbol": "ASIANHOTNR",
         "from": "2010-01-01",
         "to": "2010-02-23",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
+        "caveat": "SYMBOL_WEB_SECONDARY"
       },
       {
         "index": "nifty_500",
-        "symbol": "UNMAPPED:BPL Ltd.",
+        "symbol": "PGIL",
         "from": "2010-01-01",
         "to": "2011-03-24",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "UNMAPPED:Consolidated Finvest & Holdings Ltd.",
-        "from": "2010-01-01",
-        "to": "2010-04-07",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "UNMAPPED:Donear Industries Ltd.",
-        "from": "2010-01-01",
-        "to": "2010-04-07",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "UNMAPPED:House of Pearl Fashions Ltd.",
-        "from": "2010-01-01",
-        "to": "2011-03-24",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "UNMAPPED:Kohinoor Foods Ltd.",
-        "from": "2010-01-01",
-        "to": "2011-03-24",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
+        "caveat": "SYMBOL_WEB_SECONDARY"
       },
       {
         "index": "nifty_500",
@@ -13686,38 +13651,17 @@
       },
       {
         "index": "nifty_500",
-        "symbol": "UNMAPPED:Mukta Arts Ltd.",
+        "symbol": "SIRPAPER",
         "from": "2010-01-01",
         "to": "2010-04-07",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
+        "caveat": "SYMBOL_WEB_SECONDARY"
       },
       {
         "index": "nifty_500",
-        "symbol": "UNMAPPED:Omax Autos Ltd.",
-        "from": "2010-01-01",
-        "to": "2011-03-24",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "UNMAPPED:PVP Ventures Ltd.",
-        "from": "2010-01-01",
-        "to": "2011-03-24",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "UNMAPPED:Sirpur Paper Mills Ltd.",
+        "symbol": "SMARTLINK",
         "from": "2010-01-01",
         "to": "2010-04-07",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "UNMAPPED:Smartlink Network Systems Ltd.",
-        "from": "2010-01-01",
-        "to": "2010-04-07",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
+        "caveat": "SYMBOL_WEB_SECONDARY"
       },
       {
         "index": "nifty_500",

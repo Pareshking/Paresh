@@ -29,6 +29,7 @@ for _f in sorted(glob.glob("announcements/txt/*.txt")):
         if _m: NAME2SYM[norm_name(_m.group(2))] = _m.group(3)
 MANUAL_NAMES = {"sesa goa": "SESAGOA", "core projects and technologies": "COREPROTEC", "orissa mineral development": "ORISSAMINE", "pipavav shipyard": "PIPAVAVYD", "jindal southwest hold": "JINDALSWHL"}  # name-only 2010 tables; symbol from NSE symbol-change file (SESAGOA -> SSLT -> VEDL)
 NAME2SYM.update(MANUAL_NAMES)
+for _r in csv.DictReader(open("rules/name_symbol_map.csv")): NAME2SYM[norm_name(_r["name"])] = _r["symbol"]  # name-only tables; evidence per row
 ROWN = re.compile(r"^\s*(\d+)\s+([A-Za-z].+?)\s*$")
 NOSYM_HDR = re.compile(r"Sr\.?\s*No\.?\s+(?:Company|Scrip)\s+Name\s*$", re.I)
 PAREN = re.compile(r"^\s*\(?\d{1,2}\)\s+[A-Za-z]")
