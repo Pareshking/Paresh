@@ -138,7 +138,8 @@ def main(argv=None) -> int:
     manifest = load_manifest(args.out)
     store = ss.read_store(args.out)
     if args.skip_done:
-        symbols = [s for s in symbols if s not in manifest["symbols"]]
+        dead = {s for s, why in manifest.get("failed", {}).items() if "no prices" in str(why)}
+        symbols = [s for s in symbols if s not in manifest["symbols"] and s not in dead]
     if args.limit:
         symbols = symbols[: args.limit]
     print(f"SS: {len(symbols)} symbols, {'full history' if args.full else f'{args.pages} page(s)'} "
