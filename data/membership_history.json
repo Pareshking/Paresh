@@ -512,6 +512,7 @@
           "PARAGMILK",
           "PCBL",
           "PCJEWELLER",
+          "PEL",
           "PERSISTENT",
           "PETRONET",
           "PFC",
@@ -523,7 +524,6 @@
           "PIDILITIND",
           "PIIND",
           "PILANIINVS",
-          "PIRAMALFIN",
           "PNB",
           "PNBGILTS",
           "PNBHOUSING",
@@ -926,7 +926,7 @@
           ],
           "removed": [
             "NMDC",
-            "PIRAMALFIN",
+            "PEL",
             "SHRIRAMCIT"
           ],
           "notice": "ind_prs11072022.pdf"
@@ -1088,8 +1088,8 @@
             "NDTV",
             "NMDC",
             "PCJEWELLER",
+            "PEL",
             "PGEL",
-            "PIRAMALFIN",
             "POWERMECH",
             "PRICOLLTD",
             "PTC",
@@ -1709,7 +1709,7 @@
             "KITEX"
           ],
           "removed": [
-            "PIRAMALFIN"
+            "PEL"
           ],
           "notice": "ind_prs15092025_1.pdf"
         },
@@ -2499,7 +2499,7 @@
           "notice": "ind_prs21022025.pdf"
         },
         {
-          "date": "2026-09-29",
+          "date": "2025-09-30",
           "added": [
             "INDIGO",
             "MAXHEALTH"
@@ -2860,7 +2860,7 @@
           "date": "2016-09-30",
           "added": [
             "INDIGO",
-            "PIRAMALFIN"
+            "PEL"
           ],
           "removed": [
             "RCOM",
@@ -3136,7 +3136,7 @@
           ],
           "removed": [
             "NMDC",
-            "PIRAMALFIN"
+            "PEL"
           ],
           "notice": "ind_prs11072022.pdf"
         },
@@ -3287,7 +3287,7 @@
           "notice": "ind_prs22082025.pdf"
         },
         {
-          "date": "2026-09-29",
+          "date": "2026-03-30",
           "added": [
             "CUMMINSIND",
             "HDFCAMC",
@@ -3425,12 +3425,12 @@
           "OBEROIRLTY",
           "PAGEIND",
           "PCJEWELLER",
+          "PEL",
           "PERSISTENT",
           "PETRONET",
           "PFIZER",
           "PHOENIXLTD",
           "PIIND",
-          "PIRAMALFIN",
           "PRESTIGE",
           "PRSMJOHNSN",
           "RAJESHEXPO",
@@ -3500,7 +3500,7 @@
             "BASF",
             "BEML",
             "MMTC",
-            "PIRAMALFIN",
+            "PEL",
             "PRSMJOHNSN",
             "REDINGTON",
             "UCOBANK",
@@ -4120,7 +4120,7 @@
             "MPHASIS",
             "NMDC",
             "PAYTM",
-            "PIRAMALFIN",
+            "PEL",
             "TIMKEN"
           ],
           "removed": [
@@ -4256,7 +4256,7 @@
             "LODHA",
             "MANYAVAR",
             "NHPC",
-            "PIRAMALFIN",
+            "PEL",
             "RAMCOCEM",
             "SUMICHEM",
             "UNIONBANK",
@@ -4341,7 +4341,7 @@
           "notice": "ind_prs22082025.pdf"
         },
         {
-          "date": "2026-09-29",
+          "date": "2026-03-30",
           "added": [
             "AIIL",
             "ANTHEM",
@@ -6105,8 +6105,8 @@
             "MANYAVAR",
             "NETWEB",
             "NEWGEN",
+            "PEL",
             "PFIZER",
-            "PIRAMALFIN",
             "PTCIL",
             "RAMCOCEM",
             "SCI",
@@ -6278,7 +6278,7 @@
             "RELINFRA"
           ],
           "removed": [
-            "PIRAMALFIN"
+            "PEL"
           ],
           "notice": "ind_prs15092025_1.pdf"
         },
@@ -6431,7 +6431,7 @@
           "notice": "ind_prs04052026.pdf"
         },
         {
-          "date": "2026-09-29",
+          "date": "2026-07-17",
           "added": [
             "PFOCUS"
           ],
@@ -8031,7 +8031,7 @@
           "notice": "ind_prs08052026.pdf"
         },
         {
-          "date": "2026-09-29",
+          "date": "2026-07-17",
           "added": [
             "GRINDWELL"
           ],
@@ -8207,6 +8207,8 @@
           "ARVIND",
           "ASAHIINDIA",
           "ASHOKLEY",
+          "ASIANELEC",
+          "ASIANHOTNR",
           "ASIANPAINT",
           "ASTRAZEN",
           "ATFL",
@@ -8243,6 +8245,7 @@
           "BOMDYEING",
           "BOSCHLTD",
           "BPCL",
+          "BPL",
           "BRFL",
           "BRITANNIA",
           "CAIRN",
@@ -8266,6 +8269,7 @@
           "CMC",
           "COLPAL",
           "CONCOR",
+          "CONSOFINVT",
           "COROMANDEL",
           "CORPBANK",
           "COSMOFIRST",
@@ -8285,6 +8289,7 @@
           "DISHMAN",
           "DIVISLAB",
           "DLF",
+          "DONEAR",
           "DREDGECORP",
           "DRREDDY",
           "DSKULKARNI",
@@ -8437,6 +8442,7 @@
           "KESORAMIND",
           "KIRLOSBROS",
           "KIRLOSOIL",
+          "KOHINOOR",
           "KOTAKBANK",
           "KOUTONS",
           "KPIL",
@@ -8463,6 +8469,7 @@
           "MCLEODRUSS",
           "MERCATOR",
           "MFSL",
+          "MICRO",
           "MID-DAY",
           "MINDTREE",
           "MIRZAINT",
@@ -8475,6 +8482,7 @@
           "MRF",
           "MRPL",
           "MTNL",
+          "MUKTAARTS",
           "MUNJALSHOW",
           "NAGARFERT",
           "NATIONALUM",
@@ -8494,6 +8502,7 @@
           "NRBBEARING",
           "NTPC",
           "OFSS",
+          "OMAXAUTO",
           "OMAXE",
           "ONGC",
           "ONIDA",
@@ -8506,14 +8515,15 @@
           "PARSVNATH",
           "PATELENG",
           "PATNI",
+          "PEL",
           "PETRONET",
           "PFC",
           "PFIZER",
           "PGHH",
           "PGHL",
+          "PGIL",
           "PHOENIXLTD",
           "PIDILITIND",
-          "PIRAMALFIN",
           "PNB",
           "PNBGILTS",
           "POLARIS",
@@ -8526,6 +8536,7 @@
           "PTC",
           "PUNJLLOYD",
           "PURVA",
+          "PVP",
           "RADICO",
           "RAJESHEXPO",
           "RALLIS",
@@ -8567,8 +8578,10 @@
           "SIEMENS",
           "SIMPLEXINF",
           "SINTEX",
+          "SIRPAPER",
           "SKFINDIA",
           "SKUMARSYNF",
+          "SMARTLINK",
           "SOBHA",
           "SONASTEER",
           "SONATSOFTW",
@@ -8632,24 +8645,11 @@
           "UNITDSPR",
           "UNITECH",
           "UNITY",
-          "UNMAPPED:Asian Electronics Ltd.",
-          "UNMAPPED:Asian Hotels Ltd.",
-          "UNMAPPED:BPL Ltd.",
-          "UNMAPPED:Consolidated Finvest & Holdings Ltd.",
-          "UNMAPPED:Donear Industries Ltd.",
-          "UNMAPPED:House of Pearl Fashions Ltd.",
-          "UNMAPPED:Kohinoor Foods Ltd.",
-          "UNMAPPED:Micro Inks Limited",
-          "UNMAPPED:Mukta Arts Ltd.",
-          "UNMAPPED:Omax Autos Ltd.",
-          "UNMAPPED:PVP Ventures Ltd.",
-          "UNMAPPED:Sirpur Paper Mills Ltd.",
-          "UNMAPPED:Smartlink Network Systems Ltd.",
-          "UNMAPPED:Vishal Retail Ltd.",
           "UPL",
           "USHAMART",
           "UTTAMSTL",
           "UTVSOF",
+          "V2RETAIL",
           "VARUNSHIP",
           "VEDL",
           "VENKEYS",
@@ -8680,7 +8680,7 @@
             "PENINLAND"
           ],
           "removed": [
-            "UNMAPPED:Asian Hotels Ltd."
+            "ASIANHOTNR"
           ],
           "notice": "ind_prs19022010.pdf"
         },
@@ -8700,7 +8700,7 @@
             "NHPC"
           ],
           "removed": [
-            "UNMAPPED:Micro Inks Limited"
+            "MICRO"
           ],
           "notice": "ind_prs05042010.pdf"
         },
@@ -8714,11 +8714,11 @@
             "KGL"
           ],
           "removed": [
-            "UNMAPPED:Consolidated Finvest & Holdings Ltd.",
-            "UNMAPPED:Donear Industries Ltd.",
-            "UNMAPPED:Mukta Arts Ltd.",
-            "UNMAPPED:Sirpur Paper Mills Ltd.",
-            "UNMAPPED:Smartlink Network Systems Ltd."
+            "CONSOFINVT",
+            "DONEAR",
+            "MUKTAARTS",
+            "SIRPAPER",
+            "SMARTLINK"
           ],
           "notice": "ind_prs24022010.pdf"
         },
@@ -8862,21 +8862,21 @@
           "removed": [
             "AGCNET",
             "AJANTPHARM",
+            "ASIANELEC",
+            "BPL",
             "DWARKESH",
             "GOKEX",
             "HMT",
+            "KOHINOOR",
             "MAHINDUGIN",
             "MIRZAINT",
             "MUNJALSHOW",
+            "OMAXAUTO",
+            "PGIL",
+            "PVP",
             "RAMCOSYS",
             "SAREGAMA",
-            "UNMAPPED:Asian Electronics Ltd.",
-            "UNMAPPED:BPL Ltd.",
-            "UNMAPPED:House of Pearl Fashions Ltd.",
-            "UNMAPPED:Kohinoor Foods Ltd.",
-            "UNMAPPED:Omax Autos Ltd.",
-            "UNMAPPED:PVP Ventures Ltd.",
-            "UNMAPPED:Vishal Retail Ltd."
+            "V2RETAIL"
           ],
           "notice": "ind_prs10022011.pdf"
         },
@@ -10840,7 +10840,7 @@
           ],
           "removed": [
             "NMDC",
-            "PIRAMALFIN",
+            "PEL",
             "SHRIRAMCIT"
           ],
           "notice": "ind_prs11072022.pdf"
@@ -10937,7 +10937,7 @@
             "KSB",
             "MEDANTA",
             "NMDC",
-            "PIRAMALFIN",
+            "PEL",
             "RUSTOMJEE",
             "TMB"
           ],
@@ -11299,7 +11299,7 @@
             "RELINFRA"
           ],
           "removed": [
-            "PIRAMALFIN"
+            "PEL"
           ],
           "notice": "ind_prs15092025_1.pdf"
         },
@@ -12023,6 +12023,7 @@
       "PARAGMILK",
       "PCBL",
       "PCJEWELLER",
+      "PEL",
       "PERSISTENT",
       "PETRONET",
       "PFC",
@@ -12034,7 +12035,6 @@
       "PIDILITIND",
       "PIIND",
       "PILANIINVS",
-      "PIRAMALFIN",
       "PNB",
       "PNBGILTS",
       "PNBHOUSING",
@@ -12437,7 +12437,7 @@
       ],
       "removed": [
         "NMDC",
-        "PIRAMALFIN",
+        "PEL",
         "SHRIRAMCIT"
       ],
       "notice": "ind_prs11072022.pdf"
@@ -12599,8 +12599,8 @@
         "NDTV",
         "NMDC",
         "PCJEWELLER",
+        "PEL",
         "PGEL",
-        "PIRAMALFIN",
         "POWERMECH",
         "PRICOLLTD",
         "PTC",
@@ -13220,7 +13220,7 @@
         "KITEX"
       ],
       "removed": [
-        "PIRAMALFIN"
+        "PEL"
       ],
       "notice": "ind_prs15092025_1.pdf"
     },
@@ -13616,10 +13616,17 @@
     "intervals": [
       {
         "index": "nifty_500",
-        "symbol": "PIRAMALFIN",
+        "symbol": "ASIANHOTNR",
         "from": "2010-01-01",
-        "to": "2022-08-07",
-        "caveat": "ALIAS_INFERRED_MERGER_SUCCESSOR;INFERRED_MERGER_SUCCESSOR"
+        "to": "2010-02-23",
+        "caveat": "SYMBOL_WEB_SECONDARY"
+      },
+      {
+        "index": "nifty_500",
+        "symbol": "PGIL",
+        "from": "2010-01-01",
+        "to": "2011-03-24",
+        "caveat": "SYMBOL_WEB_SECONDARY"
       },
       {
         "index": "nifty_500",
@@ -13630,101 +13637,17 @@
       },
       {
         "index": "nifty_500",
-        "symbol": "UNMAPPED:Asian Electronics Ltd.",
-        "from": "2010-01-01",
-        "to": "2011-03-24",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "UNMAPPED:Asian Hotels Ltd.",
-        "from": "2010-01-01",
-        "to": "2010-02-23",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "UNMAPPED:BPL Ltd.",
-        "from": "2010-01-01",
-        "to": "2011-03-24",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "UNMAPPED:Consolidated Finvest & Holdings Ltd.",
+        "symbol": "SIRPAPER",
         "from": "2010-01-01",
         "to": "2010-04-07",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
+        "caveat": "SYMBOL_WEB_SECONDARY"
       },
       {
         "index": "nifty_500",
-        "symbol": "UNMAPPED:Donear Industries Ltd.",
+        "symbol": "SMARTLINK",
         "from": "2010-01-01",
         "to": "2010-04-07",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "UNMAPPED:House of Pearl Fashions Ltd.",
-        "from": "2010-01-01",
-        "to": "2011-03-24",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "UNMAPPED:Kohinoor Foods Ltd.",
-        "from": "2010-01-01",
-        "to": "2011-03-24",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "UNMAPPED:Micro Inks Limited",
-        "from": "2010-01-01",
-        "to": "2010-04-05",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "UNMAPPED:Mukta Arts Ltd.",
-        "from": "2010-01-01",
-        "to": "2010-04-07",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "UNMAPPED:Omax Autos Ltd.",
-        "from": "2010-01-01",
-        "to": "2011-03-24",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "UNMAPPED:PVP Ventures Ltd.",
-        "from": "2010-01-01",
-        "to": "2011-03-24",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "UNMAPPED:Sirpur Paper Mills Ltd.",
-        "from": "2010-01-01",
-        "to": "2010-04-07",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "UNMAPPED:Smartlink Network Systems Ltd.",
-        "from": "2010-01-01",
-        "to": "2010-04-07",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "UNMAPPED:Vishal Retail Ltd.",
-        "from": "2010-01-01",
-        "to": "2011-03-24",
-        "caveat": "UNMAPPED_NAME_ONLY_NOTICE"
+        "caveat": "SYMBOL_WEB_SECONDARY"
       },
       {
         "index": "nifty_500",
@@ -13734,46 +13657,11 @@
         "caveat": "WEB_SECONDARY_2012-03-07"
       },
       {
-        "index": "nifty_500",
-        "symbol": "PIRAMALFIN",
-        "from": "2023-03-31",
-        "to": "2025-09-22",
-        "caveat": "ALIAS_INFERRED_MERGER_SUCCESSOR;INFERRED_MERGER_SUCCESSOR"
-      },
-      {
-        "index": "nifty_500",
-        "symbol": "PIRAMALFIN",
-        "from": "2026-03-30",
+        "index": "nifty_microcap_250",
+        "symbol": "PGIL",
+        "from": "2025-03-28",
         "to": null,
-        "caveat": "INFERRED_MERGER_SUCCESSOR"
-      },
-      {
-        "index": "nifty_midcap_150",
-        "symbol": "PIRAMALFIN",
-        "from": "2016-04-01",
-        "to": "2016-09-29",
-        "caveat": "ALIAS_INFERRED_MERGER_SUCCESSOR;INFERRED_MERGER_SUCCESSOR"
-      },
-      {
-        "index": "nifty_midcap_150",
-        "symbol": "PIRAMALFIN",
-        "from": "2023-03-31",
-        "to": "2024-09-29",
-        "caveat": "ALIAS_INFERRED_MERGER_SUCCESSOR;INFERRED_MERGER_SUCCESSOR"
-      },
-      {
-        "index": "nifty_midcap_150",
-        "symbol": "PIRAMALFIN",
-        "from": "2026-09-30",
-        "to": null,
-        "caveat": "INFERRED_MERGER_SUCCESSOR"
-      },
-      {
-        "index": "nifty_next_50",
-        "symbol": "PIRAMALFIN",
-        "from": "2016-09-30",
-        "to": "2022-08-07",
-        "caveat": "ALIAS_INFERRED_MERGER_SUCCESSOR;INFERRED_MERGER_SUCCESSOR"
+        "caveat": "SYMBOL_WEB_SECONDARY"
       },
       {
         "index": "nifty_smallcap_250",
@@ -13783,39 +13671,11 @@
         "caveat": "AMBIGUOUS_2020-03-27_TO_2020-06-25"
       },
       {
-        "index": "nifty_smallcap_250",
-        "symbol": "PIRAMALFIN",
-        "from": "2024-09-30",
-        "to": "2025-09-22",
-        "caveat": "ALIAS_INFERRED_MERGER_SUCCESSOR;INFERRED_MERGER_SUCCESSOR"
-      },
-      {
-        "index": "nifty_smallcap_250",
-        "symbol": "PIRAMALFIN",
-        "from": "2026-03-30",
-        "to": "2026-09-29",
-        "caveat": "INFERRED_MERGER_SUCCESSOR"
-      },
-      {
         "index": "nifty_total_market",
-        "symbol": "PIRAMALFIN",
-        "from": "2021-10-29",
-        "to": "2022-08-07",
-        "caveat": "ALIAS_INFERRED_MERGER_SUCCESSOR;INFERRED_MERGER_SUCCESSOR"
-      },
-      {
-        "index": "nifty_total_market",
-        "symbol": "PIRAMALFIN",
-        "from": "2023-03-31",
-        "to": "2025-09-22",
-        "caveat": "ALIAS_INFERRED_MERGER_SUCCESSOR;INFERRED_MERGER_SUCCESSOR"
-      },
-      {
-        "index": "nifty_total_market",
-        "symbol": "PIRAMALFIN",
-        "from": "2026-03-30",
+        "symbol": "PGIL",
+        "from": "2025-03-28",
         "to": null,
-        "caveat": "INFERRED_MERGER_SUCCESSOR"
+        "caveat": "SYMBOL_WEB_SECONDARY"
       }
     ]
   },
@@ -13848,6 +13708,15 @@
         "first_new_date": "2011-09-29",
         "status": "CONFIRMED_NSE_SYMBOLCHANGE_FILE",
         "evidence": "NSE 'Changes in Symbols' file (reference/nse_symbolchange.csv; sha256 948ccc56...): Reliance Naval and Engineering Limited, PIPAVAVYD -> PIPAVAVDOC, effective 2011-09-29"
+      },
+      {
+        "old_symbol": "VISHALRET",
+        "new_symbol": "V2RETAIL",
+        "company": "V2 Retail Limited",
+        "last_old_date": "2012-02-23",
+        "first_new_date": "2012-02-24",
+        "status": "CONFIRMED_NSE_SYMBOLCHANGE_FILE",
+        "evidence": "NSE Changes in Symbols file (reference/nse_symbolchange.csv; sha256 948ccc56...): V2 Retail Limited VISHALRET -> V2RETAIL 24-FEB-2012"
       },
       {
         "old_symbol": "AREVAT&D",
@@ -14712,15 +14581,6 @@
         "first_new_date": "2026-02-03",
         "status": "CONFIRMED_NSE_CIRCULAR",
         "evidence": "NSE circular NSE/CML/72519 dated 2026-01-29 (https://nsearchives.nseindia.com/content/circulars/CML72519.pdf): name/symbol Infibeam Avenues Ltd INFIBEAM -> AvenuesAI Ltd CCAVENUE w.e.f. 2026-02-03"
-      },
-      {
-        "old_symbol": "PEL",
-        "new_symbol": "PIRAMALFIN",
-        "company": null,
-        "last_old_date": "2025-08-22",
-        "first_new_date": "2026-02-23",
-        "status": "INFERRED_MERGER_SUCCESSOR",
-        "evidence": "Merger, not a rename: web sources say Piramal Enterprises Ltd (PEL) reverse-merged into its subsidiary Piramal Finance Ltd (PIRAMALFIN) effective 2025-09-16. Not in NSE symbol-change file. The alias treats the successor as continuing PEL's index slot; that treatment is consistent with the announcement chain but no NSE Indices notice has been found stating it"
       },
       {
         "old_symbol": "LTIM",
