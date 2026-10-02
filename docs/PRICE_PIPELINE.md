@@ -20,10 +20,10 @@ condition: "do not hammer my site by downloading entire universe in one go,
 give some breathing to my website". Every SS request is 4 s apart, 40 stocks a
 round, 5 minutes' rest between rounds. Its name stays "SS" everywhere.
 
-**What the app ranks on today:** Screener first, NSE for what Screener lacks
-(`src/loaders/price_source.ranking_frames`). SS is collected and checked
-every night but **not yet wired into the app**. Recommendation (2 Oct): SS
-primary, Screener second, NSE as judge; see To do.
+**What the app ranks on:** Screener first, NSE for what Screener lacks
+(`src/loaders/price_source.ranking_frames`); the liquidity floor uses
+Screener's NSE + BSE volume. Owner, 2 Oct 2026: **keep Screener as the app's
+source for now.** SS is collected and checked every night, not ranked on.
 
 Measured 2 Oct on a year of 192 stocks: SS and Screener identical to the paisa
 on 187. Screener's volume is NSE + BSE (exact on 99.9% of 1,165 stocks); SS's
@@ -145,9 +145,8 @@ Workflows on demand: `ss_sync.yml` (mode daily/backfill), `nse_collect.yml`
 
 ## To do
 
-- Wire SS into the app as the primary source, rights-adjusted by the rules
-  above, with Screener and NSE behind it; decide the liquidity basis (SS's
-  NSE-only volume vs Screener's NSE + BSE).
+- Missing-days check, 2010 to today: `nse_collect` asks NSE once for every
+  weekday R2 lacks; done when a run reports 0 days to go.
 - Run the adjustment check across 2010–2026 on the full NSE history, then the
   long backtests.
 - Remove the dead Yahoo code and the `yfinance` dependency.
