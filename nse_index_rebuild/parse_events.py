@@ -13,6 +13,13 @@ def idx_of(h):
     for k, p in IDX.items():
         if re.fullmatch(p, h): return k
     return None
+SEC = re.compile(r"^\s*[A-Z]\.\s+\S")
+SEARCH = {"NIFTY_50": r"nifty\s*50\b(?!\s*(?:value|equal|shariah|alpha|low|high|arbitrage|\d))", "NIFTY_NEXT_50": r"nifty\s*next\s*50\b(?!\s*equal)",
+          "NIFTY_MIDCAP_150": r"nifty\s*midcap\s*150\b(?!\s*(?:quality|momentum))", "NIFTY_SMALLCAP_250": r"nifty\s*smallcap\s*250\b(?!\s*(?:quality|momentum))",
+          "NIFTY_MICROCAP_250": r"nifty\s*microcap\s*250\b", "NIFTY_TOTAL_MARKET": r"nifty\s*total\s*market\b"}
+def idx_in_heading(t):
+    hits = [k for k, p in SEARCH.items() if re.search(p, t, re.I)]
+    return hits[0] if len(hits) == 1 else None
 out = []
 for f in sorted(glob.glob("announcements/txt/*.txt")):
     base = os.path.basename(f)[:-4]; raw = open(f, errors="ignore").read()
@@ -27,6 +34,9 @@ for f in sorted(glob.glob("announcements/txt/*.txt")):
         if re.search(r"being included|are included|is included|to be included", s, re.I) and not ROW.match(line): mode = "IN"; continue
         if re.search(r"being excluded|are excluded|is excluded|to be excluded", s, re.I) and not ROW.match(line): mode = "OUT"; continue
         h = HEAD.match(line)
+        if SEC.match(line) and not ROW.match(line) and not h:
+            cur, mode = idx_in_heading(line), None
+            continue
         if h and not ROW.match(line):
             nxt = lines[i+1] if i+1 < len(lines) else ""
             ok = bool(PFX.match(line)) or bool(re.search(r"following|being (in|ex)cluded|replace", nxt, re.I))
