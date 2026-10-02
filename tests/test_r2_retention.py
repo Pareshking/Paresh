@@ -63,7 +63,7 @@ def _archive():
         publish(a, "snapshots/application", "snapshots/application", d, 500 + i, size=200)
         # Nested and unrelated datasets that must never be touched.
         publish(a, "prices/yahoo/raw", "archive/prices/yahoo/raw", d, 900 + i)
-        publish(a, "prices/screener", "archive/prices/screener", d, 1500 + i)
+        publish(a, "prices/screener", "archive/prices/screener", d, 1500 + i, size=1000)
         publish(a, "prices/screener/bootstrap", "archive/prices/screener/bootstrap", d, 1900 + i)
         publish(a, "market_caps/nse_history", "archive/market_caps/nse_history", d, 2300 + i)
     return a
@@ -72,20 +72,20 @@ def _archive():
 def test_plan_drops_only_the_retained_datasets_and_only_unkept_dates():
     a = _archive()
     plans = {p.dataset: p for p in rr.make_plan(a)}
-    yahoo = plans["prices/yahoo"]
+    yahoo = plans["prices/screener"]
     dropped = set(AUG + SEP) - ({"2026-08-31"} | set(SEP[-7:]))
     assert set(yahoo.drop) == dropped
     # pointer + manifest + payload per dropped date
     assert len(yahoo.delete_keys) == 3 * len(dropped)
-    assert yahoo.delete_bytes == 1000 * len(dropped) + sum(
-        len(a.objects[k]) for k in yahoo.delete_keys if k.startswith("archive/manifests/"))
-    # Screener follows the same policy (owner, 2026-09-25).
-    assert set(plans["prices/screener"].drop) == dropped
-    assert set(plans) == {"prices/yahoo", "prices/screener", "app/prices_snapshot", "app/prices_extra",
-                          "snapshots/application", "prices/yahoo/bootstrap"}
+    assert set(plans) == {"prices/screener", "snapshots/application", "prices/yahoo/bootstrap",
+                          "prices/yahoo", "prices/yahoo/raw", "app/prices_snapshot",
+                          "app/prices_extra"}
+    # Every Yahoo dataset goes whole, each key planned once.
+    assert set(plans["prices/yahoo"].drop) == set(AUG + SEP)
     every = [k for p in plans.values() for k in p.delete_keys]
+    assert len(every) == len(set(every))
     assert not [k for k in every
-                if "/raw/" in k or "/bootstrap/" in k or "market_caps" in k]
+                if "screener/bootstrap" in k or "market_caps" in k]
     # Pointers go first, payloads last.
     assert yahoo.delete_keys[0].endswith("/current.json")
     assert not yahoo.delete_keys[-1].startswith("archive/manifests/")
@@ -227,6 +227,8 @@ def test_a_retired_dataset_goes_whole_and_nothing_beside_it():
         publish(a, "snapshots/application", "snapshots/application", d, 200 + i)
     publish(a, "prices/yahoo/bootstrap", "archive/prices/yahoo/bootstrap", "2026-09-21", 300)
     plans = {p.dataset: p for p in rr.make_plan(a)}
+    # prices/yahoo's own plan leaves the nested datasets' payloads to theirs.
+    assert not [k for k in plans["prices/yahoo"].delete_keys if "/raw/" in k or "/bootstrap/" in k]
 
     boot = plans["prices/yahoo/bootstrap"]
     assert set(boot.delete_keys) == {
@@ -243,13 +245,10 @@ def test_a_retired_dataset_goes_whole_and_nothing_beside_it():
     assert app.delete_keys[0].endswith("/current.json")
     assert not app.delete_keys[-1].startswith("archive/manifests/")
 
-    rr.apply_plan(a, [boot, app])
-    # The nightly Yahoo history and the raw dataset beside the bootstrap are whole.
-    for d in SEP[-3:]:
-        for ds in ("prices/yahoo", "prices/yahoo/raw"):
-            ptr = json.loads(a.objects[f"archive/manifests/{ds}/{d}/current.json"])
-            assert ptr["object_key"] in a.objects
-    assert not [k for k in a.objects if "bootstrap" in k or "application" in k]
+    rr.apply_plan(a, list(plans.values()))
+    # prices/yahoo and prices/yahoo/raw are retired too: nothing Yahoo is left.
+    assert not a.objects
+    assert len(a.deleted) == len(set(a.deleted))
 
 
 def test_a_retired_manifest_naming_a_payload_elsewhere_refuses_the_run(monkeypatch):
@@ -285,7 +284,8 @@ def test_a_retired_dataset_also_loses_its_first_publisher_manifests():
                                 legacy_obj]
 
 
-def test_the_app_snapshot_keeps_only_its_newest_three_dates():
+def test_the_app_snapshot_keeps_only_its_newest_three_dates(monkeypatch):
+    monkeypatch.setitem(rr.KEEP_LATEST_ONLY, "app/prices_snapshot", 3)
     a = FakeArchive()
     for i, d in enumerate(AUG + SEP):
         publish(a, "app/prices_snapshot", "snapshots/app_prices", d, 3000 + i)

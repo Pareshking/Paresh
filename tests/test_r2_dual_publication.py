@@ -24,6 +24,26 @@ def _steps(name: str) -> list[dict]:
     return spec["jobs"][next(iter(spec["jobs"]))]["steps"]
 
 
+def test_daily_sync_has_r2_dual_publication_after_release():
+    steps = _steps("daily_sync.yml")
+    names = [str(step.get("name", "")) for step in steps]
+    release = names.index("Publish rankings to the release")
+    r2 = names.index("Publish validated datasets to R2")
+    assert release < r2
+
+
+def test_daily_sync_publishes_rankings_but_no_yahoo_data_to_r2():
+    """Owner: delete all Yahoo data from R2. Yahoo files go to the release only."""
+    steps = _steps("daily_sync.yml")
+    step = next(s for s in steps if s.get("name") == "Publish validated datasets to R2")
+    run = str(step["run"])
+    assert "--path rankings.parquet" in run
+    assert "snapshots/rankings" in run
+    for gone in ("prices/yahoo", "app/prices_snapshot", "app/prices_extra",
+                 "snapshots/application", "--path prices"):
+        assert gone not in run
+
+
 def test_screener_sync_has_r2_dual_publication_after_release():
     steps = _steps("screener_sync.yml")
     names = [str(step.get("name", "")) for step in steps]
