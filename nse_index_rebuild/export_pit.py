@@ -34,7 +34,6 @@ def caveats(index, sym, a, b):
     if index == "NIFTY_SMALLCAP_250" and sym in ("GAYAPROJ", "FLUOROCHEM") and a <= "2020-06-25" and end >= "2020-03-27":
         out.append("AMBIGUOUS_2020-03-27_TO_2020-06-25")
     if sym in web_symbols: out.append("SYMBOL_WEB_SECONDARY")
-    if sym in ("PEL", "PIRAMALFIN"): out.append("INFERRED_MERGER_SUCCESSOR")
     if sym in aliases and aliases[sym]["status"] not in ("CONFIRMED_NSE_CIRCULAR", "CONFIRMED_NSE_CLEARING_CIRCULAR",
             "CONFIRMED_NSE_CIRCULAR_BROKER_COPY", "CONFIRMED_NSE_SYMBOLCHANGE_FILE"):
         out.append("ALIAS_" + aliases[sym]["status"])

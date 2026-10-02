@@ -46,7 +46,8 @@ def main(write=True):
             if not states or states[-1][1] != set(old["baseline"]["symbols"]):
                 diff = sorted(states[-1][1] ^ set(old["baseline"]["symbols"])) if states else "no overlap"
                 sys.exit(f"{key}: reconstruction does not land on the existing baseline {bdate}: {diff}")
-            states[-1] = (bdate, states[-1][1], states[-1][2])
+            if states[-1][0] != bdate:  # keep the real date of the last prepended change; add the junction as an unchanged state
+                states.append((bdate, states[-1][1], None))
         base_d, base, _ = states[0]
         changes = []
         for (d0, s0, _f0), (d1, s1, f1) in zip(states, states[1:]):
