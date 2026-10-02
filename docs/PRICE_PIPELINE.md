@@ -167,11 +167,53 @@ ex-date, kind and factor (500 splits and bonuses had gone unapplied, #348).
 `scripts/build_nse_long_prices.py` (weekly, `nse_long_prices.yml`) reads every
 session on R2 from 2008 and writes to the `data-latest` release: closes adjusted
 for splits, bonuses, consolidations and demergers, renames joined, no dividends,
-no rights (owner, 3 Oct 2026), for every stock any index ever listed (1,418);
+rights only where `notes.json` corrects an index stock (owner, 3 Oct 2026:
+correct data first), for every stock any index ever listed (1,380, plus 38 old
+tickers and Tata Motors DVR: 1,418 series);
 traded value in Rs Cr; and a report (units by year, copies dropped, calendar
 flags). `src/loaders/nse_long.py` reads it; the Backtest page's "History from
 2010" mode runs on it with each index's own point-in-time list
 (`src/engine/index_universe.py`; Nifty 100 = Nifty 50 + Next 50).
+
+### How the long file is checked (3 Oct 2026)
+
+`scripts/audit_long_prices.py` compares it, every stock and every day, with
+independent histories (all kept on R2 under `reference/`, protected from
+clean-up): Yahoo, eod2, Tijori (only series whose level matches NSE
+MarketLens), Screener's full history, SS, and -- as references that can show
+a move is fake but never confirm one -- TejHQ (adjusts only within an ISIN)
+and NSE MarketLens (leaves some old splits raw). It reports the share of days
+on the same level, level breaks and which side moved, and every move beyond
+21% up or down: confirmed when more references agree than are flat, fake
+when more are flat.
+
+What the audit found and what fixed it:
+
+| Fault | Fix |
+|---|---|
+| A split worded without "from", or with a bonus in the same row, read as no factor (95 + 31 rows, 2008 - 2021) | `classify_purpose` (#350) |
+| One action in both the Bc file and the yearly list, applied twice | dedupe (#348); once per session even under a month-first date (#353) |
+| Old actions filed under today's symbol (TATACONSUM 2010 traded as TATAGLOBAL) | moved to the symbol that traded (`on_trading_symbol`, #353; 1,947 rows) |
+| Actions in neither NSE list | TejHQ's list fills gaps only (#354) |
+| A notes.json correction plus a later-listed action (SHRIRAMFIN) | a correction steps aside once an action covers it (#355) |
+| Stocks in BZ (trade-for-trade) dropped out, 4,921 stock-days | every equity series read, ranked (`SERIES_RANK`, #355) |
+| 2008 - 2009 splits no list has; rights and schemes of index stocks | 19 hand corrections in `notes.json`, each with its evidence (#355) |
+
+Result (file with #348 - #354): 94% of 3.7M stock-days within 2% of eod2
+(adjusts like us), 1,540 big moves confirmed, 32 fake. Of the 171 unconfirmed
+big moves inside index windows, about 150 match NSE's own MarketLens and are
+real (circuit days, the May 2009 rally, collapses).
+
+### Screener's history is sparse before the latest year
+
+Screener's store holds daily closes for about the latest year and weekly or
+irregular ones before (726 rows since 2016 for a stock NSE has 2,500 - 4,600
+days of). Where both have a day the closes are identical. But the momentum
+windows count rows, so on Screener's sparse stretch "252 rows back" reaches
+further than a year: GVT&D's 12-month return at end-May 2026 read +173% on
+Screener against +125% on NSE, enough to swap a stock in or out of the top 20.
+A 2026 Total Market backtest on each (same engine, settings and point-in-time
+list) differs by about one holding a month and 0.3 - 0.5 points a month.
 
 ## Running it by hand
 
