@@ -1,0 +1,74 @@
+name: NSE long price file (backtests from 2010)
+
+# Builds the long NSE price file the Backtest page's "History from 2010" mode
+# runs on: R2's NSE bhavcopy, 2008 to date, adjusted for splits, bonuses,
+# consolidations and demergers, renames joined; every stock any index ever
+# listed; traded value alongside. Read only on R2; the three files go to the
+# data-latest release (src/loaders/nse_long.py reads them).
+# See scripts/build_nse_long_prices.py.
+on:
+  schedule:
+    # Saturdays 03:30 UTC: the week's sessions are on R2 (nse_collect, every 4 h).
+    - cron: '30 3 * * 6'
+  workflow_dispatch:
+    inputs:
+      since:
+        description: "First session to read (YYYY-MM-DD)"
+        default: "2008-01-01"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nse-long-prices
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      PYTHONPATH: .
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+      - run: pip install -r requirements.txt
+      - name: Build
+        run: |
+          python scripts/build_nse_long_prices.py --since "${{ inputs.since || '2008-01-01' }}" --out data_cache/nse_long
+          ls -lh data_cache/nse_long
+          {
+            echo "## NSE long price file"
+            echo '```json'
+            python -c "import json; r=json.load(open('data_cache/nse_long/nse_long_report.json')); r['unpriced']=r['unpriced'][:40]; print(json.dumps(r, indent=1))"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish to the data-latest release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view data-latest --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create data-latest \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Latest data snapshots" \
+              --notes "Rolling history published by the sync jobs." \
+              --latest=false
+          gh release upload data-latest \
+            data_cache/nse_long/nse_long_close.parquet \
+            data_cache/nse_long/nse_long_value.parquet \
+            data_cache/nse_long/nse_long_report.json \
+            --repo "$GITHUB_REPOSITORY" --clobber
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: nse-long-prices
+          path: data_cache/nse_long/
+          if-no-files-found: ignore
+          retention-days: 14
