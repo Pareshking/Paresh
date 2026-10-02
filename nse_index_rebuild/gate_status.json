@@ -41,8 +41,8 @@
  },
  "NIFTY_500": {
   "expected_size_incl_dummies": 500,
-  "snapshots": 129,
-  "snapshots_wrong_size": 29,
+  "snapshots": 130,
+  "snapshots_wrong_size": 0,
   "chain_breaks": 0,
   "latest_chain_break": null,
   "oldest_snapshot": "2010-02-24"
