@@ -564,8 +564,10 @@ def _resolve_price_source(price_hash, sym_key, adj_close, close_p, high_p, low_p
         if r2_streamlit.enabled():
             raise RuntimeError("Configured immutable Screener dataset has no requested symbols")
         return fallback
-    # Screener first, Yahoo for what it lacks (owner, 2026-09-27).
-    return _ps.keep_and_fill(chosen, symbols, adj_close)
+    # Screener first, then NSE, then Yahoo for what neither has (owner,
+    # 2026-09-27; NSE as the middle source approved 2026-10-02).
+    from src.loaders import nse_prices as _nse
+    return _ps.keep_and_fill(chosen, symbols, adj_close, _nse.middle_close(symbols))
 
 
 @st.cache_data(show_spinner=False, ttl=86400)

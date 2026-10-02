@@ -264,3 +264,22 @@ def basis_frame(other: pd.DataFrame, history: dict | None, *, months: int,
                   other_source_names=sorted(filled), other_source_history=sorted(joined),
                   frame_last_session=str(frame.index[-1].date()))
     return frame, report
+
+
+def middle_close(symbols: Iterable[str]) -> pd.DataFrame | None:
+    """NSE's adjusted closes for `symbols`: the middle price source.
+
+    Screener -> NSE -> Yahoo (owner, 2026-09-27; adopted 2026-10-02). Reads the
+    committed data/nse_prices copy. Anything missing or unreadable returns None,
+    and the caller falls back to the Screener -> Yahoo order: a middle source
+    must never be able to take the app down.
+    """
+    try:
+        data = load()
+        if data is None:
+            return None
+        out, _report = adjusted_close(data["closes"], data["actions"], symbols,
+                                      notes=data["notes"])
+    except Exception:
+        return None
+    return out if not out.empty else None
