@@ -42,11 +42,11 @@ A date range is `PRODUCTION` only if G1 to G8 all pass. A range with open items 
 | Index | Snapshots reconstructed | Sizes wrong | Open chain breaks | Latest break |
 |---|---|---|---|---|
 | Nifty 50 | 14 | 0 | 0 | none |
-| Nifty Next 50 | 20 | 15 | 6 | 2021-03-31 |
+| Nifty Next 50 | 21 | 0 | 0 | none |
 | Nifty Midcap 150 | 23 | 0 | 0 | none |
 | Nifty Smallcap 250 | 44 | 0 | 0 | none |
 | Nifty Microcap 250 | 32 | 0 | 0 | none |
 
 - G3 holds for Nifty 50 back to 2019-03-29. G4, G5, G7 and G8 have not been done, so nothing is `PRODUCTION` yet.
-- The 45 symbol changes in `rules/aliases.csv` are all `INFERRED_FROM_SYMBOL_CONTINUITY`: each was accepted because it removed a chain violation, not because an NSE circular was found. They fail G2 for production use until each circular is located.
+- The 47 symbol changes in `rules/aliases.csv` are all `INFERRED_FROM_SYMBOL_CONTINUITY`: each was accepted because it removed a chain violation, not because an NSE circular was found. They fail G2 for production use until each circular is located.
 - Every other range is `RESEARCH_ONLY` until its open items are closed.

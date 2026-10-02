@@ -6,7 +6,7 @@ HEAD = re.compile(r"^\s*(?:\(?\d+[\).]|[A-Za-z][\).])?\s*(nifty[^\n]{0,60}?)\s*(
 ROW = re.compile(r"^\s*(\d+)\s+(.+?)\s{2,}([A-Z0-9&\-_]+)\s*$")
 MON = "January February March April May June July August September October November December".split()
 def eff(t):
-    m = re.search(r"(?:effective from|with effect from|w\.e\.f\.?)\s+([A-Z][a-z]+)\s+(\d{1,2}),?\s+(\d{4})", t)
+    m = re.search(r"(?:effective from|with effect from|w\.e\.f\.?)\s+([A-Z][a-z]+)\s*(\d{1,2}),?\s*(\d{4})", t)
     return f"{m.group(3)}-{MON.index(m.group(1))+1:02d}-{int(m.group(2)):02d}" if m and m.group(1) in MON else ""
 def idx_of(h):
     h = re.sub(r"\s+", " ", h.strip().lower())
@@ -31,7 +31,9 @@ for f in sorted(glob.glob("announcements/txt/*.txt")):
             nxt = lines[i+1] if i+1 < len(lines) else ""
             ok = bool(PFX.match(line)) or bool(re.search(r"following|being (in|ex)cluded|replace", nxt, re.I))
             if ok:
-                cur, mode = idx_of(h.group(1)), None
+                new = idx_of(h.group(1))
+                if PFX.match(line) or new:
+                    cur, mode = new, None
             continue
         r = ROW.match(line)
         if r and cur and mode:

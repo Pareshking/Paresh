@@ -9,10 +9,10 @@
  },
  "NIFTY_NEXT_50": {
   "expected_size_incl_dummies": 50,
-  "snapshots": 20,
-  "snapshots_wrong_size": 15,
-  "chain_breaks": 6,
-  "latest_chain_break": "2021-03-31",
+  "snapshots": 21,
+  "snapshots_wrong_size": 0,
+  "chain_breaks": 0,
+  "latest_chain_break": null,
   "oldest_snapshot": "2019-03-29"
  },
  "NIFTY_MIDCAP_150": {
