@@ -118,7 +118,7 @@ def _history_inputs(rank_df: pd.DataFrame, liquidity_floor_cr: float) -> dict | 
     start, end = c2.select_slider(
         "Months", months_all, value=(months_all[0], months_all[-1]),
         format_func=lambda p: p.strftime("%b %Y"), key=f"bt_hist_months_{key}",
-        help=f"{iu.INDICES[key]}'s point-in-time list begins {first:%b %Y}.",
+        help=f"{iu.INDICES[key]}'s point-in-time list begins {first.strftime('%b %Y')}.",
     )
     floor = st.number_input(
         "Minimum traded value (₹ Cr, 20-day average; 0 = off)", min_value=0.0, max_value=500.0,
@@ -164,16 +164,42 @@ def _backtest_body(
     membership: dict | None = None,
     history_start: pd.Timestamp | None = None,
 ) -> None:
-    """Fragment: reruns only when backtest-tab widgets change, not on every global rerun."""
-    history_mode = st.session_state.get("bt_mode") == MODE_HISTORY
+    """Fragment: reruns only when backtest-tab widgets change, not on every global rerun.
+
+    Two tabs (owner, 2026-10-03): the live system's recent months, and the
+    history from 2010. Lazy: only the open tab runs its backtest.
+    """
+    history_mode = st.session_state.get("bt_mode", MODE_LIVE) == MODE_HISTORY
     actions = kit.page_head(
         "Backtest",
         "Any index, any months from 2010, on NSE's own prices" if history_mode else
         f"Last {months} completed month{'s' if months != 1 else ''}",
         actions=True,
     )
-    st.segmented_control("Backtest mode", [MODE_LIVE, MODE_HISTORY], default=MODE_LIVE,
-                         key="bt_mode", label_visibility="collapsed")
+    live_tab, history_tab = st.tabs([MODE_LIVE, MODE_HISTORY], key="bt_mode", on_change="rerun")
+    history_mode = bool(history_tab.open)
+    with history_tab if history_mode else live_tab:
+        _backtest_tab(rank_df, adj_close, stock_cap, sector_cap, weights, liquidity_floor_cr,
+                      traded_value, months, membership, history_start,
+                      history_mode=history_mode, actions=actions)
+
+
+def _backtest_tab(
+    rank_df: pd.DataFrame,
+    adj_close: pd.DataFrame,
+    stock_cap: float,
+    sector_cap: float,
+    weights: tuple[float, ...],
+    liquidity_floor_cr: float,
+    traded_value: pd.DataFrame | None,
+    months: int,
+    membership: dict | None,
+    history_start: pd.Timestamp | None,
+    *,
+    history_mode: bool,
+    actions,
+) -> None:
+    """One tab's controls, backtest and views."""
     history = _history_inputs(rank_df, liquidity_floor_cr) if history_mode else None
     if history_mode and history is None:
         return
@@ -245,7 +271,7 @@ def _backtest_body(
         liquidity_floor_cr, traded_value = history["floor"], history["traded_value"]
         kit.caption(
             f"{history['name']}, point in time · Prices: NSE closes, adjusted for splits, bonuses "
-            "and demergers; no dividends or rights · file built "
+            "and demergers, and for rights issues of index stocks; no dividends · file built "
             f"{history.get('built') or '—'}, last session {history.get('last_session') or '—'}."
         )
     elif _nse is not None:
@@ -357,7 +383,8 @@ def _backtest_body(
     # part-month return is never shown beside whole ones.
     _eq_idx = bt_res["equity_curve"].index
     bt_window_label = (
-        f"{_eq_idx[0]:%d %b} to {_eq_idx[-1]:%d %b %Y}"
+        f"{_eq_idx[0]:{'%d %b' if _eq_idx[0].year == _eq_idx[-1].year else '%d %b %Y'}} "
+        f"to {_eq_idx[-1]:%d %b %Y}"
         if len(_eq_idx)
         else f"last {months} completed month{'s' if months != 1 else ''}"
     )
