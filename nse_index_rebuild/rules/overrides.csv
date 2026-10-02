@@ -16,8 +16,8 @@ VOID,ind_prs19032020,NIFTY_NEXT_50,*,*,"Voided by ind_prs13052020 A.1 (replaceme
 VOID,ind_prs19032020,NIFTY_MIDCAP_150,*,*,"Voided by ind_prs13052020 A.1 (replacements effective 2020-03-27 from press releases of Feb 18, Mar 12, Mar 19 2020 'stand null and void'; Nifty 50 and Bank rebalanced 2020-03-19 instead)"
 VOID,ind_prs19032020,NIFTY_SMALLCAP_250,*,*,"Voided by ind_prs13052020 A.1 (replacements effective 2020-03-27 from press releases of Feb 18, Mar 12, Mar 19 2020 'stand null and void'; Nifty 50 and Bank rebalanced 2020-03-19 instead)"
 VOID,ind_prs19032020,NIFTY_MICROCAP_250,*,*,"Voided by ind_prs13052020 A.1 (replacements effective 2020-03-27 from press releases of Feb 18, Mar 12, Mar 19 2020 'stand null and void'; Nifty 50 and Bank rebalanced 2020-03-19 instead)"
-ADD_EFF,ind_prs23032020,NIFTY_SMALLCAP_250,OUT,GAYAPROJ,ind_prs23032020: impact-cost compliance swap w.e.f. 2020-03-27 (not voided by ind_prs13052020)|2020-03-27
-ADD_EFF,ind_prs23032020,NIFTY_SMALLCAP_250,IN,FLUOROCHEM,ind_prs23032020: impact-cost compliance swap w.e.f. 2020-03-27 (not voided by ind_prs13052020)|2020-03-27
+HELD_ADD_EFF,ind_prs23032020,NIFTY_SMALLCAP_250,OUT,GAYAPROJ,ind_prs23032020: impact-cost compliance swap w.e.f. 2020-03-27 (not voided by ind_prs13052020)|2020-03-27
+HELD_ADD_EFF,ind_prs23032020,NIFTY_SMALLCAP_250,IN,FLUOROCHEM,ind_prs23032020: impact-cost compliance swap w.e.f. 2020-03-27 (not voided by ind_prs13052020)|2020-03-27
 CANCEL,ind_prs23082024,NIFTY_MIDCAP_150,OUT,IDEA,Revoked by ind_prs25092024 section A (Vodafone Idea exclusion revoked following impact-cost recalculation) - Midcap 150 row 2
 CANCEL,ind_prs23082024,NIFTY_MIDCAP_150,IN,CENTRALBK,Revoked by ind_prs25092024 section A (Vodafone Idea exclusion revoked following impact-cost recalculation) - Midcap 150 row 2: Central Bank inclusion revoked
 CANCEL,ind_prs23082024,NIFTY_SMALLCAP_250,OUT,CENTRALBK,Revoked by ind_prs25092024 section A (Vodafone Idea exclusion revoked following impact-cost recalculation) - Smallcap 250 row 3: Central Bank exclusion revoked

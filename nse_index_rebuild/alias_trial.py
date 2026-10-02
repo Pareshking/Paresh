@@ -1,7 +1,7 @@
 import csv, glob, os, subprocess
 import reverse2
 base = [dict(r) for r in csv.DictReader(open("rules/aliases.csv"))]
-cands = [("GLS","ALIVUS"),("LAXMIMACH","LMW")]
+cands = [("ORIENTREF","RHIM"),("ESSELPACK","EPL"),("HEG","HEGAM")]
 ev = reverse2.ev
 def mentions(sym):
     out = subprocess.run(["grep","-lw","--",sym]+glob.glob("announcements/txt/*.txt"),capture_output=True,text=True).stdout.split()

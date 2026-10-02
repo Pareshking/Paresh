@@ -25,10 +25,10 @@
  },
  "NIFTY_SMALLCAP_250": {
   "expected_size_incl_dummies": 250,
-  "snapshots": 45,
-  "snapshots_wrong_size": 11,
-  "chain_breaks": 4,
-  "latest_chain_break": "2020-06-26",
+  "snapshots": 44,
+  "snapshots_wrong_size": 0,
+  "chain_breaks": 0,
+  "latest_chain_break": null,
   "oldest_snapshot": "2019-01-28"
  },
  "NIFTY_MICROCAP_250": {
