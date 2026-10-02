@@ -75,6 +75,27 @@ def test_a_split_that_the_price_confirms_is_applied_once():
     assert rep["corporate_action_steps"] == 1
 
 
+def test_an_action_filed_under_todays_symbol_applies_to_the_one_that_traded():
+    # NSE lists TATACONSUM's 2010 split under TATACONSUM; that day the stock was TATAGLOBAL.
+    at, ren = IDX.get_loc(pd.Timestamp("2025-06-02")), IDX.get_loc(pd.Timestamp("2026-01-01"))
+    old = np.r_[_flat(100, at), _flat(10, ren - at), np.full(len(IDX) - ren, np.nan)]
+    new = np.r_[np.full(ren, np.nan), _flat(10, len(IDX) - ren)]
+    closes = _closes(TATAGLOBAL=old, TATACONSUM=new)
+    actions = pd.DataFrame([{"symbol": "TATACONSUM", "series": "EQ", "kind": "split",
+                             "purpose": "Face Value Split From Rs.10/- To Re.1/-",
+                             "ex_date": pd.Timestamp("2025-06-02"), "price_factor": 0.1}])
+    notes = {"renames": {"TATAGLOBAL": {"new_symbol": "TATACONSUM"}}}
+    out, rep = npx.adjusted_close(closes, actions, ["TATACONSUM"], notes=notes)
+    assert rep["actions_moved_to_old_symbol"] == 1 and rep["corporate_action_steps"] == 1
+    assert out["TATACONSUM"].nunique() == 1 and float(out["TATACONSUM"].iloc[0]) == 10.0
+
+
+def test_an_action_on_a_symbol_that_traded_stays_where_it_is():
+    closes, actions = _split_inputs()
+    moved = npx.on_trading_symbol(actions, closes, {"OLDSPLT": {"new_symbol": "SPLT"}})
+    assert list(moved["symbol"]) == ["SPLT", "SPLT"]
+
+
 def test_symbols_nse_does_not_carry_are_reported_not_invented():
     closes, actions = _split_inputs()
     out, rep = npx.adjusted_close(closes, actions, ["SPLT", "MISSING"])
