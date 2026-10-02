@@ -1,7 +1,7 @@
 import re, glob, os, csv
 IDX = {"NIFTY_50": r"nifty\s*50(?:\s+index)?", "NIFTY_NEXT_50": r"nifty\s*next\s*50(?:\s+index)?",
        "NIFTY_MIDCAP_150": r"nifty\s*midcap\s*150(?:\s+index)?", "NIFTY_SMALLCAP_250": r"nifty\s*smallcap\s*250(?:\s+index)?",
-       "NIFTY_MICROCAP_250": r"nifty\s*microcap\s*250(?:\s+index)?"}
+       "NIFTY_MICROCAP_250": r"nifty\s*microcap\s*250(?:\s+index)?", "NIFTY_TOTAL_MARKET": r"nifty\s*total\s*market(?:\s+index)?"}
 HEAD = re.compile(r"^\s*(?:\(?\d+[\).]|[A-Za-z][\).])?\s*(nifty[^\n]{0,60}?)\s*(?:indices|index)?\s*:?\s*$", re.I)
 ROW = re.compile(r"^\s*(\d+)\s+(.+?)\s{2,}([A-Z0-9&\-_]+)\s*$")
 MON = "January February March April May June July August September October November December".split()
