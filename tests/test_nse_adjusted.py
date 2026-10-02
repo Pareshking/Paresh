@@ -132,3 +132,27 @@ def test_a_demerger_is_priced_at_the_ex_dates_fall():
     rising = na.wide(_rows("X", [100.0, 101.0, 103.0, 104.0], [100.0] * 4))
     f, v = na.action_factors(rising["close"], _actions(("X", "demerger", pd.Timestamp("2026-01-07"), np.nan)))
     assert v["verdict"].tolist() == ["no move"] and (f == 1.0).all().all()
+
+
+def test_one_action_listed_twice_is_applied_once():
+    """NSE's daily Bc file and its yearly list carry the same split, worded
+    differently. Multiplied, a 1:5 split became x0.04 and went unapplied
+    (HDFCBANK 2019, ADANIPOWER 2025 in the 2008-2026 audit)."""
+    twice = pd.DataFrame([
+        {"symbol": "ABC", "kind": "split", "ex_date": pd.Timestamp("2026-01-07"),
+         "price_factor": 0.2, "purpose": "FACE VALUE SPLIT (SUB-DIVISION) - FROM RS 10/- PER SHARE TO RS 2/- PER SHARE"},
+        {"symbol": "ABC", "kind": "split", "ex_date": "2026-01-07",
+         "price_factor": 0.2, "purpose": "FVSPLT FRM RS 10 TO RS 2"},
+    ])
+    adj, f, v = na.adjusted_frames(_split_frame(), twice)
+    assert np.isclose(f.at[pd.Timestamp("2026-01-07"), "ABC"], 0.2)
+    assert v["verdict"].tolist() == ["applied"]
+    assert np.allclose(adj["close"]["ABC"].tolist(), [20.0, 20.4, 21.0, 22.0])
+
+
+def test_two_different_actions_on_one_day_still_multiply():
+    both = _actions(("ABC", "bonus", pd.Timestamp("2026-01-07"), 0.5),
+                    ("ABC", "split", pd.Timestamp("2026-01-07"), 0.4))
+    _adj, f, v = na.adjusted_frames(_split_frame(), both)
+    assert np.isclose(f.at[pd.Timestamp("2026-01-07"), "ABC"], 0.2)
+    assert v["verdict"].tolist() == ["applied"]

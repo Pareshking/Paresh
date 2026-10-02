@@ -91,6 +91,13 @@ def _parsed(actions: pd.DataFrame) -> pd.DataFrame:
     a = actions[(known | actions["kind"].eq("demerger")) & actions["ex_date"].notna()].copy()
     # One date type whatever the store held (dates, strings, other resolutions).
     a["date"] = pd.to_datetime(a["ex_date"]).dt.normalize().astype("datetime64[ns]")
+    # One action, once. NSE lists the same split in its daily Bc file and in its
+    # yearly corporate-action list, worded differently, so both rows survive a
+    # dedupe on the text; multiplied, a 1:2 split became x0.25, which no price
+    # move confirms, and the split went unapplied (HDFCBANK 2019, ADANIPOWER 2025:
+    # 500 of 584 unconfirmed actions in the 2008-2026 audit, 3 Oct 2026). Two
+    # different actions on one day (BAJFINANCE 2025: bonus and split) still multiply.
+    a = a.assign(_f=a["price_factor"].round(6)).drop_duplicates(["symbol", "date", "kind", "_f"])
     return (a.groupby(["symbol", "date"], as_index=False)
              .agg(kind=("kind", lambda k: "+".join(sorted(set(k)))),
                   bc_factor=("price_factor", lambda f: f.prod() if f.notna().any() else np.nan)))
