@@ -1,0 +1,6 @@
+index,source_url,fetched_utc,http_code,rows,sha256
+NIFTY_50,https://niftyindices.com/IndexConstituent/ind_nifty50list.csv,2026-10-02T09:53:36Z,200,50,f5ba4027d935ae72879d5c24bbebf0e8439ec8ed504ffdf4175fde69206244b3
+NIFTY_NEXT_50,https://niftyindices.com/IndexConstituent/ind_niftynext50list.csv,2026-10-02T09:53:36Z,200,50,b05337532e755953b588677216012f9b59e69ff39f3dfbbab61e96fc2d724e47
+NIFTY_MIDCAP_150,https://niftyindices.com/IndexConstituent/ind_niftymidcap150list.csv,2026-10-02T09:53:37Z,200,150,3fe5312472d1130282acdd7d4a08a765b2c1e6329e92a947deb6f5227545d352
+NIFTY_SMALLCAP_250,https://niftyindices.com/IndexConstituent/ind_niftysmallcap250list.csv,2026-10-02T09:53:37Z,200,251,48ed754ed01486a3d60011a867b328f484325385376c7727951503c87a452510
+NIFTY_MICROCAP_250,https://niftyindices.com/IndexConstituent/ind_niftymicrocap250_list.csv,2026-10-02T09:53:38Z,200,254,8cbdd38836d90c74ab1dea0f2b77a4d189de6620b8ecc4fb1b27fda6dfebe641
