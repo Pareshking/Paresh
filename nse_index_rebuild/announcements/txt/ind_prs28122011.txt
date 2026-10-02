@@ -1,0 +1,45 @@
+        IISL
+        INDIA INDEX SERVICES & PRODUCTS LIMITED
+        (A joint venture of NSE & CRISIL)
+
+                                  PRESS RELEASE
+
+The Index Maintenance Sub-Committee has decided to make the following changes in CNX
+Dividend Opportunities Index during its periodic review. These changes shall become
+effective from January 2, 2012.
+
+The following companies are being excluded:
+
+ Sr. No.                   Company Name                         Symbol
+   1       Bank of Maharashtra.                              MAHABANK
+   2       Berger Paints India Ltd.                          BERGEPAINT
+   3       Corporation Bank                                  CORPBANK
+   4       Deepak Fertilisers & Petrochemicals Corporation   DEEPAKFERT
+           Ltd.
+    5      Graphite India Ltd.                               GRAPHITE
+    6      IndusInd Bank Ltd.                                INDUSINDBK
+    7      Jammu & Kashmir Bank Ltd.                         J&KBANK
+    8      Polaris Software Lab Ltd.                         POLARIS
+    9      Rashtriya Chemicals & Fertilizers Ltd.            RCF
+   10      Shriram Transport Finance Company Ltd.            SRTRANSFIN
+   11      Torrent Pharmaceuticals Ltd.                      TORNTPHARM
+
+The following companies are being included:
+
+ Sr. No.                   Company Name                          Symbol
+    1      Ashok Leyland Ltd.                                ASHOKLEY
+    2      Bajaj Auto Ltd.                                   BAJAJ-AUTO
+    3      Bajaj Holdings & Investment Ltd.                  BAJAJHLDNG
+    4      Hindustan Petroleum Corporation Ltd.              HINDPETRO
+    5      India Infoline Ltd.                               INDIAINFO
+    6      Indiabulls Financial Services Ltd.                INDIABULLS
+    7      Indian Overseas Bank                              IOB
+    8      Oriental Bank of Commerce                         ORIENTBANK
+    9      SREI Infrastructure Finance Ltd.                  SREINFRA
+   10      Syndicate Bank                                    SYNDIBANK
+   11      Vijaya Bank                                       VIJAYABANK
+
+
+Place: Mumbai
+Date: December 28, 2011
+

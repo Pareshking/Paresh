@@ -1,0 +1,98 @@
+PRESS RELEASE
+Mumbai, March 09, 2026
+
+
+                     Revision to changes in Nifty Fixed Income indices
+
+     NSE Indices Limited vide press release dated March 05, 2026 announced changes in Nifty Financial
+     Services 3 to 6 Months Debt Index to be effective from March 10, 2026.
+
+     Market participants are requested to note that the captioned press release announcing the changes
+     stands withdrawn and is replaced with changes listed hereunder.
+
+     These changes shall become effective from March 10, 2026.
+
+         A. Nifty Financial Services 3 to 6 Months Debt Index
+     The following securities are being included:
+
+      Sr. No.   Issuer Name                                         ISIN                Maturity Date
+         1      AXIS BANK LIMITED                                   INE238AD6BD9           11-Aug-26
+         2      BAJAJ FINANCE LIMITED                               INE296A14C14            22-Jul-26
+                BARCLAYS INVESTMENTS AND LOANS
+         3                                                          INE704I14LA2             18-Aug-26
+                (INDIA) PRIVATE LIMITED
+         4      EXPORT-IMPORT BANK OF INDIA                         INE514E16CM3              11-Jun-26
+         5      HDFC BANK LIMITED                                   INE040A16HH6             31-Aug-26
+         6      ICICI SECURITIES LIMITED                            INE763G14F27             10-Aug-26
+         7      KOTAK MAHINDRA PRIME LIMITED                        INE916D145Y5             07-Sep-26
+                MAHINDRA AND MAHINDRA FINANCIAL
+         8                                                          INE774D14TK8             30-Jun-26
+                SERVICES LIMITED
+                NATIONAL BANK FOR AGRICULTURE
+         9                                                          INE261F14OH8             25-Jun-26
+                AND RURAL DEVELOPMENT
+                SMALL INDUSTRIES DEVELOPMENT
+         10                                                         INE556F16BJ9              09-Jul-26
+                BANK OF INDIA
+                STANDARD CHARTERED CAPITAL
+         11                                                         INE403G14TU6             04-Sep-26
+                LIMITED
+         12     SUNDARAM FINANCE LIMITED                            INE660A14YS8             24-Aug-26
+         13     TATA CAPITAL LIMITED                                INE976I14QF4              24-Jun-26
+         14     UNION BANK OF INDIA                                 INE692A16JQ1              25-Jun-26
+The following securities are being excluded:
+
+ Sr. No.    Issuer Name                                       ISIN                Maturity Date
+     1      BAJAJ FINANCE LIMITED                             INE296A14A73            26-May-26
+     2      BANK OF BARODA                                    INE028A16KG7             03-Jun-26
+            BARCLAYS INVESTMENTS AND LOANS
+    3                                                         INE704I14KT4               05-Jun-26
+            (INDIA) PRIVATE LIMITED
+     4      EXPORT-IMPORT BANK OF INDIA                       INE514E16CL5              28-May-26
+     5      HDB FINANCIAL SERVICES LIMITED                    INE756I14EZ4              16-Mar-26
+     6      HDFC BANK LIMITED                                 INE040A16HT1               04-Jun-26
+     7      ICICI SECURITIES LIMITED                          INE763G14C04               05-Jun-26
+     8      KOTAK MAHINDRA PRIME LIMITED                      INE916D145K4               05-Jun-26
+     9      L AND T FINANCE LIMITED                           INE498L14ED4               10-Jun-26
+    10      LIC HOUSING FINANCE LIMITED                       INE115A14FL7              18-Mar-26
+            NATIONAL BANK FOR AGRICULTURE
+    11                                                        INE261F16AA7              25-Mar-26
+            AND RURAL DEVELOPMENT
+    12      POONAWALLA FINCORP LIMITED                        INE511C14YY7              25-May-26
+            POWER FINANCE CORPORATION
+    13                                                        INE134E14AX6               15-Apr-26
+            LIMITED
+    14      PUNJAB NATIONAL BANK                              INE160A16RP4              25-Mar-26
+    15      REC LIMITED                                       INE020B14698               10-Jun-26
+            SMALL INDUSTRIES DEVELOPMENT
+    16                                                        INE556F16BI1              20-May-26
+            BANK OF INDIA
+            SMFG INDIA CREDIT COMPANY
+    17                                                        INE535H14JN9               09-Jun-26
+            LIMITED
+            STANDARD CHARTERED CAPITAL
+    18                                                        INE403G14TQ4               05-Jun-26
+            LIMITED
+            TATA CAPITAL HOUSING FINANCE
+    19                                                        INE033L14OD8               10-Jun-26
+            LIMITED
+    20      TATA CAPITAL LIMITED                              INE976I14QD9               10-Jun-26
+
+
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary
+of NSE, provides a variety of indices and index related services for the capital markets. The company
+focuses on the index as a core product. The company owns and manages a portfolio of indices under
+the Nifty brand of NSE, including the flagship index, the Nifty 50. Nifty equity indices comprise of
+broad-based benchmark indices, sectoral indices, strategy indices, thematic indices and customised
+indices. NSE Indices Limited also maintains fixed income indices based on Government of India
+securities, corporate bonds, money market instruments and hybrid indices. Many investment products
+based on Nifty indices have been developed within India and abroad. These include index based
+derivatives traded on NSE and NSE International Exchange IFSC Limited (NSE IX) and a number of
+index funds and exchange traded funds. The flagship 'Nifty 50' index is widely tracked and traded as
+the benchmark for Indian Capital Markets.
+
+For more information, please visit: www.niftyindices.com
+Press contact:
+Email ID: cc@nse.co.in
+

@@ -1,0 +1,98 @@
+PRESS RELEASE
+Mumbai, April 01, 2022
+
+
+      NSE Indices launches 57 new fixed income indices for Money Market and
+      Banking & PSU Segments
+      NSE’s index services subsidiary, NSE Indices Limited today launched 57 new fixed income
+      indices of various residual maturities and credit risk profiles within the Commercial Paper (CP),
+      Certificate of Deposit (CD) and Banking & PSU (BPSU) segments of the Indian fixed income
+      markets.
+      In all there are 57 indices across three levels of credit risks as A, B and C as shown in the below
+      table.
+                                                                                          Three levels of Credit Risks
+   Sr. no.             Segment                                 A                                       B                                         C
+     1       1 Month CP                      Nifty 1 Month CP Index - A               Nifty 1 Month CP Index - B               Nifty 1 Month CP Index - C
+     2       2 Month CP                      Nifty 2 Month CP Index - A               Nifty 2 Month CP Index - B               Nifty 2 Month CP Index - C
+     3       3 Month CP                      Nifty 3 Month CP Index - A               Nifty 3 Month CP Index - B               Nifty 3 Month CP Index - C
+     4       6 Month CP                      Nifty 6 Month CP Index - A               Nifty 6 Month CP Index - B               Nifty 6 Month CP Index - C
+     5       1 Year CP                       Nifty 1 Year CP Index - A                Nifty 1 Year CP Index - B                Nifty 1 Year CP Index - C
+     6       All Maturity CP                 Nifty All Maturity CP Index - A          Nifty All Maturity CP Index - B          Nifty All Maturity CP Index - C
+     7       1 Month CD                      Nifty 1 Month CD Index - A               Nifty 1 Month CD Index - B               Nifty 1 Month CD Index - C
+     8       2 Month CD                      Nifty 2 Month CD Index - A               Nifty 2 Month CD Index - B               Nifty 2 Month CD Index - C
+     9       3 Month CD                      Nifty 3 Month CD Index - A               Nifty 3 Month CD Index - B               Nifty 3 Month CD Index - C
+     10      6 Month CD                      Nifty 6 Month CD Index - A               Nifty 6 Month CD Index - B               Nifty 6 Month CD Index – C
+     11      1 Year CD                       Nifty 1 Year CD Index - A                Nifty 1 Year CD Index - B                Nifty 1 Year CD Index – C
+     12      All Maturity CD                 Nifty All Maturity CD Index - A          Nifty All Maturity CD Index - B          Nifty All Maturity CD Index – C
+             Banking & PSU Ultra Short       Nifty Banking & PSU Ultra Short          Nifty Banking & PSU Ultra Short          Nifty Banking & PSU Ultra Short
+     13
+             Duration Bond                   Duration Bond Index - A                  Duration Bond Index - B                  Duration Bond Index – C
+             Banking & PSU Low Duration      Nifty Banking & PSU Low Duration Bond    Nifty Banking & PSU Low Duration Bond    Nifty Banking & PSU Low Duration Bond
+     14
+             Bond                            Index - A                                Index - B                                Index – C
+             Banking & PSU Short Duration    Nifty Banking & PSU Short Duration       Nifty Banking & PSU Short Duration       Nifty Banking & PSU Short Duration
+     15
+             Bond                            Bond Index - A                           Bond Index - B                           Bond Index – C
+             Banking & PSU Medium Duration   Nifty Banking & PSU Medium Duration      Nifty Banking & PSU Medium Duration      Nifty Banking & PSU Medium Duration
+     16
+             Bond                            Bond Index - A                           Bond Index – B                           Bond Index – C
+             Banking & PSU Medium to Long    Nifty Banking & PSU Medium to Long       Nifty Banking & PSU Medium to Long       Nifty Banking & PSU Medium to Long
+     17
+             Duration Bond                   Duration Bond Index – A                  Duration Bond Index – B                  Duration Bond Index – C
+             Banking & PSU Long Duration     Nifty Banking & PSU Long Duration Bond   Nifty Banking & PSU Long Duration Bond   Nifty Banking & PSU Long Duration Bond
+     18
+             Bond                            Index - A                                Index - B                                Index – C
+     19      Banking & PSU Debt              Nifty Banking & PSU Debt Index - A       Nifty Banking & PSU Debt Index – B       Nifty Banking & PSU Debt Index – C
+
+
+
+
+      These three levels of credit risk indices within each segment have been named with an A, B or C
+      as suffix in the name of the index and include instruments with following long term credit ratings:
+      A – Includes instruments with long term issuer rating of AAA
+      B – Includes instruments with long term issuer rating of AAA and AA+
+C – Includes instruments with long term issuer rating of AAA, AA+, AA, AA-, A+, A and A-.
+Further weight to AAA rating is capped at 20%
+All indices have a base date of September 03, 2001, and a base value of 1000. The money market
+indices are rebalanced on a fortnightly basis and the Banking & PSU Bond indices are rebalanced
+on a quarterly basis.
+For more information on index methodology and factsheet, please visit us at
+www.niftyindices.com or www.nseindia.com
+About National Stock Exchange of India Limited (NSE):
+
+National Stock Exchange of India (NSE) is the world’s largest derivatives exchange by trading
+volume (contracts) as per the statistics maintained by Futures Industry Association (FIA) for
+calendar year 2021. NSE is ranked 4th in the world in the cash equities by number of trades as
+per the statistics maintained by the World Federation of Exchanges (WFE) for calendar year 2021.
+NSE was the first exchange in India to implement electronic or screen-based trading. It began
+operations in 1994 and is ranked as the largest stock exchange in India in terms of total and
+average daily turnover for equity shares every year since 1995, based on SEBI data. NSE has a
+fully integrated business model comprising exchange listings, trading services, clearing and
+settlement services, indices, market data feeds, technology solutions and financial education
+offerings. NSE also oversees compliance by trading, clearing members and listed companies with
+the rules and regulations of SEBI and the exchange. NSE is a pioneer in technology and ensures
+the reliability and performance of its systems through a culture of innovation and investment in
+technology.
+
+For more information, please visit: https://www.nseindia.com
+
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a
+subsidiary of NSE, provides a variety of indices and index related services for the capital markets.
+The company focuses on the index as a core product. The company owns and manages a portfolio
+of indices under the NIFTY brand of NSE, including the flagship index, the NIFTY 50. NIFTY
+equity indices comprises of broad-based benchmark indices, sectoral indices, strategy indices,
+thematic indices and customised indices. NSE Indices Limited also maintains fixed income indices
+based on Government of India securities, corporate bonds, money market instruments and hybrid
+indices. Many investment products based on NIFTY indices have been developed within India and
+abroad. These include index based derivatives traded on NSE, NSE IFSC and Singapore Exchange
+Ltd. (SGX) and a number of index funds and exchange traded funds. The flagship 'NIFTY 50'
+index is widely tracked and traded as the benchmark for Indian Capital Markets.
+For more information, please visit: www.niftyindices.com
+
+
+Press contact:
+Kumar Kartikey - Chief Manager, Corporate Communications
+Priyanka Roy - Manager, Corporate Communications
+Email ID: cc@nse.co.in
+

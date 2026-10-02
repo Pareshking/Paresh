@@ -1,0 +1,47 @@
+       IISL
+       INDIA INDEX SERVICES & PRODUCTS LIMITED
+        (A joint venture of NSE & CRISIL)
+
+                                   PRESS RELEASE
+
+Securities of Zuari Industries Limited will be traded on an ex-entitlement basis on
+National Stock Exchange with effect from April 9, 2012 on account of Scheme of
+Arrangement involving the demerger of the Fertilizer undertaking of Zuari Industries
+Limited into Zuari Holdings Limited.
+
+Further, securities of Alfa Laval (India) Limited will be suspended for trading on
+National Stock Exchange w.e.f. April 12, 2012 on account of voluntary delisting pursuant
+to SEBI (Delisting of Equity Shares) Regulations, 2009.
+
+The Index Maintenance Sub-Committee has decided to make the following changes in
+various indices in this regard as per the effective dates given below:
+
+1) S&P CNX 500 Index
+
+The following companies are being excluded:
+
+ Sr. No.                Company Name                      Symbol           Effective Date
+    1      Zuari Industries Limited                    ZUARIAGRO           April 9, 2012
+    2      Alfa Laval (India) Limited                  ALFALAVAL           April 12, 2012
+
+The following companies are being included:
+
+ Sr. No.               Company Name                        Symbol          Effective Date
+    1      United Breweries (Holdings) Limited         UBHOLDINGS          April 9, 2012
+    2      J. Kumar Infraprojects Limited              JKIL                April 12, 2012
+
+2) CNX Smallcap Index
+
+The following company is being excluded:
+
+ Sr. No.                Company Name                      Symbol           Effective Date
+    1      Zuari Industries Limited                    ZUARIAGRO           April 9, 2012
+
+The following company is being included:
+
+ Sr. No.              Company Name                        Symbol           Effective Date
+    1      TVS Motor Company Limited                   TVSMOTOR            April 9, 2012
+
+Place: Mumbai
+Date: April 4, 2012
+

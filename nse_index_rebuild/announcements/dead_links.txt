@@ -1,0 +1,11 @@
+dead links (site served HTML, not a PDF):
+ind_prs02022017.pdf
+ind_prs02032012.pdf
+ind_prs02032017.pdf
+ind_prs02062016.pdf
+ind_prs05062018.pdf
+ind_prs06092011.pdf
+ind_prs16072019_1.pdf
+ind_prs29052026.pdf
+ind_prs24032026.pdf
+ind_prs14032023.pdf

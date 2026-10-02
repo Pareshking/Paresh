@@ -1,0 +1,168 @@
+PRESS RELEASE
+Mumbai, June 05, 2026
+
+
+                             Changes in Nifty Fixed Income indices
+
+      The Index Maintenance Sub-Committee (Debt) of NSE Indices Limited has decided to make changes
+      as listed hereunder. These changes shall become effective from June 10, 2026 (close of June 09, 2026).
+
+         A. Nifty Financial Services 3 to 6 Months Debt Index
+      The following securities are being included:
+
+            ISIN                                  Issuer Name                            Maturity Date
+       INE028A16KO1        BANK OF BARODA                                                 04-Dec-26
+       INE514E16CN1        EXPORT-IMPORT BANK OF INDIA                                    11-Nov-26
+       INE040A16HY1        HDFC BANK LIMITED                                              19-Nov-26
+                           NATIONAL BANK FOR AGRICULTURE AND
+       INE261F16AC3                                                                        10-Nov-26
+                           RURAL DEVELOPMENT
+       INE160A16UT0        PUNJAB NATIONAL BANK                                             15-Sep-26
+                           SMALL INDUSTRIES DEVELOPMENT BANK OF
+       INE556F16BS0                                                                         04-Dec-26
+                           INDIA
+       INE296A14D21        BAJAJ FINANCE LIMITED                                           06-Nov-26
+       INE763G14J49        ICICI SECURITIES LIMITED                                        20-Nov-26
+       INE916D146I6        KOTAK MAHINDRA PRIME LIMITED                                    09-Dec-26
+       INE028E14WE4        KOTAK SECURITIES LIMITED                                        16-Oct-26
+       INE498L14FU5        L AND T FINANCE LIMITED                                         15-Oct-26
+                           MAHINDRA AND MAHINDRA FINANCIAL
+       INE774D14TT9                                                                         30-Oct-26
+                           SERVICES LIMITED
+       INE535H14JS8        SMFG INDIA CREDIT COMPANY LIMITED                               28-Sep-26
+       INE660A14YU4        SUNDARAM FINANCE LIMITED                                        18-Nov-26
+       INE976I14QM0        TATA CAPITAL LIMITED                                            16-Sep-26
+
+      The following securities are being excluded:
+
+            ISIN                          Security Name                                  Maturity Date
+       INE238AD6BD9        AXIS BANK LIMITED                                              11-Aug-26
+       INE514E16CM3        EXPORT-IMPORT BANK OF INDIA                                    11-Jun-26
+       INE040A16HH6        HDFC BANK LIMITED                                              31-Aug-26
+                           SMALL INDUSTRIES DEVELOPMENT BANK OF
+       INE556F16BJ9                                                                         09-Jul-26
+                           INDIA
+
+
+
+                                               Non-Confidential
+      ISIN                            Security Name           Maturity Date
+ INE692A16JQ1        UNION BANK OF INDIA                       25-Jun-26
+ INE296A14C14        BAJAJ FINANCE LIMITED                     22-Jul-26
+                     BARCLAYS INVESTMENTS AND LOANS (INDIA)
+ INE704I14LA2                                                  18-Aug-26
+                     PRIVATE LIMITED
+ INE763G14F27        ICICI SECURITIES LIMITED                  10-Aug-26
+ INE916D145Y5        KOTAK MAHINDRA PRIME LIMITED              07-Sep-26
+                     MAHINDRA AND MAHINDRA FINANCIAL
+ INE774D14TK8                                                   30-Jun-26
+                     SERVICES LIMITED
+                     NATIONAL BANK FOR AGRICULTURE AND
+ INE261F14OH8                                                   25-Jun-26
+                     RURAL DEVELOPMENT
+ INE403G14TU6        STANDARD CHARTERED CAPITAL LIMITED        04-Sep-26
+ INE660A14YS8        SUNDARAM FINANCE LIMITED                  24-Aug-26
+ INE976I14QF4        TATA CAPITAL LIMITED                      24-Jun-26
+
+
+   B. Nifty Financial Services 9 to 12 Months Debt Index
+The following securities are being included:
+
+      ISIN                             Issuer Name            Maturity Date
+ INE296A14G69        BAJAJ FINANCE LIMITED                     07-May-27
+ INE377Y14CA3        BAJAJ HOUSING FINANCE LIMITED             12-Mar-27
+ INE476A16I26        CANARA BANK                               25-Mar-27
+ INE756I07EY1        HDB FINANCIAL SERVICES LIMITED            10-May-27
+ INE040A16IZ6        HDFC BANK LIMITED                         12-Mar-27
+ INE763G14J07        ICICI SECURITIES LIMITED                  21-May-27
+                     INDIAN RAILWAY FINANCE CORPORATION
+ INE053F07AB5                                                   15-Jun-27
+                     LIMITED
+ INE282H14097        JIO CREDIT LIMITED                        19-Mar-27
+                     KISETSU SAISON FINANCE (INDIA) PRIVATE
+ INE0DZE14339                                                  11-Mar-27
+                     LIMITED
+ INE916D146T3        KOTAK MAHINDRA PRIME LIMITED              05-Apr-27
+ INE498L14FQ3        L AND T FINANCE LIMITED                   19-Mar-27
+ INE115A14FT0        LIC HOUSING FINANCE LIMITED               11-Mar-27
+                     NATIONAL BANK FOR AGRICULTURE AND
+ INE261F16AQ3                                                  18-Mar-27
+                     RURAL DEVELOPMENT
+                     NATIONAL BANK FOR FINANCING
+ INE0KUG16038                                                  12-Mar-27
+                     INFRASTRUCTURE AND DEVELOPMENT
+ INE134E08JC3        POWER FINANCE CORPORATION LIMITED         11-Jun-27
+ INE020B08FA2        REC LIMITED                               31-May-27
+                     SMALL INDUSTRIES DEVELOPMENT BANK OF
+ INE556F16CD0                                                  25-Mar-27
+                     INDIA
+
+
+
+
+                                        Non-Confidential
+      ISIN                           Issuer Name                                   Maturity Date
+ INE660A14ZB1        SUNDARAM FINANCE LIMITED                                       10-May-27
+ INE976I14RI6        TATA CAPITAL LIMITED                                           18-May-27
+ INE692A16MD3        UNION BANK OF INDIA                                            07-May-27
+
+The following securities are being excluded:
+
+      ISIN                            Security Name                                Maturity Date
+ INE296A14D21        BAJAJ FINANCE LIMITED                                          06-Nov-26
+ INE377Y07490        BAJAJ HOUSING FINANCE LIMITED                                  09-Sep-26
+ INE028A16KK9        BANK OF BARODA                                                 25-Nov-26
+ INE514E16CN1        EXPORT-IMPORT BANK OF INDIA                                    11-Nov-26
+ INE756I07EU9        HDB FINANCIAL SERVICES LIMITED                                 08-Dec-26
+ INE040A16HY1        HDFC BANK LIMITED                                              19-Nov-26
+ INE763G14B96        ICICI SECURITIES LIMITED                                       25-Sep-26
+                     INDIAN RAILWAY FINANCE CORPORATION
+ INE053F09EL2                                                                        29-Nov-26
+                     LIMITED
+ INE237AD6091        KOTAK MAHINDRA BANK LIMITED                                     27-Nov-26
+ INE975F07IO5        KOTAK MAHINDRA INVESTMENTS LIMITED                              27-Nov-26
+ INE916D146C9        KOTAK MAHINDRA PRIME LIMITED                                    07-Oct-26
+ INE115A07RA9        LIC HOUSING FINANCE LIMITED                                     11-Dec-26
+                     NATIONAL BANK FOR AGRICULTURE AND
+ INE261F16AC3                                                                        10-Nov-26
+                     RURAL DEVELOPMENT
+ INE134E08IL6        POWER FINANCE CORPORATION LIMITED                               25-Sep-26
+ INE020B08AA3        REC LIMITED                                                     07-Nov-26
+                     SMALL INDUSTRIES DEVELOPMENT BANK OF
+ INE556F16BR2                                                                        10-Nov-26
+                     INDIA
+ INE535H14JS8        SMFG INDIA CREDIT COMPANY LIMITED                               28-Sep-26
+ INE660A14YU4        SUNDARAM FINANCE LIMITED                                        18-Nov-26
+ INE033L07IC6        TATA CAPITAL HOUSING FINANCE LIMITED                            18-Sep-26
+ INE976I14QM0        TATA CAPITAL LIMITED                                            16-Sep-26
+
+
+
+
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary
+of NSE, provides a variety of indices and index related services for the capital markets. The company
+focuses on the index as a core product. The company owns and manages a portfolio of indices under
+the Nifty brand of NSE, including the flagship index, the Nifty 50. Nifty equity indices comprise of
+broad-based benchmark indices, sectoral indices, strategy indices, thematic indices and customised
+indices. NSE Indices Limited also maintains fixed income indices based on Government of India
+
+
+
+
+                                         Non-Confidential
+securities, corporate bonds, money market instruments and hybrid indices. Many investment products
+based on Nifty indices have been developed within India and abroad. These include index based
+derivatives traded on NSE and NSE International Exchange IFSC Limited (NSE IX) and a number of
+index funds and exchange traded funds. The flagship 'Nifty 50' index is widely tracked and traded as
+the benchmark for Indian Capital Markets.
+
+For more information, please visit: www.niftyindices.com
+Press contact:
+Email ID: cc@nse.co.in
+
+
+
+
+                                        Non-Confidential
+

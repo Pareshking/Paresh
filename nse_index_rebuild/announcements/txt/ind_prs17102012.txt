@@ -1,0 +1,36 @@
+       IISL
+       INDIA INDEX SERVICES & PRODUCTS LIMITED
+       (A joint venture of NSE & CRISIL)
+
+                                   PRESS RELEASE
+
+The Index Maintenance Sub-Committee has decided to make the following changes in CNX
+Dividend Opportunities Index during its periodic review. These changes shall become
+effective from October 22, 2012.
+
+The following companies are being excluded:
+
+ Sr. No.                   Company Name                      Symbol
+   1       Asian Paints Ltd.                             ASIANPAINT
+   2       Coromandel International Ltd.                 COROMANDEL
+   3       Gujarat State Fertilizers & Chemicals Ltd.    GSFC
+   4       India Infoline Ltd.                           INDIAINFO
+   5       Indraprastha Gas Ltd.                         IGL
+   6       SREI Infrastructure Finance Ltd.              SREINFRA
+   7       Zee Entertainment Enterprises Ltd.            ZEEL
+
+The following companies are being included:
+
+ Sr. No.                  Company Name                       Symbol
+    1      Corporation Bank                              CORPBANK
+    2      Gujarat Gas Co. Ltd.                          GUJRATGAS
+    3      Hexaware Technologies Ltd.                    HEXAWARE
+    4      Jammu & Kashmir Bank Ltd.                     J&KBANK
+    5      Karnataka Bank Ltd.                           KTKBANK
+    6      NIIT Technologies Ltd.                        NIITTECH
+    7      Piramal Enterprises Ltd.                      PEL
+
+
+Place: Mumbai
+Date: October 17, 2012
+

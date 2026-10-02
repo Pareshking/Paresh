@@ -1,0 +1,167 @@
+PRESS RELEASE
+Mumbai, January 24, 2023
+
+
+                                 Revision in Nifty Fixed Income indices
+
+      The Index Maintenance Sub-Committee (Debt) of NSE Indices Limited has decided to revise the index
+      methodology of Nifty Corporate Bond and Money Market indices as mentioned hereunder.
+
+       Parameter         Existing Method                            Revised Method
+       Single     issuer Weight of each issuer is capped at 10% in Weight of each issuer is capped as follows
+       limit within an line with SEBI’s prudential norms of in compliance with SEBI vide circular no.
+       index             capping the investment limit in bonds of a SEBI/HO/IMD/IMD-1
+                         single issuer subject to availability of DOF2/P/CIR/2022/164 announced on
+                         enough number of bonds in the index.       November 29, 2022, subject to availability
+                                                                    of enough number of bonds in the index:
+                                                                     Conservative       Single        issuer
+                                                                     issuer rating      weight limit
+                                                                     AAA                10%
+                                                                     AA+, AA, AA-       8%
+                                                                     A+, A, A- and 6%
+                                                                     below
+                                                                     Unrated            If there is no long
+                                                                                        term          rating
+                                                                                        available of the
+                                                                                        issuer, then based
+                                                                                        on credit rating
+                                                                                        mapping of CRAs
+                                                                                        between short term
+                                                                                        and long term
+                                                                                        ratings, the most
+                                                                                        conservative long
+                                                                                        term rating shall be
+                                                                                        considered        and
+                                                                                        single        issuer
+                                                                                        weight          limit
+                                                                                        associated to such
+                                                                                        long term rating as
+                                                                                        mentioned above
+                                                                                        will be applicable
+The above changes shall become effective from February 01, 2023, on all the indices mentioned in the
+below list.
+
+
+List of Nifty Corporate Bond and Money Market indices:
+ Sr. No. Index names
+        1 NIFTY A Long-Term Bond Index
+        2 NIFTY A Short-Term Bond Index
+        3 NIFTY AA Long Duration Bond Index
+        4 NIFTY AA Low Duration Bond Index
+        5 NIFTY AA Medium Duration Bond Index
+        6 NIFTY AA Medium to Long Duration Bond Index
+        7 NIFTY AA Short Duration Bond Index
+        8 NIFTY AA Ultra Short Duration Bond Index
+        9 NIFTY AA+ Long Duration Bond Index
+       10 NIFTY AA+ Low Duration Bond Index
+       11 NIFTY AA+ Medium Duration Bond Index
+       12 NIFTY AA+ Medium to Long Duration Bond Index
+       13 NIFTY AA+ Short Duration Bond Index
+       14 NIFTY AA+ Ultra Short Duration Bond Index
+       15 NIFTY AA- Long Duration Bond Index
+       16 NIFTY AA- Low Duration Bond Index
+       17 NIFTY AA- Medium Duration Bond Index
+       18 NIFTY AA- Medium to Long Duration Bond Index
+       19 NIFTY AA- Short Duration Bond Index
+       20 NIFTY AA- Ultra Short Duration Bond Index
+       21 NIFTY AAA Long duration Bond Index
+       22 NIFTY AAA Low Duration Bond Index
+       23 NIFTY AAA Medium Duration Bond Index
+       24 NIFTY AAA Medium to Long Duration Bond Index
+       25 NIFTY AAA Short Duration Bond Index
+       26 NIFTY AAA Ultra Short Duration Bond Index
+       27 NIFTY Banking & PSU Long Duration Bond Index
+       28 NIFTY Banking & PSU Long Duration Bond Index - A
+       29 NIFTY Banking & PSU Long Duration Bond Index - B
+       30 NIFTY Banking & PSU Long Duration Bond Index - C
+31   NIFTY Banking & PSU Low Duration Bond Index
+32   NIFTY Banking & PSU Low Duration Bond Index - A
+33   NIFTY Banking & PSU Low Duration Bond Index - B
+34   NIFTY Banking & PSU Low Duration Bond Index - C
+35   NIFTY Banking & PSU Medium Duration Bond Index
+36   NIFTY Banking & PSU Medium Duration Bond Index - A
+37   NIFTY Banking & PSU Medium Duration Bond Index - B
+38   NIFTY Banking & PSU Medium Duration Bond Index - C
+39   NIFTY Banking & PSU Medium to Long Duration Bond Index
+40   NIFTY Banking & PSU Medium to Long Duration Bond Index - A
+41   NIFTY Banking & PSU Medium to Long Duration Bond Index - B
+42   NIFTY Banking & PSU Medium to Long Duration Bond Index - C
+43   NIFTY Banking & PSU Short Duration Bond Index
+44   NIFTY Banking & PSU Short Duration Bond Index - A
+45   NIFTY Banking & PSU Short Duration Bond Index - B
+46   NIFTY Banking & PSU Short Duration Bond Index - C
+47   NIFTY Banking & PSU Ultra Short Duration Bond Index
+48   NIFTY Banking & PSU Ultra Short Duration Bond Index - A
+49   NIFTY Banking & PSU Ultra Short Duration Bond Index - B
+50   NIFTY Banking & PSU Ultra Short Duration Bond Index - C
+51   Nifty 1 Month CD Index
+52   Nifty 1 Month CD Index - A
+53   Nifty 1 Month CD Index - B
+54   Nifty 1 Month CD Index - C
+55   Nifty 1 Month CP Index
+56   Nifty 1 Month CP Index - A
+57   Nifty 1 Month CP Index - B
+58   Nifty 1 Month CP Index - C
+59   Nifty 2 Month CD Index
+60   Nifty 2 Month CD Index - A
+61   Nifty 2 Month CD Index - B
+62   Nifty 2 Month CD Index - C
+63   Nifty 2 Month CP Index
+64   Nifty 2 Month CP Index - A
+65   Nifty 2 Month CP Index - B
+66   Nifty 2 Month CP Index - C
+67   Nifty 3 Month CD Index
+       68   Nifty 3 Month CD Index - A
+       69   Nifty 3 Month CD Index - B
+       70   Nifty 3 Month CD Index - C
+       71   Nifty 3 Month CP Index
+       72   Nifty 3 Month CP Index - A
+       73   Nifty 3 Month CP Index - B
+       74   Nifty 3 Month CP Index - C
+       75   Nifty 6 Month CD Index
+       76   Nifty 6 Month CD Index - A
+       77   Nifty 6 Month CD Index - B
+       78   Nifty 6 Month CD Index - C
+       79   Nifty 6 Month CP Index
+       80   Nifty 6 Month CP Index - A
+       81   Nifty 6 Month CP Index - B
+       82   Nifty 6 Month CP Index - C
+       83   Nifty 1 Year CD Index
+       84   Nifty 1 Year CD Index - A
+       85   Nifty 1 Year CD Index - B
+       86   Nifty 1 Year CD Index - C
+       87   Nifty 1 Year CP Index
+       88   Nifty 1 Year CP Index - A
+       89   Nifty 1 Year CP Index - B
+       90   Nifty 1 Year CP Index - C
+
+About National Stock Exchange of India Limited (NSE):
+National Stock Exchange of India (NSE) is the world’s largest derivatives exchange by trading volume
+(contracts) as per the statistics maintained by Futures Industry Association (FIA) for calendar year 2021. NSE is
+ranked 4th in the world in the cash equities by number of trades as per the statistics maintained by the World
+Federation of Exchanges (WFE) for calendar year 2021. NSE was the first exchange in India to implement
+electronic or screen-based trading. It began operations in 1994 and is ranked as the largest stock exchange in
+India in terms of total and average daily turnover for equity shares every year since 1995, based on SEBI data.
+NSE has a fully integrated business model comprising exchange listings, trading services, clearing and settlement
+services, indices, market data feeds, technology solutions and financial education offerings. NSE also oversees
+compliance by trading, clearing members and listed companies with the rules and regulations of SEBI and the
+exchange. NSE is a pioneer in technology and ensures the reliability and performance of its systems through a
+culture of innovation and investment in technology.
+For more information, please visit: www.nseindia.com
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary of NSE,
+provides a variety of indices and index related services for the capital markets. The company focuses on the
+index as a core product. The company owns and manages a portfolio of indices under the Nifty brand of NSE,
+including the flagship index, the Nifty 50. Nifty equity indices comprises of broad-based benchmark indices,
+sectoral indices, strategy indices, thematic indices and customised indices. NSE Indices Limited also maintains
+fixed income indices based on Government of India securities, corporate bonds, money market instruments and
+hybrid indices. Many investment products based on Nifty indices have been developed within India and abroad.
+These include index based derivatives traded on NSE, NSE IFSC and Singapore Exchange Ltd. (SGX) and a
+number of index funds and exchange traded funds. The flagship 'Nifty 50' index is widely tracked and traded as
+the benchmark for Indian Capital Markets.
+For more information, please visit: www.niftyindices.com
+Press contact:
+Kumar Kartikey - Associate Vice President, Corporate Communications
+Priyanka Roy - Manager, Corporate Communications
+Email ID: cc@nse.co.in
+

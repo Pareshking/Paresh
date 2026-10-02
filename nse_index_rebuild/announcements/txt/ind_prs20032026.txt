@@ -1,0 +1,2754 @@
+PRESS RELEASE
+Mumbai, March 20, 2026
+
+                           Changes in Nifty Fixed Income indices
+
+     The Index Maintenance Sub-Committee (Debt) of NSE Indices Limited has decided to make changes
+     as listed hereunder.
+
+     1. Annual Review of Nifty Fixed Income Indices:
+
+     A. Weights of sub-indices in various Nifty Aggregate indices are reviewed as part of the annual
+        review exercise. The new weights for these aggregate indices are as detailed below:
+
+     These changes shall become effective from March 30, 2026.
+               Index Name                            Sub-Indices               FY 2026    FY 2027
+                                        Nifty 1D Rate Index                         30         30
+                                        Nifty 91 Day T-Bill Index                    5          5
+                                        Nifty 1 Month CP Index                      30         28
+                                        Nifty 1 Month CD Index                      10         12
+      Nifty Liquid Index
+                                        Nifty 2 Month CP Index                      11         11
+                                        Nifty 2 Month CD Index                       4          4
+                                        Nifty 3 Month CP Index                       6          6
+                                        Nifty 3 Month CD Index                       4          4
+                                        Nifty All Maturity T-Bill Index              15         15
+      Nifty Money Market Index
+                                        Nifty All Maturity CP Index                  46         42
+                                        Nifty All Maturity CD Index                  39         43
+                                        Nifty 3 Month CP Index                       15         15
+                                        Nifty 3 Month CD Index                       10         10
+                                        Nifty 6 Month CP Index                        4          4
+                                        Nifty 6 Month CD Index                        6          6
+      Nifty Low Duration Debt Index     Nifty 1 Year CP Index                         6          6
+                                        Nifty 1 Year CD Index                        19         19
+                                        Nifty AA Low Duration Bond Index              2          2
+                                        Nifty AA+ Low Duration Bond Index             4          4
+                                        Nifty AAA Low Duration Bond Index            34         34
+                                        Nifty Short Duration G-Sec Index             15         15
+      Nifty Short Duration Debt Index
+                                        Nifty AAA Short Duration Bond Index          54         53
+         Index Name                           Sub-Indices              FY 2026   FY 2027
+                                 Nifty AA+ Short Duration Bond Index         7         6
+                                 Nifty AA Short Duration Bond Index          4         6
+                                 Nifty All Maturity CP Index                11        10
+                                 Nifty All Maturity CD Index                 9        10
+                                 Nifty Medium Duration G-Sec Index          30        30
+                                 Nifty AAA Medium Duration Bond
+                                                                            48        45
+                                 Index
+                                 Nifty AA+ Medium Duration Bond
+Nifty Medium Duration Debt                                                   5         6
+                                 Index
+Index                            Nifty AA Medium Duration Bond Index         2         4
+                                 Nifty AAA Short Duration Bond Index        12        12
+                                 Nifty AA+ Short Duration Bond Index         2         2
+                                 Nifty AA Short Duration Bond Index          1         1
+                                 Nifty Medium to Long Duration G-Sec
+                                                                            35        35
+                                 Index
+                                 Nifty 10 Year SDL Index                    10        10
+                                 Nifty AAA Medium to Long Duration
+                                                                            30        30
+                                 Bond Index
+                                 Nifty AA+ Medium to Long Duration
+                                                                             3         3
+Nifty Medium to Long Duration    Bond Index
+Debt Index                       Nifty AA Medium to Long Duration
+                                                                             2         2
+                                 Bond Index
+                                 Nifty AAA Medium Duration Bond
+                                                                            17        17
+                                 Index
+                                 Nifty AA+ Medium Duration Bond
+                                                                             2         2
+                                 Index
+                                 Nifty AA Medium Duration Bond Index         1         1
+                                 Nifty Long Duration G-Sec Index            45        45
+                                 Nifty 10 Year SDL Index                    10        10
+                                 Nifty AAA Long Duration Bond Index         15        15
+                                 Nifty AAA Medium to Long Duration
+                                                                            26        25
+Nifty Long Duration Debt Index   Bond Index
+                                 Nifty AA+ Medium to Long Duration
+                                                                             2         3
+                                 Bond Index
+                                 Nifty AA Medium to Long Duration
+                                                                             2         2
+                                 Bond Index
+                                 Nifty 10 Year SDL Index                     5         5
+                                 Nifty AA Medium Duration Bond Index         1         1
+Nifty Composite Debt Index       Nifty AA+ Medium Duration Bond
+                                                                             1         2
+                                 Index
+         Index Name                         Sub-Indices              FY 2026   FY 2027
+                               Nifty AAA Medium Duration Bond
+                                                                          13        12
+                               Index
+                               Nifty AA Short Duration Bond Index          1         2
+                               Nifty AA+ Short Duration Bond Index         3         2
+                               Nifty AAA Short Duration Bond Index        21        21
+                               Nifty AA Medium to Long Duration
+                                                                           1         1
+                               Bond Index
+                               Nifty AA+ Medium to Long Duration
+                                                                           2         2
+                               Bond Index
+                               Nifty AAA Medium to Long Duration
+                                                                          17        17
+                               Bond Index
+                               Nifty All Duration G-Sec Index             35        35
+                               Nifty AAA Short Duration Bond Index        60        61
+                               Nifty AA+ Short Duration Bond Index         8         7
+                               Nifty AA Short Duration Bond Index          4         8
+                               Nifty AA- Short Duration Bond Index         8         4
+                               Nifty AAA Medium Duration Bond
+Nifty Corporate Bond Index                                                15        15
+                               Index
+                               Nifty AA+ Medium Duration Bond
+                                                                           2         2
+                               Index
+                               Nifty AA Medium Duration Bond Index         2         2
+                               Nifty AA- Medium Duration Bond
+                                                                           1         1
+                               Index
+                               Nifty AAA Short Duration Bond Index        15        15
+                               Nifty AA Short Duration Bond Index         18        31
+Nifty Credit Risk Bond Index   Nifty AA- Short Duration Bond Index        32        19
+                               Nifty AA+ Short Duration Bond Index        15        15
+                               Nifty A Short-Term Bond Index              20        20
+                               Nifty Banking & PSU Short Duration
+                                                                          40        40
+                               Bond Index
+                               Nifty Banking & PSU Medium
+Nifty Banking & PSU Debt                                                  15        15
+                               Duration Bond Index
+Index
+                               Nifty Banking & PSU Medium to Long
+                                                                          20        20
+                               Duration Bond Index
+                               Nifty All Maturity CD Index                25        25
+                               Nifty Banking & PSU Short Duration
+                                                                          40        40
+                               Bond Index - A
+Nifty Banking & PSU Debt       Nifty Banking & PSU Medium
+                                                                          15        15
+Index - A                      Duration Bond Index - A
+                               Nifty Banking & PSU Medium to Long
+                                                                          20        20
+                               Duration Bond Index - A
+         Index Name                            Sub-Indices              FY 2026   FY 2027
+                                  Nifty All Maturity CD Index - A            25        25
+                                  Nifty Banking & PSU Short Duration
+                                                                             40        40
+                                  Bond Index - B
+                                  Nifty Banking & PSU Medium
+Nifty Banking & PSU Debt                                                     15        15
+                                  Duration Bond Index - B
+Index - B
+                                  Nifty Banking & PSU Medium to Long
+                                                                             20        20
+                                  Duration Bond Index - B
+                                  Nifty All Maturity CD Index - B            25        25
+                                  Nifty Banking & PSU Short Duration
+                                                                             40        40
+                                  Bond Index - C
+                                  Nifty Banking & PSU Medium
+Nifty Banking & PSU Debt                                                     15        15
+                                  Duration Bond Index - C
+Index - C
+                                  Nifty Banking & PSU Medium to Long
+                                                                             20        20
+                                  Duration Bond Index - C
+                                  Nifty All Maturity CD Index - C            25        25
+                                  Nifty Short Duration G-Sec Index           13        12
+                                  Nifty Medium Duration G-Sec Index          10        10
+Nifty All Duration G-Sec Index    Nifty Medium to Long Duration G-Sec
+                                                                             35        37
+                                  Index
+                                  Nifty Long Duration G-Sec Index            42        41
+                                  Nifty 3 Month CP Index                     30        31
+                                  Nifty 3 Month CD Index                     20        19
+                                  Nifty 6 Month CP Index                     11         9
+                                  Nifty 6 Month CD Index                     14        16
+Nifty Ultra Short Duration Debt   Nifty AAA Ultra Short Duration Bond
+Index                                                                        23        23
+                                  Index
+                                  Nifty AA+ Ultra Short Duration Bond
+                                                                              1         1
+                                  Index
+                                  Nifty AA Ultra Short Duration Bond
+                                                                              1         1
+                                  Index
+                                  Nifty 30 Day T-Bill Index                  10        10
+                                  Nifty 60 Day T-Bill Index                  10        10
+Nifty All Maturity T-Bill Index   Nifty 91 Day T-Bill Index                  40        40
+                                  Nifty 182 Day T-Bill Index                 21        22
+                                  Nifty 1 Year T-Bill Index                  19        18
+                                  Nifty 1 Month CD Index                     10        10
+                                  Nifty 2 Month CD Index                     10        10
+Nifty All Maturity CD Index       Nifty 3 Month CD Index                     43        37
+                                  Nifty 6 Month CD Index                     10        10
+                                  Nifty 1 Year CD Index                      27        33
+         Index Name                            Sub-Indices              FY 2026   FY 2027
+                                  Nifty 1 Month CD Index - A                 10        10
+                                  Nifty 2 Month CD Index - A                 10        10
+Nifty All Maturity CD Index - A   Nifty 3 Month CD Index - A                 43        37
+                                  Nifty 6 Month CD Index - A                 10        10
+                                  Nifty 1 Year CD Index - A                  27        33
+                                  Nifty 1 Month CD Index - B                 10        10
+                                  Nifty 2 Month CD Index - B                 10        10
+Nifty All Maturity CD Index - B   Nifty 3 Month CD Index - B                 43        37
+                                  Nifty 6 Month CD Index - B                 10        10
+                                  Nifty 1 Year CD Index - B                  27        33
+                                  Nifty 1 Month CD Index - C                 10        10
+                                  Nifty 2 Month CD Index - C                 10        10
+Nifty All Maturity CD Index - C   Nifty 3 Month CD Index - C                 43        37
+                                  Nifty 6 Month CD Index - C                 10        10
+                                  Nifty 1 Year CD Index - C                  27        33
+                                  Nifty 1 Month CP Index                     10        10
+                                  Nifty 2 Month CP Index                     10        10
+Nifty All Maturity CP Index       Nifty 3 Month CP Index                     60        60
+                                  Nifty 6 Month CP Index                     10        10
+                                  Nifty 1 Year CP Index                      10        10
+                                  Nifty 1 Month CP Index - A                 10        10
+                                  Nifty 2 Month CP Index - A                 10        10
+Nifty All Maturity CP Index - A   Nifty 3 Month CP Index - A                 60        60
+                                  Nifty 6 Month CP Index - A                 10        10
+                                  Nifty 1 Year CP Index - A                  10        10
+                                  Nifty 1 Month CP Index - B                 10        10
+                                  Nifty 2 Month CP Index - B                 10        10
+Nifty All Maturity CP Index - B   Nifty 3 Month CP Index - B                 60        60
+                                  Nifty 6 Month CP Index - B                 10        10
+                                  Nifty 1 Year CP Index - B                  10        10
+                                  Nifty 1 Month CP Index - C                 10        10
+                                  Nifty 2 Month CP Index - C                 10        10
+Nifty All Maturity CP Index - C   Nifty 3 Month CP Index - C                 60        60
+                                  Nifty 6 Month CP Index - C                 10        10
+                                  Nifty 1 Year CP Index - C                  10        10
+Nifty AA Category Ultra Short     Nifty AA+ Ultra Short Duration Bond
+                                                                             54        51
+Duration Bond Index               Index
+             Index Name                          Sub-Indices                    FY 2026      FY 2027
+                                    Nifty AA Ultra Short Duration Bond
+                                                                                       15         22
+                                    Index
+                                    Nifty AA- Ultra Short Duration Bond
+                                                                                       31         27
+                                    Index
+                                    Nifty AA+ Low Duration Bond Index                  57         31
+ Nifty AA Category Low
+                                    Nifty AA Low Duration Bond Index                   28         16
+ Duration Bond Index
+                                    Nifty AA- Low Duration Bond Index                  15         53
+                                    Nifty AA+ Short Duration Bond Index                42         41
+ Nifty AA Category Short
+ Duration Bond Index                Nifty AA Short Duration Bond Index                 21         37
+                                    Nifty AA- Short Duration Bond Index                37         22
+                                    Nifty AA+ Medium Duration Bond
+                                                                                       59         50
+                                    Index
+ Nifty AA Category Medium
+                                    Nifty AA Medium Duration Bond Index                29         34
+ Duration Bond Index
+                                    Nifty AA- Medium Duration Bond
+                                                                                       12         16
+                                    Index
+                                    Nifty AA+ Medium to Long Duration
+                                                                                       52         58
+                                    Bond Index
+ Nifty AA Category Medium to        Nifty AA Medium to Long Duration
+                                                                                       37         37
+ Long Duration Bond Index           Bond Index
+                                    Nifty AA- Medium to Long Duration
+                                                                                       11          5
+                                    Bond Index
+                                    Nifty AA+ Long Duration Bond Index                 89         87
+ Nifty AA Category Long
+                                    Nifty AA Long Duration Bond Index                   7          9
+ Duration Bond Index
+                                    Nifty AA- Long Duration Bond Index                  4          4
+
+
+B. As part of the annual review of composition of states for Nifty 10 Year SDL index, the changes
+   in the index portfolio are as detailed below:
+
+These changes shall come into effect after the first successful SDL auction in April 2026.
+The following states are being excluded:
+   Sr. No.             States
+      1         MAHARASHTRA
+      2         HARYANA
+      3         PUNJAB
+      4         HIMACHAL PRADESH
+      5         KERALA
+
+The following states are being included:
+  Sr. No.            States
+     1         UTTARAKHAND
+  Sr. No.            States
+     2        ORISSA
+     3        MADHYA PRADESH
+     4        SIKKIM
+     5        MEGHALAYA
+
+2. Changes on account of periodic review of Nifty Target Maturity indices:
+
+These changes shall become effective from March 30, 2026.
+
+
+A. Nifty PSU Bond Plus SDL Apr 2026 50:50 index:
+
+The following securities are being excluded:
+ Sr. No. ISIN                   Issuer / Issuer State                        Maturity Date
+                                NATIONAL BANK FOR AGRICULTURE
+    1       INE261F16AA7        AND RURAL DEVELOPMENT                           25-Mar-2026
+
+    2       IN1520190233        GUJARAT                                         31-Mar-2026
+
+
+
+The following securities are being included:
+ Sr. No.    ISIN                Issuer / Issuer State                        Maturity Date
+            INE261F14OQ9        NATIONAL BANK FOR AGRICULTURE                   17-Apr-2026
+    1
+                                AND RURAL DEVELOPMENT
+    2       IN1520160020        GUJARAT                                         27-Apr-2026
+
+
+B. Nifty PSU Bond Plus SDL Apr 2027 50:50 index:
+
+The following securities are being excluded:
+ Sr. No. ISIN                   Issuer                                       Maturity Date
+                                POWER FINANCE CORPORATION
+    1       INE134E08MZ8                                                        15-Apr-2027
+                                LIMITED
+    2       INE020B08FX4        REC LIMITED                                     31-Mar-2027
+
+The following securities are being included:
+ Sr. No.    ISIN                Issuer                                       Maturity Date
+                                POWER FINANCE CORPORATION
+    1       INE134E08IX1                                                        22-Mar-2027
+                                LIMITED
+    2       INE020B08EX7        REC LIMITED                                     30-Apr-2027
+C. Nifty G-sec Jun 2027 Index
+
+The following securities are being excluded:
+
+ Sr. No.    ISIN                    Security Name                 Maturity Date
+     1      IN0020240043            7.02% GS 2027                   27-May-2027
+     2      IN0020230119            7.33% GS 2026                    30-Oct-2026
+     3      IN0020160035            6.97% GS 2026                    06-Sep-2026
+
+The following securities are being included:
+
+ Sr. No.    ISIN                    Security Name                 Maturity Date
+     1         IN0020060078         8.24% GS 2027                    15-Feb-2027
+     2          IN0020170026        6.79% GS 2027                   15-May-2027
+     3          IN0020140060        8.15% GS 2026                   24-Nov-2026
+
+
+D. Nifty BHARAT Bond Index - April 2031
+
+The following securities are being included:
+
+ Sr. No. ISIN                 Issuer                              Maturity Date
+    1     INE134E07DP0        POWER FINANCE CORPORATION LIMITED      03-Feb-2031
+    2    INE134E07DQ8         POWER FINANCE CORPORATION LIMITED      03-Feb-2031
+    3    INE134E07DR6         POWER FINANCE CORPORATION LIMITED      03-Feb-2031
+    4     INE134E08NZ6        POWER FINANCE CORPORATION LIMITED      17-Feb-2031
+
+No exclusion is being made from the index.
+
+E. Nifty BHARAT Bond Index - April 2032
+
+The following security is being included:
+
+ Sr. No. ISIN                   Issuer                            Maturity Date
+    1      INE848E08383         NHPC LIMITED                         27-Feb-2032
+
+
+No exclusion is being made from the index.
+
+F. Nifty BHARAT Bond Index - April 2033
+
+The following securities are being included:
+ Sr. No. ISIN                  Issuer                          Maturity Date
+                               HOUSING AND URBAN DEVELOPMENT     12-Dec-2032
+    1      INE031A08AA2
+                               CORPORATION LIMITED
+    2      INE848E08391        NHPC LIMITED                       25-Feb-2033
+
+
+No exclusion is being made from the index.
+
+G. Nifty India Municipal Bond Index
+
+The following securities are being included
+
+ Sr. No.   ISIN                Issuer                          Maturity Date
+    1      INE1SKA24060        GREATER CHENNAI CORPORATION        09-Jan-2036
+    2      INE1SKA24078        GREATER CHENNAI CORPORATION        09-Jan-2030
+    3      INE1SKA24086        GREATER CHENNAI CORPORATION        09-Jan-2031
+    4      INE1SKA24094        GREATER CHENNAI CORPORATION        09-Jan-2032
+    5      INE1SKA24102        GREATER CHENNAI CORPORATION        09-Jan-2033
+    6      INE1SKA24110        GREATER CHENNAI CORPORATION        09-Jan-2034
+    7      INE1SKA24128        GREATER CHENNAI CORPORATION        09-Jan-2035
+                               COIMBATORE CITY MUNICIPAL
+           INE2O7M24012                                           27-Jan-2030
+    8                          CORPORATION
+                               COIMBATORE CITY MUNICIPAL
+           INE2O7M24020                                           27-Jan-2031
+    9                          CORPORATION
+                               COIMBATORE CITY MUNICIPAL
+           INE2O7M24038                                           27-Jan-2035
+   10                          CORPORATION
+                               COIMBATORE CITY MUNICIPAL
+           INE2O7M24046                                           27-Jan-2034
+   11                          CORPORATION
+                               COIMBATORE CITY MUNICIPAL
+           INE2O7M24053                                           27-Jan-2033
+   12                          CORPORATION
+                               COIMBATORE CITY MUNICIPAL
+           INE2O7M24061                                           27-Jan-2032
+   13                          CORPORATION
+                               COIMBATORE CITY MUNICIPAL
+           INE2O7M24079                                           27-Jan-2036
+   14                          CORPORATION
+   15      INE579F24032        NASHIK MUNICIPAL CORPORATION      05-Mar-2031
+   16      INE579F24040        NASHIK MUNICIPAL CORPORATION      05-Mar-2033
+   17      INE579F24057        NASHIK MUNICIPAL CORPORATION      05-Mar-2032
+   18      INE579F24065        NASHIK MUNICIPAL CORPORATION      05-Mar-2030
+   19      INE579F24073        NASHIK MUNICIPAL CORPORATION      05-Mar-2035
+   20      INE579F24081        NASHIK MUNICIPAL CORPORATION      05-Mar-2034
+   21      INE579F24099        NASHIK MUNICIPAL CORPORATION      05-Mar-2029
+   22      INE579F24107        NASHIK MUNICIPAL CORPORATION      05-Mar-2036
+   23      INE1QL524016        PRAYAGRAJ NAGAR NIGAM             02-May-2029
+ Sr. No.   ISIN                Issuer                                   Maturity Date
+   24      INE1QL524024        PRAYAGRAJ NAGAR NIGAM                      02-May-2032
+   25      INE1QL524032        PRAYAGRAJ NAGAR NIGAM                      02-May-2031
+   26      INE1QL524040        PRAYAGRAJ NAGAR NIGAM                      02-May-2030
+
+No exclusion is being made from the index
+3. Quarterly review of Nifty Corporate Bond Indices:
+These changes shall become effective from March 30, 2026.
+The following securities are being excluded:
+                    Sr.
+   Index Name                    ISIN                  Issuer Name       Maturity Date
+                    No.
+
+                      1    INE020B08EM0        REC LIMITED                 30-Jun-2026
+ Nifty AAA
+                      2    INE733E08247        NTPC LIMITED                17-Apr-2026
+ Ultra Short
+ Duration Bond                                 INDIAN RAILWAY FINANCE
+                      3    INE053F08288                                    15-Apr-2026
+ Index                                         CORPORATION LIMITED
+                      4    INE040A08708        HDFC BANK LIMITED          29-May-2026
+                                               BAJAJ HOUSING FINANCE
+                      5    INE377Y07425                                   26-May-2026
+                                               LIMITED
+                                               NATIONAL BANK FOR
+                      1    INE261F08EB4        AGRICULTURE AND RURAL       15-Oct-2026
+                                               DEVELOPMENT
+ Nifty AAA Low
+ Duration Bond        2    INE020B08AA3        REC LIMITED                07-Nov-2026
+ Index                                         INDIAN RAILWAY FINANCE
+                      3    INE053F08304                                    15-Oct-2026
+                                               CORPORATION LIMITED
+                                               LIC HOUSING FINANCE
+                      4    INE115A07PN6                                   30-Nov-2026
+                                               LIMITED
+                                               SMALL INDUSTRIES
+                      1    INE556F08KN9        DEVELOPMENT BANK OF         10-Jun-2027
+                                               INDIA
+ Nifty AAA                                     POWER FINANCE
+ Short Duration       2    INE134E08NT9                                    15-Jul-2027
+                                               CORPORATION LIMITED
+ Bond Index                                    INDIAN RAILWAY FINANCE
+                      3    INE053F08510                                   30-May-2028
+                                               CORPORATION LIMITED
+                                               LIC HOUSING FINANCE
+                      4    INE115A07RH4                                    17-Sep-2027
+                                               LIMITED
+ Nifty AAA
+ Medium                                        INDIAN RAILWAY FINANCE
+                      1    INE053F08528                                   30-May-2030
+ Duration Bond                                 CORPORATION LIMITED
+ Index
+                 Sr.
+ Index Name                 ISIN             Issuer Name        Maturity Date
+                 No.
+                                      SMALL INDUSTRIES
+                 2     INE556F08KY6   DEVELOPMENT BANK OF        21-Mar-2030
+                                      INDIA
+                 3     INE020B08FU0   REC LIMITED                31-May-2030
+                                      INDIAN RAILWAY FINANCE
+                 1     INE053F08122                              31-Aug-2031
+                                      CORPORATION LIMITED
+                                      POWER FINANCE
+                 2     INE134E08NJ0                               15-Jan-2035
+                                      CORPORATION LIMITED
+Nifty AAA                             LIC HOUSING FINANCE
+                 3     INE115A07QI4                              09-May-2033
+Medium to long                        LIMITED
+Duration Bond    4     INE557F08GC8   NATIONAL HOUSING BANK       04-Jul-2031
+Index                                 POWER GRID CORPORATION
+                 5     INE752E08767                               25-Oct-2034
+                                      OF INDIA LIMITED
+                                      NATIONAL BANK FOR
+                 6     INE261F08CZ7   AGRICULTURE AND RURAL      17-Mar-2031
+                                      DEVELOPMENT
+
+
+                                      NTPC GREEN ENERGY
+Nifty AAA        1     INE0ONG08016                              12-Nov-2035
+                                      LIMITED
+Long Duration
+Bond Index
+                                      POWER FINANCE
+                 2     INE134E08NX1                              12-Nov-2040
+                                      CORPORATION LIMITED
+                                      AADHAR HOUSING FINANCE
+                 1     INE538L07270                              31-Mar-2026
+                                      LIMITED
+                                      MANAPPURAM FINANCE
+                 2     INE522D07BA4                              05-May-2026
+                                      LIMITED
+Nifty AA Ultra
+                                      JM FINANCIAL HOME LOANS
+Short Duration   3     INE01A207112                               28-Jun-2026
+                                      LIMITED
+Bond Index
+                                      MOTILAL OSWAL
+                 4     INE338I07156   FINANCIAL SERVICES         09-May-2026
+                                      LIMITED
+                 5     INE248U07FJ2   360 ONE PRIME LIMITED       12-Jun-2026
+                 1     INE812V07013   THDC INDIA LIMITED          03-Oct-2026
+                 2     INE608A08017   PUNJAB AND SIND BANK        19-Oct-2026
+Nifty AA Low                          IIFL HOME FINANCE
+                 3     INE477L07AN9                               03-Jan-2027
+Duration Bond                         LIMITED
+Index                                 TRUHOME FINANCE
+                 4     INE432R07380                              01-Dec-2026
+                                      LIMITED
+                                      AADHAR HOUSING FINANCE
+                 5     INE538L08096                               17-Oct-2026
+                                      LIMITED
+                  Sr.
+ Index Name                  ISIN             Issuer Name        Maturity Date
+                  No.
+                   6    INE140A07740   PIRAMAL FINANCE LIMITED    03-Nov-2026
+                                       JM FINANCIAL HOME LOANS
+                  7     INE01A207088                              10-Nov-2026
+                                       LIMITED
+                  8     INE03W107249   ARKA FINCAP LIMITED        27-Dec-2026
+
+                                       MOTILAL OSWAL
+Nifty AA Short    1     INE338I07149   FINANCIAL SERVICES         09-May-2027
+Duration Bond                          LIMITED
+Index
+                                       JM FINANCIAL CREDIT
+                  2     INE651J07622                               07-Jun-2028
+                                       SOLUTIONS LIMITED
+
+Nifty AA          1     INE608A08033   PUNJAB AND SIND BANK        26-Oct-2029
+Medium
+Duration Bond     2     INE812V07039   THDC INDIA LIMITED          24-Jul-2030
+Index                                  CREDILA FINANCIAL
+                  3     INE539K07288                              13-Dec-2029
+                                       SERVICES LIMITED
+Nifty AA
+Medium to long
+                  1     INE812V08078   THDC INDIA LIMITED          22-Jul-2035
+Duration Bond
+Index
+                                       CREDITACCESS GRAMEEN
+                  1     INE741K07595                               07-Jun-2026
+                                       LIMITED
+                  2     INE528G08337   YES BANK LIMITED           31-Mar-2026
+                                       IIFL SAMASTA FINANCE
+Nifty AA- Ultra   3     INE413U07335                               21-Jun-2026
+                                       LIMITED
+Short Duration
+Bond Index        4     INE549K07DO9   MUTHOOT FINCORP LIMITED     30-Jun-2026
+                                       SAMMAAN FINSERVE
+                  5     INE244L07549                               25-Apr-2026
+                                       LIMITED
+                                       INCRED FINANCIAL
+                  6     INE321N07277                              02-May-2026
+                                       SERVICES LIMITED
+                  1     INE528G08345   YES BANK LIMITED            30-Sep-2026
+Nifty AA- Low                          IIFL SAMASTA FINANCE
+                  2     INE413U07277                              21-Dec-2026
+Duration Bond                          LIMITED
+Index             3     INE549K07EP4   MUTHOOT FINCORP LIMITED     30-Oct-2026
+                                       NUVAMA WEALTH FINANCE
+                  4     INE918K07KJ1                              14-Dec-2026
+                                       LIMITED
+Nifty AA- Short   1     INE549K07GT1   MUTHOOT FINCORP LIMITED     16-Jul-2028
+Duration Bond                          NUVAMA WEALTH AND
+Index             2     INE523L07710                               15-Jul-2027
+                                       INVESTMENT LIMITED
+                  Sr.
+ Index Name                  ISIN             Issuer Name        Maturity Date
+                  No.
+                                       SAMMAAN FINSERVE
+                  3     INE244L08042                              28-Mar-2028
+                                       LIMITED
+                                       MAS FINANCIAL SERVICES
+                  4     INE348L07209                               21-Jun-2027
+                                       LIMITED
+                                       IIFL SAMASTA FINANCE
+                  5     INE413U07327                               21-Jun-2027
+                                       LIMITED
+Nifty AA-
+Medium                                 ADANI ENTERPRISES
+                  1     INE423A07393                               17-Jul-2030
+Duration Bond                          LIMITED
+Index
+
+
+Nifty AA-
+                  1     INE549K07GV7   MUTHOOT FINCORP LIMITED     16-Jul-2031
+Medium to long
+Duration Bond
+Index
+                                       SAMMAAN FINSERVE
+                  2     INE244L07614                              07-Mar-2035
+                                       LIMITED
+
+                                       TATA MOTORS PASSENGER
+                  1     INE155A08431                              31-Mar-2026
+                                       VEHICLES LIMITED
+Nifty AA+ Ultra
+Short Duration    2     INE721A07SB0   SHRIRAM FINANCE LIMITED    22-May-2026
+Bond Index        3     INE849A08082   TRENT LIMITED              29-May-2026
+                                       CHOLAMANDALAM
+                  4     INE121A07RC3   INVESTMENT AND FINANCE     15-May-2026
+                                       COMPANY LIMITED
+                                       CHOLAMANDALAM
+                  1     INE121A07RO8   INVESTMENT AND FINANCE     07-Dec-2026
+                                       COMPANY LIMITED
+                  2     INE081A08215   TATA STEEL LIMITED          01-Oct-2026
+                                       ASEEM INFRASTRUCTURE
+                  3     INE0AD507168                              24-Dec-2026
+                                       FINANCE LIMITED
+Nifty AA+ Low                          MUTHOOT FINANCE
+Duration Bond     4     INE414G07IN5                               04-Oct-2026
+                                       LIMITED
+Index
+                                       MUTHOOT HOMEFIN (INDIA)
+                  5     INE652X07100                              13-Nov-2026
+                                       LIMITED
+                  6     INE721A07PN1   SHRIRAM FINANCE LIMITED     28-Jan-2027
+                                       MAHINDRA RURAL
+                  7     INE950O07438                               22-Jan-2027
+                                       HOUSING FINANCE LIMITED
+                  8     INE02KN07022   GODREJ FINANCE LIMITED      18-Jan-2027
+                     Sr.
+   Index Name                     ISIN                 Issuer Name         Maturity Date
+                     No.
+                                               HINDUJA LEYLAND
+                      9    INE146O08175                                      08-Oct-2026
+                                               FINANCE LIMITED
+
+                                               CHOLAMANDALAM
+                      1    INE121A07QN2        INVESTMENT AND FINANCE        28-Apr-2027
+ Nifty AA+                                     COMPANY LIMITED
+ Short Duration
+ Bond Index                                    TATA MOTORS PASSENGER
+                      2    INE155A08480                                     11-May-2028
+                                               VEHICLES LIMITED
+                                               MAHINDRA RURAL
+                      3    INE950O07446                                      28-Feb-2029
+                                               HOUSING FINANCE LIMITED
+ Nifty AA+
+                                               CHOLAMANDALAM
+ Medium
+                      1    INE121A08PC5        INVESTMENT AND FINANCE        12-Oct-2029
+ Duration Bond
+                                               COMPANY LIMITED
+ Index
+
+                                               THE FEDERAL BANK
+                      1    INE171A08057                                     12-Nov-2034
+                                               LIMITED
+ Nifty AA+
+ Medium to long
+ Duration Bond        2    INE084A08185        BANK OF INDIA                  19-Jul-2034
+ Index                3    INE457A08183        BANK OF MAHARASHTRA           18-Feb-2035
+                                               CHOLAMANDALAM
+                      4    INE121A08PV5        INVESTMENT AND FINANCE        03-Jun-2032
+                                               COMPANY LIMITED
+ Nifty AA- Long
+ Duration Bond        1    D161225COPLD        Dummy Issuer D161225COPLD    29-Dec-2033
+ Index
+
+
+The following securities are being included:
+                     Sr.
+   Index Name                    ISIN                 Issuer Name          Maturity Date
+                     No.
+                                               POWER FINANCE
+                      1    INE134E08MC7                                      15-Jul-2026
+                                               CORPORATION LIMITED
+ Nifty AAA            2    INE020B08FC8        REC LIMITED                  31-Aug-2026
+ Ultra Short
+ Duration Bond        3    INE557F08FR8        NATIONAL HOUSING BANK         23-Jul-2026
+ Index                                         NATIONAL BANK FOR
+                      4    INE261F08DX0        AGRICULTURE AND RURAL         31-Jul-2026
+                                               DEVELOPMENT
+                      1    INE020B08EW9        REC LIMITED                   26-Feb-2027
+                 Sr.
+ Index Name                ISIN              Issuer Name          Maturity Date
+                 No.
+                                      SMALL INDUSTRIES
+                 2     INE556F08KK5   DEVELOPMENT BANK OF           19-Apr-2027
+                                      INDIA
+Nifty AAA Low
+                                      NATIONAL BANK FOR
+Duration Bond
+                 3     INE261F08EF5   AGRICULTURE AND RURAL        15-Mar-2027
+Index
+                                      DEVELOPMENT
+                                      POWER FINANCE
+                 4     INE134E08IX1                                22-Mar-2027
+                                      CORPORATION LIMITED
+                                      SMALL INDUSTRIES
+Nifty AAA        1     INE556F08LC0   DEVELOPMENT BANK OF           10-Apr-2029
+Short Duration                        INDIA
+Bond Index                            POWER FINANCE
+                 2     INE134E08OA7                                 16-Feb-2028
+                                      CORPORATION LIMITED
+                                      POWER FINANCE
+                 1     INE134E08KU3                                 22-Jul-2030
+                                      CORPORATION LIMITED
+Nifty AAA
+                 2     INE020B08FL9   REC LIMITED                   30-Apr-2030
+Medium
+Duration Bond                         INDIAN RAILWAY FINANCE
+                 3     INE053F08502                                20-May-2030
+Index                                 CORPORATION LIMITED
+                                      TATA CAPITAL HOUSING
+                 4     INE033L07IP8                                21-May-2030
+                                      FINANCE LIMITED
+                                      POWER FINANCE
+                 1     INE134E08NZ6                                 17-Feb-2031
+                                      CORPORATION LIMITED
+                                      INDIAN RAILWAY FINANCE
+                 2     INE053F07CQ9                                 06-Jul-2035
+                                      CORPORATION LIMITED
+                 3     INE020B08FG9   REC LIMITED                  31-Aug-2035
+Nifty AAA        4     INE557F08GD6   NATIONAL HOUSING BANK         02-Jan-2032
+Medium to long                        POWER GRID CORPORATION
+Duration Bond    5     INE752E08791                                12-Aug-2035
+                                      OF INDIA LIMITED
+Index                                 LIC HOUSING FINANCE
+                 6     INE115A07QX3                                19-Aug-2031
+                                      LIMITED
+                 7     INE848E08417   NHPC LIMITED                  27-Feb-2035
+                                      HOUSING AND URBAN
+                 8     INE031A08939   DEVELOPMENT                   12-Feb-2035
+                                      CORPORATION LIMITED
+                                      POWER FINANCE
+                 1     INE134E07AT8                                 22-Jan-2036
+                                      CORPORATION LIMITED
+Nifty AAA
+                 2     INE020B08FV8   REC LIMITED                   30-Apr-2036
+Long Duration
+Bond Index                            NUCLEAR POWER
+                 3     INE206D08485   CORPORATION OF INDIA         24-Mar-2037
+                                      LIMITED
+                 1     INE477L07AK5   IIFL HOME FINANCE LIMITED     28-Sep-2026
+                  Sr.
+ Index Name                 ISIN             Issuer Name         Maturity Date
+                  No.
+Nifty AA Ultra                       KERALA FINANCIAL
+                  2     INE818F07104                               14-Sep-2026
+Short Duration                       CORPORATION
+Bond Index        3     INE530B07559 IIFL FINANCE LIMITED          21-Jul-2026
+                  1     INE248U07EW8 360 ONE PRIME LIMITED         18-Jan-2027
+                  2     INE477L07AO7 IIFL HOME FINANCE LIMITED     03-Jan-2027
+                                     JM FINANCIAL HOME LOANS
+                  3     INE01A207096                               05-Apr-2027
+                                     LIMITED
+Nifty AA Low      4     INE530B07534 IIFL FINANCE LIMITED          21-Apr-2027
+Duration Bond                        360 ONE PORTFOLIO
+Index             5     INE196P07252                               26-Feb-2027
+                                     MANAGERS LIMITED
+                                     CAPRI GLOBAL CAPITAL
+                  6     INE180C07221                               13-Apr-2027
+                                     LIMITED
+                                     JM FINANCIAL PRODUCTS
+                  7     INE523H07CC7                               04-Jan-2027
+                                     LIMITED
+                                     NUVOCO VISTAS
+                  1     INE118D08078                               18-Sep-2028
+                                     CORPORATION LIMITED
+                                     MOTILAL OSWAL FINANCIAL
+                  2     INE338I07164                              09-May-2029
+Nifty AA Short                       SERVICES LIMITED
+Duration Bond                        CAPRI GLOBAL CAPITAL
+                  3     INE180C07171                               13-Oct-2028
+Index                                LIMITED
+                                     360 ONE ALTERNATES ASSET
+                  4     INE0TQI07016                              03-Dec-2027
+                                     MANAGEMENT LIMITED
+                  5     INE248U07FE3 360 ONE PRIME LIMITED         12-Jun-2029
+                                     CREDILA FINANCIAL
+                  1     INE539K07312                               19-Sep-2030
+                                     SERVICES LIMITED
+Nifty AA          2     INE477L07BF3 IIFL HOME FINANCE LIMITED    26-Dec-2029
+Medium            3     INE432R07273 TRUHOME FINANCE LIMITED      02-May-2031
+Duration Bond                        KERALA FINANCIAL
+Index             4     INE818F07146                               14-Sep-2030
+                                     CORPORATION
+                                     JM FINANCIAL PRODUCTS
+                  5     INE523H07BB1                              16-Mar-2030
+                                     LIMITED
+Nifty AA                             MANAPPURAM FINANCE
+                  1     INE522D07CG9                              28-Mar-2034
+Medium to long                       LIMITED
+Duration Bond     2     INE477L07BE6 IIFL HOME FINANCE LIMITED    26-Dec-2031
+Index             3     INE432R08057 TRUHOME FINANCE LIMITED      01-Mar-2033
+                                     INDOSTAR CAPITAL FINANCE
+                  1     INE896L07983                               25-Sep-2026
+                                     LIMITED
+Nifty AA- Ultra                      MANAPPURAM HOME
+Short Duration    2     INE360T07082                               07-Sep-2026
+                                     FINANCE LIMITED
+Bond Index
+                  3     INE148I07GL3 SAMMAAN CAPITAL LIMITED       26-Sep-2026
+                  4     INE549K07EH1 MUTHOOT FINCORP LIMITED       16-Sep-2026
+                  Sr.
+ Index Name                 ISIN              Issuer Name        Maturity Date
+                  No.
+                   1    INE148I07LE8   SAMMAAN CAPITAL LIMITED     06-Jan-2027
+Nifty AA- Low
+                   2    INE549K07FM8   MUTHOOT FINCORP LIMITED     24-Feb-2027
+Duration Bond
+Index                                  SAMMAAN FINSERVE
+                  3     INE244L07606                               13-Jan-2027
+                                       LIMITED
+                  1     INE549K07HL6   MUTHOOT FINCORP LIMITED     12-Feb-2028
+                                       NUVAMA WEALTH AND
+                  2     INE523L07728                               15-Jul-2027
+                                       INVESTMENT LIMITED
+Nifty AA- Short                        MAS FINANCIAL SERVICES
+                  3     INE348L08108                               08-Jul-2029
+Duration Bond                          LIMITED
+Index                                  SAMMAAN FINSERVE
+                  4     INE244L08034                               05-Jan-2028
+                                       LIMITED
+                                       IIFL SAMASTA FINANCE
+                  5     INE413U07319                               21-Jun-2029
+                                       LIMITED
+Nifty AA-                              ADANI ENTERPRISES
+                  1     INE423A07518                               12-Jan-2031
+Medium                                 LIMITED
+Duration Bond
+                  2     INE549K07FT3   MUTHOOT FINCORP LIMITED     24-Feb-2031
+Index
+Nifty AA-         1     INE148I07YJ0   SAMMAAN CAPITAL LIMITED     16-Jan-2036
+Medium to long
+Duration Bond     2     INE549K07FI6   MUTHOOT FINCORP LIMITED     10-Sep-2032
+Index
+                  1     INE721A07PH3   SHRIRAM FINANCE LIMITED    22-Aug-2026
+                  2     INE414G07IK1   MUTHOOT FINANCE LIMITED     04-Oct-2026
+Nifty AA+ Ultra                        CHOLAMANDALAM
+Short Duration    3     INE121A07RF6   INVESTMENT AND FINANCE      09-Sep-2026
+Bond Index                             COMPANY LIMITED
+                                       ASEEM INFRASTRUCTURE
+                  4     INE0AD507150                              31-Aug-2026
+                                       FINANCE LIMITED
+                                       CHOLAMANDALAM
+                  1     INE121A07RP5   INVESTMENT AND FINANCE      11-Jan-2027
+Nifty AA+ Low                          COMPANY LIMITED
+Duration Bond     2     INE721A07RZ1   SHRIRAM FINANCE LIMITED    18-Mar-2027
+Index
+                  3     INE081A08348   TATA STEEL LIMITED         27-Mar-2027
+                  4     INE414G07JH5   MUTHOOT FINANCE LIMITED     18-Jan-2027
+                  1     INE081A08330   TATA STEEL LIMITED         25-Feb-2028
+Nifty AA+                              CHOLAMANDALAM
+Short Duration    2     INE121A07SH0   INVESTMENT AND FINANCE      18-Sep-2027
+Bond Index                             COMPANY LIMITED
+                  3     INE812V07021   THDC INDIA LIMITED          06-Sep-2029
+Nifty AA+                              ASEEM INFRASTRUCTURE
+                  1     INE0AD507184                              16-Aug-2030
+Medium                                 FINANCE LIMITED
+                    Sr.
+   Index Name                    ISIN                  Issuer Name       Maturity Date
+                    No.
+ Duration Bond       2     INE721A07PZ5        SHRIRAM FINANCE LIMITED     29-Oct-2030
+ Index               3     INE812V07039        THDC INDIA LIMITED           24-Jul-2030
+                     1     INE812V07054        THDC INDIA LIMITED         25-Aug-2031
+                     2     INE457A08175        BANK OF MAHARASHTRA        05-Aug-2034
+ Nifty AA+                                     CHOLAMANDALAM
+ Medium to long       3    INE121A08PX1        INVESTMENT AND FINANCE     25-Nov-2032
+ Duration Bond                                 COMPANY LIMITED
+ Index                4    INE414G08355        MUTHOOT FINANCE LIMITED     16-Jan-2036
+                                               ASEEM INFRASTRUCTURE
+                      5    INE0AD508026                                    29-Oct-2032
+                                               FINANCE LIMITED
+ Nifty AA- Long
+ Duration Bond        1    D140326COPLD Dummy Issuer D140326COPLD         28-Mar-2034
+ Index
+
+
+4. Quarterly review of Nifty Banking & PSU Bond Indices:
+These changes shall become effective from March 30, 2026.
+The following securities are being excluded:
+                    Sr.                                                     Maturity
+   Index Name                    ISIN                   Issuer Name
+                    No.                                                       Date
+                     1     INE238A08393        AXIS BANK LIMITED          27-May-2026
+                     2     INE476A08050        CANARA BANK                 27-Apr-2026
+                                               EXPORT-IMPORT BANK OF
+                      3    INE514E08FB6                                    20-Apr-2026
+                                               INDIA
+                      4    INE040A08708        HDFC BANK LIMITED          29-May-2026
+                                               HOUSING AND URBAN
+                      5    INE031A08871        DEVELOPMENT                16-May-2026
+ Nifty Banking                                 CORPORATION LIMITED
+ & PSU Ultra          6    INE090A08TT8        ICICI BANK LIMITED         13-May-2026
+ Short Duration                                INDIAN RAILWAY FINANCE
+ Bond Index           7    INE053F08239                                    18-Apr-2026
+                                               CORPORATION LIMITED
+                                               KOTAK MAHINDRA BANK
+                      8    INE237A08940                                    28-Apr-2026
+                                               LIMITED
+                      9    INE557F08FP2        NATIONAL HOUSING BANK       02-Apr-2026
+                     10    INE848E07AB1        NHPC LIMITED                06-Jun-2026
+                     11    INE733E08247        NTPC LIMITED                17-Apr-2026
+                                               POWER FINANCE
+                     12    INE134E08NQ5                                    15-Apr-2026
+                                               CORPORATION LIMITED
+                Sr.                                             Maturity
+ Index Name                ISIN             Issuer Name
+                No.                                              Date
+                                     POWER GRID CORPORATION
+                13    INE752E07NS2                             25-Apr-2026
+                                     OF INDIA LIMITED
+                14    INE020B08EL2   REC LIMITED               30-Apr-2026
+                15    INE528G08337   YES BANK LIMITED          31-Mar-2026
+                 1    INE238A08419   AXIS BANK LIMITED         23-Nov-2026
+                 2    INE040A08450   HDFC BANK LIMITED         18-Nov-2026
+                                     INDIAN RAILWAY FINANCE
+                3     INE053F08304                             15-Oct-2026
+                                     CORPORATION LIMITED
+                4     INE095A08058   INDUSIND BANK LIMITED     09-Dec-2026
+                                     NATIONAL BANK FOR
+                5     INE261F08EB4   AGRICULTURE AND RURAL     15-Oct-2026
+                                     DEVELOPMENT
+Nifty Banking   6     INE848E07AP1   NHPC LIMITED              07-Oct-2026
+& PSU Low                            NUCLEAR POWER
+Duration Bond   7     INE206D08220   CORPORATION OF INDIA      28-Nov-2026
+Index                                LIMITED
+                                     POWER FINANCE
+                8     INE134E08IO0                              05-Jan-2027
+                                     CORPORATION LIMITED
+                                     POWER GRID CORPORATION
+                9     INE752E07OC4                             18-Oct-2026
+                                     OF INDIA LIMITED
+                10    INE608A08017   PUNJAB AND SIND BANK       19-Oct-2026
+                11    INE020B08EP3   REC LIMITED                30-Sep-2026
+                12    INE812V07013   THDC INDIA LIMITED         03-Oct-2026
+                13    INE528G08345   YES BANK LIMITED           30-Sep-2026
+                 1    INE040A08955   HDFC BANK LIMITED         16-May-2028
+                                     HOUSING AND URBAN
+                2     INE031A08996   DEVELOPMENT                17-Jul-2028
+                                     CORPORATION LIMITED
+                                     INDIAN OIL CORPORATION
+                3     INE242A08544                             25-Nov-2027
+                                     LIMITED
+Nifty Banking                        INDIAN RAILWAY FINANCE
+& PSU Short     4     INE053F08510                             30-May-2028
+                                     CORPORATION LIMITED
+Duration Bond
+                                     INDIAN RENEWABLE ENERGY
+Index
+                5     INE202E08151   DEVELOPMENT AGENCY        10-May-2027
+                                     LIMITED
+                                     NATIONAL HIGHWAYS
+                6     INE906B07GN5                              21-Jan-2029
+                                     AUTHORITY OF INDIA
+                7     INE848E08375   NHPC LIMITED              12-Aug-2027
+                8     INE733E07KJ7   NTPC LIMITED               15-Jan-2029
+                Sr.                                             Maturity
+ Index Name                ISIN             Issuer Name
+                No.                                              Date
+                                     NUCLEAR POWER
+                9     INE206D08238   CORPORATION OF INDIA      28-Nov-2027
+                                     LIMITED
+                                     POWER FINANCE
+                10    INE134E08NW3                             15-Oct-2027
+                                     CORPORATION LIMITED
+                11    INE020B08FA2   REC LIMITED               31-May-2027
+                                     SMALL INDUSTRIES
+                12    INE556F08KZ3   DEVELOPMENT BANK OF       25-Oct-2028
+                                     INDIA
+                                     EQUITAS SMALL FINANCE
+                1     INE063P08120                              31-Jul-2030
+                                     BANK LIMITED
+                                     ESAF SMALL FINANCE BANK
+                2     INE818W08123                             20-Apr-2030
+                                     LIMITED
+                3     INE090A08UI9   ICICI BANK LIMITED        15-Sep-2029
+                                     INDIAN RAILWAY FINANCE
+                4     INE053F08502                             20-May-2030
+                                     CORPORATION LIMITED
+                                     INDIAN RENEWABLE ENERGY
+                5     INE202E08300   DEVELOPMENT AGENCY        31-May-2030
+                                     LIMITED
+                                     NATIONAL BANK FOR
+Nifty Banking   6     INE261F08EL3   AGRICULTURE AND RURAL     29-Apr-2030
+& PSU Medium                         DEVELOPMENT
+Duration Bond
+                                     NATIONAL HIGHWAYS
+Index           7     INE906B07HH5                             13-Sep-2029
+                                     AUTHORITY OF INDIA
+                8     INE848E07906   NHPC LIMITED               14-Jul-2030
+                                     NUCLEAR POWER
+                9     INE206D08303   CORPORATION OF INDIA      25-Mar-2030
+                                     LIMITED
+                                     POWER GRID CORPORATION
+                10    INE752E08601                             25-Oct-2029
+                                     OF INDIA LIMITED
+                11    INE608A08033   PUNJAB AND SIND BANK      26-Oct-2029
+                                     SMALL INDUSTRIES
+                12    INE556F08KR0   DEVELOPMENT BANK OF       05-Sep-2029
+                                     INDIA
+                1     INE084A08185   BANK OF INDIA              19-Jul-2034
+Nifty Banking
+                2     INE457A08183   BANK OF MAHARASHTRA       18-Feb-2035
+& PSU Medium
+to Long                              ESAF SMALL FINANCE BANK
+                3     INE818W08156                             10-Aug-2031
+Duration Bond                        LIMITED
+Index                                HINDUSTAN PETROLEUM
+                4     INE094A08143                             15-Apr-2033
+                                     CORPORATION LIMITED
+                Sr.                                              Maturity
+ Index Name                ISIN             Issuer Name
+                No.                                               Date
+                                     HOUSING AND URBAN
+                5     INE031A08939   DEVELOPMENT                12-Feb-2035
+                                     CORPORATION LIMITED
+                6     INE090A08UH1   ICICI BANK LIMITED         11-Mar-2032
+                                     INDIA INFRASTRUCTURE
+                7     INE787H08204                              15-May-2035
+                                     FINANCE COMPANY LIMITED
+                                     INDIAN RAILWAY FINANCE
+                8     INE053F08122                              31-Aug-2031
+                                     CORPORATION LIMITED
+                                     INDIAN RENEWABLE ENERGY
+                9     INE202E08292   DEVELOPMENT AGENCY         27-Mar-2035
+                                     LIMITED
+                                     KOTAK MAHINDRA BANK
+                10    INE237A08981                              14-Feb-2031
+                                     LIMITED
+                                     NATIONAL BANK FOR
+                11    INE261F08832   AGRICULTURE AND RURAL      31-Mar-2032
+                                     DEVELOPMENT
+                12    INE557F08GC8   NATIONAL HOUSING BANK       04-Jul-2031
+                13    INE733E08197   NTPC LIMITED               13-Sep-2031
+                                     POWER FINANCE
+                14    INE134E08NN2                               15-Jan-2035
+                                     CORPORATION LIMITED
+                15    INE020B08FQ8   REC LIMITED                28-Feb-2035
+                16    INE812V08078   THDC INDIA LIMITED          22-Jul-2035
+                17    INE171A08057   THE FEDERAL BANK LIMITED   12-Nov-2034
+                                     INDIA INFRASTRUCTURE
+                1     INE787H08097                              14-Mar-2039
+                                     FINANCE COMPANY LIMITED
+                                     INDIAN RAILWAY FINANCE
+                2     INE053F08478                              14-Feb-2040
+                                     CORPORATION LIMITED
+                                     NATIONAL BANK FOR
+                3     INE261F08CL7   AGRICULTURE AND RURAL      12-Nov-2035
+Nifty Banking                        DEVELOPMENT
+& PSU Long                           NATIONAL HIGHWAYS
+Duration Bond   4     INE906B07HJ1                              23-Dec-2049
+                                     AUTHORITY OF INDIA
+Index
+                5     INE848E08276   NHPC LIMITED               06-May-2040
+                                     NTPC GREEN ENERGY
+                6     INE0ONG08016                              12-Nov-2035
+                                     LIMITED
+                                     POWER FINANCE
+                7     INE134E08NX1                              12-Nov-2040
+                                     CORPORATION LIMITED
+                8     INE062A08439   STATE BANK OF INDIA         11-Jul-2039
+Nifty Banking                        EXPORT-IMPORT BANK OF
+                1     INE514E08FB6                              20-Apr-2026
+& PSU Ultra                          INDIA
+                 Sr.                                            Maturity
+ Index Name                 ISIN             Issuer Name
+                 No.                                             Date
+Short Duration                        INDIAN RAILWAY FINANCE
+                 2     INE053F08239                            18-Apr-2026
+Bond Index - A                        CORPORATION LIMITED
+                 3     INE557F08FP2   NATIONAL HOUSING BANK    02-Apr-2026
+                 4     INE848E07AB1   NHPC LIMITED             06-Jun-2026
+                 5     INE733E08247   NTPC LIMITED             17-Apr-2026
+                                      POWER FINANCE
+                 6     INE134E08NQ5                            15-Apr-2026
+                                      CORPORATION LIMITED
+                                      POWER GRID CORPORATION
+                 7     INE752E07NS2                            25-Apr-2026
+                                      OF INDIA LIMITED
+                 8     INE020B08EL2   REC LIMITED              30-Apr-2026
+
+                                      INDIAN RAILWAY FINANCE
+                 1     INE053F08304                            15-Oct-2026
+                                      CORPORATION LIMITED
+Nifty Banking
+& PSU Low        2     INE848E07AP1   NHPC LIMITED             07-Oct-2026
+Duration Bond                         NUCLEAR POWER
+Index - A        3     INE206D08220   CORPORATION OF INDIA     28-Nov-2026
+                                      LIMITED
+                                      POWER GRID CORPORATION
+                 4     INE752E07OC4                            18-Oct-2026
+                                      OF INDIA LIMITED
+                 5     INE020B08EP3   REC LIMITED              30-Sep-2026
+
+                                      INDIAN OIL CORPORATION
+                 1     INE242A08544                            25-Nov-2027
+                                      LIMITED
+Nifty Banking
+& PSU Short      2     INE848E08375   NHPC LIMITED             12-Aug-2027
+Duration Bond                         POWER FINANCE
+                 3     INE134E08NW3                            15-Oct-2027
+Index - A                             CORPORATION LIMITED
+                 4     INE020B08FA2   REC LIMITED              31-May-2027
+                                      SMALL INDUSTRIES
+                 5     INE556F08KZ3   DEVELOPMENT BANK OF      25-Oct-2028
+                                      INDIA
+
+                                      INDIAN RAILWAY FINANCE
+                 1     INE053F08502                            20-May-2030
+                                      CORPORATION LIMITED
+Nifty Banking
+& PSU Medium
+Duration Bond                         NATIONAL BANK FOR
+Index - A        2     INE261F08EL3   AGRICULTURE AND RURAL    29-Apr-2030
+                                      DEVELOPMENT
+                                      NATIONAL HIGHWAYS
+                 3     INE906B07HH5                            13-Sep-2029
+                                      AUTHORITY OF INDIA
+                 Sr.                                               Maturity
+ Index Name                 ISIN              Issuer Name
+                 No.                                                Date
+                                      NUCLEAR POWER
+                 4     INE206D08303   CORPORATION OF INDIA        25-Mar-2030
+                                      LIMITED
+                                      SMALL INDUSTRIES
+                 5     INE556F08KR0   DEVELOPMENT BANK OF         05-Sep-2029
+                                      INDIA
+                                      HINDUSTAN PETROLEUM
+                 1     INE094A08143                               15-Apr-2033
+                                      CORPORATION LIMITED
+                                      INDIAN RAILWAY FINANCE
+                 2     INE053F08122                               31-Aug-2031
+                                      CORPORATION LIMITED
+                                      KOTAK MAHINDRA BANK
+Nifty Banking    3     INE237A08981                               14-Feb-2031
+                                      LIMITED
+& PSU Medium                          NATIONAL BANK FOR
+to Long          4     INE261F08832   AGRICULTURE AND RURAL       31-Mar-2032
+Duration Bond                         DEVELOPMENT
+Index - A        5     INE557F08GC8   NATIONAL HOUSING BANK        04-Jul-2031
+                 6     INE733E08197   NTPC LIMITED                13-Sep-2031
+                                      POWER FINANCE
+                 7     INE134E08NN2                                15-Jan-2035
+                                      CORPORATION LIMITED
+                 8     INE020B08FQ8   REC LIMITED                 28-Feb-2035
+
+                                      INDIAN RAILWAY FINANCE
+                 1     INE053F08478                               14-Feb-2040
+                                      CORPORATION LIMITED
+
+Nifty Banking                         NATIONAL BANK FOR
+& PSU Long       2     INE261F08CL7   AGRICULTURE AND RURAL       12-Nov-2035
+Duration Bond                         DEVELOPMENT
+Index - A        3     INE848E08276   NHPC LIMITED                06-May-2040
+                                      NTPC GREEN ENERGY
+                 4     INE0ONG08016                               12-Nov-2035
+                                      LIMITED
+                                      POWER FINANCE
+                 5     INE134E08NX1                               12-Nov-2040
+                                      CORPORATION LIMITED
+                 1     INE238A08393   AXIS BANK LIMITED           27-May-2026
+                 2     INE476A08050   CANARA BANK                  27-Apr-2026
+Nifty Banking
+                 3     D151225BPUDB   Dummy Issuer D151225BPUDB     01-Jul-2026
+& PSU Ultra
+Short Duration   4     D161225BPUDB   Dummy Issuer D161225BPUDB     01-Jul-2026
+Bond Index - B                        EXPORT-IMPORT BANK OF
+                 5     INE514E08FB6                               20-Apr-2026
+                                      INDIA
+                 6     INE040A08708   HDFC BANK LIMITED           29-May-2026
+                Sr.                                               Maturity
+ Index Name                ISIN              Issuer Name
+                No.                                                Date
+                                     HOUSING AND URBAN
+                7     INE031A08871   DEVELOPMENT                 16-May-2026
+                                     CORPORATION LIMITED
+                8     INE090A08TT8   ICICI BANK LIMITED          13-May-2026
+                                     INDIAN RAILWAY FINANCE
+                9     INE053F08239                               18-Apr-2026
+                                     CORPORATION LIMITED
+                                     KOTAK MAHINDRA BANK
+                10    INE237A08940                               28-Apr-2026
+                                     LIMITED
+                11    INE557F08FP2   NATIONAL HOUSING BANK       02-Apr-2026
+                12    INE848E07AB1   NHPC LIMITED                06-Jun-2026
+                13    INE733E08247   NTPC LIMITED                17-Apr-2026
+                                     POWER FINANCE
+                14    INE134E08NQ5                               15-Apr-2026
+                                     CORPORATION LIMITED
+                                     POWER GRID CORPORATION
+                15    INE752E07NS2                               25-Apr-2026
+                                     OF INDIA LIMITED
+                16    INE020B08EL2   REC LIMITED                 30-Apr-2026
+                 1    INE238A08419   AXIS BANK LIMITED           23-Nov-2026
+                 2    INE040A08450   HDFC BANK LIMITED           18-Nov-2026
+                                     INDIAN RAILWAY FINANCE
+                3     INE053F08304                               15-Oct-2026
+                                     CORPORATION LIMITED
+                4     INE095A08058   INDUSIND BANK LIMITED       09-Dec-2026
+                                     NATIONAL BANK FOR
+                5     INE261F08EB4   AGRICULTURE AND RURAL       15-Oct-2026
+                                     DEVELOPMENT
+Nifty Banking
+                6     INE848E07AP1   NHPC LIMITED                07-Oct-2026
+& PSU Low
+Duration Bond                        NUCLEAR POWER
+Index - B       7     INE206D08220   CORPORATION OF INDIA        28-Nov-2026
+                                     LIMITED
+                                     POWER FINANCE
+                8     INE134E08IO0                                05-Jan-2027
+                                     CORPORATION LIMITED
+                                     POWER GRID CORPORATION
+                9     INE752E07OC4                               18-Oct-2026
+                                     OF INDIA LIMITED
+                10    INE608A08017   PUNJAB AND SIND BANK         19-Oct-2026
+                11    INE020B08EP3   REC LIMITED                  30-Sep-2026
+                12    INE812V07013   THDC INDIA LIMITED           03-Oct-2026
+                 1    D151225BPSDB   Dummy Issuer D151225BPSDB   30-Dec-2028
+Nifty Banking
+                 2    INE040A08955   HDFC BANK LIMITED           16-May-2028
+& PSU Short
+Duration Bond                        HOUSING AND URBAN
+Index - B       3     INE031A08996   DEVELOPMENT                  17-Jul-2028
+                                     CORPORATION LIMITED
+                Sr.                                               Maturity
+ Index Name                ISIN             Issuer Name
+                No.                                                Date
+                                     INDIAN OIL CORPORATION
+                4     INE242A08544                               25-Nov-2027
+                                     LIMITED
+                                     INDIAN RAILWAY FINANCE
+                5     INE053F08510                               30-May-2028
+                                     CORPORATION LIMITED
+                                     INDIAN RENEWABLE ENERGY
+                6     INE202E08151   DEVELOPMENT AGENCY          10-May-2027
+                                     LIMITED
+                                     NATIONAL HIGHWAYS
+                7     INE906B07GN5                                21-Jan-2029
+                                     AUTHORITY OF INDIA
+                8     INE848E08375   NHPC LIMITED                12-Aug-2027
+                9     INE733E07KJ7   NTPC LIMITED                 15-Jan-2029
+                                     NUCLEAR POWER
+                10    INE206D08238   CORPORATION OF INDIA        28-Nov-2027
+                                     LIMITED
+                                     POWER FINANCE
+                11    INE134E08NW3                               15-Oct-2027
+                                     CORPORATION LIMITED
+                12    INE020B08FA2   REC LIMITED                 31-May-2027
+                                     SMALL INDUSTRIES
+                13    INE556F08KZ3   DEVELOPMENT BANK OF         25-Oct-2028
+                                     INDIA
+                1     D151225BPMDB   Dummy Issuer D151225BPMDB   30-Dec-2029
+                2     INE090A08UI9   ICICI BANK LIMITED          15-Sep-2029
+                                     INDIAN RAILWAY FINANCE
+                3     INE053F08502                               20-May-2030
+                                     CORPORATION LIMITED
+                                     INDIAN RENEWABLE ENERGY
+                4     INE202E08300   DEVELOPMENT AGENCY          31-May-2030
+                                     LIMITED
+                                     NATIONAL BANK FOR
+                5     INE261F08EL3   AGRICULTURE AND RURAL       29-Apr-2030
+Nifty Banking                        DEVELOPMENT
+& PSU Medium                         NATIONAL HIGHWAYS
+                6     INE906B07HH5                               13-Sep-2029
+Duration Bond                        AUTHORITY OF INDIA
+Index - B       7     INE848E07906   NHPC LIMITED                 14-Jul-2030
+                                     NUCLEAR POWER
+                8     INE206D08303   CORPORATION OF INDIA        25-Mar-2030
+                                     LIMITED
+                                     POWER GRID CORPORATION
+                9     INE752E08601                               25-Oct-2029
+                                     OF INDIA LIMITED
+                10    INE608A08033   PUNJAB AND SIND BANK        26-Oct-2029
+                                     SMALL INDUSTRIES
+                11    INE556F08KR0   DEVELOPMENT BANK OF         05-Sep-2029
+                                     INDIA
+                Sr.                                               Maturity
+ Index Name                ISIN             Issuer Name
+                No.                                                 Date
+                 1    INE084A08185   BANK OF INDIA                19-Jul-2034
+                 2    INE457A08183   BANK OF MAHARASHTRA         18-Feb-2035
+                                     HINDUSTAN PETROLEUM
+                3     INE094A08143                               15-Apr-2033
+                                     CORPORATION LIMITED
+                                     HOUSING AND URBAN
+                4     INE031A08939   DEVELOPMENT                 12-Feb-2035
+                                     CORPORATION LIMITED
+                5     INE090A08UH1   ICICI BANK LIMITED          11-Mar-2032
+                                     INDIA INFRASTRUCTURE
+                6     INE787H08204                               15-May-2035
+                                     FINANCE COMPANY LIMITED
+                                     INDIAN RAILWAY FINANCE
+                7     INE053F08122                               31-Aug-2031
+Nifty Banking                        CORPORATION LIMITED
+& PSU Medium                         INDIAN RENEWABLE ENERGY
+to Long         8     INE202E08292   DEVELOPMENT AGENCY          27-Mar-2035
+Duration Bond                        LIMITED
+Index - B                            KOTAK MAHINDRA BANK
+                9     INE237A08981                               14-Feb-2031
+                                     LIMITED
+                                     NATIONAL BANK FOR
+                10    INE261F08832   AGRICULTURE AND RURAL       31-Mar-2032
+                                     DEVELOPMENT
+                11    INE557F08GC8   NATIONAL HOUSING BANK        04-Jul-2031
+                12    INE733E08197   NTPC LIMITED                13-Sep-2031
+                                     POWER FINANCE
+                13    INE134E08NN2                                15-Jan-2035
+                                     CORPORATION LIMITED
+                14    INE020B08FQ8   REC LIMITED                 28-Feb-2035
+                15    INE812V08078   THDC INDIA LIMITED           22-Jul-2035
+                16    INE171A08057   THE FEDERAL BANK LIMITED    12-Nov-2034
+                 1    D151225BPLDB   Dummy Issuer D151225BPLDB   29-Dec-2033
+                 2    D161225BPLDB   Dummy Issuer D161225BPLDB   29-Dec-2033
+                                     INDIA INFRASTRUCTURE
+                3     INE787H08097                               14-Mar-2039
+                                     FINANCE COMPANY LIMITED
+                                     INDIAN RAILWAY FINANCE
+                4     INE053F08478                               14-Feb-2040
+Nifty Banking                        CORPORATION LIMITED
+& PSU Long                           NATIONAL BANK FOR
+Duration Bond   5     INE261F08CL7   AGRICULTURE AND RURAL       12-Nov-2035
+Index - B                            DEVELOPMENT
+                                     NATIONAL HIGHWAYS
+                6     INE906B07HJ1                               23-Dec-2049
+                                     AUTHORITY OF INDIA
+                7     INE848E08276   NHPC LIMITED                06-May-2040
+                                     NTPC GREEN ENERGY
+                8     INE0ONG08016                               12-Nov-2035
+                                     LIMITED
+                 Sr.                                               Maturity
+ Index Name                 ISIN              Issuer Name
+                 No.                                                Date
+                                      POWER FINANCE
+                 9     INE134E08NX1                               12-Nov-2040
+                                      CORPORATION LIMITED
+                 10    INE062A08439   STATE BANK OF INDIA           11-Jul-2039
+                  1    INE238A08393   AXIS BANK LIMITED           27-May-2026
+                  2    INE476A08050   CANARA BANK                  27-Apr-2026
+                  3    D151225BPUSC   Dummy Issuer D151225BPUSC     01-Jul-2026
+                  4    D161225BPUSC   Dummy Issuer D161225BPUSC     01-Jul-2026
+                  5    D171225BPUSC   Dummy Issuer D171225BPUSC     01-Jul-2026
+                  6    D181225BPUSC   Dummy Issuer D181225BPUSC     01-Jul-2026
+                  7    D191225BPUSC   Dummy Issuer D191225BPUSC     01-Jul-2026
+                                      EXPORT-IMPORT BANK OF
+                 8     INE514E08FB6                               20-Apr-2026
+                                      INDIA
+                 9     INE040A08708   HDFC BANK LIMITED           29-May-2026
+                                      HOUSING AND URBAN
+Nifty Banking    10    INE031A08871   DEVELOPMENT                 16-May-2026
+& PSU Ultra                           CORPORATION LIMITED
+Short Duration   11    INE090A08TT8   ICICI BANK LIMITED          13-May-2026
+Bond Index - C                        INDIAN RAILWAY FINANCE
+                 12    INE053F08239                               18-Apr-2026
+                                      CORPORATION LIMITED
+                                      KOTAK MAHINDRA BANK
+                 13    INE237A08940                               28-Apr-2026
+                                      LIMITED
+                 14    INE557F08FP2   NATIONAL HOUSING BANK       02-Apr-2026
+                 15    INE848E07AB1   NHPC LIMITED                06-Jun-2026
+                 16    INE733E08247   NTPC LIMITED                17-Apr-2026
+                                      POWER FINANCE
+                 17    INE134E08NQ5                               15-Apr-2026
+                                      CORPORATION LIMITED
+                                      POWER GRID CORPORATION
+                 18    INE752E07NS2                               25-Apr-2026
+                                      OF INDIA LIMITED
+                 19    INE020B08EL2   REC LIMITED                 30-Apr-2026
+                 20    INE528G08337   YES BANK LIMITED            31-Mar-2026
+                  1    INE238A08419   AXIS BANK LIMITED           23-Nov-2026
+                  2    D151225BPLWC   Dummy Issuer D151225BPLWC   31-Dec-2026
+Nifty Banking     3    D161225BPLWC   Dummy Issuer D161225BPLWC   31-Dec-2026
+& PSU Low         4    D171225BPLWC   Dummy Issuer D171225BPLWC   31-Dec-2026
+Duration Bond     5    INE040A08450   HDFC BANK LIMITED           18-Nov-2026
+Index - C                             INDIAN RAILWAY FINANCE
+                 6     INE053F08304                               15-Oct-2026
+                                      CORPORATION LIMITED
+                 7     INE095A08058   INDUSIND BANK LIMITED       09-Dec-2026
+                Sr.                                               Maturity
+ Index Name                ISIN             Issuer Name
+                No.                                                Date
+                                     NATIONAL BANK FOR
+                8     INE261F08EB4   AGRICULTURE AND RURAL       15-Oct-2026
+                                     DEVELOPMENT
+                9     INE848E07AP1   NHPC LIMITED                07-Oct-2026
+                                     NUCLEAR POWER
+                10    INE206D08220   CORPORATION OF INDIA        28-Nov-2026
+                                     LIMITED
+                                     POWER FINANCE
+                11    INE134E08IO0                                05-Jan-2027
+                                     CORPORATION LIMITED
+                                     POWER GRID CORPORATION
+                12    INE752E07OC4                               18-Oct-2026
+                                     OF INDIA LIMITED
+                13    INE608A08017   PUNJAB AND SIND BANK         19-Oct-2026
+                14    INE020B08EP3   REC LIMITED                  30-Sep-2026
+                15    INE812V07013   THDC INDIA LIMITED           03-Oct-2026
+                16    INE528G08345   YES BANK LIMITED             30-Sep-2026
+                 1    D151225BPSDC   Dummy Issuer D151225BPSDC   30-Dec-2028
+                 2    D161225BPSDC   Dummy Issuer D161225BPSDC   30-Dec-2028
+                 3    INE040A08955   HDFC BANK LIMITED           16-May-2028
+                                     HOUSING AND URBAN
+                4     INE031A08996   DEVELOPMENT                  17-Jul-2028
+                                     CORPORATION LIMITED
+                                     INDIAN OIL CORPORATION
+                5     INE242A08544                               25-Nov-2027
+                                     LIMITED
+                                     INDIAN RAILWAY FINANCE
+                6     INE053F08510                               30-May-2028
+                                     CORPORATION LIMITED
+                                     INDIAN RENEWABLE ENERGY
+Nifty Banking   7     INE202E08151   DEVELOPMENT AGENCY          10-May-2027
+& PSU Short                          LIMITED
+Duration Bond                        NATIONAL HIGHWAYS
+                8     INE906B07GN5                                21-Jan-2029
+Index - C                            AUTHORITY OF INDIA
+                 9    INE848E08375   NHPC LIMITED                12-Aug-2027
+                10    INE733E07KJ7   NTPC LIMITED                 15-Jan-2029
+                                     NUCLEAR POWER
+                11    INE206D08238   CORPORATION OF INDIA        28-Nov-2027
+                                     LIMITED
+                                     POWER FINANCE
+                12    INE134E08NW3                               15-Oct-2027
+                                     CORPORATION LIMITED
+                13    INE020B08FA2   REC LIMITED                 31-May-2027
+                                     SMALL INDUSTRIES
+                14    INE556F08KZ3   DEVELOPMENT BANK OF         25-Oct-2028
+                                     INDIA
+                Sr.                                               Maturity
+ Index Name                ISIN             Issuer Name
+                No.                                                 Date
+                 1    D151225BPMDC   Dummy Issuer D151225BPMDC   30-Dec-2029
+                 2    D161225BPMDC   Dummy Issuer D161225BPMDC   30-Dec-2029
+                 3    D171225BPMDC   Dummy Issuer D171225BPMDC   30-Dec-2029
+                                     EQUITAS SMALL FINANCE
+                4     INE063P08120                                31-Jul-2030
+                                     BANK LIMITED
+                                     ESAF SMALL FINANCE BANK
+                5     INE818W08123                               20-Apr-2030
+                                     LIMITED
+                6     INE090A08UI9   ICICI BANK LIMITED          15-Sep-2029
+                                     INDIAN RAILWAY FINANCE
+                7     INE053F08502                               20-May-2030
+                                     CORPORATION LIMITED
+                                     INDIAN RENEWABLE ENERGY
+                8     INE202E08300   DEVELOPMENT AGENCY          31-May-2030
+Nifty Banking                        LIMITED
+& PSU Medium                         NATIONAL BANK FOR
+Duration Bond   9     INE261F08EL3   AGRICULTURE AND RURAL       29-Apr-2030
+Index - C                            DEVELOPMENT
+                                     NATIONAL HIGHWAYS
+                10    INE906B07HH5                               13-Sep-2029
+                                     AUTHORITY OF INDIA
+                11    INE848E07906   NHPC LIMITED                 14-Jul-2030
+                                     NUCLEAR POWER
+                12    INE206D08303   CORPORATION OF INDIA        25-Mar-2030
+                                     LIMITED
+                                     POWER GRID CORPORATION
+                13    INE752E08601                               25-Oct-2029
+                                     OF INDIA LIMITED
+                14    INE608A08033   PUNJAB AND SIND BANK        26-Oct-2029
+                                     SMALL INDUSTRIES
+                15    INE556F08KR0   DEVELOPMENT BANK OF         05-Sep-2029
+                                     INDIA
+                1     INE084A08185   BANK OF INDIA                19-Jul-2034
+                2     INE457A08183   BANK OF MAHARASHTRA         18-Feb-2035
+                3     D151225BPMLC   Dummy Issuer D151225BPMLC   29-Jun-2032
+                4     D161225BPMLC   Dummy Issuer D161225BPMLC   29-Jun-2032
+Nifty Banking   5     D171225BPMLC   Dummy Issuer D171225BPMLC   29-Jun-2032
+& PSU Medium                         ESAF SMALL FINANCE BANK
+to Long         6     INE818W08156                               10-Aug-2031
+                                     LIMITED
+Duration Bond                        HINDUSTAN PETROLEUM
+Index - C       7     INE094A08143                               15-Apr-2033
+                                     CORPORATION LIMITED
+                                     HOUSING AND URBAN
+                8     INE031A08939   DEVELOPMENT                 12-Feb-2035
+                                     CORPORATION LIMITED
+                9     INE090A08UH1   ICICI BANK LIMITED          11-Mar-2032
+                Sr.                                               Maturity
+ Index Name                ISIN             Issuer Name
+                No.                                                Date
+                                     INDIA INFRASTRUCTURE
+                10    INE787H08204                               15-May-2035
+                                     FINANCE COMPANY LIMITED
+                                     INDIAN RAILWAY FINANCE
+                11    INE053F08122                               31-Aug-2031
+                                     CORPORATION LIMITED
+                                     INDIAN RENEWABLE ENERGY
+                12    INE202E08292   DEVELOPMENT AGENCY          27-Mar-2035
+                                     LIMITED
+                                     KOTAK MAHINDRA BANK
+                13    INE237A08981                               14-Feb-2031
+                                     LIMITED
+                                     NATIONAL BANK FOR
+                14    INE261F08832   AGRICULTURE AND RURAL       31-Mar-2032
+                                     DEVELOPMENT
+                15    INE557F08GC8   NATIONAL HOUSING BANK        04-Jul-2031
+                16    INE733E08197   NTPC LIMITED                13-Sep-2031
+                                     POWER FINANCE
+                17    INE134E08NN2                                15-Jan-2035
+                                     CORPORATION LIMITED
+                18    INE020B08FQ8   REC LIMITED                 28-Feb-2035
+                19    INE812V08078   THDC INDIA LIMITED           22-Jul-2035
+                20    INE171A08057   THE FEDERAL BANK LIMITED    12-Nov-2034
+                 1    D151225BPLDC   Dummy Issuer D151225BPLDC   29-Dec-2033
+                 2    D161225BPLDC   Dummy Issuer D161225BPLDC   29-Dec-2033
+                 3    D171225BPLDC   Dummy Issuer D171225BPLDC   29-Dec-2033
+                 4    D181225BPLDC   Dummy Issuer D181225BPLDC   29-Dec-2033
+                 5    D191225BPLDC   Dummy Issuer D191225BPLDC   29-Dec-2033
+                 6    D201225BPLDC   Dummy Issuer D201225BPLDC   29-Dec-2033
+                                     INDIA INFRASTRUCTURE
+                7     INE787H08097                               14-Mar-2039
+                                     FINANCE COMPANY LIMITED
+Nifty Banking                        INDIAN RAILWAY FINANCE
+                8     INE053F08478                               14-Feb-2040
+& PSU Long                           CORPORATION LIMITED
+Duration Bond                        NATIONAL BANK FOR
+Index - C       9     INE261F08CL7   AGRICULTURE AND RURAL       12-Nov-2035
+                                     DEVELOPMENT
+                                     NATIONAL HIGHWAYS
+                10    INE906B07HJ1                               23-Dec-2049
+                                     AUTHORITY OF INDIA
+                11    INE848E08276   NHPC LIMITED                06-May-2040
+                                     NTPC GREEN ENERGY
+                12    INE0ONG08016                               12-Nov-2035
+                                     LIMITED
+                                     POWER FINANCE
+                13    INE134E08NX1                               12-Nov-2040
+                                     CORPORATION LIMITED
+                14    INE062A08439   STATE BANK OF INDIA          11-Jul-2039
+The following securities are being included:
+                   Sr.                                                  Maturity
+  Index Name                     ISIN                 Issuer Name
+                   No.                                                   Date
+                                               EXPORT-IMPORT BANK OF
+                    1    INE514E08FG5                                   01-Sep-2026
+                                               INDIA
+                    2    INE040A08484          HDFC BANK LIMITED        24-Aug-2026
+                                               HOUSING AND URBAN
+                    3    INE031A08889          DEVELOPMENT              20-Aug-2026
+                                               CORPORATION LIMITED
+                                               NATIONAL BANK FOR
+                    4    INE261F08DX0          AGRICULTURE AND RURAL     31-Jul-2026
+                                               DEVELOPMENT
+                    5    INE557F08FR8          NATIONAL HOUSING BANK     23-Jul-2026
+ Nifty Banking
+                    6    INE848E07AL0          NHPC LIMITED             15-Sep-2026
+ & PSU Ultra
+ Short Duration     7    INE733E07KF5          NTPC LIMITED             16-Sep-2026
+ Bond Index                                    NUCLEAR POWER
+                    8    INE206D08311          CORPORATION OF INDIA     04-Aug-2026
+                                               LIMITED
+                                               POWER FINANCE
+                    9    INE134E08LP1                                    15-Jul-2026
+                                               CORPORATION LIMITED
+                                               POWER GRID CORPORATION
+                   10    INE752E07NZ7                                    15-Jul-2026
+                                               OF INDIA LIMITED
+                   11    INE020B08EI8          REC LIMITED               31-Jul-2026
+                                               SMALL INDUSTRIES
+                   12    INE556F08KI9          DEVELOPMENT BANK OF      04-Sep-2026
+                                               INDIA
+                    1    INE238A08468          AXIS BANK LIMITED        30-Jan-2027
+                                               EXPORT-IMPORT BANK OF
+                    2    INE514E08FJ9                                   01-Feb-2027
+                                               INDIA
+                    3    INE040A08567          HDFC BANK LIMITED        27-Mar-2027
+                                               HINDUSTAN PETROLEUM
+                    4    INE094A08101                                   26-Feb-2027
+ Nifty Banking                                 CORPORATION LIMITED
+ & PSU Low                                     INDIAN OIL CORPORATION
+                    5    INE242A08502                                   18-Feb-2027
+ Duration Bond                                 LIMITED
+ Index                                         INDIAN RAILWAY FINANCE
+                    6    INE053F07983                                   21-Mar-2027
+                                               CORPORATION LIMITED
+                                               INDIAN RENEWABLE
+                    7    INE202E08037          ENERGY DEVELOPMENT       06-Mar-2027
+                                               AGENCY LIMITED
+                                               INLAND WATERWAYS
+                    8    INE896W08012                                   03-Mar-2027
+                                               AUTHORITY OF INDIA
+                Sr.                                            Maturity
+Index Name                 ISIN            Issuer Name
+                No.                                             Date
+                                     NATIONAL BANK FOR
+                9     INE261F08EF5   AGRICULTURE AND RURAL    15-Mar-2027
+                                     DEVELOPMENT
+                                     NATIONAL INSURANCE
+                10    INE168X08014                            26-Mar-2027
+                                     COMPANY LIMITED
+                11    INE848E07AZ0   NHPC LIMITED             11-Feb-2027
+                                     NUCLEAR POWER
+                12    INE206D08279   CORPORATION OF INDIA     25-Mar-2027
+                                     LIMITED
+                                     POWER FINANCE
+                13    INE134E08IX1                            22-Mar-2027
+                                     CORPORATION LIMITED
+                                     POWER GRID CORPORATION
+                14    INE752E07OE0                            09-Mar-2027
+                                     OF INDIA LIMITED
+                15    INE020B08EW9   REC LIMITED              26-Feb-2027
+                                     SMALL INDUSTRIES
+                16    INE556F08KK5   DEVELOPMENT BANK OF      19-Apr-2027
+                                     INDIA
+                                     SURYODAY SMALL FINANCE
+                17    INE428Q08073                            07-Apr-2027
+                                     BANK LIMITED
+                1     INE028A08281   BANK OF BARODA           17-Aug-2029
+                2     INE040A08724   HDFC BANK LIMITED        27-Mar-2029
+                                     HOUSING AND URBAN
+                3     INE031A08699   DEVELOPMENT              15-Mar-2029
+                                     CORPORATION LIMITED
+                                     INDIAN OIL CORPORATION
+                4     INE242A08551                             16-Jul-2029
+                                     LIMITED
+                                     INDIAN RAILWAY FINANCE
+                5     INE053F08411                             31-Jul-2029
+                                     CORPORATION LIMITED
+Nifty Banking                        INDIAN RENEWABLE
+& PSU Short     6     INE202E08185   ENERGY DEVELOPMENT       18-May-2029
+Duration Bond                        AGENCY LIMITED
+Index                                NATIONAL HIGHWAYS
+                7     INE906B07GP0                            28-Mar-2029
+                                     AUTHORITY OF INDIA
+                8     INE848E07AR7   NHPC LIMITED             07-Oct-2028
+                9     INE733E07KL3   NTPC LIMITED              17-Jul-2029
+                                     NUCLEAR POWER
+                10    INE206D08501   CORPORATION OF INDIA     21-Mar-2028
+                                     LIMITED
+                                     POWER FINANCE
+                11    INE134E08LX5                             17-Jan-2028
+                                     CORPORATION LIMITED
+                12    INE020B08FW6   REC LIMITED               31-Jan-2028
+                Sr.                                             Maturity
+Index Name                 ISIN             Issuer Name
+                No.                                              Date
+                                     SMALL INDUSTRIES
+                13    INE556F08LA4   DEVELOPMENT BANK OF        10-Jan-2029
+                                     INDIA
+                14    INE812V07021   THDC INDIA LIMITED        06-Sep-2029
+                                     EQUITAS SMALL FINANCE
+                1     INE063P08112                             05-Dec-2030
+                                     BANK LIMITED
+                                     ESAF SMALL FINANCE BANK
+                2     INE818W08131                              17-Jul-2031
+                                     LIMITED
+                3     INE090A08UJ7   ICICI BANK LIMITED        12-Dec-2029
+                                     INDIAN RAILWAY FINANCE
+                4     INE053F08528                             30-May-2030
+                                     CORPORATION LIMITED
+                                     INDIAN RENEWABLE
+                5     INE202E08060   ENERGY DEVELOPMENT        08-May-2030
+                                     AGENCY LIMITED
+Nifty Banking
+                                     NATIONAL BANK FOR
+& PSU
+                6     INE261F08EJ7   AGRICULTURE AND RURAL     06-Dec-2029
+Medium
+                                     DEVELOPMENT
+Duration Bond
+                                     NATIONAL HIGHWAYS
+Index           7     INE906B07HP8                             28-Apr-2030
+                                     AUTHORITY OF INDIA
+                8     INE848E07BC7   NHPC LIMITED              11-Feb-2030
+                                     NUCLEAR POWER
+                9     INE206D08469   CORPORATION OF INDIA       23-Jan-2030
+                                     LIMITED
+                                     POWER GRID CORPORATION
+                10    INE752E08510                             12-Dec-2029
+                                     OF INDIA LIMITED
+                                     SMALL INDUSTRIES
+                11    INE556F08KY6   DEVELOPMENT BANK OF       21-Mar-2030
+                                     INDIA
+                1     INE084A08201   BANK OF INDIA             29-Nov-2034
+                2     INE457A08175   BANK OF MAHARASHTRA       05-Aug-2034
+                                     DME DEVELOPMENT
+                3     INE0J7Q07215                             24-Feb-2033
+                                     LIMITED
+                                     ESAF SMALL FINANCE BANK
+Nifty Banking   4     INE818W08164                             23-Feb-2032
+                                     LIMITED
+& PSU
+Medium to                            HINDUSTAN PETROLEUM
+                5     INE094A08093                             11-Apr-2031
+Long Duration                        CORPORATION LIMITED
+Bond Index                           HOUSING AND URBAN
+                6     INE031A08954   DEVELOPMENT               27-Mar-2035
+                                     CORPORATION LIMITED
+                7     INE090A08UG3   ICICI BANK LIMITED        17-Dec-2031
+                                     INDIA INFRASTRUCTURE
+                8     INE787H08048                             14-Mar-2032
+                                     FINANCE COMPANY LIMITED
+                 Sr.                                             Maturity
+Index Name                  ISIN             Issuer Name
+                 No.                                              Date
+                                      INDIAN RAILWAY FINANCE
+                 9     INE053F07CQ9                              06-Jul-2035
+                                      CORPORATION LIMITED
+                                      NATIONAL BANK FOR
+                 10    INE261F08EN9   AGRICULTURE AND RURAL     28-May-2035
+                                      DEVELOPMENT
+                 11    INE557F08GE4   NATIONAL HOUSING BANK      02-Apr-2032
+                 12    INE733E08270   NTPC LIMITED              09-May-2035
+                                      POWER FINANCE
+                 13    INE134E08NM4                              15-Jan-2032
+                                      CORPORATION LIMITED
+                 14    INE020B08FG9   REC LIMITED               31-Aug-2035
+                                      SOLAR ENERGY
+                 15    INE054008011   CORPORATION OF INDIA      26-Sep-2035
+                                      LIMITED
+                 16    INE812V07054   THDC INDIA LIMITED        25-Aug-2031
+                                      DME DEVELOPMENT
+                 1     INE0J7Q07249                             01-Mar-2039
+                                      LIMITED
+                                      INDIA INFRASTRUCTURE
+                 2     INE787H08105                             25-Apr-2039
+                                      FINANCE COMPANY LIMITED
+                                      INDIAN RAILWAY FINANCE
+                 3     INE053F08437                             14-Nov-2039
+                                      CORPORATION LIMITED
+                                      NATIONAL BANK FOR
+                 4     INE261F08DG5   AGRICULTURE AND RURAL      29-Jul-2036
+Nifty Banking                         DEVELOPMENT
+& PSU Long                            NATIONAL BANK FOR
+Duration Bond                         FINANCING
+Index            5     INE0KUG08126                             12-Feb-2036
+                                      INFRASTRUCTURE AND
+                                      DEVELOPMENT
+                                      NATIONAL HIGHWAYS
+                 6     INE906B07HM5                             06-Mar-2050
+                                      AUTHORITY OF INDIA
+                 7     INE848E08474   NHPC LIMITED              27-Feb-2041
+                                      POWER FINANCE
+                 8     INE134E07AT8                              22-Jan-2036
+                                      CORPORATION LIMITED
+                 9     INE062A08421   STATE BANK OF INDIA       27-Jun-2039
+                                      EXPORT-IMPORT BANK OF
+                 1     INE514E08FG5                             01-Sep-2026
+Nifty Banking                         INDIA
+& PSU Ultra      2     INE557F08FR8   NATIONAL HOUSING BANK      23-Jul-2026
+Short Duration
+                 3     INE848E07AL0   NHPC LIMITED              15-Sep-2026
+Bond Index -
+A                4     INE733E07KF5   NTPC LIMITED              16-Sep-2026
+                                      POWER FINANCE
+                 5     INE134E08LP1                              15-Jul-2026
+                                      CORPORATION LIMITED
+                Sr.                                            Maturity
+Index Name                 ISIN             Issuer Name
+                No.                                              Date
+                 6    INE020B08EI8   REC LIMITED               31-Jul-2026
+                                     SMALL INDUSTRIES
+                7     INE556F08KI9   DEVELOPMENT BANK OF      04-Sep-2026
+                                     INDIA
+                                     HINDUSTAN PETROLEUM
+                1     INE094A08101                            26-Feb-2027
+                                     CORPORATION LIMITED
+                                     INDIAN OIL CORPORATION
+                2     INE242A08502                            18-Feb-2027
+                                     LIMITED
+                                     NATIONAL BANK FOR
+                3     INE261F08EF5   AGRICULTURE AND RURAL    15-Mar-2027
+Nifty Banking                        DEVELOPMENT
+& PSU Low       4     INE848E07AZ0   NHPC LIMITED             11-Feb-2027
+Duration Bond                        POWER FINANCE
+                5     INE134E08IX1                            22-Mar-2027
+Index - A                            CORPORATION LIMITED
+                                     POWER GRID CORPORATION
+                6     INE752E07OE0                            09-Mar-2027
+                                     OF INDIA LIMITED
+                7     INE020B08EW9   REC LIMITED              26-Feb-2027
+                                     SMALL INDUSTRIES
+                8     INE556F08KK5   DEVELOPMENT BANK OF      19-Apr-2027
+                                     INDIA
+                                     HINDUSTAN PETROLEUM
+                1     INE094A08150                            02-Mar-2028
+                                     CORPORATION LIMITED
+
+Nifty Banking                        INDIAN RAILWAY FINANCE
+                2     INE053F08411                             31-Jul-2029
+& PSU Short                          CORPORATION LIMITED
+Duration Bond   3     INE557F08FZ1   NATIONAL HOUSING BANK    08-Sep-2027
+Index - A       4     INE733E07KL3   NTPC LIMITED              17-Jul-2029
+                                     POWER FINANCE
+                5     INE134E08LX5                             17-Jan-2028
+                                     CORPORATION LIMITED
+                6     INE020B08FW6   REC LIMITED               31-Jan-2028
+                                     INDIAN RAILWAY FINANCE
+                1     INE053F08528                            30-May-2030
+                                     CORPORATION LIMITED
+Nifty Banking                        NATIONAL BANK FOR
+& PSU           2     INE261F08EJ7   AGRICULTURE AND RURAL    06-Dec-2029
+Medium                               DEVELOPMENT
+Duration Bond                        NATIONAL HIGHWAYS
+                3     INE906B07HP8                            28-Apr-2030
+Index - A                            AUTHORITY OF INDIA
+                4     INE589A07045   NLC INDIA LIMITED        25-Jan-2030
+                5     INE733E07DK0   NTPC LIMITED             10-Jun-2030
+                 Sr.                                               Maturity
+Index Name                  ISIN              Issuer Name
+                 No.                                                Date
+                                      NUCLEAR POWER
+                 6     INE206D08469   CORPORATION OF INDIA         23-Jan-2030
+                                      LIMITED
+                                      POWER FINANCE
+                 7     INE134E08NR3                                15-Jul-2030
+                                      CORPORATION LIMITED
+                                      HINDUSTAN PETROLEUM
+                 1     INE094A08093                               11-Apr-2031
+                                      CORPORATION LIMITED
+                                      INDIAN RAILWAY FINANCE
+Nifty Banking    2     INE053F07CQ9                                06-Jul-2035
+                                      CORPORATION LIMITED
+& PSU                                 NATIONAL BANK FOR
+Medium to        3     INE261F08EN9   AGRICULTURE AND RURAL       28-May-2035
+Long Duration                         DEVELOPMENT
+Bond Index -     4     INE557F08GE4   NATIONAL HOUSING BANK        02-Apr-2032
+A
+                 5     INE733E08270   NTPC LIMITED                09-May-2035
+                                      POWER FINANCE
+                 6     INE134E08NM4                                15-Jan-2032
+                                      CORPORATION LIMITED
+                 7     INE020B08FG9   REC LIMITED                 31-Aug-2035
+                                      INDIAN RAILWAY FINANCE
+                 1     INE053F08437                               14-Nov-2039
+                                      CORPORATION LIMITED
+                                      NATIONAL HIGHWAYS
+                 2     INE906B07HM5                               06-Mar-2050
+Nifty Banking                         AUTHORITY OF INDIA
+& PSU Long       3     INE848E08474   NHPC LIMITED                27-Feb-2041
+Duration Bond                         NUCLEAR POWER
+Index - A        4     INE206D08485   CORPORATION OF INDIA        24-Mar-2037
+                                      LIMITED
+                                      POWER FINANCE
+                 5     INE134E07AT8                                22-Jan-2036
+                                      CORPORATION LIMITED
+                 6     INE062A08421   STATE BANK OF INDIA         27-Jun-2039
+                 1     D160326BPUDB   Dummy Issuer D160326BPUDB   28-Sep-2026
+                 2     D170326BPUDB   Dummy Issuer D170326BPUDB   28-Sep-2026
+                                      EXPORT-IMPORT BANK OF
+                 3     INE514E08FG5                               01-Sep-2026
+Nifty Banking                         INDIA
+& PSU Ultra      4     INE040A08484   HDFC BANK LIMITED           24-Aug-2026
+Short Duration                        HOUSING AND URBAN
+Bond Index -     5     INE031A08889   DEVELOPMENT                 20-Aug-2026
+B                                     CORPORATION LIMITED
+                                      NATIONAL BANK FOR
+                 6     INE261F08DX0   AGRICULTURE AND RURAL        31-Jul-2026
+                                      DEVELOPMENT
+                Sr.                                              Maturity
+Index Name                 ISIN              Issuer Name
+                No.                                                 Date
+                 7    INE557F08FR8   NATIONAL HOUSING BANK        23-Jul-2026
+                 8    INE848E07AL0   NHPC LIMITED                15-Sep-2026
+                 9    INE733E07KF5   NTPC LIMITED                16-Sep-2026
+                                     NUCLEAR POWER
+                10    INE206D08311   CORPORATION OF INDIA        04-Aug-2026
+                                     LIMITED
+                                     POWER FINANCE
+                11    INE134E08LP1                                15-Jul-2026
+                                     CORPORATION LIMITED
+                                     POWER GRID CORPORATION
+                12    INE752E07NZ7                                15-Jul-2026
+                                     OF INDIA LIMITED
+                13    INE020B08EI8   REC LIMITED                  31-Jul-2026
+                                     SMALL INDUSTRIES
+                14    INE556F08KI9   DEVELOPMENT BANK OF         04-Sep-2026
+                                     INDIA
+                1     INE238A08468   AXIS BANK LIMITED            30-Jan-2027
+                2     D160326BPLWB   Dummy Issuer D160326BPLWB   30-Mar-2027
+                3     D170326BPLWB   Dummy Issuer D170326BPLWB   30-Mar-2027
+                                     EXPORT-IMPORT BANK OF
+                4     INE514E08FJ9                               01-Feb-2027
+                                     INDIA
+                5     INE040A08567   HDFC BANK LIMITED           27-Mar-2027
+                                     HINDUSTAN PETROLEUM
+                6     INE094A08101                               26-Feb-2027
+                                     CORPORATION LIMITED
+                                     INDIAN OIL CORPORATION
+                7     INE242A08502                               18-Feb-2027
+                                     LIMITED
+                                     INDIAN RAILWAY FINANCE
+Nifty Banking   8     INE053F07983                               21-Mar-2027
+                                     CORPORATION LIMITED
+& PSU Low                            INDIAN RENEWABLE
+Duration Bond   9     INE202E08037   ENERGY DEVELOPMENT          06-Mar-2027
+Index - B                            AGENCY LIMITED
+                                     INLAND WATERWAYS
+                10    INE896W08012                               03-Mar-2027
+                                     AUTHORITY OF INDIA
+                                     NATIONAL BANK FOR
+                11    INE261F08EF5   AGRICULTURE AND RURAL       15-Mar-2027
+                                     DEVELOPMENT
+                12    INE848E07AZ0   NHPC LIMITED                11-Feb-2027
+                                     NUCLEAR POWER
+                13    INE206D08279   CORPORATION OF INDIA        25-Mar-2027
+                                     LIMITED
+                                     POWER FINANCE
+                14    INE134E08IX1                               22-Mar-2027
+                                     CORPORATION LIMITED
+                Sr.                                               Maturity
+Index Name                 ISIN              Issuer Name
+                No.                                                Date
+                                     POWER GRID CORPORATION
+                15    INE752E07OE0                               09-Mar-2027
+                                     OF INDIA LIMITED
+                16    INE020B08EW9   REC LIMITED                 26-Feb-2027
+                                     SMALL INDUSTRIES
+                17    INE556F08KK5   DEVELOPMENT BANK OF         19-Apr-2027
+                                     INDIA
+                1     INE028A08281   BANK OF BARODA              17-Aug-2029
+                2     D160326BPSDB   Dummy Issuer D160326BPSDB   29-Mar-2029
+                3     INE040A08724   HDFC BANK LIMITED           27-Mar-2029
+                                     HOUSING AND URBAN
+                4     INE031A08699   DEVELOPMENT                 15-Mar-2029
+                                     CORPORATION LIMITED
+                                     INDIAN OIL CORPORATION
+                5     INE242A08551                                16-Jul-2029
+                                     LIMITED
+                                     INDIAN RAILWAY FINANCE
+                6     INE053F08411                                31-Jul-2029
+                                     CORPORATION LIMITED
+                                     INDIAN RENEWABLE
+                7     INE202E08185   ENERGY DEVELOPMENT          18-May-2029
+Nifty Banking                        AGENCY LIMITED
+& PSU Short                          NATIONAL HIGHWAYS
+Duration Bond   8     INE906B07GP0                               28-Mar-2029
+                                     AUTHORITY OF INDIA
+Index - B
+                 9    INE848E07AR7   NHPC LIMITED                07-Oct-2028
+                10    INE733E07KL3   NTPC LIMITED                 17-Jul-2029
+                                     NUCLEAR POWER
+                11    INE206D08501   CORPORATION OF INDIA        21-Mar-2028
+                                     LIMITED
+                                     POWER FINANCE
+                12    INE134E08LX5                                17-Jan-2028
+                                     CORPORATION LIMITED
+                13    INE020B08FW6   REC LIMITED                  31-Jan-2028
+                                     SMALL INDUSTRIES
+                14    INE556F08LA4   DEVELOPMENT BANK OF          10-Jan-2029
+                                     INDIA
+                15    INE812V07021   THDC INDIA LIMITED          06-Sep-2029
+                 1    D160326BPMDB   Dummy Issuer D160326BPMDB   29-Mar-2030
+Nifty Banking    2    INE090A08UJ7   ICICI BANK LIMITED          12-Dec-2029
+& PSU                                INDIAN RAILWAY FINANCE
+Medium          3     INE053F08528                               30-May-2030
+                                     CORPORATION LIMITED
+Duration Bond                        INDIAN RENEWABLE
+Index - B       4     INE202E08060   ENERGY DEVELOPMENT          08-May-2030
+                                     AGENCY LIMITED
+                Sr.                                             Maturity
+Index Name                 ISIN             Issuer Name
+                No.                                              Date
+                                     NATIONAL BANK FOR
+                5     INE261F08EJ7   AGRICULTURE AND RURAL     06-Dec-2029
+                                     DEVELOPMENT
+                                     NATIONAL HIGHWAYS
+                6     INE906B07HP8                             28-Apr-2030
+                                     AUTHORITY OF INDIA
+                7     INE848E07BC7   NHPC LIMITED              11-Feb-2030
+                                     NUCLEAR POWER
+                8     INE206D08469   CORPORATION OF INDIA       23-Jan-2030
+                                     LIMITED
+                                     POWER GRID CORPORATION
+                9     INE752E08510                             12-Dec-2029
+                                     OF INDIA LIMITED
+                                     SMALL INDUSTRIES
+                10    INE556F08KY6   DEVELOPMENT BANK OF       21-Mar-2030
+                                     INDIA
+                1     INE084A08201   BANK OF INDIA             29-Nov-2034
+                2     INE457A08175   BANK OF MAHARASHTRA       05-Aug-2034
+                                     DME DEVELOPMENT
+                3     INE0J7Q07215                             24-Feb-2033
+                                     LIMITED
+                                     HINDUSTAN PETROLEUM
+                4     INE094A08093                             11-Apr-2031
+                                     CORPORATION LIMITED
+                                     HOUSING AND URBAN
+                5     INE031A08954   DEVELOPMENT               27-Mar-2035
+                                     CORPORATION LIMITED
+                6     INE090A08UG3   ICICI BANK LIMITED        17-Dec-2031
+Nifty Banking                        INDIA INFRASTRUCTURE
+                7     INE787H08048                             14-Mar-2032
+& PSU                                FINANCE COMPANY LIMITED
+Medium to                            INDIAN RAILWAY FINANCE
+                8     INE053F07CQ9                              06-Jul-2035
+Long Duration                        CORPORATION LIMITED
+Bond Index -                         NATIONAL BANK FOR
+B               9     INE261F08EN9   AGRICULTURE AND RURAL     28-May-2035
+                                     DEVELOPMENT
+                10    INE557F08GE4   NATIONAL HOUSING BANK      02-Apr-2032
+                11    INE733E08270   NTPC LIMITED              09-May-2035
+                                     POWER FINANCE
+                12    INE134E08NM4                              15-Jan-2032
+                                     CORPORATION LIMITED
+                13    INE020B08FG9   REC LIMITED               31-Aug-2035
+                                     SOLAR ENERGY
+                14    INE054008011   CORPORATION OF INDIA      26-Sep-2035
+                                     LIMITED
+                15    INE812V07054   THDC INDIA LIMITED        25-Aug-2031
+Nifty Banking                        DME DEVELOPMENT
+                1     INE0J7Q07249                             01-Mar-2039
+& PSU Long                           LIMITED
+                 Sr.                                               Maturity
+Index Name                  ISIN             Issuer Name
+                 No.                                                 Date
+Duration Bond     2    D160326BPLDB   Dummy Issuer D160326BPLDB   28-Mar-2034
+Index - B         3    D170326BPLDB   Dummy Issuer D170326BPLDB   28-Mar-2034
+                                      INDIA INFRASTRUCTURE
+                 4     INE787H08105                               25-Apr-2039
+                                      FINANCE COMPANY LIMITED
+                                      INDIAN RAILWAY FINANCE
+                 5     INE053F08437                               14-Nov-2039
+                                      CORPORATION LIMITED
+                                      NATIONAL BANK FOR
+                 6     INE261F08DG5   AGRICULTURE AND RURAL        29-Jul-2036
+                                      DEVELOPMENT
+                                      NATIONAL BANK FOR
+                                      FINANCING
+                 7     INE0KUG08126                               12-Feb-2036
+                                      INFRASTRUCTURE AND
+                                      DEVELOPMENT
+                                      NATIONAL HIGHWAYS
+                 8     INE906B07HM5                               06-Mar-2050
+                                      AUTHORITY OF INDIA
+                 9     INE848E08474   NHPC LIMITED                27-Feb-2041
+                                      POWER FINANCE
+                 10    INE134E07AT8                               22-Jan-2036
+                                      CORPORATION LIMITED
+                 11    INE062A08421   STATE BANK OF INDIA         27-Jun-2039
+                  1    D160326BPUSC   Dummy Issuer D160326BPUSC   28-Sep-2026
+                  2    D170326BPUSC   Dummy Issuer D170326BPUSC   28-Sep-2026
+                  3    D180326BPUSC   Dummy Issuer D180326BPUSC   28-Sep-2026
+                  4    D190326BPUSC   Dummy Issuer D190326BPUSC   28-Sep-2026
+                  5    D200326BPUSC   Dummy Issuer D200326BPUSC   28-Sep-2026
+                  6    D210326BPUSC   Dummy Issuer D210326BPUSC   28-Sep-2026
+                                      EXPORT-IMPORT BANK OF
+                 7     INE514E08FG5                               01-Sep-2026
+                                      INDIA
+Nifty Banking    8     INE040A08484   HDFC BANK LIMITED           24-Aug-2026
+& PSU Ultra                           HOUSING AND URBAN
+Short Duration   9     INE031A08889   DEVELOPMENT                 20-Aug-2026
+Bond Index -                          CORPORATION LIMITED
+C                                     NATIONAL BANK FOR
+                 10    INE261F08DX0   AGRICULTURE AND RURAL        31-Jul-2026
+                                      DEVELOPMENT
+                 11    INE557F08FR8   NATIONAL HOUSING BANK        23-Jul-2026
+                 12    INE848E07AL0   NHPC LIMITED                15-Sep-2026
+                 13    INE733E07KF5   NTPC LIMITED                16-Sep-2026
+                                      NUCLEAR POWER
+                 14    INE206D08311   CORPORATION OF INDIA        04-Aug-2026
+                                      LIMITED
+                Sr.                                              Maturity
+Index Name                 ISIN              Issuer Name
+                No.                                               Date
+                                     POWER FINANCE
+                15    INE134E08LP1                                15-Jul-2026
+                                     CORPORATION LIMITED
+                                     POWER GRID CORPORATION
+                16    INE752E07NZ7                                15-Jul-2026
+                                     OF INDIA LIMITED
+                17    INE020B08EI8   REC LIMITED                  31-Jul-2026
+                                     SMALL INDUSTRIES
+                18    INE556F08KI9   DEVELOPMENT BANK OF         04-Sep-2026
+                                     INDIA
+                1     INE238A08468   AXIS BANK LIMITED            30-Jan-2027
+                2     D160326BPLWC   Dummy Issuer D160326BPLWC   30-Mar-2027
+                3     D170326BPLWC   Dummy Issuer D170326BPLWC   30-Mar-2027
+                4     D180326BPLWC   Dummy Issuer D180326BPLWC   30-Mar-2027
+                5     D190326BPLWC   Dummy Issuer D190326BPLWC   30-Mar-2027
+                                     EXPORT-IMPORT BANK OF
+                6     INE514E08FJ9                               01-Feb-2027
+                                     INDIA
+                7     INE040A08567   HDFC BANK LIMITED           27-Mar-2027
+                                     HINDUSTAN PETROLEUM
+                8     INE094A08101                               26-Feb-2027
+                                     CORPORATION LIMITED
+                                     INDIAN OIL CORPORATION
+                9     INE242A08502                               18-Feb-2027
+                                     LIMITED
+                                     INDIAN RAILWAY FINANCE
+                10    INE053F07983                               21-Mar-2027
+                                     CORPORATION LIMITED
+Nifty Banking                        INDIAN RENEWABLE
+& PSU Low       11    INE202E08037   ENERGY DEVELOPMENT          06-Mar-2027
+Duration Bond                        AGENCY LIMITED
+Index - C                            INLAND WATERWAYS
+                12    INE896W08012                               03-Mar-2027
+                                     AUTHORITY OF INDIA
+                                     NATIONAL BANK FOR
+                13    INE261F08EF5   AGRICULTURE AND RURAL       15-Mar-2027
+                                     DEVELOPMENT
+                                     NATIONAL INSURANCE
+                14    INE168X08014                               26-Mar-2027
+                                     COMPANY LIMITED
+                15    INE848E07AZ0   NHPC LIMITED                11-Feb-2027
+                                     NUCLEAR POWER
+                16    INE206D08279   CORPORATION OF INDIA        25-Mar-2027
+                                     LIMITED
+                                     POWER FINANCE
+                17    INE134E08IX1                               22-Mar-2027
+                                     CORPORATION LIMITED
+                                     POWER GRID CORPORATION
+                18    INE752E07OE0                               09-Mar-2027
+                                     OF INDIA LIMITED
+                19    INE020B08EW9   REC LIMITED                 26-Feb-2027
+                Sr.                                               Maturity
+Index Name                 ISIN             Issuer Name
+                No.                                                Date
+                                     SMALL INDUSTRIES
+                20    INE556F08KK5   DEVELOPMENT BANK OF         19-Apr-2027
+                                     INDIA
+                                     SURYODAY SMALL FINANCE
+                21    INE428Q08073                               07-Apr-2027
+                                     BANK LIMITED
+                1     INE028A08281   BANK OF BARODA              17-Aug-2029
+                2     D160326BPSDC   Dummy Issuer D160326BPSDC   29-Mar-2029
+                3     D170326BPSDC   Dummy Issuer D170326BPSDC   29-Mar-2029
+                4     INE040A08724   HDFC BANK LIMITED           27-Mar-2029
+                                     HOUSING AND URBAN
+                5     INE031A08699   DEVELOPMENT                 15-Mar-2029
+                                     CORPORATION LIMITED
+                                     INDIAN OIL CORPORATION
+                6     INE242A08551                                16-Jul-2029
+                                     LIMITED
+                                     INDIAN RAILWAY FINANCE
+                7     INE053F08411                                31-Jul-2029
+                                     CORPORATION LIMITED
+                                     INDIAN RENEWABLE
+Nifty Banking   8     INE202E08185   ENERGY DEVELOPMENT          18-May-2029
+& PSU Short                          AGENCY LIMITED
+Duration Bond                        NATIONAL HIGHWAYS
+                9     INE906B07GP0                               28-Mar-2029
+Index - C                            AUTHORITY OF INDIA
+                10    INE848E07AR7   NHPC LIMITED                07-Oct-2028
+                11    INE733E07KL3   NTPC LIMITED                 17-Jul-2029
+                                     NUCLEAR POWER
+                12    INE206D08501   CORPORATION OF INDIA        21-Mar-2028
+                                     LIMITED
+                                     POWER FINANCE
+                13    INE134E08LX5                                17-Jan-2028
+                                     CORPORATION LIMITED
+                14    INE020B08FW6   REC LIMITED                  31-Jan-2028
+                                     SMALL INDUSTRIES
+                15    INE556F08LA4   DEVELOPMENT BANK OF          10-Jan-2029
+                                     INDIA
+                16    INE812V07021   THDC INDIA LIMITED          06-Sep-2029
+                 1    D160326BPMDC   Dummy Issuer D160326BPMDC   29-Mar-2030
+                 2    D170326BPMDC   Dummy Issuer D170326BPMDC   29-Mar-2030
+Nifty Banking
+                 3    D180326BPMDC   Dummy Issuer D180326BPMDC   29-Mar-2030
+& PSU
+Medium                               EQUITAS SMALL FINANCE
+                4     INE063P08112                               05-Dec-2030
+Duration Bond                        BANK LIMITED
+Index - C                            ESAF SMALL FINANCE BANK
+                5     INE818W08131                                17-Jul-2031
+                                     LIMITED
+                6     INE090A08UJ7   ICICI BANK LIMITED          12-Dec-2029
+                Sr.                                               Maturity
+Index Name                 ISIN             Issuer Name
+                No.                                                Date
+                                     INDIAN RAILWAY FINANCE
+                7     INE053F08528                               30-May-2030
+                                     CORPORATION LIMITED
+                                     INDIAN RENEWABLE
+                8     INE202E08060   ENERGY DEVELOPMENT          08-May-2030
+                                     AGENCY LIMITED
+                                     NATIONAL BANK FOR
+                9     INE261F08EJ7   AGRICULTURE AND RURAL       06-Dec-2029
+                                     DEVELOPMENT
+                                     NATIONAL HIGHWAYS
+                10    INE906B07HP8                               28-Apr-2030
+                                     AUTHORITY OF INDIA
+                11    INE848E07BC7   NHPC LIMITED                11-Feb-2030
+                                     NUCLEAR POWER
+                12    INE206D08469   CORPORATION OF INDIA         23-Jan-2030
+                                     LIMITED
+                                     POWER GRID CORPORATION
+                13    INE752E08510                               12-Dec-2029
+                                     OF INDIA LIMITED
+                                     SMALL INDUSTRIES
+                14    INE556F08KY6   DEVELOPMENT BANK OF         21-Mar-2030
+                                     INDIA
+                1     INE084A08201   BANK OF INDIA               29-Nov-2034
+                2     INE457A08175   BANK OF MAHARASHTRA         05-Aug-2034
+                                     DME DEVELOPMENT
+                3     INE0J7Q07215                               24-Feb-2033
+                                     LIMITED
+                4     D160326BPMLC   Dummy Issuer D160326BPMLC   26-Sep-2032
+                5     D170326BPMLC   Dummy Issuer D170326BPMLC   26-Sep-2032
+                6     D180326BPMLC   Dummy Issuer D180326BPMLC   26-Sep-2032
+                                     ESAF SMALL FINANCE BANK
+                7     INE818W08164                               23-Feb-2032
+Nifty Banking                        LIMITED
+& PSU                                HINDUSTAN PETROLEUM
+                8     INE094A08093                               11-Apr-2031
+Medium to                            CORPORATION LIMITED
+Long Duration                        HOUSING AND URBAN
+Bond Index -    9     INE031A08954   DEVELOPMENT                 27-Mar-2035
+C                                    CORPORATION LIMITED
+                10    INE090A08UG3   ICICI BANK LIMITED          17-Dec-2031
+                                     INDIA INFRASTRUCTURE
+                11    INE787H08048                               14-Mar-2032
+                                     FINANCE COMPANY LIMITED
+                                     INDIAN RAILWAY FINANCE
+                12    INE053F07CQ9                                06-Jul-2035
+                                     CORPORATION LIMITED
+                                     NATIONAL BANK FOR
+                13    INE261F08EN9   AGRICULTURE AND RURAL       28-May-2035
+                                     DEVELOPMENT
+                14    INE557F08GE4   NATIONAL HOUSING BANK       02-Apr-2032
+                Sr.                                               Maturity
+Index Name                 ISIN             Issuer Name
+                No.                                                 Date
+                15    INE733E08270   NTPC LIMITED                09-May-2035
+                                     POWER FINANCE
+                16    INE134E08NM4                                15-Jan-2032
+                                     CORPORATION LIMITED
+                17    INE020B08FG9   REC LIMITED                 31-Aug-2035
+                                     SOLAR ENERGY
+                18    INE054008011   CORPORATION OF INDIA        26-Sep-2035
+                                     LIMITED
+                19    INE812V07054   THDC INDIA LIMITED          25-Aug-2031
+                                     DME DEVELOPMENT
+                1     INE0J7Q07249                               01-Mar-2039
+                                     LIMITED
+                2     D160326BPLDC   Dummy Issuer D160326BPLDC   28-Mar-2034
+                3     D170326BPLDC   Dummy Issuer D170326BPLDC   28-Mar-2034
+                4     D180326BPLDC   Dummy Issuer D180326BPLDC   28-Mar-2034
+                5     D190326BPLDC   Dummy Issuer D190326BPLDC   28-Mar-2034
+                6     D200326BPLDC   Dummy Issuer D200326BPLDC   28-Mar-2034
+                7     D210326BPLDC   Dummy Issuer D210326BPLDC   28-Mar-2034
+                                     INDIA INFRASTRUCTURE
+                8     INE787H08105                               25-Apr-2039
+                                     FINANCE COMPANY LIMITED
+Nifty Banking                        INDIAN RAILWAY FINANCE
+                9     INE053F08437                               14-Nov-2039
+& PSU Long                           CORPORATION LIMITED
+Duration Bond                        NATIONAL BANK FOR
+Index - C       10    INE261F08DG5   AGRICULTURE AND RURAL        29-Jul-2036
+                                     DEVELOPMENT
+                                     NATIONAL BANK FOR
+                                     FINANCING
+                11    INE0KUG08126                               12-Feb-2036
+                                     INFRASTRUCTURE AND
+                                     DEVELOPMENT
+                                     NATIONAL HIGHWAYS
+                12    INE906B07HM5                               06-Mar-2050
+                                     AUTHORITY OF INDIA
+                13    INE848E08474   NHPC LIMITED                27-Feb-2041
+                                     POWER FINANCE
+                14    INE134E07AT8                                22-Jan-2036
+                                     CORPORATION LIMITED
+                15    INE062A08421   STATE BANK OF INDIA         27-Jun-2039
+5. Changes in weights of Nifty Fixed Income PRC Indices
+These changes shall become effective from March 30, 2026.
+
+                                                                           Revised weights
+                                                                Existing
+ Index                    Sub-indices                                      w.e.f. 30th Mar
+                                                                Weights
+                                                                           2026
+                          NiftyNifty 182 Day T-Bill Index         5.00%               5.00%
+                          Nifty 3 Month CD Index - A             31.58%              33.31%
+                          Nifty 3 Month CP Index - A             22.31%               4.85%
+ NiftyNifty Ultra Short
+                          Nifty 6 Month CD Index - A             17.11%              25.15%
+ Duration Debt Index
+ A-I                      Nifty 6 Month CP Index - A              8.74%               1.77%
+                          Nifty 91 Day T-Bill Index               5.00%               5.00%
+                          Nifty AAA Ultra Short Duration Bond
+                                                                 10.25%              24.92%
+                          Index
+                          Nifty 1 Year CD Index - A              37.62%              42.42%
+                          Nifty 1 Year CP Index - A               1.47%               2.00%
+                          Nifty 1 Year T-Bill Index               3.33%               3.33%
+                          Nifty 3 Month CD Index - A             22.01%              22.16%
+ Nifty Low Duration       Nifty 3 Month CP Index - A              3.66%               2.95%
+ Debt Index A-I           Nifty 6 Month CD Index - A             12.05%              10.74%
+                          Nifty 6 Month CP Index - A              1.50%               0.70%
+                          Nifty 60 Day T-Bill Index               3.33%               3.33%
+                          Nifty 91 Day T-Bill Index               3.33%               3.33%
+                          Nifty AAA Low Duration Bond Index      11.70%               9.04%
+                          Nifty 1 Month CD Index - A              7.78%               5.72%
+                          Nifty 1 Month CP Index - A              0.91%               2.89%
+                          Nifty 1 Year CD Index - A              32.30%              30.87%
+                          Nifty 1 Year CP Index - A               1.26%               1.40%
+                          Nifty 1 Year T-Bill Index               3.00%               3.00%
+                          Nifty 182 Day T-Bill Index              3.00%               3.00%
+                          Nifty 2 Month CD Index - A              6.99%               9.57%
+ Nifty Money Market
+                          Nifty 2 Month CP Index - A              1.97%               4.04%
+ Index A-I
+                          Nifty 3 Month CD Index - A             19.00%              19.77%
+                          Nifty 3 Month CP Index - A              3.13%               2.52%
+                          Nifty 30 Day T-Bill Index               3.00%               3.00%
+                          Nifty 6 Month CD Index - A             10.38%               7.76%
+                          Nifty 6 Month CP Index - A              1.29%               0.47%
+                          Nifty 60 Day T-Bill Index               3.00%               3.00%
+                          Nifty 91 Day T-Bill Index               3.00%               3.00%
+                          Nifty 1 Month CD Index - A             12.49%               8.53%
+ Nifty Liquid Index A-
+                          Nifty 1 Month CP Index - A              1.63%               9.40%
+ I
+                          Nifty 1D Rate Index                    15.00%              15.00%
+                                                                         Revised weights
+                                                              Existing
+Index                  Sub-indices                                       w.e.f. 30th Mar
+                                                              Weights
+                                                                         2026
+                       Nifty 2 Month CD Index - A              12.60%              13.45%
+                       Nifty 2 Month CP Index - A               3.95%              11.79%
+                       Nifty 3 Month CD Index - A              33.44%              21.03%
+                       Nifty 3 Month CP Index - A               5.89%               5.81%
+                       Nifty 30 Day T-Bill Index                5.00%               5.00%
+                       Nifty 60 Day T-Bill Index                5.00%               5.00%
+                       Nifty 91 Day T-Bill Index                5.00%               5.00%
+                       Nifty 1 Year CD Index - A               17.17%              17.65%
+                       Nifty 1 Year CP Index - A                0.93%               1.40%
+                       Nifty 3 Month CD Index - A              10.23%               9.59%
+                       Nifty 3 Month CP Index - A               1.66%               1.35%
+Nifty Short Duration   Nifty AAA Short Duration Bond Index     32.46%              29.96%
+Debt Index A-II        Nifty Medium Duration G-Sec Index       10.00%              10.00%
+                       Nifty Short Duration G-Sec Index         5.00%               5.00%
+                       Nifty AAA Ultra Short to Medium
+                       Residual (ex Pvt Financial Services)    22.55%              25.05%
+                       Index
+                       Nifty 1 Month CD Index - A               3.57%               2.31%
+                       Nifty 1 Year CD Index - A               12.49%              12.50%
+                       Nifty 2 Month CD Index - A               2.68%               3.87%
+                       Nifty 3 Month CD Index - A               7.29%               8.21%
+                       Nifty 6 Month CD Index - A               3.96%               3.12%
+Nifty Banking & PSU    Nifty Banking & PSU Medium
+                                                                9.38%                8.49%
+Debt Index A-II        Duration Bond Index - A
+                       Nifty Banking & PSU Short Duration
+                                                               25.43%              21.82%
+                       Bond Index - A
+                       Nifty Short Duration G-Sec Index        28.00%              28.00%
+                       Nifty Banking & PSU Ultra Short to
+                       Medium Residual (ex Financial            7.20%              11.70%
+                       Services) Index - A
+                       Nifty AAA Medium Duration Bond
+                                                               16.86%              16.04%
+                       Index
+Nifty Medium to
+                       Nifty AAA Medium to Long Duration
+Long Duration Debt                                             25.36%              25.74%
+                       Bond Index
+Index A-III
+                       Nifty Medium to Long Duration G-Sec
+                                                               57.78%              58.22%
+                       Index
+Nifty Medium           Nifty AAA Medium Duration Bond
+                                                               40.00%              40.00%
+Duration Debt Index    Index
+A-III                  Nifty Medium Duration G-Sec Index       60.00%              60.00%
+                       Nifty AAA Long duration Bond Index       3.51%               4.13%
+                                                                             Revised weights
+                                                                Existing
+ Index                   Sub-indices                                         w.e.f. 30th Mar
+                                                                Weights
+                                                                             2026
+                         Nifty AAA Medium Duration Bond
+                                                                   7.27%                 6.81%
+                         Index
+                         Nifty AAA Medium to Long Duration
+                                                                  12.13%               11.43%
+                         Bond Index
+ Nifty Composite Debt
+                         Nifty AAA Short Duration Bond Index      24.57%               18.41%
+ Index A-III
+                         Nifty Medium Duration G-Sec Index        15.01%               16.92%
+                         Nifty Medium to Long Duration G-Sec
+                                                                  22.51%               25.38%
+                         Index
+                         Nifty Short Duration G-Sec Index         15.01%               16.92%
+                         Nifty AAA Low Duration Bond Index         5.47%                6.36%
+                         Nifty AAA Short Duration Bond Index      34.53%               33.64%
+ Nifty Corporate Bond    Nifty Short Duration G-Sec Index         28.00%               28.00%
+ Index A-II              Nifty AAA Ultra Short to Medium
+                         Residual (ex Pvt Financial Services)     32.00%               32.00%
+                         Index
+ Nifty Long Duration     Nifty AAA Long duration Bond Index       40.00%               40.00%
+ Debt Index A-III        Nifty Long Duration G-Sec Index          60.00%               60.00%
+                         Nifty Short Duration G-Sec Index         30.00%               30.00%
+                         Nifty AAA Low Duration Bond Index         2.58%                2.52%
+                         Nifty AA+ Low Duration Bond Index         0.45%                0.48%
+                         Nifty AA+ Short Duration Bond Index       1.97%                2.00%
+                         Nifty AA Low Duration Bond Index         19.24%                1.64%
+ Nifty Credit Risk
+ Bond Index B-II         Nifty AA- Low Duration Bond Index         2.35%                0.96%
+                         Nifty AA Short Duration Bond Index       12.57%               28.39%
+                         Nifty AA- Short Duration Bond Index      21.40%               21.16%
+                         Nifty AA & AA- Ultra Short to
+                         Medium to Long Residual (ex Pvt           9.45%               12.86%
+                         Financial Services) Index
+
+
+6. Monthly review of Nifty G-Sec (Maturity based) indices:
+
+These changes shall become effective from March 30, 2026.
+A. Nifty 4-8 yr G-Sec Index:
+
+The following security is being excluded:
+ Sr. No.   ISIN                Security Name                 Maturity Date
+     1      IN0020240076        7.02% GOVT. STOCK 2031        18-Jun-2031
+The following security is being included:
+ Sr. No.   ISIN                Security Name                 Maturity Date
+     1      IN0020250141        6.36% GOVT. STOCK 2031        16-Feb-2031
+
+B. Nifty Composite G-sec index:
+
+The following securities are being excluded:
+ Sr. No.   ISIN               Security Name                  Maturity Date
+     1      IN0020250059       6.28% GOVT. STOCK 2032         14-Jul-2032
+     2      IN0020180454       7.26% GOVT. STOCK 2029         14-Jan-2029
+
+The following securities are being included:
+ Sr. No.   ISIN               Security Name                  Maturity Date
+     1      IN0020250141       6.36% GOVT. STOCK 2031         16-Feb-2031
+     2      IN0020250133       6.68% GOVT. STOCK 2033         27-Jan-2033
+
+There are no changes being made to the Nifty 8-13 yr G-Sec Index, Nifty 11-15 yr G-Sec Index and
+Nifty 15 yr and above G-Sec Index.
+
+7. Monthly review of Nifty G-Sec (Duration based) indices:
+
+These changes shall become effective from March 30, 2026.
+A. Nifty Ultra Short Duration G-Sec Index:
+
+The following securities are being excluded:
+ Sr. No.   ISIN               Security Name                  Maturity Date
+     1      IN0020230028       6.99% GOVT. STOCK 2026         17-Apr-2026
+     2      IN0020210012       5.63% GOVT. STOCK 2026         12-Apr-2026
+
+The following securities are being included:
+ Sr. No.   ISIN               Security Name                  Maturity Date
+     1      IN0020160035        6.97% GOVT. STOCK 2026        06-Sep-2026
+     2      IN0020010081       10.18% GOVT. STOCK 2026        11-Sep-2026
+
+B. Nifty Medium to Long Duration G-Sec Index:
+
+The following security is being excluded:
+ Sr. No.   ISIN               Security Name                  Maturity Date
+     1      IN0020230085       7.18% GOVT. STOCK 2033         14-Aug-2033
+The following security is being included:
+ Sr. No.    ISIN              Security Name                   Maturity Date
+     1       IN0020250141      6.36% GOVT. STOCK 2031          14-Aug-2033
+
+There are no changes being made to Nifty Low Duration Index, Nifty Short Duration G-Sec Index,
+Nifty Medium Duration G-Sec Index and Nifty Long Duration G-Sec Index.
+
+
+8. Re-investment schedule of Nifty Target Maturity Indices
+
+These changes shall become effective from March 25, 2026.
+
+   A. Nifty SDL Plus AAA PSU Bond Apr 2026 75:25 Index
+
+The following security is being included:
+
+  Sr.      Issuer Name                                         ISIN               Maturity
+  No.                                                                             Date
+   1       NATIONAL BANK FOR AGRICULTURE AND                   INE261F14OQ9       17-Apr-2026
+           RURAL DEVELOPMENT
+
+   B. Nifty AAA PSU Bond Plus SDL Sep 2026 50:50 Index
+
+The following security is being included:
+
+  Sr.      Issuer Name                                         ISIN               Maturity
+  No.                                                                             Date
+   1       NUCLEAR POWER CORPORATION OF INDIA                  INE206D08311       04-Aug-2026
+           LIMITED
+
+
+9. Re-investment Schedule of Nifty Target Maturity Indices for Quarter ending June 2026
+
+The following exclusions will be made on account of scheduled redemption of bonds during the
+quarter ending June 2026. If the maturity of any bond falls on a non-working day, it will be
+considered for exclusion on prior working day. The proceeds of such redeemed bonds will be
+reinvested as per the waterfall approach as defined in the index methodology.
+
+
+   A. Nifty AAA Bond Plus SDL Apr 2026 50:50 Index
+                                                              Asset         Maturity
+Sr. No. Issuer / Issuer State            ISIN
+                                                              Type            Date
+  1      POWER FINANCE                   INE134E08NQ5         Corporate   15-04-2026
+         CORPORATION LIMITED                                  Bond
+  2      NTPC LIMITED                    INE733E08247         Corporate   17-04-2026
+                                                              Bond
+  3      EXPORT-IMPORT BANK OF           INE514E08FB6         Corporate   20-04-2026
+         INDIA                                                Bond
+  4      UTTAR PRADESH                   IN3320160010         SDL         20-04-2026
+  5      TAMIL NADU                      IN3120160020         SDL         27-04-2026
+  6      REC LIMITED                     INE020B08EL2         Corporate   30-04-2026
+                                                              Bond
+
+
+  B. Nifty AAA Bond Plus SDL Apr 2026 70:30 Index
+
+Sr.                                                                         Maturity
+         Issuer / Issuer State    ISIN                  Asset Type
+No.                                                                         Date
+         POWER FINANCE
+  1                               INE134E08NQ5          Corporate Bond        15-04-2026
+         CORPORATION LIMITED
+  2      TATA CAPITAL LIMITED     INE306N07NH1          Corporate Bond        17-04-2026
+  3      NTPC LIMITED             INE733E08247          Corporate Bond        17-04-2026
+  4      L&T FINANCE LIMITED      INE476M07925          Corporate Bond        20-04-2026
+         EXPORT-IMPORT BANK
+  5                               INE514E08FB6          Corporate Bond        20-04-2026
+         OF INDIA
+   6     MEGHALAYA                IN2420160011          SDL                   20-04-2026
+   7     NAGALAND                 IN2620160019          SDL                   20-04-2026
+   8     RAJASTHAN                IN2920160016          SDL                   20-04-2026
+   9     UTTAR PRADESH            IN3320160010          SDL                   20-04-2026
+  10     ANDHRA PRADESH           IN1020200078          SDL                   22-04-2026
+         KOTAK MAHINDRA
+  11                              INE975F07IC0          Corporate Bond        23-04-2026
+         INVESTMENTS LIMITED
+  12     NHPC LIMITED             INE848E07BJ2          Corporate Bond        24-04-2026
+         BAJAJ FINANCE
+  13                              INE296A14A24          CP                    24-04-2026
+         LIMITED
+         POWER GRID
+  14     CORPORATION OF           INE752E07NS2          Corporate Bond        25-04-2026
+         INDIA LIMITED
+         LIC HOUSING FINANCE
+  15                              INE115A07JI9          Corporate Bond        27-04-2026
+         LTD
+         SUNDARAM FINANCE
+  16                              INE660A14YT6          CP                    27-04-2026
+         LIMITED
+  17     ARUNACHAL PRADESH        IN1120160016          SDL                   27-04-2026
+  18     GUJARAT                  IN1520160020          SDL                   27-04-2026
+Sr.                                                                   Maturity
+        Issuer / Issuer State    ISIN              Asset Type
+No.                                                                   Date
+  19    KERALA                   IN2020160023      SDL                 27-04-2026
+  20    MANIPUR                  IN2320160012      SDL                 27-04-2026
+  21    PUNJAB                   IN2820160025      SDL                 27-04-2026
+  22    TAMIL NADU               IN3120160020      SDL                 27-04-2026
+  23    TELANGANA                IN4520160024      SDL                 27-04-2026
+  24    UTTARAKHAND              IN3620160017      SDL                 27-04-2026
+        SMFG INDIA CREDIT
+ 25                              INE535H08694      Corporate Bond       30-04-2026
+        COMPANY LIMITED
+ 26     REC LIMITED              INE020B08EL2      Corporate Bond       30-04-2026
+
+
+  C. Nifty AAA CPSE Bond Plus SDL Apr 2027 60:40 Index
+
+Sr.                                                                  Maturity
+       Issuer / Issuer State       ISIN            Asset Type
+No.                                                                  Date
+ 1     HARYANA                     IN1620200031    SDL               06-05-2026
+ 2     ANDHRA PRADESH              IN1020200136    SDL               20-05-2026
+ 3     NTPC LIMITED                INE733E07KC2    Corporate Bond    27-05-2026
+ 4     TELANGANA                   IN4520200085    SDL               27-05-2026
+
+  D. Nifty AAA PSU Bond Plus SDL Apr 2026 50:50 Index
+
+Sr.                                                                      Maturity
+        Issuer / Issuer State       ISIN            Asset Type
+No.                                                                       Date
+        POWER FINANCE
+  1                                 INE134E08NQ5    Corporate Bond      15-04-2026
+        CORPORATION LIMITED
+        NATIONAL BANK FOR
+  2     AGRICULTURE AND             INE261F14OQ9    CP                  17-04-2026
+        RURAL DEVELOPMENT
+  3     NTPC LIMITED                INE733E08247    Corporate Bond      17-04-2026
+        INDIAN RAILWAY
+  4     FINANCE CORPORATION         INE053F08239    Corporate Bond      18-04-2026
+        LIMITED
+        EXPORT-IMPORT BANK OF
+  5                                 INE514E08FB6    Corporate Bond      20-04-2026
+        INDIA
+  6     UTTAR PRADESH               IN3320160010    SDL                 20-04-2026
+  7     RAJASTHAN                   IN2920160016    SDL                 20-04-2026
+  8     ANDHRA PRADESH              IN1020200078    SDL                 22-04-2026
+  9     TAMIL NADU                  IN3120160020    SDL                 27-04-2026
+ 10     GUJARAT                     IN1520160020    SDL                 27-04-2026
+ 11     REC LIMITED                 INE020B08EL2    Corporate Bond      30-04-2026
+  E. Nifty AAA PSU Bond Plus SDL Sep 2026 50:50 Index
+
+Sr.
+       Issuer / Issuer State         ISIN                Asset Type       Maturity Date
+No.
+  1    RAJASTHAN                      IN2920200028       SDL                08-04-2026
+  2    PUNJAB                         IN2820160017       SDL                20-04-2026
+  3    NHPC LIMITED                   INE848E07BJ2       Corporate Bond     24-04-2026
+       POWER GRID
+  4    CORPORATION OF INDIA           INE752E07NS2       Corporate Bond     25-04-2026
+       LIMITED
+  5    HARYANA                         IN1620200031      SDL                06-05-2026
+  6    ANDHRA PRADESH                  IN1020200136      SDL                20-05-2026
+  7    TELANGANA                       IN4520200085      SDL                27-05-2026
+  8    UTTARAKHAND                     IN3620160025      SDL                15-06-2026
+
+
+  F. Nifty CPSE Bond Plus SDL Sep 2026 50:50 Index
+
+Sr.                                                                       Maturity
+        Issuer / Issuer State        ISIN               Asset Type
+No.                                                                       Date
+   1    NLC India Ltd                INE589A14405       CP                 07-05-2026
+   2    NTPC LIMITED                 INE733E07KC2       Corporate Bond     27-05-2026
+        POWER GRID
+  3     CORPORATION OF INDIA         INE752E07MS4 Corporate Bond            27-05-2026
+        LIMITED
+
+  G. Nifty PSU Bond Plus SDL Apr 2026 50:50 Index
+
+Sr. No. Issuer / Issuer State          ISIN              Asset Type       Maturity Date
+   1    POWER FINANCE
+                                       INE134E08NQ5 Corporate Bond         15-04-2026
+        CORPORATION LIMITED
+   2    NTPC LIMITED                   INE733E08247      Corporate Bond    17-04-2026
+   3    INDIAN RAILWAY FINANCE
+                                       INE053F08239      Corporate Bond    18-04-2026
+        CORPORATION LIMITED
+   4    EXPORT-IMPORT BANK OF
+                                       INE514E08FB6      Corporate Bond    20-04-2026
+        INDIA
+   5    UTTAR PRADESH                  IN3320160010      SDL               20-04-2026
+   6    RAJASTHAN                      IN2920160016      SDL               20-04-2026
+   7    ANDHRA PRADESH                 IN1020200078      SDL               22-04-2026
+   8    NHPC LIMITED                   INE848E07BJ2      Corporate Bond    24-04-2026
+   9    POWER GRID CORPORATION
+                                       INE752E07NS2      Corporate Bond    25-04-2026
+        OF INDIA LIMITED
+Sr. No. Issuer / Issuer State            ISIN              Asset Type     Maturity Date
+  10    TAMIL NADU                       IN3120160020      SDL             27-04-2026
+  11    REC LIMITED                      INE020B08EL2      Corporate Bond  30-04-2026
+
+  H. Nifty SDL Apr 2026 Top 20 Equal Weight Index
+
+Sr. No.   Issuer / Issuer State      ISIN              Asset Type    Maturity Date
+    1     PUNJAB                     IN2820160017      SDL             20-04-2026
+    2     RAJASTHAN                  IN2920160016      SDL             20-04-2026
+    3     UTTAR PRADESH              IN3320160010      SDL             20-04-2026
+    4     ANDHRA PRADESH             IN1020200078      SDL             22-04-2026
+    5     KERALA                     IN2020160023      SDL             27-04-2026
+    6     TAMIL NADU                 IN3120160020      SDL             27-04-2026
+    7     TELANGANA                  IN4520160024      SDL             27-04-2026
+    8     UTTARAKHAND                IN3620160017      SDL             27-04-2026
+
+  I. Nifty SDL Apr 2027 Index
+
+Sr. No.   Issuer / Issuer State      ISIN              Asset Type     Maturity Date
+    1     HARYANA                    IN1620200031      SDL              06-05-2026
+    2     ANDHRA PRADESH             IN1020200136      SDL              20-05-2026
+    3     TELANGANA                  IN4520200085      SDL              27-05-2026
+
+  J. Nifty SDL Jul 2026 Index
+
+Sr. No.   Issuer / Issuer State    ISIN               Asset Type     Maturity Date
+    1     PUNJAB                   IN2820160033       SDL              11-05-2026
+
+
+  K. Nifty SDL Oct 2026 Index
+
+Sr. No.   Issuer / Issuer State    ISIN               Asset Type     Maturity Date
+    1     TELANGANA                IN4520160032       SDL              11-05-2026
+
+  L. Nifty SDL Plus AAA PSU Bond Apr 2026 75:25 Index
+
+Sr. No.   Issuer / Issuer State   ISIN              Asset Type       Maturity Date
+    1     RAJASTHAN               IN2920160016      SDL               20-04-2026
+    2     UTTAR PRADESH           IN3320160010      SDL               20-04-2026
+    3     GUJARAT                 IN1520160020      SDL               27-04-2026
+    4     TAMIL NADU              IN3120160020      SDL               27-04-2026
+    5     REC LIMITED             INE020B08EL2      Corporate Bond    30-04-2026
+   M. Nifty SDL Plus PSU Bond Sep 2026 60:40 Index
+
+ Sr. No.    Issuer / Issuer State      ISIN                Asset Type      Maturity Date
+     1      NLC India Ltd              INE589A14405        CP                07-05-2026
+     2      ANDHRA PRADESH             IN1020160025        SDL               15-06-2026
+
+   N. Nifty SDL Sep 2026 Index
+
+ Sr. No.    Issuer / Issuer State          ISIN              Asset Type     Maturity Date
+     1      PUNJAB                         IN2820160025      SDL             27-04-2026
+     2      KERALA                         IN2020160031      SDL             11-05-2026
+     3      TAMIL NADU                     IN3120160038      SDL             11-05-2026
+     4      TELANGANA                      IN4520160032      SDL             11-05-2026
+     5      ODISHA                         IN2720160018      SDL             25-05-2026
+     6      JAMMU AND KASHMIR              IN1820160019      SDL             15-06-2026
+     7      RAJASTHAN                      IN2920160032      SDL             15-06-2026
+
+   O. Nifty SDL Sep 2026 V1 Index
+
+ .Sr. No.   Issuer / Issuer State      ISIN               Asset Type      Maturity Date
+      1     UTTAR PRADESH              IN3320160028       SDL               11-05-2026
+      2     TELANGANA                  IN4520160057       SDL               29-06-2026
+
+   P. Nifty India Municipal Bond Index
+
+ Sr. No. Issuer / Issuer State ISIN         Asset Type     Maturity Date
+    1    GHAZIABAD NAGAR NIGAM INE0GVF24022 Corporate Bond  06-04-2026
+
+
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary of
+NSE, provides a variety of indices and index related services for the capital markets. The company
+focuses on the index as a core product. The company owns and manages a portfolio of indices under
+the Nifty brand of NSE, including the flagship index, the Nifty 50. Nifty equity indices comprises
+broad-based benchmark indices, sectoral indices, strategy indices, thematic indices, and customised
+indices. NSE Indices Limited also maintains fixed income indices based on Government of India
+securities, corporate bonds, money market instruments and hybrid indices. Many investment products
+based on Nifty indices have been developed within India and abroad. These include index-based
+derivatives traded on NSE and NSE International Exchange IFSC Limited (NSE IX) and a number of
+index funds and exchange traded funds. The flagship 'Nifty 50' index is widely tracked and traded as
+the benchmark for Indian Capital Markets.
+For more information, please visit: www.niftyindices.com
+Press contact:
+Email ID: cc@nse.co.in
+

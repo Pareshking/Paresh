@@ -1,0 +1,91 @@
+        IISL
+        INDIA INDEX SERVICES & PRODUCTS LIMITED
+         (A joint venture of NSE & CRISIL)
+
+                                     PRESS RELEASE
+
+Securities of Indiabulls Real Estate Limited will be traded on an ex-entitlement
+                                                                     entitlement basis with effect
+from April 21, 2011 on account of the Scheme of Arrangement and Demerger
+                                                                      emerger between Indiabulls
+Real Estate Limited (Demerged Company) and Indiabulls Wholesale Services Limited (Resulting
+Company).
+
+The Index Maintenance Sub-Committee
+                          Sub Committee has decided to make the following changes in various
+indices in this regard which will become effective from April 21, 2011:
+
+    1) CNX Nifty Junior
+
+The following company is being excluded:
+
+ Sr.      Company Name                                  Symbol
+ No.
+ 1        Indiabulls Real Estate Limited                IBREALEST
+
+The following company is being included:
+
+ Sr.      Company Name                                  Symbol
+ No.
+ 1        Coal India Limited                            COALINDIA
+
+    2) CNX 100 Index
+
+The following company is being excluded:
+                               excluded
+
+ Sr.      Company Name                                  Symbol
+ No.
+ 1        Indiabulls Real Estate Limited                IBREALEST
+
+The following company is being included:
+
+ Sr.      Company Name                                  Symbol
+ No.
+ 1        Coal India Limited                            COALINDIA
+   3) S&P CNX 500 Index
+
+The following company is being excluded:
+
+ Sr.      Company Name                       Symbol
+ No.
+ 1        Indiabulls Real Estate Limited     IBREALEST
+
+The following company is being included:
+
+ Sr.      Company Name                       Symbol
+ No.
+ 1        Oberoi Realty Limited              OBEROIRLTY
+
+   4) CNX Midcap Index
+
+The following company is being excluded:
+
+ Sr.      Company Name                       Symbol
+ No.
+ 1        Indiabulls Real Estate Limited     IBREALEST
+
+The following company is being included:
+
+ Sr.      Company Name                       Symbol
+ No.
+ 1        Pantaloon Retail (India) Limited   PANTALOONR
+
+   5) CNX Realty Index
+
+The following company is being excluded:
+
+ Sr.      Company Name                       Symbol
+ No.
+ 1        Indiabulls Real Estate Limited     IBREALEST
+
+The following company is being included:
+
+ Sr.      Company Name                       Symbol
+ No.
+ 1        Oberoi Realty Limited              OBEROIRLTY
+
+
+Place: Mumbai
+Date: April 19, 2011
+

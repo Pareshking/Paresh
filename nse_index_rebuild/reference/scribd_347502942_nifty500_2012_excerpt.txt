@@ -1,0 +1,6 @@
+Source: https://www.scribd.com/document/347502942/Index-Incl-Excl (secondary; third-party upload of an index inclusion/exclusion table)
+Fetched 2026-10-02 UTC; page sha256 4455ad354db71120d352e1219e12ad8d4af2951a2e0cbaf82d133f9809594022
+Not an NSE primary document. The Description (in/out) column is not present in the extracted text, so direction is inferred from the NSE notices.
+
+Excerpt:
+1 Tourism Finance Corporation of India Ltd. Nifty 500 10-10-2011 Trident Ltd. Nifty 500 10-10-2011 eClerx Services Ltd. Nifty 500 22-11-2011 Future Consumer Enterprise Ltd. Nifty 500 22-11-2011 Jindal Saw Ltd. Nifty 500 07-12-2011 Indiabulls Real Estate Ltd. Nifty 500 07-12-2011 Jai Balaji Industries Ltd. Nifty 500 14-12-2011 Alstom T&D India Ltd. Nifty 500 14-12-2011 MVL Ltd. Nifty 500 07-03-2012 Jindal Saw Ltd. Nifty 500 07-03-2012 Provogue (India) Ltd. Nifty 500 09-03-2012 Carol Info Services Ltd. Nifty 500 09-03-2012 Indiabulls Real Estate Ltd. Nifty 500 09-03-2012 L&T Finance Holdings Ltd. Nifty 500 09-03-2012 UTV Software Communication Ltd. Nifty 500 09-04-2012 United Breweries (Holdings) Ltd. Nifty 500 09-04-2012 Zuari Global Ltd. Nifty 500 12-04-2012 Alfa Laval (India) Ltd. Nifty 500 12-04-2012 [Link]

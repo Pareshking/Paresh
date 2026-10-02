@@ -1,0 +1,92 @@
+PRESS RELEASE
+Mumbai, March 05, 2026
+
+
+                           Changes in Nifty Fixed Income indices
+
+     The Index Maintenance Sub-Committee (Debt) of NSE Indices Limited has decided to make changes
+     as listed hereunder. These changes shall become effective from March 10, 2026.
+
+         A. Nifty Financial Services 3 to 6 Months Debt Index
+     The following securities are being included:
+
+      Sr. No.   Issuer Name                                     ISIN               Maturity Date
+         1      AXIS FINANCE LIMITED                            INE891K14PP2       01-Aug-2026
+         2      BAJAJ FINANCE LIMITED                           INE296A14A57       05-Aug-2026
+         3      BAJAJ HOUSING FINANCE LIMITED                   INE377Y14BP3       02-Sep-2026
+         4      BANK OF BARODA                                  INE028A16KQ6       03-Sep-2026
+                BARCLAYS INVESTMENTS AND LOANS
+         5                                                      INE704I14JX8       03-Sep-2026
+                (INDIA) PRIVATE LIMITED
+                DEUTSCHE INVESTMENTS INDIA PRIVATE
+         6                                                      INE144H14HX3       03-Sep-2026
+                LIMITED
+         7      HDFC BANK LIMITED                               INE040A16HM6       03-Sep-2026
+                HSBC INVESTDIRECT FINANCIAL
+         8                                                      INE790I14GZ8       06-Aug-2026
+                SERVICES (INDIA) LIMITED
+          9     ICICI SECURITIES LIMITED                        INE763G14D03       03-Sep-2026
+         10     KOTAK MAHINDRA PRIME LIMITED                    INE916D145Z2       28-Aug-2026
+         11     L AND T FINANCE LIMITED                         INE498L14EJ1       07-Sep-2026
+                MAHINDRA AND MAHINDRA FINANCIAL
+         12                                                     INE774D14TK8       30-Jun-2026
+                SERVICES LIMITED
+                NATIONAL BANK FOR AGRICULTURE
+         13                                                     INE261F14OO4       02-Sep-2026
+                AND RURAL DEVELOPMENT
+                SMALL INDUSTRIES DEVELOPMENT
+         14                                                     INE556F16BJ9       07-Sep-2026
+                BANK OF INDIA
+         15     SUNDARAM FINANCE LIMITED                        INE660A14YS8       24-Aug-2026
+         16     TATA CAPITAL LIMITED                            INE976I14QF4       24-Jun-2026
+         17     UNION BANK OF INDIA                             INE692A16JQ1       25-Jun-2026
+The following securities are being excluded:
+
+ Sr. No. Issuer Name                                           ISIN                  Maturity Date
+    1    BAJAJ FINANCE LIMITED                                 INE296A14A73          26-May-2026
+    2    BANK OF BARODA                                        INE028A16KG7          03-Jun-2026
+         BARCLAYS INVESTMENTS AND LOANS
+    3                                                          INE704I14KT4          05-Jun-2026
+         (INDIA) PRIVATE LIMITED
+    4    EXPORT-IMPORT BANK OF INDIA                           INE514E16CL5          28-May-2026
+    5    HDB FINANCIAL SERVICES LIMITED                        INE756I14EZ4          16-Mar-2026
+    6    HDFC BANK LIMITED                                     INE040A16HT1          04-Jun-2026
+    7    ICICI SECURITIES LIMITED                              INE763G14C04          05-Jun-2026
+    8    KOTAK MAHINDRA PRIME LIMITED                          INE916D145K4          05-Jun-2026
+    9    L AND T FINANCE LIMITED                               INE498L14ED4          10-Jun-2026
+   10    LIC HOUSING FINANCE LIMITED                           INE115A14FL7          18-Mar-2026
+         NATIONAL BANK FOR AGRICULTURE
+   11                                                          INE261F16AA7          25-Mar-2026
+         AND RURAL DEVELOPMENT
+   12    POONAWALLA FINCORP LIMITED                            INE511C14YY7          25-May-2026
+   13    POWER FINANCE CORPORATION LIMITED                     INE134E14AX6          15-Apr-2026
+   14    PUNJAB NATIONAL BANK                                  INE160A16RP4          25-Mar-2026
+   15    REC LIMITED                                           INE020B14698          10-Jun-2026
+         SMALL INDUSTRIES DEVELOPMENT
+   16                                                          INE556F16BI1          20-May-2026
+         BANK OF INDIA
+         STANDARD CHARTERED CAPITAL
+   17                                                          INE403G14TQ4          05-Jun-2026
+         LIMITED
+         TATA CAPITAL HOUSING FINANCE
+   18                                                          INE033L14OD8          10-Jun-2026
+         LIMITED
+   19    TATA CAPITAL LIMITED                                  INE976I14QD9          10-Jun-2026
+
+
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary
+of NSE, provides a variety of indices and index related services for the capital markets. The company
+focuses on the index as a core product. The company owns and manages a portfolio of indices under
+the Nifty brand of NSE, including the flagship index, the Nifty 50. Nifty equity indices comprise of
+broad-based benchmark indices, sectoral indices, strategy indices, thematic indices and customised
+indices. NSE Indices Limited also maintains fixed income indices based on Government of India
+securities, corporate bonds, money market instruments and hybrid indices. Many investment products
+based on Nifty indices have been developed within India and abroad. These include index based
+derivatives traded on NSE and NSE International Exchange IFSC Limited (NSE IX) and a number of
+index funds and exchange traded funds. The flagship 'Nifty 50' index is widely tracked and traded as
+the benchmark for Indian Capital Markets.
+For more information, please visit: www.niftyindices.com
+Press contact:
+Email ID: cc@nse.co.in
+

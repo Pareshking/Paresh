@@ -1,0 +1,62 @@
+PRESS RELEASE
+Mumbai, February 24, 2026
+
+
+                        Changes in Nifty Fixed Income indices
+
+     The Index Maintenance Sub-Committee (Debt) of NSE Indices Limited has decided to make changes
+     as listed hereunder. These changes shall become effective from February 27, 2026.
+
+     1. Nifty India Government Fully Accessible Route (FAR) Select 7 Bonds Index (USD)
+
+     The following securities are being Excluded:
+       Sr. No.        ISIN                  Security Name                  Maturity Date
+          1       IN0020240076       7.02% GOVT. STOCK 2031                 18-Jun-2031
+          2       IN0020250059       6.28% GOVT. STOCK 2032                 14-Jul-2032
+          3       IN0020240126       6.79% GOVT. STOCK 2034                 07-Oct-2034
+
+
+     The following securities are being Included:
+       Sr. No.        ISIN                  Security Name                    Maturity
+          1       IN0020180454       7.26% GOVT. STOCK 2029                 14-Jan-2029
+          2       IN0020250141       6.36% GOVT. STOCK 2031                 16-Feb-2031
+          3       IN0020250133       6.68% GOVT. STOCK 2033                 27-Jan-2033
+
+     The above replacements will also be applicable to Nifty India Government Fully Accessible Route
+     (FAR) Select 7 Bonds Index (INR)
+     2. Nifty 5yr Benchmark G-sec Index
+
+     No changes are being made to the Index
+     3. Nifty PSU Bond Plus SDL Apr 2026 50:50 Index
+
+     The following securities are being Included:
+       Sr. No.       ISIN                 Issuer Name                            Maturity Date
+                              SMALL INDUSTRIES DEVELOPMENT
+          1      INE556F14LY2                                                     27-Mar-2026
+                              BANK OF INDIA
+          2      INE020B08EL2 REC LIMITED                                         30-Apr-2026
+4. Nifty SDL Plus AAA PSU Bond Apr 2026 75:25 Index
+
+The following security is being Included:
+ Sr. No.         ISIN                     Issuer Name                        Maturity Date
+    1        INE020B08EL2        REC LIMITED                                 30-Apr-2026
+
+
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary
+of NSE, provides a variety of indices and index related services for the capital markets. The company
+focuses on the index as a core product. The company owns and manages a portfolio of indices under
+the Nifty brand of NSE, including the flagship index, the Nifty 50. Nifty equity indices comprise of
+broad-based benchmark indices, sectoral indices, strategy indices, thematic indices and customised
+indices. NSE Indices Limited also maintains fixed income indices based on Government of India
+securities, corporate bonds, money market instruments and hybrid indices. Many investment products
+based on Nifty indices have been developed within India and abroad. These include index based
+derivatives traded on NSE and NSE International Exchange IFSC Limited (NSE IX) and a number of
+index funds and exchange traded funds. The flagship 'Nifty 50' index is widely tracked and traded as
+the benchmark for Indian Capital Markets.
+
+For more information, please visit: www.niftyindices.com
+
+Press contact:
+Email ID: cc@nse.co.in
+

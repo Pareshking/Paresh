@@ -1,0 +1,70 @@
+       IISL
+       INDIA INDEX SERVICES & PRODUCTS LIMITED
+       (A joint venture of NSE & CRISIL)
+
+                                   PRESS RELEASE
+The Index Maintenance Sub-Committee has decided to make the following changes in CNX
+Alpha, CNX High Beta & CNX Low Volatility as part of the quarterly periodic review.
+These changes shall become effective from April 08, 2013.
+
+(1)    CNX Alpha Index
+
+The following companies are being excluded:
+
+  Sr. No.   Company Name                              Symbol
+    1       Bata India Ltd.                           BATAINDIA
+    2       Bombay Dyeing & Manufacturing Co. Ltd.    BOMDYEING
+    3       D B Realty Ltd.                           DBREALTY
+    4       Dena Bank                                 DENABANK
+    5       Tata Motors Ltd.                          TATAMOTORS
+
+The following companies are being included:
+
+  Sr. No.   Company Name                              Symbol
+    1       Berger Paints India Ltd.                  BERGEPAINT
+    2       Essar Oil Ltd.                            ESSAROIL
+    3       Gitanjali Gems Ltd.                       GITANJALI
+    4       ING Vysya Bank Ltd.                       INGVYSYABK
+    5       Tata Coffee Ltd.                          TATACOFFEE
+
+(2)    CNX High Beta Index
+
+The following companies are being excluded:
+
+  Sr. No.   Company Name                              Symbol
+    1       Bajaj Hindusthan Ltd.                     BAJAJHIND
+    2       Godrej Industries Ltd.                    GODREJIND
+    3       Kotak Mahindra Bank Ltd.                  KOTAKBANK
+    4       Welspun Corp Ltd.                         WELCORP
+
+The following companies are being included:
+
+  Sr. No.   Company Name                              Symbol
+    1       Anant Raj Ltd.                            ANANTRAJ
+    2       India Infoline Ltd.                       INDIAINFO
+    3       Syndicate Bank                            SYNDIBANK
+    4       TV18 Broadcast Ltd.                       TV18BRDCST
+(3)    CNX Low Volatility Index
+
+The following companies are being excluded:
+
+  Sr. No.   Company Name                          Symbol
+    1       CORE Education & Technologies Ltd.    COREEDUTEC
+    2       NHPC Ltd.                             NHPC
+    3       Torrent Pharmaceuticals Ltd.          TORNTPHARM
+    4       Videocon Industries Ltd.              VIDEOIND
+    5       Wipro Ltd.                            WIPRO
+
+The following companies are being included:
+
+  Sr. No.   Company Name                          Symbol
+    1       Coal India Ltd.                       COALINDIA
+    2       Container Corporation of India Ltd.   CONCOR
+    3       Hero MotoCorp Ltd.                    HEROMOTOCO
+    4       Kotak Mahindra Bank Ltd.              KOTAKBANK
+    5       Mahindra & Mahindra Ltd.              M&M
+
+
+Place: Mumbai
+Date: April 04, 2013
+

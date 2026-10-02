@@ -1,0 +1,837 @@
+                                       Press Release
+                                                                                     March 24, 2021
+
+              Quarterly Review of Nifty Corporate Bond Indices
+NSE Indices Limited, an NSE group company, as part of its periodic review, announces the following
+changes in Nifty Banking and PSU Bond Indices.
+
+These changes shall become effective from April 05, 2021 (close of April 04, 2021)
+
+The following companies are being excluded:
+
+  Sr.       Index name                  ISIN                        Issuer                Maturity
+  No.                                                                                        Date
+  1   Nifty AAA Ultra Short       INE001A07SF8         HOUSING DEVELOPMENT               28-Jun-21
+      Duration Bond Index                              FINANCE CORPORATION
+                                                       LIMITED
+  2     Nifty AAA Ultra Short     INE556F08JF7         SMALL INDUSTRIES                  21-Jun-21
+        Duration Bond Index                            DEVELOPMENT BANK OF
+                                                       INDIA
+  3     Nifty AAA Ultra Short     INE115A07ON9         LIC HOUSING FINANCE               04-Jun-21
+        Duration Bond Index                            LIMITED
+  4     Nifty AAA Ultra Short     INE020B08BN4         REC LIMITED                       18-Jun-21
+        Duration Bond Index
+  5     Nifty AAA Ultra Short     INE134E08DQ6         POWER FINANCE                     29-Jun-21
+        Duration Bond Index                            CORPORATION LIMITED
+  6     Nifty AAA Ultra Short     INE018A08AW3         LARSEN AND TOUBRO                 23-Apr-21
+        Duration Bond Index                            LIMITED
+  7     Nifty AAA Ultra Short     INE110L07112         RELIANCE INDUSTRIES               15-Jun-21
+        Duration Bond Index                            LIMITED
+  8     Nifty AAA Ultra Short     INE752E07MN5         POWER GRID                        27-May-21
+        Duration Bond Index                            CORPORATION OF INDIA
+                                                       LIMITED
+  9     Nifty AAA Ultra Short     INE891K07390         AXIS FINANCE LIMITED              14-Jun-21
+        Duration Bond Index
+  10    Nifty AAA Ultra Short     INE033L07GD8         TATA CAPITAL HOUSING              02-Jul-21
+        Duration Bond Index                            FINANCE LIMITED
+  11    Nifty AAA Ultra Short     INE537P07224         INDIA INFRADEBT LIMITED           30-Jun-21
+        Duration Bond Index
+  12    Nifty AAA Ultra Short     INE916DA7QB8         KOTAK MAHINDRA PRIME              28-Jun-21
+        Duration Bond Index                            LIMITED
+  13    Nifty AAA Ultra Short     INE860H07FR4         ADITYA BIRLA FINANCE              25-Jun-21
+        Duration Bond Index                            LIMITED
+  14    Nifty AAA Ultra Short     INE476M07BM9         L AND T HOUSING FINANCE           23-Jun-21
+        Duration Bond Index                            LIMITED
+  15    Nifty AAA Low             INE001A07SN2         HOUSING DEVELOPMENT               10-Dec-21
+        Duration Bond Index                            FINANCE CORPORATION
+                                                       LIMITED
+Sr.      Index name             ISIN               Issuer            Maturity
+No.                                                                    Date
+16 Nifty AAA Low           INE115A07KQ0   LIC HOUSING FINANCE       14-Oct-21
+    Duration Bond Index                   LIMITED
+17 Nifty AAA Low           INE134E08IN2   POWER FINANCE             22-Dec-21
+    Duration Bond Index                   CORPORATION LIMITED
+18 Nifty AAA Low           INE020B08997   REC LIMITED               21-Oct-21
+    Duration Bond Index
+19 Nifty AAA Low           INE756I07CD9   HDB FINANCIAL SERVICES    29-Oct-21
+    Duration Bond Index                   LIMITED
+20 Nifty AAA Low           INE053F07942   INDIAN RAILWAY FINANCE    24-Nov-21
+    Duration Bond Index                   CORPORATION LIMITED
+21 Nifty AAA Low           INE752E07OD2   POWER GRID                21-Dec-21
+    Duration Bond Index                   CORPORATION OF INDIA
+                                          LIMITED
+22   Nifty AAA Low         INE906B07FE6   NATIONAL HIGHWAYS         23-Dec-21
+     Duration Bond Index                  AUTHORITY OF INDIA
+23   Nifty AAA Low         INE556F08JI1   SMALL INDUSTRIES          25-Jan-22
+     Duration Bond Index                  DEVELOPMENT BANK OF
+                                          INDIA
+24   Nifty AAA Low         INE860H07GD2   ADITYA BIRLA FINANCE      12-Oct-21
+     Duration Bond Index                  LIMITED
+25   Nifty AAA Low         INE296A07NC2   BAJAJ FINANCE LIMITED     25-Oct-21
+     Duration Bond Index
+26   Nifty AAA Short       INE001A07SP7   HOUSING DEVELOPMENT       11-Aug-23
+     Duration Bond Index                  FINANCE CORPORATION
+                                          LIMITED
+27   Nifty AAA Short       INE261F08CA0   NATIONAL BANK FOR         31-Jul-23
+     Duration Bond Index                  AGRICULTURE AND RURAL
+                                          DEVELOPMENT
+28   Nifty AAA Short       INE115A07OU4   LIC HOUSING FINANCE       11-May-23
+     Duration Bond Index                  LIMITED
+29   Nifty AAA Short       INE002A08625   RELIANCE INDUSTRIES       13-Sep-23
+     Duration Bond Index                  LIMITED
+30   Nifty AAA Short       INE094A08085   HINDUSTAN PETROLEUM       23-Oct-23
+     Duration Bond Index                  CORPORATION LIMITED
+31   Nifty AAA Short       INE053F07BB3   INDIAN RAILWAY FINANCE    28-Feb-24
+     Duration Bond Index                  CORPORATION LIMITED
+32   Nifty AAA Short       INE756I07DA3   HDB FINANCIAL SERVICES    17-Apr-23
+     Duration Bond Index                  LIMITED
+33   Nifty AAA Short       INE213A08032   OIL AND NATURAL GAS       21-Nov-23
+     Duration Bond Index                  CORPORATION LIMITED
+34   Nifty AAA Short       INE733E08148   NTPC LIMITED              17-Apr-23
+     Duration Bond Index
+35   Nifty AAA Short       INE557F08FK3   NATIONAL HOUSING BANK     01-Sep-23
+     Duration Bond Index
+36   Nifty AAA Medium      INE476M07BZ1   L AND T HOUSING FINANCE   01-Nov-24
+     Duration Bond Index                  LIMITED
+37   Nifty AAA Medium      INE891K07572   AXIS FINANCE LIMITED      16-Sep-24
+     Duration Bond Index
+Sr.      Index name             ISIN               Issuer            Maturity
+No.                                                                    Date
+38 Nifty AAA Medium        INE071G07405   ICICI HOME FINANCE        20-May-25
+    Duration Bond Index                   COMPANY LIMITED
+39 Nifty AAA Medium        INE001A07SE1   HOUSING DEVELOPMENT       08-Jan-25
+    Duration Bond Index                   FINANCE CORPORATION
+                                          LIMITED
+40   Nifty AAA Medium      INE537P07562   INDIA INFRADEBT LIMITED   30-Jun-25
+     Duration Bond Index
+41   Nifty AAA Medium      INE752E08593   POWER GRID                25-Oct-24
+     Duration Bond Index                  CORPORATION OF INDIA
+                                          LIMITED
+42   Nifty AAA Medium      INE110L08060   RELIANCE INDUSTRIES       21-Jan-25
+     Duration Bond Index                  LIMITED
+43   Nifty AAA Medium to   INE001A07ST9   HOUSING DEVELOPMENT       25-Nov-25
+     long Duration Bond                   FINANCE CORPORATION
+     Index                                LIMITED
+44   Nifty AAA Medium to   INE134E08KR9   POWER FINANCE             15-Jul-30
+     long Duration Bond                   CORPORATION LIMITED
+     Index
+45   Nifty AAA Medium to   INE020B08DF6   REC LIMITED               20-Dec-25
+     long Duration Bond
+     Index
+46   Nifty AAA Medium to   INE733E08163   NTPC LIMITED              15-Oct-25
+     long Duration Bond
+     Index
+47   Nifty AAA Medium to   INE261F08CM5   NATIONAL BANK FOR         19-Nov-27
+     long Duration Bond                   AGRICULTURE AND RURAL
+     Index                                DEVELOPMENT
+48   Nifty AAA Medium to   INE053F07983   INDIAN RAILWAY FINANCE    19-Mar-27
+     long Duration Bond                   CORPORATION LIMITED
+     Index
+49   Nifty AAA Medium to   INE242A08486   INDIAN OIL CORPORATION    20-Oct-25
+     long Duration Bond                   LIMITED
+     Index
+50   Nifty AAA Medium to   INE514E08EU9   EXPORT-IMPORT BANK OF     07-Dec-25
+     long Duration Bond                   INDIA
+     Index
+51   Nifty AAA Medium to   INE906B07HH5   NATIONAL HIGHWAYS         13-Sep-29
+     long Duration Bond                   AUTHORITY OF INDIA
+     Index
+52   Nifty AAA Medium to   INE115A07OB4   LIC HOUSING FINANCE       23-Mar-29
+     long Duration Bond                   LIMITED
+     Index
+53   Nifty AAA Medium to   INE848E07BC7   NHPC LIMITED              11-Feb-30
+     long Duration Bond
+     Index
+54   Nifty AAA Medium to   INE031A08707   HOUSING AND URBAN         25-Mar-29
+     long Duration Bond                   DEVELOPMENT
+     Index                                CORPORATION LIMITED
+Sr.      Index name               ISIN               Issuer            Maturity
+No.                                                                      Date
+55 Nifty AAA Long            INE103D08021   BHARAT SANCHAR NIGAM      23-Sep-30
+    Duration Bond Index                     LIMITED
+56 Nifty AAA Long            INE134E08LC9   POWER FINANCE             16-Dec-30
+    Duration Bond Index                     CORPORATION LIMITED
+57 Nifty AAA Long            INE861G08076   FOOD CORPORATION OF       23-Oct-30
+    Duration Bond Index                     INDIA
+58 Nifty AAA Long            INE906B07IF7   NATIONAL HIGHWAYS         10-Sep-40
+    Duration Bond Index                     AUTHORITY OF INDIA
+59 Nifty AAA Long            INE020B08DE9   REC LIMITED               20-Dec-30
+    Duration Bond Index
+60 Nifty AAA Long            INE235P07AG6   L AND T INFRA DEBT FUND   19-Oct-35
+    Duration Bond Index                     LIMITED
+61 Nifty AAA Long            INE733E08155   NTPC LIMITED              11-Apr-31
+    Duration Bond Index
+62 Nifty AAA Long            INE213A08024   OIL AND NATURAL GAS       11-Apr-31
+    Duration Bond Index                     CORPORATION LIMITED
+63 Nifty AAA Long            INE514E08FF7   EXPORT-IMPORT BANK OF     11-Jul-31
+    Duration Bond Index                     INDIA
+64 Nifty AAA Long            INE206D08444   NUCLEAR POWER             13-Dec-30
+    Duration Bond Index                     CORPORATION OF INDIA
+                                            LIMITED
+65   Nifty AA+ Ultra Short   INE721A07NQ9   SHRIRAM TRANSPORT         31-May-21
+     Duration Bond Index                    FINANCE COMPANY
+                                            LIMITED
+66   Nifty AA+ Ultra Short   INE535H08652   FULLERTON INDIA CREDIT    25-Jun-21
+     Duration Bond Index                    COMPANY LIMITED
+67   Nifty AA+ Ultra Short   INE121A07OZ1   CHOLAMANDALAM             21-Jun-21
+     Duration Bond Index                    INVESTMENT AND
+                                            FINANCE COMPANY
+                                            LIMITED
+68   Nifty AA+ Ultra Short   INE667F07HJ0   SUNDARAM HOME             18-Jun-21
+     Duration Bond Index                    FINANCE LIMITED
+69   Nifty AA+ Ultra Short   INE742F07478   ADANI PORTS AND SPECIAL   15-Jun-21
+     Duration Bond Index                    ECONOMIC ZONE LIMITED
+70   Nifty AA+ Ultra Short   INE957N07146   HERO FINCORP LIMITED      10-Jun-21
+     Duration Bond Index
+71   Nifty AA+ Ultra Short   INE950O07255   MAHINDRA RURAL            04-Jun-21
+     Duration Bond Index                    HOUSING FINANCE
+                                            LIMITED
+72   Nifty AA+ Ultra Short   INE774D07TF2   MAHINDRA AND              28-May-21
+     Duration Bond Index                    MAHINDRA FINANCIAL
+                                            SERVICES LIMITED
+73   Nifty AA+ Ultra Short   INE017A08227   THE GREAT EASTERN         25-Apr-21
+     Duration Bond Index                    SHIPPING COMPANY
+                                            LIMITED
+74   Nifty AA+ Low           INE774D07TW7   MAHINDRA AND              29-Oct-21
+     Duration Bond Index                    MAHINDRA FINANCIAL
+                                            SERVICES LIMITED
+Sr.      Index name             ISIN               Issuer           Maturity
+No.                                                                   Date
+75 Nifty AA+ Low           INE121A07PJ2   CHOLAMANDALAM            17-Dec-21
+    Duration Bond Index                   INVESTMENT AND
+                                          FINANCE COMPANY
+                                          LIMITED
+76   Nifty AA+ Low         INE535H07AJ0   FULLERTON INDIA CREDIT   15-Dec-21
+     Duration Bond Index                  COMPANY LIMITED
+77   Nifty AA+ Low         INE721A07OD5   SHRIRAM TRANSPORT        02-Nov-21
+     Duration Bond Index                  FINANCE COMPANY
+                                          LIMITED
+78   Nifty AA+ Short       INE774D07TY3   MAHINDRA AND             16-Oct-23
+     Duration Bond Index                  MAHINDRA FINANCIAL
+                                          SERVICES LIMITED
+79   Nifty AA+ Short       INE121A07PO2   CHOLAMANDALAM            21-Mar-23
+     Duration Bond Index                  INVESTMENT AND
+                                          FINANCE COMPANY
+                                          LIMITED
+80   Nifty AA+ Short       INE721A08DF1   SHRIRAM TRANSPORT        21-Jun-24
+     Duration Bond Index                  FINANCE COMPANY
+                                          LIMITED
+81   Nifty AA+ Short       INE957N07492   HERO FINCORP LIMITED     27-Apr-23
+     Duration Bond Index
+82   Nifty AA+ Short       INE017A08185   THE GREAT EASTERN        07-Jan-23
+     Duration Bond Index                  SHIPPING COMPANY
+                                          LIMITED
+83   Nifty AA+ Short       INE692A09241   UNION BANK OF INDIA      28-Dec-22
+     Duration Bond Index
+84   Nifty AA+ Short       INE202E07070   INDIAN RENEWABLE         04-Jun-22
+     Duration Bond Index                  ENERGY DEVELOPMENT
+                                          AGENCY LIMITED
+85   Nifty AA+ Medium      INE957N07526   HERO FINCORP LIMITED     10-Sep-24
+     Duration Bond Index
+86   Nifty AA+ Medium      INE721A08DE4   SHRIRAM TRANSPORT        27-Dec-24
+     Duration Bond Index                  FINANCE COMPANY
+                                          LIMITED
+87   Nifty AA+ Medium      INE017A08284   THE GREAT EASTERN        18-Jan-25
+     Duration Bond Index                  SHIPPING COMPANY
+                                          LIMITED
+88   Nifty AA+ Medium      INE774D08LK7   MAHINDRA AND             31-Jan-25
+     Duration Bond Index                  MAHINDRA FINANCIAL
+                                          SERVICES LIMITED
+89   Nifty AA+ Medium      INE139F07113   KONKAN RAILWAY           01-Oct-24
+     Duration Bond Index                  CORPORATION LIMITED
+90   Nifty AA+ Medium to   INE017A07567   THE GREAT EASTERN        02-Nov-28
+     long Duration Bond                   SHIPPING COMPANY
+     Index                                LIMITED
+91   Nifty AA+ Medium to   INE923L07225   SP JAMMU UDHAMPUR        30-Jun-26
+     long Duration Bond                   HIGHWAY LIMITED
+     Index
+Sr.       Index name              ISIN               Issuer            Maturity
+No.                                                                      Date
+92 Nifty AA+ Medium to       INE721A08DA2   SHRIRAM TRANSPORT         28-Mar-28
+    long Duration Bond                      FINANCE COMPANY
+    Index                                   LIMITED
+93 Nifty AA+ Medium to       INE774D08MA6   MAHINDRA AND              06-Jun-26
+    long Duration Bond                      MAHINDRA FINANCIAL
+    Index                                   SERVICES LIMITED
+94 Nifty AA+ Medium to       INE950O08154   MAHINDRA RURAL            07-Aug-28
+    long Duration Bond                      HOUSING FINANCE
+    Index                                   LIMITED
+95 Nifty AA+ Medium to       INE957N08037   HERO FINCORP LIMITED      18-Jun-27
+    long Duration Bond
+    Index
+96 Nifty AA+ Medium to       INE139F07105   KONKAN RAILWAY            22-Sep-26
+    long Duration Bond                      CORPORATION LIMITED
+    Index
+97 Nifty AA+ Long            BMK8IREDAA33   INDIAN RENEWABLE          29-Jun-33
+    Duration Bond Index                     ENERGY DEVELOPMENT
+                                            AGENCY LIMITED
+98    Nifty AA Ultra Short   INE572E09338   PNB HOUSING FINANCE       03-Jul-21
+      Duration Bond Index                   LIMITED
+99    Nifty AA Ultra Short   INE092T08DF7   IDFC FIRST BANK LIMITED   30-Jun-21
+      Duration Bond Index
+100   Nifty AA Ultra Short   INE148I07IV8   INDIABULLS HOUSING        22-Jun-21
+      Duration Bond Index                   FINANCE LIMITED
+101   Nifty AA Ultra Short   INE414G07CM0   MUTHOOT FINANCE           19-Jun-21
+      Duration Bond Index                   LIMITED
+102   Nifty AA Ultra Short   INE866I07BQ0   IIFL FINANCE LIMITED      25-May-21
+      Duration Bond Index
+103   Nifty AA Ultra Short   INE477L07842   IIFL HOME FINANCE         25-May-21
+      Duration Bond Index                   LIMITED
+104   Nifty AA Ultra Short   INE523H07AH0   JM FINANCIAL PRODUCTS     21-May-21
+      Duration Bond Index                   LIMITED
+105   Nifty AA Ultra Short   INE652X07019   MUTHOOT HOMEFIN           13-May-21
+      Duration Bond Index                   (INDIA) LIMITED
+106   Nifty AA Ultra Short   INE722A07885   SHRIRAM CITY UNION        30-Apr-21
+      Duration Bond Index                   FINANCE LIMITED
+107   Nifty AA Ultra Short   INE397D08037   BHARTI AIRTEL LIMITED     20-Apr-21
+      Duration Bond Index
+108   Nifty AA Ultra Short   INE813H07085   TORRENT POWER LIMITED     06-Apr-21
+      Duration Bond Index
+109   Nifty AA Low           INE414G07EN4   MUTHOOT FINANCE           31-Jan-22
+      Duration Bond Index                   LIMITED
+110   Nifty AA Low           INE092T08DS0   IDFC FIRST BANK LIMITED   21-Dec-21
+      Duration Bond Index
+111   Nifty AA Low           INE053A07174   THE INDIAN HOTELS         18-Nov-21
+      Duration Bond Index                   COMPANY LIMITED
+112   Nifty AA Low           INE477A07217   CAN FIN HOMES LIMITED     15-Nov-21
+      Duration Bond Index
+ Sr.      Index name             ISIN               Issuer            Maturity
+ No.                                                                    Date
+113 Nifty AA Low            INE538L07361   AADHAR HOUSING            11-Nov-21
+     Duration Bond Index                   FINANCE LIMITED
+114 Nifty AA Low            INE477L07966   IIFL HOME FINANCE         26-Oct-21
+     Duration Bond Index                   LIMITED
+115 Nifty AA Short          INE516Y07253   PIRAMAL CAPITAL AND       19-May-22
+     Duration Bond Index                   HOUSING FINANCE
+                                           LIMITED
+116   Nifty AA Short        INE597V07010   BIOCON BIOLOGICS INDIA    21-Sep-23
+      Duration Bond Index                  LIMITED
+117   Nifty AA Short        INE081A08181   TATA STEEL LIMITED        23-Apr-22
+      Duration Bond Index
+118   Nifty AA Short        INE414G07CN8   MUTHOOT FINANCE           19-Apr-23
+      Duration Bond Index                  LIMITED
+119   Nifty AA Short        INE148I07JU8   INDIABULLS HOUSING        18-May-23
+      Duration Bond Index                  FINANCE LIMITED
+120   Nifty AA Short        INE477A07241   CAN FIN HOMES LIMITED     18-May-22
+      Duration Bond Index
+121   Nifty AA Medium       INE05OC24017   LUCKNOW MUNICIPAL         18-Nov-24
+      Duration Bond Index                  CORPORATION
+122   Nifty AA Medium       INE092T08493   IDFC FIRST BANK LIMITED   16-Jun-25
+      Duration Bond Index
+123   Nifty AA Medium       INE414G07ET1   MUTHOOT FINANCE           18-Jun-25
+      Duration Bond Index                  LIMITED
+124   Nifty AA Medium       INE477A08025   CAN FIN HOMES LIMITED     03-Dec-24
+      Duration Bond Index
+125   Nifty AA Medium       INE652X07092   MUTHOOT HOMEFIN           13-May-24
+      Duration Bond Index                  (INDIA) LIMITED
+126   Nifty AA Medium       INE572E09262   PNB HOUSING FINANCE       24-Nov-24
+      Duration Bond Index                  LIMITED
+127   Nifty AA Medium       INE538L07205   AADHAR HOUSING            23-Jan-26
+      Duration Bond Index                  FINANCE LIMITED
+128   Nifty AA Medium to    INE05OC24033   LUCKNOW MUNICIPAL         18-Nov-26
+      long Duration Bond                   CORPORATION
+      Index
+129   Nifty AA Medium to    INE651J07804   JM FINANCIAL CREDIT       01-Nov-30
+      long Duration Bond                   SOLUTIONS LIMITED
+      Index
+130   Nifty AA Medium to    INE812V07021   THDC INDIA LIMITED        06-Sep-29
+      long Duration Bond
+      Index
+131   Nifty AA Medium to    INE477Z24011   GREATER HYDERABAD         21-Aug-29
+      long Duration Bond                   MUNICIPAL CORPORATION
+      Index
+132   Nifty AA Medium to    INE652X07100   MUTHOOT HOMEFIN           13-Nov-26
+      long Duration Bond                   (INDIA) LIMITED
+      Index
+ Sr.       Index name            ISIN               Issuer           Maturity
+ No.                                                                   Date
+133 Nifty AA Medium to      INE572E09346   PNB HOUSING FINANCE      28-Apr-26
+     long Duration Bond                    LIMITED
+     Index
+134 Nifty AA Long           BMKNE96333AA   NORTH EASTERN ELECTRIC   07-Mar-33
+     Duration Bond Index                   POWER CORPORATION
+135 Nifty AA- Ultra Short   INE614X07035   DHANI LOANS AND          08-May-21
+     Duration Bond Index                   SERVICES LIMITED
+136 Nifty AA- Ultra Short   INE155A08365   TATA MOTORS LIMITED      29-Jun-21
+     Duration Bond Index
+137 Nifty AA- Ultra Short   INE601U07053   TATA MOTORS FINANCE      07-Jun-21
+     Duration Bond Index                   LIMITED
+138 Nifty AA- Ultra Short   INE114A07810   STEEL AUTHORITY OF       25-May-21
+     Duration Bond Index                   INDIA LIMITED
+139 Nifty AA- Ultra Short   INE949L08160   AU SMALL FINANCE BANK    19-May-21
+     Duration Bond Index                   LIMITED
+140 Nifty AA- Ultra Short   INE126A07251   E.I.D. PARRY (INDIA)     27-Apr-21
+     Duration Bond Index                   LIMITED
+141 Nifty AA- Ultra Short   INE694L07115   TALWANDI SABO POWER      23-Apr-21
+     Duration Bond Index                   LIMITED
+142 Nifty AA- Low           INE155A08316   TATA MOTORS LIMITED      20-Oct-21
+     Duration Bond Index
+143 Nifty AA- Low           INE205A07162   VEDANTA LIMITED          09-Dec-21
+     Duration Bond Index
+144 Nifty AA- Low           INE197P07185   A. K. CAPITAL FINANCE    08-Nov-21
+     Duration Bond Index                   LIMITED
+145 Nifty AA- Short         INE601U07228   TATA MOTORS FINANCE      28-Oct-22
+     Duration Bond Index                   LIMITED
+146 Nifty AA- Short         INE155A08340   TATA MOTORS LIMITED      22-Jun-22
+     Duration Bond Index
+147 Nifty AA- Short         INE245A07390   THE TATA POWER           17-Sep-23
+     Duration Bond Index                   COMPANY LIMITED
+148 Nifty AA- Short         INE976G08056   RBL BANK LIMITED         30-Jun-22
+     Duration Bond Index
+149 Nifty AA- Short         INE516Q08166   ASIRVAD MICRO FINANCE    30-Jun-22
+     Duration Bond Index                   LIMITED
+150 Nifty AA- Short         INE00U207127   ADANI RAIL INFRA         29-Apr-22
+     Duration Bond Index                   PRIVATE LIMITED
+151 Nifty AA- Medium        INE511C07698   MAGMA FINCORP LIMITED    06-May-24
+     Duration Bond Index
+152 Nifty AA- Medium        INE114A07869   STEEL AUTHORITY OF       14-Oct-24
+     Duration Bond Index                   INDIA LIMITED
+153 Nifty AA- Medium        INE245A07408   THE TATA POWER           17-Sep-24
+     Duration Bond Index                   COMPANY LIMITED
+154 Nifty AA- Medium        INE909H08212   TATA MOTORS FINANCE      19-Dec-24
+     Duration Bond Index                   LIMITED
+155 Nifty AA- Long          BMKSTA92AA3    STEEL AUTHORITY OF       07-Mar-33
+     Duration Bond Index    3              INDIA LIMITED
+The following companies are being included:
+
+ Sr.        Index name                 ISIN             Issuer           Maturity
+ No.                                                                       Date
+  1    Nifty AAA Ultra Short    INE001A07RY1   HOUSING DEVELOPMENT      16-Sep-21
+       Duration Bond Index                     FINANCE CORPORATION
+                                               LIMITED
+  2    Nifty AAA Ultra Short    INE020B08CA9   REC LIMITED              26-Sep-21
+       Duration Bond Index
+  3    Nifty AAA Ultra Short    INE110L07070   RELIANCE INDUSTRIES      08-Jul-21
+       Duration Bond Index                     LIMITED
+  4    Nifty AAA Ultra Short    INE115A07OA6   LIC HOUSING FINANCE      17-Sep-21
+       Duration Bond Index                     LIMITED
+  5    Nifty AAA Ultra Short    INE134E08IH4   POWER FINANCE            16-Aug-21
+       Duration Bond Index                     CORPORATION LIMITED
+  6    Nifty AAA Ultra Short    INE261F08AL1   NATIONAL BANK FOR        19-Jul-21
+       Duration Bond Index                     AGRICULTURE AND RURAL
+                                               DEVELOPMENT
+  7    Nifty AAA Ultra Short    INE296A07LR4   BAJAJ FINANCE LIMITED    10-Aug-21
+       Duration Bond Index
+  8    Nifty AAA Ultra Short    INE306N07KD6   TATA CAPITAL FINANCIAL   27-Sep-21
+       Duration Bond Index                     SERVICES LIMITED
+  9    Nifty AAA Ultra Short    INE556F08JH3   SMALL INDUSTRIES         10-Aug-21
+       Duration Bond Index                     DEVELOPMENT BANK OF
+                                               INDIA
+  10   Nifty AAA Ultra Short    INE752E07MZ9   POWER GRID               14-Sep-21
+       Duration Bond Index                     CORPORATION OF INDIA
+                                               LIMITED
+  11   Nifty AAA Ultra Short    INE756I07BY7   HDB FINANCIAL SERVICES   07-Jul-21
+       Duration Bond Index                     LIMITED
+  12   Nifty AAA Ultra Short    INE848E07AG0   NHPC LIMITED             15-Sep-21
+       Duration Bond Index
+  13   Nifty AAA Ultra Short    INE860H07FS2   ADITYA BIRLA FINANCE     24-Sep-21
+       Duration Bond Index                     LIMITED
+  14   Nifty AAA Ultra Short    INE941D08065   SIKKA PORTS AND          22-Aug-21
+       Duration Bond Index                     TERMINALS LIMITED
+  15   Nifty AAA Low            INE860H07HB4   ADITYA BIRLA FINANCE     26-Apr-22
+       Duration Bond Index                     LIMITED
+  16   Nifty AAA Low            INE001A07SV5   HOUSING DEVELOPMENT      18-Feb-22
+       Duration Bond Index                     FINANCE CORPORATION
+                                               LIMITED
+  17   Nifty AAA Low            INE002A08575   RELIANCE INDUSTRIES      08-Mar-22
+       Duration Bond Index                     LIMITED
+  18   Nifty AAA Low            INE020B08CL6   REC LIMITED              31-Dec-21
+       Duration Bond Index
+  19   Nifty AAA Low            INE115A07NZ5   LIC HOUSING FINANCE      14-Jan-22
+       Duration Bond Index                     LIMITED
+  20   Nifty AAA Low            INE134E08JW1   POWER FINANCE            19-Mar-22
+       Duration Bond Index                     CORPORATION LIMITED
+Sr.       Index name             ISIN              Issuer            Maturity
+No.                                                                     Date
+21    Nifty AAA Low         INE261F08AI7   NATIONAL BANK FOR        31-Jan-22
+      Duration Bond Index                  AGRICULTURE AND RURAL
+                                           DEVELOPMENT
+22    Nifty AAA Low         INE556F08JK7   SMALL INDUSTRIES         26-Apr-22
+      Duration Bond Index                  DEVELOPMENT BANK OF
+                                           INDIA
+23    Nifty AAA Low         INE691I07EQ6   L AND T INFRASTRUCTURE   18-Mar-22
+      Duration Bond Index                  FINANCE COMPANY
+                                           LIMITED
+24    Nifty AAA Low         INE861G08035   FOOD CORPORATION OF      07-Mar-22
+      Duration Bond Index                  INDIA
+25    Nifty AAA Low         INE906B07FG1   NATIONAL HIGHWAYS        18-Mar-22
+      Duration Bond Index                  AUTHORITY OF INDIA
+26    Nifty AAA Short       INE213A08040   OIL AND NATURAL GAS      09-Feb-24
+      Duration Bond Index                  CORPORATION LIMITED
+27    Nifty AAA Short       INE001A07SU7   HOUSING DEVELOPMENT      14-Dec-22
+      Duration Bond Index                  FINANCE CORPORATION
+                                           LIMITED
+28    Nifty AAA Short       INE002A08476   RELIANCE INDUSTRIES      31-Aug-22
+      Duration Bond Index                  LIMITED
+29    Nifty AAA Short       INE031A08756   HOUSING AND URBAN        11-Nov-22
+      Duration Bond Index                  DEVELOPMENT
+                                           CORPORATION LIMITED
+30    Nifty AAA Short       INE053F07CU1   INDIAN RAILWAY FINANCE   05-May-23
+      Duration Bond Index                  CORPORATION LIMITED
+31    Nifty AAA Short       INE115A07PC9   LIC HOUSING FINANCE      20-Mar-23
+      Duration Bond Index                  LIMITED
+32    Nifty AAA Short       INE261F08CU8   NATIONAL BANK FOR        05-Feb-24
+      Duration Bond Index                  AGRICULTURE AND RURAL
+                                           DEVELOPMENT
+33    Nifty AAA Short       INE556F08JR2   SMALL INDUSTRIES         18-Dec-23
+      Duration Bond Index                  DEVELOPMENT BANK OF
+                                           INDIA
+34    Nifty AAA Short       INE557F08FL1   NATIONAL HOUSING BANK    12-Feb-24
+      Duration Bond Index
+35    Nifty AAA Short       INE861G08019   FOOD CORPORATION OF      22-Mar-23
+      Duration Bond Index                  INDIA
+36    Nifty AAA Medium      INE001A07SR3   HOUSING DEVELOPMENT      29-Sep-25
+      Duration Bond Index                  FINANCE CORPORATION
+                                           LIMITED
+37    Nifty AAA Medium      INE018A08BA7   LARSEN AND TOUBRO        28-Apr-25
+      Duration Bond Index                  LIMITED
+38    Nifty AAA Medium      INE053F09GV6   INDIAN RAILWAY FINANCE   10-Mar-25
+      Duration Bond Index                  CORPORATION LIMITED
+39    Nifty AAA Medium      INE094A08077   HINDUSTAN PETROLEUM      11-Apr-25
+      Duration Bond Index                  CORPORATION LIMITED
+40    Nifty AAA Medium      INE242A08452   INDIAN OIL CORPORATION   06-Mar-25
+      Duration Bond Index                  LIMITED
+Sr.       Index name             ISIN               Issuer            Maturity
+No.                                                                     Date
+41    Nifty AAA Medium      INE537P07588   INDIA INFRADEBT LIMITED   12-Nov-25
+      Duration Bond Index
+42    Nifty AAA Medium      INE752E07MG9   POWER GRID                23-Jan-25
+      Duration Bond Index                  CORPORATION OF INDIA
+                                           LIMITED
+43    Nifty AAA Medium to   INE001A07SO0   HOUSING DEVELOPMENT       17-Jun-30
+      long Duration Bond                   FINANCE CORPORATION
+      Index                                LIMITED
+44    Nifty AAA Medium to   INE020B08DK6   REC LIMITED               31-Jan-26
+      long Duration Bond
+      Index
+45    Nifty AAA Medium to   INE053F07BE7   INDIAN RAILWAY FINANCE    29-Mar-29
+      long Duration Bond                   CORPORATION LIMITED
+      Index
+46    Nifty AAA Medium to   INE134E08KL2   POWER FINANCE             25-Feb-30
+      long Duration Bond                   CORPORATION LIMITED
+      Index
+47    Nifty AAA Medium to   INE153A08089   MAHANAGAR TELEPHONE       11-Oct-30
+      long Duration Bond                   NIGAM LIMITED
+      Index
+48    Nifty AAA Medium to   INE238A08468   AXIS BANK LIMITED         30-Jan-27
+      long Duration Bond
+      Index
+49    Nifty AAA Medium to   INE242A08494   INDIAN OIL CORPORATION    23-Jan-26
+      long Duration Bond                   LIMITED
+      Index
+50    Nifty AAA Medium to   INE261F08BY2   NATIONAL BANK FOR         08-Feb-30
+      long Duration Bond                   AGRICULTURE AND RURAL
+      Index                                DEVELOPMENT
+51    Nifty AAA Medium to   INE733E07KL3   NTPC LIMITED              17-Jul-29
+      long Duration Bond
+      Index
+52    Nifty AAA Medium to   INE848E08136   NHPC LIMITED              22-Mar-29
+      long Duration Bond
+      Index
+53    Nifty AAA Medium to   INE861G08050   FOOD CORPORATION OF       12-Dec-29
+      long Duration Bond                   INDIA
+      Index
+54    Nifty AAA Medium to   INE906B07HG7   NATIONAL HIGHWAYS         01-Aug-29
+      long Duration Bond                   AUTHORITY OF INDIA
+      Index
+55    Nifty AAA Long        INE001A07SW3   HOUSING DEVELOPMENT       08-Jan-31
+      Duration Bond Index                  FINANCE CORPORATION
+                                           LIMITED
+56    Nifty AAA Long        INE020B08DM2   REC LIMITED               31-Jan-36
+      Duration Bond Index
+57    Nifty AAA Long        INE071G08AL2   ICICI HOME FINANCE        23-Aug-33
+      Duration Bond Index                  COMPANY LIMITED
+Sr.       Index name               ISIN               Issuer            Maturity
+No.                                                                       Date
+58    Nifty AAA Long          INE134E08LA3   POWER FINANCE             10-Aug-35
+      Duration Bond Index                    CORPORATION LIMITED
+59    Nifty AAA Long          INE153A08097   MAHANAGAR TELEPHONE       20-Dec-30
+      Duration Bond Index                    NIGAM LIMITED
+60    Nifty AAA Long          INE235P07AE1   L AND T INFRA DEBT FUND   21-Oct-33
+      Duration Bond Index                    LIMITED
+61    Nifty AAA Long          INE733E08171   NTPC LIMITED              27-Jan-31
+      Duration Bond Index
+62    Nifty AAA Long          INE787H07057   INDIA INFRASTRUCTURE      27-Jul-37
+      Duration Bond Index                    FINANCE COMPANY
+                                             LIMITED
+63    Nifty AAA Long          INE848E07BS3   NHPC LIMITED              12-Feb-31
+      Duration Bond Index
+64    Nifty AAA Long          INE906B07II1   NATIONAL HIGHWAYS         30-Dec-36
+      Duration Bond Index                    AUTHORITY OF INDIA
+65    Nifty AA+ Ultra Short   INE121A07PI4   CHOLAMANDALAM             17-Aug-21
+      Duration Bond Index                    INVESTMENT AND
+                                             FINANCE COMPANY
+                                             LIMITED
+66    Nifty AA+ Ultra Short   INE414G07CS7   MUTHOOT FINANCE           26-Jul-21
+      Duration Bond Index                    LIMITED
+67    Nifty AA+ Ultra Short   INE434A08018   UNION BANK OF INDIA       22-Aug-21
+      Duration Bond Index
+68    Nifty AA+ Ultra Short   INE667F07HL6   SUNDARAM HOME             16-Jul-21
+      Duration Bond Index                    FINANCE LIMITED
+69    Nifty AA+ Ultra Short   INE803N07035   HPCL-MITTAL PIPELINES     21-Aug-21
+      Duration Bond Index                    LIMITED
+70    Nifty AA+ Ultra Short   INE849A08074   TRENT LIMITED             26-Jul-21
+      Duration Bond Index
+71    Nifty AA+ Ultra Short   INE950O07305   MAHINDRA RURAL            27-Sep-21
+      Duration Bond Index                    HOUSING FINANCE
+                                             LIMITED
+72    Nifty AA+ Ultra Short   INE957N07377   HERO FINCORP LIMITED      08-Jul-21
+      Duration Bond Index
+73    Nifty AA+ Ultra Short   INE094O08136   DAIMLER FINANCIAL         17-Sep-21
+      Duration Bond Index                    SERVICES INDIA PRIVATE
+                                             LIMITED
+74    Nifty AA+ Ultra Short   INE535H07AK8   FULLERTON INDIA CREDIT    15-Jul-21
+      Duration Bond Index                    COMPANY LIMITED
+75    Nifty AA+ Ultra Short   INE721A07NV9   SHRIRAM TRANSPORT         12-Jul-21
+      Duration Bond Index                    FINANCE COMPANY
+                                             LIMITED
+76    Nifty AA+ Ultra Short   INE774D07SH0   MAHINDRA AND              23-Jul-21
+      Duration Bond Index                    MAHINDRA FINANCIAL
+                                             SERVICES LIMITED
+77    Nifty AA+ Low           INE095A08041   INDUSIND BANK LIMITED     31-Mar-22
+      Duration Bond Index
+Sr.       Index name             ISIN               Issuer           Maturity
+No.                                                                    Date
+78    Nifty AA+ Low         INE121A07OY4   CHOLAMANDALAM            11-Mar-22
+      Duration Bond Index                  INVESTMENT AND
+                                           FINANCE COMPANY
+                                           LIMITED
+79    Nifty AA+ Low         INE403D08066   BHARTI TELECOM LIMITED   17-Feb-22
+      Duration Bond Index
+80    Nifty AA+ Low         INE721A07OJ2   SHRIRAM TRANSPORT        15-Apr-22
+      Duration Bond Index                  FINANCE COMPANY
+                                           LIMITED
+81    Nifty AA+ Low         INE774D07SC1   MAHINDRA AND             19-Apr-22
+      Duration Bond Index                  MAHINDRA FINANCIAL
+                                           SERVICES LIMITED
+82    Nifty AA+ Low         INE414G07EN4   MUTHOOT FINANCE          31-Jan-22
+      Duration Bond Index                  LIMITED
+83    Nifty AA+ Short       INE597V07010   BIOCON BIOLOGICS INDIA   21-Sep-23
+      Duration Bond Index                  LIMITED
+84    Nifty AA+ Short       INE121A07PY1   CHOLAMANDALAM            18-Apr-23
+      Duration Bond Index                  INVESTMENT AND
+                                           FINANCE COMPANY
+                                           LIMITED
+85    Nifty AA+ Short       INE202E07088   INDIAN RENEWABLE         10-May-23
+      Duration Bond Index                  ENERGY DEVELOPMENT
+                                           AGENCY LIMITED
+86    Nifty AA+ Short       INE289B07032   GIC HOUSING FINANCE      22-Feb-23
+      Duration Bond Index                  LIMITED
+87    Nifty AA+ Short       INE414G07FC4   MUTHOOT FINANCE          16-Oct-23
+      Duration Bond Index                  LIMITED
+88    Nifty AA+ Short       INE721A07PT8   SHRIRAM TRANSPORT        27-Feb-23
+      Duration Bond Index                  FINANCE COMPANY
+                                           LIMITED
+89    Nifty AA+ Short       INE774D07UA1   MAHINDRA AND             04-Dec-23
+      Duration Bond Index                  MAHINDRA FINANCIAL
+                                           SERVICES LIMITED
+90    Nifty AA+ Medium      INE414G07ET1   MUTHOOT FINANCE          18-Jun-25
+      Duration Bond Index                  LIMITED
+91    Nifty AA+ Medium      INE202E07062   INDIAN RENEWABLE         24-Sep-25
+      Duration Bond Index                  ENERGY DEVELOPMENT
+                                           AGENCY LIMITED
+92    Nifty AA+ Medium      INE950O08022   MAHINDRA RURAL           13-Oct-25
+      Duration Bond Index                  HOUSING FINANCE
+                                           LIMITED
+93    Nifty AA+ Medium      INE017A08250   THE GREAT EASTERN        10-Nov-25
+      Duration Bond Index                  SHIPPING COMPANY
+                                           LIMITED
+94    Nifty AA+ Medium      INE721A07PM3   SHRIRAM TRANSPORT        28-Jan-25
+      Duration Bond Index                  FINANCE COMPANY
+                                           LIMITED
+Sr.       Index name              ISIN               Issuer          Maturity
+No.                                                                    Date
+95    Nifty AA+ Medium       INE774D08LO9   MAHINDRA AND            27-Oct-25
+      Duration Bond Index                   MAHINDRA FINANCIAL
+                                            SERVICES LIMITED
+96    Nifty AA+ Medium       INE957N07542   HERO FINCORP LIMITED    03-Nov-25
+      Duration Bond Index
+97    Nifty AA+ Medium to    INE652X07100   MUTHOOT HOMEFIN         13-Nov-26
+      long Duration Bond                    (INDIA) LIMITED
+      Index
+98    Nifty AA+ Medium to    INE950O08196   MAHINDRA RURAL          16-Dec-30
+      long Duration Bond                    HOUSING FINANCE
+      Index                                 LIMITED
+99    Nifty AA+ Medium to    INE957N07567   HERO FINCORP LIMITED    19-Jan-26
+      long Duration Bond
+      Index
+100   Nifty AA+ Medium to    INE017A08292   THE GREAT EASTERN       25-May-27
+      long Duration Bond                    SHIPPING COMPANY
+      Index                                 LIMITED
+101   Nifty AA+ Medium to    INE476A08050   CANARA BANK             27-Apr-26
+      long Duration Bond
+      Index
+102   Nifty AA+ Medium to    INE721A07NX5   SHRIRAM TRANSPORT       12-Jul-28
+      long Duration Bond                    FINANCE COMPANY
+      Index                                 LIMITED
+103   Nifty AA+ Medium to    INE923L07316   SP JAMMU UDHAMPUR       31-Dec-30
+      long Duration Bond                    HIGHWAY LIMITED
+      Index
+104   Nifty AA+ Long         BMK790DD2033   INDIAN RENEWABLE        18-Mar-33
+      Duration Bond Index                   ENERGY DEVELOPMENT
+                                            AGENCY LIMITED
+105   Nifty AA Ultra Short   INE053A07166   THE INDIAN HOTELS       27-Jul-21
+      Duration Bond Index                   COMPANY LIMITED
+106   Nifty AA Ultra Short   INE244L07101   INDIABULLS COMMERCIAL   25-Sep-21
+      Duration Bond Index                   CREDIT LIMITED
+107   Nifty AA Ultra Short   INE340A07076   BIRLA CORPORATION       18-Aug-21
+      Duration Bond Index                   LIMITED
+108   Nifty AA Ultra Short   INE432R07208   SHRIRAM HOUSING         12-Aug-21
+      Duration Bond Index                   FINANCE LIMITED
+109   Nifty AA Ultra Short   INE477L07917   IIFL HOME FINANCE       11-Aug-21
+      Duration Bond Index                   LIMITED
+110   Nifty AA Ultra Short   INE651J07598   JM FINANCIAL CREDIT     07-Aug-21
+      Duration Bond Index                   SOLUTIONS LIMITED
+111   Nifty AA Ultra Short   INE722A07968   SHRIRAM CITY UNION      25-Sep-21
+      Duration Bond Index                   FINANCE LIMITED
+112   Nifty AA Ultra Short   INE148I07GE8   INDIABULLS HOUSING      26-Sep-21
+      Duration Bond Index                   FINANCE LIMITED
+113   Nifty AA Ultra Short   INE538L07494   AADHAR HOUSING          29-Sep-21
+      Duration Bond Index                   FINANCE LIMITED
+Sr.       Index name              ISIN               Issuer            Maturity
+No.                                                                       Date
+114   Nifty AA Ultra Short   INE572E09361   PNB HOUSING FINANCE       01-Jul-21
+      Duration Bond Index                   LIMITED
+115   Nifty AA Low           INE038A07258   HINDALCO INDUSTRIES       25-Apr-22
+      Duration Bond Index                   LIMITED
+116   Nifty AA Low           INE053A07182   THE INDIAN HOTELS         15-Apr-22
+      Duration Bond Index                   COMPANY LIMITED
+117   Nifty AA Low           INE092T08DZ5   IDFC FIRST BANK LIMITED   13-Apr-22
+      Duration Bond Index
+118   Nifty AA Low           INE477L07941   IIFL HOME FINANCE         04-Apr-22
+      Duration Bond Index                   LIMITED
+119   Nifty AA Low           INE523H07AW9   JM FINANCIAL PRODUCTS     16-Mar-22
+      Duration Bond Index                   LIMITED
+120   Nifty AA Low           INE572E09650   PNB HOUSING FINANCE       21-Apr-22
+      Duration Bond Index                   LIMITED
+121   Nifty AA Low           INE580B07489   GRUH FINANCE LIMITED      29-Mar-22
+      Duration Bond Index
+122   Nifty AA Low           INE722A07901   SHRIRAM CITY UNION        30-Apr-22
+      Duration Bond Index                   FINANCE LIMITED
+123   Nifty AA Short         INE160A08043   PUNJAB NATIONAL BANK      09-Sep-24
+      Duration Bond Index
+124   Nifty AA Short         INE477A07290   CAN FIN HOMES LIMITED     24-Dec-23
+      Duration Bond Index
+125   Nifty AA Short         INE725H08063   TATA PROJECTS LIMITED     12-Jan-24
+      Duration Bond Index
+126   Nifty AA Short         INE148I07IZ9   INDIABULLS HOUSING        05-Jun-23
+      Duration Bond Index                   FINANCE LIMITED
+127   Nifty AA Short         INE343G08018   BHARTI HEXACOM            19-Jan-24
+      Duration Bond Index                   LIMITED
+128   Nifty AA Short         INE866I08121   IIFL FINANCE LIMITED      30-Aug-22
+      Duration Bond Index
+129   Nifty AA Medium        INE572E09320   PNB HOUSING FINANCE       17-Jan-26
+      Duration Bond Index                   LIMITED
+130   Nifty AA Medium        INE05OC24025   LUCKNOW MUNICIPAL         18-Nov-25
+      Duration Bond Index                   CORPORATION
+131   Nifty AA Medium        INE092T08BY2   IDFC FIRST BANK LIMITED   23-Jun-25
+      Duration Bond Index
+132   Nifty AA Medium to     INE636F07209   NORTH EASTERN ELECTRIC    30-Sep-30
+      long Duration Bond                    POWER CORPORATION
+      Index                                 LIMITED
+133   Nifty AA Medium to     INE432R07265   SHRIRAM HOUSING           15-Jan-31
+      long Duration Bond                    FINANCE LIMITED
+      Index
+134   Nifty AA Medium to     INE05OC24074   LUCKNOW MUNICIPAL         18-Nov-30
+      long Duration Bond                    CORPORATION
+      Index
+135   Nifty AA Medium to     INE477Z08022   GREATER HYDERABAD         14-Aug-28
+      long Duration Bond                    MUNICIPAL CORPORATION
+      Index
+Sr.       Index name               ISIN               Issuer            Maturity
+No.                                                                        Date
+136   Nifty AA Medium to      INE651J07622   JM FINANCIAL CREDIT       07-Jun-28
+      long Duration Bond                     SOLUTIONS LIMITED
+      Index
+137   Nifty AA Medium to      INE812V07039   THDC INDIA LIMITED        24-Jul-30
+      long Duration Bond
+      Index
+138   Nifty AA Long           BMK825DD2033   NORTH EASTERN ELECTRIC    18-Mar-33
+      Duration Bond Index                    POWER CORPORATION
+                                             LIMITED
+139   Nifty AA- Ultra Short   INE245A07374   THE TATA POWER            17-Sep-21
+      Duration Bond Index                    COMPANY LIMITED
+140   Nifty AA- Ultra Short   INE545U08019   BANDHAN BANK LIMITED      02-Sep-21
+      Duration Bond Index
+141   Nifty AA- Ultra Short   INE614X07225   DHANI LOANS AND           06-Sep-21
+      Duration Bond Index                    SERVICES LIMITED
+142   Nifty AA- Ultra Short   INE694L07123   TALWANDI SABO POWER       30-Jul-21
+      Duration Bond Index                    LIMITED
+143   Nifty AA- Ultra Short   INE896L07454   INDOSTAR CAPITAL          24-Sep-21
+      Duration Bond Index                    FINANCE LIMITED
+144   Nifty AA- Ultra Short   INE909H08063   TATA MOTORS FINANCE       17-Sep-21
+      Duration Bond Index                    LIMITED
+145   Nifty AA- Low           INE197P07268   A. K. CAPITAL FINANCE     15-Apr-22
+      Duration Bond Index                    LIMITED
+146   Nifty AA- Low           INE511C07656   MAGMA FINCORP LIMITED     06-May-22
+      Duration Bond Index
+147   Nifty AA- Low           INE614X07050   DHANI LOANS AND           08-May-22
+      Duration Bond Index                    SERVICES LIMITED
+148   Nifty AA- Low           INE205A07204   VEDANTA LIMITED           17-Mar-22
+      Duration Bond Index
+149   Nifty AA- Short         INE245A07408   THE TATA POWER            17-Sep-24
+      Duration Bond Index                    COMPANY LIMITED
+150   Nifty AA- Short         INE146O07375   HINDUJA LEYLAND           02-Jun-23
+      Duration Bond Index                    FINANCE LIMITED
+151   Nifty AA- Short         INE155A08209   TATA MOTORS LIMITED       12-Sep-24
+      Duration Bond Index
+152   Nifty AA- Short         INE0FCS07014   AUROBINDO REALTY AND      05-Mar-24
+      Duration Bond Index                    INFRASTRUCTURE PRIVATE
+                                             LIMITED
+153   Nifty AA- Short         INE909H08204   TATA MOTORS FINANCE       26-Sep-24
+      Duration Bond Index                    LIMITED
+154   Nifty AA- Medium        INE027A07012   RASHTRIYA CHEMICALS       05-Aug-25
+      Duration Bond Index                    AND FERTILIZERS LIMITED
+155   Nifty AA- Medium        INE245A07416   THE TATA POWER            17-Sep-25
+      Duration Bond Index                    COMPANY LIMITED
+156   Nifty AA- Medium        INE511C08AK8   MAGMA FINCORP LIMITED     06-Jun-25
+      Duration Bond Index
+157   Nifty AA- Medium        INE614X07290   DHANI LOANS AND           06-Sep-24
+      Duration Bond Index                    SERVICES LIMITED
+ Sr.          Index name                   ISIN                         Issuer                  Maturity
+ No.                                                                                              Date
+ 158    Nifty AA- Long              BMK1020D2033          STEEL AUTHORITY OF                   18-Mar-33
+        Duration Bond Index                               INDIA LIMITED
+
+
+About National Stock Exchange of India Limited (NSE):
+
+National Stock Exchange of India (NSE) is the world’s largest derivatives exchange by trading volume
+(contracts) as per the statistics maintained by Futures Industry Association (FIA) for calendar year 2020.
+NSE is ranked 4th in the world in the cash equities by number of trades as per the statistics maintained
+by the World Federation of Exchanges (WFE) for calendar year 2020. NSE was the first exchange in
+India to implement electronic or screen-based trading. It began operations in 1994 and is ranked as the
+largest stock exchange in India in terms of total and average daily turnover for equity shares every year
+since 1995, based on SEBI data. NSE has a fully-integrated business model comprising exchange
+listings, trading services, clearing and settlement services, indices, market data feeds, technology
+solutions and financial education offerings. NSE also oversees compliance by trading and clearing
+members with the rules and regulations of the exchange. NSE is a pioneer in technology and ensures
+the reliability and performance of its systems through a culture of innovation and investment in
+technology.
+
+For more information, please visit: www.nseindia.com
+
+
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary of
+NSE, provides a variety of indices and index related services for the capital markets. The company
+focuses on the index as a core product. The company owns and manages a portfolio of indices under
+the NIFTY brand of NSE, including the flagship index, the NIFTY 50. NIFTY equity indices comprises
+of broad-based benchmark indices, sectoral indices, strategy indices, thematic indices and customised
+indices. NSE Indices Limited also maintains fixed income indices based on Government of India
+securities, corporate bonds, money market instruments and hybrid indices. Many investment products
+based on NIFTY indices have been developed within India and abroad. These include index based
+derivatives traded on NSE, NSE IFSC and Singapore Exchange Ltd. (SGX) and a number of index
+funds and exchange traded funds. The flagship 'NIFTY 50' index is widely tracked and traded as the
+benchmark for Indian Capital Markets.
+
+For more information, please visit: www.niftyindices.com
+
+
+
+For any clarifications please contact:
+Arijit Sengupta                                     Kumar Kartikey
+Chief Marketing & Communications Officer            Chief Manager, Corporate Communication
+Mobile: +91-9820340485                              Mobile: +91-9819549984
+Email id: asengupta@nse.co.in                       Email id: kumark@nse.co.in
+

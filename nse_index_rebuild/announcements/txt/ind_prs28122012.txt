@@ -1,0 +1,32 @@
+        IISL
+        INDIA INDEX SERVICES & PRODUCTS LIMITED
+        (A joint venture of NSE & CRISIL)
+
+                                  PRESS RELEASE
+
+Futures and Options contracts have not been issued by the National Stock Exchange of
+India Limited for new expiry months for ABB Limited and Suzlon Energy Limited.
+
+The Index Maintenance Sub-Committee has decided to make the following changes in
+CNX Infrastructure Index in this regard which will become effective from February 01,
+2013.
+
+The following companies are being excluded:
+
+  Sr.              Company Name                        Symbol
+  No.
+   1     ABB Limited                            ABB
+   2     Suzlon Energy Limited                  SUZLON
+
+The following companies are being included:
+
+  Sr.              Company Name                        Symbol
+  No.
+   1     CESC Limited                           CESC
+   2     PTC India Limited                      PTC
+
+
+Place: Mumbai
+
+Date: December 28, 2012
+

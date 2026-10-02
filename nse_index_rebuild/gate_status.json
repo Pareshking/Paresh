@@ -1,0 +1,50 @@
+{
+ "NIFTY_50": {
+  "expected_size_incl_dummies": 50,
+  "snapshots": 33,
+  "snapshots_wrong_size": 0,
+  "chain_breaks": 0,
+  "latest_chain_break": null,
+  "oldest_snapshot": "2010-04-08"
+ },
+ "NIFTY_NEXT_50": {
+  "expected_size_incl_dummies": 50,
+  "snapshots": 47,
+  "snapshots_wrong_size": 0,
+  "chain_breaks": 0,
+  "latest_chain_break": null,
+  "oldest_snapshot": "2010-04-08"
+ },
+ "NIFTY_MIDCAP_150": {
+  "expected_size_incl_dummies": 150,
+  "snapshots": 37,
+  "snapshots_wrong_size": 0,
+  "chain_breaks": 0,
+  "latest_chain_break": null,
+  "oldest_snapshot": "2016-09-30"
+ },
+ "NIFTY_SMALLCAP_250": {
+  "expected_size_incl_dummies": 250,
+  "snapshots": 59,
+  "snapshots_wrong_size": 0,
+  "chain_breaks": 0,
+  "latest_chain_break": null,
+  "oldest_snapshot": "2016-04-29"
+ },
+ "NIFTY_MICROCAP_250": {
+  "expected_size_incl_dummies": 250,
+  "snapshots": 32,
+  "snapshots_wrong_size": 0,
+  "chain_breaks": 0,
+  "latest_chain_break": null,
+  "oldest_snapshot": "2021-09-30"
+ },
+ "NIFTY_500": {
+  "expected_size_incl_dummies": 500,
+  "snapshots": 130,
+  "snapshots_wrong_size": 0,
+  "chain_breaks": 0,
+  "latest_chain_break": null,
+  "oldest_snapshot": "2010-02-24"
+ }
+}

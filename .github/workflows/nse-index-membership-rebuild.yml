@@ -1,0 +1,35 @@
+name: NSE index membership rebuild validation
+
+on:
+  pull_request:
+    paths:
+      - "nse_index_rebuild/**"
+      - ".github/workflows/nse-index-membership-rebuild.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Parse official announcement text
+        working-directory: nse_index_rebuild
+        run: python parse_events.py
+      - name: Validate point-in-time reverse reconstruction
+        working-directory: nse_index_rebuild
+        run: python reverse2.py 1000
+      - name: Retain unresolved-event audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nse-index-membership-open-issues
+          path: nse_index_rebuild/open_issues.csv
+          if-no-files-found: warn
+          retention-days: 30

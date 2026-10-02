@@ -1,0 +1,76 @@
+        IISL
+        INDIA INDEX SERVICES & PRODUCTS LIMITED
+         (A joint venture of NSE & CRISIL)
+
+                                 PRESS RELEASE
+
+Securities of Jindal Saw Limited will be traded on an ex-entitlement basis with effect
+from November 22, 2011 on account of Scheme of Arrangement involving the demerger
+of Investment business of Jindal Saw Limited into Hexa Tradex Limited.
+
+The Index Maintenance Sub-Committee has decided to make the following changes in
+various indices in this regard which will become effective from November 22, 2011:
+
+
+1) CNX 200 Index
+
+The following company is being excluded:
+
+  Sr.              Company Name                        Symbol
+  No.
+   1     Jindal Saw Limited                         JINDALSAW
+
+The following company is being included:
+
+  Sr.              Company Name                        Symbol
+  No.
+   1     Apollo Hospitals Enterprises Limited      APOLLOHOSP
+
+
+2) S&P CNX 500 Index
+
+The following company is being excluded:
+
+  Sr.              Company Name                        Symbol
+  No.
+   1     Jindal Saw Limited                         JINDALSAW
+
+The following company is being included:
+
+  Sr.              Company Name                        Symbol
+  No.
+   1     Future Ventures India Limited             FUTUREVENT
+3) CNX Midcap Index
+
+The following company is being excluded:
+
+  Sr.              Company Name                 Symbol
+  No.
+   1     Jindal Saw Limited                    JINDALSAW
+
+The following company is being included:
+
+  Sr.              Company Name                 Symbol
+  No.
+   1    Unitech Limited                         UNITECH
+
+
+4) CNX Metal Index
+
+The following company is being excluded:
+
+  Sr.              Company Name                 Symbol
+  No.
+   1     Jindal Saw Limited                    JINDALSAW
+
+The following company is being included:
+
+  Sr.              Company Name                 Symbol
+  No.
+   1    Gujarat     Mineral      Development   GMDCLTD
+        Corporation Limited
+
+
+Place: Mumbai
+Date: November 17, 2011
+

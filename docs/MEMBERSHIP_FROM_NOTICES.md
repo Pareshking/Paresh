@@ -117,3 +117,26 @@ the dropped names are mostly the weaker ones). Measured on the 2026 month ends,
   industry is mapped to the NSE industry most current members with that
   TradingView industry carry (82% correct leave-one-out on the 750).
 
+
+## Extension to 2010 and to the other indices (2026-10-02)
+
+`nse_index_rebuild/` rebuilds every index announcement by announcement, backward from NSE's current lists, and
+`nse_index_rebuild/merge_into_history.py` folds the result into `data/membership_history.json`:
+
+| index | history now starts |
+|---|---|
+| `nifty_50`, `nifty_next_50`, `nifty_500` (new entry) | 2010-01-01 |
+| `nifty_midcap_150`, `nifty_smallcap_250` | 2016-04-01 (launch) |
+| `nifty_microcap_250` | 2021-09-30 |
+| `nifty_total_market` (flat keys kept identical) | 2021-10-29 |
+
+Existing baselines and changes are untouched; the reconstruction is prepended after checking that it lands on each
+existing baseline exactly. Symbols use today's ticker (renames are not exits), except tickers this file already
+records under their old name (`HEG`, `GUJGASLTD`). Tata Motors DVR, an additional security above the nominal size,
+is a member while NSE counted it.
+
+**Status: research-grade reconstruction, adopted for production use by the repo owner.** Intervals resting on open
+items are listed under the top-level `caveats` key (Jindal Saw / Provogue 2012-03-07 from a secondary source, the
+2020 Gayatri / Fluorochemicals window, the inferred PEL / PIRAMALFIN rename, and 2010-2011 exits named without a
+symbol). Not done: independent checkpoints against archived constituent files, a blind second review, a data freeze.
+Evidence, rules and checks are in `nse_index_rebuild/` (`PROTOCOL.md`).

@@ -1,0 +1,33 @@
+        IISL
+        INDIA INDEX SERVICES & PRODUCTS LIMITED
+        (A joint venture of NSE & CRISIL)
+
+                                        PRESS RELEASE
+
+Securities of Alembic Limited will be traded on an ex-entitlement basis with effect from April 11,
+2011 on account of the scheme of arrangement and demerger between Alembic Limited
+(Demerged Company) and Alembic Pharmaceuticals Limited. (Resulting Company).
+
+The Index Maintenance Sub-Committee has decided to make the following change in this regard
+which will become effective from April 11, 2011:
+
+1. S&P CNX 500 Index:
+
+The following company is being excluded:
+
+  Sr.                    Company Name                            Symbol
+  No.
+   1      Alembic Limited                                    ALEMBICLTD
+
+The following company is being included:
+
+  Sr.                    Company Name                            Symbol
+  No.
+   1      Coal India Limited                                  COALINDIA
+
+
+
+Place: Mumbai
+
+Date: April 6, 2011
+

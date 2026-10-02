@@ -1,0 +1,86 @@
+PRESS RELEASE
+Mumbai, September 04, 2025
+
+                             Changes in Nifty Fixed Income indices
+     The Index Maintenance Sub-Committee (Debt) of NSE Indices Limited has decided to make changes
+     as listed hereunder. These changes shall become effective from September 10,2025.
+
+
+     Nifty Financial Services 3 to 6 Months Debt Index
+     The following securities are being Excluded:
+       Sr.                                                                          MATURITY
+               ISIN                     SECURITY
+       No                                                                              DATE
+        1 INE238AD6AA7 AXIS BANK LIMITED                                             18-Nov-25
+        2 INE296A14ZD0 BAJAJ FINANCE LIMITED                                         18-Nov-25
+                       BARCLAYS INVESTMENTS AND LOANS (INDIA)
+        3 INE704I14KH9                                                               01-Dec-25
+                       PRIVATE LIMITED
+        4 INE476A16ZP7 CANARA BANK                                                   05-Dec-25
+        5 INE514E14SJ0 EXPORT-IMPORT BANK OF INDIA                                   17-Nov-25
+        6 INE040A16FY5 HDFC BANK LIMITED                                             04-Dec-25
+        7 INE916D144I1 KOTAK MAHINDRA PRIME LIMITED                                  05-Nov-25
+        8 INE115A14FM5 LIC HOUSING FINANCE LIMITED                                   20-Nov-25
+                       SMALL INDUSTRIES DEVELOPMENT BANK OF
+        9 INE556F16AX2                                                               05-Dec-25
+                       INDIA
+       10 INE403G14SY0 STANDARD CHARTERED CAPITAL LIMITED                            09-Dec-25
+       11 INE660A14YP4 SUNDARAM FINANCE LIMITED                                      01-Dec-25
+       12 INE033L14NL3 TATA CAPITAL HOUSING FINANCE LIMITED                          10-Oct-25
+       13 INE976I14PB5 TATA CAPITAL LIMITED                                          07-Nov-25
+       14 INE692Q14BL0 TOYOTA FINANCIAL SERVICES INDIA LIMITED                       15-Oct-25
+
+     The following securities are being Included:
+       Sr.                                                                          MATURITY
+               ISIN                    SECURITY
+       No                                                                              DATE
+        1 INE238AD6AO8 AXIS BANK LIMITED                                             05-Mar-26
+        2 INE891K14OT7 AXIS FINANCE LIMITED                                          06-Mar-26
+        3 INE377Y14BK4 BAJAJ HOUSING FINANCE LIMITED                                 20-Feb-26
+                       BARCLAYS INVESTMENTS AND LOANS (INDIA)
+        4 INE704I14JX8                                                               09-Mar-26
+                       PRIVATE LIMITED
+        5 INE476A16A99 CANARA BANK                                                   06-Mar-26
+ Sr.                                                                                MATURITY
+            ISIN                               SECURITY
+ No                                                                                   DATE
+                         DEUTSCHE INVESTMENTS INDIA PRIVATE
+  6    INE144H14HQ7                                                                   27-Feb-26
+                         LIMITED
+  7    INE514E16CJ9      EXPORT-IMPORT BANK OF INDIA                                  04-Mar-26
+  8    INE756I14FC0      HDB FINANCIAL SERVICES LIMITED                               04-Mar-26
+  9    INE040A16GJ4      HDFC BANK LIMITED                                            25-Feb-26
+ 10    INE763G14XP5      ICICI SECURITIES LIMITED                                     11-Mar-26
+ 11    INE916D144Y8      KOTAK MAHINDRA PRIME LIMITED                                 06-Mar-26
+ 12    INE498L14DT2      L AND T FINANCE LIMITED                                      10-Mar-26
+ 13    INE115A14FK9      LIC HOUSING FINANCE LIMITED                                  11-Mar-26
+                         NATIONAL BANK FOR AGRICULTURE AND
+ 14    INE261F16975                                                                   10-Mar-26
+                         RURAL DEVELOPMENT
+ 15    INE134E14AT4      POWER FINANCE CORPORATION LIMITED                            15-Dec-25
+                         SMALL INDUSTRIES DEVELOPMENT BANK OF
+ 16    INE556F16BD2                                                                   11-Mar-26
+                         INDIA
+ 17    INE403G14TF7      STANDARD CHARTERED CAPITAL LIMITED                           27-Feb-26
+ 18    INE660A14YI9      SUNDARAM FINANCE LIMITED                                     20-Feb-26
+ 19    INE033L14NV2      TATA CAPITAL HOUSING FINANCE LIMITED                         27-Feb-26
+ 20    INE976I14PU5      TATA CAPITAL LIMITED                                         11-Mar-26
+
+
+
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary of
+NSE, provides a variety of indices and index related services for the capital markets. The company
+focuses on the index as a core product. The company owns and manages a portfolio of indices under
+the Nifty brand of NSE, including the flagship index, the Nifty 50. Nifty equity indices comprises
+broad-based benchmark indices, sectoral indices, strategy indices, thematic indices, and customised
+indices. NSE Indices Limited also maintains fixed income indices based on Government of India
+securities, corporate bonds, money market instruments and hybrid indices. Many investment products
+based on Nifty indices have been developed within India and abroad. These include index-based
+derivatives traded on NSE and NSE International Exchange IFSC Limited (NSE IX) and a number of
+index funds and exchange traded funds. The flagship 'Nifty 50' index is widely tracked and traded as
+the benchmark for Indian Capital Markets.
+For more information, please visit: www.niftyindices.com
+Press contact:
+Email ID: cc@nse.co.in
+

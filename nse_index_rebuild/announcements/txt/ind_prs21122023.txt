@@ -1,0 +1,43 @@
+PRESS RELEASE
+Mumbai, December 21, 2023
+
+
+         NSE Indices launches Nifty Smallcap250 Momentum Quality 100 index
+
+
+     NSE’s index services subsidiary, NSE Indices Limited today launched a new strategy index – Nifty
+     Smallcap250 Momentum Quality 100 index.
+     The Nifty Smallcap250 Momentum Quality 100 Index aims to track the performance of the 100 small
+     cap stocks selected based on combination of their momentum and quality factor scores.
+
+     The momentum score for each company is determined based on its 6-month and 12-month price return,
+     adjusted for volatility. The quality score for each company is determined based on return on equity
+     (ROE), financial leverage (Debt/Equity Ratio) and earnings (EPS) growth variability analyzed during
+     the previous 5 years. The weight of each stock in the index is based on the combination of composite
+     momentum-quality score and its free-float market capitalization. Stock weights are capped at 3% at the
+     time of index rebalancing.
+
+     The base date for the index is April 01, 2005, and the base value is 1000. The index will be reconstituted
+     and rebalanced on a semi-annual basis.
+     The new index is expected to act as a benchmark for asset managers and be a reference index tracked
+     by passive funds in the form of Exchange Traded Funds (ETFs), index funds and structured products.
+
+
+     For more information on index methodology and factsheet, please visit us at www.niftyindices.com or
+     www.nseindia.com.
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary of
+NSE, provides a variety of indices and index related services for the capital markets. The company
+focuses on the index as a core product. The company owns and manages a portfolio of indices under
+the Nifty brand of NSE, including the flagship index, the Nifty 50. Nifty equity indices comprises
+broad-based benchmark indices, sectoral indices, strategy indices, thematic indices, and customised
+indices. NSE Indices Limited also maintains fixed income indices based on Government of India
+securities, corporate bonds, money market instruments and hybrid indices. Many investment products
+based on Nifty indices have been developed within India and abroad. These include index-based
+derivatives traded on NSE and NSE International Exchange IFSC Limited (NSE IX) and a number of
+index funds and exchange traded funds. The flagship 'Nifty 50' index is widely tracked and traded as
+the benchmark for Indian Capital Markets.
+For more information, please visit: www.niftyindices.com
+Press contact:
+Email ID: cc@nse.co.in
+

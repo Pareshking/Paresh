@@ -1,0 +1,103 @@
+PRESS RELEASE
+Mumbai, September 07, 2026
+
+
+                             Changes in Nifty Fixed Income indices
+
+     The Index Maintenance Sub-Committee (Debt) of NSE Indices Limited has decided to make changes
+     as listed hereunder. These changes shall become effective from September 10, 2026 (close of
+     September 09, 2026).
+
+         A. Nifty Financial Services 3 to 6 Months Debt Index
+     The following securities are being included:
+
+            ISIN                                Issuer Name                      Maturity Date
+       INE028A16LW2      BANK OF BARODA                                           11-Mar-27
+       INE476A16H84      CANARA BANK                                              11-Mar-27
+       INE296A14G28      BAJAJ FINANCE LIMITED                                    09-Mar-27
+       INE040A16IT9      HDFC BANK LIMITED                                        09-Mar-27
+       INE514E16CP6      EXPORT-IMPORT BANK OF INDIA                              01-Mar-27
+                         NATIONAL BANK FOR FINANCING
+       INE0KUG16020                                                                04-Mar-27
+                         INFRASTRUCTURE AND DEVELOPMENT
+       INE763G14H82      ICICI SECURITIES LIMITED                                  09-Mar-27
+       INE831R14GA4      ADITYA BIRLA HOUSING FINANCE LIMITED                      09-Mar-27
+       INE110O14HS0      AXIS SECURITIES LIMITED                                   22-Feb-27
+       INE916D146N6      KOTAK MAHINDRA PRIME LIMITED                              05-Mar-27
+       INE377Y14CD7      BAJAJ HOUSING FINANCE LIMITED                             10-Mar-27
+       INE028E14VC0      KOTAK SECURITIES LIMITED                                  24-Feb-27
+                         MAHINDRA AND MAHINDRA FINANCIAL
+       INE774D14TO0                                                                05-Mar-27
+                         SERVICES LIMITED
+                         NATIONAL BANK FOR AGRICULTURE AND
+       INE261F16AO8                                                                10-Mar-27
+                         RURAL DEVELOPMENT
+       INE115A14FT0      LIC HOUSING FINANCE LIMITED                               11-Mar-27
+                         SMALL INDUSTRIES DEVELOPMENT BANK OF
+       INE556F16CC2                                                                26-Feb-27
+                         INDIA
+       INE511C14ZI7      POONAWALLA FINCORP LIMITED                                02-Feb-27
+       INE660A14YX8      SUNDARAM FINANCE LIMITED                                  15-Feb-27
+       INE033L14OR8      TATA CAPITAL HOUSING FINANCE LIMITED                      04-Feb-27
+
+
+
+
+                                             Non-Confidential
+      ISIN                           Issuer Name                                   Maturity Date
+ INE976I14RA3        TATA CAPITAL LIMITED                                           09-Mar-27
+
+The following securities are being excluded:
+
+      ISIN                                  Issuer Name                            Maturity Date
+ INE028A16KO1        BANK OF BARODA                                                 04-Dec-26
+ INE296A14D21        BAJAJ FINANCE LIMITED                                          06-Nov-26
+ INE040A16HY1        HDFC BANK LIMITED                                              19-Nov-26
+ INE514E16CN1        EXPORT-IMPORT BANK OF INDIA                                    11-Nov-26
+ INE160A16UT0        PUNJAB NATIONAL BANK                                           15-Sep-26
+ INE763G14J49        ICICI SECURITIES LIMITED                                       20-Nov-26
+ INE916D146I6        KOTAK MAHINDRA PRIME LIMITED                                   09-Dec-26
+ INE028E14WE4        KOTAK SECURITIES LIMITED                                       16-Oct-26
+                     MAHINDRA AND MAHINDRA FINANCIAL
+ INE774D14TT9                                                                         30-Oct-26
+                     SERVICES LIMITED
+                     NATIONAL BANK FOR AGRICULTURE AND
+ INE261F16AC3                                                                        10-Nov-26
+                     RURAL DEVELOPMENT
+ INE498L14FU5        L AND T FINANCE LIMITED                                          15-Oct-26
+                     SMALL INDUSTRIES DEVELOPMENT BANK OF
+ INE556F16BS0                                                                        04-Dec-26
+                     INDIA
+ INE535H14JS8        SMFG INDIA CREDIT COMPANY LIMITED                               28-Sep-26
+ INE660A14YU4        SUNDARAM FINANCE LIMITED                                        18-Nov-26
+ INE976I14QM0        TATA CAPITAL LIMITED                                            16-Sep-26
+
+
+
+
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary
+of NSE, provides a variety of indices and index related services for the capital markets. The company
+focuses on the index as a core product. The company owns and manages a portfolio of indices under
+the Nifty brand of NSE, including the flagship index, the Nifty 50. Nifty equity indices comprise of
+broad-based benchmark indices, sectoral indices, strategy indices, thematic indices and customised
+indices. NSE Indices Limited also maintains fixed income indices based on Government of India
+securities, corporate bonds, money market instruments and hybrid indices. Many investment products
+based on Nifty indices have been developed within India and abroad. These include index based
+derivatives traded on NSE and NSE International Exchange IFSC Limited (NSE IX) and a number of
+index funds and exchange traded funds. The flagship 'Nifty 50' index is widely tracked and traded as
+the benchmark for Indian Capital Markets.
+
+
+
+
+                                         Non-Confidential
+For more information, please visit: www.niftyindices.com
+Press contact:
+Email ID: cc@nse.co.in
+
+
+
+
+                                       Non-Confidential
+

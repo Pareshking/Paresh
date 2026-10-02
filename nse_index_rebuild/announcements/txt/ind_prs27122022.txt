@@ -1,0 +1,260 @@
+PRESS RELEASE
+Mumbai, December 27, 2022
+
+                               Changes in Nifty fixed income indices
+     The index Maintenance Sub-Committee (Debt) of NSE Indices Limited, as part of its periodic review,
+     announces the following changes in Nifty fixed income indices:
+
+     A. Changes on account of Semi-annual review of Nifty Target Maturity indices:
+
+     These changes shall become effective from December 30, 2022.
+
+     1. Nifty AAA PSU Bond Plus SDL Apr 2026 50:50 index:
+
+     The following security is being excluded:
+
+      Sr.                                                                                 Maturity
+               ISIN             Issuer
+      No.                                                                                 Date
+            1 INE020B08DK6 REC LIMITED                                                     31-Jan-2026
+
+     The following securities are being included:
+
+      Sr.                                                                                 Maturity
+              ISIN                Issuer
+      No.                                                                                 Date
+                                  HOUSING AND URBAN DEVELOPMENT
+            1 INE031A08855                                                                11-Feb-2026
+                                  CORPORATION LIMITED
+            2 INE134E07AJ9        POWER FINANCE CORPORATION LIMITED                       22-Jan-2026
+            3 INE020B08DW1        REC LIMITED                                             28-Feb-2026
+
+     2. Nifty SDL Sep 2026 index:
+
+     The following securities are being excluded:
+
+      Sr.                                                                                 Maturity
+               ISIN            Security
+      No.                                                                                 Date
+            1 IN1020160033 7.85% ANDHRA SDL 2026                                          13-Jul-2026
+            2 IN1520160061 7.83% GUJARAT SDL 2026                                         13-Jul-2026
+            3 IN1620160060 7.98% HARYANA SDL 2026                                         29-Jun-2026
+                                                                                            24-Aug-
+            4 IN2020160080 7.59% KERALA SDL 2026
+                                                                                              2026
+ Sr.                                                                              Maturity
+           ISIN           Security
+ No.                                                                              Date
+       5 IN2120160030 7.38% MADHYAPRADESH SDL 2026                                14-Sep-2026
+       6 IN2220160062 7.37% MAHARASHTRA SDL 2026                                  14-Sep-2026
+       7 IN3120160061 7.84% TAMILNADU SDL 2026                                    13-Jul-2026
+                                                                                    11-May-
+       8 IN4520160032 8.02% TELANGANA SDL 2026
+                                                                                      2026
+                                                                                    11-May-
+       9 IN3320160028 8.03% UTTARPRADESH SDL 2026
+                                                                                      2026
+    10 IN3420160027 7.86% WESTBENGAL SDL 2026                                     13-Jul-2026
+
+The following securities are being included:
+
+ Sr.                                                                              Maturity
+           ISIN           Security
+ No.                                                                              Date
+       1   IN1020160025   8.09% ANDHRA SDL 2026                                   15-Jun-2026
+       2   IN1520220097   7.49% GUJARAT SGS 2026                                  28-Sep-2026
+       3   IN1620160193   7.18% HARYANA SDL 2026                                  28-Sep-2026
+       4   IN2020160072   7.61% KERALA SDL 2026                                   9-Aug-2026
+       5   IN2120160048   7.16% MADHYAPRADESH SDL 2026                            28-Sep-2026
+       6   IN2220160021   7.96% MAHARASHTRA SDL 2026                              29-Jun-2026
+       7   IN3120160053   8.07% TAMILNADU SDL 2026                                15-Jun-2026
+       8   IN4520160099   7.39% TELANGANA SDL 2026                                14-Sep-2026
+                                                                                    25-May-
+       9 IN3320160036 8.02% UTTARPRADESH SDL 2026
+                                                                                      2026
+    10 IN3420160068 7.19% WESTBENGAL SDL 2026                                     28-Sep-2026
+
+No changes are being made in Nifty G-Sec Sep 2027 index and Nifty G-Sec Jun 2036 index.
+
+B. Changes on account of quarterly review of Nifty Target Maturity indices:
+
+These changes shall become effective from December 30, 2022.
+
+1. Nifty PSU Bond Plus SDL Apr 2026 50:50 index:
+
+The following securities are being excluded:
+
+ Sr.                                                                                Maturity
+           ISIN             Issuer
+ No.                                                                                Date
+                            INDIAN RAILWAY FINANCE CORPORATION
+       1 INE053F09HM3                                                               29-Mar-2026
+                            LIMITED
+       2 INE134E07AI1       POWER FINANCE CORPORATION LIMITED                       22-Jan-2026
+       3 INE752E07NK9 POWER GRID CORPORATION OF INDIA LIMITED           23-Dec-2025
+       4 INE020B08DH2 REC LIMITED                                       31-Dec-2025
+                      SMALL INDUSTRIES DEVELOPMENT BANK OF
+       5 INE556F08KB4                                                   27-Feb-2026
+                      INDIA
+
+The following securities are being included:
+
+ Sr.                                                                   Maturity
+         ISIN                Issuer
+ No.                                                                   Date
+                             HOUSING AND URBAN DEVELOPMENT
+       1 INE031A08855                                                  11-Feb-2026
+                             CORPORATION LIMITED
+                             INDIAN RAILWAY FINANCE CORPORATION
+       2 INE053F09HN1                                                  31-Mar-2026
+                             LIMITED
+       3 INE134E08LU1        POWER FINANCE CORPORATION LIMITED         3-Nov-2025
+       4 INE752E07NS2        POWER GRID CORPORATION OF INDIA LIMITED   25-Apr-2026
+       5 INE020B08DW1        REC LIMITED                               28-Feb-2026
+                             SMALL INDUSTRIES DEVELOPMENT BANK OF
+       6 INE556F08KC2                                                  9-Mar-2026
+                             INDIA
+
+2. Nifty PSU Bond Plus SDL Apr 2027 50:50 index:
+
+The following securities are being excluded:
+
+ Sr.                                                                    Maturity
+          ISIN              Issuer
+ No.                                                                    Date
+                      INDIAN RAILWAY FINANCE CORPORATION
+       1 INE053F07983                                                   19-Mar-2027
+                      LIMITED
+                      NUCLEAR POWER CORPORATION OF INDIA
+       2 INE206D08279                                                   25-Mar-2027
+                      LIMITED
+       3 INE752E07OE0 POWER GRID CORPORATION OF INDIA LIMITED           9-Mar-2027
+       4 INE020B08AA3 REC LIMITED                                       7-Nov-2026
+
+The following securities are being included:
+
+ Sr.                                                                    Maturity
+          ISIN              Issuer
+ No.                                                                    Date
+                      INDIAN RAILWAY FINANCE CORPORATION                  29-Nov-
+       1 INE053F09EL2
+                      LIMITED                                              2026
+                      NUCLEAR POWER CORPORATION OF INDIA
+       2 INE206D08360                                                   28-Mar-2027
+                      LIMITED
+       3 INE752E07NT0 POWER GRID CORPORATION OF INDIA LIMITED           25-Apr-2027
+       4 INE020B08AH8 REC LIMITED                                       12-Mar-2027
+No changes are being made in Nifty BHARAT bond index – April 2023, Nifty BHARAT bond index
+– April 2025, Nifty BHARAT bond index – April 2030, Nifty BHARAT bond index – April 2031,
+Nifty BHARAT bond index – April 2032 and Nifty BHARAT bond index – April 2033, Nifty G-Sec
+Jun 2027 index and Nifty SDL Jun 2027 index.
+
+C.     Changes in Nifty BHARAT bond index – April 2023: Following exclusions will be made
+on account of scheduled redemption of bonds during the quarter ending March 2023. The proceeds
+of such redeemed bonds will be reinvested as per the waterfall approach as defined in the index
+methodology.
+
+ Sr.                                                                                 Exclusion
+      ISIN               Issuer Name                                 Maturity Date
+ No.                                                                                 Date
+    1 INE514E08CC1       EXPORT-IMPORT BANK OF INDIA                   9-Jan-2023      9-Jan-2023
+    2 INE733E07GY4       NTPC LIMITED                                 25-Jan-2023     25-Jan-2023
+                         NATIONAL BANK FOR
+   3 INE261F08AT4        AGRICULTURE AND RURAL                        31-Jan-2023      31-Jan-2023
+                         DEVELOPMENT
+                         NATIONAL BANK FOR
+   4 INE261F08CV6        AGRICULTURE AND RURAL                        10-Feb-2023     10-Feb-2023
+                         DEVELOPMENT
+   5   INE848E07344      NHPC LIMITED                                 10-Feb-2023     10-Feb-2023
+   6   INE848E07252      NHPC LIMITED                                 10-Feb-2023     10-Feb-2023
+   7   INE848E07435      NHPC LIMITED                                 10-Feb-2023     10-Feb-2023
+   8   INE514E08CE7      EXPORT-IMPORT BANK OF INDIA                  14-Feb-2023     14-Feb-2023
+   9   INE020B08AT3      REC LIMITED                                  23-Feb-2023     23-Feb-2023
+                         POWER GRID CORPORATION OF
+  10 INE752E07GN7                                                     25-Feb-2023     24-Feb-2023*
+                         INDIA LIMITED
+                         SMALL INDUSTRIES DEVELOPMENT
+  11 INE556F08JP6                                                     27-Feb-2023     27-Feb-2023
+                         BANK OF INDIA
+                         CHENNAI PETROLEUM
+  12 INE178A08011                                                     28-Feb-2023     28-Feb-2023
+                         CORPORATION LIMITED
+                         POWER GRID CORPORATION OF
+  13 INE752E07LI7                                                     28-Feb-2023     28-Feb-2023
+                         INDIA LIMITED
+  14 INE733E07HI5        NTPC LIMITED                                 2-Mar-2023       2-Mar-2023
+                         POWER FINANCE CORPORATION
+  15 INE134E08FJ6                                                     4-Mar-2023      03-Mar-2023*
+                         LIMITED
+  16 INE733E07JC4        NTPC LIMITED                                  7-Mar-2023     06-Mar-2023*
+  17 INE848E07120        NHPC LIMITED                                 10-Mar-2023      10-Mar-2023
+                         NATIONAL BANK FOR
+  18 INE261F08CY0        AGRICULTURE AND RURAL                        10-Mar-2023     10-Mar-2023
+                         DEVELOPMENT
+ Sr.                                                                                                 Exclusion
+        ISIN                 Issuer Name                                        Maturity Date
+ No.                                                                                                 Date
+                   POWER GRID CORPORATION OF
+   19 INE752E07FQ2                                                               12-Mar-2023         10-Mar-2023*
+                   INDIA LIMITED
+                   POWER GRID CORPORATION OF
+   20 INE752E07KN9                                                               13-Mar-2023         13-Mar-2023
+                   INDIA LIMITED
+   21 INE514E08CI8 EXPORT-IMPORT BANK OF INDIA                                   15-Mar-2023         15-Mar-2023
+                   NUCLEAR POWER CORPORATION OF
+   22 INE206D08147                                                               15-Mar-2023         15-Mar-2023
+                   INDIA LIMITED
+                   NUCLEAR POWER CORPORATION OF
+   23 INE206D08154                                                               15-Mar-2023         15-Mar-2023
+                   INDIA LIMITED
+                   NUCLEAR POWER CORPORATION OF
+   24 INE206D08139                                                               18-Mar-2023         17-Mar-2023*
+                   INDIA LIMITED
+                   POWER FINANCE CORPORATION
+   25 INE134E08FN8                                                               18-Mar-2023         17-Mar-2023*
+                   LIMITED
+   26 INE733E07EW3 NTPC LIMITED                                                  22-Mar-2023         21-Mar-2023*
+                   INDIAN RAILWAY FINANCE
+   27 INE053F07603                                                               25-Mar-2023         24-Mar-2023*
+                   CORPORATION LIMITED
+   28 INE733E07CN6 NTPC LIMITED                                                  27-Mar-2023         27-Mar-2023
+                   POWER GRID CORPORATION OF
+   29 INE752E07GZ1                                                               29-Mar-2023         29-Mar-2023
+                   INDIA LIMITED
+   30 INE020B08CH4 REC LIMITED                                                   31-Mar-2023         31-Mar-2023
+*Maturity date being a trading holiday, the bond is excluded on the trading day prior to that day.
+
+About National Stock Exchange of India Limited (NSE):
+National Stock Exchange of India (NSE) is the world’s largest derivatives exchange by trading volume
+(contracts) as per the statistics maintained by Futures Industry Association (FIA) for calendar year 2021.
+NSE is ranked 4th in the world in the cash equities by number of trades as per the statistics maintained by
+the World Federation of Exchanges (WFE) for calendar year 2021. NSE was the first exchange in India to
+implement electronic or screen-based trading. It began operations in 1994 and is ranked as the largest stock
+exchange in India in terms of total and average daily turnover for equity shares every year since 1995,
+based on SEBI data. NSE has a fully integrated business model comprising exchange listings, trading
+services, clearing and settlement services, indices, market data feeds, technology solutions and financial
+education offerings. NSE also oversees compliance by trading, clearing members and listed companies
+with the rules and regulations of SEBI and the exchange. NSE is a pioneer in technology and ensures the
+reliability and performance of its systems through a culture of innovation and investment in technology.
+For more information, please visit: www.nseindia.com
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary
+of NSE, provides a variety of indices and index related services for the capital markets. The company
+focuses on the index as a core product. The company owns and manages a portfolio of indices under
+the Nifty brand of NSE, including the flagship index, the Nifty 50. Nifty equity indices comprises of
+broad-based benchmark indices, sectoral indices, strategy indices, thematic indices and customised
+indices. NSE Indices Limited also maintains fixed income indices based on Government of India
+securities, corporate bonds, money market instruments and hybrid indices. Many investment products
+based on Nifty indices have been developed within India and abroad. These include index based
+derivatives traded on NSE, NSE IFSC and Singapore Exchange Ltd. (SGX) and a number of index
+funds and exchange traded funds. The flagship 'Nifty 50' index is widely tracked and traded as the
+benchmark for Indian Capital Markets.
+
+For more information, please visit: www.niftyindices.com
+
+
+Press contact:
+Kumar Kartikey - Associate Vice President, Corporate Communications
+Priyanka Roy - Manager, Corporate Communications
+Email ID: cc@nse.co.in
+

@@ -1,0 +1,41 @@
+         IISL
+         INDIA INDEX SERVICES & PRODUCTS LIMITED
+         (A joint venture of NSE & CRISIL)
+
+
+                                      PRESS RELEASE
+                  LAUNCH OF S&P CNX NIFTY DIVIDEND INDEX
+
+
+In continuation of its efforts to develop indices that meet the requirements of market
+participants, IISL proposes to launch “S&P CNX Nifty Dividend Index”.
+
+The S&P CNX Nifty Dividend Index is designed to track the total dividend points of the S&P
+CNX Nifty Index which is widely accepted as the benchmark index for Indian equity
+markets. The S&P CNX Nifty Dividend Index segregates the dividend cash flow of the S&P
+CNX Nifty Index and provides investors with the ability to hedge against the dividend risk
+that it is implicit in the value of exchange traded derivative products linked to S&P CNX
+Nifty.
+
+Methodology:
+
+The S&P CNX Nifty Dividend Index is a running total of dividend points of the securities
+forming part of S&P CNX Nifty Index. The index measures the total ordinary dividends paid
+in the securities forming part of the underlying index since the previous rebalancing date.
+Index dividend points of S&P CNX Nifty Index are dividends paid by index constituents
+expressed in terms of the level of S&P CNX Nifty Index. The S&P CNX Nifty Dividend
+Index resets to zero every year after the close of the settlement of exchange traded derivative
+contracts linked to S&P CNX Nifty Index in the month of March every year (normally the
+last Thursday in March). It is done to coincide with the expiry of exchange traded derivative
+contracts linked to S&P CNX Nifty Index for the month.
+
+The index will be maintained by IISL & calculated on an end-of-day basis. The index will be
+launched with effect from February 1, 2012. The closing values of the index would be
+available on www.nseindia.com.
+
+
+Place: Mumbai
+
+
+Date: January 31, 2012
+

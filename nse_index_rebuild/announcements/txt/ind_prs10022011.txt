@@ -1,0 +1,211 @@
+IISL
+INDIA INDEX SERVICES & PRODUCTS LIMITED
+(A joint venture of NSE & CRISIL)
+
+
+                                   PRESS RELEASE
+The Index Maintenance Sub-Committee has decided to make the following changes in
+various indices during its periodic review. These changes shall become effective from
+March 25, 2011.
+
+(1)    S&P CNX Nifty Index
+
+The following company is being excluded:
+
+  Sr. No. Company Name
+    1     Suzlon Energy Ltd.
+
+The following company is being included:
+
+  Sr. No. Company Name
+    1     Grasim Industries Ltd.
+
+(2)    CNX Nifty Junior Index
+
+The following companies are being excluded:
+
+  Sr. No.   Company Name
+    1       Corporation Bank
+    2       Grasim Industries Ltd.
+    3       Mangalore Refinery & Petrochemicals Ltd.
+
+The following companies are being included:
+
+  Sr. No.   Company Name
+     1      IndusInd Bank Ltd.
+     2      Titan Industries Ltd.
+     3      Zee Entertainment Enterprises Ltd.
+
+(3)    CNX 100 Index
+
+The following companies are being excluded:
+
+  Sr. No.   Company Name
+    1       Corporation Bank
+    2       Mangalore Refinery & Petrochemicals Ltd.
+    3       Suzlon Energy Ltd.
+The following companies are being included:
+
+  Sr. No.   Company Name
+     1      IndusInd Bank Ltd.
+     2      Titan Industries Ltd.
+     3      Zee Entertainment Enterprises Ltd.
+
+(4)    S&P CNX 500 Index
+
+The following companies are being excluded:
+
+  Sr. No.   Company Name
+    1       AGC Networks Ltd.
+    2       Ajanta Pharmaceuticals Ltd.
+    3       Asian Electronics Ltd.
+    4       BPL Ltd.
+    5       Dwarikesh Sugar Industrial Ltd.
+    6       Gokaldas Exports Ltd.
+    7       HMT Ltd.
+    8       House of Pearl Fashions Ltd.
+    9       Kohinoor Foods Ltd.
+   10       Mahindra Ugine Steel Co. Ltd.
+   11       Mirza International Ltd.
+   12       Munjal Showa Ltd.
+   13       Omax Autos Ltd.
+   14       PVP Ventures Ltd.
+   15       Ramco Systems Ltd.
+   16       Saregama India Ltd
+   17       Vishal Retail Ltd.
+
+The following companies are being included:
+
+  Sr. No.   Company Name
+    1       Allied Digital Services Ltd.
+    2       Bajaj Electricals Ltd
+    3       BGR Energy Systems Ltd.
+    4       Core Projects & Technologies Ltd.
+    5       Cox & Kings Ltd.
+    6       Delta Corp Ltd.
+    7       Emami Ltd.
+    8       JK Tyre & Industries Ltd.
+    9       Kemrock Industries and Exports Ltd.
+   10       Opto Circuits (I) Ltd.
+   11       Orissa Mineral Development Co. Ltd.
+   12       Pantaloon Retail (India) Ltd.
+   13       Pipavav Shipyard Ltd.
+   14       Sadbhav Engineering Ltd.
+   15       Whirlpool of India Ltd.
+  Sr. No. Company Name
+   16     Zee Entertainment Enterprises Ltd.
+   17     Zydus Wellness Ltd.
+
+(5)    CNX Midcap Index
+
+The following companies are being excluded:
+
+  Sr. No.   Company Name
+    1       Asian Paints Ltd.
+    2       Crompton Greaves Ltd.
+    3       HMT Ltd.
+    4       Rashtriya Chemicals & Fertilizers Ltd.
+    5       Shriram Transport Finance Co. Ltd.
+
+The following companies are being included:
+
+  Sr. No.   Company Name
+    1       ABB Ltd.
+    2       Oil India Ltd.
+    3       Opto Circuits (I) Ltd.
+    4       Power Finance Corporation Ltd.
+    5       Suzlon Energy Ltd.
+
+(6)    CNX FMCG Index
+
+The following companies are being excluded:
+
+  Sr. No. Company Name
+    1     Gillette India Ltd.
+    2     Jyothy Laboratories Ltd.
+
+The following companies are being included:
+
+  Sr. No. Company Name
+     1    Emami Ltd.
+     2    Rei Agro Ltd.
+
+(7)    CNX Infrastructure Index
+
+The following company is being excluded:
+
+  Sr. No. Company Name
+    1     Neyveli Lignite Corporation Ltd.
+The following company is being included:
+
+  Sr. No. Company Name
+     1    Container Corporation of India Ltd.
+
+(8)    CNX IT Index
+
+The following companies are being excluded:
+
+  Sr. No. Company Name
+    1     Firstsource Solutions Ltd.
+    2     Moser Baer India Ltd.
+
+The following companies are being included:
+
+  Sr. No. Company Name
+     1    3i Infotech Ltd.
+     2    OnMobile Global Ltd.
+
+(9)    CNX PSE Index
+
+The following companies are being excluded:
+
+  Sr. No.   Company Name
+    1       Mahanagar Telephone Nigam Ltd.
+    2       Mangalore Refinery and Petrochemicals Ltd.
+    3       Neyveli Lignite Corporation Ltd.
+
+The following companies are being included:
+
+  Sr. No.   Company Name
+     1      NHPC Ltd.
+     2      Oil India Ltd.
+     3      Rural Electrification Corporation Ltd.
+
+(10)   CNX Realty Index
+
+The following companies are being excluded:
+
+  Sr. No.   Company Name
+    1       Mahindra Lifespace Developers Ltd.
+    2       Peninsula Land Ltd.
+    3       Phoenix Mills Ltd.
+
+The following companies are being included:
+
+  Sr. No. Company Name
+     1    Godrej Properties Ltd.
+       2      Orbit Corporation Ltd.
+       3      Parsvnath Developer Ltd.
+
+(11)       CNX Service Sector Index
+
+The following companies are being excluded:
+
+ Sr. No.      Company Name
+   1          Neyveli Lignite Corporation Ltd.
+   2          Oracle Financial Services Software Ltd.
+   3          Tata Communications Ltd.
+   4          Tech Mahindra Ltd.
+
+The following companies are being included:
+
+ Sr. No.      Company Name
+    1         IndusInd Bank Ltd.
+    2         Infrastructure Development Finance Co. Ltd.
+    3         Rural Electrification Corporation Ltd.
+    4         Zee Entertainment Enterprises Ltd.
+
+
+Place: Mumbai
+Date: February 10, 2011
+

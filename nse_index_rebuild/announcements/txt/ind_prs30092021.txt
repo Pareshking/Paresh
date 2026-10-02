@@ -1,0 +1,219 @@
+                                      PRESS RELEASE
+                                                                        Mumbai, September 30, 2021
+
+
+
+                  Quarterly Review of Nifty Corporate Bond Indices
+NSE Indices Limited vide press release dated September 24, 2021 announced the changes in Nifty
+Corporate Bond Indices as a part of periodic review scheduled to come into effect from October 01, 2021
+(close of September 30, 2021).
+
+The conservative issuer rating for TELESONIC NETWORKS LIMITED, BHARTI HEXACOM
+LIMITED has been upgraded from AA to AA+ due to which the said issuers will not be included to form
+a part of Nifty AA Short Duration Bond Index. The conservative issuer rating for SP JAMMU
+UDHAMPUR HIGHWAY LIMITED has been downgraded from AA+ to AA- due to which the said
+issuer will not be included to form a part of Nifty AA+ Medium Duration Bond Index and Nifty AA+
+Medium to Long Duration Bond Index and will be included to form a part of Nifty AA- Medium Duration
+Bond Index and Nifty AA- Medium to Long Duration Bond Index respectively.
+
+Accordingly, the inclusion of the following securities of the said issuers in Nifty AA Short Duration Bond
+Index, Nifty AA+ Medium Duration Bond Index and Nifty AA+ Medium to Long Duration Bond Index,
+which was announced on September 24, 2021 stands cancelled
+
+ Sr.   Index name                     ISIN           Issuer                              Maturity Date
+ No.
+ 1     Nifty AA Short Duration Bond   INE308O08015   TELESONIC NETWORKS LIMITED          28-Apr-23
+       Index
+ 2     Nifty AA Short Duration Bond   INE343G08026   BHARTI HEXACOM LIMITED              30-Apr-24
+       Index
+ 3     Nifty AA+ Medium Duration      INE923L07225   SP JAMMU UDHAMPUR                   30-Jun-26
+       Bond Index                                    HIGHWAY LIMITED
+ 4     Nifty AA+ Medium to Long       INE923L07233   SP JAMMU UDHAMPUR                   31-Dec-26
+       Duration Bond Index                           HIGHWAY LIMITED
+
+On account of cancellation of inclusions as stated above, the earlier changes announced on September
+24, 2021 for Nifty AA Short Duration Bond Index, Nifty AA+ Medium Duration Bond Index, Nifty AA+
+Medium to Long Duration Bond Index, Nifty AA- Medium Duration Bond Index and Nifty AA- Medium
+to Long Duration Bond Index stands replaced with the list given hereunder:
+The following securities are being excluded:
+
+ Sr.                                                                             Maturity
+       Index name                 ISIN           Issuer
+ No.                                                                             Date
+       Nifty AA- Medium                          THE TATA POWER COMPANY
+   1                              INE245A07416                                      17-Sep-25
+       Duration Bond Index                       LIMITED
+       Nifty AA- Medium                          MANAPPURAM HOME FINANCE
+   2                              INE360T07074                                      02-Nov-24
+       Duration Bond Index                       LIMITED
+       Nifty AA- Medium
+   3                              INE511C08AK8   MAGMA FINCORP LIMITED               06-Jun-25
+       Duration Bond Index
+       Nifty AA- Medium                          AU SMALL FINANCE BANK
+   4                              INE949L08418                                      30-May-25
+       Duration Bond Index                       LIMITED
+       Nifty AA Short Duration                   NATIONAL COOPERATIVE
+   5                              INE014N07054                                      26-May-23
+       Bond Index                                DEVELOPMENT CORPORATION
+       Nifty AA Short Duration
+   6                              INE084A08037   BANK OF INDIA                      25-Sep-23
+       Bond Index
+       Nifty AA Short Duration
+   7                              INE092T08CA0   IDFC FIRST BANK LIMITED             28-Jul-23
+       Bond Index
+       Nifty AA Short Duration                   INDIABULLS HOUSING FINANCE
+   8                              INE148I07241                                      19-Mar-23
+       Bond Index                                LIMITED
+       Nifty AA Short Duration
+   9                              INE160A08043   PUNJAB NATIONAL BANK               09-Sep-24
+       Bond Index
+       Nifty AA Short Duration
+  10                              INE343G08018   BHARTI HEXACOM LIMITED              19-Jan-24
+       Bond Index
+       Nifty AA Short Duration
+  11                              INE523H07BE5   JM FINANCIAL PRODUCTS LIMITED       27-Jul-23
+       Bond Index
+       Nifty AA Short Duration
+  12                              INE530B07021   IIFL HOLDINGS LIMITED              08-May-23
+       Bond Index
+       Nifty AA Short Duration
+  13                              INE572E09387   PNB HOUSING FINANCE LIMITED         26-Jul-23
+       Bond Index
+       Nifty AA+ Medium
+  14                              INE414G07ET1   MUTHOOT FINANCE LIMITED             18-Jun-25
+       Duration Bond Index
+       Nifty AA+ Medium                          FULLERTON INDIA CREDIT
+  15                              INE535H08678                                      25-Feb-26
+       Duration Bond Index                       COMPANY LIMITED
+       Nifty AA+ Medium                          ADANI PORTS AND SPECIAL
+  16                              INE742F07361                                       04-Jul-26
+       Duration Bond Index                       ECONOMIC ZONE LIMITED
+       Nifty AA+ Medium                          MAHINDRA AND MAHINDRA
+  17                              INE774D08LO9                                       27-Oct-25
+       Duration Bond Index                       FINANCIAL SERVICES LIMITED
+       Nifty AA+ Medium                          SP JAMMU UDHAMPUR HIGHWAY
+  18                              INE923L07209                                       30-Jun-25
+       Duration Bond Index                       LIMITED
+       Nifty AA+ Medium
+  19                              INE957N07542   HERO FINCORP LIMITED               03-Nov-25
+       Duration Bond Index
+       Nifty AA+ Medium to                       CHOLAMANDALAM INVESTMENT
+  20                              INE121A08OG9                                      24-Mar-28
+       long Duration Bond Index                  AND FINANCE COMPANY LIMITED
+       Nifty AA+ Medium to                       INDIAN RENEWABLE ENERGY
+  21                              INE202E07294                                      03-Mar-30
+       long Duration Bond Index                  DEVELOPMENT AGENCY LIMITED
+       Nifty AA+ Medium to                       MUTHOOT HOMEFIN (INDIA)
+  22                              INE652X07100                                      13-Nov-26
+       long Duration Bond Index                  LIMITED
+       Nifty AA+ Medium to                       MAHINDRA AND MAHINDRA
+  23                              INE774D07SW9                                       18-Jan-27
+       long Duration Bond Index                  FINANCIAL SERVICES LIMITED
+          Nifty AA+ Medium to
+     24                              INE849A08082   TRENT LIMITED                    29-May-26
+          long Duration Bond Index
+          Nifty AA+ Medium to                       SP JAMMU UDHAMPUR HIGHWAY
+     25                              INE923L07266                                     30-Jun-28
+          long Duration Bond Index                  LIMITED
+          Nifty AA+ Medium to                       MAHINDRA RURAL HOUSING
+     26                              INE950O08154                                    07-Aug-28
+          long Duration Bond Index                  FINANCE LIMITED
+
+
+
+The following securities are being included:
+
+ Sr.      Index name                 ISIN           Issuer                        Maturity
+ No.                                                                              Date
+ 1        Nifty AA- Medium           INE146O08175   HINDUJA LEYLAND FINANCE       08-Oct-26
+          Duration Bond Index                       LIMITED
+ 2        Nifty AA- Medium           INE155A08431   TATA MOTORS LIMITED           31-Mar-26
+          Duration Bond Index
+ 3        Nifty AA- Medium           INE923L07225   SP JAMMU UDHAMPUR HIGHWAY     30-Jun-26
+          Duration Bond Index                       LIMITED
+ 4        Nifty AA- Medium to        INE923L07233   SP JAMMU UDHAMPUR HIGHWAY     31-Dec-26
+          long Duration Bond                        LIMITED
+          Index
+ 5        Nifty AA Short Duration    INE092T08BS4   IDFC FIRST BANK LIMITED       03-Jan-25
+          Bond Index
+ 6        Nifty AA Short Duration    INE114A07869   STEEL AUTHORITY OF INDIA      14-Oct-24
+          Bond Index                                LIMITED
+ 7        Nifty AA Short Duration    INE141A08019   PUNJAB NATIONAL BANK          27-Oct-24
+          Bond Index
+ 8        Nifty AA Short Duration    INE148I07IZ9   INDIABULLS HOUSING FINANCE    05-Jun-23
+          Bond Index                                LIMITED
+ 9        Nifty AA Short Duration    INE245A07408   THE TATA POWER COMPANY        17-Sep-24
+          Bond Index                                LIMITED
+ 10       Nifty AA Short Duration    INE516Y07386   PIRAMAL CAPITAL AND HOUSING   23-Sep-23
+          Bond Index                                FINANCE LIMITED
+ 11       Nifty AA Short Duration    INE572E09239   PNB HOUSING FINANCE LIMITED   31-Jan-24
+          Bond Index
+ 12       Nifty AA+ Medium           INE535H08637   FULLERTON INDIA CREDIT        13-Oct-25
+          Duration Bond Index                       COMPANY LIMITED
+ 13       Nifty AA+ Medium           INE742F07353   ADANI PORTS AND SPECIAL       27-May-26
+          Duration Bond Index                       ECONOMIC ZONE LIMITED
+ 14       Nifty AA+ Medium           INE774D08MA6   MAHINDRA AND MAHINDRA         06-Jun-26
+          Duration Bond Index                       FINANCIAL SERVICES LIMITED
+ 15       Nifty AA+ Medium           INE957N08011   HERO FINCORP LIMITED          15-Sep-25
+          Duration Bond Index
+ 16       Nifty AA+ Medium to        INE121A08OF1   CHOLAMANDALAM INVESTMENT      30-Aug-27
+          long Duration Bond                        AND FINANCE COMPANY LIMITED
+          Index
+ 17       Nifty AA+ Medium to        INE139F07105   KONKAN RAILWAY CORPORATION    22-Sep-26
+          long Duration Bond                        LIMITED
+          Index
+ 18    Nifty AA+ Medium to     INE202E07252       INDIAN RENEWABLE ENERGY               29-Mar-27
+       long Duration Bond                         DEVELOPMENT AGENCY LIMITED
+       Index
+ 19    Nifty AA+ Medium to     INE414G07FY8       MUTHOOT FINANCE LIMITED               30-May-31
+       long Duration Bond
+       Index
+ 20    Nifty AA+ Medium to     INE774D08MG3       MAHINDRA AND MAHINDRA                 06-Jun-26
+       long Duration Bond                         FINANCIAL SERVICES LIMITED
+       Index
+ 21    Nifty AA+ Medium to     INE950O08196       MAHINDRA RURAL HOUSING                16-Dec-30
+       long Duration Bond                         FINANCE LIMITED
+       Index
+
+
+
+
+About National Stock Exchange of India Limited (NSE):
+
+National Stock Exchange of India (NSE) is the world’s largest derivatives exchange by trading volume
+(contracts) as per the statistics maintained by Futures Industry Association (FIA) for calendar year
+2020. NSE is ranked 4th in the world in the cash equities by number of trades as per the statistics
+maintained by the World Federation of Exchanges (WFE) for calendar year 2020. NSE was the first
+exchange in India to implement electronic or screen-based trading. It began operations in 1994 and is
+ranked as the largest stock exchange in India in terms of total and average daily turnover for equity
+shares every year since 1995, based on SEBI data. NSE has a fully-integrated business model
+comprising exchange listings, trading services, clearing and settlement services, indices, market data
+feeds, technology solutions and financial education offerings. NSE also oversees compliance by
+trading, clearing members and listed companies with the rules and regulations of SEBI and the
+exchange. NSE is a pioneer in technology and ensures the reliability and performance of its systems
+through a culture of innovation and investment in technology.
+For more information, please visit: www.nseindia.com
+
+
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary
+of NSE, provides a variety of indices and index related services for the capital markets. The company
+focuses on the index as a core product. The company owns and manages a portfolio of indices under
+the NIFTY brand of NSE, including the flagship index, the NIFTY 50. NIFTY equity indices
+comprises of broad-based benchmark indices, sectoral indices, strategy indices, thematic indices and
+customised indices. NSE Indices Limited also maintains fixed income indices based on Government
+of India securities, corporate bonds, money market instruments and hybrid indices. Many investment
+products based on NIFTY indices have been developed within India and abroad. These include index
+based derivatives traded on NSE, NSE IFSC and Singapore Exchange Ltd. (SGX) and a number of
+index funds and exchange traded funds. The flagship 'NIFTY 50' index is widely tracked and traded
+as the benchmark for Indian Capital Markets.
+For more information, please visit: www.niftyindices.com
+For any clarifications please contact:
+Arijit Sengupta
+Chief Marketing & Communications Officer
+
+
+Kumar Kartikey
+Chief Manager, Corporate Communication
+Email id: cc@nse.co.in
+

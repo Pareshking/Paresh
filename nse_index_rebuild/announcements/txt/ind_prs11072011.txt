@@ -1,0 +1,84 @@
+       IISL
+       INDIA INDEX SERVICES & PRODUCTS LIMITED
+        (A joint venture of NSE & CRISIL)
+
+
+                                      PRESS RELEASE
+
+                              LAUNCH OF NEW INDICES
+
+In continuation of its efforts to develop indices that meet the requirements of market
+participants, IISL proposes to launch the following Indices:
+
+
+   1. CNX Consumption Index
+   2. CNX Auto Index
+   3. CNX Metal Index
+
+
+CNX Consumption Index
+
+
+The CNX Consumption Index is designed to reflect the behaviour and performance of a
+diversified portfolio of companies representing the domestic consumption sector.
+
+
+Methodology:
+The index is calculated using free float market capitalization methodology with a base date of
+January 2, 2006 indexed to a base value of 1000. The index is capped at a stock level of 10%
+i.e. no individual stock should have a weightage of more than 10% in the index at any given
+point of time.
+
+
+Selection Criteria:
+The criteria for the CNX Consumption Index include the following:
+   1. Companies must rank within the top 500 companies ranked by average free-float
+       market capitalization and aggregate turnover for the last six months.
+   2. More than 50% of the company’s revenue must come from domestic markets (other
+       than export income).
+   3. The company’s trading frequency should be at least 90% in the last six months.
+   4. The company should have reported a positive net worth.
+   5. The company should have an investable weight factor (IWF) of at least 10%.
+   6. The company should have a listing history of 6 months. A company which comes out
+        with an IPO will be eligible for inclusion in the index, if it fulfills the normal
+        eligibility criteria for the index for a 3 month period instead of a 6 month period.
+   7. Final selection of 30 companies shall be done based on the free-float market
+        capitalization of the companies.
+   8. The review will be carried out on a semi-annual basis.
+
+
+CNX Auto Index and CNX Metal Index:
+
+
+These Sectoral Indices are designed to indicate of the performance of the respective
+underlying sectors viz. Automobiles and Metals (including Mining) respectively.
+
+
+Methodology:
+The Sectoral Indices are computed using the free float market capitalization method with a
+base value of 1000. The base date for CNX Auto Index and CNX Metal Index is January 1,
+2004.
+
+
+Selection Criteria:
+The criteria for the Sectoral Indices include the following:
+   1. Companies must rank within the top 500 companies by average free-float market
+        capitalisation and aggregate turnover for the last six months.
+   2. The company's trading frequency should be at least 90% in the last 6 months.
+   3. The company should have reported a positive net worth.
+   4. The company should have a listing history of 6 months. A company which comes out
+        with an IPO will be eligible for inclusion in the index, if it fulfills the normal
+        eligibility criteria for the index for a 3 month period instead of a 6 month period.
+   5. Final selection of 15 companies for each index (within the respective sectors) shall be
+        done based on the free-float market capitalization of the companies.
+   6. The review will take place on a semi-annual basis.
+
+
+The indices will be maintained by IISL & calculated on an end-of-day basis. The indices will
+be launched with effect from July 12, 2011. The closing values of these indices would be
+available on www.nseindia.com.
+
+
+Place: Mumbai
+Date: July 11, 2011
+

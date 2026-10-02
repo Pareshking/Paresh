@@ -1,0 +1,72 @@
+       IISL
+       INDIA INDEX SERVICES & PRODUCTS LIMITED
+        (A joint venture of NSE & CRISIL)
+
+
+                                        PRESS RELEASE
+
+                              LAUNCH OF NEW INDICES
+
+In continuation of its efforts to develop indices that meet the requirements of market
+participants, IISL announces launch of the following indices:
+
+
+   1. CNX Low Volatility Index
+   2. CNX High Beta Index
+   3. CNX Alpha Index
+
+
+CNX Low Volatility Index
+
+
+The CNX Low Volatility index aims to measure the performance of the least volatile
+securities listed on NSE. The index focuses on creating a portfolio of least volatile securities
+which shall curb the downside during the bear phases of the market. The index constitutes of
+50 securities and weights are assigned based on the volatility values. Security having lowest
+volatility in the index gets the highest weight.
+
+
+CNX High Beta Index
+
+
+The CNX High Beta index aims to measure the performance of the stocks listed on NSE that
+have High Beta. Beta can be referred to as a measure of the sensitivity of stock returns to
+market returns. The market is represented by the performance of the S&P CNX Nifty. The
+index constitutes of 50 securities and weights are assigned based on the Beta values. Security
+having highest beta in the index gets the highest weight.
+
+
+CNX Alpha Index
+
+
+The CNX Alpha Index aims to measure the performance of securities listed on NSE with
+high alphas. It measures the performance on a risk-adjusted basis. The index constitutes of 50
+securities and weights are assigned based on the alpha values. Security having highest alpha
+in the index gets the highest weight.
+Selection Criteria:
+
+
+Following scrips selection criteria have been applied for selection of CNX Low Volatility,
+CNX High Beta and CNX Alpha index:
+
+
+      Companies must rank within the top 300 companies by average free-float market
+       capitalization and aggregate turnover for the last six months.
+      The company should have a listing history of 1 year.
+      The company should have an investable weight factor (IWF) of at least 10%.
+      The company should have reported a positive net worth.
+      Volatility, Beta, Alpha of eligible securities calculated using 1 year trailing prices
+       (adjusted for corporate actions) are assigned ranks.
+      Top 50 securities ranked by low volatility, high beta and high alpha form part of
+       respective Index.
+      In order to reduce the replacements of scrip in the index, a buffer of 100% shall be
+       applied in the quarterly reviews.
+
+
+The indices will be calculated on an end-of-day basis. The closing values of these indices
+would be available on www.nseindia.com.
+
+
+Place: Mumbai
+Date: November 19, 2012
+

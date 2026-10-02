@@ -1,0 +1,40 @@
+PRESS RELEASE
+Mumbai, July 08, 2025
+
+
+
+                             Revision to Nifty 5 yr Benchmark G-Sec Index
+
+       The Index Maintenance Sub-Committee (Debt) of NSE Indices Limited has decided to revise the index
+       methodology of Nifty 5 yr Benchmark G-Sec Index as mentioned hereunder.
+
+       Parameter                  Existing Method                       Revised Method
+                                  Residual maturity of the security Residual maturity of the security
+       Eligible universe          should be between 4-6.5 years as on should be between 4-6 years as on
+                                  the index effective date              the index effective date
+                                  An existing bond will be replaced An existing bond will be replaced
+       Rebalancing/Reconstitution only by an eligible bond whose total only by an eligible bond whose total
+       - Replacement of existing traded volume during the review traded volume during the review
+       ISIN                       period is equal to or more than 1.10x period is equal to or more than
+                                  of the existing bond                  1.25x of the existing bond
+                                  Fortnightly trade data to be Monthly trade data to be considered
+       Data Analysis period
+                                  considered for analysis               for analysis
+
+       The new index methodology shall become effective from July 31, 2025.
+       About NSE Indices Limited:
+       NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary of
+       NSE, provides a variety of indices and index related services for the capital markets. The company
+       focuses on the index as a core product. The company owns and manages a portfolio of indices under
+       the Nifty brand of NSE, including the flagship index, the Nifty 50. Nifty equity indices comprises
+       broad-based benchmark indices, sectoral indices, strategy indices, thematic indices, and customised
+       indices. NSE Indices Limited also maintains fixed income indices based on Government of India
+       securities, corporate bonds, money market instruments and hybrid indices. Many investment products
+       based on Nifty indices have been developed within India and abroad. These include index-based
+       derivatives traded on NSE and NSE International Exchange IFSC Limited (NSE IX) and a number of
+       index funds and exchange traded funds. The flagship 'Nifty 50' index is widely tracked and traded as
+       the benchmark for Indian Capital Markets.
+       For more information, please visit: www.niftyindices.com
+       Press contact:
+       Email ID: cc@nse.co.in
+

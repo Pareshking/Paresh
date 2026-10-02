@@ -1,0 +1,51 @@
+PRESS RELEASE
+Mumbai, October 27, 2023
+
+
+
+                                Revision in Nifty Fixed Income indices
+
+      The Index Maintenance Sub-Committee (Debt) of NSE Indices Limited has decided to revise the index
+      methodology and index name of Nifty India Select 7 Government Bond Index (INR) as mentioned
+      hereunder.
+
+       Parameter       Existing Method                          Revised Method
+       Security        The minimum outstanding amount for Securities should be categorized under the
+       Eligibility     government security should be Rs Fully Accessible Route (FAR) by RBI.
+                       15,000 crores if it is categorized under
+                       the Fully Accessible Route (FAR) by
+                       RBI and should be Rs 25,000 crores
+                       for General category G-Secs.
+
+      The above change in the methodology shall automatically be applicable to Nifty India Select 7
+      Government Bond Index (USD). Accordingly, based on the change mentioned above, the Index
+      Maintenance Sub-Committee (Debt) of NSE Indices Limited has also decided to revise the index name
+      as summarized in the table below:
+
+       Parameter       Existing Name                   Revised Name
+       Index name      Nifty India Select 7 Government Nifty India Government Fully Accessible
+                       Bond Index (INR)                Route (FAR) Select 7 Bonds Index (INR)
+
+       Index name      Nifty India Select 7 Government Nifty India Government Fully Accessible
+                       Bond Index (USD)                Route (FAR) Select 7 Bonds Index (USD)
+
+
+
+      The new index methodology and index name shall become effective from November 30, 2023.
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a subsidiary of
+NSE, provides a variety of indices and index related services for the capital markets. The company
+focuses on the index as a core product. The company owns and manages a portfolio of indices under
+the Nifty brand of NSE, including the flagship index, the Nifty 50. Nifty equity indices comprise of
+broad-based benchmark indices, sectoral indices, strategy indices, thematic indices and customised
+indices. NSE Indices Limited also maintains fixed income indices based on Government of India
+securities, corporate bonds, money market instruments and hybrid indices. Many investment products
+based on Nifty indices have been developed within India and abroad. These include index based
+derivatives traded on NSE and NSE International Exchange IFSC Limited (NSE IX) and a number of
+index funds and exchange traded funds. The flagship 'Nifty 50' index is widely tracked and traded as
+the benchmark for Indian Capital Markets.
+
+
+For more information, please visit: www.niftyindices.com
+Press contact: Email ID: cc@nse.co.in
+

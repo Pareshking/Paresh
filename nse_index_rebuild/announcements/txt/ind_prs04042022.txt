@@ -1,0 +1,136 @@
+PRESS RELEASE
+Mumbai, April 04, 2022
+
+
+      NSE Indices launches 66 new Fixed Income Indices in line with SEBI’s
+      Potential Risk Class (PRC) Matrix for debt mutual funds
+      NSE’s index services subsidiary, NSE Indices Limited today launched 66 new Fixed Income
+      Indices as benchmarks for debt mutual funds aligned with SEBI’s new Potential Risk Class
+      (PRC) matrix for debt mutual funds.
+      The Nifty Fixed Income PRC (Potential Risk Class) Indices are based on SEBI guidelines on
+      Potential Risk Class Matrix for debt schemes based on Interest Rate Risk and Credit Risk and
+      have been prepared for various categories of MFs as per SEBI guidelines on ‘Categorization and
+      Rationalization of Mutual Fund Schemes’ with respect to Macaulay’s Duration and Credit Rating
+      range for each debt fund category. The complete list of these 66 indices is available in Annexure
+      1. 33 out of these 66 indices have been included in the list of benchmark indices intended to be
+      used by Asset Management Companies as Tier I benchmarks for open ended debt schemes as per
+      the Potential Risk Class Matrix. Remaining indices can be used as Tier II benchmarks.
+      All PRC indices have a base date of September 03, 2001, and a base value of 1000.
+
+
+      For more information on index methodology and factsheet, please visit us at
+      www.niftyindices.com or www.nseindia.com
+About National Stock Exchange of India Limited (NSE):
+
+National Stock Exchange of India (NSE) is the world’s largest derivatives exchange by trading
+volume (contracts) as per the statistics maintained by Futures Industry Association (FIA) for
+calendar year 2021. NSE is ranked 4th in the world in the cash equities by number of trades as
+per the statistics maintained by the World Federation of Exchanges (WFE) for calendar year 2021.
+NSE was the first exchange in India to implement electronic or screen-based trading. It began
+operations in 1994 and is ranked as the largest stock exchange in India in terms of total and
+average daily turnover for equity shares every year since 1995, based on SEBI data. NSE has a
+fully integrated business model comprising exchange listings, trading services, clearing and
+settlement services, indices, market data feeds, technology solutions and financial education
+offerings. NSE also oversees compliance by trading, clearing members and listed companies with
+the rules and regulations of SEBI and the exchange. NSE is a pioneer in technology and ensures
+the reliability and performance of its systems through a culture of innovation and investment in
+technology.
+
+For more information, please visit: https://www.nseindia.com
+
+About NSE Indices Limited:
+NSE Indices Limited (formerly known as India Index Services & Products Ltd. - IISL), a
+subsidiary of NSE, provides a variety of indices and index related services for the capital markets.
+The company focuses on the index as a core product. The company owns and manages a portfolio
+of indices under the NIFTY brand of NSE, including the flagship index, the NIFTY 50. NIFTY
+equity indices comprises of broad-based benchmark indices, sectoral indices, strategy indices,
+thematic indices and customised indices. NSE Indices Limited also maintains fixed income indices
+based on Government of India securities, corporate bonds, money market instruments and hybrid
+indices. Many investment products based on NIFTY indices have been developed within India and
+abroad. These include index based derivatives traded on NSE, NSE IFSC and Singapore Exchange
+Ltd. (SGX) and a number of index funds and exchange traded funds. The flagship 'NIFTY 50'
+index is widely tracked and traded as the benchmark for Indian Capital Markets.
+For more information, please visit: www.niftyindices.com
+
+
+Press contact:
+Kumar Kartikey - Chief Manager, Corporate Communications
+Priyanka Roy - Manager, Corporate Communications
+Email ID: cc@nse.co.in
+Annexure 1:
+
+List of Nifty Fixed Income PRC Indices:
+
+  Sr.      Debt Fund          PRC                                                       Benchmark
+                                                             Index Name
+  No       Category          Bucket                                                        Tier
+  1                            A-I        Nifty Liquid Index A-I                        Tier I
+  2           Liquid           B-I        Nifty Liquid Index B-I                        Tier I
+  3                            C-I        Nifty Liquid Index C-I                        Tier I
+  4                            A-I        Nifty Money Market Index A-I                  Tier I
+  5      Money Market          B-I        Nifty Money Market Index B-I                  Tier I
+  6                            C-I        Nifty Money Market Index C-I                  Tier I
+  7                            A-I        Nifty Ultra Short Duration Debt Index A-I     Tier I
+  8                            B-I        Nifty Ultra Short Duration Debt Index B-I     Tier I
+  9                            C-I        Nifty Ultra Short Duration Debt Index C-I     Tier I
+  10                           A-II       Nifty Ultra Short Duration Debt Index A-II    Tier II
+  11       Ultra Short         B-II       Nifty Ultra Short Duration Debt Index B-II    Tier II
+  12                           C-II       Nifty Ultra Short Duration Debt Index C-II    Tier II
+  13                          A-III       Nifty Ultra Short Duration Debt Index A-III   Tier II
+  14                          B-III       Nifty Ultra Short Duration Debt Index B-III   Tier II
+  15                          C-III       Nifty Ultra Short Duration Debt Index C-III   Tier II
+  16                           A-I        Nifty Low Duration Debt Index A-I             Tier I
+  17                           B-I        Nifty Low Duration Debt Index B-I             Tier I
+  18                           C-I        Nifty Low Duration Debt Index C-I             Tier I
+  19                           A-II       Nifty Low Duration Debt Index A-II            Tier II
+  20      Low Duration         B-II       Nifty Low Duration Debt Index B-II            Tier II
+  21                           C-II       Nifty Low Duration Debt Index C-II            Tier II
+  22                          A-III       Nifty Low Duration Debt Index A-III           Tier II
+  23                          B-III       Nifty Low Duration Debt Index B-III           Tier II
+  24                          C-III       Nifty Low Duration Debt Index C-III           Tier II
+  25                           A-II       Nifty Short Duration Debt Index A-II          Tier I
+  26                           B-II       Nifty Short Duration Debt Index B-II          Tier I
+  27                           C-II       Nifty Short Duration Debt Index C-II          Tier I
+          Short Duration
+  28                          A-III       Nifty Short Duration Debt Index A-III         Tier II
+  29                          B-III       Nifty Short Duration Debt Index B-III         Tier II
+  30                          C-III       Nifty Short Duration Debt Index C-III         Tier II
+  31    Medium Duration       A-III       Nifty Medium Duration Debt Index A-III        Tier I
+32                     B-III   Nifty Medium Duration Debt Index B-III           Tier I
+33                     C-III   Nifty Medium Duration Debt Index C-III           Tier I
+34   Medium to Long    A-III   Nifty Medium to Long Duration Debt Index A-III   Tier I
+35      Duration       B-III   Nifty Medium to Long Duration Debt Index B-III   Tier I
+36                     C-III   Nifty Medium to Long Duration Debt Index C-III   Tier I
+37                     A-III   Nifty Long Duration Debt Index A-III             Tier I
+38    Long Duration    B-III   Nifty Long Duration Debt Index B-III             Tier I
+39                     C-III   Nifty Long Duration Debt Index C-III             Tier I
+40                     A-I     Nifty Corporate Bond Index A-I                   Tier II
+41                     B-I     Nifty Corporate Bond Index B-I                   Tier I
+42                     A-II    Nifty Corporate Bond Index A-II                  Tier II
+     Corporate Bond
+43                     B-II    Nifty Corporate Bond Index B-II                  Tier I
+44                     A-III   Nifty Corporate Bond Index A-III                 Tier II
+45                     B-III   Nifty Corporate Bond Index B-III                 Tier I
+46                     A-I     Nifty Banking & PSU Debt Index A-I               Tier II
+47                     B-I     Nifty Banking & PSU Debt Index B-I               Tier II
+48                     C-I     Nifty Banking & PSU Debt Index C-I               Tier II
+49                     A-II    Nifty Banking & PSU Debt Index A-II              Tier II
+50   Banking and PSU   B-II    Nifty Banking & PSU Debt Index B-II              Tier II
+51                     C-II    Nifty Banking & PSU Debt Index C-II              Tier II
+52                     A-III   Nifty Banking & PSU Debt Index A-III             Tier II
+53                     B-III   Nifty Banking & PSU Debt Index B-III             Tier II
+54                     C-III   Nifty Banking & PSU Debt Index C-III             Tier II
+55                     B-I     Nifty Credit Risk Bond Index B-I                 Tier II
+56                     C-I     Nifty Credit Risk Bond Index C-I                 Tier I
+57                     B-II    Nifty Credit Risk Bond Index B-II                Tier II
+       Credit Risk
+58                     C-II    Nifty Credit Risk Bond Index C-II                Tier I
+59                     B-III   Nifty Credit Risk Bond Index B-III               Tier II
+60                     C-III   Nifty Credit Risk Bond Index C-III               Tier I
+61                     A-III   Nifty Composite Debt Index A-III                 Tier I
+62    Dynamic Debt     B-III   Nifty Composite Debt Index B-III                 Tier I
+63                     C-III   Nifty Composite Debt Index C-III                 Tier I
+64                     A-I     Nifty G-Sec Index A-I                            Tier II
+65        Gilt         A-II    Nifty G-Sec Index A-II                           Tier II
+66                     A-III   Nifty G-Sec Index A-III                          Tier II
+

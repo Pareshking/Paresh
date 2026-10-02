@@ -1,0 +1,70 @@
+IISL
+INDIA INDEX SERVICES & PRODUCTS LIMITED
+(A joint venture of NSE & CRISIL)
+
+
+                                 PRESS RELEASE
+
+       Change in Index computation methodology of various indices
+                         w.e.f. October 11, 2010
+The following indices are currently computed by IISL using full market capitalization
+weighted methodology:
+
+        1.   S&P CNX 500 Index
+        2.   S&P CNX Industry Indices
+        3.   CNX Energy Index
+        4.   CNX FMCG Index
+        5.   CNX Infrastructure Index
+        6.   CNX MNC Index
+        7.   CNX Pharma Index
+        8.   CNX PSE Index
+        9.   CNX Service Sector Index
+
+With effect from October 11, 2010, these indices will be calculated using free float
+market capitalization methodology.
+
+The following indices are currently computed by IISL using free float market
+capitalization methodology:
+
+        1. S&P CNX Nifty Index
+        2. S&P CNX Defty Index
+        3. CNX Nifty Junior Index
+        4. CNX 100 Index
+        5. CNX Midcap Index
+        6. CNX Bank Index
+        7. CNX IT Index
+        8. CNX Realty Index
+        9. CNX PSU Bank Index
+        10. S&P CNX Nifty Shariah Index
+        11. S&P CNX 500 Shariah Index
+        12. Nifty Midcap 50 Index
+
+The following additional information is being provided related to free float methodology
+and impact on index values:
+
+   •    The index values to be computed from October 11, 2010 will be part of the same
+        index. It will not be a new index series.
+   •   There will be no change to the index values on the date of transition due to the
+       change in the methodology. The index divisor will be suitably adjusted to ensure
+       continuity in index values.
+   •   The free float factor (Investible Weight Factor – IWF) for each company in the
+       index will be determined based on the public shareholding of the companies as
+       disclosed in the shareholding pattern submitted to the stock exchanges by these
+       companies on a quarterly basis.. Further, the following categories would also be
+       excluded from the free float factor where identifiable separately:
+
+          •   Government holding in the capacity of strategic investor
+          •   Shares held by promoters through ADR/GDRs
+          •   Strategic stakes by corporate bodies
+          •   Investments under FDI category
+          •   Equity held by associate/group companies (cross-holdings)
+          •   Employee Welfare Trusts
+          •   Shares under lock-in category
+
+After the change in methodology for the above- mentioned indices, all standard indices
+created and maintained by IISL would be computed using free float market capitalization
+methodology.
+
+Place: Mumbai
+Date: September 9, 2010
+
