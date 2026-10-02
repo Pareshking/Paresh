@@ -76,10 +76,25 @@ def _membership_intervals(history: dict[str, Any], index_name: str | None = None
     if not baseline:
         raise RuntimeError("membership history has no baseline")
 
+    baseline_date = pd.Timestamp(baseline["date"]).date()
     state = set(baseline["symbols"])
-    starts: dict[str, date] = {
-        symbol: pd.Timestamp(baseline["date"]).date() for symbol in state
-    }
+
+    # Reverse documented ticker aliases that take effect after this baseline.
+    # The terminal constituent snapshot can already contain the future ticker;
+    # replaying the alias event otherwise creates a removal for a symbol that
+    # never had an active interval. Preserve the old ticker until the effective
+    # date so the timeline records continuity rather than a false exit.
+    for old_symbol, alias in history.get("aliases", {}).items():
+        new_symbol = alias.get("new_symbol")
+        effective_raw = alias.get("effective")
+        if not new_symbol or not effective_raw:
+            continue
+        effective_date = pd.Timestamp(effective_raw).date()
+        if baseline_date < effective_date and new_symbol in state:
+            state.remove(new_symbol)
+            state.add(old_symbol)
+
+    starts: dict[str, date] = {symbol: baseline_date for symbol in state}
     rows: list[dict[str, Any]] = []
 
     cutoff = pd.Timestamp(as_of).date()
