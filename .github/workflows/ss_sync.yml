@@ -1,10 +1,13 @@
-name: SS price sync (manual, gentle)
+name: SS price sync (gentle)
 
 # Downloads the SS store a few symbols at a time, well under the site's
 # rate limit (site owner, 2026-10-02: "do not hammer my site by downloading
 # entire universe in one go, give some breathing to my website").
-# Resumable: each run continues where the last one stopped.
+# Resumable: each run continues where the last one stopped. Runs nightly
+# until everything is downloaded, then each run finds nothing to do.
 on:
+  schedule:
+    - cron: "17 21 * * *"   # 02:47 IST, when the site is quietest
   workflow_dispatch:
     inputs:
       rounds:
@@ -28,6 +31,8 @@ jobs:
     env:
       PYTHONPATH: .
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ROUNDS: ${{ inputs.rounds || '5' }}
+      PER_ROUND: ${{ inputs.per_round || '40' }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -48,13 +53,15 @@ jobs:
         env:
           SS_BASE_URL: ${{ secrets.SS_BASE_URL }}
         run: |
-          for i in $(seq 1 ${{ inputs.rounds }}); do
+          set -o pipefail
+          for i in $(seq 1 "$ROUNDS"); do
             echo "=== Round $i ==="
-            python scripts/sync_ss.py --skip-done --delay 4 --limit ${{ inputs.per_round }} | tee round.log \
+            python scripts/sync_ss.py --skip-done --delay 4 --limit "$PER_ROUND" | tee round.log \
               || { echo "Stopped (refused or nothing fetched); saving progress."; break; }
             if grep -q "^SS: 0 symbols" round.log; then echo "Everything is downloaded."; break; fi
-            [ "$i" -lt "${{ inputs.rounds }}" ] && sleep 300
+            if [ "$i" -lt "$ROUNDS" ]; then sleep 300; fi
           done
+          echo "Done."
 
       - name: Save to the data-latest release
         if: always()
