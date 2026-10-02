@@ -82,38 +82,8 @@ def _last_session(frame: pd.DataFrame):
         return None
 
 
-def _snapshot_from_r2(fact: str):
-    """The price snapshot from R2, verified and parsed, or None."""
-    body = app_source.fetch_latest(app_source.PRICE_SNAPSHOT, "price_snapshot")
-    if body is None or len(body) < MIN_PLAUSIBLE_BYTES:
-        return None
-    started = time.perf_counter()
-    tmp_path = None
-    try:
-        os.makedirs(os.path.dirname(PRICES_FILE), exist_ok=True)
-        fd, tmp_path = tempfile.mkstemp(suffix=".parquet", dir=os.path.dirname(PRICES_FILE))
-        with os.fdopen(fd, "wb") as fh:
-            fh.write(body)
-        frame = pd.read_parquet(tmp_path)
-        if frame.empty or len(frame.columns) == 0:
-            raise ValueError("empty frame")
-    except Exception as exc:
-        logger.info("Price snapshot from R2 unusable (%s).", type(exc).__name__)
-        if tmp_path and os.path.exists(tmp_path):
-            os.unlink(tmp_path)
-        return None
-    metrics.note(fact, "r2")
-    app_source.record("price_snapshot", "r2")
-    return _Snapshot(frame=frame, tmp_path=tmp_path, size=len(body),
-                     elapsed=time.perf_counter() - started)
-
-
 def _snapshot(url: str | None, fact: str):
-    """R2 first when no URL was named, then the release file."""
-    if url is None:
-        snap = _snapshot_from_r2(fact)
-        if snap is not None:
-            return snap
+    """The release file, parsed (the price snapshot is no longer read from R2)."""
     snap = _download_snapshot(url or PRICE_SNAPSHOT_URL, fact)
     if snap is not None and url is None:
         app_source.record("price_snapshot", "release")

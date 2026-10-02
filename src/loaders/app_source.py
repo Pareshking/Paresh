@@ -1,8 +1,8 @@
 """Where the app gets its published data: R2 first, the release files second.
 
-The nightly jobs publish three files the app starts from -- the ranking
-table, the Screener price history and the two-year price snapshot -- to both
-R2 and the GitHub release. R2 is the canonical archive (owner, 2026-09-27:
+The nightly jobs publish the ranking table and the Screener price history to
+both R2 and the GitHub release. Yahoo price files (the two-year snapshot and
+the extra universe's) are on the release only. R2 is the canonical archive (owner, 2026-09-27:
 "the app should use R2"), so the app asks it first, through the same
 manifest-checked reader every other consumer uses: the pointer names a
 revision, the manifest names the object, and the object's size and SHA-256
@@ -33,7 +33,6 @@ from src.core.logger import logger
 # passes to scripts/r2_publish.py).
 RANKINGS = "snapshots/rankings"
 SCREENER_STORE = "prices/screener"
-PRICE_SNAPSHOT = "app/prices_snapshot"
 
 _KEYS = ("R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY",
          "R2_ENDPOINT", "R2_BUCKET")

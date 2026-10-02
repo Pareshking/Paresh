@@ -12,8 +12,9 @@ the repo copy the app reads at run time.
 | Dataset (R2 prefix) | What it is | Grain | History | Writer (workflow, UTC) | Readers | Retention |
 |---|---|---|---|---|---|---|
 | `prices/screener` | Screener.in adjusted daily closes, ~1,167 stocks | stock × day | 10 years (bootstrap) | `screener_sync` 18:45 daily; `weekly_full_sync` Fri 18:30 | App price loader, backtests | Full history |
-| `prices/yahoo` | Yahoo adjusted closes, whole universe | stock × day | 10 years | `daily_sync` Mon–Fri 17:30 | App fallback, comparison reports | Last 7 dates + month-end of every month (policy 2026-09-25) |
-| `prices/yahoo/raw`, `prices/yahoo/bootstrap`, `prices/screener/bootstrap` | Source-faithful raw pulls and bootstrap loads | file | as pulled | `r2_yahoo_raw_build`, `screener_10y_bootstrap` | Rebuilds, audits | Never touched |
+| `prices/yahoo` | **Retired 2026-10-02**: no longer published; Yahoo files live on the `data-latest` release only | — | — | — | — | Deleted whole by `r2_retention` |
+| `prices/yahoo/raw`, `prices/yahoo/bootstrap` | **Retired** (Yahoo data removed from R2) | — | — | — | — | Deleted whole |
+| `prices/screener/bootstrap` | Bootstrap load | file | as pulled | `screener_10y_bootstrap` | Rebuilds, audits | Never touched |
 | `nse/prices_daily` | NSE bhav copy, unadjusted OHLC and index closes, ~3,800 securities | security × day | back to 2023-10-03 (3 years) | `nse_collect` every 4 h; `daily_sync` collects the last 3 sessions | NSE adjustment layer, source checks | Full history |
 | `nse/corporate_actions` | NSE Bc file: splits, bonuses, demergers parsed to kind and price factor | action | 3 years | `nse_collect` | `src/loaders/nse_adjusted.py` | Full history |
 | `nse/market_caps` | NSE market cap per security | security × day | 3 years | `nse_collect` | Nano Cap list, screener MCAP column | Full history |
@@ -23,7 +24,7 @@ the repo copy the app reads at run time.
 | `indices/prices/research` | Index levels (Nifty 500, Nifty 50 …) | index × day | years | `r2_nse_index_prices` 20:30 | Benchmarks, RRG, Breadth | Full history |
 | `trading_sessions/observed` | Sessions that actually traded | day | grows daily | `r2_observed_trading_sessions` | Continuity audit | Full history |
 | `snapshots/rankings` | Daily ranking table (the rank history) | stock × day | grows daily | `r2_ranking_archive` 20:45 | Rank history, Track Record "Ranks by month" | Full history |
-| `snapshots/app_prices`, `snapshots/app_prices_extra` | App price bundle | file | latest | `daily_sync` | App cold start | Latest + month-end |
+| `app/prices_snapshot`, `app/prices_extra` | **Retired 2026-10-02**: app reads these from the release only | — | — | — | — | Deleted whole |
 | `snapshots/application` | Retired. No longer published (2026-09-25) | | | | | Existing copies follow the 7 + month-end rule |
 
 Policy and recovery: `docs/R2_RECOVERY_AND_RETENTION.md`. Layout and rules

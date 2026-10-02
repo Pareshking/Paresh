@@ -4,6 +4,8 @@ Owner-approved policy, 2026-09-25: for `prices/yahoo` and (added the same
 day) `prices/screener`, keep the last KEEP_DAILY as_of dates plus the last
 as_of of every calendar month. Every other dataset keeps its full history and
 is never touched here -- except a RETIRED dataset, which goes entirely.
+Retired since 2026-10-02 (owner: delete all Yahoo data from R2): `prices/yahoo`,
+`prices/yahoo/raw`, `app/prices_snapshot` and `app/prices_extra`.
 
 Retired (owner, 2026-09-27: "Delete both folders"): `snapshots/application`,
 no longer published since 2026-09-25 and never read from R2, and
@@ -61,25 +63,24 @@ KEEP_DAILY = 7
 # newest does not hold. prices/screener/bootstrap is a separate dataset and,
 # like every nested one, is never matched here.
 RETAINED_DATASETS: dict[str, str] = {
-    "prices/yahoo": "archive/prices/yahoo",
     "prices/screener": "archive/prices/screener",
-    "app/prices_snapshot": "snapshots/app_prices",
-    "app/prices_extra": "snapshots/app_prices_extra",
 }
 
-# Datasets that keep only their newest N dates, no month-ends: the app's
-# two-year snapshot is a working copy (each is the whole two years; the
-# history lives in prices/yahoo), republished nightly since 2026-09-27.
-KEEP_LATEST_ONLY: dict[str, int] = {
-    "app/prices_snapshot": 3,
-    "app/prices_extra": 3,
-}
+# Datasets that keep only their newest N dates, no month-ends. None now: the
+# app's Yahoo snapshots were retired below.
+KEEP_LATEST_ONLY: dict[str, int] = {}
 
 # dataset -> key root, deleted whole. Neither root is a prefix of another
 # dataset's (the trailing "/" is part of every match below).
 RETIRED_DATASETS: dict[str, str] = {
     "snapshots/application": "snapshots/application",
     "prices/yahoo/bootstrap": "archive/prices/yahoo/bootstrap",
+    # Owner: "delete all Yahoo data from R2". daily_sync no longer publishes any
+    # of these; the app reads the Yahoo files from the GitHub release only.
+    "prices/yahoo": "archive/prices/yahoo",
+    "prices/yahoo/raw": "archive/prices/yahoo/raw",
+    "app/prices_snapshot": "snapshots/app_prices",
+    "app/prices_extra": "snapshots/app_prices_extra",
 }
 
 _ENTRY = re.compile(
@@ -235,7 +236,8 @@ def _survivors(archive: R2Archive, pointer_key: str | None, mks: list[str],
 
 
 def plan_retired(archive: R2Archive, dataset: str, root: str,
-                 sizes: dict[str, int]) -> DatasetPlan:
+                 sizes: dict[str, int],
+                 retired: dict[str, str] | None = None) -> DatasetPlan:
     """Everything a retired dataset holds, pointers first, payloads last."""
     prefix = f"archive/manifests/{dataset}/"
     pointer_keys, manifest_keys = [], []
@@ -254,7 +256,10 @@ def plan_retired(archive: R2Archive, dataset: str, root: str,
         obj = str(body.get("object_key", "")) if isinstance(body, dict) else ""
         if not obj.startswith(f"{root}/"):
             plan.refused.append(f"{mk}: object_key {obj!r} is outside {root}/")
-    payloads = list(archive.list_keys(f"{root}/"))
+    # prices/yahoo's root holds nested datasets' payloads; each is planned
+    # under its own entry, so they are not counted twice here.
+    nested = tuple(f"{r}/" for r in (retired or {}).values() if r.startswith(f"{root}/"))
+    payloads = [k for k in archive.list_keys(f"{root}/") if not k.startswith(nested)]
     plan.delete_keys = sorted(pointer_keys) + sorted(manifest_keys) + sorted(payloads)
     plan.delete_bytes = sum(sizes.get(k, 0) for k in plan.delete_keys)
     return plan
@@ -265,7 +270,7 @@ def make_plan(archive: R2Archive,
               retired: dict[str, str] = RETIRED_DATASETS) -> list[DatasetPlan]:
     sizes = dict(archive.list_objects(""))
     return ([plan_dataset(archive, ds, root, sizes) for ds, root in datasets.items()]
-            + [plan_retired(archive, ds, root, sizes) for ds, root in retired.items()])
+            + [plan_retired(archive, ds, root, sizes, retired) for ds, root in retired.items()])
 
 
 def apply_plan(archive: R2Archive, plans: list[DatasetPlan]) -> int:

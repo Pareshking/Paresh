@@ -28,7 +28,6 @@ from src.engine import extra_universe as xu
 from src.loaders import app_source
 
 LIST_PATH = os.path.join(REPO_DATA_DIR, "indices", "ind_nanocap_list.csv")
-PRICES_EXTRA = "app/prices_extra"
 PRICES_EXTRA_URL = (f"https://github.com/{PRICE_SNAPSHOT_REPO}/releases/download/"
                     f"{PRICE_SNAPSHOT_TAG}/prices_extra.parquet")
 BATCH = 100
@@ -170,14 +169,7 @@ def download(symbols: list[str], period: str = "2y", fetch=None) -> pd.DataFrame
 
 
 def _published() -> pd.DataFrame | None:
-    """The nightly file: R2 first, the release second. None when neither serves."""
-    body = app_source.fetch_latest(PRICES_EXTRA, "prices_extra")
-    if body is not None:
-        try:
-            app_source.record("prices_extra", "r2")
-            return pd.read_parquet(io.BytesIO(body))
-        except Exception as exc:
-            logger.info("prices_extra from R2 unreadable (%s).", type(exc).__name__)
+    """The nightly file from the GitHub release. None when it does not serve."""
     try:
         resp = requests.get(PRICES_EXTRA_URL, timeout=60)
         if resp.status_code == 200:
