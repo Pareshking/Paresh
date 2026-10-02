@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import re
 
 import pandas as pd
 import pytest
@@ -39,8 +40,8 @@ def test_canonical_account_stats_use_frozen_ledger_and_live_mark():
 
 
 def test_backtest_separates_canonical_account_from_configurable_research():
-    source = inspect.getsource(backtest_view._backtest_body)
-    assert 'kit.card(\n            "Canonical account performance"' in source
+    source = inspect.getsource(backtest_view._backtest_tab)
+    assert re.search(r'kit\.card\(\s*"Canonical account performance"', source)
     assert "load_ledger(ledger_path(SYSTEM_750), inception(SYSTEM_750))" in source
     assert "current_book(" in source
     assert "Historical performance, trade history and parameter sweeps below use " in source

@@ -28,7 +28,9 @@ def test_nifty_100_is_nifty_50_plus_next_50_on_every_date():
     assert members_on(h, "2012-01-02", canonical=True) == {"AAA", "BBB", "CCC", "DDD"}
     # A stock moving from one half to the other on the same day stays in the 100.
     assert members_on(h, "2014-03-28", canonical=True) == {"AAA", "BBB", "CCC", "DDD"}
-    assert members_on(h, "2009-12-31") is None
+    # The 1 Jan 2010 list also answers for the 31 Dec close that signals January's book.
+    assert members_on(h, "2009-12-31", canonical=True) == {"AAA", "BBB", "CCC", "DDD"}
+    assert members_on(h, "2009-12-30") is None
 
 
 def test_an_index_starts_at_its_own_first_whole_month():
@@ -160,3 +162,27 @@ def test_tejhq_fills_only_gaps_in_nses_list(tmp_path):
     assert n == 1 and out["symbol"].tolist() == ["ABC", "SUPRAJIT"]
     assert out.iloc[1]["price_factor"] == pytest.approx(0.1)
     assert with_tejhq(nse, tmp_path / "missing.csv") == (nse, 0)
+
+
+def test_the_historical_industries_use_nse_sector_names_and_fill_the_gaps():
+    import src.engine.pipeline  # noqa: F401
+    from src.loaders import former_members
+    from src.ui.views import backtest_view
+
+    frame = pd.read_csv(backtest_view.HISTORICAL_INDUSTRIES)
+    assert not frame["NSE_SYMBOL"].duplicated().any()
+    allowed = {
+        "Automobile and Auto Components", "Capital Goods", "Chemicals", "Construction",
+        "Construction Materials", "Consumer Durables", "Consumer Services", "Diversified",
+        "Fast Moving Consumer Goods", "Financial Services", "Forest Materials", "Healthcare",
+        "Information Technology", "Media Entertainment & Publication", "Metals & Mining",
+        "Oil Gas & Consumable Fuels", "Power", "Realty", "Services", "Telecommunication",
+        "Textiles", "Utilities",
+    }
+    assert set(frame["SECTOR"]) <= allowed and (frame["SOURCE_URL"] != "").all()
+    # Every stock any index ever listed now has an industry for the cap.
+    syms = sorted(iu.all_ever_members())
+    known = former_members.industry_for(syms)
+    past = dict(zip(frame["NSE_SYMBOL"], frame["SECTOR"]))
+    left = [s for s in syms if known.get(s, "Other") == "Other" and s not in past]
+    assert len(left) <= 5, left
