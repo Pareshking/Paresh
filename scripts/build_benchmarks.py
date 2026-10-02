@@ -6,6 +6,8 @@
                                                    # SS' whole daily history
     python scripts/build_benchmarks.py --backfill-from 2021-10-01 --nse-days 400
                                                    # weekdays the file lacks (weekly era)
+    python scripts/build_benchmarks.py --kaggle nse_kaggle_raw/Datasets/INDEX --nse-days 0
+                                                   # daily history back to 1999
 
 NSE's daily bundle (the index rows of Pd<ddmmyy>.csv) is the record. SS'
 index chart (daily, back to the index's start) and Screener's fill what NSE
@@ -78,6 +80,28 @@ def ss_rows(pages: int | None = None) -> pd.DataFrame:
     return frame
 
 
+def kaggle_rows(directory) -> pd.DataFrame:
+    """Both indices from the Kaggle dataset's INDEX folder (NIFTY 500.csv, NIFTY 50.csv)."""
+    from pathlib import Path
+
+    cols = {}
+    for column, name in (("nifty500", "NIFTY 500"), ("nifty50", "NIFTY 50")):
+        path = Path(directory) / f"{name}.csv"
+        if not path.exists():
+            continue
+        raw = pd.read_csv(path)
+        raw.columns = [c.strip().lower() for c in raw.columns]
+        s = pd.Series(pd.to_numeric(raw["close"], errors="coerce").values,
+                      index=pd.DatetimeIndex(pd.to_datetime(raw["date"])).normalize())
+        cols[column] = s[~s.index.duplicated(keep="last")].dropna()
+    if not cols:
+        return pd.DataFrame(columns=bs.FIELDS[1:])
+    frame = pd.DataFrame(cols).dropna(subset=["nifty500"]) if "nifty500" in cols else pd.DataFrame(cols)
+    frame.index.name = "date"
+    frame["source"] = "kaggle"
+    return frame
+
+
 def nse_rows(days: list[date], *, fetch=nse_bundle.fetch_bundle, sleep=time.sleep,
              log=print) -> pd.DataFrame:
     """One row per day NSE published, from the bundle's index rows."""
@@ -138,20 +162,24 @@ def main(argv=None) -> int:
     ap.add_argument("--ss", action="store_true",
                     help="add SS' daily index history (whole history with --seed)")
     ap.add_argument("--update", action="store_true", help="add the NSE days since the last row")
+    ap.add_argument("--kaggle", default=None,
+                    help="the Kaggle dataset's INDEX folder: daily closes back to 1999 for dates the file lacks")
     ap.add_argument("--backfill-from", type=date.fromisoformat, default=None,
                     help="also ask NSE for weekdays from this date that have no row "
                          "(Screener's older history is weekly), newest first")
     ap.add_argument("--nse-days", type=int, default=30,
                     help="most NSE bundles to request this run (default 30)")
     args = ap.parse_args(argv)
-    if not (args.seed or args.update or args.backfill_from or args.ss):
-        ap.error("pass --seed, --update and/or --backfill-from")
+    if not (args.seed or args.update or args.backfill_from or args.ss or args.kaggle):
+        ap.error("pass --seed, --update, --backfill-from, --ss and/or --kaggle")
 
     frame = bs.read()
     before = len(frame)
     if args.seed:
         frame = bs.merge(frame, screener_rows(SEED_DAYS))
         frame = bs.merge(frame, screener_rows(365))  # daily for the last year
+    if args.kaggle:
+        frame = bs.merge(frame, kaggle_rows(args.kaggle))
     if args.ss:
         try:
             frame = bs.merge(frame, ss_rows(None if args.seed else 1))

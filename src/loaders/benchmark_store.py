@@ -8,7 +8,8 @@ data/benchmarks.csv, one row per session:
 
 `source` says where each row came from: "nse" (NSE's own daily bundle, the
 index rows of Pd<ddmmyy>.csv), "ss" (its index chart, daily back to
-the index's start), or "screener" (Screener's index chart, daily for the
+the index's start), "kaggle" (the public-domain Kaggle dataset "NSE India
+Stock Data 1990-2021", daily index closes from 1999), or "screener" (Screener's index chart, daily for the
 last year and weekly before it). Checked on 2026-10-01: NSE
 printed Nifty 500 at 21857.75 and Screener's CNX500 the same.
 
@@ -90,8 +91,10 @@ def index_closes(prices: pd.DataFrame) -> dict[str, float]:
 
 
 # Which row wins for the same date: NSE's own bundle, then SS (daily
-# back to the index's start), then Screener (weekly beyond its last year).
-SOURCE_RANK = {"nse": 0, "ss": 1, "screener": 2}
+# back to the index's start), then the Kaggle "NSE India Stock Data" index
+# files (daily 1999 - Jun 2021; equal to the SS/NSE rows on all 1,418 shared
+# days, 2 Oct 2026), then Screener (weekly beyond its last year).
+SOURCE_RANK = {"nse": 0, "ss": 1, "kaggle": 2, "screener": 3}
 
 
 def merge(existing: pd.DataFrame, new: pd.DataFrame) -> pd.DataFrame:
