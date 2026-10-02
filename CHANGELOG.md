@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-02 — Nano Cap and Combined show their first book
+
+- Fixed: with Nano Cap or Combined selected, Actions said "the model book is not available: the strategy needs about 18 months of price history". The cause was not history. Their first book is signalled at the 30 Sep close and filled 1 Oct, which sits outside the window of completed months, and no earlier month holds a rebalance, so the replay returned nothing for the whole of October. The engine now returns that first book (current book, this month's changes, month-to-date) when no month has completed yet. Equity curve, monthly table and stats stay empty until the month closes. Existing results are unchanged.
+- Fixed: the Backtest page crashed for Nano Cap and Combined (`LossySetitemError` while joining NSE history into a float32 column). With no completed month it now says so.
+
 ## 2026-10-02 — NSE is the middle price source
 
 - Owner decision: Screener → NSE → Yahoo. A missing Screener price is now filled from NSE's adjusted daily move first, then Yahoo's. Stocks whose NSE and Screener levels drift past 1% (about 50 in the 27 Sep report) are skipped and fall through to Yahoo. Missing NSE data leaves the old Screener → Yahoo order.

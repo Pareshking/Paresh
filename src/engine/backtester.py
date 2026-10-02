@@ -366,7 +366,19 @@ def _build_rebalance_schedule(
     if not rebal_dates or not any(
         window_start <= dates[i + 1] <= window_end for i in rebal_dates
     ):
-        return None
+        # No completed month holds a rebalance. That is the first month of a
+        # system whose history starts today (Nano Cap, Combined): its first
+        # book is signalled at the last close before inception and fills on
+        # the first session after, so it is the rebalance this window excludes.
+        # Return the schedule empty so the current-book block can still apply
+        # it; with no signal in or after history_start there is nothing to show.
+        if not (
+            stateful_history
+            and history_start is not None
+            and any(dates[i + 1] >= history_start for i in all_signal_idx if i + 1 < len(dates))
+        ):
+            return None
+        rebal_dates = []
 
     # The final holding period must stop at the window, not run into the month
     # in progress. searchsorted(..., "right") is an EXCLUSIVE bound, so the last
@@ -1146,74 +1158,83 @@ def run_backtest(
                 }
             )
 
-    if not strat_net_daily:
-        return None
+    # The first month of a system with no earlier book: nothing has been accrued
+    # yet, so there is no curve, monthly table or stats -- only the current book.
+    pending_only = not rebal_dates
+    if pending_only:
+        eq_strat_net = eq_strat_gross = eq_bench = pd.Series(dtype=float)
+        monthly_df = pd.DataFrame(columns=["Period Start"])
+        dates = pd.DatetimeIndex([])
+    else:
+        if not strat_net_daily:
+            return None
 
-    # The accrual dates are recorded as the loop runs. Rebuilding them from
-    # rebal_dates[0] assumed every rebalance contributed an unbroken run of
-    # sessions from the first fill onward -- false whenever a period is skipped
-    # -- and silently shifted the whole equity curve by the number of missing
-    # days rather than failing.
-    dates = pd.DatetimeIndex(equity_dates)
+        # The accrual dates are recorded as the loop runs. Rebuilding them from
+        # rebal_dates[0] assumed every rebalance contributed an unbroken run of
+        # sessions from the first fill onward -- false whenever a period is skipped
+        # -- and silently shifted the whole equity curve by the number of missing
+        # days rather than failing.
+        dates = pd.DatetimeIndex(equity_dates)
 
-    # Index every curve at 1.0 on the FILL date -- the session the first
-    # positions were bought on, one before the first day they could earn
-    # anything. Without that base point the curve's first value is already
-    # 1 + r0, and `iloc[-1] / iloc[0]` then divides that first day back out:
-    # the reported total return silently omitted one day of P&L and, with it,
-    # the entire cost of establishing the portfolio, which is charged on
-    # exactly that day (100% turnover -- the largest single drag in the run).
-    base_pos = int(prices.index.get_loc(dates[0])) - 1
+        # Index every curve at 1.0 on the FILL date -- the session the first
+        # positions were bought on, one before the first day they could earn
+        # anything. Without that base point the curve's first value is already
+        # 1 + r0, and `iloc[-1] / iloc[0]` then divides that first day back out:
+        # the reported total return silently omitted one day of P&L and, with it,
+        # the entire cost of establishing the portfolio, which is charged on
+        # exactly that day (100% turnover -- the largest single drag in the run).
+        base_pos = int(prices.index.get_loc(dates[0])) - 1
 
-    def _curve(daily: list[float]) -> pd.Series:
-        series = pd.Series(daily, index=dates, dtype=float)
-        if base_pos >= 0:
-            base = pd.Series([0.0], index=[prices.index[base_pos]])
-            series = pd.concat([base, series])
-        return (1 + series).cumprod()
+        def _curve(daily: list[float]) -> pd.Series:
+            series = pd.Series(daily, index=dates, dtype=float)
+            if base_pos >= 0:
+                base = pd.Series([0.0], index=[prices.index[base_pos]])
+                series = pd.concat([base, series])
+            return (1 + series).cumprod()
 
-    eq_strat_net = _curve(strat_net_daily)
-    eq_strat_gross = _curve(strat_gross_daily)
-    eq_bench = _curve(bench_daily)
-    if not period_records:
-        # Every rebalance was skipped (typically insufficient formation history).
-        # Building a frame from [] and calling dropna(subset=...) raised
-        # KeyError: ['Period Start'] rather than reporting no result.
-        return None
-    monthly_df = pd.DataFrame(period_records).dropna(subset=["Period Start"])
+        eq_strat_net = _curve(strat_net_daily)
+        eq_strat_gross = _curve(strat_gross_daily)
+        eq_bench = _curve(bench_daily)
+        if not period_records:
+            # Every rebalance was skipped (typically insufficient formation history).
+            # Building a frame from [] and calling dropna(subset=...) raised
+            # KeyError: ['Period Start'] rather than reporting no result.
+            return None
+        monthly_df = pd.DataFrame(period_records).dropna(subset=["Period Start"])
 
-    # Append remaining active open positions, marked at the LAST SIMULATED
-    # session. Marking them at prices.index[-1] priced them in the month still
-    # in progress -- outside the reported window and outside the equity curve --
-    # so the blotter showed a return the strategy is not credited with, on a
-    # date the header says the backtest does not cover.
-    last_dt = prices.index[last_sim_idx]
-    for s, pos in open_positions.items():
-        p_curr = _fill_price(prices, s, last_sim_idx)
-        p_entry = pos["entry_price"]
-        entry_dt = pos["entry_date"]
-        unrealized_ret = _round_trip_return(p_entry, p_curr)
-        h_days = (last_dt - entry_dt).days if (last_dt and entry_dt) else 0
-        closed_trades.append(
-            {
-                # "Active (Aug-2026)" was read as "August is the current
-                # month" -- on 3 Sep that looks simply stale. It never meant
-                # that: it means still held, marked at the last session of the
-                # REPORTED WINDOW. Say the mark date outright, because the
-                # Return % beside it is struck at that close and not at
-                # today's. The live mark lives in `live_book`.
-                "Month": f"🟢 Open (as of {last_dt:%d %b %Y})",
-                "Symbol": s,
-                "Entry Date": f"{entry_dt:%d %b %Y}" if entry_dt else "—",
-                "Entry Price": p_entry,
-                "Exit Date": f"Not exited (mark {last_dt:%d %b %Y})",
-                "Exit Price": p_curr,
-                "Return %": unrealized_ret,
-                "Holding (Days)": h_days,
-                "Reason for Exit": "🟢 Still held at window close",
-                "Status": "Open",
-            }
-        )
+        # Append remaining active open positions, marked at the LAST SIMULATED
+        # session. Marking them at prices.index[-1] priced them in the month still
+        # in progress -- outside the reported window and outside the equity curve --
+        # so the blotter showed a return the strategy is not credited with, on a
+        # date the header says the backtest does not cover.
+        last_dt = prices.index[last_sim_idx]
+        for s, pos in open_positions.items():
+            p_curr = _fill_price(prices, s, last_sim_idx)
+            p_entry = pos["entry_price"]
+            entry_dt = pos["entry_date"]
+            unrealized_ret = _round_trip_return(p_entry, p_curr)
+            h_days = (last_dt - entry_dt).days if (last_dt and entry_dt) else 0
+            closed_trades.append(
+                {
+                    # "Active (Aug-2026)" was read as "August is the current
+                    # month" -- on 3 Sep that looks simply stale. It never meant
+                    # that: it means still held, marked at the last session of the
+                    # REPORTED WINDOW. Say the mark date outright, because the
+                    # Return % beside it is struck at that close and not at
+                    # today's. The live mark lives in `live_book`.
+                    "Month": f"🟢 Open (as of {last_dt:%d %b %Y})",
+                    "Symbol": s,
+                    "Entry Date": f"{entry_dt:%d %b %Y}" if entry_dt else "—",
+                    "Entry Price": p_entry,
+                    "Exit Date": f"Not exited (mark {last_dt:%d %b %Y})",
+                    "Exit Price": p_curr,
+                    "Return %": unrealized_ret,
+                    "Holding (Days)": h_days,
+                    "Reason for Exit": "🟢 Still held at window close",
+                    "Status": "Open",
+                }
+            )
+
 
     # ── Current Book & This Month's Rebalance ────────────────────────────────
     # Everything above stops at the last completed month, on purpose. That
@@ -1233,7 +1254,7 @@ def run_backtest(
     as_of_dt = prices.index[as_of_idx]
 
     rebal_idx: int | None = None
-    if rebal_dates:
+    if rebal_dates or pending_only:
         # A signal is only real once its month has CLOSED. `last_by_month`
         # takes the last available session of every calendar month, and for the
         # month still in progress that is just wherever the data happens to
@@ -1244,7 +1265,7 @@ def run_backtest(
         later = [
             i
             for i in all_signal_idx
-            if i > rebal_dates[-1]
+            if i > (rebal_dates[-1] if rebal_dates else -1)
             and i < as_of_idx
             and prices.index[i].to_period("M") < as_of_period
         ]
@@ -1570,9 +1591,9 @@ def run_backtest(
         "live_book": live_book_df,
         "month_changes": changes_df,
         "live_meta": live_meta,
-        "stats": _calculate_backtest_metrics(
+        "stats": ({} if pending_only else _calculate_backtest_metrics(
             eq_strat_net, eq_strat_gross, eq_bench, dates, strat_net_daily,
             monthly_df, prices, rebal_dates, _membership, pit_periods,
             current_universe_periods, actions_applied, scheme_neutralised_seen,
-        ) | {"cap_cash_max": cap_cash_max},
+        )) | {"cap_cash_max": cap_cash_max},
     }
