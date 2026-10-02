@@ -35,6 +35,11 @@ def needed(notes: dict) -> list[str]:
     core = fetch_indices_data(["NIFTY TOTAL MARKET"])["Symbol"].unique().tolist()
     syms = set(core) | set(former_members.symbols_needed(load_history_or_none(), core))
     syms |= set(notes.get("renames", {}))
+    # The old symbols of renames into anything needed (nse_identity), so the
+    # history before a ticker change is kept and joined.
+    from src.loaders.nse_identity import auto_renames
+
+    syms |= {old for old, a in auto_renames().items() if a["new_symbol"] in syms}
     return sorted(syms)
 
 
