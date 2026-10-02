@@ -25,6 +25,14 @@ two datasets that are republished in full every day: `prices/yahoo`
   about 1 GB.
 - **Every other dataset:** full history, never touched.
 
+_Current list (2026-10-02, `RETAINED_DATASETS` in `scripts/r2_retention.py`):_
+`prices/screener` and `prices/ss` (the SS store, one whole-history file
+published each weeknight by `ss_sync.yml`) keep 7 dates plus month-ends.
+`prices/yahoo*`, `app/prices_*` and `snapshots/application` are retired and
+deleted whole. The NSE datasets (`nse/prices_daily` back to 2010,
+`nse/corporate_actions`, `nse/corporate_actions_history`, `nse/closed_days`,
+`nse/market_caps`) are one file per day or per year and keep full history.
+
 How it is applied (`scripts/r2_retention.py`, workflow `R2 retention`):
 
 1. **Dry run by default.** A push to the script, and any dispatch without

@@ -3,7 +3,7 @@
 Living tracker for the data-collection rebuild. Update it with every PR that
 touches this work, so it can be picked up cold.
 
-_Last updated: 2026-09-27_
+_Last updated: 2026-10-02_
 
 ## Decisions (owner)
 
@@ -18,8 +18,19 @@ _Last updated: 2026-09-27_
 | 2026-09-27 | Sample year checked (368/368 days, all read back). Owner: **start the ten-year backfill** (`--since 2016-01-01`, 150 days a run) _(cut to three years, below)_. Screener's weekly deep check: every **30** days, not 7. Nano Cap is ranked **as its own index**, never combined with the 750. _(Superseded: Combined is now a third system, ranked as one list.)_ |
 | 2026-09-27 | NSE history: **three years** (from 2023-10-01), not ten — the backtest needs ~18 months. Price order everywhere: **Screener → NSE → Yahoo** (NSE once its adjustment layer exists). Three systems: **Nifty 750** (default), **Nano Cap**, **Combined**; every page follows; B and C records from Oct 2026; comparison panel; liquidity floor option (off). |
 | 2026-09-27 | Extra universe: **every stock ≥ ₹2,000 Cr** outside the 750 (458 on 25 Sep), not a fixed 250. Screener pacing to be tuned so NSE, Yahoo and Screener all land before 06:00 IST. |
+| 2026-10-02 | **No Yahoo anywhere**; Yahoo's R2 data deleted. Price order Screener → NSE. |
+| 2026-10-02 | **NSE history back to 2010** (was three years), for long backtests. Prices from the GitHub mirror of NSE's full bhavcopy (checked equal to NSE's file on every row), corporate actions from NSE's yearly list; not 3,400 bundle requests. |
+| 2026-10-02 | **SS** (a friend's site, used gently, named "SS" everywhere) collected nightly at **22:02 IST**; Screener canonical for now, SS recommended as primary next. |
+| 2026-10-02 | **Every adjustment automatic**: rights factor from NSE's terms (applied only where SS left the issue raw); two-of-three vote with **NSE as judge**; renames from NSE's symbol-change list and **ISINs** (owner's idea), the ledger only for exceptions. Rules: `docs/PRICE_PIPELINE.md`. |
 
 ## What is running
+
+_2 Oct 2026:_ `nse_collect.yml` now backfills to **2010-01-01** on a weekday
+calendar (holidays remembered in `nse/closed_days`; the old calendar came from
+the deleted Yahoo file, so the backfill had silently been skipping), with a
+per-run time budget. `nse/prices_daily` holds 10 Jun 2010 to date; Jan–Jun 2010
+are being collected. `nse/corporate_actions_history` holds NSE's list for
+2010 – 2026. The 2023 notes below are kept for the record.
 
 - `nse_collect.yml`, every 4 hours: the schedule fired for the first time on
   2026-09-27 (10:04 UTC, ~1.5 h late; GitHub schedules run late). Newest 7

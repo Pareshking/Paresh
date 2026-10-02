@@ -63,6 +63,11 @@ The common V1 market benchmark is:
 
 `^CRSLDX` — Nifty 500.
 
+The ticker is kept as the key callers pass; the closes come from
+`data/benchmarks.csv` (`src/loaders/benchmark_store.py`), daily from
+8 Oct 2015: NSE's own daily file first, then SS's index chart, then Screener's.
+No Yahoo download is involved.
+
 Where a market benchmark is required by a V1 quantitative module, this benchmark should be used consistently unless a module has an explicitly documented reason not to.
 
 ### Periods
@@ -325,6 +330,8 @@ The production application uses a strict separation between the canonical rankin
 
 - **Canonical V1 ranking source:** Screener data published to Cloudflare R2 at `prices/screener`. The ranking artifact is consumed through the canonical ranking-store contract; Yahoo downloads must not replace this path.
 - **Second source:** NSE's own daily closes (committed `data/nse_prices`, split/bonus/demerger adjusted) fill what Screener lacks. Order: Screener, then NSE (`src/loaders/price_source.ranking_frames`, the one function the app and the nightly precompute both call).
+- **SS and the three-source check (2026-10-02).** SS (daily OHLCV, 1,216 stocks) is collected each weeknight at 22:02 IST, gently, by `ss_sync.yml`, saved to the release and to R2 (`prices/ss`), then checked against Screener and NSE: rights factors from NSE's terms, a two-of-three vote on every day's move with NSE's own record as judge, renames from NSE's symbol-change list and ISINs. The report is the run's summary; no stored price is changed. SS is not yet the app's source. See `docs/PRICE_PIPELINE.md`.
+- **NSE history from 2010** on R2 (`nse/prices_daily`, `nse/corporate_actions_history`) for long backtests: NSE's full bhavcopy imported from a public mirror checked equal to NSE's own file, corporate actions from NSE's yearly list.
 - **No Yahoo (owner, 2026-10-02).** Prices, deep history (Screener's ~10-year store), the track record, market caps (NSE, then the committed snapshot), all-time highs (Screener closes) and the Nifty 500 / Nifty 50 benchmark (`data/benchmarks.csv`, from NSE's daily bundle with Screener for older history) are all Yahoo-free. Existing Yahoo objects on R2 (`prices/yahoo*`, `app/prices_*`) are no longer published or read.
 - **Universe:** the current NIFTY TOTAL MARKET production universe is the reconciled set of **750 tradable symbols**. NSE `DUMMY*` placeholders are discarded; aliases must not be invented to repair missing symbols.
 - **Ranking completeness:** the canonical ranking pipeline requires **100% current-universe coverage**. This prevents a valid-looking 749/750 ranking from being published.
@@ -344,6 +351,7 @@ As of 2026-09-30, the membership-history implementation is merged to `main` and 
 - Security-specific missing observations remain missing for quantitative calculations.
 - Short-history securities are masked where the required statistical sample is unavailable.
 - Data-gap diagnostics remain available to identify problematic securities.
+- Corporate actions are adjusted automatically by the rules in `docs/PRICE_PIPELINE.md`: splits and bonuses only where the price moved by the factor, rights from NSE's terms only where a source left them raw, renames from NSE's symbol-change list and ISINs joined only where the series meet.
 - NSE ships **DUMMY placeholder rows** in its constituent files for corporate actions in flight (four in NIFTY TOTAL MARKET as of Sep 2026, e.g. `DUMMYTRVN`). Any symbol beginning `DUMMY`, shorter than two characters, or literally `NAN` is discarded by the loader, so the real universe is smaller than the raw row count. These placeholders have no price history; ranking one could put an untradeable ticker in the portfolio.
 
 ## Project structure

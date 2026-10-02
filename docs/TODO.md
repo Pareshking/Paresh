@@ -4,7 +4,7 @@ The one list of what is still open. Tick an item when it is done and verified,
 with the date and the PR or run that proves it; move it to **Done** at the
 bottom. Add anything promised in a conversation here the same day.
 
-_Last updated: 2026-10-01_
+_Last updated: 2026-10-02_
 
 ## Now
 
@@ -14,6 +14,23 @@ _Last updated: 2026-10-01_
 | 2 | Read the 4th NSE comparison (run on b1cb342: demergers and month-first ex-dates handled) | Report read, results given to the owner: drift beyond 1% (was 58), Spearman and top 20/50 per system | [x] 27 Sep, run 36331991821: 50 stocks, Spearman 0.9997 / 0.9984 / 0.9991 |
 | 3 | Decide: NSE as the middle price source (Screener → NSE → Yahoo) | Owner says yes or no after item 2 (Claude recommends yes, skipping the ~50 stocks still off) | [x] 2 Oct: owner said yes |
 | 4 | If yes: switch the price order in the app | PR merged; precompute accepted in production; docs updated | [x] code merged 2 Oct (see CHANGELOG); [ ] confirm the next nightly precompute is accepted |
+
+## Prices: SS, three-source check, NSE history (2 Oct 2026)
+
+Rules and status: `docs/PRICE_PIPELINE.md`.
+
+| # | What | How we know it is done | Status |
+|---|---|---|---|
+| S1 | SS store for every symbol, page 1 | 1,216 stored; the 20 failures are renamed symbols stored under their new names | [x] 2 Oct, `ss_sync` run 36981505043 |
+| S2 | Rights factor, two-of-three vote with NSE as judge, nightly report | Merged; real run on 1,214 stocks: all 10 rights issues settled, 0 unexplained level shifts | [x] 2 Oct (#330) |
+| S3 | Nightly 22:02 IST: SS update, release + R2 `prices/ss`, three-source report | First scheduled run's summary shows the report; `prices/ss` on R2 | [ ] first run tonight (2 Oct) |
+| S4 | NSE history on R2 back to 2010 | `nse/prices_daily` from 10 Jun 2010 (0 failures), `nse/corporate_actions_history` 2010 – 2026 | [x] 2 Oct (#336, #342) |
+| S5 | Jan – 9 Jun 2010 from NSE's daily bundles (the mirror starts 10 Jun) | `nse_collect` run shows 0 days to go since 2010-01-01 | [ ] running |
+| S6 | Renames from NSE's symbol-change list and ISINs | 575 found, 0 conflicts, all 21 ledger renames among them | [x] 2 Oct (#341) |
+| S7 | Adjustment check across 2010 – 2026 (splits, bonuses, rights, demergers, renames) | Report: unexplained jumps listed and explained or fixed | [ ] after S5 |
+| S8 | Long backtests on the 2010+ NSE history | Owner reviews the results | [ ] after S7 |
+| S9 | SS as the app's primary source (Screener second, NSE judge); choose the liquidity volume (SS NSE-only vs Screener NSE + BSE) | Owner decision, then PR merged and precompute accepted | [ ] owner |
+| S10 | Remove dead Yahoo code and the `yfinance` dependency | PR merged | [ ] |
 
 ## UI and data overhaul (raised 1 Oct 2026)
 

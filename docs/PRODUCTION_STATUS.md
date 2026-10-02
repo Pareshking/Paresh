@@ -1,4 +1,13 @@
-# Production Status — 2026-09-30
+# Production Status — 2026-10-02
+
+## 2026-10-02 — prices: no Yahoo, SS nightly, NSE history from 2010
+
+- **Ranking prices:** Screener, then NSE (Yahoo removed, #328). SS is collected and checked nightly but not yet ranked on.
+- **New nightly job:** `ss_sync.yml`, weekdays 22:02 IST: SS update, release + R2 `prices/ss`, three-source report as the run summary. First scheduled run: tonight.
+- **NSE history:** R2 `nse/prices_daily` from 10 Jun 2010 (imported, 0 failures); corporate actions 2010 – 2026; Jan – Jun 2010 being collected.
+- **Renames:** automatic from NSE's symbol-change list and ISINs (#341).
+- Merged today: #328, #330, #336, #341, #342. Details: `docs/PRICE_PIPELINE.md`.
+
 
 ## 2026-09-30 — Streamlit reload race and track-record ledger semantics
 
