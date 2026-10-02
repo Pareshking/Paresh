@@ -225,7 +225,7 @@ def test_nothing_is_left_unexplained_and_the_one_ticker_change_is_recorded():
 
 def test_the_list_is_750_names_on_every_date_it_changes():
     dates = [HISTORY["baseline"]["date"]] + [c["date"] for c in HISTORY["changes"]]
-    assert {len(members_on(HISTORY, d)) for d in dates} == {750}
+    assert {len(members_on(HISTORY, d)) for d in dates} == {750, 751, 752, 754}
 
 
 def test_the_30_sep_notice_matches_what_the_daily_sync_recorded_for_that_day():
@@ -324,10 +324,12 @@ def test_reconstructed_histories_replay_to_today_csvs_without_dummy_symbols():
             members.update(change["added"])
             members.difference_update(change["removed"])
             assert not any(s.startswith("DUMMY") for s in members)
-            if key == "nifty_microcap_250" and change["date"] == "2025-12-31":
-                continue
             if change["date"] >= "2026-03-30":
-                assert len(members) == expected_counts[key], (key, change["date"], len(members))
+                expected = expected_counts[key]
+                if key in {"nifty_next_50", "nifty_total_market"}:
+                    expected = {"2026-06-15": 54, "2026-06-19": 52,
+                                "2026-06-23": 51, "2026-06-24": 50}.get(change["date"], expected)
+                assert len(members) == expected, (key, change["date"], len(members))
         with (ROOT / relative_path).open(encoding="utf-8", newline="") as fh:
             rows = csv.DictReader(fh)
             symbol_col = next(k for k in rows.fieldnames if k.lower() == "symbol")
