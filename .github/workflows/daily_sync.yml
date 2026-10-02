@@ -320,44 +320,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          for required in prices.parquet prices_full.parquet; do
-            if [ ! -f "$required" ]; then
-              echo "::error::Required dual-publication artifact missing: $required"
-              exit 1
-            fi
-          done
-
-          python scripts/r2_publish.py \
-            --path prices_full.parquet \
-            --dataset prices/yahoo \
-            --source yahoo \
-            --key-root archive/prices/yahoo \
-            --pipeline-version "r2-daily-${GITHUB_SHA}" \
-            --release-tag data-latest
-
-          # The app's two-year snapshot, which the app now reads from R2 first
-          # (owner, 2026-09-27; src/loaders/app_source.py). Its own dataset,
-          # not the retired snapshots/application: retention keeps only the
-          # newest three dates of it, because each copy is the whole two years.
-          python scripts/r2_publish.py \
-            --path prices.parquet \
-            --dataset app/prices_snapshot \
-            --source yahoo \
-            --key-root snapshots/app_prices \
-            --pipeline-version "r2-daily-${GITHUB_SHA}" \
-            --release-tag data-latest
-
-          # The extra universe's Yahoo file, when the step above produced one.
-          # Optional: its absence never fails the 750's publication.
-          if [ -f prices_extra.parquet ]; then
-            python scripts/r2_publish.py \
-              --path prices_extra.parquet \
-              --dataset app/prices_extra \
-              --source yahoo \
-              --key-root snapshots/app_prices_extra \
-              --pipeline-version "r2-daily-${GITHUB_SHA}" \
-              --release-tag data-latest
-          fi
+          # Yahoo data is no longer published to R2 (owner: delete all Yahoo
+          # data from R2). prices.parquet, prices_full.parquet and
+          # prices_extra.parquet live on the data-latest release only.
 
           # Nano Cap and Combined rankings, when the precompute produced them.
           for SYS in nano combined; do

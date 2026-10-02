@@ -206,16 +206,6 @@ def load_prices_cached(
     # but this stayed at zero, Streamlit served a warm cache and the timing is
     # not a cold one.
     metrics.incr("memo_miss_prices")
-    if r2_streamlit.enabled():
-        frame, pin = r2_streamlit.read_configured_deep_history()
-        metrics.note("deep_price_provider", "r2_yahoo_archive")
-        metrics.note("deep_price_as_of", pin.as_of)
-        metrics.note("deep_price_revision", pin.revision_sha256)
-        logger.info(
-            "Deep price history loaded: provider=object_storage dataset=%s as_of=%s revision=%s source=Yahoo-origin archive",
-            pin.dataset, pin.as_of, pin.revision_sha256,
-        )
-        return frame
     return fetch_price_history(list(_symbols), period=period, force_refresh=False)
 
 
@@ -689,12 +679,11 @@ def load_all_data(indices: list[str], system: str = SYSTEM_750):
                 extra_loader.load_prices(extra_key, extra_syms) if extra_syms else None,
                 extra_syms,
             )
-            if not r2_streamlit.enabled():
-                metrics.note("deep_price_provider", "yahoo")
-                logger.info(
-                    "Deep price history loaded: provider=Yahoo; this feed is separate "
-                    "from the ranking Screener/object-storage source."
-                )
+            metrics.note("deep_price_provider", "yahoo")
+            logger.info(
+                "Deep price history loaded: provider=Yahoo (release files); this feed "
+                "is separate from the ranking Screener/object-storage source."
+            )
         if raw_prices.empty:
             return None
 
