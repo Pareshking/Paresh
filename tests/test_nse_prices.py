@@ -90,6 +90,32 @@ def test_an_action_filed_under_todays_symbol_applies_to_the_one_that_traded():
     assert out["TATACONSUM"].nunique() == 1 and float(out["TATACONSUM"].iloc[0]) == 10.0
 
 
+def test_a_rename_joins_raw_before_a_later_bonus_is_applied():
+    # INFOSYSTCH -> INFY (2011), then bonuses on INFY: adjusted first, the old
+    # ticker's raw 100 met INFY's adjusted 50, read as -50%, and was refused.
+    ren, bonus = IDX.get_loc(pd.Timestamp("2025-06-02")), IDX.get_loc(pd.Timestamp("2026-01-05"))
+    old = np.r_[_flat(100, ren), np.full(len(IDX) - ren, np.nan)]
+    new = np.r_[np.full(ren, np.nan), _flat(101, bonus - ren), _flat(50.5, len(IDX) - bonus)]
+    closes = _closes(OLDCO=old, NEWCO=new)
+    actions = pd.DataFrame([{"symbol": "NEWCO", "series": "EQ", "kind": "bonus", "purpose": "Bonus 1:1",
+                             "ex_date": pd.Timestamp("2026-01-05"), "price_factor": 0.5}])
+    renames = {"OLDCO": {"new_symbol": "NEWCO", "evidence": "test", "auto": True}}
+    raw, joined = npx.chain_raw(closes, na_factors(closes, actions), renames, skipped := [])
+    assert skipped == [] and list(raw.columns) == ["NEWCO"]
+    out, rep = npx.adjusted_close(closes, actions, ["NEWCO"], notes={"renames": renames})
+    s = out["NEWCO"]
+    assert rep["renames_not_joined"] == [] and s.notna().all()
+    assert float(s.iloc[0]) == 50.0 and float(s.iloc[ren]) == 50.5    # old ticker carries the bonus
+
+
+def na_factors(closes, actions):
+    from src.loaders import nse_adjusted as na
+
+    f, _ = na.action_factors(closes, actions)
+    f.index = closes.index
+    return f
+
+
 def test_a_correction_steps_aside_once_an_action_covers_it():
     # SHRIRAMFIN 2025: a notes.json correction for a split NSE's yearly list later carried too.
     closes, actions = _split_inputs()

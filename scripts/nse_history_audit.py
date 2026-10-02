@@ -113,7 +113,7 @@ def audit(prices: pd.DataFrame, actions: pd.DataFrame, held: set[date], closed: 
     calendar = impossible_sessions(close.index)
     renames = auto_renames(set(close.columns))
     refused: list[str] = []
-    npx.chain_symbols(na.adjust(close, factors), renames, refused)
+    npx.chain_raw(close, factors, renames, refused)   # raw closes: the join is checked before adjusting
     return {
         "per_year": pd.Series([d.year for d in held]).value_counts().sort_index(),
         "missing": missing_weekdays(held, closed, since, until),
