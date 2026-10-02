@@ -69,6 +69,33 @@ def save_history(history: dict) -> None:
     os.replace(tmp, HISTORY_FILE)
 
 
+
+# Historical coverage is a first-class contract. A live snapshot is not a
+# substitute for a missing historical interval; callers should report the gap.
+MIN_FULL_2026_START = "2026-01-01"
+REQUIRED_2026_INDEXES = (
+    "nifty_50",
+    "nifty_next_50",
+    "nifty_midcap_150",
+    "nifty_smallcap_250",
+    "nifty_microcap_250",
+    "nifty_total_market",
+)
+
+def coverage_gaps(history: dict, *, start: str = MIN_FULL_2026_START) -> dict[str, dict[str, str | None]]:
+    """Describe where an index history fails the requested historical window."""
+    out: dict[str, dict[str, str | None]] = {}
+    for index_name in REQUIRED_2026_INDEXES:
+        entry = (history.get("indices") or {}).get(index_name) or {}
+        baseline = entry.get("baseline") or {}
+        first = baseline.get("date")
+        out[index_name] = {
+            "required_start": start,
+            "actual_start": first,
+            "status": "covered" if first and str(first) <= start else "gap",
+        }
+    return out
+
 def record_snapshot(
     index_name: str,
     previous_symbols,

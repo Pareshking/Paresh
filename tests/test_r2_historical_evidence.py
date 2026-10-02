@@ -26,6 +26,30 @@ def test_all_index_source_files_exist():
     assert all(path.is_file() for path in INDEX_FILES.values())
 
 
+def test_membership_intervals_replays_future_ticker_alias_from_baseline():
+    history = {
+        "index": "TEST",
+        "baseline": {"date": "2025-12-31", "symbols": ["JSWDULUX", "AAA"]},
+        "aliases": {
+            "AKZOINDIA": {
+                "new_symbol": "JSWDULUX",
+                "effective": "2026-04-15",
+            }
+        },
+        "changes": [
+            {"date": "2026-04-15", "removed": ["AKZOINDIA"], "added": ["JSWDULUX"]}
+        ],
+    }
+    frame = _membership_intervals(history)
+    old = frame.loc[frame["symbol"].eq("AKZOINDIA")].iloc[0]
+    new = frame.loc[frame["symbol"].eq("JSWDULUX")].iloc[0]
+
+    assert old["effective_from"] == "2025-12-31"
+    assert old["effective_to"] == "2026-04-14"
+    assert new["effective_from"] == "2026-04-15"
+    assert pd.isna(new["effective_to"])
+
+
 def test_membership_intervals_close_removed_symbols_and_stamp_open_intervals():
     history = {
         "index": "TEST",
