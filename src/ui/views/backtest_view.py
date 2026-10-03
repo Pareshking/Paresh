@@ -444,11 +444,10 @@ def _backtest_tab(
         # index files only label the current members.
         sec_map.update(former_members.industry_for([c for c in adj_close.columns if c not in sec_map]))
 
-    profile_run = st.checkbox(
+    profile_run = st.button(
         "Profile this backtest (uncached; slower)",
-        value=False,
         key="bt_profile_run",
-        help="Runs the engine directly, bypassing Streamlit's result cache, and reports CPU hotspots and Python-traced peak allocations. Use once with the desired History from 2010 settings.",
+        help="Runs the engine directly, bypassing Streamlit's result cache, and reports CPU hotspots and Python-traced peak allocations for this run.",
     )
     run_args = dict(
         _benchmark_close=benchmark_close,
