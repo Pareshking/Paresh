@@ -75,6 +75,20 @@ run 37061786684). Next session: S21, then S23 (owner decision), S22, S25,
 S26, S28, S10. Backups: R2 `reference/*` + `prices/screener/max_history`
 (protected), release `ref_*`, local `C:\Users\Quali\Paresh_reference_backup\2026-10-03`.
 
+## Data-quality sweep (3 Oct 2026, 13:40 - 16:40 IST, laptop off, cloud session)
+
+Owner, 3 Oct: fine-comb the data, random checks, verify backtest trades
+against real prices. Everything read from GitHub (public repo, release
+`data-latest`, Actions artifacts) and the web; nothing local.
+
+| # | When (IST) | What | How we know it is done | Status |
+|---|---|---|---|---|
+| Q1 | 13:40 - 14:20 | Read the rebuild with #369 - #371 (run 37107876721) and its audit zip (`long_price_audit_latest.zip`: Screener point-by-point, raw bars, ISIN lineage, calendar); read the SS history run (S24, 37061786684) | Every new flag fixed or explained here | [ ] |
+| Q2 | 14:20 - 15:00 | Random checks: 40 random (stock, day) closes from the long file against NSE's raw bhavcopy x our factors and an independent source (Yahoo / eod2 / web); 20 random corporate actions (incl. the 28 dividends of S31 and the new rights rows) against NSE/BSE announcements | Mismatch table in `reports/dq_sweep_2026-10-03.md`; each mismatch fixed or explained | [ ] |
+| Q3 | 15:00 - 15:50 | Backtest trades: Nifty 500 History 2010 - 2026 on the new file; 25 random + the 25 largest trades: entry/exit prices against the raw close and the factor, index membership on entry from NSE's notices, trade return recomputed by hand | Table in the same report; 0 unexplained | [ ] |
+| Q4 | 15:50 - 16:25 | S22 (J&K Bank 2015-02-09), S28 (benchmarks.csv zeros); S26 if time | PR merged or reason written | [ ] |
+| Q5 | 16:25 - 16:40 | Handover: TODO ticked, report committed, PR green | PR link in this row | [ ] |
+
 ## UI and data overhaul (raised 1 Oct 2026)
 
 Full findings and work packages: `docs/UI_OVERHAUL_PLAN.md`.
