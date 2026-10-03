@@ -259,3 +259,42 @@ def test_a_large_factor_the_price_contradicts_is_still_refused():
     f, v = na.action_factors(close, _actions(("ABC", "bonus", close.index[2], 0.5)))
     assert (f == 1.0).all().all()
     assert v["verdict"].tolist() == ["no move"]
+
+
+def _dividend(sym, day, text):
+    return pd.DataFrame({"symbol": [sym], "kind": ["dividend"], "ex_date": [day],
+                         "price_factor": [np.nan], "purpose": [text]})
+
+
+def test_a_large_dividend_is_taken_out_of_the_price_before_it():
+    """PFIZER, Rs 360 on 5 Dec 2013 against 1,711.25: factor (P - D) / P."""
+    close = _closes(PFIZER=[1730.75, 1711.25, 1283.30, 1248.0])
+    f, v = na.action_factors(close, _dividend("PFIZER", close.index[2], "Interim Dividend - Rs 360/- Per Share"))
+    assert np.isclose(f.at[close.index[2], "PFIZER"], 1 - 360 / 1711.25)
+    assert v["verdict"].tolist() == ["large dividend"]
+
+
+def test_every_amount_in_a_dividend_text_is_added():
+    close = _closes(NAVIN=[420.0, 418.10, 332.80])
+    f, _ = na.action_factors(close, _dividend(
+        "NAVIN", close.index[2], "Final Dividend Rs.6.50 Per Share And Special Dividend Rs.60 Per Share"))
+    assert np.isclose(f.at[close.index[2], "NAVIN"], 1 - 66.5 / 418.10)
+
+
+def test_an_ordinary_dividend_is_left_in_the_price():
+    close = _closes(ABC=[100.0, 101.0, 98.0])
+    f, v = na.action_factors(close, _dividend("ABC", close.index[2], "Dividend - Rs 3 Per Share"))
+    assert (f == 1.0).all().all() and v.empty
+
+
+def test_a_large_dividend_the_price_did_not_pay_out_is_not_applied():
+    close = _closes(ABC=[100.0, 101.0, 100.0])
+    f, v = na.action_factors(close, _dividend("ABC", close.index[2], "Special Dividend - Rs 40 Per Share"))
+    assert (f == 1.0).all().all()
+    assert v["verdict"].tolist() == ["no move"]
+
+
+def test_a_rights_premium_is_not_read_as_a_dividend():
+    close = _closes(JMC=[175.0, 172.55, 167.5])
+    f, _ = na.action_factors(close, _dividend("JMC", close.index[2], "Rht1:5@Prem-Rs100/Div-Rs2bc Dates And Purpose Revised"))
+    assert (f == 1.0).all().all()
