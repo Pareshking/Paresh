@@ -1,0 +1,85 @@
+name: Diagnostic STLTECH Screener vs R2
+on:
+  push:
+    branches:
+      - diagnostic/stltech-r2-price-check
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Compare verified R2 Screener dataset with release copy
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/stltech-release
+          gh release download data-latest --repo "$GITHUB_REPOSITORY" --pattern screener_prices.parquet --dir /tmp/stltech-release
+          python - <<'PY'
+          import io
+          import math
+          import pandas as pd
+          from pathlib import Path
+          from src.storage.r2 import R2Config, R2Archive
+          from src.storage.reader import R2DatasetReader
+
+          cfg = R2Config.from_env()
+          archive = R2Archive(cfg)
+          reader = R2DatasetReader(archive)
+          ref = reader.resolve_current("prices/screener")
+          raw = reader.read_bytes(ref)
+          r2 = pd.read_parquet(io.BytesIO(raw))
+          rel_path = Path("/tmp/stltech-release/screener_prices.parquet")
+          rel = pd.read_parquet(rel_path)
+
+          def normalize(frame):
+              frame = frame.copy()
+              frame.index = pd.to_datetime(frame.index).tz_localize(None).normalize()
+              frame.columns = [str(c).strip().upper() for c in frame.columns]
+              return frame.sort_index()
+
+          def report(label, frame):
+              frame = normalize(frame)
+              if "STLTECH" not in frame.columns:
+                  print(f"{label}: STLTECH_COLUMN_MISSING columns_sample={list(frame.columns[:8])}")
+                  return
+              s = pd.to_numeric(frame["STLTECH"], errors="coerce").dropna()
+              if s.empty:
+                  print(f"{label}: STLTECH_NO_VALID_CLOSE")
+                  return
+              asof = s.index[-1]
+              one_year_target = pd.Timestamp("2025-10-03")
+              eligible = s.loc[s.index <= one_year_target]
+              if eligible.empty:
+                  base_date = None
+                  base = float("nan")
+              else:
+                  base_date = eligible.index[-1]
+                  base = float(eligible.iloc[-1])
+              latest = float(s.iloc[-1])
+              ret = (latest / base - 1) * 100 if base and math.isfinite(base) else float("nan")
+              print(f"{label}: rows={len(s)} first={s.index[0].date()} latest_date={asof.date()} latest_close={latest:.4f} base_date={base_date.date() if base_date is not None else 'MISSING'} base_close={base:.4f} one_year_return_pct={ret:.4f}")
+              for d in ("2025-10-01", "2025-10-03", "2026-10-01", "2026-10-02"):
+                  t = pd.Timestamp(d)
+                  print(f"{label}: date={d} close={float(s.loc[t]):.4f}" if t in s.index else f"{label}: date={d} close=MISSING")
+
+          print(f"R2: dataset={ref.dataset} as_of={ref.as_of} object={ref.object_key} revision={ref.revision_sha256}")
+          print(f"R2: bytes={len(raw)} release_bytes={rel_path.stat().st_size}")
+          report("R2", r2)
+          report("RELEASE", rel)
+          PY
