@@ -226,7 +226,10 @@ _KINDS = [
     # also be a merger or a capital change, so nse_adjusted prices one only
     # where the stock fell enough that day (SCHEME_CAP).
     ("scheme", re.compile(r"SCHEME\s+OF\s+ARR?ANGEMENT|COMPOSITE\s+SCHEME")),
-    ("rights", re.compile(r"RIGHTS")),
+    # NSE's 2008-2009 lists abbreviate: "Rhs 3:7@Prem Rs95" (HINDALCO), "Rht 9:20",
+    # "Rhts Eq 2:5", "Right Issue 1:15" (TATASTLBSL 2013): 15 issues the word
+    # RIGHTS alone missed.
+    ("rights", re.compile(r"\bRIGHTS?\b|\bRH(?:TS|T|S)(?![A-Z])")),
     ("buyback", re.compile(r"BUY[- ]?BACK")),
     ("dividend", re.compile(r"DIVIDEND|\bDIV\b|DISTRIBUTION")),
 ]
@@ -240,7 +243,7 @@ _FACE = re.compile(r"(?:(?:FROM|FRM)\s*(?:R[SE]\.?)?|\bR[SE]\.?)\s*([\d.]+)[^\d]
 _AMOUNT = re.compile(r"(?:RS|RE|INR)\.?\s*([\d]+(?:\.\d+)?)")
 # A rights issue's premium over face value: "Rights 3:4 @ Premium Rs 78/-",
 # "@Prem Rs.91.5", "@ Prm Rs 102/-"; "At Par" is a premium of 0.
-_PREMIUM = re.compile(r"(?:PREMIUM|PREM|PRM)\.?\s*(?:@|OF)?\s*(?:RS|RE|INR)?\.?\s*([\d]+(?:\.\d+)?)")
+_PREMIUM = re.compile(r"(?:PREMIUM|PREM|PRM)\.?[\s@-]*(?:OF)?\s*(?:RS|RE|INR)?\.?\s*([\d]+(?:\.\d+)?)")
 _AT_PAR = re.compile(r"\bAT\s+PAR\b|@\s*PAR\b")
 
 

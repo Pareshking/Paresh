@@ -200,6 +200,7 @@ What the audit found and what fixed it:
 | Stocks in BZ (trade-for-trade) dropped out, 4,921 stock-days | every equity series read, ranked (`SERIES_RANK`, #355) |
 | 2008 - 2009 splits no list has; rights and schemes of index stocks | 19 hand corrections in `notes.json`, each with its evidence (#355) |
 | Rights issues never priced (M&MFIN 2020 read -33% in a day; CENTRALBK 2011, NDTV 2025, NCC 2014: 74 lasting steps against Screener) | `rights_factor`: the theoretical ex-rights price, (held x P + new x S) / ((held + new) x P), S = face value + premium from NSE's yearly list; applied only when S is under the last close. 141 priced, 7 at or above market, 5 with no issue price (3 Oct 2026) |
+| Rights issues worded "Rhs", "Rht", "Rhts", "Right" in NSE's 2008-2013 lists (HINDALCO 3:7 at Rs 96, Aug 2008; TATASTLBSL 2013): 15 missed | `classify_purpose` reads the abbreviations (145 rights priced); TRENT's 2010 CCPS rights issue, worded without "rights", is a `notes.json` correction |
 | Small bonuses (1:10, 1:5, 1:3) the day's move hid: KTKBANK 17 Mar 2020, KARURVYSYA 2018, GOLDIAM 2026 | a bonus or split with factor >= 0.7 is applied on NSE's word, once within 45 days (`SMALL_FACTOR`); 8 actions |
 | SME actions missing from NSE's main list (JSLL 4:5 bonus 2023, 1:5 split 2025) | `notes.json` corrections |
 
