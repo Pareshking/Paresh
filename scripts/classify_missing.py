@@ -20,6 +20,13 @@ classification file and the Nano Cap list's Industry column.
 
     python scripts/classify_missing.py            # update the files
     python scripts/classify_missing.py --dry-run  # report only
+    python scripts/classify_missing.py --refresh  # re-ask TradingView about EVERY row
+
+--refresh exists because the default run only touches rows that are blank or not
+a TradingView sector, so a stock TradingView later reclassified (or one the
+file got wrong) stayed wrong for ever. It asks TradingView only (Screener.in's
+mapped answer is a guess, not a refresh), changes a row only where TradingView
+answers with a valid sector, and leaves the 20-odd stocks it does not know alone.
 """
 
 from __future__ import annotations
@@ -103,6 +110,23 @@ def from_tradingview(symbols: list[str], post=requests.post) -> dict[str, tuple[
     return out
 
 
+def refresh(classification: pd.DataFrame, post=requests.post, chunk: int = 400) -> tuple[pd.DataFrame, list[tuple]]:
+    """Re-ask TradingView about every row. Returns (new frame, [(symbol, old, new)])."""
+    symbols = classification["Symbol"].tolist()
+    answers: dict[str, tuple[str, str]] = {}
+    for i in range(0, len(symbols), chunk):
+        answers.update(from_tradingview(symbols[i:i + chunk], post=post))
+    out = classification.copy()
+    changes = []
+    for idx, row in out.iterrows():
+        new = answers.get(row["Symbol"])
+        old = (row["TV_Sector"], row["TV_Industry"])
+        if new and new != old:
+            out.loc[idx, ["TV_Sector", "TV_Industry"]] = new
+            changes.append((row["Symbol"], old, new))
+    return out, changes
+
+
 def parse_screener(html: str) -> tuple[str, str] | None:
     """(TradingView sector, industry) from a Screener.in company page."""
     fields = dict(_SCREENER_FIELD.findall(html))
@@ -132,13 +156,42 @@ def targets(classification: pd.DataFrame, nano: pd.DataFrame) -> list[str]:
     return sorted(set(unclassified) | set(foreign))
 
 
+def apply_to_nano(cls: pd.DataFrame) -> int:
+    """Nano Cap's Industry is the stock's TradingView sector; bring it in line."""
+    if not os.path.exists(LIST_PATH):
+        return 0
+    nano = pd.read_csv(LIST_PATH)
+    sector = dict(zip(cls["Symbol"], cls["TV_Sector"]))
+    new = [sector.get(sym, ind) if sector.get(sym) in TV_SECTORS else ind
+           for sym, ind in zip(nano["Symbol"], nano["Industry"])]
+    changed = sum(a != b for a, b in zip(new, nano["Industry"]))
+    if changed:
+        nano["Industry"] = new
+        nano.to_csv(LIST_PATH, index=False)
+    return changed
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--refresh", action="store_true",
+                    help="re-ask TradingView about every row, not just the blank ones")
     args = ap.parse_args()
 
     cls = pd.read_csv(TV_CLASSIFICATION_FILE)
     cls["Symbol"] = cls["Symbol"].astype(str).str.strip().str.upper()
+    if args.refresh:
+        cls, changes = refresh(cls)
+        for sym, old, new in changes:
+            print(f"  {sym:<12} {old[0]} / {old[1]}  ->  {new[0]} / {new[1]}")
+        print(f"Refreshed {len(cls)} rows; {len(changes)} changed")
+        if not args.dry_run and changes:
+            cls.sort_values("Symbol").to_csv(TV_CLASSIFICATION_FILE, index=False)
+            print(f"Wrote {TV_CLASSIFICATION_FILE}")
+        if not args.dry_run:
+            nano_changed = apply_to_nano(cls)
+            print(f"Nano Cap list: {nano_changed} Industry labels updated")
+        return 0
     nano = pd.read_csv(LIST_PATH) if os.path.exists(LIST_PATH) else pd.DataFrame(columns=["Symbol", "Industry"])
     todo = targets(cls, nano)
     print(f"To classify: {len(todo)}")
