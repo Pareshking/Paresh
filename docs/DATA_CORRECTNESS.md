@@ -169,7 +169,35 @@ our series filter is not the cause; the reason is not established.
 6. Record it: TODO (S-number), `PRICE_PIPELINE.md`, and this file if the finding
    is a pattern.
 
-## 8. Tooling traps met while doing this
+## 8. Index membership against NSE's own published lists
+
+`scripts/check_nifty500_against_wayback.py` compares our Nifty 500 timeline
+(`data/membership_history.json`) with NSE's published constituent CSV as the
+Wayback Machine crawled it: 18 files, 2006 - 2026, from three addresses (listed in
+the script). They are primary NSE files, independent of the press releases our
+timeline was rebuilt from; `nse_index_rebuild/wayback_check.py` had used Wayback
+for the other five index lists (Nifty 50, Next 50, Midcap 150, Smallcap 250,
+Microcap 250), not for these. A copy of a file can be gzip-compressed; a DUMMY row
+is dropped.
+
+Result of 3 Oct 2026: 16 of the 17 snapshots that fall inside our history (it
+starts 2009-12-31) agree on all 500 - 501 names; the 2006 file predates it.
+- **2022-05-04**: AARTIIND in the list, GMRAIRPORT in ours. The change is
+  effective that day in our timeline and the crawl of that day still shows the
+  earlier list; the October 2022 snapshot agrees with us. A boundary-day artefact.
+- **2010-01-02**: four names. ASIANHOTEL and KBL are the same companies as our
+  ASIANHOTNR and KIRLOSBROS (renames the maps lack; the gap audit shows both
+  stop under the old ticker on 23 Feb and 8 Mar 2010); PROVOGUE is the file's
+  spelling of our PROVOGE. **ZANDUREALT (Zandu Pharmaceutical Works) is in NSE's
+  list where we have 3IINFOTECH: open, TODO S41.** It affects January and
+  February 2010 only (our next change is 24 Feb), before any backtest month.
+
+A snapshot's date is the crawl's, not the day a list took effect, so a change
+effective on the crawl date can show either way. The other indices have no such
+independent file in the rebuild beyond the five above; the two ways to check them
+are `nse_index_rebuild/wayback_check.py` and NSE's `IndexInclExcl.xls`.
+
+## 9. Tooling traps met while doing this
 
 - A PR event can name an **earlier** commit's head SHA: check the PR's head and
   the check runs' commit before saying CI is green or merging.
