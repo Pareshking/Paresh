@@ -1,0 +1,68 @@
+name: BSE bhavcopy to R2 (manual, scratch)
+
+# Downloads BSE's bhavcopy 2008 - today (scripts/bse_bhavcopy.py), builds the table,
+# checks every gap in the long NSE file against it (scripts/audit_gaps_against_bse.py),
+# and puts the raw files, the table and the audit on R2 under scratch/bse_bhavcopy_<date>/
+# (scripts/bse_to_r2.py). Owner, 2026-10-03: "upload everything to R2, we will delete it
+# after all the data is aligned, including the raw data". The prefix is outside every
+# dataset r2_retention.py lists, so nothing prunes or reads it. Delete it by hand later.
+on:
+  workflow_dispatch:
+    inputs:
+      prefix:
+        description: "R2 prefix, must start with scratch/"
+        required: false
+        default: "scratch/bse_bhavcopy_2026-10-03"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bse-bhavcopy-r2
+  cancel-in-progress: false
+
+jobs:
+  bse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      PYTHONPATH: .
+      PREFIX: ${{ inputs.prefix }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: The long file and the raw NSE pack
+        run: |
+          set -euo pipefail
+          mkdir -p nse
+          gh release download data-latest --repo "$GITHUB_REPOSITORY" --dir nse \
+            --pattern nse_long_close.parquet --pattern nse_raw_pack.parquet
+          ls -la nse
+      - name: Download BSE's bhavcopy
+        run: python scripts/bse_bhavcopy.py --mode download --out data_cache/bse_raw --calendar nse/nse_long_close.parquet
+      - name: Build the table
+        run: |
+          set -euo pipefail
+          # BSE blocking the runner shows as "none" for every day: stop before uploading nothing.
+          test "$(ls data_cache/bse_raw | wc -l)" -gt 4000 || { echo "::error::fewer than 4000 BSE files downloaded"; exit 1; }
+          python scripts/bse_bhavcopy.py --mode build --raw data_cache/bse_raw --out data_cache/bse_daily.parquet
+      - name: Check every gap against BSE
+        run: python scripts/audit_gaps_against_bse.py --long nse/nse_long_close.parquet --pack nse/nse_raw_pack.parquet --bse data_cache/bse_daily.parquet --out audit
+      - name: Put it on R2
+        run: python scripts/bse_to_r2.py --raw data_cache/bse_raw --table data_cache/bse_daily.parquet --audit audit --prefix "$PREFIX"
+      - name: The gap audit, for a quick look
+        uses: actions/upload-artifact@v7
+        with:
+          name: bse-gap-verify
+          path: audit/bse_gap_verify.csv
+          retention-days: 14

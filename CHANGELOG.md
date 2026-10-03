@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-03 — Data correctness: BSE gap audit, KESORAMIND
+
+- `scripts/bse_bhavcopy.py` and `scripts/audit_gaps_against_bse.py`: BSE's bhavcopy 2008 - today, and every gap in the long NSE file classified (NSE-only, suspension, not checked). Findings and method: `docs/DATA_CORRECTNESS.md`, loaded by the new `CLAUDE.md`.
+- KESORAMIND's 10 Mar 2025 demerger priced at the ex-date fall (x0.0474, `notes.json`); takes effect with the next long-file build.
+
 ## 2026-10-03 — Lightweight Charts 5.2.1
 
 - Vendored TradingView Lightweight Charts upgraded v4.2.0 -> v5.2.1; every series is created with `addSeries`. The TradingView logo is hidden on all charts (`attributionLogo: false`, #364 and this change). The `streamlit-lightweight-charts` component renderer is untouched.

@@ -230,6 +230,20 @@ independent searches, NSE's own bhavcopies for 12 of them): 49 real, the 50th
 (holder's return about -11%). An AI-written check that reproduced our own
 numbers to the decimal was not counted as evidence.
 
+### Gaps in the file, checked against BSE (3 Oct 2026)
+
+The price audits compare only days both sources have, so a stretch NSE has no
+rows for is invisible to them. `scripts/bse_bhavcopy.py` downloads BSE's bhavcopy
+2008 - today into one table and `scripts/audit_gaps_against_bse.py` checks every gap
+of 5 or more sessions against it: 147 are NSE-only (BSE traded the stock), 79 are
+suspensions BSE shows too, 18 partly, 182 could not be matched. The largest, 26 Oct
+2023 - 17 Apr 2026 (GOODYEAR, NOVARTIND, KENNAMET, KIRLFER, GRAUWEIL; FORCEMOT to
+14 Feb 2024), is NSE's withdrawal of dealings under "Permitted to Trade"; no
+backtest is affected because the stocks were out of the indices for it. The
+method, the numbers and the explanation are in `docs/DATA_CORRECTNESS.md`
+(sections 5 and 6). KESORAMIND's 10 Mar 2025 demerger (-95%, 1 UltraTech share per
+52) was found by the same audit and is priced at the ex-date fall in `notes.json`.
+
 ### Dividends: only the large ones are adjusted
 
 Ordinary dividends stay in the price, as in Screener's (the live system's
