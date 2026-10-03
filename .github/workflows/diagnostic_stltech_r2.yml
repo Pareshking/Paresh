@@ -49,16 +49,37 @@ jobs:
 
           def normalize(frame):
               frame = frame.copy()
-              frame.index = pd.to_datetime(frame.index).tz_localize(None).normalize()
-              frame.columns = [str(c).strip().upper() for c in frame.columns]
+              idx = pd.to_datetime(frame.index)
+              if getattr(idx, "tz", None) is not None:
+                  idx = idx.tz_localize(None)
+              frame.index = idx.normalize()
               return frame.sort_index()
+
+          def close_series(frame, symbol):
+              # The canonical Screener parquet uses a (symbol, field) MultiIndex.
+              if isinstance(frame.columns, pd.MultiIndex):
+                  candidates = [
+                      col for col in frame.columns
+                      if len(col) >= 2
+                      and str(col[0]).strip().upper() == symbol
+                      and str(col[1]).strip().upper() == "CLOSE"
+                  ]
+                  if candidates:
+                      return pd.to_numeric(frame[candidates[0]], errors="coerce").dropna()
+              else:
+                  for col in frame.columns:
+                      if str(col).strip().upper() == symbol:
+                          return pd.to_numeric(frame[col], errors="coerce").dropna()
+              sample = list(frame.columns[:8])
+              print(f"{symbol}_CLOSE_COLUMN_MISSING columns_sample={sample}")
+              return pd.Series(dtype="float64")
 
           def report(label, frame):
               frame = normalize(frame)
-              if "STLTECH" not in frame.columns:
-                  print(f"{label}: STLTECH_COLUMN_MISSING columns_sample={list(frame.columns[:8])}")
+              s = close_series(frame, "STLTECH")
+              if s.empty:
+                  print(f"{label}: STLTECH_NO_VALID_CLOSE")
                   return
-              s = pd.to_numeric(frame["STLTECH"], errors="coerce").dropna()
               if s.empty:
                   print(f"{label}: STLTECH_NO_VALID_CLOSE")
                   return
