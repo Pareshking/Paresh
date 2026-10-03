@@ -4,8 +4,8 @@ BSE is the second exchange for the same stocks, so it can say whether a day
 NSE has no row for was a day the stock did not trade at all or only a day NSE
 did not publish it (scripts/audit_gaps_against_bse.py).
 
-    python scripts/bse_bhavcopy.py download --out data_cache/bse_raw
-    python scripts/bse_bhavcopy.py build --raw data_cache/bse_raw --out data_cache/bse_daily.parquet
+    python scripts/bse_bhavcopy.py --mode download --out data_cache/bse_raw
+    python scripts/bse_bhavcopy.py --mode build --raw data_cache/bse_raw --out data_cache/bse_daily.parquet
 
 Two file formats, both public, both need a browser-like User-Agent and the
 BhavCopy page as Referer (without them BSE answers with an HTML page):
@@ -130,20 +130,20 @@ def build(args: argparse.Namespace) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    sub = ap.add_subparsers(dest="cmd", required=True)
-    d = sub.add_parser("download")
-    d.add_argument("--out", required=True)
-    d.add_argument("--start", default="2008-01-01")
-    d.add_argument("--end", default=str(pd.Timestamp.today().date()))
-    d.add_argument("--calendar", help="nse_long_close.parquet: use its sessions instead of every weekday")
-    d.add_argument("--workers", type=int, default=8)
-    d.set_defaults(fn=download)
-    b = sub.add_parser("build")
-    b.add_argument("--raw", required=True)
-    b.add_argument("--out", required=True)
-    b.set_defaults(fn=build)
+    ap.add_argument("--mode", choices=["download", "build"], required=True)
+    ap.add_argument("--out", required=True, help="download: the folder for the raw files; build: the parquet file")
+    ap.add_argument("--raw", help="build: the folder the download wrote")
+    ap.add_argument("--start", default="2008-01-01")
+    ap.add_argument("--end", default=str(pd.Timestamp.today().date()))
+    ap.add_argument("--calendar", help="nse_long_close.parquet: use its sessions instead of every weekday")
+    ap.add_argument("--workers", type=int, default=8)
     args = ap.parse_args()
-    args.fn(args)
+    if args.mode == "build":
+        if not args.raw:
+            ap.error("--mode build needs --raw")
+        build(args)
+    else:
+        download(args)
 
 
 if __name__ == "__main__":

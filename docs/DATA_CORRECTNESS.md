@@ -41,6 +41,25 @@ _Last updated: 2026-10-03_
 | TejHQ, NSE MarketLens | Can show a move is **fake**; never confirm one | TejHQ adjusts only within an ISIN; MarketLens leaves some old splits raw | R2 `reference/*` |
 | Web search | Corporate actions and the story behind a move | Snippets are not data; Moneycontrol, Trendlyne and TradingView history need a browser session and are not reachable from the container | WebSearch / WebFetch |
 
+## 2a. Raw versus adjusted: compare like with like
+
+| Series | Adjusted for corporate actions? |
+|---|---|
+| NSE raw pack (`nse_raw_pack.parquet`), NSE bhavcopies | **No**: prices as traded |
+| **BSE bhavcopy** (`bse_daily.parquet`) | **No**: prices as traded |
+| **The long file (`nse_long_close.parquet`)** | **Yes** (owner, 3 Oct 2026): every close before an action is scaled back by that action's factor: splits, bonuses, consolidations, demergers, rights issues, dividends of 10% or more; renames joined |
+| Yahoo, eod2, Screener, SS | Adjusted, each with its own factors (so levels differ before an action) |
+| TejHQ | Adjusted only within an ISIN. MarketLens leaves some old splits raw |
+
+So: never compare BSE or raw NSE closes with the long file level by level. A
+long-file close before an action is the raw close times the later factors.
+Compare BSE with the raw pack (the gap audit maps stocks that way), or apply the
+same factors. A one-day move in the long file equals the raw close / previous
+close only on days with no action; on an ex-date it is that move divided by the
+factor, so a demerger priced at the ex-date fall reads 1.00 that day (KESORAMIND
+read 0.0474 only because it was unadjusted). If gaps are ever filled from BSE
+(TODO S38), the BSE closes must go through the same factor series.
+
 ## 3. The audits and how to run them
 
 Run after every long-file build (`nse_long_prices.yml` does, and publishes
@@ -62,8 +81,8 @@ BSE check by hand (about 20 minutes, 1 GB of raw files in `data_cache/`, which
 is not committed):
 
 ```
-python scripts/bse_bhavcopy.py download --out data_cache/bse_raw --calendar nse_long_close.parquet
-python scripts/bse_bhavcopy.py build --raw data_cache/bse_raw --out data_cache/bse_daily.parquet
+python scripts/bse_bhavcopy.py --mode download --out data_cache/bse_raw --calendar nse_long_close.parquet
+python scripts/bse_bhavcopy.py --mode build --raw data_cache/bse_raw --out data_cache/bse_daily.parquet
 python scripts/audit_gaps_against_bse.py --long nse_long_close.parquet --pack nse_raw_pack.parquet \
     --bse data_cache/bse_daily.parquet --out audit/
 ```
@@ -87,7 +106,7 @@ python scripts/audit_gaps_against_bse.py --long nse_long_close.parquet --pack ns
 
 | What an audit shows | What it is | Evidence |
 |---|---|---|
-| Yahoo level breaks where **ours** moved (408 on 3 Oct, 33 stocks, 5 hold 320) | Yahoo is flat or stale on those days | Ours is NSE's close / previous close to six decimals; eod2, MarketLens, SS, Tijori, TejHQ side with ours (AHLUCONT: all five 100% within 2%, Yahoo 54%) |
+| Yahoo level breaks where **ours** moved (408 on 3 Oct, 33 stocks, 5 hold 320) | Yahoo is flat or stale on those days | Ours equals NSE's raw close / previous close to six decimals on those days (none has an action, so adjusted and raw agree); eod2, MarketLens, SS, Tijori, TejHQ side with ours (AHLUCONT: all five 100% within 2%, Yahoo 54%) |
 | 240 closes above the high or below the low | All series T0: the close is EQ's, the range is the few T0 trades | None reaches a price the build uses; day moves on those days are ordinary |
 | 1,372 average prices outside the range | NSE's turnover in lakhs, 2 decimals (about Rs 1,000), so value / volume is off on small volumes | 68% have 1,000 shares or fewer; some are value 0 on a few shares |
 | 2 "fake" and 4 "disputed" big moves | VIVIDHA: Rs 0.20 -> 0.15 -> 0.20 is the Rs 0.05 tick on 74,010 shares. CERA 2008: thin trading, eod2 and MarketLens agree. J&KBANK 2015-02-09 is S22 (open). GOODYEAR / NOVARTIND 20 Apr 2026: reopening after the NSE gap below | NSE raw rows, BSE |
