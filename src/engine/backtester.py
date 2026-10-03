@@ -850,9 +850,8 @@ def run_backtest(
 
     # Keep the EMA matrix (the pandas adjust=True semantics are part of the
     # strategy), but do not materialise a second full-history 52-week-high
-    # matrix. In History from 2010 that matrix duplicates hundreds of MB of
-    # peak working-set pressure once pandas temporaries and Streamlit caching
-    # are included. Compute the exact rolling maximum only on signal rows.
+    # matrix. In History from 2010 that matrix adds tens of MB at 750 symbols and thousands of sessions,
+    # before counting pandas temporaries and Streamlit cache copies. Compute the exact rolling maximum only on signal rows.
     ema = prices.ewm(span=ema_period).mean()
     _high_at_cache: dict[int, pd.Series] = {}
 
