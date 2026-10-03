@@ -44,7 +44,7 @@ ACUTAAS,Health Technology,Pharmaceuticals: Major
 ADANIENPP1.E1,Distribution Services,Wholesale Distributors
 ADANIENSOL,Utilities,Electric Utilities
 ADANIENT,Distribution Services,Wholesale Distributors
-ADANIGREEN,Utilities,Electric Utilities
+ADANIGREEN,Utilities,Alternative Power Generation
 ADANIPORTS,Transportation,Other Transportation
 ADANIPOWER,Utilities,Electric Utilities
 ADDICTIVE,Technology Services,Internet Software/Services
@@ -54,7 +54,7 @@ ADSL,Technology Services,Information Technology Services
 ADVAIT,Producer Manufacturing,Electrical Products
 ADVANCE,Process Industries,Chemicals: Agricultural
 ADVANIHOTR,Consumer Services,Hotels/Resorts/Cruise lines
-ADVENTHTL,Industrial Services,Engineering & Construction
+ADVENTHTL,Consumer Services,Hotels/Resorts/Cruise lines
 ADVENZYMES,Consumer Non-Durables,Food: Specialty/Candy
 AEGISLOG,Distribution Services,Wholesale Distributors
 AEGISVOPAK,Transportation,Air Freight/Couriers
@@ -479,7 +479,7 @@ CYBERTECH,Technology Services,Information Technology Services
 CYIENT,Technology Services,Packaged Software
 CYIENTDLM,Electronic Technology,Electronic Production Equipment
 DABUR,Consumer Non-Durables,Household/Personal Care
-DALBHARAT,Producer Manufacturing,Miscellaneous Manufacturing
+DALBHARAT,Non-Energy Minerals,Construction Materials
 DALMIASUG,Process Industries,Agricultural Commodities/Milling
 DAMCAPITAL,Finance,Regional Banks
 DANGEE,Consumer Non-Durables,Food: Specialty/Candy
@@ -545,7 +545,7 @@ DIXON,Electronic Technology,Electronic Production Equipment
 DJML,Commercial Services,Commercial Printing/Forms
 DLF,Finance,Real Estate Development
 DLINKINDIA,Electronic Technology,Telecommunications Equipment
-DMART,Retail Trade,Specialty Stores
+DMART,Retail Trade,Food Retail
 DMCC,Process Industries,Chemicals: Major Diversified
 DODLA,Consumer Non-Durables,Food: Meat/Fish/Dairy
 DOLATALGO,Finance,Investment Banks/Brokers
@@ -646,7 +646,7 @@ ESPRIT,Non-Energy Minerals,Construction Materials
 ESSARSHPNG,Transportation,Other Transportation
 ESSENTIA,Consumer Non-Durables,Apparel/Footwear
 ESTER,Process Industries,Industrial Specialties
-ETERNAL,Technology Services,Internet Software/Services
+ETERNAL,Transportation,Air Freight/Couriers
 ETHOSLTD,Retail Trade,Catalog/Specialty Distribution
 ETML,Consumer Durables,Automotive Aftermarket
 EUREKAFORB,Producer Manufacturing,Industrial Machinery
@@ -718,7 +718,7 @@ GANESHCP,Process Industries,Agricultural Commodities/Milling
 GANESHHOU,Consumer Durables,Homebuilding
 GANESHIN,Industrial Services,Engineering & Construction
 GANGESSECU,Consumer Non-Durables,Food: Specialty/Candy
-GARFIBRES,Producer Manufacturing,Miscellaneous Manufacturing
+GARFIBRES,Process Industries,Textiles
 GARUDA,Industrial Services,Engineering & Construction
 GATEWAY,Transportation,Railroads
 GAYAPROJ,Industrial Services,Engineering & Construction
@@ -826,7 +826,7 @@ GUJAPOLLO,Producer Manufacturing,Trucks/Construction/Farm Machinery
 GUJENERGY,Utilities,Gas Distributors
 GUJGASLTD,Utilities,Gas Distributors
 GUJTHEM,Health Technology,Pharmaceuticals: Major
-GULFOILLUB,Energy Minerals,Oil Refining/Marketing
+GULFOILLUB,Process Industries,Industrial Specialties
 GULFPETRO,Energy Minerals,Oil Refining/Marketing
 GULPOLY,Consumer Non-Durables,Food: Specialty/Candy
 GVKPIL,Industrial Services,Engineering & Construction
@@ -854,7 +854,7 @@ HCL_INSYS,Technology Services,Information Technology Services
 HDBFS,Finance,Finance/Rental/Leasing
 HDFCAMC,Finance,Investment Managers
 HDFCBANK,Finance,Major Banks
-HDFCLIFE,Finance,Multi-Line Insurance
+HDFCLIFE,Finance,Life/Health Insurance
 HDIL,Finance,Real Estate Development
 HECPROJECT,Industrial Services,Engineering & Construction
 HEG,Electronic Technology,Electronic Components
@@ -868,7 +868,7 @@ HEROMOTORS,Producer Manufacturing,Industrial Machinery
 HESTERBIO,Health Technology,Pharmaceuticals: Major
 HEXATRADEX,Distribution Services,Wholesale Distributors
 HEXT,Technology Services,Packaged Software
-HFCL,Electronic Technology,Telecommunications Equipment
+HFCL,Producer Manufacturing,Electrical Products
 HGINFRA,Industrial Services,Engineering & Construction
 HGS,Commercial Services,Miscellaneous Commercial Services
 HIGREEN,Industrial Services,Environmental Services
@@ -977,7 +977,7 @@ INDRAMEDCO,Health Services,Hospital/Nursing Management
 INDSWFTLAB,Health Technology,Pharmaceuticals: Major
 INDTERRAIN,Consumer Non-Durables,Apparel/Footwear
 INDUSINDBK,Finance,Major Banks
-INDUSTOWER,Finance,Finance/Rental/Leasing
+INDUSTOWER,Finance,Real Estate Development
 INFINIUM,Health Technology,Pharmaceuticals: Major
 INFLUX,Health Technology,Pharmaceuticals: Other
 INFOBEAN,Technology Services,Packaged Software
@@ -1079,7 +1079,7 @@ JSFB,Finance,Regional Banks
 JSL,Non-Energy Minerals,Steel
 JSLL,Health Services,Medical/Nursing Services
 JSWCEMENT,Non-Energy Minerals,Construction Materials
-JSWDULUX,Consumer Durables,Consumer Durables
+JSWDULUX,Process Industries,Industrial Specialties
 JSWENERGY,Utilities,Electric Utilities
 JSWHL,Finance,Investment Banks/Brokers
 JSWINFRA,Industrial Services,Engineering & Construction
@@ -1268,7 +1268,7 @@ MAHESHWARI,Transportation,Air Freight/Couriers
 MAHICKRA,Process Industries,Chemicals: Specialty
 MAHLIFE,Finance,Real Estate Development
 MAHLOG,Transportation,Air Freight/Couriers
-MAHSCOOTER,Producer Manufacturing,Industrial Machinery
+MAHSCOOTER,Finance,Financial Conglomerates
 MAHSEAMLES,Non-Energy Minerals,Steel
 MAITHANALL,Non-Energy Minerals,Other Metals/Minerals
 MAITREYA,Health Services,Hospital/Nursing Management
@@ -1375,7 +1375,7 @@ MOREPENLAB,Health Technology,Pharmaceuticals: Major
 MOS,Technology Services,Internet Software/Services
 MOSCHIP,Electronic Technology,Semiconductors
 MOTHERSON,Producer Manufacturing,Auto Parts: OEM
-MOTILALOFS,Technology Services,Internet Software/Services
+MOTILALOFS,Finance,Investment Managers
 MOTISONS,Retail Trade,Specialty Stores
 MPHASIS,Technology Services,Packaged Software
 MPIMANIPAL,Commercial Services,Commercial Printing/Forms
@@ -1425,7 +1425,7 @@ NAVKARCORP,Transportation,Other Transportation
 NAVKARURB,Non-Energy Minerals,Construction Materials
 NAVNETEDUL,Producer Manufacturing,Office Equipment/Supplies
 NAZARA,Technology Services,Packaged Software
-NBCC,Commercial Services,Miscellaneous Commercial Services
+NBCC,Industrial Services,Engineering & Construction
 NBIFIN,Finance,Financial Conglomerates
 NCC,Consumer Durables,Homebuilding
 NCLIND,Non-Energy Minerals,Construction Materials
@@ -1442,7 +1442,7 @@ NEOCHEM,Process Industries,Chemicals: Major Diversified
 NEOGEN,Process Industries,Chemicals: Specialty
 NEPHROPLUS,Health Services,Medical/Nursing Services
 NEPTUNE,Non-Energy Minerals,Construction Materials
-NESCO,Producer Manufacturing,Industrial Machinery
+NESCO,Finance,Real Estate Development
 NESTLEIND,Consumer Non-Durables,Food: Major Diversified
 NETWEB,Electronic Technology,Computer Peripherals
 NETWORK18,Consumer Services,Broadcasting
@@ -1494,7 +1494,7 @@ OBEROIRLTY,Finance,Real Estate Development
 OBSCP,Producer Manufacturing,Metal Fabrication
 OCCLLTD,Process Industries,Chemicals: Specialty
 OFSS,Technology Services,Packaged Software
-OIL,Energy Minerals,Oil Refining/Marketing
+OIL,Energy Minerals,Integrated Oil
 OILCOUNTUB,Industrial Services,Oilfield Services/Equipment
 OLAELEC,Consumer Durables,Motor Vehicles
 OLECTRA,Consumer Durables,Motor Vehicles
@@ -1506,7 +1506,7 @@ OMINFRAL,Industrial Services,Engineering & Construction
 OMNI,Producer Manufacturing,Metal Fabrication
 ONEPOINT,Commercial Services,Miscellaneous Commercial Services
 ONESOURCE,Health Technology,Pharmaceuticals: Major
-ONGC,Energy Minerals,Oil Refining/Marketing
+ONGC,Energy Minerals,Integrated Oil
 ONMOBILE,Communications,Specialty Telecommunications
 ONWARDTEC,Technology Services,Information Technology Services
 OPTIEMUS,Distribution Services,Electronics Distributors
@@ -1610,7 +1610,7 @@ POLYSIL,Producer Manufacturing,Trucks/Construction/Farm Machinery
 PONNIERODE,Process Industries,Agricultural Commodities/Milling
 POONAWALLA,Finance,Finance/Rental/Leasing
 POSITRON,Utilities,Gas Distributors
-POWERGRID,Utilities,Alternative Power Generation
+POWERGRID,Utilities,Electric Utilities
 POWERICA,Producer Manufacturing,Electrical Products
 POWERINDIA,Electronic Technology,Electronic Equipment/Instruments
 POWERMECH,Industrial Services,Engineering & Construction
@@ -1664,7 +1664,7 @@ PUSHPA,Consumer Durables,Other Consumer Specialties
 PVP,Technology Services,Information Technology Services
 PVRINOX,Consumer Services,Movies/Entertainment
 PVSL,Retail Trade,Specialty Stores
-PWL,Technology Services,Internet Software/Services
+PWL,Commercial Services,Miscellaneous Commercial Services
 PYRAMID,Producer Manufacturing,Miscellaneous Manufacturing
 QMSMEDI,Distribution Services,Medical Distributors
 QPOWER,Producer Manufacturing,Electrical Products
@@ -1855,7 +1855,7 @@ SBILIFE,Finance,Life/Health Insurance
 SBIN,Finance,Regional Banks
 SCHAEFFLER,Producer Manufacturing,Metal Fabrication
 SCHAND,Consumer Services,Publishing: Books/Magazines
-SCHNEIDER,Distribution Services,Wholesale Distributors
+SCHNEIDER,Producer Manufacturing,Electrical Products
 SCI,Transportation,Air Freight/Couriers
 SCILAL,Miscellaneous,Miscellaneous
 SCML,Producer Manufacturing,Industrial Machinery
@@ -2127,7 +2127,7 @@ TECHERA,Producer Manufacturing,Metal Fabrication
 TECHLABS,Distribution Services,Electronics Distributors
 TECHM,Technology Services,Information Technology Services
 TECHNOE,Industrial Services,Engineering & Construction
-TEGA,Distribution Services,Wholesale Distributors
+TEGA,Producer Manufacturing,Trucks/Construction/Farm Machinery
 TEJASCARGO,Transportation,Air Freight/Couriers
 TEJASNET,Electronic Technology,Telecommunications Equipment
 TEMBO,Producer Manufacturing,Metal Fabrication
@@ -2154,7 +2154,7 @@ TIIL,Producer Manufacturing,Metal Fabrication
 TIINDIA,Non-Energy Minerals,Steel
 TIL,Producer Manufacturing,Trucks/Construction/Farm Machinery
 TIMETECHNO,Process Industries,Containers/Packaging
-TIMEX,Consumer Durables,Consumer Durables
+TIMEX,Consumer Durables,Other Consumer Specialties
 TIMKEN,Producer Manufacturing,Industrial Machinery
 TINNARUBR,Process Industries,Industrial Specialties
 TIPSFILMS,Consumer Services,Movies/Entertainment

@@ -45,3 +45,23 @@ def test_targets_are_unclassified_nano_rows_and_foreign_sector_names():
                         "TV_Industry": ["a", "b"]})
     nano = pd.DataFrame({"Symbol": ["NEW", "OLD"], "Industry": ["Unclassified", "Finance"]})
     assert cm.targets(cls, nano) == ["NEW", "XYZ"]
+
+
+def test_refresh_corrects_a_stale_row_and_leaves_unknown_stocks_alone():
+    cls = pd.DataFrame({
+        "Symbol": ["AAA", "BBB", "CCC"],
+        "TV_Sector": ["Technology Services", "Finance", "Utilities"],
+        "TV_Industry": ["Internet Software/Services", "Banks", "Power"],
+    })
+
+    def post(url, json, timeout, headers):
+        return _Resp({"data": [
+            {"s": "NSE:AAA", "d": ["AAA", "Finance", "Investment Managers"]},   # TradingView moved it
+            {"s": "NSE:BBB", "d": ["BBB", "Finance", "Banks"]},                 # unchanged
+        ]})                                                                      # CCC: not known to TradingView
+
+    out, changes = cm.refresh(cls, post=post)
+    assert changes == [("AAA", ("Technology Services", "Internet Software/Services"),
+                        ("Finance", "Investment Managers"))]
+    assert out.set_index("Symbol").loc["AAA"].tolist() == ["Finance", "Investment Managers"]
+    assert out.set_index("Symbol").loc["CCC"].tolist() == ["Utilities", "Power"]

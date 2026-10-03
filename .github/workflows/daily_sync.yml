@@ -206,6 +206,20 @@ jobs:
           PYTHONPATH: .
         run: python scripts/classify_missing.py || echo "::warning::Sector lookup failed; unknown stocks stay Unclassified."
 
+      # Re-ask TradingView about EVERY stock, not just the blank ones: a stock
+      # it reclassified (or the file got wrong) was never corrected before.
+      # Weekly (Friday UTC, the last scheduled run of the week) or on a manual
+      # run; six batched requests; changes only where TradingView answers.
+      - name: Refresh every sector from TradingView (weekly)
+        env:
+          PYTHONPATH: .
+        run: |
+          if [ "$(date -u +%u)" = "5" ] || [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            python scripts/classify_missing.py --refresh || echo "::warning::Sector refresh failed; keeping the committed classification."
+          else
+            echo "Not Friday and not a manual run; skipping the weekly sector refresh."
+          fi
+
       - name: Run Automated Daily Market Sync
         env:
           PYTHONPATH: .
