@@ -280,7 +280,7 @@ def adjusted_close(closes: pd.DataFrame, actions: pd.DataFrame, symbols: Iterabl
     renames = {**auto_renames(set(closes.columns)), **(notes.get("renames") or {})}
     moved = on_trading_symbol(actions, closes, renames)
     actions_moved = int((moved["symbol"] != actions["symbol"]).sum()) if len(actions) else 0
-    factors, _ = na.action_factors(closes, moved)
+    factors, verdicts = na.action_factors(closes, moved)
     factors.index = closes.index
     not_joined: list[str] = []
     landed: dict[str, str] = {}
@@ -305,6 +305,7 @@ def adjusted_close(closes: pd.DataFrame, actions: pd.DataFrame, symbols: Iterabl
         "first_session": str(out.index[0].date()) if len(out) else None,
         "last_session": str(out.index[-1].date()) if len(out) else None,
         "corporate_action_steps": int(len(na.events(factors))),
+        "rights_issues": verdicts.loc[verdicts["kind"] == "rights", "verdict"].value_counts().to_dict(),
         "actions_moved_to_old_symbol": actions_moved,
         "corrections_superseded_by_an_action": superseded,
         "renames_joined": len(landed),

@@ -168,9 +168,8 @@ ex-date, kind and factor (500 splits and bonuses had gone unapplied, #348).
 
 `scripts/build_nse_long_prices.py` (weekly, `nse_long_prices.yml`) reads every
 session on R2 from 2008 and writes to the `data-latest` release: closes adjusted
-for splits, bonuses, consolidations and demergers, renames joined, no dividends,
-rights only where `notes.json` corrects an index stock (owner, 3 Oct 2026:
-correct data first), for every stock any index ever listed (1,380, plus 38 old
+for splits, bonuses, consolidations, demergers and rights issues, renames
+joined, no dividends (owner, 3 Oct 2026: correct data first), for every stock any index ever listed (1,380, plus 38 old
 tickers and Tata Motors DVR: 1,418 series);
 traded value in Rs Cr; and a report (units by year, copies dropped, calendar
 flags). `src/loaders/nse_long.py` reads it; the Backtest page's "History from
@@ -200,6 +199,42 @@ What the audit found and what fixed it:
 | A notes.json correction plus a later-listed action (SHRIRAMFIN) | a correction steps aside once an action covers it (#355) |
 | Stocks in BZ (trade-for-trade) dropped out, 4,921 stock-days | every equity series read, ranked (`SERIES_RANK`, #355) |
 | 2008 - 2009 splits no list has; rights and schemes of index stocks | 19 hand corrections in `notes.json`, each with its evidence (#355) |
+| Rights issues never priced (M&MFIN 2020 read -33% in a day; CENTRALBK 2011, NDTV 2025, NCC 2014: 74 lasting steps against Screener) | `rights_factor`: the theoretical ex-rights price, (held x P + new x S) / ((held + new) x P), S = face value + premium from NSE's yearly list; applied only when S is under the last close. 141 priced, 7 at or above market, 5 with no issue price (3 Oct 2026) |
+| Small bonuses (1:10, 1:5, 1:3) the day's move hid: KTKBANK 17 Mar 2020, KARURVYSYA 2018, GOLDIAM 2026 | a bonus or split with factor >= 0.7 is applied on NSE's word, once within 45 days (`SMALL_FACTOR`); 8 actions |
+| SME actions missing from NSE's main list (JSLL 4:5 bonus 2023, 1:5 split 2025) | `notes.json` corrections |
+
+Three more audits (3 Oct 2026), run by `nse_long_prices.yml` after every
+build and published as `long_price_audit_latest.zip` on the release:
+
+- `scripts/audit_against_screener.py`: every Screener point matched to our
+  close on the same date (no Friday resampling: Screener's old points fall on
+  any weekday). 97.8% of 887,093 intervals within 2%; each lasting level step
+  is pinned to its interval and the other references vote on which side
+  moved. After rights and small bonuses: 26 steps where ours is the odd one,
+  most of them demergers we price and the references leave raw (ALEMBICLTD,
+  MASTEK, TRIVENI, ZEEMEDIA, ABFRL 2025) or old splits only two raw
+  references cover.
+- `scripts/audit_raw_bars.py`: NSE's raw rows (the pack). Bar arithmetic:
+  240 closes outside [low, high], all in series T0 (the build takes EQ's
+  close those days), and 1,372 average prices off by rounding on tiny
+  volumes. Calendar: the 73 sessions the build drops are all days the
+  Nifty 50 did not trade; no session missing. Symbol changes against
+  `isin_history.csv`: 95 same ISIN, none changed, 218 too old for the ISIN
+  history. Dividends of 5% of the price or more: 199 (23 of 10% or more,
+  PFIZER's Rs 360 on 5 Dec 2013 the best known) -- not adjusted, see below.
+
+Web check of the 50 largest History trades (Nifty 500, 2010 - 2026; four
+independent searches, NSE's own bhavcopies for 12 of them): 49 real, the 50th
+(PFIZER Dec 2013, -32.6%) a real price fall of which Rs 360 was a dividend
+(holder's return about -11%). An AI-written check that reproduced our own
+numbers to the decimal was not counted as evidence.
+
+### Dividends are not adjusted
+
+Neither are Screener's prices (the live system's source), so the History and
+Live backtests stay on one basis. A large special dividend therefore reads as
+a fall on its ex-date (`large_dividends.csv` lists them). Adjusting only
+dividends above a threshold is an owner decision (TODO S31).
 
 Result (file with #348 - #354): 94% of 3.7M stock-days within 2% of eod2
 (adjusts like us), 1,540 big moves confirmed, 32 fake. Of the 171 unconfirmed

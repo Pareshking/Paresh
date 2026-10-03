@@ -79,6 +79,7 @@ DEMERGER_FLOOR, DEMERGER_CAP = 0.05, 0.98   # a demerger's fall is applied only 
 # a merger or capital change under the same words leaves the price where it
 # trades, and an ordinary down day on its ex-date must stay a real move.
 SCHEME_CAP = 0.85
+SMALL_FACTOR, SMALL_DAYS = 0.7, 45
 
 
 def gap_days(close: pd.DataFrame, prev_close: pd.DataFrame,
@@ -176,12 +177,18 @@ def action_factors(close: pd.DataFrame, actions: pd.DataFrame
                      MCX's 2026 split both landed on 2 Jan and both confirmed,
                      so the split was applied twice (audit, 2026-10-03)
       no price       no session for the stock around the ex-date
+      small, applied a bonus or split too small for the price to confirm
+                     (factor >= SMALL_FACTOR), applied once on NSE's word
+      rights         a rights issue priced under the market (rights_factor)
+      no terms       a rights issue whose issue price the list does not give
+      not in the money  a rights issue at or above the last close
     """
     close = close.copy()
     close.index = pd.DatetimeIndex(close.index).astype("datetime64[ns]")
     factors = pd.DataFrame(1.0, index=close.index, columns=close.columns)
     rows = []
     done: set[tuple] = set()
+    small: list[tuple] = []
     for r in _parsed(actions).itertuples(index=False):
         out = {"symbol": r.symbol, "date": r.date, "kind": r.kind,
                "bc_factor": r.bc_factor, "session": pd.NaT, "move": np.nan}
@@ -212,9 +219,98 @@ def action_factors(close: pd.DataFrame, actions: pd.DataFrame
         elif verdict != "no move":
             done.add(key)
             factors.at[day, r.symbol] *= factor
+        elif SMALL_FACTOR <= r.bc_factor < 1:
+            small.append((len(rows), r, day, move))
         rows.append({**out, "session": day, "move": move, "verdict": verdict})
+    # A small bonus moves the price less than an ordinary day can (KTKBANK 1:10
+    # on 17 Mar 2020, KARURVYSYA 1:10 in 2018, GOLDIAM 1:3 in 2026: the Screener
+    # audit, 3 Oct 2026), so the price cannot confirm it. NSE listed it; apply
+    # it unless the same action is already applied within SMALL_DAYS (the Bc
+    # file and the yearly list can date one action differently).
+    for i, r, day, move in small:
+        f = round(float(r.bc_factor), 6)
+        if any(k[0] == r.symbol and k[2] == r.kind and k[3] == f
+               and abs((k[1] - day).days) <= SMALL_DAYS for k in done):
+            rows[i]["verdict"] = "duplicate"
+            continue
+        done.add((r.symbol, day, r.kind, f))
+        factors.at[day, r.symbol] *= r.bc_factor
+        rows[i]["verdict"] = "small, applied"
+    for r in _rights(actions).itertuples(index=False):
+        out = {"symbol": r.symbol, "date": r.date, "kind": "rights", "bc_factor": np.nan,
+               "session": pd.NaT, "move": np.nan}
+        if r.symbol not in close.columns:
+            rows.append({**out, "verdict": "no price"})
+            continue
+        s = close[r.symbol]
+        day, move = _move_at(s, r.date)
+        if day is None:
+            rows.append({**out, "verdict": "no price"})
+            continue
+        before = float(s[s.index < r.date].dropna().iloc[-1])
+        factor = rights_factor(before, r.issue_price, r.ratio_new, r.ratio_held)
+        verdict = "no terms" if np.isnan(r.issue_price) else "not in the money"
+        if np.isfinite(factor) and RIGHTS_FLOOR < factor < 1 - STEP_TOL:
+            verdict = "rights"
+            factors.at[day, r.symbol] *= factor
+        rows.append({**out, "bc_factor": factor, "session": day, "move": move, "verdict": verdict})
     cols = ["symbol", "date", "kind", "bc_factor", "session", "move", "verdict"]
     return factors, pd.DataFrame(rows, columns=cols)
+
+
+# Rights issues (owner, 2026-10-03: rights of index stocks may be corrected).
+# Yahoo, Tijori, Screener and NSE's MarketLens adjust them; without it the
+# ex-date's fall reads as a loss the holder did not have (M&MFIN 1:1 at Rs 50
+# on 22 Jul 2020: -33% in one session; CENTRALBK 2011, NDTV 2025, NCC 2014 --
+# the Screener audit found 74 such steps). The standard factor: the
+# theoretical ex-rights price over the last close before the ex-date,
+#     (held x P + new x S) / ((held + new) x P),   S = face value + premium.
+# Only an issue priced under the market moves the price; a factor below
+# RIGHTS_FLOOR is a misread, not a rights issue.
+RIGHTS_FLOOR = 0.3
+
+
+def rights_factor(close_before: float, issue_price: float, new: float, held: float) -> float:
+    """Price factor of a rights issue of `new` shares per `held` at `issue_price`."""
+    if not (close_before > 0 and new > 0 and held > 0 and issue_price >= 0) or issue_price >= close_before:
+        return np.nan
+    return (held * close_before + new * issue_price) / ((held + new) * close_before)
+
+
+def _rights(actions: pd.DataFrame) -> pd.DataFrame:
+    """One row per (symbol, ex-date) rights issue: ratio and issue price.
+
+    The purpose text gives the ratio and the premium; the face value comes
+    from NSE's yearly list (face_value), from the same row or, when a daily
+    Bc row lacks it, from the symbol's nearest row that has one.
+    """
+    from src.loaders.nse_bundle import classify_purpose
+
+    cols = ["symbol", "date", "ratio_new", "ratio_held", "issue_price"]
+    if "kind" not in actions or actions.empty:
+        return pd.DataFrame(columns=cols)
+    a = actions[(actions["kind"] == "rights") & actions["ex_date"].notna()].copy()
+    if a.empty:
+        return pd.DataFrame(columns=cols)
+    a["date"] = pd.to_datetime(a["ex_date"]).dt.normalize().astype("datetime64[ns]")
+    parsed = pd.DataFrame([classify_purpose(p) for p in a["purpose"].fillna("")], index=a.index)
+    a["ratio_new"], a["ratio_held"], a["premium"] = parsed["ratio_new"], parsed["ratio_held"], parsed["amount"]
+    fv = pd.to_numeric(actions.get("face_value"), errors="coerce") if "face_value" in actions else None
+    if fv is not None and fv.notna().any():
+        known = actions.assign(_fv=fv, _d=pd.to_datetime(actions["ex_date"], errors="coerce"))
+        known = known[known["_fv"] > 0]
+        a["face_value"] = fv.reindex(a.index)
+        for i in a.index[a["face_value"].isna()]:
+            k = known[known["symbol"] == a.at[i, "symbol"]]
+            if len(k):
+                a.at[i, "face_value"] = k.loc[(k["_d"] - a.at[i, "date"]).abs().idxmin(), "_fv"]
+    else:
+        a["face_value"] = np.nan
+    a["issue_price"] = a["face_value"] + a["premium"]
+    a = a[a["ratio_new"].notna() & a["ratio_held"].notna()]
+    # One issue once: the Bc file and the yearly list both carry it; keep the row with terms.
+    a = a.sort_values("issue_price", na_position="last").drop_duplicates(["symbol", "date"])
+    return a[cols].reset_index(drop=True)
 
 
 def unexplained_jumps(close: pd.DataFrame, factors: pd.DataFrame) -> pd.DataFrame:
