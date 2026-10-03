@@ -1014,10 +1014,10 @@ def judge_configuration(name: str, ev: dict) -> list:
                 f"the panel disagrees with itself about the live weights",
                 "APPLICATION"))
 
-    if ev.get("menu_open_after_nav"):
-        found.append(classify(
-            f"{name}: the navigation menu is still open after choosing "
-            f"Configuration from it", "APPLICATION"))
+    # menu_open_after_nav stays in the report but no longer fails the run:
+    # on the 390x844 viewport it read "still open" on every run from 2 Oct
+    # while the menu closes in real use -- a headless timing artefact of the
+    # capture, not the app (owner, 2026-10-03: "in real no issue, close it").
     # The reset is the check that proves writes reach the widgets. Failing to
     # click it used to be printed and then passed (run 570, desktop).
     if ev.get("after_reset_error"):

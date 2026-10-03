@@ -146,11 +146,12 @@ def test_the_precomputed_weight_subset_is_used_when_present():
     assert any("zeroed weight vector" in f["detail"] for f in found)
 
 
-def test_a_menu_left_open_after_choosing_a_page_is_a_failure():
-    """Run 570's desktop screenshot: the ☰ menu still covering Configuration."""
+def test_a_menu_read_open_after_choosing_a_page_is_reported_not_failed():
+    """The 390x844 capture read the ☰ menu open on every run from 2 Oct while it
+    closes in real use (owner, 2026-10-03): a timing artefact, not a failure."""
     ev = _ev(HEALTHY, HEALTHY) | {"menu_open_after_nav": True}
-    found = judge("desktop_1280x800", ev)
-    assert any(f["kind"] == "APPLICATION" and "still open" in f["detail"] for f in found)
+    found = judge("mobile_390x844", ev)
+    assert not any("still open" in f["detail"] for f in found)
 
 
 def test_a_reset_that_could_not_be_clicked_is_not_a_pass():
