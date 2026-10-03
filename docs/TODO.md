@@ -78,7 +78,7 @@ Full findings and work packages: `docs/UI_OVERHAUL_PLAN.md`.
 | U5 | Data catalogue, NSE vs Yahoo comparison, R2 policy (WP10) | `docs/DATA_CATALOGUE.md` written (datasets, writers, readers, retention, source order, comparison status). Freshness table now in Configuration. Still open: fourth NSE report and the price-order decision | [ ] partly done |
 | U6 | Hide the TradingView logo on every Lightweight chart (`layout.attributionLogo: false` in `lw_chart.py` and `lightweight_chart.py`); the vendored v4.2.0 draws it by default | PR merged; no logo on the stock page | [x] 3 Oct (#364): 41 chart tests pass |
 | U7 | Upgrade vendored Lightweight Charts v4.2.0 -> 5.x: `addSeries(LineSeries, ...)` calls, `tests/test_lw_chart.py`, look at the stock, Breadth, Backtest and Portfolio pages; native panes can replace the hand-synced stack later | Separate PR merged; logo still off; charts checked on the live site | [x] 3 Oct: v5.2.1, series via addSeries, rendered in Chromium (candles, volume, baseline, area, line, synced panes): no errors, no logo |
-| U8 | Refresh every stock's TradingView sector and industry, not only the blank ones (`classify_missing.py --refresh`, nightly): 22 stale rows corrected, 5 Nano Cap labels | PR merged; nightly step green | [x] 3 Oct |
+| U8 | Refresh every stock's TradingView sector and industry, not only the blank ones (`classify_missing.py --refresh`, weekly): 22 stale rows corrected, 5 Nano Cap labels | PR merged; nightly step green | [x] 3 Oct |
 
 ## Dated
 
