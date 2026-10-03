@@ -9,10 +9,11 @@ files and NSE's yearly list), keeps every stock any index ever listed
 (data/membership_history.json) plus the old tickers of its renames, and writes:
 
     nse_long_close.parquet   closes adjusted for splits, bonuses, consolidations
-                             and demergers, each confirmed by the price
-                             (nse_prices.adjusted_close); renames joined under
-                             today's ticker. No dividends, no rights issues
-                             (owner, 2026-10-03).
+                             and demergers, each confirmed by the price (small
+                             bonuses on NSE's word), and for rights issues
+                             priced under the market (nse_adjusted.rights_factor;
+                             owner, 2026-10-03); renames joined under today's
+                             ticker. No dividends.
     nse_long_value.parquet   traded value per session, in Rs crore (NSE's own
                              TOTTRDVAL, which no split changes), joined the same way.
     nse_long_report.json     what was built: sessions, symbols, unpriced names,
@@ -200,7 +201,7 @@ def main(argv=None) -> int:
     report = {**report, "actions_from_tejhq": from_tejhq,
               "built": date.today().isoformat(), "since": str(args.since),
               "until": str(until), "sessions_on_r2": len(days),
-              "basis": "nse_raw_adjusted_split_bonus_consolidation_demerger"}
+              "basis": "nse_raw_adjusted_split_bonus_consolidation_demerger_rights"}
     (args.out / REPORT_FILE).write_text(json.dumps(report, indent=1) + "\n", encoding="utf-8")
     sizes = {f: round((args.out / f).stat().st_size / 1e6, 1) for f in (CLOSE_FILE, VALUE_FILE)}
     print(f"wrote {close.shape[1]} symbols x {len(close)} sessions "

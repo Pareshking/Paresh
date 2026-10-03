@@ -204,3 +204,58 @@ def test_a_scheme_is_priced_as_a_demerger_only_on_a_deep_fall():
     mild = na.wide(_rows("X", [100.0, 101.0, 98.0, 99.0], [100.0] * 4))["close"]
     f, v = na.action_factors(mild, _actions(("X", "scheme", pd.Timestamp("2026-01-07"), np.nan)))
     assert v["verdict"].tolist() == ["no move"] and (f == 1.0).all().all()
+
+
+def _closes(**cols):
+    return pd.DataFrame(cols, index=pd.bdate_range("2020-07-15", periods=len(next(iter(cols.values())))))
+
+
+def test_a_rights_issue_is_priced_at_the_theoretical_ex_rights_price():
+    """M&MFIN, 1:1 at Rs 50 (face 2 + premium 48), ex 22 Jul 2020: Screener's step is x0.6097."""
+    close = _closes(MMF=[207.9, 229.6, 227.9, 153.85, 148.6])
+    acts = pd.DataFrame({"symbol": ["MMF", "MMF"], "kind": ["rights", "rights"],
+                         "ex_date": [close.index[3]] * 2, "price_factor": [np.nan, np.nan],
+                         "purpose": ["Rights 1:1 @ Premium Rs 48/-"] * 2,
+                         "face_value": [2.0, np.nan]})     # the Bc row lacks it; once only
+    f, v = na.action_factors(close, acts)
+    assert np.isclose(f.at[close.index[3], "MMF"], (227.9 + 50.0) / (2 * 227.9))
+    assert (f != 1.0).sum().sum() == 1
+    assert v["verdict"].tolist() == ["rights"]
+
+
+def test_a_rights_issue_at_or_above_the_market_changes_nothing():
+    close = _closes(ABC=[100.0, 101.0, 99.0])
+    acts = pd.DataFrame({"symbol": ["ABC"], "kind": ["rights"], "ex_date": [close.index[2]],
+                         "price_factor": [np.nan], "purpose": ["Rights 1:4 @ Premium Rs 100/-"],
+                         "face_value": [10.0]})
+    f, v = na.action_factors(close, acts)
+    assert (f == 1.0).all().all()
+    assert v["verdict"].tolist() == ["not in the money"]
+
+
+def test_a_rights_issue_without_an_issue_price_is_listed_not_guessed():
+    close = _closes(ABC=[100.0, 101.0, 80.0])
+    acts = pd.DataFrame({"symbol": ["ABC"], "kind": ["rights"], "ex_date": [close.index[2]],
+                         "price_factor": [np.nan], "purpose": ["Rights 5:6"], "face_value": [10.0]})
+    f, v = na.action_factors(close, acts)
+    assert (f == 1.0).all().all()
+    assert v["verdict"].tolist() == ["no terms"]
+
+
+def test_a_small_bonus_the_market_hides_is_applied_once():
+    """KTKBANK 1:10 on 17 Mar 2020: x0.909, but the day fell only x0.957."""
+    close = _closes(KTK=[60.0, 58.0, 55.5, 54.0])
+    day = close.index[2]
+    f, v = na.action_factors(close, _actions(
+        ("KTK", "bonus", day, 1 / 1.1),
+        ("KTK", "bonus", day + pd.Timedelta(days=1), 1 / 1.1)))   # the other list's date
+    assert np.isclose(f.at[day, "KTK"], 1 / 1.1)
+    assert (f != 1.0).sum().sum() == 1
+    assert v["verdict"].tolist() == ["small, applied", "duplicate"]
+
+
+def test_a_large_factor_the_price_contradicts_is_still_refused():
+    close = _closes(ABC=[100.0, 101.0, 99.0])
+    f, v = na.action_factors(close, _actions(("ABC", "bonus", close.index[2], 0.5)))
+    assert (f == 1.0).all().all()
+    assert v["verdict"].tolist() == ["no move"]

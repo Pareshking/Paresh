@@ -238,6 +238,10 @@ _RATIO = re.compile(r"(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)")
 _FACE = re.compile(r"(?:(?:FROM|FRM)\s*(?:R[SE]\.?)?|\bR[SE]\.?)\s*([\d.]+)[^\d]*?\bTO\s*"
                    r"(?:FACE\s*VALUE\s*)?(?:R[SE]\.?)?\s*([\d.]+)")
 _AMOUNT = re.compile(r"(?:RS|RE|INR)\.?\s*([\d]+(?:\.\d+)?)")
+# A rights issue's premium over face value: "Rights 3:4 @ Premium Rs 78/-",
+# "@Prem Rs.91.5", "@ Prm Rs 102/-"; "At Par" is a premium of 0.
+_PREMIUM = re.compile(r"(?:PREMIUM|PREM|PRM)\.?\s*(?:@|OF)?\s*(?:RS|RE|INR)?\.?\s*([\d]+(?:\.\d+)?)")
+_AT_PAR = re.compile(r"\bAT\s+PAR\b|@\s*PAR\b")
 
 
 def classify_purpose(purpose: str) -> dict:
@@ -248,7 +252,9 @@ def classify_purpose(purpose: str) -> dict:
       split / consolidation  face value to / face value from  (10 -> 2: 0.2)
       bonus a:b              b / (a + b)   (a new shares for every b held)
     Dividends, rights and demergers have none here: their factor depends on
-    prices or on terms the purpose text does not carry.
+    prices or on terms the purpose text does not carry. A rights issue keeps
+    its ratio and, in `amount`, its premium over face value (0 at par);
+    nse_adjusted prices it against the close before the ex-date.
     """
     text = (purpose or "").upper()
     kind = next((k for k, rx in _KINDS if rx.search(text)), "other")
@@ -280,6 +286,12 @@ def classify_purpose(purpose: str) -> dict:
             info.update(ratio_new=new, ratio_held=held)
             if kind == "bonus" and new > 0 and held > 0:
                 info["price_factor"] = held / (new + held)
+        if kind == "rights":
+            prem = _PREMIUM.search(text)
+            if prem:
+                info["amount"] = float(prem.group(1))
+            elif _AT_PAR.search(text):
+                info["amount"] = 0.0
     elif kind == "dividend":
         m = _AMOUNT.search(text)
         if m:

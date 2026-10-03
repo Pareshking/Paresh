@@ -81,6 +81,30 @@ jobs:
             data_cache/nse_long/nse_long_report.json \
             data_cache/nse_long/nse_raw_pack.parquet \
             --repo "$GITHUB_REPOSITORY" --clobber
+      # The audits (docs/PRICE_PIPELINE.md, "Audit"): the new file against every
+      # reference on the release, against Screener point by point, and NSE's raw
+      # rows' own arithmetic, dividends, ISINs and calendar. They run here, after
+      # each build, so no laptop has to be on; a failure never blocks the publish.
+      - name: Audit the new file
+        id: audit
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p refs audit
+          gh release download data-latest --repo "$GITHUB_REPOSITORY" --dir refs             --pattern 'ref_*_close*.parquet' --pattern screener_max_history.parquet             --pattern ref_nse_action_list_api_2008_2026.zip
+          unzip -q -o -j refs/ref_nse_action_list_api_2008_2026.zip -d refs/actions
+          python scripts/audit_long_prices.py --ours data_cache/nse_long/nse_long_close.parquet             --ref yahoo=refs/ref_yahoo_close.parquet --ref eod2=refs/ref_eod2_close.parquet             --ref tijori=refs/ref_tijori_close_verified.parquet --ref ss=refs/ref_ss_close.parquet             --ref marketlens=refs/ref_marketlens_close.parquet --ref tejhq=refs/ref_tejhq_adjusted_close.parquet             --no-confirm marketlens --no-confirm tejhq --out audit
+          python scripts/audit_against_screener.py --ours data_cache/nse_long/nse_long_close.parquet             --screener refs/screener_max_history.parquet --out audit
+          python scripts/audit_raw_bars.py --pack data_cache/nse_long/nse_raw_pack.parquet --ours data_cache/nse_long/nse_long_close.parquet             --actions refs/actions --out audit
+          (cd audit && zip -q ../long_price_audit_latest.zip ./*)
+          gh release upload data-latest long_price_audit_latest.zip --repo "$GITHUB_REPOSITORY" --clobber
+          {
+            echo "## Audit"
+            for f in summary.json screener_summary.json raw_summary.json; do
+              echo "### $f"; echo '```json'; cat "audit/$f"; echo '```'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -88,5 +112,6 @@ jobs:
           path: |
             data_cache/nse_long/
             !data_cache/nse_long/nse_raw_pack.parquet
+            audit/
           if-no-files-found: ignore
           retention-days: 14

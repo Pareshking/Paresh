@@ -242,6 +242,18 @@
    "before": "2024-12-27",
    "factor": 0.811,
    "evidence": "Rights issue ex-date: NSE's close fell x0.727 while Yahoo and Tijori (which adjust for rights) moved x0.896; factor = NSE's move over theirs (owner, 2026-10-03: correct data first)"
+  },
+  {
+   "symbol": "JSLL",
+   "before": "2023-11-02",
+   "factor": 0.5556,
+   "evidence": "Bonus 4:5, ex-date 2 Nov 2023 (SME, absent from NSE's main action list): NSE close fell x0.571; Yahoo, eod2, MarketLens, Tijori and SS flat. trendlyne.com/equity/corporate-actions/JSLL; nsearchives.nseindia.com/corporate/JSLL_31102023182953_BMIntimationforallotmentofbonusshares.pdf"
+  },
+  {
+   "symbol": "JSLL",
+   "before": "2025-06-12",
+   "factor": 0.2,
+   "evidence": "Split Rs 10 to Rs 2, ex-date 12 Jun 2025 (SME list): NSE close fell x0.191; every reference flat. trendlyne.com/equity/corporate-actions/JSLL"
   }
  ],
  "special_sessions": {

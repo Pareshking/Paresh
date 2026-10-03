@@ -309,3 +309,22 @@ def test_known_closed_days_are_not_asked_again():
     cal = nc.weekdays(date(2010, 1, 25), date(2010, 1, 27))
     assert nc.backfill_dates(cal, {date(2010, 1, 26)}, 10, start=date(2010, 1, 1)) == [
         date(2010, 1, 27), date(2010, 1, 25)]
+
+
+@pytest.mark.parametrize("text, new, held, premium", [
+    ("Rights 3:4 @ Premium Rs 78/-", 3, 4, 78.0),
+    ("Rights 3:10 @Prem Rs.91.5", 3, 10, 91.5),
+    ("Rights 7:10 @ Prm Rs 102/-", 7, 10, 102.0),
+    ("Rights 1:1 Prem@Rs.44/-", 1, 1, 44.0),
+    (" Rights : 24:10 At Par", 24, 10, 0.0),
+    ("Rights - 2:3@ Par Rs 10 Per Share", 2, 3, 0.0),
+])
+def test_a_rights_issue_keeps_its_ratio_and_premium(text, new, held, premium):
+    info = nb.classify_purpose(text)
+    assert info["kind"] == "rights"
+    assert (info["ratio_new"], info["ratio_held"], info["amount"]) == (new, held, premium)
+    assert np.isnan(info["price_factor"])
+
+
+def test_a_rights_issue_with_no_price_has_no_premium():
+    assert np.isnan(nb.classify_purpose("Rights 5:6")["amount"])
