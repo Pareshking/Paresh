@@ -30,6 +30,18 @@ SESSIONS_PER_MONTH: int = 21
 DEFAULT_BACKTEST_MONTHS: int = 6
 
 
+def _rolling_high_at(prices: pd.DataFrame, idx: int) -> pd.Series:
+    """Return the canonical 252-session high at one row, matching pandas rolling.
+
+    Keep the same rolling operation as the full-history reference rather than
+    replacing it with DataFrame.max/count: pandas rolling has its own handling
+    of missing/non-finite values, and signal parity matters more than saving a
+    few operations on this small window. Only the 252-row slice is materialised.
+    """
+    window = prices.iloc[max(0, idx - 251) : idx + 1]
+    return window.rolling(252, min_periods=126).max().iloc[-1]
+
+
 def completed_month_window(
     dates: pd.DatetimeIndex, months: int = DEFAULT_BACKTEST_MONTHS
 ) -> tuple[pd.Timestamp, pd.Timestamp]:
@@ -859,9 +871,7 @@ def run_backtest(
         cached = _high_at_cache.get(idx)
         if cached is not None:
             return cached
-        window = prices.iloc[max(0, idx - 251):idx + 1]
-        high = window.max()
-        high[window.count() < 126] = np.nan
+        high = _rolling_high_at(prices, idx)
         _high_at_cache[idx] = high
         return high
 
