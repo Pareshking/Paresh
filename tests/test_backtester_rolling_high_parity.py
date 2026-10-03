@@ -49,3 +49,31 @@ def test_single_date_high_matches_reference_for_every_row() -> None:
         pd.testing.assert_series_equal(
             _rolling_high_at(prices, idx), reference.iloc[idx], check_exact=True
         )
+
+
+def test_production_scale_signal_dates_match_full_history_reference() -> None:
+    """Exercise the optimized lookup at 750-symbol / ~16-year scale."""
+    rng = np.random.default_rng(20261003)
+    rows, cols = 4200, 750
+    values = rng.lognormal(mean=4.5, sigma=0.35, size=(rows, cols))
+    prices = pd.DataFrame(
+        values,
+        index=pd.bdate_range("2010-01-04", periods=rows),
+        columns=[f"S{i:03d}" for i in range(cols)],
+    )
+    # Representative price-history holes; no symbol gets silently filled.
+    prices.iloc[::37, 4] = np.nan
+    prices.iloc[::113, 81] = np.nan
+    prices.iloc[:125, 749] = np.nan
+    reference = prices.rolling(252, min_periods=126).max()
+    month_ends = (
+        pd.Series(np.arange(rows), index=prices.index)
+        .groupby(prices.index.to_period("M"))
+        .last()
+        .astype(int)
+        .tolist()
+    )
+    for idx in month_ends:
+        pd.testing.assert_series_equal(
+            _rolling_high_at(prices, idx), reference.iloc[idx], check_exact=True
+        )
