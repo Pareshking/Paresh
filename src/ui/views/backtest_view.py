@@ -27,9 +27,10 @@ from src.ui import page_kit as kit
 from src.ui.canonical_book import current_book
 from src.engine.extra_universe import SYSTEM_750
 from src.engine.systems import inception, ledger_path
-from src.engine.track_record import load_ledger, summary_stats
+from src.engine.track_record import build_combined_grid, ledger_from_curves, load_ledger, summary_stats
 from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.theme import render_saas_table
+from src.ui.views.track_record_view import grid_display
 
 
 def _canonical_account_stats(ledger: dict, live_meta: dict | None) -> dict:
@@ -515,6 +516,24 @@ def _backtest_tab(
     with kit.card("Growth of ₹100", "bt_growth", "daily"):
         kit.growth_chart(eq.index, eq.tolist(),
                          None if bm is None else bm.tolist(), key="bt")
+
+    # Year by month, as on the Portfolio page (owner, 3 Oct 2026): a 16-year run
+    # is read by its years, and one growth line hides which ones were good.
+    with kit.card("Calendar returns", "bt_calendar",
+                  f"Strategy, {bench_name} and Alpha, per year"):
+        _grid = build_combined_grid(ledger_from_curves(eq, bm), alpha_as_difference=True)
+        if _grid.empty:
+            st.info("No full month in this window yet.")
+        else:
+            _grid["SERIES"] = _grid["SERIES"].replace({"Nifty 500": bench_name})
+            render_saas_table(grid_display(_grid))
+            st.caption(
+                "Calendar months, after costs. The first month starts at the first "
+                "fill of the run and the last is the last completed month. CY is the "
+                "calendar year compounded, FY the Indian financial year (April to "
+                "March), Q1 to Q4 the calendar quarters; Alpha is the strategy's "
+                "return minus the index's, for each month, year and quarter."
+            )
 
     # The live book and the canonical account belong to the live system, not to
     # a study of another index or another decade.

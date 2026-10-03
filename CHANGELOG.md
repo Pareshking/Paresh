@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-03 — Backtest: calendar returns
+
+- The Backtest tab (Live and History from 2010) shows Calendar returns under the growth chart: Strategy, the index and Alpha by year and month, with CY, FY (April - March) and quarters, built by the code the Portfolio page uses (`ledger_from_curves`, `build_combined_grid`). Alpha's year and quarter cells are the plain difference between strategy and index; Portfolio keeps its compounded-monthly convention (TODO S40).
+
 ## 2026-10-03 — Data correctness: BSE gap audit, KESORAMIND
 
 - `scripts/bse_bhavcopy.py` and `scripts/audit_gaps_against_bse.py`: BSE's bhavcopy 2008 - today, and every gap in the long NSE file classified (NSE-only, suspension, not checked). Findings and method: `docs/DATA_CORRECTNESS.md`, loaded by the new `CLAUDE.md`.

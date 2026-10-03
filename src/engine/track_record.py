@@ -193,6 +193,30 @@ def calendar_month_returns(curve: pd.Series) -> pd.Series:
     return rets.dropna()
 
 
+def ledger_from_curves(strategy_curve: pd.Series, benchmark_curve: pd.Series | None = None) -> dict[str, Any]:
+    """A ledger-shaped dict of calendar-month returns, built from two equity curves.
+
+    The Portfolio page's calendar grid reads the frozen ledger; a backtest has no
+    ledger, only curves. This gives `build_combined_grid` the same input from a
+    curve, so a backtest's year-by-month table is computed by the very code the
+    record's is (CY, FY and quarter conventions included). Alpha is the month's
+    strategy return minus its benchmark return, as in the ledger. The ledger's
+    inception is the first month of the curve, so the grid starts there and not
+    at the record's own inception.
+    """
+    s = calendar_month_returns(strategy_curve)
+    b = (calendar_month_returns(benchmark_curve)
+         if benchmark_curve is not None and len(benchmark_curve) else pd.Series(dtype=float))
+    months: dict[str, dict[str, float]] = {}
+    for period, value in s.items():
+        entry = {"strategy": float(value)}
+        if period in b.index:
+            entry["benchmark"] = float(b.loc[period])
+            entry["alpha"] = float(value) - float(b.loc[period])
+        months[str(period)] = entry
+    return {"inception": str(s.index.min()) if len(s) else None, "months": months}
+
+
 def compound(returns: Iterable[float]) -> float | None:
     """Chain-link a run of monthly returns. None when there is nothing to chain."""
     vals = [float(r) for r in returns if r is not None and np.isfinite(r)]
@@ -394,6 +418,7 @@ def build_combined_grid(
     mtd_period: pd.Period | None = None,
     mtd_values: dict[str, float | None] | None = None,
     years: Sequence[int] | None = None,
+    alpha_as_difference: bool = False,
 ) -> pd.DataFrame:
     """All three series in one grid, three rows per year.
 
@@ -405,6 +430,13 @@ def build_combined_grid(
     Rows are grouped by year, then Strategy / Nifty 500 / Alpha, so a year reads
     as a block. Each row is built by `build_grid`, so the CY/FY/quarter
     conventions cannot drift between the combined and per-series views.
+
+    The Alpha row's CY, FY and quarter cells are, by default, the monthly alphas
+    compounded (the Portfolio and Track Record pages). That is not the year's
+    strategy return minus the year's index return: 2010 at +17.7% against
+    +25.2% reads -6.4%, not -7.5%. `alpha_as_difference` makes those cells the
+    plain difference, which is what the Backtest tab's "ahead of the index"
+    figure is; its monthly cells are differences either way.
     """
     mtd_values = mtd_values or {}
 
@@ -441,6 +473,14 @@ def build_combined_grid(
                 rows.append(blank)
                 continue
             rows.append({"SERIES": label, **grid.iloc[0].to_dict()})
+        if alpha_as_difference:
+            block = {r["SERIES"]: r for r in rows[-len(SERIES_LABELS):] if r.get("YEAR") == year}
+            strat, bench, alpha = (block.get(SERIES_LABELS[k]) for k in ("strategy", "benchmark", "alpha"))
+            if strat is not None and bench is not None and alpha is not None:
+                for col in ("CY RETURN", "FY RETURN", "Q1", "Q2", "Q3", "Q4"):
+                    a, b = strat.get(col), bench.get(col)
+                    ok = a is not None and b is not None and np.isfinite(a) and np.isfinite(b)
+                    alpha[col] = float(a) - float(b) if ok else None
 
     if not rows:
         return pd.DataFrame()
