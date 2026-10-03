@@ -64,9 +64,17 @@ MODE_HISTORY = "History from 2010"
 
 @st.cache_data(show_spinner=False, ttl=3600)
 def _long_file():
+    """Closes and report only: traded value is fetched when a floor is set."""
     from src.loaders import nse_long
 
-    return nse_long.load()
+    return nse_long.load(with_value=False)
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def _long_value():
+    from src.loaders import nse_long
+
+    return nse_long.load_value()
 
 
 HISTORICAL_INDUSTRIES = Path(__file__).resolve().parents[3] / "data" / "reference" / "historical_industries.csv"
@@ -99,7 +107,7 @@ def _history_inputs(rank_df: pd.DataFrame, liquidity_floor_cr: float) -> dict | 
                  "It is built weekly from NSE's bhavcopy by the 'NSE long price file' workflow "
                  "and published to the data-latest release.")
         return None
-    close, value, report = loaded
+    close, _value, report = loaded
 
     c1, c2 = st.columns([1, 2])
     key = c1.selectbox("Index", list(iu.INDICES), format_func=iu.INDICES.get,
@@ -143,13 +151,23 @@ def _history_inputs(rank_df: pd.DataFrame, liquidity_floor_cr: float) -> dict | 
     unlabelled = [c for c in cols if sec.get(c, "Other") == "Other"]
     sec.update({c: f"Unlabelled · {c}" for c in unlabelled})
 
+    traded = None
+    if floor:
+        value = _long_value()
+        if value is None:
+            kit.note("Traded value is not available right now, so the floor is off for this run.",
+                     "The long file's traded-value part could not be fetched.")
+            floor = 0.0
+        else:
+            traded = nse_long.average_value(value.reindex(columns=cols).loc[:cut])
+
     return {
         "close": frame, "membership": membership, "start": start, "end": end,
         "months": (end - start).n + 1, "floor": floor,
         # The Nifty 50 against its own index; the others against the Nifty 500,
         # the broadest index on file (data/benchmarks.csv holds the two).
         "benchmark": ("^NSEI", "Nifty 50") if key == "nifty_50" else ("^CRSLDX", "Nifty 500"),
-        "traded_value": nse_long.average_value(value[cols].loc[:cut]) if floor else None,
+        "traded_value": traded,
         "sector_map": sec, "unlabelled": len(unlabelled), "name": iu.INDICES[key],
         "built": report.get("built"), "last_session": report.get("last_session"),
     }

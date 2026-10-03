@@ -212,6 +212,36 @@
    "before": "2025-06-26",
    "factor": 0.8933,
    "evidence": "Rights issue ex-date: NSE's close fell, while NSE MarketLens, Yahoo and Tijori (all adjusting for rights) were flat; factor = NSE's move over theirs. Applied for index stocks so the ex-rights fall is not read as a loss (owner, 2026-10-03: correct data first)"
+  },
+  {
+   "symbol": "VEDL",
+   "before": "2008-08-08",
+   "factor": 0.05,
+   "evidence": "Sesa Goa (now VEDL): face value split Rs 10 to Re 1 with a 1:1 bonus, ex 8 Aug 2008, record 18 Aug (0.1 x 0.5). In no action list. NSE's close fell x0.053 while Yahoo and eod2 moved x1.063 (web search 2026-10-03: domain-b.com, equitybulls.com)"
+  },
+  {
+   "symbol": "JMFINANCIL",
+   "before": "2008-09-08",
+   "factor": 0.04,
+   "evidence": "JM Financial: face value split Rs 10 to Re 1 with a 3:2 bonus, ex 8 Sep 2008, record 15 Sep (0.1 x 2/5). In no action list. NSE's close fell x0.048 while Yahoo and eod2 moved x1.201 (web search 2026-10-03: trendlyne.com corporate actions)"
+  },
+  {
+   "symbol": "VINATIORGA",
+   "before": "2009-10-30",
+   "factor": 0.2,
+   "evidence": "Vinati Organics: face value split Rs 10 to Rs 2, ex 30 Oct 2009, record 3 Nov (annual report 2009-10). In no action list. NSE's close fell x0.218 while Yahoo and Tijori moved x1.088 (web search 2026-10-03: trendlyne.com split history)"
+  },
+  {
+   "symbol": "UTKARSHBNK",
+   "before": "2025-10-14",
+   "factor": 0.849,
+   "evidence": "Rights issue ex-date: NSE's close fell x0.804 while Yahoo, Tijori and SS (which adjust for rights) moved x0.947; factor = NSE's move over theirs (owner, 2026-10-03: correct data first)"
+  },
+  {
+   "symbol": "DHANBANK",
+   "before": "2024-12-27",
+   "factor": 0.811,
+   "evidence": "Rights issue ex-date: NSE's close fell x0.727 while Yahoo and Tijori (which adjust for rights) moved x0.896; factor = NSE's move over theirs (owner, 2026-10-03: correct data first)"
   }
  ],
  "special_sessions": {
