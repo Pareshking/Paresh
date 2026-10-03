@@ -37,3 +37,12 @@ def test_nothing_is_drawn_for_a_single_point(monkeypatch):
     monkeypatch.setattr(lw.st, "iframe", lambda *a, **k: drawn.append(a))
     lw.render([{"series": [{"name": "x", "data": [("2026-01-01", 1.0)]}]}])
     assert not drawn
+
+
+def test_the_library_is_v5_and_the_logo_is_off():
+    html = lw.chart_html([{"series": [{"name": "x", "data": [("2026-01-01", 1.0), ("2026-01-02", 2.0)]}]}])
+    assert "Lightweight Charts™ v5." in html
+    assert "attributionLogo:false" in html
+    # v4's per-type factories are gone in v5; every series goes through addSeries
+    assert not any(f"add{t}Series(" in html.split("const SPEC=")[1]
+                   for t in ("Line", "Area", "Histogram", "Baseline", "Candlestick"))

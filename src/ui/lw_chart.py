@@ -145,22 +145,22 @@ SPEC.forEach((p,pi)=>{
     const f=fmts[s.fmt||'num'];
     const pf={type:'custom',formatter:f,minMove:0.01};
     if(s.type==='candlestick'){
-      ser=chart.addCandlestickSeries({upColor:s.up||'#067647',downColor:s.down||'#B42318',borderUpColor:s.up||'#067647',borderDownColor:s.down||'#B42318',wickUpColor:s.up||'#067647',wickDownColor:s.down||'#B42318',priceFormat:pf,priceLineVisible:false,lastValueVisible:false});
+      ser=chart.addSeries(LightweightCharts.CandlestickSeries,{upColor:s.up||'#067647',downColor:s.down||'#B42318',borderUpColor:s.up||'#067647',borderDownColor:s.down||'#B42318',wickUpColor:s.up||'#067647',wickDownColor:s.down||'#B42318',priceFormat:pf,priceLineVisible:false,lastValueVisible:false});
     }else if(s.type==='histogram'&&s.volume){
-      ser=chart.addHistogramSeries({color:colorOf(s),priceFormat:pf,priceScaleId:'vol',priceLineVisible:false,lastValueVisible:false});
+      ser=chart.addSeries(LightweightCharts.HistogramSeries,{color:colorOf(s),priceFormat:pf,priceScaleId:'vol',priceLineVisible:false,lastValueVisible:false});
       chart.priceScale('vol').applyOptions({scaleMargins:{top:0.8,bottom:0},visible:false});
     }else if(s.type==='histogram'){
-      ser=chart.addHistogramSeries({color:colorOf(s),priceFormat:pf,priceLineVisible:false,lastValueVisible:false});
+      ser=chart.addSeries(LightweightCharts.HistogramSeries,{color:colorOf(s),priceFormat:pf,priceLineVisible:false,lastValueVisible:false});
     }else if(s.type==='area'){
-      ser=chart.addAreaSeries({lineColor:colorOf(s),topColor:colorOf(s)+'33',bottomColor:colorOf(s)+'05',lineWidth:2,priceFormat:pf,priceLineVisible:false,lastValueVisible:false});
+      ser=chart.addSeries(LightweightCharts.AreaSeries,{lineColor:colorOf(s),topColor:colorOf(s)+'33',bottomColor:colorOf(s)+'05',lineWidth:2,priceFormat:pf,priceLineVisible:false,lastValueVisible:false});
     }else if(s.type==='baseline'){
-      ser=chart.addBaselineSeries({baseValue:{type:'price',price:s.base||0},
+      ser=chart.addSeries(LightweightCharts.BaselineSeries,{baseValue:{type:'price',price:s.base||0},
         topLineColor:s.color||'#067647',bottomLineColor:s.negColor||'#B42318',
         topFillColor1:(s.color||'#067647')+'33',topFillColor2:(s.color||'#067647')+'05',
         bottomFillColor1:(s.negColor||'#B42318')+'05',bottomFillColor2:(s.negColor||'#B42318')+'33',
         lineWidth:2,priceFormat:pf,priceLineVisible:false,lastValueVisible:false});
     }else{
-      ser=chart.addLineSeries({color:colorOf(s),lineWidth:s.width||2,priceFormat:pf,priceLineVisible:false,lastValueVisible:false,crosshairMarkerRadius:4});
+      ser=chart.addSeries(LightweightCharts.LineSeries,{color:colorOf(s),lineWidth:s.width||2,priceFormat:pf,priceLineVisible:false,lastValueVisible:false,crosshairMarkerRadius:4});
     }
     if(s.range){ser.applyOptions({autoscaleInfoProvider:()=>({priceRange:{minValue:s.range[0],maxValue:s.range[1]}})});}
     ser.setData(s.data.map(d=>d.open!==undefined?{time:d.time,open:d.open,high:d.high,low:d.low,close:d.close}:(d.color?{time:d.time,value:d.value,color:d.color}:{time:d.time,value:d.value})));
