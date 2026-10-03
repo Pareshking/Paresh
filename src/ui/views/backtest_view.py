@@ -2,8 +2,13 @@
 Strategy Backtesting View Controller with Friction & Turnover Attribution.
 """
 
+import cProfile
 import html
+import io
 import math
+import pstats
+import time
+import tracemalloc
 from pathlib import Path
 
 import pandas as pd
@@ -439,27 +444,75 @@ def _backtest_tab(
         # index files only label the current members.
         sec_map.update(former_members.industry_for([c for c in adj_close.columns if c not in sec_map]))
 
-    with st.spinner("Running walk-forward backtest with friction & turnover modeling…"):
-        bt_res = run_backtest(
-            ph,
-            adj_close,
-            _benchmark_close=benchmark_close,
-            top_n=bt_n,
-            rebal_freq=bt_rebal,
-            weight_method=bt_weight,
-            config_weights=active_weights,
-            stock_cap=stock_cap,
-            sector_cap=sector_cap,
-            sector_map=sec_map,
-            cost_bps=cost_drag_bps,
-            buffer_n=int(bt_n * buffer_mult),
-            _membership=membership,
-            backtest_months=months,
-            stateful_history=True,
-            history_start=history_start,
-            _actions=_events,
-            liquidity_floor_cr=liquidity_floor_cr,
-            _traded_value=traded_value,
+    profile_run = st.checkbox(
+        "Profile this backtest (uncached; slower)",
+        value=False,
+        key="bt_profile_run",
+        help="Runs the engine directly, bypassing Streamlit's result cache, and reports CPU hotspots and Python-traced peak allocations. Use once with the desired History from 2010 settings.",
+    )
+    run_args = dict(
+        _benchmark_close=benchmark_close,
+        top_n=bt_n,
+        rebal_freq=bt_rebal,
+        weight_method=bt_weight,
+        config_weights=active_weights,
+        stock_cap=stock_cap,
+        sector_cap=sector_cap,
+        sector_map=sec_map,
+        cost_bps=cost_drag_bps,
+        buffer_n=int(bt_n * buffer_mult),
+        _membership=membership,
+        backtest_months=months,
+        stateful_history=True,
+        history_start=history_start,
+        _actions=_events,
+        liquidity_floor_cr=liquidity_floor_cr,
+        _traded_value=traded_value,
+    )
+    profile_text = None
+    profile_elapsed = None
+    profile_peak_mb = None
+    with st.spinner("Profiling uncached walk-forward backtest…" if profile_run else
+                    "Running walk-forward backtest with friction & turnover modeling…"):
+        if profile_run:
+            # Calling the wrapped function bypasses st.cache_data so the profile
+            # measures the engine rather than a cache hit. It does not clear or
+            # mutate the shared cache used by ordinary app sessions.
+            engine_fn = getattr(run_backtest, "__wrapped__", None)
+            if engine_fn is None:
+                st.error("Profiling unavailable: Streamlit did not expose the uncached engine function.")
+                return
+            profiler = cProfile.Profile()
+            tracemalloc.start()
+            started = time.perf_counter()
+            try:
+                bt_res = profiler.runcall(engine_fn, ph, adj_close, **run_args)
+                profile_elapsed = time.perf_counter() - started
+                _current_bytes, _peak_bytes = tracemalloc.get_traced_memory()
+                profile_peak_mb = _peak_bytes / (1024 * 1024)
+            finally:
+                tracemalloc.stop()
+            stats_stream = io.StringIO()
+            pstats.Stats(profiler, stream=stats_stream).strip_dirs().sort_stats("cumulative").print_stats(30)
+            profile_text = stats_stream.getvalue()
+        else:
+            bt_res = run_backtest(ph, adj_close, **run_args)
+
+    if profile_run:
+        st.subheader("Backtest profile")
+        st.caption(
+            f"Engine wall time: {profile_elapsed:.2f} s · "
+            f"Input: {len(adj_close):,} sessions × {len(adj_close.columns):,} symbols · "
+            f"Python-traced peak allocations: {profile_peak_mb:.1f} MiB. "
+            "Tracemalloc does not capture all NumPy/native allocations and is not process peak RSS."
+        )
+        st.code(profile_text or "No profile captured.", language="text")
+        st.download_button(
+            "Download cProfile report",
+            data=(profile_text or "").encode("utf-8"),
+            file_name="history_backtest_profile.txt",
+            mime="text/plain",
+            key="bt_profile_download",
         )
 
     if bt_res is None:
