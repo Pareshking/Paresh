@@ -260,6 +260,12 @@
    "before": "2010-07-08",
    "factor": 0.8423,
    "evidence": "Rights issue of 4 CCPS (Series A and B, Rs 10 + Rs 540 premium, convertible to equity) per 9 shares, ex-date 8 Jul 2010 (NSE yearly list: '4 Ccps ... Issued @ Premium Of Rs 540 Per Ccps For 9 Eq Shares', worded without 'rights'). Theoretical ex-rights factor (9 x 1128.40 + 4 x 550) / (13 x 1128.40) = 0.8423; NSE close fell x0.859"
+  },
+  {
+   "symbol": "KESORAMIND",
+   "before": "2025-03-10",
+   "factor": 0.0474,
+   "evidence": "Demerger: Kesoram's cement business went to UltraTech under a scheme (record and effective date 10 Mar 2025), shareholders receiving 1 UltraTech share per 52 Kesoram; NSE's close fell from 204.72 to 9.71 (x0.0474) on 10 Mar 2025, the same in eod2, MarketLens, Tijori and TejHQ, while Yahoo's series is already adjusted. Priced at the ex-date fall, as every demerger here (web search 2026-10-03: Solactive stock distribution notice, Zerodha demerger Q&A)"
   }
  ],
  "special_sessions": {
