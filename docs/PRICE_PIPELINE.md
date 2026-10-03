@@ -168,8 +168,8 @@ ex-date, kind and factor (500 splits and bonuses had gone unapplied, #348).
 
 `scripts/build_nse_long_prices.py` (weekly, `nse_long_prices.yml`) reads every
 session on R2 from 2008 and writes to the `data-latest` release: closes adjusted
-for splits, bonuses, consolidations, demergers and rights issues, renames
-joined, no dividends (owner, 3 Oct 2026: correct data first), for every stock any index ever listed (1,380, plus 38 old
+for splits, bonuses, consolidations, demergers, rights issues and dividends
+of 10% or more, renames joined (owner, 3 Oct 2026: correct data first), for every stock any index ever listed (1,380, plus 38 old
 tickers and Tata Motors DVR: 1,418 series);
 traded value in Rs Cr; and a report (units by year, copies dropped, calendar
 flags). `src/loaders/nse_long.py` reads it; the Backtest page's "History from
@@ -229,17 +229,18 @@ independent searches, NSE's own bhavcopies for 12 of them): 49 real, the 50th
 (holder's return about -11%). An AI-written check that reproduced our own
 numbers to the decimal was not counted as evidence.
 
-### Dividends are not adjusted
+### Dividends: only the large ones are adjusted
 
-Neither are Screener's prices (the live system's source), so the History and
-Live backtests stay on one basis. A large special dividend therefore reads as
-a fall on its ex-date (`large_dividends.csv` lists them). Adjusting only
-dividends above a threshold is an owner decision (TODO S31).
-
-Result (file with #348 - #354): 94% of 3.7M stock-days within 2% of eod2
-(adjusts like us), 1,540 big moves confirmed, 32 fake. Of the 171 unconfirmed
-big moves inside index windows, about 150 match NSE's own MarketLens and are
-real (circuit days, the May 2009 rally, collapses).
+Ordinary dividends stay in the price, as in Screener's (the live system's
+source), so the History and Live backtests stay on one basis. A payout of 10%
+of the last close or more is taken out (owner, 3 Oct 2026, option 1): factor
+(P - D) / P on the ex-date, every amount in the text added ("Final Rs 6.50
+and Special Rs 60" is 66.50), applied only where the price fell by at least
+half of it (`nse_adjusted.LARGE_DIVIDEND`). 28 events 2008 - 2026: PFIZER's
+Rs 360 and WYETH's Rs 145 on 5 Dec 2013, STAR 2013, PATNI 2010, IDFC 2023,
+HINDZINC 2016, BPCL 2021 ... The four dividend falls the +-15% screen called
+fake are gone; Nifty 500 History 2010 - 2026: 19.9%/yr, Sharpe 0.70, maximum
+drawdown -37.1%.
 
 ### Screener's history is sparse before the latest year
 

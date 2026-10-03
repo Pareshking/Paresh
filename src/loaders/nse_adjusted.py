@@ -182,6 +182,7 @@ def action_factors(close: pd.DataFrame, actions: pd.DataFrame
       rights         a rights issue priced under the market (rights_factor)
       no terms       a rights issue whose issue price the list does not give
       not in the money  a rights issue at or above the last close
+      large dividend a payout of LARGE_DIVIDEND of the last close or more
     """
     close = close.copy()
     close.index = pd.DatetimeIndex(close.index).astype("datetime64[ns]")
@@ -254,8 +255,60 @@ def action_factors(close: pd.DataFrame, actions: pd.DataFrame
             verdict = "rights"
             factors.at[day, r.symbol] *= factor
         rows.append({**out, "bc_factor": factor, "session": day, "move": move, "verdict": verdict})
+    for r in _dividends(actions).itertuples(index=False):
+        if r.symbol not in close.columns:
+            continue
+        s = close[r.symbol]
+        day, move = _move_at(s, r.date)
+        if day is None:
+            continue
+        before = float(s[s.index < r.date].dropna().iloc[-1])
+        y = r.amount / before
+        if y < LARGE_DIVIDEND:
+            continue
+        out = {"symbol": r.symbol, "date": r.date, "kind": "dividend", "session": day, "move": move}
+        # The price must have fallen by at least half the payout: a text that
+        # reads as a large amount the market never paid out is not applied.
+        if y < 1 and move < 1 - y / 2:
+            factor = 1 - y
+            factors.at[day, r.symbol] *= factor
+            rows.append({**out, "bc_factor": factor, "verdict": "large dividend"})
+        else:
+            rows.append({**out, "bc_factor": 1 - y, "verdict": "no move"})
     cols = ["symbol", "date", "kind", "bc_factor", "session", "move", "verdict"]
     return factors, pd.DataFrame(rows, columns=cols)
+
+
+# Large dividends (owner, 2026-10-03: option 1). Ordinary dividends stay
+# unadjusted, like Screener and the live system, so History and Live stay on
+# one basis; a payout of LARGE_DIVIDEND of the last close or more is a return
+# of capital the holder kept, not a fall: PFIZER's Rs 360 on 5 Dec 2013 (21%),
+# WYETH's Rs 145 the same day, PATNI 2010, IDFC 2023 (23 events, 2008-2026).
+# Factor (P - D) / P on the ex-date.
+LARGE_DIVIDEND = 0.10
+
+
+def _dividends(actions: pd.DataFrame) -> pd.DataFrame:
+    """One row per (symbol, ex-date) dividend: every amount its text names, added.
+
+    "Final Rs 6.50 And Special Rs 60" is 66.50. A rights text quoting a
+    premium ("Rht1:5@Prem-Rs100/Div-Rs2") is not a payout. The Bc file and the
+    yearly list both carry most dividends: the larger reading is kept once.
+    """
+    from src.loaders.nse_bundle import _AMOUNT
+
+    cols = ["symbol", "date", "amount"]
+    if "kind" not in actions or "purpose" not in actions or actions.empty:
+        return pd.DataFrame(columns=cols)
+    text = actions["purpose"].fillna("").str.upper()
+    a = actions[(actions["kind"] == "dividend") & actions["ex_date"].notna()
+                & ~text.str.contains(r"RI?GH?TS?\b|\bRHT")].copy()
+    if a.empty:
+        return pd.DataFrame(columns=cols)
+    a["date"] = pd.to_datetime(a["ex_date"]).dt.normalize().astype("datetime64[ns]")
+    a["amount"] = [sum(float(x) for x in _AMOUNT.findall(t.upper())) for t in a["purpose"].fillna("")]
+    a = a[a["amount"] > 0]
+    return (a.groupby(["symbol", "date"], as_index=False)["amount"].max())[cols]
 
 
 # Rights issues (owner, 2026-10-03: rights of index stocks may be corrected).
@@ -287,7 +340,7 @@ def _rights(actions: pd.DataFrame) -> pd.DataFrame:
     from src.loaders.nse_bundle import classify_purpose
 
     cols = ["symbol", "date", "ratio_new", "ratio_held", "issue_price"]
-    if "kind" not in actions or actions.empty:
+    if "kind" not in actions or "purpose" not in actions or actions.empty:
         return pd.DataFrame(columns=cols)
     a = actions[(actions["kind"] == "rights") & actions["ex_date"].notna()].copy()
     if a.empty:
