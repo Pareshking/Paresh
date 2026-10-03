@@ -30,6 +30,18 @@ SESSIONS_PER_MONTH: int = 21
 DEFAULT_BACKTEST_MONTHS: int = 6
 
 
+def _rolling_high_at(prices: pd.DataFrame, idx: int) -> pd.Series:
+    """Return the canonical 252-session high at one row, matching pandas rolling.
+
+    Keep the same rolling operation as the full-history reference rather than
+    replacing it with DataFrame.max/count: pandas rolling has its own handling
+    of missing/non-finite values, and signal parity matters more than saving a
+    few operations on this small window. Only the 252-row slice is materialised.
+    """
+    window = prices.iloc[max(0, idx - 251) : idx + 1]
+    return window.rolling(252, min_periods=126).max().iloc[-1]
+
+
 def completed_month_window(
     dates: pd.DatetimeIndex, months: int = DEFAULT_BACKTEST_MONTHS
 ) -> tuple[pd.Timestamp, pd.Timestamp]:
@@ -848,8 +860,20 @@ def run_backtest(
         benchmark_ret = benchmark_series.pct_change(fill_method=None)
         benchmark_level = benchmark_series
 
+    # Keep the EMA matrix (the pandas adjust=True semantics are part of the
+    # strategy), but do not materialise a second full-history 52-week-high
+    # matrix. In History from 2010 that matrix adds tens of MB at 750 symbols and thousands of sessions,
+    # before counting pandas temporaries and Streamlit cache copies. Compute the exact rolling maximum only on signal rows.
     ema = prices.ewm(span=ema_period).mean()
-    high_52w = prices.rolling(252, min_periods=126).max()
+    _high_at_cache: dict[int, pd.Series] = {}
+
+    def _high_at(idx: int) -> pd.Series:
+        cached = _high_at_cache.get(idx)
+        if cached is not None:
+            return cached
+        high = _rolling_high_at(prices, idx)
+        _high_at_cache[idx] = high
+        return high
 
     start_offset = max_lb + ema_period
     _schedule = _build_rebalance_schedule(
@@ -906,7 +930,7 @@ def run_backtest(
 
         _p = prices.iloc[start_idx]
         _ema = ema.iloc[start_idx]
-        _hi = high_52w.iloc[start_idx]
+        _hi = _high_at(start_idx)
 
         above_ema = _p > _ema
         near_high = _p >= _hi * high_pct
@@ -1305,7 +1329,7 @@ def run_backtest(
     if rebal_idx is not None:
         _pp = prices.iloc[rebal_idx]
         _pema = ema.iloc[rebal_idx]
-        _phi = high_52w.iloc[rebal_idx]
+        _phi = _high_at(rebal_idx)
         p_above_ema = _pp > _pema
         p_near_high = _pp >= _phi * high_pct
         p_valid = p_above_ema & p_near_high & (_pp > 0)
