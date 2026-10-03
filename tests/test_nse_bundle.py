@@ -328,3 +328,20 @@ def test_a_rights_issue_keeps_its_ratio_and_premium(text, new, held, premium):
 
 def test_a_rights_issue_with_no_price_has_no_premium():
     assert np.isnan(nb.classify_purpose("Rights 5:6")["amount"])
+
+
+@pytest.mark.parametrize("text, new, held, premium", [
+    ("Rhs 3:7@Prem Rs95/Div185%", 3, 7, 95.0),                 # HINDALCO 2008
+    ("Rht 9:20@Prem Rs112 Pr Sh", 9, 20, 112.0),
+    ("Agm/Rht 109:100 Prm@Rs.18purpose Revised", 109, 100, 18.0),
+    ("Right Issue 1:15 @ Premium Of Rs 333 Per Share", 1, 15, 333.0),   # TATASTLBSL 2013
+    ("Rht1:5@Prem-Rs100/Div-Rs2bc Dates And Purpose Revised", 1, 5, 100.0),
+])
+def test_nses_abbreviated_rights_wording_is_read(text, new, held, premium):
+    info = nb.classify_purpose(text)
+    assert info["kind"] == "rights"
+    assert (info["ratio_new"], info["ratio_held"], info["amount"]) == (new, held, premium)
+
+
+def test_a_word_containing_right_is_not_a_rights_issue():
+    assert nb.classify_purpose("Copyright Assignment")["kind"] != "rights"

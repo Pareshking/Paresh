@@ -254,6 +254,12 @@
    "before": "2025-06-12",
    "factor": 0.2,
    "evidence": "Split Rs 10 to Rs 2, ex-date 12 Jun 2025 (SME list): NSE close fell x0.191; every reference flat. trendlyne.com/equity/corporate-actions/JSLL"
+  },
+  {
+   "symbol": "TRENT",
+   "before": "2010-07-08",
+   "factor": 0.8423,
+   "evidence": "Rights issue of 4 CCPS (Series A and B, Rs 10 + Rs 540 premium, convertible to equity) per 9 shares, ex-date 8 Jul 2010 (NSE yearly list: '4 Ccps ... Issued @ Premium Of Rs 540 Per Ccps For 9 Eq Shares', worded without 'rights'). Theoretical ex-rights factor (9 x 1128.40 + 4 x 550) / (13 x 1128.40) = 0.8423; NSE close fell x0.859"
   }
  ],
  "special_sessions": {
