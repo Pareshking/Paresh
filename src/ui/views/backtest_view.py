@@ -30,7 +30,6 @@ from src.engine.systems import inception, ledger_path
 from src.engine.track_record import build_combined_grid, ledger_from_curves, load_ledger, summary_stats
 from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.theme import render_saas_table
-from src.ui.views.track_record_view import grid_display
 
 
 
