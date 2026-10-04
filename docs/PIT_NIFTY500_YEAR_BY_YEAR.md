@@ -41,7 +41,7 @@ Do not convert an inferred event to verified without retaining the evidence that
 
 | Year | Document | Status | Primary focus |
 |---|---|---|---|
-| 2010 | [PIT_NIFTY500_2010.md](PIT_NIFTY500_2010.md) | Started; baseline requires independent evidence review | Baseline constituents, first available price history, initial symbol lineage, first monthly rebalance |
+| 2010 | [PIT_NIFTY500_2010.md](PIT_NIFTY500_2010.md) | In progress — 500-name structure and 2010 event cross-check recorded; baseline snapshot, 2009 warm-up, and per-rebalance ranking unresolved | Baseline constituents, first available price history, initial symbol lineage, first monthly rebalance |
 | 2011 | PIT_NIFTY500_2011.md | Not started | Annual changes and first full-year trade reconciliation |
 | 2012 | PIT_NIFTY500_2012.md | Not started | Additions/removals, relistings, corporate actions, trade-book differences |
 | 2013 | PIT_NIFTY500_2013.md | Not started | Membership and symbol continuity |
