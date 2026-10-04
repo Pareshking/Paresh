@@ -41,7 +41,7 @@ Do not convert an inferred event to verified without retaining the evidence that
 
 | Year | Document | Status | Primary focus |
 |---|---|---|---|
-| 2010 | [PIT_NIFTY500_2010.md](PIT_NIFTY500_2010.md) | In progress — 2008+ price coverage verified; 2010 price shifts, identity lineage, independent baseline and ranking/trade replay remain open | Baseline constituents, 2010 price audit, identity transitions, monthly Top 25 and trade/return reconciliation |
+| 2010 | [PIT_NIFTY500_2010.md](PIT_NIFTY500_2010.md) | In progress — 2008+ price coverage verified; price/identity exceptions, independent baseline and exact strategy provenance/ranking replay remain open | Baseline constituents, trade-linked price audit, identity transitions, exact generating strategy, monthly Top 25 and trade/return reconciliation |
 | 2011 | PIT_NIFTY500_2011.md | Not started | Annual changes and first full-year trade reconciliation |
 | 2012 | PIT_NIFTY500_2012.md | Not started | Additions/removals, relistings, corporate actions, trade-book differences |
 | 2013 | PIT_NIFTY500_2013.md | Not started | Membership and symbol continuity |
