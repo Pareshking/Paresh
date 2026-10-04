@@ -1,36 +1,36 @@
 {
-  "last_synced": "03 Oct 2026, 22:27",
-  "timestamp": "2026-10-03T22:27:03.439605",
+  "last_synced": "04 Oct 2026, 07:37",
+  "timestamp": "2026-10-04T07:37:32.000811",
   "total_stocks": 755,
   "indices": {
     "NIFTY 50": {
       "count": 50,
       "status": "Updated",
-      "time": "2026-10-03T22:27:01.499139"
+      "time": "2026-10-04T07:37:30.453881"
     },
     "NIFTY NEXT 50": {
       "count": 50,
       "status": "Updated",
-      "time": "2026-10-03T22:27:01.983231"
+      "time": "2026-10-04T07:37:30.848605"
     },
     "NIFTY MIDCAP 150": {
       "count": 150,
       "status": "Updated",
-      "time": "2026-10-03T22:27:02.451251"
+      "time": "2026-10-04T07:37:31.258252"
     },
     "NIFTY SMALLCAP 250": {
       "count": 251,
       "status": "Updated",
-      "time": "2026-10-03T22:27:02.917420"
+      "time": "2026-10-04T07:37:31.669784"
     },
     "NIFTY MICROCAP 250": {
       "count": 254,
       "status": "Updated",
-      "time": "2026-10-03T22:27:03.438715"
+      "time": "2026-10-04T07:37:31.999940"
     }
   },
-  "last_attempt": "03 Oct 2026, 22:27",
-  "last_attempt_timestamp": "2026-10-03T22:27:03.439605",
+  "last_attempt": "04 Oct 2026, 07:37",
+  "last_attempt_timestamp": "2026-10-04T07:37:32.000811",
   "last_attempt_fetched": 5,
   "last_attempt_errors": {},
   "last_attempt_ok": true
