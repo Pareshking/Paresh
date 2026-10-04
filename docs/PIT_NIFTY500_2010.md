@@ -122,3 +122,40 @@ The workbook's 2010 subset contains 116 trade rows and 105 distinct raw symbols.
 | Date examined | Scope | Observation | Evidence | Status |
 |---|---|---|---|---|
 | 2026-10-04 | Trade ledger inventory for 2010 | 116 rows across 12 entry dates (2010-01-04 through 2010-12-01), 105 distinct raw symbols; 3 historical-identity rows are flagged for follow-up. No ranking output or primary official baseline snapshot was present in this workbook. | Library artifact `PIT_Trade_Reconciliation.xlsx`, sheets `Summary` and `All Trades`; source filename recorded inside workbook as `ExitTrades-Sharpe.csv` | Inventory complete; PIT selection unverified |
+
+
+## 9. Repository membership timeline: structural and event cross-check (2026-10-04)
+
+A read-only parse of `data/membership_history.json` on `main` establishes the following **internal consistency** facts:
+
+- The dedicated `indices.nifty_500` baseline is dated `2010-01-01` and has **500 symbols / 500 unique symbols / 0 duplicate symbols**.
+- The reconstructed 2010 event ledger has 12 effective dates:
+
+| Effective date | Added | Removed | Notice key recorded in history |
+|---|---|---|---|
+| 2010-02-24 | PENINLAND | ASIANHOTNR | ind_prs19022010.pdf |
+| 2010-03-09 | BRIGADE | KIRLOSBROS | ind_prs04032010.pdf |
+| 2010-04-06 | NHPC | MICRO | ind_prs05042010.pdf |
+| 2010-04-08 | BANCOINDIA, BINANICEM, GAMMNINFRA, JSWHL, KGL | CONSOFINVT, DONEAR, MUKTAARTS, SIRPAPER, SMARTLINK | ind_prs24022010.pdf |
+| 2010-04-15 | ADANIPOWER, OIL | KIRLOSOIL, ZEENEWS | ind_prs12042010.pdf |
+| 2010-05-26 | JSWENERGY | GRASIM | ind_prs20052010.pdf |
+| 2010-07-08 | TINPLATE | HINVDIR | ind_prs07072010.pdf |
+| 2010-08-31 | GRASIM | HARRMALAYA | ind_prs27082010.pdf |
+| 2010-09-17 | JPINFRATEC | FEL | ind_prs16092010.pdf |
+| 2010-09-24 | DBREALTY | DALMIASUG | ind_prs22092010.pdf |
+| 2010-10-07 | JPPOWER, JUBLFOOD | RNRL, ZEEL | ind_prs01102010.pdf |
+| 2010-11-25 | SUNTECK | JUBLPHARMA | ind_prs22112010.pdf |
+
+The repository's independent cross-check against `nse_index_rebuild/reference/IndexInclExcl.xls` records **31 matching event rows, 2 match-renamed rows, and 3 rows classified `only_nse`** for Nifty 500 in 2010. The three `only_nse` entries are explicitly accounted for in `nse_index_rebuild/rules/inclexcl_known_differences.csv` as company-name differences for the same events: JSW Holdings / Jindal SouthWest Hold (2010-04-08), Zee Media Corporation / Zee News (2010-04-15), and Future Retail / Pantaloon Retail (2010-09-17). The two renamed rows are also recorded in that known-differences register. This is evidence that the **2010 event chain agrees with NSE's own inclusion/exclusion workbook after the repository's documented name/rename reconciliation**; it is not an independent check of the starting 500-name baseline.
+
+### Remaining membership evidence gap
+
+The baseline count and event chain now pass the repository's structural checks, but I have not obtained a dated official/archived constituent snapshot for the 2010-01-01 starting list to compare all 500 names individually. The current NSE constituent download is a present-day list and cannot prove 2010 composition. The official event workbook verifies changes, but cannot alone prove the entire initial snapshot because routine market-cap-based reconstitutions may not all be itemized as simple notice events.
+
+Sources inspected in this pass:
+
+- Repository membership: `data/membership_history.json` (`indices.nifty_500`).
+- NSE's own inclusion/exclusion workbook retained in repo: `nse_index_rebuild/reference/IndexInclExcl.xls`.
+- Cross-check output: `nse_index_rebuild/reference/inclexcl_crosscheck.csv`.
+- Documented exceptions: `nse_index_rebuild/rules/inclexcl_known_differences.csv`.
+- NSE's current Nifty 500 page (current list only, not historical proof): https://www.nseindia.com/static/products-services/indices-nifty500-index.
