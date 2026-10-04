@@ -183,6 +183,19 @@ The same artifact's independent-reference audit reports:
 - The report's `isin_lineage.csv` contains **12 transitions dated in 2010 with no ISIN history for the old symbol**, including `JPHYDRO → JPPOWER`, `ILFSTRANS → IL&FSTRANS`, `ANSALINFRA → ANSALAPI`, and `WELGUJ → WELCORP`. These require dated primary symbol-change/listing evidence where they intersect membership or trades.
 - The build reports 16 rename joins refused across all history. A refusal means the raw histories were not joined by the price builder; it must be checked against the strategy's historical symbol resolution rather than patched by a guessed alias.
 
+### Trade-linked price/identity exceptions (cross-reference completed 2026-10-04)
+
+The 2010 trade rows were cross-referenced against the long-price artifact's existing audit CSVs. This is a targeted prioritization step; it is not a complete ranking or execution replay.
+
+| Artifact finding | 2010 trade-book overlap | Disposition |
+|---|---|---|
+| 21 Screener level-shift rows dated in 2010 | `PATNI`, `TRENT` | Both require event-by-event classification before any score/return replay can be certified. |
+| Unconfirmed large-move rows dated in 2010 | `SKUMARSYNF`, `TATACOFFEE` | Verify against NSE raw bars and corporate actions; don't assume the adjusted factor is correct just because a reference is missing. |
+| 2010 point-mismatch rows in Screener audit | `ASTRAZEN`, `AUTOAXLES`, `BEPL`, `CANFINHOME`, `INDORAMA`, `NILKAMAL`, `PATNI`, `PGHH`, `TRENT`, `UNICHEMLAB` | Targeted follow-up list; compare NSE close/action evidence, not only vendor-adjusted returns. |
+| Price builder refused rename join | `HEXAWARE` | The 2010 ledger has HEXAWARE opened 2010-01-04 and exited 2010-02-01. Builder refusal says the old/new series are 1,573 days apart. Keep the old historical series distinct unless primary listing/ISIN evidence proves how the post-gap security should be treated; do not silently stitch the gap. |
+
+The trade-linked rows above make the next investigation concrete. They do not imply every row is wrong: a mismatch can be explained by an action, a source's restatement, or an identity boundary. Each requires a documented verdict and primary evidence or must remain unresolved.
+
 ### 2010 close-out gates now separated
 
 | Gate | Status | Reason |
