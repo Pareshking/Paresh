@@ -86,3 +86,39 @@ Append dated observations here. Each entry must state the date range examined, s
 | Date examined | Scope | Observation | Evidence | Status |
 |---|---|---|---|---|
 | 2026-10-04 | Repository schema and current reference paths | Dedicated `indices.nifty_500` history and NSE symbol/ISIN reference files exist; the baseline's official 2010 constituents and 2010 trades have not yet been independently compared. | `data/membership_history.json`; `data/reference/nse/symbolchange.csv`; `data/reference/nse/isin_history.csv` | Open |
+
+
+## 8. 2010 trade-book inventory — first pass (2026-10-04)
+
+The Library artifact `PIT_Trade_Reconciliation.xlsx` (derived from `ExitTrades-Sharpe.csv`) was inspected as an existing audit input. It reports 1,552 valid trade rows over 2010-01-04 through 2026-09-01; this section records its 2010 subset only. The workbook is a reconciliation artifact, not a primary exchange source, and its prior membership labels have not been independently re-performed here.
+
+| Entry date | Trade rows opened | Evidence status |
+|---|---:|---|
+| 2010-01-04 | 20 | Ledger inventory only; ranking and official baseline not yet checked |
+| 2010-02-01 | 4 | Same |
+| 2010-03-02 | 7 | Same |
+| 2010-04-01 | 8 | Same |
+| 2010-05-03 | 6 | Same |
+| 2010-06-01 | 9 | Same |
+| 2010-07-01 | 14 | Same |
+| 2010-08-02 | 9 | Same |
+| 2010-09-01 | 9 | Same |
+| 2010-10-01 | 11 | Same |
+| 2010-11-01 | 12 | Same |
+| 2010-12-01 | 7 | Same |
+| **Total** | **116** | **Not a verified trade/selection count** |
+
+The workbook's 2010 subset contains 116 trade rows and 105 distinct raw symbols. Three rows are marked by the workbook as identity-lineage reconciliations: `HEUBACHIND` → `CLNINDIA` (entry 2010-06-01), `MIRCELECTR` → `ONIDA` (2010-07-01), and `SUNDROP` → `ATFL` (2010-07-01). Treat these as leads only until dated identity/ISIN evidence and the engine's price-series handling are independently verified. The other rows' workbook label `LITERAL_MEMBERSHIP_MATCH` is inherited from the prior audit and is not a fresh independent check.
+
+### What is still missing for a 2010 sign-off
+
+- **Primary baseline:** no dated official/archived constituent snapshot has yet been retained and compared symbol-by-symbol with the repository's 2010-01-01 baseline. A current constituents download is not acceptable evidence for 2010.
+- **Full monthly selection replay:** the workbook contains executed trade rows but not each decision-date eligible universe, complete score/rank table, or the Top 25 before execution. Therefore it cannot establish whether every selected name was in the eligible Top 25 or whether excluded names were improperly filtered.
+- **Prices and score reproducibility:** no retained 2010 run artifact was found in this pass that independently establishes point-in-time adjusted/raw price basis, exact 12-month ROC and annualized-volatility windows, and ranks at every decision date.
+- **Trade mechanics and returns:** this inventory does not recompute corporate actions, entry/exit prices, dividends, costs, cash, weights, or portfolio-level returns. Do not interpret the ledger's P&L as an independently verified strategy result.
+
+### Evidence log update
+
+| Date examined | Scope | Observation | Evidence | Status |
+|---|---|---|---|---|
+| 2026-10-04 | Trade ledger inventory for 2010 | 116 rows across 12 entry dates (2010-01-04 through 2010-12-01), 105 distinct raw symbols; 3 historical-identity rows are flagged for follow-up. No ranking output or primary official baseline snapshot was present in this workbook. | Library artifact `PIT_Trade_Reconciliation.xlsx`, sheets `Summary` and `All Trades`; source filename recorded inside workbook as `ExitTrades-Sharpe.csv` | Inventory complete; PIT selection unverified |
