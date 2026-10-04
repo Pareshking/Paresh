@@ -161,18 +161,29 @@ Sources inspected in this pass:
 - NSE's current Nifty 500 page (current list only, not historical proof): https://www.nseindia.com/static/products-services/indices-nifty500-index.
 
 
-## 10. Historical price warm-up gap (2026-10-04)
+## 10. Historical price warm-up — evidence correction (2026-10-04)
 
-The repository's price documentation identifies a separate hard blocker for a faithful 2010 ranking replay:
+The earlier wording in this section treated the documented 2010-06-10 R2 start as if it established that earlier sessions were absent. That conclusion was too strong and is corrected here.
 
-- The committed `data/nse_prices/closes.parquet` is documented as starting **2024-09-30**, so it cannot independently reproduce any 2010 rank.
-- The long-history builder `scripts/build_nse_long_prices.py` is designed to read the NSE raw history pack from R2 and says its output supports backtests from 2010; however, `docs/NSE_PRICE_BASIS.md` records the R2 history as beginning **2010-06-10**. That leaves no documented 2009 warm-up in the retained source for the first 2010 rebalance, and leaves earlier 2010 windows short of a full 12-month history.
-- A 12-month formation window for January 2010 requires data reaching into January 2009. Later 2010 decisions also require prices from their corresponding 2009 dates. These cannot be marked eligible merely because the trade ledger contains a fill price.
+What is verified from the repository and its public release metadata:
 
-This is a **data coverage blocker**, not a reason to change the lookback or silently substitute a different scoring method. Before ranking replay, establish whether R2 actually contains 2009 NSE bhavcopy rows beyond what the current docs say. If it does not, obtain and validate the missing 2009 raw sessions and corporate-action history first. Do not backfill or publish data as part of this documentation-only pass.
+- The committed `data/nse_prices/closes.parquet` is documented as starting **2024-09-30**; it cannot directly reproduce 2010 ranks.
+- `.github/workflows/nse_long_prices.yml` is designed to read the raw NSE pack from R2 starting at `2008-01-01` by default, and its comments describe the intended raw history as 2008 onward.
+- The public `data-latest` GitHub release was updated **2026-10-03 22:27 UTC** and contains `nse_long_close.parquet` (17.9 MB), `nse_long_report.json` (9,956 bytes), and `nse_raw_pack.parquet` (169.8 MB). This proves that a long-history build and raw pack were published, but the release metadata alone does **not** prove the first usable date, the per-symbol lookback coverage, or whether all 2009 sessions are present.
+- The earlier note in `docs/NSE_PRICE_BASIS.md` saying R2 begins 2010-06-10 conflicts with the newer long-history workflow's stated 2008 scope. I have not inspected the contents of the latest `nse_long_report.json` or the raw pack, so the actual coverage remains **unverified**, not confirmed missing.
+
+### Required verification before replay
+
+1. Read `nse_long_report.json` from the current `data-latest` release and record the reported first/last session, symbol count, unpriced symbols, and any skipped/failed sessions.
+2. Inspect the raw pack's minimum/maximum dates and per-session row counts; specifically verify daily NSE sessions from January 2009 through December 2010 against an authoritative trading calendar and raw bhavcopy archive.
+3. For each of the 12 2010 decision/entry cycles, verify that each candidate has the exact strategy-required trailing window through the decision date, with no future observations and correct corporate-action treatment.
+4. If coverage is complete, use that artifact for a reproducible ranking replay. If not, obtain only the missing source sessions and corporate-action evidence, then rebuild through the existing audited workflow. Do not shorten the 12-month lookback or substitute the score formula.
+
+**Current status:** price warm-up is a verification gate, not yet a confirmed data gap. No data was downloaded, changed, or published in this pass. The latest long-history artifact's content and its 2009 coverage still need inspection.
 
 Sources inspected:
 
-- `docs/NSE_PRICE_BASIS.md` — committed close coverage and R2 history note.
-- `scripts/build_nse_long_prices.py` — intended long-history builder and adjustment behavior.
-- `data/nse_prices/notes.json` — retained rename and corporate-action adjustment notes.
+- `.github/workflows/nse_long_prices.yml` — workflow inputs and raw-history build path.
+- `scripts/build_nse_long_prices.py` — long-history builder.
+- `docs/NSE_PRICE_BASIS.md` — existing price coverage note (identified as conflicting with the newer workflow description).
+- GitHub `data-latest` release metadata — artifact names, sizes, and update timestamp; metadata only, not parquet/JSON content.
