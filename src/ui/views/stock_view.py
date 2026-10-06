@@ -694,13 +694,62 @@ def _factsheet_dialog(row: dict) -> None:
 
 @st.dialog("Industry peers", width="large")
 def _peers_dialog(industry: str, frame: pd.DataFrame) -> None:
-    """Every ranked stock in the industry, best rank first."""
-    st.caption(f"{len(frame)} stocks in {industry}, best rank first. Click a column "
-               "header to sort.")
-    st.dataframe(
-        frame, hide_index=True, width="stretch",
-        height=min(560, 44 + 35 * len(frame)),
-        column_config=kit.stock_grid_config(frame.columns),
+    """Every ranked stock in the industry, using the same table treatment as the peer card."""
+    st.caption(f"{len(frame)} stocks in {industry}, best rank first.")
+
+    # Use the same custom HTML table as the inline peer card.  The native
+    # st.dataframe renderer has a separate grid style, which made the dialog
+    # look inconsistent with the approved stock-page table.
+    labels = {
+        "Symbol": "Stock", "CMP": "Price", "1M Return": "1M",
+        "3M Return": "3M", "6M Return": "6M", "12M Return": "12M",
+        "3M Sharpe": "Sharpe 3M", "% High": "From 52W high",
+    }
+    head = "".join(
+        f'<th class="{"l" if c in ("Rank", "Symbol") else ""}">'
+        f'{_html.escape(labels.get(c, c))}</th>'
+        for c in frame.columns
+    )
+    body = []
+    for _, r in frame.iterrows():
+        cells = []
+        for col, val in r.items():
+            if col == "Symbol":
+                sym = str(val)
+                cells.append(
+                    f'<td class="l s"><a href="{stock_href(sym)}" target="_self">'
+                    f'{_html.escape(sym)}</a></td>'
+                )
+                continue
+            if isinstance(val, (int, float, np.integer, np.floating)) and pd.notna(val):
+                val = float(val)
+                if col == "Rank":
+                    cells.append(f'<td class="l">{int(val)}</td>')
+                elif "Return" in col:
+                    cls = "up" if val > 0 else "down" if val < 0 else ""
+                    cells.append(f'<td class="{cls}">{_signed_pct(val)}</td>')
+                elif "Sharpe" in col:
+                    cells.append(f"<td>{val:.2f}</td>")
+                elif col == "% High":
+                    cells.append(
+                        f'<td>{"At high" if val >= -0.05 else f"−{abs(val):.1f}%"}</td>'
+                    )
+                elif col == "CMP":
+                    cells.append(f"<td>₹{val:,.0f}</td>")
+                else:
+                    cells.append(f"<td>{val:.1f}</td>")
+            else:
+                cells.append(
+                    f"<td>{_html.escape(str(val)) if pd.notna(val) else '—'}</td>"
+                )
+        body.append(f'<tr>{"".join(cells)}</tr>')
+
+    _html_block(
+        '<section class="sp-card sp-peers sp-peers-dialog" aria-label="Industry peers">'
+        f'<div class="ph"><h2>Industry peers</h2>'
+        f'<span>{len(frame)} stocks in {_html.escape(industry)}</span></div>'
+        f'<div class="tw"><table><thead><tr>{head}</tr></thead>'
+        f'<tbody>{"".join(body)}</tbody></table></div></section>'
     )
 
 
