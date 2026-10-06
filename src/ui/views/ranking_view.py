@@ -556,24 +556,6 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
         val = pd.to_numeric(pd.Series([row.get("1M Return")]), errors="coerce").iloc[0]
         return "—" if pd.isna(val) else f"{float(val):+.1f}%"
 
-    def sparkline(sym) -> str:
-        if adj_close is None or sym not in adj_close.columns:
-            return '<span class="t50-no-trend">—</span>'
-        s = pd.to_numeric(adj_close[sym], errors="coerce").dropna().tail(21)
-        if len(s) < 2:
-            return '<span class="t50-no-trend">—</span>'
-        lo, hi = float(s.min()), float(s.max())
-        span = hi - lo
-        pts = "0,18 100,18" if span <= 0 else " ".join(
-            f"{i * 100 / (len(s)-1):.1f},{34 - ((float(v)-lo)/span)*28:.1f}"
-            for i, v in enumerate(s)
-        )
-        return (
-            '<svg class="t50-spark" viewBox="0 0 100 36" preserveAspectRatio="none" aria-hidden="true">'
-            f'<polyline points="{pts}" fill="none" stroke="currentColor" stroke-width="2.8" '
-            'stroke-linecap="round" stroke-linejoin="round"/></svg>'
-        )
-
     def rank_change(row) -> int | None:
         prev = pd.to_numeric(pd.Series([row.get("Rank (-1M)")]), errors="coerce").iloc[0]
         now = pd.to_numeric(pd.Series([row.get("Rank")]), errors="coerce").iloc[0]
@@ -592,7 +574,6 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
             f'<span class="t50-cell t50-change">{delta_html}</span>'
             f'<span class="t50-cell t50-rank">#{int(row["Rank"])}</span>'
             f'<span class="t50-cell t50-return">{esc(fmt_return(row))}</span>'
-            f'<span class="t50-cell t50-trend">{sparkline(row["Symbol"])}</span>'
             '</div>'
         )
 
@@ -600,7 +581,7 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
         rows = list(rows)
         head = (
             '<div class="t50-col-head"><span>#</span><span>Stock</span><span>Rank change</span>'
-            '<span>New rank</span><span>1M %</span><span>Trend</span></div>'
+            '<span>New rank</span><span>1M %</span></div>'
         )
         body = '<div class="t50-table-wrap"><div class="t50-table">' + head
         body += "".join(row_html(i, row) for i, row in enumerate(rows[:5], 1))
