@@ -99,42 +99,55 @@ def growth_series(months: dict, mtd_period, mtd_val, mtd_bench):
 
 
 def _render_rank_months(books: dict) -> None:
-    """For a month: the book, each name's rank and entry gates at its start and end, and
-    what the next rebalance did with it."""
+    """Show the selected monthly book using the app's shared table treatment."""
     if not books:
         with kit.card("Ranks by month", "tr_ranks", "needs the price history"):
             st.info("No monthly books to show yet.")
         return
+
     keys = sorted(books)
-    month = st.selectbox("Month", keys, index=len(keys) - 1, key="tr_rank_month",
-                         format_func=lambda k: pd.Period(k, freq="M").strftime("%B %Y"))
+    month = st.selectbox(
+        "Month",
+        keys,
+        index=len(keys) - 1,
+        key="tr_rank_month",
+        format_func=lambda k: pd.Period(k, freq="M").strftime("%B %Y"),
+        label_visibility="collapsed",
+    )
     df = books[month]
     a = df.attrs
     end_word = "latest session" if a.get("in_progress") else "month end"
-    with kit.card(f"{pd.Period(month, freq='M').strftime('%B %Y')} book", "tr_ranks",
-                  f"ranked on {a.get('start')} (start) and {a.get('end')} ({end_word})"):
-        kit.caption(
-            "Start = the signal date that opened the month; the book is bought at the next close. "
-            "A name qualifies only while it is above its 50-day EMA, within 20% of its 52-week high "
-            "and in the index; a blank end rank means it no longer qualified. The next rebalance "
-            "sells it once it falls out of qualifying or past rank 40.")
-        show = df.assign(**{
-            "Above EMA start": df["Above EMA start"].map({True: "yes", False: "no"}),
-            "Above EMA end": df["Above EMA end"].map({True: "yes", False: "no"}),
-            "In index end": df["In index end"].map({True: "yes", False: "no"}),
-        })
-        st.dataframe(
-            show, hide_index=True, width="stretch",
-            column_config={
-                "Weight %": kit.col_num("Weight %", "%.1f"),
-                "Rank at start": kit.col_num("Rank at start", "%d"),
-                "Rank at end": kit.col_num("Rank at end", "%d", help="Blank: failed a gate that day"),
-                "% of 52w high start": kit.col_pct("% of 52w high start"),
-                "% of 52w high end": kit.col_pct("% of 52w high end"),
-            },
+
+    with kit.card(
+        f"Ranks by month · {pd.Period(month, freq='M').strftime('%B %Y')}",
+        "tr_ranks",
+        f"{a.get('start')} → {a.get('end')} · {end_word}",
+    ):
+        show = df.copy()
+        for col in ("Above EMA start", "Above EMA end", "In index end"):
+            if col in show.columns:
+                show[col] = show[col].map({True: "Yes", False: "No"}).fillna("—")
+
+        # Keep the useful ranking fields first; the shared SaaS renderer gives
+        # this table the same visual language as Calendar returns and the rest
+        # of the Portfolio page.
+        preferred = [
+            "Symbol", "Rank at start", "Rank at end", "Weight %",
+            "% of 52w high start", "% of 52w high end",
+            "Above EMA start", "Above EMA end", "In index end",
+        ]
+        cols = [c for c in preferred if c in show.columns]
+        rest = [c for c in show.columns if c not in cols]
+        show = show[cols + rest]
+        render_saas_table(show, max_height=620)
+
+        st.download_button(
+            "Export CSV",
+            df.to_csv(index=False).encode(),
+            f"ranks_{month}.csv",
+            "text/csv",
+            key="dl_tr_ranks",
         )
-        st.download_button("Export CSV", df.to_csv(index=False).encode(),
-                           f"ranks_{month}.csv", "text/csv", key="dl_tr_ranks")
 
 
 def render_record_sections(
@@ -234,96 +247,102 @@ def render_record_sections(
                  f"({', '.join(stats['configs'])}) Months under different settings are not one "
                  "continuous series; Provenance shows where it changes.")
 
-    which = st.segmented_control(
-        "Record view", ["Month by month", "Ranks by month", "Provenance"],
-        default="Month by month", key="tr_series_seg", label_visibility="collapsed",
-    ) or "Month by month"
-
-    if which == "Month by month":
-        with kit.card("Month by month", "tr_months"):
-            st.html(month_cards_html(months, mtd_period, mtd_val, mtd_bench))
-    elif which == "Ranks by month":
-        _render_rank_months(
-            (record_run(adj_close, benchmark_close, system).get("month_books") or {})
-            if adj_close is not None else {})
-    else:
-        # Origin, universe, freeze date and price date for every month: the
-        # ledger records them, and they are what makes a month evidence.
-        prov = pd.DataFrame(
-            [
-                {
-                    "Month": key,
-                    "Strategy": _pct(e.get("strategy")),
-                    "Nifty 500": _pct(e.get("benchmark")),
-                    "Alpha": _pct(e.get("alpha")),
-                    "Origin": "Recorded" if e.get("origin") == "recorded" else "Backfilled",
-                    "Universe": (
-                        "Point-in-time"
-                        if e.get("universe") == "point_in_time"
-                        else "Current list"
-                    ),
-                    "Frozen On": e.get("finalized_on") or "—",
-                    "Priced From": e.get("data_as_of") or "—",
-                    "Config": e.get("config") or "—",
-                }
-                for key, e in sorted(months.items())
-            ]
-        )
-        with kit.card("Provenance", "tr_prov"):
-            kit.caption("Recorded = frozen as the month closed. Backfilled = rebuilt later, "
-                        "weaker evidence. Universe: the index as it stood, or today's list.")
-            render_saas_table(prov)
-            st.download_button(
-                "Export provenance CSV",
-                prov.to_csv(index=False).encode(),
-                f"track_record_provenance_{ist_now():%Y%m%d}.csv",
-                "text/csv",
-                key="dl_tr_prov",
-            )
+    _render_rank_months(
+        (record_run(adj_close, benchmark_close, system).get("month_books") or {})
+        if adj_close is not None else {}
+    )
 
     render_comparison()
 
 
-def comparison_frame(ledgers: dict[str, dict]) -> pd.DataFrame:
-    """Month by month, every system's frozen return beside Nifty 500's.
+def comparison_frame(
+    ledgers: dict[str, dict],
+    live_meta: dict[str, dict] | None = None,
+) -> pd.DataFrame:
+    """Calendar-style monthly returns for all three systems.
 
-    Only frozen months: a system's live month-to-date belongs on its own
-    record, and mixing a live cell into a comparison of closed months would
-    compare unlike things. Months before a system's inception are blank.
+    A system is blank before its own inception. Its current-month cell uses
+    that system's live MTD record, so the table never hides an active month
+    merely because it has not been frozen yet.
     """
-    keys = sorted({k for led in ledgers.values() for k in led.get("months", {})})
+    live_meta = live_meta or {}
+    frozen = {
+        sys_id: ledgers.get(sys_id, {}).get("months", {})
+        for sys_id in SYSTEMS
+    }
+    keys = sorted({k for months in frozen.values() for k in months})
+    current_periods = [
+        pd.Period(meta["mtd_period"], freq="M")
+        for meta in live_meta.values()
+        if meta.get("mtd_period")
+    ]
+    if current_periods:
+        keys.append(str(max(current_periods)))
     if not keys:
         return pd.DataFrame()
+
+    periods = sorted(set(pd.Period(k, freq="M") for k in keys))
+    periods = periods[-12:]
+
     rows = []
-    for key in keys[-12:][::-1]:
-        row = {"Month": pd.Period(key, freq="M").strftime("%b %Y")}
-        bench = None
+    for year in sorted({p.year for p in periods}, reverse=True):
+        year_periods = [p for p in periods if p.year == year]
         for sys_id in SYSTEMS:
-            e = ledgers.get(sys_id, {}).get("months", {}).get(key)
-            row[SYSTEM_NAMES[sys_id]] = _pct(e.get("strategy")) if e else "—"
-            if e and e.get("benchmark") is not None and bench is None:
-                bench = e.get("benchmark")
-        row["Nifty 500"] = _pct(bench)
-        rows.append(row)
-    return pd.DataFrame(rows)
+            row = {"SYSTEM": SYSTEM_NAMES[sys_id], "YEAR": str(year)}
+            start = inception(sys_id)
+            months = frozen[sys_id]
+            live = live_meta.get(sys_id, {})
+            live_period = (
+                pd.Period(live["mtd_period"], freq="M")
+                if live.get("mtd_period") else None
+            )
+            for p in year_periods:
+                key = str(p)
+                if p < start:
+                    row[p.strftime("%b").upper()] = None
+                    continue
+                entry = months.get(key)
+                if entry is not None:
+                    row[p.strftime("%b").upper()] = entry.get("strategy")
+                elif live_period is not None and p == live_period:
+                    row[p.strftime("%b").upper()] = live.get("strategy_mtd")
+                else:
+                    row[p.strftime("%b").upper()] = None
+            rows.append(row)
+
+    columns = ["SYSTEM", "YEAR"] + [p.strftime("%b").upper() for p in periods]
+    return pd.DataFrame(rows)[columns]
 
 
-def render_comparison() -> None:
-    """Owner, 2026-09-27: how the 750, Nano Cap and Combined each perform."""
+def render_comparison(
+    adj_close: pd.DataFrame | None = None,
+    benchmark_close: pd.Series | None = None,
+) -> None:
+    """Three systems in the same calendar-return treatment as the Portfolio."""
     ledgers = {}
+    live_meta = {}
     for sys_id in SYSTEMS:
         try:
             ledgers[sys_id] = load_ledger(ledger_path(sys_id), inception(sys_id))
         except (ValueError, OSError):
             ledgers[sys_id] = {}
-    table = comparison_frame(ledgers)
-    with kit.card("Three systems, side by side", "tr_compare",
-                  "frozen months only · last 12"):
-        starts = ", ".join(f"{SYSTEM_NAMES[s]} from {inception(s).strftime('%b %Y')}"
-                           for s in SYSTEMS)
-        kit.caption(f"Each system's record starts on its own date: {starts}. "
-                    "A dash is a month before that system's record began.")
+        if adj_close is not None and not adj_close.empty:
+            live_meta[sys_id] = _record_mtd(adj_close, benchmark_close, sys_id)
+
+    table = comparison_frame(ledgers, live_meta)
+    with kit.card(
+        "Three systems, side by side",
+        "tr_compare",
+        "monthly returns · latest 12 months",
+    ):
         if table.empty:
-            st.info("Nothing frozen yet.")
+            st.info("Nothing recorded yet.")
         else:
-            render_saas_table(table)
+            render_saas_table(grid_display(table))
+            starts = " · ".join(
+                f"{SYSTEM_NAMES[s]}: {inception(s):%b %Y}" for s in SYSTEMS
+            )
+            kit.caption(
+                f"Each system starts on its own date — {starts}. "
+                "A dash means the system had not started yet."
+            )
