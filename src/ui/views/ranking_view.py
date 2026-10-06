@@ -580,6 +580,7 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
         return None if pd.isna(prev) or pd.isna(now) else int(prev - now)
 
     def row_html(i: int, row) -> str:
+        row = row._asdict() if hasattr(row, "_asdict") else row
         delta = rank_change(row)
         delta_html = "—" if delta is None else (
             f'<span class="t50-delta {"positive" if delta > 0 else ("negative" if delta < 0 else "flat")}">'
