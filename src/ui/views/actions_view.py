@@ -316,7 +316,8 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                 st.html(buys_html(rank_df, plan.buys, qrank))
                 chips = "".join(
                     f'<a class="t50-chip" href="{stock_href(s)}" target="_self">'
-                    f'{html.escape(s)} <span>#{int(qrank.get(s, 0))}</span></a>'
+                    f'<span class="t50-rank">{int(qrank.get(s, 0))}</span>'
+                    f'<span>{html.escape(s)}</span></a>'
                     for s in plan.next_in_line)
                 if chips:
                     st.html('<div class="ac-next"><span>Next in line, if a sale does not happen or a '
