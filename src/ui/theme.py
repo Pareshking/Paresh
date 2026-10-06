@@ -622,8 +622,8 @@ def inject_custom_css() -> None:
             .t50-grid { gap:10px; } .t50-card { border-radius:14px; } .t50-card-head { min-height:78px; padding:14px; gap:10px; }
             .t50-card-heading { gap:10px; } .t50-icon { flex-basis:44px; width:44px; height:44px; border-radius:9px; font-size:24px; }
             .t50-card h2 { font-size:19px !important; } .t50-card p { font-size:12.5px !important; }
-            .t50-view-all { min-height:38px; padding:0 11px; font-size:12px; gap:6px; } .t50-col-head,.t50-row { padding:0 14px; column-gap:10px; }
-            .t50-col-head { min-height:38px; font-size:11px; } .t50-row { min-height:50px; font-size:13px; } .t50-table { min-width:680px; } .t50-trend svg { width:118px; }
+            .t50-view-all { min-height:38px; padding:0 11px; font-size:12px; gap:6px; } .t50-col-head,.t50-row { padding:0 10px; column-gap:6px; grid-template-columns:28px minmax(108px,1.55fr) 78px 68px 62px 82px; }
+            .t50-col-head { min-height:38px; font-size:11px; } .t50-row { min-height:50px; font-size:13px; } .t50-table { min-width:0; width:100%; } .t50-trend svg { width:78px; height:28px; }
         }
         .st-key-scr_toolbar { gap: 10px !important; }
         .st-key-scr_toolbar [data-testid="stPopoverButton"] { height: 40px !important; }
