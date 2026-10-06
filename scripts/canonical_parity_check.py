@@ -121,7 +121,9 @@ def main() -> int:
             av = left[col].reset_index(drop=True)
             bv = right[col].reset_index(drop=True)
             if col == "Entry Date":
-                if not pd.to_datetime(av, errors="coerce").equals(pd.to_datetime(bv, errors="coerce")):
+                ad = pd.to_datetime(av, errors="coerce", utc=True)
+                bd = pd.to_datetime(bv, errors="coerce", utc=True)
+                if not (ad.eq(bd) | (ad.isna() & bd.isna())).all():
                     return False
             elif col in ("Entry Price", "Weight %"):
                 an, bn = pd.to_numeric(av, errors="coerce"), pd.to_numeric(bv, errors="coerce")
