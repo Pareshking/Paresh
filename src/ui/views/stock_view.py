@@ -694,63 +694,169 @@ def _factsheet_dialog(row: dict) -> None:
 
 @st.dialog("Industry peers", width="large")
 def _peers_dialog(industry: str, frame: pd.DataFrame) -> None:
-    """Every ranked stock in the industry, using the same table treatment as the peer card."""
-    st.caption(f"{len(frame)} stocks in {industry}, best rank first.")
+    """Every ranked stock in the industry, with the peer-card styling and sorting."""
+    st.caption(f"{len(frame)} stocks in {industry}, best rank first. Click a column header to sort.")
 
-    # Use the same custom HTML table as the inline peer card.  The native
-    # st.dataframe renderer has a separate grid style, which made the dialog
-    # look inconsistent with the approved stock-page table.
     labels = {
         "Symbol": "Stock", "CMP": "Price", "1M Return": "1M",
         "3M Return": "3M", "6M Return": "6M", "12M Return": "12M",
         "3M Sharpe": "Sharpe 3M", "% High": "From 52W high",
     }
-    head = "".join(
-        f'<th class="{"l" if c in ("Rank", "Symbol") else ""}">'
-        f'{_html.escape(labels.get(c, c))}</th>'
-        for c in frame.columns
-    )
-    body = []
-    for _, r in frame.iterrows():
+    headers = []
+    for col in frame.columns:
+        align = "left" if col in ("Rank", "Symbol") else "right"
+        headers.append(
+            f'<th class="{align}" data-col="{_html.escape(str(col), quote=True)}">'
+            f'{_html.escape(labels.get(col, col))}</th>'
+        )
+
+    rows = []
+    for r in frame.to_dict("records"):
         cells = []
-        for col, val in r.items():
+        for col in frame.columns:
+            val = r.get(col)
             if col == "Symbol":
                 sym = str(val)
                 cells.append(
-                    f'<td class="l s"><a href="{stock_href(sym)}" target="_self">'
+                    f'<td class="l s"><a href="{stock_href(sym)}" target="_top">'
                     f'{_html.escape(sym)}</a></td>'
                 )
                 continue
-            if isinstance(val, (int, float, np.integer, np.floating)) and pd.notna(val):
+
+            if pd.isna(val) if not isinstance(val, str) else False:
+                cells.append('<td>—</td>')
+                continue
+
+            if isinstance(val, (int, float, np.integer, np.floating)):
                 val = float(val)
                 if col == "Rank":
-                    cells.append(f'<td class="l">{int(val)}</td>')
+                    cells.append(f'<td class="l" data-value="{val}">{int(val)}</td>')
                 elif "Return" in col:
                     cls = "up" if val > 0 else "down" if val < 0 else ""
-                    cells.append(f'<td class="{cls}">{_signed_pct(val)}</td>')
-                elif "Sharpe" in col:
-                    cells.append(f"<td>{val:.2f}</td>")
-                elif col == "% High":
                     cells.append(
-                        f'<td>{"At high" if val >= -0.05 else f"−{abs(val):.1f}%"}</td>'
+                        f'<td class="{cls}" data-value="{val}">{_signed_pct(val)}</td>'
                     )
+                elif "Sharpe" in col:
+                    cells.append(f'<td data-value="{val}">{val:.2f}</td>')
+                elif col == "% High":
+                    text = "At high" if val >= -0.05 else f"−{abs(val):.1f}%"
+                    cells.append(f'<td data-value="{val}">{text}</td>')
                 elif col == "CMP":
-                    cells.append(f"<td>₹{val:,.0f}</td>")
+                    cells.append(f'<td data-value="{val}">₹{val:,.0f}</td>')
                 else:
-                    cells.append(f"<td>{val:.1f}</td>")
+                    cells.append(f'<td data-value="{val}">{val:.1f}</td>')
             else:
-                cells.append(
-                    f"<td>{_html.escape(str(val)) if pd.notna(val) else '—'}</td>"
-                )
-        body.append(f'<tr>{"".join(cells)}</tr>')
+                text = _html.escape(str(val)) if pd.notna(val) else "—"
+                cells.append(f'<td data-value="{_html.escape(str(val), quote=True)}">{text}</td>')
 
-    _html_block(
-        '<section class="sp-card sp-peers sp-peers-dialog" aria-label="Industry peers">'
-        f'<div class="ph"><h2>Industry peers</h2>'
-        f'<span>{len(frame)} stocks in {_html.escape(industry)}</span></div>'
-        f'<div class="tw"><table><thead><tr>{head}</tr></thead>'
-        f'<tbody>{"".join(body)}</tbody></table></div></section>'
-    )
+        rows.append(f'<tr>{"".join(cells)}</tr>')
+
+    page = f"""<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..700&display=swap" rel="stylesheet">
+<style>
+* {{ box-sizing: border-box; }}
+html, body {{ margin: 0; padding: 0; background: transparent; }}
+body {{
+    font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: #0E1726;
+    -webkit-font-smoothing: antialiased;
+}}
+.sp-peers {{ padding: 0; overflow: hidden; margin: 0; border: 1px solid #E3E6EB; border-radius: 12px; background: #fff; }}
+.sp-peers .tw {{ overflow: auto; max-height: 560px; scrollbar-width: none; }}
+.sp-peers .tw::-webkit-scrollbar {{ width: 0; height: 0; }}
+.sp-peers table {{ width: 100%; border-collapse: collapse; }}
+.sp-peers th {{
+    position: sticky; top: 0; z-index: 2;
+    background: #F4F5F8; font-size: 12px; font-weight: 600;
+    color: #5E6878; text-align: right; padding: 10px 16px;
+    border-top: 0; border-bottom: 1px solid #E3E6EB;
+    white-space: nowrap; cursor: pointer; user-select: none;
+}}
+.sp-peers th:hover {{ background: #E3E6EB; color: #0E1726; }}
+.sp-peers th.l {{ text-align: left; }}
+.sp-peers th .sort {{ margin-left: 4px; color: #4F46E5; font-size: 9px; }}
+.sp-peers td {{
+    padding: 12px 16px; text-align: right;
+    font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13.5px;
+    border-bottom: 1px solid #EDEFF3; white-space: nowrap;
+}}
+.sp-peers td.l {{ text-align: left; }}
+.sp-peers td.s {{ font-family: 'Geist', sans-serif; font-weight: 650; }}
+.sp-peers td.s a {{ color: #0E1726; text-decoration: none; }}
+.sp-peers td.s a:hover {{ color: #4338CA; }}
+.sp-peers .up {{ color: #067647; }}
+.sp-peers .down {{ color: #B42318; }}
+.sp-peers tbody tr:hover td {{ background: #F4F5F8; }}
+@media (max-width: 640px) {{
+    .sp-peers th, .sp-peers td {{ padding-left: 10px; padding-right: 10px; }}
+    .sp-peers th:first-child, .sp-peers td:first-child {{
+        position: sticky; left: 0; z-index: 3;
+        box-shadow: 6px 0 8px -8px rgba(14,23,38,.35);
+    }}
+    .sp-peers th:first-child {{ background: #F4F5F8; }}
+    .sp-peers td:first-child {{ background: #fff; }}
+}}
+</style>
+</head>
+<body>
+<section class="sp-card sp-peers" aria-label="Industry peers">
+<div class="tw"><table>
+<thead><tr>{"".join(headers)}</tr></thead>
+<tbody>{"".join(rows)}</tbody>
+</table></div>
+</section>
+<script>
+(function() {{
+    const table = document.querySelector('.sp-peers table');
+    if (!table) return;
+    const tbody = table.querySelector('tbody');
+    const headers = Array.from(table.querySelectorAll('thead th'));
+
+    headers.forEach((th, index) => {{
+        let direction = 0;
+        th.addEventListener('click', () => {{
+            direction = direction === 1 ? -1 : 1;
+            headers.forEach(h => {{
+                const old = h.querySelector('.sort');
+                if (old) old.remove();
+            }});
+            const marker = document.createElement('span');
+            marker.className = 'sort';
+            marker.textContent = direction === 1 ? '▲' : '▼';
+            th.appendChild(marker);
+
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            rows.sort((a, b) => {{
+                const ca = a.children[index];
+                const cb = b.children[index];
+                const va = ca ? ca.dataset.value ?? ca.innerText.trim() : '';
+                const vb = cb ? cb.dataset.value ?? cb.innerText.trim() : '';
+                const na = Number(va);
+                const nb = Number(vb);
+                const aBlank = va === '' || va === '—' || Number.isNaN(na) && va === '—';
+                const bBlank = vb === '' || vb === '—' || Number.isNaN(nb) && vb === '—';
+                if (aBlank || bBlank) {{
+                    return aBlank === bBlank ? 0 : aBlank ? 1 : -1;
+                }}
+                if (!Number.isNaN(na) && !Number.isNaN(nb)) {{
+                    return (na - nb) * direction;
+                }}
+                return va.localeCompare(vb) * direction;
+            }});
+            rows.forEach(row => tbody.appendChild(row));
+        }});
+    }});
+}})();
+</script>
+</body>
+</html>"""
+    st.iframe(page, height=min(600, 44 + 36 * len(frame)) + 10)
+
 
 
 # ── 8. DATA CHECKS ───────────────────────────────────────────────────────────
