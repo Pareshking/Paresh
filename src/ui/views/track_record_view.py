@@ -345,7 +345,7 @@ def render_comparison(
         else:
             render_saas_table(grid_display(table))
             starts = " · ".join(
-                f"{SYSTEM_NAMES[s]}: {inception(s):%b %Y}" for s in SYSTEMS
+                f"{SYSTEM_NAMES[s]}: {inception(s).strftime('%b %Y')}" for s in SYSTEMS
             )
             kit.caption(
                 f"Each system starts on its own date — {starts}. "
