@@ -107,7 +107,23 @@ def main() -> int:
     book_y, res = current_book(yahoo, bench, SYSTEM_750)
     book_s, _ = current_book(screener, bench, SYSTEM_750)
     a, b = _book(book_y), _book(book_s)
-    same = a.equals(b)
+    # Price Now is a market mark, not a book-identity field. Actions and
+    # Portfolio intentionally may receive different validated price sources
+    # (Yahoo/NSE/Screener) while the canonical selection, entries and weights
+    # must remain identical. Compare the economic book separately from the
+    # source-specific mark and report mark differences diagnostically.
+    identity_cols = [c for c in BOOK_COLS if c != "Price Now"]
+    same = a[identity_cols].equals(b[identity_cols])
+    mark_mismatches = []
+    if "Price Now" in a.columns and "Price Now" in b.columns:
+        for i in range(min(len(a), len(b))):
+            x, y = a.iloc[i]["Price Now"], b.iloc[i]["Price Now"]
+            if pd.notna(x) and pd.notna(y) and abs(float(x) - float(y)) > 1e-8:
+                mark_mismatches.append({
+                    "Symbol": a.iloc[i]["Symbol"],
+                    "actions": float(x), "portfolio": float(y),
+                    "difference": float(x) - float(y),
+                })
     mismatch_columns = []
     mismatch_rows = []
     if not same and not a.empty and not b.empty:
