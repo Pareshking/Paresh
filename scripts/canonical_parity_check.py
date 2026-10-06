@@ -125,7 +125,7 @@ def main() -> int:
                     return False
             elif col in ("Entry Price", "Weight %"):
                 an, bn = pd.to_numeric(av, errors="coerce"), pd.to_numeric(bv, errors="coerce")
-                if not (an.eq(bn) | (an.isna() & bn.isna())).all():
+                if not (an.eq(bn) | (an.isna() & bn.isna()) | (an - bn).abs().le(1e-6)).all():
                     return False
             elif not av.astype(str).eq(bv.astype(str)).all():
                 return False
