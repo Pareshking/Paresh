@@ -113,7 +113,24 @@ def main() -> int:
     # must remain identical. Compare the economic book separately from the
     # source-specific mark and report mark differences diagnostically.
     identity_cols = [c for c in BOOK_COLS if c != "Price Now"]
-    same = a[identity_cols].equals(b[identity_cols])
+    def _same_identity(left: pd.DataFrame, right: pd.DataFrame) -> bool:
+        if left.columns.tolist() != right.columns.tolist() or len(left) != len(right):
+            return False
+        for col in identity_cols:
+            av = left[col].reset_index(drop=True)
+            bv = right[col].reset_index(drop=True)
+            if col == "Entry Date":
+                if not pd.to_datetime(av, errors="coerce").equals(pd.to_datetime(bv, errors="coerce")):
+                    return False
+            elif col in ("Entry Price", "Weight %"):
+                an, bn = pd.to_numeric(av, errors="coerce"), pd.to_numeric(bv, errors="coerce")
+                if not (an.eq(bn) | (an.isna() & bn.isna())).all():
+                    return False
+            elif not av.astype(str).eq(bv.astype(str)).all():
+                return False
+        return True
+
+    same = _same_identity(a[identity_cols], b[identity_cols])
     mark_mismatches = []
     if "Price Now" in a.columns and "Price Now" in b.columns:
         for i in range(min(len(a), len(b))):
