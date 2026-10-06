@@ -540,6 +540,12 @@ def render_portfolio_view(
             "up" if day_pnl >= 0 else "down",
         ),
         kit.Reading("Cash / realised balance", f"₹{cash:,.0f}", f"{100.0 - exposure:.1f}% of account value"),
+        kit.Reading(
+            "MTD return",
+            kit.pct(strategy_mtd),
+            f"NIFTY 500 {kit.pct(benchmark_mtd)} benchmark",
+            "up" if strategy_mtd >= 0 else "down",
+        ),
     ], "Portfolio snapshot")
     # One canonical table; the columns users scan first come first.
     display_cols = [
