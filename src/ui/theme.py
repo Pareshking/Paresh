@@ -1770,6 +1770,7 @@ def render_saas_table(
                         for w in [
                             "RETURN",
                             "RET",
+                            "P&L %",
                             "MTD",
                             "ALPHA",
                             "CAGR",
