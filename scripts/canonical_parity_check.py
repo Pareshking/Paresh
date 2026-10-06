@@ -108,9 +108,46 @@ def main() -> int:
     book_s, _ = current_book(screener, bench, SYSTEM_750)
     a, b = _book(book_y), _book(book_s)
     same = a.equals(b)
+    mismatch_columns = []
+    mismatch_rows = []
+    if not same and not a.empty and not b.empty:
+        for col in BOOK_COLS:
+            if col not in a.columns or col not in b.columns:
+                continue
+            av = a[col].reset_index(drop=True)
+            bv = b[col].reset_index(drop=True)
+            if col in ("Entry Date",):
+                av = pd.to_datetime(av, errors="coerce")
+                bv = pd.to_datetime(bv, errors="coerce")
+                bad = av.ne(bv) & ~(av.isna() & bv.isna())
+            elif col in ("Entry Price", "Price Now", "Weight %"):
+                an = pd.to_numeric(av, errors="coerce")
+                bn = pd.to_numeric(bv, errors="coerce")
+                bad = (an - bn).abs().gt(1e-8) & ~(an.isna() & bn.isna())
+            else:
+                bad = av.astype(str).ne(bv.astype(str))
+            if bool(bad.any()):
+                mismatch_columns.append(col)
+        if mismatch_columns:
+            for i in range(min(len(a), len(b))):
+                diffs = {}
+                for col in mismatch_columns:
+                    x, y = a.iloc[i][col], b.iloc[i][col]
+                    if col == "Entry Date":
+                        x, y = str(x), str(y)
+                    elif col in ("Entry Price", "Price Now", "Weight %"):
+                        x, y = float(x) if pd.notna(x) else None, float(y) if pd.notna(y) else None
+                    if x != y:
+                        diffs[col] = {"actions": x, "portfolio": y}
+                if diffs:
+                    mismatch_rows.append({"Symbol": a.iloc[i]["Symbol"], "diff": diffs})
+                    if len(mismatch_rows) >= 5:
+                        break
     record("book_parity", same and not a.empty, names=len(a),
            only_in_actions=sorted(set(a.Symbol) - set(b.Symbol)),
            only_in_portfolio=sorted(set(b.Symbol) - set(a.Symbol)),
+           mismatch_columns=mismatch_columns,
+           mismatch_rows=mismatch_rows,
            as_of=res.get("live_meta", {}).get("as_of"))
 
     # 2. Frozen months against the live replay.
