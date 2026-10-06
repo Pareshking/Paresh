@@ -717,7 +717,7 @@ def _peers_dialog(industry: str, frame: pd.DataFrame) -> None:
             if col == "Symbol":
                 sym = str(val)
                 cells.append(
-                    f'<td class="l s"><a href="{stock_href(sym)}" target="_top">'
+                    f'<td class="l s"><a href="{stock_href(sym)}" target="_self">'
                     f'{_html.escape(sym)}</a></td>'
                 )
                 continue
