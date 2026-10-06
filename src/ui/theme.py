@@ -590,21 +590,146 @@ def inject_custom_css() -> None:
         .ms-s { font-size: 13px; color: #3C4657; line-height: 1.4; }
         .ms-s b { font-weight: 600; }
         .mkt-strip .up { color: #067647; } .mkt-strip .down { color: #B42318; }
-        .t50 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
-        .t50-card { background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
-        .t50-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-        .t50-h h2 { margin: 0 !important; padding: 0 !important; font-family: var(--font-ui) !important; font-size: 16px !important; font-weight: 650 !important; letter-spacing: 0 !important; }
-        .t50-h span { font-size: 13px; font-weight: 600; }
-        .t50 .up { color: #067647; } .t50 .down { color: #B42318; }
-        .t50-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-        .t50-chip {
-            display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px;
-            border-radius: 8px; background: #F4F5F8; color: #0E1726 !important; text-decoration: none !important;
-            font-size: 13px; font-weight: 650;
+        .t50-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            width: 100%;
         }
-        .t50-chip:hover { background: #EEF0FF; }
-        .t50-chip span { font-family: var(--font-mono); font-size: 12px; font-weight: 500; color: #5E6878; }
-        .t50-none { font-size: 13px; color: #5E6878; }
+        .t50-card {
+            min-width: 0;
+            background: #FFFFFF;
+            border: 1px solid #E3E6EB;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(14, 23, 38, 0.03);
+        }
+        .t50-card-head {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-height: 84px;
+            padding: 16px 18px;
+            border-bottom: 1px solid #EDEFF3;
+        }
+        .t50-icon {
+            flex: 0 0 48px;
+            width: 48px;
+            height: 48px;
+            display: grid;
+            place-items: center;
+            border-radius: 11px;
+            font-family: var(--font-display);
+            font-size: 30px;
+            line-height: 1;
+            font-weight: 700;
+        }
+        .t50-jump .t50-icon { background: #E8F5EE; color: #067647; }
+        .t50-entered .t50-icon { background: #EAF1FF; color: #2563EB; }
+        .t50-left .t50-icon { background: #FDEDEB; color: #B42318; }
+        .t50-card-title { min-width: 0; flex: 1; }
+        .t50-card-title h2 {
+            margin: 0 !important;
+            padding: 0 !important;
+            font-family: var(--font-ui) !important;
+            font-size: 17px !important;
+            line-height: 1.25 !important;
+            font-weight: 700 !important;
+            letter-spacing: -0.15px !important;
+            color: #0E1726 !important;
+        }
+        .t50-card-title p {
+            margin: 4px 0 0 !important;
+            font-size: 12.5px;
+            line-height: 1.35;
+            color: #667080;
+        }
+        .t50-row {
+            display: grid;
+            grid-template-columns: 28px minmax(0, 1fr) auto auto;
+            align-items: center;
+            min-height: 46px;
+            gap: 8px;
+            padding: 0 18px;
+            border-bottom: 1px solid #F0F2F5;
+        }
+        .t50-row:hover { background: #FAFBFC; }
+        .t50-num {
+            color: #7A8494;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-variant-numeric: tabular-nums;
+        }
+        .t50-stock-cell { min-width: 0; }
+        .t50-stock {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #0E1726 !important;
+            text-decoration: none !important;
+            font-size: 13.5px;
+            font-weight: 700;
+        }
+        .t50-stock:hover { color: #4F46E5 !important; }
+        .t50-change, .t50-rank {
+            white-space: nowrap;
+            font-family: var(--font-mono);
+            font-size: 12.5px;
+            font-weight: 650;
+            font-variant-numeric: tabular-nums;
+        }
+        .t50-change.up { color: #067647; }
+        .t50-change.down { color: #B42318; }
+        .t50-rank { color: #5E6878; }
+        .t50-more {
+            border-top: 1px solid #EDEFF3;
+            background: #FAFBFC;
+        }
+        .t50-more summary {
+            list-style: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 40px;
+            padding: 0 16px;
+            color: #4F46E5;
+            font-size: 12.5px;
+            font-weight: 650;
+            user-select: none;
+        }
+        .t50-more summary::-webkit-details-marker { display: none; }
+        .t50-more summary span { margin-left: 5px; font-size: 14px; }
+        .t50-more[open] summary { border-bottom: 1px solid #EDEFF3; }
+        .t50-empty {
+            min-height: 46px;
+            display: flex;
+            align-items: center;
+            padding: 0 18px;
+            color: #667080;
+            font-size: 13px;
+        }
+        .t50-note {
+            margin: 8px 2px 0;
+            color: #667080;
+            font-size: 12px;
+        }
+        @media (max-width: 900px) {
+            .t50-grid { grid-template-columns: 1fr; gap: 12px; }
+            .t50-card-head { min-height: 78px; }
+        }
+        @media (max-width: 640px) {
+            .t50-grid { gap: 10px; }
+            .t50-card { border-radius: 14px; }
+            .t50-card-head { padding: 14px 14px; min-height: 76px; gap: 10px; }
+            .t50-icon { flex-basis: 42px; width: 42px; height: 42px; border-radius: 10px; font-size: 26px; }
+            .t50-card-title h2 { font-size: 16px !important; }
+            .t50-card-title p { font-size: 11.5px; }
+            .t50-row { grid-template-columns: 22px minmax(0, 1fr) auto auto; min-height: 43px; gap: 6px; padding: 0 14px; }
+            .t50-stock { font-size: 13px; }
+            .t50-change, .t50-rank { font-size: 11.5px; }
+        }
         .st-key-scr_toolbar { gap: 10px !important; }
         .st-key-scr_toolbar [data-testid="stPopoverButton"] { height: 40px !important; }
         .sig-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
