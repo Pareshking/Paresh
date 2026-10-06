@@ -28,24 +28,50 @@ from src.ui.theme import render_saas_table
 
 @st.cache_data(show_spinner=False, ttl=3600)
 def _comparison_price_frame(system: str, _fallback: pd.DataFrame) -> pd.DataFrame:
-    """Price frame for the first live book of an extra system."""
+    """Build the MTD price frame from the system's own canonical universe.
+
+    The Portfolio page normally loads the selected system's prices. That frame
+    is valid for Nifty 750, but it cannot be reused for Nano Cap because Nano
+    is deliberately disjoint from the 750; Combined may contain both. The
+    comparison must therefore resolve each system independently.
+
+    Screener is the canonical current ranking-price source. Membership comes
+    from the same point-in-time system timeline used by record_run(). No
+    fallback to another system is allowed: doing so would silently report a
+    wrong MTD portfolio under the right system name.
+    """
     if system == SYSTEM_750:
         return _fallback
+    history = membership_for(system)
+    if not history:
+        return pd.DataFrame()
     try:
         from src.loaders import price_source
+
         chosen = price_source.from_screener(price_source.fetch_screener_store())
-        if chosen is None:
-            return _fallback
-        history = membership_for(system)
-        if not history:
-            return _fallback
-        symbols = members_on(history, pd.Timestamp("2026-09-30").date(), canonical=True)
+        if chosen is None or chosen.close.empty:
+            return pd.DataFrame()
+
+        # Keep every symbol appearing in the system's membership timeline.
+        # record_run() itself applies the point-in-time membership and former-
+        # member logic, so the price frame should not be narrowed to the
+        # currently selected Portfolio's symbols.
+        symbols = set()
+        baseline = history.get("baseline") or {}
+        symbols.update(str(s).upper() for s in (baseline.get("symbols") or []))
+        for change in history.get("changes") or []:
+            symbols.update(str(s).upper() for s in (change.get("add") or []))
+            symbols.update(str(s).upper() for s in (change.get("remove") or []))
         if not symbols:
-            return _fallback
-        keep = [c for c in chosen.close.columns if c in symbols]
-        return chosen.close.loc[:, keep] if keep else _fallback
+            return pd.DataFrame()
+
+        available = [c for c in chosen.close.columns
+                     if str(c).upper() in symbols]
+        return chosen.close.loc[:, available] if available else pd.DataFrame()
     except Exception:
-        return _fallback
+        # A missing canonical source is a data condition, not permission to
+        # substitute the currently selected system's prices.
+        return pd.DataFrame()
 
 
 def _record_mtd(
