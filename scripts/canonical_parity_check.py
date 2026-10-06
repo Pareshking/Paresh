@@ -133,6 +133,8 @@ def main() -> int:
 
     same = _same_identity(a[identity_cols], b[identity_cols])
     identity_diffs = []
+    identity_left_columns = a[identity_cols].columns.tolist()
+    identity_right_columns = b[identity_cols].columns.tolist()
     if not same:
         for col in identity_cols:
             av, bv = a[col].reset_index(drop=True), b[col].reset_index(drop=True)
@@ -189,7 +191,7 @@ def main() -> int:
                     mismatch_rows.append({"Symbol": a.iloc[i]["Symbol"], "diff": diffs})
                     if len(mismatch_rows) >= 5:
                         break
-    record("book_parity", same and not a.empty, version=PARITY_CHECK_VERSION, identity_same=same, identity_diffs=identity_diffs, names=len(a),
+    record("book_parity", same and not a.empty, version=PARITY_CHECK_VERSION, identity_same=same, identity_diffs=identity_diffs, identity_left_columns=identity_left_columns, identity_right_columns=identity_right_columns, identity_left_len=len(a), identity_right_len=len(b), names=len(a),
            only_in_actions=sorted(set(a.Symbol) - set(b.Symbol)),
            only_in_portfolio=sorted(set(b.Symbol) - set(a.Symbol)),
            mismatch_columns=mismatch_columns,
