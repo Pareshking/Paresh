@@ -29,9 +29,15 @@
       "time": "2026-10-05T23:15:12.025847"
     }
   },
-  "last_attempt": "05 Oct 2026, 23:15",
-  "last_attempt_timestamp": "2026-10-05T23:15:12.026632",
-  "last_attempt_fetched": 5,
-  "last_attempt_errors": {},
-  "last_attempt_ok": true
+  "last_attempt": "06 Oct 2026, 01:00",
+  "last_attempt_timestamp": "2026-10-06T01:00:49.278592",
+  "last_attempt_fetched": 0,
+  "last_attempt_errors": {
+    "NIFTY 50": "Live fetch failed; using existing fallback",
+    "NIFTY NEXT 50": "Live fetch failed; using existing fallback",
+    "NIFTY MIDCAP 150": "Live fetch failed; using existing fallback",
+    "NIFTY SMALLCAP 250": "Live fetch failed; using existing fallback",
+    "NIFTY MICROCAP 250": "Live fetch failed; using existing fallback"
+  },
+  "last_attempt_ok": false
 }
