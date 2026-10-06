@@ -570,13 +570,11 @@ def render_top50_changes(rank_df: pd.DataFrame) -> None:
         )
 
     def boundary_row(i: int, row, direction: str) -> str:
-        sign_class = "up" if direction == "in" else "down"
         return (
             '<div class="t50-row t50-boundary-row">'
             f'<span class="t50-num">{i}</span>'
             f'<span class="t50-stock-cell">{stock_link(row.Symbol)}</span>'
             f'<span class="t50-rank">#{int(row.Rank)}</span>'
-            f'<span class="t50-change {sign_class}">{"IN" if direction == "in" else "OUT"}</span>'
             '</div>'
         )
 
