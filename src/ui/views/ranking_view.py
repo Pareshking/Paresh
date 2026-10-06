@@ -491,7 +491,7 @@ def render_ranking_view(
         width="stretch",
     )
 
-    render_top50_changes(rank_df)
+    render_top50_changes(rank_df, adj_close)
     if footnote is not None:
         footnote()
 
@@ -539,12 +539,8 @@ def biggest_jumps(rank_df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
     return out.sort_values("Places_gained", ascending=False).head(n)
 
 
-def render_top50_changes(rank_df: pd.DataFrame) -> None:
-    """Render the three top-50 movement groups as one responsive section.
-
-    The data contract is unchanged: biggest jumps, entries and exits remain the
-    same three datasets used by the old tabs. Only presentation is redesigned.
-    """
+def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None = None) -> None:
+    """Render the approved full-width ranking movement cards."""
     entered, left = top50_changes(rank_df)
     if entered is None:
         return
@@ -554,67 +550,83 @@ def render_top50_changes(rank_df: pd.DataFrame) -> None:
         return html.escape(str(value))
 
     def stock_link(sym) -> str:
+        return f'<a class="t50-stock" href="{stock_href(sym)}" target="_self">{esc(sym)}</a>'
+
+    def fmt_return(row) -> str:
+        val = pd.to_numeric(pd.Series([row.get("1M Return")]), errors="coerce").iloc[0]
+        return "—" if pd.isna(val) else f"{float(val):+.1f}%"
+
+    def sparkline(sym) -> str:
+        if adj_close is None or sym not in adj_close.columns:
+            return '<span class="t50-no-trend">—</span>'
+        s = pd.to_numeric(adj_close[sym], errors="coerce").dropna().tail(21)
+        if len(s) < 2:
+            return '<span class="t50-no-trend">—</span>'
+        lo, hi = float(s.min()), float(s.max())
+        span = hi - lo
+        pts = "0,18 100,18" if span <= 0 else " ".join(
+            f"{i * 100 / (len(s)-1):.1f},{34 - ((float(v)-lo)/span)*28:.1f}"
+            for i, v in enumerate(s)
+        )
         return (
-            f'<a class="t50-stock" href="{stock_href(sym)}" target="_self">'
-            f'{esc(sym)}</a>'
+            '<svg class="t50-spark" viewBox="0 0 100 36" preserveAspectRatio="none" aria-hidden="true">'
+            f'<polyline points="{pts}" fill="none" stroke="currentColor" stroke-width="2.8" '
+            'stroke-linecap="round" stroke-linejoin="round"/></svg>'
         )
 
-    def jump_row(i: int, row) -> str:
+    def rank_change(row) -> int | None:
+        prev = pd.to_numeric(pd.Series([row.get("Rank (-1M)")]), errors="coerce").iloc[0]
+        now = pd.to_numeric(pd.Series([row.get("Rank")]), errors="coerce").iloc[0]
+        return None if pd.isna(prev) or pd.isna(now) else int(prev - now)
+
+    def row_html(i: int, row) -> str:
+        delta = rank_change(row)
+        delta_html = "—" if delta is None else (
+            f'<span class="t50-delta {"positive" if delta > 0 else ("negative" if delta < 0 else "flat")}">'
+            f'{"+" if delta > 0 else ""}{delta}</span>'
+        )
         return (
             '<div class="t50-row">'
             f'<span class="t50-num">{i}</span>'
             f'<span class="t50-stock-cell">{stock_link(row.Symbol)}</span>'
-            f'<span class="t50-change up">+{int(row.Places_gained)}</span>'
-            f'<span class="t50-rank">#{int(row.Rank)}</span>'
+            f'<span class="t50-cell t50-change">{delta_html}</span>'
+            f'<span class="t50-cell t50-rank">#{int(row.Rank)}</span>'
+            f'<span class="t50-cell t50-return">{esc(fmt_return(row))}</span>'
+            f'<span class="t50-cell t50-trend">{sparkline(row.Symbol)}</span>'
             '</div>'
         )
 
-    def boundary_row(i: int, row, direction: str) -> str:
-        return (
-            '<div class="t50-row t50-boundary-row">'
-            f'<span class="t50-num">{i}</span>'
-            f'<span class="t50-stock-cell">{stock_link(row.Symbol)}</span>'
-            f'<span class="t50-rank">#{int(row.Rank)}</span>'
-            '</div>'
-        )
-
-    def card(title: str, subtitle: str, icon: str, tone: str, rows, row_builder) -> str:
+    def card(title: str, subtitle: str, icon: str, tone: str, rows) -> str:
         rows = list(rows)
-        visible = rows[:5]
-        rest = rows[5:]
-        body = (
-            "".join(row_builder(i, row) for i, row in enumerate(visible, 1))
-            or '<div class="t50-empty">None</div>'
+        head = (
+            '<div class="t50-col-head"><span>#</span><span>Stock</span><span>Rank change</span>'
+            '<span>New rank</span><span>1M %</span><span>Trend</span></div>'
         )
-        more = ""
-        if rest:
-            more_rows = "".join(row_builder(i, row) for i, row in enumerate(rest, 6))
-            more = (
-                '<details class="t50-more">'
-                '<summary>View all <span>→</span></summary>'
-                f'<div class="t50-more-body">{more_rows}</div>'
-                '</details>'
+        body = '<div class="t50-table-wrap"><div class="t50-table">' + head
+        body += "".join(row_html(i, row) for i, row in enumerate(rows[:5], 1))
+        body += '</div></div>'
+        if len(rows) > 5:
+            body += (
+                '<details class="t50-more"><summary>View all <span>→</span></summary>'
+                '<div class="t50-table-wrap"><div class="t50-table">' + head
+                + "".join(row_html(i, row) for i, row in enumerate(rows[5:], 6))
+                + '</div></div></details>'
             )
         return (
-            f'<section class="t50-card t50-{tone}">'
-            '<div class="t50-card-head">'
+            f'<section class="t50-card t50-{tone}"><div class="t50-card-head">'
+            '<div class="t50-card-heading">'
             f'<div class="t50-icon" aria-hidden="true">{icon}</div>'
-            '<div class="t50-card-title">'
-            f'<h2>{esc(title)}</h2><p>{esc(subtitle)}</p>'
-            '</div></div>'
-            f'{body}{more}'
-            '</section>'
+            f'<div><h2>{esc(title)}</h2><p>{esc(subtitle)}</p></div></div>'
+            '<a class="t50-view-all" href="#t50-movement">View all <span>→</span></a>'
+            '</div>' + body + '</section>'
         )
 
     html_out = (
-        '<div class="t50-grid">'
-        + card("Biggest Jumps", "Largest rank improvements since last month-end", "↑", "jump",
-               jumps.itertuples(), jump_row)
-        + card("Entered top 50", "Newly entered in top 50 since last month-end", "★", "entered",
-               entered.itertuples(), lambda i, row: boundary_row(i, row, "in"))
-        + card("Left top 50", "Exited from top 50 since last month-end", "↓", "left",
-               left.itertuples(), lambda i, row: boundary_row(i, row, "out"))
-        + '</div>'
-        '<div class="t50-note">Rank change since the last month-end.</div>'
+        '<div id="t50-movement" class="t50-grid">'
+        + card("Biggest Jumps", "Largest rank improvements since last month-end", "↑", "jump", jumps.itertuples())
+        + card("Entered top 50", "Newly entered in top 50 since last month-end", "★", "entered", entered.itertuples())
+        + card("Left top 50", "Exited from top 50 since last month-end", "↓", "left", left.itertuples())
+        + '</div><div class="t50-note">Rank change since the last month-end.</div>'
     )
     st.html(html_out)
+
