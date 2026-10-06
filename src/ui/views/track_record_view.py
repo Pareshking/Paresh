@@ -16,13 +16,36 @@ import streamlit as st
 from src.core.market_time import ist_now
 from src.engine.extra_universe import SYSTEM_750, SYSTEM_NAMES, SYSTEMS
 from src.engine.model_record import record_run
-from src.engine.systems import inception, ledger_path
+from src.engine.systems import inception, ledger_path, membership_for
+from src.engine.membership import members_on
 from src.engine.track_record import (
     load_ledger,
     summary_stats,
 )
 from src.ui import page_kit as kit
 from src.ui.theme import render_saas_table
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def _comparison_price_frame(system: str, _fallback: pd.DataFrame) -> pd.DataFrame:
+    """Price frame for the first live book of an extra system."""
+    if system == SYSTEM_750:
+        return _fallback
+    try:
+        from src.loaders import price_source
+        chosen = price_source.from_screener(price_source.fetch_screener_store())
+        if chosen is None:
+            return _fallback
+        history = membership_for(system)
+        if not history:
+            return _fallback
+        symbols = members_on(history, pd.Timestamp("2026-09-30").date(), canonical=True)
+        if not symbols:
+            return _fallback
+        keep = [c for c in chosen.close.columns if c in symbols]
+        return chosen.close.loc[:, keep] if keep else _fallback
+    except Exception:
+        return _fallback
 
 
 def _record_mtd(
@@ -332,7 +355,8 @@ def render_comparison(
         except (ValueError, OSError):
             ledgers[sys_id] = {}
         if adj_close is not None and not adj_close.empty:
-            live_meta[sys_id] = _record_mtd(adj_close, benchmark_close, sys_id)
+            system_prices = _comparison_price_frame(sys_id, adj_close)
+            live_meta[sys_id] = _record_mtd(system_prices, benchmark_close, sys_id)
 
     table = comparison_frame(ledgers, live_meta)
     with kit.card(
