@@ -235,8 +235,10 @@ def build_portfolio_tracker(
         out["Day P&L %"] = np.nan
 
     out["Status"] = "Held"
+    # Current Book is presented by open-position P&L %: strongest return first.
+    # Sort the numeric field, not its formatted display string.
     return out.sort_values(
-        ["Current Value (₹)", "Symbol"], ascending=[False, True]
+        ["P&L %", "Symbol"], ascending=[False, True], na_position="last"
     ).reset_index(drop=True)
 
 
