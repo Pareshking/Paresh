@@ -132,6 +132,18 @@ def main() -> int:
         return True
 
     same = _same_identity(a[identity_cols], b[identity_cols])
+    identity_diffs = []
+    if not same:
+        for col in identity_cols:
+            av, bv = a[col].reset_index(drop=True), b[col].reset_index(drop=True)
+            if col == "Entry Date":
+                bad = pd.to_datetime(av, errors="coerce").ne(pd.to_datetime(bv, errors="coerce"))
+            elif col in ("Entry Price", "Weight %"):
+                bad = (pd.to_numeric(av, errors="coerce") - pd.to_numeric(bv, errors="coerce")).abs().gt(1e-8)
+            else:
+                bad = av.astype(str).ne(bv.astype(str))
+            if bool(bad.any()):
+                identity_diffs.append(col)
     mark_mismatches = []
     if "Price Now" in a.columns and "Price Now" in b.columns:
         for i in range(min(len(a), len(b))):
@@ -177,7 +189,7 @@ def main() -> int:
                     mismatch_rows.append({"Symbol": a.iloc[i]["Symbol"], "diff": diffs})
                     if len(mismatch_rows) >= 5:
                         break
-    record("book_parity", same and not a.empty, version=PARITY_CHECK_VERSION, identity_same=same, names=len(a),
+    record("book_parity", same and not a.empty, version=PARITY_CHECK_VERSION, identity_same=same, identity_diffs=identity_diffs, names=len(a),
            only_in_actions=sorted(set(a.Symbol) - set(b.Symbol)),
            only_in_portfolio=sorted(set(b.Symbol) - set(a.Symbol)),
            mismatch_columns=mismatch_columns,
