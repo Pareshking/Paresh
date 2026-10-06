@@ -540,25 +540,81 @@ def biggest_jumps(rank_df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
 
 
 def render_top50_changes(rank_df: pd.DataFrame) -> None:
+    """Render the three top-50 movement groups as one responsive section.
+
+    The data contract is unchanged: biggest jumps, entries and exits remain the
+    same three datasets used by the old tabs. Only presentation is redesigned.
+    """
     entered, left = top50_changes(rank_df)
     if entered is None:
         return
     jumps = biggest_jumps(rank_df)
 
-    def chip(sym, tail: str) -> str:
-        return (f'<a class="t50-chip" href="{stock_href(sym)}" target="_self">'
-                f'{html.escape(str(sym))} <span>{tail}</span></a>')
+    def esc(value) -> str:
+        return html.escape(str(value))
 
-    def block(items: list[str]) -> str:
-        return ('<div class="t50-chips">' + ("".join(items) or '<span class="t50-none">None</span>')
-                + "</div>")
+    def stock_link(sym) -> str:
+        return (
+            f'<a class="t50-stock" href="{stock_href(sym)}" target="_self">'
+            f'{esc(sym)}</a>'
+        )
 
-    tab_jumps, tab_in, tab_out = st.tabs(["Biggest jumps", "Entered top 50", "Left top 50"])
-    with tab_jumps:
-        st.html(block([chip(r.Symbol, f"+{int(r.Places_gained)} · #{int(r.Rank_last_month)} → #{int(r.Rank)}")
-                       for r in jumps.itertuples()]))
-    with tab_in:
-        st.html(block([chip(r.Symbol, f"#{int(r.Rank)}") for r in entered.itertuples()]))
-    with tab_out:
-        st.html(block([chip(r.Symbol, f"now #{int(r.Rank)}") for r in left.itertuples()]))
-    st.caption("Rank change since the last month-end.")
+    def jump_row(i: int, row) -> str:
+        return (
+            '<div class="t50-row">'
+            f'<span class="t50-num">{i}</span>'
+            f'<span class="t50-stock-cell">{stock_link(row.Symbol)}</span>'
+            f'<span class="t50-change up">+{int(row.Places_gained)}</span>'
+            f'<span class="t50-rank">#{int(row.Rank)}</span>'
+            '</div>'
+        )
+
+    def boundary_row(i: int, row, direction: str) -> str:
+        return (
+            '<div class="t50-row t50-boundary-row">'
+            f'<span class="t50-num">{i}</span>'
+            f'<span class="t50-stock-cell">{stock_link(row.Symbol)}</span>'
+            f'<span class="t50-rank">#{int(row.Rank)}</span>'
+            '</div>'
+        )
+
+    def card(title: str, subtitle: str, icon: str, tone: str, rows, row_builder) -> str:
+        rows = list(rows)
+        visible = rows[:5]
+        rest = rows[5:]
+        body = (
+            "".join(row_builder(i, row) for i, row in enumerate(visible, 1))
+            or '<div class="t50-empty">None</div>'
+        )
+        more = ""
+        if rest:
+            more_rows = "".join(row_builder(i, row) for i, row in enumerate(rest, 6))
+            more = (
+                '<details class="t50-more">'
+                '<summary>View all <span>→</span></summary>'
+                f'<div class="t50-more-body">{more_rows}</div>'
+                '</details>'
+            )
+        return (
+            f'<section class="t50-card t50-{tone}">'
+            '<div class="t50-card-head">'
+            f'<div class="t50-icon" aria-hidden="true">{icon}</div>'
+            '<div class="t50-card-title">'
+            f'<h2>{esc(title)}</h2><p>{esc(subtitle)}</p>'
+            '</div></div>'
+            f'{body}{more}'
+            '</section>'
+        )
+
+    html_out = (
+        '<div class="t50-grid">'
+        + card("Biggest Jumps", "Largest rank improvements since last month-end", "↑", "jump",
+               jumps.itertuples(), jump_row)
+        + card("Entered top 50", "Newly entered in top 50 since last month-end", "★", "entered",
+               entered.itertuples(), lambda i, row: boundary_row(i, row, "in"))
+        + card("Left top 50", "Exited from top 50 since last month-end", "↓", "left",
+               left.itertuples(), lambda i, row: boundary_row(i, row, "out"))
+        + '</div>'
+        '<div class="t50-note">Rank change since the last month-end.</div>'
+    )
+    st.html(html_out)
