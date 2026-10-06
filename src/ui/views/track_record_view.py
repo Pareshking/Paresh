@@ -25,7 +25,7 @@ from src.ui.theme import render_saas_table
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def _comparison_price_frame(system: str, _fallback: pd.DataFrame) -> pd.DataFrame:
+def _comparison_price_frame(system: str, selected_system: str, _fallback: pd.DataFrame) -> pd.DataFrame:
     """Build the MTD price frame from the system's own canonical universe.
 
     The Portfolio page normally loads the selected system's prices. That frame
@@ -38,7 +38,11 @@ def _comparison_price_frame(system: str, _fallback: pd.DataFrame) -> pd.DataFram
     fallback to another system is allowed: doing so would silently report a
     wrong MTD portfolio under the right system name.
     """
-    if system == SYSTEM_750:
+    # For the system currently selected in Portfolio, use the exact same
+    # validated price frame already consumed by record_run(). This keeps the
+    # headline MTD and the side-by-side MTD numerically identical. Other systems
+    # still resolve their own independent canonical price frame below.
+    if system == selected_system:
         return _fallback
     history = membership_for(system)
     if not history:
@@ -232,7 +236,7 @@ def render_record_sections(
                 f"{start.strftime('%B %Y')}; each month is frozen early the next month.")
         if mtd_val is not None and mtd_period is not None:
             st.html(month_cards_html({}, mtd_period, mtd_val, mtd_bench))
-        render_comparison(adj_close, benchmark_close)
+        render_comparison(adj_close, benchmark_close, system)
         return
 
     # The running month counts, everywhere: it is real money, and excluding it
@@ -304,7 +308,7 @@ def render_record_sections(
         if adj_close is not None else {}
     )
 
-    render_comparison(adj_close, benchmark_close)
+    render_comparison(adj_close, benchmark_close, system)
 
 
 def comparison_frame(
@@ -369,6 +373,7 @@ def comparison_frame(
 def render_comparison(
     adj_close: pd.DataFrame | None = None,
     benchmark_close: pd.Series | None = None,
+    selected_system: str = SYSTEM_750,
 ) -> None:
     """Three systems in the same calendar-return treatment as the Portfolio."""
     ledgers = {}
@@ -379,7 +384,7 @@ def render_comparison(
         except (ValueError, OSError):
             ledgers[sys_id] = {}
         if adj_close is not None and not adj_close.empty:
-            system_prices = _comparison_price_frame(sys_id, adj_close)
+            system_prices = _comparison_price_frame(sys_id, selected_system, adj_close)
             live_meta[sys_id] = _record_mtd(system_prices, benchmark_close, sys_id)
 
     table = comparison_frame(ledgers, live_meta)
