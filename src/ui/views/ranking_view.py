@@ -589,11 +589,11 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
         return (
             '<div class="t50-row">'
             f'<span class="t50-num">{i}</span>'
-            f'<span class="t50-stock-cell">{stock_link(row.Symbol)}</span>'
+            f'<span class="t50-stock-cell">{stock_link(row["Symbol"])}</span>'
             f'<span class="t50-cell t50-change">{delta_html}</span>'
-            f'<span class="t50-cell t50-rank">#{int(row.Rank)}</span>'
+            f'<span class="t50-cell t50-rank">#{int(row["Rank"])}</span>'
             f'<span class="t50-cell t50-return">{esc(fmt_return(row))}</span>'
-            f'<span class="t50-cell t50-trend">{sparkline(row.Symbol)}</span>'
+            f'<span class="t50-cell t50-trend">{sparkline(row["Symbol"])}</span>'
             '</div>'
         )
 
