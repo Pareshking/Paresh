@@ -563,9 +563,8 @@ def _render_peers(row: pd.Series, rank_df: pd.DataFrame) -> None:
         if st.button(f"All {len(in_ind)} stocks in {industry}", type="tertiary",
                      icon=":material/open_in_full:", key="sp_peers_all"):
             full = in_ind.sort_values("Rank")
-            full = full.assign(Chart=full["Symbol"].astype(str).map(kit.tradingview_url))
             keep = [c for c in ["Rank", "Symbol", "CMP", "1M Return", "3M Return", "6M Return",
-                                "12M Return", "3M Sharpe", "% High", "Chart"] if c in full.columns]
+                                "12M Return", "3M Sharpe", "% High"] if c in full.columns]
             _peers_dialog(str(industry), full[keep].reset_index(drop=True))
 
 
