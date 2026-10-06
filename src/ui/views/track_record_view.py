@@ -49,7 +49,7 @@ def grid_display(grid: pd.DataFrame) -> pd.DataFrame:
     for col in out.columns:
         if col == "YEAR":
             out[col] = out[col].astype(int).astype(str)
-        elif col == "SERIES":
+        elif col in ("SERIES", "SYSTEM"):
             continue
         else:
             out[col] = out[col].map(_pct)
@@ -180,7 +180,7 @@ def render_record_sections(
                 f"{start.strftime('%B %Y')}; each month is frozen early the next month.")
         if mtd_val is not None and mtd_period is not None:
             st.html(month_cards_html({}, mtd_period, mtd_val, mtd_bench))
-        render_comparison()
+        render_comparison(adj_close, benchmark_close)
         return
 
     # The running month counts, everywhere: it is real money, and excluding it
