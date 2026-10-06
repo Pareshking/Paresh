@@ -732,6 +732,23 @@ def inject_custom_css() -> None:
         .ac-why b.up { color: #067647; }
         .ac-when { font-size: 12.5px; color: #3C4657; }
         .ac-next { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: #5E6878; }
+        .t50-chip {
+            display: inline-flex; align-items: center; gap: 7px; min-height: 30px;
+            padding: 4px 10px 4px 6px; border-radius: 999px;
+            background: #F0F1FF; color: #172554 !important;
+            text-decoration: none !important; font-size: 12.5px; font-weight: 700;
+            white-space: nowrap; border: 1px solid #E2E4FF;
+            transition: background .15s ease, border-color .15s ease, transform .15s ease;
+        }
+        .t50-chip:hover {
+            background: #E8E9FF; border-color: #C7C9FF; transform: translateY(-1px);
+        }
+        .t50-rank {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 22px; height: 22px; border-radius: 50%;
+            background: #4F46E5; color: #FFFFFF; font-family: var(--font-mono);
+            font-size: 11px; font-weight: 700; line-height: 1;
+        }
         @media (max-width: 900px) {
             .ac-row.sell, .ac-row.buy { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; }
             .ac-row.ac-head { display: none; }
