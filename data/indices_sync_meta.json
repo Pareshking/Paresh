@@ -1,43 +1,37 @@
 {
-  "last_synced": "05 Oct 2026, 23:15",
-  "timestamp": "2026-10-05T23:15:12.026632",
+  "last_synced": "06 Oct 2026, 08:22",
+  "timestamp": "2026-10-06T08:22:57.777088",
   "total_stocks": 755,
   "indices": {
     "NIFTY 50": {
       "count": 50,
       "status": "Updated",
-      "time": "2026-10-05T23:15:10.452678"
+      "time": "2026-10-06T08:22:56.164117"
     },
     "NIFTY NEXT 50": {
       "count": 50,
       "status": "Updated",
-      "time": "2026-10-05T23:15:10.829923"
+      "time": "2026-10-06T08:22:56.527001"
     },
     "NIFTY MIDCAP 150": {
       "count": 150,
       "status": "Updated",
-      "time": "2026-10-05T23:15:11.209890"
+      "time": "2026-10-06T08:22:56.945481"
     },
     "NIFTY SMALLCAP 250": {
       "count": 251,
       "status": "Updated",
-      "time": "2026-10-05T23:15:11.650241"
+      "time": "2026-10-06T08:22:57.390393"
     },
     "NIFTY MICROCAP 250": {
       "count": 254,
       "status": "Updated",
-      "time": "2026-10-05T23:15:12.025847"
+      "time": "2026-10-06T08:22:57.776244"
     }
   },
-  "last_attempt": "06 Oct 2026, 01:00",
-  "last_attempt_timestamp": "2026-10-06T01:00:49.278592",
-  "last_attempt_fetched": 0,
-  "last_attempt_errors": {
-    "NIFTY 50": "Live fetch failed; using existing fallback",
-    "NIFTY NEXT 50": "Live fetch failed; using existing fallback",
-    "NIFTY MIDCAP 150": "Live fetch failed; using existing fallback",
-    "NIFTY SMALLCAP 250": "Live fetch failed; using existing fallback",
-    "NIFTY MICROCAP 250": "Live fetch failed; using existing fallback"
-  },
-  "last_attempt_ok": false
+  "last_attempt": "06 Oct 2026, 08:22",
+  "last_attempt_timestamp": "2026-10-06T08:22:57.777088",
+  "last_attempt_fetched": 5,
+  "last_attempt_errors": {},
+  "last_attempt_ok": true
 }
