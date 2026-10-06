@@ -38,8 +38,13 @@ def _record_mtd(
     return record_run(adj_close, benchmark_close, system).get("live_meta", {}) or {}
 
 
-def _pct(v: float | None) -> str:
-    return "—" if v is None or pd.isna(v) else f"{v * 100:+.1f}%"
+def _pct(v: float | int | None) -> str:
+    if v is None or pd.isna(v):
+        return "—"
+    try:
+        return f"{float(v) * 100:+.1f}%"
+    except (TypeError, ValueError):
+        return "—"
 
 
 def grid_display(grid: pd.DataFrame) -> pd.DataFrame:
@@ -252,7 +257,7 @@ def render_record_sections(
         if adj_close is not None else {}
     )
 
-    render_comparison()
+    render_comparison(adj_close, benchmark_close)
 
 
 def comparison_frame(
