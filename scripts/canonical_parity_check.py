@@ -62,6 +62,7 @@ from src.ui.canonical_book import current_book  # noqa: E402
 
 BOOK_COLS = ["Symbol", "Entry Date", "Entry Price", "Price Now", "Weight %"]
 TOL_PCT = 1e-6  # weights and caps, in percent
+PARITY_CHECK_VERSION = "identity-v2"
 
 
 def _download(url: str, into: Path) -> Path:
@@ -176,7 +177,7 @@ def main() -> int:
                     mismatch_rows.append({"Symbol": a.iloc[i]["Symbol"], "diff": diffs})
                     if len(mismatch_rows) >= 5:
                         break
-    record("book_parity", same and not a.empty, names=len(a),
+    record("book_parity", same and not a.empty, version=PARITY_CHECK_VERSION, identity_same=same, names=len(a),
            only_in_actions=sorted(set(a.Symbol) - set(b.Symbol)),
            only_in_portfolio=sorted(set(b.Symbol) - set(a.Symbol)),
            mismatch_columns=mismatch_columns,
