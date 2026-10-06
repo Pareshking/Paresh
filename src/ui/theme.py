@@ -623,7 +623,7 @@ def inject_custom_css() -> None:
             .t50-card-heading { gap:10px; } .t50-icon { flex-basis:44px; width:44px; height:44px; border-radius:9px; font-size:24px; }
             .t50-card h2 { font-size:19px !important; } .t50-card p { font-size:12.5px !important; }
             .t50-view-all { min-height:38px; padding:0 11px; font-size:12px; gap:6px; } .t50-col-head,.t50-row { padding:0 14px; column-gap:10px; }
-            .t50-col-head { min-height:38px; font-size:11px; } .t50-row { min-height:50px; font-size:13px; } .t50-table { min-width:680px; } .t50-trend svg { width:118px; }
+            .t50-col-head { min-height:38px; font-size:10px; } .t50-row { min-height:50px; font-size:12px; } .t50-table { min-width:0; } .t50-col-head,.t50-row { grid-template-columns:24px minmax(70px,1.25fr) 55px 55px 48px 68px; column-gap:5px; } .t50-trend svg { width:64px; height:28px; } .t50-change,.t50-rank,.t50-return { font-size:11px; } .t50-num { font-size:10px; }
         }
         .st-key-scr_toolbar { gap: 10px !important; }
         .st-key-scr_toolbar [data-testid="stPopoverButton"] { height: 40px !important; }
