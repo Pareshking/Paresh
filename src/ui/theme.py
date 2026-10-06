@@ -591,20 +591,40 @@ def inject_custom_css() -> None:
         .ms-s b { font-weight: 600; }
         .mkt-strip .up { color: #067647; } .mkt-strip .down { color: #B42318; }
         .t50 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
-        .t50-card { background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
-        .t50-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-        .t50-h h2 { margin: 0 !important; padding: 0 !important; font-family: var(--font-ui) !important; font-size: 16px !important; font-weight: 650 !important; letter-spacing: 0 !important; }
-        .t50-h span { font-size: 13px; font-weight: 600; }
-        .t50 .up { color: #067647; } .t50 .down { color: #B42318; }
-        .t50-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-        .t50-chip {
-            display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px;
-            border-radius: 8px; background: #F4F5F8; color: #0E1726 !important; text-decoration: none !important;
-            font-size: 13px; font-weight: 650;
+        .t50-grid { display:flex; flex-direction:column; gap:14px; width:100%; margin-top:4px; }
+        .t50-card { width:100%; overflow:hidden; background:#FFFFFF; border:1px solid #E3E6EB; border-radius:16px; box-shadow:0 1px 3px rgba(14,23,38,0.04); }
+        .t50-card-head { display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:82px; padding:16px 20px; background:#F0FBF5; border-bottom:1px solid #D8F1E2; }
+        .t50-card-heading { display:flex; align-items:center; gap:14px; min-width:0; }
+        .t50-icon { flex:0 0 52px; width:52px; height:52px; display:grid; place-items:center; border-radius:10px; background:#12A05C; color:#FFFFFF; font-size:29px; font-weight:700; line-height:1; }
+        .t50-card h2 { margin:0 !important; padding:0 !important; color:#0E1726 !important; font-family:var(--font-ui) !important; font-size:23px !important; font-weight:750 !important; letter-spacing:-0.02em !important; }
+        .t50-card p { margin:4px 0 0 !important; color:#526070 !important; font-size:13.5px !important; line-height:1.35 !important; }
+        .t50-view-all { flex:0 0 auto; display:inline-flex; align-items:center; gap:10px; min-height:42px; padding:0 17px; border-radius:10px; background:#FFFFFF; border:1px solid #D9E0E7; color:#0E1726 !important; text-decoration:none !important; font-size:13.5px; font-weight:700; box-shadow:0 1px 2px rgba(14,23,38,0.04); }
+        .t50-view-all:hover { background:#F7F8FA; border-color:#C7CFD9; }
+        .t50-table-wrap { width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+        .t50-table { width:100%; min-width:720px; display:grid; font-family:var(--font-ui); }
+        .t50-col-head, .t50-row { display:grid; grid-template-columns:52px minmax(150px,1.5fr) 1fr 1fr 0.9fr 150px; align-items:center; column-gap:14px; padding:0 20px; }
+        .t50-col-head { min-height:42px; background:#FAFBFC; border-bottom:1px solid #E3E6EB; color:#667080; font-size:12px; font-weight:650; }
+        .t50-row { min-height:55px; border-bottom:1px solid #EDEFF3; color:#0E1726; font-size:14px; }
+        .t50-row:last-child { border-bottom:0; } .t50-row:hover { background:#FAFBFC; }
+        .t50-num { color:#667080; font-family:var(--font-mono); font-size:12px; } .t50-stock-cell { min-width:0; }
+        .t50-stock { color:#0E1726 !important; text-decoration:none !important; font-weight:700; letter-spacing:0.01em; }
+        .t50-stock:hover { color:#4338CA !important; text-decoration:underline !important; }
+        .t50-cell { min-width:0; } .t50-change,.t50-rank,.t50-return { font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+        .t50-delta { font-weight:750; } .t50-delta.positive { color:#12A05C; } .t50-delta.negative { color:#B42318; } .t50-delta.flat { color:#667080; }
+        .t50-return { font-weight:700; color:#12A05C; } .t50-trend { display:flex; align-items:center; height:36px; color:#12A05C; }
+        .t50-trend svg { width:132px; height:34px; display:block; } .t50-no-trend { color:#98A2B3; }
+        .t50-entered .t50-card-head { background:#F3F7FF; border-bottom-color:#DDE8FF; } .t50-entered .t50-icon { background:#2563EB; } .t50-entered .t50-trend { color:#2563EB; }
+        .t50-left .t50-card-head { background:#FFF5F4; border-bottom-color:#F3D8D4; } .t50-left .t50-icon { background:#B42318; } .t50-left .t50-trend { color:#B42318; } .t50-left .t50-return { color:#B42318; }
+        .t50-more { margin:0; border-top:1px solid #EDEFF3; } .t50-more summary { list-style:none; cursor:pointer; min-height:46px; padding:0 20px; display:flex; align-items:center; justify-content:center; gap:8px; color:#0E1726; font-size:13.5px; font-weight:700; }
+        .t50-more summary::-webkit-details-marker { display:none; } .t50-more summary span { font-size:17px; } .t50-more[open] summary { border-bottom:1px solid #EDEFF3; }
+        .t50-note { margin:6px 2px 0; color:#667080; font-size:12px; line-height:1.4; }
+        @media (max-width:640px) {
+            .t50-grid { gap:10px; } .t50-card { border-radius:14px; } .t50-card-head { min-height:78px; padding:14px; gap:10px; }
+            .t50-card-heading { gap:10px; } .t50-icon { flex-basis:44px; width:44px; height:44px; border-radius:9px; font-size:24px; }
+            .t50-card h2 { font-size:19px !important; } .t50-card p { font-size:12.5px !important; }
+            .t50-view-all { min-height:38px; padding:0 11px; font-size:12px; gap:6px; } .t50-col-head,.t50-row { padding:0 14px; column-gap:10px; }
+            .t50-col-head { min-height:38px; font-size:11px; } .t50-row { min-height:50px; font-size:13px; } .t50-table { min-width:680px; } .t50-trend svg { width:118px; }
         }
-        .t50-chip:hover { background: #EEF0FF; }
-        .t50-chip span { font-family: var(--font-mono); font-size: 12px; font-weight: 500; color: #5E6878; }
-        .t50-none { font-size: 13px; color: #5E6878; }
         .st-key-scr_toolbar { gap: 10px !important; }
         .st-key-scr_toolbar [data-testid="stPopoverButton"] { height: 40px !important; }
         .sig-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
