@@ -580,7 +580,6 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
         return None if pd.isna(prev) or pd.isna(now) else int(prev - now)
 
     def row_html(i: int, row) -> str:
-        row = row._asdict() if hasattr(row, "_asdict") else row
         delta = rank_change(row)
         delta_html = "—" if delta is None else (
             f'<span class="t50-delta {"positive" if delta > 0 else ("negative" if delta < 0 else "flat")}">'
@@ -624,9 +623,9 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
 
     html_out = (
         '<div id="t50-movement" class="t50-grid">'
-        + card("Biggest Jumps", "Largest rank improvements since last month-end", "↑", "jump", jumps.itertuples())
-        + card("Entered top 50", "Newly entered in top 50 since last month-end", "★", "entered", entered.itertuples())
-        + card("Left top 50", "Exited from top 50 since last month-end", "↓", "left", left.itertuples())
+        + card("Biggest Jumps", "Largest rank improvements since last month-end", "↑", "jump", jumps.to_dict("records"))
+        + card("Entered top 50", "Newly entered in top 50 since last month-end", "★", "entered", entered.to_dict("records"))
+        + card("Left top 50", "Exited from top 50 since last month-end", "↓", "left", left.to_dict("records"))
         + '</div><div class="t50-note">Rank change since the last month-end.</div>'
     )
     st.html(html_out)
