@@ -553,8 +553,10 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
         return f'<a class="t50-stock" href="{stock_href(sym)}" target="_self">{esc(sym)}</a>'
 
     def fmt_return(row) -> str:
+        # Ranking returns are stored as decimal fractions (e.g. 0.284 = 28.4%),
+        # matching the screener table's canonical percentage formatter.
         val = pd.to_numeric(pd.Series([row.get("1M Return")]), errors="coerce").iloc[0]
-        return "—" if pd.isna(val) else f"{float(val):+.1f}%"
+        return "—" if pd.isna(val) else f"{float(val) * 100:+.1f}%"
 
     def rank_change(row) -> int | None:
         prev = pd.to_numeric(pd.Series([row.get("Rank (-1M)")]), errors="coerce").iloc[0]
