@@ -737,12 +737,48 @@ def inject_custom_css() -> None:
         }
 
         /* ── Page kit (src/ui/page_kit.py): every other page ───────────── */
-        /* Keep the six portfolio readings on one desktop row. The phone
-           layout remains the existing two-column grid below. */
-        @media (min-width: 641px) {
+        /* Portfolio KPI strip: centered, icon-free frozen design.
+           Desktop keeps six equal cards; tablet uses a 2x3 grid; phone stacks
+           one card per row. */
+        .mkt-strip.pg-strip {
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+        }
+        .mkt-strip.pg-strip .ms-tile {
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-width: 0;
+            min-height: 152px;
+            padding: 18px 16px;
+        }
+        .mkt-strip.pg-strip .ms-k,
+        .mkt-strip.pg-strip .ms-v,
+        .mkt-strip.pg-strip .ms-s {
+            text-align: center;
+            width: 100%;
+        }
+        .mkt-strip.pg-strip .ms-k { font-size: 14px; }
+        .mkt-strip.pg-strip .ms-v { font-size: 28px; }
+        .mkt-strip.pg-strip .ms-s { font-size: 14px; }
+        .mkt-strip.pg-strip .ms-s:empty { display: none; }
+
+        @media (min-width: 641px) and (max-width: 1279px) {
             .mkt-strip.pg-strip {
-                grid-template-columns: repeat(6, minmax(0, 1fr));
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
+        }
+
+        @media (max-width: 640px) {
+            .mkt-strip.pg-strip {
+                grid-template-columns: 1fr;
+            }
+            .mkt-strip.pg-strip .ms-tile {
+                min-height: 126px;
+                padding: 18px 14px;
+            }
+            .mkt-strip.pg-strip .ms-k { font-size: 13px; }
+            .mkt-strip.pg-strip .ms-v { font-size: 24px; }
+            .mkt-strip.pg-strip .ms-s { font-size: 13px; }
         }
         .mkt-strip .warn { color: #B54708; }
         .pg-note {
