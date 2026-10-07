@@ -18,6 +18,7 @@ from src.loaders.price_loader import fetch_benchmark_history
 from src.ui import page_kit as kit
 from src.ui import system_param
 from src.ui.canonical_book import current_book
+from src.ui.components import _render_calendar_returns
 from src.ui.charts import render_correlation_heatmap
 from src.ui.theme import render_saas_table
 from src.ui.views.qualified_view import correlation, correlation_note
@@ -681,7 +682,7 @@ def render_portfolio_view(
         if grid.empty:
             st.info("No monthly history is available yet.")
         else:
-            render_saas_table(grid_display(grid))
+            _render_calendar_returns(grid)
             st.caption(_calendar_note(labels, mtd_period, mtd_state,
                                       pending=bool(mtd_period) and not np.isfinite(strategy_mtd)))
 
