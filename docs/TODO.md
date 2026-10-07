@@ -89,7 +89,7 @@ PR, so the sweep was run on 7 Oct. Report: `reports/dq_sweep_2026-10-07.md`.
 | Q2 | Random checks: 40 random (stock, day) closes against NSE's raw rows x our factors and the references; 20 random corporate actions | Mismatch table in the report; each mismatch fixed or explained | [x] 7 Oct: 40 / 40 closes = raw x the later listed steps, 38 / 40 within 2% of a reference (2 demergers the references do not adjust); 20 / 20 actions as the terms and the references give, or a rule in force |
 | Q3 | Backtest trades: Nifty 500 History 2010 - 2026; 25 random + the 25 largest trades | Table in the same report; 0 unexplained | [x] 7 Oct: 19.9%/yr vs 10.3%, Sharpe 0.68, max DD -38.7%; 50 / 50 trades: prices = closes, return by hand = engine, member on entry, within 2 points of a reference |
 | Q4 | S22 (J&K Bank 2015-02-09), S28 (benchmarks.csv zeros); S26 if time | PR merged or reason written | [x] 7 Oct: S22 real (no change), S28 fixed, S26 reason written |
-| Q5 | Handover: TODO ticked, report committed, PR green | PR link in this row | [ ] sweep PR (draft) |
+| Q5 | Handover: TODO ticked, report committed, PR green | PR link in this row | [x] report and TODO committed; draft PR #394 (https://github.com/Pareshking/Paresh/pull/394), merge when the owner says |
 
 ## UI and data overhaul (raised 1 Oct 2026)
 
