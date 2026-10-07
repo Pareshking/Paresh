@@ -1660,7 +1660,7 @@ SCALED_PERCENT_COLUMNS: frozenset[str] = frozenset({
     "% HIGH", "% ATH", "% 50 EMA", "% 20 EMA", "% 52W HIGH",
     "ATR %", "PERSISTENCE", "FFILL %",
     "DEL %", "DEL% 20D AVG", "DEL% PREV20D",
-    "DAY CHG %", "PRICE_CHG_%", "P&L %",
+    "DAY CHG %", "PRICE_CHG_%", "P&L %", "DAY P&L %",
 })
 
 # Window-parameterised families, so adding a horizon to MOMENTUM_WINDOWS does
