@@ -4,7 +4,7 @@ The one list of what is still open. Tick an item when it is done and verified,
 with the date and the PR or run that proves it; move it to **Done** at the
 bottom. Add anything promised in a conversation here the same day.
 
-_Last updated: 2026-10-07_
+_Last updated: 2026-10-08_
 
 ## Now
 
@@ -81,6 +81,55 @@ Rules and status: `docs/PRICE_PIPELINE.md`.
 | S11 | Membership × bhavcopy check and its fixes (join follows NSE's symbol-change list; KBL, ASIANHOTEL, PROVOGUE; REIT series RR) | Report; owner approves fixes | [x] 2 Oct, `reports/membership_bhavcopy_check_2026-10-02.md`; owner approved |
 | S12 | Tata Motors DVR counted with Tata Motors (one company, one slot) | Owner decision; test | [x] 2 Oct (`backtester.SAME_COMPANY`) |
 | S13 | Long backtest universe: **Nifty 500, 2010 to date** (no point-in-time Total Market list before 29 Oct 2021; the 750 backtest starts Nov 2021) | Owner decision | [x] 2 Oct, owner: Nifty 500 |
+
+## Handover (2026-10-08, ~01:15 IST) - start here tomorrow
+
+Merged on 7 Oct, evening: #394 - #397, #400 - #412. The overnight cloud
+run was called off (owner works on the laptop instead); the queue is
+written down on branch `fix/rights-in-committed-actions`
+(`docs/handoff/OVERNIGHT_2026-10-08.md`, `UI_AUDIT_2026-10-07.md`). No code
+started: the `fix/s56-rights-actions` worktree has no changes. Running on
+GitHub: SS history run 37666859753 (S24).
+
+In order:
+
+1. **S56 (high).** Cause found: `data/nse_prices/actions.parquet` was last
+   written by #302 (1 Oct), before #330 made `sync_nse_prices.keep_actions`
+   keep rights rows; `--update` only appends new sessions' actions; and
+   `nse_prices.ACTION_COLS` has no `face_value`, so even kept rights rows
+   cannot be priced (`nse_adjusted._rights` needs face value + premium).
+   Fix: add `face_value` to ACTION_COLS (reindex where missing); add
+   `sync_nse_prices.py --refresh-actions` (re-read every action in the
+   committed window with `scripts/nse_history_audit.read_actions`, swapped
+   twins dropped) and make `--update` refresh too; a workflow_dispatch input
+   that runs it on GitHub (R2 keys) and commits `data/nse_prices`. Then
+   replay the 750 record's Jan - Sep 2026 months with rights applied and
+   record any month that changes for the owner (frozen months are not
+   rewritten). Evidence: `reports/followups_s52_s53_2026-10-07.md`
+   (14 rights ex-dates since Sep 2024; HCC -23% raw on 5 Dec 2025).
+   Then S58 and S60, which depend on it.
+2. **Bug: Kite basket sized on Rs 10 lakh** while Portfolio uses Rs 20 lakh
+   (`actions_view.py` ~292 reads a capital nothing sets): use the Portfolio
+   capital; add a test.
+3. **Bug: Volatility targeting changes nothing** (`config_view.py` ~402 - 406;
+   `portfolio_view` ~493 discards it): remove the control (owner's choice).
+4. **S59 UI audit, the 15 PRs** in the audit's order (Actions text pass
+   first). Each: full tests, `scripts/headless_smoke.py`, a local look;
+   `scripts/portfolio_production_qa.py` changes in the same PR as the
+   Portfolio text it checks. Batch merges (each merge redeploys).
+5. **S24:** when run 37666859753 ends, read `ss_manifest.json`
+   (full_history count); if stocks still lack it,
+   `gh workflow run ss_sync.yml -f mode=history -f rounds=17 -f per_round=40`.
+6. **Storage clean-up:** `data-latest` release leftovers that nothing in the
+   repo or workflows reads (grep first; record, do not delete, if unsure).
+7. **Owner decisions waiting:** S52 keep or trim the `bse/daily` copies on
+   R2; S57 extend the weekly fill to Nano Cap / Combined; S58 after S56.
+8. **Smaller open rows:** S28 (check the next daily sync writes two
+   decimals), S34 (standing audit not scheduled), S35, S47, S53, S10;
+   low: S25, S36, S37, S44.
+
+Owner approved items 1 - 6 and merging each PR once CI is green on its
+current head.
 
 ## Handover (2026-10-03, 04:50 IST)
 
