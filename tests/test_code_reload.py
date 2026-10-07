@@ -46,7 +46,10 @@ def test_a_changed_file_unloads_every_app_module_but_nothing_else(tmp_path, monk
     menu.write_text("x = 22\n")
     os.utime(menu, None)
     assert cr.reload_if_changed(mods) == [str(menu)]
-    assert set(mods) == {"pandas"}  # all application modules, including the reloader, are re-imported
+    # Bare test modules cannot be reloaded in place, so they are dropped and
+    # imported afresh; the reloader itself stays (its lock is held, its records
+    # outlive the reload); other packages are never touched.
+    assert set(mods) == {"pandas", cr.__name__}
 
 
 def test_a_module_first_seen_after_its_file_changed_is_not_missed(tmp_path, monkeypatch):
@@ -115,3 +118,76 @@ def test_app_import_guard_serializes_reload_and_import_windows():
     assert not t1.is_alive()
     assert not t2.is_alive()
     assert second_entered.is_set()
+
+
+
+def _package(tmp_path, monkeypatch, name="zzreload"):
+    """A real three-module package on sys.path, treated as app code: a imports b, b imports c."""
+    import sys
+
+    pkg = tmp_path / name
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("")
+    (pkg / "c.py").write_text("VALUE = 1\n")
+    (pkg / "b.py").write_text(f"from {name}.c import VALUE\n\n\ndef get():\n    return VALUE\n")
+    (pkg / "a.py").write_text(f"from {name} import b\nfrom {name}.c import VALUE as DIRECT\n\n\n"
+                              "def f():\n    return b.get(), DIRECT\n")
+    monkeypatch.syspath_prepend(str(tmp_path))
+    monkeypatch.setattr(cr, "_PACKAGES", (name,))
+    monkeypatch.setattr(cr, "_PREFIXES", (name + ".",))
+    _fresh(monkeypatch)
+    for m in [m for m in sys.modules if m == name or m.startswith(name + ".")]:
+        monkeypatch.delitem(sys.modules, m)
+    return pkg
+
+
+def test_changed_code_is_reloaded_in_place_and_never_missing(tmp_path, monkeypatch):
+    # Owner's log, 7 Oct 2026: dropping every app module from sys.modules made a
+    # second session importing one at that moment fail with KeyError.
+    import importlib
+    import sys
+
+    pkg = _package(tmp_path, monkeypatch)
+    a = importlib.import_module("zzreload.a")
+    assert a.f() == (1, 1)
+    cr.mark_loaded()
+    names = {m for m in sys.modules if m.startswith("zzreload")}
+    time.sleep(0.01)
+    (pkg / "c.py").write_text("VALUE = 2\n")
+    os.utime(pkg / "c.py", None)
+    assert cr.reload_if_changed() == [str(pkg / "c.py")]
+    assert names <= set(sys.modules)                 # nothing was ever removed
+    assert sys.modules["zzreload.a"] is a            # the same module object, updated
+    assert a.f() == (2, 2)                           # b's and a's `from c import VALUE` rebound
+
+
+def test_a_session_importing_during_a_reload_never_sees_a_missing_module(tmp_path, monkeypatch):
+    import importlib
+    import sys
+
+    pkg = _package(tmp_path, monkeypatch, name="zzreload2")
+    importlib.import_module("zzreload2.a")
+    cr.mark_loaded()
+    errors, stop = [], threading.Event()
+
+    def importer():
+        while not stop.is_set():
+            try:
+                importlib.import_module("zzreload2.b")
+                assert "zzreload2.c" in sys.modules
+            except Exception as exc:  # noqa: BLE001
+                errors.append(repr(exc))
+
+    t = threading.Thread(target=importer)
+    t.start()
+    try:
+        for i in range(20):
+            time.sleep(0.005)
+            (pkg / "c.py").write_text(f"VALUE = {i + 10}\n")
+            os.utime(pkg / "c.py", None)
+            cr.reload_if_changed()
+            cr.mark_loaded()
+    finally:
+        stop.set()
+        t.join()
+    assert errors == []

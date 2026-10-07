@@ -9,9 +9,10 @@ someone pressed Reboot.
 app.py calls reload_if_changed() before its other imports and mark_loaded()
 after them. It compares the file behind every loaded src/ and r2/ module with
 what it was when the module was loaded;
-if any changed, it drops all of them from sys.modules, so the imports that
-follow load the current code. This is what Streamlit's own file watcher does
-on a change, done here because on Cloud it evidently does not.
+if any changed, it reloads all of them in place (importlib.reload), so the
+code that runs next is the current code and no module is ever missing from
+sys.modules for a session importing it at the same moment. Streamlit's own
+file watcher would do this on a change; on Cloud it evidently does not.
 
 A day with no code change (the daily data commit touches only data/) finds
 nothing changed and costs one os.stat per loaded module. st.cache_data entries
@@ -21,6 +22,7 @@ module object.
 
 from __future__ import annotations
 
+import importlib
 import os
 import sys
 import threading
@@ -111,8 +113,29 @@ def reload_if_changed(modules: dict | None = None) -> list[str]:
         if not changed:
             return []
         # All of them, not only the changed files: a changed module's
-        # importers hold references to its old objects.
-        for name in [n for n in mods if _is_app_module(n)]:
+        # importers hold references to its old objects. In place (owner's log,
+        # 7 Oct 2026): dropping them from sys.modules left a window in which a
+        # second session importing an app module -- lazily, or in a worker
+        # thread, outside app_import_guard -- found it missing and failed with
+        # KeyError: 'src.core.logger', 'src.core.startup_metrics', 'src'. A
+        # module reloaded in place is never missing. Two passes: sys.modules
+        # lists a module before the modules it imports, so the second pass
+        # rebinds every `from x import y` to the reloaded x. This module is
+        # left alone: its lock is held right now, and its records must outlive
+        # the reload. A module that cannot be reloaded (its file deleted, a
+        # test's bare module) is dropped as before and imported afresh.
+        names = [n for n in mods if _is_app_module(n) and n != __name__]
+        failed: set[str] = set()
+        for _pass in range(2):
+            for name in names:
+                mod = mods.get(name)
+                if mod is None or name in failed:
+                    continue
+                try:
+                    importlib.reload(mod)
+                except Exception:  # noqa: BLE001  any reload error means a fresh import
+                    failed.add(name)
+        for name in failed:
             mods.pop(name, None)
-        _SEEN.clear()  # re-recorded from the fresh imports on the next run
+        _SEEN.clear()  # re-recorded from the current files on the next run
         return sorted(changed)
