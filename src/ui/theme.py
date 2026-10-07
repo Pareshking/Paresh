@@ -486,32 +486,119 @@ def inject_custom_css() -> None:
         @media (max-width: 640px) {
             .st-key-app_header_shell { min-height: 52px !important; padding: 6px 56px 6px 10px !important; gap: 10px !important; flex-wrap: nowrap !important; justify-content: space-between !important; }
             .hdr-pill-lead { display: none; }
+
+            /* Mobile market snapshot — Concept 1: compact single-row chips.
+               The first three facts are the primary market read; the three
+               breadth facts form a quiet second row. This preserves all six
+               canonical values without turning the strip into six equal tiles. */
             .mkt-snapshot {
-                display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
-                min-height: 64px; margin: 3px 0 8px;
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                min-height: 68px;
+                margin: 3px 0 8px;
                 border-radius: 11px;
+                overflow: hidden;
             }
             .mkt-item {
-                min-height: 32px; padding: 5px 8px;
-                gap: 4px; border-right: 1px solid #EDEFF3;
-                font-size: 11.5px; overflow: hidden;
+                min-width: 0;
+                min-height: 34px;
+                padding: 5px 8px;
+                gap: 3px;
+                border-right: 1px solid #EDEFF3;
+                font-size: 11.5px;
+                overflow: hidden;
+                justify-content: center;
             }
             .mkt-item:nth-child(3n) { border-right: 0; }
             .mkt-item:nth-child(n+4) { border-top: 1px solid #EDEFF3; }
-            .mkt-regime-item { padding-left: 9px; }
-            .mkt-index { gap: 5px; }
-            .mkt-index .mkt-label { display: inline; }
-            .mkt-index strong { font-size: 13.5px; }
-            .mkt-distance { gap: 4px; }
-            .mkt-distance .mkt-label { display: none; }
-            .mkt-distance strong { font-size: 11.5px; }
+
+            /* Primary row: visually distinct chips, not six identical cells. */
+            .mkt-regime-item {
+                padding-left: 8px;
+                padding-right: 8px;
+                justify-content: flex-start;
+                background: #FDEDEB;
+            }
+            .mkt-regime {
+                gap: 5px;
+                font-size: 12.5px;
+            }
+            .mkt-dot { font-size: 10px; }
+
+            .mkt-index {
+                gap: 3px;
+                flex-direction: column;
+                align-items: flex-start;
+                justify-content: center;
+            }
+            .mkt-index .mkt-label {
+                display: block;
+                font-size: 10.5px;
+                line-height: 1;
+            }
+            .mkt-index strong {
+                font-size: 14px;
+                line-height: 1.05;
+            }
+
+            .mkt-distance {
+                gap: 2px;
+                flex-direction: column;
+                align-items: flex-start;
+                justify-content: center;
+                background: #FDEDEB;
+            }
+            .mkt-distance .mkt-label {
+                display: block;
+                font-size: 10px;
+                line-height: 1;
+            }
+            .mkt-distance strong {
+                font-size: 12px;
+                line-height: 1.05;
+            }
+
+            /* Secondary row: compact metric cells with subtle visual anchors. */
+            .mkt-item:nth-child(4)::before,
+            .mkt-item:nth-child(5)::before,
+            .mkt-item:nth-child(6)::before {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                flex: 0 0 18px;
+                width: 18px;
+                height: 18px;
+                margin-right: 2px;
+                font-size: 14px;
+                font-weight: 700;
+                line-height: 1;
+            }
+            .mkt-item:nth-child(4)::before { content: "▱"; color: #475467; }
+            .mkt-item:nth-child(5)::before { content: "↗"; color: #067647; }
+            .mkt-item:nth-child(6)::before { content: "◉"; color: #4F46E5; }
+
+            .mkt-item:nth-child(n+4) {
+                justify-content: flex-start;
+            }
+            .mkt-item:nth-child(n+4) .mkt-label {
+                font-size: 10px;
+                line-height: 1.05;
+            }
+            .mkt-item:nth-child(n+4) strong {
+                font-size: 12.5px;
+                line-height: 1.05;
+            }
             .mkt-label {
-                overflow: hidden; text-overflow: ellipsis;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 100%;
             }
             .mkt-item strong {
-                overflow: hidden; text-overflow: ellipsis;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 100%;
             }
-            .mkt-item em { font-size: 11px; }
+            .mkt-item em { font-size: 10.5px; }
         }
 
         /* Keep the Streamlit popover out of normal flow so mobile flex
