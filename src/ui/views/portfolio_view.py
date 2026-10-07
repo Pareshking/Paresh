@@ -504,7 +504,6 @@ def render_portfolio_view(
             benchmark_day_pct = (
                 float(_benchmark_close.iloc[-1]) / float(_benchmark_close.iloc[-2]) - 1.0
             )
-    exposure = current / value * 100.0 if value else 0.0
     # Mark/fill dates remain available through live_meta and the canonical book;
     # the compact header no longer duplicates them.
     n_holdings = len(table)
