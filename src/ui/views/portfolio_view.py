@@ -669,7 +669,7 @@ def render_portfolio_view(
                 key="portfolio_equity_curve_v4",
                 drawdown=dd_d.tolist(),
             )
-            st.caption("Daily account value; frozen months follow the Track Record's month returns.")
+
 
     with kit.card("Calendar returns", "portfolio_monthly", "Strategy, Nifty 500 and Alpha, per year"):
         grid = build_combined_grid(
