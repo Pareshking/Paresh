@@ -90,14 +90,32 @@ RETIRED_DATASETS: dict[str, str] = {
 # dataset here, or under a prefix ending in "/", may not appear in either
 # table above, and no retired dataset's key root may hold one: make_plan
 # refuses the run otherwise.
+# Owner, 2026-10-07: the NSE history and everything built from it must not be
+# lost either. They were safe only because no table above named them; now a
+# mistaken entry is refused. "*" ends a prefix that is not a folder.
 PROTECTED_DATASETS: tuple[str, ...] = (
     "reference/",                       # Yahoo, eod2, Tijori, MarketLens, TejHQ, SS ...
     "prices/screener/max_history",      # Screener's full history, weekly before the latest year
+    "nse/",                             # NSE's bhavcopy since 2008, corporate actions, closed days
+    "indices/",                         # constituents, membership, index prices
+    "universes/",                       # point-in-time universes
+    "trading_sessions/",
+    "corporate_actions/",
+    "market_caps/",
+    "classifications/",
+    "calculations/",                    # the ranking archive
+    "snapshots/rankings*",              # rankings, rankings_nano, rankings_combined
 )
+
+# A scheduled run deletes at most this many keys; a larger plan waits for a
+# person to dispatch it with the count (owner, 2026-10-07). The weekly prune
+# deletes a handful (2 on 4 Oct).
+SCHEDULED_MAX_DELETES = 50
 
 
 def _protected(dataset: str) -> bool:
     return any(dataset == p or (p.endswith("/") and dataset.startswith(p))
+               or (p.endswith("*") and dataset.startswith(p[:-1]))
                for p in PROTECTED_DATASETS)
 
 
@@ -110,8 +128,10 @@ def check_protected(datasets: dict[str, str], retired: dict[str, str]) -> None:
     # dataset goes whole, so its key root must not hold a protected one.
     for ds, root in retired.items():
         for p in PROTECTED_DATASETS:
-            if f"archive/{p.rstrip('/')}/".startswith(root.rstrip("/") + "/"):
-                raise ValueError(f"{ds}'s key root {root} would reach protected {p}")
+            stem = p.rstrip("/*")
+            for under in (f"archive/{stem}/", f"{stem}/"):
+                if under.startswith(root.rstrip("/") + "/"):
+                    raise ValueError(f"{ds}'s key root {root} would reach protected {p}")
 
 
 _ENTRY = re.compile(
@@ -347,6 +367,9 @@ def main() -> int:
     ap.add_argument("--expect-deletes", type=int, default=None,
                     help="the delete count the dry run printed; required with --apply")
     ap.add_argument("--list", action="store_true", help="print every key to delete")
+    ap.add_argument("--max-deletes", type=int, default=None,
+                    help="refuse to apply a plan larger than this (the scheduled run passes "
+                         f"{SCHEDULED_MAX_DELETES})")
     args = ap.parse_args()
 
     archive = R2Archive(R2Config.from_env())
@@ -388,6 +411,11 @@ def main() -> int:
         print(f"::error::expected {args.expect_deletes} deletes, plan has "
               f"{rep['delete_count']}; the archive changed since the dry run. "
               "Nothing deleted.")
+        return 1
+    if args.max_deletes is not None and rep["delete_count"] > args.max_deletes:
+        print(f"::error::the plan deletes {rep['delete_count']} keys, more than the "
+              f"{args.max_deletes} a scheduled run may; nothing deleted. Read the plan, then "
+              "dispatch the workflow with apply and that count.")
         return 1
     n = apply_plan(archive, plans)
     print(f"RETENTION_APPLIED deleted={n}")
