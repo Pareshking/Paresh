@@ -737,6 +737,13 @@ def inject_custom_css() -> None:
         }
 
         /* ── Page kit (src/ui/page_kit.py): every other page ───────────── */
+        /* Keep the six portfolio readings on one desktop row. The phone
+           layout remains the existing two-column grid below. */
+        @media (min-width: 641px) {
+            .mkt-strip.pg-strip {
+                grid-template-columns: repeat(6, minmax(0, 1fr));
+            }
+        }
         .mkt-strip .warn { color: #B54708; }
         .pg-note {
             padding: 12px 16px; border-radius: 12px; background: #FEF6EA; border: 1px solid #F5D7A8;
