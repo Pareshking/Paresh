@@ -77,13 +77,58 @@ def read_history(reader, days: list[date], workers: int = 16, log=print) -> pd.D
     return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=nh.KEEP)
 
 
-def read_actions(reader, archive, since: date, until: date) -> pd.DataFrame:
-    """Daily Bc rows and the yearly list, re-classified, one row per action."""
+REREAD_DAYS = 10   # the newest Bc days are read again each build: a late revision is picked up
+
+
+def read_bc_rows(reader, archive, since: date, until: date, *, pack: pd.DataFrame | None = None,
+                 workers: int = 16, log=print) -> pd.DataFrame:
+    """Every daily Bc file's rows in [since, until], each tagged with its R2 day (`r2_day`).
+
+    One request pair per day, 16 at a time (owner, 2026-10-07: the build spent
+    ~32 of its ~33 minutes reading these one by one). With `pack` (the rows a
+    previous build read) only the days it lacks, and the newest REREAD_DAYS,
+    are read. A day that cannot be read stops the build: an action lost to a
+    failed request would leave every earlier close unadjusted.
+    """
+    days = sorted(d for d in nh.r2_days(archive, nh.R2_ACTIONS) if since <= d <= until)
+    have = set(pd.to_datetime(pack["r2_day"]).dt.date) if pack is not None and len(pack) else set()
+    fresh_from = days[-REREAD_DAYS] if len(days) >= REREAD_DAYS else (days[0] if days else None)
+    todo = [d for d in days if d not in have or (fresh_from is not None and d >= fresh_from)]
+
+    def one(d):
+        return (reader.read_parquet(reader.resolve_current(nh.R2_ACTIONS, as_of=d.isoformat()))
+                .assign(r2_day=pd.Timestamp(d)))
+
+    frames, bad = [], []
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        for d, fut in zip(todo, [pool.submit(one, d) for d in todo]):
+            try:
+                frames.append(fut.result())
+            except Exception as exc:  # noqa: BLE001
+                bad.append(f"{d}: {type(exc).__name__}")
+    if bad:
+        raise RuntimeError(f"{len(bad)} corporate-action days on R2 could not be read: {bad[:5]}")
+    log(f"corporate actions: {len(days)} days on R2, {len(todo)} read, {len(days) - len(todo)} from the pack")
+    kept = pack[pd.to_datetime(pack["r2_day"]).dt.date.isin(set(days) - set(todo))] \
+        if pack is not None and len(pack) else None
+    parts = [f for f in [kept, *frames] if f is not None and len(f)]
+    return pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
+
+
+def read_actions(reader, archive, since: date, until: date, *,
+                 bc_rows: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Daily Bc rows and the yearly list, re-classified, one row per action.
+
+    `bc_rows` (read_bc_rows' result) saves reading the daily files again.
+    """
+    if bc_rows is None:
+        bc_rows = read_bc_rows(reader, archive, since, until)
     frames = []
-    for d in sorted(nh.r2_days(archive, nh.R2_ACTIONS)):
-        if since <= d <= until:
-            frames.append(reader.read_parquet(reader.resolve_current(nh.R2_ACTIONS, as_of=d.isoformat()))
-                          .assign(source="bc"))
+    if len(bc_rows):
+        # Newest day first, as the per-day reads were (frames[::-1] below): a row
+        # two days both carry keeps the newer day's copy.
+        rows = bc_rows.sort_values("r2_day", ascending=False, kind="stable") if "r2_day" in bc_rows else bc_rows
+        frames.append(rows.drop(columns="r2_day", errors="ignore").assign(source="bc"))
     for d in sorted(nh.r2_days(archive, nh.R2_ACTIONS_HISTORY)):
         frames.append(reader.read_parquet(reader.resolve_current(nh.R2_ACTIONS_HISTORY,
                                                                  as_of=d.isoformat())).assign(source="list"))

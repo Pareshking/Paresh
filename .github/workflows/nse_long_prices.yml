@@ -55,6 +55,9 @@ jobs:
           mkdir -p pack
           gh release download data-latest --repo "$GITHUB_REPOSITORY" --pattern nse_raw_pack.parquet --dir pack \
             || echo "No pack yet: every session is read from R2."
+          # The daily corporate-action rows the last build read: only new days come from R2.
+          gh release download data-latest --repo "$GITHUB_REPOSITORY" --pattern nse_actions_pack.parquet --dir pack \
+            || echo "No actions pack yet: every corporate-action day is read from R2."
           ls -lh pack
       # BSE's table (bse_daily.yml): NSE-only gaps are filled from it. Without it
       # the build still runs, fills nothing, and says so in the report.
@@ -69,7 +72,7 @@ jobs:
       - name: Build
         run: |
           # A missing pack (first run, or full=yes) reads every session.
-          python scripts/build_nse_long_prices.py --since "${{ inputs.since || '2008-01-01' }}" --out data_cache/nse_long --pack pack/nse_raw_pack.parquet --bse bse/bse_daily.parquet
+          python scripts/build_nse_long_prices.py --since "${{ inputs.since || '2008-01-01' }}" --out data_cache/nse_long --pack pack/nse_raw_pack.parquet --actions-pack pack/nse_actions_pack.parquet --bse bse/bse_daily.parquet
           ls -lh data_cache/nse_long
           {
             echo "## NSE long price file"
@@ -106,6 +109,7 @@ jobs:
             data_cache/nse_long/nse_long_value.parquet \
             data_cache/nse_long/nse_long_report.json \
             data_cache/nse_long/nse_raw_pack.parquet \
+            data_cache/nse_long/nse_actions_pack.parquet \
             --repo "$GITHUB_REPOSITORY" --clobber
       # The audits (docs/PRICE_PIPELINE.md, "Audit"): the new file against every
       # reference on the release, against Screener point by point, and NSE's raw

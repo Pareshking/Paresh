@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-07 — Long-file build: corporate actions read in parallel and from a pack
+
+- The weekly long-file build spent ~32 of its ~33 minutes reading every session's corporate-action file from R2 one by one; the computation takes ~15 s. The files are now read 16 at a time and kept in `nse_actions_pack.parquet` on the release, so a build reads only the new days (and the newest 10 again). Every factor is still recomputed from all of them; a file that cannot be read stops the build.
+
 ## 2026-10-07 — Ranking: Screener's weekly stretch filled with NSE's daily closes (S23)
 
 - Owner decision (7 Oct 2026): Screener's store is daily for about its latest year and weekly before it, so a 9M or 12M window that reached back before ~Sep 2025 scored a mix of daily and weekly moves and could open on a close up to a week from its date. The ranking frame now fills the weekly stretch with NSE's daily closes, spliced by ratio: each of Screener's weekly closes stays exactly as Screener has it, and the sessions between two of them follow NSE's daily moves from the earlier one. An interval where NSE's move differs from Screener's by more than 2% (an action one side adjusted and the other did not) stays weekly. Live 750, 6 Oct 2026 data: 128,025 prices for 695 stocks, 106 sessions added (7 Oct 2024 - 25 Sep 2025), 12 intervals kept weekly.
