@@ -386,7 +386,13 @@ def render_comparison(
             ledgers[sys_id] = {}
         if adj_close is not None and not adj_close.empty:
             system_prices = _comparison_price_frame(sys_id, selected_system, adj_close)
-            live_meta[sys_id] = _record_mtd(system_prices, benchmark_close, sys_id)
+            try:
+                live_meta[sys_id] = _record_mtd(system_prices, benchmark_close, sys_id)
+            except (ValueError, KeyError, TypeError, IndexError) as exc:
+                # A secondary system must not take down the Portfolio page. Its
+                # frozen ledger remains valid; only its live comparison point is
+                # unavailable until that system's price history can be replayed.
+                live_meta[sys_id] = {}
 
     table = comparison_frame(ledgers, live_meta)
     with kit.card(
