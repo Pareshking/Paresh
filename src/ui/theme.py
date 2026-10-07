@@ -523,7 +523,7 @@ def inject_custom_css() -> None:
                 gap: 5px;
                 font-size: 12.5px;
             }
-            .mkt-dot { font-size: 10px; }
+            .mkt-dot { font-size: 11px; }
 
             .mkt-index {
                 gap: 3px;
@@ -533,7 +533,7 @@ def inject_custom_css() -> None:
             }
             .mkt-index .mkt-label {
                 display: block;
-                font-size: 10.5px;
+                font-size: 11px;
                 line-height: 1;
             }
             .mkt-index strong {
@@ -550,7 +550,7 @@ def inject_custom_css() -> None:
             }
             .mkt-distance .mkt-label {
                 display: block;
-                font-size: 10px;
+                font-size: 11px;
                 line-height: 1;
             }
             .mkt-distance strong {
@@ -581,7 +581,7 @@ def inject_custom_css() -> None:
                 justify-content: flex-start;
             }
             .mkt-item:nth-child(n+4) .mkt-label {
-                font-size: 10px;
+                font-size: 11px;
                 line-height: 1.05;
             }
             .mkt-item:nth-child(n+4) strong {
@@ -598,7 +598,7 @@ def inject_custom_css() -> None:
                 text-overflow: ellipsis;
                 max-width: 100%;
             }
-            .mkt-item em { font-size: 10.5px; }
+            .mkt-item em { font-size: 11px; }
         }
 
         /* Keep the Streamlit popover out of normal flow so mobile flex
