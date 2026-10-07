@@ -45,3 +45,27 @@ def test_the_first_fill_is_a_book_even_with_no_completed_month():
 def test_no_signal_after_inception_still_means_no_result():
     prices = _prices(last="2026-09-30")
     assert _run(prices, pd.Timestamp("2026-10-01")) is None
+
+
+def test_record_run_asks_for_one_month_in_a_systems_first_month(monkeypatch):
+    # 7 Oct 2026, live: Nano Cap and Combined (inception Oct 2026) counted 0
+    # months on the aligned frame and the backtester raised "months must be
+    # positive", so Actions and Portfolio showed an error.
+    from src.engine import model_record as mr
+
+    seen = {}
+
+    def fake_run(*args, **kwargs):
+        seen["months"] = kwargs["backtest_months"]
+        return {}
+
+    prices = _prices(last="2026-10-07")
+    bench = pd.Series(1.0, index=prices.index)
+    monkeypatch.setattr(mr, "run_backtest", fake_run)
+    monkeypatch.setattr(mr, "inception", lambda system: pd.Period("2026-10", freq="M"))
+    monkeypatch.setattr(mr, "membership_for", lambda system: None)
+    monkeypatch.setattr(mr, "load_events", lambda: [])
+    monkeypatch.setattr(mr.former_members, "with_former_members", lambda p, m: p)
+    monkeypatch.setattr(mr, "record_sector_map", lambda cols: {c: "X" for c in cols})
+    mr.record_run(prices, bench, system="nano")
+    assert seen["months"] == 1

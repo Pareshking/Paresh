@@ -18,10 +18,11 @@ from src.loaders.price_loader import fetch_benchmark_history
 from src.ui import page_kit as kit
 from src.ui import system_param
 from src.ui.canonical_book import current_book
+from src.ui.components import _render_calendar_returns
 from src.ui.charts import render_correlation_heatmap
 from src.ui.theme import render_saas_table
 from src.ui.views.qualified_view import correlation, correlation_note
-from src.ui.views.track_record_view import grid_display, render_record_sections
+from src.ui.views.track_record_view import render_record_sections
 
 PORTFOLIO_STARTING_CAPITAL = 2_000_000.0
 
@@ -670,7 +671,7 @@ def render_portfolio_view(
                 key="portfolio_equity_curve_v4",
                 drawdown=dd_d.tolist(),
             )
-            st.caption("Daily account value; frozen months follow the Track Record's month returns.")
+
 
     with kit.card("Calendar returns", "portfolio_monthly", "Strategy, Nifty 500 and Alpha, per year"):
         grid = build_combined_grid(
@@ -683,7 +684,7 @@ def render_portfolio_view(
         if grid.empty:
             st.info("No monthly history is available yet.")
         else:
-            render_saas_table(grid_display(grid))
+            _render_calendar_returns(grid)
             note = _calendar_note(labels, mtd_period, mtd_state,
                                   pending=bool(mtd_period) and not np.isfinite(strategy_mtd))
             if note:

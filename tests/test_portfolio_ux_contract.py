@@ -82,7 +82,8 @@ def test_portfolio_equity_chart_uses_absolute_values_without_growth_factor_scali
 
 def test_portfolio_monthly_view_is_calendar_grid_with_live_mtd():
     source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
-    assert "build_combined_grid(" in source and "grid_display(grid)" in source
+    assert "build_combined_grid(" in source and "_render_calendar_returns(grid)" in source
+    assert 'Daily account value; frozen months follow the Track Record\'s month returns.' not in source
     assert '"monthly_grid": pd.DataFrame(monthly_grid_rows)' in source
     assert '"mtd_period": live_period_key' in source
     assert 'Origin": "Live MTD"' in source
@@ -169,3 +170,22 @@ def test_record_caption_and_correlation_card_wording():
     assert "1.00 = move exactly together" not in source
     card = source[source.index('kit.card("How they move together"') - 400:source.index('kit.card("How they move together"')]
     assert "correlation_note(_corr_mean)" in card
+
+
+def test_header_uses_full_navigation_on_desktop_and_menu_on_narrow_viewports():
+    components = (ROOT / "src/ui/components.py").read_text(encoding="utf-8")
+    theme = THEME.read_text(encoding="utf-8")
+    assert '"Market Breadth", "Backtest", "Configuration", "Guide"' in components
+    assert '[class*="st-key-app_nav_menu_"] { display: none !important; }' in theme
+    assert "@media (max-width: 1100px)" in theme
+    assert ".st-key-app_toplinks { display: none !important; }" in theme
+    assert "padding-right: 60px !important" in theme
+
+
+def test_track_record_copy_uses_percent_alpha_and_ytd():
+    source = (ROOT / "src/ui/views/track_record_view.py").read_text(encoding="utf-8")
+    assert '"after costs · YTD"' in source
+    assert 'kit.Reading("Ahead of the index", _pct(stats["alpha"]),' in source
+    assert 'replace("%", " pts")' not in source
+    assert "Each system starts on its own date" not in source
+    assert "A dash means the system had not started yet" not in source
