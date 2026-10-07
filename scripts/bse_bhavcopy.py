@@ -112,6 +112,29 @@ def read_file(path: str) -> pd.DataFrame:
         "value": x.TtlTrfVal, "isin": x.ISIN.astype(str).str.strip()})
 
 
+def extend(base: pd.DataFrame, new: pd.DataFrame) -> pd.DataFrame:
+    """The table `base` with `new`'s sessions added; a session in both takes `new`'s rows.
+
+    The weekly refresh (bse_daily.yml) downloads only the sessions after the
+    published table's last and extends it, so the table never has to be rebuilt
+    from 4,600 files again. It never loses a session the base had.
+    """
+    if base is None or base.empty:
+        return new.reset_index(drop=True)
+    if new.empty:
+        return base.reset_index(drop=True)
+    base = base[~pd.to_datetime(base["date"]).isin(set(pd.to_datetime(new["date"])))].copy()
+    new = new.copy()
+    cols = list(dict.fromkeys([*base.columns, *new.columns]))
+    for f in (base, new):                               # one dtype across the two parts
+        f["date"] = pd.to_datetime(f["date"]).astype("datetime64[ns]")
+        for c in ("group", "name", "isin"):
+            if c in f:
+                f[c] = f[c].astype(object)
+    out = pd.concat([base.reindex(columns=cols), new.reindex(columns=cols)], ignore_index=True)
+    return out.sort_values(["date", "code"], kind="stable").reset_index(drop=True)
+
+
 def build(args: argparse.Namespace) -> None:
     frames, failed = [], []
     for path in sorted(glob.glob(os.path.join(args.raw, "*"))):
@@ -121,9 +144,14 @@ def build(args: argparse.Namespace) -> None:
             frames.append(read_file(path))
         except Exception as exc:   # one bad day must not lose the other 4,600
             failed.append((os.path.basename(path), str(exc)[:80]))
-    table = pd.concat(frames, ignore_index=True)
-    table["group"] = table["group"].astype("category")
-    table.to_parquet(args.out, index=False)
+    table = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+    if args.base:
+        base = pd.read_parquet(args.base)
+        before = base["date"].nunique()
+        table = extend(base, table)
+        print(f"extended {args.base}: {before} sessions -> {table['date'].nunique()}")
+    table["group"] = table["group"].astype(str).astype("category")
+    table.to_parquet(args.out, index=False, compression="zstd")
     print(f"{len(table):,} rows, {table.date.nunique()} days, {table.code.nunique()} codes, "
           f"{table.date.min():%Y-%m-%d} to {table.date.max():%Y-%m-%d}; failed to parse: {failed or 'none'}")
 
@@ -133,6 +161,7 @@ def main() -> None:
     ap.add_argument("--mode", choices=["download", "build"], required=True)
     ap.add_argument("--out", required=True, help="download: the folder for the raw files; build: the parquet file")
     ap.add_argument("--raw", help="build: the folder the download wrote")
+    ap.add_argument("--base", help="build: an earlier table to extend with the sessions in --raw")
     ap.add_argument("--start", default="2008-01-01")
     ap.add_argument("--end", default=str(pd.Timestamp.today().date()))
     ap.add_argument("--calendar", help="nse_long_close.parquet: use its sessions instead of every weekday")

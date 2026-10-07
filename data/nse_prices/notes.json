@@ -266,6 +266,12 @@
    "before": "2025-03-10",
    "factor": 0.0474,
    "evidence": "Demerger: Kesoram's cement business went to UltraTech under a scheme (record and effective date 10 Mar 2025), shareholders receiving 1 UltraTech share per 52 Kesoram; NSE's close fell from 204.72 to 9.71 (x0.0474) on 10 Mar 2025, the same in eod2, MarketLens, Tijori and TejHQ, while Yahoo's series is already adjusted. Priced at the ex-date fall, as every demerger here (web search 2026-10-03: Solactive stock distribution notice, Zerodha demerger Q&A)"
+  },
+  {
+   "symbol": "GRAUWEIL",
+   "before": "2024-04-10",
+   "factor": 0.5,
+   "evidence": "1:1 bonus (1 new Re 1 share per Re 1 share held), record date Wed 10 Apr 2024, during NSE's withdrawal of dealings (26 Oct 2023 - 17 Apr 2026), so no NSE list carries it. BSE bhavcopy, code 505710 (GRAUER& WEIL): close 194.70 on 9 Apr 2024, 97.85 on 10 Apr 2024 (1,104,170 shares, 8,968 trades), 96.55 on 12 Apr; NSE's first close after the gap (20 Apr 2026) meets BSE's post-bonus level within 0.8%. Company's record-date notice quoted by goodreturns.in (8 Apr 2024: 'Bonus Equity Shares ... in the ratio of 1:1', record date 10 Apr 2024); BSE filing of 15 Apr 2024 (board approved allotment of 22,67,05,750 bonus shares, 1:1; seen in a search snippet, PDF not read). Screener's history and Tijori's raw series both apply it on 10 Apr 2024: 9 Apr 2024 reads 97.35 (194.70 / 2) and 20 Oct 2023 reads 60.15 against NSE's raw 120.55; Yahoo, eod2, MarketLens and TejHQ have no row in the gap (Yahoo flat at 115.60). Found when NSE-only gaps were filled from BSE (S38, 2026-10-07)"
   }
  ],
  "special_sessions": {

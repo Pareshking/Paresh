@@ -430,7 +430,10 @@ def test_combined_grid_matches_the_per_series_grids():
         ("strategy", "Strategy"), ("benchmark", "Nifty 500"), ("alpha", "Alpha"),
     ):
         single = build_grid(led, field=field).iloc[0]
-        for col in ("JAN", "FEB", "CY RETURN", "FY RETURN", "Q1"):
+        # S40 (owner, 7 Oct): the Alpha row's year / quarter cells are strategy
+        # minus index, not the per-series grid's compounded monthly alphas.
+        cols = ("JAN", "FEB") if field == "alpha" else ("JAN", "FEB", "CY RETURN", "FY RETURN", "Q1")
+        for col in cols:
             a, b = combined.loc[label, col], single[col]
             if a is None or (isinstance(a, float) and np.isnan(a)):
                 assert b is None or np.isnan(b)
@@ -589,3 +592,14 @@ def test_missing_future_ledger_is_expected_and_not_a_warning(tmp_path, monkeypat
     assert led["inception"] == "2026-10"
     assert led["months"] == {}
     assert warnings == []
+
+
+def test_combined_grid_alpha_is_strategy_minus_index_for_the_year_and_quarters():
+    """S40 (owner, 7 Oct 2026): the plain difference on every page."""
+    from src.engine.track_record import build_combined_grid
+
+    by = build_combined_grid(_three_series_ledger()).set_index("SERIES")
+    for col in ("CY RETURN", "FY RETURN", "Q1"):
+        s, b, a = by.loc["Strategy", col], by.loc["Nifty 500", col], by.loc["Alpha", col]
+        if pd.notna(s) and pd.notna(b):
+            assert a == pytest.approx(s - b)
