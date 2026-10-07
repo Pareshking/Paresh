@@ -18,10 +18,11 @@ from src.loaders.price_loader import fetch_benchmark_history
 from src.ui import page_kit as kit
 from src.ui import system_param
 from src.ui.canonical_book import current_book
+from src.ui.components import _render_calendar_returns
 from src.ui.charts import render_correlation_heatmap
 from src.ui.theme import render_saas_table
 from src.ui.views.qualified_view import correlation, correlation_note
-from src.ui.views.track_record_view import grid_display, render_record_sections
+from src.ui.views.track_record_view import render_record_sections
 
 PORTFOLIO_STARTING_CAPITAL = 2_000_000.0
 
@@ -106,9 +107,13 @@ def _benchmark_returns_from_daily(
     mtd_base = float(prior_month.iloc[-1]) if not prior_month.empty else np.nan
     mtd = float(s.iloc[-1] / mtd_base - 1.0) if np.isfinite(mtd_base) and mtd_base > 0 else np.nan
 
-    base = s.loc[s.index < pd.Timestamp(inception_date).normalize()]
+    if isinstance(inception_date, pd.Period):
+        inception_ts = inception_date.start_time.normalize()
+    else:
+        inception_ts = pd.Timestamp(inception_date).normalize()
+    base = s.loc[s.index < inception_ts]
     if base.empty:
-        base = s.loc[s.index <= pd.Timestamp(inception_date)]
+        base = s.loc[s.index <= inception_ts]
     inception_base = float(base.iloc[-1]) if not base.empty else float(s.iloc[0])
     total = float(s.iloc[-1] / inception_base - 1.0) if inception_base > 0 else np.nan
     return day, mtd, total
@@ -664,7 +669,7 @@ def render_portfolio_view(
                 key="portfolio_equity_curve_v4",
                 drawdown=dd_d.tolist(),
             )
-            st.caption("Daily account value; frozen months follow the Track Record's month returns.")
+
 
     with kit.card("Calendar returns", "portfolio_monthly", "Strategy, Nifty 500 and Alpha, per year"):
         grid = build_combined_grid(
@@ -677,7 +682,7 @@ def render_portfolio_view(
         if grid.empty:
             st.info("No monthly history is available yet.")
         else:
-            render_saas_table(grid_display(grid))
+            _render_calendar_returns(grid)
             st.caption(_calendar_note(labels, mtd_period, mtd_state,
                                       pending=bool(mtd_period) and not np.isfinite(strategy_mtd)))
 

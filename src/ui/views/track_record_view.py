@@ -265,10 +265,10 @@ def render_record_sections(
     n_beat = None if beat is None else round(beat * stats["months"])
     kit.readings([
         kit.Reading("Since inception", _pct(stats["total_return"]),
-                    "after costs" + (f" · incl. {mtd_period.strftime('%b')} so far" if incl else ""),
+                    "after costs · YTD",
                     _tone(stats["total_return"])),
         kit.Reading("Nifty 500", _pct(stats["bench_return"]), "price index", _tone(stats["bench_return"])),
-        kit.Reading("Ahead of the index", _pct(stats["alpha"]).replace("%", " pts"),
+        kit.Reading("Ahead of the index", _pct(stats["alpha"]),
                     (f"{n_beat} of {stats['months']} months beat it" if n_beat is not None else ""),
                     _tone(stats["alpha"])),
         kit.Reading("Worst month", _pct(stats["worst_month"]),
@@ -386,7 +386,13 @@ def render_comparison(
             ledgers[sys_id] = {}
         if adj_close is not None and not adj_close.empty:
             system_prices = _comparison_price_frame(sys_id, selected_system, adj_close)
-            live_meta[sys_id] = _record_mtd(system_prices, benchmark_close, sys_id)
+            try:
+                live_meta[sys_id] = _record_mtd(system_prices, benchmark_close, sys_id)
+            except (ValueError, KeyError, TypeError, IndexError):
+                # A secondary system must not take down the Portfolio page. Its
+                # frozen ledger remains valid; only its live comparison point is
+                # unavailable until that system's price history can be replayed.
+                live_meta[sys_id] = {}
 
     table = comparison_frame(ledgers, live_meta)
     with kit.card(
@@ -398,10 +404,4 @@ def render_comparison(
             st.info("Nothing recorded yet.")
         else:
             render_saas_table(grid_display(table))
-            starts = " · ".join(
-                f"{SYSTEM_NAMES[s]}: {inception(s).strftime('%b %Y')}" for s in SYSTEMS
-            )
-            kit.caption(
-                f"Each system starts on its own date — {starts}. "
-                "A dash means the system had not started yet."
-            )
+

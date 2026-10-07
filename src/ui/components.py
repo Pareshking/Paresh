@@ -91,10 +91,112 @@ def compute_signals(rank_df: pd.DataFrame) -> list[SignalAlert]:
 
 
 
-# The pages that get a place in the desktop link row. Everything else is one
-# click away in the ☰ menu, which always lists all eleven in order.
-_TOP_ROW_PAGES = ("Screener", "Portfolio", "Actions", "Sectors", "RRG",
-                  "Watchlist")
+def _render_calendar_returns(grid: pd.DataFrame) -> None:
+    """Render the calendar return grid as year-separated, responsive HTML tables.
+
+    The underlying grid remains the engine's canonical compounded monthly/CY/FY
+    data. This is presentation only: no returns are recalculated here.
+    """
+    if grid.empty:
+        st.info("No full month in this window yet.")
+        return
+
+    month_cols = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+                  "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
+    summary_cols = ["CY RETURN", "FY RETURN", "Q1", "Q2", "Q3", "Q4"]
+    columns = month_cols + summary_cols
+
+    def cell(value, *, summary=False):
+        if value is None or pd.isna(value):
+            return '<td class="cr-empty">—</td>'
+        number = float(value)
+        tone = "positive" if number > 0 else "negative" if number < 0 else "flat"
+        extra = " cr-summary" if summary else ""
+        return f'<td class="cr-value {tone}{extra}">{number:+.1%}</td>'
+
+    blocks = []
+    for year, year_df in grid.groupby("YEAR", sort=True):
+        rows = []
+        for _, row in year_df.iterrows():
+            series = str(row.get("SERIES", ""))
+            series_class = (
+                "strategy" if series.lower() == "strategy"
+                else "alpha" if series.lower() == "alpha"
+                else "benchmark"
+            )
+            cells = "".join(cell(row.get(col), summary=col in summary_cols)
+                            for col in columns)
+            rows.append(
+                f'<tr><th scope="row" class="cr-series {series_class}">'
+                f'{html.escape(series)}</th>{cells}</tr>'
+            )
+        header = "".join(
+            f'<th class="{"cr-summary-head" if col in summary_cols else ""}">{col}</th>'
+            for col in columns
+        )
+        blocks.append(
+            f'<section class="cr-year"><div class="cr-year-head">'
+            f'<div><span class="cr-kicker">CALENDAR YEAR</span>'
+            f'<h3>{int(year)}</h3></div>'
+            f'<span class="cr-year-note">Monthly returns · compounded summaries</span>'
+            f'</div><div class="cr-scroll"><table class="cr-table">'
+            f'<thead><tr><th class="cr-series-head">Series</th>{header}</tr></thead>'
+            f'<tbody>{"".join(rows)}</tbody></table></div></section>'
+        )
+
+    st.html("""
+    <style>
+      .cr-wrap { display:grid; gap:14px; font-family:inherit; color:#172033; }
+      .cr-year { background:#fff; border:1px solid #e2e7ef; border-radius:13px;
+        overflow:hidden; box-shadow:0 2px 8px rgba(20,32,54,.035); }
+      .cr-year-head { display:flex; align-items:center; justify-content:space-between;
+        gap:12px; padding:13px 16px; background:linear-gradient(110deg,#f7f8ff,#fff);
+        border-bottom:1px solid #e8ebf2; }
+      .cr-kicker { display:block; font-size:9px; font-weight:800; letter-spacing:.13em;
+        color:#68738a; }
+      .cr-year-head h3 { margin:2px 0 0; font-size:21px; line-height:1.2;
+        letter-spacing:-.04em; color:#172033; font-weight:750; }
+      .cr-year-note { color:#778196; font-size:11px; text-align:right; }
+      .cr-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+      .cr-table { border-collapse:separate; border-spacing:0; width:100%;
+        min-width:980px; font-size:11px; font-variant-numeric:tabular-nums; }
+      .cr-table th,.cr-table td { padding:10px 8px; text-align:center;
+        border-bottom:1px solid #edf0f5; white-space:nowrap; }
+      .cr-table thead th { background:#f8f9fc; color:#6b7486; font-size:9px;
+        font-weight:800; letter-spacing:.045em; }
+      .cr-table thead th:first-child { text-align:left; padding-left:15px; }
+      .cr-table tbody tr:last-child th,.cr-table tbody tr:last-child td { border-bottom:0; }
+      .cr-table tbody tr:hover { background:#fafbff; }
+      .cr-series { text-align:left !important; padding-left:15px !important;
+        font-size:11px; font-weight:750; color:#253047; min-width:86px; }
+      .cr-series.strategy { border-left:3px solid #4f46e5; }
+      .cr-series.benchmark { border-left:3px solid #94a3b8; }
+      .cr-series.alpha { border-left:3px solid #d97706; }
+      .cr-value { font-weight:650; }
+      .cr-value.positive { color:#087443; }
+      .cr-value.negative { color:#b42318; }
+      .cr-value.flat,.cr-empty { color:#a0a8b7; }
+      .cr-empty { background:#fbfcfe; }
+      .cr-summary-head { background:#eef1ff !important; color:#4542a7 !important; }
+      .cr-summary { background:#f7f8ff; font-weight:800; }
+      .cr-table td.cr-summary { border-left:1px solid #e8eaff; }
+      @media(max-width:640px) {
+        .cr-year-head { padding:11px 12px; }
+        .cr-year-head h3 { font-size:19px; }
+        .cr-year-note { max-width:130px; font-size:10px; }
+        .cr-table { min-width:940px; }
+        .cr-table th,.cr-table td { padding:10px 7px; }
+      }
+    </style>
+    """)
+    st.html('<div class="cr-wrap">' + "".join(blocks) + '</div>')
+
+# Every primary page is directly reachable on desktop. The compact
+# popover remains the mobile/tablet navigation for the pages that do not fit.
+_TOP_ROW_PAGES = tuple(p for p in (
+    "Screener", "Portfolio", "Actions", "Sectors", "RRG", "Watchlist",
+    "Market Breadth", "Backtest", "Configuration", "Guide",
+))
 
 
 def _status_pill_html() -> str:
@@ -127,10 +229,10 @@ def render_header_kpi_bar(
     nav_pages: list | None = None,
     active_page: object | None = None,
 ) -> None:
-    """Top bar (brand, page links, data status, ☰ menu) and the market line.
+    """Top bar (brand, page links, data status, and responsive menu) and market line.
 
-    The market line keeps the words "NIFTY" and "Universe:" on every page: the
-    production QA probe reads them to tell a rendered app from a loading one.
+    Desktop exposes every primary page directly; the compact menu is reserved
+    for narrower viewports where the full navigation no longer fits.
     """
     bullish = regime.status == MarketRegime.BULLISH
     regime_cls = "mkt-up" if bullish else "mkt-down"
@@ -180,8 +282,8 @@ def render_header_kpi_bar(
         else:
             st.html('<span class="hdr-title">Paresh Patel</span>', width="content")
         if nav_pages:
-            # Desktop only (hidden under 900px by theme.py). The ☰ menu below
-            # stays the complete list, and the one the QA probes drive.
+            # Desktop shows the complete primary navigation directly. CSS hides
+            # this row below 900px, where the compact popover takes over.
             with st.container(key="app_toplinks", horizontal=True,
                               vertical_alignment="center", gap=None, width="stretch"):
                 for _i, _p in enumerate(nav_pages):
@@ -194,6 +296,7 @@ def render_header_kpi_bar(
         if pill:
             st.html(pill, width="content")
         if nav_pages:
+            # Mobile/tablet only. Desktop CSS hides the popover trigger.
             with st.popover(
                     "☰",
                     type="tertiary",
