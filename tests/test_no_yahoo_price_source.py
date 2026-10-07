@@ -173,6 +173,22 @@ def test_an_nse_row_beats_a_screener_row_for_the_same_date():
         assert len(merged) == 1 and merged.iloc[0]["source"] == "nse"
 
 
+def test_a_day_with_no_new_rows_keeps_two_decimals(tmp_path):
+    # S28: on pandas 3 an empty frame from NSE made the closes object and
+    # write() committed 19384.30 as 19384.3.
+    day = pd.Timestamp("2026-09-30")
+    have = pd.DataFrame({"nifty500": [19384.30], "nifty50": [24611.10], "source": ["nse"]},
+                        index=pd.DatetimeIndex([day], name="date"))
+    none = pd.DataFrame.from_dict({}, orient="index", columns=bs.FIELDS[1:3])
+    none.index.name = "date"
+    none["source"] = "nse"
+    merged = bs.merge(have, none)
+    assert merged["nifty500"].dtype == float
+    path = tmp_path / "benchmarks.csv"
+    bs.write(merged, path)
+    assert path.read_text(encoding="utf-8").splitlines()[1] == "2026-09-30,19384.30,24611.10,nse"
+
+
 def test_index_closes_read_the_bundle_index_rows():
     prices = pd.DataFrame({
         "mkt": ["Y", "Y", "N"],

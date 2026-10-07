@@ -7,6 +7,12 @@
 - GRAUWEIL's 1:1 bonus of 10 Apr 2024, which fell inside NSE's gap, is a `notes.json` correction: before it the gap read as a 41% loss.
 - BSE's daily table is kept on the release (`bse_daily.parquet`) and on R2 (`bse/daily`, protected), refreshed weekly by the new `bse_daily.yml`.
 
+## 2026-10-07 — Data-quality sweep: two actions counted twice, benchmark decimals
+
+- History from 2010: a corporate action that also reached the build at its date with day and month swapped is now taken once (`nse_bundle.drop_swapped_twins`): ALLCARGO's demerger (12 Nov 2025) had also priced 11 Dec's -3.6% away, and HCG's rights (2 Mar 2026) had been applied on 3 Feb too. Takes effect with the next long-file build; neither stock was in the Nifty 500.
+- `data/benchmarks.csv` keeps two decimals on every row (pandas 3 had written 19384.30 as 19384.3 on days with no new rows). Formatting only.
+- Sweep report: `reports/dq_sweep_2026-10-07.md` (40 random closes, 20 actions, 50 History trades, every adjustment step checked).
+
 ## 2026-10-03 — Backtest: calendar returns
 
 - The Backtest tab (Live and History from 2010) shows Calendar returns under the growth chart: Strategy, the index and Alpha by year and month, with CY, FY (April - March) and quarters, built by the code the Portfolio page uses (`ledger_from_curves`, `build_combined_grid`). Alpha's year and quarter cells are the plain difference between strategy and index; Portfolio keeps its compounded-monthly convention (TODO S40).

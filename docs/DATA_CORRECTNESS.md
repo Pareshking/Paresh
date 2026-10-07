@@ -123,6 +123,11 @@ python scripts/audit_gaps_against_bse.py --long nse_long_close.parquet --pack ns
 | 2 "fake" and 4 "disputed" big moves | VIVIDHA: Rs 0.20 -> 0.15 -> 0.20 is the Rs 0.05 tick on 74,010 shares. CERA 2008: thin trading, eod2 and MarketLens agree. J&KBANK 2015-02-09 is S22 (open). GOODYEAR / NOVARTIND 20 Apr 2026: reopening after the NSE gap below | NSE raw rows, BSE |
 | A long stretch with no rows for a stock | See the next section | |
 | KESORAMIND -95% on 10 Mar 2025 | A real demerger, **not** a loss; it was unadjusted until #372 | NSE close 204.72 -> 9.71; Solactive stock-distribution notice; Zerodha demerger note |
+| eod2 or MarketLens level breaks where **ours** moved (5 on 3 Oct: BAJAJHIND 2011, NEULANDLAB 2012, ALOKTEXT 2009, JMCPROJECT 2009, SHAREINDIA 2023) | Rights issues: ours applies them, that reference does not (or, SHAREINDIA, took out a real -11%) | NSE's list; each factor equals the theoretical ex-rights price from the terms to four decimals; Yahoo agrees where it has the stock (sweep, 7 Oct) |
+| Screener level shifts marked "ours moved" (266 on 3 Oct) | Not a vote: our move was larger than Screener's. Yahoo, eod2, MarketLens, Tijori side with ours on 255; the rest are dividends of 10%+, rights, demergers at the ex-date fall (rules in force), GLOBOFFS 2020 (ours = NSE's raw close) and ANDHRAPAP 2010 (TODO S44) | `reports/dq_sweep_2026-10-07/q1_screener_shift_votes.csv` |
+| Demergers where Yahoo's step differs from ours (TRIVENI 2011, ADANIENT 2015 / 2018, GREENPLY 2019, EDELWEISS 2023, CGPOWER 2016) and eod2 / MarketLens do not adjust | Ours prices a demerger at the ex-date fall (section 4); Yahoo values the new company separately | Sweep, 7 Oct |
+| J&KBANK -18.1% on 9 Feb 2015 (S22) | A real fall on Q3 results (profit -67%), 8M shares; no action | NSE's raw row; eod2, MarketLens, TejHQ the same; Yahoo flat (stale); Business Standard 7 and 9 Feb 2015 |
+| Long-file columns under an old ticker (ANDPAPER, KBL, ASIANHOTEL ... 47) with no NSE row of that name | Exact copies of the successor's series, so a membership list naming the old ticker finds a price | Checked equal on every day (sweep, 7 Oct) |
 
 ## 6. Gaps in the file: NSE-only, or a real suspension
 
@@ -283,4 +288,11 @@ are `nse_index_rebuild/wayback_check.py` and NSE's `IndexInclExcl.xls`.
 - BSE and NSE files need a browser User-Agent; BSE also needs the BhavCopy page
   as Referer. An HTML answer means "no file", not an error.
 - The pack and the long file are not in the repo: `data-latest` release.
-- Pandas in this repo is the 3.x line: string columns are not `object`.
+- Pandas in this repo is the 3.x line: string columns are not `object`. And
+  `concat` with an empty frame makes float columns `object`, after which
+  `to_csv(float_format=...)` skips them (S28: 19384.30 written as 19384.3).
+  The laptop's pandas 2.3 hides both: test with the version in `requirements.txt`.
+- A corporate action can reach the build twice, once at its date with day and
+  month swapped (a Bc row read day first). `repair_swapped_dates` only catches a
+  swap far from the file's day; `drop_swapped_twins` lets the yearly list's date
+  win. Check a new step against NSE's list before trusting it (ALLCARGO, HCG).

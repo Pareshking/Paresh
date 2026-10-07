@@ -418,7 +418,7 @@ def build_combined_grid(
     mtd_period: pd.Period | None = None,
     mtd_values: dict[str, float | None] | None = None,
     years: Sequence[int] | None = None,
-    alpha_as_difference: bool = False,
+    alpha_as_difference: bool = True,
 ) -> pd.DataFrame:
     """All three series in one grid, three rows per year.
 
@@ -431,12 +431,12 @@ def build_combined_grid(
     as a block. Each row is built by `build_grid`, so the CY/FY/quarter
     conventions cannot drift between the combined and per-series views.
 
-    The Alpha row's CY, FY and quarter cells are, by default, the monthly alphas
-    compounded (the Portfolio and Track Record pages). That is not the year's
-    strategy return minus the year's index return: 2010 at +17.7% against
-    +25.2% reads -6.4%, not -7.5%. `alpha_as_difference` makes those cells the
-    plain difference, which is what the Backtest tab's "ahead of the index"
-    figure is; its monthly cells are differences either way.
+    The Alpha row's CY, FY and quarter cells are the plain difference, the
+    year's strategy return minus the year's index return (owner, 2026-10-07,
+    TODO S40): 2010 at +17.7% against +25.2% reads -7.5 pts on every page.
+    `alpha_as_difference=False` gives the monthly alphas compounded instead
+    (-6.4% for 2010), which Portfolio showed until then; the monthly cells are
+    differences either way.
     """
     mtd_values = mtd_values or {}
 

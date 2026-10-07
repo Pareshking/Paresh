@@ -82,17 +82,19 @@ def read_actions(reader, archive, since: date, until: date) -> pd.DataFrame:
     frames = []
     for d in sorted(nh.r2_days(archive, nh.R2_ACTIONS)):
         if since <= d <= until:
-            frames.append(reader.read_parquet(reader.resolve_current(nh.R2_ACTIONS, as_of=d.isoformat())))
+            frames.append(reader.read_parquet(reader.resolve_current(nh.R2_ACTIONS, as_of=d.isoformat()))
+                          .assign(source="bc"))
     for d in sorted(nh.r2_days(archive, nh.R2_ACTIONS_HISTORY)):
         frames.append(reader.read_parquet(reader.resolve_current(nh.R2_ACTIONS_HISTORY,
-                                                                 as_of=d.isoformat())))
+                                                                 as_of=d.isoformat())).assign(source="list"))
     if not frames:
         return pd.DataFrame()
-    acts = pd.concat(frames, ignore_index=True)
+    # The yearly list first, so a row both carry keeps its "list" tag for drop_swapped_twins.
+    acts = pd.concat(frames[::-1], ignore_index=True)
     acts = nb.repair_swapped_dates(acts).drop_duplicates(["symbol", "ex_date", "purpose"])
     parsed = pd.DataFrame([nb.classify_purpose(p) for p in acts["purpose"]], index=acts.index)
     acts[["kind", "price_factor"]] = parsed[["kind", "price_factor"]]
-    return acts
+    return nb.drop_swapped_twins(acts)
 
 
 def audit(prices: pd.DataFrame, actions: pd.DataFrame, held: set[date], closed: set[date],

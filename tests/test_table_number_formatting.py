@@ -160,3 +160,12 @@ def test_mtd_is_a_signed_coloured_fraction(monkeypatch):
     out = _render(pd.DataFrame({"MTD %": [0.1, -0.023]}), monkeypatch)
     assert "+10.0%" in out and "-2.3%" in out
     assert "ret-pos" in out and "ret-neg" in out
+
+
+def test_no_column_declares_both_percent_units():
+    # "% of 52w high start / end" (price / 52-week high, a fraction) sat in both
+    # sets; the fraction set won, so the scaled entry was dead and ambiguous.
+    from src.ui.theme import FRACTION_PERCENT_COLUMNS, SCALED_PERCENT_COLUMNS, percent_unit
+
+    assert not FRACTION_PERCENT_COLUMNS & SCALED_PERCENT_COLUMNS
+    assert percent_unit("% of 52w high start") == "fraction"
