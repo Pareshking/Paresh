@@ -210,6 +210,7 @@ def render_record_sections(
     adj_close: pd.DataFrame | None = None,
     benchmark_close: pd.Series | None = None,
     system: str = SYSTEM_750,
+    show_reconstruction_note: bool = True,
 ) -> None:
     """The frozen record under the Portfolio's live book: since-inception figures,
     how much of it is evidence, each month, each month's ranks, provenance, and
@@ -291,7 +292,7 @@ def render_record_sections(
     # How much of this record is EVIDENCE and how much is reconstruction.
     _backfilled = int(stats.get("backfilled", 0) or 0)
     _recorded = int(stats.get("recorded", 0) or 0)
-    if _backfilled:
+    if _backfilled and show_reconstruction_note:
         _lead = (f"{_backfilled} of {_backfilled + _recorded} months are backfilled"
                  + (": the whole record is a reconstruction." if not _recorded else "."))
         kit.note(_lead, "Rebuilt later, not frozen as each month closed; only months marked "
