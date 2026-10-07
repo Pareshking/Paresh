@@ -55,3 +55,28 @@ def test_a_session_missing_from_the_files_shows_in_the_previous_closes(tmp_path)
     for name in ("report.md", "summary.json", "actions.csv", "jumps.csv", "missing_weekdays.csv"):
         assert (tmp_path / name).exists()
     assert np.isfinite(r["gap_days"]).all()
+
+
+def test_read_actions_keeps_the_lists_date_over_a_swapped_bc_row(monkeypatch):
+    # HCG's 1:17 rights: the yearly list says 2 Mar 2026; a Bc row of 25 Feb
+    # stored it as 3 Feb, inside the listing window, so the swap repair keeps it.
+    rows = {
+        "bc": pd.DataFrame({"date": pd.to_datetime(["2026-02-25", "2026-02-25"]), "symbol": ["HCG", "HCG"],
+                            "ex_date": pd.to_datetime(["2026-02-03", "2026-03-02"]),
+                            "purpose": ["RIGHTS 1:17 @ PREMIUM RS 502/-", "RIGHTS 1:17 @ PREMIUM RS 502/-"]}),
+        "list": pd.DataFrame({"date": pd.to_datetime(["2026-03-02"]), "symbol": ["HCG"],
+                              "ex_date": pd.to_datetime(["2026-03-02"]),
+                              "purpose": ["RIGHTS 1:17 @ PREMIUM RS 502/-"]}),
+    }
+
+    class Reader:
+        def resolve_current(self, dataset, as_of):
+            return dataset
+
+        def read_parquet(self, key):
+            return rows["list" if key == audit.nh.R2_ACTIONS_HISTORY else "bc"].copy()
+
+    monkeypatch.setattr(audit.nh, "r2_days", lambda archive, dataset: {date(2026, 2, 25)})
+    got = audit.read_actions(Reader(), None, date(2026, 1, 1), date(2026, 3, 31))
+    assert list(got["ex_date"]) == [pd.Timestamp("2026-03-02")]
+    assert list(got["source"]) == ["list"]

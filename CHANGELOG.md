@@ -7,6 +7,11 @@
 - Today's ranking does not change (its 12-month window is already daily); the stock page's past ranks (-2M, -3M, -6M) do. Replayed month-ends Jan - Apr 2026: at most 1 of the top 20 differs. `ATH` / `% ATH` move for 124 stocks: a daily closing high between two weekly closes now counts.
 - Nano Cap and Combined are not filled: NSE's committed file has 98 of the 429 Nano Cap stocks, and a filled session where a stock has no price would delete that stock's weekly returns.
 - Switch: `UMIYA_SCREENER_WEEKLY_FILL=0` turns it off (default on). The setting is part of the ranking contract, so the first night after deploy the precomputed table is rebuilt and the app computes the ranking itself until then.
+## 2026-10-07 — Data-quality sweep: two actions counted twice, benchmark decimals
+
+- History from 2010: a corporate action that also reached the build at its date with day and month swapped is now taken once (`nse_bundle.drop_swapped_twins`): ALLCARGO's demerger (12 Nov 2025) had also priced 11 Dec's -3.6% away, and HCG's rights (2 Mar 2026) had been applied on 3 Feb too. Takes effect with the next long-file build; neither stock was in the Nifty 500.
+- `data/benchmarks.csv` keeps two decimals on every row (pandas 3 had written 19384.30 as 19384.3 on days with no new rows). Formatting only.
+- Sweep report: `reports/dq_sweep_2026-10-07.md` (40 random closes, 20 actions, 50 History trades, every adjustment step checked).
 
 ## 2026-10-03 — Backtest: calendar returns
 

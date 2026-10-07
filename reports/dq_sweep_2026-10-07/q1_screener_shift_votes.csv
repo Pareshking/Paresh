@@ -1,0 +1,267 @@
+Index,symbol,start,end,step,ours_move,screener_move,moved,for_ours,for_scr,votes,verdict
+5,ADANIENT,2018-08-31,2018-09-07,0.9457,0.9002,0.952,ours,3,1,"{'eod2': 'ours', 'yahoo': 'scr', 'ml': 'ours', 'tijori': 'ours'}",ours right
+10,ALKYLAMINE,2008-10-24,2008-10-29,1.0797,1.0925,0.962,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+11,ALKYLAMINE,2008-12-05,2008-12-12,0.9485,0.8993,1.0156,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+12,ALKYLAMINE,2009-01-14,2009-01-23,0.9481,0.9025,1.0705,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+15,ANDHRAPAP,2010-02-19,2010-02-26,0.8774,0.6789,0.7834,ours,2,2,"{'eod2': 'ours', 'yahoo': 'scr', 'ml': 'ours', 'tijori': 'scr'}",tie
+17,ANSALAPI,2026-05-26,2026-06-17,0.9436,0.8184,0.9443,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+18,ANSALAPI,2026-07-31,2026-08-07,1.2564,1.0661,0.9726,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+20,ARSHIYA,2025-07-28,2025-08-18,0.8839,0.8525,0.9513,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+21,ARSSINFRA,2023-11-21,2023-12-04,0.95,0.9024,0.9503,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+23,ARVINDFASN,2020-03-13,2020-03-20,0.8434,0.6303,0.7473,ours,2,2,"{'eod2': 'ours', 'yahoo': 'scr', 'ml': 'ours', 'tijori': 'scr'}",tie
+25,ASIANHOTNR,2010-02-23,2010-04-09,0.8617,0.8475,0.9865,ours,2,0,"{'yahoo': 'ours', 'tijori': 'ours'}",ours right
+29,ASTEC,2013-10-25,2013-11-03,1.054,0.9461,1.0274,ours,2,1,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'scr'}",ours right
+31,AURIONPRO,2008-10-10,2008-10-17,1.0535,0.8684,1.0563,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+33,AURIONPRO,2009-05-29,2009-06-05,1.0539,1.2695,1.1924,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+35,AUTOIND,2020-04-13,2020-04-24,1.06,1.4618,1.2135,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+38,BALAMINES,2008-10-03,2008-10-10,1.0582,0.8119,0.8793,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+39,BALLARPUR,2019-11-29,2019-12-06,0.9116,0.8571,1.069,ours,1,0,{'ml': 'ours'},ours right
+40,BALLARPUR,2020-04-09,2020-04-17,1.0519,1.2857,1.0571,ours,1,0,{'ml': 'ours'},ours right
+41,BALLARPUR,2020-06-05,2020-06-12,1.2405,1.4167,1.2182,ours,1,0,{'ml': 'ours'},ours right
+42,BALLARPUR,2021-06-18,2021-06-25,1.0527,1.0588,0.989,ours,1,0,{'ml': 'ours'},ours right
+47,BALLARPUR,2023-05-26,2023-06-02,0.9489,1.3571,1.2353,ours,1,0,{'ml': 'ours'},ours right
+51,BEPL,2013-11-29,2013-12-06,1.0514,0.9029,1.0865,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'ours'}",ours right
+52,BFINVEST,2013-11-29,2013-12-06,0.9438,0.938,0.9896,ours,2,1,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'scr'}",ours right
+53,BFUTILITIE,2010-03-05,2010-03-12,0.774,0.8771,1.1279,ours,3,1,"{'eod2': 'ours', 'yahoo': 'scr', 'ml': 'ours', 'tijori': 'ours'}",ours right
+54,BHARATRAS,2008-02-01,2008-02-08,0.9285,0.9148,1.0304,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+56,BHARATRAS,2008-06-06,2008-06-13,0.9377,0.9288,1.0237,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+57,BHARATRAS,2008-08-01,2008-08-08,0.9468,1.2451,1.0432,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+59,BHARATRAS,2009-09-25,2009-10-01,1.0597,0.9203,1.0736,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+60,BHARATRAS,2010-04-01,2010-04-09,1.0597,1.124,1.0254,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+61,BHARATRAS,2011-02-18,2011-02-25,0.9416,1.0641,0.9722,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+63,BLKASHYAP,2020-03-27,2020-04-03,0.9491,1.1463,1.0682,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+65,BODALCHEM,2012-08-31,2012-09-07,1.0723,0.8421,1.0071,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+67,BODALCHEM,2013-05-10,2013-05-31,1.0743,0.9173,1.0733,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+72,CANFINHOME,2008-10-17,2008-10-24,0.9481,0.8682,0.9041,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+76,CERA,2008-03-07,2008-03-14,0.9342,1.1028,0.9983,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+80,CGPOWER,2016-03-11,2016-03-18,1.0705,1.15,1.0743,ours,0,4,"{'eod2': 'scr', 'yahoo': 'scr', 'ml': 'scr', 'tijori': 'scr'}",screener right
+81,CIEINDIA,2008-10-17,2008-10-24,0.9465,0.821,0.9399,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+84,DATAMATICS,2013-08-13,2013-08-23,0.908,1.4175,1.0856,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'ours'}",ours right
+90,DIACABS,2024-05-31,2024-06-07,0.9452,0.904,0.9754,ours,2,1,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'scr'}",ours right
+93,DONEAR,2011-12-02,2011-12-09,1.0509,1.1008,0.9602,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+95,DONEAR,2013-07-26,2013-09-06,1.0726,0.8452,1.0682,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'ours'}",ours right
+97,DONEAR,2014-12-26,2015-01-02,0.9507,0.9635,1.0135,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+98,EDELWEISS,2023-06-02,2023-06-09,1.0707,1.2721,1.1832,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+99,EDUCOMP,2019-06-07,2019-06-14,1.0687,0.8611,0.9714,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+100,EDUCOMP,2019-08-09,2019-08-16,1.0687,0.8889,1.0,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+102,EDUCOMP,2020-03-27,2020-04-03,0.9291,1.2353,1.0,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+106,EDUCOMP,2023-09-08,2023-09-15,1.0635,1.175,1.1116,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+115,EVERESTIND,2009-02-27,2009-03-06,0.9442,0.8836,1.01,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+116,FCONSUMER,2023-03-31,2023-04-06,1.1481,1.3,1.12,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+118,FCONSUMER,2023-07-18,2023-07-28,0.9484,0.7619,0.9314,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'ours'}",ours right
+119,FCONSUMER,2023-09-08,2023-09-15,1.0881,0.8421,0.9674,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'ours'}",ours right
+121,FCONSUMER,2024-07-22,2024-07-29,0.9508,0.9383,0.9529,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+126,FEL,2013-06-14,2013-06-21,1.0939,1.1343,1.0335,ours,0,3,"{'eod2': 'scr', 'yahoo': 'scr', 'ml': 'scr'}",screener right
+127,FEL,2016-05-06,2016-05-13,1.0523,1.0753,1.0237,ours,0,3,"{'eod2': 'scr', 'yahoo': 'scr', 'ml': 'scr'}",screener right
+128,FEL,2023-03-31,2023-04-06,1.1429,1.3333,1.0536,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+129,FEL,2023-05-08,2023-05-15,0.9263,0.9375,1.0154,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+130,FEL,2023-07-07,2023-07-14,0.9026,1.125,1.0122,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+131,FEL,2023-09-01,2023-09-08,0.901,1.2941,1.0562,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+132,FEL,2023-11-12,2023-11-17,0.8787,1.25,1.05,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+133,FEL,2023-12-26,2024-01-05,1.0787,1.3125,1.0617,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+134,FEL,2024-02-19,2024-03-02,0.8487,1.1429,1.0,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+135,FEL,2025-10-10,2025-10-17,0.9466,0.9091,0.9818,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+136,FEL,2026-02-01,2026-02-06,0.9375,1.0455,1.0,ours,2,1,"{'eod2': 'ours', 'yahoo': 'scr', 'ml': 'ours'}",ours right
+137,FEL,2026-03-20,2026-03-27,0.9318,0.95,1.0,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+138,FEL,2026-06-12,2026-06-19,0.913,0.9524,1.0,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+139,FEL,2026-08-07,2026-08-14,1.0541,1.0541,1.0,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+140,FEL,2026-09-25,2026-10-01,0.9487,1.0833,1.0,ours,2,0,"{'yahoo': 'ours', 'ml': 'ours'}",ours right
+141,FILATEX,2011-12-30,2012-01-07,1.0595,0.8939,1.0746,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+144,FLFL,2025-04-23,2025-05-12,0.9035,0.8524,0.9526,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+147,FRETAIL,2023-05-02,2023-05-08,1.0574,1.05,0.9939,ours,2,0,"{'yahoo': 'ours', 'ml': 'ours'}",ours right
+148,FRETAIL,2023-12-22,2023-12-29,1.0545,1.1905,1.1371,ours,2,0,"{'yahoo': 'ours', 'ml': 'ours'}",ours right
+149,FRETAIL,2024-03-02,2024-03-07,0.9509,0.9167,0.9731,ours,2,0,"{'yahoo': 'ours', 'ml': 'ours'}",ours right
+150,FRETAIL,2024-05-13,2024-05-21,0.9514,0.9524,1.0194,ours,2,0,"{'yahoo': 'ours', 'ml': 'ours'}",ours right
+152,GAYAPROJ,2024-12-06,2024-12-13,1.0599,1.0903,1.0193,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+153,GAYAPROJ,2025-02-07,2025-02-14,1.0599,0.9017,0.9629,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+154,GENUSPOWER,2014-01-03,2014-01-10,0.9111,0.9143,1.0039,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+158,GLOBOFFS,2020-05-26,2020-06-05,0.9118,1.1639,0.9777,ours,0,1,{'tijori': 'scr'},screener right
+159,GLOBOFFS,2020-07-31,2020-08-07,1.0946,1.1176,1.0022,ours,1,1,"{'ml': 'ours', 'tijori': 'scr'}",tie
+161,GRAUWEIL,2023-10-20,2026-04-24,0.5013,0.6051,1.2145,ours,2,0,"{'yahoo': 'ours', 'ml': 'ours'}",ours right
+162,GREENPLY,2009-09-04,2009-09-11,0.9319,0.9299,0.9979,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+164,GREENPLY,2019-07-12,2019-07-19,0.8879,0.8033,0.8729,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+169,GTLINFRA,2014-06-06,2014-06-13,0.941,1.1014,0.9719,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+171,GTLINFRA,2019-06-21,2019-06-28,1.0526,1.0667,1.0133,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+172,GTLINFRA,2019-08-02,2019-08-09,0.9194,0.9231,0.9841,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+173,GTLINFRA,2019-09-13,2019-09-20,1.0525,0.8667,1.0476,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+176,GTLINFRA,2020-02-14,2020-02-20,1.0526,1.1429,0.973,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+177,GTLINFRA,2020-03-27,2020-04-03,0.8621,1.25,1.0,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+178,GTLINFRA,2020-05-29,2020-06-05,1.2768,1.7143,1.1471,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+179,GTLINFRA,2020-11-20,2020-11-27,1.0616,0.8333,0.9286,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+180,GTLINFRA,2021-05-21,2021-05-28,1.0538,1.2667,1.2,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+185,GUJNRECOKE,2010-04-30,2010-05-07,0.9091,0.8194,0.9013,ours,1,0,{'ml': 'ours'},ours right
+189,GVKPIL,2021-08-02,2022-08-12,1.1261,2.28,2.0625,ours,3,0,"{'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+192,HERITGFOOD,2008-12-19,2008-12-26,0.9123,0.8986,1.0106,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+196,HMT,2020-05-08,2020-05-15,1.0571,1.0784,0.9555,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+198,IBULLSLTD,2022-08-19,2022-08-26,1.0535,1.1558,1.1058,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+200,ICIL,2008-10-10,2008-10-17,1.0673,1.2277,1.0741,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+201,ICIL,2009-02-06,2009-02-13,0.9497,1.2429,1.1169,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+202,ICIL,2009-04-02,2009-04-09,1.0756,1.225,1.0976,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+203,ICIL,2009-06-19,2009-06-26,1.062,1.1288,1.0071,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+207,ICIL,2011-06-03,2011-06-10,0.9494,0.913,1.0078,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+208,ICIL,2011-10-14,2011-10-21,1.0594,1.0703,0.9583,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+209,ICIL,2012-01-27,2012-02-03,0.9494,0.9188,0.9937,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+213,INDHOTEL,2008-02-15,2008-02-22,0.9214,0.9419,1.0224,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+216,IOLCP,2013-07-17,2013-10-11,0.9317,0.8122,0.9179,ours,2,1,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'scr'}",ours right
+218,IVRCLINFRA,2019-05-24,2019-05-31,1.1159,1.4167,1.2075,ours,1,0,{'ml': 'ours'},ours right
+220,JAYNECOIND,2020-03-13,2020-03-20,0.9506,0.8113,0.9182,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+223,JBMA,2008-08-01,2008-08-08,0.9432,0.9489,1.0244,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+224,JBMA,2008-11-07,2008-11-14,1.0508,1.0928,1.0083,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+225,JBMA,2013-06-28,2013-07-03,0.9479,1.1995,0.9433,ours,2,1,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'scr'}",ours right
+226,JINDALSAW,2011-11-18,2011-11-25,0.9518,0.9356,0.9845,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+227,JINDALSAW,2016-08-19,2016-08-26,0.9473,0.9616,1.0077,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+230,JINDWORLD,2013-05-17,2013-05-24,0.952,0.9403,1.0474,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+232,KEMROCK,2016-06-03,2016-06-10,0.9438,0.9839,1.0163,ours,1,0,{'ml': 'ours'},ours right
+234,KEMROCK,2016-10-03,2016-10-10,1.0792,0.9569,1.0263,ours,1,0,{'ml': 'ours'},ours right
+237,KGL,2013-09-27,2013-10-04,1.0954,1.3077,1.1846,ours,1,0,{'ml': 'ours'},ours right
+243,KGL,2019-07-26,2019-08-02,0.9206,0.75,0.8154,ours,1,0,{'ml': 'ours'},ours right
+244,KGL,2019-10-18,2019-10-27,0.8673,2.6667,1.2632,ours,1,0,{'ml': 'ours'},ours right
+245,KGL,2019-11-29,2019-12-06,0.9429,0.75,0.9211,ours,1,0,{'ml': 'ours'},ours right
+246,KGL,2020-01-10,2020-01-17,0.9259,0.8571,1.0312,ours,1,0,{'ml': 'ours'},ours right
+247,KGL,2020-02-20,2020-02-28,0.9259,0.8,1.0417,ours,1,0,{'ml': 'ours'},ours right
+248,KGL,2020-04-17,2020-04-24,0.8696,0.8,1.0455,ours,1,0,{'ml': 'ours'},ours right
+249,KGL,2020-05-29,2020-06-05,0.8696,1.75,1.125,ours,1,0,{'ml': 'ours'},ours right
+250,KGL,2020-09-11,2020-09-18,0.9211,0.7143,0.8889,ours,1,0,{'ml': 'ours'},ours right
+251,KGL,2020-11-27,2020-12-04,0.8762,1.75,1.1667,ours,1,0,{'ml': 'ours'},ours right
+252,KGL,2021-02-05,2021-02-12,0.9522,1.1667,1.0,ours,1,0,{'ml': 'ours'},ours right
+253,KGL,2021-03-26,2021-04-01,0.8995,1.2,1.0,ours,1,0,{'ml': 'ours'},ours right
+254,KIRLOSBROS,2010-03-08,2010-04-23,1.1513,1.1441,0.9915,ours,2,0,"{'yahoo': 'ours', 'tijori': 'ours'}",ours right
+255,KNRCON,2013-09-20,2013-09-27,0.951,0.7864,0.8712,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'ours'}",ours right
+257,KOHINOOR,2021-03-15,2021-03-22,1.0862,0.958,1.0228,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+258,KSK,2017-12-15,2017-12-22,1.0715,1.2083,1.1074,ours,1,0,{'ml': 'ours'},ours right
+263,KSK,2019-09-13,2019-09-20,1.0636,1.0909,0.9655,ours,1,0,{'ml': 'ours'},ours right
+264,KSK,2019-11-29,2019-12-06,0.9115,0.9231,1.0833,ours,1,0,{'ml': 'ours'},ours right
+265,KSK,2020-02-01,2020-02-07,1.08,1.1111,0.9608,ours,1,0,{'ml': 'ours'},ours right
+266,KSK,2020-04-03,2020-04-09,1.0598,0.8571,1.0303,ours,1,0,{'ml': 'ours'},ours right
+267,KSK,2020-05-29,2020-06-05,1.0725,1.7143,1.1429,ours,1,0,{'ml': 'ours'},ours right
+271,LAKSHVILAS,2014-07-18,2014-07-25,0.7489,0.7661,1.0231,ours,1,0,{'ml': 'ours'},ours right
+272,LAOPALA,2008-09-26,2008-10-03,1.0521,0.917,1.0345,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+273,LAOPALA,2009-03-06,2009-03-13,0.9519,0.8935,0.9864,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+274,LITL,2017-09-22,2017-09-29,0.939,0.9412,1.012,ours,1,0,{'ml': 'ours'},ours right
+275,LITL,2018-01-12,2018-01-19,1.0575,1.0811,0.9579,ours,1,0,{'ml': 'ours'},ours right
+276,LITL,2018-09-07,2018-09-12,0.9356,0.6667,0.875,ours,1,0,{'ml': 'ours'},ours right
+277,LLOYDSENGG,2016-07-29,2016-08-05,0.9408,0.8333,0.9137,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+279,LLOYDSENGG,2018-02-16,2018-02-23,0.9498,0.8889,0.9716,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+281,LLOYDSENGG,2019-08-30,2019-09-06,0.9409,0.9,1.0789,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+282,LLOYDSENGG,2019-11-22,2019-11-29,1.0569,0.9091,1.0,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+283,LLOYDSENGG,2020-03-20,2020-03-27,0.8909,0.75,0.9677,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+284,LLOYDSENGG,2020-05-22,2020-05-29,1.0756,1.2727,1.0385,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+286,LLOYDSENGG,2021-11-04,2021-11-12,1.0509,1.252,1.2028,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+287,LUMAXTECH,2009-02-06,2009-02-13,1.059,1.1342,1.0286,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+288,MANINDS,2020-09-18,2020-09-25,0.9506,0.9436,0.9943,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+290,MARKSANS,2012-12-28,2013-01-04,1.0762,1.1268,1.0745,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+294,MERCATOR,2019-10-18,2019-10-27,0.935,1.3571,1.2329,ours,1,0,{'ml': 'ours'},ours right
+295,MERCATOR,2020-01-24,2020-02-01,1.0634,1.4286,1.2917,ours,1,0,{'ml': 'ours'},ours right
+296,MERCATOR,2020-07-17,2020-07-24,1.0527,0.9048,0.9789,ours,1,0,{'ml': 'ours'},ours right
+307,NETWORK18,2008-03-07,2008-03-14,0.9271,0.808,0.8738,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+313,NEXTMEDIA,2013-11-29,2013-12-13,0.9375,0.9231,1.0323,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'ours'}",ours right
+314,NEXTMEDIA,2014-01-24,2014-01-31,1.0593,0.9286,1.0139,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+315,NEXTMEDIA,2014-03-14,2014-03-21,1.0786,0.8909,0.9731,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+316,NEXTMEDIA,2014-08-01,2014-08-08,1.0778,1.0657,0.9688,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+317,NEXTMEDIA,2019-03-28,2019-04-12,0.907,0.7069,0.8592,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+320,NEXTMEDIA,2020-02-03,2020-03-17,0.7119,0.5621,1.0339,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+322,NEXTMEDIA,2020-10-30,2020-11-05,0.9343,0.8261,0.8811,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+323,NEXTMEDIA,2021-01-21,2021-01-29,0.9313,0.8879,1.0187,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+325,NEXTMEDIA,2022-05-12,2022-05-20,1.0676,1.1346,0.9281,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+326,NEXTMEDIA,2022-07-08,2022-07-15,1.0502,1.1456,1.0567,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+331,NRBBEARING,2012-10-19,2012-10-26,0.7756,0.8756,1.1262,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+332,OCL,2008-02-29,2008-03-07,0.9503,0.8148,0.8574,ours,1,0,{'ml': 'ours'},ours right
+340,PAGEIND,2008-02-01,2008-02-08,0.9337,0.9422,1.0273,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+346,PGHL,2010-10-15,2010-10-22,1.1124,1.2305,1.1062,ours,0,4,"{'eod2': 'scr', 'yahoo': 'scr', 'ml': 'scr', 'tijori': 'scr'}",screener right
+351,PUNJABCHEM,2013-08-08,2013-08-16,0.9017,1.21,0.8671,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'ours'}",ours right
+356,PVP,2019-04-08,2019-04-30,0.9499,0.9559,1.018,ours,3,0,"{'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+358,PVP,2019-07-29,2019-08-05,1.0814,0.95,1.0457,ours,3,0,"{'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+362,RAJTV,2019-04-05,2019-04-12,1.058,0.8762,1.0581,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+363,RAJTV,2019-06-07,2019-06-13,1.0646,0.955,1.0178,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+366,RAMCOIND,2008-10-24,2008-10-31,0.9363,0.9338,1.0329,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+367,RASOYPR,2012-03-09,2012-03-16,1.0546,0.8657,0.9453,ours,1,0,{'ml': 'ours'},ours right
+369,RASOYPR,2015-01-02,2015-01-09,1.1133,0.8276,0.9145,ours,1,0,{'ml': 'ours'},ours right
+370,RASOYPR,2015-02-28,2015-03-05,0.8134,1.5,1.186,ours,1,0,{'ml': 'ours'},ours right
+371,RASOYPR,2015-05-15,2015-05-22,0.9414,0.7143,0.8718,ours,1,0,{'ml': 'ours'},ours right
+372,RASOYPR,2015-07-03,2015-07-10,1.0833,1.2,0.9615,ours,1,0,{'ml': 'ours'},ours right
+373,RASOYPR,2015-08-28,2015-09-04,1.0759,1.25,1.0,ours,1,0,{'ml': 'ours'},ours right
+374,RASOYPR,2015-10-23,2015-10-30,0.8654,1.2,0.9615,ours,1,0,{'ml': 'ours'},ours right
+375,RASOYPR,2015-12-11,2015-12-18,1.0833,0.7143,0.9062,ours,1,0,{'ml': 'ours'},ours right
+376,RASOYPR,2016-02-19,2016-02-26,1.0833,1.25,1.0,ours,1,0,{'ml': 'ours'},ours right
+377,RASOYPR,2016-05-27,2016-06-03,0.8727,0.75,0.9524,ours,1,0,{'ml': 'ours'},ours right
+379,RASOYPR,2016-10-30,2016-11-04,1.0556,0.75,1.0556,ours,1,0,{'ml': 'ours'},ours right
+380,RASOYPR,2016-12-30,2017-01-06,0.9048,1.6667,1.0526,ours,1,0,{'ml': 'ours'},ours right
+381,RASOYPR,2017-03-24,2017-03-31,1.1111,0.75,1.0,ours,1,0,{'ml': 'ours'},ours right
+382,RASOYPR,2017-06-16,2017-06-23,0.8906,0.6667,1.0,ours,1,0,{'ml': 'ours'},ours right
+383,RASOYPR,2017-08-07,2017-11-06,0.9375,0.3333,1.0,ours,1,0,{'ml': 'ours'},ours right
+385,REFEX,2012-05-11,2012-05-18,0.9463,0.939,1.0,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+389,REFEX,2015-04-30,2015-05-08,0.9446,0.9551,1.0299,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+394,REIAGROLTD,2015-02-06,2015-02-13,0.9315,1.125,1.0361,ours,1,0,{'ml': 'ours'},ours right
+395,REIAGROLTD,2015-04-01,2015-04-10,0.9315,1.3571,1.2329,ours,1,0,{'ml': 'ours'},ours right
+396,REIAGROLTD,2015-10-30,2015-11-06,0.9444,1.2222,0.9811,ours,1,0,{'ml': 'ours'},ours right
+397,REIAGROLTD,2016-01-22,2016-01-29,0.9341,1.0833,0.9531,ours,1,0,{'ml': 'ours'},ours right
+398,REIAGROLTD,2016-03-23,2016-04-01,1.0674,0.9,1.0,ours,1,0,{'ml': 'ours'},ours right
+399,REIAGROLTD,2016-06-10,2016-06-17,0.913,1.1429,0.9737,ours,1,0,{'ml': 'ours'},ours right
+400,REIAGROLTD,2016-08-26,2016-09-02,1.0812,0.8333,0.9818,ours,1,0,{'ml': 'ours'},ours right
+401,REIAGROLTD,2016-10-07,2016-10-14,1.0504,1.2,1.0545,ours,1,0,{'ml': 'ours'},ours right
+402,REIAGROLTD,2016-12-02,2016-12-09,0.9477,1.1111,1.0,ours,1,0,{'ml': 'ours'},ours right
+403,RELCAPITAL,2017-09-01,2017-09-08,0.8783,0.8897,1.013,ours,1,0,{'ml': 'ours'},ours right
+405,RHFL,2020-04-17,2020-04-24,1.0618,1.3333,1.24,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+409,RHFL,2024-11-22,2024-11-29,0.9515,0.8459,0.8618,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+411,RKFORGE,2009-04-29,2009-05-08,1.0594,1.1588,1.0831,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+416,SAKSOFT,2008-10-17,2008-10-31,0.9402,0.8632,1.1335,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+417,SAKSOFT,2009-03-18,2009-04-02,1.0702,1.1289,1.0484,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+429,SHRENUJ,2017-09-18,2017-09-25,0.9252,0.9167,0.9841,ours,1,0,{'ml': 'ours'},ours right
+432,SITINET,2020-02-20,2020-02-28,1.0673,0.7619,0.8384,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+438,SITINET,2023-03-03,2023-03-10,1.059,0.9545,1.0297,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+440,SITINET,2023-07-17,2023-07-28,0.9438,0.8125,0.9432,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'ours'}",ours right
+441,SITINET,2024-01-05,2024-01-12,1.0683,1.2778,1.061,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'ours'}",ours right
+442,SITINET,2024-02-19,2024-03-02,0.8011,0.8333,0.9647,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+443,SITINET,2024-05-13,2024-05-21,0.9252,1.0909,0.9844,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+444,SITINET,2025-10-10,2025-10-17,0.9367,0.9583,1.0,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+445,SITINET,2025-11-21,2025-11-28,0.8936,0.875,1.0,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+446,SITINET,2026-02-06,2026-02-13,0.9211,1.1143,1.0,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+447,SITINET,2026-04-02,2026-04-10,0.9143,1.1333,1.0,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+448,SITINET,2026-05-29,2026-06-05,0.9429,1.0882,1.0,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+449,SITINET,2026-07-24,2026-07-31,0.9143,0.9375,1.0,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+450,SITINET,2026-09-04,2026-09-11,0.875,0.931,1.0,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+452,SIYSIL,2009-04-02,2009-04-09,0.941,1.1199,1.0491,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+453,SKUMARSYNF,2008-04-17,2008-04-25,0.9107,0.9048,0.9951,ours,1,0,{'ml': 'ours'},ours right
+455,SMLMAH,2008-10-03,2008-10-10,0.943,0.91,0.9683,ours,2,0,"{'yahoo': 'ours', 'ml': 'ours'}",ours right
+459,SOMANYCERA,2008-09-05,2008-09-12,1.0522,1.0704,0.9558,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+460,SOMANYCERA,2008-10-24,2008-11-06,0.9476,1.2099,1.0817,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+464,STLTECH,2016-06-10,2016-06-17,0.8234,0.8674,1.0539,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+465,STYRENIX,2021-10-14,2021-10-22,1.1178,1.1317,1.012,ours,0,4,"{'eod2': 'scr', 'yahoo': 'scr', 'ml': 'scr', 'tijori': 'scr'}",screener right
+468,SUDARCOLOR,2021-02-12,2021-02-19,1.1241,1.1437,1.0174,ours,0,4,"{'eod2': 'scr', 'yahoo': 'scr', 'ml': 'scr', 'tijori': 'scr'}",screener right
+469,SUDARSCHEM,2008-04-25,2008-05-02,1.0618,1.1233,0.9938,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+470,SUDARSCHEM,2008-08-22,2008-09-12,1.0587,1.1333,1.0433,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+473,SUNDARMFIN,2018-01-25,2018-02-02,0.9019,0.874,0.9691,ours,3,1,"{'eod2': 'ours', 'yahoo': 'scr', 'ml': 'ours', 'tijori': 'ours'}",ours right
+475,SUPREMEINF,2019-08-13,2019-08-22,0.9434,0.8909,1.0542,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+477,SUPREMEINF,2019-11-25,2019-12-05,0.877,0.7739,0.9504,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+478,SUPREMEINF,2020-03-17,2020-03-27,0.8704,0.7251,0.8213,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+483,SUPREMEINF,2025-02-10,2025-02-18,0.9044,0.8855,0.98,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'ours'}",ours right
+484,SUVEN,2020-02-01,2020-02-07,1.3053,1.4306,1.0609,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+485,TCI,2010-10-15,2010-10-22,0.8027,0.8531,1.0726,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+488,TINPLATE,2009-09-04,2009-09-11,0.7979,0.7618,0.9548,ours,1,0,{'ml': 'ours'},ours right
+490,TRENT,2010-07-02,2010-07-09,1.1872,1.2071,1.0168,ours,1,2,"{'eod2': 'scr', 'yahoo': 'ours', 'ml': 'scr'}",screener right
+499,UNOMINDA,2009-03-13,2009-03-20,1.0506,1.0988,1.058,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+501,V2RETAIL,2013-10-18,2013-10-25,0.9011,0.8553,1.058,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'ours'}",ours right
+503,VINDHYATEL,2008-09-26,2008-10-03,0.9523,1.0664,0.946,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+504,VINDHYATEL,2008-11-21,2008-11-28,0.936,0.8172,0.9167,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+505,VINDHYATEL,2009-02-13,2009-02-20,1.0526,1.1523,0.9431,ours,3,1,"{'eod2': 'ours', 'yahoo': 'scr', 'ml': 'ours', 'tijori': 'ours'}",ours right
+507,VINDHYATEL,2013-09-06,2013-11-08,0.9457,0.8654,0.9574,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'ours'}",ours right
+511,VIVIDHA,2018-01-25,2018-02-02,1.0529,1.0385,1.0,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+512,VIVIDHA,2018-11-16,2018-11-22,0.9498,0.9333,1.0,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+513,VIVIDHA,2019-04-05,2019-04-12,0.9494,0.9091,1.0,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+514,VIVIDHA,2019-05-31,2019-06-07,0.9471,0.8,0.9348,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+515,VIVIDHA,2019-07-19,2019-07-26,1.1121,1.1667,1.0,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+516,VIVIDHA,2019-10-11,2019-10-18,1.1,1.3333,0.95,ours,2,1,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'scr'}",ours right
+517,VIVIDHA,2020-01-03,2020-01-10,0.8703,0.8571,1.1429,ours,2,1,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'scr'}",ours right
+518,VIVIDHA,2020-03-06,2020-03-12,0.8908,0.8,0.9655,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+519,VIVIDHA,2020-05-29,2020-06-05,1.0526,1.25,1.0,ours,2,1,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'scr'}",ours right
+520,VIVIDHA,2020-09-11,2020-09-18,1.0606,0.875,1.0,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+521,VIVIDHA,2020-10-23,2020-10-30,1.0606,0.8571,1.0,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours'}",ours right
+523,VIVIDHA,2021-02-26,2021-03-05,0.9316,0.7778,0.8295,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+524,VIVIDHA,2021-10-22,2021-10-29,0.9375,0.875,0.9359,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+526,VIVIDHA,2023-06-02,2023-06-09,1.0711,1.0588,0.977,ours,3,1,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'scr'}",ours right
+527,VIYASH,2018-03-28,2018-04-06,0.9299,0.9008,0.9663,ours,3,1,"{'eod2': 'ours', 'yahoo': 'scr', 'ml': 'ours', 'tijori': 'ours'}",ours right
+530,WEBELSOLAR,2013-11-14,2013-11-22,1.0528,1.1846,1.0635,ours,3,0,"{'eod2': 'ours', 'yahoo': 'ours', 'tijori': 'ours'}",ours right
+531,WEBELSOLAR,2014-02-21,2014-02-28,0.8371,0.8678,0.9841,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+532,WEBELSOLAR,2014-04-25,2014-05-02,0.9457,1.1236,1.0,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+534,WELSPUNLIV,2009-06-12,2009-06-19,0.9505,0.9698,1.0076,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right
+538,ZFCVINDIA,2008-12-26,2009-01-02,1.05,1.1152,0.9698,ours,4,0,"{'eod2': 'ours', 'yahoo': 'ours', 'ml': 'ours', 'tijori': 'ours'}",ours right

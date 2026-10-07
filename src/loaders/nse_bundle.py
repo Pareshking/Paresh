@@ -159,6 +159,31 @@ def repair_swapped_dates(actions: pd.DataFrame, before_days: int = 45,
     return out
 
 
+def drop_swapped_twins(actions: pd.DataFrame, source: str = "source") -> pd.DataFrame:
+    """Drop a Bc row whose ex-date is the yearly list's date for it, day and month swapped.
+
+    repair_swapped_dates cannot see a swapped date that still falls inside its
+    listing window: ALLCARGO's demerger (ex 12 Nov 2025) also stood on 11 Dec
+    and priced that day's -3.6% as a second demerger; HCG's 1:17 rights (record
+    date 2 Mar 2026) also stood on 3 Feb and was applied twice (sweep, 7 Oct
+    2026). The yearly list spells the month ("02-Mar-2026"), so it cannot be
+    swapped: for the same symbol and kind, its date wins.
+    """
+    if source not in actions or "kind" not in actions or actions.empty:
+        return actions
+    d = pd.to_datetime(actions["ex_date"], errors="coerce")
+    ok = d.notna() & (d.dt.day <= 12) & (d.dt.day != d.dt.month)
+    swapped = pd.to_datetime(
+        {"year": d.dt.year.where(ok, 2000), "month": d.dt.day.where(ok, 1),
+         "day": d.dt.month.where(ok, 1)}, errors="coerce")
+    is_list = actions[source] == "list"
+    listed = set(zip(actions.loc[is_list, "symbol"], actions.loc[is_list, "kind"], d[is_list]))
+    twin = ok & ~is_list & pd.Series(
+        [(s, k, w) in listed for s, k, w in zip(actions["symbol"], actions["kind"], swapped)],
+        index=actions.index)
+    return actions[~twin]
+
+
 # ── Prices ───────────────────────────────────────────────────────────────────
 
 PRICE_COLUMNS = ["date", "mkt", "series", "symbol", "security", "prev_close",

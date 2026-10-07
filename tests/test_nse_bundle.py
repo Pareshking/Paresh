@@ -262,6 +262,22 @@ def test_stored_swapped_dates_are_repaired_by_the_listing_window():
     assert out.at["EARLY", "ex_date"] == pd.Timestamp("2026-03-11")  # already in its window
 
 
+def test_a_bc_row_at_the_lists_date_swapped_is_dropped():
+    # ALLCARGO's demerger, ex 12 Nov 2025, also stood in a Bc row on 11 Dec;
+    # HCG's rights, record date 2 Mar 2026, also on 3 Feb (sweep, 7 Oct 2026).
+    acts = pd.DataFrame({
+        "symbol": ["ALLCARGO", "ALLCARGO", "HCG", "HCG", "KEEP", "KEEP", "OTHER"],
+        "kind": ["demerger", "demerger", "rights", "rights", "dividend", "bonus", "split"],
+        "ex_date": pd.to_datetime(["2025-11-12", "2025-12-11", "2026-03-02", "2026-02-03",
+                                   "2026-05-04", "2026-04-05", "2026-04-05"]),
+        "source": ["list", "bc", "list", "bc", "list", "bc", "bc"],
+    })
+    out = nb.drop_swapped_twins(acts)
+    assert list(zip(out["symbol"], out["ex_date"].dt.strftime("%Y-%m-%d"))) == [
+        ("ALLCARGO", "2025-11-12"), ("HCG", "2026-03-02"), ("KEEP", "2026-05-04"),
+        ("KEEP", "2026-04-05"), ("OTHER", "2026-04-05")]   # another kind, or no list row: kept
+
+
 def test_an_unquoted_comma_joins_back_into_the_last_column():
     bc = (BC + "EQ,JKL,Jkl Ltd,30-Sep-2026, , ,30-Sep-2026, , ,"
                "INTERIM DIVIDEND - RS 2, SPECIAL DIVIDEND - RS 1\n")

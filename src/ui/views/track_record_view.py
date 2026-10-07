@@ -247,7 +247,6 @@ def render_record_sections(
         mtd={"period": mtd_period, "strategy": mtd_val, "benchmark": mtd_bench,
              "as_of": lm.get("as_of")} if mtd_period is not None else None,
     )
-    incl = stats.get("includes_mtd")
     if mtd_val is None and lm.get("rebalanced") and lm.get("fill_date") is not None:
         # The book is struck at the close of its fill session, so its first day of P&L is
         # the next one: the month has a portfolio but no return yet.
@@ -275,19 +274,22 @@ def render_record_sections(
                     f"best {_pct(stats['best_month'])}", _tone(stats["worst_month"])),
     ], "Track record")
 
-    # Annualising a sub-year record is an extrapolation, not a CAGR.
+    # Owner, 2026-10-07: say it plainly. A record under a year is not annualised
+    # at all (scaling 9 months up to a year is a guess, not a result); the
+    # drawdown is the largest fall from a peak on month-end values.
     elapsed = float(stats.get("elapsed_months", 0) or 0) / 12.0
-    kit.caption(
-        f"Annualised {_pct(stats['ann_return'])}"
-        + (f" (from {elapsed:.2f} yr, not a CAGR)" if elapsed < 1 else "")
-        + f" · {stats['positive_months']} of {stats['months']} months positive"
-        + f" · worst month-to-month fall {_pct(stats['max_drawdown'])}"
-        + (" · prices are Personal closes (NSE where unavailable), no dividends, like the index."
-           if ledger.get("price_basis") == "screener_primary"
-           else " · prices are NSE closes, no dividends, like the index."
-           if ledger.get("price_basis") == "nse_as_published"
-           else " · about 1–1.5% a year of the gap is dividends the price index leaves out.")
-    )
+    parts = []
+    if elapsed >= 1:
+        parts.append(f"{_pct(stats['ann_return'])} a year over {elapsed:.1f} years")
+    parts.append(f"{stats['positive_months']} of {stats['months']} months up")
+    parts.append(f"largest fall from a peak {_pct(stats['max_drawdown'])} (month-end values)")
+    basis = ledger.get("price_basis")
+    parts.append("Personal closes, NSE's where Personal has none; dividends not included, as in the index"
+                 if basis == "screener_primary"
+                 else "NSE closes; dividends not included, as in the index"
+                 if basis == "nse_as_published"
+                 else "dividends not included: about 1–1.5% a year of the gap to the index")
+    kit.caption(" · ".join(parts) + ".")
 
     # How much of this record is EVIDENCE and how much is reconstruction.
     _backfilled = int(stats.get("backfilled", 0) or 0)

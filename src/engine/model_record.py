@@ -133,6 +133,13 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
     if prices.empty:
         return {}
     months = months_to_cover(pd.Timestamp(prices.index[-1]), start)
+    # Recounted on the aligned frame, so the first-month floor applies again:
+    # without it Nano Cap and Combined asked for 0 months in October 2026 and
+    # Actions and Portfolio raised "months must be positive".
+    if system != SYSTEM_750:
+        months = max(months, 1)
+    if months <= 0:
+        return {}
 
     result = run_backtest(
         f"trackrec_{system}_{price_fingerprint(prices)}_{actions_digest(events)}_{months}"
