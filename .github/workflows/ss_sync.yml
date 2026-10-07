@@ -66,10 +66,18 @@ jobs:
       - name: Restore what earlier runs saved
         run: |
           mkdir -p data_cache/ss
-          gh release download data-latest --pattern 'ss_*' --dir data_cache/ss || echo "Nothing saved yet; starting fresh."
+          # A store on the release that cannot be restored stops the run: starting
+          # fresh would save a near-empty store over it (owner, 2026-10-07).
+          if gh release view data-latest --json assets --jq '.assets[].name' | grep -qx ss_manifest.json; then
+            gh release download data-latest --pattern 'ss_*' --dir data_cache/ss               || { echo "::error::the saved SS store could not be downloaded; stopping"; exit 1; }
+          else
+            echo "Nothing saved yet; starting fresh."
+          fi
           cd data_cache/ss
           for f in ss_prices_*.parquet; do [ -f "$f" ] && mv "$f" "${f#ss_}"; done
           [ -f ss_manifest.json ] && mv ss_manifest.json manifest.json || true
+          python -c "import json; print(json.load(open('manifest.json')).get('rows', 0))" > ../restored_rows 2>/dev/null || echo 0 > ../restored_rows
+          echo "restored rows: $(cat ../restored_rows)"
           ls -la
 
       - name: Download gently
@@ -100,6 +108,12 @@ jobs:
         run: |
           cd data_cache/ss
           [ -f manifest.json ] || { echo "Nothing to save."; exit 0; }
+          # Never save a store with fewer rows than the run started from.
+          rows="$(python -c "import json; print(json.load(open('manifest.json')).get('rows', 0))")"
+          if [ "$rows" -lt "$(cat ../restored_rows 2>/dev/null || echo 0)" ]; then
+            echo "::error::the store has $rows rows, fewer than the $(cat ../restored_rows) restored; not saved"
+            exit 1
+          fi
           for f in prices_*.parquet; do cp "$f" "ss_$f"; done
           cp manifest.json ss_manifest.json
           gh release upload data-latest ss_prices_*.parquet ss_manifest.json --repo "$GITHUB_REPOSITORY" --clobber

@@ -65,6 +65,20 @@ jobs:
             python -c "import json; r=json.load(open('data_cache/nse_long/nse_long_report.json')); r['unpriced']=r['unpriced'][:40]; print(json.dumps(r, indent=1))"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+      # Never replace the published file with a smaller one (owner, 2026-10-07):
+      # a dispatch with a later "since", or sessions R2 failed to serve, stops here.
+      - name: Check the new file is no smaller than the published one
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ inputs.since || '2008-01-01' }}" != "2008-01-01" ]; then
+            echo "::error::since=${{ inputs.since }}: only a build from 2008-01-01 may replace the published file"
+            exit 1
+          fi
+          mkdir -p published
+          gh release download data-latest --repo "$GITHUB_REPOSITORY" --dir published             --pattern nse_long_close.parquet || echo "No published close file yet."
+          [ -f pack/nse_raw_pack.parquet ] && cp pack/nse_raw_pack.parquet published/ ||             gh release download data-latest --repo "$GITHUB_REPOSITORY" --dir published               --pattern nse_raw_pack.parquet || echo "No published pack yet."
+          python scripts/check_long_publish.py --new data_cache/nse_long --old published
       - name: Publish to the data-latest release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
