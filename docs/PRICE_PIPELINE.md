@@ -21,8 +21,9 @@ give some breathing to my website". Every SS request is 4 s apart, 40 stocks a
 round, 5 minutes' rest between rounds. Its name stays "SS" everywhere.
 
 **What the app ranks on:** Screener first, NSE for what Screener lacks
-(`src/loaders/price_source.ranking_frames`); the liquidity floor uses
-Screener's NSE + BSE volume. Owner, 2 Oct 2026: **keep Screener as the app's
+(`src/loaders/price_source.ranking_frames`), Screener's weekly stretch filled
+with NSE's daily moves (below, "The weekly stretch is filled"); the liquidity
+floor uses Screener's NSE + BSE volume. Owner, 2 Oct 2026: **keep Screener as the app's
 source for now.** SS is collected and checked every night, not ranked on.
 
 Measured 2 Oct on a year of 192 stocks: SS and Screener identical to the paisa
@@ -297,6 +298,94 @@ further than a year: GVT&D's 12-month return at end-May 2026 read +173% on
 Screener against +125% on NSE, enough to swap a stock in or out of the top 20.
 A 2026 Total Market backtest on each (same engine, settings and point-in-time
 list) differs by about one holding a month and 0.3 - 0.5 points a month.
+
+### The weekly stretch is filled with NSE's daily closes (7 Oct 2026, S23)
+
+Owner, 7 Oct 2026: "fill Screener's weekly stretch of history with NSE's daily
+closes: yes, but be careful with price adjustment". The live ranking frame
+(`price_source.keep_and_fill`, which the app and the nightly precompute both
+call) now does, in `price_source.fill_weekly_from_nse`:
+
+- **By ratio, interval by interval.** Between two of Screener's own closes pa
+  (day a) and pb (day b), each NSE session in between gets pa x NSE(t) / NSE(a).
+  Every Screener close stays exactly as Screener has it; the result has
+  Screener's level and adjustment basis and NSE's daily path. Not chained
+  backwards from Screener's first daily close: that would carry NSE's
+  adjustment basis (rights, 10%+ dividends, demergers priced at the ex-date
+  fall) into Screener's history, and the levels would leave Screener's own
+  weekly closes before every such action.
+- **Refused where the two disagree.** When NSE's move from a to b differs from
+  Screener's by more than 2% (`WEEKLY_FILL_TOLERANCE`), the interval stays
+  weekly and is listed in the frame's `weekly_fill` report. 12 intervals on the
+  6 Oct 2026 store: three demergers in NSE's action file (ABFRL 22 May 2025,
+  STLTECH 24 Apr 2025, DBREALTY 18 Jul 2025); five where NSE and eod2 agree
+  with each other and Screener, SS and Yahoo with each other, the pattern of an
+  action one side adjusted (UPL Nov 2024, THANGAMAYL Feb 2025, M&MFIN May 2025,
+  LLOYDSENGG May 2025, LLOYDSENT Aug 2025; the actions were not looked up); and
+  four where Screener's weekly close disagrees with SS, Yahoo and eod2, NSE
+  agrees with them and only Tijori sides with Screener (PTCIL Oct 2024, SKYGOLD
+  Oct 2024, SHAILY Feb 2025, MANORAMA Mar 2025): a Screener close to look at,
+  not changed here. Screener's closes are kept in all twelve.
+- **Only the weekly stretch.** A stock's daily stretch starts at its first run
+  of 20 closes on consecutive NSE sessions (`WEEKLY_FILL_DAILY_RUN`); a hole
+  after that is the old one-day chain's job (`fill_from_backup`). Nothing is
+  filled before a stock's first Screener close or outside NSE's file.
+- **Source:** NSE's committed adjusted closes (`nse_prices.middle_close`, the
+  same input as the middle-source fill; 30 Sep 2024 onwards), so the app and
+  the precompute fill from the same bytes. The long file was not used: it
+  is a 17 MB download on the ranking's cold start and changes weekly.
+- **The seven NSE's file lacks** (owner, 7 Oct 2026) come from a small committed
+  file, `data/reference/weekly_fill_extra.parquet`, built once by
+  `scripts/build_weekly_fill_extra.py` (the stretch is history): the REITs
+  BIRET and EMBASSY (NSE's committed file has no REIT rows) and JSLL (it starts
+  in Aug 2025) from the long NSE file; SGMART, SHILCTECH, TIMEX and PICCADIL
+  from BSE, where they traded before listing on NSE (Sep 2025, Nov 2025, Apr
+  2026, Jul 2025), the BSE code found by ISIN. It is used only where NSE's file
+  has no close, and the 2% check applies as to every stock. With it the 750 is
+  699 of 699; every filled day of the seven agrees within 2% with each
+  reference that has it (Tijori, SS, Yahoo; JSLL 174 of 177 with Yahoo). An action
+  inside the stretch before a stock listed on NSE is in no NSE list, so the build
+  applies it with its evidence (`ACTIONS`): SHILCTECH's 1:2 bonus, record date
+  6 Jun 2025 (shares 76,26,800 -> 1,14,40,200; BSE 8,287.75 -> 6,007.75, a real
+  +8.7%), which the 2% check had first refused; with it the week matches Tijori
+  to the paisa.
+- **Not for Nano Cap or Combined.** The engine's returns are row to row, so an
+  added session where a stock has no price deletes that stock's weekly return
+  across it. Sessions are added only when NSE fills at least 95% of the stocks
+  with a sparse stretch (`WEEKLY_FILL_MIN_COVERAGE`): the 750 is 699 of 699 with the seven below (695 without);
+  Nano Cap 90 of 363 and Combined 785 of 1,062 are left as they were.
+- **Switch:** `config.SCREENER_WEEKLY_NSE_FILL` (env `UMIYA_SCREENER_WEEKLY_FILL`,
+  default on). It and the three constants are in the ranking contract
+  (`pipeline._settings_digest`).
+
+Checked 7 Oct 2026 on the 6 Oct store (128,025 filled prices, 695 stocks,
+7 Oct 2024 - 25 Sep 2025), each filled day's move against the references:
+
+| Reference | Filled days covered | Move within 2% | Level within 1% after rescaling |
+|---|---|---|---|
+| SS | 127,826 | 99.92% | 99.58% |
+| Tijori (verified) | 113,687 | 99.89% | 99.50% |
+| Yahoo | 127,993 | 99.36% | 98.83% |
+| eod2 (built from NSE's files, so not independent of NSE) | 128,020 | 100.00% | 99.36% |
+| At least one | 128,020 | 128,017 | |
+
+The 3 days no reference matches are demerger ex-dates priced at the fall
+(ITC 6 Jan 2025, SIEMENS 7 Apr 2025, QUESS 15 Apr 2025), where Screener's
+weekly move agrees with ours. Rescaling is one ratio per stock over the filled
+days; what remains is mostly Yahoo's dividend adjustment.
+
+Effect on the 750 ranking (same 6 Oct store, replayed at month-ends): 6 Oct
+2026 and every month-end from June on unchanged (the 12-month window is daily,
+and the old one-day chain already filled 1 - 25 Sep 2025). 30 Jan 2026: 1 of
+the top 20 (APLAPOLLO in, KMEW out) and 4 of the top 50; 31 Mar: 1 and 1
+(TORNTPHARM in, ONGC out); 30 Apr: 0 and 1. ONGC's 12-month return at 30 Mar 2026
+read +26% without the fill because, in the weekly stretch, the first row on or
+after 30 Mar 2025 was 4 Apr 2025, after an 8% fall (226.01); with the fill the
+window opens on 1 Apr 2025 (248.07) and reads +15%. The other part of the
+effect is volatility: daily returns instead of a mix of weekly and daily ones. In today's table the stock page's past ranks move
+(-6M: 1 of the top 20; -3M: 1; -2M: 0), and `ATH` / `% ATH` for 124 stocks:
+a daily closing high between two weekly closes now counts (none crosses the
+"At ATH" line).
 
 ## Running it by hand
 

@@ -112,6 +112,7 @@ python scripts/audit_gaps_against_bse.py --long nse_long_close.parquet --pack ns
 | Reference histories are protected from R2 clean-up | `PROTECTED_DATASETS` |
 | NSE-only gaps are filled from BSE's raw closes, only where the same company (ISIN) traded on BSE and both junctions meet within 2% (owner, 7 Oct 2026, S38) | `src/loaders/bse_fill.py`, section 6 |
 | A stock's TradingView sector is refreshed weekly for every row (Friday UTC) | `classify_missing.py --refresh` |
+| Screener's weekly stretch is filled with NSE's daily closes **by ratio** (owner, 7 Oct 2026, S23): each Screener close kept, the sessions between two of them on NSE's moves from the earlier one; an interval where NSE's move differs from Screener's by more than 2% stays weekly. The 750 only (NSE must cover 95% of the sparse stocks). Switch `UMIYA_SCREENER_WEEKLY_FILL` | `price_source.fill_weekly_from_nse`, `PRICE_PIPELINE.md` |
 
 ## 5. Findings already explained: do not investigate these again
 
@@ -122,6 +123,8 @@ python scripts/audit_gaps_against_bse.py --long nse_long_close.parquet --pack ns
 | 1,372 average prices outside the range | NSE's turnover in lakhs, 2 decimals (about Rs 1,000), so value / volume is off on small volumes | 68% have 1,000 shares or fewer; some are value 0 on a few shares |
 | 2 "fake" and 4 "disputed" big moves | VIVIDHA: Rs 0.20 -> 0.15 -> 0.20 is the Rs 0.05 tick on 74,010 shares. CERA 2008: thin trading, eod2 and MarketLens agree. J&KBANK 2015-02-09 is S22 (open). GOODYEAR / NOVARTIND 20 Apr 2026: reopening after the NSE gap below | NSE raw rows, BSE |
 | A long stretch with no rows for a stock | See the next section | |
+| Weekly fill: 3 filled days no reference matches (ITC 6 Jan 2025, SIEMENS 7 Apr 2025, QUESS 15 Apr 2025) | Demerger ex-dates priced at the fall (ours reads 0%); Screener's weekly move agrees | `PRICE_PIPELINE.md`, weekly fill check of 7 Oct 2026 |
+| Weekly fill refused PTCIL, SKYGOLD (Oct 2024), SHAILY, MANORAMA (Feb - Mar 2025) | Screener's weekly close disagrees with SS, Yahoo and eod2; NSE agrees with them; Tijori's move equals Screener's. Not explained further; Screener's close kept | same |
 | KESORAMIND -95% on 10 Mar 2025 | A real demerger, **not** a loss; it was unadjusted until #372 | NSE close 204.72 -> 9.71; Solactive stock-distribution notice; Zerodha demerger note |
 | eod2 or MarketLens level breaks where **ours** moved (5 on 3 Oct: BAJAJHIND 2011, NEULANDLAB 2012, ALOKTEXT 2009, JMCPROJECT 2009, SHAREINDIA 2023) | Rights issues: ours applies them, that reference does not (or, SHAREINDIA, took out a real -11%) | NSE's list; each factor equals the theoretical ex-rights price from the terms to four decimals; Yahoo agrees where it has the stock (sweep, 7 Oct) |
 | Screener level shifts marked "ours moved" (266 on 3 Oct) | Not a vote: our move was larger than Screener's. Yahoo, eod2, MarketLens, Tijori side with ours on 255; the rest are dividends of 10%+, rights, demergers at the ex-date fall (rules in force), GLOBOFFS 2020 (ours = NSE's raw close) and ANDHRAPAP 2010 (TODO S44) | `reports/dq_sweep_2026-10-07/q1_screener_shift_votes.csv` |

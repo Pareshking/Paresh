@@ -130,6 +130,17 @@ SCREENER_JITTER_S: Final[float] = 0.8
 # emptying the screener.
 RANKING_PRICE_SOURCE: Final[str] = os.getenv("UMIYA_PRICE_SOURCE", "screener").strip().lower()
 
+# Screener's store is daily for about its latest year and weekly before that.
+# On (owner, 2026-10-07, TODO S23): the weekly stretch is filled with NSE's
+# daily moves, anchored to each of Screener's own weekly closes
+# (price_source.fill_weekly_from_nse). UMIYA_SCREENER_WEEKLY_FILL=0 turns it
+# off. It is part of the ranking contract (pipeline._settings_digest), so a
+# table precomputed with one setting is never served to an app on the other.
+SCREENER_WEEKLY_NSE_FILL: Final[bool] = (
+    os.getenv("UMIYA_SCREENER_WEEKLY_FILL", "1").strip().lower()
+    not in ("0", "false", "off", "no")
+)
+
 
 INDICES_URLS: Final[dict[str, str]] = {
     "NIFTY 50": "https://niftyindices.com/IndexConstituent/ind_nifty50list.csv",

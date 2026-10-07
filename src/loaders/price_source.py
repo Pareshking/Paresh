@@ -41,6 +41,7 @@ import os
 import tempfile
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -70,6 +71,8 @@ class PriceFrames:
     source: str
     intraday: bool
     notes: list[str] = field(default_factory=list)
+    # What fill_weekly_from_nse did (None when it did not run).
+    weekly_fill: dict | None = None
 
     @property
     def high_basis(self) -> str:
@@ -331,6 +334,158 @@ def fill_from_backup(primary: pd.DataFrame, backup: pd.DataFrame | None,
     return filled, int(filled.notna().sum().sum()) - before, newer
 
 
+# ── Screener's weekly stretch, filled with NSE's daily path (TODO S23) ───────
+#
+# Screener's store is daily for about its latest year and weekly before it.
+# The windows are calendar periods, but their volatility and the period Sharpe
+# are built from row-to-row returns, so a 9M or 12M window reaching into the
+# weekly stretch scores a mix of daily and weekly moves. Owner, 2026-10-07:
+# fill the weekly stretch with NSE's daily closes, careful with adjustment.
+#
+# Splice by RATIO, interval by interval. Between two of Screener's own closes
+# pa (day a) and pb (day b) the missing sessions get pa x NSE(t) / NSE(a):
+# Screener's level and adjustment basis, NSE's daily path. Every Screener close
+# stays exactly as Screener has it. Chaining the whole stretch backwards from
+# Screener's first daily close on NSE's returns was the alternative and is not
+# used: it carries NSE's adjustment basis (rights and 10%+ dividends taken out,
+# which Screener leaves in) into Screener's history, so its levels would part
+# from Screener's own weekly closes before every such action.
+#
+# An interval is filled only when NSE's move from a to b equals Screener's
+# within WEEKLY_FILL_TOLERANCE. Otherwise one side adjusted an action the other
+# did not (or a close is wrong), and NSE's path would carry that step into
+# Screener's series: the interval keeps Screener's weekly closes and is listed.
+WEEKLY_FILL_TOLERANCE = 0.02
+# A stock's daily stretch starts at the first run of this many Screener closes
+# on consecutive NSE sessions. Nothing from there on is filled here (a hole in
+# the daily stretch is fill_from_backup's job, as before).
+WEEKLY_FILL_DAILY_RUN = 20
+# The share of the stocks with a sparse stretch that NSE must fill, or nothing
+# is filled (fill_weekly_from_nse says why).
+WEEKLY_FILL_MIN_COVERAGE = 0.95
+
+
+def _daily_start(pos: np.ndarray, run: int) -> int:
+    """Index (into a stock's points) where its daily stretch starts.
+
+    `pos` is each Screener close's position in NSE's session calendar. The
+    daily stretch starts at the first point followed by `run` steps of exactly
+    one session. A series with no such run returns 0: nothing is filled, since
+    there is no daily stretch to tell a weekly gap from a hole in daily data.
+    """
+    one = np.diff(pos) == 1
+    if len(one) >= run:
+        window = np.convolve(one.astype(int), np.ones(run, dtype=int), mode="valid")
+        hit = np.flatnonzero(window == run)
+        if len(hit):
+            return int(hit[0])
+    return 0
+
+
+def fill_weekly_from_nse(screener: pd.DataFrame, nse: pd.DataFrame | None, *,
+                         tolerance: float = WEEKLY_FILL_TOLERANCE,
+                         daily_run: int = WEEKLY_FILL_DAILY_RUN,
+                         min_coverage: float = WEEKLY_FILL_MIN_COVERAGE,
+                         ) -> tuple[pd.DataFrame, dict]:
+    """Screener's closes with its weekly stretch filled from NSE's daily moves.
+
+    `screener` is Screener's own closes (NaN where it has none); `nse` is NSE's
+    adjusted closes, whose index is NSE's session calendar. Returns (frame,
+    report). The frame's index is Screener's plus every NSE session that
+    received a fill; no Screener close changes, and nothing is filled before a
+    stock's first Screener close, from its daily stretch on, or outside NSE's
+    range. The report lists every refused interval (symbol, from, to, how far
+    NSE's move differed from Screener's).
+    """
+    report = {"cells": 0, "symbols": 0, "sparse_symbols": 0, "coverage": None,
+              "sessions_added": 0, "intervals_filled": 0, "intervals_refused": 0,
+              "refused": [], "skipped": ""}
+    if nse is None or nse.empty or screener is None or screener.empty:
+        return screener, report
+    nse = nse.sort_index()
+    sessions = pd.DatetimeIndex(nse.index)
+    fills: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+    refused: list[dict] = []
+    filled_intervals = 0
+    sparse = 0
+    for sym in screener.columns:
+        pts = screener[sym].dropna()
+        pts = pts[pts > 0]
+        if len(pts) < 2:
+            continue
+        pos = sessions.get_indexer(pd.DatetimeIndex(pts.index))
+        on_cal = pos >= 0
+        pts, pos = pts[on_cal], pos[on_cal]
+        if len(pos) < 2:
+            continue
+        stop = _daily_start(pos, daily_run)
+        if stop < 1 or not (np.diff(pos[: stop + 1]) >= 2).any():
+            continue
+        sparse += 1          # a stock with a sparse stretch inside NSE's range
+        if sym not in nse.columns:
+            continue
+        n = nse[sym].to_numpy(dtype=float)
+        p = pts.to_numpy(dtype=float)
+        rows, vals = [], []
+        for i in range(stop):
+            a, b = pos[i], pos[i + 1]
+            if b - a < 2:
+                continue
+            na_, nb = n[a], n[b]
+            if not (np.isfinite(na_) and np.isfinite(nb) and na_ > 0 and nb > 0):
+                continue
+            gap = (nb / na_) / (p[i + 1] / p[i]) - 1.0
+            if abs(gap) > tolerance:
+                refused.append({"symbol": sym, "from": str(pts.index[i].date()),
+                                "to": str(pts.index[i + 1].date()),
+                                "nse_vs_screener": round(float(gap), 4)})
+                continue
+            inner = np.arange(a + 1, b)
+            v = p[i] * n[inner] / na_
+            ok = np.isfinite(v) & (v > 0)
+            if ok.any():
+                rows.append(inner[ok])
+                vals.append(v[ok])
+                filled_intervals += 1
+        if rows:
+            fills[sym] = (np.concatenate(rows), np.concatenate(vals))
+    report["intervals_refused"] = len(refused)
+    report["refused"] = refused
+    report["sparse_symbols"] = sparse
+    report["coverage"] = round(len(fills) / sparse, 4) if sparse else None
+    if sparse and len(fills) / sparse < min_coverage:
+        # The engine's returns are row to row: an added session on which a
+        # stock has no price deletes that stock's weekly return across it. So
+        # sessions are added only when NSE fills nearly every stock with a
+        # sparse stretch. Nano Cap and Combined, whose Nano Cap stocks NSE's
+        # committed file mostly lacks, keep Screener's frame as it was.
+        report["skipped"] = (f"NSE fills {len(fills)} of the {sparse} stocks with a "
+                             f"sparse stretch, under {min_coverage:.0%}")
+        return screener, report
+    if not fills:
+        return screener, report
+    used = np.unique(np.concatenate([r for r, _ in fills.values()]))
+    new_days = sessions[used]
+    index = pd.DatetimeIndex(screener.index).union(new_days)
+    out = screener.reindex(index)
+    before = int(out.notna().to_numpy().sum())
+    at = index.get_indexer(sessions)          # NSE session -> row in `out`
+    values = out.to_numpy(dtype=float, copy=True)
+    for sym, (r, v) in fills.items():
+        j = out.columns.get_loc(sym)
+        rr = at[r]
+        empty = np.isnan(values[rr, j])      # a Screener close is never replaced
+        values[rr[empty], j] = v[empty]
+    out = pd.DataFrame(values, index=index, columns=screener.columns)
+    report.update(
+        cells=int(out.notna().to_numpy().sum()) - before,
+        symbols=len(fills),
+        sessions_added=int((~new_days.isin(screener.index)).sum()),
+        intervals_filled=filled_intervals,
+    )
+    return out, report
+
+
 MIDDLE_MAX_DRIFT = 0.01   # a stock whose NSE and Screener levels drift past 1% is left to Yahoo
 
 
@@ -352,20 +507,79 @@ def eligible_middle(primary: pd.DataFrame, middle: pd.DataFrame | None
     return middle[good] if good else None
 
 
+WEEKLY_FILL_EXTRA = Path(__file__).resolve().parents[2] / "data" / "reference" / "weekly_fill_extra.parquet"
+
+
+def with_weekly_extra(middle_close: pd.DataFrame | None,
+                      path: Path = WEEKLY_FILL_EXTRA) -> pd.DataFrame | None:
+    """NSE's closes plus, where they have none, the committed daily closes of the
+    stocks NSE's file lacks over Screener's weekly stretch (owner, 2026-10-07:
+    BIRET, EMBASSY, JSLL from the long NSE file; SGMART, SHILCTECH, TIMEX,
+    PICCADIL from BSE, where they traded before listing on NSE). Built by
+    scripts/build_weekly_fill_extra.py. Only NSE's sessions are used, and every
+    interval still has to agree with Screener's own move (WEEKLY_FILL_TOLERANCE).
+    """
+    if middle_close is None or middle_close.empty:
+        return middle_close
+    try:
+        extra = pd.read_parquet(path)
+    except (OSError, ValueError):
+        return middle_close
+    extra = extra.reindex(index=middle_close.index)
+    return middle_close.combine_first(extra)[list(dict.fromkeys([*middle_close.columns, *extra.columns]))]
+
+
+def splice_weekly(close: pd.DataFrame, screener: pd.DataFrame,
+                  middle_close: pd.DataFrame | None) -> tuple[pd.DataFrame, dict]:
+    """`close` (already gap-filled) with Screener's weekly stretch filled from NSE.
+
+    The splice is computed from Screener's own closes (`screener`), never from
+    cells another fill wrote, and its values replace only cells Screener has no
+    close for. A refused interval keeps whatever `close` already held there.
+    """
+    spliced, report = fill_weekly_from_nse(screener, with_weekly_extra(middle_close))
+    if spliced is screener:
+        return close, report
+    index = close.index.union(spliced.index)
+    out = close.reindex(index)
+    fill = spliced.reindex(index=index, columns=out.columns)
+    mask = fill.notna() & screener.reindex(index=index, columns=out.columns).isna()
+    return out.mask(mask, fill), report
+
+
 def keep_and_fill(chosen: PriceFrames, symbols, backup_close: pd.DataFrame | None,
-                  middle_close: pd.DataFrame | None = None) -> PriceFrames:
+                  middle_close: pd.DataFrame | None = None, *,
+                  weekly_fill: bool | None = None) -> PriceFrames:
     """The chosen frames cut to `symbols`, gaps filled Screener -> NSE -> Yahoo.
 
     The app and the nightly precompute both call this, so they rank the same
     frame and the published ranking's contract still matches. `middle_close`
     is NSE's adjusted closes (None leaves the old Screener -> Yahoo order).
+    `weekly_fill` (default: config SCREENER_WEEKLY_NSE_FILL) also fills
+    Screener's weekly stretch with NSE's daily moves (fill_weekly_from_nse).
     """
+    if weekly_fill is None:
+        from src.core.config import SCREENER_WEEKLY_NSE_FILL as weekly_fill
     keep = [c for c in chosen.close.columns if c in set(symbols)]
     close = chosen.close[keep]
+    screener_only = close
     mid_cells, mid_added = 0, []
     middle = eligible_middle(close, middle_close)
     if middle is not None:
         close, mid_cells, mid_added = fill_from_backup(close, middle)
+    if weekly_fill and middle_close is not None and not middle_close.empty:
+        close, weekly = splice_weekly(close, screener_only, middle_close)
+        chosen.weekly_fill = weekly
+        if weekly["cells"]:
+            metrics.note("price_weekly_nse_cells", weekly["cells"])
+            metrics.note("price_weekly_nse_refused", weekly["intervals_refused"])
+            chosen.notes = list(chosen.notes) + [
+                f"Screener's weekly stretch filled with NSE's daily moves: {weekly['cells']} "
+                f"prices for {weekly['symbols']} stocks, {weekly['sessions_added']} sessions; "
+                f"{weekly['intervals_refused']} intervals kept weekly (NSE's move differed "
+                f"from Screener's by more than {WEEKLY_FILL_TOLERANCE:.0%})"]
+        elif weekly["skipped"]:
+            metrics.note("price_weekly_nse_skipped", weekly["skipped"])
     close, n_cells, added = fill_from_backup(close, backup_close)
     chosen.adj_close = chosen.close = close
     chosen.volume = chosen.volume.reindex(index=close.index, columns=keep)
