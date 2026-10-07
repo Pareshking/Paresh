@@ -1689,6 +1689,7 @@ FRACTION_PERCENT_COLUMNS: frozenset[str] = frozenset({
     "TOTAL RETURN", "GROSS RETURN", "NET RETURN", "ALPHA", "OUTPERFORM",
     "CAGR", "ANN RETURN", "WIN RATE", "MAX DRAWDOWN", "MAX DD",
     "6M NET RETURN", "6M ALPHA",
+    "% OF 52W HIGH START", "% OF 52W HIGH END",
 })
 
 SCALED_PERCENT_COLUMNS: frozenset[str] = frozenset({
