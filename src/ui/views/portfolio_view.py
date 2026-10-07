@@ -106,9 +106,13 @@ def _benchmark_returns_from_daily(
     mtd_base = float(prior_month.iloc[-1]) if not prior_month.empty else np.nan
     mtd = float(s.iloc[-1] / mtd_base - 1.0) if np.isfinite(mtd_base) and mtd_base > 0 else np.nan
 
-    base = s.loc[s.index < pd.Timestamp(inception_date).normalize()]
+    if isinstance(inception_date, pd.Period):
+        inception_ts = inception_date.start_time.normalize()
+    else:
+        inception_ts = pd.Timestamp(inception_date).normalize()
+    base = s.loc[s.index < inception_ts]
     if base.empty:
-        base = s.loc[s.index <= pd.Timestamp(inception_date)]
+        base = s.loc[s.index <= inception_ts]
     inception_base = float(base.iloc[-1]) if not base.empty else float(s.iloc[0])
     total = float(s.iloc[-1] / inception_base - 1.0) if inception_base > 0 else np.nan
     return day, mtd, total
