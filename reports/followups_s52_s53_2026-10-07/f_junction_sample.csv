@@ -1,0 +1,16 @@
+symbol,last_before,first_after,missing_sessions,bse_code,bse_name,mapped_by,sessions_with_bse_file,bse_traded_sessions,junction_before,junction_after,filled_sessions,verdict,detail,year,era
+BODALCHEM,2013-08-08,2013-08-21,6,524370.0,BODAL CHEMICALS LTD.,isin,6,6,0.0255,0.3056,0,refused: junction: BSE more than 2% off NSE,start: 30.6%,2013,2013
+DYNAMATECH,2013-08-13,2013-08-28,9,505242.0,DYNAMATIC TECHNOLOGIES LTD.,isin,9,8,0.0434,0.0273,0,refused: junction: BSE more than 2% off NSE,start: 4.3%,2013,2013
+FILATEX,2013-07-23,2013-08-01,6,526227.0,FILATEX INDIA LTD.,isin (another period),6,5,0.0286,0.0347,0,refused: junction: BSE more than 2% off NSE,start: 3.5%,2013,2013
+FILATEX,2013-11-13,2013-11-27,8,526227.0,FILATEX INDIA LTD.,isin (another period),8,4,0.0098,0.083,0,refused: junction: BSE more than 2% off NSE,end: 8.3%,2013,2013
+MAITHANALL,2013-06-06,2013-06-14,5,590078.0,MAITHAN ALLOYS LTD.,isin,5,5,0.0141,0.0667,0,refused: junction: BSE more than 2% off NSE,end: 6.7%,2013,2013
+MAITHANALL,2013-09-23,2013-10-22,18,590078.0,MAITHAN ALLOYS LTD.,isin,18,16,0.0154,0.0516,0,refused: junction: BSE more than 2% off NSE,end: 5.2%,2013,2013
+VINDHYATEL,2013-04-05,2013-04-16,6,517015.0,VINDHYA TELELINKS LTD.,isin,6,3,0.0211,0.0334,0,refused: junction: BSE more than 2% off NSE,start: 3.3%,2013,2013
+ZODIACLOTH,2013-08-14,2013-08-29,9,521163.0,ZODIAC CLOTHING CO.LTD.,isin,9,8,0.0934,0.0,0,refused: junction: BSE more than 2% off NSE,start: 9.3%,2013,2013
+CENTUM,2009-10-28,2009-11-06,5,517544.0,CENTUM ELECTRONICS LTD.,isin (another period),5,5,0.0563,0.0749,0,refused: junction: BSE more than 2% off NSE,start: 7.5%,2009,2008-09
+SAKSOFT,2009-01-06,2009-01-16,6,590051.0,SAKSOFT LTD.,isin (another period),6,3,0.0308,0.0256,0,refused: junction: BSE more than 2% off NSE,start: 3.1%,2009,2008-09
+SUDARSCHEM,2008-04-08,2008-04-17,5,506655.0,SUDARSHAN CHEMICAL INDUSTRIES,isin (another period),5,5,0.0286,0.1914,0,refused: junction: BSE more than 2% off NSE,start: 19.1%,2008,2008-09
+SUDARSCHEM,2008-07-04,2008-07-16,7,506655.0,SUDARSHAN CHEMICAL INDUSTRIES,isin (another period),7,6,0.0531,0.0529,0,refused: junction: BSE more than 2% off NSE,start: 5.3%,2008,2008-09
+ASIANELEC,2012-08-21,2013-06-17,204,503940.0,ASIAN ELECTR,price match,204,204,0.02,0.0031,0,refused: junction: BSE more than 2% off NSE,start: 2.0%,2012,2011-14 other
+BEPL,2014-01-01,2014-01-09,5,500052.0,BHANSALI ENGINEERING POLYMERS,isin,5,4,0.0986,0.0694,0,refused: junction: BSE more than 2% off NSE,start: 9.9%,2014,2011-14 other
+BODALCHEM,2012-10-16,2012-10-29,7,524370.0,BODAL CHEMICALS LTD.,isin,7,7,0.0679,0.117,0,refused: junction: BSE more than 2% off NSE,start: 11.7%,2012,2011-14 other
