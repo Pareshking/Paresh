@@ -628,7 +628,7 @@ def render_portfolio_view(
                                       pending=bool(mtd_period) and not np.isfinite(strategy_mtd)))
 
     # ── The frozen record: since inception, each month, provenance, the 3 systems ──
-    render_record_sections(prices, benchmark_close, system)
+    render_record_sections(prices, benchmark_close, system, show_reconstruction_note=False)
 
     # ── Activity ────────────────────────────────────────────────────────────
     with kit.card("Trades", "portfolio_trades"):
