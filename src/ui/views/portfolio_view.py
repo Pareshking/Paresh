@@ -476,9 +476,15 @@ def render_portfolio_view(
     # Track Record sets the common strategy/benchmark as-of date; every
     # benchmark reading below is clipped to that same date.
     _common_as_of = pd.to_datetime(meta.get("as_of"), errors="coerce")
-    if pd.notna(_common_as_of) and benchmark_close is not None:
-        benchmark_close = pd.to_numeric(benchmark_close, errors="coerce").dropna()
-        benchmark_close = benchmark_close.loc[:_common_as_of]
+    if pd.notna(_common_as_of):
+        # The canonical book may deliberately stop before the newest raw price
+        # row. Keep every Portfolio-derived reading on that same session:
+        # current marks, day P&L, correlation and performance charts all use
+        # this clipped frame rather than silently mixing dates.
+        prices = prices.loc[:_common_as_of]
+        if benchmark_close is not None:
+            benchmark_close = pd.to_numeric(benchmark_close, errors="coerce").dropna()
+            benchmark_close = benchmark_close.loc[:_common_as_of]
 
     try:
         ledger = load_ledger(ledger_path(system), inception(system))
