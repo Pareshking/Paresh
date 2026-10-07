@@ -1,0 +1,402 @@
+symbol,last_before,first_after,missing_sessions,bse_code,mapped_by,bse_trading_share,bse_traded_sessions,sessions_with_bse_file,verdict
+8KMILES,2019-11-01,2019-11-25,14,512161.0,isin,0.0,0,14,no BSE trading either
+8KMILES,2020-01-27,2020-02-03,5,512161.0,isin,0.0,0,5,no BSE trading either
+8KMILES,2020-05-26,2020-09-07,73,512161.0,isin,0.0,0,73,no BSE trading either
+AFTEK,2015-05-14,2015-06-01,11,530707.0,price match,0.0,0,11,no BSE trading either
+AFTEK,2015-06-01,2015-07-20,34,,no NSE close to match,0.0,0,34,not checked: no NSE close to match
+AFTEK,2015-07-27,2015-08-17,14,,no NSE close to match,0.0,0,14,not checked: no NSE close to match
+AFTEK,2015-08-31,2015-09-14,9,,no NSE close to match,0.0,0,9,not checked: no NSE close to match
+AFTEK,2015-09-14,2015-10-05,11,,no NSE close to match,0.0,0,11,not checked: no NSE close to match
+AFTEK,2015-10-19,2015-11-09,13,,no NSE close to match,0.0,0,13,not checked: no NSE close to match
+AJRINFRA,2023-03-10,2023-04-03,14,,no BSE price match,0.0,0,14,not checked: no BSE price match
+ALKYLAMINE,2009-03-23,2009-03-31,5,,no BSE price match,0.0,0,4,not checked: no BSE price match
+ALKYLAMINE,2013-08-13,2013-08-22,5,511072.0,price match,1.0,5,5,NSE-only gap: BSE traded
+AMTEKAUTO,2018-09-07,2018-10-01,13,531512.0,price match,1.0,13,13,NSE-only gap: BSE traded
+ANSALAPI,2023-03-10,2023-03-20,5,500013.0,price match,0.0,0,5,no BSE trading either
+ANSALAPI,2023-11-06,2023-11-13,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+ANSALAPI,2024-01-15,2024-01-23,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+ANSALAPI,2024-02-26,2024-03-04,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+ANSALAPI,2024-05-13,2024-05-21,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+ANSALAPI,2024-12-16,2024-12-30,8,531406.0,price match (ambiguous),1.0,8,8,NSE-only gap: BSE traded
+ARSHIYA,2024-08-23,2024-09-02,5,506074.0,price match,0.0,0,5,no BSE trading either
+ARSHIYA,2025-02-24,2025-03-10,8,,no NSE close to match,0.0,0,8,not checked: no NSE close to match
+ARSSINFRA,2017-08-07,2017-09-27,34,533163.0,isin,0.029,1,34,no BSE trading either
+ARSSINFRA,2023-04-17,2023-05-02,9,533163.0,price match,0.0,0,9,no BSE trading either
+ARSSINFRA,2024-01-15,2024-01-23,5,544000.0,price match,0.4,2,5,partly traded on BSE
+ARSSINFRA,2025-01-03,2025-01-13,5,531402.0,price match,1.0,5,5,NSE-only gap: BSE traded
+ARSSINFRA,2025-01-27,2025-02-03,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+ARSSINFRA,2025-03-13,2025-03-24,5,533163.0,price match,0.0,0,5,no BSE trading either
+ASIANELEC,2012-08-21,2013-06-17,204,503940.0,price match,1.0,204,204,NSE-only gap: BSE traded
+ASIANELEC,2013-12-09,2014-07-30,158,,no BSE price match,0.0,0,158,not checked: no BSE price match
+ASIANELEC,2014-08-05,2014-08-18,7,,no NSE close to match,0.0,0,7,not checked: no NSE close to match
+ASIANELEC,2014-08-18,2014-09-15,18,,no NSE close to match,0.0,0,18,not checked: no NSE close to match
+ASIANELEC,2014-09-15,2014-11-24,42,,no NSE close to match,0.0,0,42,not checked: no NSE close to match
+ASIANELEC,2014-11-24,2014-12-08,9,,no NSE close to match,0.0,0,9,not checked: no NSE close to match
+ASIANHOTEL,2010-02-23,2010-04-07,27,500023.0,price match,0.0,0,27,no BSE trading either
+ASIANHOTNR,2010-02-23,2010-04-07,27,,no NSE close to match,0.0,0,27,not checked: no NSE close to match
+AURIONPRO,2008-12-11,2008-12-31,12,500067.0,price match (ambiguous),1.0,12,12,NSE-only gap: BSE traded
+AURIONPRO,2009-01-02,2009-01-14,6,,no NSE close to match,0.0,0,6,not checked: no NSE close to match
+AURIONPRO,2013-07-18,2013-07-29,6,532668.0,isin,0.833,5,6,NSE-only gap: BSE traded
+AURIONPRO,2013-09-13,2013-09-24,6,532668.0,isin,0.333,2,6,partly traded on BSE
+AURIONPRO,2013-09-27,2013-10-08,5,532668.0,isin,0.6,3,5,NSE-only gap: BSE traded
+AURIONPRO,2013-10-08,2013-10-21,7,532668.0,isin,0.286,2,7,partly traded on BSE
+AURIONPRO,2013-12-27,2014-01-07,6,532668.0,isin,0.833,5,6,NSE-only gap: BSE traded
+AVANTIFEED,2010-04-09,2010-04-23,8,,no NSE close to match,0.0,0,8,not checked: no NSE close to match
+AVANTIFEED,2015-01-29,2015-04-15,49,,no NSE close to match,0.0,0,49,not checked: no NSE close to match
+BALLARPUR,2022-07-01,2022-07-11,5,,no BSE price match,0.0,0,5,not checked: no BSE price match
+BALLARPUR,2022-09-09,2022-09-19,5,500102.0,price match,0.0,0,5,no BSE trading either
+BCG,2024-06-13,2024-07-01,10,532368.0,price match,0.0,0,10,no BSE trading either
+BCG,2024-12-30,2025-07-14,133,,no NSE close to match,0.0,0,133,not checked: no NSE close to match
+BEPL,2013-10-28,2013-11-20,15,500052.0,isin,0.533,8,15,NSE-only gap: BSE traded
+BEPL,2013-12-13,2013-12-24,6,500052.0,isin,1.0,6,6,NSE-only gap: BSE traded
+BEPL,2014-01-01,2014-01-09,5,500052.0,isin,0.8,4,5,NSE-only gap: BSE traded
+BHARATRAS,2008-12-22,2009-01-02,7,509692.0,price match,1.0,7,7,NSE-only gap: BSE traded
+BHARATRAS,2009-01-19,2009-01-28,5,522108.0,price match (ambiguous),1.0,5,5,NSE-only gap: BSE traded
+BHARATRAS,2009-02-18,2009-03-04,8,531497.0,price match,1.0,8,8,NSE-only gap: BSE traded
+BHARATRAS,2009-03-04,2009-03-25,12,,no NSE close to match,0.0,0,11,not checked: no NSE close to match
+BHARATRAS,2013-04-05,2013-04-22,9,590021.0,isin,0.111,1,9,partly traded on BSE
+BHARATRAS,2013-04-22,2013-05-03,6,590021.0,isin,0.0,0,6,no BSE trading either
+BHARATRAS,2013-05-17,2013-05-31,9,590021.0,isin,0.333,3,9,partly traded on BSE
+BHARATRAS,2013-06-05,2013-06-13,5,590021.0,isin,0.2,1,5,partly traded on BSE
+BHARATRAS,2013-06-20,2013-07-10,13,590021.0,isin,0.308,4,13,partly traded on BSE
+BHARATRAS,2013-07-11,2013-08-16,23,590021.0,isin,0.217,5,23,partly traded on BSE
+BHARATRAS,2013-08-16,2013-08-29,8,590021.0,isin,0.25,2,8,partly traded on BSE
+BHARATRAS,2013-10-04,2013-10-22,10,590021.0,isin,0.2,2,10,partly traded on BSE
+BHARATRAS,2013-11-01,2013-11-13,7,590021.0,isin,0.571,4,7,NSE-only gap: BSE traded
+BODALCHEM,2012-07-24,2012-08-01,5,524370.0,isin,1.0,5,5,NSE-only gap: BSE traded
+BODALCHEM,2012-08-22,2012-08-30,5,524370.0,isin,1.0,5,5,NSE-only gap: BSE traded
+BODALCHEM,2012-10-16,2012-10-29,7,524370.0,isin,1.0,7,7,NSE-only gap: BSE traded
+BODALCHEM,2013-03-15,2013-03-25,5,524370.0,isin,1.0,5,5,NSE-only gap: BSE traded
+BODALCHEM,2013-05-20,2013-05-28,5,524370.0,isin,1.0,5,5,NSE-only gap: BSE traded
+BODALCHEM,2013-07-05,2013-07-16,6,524370.0,isin,0.5,3,6,NSE-only gap: BSE traded
+BODALCHEM,2013-08-08,2013-08-21,6,524370.0,isin,1.0,6,6,NSE-only gap: BSE traded
+BODALCHEM,2013-09-12,2013-10-09,17,524370.0,isin,1.0,17,17,NSE-only gap: BSE traded
+BODALCHEM,2013-10-29,2013-11-07,6,524370.0,isin,1.0,6,6,NSE-only gap: BSE traded
+BODALCHEM,2013-11-14,2013-12-04,12,524370.0,isin,1.0,12,12,NSE-only gap: BSE traded
+BRFL,2022-05-20,2022-06-13,15,532678.0,price match,0.0,0,15,no BSE trading either
+CASTROL,2014-02-26,2014-03-14,10,500870.0,price match,0.0,0,10,no BSE trading either
+CASTROLIND,2014-02-26,2014-03-14,10,500870.0,isin,0.0,0,10,no BSE trading either
+CENTUM,2009-10-28,2009-11-06,5,,no BSE price match,0.0,0,5,not checked: no BSE price match
+CERA,2009-02-17,2009-03-02,7,532774.0,price match (ambiguous),0.857,6,7,NSE-only gap: BSE traded
+CGCL,2013-08-02,2013-08-13,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+CGCL,2013-08-29,2013-09-11,7,,no BSE price match,0.0,0,7,not checked: no BSE price match
+CGCL,2013-09-27,2013-10-09,6,531129.0,price match (ambiguous),1.0,6,6,NSE-only gap: BSE traded
+COFFEEDAY,2020-02-01,2020-02-24,14,539436.0,isin,0.0,0,14,no BSE trading either
+COFFEEDAY,2020-08-24,2021-04-26,165,539436.0,isin,0.0,0,165,no BSE trading either
+COFFEEDAY,2025-01-27,2025-02-03,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+COREEDUTEC,2015-11-26,2015-12-14,11,512199.0,price match,0.0,0,11,no BSE trading either
+DALBHARAT,2019-01-04,2019-01-22,11,542216.0,isin,0.0,0,11,no BSE trading either
+DONEAR,2013-04-05,2013-04-16,6,512519.0,isin,0.5,3,6,NSE-only gap: BSE traded
+DONEAR,2013-04-25,2013-05-14,12,512519.0,isin,0.833,10,12,NSE-only gap: BSE traded
+DONEAR,2013-05-21,2013-05-29,5,512519.0,isin,1.0,5,5,NSE-only gap: BSE traded
+DONEAR,2013-06-18,2013-06-26,5,512519.0,isin,1.0,5,5,NSE-only gap: BSE traded
+DONEAR,2013-06-26,2013-07-11,10,512519.0,isin,0.4,4,10,partly traded on BSE
+DONEAR,2013-07-11,2013-07-22,6,512519.0,isin,0.833,5,6,NSE-only gap: BSE traded
+DONEAR,2013-07-29,2013-08-14,10,512519.0,isin,0.6,6,10,NSE-only gap: BSE traded
+DONEAR,2013-08-14,2013-08-27,7,512519.0,isin,0.857,6,7,NSE-only gap: BSE traded
+DONEAR,2013-11-08,2013-11-19,5,512519.0,isin,1.0,5,5,NSE-only gap: BSE traded
+DSKULKARNI,2018-03-20,2026-08-03,2072,523890.0,price match,0.0,0,2072,no BSE trading either
+DYNAMATECH,2013-07-29,2013-08-12,8,505242.0,isin,0.375,3,8,partly traded on BSE
+DYNAMATECH,2013-08-13,2013-08-28,9,505242.0,isin,0.889,8,9,NSE-only gap: BSE traded
+E2E,2019-05-24,2019-06-03,5,,no BSE price match,0.0,0,5,not checked: no BSE price match
+E2E,2019-07-05,2019-07-15,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+E2E,2019-11-25,2019-12-03,5,,no BSE price match,0.0,0,5,not checked: no BSE price match
+E2E,2020-03-27,2020-04-15,8,532039.0,price match,1.0,8,8,NSE-only gap: BSE traded
+E2E,2020-04-23,2020-05-05,6,532641.0,price match,1.0,6,6,NSE-only gap: BSE traded
+E2E,2020-05-05,2020-05-19,9,,no NSE close to match,0.0,0,9,not checked: no NSE close to match
+E2E,2020-06-24,2020-07-02,5,508954.0,price match (ambiguous),0.4,2,5,partly traded on BSE
+E2E,2020-09-08,2020-09-17,6,530207.0,price match,0.833,5,6,NSE-only gap: BSE traded
+EDUCOMP,2025-01-27,2025-02-03,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+ELDERPHARM,2016-02-24,2016-03-14,11,532322.0,price match,0.0,0,11,no BSE trading either
+ERAINFRA,2016-02-24,2016-03-14,11,530323.0,price match,0.0,0,11,no BSE trading either
+EROSMEDIA,2024-12-12,2024-12-30,10,533261.0,price match,0.0,0,10,no BSE trading either
+EROSMEDIA,2025-01-27,2025-02-03,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+ESSDEE,2019-07-04,2019-07-29,16,532787.0,price match,0.062,1,16,no BSE trading either
+FCONSUMER,2025-01-27,2025-02-03,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+FCONSUMER,2026-02-09,2026-03-02,14,,no NSE close to match,0.0,0,14,not checked: no NSE close to match
+FEL,2023-09-08,2023-09-18,5,,no BSE price match,0.0,0,5,not checked: no BSE price match
+FEL,2023-11-17,2023-11-28,5,,no BSE price match,0.0,0,5,not checked: no BSE price match
+FEL,2024-01-15,2024-01-23,5,,no BSE price match,0.0,0,5,not checked: no BSE price match
+FILATEX,2013-05-23,2013-06-06,9,526841.0,price match,0.889,8,9,NSE-only gap: BSE traded
+FILATEX,2013-06-06,2013-06-19,8,,no NSE close to match,0.0,0,8,not checked: no NSE close to match
+FILATEX,2013-06-19,2013-07-08,12,,no NSE close to match,0.0,0,12,not checked: no NSE close to match
+FILATEX,2013-07-15,2013-07-23,5,533704.0,price match (ambiguous),1.0,5,5,NSE-only gap: BSE traded
+FILATEX,2013-07-23,2013-08-01,6,532837.0,price match,1.0,6,6,NSE-only gap: BSE traded
+FILATEX,2013-08-27,2013-09-12,10,532864.0,price match (ambiguous),1.0,10,10,NSE-only gap: BSE traded
+FILATEX,2013-11-13,2013-11-27,8,532871.0,price match,1.0,8,8,NSE-only gap: BSE traded
+FIRSTLEASE,2013-12-09,2014-08-08,165,500145.0,price match,1.0,165,165,NSE-only gap: BSE traded
+FIRSTLEASE,2014-08-11,2014-12-08,75,,no NSE close to match,0.0,0,75,not checked: no NSE close to match
+FRETAIL,2022-11-11,2022-11-21,5,530571.0,price match,1.0,5,5,NSE-only gap: BSE traded
+FRETAIL,2023-12-29,2024-01-08,5,,no BSE price match,0.0,0,5,not checked: no BSE price match
+FRETAIL,2024-01-15,2024-01-23,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+FRETAIL,2024-05-13,2024-05-21,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+GALLANTT,2017-08-07,2017-09-04,17,532726.0,isin,0.0,0,17,no BSE trading either
+GALLANTT,2017-09-04,2017-11-06,42,532726.0,isin,0.0,0,42,no BSE trading either
+GALLANTT,2017-11-06,2017-12-04,19,532726.0,isin,0.0,0,19,no BSE trading either
+GALLANTT,2017-12-04,2018-01-01,18,532726.0,isin,0.0,0,18,no BSE trading either
+GAMMNINFRA,2023-03-10,2023-04-03,14,,no NSE close to match,0.0,0,14,not checked: no NSE close to match
+GAMMONIND,2018-02-22,2018-03-12,10,509550.0,price match,0.0,0,10,no BSE trading either
+GAYAPROJ,2024-01-15,2024-01-23,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+GAYAPROJ,2024-05-24,2024-06-03,5,512247.0,price match,1.0,5,5,NSE-only gap: BSE traded
+GAYAPROJ,2024-10-04,2024-10-14,5,532767.0,price match,0.0,0,5,no BSE trading either
+GAYAPROJ,2025-12-08,2026-01-05,18,,no NSE close to match,0.0,0,18,not checked: no NSE close to match
+GITANJALI,2018-09-07,2018-10-01,13,,no BSE price match,0.0,0,13,not checked: no BSE price match
+GVKPIL,2021-01-15,2021-02-08,14,532708.0,isin,0.0,0,14,no BSE trading either
+GVKPIL,2021-08-02,2022-08-12,256,,no NSE close to match,0.0,0,256,not checked: no NSE close to match
+HDIL,2023-06-09,2023-06-19,5,,no BSE price match,0.0,0,5,not checked: no BSE price match
+HDIL,2023-11-06,2023-11-13,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+HDIL,2024-01-15,2024-01-23,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+HDIL,2024-02-09,2024-02-19,5,,no BSE price match,0.0,0,5,not checked: no BSE price match
+HDIL,2024-02-26,2024-03-04,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+HDIL,2024-08-23,2024-09-02,5,532873.0,price match,0.0,0,5,no BSE trading either
+HDIL,2025-01-27,2025-02-03,5,532873.0,price match,0.0,0,5,no BSE trading either
+HDIL,2025-04-17,2025-04-28,5,532873.0,price match,0.0,0,5,no BSE trading either
+ICSA,2019-01-07,2019-01-21,9,,no NSE close to match,0.0,0,9,not checked: no NSE close to match
+ICSA,2019-02-04,2019-02-18,9,,no NSE close to match,0.0,0,9,not checked: no NSE close to match
+ICSA,2019-02-18,2019-03-11,13,,no NSE close to match,0.0,0,13,not checked: no NSE close to match
+ICSA,2019-03-25,2019-04-09,10,,no NSE close to match,0.0,0,10,not checked: no NSE close to match
+ICSA,2019-10-10,2019-10-29,11,,no BSE price match,0.0,0,11,not checked: no BSE price match
+ICSA,2020-01-27,2020-02-10,10,,no NSE close to match,0.0,0,10,not checked: no NSE close to match
+INNOIND,2015-11-26,2015-12-14,11,,no BSE price match,0.0,0,11,not checked: no BSE price match
+INNOIND,2016-01-18,2016-02-01,8,,no NSE close to match,0.0,0,8,not checked: no NSE close to match
+INNOIND,2016-03-08,2016-03-28,11,,no NSE close to match,0.0,0,11,not checked: no NSE close to match
+INNOIND,2016-03-28,2016-05-02,21,,no NSE close to match,0.0,0,21,not checked: no NSE close to match
+INNOIND,2016-05-30,2016-06-13,9,,no NSE close to match,0.0,0,9,not checked: no NSE close to match
+IOLCP,2013-07-17,2013-08-12,16,524164.0,isin,0.688,11,16,NSE-only gap: BSE traded
+IOLCP,2013-08-13,2013-09-10,17,524164.0,isin,0.588,10,17,NSE-only gap: BSE traded
+IOLCP,2013-09-12,2013-10-10,18,524164.0,isin,0.667,12,18,NSE-only gap: BSE traded
+IOLCP,2014-01-03,2014-01-15,7,524164.0,isin,0.857,6,7,NSE-only gap: BSE traded
+JBFIND,2023-03-10,2023-04-03,14,,no BSE price match,0.0,0,14,not checked: no BSE price match
+JBMA,2013-04-23,2013-05-07,7,508989.0,price match,1.0,7,7,NSE-only gap: BSE traded
+JBMA,2013-05-17,2013-05-27,5,532369.0,price match,1.0,5,5,NSE-only gap: BSE traded
+JBMA,2013-06-20,2013-06-28,5,532848.0,price match,1.0,5,5,NSE-only gap: BSE traded
+JBMA,2013-07-04,2013-07-16,7,,no BSE price match,0.0,0,7,not checked: no BSE price match
+JBMA,2013-07-17,2013-08-01,10,,no NSE close to match,0.0,0,10,not checked: no NSE close to match
+JBMA,2013-09-04,2013-09-18,8,502937.0,price match (ambiguous),1.0,8,8,NSE-only gap: BSE traded
+JMTAUTOLTD,2008-12-30,2009-01-09,6,532343.0,price match (ambiguous),1.0,6,6,NSE-only gap: BSE traded
+JMTAUTOLTD,2009-01-12,2009-01-21,6,,no NSE close to match,0.0,0,6,not checked: no NSE close to match
+JMTAUTOLTD,2009-04-20,2009-05-04,7,509048.0,price match,1.0,7,7,NSE-only gap: BSE traded
+JMTAUTOLTD,2009-06-19,2009-06-30,6,516072.0,price match,1.0,6,6,NSE-only gap: BSE traded
+JMTAUTOLTD,2011-08-04,2011-08-16,6,513691.0,price match,1.0,6,6,NSE-only gap: BSE traded
+JMTAUTOLTD,2021-12-10,2022-01-03,15,513691.0,price match,0.0,0,15,no BSE trading either
+JPINFRATEC,2022-12-09,2022-12-19,5,,no BSE price match,0.0,0,5,not checked: no BSE price match
+JYOTISTRUC,2019-05-20,2019-06-03,9,513250.0,isin,0.0,0,9,no BSE trading either
+JYOTISTRUC,2019-06-03,2019-07-01,18,513250.0,isin,0.0,0,18,no BSE trading either
+JYOTISTRUC,2019-07-01,2019-08-05,24,513250.0,isin,0.0,0,24,no BSE trading either
+JYOTISTRUC,2019-08-05,2019-09-03,17,513250.0,isin,0.0,0,17,no BSE trading either
+JYOTISTRUC,2019-09-03,2019-10-07,21,513250.0,isin,0.0,0,21,no BSE trading either
+JYOTISTRUC,2019-10-07,2019-12-02,36,513250.0,isin,0.028,1,36,no BSE trading either
+JYOTISTRUC,2019-12-02,2019-12-23,14,513250.0,isin,0.0,0,14,no BSE trading either
+JYOTISTRUC,2019-12-23,2020-01-06,8,513250.0,isin,0.0,0,8,no BSE trading either
+JYOTISTRUC,2020-01-27,2020-02-03,5,513250.0,isin,0.0,0,5,no BSE trading either
+JYOTISTRUC,2020-07-27,2020-08-10,9,513250.0,isin,0.0,0,9,no BSE trading either
+JYOTISTRUC,2021-01-08,2021-01-18,5,513250.0,isin,0.0,0,5,no BSE trading either
+KBL,2010-03-08,2010-04-20,27,500241.0,price match,0.0,0,27,no BSE trading either
+KEMROCK,2016-09-07,2016-10-03,16,,no BSE price match,0.0,0,16,not checked: no BSE price match
+KEMROCK,2016-10-24,2016-11-01,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+KEMROCK,2016-11-21,2016-12-05,9,,no NSE close to match,0.0,0,9,not checked: no NSE close to match
+KEMROCK,2017-01-02,2017-01-16,9,,no NSE close to match,0.0,0,9,not checked: no NSE close to match
+KEMROCK,2017-01-16,2017-02-06,13,,no NSE close to match,0.0,0,13,not checked: no NSE close to match
+KEMROCK,2017-02-13,2017-02-27,8,,no NSE close to match,0.0,0,8,not checked: no NSE close to match
+KIOCL,2016-12-06,2017-02-09,45,540680.0,isin,0.0,0,45,no BSE trading either
+KIOCL,2017-02-09,2017-03-01,12,540680.0,isin,0.0,0,12,no BSE trading either
+KIOCL,2017-03-01,2017-03-16,9,540680.0,isin,0.0,0,9,no BSE trading either
+KIOCL,2017-03-16,2017-03-27,6,540680.0,isin,0.0,0,6,no BSE trading either
+KIRLOSBROS,2010-03-08,2010-04-20,27,,no NSE close to match,0.0,0,27,not checked: no NSE close to match
+KNRCON,2013-07-11,2013-07-22,6,530561.0,price match,1.0,6,6,NSE-only gap: BSE traded
+KOHINOOR,2020-10-20,2020-11-09,13,512559.0,isin,0.0,0,13,no BSE trading either
+KOHINOOR,2020-11-09,2020-11-17,5,512559.0,isin,0.0,0,5,no BSE trading either
+KOHINOOR,2021-05-03,2022-04-06,231,512559.0,isin,0.0,0,231,no BSE trading either
+LAKSHMIEFL,2018-11-22,2018-12-17,15,,no BSE price match,0.0,0,15,not checked: no BSE price match
+MAITHANALL,2013-04-18,2013-04-30,5,590078.0,isin,0.4,2,5,partly traded on BSE
+MAITHANALL,2013-05-08,2013-05-30,16,590078.0,isin,0.875,14,16,NSE-only gap: BSE traded
+MAITHANALL,2013-06-06,2013-06-14,5,590078.0,isin,1.0,5,5,NSE-only gap: BSE traded
+MAITHANALL,2013-09-11,2013-09-23,7,590078.0,isin,0.857,6,7,NSE-only gap: BSE traded
+MAITHANALL,2013-09-23,2013-10-22,18,590078.0,isin,0.889,16,18,NSE-only gap: BSE traded
+MAITHANALL,2013-11-08,2013-11-21,7,590078.0,isin,1.0,7,7,NSE-only gap: BSE traded
+MANPASAND,2019-12-11,2019-12-30,11,542865.0,price match,0.818,9,11,NSE-only gap: BSE traded
+MANPASAND,2020-01-27,2020-02-03,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+MBAPL,2017-04-21,2017-05-02,5,526717.0,price match,1.0,5,5,NSE-only gap: BSE traded
+MBAPL,2017-05-02,2017-05-11,6,,no BSE price match,0.0,0,6,not checked: no BSE price match
+MBAPL,2017-08-16,2017-09-08,15,523696.0,price match,1.0,15,15,NSE-only gap: BSE traded
+MBAPL,2017-09-21,2017-10-03,6,517548.0,price match,1.0,6,6,NSE-only gap: BSE traded
+MBAPL,2017-12-19,2018-01-01,7,524412.0,price match (ambiguous),1.0,7,7,NSE-only gap: BSE traded
+MBAPL,2018-04-30,2018-06-11,28,526853.0,price match,1.0,28,28,NSE-only gap: BSE traded
+MBAPL,2018-11-14,2018-11-22,5,540268.0,price match,1.0,5,5,NSE-only gap: BSE traded
+MBAPL,2018-11-22,2018-12-04,6,,no NSE close to match,0.0,0,6,not checked: no NSE close to match
+MBAPL,2018-12-04,2018-12-19,10,,no NSE close to match,0.0,0,10,not checked: no NSE close to match
+MBAPL,2018-12-19,2019-01-01,7,,no NSE close to match,0.0,0,7,not checked: no NSE close to match
+MBAPL,2019-05-03,2019-05-23,13,539437.0,price match,1.0,13,13,NSE-only gap: BSE traded
+MBAPL,2020-03-30,2020-04-09,5,500840.0,price match,1.0,5,5,NSE-only gap: BSE traded
+MBAPL,2020-04-17,2020-05-11,14,509079.0,price match,1.0,14,14,NSE-only gap: BSE traded
+MBAPL,2020-05-11,2020-05-21,7,,no NSE close to match,0.0,0,7,not checked: no NSE close to match
+MBAPL,2020-05-26,2020-06-04,6,,no NSE close to match,0.0,0,6,not checked: no NSE close to match
+METALFORGE,2024-01-15,2024-01-23,5,538857.0,price match,1.0,5,5,NSE-only gap: BSE traded
+MID-DAY,2013-08-08,2013-08-22,7,,no NSE close to match,0.0,0,7,not checked: no NSE close to match
+MID-DAY,2013-08-23,2013-09-10,10,,no NSE close to match,0.0,0,10,not checked: no NSE close to match
+MID-DAY,2013-09-10,2013-10-10,20,,no NSE close to match,0.0,0,20,not checked: no NSE close to match
+MID-DAY,2013-12-03,2013-12-11,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+MID-DAY,2021-12-16,2021-12-27,6,,no NSE close to match,0.0,0,6,not checked: no NSE close to match
+MINDACORP,2012-03-19,2012-06-13,59,,no NSE close to match,0.0,0,59,not checked: no NSE close to match
+MINDACORP,2012-06-13,2012-07-09,17,,no NSE close to match,0.0,0,17,not checked: no NSE close to match
+MINDACORP,2012-07-13,2012-07-25,7,,no BSE price match,0.0,0,7,not checked: no BSE price match
+MINDACORP,2012-07-25,2012-08-16,14,,no NSE close to match,0.0,0,14,not checked: no NSE close to match
+MINDACORP,2012-08-16,2012-08-29,7,,no NSE close to match,0.0,0,7,not checked: no NSE close to match
+MINDACORP,2012-08-29,2012-09-21,16,,no NSE close to match,0.0,0,16,not checked: no NSE close to match
+MINDACORP,2012-09-28,2012-10-18,12,,no NSE close to match,0.0,0,12,not checked: no NSE close to match
+MINDACORP,2012-10-18,2012-11-27,25,,no NSE close to match,0.0,0,25,not checked: no NSE close to match
+MINDACORP,2013-03-05,2013-03-25,13,532309.0,price match (ambiguous),1.0,13,13,NSE-only gap: BSE traded
+MINDACORP,2013-04-08,2013-05-10,20,,no BSE price match,0.0,0,20,not checked: no BSE price match
+MINDACORP,2013-05-21,2013-06-24,23,500164.0,price match,1.0,23,23,NSE-only gap: BSE traded
+MINDACORP,2013-06-24,2013-08-29,45,,no NSE close to match,0.0,0,45,not checked: no NSE close to match
+MINDACORP,2013-08-29,2013-09-17,11,,no NSE close to match,0.0,0,11,not checked: no NSE close to match
+MINDACORP,2013-09-17,2013-10-07,12,,no NSE close to match,0.0,0,12,not checked: no NSE close to match
+MINDACORP,2013-10-08,2013-10-18,6,,no NSE close to match,0.0,0,6,not checked: no NSE close to match
+MINDACORP,2013-10-31,2013-11-08,5,,no BSE price match,0.0,0,5,not checked: no BSE price match
+MINDACORP,2013-11-21,2014-01-24,44,511369.0,price match,1.0,44,44,NSE-only gap: BSE traded
+MINDACORP,2014-01-24,2014-02-21,19,,no NSE close to match,0.0,0,19,not checked: no NSE close to match
+MTEDUCARE,2024-08-30,2024-09-09,5,534312.0,price match,0.0,0,5,no BSE trading either
+MTEDUCARE,2025-01-27,2025-02-03,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+MVL,2017-08-07,2018-01-29,118,,no BSE price match,0.0,0,118,not checked: no BSE price match
+MVL,2020-01-08,2020-01-27,12,,no BSE price match,0.0,0,12,not checked: no BSE price match
+MVL,2020-01-27,2020-02-03,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+NEULANDLAB,2009-02-16,2009-02-25,5,,no BSE price match,0.0,0,5,not checked: no BSE price match
+NEXTMEDIA,2013-08-08,2013-08-22,7,532416.0,isin,0.714,5,7,NSE-only gap: BSE traded
+NEXTMEDIA,2013-08-23,2013-09-10,10,532416.0,isin,0.7,7,10,NSE-only gap: BSE traded
+NEXTMEDIA,2013-09-10,2013-10-10,20,532416.0,isin,0.75,15,20,NSE-only gap: BSE traded
+NEXTMEDIA,2013-12-03,2013-12-11,5,532416.0,isin,1.0,5,5,NSE-only gap: BSE traded
+NEXTMEDIA,2021-12-16,2021-12-27,6,526143.0,price match,1.0,6,6,NSE-only gap: BSE traded
+ONELIFECAP,2019-08-13,2019-08-22,5,533632.0,isin,0.2,1,5,partly traded on BSE
+ONELIFECAP,2021-06-11,2021-06-21,5,533632.0,isin,0.0,0,5,no BSE trading either
+ONELIFECAP,2021-06-21,2021-07-05,9,533632.0,isin,0.0,0,9,no BSE trading either
+ONELIFECAP,2021-07-05,2021-07-27,14,,no NSE close to match,0.0,0,14,not checked: no NSE close to match
+OPTOCIRCUI,2021-11-11,2021-11-29,10,532391.0,price match (ambiguous),0.0,0,10,no BSE trading either
+ORBITCORP,2017-07-18,2017-08-07,13,532837.0,price match,0.0,0,13,no BSE trading either
+ORBITCORP,2017-08-07,2017-08-21,8,,no NSE close to match,0.0,0,8,not checked: no NSE close to match
+ORBITCORP,2017-08-21,2017-09-04,8,,no NSE close to match,0.0,0,8,not checked: no NSE close to match
+ORBITCORP,2017-10-03,2017-10-16,8,,no NSE close to match,0.0,0,8,not checked: no NSE close to match
+PANAMAPET,2013-10-03,2013-10-11,5,532477.0,price match (ambiguous),1.0,5,5,NSE-only gap: BSE traded
+PROVOGE,2012-03-06,2012-03-26,12,,no NSE close to match,0.0,0,12,not checked: no NSE close to match
+PROVOGUE,2012-03-06,2012-03-26,12,532647.0,price match,0.0,0,12,no BSE trading either
+PSL,2020-05-18,2020-06-01,8,,no NSE close to match,0.0,0,8,not checked: no NSE close to match
+PUNJABCHEM,2013-08-27,2013-09-05,6,506618.0,isin,0.833,5,6,NSE-only gap: BSE traded
+PVP,2019-04-08,2019-04-30,12,517556.0,isin,0.0,0,12,no BSE trading either
+PVP,2019-10-29,2021-07-22,431,517556.0,isin,0.0,0,431,no BSE trading either
+RASOYPR,2012-05-08,2012-05-18,7,531522.0,price match (ambiguous),1.0,7,7,NSE-only gap: BSE traded
+RASOYPR,2012-07-04,2012-07-13,6,507522.0,price match (ambiguous),1.0,6,6,NSE-only gap: BSE traded
+RASOYPR,2017-08-07,2017-10-03,37,,no BSE price match,0.0,0,37,not checked: no BSE price match
+RASOYPR,2017-10-03,2017-11-06,22,,no NSE close to match,0.0,0,22,not checked: no NSE close to match
+RASOYPR,2017-11-06,2017-12-04,19,,no NSE close to match,0.0,0,19,not checked: no NSE close to match
+RASOYPR,2017-12-04,2018-01-01,18,,no NSE close to match,0.0,0,18,not checked: no NSE close to match
+RASOYPR,2018-01-01,2018-02-05,23,,no NSE close to match,0.0,0,23,not checked: no NSE close to match
+RASOYPR,2018-02-05,2018-03-05,17,,no NSE close to match,0.0,0,17,not checked: no NSE close to match
+RASOYPR,2018-03-05,2018-04-02,17,,no NSE close to match,0.0,0,17,not checked: no NSE close to match
+RASOYPR,2018-04-02,2018-05-07,23,,no NSE close to match,0.0,0,23,not checked: no NSE close to match
+RASOYPR,2018-05-07,2018-06-04,19,,no NSE close to match,0.0,0,19,not checked: no NSE close to match
+RASOYPR,2018-06-04,2018-07-02,19,,no NSE close to match,0.0,0,19,not checked: no NSE close to match
+RASOYPR,2018-07-02,2018-08-06,24,,no NSE close to match,0.0,0,24,not checked: no NSE close to match
+RASOYPR,2018-08-06,2018-09-03,17,,no NSE close to match,0.0,0,17,not checked: no NSE close to match
+RASOYPR,2018-09-03,2018-11-05,40,,no NSE close to match,0.0,0,40,not checked: no NSE close to match
+RCOM,2024-01-15,2024-01-23,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+RCOM,2024-02-09,2024-02-19,5,,no BSE price match,0.0,0,5,not checked: no BSE price match
+RCOM,2024-02-26,2024-03-04,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+RCOM,2025-05-30,2025-06-09,5,532712.0,price match,0.0,0,5,no BSE trading either
+REFEX,2013-04-05,2013-04-15,5,,no BSE price match,0.0,0,5,not checked: no BSE price match
+REFEX,2013-05-22,2013-06-27,25,,no BSE price match,0.0,0,25,not checked: no BSE price match
+REFEX,2013-06-27,2013-07-29,21,,no NSE close to match,0.0,0,21,not checked: no NSE close to match
+REFEX,2013-07-29,2013-08-06,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+REFEX,2013-08-06,2013-08-26,11,,no NSE close to match,0.0,0,11,not checked: no NSE close to match
+REFEX,2013-08-26,2013-09-06,8,,no NSE close to match,0.0,0,8,not checked: no NSE close to match
+REFEX,2013-09-06,2013-10-23,29,,no NSE close to match,0.0,0,29,not checked: no NSE close to match
+REFEX,2013-10-23,2013-11-11,12,,no NSE close to match,0.0,0,12,not checked: no NSE close to match
+REIAGROLTD,2017-08-07,2017-09-04,17,,no BSE price match,0.0,0,17,not checked: no BSE price match
+REIAGROLTD,2017-09-04,2017-10-03,19,,no NSE close to match,0.0,0,19,not checked: no NSE close to match
+RELCAPITAL,2023-07-07,2023-07-17,5,500111.0,price match,0.0,0,5,no BSE trading either
+RELCAPITAL,2023-09-08,2023-09-18,5,500111.0,price match,0.0,0,5,no BSE trading either
+RELCAPITAL,2024-01-15,2024-01-23,5,500111.0,price match,0.0,0,5,no BSE trading either
+RESPONIND,2011-06-13,2011-06-23,7,505509.0,isin,1.0,7,7,NSE-only gap: BSE traded
+RHFL,2026-03-13,2026-03-23,5,540709.0,price match,0.0,0,5,no BSE trading either
+ROLTA,2023-06-09,2023-06-19,5,,no BSE price match,0.0,0,5,not checked: no BSE price match
+ROLTA,2023-11-06,2023-11-13,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+ROLTA,2024-01-15,2024-01-23,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+ROLTA,2024-02-09,2024-02-19,5,,no BSE price match,0.0,0,5,not checked: no BSE price match
+ROLTA,2024-02-26,2024-03-04,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+ROLTA,2024-05-13,2024-05-21,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+ROLTA,2024-08-23,2024-09-02,5,500366.0,price match,0.0,0,5,no BSE trading either
+ROLTA,2025-01-03,2025-01-13,5,500366.0,price match,0.0,0,5,no BSE trading either
+ROLTA,2025-01-27,2025-02-03,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+RTNINDIA,2020-03-16,2020-03-24,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+RUPA,2013-04-04,2013-04-12,5,533552.0,isin,1.0,5,5,NSE-only gap: BSE traded
+RUPA,2013-05-08,2013-05-16,6,533552.0,isin,1.0,6,6,NSE-only gap: BSE traded
+RUPA,2013-09-20,2013-10-04,8,533552.0,isin,0.375,3,8,partly traded on BSE
+RUPA,2013-11-29,2013-12-30,19,533552.0,isin,0.421,8,19,partly traded on BSE
+SAGCEM,2013-09-04,2013-10-10,23,502090.0,price match (ambiguous),1.0,23,23,NSE-only gap: BSE traded
+SAKSOFT,2008-11-05,2008-11-14,5,524816.0,price match (ambiguous),1.0,5,5,NSE-only gap: BSE traded
+SAKSOFT,2008-11-21,2008-12-11,11,531642.0,price match (ambiguous),1.0,11,11,NSE-only gap: BSE traded
+SAKSOFT,2009-01-06,2009-01-16,6,532527.0,price match (ambiguous),0.833,5,6,NSE-only gap: BSE traded
+SAKSOFT,2009-01-20,2009-02-04,9,505700.0,price match (ambiguous),1.0,9,9,NSE-only gap: BSE traded
+SAKSOFT,2009-02-10,2009-02-24,8,,no NSE close to match,0.0,0,7,not checked: no NSE close to match
+SAKSOFT,2013-07-09,2013-07-19,7,501700.0,price match,1.0,7,7,NSE-only gap: BSE traded
+SAKSOFT,2013-07-30,2013-08-23,15,,no BSE price match,0.0,0,15,not checked: no BSE price match
+SAKSOFT,2013-08-27,2013-09-04,5,,no BSE price match,0.0,0,5,not checked: no BSE price match
+SAKSOFT,2013-09-20,2013-10-22,19,500038.0,price match,1.0,19,19,NSE-only gap: BSE traded
+SAKSOFT,2013-12-09,2013-12-17,5,590051.0,price match,1.0,5,5,NSE-only gap: BSE traded
+SECURKLOUD,2019-11-01,2019-11-25,14,,no NSE close to match,0.0,0,14,not checked: no NSE close to match
+SECURKLOUD,2020-01-27,2020-02-03,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+SECURKLOUD,2020-05-26,2020-09-07,73,,no NSE close to match,0.0,0,73,not checked: no NSE close to match
+SHLAKSHMI,2013-08-01,2013-08-12,5,532150.0,price match,1.0,5,5,NSE-only gap: BSE traded
+SHLAKSHMI,2015-08-19,2015-09-02,9,,no BSE price match,0.0,0,9,not checked: no BSE price match
+SHLAKSHMI,2015-09-08,2015-12-21,67,531661.0,price match,0.582,39,67,NSE-only gap: BSE traded
+SHLAKSHMI,2015-12-21,2016-01-04,8,,no NSE close to match,0.0,0,8,not checked: no NSE close to match
+SHLAKSHMI,2016-01-04,2016-01-25,14,,no NSE close to match,0.0,0,14,not checked: no NSE close to match
+SHLAKSHMI,2016-01-25,2016-03-21,37,,no NSE close to match,0.0,0,37,not checked: no NSE close to match
+SHRENUJ,2017-03-24,2017-04-17,13,,no BSE price match,0.0,0,13,not checked: no BSE price match
+SINTEX,2022-03-21,2022-12-12,180,502742.0,price match,0.0,0,180,no BSE trading either
+SIRPAPER,2013-05-20,2013-06-03,9,517168.0,price match (ambiguous),1.0,9,9,NSE-only gap: BSE traded
+SIRPAPER,2013-08-16,2013-08-28,7,500246.0,price match (ambiguous),0.0,0,7,no BSE trading either
+SIRPAPER,2015-08-13,2015-08-25,7,,no BSE price match,0.0,0,7,not checked: no BSE price match
+SIRPAPER,2015-09-09,2016-01-11,80,532339.0,price match,1.0,80,80,NSE-only gap: BSE traded
+SIRPAPER,2016-01-11,2016-02-29,33,,no NSE close to match,0.0,0,33,not checked: no NSE close to match
+SIRPAPER,2016-03-08,2016-03-21,8,,no NSE close to match,0.0,0,8,not checked: no NSE close to match
+SITINET,2023-06-30,2023-07-10,5,532795.0,price match,0.0,0,5,no BSE trading either
+SITINET,2024-01-12,2024-01-23,6,,no BSE price match,0.0,0,6,not checked: no BSE price match
+SITINET,2024-05-13,2024-05-21,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+SOMANYCERA,2008-04-08,2008-04-17,5,500289.0,price match,1.0,5,5,NSE-only gap: BSE traded
+SOMANYCERA,2009-04-27,2009-05-07,5,,no BSE price match,0.0,0,5,not checked: no BSE price match
+SPLPETRO,2022-04-06,2022-05-24,30,,no NSE close to match,0.0,0,30,not checked: no NSE close to match
+SPTL,2023-11-10,2023-11-20,5,,no BSE price match,0.0,0,5,not checked: no BSE price match
+SPTL,2024-01-15,2024-01-23,5,542844.0,price match,1.0,5,5,NSE-only gap: BSE traded
+SPTL,2024-05-13,2024-05-21,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+SREINFRA,2022-09-09,2022-09-19,5,523756.0,price match,0.0,0,5,no BSE trading either
+SREINFRA,2023-02-17,2023-02-27,5,,no BSE price match,0.0,0,5,not checked: no BSE price match
+STERLINBIO,2018-04-17,2018-05-07,12,,no BSE price match,0.0,0,12,not checked: no BSE price match
+SUBEXLTD,2020-10-21,2020-11-05,10,532348.0,isin,0.0,0,10,no BSE trading either
+SUDARSCHEM,2008-03-03,2008-03-12,5,532773.0,price match (ambiguous),1.0,5,5,NSE-only gap: BSE traded
+SUDARSCHEM,2008-04-08,2008-04-17,5,512413.0,price match (ambiguous),1.0,5,5,NSE-only gap: BSE traded
+SUDARSCHEM,2008-06-16,2008-06-25,6,590051.0,price match (ambiguous),1.0,6,6,NSE-only gap: BSE traded
+SUDARSCHEM,2008-07-04,2008-07-16,7,,no BSE price match,0.0,0,7,not checked: no BSE price match
+SUPPETRO,2022-04-06,2022-05-24,30,500405.0,price match,0.0,0,30,no BSE trading either
+SUPREMEINF,2021-01-15,2021-02-08,14,532904.0,isin,0.0,0,14,no BSE trading either
+SUPREMEINF,2021-08-02,2021-11-02,62,,no NSE close to match,0.0,0,62,not checked: no NSE close to match
+SWANDEF,2025-05-09,2025-05-19,5,531918.0,price match,1.0,5,5,NSE-only gap: BSE traded
+TATAMTRDVR,2009-02-03,2009-02-19,11,532900.0,price match,0.9,9,10,NSE-only gap: BSE traded
+TATAMTRDVR,2009-03-02,2009-03-16,7,500411.0,price match,1.0,7,7,NSE-only gap: BSE traded
+TATAMTRDVR,2009-03-27,2009-04-09,6,500620.0,price match,1.0,6,6,NSE-only gap: BSE traded
+TATAMTRDVR,2009-05-11,2009-05-19,5,,no BSE price match,0.0,0,4,not checked: no BSE price match
+TIIL,2013-06-11,2013-06-19,5,532804.0,isin,1.0,5,5,NSE-only gap: BSE traded
+TIPSMUSIC,2013-09-05,2013-09-17,6,,no NSE close to match,0.0,0,6,not checked: no NSE close to match
+TIPSMUSIC,2013-10-24,2013-11-05,7,,no NSE close to match,0.0,0,7,not checked: no NSE close to match
+TIPSMUSIC,2013-12-19,2014-01-06,10,,no NSE close to match,0.0,0,10,not checked: no NSE close to match
+TULIP,2014-09-08,2014-09-29,14,531419.0,price match,0.857,12,14,NSE-only gap: BSE traded
+TULIP,2015-02-23,2015-03-02,5,,no NSE close to match,0.0,0,5,not checked: no NSE close to match
+UBHOLDINGS,2017-09-07,2017-09-25,11,507458.0,price match,0.0,0,11,no BSE trading either
+VINDHYATEL,2009-01-29,2009-02-09,6,505397.0,price match (ambiguous),1.0,6,6,NSE-only gap: BSE traded
+VINDHYATEL,2013-04-05,2013-04-16,6,517015.0,isin,0.5,3,6,NSE-only gap: BSE traded
+VINDHYATEL,2013-05-16,2013-05-24,5,517015.0,isin,0.6,3,5,NSE-only gap: BSE traded
+VINDHYATEL,2013-05-31,2013-06-10,5,517015.0,isin,0.4,2,5,partly traded on BSE
+VINDHYATEL,2013-08-16,2013-08-26,5,517015.0,isin,0.0,0,5,no BSE trading either
+VINDHYATEL,2013-10-15,2013-10-28,7,517015.0,isin,0.714,5,7,NSE-only gap: BSE traded
+WEBELSOLAR,2013-05-27,2013-06-06,7,517498.0,isin,0.857,6,7,NSE-only gap: BSE traded
+WEBELSOLAR,2013-08-08,2013-08-29,12,517498.0,isin,1.0,12,12,NSE-only gap: BSE traded
+WEBELSOLAR,2014-01-08,2014-01-16,5,517498.0,isin,1.0,5,5,NSE-only gap: BSE traded
+ZODIACLOTH,2013-08-14,2013-08-29,9,521163.0,isin,0.889,8,9,NSE-only gap: BSE traded

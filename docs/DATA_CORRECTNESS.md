@@ -80,7 +80,7 @@ Run after every long-file build (`nse_long_prices.yml` does, and publishes
 | `scripts/audit_long_prices.py` | Same level as each reference? Level breaks and which side moved; every move beyond 21% confirmed, fake, disputed or unverified | `levels.csv`, `breaks.csv`, `big_moves.csv` |
 | `scripts/audit_against_screener.py` | Screener point by point; lasting level steps voted on by the other references | `screener_*.csv` |
 | `scripts/audit_raw_bars.py` | NSE's raw rows: bar arithmetic, large dividends, ISIN lineage, calendar | `bar_integrity_exceptions.csv`, `large_dividends.csv`, `isin_lineage.csv`, `calendar_sync.csv` |
-| `scripts/audit_gaps_against_bse.py` | Every stretch of 5+ sessions the file has no price for: NSE-only gap, real suspension, or not checked | `bse_gap_verify.csv` (its price-only match picks another company's code for many thin stocks: section 6) |
+| `scripts/audit_gaps_against_bse.py` | Every stretch of 5+ sessions the file has no price for: NSE-only gap, real suspension, or not checked | `bse_gap_verify.csv` (BSE code found by the fill's rule, `bse_fill.map_code`: ISIN first, price only when no ISIN finds one; another issuer's code is "not checked") |
 | build + `scripts/verify_bse_fill.py` | Which gaps were filled from BSE and why the others were not; do the filled days agree with the references | `bse_fill_gaps.csv`, `bse_fill_cells.csv`, `bse_fill_verify.json`, `bse_fill_verify_outliers.csv` |
 
 How fast the build is (7 Oct 2026, TODO S54): the computation takes about 15 s.
@@ -233,7 +233,10 @@ codes; BHARATRAS 2008 matched Indian Card Clothing; E2E 2020 matched three codes
 though E2E was not on BSE then). With the code found by ISIN, of the 147: 24
 filled, 71 junction over 2% (thin stocks whose two exchanges sat apart, mostly
 2008 - 2014), 17 ISIN mismatch, 14 no BSE trading, 11 partly traded, 5 ambiguous,
-5 no common day. Fixing the audit's match is open (TODO).
+5 no common day. Since 7 Oct the audit uses the same mapping
+(`bse_fill.map_code`); on the long file of 7 Oct it finds 97 NSE-only gaps (35 stocks)
+where the price-only match found 123 (47), 44 of those 123 on another code
+(`reports/followups_s52_s53_2026-10-07.md`).
 
 **GRAUWEIL's 1:1 bonus (record date 10 Apr 2024) fell inside the gap**, so no NSE
 list carries it: the filled series fell 49.7% that day, and before the fill the

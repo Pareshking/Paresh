@@ -22,9 +22,10 @@ The rules (each has a test in tests/test_bse_fill.py):
   same company   the BSE scrip code by ISIN where one is known on both sides
                  (BSE's file carries ISINs from July 2024; NSE's from
                  data/reference/nse/isin_history.csv and equity_l.csv); otherwise
-                 by price, the rule scripts/audit_gaps_against_bse.py uses
-                 (price_match). An ambiguous price match is refused, and so is a
-                 code whose ISIN names another issuer than NSE's.
+                 by price (price_match). An ambiguous price match is refused, and
+                 so is a code whose ISIN names another issuer than NSE's.
+                 map_code() is the rule, and scripts/audit_gaps_against_bse.py
+                 uses it too, so the audit and the fill name the same company.
   junctions      at each end of the gap, BSE's close and NSE's on the nearest
                  JUNCTION_DAYS common days (within JUNCTION_WINDOW sessions):
                  median difference above TOLERANCE refuses the gap.
@@ -71,7 +72,7 @@ def gaps(close: pd.DataFrame, min_gap: int = MIN_GAP) -> list[tuple[str, int, in
 def price_match(nse: pd.Series, bse_by_date: dict, tolerance: float = TOLERANCE) -> tuple[int | None, str]:
     """(BSE code, how) whose close is within `tolerance` of NSE's raw closes `nse` (date -> close).
 
-    The rule of scripts/audit_gaps_against_bse.py: the code within 2% on the most
+    The price rule of map_code(): the code within 2% on the most
     days, at least 3 and 60% of NSE's; "(ambiguous)" when a second code fits as
     well. bse_by_date maps a date to BSE's rows that day (code, close).
     """
@@ -140,6 +141,58 @@ def _junction(nse: pd.Series, bse: pd.Series, positions: Iterable[int], idx: pd.
     return float(np.median(diffs)) if diffs else None
 
 
+def map_code(sym: str, start: pd.Timestamp, end: pd.Timestamp, b: dict, nse_tail: pd.Series, *,
+             history: pd.DataFrame | None = None, current: dict[str, str] | None = None
+             ) -> tuple[int | None, str, str | None, str]:
+    """(BSE code, how it was found, refusal or None, detail) for NSE's `sym` around [start, end].
+
+    The one mapping rule, used by fill() and scripts/audit_gaps_against_bse.py:
+    NSE's ISIN for the symbol near the gap, else an ISIN NSE gave it in another
+    period, else the price match on `nse_tail` (NSE's raw closes before the gap,
+    date -> close). Refused: an ISIN on two BSE codes, no match, an ambiguous price
+    match, and a code whose ISIN names another issuer than any NSE gave `sym`.
+    `b` is prepare()'s result.
+    """
+    isins = nse_isins(sym, start, end, history, current)
+    ever = nse_isins_ever(sym, history, current) or isins
+    codes = sorted({c for i in isins for c in b["isin_codes"].get(i, [])})
+    how = "isin"
+    if not codes:
+        # The ISIN NSE gives the symbol in another period: BSE's file has ISINs only
+        # from July 2024 and NSE's history only 2011 - 2021 (BHARATRAS 2008 matched
+        # INDIAN CARD CLOTHING's price by chance; its own ISIN finds code 590066).
+        codes = sorted({c for i in ever for c in b["isin_codes"].get(i, [])})
+        how = "isin (another period)"
+    if len(codes) > 1:
+        return None, how, "ISIN maps to more than one BSE code", str(codes)
+    if codes:
+        code = codes[0]
+    else:
+        code, how = price_match(nse_tail, b["by_date"])
+        if code is None:
+            return None, how, how, ""
+        if "ambiguous" in how:
+            return code, how, "ambiguous BSE match", ""
+    theirs = _prefixes(b["code_isins"].get(code, []))
+    # A code whose ISIN names another issuer than any NSE ever gave the symbol is
+    # another company whose price happened to fit (24 of the 147 "NSE-only" gaps
+    # of 3 Oct 2026: MBAPL matched eleven different codes).
+    if ever and theirs and not (_prefixes(ever) & theirs):
+        return code, how, "ISIN mismatch", f"NSE {','.join(ever)}; BSE code {code} {','.join(b['code_isins'][code])}"
+    return code, how, None, ""
+
+
+def wrong_issuer_sessions(sym: str, code: int, days: Iterable[pd.Timestamp], b: dict, *,
+                          history: pd.DataFrame | None = None, current: dict[str, str] | None = None
+                          ) -> list[pd.Timestamp]:
+    """The days among `days` whose BSE row for `code` carries another issuer's ISIN than NSE's."""
+    ever = nse_isins_ever(sym, history, current)
+    if not ever:
+        return []
+    mine = _prefixes(ever)
+    return [d for d in days if (code, d) in b["row_isin"] and b["row_isin"][(code, d)][:ISSUER_PREFIX] not in mine]
+
+
 def prepare(bse: pd.DataFrame) -> dict:
     """BSE's table (scripts/bse_bhavcopy.py build) indexed the ways fill() reads it."""
     b = bse[[c for c in ("date", "code", "close", "shares", "isin", "name") if c in bse.columns]].copy()
@@ -186,37 +239,12 @@ def fill(close: pd.DataFrame, bse: pd.DataFrame | dict, *, history: pd.DataFrame
         def refuse(why: str, detail: str = "") -> None:
             rows.append({**row, "verdict": f"refused: {why}", "detail": detail})
 
-        isins = nse_isins(sym, last, nxt, history, current)
-        ever = nse_isins_ever(sym, history, current) or isins
-        codes = sorted({c for i in isins for c in b["isin_codes"].get(i, [])})
-        how = "isin"
-        if not codes:
-            # The ISIN NSE gives the symbol in another period: BSE's file has ISINs only
-            # from July 2024 and NSE's history only 2011 - 2021 (BHARATRAS 2008 matched
-            # INDIAN CARD CLOTHING's price by chance; its own ISIN finds code 590066).
-            codes = sorted({c for i in ever for c in b["isin_codes"].get(i, [])})
-            how = "isin (another period)"
-        if len(codes) == 1:
-            code = codes[0]
-        elif len(codes) > 1:
-            refuse("ISIN maps to more than one BSE code", str(codes))
-            continue
-        else:
-            nse_tail = close[sym].iloc[max(0, p0 - MATCH_DAYS + 1): p0 + 1]
-            code, how = price_match(nse_tail, b["by_date"])
-        row.update(bse_code=code, mapped_by=how, bse_name=b["name"].get(code))
-        if code is None:
-            refuse(how)
-            continue
-        if "ambiguous" in how:
-            refuse("ambiguous BSE match")
-            continue
-        theirs = _prefixes(b["code_isins"].get(code, []))
-        # A code whose ISIN names another issuer than any NSE ever gave the symbol is
-        # another company whose price happened to fit (24 of the 147 "NSE-only" gaps
-        # of 3 Oct 2026: MBAPL matched eleven different codes).
-        if ever and theirs and not (_prefixes(ever) & theirs):
-            refuse("ISIN mismatch", f"NSE {','.join(ever)}; BSE code {code} {','.join(b['code_isins'][code])}")
+        nse_tail = close[sym].iloc[max(0, p0 - MATCH_DAYS + 1): p0 + 1]
+        code, how, refusal, detail = map_code(sym, last, nxt, b, nse_tail, history=history, current=current)
+        if refusal != "ISIN maps to more than one BSE code":
+            row.update(bse_code=code, mapped_by=how, bse_name=b["name"].get(code))
+        if refusal is not None:
+            refuse(refusal, detail)
             continue
         bclose = b["close"].get(code, pd.Series(dtype=float))
         traded = [d for d in inside if d in bclose.index]
@@ -242,8 +270,7 @@ def fill(close: pd.DataFrame, bse: pd.DataFrame | dict, *, history: pd.DataFrame
             side = "start" if jb > TOLERANCE else "end"
             refuse("junction: BSE more than 2% off NSE", f"{side}: {max(jb, ja):.1%}")
             continue
-        wrong = [d for d in traded if (code, d) in b["row_isin"] and ever
-                 and b["row_isin"][(code, d)][:ISSUER_PREFIX] not in _prefixes(ever)]
+        wrong = wrong_issuer_sessions(sym, code, traded, b, history=history, current=current)
         if wrong:
             refuse("ISIN mismatch", f"BSE rows of {len(wrong)} sessions carry another issuer's ISIN")
             continue
