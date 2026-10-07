@@ -6,7 +6,7 @@ It is the map; the detail is in `docs/PRICE_PIPELINE.md` (rules and audits),
 `docs/DATA_CATALOGUE.md` (every dataset), `docs/MEMBERSHIP_FROM_NOTICES.md`
 (membership) and `docs/TODO.md` (what is open, S-numbers).
 
-_Last updated: 2026-10-03_
+_Last updated: 2026-10-07_
 
 ## 1. Evidence standard (owner's rules)
 
@@ -101,6 +101,7 @@ python scripts/audit_gaps_against_bse.py --long nse_long_close.parquet --pack ns
 | Holdings valued at the last price when a stock stops (takeover, delisting): checked, no change (S27) | TODO S27 |
 | Reference histories are protected from R2 clean-up | `PROTECTED_DATASETS` |
 | A stock's TradingView sector is refreshed weekly for every row (Friday UTC) | `classify_missing.py --refresh` |
+| Screener's weekly stretch is filled with NSE's daily closes **by ratio** (owner, 7 Oct 2026, S23): each Screener close kept, the sessions between two of them on NSE's moves from the earlier one; an interval where NSE's move differs from Screener's by more than 2% stays weekly. The 750 only (NSE must cover 95% of the sparse stocks). Switch `UMIYA_SCREENER_WEEKLY_FILL` | `price_source.fill_weekly_from_nse`, `PRICE_PIPELINE.md` |
 
 ## 5. Findings already explained: do not investigate these again
 
@@ -111,6 +112,8 @@ python scripts/audit_gaps_against_bse.py --long nse_long_close.parquet --pack ns
 | 1,372 average prices outside the range | NSE's turnover in lakhs, 2 decimals (about Rs 1,000), so value / volume is off on small volumes | 68% have 1,000 shares or fewer; some are value 0 on a few shares |
 | 2 "fake" and 4 "disputed" big moves | VIVIDHA: Rs 0.20 -> 0.15 -> 0.20 is the Rs 0.05 tick on 74,010 shares. CERA 2008: thin trading, eod2 and MarketLens agree. J&KBANK 2015-02-09 is S22 (open). GOODYEAR / NOVARTIND 20 Apr 2026: reopening after the NSE gap below | NSE raw rows, BSE |
 | A long stretch with no rows for a stock | See the next section | |
+| Weekly fill: 3 filled days no reference matches (ITC 6 Jan 2025, SIEMENS 7 Apr 2025, QUESS 15 Apr 2025) | Demerger ex-dates priced at the fall (ours reads 0%); Screener's weekly move agrees | `PRICE_PIPELINE.md`, weekly fill check of 7 Oct 2026 |
+| Weekly fill refused PTCIL, SKYGOLD (Oct 2024), SHAILY, MANORAMA (Feb - Mar 2025) | Screener's weekly close disagrees with SS, Yahoo and eod2; NSE agrees with them; Tijori's move equals Screener's. Not explained further; Screener's close kept | same |
 | KESORAMIND -95% on 10 Mar 2025 | A real demerger, **not** a loss; it was unadjusted until #372 | NSE close 204.72 -> 9.71; Solactive stock-distribution notice; Zerodha demerger note |
 
 ## 6. Gaps in the file: NSE-only, or a real suspension

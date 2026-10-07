@@ -65,7 +65,10 @@ Policy and recovery: `docs/R2_RECOVERY_AND_RETENTION.md`. Layout and rules
 ## Which source wins
 
 **Today the app ranks on Screener, then NSE** for what Screener lacks
-(`price_source.ranking_frames`). Yahoo is no longer a source (owner, 2 Oct
+(`price_source.ranking_frames`); for the 750, Screener's weekly stretch is
+filled with NSE's daily moves on Screener's level (7 Oct 2026; no dataset
+changes, the frame is built at run time from `prices/screener` and the
+committed `data/nse_prices`). Yahoo is no longer a source (owner, 2 Oct
 2026). SS is collected nightly and checked against the other two by the
 three-source vote, with NSE's own record as judge; it is not yet wired into
 the app. Rules, the nightly run and the vote: `docs/PRICE_PIPELINE.md`.

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-07 — Ranking: Screener's weekly stretch filled with NSE's daily closes (S23)
+
+- Owner decision (7 Oct 2026): Screener's store is daily for about its latest year and weekly before it, so a 9M or 12M window that reached back before ~Sep 2025 scored a mix of daily and weekly moves and could open on a close up to a week from its date. The ranking frame now fills the weekly stretch with NSE's daily closes, spliced by ratio: each of Screener's weekly closes stays exactly as Screener has it, and the sessions between two of them follow NSE's daily moves from the earlier one. An interval where NSE's move differs from Screener's by more than 2% (an action one side adjusted and the other did not) stays weekly. Live 750, 6 Oct 2026 data: 128,025 prices for 695 stocks, 106 sessions added (7 Oct 2024 - 25 Sep 2025), 12 intervals kept weekly.
+- Checked against SS, Tijori, Yahoo and eod2: the daily move of every filled day but 3 agrees within 2% with at least one of them (the 3 are the ITC, QUESS and SIEMENS demerger days, priced at the ex-date fall as decided).
+- Today's ranking does not change (its 12-month window is already daily); the stock page's past ranks (-2M, -3M, -6M) do. Replayed month-ends Jan - Apr 2026: at most 1 of the top 20 differs. `ATH` / `% ATH` move for 124 stocks: a daily closing high between two weekly closes now counts.
+- Nano Cap and Combined are not filled: NSE's committed file has 98 of the 429 Nano Cap stocks, and a filled session where a stock has no price would delete that stock's weekly returns.
+- Switch: `UMIYA_SCREENER_WEEKLY_FILL=0` turns it off (default on). The setting is part of the ranking contract, so the first night after deploy the precomputed table is rebuilt and the app computes the ranking itself until then.
+
 ## 2026-10-03 — Backtest: calendar returns
 
 - The Backtest tab (Live and History from 2010) shows Calendar returns under the growth chart: Strategy, the index and Alpha by year and month, with CY, FY (April - March) and quarters, built by the code the Portfolio page uses (`ledger_from_curves`, `build_combined_grid`). Alpha's year and quarter cells are the plain difference between strategy and index; Portfolio keeps its compounded-monthly convention (TODO S40).

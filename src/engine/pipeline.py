@@ -60,20 +60,36 @@ def _settings_digest() -> str:
     the contract as their own field, and change per session. These are the
     build-time constants behind them, which change only with a deploy.
     """
-    from src.core.config import HIGH_52W_MIN_OBSERVATIONS, MOMENTUM_MONTHS
+    from src.core.config import (
+        HIGH_52W_MIN_OBSERVATIONS,
+        MOMENTUM_MONTHS,
+        SCREENER_WEEKLY_NSE_FILL,
+    )
     from src.engine.calendar_momentum import ANCHOR_STALENESS_LIMIT
     from src.engine.momentum import MIN_OBSERVATIONS
 
-    payload = "|".join(
-        str(x) for x in (
-            list(MOMENTUM_MONTHS),
-            HIGH_52W_MIN_OBSERVATIONS,
-            MIN_OBSERVATIONS,
-            ANCHOR_STALENESS_LIMIT,
-            RANKING_COVERAGE_FLOOR,
-            list(RANK_HISTORY_MONTHS),
+    parts: list = [
+        list(MOMENTUM_MONTHS),
+        HIGH_52W_MIN_OBSERVATIONS,
+        MIN_OBSERVATIONS,
+        ANCHOR_STALENESS_LIMIT,
+        RANKING_COVERAGE_FLOOR,
+        list(RANK_HISTORY_MONTHS),
+    ]
+    # The price frame itself changes with the weekly fill (TODO S23), and the
+    # price fingerprint would see that; the setting is named here as well so a
+    # table built with the fill on is never accepted by an app with it off (or
+    # under other splice rules), whatever the frame happens to hash to.
+    if SCREENER_WEEKLY_NSE_FILL:
+        from src.loaders.price_source import (
+            WEEKLY_FILL_DAILY_RUN,
+            WEEKLY_FILL_MIN_COVERAGE,
+            WEEKLY_FILL_TOLERANCE,
         )
-    )
+
+        parts.append(f"weekly_nse_fill:{WEEKLY_FILL_TOLERANCE}:{WEEKLY_FILL_DAILY_RUN}"
+                     f":{WEEKLY_FILL_MIN_COVERAGE}")
+    payload = "|".join(str(x) for x in parts)
     return hashlib.md5(payload.encode()).hexdigest()[:8]
 
 
