@@ -527,7 +527,7 @@ def inject_custom_css() -> None:
                 gap: 4px;
                 font-size: 11.5px;
             }
-            .mkt-dot { font-size: 10px; }
+            .mkt-dot { font-size: 11px; }
 
             .mkt-index {
                 gap: 5px;
