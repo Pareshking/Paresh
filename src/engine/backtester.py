@@ -791,6 +791,19 @@ def run_backtest(
     WINDOWS = MOMENTUM_WINDOWS
     prices = _adj_close.dropna(axis=1, how="all").copy()
 
+    # Benchmark and strategy must share exactly the same completed session.
+    # The benchmark is the canonical daily NIFTY 500 series; never let a newer
+    # index close extend the benchmark beyond the strategy's available prices,
+    # or let an older strategy frame be compared with a newer index close.
+    benchmark_input = _benchmark_close
+    if benchmark_input is not None and not benchmark_input.empty and not prices.empty:
+        benchmark_input = pd.to_numeric(benchmark_input, errors="coerce").dropna().sort_index()
+        if not benchmark_input.empty:
+            common_as_of = min(pd.Timestamp(prices.index.max()), pd.Timestamp(benchmark_input.index.max()))
+            prices = prices.loc[:common_as_of]
+            benchmark_input = benchmark_input.loc[:common_as_of]
+
+
     # Neutralise flagged corporate actions before anything reads a price. A
     # split the vendor failed to adjust for shows up as a -50% session, which
     # this engine would otherwise treat as a real return: it would book a
@@ -839,7 +852,7 @@ def run_backtest(
     log_ret = np.log(prices / prices.shift(1).replace(0, np.nan))
 
     benchmark_level: pd.Series | None = None
-    if _benchmark_close is None or _benchmark_close.empty:
+    if benchmark_input is None or benchmark_input.empty:
         benchmark_ret = pd.Series(np.nan, index=prices.index, dtype=float)
     else:
         # ffill onto the price calendar, and the ffill is not cosmetic. The
@@ -853,7 +866,7 @@ def run_backtest(
         # real print forward gives 0% across the hole and the true move on the
         # next real print, which reproduces the index exactly.
         benchmark_series = (
-            pd.to_numeric(_benchmark_close, errors="coerce")
+            pd.to_numeric(benchmark_input, errors="coerce")
             .reindex(prices.index)
             .ffill()
         )
