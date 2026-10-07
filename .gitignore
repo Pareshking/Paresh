@@ -5,6 +5,7 @@ data_cache/
 # Prices for stocks the index has dropped; read by the backtest and the monthly record.
 !data/former_member_prices.parquet
 !data/nse_prices/*.parquet
+!data/reference/weekly_fill_extra.parquet
 user_watchlist.json
 
 # Streamlit secrets and config (never commit secrets)

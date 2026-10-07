@@ -41,6 +41,7 @@ import os
 import tempfile
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -506,6 +507,28 @@ def eligible_middle(primary: pd.DataFrame, middle: pd.DataFrame | None
     return middle[good] if good else None
 
 
+WEEKLY_FILL_EXTRA = Path(__file__).resolve().parents[2] / "data" / "reference" / "weekly_fill_extra.parquet"
+
+
+def with_weekly_extra(middle_close: pd.DataFrame | None,
+                      path: Path = WEEKLY_FILL_EXTRA) -> pd.DataFrame | None:
+    """NSE's closes plus, where they have none, the committed daily closes of the
+    stocks NSE's file lacks over Screener's weekly stretch (owner, 2026-10-07:
+    BIRET, EMBASSY, JSLL from the long NSE file; SGMART, SHILCTECH, TIMEX,
+    PICCADIL from BSE, where they traded before listing on NSE). Built by
+    scripts/build_weekly_fill_extra.py. Only NSE's sessions are used, and every
+    interval still has to agree with Screener's own move (WEEKLY_FILL_TOLERANCE).
+    """
+    if middle_close is None or middle_close.empty:
+        return middle_close
+    try:
+        extra = pd.read_parquet(path)
+    except (OSError, ValueError):
+        return middle_close
+    extra = extra.reindex(index=middle_close.index)
+    return middle_close.combine_first(extra)[list(dict.fromkeys([*middle_close.columns, *extra.columns]))]
+
+
 def splice_weekly(close: pd.DataFrame, screener: pd.DataFrame,
                   middle_close: pd.DataFrame | None) -> tuple[pd.DataFrame, dict]:
     """`close` (already gap-filled) with Screener's weekly stretch filled from NSE.
@@ -514,7 +537,7 @@ def splice_weekly(close: pd.DataFrame, screener: pd.DataFrame,
     cells another fill wrote, and its values replace only cells Screener has no
     close for. A refused interval keeps whatever `close` already held there.
     """
-    spliced, report = fill_weekly_from_nse(screener, middle_close)
+    spliced, report = fill_weekly_from_nse(screener, with_weekly_extra(middle_close))
     if spliced is screener:
         return close, report
     index = close.index.union(spliced.index)

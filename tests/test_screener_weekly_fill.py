@@ -186,3 +186,27 @@ def test_the_app_and_the_precompute_take_the_setting_from_one_place():
     body = (ROOT / "src/loaders/price_source.py").read_text(encoding="utf-8")
     fn = body[body.index("def frames_from("):body.index("# ── Backup source")]
     assert "keep_and_fill(chosen, symbols, None, middle_close)" in fn
+
+
+def test_the_committed_extra_closes_fill_only_what_nse_lacks(tmp_path):
+    # Owner, 7 Oct: seven stocks NSE's file lacks (REITs, BSE-only before listing)
+    # take the committed daily closes; NSE's own closes are never replaced.
+    from src.loaders import price_source as ps
+
+    days = pd.bdate_range("2025-01-01", periods=4)
+    nse = pd.DataFrame({"AAA": [1.0, np.nan, 3.0, 4.0]}, index=days)
+    extra = pd.DataFrame({"AAA": [9.0, 2.0, 9.0, 9.0], "REIT": [5.0, 5.5, 6.0, 6.5]}, index=days)
+    path = tmp_path / "extra.parquet"
+    extra.to_parquet(path)
+    got = ps.with_weekly_extra(nse, path)
+    assert list(got["AAA"]) == [1.0, 2.0, 3.0, 4.0]
+    assert list(got["REIT"]) == [5.0, 5.5, 6.0, 6.5]
+    assert ps.with_weekly_extra(nse, tmp_path / "missing.parquet") is nse
+
+
+def test_the_committed_extra_file_holds_the_seven_stocks():
+    from src.loaders import price_source as ps
+
+    extra = pd.read_parquet(ps.WEEKLY_FILL_EXTRA)
+    assert set(extra.columns) == {"BIRET", "EMBASSY", "JSLL", "SGMART", "SHILCTECH", "TIMEX", "PICCADIL"}
+    assert extra.notna().sum().min() >= 240

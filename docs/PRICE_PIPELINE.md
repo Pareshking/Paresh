@@ -304,10 +304,22 @@ call) now does, in `price_source.fill_weekly_from_nse`:
   same input as the middle-source fill; 30 Sep 2024 onwards), so the app and
   the precompute fill from the same bytes. The long file was not used: it
   is a 17 MB download on the ranking's cold start and changes weekly.
+- **The seven NSE's file lacks** (owner, 7 Oct 2026) come from a small committed
+  file, `data/reference/weekly_fill_extra.parquet`, built once by
+  `scripts/build_weekly_fill_extra.py` (the stretch is history): the REITs
+  BIRET and EMBASSY (NSE's committed file has no REIT rows) and JSLL (it starts
+  in Aug 2025) from the long NSE file; SGMART, SHILCTECH, TIMEX and PICCADIL
+  from BSE, where they traded before listing on NSE (Sep 2025, Nov 2025, Apr
+  2026, Jul 2025), the BSE code found by ISIN. It is used only where NSE's file
+  has no close, and the 2% check applies as to every stock. With it the 750 is
+  699 of 699; every filled day of the seven agrees within 2% with each
+  reference that has it (Tijori, SS, Yahoo; JSLL 174 of 177 with Yahoo), and one
+  week is refused: SHILCTECH 30 May - 6 Jun 2025, a -33% step Screener adjusted
+  and BSE's raw close does not.
 - **Not for Nano Cap or Combined.** The engine's returns are row to row, so an
   added session where a stock has no price deletes that stock's weekly return
   across it. Sessions are added only when NSE fills at least 95% of the stocks
-  with a sparse stretch (`WEEKLY_FILL_MIN_COVERAGE`): the 750 is 695 of 699;
+  with a sparse stretch (`WEEKLY_FILL_MIN_COVERAGE`): the 750 is 699 of 699 with the seven below (695 without);
   Nano Cap 90 of 363 and Combined 785 of 1,062 are left as they were.
 - **Switch:** `config.SCREENER_WEEKLY_NSE_FILL` (env `UMIYA_SCREENER_WEEKLY_FILL`,
   default on). It and the three constants are in the ranking contract
