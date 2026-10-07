@@ -26,6 +26,12 @@ import time
 from typing import Any
 
 from src.core import startup_metrics as metrics
+# Imported here, once, not inside fetch_latest: the app fetches the ranking and
+# the Screener store in parallel threads, and two threads importing
+# src.storage.reader for the first time at once raised _DeadlockError, so R2
+# rankings fell back to the release file on every cold start (log, 7 Oct 2026).
+from src.storage.r2 import R2Archive
+from src.storage.reader import R2DatasetReader
 from src.core import code_reload
 from src.core.logger import logger
 
@@ -94,11 +100,7 @@ def fetch_latest(dataset: str, label: str, *, archive=None) -> bytes | None:
             if config is None:
                 metrics.note(f"r2_{label}", "not_configured")
                 return None
-            from src.storage.r2 import R2Archive
-
             archive = R2Archive(config)
-        from src.storage.reader import R2DatasetReader
-
         reader = R2DatasetReader(archive)
         ref = reader.resolve_current(dataset)
         body = reader.read_bytes(ref)
