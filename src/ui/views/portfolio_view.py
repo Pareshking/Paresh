@@ -522,7 +522,7 @@ def render_portfolio_view(
     wins = int((closed_valid["Return %"] > 0).sum()) if not closed_valid.empty else 0
     losses = int((closed_valid["Return %"] < 0).sum()) if not closed_valid.empty else 0
 
-    kit.page_head("Portfolio")
+    kit.page_head("Portfolio", "")
 
     # Frozen Portfolio KPI design: six centered cards, with benchmark
     # comparisons shown as a second layer only where a comparable period exists.
