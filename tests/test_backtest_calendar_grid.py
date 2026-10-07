@@ -57,16 +57,17 @@ def test_an_empty_curve_gives_an_empty_grid():
     assert ledger["months"] == {} and build_combined_grid(ledger).empty
 
 
-def test_alpha_aggregates_can_be_the_plain_difference_the_default_compounds_the_months():
+def test_alpha_aggregates_are_the_plain_difference_by_default_compounding_on_request():
     eq = _curve("2010-02-01", "2010-12-31", 0.0008)
     bm = _curve("2010-02-01", "2010-12-31", 0.0003)
     ledger = ledger_from_curves(eq, bm)
-    plain = build_combined_grid(ledger, alpha_as_difference=True).set_index("SERIES")
-    default = build_combined_grid(ledger).set_index("SERIES")
+    plain = build_combined_grid(ledger).set_index("SERIES")
+    compounded = build_combined_grid(ledger, alpha_as_difference=False).set_index("SERIES")
     for col in ("CY RETURN", "FY RETURN", "Q1", "Q2", "Q3", "Q4"):
         a, s, b = plain.loc["Alpha", col], plain.loc["Strategy", col], plain.loc["Nifty 500", col]
         if pd.notna(s) and pd.notna(b):
             assert abs(a - (s - b)) < 1e-12
-    # the monthly cells are differences either way, and the Portfolio default is unchanged
-    assert plain.loc["Alpha", "MAR"] == default.loc["Alpha", "MAR"]
-    assert abs(default.loc["Alpha", "CY RETURN"] - (plain.loc["Strategy", "CY RETURN"] - plain.loc["Nifty 500", "CY RETURN"])) > 1e-6
+    # S40 (owner, 7 Oct): Portfolio uses the default, so every page shows the difference.
+    # The monthly cells are differences either way.
+    assert plain.loc["Alpha", "MAR"] == compounded.loc["Alpha", "MAR"]
+    assert abs(compounded.loc["Alpha", "CY RETURN"] - (plain.loc["Strategy", "CY RETURN"] - plain.loc["Nifty 500", "CY RETURN"])) > 1e-6
