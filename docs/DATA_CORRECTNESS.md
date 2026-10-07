@@ -83,6 +83,13 @@ Run after every long-file build (`nse_long_prices.yml` does, and publishes
 | `scripts/audit_gaps_against_bse.py` | Every stretch of 5+ sessions the file has no price for: NSE-only gap, real suspension, or not checked | `bse_gap_verify.csv` (its price-only match picks another company's code for many thin stocks: section 6) |
 | build + `scripts/verify_bse_fill.py` | Which gaps were filled from BSE and why the others were not; do the filled days agree with the references | `bse_fill_gaps.csv`, `bse_fill_cells.csv`, `bse_fill_verify.json`, `bse_fill_verify_outliers.csv` |
 
+How fast the build is (7 Oct 2026, TODO S54): the computation takes about 15 s.
+What took ~32 of its ~33 minutes was reading each session's corporate-action
+file from R2 one at a time. They are now read 16 at a time, and the rows go to
+`nse_actions_pack.parquet` on the release with the raw pack, so a build reads
+only the days the pack lacks plus the newest 10; `full=yes` reads everything.
+Every adjustment is still worked out again from all of them.
+
 Getting a finished run's files into the container: list the run's artifacts,
 `download_workflow_run_artifact` returns a short-lived blob URL, `curl` it.
 Job logs over ~60k characters come back as a file; slice it with Python.

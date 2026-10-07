@@ -80,3 +80,54 @@ def test_read_actions_keeps_the_lists_date_over_a_swapped_bc_row(monkeypatch):
     got = audit.read_actions(Reader(), None, date(2026, 1, 1), date(2026, 3, 31))
     assert list(got["ex_date"]) == [pd.Timestamp("2026-03-02")]
     assert list(got["source"]) == ["list"]
+
+
+def _bc_reader(days, fail=()):
+    calls = []
+
+    class Reader:
+        def resolve_current(self, dataset, as_of):
+            return (dataset, as_of)
+
+        def read_parquet(self, key):
+            dataset, as_of = key
+            if dataset == audit.nh.R2_ACTIONS_HISTORY:
+                return pd.DataFrame({"date": [pd.Timestamp("2026-01-01")], "symbol": ["LST"],
+                                     "ex_date": [pd.Timestamp("2026-01-05")], "purpose": ["BONUS 1:1"]})
+            calls.append(as_of)
+            if as_of in fail:
+                raise OSError("R2 refused")
+            d = pd.Timestamp(as_of)
+            return pd.DataFrame({"date": [d], "symbol": [f"S{d:%m%d}"], "ex_date": [d + pd.Timedelta(days=3)],
+                                 "purpose": ["BONUS 1:1"]})
+
+    return Reader(), calls
+
+
+def test_corporate_action_days_are_read_once_then_only_new_ones(monkeypatch):
+    # S54 (owner, 7 Oct 2026): the build read every day's file one by one, ~32 minutes.
+    days = [d.date() for d in pd.bdate_range("2026-01-01", periods=30)]
+    monkeypatch.setattr(audit.nh, "r2_days", lambda archive, dataset: set(days))
+    reader, calls = _bc_reader(days)
+    full = audit.read_bc_rows(reader, None, days[0], days[-1], log=lambda *_: None)
+    assert len(calls) == 30 and len(full) == 30
+    calls.clear()
+    pack = full[full["r2_day"] < pd.Timestamp(days[25])]          # the last build had 25 days
+    again = audit.read_bc_rows(reader, None, days[0], days[-1], pack=pack, log=lambda *_: None)
+    assert len(calls) == audit.REREAD_DAYS                         # the 5 new days + the newest 10 overall
+    assert sorted(again["symbol"]) == sorted(full["symbol"])
+    # The actions built from the pack are the actions a full read gives.
+    a = audit.read_actions(reader, None, days[0], days[-1], bc_rows=again)
+    b = audit.read_actions(reader, None, days[0], days[-1], bc_rows=full)
+    cols = ["symbol", "ex_date", "purpose", "kind", "source"]
+    assert a[cols].sort_values("symbol").reset_index(drop=True).equals(b[cols].sort_values("symbol").reset_index(drop=True))
+
+
+def test_a_corporate_action_day_that_cannot_be_read_stops_the_build(monkeypatch):
+    import pytest
+
+    days = [d.date() for d in pd.bdate_range("2026-01-01", periods=5)]
+    monkeypatch.setattr(audit.nh, "r2_days", lambda archive, dataset: set(days))
+    reader, _ = _bc_reader(days, fail={days[2].isoformat()})
+    with pytest.raises(RuntimeError, match="could not be read"):
+        audit.read_bc_rows(reader, None, days[0], days[-1], log=lambda *_: None)

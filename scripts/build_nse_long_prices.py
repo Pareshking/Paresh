@@ -47,7 +47,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import src.engine.pipeline  # noqa: E402,F401  (import order: avoids a circular import)
-from scripts.nse_history_audit import read_actions, read_history  # noqa: E402
+from scripts.nse_history_audit import read_actions, read_bc_rows, read_history  # noqa: E402
 from src.engine.backtester import SAME_COMPANY  # noqa: E402
 from src.engine.index_universe import all_ever_members  # noqa: E402
 from src.loaders import bse_fill  # noqa: E402
@@ -61,6 +61,7 @@ REPORT_FILE = "nse_long_report.json"
 FILL_CELLS_FILE = "bse_fill_cells.csv"
 FILL_GAPS_FILE = "bse_fill_gaps.csv"
 PACK_FILE = "nse_raw_pack.parquet"
+ACTIONS_PACK_FILE = "nse_actions_pack.parquet"
 CRORE = 1e7
 
 
@@ -188,6 +189,9 @@ def main(argv=None) -> int:
     ap.add_argument("--pack", type=Path, default=None,
                     help="raw-history pack from the last build: only sessions it lacks are read "
                          "from R2, and the updated pack is written to --out")
+    ap.add_argument("--actions-pack", type=Path, default=None,
+                    help="the daily corporate-action rows the last build read (nse_actions_pack.parquet): "
+                         "only the days it lacks, and the newest few, are read from R2")
     args = ap.parse_args(argv)
 
     from src.loaders.nse_identity import auto_renames
@@ -230,7 +234,16 @@ def main(argv=None) -> int:
     renames = {**auto_renames(set(prices["symbol"].dropna().unique())), **(notes.get("renames") or {})}
     keep, raw = wanted_symbols(notes, renames)
     prices = prices[prices["symbol"].isin(raw)]
-    actions, from_tejhq = with_tejhq(read_actions(reader, archive, args.since, until))
+    # The daily corporate-action files, through their own pack (owner, 2026-10-07:
+    # one request pair per day, one at a time, was ~32 of the build's ~33 minutes).
+    # Every factor is still worked out again from all of them below.
+    old_bc = None
+    if args.actions_pack is not None and args.actions_pack.exists():
+        old_bc = pd.read_parquet(args.actions_pack)
+    bc_rows = read_bc_rows(reader, archive, args.since, until, pack=old_bc, workers=args.workers)
+    if len(bc_rows):
+        bc_rows.to_parquet(args.out / ACTIONS_PACK_FILE, index=False, compression="zstd")
+    actions, from_tejhq = with_tejhq(read_actions(reader, archive, args.since, until, bc_rows=bc_rows))
     actions = actions[actions["symbol"].isin(raw)] if len(actions) else actions
     print(f"keeping {len(keep)} symbols ({len(raw)} raw tickers): "
           f"{len(prices):,} price rows, {len(actions):,} actions")
