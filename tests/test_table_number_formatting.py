@@ -39,7 +39,7 @@ def test_fraction_columns_are_declared(column):
 
 
 @pytest.mark.parametrize("column", [
-    "Turnover %", "Cost Drag %", "Weight %", "% High", "% ATH", "% 50 EMA",
+    "Turnover %", "Cost Drag %", "Weight %", "Day P&L %", "% High", "% ATH", "% 50 EMA",
     "% 20 EMA", "% 52W High", "ATR %", "FFill %", "Del %",
     "Max DD 1M", "Max DD 3M", "Max DD 12M",
 ])
@@ -47,9 +47,23 @@ def test_scaled_columns_are_declared(column):
     assert percent_unit(column) == "scaled"
 
 
-def test_undeclared_columns_still_fall_back_to_the_guess():
+def test_non_percentage_columns_remain_undeclared():
     assert percent_unit("Sharpe") is None
     assert percent_unit("Symbol") is None
+
+
+def test_undeclared_percentage_units_fail_loudly(monkeypatch):
+    with pytest.raises(ValueError, match="Undeclared percentage unit"):
+        _render(pd.DataFrame({"Symbol": ["X"], "New Return %": [0.5]}), monkeypatch)
+
+
+def test_day_pnl_percent_is_scaled(monkeypatch):
+    html = _render(
+        pd.DataFrame({"Symbol": ["SIGMAADV"], "Day P&L %": [-0.9]}),
+        monkeypatch,
+    )
+    assert "-0.9%" in html
+    assert "-90.0%" not in html
 
 
 def test_a_multibagger_is_not_printed_as_a_rounding_error(monkeypatch):
