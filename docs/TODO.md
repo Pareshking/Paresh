@@ -4,7 +4,7 @@ The one list of what is still open. Tick an item when it is done and verified,
 with the date and the PR or run that proves it; move it to **Done** at the
 bottom. Add anything promised in a conversation here the same day.
 
-_Last updated: 2026-10-03_
+_Last updated: 2026-10-07_
 
 ## Now
 
@@ -23,7 +23,7 @@ Rules and status: `docs/PRICE_PIPELINE.md`.
 |---|---|---|---|
 | S1 | SS store for every symbol, page 1 | 1,216 stored; the 20 failures are renamed symbols stored under their new names | [x] 2 Oct, `ss_sync` run 36981505043 |
 | S2 | Rights factor, two-of-three vote with NSE as judge, nightly report | Merged; real run on 1,214 stocks: all 10 rights issues settled, 0 unexplained level shifts | [x] 2 Oct (#330) |
-| S3 | Nightly 22:02 IST: SS update, release + R2 `prices/ss`, three-source report | First scheduled run's summary shows the report; `prices/ss` on R2 | [ ] first run tonight (2 Oct) |
+| S3 | Nightly 22:02 IST: SS update, release + R2 `prices/ss`, three-source report | First scheduled run's summary shows the report; `prices/ss` on R2 | [x] scheduled runs green 5 and 6 Oct (37384853534, 37531426257); report on the release (`reconcile_*`) |
 | S4 | NSE history on R2 back to 2010 | `nse/prices_daily` from 10 Jun 2010 (0 failures), `nse/corporate_actions_history` 2010 – 2026 | [x] 2 Oct (#336, #342) |
 | S5 | Missing-days check 2010 – today: every weekday R2 lacks asked of NSE once (a bundle = a missing day, now saved; none = a holiday, recorded in `nse/closed_days`), incl. Jan – 9 Jun 2010 (the mirror starts 10 Jun) | `nse_collect` run shows 0 days to go since 2010-01-01 | [x] 2 Oct: 114 sessions found and saved, 130 holidays recorded; confirmation run 37037900424: 4,216 sessions 2010-01-04 to 2026-10-01, **0 days to go** |
 | S14 | History before 2010 for the 1 Jan 2010 ranking: 2008 – 2009 from NSE's classic bhavcopy, corporate actions from 2008 | `nse_history_import` with `pre2010_since=2008-01-01` | [x] 2 Oct, run 37039302479: 488 sessions, 0 failed; the 17 Oct 2009 Muhurat session fetched 3 Oct (run 37057071481) |
@@ -34,13 +34,13 @@ Rules and status: `docs/PRICE_PIPELINE.md`.
 | S19 | The long file against independent prices, every stock, every day (owner, 3 Oct: production-level price series for every index stock) | `scripts/audit_long_prices.py` against Yahoo, eod2, Tijori, Screener, SS, TejHQ, NSE MarketLens; every move beyond 21% up or down confirmed or explained | [x] 3 Oct: faults and fixes in `docs/PRICE_PIPELINE.md` (#348, #350, #353, #354, #355); 94% of 3.7M stock-days within 2% of eod2, 32 fake moves left before #355's fixes |
 | S20 | Reference histories backed up, protected from R2 clean-up | `reference/*` and `prices/screener/max_history` on R2, `PROTECTED_DATASETS` in `r2_retention.py`, local copy | [x] 3 Oct: 8 datasets on R2 (#352, #355), release `ref_*`, `C:\Users\Quali\Paresh_reference_backup\2026-10-03` |
 | S21 | Re-audit the file built with #355 (BZ days, 19 corrections) | Fake moves in index windows explained or fixed | [x] 3 Oct: big moves 1,226 down / 246 up confirmed, 1 + 1 fake; 50 largest History trades checked on the web, 49 real, PFIZER a dividend (S31); rights issues and small bonuses now adjusted (MarketLens breaks where ours moved 52 -> 1); Nifty 500 2010-2026 19.8%/yr vs 10.3%, Sharpe 0.69, max drawdown -37% |
-| S22 | J&K Bank 2015-02-09: -18% that MarketLens shows and Yahoo does not | Find the action; correct or leave | [ ] |
+| S22 | J&K Bank 2015-02-09: -18% that MarketLens shows and Yahoo does not | Find the action; correct or leave | [x] 7 Oct: no action; a real fall on Q3 results (profit -67%), 8M shares; eod2, MarketLens, TejHQ the same, Yahoo stale. No change (`reports/dq_sweep_2026-10-07.md`) |
 | S23 | Decide: fill Screener's sparse history (weekly before the latest year) with NSE's daily closes in the app's price frame | Owner decision: Screener's 9M/12M momentum windows reach further than a year on the sparse stretch (2026 Total Market backtest: ~1 holding a month differs) | [ ] owner |
-| S24 | SS full history (history mode, 912 stocks back to listing) | `ss_sync` mode=history runs complete; SS added to the audit | [ ] run 37061786684 started 3 Oct |
+| S24 | SS full history (history mode, 912 stocks back to listing) | `ss_sync` mode=history runs complete; SS added to the audit | [ ] run 37061786684 (3 Oct) stopped at its time limit: 369 of 1,391 stocks whole, 1,022 still from 2022. Run 37633025189 started 7 Oct (17 rounds); one more run after it |
 | S25 | Renames refused for a consolidation on the rename day (NANDAN -> NDL +976%, SIGNET -> SIGIND +688%, SEINVEST -> PAISALO +854%) | Take that day's factor out of the move before the continuity check | [ ] low (small caps) |
-| S26 | TUBEINVEST -> CHOLAHLDNG (-26%, a demerger at the rename) refused | Demerger factor or notes.json entry, if it matters | [ ] |
+| S26 | TUBEINVEST -> CHOLAHLDNG (-26%, a demerger at the rename) refused | Demerger factor or notes.json entry, if it matters | [x] 7 Oct: left as is. TUBEINVEST left the Nifty 500 after Apr 2017, before its series ends (23 Aug 2017); CHOLAHLDNG only ranks about seven months later than it could |
 | S27 | Suspended or delisted holdings are valued at their last price | Checked 3 Oct: 7 of 1,570 History exits used a price 9 - 28 days old, all takeovers/open offers (UTV, Alfa Laval, Patni, Nirma, Chemplast) where holders were bought out near the last price | [x] no change needed |
-| S28 | data/benchmarks.csv rewritten by the daily sync with formatting only (19384.30 -> 19384.3) | benchmark_store.write uses float_format="%.2f" and keeps 19384.30 locally on the same code; the sync run 37066457318 still dropped the zero: find which step rewrites it | [ ] small |
+| S28 | data/benchmarks.csv rewritten by the daily sync with formatting only (19384.30 -> 19384.3) | benchmark_store.write uses float_format="%.2f" and keeps 19384.30 locally on the same code; the sync run 37066457318 still dropped the zero: find which step rewrites it | [x] 7 Oct: pandas 3 made the closes `object` when a day added no rows, so `%.2f` was skipped; `merge` skips empty frames, `write` casts to float (sweep PR). [ ] next daily sync after merge writes two decimals |
 | S29 | Screener full history (weekly before the latest year) as a source | On R2 `prices/screener/max_history` and release; kept apart from the app's store | [x] 3 Oct |
 | S30 | Tapetide MCP (needs the owner's token) for disputed cases only | Owner adds a token if wanted | [ ] owner, optional |
 | S31 | Large dividends read as falls (PFIZER Rs 360 on 5 Dec 2013, 21% of the price; 23 stocks paid 10%+ in one go) | Owner: adjust dividends above a threshold (say 10%), all dividends, or none (today: none, like Screener and the live system). `large_dividends.csv` in the audit lists them | [x] 3 Oct: owner chose option 1, dividends of 10% or more adjusted (28 events) |
@@ -55,6 +55,8 @@ Rules and status: `docs/PRICE_PIPELINE.md`.
 | S40 | The Alpha row's CY / FY / quarter cells on Portfolio and Track Record are the monthly alphas compounded, not the year's strategy return minus the index's (2010 at +17.7% against +25.2% reads -6.4%, not -7.5%); the Backtest tab uses the plain difference | Owner decides: change Portfolio and Track Record to the difference too (`build_combined_grid(..., alpha_as_difference=True)`), or keep | [ ] owner |
 | S41 | Nifty 500 baseline of 31 Dec 2009: NSE's own list of 2 Jan 2010 (Wayback) has Zandu Pharmaceutical Works (ZANDUREALT) where ours has 3IINFOTECH; the other three differences that day are renames and a spelling (`check_nifty500_against_wayback.py`, 3 Oct) | Find the notice or list that settles it, correct the baseline or record why not; add ASIANHOTEL -> ASIANHOTNR and KBL -> KIRLOSBROS to the rename ledger | [ ] low (Jan - Feb 2010, before any backtest month) |
 | S42 | Index membership checked against NSE's published Nifty 500 list at 17 dates, 2010 - 2026 | 16 of 17 agree exactly; script and method in `docs/DATA_CORRECTNESS.md` section 8. The Nifty 50, Next 50, Midcap 150, Smallcap 250, Microcap 250 and Total Market have no such independent file beyond `wayback_check.py` | [x] 3 Oct |
+| S44 | ANDHRAPAP rights 3:11 + warrants, ex 23 Feb 2010: NSE's text has no price, so nothing was applied to a -20% day; Rs 50 is quoted only in search summaries | A primary source (letter of offer, BSE notice) for the price; then a notes.json correction or leave. Not a Nifty 500 member until Apr 2016, so no backtest reads it | [ ] low |
+| S45 | Rebuild the long file after the sweep PR (swapped-date twins: ALLCARGO demerger counted twice, HCG rights twice) | `nse_long_prices.yml` run on main; ALLCARGO has no step on 2025-12-11 and HCG none on 2026-02-03; audit zip read | [ ] after merge |
 | S43 | Two older open PRs not merged on 3 Oct: #331 (2026 membership rebuild: conflicts in 3 files, and its `membership_history.json` has no Nifty 500 and only 2025-12-31 baselines, where `main` has Nifty 50 / Next 50 / Nifty 500 back to 2010, so it would delete history) and #24 (Stage 4B pharma packets: 49 commits sharing no history with `main`) | Owner decides: close #331 (what it adds, the HEG/AKZO/DUMMY handling, may already be on `main`; check before closing); rebase or recreate #24 on `main` | [ ] owner |
 | S6 | Renames from NSE's symbol-change list and ISINs | 575 found, 0 conflicts, all 21 ledger renames among them | [x] 2 Oct (#341) |
 | S7 | Adjustment check across 2010 – 2026 (splits, bonuses, rights, demergers, renames) | Report: unexplained jumps listed and explained or fixed | [x] 3 Oct: see S19 |
@@ -75,19 +77,19 @@ run 37061786684). Next session: S21, then S23 (owner decision), S22, S25,
 S26, S28, S10. Backups: R2 `reference/*` + `prices/screener/max_history`
 (protected), release `ref_*`, local `C:\Users\Quali\Paresh_reference_backup\2026-10-03`.
 
-## Data-quality sweep (3 Oct 2026, 13:40 - 16:40 IST, laptop off, cloud session)
+## Data-quality sweep (planned 3 Oct 2026 for a cloud session; run 7 Oct on the laptop)
 
 Owner, 3 Oct: fine-comb the data, random checks, verify backtest trades
-against real prices. Everything read from GitHub (public repo, release
-`data-latest`, Actions artifacts) and the web; nothing local.
+against real prices. The cloud session of 3 Oct left no commits, report or
+PR, so the sweep was run on 7 Oct. Report: `reports/dq_sweep_2026-10-07.md`.
 
-| # | When (IST) | What | How we know it is done | Status |
-|---|---|---|---|---|
-| Q1 | 13:40 - 14:20 | Read the rebuild with #369 - #371 (run 37107876721) and its audit zip (`long_price_audit_latest.zip`: Screener point-by-point, raw bars, ISIN lineage, calendar); read the SS history run (S24, 37061786684) | Every new flag fixed or explained here | [ ] |
-| Q2 | 14:20 - 15:00 | Random checks: 40 random (stock, day) closes from the long file against NSE's raw bhavcopy x our factors and an independent source (Yahoo / eod2 / web); 20 random corporate actions (incl. the 28 dividends of S31 and the new rights rows) against NSE/BSE announcements | Mismatch table in `reports/dq_sweep_2026-10-03.md`; each mismatch fixed or explained | [ ] |
-| Q3 | 15:00 - 15:50 | Backtest trades: Nifty 500 History 2010 - 2026 on the new file; 25 random + the 25 largest trades: entry/exit prices against the raw close and the factor, index membership on entry from NSE's notices, trade return recomputed by hand | Table in the same report; 0 unexplained | [ ] |
-| Q4 | 15:50 - 16:25 | S22 (J&K Bank 2015-02-09), S28 (benchmarks.csv zeros); S26 if time | PR merged or reason written | [ ] |
-| Q5 | 16:25 - 16:40 | Handover: TODO ticked, report committed, PR green | PR link in this row | [ ] |
+| # | What | How we know it is done | Status |
+|---|---|---|---|
+| Q1 | Read the live rebuild (run 37113597811, with #372; it replaced 37107876721) and its audit zip; read the SS history run (S24, 37061786684) | Every new flag fixed or explained here | [x] 7 Oct: 5 breaks where ours moved are rights issues at their terms; 255 of 266 Screener shifts side with ours, 10 are rules in force, 1 open (S44); all 1,096 adjustment steps matched to an action: 2 faults (ALLCARGO, HCG: one action applied twice at a swapped date), fixed in the sweep PR, rebuild S45. SS history incomplete (S24) |
+| Q2 | Random checks: 40 random (stock, day) closes against NSE's raw rows x our factors and the references; 20 random corporate actions | Mismatch table in the report; each mismatch fixed or explained | [x] 7 Oct: 40 / 40 closes = raw x the later listed steps, 38 / 40 within 2% of a reference (2 demergers the references do not adjust); 20 / 20 actions as the terms and the references give, or a rule in force |
+| Q3 | Backtest trades: Nifty 500 History 2010 - 2026; 25 random + the 25 largest trades | Table in the same report; 0 unexplained | [x] 7 Oct: 19.9%/yr vs 10.3%, Sharpe 0.68, max DD -38.7%; 50 / 50 trades: prices = closes, return by hand = engine, member on entry, within 2 points of a reference |
+| Q4 | S22 (J&K Bank 2015-02-09), S28 (benchmarks.csv zeros); S26 if time | PR merged or reason written | [x] 7 Oct: S22 real (no change), S28 fixed, S26 reason written |
+| Q5 | Handover: TODO ticked, report committed, PR green | PR link in this row | [ ] sweep PR (draft) |
 
 ## UI and data overhaul (raised 1 Oct 2026)
 
@@ -102,7 +104,7 @@ Full findings and work packages: `docs/UI_OVERHAUL_PLAN.md`.
 | U2c | One chart component (WP2): `src/ui/lw_chart.py`, Lightweight Charts vendored, crosshair + all-series legend; Breadth, Portfolio equity+drawdown, Backtest and Track Record growth moved onto it. RRG is Highcharts | PR merged; check hover on the live site | [x] merged (#304) |
 | U3 | Portfolio rebuild and Track Record merge (WP3, WP4): Portfolio is one page (book, exposure, equity+drawdown, calendar, record, trades, rebalances); `/track-record` redirects to it | PR merged; live check | [x] merged (#304) |
 | U4 | Screener (WP5): done in PR (Quant master table, movers tabs, not-qualified preset, new-highs counts). Breadth charts, RRG benchmark/wording and Configuration summary done in PR. Track Record merged into Portfolio; text sweep (Sectors, Actions, Guide) and heading glossary (Open, Unrealised P&L) done in PR | PR merged; live check | [x] merged (#304) |
-| U5 | Data catalogue, NSE vs Yahoo comparison, R2 policy (WP10) | `docs/DATA_CATALOGUE.md` written (datasets, writers, readers, retention, source order, comparison status). Freshness table now in Configuration. Still open: fourth NSE report and the price-order decision | [ ] partly done |
+| U5 | Data catalogue, NSE vs Yahoo comparison, R2 policy (WP10) | `docs/DATA_CATALOGUE.md` written (datasets, writers, readers, retention, source order, comparison status). Freshness table now in Configuration. Fourth NSE report read (item 2) and price order decided (item 3) | [x] |
 | U6 | Hide the TradingView logo on every Lightweight chart (`layout.attributionLogo: false` in `lw_chart.py` and `lightweight_chart.py`); the vendored v4.2.0 draws it by default | PR merged; no logo on the stock page | [x] 3 Oct (#364): 41 chart tests pass |
 | U7 | Upgrade vendored Lightweight Charts v4.2.0 -> 5.x: `addSeries(LineSeries, ...)` calls, `tests/test_lw_chart.py`, look at the stock, Breadth, Backtest and Portfolio pages; native panes can replace the hand-synced stack later | Separate PR merged; logo still off; charts checked on the live site | [x] 3 Oct: v5.2.1, series via addSeries, rendered in Chromium (candles, volume, baseline, area, line, synced panes): no errors, no logo |
 | U8 | Refresh every stock's TradingView sector and industry, not only the blank ones (`classify_missing.py --refresh`, weekly): 22 stale rows corrected, 5 Nano Cap labels | PR merged; nightly step green | [x] 3 Oct |
