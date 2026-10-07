@@ -167,7 +167,7 @@ ex-date, kind and factor (500 splits and bonuses had gone unapplied, #348).
 
 ## The long price file (backtests from 2010)
 
-`scripts/build_nse_long_prices.py` (weekly, `nse_long_prices.yml`) reads every
+`scripts/build_nse_long_prices.py` (weekly, `nse_long_prices.yml`; ~2.5 minutes since 7 Oct 2026: it reads from R2 only the sessions and corporate-action days its two packs lack, then recomputes every factor from all of them) reads every
 session on R2 from 2008 and writes to the `data-latest` release: closes adjusted
 for splits, bonuses, consolidations, demergers, rights issues and dividends
 of 10% or more, renames joined (owner, 3 Oct 2026: correct data first), for every stock any index ever listed (1,380, plus 38 old
