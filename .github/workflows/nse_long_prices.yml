@@ -4,7 +4,9 @@ name: NSE long price file (backtests from 2010)
 # runs on: R2's NSE bhavcopy, 2008 to date, adjusted for splits, bonuses,
 # consolidations and demergers, renames joined; every stock any index ever
 # listed; traded value alongside. Read only on R2; the three files go to the
-# data-latest release (src/loaders/nse_long.py reads them).
+# data-latest release (src/loaders/nse_long.py reads them). NSE-only gaps are
+# filled from BSE's raw closes (bse_daily.parquet on the release, refreshed by
+# bse_daily.yml; src/loaders/bse_fill.py, TODO S38) before any adjustment.
 # See scripts/build_nse_long_prices.py.
 on:
   schedule:
@@ -54,10 +56,20 @@ jobs:
           gh release download data-latest --repo "$GITHUB_REPOSITORY" --pattern nse_raw_pack.parquet --dir pack \
             || echo "No pack yet: every session is read from R2."
           ls -lh pack
+      # BSE's table (bse_daily.yml): NSE-only gaps are filled from it. Without it
+      # the build still runs, fills nothing, and says so in the report.
+      - name: BSE's daily table
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p bse
+          gh release download data-latest --repo "$GITHUB_REPOSITORY" --pattern bse_daily.parquet --dir bse \
+            || echo "::warning::no bse_daily.parquet on the release: NSE-only gaps stay empty this build"
+          ls -lh bse
       - name: Build
         run: |
           # A missing pack (first run, or full=yes) reads every session.
-          python scripts/build_nse_long_prices.py --since "${{ inputs.since || '2008-01-01' }}" --out data_cache/nse_long --pack pack/nse_raw_pack.parquet
+          python scripts/build_nse_long_prices.py --since "${{ inputs.since || '2008-01-01' }}" --out data_cache/nse_long --pack pack/nse_raw_pack.parquet --bse bse/bse_daily.parquet
           ls -lh data_cache/nse_long
           {
             echo "## NSE long price file"
@@ -111,11 +123,15 @@ jobs:
           python scripts/audit_long_prices.py --ours data_cache/nse_long/nse_long_close.parquet             --ref yahoo=refs/ref_yahoo_close.parquet --ref eod2=refs/ref_eod2_close.parquet             --ref tijori=refs/ref_tijori_close_verified.parquet --ref ss=refs/ref_ss_close.parquet             --ref marketlens=refs/ref_marketlens_close.parquet --ref tejhq=refs/ref_tejhq_adjusted_close.parquet             --no-confirm marketlens --no-confirm tejhq --out audit
           python scripts/audit_against_screener.py --ours data_cache/nse_long/nse_long_close.parquet             --screener refs/screener_max_history.parquet --out audit
           python scripts/audit_raw_bars.py --pack data_cache/nse_long/nse_raw_pack.parquet --ours data_cache/nse_long/nse_long_close.parquet             --actions refs/actions --out audit
+          # The days taken from BSE: every cell, every gap's verdict, and their
+          # agreement with the independent references (scripts/verify_bse_fill.py).
+          cp data_cache/nse_long/bse_fill_cells.csv data_cache/nse_long/bse_fill_gaps.csv audit/
+          python scripts/verify_bse_fill.py --long data_cache/nse_long/nse_long_close.parquet             --cells data_cache/nse_long/bse_fill_cells.csv --report data_cache/nse_long/nse_long_report.json             --ref tijori=refs/ref_tijori_close_verified.parquet --ref eod2=refs/ref_eod2_close.parquet             --ref ss=refs/ref_ss_close.parquet --ref yahoo=refs/ref_yahoo_close.parquet             --ref screener=refs/screener_max_history.parquet --out audit
           (cd audit && zip -q ../long_price_audit_latest.zip ./*)
           gh release upload data-latest long_price_audit_latest.zip --repo "$GITHUB_REPOSITORY" --clobber
           {
             echo "## Audit"
-            for f in summary.json screener_summary.json raw_summary.json; do
+            for f in summary.json screener_summary.json raw_summary.json bse_fill_verify.json; do
               echo "### $f"; echo '```json'; cat "audit/$f"; echo '```'
             done
           } >> "$GITHUB_STEP_SUMMARY"
