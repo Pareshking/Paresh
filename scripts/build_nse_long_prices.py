@@ -18,7 +18,16 @@ files and NSE's yearly list), keeps every stock any index ever listed
     nse_long_value.parquet   traded value per session, in Rs crore (NSE's own
                              TOTTRDVAL, which no split changes), joined the same way.
     nse_long_report.json     what was built: sessions, symbols, unpriced names,
-                             renames joined and refused.
+                             renames joined and refused, gaps filled from BSE.
+    bse_fill_cells.csv       every close taken from BSE (symbol, date, BSE code,
+                             BSE close), and bse_fill_gaps.csv every gap looked
+                             at, filled or refused and why (src/loaders/bse_fill.py).
+
+Stretches NSE has no row for while BSE traded the stock (an NSE-only gap,
+docs/DATA_CORRECTNESS.md section 6) are filled with BSE's raw close before any
+factor is applied, so every action reaches those days as it reaches NSE's own
+(owner, 2026-10-07, TODO S38). --bse names BSE's table (bse_daily.parquet,
+scripts/bse_bhavcopy.py); without it nothing is filled and the report says so.
 
 Read only on R2. The workflow nse_long_prices.yml uploads the three files to
 the data-latest release, which src/loaders/nse_long.py reads.
@@ -41,6 +50,7 @@ import src.engine.pipeline  # noqa: E402,F401  (import order: avoids a circular 
 from scripts.nse_history_audit import read_actions, read_history  # noqa: E402
 from src.engine.backtester import SAME_COMPANY  # noqa: E402
 from src.engine.index_universe import all_ever_members  # noqa: E402
+from src.loaders import bse_fill  # noqa: E402
 from src.loaders import nse_adjusted as na  # noqa: E402
 from src.loaders import nse_history as nh  # noqa: E402
 from src.loaders import nse_prices as npx  # noqa: E402
@@ -48,6 +58,8 @@ from src.loaders import nse_prices as npx  # noqa: E402
 CLOSE_FILE = "nse_long_close.parquet"
 VALUE_FILE = "nse_long_value.parquet"
 REPORT_FILE = "nse_long_report.json"
+FILL_CELLS_FILE = "bse_fill_cells.csv"
+FILL_GAPS_FILE = "bse_fill_gaps.csv"
 PACK_FILE = "nse_raw_pack.parquet"
 CRORE = 1e7
 
@@ -102,8 +114,16 @@ def with_tejhq(actions: pd.DataFrame, path: Path = TEJHQ_ACTIONS,
 
 
 def build(prices: pd.DataFrame, actions: pd.DataFrame, notes: dict, renames: dict,
-          keep: list[str]) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
-    """(adjusted closes, traded value in Rs Cr, report) for `keep`, from NSE's raw rows."""
+          keep: list[str], *, bse: pd.DataFrame | None = None, isin_history: pd.DataFrame | None = None,
+          current_isins: dict[str, str] | None = None, fill_log: dict | None = None
+          ) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
+    """(adjusted closes, traded value in Rs Cr, report) for `keep`, from NSE's raw rows.
+
+    `bse` (BSE's table) fills NSE-only gaps in the RAW closes before anything is
+    adjusted (src/loaders/bse_fill.py); `fill_log`, when given, receives the
+    filled cells and every gap's verdict ("cells", "gaps"). Traded value is not
+    filled: it is NSE's own turnover, and NSE dealt nothing those days.
+    """
     w = na.wide(prices)
     for k in w:
         w[k].index = pd.DatetimeIndex(w[k].index)
@@ -112,6 +132,15 @@ def build(prices: pd.DataFrame, actions: pd.DataFrame, notes: dict, renames: dic
     copies = na.copied_sessions(w["close"], w["volume"])
     w = {k: f.drop(index=copies.index, errors="ignore") for k, f in w.items()}
     close, value = w["close"], w["value"]
+    if bse is not None:
+        close, cells, gap_rows = bse_fill.fill(close, bse, history=isin_history, current=current_isins)
+        fill_report = bse_fill.summary(cells, gap_rows)
+    else:
+        cells = pd.DataFrame(columns=bse_fill.CELL_COLUMNS)
+        gap_rows = pd.DataFrame(columns=bse_fill.GAP_COLUMNS)
+        fill_report = {"status": "no BSE table given: nothing filled", "cells_filled": 0}
+    if fill_log is not None:
+        fill_log.update(cells=cells, gaps=gap_rows)
     # Rupees on every day: R2's mirror rows for 2010-2018 carry value x 1e5
     # (the mirror's TURNOVER_LACS held rupees then); a day's value over close x
     # volume is ~1, so a day near 1e5 is scaled back. R2 is never rewritten.
@@ -121,6 +150,7 @@ def build(prices: pd.DataFrame, actions: pd.DataFrame, notes: dict, renames: dic
     value.loc[rescaled] = value.loc[rescaled] / 1e5
     adj, report = npx.adjusted_close(close, actions, keep, notes=notes)
     report["copied_sessions_dropped"] = [str(d.date()) for d in copies.index]
+    report["bse_fill"] = fill_report
     # Left after that, a day NSE cannot have traded (src/loaders/nse_calendar.py):
     # an announced special session missing from its list, or a new kind of error.
     from src.loaders.nse_calendar import impossible_sessions
@@ -153,6 +183,8 @@ def main(argv=None) -> int:
     ap.add_argument("--until", type=date.fromisoformat, default=None)
     ap.add_argument("--out", type=Path, default=Path("data_cache/nse_long"))
     ap.add_argument("--workers", type=int, default=16)
+    ap.add_argument("--bse", type=Path, default=None,
+                    help="BSE's table (bse_daily.parquet): fill NSE-only gaps from it (bse_fill.py)")
     ap.add_argument("--pack", type=Path, default=None,
                     help="raw-history pack from the last build: only sessions it lacks are read "
                          "from R2, and the updated pack is written to --out")
@@ -203,8 +235,23 @@ def main(argv=None) -> int:
     print(f"keeping {len(keep)} symbols ({len(raw)} raw tickers): "
           f"{len(prices):,} price rows, {len(actions):,} actions")
 
-    close, value, report = build(prices, actions, notes, renames, keep)
+    bse = isin_hist = current = None
+    if args.bse is not None and args.bse.exists():
+        from src.loaders.nse_identity import current_isins, isin_history
+
+        bse = pd.read_parquet(args.bse, columns=["date", "code", "name", "close", "shares", "isin"])
+        isin_hist = isin_history()
+        current = {sym: isin for isin, sym in current_isins().items()}
+        print(f"BSE table: {len(bse):,} rows to {pd.to_datetime(bse['date']).max().date()}")
+    elif args.bse is not None:
+        print(f"::warning::no BSE table at {args.bse}: NSE-only gaps stay empty")
+    log: dict = {}
+    close, value, report = build(prices, actions, notes, renames, keep, bse=bse, isin_history=isin_hist,
+                                 current_isins=current, fill_log=log)
     args.out.mkdir(parents=True, exist_ok=True)
+    log["cells"].to_csv(args.out / FILL_CELLS_FILE, index=False)
+    log["gaps"].to_csv(args.out / FILL_GAPS_FILE, index=False)
+    print("BSE fill:", json.dumps(report["bse_fill"]))
     close.to_parquet(args.out / CLOSE_FILE, compression="zstd")
     value.to_parquet(args.out / VALUE_FILE, compression="zstd")
     report = {**report, "actions_from_tejhq": from_tejhq,

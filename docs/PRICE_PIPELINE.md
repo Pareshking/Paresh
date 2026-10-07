@@ -5,7 +5,7 @@ adjustment automatic. Owner, 2026-10-02: "all the adjustment should be
 automatic and no manual work, we have 3 source and those can give hints to
 each other along with official read from NSE."
 
-_Last updated: 2026-10-03_
+_Last updated: 2026-10-07_
 
 ## The three sources and NSE's own record
 
@@ -243,6 +243,36 @@ backtest is affected because the stocks were out of the indices for it. The
 method, the numbers and the explanation are in `docs/DATA_CORRECTNESS.md`
 (sections 5 and 6). KESORAMIND's 10 Mar 2025 demerger (-95%, 1 UltraTech share per
 52) was found by the same audit and is priced at the ex-date fall in `notes.json`.
+
+### NSE-only gaps filled from BSE (owner, 7 Oct 2026, S38)
+
+The build fills a stretch of 5+ sessions NSE has no row for with BSE's close
+where BSE traded the same company (`src/loaders/bse_fill.py`). The rule:
+
+- **Raw space.** BSE's closes go into NSE's raw closes before any action is
+  confirmed or applied, so every factor (and `notes.json` correction) reaches the
+  filled days as it reaches NSE's; an action dated inside a gap is confirmed on
+  BSE's move. BSE's closes are never mixed with adjusted ones.
+- **Same company** by ISIN (near the gap, else another period); the gap audit's
+  price match only when no ISIN finds a code; an ambiguous match, or a code whose
+  ISIN names another issuer, is refused.
+- **BSE traded** on at least half the gap's sessions with a BSE file (else a
+  suspension, not filled); only the sessions it traded are filled.
+- **Junctions**: BSE within 2% of NSE (median of the 3 nearest common days) at
+  both ends, else refused.
+- **NSE's own days are never overwritten**; traded value is not filled.
+
+BSE's table comes from the release asset `bse_daily.parquet`, extended weekly
+with the new sessions by `bse_daily.yml` (Fridays 20:30 UTC, before the Saturday
+build) and copied monthly to R2 `bse/daily` (protected from clean-up). Without
+it the build fills nothing and says so (`bse_fill.status` in the report). Each
+build writes `bse_fill_cells.csv` and `bse_fill_gaps.csv`; the audit step adds
+`bse_fill_verify.json` (agreement with Tijori, Screener, Yahoo, eod2, SS) to
+`long_price_audit_latest.zip`. Local rebuild of 7 Oct: 24 gaps filled (20 stocks,
+3,443 sessions, GOODYEAR, NOVARTIND, KENNAMET, KIRLFER and GRAUWEIL across 26 Oct
+2023 - 17 Apr 2026 among them), 387 refused; 98.6% of the filled cells a
+reference covers are within 2% of one. Numbers and the refusals:
+`docs/DATA_CORRECTNESS.md` section 6.
 
 ### Dividends: only the large ones are adjusted
 

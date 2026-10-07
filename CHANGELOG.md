@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-07 — History from 2010: NSE-only gaps filled from BSE
+
+- The long NSE price file fills a stretch NSE has no row for with BSE's close where BSE traded the same company (by ISIN), the two exchanges meet within 2% at both ends of the gap, and BSE traded on at least half its sessions (`src/loaders/bse_fill.py`, TODO S38). The fill is in raw prices, before any split, bonus or other factor, so those apply to the filled days as to NSE's own; a day NSE has a price for is never changed. A holding or a momentum window across GOODYEAR, NOVARTIND, KENNAMET, KIRLFER and GRAUWEIL from 26 Oct 2023 to 17 Apr 2026 (and FORCEMOT, BESTAGRO and 15 smaller gaps) now sees real prices. Takes effect with the next long-file build.
+- Every filled day and every refused gap is listed in the build and the audit zip (`bse_fill_cells.csv`, `bse_fill_gaps.csv`, `bse_fill_verify.json`).
+- GRAUWEIL's 1:1 bonus of 10 Apr 2024, which fell inside NSE's gap, is a `notes.json` correction: before it the gap read as a 41% loss.
+- BSE's daily table is kept on the release (`bse_daily.parquet`) and on R2 (`bse/daily`, protected), refreshed weekly by the new `bse_daily.yml`.
+
 ## 2026-10-07 — Data-quality sweep: two actions counted twice, benchmark decimals
 
 - History from 2010: a corporate action that also reached the build at its date with day and month swapped is now taken once (`nse_bundle.drop_swapped_twins`): ALLCARGO's demerger (12 Nov 2025) had also priced 11 Dec's -3.6% away, and HCG's rights (2 Mar 2026) had been applied on 3 Feb too. Takes effect with the next long-file build; neither stock was in the Nifty 500.

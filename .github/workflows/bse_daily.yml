@@ -1,0 +1,122 @@
+name: BSE daily table (weekly refresh)
+
+# BSE's bhavcopy 2008 - today as one table (scripts/bse_bhavcopy.py), kept where
+# the long-file build can read it: the data-latest release asset bse_daily.parquet,
+# which nse_long_prices.yml downloads to fill NSE-only gaps from BSE (TODO S38,
+# src/loaders/bse_fill.py), and R2 dataset bse/daily, the durable copy, protected
+# from clean-up (scripts/r2_retention.py PROTECTED_DATASETS).
+#
+# Each run starts from the published table (the release; else R2 bse/daily; else,
+# the first time, the scratch copy of 3 Oct 2026), downloads only the sessions after
+# its last day, and extends it. A request that failed (not "no file": BSE answers a
+# holiday with an HTML page) stops the run before anything is published, so a
+# session is never skipped for good. R2 gets one copy a month (the table is about
+# 250 MB; a protected dataset is never pruned), or on demand.
+on:
+  schedule:
+    # Fridays 20:30 UTC (Sat 02:00 IST): the week's BSE files are out, and the long
+    # file builds at 03:30 UTC Saturday.
+    - cron: '30 20 * * 5'
+  workflow_dispatch:
+    inputs:
+      r2:
+        description: "Publish to R2 bse/daily this run (yes/no; otherwise only in the first week of a month)"
+        default: "no"
+      full:
+        description: "Download every session from 2008 again instead of extending (yes/no)"
+        default: "no"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bse-daily
+  cancel-in-progress: false
+
+jobs:
+  bse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      PYTHONPATH: .
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: The table so far
+        if: inputs.full != 'yes'
+        run: |
+          set -euo pipefail
+          mkdir -p base
+          gh release download data-latest --repo "$GITHUB_REPOSITORY" --dir base --pattern bse_daily.parquet \
+            || python -c "
+          from src.storage.r2 import R2Archive, R2Config
+          from src.storage.reader import R2DatasetReader
+          a = R2Archive(R2Config.from_env())
+          try:
+              r = R2DatasetReader(a)
+              key = r.resolve_current('bse/daily').object_key
+          except Exception as exc:
+              print('no R2 bse/daily yet:', exc)
+              key = 'scratch/bse_bhavcopy_2026-10-03/bse_daily.parquet'
+          print('seeding from', key)
+          a.get_file(key, 'base/bse_daily.parquet')
+          "
+          ls -la base
+      - name: Download the sessions after it
+        run: |
+          set -euo pipefail
+          START=2008-01-01
+          if [ -f base/bse_daily.parquet ]; then
+            START=$(python -c "import pandas as pd; print((pd.read_parquet('base/bse_daily.parquet', columns=['date'])['date'].max() + pd.Timedelta(days=1)).date())")
+          fi
+          echo "from $START"
+          python scripts/bse_bhavcopy.py --mode download --out data_cache/bse_raw --start "$START"
+          # "error" = the request failed (not "BSE has no file"): publish nothing, so the next run asks again.
+          if grep -q ',error$' data_cache/bse_raw/status.csv; then
+            echo "::error::BSE requests failed:"; grep ',error$' data_cache/bse_raw/status.csv; exit 1
+          fi
+      - name: Build and check
+        run: |
+          set -euo pipefail
+          if [ -f base/bse_daily.parquet ]; then
+            python scripts/bse_bhavcopy.py --mode build --raw data_cache/bse_raw --out bse_daily.parquet --base base/bse_daily.parquet
+          else
+            python scripts/bse_bhavcopy.py --mode build --raw data_cache/bse_raw --out bse_daily.parquet
+          fi
+          # Never publish a table that lost sessions, or a first build BSE blocked.
+          python -c "
+          import os, pandas as pd
+          new = pd.read_parquet('bse_daily.parquet', columns=['date'])['date']
+          if os.path.exists('base/bse_daily.parquet'):
+              old = pd.read_parquet('base/bse_daily.parquet', columns=['date'])['date']
+              assert set(old.unique()) <= set(new.unique()), 'sessions lost'
+              assert new.max() >= old.max()
+          assert new.nunique() > 4000, 'fewer than 4000 sessions'
+          print(f'{len(new):,} rows, {new.nunique()} sessions, last {new.max().date()}')
+          "
+          {
+            echo "## BSE daily table"
+            python -c "import pandas as pd; d=pd.read_parquet('bse_daily.parquet', columns=['date'])['date']; print(f'{len(d):,} rows, {d.nunique()} sessions, {d.min().date()} to {d.max().date()}')"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish to the data-latest release
+        run: gh release upload data-latest bse_daily.parquet --repo "$GITHUB_REPOSITORY" --clobber
+      - name: Publish to R2 (bse/daily, protected)
+        if: inputs.r2 == 'yes' || github.event_name == 'schedule'
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.r2 }}" != "yes" ] && [ "$(date -u +%d)" -gt 7 ]; then
+            echo "Not the first week of the month: R2 keeps one copy a month."; exit 0
+          fi
+          python scripts/r2_publish.py --path bse_daily.parquet --dataset bse/daily --source bse_bhavcopy \
+            --key-root archive/bse/daily --pipeline-version "bse-daily-${GITHUB_SHA}" --release-tag data-latest

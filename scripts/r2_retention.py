@@ -94,6 +94,7 @@ RETIRED_DATASETS: dict[str, str] = {
 # lost either. They were safe only because no table above named them; now a
 # mistaken entry is refused. "*" ends a prefix that is not a folder.
 PROTECTED_DATASETS: tuple[str, ...] = (
+    "bse/daily",                        # BSE's bhavcopy table: fills NSE-only gaps (bse_daily.yml, S38)
     "reference/",                       # Yahoo, eod2, Tijori, MarketLens, TejHQ, SS ...
     "prices/screener/max_history",      # Screener's full history, weekly before the latest year
     "nse/",                             # NSE's bhavcopy since 2008, corporate actions, closed days

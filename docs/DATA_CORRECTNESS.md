@@ -33,7 +33,7 @@ _Last updated: 2026-10-07_
 | Source | Use it for | Known weakness | How |
 |---|---|---|---|
 | NSE bhavcopy (R2 `nse/prices_daily`, the raw pack) | The base: raw OHLC, previous close, volume, value | Does not list a security on days NSE did not deal in it (section 5). Turnover is in lakhs to 2 decimals. T0 rows carry EQ's close with the tiny T0 range | Release `data-latest`: `nse_raw_pack.parquet` (170 MB). NSE direct, works from the container with a browser User-Agent: `nsearchives.nseindia.com/products/content/sec_bhavdata_full_DDMMYYYY.csv`, `.../content/historical/EQUITIES/YYYY/MON/cmDDMONYYYYbhav.csv.zip`, `.../content/cm/BhavCopy_NSE_CM_0_0_0_YYYYMMDD_F_0000.csv.zip`, `.../archives/equities/bhavcopy/pr/PRDDMMYY.zip` |
-| **BSE bhavcopy** | The second exchange: did a stock trade on a day NSE has no row for; a second price for every stock since 2008 | 20 sessions Jun 2008 - Jan 2010 have no file; old format has no ISIN; BSE closes differ slightly from NSE's | `scripts/bse_bhavcopy.py` (downloads and builds; needs the Referer header, see its docstring) |
+| **BSE bhavcopy** | The second exchange: did a stock trade on a day NSE has no row for; a second price for every stock since 2008; **the closes of NSE-only gaps in the long file** (section 6) | 20 sessions Jun 2008 - Jan 2010 have no file; old format has no ISIN; BSE closes differ slightly from NSE's; a thin stock's two exchanges can sit far apart (BODALCHEM 2013: BSE 14.28, NSE 8.90 on 35 shares) | `scripts/bse_bhavcopy.py` (downloads and builds; needs the Referer header, see its docstring). The built table: release `data-latest` asset `bse_daily.parquet` and R2 `bse/daily` (protected), refreshed weekly by `bse_daily.yml` |
 | NSE Indices press releases | Why an index changed and when (membership, exclusions) | | `nse_index_rebuild/announcements/txt/`, parsed by `scripts/parse_index_notices.py` |
 | Yahoo (`reference/yahoo_close`) | Level check, big-move vote | **Stale or flat on many days** (flat Yahoo against a real NSE move is Yahoo's gap: AHLUCONT, HCL-INSYS, FSL, FCL, J&KBANK). On `.NS`, a flat price with zero volume means NSE did not deal that day (it says nothing about BSE) | `query1.finance.yahoo.com/v8/finance/chart/<SYMBOL>.NS?period1=..&period2=..&interval=1d` |
 | eod2, Tijori (verified series), SS | Level check and votes; SS has daily OHLCV since 2018 | Tijori only where its level matches NSE MarketLens | R2 `reference/*`, `prices/ss` |
@@ -57,8 +57,17 @@ Compare BSE with the raw pack (the gap audit maps stocks that way), or apply the
 same factors. A one-day move in the long file equals the raw close / previous
 close only on days with no action; on an ex-date it is that move divided by the
 factor, so a demerger priced at the ex-date fall reads 1.00 that day (KESORAMIND
-read 0.0474 only because it was unadjusted). If gaps are ever filled from BSE
-(TODO S38), the BSE closes must go through the same factor series.
+read 0.0474 only because it was unadjusted).
+
+**BSE closes in the long file (S38, owner 7 Oct 2026).** NSE-only gaps are filled
+with BSE's closes in **raw** space: they go into NSE's raw closes before any
+action is confirmed or any factor applied (`src/loaders/bse_fill.py`, called by
+`build_nse_long_prices.build`), so every split, bonus, rights, demerger, dividend
+and `notes.json` factor reaches a filled day exactly as it reaches NSE's own, and
+an action whose ex-date falls inside a gap is confirmed on BSE's move that day.
+Never put a BSE close into the adjusted file, and never compare a filled day's
+long-file close with BSE's level before an action without the factor.
+`bse_fill_cells.csv` holds the raw BSE close of every filled cell.
 
 ## 3. The audits and how to run them
 
@@ -71,7 +80,8 @@ Run after every long-file build (`nse_long_prices.yml` does, and publishes
 | `scripts/audit_long_prices.py` | Same level as each reference? Level breaks and which side moved; every move beyond 21% confirmed, fake, disputed or unverified | `levels.csv`, `breaks.csv`, `big_moves.csv` |
 | `scripts/audit_against_screener.py` | Screener point by point; lasting level steps voted on by the other references | `screener_*.csv` |
 | `scripts/audit_raw_bars.py` | NSE's raw rows: bar arithmetic, large dividends, ISIN lineage, calendar | `bar_integrity_exceptions.csv`, `large_dividends.csv`, `isin_lineage.csv`, `calendar_sync.csv` |
-| `scripts/audit_gaps_against_bse.py` | Every stretch of 5+ sessions the file has no price for: NSE-only gap, real suspension, or not checked | `bse_gap_verify.csv` |
+| `scripts/audit_gaps_against_bse.py` | Every stretch of 5+ sessions the file has no price for: NSE-only gap, real suspension, or not checked | `bse_gap_verify.csv` (its price-only match picks another company's code for many thin stocks: section 6) |
+| build + `scripts/verify_bse_fill.py` | Which gaps were filled from BSE and why the others were not; do the filled days agree with the references | `bse_fill_gaps.csv`, `bse_fill_cells.csv`, `bse_fill_verify.json`, `bse_fill_verify_outliers.csv` |
 
 Getting a finished run's files into the container: list the run's artifacts,
 `download_workflow_run_artifact` returns a short-lived blob URL, `curl` it.
@@ -100,6 +110,7 @@ python scripts/audit_gaps_against_bse.py --long nse_long_close.parquet --pack ns
 | Sessions: no session on an unannounced weekend or an NSE holiday; announced special sessions are real | `src/loaders/nse_calendar.py`, `data/reference/nse/` |
 | Holdings valued at the last price when a stock stops (takeover, delisting): checked, no change (S27) | TODO S27 |
 | Reference histories are protected from R2 clean-up | `PROTECTED_DATASETS` |
+| NSE-only gaps are filled from BSE's raw closes, only where the same company (ISIN) traded on BSE and both junctions meet within 2% (owner, 7 Oct 2026, S38) | `src/loaders/bse_fill.py`, section 6 |
 | A stock's TradingView sector is refreshed weekly for every row (Friday UTC) | `classify_missing.py --refresh` |
 
 ## 5. Findings already explained: do not investigate these again
@@ -158,6 +169,71 @@ dates (14 Feb 2024 for FORCEMOT, 20 Apr 2026 for the rest) are from NSE's files.
 Mid-2013 has 77 one-month NSE-only gaps (MAITHANALL, IOLCP, SAKSOFT, NEXTMEDIA
 ...): NSE's own bhavcopy for 20 Aug 2013 has no row for them in any series, so
 our series filter is not the cause; the reason is not established.
+
+### Filling NSE-only gaps from BSE (owner, 7 Oct 2026: "fill NSE-only gaps from BSE: yes", S38)
+
+`src/loaders/bse_fill.py`, run by `scripts/build_nse_long_prices.py` on NSE's
+raw closes before any adjustment (section 2a). For each stretch of 5+ sessions
+between two NSE closes of one NSE symbol (a rename seam is two symbols, not a gap):
+
+1. **Same company.** The BSE code with NSE's ISIN for the symbol: near the gap
+   first, else from another period (NSE's ISINs are on file for 2011 - 2021 and
+   today; BSE's file carries ISINs from July 2024). Only when no ISIN finds a code,
+   the gap audit's price match (8 sessions before the gap, 2%). Refused: an
+   ambiguous price match, an ISIN that maps to two codes, and a code whose ISIN
+   names another issuer (first 9 characters) than any ISIN NSE ever gave the symbol.
+2. **Not a suspension.** BSE traded the stock (shares > 0) on at least half the
+   gap's sessions that have a BSE file; else refused as a suspension (10% or less)
+   or partly traded. Only sessions BSE traded are filled; the rest stay empty.
+3. **Junctions.** BSE's close against NSE's on the 3 nearest common days (within
+   10 sessions) at each end: median difference over 2% refuses the gap.
+4. **NSE's own days are never touched** (an assertion, and a test). Traded value is
+   not filled: it is NSE's turnover.
+
+Every filled cell is in `bse_fill_cells.csv` (symbol, date, BSE code, raw BSE
+close, shares) and every gap's verdict in `bse_fill_gaps.csv` (both in the build
+output and the audit zip); counts in `nse_long_report.json` under `bse_fill`.
+`scripts/verify_bse_fill.py` compares the filled days with the references.
+
+Result, local rebuild of 7 Oct 2026 (raw pack of 7 Oct, NSE's yearly action list,
+BSE 2008 - 1 Oct 2026; the emulation matches the published file on 99.8% of
+cells, the rest are ALLCARGO, HCG and TEXRAIL, whose actions come from the daily
+Bc files it lacks): **411 gaps looked at, 24 filled (20 stocks, 3,443 cells),
+387 refused**: 150 no BSE trading either, 82 junction over 2%, 58 no NSE close to
+match, 37 partly traded, 24 no BSE price match, 18 ISIN mismatch, 9 no common
+day at a junction, 9 ambiguous. Filled: GOODYEAR, NOVARTIND, KENNAMET, KIRLFER,
+GRAUWEIL (614 sessions each, 26 Oct 2023 - 17 Apr 2026), FORCEMOT (76, to 14 Feb
+2024), BESTAGRO (175, Jul 2023 - Apr 2024), KOUTONS (40, 2012), MAITHANALL,
+PANAMAPET, SOMANYCERA and nine more of 4 - 12 sessions. The fill changed no
+close on a day NSE has (built with and without it: 0 cells differ; the GRAUWEIL
+correction below is in both).
+Against the references: Tijori (verified) 2,738 filled cells, all within 2%
+(median difference 0); Screener 732, all within 2%; Yahoo 439, 16% (flat on those
+days, section 5); eod2 and SS have none (NSE-only sources). 2,906 of the 2,948
+cells some reference covers (98.6%) are within 2% of at least one; the other 42
+are cells only Yahoo covers, flat. 495 cells no reference covers (GRAUWEIL 458,
+KOUTONS 32, ITDCEM 5). Tijori and Screener agreeing to the paisa means they took
+BSE's price too on days NSE did not trade: they confirm the right BSE security
+and day, not BSE's price independently.
+
+**The 3 Oct gap audit's "147 NSE-only gaps" overstated it.** Its price-only match
+picked another company's BSE code for 47 of them (MBAPL matched eleven different
+codes; BHARATRAS 2008 matched Indian Card Clothing; E2E 2020 matched three codes
+though E2E was not on BSE then). With the code found by ISIN, of the 147: 24
+filled, 71 junction over 2% (thin stocks whose two exchanges sat apart, mostly
+2008 - 2014), 17 ISIN mismatch, 14 no BSE trading, 11 partly traded, 5 ambiguous,
+5 no common day. Fixing the audit's match is open (TODO).
+
+**GRAUWEIL's 1:1 bonus (record date 10 Apr 2024) fell inside the gap**, so no NSE
+list carries it: the filled series fell 49.7% that day, and before the fill the
+gap hid it as a 41% loss. A `notes.json` correction (x0.5 before 10 Apr 2024)
+with its evidence (BSE bhavcopy, the company's notice as quoted, Screener and
+Tijori both applying it). Any action of a filled stock inside a gap needs the same
+check, since NSE's lists do not carry it. Checked by hand on 7 Oct for the 24
+filled gaps (every day move over 15%): none other is an action; the rest are up
+to 20%, BSE circuit days on large volume (KIRLFER 17 May 2024, NOVARTIND 20 Feb
+2026, BESTAGRO 1 - 2 Apr 2024). The big-move audit sees the filled days from the
+next build on.
 
 ## 7. How to answer "is this data right?"
 
