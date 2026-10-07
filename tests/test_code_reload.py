@@ -154,7 +154,10 @@ def test_changed_code_is_reloaded_in_place_and_never_missing(tmp_path, monkeypat
     names = {m for m in sys.modules if m.startswith("zzreload")}
     time.sleep(0.01)
     (pkg / "c.py").write_text("VALUE = 2\n")
-    os.utime(pkg / "c.py", None)
+    # A later whole second: the .pyc check is on the source's mtime in seconds and
+    # its size, and "VALUE = 2" is as long as "VALUE = 1" (a pull lands minutes later).
+    later = time.time() + 5
+    os.utime(pkg / "c.py", (later, later))
     assert cr.reload_if_changed() == [str(pkg / "c.py")]
     assert names <= set(sys.modules)                 # nothing was ever removed
     assert sys.modules["zzreload.a"] is a            # the same module object, updated
@@ -184,7 +187,7 @@ def test_a_session_importing_during_a_reload_never_sees_a_missing_module(tmp_pat
         for i in range(20):
             time.sleep(0.005)
             (pkg / "c.py").write_text(f"VALUE = {i + 10}\n")
-            os.utime(pkg / "c.py", None)
+            os.utime(pkg / "c.py", (time.time() + 5 + i, time.time() + 5 + i))
             cr.reload_if_changed()
             cr.mark_loaded()
     finally:
