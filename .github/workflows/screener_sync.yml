@@ -136,6 +136,15 @@ jobs:
             exit 0
           fi
           ls -lh "$STORE"
+          # Never replace the published store with a smaller one (owner, 2026-10-07):
+          # a run that fell back to an old cache would otherwise lose history.
+          mkdir -p /tmp/published
+          if gh release download data-latest --repo "$GITHUB_REPOSITORY" --dir /tmp/published \
+               --pattern screener_prices.parquet 2>/dev/null; then
+            python -c "import sys, pyarrow.parquet as pq; n, o = (pq.ParquetFile(p).metadata.num_rows for p in sys.argv[1:3]); print(f'rows: new {n:,}, published {o:,}'); sys.exit(0 if n >= o else 1)" \
+              "$STORE" /tmp/published/screener_prices.parquet \
+              || { echo "::error::the new Screener store has fewer rows than the published one; not published"; exit 1; }
+          fi
           gh release view data-latest --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
             gh release create data-latest \
               --repo "$GITHUB_REPOSITORY" \

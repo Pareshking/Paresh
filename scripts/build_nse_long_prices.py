@@ -182,6 +182,14 @@ def main(argv=None) -> int:
     have = set(packed["date"].dt.date) if len(packed) else set()
     fresh = read_history(reader, [d for d in days if d not in have], args.workers)
     print(f"read from R2: {len(fresh):,} rows, {fresh['date'].nunique() if len(fresh) else 0} sessions")
+    # Every session R2 lists must be read: a session lost to a failed request
+    # would leave the file (and the pack the next build starts from) short.
+    asked = [d for d in days if d not in have]
+    got = set(pd.to_datetime(fresh["date"]).dt.date) if len(fresh) else set()
+    lost = sorted(set(asked) - got)
+    if lost:
+        print(f"::error::{len(lost)} sessions on R2 could not be read ({', '.join(map(str, lost[:5]))}...)")
+        return 1
     prices = pd.concat([packed, fresh], ignore_index=True) if len(packed) else fresh
     prices["date"] = pd.to_datetime(prices["date"])
     args.out.mkdir(parents=True, exist_ok=True)

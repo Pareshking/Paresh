@@ -310,3 +310,36 @@ def test_protected_reference_datasets_can_never_be_pruned_or_retired():
     # A root that would sweep a protected dataset's objects is refused too.
     with pytest.raises(ValueError, match="would reach"):
         rr.check_protected({}, {"old/thing": "archive/reference"})
+
+
+def test_the_nse_history_and_its_products_are_protected_too():
+    import pytest
+
+    from scripts import r2_retention as rr
+
+    for ds in ("nse/prices_daily", "nse/corporate_actions_history", "indices/membership/nifty_500",
+               "calculations/rankings", "snapshots/rankings", "snapshots/rankings_nano",
+               "market_caps/nse_history", "trading_sessions/confirmed"):
+        with pytest.raises(ValueError, match="protected"):
+            rr.check_protected({ds: f"archive/{ds}"}, {})
+    # A retired root that would sweep the NSE archive, or the published rankings, is refused.
+    with pytest.raises(ValueError, match="would reach"):
+        rr.check_protected({}, {"old/nse": "archive/nse"})
+    with pytest.raises(ValueError, match="would reach"):
+        rr.check_protected({}, {"old/snap": "snapshots"})
+
+
+def test_a_large_plan_is_not_applied_by_a_capped_run(monkeypatch):
+    a = _archive()
+    monkeypatch.setattr(rr, "R2Archive", lambda cfg: a)
+    monkeypatch.setattr(rr.R2Config, "from_env", classmethod(lambda cls: None))
+    count = rr.report(rr.make_plan(a))["delete_count"]
+    assert count > 1
+    monkeypatch.setattr("sys.argv", ["r2_retention.py", "--apply", "--expect-deletes", str(count),
+                                     "--max-deletes", str(count - 1)])
+    assert rr.main() == 1
+    assert a.deleted == []
+    monkeypatch.setattr("sys.argv", ["r2_retention.py", "--apply", "--expect-deletes", str(count),
+                                     "--max-deletes", str(count)])
+    assert rr.main() == 0
+    assert len(a.deleted) == count

@@ -78,7 +78,10 @@ jobs:
               (github.event_name == 'schedule' && steps.plan.outputs.count != '0') }}
         env:
           EXPECT: ${{ github.event_name == 'schedule' && steps.plan.outputs.count || inputs.expect_deletes }}
-        run: python scripts/r2_retention.py --apply --expect-deletes "$EXPECT"
+          # A scheduled run may delete only a small plan; a large one waits for a person,
+          # who dispatches it with the count the plan printed.
+          MAX: ${{ github.event_name == 'schedule' && '50' || '1000000' }}
+        run: python scripts/r2_retention.py --apply --expect-deletes "$EXPECT" --max-deletes "$MAX"
       # Every remaining current pointer and immutable revision must still
       # resolve and read end to end after a deletion.
       - name: Recovery audit after apply
