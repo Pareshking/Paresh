@@ -313,9 +313,12 @@ call) now does, in `price_source.fill_weekly_from_nse`:
   2026, Jul 2025), the BSE code found by ISIN. It is used only where NSE's file
   has no close, and the 2% check applies as to every stock. With it the 750 is
   699 of 699; every filled day of the seven agrees within 2% with each
-  reference that has it (Tijori, SS, Yahoo; JSLL 174 of 177 with Yahoo), and one
-  week is refused: SHILCTECH 30 May - 6 Jun 2025, a -33% step Screener adjusted
-  and BSE's raw close does not.
+  reference that has it (Tijori, SS, Yahoo; JSLL 174 of 177 with Yahoo). An action
+  inside the stretch before a stock listed on NSE is in no NSE list, so the build
+  applies it with its evidence (`ACTIONS`): SHILCTECH's 1:2 bonus, record date
+  6 Jun 2025 (shares 76,26,800 -> 1,14,40,200; BSE 8,287.75 -> 6,007.75, a real
+  +8.7%), which the 2% check had first refused; with it the week matches Tijori
+  to the paisa.
 - **Not for Nano Cap or Combined.** The engine's returns are row to row, so an
   added session where a stock has no price deletes that stock's weekly return
   across it. Sessions are added only when NSE fills at least 95% of the stocks

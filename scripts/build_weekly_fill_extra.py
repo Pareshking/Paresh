@@ -33,6 +33,16 @@ FROM_LONG = ("BIRET", "EMBASSY", "JSLL")
 FROM_BSE = ("SGMART", "SHILCTECH", "TIMEX", "PICCADIL")
 START, END = pd.Timestamp("2024-10-01"), pd.Timestamp("2025-10-01")
 
+# BSE's closes are raw. An action inside the stretch, before the stock listed on
+# NSE, is in no NSE list, so it is applied here with its evidence: each close
+# before the ex-date times the factor (the long file's rule).
+ACTIONS = [
+    {"symbol": "SHILCTECH", "ex_date": "2025-06-06", "factor": 2 / 3,
+     "evidence": "1:2 bonus, record date 6 Jun 2025 (Business Standard 29 May 2025, 'Shilchar "
+                 "Technologies fixes record date for bonus issue'); shares 76,26,800 -> 1,14,40,200; "
+                 "BSE close 8287.75 -> 6007.75, Screener and Tijori adjusted by 2/3"},
+]
+
 
 def isins(path: Path = ROOT / "data" / "reference" / "nse" / "equity_l.csv") -> dict[str, str]:
     with open(path, encoding="utf-8") as f:
@@ -57,6 +67,8 @@ def build(long_close: pd.DataFrame, bse: pd.DataFrame, isin_of: dict[str, str]) 
             raise SystemExit(f"{s}: ISIN {isin_of[s]} maps to BSE codes {codes}, not one")
         rows = b[b["code"] == codes[0]].drop_duplicates("date").set_index("date")["close"]
         out[s] = rows.reindex(sessions)
+        for a in (x for x in ACTIONS if x["symbol"] == s):
+            out.loc[out.index < pd.Timestamp(a["ex_date"]), s] *= a["factor"]
         notes.append({"symbol": s, "source": f"bse code {codes[0]} (ISIN {isin_of[s]})",
                       "days": int(out[s].notna().sum())})
     out.index.name = "date"
