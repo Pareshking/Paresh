@@ -1679,9 +1679,9 @@ def _spark_window_key(sub_prices: pd.DataFrame) -> str:
 #
 # so a multibagger read as a rounding error, and the blotter's entry and exit
 # prices refused to reconcile with the return beside them. The unit is a
-# property of the column, so it is declared per column here. Anything not
-# listed falls back to the magnitude guess, which is right for the ordinary
-# case of a return between -100% and +100%.
+# property of the column, so it is declared per column here. Any percentage
+# column that is not declared now fails loudly instead of guessing from its
+# magnitude.
 FRACTION_PERCENT_COLUMNS: frozenset[str] = frozenset({
     # Backtest — trades, periods and stats
     "RETURN %", "MTD %", "STRATEGY NET", "BENCHMARK", "ALPHA VS BENCHMARK",
@@ -1696,7 +1696,7 @@ SCALED_PERCENT_COLUMNS: frozenset[str] = frozenset({
     "% HIGH", "% ATH", "% 50 EMA", "% 20 EMA", "% 52W HIGH",
     "ATR %", "PERSISTENCE", "FFILL %",
     "DEL %", "DEL% 20D AVG", "DEL% PREV20D",
-    "DAY CHG %", "PRICE_CHG_%", "P&L %",
+    "DAY CHG %", "PRICE_CHG_%", "P&L %", "DAY P&L %",
 })
 
 # Window-parameterised families, so adding a horizon to MOMENTUM_WINDOWS does
@@ -1923,11 +1923,12 @@ def render_saas_table(
                         else ("ret-neg" if val < 0 else "text-muted")
                     )
                     unit = percent_unit(col)
-                    as_fraction = (
-                        unit == "fraction"
-                        if unit is not None
-                        else (abs(val) <= 1.0 and val != 0)
-                    )
+                    if unit is None:
+                        raise ValueError(
+                            f"Undeclared percentage unit for column {col!r}; "
+                            "add it to FRACTION_PERCENT_COLUMNS or SCALED_PERCENT_COLUMNS."
+                        )
+                    as_fraction = unit == "fraction"
                     if as_fraction:
                         combined_clr = portfolio_sign_class or clr
                         cells_html.append(
@@ -1961,26 +1962,12 @@ def render_saas_table(
                         else ""
                     )
                     unit = percent_unit(col)
-                    as_fraction = (
-                        unit == "fraction"
-                        if unit is not None
-                        else (
-                            abs(val) <= 1.0
-                            and val != 0
-                            and not any(
-                                k in c_str
-                                for k in [
-                                    "DEL",
-                                    "TURNOVER",
-                                    "DRAG",
-                                    "FFILL",
-                                    "EMA",
-                                    "HIGH",
-                                    "%",
-                                ]
-                            )
+                    if unit is None:
+                        raise ValueError(
+                            f"Undeclared percentage unit for column {col!r}; "
+                            "add it to FRACTION_PERCENT_COLUMNS or SCALED_PERCENT_COLUMNS."
                         )
-                    )
+                    as_fraction = unit == "fraction"
                     if as_fraction:
                         cells_html.append(f'<td class="td-right {clr}">{val:.1%}</td>')
                     else:
