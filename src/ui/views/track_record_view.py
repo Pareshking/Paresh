@@ -247,7 +247,6 @@ def render_record_sections(
         mtd={"period": mtd_period, "strategy": mtd_val, "benchmark": mtd_bench,
              "as_of": lm.get("as_of")} if mtd_period is not None else None,
     )
-    incl = stats.get("includes_mtd")
     if mtd_val is None and lm.get("rebalanced") and lm.get("fill_date") is not None:
         # The book is struck at the close of its fill session, so its first day of P&L is
         # the next one: the month has a portfolio but no return yet.
