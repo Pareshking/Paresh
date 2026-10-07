@@ -472,6 +472,14 @@ def render_portfolio_view(
     book.attrs["as_of"] = meta.get("as_of")
     book.attrs["fill_date"] = meta.get("fill_date")
 
+    # The whole Portfolio page must describe one market session. The canonical
+    # Track Record sets the common strategy/benchmark as-of date; every
+    # benchmark reading below is clipped to that same date.
+    _common_as_of = pd.to_datetime(meta.get("as_of"), errors="coerce")
+    if pd.notna(_common_as_of) and benchmark_close is not None:
+        benchmark_close = pd.to_numeric(benchmark_close, errors="coerce").dropna()
+        benchmark_close = benchmark_close.loc[:_common_as_of]
+
     try:
         ledger = load_ledger(ledger_path(system), inception(system))
     except (ValueError, OSError) as exc:
