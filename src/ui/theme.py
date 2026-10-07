@@ -359,17 +359,14 @@ def inject_custom_css() -> None:
             box-shadow: 0 1px 3px rgba(79, 70, 229, 0.08) !important;
         }
 
-        /* ── Compact Hamburger Navigation ───────────────────────────────
-           The page router remains st.navigation(position="hidden"), while the
-           custom header exposes a single st.popover trigger. The old eleven-item pill
-           row consumed ~180px on a phone before the screener even started.
-           Keep the trigger intentionally small; the full navigation only
-           exists in the floating popover when the reader asks for it. */
+        /* ── Responsive Header Navigation ──────────────────────────────
+           Desktop exposes the full primary navigation directly. The compact
+           popover is reserved for narrower viewports where the links no longer fit. */
         .st-key-app_header_shell {
             position: relative !important;
             margin: 6px 0 4px 0 !important;
             min-height: 60px !important;
-            padding: 8px 60px 8px 14px !important;
+            padding: 8px 14px !important;
             border: 1px solid #E3E6EB !important;
             border-radius: 14px !important;
             background: #FFFFFF !important;
@@ -481,8 +478,12 @@ def inject_custom_css() -> None:
         .mkt-distance { gap: 5px; }
         .mkt-distance strong { font-size: 12.5px; }
         
-        @media (max-width: 900px) {
+        @media (min-width: 1101px) {
+            [class*="st-key-app_nav_menu_"] { display: none !important; }
+        }
+        @media (max-width: 1100px) {
             .st-key-app_toplinks { display: none !important; }
+            .st-key-app_header_shell { padding-right: 60px !important; }
         }
         @media (max-width: 640px) {
             .st-key-app_header_shell { min-height: 52px !important; padding: 6px 56px 6px 10px !important; gap: 10px !important; flex-wrap: nowrap !important; justify-content: space-between !important; }
