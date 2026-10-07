@@ -139,18 +139,6 @@ jobs:
               echo "### $f"; echo '```json'; cat "audit/$f"; echo '```'
             done
           } >> "$GITHUB_STEP_SUMMARY"
-      # History from 2010, precomputed (owner, 2026-10-07: the app's free-plan
-      # memory): every index with the Backtest page's defaults, floor off and on,
-      # so the page reads ~3 MB instead of running an ~870 MB backtest. A failure
-      # never blocks the publish; the page then computes live as before.
-      - name: Precompute History from 2010
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release download data-latest --repo "$GITHUB_REPOSITORY" --pattern rankings.parquet --dir data_cache/nse_long --clobber
-          python scripts/precompute_history.py --long data_cache/nse_long --rankings data_cache/nse_long/rankings.parquet --out history_backtests.zip
-          gh release upload data-latest history_backtests.zip --repo "$GITHUB_REPOSITORY" --clobber
       - uses: actions/upload-artifact@v7
         if: always()
         with:

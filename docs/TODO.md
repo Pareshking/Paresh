@@ -93,6 +93,16 @@ GitHub: SS history run 37666859753 (S24).
 
 In order:
 
+0. **Live app froze (owner, 8 Oct ~01:20 IST):** "downloading data" on every
+   click after tonight's merges, which it did not do before. #410 (History
+   precompute, shared long file), #411 (startup import fix) and #412 (reload
+   in place) were reverted to put the app back as it was. Find the cause
+   locally first: suspect #412 re-running the in-place reload on every rerun,
+   which would reset module-level data. Then bring the three back one at a
+   time, each checked on the live site with several clicks across pages
+   before the next. Done when History opens from the stored run on the live
+   site, no page shows "Loading market data" on a click, and the startup
+   log has no deadlock.
 1. **S56 (high).** Cause found: `data/nse_prices/actions.parquet` was last
    written by #302 (1 Oct), before #330 made `sync_nse_prices.keep_actions`
    keep rights rows; `--update` only appends new sessions' actions; and

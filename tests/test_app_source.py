@@ -125,14 +125,3 @@ def test_an_older_code_reload_without_persistent_still_imports():
         code_reload.PERSISTENT = saved
         del sys.modules["src.loaders.app_source"]
         importlib.import_module("src.loaders.app_source")
-
-
-def test_the_r2_reader_is_imported_with_the_module_not_inside_a_thread():
-    # Log, 7 Oct 2026: two threads importing src.storage.reader at once raised
-    # _DeadlockError and the R2 ranking fell back to the release file.
-    from pathlib import Path
-
-    src = (Path(__file__).resolve().parents[1] / "src/loaders/app_source.py").read_text(encoding="utf-8")
-    head, _, body = src.partition("def fetch_latest(")
-    assert "from src.storage.reader import R2DatasetReader" in head
-    assert "import" not in body.split("\ndef ", 1)[0].replace("# ", "")
