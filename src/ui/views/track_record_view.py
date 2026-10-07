@@ -404,7 +404,4 @@ def render_comparison(
             st.info("Nothing recorded yet.")
         else:
             render_saas_table(grid_display(table))
-            starts = " · ".join(
-                f"{SYSTEM_NAMES[s]}: {inception(s).strftime('%b %Y')}" for s in SYSTEMS
-            )
 
