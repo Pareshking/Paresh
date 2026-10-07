@@ -497,6 +497,13 @@ def render_portfolio_view(
     day_pnl = float(table["Day P&L (₹)"].sum(skipna=True))
     previous_value = float(table["Previous Value (₹)"].sum(skipna=True))
     day_pnl_pct = day_pnl / previous_value * 100.0 if previous_value > 0 else np.nan
+    benchmark_day_pct = np.nan
+    if benchmark_close is not None and len(benchmark_close) >= 2:
+        _benchmark_close = pd.to_numeric(benchmark_close, errors="coerce").dropna()
+        if len(_benchmark_close) >= 2 and float(_benchmark_close.iloc[-2]) > 0:
+            benchmark_day_pct = (
+                float(_benchmark_close.iloc[-1]) / float(_benchmark_close.iloc[-2]) - 1.0
+            )
     exposure = current / value * 100.0 if value else 0.0
     # Mark/fill dates remain available through live_meta and the canonical book;
     # the compact header no longer duplicates them.
@@ -515,31 +522,35 @@ def render_portfolio_view(
     wins = int((closed_valid["Return %"] > 0).sum()) if not closed_valid.empty else 0
     losses = int((closed_valid["Return %"] < 0).sum()) if not closed_valid.empty else 0
 
-    kit.page_head("Portfolio", "₹20 lakh model portfolio")
+    kit.page_head("Portfolio")
 
-    # Primary readings answer the three questions users need first:
-    # how much is here, how is the current book doing, and what happened today.
+    # Frozen Portfolio KPI design: six centered cards, with benchmark
+    # comparisons shown as a second layer only where a comparable period exists.
     kit.readings([
-        kit.Reading("Portfolio value", f"₹{value:,.0f}"),
+        kit.Reading(
+            "Portfolio value",
+            f"₹{value:,.0f}",
+            f"Invested: ₹{capital:,.0f}",
+        ),
         kit.Reading(
             "Since inception",
             kit.pct(history["strategy_total_return"]),
-            "",
+            f"NIFTY 500 {kit.pct(history["benchmark_total_return"])}",
             "up" if history["strategy_total_return"] >= 0 else "down",
         ),
         kit.Reading(
             "Unrealised P&L",
             "—" if not np.isfinite(pnl_pct) else f"{pnl_pct:+.1f}%",
-            f"₹{pnl:+,.0f}" if np.isfinite(pnl_pct) else "",
+            "",
             "" if not np.isfinite(pnl_pct) else ("up" if pnl >= 0 else "down"),
         ),
         kit.Reading(
             "Day P&L",
-            f"₹{day_pnl:+,.0f} ({day_pnl_pct:+.1f}%)" if np.isfinite(day_pnl_pct) else f"₹{day_pnl:+,.0f}",
-            "",
-            "up" if day_pnl >= 0 else "down",
+            "—" if not np.isfinite(day_pnl_pct) else f"{day_pnl_pct:+.1f}%",
+            f"NIFTY 500 {kit.pct(benchmark_day_pct)}",
+            "up" if day_pnl_pct >= 0 else "down",
         ),
-        kit.Reading("Cash / realised balance", f"₹{cash:,.0f}", f"{100.0 - exposure:.1f}%"),
+        kit.Reading("Cash / realised balance", f"₹{cash:,.0f}"),
         kit.Reading(
             "MTD return",
             kit.pct(strategy_mtd),
