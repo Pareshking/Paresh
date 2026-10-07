@@ -169,3 +169,31 @@ def test_no_column_declares_both_percent_units():
 
     assert not FRACTION_PERCENT_COLUMNS & SCALED_PERCENT_COLUMNS
     assert percent_unit("% of 52w high start") == "fraction"
+
+
+def test_every_percent_column_the_engine_names_declares_its_unit():
+    # 7 Oct 2026, live: the Backtest page's current book raised "Undeclared
+    # percentage unit for column 'Entry Weight %'". Every "... %" column name in
+    # src/ must declare one, so no table can raise on a new column.
+    import re
+    from pathlib import Path
+
+    from src.ui.theme import percent_unit
+
+    root = Path(__file__).resolve().parents[1]
+    names = set()
+    for path in [*root.joinpath("src").rglob("*.py"), root / "app.py"]:
+        names |= set(re.findall(r'"([A-Za-z][A-Za-z0-9 ()/&.\-]{0,40} %)"', path.read_text(encoding="utf-8")))
+    labels_only = {"Day %"}          # a column-config label, not a column name
+    missing = sorted(n for n in names - labels_only if percent_unit(n) is None)
+    assert not missing, missing
+
+
+def test_the_backtest_current_book_renders():
+    from src.ui.theme import render_saas_table
+
+    book = pd.DataFrame({"Symbol": ["AAA"], "Price Now": [101.0], "Return %": [0.01], "MTD %": [0.002],
+                         "Weight %": [5.0], "Entry Date": ["01 Oct 2026"], "Entry Price": [100.0],
+                         "Holding (Days)": [6], "Rank at Entry": [3], "Rank at Rebalance": [4],
+                         "Industry": ["X"], "Entry Weight %": [5.0]})
+    render_saas_table(book)        # raised ValueError before

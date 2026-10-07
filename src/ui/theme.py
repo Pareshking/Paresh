@@ -1691,6 +1691,8 @@ FRACTION_PERCENT_COLUMNS: frozenset[str] = frozenset({
     "CAGR", "ANN RETURN", "WIN RATE", "MAX DRAWDOWN", "MAX DD",
     "6M NET RETURN", "6M ALPHA",
     "% OF 52W HIGH START", "% OF 52W HIGH END",
+    # Shares of a group (sector cards) and a corporate-action move (close / previous - 1).
+    "EMA %", "NEAR %", "PASS %", "MOVE %",
 })
 
 SCALED_PERCENT_COLUMNS: frozenset[str] = frozenset({
@@ -1700,6 +1702,11 @@ SCALED_PERCENT_COLUMNS: frozenset[str] = frozenset({
     "ATR %", "PERSISTENCE", "FFILL %",
     "DEL %", "DEL% 20D AVG", "DEL% PREV20D",
     "DAY CHG %", "PRICE_CHG_%", "P&L %", "DAY P&L %", "TARGET WEIGHT %", "WEIGHT DRIFT %",
+    # The backtest's live book stores the entry weight x 100 (backtester: w * 100);
+    # undeclared, it raised on the Backtest page's current book (7 Oct 2026).
+    "ENTRY WEIGHT %",
+    # exit_watch copies "% 50 EMA" and "% High", already x 100.
+    "VS 50 EMA %", "VS 52W HIGH %",
 })
 
 # Window-parameterised families, so adding a horizon to MOMENTUM_WINDOWS does
