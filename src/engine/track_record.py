@@ -117,7 +117,9 @@ def empty_ledger(inception: pd.Period = INCEPTION) -> dict[str, Any]:
 
 def _current_month() -> pd.Period:
     """Current UTC calendar month used only to classify missing ledgers."""
-    return pd.Timestamp.now(tz="UTC").to_period("M")
+    # The UTC wall clock, made naive first: to_period on an aware timestamp warns
+    # that it drops the timezone (log, 7 Oct 2026); the month is the same.
+    return pd.Timestamp.now(tz="UTC").tz_localize(None).to_period("M")
 
 
 def load_ledger(path: Path | str = LEDGER_PATH,
@@ -131,9 +133,12 @@ def load_ledger(path: Path | str = LEDGER_PATH,
     p = Path(path)
     if not p.exists():
         expected_start = pd.Period(inception, freq="M") if inception is not None else None
-        if expected_start is not None and _current_month() < expected_start:
+        # No ledger is expected until the first month has closed and been frozen
+        # (1st - 5th of the next month): Nano Cap and Combined started in Oct 2026
+        # and warned every day of October.
+        if expected_start is not None and _current_month() <= expected_start:
             logger.info(
-                "Track-record ledger %s has not started yet; first month is %s.",
+                "Track-record ledger %s has no frozen month yet; first month is %s.",
                 p,
                 expected_start,
             )
