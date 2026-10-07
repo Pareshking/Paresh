@@ -68,6 +68,27 @@ def _benchmark_key(benchmark_close: pd.Series | None, start: pd.Period) -> str:
     return price_fingerprint(window.to_frame())
 
 
+def _align_benchmark_to_price_as_of(
+    prices: pd.DataFrame, benchmark_close: pd.Series | None
+) -> tuple[pd.DataFrame, pd.Series | None]:
+    """Keep strategy and benchmark on one common, fully observed as-of date.
+
+    A page must never compare a newer strategy close with an older benchmark,
+    or vice versa. The common cutoff is the latest date available in BOTH
+    series; anything after it is excluded from the replay.
+    """
+    if prices is None or prices.empty or benchmark_close is None or benchmark_close.empty:
+        return prices, benchmark_close
+    bench = pd.to_numeric(benchmark_close, errors="coerce").dropna()
+    if bench.empty:
+        return prices, bench
+    price_dates = pd.DatetimeIndex(prices.index).dropna()
+    if len(price_dates) == 0:
+        return prices, bench
+    common_as_of = min(pd.Timestamp(price_dates.max()), pd.Timestamp(bench.index.max()))
+    return prices.loc[:common_as_of], bench.loc[:common_as_of]
+
+
 def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
                system: str = SYSTEM_750) -> dict:
     """The strategy under the RECORD's pinned configuration, through today.
@@ -106,6 +127,13 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
             # The frame may run past the other source's last session (NSE's file is
             # ahead on the first working day): the window is counted back from its end.
             months = months_to_cover(pd.Timestamp(prices.index[-1]), start)
+    # The strategy and benchmark are one comparison. Never let one side run
+    # past the other side's latest completed close.
+    prices, benchmark_close = _align_benchmark_to_price_as_of(prices, benchmark_close)
+    if prices.empty:
+        return {}
+    months = months_to_cover(pd.Timestamp(prices.index[-1]), start)
+
     result = run_backtest(
         f"trackrec_{system}_{price_fingerprint(prices)}_{actions_digest(events)}_{months}"
         f"_{_benchmark_key(benchmark_close, start)}",
