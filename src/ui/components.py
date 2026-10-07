@@ -57,21 +57,6 @@ def compute_signals(rank_df: pd.DataFrame) -> list[SignalAlert]:
     """
     signals: list[SignalAlert] = []
 
-    if "Rank (-1M)" in rank_df.columns:
-        delta = rank_df["Rank (-1M)"] - rank_df["Rank"]
-        if delta.notna().any():
-            r = rank_df.loc[delta.idxmax()]
-            jump = delta.max()
-            if jump > 75:
-                signals.append(
-                    SignalAlert(
-                        icon="🚀",
-                        text=f"{r['Symbol']} jumped {int(jump)} places, {int(r['Rank (-1M)'])} → {int(r['Rank'])}",
-                        color="#4f46e5",
-                        category="breakout",
-                    )
-                )
-
     # Qualified count check (Safely parse boolean or string icons)
     ab_ema = (
         to_bool_mask(rank_df["Above 50 EMA"])
