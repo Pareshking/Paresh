@@ -520,30 +520,30 @@ def render_portfolio_view(
     # Primary readings answer the three questions users need first:
     # how much is here, how is the current book doing, and what happened today.
     kit.readings([
-        kit.Reading("Portfolio value", f"₹{value:,.0f}", "₹20 lakh starting capital"),
+        kit.Reading("Portfolio value", f"₹{value:,.0f}"),
         kit.Reading(
             "Since inception",
             kit.pct(history["strategy_total_return"]),
-            "account return · same basis as Track Record",
+            "",
             "up" if history["strategy_total_return"] >= 0 else "down",
         ),
         kit.Reading(
             "Unrealised P&L",
             "—" if not np.isfinite(pnl_pct) else f"{pnl_pct:+.1f}%",
-            f"₹{pnl:+,.0f} · on cost of open holdings",
+            f"₹{pnl:+,.0f}" if np.isfinite(pnl_pct) else "",
             "" if not np.isfinite(pnl_pct) else ("up" if pnl >= 0 else "down"),
         ),
         kit.Reading(
             "Day P&L",
             f"₹{day_pnl:+,.0f} ({day_pnl_pct:+.1f}%)" if np.isfinite(day_pnl_pct) else f"₹{day_pnl:+,.0f}",
-            "latest close vs previous close",
+            "",
             "up" if day_pnl >= 0 else "down",
         ),
-        kit.Reading("Cash / realised balance", f"₹{cash:,.0f}", f"{100.0 - exposure:.1f}% of account value"),
+        kit.Reading("Cash / realised balance", f"₹{cash:,.0f}", f"{100.0 - exposure:.1f}%"),
         kit.Reading(
             "MTD return",
             kit.pct(strategy_mtd),
-            f"NIFTY 500 {kit.pct(benchmark_mtd)} benchmark",
+            f"NIFTY 500 {kit.pct(benchmark_mtd)}",
             "up" if strategy_mtd >= 0 else "down",
         ),
     ], "Portfolio snapshot")
