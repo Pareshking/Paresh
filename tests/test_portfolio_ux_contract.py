@@ -87,8 +87,8 @@ def test_portfolio_monthly_view_is_calendar_grid_with_live_mtd():
     assert '"monthly_grid": pd.DataFrame(monthly_grid_rows)' in source
     assert '"mtd_period": live_period_key' in source
     assert 'Origin": "Live MTD"' in source
-    assert "Quarters are calendar (Q1 = Jan–Mar); FY runs Apr–Mar." in source
-    assert "is live month-to-date." in source
+    # Owner, 7 Oct 2026: the quarter / FY convention and "live month-to-date" are not shown.
+    assert "Quarters are calendar" not in source and "is live month-to-date." not in source
 
 
 def test_portfolio_equity_card_reports_the_marked_month_not_cumulative_return():
@@ -135,7 +135,7 @@ def test_a_closed_month_awaiting_freeze_is_not_called_mtd():
     assert labels == {"prefix": "Sep (closed)", "badge": "CLOSED", "next": "Oct MTD"}
     assert _month_labels("2026-09", "mtd", sep15)["prefix"] == "Sep MTD"
     assert "closed, not yet frozen" in _calendar_note(labels, "2026-09", "closed")
-    assert "live month-to-date" in _calendar_note(_month_labels("2026-09", "mtd", sep15), "2026-09", "mtd")
+    assert _calendar_note(_month_labels("2026-09", "mtd", sep15), "2026-09", "mtd") == ""   # owner: not needed
 
     ledger = {"months": {"2026-08": {"strategy": 0.03, "benchmark": 0.0}}}
     meta = {"strategy_mtd": 0.027, "benchmark_mtd": -0.054, "mtd_period": "2026-09", "as_of": "2026-09-30"}
@@ -158,6 +158,18 @@ def test_actions_explains_a_fill_due_on_the_first_of_the_month():
     assert "Oct 2026" in note and "30 Sep" in note and "today's closing price" in note
     assert fill_due_note(sep30, oct1, sep30) == ""          # before the fill day
     assert fill_due_note(oct1, oct2, oct2) == ""            # same month: nothing odd
+
+
+def test_record_caption_and_correlation_card_wording():
+    # Owner, 7 Oct 2026: no annualised figure for a record under a year, the
+    # drawdown named for what it is, and the correlation reading in the heading.
+    record = (PORTFOLIO_VIEW.parent / "track_record_view.py").read_text(encoding="utf-8")
+    assert "not a CAGR)" not in record and "worst month-to-month fall" not in record
+    assert "largest fall from a peak" in record and "if elapsed >= 1:" in record
+    source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
+    assert "1.00 = move exactly together" not in source
+    card = source[source.index('kit.card("How they move together"') - 400:source.index('kit.card("How they move together"')]
+    assert "correlation_note(_corr_mean)" in card
 
 
 def test_header_uses_full_navigation_on_desktop_and_menu_on_narrow_viewports():

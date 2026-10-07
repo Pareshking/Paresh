@@ -64,15 +64,16 @@ def _no_return_clause(labels: dict) -> str:
 
 
 def _calendar_note(labels: dict, live_period: str | None, state: str, pending: bool = False) -> str:
-    base = "Quarters are calendar (Q1 = Jan–Mar); FY runs Apr–Mar."
+    """A note under the calendar only when the live month needs one (owner, 2026-10-07:
+    the quarter / FY convention and "live month-to-date" are not needed)."""
     if not live_period:
-        return base
+        return ""
     marked = labels["prefix"].split(" ")[0]
     if state == "closed":
-        return f"{base} {marked} is closed, not yet frozen."
+        return f"{marked} is closed, not yet frozen."
     if pending:
-        return base + _no_return_clause(labels)
-    return f"{base} {marked} is live month-to-date."
+        return _no_return_clause(labels).strip()
+    return ""
 
 
 def _compound_returns(values: list[float]) -> float | None:
@@ -638,14 +639,15 @@ def render_portfolio_view(
             for _, row in sector.iterrows()
         ], scale=max(float(sector["Weight"].max()) if not sector.empty else 0.0, 1.0)))
 
-    with kit.card("How they move together", "portfolio_corr", "90-day correlation of the holdings"):
-        _corr, _corr_mean = correlation(prices, table["Symbol"].tolist())
+    # The reading sits in the heading (owner, 2026-10-07), not in a caption below.
+    _corr, _corr_mean = correlation(prices, table["Symbol"].tolist())
+    _corr_head = (f"Average {_corr_mean:.2f}, {correlation_note(_corr_mean)}" if _corr is not None
+                  else "90-day correlation of the holdings")
+    with kit.card("How they move together", "portfolio_corr", _corr_head):
         if _corr is None:
             st.caption("Not enough price history to compare these holdings.")
         else:
             render_correlation_heatmap(_corr, table["Symbol"].tolist())
-            st.caption(f"Average {_corr_mean:.2f}, {correlation_note(_corr_mean)}. "
-                       "1.00 = move exactly together; near 0 = unrelated.")
 
     # ── Performance: one card, equity and drawdown together ─────────────────
     with kit.card("Equity & drawdown", "portfolio_equity"):
@@ -683,8 +685,10 @@ def render_portfolio_view(
             st.info("No monthly history is available yet.")
         else:
             _render_calendar_returns(grid)
-            st.caption(_calendar_note(labels, mtd_period, mtd_state,
-                                      pending=bool(mtd_period) and not np.isfinite(strategy_mtd)))
+            note = _calendar_note(labels, mtd_period, mtd_state,
+                                  pending=bool(mtd_period) and not np.isfinite(strategy_mtd))
+            if note:
+                st.caption(note)
 
     # ── The frozen record: since inception, each month, provenance, the 3 systems ──
     render_record_sections(prices, benchmark_close, system, show_reconstruction_note=False)
