@@ -191,15 +191,17 @@ def main() -> int:
                     # The live month's evidence, now read in place (#304 removed the
                     # Equity/Monthly toggles this used to click). The Equity card
                     # tiles read "<Mon> strategy / Nifty 500 / alpha"; the Calendar
-                    # card's note says the month is live month-to-date, closed but
-                    # not yet frozen, or has no return yet.
+                    # card notes a month that is closed but not yet frozen, or has no
+                    # return yet. A month simply running has no note (owner, 7 Oct
+                    # 2026, #397): the Equity card's month tiles are its evidence.
+                    equity_month = bool(re.search(r"\b[a-z]{3} strategy\b", body_folded))
                     mtd_checks = {
-                        "equity_mtd_strategy_present": bool(re.search(r"\b[a-z]{3} strategy\b", body_folded)),
+                        "equity_mtd_strategy_present": equity_month,
                         "equity_mtd_benchmark_present": bool(re.search(r"\b[a-z]{3} nifty 500\b", body_folded)),
                         "equity_mtd_gap_present": bool(re.search(r"\b[a-z]{3} alpha\b", body_folded)),
                         "calendar_grid_present": "calendar returns" in body_folded,
-                        "calendar_live_month_marked": any(w in body_folded for w in (
-                            "is live month-to-date", "is closed, not yet frozen", "mtd has no return yet")),
+                        "calendar_live_month_marked": equity_month or any(w in body_folded for w in (
+                            "is closed, not yet frozen", "mtd has no return yet")),
                         "cumulative_42pct_visible": "+42.4%" in body,
                     }
                     checks.update(mtd_checks)
