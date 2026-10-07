@@ -242,9 +242,10 @@ def inject_custom_css() -> None:
         }
 
         .main .block-container, [data-testid="stMainBlockContainer"], [data-testid="block-container"] {
-            /* 1360px keeps a 13-column table readable without the lines
-               getting so long on a wide monitor that the eye loses the row. */
-            max-width: 1360px !important;
+            /* Use the full width already granted by Streamlit's native
+               layout="wide" setting. All pages share this global container. */
+            max-width: 100% !important;
+            width: 100% !important;
             margin-left: auto !important;
             margin-right: auto !important;
             padding-top: 0.15rem !important;
