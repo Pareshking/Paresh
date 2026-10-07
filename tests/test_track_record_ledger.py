@@ -603,3 +603,24 @@ def test_combined_grid_alpha_is_strategy_minus_index_for_the_year_and_quarters()
         s, b, a = by.loc["Strategy", col], by.loc["Nifty 500", col], by.loc["Alpha", col]
         if pd.notna(s) and pd.notna(b):
             assert a == pytest.approx(s - b)
+
+
+def test_no_warning_during_a_systems_first_month_but_one_after(tmp_path, monkeypatch):
+    # Log, 7 Oct 2026: Nano Cap and Combined (first month Oct 2026) warned "No
+    # track-record ledger" every day of October; none is frozen before 1 Nov.
+    warnings = []
+    monkeypatch.setattr(track_record.logger, "warning", lambda *a, **k: warnings.append(a))
+    monkeypatch.setattr(track_record, "_current_month", lambda: pd.Period("2026-10", freq="M"))
+    track_record.load_ledger(tmp_path / "track_record_nano.json", pd.Period("2026-10", freq="M"))
+    assert warnings == []
+    monkeypatch.setattr(track_record, "_current_month", lambda: pd.Period("2026-12", freq="M"))
+    track_record.load_ledger(tmp_path / "track_record_nano.json", pd.Period("2026-10", freq="M"))
+    assert len(warnings) == 1          # by December it should exist
+
+
+def test_the_current_month_does_not_warn_about_the_timezone():
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert isinstance(track_record._current_month(), pd.Period)
