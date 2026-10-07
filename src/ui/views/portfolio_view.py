@@ -82,6 +82,38 @@ def _compound_returns(values: list[float]) -> float | None:
     return float(np.prod([1.0 + v for v in valid]) - 1.0)
 
 
+def _benchmark_returns_from_daily(
+    benchmark_close: pd.Series | None,
+    as_of: pd.Timestamp,
+    inception_date: pd.Timestamp,
+) -> tuple[float, float, float]:
+    """Calculate benchmark day, MTD and inception returns from daily closes.
+
+    These are presentation/accounting facts, not backtest outputs. Every value
+    is measured from the same canonical NIFTY 500 daily series and the same
+    portfolio as-of session.
+    """
+    if benchmark_close is None or benchmark_close.empty or pd.isna(as_of):
+        return np.nan, np.nan, np.nan
+    s = pd.to_numeric(benchmark_close, errors="coerce").dropna().sort_index()
+    s = s.loc[:pd.Timestamp(as_of)]
+    if len(s) < 2:
+        return np.nan, np.nan, np.nan
+
+    day = float(s.iloc[-1] / s.iloc[-2] - 1.0)
+    month_start = pd.Timestamp(as_of).normalize().replace(day=1)
+    prior_month = s.loc[s.index < month_start]
+    mtd_base = float(prior_month.iloc[-1]) if not prior_month.empty else np.nan
+    mtd = float(s.iloc[-1] / mtd_base - 1.0) if np.isfinite(mtd_base) and mtd_base > 0 else np.nan
+
+    base = s.loc[s.index < pd.Timestamp(inception_date).normalize()]
+    if base.empty:
+        base = s.loc[s.index <= pd.Timestamp(inception_date)]
+    inception_base = float(base.iloc[-1]) if not base.empty else float(s.iloc[0])
+    total = float(s.iloc[-1] / inception_base - 1.0) if inception_base > 0 else np.nan
+    return day, mtd, total
+
+
 def build_portfolio_tracker(
     book: pd.DataFrame,
     rank_df: pd.DataFrame,
@@ -511,13 +543,9 @@ def render_portfolio_view(
     day_pnl = float(table["Day P&L (₹)"].sum(skipna=True))
     previous_value = float(table["Previous Value (₹)"].sum(skipna=True))
     day_pnl_pct = day_pnl / previous_value * 100.0 if previous_value > 0 else np.nan
-    benchmark_day_pct = np.nan
-    if benchmark_close is not None and len(benchmark_close) >= 2:
-        _benchmark_close = pd.to_numeric(benchmark_close, errors="coerce").dropna()
-        if len(_benchmark_close) >= 2 and float(_benchmark_close.iloc[-2]) > 0:
-            benchmark_day_pct = (
-                float(_benchmark_close.iloc[-1]) / float(_benchmark_close.iloc[-2]) - 1.0
-            )
+    benchmark_day_pct, benchmark_mtd_daily, benchmark_total_daily = _benchmark_returns_from_daily(
+        benchmark_close, _common_as_of, inception(system)
+    )
     # Mark/fill dates remain available through live_meta and the canonical book;
     # the compact header no longer duplicates them.
     n_holdings = len(table)
@@ -526,7 +554,9 @@ def render_portfolio_view(
     mtd_state = history["mtd_state"]
     labels = _month_labels(mtd_period, mtd_state)
     strategy_mtd = history["strategy_mtd"]
-    benchmark_mtd = history["benchmark_mtd"]
+    # Benchmark return is calculated directly from the same daily NIFTY 500
+    # closes used by the benchmark loader, never from backtest compounding.
+    benchmark_mtd = benchmark_mtd_daily
     trades = history["trades"]
     tradebook = history["tradebook"]
 
@@ -548,7 +578,7 @@ def render_portfolio_view(
         kit.Reading(
             "Since inception",
             kit.pct(history["strategy_total_return"]),
-            f"NIFTY 500 {kit.pct(history["benchmark_total_return"])}",
+            f"NIFTY 500 {kit.pct(benchmark_total_daily)}",
             "up" if history["strategy_total_return"] >= 0 else "down",
         ),
         kit.Reading(
