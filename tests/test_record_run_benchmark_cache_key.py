@@ -33,3 +33,28 @@ def test_changed_benchmark_inside_record_window_changes_key():
     changed = base.copy()
     changed.loc["2026-05-15":] *= 1.01
     assert _benchmark_key(base, INCEPTION) != _benchmark_key(changed, INCEPTION)
+
+
+def test_strategy_and_benchmark_use_one_common_as_of_date():
+    from src.engine.model_record import _align_benchmark_to_price_as_of
+
+    prices = pd.DataFrame({"A": [100.0, 101.0]}, index=pd.to_datetime(["2026-10-06", "2026-10-07"]))
+    benchmark = pd.Series([200.0, 202.0], index=pd.to_datetime(["2026-10-05", "2026-10-06"]))
+
+    aligned_prices, aligned_benchmark = _align_benchmark_to_price_as_of(prices, benchmark)
+
+    assert aligned_prices.index[-1] == pd.Timestamp("2026-10-06")
+    assert aligned_benchmark.index[-1] == pd.Timestamp("2026-10-06")
+
+
+def test_common_as_of_does_not_use_a_future_benchmark_close():
+    from src.engine.model_record import _align_benchmark_to_price_as_of
+
+    prices = pd.DataFrame({"A": [100.0, 101.0]}, index=pd.to_datetime(["2026-10-06", "2026-10-07"]))
+    benchmark = pd.Series([200.0, 202.0, 204.0], index=pd.to_datetime(["2026-10-05", "2026-10-06", "2026-10-07"]))
+
+    aligned_prices, aligned_benchmark = _align_benchmark_to_price_as_of(prices, benchmark)
+
+    assert aligned_prices.index[-1] == pd.Timestamp("2026-10-07")
+    assert aligned_benchmark.index[-1] == pd.Timestamp("2026-10-07")
+    assert float(aligned_benchmark.iloc[-1]) == 204.0
