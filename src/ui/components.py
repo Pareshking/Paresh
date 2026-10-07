@@ -66,7 +66,7 @@ def compute_signals(rank_df: pd.DataFrame) -> list[SignalAlert]:
                 signals.append(
                     SignalAlert(
                         icon="🚀",
-                        text=f"{r['Symbol']} jumped {int(jump)} places, #{int(r['Rank (-1M)'])} → #{int(r['Rank'])}",
+                        text=f"{r['Symbol']} jumped {int(jump)} places, {int(r['Rank (-1M)'])} → {int(r['Rank'])}",
                         color="#4f46e5",
                         category="breakout",
                     )
@@ -240,7 +240,7 @@ def signal_chips_html(signals: list[SignalAlert]) -> str:
     """The Screener's signal chips, for its title row ("" when there are none)."""
     chips = "".join(
         f'<span class="sig-chip" style="color:{s.color};background:{s.color}14;'
-        f'border-color:{s.color}2E">{html.escape(str(s.text))}</span>'
+        f'border-color:{s.color}2E;font-size:0.9rem">{html.escape(str(s.text))}</span>'
         for s in signals
     )
     return (f'<div class="sig-row" role="status" aria-label="Signals today">{chips}</div>'
