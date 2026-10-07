@@ -1,64 +1,46 @@
 {
- "fetched_at_utc": "2026-10-06T09:25:46+00:00",
+ "fetched_at_utc": "2026-10-07T09:18:21+00:00",
  "new": {
   "symbolchange.csv": [],
   "namechange.csv": [],
-  "equity_l.csv": [
-   {
-    "SYMBOL": "SHAHINVEST",
-    "NAME OF COMPANY": "Shah Investor's Home Limited",
-    "SERIES": "BE",
-    "DATE OF LISTING": "06-OCT-2026",
-    "PAID UP VALUE": "10",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE029N01014",
-    "FACE VALUE": "10"
-   },
-   {
-    "SYMBOL": "SRIT",
-    "NAME OF COMPANY": "SRIT India Limited",
-    "SERIES": "BE",
-    "DATE OF LISTING": "06-OCT-2026",
-    "PAID UP VALUE": "5",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE307K01028",
-    "FACE VALUE": "5"
-   }
-  ],
+  "equity_l.csv": [],
   "corporate_actions": [
    {
     "bcEndDate": "-",
     "bcStartDate": "-",
     "caBroadcastDate": null,
-    "comp": "Veranda Learning Solutions Limited",
-    "exDate": "06-Oct-2026",
+    "comp": "PTC India Limited",
+    "exDate": "07-Oct-2026",
     "faceVal": "10",
     "ind": "-",
-    "isin": "INE0IQ001011",
+    "isin": "INE877F01012",
     "ndEndDate": "-",
     "ndStartDate": "-",
-    "recDate": "06-Oct-2026",
+    "recDate": "07-Oct-2026",
     "series": "EQ",
-    "subject": "Demerger",
-    "symbol": "VERANDA"
-   },
+    "subject": "Dividend - Rs 5.50 Per Share",
+    "symbol": "PTC"
+   }
+  ]
+ },
+ "touching_members": {
+  "corporate_actions": [
    {
     "bcEndDate": "-",
     "bcStartDate": "-",
     "caBroadcastDate": null,
-    "comp": "BLS E-Services Limited",
-    "exDate": "06-Oct-2026",
-    "faceVal": "5",
+    "comp": "PTC India Limited",
+    "exDate": "07-Oct-2026",
+    "faceVal": "10",
     "ind": "-",
-    "isin": "INE0NLT01010",
+    "isin": "INE877F01012",
     "ndEndDate": "-",
     "ndStartDate": "-",
-    "recDate": "06-Oct-2026",
+    "recDate": "07-Oct-2026",
     "series": "EQ",
-    "subject": "Face Value Split (Sub-Division) - From Rs 10/- Per Share To Rs 5/- Per Share",
-    "symbol": "BLSE"
+    "subject": "Dividend - Rs 5.50 Per Share",
+    "symbol": "PTC"
    }
   ]
- },
- "touching_members": {}
+ }
 }
