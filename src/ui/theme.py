@@ -1643,9 +1643,9 @@ def _spark_window_key(sub_prices: pd.DataFrame) -> str:
 #
 # so a multibagger read as a rounding error, and the blotter's entry and exit
 # prices refused to reconcile with the return beside them. The unit is a
-# property of the column, so it is declared per column here. Anything not
-# listed falls back to the magnitude guess, which is right for the ordinary
-# case of a return between -100% and +100%.
+# property of the column, so it is declared per column here. Any percentage
+# column that is not declared now fails loudly instead of guessing from its
+# magnitude.
 FRACTION_PERCENT_COLUMNS: frozenset[str] = frozenset({
     # Backtest — trades, periods and stats
     "RETURN %", "MTD %", "STRATEGY NET", "BENCHMARK", "ALPHA VS BENCHMARK",
