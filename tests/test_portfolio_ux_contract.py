@@ -189,3 +189,11 @@ def test_track_record_copy_uses_percent_alpha_and_ytd():
     assert 'replace("%", " pts")' not in source
     assert "Each system starts on its own date" not in source
     assert "A dash means the system had not started yet" not in source
+
+
+def test_production_qa_does_not_wait_for_the_removed_live_month_note():
+    # #397 removed "is live month-to-date"; V1 Production QA still required it
+    # and failed on ecf5878. A running month is evidenced by the Equity tiles.
+    qa = (ROOT / "scripts/portfolio_production_qa.py").read_text(encoding="utf-8")
+    assert '"is live month-to-date"' not in qa
+    assert '"calendar_live_month_marked": equity_month or' in qa
