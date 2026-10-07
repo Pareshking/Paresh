@@ -1,0 +1,21 @@
+symbol,ex_session,kind,our_step,nse_raw_move,action,marketlens,yahoo,eod2,tejhq,refs_same_step
+GUJNRECOKE,2008-10-17,split/bonus,0.7143,0.7861,nse_list:2008-10-17:Bonus 2:5,1.0,,,,0
+TRIVENI,2011-05-03,demerger,0.4004,0.4004,nse_list:2011-05-03:Scheme Of Arrangement,1.0,0.5498,1.0,1.0,0
+SASKEN,2014-01-23,dividend,0.8918,0.8637,nse_list:2014-01-23:Special Dividend - Rs 22.50/- Per Share (Purpose Revised),1.0,1.0,1.0,0.8918,1
+MANINFRA,2014-08-28,dividend,0.2,0.1907,nse_list:2014-08-28:Annual General Meeting / Dividend - Rs 1.35/- Per Share / Face Value S,0.2001,0.2,0.2001,0.2,4
+NCC,2014-09-18,rights,0.6121,0.6555,nse_list:2014-09-18:Rights 7 : 6 @ Premium Rs 18/- Per Share,0.6136,0.6121,1.0,1.0,2
+BANKBARODA,2015-01-22,split/bonus,0.2,0.1985,nse_list:2015-01-22:Face Value Split (Sub-Division) - From Rs 10/- Per Share To Rs 2/- Per,0.2,0.2,0.2,0.2,4
+KOTAKBANK,2015-07-08,split/bonus,0.5,0.496,nse_list:2015-07-08:Bonus 1: 1 | tejhq:2015-07-08:Bonus 1: 1,0.5,0.5,0.5,0.5,4
+HINDZINC,2016-04-06,dividend,0.8715,0.8685,nse_list:2016-04-06: Special Dividend - Rs 24/- Per Share (Purpose Revised),1.0,1.0,1.0,0.8715,1
+CCAVENUE,2017-08-31,split/bonus,0.1,0.1018,nse_list:2017-08-31: Annual General Meeting/Face Value Split (Sub-Division) - From Rs 10/-,0.1,0.1,0.1,0.1,4
+INGERRAND,2018-05-24,dividend,0.7691,0.716,nse_list:2018-05-24: Special Dividend- Rs 202 Per Share,1.0,1.0,1.0,0.7691,1
+ADANIENT,2018-09-06,demerger,0.776,0.776,nse_list:2018-09-06: Scheme Of Arrangement,1.0,0.6416,1.0,1.0,0
+GREENPLY,2019-07-12,demerger,0.9418,0.9418,nse_list:2019-07-12: Demerger | tejhq:2019-07-12:Demerger,1.0,0.9914,1.0,1.0,0
+LTF,2021-01-21,rights,0.9301,0.922,nse_list:2021-01-21: Rights 17:74@ Premium Rs 55 Per Share,0.9346,0.9301,1.0,1.0,2
+SUNDARMHLD,2021-04-26,rights,0.8888,0.9302,nse_list:2021-04-26: Rights 23:49 @ Premium Rs 45/-,0.8928,,,,1
+KESORAMIND,2021-09-16,rights,0.8555,0.8667,nse_list:2021-09-16: Rights 133:274 @ Premium Rs 40/-,0.862,0.8555,1.0,1.0,2
+EASEMYTRIP,2022-11-21,split/bonus,0.125,0.15,nse_list:2022-11-21:Bonus 3:1 | nse_list:2022-11-21:Face Value Split (Sub-Division) - From,1.0,0.125,0.1251,0.125,3
+SKIPPER,2024-01-12,rights,0.977,1.0027,nse_list:2024-01-12:Rights 1:10 @ Premium Rs 193/-,0.9804,0.977,1.0,1.0,2
+SANOFI,2024-06-13,demerger,0.6466,0.6466,nse_list:2024-06-13:Demerger | tejhq:2024-06-13:Demerger,1.0,1.0,1.0,1.0,0
+TFCILTD,2025-09-19,split/bonus,0.2,0.199,nse_list:2025-09-19:Face Value Split (Sub-Division) - From Rs 10/- Per Share To Rs 2/- Per,0.2,0.2,0.2,,3
+LICI,2026-05-29,split/bonus,0.5,0.4956,bc:2026-05-29:BONUS 1:1 | nse_list:2026-05-29:Bonus 1:1 | tejhq:2026-05-29:Bonus 1:1,0.5,0.5,0.5,0.5,4

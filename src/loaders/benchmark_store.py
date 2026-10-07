@@ -99,7 +99,13 @@ SOURCE_RANK = {"nse": 0, "ss": 1, "kaggle": 2, "screener": 3}
 
 def merge(existing: pd.DataFrame, new: pd.DataFrame) -> pd.DataFrame:
     """Rows of `new` added to `existing`; for one date the better-ranked source wins."""
-    both = pd.concat([existing, new])
+    # An empty frame (a day NSE gave nothing) has object columns; on pandas 3
+    # concat then makes the closes object too, and write's "%.2f" no longer
+    # applies: 19384.30 was committed as 19384.3 (TODO S28).
+    parts = [f for f in (existing, new) if f is not None and not f.empty]
+    if not parts:
+        return existing.sort_index()
+    both = pd.concat(parts)
     rank = both["source"].map(SOURCE_RANK).fillna(len(SOURCE_RANK)).astype(int)
     both = both.assign(_rank=rank.values).sort_values("_rank", kind="stable")
     both = both[~both.index.duplicated(keep="first")].drop(columns="_rank")
@@ -108,5 +114,8 @@ def merge(existing: pd.DataFrame, new: pd.DataFrame) -> pd.DataFrame:
 
 def write(frame: pd.DataFrame, path: Path = FILE) -> None:
     out = frame.reset_index()[FIELDS]
+    # Closes as floats whatever the frame held, so every row keeps two decimals.
+    for column in FIELDS[1:3]:
+        out[column] = pd.to_numeric(out[column], errors="coerce").astype(float)
     path.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(path, index=False, date_format="%Y-%m-%d", float_format="%.2f")
