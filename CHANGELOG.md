@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-08 — History from 2010 opens from a precomputed run
+
+- The app went down on the free plan: a History backtest computed live peaked at ~870 MB on top of the app's ~380 MB. Each long-file build now also runs every index once with the Backtest page's default settings (liquidity floor off and Rs 5 Cr) and publishes `history_backtests.zip` (~3 MB); the History tab serves those runs without reading the 110 MB long file and says "precomputed with these settings". Any other setting is computed live as before. The stored and live runs are one code path (`src/engine/history_run.py`) and were checked identical (equity, months, trades, stats). The long file, when it is read, is one shared copy (`st.cache_resource`) instead of one per caller.
+
 ## 2026-10-07 — Long-file build: corporate actions read in parallel and from a pack
 
 - The weekly long-file build spent ~32 of its ~33 minutes reading every session's corporate-action file from R2 one by one; the computation takes ~15 s. The files are now read 16 at a time and kept in `nse_actions_pack.parquet` on the release, so a build reads only the new days (and the newest 10 again). Every factor is still recomputed from all of them; a file that cannot be read stops the build.

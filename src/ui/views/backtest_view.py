@@ -3,6 +3,7 @@ Strategy Backtesting View Controller with Friction & Turnover Attribution.
 """
 
 import html
+import json
 import math
 from pathlib import Path
 
@@ -63,19 +64,39 @@ MODE_LIVE = "Live system"
 MODE_HISTORY = "History from 2010"
 
 
-@st.cache_data(show_spinner=False, ttl=3600)
+@st.cache_resource(show_spinner=False, ttl=3600)
 def _long_file():
-    """Closes and report only: traded value is fetched when a floor is set."""
+    """Closes and report only: traded value is fetched when a floor is set.
+
+    cache_resource: one shared copy for every session (cache_data hands each
+    caller its own copy of a ~110 MB frame; owner, 2026-10-07: free-plan memory).
+    Read-only: every caller slices, never writes in place.
+    """
     from src.loaders import nse_long
 
     return nse_long.load(with_value=False)
 
 
-@st.cache_data(show_spinner=False, ttl=3600)
+@st.cache_resource(show_spinner=False, ttl=3600)
 def _long_value():
     from src.loaders import nse_long
 
     return nse_long.load_value()
+
+
+@st.cache_resource(show_spinner=False, ttl=3600)
+def _history_store():
+    """(zip path, its meta, the long file's current report) or Nones: small reads only."""
+    from src.loaders import history_store, nse_long
+
+    path = history_store.fetch()
+    meta = history_store.read_meta(path) if path is not None else None
+    report_path = nse_long._fetch(nse_long.REPORT_FILE, nse_long.NSE_LONG_BASE_URL, Path(nse_long.DATA_DIR))
+    try:
+        report = json.loads(report_path.read_text(encoding="utf-8")) if report_path is not None else {}
+    except (OSError, ValueError):
+        report = {}
+    return path, meta, report
 
 
 HISTORICAL_INDUSTRIES = Path(__file__).resolve().parents[3] / "data" / "reference" / "historical_industries.csv"
@@ -92,24 +113,19 @@ def _historical_industries() -> dict[str, str]:
 
 
 def _history_inputs(rank_df: pd.DataFrame, liquidity_floor_cr: float) -> dict | None:
-    """The long backtest's controls and inputs, or None when it cannot run.
+    """The long backtest's controls, or None when it cannot run.
 
     Owner, 2026-10-03: any index from Jan 2010, a start and end month, and a
     traded-value floor; size from the index tier, no market-cap cutoff. Prices
     are NSE's own (src/loaders/nse_long.py), membership each index's own point-in-
-    time timeline (src/engine/index_universe.py).
+    time timeline (src/engine/index_universe.py). The months come from the
+    stored runs when they match the long file on the release, so the ~110 MB
+    file is read only when a run has to be computed (_history_frames).
     """
+    from src.engine import history_run as hr
     from src.engine import index_universe as iu
-    from src.loaders import nse_long
 
-    loaded = _long_file()
-    if loaded is None:
-        kit.note("The long price file is not available yet.",
-                 "It is built weekly from NSE's bhavcopy by the 'NSE long price file' workflow "
-                 "and published to the data-latest release.")
-        return None
-    close, _value, report = loaded
-
+    _path, meta, report = _history_store()
     c1, c2 = st.columns([1, 2])
     key = c1.selectbox("Index", list(iu.INDICES), format_func=iu.INDICES.get,
                        index=list(iu.INDICES).index(iu.DEFAULT_INDEX), key="bt_hist_index")
@@ -117,61 +133,78 @@ def _history_inputs(rank_df: pd.DataFrame, liquidity_floor_cr: float) -> dict | 
     if membership is None:
         kit.note(f"No membership history for {iu.INDICES[key]}.")
         return None
-    # A year of prices before the first month, for the 12-month lookback and the EMA.
-    first = max(iu.first_month(membership), pd.Period(close.index[0], freq="M") + 13)
-    last = pd.Period(close.index[-1], freq="M") - 1
-    if first > last:
+    from src.loaders import history_store
+
+    stored = ((meta or {}).get("runs") or {}).get(history_store.run_name(key, float(liquidity_floor_cr or 0.0))) or {}
+    same_file = bool(stored) and stored.get("request", {}).get("long_last_session") == str(report.get("last_session"))
+    if same_file:
+        first, last = (pd.Period(m, freq="M") for m in stored["months"])
+        months_all = list(pd.period_range(first, last, freq="M"))
+    else:
+        loaded = _long_file()
+        if loaded is None:
+            kit.note("The long price file is not available yet.",
+                     "It is built weekly from NSE's bhavcopy by the 'NSE long price file' workflow "
+                     "and published to the data-latest release.")
+            return None
+        report = loaded[2]
+        months_all = hr.month_range(loaded[0].index, membership)
+    if not months_all:
         kit.note(f"{iu.INDICES[key]} has no completed month to test yet.")
         return None
-    months_all = list(pd.period_range(first, last, freq="M"))
     start, end = c2.select_slider(
         "Months", months_all, value=(months_all[0], months_all[-1]),
         format_func=lambda p: p.strftime("%b %Y"), key=f"bt_hist_months_{key}",
-        help=f"{iu.INDICES[key]}'s point-in-time list begins {first.strftime('%b %Y')}.",
+        help=f"{iu.INDICES[key]}'s point-in-time list begins {months_all[0].strftime('%b %Y')}.",
     )
     floor = st.number_input(
         "Minimum traded value (₹ Cr, 20-day average; 0 = off)", min_value=0.0, max_value=500.0,
         value=float(liquidity_floor_cr or 0.0), step=1.0, key="bt_hist_floor",
     )
+    return {
+        "key": key, "membership": membership, "start": start, "end": end,
+        "months": (end - start).n + 1, "floor": floor, "name": iu.INDICES[key],
+        "benchmark": ("^NSEI", "Nifty 50") if key == "nifty_50" else ("^CRSLDX", "Nifty 500"),
+        "built": report.get("built"), "last_session": report.get("last_session"), "report": report,
+    }
 
-    # The frame ends at the first session after the end month: the engine reports
-    # the completed months before its last session's month.
-    after = close.index[close.index >= (end + 1).start_time]
-    cut = after[0] if len(after) else close.index[-1]
-    cols = sorted(iu.ever_members(membership) & set(close.columns))
-    frame = close.loc[:cut, cols]
 
-    # Industry for the cap: the current lists, then TradingView mapped to NSE's
-    # names, then data/reference/historical_industries.csv (NSE's sector for the
-    # names that left before today's lists, looked up 3 Oct 2026). A stock
-    # nothing places is its own group, not one shared "Other" the cap would squeeze.
-    sec = rank_df.set_index("Symbol")["Industry"].to_dict() if "Industry" in rank_df.columns else {}
-    sec.update(former_members.industry_for([c for c in cols if c not in sec]))
-    past = _historical_industries()
-    sec.update({c: past[c] for c in cols if sec.get(c, "Other") == "Other" and c in past})
-    unlabelled = [c for c in cols if sec.get(c, "Other") == "Other"]
-    sec.update({c: f"Unlabelled · {c}" for c in unlabelled})
+def _history_stored(history: dict, settings: dict) -> dict | None:
+    """The precomputed run for exactly these settings, or None (src/loaders/history_store.py)."""
+    from src.loaders import history_store
 
-    traded = None
-    if floor:
+    path, meta, _report = _history_store()
+    wanted = {"index": history["key"], "start": str(history["start"]), "end": str(history["end"]),
+              "floor": round(float(history["floor"]), 6), "settings": settings,
+              "long_last_session": str(history["report"].get("last_session")),
+              "long_built": str(history["report"].get("built"))}
+    name = history_store.run_name(history["key"], float(history["floor"] or 0.0))
+    if path is None or not history_store.lookup(meta, name, wanted, history_store.engine_fingerprint()):
+        return None
+    res = history_store.read_run(path, name)
+    if res is not None:
+        history["unlabelled"] = (meta["runs"][name] or {}).get("unlabelled", 0)
+    return res
+
+
+def _history_frames(history: dict, rank_df: pd.DataFrame) -> dict | None:
+    """The frames a live History run needs (src/engine/history_run.prepare); reads the long file."""
+    from src.engine import history_run as hr
+
+    loaded = _long_file()
+    if loaded is None:
+        kit.note("The long price file is not available yet.")
+        return None
+    value = None
+    if history["floor"]:
         value = _long_value()
         if value is None:
             kit.note("Traded value is not available right now, so the floor is off for this run.",
                      "The long file's traded-value part could not be fetched.")
-            floor = 0.0
-        else:
-            traded = nse_long.average_value(value.reindex(columns=cols).loc[:cut])
-
-    return {
-        "close": frame, "membership": membership, "start": start, "end": end,
-        "months": (end - start).n + 1, "floor": floor,
-        # The Nifty 50 against its own index; the others against the Nifty 500,
-        # the broadest index on file (data/benchmarks.csv holds the two).
-        "benchmark": ("^NSEI", "Nifty 50") if key == "nifty_50" else ("^CRSLDX", "Nifty 500"),
-        "traded_value": traded,
-        "sector_map": sec, "unlabelled": len(unlabelled), "name": iu.INDICES[key],
-        "built": report.get("built"), "last_session": report.get("last_session"),
-    }
+    rank_industry = rank_df.set_index("Symbol")["Industry"].to_dict() if "Industry" in rank_df.columns else {}
+    prep = hr.prepare(loaded[0], value, history["key"], history["start"], history["end"],
+                      float(history["floor"] or 0.0), rank_industry, _historical_industries())
+    return {**history, **prep}
 
 
 def _backtest_body(
@@ -281,20 +314,36 @@ def _backtest_tab(
     # Preserve the original app price frame for the canonical live-book adapter.
     # The exploratory backtest may replace adj_close with an alternate price basis below.
     canonical_adj_close = adj_close
+    # History: the run precomputed on GitHub when these are its exact settings
+    # (src/loaders/history_store.py); otherwise the frames are built and it runs live.
+    stored_run = None
+    if history:
+        from src.engine import history_run as hr
+
+        _hist_settings = hr.settings(
+            top_n=bt_n, rebal_freq=bt_rebal, weight_method=bt_weight, weights=active_weights,
+            stock_cap=stock_cap, sector_cap=sector_cap, cost_bps=cost_drag_bps,
+            buffer_n=int(bt_n * buffer_mult))
+        stored_run = _history_stored(history, _hist_settings)
+        if stored_run is None:
+            history = _history_frames(history, rank_df)
+            if history is None:
+                return
     membership = membership if membership is not None else load_history_or_none()
     # Prices as NSE published them (loaders/nse_prices.py): a past month ranks
     # on what was known then, not on a vendor's later restatement. Where the
     # file does not reach back far enough, the long Personal (Screener) history stands.
     _nse, _nse_info = (None, {}) if history else nse_prices.basis_frame(adj_close, membership, months=months)
     if history:
-        adj_close, _events = history["close"], []
+        adj_close, _events = history.get("close"), []
         membership, months = history["membership"], history["months"]
         history_start = history["start"].start_time
-        liquidity_floor_cr, traded_value = history["floor"], history["traded_value"]
+        liquidity_floor_cr, traded_value = history["floor"], history.get("traded_value")
         kit.caption(
             f"{history['name']}, point in time · Prices: NSE closes, adjusted for splits, bonuses "
             "and demergers, and for rights issues of index stocks; no dividends · file built "
-            f"{history.get('built') or '—'}, last session {history.get('last_session') or '—'}."
+            f"{history.get('built') or '—'}, last session {history.get('last_session') or '—'}"
+            + (" · precomputed with these settings." if stored_run is not None else ".")
         )
     elif _nse is not None:
         adj_close, _events = _nse, []
@@ -313,12 +362,12 @@ def _backtest_tab(
         adj_close = former_members.with_former_members(adj_close, membership)
         _events = load_events()
         kit.caption("Prices: Personal closes, adjusted for splits and bonuses; no dividends.")
-    ph = f"{price_fingerprint(adj_close)}_{actions_digest(_events)}"
+    ph = f"{price_fingerprint(adj_close)}_{actions_digest(_events)}" if adj_close is not None else ""
     if liquidity_floor_cr:
         kit.caption(f"Liquidity floor on: a stock is bought only while its 20-day average "
                     f"traded value is ₹{liquidity_floor_cr:g} Cr or more"
                     + ("." if history else " (Configuration)."))
-        if traded_value is not None:
+        if traded_value is not None and ph:
             ph += f"_{price_fingerprint(traded_value)}"
     bench_symbol, bench_name = history["benchmark"] if history else ("^CRSLDX", "Nifty 500")
     benchmark_close = fetch_benchmark_history(period="max" if history else "2y", symbol=bench_symbol)
@@ -326,12 +375,12 @@ def _backtest_tab(
         st.error(f"{bench_name} benchmark ({bench_symbol}) data is unavailable. Backtest stopped to "
                  "prevent an invalid benchmark comparison.")
         return
-    sec_map = history["sector_map"] if history else (
+    sec_map = history.get("sector_map", {}) if history else (
         rank_df.set_index("Symbol")["Industry"].to_dict()
         if "Industry" in rank_df.columns
         else {}
     )
-    if history and history["unlabelled"]:
+    if history and history.get("unlabelled"):
         kit.caption(f"{history['unlabelled']} of these stocks have no industry on record (mostly ones "
                     "that left before today's lists); each counts as its own group for the industry cap.")
     if sec_map and not history:
@@ -339,28 +388,34 @@ def _backtest_tab(
         # index files only label the current members.
         sec_map.update(former_members.industry_for([c for c in adj_close.columns if c not in sec_map]))
 
-    with st.spinner("Running walk-forward backtest with friction & turnover modeling…"):
-        bt_res = run_backtest(
-            ph,
-            adj_close,
-            _benchmark_close=benchmark_close,
-            top_n=bt_n,
-            rebal_freq=bt_rebal,
-            weight_method=bt_weight,
-            config_weights=active_weights,
-            stock_cap=stock_cap,
-            sector_cap=sector_cap,
-            sector_map=sec_map,
-            cost_bps=cost_drag_bps,
-            buffer_n=int(bt_n * buffer_mult),
-            _membership=membership,
-            backtest_months=months,
-            stateful_history=True,
-            history_start=history_start,
-            _actions=_events,
-            liquidity_floor_cr=liquidity_floor_cr,
-            _traded_value=traded_value,
-        )
+    if stored_run is not None:
+        bt_res = stored_run
+    elif history:
+        with st.spinner("Running walk-forward backtest with friction & turnover modeling…"):
+            bt_res = hr.run(history, _hist_settings, benchmark_close)
+    else:
+        with st.spinner("Running walk-forward backtest with friction & turnover modeling…"):
+            bt_res = run_backtest(
+                ph,
+                adj_close,
+                _benchmark_close=benchmark_close,
+                top_n=bt_n,
+                rebal_freq=bt_rebal,
+                weight_method=bt_weight,
+                config_weights=active_weights,
+                stock_cap=stock_cap,
+                sector_cap=sector_cap,
+                sector_map=sec_map,
+                cost_bps=cost_drag_bps,
+                buffer_n=int(bt_n * buffer_mult),
+                _membership=membership,
+                backtest_months=months,
+                stateful_history=True,
+                history_start=history_start,
+                _actions=_events,
+                liquidity_floor_cr=liquidity_floor_cr,
+                _traded_value=traded_value,
+            )
 
     if bt_res is None:
         st.warning(
@@ -958,22 +1013,26 @@ def _backtest_tab(
         )
 
     # ── Parameter Sweep ──────────────────────────────────────────────────────
-    _render_parameter_sweep(
-        adj_close=adj_close,
-        benchmark_close=benchmark_close,
-        sector_map=sec_map,
-        base={
-            "weight_method": bt_weight,
-            "config_weights": active_weights,
-            "stock_cap": stock_cap,
-            "sector_cap": sector_cap,
-            "rebal_freq": bt_rebal,
-            "top_n": bt_n,
-            "ema_period": 50,
-            "high_pct": 0.80,
-            "cost_bps": cost_drag_bps,
-        },
-    )
+    if stored_run is not None:
+        # A stored History run has not loaded the price file; the sweep needs it.
+        kit.caption("Parameter sweep: change any setting above to compute this run live, then sweep.")
+    else:
+        _render_parameter_sweep(
+            adj_close=adj_close,
+            benchmark_close=benchmark_close,
+            sector_map=sec_map,
+            base={
+                "weight_method": bt_weight,
+                "config_weights": active_weights,
+                "stock_cap": stock_cap,
+                "sector_cap": sector_cap,
+                "rebal_freq": bt_rebal,
+                "top_n": bt_n,
+                "ema_period": 50,
+                "high_pct": 0.80,
+                "cost_bps": cost_drag_bps,
+            },
+        )
 
     render_data_quality_footer(
         total_stocks=len(rank_df),
