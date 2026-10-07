@@ -22,7 +22,7 @@ from src.ui.components import _render_calendar_returns
 from src.ui.charts import render_correlation_heatmap
 from src.ui.theme import render_saas_table
 from src.ui.views.qualified_view import correlation, correlation_note
-from src.ui.views.track_record_view import grid_display, render_record_sections
+from src.ui.views.track_record_view import render_record_sections
 
 PORTFOLIO_STARTING_CAPITAL = 2_000_000.0
 
