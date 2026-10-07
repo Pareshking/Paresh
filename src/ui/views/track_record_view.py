@@ -388,7 +388,7 @@ def render_comparison(
             system_prices = _comparison_price_frame(sys_id, selected_system, adj_close)
             try:
                 live_meta[sys_id] = _record_mtd(system_prices, benchmark_close, sys_id)
-            except (ValueError, KeyError, TypeError, IndexError) as exc:
+            except (ValueError, KeyError, TypeError, IndexError):
                 # A secondary system must not take down the Portfolio page. Its
                 # frozen ledger remains valid; only its live comparison point is
                 # unavailable until that system's price history can be replayed.
