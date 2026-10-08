@@ -1078,6 +1078,15 @@ def run_backtest(
                     "Holding (Days)": h_days,
                     "Reason for Exit": reason,
                     "Status": "Closed",
+                    # For the backtest export (src/engine/backtest_export.py): how the
+                    # trade was chosen and sized, and where the name ranked when it left.
+                    "Sector": sec_map.get(s, ""),
+                    "Entry Signal Date": pos["signal_date"] if pos else pd.NaT,
+                    "Entry Rank": pos["entry_rank"] if pos else float("nan"),
+                    "Entry Weight %": pos["entry_weight"] if pos else float("nan"),
+                    "Exit Signal Date": dates[start_idx],
+                    "Exit Rank": (full_ranked.index.get_loc(s) + 1
+                                  if s in full_ranked.index else float("nan")),
                 }
             )
 
@@ -1106,6 +1115,7 @@ def run_backtest(
                 "entry_idx": fwd_start,
                 "entry_weight": w_val,
                 "entry_rank": rk,
+                "signal_date": dates[start_idx],
             }
 
             trade_records.append(
@@ -1290,6 +1300,12 @@ def run_backtest(
                     "Holding (Days)": h_days,
                     "Reason for Exit": "🟢 Still held at window close",
                     "Status": "Open",
+                    "Sector": sec_map.get(s, ""),
+                    "Entry Signal Date": pos.get("signal_date", pd.NaT),
+                    "Entry Rank": pos["entry_rank"],
+                    "Entry Weight %": pos["entry_weight"],
+                    "Exit Signal Date": pd.NaT,
+                    "Exit Rank": float("nan"),
                 }
             )
 
