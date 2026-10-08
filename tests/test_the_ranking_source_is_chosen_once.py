@@ -398,17 +398,16 @@ def test_no_stop_loss_anywhere_in_portfolio_or_footer():
 
 def test_the_as_of_metric_is_recorded_after_the_source_is_chosen():
     src = open("app.py", encoding="utf-8").read()
-    resolve_at = src.index("_src, _deep_close = _resolve_price_source(")
+    resolve_at = src.index("_src, _get_deep_close = _resolve_price_source(")
     as_of_at = src.index('metrics.note("price_as_of"')
     assert as_of_at > resolve_at, (
-        "price_as_of is recorded before the source is resolved, so the ribbon "
-        "describes a frame the engine may never have scored"
+        "price_as_of must be recorded after the selected source frame exists"
     )
 
 
 def test_the_coverage_metric_is_recorded_after_the_source_is_chosen():
     src = open("app.py", encoding="utf-8").read()
-    resolve_at = src.index("_src, _deep_close = _resolve_price_source(")
+    resolve_at = src.index("_src, _get_deep_close = _resolve_price_source(")
     cov_at = src.index('metrics.note("price_coverage"')
     assert cov_at > resolve_at
 
@@ -446,10 +445,10 @@ def test_the_ribbon_date_matches_the_frame_the_engine_ranked():
 
 def test_the_app_keeps_a_deep_frame_separate_from_the_ranking_frame():
     src = open("app.py", encoding="utf-8").read()
-    assert '"deep_adj_close"' in src, (
-        "the app exposes only the ranking frame, so any page needing more "
-        "history than a ranking does is silently starved"
-    )
+    assert '"get_deep_history"' in src
+    assert "_get_deep_history" in src
+    assert "deep_materialized" in src
+    assert "materialize_deep_history" in src
 
 
 def test_the_backtest_and_track_record_read_the_deep_frame():
@@ -467,12 +466,12 @@ def test_the_backtest_and_track_record_read_the_deep_frame():
 
 
 def test_the_deep_frame_falls_back_rather_than_vanishing():
-    """If it is ever absent, the pages must degrade, not raise."""
+    """If lazy history is unavailable, history pages fall back to ranking depth."""
     src = open("app.py", encoding="utf-8").read()
-    assert 'data.get("deep_adj_close")' in src
+    assert 'data.get("get_deep_history")' in src
+    assert "get_deep_history()" in src
     assert "deep_adj_close = adj_close" in src, (
-        "no fallback: a missing deep frame would take the pages down instead "
-        "of leaving them where they were"
+        "history pages must degrade to ranking history rather than raising"
     )
 
 
@@ -504,10 +503,10 @@ def test_the_backtest_says_when_it_used_a_different_history():
 
 def test_open_prices_are_dropped_when_the_source_has_none():
     src = open("app.py", encoding="utf-8").read()
-    start = src.index("_src, _deep_close = _resolve_price_source(")
-    window = src[start:start + 1600]
-    # Both sources (Screener, NSE) are close-only since Yahoo was retired
-    # (2026-10-02), so open is dropped unconditionally.
+    start = src.index("_src, _get_deep_close = _resolve_price_source(")
+    window = src[start:start + 1800]
+    # Both configured ranking sources are close-only, so open is intentionally
+    # absent rather than mixing an old Yahoo frame with the selected close.
     assert "open_p = None" in window, (
         "open survives the source switch while close is replaced, so the "
         "candlestick mixes two price series"
