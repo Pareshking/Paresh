@@ -65,6 +65,7 @@ with app_import_guard():
         REPO_ATH_FILE,
     )
     from src.core.logger import logger
+    from src.core.history_loading import materialize_deep_history
     
     from src.engine import pipeline
     from src.engine.corporate_actions import adjust_ohlc, load_events
