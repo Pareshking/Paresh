@@ -237,3 +237,52 @@ def test_the_rolling_high_values_are_unchanged():
     full = prices.rolling(252, min_periods=126).max()
     for idx in (130, 251, 252, 399):
         pd.testing.assert_series_equal(_rolling_high_at(prices, idx), full.iloc[idx], check_names=False)
+
+
+# ── Freed memory goes back to the system (src/core/memory.py) ────────────────
+
+def test_release_freed_memory_never_raises_and_is_fast():
+    import platform
+
+    from src.core import memory
+
+    took = memory.release_freed_memory()
+    if platform.system() == "Linux" and platform.libc_ver()[0] == "glibc":
+        assert took is not None and took < 1.0
+    else:
+        assert took is None
+
+
+def test_release_freed_memory_returns_what_a_thread_freed():
+    """The production pattern: work on a short-lived thread, freed into its arena."""
+    import platform
+    import threading
+
+    import numpy as np
+
+    from src.core import memory
+
+    if not (platform.system() == "Linux" and platform.libc_ver()[0] == "glibc"):
+        pytest.skip("glibc only")
+
+    def rss_mb():
+        with open("/proc/self/status") as fh:
+            return next(int(line.split()[1]) // 1024 for line in fh if line.startswith("VmRSS"))
+
+    def small_work():
+        blocks = [np.ones(8_000) for _ in range(4_000)]  # 4k x 64 KB = ~256 MB
+        del blocks
+
+    t = threading.Thread(target=small_work)
+    t.start()
+    t.join()
+    before = rss_mb()
+    memory.release_freed_memory()
+    after = rss_mb()
+    assert after <= before
+
+
+def test_every_page_run_ends_with_a_release():
+    src = open("app.py", encoding="utf-8").read()
+    page = src.index('metrics.memory_checkpoint(f"page:')
+    assert src.index("release_freed_memory()", page) > page
