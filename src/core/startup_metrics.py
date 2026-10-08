@@ -152,18 +152,19 @@ def memory_checkpoint(label: str) -> dict:
 
 @contextmanager
 def stage(name: str):
-    """Time a named startup stage.
+    """Time a named startup stage and record RSS at its boundaries.
 
-    Only the FIRST execution is kept: that is the cold one. Later executions
-    just bump ``repeats`` so a forced refresh is visible without overwriting
-    the cold-start measurement.
+    This is observational only. The first execution remains the canonical
+    cold-start measurement; later executions only increment repeats.
     """
     started_at = since_start()
     t0 = _now()
+    memory_checkpoint(f"{name}:start")
     try:
         yield
     finally:
         duration = round(_now() - t0, 3)
+        memory_checkpoint(f"{name}:end")
         with _LOCK:
             existing = _stages.get(name)
             if existing is None:
@@ -175,8 +176,6 @@ def stage(name: str):
                 }
             else:
                 existing["repeats"] += 1
-
-
 def incr(key: str, n: float = 1) -> None:
     """Increment a counter (batches attempted, retries issued, and so on)."""
     with _LOCK:
