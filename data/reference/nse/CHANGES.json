@@ -1,46 +1,80 @@
 {
- "fetched_at_utc": "2026-10-07T09:18:21+00:00",
+ "fetched_at_utc": "2026-10-08T09:29:03+00:00",
  "new": {
   "symbolchange.csv": [],
   "namechange.csv": [],
-  "equity_l.csv": [],
+  "equity_l.csv": [
+   {
+    "SYMBOL": "NITYAS",
+    "NAME OF COMPANY": "Nityas Gems and Jewellery Limited",
+    "SERIES": "BE",
+    "DATE OF LISTING": "08-OCT-2026",
+    "PAID UP VALUE": "5",
+    "MARKET LOT": "1",
+    "ISIN NUMBER": "INE211501023",
+    "FACE VALUE": "5"
+   },
+   {
+    "SYMBOL": "VNL",
+    "NAME OF COMPANY": "Vishal Nirmiti Limited",
+    "SERIES": "BE",
+    "DATE OF LISTING": "08-OCT-2026",
+    "PAID UP VALUE": "10",
+    "MARKET LOT": "1",
+    "ISIN NUMBER": "INE1O5L01025",
+    "FACE VALUE": "10"
+   }
+  ],
   "corporate_actions": [
    {
     "bcEndDate": "-",
     "bcStartDate": "-",
     "caBroadcastDate": null,
-    "comp": "PTC India Limited",
-    "exDate": "07-Oct-2026",
-    "faceVal": "10",
+    "comp": "Shardul Securities Limited",
+    "exDate": "08-Oct-2026",
+    "faceVal": "2",
     "ind": "-",
-    "isin": "INE877F01012",
+    "isin": "INE037B01020",
     "ndEndDate": "-",
     "ndStartDate": "-",
-    "recDate": "07-Oct-2026",
+    "recDate": "08-Oct-2026",
     "series": "EQ",
-    "subject": "Dividend - Rs 5.50 Per Share",
-    "symbol": "PTC"
+    "subject": "Buy Back",
+    "symbol": "SHARDUL"
+   },
+   {
+    "bcEndDate": "-",
+    "bcStartDate": "-",
+    "caBroadcastDate": null,
+    "comp": "Shankara Buildpro Limited",
+    "exDate": "08-Oct-2026",
+    "faceVal": "2",
+    "ind": "-",
+    "isin": "INE24OJ01011",
+    "ndEndDate": "-",
+    "ndStartDate": "-",
+    "recDate": "08-Oct-2026",
+    "series": "EQ",
+    "subject": "Face Value Split (Sub-Division) - From Rs 10/- Per Share To Rs 2/- Per Share",
+    "symbol": "BUILDPRO"
+   },
+   {
+    "bcEndDate": "-",
+    "bcStartDate": "-",
+    "caBroadcastDate": null,
+    "comp": "Bhagyanagar India Limited",
+    "exDate": "08-Oct-2026",
+    "faceVal": "2",
+    "ind": "-",
+    "isin": "INE458B01036",
+    "ndEndDate": "-",
+    "ndStartDate": "-",
+    "recDate": "08-Oct-2026",
+    "series": "EQ",
+    "subject": "Demerger",
+    "symbol": "BHAGYANGR"
    }
   ]
  },
- "touching_members": {
-  "corporate_actions": [
-   {
-    "bcEndDate": "-",
-    "bcStartDate": "-",
-    "caBroadcastDate": null,
-    "comp": "PTC India Limited",
-    "exDate": "07-Oct-2026",
-    "faceVal": "10",
-    "ind": "-",
-    "isin": "INE877F01012",
-    "ndEndDate": "-",
-    "ndStartDate": "-",
-    "recDate": "07-Oct-2026",
-    "series": "EQ",
-    "subject": "Dividend - Rs 5.50 Per Share",
-    "symbol": "PTC"
-   }
-  ]
- }
+ "touching_members": {}
 }
