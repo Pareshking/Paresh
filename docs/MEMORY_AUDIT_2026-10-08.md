@@ -201,3 +201,21 @@ line each time VmHWM climbs 50 MB, with the label (`page:<name>` after each
 page).
 
 **Separate app for backtests.** Deferred by the owner (8 Oct) until production telemetry shows whether it is needed; TODO S68.
+
+## 8 Oct, evening: History parameter changes ratchet memory (S69)
+
+The owner reported History from 2010 failing in production after changing
+several parameters. Reproduced locally on `62ea36a`: every change finished with
+a result, but resident memory climbed and stayed: 449 MB (Live) -> 627 (History)
+-> 897 MB after four changes; four more weight changes 689 -> 963 MB. Streamlit's
+caches held only ~62 MB of it.
+
+The backtest does not leak: five History runs in one plain thread, different
+weights, stayed flat at 296 MB RSS, Python holding < 1 MB between runs and
+166 MB at the peak of each. The difference in the app is that every rerun runs
+on a new thread, and glibc frees a thread's allocations into that thread's
+arena and keeps them. `MALLOC_ARENA_MAX` cannot be set on Streamlit Cloud.
+
+`malloc_trim(0)` after each page returns every arena's free pages. Same clicks:
+History session 483 MB resident (was 830-897), four weight changes 501 -> 628 MB
+(was 689 -> 963), each call ~5 ms. `src/core/memory.py`, TODO S69.

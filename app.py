@@ -30,6 +30,7 @@ import threading
 from contextlib import contextmanager
 
 from src.core import code_reload as _code_reload
+from src.core.memory import release_freed_memory
 
 if not hasattr(_code_reload, "app_import_guard"):
     _code_reload = importlib.reload(_code_reload)
@@ -1214,6 +1215,11 @@ _nav.run()
 # Which page took the process to its peak: the log line memory_checkpoint
 # writes when the peak climbs 50 MB names this label.
 metrics.memory_checkpoint(f"page:{_nav.url_path or 'screener'}")
+# Hand the page's freed memory back (src/core/memory.py): without it every
+# History change left 70-130 MB in the thread's malloc arena for good.
+_trim_s = release_freed_memory()
+if _trim_s is not None:
+    metrics.note("malloc_trim_last_s", round(_trim_s, 4))
 
 # ── Cold-start telemetry ─────────────────────────────────────────────────────
 # Hidden, inert element carrying this process's startup measurements so a
