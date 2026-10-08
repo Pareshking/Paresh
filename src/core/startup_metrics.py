@@ -124,6 +124,32 @@ def since_start() -> float:
     return round(_now() - MODULE_IMPORT_MONOTONIC, 3)
 
 
+def memory_checkpoint(label: str) -> dict:
+    """Record instantaneous RSS and kernel high-water RSS without changing behavior.
+
+    Linux exposes both values in /proc/self/status. VmRSS answers "how much
+    memory is resident now"; VmHWM answers the process high-water mark. This is
+    deliberately separate from resource.getrusage().ru_maxrss so the audit can
+    distinguish current footprint from historical peak.
+    """
+    values: dict[str, object] = {"label": label, "at_s": since_start()}
+    try:
+        with open("/proc/self/status", "r", encoding="utf-8") as fh:
+            for line in fh:
+                if line.startswith(("VmRSS:", "VmHWM:")):
+                    key, raw = line.split(":", 1)
+                    parts = raw.strip().split()
+                    if parts and parts[0].isdigit():
+                        values[key] = int(parts[0]) * 1024
+    except Exception as exc:
+        values["error"] = type(exc).__name__
+    with _LOCK:
+        checkpoints = _facts.setdefault("memory_checkpoints", [])
+        if isinstance(checkpoints, list):
+            checkpoints.append(values)
+    return values
+
+
 @contextmanager
 def stage(name: str):
     """Time a named startup stage.
