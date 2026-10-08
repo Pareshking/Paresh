@@ -221,6 +221,7 @@ def main() -> None:
     facts = (metrics_blob or {}).get("facts", {})
     stages = (metrics_blob or {}).get("stages", {})
     counters = (metrics_blob or {}).get("counters", {})
+    memory_checkpoints = facts.get("memory_checkpoints", [])
     cold = facts.get("cold_container")
     report["cold_container"] = cold
 
@@ -275,6 +276,16 @@ def main() -> None:
         print(f"  {name:<24} start {s.get('started_at_s') or 0.0:>8.2f}s  "
               f"dur {s.get('duration_s') or 0.0:>8.2f}s{extra}", flush=True)
     if not stages:
+        print("  (none recorded)", flush=True)
+    print("\n-- memory checkpoints --", flush=True)
+    if isinstance(memory_checkpoints, list) and memory_checkpoints:
+        for cp in memory_checkpoints:
+            rss = cp.get("VmRSS")
+            hwm = cp.get("VmHWM")
+            rss_mb = f"{rss / (1024 * 1024):.1f} MB" if isinstance(rss, (int, float)) else "n/a"
+            hwm_mb = f"{hwm / (1024 * 1024):.1f} MB" if isinstance(hwm, (int, float)) else "n/a"
+            print(f"  {cp.get('label', '?'):<36}: RSS {rss_mb:<10} HWM {hwm_mb}", flush=True)
+    else:
         print("  (none recorded)", flush=True)
     print("\n-- fetch counters --", flush=True)
     for k in sorted(counters):
