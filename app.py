@@ -496,6 +496,15 @@ def _shape_screener_store(store_revision: str, _store: pd.DataFrame):
     return _ps.from_screener(_store)
 
 
+def _materialize_deep_history(source: pd.DataFrame | None, symbols) -> pd.DataFrame | None:
+    """Copy only the requested long-history symbols when a history page needs them."""
+    if source is None:
+        return None
+    wanted = set(symbols)
+    keep = [c for c in source.columns if c in wanted]
+    return source[keep].copy() if keep else None
+
+
 def _resolve_price_source(symbols):
     """(frames the engine scores, the deep close history) -- Screener, then NSE.
 
@@ -537,8 +546,7 @@ def _resolve_price_source(symbols):
     def _get_deep_history():
         frame = deep_materialized["frame"]
         if frame is None and deep_source is not None:
-            keep = [c for c in deep_source.columns if c in set(symbols)]
-            frame = deep_source[keep].copy() if keep else None
+            frame = _materialize_deep_history(deep_source, symbols)
             deep_materialized["frame"] = frame
             if frame is not None:
                 metrics.note("deep_history_shape", [int(frame.shape[0]), int(frame.shape[1])])
