@@ -26,25 +26,23 @@ jobs:
         run: |
           python - <<'PY'
           import pandas as pd
-          p='/tmp/ranking/rankings.parquet'
-          df=pd.read_parquet(p)
-          print('COLUMNS=', list(df.columns))
-          print('ROWS=', len(df))
-          print('INDEX=', df.index.name)
-          cols=[c for c in df.columns if 'hist' in str(c).lower() or 'observ' in str(c).lower() or 'symbol' in str(c).lower()]
-          print('RELEVANT_COLUMNS=', cols)
-          for c in cols:
-              if 'hist' in str(c).lower() or 'observ' in str(c).lower():
-                  print('VALUE_COUNTS', c)
-                  print(df[c].value_counts(dropna=False).to_string())
-          if 'Short History' in df.columns:
-              print('SHORT_HISTORY_ROWS')
-              print(df.loc[df['Short History'].eq('Yes')].to_string())
-          elif 'short_history' in df.columns:
-              print('SHORT_HISTORY_ROWS')
-              print(df.loc[df['short_history'].eq('Yes')].to_string())
-          else:
-              print('NO_SHORT_HISTORY_COLUMN')
+          from src.loaders import price_source, nse_prices
+          symbols = ["KISSHT","BAGMANE","CMRGREEN","VAML","VOGL","VISL","VEDPOWER"]
+          store = price_source.fetch_screener_store()
+          print("SCREENER_STORE_SHAPE=", None if store is None else store.shape)
+          frames = price_source.ranking_frames(store, symbols, nse_prices.middle_close(symbols))
+          assert frames is not None
+          frame = frames.adj_close.reindex(columns=symbols)
+          print("FINAL_FRAME_SHAPE=", frame.shape)
+          print("FINAL_FRAME_FIRST=", frame.index.min())
+          print("FINAL_FRAME_LAST=", frame.index.max())
+          print("WEEKLY_FILL_REPORT=", frames.weekly_fill)
+          for s in symbols:
+              x=frame[s].dropna()
+              print(f"RESULT {s} count={len(x)} first={x.index[0].date() if len(x) else None} last={x.index[-1].date() if len(x) else None}")
+          print("RAW_SCREENER_COUNTS")
+          raw=store.xs("Close",axis=1,level=-1).reindex(columns=symbols)
+          for s in symbols:
+              x=raw[s].dropna()
+              print(f"RAW {s} count={len(x)} first={x.index[0].date() if len(x) else None} last={x.index[-1].date() if len(x) else None}")
           PY
-
-# trigger audit
