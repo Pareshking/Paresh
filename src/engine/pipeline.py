@@ -16,6 +16,7 @@ apart is what lets a weight slider re-rank without re-deriving a single signal.
 
 from __future__ import annotations
 
+import copy
 import hashlib
 
 import numpy as np
@@ -361,6 +362,42 @@ def build_engine(
 # never dropped and a close-only source kept showing a stop at roughly half its
 # intended width. A test asserting the list equalled that same typo passed.
 _INTRADAY_ONLY_COLUMNS: tuple[str, ...] = ATR_DERIVED_COLUMNS
+
+
+def _isolated(value, depth: int = 0):
+    """A copy of `value` that shares array data but no mutable container.
+
+    Frames and series become shallow copies, which pandas 3 copy-on-write
+    keeps independent (a write copies the touched block; a raw numpy write
+    raises). Dicts and lists are rebuilt, three levels deep: the engine holds
+    {months: frame} and {months: {field: value}}. Everything else (numbers,
+    strings, timestamps) is immutable and passed through.
+    """
+    if isinstance(value, (pd.DataFrame, pd.Series)):
+        return value.copy(deep=False)
+    if depth >= 3:
+        return value
+    if isinstance(value, dict):
+        return {k: _isolated(v, depth + 1) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_isolated(v, depth + 1) for v in value]
+    return value
+
+
+def engine_view(calc: MomentumEngine) -> MomentumEngine:
+    """The engine, for one caller, over the same arrays as `calc`.
+
+    The app keeps ONE built engine per price state in st.cache_resource and
+    every session ranks on a view of it. rank_with_weights assigns weights,
+    momentum_scores and ranking_diagnostics on the engine it is given; on a
+    view those land on the view, and a write into any of its frames or dicts
+    stays there too. Building it costs no array copies: ~40 MB of engine is
+    shared instead of unpickled per session, per rerun (TODO S62).
+    """
+    view = copy.copy(calc)
+    for name, value in vars(calc).items():
+        setattr(view, name, _isolated(value))
+    return view
 
 
 def rank_with_weights(

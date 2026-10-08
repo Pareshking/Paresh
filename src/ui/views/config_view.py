@@ -202,6 +202,7 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
                     st.session_state["force_refresh"] = True
                     st.session_state.pop("data_loaded_key", None)
                     st.cache_data.clear()
+                    st.cache_resource.clear()  # the shared price frames (app.py _shared)
                     if res.get("last_attempt_ok"):
                         n = res["total_stocks"]
                         _sync_status.update(
@@ -227,6 +228,7 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
                 st.session_state["force_refresh"] = True
                 st.session_state.pop("data_loaded_key", None)
                 st.cache_data.clear()
+                st.cache_resource.clear()  # the shared price frames (app.py _shared)
                 st.rerun()
 
         st.html('<span class="pg-cap">Sync fetches the latest official constituent lists. '

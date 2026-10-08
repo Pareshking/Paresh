@@ -24,7 +24,6 @@ from src.ui import page_kit as kit
 from src.ui.theme import render_saas_table
 
 
-@st.cache_data(show_spinner=False, ttl=3600)
 def _comparison_price_frame(system: str, selected_system: str, _fallback: pd.DataFrame) -> pd.DataFrame:
     """Build the MTD price frame from the system's own canonical universe.
 
@@ -42,38 +41,60 @@ def _comparison_price_frame(system: str, selected_system: str, _fallback: pd.Dat
     # validated price frame already consumed by record_run(). This keeps the
     # headline MTD and the side-by-side MTD numerically identical. Other systems
     # still resolve their own independent canonical price frame below.
+    #
+    # Returned directly, never through a cache: this branch used to sit inside
+    # an st.cache_data keyed on the two system names only, so after the prices
+    # moved on the comparison kept serving the frame it had pickled, for up to
+    # an hour (and held a 28 MB copy of it).
     if system == selected_system:
         return _fallback
-    history = membership_for(system)
-    if not history:
-        return pd.DataFrame()
     try:
-        from src.loaders import price_source
+        from src.loaders import screener_cache
 
-        chosen = price_source.from_screener(price_source.fetch_screener_store())
-        if chosen is None or chosen.close.empty:
+        store, revision = screener_cache.configured()
+        if store is None:
             return pd.DataFrame()
-
-        # Keep every symbol appearing in the system's membership timeline.
-        # record_run() itself applies the point-in-time membership and former-
-        # member logic, so the price frame should not be narrowed to the
-        # currently selected Portfolio's symbols.
-        symbols = set()
-        baseline = history.get("baseline") or {}
-        symbols.update(str(s).upper() for s in (baseline.get("symbols") or []))
-        for change in history.get("changes") or []:
-            symbols.update(str(s).upper() for s in (change.get("add") or []))
-            symbols.update(str(s).upper() for s in (change.get("remove") or []))
-        if not symbols:
-            return pd.DataFrame()
-
-        available = [c for c in chosen.close.columns
-                     if str(c).upper() in symbols]
-        return chosen.close.loc[:, available] if available else pd.DataFrame()
+        frame = _system_prices(system, revision, store)
     except Exception:
         # A missing canonical source is a data condition, not permission to
         # substitute the currently selected system's prices.
         return pd.DataFrame()
+    return frame.copy(deep=False)
+
+
+@st.cache_resource(show_spinner=False, ttl=3600, max_entries=4)
+def _system_prices(system: str, store_revision: str, _store: pd.DataFrame) -> pd.DataFrame:
+    """One system's closes from the shared Screener store, once per revision.
+
+    The store is the app's own (src/loaders/screener_cache.py), not a second
+    download; callers get a shallow copy, which pandas copy-on-write keeps
+    from reaching this one.
+    """
+    history = membership_for(system)
+    if not history:
+        return pd.DataFrame()
+    from src.loaders import price_source
+
+    chosen = price_source.from_screener(_store)
+    if chosen is None or chosen.close.empty:
+        return pd.DataFrame()
+
+    # Keep every symbol appearing in the system's membership timeline.
+    # record_run() itself applies the point-in-time membership and former-
+    # member logic, so the price frame should not be narrowed to the
+    # currently selected Portfolio's symbols.
+    symbols = set()
+    baseline = history.get("baseline") or {}
+    symbols.update(str(s).upper() for s in (baseline.get("symbols") or []))
+    for change in history.get("changes") or []:
+        symbols.update(str(s).upper() for s in (change.get("add") or []))
+        symbols.update(str(s).upper() for s in (change.get("remove") or []))
+    if not symbols:
+        return pd.DataFrame()
+
+    available = [c for c in chosen.close.columns
+                 if str(c).upper() in symbols]
+    return chosen.close.loc[:, available] if available else pd.DataFrame()
 
 
 def _record_mtd(
