@@ -15,6 +15,16 @@ _Last updated: 2026-10-08_
 | 3 | Decide: NSE as the middle price source (Screener → NSE → Yahoo) | Owner says yes or no after item 2 (Claude recommends yes, skipping the ~50 stocks still off) | [x] 2 Oct: owner said yes |
 | 4 | If yes: switch the price order in the app | PR merged; precompute accepted in production; docs updated | [x] code merged 2 Oct; 7 Oct: the nightly table is published and the app accepts it (headless run on main: "Precomputed ranking accepted: 750 rows, as of 2026-10-06") |
 
+## Memory: Streamlit Cloud "over its resource limits" (8 Oct 2026)
+
+Measurements and reasons: `docs/MEMORY_AUDIT_2026-10-08.md`.
+
+| # | What | How we know it is done | Status |
+|---|---|---|---|
+| S61 | Shared price frames, bounded engine and backtest caches, import-deadlock fix, `MALLOC_ARENA_MAX` in the Dockerfile | PR merged with CI green; no "resource limits" email from Streamlit for 7 days after deploy; the startup metrics on production show no `r2_rankings=_DeadlockError` | [ ] PR open |
+| S62 | Share the engine between sessions too (Portfolio still peaks at 1.44 GB with 4 sessions) | `calc.weights` no longer written on the cached engine; the 4-session Portfolio peak measured again with the audit's bench | [ ] |
+| S63 | `_comparison_price_frame` reads the cached Screener store instead of downloading it again | One store download per hour in the server log, whatever pages are opened | [ ] |
+
 ## Prices: SS, three-source check, NSE history (2 Oct 2026)
 
 Rules and status: `docs/PRICE_PIPELINE.md`.

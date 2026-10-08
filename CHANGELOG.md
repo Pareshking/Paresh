@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-08 — Memory: the app stays inside Streamlit Cloud's limit
+
+- Streamlit Cloud restricted the app for using too much memory. Each rerun of each session had been unpickling its own copy of the same price frames (~130 MB a click), and every weight setting a reader tried kept a 56 MB engine for an hour with no ceiling. The price frames are now one shared copy, and the engine and backtest caches have a size limit. With 4 readers at once, peak memory fell from 1.9 GB to 1.4 GB and the Screener answers in 4 s instead of 18 s. Rankings and prices are unchanged (`docs/MEMORY_AUDIT_2026-10-08.md`).
+- Every cold start had been skipping the R2 copy of the ranking for the release file because of an import race between two threads; fixed.
+- Holdings CSV uploads are limited to 5 MB.
+
 ## 2026-10-07 — Long-file build: corporate actions read in parallel and from a pack
 
 - The weekly long-file build spent ~32 of its ~33 minutes reading every session's corporate-action file from R2 one by one; the computation takes ~15 s. The files are now read 16 at a time and kept in `nse_actions_pack.parquet` on the release, so a build reads only the new days (and the newest 10 again). Every factor is still recomputed from all of them; a file that cannot be read stops the build.

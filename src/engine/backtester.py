@@ -761,7 +761,10 @@ def _calculate_backtest_metrics(
 # callers identify through `prices_hash`. The decorator was lost in the
 # 2026-09-17 refactor that split this function into stages, after which every
 # rerun of the Backtest and Track Record pages re-ran the whole walk-forward.
-@st.cache_data(show_spinner=False, ttl=3600)
+# Bounded: a parameter sweep stores one entry per combination (up to 1,920,
+# three times over with the holdout), each kept for an hour with no ceiling.
+# A sweep reads each result as it lands, so evicting old ones costs it nothing.
+@st.cache_data(show_spinner=False, ttl=3600, max_entries=64)
 def run_backtest(
     prices_hash: str,
     _adj_close: pd.DataFrame,
