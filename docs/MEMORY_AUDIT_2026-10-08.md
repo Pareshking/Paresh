@@ -170,3 +170,34 @@ See `docs/TODO.md` S61-S65.
 
 - Portfolio peaks at ~1.05 GB with 4 sessions (S64: Arrow's allocator).
 - The Backtest tab and the parameter sweep compute in the web process (S65).
+
+## 8 Oct, afternoon: the production crash, S65 and telemetry
+
+**What happened.** #420 deployed at 12:38 UTC (the config change made Streamlit
+restart, so the new code ran from then). At 12:52 the health check got EOF with
+no Python error before it: the signature of a memory kill, which Streamlit
+Cloud does not log. The owner was running backtests.
+
+**Cause, measured.** memray on one reader opening Backtest, then History from
+2010: `backtester.py:_rolling_high_at` held 451 MB at the peak. A row of a
+one-dtype frame is a view, so each 52-week-high row kept its whole 252-row
+rolled frame alive, and `run_backtest` keeps one per signal date
+(`_high_at_cache`): ~200 for the 2010 history. Synthetic check at the real
+file's size (4,647 x 1,419): 581 MB retained, 2.8 MB with `.copy()`, values
+identical. Single reader, same app: History peak 1,156 -> 751 MB.
+
+**S65.** `compute_gate.serialised` under `run_backtest`'s cache: a miss waits
+for any running backtest, a hit never does; the sweep takes it per
+combination. Live check: reader B's cached History opened in 1.2 s during A's
+sweep; B's new backtest showed the queued message within 0.5 s and rendered
+after. Two large History backtests at once (Total Market + Microcap 250):
+rise +410 / +391 MB on main, +286 / +322 MB gated (two runs each). Web sweep
+ceiling 50 combinations (the engine's default 400 stays for scripts).
+
+**Telemetry (from #417, bounded).** #417 appended a checkpoint to a list in
+the page's facts at every stage boundary, every rerun, forever. Kept: the
+first 64 (the cold start), the latest per label, the process peak, and one log
+line each time VmHWM climbs 50 MB, with the label (`page:<name>` after each
+page).
+
+**Separate app for backtests.** Deferred by the owner (8 Oct) until production telemetry shows whether it is needed; TODO S68.
