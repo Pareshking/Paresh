@@ -527,23 +527,35 @@ def _resolve_price_source(symbols):
     metrics.memory_checkpoint("resolve_price_source:after_screener_shape")
     if chosen is None and r2_streamlit.enabled():
         raise RuntimeError("Configured immutable Screener dataset is not usable")
-    deep = None
-    if chosen is not None:
-        keep = [c for c in chosen.close.columns if c in set(symbols)]
-        deep = chosen.close[keep].copy() if keep else None
-    if deep is not None:
-        metrics.note("deep_history_shape", [int(deep.shape[0]), int(deep.shape[1])])
-        metrics.note("deep_history_memory_bytes", int(deep.memory_usage(deep=True).sum()))
-    metrics.memory_checkpoint("resolve_price_source:after_deep_copy")
+    # Deep history is deliberately lazy. The ranking frame below only needs
+    # the configured lookback; Backtest/Actions are the only current pages that
+    # need the longer continuous history. Materialising a second copy here made
+    # every ordinary page pay its full historical allocation.
+    deep_source = chosen.close if chosen is not None else None
+    deep_materialized = {"frame": None}
+
+    def _get_deep_history():
+        frame = deep_materialized["frame"]
+        if frame is None and deep_source is not None:
+            keep = [c for c in deep_source.columns if c in set(symbols)]
+            frame = deep_source[keep].copy() if keep else None
+            deep_materialized["frame"] = frame
+            if frame is not None:
+                metrics.note("deep_history_shape", [int(frame.shape[0]), int(frame.shape[1])])
+                metrics.note("deep_history_memory_bytes", int(frame.memory_usage(deep=True).sum()))
+            metrics.memory_checkpoint("resolve_price_source:deep_materialized")
+        return frame
+
+    metrics.memory_checkpoint("resolve_price_source:after_deep_defer")
     _nse_close = _nse.middle_close(symbols)
     if _nse_close is not None:
         metrics.note("nse_middle_close_shape", [int(_nse_close.shape[0]), int(_nse_close.shape[1])])
         metrics.note("nse_middle_close_memory_bytes", int(_nse_close.memory_usage(deep=True).sum()))
     metrics.memory_checkpoint("resolve_price_source:after_nse_middle_close")
     src = _ps.frames_from(chosen, symbols, _nse_close)
-    if src is not None and deep is None:
-        deep = src.close
-    return src, deep
+    if src is not None and deep_source is None:
+        deep_source = src.close
+    return src, _get_deep_history
 
 
 @st.cache_data(show_spinner=False, ttl=86400)
@@ -665,7 +677,7 @@ def load_all_data(indices: list[str], system: str = SYSTEM_750):
         # downstream could detect. Screener first, NSE for what it lacks; no
         # Yahoo (owner, 2026-10-02).
         with metrics.stage("price_source"):
-            _src, _deep_close = _resolve_price_source(symbols)
+            _src, _get_deep_close = _resolve_price_source(symbols)
             if _src is None:
                 return None
             adj_close, close_p = _src.adj_close, _src.close
@@ -675,7 +687,9 @@ def load_all_data(indices: list[str], system: str = SYSTEM_750):
             open_p = None
             # Memo key for the corporate-action pass below.
             p_hash_raw = pipeline.frame_memo_key(adj_close)
-            _deep_adj_close = _deep_close
+            # Keep the long-history materialisation callable; do not copy
+            # it during the universal startup path.
+            _deep_adj_close = _get_deep_close
             metrics.note("price_source", _src.source)
             metrics.note("price_high_basis", _src.high_basis)
             metrics.note("price_intraday", "yes" if _src.intraday else "no")
@@ -814,8 +828,7 @@ def load_all_data(indices: list[str], system: str = SYSTEM_750):
         # The longest continuous history available, whatever the ranking is
         # computed from. Only the backtest and the track record read this, and
         # only because they need more history than a ranking does.
-        "deep_adj_close": _deep_adj_close,
-        "deep_close_prices": _deep_close,
+        "get_deep_history": _deep_adj_close,
         "close_prices": close_p,
         "high_prices": high_p,
         "low_prices": low_p,
@@ -881,9 +894,9 @@ calc = data["calc"]
 get_calc = data["get_calc"]
 rank_df = data["rank_df"]
 adj_close = data["adj_close"]
-deep_adj_close = data.get("deep_adj_close")
-if deep_adj_close is None or deep_adj_close.empty:
-    deep_adj_close = adj_close
+get_deep_history = data.get("get_deep_history")
+if get_deep_history is None:
+    get_deep_history = lambda: adj_close
 high_prices = data["high_prices"]
 low_prices = data["low_prices"]
 volume_data = data["volume_data"]
@@ -1045,6 +1058,9 @@ def _page_backtest() -> None:
     # Backtest reporting starts at the system's canonical inception and
     # expands by one completed month at each month-end. Older price history is
     # still used for signal formation, but never becomes portfolio ownership.
+    deep_adj_close = get_deep_history()
+    if deep_adj_close is None or deep_adj_close.empty:
+        deep_adj_close = adj_close
     months = systems.backtest_months(system, deep_adj_close.index[-1])
     if months == 0:
         start_label = systems.inception(system).strftime("%B %Y")
@@ -1082,6 +1098,11 @@ def _page_backtest() -> None:
 
 
 def _page_actions() -> None:
+    # Actions uses the same long history as the canonical Track Record model.
+    # Materialise it only when this page is actually rendered.
+    deep_adj_close = get_deep_history()
+    if deep_adj_close is None or deep_adj_close.empty:
+        deep_adj_close = adj_close
     # The model book comes from the same pinned run as the Track Record's
     # month-to-date (record_run), so the two pages describe one portfolio.
     render_actions_view(
