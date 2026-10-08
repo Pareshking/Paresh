@@ -679,10 +679,14 @@ def render_data_quality_footer(
     from src.loaders import app_source as _src
 
     _where = _src.summary()
+    # Screener is an internal implementation detail. Never expose the
+    # storage/provider name in the public UI; the user-facing source label is
+    # the established "Personal" name whenever Screener contributes.
+    _public_where = "Personal" if "screener" in _where.lower() else _where
     source_note = (
         f'<span style="color: #A5ACB8;">·</span><span>Data from: '
-        f'<strong style="color: #0E1726;">{html.escape(_where)}</strong></span>'
-        if _where else ""
+        f'<strong style="color: #0E1726;">{html.escape(_public_where)}</strong></span>'
+        if _public_where else ""
     )
     footer_html = f"""
     <div style="display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding: 6px 0 24px; font-family: var(--font-ui); font-size: 12.5px; color: #5E6878;">
