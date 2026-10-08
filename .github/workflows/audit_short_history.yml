@@ -1,0 +1,48 @@
+name: Audit short history
+
+on:
+  push:
+    branches: [audit/short-history-2026-10-08]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+      - run: pip install -r requirements.txt
+      - name: Download canonical ranking
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release download data-latest --repo "$GITHUB_REPOSITORY" --pattern "rankings.parquet" --dir /tmp/ranking --clobber
+      - name: Audit
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          p='/tmp/ranking/rankings.parquet'
+          df=pd.read_parquet(p)
+          print('COLUMNS=', list(df.columns))
+          print('ROWS=', len(df))
+          print('INDEX=', df.index.name)
+          cols=[c for c in df.columns if 'hist' in str(c).lower() or 'observ' in str(c).lower() or 'symbol' in str(c).lower()]
+          print('RELEVANT_COLUMNS=', cols)
+          for c in cols:
+              if 'hist' in str(c).lower() or 'observ' in str(c).lower():
+                  print('VALUE_COUNTS', c)
+                  print(df[c].value_counts(dropna=False).to_string())
+          if 'Short History' in df.columns:
+              print('SHORT_HISTORY_ROWS')
+              print(df.loc[df['Short History'].eq('Yes')].to_string())
+          elif 'short_history' in df.columns:
+              print('SHORT_HISTORY_ROWS')
+              print(df.loc[df['short_history'].eq('Yes')].to_string())
+          else:
+              print('NO_SHORT_HISTORY_COLUMN')
+          PY
