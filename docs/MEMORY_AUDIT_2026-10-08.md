@@ -200,4 +200,4 @@ first 64 (the cold start), the latest per label, the process peak, and one log
 line each time VmHWM climbs 50 MB, with the label (`page:<name>` after each
 page).
 
-**Separate app for backtests.** Considered in the conversation; see TODO.
+**Separate app for backtests.** Deferred by the owner (8 Oct) until production telemetry shows whether it is needed; TODO S68.
