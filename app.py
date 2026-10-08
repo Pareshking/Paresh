@@ -1,3 +1,502 @@
+"""NSE Momentum Dashboard -- production entry point.
+
+Resolves the reader's settings, loads prices through the cached pipeline,
+serves the precomputed ranking when its contract matches (computing it
+otherwise), and routes the pages through st.navigation.
+"""
+
+import concurrent.futures
+import json
+import warnings
+
+import pandas as pd
+import streamlit as st
+
+# Suppress runtime noise
+warnings.filterwarnings("ignore", category=RuntimeWarning, module="numpy")
+warnings.filterwarnings("ignore", message=".*replace.*st\\.components\\.v1\\.html.*")
+warnings.filterwarnings("ignore", message=".*st\\.components\\.v1\\.html.*")
+
+# Before any other app import: load the current src/ and r2/ code if a pull
+# changed it since this process imported it (src/core/code_reload.py).
+#
+# Streamlit Cloud can keep an already-imported code_reload module alive while
+# pulling a newer app.py. Keep this bootstrap compatible with both versions so
+# a mixed deployment can never fail merely because app_import_guard was added
+# in a later commit. If the old module is still resident, reload it first;
+# if even that is unavailable, use its existing lock for the import window.
+import importlib
+import threading
+from contextlib import contextmanager
+
+from src.core import code_reload as _code_reload
+
+if not hasattr(_code_reload, "app_import_guard"):
+    _code_reload = importlib.reload(_code_reload)
+
+app_import_guard = getattr(_code_reload, "app_import_guard", None)
+if app_import_guard is None:
+    _legacy_lock = getattr(_code_reload, "_LOCK", None)
+    if _legacy_lock is None:
+        _legacy_lock = threading.RLock()
+
+    @contextmanager
+    def app_import_guard():
+        with _legacy_lock:
+            yield
+
+mark_loaded = _code_reload.mark_loaded
+reload_if_changed = _code_reload.reload_if_changed
+
+with app_import_guard():
+    _code_reloaded = reload_if_changed()
+    
+    # Core & Loaders
+    from src.core import startup_metrics as metrics
+    from src.core.config import (
+        DEFAULT_LOOKBACK_WEIGHTS,
+        DEFAULT_SECTOR_CAP,
+        DEFAULT_STOCK_CAP,
+        DEFAULT_TARGET_VOL,
+        MCAP_PR_FILE,
+        MCAPS_FILE,
+        PRICES_FILE,
+        REPO_MCAP_FILE,
+        REPO_ATH_FILE,
+    )
+    from src.core.logger import logger
+    
+    from src.engine import pipeline
+    from src.engine.corporate_actions import adjust_ohlc, load_events
+    from src.loaders.indices_loader import fetch_indices_data
+    from src.loaders import extra_universe_loader as extra_loader
+    from src.engine.extra_universe import (
+        SYSTEM_750, SYSTEM_INCEPTION, SYSTEM_NAMES, SYSTEM_NANO,
+    )
+    from src.core.universe_reconciliation import reconcile_symbols
+    from src.loaders.mcap_loader import fetch_market_caps
+    from src.loaders.price_loader import (
+        fetch_benchmark_history,
+        get_market_regime,
+    )
+    from src.loaders.tv_loader import load_tv_classification
+    
+    # UI Design System, Components & Views
+    from src.ui.ema_utils import count_above_ema
+    from src.ui.components import (
+        render_header_kpi_bar,
+    )
+    from src.ui import page_kit as kit
+    from src.engine import liquidity, systems
+    from src.ui import system_param, watchlist_store
+    from src.ui.theme import inject_custom_css
+    from src.ui.widget_state import resolve
+    from src.ui.views.backtest_view import render_backtest_view
+    from src.ui.views.breadth_view import render_breadth_view
+    from src.ui.views.config_view import render_config_view
+    from src.ui.views.guide_view import render_guide_view
+    from src.ui.views.portfolio_view import render_portfolio_view
+    from src.ui.views.actions_view import render_actions_view
+    from src.ui.views.ranking_view import render_ranking_view
+    from src.ui.views.rrg_view import render_rrg_view
+    from src.ui.views.sector_view import render_sector_view
+    from src.ui.views.watchlist_view import render_watchlist_view
+    
+    # Page Config: 100% Widescreen, Sidebar Collapsed
+    st.set_page_config(
+        page_title="Paresh Patel",
+        page_icon="📈",
+        layout="wide",
+        initial_sidebar_state="collapsed",
+    )
+    
+    mark_loaded()  # the baseline reload_if_changed() compares against next run
+metrics.mark_code_current()  # loaded_revision: the src/ now running is disk's
+if _code_reloaded:
+    logger.info("Reloaded app code changed on disk: %s", ", ".join(_code_reloaded))
+
+# Inject Pure Paper White Design System
+inject_custom_css()
+
+# Seed freshness dates from committed repo files so the ribbon always has
+# something to show even before the loaders run (or on warm-cache reruns
+# where cached loader bodies don't re-execute and can't re-note the facts).
+# The loaders overwrite these with live dates when they run cold.
+try:
+    import os as _os
+    _snap = pd.read_csv(REPO_MCAP_FILE) if _os.path.exists(REPO_MCAP_FILE) else None
+    if _snap is not None and "AsOf" in _snap.columns and len(_snap):
+        _d = str(_snap["AsOf"].iloc[0]).strip()
+        if _d and "mcap_as_of" not in metrics.snapshot().get("facts", {}):
+            metrics.note("mcap_as_of", _d)
+            metrics.note("mcap_path", "repo_snapshot")
+    _ath = pd.read_csv(REPO_ATH_FILE) if _os.path.exists(REPO_ATH_FILE) else None
+    if _ath is not None and "AsOf" in _ath.columns and len(_ath):
+        _d = str(_ath["AsOf"].iloc[0]).strip()
+        if _d and "ath_as_of" not in metrics.snapshot().get("facts", {}):
+            metrics.note("ath_as_of", _d)
+            metrics.note("ath_path", "repo_snapshot")
+except Exception as _exc:
+    logger.warning("Could not seed freshness dates from repo snapshots (%s).", type(_exc).__name__)
+
+
+# ── State Initialization ─────────────────────────────────────────────────────
+if "cfg_indices" not in st.session_state:
+    st.session_state["cfg_indices"] = ["NIFTY TOTAL MARKET"]
+# Every cfg_* setting is read through one resolver: the widget's own value
+# while it exists, then a mirror key that Streamlit's widget-state garbage
+# collection cannot evict, then the documented default. Seeding session state
+# from here is what these lines used to do, and it could not survive the
+# Configuration tab's left-nav -- opening another section evicted the weight
+# keys, and the absence guard then "restored" the DEFAULTS over a reader's own
+# settings, silently, on the next run. See src/ui/widget_state.py.
+selected_indices = st.session_state["cfg_indices"]
+raw_w = [
+    resolve(f"cfg_w{i}", float(DEFAULT_LOOKBACK_WEIGHTS[i - 1]), lo=0.0, hi=1.0)
+    for i in range(1, 6)
+]
+total_w = sum(raw_w)
+if total_w <= 0:
+    # Every weight at zero is not a configuration, it is a broken one -- and the
+    # old fallback quietly ranked the whole universe on EQUAL weights while the
+    # Configuration tab still described 10/30/30/20/10. That is a different
+    # strategy presented under the configured one's name. Rank on the documented
+    # defaults and say so, rather than shipping a silent methodology swap.
+    raw_w = list(DEFAULT_LOOKBACK_WEIGHTS)
+    total_w = sum(raw_w)
+    st.warning(
+        "All five momentum lookback weights were zero, which cannot rank "
+        "anything. Ranking is using the defaults "
+        f"({' · '.join(f'{w:.0%}' for w in DEFAULT_LOOKBACK_WEIGHTS)}). "
+        "Set them in **Configuration → Momentum Signal**."
+    )
+weights = tuple(w / total_w for w in raw_w)
+# What the engine is handed, observable from outside: the Configuration panel
+# can describe one vector while a session-state fault hands the engine another.
+metrics.note("ranking_weights", [round(w, 6) for w in weights])
+
+# Defaults from config, the same constants the Configuration tab renders with.
+sector_cap = resolve("cfg_sc", round(DEFAULT_SECTOR_CAP * 100), lo=15, hi=50) / 100.0
+stock_cap = resolve("cfg_stc", round(DEFAULT_STOCK_CAP * 100), lo=2, hi=15) / 100.0
+vol_target_on = resolve("cfg_vt", False)
+vol_target_val = resolve("cfg_vtv", round(DEFAULT_TARGET_VOL * 100), lo=10, hi=40) / 100.0
+# The liquidity floor, ₹ Cr of 20-day average traded value; 0 when off.
+liquidity_floor_cr = (float(resolve("cfg_lfv", liquidity.DEFAULT_FLOOR_CR, lo=1, hi=500))
+                      if resolve("cfg_lf", False) else 0.0)
+
+
+# ── Cached Data Pipeline ─────────────────────────────────────────────────────
+# The engine's memo key AND the precomputed table's validity contract are the
+# same fingerprint, so it lives in src/engine/pipeline beside the arithmetic it
+# describes -- the nightly job stamps the artifact with it and production
+# re-checks it before trusting a single row.
+_price_hash = pipeline.price_fingerprint
+_symbols_hash = pipeline.symbols_fingerprint
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def load_mcaps_cached(sym_key: str, _symbols: list[str]) -> pd.Series:
+    metrics.incr("memo_miss_market_caps")
+    return fetch_market_caps(list(_symbols), force_refresh=False)
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def _adjust_for_corporate_actions(
+    price_hash: str, events_key: str, _frames: dict, _events: list
+) -> tuple[dict, list]:
+    """Neutralise flagged splits and demergers before the engine reads a price.
+
+    run_backtest has done this since the guard was written; the SCREENER never
+    did. The two therefore disagreed about the same stock: the Backtest tab
+    priced ABFRL's 1:3 split as the non-event it was, while the ranking on the
+    front page scored it through a phantom -67% session and buried it.
+
+    Measured against the published snapshot on 2026-09-15, eight of the 750
+    names carried such a session inside a live lookback -- PGIL, HEG,
+    INDIAGLYCO and TDPOWERSYS inside ALL FIVE of them, so 100% of each score
+    was drawn across a crash that never happened. Every one of the fourteen
+    logged events was still sitting in the prices, none had been restated away.
+
+    Cached on the price hash AND the event log: the adjustment is a handful of
+    column multiplies, but it must not re-run on every slider tick -- and a
+    log that gains an event over unchanged prices must not be served the old
+    adjustment for up to an hour.
+    """
+    metrics.incr("memo_miss_corporate_actions")
+    adjusted, applied = adjust_ohlc(_frames, _events)
+    metrics.note("corporate_actions_applied", len(applied))
+    if applied:
+        logger.info(
+            "Neutralised %d flagged corporate action(s) before ranking: %s",
+            len(applied),
+            ", ".join(sorted({str(e.get("symbol")) for e in applied})),
+        )
+    return adjusted, applied
+
+
+# Ten minutes, not an hour, and the reason is NEGATIVE caching.
+#
+# @st.cache_data stores a failure as readily as a success. The container that
+# started at 03:27 UTC on 2026-09-16 asked for an artifact the nightly job had
+# not published yet, got a 404, and cached it -- so when the artifact landed
+# twenty minutes later the app went on skipping it for the rest of the hour and
+# rebuilt the engine on every cold start in between. The probe recorded exactly
+# that: ranking_snapshot=http_404 against a file that by then downloaded fine.
+#
+# The asymmetry decides the number. Re-fetching costs 200 KB and ~0.04s on a
+# file that changes once a day; NOT re-fetching costs a full engine build and
+# leaves the artifact ignored for up to an hour after it appears.
+_RANKING_SNAPSHOT_TTL_S = 600
+
+
+@st.cache_data(show_spinner=False, ttl=_RANKING_SNAPSHOT_TTL_S)
+def _fetch_ranking_snapshot(system: str = SYSTEM_750) -> tuple:
+    """Download the published ranking. Validated separately, and later.
+
+    Split from the check on purpose. The contract cannot be evaluated until the
+    price frame is loaded and fingerprinted, but the DOWNLOAD depends on none of
+    that -- so it is submitted to the same pool that already overlaps market
+    caps and the regime fetch, and by the time there is something to check
+    against, the bytes have arrived. A hit then costs nothing on the critical
+    path, and a miss costs one request nobody waited for.
+    """
+    from src.loaders import ranking_store
+
+    return ranking_store.fetch_snapshot(system=system)
+
+
+@st.cache_data(show_spinner=False, ttl=_RANKING_SNAPSHOT_TTL_S)
+def _validate_precomputed_contract(
+    published_json: str, expected_json: str
+) -> tuple[bool, str]:
+    """Memoise the pure contract comparison across Streamlit reruns.
+
+    The published contract and the expected contract are the complete inputs
+    to this decision. The parquet itself remains the separately cached value;
+    this cache only prevents repeating the same validation work and log noise
+    when Streamlit reruns the script without changing any ranking input.
+    """
+    from src.loaders import ranking_store
+
+    metrics.incr("memo_miss_ranking_contract_validation")
+    published = json.loads(published_json)
+    expected = json.loads(expected_json)
+    return ranking_store.matches(published, expected)
+
+
+def _precomputed_ranking(
+    fetched: tuple,
+    price_hash: str,
+    sym_key: str,
+    weights: tuple[float, ...],
+    universe: list[str],
+    applied_actions: list | None = None,
+    price_source: str | None = None,
+    price_as_of: str | None = None,
+) -> pd.DataFrame | None:
+    """The nightly job's ranking, but only if it describes exactly this state.
+
+    Thirty of the eighty-nine seconds of a cold start were spent deriving a
+    table that is a pure function of inputs this job already had. It ranks the
+    same frame it publishes, and stamps the answer with a contract naming every
+    input. Production re-checks all of them.
+
+    A miss is normal and cheap: different weights, a universe change, a price
+    frame that has moved on since the job ran, or no asset at all. Each returns
+    None and the engine runs exactly as it did before. The one outcome worth
+    preventing is a HIT that should have been a miss -- a ranking served fast
+    against a configuration it does not describe -- which is why every field is
+    compared and nothing is inferred.
+    """
+    from src.loaders import ranking_store
+
+    frame, published = fetched
+    if frame is None:
+        return None
+
+    # PR #262 expanded the stock-page rank path to 6M/3M/2M/1M/Now.
+    # Older published artifacts can still have a matching input contract
+    # because that output schema was not part of the historical contract.
+    # Never serve such a table: fall through to the same canonical engine that
+    # produced the artifact in the first place. The next scheduled publication
+    # will replace the stale table once it is rebuilt with the new columns.
+    required_rank_history = [
+        f"Rank (-{months}M)" for months in pipeline.RANK_HISTORY_MONTHS
+    ]
+    missing_rank_history = [
+        column for column in required_rank_history if column not in frame.columns
+    ]
+    if missing_rank_history:
+        logger.info(
+            "Precomputed ranking rejected (missing rank history columns): %s",
+            ", ".join(missing_rank_history),
+        )
+        metrics.note("ranking_precompute", "miss_missing_rank_history_columns")
+        return None
+
+    expected = ranking_store.contract(
+        price_fingerprint=price_hash,
+        price_source=price_source,
+        # The session the engine would STOP on, which the fingerprint cannot
+        # see. It hashes the last row, the shape and the last date; the ranked
+        # session is chosen by walking BACK from there over coverage. Two
+        # frames can therefore fingerprint identically -- same shape, same
+        # final row, right down to its NaNs -- while an earlier session is
+        # thin in one and healed in the other, and rank a different day.
+        # Verified: publisher 2026-09-09, reader 2026-09-10, one fingerprint.
+        # Without this the reader accepts a table for a session it would not
+        # have ranked, and every other contract term still matches.
+        price_as_of=price_as_of,
+        symbols_fingerprint=sym_key,
+        weights=weights,
+        pipeline_version=pipeline.PIPELINE_VERSION,
+        universe=universe,
+        # The price fingerprint is blind to these: an adjustment rewrites
+        # history BEFORE its own date and leaves the last row alone. See
+        # ranking_store.actions_digest.
+        applied_actions=applied_actions,
+    )
+    published_contract_json = json.dumps(
+        published or {}, sort_keys=True, separators=(",", ":")
+    )
+    expected_contract_json = json.dumps(
+        expected, sort_keys=True, separators=(",", ":")
+    )
+    ok, reason = _validate_precomputed_contract(
+        published_contract_json, expected_contract_json
+    )
+    if not ok:
+        # Logged, not silent: "the precompute did not hit" and "the precompute
+        # does not exist" need very different fixes, and only this line tells
+        # them apart from outside the container.
+        # Streamlit reruns this on every interaction; production logged the same
+        # rejection pair dozens of times a minute. Log a decision once per
+        # distinct (reason, published, expected) and keep the metrics per-run.
+        log_rejection = metrics.note_if_changed(
+            "ranking_precompute_rejection_key",
+            f"{reason}|{published_contract_json}|{expected_contract_json}",
+        )
+        if log_rejection:
+            logger.info("Precomputed ranking rejected (%s); computing instead.", reason)
+        metrics.note("ranking_precompute", f"miss_{reason.replace(' ', '_')}")
+        # A contract miss must still tell us whether the published table
+        # actually describes the current universe. Do this for EVERY rejection
+        # reason, not only a symbols_fingerprint miss: price_fingerprint and
+        # price_as_of can change independently while a 749-row table remains
+        # the real underlying problem. DUMMY symbols are excluded by the same
+        # canonical rule used by the universe loader.
+        if "Symbol" in frame:
+            reconciliation = reconcile_symbols(
+                expected=universe,
+                actual=frame["Symbol"].dropna().tolist(),
+            )
+            if log_rejection:
+                logger.info(
+                    "Precomputed universe reconciliation: expected=%d published=%d "
+                    "missing=%s extra=%s duplicates=%s",
+                    reconciliation["expected_count"],
+                    reconciliation["published_count"],
+                    ",".join(reconciliation["missing"][:20]) or "-",
+                    ",".join(reconciliation["extra"][:20]) or "-",
+                    ",".join(reconciliation["duplicates"][:20]) or "-",
+                )
+            metrics.note(
+                "ranking_precompute_published_symbols",
+                reconciliation["published_count"],
+            )
+            metrics.note(
+                "ranking_precompute_expected_symbols",
+                reconciliation["expected_count"],
+            )
+            metrics.note(
+                "ranking_precompute_universe_added",
+                ",".join(reconciliation["extra"][:20]) or "none",
+            )
+            metrics.note(
+                "ranking_precompute_universe_missing",
+                ",".join(reconciliation["missing"][:20]) or "none",
+            )
+            metrics.note(
+                "ranking_precompute_universe_duplicates",
+                ",".join(reconciliation["duplicates"][:20]) or "none",
+            )
+        return None
+
+    metrics.note("ranking_precompute", "hit")
+    metrics.note("ranking_precompute_rows", int(len(frame)))
+    acceptance_key = "|".join([
+        str((published or {}).get("price_as_of", "")),
+        str(len(frame)),
+        str((published or {}).get("price_fingerprint", "")),
+        str((published or {}).get("pipeline_version", "")),
+    ])
+    if metrics.note_if_changed("ranking_precompute_acceptance_key", acceptance_key):
+        logger.info(
+            "Precomputed ranking accepted: %d rows, as of %s -- engine skipped.",
+            len(frame), str((published or {}).get("price_as_of", "?")),
+        )
+    return frame
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def _fetch_screener_store(source_key: str):
+    """Read Screener history, optionally from an immutable archive pin.
+
+    The second return value is the source revision identity used to memoise
+    shaping. For R2 it is the immutable SHA; for the legacy HTTPS path the
+    existing one-hour cache TTL remains the freshness boundary.
+    """
+    from r2.consumers import r2_streamlit
+    from src.loaders import price_source as _ps
+
+    if r2_streamlit.enabled():
+        try:
+            frame, pin = r2_streamlit.read_configured_screener()
+        except Exception as exc:
+            logger.error("Configured immutable Screener read failed: %s", type(exc).__name__)
+            metrics.note("screener_store_fetch", f"r2_error_{type(exc).__name__}")
+            raise RuntimeError("Configured immutable Screener read failed; refusing source fallback") from exc
+        metrics.note("screener_store_source", "r2")
+        metrics.note("screener_store_as_of", pin.as_of)
+        metrics.note("screener_store_revision", pin.revision_sha256)
+        logger.info(
+            "Screener ranking store: source=object_storage dataset=%s as_of=%s revision=%s",
+            pin.dataset,
+            pin.as_of,
+            pin.revision_sha256,
+        )
+        return frame, pin.revision_sha256
+
+    frame = _ps.fetch_screener_store()
+    logger.info("Screener ranking store: source=published_screener_https")
+    # The HTTPS file has no immutable revision, so derive one from its content.
+    # A constant here let _shape_screener_store pair a re-fetched store with
+    # the shape of the previous one for up to an hour (two independent TTLs).
+    if frame is None:
+        return None, "published_screener_https:none"
+    digest = (
+        int(pd.util.hash_pandas_object(frame, index=True).sum())
+        + int(pd.util.hash_pandas_object(frame.columns.to_frame(index=False), index=False).sum())
+    ) & 0xFFFFFFFFFFFFFFFF
+    return frame, f"published_screener_https:{digest:016x}"
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def _shape_screener_store(store_revision: str, _store: pd.DataFrame):
+    """Memoise the expensive Screener MultiIndex shaping across reruns.
+
+    The store itself is already cached by _fetch_screener_store. R2 supplies
+    an immutable revision SHA, so this transform is invalidated whenever the
+    published dataset changes without hashing the entire DataFrame on every
+    rerun.
+    """
+    from src.loaders import price_source as _ps
+
+    metrics.incr("memo_miss_screener_shape")
+    return _ps.from_screener(_store)
+
+
+def _resolve_price_source(symbols):
     """(frames the engine scores, the deep close history) -- Screener, then NSE.
 
     No Yahoo (owner, 2026-10-02). Screener carries no intraday high, so the
@@ -14,34 +513,19 @@
     from src.loaders import price_source as _ps
 
     _ps.preferred()  # reports a stale UMIYA_PRICE_SOURCE setting
-    metrics.memory_checkpoint("resolve_price_source:before_screener")
     store_result = _fetch_screener_store(r2_streamlit.configuration_key())
-    metrics.memory_checkpoint("resolve_price_source:after_screener_fetch")
     chosen = None
     if store_result is not None:
         store, store_revision = store_result
         if store is not None:
             chosen = _shape_screener_store(store_revision, store)
-    if chosen is not None:
-        metrics.note("screener_shaped_shape", [int(chosen.close.shape[0]), int(chosen.close.shape[1])])
-        metrics.note("screener_shaped_memory_bytes", int(chosen.close.memory_usage(deep=True).sum()))
-    metrics.memory_checkpoint("resolve_price_source:after_screener_shape")
     if chosen is None and r2_streamlit.enabled():
         raise RuntimeError("Configured immutable Screener dataset is not usable")
     deep = None
     if chosen is not None:
         keep = [c for c in chosen.close.columns if c in set(symbols)]
         deep = chosen.close[keep].copy() if keep else None
-    if deep is not None:
-        metrics.note("deep_history_shape", [int(deep.shape[0]), int(deep.shape[1])])
-        metrics.note("deep_history_memory_bytes", int(deep.memory_usage(deep=True).sum()))
-    metrics.memory_checkpoint("resolve_price_source:after_deep_copy")
-    _nse_close = _nse.middle_close(symbols)
-    if _nse_close is not None:
-        metrics.note("nse_middle_close_shape", [int(_nse_close.shape[0]), int(_nse_close.shape[1])])
-        metrics.note("nse_middle_close_memory_bytes", int(_nse_close.memory_usage(deep=True).sum()))
-    metrics.memory_checkpoint("resolve_price_source:after_nse_middle_close")
-    src = _ps.frames_from(chosen, symbols, _nse_close)
+    src = _ps.frames_from(chosen, symbols, _nse.middle_close(symbols))
     if src is not None and deep is None:
         deep = src.close
     return src, deep
@@ -53,3 +537,619 @@ def _load_tv_cached() -> dict:
     # caching at all. TV sector data changes at most once a day.
     return load_tv_classification()
 
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def _run_engine_base(
+    price_hash: str,
+    index_hash: str,
+    pipeline_version: str,
+    actions_key: str,
+    _adj_close: pd.DataFrame,
+    _high_prices: pd.DataFrame,
+    _low_prices: pd.DataFrame,
+    _close_prices: pd.DataFrame,
+    _volume_data: pd.DataFrame,
+    _idx_info: pd.DataFrame,
+    _market_caps: pd.Series,
+    _corporate_actions: list | None = None,
+):
+    # Expensive: constructs the engine, computes 5×_calendar_period_metrics,
+    # and pre-computes all weight-independent signal columns (ATR, EMA, 52W
+    # high, ATH, drawdowns, persistence) so weight-slider changes in
+    # run_momentum_pipeline skip the signal recomputation entirely.
+    # _idx_info and _market_caps are underscore-prefixed (excluded from the
+    # cache key); price_hash + index_hash already encode data state, and
+    # actions_key the adjustments -- which rewrite history BEFORE their date
+    # and so are invisible to price_hash (see ranking_store.actions_digest).
+    metrics.incr("memo_miss_engine_base")
+    return pipeline.build_engine(
+        _adj_close, _high_prices, _low_prices, _close_prices, _volume_data,
+        _idx_info, _market_caps, corporate_actions=_corporate_actions,
+    )
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def run_momentum_pipeline(
+    base_hash: str,
+    weights: tuple[float, ...],
+    _calc,
+    _index_info: pd.DataFrame,
+    _market_caps: pd.Series,
+    _close_prices: pd.DataFrame,
+    _high_prices: pd.DataFrame,
+    intraday: bool = True,
+):
+    # Cheap: weighted sum of the pre-computed z-scores + final ranking table.
+    # Only re-runs when weights change; price/universe changes invalidate
+    # base_hash, which also misses _run_engine_base first.
+    metrics.incr("memo_miss_quant_engine")
+    return pipeline.rank_with_weights(
+        _calc, weights, _index_info, _market_caps, _close_prices, _high_prices,
+        intraday=intraday,
+    )
+
+
+def _system_universe(system: str, indices: list[str]) -> pd.DataFrame:
+    """The stocks a system ranks: the 750, Nano Cap, or both as one list."""
+    base = fetch_indices_data(indices) if system != SYSTEM_NANO else pd.DataFrame(columns=["Symbol"])
+    extra = extra_loader.fetch_members() if system != SYSTEM_750 else pd.DataFrame(columns=["Symbol"])
+    return extra_loader.system_universe(system, base, extra)
+
+
+def load_all_data(indices: list[str], system: str = SYSTEM_750):
+    """The ranking and prices for one system.
+
+    SYSTEM_750 (the default) is the app as it always was, to the byte: same
+    caches, same keys, same precomputed table. Nano Cap brings its own member
+    list, Yahoo file and month-end market caps; Combined is both, ranked as
+    one list. The 750's Yahoo cache only ever holds the 750: extra stocks come
+    from their own file, so they cannot move the 750's coverage judgements.
+    """
+    force = st.session_state.pop("force_refresh", False)
+    if force:
+        st.cache_data.clear()
+
+    # Snapshot cache presence BEFORE any fetch, so "was this container cold?"
+    # is answered with evidence rather than inferred from a deploy happening.
+    metrics.record_cache_presence({
+        "prices": PRICES_FILE,
+        "market_caps": MCAPS_FILE,
+        "mcap_pr": MCAP_PR_FILE,
+    })
+
+    with metrics.stage("universe"):
+        idx_info = _system_universe(system, indices)
+    if idx_info.empty:
+        return None
+
+    symbols = idx_info["Symbol"].unique().tolist()
+    metrics.note("universe_symbols", len(symbols))
+    sym_key = _symbols_hash(symbols)
+    # The part of the list the 750's caches serve, and the part they do not.
+    core_syms, extra_syms = extra_loader.split_symbols(system, idx_info)
+    core_key = sym_key if not extra_syms else _symbols_hash(core_syms)
+
+    def _mcaps_for_system() -> pd.Series:
+        caps = load_mcaps_cached(core_key, core_syms) if core_syms else pd.Series(dtype=float)
+        return pd.concat([caps, extra_loader.list_market_caps(extra_syms)]) if extra_syms else caps
+
+    # mcaps + regime have no dependency on price_history — submit them to
+    # background threads so the three fetches overlap on cold start.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as _pool:
+        _fut_mcaps = _pool.submit(_mcaps_for_system)
+        _fut_regime = _pool.submit(get_market_regime)
+        # Nothing about the download depends on the prices below, only the
+        # CHECK does -- so it overlaps the price work instead of following it.
+        # Each system has its own table (scripts/precompute_systems.py).
+        _fut_ranking = _pool.submit(_fetch_ranking_snapshot, system)
+
+        # Every PRICE frame, together, from one source decision. price_source
+        # decides for BOTH the app and the nightly precompute, so the two
+        # cannot end up scoring different data while the ranking contract
+        # still matches -- a wrong answer served fast, which nothing
+        # downstream could detect. Screener first, NSE for what it lacks; no
+        # Yahoo (owner, 2026-10-02).
+        with metrics.stage("price_source"):
+            _src, _deep_close = _resolve_price_source(symbols)
+            if _src is None:
+                return None
+            adj_close, close_p = _src.adj_close, _src.close
+            high_p, low_p, vol_p = _src.high, _src.low, _src.volume
+            # Close-only sources: no open, so the chart draws a flat close
+            # rather than a candle with a fictional body.
+            open_p = None
+            # Memo key for the corporate-action pass below.
+            p_hash_raw = pipeline.frame_memo_key(adj_close)
+            _deep_adj_close = _deep_close
+            metrics.note("price_source", _src.source)
+            metrics.note("price_high_basis", _src.high_basis)
+            metrics.note("price_intraday", "yes" if _src.intraday else "no")
+            _selection_as_of = str(pipeline.ranking_as_of(adj_close))
+            _selection_key = "|".join([
+                _src.source,
+                _selection_as_of,
+                _src.high_basis,
+                "yes" if _src.intraday else "no",
+            ])
+            if metrics.note_if_changed("price_source_selection_key", _selection_key):
+                logger.info(
+                    "Ranking price source selected: source=%s as_of=%s high_basis=%s intraday=%s",
+                    _src.source,
+                    _selection_as_of,
+                    _src.high_basis,
+                    "yes" if _src.intraday else "no",
+                )
+
+            # AFTER the source is chosen, never before. These describe the
+            # frame the engine will actually score, and computing them from the
+            # Yahoo frame while the ranking came from screener is exactly the
+            # disagreement the ribbon exists to prevent: production showed
+            # "16 Sep - 2 trading days behind" over a table dated 18 Sep,
+            # because Yahoo's 17th and 18th were too thin to rank while
+            # screener had both at 100%.
+            try:
+                _ranked = pipeline.ranking_as_of(adj_close)
+                metrics.note("price_as_of", _ranked)
+                _idx = pd.DatetimeIndex(adj_close.index)
+                metrics.note("price_frame_last_row", str(_idx[-1].date()))
+
+                _n = int(adj_close.shape[1])
+                _cov = adj_close.notna().sum(axis=1)
+                _ts = pd.Timestamp(_ranked)
+                if _n and _ts in adj_close.index:
+                    metrics.note("price_coverage", f"{int(_cov.loc[_ts])}/{_n}")
+                # A newer session held back, named so a reader can tell a
+                # deliberate wait from a broken pipeline.
+                _newer = [d for d in _idx if d > _ts]
+                if _newer and _n:
+                    _d = _newer[-1]
+                    metrics.note("price_deferred_as_of", str(_d.date()))
+                    metrics.note("price_deferred_coverage", f"{int(_cov.loc[_d])}/{_n}")
+            except Exception as _exc:
+                logger.warning("Price freshness notes unavailable (%s).", type(_exc).__name__)
+
+        with metrics.stage("corporate_actions"):
+            from src.loaders.ranking_store import actions_digest
+
+            _ca_events = load_events()
+            _adj, _ca_applied = _adjust_for_corporate_actions(
+                p_hash_raw,
+                actions_digest(_ca_events),
+                {"adj_close": adj_close, "close": close_p,
+                 "high": high_p if high_p is not None else close_p,
+                 "low": low_p if low_p is not None else close_p},
+                _ca_events,
+            )
+            _ca_key = actions_digest(_ca_applied)
+            adj_close, close_p = _adj["adj_close"], _adj["close"]
+            if _src.intraday:
+                high_p, low_p = _adj["high"], _adj["low"]
+
+        with metrics.stage("market_caps"):
+            mcaps = _fut_mcaps.result()
+        with metrics.stage("market_regime"):
+            regime = _fut_regime.result()
+        with metrics.stage("ranking_snapshot_fetch"):
+            _fetched_ranking = _fut_ranking.result()
+
+    p_hash = _price_hash(adj_close)
+    i_hash = f"{len(idx_info)}_{sym_key}"
+    base_hash = f"{p_hash}_{i_hash}_{pipeline.PIPELINE_VERSION}_{_ca_key}"
+
+    def _build_engine_and_rank():
+        """The 30 seconds. Deferred, so a cold start need not pay it at all."""
+        with metrics.stage("engine_base"):
+            calc_base = _run_engine_base(
+                p_hash,
+                i_hash,
+                pipeline.PIPELINE_VERSION,
+                _ca_key,
+                adj_close,
+                high_p,
+                low_p,
+                close_p,
+                vol_p,
+                idx_info,
+                mcaps,
+                _ca_applied,
+            )
+        with metrics.stage("quant_engine"):
+            return run_momentum_pipeline(
+                base_hash,
+                weights,
+                calc_base,
+                idx_info,
+                mcaps,
+                close_p,
+                high_p if high_p is not None else close_p,
+                intraday=_src.intraday,
+            )
+
+    # The precomputed table, if the nightly job ranked exactly this frame under
+    # exactly these weights. Every input is re-checked; anything unverifiable
+    # falls straight through to the computation above. See ranking_store.
+    calc = None
+    rank_df = None
+    with metrics.stage("precomputed_ranking"):
+        rank_df = _precomputed_ranking(
+            _fetched_ranking, p_hash, _symbols_hash(symbols), weights,
+            sorted(idx_info["Symbol"].unique().tolist()) if "Symbol" in idx_info else [],
+            _ca_applied,
+            price_source=_src.source,
+            # Same frame the fingerprint above is taken from, and the same call
+            # scripts/sync_data.py makes, so the two sides are comparable.
+            price_as_of=pipeline.ranking_as_of(adj_close),
+        )
+
+    if rank_df is None:
+        calc, rank_df = _build_engine_and_rank()
+
+    return {
+        # A CALLABLE, not the engine. Only Portfolio needs it now (Sectors
+        # and RRG read the ranking table directly); the Screener that every cold start lands on
+        # does not, and building it eagerly made every reader pay 30 seconds for
+        # an object their first page never touched. Pages that need it call this
+        # and get the same memoised engine.
+        "get_calc": (lambda: calc) if calc is not None else (
+            lambda: _build_engine_and_rank()[0]
+        ),
+        "calc": calc,
+        "rank_df": rank_df,
+        "adj_close": adj_close,
+        # The longest continuous history available, whatever the ranking is
+        # computed from. Only the backtest and the track record read this, and
+        # only because they need more history than a ranking does.
+        "deep_adj_close": _deep_adj_close,
+        "deep_close_prices": _deep_close,
+        "close_prices": close_p,
+        "high_prices": high_p,
+        "low_prices": low_p,
+        "volume_data": vol_p,
+        "open_prices": open_p,
+        "regime_data": regime,
+        "idx_info": idx_info,
+    }
+
+
+# ── Load Market Data ─────────────────────────────────────────────────────────
+with st.spinner("Loading market data…"):
+    with metrics.stage("data_pipeline_total"):
+        # ?sys= keeps the choice across a stock link's reload (system_param).
+        system = system_param.current()
+        data = None
+        try:
+            data = load_all_data(selected_indices, system)
+        except Exception as exc:
+            if system == SYSTEM_750:
+                raise
+            logger.warning("%s failed to load (%s).", system, type(exc).__name__)
+        if system != SYSTEM_750 and (not data or data["rank_df"].empty):
+            st.warning(f"{SYSTEM_NAMES[system]} could not be loaded just now, so the app shows "
+                       "Nifty 750.")
+            system = SYSTEM_750
+            data = load_all_data(selected_indices, system)
+        # The chosen system, not a fallback, is what the address keeps.
+        system_param.sync_url(system_param.current())
+
+def _emit_startup_metrics(outcome: str) -> None:
+    """Publish this process's cold-start telemetry as a hidden, inert element.
+
+    Called on the failure path as well as the success path: a cold start that
+    fails is precisely when the stage timings and retry counts matter most,
+    and st.stop() would otherwise end the script before they were ever
+    published.
+    """
+    metrics.note("script_outcome", outcome)
+    metrics.note("script_run_completed_at_s", metrics.since_start())
+    st.markdown(
+        '<div id="umiya-startup-metrics" style="display:none">'
+        # public_snapshot, not snapshot: this div is hidden, not private, and
+        # which upstream feed the prices came from does not belong in HTML
+        # anyone can view-source. Timings and counters are untouched.
+        + json.dumps(metrics.public_snapshot())
+        + "</div>",
+        unsafe_allow_html=True,
+    )
+
+
+if not data:
+    st.error(
+        "❌ Failed to initialize market data. Please verify your internet connection or reload."
+    )
+    _emit_startup_metrics("data_init_failed")
+    st.stop()
+
+# The engine, only when a page actually needs it. `calc` is None whenever the
+# precomputed ranking was accepted, which is the common cold start -- see
+# _precomputed_ranking. Only Portfolio calls get_calc() and pays for it then.
+calc = data["calc"]
+get_calc = data["get_calc"]
+rank_df = data["rank_df"]
+adj_close = data["adj_close"]
+deep_adj_close = data.get("deep_adj_close")
+if deep_adj_close is None or deep_adj_close.empty:
+    deep_adj_close = adj_close
+high_prices = data["high_prices"]
+low_prices = data["low_prices"]
+volume_data = data["volume_data"]
+regime_data = data["regime_data"]
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def _traded_value_cached(price_hash: str, _close: pd.DataFrame, _volume: pd.DataFrame):
+    return liquidity.traded_value_cr(_close, _volume)
+
+
+def _traded_value():
+    """The 20-day average traded value, only when the floor is on."""
+    if not liquidity_floor_cr:
+        return None
+    return _traded_value_cached(_price_hash(data["close_prices"]), data["close_prices"], volume_data)
+
+
+# An empty ranking is a pipeline failure, not a view to render. Twelve tabs of
+# empty frames produced a TypeError in the Qualified tab rather than telling
+# anyone what went wrong, so stop here and report what the engine actually saw.
+if rank_df.empty:
+    # An empty ranking can only come from the live engine -- the precomputed
+    # table is never published empty -- so calc is populated here by
+    # construction. getattr keeps the diagnostics optional either way.
+    diag = getattr(calc, "ranking_diagnostics", {}) or {}
+    metrics.note("ranking_diagnostics", diag)
+    st.error(
+        "❌ The momentum engine ranked 0 stocks, so there is nothing to show.\n\n"
+        f"- Universe: **{diag.get('universe', 'unknown')}** symbols\n"
+        f"- Price series loaded: **{diag.get('price_columns', 'unknown')}**, "
+        f"matching the universe: **{diag.get('symbols_matching_prices', 'unknown')}**\n"
+        f"- With any price history: **{diag.get('with_price_history', 'unknown')}**\n"
+        f"- Meeting the {diag.get('min_observations', 63)}-observation minimum: "
+        f"**{diag.get('meeting_min_observations', 'unknown')}**\n\n"
+        "This is almost always upstream price data, not the ranking itself. "
+        "Use **Force Refresh** to rebuild the cache, or retry shortly if the "
+        "price provider is rate limiting."
+    )
+    _emit_startup_metrics("empty_ranking")
+    st.stop()
+
+# Merge TradingView granular classification
+tv_map = _load_tv_cached()
+
+
+def _with_tv(frame: pd.DataFrame) -> pd.DataFrame:
+    if tv_map:
+        frame["TV_Sector"] = frame["Symbol"].map(
+            lambda s: tv_map.get(s, {}).get("TV_Sector", "")
+        )
+        frame["TV_Industry"] = frame["Symbol"].map(
+            lambda s: tv_map.get(s, {}).get("TV_Industry", "")
+        )
+    else:
+        frame["TV_Sector"] = ""
+        frame["TV_Industry"] = frame.get("Industry", "")
+    return frame
+
+
+rank_df = _with_tv(rank_df)
+
+# ── The system ───────────────────────────────────────────────────────────────
+# Owner, 2026-09-27: three systems in one app, chosen in Configuration, and
+# every page follows the choice. The data above is the chosen system's.
+if system != SYSTEM_750:
+    # One taxonomy per system. NSE's industry names exist only for the 750, so
+    # Combined would mix two (37 "industries" where there are ~20): Nano Cap
+    # and Combined group every stock by its TradingView sector, falling back
+    # to the list's industry where TradingView has none.
+    _blank = rank_df["TV_Sector"].fillna("") == ""
+    rank_df.loc[_blank, "TV_Sector"] = rank_df.loc[_blank, "Industry"]
+    rank_df["Industry"] = rank_df["TV_Sector"]
+system_name = SYSTEM_NAMES[system]
+
+
+def _system_line() -> None:
+    """The Screener's footnote for Nano Cap and Combined: what is ranked."""
+    if system == SYSTEM_750:
+        return
+    members = set(data["idx_info"]["Symbol"]) if data.get("idx_info") is not None else set()
+    unranked = sorted(members - set(rank_df["Symbol"]))
+    kit.note(
+        f"{system_name} · {len(rank_df)} of {len(members)} stocks ranked"
+        + (" among themselves." if system == SYSTEM_NANO else " as one list."),
+        (f"{len(unranked)} too new to rank (under three months of prices): "
+         + ", ".join(unranked[:12]) + (" and more." if len(unranked) > 12 else "."))
+        if unranked else "",
+    )
+
+
+def _before_inception() -> bool:
+    """Nano Cap and Combined before their first book (the 30 Sep 2026 close)."""
+    if system == SYSTEM_750:
+        return False
+    as_of = pd.Timestamp(adj_close.index[-1]) if adj_close is not None and len(adj_close) else pd.Timestamp.now()
+    return pd.Period(as_of, freq="M") < pd.Period(SYSTEM_INCEPTION[system], freq="M")
+
+
+def _record_start() -> str:
+    """For Nano Cap and Combined: when their book and record begin."""
+    start = pd.Period(SYSTEM_INCEPTION[system], freq="M")
+    return (f"The {system_name} model book forms at the close of "
+            f"{(start - 1).strftime('%B %Y')}'s last session and its record starts "
+            f"with {start.strftime('%B %Y')}.")
+
+
+# ── Navigation ───────────────────────────────────────────────────────────────
+# Keep the canonical page declarations and st.navigation router unchanged.
+# The only experiment here is the user-facing trigger: a compact popover
+# replaces the permanent eleven-item navigation row.
+
+
+
+def _page_screener() -> None:
+    # What is ranked comes last, under the top-50 moves (owner, 2026-09-27).
+    render_ranking_view(
+        rank_df, adj_close, high_prices, low_prices, volume_data,
+        open_prices=data.get("open_prices"),
+        regime=regime_data,
+        footnote=_system_line,
+    )
+
+
+def _page_sectors() -> None:
+    render_sector_view(rank_df, adj_close)
+
+
+def _page_rrg() -> None:
+    # No get_calc() here. This page never read the engine -- it took it as an
+    # argument and ignored it -- so on the common cold start, where the
+    # precomputed ranking is accepted and `calc` is still None, opening RRG
+    # built the whole engine to satisfy an unused parameter.
+    render_rrg_view(rank_df, adj_close)
+
+
+def _page_portfolio() -> None:
+    render_portfolio_view(
+        calc=get_calc(),
+        rank_df=rank_df,
+        sector_cap=sector_cap,
+        stock_cap=stock_cap,
+        vol_target_on=vol_target_on,
+        vol_target_val=vol_target_val,
+        liquidity_floor_cr=liquidity_floor_cr,
+        traded_value=_traded_value(),
+    )
+
+
+def _page_watchlist() -> None:
+    render_watchlist_view(rank_df, adj_close)
+
+
+def _page_breadth() -> None:
+    render_breadth_view(rank_df, adj_close)
+
+
+def _page_backtest() -> None:
+    # Backtest reporting starts at the system's canonical inception and
+    # expands by one completed month at each month-end. Older price history is
+    # still used for signal formation, but never becomes portfolio ownership.
+    months = systems.backtest_months(system, deep_adj_close.index[-1])
+    if months == 0:
+        start_label = systems.inception(system).strftime("%B %Y")
+        kit.page_head(
+            "Backtest",
+            f"{system_name} starts its canonical history in {start_label} and gains "
+            "one completed month at every month-end.",
+        )
+        kit.note(
+            "Building.",
+            f"The first reported month completes at the end of {start_label}. "
+            + _record_start(),
+        )
+        return
+    extra_args = ({
+        "months": months,
+        "membership": systems.membership_for(system),
+        "history_start": systems.inception(system).start_time,
+    } if months is not None else {
+        "history_start": systems.inception(system).start_time,
+    })
+    render_backtest_view(
+        rank_df=rank_df,
+        # Depth, not freshness: the 12-month formation window is warm-up only.
+        # The reported portfolio history starts at canonical inception and
+        # expands one completed month at a time.
+        adj_close=deep_adj_close,
+        stock_cap=stock_cap,
+        sector_cap=sector_cap,
+        weights=weights,
+        liquidity_floor_cr=liquidity_floor_cr,
+        traded_value=_traded_value(),
+        **extra_args,
+    )
+
+
+def _page_actions() -> None:
+    # The model book comes from the same pinned run as the Track Record's
+    # month-to-date (record_run), so the two pages describe one portfolio.
+    render_actions_view(
+        rank_df, deep_adj_close, fetch_benchmark_history(period="5y"),
+        model_book_note=_record_start() if _before_inception() else None,
+        system=system,
+    )
+
+
+def _page_configuration() -> None:
+    render_config_view(rank_df)
+
+
+def _page_guide() -> None:
+    render_guide_view(rank_df)
+
+
+# Titles and order are the app's public surface: the production QA probe walks
+# them by name and tests/test_qa_tab_list_matches_the_app.py pins them, so a
+# rename here without one there is a failing build, not a silent drift.
+_PAGES = [
+    st.Page(_page_screener, title="Screener", url_path="screener", default=True),
+    st.Page(_page_portfolio, title="Portfolio", url_path="portfolio"),
+    st.Page(_page_actions, title="Actions", url_path="actions"),
+    st.Page(_page_sectors, title="Sectors", url_path="sectors"),
+    st.Page(_page_rrg, title="RRG", url_path="rrg"),
+    st.Page(_page_watchlist, title="Watchlist", url_path="watchlist"),
+    st.Page(_page_breadth, title="Market Breadth", url_path="breadth"),
+    st.Page(_page_backtest, title="Backtest", url_path="backtest"),
+    st.Page(_page_configuration, title="Configuration", url_path="configuration"),
+    st.Page(_page_guide, title="Guide", url_path="guide"),
+]
+
+# Addresses that moved: Qualified and Exit Watch became Actions. A bookmark to
+# either still lands there. These are redirects, not pages -- they are left out
+# of _PAGES, so no menu shows them, and their titles are not the app's tabs.
+_MOVED = {"qualified": "Qualified", "exit-watch": "Exit Watch", "track-record": "Track Record"}
+# Where a moved address now lands (Actions unless listed): the record is part of Portfolio.
+_MOVED_TO = {"track-record": "Portfolio"}
+
+
+def _moved_page(path: str):
+    def _go() -> None:
+        st.switch_page(next(p for p in _PAGES if p.title == _MOVED_TO.get(path, "Actions")))
+    _go.__name__ = f"_moved_{path.replace('-', '_')}"
+    return st.Page(_go, title=_MOVED[path], url_path=path)
+
+
+# position="hidden" keeps Streamlit's own navigation out of the hidden header.
+_nav = st.navigation(_PAGES + [_moved_page(p) for p in _MOVED], position="hidden")
+
+# The stock page is a route of the Screener (?stock=SYMBOL). Links to it are
+# relative, so one clicked on another page -- a sector leader on Sectors --
+# arrives as /sectors?stock=X, and that page has no idea what to do with it:
+# the click reloaded Sectors. Send any stock request to the Screener.
+if st.query_params.get("stock") and _nav.title != _PAGES[0].title:
+    st.switch_page(_PAGES[0], query_params={"stock": st.query_params["stock"],
+                                            **system_param.url_params()})
+
+# ── Top Header KPI Bar & Alerts ──────────────────────────────────────────────
+total_stocks = len(rank_df)
+
+above_ema = count_above_ema(rank_df)
+pct_above_ema = (above_ema / total_stocks * 100) if total_stocks > 0 else 0.0
+
+render_header_kpi_bar(
+    regime=regime_data,
+    total_stocks=total_stocks,
+    above_ema=above_ema,
+    pct_above_ema=pct_above_ema,
+    near_high=count_above_ema(rank_df, "Near 52W High"),
+    nav_pages=_PAGES,
+    active_page=_nav,
+)
+
+# The reader's watchlist lives in their browser; bring it into the session
+# before any page reads it (src/ui/watchlist_store.py).
+watchlist_store.sync()
+
+
+_nav.run()
+
+# ── Cold-start telemetry ─────────────────────────────────────────────────────
+# Hidden, inert element carrying this process's startup measurements so a
+# production probe can read a real cold start from outside the container.
+_emit_startup_metrics("ok")
