@@ -19,7 +19,7 @@ import streamlit as st
 from src.core.config import MOMENTUM_WINDOWS, RISK_FREE_RATE
 from src.engine.calendar_momentum import anchor_frame, period_sharpe_at, winsorised_z
 from src.engine.corporate_actions import adjust_prices
-from src.engine import liquidity
+from src.engine import compute_gate, liquidity
 from src.engine.membership import members_on
 from src.engine.portfolio import apply_caps
 
@@ -39,7 +39,12 @@ def _rolling_high_at(prices: pd.DataFrame, idx: int) -> pd.Series:
     few operations on this small window. Only the 252-row slice is materialised.
     """
     window = prices.iloc[max(0, idx - 251) : idx + 1]
-    return window.rolling(252, min_periods=126).max().iloc[-1]
+    # .copy(): a row of a one-dtype frame is a VIEW, and it kept the whole
+    # 252-row rolled frame alive. run_backtest keeps one of these per signal
+    # date (_high_at_cache), so the History-from-2010 run held ~200 of them,
+    # ~580 MB, to keep ~3 MB of values -- the backtest that took production
+    # down on 8 Oct 2026. Same values; tests/test_memory_guardrails.py.
+    return window.rolling(252, min_periods=126).max().iloc[-1].copy()
 
 
 def completed_month_window(
@@ -764,7 +769,10 @@ def _calculate_backtest_metrics(
 # Bounded: a parameter sweep stores one entry per combination (up to 1,920,
 # three times over with the holdout), each kept for an hour with no ceiling.
 # A sweep reads each result as it lands, so evicting old ones costs it nothing.
+# Gated UNDER the cache: only a miss queues behind another reader's run
+# (src/engine/compute_gate.py, TODO S65).
 @st.cache_data(show_spinner=False, ttl=3600, max_entries=64)
+@compute_gate.serialised
 def run_backtest(
     prices_hash: str,
     _adj_close: pd.DataFrame,

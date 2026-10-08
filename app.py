@@ -539,12 +539,18 @@ def _resolve_price_source(symbols):
     from src.loaders import price_source as _ps
 
     _ps.preferred()  # reports a stale UMIYA_PRICE_SOURCE setting
+    # Memory at each boundary (ported from #417). After #420 the shaping, the
+    # NSE fill and the deep history all happen inside _resolved_prices_shared,
+    # once per data state, so a warm rerun shows ~0 between these two points.
+    metrics.memory_checkpoint("resolve_price_source:before_screener")
     store_result = _fetch_screener_store(r2_streamlit.configuration_key())
     store, store_revision = store_result if store_result is not None else (None, "none")
+    metrics.memory_checkpoint("resolve_price_source:after_screener_fetch")
     symbols = list(symbols)
     usable, src, deep = _resolved_prices_shared(
         store_revision, _symbols_hash(symbols), _price_inputs_key(), store, symbols,
     )
+    metrics.memory_checkpoint("resolve_price_source:after_resolved_prices")
     if not usable and r2_streamlit.enabled():
         raise RuntimeError("Configured immutable Screener dataset is not usable")
     if src is not None:
@@ -1205,6 +1211,9 @@ watchlist_store.sync()
 
 
 _nav.run()
+# Which page took the process to its peak: the log line memory_checkpoint
+# writes when the peak climbs 50 MB names this label.
+metrics.memory_checkpoint(f"page:{_nav.url_path or 'screener'}")
 
 # ── Cold-start telemetry ─────────────────────────────────────────────────────
 # Hidden, inert element carrying this process's startup measurements so a

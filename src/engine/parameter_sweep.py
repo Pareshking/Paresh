@@ -104,6 +104,14 @@ def _grid(space: dict[str, Sequence[Any]]) -> list[dict[str, Any]]:
     return [dict(zip(keys, combo)) for combo in itertools.product(*(space[k] for k in keys))]
 
 
+# The ceiling for a sweep started from the web app (owner, 8 Oct 2026, TODO
+# S65). Every combination is a full walk-forward, three with the holdout, run
+# inside the server every reader shares: 50 is ~150 backtests, ~3 minutes on
+# the 2010 history. The engine's own default (400) stays for scripts and
+# notebooks.
+MAX_WEB_COMBINATIONS = 50
+
+
 def count_combinations(space: dict[str, Sequence[Any]]) -> int:
     """How many backtests a space implies. Call this BEFORE running one."""
     n = 1

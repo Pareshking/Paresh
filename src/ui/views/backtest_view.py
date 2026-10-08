@@ -14,7 +14,9 @@ from src.core.market_time import ist_now
 from src.engine.backtester import DEFAULT_BACKTEST_MONTHS, run_backtest
 from src.engine.corporate_actions import load_events
 from src.engine.membership import load_history_or_none
+from src.engine import compute_gate
 from src.engine.parameter_sweep import (
+    MAX_WEB_COMBINATIONS,
     OBJECTIVES,
     count_combinations,
     run_parameter_sweep,
@@ -339,6 +341,12 @@ def _backtest_tab(
         # index files only label the current members.
         sec_map.update(former_members.industry_for([c for c in adj_close.columns if c not in sec_map]))
 
+    # One backtest computes at a time across the whole server (compute_gate,
+    # TODO S65). A cached result returns at once; only a new run waits.
+    queued = st.empty()
+    if compute_gate.busy():
+        queued.info("Backtest running: request queued. Another reader's backtest is computing; "
+                    "yours starts as soon as it finishes.")
     with st.spinner("Running walk-forward backtest with friction & turnover modeling…"):
         bt_res = run_backtest(
             ph,
@@ -361,6 +369,7 @@ def _backtest_tab(
             liquidity_floor_cr=liquidity_floor_cr,
             _traded_value=traded_value,
         )
+    queued.empty()
 
     if bt_res is None:
         st.warning(
@@ -1108,7 +1117,14 @@ def _render_parameter_sweep(
                 else "."
             )
         )
-        if n_combos > 100:
+        if n_combos > MAX_WEB_COMBINATIONS:
+            st.error(
+                f"{n_combos} combinations is more than this page runs "
+                f"({MAX_WEB_COMBINATIONS}): each is a full backtest on the server every "
+                "reader shares. Narrow the grid, or run the sweep from a script."
+            )
+            return
+        if n_combos > 20:
             st.warning(
                 f"{n_combos} combinations is a wide search. The more you try, the "
                 "better the best one looks by chance alone. Narrow the grid, or "
@@ -1128,6 +1144,7 @@ def _render_parameter_sweep(
                 adj_close, space, objective=objective, base=dict(base),
                 sector_map=sector_map, _benchmark_close=benchmark_close,
                 progress=_tick, holdout=use_holdout,
+                max_combinations=MAX_WEB_COMBINATIONS,
             )
         except ValueError as exc:
             bar.empty()

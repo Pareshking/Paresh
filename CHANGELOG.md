@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-08 — Backtests: the crash fixed, one at a time, a sweep ceiling
+
+- The History-from-2010 backtest took the app down on 8 Oct: to keep each month's 52-week highs (about 3 MB in all) it kept the whole 252-day calculation window behind every one, about 580 MB. One reader opening History now peaks at 751 MB instead of 1,156 MB. Results are unchanged.
+- Only one backtest computes at a time across the server. Another reader's new backtest shows "Backtest running: request queued" and starts when the first finishes; a result already computed is shown at once. The parameter sweep runs at most 50 combinations from the page (it was 400).
+- The app writes a line to its log each time its memory peak rises by 50 MB, naming the page, so production memory can be read from the Streamlit Cloud log.
+
 ## 2026-10-08 — Memory: the app stays inside Streamlit Cloud's limit
 
 - Streamlit Cloud restricted the app for using too much memory. Each rerun of each session had been unpickling its own copy of the same price frames (~130 MB a click), and every weight setting a reader tried kept a 56 MB engine for an hour with no ceiling. The price frames are now one shared copy, and the engine and backtest caches have a size limit. With 4 readers at once, peak memory fell from 1.9 GB to 1.4 GB and the Screener answers in 4 s instead of 18 s. Rankings and prices are unchanged (`docs/MEMORY_AUDIT_2026-10-08.md`).
