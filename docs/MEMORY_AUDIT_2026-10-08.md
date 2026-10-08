@@ -108,12 +108,65 @@ longer). "Connecting..." was the container restarting after an OOM kill. A
 worker process would start from a fork of a ~1 GB process and pickle the price
 frames across, so it raises peak memory, which is the thing that failed.
 
+## Correction to the parity check above
+
+"The same page content" above hashed the markdown elements only: fonts, section
+titles and the freshness ribbon. The ranking renders as raw HTML, which that
+hash did not read, so it showed only that the facts (price as-of, coverage,
+weights) were unchanged. The check was redone for S62 (below) over every HTML
+element, which includes the top-50 movement panel built from the ranking.
+
+## Follow-up, same day: S62 and S63
+
+**S62, the engine shared.** `rank_with_weights` writes `weights`,
+`momentum_scores` and `ranking_diagnostics` on the engine it is given, which is
+why the engine stayed on `cache_data`. Now `pipeline.engine_view(calc)` gives a
+caller its own engine object over the same arrays: frames are shallow
+copy-on-write copies, dicts and lists are rebuilt three levels deep (the engine
+holds `{months: frame}` and `{months: {field: value}}`). `_run_engine_base` and
+`_ranked_shared` are `cache_resource`; ranking runs on a view of the base, and
+each rerun gets a view of the ranked engine and a shallow copy of the table.
+Tests: ranking on a view equals ranking on a deep copy (`assert_frame_equal`),
+two weight vectors on one base do not see each other, and writes into a view's
+frames and nested dicts reach neither the base nor another view.
+
+**S63, the Track Record comparison.** It downloaded the Screener store again,
+through a path that also ignored the configured R2 pin. The store reader moved
+to `src/loaders/screener_cache.py`, shared by the app and the comparison. A
+second, older fault went with it: the selected system's frame was returned from
+inside an `st.cache_data` keyed on system names only, so after prices moved the
+comparison served the old frame for up to an hour. That branch is no longer
+cached.
+
+**Parity.** #420's head (`3a67584`) and this code, three reruns each, with the
+default weights (precomputed ranking) and with `cfg_w1 = 0.25`, which forces the
+engine (`ranking_precompute = miss_weights_differ`): every HTML element and
+every markdown element identical, no exceptions. Both sides read the same 8 Oct
+market-cap file. Not compared: the full screener grid, which renders in an
+element type the test harness does not expose as text.
+
+**Memory**, same bench, two runs of the new code:
+
+| 4 concurrent sessions, peak | Before #420 | #420 | + S62/S63 |
+|---|---|---|---|
+| Screener | 1,007 MB | 467 MB | 458 / 464 MB |
+| Portfolio | 1,876 MB | 1,440 MB | 1,048 / 1,043 MB |
+| Backtest | 1,764 MB | 1,075 MB | 958 / 910 MB |
+
+Peaks repeat within ~50 MB; the resting figure after a run varied by ~100 MB
+between identical runs, so it is not quoted. The target of 800 MB for Portfolio
+was not reached.
+
+**What the rest is.** memray over the whole server during 4 Portfolio loads
+attributes ~1 GB of the 1.55 GB high-water mark to pyarrow's allocator
+(mimalloc), charged to the first Arrow string allocation. That is mapped memory,
+not necessarily resident, so it was tested against RSS: the same bench with
+`ARROW_DEFAULT_MEMORY_POOL=system` gave Portfolio 922 MB, Backtest 918 MB (one
+run). A lead, not a change: see TODO S64.
+
 ## Still open
 
-See `docs/TODO.md` S61-S63.
+See `docs/TODO.md` S61-S65.
 
-- Portfolio still peaks at 1.44 GB with 4 sessions: each unpickles its own
-  106 MB engine (M2's caches). Sharing the engine needs `calc.weights` moved off
-  the shared object first.
-- `track_record_view._comparison_price_frame` downloads the Screener store again
-  instead of using the cached one.
+- Portfolio peaks at ~1.05 GB with 4 sessions (S64: Arrow's allocator).
+- The Backtest tab and the parameter sweep compute in the web process (S65).

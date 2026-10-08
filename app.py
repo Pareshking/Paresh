@@ -80,6 +80,7 @@ with app_import_guard():
         get_market_regime,
     )
     from src.loaders.tv_loader import load_tv_classification
+    from src.loaders.screener_cache import fetch_screener_store as _fetch_screener_store
     # Imported HERE, on the script thread, before load_all_data's thread pool.
     # The pool's ranking download imported src.storage.reader lazily while
     # the script thread imported it through r2_streamlit, and Python's import
@@ -471,52 +472,6 @@ def _precomputed_ranking(
     return frame
 
 
-# A resource, not data: the store is read-only here (from_screener takes
-# cross-sections, which are new frames), so one copy serves every session
-# instead of a 35 MB unpickle on every rerun. See _shared.
-@st.cache_resource(show_spinner=False, ttl=3600, max_entries=2)
-def _fetch_screener_store(source_key: str):
-    """Read Screener history, optionally from an immutable archive pin.
-
-    The second return value is the source revision identity used to memoise
-    shaping. For R2 it is the immutable SHA; for the legacy HTTPS path the
-    existing one-hour cache TTL remains the freshness boundary.
-    """
-    from r2.consumers import r2_streamlit
-    from src.loaders import price_source as _ps
-
-    if r2_streamlit.enabled():
-        try:
-            frame, pin = r2_streamlit.read_configured_screener()
-        except Exception as exc:
-            logger.error("Configured immutable Screener read failed: %s", type(exc).__name__)
-            metrics.note("screener_store_fetch", f"r2_error_{type(exc).__name__}")
-            raise RuntimeError("Configured immutable Screener read failed; refusing source fallback") from exc
-        metrics.note("screener_store_source", "r2")
-        metrics.note("screener_store_as_of", pin.as_of)
-        metrics.note("screener_store_revision", pin.revision_sha256)
-        logger.info(
-            "Screener ranking store: source=object_storage dataset=%s as_of=%s revision=%s",
-            pin.dataset,
-            pin.as_of,
-            pin.revision_sha256,
-        )
-        return frame, pin.revision_sha256
-
-    frame = _ps.fetch_screener_store()
-    logger.info("Screener ranking store: source=published_screener_https")
-    # The HTTPS file has no immutable revision, so derive one from its content.
-    # A constant here let the shaped frames (_resolved_prices_shared) pair a re-fetched store with
-    # the shape of the previous one for up to an hour (two independent TTLs).
-    if frame is None:
-        return None, "published_screener_https:none"
-    digest = (
-        int(pd.util.hash_pandas_object(frame, index=True).sum())
-        + int(pd.util.hash_pandas_object(frame.columns.to_frame(index=False), index=False).sum())
-    ) & 0xFFFFFFFFFFFFFFFF
-    return frame, f"published_screener_https:{digest:016x}"
-
-
 def _price_inputs_key() -> str:
     """When the NSE fill's inputs last changed: data/nse_prices and data/reference.
 
@@ -610,12 +565,17 @@ def _load_tv_cached() -> dict:
 
 
 # Bounded. Unbounded, every weight vector anyone tried stayed for an hour:
-# run_momentum_pipeline returns the whole engine with the ranking, 56 MB an
-# entry, and five slider moves took the process from 117 MB of cache to 449
-# MB (measured 2026-10-08). Thirty moves across readers in an hour is ~1.7 GB,
-# past Streamlit Cloud's limit on their own. These stay cache_data (a copy per
-# hit) because rank_with_weights writes calc.weights on the engine it is given.
-@st.cache_data(show_spinner=False, ttl=3600, max_entries=2)
+# the ranking cache held the whole engine with the ranking, 56 MB an entry,
+# and five slider moves took the process from 117 MB of cache to 449 MB
+# (measured 2026-10-08).
+#
+# Shared, not copied (TODO S62). As cache_data every hit unpickled a private
+# ~106 MB engine for each session on each rerun. One engine per price state is
+# built here and never handed out: _ranked_shared ranks on a view of it, and
+# run_momentum_pipeline gives each rerun a view of that (pipeline.engine_view),
+# because rank_with_weights writes weights, momentum_scores and diagnostics on
+# the engine it is given and the Portfolio page reads them.
+@st.cache_resource(show_spinner=False, ttl=3600, max_entries=2)
 def _run_engine_base(
     price_hash: str,
     index_hash: str,
@@ -645,8 +605,8 @@ def _run_engine_base(
     )
 
 
-@st.cache_data(show_spinner=False, ttl=3600, max_entries=4)
-def run_momentum_pipeline(
+@st.cache_resource(show_spinner=False, ttl=3600, max_entries=4)
+def _ranked_shared(
     base_hash: str,
     weights: tuple[float, ...],
     _calc,
@@ -661,9 +621,27 @@ def run_momentum_pipeline(
     # base_hash, which also misses _run_engine_base first.
     metrics.incr("memo_miss_quant_engine")
     return pipeline.rank_with_weights(
-        _calc, weights, _index_info, _market_caps, _close_prices, _high_prices,
-        intraday=intraday,
+        pipeline.engine_view(_calc), weights, _index_info, _market_caps,
+        _close_prices, _high_prices, intraday=intraday,
     )
+
+
+def run_momentum_pipeline(
+    base_hash: str,
+    weights: tuple[float, ...],
+    _calc,
+    _index_info: pd.DataFrame,
+    _market_caps: pd.Series,
+    _close_prices: pd.DataFrame,
+    _high_prices: pd.DataFrame,
+    intraday: bool = True,
+):
+    """_ranked_shared, as this rerun's own engine view and ranking table."""
+    calc, rank_df = _ranked_shared(
+        base_hash, weights, _calc, _index_info, _market_caps,
+        _close_prices, _high_prices, intraday=intraday,
+    )
+    return pipeline.engine_view(calc), _shared(rank_df)
 
 
 def _system_universe(system: str, indices: list[str]) -> pd.DataFrame:
