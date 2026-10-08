@@ -1705,6 +1705,8 @@ SCALED_PERCENT_COLUMNS: frozenset[str] = frozenset({
     # The backtest's live book stores the entry weight x 100 (backtester: w * 100);
     # undeclared, it raised on the Backtest page's current book (7 Oct 2026).
     "ENTRY WEIGHT %",
+    # The backtest download's trade return, written in percent (src/engine/backtest_export.py).
+    "PRICE RETURN %",
     # exit_watch copies "% 50 EMA" and "% High", already x 100.
     "VS 50 EMA %", "VS 52W HIGH %",
 })

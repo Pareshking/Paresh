@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-08 — Backtest: download the rules and every trade
+
+- The Backtest tab (Live and History from 2010) has a Download card under the calendar returns: one ZIP of two CSV files. `backtest_trades.csv` has every position, closed or still open, in entry order, with sector, signal and fill dates, entry rank and weight, exit rank and reason, mark for open trades, holding days and price return. `backtest_rules.csv` has the run's entry, exit, timing, sizing and cost rules, the price basis, how much of the run used point-in-time membership, and what each trade column means. It is written from the settings of the run itself.
+- The trade records gain sector, signal dates and entry rank, weight and exit rank (`closed_trades` in `backtester.py`); nothing already on the page changes.
+- The History tab's price caption said "no dividends"; the long file has taken out dividends of 10% or more since #370, so it now says so.
+
 ## 2026-10-07 — Long-file build: corporate actions read in parallel and from a pack
 
 - The weekly long-file build spent ~32 of its ~33 minutes reading every session's corporate-action file from R2 one by one; the computation takes ~15 s. The files are now read 16 at a time and kept in `nse_actions_pack.parquet` on the release, so a build reads only the new days (and the newest 10 again). Every factor is still recomputed from all of them; a file that cannot be read stops the build.
