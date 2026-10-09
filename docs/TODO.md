@@ -32,6 +32,7 @@ Measurements and reasons: `docs/MEMORY_AUDIT_2026-10-08.md`.
 | S69 | Every History-from-2010 parameter change grew the process 70-130 MB for good (owner saw it fail on production, 8 Oct): freed memory stayed in each rerun thread's malloc arena | Same clicks in the app stay near 500 MB resident instead of climbing; trim cost measured | [ ] this PR: `src/core/memory.release_freed_memory()` after every page; History session 830 -> 483 MB resident, weight changes +5-30 MB instead of +70-130 MB, ~5 ms per call |
 | S70 | The queued message said "another reader's" when the only reader was the owner: Streamlit abandons a rerun when a slider moves but cannot stop a backtest part-way, so the reader's own earlier settings held the gate (owner, 9 Oct) | The message is amber and says whose run it is | [ ] this PR: `compute_gate.holder()`; reproduced with one reader, two lookback-weight changes |
 | S71 | Every slider tick in Change settings starts a full backtest (~20 s on History from 2010), most of them abandoned | Owner decides: an "Apply" button for the settings, so one backtest runs per decision | [ ] proposal |
+| S72 | Calendar returns: a year-by-year table (strategy, index, alpha) above the monthly grids (owner, 9 Oct) | The table's numbers equal each year's CY cells; part years labelled | [ ] this PR: `components.yearly_summary`; History from 2010 shows 17 rows, 2026 as Jan–Sep |
 
 ## Prices: SS, three-source check, NSE history (2 Oct 2026)
 

@@ -30,7 +30,9 @@ from src.ui.canonical_book import current_book
 from src.engine.extra_universe import SYSTEM_750
 from src.engine.systems import inception, ledger_path
 from src.engine.track_record import build_combined_grid, ledger_from_curves, load_ledger, summary_stats
-from src.ui.components import gap_count, render_data_quality_footer, _render_calendar_returns
+from src.ui.components import (
+    gap_count, render_data_quality_footer, _render_calendar_returns, _render_yearly_summary,
+)
 from src.ui.theme import render_saas_table
 
 
@@ -542,6 +544,8 @@ def _backtest_tab(
             st.info("No full month in this window yet.")
         else:
             _grid["SERIES"] = _grid["SERIES"].replace({"Nifty 500": bench_name})
+            # Year by year first (owner, 9 Oct 2026): the CY column of each block below.
+            _render_yearly_summary(_grid, bench_name)
             _render_calendar_returns(_grid)
             st.caption(
                 "Returns are after trading costs. The first month starts at the first "

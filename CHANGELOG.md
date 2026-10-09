@@ -1,7 +1,8 @@
 # Changelog
 
-## 2026-10-09 — Backtest: the queued message says whose run it is
+## 2026-10-09 — Backtest: year-by-year summary; the queued message says whose run it is
 
+- Calendar returns opens with a year-by-year table: each calendar year's strategy return, the index's, and alpha, with the months covered when a year is only partly in the window ("Jan–Sep"). Every number is the CY figure of that year's block below it, so the two never disagree.
 - With one reader the Backtest page could say "Another reader's backtest is computing" when no one else was there: changing a setting abandons the page's run, but a backtest already under way cannot be stopped and finishes first. The message is now amber and says "Your previous settings are still computing" when it is the reader's own earlier run.
 
 ## 2026-10-08 — History from 2010: memory no longer climbs with every change
