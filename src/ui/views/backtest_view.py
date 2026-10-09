@@ -15,12 +15,6 @@ from src.engine.backtester import DEFAULT_BACKTEST_MONTHS, run_backtest
 from src.engine.corporate_actions import load_events
 from src.engine.membership import load_history_or_none
 from src.engine import compute_gate
-from src.engine.parameter_sweep import (
-    MAX_WEB_COMBINATIONS,
-    OBJECTIVES,
-    count_combinations,
-    run_parameter_sweep,
-)
 from src.engine.pipeline import price_fingerprint
 from src.loaders.price_loader import fetch_benchmark_history
 from src.loaders import former_members, nse_prices
@@ -34,7 +28,6 @@ from src.ui.components import (
     gap_count, render_data_quality_footer, _render_calendar_returns, _render_yearly_summary,
 )
 from src.ui.theme import render_saas_table
-
 
 
 def _canonical_account_stats(ledger: dict, live_meta: dict | None) -> dict:
@@ -268,6 +261,14 @@ def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float,
             exit_ath = k_col.number_input(
                 "Within this % of its all-time high ", min_value=0.5, max_value=95.0, value=None,
                 step=0.5, key="bt_exit_ath", placeholder="same as buy")
+            ath_years = st.number_input(
+                "All-time-high rule: years of prices on file before it applies", min_value=0.0,
+                max_value=30.0, value=3.0, step=0.5, key="bt_ath_years",
+                help="The price history starts on a fixed date (History: Jan 2008; Live: Sep "
+                     "2016), so a stock trading before then may have its real peak earlier. "
+                     "Such a stock is held to the all-time-high rule only after this many years "
+                     "of prices on file; until then the 52-week rule decides alone. A stock that "
+                     "listed after the history starts is held to it from the first day.")
 
             st.markdown("**Score** · how stocks are ranked")
             score = st.radio("Score each lookback window by", list(SCORE_LABELS),
@@ -291,6 +292,7 @@ def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float,
         "ema_period": int(ema_period), "high_pct": frac(off_52w), "ath_pct": frac(off_ath),
         "exit_ema_period": None if exit_ema is None else int(exit_ema),
         "exit_high_pct": frac(exit_52w), "exit_ath_pct": frac(exit_ath),
+        "ath_min_years": float(ath_years),
         "score_method": score, "weights": active,
     }
 
@@ -356,6 +358,7 @@ def _backtest_tab(
     ema_period, high_pct = settings["ema_period"], settings["high_pct"]
     ath_pct, score_method = settings["ath_pct"], settings["score_method"]
     exit_rules = {k: settings[k] for k in ("exit_ema_period", "exit_high_pct", "exit_ath_pct")}
+    ath_min_years = settings["ath_min_years"]
 
     # Keyed on the WHOLE price history and the applied corporate actions. The
     # old key (last date + shape) missed an intraday refresh, a vendor
@@ -462,6 +465,7 @@ def _backtest_tab(
             high_pct=high_pct,
             score_method=score_method,
             ath_pct=ath_pct,
+            ath_min_years=ath_min_years,
             **exit_rules,
         )
     queued.empty()
@@ -529,6 +533,9 @@ def _backtest_tab(
         f"<span>Buy above <b>{ema_period} EMA</b></span>"
         f"<span>Buy within <b>{(1 - high_pct):.1%}</b> of 52W high</span>"
         + (f"<span>Buy within <b>{(1 - ath_pct):.1%}</b> of ATH</span>" if ath_pct is not None else "")
+        + (f"<span>ATH since <b>{pd.Timestamp(adj_close.index[0]):%b %Y}</b>, applied from "
+           f"<b>{ath_min_years:g} yrs</b> on file</span>"
+           if (ath_pct is not None or exit_rules["exit_ath_pct"] is not None) and len(adj_close) else "")
         + (f"<span>Keep above <b>{exit_rules['exit_ema_period']} EMA</b></span>"
            if exit_rules["exit_ema_period"] is not None else "")
         + (f"<span>Keep within <b>{(1 - exit_rules['exit_high_pct']):.1%}</b> of 52W high</span>"
@@ -735,7 +742,7 @@ def _backtest_tab(
             kit.caption(
                 "The canonical book, shared with Actions and Portfolio"
                 + (f", marked {_as_of:%d %b %Y}" if _as_of is not None else "")
-                + ". Historical performance, trade history and parameter sweeps below use "
+                + ". Historical performance and trade history below use "
                 "the Backtest settings and may describe a different strategy."
             )
 
@@ -1073,35 +1080,6 @@ def _backtest_tab(
             f"**Rank Persistence Buffer**: Top **{keep_rank}** buffer zone prevents unnecessary trading when stocks oscillate around the rank threshold."
         )
 
-    # ── Parameter Sweep ──────────────────────────────────────────────────────
-    _render_parameter_sweep(
-        adj_close=adj_close,
-        benchmark_close=benchmark_close,
-        sector_map=sec_map,
-        base={
-            "weight_method": bt_weight,
-            "config_weights": active_weights,
-            "stock_cap": stock_cap,
-            "sector_cap": sector_cap,
-            "rebal_freq": bt_rebal,
-            "top_n": bt_n,
-            "ema_period": ema_period,
-            "high_pct": high_pct,
-            "cost_bps": cost_drag_bps,
-            "score_method": score_method,
-            "ath_pct": ath_pct,
-            "buffer_n": keep_rank,
-            **exit_rules,
-        },
-        context={
-            "backtest_months": months,
-            "_membership": membership,
-            "_actions": _events,
-            "liquidity_floor_cr": liquidity_floor_cr,
-            "_traded_value": traded_value,
-        },
-    )
-
     render_data_quality_footer(
         total_stocks=len(rank_df),
         gap_count=gap_count(rank_df),
@@ -1109,233 +1087,10 @@ def _backtest_tab(
     )
 
 
-# The sweep table carries raw stats: fractions for returns and drawdowns
-# (0.1234 == +12.34%), an already-scaled percentage for turnover. Rendered with
-# no column config they printed as bare decimals, so a 12% return and a 0.12
-# ratio were indistinguishable on screen. Scale the fractions for DISPLAY only
-# -- the CSV keeps the raw numbers, which is what you want to compute on.
-_SWEEP_FRACTION_COLS = ("Total Return", "Alpha", "Max DD", "Win Rate")
+# The parameter sweep was removed from this page (owner, 9 Oct 2026): it is
+# heavy, invites fitting to noise, and the Apply form covers one-off what-ifs.
+# src/engine/parameter_sweep.py remains for deliberate offline research.
 
-
-def _sweep_display_frame(table: pd.DataFrame) -> pd.DataFrame:
-    disp = table.copy()
-    for col in _SWEEP_FRACTION_COLS + ("52W high floor",):
-        if col in disp.columns:
-            disp[col] = pd.to_numeric(disp[col], errors="coerce") * 100
-    return disp
-
-
-def _sweep_column_config() -> dict:
-    n = st.column_config.NumberColumn
-    return {
-        "Rank": n("Rank", format="%.0f"),
-        "Holdings": n("Holdings", format="%.0f"),
-        "Rebalance": n("Rebalance", help="Trading days between rebalances", format="%.0f"),
-        "EMA filter": n("EMA filter", format="%.0f"),
-        "52W high floor": n("52W high floor", format="%.0f%%"),
-        "Cost (bps)": n("Cost (bps)", format="%.0f"),
-        "Buffer": n("Buffer", format="%.0f"),
-        "Score": n("Score", help="The objective being maximised", format="%.3f"),
-        "Sharpe": n("Sharpe", format="%.2f"),
-        "Total Return": n("Total Return", format="%.1f%%"),
-        "Alpha": n("Alpha", help="vs the Nifty 500 benchmark", format="%.1f%%"),
-        "Max DD": n("Max DD", format="%.1f%%"),
-        "Calmar": n("Calmar", format="%.2f"),
-        "Win Rate": n("Win Rate", format="%.0f%%"),
-        "Turnover": n("Turnover", help="Average per rebalance", format="%.1f%%"),
-        "Periods": n("Periods", format="%.0f"),
-        "In-sample Score": n("In-sample Score", format="%.3f"),
-        "Out-of-sample Score": n("Out-of-sample Score", format="%.3f"),
-        "In-sample Rank": n("In-sample Rank", format="%.0f"),
-        "Out-of-sample Rank": n("Out-of-sample Rank", format="%.0f"),
-    }
-
-
-def _render_parameter_sweep(
-    adj_close,
-    benchmark_close,
-    sector_map,
-    base: dict,
-    context: dict | None = None,
-) -> None:
-    """Grid search over buy/sell criteria, with the overfitting caveat attached.
-
-    The caveat is rendered with the result rather than tucked into a tooltip.
-    Searching many combinations on one window and keeping the winner is data
-    mining; the honest output is the distribution plus how far the winner sits
-    from the pack, and that is what this shows.
-    """
-    with st.expander("Parameter sweep · search buy and sell criteria", expanded=False):
-        st.caption(
-            "Backtests every combination you select over the same window and ranks "
-            "them. Read the overfitting verdict before acting on a winner."
-        )
-
-        c1, c2, c3 = st.columns(3)
-        holdings = c1.multiselect("Holdings Count", [5, 10, 15, 20, 30, 50],
-                                  default=[10, 20, 30], key="sweep_holdings")
-        rebals = c2.multiselect(
-            "Rebalance Interval", [5, 10, 21, 42, 63], default=[21],
-            format_func=lambda x: "Monthly" if x == 21 else f"{x}D",
-            key="sweep_rebal",
-        )
-        emas = c3.multiselect("EMA Filter Period", [20, 50, 100, 200],
-                              default=[50], key="sweep_ema")
-
-        c4, c5, c6 = st.columns(3)
-        floors = c4.multiselect(
-            "52W High Floor", [0.0, 0.7, 0.8, 0.9],
-            default=[0.8],
-            format_func=lambda x: "Off" if x == 0.0 else f"{x:.0%} of 52W high",
-            key="sweep_floor",
-        )
-        costs = c5.multiselect("Cost (bps)", [0.0, 15.0, 30.0, 50.0],
-                               default=[30.0], key="sweep_cost")
-        objective = c6.selectbox("Optimise For", list(OBJECTIVES),
-                                 index=0, key="sweep_objective")
-
-        use_holdout = st.checkbox(
-            "Validate the winner on a holdout half",
-            value=True,
-            key="sweep_holdout",
-            help=(
-                "Splits the window in two, ranks the whole grid on each half, and "
-                "reports where the in-sample winner landed in the half it never "
-                "saw. This is the only check here that separates a real setting "
-                "from a lucky one. It roughly doubles the run time."
-            ),
-        )
-
-        space = {}
-        if len(holdings) > 1 or (holdings and holdings != [base["top_n"]]):
-            space["Holdings"] = holdings
-        if rebals:
-            space["Rebalance"] = rebals
-        if emas:
-            space["EMA filter"] = emas
-        if floors:
-            space["52W high floor"] = floors
-        if costs:
-            space["Cost (bps)"] = costs
-        space = {k: v for k, v in space.items() if v}
-
-        n_combos = count_combinations(space)
-        if n_combos == 0:
-            st.info("Select at least one value for a parameter to sweep.")
-            return
-
-        # Every combination is a full walk-forward backtest. Say what it costs
-        # BEFORE the click, not with a spinner afterwards.
-        st.markdown(
-            f"**{n_combos}** combination{'s' if n_combos != 1 else ''} — "
-            f"each one a full walk-forward backtest"
-            + (
-                ", scored three times over (full window, in-sample half, "
-                "out-of-sample half)."
-                if use_holdout
-                else "."
-            )
-        )
-        if n_combos > MAX_WEB_COMBINATIONS:
-            st.error(
-                f"{n_combos} combinations is more than this page runs "
-                f"({MAX_WEB_COMBINATIONS}): each is a full backtest on the server every "
-                "reader shares. Narrow the grid, or run the sweep from a script."
-            )
-            return
-        if n_combos > 20:
-            st.warning(
-                f"{n_combos} combinations is a wide search. The more you try, the "
-                "better the best one looks by chance alone. Narrow the grid, or "
-                "read the overfitting verdict carefully."
-            )
-
-        if not st.button("Run sweep", key="sweep_run", type="primary"):
-            return
-
-        bar = st.progress(0.0, text="Starting…")
-
-        def _tick(frac, msg):
-            bar.progress(min(max(frac, 0.0), 1.0), text=msg)
-
-        try:
-            # The page's own window, universe, floor and actions (TODO S74): without
-            # them a History sweep scored the last 6 months on the Nifty 750.
-            result = run_parameter_sweep(
-                adj_close, space, objective=objective, base=dict(base),
-                sector_map=sector_map, _benchmark_close=benchmark_close,
-                progress=_tick, holdout=use_holdout,
-                max_combinations=MAX_WEB_COMBINATIONS,
-                **(context or {}),
-            )
-        except ValueError as exc:
-            bar.empty()
-            st.error(str(exc))
-            return
-        bar.empty()
-
-        if result.table.empty:
-            for w in result.warnings:
-                st.warning(w)
-            st.info("No combination produced a backtest over this window.")
-            return
-
-        risk_tone, risk_label = {
-            "high": ("down", "HIGH — the winner is inside the noise"),
-            "moderate": ("warn", "MODERATE"),
-            "low": ("up", "LOW"),
-            "none": ("muted", "PARAMETERS HAD NO EFFECT"),
-            "unknown": ("muted", "UNKNOWN"),
-        }.get(result.overfitting_risk, ("muted", result.overfitting_risk.upper()))
-
-        kit.callout(f"Overfitting risk: {risk_label}", result.risk_detail, risk_tone)
-        for w in result.warnings:
-            st.caption(f"⚠️ {w}")
-
-        if result.holdout_detail:
-            rho = result.holdout_rho
-            kit.callout(
-                "Holdout check", result.holdout_detail,
-                "muted" if rho is None else "down" if rho < 0.2 else "warn" if rho < 0.5 else "up",
-            )
-
-        if result.holdout is not None and not result.holdout.empty:
-            t_all, t_half = st.tabs(["All combinations", "Holdout halves"])
-            with t_all:
-                st.dataframe(
-                    _sweep_display_frame(result.table),
-                    width="stretch",
-                    hide_index=True,
-                    column_config=_sweep_column_config(),
-                )
-            with t_half:
-                st.caption(
-                    "How each combination ranked in each half. A combination near the "
-                    "top of both columns is reproducible. One that tops the in-sample "
-                    "half and sinks in the other was fitted to the first half of the "
-                    "window."
-                )
-                st.dataframe(
-                    _sweep_display_frame(result.holdout),
-                    width="stretch",
-                    hide_index=True,
-                    column_config=_sweep_column_config(),
-                )
-        else:
-            st.dataframe(
-                _sweep_display_frame(result.table),
-                width="stretch",
-                hide_index=True,
-                column_config=_sweep_column_config(),
-            )
-
-        st.download_button(
-            f"Download sweep results ({len(result.table)} rows)",
-            result.table.to_csv(index=False).encode(),
-            f"paresh_parameter_sweep_{ist_now():%Y%m%d}.csv",
-            "text/csv",
-            key="sweep_csv",
-        )
 
 def render_backtest_view(
     rank_df: pd.DataFrame,

@@ -1,5 +1,8 @@
 """The parameter sweep must test what the page shows (TODO S74, 9 Oct 2026).
 
+The sweep has since left the page (owner, 9 Oct); these pin the engine for
+offline use, so a scripted sweep can be handed the same context.
+
 The Backtest page passed the sweep none of its window, universe, floor or
 corporate actions. In History mode a sweep therefore scored the last 6 months
 against the Nifty 750's membership: on the real Nifty 500 history the base
@@ -60,13 +63,3 @@ def test_the_sweep_runs_on_the_pages_window_universe_floor_and_actions(monkeypat
         assert kw["backtest_months"] == 120
         assert kw["_membership"] is mem and kw["_actions"] is actions
         assert kw["liquidity_floor_cr"] == 5.0 and kw["_traded_value"] is traded
-
-
-def test_the_backtest_page_hands_the_sweep_its_context():
-    src = open("src/ui/views/backtest_view.py", encoding="utf-8").read()
-    call = src[src.index("_render_parameter_sweep(\n        adj_close=adj_close"):]
-    call = call[:call.index("render_data_quality_footer(")]
-    for arg in ('"backtest_months": months', '"_membership": membership', '"_actions": _events',
-                '"liquidity_floor_cr": liquidity_floor_cr', '"_traded_value": traded_value'):
-        assert arg in call, arg
-    assert "**(context or {})" in src

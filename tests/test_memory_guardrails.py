@@ -178,27 +178,13 @@ def test_the_cache_key_still_follows_run_backtests_own_code():
     assert run_backtest.__wrapped__.__name__ == "run_backtest"
 
 
-# ── The sweep ceiling (S65) ──────────────────────────────────────────────────
+# ── The sweep left the page (owner, 9 Oct 2026) ─────────────────────────────
 
-def test_the_web_sweep_ceiling_is_enforced_by_the_engine_too():
-    import numpy as np
-    import pandas as pd
-
-    from src.engine.parameter_sweep import MAX_WEB_COMBINATIONS, run_parameter_sweep
-
-    prices = pd.DataFrame(np.ones((10, 2)), columns=["A", "B"],
-                          index=pd.bdate_range("2026-01-01", periods=10))
-    space = {"Holdings": list(range(5, 5 + MAX_WEB_COMBINATIONS + 1))}
-    with pytest.raises(ValueError, match="exceeds max_combinations"):
-        run_parameter_sweep(prices, space, max_combinations=MAX_WEB_COMBINATIONS)
-
-
-def test_the_backtest_page_refuses_a_sweep_over_the_ceiling():
+def test_the_backtest_page_runs_no_parameter_sweep():
+    """Removed from the web app: heavy on the shared server and easy to fit to
+    noise. The engine stays for deliberate offline research."""
     src = open("src/ui/views/backtest_view.py", encoding="utf-8").read()
-    refuse = src.index("if n_combos > MAX_WEB_COMBINATIONS:")
-    button = src.index('st.button("Run sweep"')
-    assert refuse < button and "return" in src[refuse:button]
-    assert "max_combinations=MAX_WEB_COMBINATIONS" in src
+    assert "run_parameter_sweep" not in src and "parameter_sweep" not in src.split("\n# The parameter sweep was removed")[0]
 
 
 # ── The backtest's 52-week high (production OOM, 8 Oct 2026) ─────────────────

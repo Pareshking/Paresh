@@ -47,6 +47,26 @@ def _rolling_high_at(prices: pd.DataFrame, idx: int) -> pd.Series:
     return window.rolling(252, min_periods=126).max().iloc[-1].copy()
 
 
+def ath_history(prices: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
+    """(whole history on file, first date on file) for each column.
+
+    A stock whose first price comes after the frame's first week began trading
+    inside the file, so its all-time high on file is its real one. A stock
+    priced from the start may have peaked before the file begins.
+    """
+    first_pos = prices.notna().to_numpy().argmax(axis=0)
+    full = pd.Series(first_pos > 5, index=prices.columns)
+    first = pd.Series(pd.DatetimeIndex(prices.index)[first_pos], index=prices.columns)
+    return full, first
+
+
+def ath_trusted(history: tuple[pd.Series, pd.Series], on, min_years: float) -> pd.Series:
+    """Which columns the all-time-high rule applies to on `on` (owner, 9 Oct 2026)."""
+    full, first = history
+    age_days = (pd.Timestamp(on) - first).dt.days
+    return full | (age_days >= float(min_years) * 365.25)
+
+
 def completed_month_window(
     dates: pd.DatetimeIndex, months: int = DEFAULT_BACKTEST_MONTHS
 ) -> tuple[pd.Timestamp, pd.Timestamp]:
@@ -806,10 +826,12 @@ def run_backtest(
     exit_ema_period: int | None = None,
     exit_high_pct: float | None = None,
     exit_ath_pct: float | None = None,
+    ath_min_years: float = 3.0,
 ) -> dict[str, Any] | None:
     """
     Executes a walk-forward momentum backtest with zero look-ahead bias and friction modeling.
 
+    ``ath_min_years``: see _ath_trusted below.
     ``score_method`` "sharpe" (the live system) or "return" (each window's
     plain log return, same windows and anchors). ``ath_pct``, when set, also
     requires the close to be at least that fraction of the stock's highest
@@ -824,6 +846,8 @@ def run_backtest(
     for _name, _v in (("exit_high_pct", exit_high_pct), ("exit_ath_pct", exit_ath_pct)):
         if _v is not None and not (0.0 < float(_v) <= 1.0):
             raise ValueError(f"{_name} must be in (0, 1], not {_v!r}")
+    if not (0.0 <= float(ath_min_years) <= 30.0):
+        raise ValueError(f"ath_min_years must be between 0 and 30, not {ath_min_years!r}")
     if exit_ema_period is not None and int(exit_ema_period) < 2:
         raise ValueError(f"exit_ema_period must be at least 2, not {exit_ema_period!r}")
     # Separate rules for KEEPING a holding (owner, 9 Oct 2026). A stock not held
@@ -920,6 +944,19 @@ def run_backtest(
     # matrix. In History from 2010 that matrix adds tens of MB at 750 symbols and thousands of sessions,
     # before counting pandas temporaries and Streamlit cache copies. Compute the exact rolling maximum only on signal rows.
     ema = prices.ewm(span=ema_period).mean()
+    # The all-time-high rule only where the high on file can be trusted (owner,
+    # 9 Oct 2026). The file starts on a fixed date (History: 1 Jan 2008), so a
+    # stock already trading then has its real peak possibly before it: 44% of
+    # the names with prices before 2011 have their "high on file" in Jan 2008.
+    # Such a stock is held to the rule only after `ath_min_years` of prices on
+    # file; one that began trading after the file's first week has its whole
+    # history here and is held to it at once. Untrusted = the rule does not apply.
+    _ath_on = ath_pct is not None or exit_ath_pct is not None
+    if _ath_on:
+        _ath_hist = ath_history(prices)
+
+    def _ath_trusted(idx: int) -> pd.Series:
+        return ath_trusted(_ath_hist, prices.index[idx], ath_min_years)
     ema_exit = (prices.ewm(span=int(exit_ema_period)).mean()
                 if exit_ema_period is not None and int(exit_ema_period) != int(ema_period) else ema)
     _high_at_cache: dict[int, pd.Series] = {}
@@ -993,8 +1030,9 @@ def run_backtest(
         near_high = _p >= _hi * high_pct
         valid = above_ema & near_high & (_p > 0)
         # Highest close on file up to the signal date -- never a later one.
-        _ath = prices.iloc[: start_idx + 1].max() if (ath_pct is not None or exit_ath_pct is not None) else None
-        near_ath = (_p >= _ath * ath_pct) if ath_pct is not None else None
+        _ath = prices.iloc[: start_idx + 1].max() if _ath_on else None
+        _ath_ok = _ath_trusted(start_idx) if _ath_on else None
+        near_ath = ((_p >= _ath * ath_pct) | ~_ath_ok) if ath_pct is not None else None
         if near_ath is not None:
             valid &= near_ath
         # The masks _exit_reason explains a sale with: the keep rules when set.
@@ -1002,7 +1040,7 @@ def run_backtest(
         if _exit_rules:
             keep_ema = _p > ema_exit.iloc[start_idx]
             keep_high = _p >= _hi * (exit_high_pct if exit_high_pct is not None else high_pct)
-            keep_ath = (_p >= _ath * exit_ath_pct) if exit_ath_pct is not None else near_ath
+            keep_ath = ((_p >= _ath * exit_ath_pct) | ~_ath_ok) if exit_ath_pct is not None else near_ath
             keep = keep_ema & keep_high & (_p > 0)
             if keep_ath is not None:
                 keep &= keep_ath
@@ -1406,15 +1444,16 @@ def run_backtest(
         p_above_ema = _pp > _pema
         p_near_high = _pp >= _phi * high_pct
         p_valid = p_above_ema & p_near_high & (_pp > 0)
-        _path = prices.iloc[: rebal_idx + 1].max() if (ath_pct is not None or exit_ath_pct is not None) else None
-        p_near_ath = (_pp >= _path * ath_pct) if ath_pct is not None else None
+        _path = prices.iloc[: rebal_idx + 1].max() if _ath_on else None
+        _path_ok = _ath_trusted(rebal_idx) if _ath_on else None
+        p_near_ath = ((_pp >= _path * ath_pct) | ~_path_ok) if ath_pct is not None else None
         if p_near_ath is not None:
             p_valid &= p_near_ath
         p_keep_ema, p_keep_high, p_keep_ath = p_above_ema, p_near_high, p_near_ath
         if _exit_rules:
             p_keep_ema = _pp > ema_exit.iloc[rebal_idx]
             p_keep_high = _pp >= _phi * (exit_high_pct if exit_high_pct is not None else high_pct)
-            p_keep_ath = (_pp >= _path * exit_ath_pct) if exit_ath_pct is not None else p_near_ath
+            p_keep_ath = ((_pp >= _path * exit_ath_pct) | ~_path_ok) if exit_ath_pct is not None else p_near_ath
             p_keep = p_keep_ema & p_keep_high & (_pp > 0)
             if p_keep_ath is not None:
                 p_keep &= p_keep_ath

@@ -62,7 +62,8 @@ def test_the_defaults_are_the_live_system():
 
 def test_each_option_reaches_the_simulation():
     base = _bt()["equity_curve"]
-    for kw in ({"score_method": "return"}, {"ath_pct": 0.97}, {"ema_period": 10}, {"high_pct": 0.97}):
+    for kw in ({"score_method": "return"}, {"ath_pct": 0.97, "ath_min_years": 0},
+               {"ema_period": 10}, {"high_pct": 0.97}):
         assert not _bt(**kw)["equity_curve"].equals(base), kw
 
 
@@ -97,16 +98,12 @@ def test_every_setting_sits_inside_the_apply_form():
     assert "st.popover(" not in tab[:tab.index("run_backtest(")], "a setting outside the form reruns on every change"
 
 
-def test_the_options_reach_the_backtest_and_the_sweep():
+def test_the_options_reach_the_backtest():
     src = _view()
     call = src[src.index("bt_res = run_backtest("):]
     call = call[:call.index("queued.empty()")]
     for arg in ("ema_period=ema_period", "high_pct=high_pct", "score_method=score_method", "ath_pct=ath_pct"):
         assert arg in call
-    sweep = src[src.index("_render_parameter_sweep(\n"):]
-    for arg in ('"ema_period": ema_period', '"high_pct": high_pct', '"score_method": score_method',
-                '"ath_pct": ath_pct'):
-        assert arg in sweep[:800]
 
 
 # ── Separate rules for keeping a holding ─────────────────────────────────────
@@ -144,8 +141,47 @@ def test_any_number_of_holdings_and_any_keep_rank():
     assert res is not None and not res["equity_curve"].empty
 
 
-def test_the_page_passes_the_keep_rules_and_rank_to_the_backtest_and_the_sweep():
+def test_the_page_passes_the_keep_rules_and_rank_to_the_backtest():
     src = _view()
-    assert "**exit_rules," in src[src.index("bt_res = run_backtest("):src.index("queued.empty()")]
-    sweep = src[src.index("_render_parameter_sweep(\n"):]
-    assert '"buffer_n": keep_rank' in sweep[:900] and "**exit_rules" in sweep[:900]
+    call = src[src.index("bt_res = run_backtest("):src.index("queued.empty()")]
+    assert "**exit_rules," in call and "buffer_n=keep_rank" in call
+
+
+# ── The ATH rule waits for enough history on file (owner, 9 Oct 2026) ───────
+
+def test_an_unreachable_minimum_history_is_the_same_as_no_ath_rule():
+    """Every fixture stock trades from the file's first day, so with a 30-year
+    minimum none of them is ever held to the rule."""
+    none = _bt()
+    waiting = _bt(ath_pct=0.99, ath_min_years=30)
+    pd.testing.assert_series_equal(none["equity_curve"], waiting["equity_curve"])
+    pd.testing.assert_frame_equal(none["tradebook"], waiting["tradebook"])
+
+
+def test_with_no_minimum_the_ath_rule_applies():
+    assert not _bt(ath_pct=0.99, ath_min_years=0)["equity_curve"].equals(_bt()["equity_curve"])
+
+
+def test_which_stocks_the_ath_rule_applies_to():
+    from src.engine.backtester import ath_history, ath_trusted
+
+    idx = pd.bdate_range("2008-01-01", "2014-12-31")
+    prices = pd.DataFrame(1.0, index=idx, columns=["OLD", "NEW"])
+    prices.loc[:"2011-06-30", "NEW"] = np.nan          # lists mid-2011: whole history on file
+    hist = ath_history(prices)
+    early = ath_trusted(hist, "2010-06-30", 3)
+    assert not early["OLD"], "priced from the file's first day: its real peak may be earlier"
+    assert ath_trusted(hist, "2011-07-01", 3)["NEW"], "listed inside the file: trusted at once"
+    assert ath_trusted(hist, "2011-01-03", 3)["OLD"], "three years on file"
+    assert ath_trusted(hist, "2008-01-02", 0)["OLD"], "no minimum"
+
+
+def test_the_minimum_history_is_validated():
+    with pytest.raises(ValueError):
+        _bt(ath_pct=0.8, ath_min_years=-1)
+
+
+def test_the_page_labels_the_ath_with_where_the_history_starts():
+    src = _view()
+    assert "ATH since <b>{pd.Timestamp(adj_close.index[0]):%b %Y}</b>" in src
+    assert 'key="bt_ath_years"' in src and "ath_min_years=ath_min_years" in src
