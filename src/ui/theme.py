@@ -1592,6 +1592,17 @@ def inject_custom_css() -> None:
            their labels grey on indigo. */
         [data-testid="stBaseButton-primary"] p,
         [data-testid="stBaseButton-primary"] span { color: #FFFFFF !important; }
+        /* A form's submit button (the Backtest page's Apply) is its own kind,
+           stBaseButton-primaryFormSubmit, and the rules above missed it: its
+           label read dark on indigo (owner's phone, 9 Oct 2026). */
+        [data-testid="stBaseButton-primaryFormSubmit"] {
+            background-color: #4F46E5 !important; border-color: #4F46E5 !important; color: #FFFFFF !important;
+        }
+        [data-testid="stBaseButton-primaryFormSubmit"]:hover {
+            background-color: #4338CA !important; border-color: #4338CA !important; color: #FFFFFF !important;
+        }
+        [data-testid="stBaseButton-primaryFormSubmit"] p,
+        [data-testid="stBaseButton-primaryFormSubmit"] span { color: #FFFFFF !important; }
 
         [data-baseweb="select"] > div {
             background-color: #ffffff !important;
