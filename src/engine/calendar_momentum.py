@@ -183,8 +183,15 @@ def period_sharpe_at(
     *,
     prices_anchor: pd.DataFrame | None = None,
     latest_as_of: pd.Timestamp | None = None,
+    metric: str = "sharpe",
 ) -> tuple[pd.Series, int]:
     """The canonical System-1 period Sharpe for ONE as-of row.
+
+    ``metric="return"`` gives the same window's plain log return instead: same
+    as-of date, same opening anchor, same availability rule, only without the
+    division by the window's volatility. The Backtest page offers it as an
+    alternative score (owner, 9 Oct 2026); the screener and the live system
+    always use "sharpe".
 
     This is the single definition of the statistic. The screener evaluates it
     for every row at once (``_calendar_period_metrics``, which shares the
@@ -262,6 +269,12 @@ def period_sharpe_at(
     # a uniform rescaling.
     daily_sd = window_lr.std(ddof=0)
     period_vol = daily_sd * np.sqrt(n.astype(float))
+    if metric == "return":
+        plain = pd.Series(log_return, index=prices.columns, dtype=float)
+        plain[n <= 1] = np.nan
+        return plain, start_idx
+    if metric != "sharpe":
+        raise ValueError(f"metric must be 'sharpe' or 'return', not {metric!r}")
     sharpe = log_return / period_vol.replace(0, np.nan)
     sharpe[n <= 1] = np.nan
     return sharpe, start_idx

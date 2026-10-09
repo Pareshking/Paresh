@@ -74,6 +74,7 @@ def _calendar_period_sharpe(
     months: int,
     *,
     prices_anchor: pd.DataFrame | None = None,
+    metric: str = "sharpe",
 ) -> tuple[pd.Series, int]:
     """V1 period-scale Sharpe -- the screener's definition, not a copy of it.
 
@@ -85,7 +86,7 @@ def _calendar_period_sharpe(
     put its gaps where both engines returned NaN.
     """
     return period_sharpe_at(
-        prices, log_returns, end_idx, months, prices_anchor=prices_anchor
+        prices, log_returns, end_idx, months, prices_anchor=prices_anchor, metric=metric
     )
 
 
@@ -127,6 +128,7 @@ def _composite_z_score(
     windows: Sequence[int],
     weights: Sequence[float],
     prices_anchor: pd.DataFrame | None = None,
+    metric: str = "sharpe",
 ) -> pd.Series:
     """Canonical multi-window composite z-score used by every ranking method.
 
@@ -149,7 +151,7 @@ def _composite_z_score(
             continue
         raw_mom, _ = _calendar_period_sharpe(
             prices, log_returns, start_idx, int(w_period),
-            prices_anchor=prices_anchor,
+            prices_anchor=prices_anchor, metric=metric,
         )
         # winsorise -> z -> clamp, the documented pipeline, applied by the same
         # function the screener uses. Z-scoring first and clipping afterwards is
@@ -303,6 +305,8 @@ def _exit_reason(
     index_mask: pd.Series | None = None,
     liq_mask: pd.Series | None = None,
     signal_date: Any = None,
+    near_ath: pd.Series | None = None,
+    ath_pct: float | None = None,
 ) -> str:
     """Why a held name is being sold, in the order the filters actually bind.
 
@@ -318,6 +322,8 @@ def _exit_reason(
         return f"Trend Breakdown (< {ema_period} EMA)"
     if not near_high.get(symbol, False):
         return f"Failed 52W High Filter (< {high_pct*100:.0f}%)"
+    if near_ath is not None and not bool(near_ath.get(symbol, False)):
+        return f"Failed ATH Filter (< {(ath_pct or 0)*100:.0f}% of all-time high)"
     if index_mask is not None and not bool(index_mask.get(symbol, False)):
         when = f" on {pd.Timestamp(signal_date):%d %b %Y}" if signal_date is not None else ""
         return f"Not in the index{when}"
@@ -795,10 +801,23 @@ def run_backtest(
     liquidity_floor_cr: float = 0.0,
     _traded_value: pd.DataFrame | None = None,
     history_start: pd.Timestamp | None = None,
+    score_method: str = "sharpe",
+    ath_pct: float | None = None,
 ) -> dict[str, Any] | None:
     """
     Executes a walk-forward momentum backtest with zero look-ahead bias and friction modeling.
+
+    ``score_method`` "sharpe" (the live system) or "return" (each window's
+    plain log return, same windows and anchors). ``ath_pct``, when set, also
+    requires the close to be at least that fraction of the stock's highest
+    close on file up to the signal date (0.80 = within 20% of it). Both are
+    Backtest-page research options (owner, 9 Oct 2026); the defaults are the
+    live system and leave every result unchanged.
     """
+    if score_method not in ("sharpe", "return"):
+        raise ValueError(f"score_method must be 'sharpe' or 'return', not {score_method!r}")
+    if ath_pct is not None and not (0.0 < float(ath_pct) <= 1.0):
+        raise ValueError(f"ath_pct must be in (0, 1], not {ath_pct!r}")
     WINDOWS = MOMENTUM_WINDOWS
     prices = _adj_close.dropna(axis=1, how="all").copy()
 
@@ -959,6 +978,10 @@ def run_backtest(
         above_ema = _p > _ema
         near_high = _p >= _hi * high_pct
         valid = above_ema & near_high & (_p > 0)
+        # Highest close on file up to the signal date -- never a later one.
+        near_ath = (_p >= prices.iloc[: start_idx + 1].max() * ath_pct) if ath_pct is not None else None
+        if near_ath is not None:
+            valid &= near_ath
 
         # ── Point-In-Time Universe ───────────────────────────────────────────
         # Restrict to the stocks that were IN the index on the signal date. A
@@ -989,7 +1012,7 @@ def run_backtest(
         # nobody asked, and each branch was its own untested scoring path.
         composite_score = _composite_z_score(
             prices, log_ret, start_idx, WINDOWS, norm_w if norm_w else [0.2] * 5,
-            prices_anchor=prices_anchor,
+            prices_anchor=prices_anchor, metric=score_method,
         )
         score = composite_score[valid & composite_score.notna()]
 
@@ -1057,6 +1080,7 @@ def run_backtest(
                 s, full_ranked, above_ema, near_high,
                 ema_period, high_pct, effective_buffer,
                 index_mask=idx_mask, liq_mask=liq_mask, signal_date=dates[start_idx],
+                near_ath=near_ath, ath_pct=ath_pct,
             )
 
             pos = open_positions.pop(s, None)
@@ -1357,6 +1381,9 @@ def run_backtest(
         p_above_ema = _pp > _pema
         p_near_high = _pp >= _phi * high_pct
         p_valid = p_above_ema & p_near_high & (_pp > 0)
+        p_near_ath = (_pp >= prices.iloc[: rebal_idx + 1].max() * ath_pct) if ath_pct is not None else None
+        if p_near_ath is not None:
+            p_valid &= p_near_ath
         p_idx_mask = _index_mask(_membership, prices.columns, prices.index[rebal_idx])
         if p_idx_mask is not None:
             p_valid &= p_idx_mask
@@ -1367,7 +1394,7 @@ def run_backtest(
 
         p_score = _composite_z_score(
             prices, log_ret, rebal_idx, WINDOWS, norm_w if norm_w else [0.2] * 5,
-            prices_anchor=prices_anchor,
+            prices_anchor=prices_anchor, metric=score_method,
         )
         p_ranked = p_score[p_valid & p_score.notna()].sort_values(ascending=False)
         live_ranks = {s: p_ranked.index.get_loc(s) + 1 for s in p_ranked.index}
@@ -1411,6 +1438,7 @@ def run_backtest(
                             ema_period, high_pct, effective_buffer,
                             index_mask=p_idx_mask, liq_mask=p_liq,
                             signal_date=prices.index[rebal_idx],
+                            near_ath=p_near_ath, ath_pct=ath_pct,
                         ),
                     }
                 )

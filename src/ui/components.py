@@ -128,7 +128,12 @@ def yearly_summary(grid: pd.DataFrame) -> pd.DataFrame:
 
 
 def _render_yearly_summary(grid: pd.DataFrame, bench_name: str) -> None:
-    """The year-by-year table above the monthly grids (presentation only)."""
+    """The year-by-year block above the monthly grids (presentation only).
+
+    Laid out like the monthly blocks below it (owner, 9 Oct 2026): Strategy,
+    the index and Alpha as rows, one column per year; a year the window only
+    partly covers names its months under the year.
+    """
     table = yearly_summary(grid)
     if table.empty:
         return
@@ -138,28 +143,33 @@ def _render_yearly_summary(grid: pd.DataFrame, bench_name: str) -> None:
             return '<td class="cr-empty">—</td>'
         number = float(value)
         tone = "positive" if number > 0 else "negative" if number < 0 else "flat"
-        return f'<td class="cr-value {tone} cr-summary">{number:+.1%}</td>'
+        return f'<td class="cr-value {tone}">{number:+.1%}</td>'
 
-    body = []
+    heads = []
     for row in table.itertuples(index=False):
-        span = ("Full year" if row.MONTHS == 12 else
+        span = ("" if row.MONTHS == 12 else
                 f"{row.FIRST.title()}–{row.LAST.title()}" if row.MONTHS > 1 else
                 (row.FIRST or "").title())
-        body.append(
-            f'<tr><th scope="row" class="cr-series strategy">{row.YEAR}</th>'
-            f'{cell(row.STRATEGY)}{cell(row.BENCHMARK)}{cell(row.ALPHA)}'
-            f'<td class="cr-span">{html.escape(span)}</td></tr>'
-        )
+        sub = f'<span class="cr-part">{html.escape(span)}</span>' if span else ""
+        heads.append(f"<th>{row.YEAR}{sub}</th>")
+    series = [("Strategy", "strategy", "STRATEGY"), (bench_name, "benchmark", "BENCHMARK"),
+              ("Alpha", "alpha", "ALPHA")]
+    body = "".join(
+        f'<tr><th scope="row" class="cr-series {klass}">{html.escape(label)}</th>'
+        + "".join(cell(v) for v in table[col]) + "</tr>"
+        for label, klass, col in series
+    )
     st.html(
         '<section class="cr-year cr-yearly"><div class="cr-year-head">'
-        '<div><span class="cr-kicker">YEAR BY YEAR</span><h3>Summary</h3></div>'
-        '<span class="cr-year-note">Calendar-year returns · the CY column of each year below</span>'
+        '<div><span class="cr-kicker">YEAR BY YEAR</span><h3>Calendar years</h3></div>'
+        '<span class="cr-year-note">The CY column of each year below</span>'
         '</div><div class="cr-scroll"><table class="cr-table cr-yearly-table">'
-        '<thead><tr><th class="cr-series-head">Year</th><th>STRATEGY</th>'
-        f'<th>{html.escape(bench_name.upper())}</th><th>ALPHA</th><th>MONTHS</th></tr></thead>'
-        f'<tbody>{"".join(body)}</tbody></table></div></section>'
-        '<style>.cr-yearly{margin-bottom:14px}.cr-yearly-table{min-width:420px}'
-        '.cr-yearly-table td.cr-span{color:#778196;font-size:11px}</style>'
+        f'<thead><tr><th class="cr-series-head">Series</th>{"".join(heads)}</tr></thead>'
+        f'<tbody>{body}</tbody></table></div></section>'
+        '<style>.cr-yearly{margin-bottom:14px}'
+        f'.cr-yearly-table{{min-width:{120 + 74 * len(table)}px}}'
+        '.cr-yearly-table .cr-part{display:block;font-weight:600;letter-spacing:0;'
+        'text-transform:none;color:#8a93a6;font-size:9px;margin-top:2px}</style>'
     )
 
 

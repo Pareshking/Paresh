@@ -95,17 +95,8 @@ def _historical_industries() -> dict[str, str]:
     return dict(zip(frame["NSE_SYMBOL"], frame["SECTOR"]))
 
 
-def _history_inputs(rank_df: pd.DataFrame, liquidity_floor_cr: float) -> dict | None:
-    """The long backtest's controls and inputs, or None when it cannot run.
-
-    Owner, 2026-10-03: any index from Jan 2010, a start and end month, and a
-    traded-value floor; size from the index tier, no market-cap cutoff. Prices
-    are NSE's own (src/loaders/nse_long.py), membership each index's own point-in-
-    time timeline (src/engine/index_universe.py).
-    """
-    from src.engine import index_universe as iu
-    from src.loaders import nse_long
-
+def _history_bounds() -> dict | None:
+    """The long file and the months it can test, before any choice is made."""
     loaded = _long_file()
     if loaded is None:
         kit.note("The long price file is not available yet.",
@@ -113,30 +104,45 @@ def _history_inputs(rank_df: pd.DataFrame, liquidity_floor_cr: float) -> dict | 
                  "and published to the data-latest release.")
         return None
     close, _value, report = loaded
+    # A year of prices before the first month, for the 12-month lookback and the EMA.
+    first = pd.Period(close.index[0], freq="M") + 13
+    last = pd.Period(close.index[-1], freq="M") - 1
+    if first > last:
+        kit.note("The long price file has no completed month to test yet.")
+        return None
+    return {"close": close, "report": report,
+            "months": list(pd.period_range(first, last, freq="M"))}
 
-    c1, c2 = st.columns([1, 2])
-    key = c1.selectbox("Index", list(iu.INDICES), format_func=iu.INDICES.get,
-                       index=list(iu.INDICES).index(iu.DEFAULT_INDEX), key="bt_hist_index")
+
+def _history_inputs(rank_df: pd.DataFrame, choice: dict, bounds: dict) -> dict | None:
+    """The long backtest's inputs for the settings applied, or None when it cannot run.
+
+    Owner, 2026-10-03: any index from Jan 2010, a start and end month, and a
+    traded-value floor; size from the index tier, no market-cap cutoff. Prices
+    are NSE's own (src/loaders/nse_long.py), membership each index's own point-in-
+    time timeline (src/engine/index_universe.py). The controls live in the
+    settings form (_settings_form) since 9 Oct 2026, so nothing runs until Apply.
+    """
+    from src.engine import index_universe as iu
+    from src.loaders import nse_long
+
+    close, report = bounds["close"], bounds["report"]
+    key = choice["index"]
     membership = iu.index_history(key)
     if membership is None:
         kit.note(f"No membership history for {iu.INDICES[key]}.")
         return None
-    # A year of prices before the first month, for the 12-month lookback and the EMA.
-    first = max(iu.first_month(membership), pd.Period(close.index[0], freq="M") + 13)
-    last = pd.Period(close.index[-1], freq="M") - 1
-    if first > last:
-        kit.note(f"{iu.INDICES[key]} has no completed month to test yet.")
+    first = max(iu.first_month(membership), bounds["months"][0])
+    start, end = choice["start"], choice["end"]
+    if start < first:
+        kit.caption(f"{iu.INDICES[key]}'s point-in-time list begins {first.strftime('%b %Y')}, "
+                    "so the test starts there.")
+        start = first
+    if start > end:
+        kit.note(f"{iu.INDICES[key]} has no completed month in the window chosen.",
+                 f"Its list begins {first.strftime('%b %Y')}; move the start or end month.")
         return None
-    months_all = list(pd.period_range(first, last, freq="M"))
-    start, end = c2.select_slider(
-        "Months", months_all, value=(months_all[0], months_all[-1]),
-        format_func=lambda p: p.strftime("%b %Y"), key=f"bt_hist_months_{key}",
-        help=f"{iu.INDICES[key]}'s point-in-time list begins {first.strftime('%b %Y')}.",
-    )
-    floor = st.number_input(
-        "Minimum traded value (₹ Cr, 20-day average; 0 = off)", min_value=0.0, max_value=500.0,
-        value=float(liquidity_floor_cr or 0.0), step=1.0, key="bt_hist_floor",
-    )
+    floor = float(choice["floor"] or 0.0)
 
     # The frame ends at the first session after the end month: the engine reports
     # the completed months before its last session's month.
@@ -175,6 +181,107 @@ def _history_inputs(rank_df: pd.DataFrame, liquidity_floor_cr: float) -> dict | 
         "traded_value": traded,
         "sector_map": sec, "unlabelled": len(unlabelled), "name": iu.INDICES[key],
         "built": report.get("built"), "last_session": report.get("last_session"),
+    }
+
+
+REBALANCE_LABELS = {
+    5: "Weekly (5 trading days)",
+    10: "Every 2 weeks (10 trading days)",
+    21: "Monthly (first trading day)",
+    42: "Every 2 months (42 trading days)",
+    63: "Quarterly (63 trading days)",
+}
+SCORE_LABELS = {
+    "sharpe": "Risk-adjusted return (Sharpe) · the live system",
+    "return": "Plain lookback return",
+}
+
+
+def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float,
+                   bounds: dict | None) -> dict:
+    """Every backtest setting in one form; nothing runs until Apply (owner, 9 Oct 2026).
+
+    A slider used to start a full backtest on every tick (~20 s on the 2010
+    history), most of them abandoned. Inside a form the widgets only report
+    their values on Apply. An expander rather than a popover: the columns stack
+    on a phone, and the form has grown.
+    """
+    from src.engine import index_universe as iu
+
+    with st.expander("Backtest settings", icon=":material/tune:"):
+        with st.form("bt_settings", border=False):
+            choice: dict = {}
+            if bounds is not None:
+                st.markdown("**Window**")
+                h1, h2 = st.columns([1, 2])
+                choice["index"] = h1.selectbox(
+                    "Index", list(iu.INDICES), format_func=iu.INDICES.get,
+                    index=list(iu.INDICES).index(iu.DEFAULT_INDEX), key="bt_hist_index")
+                months = bounds["months"]
+                choice["start"], choice["end"] = h2.select_slider(
+                    "Start and end month", months, value=(months[0], months[-1]),
+                    format_func=lambda m: m.strftime("%b %Y"), key="bt_hist_months",
+                    help="An index whose point-in-time list begins later starts there.")
+                choice["floor"] = st.number_input(
+                    "Minimum traded value (₹ Cr, 20-day average; 0 = off)", min_value=0.0,
+                    max_value=500.0, value=float(liquidity_floor_cr or 0.0), step=1.0,
+                    key="bt_hist_floor")
+
+            st.markdown("**Portfolio**")
+            c1, c2 = st.columns(2)
+            top_n = c1.selectbox("Holdings", [10, 15, 20, 30, 50], index=2, key="bt_holdings_n")
+            rebal = c2.selectbox("Rebalance", list(REBALANCE_LABELS), index=2,
+                                 format_func=REBALANCE_LABELS.get, key="bt_rebal_freq")
+            c3, c4 = st.columns(2)
+            weighting = c3.selectbox("Weighting", ["Equal Weight", "Inverse Volatility"],
+                                     index=0, key="bt_weight_scheme")
+            buffer_mult = c4.selectbox(
+                "Keep a holding while it ranks within", [1.0, 1.5, 2.0], index=2,
+                format_func=lambda x: f"{x:.1f}× holdings",
+                help="Retain existing positions while their rank stays inside this zone; "
+                     "cuts turnover by more than half.", key="bt_buffer_sel")
+            cost = st.slider(
+                "Trading cost (bps per unit of turnover)", 0.0, 100.0,
+                float(DEFAULT_TRANSACTION_COST_BPS), 5.0, key="bt_cost_bps",
+                help="Round-trip cost (STT + stamp duty + brokerage + slippage). "
+                     "Standard NSE equity is about 25–35 bps.")
+
+            st.markdown("**Entry & exit rules** · a stock must pass all of them to be held")
+            e1, e2 = st.columns(2)
+            ema_period = e1.number_input(
+                "Close above its EMA of (sessions)", min_value=5, max_value=250, value=50,
+                step=1, key="bt_ema_period", help="The live system uses 50.")
+            off_52w = e2.number_input(
+                "Within this % of its 52-week high", min_value=1, max_value=60, value=20,
+                step=1, key="bt_52w_pct", help="The live system uses 20%.")
+            a1, a2 = st.columns(2)
+            ath_on = a1.toggle("Also within a % of its all-time high", value=False,
+                               key="bt_ath_on",
+                               help="All-time high = the highest close on file up to each "
+                                    "signal date: since 2008 on History, since the Screener "
+                                    "history begins on Live.")
+            off_ath = a2.number_input("All-time-high distance (%)", min_value=1, max_value=90,
+                                      value=20, step=1, key="bt_ath_pct")
+
+            st.markdown("**Score** · how stocks are ranked")
+            score = st.radio("Score each lookback window by", list(SCORE_LABELS),
+                             format_func=SCORE_LABELS.get, key="bt_score", horizontal=True)
+            st.caption("Lookback weights · how much each window counts in the score")
+            bw = st.columns(5)
+            active = tuple(
+                bw[i].slider(lbl, 0.0, 1.0, float(weights[i]), 0.05, key=f"btw_{i + 1}")
+                for i, lbl in enumerate(["1M", "3M", "6M", "9M", "12M"])
+            )
+            st.form_submit_button("Apply", type="primary", icon=":material/play_arrow:",
+                                  use_container_width=True)
+
+    return {
+        "history": choice or None,
+        "top_n": int(top_n), "rebal_freq": int(rebal), "weight_method": weighting,
+        "buffer_mult": float(buffer_mult), "cost_bps": float(cost),
+        "ema_period": int(ema_period), "high_pct": 1.0 - float(off_52w) / 100.0,
+        "ath_pct": (1.0 - float(off_ath) / 100.0) if ath_on else None,
+        "score_method": score, "weights": active,
     }
 
 
@@ -226,55 +333,18 @@ def _backtest_tab(
     actions,
 ) -> None:
     """One tab's controls, backtest and views."""
-    history = _history_inputs(rank_df, liquidity_floor_cr) if history_mode else None
+    bounds = _history_bounds() if history_mode else None
+    if history_mode and bounds is None:
+        return
+    settings = _settings_form(weights, liquidity_floor_cr, bounds)
+    history = _history_inputs(rank_df, settings["history"], bounds) if history_mode else None
     if history_mode and history is None:
         return
-    with actions, st.popover("Change settings", icon=":material/tune:"):
-        c1, c2 = st.columns(2)
-        bt_n = c1.selectbox("Holdings", [10, 15, 20, 30, 50], index=2, key="bt_holdings_n")
-        bt_rebal = c2.selectbox(
-            "Rebalance",
-            [5, 10, 21, 42, 63],
-            index=2,
-            format_func=lambda x: {
-                5: "Weekly (5 trading days)",
-                10: "Every 2 weeks (10 trading days)",
-                21: "Monthly (first trading day)",
-                42: "Every 2 months (42 trading days)",
-                63: "Quarterly (63 trading days)",
-            }[x],
-            key="bt_rebal_freq",
-        )
-        c4, c5 = st.columns(2)
-        bt_weight = c4.selectbox(
-            "Weighting", ["Equal Weight", "Inverse Volatility"], index=0, key="bt_weight_scheme",
-        )
-        buffer_mult = c5.selectbox(
-            "Keep a holding while it ranks within",
-            [1.0, 1.5, 2.0],
-            index=2,
-            format_func=lambda x: f"Top {int(bt_n * x)} ({x:.1f}× holdings)",
-            help="Retain existing positions while their rank stays inside this zone; cuts turnover by more than half.",
-            key="bt_buffer_sel",
-        )
-        cost_drag_bps = st.slider(
-            "Trading cost (bps per unit of turnover)",
-            0.0,
-            100.0,
-            float(DEFAULT_TRANSACTION_COST_BPS),
-            5.0,
-            help="Round-trip cost (STT + stamp duty + brokerage + slippage). Standard NSE equity is about 25–35 bps.",
-            key="bt_cost_bps",
-        )
-        # Lookback weights for the composite -- the only scoring model there is.
-        st.markdown("**Lookback weights** · how much each window counts in the score")
-        bw = st.columns(5)
-        w1 = bw[0].slider("1M", 0.0, 1.0, float(weights[0]), 0.05, key="btw_1")
-        w2 = bw[1].slider("3M", 0.0, 1.0, float(weights[1]), 0.05, key="btw_2")
-        w3 = bw[2].slider("6M", 0.0, 1.0, float(weights[2]), 0.05, key="btw_3")
-        w4 = bw[3].slider("9M", 0.0, 1.0, float(weights[3]), 0.05, key="btw_4")
-        w5 = bw[4].slider("12M", 0.0, 1.0, float(weights[4]), 0.05, key="btw_5")
-        active_weights = (w1, w2, w3, w4, w5)
+    bt_n, bt_rebal = settings["top_n"], settings["rebal_freq"]
+    bt_weight, buffer_mult = settings["weight_method"], settings["buffer_mult"]
+    cost_drag_bps, active_weights = settings["cost_bps"], settings["weights"]
+    ema_period, high_pct = settings["ema_period"], settings["high_pct"]
+    ath_pct, score_method = settings["ath_pct"], settings["score_method"]
 
     # Keyed on the WHOLE price history and the applied corporate actions. The
     # old key (last date + shape) missed an intraday refresh, a vendor
@@ -377,6 +447,10 @@ def _backtest_tab(
             _actions=_events,
             liquidity_floor_cr=liquidity_floor_cr,
             _traded_value=traded_value,
+            ema_period=ema_period,
+            high_pct=high_pct,
+            score_method=score_method,
+            ath_pct=ath_pct,
         )
     queued.empty()
 
@@ -439,7 +513,11 @@ def _backtest_tab(
         f"<span>Holdings <b>{bt_n}</b></span><span>Rebalance <b>{_rebal_txt}</b></span>"
         f"<span>Weighting <b>{html.escape(bt_weight.lower())}</b></span>"
         f"<span>Costs <b>{cost_drag_bps:.0f} bps</b></span>"
-        f"<span>Keep while in top <b>{int(bt_n * buffer_mult)}</b></span></div>"
+        f"<span>Keep while in top <b>{int(bt_n * buffer_mult)}</b></span>"
+        f"<span>Above <b>{ema_period} EMA</b></span>"
+        f"<span>Within <b>{(1 - high_pct):.0%}</b> of 52W high</span>"
+        + (f"<span>Within <b>{(1 - ath_pct):.0%}</b> of all-time high</span>" if ath_pct is not None else "")
+        + f"<span>Score <b>{'plain return' if score_method == 'return' else 'Sharpe'}</b></span></div>"
     )
 
     # The Weighting Scheme control is inert whenever the stock cap admits only
@@ -989,9 +1067,11 @@ def _backtest_tab(
             "sector_cap": sector_cap,
             "rebal_freq": bt_rebal,
             "top_n": bt_n,
-            "ema_period": 50,
-            "high_pct": 0.80,
+            "ema_period": ema_period,
+            "high_pct": high_pct,
             "cost_bps": cost_drag_bps,
+            "score_method": score_method,
+            "ath_pct": ath_pct,
         },
     )
 
