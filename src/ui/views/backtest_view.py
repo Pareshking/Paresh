@@ -345,8 +345,15 @@ def _backtest_tab(
     # TODO S65). A cached result returns at once; only a new run waits.
     queued = st.empty()
     if compute_gate.busy():
-        queued.info("Backtest running: request queued. Another reader's backtest is computing; "
-                    "yours starts as soon as it finishes.")
+        mine = compute_gate.holder() is not None and compute_gate.holder() == compute_gate.current_session()
+        queued.warning(
+            "Backtest running: request queued. Your previous settings are still computing "
+            "(a backtest cannot be stopped part-way); this one starts as soon as it finishes."
+            if mine else
+            "Backtest running: request queued. Another reader's backtest is computing; "
+            "yours starts as soon as it finishes.",
+            icon=":material/hourglass_top:",
+        )
     with st.spinner("Running walk-forward backtest with friction & turnover modeling…"):
         bt_res = run_backtest(
             ph,
