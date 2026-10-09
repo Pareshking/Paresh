@@ -2092,6 +2092,13 @@
             "TSFINV",
             "VARROC"
           ]
+        },
+        {
+          "date": "2026-10-10",
+          "added": [
+            "TRIVENIPT"
+          ],
+          "removed": []
         }
       ]
     },
@@ -8188,6 +8195,13 @@
             "TSFINV",
             "VARROC"
           ]
+        },
+        {
+          "date": "2026-10-10",
+          "added": [
+            "TRIVENIPT"
+          ],
+          "removed": []
         }
       ]
     },
@@ -11564,7 +11578,7 @@
       ]
     }
   },
-  "index": "NIFTY TOTAL MARKET",
+  "index": "nifty_total_market",
   "baseline": {
     "date": "2021-10-29",
     "symbols": [
@@ -13655,6 +13669,13 @@
         "TSFINV",
         "VARROC"
       ]
+    },
+    {
+      "date": "2026-10-10",
+      "added": [
+        "TRIVENIPT"
+      ],
+      "removed": []
     }
   ],
   "aliases": {
