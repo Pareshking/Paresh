@@ -91,6 +91,88 @@ def compute_signals(rank_df: pd.DataFrame) -> list[SignalAlert]:
 
 
 
+YEARLY_MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+                 "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
+
+
+def yearly_summary(grid: pd.DataFrame) -> pd.DataFrame:
+    """One row per year: strategy, benchmark and alpha for the calendar year.
+
+    Read straight from the grid's CY RETURN cells, so every number here is the
+    one printed in that year's block below (owner, 9 Oct 2026). Nothing is
+    recomputed. `months` counts the strategy's months with a return, so a year
+    the window starts or ends inside reads as part of a year, not a whole one.
+    """
+    columns = ["YEAR", "STRATEGY", "BENCHMARK", "ALPHA", "MONTHS", "FIRST", "LAST"]
+    if grid is None or grid.empty or "CY RETURN" not in grid.columns:
+        return pd.DataFrame(columns=columns)
+    rows = []
+    for year, block in grid.groupby("YEAR", sort=True):
+        by = {str(s).lower(): r for s, r in zip(block["SERIES"], block.to_dict("records"))}
+        strat = by.get("strategy")
+        alpha = by.get("alpha")
+        bench = next((r for s, r in by.items() if s not in ("strategy", "alpha")), None)
+        if strat is None:
+            continue
+        held = [m for m in YEARLY_MONTHS if m in strat and strat[m] is not None and pd.notna(strat[m])]
+        rows.append({
+            "YEAR": int(year),
+            "STRATEGY": strat.get("CY RETURN"),
+            "BENCHMARK": bench.get("CY RETURN") if bench is not None else None,
+            "ALPHA": alpha.get("CY RETURN") if alpha is not None else None,
+            "MONTHS": len(held),
+            "FIRST": held[0] if held else None,
+            "LAST": held[-1] if held else None,
+        })
+    return pd.DataFrame(rows, columns=columns)
+
+
+def _render_yearly_summary(grid: pd.DataFrame, bench_name: str) -> None:
+    """The year-by-year block above the monthly grids (presentation only).
+
+    Laid out like the monthly blocks below it (owner, 9 Oct 2026): Strategy,
+    the index and Alpha as rows, one column per year; a year the window only
+    partly covers names its months under the year.
+    """
+    table = yearly_summary(grid)
+    if table.empty:
+        return
+
+    def cell(value):
+        if value is None or pd.isna(value):
+            return '<td class="cr-empty">—</td>'
+        number = float(value)
+        tone = "positive" if number > 0 else "negative" if number < 0 else "flat"
+        return f'<td class="cr-value {tone}">{number:+.1%}</td>'
+
+    heads = []
+    for row in table.itertuples(index=False):
+        span = ("" if row.MONTHS == 12 else
+                f"{row.FIRST.title()}–{row.LAST.title()}" if row.MONTHS > 1 else
+                (row.FIRST or "").title())
+        sub = f'<span class="cr-part">{html.escape(span)}</span>' if span else ""
+        heads.append(f"<th>{row.YEAR}{sub}</th>")
+    series = [("Strategy", "strategy", "STRATEGY"), (bench_name, "benchmark", "BENCHMARK"),
+              ("Alpha", "alpha", "ALPHA")]
+    body = "".join(
+        f'<tr><th scope="row" class="cr-series {klass}">{html.escape(label)}</th>'
+        + "".join(cell(v) for v in table[col]) + "</tr>"
+        for label, klass, col in series
+    )
+    st.html(
+        '<section class="cr-year cr-yearly"><div class="cr-year-head">'
+        '<div><span class="cr-kicker">YEAR BY YEAR</span><h3>Calendar years</h3></div>'
+        '<span class="cr-year-note">The CY column of each year below</span>'
+        '</div><div class="cr-scroll"><table class="cr-table cr-yearly-table">'
+        f'<thead><tr><th class="cr-series-head">Series</th>{"".join(heads)}</tr></thead>'
+        f'<tbody>{body}</tbody></table></div></section>'
+        '<style>.cr-yearly{margin-bottom:14px}'
+        f'.cr-yearly-table{{min-width:{120 + 74 * len(table)}px}}'
+        '.cr-yearly-table .cr-part{display:block;font-weight:600;letter-spacing:0;'
+        'text-transform:none;color:#8a93a6;font-size:9px;margin-top:2px}</style>'
+    )
+
+
 def _render_calendar_returns(grid: pd.DataFrame) -> None:
     """Render the calendar return grid as year-separated, responsive HTML tables.
 

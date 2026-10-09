@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-10-09 — Backtest: settings with Apply, more entry rules, year-by-year; the queued message says whose run it is
+
+- Backtest settings are one panel with an Apply button: nothing runs until Apply, so changing five weights runs one backtest, not five. History's index, start and end month and traded-value floor are in the same panel. It is a full-width section rather than a pop-up, so it reads on a phone.
+- The parameter sweep is gone from the Backtest page (owner): it was heavy for a shared server and easy to fit to luck; single what-ifs are the Apply form's job. Before it left, it was fixed to test what the page shows (below), which is why its earlier "winners" on History from 2010 should not be relied on.
+- The all-time-high rule says where the price history starts ("ATH since Jan 2008") and applies to a stock only once it has 3 years of prices on file (adjustable): a stock already trading in January 2008 may have peaked before the file begins. A stock that listed later is held to it at once.
+- The parameter sweep tests what the page shows. It used to ignore the page's window, index, floor and keep-rank: a sweep on History from 2010 scored only the last 6 months against the Nifty 750's members, so its "best" settings were chosen on April-September 2026. It now runs the page's own window and list (its holdout halves are about 100 months each), and it is slower for it: about 2 minutes for 3 combinations on History.
+- Rules to keep a holding can differ from the rules to buy it (EMA, 52-week high, all-time high; blank keeps the buy rule), and holdings, the keep-while-ranked-within number and the rebalance interval take any number (for example 23 holdings kept while ranked within 77).
+- New entry and exit rules for research: the EMA a stock must close above (any period, 50 by default), how far below its 52-week high it may be (20% by default), an optional all-time-high rule (within X% of the highest close on file), and the score as Sharpe (the live system) or the plain lookback return. With the defaults every result is unchanged.
+- Calendar returns opens with a year-by-year block laid out like the monthly ones (Strategy, the index and Alpha as rows, one column per year): with the months covered when a year is only partly in the window ("Jan–Sep"). Every number is the CY figure of that year's block below it, so the two never disagree.
+- With one reader the Backtest page could say "Another reader's backtest is computing" when no one else was there: changing a setting abandons the page's run, but a backtest already under way cannot be stopped and finishes first. The message is now amber and says "Your previous settings are still computing" when it is the reader's own earlier run.
+
 ## 2026-10-08 — History from 2010: memory no longer climbs with every change
 
 - Changing History-from-2010 settings (index, floor, rebalance, holdings, lookback weights) made the app a little bigger each time, by 70-130 MB, until Streamlit Cloud stopped it. Each backtest's memory was freed but never handed back to the system. The app now hands it back after every page (about 5 ms). The same series of changes now stays near 500 MB instead of climbing past 900 MB. Results are unchanged.
