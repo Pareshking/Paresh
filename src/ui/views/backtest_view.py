@@ -184,13 +184,6 @@ def _history_inputs(rank_df: pd.DataFrame, choice: dict, bounds: dict) -> dict |
     }
 
 
-REBALANCE_LABELS = {
-    5: "Weekly (5 trading days)",
-    10: "Every 2 weeks (10 trading days)",
-    21: "Monthly (first trading day)",
-    42: "Every 2 months (42 trading days)",
-    63: "Quarterly (63 trading days)",
-}
 SCORE_LABELS = {
     "sharpe": "Risk-adjusted return (Sharpe) · the live system",
     "return": "Plain lookback return",
@@ -229,39 +222,52 @@ def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float,
 
             st.markdown("**Portfolio**")
             c1, c2 = st.columns(2)
-            top_n = c1.selectbox("Holdings", [10, 15, 20, 30, 50], index=2, key="bt_holdings_n")
-            rebal = c2.selectbox("Rebalance", list(REBALANCE_LABELS), index=2,
-                                 format_func=REBALANCE_LABELS.get, key="bt_rebal_freq")
+            top_n = c1.number_input("Holdings", min_value=1, max_value=100, value=20, step=1,
+                                    key="bt_top_n")
+            keep_rank = c2.number_input(
+                "Keep a holding while its rank is within top", min_value=1, max_value=750,
+                value=40, step=1, key="bt_keep_rank",
+                help="Rank buffer: a stock already held is sold only when it ranks below this. "
+                     "Below the number of holdings it is raised to it.")
             c3, c4 = st.columns(2)
-            weighting = c3.selectbox("Weighting", ["Equal Weight", "Inverse Volatility"],
+            rebal = c3.number_input(
+                "Rebalance every (trading days)", min_value=1, max_value=252, value=21, step=1,
+                key="bt_rebal_days",
+                help="21 = monthly, at each calendar month's last session (the live system). "
+                     "Any other number: every that many sessions.")
+            weighting = c4.selectbox("Weighting", ["Equal Weight", "Inverse Volatility"],
                                      index=0, key="bt_weight_scheme")
-            buffer_mult = c4.selectbox(
-                "Keep a holding while it ranks within", [1.0, 1.5, 2.0], index=2,
-                format_func=lambda x: f"{x:.1f}× holdings",
-                help="Retain existing positions while their rank stays inside this zone; "
-                     "cuts turnover by more than half.", key="bt_buffer_sel")
-            cost = st.slider(
-                "Trading cost (bps per unit of turnover)", 0.0, 100.0,
-                float(DEFAULT_TRANSACTION_COST_BPS), 5.0, key="bt_cost_bps",
+            cost = st.number_input(
+                "Trading cost (bps per unit of turnover)", min_value=0.0, max_value=300.0,
+                value=float(DEFAULT_TRANSACTION_COST_BPS), step=1.0, key="bt_cost",
                 help="Round-trip cost (STT + stamp duty + brokerage + slippage). "
-                     "Standard NSE equity is about 25–35 bps.")
+                     "Standard NSE equity is about 25-35 bps.")
 
-            st.markdown("**Entry & exit rules** · a stock must pass all of them to be held")
-            e1, e2 = st.columns(2)
-            ema_period = e1.number_input(
-                "Close above its EMA of (sessions)", min_value=5, max_value=250, value=50,
+            st.markdown("**Rules** · to buy, a stock must pass every buy rule; a holding is "
+                        "kept while it passes every keep rule (blank = same as buy)")
+            b_col, k_col = st.columns(2)
+            b_col.caption("TO BUY")
+            k_col.caption("TO KEEP HOLDING")
+            ema_period = b_col.number_input(
+                "Close above its EMA of (sessions)", min_value=2, max_value=400, value=50,
                 step=1, key="bt_ema_period", help="The live system uses 50.")
-            off_52w = e2.number_input(
-                "Within this % of its 52-week high", min_value=1, max_value=60, value=20,
-                step=1, key="bt_52w_pct", help="The live system uses 20%.")
-            a1, a2 = st.columns(2)
-            ath_on = a1.toggle("Also within a % of its all-time high", value=False,
-                               key="bt_ath_on",
-                               help="All-time high = the highest close on file up to each "
-                                    "signal date: since 2008 on History, since the Screener "
-                                    "history begins on Live.")
-            off_ath = a2.number_input("All-time-high distance (%)", min_value=1, max_value=90,
-                                      value=20, step=1, key="bt_ath_pct")
+            exit_ema = k_col.number_input(
+                "Close above its EMA of (sessions) ", min_value=2, max_value=400, value=None,
+                step=1, key="bt_exit_ema", placeholder="same as buy")
+            off_52w = b_col.number_input(
+                "Within this % of its 52-week high", min_value=0.5, max_value=95.0, value=20.0,
+                step=0.5, key="bt_52w_off", help="The live system uses 20%.")
+            exit_52w = k_col.number_input(
+                "Within this % of its 52-week high ", min_value=0.5, max_value=95.0, value=None,
+                step=0.5, key="bt_exit_52w", placeholder="same as buy")
+            off_ath = b_col.number_input(
+                "Within this % of its all-time high (blank = no rule)", min_value=0.5,
+                max_value=95.0, value=None, step=0.5, key="bt_ath_off", placeholder="no rule",
+                help="All-time high = the highest close on file up to each signal date: since "
+                     "2008 on History, since the Screener history begins on Live.")
+            exit_ath = k_col.number_input(
+                "Within this % of its all-time high ", min_value=0.5, max_value=95.0, value=None,
+                step=0.5, key="bt_exit_ath", placeholder="same as buy")
 
             st.markdown("**Score** · how stocks are ranked")
             score = st.radio("Score each lookback window by", list(SCORE_LABELS),
@@ -275,12 +281,16 @@ def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float,
             st.form_submit_button("Apply", type="primary", icon=":material/play_arrow:",
                                   use_container_width=True)
 
+    def frac(off):
+        return None if off is None else 1.0 - float(off) / 100.0
+
     return {
         "history": choice or None,
         "top_n": int(top_n), "rebal_freq": int(rebal), "weight_method": weighting,
-        "buffer_mult": float(buffer_mult), "cost_bps": float(cost),
-        "ema_period": int(ema_period), "high_pct": 1.0 - float(off_52w) / 100.0,
-        "ath_pct": (1.0 - float(off_ath) / 100.0) if ath_on else None,
+        "buffer_n": max(int(keep_rank), int(top_n)), "cost_bps": float(cost),
+        "ema_period": int(ema_period), "high_pct": frac(off_52w), "ath_pct": frac(off_ath),
+        "exit_ema_period": None if exit_ema is None else int(exit_ema),
+        "exit_high_pct": frac(exit_52w), "exit_ath_pct": frac(exit_ath),
         "score_method": score, "weights": active,
     }
 
@@ -341,10 +351,11 @@ def _backtest_tab(
     if history_mode and history is None:
         return
     bt_n, bt_rebal = settings["top_n"], settings["rebal_freq"]
-    bt_weight, buffer_mult = settings["weight_method"], settings["buffer_mult"]
+    bt_weight, keep_rank = settings["weight_method"], settings["buffer_n"]
     cost_drag_bps, active_weights = settings["cost_bps"], settings["weights"]
     ema_period, high_pct = settings["ema_period"], settings["high_pct"]
     ath_pct, score_method = settings["ath_pct"], settings["score_method"]
+    exit_rules = {k: settings[k] for k in ("exit_ema_period", "exit_high_pct", "exit_ath_pct")}
 
     # Keyed on the WHOLE price history and the applied corporate actions. The
     # old key (last date + shape) missed an intraday refresh, a vendor
@@ -439,7 +450,7 @@ def _backtest_tab(
             sector_cap=sector_cap,
             sector_map=sec_map,
             cost_bps=cost_drag_bps,
-            buffer_n=int(bt_n * buffer_mult),
+            buffer_n=keep_rank,
             _membership=membership,
             backtest_months=months,
             stateful_history=True,
@@ -451,6 +462,7 @@ def _backtest_tab(
             high_pct=high_pct,
             score_method=score_method,
             ath_pct=ath_pct,
+            **exit_rules,
         )
     queued.empty()
 
@@ -513,10 +525,16 @@ def _backtest_tab(
         f"<span>Holdings <b>{bt_n}</b></span><span>Rebalance <b>{_rebal_txt}</b></span>"
         f"<span>Weighting <b>{html.escape(bt_weight.lower())}</b></span>"
         f"<span>Costs <b>{cost_drag_bps:.0f} bps</b></span>"
-        f"<span>Keep while in top <b>{int(bt_n * buffer_mult)}</b></span>"
-        f"<span>Above <b>{ema_period} EMA</b></span>"
-        f"<span>Within <b>{(1 - high_pct):.0%}</b> of 52W high</span>"
-        + (f"<span>Within <b>{(1 - ath_pct):.0%}</b> of all-time high</span>" if ath_pct is not None else "")
+        f"<span>Keep while in top <b>{keep_rank}</b></span>"
+        f"<span>Buy above <b>{ema_period} EMA</b></span>"
+        f"<span>Buy within <b>{(1 - high_pct):.1%}</b> of 52W high</span>"
+        + (f"<span>Buy within <b>{(1 - ath_pct):.1%}</b> of ATH</span>" if ath_pct is not None else "")
+        + (f"<span>Keep above <b>{exit_rules['exit_ema_period']} EMA</b></span>"
+           if exit_rules["exit_ema_period"] is not None else "")
+        + (f"<span>Keep within <b>{(1 - exit_rules['exit_high_pct']):.1%}</b> of 52W high</span>"
+           if exit_rules["exit_high_pct"] is not None else "")
+        + (f"<span>Keep within <b>{(1 - exit_rules['exit_ath_pct']):.1%}</b> of ATH</span>"
+           if exit_rules["exit_ath_pct"] is not None else "")
         + f"<span>Score <b>{'plain return' if score_method == 'return' else 'Sharpe'}</b></span></div>"
     )
 
@@ -1052,7 +1070,7 @@ def _backtest_tab(
             "period's start date. Each stock's realized return is exactly its exit fill divided by its entry fill, and the per-period "
             "strategy return is those same fills weighted — the tradebook and the equity curve are one calculation, not two.\n\n"
             f"**Transaction Cost Drag**: Deducts **{cost_drag_bps:.0f} bps** per unit of turnover (reflecting STT, Exchange fees, GST, Stamp duty, and slippage).\n\n"
-            f"**Rank Persistence Buffer**: Top **{int(bt_n * buffer_mult)}** buffer zone prevents unnecessary trading when stocks oscillate around the rank threshold."
+            f"**Rank Persistence Buffer**: Top **{keep_rank}** buffer zone prevents unnecessary trading when stocks oscillate around the rank threshold."
         )
 
     # ── Parameter Sweep ──────────────────────────────────────────────────────
@@ -1072,6 +1090,15 @@ def _backtest_tab(
             "cost_bps": cost_drag_bps,
             "score_method": score_method,
             "ath_pct": ath_pct,
+            "buffer_n": keep_rank,
+            **exit_rules,
+        },
+        context={
+            "backtest_months": months,
+            "_membership": membership,
+            "_actions": _events,
+            "liquidity_floor_cr": liquidity_floor_cr,
+            "_traded_value": traded_value,
         },
     )
 
@@ -1129,6 +1156,7 @@ def _render_parameter_sweep(
     benchmark_close,
     sector_map,
     base: dict,
+    context: dict | None = None,
 ) -> None:
     """Grid search over buy/sell criteria, with the overfitting caveat attached.
 
@@ -1231,11 +1259,14 @@ def _render_parameter_sweep(
             bar.progress(min(max(frac, 0.0), 1.0), text=msg)
 
         try:
+            # The page's own window, universe, floor and actions (TODO S74): without
+            # them a History sweep scored the last 6 months on the Nifty 750.
             result = run_parameter_sweep(
                 adj_close, space, objective=objective, base=dict(base),
                 sector_map=sector_map, _benchmark_close=benchmark_close,
                 progress=_tick, holdout=use_holdout,
                 max_combinations=MAX_WEB_COMBINATIONS,
+                **(context or {}),
             )
         except ValueError as exc:
             bar.empty()

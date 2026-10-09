@@ -89,9 +89,9 @@ def test_every_setting_sits_inside_the_apply_form():
     src = _view()
     form = src[src.index("def _settings_form("):src.index("def _backtest_body(")]
     body = form[form.index('with st.form("bt_settings"'):form.index("st.form_submit_button(")]
-    for key in ("bt_holdings_n", "bt_rebal_freq", "bt_weight_scheme", "bt_buffer_sel", "bt_cost_bps",
-                "bt_ema_period", "bt_52w_pct", "bt_ath_on", "bt_ath_pct", "bt_score", "btw_",
-                "bt_hist_index", "bt_hist_months", "bt_hist_floor"):
+    for key in ("bt_top_n", "bt_keep_rank", "bt_rebal_days", "bt_weight_scheme", "bt_cost",
+                "bt_ema_period", "bt_exit_ema", "bt_52w_off", "bt_exit_52w", "bt_ath_off",
+                "bt_exit_ath", "bt_score", "btw_", "bt_hist_index", "bt_hist_months", "bt_hist_floor"):
         assert key in body, key
     tab = src[src.index("def _backtest_tab("):]
     assert "st.popover(" not in tab[:tab.index("run_backtest(")], "a setting outside the form reruns on every change"
@@ -107,3 +107,45 @@ def test_the_options_reach_the_backtest_and_the_sweep():
     for arg in ('"ema_period": ema_period', '"high_pct": high_pct', '"score_method": score_method',
                 '"ath_pct": ath_pct'):
         assert arg in sweep[:800]
+
+
+# ── Separate rules for keeping a holding ─────────────────────────────────────
+
+def test_keep_rules_equal_to_the_buy_rules_change_nothing():
+    base = _bt()
+    same = _bt(exit_ema_period=50, exit_high_pct=0.80)
+    pd.testing.assert_series_equal(base["equity_curve"], same["equity_curve"])
+    pd.testing.assert_frame_equal(base["tradebook"], same["tradebook"])
+
+
+def test_looser_keep_rules_hold_names_longer():
+    base = _bt(high_pct=0.95)
+    loose = _bt(high_pct=0.95, exit_high_pct=0.70)
+    assert not loose["equity_curve"].equals(base["equity_curve"])
+
+    def count(res, word):
+        return int(res["tradebook"]["Action"].str.contains(word).sum())
+
+    # Fewer buys and sells, more holds: names are kept through dips the buy rule rejects.
+    assert count(loose, "BUY") < count(base, "BUY")
+    assert count(loose, "SELL") < count(base, "SELL")
+    assert count(loose, "HOLD") > count(base, "HOLD")
+
+
+@pytest.mark.parametrize("kw", [{"exit_high_pct": 0.0}, {"exit_ath_pct": 1.2}, {"exit_ema_period": 1}])
+def test_invalid_keep_rules_are_refused(kw):
+    with pytest.raises(ValueError):
+        _bt(**kw)
+
+
+def test_any_number_of_holdings_and_any_keep_rank():
+    """Owner, 9 Oct: e.g. 23 holdings kept while ranked within 77."""
+    res = _bt(top_n=23, buffer_n=77)
+    assert res is not None and not res["equity_curve"].empty
+
+
+def test_the_page_passes_the_keep_rules_and_rank_to_the_backtest_and_the_sweep():
+    src = _view()
+    assert "**exit_rules," in src[src.index("bt_res = run_backtest("):src.index("queued.empty()")]
+    sweep = src[src.index("_render_parameter_sweep(\n"):]
+    assert '"buffer_n": keep_rank' in sweep[:900] and "**exit_rules" in sweep[:900]

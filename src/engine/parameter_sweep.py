@@ -146,6 +146,7 @@ def _score_grid(
     progress: Any = None,
     progress_span: tuple[float, float] = (0.0, 1.0),
     progress_label: str = "",
+    context: dict[str, Any] | None = None,
 ) -> tuple[pd.DataFrame, int, Counter]:
     """Backtest every combination over one window and rank them best-first."""
     rows: list[dict[str, Any]] = []
@@ -156,10 +157,14 @@ def _score_grid(
     # it ranked the whole grid against today's constituents, so the sweep's
     # "winner" was the setting that best exploited the survivorship bias. Read
     # once per grid, not once per combination.
-    membership = load_history_or_none()
+    context = dict(context or {})
+    membership = context.pop("_membership", None)
+    if membership is None:
+        membership = load_history_or_none()
 
     for i, combo in enumerate(combos):
         kwargs = dict(fixed)
+        kwargs.update(context)
         for friendly, value in combo.items():
             kwargs[SWEEPABLE[friendly]] = value
         try:
@@ -328,6 +333,14 @@ def assess_holdout(
     return merged, verdict, rho
 
 
+def _membership_key(membership: dict[str, Any] | None) -> str:
+    """A short identity for a membership timeline, for the sweep's cache tag."""
+    if membership is None:
+        return "default"
+    return hashlib.md5(repr(sorted(
+        (str(k), str(v)) for k, v in membership.items())).encode()).hexdigest()[:8]
+
+
 def run_parameter_sweep(
     _adj_close: pd.DataFrame,
     space: dict[str, Sequence[Any]],
@@ -340,8 +353,19 @@ def run_parameter_sweep(
     max_combinations: int = 400,
     progress: Any = None,
     holdout: bool = False,
+    _membership: dict[str, Any] | None = None,
+    _actions: list[dict[str, Any]] | None = None,
+    liquidity_floor_cr: float = 0.0,
+    _traded_value: pd.DataFrame | None = None,
 ) -> SweepResult:
     """Backtest every combination in `space` and rank them by `objective`.
+
+    The window, universe, floor and corporate actions must be the page's own
+    (TODO S74, 9 Oct 2026). The Backtest page used to pass none of them, so a
+    sweep on "History from 2010" scored the last 6 months against the Nifty
+    750's membership with no floor: on the Nifty 500 history the base run read
+    Sharpe 4.74 over Apr-Sep 2026 against the page's 0.68 over 2010-2026.
+    `_membership` None keeps the old default (the 750 timeline) for scripts.
 
     `space` maps names from SWEEPABLE to the values to try. `base` supplies the
     parameters held fixed. Returns every result, not only the winner.
@@ -370,7 +394,9 @@ def run_parameter_sweep(
     # another sweep's memoised backtests.
     fingerprint = _prices_fingerprint(_adj_close)
     base_key = hashlib.md5(
-        f"{sorted((k, str(v)) for k, v in fixed.items())}|{backtest_months}".encode()
+        f"{sorted((k, str(v)) for k, v in fixed.items())}|{backtest_months}"
+        f"|floor={liquidity_floor_cr}|members={_membership_key(_membership)}"
+        f"|actions={len(_actions or [])}".encode()
     ).hexdigest()[:8]
     grid_kwargs = dict(
         fixed=fixed,
@@ -378,6 +404,12 @@ def run_parameter_sweep(
         sector_map=sector_map,
         benchmark_close=_benchmark_close,
         progress=progress,
+        context={
+            "_membership": _membership,
+            "_actions": _actions,
+            "liquidity_floor_cr": liquidity_floor_cr,
+            "_traded_value": _traded_value,
+        },
     )
     # The holdout scores the grid twice more, so the full-window pass owns only
     # the first half of the progress bar when it is enabled.
