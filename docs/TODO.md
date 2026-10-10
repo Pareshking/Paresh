@@ -4,7 +4,7 @@ The one list of what is still open. Tick an item when it is done and verified,
 with the date and the PR or run that proves it; move it to **Done** at the
 bottom. Add anything promised in a conversation here the same day.
 
-_Last updated: 2026-10-08_
+_Last updated: 2026-10-10_
 
 ## Now
 
@@ -38,6 +38,7 @@ Measurements and reasons: `docs/MEMORY_AUDIT_2026-10-08.md`.
 | S75 | Separate rules to KEEP a holding (EMA, 52W, ATH; blank = same as buy) and free numbers for holdings, keep-rank and rebalance days (owner, 9 Oct: e.g. 23 holdings kept within top 77) | Keep rules equal to buy rules change nothing; looser keep rules buy and sell less | [x] 9 Oct, this PR: defaults identical on the 2010 history (equity, 5,800 trades); keep within 30% of 52W high: 46 -> 40 buys on the test fixture |
 | S76 | A correct History sweep is slow (116 s for 3 combinations with holdout) | Owner decision | [x] 9 Oct: owner removed the sweep from the Backtest page; src/engine/parameter_sweep.py stays for offline research (a script or Action can call it with the page's context, S74) |
 | S77 | The all-time-high rule: label where the price history starts, and apply it only once a stock has N years of prices on file (owner, 9 Oct). 44% of stocks priced before 2011 have their 'high on file' in Jan 2008, the file's first month, so their real peak may be earlier | Summary shows 'ATH since <month>, applied from N yrs on file'; a stock that listed after the file starts is held to the rule at once | [x] 9 Oct, this PR: ath_min_years (default 3, a form input); 2010 Nifty 500 within 20% of ATH: +2,188% with no minimum, +2,114% with 3 years |
+| S78 | TRIVENIPT, a demerged company NSE carries above the 750, made the membership test fail (751 on 2026-10-10). The test now allows it, citing NSE's notice | NSE's exclusion notice for Triveni Power Transmission read, and the daily sync records it leaving the Total Market list; then remove it from `DEMERGED_EXTRAS` in `tests/test_membership_from_notices.py`. The next demerger listing fails the test the same way: add it with its notice | [ ] test fixed 10 Oct (#425); waiting on NSE's exclusion |
 
 ## Prices: SS, three-source check, NSE history (2 Oct 2026)
 

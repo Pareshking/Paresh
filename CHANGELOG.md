@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-10 — Ranking: "View all" on the top-50 cards opens and closes the list
+
+- On the Biggest Jumps, Entered top 50 and Left top 50 cards, "View all" used to open the rest of the list under itself: the button stayed above the new rows, the column header was repeated, and a second "View all" in the card's header did nothing. Each card now has one button, under its rows: it opens the full list in the same table, then reads "Show less" and closes it again.
+- A stock's 1M % on the Left top 50 card was always red, gains included (ACMESOLAR +1.9%). Now gains are green and losses red on every card.
+
 ## 2026-10-09 — Backtest: settings with Apply, more entry rules, year-by-year; the queued message says whose run it is
 
 - Backtest settings are one panel with an Apply button: nothing runs until Apply, so changing five weights runs one backtest, not five. History's index, start and end month and traded-value floor are in the same panel. It is a full-width section rather than a pop-up, so it reads on a phone.
