@@ -81,7 +81,7 @@ def test_pending_members_are_named_with_the_day_they_were_first_missed(tmp_path)
     path = tmp_path / "pending.json"
     path.write_text(json.dumps({"symbols": {"TRIVENIPT": "2026-10-10"}}))
     text = components.pending_history_notice(path)
-    assert "TRIVENIPT (since 10 Oct)" in text
+    assert text == "No price history for new index member TRIVENIPT (since 10 Oct)"
 
 
 def test_no_pending_members_says_nothing(tmp_path):
