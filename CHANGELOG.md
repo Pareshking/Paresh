@@ -3,7 +3,7 @@
 ## 2026-10-10 — A failed price update shows on the site, and one new stock no longer holds back the night
 
 - The site showed 8 Oct prices all of Saturday 10 Oct with a green status. The night's Screener update had stopped because TRIVENIPT, listed on 9 Oct, has no Screener page yet, so no stock got 9 Oct; and one trading day behind counted as current. Now prices are behind when a session's closes are missing at 09:00 IST the next day (weekends and NSE holidays skipped), and every page says so under the header, phone included: "Prices stop at 08 Oct; 09 Oct's closes were due by 10 Oct, 09:00 IST."
-- A new index member Screener has no history for no longer stops the update for every other stock. It is named under the header ("Screener has no price history yet for new index member TRIVENIPT (since 10 Oct)"), and the night's run still fails, so the failure alert on GitHub opens. A stock that had history and lost it still stops the night.
+- A new index member Screener has no history for no longer stops the update for every other stock. It is named under the header ("No price history for new index member TRIVENIPT (since 10 Oct)"), and the night's run still fails, so the failure alert on GitHub opens. A stock that had history and lost it still stops the night.
 
 ## 2026-10-10 — Ranking: "View all" on the top-50 cards opens and closes the list
 

@@ -640,8 +640,7 @@ def pending_history_notice(path=None) -> str:
             parts.append(f"{sym} (since {_date.fromisoformat(str(since)).strftime('%d %b')})")
         except ValueError:
             parts.append(str(sym))
-    return ("Screener has no price history yet for new index member" + ("s " if len(parts) > 1 else " ")
-            + ", ".join(parts) + ". The nightly update adds it once Screener does.")
+    return "No price history for new index member" + ("s " if len(parts) > 1 else " ") + ", ".join(parts)
 
 
 def stale_prices_notice() -> str:
