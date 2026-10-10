@@ -563,45 +563,52 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
         now = pd.to_numeric(pd.Series([row.get("Rank")]), errors="coerce").iloc[0]
         return None if pd.isna(prev) or pd.isna(now) else int(prev - now)
 
-    def row_html(i: int, row) -> str:
+    def row_html(i: int, row, extra: bool = False) -> str:
         delta = rank_change(row)
         delta_html = "—" if delta is None else (
             f'<span class="t50-delta {"positive" if delta > 0 else ("negative" if delta < 0 else "flat")}">'
             f'{"+" if delta > 0 else ""}{delta}</span>'
         )
+        ret = fmt_return(row)
+        ret_tone = "negative" if ret.startswith("-") else ("flat" if ret == "—" else "positive")
         return (
-            '<div class="t50-row">'
+            f'<div class="t50-row{" t50-extra" if extra else ""}">'
             f'<span class="t50-num">{i}</span>'
             f'<span class="t50-stock-cell">{stock_link(row["Symbol"])}</span>'
             f'<span class="t50-cell t50-change">{delta_html}</span>'
             f'<span class="t50-cell t50-rank">{int(row["Rank"])}</span>'
-            f'<span class="t50-cell t50-return">{esc(fmt_return(row))}</span>'
+            f'<span class="t50-cell t50-return {ret_tone}">{esc(ret)}</span>'
             '</div>'
         )
 
     def card(title: str, subtitle: str, icon: str, tone: str, rows) -> str:
+        # A hidden checkbox holds the open/closed state, so both "View all"
+        # buttons (header and footer) are labels for it and work without JS.
         rows = list(rows)
+        toggle_id = f"t50-more-{tone}"
+        more = len(rows) > 5
+        toggle_label = (
+            '<span class="t50-when-closed">View all <span>→</span></span>'
+            '<span class="t50-when-open">Show less <span>↑</span></span>'
+        )
         head = (
             '<div class="t50-col-head"><span>#</span><span>Stock</span><span>Rank change</span>'
             '<span>New rank</span><span>1M %</span></div>'
         )
         body = '<div class="t50-table-wrap"><div class="t50-table">' + head
         body += "".join(row_html(i, row) for i, row in enumerate(rows[:5], 1))
+        body += "".join(row_html(i, row, extra=True) for i, row in enumerate(rows[5:], 6))
         body += '</div></div>'
-        if len(rows) > 5:
-            body += (
-                '<details class="t50-more"><summary>View all <span>→</span></summary>'
-                '<div class="t50-table-wrap"><div class="t50-table">' + head
-                + "".join(row_html(i, row) for i, row in enumerate(rows[5:], 6))
-                + '</div></div></details>'
-            )
+        if more:
+            body += f'<label class="t50-more" for="{toggle_id}">{toggle_label}</label>'
         return (
-            f'<section class="t50-card t50-{tone}"><div class="t50-card-head">'
-            '<div class="t50-card-heading">'
+            f'<section class="t50-card t50-{tone}">'
+            + (f'<input type="checkbox" class="t50-toggle" id="{toggle_id}">' if more else '')
+            + '<div class="t50-card-head"><div class="t50-card-heading">'
             f'<div class="t50-icon" aria-hidden="true">{icon}</div>'
             f'<div><h2>{esc(title)}</h2><p>{esc(subtitle)}</p></div></div>'
-            '<a class="t50-view-all" href="#t50-movement">View all <span>→</span></a>'
-            '</div>' + body + '</section>'
+            + (f'<label class="t50-view-all" for="{toggle_id}">{toggle_label}</label>' if more else '')
+            + '</div>' + body + '</section>'
         )
 
     html_out = (
