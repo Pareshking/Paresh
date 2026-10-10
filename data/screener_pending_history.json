@@ -1,0 +1,6 @@
+{
+  "note": "Index members with no Screener price history yet; written by scripts/sync_screener.py.",
+  "symbols": {
+    "TRIVENIPT": "2026-10-10"
+  }
+}
