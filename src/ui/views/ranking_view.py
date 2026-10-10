@@ -582,8 +582,8 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
         )
 
     def card(title: str, subtitle: str, icon: str, tone: str, rows) -> str:
-        # A hidden checkbox holds the open/closed state, so both "View all"
-        # buttons (header and footer) are labels for it and work without JS.
+        # A hidden checkbox holds the open/closed state; the "View all" button
+        # under the rows is its label, so it works without JS.
         rows = list(rows)
         toggle_id = f"t50-more-{tone}"
         more = len(rows) > 5
@@ -607,8 +607,7 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
             + '<div class="t50-card-head"><div class="t50-card-heading">'
             f'<div class="t50-icon" aria-hidden="true">{icon}</div>'
             f'<div><h2>{esc(title)}</h2><p>{esc(subtitle)}</p></div></div>'
-            + (f'<label class="t50-view-all" for="{toggle_id}">{toggle_label}</label>' if more else '')
-            + '</div>' + body + '</section>'
+            '</div>' + body + '</section>'
         )
 
     html_out = (
