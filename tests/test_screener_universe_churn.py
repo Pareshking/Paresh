@@ -65,8 +65,10 @@ def _frame(symbols):
     return pd.DataFrame(values, index=idx, columns=columns)
 
 
-def test_run_forces_new_symbols_before_regular_sweep(monkeypatch):
+def test_run_forces_new_symbols_before_regular_sweep(monkeypatch, tmp_path):
     import scripts.sync_screener as sync
+
+    monkeypatch.setattr(sync, "PENDING_FILE", tmp_path / "pending.json")
 
     calls = []
     monkeypatch.setattr(
@@ -106,6 +108,7 @@ def test_extra_universe_is_fetched_after_the_750_and_never_gates_the_night(monke
 
     import scripts.sync_screener as sync
 
+    monkeypatch.setattr(sync, "PENDING_FILE", tmp_path / "pending.json")
     extra = tmp_path / "ind_nanocap_list.csv"
     pd.DataFrame({"Symbol": ["AAA", "XOLD", "XNEW", "XGONE", "DUMMYX"]}).to_csv(extra, index=False)
     monkeypatch.setattr(sync, "EXTRA_LIST", str(extra))

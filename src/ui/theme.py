@@ -435,6 +435,8 @@ def inject_custom_css() -> None:
         .hdr-pill .hdr-dot { width: 8px; height: 8px; border-radius: 50%; background: #067647; }
         .hdr-pill-warn { background: #FEF6EA; color: #7A2E0E; }
         .hdr-pill-warn .hdr-dot { background: #B54708; }
+        .stale-notice { margin: 6px 0 2px; padding: 9px 14px; border-radius: 10px; background: #FEF6EA; border: 1px solid #F7D9B0; color: #7A2E0E; font-size: 13.5px; font-weight: 600; line-height: 1.4; }
+        .stale-notice-info { background: #F4F6F9; border-color: #E3E6EB; color: #3B4655; font-weight: 500; }
 
         /* Compact market snapshot: same footprint as the legacy market line,
            but with a stronger visual hierarchy and the same design language as

@@ -26,6 +26,7 @@ import json
 import os
 import sys
 from datetime import date, datetime
+from pathlib import Path
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -84,6 +85,30 @@ def _validate_current_price_coverage(
         if close_frame[symbol].notna().sum() == 0
     )
     return missing, empty
+
+
+PENDING_FILE = Path(__file__).resolve().parents[1] / "data" / "screener_pending_history.json"
+
+
+def write_pending_history(symbols: list[str], path: Path | None = None, today: str | None = None) -> dict:
+    """Record the index members Screener has no history for yet, with the date each was first missed.
+
+    The workflow fails the run while the list is non-empty, and the app names
+    them, so a stock Screener never serves cannot go unnoticed.
+    """
+    path = Path(path) if path else PENDING_FILE
+    try:
+        before = json.loads(path.read_text(encoding="utf-8")).get("symbols", {})
+    except (OSError, ValueError, AttributeError):
+        before = {}
+    from src.core.market_time import ist_today
+
+    day = today or ist_today().isoformat()
+    now = {sym: before.get(sym, day) for sym in sorted(set(symbols))}
+    out = {"note": "Index members with no Screener price history yet; written by scripts/sync_screener.py.",
+           "symbols": now}
+    path.write_text(json.dumps(out, indent=2) + "\n", encoding="utf-8")
+    return out
 
 
 def current_universe_delta(current_symbols: list[str], stored_symbols: list[str]) -> tuple[list[str], list[str]]:
@@ -206,27 +231,32 @@ def run() -> int:
     # be missed because a later broad fetch was partial or rate-limited.
     forced = pd.DataFrame()
     forced_unresolved: list[str] = []
+    pending: list[str] = []
     if new_current:
         forced, ids, forced_unresolved = fetch_new_history(new_current, ids)
         forced_closes = sl.closes(forced)
         forced_missing, forced_empty = _validate_current_price_coverage(new_current, forced_closes)
-        if forced_missing or forced_empty:
-            print("[ERROR] New current symbols failed Screener history acquisition.")
+        pending = sorted(set(forced_missing) | set(forced_empty))
+        if pending:
+            # A just-listed member Screener has no page for yet (TRIVENIPT on
+            # 9 Oct 2026) used to stop the whole night here, so no stock got
+            # that session. It is recorded and the run fails at the end, after
+            # everyone else is published (owner, 10 Oct 2026).
+            print(f"::error::New index members with no Screener history yet: {pending}")
             if forced_missing:
                 print(f"  missing columns: {forced_missing}")
             if forced_empty:
                 print(f"  empty price series: {forced_empty}")
             if forced_unresolved:
                 print(f"  unresolved: {forced_unresolved}")
-            return 2
 
-        for symbol in new_current:
+        for symbol in [s for s in new_current if s not in pending]:
             series = forced_closes[symbol].dropna()
             print(
                 f"  {symbol}: {len(series)} price rows, "
                 f"{str(series.index.min())[:10]} -> {str(series.index.max())[:10]}"
             )
-        print(f"  Forced acquisition complete: {len(forced_closes.columns)}/{len(new_current)} symbols")
+        print(f"  Forced acquisition complete: {len(new_current) - len(pending)}/{len(new_current)} symbols")
 
     # Existing current symbols continue through the normal paced sweep. New
     # symbols are excluded because they were already fetched above; this avoids
@@ -305,6 +335,11 @@ def run() -> int:
         f"Universe/price-store reconciliation: "
         f"{len(symbols) - len(missing) - len(empty)}/{len(symbols)} symbols have usable Close history"
     )
+    # New members still waiting on Screener are recorded, not a reason to stop.
+    # A member that HAD history and lost it still is.
+    missing = [m for m in missing if m not in pending]
+    empty = [e for e in empty if e not in pending]
+    write_pending_history(pending)
     if missing or empty:
         if missing:
             print(f"[ERROR] Missing current-universe price symbols: {missing}")

@@ -13,7 +13,7 @@ holding in place independently:
   the loader served the same frame indefinitely rather than reaching for the
   snapshot that carried the missing sessions.
 """
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 import numpy as np
 import pandas as pd
@@ -275,6 +275,8 @@ def _header(monkeypatch, today, **facts):
     import src.core.market_time as mt
 
     monkeypatch.setattr(mt, "ist_today", lambda: today)
+    # Prices are judged against the session due by now, so pin the time too.
+    monkeypatch.setattr(mt, "ist_now", lambda: datetime.combine(today, time(12, 0), tzinfo=mt.INDIA_TZ))
     return components.header_as_of()
 
 
