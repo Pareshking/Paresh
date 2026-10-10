@@ -6,7 +6,7 @@ recent session, the weekend has no data to fetch -- but "today" was not, and it
 read as a broken pipeline. Chasing it turned up a second, real problem behind
 it: the daily sync had been committing yesterday's market caps every day.
 """
-from datetime import date
+from datetime import date, datetime, time
 
 import pytest
 
@@ -24,6 +24,8 @@ def _items(monkeypatch, today, **facts):
     import src.core.market_time as mt
 
     monkeypatch.setattr(mt, "ist_today", lambda: today)
+    # Prices are judged against the session due by now, so pin the time too.
+    monkeypatch.setattr(mt, "ist_now", lambda: datetime.combine(today, time(12, 0), tzinfo=mt.INDIA_TZ))
     return {i["label"]: i for i in components.data_freshness()}
 
 

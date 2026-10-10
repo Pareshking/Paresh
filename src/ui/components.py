@@ -5,6 +5,7 @@ Inspired by Investrack, Stockin.id, and Tickerboom financial terminal designs.
 
 import html
 import re
+from datetime import timedelta
 from typing import Any
 
 import pandas as pd
@@ -403,6 +404,14 @@ def render_header_kpi_bar(
                         _state = "navon" if _p is active_page else "navoff"
                         with st.container(key=f"{_state}_system_{_i}", width="stretch"):
                             st.page_link(_p)
+    # Every page draws this header, so a failed background update shows on all
+    # of them, phone included (the pill above shrinks to a date there).
+    notice = stale_prices_notice()
+    if notice:
+        st.html(f'<div class="stale-notice" role="alert">&#9888;&#65039; {html.escape(notice)}</div>')
+    pending = pending_history_notice()
+    if pending:
+        st.html(f'<div class="stale-notice stale-notice-info" role="status">{html.escape(pending)}</div>')
     st.html(market_html)
 
 
@@ -591,7 +600,65 @@ def data_freshness() -> list[dict]:
                 "phrase": " · still publishing",
                 "source": "deferred",
             })
+
+    # Prices are judged against the session they should hold by now, not by a
+    # flat one-day allowance: on Saturday 10 Oct the 9 Oct sync had failed and
+    # 8 Oct read as current all day. A session held back while Screener is
+    # still publishing it is waiting, not missing.
+    if prices is not None and prices.get("date") is not None:
+        from src.core.market_time import last_due_session
+
+        due = last_due_session()
+        held = next((i["date"] for i in items if i.get("source") == "deferred"), None)
+        if due is not None:
+            missing = prices["date"] < due and not (held is not None and held >= due)
+            prices["stale"] = missing
+            prices["due"] = due if missing else None
     return items
+
+
+def pending_history_notice(path=None) -> str:
+    """One line naming the index members Screener has no history for yet ("" when none).
+
+    Written by the nightly Screener sync (``data/screener_pending_history.json``),
+    which also fails its run while the list is non-empty.
+    """
+    import json
+    from datetime import date as _date
+    from pathlib import Path
+
+    target = Path(path) if path else Path(__file__).resolve().parents[2] / "data" / "screener_pending_history.json"
+    try:
+        pending = json.loads(target.read_text(encoding="utf-8")).get("symbols") or {}
+    except (OSError, ValueError, AttributeError):
+        return ""
+    if not pending:
+        return ""
+    parts = []
+    for sym, since in sorted(pending.items()):
+        try:
+            parts.append(f"{sym} (since {_date.fromisoformat(str(since)).strftime('%d %b')})")
+        except ValueError:
+            parts.append(str(sym))
+    return ("Screener has no price history yet for new index member" + ("s " if len(parts) > 1 else " ")
+            + ", ".join(parts) + ". The nightly update adds it once Screener does.")
+
+
+def stale_prices_notice() -> str:
+    """One line naming the session the prices lack, or "" when they are current."""
+    try:
+        prices = next((i for i in data_freshness() if i.get("label") == "Prices"), None)
+    except Exception:
+        return ""
+    if not prices or not prices.get("stale") or prices.get("date") is None:
+        return ""
+    have = prices["date"].strftime("%d %b")
+    due = prices.get("due")
+    if due is None:
+        return f"Prices stop at {have} and are behind. A background price update has failed or is late."
+    return (f"Prices stop at {have}; {due.strftime('%d %b')}'s closes were due by "
+            f"{(due + timedelta(days=1)).strftime('%d %b')}, 09:00 IST. "
+            "The nightly price update has failed or is late, so rankings use the older prices.")
 
 
 def age_phrase(item: dict) -> str:

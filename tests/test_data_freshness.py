@@ -4,7 +4,7 @@ Market caps are served from a snapshot the daily sync commits. If that sync
 fails, production would otherwise serve yesterday's figures with nothing on
 screen saying so.
 """
-from datetime import date
+from datetime import date, datetime, time
 
 
 from src.core import startup_metrics as metrics
@@ -21,6 +21,9 @@ def _freshness(monkeypatch, today, **facts):
     import src.core.market_time as mt
 
     monkeypatch.setattr(mt, "ist_today", lambda: today)
+    # Prices are judged against the session due by now (09:00 IST the next
+    # day), so the time of day is part of the clock being pinned.
+    monkeypatch.setattr(mt, "ist_now", lambda: datetime.combine(today, time(12, 0), tzinfo=mt.INDIA_TZ))
     return {i["label"]: i for i in data_freshness()}
 
 
@@ -149,6 +152,7 @@ def _freshness_with(monkeypatch, facts, today=date(2026, 8, 18)):
 
     monkeypatch.setattr(metrics, "snapshot", lambda: {"facts": facts})
     monkeypatch.setattr(mt, "ist_today", lambda: today)
+    monkeypatch.setattr(mt, "ist_now", lambda: datetime.combine(today, time(12, 0), tzinfo=mt.INDIA_TZ))
     return {i["label"]: i for i in components.data_freshness()}
 
 
