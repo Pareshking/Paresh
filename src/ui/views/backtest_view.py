@@ -440,7 +440,7 @@ def _backtest_tab(
             "yours starts as soon as it finishes.",
             icon=":material/hourglass_top:",
         )
-    with st.spinner("Running walk-forward backtest with friction & turnover modeling…"):
+    with st.spinner("Running the backtest…"):
         bt_res = run_backtest(
             ph,
             adj_close,
@@ -552,17 +552,17 @@ def _backtest_tab(
     if _cash > 1e-6:
         kit.note(
             f"The caps left up to {_cash:.1%} of the book in cash.",
-            "Stock and industry caps are hard limits and are never raised: weight "
-            "these settings cannot place in a qualifying name is held as cash at 0%. "
+            "Caps are never raised, so weight they cannot place is held as cash at 0%. "
             "Hold more names, or loosen the stock cap in Configuration → Portfolio risk.",
         )
 
-    if stats.get("scheme_neutralised"):
+    # Equal weight is that one book already, so the note is only news for
+    # another scheme.
+    if stats.get("scheme_neutralised") and bt_weight != "Equal Weight":
         kit.note(
-            f"The {bt_weight.lower()} weighting made no difference to this run.",
-            f"A {stock_cap:.0%} stock cap across {bt_n} holdings allows only one "
-            f"fully-invested book, {1 / max(bt_n, 1):.1%} in every name. Raise the "
-            "stock cap in Configuration → Portfolio risk, or hold fewer names.",
+            f"{bt_weight} made no difference to this run.",
+            f"A {stock_cap:.0%} stock cap across {bt_n} holdings leaves {1 / max(bt_n, 1):.1%} "
+            "in every name. Raise the cap in Configuration → Portfolio risk, or hold fewer names.",
         )
 
     # ── Survivorship coverage ────────────────────────────────────────────────
@@ -580,12 +580,10 @@ def _backtest_tab(
         _from = stats.get("pit_from")
         kit.note(
             f"Read with care: {_cur} of {_pit + _cur} rebalances used today's index lists.",
-            "The membership history does not reach back that far. Index additions "
-            "skew toward recent strong performers, so those periods flatter the "
-            "strategy by an amount this run cannot measure. "
+            "Stocks added to an index tend to be recent winners, so those months flatter "
+            "the result by an amount this run cannot measure. "
             + (
-                f"Point-in-time membership begins {_from}; every rebalance from "
-                "there on is survivorship-free."
+                f"From {_from} every rebalance uses the index as it stood."
                 if _from
                 else "No rebalance in this window had point-in-time membership."
             )
@@ -605,32 +603,32 @@ def _backtest_tab(
     # sample, and the Sortino is withheld when too few sessions fell below the
     # MAR to estimate a downside deviation. Printing a bare "nan" beside a
     # formatted ratio reads like a bug, so say nothing and n/a respectively.
-    sharpe_se_txt = f" \u00b1{_se:.2f} s.e." if math.isfinite(_se) else ""
+    sharpe_se_txt = f" \u00b1{_se:.2f}" if math.isfinite(_se) else ""
     sortino_txt = f"{_sortino:.2f}" if math.isfinite(_sortino) else "n/a"
 
+    # One strip of six, a line under each figure, as on Portfolio. The costs
+    # and the window are in the Tested line above; the risk-free rate and how
+    # each ratio is made are under Method. Under a year the annualised figure
+    # is a scaled-up part-year, so it says so, and the Calmar (which divides
+    # that figure) is left out.
     _yrs = stats.get("window_years", 0) or 0
     kit.readings([
         kit.Reading("Strategy return", f"{stats['total_return']:+.1%}",
-                    f"after {cost_drag_bps:.0f} bps costs · {stats['gross_return']:+.1%} before",
-                    _tone(stats["total_return"])),
+                    f"{stats['gross_return']:+.1%} before costs", _tone(stats["total_return"])),
         kit.Reading("Annualised", f"{stats['ann_return']:+.1%}",
-                    f"scaled up from {_yrs:.2f} years, not a CAGR · {bench_name} {stats['ann_bench']:+.1%}",
-                    _tone(stats["ann_return"])),
+                    f"{bench_name} {stats['ann_bench']:+.1%}" if _yrs >= 1
+                    else f"scaled up from {_yrs:.1f} yrs", _tone(stats["ann_return"])),
         kit.Reading(f"Ahead of {bench_name}", f"{stats['alpha'] * 100:+.1f} pts",
-                    f"{bench_name} {stats['bench_return']:+.1%} over the same months", _tone(stats["alpha"])),
-    ], "Backtest returns")
-    kit.readings([
+                    f"{bench_name} {stats['bench_return']:+.1%}", _tone(stats["alpha"])),
         kit.Reading("Sharpe", f"{stats['sharpe']:.2f}",
-                    (f"{sharpe_se_txt.strip()} · " if sharpe_se_txt else "")
-                    + f"Sortino {sortino_txt} · risk-free {_rf:.1%}"),
+                    (f"{sharpe_se_txt.strip()} · " if sharpe_se_txt else "") + f"Sortino {sortino_txt}"),
         kit.Reading("Worst fall", f"{stats['max_drawdown']:.1%}",
-                    f"peak to trough · Calmar {stats['calmar']:.2f} (reads high over {_yrs:.2f} years)",
+                    f"Calmar {stats['calmar']:.2f}" if _yrs >= 1 else "peak to trough",
                     "down" if stats["max_drawdown"] < 0 else ""),
-        kit.Reading("Months that beat the index", f"{stats.get('beat_rate', 0):.0%}",
-                    f"{stats['win_rate']:.0%} of months were profitable · turnover "
-                    f"{stats['avg_turnover']:.1f}% per rebalance",
+        kit.Reading("Months ahead of index", f"{stats.get('beat_rate', 0):.0%}",
+                    f"{stats['win_rate']:.0%} up · turnover {stats['avg_turnover']:.0f}%",
                     "up" if stats.get("beat_rate", 0) >= 0.5 else "down"),
-    ], "Backtest risk")
+    ], "Backtest")
 
     eq = bt_res["equity_curve"]
     bm = bt_res["benchmark"].reindex(eq.index).ffill() if bt_res.get("benchmark") is not None else None
@@ -651,10 +649,8 @@ def _backtest_tab(
             _render_yearly_summary(_grid, bench_name)
             _render_calendar_returns(_grid)
             st.caption(
-                "Returns are after trading costs. The first month starts at the first "
-                "fill and the last is the last completed month. CY compounds January–December; "
-                "FY compounds April–March; Q1–Q4 are calendar quarters. Alpha is the monthly "
-                "strategy return minus the benchmark return, compounded within each summary period."
+                "After costs, from the first fill to the last completed month · CY Jan–Dec, "
+                "FY Apr–Mar · Alpha is strategy minus index each month, compounded per period."
             )
 
     # The live book and the canonical account belong to the live system, not to
@@ -708,26 +704,25 @@ def _backtest_tab(
             with kit.card(
                 "Canonical account performance",
                 "bt_canonical_account",
-                "Same January 2026-onward recorded account as Track Record and Portfolio; "
-                "closed months are frozen and the latest month is a live mark.",
+                "the Track Record account since Jan 2026, not these settings",
             ):
                 kit.readings([
                     kit.Reading(
-                        "Since-inception strategy",
+                        "Since inception",
                         _pct_or_dash(account_stats.get("total_return")),
-                        "canonical account return, not a configurable backtest",
+                        "after costs · latest month live",
                         "up" if account_stats.get("total_return", 0) >= 0 else "down",
                     ),
                     kit.Reading(
                         "Nifty 500",
                         _pct_or_dash(account_stats.get("bench_return")),
-                        "same dates and compounding basis",
+                        "price index",
                         "up" if account_stats.get("bench_return", 0) >= 0 else "down",
                     ),
                     kit.Reading(
-                        "Alpha",
+                        "Ahead of the index",
                         _pct_or_dash(account_stats.get("alpha")),
-                        "strategy return minus benchmark return",
+                        "strategy minus index",
                         "up" if account_stats.get("alpha", 0) >= 0 else "down",
                     ),
                 ], "Canonical account")
@@ -740,10 +735,9 @@ def _backtest_tab(
         _fill = lmeta.get("fill_date")
         with kit.card(view, "bt_live"):
             kit.caption(
-                "The canonical book, shared with Actions and Portfolio"
+                "The canonical book, as on Actions and Portfolio"
                 + (f", marked {_as_of:%d %b %Y}" if _as_of is not None else "")
-                + ". Historical performance and trade history below use "
-                "the Backtest settings and may describe a different strategy."
+                + " · not the Backtest settings."
             )
 
             if lmeta.get("rebalanced"):
@@ -1077,7 +1071,13 @@ def _backtest_tab(
             "period's start date. Each stock's realized return is exactly its exit fill divided by its entry fill, and the per-period "
             "strategy return is those same fills weighted — the tradebook and the equity curve are one calculation, not two.\n\n"
             f"**Transaction Cost Drag**: Deducts **{cost_drag_bps:.0f} bps** per unit of turnover (reflecting STT, Exchange fees, GST, Stamp duty, and slippage).\n\n"
-            f"**Rank Persistence Buffer**: Top **{keep_rank}** buffer zone prevents unnecessary trading when stocks oscillate around the rank threshold."
+            f"**Rank Persistence Buffer**: Top **{keep_rank}** buffer zone prevents unnecessary trading when stocks oscillate around the rank threshold.\n\n"
+            f"**Ratios**: Sharpe is the annualised mean daily return less a **{_rf:.1%}** risk-free rate, over "
+            "annualised volatility, ± one standard error; Sortino divides the same excess by the downside "
+            "deviation below that rate. Annualised "
+            "compounds the total return to a 252-session year; over less than a year it scales a part-year up, so "
+            "it is not an observed annual return. Calmar is the annualised return over the worst fall from a peak, "
+            "shown for a year or more. Turnover is the average per rebalance."
         )
 
     render_data_quality_footer(
