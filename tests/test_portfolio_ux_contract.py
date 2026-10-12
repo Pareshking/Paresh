@@ -56,8 +56,11 @@ def test_portfolio_table_variant_is_scoped_to_portfolio():
 def test_portfolio_is_one_flowing_page_with_no_history_tabs():
     source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
     assert "history_tab" not in source and "segmented_control" not in source
-    for card in ("Equity & drawdown", "Calendar returns", "Trades", "Rebalances", "Industry exposure", "How they move together"):
+    for card in ("Equity & drawdown", "Calendar returns", "Trades", "Rebalances", "Industry exposure"):
         assert f'kit.card("{card}"' in source
+    # Collapsed, like Actions' "Buy candidates · the qualified list" (owner, 13 Oct 2026).
+    assert 'kit.card("How they move together"' not in source
+    assert "with st.expander(_corr_head, expanded=False):" in source
     # Equity and drawdown share one card, so one tab fewer.
     assert "drawdown=dd_d.tolist()" in source and "kit.drawdown_chart(" not in source
     assert 'Latest portfolio activity' not in source
@@ -168,8 +171,10 @@ def test_record_caption_and_correlation_card_wording():
     assert "largest fall from a peak" in record and "if elapsed >= 1:" in record
     source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
     assert "1.00 = move exactly together" not in source
-    card = source[source.index('kit.card("How they move together"') - 400:source.index('kit.card("How they move together"')]
-    assert "correlation_note(_corr_mean)" in card
+    i = source.index("with st.expander(_corr_head, expanded=False):")
+    block = source[i - 400:i + 500]
+    assert 'f"How they move together · average {_corr_mean:.2f}"' in block
+    assert "correlation_note(_corr_mean)" in block
 
 
 def test_header_uses_full_navigation_on_desktop_and_menu_on_narrow_viewports():
