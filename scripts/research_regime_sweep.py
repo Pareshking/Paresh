@@ -146,6 +146,13 @@ def cmd_run(args: argparse.Namespace) -> None:
     (out / "runs").mkdir(parents=True, exist_ok=True)
     combos = grid()
     assert settings(LIVE_COMBO) == LIVE, "the live combination must be the live settings"
+    if args.combos:
+        by_key = {key(c): c for c in combos}
+        wanted = [k.strip() for k in args.combos.split(",") if k.strip()]
+        missing = [k for k in wanted if k not in by_key]
+        if missing:
+            raise SystemExit(f"not in the grid: {', '.join(missing)}")
+        combos = [by_key[k] for k in dict.fromkeys([key(LIVE_COMBO), *wanted])]
     todo = [c for c in combos if not (out / "runs" / f"{key(c)}.json").exists()]
     todo.sort(key=lambda c: c != LIVE_COMBO)  # the live run first: it checks the page
     if args.limit:
@@ -346,6 +353,31 @@ def cmd_report(args: argparse.Namespace) -> None:
                      default=str)[:6000])
 
 
+def cmd_compare(args: argparse.Namespace) -> None:
+    """A few chosen combinations on other indexes: each against the live one, same days."""
+    rows = []
+    live = key(LIVE_COMBO)
+    for d in args.out:
+        r, combos, meta = load_runs(Path(d))
+        rf = float(combos["stat_risk_free_rate"].iloc[0])
+        boot = paired_bootstrap(r, live, rf)
+        for k in r.columns:
+            rows.append({
+                "index": meta["index"], "from": meta["start"], "combo": k,
+                "sharpe": float(combos.loc[k, "stat_sharpe"]), "dSharpe": boot.loc[k, "dSharpe"],
+                "lo90": boot.loc[k, "lo90"], "hi90": boot.loc[k, "hi90"],
+                "p_better": boot.loc[k, "p_better"],
+                "ann_return": float(combos.loc[k, "stat_ann_return"]),
+                "max_drawdown": float(combos.loc[k, "stat_max_drawdown"]),
+                "turnover": float(combos.loc[k, "stat_avg_turnover"]),
+            })
+    table = pd.DataFrame(rows)
+    pd.set_option("display.width", 220)
+    print(table.round(3).to_string(index=False))
+    if args.csv:
+        table.to_csv(args.csv, index=False)
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -354,7 +386,13 @@ def main() -> None:
     pr.add_argument("--workers", type=int, default=4)
     pr.add_argument("--index", default="nifty_500")
     pr.add_argument("--limit", type=int, default=0, help="run only this many (for a timing test)")
+    pr.add_argument("--combos", default="",
+                    help='only these (and the live one), e.g. "mid_n30_k3_e200_h70_sharpe"')
     pr.set_defaults(func=cmd_run)
+    cp = sub.add_parser("compare")
+    cp.add_argument("--out", nargs="+", required=True)
+    cp.add_argument("--csv", default="")
+    cp.set_defaults(func=cmd_compare)
     rp = sub.add_parser("report")
     rp.add_argument("--out", required=True)
     rp.add_argument("--index", default="nifty_500")
