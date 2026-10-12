@@ -618,7 +618,7 @@ def _backtest_tab(
         kit.Reading("Annualised", f"{stats['ann_return']:+.1%}",
                     f"{bench_name} {stats['ann_bench']:+.1%}" if _yrs >= 1
                     else f"scaled up from {_yrs:.1f} yrs", _tone(stats["ann_return"])),
-        kit.Reading(f"Ahead of {bench_name}", f"{stats['alpha'] * 100:+.1f} pts",
+        kit.Reading(f"Ahead of {bench_name}", f"{stats['alpha']:+.1%}",
                     f"{bench_name} {stats['bench_return']:+.1%}", _tone(stats["alpha"])),
         kit.Reading("Sharpe", f"{stats['sharpe']:.2f}",
                     (f"{sharpe_se_txt.strip()} · " if sharpe_se_txt else "") + f"Sortino {sortino_txt}"),
