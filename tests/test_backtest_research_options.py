@@ -98,6 +98,19 @@ def test_every_setting_sits_inside_the_apply_form():
     assert "st.popover(" not in tab[:tab.index("run_backtest(")], "a setting outside the form reruns on every change"
 
 
+
+def test_the_recommended_settings_are_a_note_and_the_defaults_stay():
+    """Owner, 12 Oct 2026: name the research's recommended settings, change nothing."""
+    src = _view()
+    form = src[src.index('with st.form("bt_settings"'):src.index("st.form_submit_button(")]
+    assert "Recommendation: 30 holdings · keep while in the top 90 · 200D EMA" in form
+    flat = " ".join(form.split())
+    for default in ('value=20, step=1, key="bt_top_n"', 'value=40, step=1, key="bt_keep_rank"',
+                    'value=50, step=1, key="bt_ema_period"',
+                    'value=20.0, step=0.5, key="bt_52w_off"'):
+        assert default in flat, default
+
+
 def test_the_options_reach_the_backtest():
     src = _view()
     call = src[src.index("bt_res = run_backtest("):]

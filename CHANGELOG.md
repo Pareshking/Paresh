@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-12 — Backtest names the recommended settings
+
+- Backtest settings open with one line: **Recommendation: 30 holdings · keep while in the top 90 · 200D EMA · within 20% of the 52W high · live lookback weights.** These beat the live settings on all five indexes tested (Nifty 500, 100, Midcap 150, Smallcap 250, Total Market; research of 12 Oct, `scripts/research_regime_sweep.py`). A note only: the page's defaults, the track record and the model book are unchanged (owner).
+
 ## 2026-10-12 — The Kite basket is sized on your capital; Configuration says where its limits act
 
 - The Kite basket on Actions sized every buy order on ₹10 lakh, half the model book's ₹20 lakh, since 30 Sep: it read a capital box Portfolio no longer has. The Kite basket button now opens a capital box, starting at Portfolio's ₹20 lakh, so the model book's basket matches Portfolio and your own holdings can be sized on your account. The value is kept while you move between pages.
