@@ -108,14 +108,14 @@ def month_books(prices: pd.DataFrame, tradebook: pd.DataFrame, *, membership=Non
             fate = nxt[nxt["Symbol"] == sym]
             recs.append({
                 "Symbol": sym,
-                "Action": "Bought" if "BUY" in r["Action"] else "Retained",
+                "Action": "Bought" if "BUY" in r["Action"] else "Held",
                 "Weight %": r.get("Weight %"),
                 "Rank at start": a["rank"].get(sym, np.nan),
                 "Rank at end": b["rank"].get(sym, np.nan),
-                "Above EMA start": bool(a["above_ema"].get(sym, False)),
-                "Above EMA end": bool(b["above_ema"].get(sym, False)),
-                "% of 52w high start": a["pct_of_high"].get(sym, np.nan),
-                "% of 52w high end": b["pct_of_high"].get(sym, np.nan),
+                "Above 50D EMA start": bool(a["above_ema"].get(sym, False)),
+                "Above 50D EMA end": bool(b["above_ema"].get(sym, False)),
+                "% of 52W high start": a["pct_of_high"].get(sym, np.nan),
+                "% of 52W high end": b["pct_of_high"].get(sym, np.nan),
                 "In index end": bool(b["in_index"].get(sym, False)),
                 "Next rebalance": (("Held on" if "HOLD" in fate["Action"].iloc[0] else "Sold")
                                    if len(fate) else ("Held to date" if i + 1 >= len(starts) else "—")),

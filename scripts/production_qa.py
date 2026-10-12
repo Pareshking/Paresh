@@ -374,7 +374,8 @@ def read_state(page) -> dict:
 
     if st_exception:
         return {"state": "app_exception", **info}
-    if "Failed to initialize market data" in body:
+    # Either spelling: the app said "initialize" until 12 Oct 2026.
+    if "Failed to initialise market data" in body or "Failed to initialize market data" in body:
         return {"state": "app_data_init_failed", **info}
     if st_tabs:
         return {"state": "ready", **info}

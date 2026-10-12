@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-12 — One word for one thing on every page
+
+- The same thing now has the same name everywhere (owner's choices, 12 Oct): **Max drawdown** (Backtest said "Worst fall"); **Ahead of the index**, in % (Backtest said "Ahead of Nifty 500", the month cards said "pts"); **Nifty 500**, not "NIFTY 500" (header, Portfolio); **52W high** and **50D EMA** in labels, "52-week high" and "50-day EMA" in sentences.
+- Trade tables say what happened: **Bought / Sold / Held** on Portfolio's rebalances, Backtest's rebalance log and this month's changes, and Ranks by month ("Retained" is now "Held"). Plans and filters say **Buy / Sell / Hold**, as Actions does. Before, one book was written five ways (BUY, 🟢 BOUGHT, bought, Retained, kept).
+- Backtest's current book uses Portfolio's column names (Current Price, P&L %, Holding Days, Sector / Industry) and tiles (MTD return); its filters read Month, Outcome, Action and Rebalance, as on Portfolio, not "Filter Month".
+- Dates read 01 Oct 2026 everywhere: no more "1 Oct" on Actions, "Oct-2026" in the trade month, or 2026-10-10 in the History caption and Ranks by month.
+- Links to places that moved: Configuration → "Momentum score" and "Portfolio limits" (were "Momentum Signal", "Portfolio risk"); the Guide's Kite basket is on Actions, not Portfolio; Guide "tabs" are pages; a note pointing to a Provenance section that does not exist is gone. The Backtest help no longer names Screener as a source ("Personal").
+- Wrong statements fixed: the stock page called its Sharpe annualised (it is the window's, as the ranking scores it); the Guide gave the market regime as Nifty above its 50 EMA (the header uses the Nifty 500 against its 200-day average), told bear-market readers to exit on trailing stops (the model has none), and to trade at 09:20 (the model fills at the close). Breadth's events table said "52W High" whatever window was picked. History's growth chart called a Nifty 50 benchmark "Nifty 500".
+- British spelling throughout (realised, initialise, normalised, winsorised).
+
 ## 2026-10-12 — Backtest: the headline figures in one row, a line each
 
 - The six headline figures sit in one row of six, as on Portfolio, instead of two half-empty rows of three whose notes ran to two or three lines. Each note is now one short line: "+3258.0% before costs", "Nifty 500 +10.3%", "±0.25 · Sortino 1.04", "Calmar 0.53", "70% up · turnover 50%". The cost and the window were already in the Tested line; the risk-free rate and how each ratio is made are under Method.
