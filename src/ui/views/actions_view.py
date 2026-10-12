@@ -43,6 +43,11 @@ KITE_CAPITAL_KEY = "ac_kite_capital"
 KITE_MIN_CAPITAL = 10_000
 KITE_MAX_CAPITAL = 1_000_000_000
 
+# Said once, as the Hold table's heading tooltips, not as a caption on every visit.
+CUSHION_HELP = ("Cushion: how far the price can fall from today before it crosses this line, "
+                "with the line held where it is today.")
+BUFFER_HELP = "Counts only stocks that pass both filters, the same count the strategy uses."
+
 
 def kite_capital() -> int:
     """The capital the Kite basket is sized on: the reader's, else Portfolio's ₹20 lakh."""
@@ -103,10 +108,9 @@ def rows_html(a: pd.DataFrame, since: dict[str, float], rules: Rules) -> str:
         link = f'<a href="{stock_href(sym)}" target="_self">{html.escape(sym)}</a>'
         if status == UNKNOWN:
             out.append(
-                f'<div class="xw-row unknown"><span class="xw-s">{link}<small>not ranked</small></span>'
+                f'<div class="xw-row unknown"><span class="xw-s">{link}</span>'
                 f'<span class="xw-pill unknown">{STATUS_LABEL[UNKNOWN]}</span>'
-                f'<span class="xw-why" style="grid-column: 3 / -1">No rule can be checked: '
-                "it is not in the ranked universe.</span></div>")
+                '<span class="xw-why" style="grid-column: 3 / -1">No rule can be checked.</span></div>')
             continue
         q = r["Qualified rank"]
         room = r["Rank room"]
@@ -134,9 +138,10 @@ def rows_html(a: pd.DataFrame, since: dict[str, float], rules: Rules) -> str:
             f'<span class="xw-ret {ret_cls}">{ret_txt}</span></div>'
         )
     head = ('<div class="xw-row xw-head"><span>Holding</span><span>At the next rebalance</span>'
-            f"<span>Rank buffer (top {rules.buffer_n} qualified)</span><span>50D EMA</span>"
-            f"<span>−{(1 - rules.high_pct):.0%} from 52W high</span><span>Closest to</span>"
-            '<span class="xw-ret">Since entry</span></div>')
+            f'<span title="{BUFFER_HELP}">Rank buffer (top {rules.buffer_n} qualified)</span>'
+            f'<span title="{CUSHION_HELP}">50D EMA</span>'
+            f'<span title="{CUSHION_HELP}">−{(1 - rules.high_pct):.0%} from 52W high</span>'
+            '<span>Closest to</span><span class="xw-ret">Since entry</span></div>')
     return f'<div class="xw" role="table" aria-label="Exit watch">{head}{"".join(out)}</div>'
 
 
@@ -159,7 +164,8 @@ def _edit_holdings() -> None:
         st.session_state["_xw_shown"] = current
     with st.container(horizontal=True, vertical_alignment="bottom", key="xw_editbar"):
         st.text_input("Your holdings", key="xw_text",
-                      placeholder="Symbols with an optional buy price, e.g. HFCL 126.5, QUESS@340, TCS")
+                      placeholder="Symbols with an optional buy price, e.g. HFCL 126.5, QUESS@340, TCS",
+                      help="Kept in this browser only, like the watchlist. Nothing is sent to the server.")
         st.button("Save", type="primary", key="xw_save", on_click=_save_text)
         with st.popover("Upload from Kite", icon=":material/upload:"):
             st.caption("Kite Console → Portfolio → Holdings → Download (CSV). Symbols and "
@@ -175,7 +181,6 @@ def _edit_holdings() -> None:
                     if st.button(f"Use these {len(got)} holdings", key="xw_csv_use"):
                         holdings_store.save(got)
                         st.rerun()
-    kit.caption("Kept in this browser only, like the watchlist. Nothing is sent to the server.")
 
 
 def _held_since(book: pd.DataFrame | None, sym: str) -> str:
@@ -209,7 +214,7 @@ def buys_html(rank_df: pd.DataFrame, buys: list[str], qrank: pd.Series) -> str:
         v = pd.to_numeric(v, errors="coerce")
         return "—" if pd.isna(v) else f"{'+' if v >= 0 else '−'}{abs(v) * 100:.1f}%"
 
-    rows = ['<div class="ac-row buy ac-head"><span>Stock</span><span>Qualified</span><span>Why</span>'
+    rows = ['<div class="ac-row buy ac-head"><span>Stock</span><span>Qualified</span>'
             '<span class="n">Price</span><span class="n">3M</span><span class="n">6M</span>'
             '<span class="n">From 52W high</span></div>']
     for s in buys:
@@ -220,7 +225,6 @@ def buys_html(rank_df: pd.DataFrame, buys: list[str], qrank: pd.Series) -> str:
             f'<div class="ac-row buy"><span class="xw-s"><a href="{stock_href(s)}" target="_self">'
             f'{html.escape(s)}</a><small>{html.escape(str(r.get("Industry") or ""))}</small></span>'
             f'<span class="n">#{int(qrank.get(s, 0))}</span>'
-            f'<span class="ac-why"><b class="up">Buy</b> · highest-ranked qualified stock not already held</span>'
             f'<span class="n">₹{float(r.get("CMP")):,.2f}</span><span class="n up">{pct(r.get("3M Return"))}</span>'
             f'<span class="n up">{pct(r.get("6M Return"))}</span><span class="n">{hi_txt}</span></div>')
     return f'<div class="xw">{"".join(rows)}</div>'
@@ -244,11 +248,8 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     n_sess = _sessions_between(as_of, check)
     timing_note = fill_due_note(as_of, fill, pd.Timestamp(ist_now().date()))
 
-    head = kit.page_head(
-        "Actions",
-        f"Next rebalance if prices hold. Checked {_day(check)} close, fills {_day(fill)}." + timing_note,
-        actions=True,
-    )
+    # The dates are in the "Next rebalance" tile; the subtitle does not repeat them.
+    head = kit.page_head("Actions", "If today's prices hold.", actions=True)
     with head:
         sources = SOURCES if model_book_note is None else ["My holdings"]
         source = st.segmented_control("Holdings", sources, default=sources[0], key="xw_source",
@@ -288,17 +289,17 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         kit.readings([
             kit.Reading("Sell", f"{len(plan.sells)}", "break a rule at today's close",
                         "down" if plan.sells else ""),
-            kit.Reading("Buy", f"{len(plan.buys)}", "one replacement for each sale" if plan.buys
-                        else "nothing to replace", "up" if plan.buys else ""),
+            kit.Reading("Buy", f"{len(plan.buys)}", "", "up" if plan.buys else ""),
             kit.Reading("Hold", f"{len(plan.holds)}",
-                        f"{n_watch} of them close to a rule" if n_watch else "all clear of the rules",
+                        f"{n_watch} close to a rule" if n_watch else "all clear of the rules",
                         "warn" if n_watch else ""),
             kit.Reading("Next rebalance", _day(check, weekday=True),
-                        f"{n_sess} session{'s' if n_sess != 1 else ''} away · fills {_day(fill, weekday=True)}"),
+                        timing_note.strip()
+                        or f"{n_sess} session{'s' if n_sess != 1 else ''} away · fills {_day(fill, weekday=True)}"),
         ], "Actions")
         if n_unknown:
-            kit.note(f"{n_unknown} of your holdings are not in the ranked universe.",
-                     "No rule can be checked for them; they are listed with the holds.")
+            kit.note(f"{n_unknown} holding{'s are' if n_unknown != 1 else ' is'} not ranked; "
+                     "no rule can be checked.")
 
         # The basket used to read a Portfolio capital input removed on 30 Sep, so
         # it sized every basket on ₹10 lakh against Portfolio's ₹20 lakh. Now the
@@ -317,21 +318,17 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                 f"kite_actions_{ist_now():%Y%m%d}.csv", "text/csv", type="primary",
                 key="dl_actions_basket", icon=":material/download:", disabled=orders.empty,
             )
-            kit.caption(f"Buy orders only, each at its target weight of ₹{capital:,.0f}. Sells "
-                        "are not in the basket: the app does not know how many shares you "
-                        "hold, so sell each in full yourself.")
+            kit.caption(f"Buy orders only, each at its target weight of ₹{capital:,.0f}.")
 
-        with kit.card(f"Sell {len(plan.sells)}", "ac_sell"):
+        with kit.card("Sell", "ac_sell"):
             if plan.sells:
                 st.html(sells_html(a, plan.sells, since, entries))
-                kit.caption("Sell each in full. Not in the Kite basket: the app does not know how "
-                            "many shares you hold.")
+                kit.caption("Sell in full; sells are not in the Kite basket.")
             else:
-                kit.caption("Nothing breaks a rule at today's close.")
+                kit.caption("None.")
 
         qrank = qualified_ranks(rank_df)
-        with kit.card(f"Buy {len(plan.buys)}", "ac_buy",
-                      f"holdings stay inside the top {rules.buffer_n}"):
+        with kit.card("Buy", "ac_buy", "best qualified, not held"):
             if plan.buys:
                 st.html(buys_html(rank_df, plan.buys, qrank))
                 chips = "".join(
@@ -340,20 +337,13 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                     f'<span>{html.escape(s)}</span></a>'
                     for s in plan.next_in_line)
                 if chips:
-                    st.html('<div class="ac-next"><span>Next in line, if a sale does not happen or a '
-                            f'buy drops out:</span>{chips}</div>')
+                    st.html(f'<div class="ac-next"><span>Next in line:</span>{chips}</div>')
             else:
-                kit.caption("No buys: every holding stays inside the rules.")
+                kit.caption("None.")
 
         holds = a[a["Symbol"].isin(plan.holds) | (a["status"] == UNKNOWN)]
-        with kit.card(f"Hold {len(plan.holds)}", "ac_hold",
-                      f"{n_watch} to watch · closest to a sale first"):
+        with kit.card("Hold", "ac_hold", "closest to a sale first"):
             st.html(rows_html(holds, since, rules))
-            kit.caption(
-                "Cushion = how far the price can fall from today before it crosses that line, with "
-                "the line held where it is today. The rank buffer counts only stocks that pass both "
-                "filters, the same count the strategy uses."
-            )
 
     with st.expander("Buy candidates · the qualified list", expanded=False):
         render_qualified_view(rank_df, adj_close, embedded=True)
