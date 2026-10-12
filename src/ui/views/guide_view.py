@@ -1,467 +1,166 @@
-"""
-Quantitative Strategy & Factor Architecture Handbook (Comprehensive Institutional Reference).
-Unified typography system with exact mathematical formulations, equations,
-parameter lookbacks, weight dependencies, trade execution protocols, and market regime playbooks.
+"""Guide: what the strategy does, its formulas, and how to trade it.
+
+Every figure here is read from the constants the engine uses
+(DEFAULT_LOOKBACK_WEIGHTS, TRACK_RECORD_CONFIG, SHADOW_CONFIG), so the page
+cannot drift from the code when a default changes. Each fact is stated once.
+The strategy has no regime rule: the header's regime pill is described, and
+nothing here suggests acting on it (UI audit 7 Oct 2026, J5).
 """
 
 import pandas as pd
 import streamlit as st
 
+from src.core.config import DEFAULT_LOOKBACK_WEIGHTS, MOMENTUM_MONTHS
+from src.engine.backtester import sector_slots
+from src.engine.track_record import SHADOW_CONFIG, SHADOW_INCEPTION, TRACK_RECORD_CONFIG
 from src.ui import page_kit as kit
-
 from src.ui.components import gap_count, render_data_quality_footer
-from src.ui.theme import render_saas_table
+
+SECTIONS = ["How it works", "Formulas", "Trading it", "FAQ"]
+
+_CFG = TRACK_RECORD_CONFIG
+TOP_N = int(_CFG["top_n"])
+KEEP_N = int(_CFG["buffer_n"])
+EMA = int(_CFG["ema_period"])
+OFF_HIGH = 1.0 - float(_CFG["high_pct"])
+STOCK_CAP = float(_CFG["stock_cap"])
+SECTOR_CAP = float(_CFG["sector_cap"])
+COST_BPS = float(_CFG["cost_bps"])
+PER_INDUSTRY = sector_slots(TOP_N, STOCK_CAP, SECTOR_CAP)
+
+
+def weights_table() -> str:
+    """The default lookback weights, as a Markdown table read from the constant."""
+    rows = "\n".join(
+        f"| {m}M | {w:.0%} | {21 * m} |"
+        for m, w in zip(MOMENTUM_MONTHS, DEFAULT_LOOKBACK_WEIGHTS, strict=True)
+    )
+    return "| Window | Default weight | ≈ sessions |\n|---|---:|---:|\n" + rows
+
+
+def _how_it_works() -> None:
+    with kit.card("The strategy", "guide_strategy"):
+        st.markdown(f"""
+1. **Universe.** The stocks of the system chosen on Configuration. The default, the Nifty 750, is NSE's Nifty Total Market.
+2. **Filters.** A stock qualifies when its close is above its {EMA}-day EMA and within {OFF_HIGH:.0%} of its 52-week high.
+3. **Score.** A Sharpe ratio over each of five calendar windows, turned into z-scores and blended by weight (Formulas).
+4. **Book.** The {TOP_N} best-ranked qualified stocks, equal weight. At a rebalance no stock is above {STOCK_CAP:.0%} and no industry above {SECTOR_CAP:.0%} of the book.
+5. **Keep.** A holding stays while it passes both filters and ranks in the top {KEEP_N} qualified stocks.
+6. **Rebalance.** Ranked at the close of each month's last session; filled at the next session's close. No stops: a holding leaves only at a rebalance.
+7. **Costs.** {COST_BPS:.0f} bps of the position for each sale and the buy that replaces it.
+""")
+
+    with kit.card("Lookback weights", "guide_weights"):
+        st.markdown(weights_table())
+        kit.caption("Windows are calendar months, each from its start to the latest close. "
+                    "The Screener ranks on the weights set on Configuration; the track record "
+                    "keeps the defaults.")
+
+    with kit.card("Market regime", "guide_regime"):
+        st.markdown("""
+The header's pill reads **Bullish** when the Nifty 500 closes at or above its 200-day average (the mean of its last 200 closes), and **Bearish** below it.
+
+The strategy does not use it. In either regime the same rules pick the same number of holdings, at the same weights, and no cash is raised for the regime. Cash is held only when the caps cannot place the whole book, for example when fewer stocks pass the filters than the book holds.
+""")
+
+    with kit.card("Other pages", "guide_pages"):
+        st.markdown(f"""
+- **RRG** charts industries against a benchmark. It does not feed the rank.
+- **Backtest** settings name a **Recommendation**: {int(SHADOW_CONFIG["top_n"])} holdings, keep while in the top {int(SHADOW_CONFIG["buffer_n"])}, {int(SHADOW_CONFIG["ema_period"])}D EMA. It is recorded beside the live system from {SHADOW_INCEPTION.strftime("%b %Y")} and is not traded.
+""")
+
+
+def _formulas() -> None:
+    with kit.card("Score", "guide_score"):
+        st.markdown(r"""
+Each window $m \in \{1, 3, 6, 9, 12\}$ months opens on the first session on or after the as-of date less $m$ months. The opening price may be carried forward up to five sessions; beyond that the window has no score.
+
+With $s$ the opening session, $t$ the as-of session and $n$ the number of daily returns between them:
+
+$$\text{Sharpe}_m = \frac{\ln(P_t / P_s)}{\sigma_{\text{pop}}\big(\ln(P/P_{-1})\big) \times \sqrt{n}}$$
+
+The $\sqrt{n}$ scales volatility to the window, so this is a period Sharpe, not an annualised one.
+
+Each window's cross-section is winsorised at $\pm 3\sigma$, z-scored on the winsorised values, then clamped to $\pm 3$, in that order.
+
+$$\text{Score} = \frac{\sum_m w_m \, z_m}{\sum_{m \,:\, z_m \text{ available}} w_m}$$
+
+A window a stock cannot supply adds neither score nor weight.
+""")
+
+    with kit.card("Weighting", "guide_weighting"):
+        st.markdown(rf"""
+- **Equal weight**, the live system: $w_i = 1/N$.
+- **Inverse volatility**, a Backtest setting (Weighting): $w_i = (1/\sigma_i) \,/\, \sum_j (1/\sigma_j)$, with $\sigma$ the population standard deviation of daily log returns over the last 63 sessions.
+
+Both are then held to the {STOCK_CAP:.0%} stock and {SECTOR_CAP:.0%} industry caps. A cap is never raised; weight it cannot place is held as cash. With {TOP_N} holdings and a {STOCK_CAP:.0%} cap every name is already at {STOCK_CAP:.0%}, so inverse volatility changes nothing.
+""")
+
+    with kit.card("Costs", "guide_costs"):
+        st.markdown(rf"""
+$$\text{{Turnover}} = \tfrac{{1}}{{2}} \sum_i |\Delta w_i| \qquad \text{{Cost}} = \text{{Turnover}} \times {COST_BPS:.0f}\text{{ bps}}$$
+
+Charged at each fill. Selling one holding and buying its replacement costs {COST_BPS:.0f} bps of that position.
+""")
+
+    with kit.card("Relative Rotation Graph", "guide_rrg"):
+        st.markdown(r"""
+Each line is an industry (the average daily return of its stocks, at least two) or one stock. With $L$ the lookback in sessions (12 weeks = 60 by default):
+
+$$\text{RS} = \frac{\text{line growth}}{\text{benchmark growth}} \qquad \text{RS-Ratio} = \frac{\text{EMA}(\text{RS}, L/2)}{\text{SMA}\big(\text{EMA}(\text{RS}, L/2), L\big)}$$
+
+RS-Momentum is RS-Ratio divided by its value a week earlier (a session earlier on the daily chart). Both are z-scored across the lines on the chosen date and drawn as $100 + 6.5z$, so 100 is the average line that day, not the benchmark.
+
+| Quadrant | RS-Ratio | RS-Momentum |
+|---|---|---|
+| Leading | 100 or more | 100 or more |
+| Weakening | 100 or more | below 100 |
+| Lagging | below 100 | below 100 |
+| Improving | below 100 | 100 or more |
+
+The usual path is clockwise: Improving, Leading, Weakening, Lagging.
+""")
+
+
+def _trading_it() -> None:
+    with kit.card("Each month", "guide_trading"):
+        st.markdown("""
+1. On **Actions**, read the Sell, Buy and Hold lists. Until the month's last close they are a preview at today's close.
+2. Press **Kite basket**, set your capital and download the basket CSV. It holds buy orders only, each at its target weight.
+3. Sell each listed sale in full yourself: the app does not know how many shares you hold.
+4. Import the CSV into a Kite basket and place it on the first session of the month. The model fills at that day's close, so orders near the close follow it most closely.
+5. Hold to the next rebalance. Place no stop orders.
+""")
+
+
+def _faq() -> None:
+    with kit.card("Are the returns after tax?", "guide_faq_tax"):
+        st.markdown(
+            "No. Every return in the app is before tax; \"net\" means net of trading costs "
+            "only. Gains on shares sold within 12 months of purchase are short-term capital "
+            "gains in India.")
+    with kit.card("Can I trade between rebalances?", "guide_faq_when"):
+        st.markdown("The model does not. It trades once a month, on the first session, "
+                    "and has no stops.")
+    with kit.card(f"Why is a top-{TOP_N} stock not in the book?", "guide_faq_buffer"):
+        st.markdown(
+            "The book counts only stocks that pass both filters; the Screener's Rank counts "
+            f"every scored stock. Holdings keep their place while they rank in the top {KEEP_N} "
+            "qualified stocks, so they can hold slots a newer name would take. An industry already at "
+            f"{PER_INDUSTRY} of {TOP_N} names is skipped for the next-ranked stock.")
 
 
 def render_guide_view(rank_df: pd.DataFrame) -> None:
-    """Renders the comprehensive Strategy Architecture & Factor Handbook with standardized typography."""
-    kit.page_head(
-        "Guide",
-        "How the ranking, the filters, the backtest and the portfolio work, "
-        "the formulas behind them, and how to act on them",
-    )
+    """The Guide page: four sections, one shown at a time."""
+    kit.page_head("Guide", "What the strategy does, its formulas, and how to trade it")
 
-    section_tab = st.segmented_control(
-        "Handbook Sections",
-        [
-            "Methodology Framework",
-            "Strategy Comparison Matrix",
-            "Mathematical Deep Dives",
-            "Market Regime Playbooks",
-            "Execution & FAQ",
-        ],
-        default="Methodology Framework",
-        key="guide_main_nav",
-        label_visibility="collapsed",
-    )
-    if not section_tab:
-        section_tab = "Methodology Framework"
+    section = st.segmented_control(
+        "Section", SECTIONS, default=SECTIONS[0], required=True,
+        key="guide_main_nav", label_visibility="collapsed",
+    ) or SECTIONS[0]
 
-    st.markdown(" ")
-
-    # ── TAB 1: Methodology Framework ─────────────────────────────────────────
-    if section_tab == "Methodology Framework":
-        # 1. Visual 5-Step Pipeline Card
-        pipeline_html = """
-        <div style="background:#ffffff; border:1px solid #E3E6EB; border-radius:12px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,0.02); margin-bottom:16px; font-family:'Geist',sans-serif;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #F1F3F6; padding-bottom:10px;">
-                <div style="font-size:14px; font-weight:700; color:#0E1726;">
-                    End-to-End Quantitative Investment Pipeline
-                </div>
-                <span style="font-family:'Geist Mono',monospace; font-size:12px; color:#3C4657; background:#F4F5F8; border:1px solid #E3E6EB; padding:3px 10px; border-radius:6px; font-weight:700;">
-                    Live figures on the Backtest page · none quoted here
-                </span>
-            </div>
-
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px;">
-                <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
-                    <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#4f46e5;">STEP 01</div>
-                    <div style="font-weight:600; font-size:13px; color:#0E1726; margin-top:2px;">Universe Ingestion</div>
-                    <div style="font-size:13px; color:#5E6878; line-height:1.5; margin-top:4px;">~750 Nifty Total Market constituents, using Personal price history for ranking and official NSE history where Personal has none, with flagged split/bonus discontinuities neutralised in memory at read time.</div>
-                </div>
-                <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
-                    <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#067647;">STEP 02</div>
-                    <div style="font-weight:600; font-size:13px; color:#0E1726; margin-top:2px;">Trend Gating</div>
-                    <div style="font-size:13px; color:#5E6878; line-height:1.5; margin-top:4px;">Price above its 50-day EMA and within 20% of its 52-week high, to eliminate stage-4 downtrends and structural laggards.</div>
-                </div>
-                <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
-                    <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#B54708;">STEP 03</div>
-                    <div style="font-weight:600; font-size:13px; color:#0E1726; margin-top:2px;">Factor Scoring</div>
-                    <div style="font-size:13px; color:#5E6878; line-height:1.5; margin-top:4px;">Sharpe multi-window (1M/3M/6M/9M/12M) normalised via ±3σ winsorised z-scores.</div>
-                </div>
-                <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
-                    <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#7c3aed;">STEP 04</div>
-                    <div style="font-weight:600; font-size:13px; color:#0E1726; margin-top:2px;">Portfolio Sizing</div>
-                    <div style="font-size:13px; color:#5E6878; line-height:1.5; margin-top:4px;">Top N equal or inverse-vol weighting, projected onto the configured stock and sector caps, with a rank-persistence buffer (2.0× by default) to damp turnover.</div>
-                </div>
-                <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
-                    <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#0284c7;">STEP 05</div>
-                    <div style="font-weight:600; font-size:13px; color:#0E1726; margin-top:2px;">Execution</div>
-                    <div style="font-size:13px; color:#5E6878; line-height:1.5; margin-top:4px;">Trade at the next session after the month-end signal; exits happen at the rebalance. 1-Click Zerodha Kite Basket CSV export.</div>
-                </div>
-            </div>
-        </div>
-        """
-        st.html(pipeline_html)
-
-        # 2. What System-1 is, and what was deliberately removed
-        comparison_card_html = """
-        <div style="padding:18px; background-color:#ffffff; border:1px solid #E3E6EB; border-radius:12px; font-family:'Geist',sans-serif; font-size:13px; color:#3C4657; line-height:1.65; box-shadow:0 1px 3px rgba(0,0,0,0.02); margin-bottom:16px;">
-            <div style="font-size:14px; font-weight:700; color:#0E1726; margin-bottom:10px;">
-                System-1 Composite Sharpe — the only ranking engine
-            </div>
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px;">
-                <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:14px;">
-                    <div style="font-weight:700; font-size:13px; color:#4f46e5; margin-bottom:6px;">
-                        What it does
-                    </div>
-                    <div style="font-size:13px; color:#3C4657; line-height:1.6;">
-                        • <strong>Multi-Horizon Blend</strong>: five calendar horizons — 1M (10%), 3M (30%), 6M (30%), 9M (20%), 12M (10%).<br>
-                        • <strong>Anti-Whipsaw</strong>: a two-week speculative spike scores well on 1M and is outvoted by a weak 6M/12M base.<br>
-                        • <strong>Customisable</strong>: the weights are sliders on the <em>Configuration</em> page.<br>
-                        • <strong>Turnover</strong>: the persistence buffer damps churn. The realised figure for your settings is on the Backtest page (turnover, under Months ahead of index) — no number is quoted here, because it depends on your settings and your window.
-                    </div>
-                </div>
-                <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:14px;">
-                    <div style="font-weight:700; font-size:13px; color:#0284c7; margin-bottom:6px;">
-                        What was removed, and why
-                    </div>
-                    <div style="font-size:13px; color:#3C4657; line-height:1.6;">
-                        • <strong>Single-Window Sharpe, Multi-Window Pure Sharpe, Vectorised Exp-Regression, Residual Alpha, Industry-Relative, Momentum Acceleration</strong> — none ever fed the composite Rank. Each added columns and its own failure modes.<br>
-                        • <strong>Mean-Variance Optimisation</strong> — it degraded to Equal Weight on any exception while still reporting itself as MVO.<br>
-                        • <strong>R-squared</strong> — not part of System-1 and not used to scale its score.<br>
-                    </div>
-                </div>
-            </div>
-        </div>
-        """
-        st.html(comparison_card_html)
-
-        # 3. Detailed 4-Pillar Mathematical Breakdown (100% Standardized 13px/14px Typography)
-        methodology_html = """
-        <div style="padding:20px; background-color:#ffffff; border:1px solid #E3E6EB; border-radius:12px; font-family:'Geist',sans-serif; font-size:13px; color:#3C4657; line-height:1.65; box-shadow:0 1px 3px rgba(0,0,0,0.02); margin-bottom:16px;">
-            <div style="font-size:14px; font-weight:700; color:#0E1726; margin-bottom:14px;">
-                Quantitative Mathematical Formulations & Parameter Dependencies
-            </div>
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
-                <div>
-                    <div style="color:#0E1726; font-weight:600; font-size:13px; margin-bottom:4px;">
-                        1. Multi-Window Sharpe Factor (10/30/30/20/10)
-                    </div>
-                    <div style="color:#3C4657; font-size:13px; line-height:1.6;">
-                        Combines 5 rolling lookbacks: <strong>1M (10%)</strong>, <strong>3M (30%)</strong>, <strong>6M (30%)</strong>, <strong>9M (20%)</strong>, and <strong>12M (10%)</strong>. Each window calculates the approved period risk-adjusted momentum statistic: log return divided by period volatility using all valid daily observations in the calendar-defined horizon.
-                    </div>
-                </div>
-                <div>
-                    <div style="color:#0E1726; font-weight:600; font-size:13px; margin-bottom:4px;">
-                        2. ±3σ Winsorised Z-Score Normalisation
-                    </div>
-                    <div style="color:#3C4657; font-size:13px; line-height:1.6;">
-                        Raw factor metrics across the universe are winsorised at ±3σ to neutralise extreme distribution outliers before Gaussian standardization (Z ~ N(0, 1)):
-                        <div style="font-family:'Geist Mono',monospace; font-size:12px; background-color:#F4F5F8; border:1px solid #E3E6EB; border-radius:6px; padding:6px 10px; margin-top:8px; font-weight:600; color:#1F2A3A;">
-                            Score = 0.10·Z(1M) + 0.30·Z(3M) + 0.30·Z(6M) + 0.20·Z(9M) + 0.10·Z(12M)
-                        </div>
-                    </div>
-                </div>
-                <div>
-                    <div style="color:#0E1726; font-weight:600; font-size:13px; margin-bottom:4px;">
-                        3. Trend & Liquidity Gating
-                    </div>
-                    <div style="color:#3C4657; font-size:13px; line-height:1.6;">
-                        Stocks must satisfy strict quantitative criteria to enter qualified model portfolios:
-                        <ul style="margin:6px 0 0 16px; padding:0; line-height:1.6; font-size:13px;">
-                            <li><strong>CMP &gt; 50D EMA</strong> (Primary medium-term uptrend regime filter)</li>
-                            <li><strong>CMP &ge; 80% of 52W high</strong> (within 20% of the 52-week high)</li>
-                            <li>Microstructure liquidity gating to eliminate friction slippage</li>
-                        </ul>
-                    </div>
-                </div>
-                <div>
-                    <div style="color:#0E1726; font-weight:600; font-size:13px; margin-bottom:4px;">
-                        4. Turnover Buffer & Execution Framework
-                    </div>
-                    <div style="color:#3C4657; font-size:13px; line-height:1.6;">
-                        Walk-forward monthly calendar rebalancing with causal execution (Rank at T → Trade at T+1):
-                        <ul style="margin:6px 0 0 16px; padding:0; line-height:1.6; font-size:13px;">
-                            <li><strong>Top 20 Holdings</strong> (Equal-Weighted or Inverse-Vol Sizing)</li>
-                            <li><strong>Rank-persistence buffer</strong>: retains an existing position while its rank stays inside the buffer (2.0× the book size by default), so a drift from #18 to #24 is not sold and re-bought</li>
-                            <li><strong>Costs</strong>: 30 bps round-trip friction. No intraday stops: a holding leaves at the monthly rebalance when its rank leaves the buffer or it fails a filter</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-        """
-        st.html(methodology_html)
-
-        # 4. Position Sizing & Risk Management Architecture Card
-        sizing_risk_html = """
-        <div style="padding:20px; background-color:#ffffff; border:1px solid #E3E6EB; border-radius:12px; font-family:'Geist',sans-serif; font-size:13px; color:#3C4657; line-height:1.65; box-shadow:0 1px 3px rgba(0,0,0,0.02); margin-bottom:16px;">
-            <div style="font-size:14px; font-weight:700; color:#0E1726; margin-bottom:14px;">
-                Position Sizing Models
-            </div>
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
-                <div>
-                    <div style="color:#0E1726; font-weight:600; font-size:13px; margin-bottom:4px;">
-                        Equal Weighting Allocation ($w_i = 1/N$)
-                    </div>
-                    <div style="color:#3C4657; font-size:13px; line-height:1.6;">
-                        Allocates a uniform 5.00% capital weight across the Top 20 qualified holdings. Maximises gross upside in broad-based bull markets where momentum breadth is strong and uniform across sectors.
-                    </div>
-                </div>
-                <div>
-                    <div style="color:#0E1726; font-weight:600; font-size:13px; margin-bottom:4px;">
-                        Inverse-Volatility Parity ($w_i \\propto 1/\\sigma_i$)
-                    </div>
-                    <div style="color:#3C4657; font-size:13px; line-height:1.6;">
-                        Weights each asset inversely proportional to its annualised 63-session standard deviation:
-                        <div style="font-family:'Geist Mono',monospace; font-size:12px; background-color:#F4F5F8; border:1px solid #E3E6EB; border-radius:6px; padding:6px 10px; margin-top:8px; font-weight:600; color:#1F2A3A;">
-                            w_i = (1 / &sigma;_i) / &sum;(1 / &sigma;_j)
-                        </div>
-                        Reduces overall portfolio volatility and minimises maximum drawdowns during choppy or high-VIX environments.
-                    </div>
-                </div>
-            </div>
-        </div>
-        """
-        st.html(sizing_risk_html)
-
-    # ── TAB 2: Strategy Comparison Matrix ────────────────────────────────────
-    elif section_tab == "Strategy Comparison Matrix":
-        st.markdown(
-            """
-            <div style="font-family:'Geist',sans-serif; font-size:14px; font-weight:700; color:#0E1726; margin-bottom:8px;">
-                Strategy Components
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        matrix_data = [
-            {
-                "Strategy Model": "Composite Sharpe (System-1)",
-                "Lookback Windows": "1M, 3M, 6M, 9M, 12M calendar",
-                "Config Weights": "YES (Customisable)",
-                "Risk Adjustment": "Period volatility",
-                "Market Beta": "Included",
-                "Best Regime": "Steady Secular Bull Runs",
-                "Primary Objective": "The only ranking system; drives every Rank on screen",
-            },
-            {
-                "Strategy Model": "Relative Rotation (RRG)",
-                "Lookback Windows": "12W RS / 6W Tail",
-                "Config Weights": "NO (JdK Algorithm)",
-                "Risk Adjustment": "RS-Ratio vs RS-Momentum",
-                "Market Beta": "Benchmark Relative",
-                "Best Regime": "Sector & Asset Allocation",
-                "Primary Objective": "Visualises clockwise quadrant rotational cycles — a chart, not a ranking",
-            },
-        ]
-        comp_df = pd.DataFrame(matrix_data)
-        render_saas_table(comp_df, max_height=450)
-
-    # ── TAB 3: Mathematical Deep Dives ───────────────────────────────────────
-    elif section_tab == "Mathematical Deep Dives":
-        strat_choice = st.pills(
-            "Select Engine to Inspect",
-            [
-                "Composite Sharpe",
-                "Relative Rotation Graph",
-            ],
-            default="Composite Sharpe",
-            key="guide_strat_choice_pill",
-            label_visibility="collapsed",
-        )
-
-        if strat_choice == "Composite Sharpe":
-            st.markdown(r"""
-                ##### 1. Composite Multi-Window Momentum ($\text{Sharpe}$)
-
-                **Horizons are CALENDAR PERIODS, not fixed trading-row windows.**
-                For each horizon $m \in \{1, 3, 6, 9, 12\}$ months, the window
-                opens on the first market observation on or after
-                $(\text{as-of date} - m \text{ months})$. The opening price may
-                be carried forward at most five sessions to bridge a missing
-                print; beyond that the horizon scores unavailable.
-
-                **Mathematical Formulation** — with $s$ the opening row, $t$ the
-                as-of row and $n$ the count of valid daily observations between:
-                $$\text{Log Return}_m = \ln\left(\frac{P_t}{P_s}\right)$$
-                $$\text{Period Volatility}_m = \sigma_{\text{pop}}\big(\ln(P/P_{-1})\big) \times \sqrt{n}$$
-                $$\text{Sharpe}_m = \frac{\text{Log Return}_m}{\text{Period Volatility}_m}$$
-
-                Each horizon's cross-section is then **winsorised at $\pm 3\sigma$,
-                z-scored on the winsorised data, and clamped to $\pm 3$** — in
-                that order. Winsorising after the z-score is a different
-                transform and is not what this engine does.
-
-                $$\text{Composite Score} = \frac{\sum_{m} w_m \, z_m}{\sum_{m \,:\, z_m \text{ available}} w_m}$$
-
-                * **Availability renormalisation**: a horizon a stock cannot
-                  supply contributes neither score nor weight. Filling it with a
-                  zero would assign that stock the cross-sectional average and
-                  silently shrink it toward the mean.
-                * **Period scale, not annualised**: $\sqrt{n}$ scales to the
-                  window, so this is a *period* risk-adjusted statistic. It is
-                  not comparable with an institutional annualised Sharpe.
-                * **Config Weights**: the active weights from the
-                  **Configuration** page (10/30/30/20/10 by default).
-                * **R-squared is not used anywhere in System-1.**
-                """)
-
-        elif strat_choice == "Relative Rotation Graph":
-            st.markdown(r"""
-                ##### 8. Relative Rotation Graph (RRG)
-                
-                **Mathematical Formulation (Julius de Kempenaer Algorithm):**
-                1. **Relative Strength Line**: $\text{RS}(t) = \frac{P_{\text{Sector}}(t)}{P_{\text{Benchmark}}(t)} \times 100$
-                2. **JdK RS-Ratio (Trend)**: Exponential smoothing normalised around 100:
-                   $$\text{RS-Ratio} = 100 + 6.5 \times z\text{-Score}\left(\frac{\text{EMA}(\text{RS}, 6)}{\text{SMA}(\text{EMA}(\text{RS}, 6), 12)}\right)$$
-                3. **JdK RS-Momentum (Velocity)**: Rate of change of RS-Ratio:
-                   $$\text{RS-Momentum} = 100 + 6.5 \times z\text{-Score}\left(\frac{\text{RS-Ratio}(t)}{\text{RS-Ratio}(t-5)}\right)$$
-
-                * **Quadrant Lifecycle**:
-                  * **Leading (>100, >100)**: Strong relative strength and momentum.
-                  * **Weakening (>100, <100)**: Relative strength remains high, but momentum is fading.
-                  * **Lagging (<100, <100)**: Underperforming the benchmark.
-                  * **Improving (<100, >100)**: Momentum inflecting upward; watchlist for early entry.
-                """)
-
-
-    # ── TAB 4: Market Regime Playbooks ───────────────────────────────────────
-    elif section_tab == "Market Regime Playbooks":
-        playbook_html = """
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-bottom:16px; font-family:'Geist',sans-serif;">
-            <div style="background:#ffffff; border:1px solid #E3E6EB; border-top:3px solid #067647; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="font-weight:700; font-size:14px; color:#067647;">BULLISH EXPANSION</span>
-                    <span style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#067647; background:#E8F5EE; padding:2px 7px; border-radius:4px;">NIFTY 500 &gt; 200D AVERAGE</span>
-                </div>
-                <div style="font-size:13px; color:#3C4657; line-height:1.6;">
-                    <div><strong>Model:</strong> Composite Sharpe</div>
-                    <div><strong>Weight tilt:</strong> Short windows (1M / 3M)</div>
-                    <div><strong>Target Allocation:</strong> 100% Equity (0% Cash)</div>
-                    <div style="margin-top:6px; color:#5E6878;">
-                        Lean the composite on short horizons to catch breakouts early and compound aggressively.
-                    </div>
-                </div>
-            </div>
-
-            <div style="background:#ffffff; border:1px solid #E3E6EB; border-top:3px solid #0284c7; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="font-weight:700; font-size:14px; color:#0284c7;">RANGE-BOUND / NEUTRAL</span>
-                    <span style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#0284c7; background:#f0f9ff; padding:2px 7px; border-radius:4px;">BREADTH 40–55%</span>
-                </div>
-                <div style="font-size:13px; color:#3C4657; line-height:1.6;">
-                    <div><strong>Model:</strong> Composite Sharpe</div>
-                    <div><strong>Weight tilt:</strong> Mid windows (6M / 9M)</div>
-                    <div><strong>Target Allocation:</strong> 85% Equity (15% Cash)</div>
-                    <div style="margin-top:6px; color:#5E6878;">
-                        Lean the composite on mid-horizon windows, where choppy tape produces fewer false breakouts than short ones.
-                    </div>
-                </div>
-            </div>
-
-            <div style="background:#ffffff; border:1px solid #E3E6EB; border-top:3px solid #B54708; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="font-weight:700; font-size:14px; color:#B54708;">VOLATILE / HIGH VIX</span>
-                    <span style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#B54708; background:#FEF6EA; padding:2px 7px; border-radius:4px;">VIX &gt; 18</span>
-                </div>
-                <div style="font-size:13px; color:#3C4657; line-height:1.6;">
-                    <div><strong>Model:</strong> Composite Sharpe</div>
-                    <div><strong>Weighting:</strong> Inverse Volatility</div>
-                    <div><strong>Target Allocation:</strong> 70% Equity (30% Cash)</div>
-                    <div style="margin-top:6px; color:#5E6878;">
-                        Inverse-volatility weighting can be tried in the Backtest settings; the live book is equal weight.
-                    </div>
-                </div>
-            </div>
-
-            <div style="background:#ffffff; border:1px solid #E3E6EB; border-top:3px solid #B42318; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="font-weight:700; font-size:14px; color:#B42318;">BEARISH DEFENSIVE</span>
-                    <span style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#B42318; background:#FDEDEB; padding:2px 7px; border-radius:4px;">NIFTY 500 &lt; 200D AVERAGE</span>
-                </div>
-                <div style="font-size:13px; color:#3C4657; line-height:1.6;">
-                    <div><strong>Mode:</strong> Capital protection</div>
-                    <div><strong>Priority:</strong> Cash preservation</div>
-                    <div><strong>Target Allocation:</strong> 40% Equity (60% Cash)</div>
-                    <div style="margin-top:6px; color:#5E6878;">
-                        Sell only what the monthly rebalance sells: the model has no stops. Add no new positions until the Nifty 500 closes back above its 200-day average (the regime in the header).
-                    </div>
-                </div>
-            </div>
-        </div>
-        """
-        st.html(playbook_html)
-
-    # ── TAB 5: Execution & FAQ ───────────────────────────────────────────────
-    else:
-        # Step-by-Step Zerodha Kite Execution Card
-        zerodha_guide_html = """
-        <div style="padding:18px; background-color:#ffffff; border:1px solid #E3E6EB; border-radius:12px; font-family:'Geist',sans-serif; font-size:13px; color:#3C4657; line-height:1.65; box-shadow:0 1px 3px rgba(0,0,0,0.02); margin-bottom:16px;">
-            <div style="font-size:14px; font-weight:700; color:#0E1726; margin-bottom:12px;">
-                Zerodha Kite 1-Click Basket Execution Playbook
-            </div>
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px;">
-                <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
-                    <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#4f46e5;">STEP 1: EXPORT BASKET</div>
-                    <div style="font-size:13px; color:#3C4657; margin-top:4px;">Open the <strong>Actions</strong> page, review the orders, and click <strong>Kite basket</strong>.</div>
-                </div>
-                <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
-                    <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#067647;">STEP 2: IMPORT TO KITE</div>
-                    <div style="font-size:13px; color:#3C4657; margin-top:4px;">Open <strong>Zerodha Kite Web</strong> $\to$ Navigate to <em>Orders &gt; Baskets</em> $\to$ Click <em>New Basket</em> $\to$ Click <strong>Import CSV</strong>.</div>
-                </div>
-                <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
-                    <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#B54708;">STEP 3: EXECUTE IN 1-CLICK</div>
-                    <div style="font-size:13px; color:#3C4657; margin-top:4px;">Place the basket on the first trading day of the month. The model fills at that day's close, so orders near the close follow it most closely.</div>
-                </div>
-                <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
-                    <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#7c3aed;">STEP 4: HOLD TO THE NEXT REBALANCE</div>
-                    <div style="font-size:13px; color:#3C4657; margin-top:4px;">No stop orders. The Actions page lists what to sell at the next month-end signal: holdings whose rank left the buffer or that failed a filter.</div>
-                </div>
-            </div>
-        </div>
-        """
-        st.html(zerodha_guide_html)
-
-        faq_html = """
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:12px; margin-bottom:16px; font-family:'Geist',sans-serif;">
-            <div style="background:#ffffff; border:1px solid #E3E6EB; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
-                <div style="font-weight:700; font-size:14px; color:#0E1726; margin-bottom:6px;">
-                    Are the backtest's returns after tax?
-                </div>
-                <div style="font-size:13px; color:#3C4657; line-height:1.6;">
-                    <strong>No.</strong> "Net" on the Backtest page means net of the modelled transaction-cost drag only. No tax is deducted anywhere in this application. That matters here more than in a buy-and-hold model: monthly rebalancing realises gains inside twelve months, so in India they are short-term capital gains, and the after-tax outcome is materially below every figure shown. Treat all returns on every page as <strong>pre-tax</strong>.
-                </div>
-            </div>
-
-            <div style="background:#ffffff; border:1px solid #E3E6EB; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
-                <div style="font-weight:700; font-size:14px; color:#0E1726; margin-bottom:6px;">
-                    When should I rebalance my portfolio?
-                </div>
-                <div style="font-size:13px; color:#3C4657; line-height:1.6;">
-                    Rebalance on the <strong>first trading day of every calendar month</strong> (or every 21 trading days). Avoid intra-month changes: the strategy has no stops, so a holding waits for the next rebalance.
-                </div>
-            </div>
-
-            <div style="background:#ffffff; border:1px solid #E3E6EB; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
-                <div style="font-weight:700; font-size:14px; color:#0E1726; margin-bottom:6px;">
-                    Why is stock #14 not in the Top 20 Portfolio?
-                </div>
-                <div style="font-size:13px; color:#3C4657; line-height:1.6;">
-                    Existing holdings are retained while their rank stays inside the persistence buffer — 2.0× the book size by default, so Top 20 holds to rank 40. This damps brokerage friction, impact slippage and realised capital-gains events. <strong>Note that the backtest models transaction costs only; no tax is deducted anywhere in this application.</strong>
-                </div>
-            </div>
-
-            <div style="background:#ffffff; border:1px solid #E3E6EB; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
-                <div style="font-weight:700; font-size:14px; color:#0E1726; margin-bottom:6px;">
-                    How does JdK Relative Rotation Graph (RRG ®) work?
-                </div>
-                <div style="font-size:13px; color:#3C4657; line-height:1.6;">
-                    RRG tracks clockwise rotation across 4 quadrants: <strong>Improving (Blue)</strong> $\to$ <strong>Leading (Green)</strong> $\to$ <strong>Weakening (Yellow)</strong> $\to$ <strong>Lagging (Red)</strong>. Sectors rotating into <em>Leading</em> offer the strongest multi-month tailwinds.
-                </div>
-            </div>
-
-            <div style="background:#ffffff; border:1px solid #E3E6EB; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
-                <div style="font-weight:700; font-size:14px; color:#0E1726; margin-bottom:6px;">
-                    What is the difference between Equal Weighting and Inverse-Volatility Parity?
-                </div>
-                <div style="font-size:13px; color:#3C4657; line-height:1.6;">
-                    <strong>Equal Weighting</strong> gives each stock a flat 5.0% allocation (ideal for strong bull markets). <strong>Inverse-Volatility Parity</strong> weights stocks by $1/\\sigma$, allocating smaller sizes to high-beta volatile stocks and larger sizes to low-volatility compounders, cutting portfolio drawdown.
-                </div>
-            </div>
-
-            <div style="background:#ffffff; border:1px solid #E3E6EB; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
-                <div style="font-weight:700; font-size:14px; color:#0E1726; margin-bottom:6px;">
-                    How are trading costs modelled in the backtest?
-                </div>
-                <div style="font-size:13px; color:#3C4657; line-height:1.6;">
-                    Every simulated trade deducts a <strong>30 basis point (0.30%) round-trip cost</strong> covering brokerage, exchange turnover and SEBI fees, GST on those fees, stamp duty, STT and bid-ask slippage — the <em>transaction</em> taxes and frictions paid on the trade itself. <strong>Capital-gains tax is a different thing and is not modelled anywhere in this application: every return shown is pre-tax.</strong> A monthly-rebalanced book realises gains inside twelve months, so in India they are short-term.
-                </div>
-            </div>
-        </div>
-        """
-        st.html(faq_html)
+    {"How it works": _how_it_works, "Formulas": _formulas,
+     "Trading it": _trading_it, "FAQ": _faq}[section]()
 
     render_data_quality_footer(
         total_stocks=len(rank_df),
