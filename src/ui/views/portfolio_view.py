@@ -104,20 +104,28 @@ def _benchmark_returns_from_daily(
         return np.nan, np.nan, np.nan
 
     day = float(s.iloc[-1] / s.iloc[-2] - 1.0)
-    month_start = pd.Timestamp(as_of).normalize().replace(day=1)
-    prior_month = s.loc[s.index < month_start]
-    mtd_base = float(prior_month.iloc[-1]) if not prior_month.empty else np.nan
-    mtd = float(s.iloc[-1] / mtd_base - 1.0) if np.isfinite(mtd_base) and mtd_base > 0 else np.nan
-
     if isinstance(inception_date, pd.Period):
         inception_ts = inception_date.start_time.normalize()
     else:
         inception_ts = pd.Timestamp(inception_date).normalize()
-    base = s.loc[s.index < inception_ts]
-    if base.empty:
-        base = s.loc[s.index <= inception_ts]
-    inception_base = float(base.iloc[-1]) if not base.empty else float(s.iloc[0])
+    # From the close of the first fill -- the first session of the inception
+    # month, when the first book was bought -- as the record counts. The last
+    # close before it (31 Dec for a January start) added a day the strategy
+    # was not invested: +0.16% on 12 Oct 2026, so -8.4% here beside the
+    # record's -7.6% (owner, 12 Oct 2026).
+    from_fill = s.loc[s.index >= inception_ts]
+    inception_base = float(from_fill.iloc[0]) if not from_fill.empty else float(s.iloc[0])
     total = float(s.iloc[-1] / inception_base - 1.0) if inception_base > 0 else np.nan
+
+    # Month to date from the previous month's last close, as the record's live
+    # month now is; in the inception month, from the first fill.
+    month_start = pd.Timestamp(as_of).normalize().replace(day=1)
+    prior_month = s.loc[s.index < month_start]
+    if month_start <= inception_ts or prior_month.empty:
+        mtd_base = inception_base
+    else:
+        mtd_base = float(prior_month.iloc[-1])
+    mtd = float(s.iloc[-1] / mtd_base - 1.0) if np.isfinite(mtd_base) and mtd_base > 0 else np.nan
     return day, mtd, total
 
 

@@ -488,6 +488,38 @@ def _step_portfolio_allocation(
     return full_w, turnover_period, friction_drag
 
 
+def _book_return(
+    weights: pd.Series,
+    prices_ff: pd.DataFrame,
+    fill_idx: int,
+    from_idx: int,
+    to_idx: int,
+) -> float:
+    """A buy-and-hold book's return between two sessions after its fill.
+
+    Valued exactly as the daily accrual loop values it: the weight the caps left
+    uninvested is cash at 0%, and each name is worth its fill weight times its
+    price growth since the fill. A name unpriced at the fill or on the day keeps
+    its weight unchanged, as it does there.
+    """
+    held = weights[weights != 0.0]
+    if held.empty or to_idx <= from_idx:
+        return 0.0
+    w = held.to_numpy(dtype=float)
+    cash = max(1.0 - float(w.sum()), 0.0)
+    base = prices_ff.iloc[fill_idx].reindex(held.index).to_numpy(dtype=float)
+    ok = np.isfinite(base) & (base > 0)
+
+    def value(idx: int) -> float:
+        px = prices_ff.iloc[idx].reindex(held.index).to_numpy(dtype=float)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            growth = np.where(ok & np.isfinite(px), px / base, 1.0)
+        return cash + float((w * growth).sum())
+
+    start = value(from_idx)
+    return value(to_idx) / start - 1.0 if start > 0 else 0.0
+
+
 def _drift_holdings(
     prev_weights: pd.Series,
     prices: pd.DataFrame,
@@ -1628,9 +1660,9 @@ def run_backtest(
         )
 
     # ── Month-To-Date ────────────────────────────────────────────────────────
-    # Measure it the way the engine accrues everywhere else: from the CLOSE the
-    # book was filled at, on the book actually held this month. That is the
-    # rebalanced book from its fill date whenever the fill lands in this month.
+    # Measure it the way the engine accrues everywhere else: each book from the
+    # CLOSE it was filled at. When this month's fill has happened, that is the
+    # old book to the fill and the rebalanced book after it (below).
     mtd_period = as_of_dt.to_period("M")
     mtd_holdings: Sequence[str] = book
     mtd_wts = book_wts
@@ -1670,6 +1702,28 @@ def run_backtest(
         mtd_turnover = float((_new_full - _standing).abs().sum() / 2.0)
         mtd_cost = mtd_turnover * (cost_bps / 10000.0)
 
+    # The sessions before this month's fill (owner, 12 Oct 2026). A month that
+    # holds a rebalance used to be marked from the FILL close, so the session
+    # the old book earned on the fill day -- 30 Sep close to 1 Oct close, say --
+    # sat in neither the frozen month before (which ends at its last close) nor
+    # this one, for the strategy and the index alike, until the month froze:
+    # on 12 Oct 2026 the record's Nifty 500 read -7.6% against -8.5% measured
+    # from the first fill. The frozen month comes off the daily curve, where
+    # that session belongs to the old book. Mark the live month the same way:
+    # the old book from the previous month's last close to the fill, then the
+    # new book from the fill. A system's first month has no old book: both
+    # legs, and the index, start at the fill, as its frozen month does.
+    pre_fill = 0.0
+    mtd_from_idx = mtd_base_idx
+    if (
+        mtd_basis == "rebalanced book"
+        and prev_fill_idx is not None
+        and 0 <= prior_close_idx < mtd_base_idx
+        and prev_fill_idx <= prior_close_idx
+    ):
+        pre_fill = _book_return(prev_weights, prices_ff, prev_fill_idx, prior_close_idx, mtd_base_idx)
+        mtd_from_idx = prior_close_idx
+
     strategy_mtd: float | None = None
     benchmark_mtd: float | None = None
     if mtd_base_idx is not None and mtd_base_idx < as_of_idx:
@@ -1687,10 +1741,10 @@ def run_backtest(
                 acc += w * r
                 priced += w
         # Net, like every frozen month it will sit beside.
-        strategy_mtd = (acc - mtd_cost) if priced > 0 else None
+        strategy_mtd = ((1.0 + pre_fill) * (1.0 + acc - mtd_cost) - 1.0) if priced > 0 else None
 
         if benchmark_level is not None:
-            b0 = benchmark_level.iloc[mtd_base_idx]
+            b0 = benchmark_level.iloc[mtd_from_idx]
             b1 = benchmark_level.iloc[as_of_idx]
             if pd.notna(b0) and pd.notna(b1) and float(b0) > 0:
                 benchmark_mtd = float(b1) / float(b0) - 1.0
@@ -1700,8 +1754,9 @@ def run_backtest(
         "as_of": as_of_dt,
         "mtd_period": str(mtd_period),
         "mtd_from": (
-            prices.index[mtd_base_idx] if mtd_base_idx is not None else None
+            prices.index[mtd_from_idx] if mtd_from_idx is not None else None
         ),
+        "mtd_pre_fill": pre_fill,
         "mtd_basis": mtd_basis,
         "strategy_mtd": strategy_mtd,
         "mtd_cost": mtd_cost,
