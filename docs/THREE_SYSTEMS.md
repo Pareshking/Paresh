@@ -95,6 +95,13 @@ accepted, no contract term differs.
 - Track Record ends with **Three systems, side by side**: the last 12 frozen
   months for each, and the Nifty 500.
 
+### Shadow record
+
+Beside the three, the Recommendation's shadow record (owner, 12 Oct 2026): the
+750 under `SHADOW_CONFIG` (30 holdings, keep in the top 90, 200D EMA) from
+November 2026, in `data/track_record_shadow.json`. Never traded; a row of frozen
+months in "Three systems, side by side". See `docs/TRACK_RECORD.md` §9.
+
 ## Backtest
 
 `systems.backtest_months` counts completed months since September 2026 for

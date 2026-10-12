@@ -9,10 +9,15 @@ is the entire contract -- see src/engine/track_record.py for why.
     python scripts/update_track_record.py --dry-run    # report, write nothing
     python scripts/update_track_record.py --force      # rewrite history (loud)
     python scripts/update_track_record.py --system nano
+    python scripts/update_track_record.py --shadow
 
 --system picks the record: 750 (default, data/track_record.json), nano or
 combined (their own ledgers, from October 2026). Each is scored on its own
 point-in-time membership (src/engine/systems.py).
+
+--shadow freezes the Recommendation's shadow record instead: the 750 under
+SHADOW_CONFIG, in data/track_record_shadow.json, from November 2026 (owner,
+12 Oct 2026). It is never traded and never changes the live records.
 """
 
 from __future__ import annotations
@@ -30,6 +35,9 @@ from src.core.config import BENCHMARK_SYMBOL  # noqa: E402
 from src.engine.backtester import run_backtest  # noqa: E402
 from src.engine.parity_audit import compare_monthly_ledger  # noqa: E402
 from src.engine.track_record import (  # noqa: E402
+    SHADOW_CONFIG,
+    SHADOW_INCEPTION,
+    SHADOW_LEDGER_PATH,
     TRACK_RECORD_CONFIG,
     config_fingerprint,
     finalize_months,
@@ -48,9 +56,26 @@ from src.loaders.indices_loader import fetch_indices_data  # noqa: E402
 from src.loaders.price_loader import fetch_benchmark_history  # noqa: E402
 
 
+def record_setup(system: str, shadow: bool = False,
+                 ledger: str | None = None) -> tuple[str, str, pd.Period, dict]:
+    """(system, ledger file, inception, configuration) for one record.
+
+    The shadow record is the 750's universe and membership under its own pinned
+    configuration, ledger and inception; every other record is its system's own.
+    """
+    if shadow:
+        if system != SYSTEM_750:
+            raise SystemExit("--shadow is the Nifty 750's; it takes no --system")
+        return system, ledger or str(SHADOW_LEDGER_PATH), SHADOW_INCEPTION, dict(SHADOW_CONFIG)
+    return (system, ledger or str(systems.ledger_path(system)), systems.inception(system),
+            dict(TRACK_RECORD_CONFIG))
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--system", default=SYSTEM_750, choices=list(SYSTEMS))
+    ap.add_argument("--shadow", action="store_true",
+                    help="the Recommendation's shadow record (750, from Nov 2026), not the live one")
     ap.add_argument("--ledger", default=None,
                     help="defaults to the system's own ledger")
     ap.add_argument("--extra-prices", default=None,
@@ -80,10 +105,9 @@ def main() -> int:
     )
     args = ap.parse_args()
 
-    system = args.system
-    ledger_file = args.ledger or str(systems.ledger_path(system))
-    start = systems.inception(system)
-    print(f"→ system: {system} · ledger {ledger_file} · inception {start}")
+    system, ledger_file, start, cfg = record_setup(args.system, args.shadow, args.ledger)
+    print(f"→ system: {system}{' (shadow record)' if args.shadow else ''} · ledger {ledger_file} "
+          f"· inception {start}")
 
     core: list[str] = []
     if system != SYSTEM_NANO:
@@ -143,7 +167,6 @@ def main() -> int:
     # The index's former members need prices too, or the record is scored
     # against survivors only (data/former_member_prices.parquet, kept by
     # scripts/sync_former_member_prices.py).
-    cfg = dict(TRACK_RECORD_CONFIG)
     basis = args.prices
     if basis in ("screener", "nse"):
         # Screener's closes, as on the live ranking (owner, 2026-10-01); NSE's closes as
@@ -192,7 +215,7 @@ def main() -> int:
     print(f"  config fingerprint: {fingerprint}")
 
     result = run_backtest(
-        f"trackrecord_{system}_{as_of:%Y%m%d}_{months}",
+        f"trackrecord_{system}{'_shadow' if args.shadow else ''}_{as_of:%Y%m%d}_{months}",
         adj_close,
         top_n=cfg["top_n"],
         rebal_freq=cfg["rebal_freq"],
