@@ -43,11 +43,34 @@ def test_rank_path_reads_oldest_to_now():
     assert page.index("#6") < page.index("#2") < page.index("<b>#1</b>")
 
 
+def _peers_html(monkeypatch, rank_df, sym):
+    """The peers card's table, as the stock page draws it."""
+    frames = []
+    monkeypatch.setattr(screener_table.st, "iframe", lambda h, **k: frames.append(str(h)))
+    _capture(monkeypatch, stock_view)
+    row = rank_df[rank_df["Symbol"] == sym].iloc[0]
+    stock_view._render_peers(row, rank_df, None)
+    assert len(frames) == 1, "the peers card draws one Screener table"
+    return frames[0]
+
+
 def test_peers_table_formats_float32_prices(monkeypatch):
-    out = _capture(monkeypatch, stock_view)
-    df = pd.DataFrame({"Symbol": ["AAA"], "CMP": np.array([1234.5677], dtype="float32")})
-    stock_view._render_peers_table(df, highlight_sym="AAA")
-    assert "₹1,235" in out[0] and "1234.56" not in out[0]
+    rank_df = pd.DataFrame({"Symbol": ["AAA", "BBB"], "Rank": [1, 2], "Industry": ["IT", "IT"],
+                            "CMP": np.array([1234.5677, 99.0], dtype="float32")})
+    html = _peers_html(monkeypatch, rank_df, "AAA")
+    # The raw float stays in the sort key (data-v), never in the text shown.
+    assert "₹1,235" in html and ">1234.5" not in html
+
+
+def test_peers_tag_this_stock_even_below_the_top_eight(monkeypatch):
+    """The peers card is the Screener's table, with this stock's row tagged."""
+    n = 12
+    rank_df = pd.DataFrame({"Symbol": [f"S{i}" for i in range(n)], "Rank": range(1, n + 1),
+                            "Industry": ["IT"] * n, "CMP": [100.0] * n})
+    html = _peers_html(monkeypatch, rank_df, "S11")
+    assert html.count("<tr data-stock=") == stock_view.PEERS_SHOWN
+    assert '<tr data-stock="S11" class="hl">' in html and "This stock" in html
+    assert '<tr data-stock="S0">' in html
 
 
 def test_ranking_row_float32_nan_drawdown_is_a_dash():
