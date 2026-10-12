@@ -215,9 +215,9 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
                 ) or "All"
                 disp = hl_events_df
                 if ev_sel == "Highs":
-                    disp = hl_events_df[hl_events_df["Event"].str.contains("High")]
+                    disp = hl_events_df[hl_events_df["Event"].str.contains("high", case=False)]
                 elif ev_sel == "Lows":
-                    disp = hl_events_df[hl_events_df["Event"].str.contains("Low")]
+                    disp = hl_events_df[hl_events_df["Event"].str.contains("low", case=False)]
                 render_saas_table(disp, max_height=420)
 
     render_data_quality_footer(

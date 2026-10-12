@@ -69,7 +69,7 @@ def test_the_ladder_shows_the_all_time_high():
     at = _app(stock="S3")
     body = " ".join(m.value for m in at.markdown)
     assert "All-time high" in body
-    assert "52W High" in body
+    assert "52W high" in body  # label style: owner, 12 Oct 2026
 
 
 def test_returns_and_risk_cover_every_window():
