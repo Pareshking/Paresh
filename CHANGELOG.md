@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-12 — NSE's prices take rights issues into account
+
+- The NSE closes the app keeps as its middle price source (Screener first, NSE second) moved raw across rights issues: 14 since Sep 2024, HCC -23% on 5 Dec 2025, as if holders had lost it. Their corporate-action file was written before rights rows were kept and had no face value to price them. It now keeps the face value, and each monthly update re-reads every corporate action from NSE's files on R2. The 13 rights issues with an NSE close before them now match the long price file's adjustment to four decimals (S56).
+- Frozen track-record months are not rewritten; any month whose replay now differs is listed for the owner.
+
 ## 2026-10-12 — The Recommendation is recorded forward, beside the live system
 
 - From November 2026 the Recommendation (live weights, 30 holdings, keep while in the top 90, 200D EMA) keeps its own monthly record on the Nifty 750, frozen like the others on the 1st-5th of each month (`data/track_record_shadow.json`). It is never traded: Actions, Portfolio and the live records are unchanged (owner, 12 Oct).

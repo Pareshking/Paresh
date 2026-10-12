@@ -3,12 +3,17 @@
 
     python scripts/sync_nse_prices.py --build --cache data_cache/nse_bundles   # from a bundle cache
     python scripts/sync_nse_prices.py --update                                 # fetch the sessions since
+    python scripts/sync_nse_prices.py --refresh-actions                        # re-read every action
 
 `--build` keeps the stocks the record needs (the Nifty Total Market, every name the
 membership history lists, and the old symbols of the renames in notes.json).
 `--update` appends the sessions after the last committed one, read from R2 where
-scripts/nse_collect.py stores them (`--source nse` downloads them instead). A source
-that cannot be read leaves the committed file as it was.
+scripts/nse_collect.py stores them (`--source nse` downloads them instead), and then
+re-reads every corporate action in the file's span. A source that cannot be read
+leaves the committed file as it was.
+`--refresh-actions` only re-reads the actions (S56, 12 Oct 2026: the committed file
+predated keeping rights rows and their face values, so 14 rights ex-dates since
+Sep 2024 moved the NSE closes raw). A refresh never drops an action already on file.
 See src/loaders/nse_prices.py.
 """
 from __future__ import annotations
@@ -28,6 +33,7 @@ import src.engine.pipeline  # noqa: E402,F401  (import order: avoids a circular 
 from src.engine.membership import load_history_or_none  # noqa: E402
 from src.loaders import former_members, nse_adjusted as na, nse_history as nh  # noqa: E402
 from src.loaders import nse_prices as npx  # noqa: E402
+from src.loaders.nse_identity import EQUITY_L as EQUITY_LIST  # noqa: E402
 from src.loaders.indices_loader import fetch_indices_data  # noqa: E402
 
 
@@ -43,16 +49,110 @@ def needed(notes: dict) -> list[str]:
     return sorted(syms)
 
 
-def keep_actions(actions: pd.DataFrame, symbols: set[str]) -> pd.DataFrame:
+def face_values(path: Path = EQUITY_LIST) -> dict[str, float]:
+    """Today's face value per symbol, from NSE's equity list (data/reference/nse)."""
+    try:
+        eq = pd.read_csv(path)
+    except (OSError, ValueError):
+        return {}
+    eq.columns = [str(c).strip().upper() for c in eq.columns]
+    if "SYMBOL" not in eq or "FACE VALUE" not in eq:
+        return {}
+    fv = pd.to_numeric(eq["FACE VALUE"], errors="coerce")
+    return {s: float(v) for s, v in zip(eq["SYMBOL"].astype(str).str.strip(), fv) if v > 0}
+
+
+def keep_actions(actions: pd.DataFrame, symbols: set[str],
+                 today_fv: dict[str, float] | None = None) -> pd.DataFrame:
     """The rows that can move a price: splits, bonuses, consolidations, demergers,
-    and rights issues (kept for their terms: src/engine/reconcile.py computes
-    the rights factor; adjusted_close applies only the split/bonus kinds)."""
+    and rights issues with the face value that prices them (nse_adjusted._rights).
+
+    A daily Bc row carries no face value; NSE's yearly list does. A rights row
+    without one takes the symbol's face value from another of its rows (the
+    nearest in time, as _rights does), else today's from NSE's equity list --
+    but only when no split or consolidation since could have changed it.
+    """
     if actions.empty:
         return pd.DataFrame(columns=npx.ACTION_COLS)
     a = actions[actions["kind"].isin(na.ACTION_KINDS + ("demerger", "rights")) & actions["symbol"].isin(symbols)]
     a = nh.dedupe_actions(a.assign(record_date=a.get("record_date"), bc_start=a.get("bc_start"),
                                    bc_end=a.get("bc_end")))
+    a = a.reindex(columns=list(dict.fromkeys([*npx.ACTION_COLS, *a.columns])))
+    a["face_value"] = pd.to_numeric(a["face_value"], errors="coerce")
+    all_fv = pd.to_numeric(actions["face_value"], errors="coerce") if "face_value" in actions \
+        else pd.Series(float("nan"), index=actions.index)
+    all_ex = pd.to_datetime(actions["ex_date"], errors="coerce")
+    known = actions.assign(_fv=all_fv, _d=all_ex)[all_fv > 0]
+    today_fv = face_values() if today_fv is None else today_fv
+    ex = pd.to_datetime(a["ex_date"], errors="coerce")
+    for i in a.index[(a["kind"] == "rights") & a["face_value"].isna()]:
+        sym = a.at[i, "symbol"]
+        k = known[known["symbol"] == sym]
+        if len(k):
+            a.at[i, "face_value"] = k.loc[(k["_d"] - ex[i]).abs().idxmin(), "_fv"]
+            continue
+        resplit = (actions["symbol"] == sym) & actions["kind"].isin(["split", "consolidation"]) & (all_ex >= ex[i])
+        if sym in today_fv and not resplit.any():
+            a.at[i, "face_value"] = today_fv[sym]
     return a[npx.ACTION_COLS].reset_index(drop=True)
+
+
+def _keys(f: pd.DataFrame) -> pd.Series:
+    return (f["symbol"].astype(str) + "|" + f["kind"].astype(str) + "|"
+            + pd.to_datetime(f["ex_date"], errors="coerce").dt.strftime("%Y-%m-%d"))
+
+
+def refreshed(old: pd.DataFrame, new: pd.DataFrame) -> pd.DataFrame:
+    """The re-read actions, plus any action on file the re-read lacks: never fewer."""
+    lost = old[~_keys(old).isin(set(_keys(new)))] if len(old) else old
+    out = pd.concat([new, lost.reindex(columns=npx.ACTION_COLS)], ignore_index=True)
+    return out.drop_duplicates(subset=["symbol", "series", "kind", "ex_date", "purpose"]).reset_index(drop=True)
+
+
+def refresh_actions(closes: pd.DataFrame, actions: pd.DataFrame, notes: dict, *,
+                    reader=None, archive=None) -> pd.DataFrame:
+    """Every corporate action in the committed span, re-read from R2, kept as keep_actions keeps them."""
+    from scripts.nse_history_audit import read_actions
+
+    if reader is None:
+        from src.storage.r2 import R2Archive, R2Config
+        from src.storage.reader import R2DatasetReader
+
+        archive = archive or R2Archive(R2Config.from_env())
+        reader = R2DatasetReader(archive)
+    since, until = closes.index[0].date(), closes.index[-1].date()
+    acts = read_actions(reader, archive or reader.archive, since, until)
+    if acts.empty:
+        raise RuntimeError("no corporate actions read from R2")
+    ex = pd.to_datetime(acts["ex_date"], errors="coerce")
+    # A week past the last session: an ex-date on the next one is known before it.
+    acts = acts[(ex >= pd.Timestamp(since)) & (ex <= pd.Timestamp(until) + pd.Timedelta(days=7))]
+    return refreshed(actions, keep_actions(acts, set(closes.columns) | set(needed(notes))))
+
+
+def tally(actions: pd.DataFrame) -> str:
+    if not len(actions):
+        return "none"
+    counts = actions["kind"].value_counts()
+    fv = pd.to_numeric(actions["face_value"], errors="coerce")
+    priced = int(((actions["kind"] == "rights") & (fv > 0)).sum())
+    return ", ".join(f"{k} {int(v)}" for k, v in counts.items()) + f" (rights with a face value: {priced})"
+
+
+def refresh(directory: Path = npx.DIR) -> int:
+    data = npx.load(directory)
+    if data is None:
+        print("nothing committed; run --build first")
+        return 1
+    try:
+        acts = refresh_actions(data["closes"], data["actions"], data["notes"])
+    except Exception as exc:  # noqa: BLE001  no credentials, no network: keep the file
+        print(f"corporate actions not re-read ({type(exc).__name__}: {exc}); committed file kept")
+        return 1
+    print(f"actions before: {tally(data['actions'])}")
+    print(f"actions after:  {tally(acts)}")
+    acts.to_parquet(Path(directory) / "actions.parquet", compression="zstd")
+    return 0
 
 
 def write(closes: pd.DataFrame, actions: pd.DataFrame, directory: Path = npx.DIR) -> None:
@@ -108,7 +208,7 @@ def update(pause: float, source: str = "r2") -> int:
                   | {d for d in special(notes) if d > last})
     if not days:
         print(f"up to date ({last})")
-        return 0
+        return refresh() if source == "r2" else 0
     if source == "r2":
         # The collector keeps every session on R2 (nse_collect.yml); read them there.
         try:
@@ -133,6 +233,8 @@ def update(pause: float, source: str = "r2") -> int:
     merged, acts, added = merge_sessions(closes, actions, prices, new_actions, notes)
     write(merged, acts)
     print(f"appended {added} sessions; file now ends {merged.index[-1]:%Y-%m-%d}")
+    if source == "r2":
+        refresh()                          # a failure keeps the actions just written
     return 0
 
 
@@ -214,7 +316,10 @@ def main() -> int:
                       help="read the last sessions back from R2 and compare with the file")
     mode.add_argument("--rehearse-append", action="store_true",
                       help="cut the last committed sessions, re-append them from R2, compare; writes nothing")
-    mode.add_argument("--update", action="store_true", help="append the sessions since the last one on file")
+    mode.add_argument("--update", action="store_true",
+                      help="append the sessions since the last one on file, then re-read the actions")
+    mode.add_argument("--refresh-actions", action="store_true",
+                      help="re-read every corporate action in the file's span from R2")
     ap.add_argument("--cache", default="data_cache/nse_bundles")
     ap.add_argument("--since", default="2024-09-30")
     ap.add_argument("--until", default=None)
@@ -226,6 +331,8 @@ def main() -> int:
         return verify_r2()
     if args.rehearse_append:
         return rehearse_append()
+    if args.refresh_actions:
+        return refresh()
     if args.build:
         until = date.fromisoformat(args.until) if args.until else date.today()
         return build(Path(args.cache), date.fromisoformat(args.since), until)
