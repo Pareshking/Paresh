@@ -204,6 +204,10 @@ def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float,
 
     with st.expander("Backtest settings", icon=":material/tune:"):
         with st.form("bt_settings", border=False):
+            # Research of 12 Oct 2026 (scripts/research_regime_sweep.py): ahead of the
+            # live settings on all five indexes tested. A note only; defaults unchanged.
+            st.caption("Recommendation: 30 holdings · keep while in the top 90 · 200D EMA · "
+                       "within 20% of the 52W high · live lookback weights")
             choice: dict = {}
             if bounds is not None:
                 st.markdown("**Window**")
