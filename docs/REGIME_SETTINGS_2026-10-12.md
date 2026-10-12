@@ -215,6 +215,35 @@ A year and max drawdown, live → live weights with 30 / 3× / 200D:
    unchanged. The way to get evidence a backtest cannot give is to record the
    recommendation forward beside the live system (TODO 6).
 
+## Past the edge of the grid (12 Oct, later)
+
+The Recommendation sat at the grid's largest holdings (30), keep (3×) and EMA
+(200), so the best values might lie beyond. `run --grid edge`: live weights,
+within 20% of the 52W high, Sharpe score, and 30 / 40 / 50 holdings × keep 3× / 4×
+× 200 / 250 / 300D EMA, on all five lists. Sharpe minus live, same days:
+
+| Settings | Nifty 500 | Nifty 100 | Midcap 150 | Smallcap 250 | Total Market |
+|---|---|---|---|---|---|
+| **30, 3×, 200D (Recommendation)** | +0.20 | +0.15 | +0.15 | +0.10 | +0.16 |
+| 30, 3×, 250D | +0.19 | +0.19 | +0.11 | +0.11 | +0.15 |
+| 30, 3×, 300D | +0.19 | +0.15 | +0.10 | +0.11 | +0.15 |
+| 30, 4×, 200D | +0.32 | +0.15 | +0.12 | +0.03 | +0.19 |
+| 30, 4×, 250D | +0.35 | +0.20 | +0.08 | +0.01 | +0.17 |
+| 40, 3×, 200D | +0.25 | +0.04 | +0.09 | +0.01 | +0.19 |
+| 40, 4×, 200D | +0.30 | +0.04 | +0.06 | −0.06 | +0.17 |
+| 50, 3×, 200D | +0.26 | −0.05 | +0.03 | +0.02 | +0.16 |
+| 50, 4×, 200D | +0.22 | −0.05 | +0.03 | −0.03 | +0.24 |
+
+- **No setting past the edge beats the Recommendation on every list.** Keeping
+  4× or holding 40-50 adds on the Nifty 500 and Total Market and gives it back on
+  the Midcap 150 and Smallcap 250 (and, at 40-50 names, on the Nifty 100, where
+  that is half the list).
+- **A slower EMA changes little:** at 30 holdings and 3×, 250D and 300D are within 0.05 of 200D on
+  every list.
+- **So the Recommendation, and the shadow record built on it, stay as they are.**
+  The Nifty 500's best (30, 4×, 250D: +0.35) is the kind of in-sample peak the
+  five-list check exists to catch.
+
 ## Not tested
 
 - Switching costs: the walk-forward chains each pick's own returns, so it ignores
@@ -222,8 +251,6 @@ A year and max drawdown, live → live weights with 30 / 3× / 200D:
   picking by condition, which still did not win.
 - Rebalance interval, weighting (equal only), stock and industry caps, cost
   levels other than 30 bps, the all-time-high rule, separate keep rules.
-- Holdings above 30 and an EMA above 200: the recommendation sits at the edge of
-  the grid on both, so the best value may lie beyond it.
 - Other condition definitions (other averages, thresholds or windows). The three
   used are the header's regime and two common ones, fixed before the run.
 - The live system's record runs on the Nifty 750 with its own membership and
