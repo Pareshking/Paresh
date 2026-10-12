@@ -73,7 +73,7 @@ def test_an_out_of_range_mirror_falls_through_to_the_default(tmp_path):
 
 
 def test_a_bool_setting_does_not_accept_a_float_and_vice_versa(tmp_path):
-    """`cfg_vt` is a checkbox; a stray 0.5 must not become True."""
+    """`cfg_lf` is a toggle; a stray 0.5 must not become True."""
     got = _run({"b": 0.5, "w": True}, tmp_path)
     assert got["B"] == "False", "a float was accepted as a checkbox state"
     assert got["W"] == "0.1", "a bool was accepted as a weight"

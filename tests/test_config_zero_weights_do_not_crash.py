@@ -126,17 +126,16 @@ def test_a_dragged_value_then_reset_then_dragged_again_never_raises():
 
 
 def test_dragging_the_risk_caps_does_not_raise():
-    """These bind the book, so a crash here is worse than a cosmetic one."""
+    """These bind the backtest, so a crash here is worse than a cosmetic one."""
     at = _run({"nav_section": "Portfolio Risk"})
     at.slider(key="cfg_sc").set_value(45).run()
     at.slider(key="cfg_stc").set_value(12).run()
-    at.toggle(key="cfg_vt").set_value(True).run()
-    at.slider(key="cfg_vtv").set_value(35).run()
+    at.toggle(key="cfg_lf").set_value(True).run()
     assert not at.exception, [e.value[:200] for e in at.exception]
     shown = {s.label: s.value for s in at.slider}
     assert shown["Most in one sector (%)"] == 45
     assert shown["Most in one stock (%)"] == 12
-    assert shown["Target yearly volatility (%)"] == 35
+    assert "Target yearly volatility (%)" not in shown  # removed, owner 12 Oct 2026
 
 
 def test_a_dragged_weight_survives_navigation_and_eviction():

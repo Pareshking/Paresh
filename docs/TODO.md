@@ -148,9 +148,14 @@ In order:
    Then S58 and S60, which depend on it.
 2. **Bug: Kite basket sized on Rs 10 lakh** while Portfolio uses Rs 20 lakh
    (`actions_view.py` ~292 reads a capital nothing sets): use the Portfolio
-   capital; add a test.
+   capital; add a test. [x] 12 Oct, branch `fix/settings-say-what-they-do`:
+   a capital box on Actions starting at Portfolio's Rs 20 lakh (owner's choice,
+   12 Oct), `MODEL_BOOK_CAPITAL` in `src/core/config.py`;
+   `tests/test_settings_say_what_they_do.py`.
 3. **Bug: Volatility targeting changes nothing** (`config_view.py` ~402 - 406;
    `portfolio_view` ~493 discards it): remove the control (owner's choice).
+   [x] 12 Oct, same branch: removed; Configuration says its caps and floor act
+   on the Backtest only; Portfolio no longer takes them as arguments.
 4. **S59 UI audit, the 15 PRs** in the audit's order (Actions text pass
    first). Each: full tests, `scripts/headless_smoke.py`, a local look;
    `scripts/portfolio_production_qa.py` changes in the same PR as the

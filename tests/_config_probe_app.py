@@ -20,7 +20,7 @@ if "cfg_w1" not in st.session_state:
         {"cfg_w1": 0.10, "cfg_w2": 0.30, "cfg_w3": 0.30, "cfg_w4": 0.20, "cfg_w5": 0.10}
     )
 if "cfg_sc" not in st.session_state:
-    st.session_state.update({"cfg_sc": 30, "cfg_stc": 5, "cfg_vt": False, "cfg_vtv": 25})
+    st.session_state.update({"cfg_sc": 30, "cfg_stc": 5})
 if "cfg_indices" not in st.session_state:
     st.session_state["cfg_indices"] = ["NIFTY TOTAL MARKET"]
 
