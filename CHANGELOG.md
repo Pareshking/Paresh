@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-10-12 — One Nifty 500 figure on Portfolio; the live month counts its fill day
+
+- Portfolio showed the Nifty 500 since inception twice, -8.4% in the top row and -7.6% in the record, for the same months. Both were off by a day. The top row counted from the 31 Dec close, a day before the first book was bought (+0.16%). The record's running month started at the 1 Oct fill close, so 1 Oct itself, earned by the September book (the index fell 0.97% that day), was in neither September nor October until October was frozen. Now the running month runs from the last close of the month before, with the old book to the fill and the new book after it, exactly as the month will be frozen; the top row counts from the first fill. Both rows read the same figure (-8.5% on 12 Oct), and the strategy's month to date includes its fill day too.
+- On the fill day itself the record still says the month "has a new book but no return yet"; the old book's fill-day move shows from the next session.
+- Since inception reads "after costs · since Jan 2026" (each system's own start) instead of "after costs · YTD", which was wrong for Nano Cap and Combined (started Oct 2026) and would be for the 750 from January 2027.
+
+## 2026-10-12 — Backtest names the recommended settings
+
+- Backtest settings open with one line: **Recommendation: 30 holdings · keep while in the top 90 · 200D EMA · within 20% of the 52W high · live lookback weights.** These beat the live settings on all five indexes tested (Nifty 500, 100, Midcap 150, Smallcap 250, Total Market; research of 12 Oct, `scripts/research_regime_sweep.py`). A note only: the page's defaults, the track record and the model book are unchanged (owner).
+
+## 2026-10-12 — The Kite basket is sized on your capital; Configuration says where its limits act
+
+- The Kite basket on Actions sized every buy order on ₹10 lakh, half the model book's ₹20 lakh, since 30 Sep: it read a capital box Portfolio no longer has. The Kite basket button now opens a capital box, starting at Portfolio's ₹20 lakh, so the model book's basket matches Portfolio and your own holdings can be sized on your account. The value is kept while you move between pages.
+- Configuration said its stock and sector caps, volatility target and liquidity floor changed the Portfolio page. They do not: since 30 Sep Portfolio and Actions show the track record's model book on its own limits (5% a stock, 40% a sector, no floor). The section now says the limits act on the Backtest only, and its summary reads "Backtest max per stock · per sector" and "Backtest liquidity floor".
+- Volatility targeting is gone from Configuration (owner): no page used it.
+
+## 2026-10-12 — One word for one thing on every page
+
+- The same thing now has the same name everywhere (owner's choices, 12 Oct): **Max drawdown** (Backtest said "Worst fall"); **Ahead of the index**, in % (Backtest said "Ahead of Nifty 500", the month cards said "pts"); **Nifty 500**, not "NIFTY 500" (header, Portfolio); **52W high** and **50D EMA** in labels, "52-week high" and "50-day EMA" in sentences.
+- Trade tables say what happened: **Bought / Sold / Held** on Portfolio's rebalances, Backtest's rebalance log and this month's changes, and Ranks by month ("Retained" is now "Held"). Plans and filters say **Buy / Sell / Hold**, as Actions does. Before, one book was written five ways (BUY, 🟢 BOUGHT, bought, Retained, kept).
+- Backtest's current book uses Portfolio's column names (Current Price, P&L %, Holding Days, Sector / Industry) and tiles (MTD return); its filters read Month, Outcome, Action and Rebalance, as on Portfolio, not "Filter Month".
+- Dates read 01 Oct 2026 everywhere: no more "1 Oct" on Actions, "Oct-2026" in the trade month, or 2026-10-10 in the History caption and Ranks by month.
+- Links to places that moved: Configuration → "Momentum score" and "Portfolio limits" (were "Momentum Signal", "Portfolio risk"); the Guide's Kite basket is on Actions, not Portfolio; Guide "tabs" are pages; a note pointing to a Provenance section that does not exist is gone. The Backtest help no longer names Screener as a source ("Personal").
+- Wrong statements fixed: the stock page called its Sharpe annualised (it is the window's, as the ranking scores it); the Guide gave the market regime as Nifty above its 50 EMA (the header uses the Nifty 500 against its 200-day average), told bear-market readers to exit on trailing stops (the model has none), and to trade at 09:20 (the model fills at the close). Breadth's events table said "52W High" whatever window was picked. History's growth chart called a Nifty 50 benchmark "Nifty 500".
+- British spelling throughout (realised, initialise, normalised, winsorised).
+
 ## 2026-10-12 — Backtest: the headline figures in one row, a line each
 
 - The six headline figures sit in one row of six, as on Portfolio, instead of two half-empty rows of three whose notes ran to two or three lines. Each note is now one short line: "+3258.0% before costs", "Nifty 500 +10.3%", "±0.25 · Sortino 1.04", "Calmar 0.53", "70% up · turnover 50%". The cost and the window were already in the Tested line; the risk-free rate and how each ratio is made are under Method.

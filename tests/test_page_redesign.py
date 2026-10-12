@@ -48,7 +48,8 @@ def test_month_cards_say_ahead_or_behind_and_mark_backfilled_months():
         "2026-03": {"strategy": -0.122, "benchmark": -0.114, "origin": "recorded"},
     }
     out = track_record_view.month_cards_html(months, pd.Period("2026-04", "M"), 0.022, -0.032)
-    assert "ahead 0.6 pts" in out and "behind 0.8 pts" in out
+    # In %, as every alpha headline is (owner, 12 Oct 2026).
+    assert "ahead 0.6%" in out and "behind 0.8%" in out and " pts" not in out
     assert out.count("backfilled") == 1 and out.count("recorded") == 1
     assert "Apr 2026 · so far" in out
 

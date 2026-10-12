@@ -27,6 +27,7 @@ from src.engine.exit_watch import (
     parse_holdings,
     qualified_ranks,
 )
+from src.core.config import MODEL_BOOK_CAPITAL
 from src.engine.actions import buy_orders, plan_rebalance
 from src.engine.track_record import TRACK_RECORD_CONFIG
 from src.ui import holdings_store
@@ -34,8 +35,18 @@ from src.ui import page_kit as kit
 from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.views.qualified_view import render_qualified_view
 from src.ui.canonical_book import current_book
+from src.ui.widget_state import remember, resolve
 
 SOURCES = ["Model book", "My holdings"]
+
+KITE_CAPITAL_KEY = "ac_kite_capital"
+KITE_MIN_CAPITAL = 10_000
+KITE_MAX_CAPITAL = 1_000_000_000
+
+
+def kite_capital() -> int:
+    """The capital the Kite basket is sized on: the reader's, else Portfolio's ₹20 lakh."""
+    return resolve(KITE_CAPITAL_KEY, int(MODEL_BOOK_CAPITAL), lo=KITE_MIN_CAPITAL, hi=KITE_MAX_CAPITAL)
 
 
 def fill_due_note(as_of: pd.Timestamp, fill: pd.Timestamp, today: pd.Timestamp) -> str:
@@ -66,7 +77,7 @@ def next_rebalance(as_of: pd.Timestamp) -> tuple[pd.Timestamp, pd.Timestamp]:
 
 
 def _day(t: pd.Timestamp, weekday: bool = False) -> str:
-    return (f"{t:%a} " if weekday else "") + f"{t.day} {t:%b}"
+    return (f"{t:%a} " if weekday else "") + f"{t:%d %b}"
 
 
 def _sessions_between(a: pd.Timestamp, b: pd.Timestamp) -> int:
@@ -123,8 +134,8 @@ def rows_html(a: pd.DataFrame, since: dict[str, float], rules: Rules) -> str:
             f'<span class="xw-ret {ret_cls}">{ret_txt}</span></div>'
         )
     head = ('<div class="xw-row xw-head"><span>Holding</span><span>At the next rebalance</span>'
-            f"<span>Rank buffer (top {rules.buffer_n} qualified)</span><span>50-day EMA</span>"
-            f"<span>−{(1 - rules.high_pct):.0%} from 52-week high</span><span>Closest to</span>"
+            f"<span>Rank buffer (top {rules.buffer_n} qualified)</span><span>50D EMA</span>"
+            f"<span>−{(1 - rules.high_pct):.0%} from 52W high</span><span>Closest to</span>"
             '<span class="xw-ret">Since entry</span></div>')
     return f'<div class="xw" role="table" aria-label="Exit watch">{head}{"".join(out)}</div>'
 
@@ -289,17 +300,26 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
             kit.note(f"{n_unknown} of your holdings are not in the ranked universe.",
                      "No rule can be checked for them; they are listed with the holds.")
 
-        capital = float(st.session_state.get("port_total_capital_input", 1_000_000) or 1_000_000)
-        orders = buy_orders(plan, rank_df, capital)
-        with head:
+        # The basket used to read a Portfolio capital input removed on 30 Sep, so
+        # it sized every basket on ₹10 lakh against Portfolio's ₹20 lakh. Now the
+        # reader sets it here, starting at Portfolio's (owner, 12 Oct 2026).
+        with head, st.popover("Kite basket", icon=":material/download:", type="primary"):
+            capital = float(st.number_input(
+                "Capital (₹)", min_value=KITE_MIN_CAPITAL, max_value=KITE_MAX_CAPITAL,
+                step=100_000, value=kite_capital(), key=KITE_CAPITAL_KEY,
+                help=f"₹{MODEL_BOOK_CAPITAL:,.0f} is the model book on Portfolio. "
+                     "For your own holdings, enter your account's size.",
+            ))
+            remember(KITE_CAPITAL_KEY, int(capital))
+            orders = buy_orders(plan, rank_df, capital)
             st.download_button(
-                "Kite basket", orders.to_csv(index=False).encode(),
+                "Download basket CSV", orders.to_csv(index=False).encode(),
                 f"kite_actions_{ist_now():%Y%m%d}.csv", "text/csv", type="primary",
                 key="dl_actions_basket", icon=":material/download:", disabled=orders.empty,
-                help=(f"Buy orders only, sized at each buy's target weight of ₹{capital:,.0f} "
-                      "(the capital on the Portfolio page). Sells are not in the basket: the app "
-                      "does not know how many shares you hold, so sell each in full yourself."),
             )
+            kit.caption(f"Buy orders only, each at its target weight of ₹{capital:,.0f}. Sells "
+                        "are not in the basket: the app does not know how many shares you "
+                        "hold, so sell each in full yourself.")
 
         with kit.card(f"Sell {len(plan.sells)}", "ac_sell"):
             if plan.sells:

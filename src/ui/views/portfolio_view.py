@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from src.core.config import MODEL_BOOK_CAPITAL
 from src.core.market_time import ist_now
 from src.engine.extra_universe import SYSTEM_750
 from src.engine.systems import inception, ledger_path
@@ -24,7 +25,7 @@ from src.ui.theme import render_saas_table
 from src.ui.views.qualified_view import correlation, correlation_note
 from src.ui.views.track_record_view import render_record_sections
 
-PORTFOLIO_STARTING_CAPITAL = 2_000_000.0
+PORTFOLIO_STARTING_CAPITAL = MODEL_BOOK_CAPITAL
 
 
 def live_month_state(live_period: str | None, today: pd.Timestamp | None = None) -> str:
@@ -103,20 +104,28 @@ def _benchmark_returns_from_daily(
         return np.nan, np.nan, np.nan
 
     day = float(s.iloc[-1] / s.iloc[-2] - 1.0)
-    month_start = pd.Timestamp(as_of).normalize().replace(day=1)
-    prior_month = s.loc[s.index < month_start]
-    mtd_base = float(prior_month.iloc[-1]) if not prior_month.empty else np.nan
-    mtd = float(s.iloc[-1] / mtd_base - 1.0) if np.isfinite(mtd_base) and mtd_base > 0 else np.nan
-
     if isinstance(inception_date, pd.Period):
         inception_ts = inception_date.start_time.normalize()
     else:
         inception_ts = pd.Timestamp(inception_date).normalize()
-    base = s.loc[s.index < inception_ts]
-    if base.empty:
-        base = s.loc[s.index <= inception_ts]
-    inception_base = float(base.iloc[-1]) if not base.empty else float(s.iloc[0])
+    # From the close of the first fill -- the first session of the inception
+    # month, when the first book was bought -- as the record counts. The last
+    # close before it (31 Dec for a January start) added a day the strategy
+    # was not invested: +0.16% on 12 Oct 2026, so -8.4% here beside the
+    # record's -7.6% (owner, 12 Oct 2026).
+    from_fill = s.loc[s.index >= inception_ts]
+    inception_base = float(from_fill.iloc[0]) if not from_fill.empty else float(s.iloc[0])
     total = float(s.iloc[-1] / inception_base - 1.0) if inception_base > 0 else np.nan
+
+    # Month to date from the previous month's last close, as the record's live
+    # month now is; in the inception month, from the first fill.
+    month_start = pd.Timestamp(as_of).normalize().replace(day=1)
+    prior_month = s.loc[s.index < month_start]
+    if month_start <= inception_ts or prior_month.empty:
+        mtd_base = inception_base
+    else:
+        mtd_base = float(prior_month.iloc[-1])
+    mtd = float(s.iloc[-1] / mtd_base - 1.0) if np.isfinite(mtd_base) and mtd_base > 0 else np.nan
     return day, mtd, total
 
 
@@ -479,19 +488,12 @@ def _daily_with_live(history: dict, table: pd.DataFrame, prices: pd.DataFrame | 
     return eq[~eq.index.duplicated()], bm[~bm.index.duplicated()]
 
 
-def render_portfolio_view(
-    calc,
-    rank_df: pd.DataFrame,
-    sector_cap: float,
-    stock_cap: float,
-    vol_target_on: bool,
-    vol_target_val: float,
-    liquidity_floor_cr: float = 0.0,
-    traded_value: pd.DataFrame | None = None,
-) -> None:
-    """Render the canonical ₹20 lakh model portfolio as a portfolio dashboard."""
-    del sector_cap, stock_cap, vol_target_on, vol_target_val, liquidity_floor_cr, traded_value
+def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
+    """Render the canonical ₹20 lakh model portfolio as a portfolio dashboard.
 
+    It takes no Configuration limits: the book is the track record's, run on
+    its pinned settings (TRACK_RECORD_CONFIG), whatever the sliders say.
+    """
     capital = PORTFOLIO_STARTING_CAPITAL
     system = system_param.current() or SYSTEM_750
     prices = getattr(calc, "prices", pd.DataFrame())
@@ -584,7 +586,7 @@ def render_portfolio_view(
         kit.Reading(
             "Since inception",
             kit.pct(history["strategy_total_return"]),
-            f"NIFTY 500 {kit.pct(benchmark_total_daily)}",
+            f"Nifty 500 {kit.pct(benchmark_total_daily)}",
             "up" if history["strategy_total_return"] >= 0 else "down",
         ),
         kit.Reading(
@@ -596,14 +598,14 @@ def render_portfolio_view(
         kit.Reading(
             "Day P&L",
             "—" if not np.isfinite(day_pnl_pct) else f"{day_pnl_pct:+.1f}%",
-            f"NIFTY 500 {kit.pct(benchmark_day_pct)}",
+            f"Nifty 500 {kit.pct(benchmark_day_pct)}",
             "up" if day_pnl_pct >= 0 else "down",
         ),
         kit.Reading("Cash / realised balance", f"₹{cash:,.0f}"),
         kit.Reading(
             "MTD return",
             kit.pct(strategy_mtd),
-            f"NIFTY 500 {kit.pct(benchmark_mtd)}",
+            f"Nifty 500 {kit.pct(benchmark_mtd)}",
             "up" if strategy_mtd >= 0 else "down",
         ),
     ], "Portfolio snapshot")

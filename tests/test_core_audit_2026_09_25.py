@@ -17,7 +17,8 @@ def test_risk_defaults_come_from_config():
     risk = config_view._RISK_SETTINGS
     assert risk["cfg_sc"][0] == round(config.DEFAULT_SECTOR_CAP * 100)
     assert risk["cfg_stc"][0] == round(config.DEFAULT_STOCK_CAP * 100)
-    assert risk["cfg_vtv"][0] == round(config.DEFAULT_TARGET_VOL * 100)
+    # Volatility targeting was removed (owner, 12 Oct 2026): no page used it.
+    assert "cfg_vt" not in risk and "cfg_vtv" not in risk
 
 
 def test_engine_memo_is_keyed_on_the_applied_corporate_actions():

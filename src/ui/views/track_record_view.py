@@ -139,13 +139,21 @@ def _tone(v: float | None) -> str:
     return "up" if v > 0 else "down" if v < 0 else ""
 
 
+def _day(v) -> str:
+    """A date as the rest of the site writes it (01 Oct 2026); a dash when absent."""
+    try:
+        return f"{pd.Timestamp(v):%d %b %Y}" if v else "—"
+    except (TypeError, ValueError):
+        return str(v)
+
+
 def month_cards_html(months: dict, mtd_period, mtd_val, mtd_bench) -> str:
     """One card per month: its return, the index's, and ahead or behind."""
     cards = []
     for key, e in sorted(months.items()):
         s, b = e.get("strategy"), e.get("benchmark")
         gap = "" if s is None or b is None else (
-            f" · {'ahead' if s >= b else 'behind'} {abs(s - b) * 100:.1f} pts")
+            f" · {'ahead' if s >= b else 'behind'} {abs(s - b) * 100:.1f}%")
         tag = "recorded" if e.get("origin") == "recorded" else "backfilled"
         cards.append(
             f'<div class="mo {_tone(s)}"><span class="mo-h">{pd.Period(key, freq="M").strftime("%b %Y")}'
@@ -198,10 +206,10 @@ def _render_rank_months(books: dict) -> None:
     with kit.card(
         f"Ranks by month · {pd.Period(month, freq='M').strftime('%B %Y')}",
         "tr_ranks",
-        f"{a.get('start')} → {a.get('end')} · {end_word}",
+        f"{_day(a.get('start'))} → {_day(a.get('end'))} · {end_word}",
     ):
         show = df.copy()
-        for col in ("Above EMA start", "Above EMA end", "In index end"):
+        for col in ("Above 50D EMA start", "Above 50D EMA end", "In index end"):
             if col in show.columns:
                 show[col] = show[col].map({True: "Yes", False: "No"}).fillna("—")
 
@@ -210,8 +218,8 @@ def _render_rank_months(books: dict) -> None:
         # of the Portfolio page.
         preferred = [
             "Symbol", "Rank at start", "Rank at end", "Weight %",
-            "% of 52w high start", "% of 52w high end",
-            "Above EMA start", "Above EMA end", "In index end",
+            "% of 52W high start", "% of 52W high end",
+            "Above 50D EMA start", "Above 50D EMA end", "In index end",
         ]
         cols = [c for c in preferred if c in show.columns]
         rest = [c for c in show.columns if c not in cols]
@@ -276,7 +284,7 @@ def render_record_sections(
             f"{_fill:%B %Y} has a new book but no return yet.",
             f"It was signalled on {pd.Timestamp(lm['signal_date']):%d %b} and bought at the "
             f"{_fill:%d %b} close ({lm.get('n_bought', 0)} bought, {lm.get('n_sold', 0)} sold, "
-            f"{lm.get('n_held', 0)} kept). Month-to-date starts accruing the next session. "
+            f"{lm.get('n_held', 0)} held). Month-to-date starts accruing the next session. "
             "See Ranks by month for the book and its ranks.",
         )
 
@@ -284,8 +292,11 @@ def render_record_sections(
     beat = stats["beat_rate"]
     n_beat = None if beat is None else round(beat * stats["months"])
     kit.readings([
+        # The system's own start, not "YTD" (owner, 12 Oct 2026): Nano Cap and
+        # Combined start in Oct 2026, and from Jan 2027 the 750's record is no
+        # longer one calendar year.
         kit.Reading("Since inception", _pct(stats["total_return"]),
-                    "after costs · YTD",
+                    f"after costs · since {start.strftime('%b %Y')}",
                     _tone(stats["total_return"])),
         kit.Reading("Nifty 500", _pct(stats["bench_return"]), "price index", _tone(stats["bench_return"])),
         kit.Reading("Ahead of the index", _pct(stats["alpha"]),
@@ -325,7 +336,7 @@ def render_record_sections(
     if len(stats.get("configs", [])) > 1:
         kit.note("More than one strategy configuration.",
                  f"({', '.join(stats['configs'])}) Months under different settings are not one "
-                 "continuous series; Provenance shows where it changes.")
+                 "continuous series.")
 
     _render_rank_months(
         (record_run(adj_close, benchmark_close, system).get("month_books") or {})

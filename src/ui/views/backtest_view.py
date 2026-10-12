@@ -49,6 +49,14 @@ def _pct_or_dash(value) -> str:
     return "—" if value is None or pd.isna(value) else f"{float(value):+.1%}"
 
 
+def _day(value) -> str:
+    """A date as the rest of the site writes it (01 Oct 2026); a dash when absent."""
+    try:
+        return f"{pd.Timestamp(value):%d %b %Y}" if value else "—"
+    except (TypeError, ValueError):
+        return str(value)
+
+
 @st.fragment
 def _tone(v) -> str:
     if v is None or pd.isna(v):
@@ -196,6 +204,10 @@ def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float,
 
     with st.expander("Backtest settings", icon=":material/tune:"):
         with st.form("bt_settings", border=False):
+            # Research of 12 Oct 2026 (scripts/research_regime_sweep.py): ahead of the
+            # live settings on all five indexes tested. A note only; defaults unchanged.
+            st.caption("Recommendation: 30 holdings · keep while in the top 90 · 200D EMA · "
+                       "within 20% of the 52W high · live lookback weights")
             choice: dict = {}
             if bounds is not None:
                 st.markdown("**Window**")
@@ -257,7 +269,7 @@ def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float,
                 "Within this % of its all-time high (blank = no rule)", min_value=0.5,
                 max_value=95.0, value=None, step=0.5, key="bt_ath_off", placeholder="no rule",
                 help="All-time high = the highest close on file up to each signal date: since "
-                     "2008 on History, since the Screener history begins on Live.")
+                     "2008 on History, since the Personal price history begins on Live.")
             exit_ath = k_col.number_input(
                 "Within this % of its all-time high ", min_value=0.5, max_value=95.0, value=None,
                 step=0.5, key="bt_exit_ath", placeholder="same as buy")
@@ -382,7 +394,7 @@ def _backtest_tab(
         kit.caption(
             f"{history['name']}, point in time · Prices: NSE closes, adjusted for splits, bonuses "
             "and demergers, and for rights issues of index stocks; no dividends · file built "
-            f"{history.get('built') or '—'}, last session {history.get('last_session') or '—'}."
+            f"{_day(history.get('built'))}, last session {_day(history.get('last_session'))}."
         )
     elif _nse is not None:
         adj_close, _events = _nse, []
@@ -530,13 +542,13 @@ def _backtest_tab(
         f"<span>Weighting <b>{html.escape(bt_weight.lower())}</b></span>"
         f"<span>Costs <b>{cost_drag_bps:.0f} bps</b></span>"
         f"<span>Keep while in top <b>{keep_rank}</b></span>"
-        f"<span>Buy above <b>{ema_period} EMA</b></span>"
+        f"<span>Buy above <b>{ema_period}D EMA</b></span>"
         f"<span>Buy within <b>{(1 - high_pct):.1%}</b> of 52W high</span>"
         + (f"<span>Buy within <b>{(1 - ath_pct):.1%}</b> of ATH</span>" if ath_pct is not None else "")
         + (f"<span>ATH since <b>{pd.Timestamp(adj_close.index[0]):%b %Y}</b>, applied from "
            f"<b>{ath_min_years:g} yrs</b> on file</span>"
            if (ath_pct is not None or exit_rules["exit_ath_pct"] is not None) and len(adj_close) else "")
-        + (f"<span>Keep above <b>{exit_rules['exit_ema_period']} EMA</b></span>"
+        + (f"<span>Keep above <b>{exit_rules['exit_ema_period']}D EMA</b></span>"
            if exit_rules["exit_ema_period"] is not None else "")
         + (f"<span>Keep within <b>{(1 - exit_rules['exit_high_pct']):.1%}</b> of 52W high</span>"
            if exit_rules["exit_high_pct"] is not None else "")
@@ -553,7 +565,7 @@ def _backtest_tab(
         kit.note(
             f"The caps left up to {_cash:.1%} of the book in cash.",
             "Caps are never raised, so weight they cannot place is held as cash at 0%. "
-            "Hold more names, or loosen the stock cap in Configuration → Portfolio risk.",
+            "Hold more names, or loosen the stock cap in Configuration → Portfolio limits.",
         )
 
     # Equal weight is that one book already, so the note is only news for
@@ -562,7 +574,7 @@ def _backtest_tab(
         kit.note(
             f"{bt_weight} made no difference to this run.",
             f"A {stock_cap:.0%} stock cap across {bt_n} holdings leaves {1 / max(bt_n, 1):.1%} "
-            "in every name. Raise the cap in Configuration → Portfolio risk, or hold fewer names.",
+            "in every name. Raise the cap in Configuration → Portfolio limits, or hold fewer names.",
         )
 
     # ── Survivorship coverage ────────────────────────────────────────────────
@@ -618,11 +630,11 @@ def _backtest_tab(
         kit.Reading("Annualised", f"{stats['ann_return']:+.1%}",
                     f"{bench_name} {stats['ann_bench']:+.1%}" if _yrs >= 1
                     else f"scaled up from {_yrs:.1f} yrs", _tone(stats["ann_return"])),
-        kit.Reading(f"Ahead of {bench_name}", f"{stats['alpha']:+.1%}",
+        kit.Reading("Ahead of the index", f"{stats['alpha']:+.1%}",
                     f"{bench_name} {stats['bench_return']:+.1%}", _tone(stats["alpha"])),
         kit.Reading("Sharpe", f"{stats['sharpe']:.2f}",
                     (f"{sharpe_se_txt.strip()} · " if sharpe_se_txt else "") + f"Sortino {sortino_txt}"),
-        kit.Reading("Worst fall", f"{stats['max_drawdown']:.1%}",
+        kit.Reading("Max drawdown", f"{stats['max_drawdown']:.1%}",
                     f"Calmar {stats['calmar']:.2f}" if _yrs >= 1 else "peak to trough",
                     "down" if stats["max_drawdown"] < 0 else ""),
         kit.Reading("Months ahead of index", f"{stats.get('beat_rate', 0):.0%}",
@@ -634,7 +646,7 @@ def _backtest_tab(
     bm = bt_res["benchmark"].reindex(eq.index).ffill() if bt_res.get("benchmark") is not None else None
     with kit.card("Growth of ₹100", "bt_growth", "daily"):
         kit.growth_chart(eq.index, eq.tolist(),
-                         None if bm is None else bm.tolist(), key="bt")
+                         None if bm is None else bm.tolist(), names=("Strategy", bench_name), key="bt")
 
     # Year-separated calendar returns. This changes presentation only; the
     # canonical grid still supplies every monthly and compounded return.
@@ -771,6 +783,13 @@ def _backtest_tab(
                               "Rank at Rebalance", "Industry"]
                     lb = lb[[c for c in _order if c in lb.columns]
                             + [c for c in lb.columns if c not in _order]]
+                    # Portfolio's names for the same book (owner, 12 Oct 2026). Its
+                    # "P&L %" is in percent units, this frame's "Return %" a fraction.
+                    if "Return %" in lb.columns:
+                        lb["Return %"] = pd.to_numeric(lb["Return %"], errors="coerce") * 100
+                    lb = lb.rename(columns={"Price Now": "Current Price", "Return %": "P&L %",
+                                            "Holding (Days)": "Holding Days",
+                                            "Industry": "Sector / Industry"})
                     n_up = int((live_book["Return %"] > 0).sum())
                     n_dn = int((live_book["Return %"] < 0).sum())
                     avg_r = float(live_book["Return %"].mean(skipna=True) * 100)
@@ -790,14 +809,14 @@ def _backtest_tab(
                     kit.readings([
                         kit.Reading("Holdings", f"{len(live_book)}", f"{n_new} added this month"),
                         kit.Reading(
-                            "Book this month",
+                            "MTD return",
                             "—" if book_mtd != book_mtd else f"{book_mtd:+.1f}%",
-                            "month to date, by weight",
+                            "by weight",
                             "" if book_mtd != book_mtd else ("up" if book_mtd >= 0 else "down"),
                         ),
                         kit.Reading("In profit", f"{n_up}", "marked at the latest close", "up" if n_up else ""),
                         kit.Reading("In loss", f"{n_dn}", "", "down" if n_dn else ""),
-                        kit.Reading("Average unrealised", f"{avg_r:+.1f}%", "", "up" if avg_r >= 0 else "down"),
+                        kit.Reading("Average P&L", f"{avg_r:+.1f}%", "per holding", "up" if avg_r >= 0 else "down"),
                     ], "Current book")
                     render_saas_table(lb)
                     st.download_button(
@@ -817,18 +836,20 @@ def _backtest_tab(
                 else:
                     ch = _fmt_dates(changes)
                     act_filter = st.pills(
-                        "Filter Action",
-                        ["All", "🟢 BOUGHT", "🔴 SOLD", "⚪ HELD"],
+                        "Action",
+                        ["All", "Buy", "Sell", "Hold"],
                         default="All",
                         key="bt_changes_action_filter",
+                        label_visibility="collapsed",
                     )
-                    if act_filter and act_filter != "All":
-                        ch = ch[ch["Action"] == act_filter]
+                    _codes = {"Buy": "🟢 BOUGHT", "Sell": "🔴 SOLD", "Hold": "⚪ HELD"}
+                    if act_filter in _codes:
+                        ch = ch[ch["Action"] == _codes[act_filter]]
                     st.caption(
                         "What the "
                         + (f"{_fill:%d %b %Y} " if _fill is not None else "")
-                        + "rebalance did. **Return %** on a SOLD row is the "
-                        "realised round trip; on a BOUGHT or HELD row it is "
+                        + "rebalance did. **Return %** on a Sold row is the "
+                        "realised round trip; on a Bought or Held row it is "
                         "unrealised, marked at the latest close."
                     )
                     _not_in = (changes[changes["Reason"].astype(str).str.startswith("Not in the index")]
@@ -845,7 +866,7 @@ def _backtest_tab(
                             f"index on the {_sig:%d %b %Y} signal date: "
                             f"{', '.join(_not_in['Symbol'].astype(str))}.",
                             (f"{', '.join(_early['Symbol'].astype(str))} entered the book before "
-                             f"the index record begins ({_since}), when the backtest scored on "
+                             f"the index record begins ({_day(_since)}), when the backtest scored on "
                              "today's constituent list, so they were picked with hindsight. "
                              "This is the first rebalance scored on the index as it stood, and "
                              "it sells them."
@@ -907,7 +928,7 @@ def _backtest_tab(
                         key="dl_bt_monthly_csv",
                     )
                 else:
-                    st.info("No monthly period records available.")
+                    st.info("No months in this window.")
 
             elif sub_view == "Every trade":
                 if not closed_trades.empty:
@@ -960,14 +981,15 @@ def _backtest_tab(
                         m for m in ct_df["Month"].unique() if m
                     ]
                     sel_m = tf1.selectbox(
-                        "Filter Month", all_months, index=0, key="bt_ct_month_filter"
+                        "Month", all_months, index=0, key="bt_ct_month_filter"
                     )
 
                     tr_filter = tf2.pills(
-                        "Filter Outcome",
+                        "Outcome",
                         ["All", "Winners", "Losers", "Open"],
                         default="All",
                         key="bt_ct_outcome_filter",
+                        label_visibility="collapsed",
                     )
 
                     if sel_m != "All months":
@@ -997,12 +1019,12 @@ def _backtest_tab(
                     c_dl.download_button(
                         "Export trades CSV",
                         closed_trades[active_ct_cols].to_csv(index=False).encode(),
-                        f"realized_trades_{ist_now():%Y%m%d}.csv",
+                        f"realised_trades_{ist_now():%Y%m%d}.csv",
                         "text/csv",
                         key="dl_bt_realized_trades_csv",
                     )
                 else:
-                    st.info("No realized trades logged for this backtest window.")
+                    st.info("No trades in this window.")
 
             else:
                 # ── Rebalance Log View ───────────────────────────────────────────
@@ -1012,17 +1034,18 @@ def _backtest_tab(
                         p for p in tradebook["Period"].unique() if p
                     ]
                     selected_period = t1.selectbox(
-                        "Filter Rebalance Period",
+                        "Rebalance",
                         all_periods,
                         index=0,
                         key="bt_tb_period_filter",
                     )
 
                     action_filter = t2.pills(
-                        "Filter Action",
+                        "Action",
                         ["All", "Buy", "Sell", "Hold"],
                         default="All",
                         key="bt_tb_action_filter",
+                        label_visibility="collapsed",
                     )
 
                     tb_view = tradebook.copy()
@@ -1057,9 +1080,7 @@ def _backtest_tab(
                         key="dl_bt_tradebook_csv",
                     )
                 else:
-                    st.info(
-                        "No tradebook records available for this backtest configuration."
-                    )
+                    st.info("No rebalances in this window.")
 
     if view == "Method":
       with kit.card("Method", "bt_method", "how every figure on this page is made"):
@@ -1068,7 +1089,7 @@ def _backtest_tab(
             "Positions are filled at the $T+1$ close, so the first session they earn anything in is $T+2$ — the $T \\rightarrow T+1$ move "
             "happens before the book exists and is not credited to it.\n\n"
             "**Fill-to-fill accounting**: every period runs from one fill to the next, which is why a period's end date is the following "
-            "period's start date. Each stock's realized return is exactly its exit fill divided by its entry fill, and the per-period "
+            "period's start date. Each stock's realised return is exactly its exit fill divided by its entry fill, and the per-period "
             "strategy return is those same fills weighted — the tradebook and the equity curve are one calculation, not two.\n\n"
             f"**Transaction Cost Drag**: Deducts **{cost_drag_bps:.0f} bps** per unit of turnover (reflecting STT, Exchange fees, GST, Stamp duty, and slippage).\n\n"
             f"**Rank Persistence Buffer**: Top **{keep_rank}** buffer zone prevents unnecessary trading when stocks oscillate around the rank threshold.\n\n"
@@ -1076,7 +1097,7 @@ def _backtest_tab(
             "annualised volatility, ± one standard error; Sortino divides the same excess by the downside "
             "deviation below that rate. Annualised "
             "compounds the total return to a 252-session year; over less than a year it scales a part-year up, so "
-            "it is not an observed annual return. Calmar is the annualised return over the worst fall from a peak, "
+            "it is not an observed annual return. Calmar is the annualised return over the max drawdown (the largest fall from a peak), "
             "shown for a year or more. Turnover is the average per rebalance."
         )
 

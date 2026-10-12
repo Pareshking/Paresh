@@ -327,7 +327,7 @@ def render_header_kpi_bar(
             <span class="{regime_cls} mkt-regime"><span class="mkt-dot">●</span>{html.escape(regime.status.value.title())}</span>
         </div>
         <div class="mkt-item mkt-index">
-            <span class="mkt-label">NIFTY 500</span>
+            <span class="mkt-label">Nifty 500</span>
             <strong>{regime.current_price:,.0f}</strong>
         </div>
         <div class="mkt-item mkt-distance">
@@ -342,7 +342,7 @@ def render_header_kpi_bar(
             <span class="mkt-label">Above 50D EMA</span>
             <strong>{above_ema} <em>({pct_above_ema:.0f}%)</em></strong>
         </div>
-        {"" if near_high is None else f'<div class="mkt-item"><span class="mkt-label">Within 20% 52W High</span><strong>{near_high} <em>({near_high / total_stocks * 100 if total_stocks else 0:.0f}%)</em></strong></div>'}
+        {"" if near_high is None else f'<div class="mkt-item"><span class="mkt-label">Within 20% of 52W high</span><strong>{near_high} <em>({near_high / total_stocks * 100 if total_stocks else 0:.0f}%)</em></strong></div>'}
     </div>
     """
 
