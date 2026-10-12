@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-12 — Backtest: the headline figures in one row, a line each
+
+- The six headline figures sit in one row of six, as on Portfolio, instead of two half-empty rows of three whose notes ran to two or three lines. Each note is now one short line: "+3258.0% before costs", "Nifty 500 +10.3%", "±0.25 · Sortino 1.04", "Calmar 0.53", "70% up · turnover 50%". The cost and the window were already in the Tested line; the risk-free rate and how each ratio is made are under Method.
+- "Ahead of Nifty 500" is a percent, as on Track Record: +1972.2% rather than +1972.2 pts. The number is the same, the strategy's total return minus the index's.
+- "Annualised" no longer says "not a CAGR" over 16 years: over a year or more it is one. Under a year it still says it is a part-year scaled up ("scaled up from 0.7 yrs"), and the Calmar, which divides that figure, is left out.
+- "Equal weight made no difference to this run" no longer shows on every equal-weight run: equal weight is the one book the cap allows, so the note is shown only for another scheme.
+- Shorter notes and captions elsewhere on the page (canonical account, current book, calendar returns, cash and survivorship notes); nothing they said is gone.
+
 ## 2026-10-10 — A failed price update shows on the site, and one new stock no longer holds back the night
 
 - The site showed 8 Oct prices all of Saturday 10 Oct with a green status. The night's Screener update had stopped because TRIVENIPT, listed on 9 Oct, has no Screener page yet, so no stock got 9 Oct; and one trading day behind counted as current. Now prices are behind when a session's closes are missing at 09:00 IST the next day (weekends and NSE holidays skipped), and every page says so under the header, phone included: "Prices stop at 08 Oct; 09 Oct's closes were due by 10 Oct, 09:00 IST."

@@ -297,7 +297,7 @@ def test_the_gate_knows_whose_computation_holds_it(monkeypatch):
 
 def test_the_queued_message_is_amber_and_names_whose_run_it_is():
     src = open("src/ui/views/backtest_view.py", encoding="utf-8").read()
-    block = src[src.index("if compute_gate.busy():"):src.index("with st.spinner(\"Running walk-forward")]
+    block = src[src.index("if compute_gate.busy():"):src.index("with st.spinner(\"Running the backtest")]
     assert "queued.warning(" in block and "queued.info(" not in block
     assert "Your previous settings are still computing" in block
     assert "Another reader's backtest is computing" in block

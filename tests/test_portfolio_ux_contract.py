@@ -191,6 +191,13 @@ def test_track_record_copy_uses_percent_alpha_and_ytd():
     assert "A dash means the system had not started yet" not in source
 
 
+def test_backtest_alpha_is_a_percent_like_track_record():
+    # Owner, 12 Oct 2026: the Backtest headline alpha reads as Track Record's does.
+    source = (ROOT / "src/ui/views/backtest_view.py").read_text(encoding="utf-8")
+    assert "f\"{stats['alpha']:+.1%}\"" in source
+    assert " pts\"" not in source
+
+
 def test_production_qa_does_not_wait_for_the_removed_live_month_note():
     # #397 removed "is live month-to-date"; V1 Production QA still required it
     # and failed on ecf5878. A running month is evidenced by the Equity tiles.
