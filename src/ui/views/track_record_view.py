@@ -292,8 +292,11 @@ def render_record_sections(
     beat = stats["beat_rate"]
     n_beat = None if beat is None else round(beat * stats["months"])
     kit.readings([
+        # The system's own start, not "YTD" (owner, 12 Oct 2026): Nano Cap and
+        # Combined start in Oct 2026, and from Jan 2027 the 750's record is no
+        # longer one calendar year.
         kit.Reading("Since inception", _pct(stats["total_return"]),
-                    "after costs · YTD",
+                    f"after costs · since {start.strftime('%b %Y')}",
                     _tone(stats["total_return"])),
         kit.Reading("Nifty 500", _pct(stats["bench_return"]), "price index", _tone(stats["bench_return"])),
         kit.Reading("Ahead of the index", _pct(stats["alpha"]),

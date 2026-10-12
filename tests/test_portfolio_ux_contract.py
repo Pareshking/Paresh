@@ -182,9 +182,12 @@ def test_header_uses_full_navigation_on_desktop_and_menu_on_narrow_viewports():
     assert "padding-right: 60px !important" in theme
 
 
-def test_track_record_copy_uses_percent_alpha_and_ytd():
+def test_track_record_copy_uses_percent_alpha_and_its_own_start():
     source = (ROOT / "src/ui/views/track_record_view.py").read_text(encoding="utf-8")
-    assert '"after costs · YTD"' in source
+    # Owner, 12 Oct 2026: "since <start>", not "YTD", which is wrong for a system
+    # that started mid-year and for any record longer than one calendar year.
+    assert "f\"after costs · since {start.strftime('%b %Y')}\"" in source
+    assert '"after costs · YTD"' not in source
     assert 'kit.Reading("Ahead of the index", _pct(stats["alpha"]),' in source
     assert 'replace("%", " pts")' not in source
     assert "Each system starts on its own date" not in source

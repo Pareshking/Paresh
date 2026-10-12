@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-12 — One Nifty 500 figure on Portfolio; the live month counts its fill day
+
+- Portfolio showed the Nifty 500 since inception twice, -8.4% in the top row and -7.6% in the record, for the same months. Both were off by a day. The top row counted from the 31 Dec close, a day before the first book was bought (+0.16%). The record's running month started at the 1 Oct fill close, so 1 Oct itself, earned by the September book (the index fell 0.97% that day), was in neither September nor October until October was frozen. Now the running month runs from the last close of the month before, with the old book to the fill and the new book after it, exactly as the month will be frozen; the top row counts from the first fill. Both rows read the same figure (-8.5% on 12 Oct), and the strategy's month to date includes its fill day too.
+- On the fill day itself the record still says the month "has a new book but no return yet"; the old book's fill-day move shows from the next session.
+- Since inception reads "after costs · since Jan 2026" (each system's own start) instead of "after costs · YTD", which was wrong for Nano Cap and Combined (started Oct 2026) and would be for the 750 from January 2027.
+
 ## 2026-10-12 — One word for one thing on every page
 
 - The same thing now has the same name everywhere (owner's choices, 12 Oct): **Max drawdown** (Backtest said "Worst fall"); **Ahead of the index**, in % (Backtest said "Ahead of Nifty 500", the month cards said "pts"); **Nifty 500**, not "NIFTY 500" (header, Portfolio); **52W high** and **50D EMA** in labels, "52-week high" and "50-day EMA" in sentences.
