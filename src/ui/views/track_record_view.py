@@ -17,6 +17,9 @@ from src.engine.extra_universe import SYSTEM_750, SYSTEM_NAMES, SYSTEMS
 from src.engine.model_record import record_run
 from src.engine.systems import inception, ledger_path, membership_for
 from src.engine.track_record import (
+    SHADOW_INCEPTION,
+    SHADOW_LEDGER_PATH,
+    SHADOW_NAME,
     load_ledger,
     summary_stats,
 )
@@ -349,19 +352,24 @@ def render_record_sections(
 def comparison_frame(
     ledgers: dict[str, dict],
     live_meta: dict[str, dict] | None = None,
+    shadow: dict | None = None,
 ) -> pd.DataFrame:
     """Calendar-style monthly returns for all three systems.
 
     A system is blank before its own inception. Its current-month cell uses
     that system's live MTD record, so the table never hides an active month
     merely because it has not been frozen yet.
+
+    `shadow`, the Recommendation's ledger, adds a row of its frozen months
+    only: it has no month to date, so the page runs no backtest for it.
     """
     live_meta = live_meta or {}
     frozen = {
         sys_id: ledgers.get(sys_id, {}).get("months", {})
         for sys_id in SYSTEMS
     }
-    keys = sorted({k for months in frozen.values() for k in months})
+    shadow_months = (shadow or {}).get("months", {})
+    keys = sorted({k for months in [*frozen.values(), shadow_months] for k in months})
     current_periods = [
         pd.Period(meta["mtd_period"], freq="M")
         for meta in live_meta.values()
@@ -400,6 +408,12 @@ def comparison_frame(
                 else:
                     row[p.strftime("%b").upper()] = None
             rows.append(row)
+        if shadow is not None:
+            row = {"SYSTEM": SHADOW_NAME, "YEAR": str(year)}
+            for p in year_periods:
+                entry = shadow_months.get(str(p)) if p >= SHADOW_INCEPTION else None
+                row[p.strftime("%b").upper()] = entry.get("strategy") if entry else None
+            rows.append(row)
 
     columns = ["SYSTEM", "YEAR"] + [p.strftime("%b").upper() for p in periods]
     return pd.DataFrame(rows)[columns]
@@ -428,7 +442,11 @@ def render_comparison(
                 # unavailable until that system's price history can be replayed.
                 live_meta[sys_id] = {}
 
-    table = comparison_frame(ledgers, live_meta)
+    try:
+        shadow = load_ledger(SHADOW_LEDGER_PATH, SHADOW_INCEPTION)
+    except (ValueError, OSError):
+        shadow = {}
+    table = comparison_frame(ledgers, live_meta, shadow)
     with kit.card(
         "Three systems, side by side",
         "tr_compare",
@@ -438,4 +456,7 @@ def render_comparison(
             st.info("Nothing recorded yet.")
         else:
             render_saas_table(grid_display(table))
+            st.caption(f"{SHADOW_NAME}: 30 holdings · keep while in the top 90 · 200D EMA, "
+                       f"on the Nifty 750, from {SHADOW_INCEPTION.strftime('%b %Y')}; "
+                       "not traded, frozen months only")
 

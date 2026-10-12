@@ -96,6 +96,13 @@ jobs:
               || echo "::warning::$SYSTEM record freeze failed; the 750's record is unaffected."
           done
 
+      # The Recommendation's shadow record (owner, 2026-10-12, TODO 9): the 750
+      # under SHADOW_CONFIG, from November 2026, never traded. Its own ledger;
+      # a failure never stops the live records above from being committed.
+      - name: Freeze the shadow record
+        run: |
+          python scripts/update_track_record.py --shadow || echo "::warning::Shadow record freeze failed; the live records are unaffected."
+
       - name: Commit the ledger
         run: |
           git config --global user.name 'github-actions[bot]'

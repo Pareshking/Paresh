@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-12 — The Recommendation is recorded forward, beside the live system
+
+- From November 2026 the Recommendation (live weights, 30 holdings, keep while in the top 90, 200D EMA) keeps its own monthly record on the Nifty 750, frozen like the others on the 1st-5th of each month (`data/track_record_shadow.json`). It is never traded: Actions, Portfolio and the live records are unchanged (owner, 12 Oct).
+- "Three systems, side by side" gains a row, **Recommendation (shadow)**, with its frozen months; the first, November, appears after it is frozen in early December.
+
 ## 2026-10-12 — One Nifty 500 figure on Portfolio; the live month counts its fill day
 
 - Portfolio showed the Nifty 500 since inception twice, -8.4% in the top row and -7.6% in the record, for the same months. Both were off by a day. The top row counted from the 31 Dec close, a day before the first book was bought (+0.16%). The record's running month started at the 1 Oct fill close, so 1 Oct itself, earned by the September book (the index fell 0.97% that day), was in neither September nor October until October was frozen. Now the running month runs from the last close of the month before, with the old book to the fill and the new book after it, exactly as the month will be frozen; the top row counts from the first fill. Both rows read the same figure (-8.5% on 12 Oct), and the strategy's month to date includes its fill day too.
