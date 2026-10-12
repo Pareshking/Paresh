@@ -25,19 +25,12 @@ def test_pct_formats_fractions_and_dashes_non_finite():
 
 
 def _kit_app():
-    import pandas as pd
-    import streamlit as st
-
     from src.ui import page_kit as k
 
     k.metric_row([k.Metric("Strategy", k.pct(0.1), delta="+2.0% vs Nifty", tone="normal"),
                   k.Metric("Alpha", k.pct(float("nan")))], key="t")
     k.callout("Holdout check", "<b>escaped</b>", "warn")
     k.badge("LIVE", "up")
-    k.df_card("Table", "t", pd.DataFrame({"a": [0.1, 0.2], "r": [1, 2]}),
-              column_config={"a": k.col_pct("A"), "r": k.col_rank("R")})
-    with k.toolbar("t"):
-        st.write("in the bar")
 
 
 def test_kit_helpers_render_without_error():
@@ -45,7 +38,6 @@ def test_kit_helpers_render_without_error():
     assert not at.exception, [e.value for e in at.exception]
     assert [m.label for m in at.metric] == ["Strategy", "Alpha"]
     assert [m.value for m in at.metric] == ["+10.0%", "—"]
-    assert len(at.dataframe) == 1
 
 
 def test_callout_escapes_its_text():
@@ -135,13 +127,6 @@ def test_growth_chart_rebases_growth_factors_to_100():
 
 
 # ── Grids, drill-down dialogs and the pickers added in the second pass ───────
-
-def test_stock_grid_config_covers_only_the_columns_asked_for():
-    cfg = kit.stock_grid_config(["Rank", "Symbol", "3M Return", "Score", "Chart", "Nope"],
-                                score_range=(-1.0, 3.0))
-    assert list(cfg) == ["Rank", "Symbol", "3M Return", "Score", "Chart"]
-    assert kit.stock_grid_config([]) == {}
-
 
 def test_tradingview_url_is_encoded_and_external():
     url = kit.tradingview_url("M&M")

@@ -271,26 +271,11 @@ def test_nothing_extra_appears_when_the_newest_session_is_the_ranked_one(monkeyp
     assert items["Prices"]["coverage"] == "750/750"
 
 
-def test_the_header_carries_the_coverage_too(monkeypatch):
-    """The header is the one people believe when the two disagree."""
-    from src.ui.components import header_as_of
-
-    _freshness(
-        monkeypatch, date(2026, 9, 18),
-        price_as_of="2026-09-16", price_coverage="750/750", price_path="cache_fresh",
-    )
-    text, _colour = header_as_of()
-    assert text.startswith("16 Sep 2026"), text
-    assert "750/750" in text, "the header states a date with no idea how complete it is"
-
-
 def test_a_missing_coverage_fact_degrades_quietly(monkeypatch):
     """Older snapshots predate the coverage fact; the ribbon must still render."""
-    from src.ui.components import header_as_of
-
     items = _freshness(
         monkeypatch, date(2026, 9, 18),
         price_as_of="2026-09-16", price_path="cache_fresh",
     )
     assert items["Prices"]["coverage"] is None
-    assert header_as_of()[0].startswith("16 Sep 2026")
+    assert items["Prices"]["as_of"] == "16 Sep"

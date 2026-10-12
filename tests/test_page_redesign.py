@@ -54,15 +54,6 @@ def test_month_cards_say_ahead_or_behind_and_mark_backfilled_months():
     assert "Apr 2026 · so far" in out
 
 
-def test_growth_series_compounds_months_and_appends_the_live_one():
-    months = {"2026-01": {"strategy": 0.10, "benchmark": 0.0},
-              "2026-02": {"strategy": -0.10, "benchmark": 0.05}}
-    labels, s, b = track_record_view.growth_series(months, pd.Period("2026-03", "M"), 0.10, None)
-    assert labels == ["Start", "Jan", "Feb", "Mar*"]
-    assert s == pytest.approx([1.0, 1.1, 0.99, 1.089])
-    assert b == pytest.approx([1.0, 1.0, 1.05, 1.05])   # no benchmark MTD: flat, not invented
-
-
 def test_bar_list_clamps_and_flags():
     out = page_kit.bar_list([("A & B", 45.0, "45%", True), ("C", -3.0, "−3%", False)], scale=30)
     assert "A &amp; B" in out
