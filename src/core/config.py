@@ -189,6 +189,9 @@ DEFAULT_SECTOR_CAP: Final[float] = 0.40  # hard; owner 2026-10-02
 DEFAULT_STOCK_CAP: Final[float] = 0.05
 DEFAULT_TARGET_VOL: Final[float] = 0.25
 DEFAULT_TRANSACTION_COST_BPS: Final[float] = 30.0
+# The model book's capital: Portfolio's fixed ₹20 lakh, and the Kite basket's
+# starting capital on Actions, so the two pages size the same book alike.
+MODEL_BOOK_CAPITAL: Final[float] = 2_000_000.0
 
 # Risk-free rate used as the excess-return hurdle in Sharpe and Sortino.
 # It was a bare 0.065 inline in the backtester, which meant the number every
