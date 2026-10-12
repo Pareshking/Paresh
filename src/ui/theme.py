@@ -892,11 +892,6 @@ def inject_custom_css() -> None:
             .xw-ret { display: none; }
             .xw-g b { font-size: 12px; white-space: normal; }
         }
-        .cfg-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-        .cfg-pills { display: flex; gap: 8px; flex-wrap: wrap; }
-        .cfg-pill { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 999px; background: #F1F3F6; color: #3C4657; font-size: 12.5px; font-weight: 600; }
-        .cfg-pill.ok { background: #E8F5EE; color: #054F31; }
-        .cfg-pill i { width: 7px; height: 7px; border-radius: 50%; background: #067647; }
         .cfg-index {
             position: sticky; top: 8px; z-index: 5; display: inline-flex; flex-wrap: wrap; gap: 4px;
             padding: 5px; border-radius: 12px; background: #ECEEF2; width: max-content; max-width: 100%;
@@ -923,30 +918,20 @@ def inject_custom_css() -> None:
         .cfg-intro h2 { margin: 0 !important; padding: 0 !important; font-family: var(--font-ui) !important;
             font-size: 19px !important; font-weight: 700 !important; letter-spacing: 0 !important; color: #0E1726 !important; }
         .cfg-intro p { margin: 0; font-size: 13.5px; line-height: 1.55; color: #3C4657; }
-        .cfg-intro small { margin-top: 4px; font-size: 12.5px; color: #5E6878; }
-        .cfg-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-        .cfg-stats > div { padding: 12px 14px; border-radius: 12px; background: #F4F5F8; display: flex; flex-direction: column; gap: 2px; }
-        .cfg-stats > div.warn { background: #FEF6EA; }
-        .cfg-stats span { font-size: 12px; font-weight: 600; color: #5E6878; }
-        .cfg-kv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin: 0 0 18px; padding: 0; background: #E3E6EB; border: 1px solid #E3E6EB; border-radius: 12px; overflow: hidden; }
-        .cfg-kv > div { background: #FFFFFF; padding: 12px 16px; }
-        .cfg-kv span { display: block; font-size: 12px; font-weight: 600; color: #5E6878; margin: 0 0 3px; }
-        .cfg-kv b { display: block; font-size: 15px; font-weight: 600; color: #0E1726; }
-        @media (max-width: 640px) { .cfg-kv { grid-template-columns: 1fr 1fr; } }
-        .cfg-stats b { font-family: var(--font-mono); font-size: 17px; font-weight: 600; color: #0E1726; }
-        .cfg-stats .warn b { color: #B54708; }
-        .cfg-stats em { font-style: normal; font-size: 12px; color: #3C4657; }
         .cfg-wbar-h { font-size: 13.5px; color: #0E1726; margin-bottom: 8px; }
         .cfg-wbar { display: flex; height: 34px; border-radius: 10px; overflow: hidden; }
         .cfg-wbar span { display: flex; align-items: center; justify-content: center; font-size: 12px;
             font-weight: 600; white-space: nowrap; overflow: hidden; }
-        .cfg-guide { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #E3E6EB;
-            border-radius: 12px; overflow: hidden; font-size: 13.5px; }
-        .cfg-guide th { background: #F4F5F8; text-align: left; font-size: 12px; font-weight: 600; color: #5E6878;
-            padding: 9px 14px; border-bottom: 1px solid #E3E6EB; }
-        .cfg-guide td { padding: 9px 14px; border-bottom: 1px solid #EDEFF3; color: #0E1726; }
-        .cfg-guide tr:last-child td { border-bottom: 0; }
-        .cfg-guide .n { text-align: right; font-family: var(--font-mono); }
+        [class*="st-key-cfgsec_"] .mkt-strip.pg-strip { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+        [class*="st-key-cfgsec_"] .mkt-strip.pg-strip .ms-tile { min-height: 0; padding: 14px 12px; }
+        [class*="st-key-cfgsec_"] .mkt-strip.pg-strip .ms-v { font-size: 20px; }
+        [class*="st-key-cfgsec_"] .mkt-strip.pg-strip .ms-s { font-size: 13px; }
+        .pg-kv {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; padding: 14px 20px; margin: 0 0 18px;
+            background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 16px; font-size: 13.5px; color: #3C4657;
+        }
+        .pg-kv > b { font-size: 13px; font-weight: 600; color: #5E6878; }
+        .pg-kv span b { color: #0E1726; font-weight: 650; }
         .cfg-rule { height: 1px; background: #EDEFF3; margin: 4px 0; }
         .cfg-sub { font-size: 14px; font-weight: 650; color: #0E1726; margin-top: 6px; }
         .st-key-cfg_sync_row { gap: 10px !important; flex-wrap: wrap; }
@@ -956,7 +941,6 @@ def inject_custom_css() -> None:
             }
             [class*="st-key-cfgsec_"] > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child { padding: 16px; }
             .cfg-index { position: static; }
-            .cfg-guide td:nth-child(3), .cfg-guide th:nth-child(3) { display: none; }
         }
         .bt-sum {
             display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; padding: 14px 20px;
