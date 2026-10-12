@@ -135,8 +135,7 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
 
     actions = kit.page_head(
         "Sectors",
-        f"{len(board)} {'industries' if col == 'Industry' else 'groups'} ranked by "
-        f"{by.replace('median', 'median return').replace('3M', '3-month').replace('6M', '6-month').lower()}",
+        f"{len(board)} {'industries' if col == 'Industry' else 'groups'}",
         actions=True,
     )
     with actions:
@@ -159,7 +158,7 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
         kit.Reading("Leading", lead.Industry,
                     f"median {_pct(lead['3M Return'])} in 3 months · {lead['Top 50']} of the top 50",
                     _tone(lead["3M Return"])),
-        kit.Reading("Rising", f"{rising} of {len(board)}", "median 3-month return above zero"),
+        kit.Reading("Rising", f"{rising} of {len(board)}", "median 3M above 0"),
         kit.Reading("Most in the top 50", most.Industry,
                     f"{most['Top 50']} stocks · best rank #{int(most.Best)} {best_sym}"),
         kit.Reading("Weakest", weak.Industry,
@@ -170,10 +169,10 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
     with kit.card("Industry map", "sec_map", "bubble size = stocks"):
         render_industry_map(board)
 
-    with kit.card("Industry leaderboard", "sec_board", "leaders link to their stock pages"):
+    with kit.card("Industry leaderboard", "sec_board"):
         st.html(board_html(board))
         if singles:
-            kit.caption(f"Left out: {', '.join(singles)} (one stock each). One stock is not an industry trend.")
+            kit.caption(f"Not shown (one stock each): {', '.join(singles)}.")
 
     with kit.card("Stocks in an industry", "sec_stocks"):
         pick = st.selectbox("Industry", board["Industry"].tolist(), key="sector_pick",

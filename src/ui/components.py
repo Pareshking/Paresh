@@ -82,7 +82,7 @@ def compute_signals(rank_df: pd.DataFrame) -> list[SignalAlert]:
         signals.append(
             SignalAlert(
                 icon="⚠️",
-                text=f"Only {len(qualified)} stocks pass both filters (the portfolio wants at least 20)",
+                text="Fewer than 20 pass both filters",
                 color="#B54708",
                 category="risk",
             )
