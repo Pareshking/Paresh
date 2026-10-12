@@ -85,11 +85,23 @@ KEEP = (1.0, 2.0, 3.0)
 EMAS = (20, 50, 100, 200)
 HIGHS = (0.9, 0.8, 0.7, 0.5)
 SCORES = ("sharpe", "return")
+EDGE_HOLDINGS = (30, 40, 50)
+EDGE_KEEP = (3.0, 4.0)
+EDGE_EMAS = (200, 250, 300)
 VARIABLES = ("weights", "top_n", "keep", "ema", "high", "score")
 LIVE_COMBO = {"weights": "live", "top_n": 20, "keep": 2.0, "ema": 50, "high": 0.8, "score": "sharpe"}
 
 
-def grid() -> list[dict]:
+def grid(name: str = "full") -> list[dict]:
+    """The 1,728-run grid, or "edge": past its edge on holdings, keep and EMA.
+
+    The Recommendation (30 holdings, keep 3x, 200D EMA) sat at the full grid's
+    largest values on all three, so the edge grid asks whether more of each
+    does better, with the other settings at the live values.
+    """
+    if name == "edge":
+        return [dict(zip(VARIABLES, v)) for v in itertools.product(
+            ["live"], EDGE_HOLDINGS, EDGE_KEEP, EDGE_EMAS, [0.8], ["sharpe"])] + [dict(LIVE_COMBO)]
     return [dict(zip(VARIABLES, v))
             for v in itertools.product(WEIGHTS, HOLDINGS, KEEP, EMAS, HIGHS, SCORES)]
 
@@ -144,7 +156,7 @@ def _run_one(c: dict, out: str) -> tuple[str, float]:
 def cmd_run(args: argparse.Namespace) -> None:
     out = Path(args.out)
     (out / "runs").mkdir(parents=True, exist_ok=True)
-    combos = grid()
+    combos = grid(args.grid)
     assert settings(LIVE_COMBO) == LIVE, "the live combination must be the live settings"
     if args.combos:
         by_key = {key(c): c for c in combos}
@@ -161,7 +173,7 @@ def cmd_run(args: argparse.Namespace) -> None:
     (out / "meta.json").write_text(json.dumps({
         "index": meta["index"], "start": str(meta["start"]), "end": str(meta["end"]),
         "months": meta["months"], "built": meta["built"], "last_session": meta["last_session"],
-        "combinations": len(combos), "live_combo": LIVE_COMBO,
+        "combinations": len(combos), "live_combo": LIVE_COMBO, "grid_name": args.grid,
         "grid": {"weights": {k: list(v) for k, v in WEIGHTS.items()}, "top_n": HOLDINGS,
                  "keep": KEEP, "ema": EMAS, "high": HIGHS, "score": SCORES},
     }, indent=2))
@@ -386,6 +398,7 @@ def main() -> None:
     pr.add_argument("--workers", type=int, default=4)
     pr.add_argument("--index", default="nifty_500")
     pr.add_argument("--limit", type=int, default=0, help="run only this many (for a timing test)")
+    pr.add_argument("--grid", default="full", choices=["full", "edge"])
     pr.add_argument("--combos", default="",
                     help='only these (and the live one), e.g. "mid_n30_k3_e200_h70_sharpe"')
     pr.set_defaults(func=cmd_run)
