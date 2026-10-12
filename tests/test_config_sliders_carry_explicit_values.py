@@ -29,10 +29,10 @@ ROOT = Path(__file__).resolve().parents[1]
 VIEWS = ROOT / "src" / "ui" / "views"
 
 # Widgets whose value must be explicit. Every one of these is read by the
-# engine or binds the portfolio, so a silent fallback to `min_value` is a
+# engine or binds the backtest, so a silent fallback to `min_value` is a
 # changed strategy, not a cosmetic defect.
 GUARDED_KEYS = {"cfg_w1", "cfg_w2", "cfg_w3", "cfg_w4", "cfg_w5",
-                "cfg_sc", "cfg_stc", "cfg_vt", "cfg_vtv"}
+                "cfg_sc", "cfg_stc", "cfg_lf", "cfg_lfv"}
 
 VALUED = {"slider", "checkbox", "toggle", "number_input", "select_slider", "radio",
           "selectbox", "multiselect"}

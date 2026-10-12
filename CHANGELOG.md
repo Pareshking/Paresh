@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-12 — The Kite basket is sized on your capital; Configuration says where its limits act
+
+- The Kite basket on Actions sized every buy order on ₹10 lakh, half the model book's ₹20 lakh, since 30 Sep: it read a capital box Portfolio no longer has. The Kite basket button now opens a capital box, starting at Portfolio's ₹20 lakh, so the model book's basket matches Portfolio and your own holdings can be sized on your account. The value is kept while you move between pages.
+- Configuration said its stock and sector caps, volatility target and liquidity floor changed the Portfolio page. They do not: since 30 Sep Portfolio and Actions show the track record's model book on its own limits (5% a stock, 40% a sector, no floor). The section now says the limits act on the Backtest only, and its summary reads "Backtest max per stock · per sector" and "Backtest liquidity floor".
+- Volatility targeting is gone from Configuration (owner): no page used it.
+
 ## 2026-10-12 — Backtest: the headline figures in one row, a line each
 
 - The six headline figures sit in one row of six, as on Portfolio, instead of two half-empty rows of three whose notes ran to two or three lines. Each note is now one short line: "+3258.0% before costs", "Nifty 500 +10.3%", "±0.25 · Sortino 1.04", "Calmar 0.53", "70% up · turnover 50%". The cost and the window were already in the Tested line; the risk-free rate and how each ratio is made are under Method.

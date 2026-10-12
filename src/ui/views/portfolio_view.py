@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from src.core.config import MODEL_BOOK_CAPITAL
 from src.core.market_time import ist_now
 from src.engine.extra_universe import SYSTEM_750
 from src.engine.systems import inception, ledger_path
@@ -24,7 +25,7 @@ from src.ui.theme import render_saas_table
 from src.ui.views.qualified_view import correlation, correlation_note
 from src.ui.views.track_record_view import render_record_sections
 
-PORTFOLIO_STARTING_CAPITAL = 2_000_000.0
+PORTFOLIO_STARTING_CAPITAL = MODEL_BOOK_CAPITAL
 
 
 def live_month_state(live_period: str | None, today: pd.Timestamp | None = None) -> str:
@@ -479,19 +480,12 @@ def _daily_with_live(history: dict, table: pd.DataFrame, prices: pd.DataFrame | 
     return eq[~eq.index.duplicated()], bm[~bm.index.duplicated()]
 
 
-def render_portfolio_view(
-    calc,
-    rank_df: pd.DataFrame,
-    sector_cap: float,
-    stock_cap: float,
-    vol_target_on: bool,
-    vol_target_val: float,
-    liquidity_floor_cr: float = 0.0,
-    traded_value: pd.DataFrame | None = None,
-) -> None:
-    """Render the canonical ₹20 lakh model portfolio as a portfolio dashboard."""
-    del sector_cap, stock_cap, vol_target_on, vol_target_val, liquidity_floor_cr, traded_value
+def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
+    """Render the canonical ₹20 lakh model portfolio as a portfolio dashboard.
 
+    It takes no Configuration limits: the book is the track record's, run on
+    its pinned settings (TRACK_RECORD_CONFIG), whatever the sliders say.
+    """
     capital = PORTFOLIO_STARTING_CAPITAL
     system = system_param.current() or SYSTEM_750
     prices = getattr(calc, "prices", pd.DataFrame())

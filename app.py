@@ -58,7 +58,6 @@ with app_import_guard():
         DEFAULT_LOOKBACK_WEIGHTS,
         DEFAULT_SECTOR_CAP,
         DEFAULT_STOCK_CAP,
-        DEFAULT_TARGET_VOL,
         MCAP_PR_FILE,
         MCAPS_FILE,
         PRICES_FILE,
@@ -189,8 +188,6 @@ metrics.note("ranking_weights", [round(w, 6) for w in weights])
 # Defaults from config, the same constants the Configuration tab renders with.
 sector_cap = resolve("cfg_sc", round(DEFAULT_SECTOR_CAP * 100), lo=15, hi=50) / 100.0
 stock_cap = resolve("cfg_stc", round(DEFAULT_STOCK_CAP * 100), lo=2, hi=15) / 100.0
-vol_target_on = resolve("cfg_vt", False)
-vol_target_val = resolve("cfg_vtv", round(DEFAULT_TARGET_VOL * 100), lo=10, hi=40) / 100.0
 # The liquidity floor, ₹ Cr of 20-day average traded value; 0 when off.
 liquidity_floor_cr = (float(resolve("cfg_lfv", liquidity.DEFAULT_FLOOR_CR, lo=1, hi=500))
                       if resolve("cfg_lf", False) else 0.0)
@@ -1070,16 +1067,8 @@ def _page_rrg() -> None:
 
 
 def _page_portfolio() -> None:
-    render_portfolio_view(
-        calc=get_calc(),
-        rank_df=rank_df,
-        sector_cap=sector_cap,
-        stock_cap=stock_cap,
-        vol_target_on=vol_target_on,
-        vol_target_val=vol_target_val,
-        liquidity_floor_cr=liquidity_floor_cr,
-        traded_value=_traded_value(),
-    )
+    # The pinned model book: no Configuration limits reach it.
+    render_portfolio_view(calc=get_calc(), rank_df=rank_df)
 
 
 def _page_watchlist() -> None:
