@@ -82,6 +82,7 @@ def test_pipeline_running_is_not_ready():
 
 
 def test_data_init_failure_is_reported_as_such():
+    assert _state("❌ Failed to initialise market data", stTabs=0) == "app_data_init_failed"
     assert _state("❌ Failed to initialize market data", stTabs=0) == "app_data_init_failed"
 
 

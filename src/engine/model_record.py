@@ -258,7 +258,7 @@ def with_live_month(result: dict) -> dict:
     for r in changes.loc[changes["Action"] == "🔴 SOLD"].to_dict("records"):
         entry = pd.Timestamp(r["Entry Date"]) if pd.notna(r.get("Entry Date")) else None
         extra.append({
-            "Month": f"{fill:%b-%Y}", "Symbol": r["Symbol"],
+            "Month": f"{fill:%b %Y}", "Symbol": r["Symbol"],
             "Entry Date": f"{entry:%d %b %Y}" if entry is not None else "—",
             "Entry Price": r.get("Entry Price"),
             "Exit Date": f"{fill:%d %b %Y}", "Exit Price": r.get("Exit Price"),

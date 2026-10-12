@@ -77,7 +77,7 @@ def next_rebalance(as_of: pd.Timestamp) -> tuple[pd.Timestamp, pd.Timestamp]:
 
 
 def _day(t: pd.Timestamp, weekday: bool = False) -> str:
-    return (f"{t:%a} " if weekday else "") + f"{t.day} {t:%b}"
+    return (f"{t:%a} " if weekday else "") + f"{t:%d %b}"
 
 
 def _sessions_between(a: pd.Timestamp, b: pd.Timestamp) -> int:
@@ -134,8 +134,8 @@ def rows_html(a: pd.DataFrame, since: dict[str, float], rules: Rules) -> str:
             f'<span class="xw-ret {ret_cls}">{ret_txt}</span></div>'
         )
     head = ('<div class="xw-row xw-head"><span>Holding</span><span>At the next rebalance</span>'
-            f"<span>Rank buffer (top {rules.buffer_n} qualified)</span><span>50-day EMA</span>"
-            f"<span>−{(1 - rules.high_pct):.0%} from 52-week high</span><span>Closest to</span>"
+            f"<span>Rank buffer (top {rules.buffer_n} qualified)</span><span>50D EMA</span>"
+            f"<span>−{(1 - rules.high_pct):.0%} from 52W high</span><span>Closest to</span>"
             '<span class="xw-ret">Since entry</span></div>')
     return f'<div class="xw" role="table" aria-label="Exit watch">{head}{"".join(out)}</div>'
 

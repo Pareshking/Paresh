@@ -1870,14 +1870,22 @@ def render_saas_table(
                     f'<td class="td-center"><span class="badge-pill {status_class}">{_esc(status_str)}</span></td>'
                 )
             elif "ACTION" in c_str:
+                # Every Action column is a record of trades, so it says what
+                # happened: Bought / Sold / Held (owner, 12 Oct 2026). Plans
+                # (the Actions page, filters) say Buy / Sell / Hold. The
+                # engine's own codes ("🟢 BUY (Entry)", "⚪ HELD") are unchanged.
                 act_str = str(val).upper()
-                if "BUY" in act_str:
+                if "BUY" in act_str or "BOUGHT" in act_str:
                     cells_html.append(
-                        '<td class="td-center"><span class="badge-pill badge-green">🟢 BUY</span></td>'
+                        '<td class="td-center"><span class="badge-pill badge-green">🟢 Bought</span></td>'
                     )
-                elif "SELL" in act_str:
+                elif "SELL" in act_str or "SOLD" in act_str:
                     cells_html.append(
-                        '<td class="td-center"><span class="badge-pill badge-red">🔴 SELL</span></td>'
+                        '<td class="td-center"><span class="badge-pill badge-red">🔴 Sold</span></td>'
+                    )
+                elif any(w in act_str for w in ("HOLD", "HELD", "RETAINED")):
+                    cells_html.append(
+                        '<td class="td-center"><span class="badge-pill badge-neutral">⚪ Held</span></td>'
                     )
                 else:
                     cells_html.append(

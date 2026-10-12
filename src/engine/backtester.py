@@ -1166,7 +1166,7 @@ def run_backtest(
 
             closed_trades.append(
                 {
-                    "Month": f"{p_start_dt:%b-%Y}" if p_start_dt else "—",
+                    "Month": f"{p_start_dt:%b %Y}" if p_start_dt else "—",
                     "Symbol": s,
                     "Entry Date": f"{entry_dt:%d %b %Y}" if entry_dt else "—",
                     "Entry Price": p_entry,

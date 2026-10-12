@@ -171,6 +171,8 @@ def get_recent_hl_events(
     )
 
     counts = new_extreme_counts(prices_df, window)
+    # The window the reader picked, not always 52 weeks.
+    span = "52W" if window == 252 else f"{window}D"
     records: list[dict[str, Any]] = []
     for dt in reversed(sub_high.index):
         dt_str = pd.to_datetime(dt).strftime("%d %b %Y")
@@ -183,7 +185,7 @@ def get_recent_hl_events(
             records.append(
                 {
                     "Date": dt_str,
-                    "Event": "🟢 52W High",
+                    "Event": f"🟢 {span} high",
                     "Symbol": sym,
                     "Industry": ind_map.get(sym, "—"),
                     "CMP": cmp_val,
@@ -202,7 +204,7 @@ def get_recent_hl_events(
             records.append(
                 {
                     "Date": dt_str,
-                    "Event": "🔴 52W Low",
+                    "Event": f"🔴 {span} low",
                     "Symbol": sym,
                     "Industry": ind_map.get(sym, "—"),
                     "CMP": cmp_val,

@@ -178,7 +178,7 @@ if total_w <= 0:
         "All five momentum lookback weights were zero, which cannot rank "
         "anything. Ranking is using the defaults "
         f"({' · '.join(f'{w:.0%}' for w in DEFAULT_LOOKBACK_WEIGHTS)}). "
-        "Set them in **Configuration → Momentum Signal**."
+        "Set them in **Configuration → Momentum score**."
     )
 weights = tuple(w / total_w for w in raw_w)
 # What the engine is handed, observable from outside: the Configuration panel
@@ -915,7 +915,7 @@ def _emit_startup_metrics(outcome: str) -> None:
 
 if not data:
     st.error(
-        "❌ Failed to initialize market data. Please verify your internet connection or reload."
+        "❌ Failed to initialise market data. Please verify your internet connection or reload."
     )
     _emit_startup_metrics("data_init_failed")
     st.stop()

@@ -578,7 +578,7 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
         kit.Reading(
             "Since inception",
             kit.pct(history["strategy_total_return"]),
-            f"NIFTY 500 {kit.pct(benchmark_total_daily)}",
+            f"Nifty 500 {kit.pct(benchmark_total_daily)}",
             "up" if history["strategy_total_return"] >= 0 else "down",
         ),
         kit.Reading(
@@ -590,14 +590,14 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
         kit.Reading(
             "Day P&L",
             "—" if not np.isfinite(day_pnl_pct) else f"{day_pnl_pct:+.1f}%",
-            f"NIFTY 500 {kit.pct(benchmark_day_pct)}",
+            f"Nifty 500 {kit.pct(benchmark_day_pct)}",
             "up" if day_pnl_pct >= 0 else "down",
         ),
         kit.Reading("Cash / realised balance", f"₹{cash:,.0f}"),
         kit.Reading(
             "MTD return",
             kit.pct(strategy_mtd),
-            f"NIFTY 500 {kit.pct(benchmark_mtd)}",
+            f"Nifty 500 {kit.pct(benchmark_mtd)}",
             "up" if strategy_mtd >= 0 else "down",
         ),
     ], "Portfolio snapshot")
