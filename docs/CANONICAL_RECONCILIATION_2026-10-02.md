@@ -158,6 +158,13 @@ What the gate does not cover: a vendor restatement of an old close makes
 checks the published snapshot, which can lag the app by a session; and it compares
 engine outputs, not rendered pages (that is V1 Production QA).
 
+Accepted drift (13 Oct 2026): a drift the owner has decided to keep frozen is
+listed in `src/engine/parity_accepted_drift.json` with the stored value, the
+accepted replay, the reason and the decision. `ledger_parity` and `research_default`
+report it as "accepted" and pass, but only for that stored value and a replay
+within tolerance of the accepted one; anything else still fails. First entries:
+Jan and Feb 2026 (after S56).
+
 ## 9. Remaining limitations
 
 - No immutable archive of historical holdings, fills or per-fill costs exists; the

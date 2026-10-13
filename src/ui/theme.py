@@ -709,6 +709,19 @@ def inject_custom_css() -> None:
             .t50-col-head,.t50-row { padding:0 10px; column-gap:6px; grid-template-columns:28px minmax(120px,1.7fr) 72px 62px 58px; }
             .t50-col-head { min-height:38px; font-size:11px; } .t50-row { min-height:50px; font-size:12px; } .t50-table { min-width:0; } .t50-change,.t50-rank,.t50-return { font-size:11px; } .t50-num { font-size:11px; }
         }
+        /* Wide screens: the three movers cards side by side, compact, not
+           three full-width tables of five rows each (owner, 13 Oct). */
+        @media (min-width: 1100px) {
+            .t50-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:14px; align-items:start; }
+            .t50-card-head { min-height:0; padding:12px 16px; }
+            .t50-icon { flex-basis:34px; width:34px; height:34px; border-radius:8px; font-size:19px; }
+            .t50-card h2 { font-size:17px !important; }
+            .t50-card p { font-size:12px !important; margin-top:2px !important; }
+            .t50-col-head, .t50-row { grid-template-columns:22px minmax(0,1.5fr) 1fr 0.8fr 0.9fr; column-gap:8px; padding:0 14px; }
+            .t50-col-head { min-height:34px; font-size:11.5px; }
+            .t50-row { min-height:40px; font-size:13px; }
+            .t50-more { min-height:38px; font-size:13px; }
+        }
         .st-key-scr_toolbar { gap: 10px !important; }
         .st-key-scr_toolbar [data-testid="stPopoverButton"] { height: 40px !important; }
         .sig-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -746,19 +759,21 @@ def inject_custom_css() -> None:
         }
 
         /* ── Page kit (src/ui/page_kit.py): every other page ───────────── */
-        /* Portfolio KPI strip: centered, icon-free frozen design.
-           Desktop keeps six equal cards; tablet uses a 2x3 grid; phone stacks
-           one card per row. */
+        /* Page KPI strip: centered, icon-free. However many tiles a page
+           has (4 on Sectors, Actions, Breadth; 6 on Portfolio, Backtest),
+           they share the row: a fixed 6-column grid left two empty columns
+           beside four tiles, and squeezed long names into 4-line tiles
+           (owner, 13 Oct). Narrower screens wrap to as many as fit. */
         .mkt-strip.pg-strip {
-            grid-template-columns: repeat(6, minmax(0, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
         }
         .mkt-strip.pg-strip .ms-tile {
             align-items: center;
             justify-content: center;
             text-align: center;
             min-width: 0;
-            min-height: 152px;
-            padding: 18px 16px;
+            gap: 4px;
+            padding: 14px 16px;
         }
         .mkt-strip.pg-strip .ms-k,
         .mkt-strip.pg-strip .ms-v,
@@ -766,28 +781,25 @@ def inject_custom_css() -> None:
             text-align: center;
             width: 100%;
         }
-        .mkt-strip.pg-strip .ms-k { font-size: 14px; }
-        .mkt-strip.pg-strip .ms-v { font-size: 28px; }
-        .mkt-strip.pg-strip .ms-s { font-size: 14px; }
-        .mkt-strip.pg-strip .ms-s:empty { display: none; }
-
-        @media (min-width: 641px) and (max-width: 1279px) {
-            .mkt-strip.pg-strip {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
+        .mkt-strip.pg-strip .ms-k { font-size: 13px; }
+        .mkt-strip.pg-strip .ms-v { font-size: 26px; }
+        /* A name, not a figure (an industry): smaller, at most two lines. */
+        .mkt-strip.pg-strip .ms-v.ms-name {
+            font-size: 19px; line-height: 1.2;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
+        .mkt-strip.pg-strip .ms-s { font-size: 12.5px; line-height: 1.35; color: #5E6878; }
+        .mkt-strip.pg-strip .ms-s:empty { display: none; }
 
         @media (max-width: 640px) {
             .mkt-strip.pg-strip {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr 1fr;
             }
-            .mkt-strip.pg-strip .ms-tile {
-                min-height: 126px;
-                padding: 18px 14px;
-            }
-            .mkt-strip.pg-strip .ms-k { font-size: 13px; }
-            .mkt-strip.pg-strip .ms-v { font-size: 24px; }
-            .mkt-strip.pg-strip .ms-s { font-size: 13px; }
+            .mkt-strip.pg-strip .ms-tile { padding: 12px 10px; }
+            .mkt-strip.pg-strip .ms-k { font-size: 12px; }
+            .mkt-strip.pg-strip .ms-v { font-size: 21px; }
+            .mkt-strip.pg-strip .ms-v.ms-name { font-size: 16px; }
+            .mkt-strip.pg-strip .ms-s { font-size: 11.5px; }
         }
         .mkt-strip .warn { color: #B54708; }
         .pg-note {
@@ -807,7 +819,13 @@ def inject_custom_css() -> None:
         .pg-card-h span { font-size: 12.5px; color: #5E6878; }
         .pg-cap { margin: 0; font-size: 12.5px; line-height: 1.5; color: #5E6878; }
         .pg-bars { display: flex; flex-direction: column; gap: 4px; }
-        .pg-bar { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 150px; align-items: center; gap: 12px; min-height: 30px; }
+        .pg-bar { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(56px, auto); align-items: center; gap: 12px; min-height: 30px; }
+        /* A long list (Portfolio's industries) runs in two columns on a wide
+           card instead of one tall column with a half-empty row each. */
+        @media (min-width: 1000px) {
+            .pg-bars:has(> .pg-bar:nth-child(7)) { display: block; columns: 2; column-gap: 40px; }
+            .pg-bars:has(> .pg-bar:nth-child(7)) .pg-bar { break-inside: avoid; margin-bottom: 4px; }
+        }
         .pg-bar-l { font-size: 13.5px; color: #0E1726; }
         .pg-bar-t { position: relative; height: 10px; border-radius: 5px; background: #EDEFF3; }
         .pg-bar-t i { position: absolute; left: 0; top: 0; height: 10px; border-radius: 5px; background: #4F46E5; }
@@ -1429,6 +1447,10 @@ def inject_custom_css() -> None:
         [class*="st-key-mrow_"] { align-items: stretch; }
         [class*="st-key-mrow_"] > [data-testid="stMetric"],
         [class*="st-key-mrow_"] > div { flex: 1 1 180px; min-width: 0; }
+        /* Figures in a card: as tall as their text, not a 90px box (owner, 13 Oct). */
+        [class*="st-key-mrow_"] [data-testid="stMetric"] { padding: 10px 14px !important; }
+        [class*="st-key-mrow_"] [data-testid="stMetric"] > div { padding: 0 !important; }
+        [class*="st-key-mrow_"] [data-testid="stMetricValue"] { font-size: 20px !important; line-height: 1.2 !important; }
 
         .pg-callout {
             border-left: 3px solid var(--c-border-strong);
@@ -1492,6 +1514,14 @@ def inject_custom_css() -> None:
             font-size: 1.6rem !important;
             font-weight: 700 !important;
             color: #0E1726 !important;
+        }
+
+        /* The page-wide paragraph rule reached the <p> inside a metric's label
+           and value, leaving every value 14px grey under a 90px box. */
+        [data-testid="stMetricLabel"] p,
+        [data-testid="stMetricValue"] p {
+            font: inherit !important; color: inherit !important; letter-spacing: inherit !important;
+            margin: 0 !important;
         }
 
         [data-testid="stMetricDelta"] {
