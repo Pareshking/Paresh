@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-10-13 — Less empty space, fewer cramped boxes
+
+- The figure strip under each page's title (Sectors, Actions, Breadth, Portfolio, Backtest) fills the row however many figures it has. It was a fixed six columns, so four figures left two empty columns and long industry names wrapped onto four lines. Names now read smaller, at most two lines; on a phone the figures sit two to a row.
+- Screener: Biggest jumps, Entered top 50 and Left top 50 sit side by side on a wide screen, compact (about 1,000px shorter).
+- Figure boxes inside cards (Portfolio's month, alpha, drawdown; Backtest): values read at their intended size and the boxes are as tall as their text (74px, was 104px). A page-wide paragraph style had shrunk every value to 14px grey.
+- Portfolio: industry exposure runs in two columns; "How they move together" is a collapsed section, like Actions' Buy candidates, with the average in its heading.
+- Sectors leadership map: one soft colour per sector, the same on every EMA tab, instead of green and red; a one-line intro; its table is drawn like "Stocks in an industry" (sortable headers, each sector's map colour as a dot, today and a month ago grouped; on a phone, short names and today's columns).
+
+## 2026-10-13 — The track record keeps January and February 2026 as frozen
+
+- The owner keeps the 750's frozen January (-0.21%) and February (+0.70%) 2026 months, though today's replay, after the rights-issue fix (S56), gives +0.00% and +0.80%. The parity gate now lists these two as accepted (`src/engine/parity_accepted_drift.json`) and passes; any other drift, or a further move in these two, still fails it.
+
+## 2026-10-13 — Sectors: a leadership map, a month ago and today
+
+- At the bottom of **Sectors**, each NSE industry (of the 750) is a line from a hollow dot (a month ago) to a filled dot (today). Across: the industry's 1-month return less the Nifty 500's. Up: the share of its stocks above their EMA, in tabs for the 20, 50, 100 and 200-day EMA. It shows a sector beating the index while most of its stocks fall.
+- Pick a sector above the map, or tap it, to dim the rest. A table under the map gives each figure as counts ("14 of 43 above").
+- The sector return is the equal-weighted mean of its stocks' price returns, not an NSE sector index.
+
+## 2026-10-13 — Primary popover buttons read white on indigo
+
+- The Actions page's **Kite basket** label read grey on indigo, hard to see on a phone. A popover's button has its own test id, so the rule that whitens primary-button labels missed it. Every primary button (plain, popover, download, form submit) is now matched by its kind, so the label is white on all of them.
+
 ## 2026-10-12 — NSE's prices take rights issues into account
 
 - The NSE closes the app keeps as its middle price source (Screener first, NSE second) moved raw across rights issues: 14 since Sep 2024, HCC -23% on 5 Dec 2025, as if holders had lost it. Their corporate-action file was written before rights rows were kept and had no face value to price them. It now keeps the face value, and each monthly update re-reads every corporate action from NSE's files on R2. The 13 rights issues with an NSE close before them now match the long price file's adjustment to four decimals (S56).

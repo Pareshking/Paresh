@@ -641,11 +641,13 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
             for _, row in sector.iterrows()
         ], scale=max(float(sector["Weight"].max()) if not sector.empty else 0.0, 1.0)))
 
-    # The reading sits in the heading (owner, 2026-10-07), not in a caption below.
+    # Collapsed, like Actions' "Buy candidates" (owner, 13 Oct). The reading
+    # stays in the heading (owner, 2026-10-07), not in a caption below.
     _corr, _corr_mean = correlation(prices, table["Symbol"].tolist())
-    _corr_head = (f"Average {_corr_mean:.2f}, {correlation_note(_corr_mean)}" if _corr is not None
-                  else "90-day correlation of the holdings")
-    with kit.card("How they move together", "portfolio_corr", _corr_head):
+    _corr_label = ("How they move together · average "
+                   f"{_corr_mean:.2f}, {correlation_note(_corr_mean)}" if _corr is not None
+                   else "How they move together")
+    with st.expander(_corr_label, expanded=False):
         if _corr is None:
             st.caption("Not enough price history to compare these holdings.")
         else:

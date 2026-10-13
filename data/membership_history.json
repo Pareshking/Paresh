@@ -2099,6 +2099,15 @@
             "TRIVENIPT"
           ],
           "removed": []
+        },
+        {
+          "date": "2026-10-13",
+          "added": [
+            "PFIZER"
+          ],
+          "removed": [
+            "CCAVENUE"
+          ]
         }
       ]
     },
@@ -8202,6 +8211,15 @@
             "TRIVENIPT"
           ],
           "removed": []
+        },
+        {
+          "date": "2026-10-13",
+          "added": [
+            "PFIZER"
+          ],
+          "removed": [
+            "CCAVENUE"
+          ]
         }
       ]
     },
@@ -13676,6 +13694,15 @@
         "TRIVENIPT"
       ],
       "removed": []
+    },
+    {
+      "date": "2026-10-13",
+      "added": [
+        "PFIZER"
+      ],
+      "removed": [
+        "CCAVENUE"
+      ]
     }
   ],
   "aliases": {
