@@ -395,3 +395,83 @@ def render_industry_map(board: pd.DataFrame) -> None:
         "})();</script></body></html>"
     )
     st.iframe(page, height=428)
+
+
+_LEADERSHIP_JS = r"""
+(function(){
+const rows=__ROWS__, span=__SPAN__, then=__THEN__, now=__NOW__;
+let focus=__FOCUS__;
+const e=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pct=v=>(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(1)+'%';
+const col=r=>r.y1>r.y0+0.5?'#067647':r.y1<r.y0-0.5?'#B42318':'#5E6878';
+const FOCUS='#4F46E5';
+const xs=rows.flatMap(r=>[r.x0,r.x1]);const xl=Math.max(2,Math.ceil(Math.max.apply(null,xs.map(Math.abs))+0.5));
+const series=rows.map(r=>({name:r.name,id:r.name,color:col(r),row:r,
+  data:[{x:r.x0,y:r.y0,marker:{fillColor:'#FFFFFF',lineColor:col(r),lineWidth:2,radius:5,symbol:'circle'},dataLabels:{enabled:false}},
+        {x:r.x1,y:r.y1,marker:{fillColor:col(r),lineColor:'#FFFFFF',lineWidth:1,radius:6,symbol:'circle'}}]}));
+function paint(chart){
+  chart.series.forEach(s=>{const on=!focus||s.name===focus,me=focus&&s.name===focus;
+    const c=me?FOCUS:s.options.row?col(s.options.row):'#5E6878';
+    s.update({opacity:on?1:0.14,lineWidth:me?3:1.5,zIndex:me?10:1,color:c,
+      data:s.options.data.map((p,i)=>Object.assign({},p,{marker:Object.assign({},p.marker,i===0?{lineColor:c}:{fillColor:c})})),
+      dataLabels:{enabled:on,style:{fontWeight:me?'700':'600',color:me?'#312E81':'#3C4657'}}},false);});
+  chart.redraw(false);
+  const tag=document.getElementById('pin');tag.textContent=focus?'Showing '+focus+' · tap it again to show all':'Tap a sector to pick it out';
+}
+const chart=Highcharts.chart('c',{chart:{type:'scatter',backgroundColor:'transparent',animation:false,spacing:[8,12,4,4],
+  style:{fontFamily:'Geist,system-ui,sans-serif'},zooming:{type:'xy'}},
+  credits:{enabled:false},accessibility:{enabled:false},title:{text:null},legend:{enabled:false},exporting:{enabled:false},
+  xAxis:{min:-xl,max:xl,tickInterval:xl>8?4:2,gridLineWidth:1,gridLineColor:'#F1F2F5',
+    title:{text:'1-month return vs Nifty 500 →',style:{color:'#5E6878',fontSize:'12px'}},
+    labels:{format:'{value}%',style:{color:'#5E6878',fontSize:'12px'}},plotLines:[{value:0,color:'#98A1AE',width:1,dashStyle:'Dash',zIndex:2}]},
+  yAxis:{min:0,max:100,tickInterval:20,endOnTick:false,gridLineColor:'#EDEFF3',
+    title:{text:'↑ Stocks above their '+span+'-day EMA',style:{color:'#5E6878',fontSize:'12px'}},
+    labels:{format:'{value}%',style:{color:'#5E6878',fontSize:'12px'}},plotLines:[{value:50,color:'#98A1AE',width:1,dashStyle:'Dash',zIndex:2}]},
+  tooltip:{useHTML:true,backgroundColor:'rgba(15,23,42,.94)',borderWidth:0,shadow:false,style:{color:'#fff',fontSize:'12px'},
+    formatter:function(){const r=this.series.options.row;
+      return '<b>'+e(r.full)+'</b> · '+r.stocks+' stocks<br>'+
+      '<span style="opacity:.7">'+e(then)+'</span> '+pct(r.x0)+' vs Nifty 500 · '+r.a0+' of '+r.o0+' above<br>'+
+      '<span style="opacity:.7">'+e(now)+'</span> <b>'+pct(r.x1)+'</b> vs Nifty 500 · <b>'+r.a1+' of '+r.o1+'</b> above<br>'+
+      '<span style="opacity:.7">Sector '+pct(r.ret)+', Nifty 500 '+pct(r.bench)+' this month</span>';}},
+  plotOptions:{series:{animation:false,dashStyle:'ShortDash',lineWidth:1.5,marker:{enabled:true},stickyTracking:false,findNearestPointBy:'xy',
+    states:{hover:{lineWidthPlus:1.5},inactive:{opacity:0.18}},cursor:'pointer',
+    dataLabels:{enabled:true,allowOverlap:false,crop:false,overflow:'allow',x:6,align:'left',verticalAlign:'middle',
+      style:{fontSize:'11px',fontWeight:'600',color:'#3C4657',textOutline:'2px #fff'},formatter:function(){return e(this.series.name);}},
+    point:{events:{click:function(){focus=focus===this.series.name?null:this.series.name;paint(this.series.chart);}}}}},
+  series:series});
+paint(chart);
+})();
+"""
+
+
+def render_leadership_map(board: pd.DataFrame, span: int, focus: str | None = None,
+                          short: dict[str, str] | None = None) -> None:
+    """Each sector a dashed line from a hollow dot (a month ago) to a filled dot
+    (today): across is its 1-month return less the Nifty 500's, up is the share
+    of its stocks above their `span`-day EMA. Green lines gained breadth, red
+    lost it. Tapping a sector (or picking it above) dims the rest."""
+    from src.ui.highcharts_lib import lib, script_json
+
+    if board.empty:
+        return
+    short = short or {}
+    rows = [{
+        "name": short.get(r.Sector, r.Sector), "full": r.Sector, "stocks": int(r.Stocks),
+        "x0": round(r.x_then * 100, 2), "x1": round(r.x_now * 100, 2),
+        "y0": round(r.y_then * 100, 1), "y1": round(r.y_now * 100, 1),
+        "a0": int(r.above_then), "o0": int(r.obs_then), "a1": int(r.above_now), "o1": int(r.obs_now),
+        "ret": round(r.ret_now * 100, 2), "bench": round(r.bench_now * 100, 2),
+    } for r in board.itertuples()]
+    then = f"{pd.Timestamp(board['Then'].iloc[0]):%d %b}"
+    now = f"{pd.Timestamp(board['Now'].iloc[0]):%d %b}"
+    js = (_LEADERSHIP_JS.replace("__ROWS__", script_json(rows)).replace("__SPAN__", str(int(span)))
+          .replace("__THEN__", script_json(then)).replace("__NOW__", script_json(now))
+          .replace("__FOCUS__", script_json(short.get(focus, focus) if focus else None)))
+    page = (
+        "<!DOCTYPE html><html><head><meta charset='utf-8'><style>*{box-sizing:border-box;margin:0}"
+        "html,body{background:transparent;font-family:'Geist',system-ui,sans-serif}"
+        "#pin{font-size:12px;color:#5E6878;padding:2px 4px 6px}</style></head>"
+        "<body><div id='pin'></div><div id='c' style='width:100%;height:500px'></div><script>"
+        + lib() + "</script><script>" + js + "</script></body></html>"
+    )
+    st.iframe(page, height=530)

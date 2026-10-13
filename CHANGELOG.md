@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-13 — Sectors: a leadership map, a month ago and today
+
+- At the bottom of **Sectors**, each NSE industry (of the 750) is a line from a hollow dot (a month ago) to a filled dot (today). Across: the industry's 1-month return less the Nifty 500's. Up: the share of its stocks above their EMA, in tabs for the 20, 50, 100 and 200-day EMA. It shows a sector beating the index while most of its stocks fall.
+- Pick a sector above the map, or tap it, to dim the rest. A table under the map gives each figure as counts ("14 of 43 above").
+- The sector return is the equal-weighted mean of its stocks' price returns, not an NSE sector index.
+
+## 2026-10-13 — Primary popover buttons read white on indigo
+
+- The Actions page's **Kite basket** label read grey on indigo, hard to see on a phone. A popover's button has its own test id, so the rule that whitens primary-button labels missed it. Every primary button (plain, popover, download, form submit) is now matched by its kind, so the label is white on all of them.
+
 ## 2026-10-12 — NSE's prices take rights issues into account
 
 - The NSE closes the app keeps as its middle price source (Screener first, NSE second) moved raw across rights issues: 14 since Sep 2024, HCC -23% on 5 Dec 2025, as if holders had lost it. Their corporate-action file was written before rights rows were kept and had no face value to price them. It now keeps the face value, and each monthly update re-reads every corporate action from NSE's files on R2. The 13 rights issues with an NSE close before them now match the long price file's adjustment to four decimals (S56).
