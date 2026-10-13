@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-13 — About 85 MB less memory at peak
+
+- The app now has pyarrow use the system allocator. With four readers at once, Portfolio peaked at 877 - 929 MB instead of 960 - 1,001 MB, and Backtest at 801 - 840 MB instead of 858 - 936 MB (three runs each). What every page shows is unchanged.
+
 ## 2026-10-13 — Nano Cap and Combined: daily prices over Screener's weekly stretch
 
 - Screener's history before Sep 2025 is one close a week. For the 750 those weeks have been filled with NSE's daily moves since 7 Oct; Nano Cap and Combined stayed weekly, because NSE's committed file held most Nano Cap stocks only from Oct 2026. They are now filled the same way (owner: "do it"): 362 of 362 Nano Cap stocks and 1,061 of 1,061 in Combined, 106 sessions added. Every Screener close stays as it is, and a week where NSE's move differs from Screener's by more than 2% stays weekly (38 weeks, all thin trading or a close a few paise apart, none a missed split).

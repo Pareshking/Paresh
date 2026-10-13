@@ -301,3 +301,21 @@ def test_the_queued_message_is_amber_and_names_whose_run_it_is():
     assert "queued.warning(" in block and "queued.info(" not in block
     assert "Your previous settings are still computing" in block
     assert "Another reader's backtest is computing" in block
+
+
+def test_app_puts_pyarrow_on_the_system_allocator_at_import():
+    # TODO S64 (13 Oct 2026): ~85 MB lower peaks with 4 readers, output identical.
+    from pathlib import Path
+
+    import pyarrow as pa
+
+    from src.core.memory import use_system_arrow_pool
+
+    before = pa.default_memory_pool()
+    try:
+        assert use_system_arrow_pool() == "system"
+        assert pa.default_memory_pool().backend_name == "system"
+    finally:
+        pa.set_memory_pool(before)
+    src = Path("app.py").read_text()
+    assert src.index("use_system_arrow_pool()") < src.index("from src.engine")

@@ -52,3 +52,24 @@ def release_freed_memory() -> float | None:
     except Exception:  # noqa: BLE001 - observation-grade helper, must never break a page
         return None
     return time.perf_counter() - started
+
+
+def use_system_arrow_pool() -> str | None:
+    """Make pyarrow allocate with malloc instead of its bundled mimalloc.
+
+    TODO S64, measured 13 Oct 2026 (4 concurrent sessions, 3 runs each way):
+    Portfolio peaks 960 / 1,000 / 1,001 MB with mimalloc, 877 / 895 / 929 MB
+    with the system pool; Backtest 910 / 936 / 858 vs 819 / 801 / 840 MB. Every
+    system run is under every mimalloc run. Memory freed by the system pool
+    also goes back to the OS with release_freed_memory(). Streamlit Cloud
+    cannot set ARROW_DEFAULT_MEMORY_POOL before Python starts, so this is
+    called at app import. Returns the pool's backend name, or None if pyarrow
+    refused (never raises).
+    """
+    try:
+        import pyarrow as pa
+
+        pa.set_memory_pool(pa.system_memory_pool())
+        return pa.default_memory_pool().backend_name
+    except Exception:  # noqa: BLE001 - an allocator choice must never break the app
+        return None
