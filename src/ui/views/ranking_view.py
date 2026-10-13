@@ -31,6 +31,11 @@ from src.ui.screener_table import INDEX_NAMES, column_count, render_screener_tab
 # in which columns they show.
 _DENSITY_OPTIONS = ["Executive (11)", "Core (17)", "Full Quant (35)"]
 
+# "Big movers": rank moved this many places in a month, up or down. 15 caught
+# 630 of 750 (the median stock moves ~58 places a month); 150 is about the
+# biggest sixth (owner, 13 Oct).
+BIG_MOVE_PLACES = 150
+
 
 def _frame_key(df: pd.DataFrame) -> str:
     """Content fingerprint of a display frame: shape, columns and every cell.
@@ -286,7 +291,7 @@ def render_ranking_view(
         "Top 50 Qualified": int(((rank_df["Rank"] <= 50) & passes).sum()),
         "Top 50 Not Qualified": int(((rank_df["Rank"] <= 50) & ~passes).sum()),
         "Passed Filters": int(passes.sum()),
-        "Momentum Movers": int((rank_df["Rank Δ 1M"].abs() >= 15).sum())
+        "Momentum Movers": int((rank_df["Rank Δ 1M"].abs() >= BIG_MOVE_PLACES).sum())
         if "Rank Δ 1M" in rank_df.columns else 0,
         "High Volume": int((rank_df.get("Volume", pd.Series("", index=rank_df.index)) == "High").sum()),
     }
@@ -447,7 +452,7 @@ def render_ranking_view(
         ]
     elif filt == "Momentum Movers":
         if "Rank Δ 1M" in view.columns:
-            view = view[view["Rank Δ 1M"].abs() >= 15].sort_values(
+            view = view[view["Rank Δ 1M"].abs() >= BIG_MOVE_PLACES].sort_values(
                 "Rank Δ 1M", ascending=False
             )
     elif filt == "High Volume":

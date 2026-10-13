@@ -67,3 +67,29 @@ def test_short_history_returns_empty():
     prices = pd.DataFrame({"A1": 1.0, "A2": 1.0}, index=idx)
     out = sector_leadership(prices, pd.Series({"A1": "X", "A2": "X"}), pd.Series(1.0, index=idx))
     assert out.empty
+
+
+def test_the_worked_example_states_the_sectors_own_numbers_and_direction():
+    from src.ui.views.sector_view import leadership_explainer
+    r = pd.Series({"Then": pd.Timestamp("2026-09-11"), "Now": pd.Timestamp("2026-10-12"), "Stocks": 40,
+                   "ret_now": -0.016, "bench_now": -0.046, "x_now": 0.030, "x_then": -0.033,
+                   "y_now": 13 / 40, "y_then": 14 / 39, "above_now": 13, "obs_now": 40,
+                   "above_then": 14, "obs_then": 39})
+    text = leadership_explainer(r, "Information Technology", 200)
+    assert "-1.60 − (-4.60) = **+3.00%**" in text
+    assert "13 of 40 = **32%**" in text and "14 of 39 = 36%" in text
+    assert "moved 6.3 points right and 3 points down" in text
+    assert "the lead is narrow" in text and "200-day EMA" in text and "160 sessions" in text
+
+
+def test_three_month_period_and_the_two_heavy_lifters():
+    prices, groups, bench = _frame()
+    one = sector_leadership(prices, groups, bench, span=20).set_index("Sector")
+    three = sector_leadership(prices, groups, bench, span=20, months=3).set_index("Sector")
+    assert three.loc["Alpha", "Then"] == pd.Timestamp("2026-07-10")  # 12 Jul is a Sunday
+    assert three.loc["Alpha", "Months"] == 3 and one.loc["Alpha", "Months"] == 1
+    # Beta: B2 rose, B1 fell, so B2 leads; each leader carries its own return.
+    lead = three.loc["Beta", "Leaders"]
+    assert [s for s, _ in lead] == ["B2", "B1"]
+    then, now = three.loc["Beta", "Then"], three.loc["Beta", "Now"]
+    assert abs(lead[0][1] - (prices.loc[now, "B2"] / prices.loc[then, "B2"] - 1)) < 1e-12

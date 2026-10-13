@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-13 — Sector map: how to read it, 1M or 3M, the heavy lifters; Big movers means big
+
+- Under the Sector leadership map, **How to read this** works one sector through with its own numbers: its stocks' average move against the Nifty 500 over the same closes (across), how many of its stocks are above their EMA (up), and what the line's direction means. It uses the sector you pick, else the first that beat the index on narrow breadth.
+- The map's controls are pill buttons like the Rank by row at the top of Sectors (EMA: 20/50/100/200; period: **1M** or **3M**). 3M puts the hollow dot three months back, for the slower trend underneath.
+- Each sector names the two stocks doing the heavy lifting, in the table (under the sector's name) and the chart's tooltip. With equal weight each stock adds its return ÷ the number of stocks, so the two largest returns are the two largest contributions.
+- Screener: **Big movers** is a rank move of 150 places or more in a month (about 118 stocks today), not 15 (630 of 750) (owner).
+- Backtest: shorter price and download notes.
+
 ## 2026-10-13 — Sectors: 6M, Share passing and Top-50 count change the whole page
 
 - The Rank by buttons re-sorted only the leaderboard further down; the tiles (Leading, Rising, Weakest) and the Industry map always read the 3-month median, so on a phone nothing visible changed. They now follow the choice: with 6M median, Services leads (+17.9% in 6 months), 12 of 20 industries are rising and the map runs on the 6-month median. The subtitle names the measure.

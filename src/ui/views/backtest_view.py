@@ -407,7 +407,7 @@ def _backtest_tab(
             months = max(months, int((pd.Period(adj_close.index[-1], freq="M")
                                       - pd.Period(history_start, freq="M")).n))
         price_basis = (
-            "Personal closes, NSE only where Personal data is unavailable; no dividends"
+            "Personal closes, NSE's where Personal has none; no dividends"
             if _nse_info.get("basis") == "screener_primary" else
             "NSE closes, adjusted for splits, bonuses and demergers; no dividends"
         )
@@ -699,9 +699,8 @@ def _backtest_tab(
                 key="dl_bt_export", icon=":material/download:",
             )
             _n_open = int((_trades["Status"] == "Open").sum()) if len(_trades) else 0
-            st.caption(f"{len(_trades)} trades ({len(_trades) - _n_open} closed, {_n_open} still open) "
-                       "in backtest_trades.csv; entry, exit, timing, sizing and cost rules, and what "
-                       "each trade column means, in backtest_rules.csv. Both open in Excel.")
+            st.caption(f"{len(_trades)} trades ({len(_trades) - _n_open} closed, {_n_open} open) in "
+                       "backtest_trades.csv; the rules and what each column means in backtest_rules.csv.")
         except Exception as exc:  # the page must not fail because a download could not be built
             st.caption(f"The download is unavailable for this run ({type(exc).__name__}: {exc}).")
 
