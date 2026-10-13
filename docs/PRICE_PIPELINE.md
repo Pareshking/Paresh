@@ -258,13 +258,12 @@ never read again, and no audit that could fail a job. Now (GitHub cron is UTC):
 |---|---|---|
 | 2nd of the month, 21:13 / 02:43 on the 3rd | `nse_history_import.yml` | NSE's yearly corporate-action list for last year and this year (so January also re-reads the year just ended); no prices (the mirror ends Sep 2023, all of it on R2). Fails when NSE gives no year |
 | 3rd of the month, 22:37 / 04:07 on the 4th | `nse_history_audit.yml` | The history audit, then its limits (`audit_limits.py history`; `nse_history_audit.py --fail-on-limits` does the same by hand) |
-| Saturdays 03:30 / 09:00 | `nse_long_prices.yml` | Build from the packs, publish, audit, then the audit limits |
-| Second Saturday (the 8th - 14th), same time | `nse_long_prices.yml` | The same build ignoring both packs: every session and corporate-action day read from R2 again (as `full=yes`), so a file revised on R2 after it was first read is picked up |
+| Saturdays 03:30 / 09:00 | `nse_long_prices.yml` | Build, publish, audit, then the audit limits. Each scheduled build ignores both packs: every session and corporate-action day read from R2 again (as `full=yes`), so a file revised on R2 after it was first read is picked up (owner, 13 Oct 2026: "every Saturday"). Each build adjusts NSE's raw closes from scratch, actions deduplicated, so a full read never adjusts twice |
 
-The import always runs before the month's full re-read (the 2nd against the 8th
-at the earliest) and before the audit; the builds share one concurrency group,
-so the weekly and the full one never run at once. The yearly list is read whole
-by every build, so it needs no pack of its own.
+The import runs on the 2nd and the audit on the 3rd; the long-file builds share
+one concurrency group, so two never run at once. A manual run reads only what
+the packs lack unless `full=yes`. The yearly list is read whole by every build,
+so it needs no pack of its own.
 
 **Audit limits** (`scripts/audit_limits.py`). Each audit's summary is checked
 against the counts of its latest run, named constants with the run they come

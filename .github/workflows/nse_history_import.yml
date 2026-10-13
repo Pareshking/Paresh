@@ -17,8 +17,8 @@ name: NSE history import (2010 onwards)
 on:
   schedule:
     # The 2nd of each month, 21:13 UTC (02:43 IST on the 3rd): NSE quiet; before
-    # the history audit (the 3rd, 22:37 UTC) and the long file's monthly full
-    # re-read (nse_long_prices, second Saturday: the 8th at the earliest).
+    # the history audit (the 3rd, 22:37 UTC) and the long file's full re-read
+    # (nse_long_prices, every Saturday).
     - cron: '13 21 2 * *'
   workflow_dispatch:
     inputs:

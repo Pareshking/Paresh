@@ -108,6 +108,15 @@ PROTECTED_DATASETS: tuple[str, ...] = (
     "snapshots/rankings*",              # rankings, rankings_nano, rankings_combined
 )
 
+# Protected datasets the owner allowed to be thinned to their newest copies,
+# never retired and never below MIN_PROTECTED_COPIES. Each bse/daily copy is
+# the whole table (2008 to that day, ~330 MB, one a month), so an older copy
+# only repeats the newest (owner, 13 Oct 2026, TODO S52: "keep the newest two").
+PROTECTED_KEEP_NEWEST: dict[str, tuple[str, int]] = {
+    "bse/daily": ("archive/bse/daily", 2),
+}
+MIN_PROTECTED_COPIES = 2
+
 # A scheduled run deletes at most this many keys; a larger plan waits for a
 # person to dispatch it with the count (owner, 2026-10-07). The weekly prune
 # deletes a handful (2 on 4 Oct).
@@ -120,8 +129,19 @@ def _protected(dataset: str) -> bool:
                for p in PROTECTED_DATASETS)
 
 
-def check_protected(datasets: dict[str, str], retired: dict[str, str]) -> None:
-    """Raise if a retention or retirement entry would reach a protected dataset."""
+def check_protected(datasets: dict[str, str], retired: dict[str, str],
+                    thinned: dict[str, tuple[str, int]] | None = None) -> None:
+    """Raise if a retention or retirement entry would reach a protected dataset.
+
+    `thinned` (PROTECTED_KEEP_NEWEST) is the one way a protected dataset loses
+    copies: its newest N, N at least MIN_PROTECTED_COPIES, are always kept.
+    """
+    for ds, (_root, n) in (thinned or {}).items():
+        if n < MIN_PROTECTED_COPIES:
+            raise ValueError(f"{ds} would keep {n} copies; a protected dataset keeps at least "
+                             f"{MIN_PROTECTED_COPIES}")
+        if ds in retired or ds in datasets:
+            raise ValueError(f"{ds} is thinned (PROTECTED_KEEP_NEWEST) and may not also be pruned or retired")
     for ds in {**datasets, **retired}:
         if _protected(ds):
             raise ValueError(f"{ds} is protected (PROTECTED_DATASETS) and may not be pruned or retired")
@@ -175,7 +195,7 @@ def keep_dates(as_of_dates: list[str], keep_daily: int = KEEP_DAILY,
 
 
 def plan_dataset(archive: R2Archive, dataset: str, root: str,
-                 sizes: dict[str, int]) -> DatasetPlan:
+                 sizes: dict[str, int], keep_latest: int | None = None) -> DatasetPlan:
     prefix = f"archive/manifests/{dataset}/"
     pointers: dict[str, str] = {}
     manifests: dict[str, list[str]] = {}
@@ -190,7 +210,9 @@ def plan_dataset(archive: R2Archive, dataset: str, root: str,
             pointers[as_of] = key
 
     dates = sorted(set(pointers) | set(manifests))
-    if dataset in KEEP_LATEST_ONLY:
+    if keep_latest is not None:
+        keep = keep_dates(dates, keep_latest, month_ends=False)
+    elif dataset in KEEP_LATEST_ONLY:
         keep = keep_dates(dates, KEEP_LATEST_ONLY[dataset], month_ends=False)
     else:
         keep = keep_dates(dates)
@@ -319,10 +341,13 @@ def plan_retired(archive: R2Archive, dataset: str, root: str,
 
 def make_plan(archive: R2Archive,
               datasets: dict[str, str] = RETAINED_DATASETS,
-              retired: dict[str, str] = RETIRED_DATASETS) -> list[DatasetPlan]:
-    check_protected(datasets, retired)
+              retired: dict[str, str] = RETIRED_DATASETS,
+              thinned: dict[str, tuple[str, int]] | None = None) -> list[DatasetPlan]:
+    thinned = PROTECTED_KEEP_NEWEST if thinned is None else thinned
+    check_protected(datasets, retired, thinned)
     sizes = dict(archive.list_objects(""))
     return ([plan_dataset(archive, ds, root, sizes) for ds, root in datasets.items()]
+            + [plan_dataset(archive, ds, root, sizes, keep_latest=n) for ds, (root, n) in thinned.items()]
             + [plan_retired(archive, ds, root, sizes, retired) for ds, root in retired.items()])
 
 

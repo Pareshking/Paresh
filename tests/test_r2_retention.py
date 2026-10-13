@@ -77,7 +77,7 @@ def test_plan_drops_only_the_retained_datasets_and_only_unkept_dates():
     assert set(yahoo.drop) == dropped
     # pointer + manifest + payload per dropped date
     assert len(yahoo.delete_keys) == 3 * len(dropped)
-    assert set(plans) == {"prices/screener", "prices/ss", "snapshots/application", "prices/yahoo/bootstrap",
+    assert set(plans) == {"prices/screener", "prices/ss", "bse/daily", "snapshots/application", "prices/yahoo/bootstrap",
                           "prices/yahoo", "prices/yahoo/raw", "app/prices_snapshot",
                           "app/prices_extra"}
     # Every Yahoo dataset goes whole, each key planned once.
@@ -343,3 +343,31 @@ def test_a_large_plan_is_not_applied_by_a_capped_run(monkeypatch):
                                      "--max-deletes", str(count)])
     assert rr.main() == 0
     assert len(a.deleted) == count
+
+
+def test_bse_daily_keeps_its_newest_two_monthly_copies_and_nothing_else_of_it_goes():
+    # Owner, 13 Oct 2026 (S52): each copy is the whole table; keep the newest two.
+    a = FakeArchive()
+    months = ["2026-11-02", "2026-12-01", "2027-01-04"]
+    for i, d in enumerate(months):
+        publish(a, "bse/daily", "archive/bse/daily", d, 9000 + i)
+    plans = {p.dataset: p for p in rr.make_plan(a)}
+    plan = plans["bse/daily"]
+    assert plan.keep == months[1:] and plan.drop == months[:1]
+    assert plan.delete_keys and all("2026-11-02" in k for k in plan.delete_keys)
+    # With one or two copies (today, and in November) nothing is deleted.
+    b = FakeArchive()
+    for i, d in enumerate(months[:2]):
+        publish(b, "bse/daily", "archive/bse/daily", d, 9100 + i)
+    assert not {p.dataset: p for p in rr.make_plan(b)}["bse/daily"].delete_keys
+
+
+def test_a_protected_dataset_is_never_thinned_below_two_copies_or_also_pruned():
+    import pytest
+
+    with pytest.raises(ValueError, match="at least"):
+        rr.check_protected({}, {}, {"bse/daily": ("archive/bse/daily", 1)})
+    with pytest.raises(ValueError, match="thinned"):
+        rr.check_protected({}, {"bse/daily": "archive/bse/daily"}, {"bse/daily": ("archive/bse/daily", 2)})
+    with pytest.raises(ValueError, match="protected"):
+        rr.check_protected({"bse/daily": "archive/bse/daily"}, {})

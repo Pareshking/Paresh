@@ -1,7 +1,6 @@
 """Audit limits that fail a job on a regression (S47): scripts/audit_limits.py and its wiring."""
 import copy
 import json
-import re
 from datetime import date
 from pathlib import Path
 
@@ -178,8 +177,8 @@ def test_the_yearly_list_is_imported_monthly_before_the_full_rebuild_and_the_aud
     aud, aud_on = _wf("nse_history_audit.yml")
     imp_cron, aud_cron = imp_on["schedule"][0]["cron"], aud_on["schedule"][0]["cron"]
     assert imp_cron.split()[0] != "0" and aud_cron.split()[0] != "0"
-    # Import on day 2, audit on day 3, the full re-read on the second Saturday (day 8 at the earliest).
-    assert _cron_day(imp_cron) < _cron_day(aud_cron) < 8
+    # Import on day 2, then the audit on day 3; the long file re-reads everything every Saturday.
+    assert _cron_day(imp_cron) < _cron_day(aud_cron)
     steps = {s.get("name", ""): s for s in imp["jobs"]["import"]["steps"]}
     actions = next(s for n, s in steps.items() if n.startswith("Corporate actions"))
     assert "date -u +%Y) - 1" in actions["run"]          # last year and this year when scheduled
@@ -187,12 +186,14 @@ def test_the_yearly_list_is_imported_monthly_before_the_full_rebuild_and_the_aud
         assert "github.event_name != 'schedule'" in steps[name]["if"]
 
 
-def test_the_long_file_rereads_everything_on_the_second_saturday():
+def test_the_long_file_rereads_everything_on_every_scheduled_saturday():
+    # Owner, 13 Oct 2026: a full rebuild every Saturday, not only the second.
     doc, on = _wf("nse_long_prices.yml")
     assert on["schedule"][0]["cron"] == "30 3 * * 6"
     steps = doc["jobs"]["build"]["steps"]
     first = steps[0]
-    assert "FULL=yes" in first["run"] and re.search(r"-ge 8 .*-le 14", first["run"])
+    assert first["if"] == "github.event_name == 'schedule'"
+    assert "FULL=yes" in first["run"] and "-ge" not in first["run"]
     pack = next(s for s in steps if s.get("name") == "The raw-history pack from the last build")
     assert pack["if"] == "env.FULL != 'yes'"
     assert "inputs.full == 'yes'" in doc["jobs"]["build"]["env"]["FULL"]

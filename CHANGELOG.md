@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-13 — Long file rebuilt in full every Saturday; old BSE copies trimmed to two
+
+- The Saturday long-file build now reads every session and corporate-action day from R2 again every week, not only on the second Saturday (owner). Each build adjusts NSE's raw closes from scratch, with every action counted once, so a full rebuild cannot apply an adjustment twice.
+- R2 keeps the newest two copies of BSE's daily table (`bse/daily`, one a month, each the whole history) and deletes older ones (owner). Today there is one copy, so nothing is deleted before December. The table stays protected otherwise: it can never go below two copies or be retired.
+
 ## 2026-10-13 — About 85 MB less memory at peak
 
 - The app now has pyarrow use the system allocator. With four readers at once, Portfolio peaked at 877 - 929 MB instead of 960 - 1,001 MB, and Backtest at 801 - 840 MB instead of 858 - 936 MB (three runs each). What every page shows is unchanged.
