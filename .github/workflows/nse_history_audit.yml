@@ -5,15 +5,31 @@ name: NSE history audit
 # bonus / demerger and whether the price confirms it, unexplained jumps, and
 # automatic renames refused by the continuity check. The report is the run's
 # summary and an artifact. See scripts/nse_history_audit.py.
+#
+# Monthly (S47): the day after the yearly-list import. The job fails when a
+# count is worse than its known baseline (scripts/audit_limits.py,
+# HISTORY_LIMITS), after the report and artifact are written;
+# scheduled_failure_alert.yml then opens an issue.
 on:
+  schedule:
+    # The 3rd of each month, 22:37 UTC (04:07 IST on the 4th): a day after
+    # nse_history_import (the 2nd, 21:13 UTC).
+    - cron: '37 22 3 * *'
   workflow_dispatch:
     inputs:
       since:
         description: "First day to audit (YYYY-MM-DD)"
         default: "2008-01-01"
+      fail_on_limits:
+        description: "Fail the job when a finding is worse than its baseline (yes/no)"
+        default: "yes"
 
 permissions:
   contents: read
+
+concurrency:
+  group: nse-history-audit
+  cancel-in-progress: false
 
 jobs:
   audit:
@@ -36,6 +52,11 @@ jobs:
         run: |
           python scripts/nse_history_audit.py --since "${{ inputs.since || '2008-01-01' }}" --out reports/nse_audit
           cat reports/nse_audit/report.md >> "$GITHUB_STEP_SUMMARY"
+      # S47: fails the job when a count is worse than its baseline; the report is
+      # in the summary already and the artifact below uploads regardless.
+      - name: Audit limits
+        if: inputs.fail_on_limits != 'no'
+        run: python scripts/audit_limits.py history --audit reports/nse_audit
       - uses: actions/upload-artifact@v7
         if: always()
         with:

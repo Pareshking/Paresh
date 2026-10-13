@@ -14,7 +14,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(__file__, "../.."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from src.loaders import indices_loader, price_loader, mcap_loader
+from src.loaders import indices_loader, mcap_loader
 
 
 @pytest.fixture(autouse=True)
@@ -29,9 +29,6 @@ def patch_constants(monkeypatch):
         "SYNC_META_FILE",
         os.path.join(tmp_dir, "sync_meta.json"),
         raising=False,
-    )
-    monkeypatch.setattr(
-        price_loader, "PRICES_FILE", os.path.join(tmp_dir, "prices.parquet"), raising=False
     )
     monkeypatch.setattr(
         mcap_loader, "MCAP_PR_FILE", os.path.join(tmp_dir, "mcap_pr.parquet"), raising=False
@@ -149,11 +146,6 @@ def test_dummy_placeholders_never_reach_the_universe(monkeypatch):
     )
     # Every real constituent survived; only the placeholders were dropped.
     assert len(result) == len(shipped) - len(dummies)
-
-
-def test_fetch_price_history_empty_symbols_returns_empty_df():
-    df = price_loader.fetch_price_history([], period="1d", force_refresh=False)
-    assert df.empty
 
 
 def test_fetch_market_caps_empty_symbols_returns_empty_series():

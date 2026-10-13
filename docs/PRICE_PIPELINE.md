@@ -184,7 +184,7 @@ ex-date, kind and factor (500 splits and bonuses had gone unapplied, #348).
 
 ## The long price file (backtests from 2010)
 
-`scripts/build_nse_long_prices.py` (weekly, `nse_long_prices.yml`; ~2.5 minutes since 7 Oct 2026: it reads from R2 only the sessions and corporate-action days its two packs lack, then recomputes every factor from all of them) reads every
+`scripts/build_nse_long_prices.py` (weekly, `nse_long_prices.yml`; ~2.5 minutes since 7 Oct 2026: it reads from R2 only the sessions and corporate-action days its two packs lack, then recomputes every factor from all of them; once a month it reads them all again, see "What runs unattended" below) reads every
 session on R2 from 2008 and writes to the `data-latest` release: closes adjusted
 for splits, bonuses, consolidations, demergers, rights issues and dividends
 of 10% or more, renames joined (owner, 3 Oct 2026: correct data first), for every stock any index ever listed (1,380, plus 38 old
@@ -247,6 +247,40 @@ independent searches, NSE's own bhavcopies for 12 of them): 49 real, the 50th
 (PFIZER Dec 2013, -32.6%) a real price fall of which Rs 360 was a dividend
 (holder's return about -11%). An AI-written check that reproduced our own
 numbers to the decimal was not counted as evidence.
+
+### What runs unattended, and what fails it (S47, 13 Oct 2026)
+
+Owner, 13 Oct 2026: "long price file: must be automated and autonomous". The R2
+review of 7 Oct found the yearly list imported by hand only, a session read once
+never read again, and no audit that could fail a job. Now (GitHub cron is UTC):
+
+| When (UTC / IST) | Workflow | What |
+|---|---|---|
+| 2nd of the month, 21:13 / 02:43 on the 3rd | `nse_history_import.yml` | NSE's yearly corporate-action list for last year and this year (so January also re-reads the year just ended); no prices (the mirror ends Sep 2023, all of it on R2). Fails when NSE gives no year |
+| 3rd of the month, 22:37 / 04:07 on the 4th | `nse_history_audit.yml` | The history audit, then its limits (`audit_limits.py history`; `nse_history_audit.py --fail-on-limits` does the same by hand) |
+| Saturdays 03:30 / 09:00 | `nse_long_prices.yml` | Build from the packs, publish, audit, then the audit limits |
+| Second Saturday (the 8th - 14th), same time | `nse_long_prices.yml` | The same build ignoring both packs: every session and corporate-action day read from R2 again (as `full=yes`), so a file revised on R2 after it was first read is picked up |
+
+The import always runs before the month's full re-read (the 2nd against the 8th
+at the earliest) and before the audit; the builds share one concurrency group,
+so the weekly and the full one never run at once. The yearly list is read whole
+by every build, so it needs no pack of its own.
+
+**Audit limits** (`scripts/audit_limits.py`). Each audit's summary is checked
+against the counts of its latest run, named constants with the run they come
+from: the long-file audits against the build of 10 Oct 2026 (run 38043565842:
+fake moves 1 down, 1 up; disputed 2 down; level breaks where ours moved, per
+reference, e.g. Tijori 446, Yahoo 421, eod2 2; Screener steps where ours moved
+265; raw bars 137 + 103 closes outside the range; 73 holiday copies; 42 BSE-fill
+outliers; 1 unpriced; 16 renames refused); shares within 2% may fall by 0.5
+point at most. The history audit against run 37047812302 (2 Oct 2026, its latest:
+35 missing weekdays, 87 gap days, 584 "no move", 1,401 unexplained jumps, 142
+renames refused; those counts predate #348, so the first scheduled run will show
+lower ones, and the limits should then be tightened). A count above its limit, a
+share below, or a summary missing fails the job **after** the file is published
+and the report and artifact uploaded; `scheduled_failure_alert.yml` turns a
+failed scheduled run into an issue. A fix or explanation that lowers a count
+lowers its constant in the same change.
 
 ### Gaps in the file, checked against BSE (3 Oct 2026)
 
@@ -366,11 +400,33 @@ call) now does, in `price_source.fill_weekly_from_nse`:
   6 Jun 2025 (shares 76,26,800 -> 1,14,40,200; BSE 8,287.75 -> 6,007.75, a real
   +8.7%), which the 2% check had first refused; with it the week matches Tijori
   to the paisa.
-- **Not for Nano Cap or Combined.** The engine's returns are row to row, so an
-  added session where a stock has no price deletes that stock's weekly return
-  across it. Sessions are added only when NSE fills at least 95% of the stocks
-  with a sparse stretch (`WEEKLY_FILL_MIN_COVERAGE`): the 750 is 699 of 699 with the seven below (695 without);
-  Nano Cap 90 of 363 and Combined 785 of 1,062 are left as they were.
+- **Nano Cap and Combined too (13 Oct 2026, S57; owner: "do it").** The
+  engine's returns are row to row, so an added session where a stock has no
+  price deletes that stock's weekly return across it. Sessions are added only
+  when NSE fills at least 95% of the stocks with a sparse stretch
+  (`WEEKLY_FILL_MIN_COVERAGE`). NSE's committed file holds most Nano Cap
+  stocks only from Oct 2026 (Nano Cap was 90 of 363 and Combined 785 of 1,062,
+  so both were left weekly until 13 Oct). A second committed file,
+  `data/reference/weekly_fill_nano.parquet` (`build_weekly_fill_extra.py --nano`),
+  holds NSE's closes from 1 Oct 2024 for every stock a Nano Cap list has held
+  (the current list and every month-end in `nanocap_membership.json`, less
+  today's 750: the 750's frame is not changed by it, checked cell for cell).
+  They come from the long file's raw pack (every NSE row, SME series included)
+  and are adjusted exactly as the app's NSE file is (`nse_prices.adjusted_close`;
+  the daily action files and NSE's yearly list merged as the long file merges
+  them; the yearly list alone carries ten SME splits and bonuses of the
+  stretch, e.g. JASH, MOTISONS, FISCHER). Before a stock listed on NSE, BSE's
+  closes by the ISIN's BSE code, scaled by the stock's adjustment at its first
+  NSE session (12 stocks, 1,352 days). With it, Nano Cap 362 of 362 and
+  Combined 1,061 of 1,061; 38 Nano Cap weeks refused (thin trading: IBULLSLTD,
+  which trades in BE, RELTD, NACLIND...; EFCIL's and SHUKRAPHAR's actions while
+  on BSE only). Checked against the references on the release (13 Oct): of
+  67,928 filled days, 66,576 have a reference, and 66,575 agree within 2% with
+  at least one (SS 99.99% of 66,376, TejHQ 99.98%, eod2 99.99%, Tijori 99.80%,
+  Yahoo 99.37%); the one left is RAYMOND's demerger ex-date (14 May 2025),
+  where Screener's week agrees with ours. The daily sync rebuilds the file
+  (`--nano --if-missing`, from the release's packs and R2's yearly list) only
+  when a stock on the list is not on file.
 - **Switch:** `config.SCREENER_WEEKLY_NSE_FILL` (env `UMIYA_SCREENER_WEEKLY_FILL`,
   default on). It and the three constants are in the ranking contract
   (`pipeline._settings_digest`).
@@ -415,7 +471,7 @@ python scripts/build_isin_history.py --mirror mirror/historic_data         # onc
 python scripts/nse_history_audit.py --since 2010-01-01                     # the history audit
 ```
 
-**The history audit** (`nse_history_audit.yml`, on demand; read only) checks
+**The history audit** (`nse_history_audit.yml`, monthly on the 3rd and on demand; read only; its audit limits fail it on a regression) checks
 R2's NSE history: missing days, both by the calendar (weekdays neither held nor
 a known closed day) and independently by NSE's own previous closes (a session
 whose previous close does not match our previous session for most stocks);
@@ -424,7 +480,8 @@ unexplained one-day moves beyond 1.8×; renames refused by the continuity
 check.
 
 Workflows on demand: `ss_sync.yml` (mode daily/backfill), `nse_collect.yml`
-(backfill, minutes, since), `nse_history_import.yml`, `nse_history_audit.yml`.
+(backfill, minutes, since), `nse_history_import.yml` (any years, prices from the
+mirror), `nse_history_audit.yml`, `nse_long_prices.yml` (`full=yes`).
 
 ## To do
 
@@ -432,4 +489,3 @@ Workflows on demand: `ss_sync.yml` (mode daily/backfill), `nse_collect.yml`
   weekday R2 lacks; done when a run reports 0 days to go.
 - Run the adjustment check across 2010–2026 on the full NSE history, then the
   long backtests.
-- Remove the dead Yahoo code and the `yfinance` dependency.

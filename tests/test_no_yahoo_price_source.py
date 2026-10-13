@@ -100,6 +100,21 @@ def test_no_runtime_path_downloads_from_yahoo(rel):
         assert needle not in text, f"{rel} still calls {needle}"
 
 
+def test_yfinance_is_not_a_dependency_and_nothing_imports_it():
+    """TODO S10 (owner, 13 Oct 2026): Yahoo removal. No code downloads from it."""
+    reqs = (ROOT / "requirements.txt").read_text(encoding="utf-8").lower()
+    assert "yfinance" not in reqs
+    offenders = []
+    for path in ROOT.rglob("*.py"):
+        rel = path.relative_to(ROOT).as_posix()
+        if rel.startswith(("tests/", ".", "data/")) or "/." in rel:
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        if any(n in text for n in ("import yfinance", "from yfinance", "yf.download", "yf.Search")):
+            offenders.append(rel)
+    assert not offenders, f"still reaching for Yahoo: {offenders}"
+
+
 def test_the_benchmark_loader_reads_the_committed_file_not_yahoo():
     from src.loaders import price_loader
 

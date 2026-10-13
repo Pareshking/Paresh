@@ -11,7 +11,7 @@ from src.engine.momentum import MomentumEngine
 from src.engine.pipeline import carried_symbols, carry_last_prints, last_ranked_session
 from src.loaders.indices_loader import fetch_indices_data
 from src.loaders.mcap_loader import fetch_market_caps
-from src.loaders.price_loader import extract_ohlcv, fetch_price_history
+from src.loaders import nse_prices, price_source, screener_loader
 
 OUT = Path("artifacts")
 OUT.mkdir(exist_ok=True)
@@ -32,10 +32,17 @@ if symbols.duplicated().any():
     raise AssertionError(f"Duplicate symbols in investable universe: {duplicates}")
 symbols = symbols.tolist()
 
-raw = fetch_price_history(symbols, period="2y", force_refresh=False)
-if raw.empty:
-    raise AssertionError("Price history is empty")
-adj, close, high, low, volume, open_p = extract_ohlcv(raw, symbols)
+# The frame production ranks: Screener first, NSE for what it lacks, built by
+# the same function app.py and scripts/sync_data.py call. No Yahoo (TODO S10).
+_store = screener_loader.load_store()
+if _store is None or _store.empty:
+    _store = price_source.fetch_screener_store()
+_src = price_source.ranking_frames(_store, symbols, nse_prices.middle_close(symbols))
+if _src is None:
+    raise AssertionError("Neither Screener nor NSE can serve a price frame")
+adj, close, volume = _src.adj_close, _src.close, _src.volume
+high = _src.high if _src.high is not None else close
+low = _src.low if _src.low is not None else close
 if len(adj.columns) < 700:
     raise AssertionError(f"Too few price series after extraction: {len(adj.columns)}")
 

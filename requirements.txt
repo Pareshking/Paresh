@@ -21,9 +21,6 @@ numpy==2.4.6
 # boot, for nothing. scipy went the same way on
 # 2026-09-25: its only user was an Equal Risk Contribution optimiser nothing
 # in the app could reach.
-# yfinance scrapes Yahoo and breaks when Yahoo changes, so its fixes matter:
-# when the daily sync starts failing on Yahoo, check for a newer yfinance first.
-yfinance==1.7.0
 requests==2.34.2
 # Pinned to the exact version, not capped below a range.
 #

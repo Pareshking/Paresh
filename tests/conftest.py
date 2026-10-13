@@ -1,26 +1,6 @@
-"""pytest session-wide fixtures and import stubs.
-
-Libraries that are genuinely absent are stubbed here so every test file can be
-collected without ModuleNotFoundError. Stubs are intentionally minimal.
-"""
-
-import sys
-import types
-import unittest.mock
+"""pytest session-wide fixtures."""
 
 import pytest
-
-# ── yfinance ─────────────────────────────────────────────────────────────────
-# price_loader.py imports yfinance at module level.  Stub the three entry
-# points used there; individual tests can patch yf.download etc. as needed.
-if "yfinance" not in sys.modules:
-    _yf = types.ModuleType("yfinance")
-    _yf.download = unittest.mock.MagicMock(return_value=None)
-    _yf.set_tz_cache_location = unittest.mock.MagicMock()
-    _yf.Ticker = unittest.mock.MagicMock()
-    sys.modules["yfinance"] = _yf
-
-
 
 # ── Network isolation ────────────────────────────────────────────────────────
 # The suite used to reach the internet. A full run fetched the constituent CSVs

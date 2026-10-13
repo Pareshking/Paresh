@@ -13,6 +13,8 @@ on:
       - Daily NSE Momentum Data Sync
       - Monthly Track Record Freeze
       - NSE daily bundle collection
+      - NSE history audit
+      - NSE history import (2010 onwards)
       - NSE long price file (backtests from 2010)
       - NSE adjusted prices vs Screener
       - NSE reference feeds sync

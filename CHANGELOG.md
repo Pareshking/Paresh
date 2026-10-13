@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-10-13 — Nano Cap and Combined: daily prices over Screener's weekly stretch
+
+- Screener's history before Sep 2025 is one close a week. For the 750 those weeks have been filled with NSE's daily moves since 7 Oct; Nano Cap and Combined stayed weekly, because NSE's committed file held most Nano Cap stocks only from Oct 2026. They are now filled the same way (owner: "do it"): 362 of 362 Nano Cap stocks and 1,061 of 1,061 in Combined, 106 sessions added. Every Screener close stays as it is, and a week where NSE's move differs from Screener's by more than 2% stays weekly (38 weeks, all thin trading or a close a few paise apart, none a missed split).
+- Checked against independent references: of the 66,576 filled days a reference covers, 66,575 agree within 2% with at least one (SS 99.99%, TejHQ 99.98%, eod2 99.99%, Tijori 99.80%, Yahoo 99.37%); the one left is RAYMOND's demerger ex-date. 1,352 days come from BSE before a stock listed on NSE (ADVAIT, JAYKAY, SHUKRAPHAR and nine more), which no reference covers.
+- The 750's frame is unchanged, cell for cell. A stock that joins the Nano Cap list later is added by the daily sync, with no hand step.
+
+## 2026-10-13 — Yahoo removed: no code downloads from it, `yfinance` is no longer a dependency
+
+- Owner, 13 Oct: "Yahoo removal: remove it" (TODO S10). Nothing the app shows changes: the ranking, backtest, track record and benchmark already came from Screener, NSE and `data/benchmarks.csv` (since 2 Oct).
+- Removed: `yfinance` from `requirements.txt`; the Yahoo downloader and its price cache in `price_loader.py` (`fetch_price_history` and its helpers) and the snapshot seeding behind it (`price_store.py`); the Nano Cap Yahoo download (`extra_universe_loader.download`/`load_prices`, `scripts/sync_extra_yahoo.py`); the raw Yahoo R2 build (`r2/raw/yahoo.py`, `scripts/r2_build_yahoo_raw.py`, `r2_yahoo_raw_build.yml`, `r2_yahoo_raw_retry.yml`); two research scripts that downloaded ten years from Yahoo and their workflow (`v1_hypothesis_backtest.py`, `v1_recent6m_monthstart.py`, `v1-recent6m-monthstart.yml`).
+- `scripts/build_nse_index_prices.py` keeps NSE Indices' own history first and Screener's index chart second; the Yahoo fallback between them is gone. `scripts/full_validation.py` ranks the frame production ranks (`price_source.ranking_frames`).
+- Kept: `extract_ohlcv`, the benchmark and market-regime readers, and Yahoo as a stored audit reference (`reference/yahoo_close` on R2, read by `scripts/audit_long_prices.py`).
+
+## 2026-10-13 — The long price file keeps itself up to date, and its audits can fail it (S47)
+
+- NSE's yearly corporate-action list is imported every month (the 2nd, 21:13 UTC), last year and this year, instead of by hand (last done 2 Oct).
+- Once a month (the second Saturday) the long-file build reads every session and corporate-action day from R2 again instead of only the new ones, so a file revised after it was first read is picked up.
+- The audits now fail their job when a finding is worse than today's known count: a new fake move, a new level break where ours moved, a lost session, a new unpriced stock (`scripts/audit_limits.py`, each limit named with the run it comes from). The file is still published and the report uploaded first. The history audit runs monthly (the 3rd) with these limits.
+- A failed scheduled import or history audit opens an issue, as the long-file build already did.
+
 ## 2026-10-13 — Sector map: how to read it, 1M or 3M, the heavy lifters; Big movers means big
 
 - Under the Sector leadership map, **How to read this** works one sector through with its own numbers: its stocks' average move against the Nifty 500 over the same closes (across), how many of its stocks are above their EMA (up), and what the line's direction means. It uses the sector you pick, else the first that beat the index on narrow breadth.

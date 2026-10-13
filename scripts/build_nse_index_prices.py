@@ -1,4 +1,9 @@
-"""Build durable daily OHLC history for the five NSE research indices."""
+"""Build durable daily OHLC history for the five NSE research indices.
+
+NSE Indices' own historical data first; Screener's index chart (fixed index
+ids, close only) when that fails. There is no Yahoo fallback any more (TODO
+S10, 13 Oct 2026).
+"""
 
 from __future__ import annotations
 
@@ -8,7 +13,6 @@ from datetime import date, timedelta
 from pathlib import Path
 
 import pandas as pd
-import yfinance as yf
 
 from src.loaders.screener_loader import fetch_series, resolve_id
 
@@ -63,57 +67,6 @@ def _fetch_official(name: str, start: date, end: date) -> pd.DataFrame:
     return pd.DataFrame(out)
 
 
-def _fetch_yahoo(name_key: str, name: str, start: date, end: date) -> pd.DataFrame:
-    search_queries = {
-        "NIFTY 50": ["NIFTY 50"],
-        "NIFTY NEXT 50": ["NIFTY NEXT 50", "NIFTYJR", "NIFTY Next"],
-        "NIFTY MIDCAP 150": ["NIFTY MIDCAP 150", "NIFTY MIDCAP", "MIDCAP 150"],
-        "NIFTY SMALLCAP 250": ["NIFTY SMALLCAP 250", "NIFTY SMALL CAP 250", "NIFTY SMALLCAP", "SMALLCAP 250"],
-        "NIFTY MICROCAP 250": ["NIFTY MICROCAP 250", "NIFTY MICROCAP", "MICROCAP 250"],
-    }.get(name, [name])
-    indexes = []
-    for query in search_queries:
-        try:
-            quotes = yf.Search(query, max_results=50).quotes
-        except Exception:
-            quotes = []
-        indexes.extend(q for q in quotes if str(q.get("quoteType", "")).upper() == "INDEX")
-        if indexes:
-            break
-    if not indexes:
-        raise RuntimeError(f"Yahoo search found no index for {name}")
-    exact = [q for q in indexes if str(q.get("shortname", "")).strip().lower() == name.lower()]
-    # Exact name or nothing. This used to take the first INDEX-typed hit when
-    # no name matched, and the loose queries above ("NIFTY MIDCAP", "NIFTY
-    # SMALLCAP") also find Midcap 100/50 and Smallcap 100/50 -- whose history
-    # would then be stored, without a word, as the 150/250 index. Raising
-    # hands over to the Screener fallback, which resolves fixed index ids.
-    if not exact:
-        found = sorted({str(q.get("shortname", "")) for q in indexes})
-        raise RuntimeError(f"Yahoo search found no exact match for {name}: {found}")
-    symbol = exact[0].get("symbol")
-    frame = yf.download(
-        symbol,
-        start=start.isoformat(),
-        end=(end + timedelta(days=1)).isoformat(),
-        auto_adjust=False,
-        progress=False,
-        threads=False,
-        group_by="column",
-    )
-    if frame.empty:
-        raise RuntimeError(f"Yahoo returned no history for {name} ({symbol})")
-    if isinstance(frame.columns, pd.MultiIndex):
-        frame.columns = frame.columns.get_level_values(0)
-    frame = frame.reset_index()
-    frame["date"] = pd.to_datetime(frame["Date"], errors="coerce").dt.tz_localize(None).dt.normalize()
-    frame = frame.rename(columns={"Open": "open", "High": "high", "Low": "low", "Close": "close"})
-    frame = frame[["date", "open", "high", "low", "close"]].dropna(subset=["close"])
-    frame["index"] = name_key
-    frame["source"] = "Yahoo Finance transport for NSE-maintained index"
-    return frame
-
-
 def _fetch_screener(name_key: str, name: str, start: date, end: date) -> pd.DataFrame:
     slugs = {
         "nifty50": "NIFTY",
@@ -150,14 +103,9 @@ def build(output: Path, start: date, end: date) -> dict:
             frame = _fetch_official(name, start, end)
             source = "NSE Indices historical data"
         except Exception as official_error:
-            try:
-                frame = _fetch_yahoo(key, name, start, end)
-                source = "Yahoo Finance transport for NSE-maintained index"
-                print(f"OFFICIAL_INDEX_SOURCE_FALLBACK index={name} reason={type(official_error).__name__}")
-            except Exception as yahoo_error:
-                frame = _fetch_screener(key, name, start, end)
-                source = "Screener index chart (NSE index)"
-                print(f"INDEX_SOURCE_FALLBACK index={name} official={type(official_error).__name__} yahoo={type(yahoo_error).__name__}")
+            frame = _fetch_screener(key, name, start, end)
+            source = "Screener index chart (NSE index)"
+            print(f"INDEX_SOURCE_FALLBACK index={name} official={type(official_error).__name__}")
         frame["index"] = key
         frame["source"] = source
         frame["evidence_date"] = pd.Timestamp(end)

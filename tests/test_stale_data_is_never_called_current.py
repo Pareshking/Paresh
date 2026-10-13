@@ -12,16 +12,17 @@ holding in place independently:
 * when Yahoo returned nothing -- its normal response to a rate-limited host --
   the loader served the same frame indefinitely rather than reaching for the
   snapshot that carried the missing sessions.
+
+The Yahoo cache and its snapshot recovery were removed with the Yahoo download
+(TODO S10, 13 Oct 2026); their tests went with them. The settle rule and the
+header tests below are still live.
 """
 from datetime import date, datetime, time
 
-import numpy as np
-import pandas as pd
 import pytest
 
 from src.core import startup_metrics as metrics
 from src.core.market_time import INDIA_TZ, session_is_complete
-from src.loaders import price_loader, price_store
 from src.ui import components
 
 
@@ -50,221 +51,6 @@ def test_todays_session_is_open_during_market_hours():
 
 def test_todays_session_settles_after_the_close():
     assert session_is_complete(date(2026, 8, 28), now=_ist(2026, 8, 28, 16, 30))
-
-
-# ── The cache must keep refreshing while the session is open ─────────────────
-
-def _freeze_cache_currency(monkeypatch, behind, complete):
-    monkeypatch.setattr(price_loader, "trading_days_behind", lambda *_, **__: behind)
-    monkeypatch.setattr(price_loader, "session_is_complete", lambda *_, **__: complete)
-
-
-def test_an_open_session_does_not_make_the_cache_current(monkeypatch):
-    _freeze_cache_currency(monkeypatch, behind=0, complete=False)
-    assert price_loader._cache_is_current(date(2026, 8, 28)) is False
-
-
-def test_a_closed_latest_session_makes_the_cache_current(monkeypatch):
-    _freeze_cache_currency(monkeypatch, behind=0, complete=True)
-    assert price_loader._cache_is_current(date(2026, 8, 28)) is True
-
-
-def test_an_older_session_is_never_current(monkeypatch):
-    _freeze_cache_currency(monkeypatch, behind=3, complete=True)
-    assert price_loader._cache_is_current(date(2026, 8, 25)) is False
-
-
-def test_a_cache_beyond_the_horizon_is_never_current(monkeypatch):
-    _freeze_cache_currency(monkeypatch, behind=None, complete=True)
-    assert price_loader._cache_is_current(date(2025, 1, 6)) is False
-
-
-def test_an_open_session_never_enters_the_cache_at_all(tmp_path, monkeypatch):
-    """This guarantee got STRONGER, so the test it needs is a different one.
-
-    It used to read: an open session's partial row must be RE-REQUESTED from
-    its own date, because asking Yahoo from the day AFTER the last cached
-    session excluded the only date that could update it, and the price froze
-    at whatever minute the container first fetched it.
-
-    Downloads are now gated on DOWNLOAD_SETTLES (the 15:30 close plus seven
-    hours), so nothing is fetched while a session is open, and
-    _drop_unsettled_rows keeps an unsettled bar out of the frame however the
-    fetch was reached. There is therefore no partial row left to go stale --
-    which is a stronger promise than refreshing one, and it removes the failure
-    mode rather than managing it.
-
-    The cost is deliberate and was chosen: during market hours the screener
-    shows the previous CLOSE, dated as such, instead of a running quote.
-
-    Why it also has to hold at the frame: heal_days skips the gate on purpose,
-    because a healing run is reaching backward for sessions already held.
-    Dispatched by hand at 09:10 IST on 2026-09-16 the nightly job wrote a row
-    where 587 of 750 symbols had printed, and the precompute published a
-    587-row ranking from it.
-    """
-    idx = pd.bdate_range(end="2026-08-28", periods=4)
-    cache_file = tmp_path / "prices.parquet"
-    pd.DataFrame({"RELIANCE": [1.0, 2.0, 3.0, 4.0]}, index=idx).to_parquet(cache_file)
-    monkeypatch.setattr(price_loader, "PRICES_FILE", str(cache_file))
-
-    # Make the whole scenario agree on the date: 28 Aug is today and still
-    # open, 27 Aug is the newest settled session, and the cache reaches both.
-    monkeypatch.setattr(
-        price_loader, "session_is_complete",
-        lambda d, **k: d < date(2026, 8, 28),
-    )
-    monkeypatch.setattr(
-        price_loader, "last_downloadable_session", lambda **k: date(2026, 8, 27)
-    )
-    monkeypatch.setattr(
-        price_loader, "trading_days_behind",
-        lambda as_of, **k: 0 if as_of == date(2026, 8, 27) else 1,
-    )
-    monkeypatch.setattr(price_loader.yf, "download", _never_called)
-
-    out = price_loader.fetch_price_history(["RELIANCE"])
-    assert pd.Timestamp("2026-08-28") not in out.index, (
-        "the open session survived into the frame the app reads"
-    )
-    assert out.index[-1] == pd.Timestamp("2026-08-27"), "a settled session was lost"
-
-
-def _never_called(*args, **kwargs):
-    raise AssertionError(
-        "the vendor was asked for a session that has not settled; the "
-        "download gate is not holding"
-    )
-
-
-def test_a_closed_session_is_topped_up_from_the_next_day(tmp_path, monkeypatch):
-    idx = pd.bdate_range(end="2026-08-28", periods=4)
-    cache_file = tmp_path / "prices.parquet"
-    pd.DataFrame({"RELIANCE": [1.0, 2.0, 3.0, 4.0]}, index=idx).to_parquet(cache_file)
-
-    monkeypatch.setattr(price_loader, "PRICES_FILE", str(cache_file))
-    # Settled, but no longer the latest session -- so a top-up is due.
-    _freeze_cache_currency(monkeypatch, behind=1, complete=True)
-
-    asked = {}
-
-    def _fake_download(tickers, start, **kwargs):
-        asked["start"] = start
-        return pd.DataFrame()
-
-    monkeypatch.setattr(price_loader.yf, "download", _fake_download)
-    monkeypatch.setattr(price_loader, "_recover_stale_cache", lambda *a, **k: None)
-
-    price_loader.fetch_price_history(["RELIANCE"])
-    # The next CALENDAR day. yfinance's start is a calendar bound, so there is
-    # nothing to gain by skipping the weekend -- only a trading calendar to get
-    # wrong.
-    assert asked["start"] == "2026-08-29"
-
-
-# ── A future-dated row must not pin the cache forever ────────────────────────
-
-def test_rows_dated_after_today_are_discarded(monkeypatch):
-    monkeypatch.setattr(price_loader, "ist_today", lambda: date(2026, 8, 28))
-    idx = pd.DatetimeIndex(["2026-08-26", "2026-08-27", "2026-08-28", "2026-09-04"])
-    out = price_loader._drop_future_rows(pd.DataFrame({"A": [1.0] * 4}, index=idx))
-
-    assert list(out.index) == list(pd.DatetimeIndex(idx[:3]))
-    assert metrics.snapshot()["facts"]["price_future_rows_dropped"] == 1
-
-
-def test_an_ordinary_frame_passes_through_untouched(monkeypatch):
-    monkeypatch.setattr(price_loader, "ist_today", lambda: date(2026, 8, 28))
-    frame = pd.DataFrame({"A": [1.0, 2.0]}, index=pd.bdate_range(end="2026-08-28", periods=2))
-    assert price_loader._drop_future_rows(frame) is frame
-
-
-# ── Snapshot recovery, and its restraint ─────────────────────────────────────
-
-def _serve_snapshot(monkeypatch, frame):
-    import io
-
-    buf = io.BytesIO()
-    frame.to_parquet(buf, compression="zstd")
-    payload = buf.getvalue()
-
-    class _Resp:
-        status_code = 200
-
-        def close(self):
-            pass
-
-        def iter_content(self, chunk_size=1):
-            yield payload
-
-    monkeypatch.setattr(price_store.requests, "get", lambda url, **kw: _Resp())
-    monkeypatch.setattr(price_store, "MIN_PLAUSIBLE_BYTES", 100)
-
-
-def _frame(end, rows=6):
-    idx = pd.bdate_range(end=end, periods=rows)
-    return pd.DataFrame(
-        np.arange(float(rows * 2)).reshape(rows, 2), index=idx, columns=["A", "B"]
-    )
-
-
-def test_a_newer_snapshot_is_adopted(tmp_path, monkeypatch):
-    cache_file = tmp_path / "prices.parquet"
-    cache_file.write_bytes(b"stale")
-    monkeypatch.setattr(price_store, "PRICES_FILE", str(cache_file))
-    _serve_snapshot(monkeypatch, _frame("2026-08-28"))
-
-    got = price_store.snapshot_frame_if_newer(date(2026, 8, 21), "http://x")
-
-    assert got is not None
-    assert pd.Timestamp(got.index[-1]).date() == date(2026, 8, 28)
-    assert pd.read_parquet(cache_file).equals(got)
-    assert metrics.snapshot()["facts"]["price_recovery"] == "recovered_from_snapshot"
-
-
-def test_a_snapshot_no_newer_than_the_cache_is_left_alone(tmp_path, monkeypatch):
-    """Adopting an equal snapshot would discard a top-up Yahoo did deliver."""
-    cache_file = tmp_path / "prices.parquet"
-    cache_file.write_bytes(b"do not touch")
-    monkeypatch.setattr(price_store, "PRICES_FILE", str(cache_file))
-    _serve_snapshot(monkeypatch, _frame("2026-08-28"))
-
-    assert price_store.snapshot_frame_if_newer(date(2026, 8, 28), "http://x") is None
-    assert cache_file.read_bytes() == b"do not touch"
-    assert metrics.snapshot()["facts"]["price_recovery"] == "snapshot_not_newer"
-
-
-def test_a_rejected_snapshot_leaves_no_temporary_file(tmp_path, monkeypatch):
-    cache_file = tmp_path / "prices.parquet"
-    monkeypatch.setattr(price_store, "PRICES_FILE", str(cache_file))
-    _serve_snapshot(monkeypatch, _frame("2026-08-28"))
-
-    price_store.snapshot_frame_if_newer(date(2026, 8, 28), "http://x")
-    assert list(tmp_path.glob("*.parquet")) == []
-
-
-def test_recovery_is_not_attempted_one_day_behind(monkeypatch):
-    """A morning before the session has produced anything is not an outage.
-
-    Reaching for a ten-megabyte snapshot there would spend the bandwidth to be
-    told what the cache already knows, every hour of every trading day.
-    """
-    monkeypatch.setattr(price_loader, "trading_days_behind", lambda *_, **__: 1)
-
-    def _must_not_run(*_, **__):  # pragma: no cover - the assertion is that it does not
-        raise AssertionError("the snapshot was fetched one trading day behind")
-
-    monkeypatch.setattr(price_store, "snapshot_frame_if_newer", _must_not_run)
-    assert price_loader._recover_stale_cache(date(2026, 8, 28)) is None
-
-
-def test_a_failed_recovery_reports_itself_rather_than_going_quiet(monkeypatch):
-    """"No new price data" in a log file is not a signal anyone sees."""
-    monkeypatch.setattr(price_loader, "trading_days_behind", lambda *_, **__: 6)
-    monkeypatch.setattr(price_store, "snapshot_frame_if_newer", lambda *a, **k: None)
-
-    assert price_loader._recover_stale_cache(date(2026, 8, 21)) is None
-    assert metrics.snapshot()["facts"]["price_path"] == "cache_stale_unrecovered"
 
 
 # ── The header must date the DATA, not the clock ─────────────────────────────

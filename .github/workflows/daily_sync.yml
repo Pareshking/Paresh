@@ -197,6 +197,38 @@ jobs:
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: python scripts/build_extra_universe.py || echo "::warning::Extra universe refresh failed; keeping the committed list."
 
+      # Daily closes over Screener's weekly stretch for the Nano Cap stocks
+      # (data/reference/weekly_fill_nano.parquet, TODO S57): rebuilt from the
+      # long file's NSE packs on the release only when a stock on the Nano Cap
+      # list (now or any month-end) is not on file, else a no-op. Committed with
+      # the rest of data/. Non-blocking: a failure keeps the committed file.
+      - name: Nano Cap weekly-fill closes for new list members
+        env:
+          PYTHONPATH: .
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          set +e
+          python scripts/build_weekly_fill_extra.py --nano --if-missing
+          rc=$?
+          set -e
+          if [ "$rc" = "3" ]; then
+            mkdir -p packs
+            gh release download data-latest --repo "$GITHUB_REPOSITORY" --dir packs \
+              --pattern nse_raw_pack.parquet --pattern nse_actions_pack.parquet --pattern bse_daily.parquet --clobber \
+              && python scripts/build_weekly_fill_extra.py --nano \
+                   --raw-pack packs/nse_raw_pack.parquet --actions-pack packs/nse_actions_pack.parquet \
+                   --actions-list r2 --bse packs/bse_daily.parquet \
+              || echo "::warning::Nano Cap weekly-fill closes not rebuilt; the committed file is kept."
+            rm -rf packs
+          elif [ "$rc" != "0" ]; then
+            echo "::warning::Nano Cap weekly-fill check failed (exit $rc); the committed file is kept."
+          fi
+
       # A TradingView sector for every stock the lists hold: TradingView's
       # screener first, then Screener.in mapped onto TradingView's names
       # (scripts/classify_missing.py). Writes data/, committed below. A stock
