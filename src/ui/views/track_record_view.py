@@ -172,20 +172,6 @@ def month_cards_html(months: dict, mtd_period, mtd_val, mtd_bench) -> str:
     return f'<div class="mo-grid">{"".join(cards)}</div>'
 
 
-def growth_series(months: dict, mtd_period, mtd_val, mtd_bench):
-    """Compounded growth of 1.0 from the start of the record, month by month."""
-    labels, s_curve, b_curve = ["Start"], [1.0], [1.0]
-    for key, e in sorted(months.items()):
-        s_curve.append(s_curve[-1] * (1 + (e.get("strategy") or 0.0)))
-        b_curve.append(b_curve[-1] * (1 + (e.get("benchmark") or 0.0)))
-        labels.append(pd.Period(key, freq="M").strftime("%b"))
-    if mtd_period is not None and mtd_val is not None:
-        s_curve.append(s_curve[-1] * (1 + mtd_val))
-        b_curve.append(b_curve[-1] * (1 + (mtd_bench or 0.0)))
-        labels.append(mtd_period.strftime("%b") + "*")
-    return labels, s_curve, b_curve
-
-
 def _render_rank_months(books: dict) -> None:
     """Show the selected monthly book using the app's shared table treatment."""
     if not books:
