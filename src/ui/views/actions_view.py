@@ -11,6 +11,8 @@ before then. For the model book or for the reader's own holdings.
 from __future__ import annotations
 
 import html
+import json
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
@@ -67,17 +69,31 @@ def fill_due_note(as_of: pd.Timestamp, fill: pd.Timestamp, today: pd.Timestamp) 
     return ""
 
 
+# NSE's published trading holidays (data/reference/nse_trading_holidays.json,
+# from NSE's holiday master): a future session cannot be told from prices.
+_HOLIDAY_FILE = Path(__file__).resolve().parents[3] / "data" / "reference" / "nse_trading_holidays.json"
+
+
+def _nse_holidays() -> list[str]:
+    try:
+        return sorted(json.loads(_HOLIDAY_FILE.read_text(encoding="utf-8")).get("holidays", {}))
+    except (OSError, ValueError):
+        return []
+
+
+def _session() -> pd.offsets.CustomBusinessDay:
+    return pd.offsets.CustomBusinessDay(holidays=_nse_holidays())
+
+
 def next_rebalance(as_of: pd.Timestamp) -> tuple[pd.Timestamp, pd.Timestamp]:
-    """The check (last weekday of this month) and the fill (first weekday of
-    the next). Exchange holidays are not known here, so these are weekdays."""
+    """The check (last NSE session of this month) and the fill (first NSE
+    session of the next), skipping weekends and NSE's published holidays."""
+    day = _session()
     month_end = (as_of + pd.offsets.MonthEnd(0)).normalize()
-    check = month_end if month_end.weekday() < 5 else month_end - pd.offsets.BDay(1)
+    check = day.rollback(month_end)
     if check.normalize() < as_of.normalize():
-        month_end = (as_of + pd.offsets.MonthEnd(1)).normalize()
-        check = month_end if month_end.weekday() < 5 else month_end - pd.offsets.BDay(1)
-    fill = (check + pd.offsets.MonthBegin(1)).normalize()
-    if fill.weekday() >= 5:
-        fill = fill + pd.offsets.BDay(1)
+        check = day.rollback((as_of + pd.offsets.MonthEnd(1)).normalize())
+    fill = day.rollforward((check + pd.offsets.MonthBegin(1)).normalize())
     return check, fill
 
 
@@ -86,7 +102,9 @@ def _day(t: pd.Timestamp, weekday: bool = False) -> str:
 
 
 def _sessions_between(a: pd.Timestamp, b: pd.Timestamp) -> int:
-    return max(0, len(pd.bdate_range(a.normalize() + pd.Timedelta(days=1), b.normalize())))
+    """NSE sessions after `a` up to and including `b` (Dussehra, 20 Oct 2026,
+    made the weekday count one too many, 13 Oct)."""
+    return max(0, len(pd.date_range(a.normalize() + pd.Timedelta(days=1), b.normalize(), freq=_session())))
 
 
 def _bar(room: float | None, ok: bool, scale: float, label: str) -> str:

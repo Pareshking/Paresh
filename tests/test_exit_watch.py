@@ -77,6 +77,17 @@ def test_next_rebalance_is_the_last_weekday_then_the_next_first_weekday():
     assert (check, fill) == (pd.Timestamp("2026-05-29"), pd.Timestamp("2026-06-01"))
 
 
+def test_next_rebalance_and_session_count_skip_nse_holidays():
+    # NSE's holiday master: Dussehra Tue 20 Oct 2026, Mahavir Jayanti Tue 31 Mar
+    # 2026. The weekday count said 14 sessions from 12 Oct to 30 Oct (13 Oct).
+    from src.ui.views.actions_view import _sessions_between
+    check, fill = next_rebalance(pd.Timestamp("2026-10-12"))
+    assert (check, fill) == (pd.Timestamp("2026-10-30"), pd.Timestamp("2026-11-02"))
+    assert _sessions_between(pd.Timestamp("2026-10-12"), check) == 13
+    check, fill = next_rebalance(pd.Timestamp("2026-03-20"))
+    assert (check, fill) == (pd.Timestamp("2026-03-30"), pd.Timestamp("2026-04-01"))
+
+
 # ── Actions: the rebalance preview ──────────────────────────────────────────
 
 def _universe(n=12):
