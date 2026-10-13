@@ -127,6 +127,7 @@ python scripts/audit_gaps_against_bse.py --long nse_long_close.parquet --pack ns
 | Screener "Big movers" is a rank move of 150 places or more in a month (owner, 13 Oct 2026; 15 caught 630 of 750) | `ranking_view.BIG_MOVE_PLACES` |
 | The Backtest / Track Record blend keeps its 8 steps over 2% (Oct 2024 - Jul 2025: 5 weeks where Screener's close is BSE's, 3 demergers priced by a different factor) as they are; not spread across the week (owner, 13 Oct 2026, S58) | `nse_prices.blend_screener`, TODO S58 |
 | A demerger is **not** priced from the company's cost-of-acquisition split: that is a tax split by book value, not the market's (STLTECH 42% vs a 75% fall, ABFRL 76% vs 33%); the ex-date fall stays (13 Oct 2026) | TODO S58 |
+| A demerger stays priced at the ex-date **close** over the last close, not the ex-date open (owner, 13 Oct 2026: the open was proposed and not adopted) | `nse_adjusted.action_factors` |
 
 ## 5. Findings already explained: do not investigate these again
 

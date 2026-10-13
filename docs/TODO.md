@@ -38,7 +38,7 @@ Everything merged on 13 Oct is live (#444 - #451 and #419, #439 - #443; app at m
 1. **Due by date:** October frozen in all three ledgers, 1-5 Nov (`monthly_track_record`, automatic; check "Three systems" shows Oct 2026); the shadow record's first month (November), 1-5 Dec (item 9).
 2. **Owner to confirm:** no Streamlit "resource limits" email until 15 Oct (S61; none so far, 13 Oct); `Memory peak ... at page:` lines in the Streamlit Cloud log (S67).
 3. **Live (#453, #454):** S57 Nano Cap / Combined fill, S10 Yahoo removed, S64 allocator, S47 long file runs itself (first full Saturday re-read 17 Oct; yearly-list import 2 Nov, history audit 3 Nov).
-4. **Owner decisions:** none open (S58 decided 13 Oct: leave the eight). Optional: demerger factor from NSE's ex-date opening price instead of its close (proposed 13 Oct, not decided).
+4. **Owner decisions:** none open (S58 decided 13 Oct: leave the eight). Demerger factor stays the ex-date close over the last close (owner, 13 Oct: the opening price was proposed, then not adopted).
 5. **Low:** S25, S35, S36, S37, S44 (small caps, 2010 - 2013 records); S60 trace the Jan/Feb 2026 drift stock by stock (accepted, for the record);
 6. **Waiting on NSE:** S78 TRIVENIPT leaving the Total Market list.
 
