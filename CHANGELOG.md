@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-13 — /screener opens the Screener
+
+- Typing or bookmarking the address `/screener` showed "Page not found" before the Screener loaded. It now opens the Screener directly.
+
 ## 2026-10-13 — Backtest: download the rules and every trade
 
 - The Backtest tab (Live and History from 2010) has a Download card under the calendar returns: one ZIP of two CSV files. `backtest_trades.csv` has every position, closed or still open, in entry order, with sector, signal and fill dates, entry rank and weight, exit rank and reason, mark for open trades, holding days and price return. `backtest_rules.csv` has the run's entry, exit, timing, sizing and cost rules, the price basis, how much of the run used point-in-time membership, and what each trade column means. It is written from the settings of the run itself.
