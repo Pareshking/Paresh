@@ -406,6 +406,14 @@ SECTOR_SOFT_PALETTE = (
 )
 
 
+
+def sector_colours(names) -> dict[str, str]:
+    """One soft colour per sector, fixed by name so the map, its table and
+    every EMA tab agree (owner, 13 Oct: subtle colours, not green and red)."""
+    return {name: SECTOR_SOFT_PALETTE[i % len(SECTOR_SOFT_PALETTE)]
+            for i, name in enumerate(sorted(set(names)))}
+
+
 _LEADERSHIP_JS = r"""
 (function(){
 const rows=__ROWS__, span=__SPAN__, then=__THEN__, now=__NOW__;
@@ -463,12 +471,10 @@ def render_leadership_map(board: pd.DataFrame, span: int, focus: str | None = No
     if board.empty:
         return
     short = short or {}
-    # One soft colour per sector, fixed by name so it is the same on every
-    # tab (owner, 13 Oct: subtle colours, not green and red only).
-    order = {name: i for i, name in enumerate(sorted(board["Sector"]))}
+    colour = sector_colours(board["Sector"])
     rows = [{
         "name": short.get(r.Sector, r.Sector), "full": r.Sector, "stocks": int(r.Stocks),
-        "c": SECTOR_SOFT_PALETTE[order[r.Sector] % len(SECTOR_SOFT_PALETTE)],
+        "c": colour[r.Sector],
         "x0": round(r.x_then * 100, 2), "x1": round(r.x_now * 100, 2),
         "y0": round(r.y_then * 100, 1), "y1": round(r.y_now * 100, 1),
         "a0": int(r.above_then), "o0": int(r.obs_then), "a1": int(r.above_now), "o1": int(r.obs_now),

@@ -17,9 +17,9 @@ from src.ui import page_kit as kit
 from src.engine.pipeline import price_fingerprint
 from src.engine.sector_breadth import EMA_SPANS, sector_leadership
 from src.loaders import benchmark_store
-from src.ui.charts import render_industry_map, render_leadership_map
+from src.ui.charts import render_industry_map, render_leadership_map, sector_colours
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
-from src.ui.screener_table import render_screener_table
+from src.ui.screener_table import _CSS as TABLE_CSS, _JS as TABLE_JS, ROW_PX, render_screener_table
 
 RANK_BY = {
     "3M median": "3M Return",
@@ -38,6 +38,10 @@ SHORT_NAMES = {
     "Oil Gas & Consumable Fuels": "Oil & Gas",
     "Metals & Mining": "Metals",
     "Construction Materials": "Cement & Materials",
+    "Consumer Durables": "Cons. Durables",
+    "Consumer Services": "Cons. Services",
+    "Financial Services": "Financials",
+    "Telecommunication": "Telecom",
 }
 
 
@@ -79,27 +83,71 @@ def render_leadership_section(rank_df: pd.DataFrame, adj_close: pd.DataFrame, co
                    f"{', '.join(SHORT_NAMES.get(n, n) for n in ahead_narrow['Sector'])}."
                    if len(ahead_narrow) else "")
             )
-            tbl = board.assign(**{
-                "Vs Nifty 500 now": board["x_now"] * 100,
-                "Vs Nifty 500 a month ago": board["x_then"] * 100,
-                "Above EMA now": board["above_now"].astype(str) + " of " + board["obs_now"].astype(str),
-                "Above EMA a month ago": board["above_then"].astype(str) + " of " + board["obs_then"].astype(str),
-                "Breadth change": (board["y_now"] - board["y_then"]) * 100,
-            }).sort_values("Vs Nifty 500 now", ascending=False)
-            figures = st.expander("Figures by sector")
-            figures.caption("Sector return is the equal-weighted mean of its stocks' price returns, "
-                            "not an NSE sector index. The share counts stocks with a close and an EMA "
-                            "that day.")
-            figures.dataframe(
-                tbl[["Sector", "Stocks", "Vs Nifty 500 now", "Above EMA now", "Vs Nifty 500 a month ago",
-                     "Above EMA a month ago", "Breadth change"]],
-                hide_index=True, width="stretch", height=35 * (len(tbl) + 1) + 3,
-                column_config={
-                    "Vs Nifty 500 now": st.column_config.NumberColumn(format="%+.1f%%"),
-                    "Vs Nifty 500 a month ago": st.column_config.NumberColumn(format="%+.1f%%"),
-                    "Breadth change": st.column_config.NumberColumn(format="%+.0f pts"),
-                },
-            )
+            st.iframe(leadership_table_html(board, span), height=28 + 42 + len(board) * ROW_PX + 6)
+            kit.caption("Sector return is the equal-weighted mean of its stocks' price returns, not an "
+                        "NSE sector index; the share counts stocks with a close and an EMA that day. "
+                        "Click a header to sort.")
+
+
+def _signed_pct(v: float) -> tuple[str, str]:
+    cls = "pos" if v > 0 else "neg" if v < 0 else ""
+    return cls, f"{'+' if v > 0 else '−' if v < 0 else ''}{abs(v) * 100:.1f}%"
+
+
+def leadership_table_html(board: pd.DataFrame, span: int) -> str:
+    """The leadership figures in the Screener table's design ("Stocks in an
+    industry"): sortable headers, the sector's map colour as a dot."""
+    colour = sector_colours(board["Sector"])
+    rows = []
+    for i, r in enumerate(board.sort_values("x_now", ascending=False).itertuples(), start=1):
+        name = html.escape(r.Sector)
+        cells = [f'<td class="c-rank" data-v="{i}">{i}</td>',
+                 f'<td class="c-stock" data-v="{name}"><a><span class="sym">'
+                 f'<i class="dot" style="background:{colour[r.Sector]}"></i><span class="nm-full">{name}</span>'
+                 f'<span class="nm-short">{html.escape(SHORT_NAMES.get(r.Sector, r.Sector))}</span></span>'
+                 f'<span class="sub">{int(r.Stocks)} stocks</span></a></td>']
+        for x, a, o, y, extra in ((r.x_now, r.above_now, r.obs_now, r.y_now, ""),
+                                  (r.x_then, r.above_then, r.obs_then, r.y_then, " d-only")):
+            cls, txt = _signed_pct(x)
+            cells.append(f'<td class="n {cls}{extra}" data-v="{x:.6f}">{txt}</td>')
+            cells.append(f'<td class="n{extra}" data-v="{y:.6f}">{a} of {o}'
+                         f'<span class="pc">{y * 100:.0f}%</span></td>')
+        d = round((r.y_now - r.y_then) * 100)
+        chip = ("up", f"▲ {d}") if d > 0 else ("down", f"▼ {abs(d)}") if d < 0 else ("flat", "— 0")
+        cells.append(f'<td class="n" data-v="{d}"><span class="chip {chip[0]}">{chip[1]}'
+                     '<span class="nm-full"> pts</span></span></td>')
+        rows.append("<tr>" + "".join(cells) + "</tr>")
+    then, now = pd.Timestamp(board["Then"].iloc[0]), pd.Timestamp(board["Now"].iloc[0])
+    # (label, phone label, sort type, class, arrow)
+    heads = [("#", "#", "num", "t-left on", "↓"), ("Sector", "Sector", "text", "t-left", "↕"),
+             ("Vs Nifty 500", "Vs N500", "num", "", "↕"), (f"Above {span} EMA", "Above", "num", "", "↕"),
+             ("Vs Nifty 500", "", "num", "d-only", "↕"), (f"Above {span} EMA", "", "num", "d-only", "↕"),
+             ("Breadth", "Δ", "num", "", "↕")]
+    head = "".join(f'<th class="{c}" data-type="{t}"><span class="nm-full">{html.escape(h)}</span>'
+                   f'<span class="nm-short">{html.escape(m)}</span><span class="ar">{a}</span></th>'
+                   for h, m, t, c, a in heads)
+    groups = ('<tr class="grp-row"><th colspan="2" class="grp">Sector</th>'
+              f'<th colspan="2" class="grp">Today · {now:%d %b}</th>'
+              f'<th colspan="2" class="grp d-only">A month ago · {then:%d %b}</th>'
+              '<th class="grp">Change</th></tr>')
+    css = (TABLE_CSS + "table{min-width:0}.wrap{height:auto}"
+           "tbody tr:hover td{cursor:default}"
+           ".dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;"
+           "border:1px solid rgba(14,23,38,.25);vertical-align:0}"
+           "td .pc{display:inline-block;min-width:38px;margin-left:8px;color:#5E6878;font-weight:500}"
+           ".nm-short{display:none}"
+           "@media (max-width:640px){td .pc{display:none}.nm-full{display:none}.nm-short{display:inline}"
+           "th,td{padding:0 6px}td{font-size:12.5px}th:nth-child(1),td.c-rank{width:26px;min-width:26px}"
+           "th:nth-child(2),td.c-stock{left:26px;max-width:116px}"
+           "td.c-stock .sub{display:block}"
+           "td.c-stock .sym{display:block;max-width:104px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"
+           "thead th .ar{display:none}}")
+    return ("<!DOCTYPE html><html><head><meta charset='utf-8'>"
+            "<link href='https://fonts.googleapis.com/css2?family=Geist:wght@400..700&"
+            "family=Geist+Mono:wght@400..700&display=swap' rel='stylesheet'>"
+            f"<style>{css}</style></head><body><div class='wrap'><table>"
+            f"<thead>{groups}<tr class=\"hdr\">{head}</tr></thead><tbody>{''.join(rows)}</tbody>"
+            f"</table></div><script>const SYS='';{TABLE_JS}</script></body></html>")
 
 
 def _leader_link(sym: str) -> str:

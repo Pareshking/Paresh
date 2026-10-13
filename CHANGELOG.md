@@ -6,7 +6,7 @@
 - Screener: Biggest jumps, Entered top 50 and Left top 50 sit side by side on a wide screen, compact (about 1,000px shorter).
 - Figure boxes inside cards (Portfolio's month, alpha, drawdown; Backtest): values read at their intended size and the boxes are as tall as their text (74px, was 104px). A page-wide paragraph style had shrunk every value to 14px grey.
 - Portfolio: industry exposure runs in two columns; "How they move together" is a collapsed section, like Actions' Buy candidates, with the average in its heading.
-- Sectors leadership map: one soft colour per sector, the same on every EMA tab, instead of green and red; a one-line intro; the table sits under "Figures by sector", collapsed.
+- Sectors leadership map: one soft colour per sector, the same on every EMA tab, instead of green and red; a one-line intro; its table is drawn like "Stocks in an industry" (sortable headers, each sector's map colour as a dot, today and a month ago grouped; on a phone, short names and today's columns).
 
 ## 2026-10-13 — The track record keeps January and February 2026 as frozen
 
