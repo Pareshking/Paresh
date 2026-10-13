@@ -168,7 +168,7 @@ run). A lead, not a change: see TODO S64.
 
 See `docs/TODO.md` S61-S65.
 
-- Portfolio peaks at ~1.05 GB with 4 sessions (S64: Arrow's allocator).
+- Portfolio peaks at ~1.05 GB with 4 sessions (S64: Arrow's allocator). **13 Oct:** pyarrow on the system allocator, 3 runs each way: Portfolio 987 -> 900 MB, Backtest 901 -> 820 MB (means); every page's text identical. Adopted (`src/core/memory.use_system_arrow_pool`, called at app import).
 - The Backtest tab and the parameter sweep compute in the web process (S65).
 
 ## 8 Oct, afternoon: the production crash, S65 and telemetry
