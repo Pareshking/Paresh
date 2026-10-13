@@ -157,6 +157,13 @@ def caption(text: str) -> None:
     st.html(f'<p class="pg-cap">{html.escape(text)}</p>')
 
 
+def kv_line(pairs: list[tuple[str, str]], lead: str = "") -> None:
+    """Settings in effect as one line of "name value" pairs; wraps on a phone."""
+    cells = "".join(f"<span>{html.escape(k)} <b>{html.escape(v)}</b></span>" for k, v in pairs)
+    st.html('<div class="pg-kv">' + (f"<b>{html.escape(lead)}</b>" if lead else "")
+            + cells + "</div>")
+
+
 def _slug(s: str) -> str:
     return "".join(c.lower() if c.isalnum() else "_" for c in s).strip("_")
 
