@@ -457,8 +457,8 @@ def fill_weekly_from_nse(screener: pd.DataFrame, nse: pd.DataFrame | None, *,
         # The engine's returns are row to row: an added session on which a
         # stock has no price deletes that stock's weekly return across it. So
         # sessions are added only when NSE fills nearly every stock with a
-        # sparse stretch. Nano Cap and Combined, whose Nano Cap stocks NSE's
-        # committed file mostly lacks, keep Screener's frame as it was.
+        # sparse stretch (Nano Cap and Combined reach it with the committed
+        # weekly_fill_nano file; without it they keep Screener's frame).
         report["skipped"] = (f"NSE fills {len(fills)} of the {sparse} stocks with a "
                              f"sparse stretch, under {min_coverage:.0%}")
         return screener, report
@@ -508,25 +508,34 @@ def eligible_middle(primary: pd.DataFrame, middle: pd.DataFrame | None
 
 
 WEEKLY_FILL_EXTRA = Path(__file__).resolve().parents[2] / "data" / "reference" / "weekly_fill_extra.parquet"
+# Nano Cap and Combined (owner, 2026-10-13, TODO S57): NSE's own adjusted closes
+# from Oct 2024 for every stock a Nano Cap list has held; NSE's committed file
+# holds most of them only from Oct 2026.
+WEEKLY_FILL_NANO = WEEKLY_FILL_EXTRA.with_name("weekly_fill_nano.parquet")
 
 
 def with_weekly_extra(middle_close: pd.DataFrame | None,
-                      path: Path = WEEKLY_FILL_EXTRA) -> pd.DataFrame | None:
+                      path: Path | tuple[Path, ...] = (WEEKLY_FILL_EXTRA, WEEKLY_FILL_NANO),
+                      ) -> pd.DataFrame | None:
     """NSE's closes plus, where they have none, the committed daily closes of the
     stocks NSE's file lacks over Screener's weekly stretch (owner, 2026-10-07:
     BIRET, EMBASSY, JSLL from the long NSE file; SGMART, SHILCTECH, TIMEX,
-    PICCADIL from BSE, where they traded before listing on NSE). Built by
-    scripts/build_weekly_fill_extra.py. Only NSE's sessions are used, and every
-    interval still has to agree with Screener's own move (WEEKLY_FILL_TOLERANCE).
+    PICCADIL from BSE, where they traded before listing on NSE), then the Nano
+    Cap stocks' (2026-10-13). Built by scripts/build_weekly_fill_extra.py. Only
+    NSE's sessions are used, and every interval still has to agree with
+    Screener's own move (WEEKLY_FILL_TOLERANCE).
     """
     if middle_close is None or middle_close.empty:
         return middle_close
-    try:
-        extra = pd.read_parquet(path)
-    except (OSError, ValueError):
-        return middle_close
-    extra = extra.reindex(index=middle_close.index)
-    return middle_close.combine_first(extra)[list(dict.fromkeys([*middle_close.columns, *extra.columns]))]
+    out = middle_close
+    for p in (path,) if isinstance(path, Path) else path:
+        try:
+            extra = pd.read_parquet(p)
+        except (OSError, ValueError):
+            continue
+        extra = extra.reindex(index=middle_close.index).astype("float64")
+        out = out.combine_first(extra)[list(dict.fromkeys([*out.columns, *extra.columns]))]
+    return out
 
 
 def splice_weekly(close: pd.DataFrame, screener: pd.DataFrame,

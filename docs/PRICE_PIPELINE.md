@@ -366,11 +366,33 @@ call) now does, in `price_source.fill_weekly_from_nse`:
   6 Jun 2025 (shares 76,26,800 -> 1,14,40,200; BSE 8,287.75 -> 6,007.75, a real
   +8.7%), which the 2% check had first refused; with it the week matches Tijori
   to the paisa.
-- **Not for Nano Cap or Combined.** The engine's returns are row to row, so an
-  added session where a stock has no price deletes that stock's weekly return
-  across it. Sessions are added only when NSE fills at least 95% of the stocks
-  with a sparse stretch (`WEEKLY_FILL_MIN_COVERAGE`): the 750 is 699 of 699 with the seven below (695 without);
-  Nano Cap 90 of 363 and Combined 785 of 1,062 are left as they were.
+- **Nano Cap and Combined too (13 Oct 2026, S57; owner: "do it").** The
+  engine's returns are row to row, so an added session where a stock has no
+  price deletes that stock's weekly return across it. Sessions are added only
+  when NSE fills at least 95% of the stocks with a sparse stretch
+  (`WEEKLY_FILL_MIN_COVERAGE`). NSE's committed file holds most Nano Cap
+  stocks only from Oct 2026 (Nano Cap was 90 of 363 and Combined 785 of 1,062,
+  so both were left weekly until 13 Oct). A second committed file,
+  `data/reference/weekly_fill_nano.parquet` (`build_weekly_fill_extra.py --nano`),
+  holds NSE's closes from 1 Oct 2024 for every stock a Nano Cap list has held
+  (the current list and every month-end in `nanocap_membership.json`, less
+  today's 750: the 750's frame is not changed by it, checked cell for cell).
+  They come from the long file's raw pack (every NSE row, SME series included)
+  and are adjusted exactly as the app's NSE file is (`nse_prices.adjusted_close`;
+  the daily action files and NSE's yearly list merged as the long file merges
+  them; the yearly list alone carries ten SME splits and bonuses of the
+  stretch, e.g. JASH, MOTISONS, FISCHER). Before a stock listed on NSE, BSE's
+  closes by the ISIN's BSE code, scaled by the stock's adjustment at its first
+  NSE session (12 stocks, 1,352 days). With it, Nano Cap 362 of 362 and
+  Combined 1,061 of 1,061; 38 Nano Cap weeks refused (thin trading: IBULLSLTD,
+  which trades in BE, RELTD, NACLIND...; EFCIL's and SHUKRAPHAR's actions while
+  on BSE only). Checked against the references on the release (13 Oct): of
+  67,928 filled days, 66,576 have a reference, and 66,575 agree within 2% with
+  at least one (SS 99.99% of 66,376, TejHQ 99.98%, eod2 99.99%, Tijori 99.80%,
+  Yahoo 99.37%); the one left is RAYMOND's demerger ex-date (14 May 2025),
+  where Screener's week agrees with ours. The daily sync rebuilds the file
+  (`--nano --if-missing`, from the release's packs and R2's yearly list) only
+  when a stock on the list is not on file.
 - **Switch:** `config.SCREENER_WEEKLY_NSE_FILL` (env `UMIYA_SCREENER_WEEKLY_FILL`,
   default on). It and the three constants are in the ranking contract
   (`pipeline._settings_digest`).

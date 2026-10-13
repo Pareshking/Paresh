@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-13 — Nano Cap and Combined: daily prices over Screener's weekly stretch
+
+- Screener's history before Sep 2025 is one close a week. For the 750 those weeks have been filled with NSE's daily moves since 7 Oct; Nano Cap and Combined stayed weekly, because NSE's committed file held most Nano Cap stocks only from Oct 2026. They are now filled the same way (owner: "do it"): 362 of 362 Nano Cap stocks and 1,061 of 1,061 in Combined, 106 sessions added. Every Screener close stays as it is, and a week where NSE's move differs from Screener's by more than 2% stays weekly (38 weeks, all thin trading or a close a few paise apart, none a missed split).
+- Checked against independent references: of the 66,576 filled days a reference covers, 66,575 agree within 2% with at least one (SS 99.99%, TejHQ 99.98%, eod2 99.99%, Tijori 99.80%, Yahoo 99.37%); the one left is RAYMOND's demerger ex-date. 1,352 days come from BSE before a stock listed on NSE (ADVAIT, JAYKAY, SHUKRAPHAR and nine more), which no reference covers.
+- The 750's frame is unchanged, cell for cell. A stock that joins the Nano Cap list later is added by the daily sync, with no hand step.
+
 ## 2026-10-13 — Sector map: how to read it, 1M or 3M, the heavy lifters; Big movers means big
 
 - Under the Sector leadership map, **How to read this** works one sector through with its own numbers: its stocks' average move against the Nifty 500 over the same closes (across), how many of its stocks are above their EMA (up), and what the line's direction means. It uses the sector you pick, else the first that beat the index on narrow breadth.

@@ -210,3 +210,59 @@ def test_the_committed_extra_file_holds_the_seven_stocks():
     extra = pd.read_parquet(ps.WEEKLY_FILL_EXTRA)
     assert set(extra.columns) == {"BIRET", "EMBASSY", "JSLL", "SGMART", "SHILCTECH", "TIMEX", "PICCADIL"}
     assert extra.notna().sum().min() >= 240
+
+
+def test_extra_files_are_read_in_order_and_never_replace_nse(tmp_path):
+    # S57 (owner, 13 Oct): the Nano Cap file is read after the seven stocks' file.
+    from src.loaders import price_source as ps
+
+    days = pd.bdate_range("2025-01-01", periods=3)
+    nse = pd.DataFrame({"AAA": [1.0, np.nan, 3.0]}, index=days)
+    first = pd.DataFrame({"AAA": [9.0, 2.0, 9.0]}, index=days)
+    second = pd.DataFrame({"AAA": [8.0, 8.0, 8.0], "NANO": [4.0, 4.5, 5.0]}, index=days)
+    a, b = tmp_path / "a.parquet", tmp_path / "b.parquet"
+    first.to_parquet(a)
+    second.to_parquet(b)
+    got = ps.with_weekly_extra(nse, (a, b, tmp_path / "missing.parquet"))
+    assert list(got["AAA"]) == [1.0, 2.0, 3.0]
+    assert list(got["NANO"]) == [4.0, 4.5, 5.0]
+
+
+def test_the_committed_nano_file_holds_the_nano_cap_list_and_not_the_750():
+    from scripts.build_weekly_fill_extra import NANO_START, nano_symbols
+    from src.loaders import price_source as ps
+
+    nano = pd.read_parquet(ps.WEEKLY_FILL_NANO)
+    tm = pd.read_csv("data/indices/ind_niftytotalmarket_list.csv")
+    tm.columns = [c.strip() for c in tm.columns]
+    assert not set(nano.columns) & set(tm["Symbol"].str.strip().str.upper())
+    # Every stock on the list now or at a month-end on file; the daily sync
+    # rebuilds the file when one is missing (--nano --if-missing).
+    assert nano_symbols() <= set(nano.columns)
+    assert nano.index.min() >= NANO_START and nano.notna().sum().min() > 0
+
+
+def test_bse_closes_before_nse_listing_take_the_adjustment_at_the_first_nse_session():
+    from scripts.build_weekly_fill_extra import before_nse
+
+    days = pd.bdate_range("2025-01-01", periods=5)
+    raw = pd.DataFrame({"NEW": [np.nan, np.nan, 100.0, 102.0, 104.0]}, index=days)
+    # A later 1:2 split already taken out of NSE's adjusted closes.
+    adjusted = raw / 2
+    bse = pd.DataFrame({"date": days[:3], "code": [500001] * 3, "close": [90.0, 95.0, 99.0],
+                        "shares": [10, 10, 10], "isin": ["INE000A01011"] * 3})
+    out, notes = before_nse(adjusted, raw, bse, {"NEW": "INE000A01011"})
+    assert list(out["NEW"].round(3)) == [45.0, 47.5, 50.0, 51.0, 52.0]
+    assert notes == [{"symbol": "NEW", "bse": "code 500001", "days": 2, "until": "2025-01-03"}]
+    # No single BSE code for the ISIN: nothing filled, and said.
+    two = pd.concat([bse, bse.assign(code=500002)])
+    out, notes = before_nse(adjusted, raw, two, {"NEW": "INE000A01011"})
+    assert out["NEW"].isna().sum() == 2 and "not filled" in notes[0]["bse"]
+
+
+def test_nano_check_names_the_missing_and_exits_3_without_packs(tmp_path, capsys):
+    from scripts import build_weekly_fill_extra as b
+
+    assert b.main(["--nano", "--if-missing", "--out", str(tmp_path / "none.parquet")]) == 3
+    assert "Nano Cap stocks not on file" in capsys.readouterr().out
+    assert b.main(["--nano", "--if-missing"]) == 0
