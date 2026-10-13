@@ -81,12 +81,7 @@ def _ratio_word(ratio: float) -> tuple[str, str]:
 def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
     """How many stocks are taking part: trend participation, and new highs
     against new lows."""
-    actions = kit.page_head(
-        "Market breadth",
-        "How many stocks are taking part: trend participation and new highs against "
-        "new lows",
-        actions=True,
-    )
+    actions = kit.page_head("Market breadth", "", actions=True)
     with actions:
         history_days = st.segmented_control(
             "Period", [63, 126, 252], default=126, required=True,
@@ -152,9 +147,9 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
         ratio = today_h / max(today_l, 1)
         word, tone = _ratio_word(ratio)
         tiles += [
-            kit.Reading(f"New {hl_name} highs", f"{today_h}", "today", "up" if today_h else ""),
+            kit.Reading(f"New {hl_name} highs", f"{today_h}", "", "up" if today_h else ""),
             kit.Reading(f"New {hl_name} lows", f"{today_l}",
-                        "today" + (" · more lows than highs" if today_l > today_h else ""),
+                        "more lows than highs" if today_l > today_h else "",
                         "down" if today_l else ""),
             kit.Reading("Highs ÷ lows", f"{ratio:.1f}×", word, tone),
         ]
@@ -163,8 +158,7 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
 
     if not breadth_df.empty:
         if bview == "Universe":
-            with kit.card("Participation", "br_part",
-                          f"share of stocks above each {ma_type} · green band above 60%, red below 40%"):
+            with kit.card("Participation", "br_part", f"above each {ma_type}"):
                 # Percentage series only; the companion count columns are
                 # metadata for the readings, not lines on the chart.
                 _pct_cols = [c for c in breadth_df.columns if not c.endswith(OBSERVED_SUFFIX)]
@@ -192,16 +186,14 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
                 pct = float((_last[_obs] > _ma[_obs]).sum() / _obs.sum() * 100)
                 rows.append((idx_name.title(), pct,
                              f"{pct:.0f}% · {int(_obs.sum())}", pct <= 40))
-            with kit.card(f"Participation by index · above the 50-day {ma_type}", "br_idx",
-                          "amber = 40% or less"):
+            with kit.card("Participation by index", "br_idx", f"above 50-day {ma_type}"):
                 if rows:
                     st.html(kit.bar_list(rows, scale=100))
                 else:
                     kit.caption("No index tags on the ranked stocks.")
 
     if not hl_df.empty:
-        with kit.card("New highs against new lows", "br_hl",
-                      "each session: green up = new highs · red down = new lows"):
+        with kit.card("New highs against new lows", "br_hl"):
             _highs_lows_chart(hl_df, is_pct=hl_disp == "% of Universe")
 
         hl_events_df = get_recent_hl_events(adj_close, rank_df, window=hl_window, lookback=20)

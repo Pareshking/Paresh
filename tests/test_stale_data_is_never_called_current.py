@@ -270,6 +270,7 @@ def test_a_failed_recovery_reports_itself_rather_than_going_quiet(monkeypatch):
 # ── The header must date the DATA, not the clock ─────────────────────────────
 
 def _header(monkeypatch, today, **facts):
+    """The header pill every page draws (``_status_pill_html``)."""
     for k, v in facts.items():
         metrics.note(k, v)
     import src.core.market_time as mt
@@ -277,32 +278,34 @@ def _header(monkeypatch, today, **facts):
     monkeypatch.setattr(mt, "ist_today", lambda: today)
     # Prices are judged against the session due by now, so pin the time too.
     monkeypatch.setattr(mt, "ist_now", lambda: datetime.combine(today, time(12, 0), tzinfo=mt.INDIA_TZ))
-    return components.header_as_of()
+    return components._status_pill_html()
 
 
 def test_the_header_shows_the_price_date_not_the_wall_clock(monkeypatch):
-    text, _ = _header(monkeypatch, date(2026, 8, 31), price_as_of="2026-08-21")
-    assert "21 Aug 2026" in text
-    assert "31 Aug" not in text
+    pill = _header(monkeypatch, date(2026, 8, 31), price_as_of="2026-08-21")
+    assert "21 Aug" in pill
+    assert "31 Aug" not in pill
 
 
 def test_a_stale_header_is_flagged_amber_and_counts_the_days(monkeypatch):
-    text, color = _header(monkeypatch, date(2026, 8, 31), price_as_of="2026-08-21")
-    assert color == "#B54708"
-    # 24-28 Aug and 31 Aug: six sessions the data does not cover.
-    assert "6 trading days behind" in text
+    pill = _header(monkeypatch, date(2026, 8, 31), price_as_of="2026-08-21")
+    assert "hdr-pill-warn" in pill and "Prices · " in pill
+    # The ribbon counts them: 24-28 Aug and 31 Aug, six sessions not covered.
+    prices = next(i for i in components.data_freshness() if i["label"] == "Prices")
+    assert components.age_phrase(prices) == " · 6 trading days behind"
 
 
 def test_a_current_header_is_quiet(monkeypatch):
-    text, color = _header(monkeypatch, date(2026, 8, 31), price_as_of="2026-08-28")
-    assert color == "#5E6878"
-    assert "28 Aug 2026" in text
+    pill = _header(monkeypatch, date(2026, 8, 31), price_as_of="2026-08-28")
+    assert "hdr-pill-warn" not in pill
+    assert "Prices · closes of " in pill and "28 Aug" in pill
 
 
 def test_an_unstamped_pipeline_admits_it_rather_than_inventing_a_date(monkeypatch):
-    text, color = _header(monkeypatch, date(2026, 8, 31))
-    assert text == "price date unknown"
-    assert color == "#B54708"
+    pill = _header(monkeypatch, date(2026, 8, 31), price_path="cache_fresh")
+    assert "hdr-pill-warn" in pill
+    assert "date unknown" in pill
+    assert "31 Aug" not in pill
 
 
 # ── Wording, shared by the header and the ribbon ─────────────────────────────

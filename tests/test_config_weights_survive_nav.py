@@ -125,7 +125,11 @@ def test_the_window_guide_does_not_claim_a_skip_month_convention():
     ).read_text()
     assert "excludes the most recent month" not in src
     assert "skip-month convention" not in src
-    assert "No window skips the most recent month" in src
+    # Each slider's tooltip says its window runs to the latest close.
+    from src.ui.views.config_view import _WINDOW_HELP, _WINDOWS
+
+    assert set(_WINDOW_HELP) == {label for label, _k, _d in _WINDOWS}
+    assert all("to the latest close" in text for text in _WINDOW_HELP.values())
 
 
 def test_the_portfolio_risk_widgets_survive_navigation_too():

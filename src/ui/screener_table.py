@@ -145,9 +145,10 @@ def _pct_cell(v: float | None, cls_extra: str = "") -> tuple[str, str]:
     return f'<td class="n {cls} {cls_extra}" data-v="{v:.6f}">{txt}</td>', txt
 
 
-def _row_html(row: dict, cols: list, paths: dict) -> str:
+def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     sym = str(row.get("Symbol", ""))
     sym_s = _esc(sym)
+    is_hl = bool(highlight) and sym.upper() == highlight.upper()
     name = str(row.get("Company Name") or "").strip()
     ind = str(row.get("Industry") or "").strip()
     tag = str(row.get("Indices") or "").split(",")[0].strip()
@@ -163,7 +164,8 @@ def _row_html(row: dict, cols: list, paths: dict) -> str:
                      f'{int(rank) if rank is not None else "—"}</td>')
     cells["stock"] = (
         f'<td class="c-stock" data-v="{sym_s}"><a href="{stock_href(sym)}" '
-        f'data-stock="{sym_s}" title="Open {sym_s}"><span class="sym">{sym_s}</span>'
+        f'data-stock="{sym_s}" title="Open {sym_s}"><span class="sym">{sym_s}'
+        f'{"<em class=me>This stock</em>" if is_hl else ""}</span>'
         f'<span class="sub">{_esc(sub)}</span></a></td>'
     )
     r3_txt = "—" if r3 is None else f"{'+' if r3 > 0 else '−' if r3 < 0 else ''}{abs(r3) * 100:.1f}%"
@@ -245,7 +247,8 @@ def _row_html(row: dict, cols: list, paths: dict) -> str:
         f'stroke-linejoin="round" stroke-linecap="round" points="{poly}"/></svg></td>'
         if poly else '<td class="c-path muted">—</td>'
     )
-    return f'<tr data-stock="{sym_s}">' + "".join(cells[c[0]] for c in cols) + "</tr>"
+    hl = ' class="hl"' if is_hl else ""
+    return f'<tr data-stock="{sym_s}"{hl}>' + "".join(cells[c[0]] for c in cols) + "</tr>"
 
 
 _CSS = """
@@ -290,6 +293,8 @@ td.c-flt{text-align:left}
 .pass{font-size:12px;font-weight:600;color:#067647}.fail{font-size:12px;font-weight:600;color:#667080}
 .ath{margin-left:6px;font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px;background:#EEF0FF;color:#3730A3}
 .m-only{display:none}
+tbody tr.hl td{background:#F4F3FF}
+.me{margin-left:6px;font-style:normal;font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px;background:#EEF0FF;color:#3730A3}
 @media (max-width:640px){
   table{min-width:0}
   th,td{padding:0 8px}
@@ -350,8 +355,12 @@ ths.forEach(function(th,i){
 """
 
 
-def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str) -> str:
-    """The whole table document, for st.iframe. Split out so tests can read it."""
+def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
+               highlight: str = "") -> str:
+    """The whole table document, for st.iframe. Split out so tests can read it.
+
+    `highlight` is a symbol whose row is tinted and tagged "This stock" (the
+    stock page's peers)."""
     cols = columns_for(density, view.columns)
     paths: dict = {}
     if prices_df is not None and not prices_df.empty:
@@ -387,7 +396,7 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str)
         group_row = '<tr class="grp-row">' + "".join(parts) + "</tr>"
     body = []
     for row in view.to_dict("records"):
-        tr = _row_html(row, cols, paths)
+        tr = _row_html(row, cols, paths, highlight)
         body.append(tr)
     # Desktop-only cells carry the d-only class too, so the phone hides whole
     # columns rather than leaving a header without its cells.
@@ -413,11 +422,11 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str)
 
 
 def render_screener_table(view: pd.DataFrame, prices_df: pd.DataFrame | None,
-                          density: str) -> None:
+                          density: str, *, highlight: str = "") -> None:
     if view.empty:
         st.info("No stocks match these filters. Clear the search or pick another preset.")
         return
     rows = min(len(view), VISIBLE_ROWS)
     height = 44 + rows * ROW_PX + 4 + 28
-    st.iframe(table_html(view, prices_df, density), height=height)
+    st.iframe(table_html(view, prices_df, density, highlight), height=height)
 

@@ -10,7 +10,7 @@ Order, top to bottom:
                 stop levels when the source has intraday highs and lows
   6. RETURNS    gain vs pain: each window's return beside the fall it took,
                 with the Nifty 500 and the typical stock on the same bars
-  7. PEERS      the industry's best-ranked stocks, linked
+  7. PEERS      the industry's best-ranked stocks, in the Screener's table
   8. CHECKS     data caveats; opens itself when one needs reading
 """
 
@@ -25,11 +25,11 @@ import pandas as pd
 import streamlit as st
 
 from src.ui import page_kit as kit
-from src.ui.system_param import stock_href
 from src.engine.corporate_actions import load_events
 from src.engine.momentum import CARRIED_MARK
 from src.ui.charts import render_stock_chart
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
+from src.ui.screener_table import render_screener_table
 
 # ── Palette tokens ───────────────────────────────────────────────────────────
 POS   = "#067647"
@@ -220,21 +220,23 @@ def _render_identity(row: pd.Series, total_stocks: int) -> None:
 # ── 2. VERDICT ───────────────────────────────────────────────────────────────
 
 def _render_verdict(row: pd.Series) -> None:
+    # Distances only: the price, the 50D EMA and the 52W high are printed once,
+    # in the hero and on the ladder. The ATH price is printed here, because no
+    # other block on the page shows it.
     above = _flag(row, "Above 50 EMA")
     near = _flag(row, "Near 52W High")
-    cmp_v = _num(row.get("CMP"))
     ema_pct = _num(row.get("% 50 EMA"))
-    hi = _num(row.get("52W High"))
     pct_hi = _num(row.get("% High"))
     ath = _num(row.get("ATH"))
     pct_ath = _num(row.get("% ATH"))
 
+    # The badge carries the verdict; the title says which filters passed.
     if above and near:
-        state, title, sub = "pass", "Passes both filters", "Eligible for the portfolio"
+        state, title = "pass", "Passes both filters"
     elif above or near:
-        state, title, sub = "part", "Passes one filter of two", "Not eligible until both pass"
+        state, title = "part", "Passes one filter of two"
     else:
-        state, title, sub = "fail", "Fails both filters", "Not eligible for the portfolio"
+        state, title = "fail", "Fails both filters"
 
     def dist(p: float | None) -> str:
         if p is None:
@@ -243,7 +245,6 @@ def _render_verdict(row: pd.Series) -> None:
             return "At the high"
         return f"{abs(p):.1f}% {'above' if p > 0 else 'below'}"
 
-    ema_val = cmp_v / (1 + ema_pct / 100) if cmp_v is not None and ema_pct is not None else None
     ema_txt = "—" if ema_pct is None else f"{abs(ema_pct):.1f}% {'above' if ema_pct >= 0 else 'below'}"
     hi_date = _date_label(row.get("52W High Date"))
     ath_date = _date_label(row.get("ATH Date"))
@@ -259,25 +260,23 @@ def _render_verdict(row: pd.Series) -> None:
     _html_block(
         f'<section class="sp-verdict {state}" aria-label="Screener filters">'
         f'<div class="sv-head"><span class="sv-head-mark">{mark}</span>'
-        f'<div><b>{title}</b><i>{sub}</i></div>'
-        f'<span class="sv-state">{ "ELIGIBLE" if state == "pass" else "REVIEW" }</span></div>'
+        f'<div><b>{title}</b></div>'
+        f'<span class="sv-state">{ "ELIGIBLE" if state == "pass" else "NOT ELIGIBLE" }</span></div>'
         f'<div class="sv-card ema">'
         f'<div class="sv-main"><span class="sv-k">50D EMA</span>'
-        f'<strong>{_html.escape(ema_value)}</strong>'
-        f'<b class="sv-price">{_money(ema_val)}</b></div>'
+        f'<strong>{_html.escape(ema_value)}</strong></div>'
         f'<div class="sv-side"><em class="{"pass" if above else "fail"}">{ema_status}</em>'
-        f'<span>CMP</span><b>{_money(cmp_v)}</b></div></div>'
+        '</div></div>'
         f'<div class="sv-card high">'
         f'<div class="sv-main"><span class="sv-k">52W high</span>'
-        f'<strong>{_html.escape(hi_value)}</strong>'
-        f'<b class="sv-price">{_money(hi)}</b></div>'
+        f'<strong>{_html.escape(hi_value)}</strong></div>'
         f'<div class="sv-side"><em class="{"pass" if near else "fail"}">{hi_status}</em>'
         f'<span>Date</span><b>{_html.escape(hi_date or "—")}</b></div></div>'
         f'<div class="sv-card ath">'
         f'<div class="sv-main"><span class="sv-k">ATH</span>'
         f'<strong>{_html.escape(ath_value)}</strong>'
         f'<b class="sv-price">{_money(ath)}</b></div>'
-        f'<div class="sv-side"><em class="bonus">BONUS</em>'
+        f'<div class="sv-side">'
         f'<span>Date</span><b>{_html.escape(ath_date or "—")}</b></div></div>'
         '</section>'
     )
@@ -544,82 +543,41 @@ def _render_gain_vs_pain(row: pd.Series, rank_df: pd.DataFrame) -> None:
 
 
 # ── 7. PEERS ─────────────────────────────────────────────────────────────────
+# The Screener's own table: same columns, sorting, links and phone layout as
+# every other list of stocks, with this stock's row tagged.
 
-def _render_peers(row: pd.Series, rank_df: pd.DataFrame) -> None:
+PEERS_SHOWN = 8
+
+
+def _peer_rows(row: pd.Series, rank_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """The industry's best-ranked stocks, with this stock always among them,
+    and the whole industry best rank first."""
     industry = row.get("Industry")
     if not industry or "Industry" not in rank_df.columns:
-        return
-    in_ind = rank_df[rank_df["Industry"] == industry]
-    peers = in_ind.sort_values("Rank").head(8)
+        return rank_df.iloc[0:0], rank_df.iloc[0:0]
+    in_ind = rank_df[rank_df["Industry"] == industry].sort_values("Rank")
+    peers = in_ind.head(PEERS_SHOWN)
     sym = str(row["Symbol"])
     if sym not in set(peers["Symbol"].astype(str)):
-        peers = pd.concat([peers.head(7), in_ind[in_ind["Symbol"].astype(str) == sym]])
+        peers = pd.concat([peers.head(PEERS_SHOWN - 1),
+                           in_ind[in_ind["Symbol"].astype(str) == sym]])
+    return peers, in_ind
+
+
+def _render_peers(row: pd.Series, rank_df: pd.DataFrame,
+                  adj_close: pd.DataFrame | None = None) -> None:
+    peers, in_ind = _peer_rows(row, rank_df)
     if len(peers) <= 1:
         return
-    cols = [c for c in ["Rank", "Symbol", "CMP", "3M Return", "6M Return",
-                        "12M Return", "3M Sharpe", "% High"] if c in peers.columns]
-    _render_peers_table(peers[cols].copy(), highlight_sym=sym,
-                        title=f"Best-ranked {industry} stocks", total=len(in_ind))
-    if len(in_ind) > len(peers):
-        if st.button(f"All {len(in_ind)} stocks in {industry}", type="tertiary",
-                     icon=":material/open_in_full:", key="sp_peers_all"):
-            full = in_ind.sort_values("Rank")
-            keep = [c for c in ["Rank", "Symbol", "CMP", "1M Return", "3M Return", "6M Return",
-                                "12M Return", "3M Sharpe", "% High"] if c in full.columns]
-            _peers_dialog(str(industry), full[keep].reset_index(drop=True))
-
-
-def _render_peers_table(df: pd.DataFrame, highlight_sym: str, title: str = "Peers",
-                        total: int | None = None) -> None:
-    """Peers with this stock highlighted; every other row links to its page."""
-    labels = {"Symbol": "Stock", "CMP": "Price", "3M Return": "3M", "6M Return": "6M",
-              "12M Return": "12M", "3M Sharpe": "Sharpe 3M", "% High": "From 52W high"}
-    head = "".join(
-        f'<th class="{"l" if c in ("Rank", "Symbol") else ""}">{_html.escape(labels.get(c, c))}</th>'
-        for c in df.columns
-    )
-    body = []
-    for _, r in df.iterrows():
-        sym = str(r.get("Symbol", ""))
-        is_hl = sym.upper() == highlight_sym.upper()
-        cells = []
-        for col, val in r.items():
-            if col == "Symbol":
-                if is_hl:
-                    cell = f'{_html.escape(sym)}<em>This stock</em>'
-                else:
-                    cell = (f'<a href="{stock_href(sym)}" target="_self">'
-                            f'{_html.escape(sym)}</a>')
-                cells.append(f'<td class="l s">{cell}</td>')
-                continue
-            # np.floating too: CMP and % High come out of the engine as
-            # float32, which is not a Python float, so they printed raw
-            # ("1234.5677") instead of "₹1,235".
-            if isinstance(val, (int, float, np.integer, np.floating)) and pd.notna(val):
-                val = float(val)
-                if col == "Rank":
-                    cells.append(f'<td class="l">{int(val)}</td>')
-                elif "Return" in col:
-                    cls = "up" if val > 0 else "down" if val < 0 else ""
-                    cells.append(f'<td class="{cls}">{_signed_pct(val)}</td>')
-                elif "Sharpe" in col:
-                    cells.append(f"<td>{val:.2f}</td>")
-                elif col == "% High":
-                    cells.append(f'<td>{"At high" if val >= -0.05 else f"−{abs(val):.1f}%"}</td>')
-                elif col == "CMP":
-                    cells.append(f"<td>₹{val:,.0f}</td>")
-                else:
-                    cells.append(f"<td>{val:.1f}</td>")
-            else:
-                cells.append(f"<td>{_html.escape(str(val)) if pd.notna(val) else '—'}</td>")
-        body.append(f'<tr class="{"hl" if is_hl else ""}">{"".join(cells)}</tr>')
-    more = f"<span>{total} stocks in the industry</span>" if total else ""
-    _html_block(
-        '<section class="sp-card sp-peers" aria-label="Peers">'
-        f'<div class="ph"><h2>{_html.escape(title)}</h2>{more}</div>'
-        f'<div class="tw"><table><thead><tr>{head}</tr></thead>'
-        f'<tbody>{"".join(body)}</tbody></table></div></section>'
-    )
+    industry = str(row.get("Industry"))
+    sym = str(row["Symbol"])
+    with kit.card(f"Best-ranked {industry} stocks", "sp_peers",
+                  f"{len(in_ind)} stocks in the industry"):
+        render_screener_table(peers.reset_index(drop=True), adj_close, "Core", highlight=sym)
+        if len(in_ind) > len(peers):
+            if st.button("Show all", type="tertiary", icon=":material/open_in_full:",
+                         key="sp_peers_all"):
+                _peers_dialog(industry, in_ind.reset_index(drop=True), adj_close, sym)
 
 
 # ── Drill-downs (modal, read-only) ───────────────────────────────────────────
@@ -693,170 +651,11 @@ def _factsheet_dialog(row: dict) -> None:
 
 
 @st.dialog("Industry peers", width="large")
-def _peers_dialog(industry: str, frame: pd.DataFrame) -> None:
-    """Every ranked stock in the industry, with the peer-card styling and sorting."""
-    st.caption(f"{len(frame)} stocks in {industry}, best rank first. Click a column header to sort.")
-
-    labels = {
-        "Symbol": "Stock", "CMP": "Price", "1M Return": "1M",
-        "3M Return": "3M", "6M Return": "6M", "12M Return": "12M",
-        "3M Sharpe": "Sharpe 3M", "% High": "From 52W high",
-    }
-    headers = []
-    for col in frame.columns:
-        align = "left" if col in ("Rank", "Symbol") else "right"
-        headers.append(
-            f'<th class="{align}" data-col="{_html.escape(str(col), quote=True)}">'
-            f'{_html.escape(labels.get(col, col))}</th>'
-        )
-
-    rows = []
-    for r in frame.to_dict("records"):
-        cells = []
-        for col in frame.columns:
-            val = r.get(col)
-            if col == "Symbol":
-                sym = str(val)
-                cells.append(
-                    f'<td class="l s"><a href="{stock_href(sym)}" target="_self">'
-                    f'{_html.escape(sym)}</a></td>'
-                )
-                continue
-
-            if pd.isna(val) if not isinstance(val, str) else False:
-                cells.append('<td>—</td>')
-                continue
-
-            if isinstance(val, (int, float, np.integer, np.floating)):
-                val = float(val)
-                if col == "Rank":
-                    cells.append(f'<td class="l" data-value="{val}">{int(val)}</td>')
-                elif "Return" in col:
-                    cls = "up" if val > 0 else "down" if val < 0 else ""
-                    cells.append(
-                        f'<td class="{cls}" data-value="{val}">{_signed_pct(val)}</td>'
-                    )
-                elif "Sharpe" in col:
-                    cells.append(f'<td data-value="{val}">{val:.2f}</td>')
-                elif col == "% High":
-                    text = "At high" if val >= -0.05 else f"−{abs(val):.1f}%"
-                    cells.append(f'<td data-value="{val}">{text}</td>')
-                elif col == "CMP":
-                    cells.append(f'<td data-value="{val}">₹{val:,.0f}</td>')
-                else:
-                    cells.append(f'<td data-value="{val}">{val:.1f}</td>')
-            else:
-                text = _html.escape(str(val)) if pd.notna(val) else "—"
-                cells.append(f'<td data-value="{_html.escape(str(val), quote=True)}">{text}</td>')
-
-        rows.append(f'<tr>{"".join(cells)}</tr>')
-
-    page = f"""<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..700&display=swap" rel="stylesheet">
-<style>
-* {{ box-sizing: border-box; }}
-html, body {{ margin: 0; padding: 0; background: transparent; }}
-body {{
-    font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    color: #0E1726;
-    -webkit-font-smoothing: antialiased;
-}}
-.sp-peers {{ padding: 0; overflow: hidden; margin: 0; border: 1px solid #E3E6EB; border-radius: 12px; background: #fff; }}
-.sp-peers .tw {{ overflow: auto; max-height: 560px; scrollbar-width: none; }}
-.sp-peers .tw::-webkit-scrollbar {{ width: 0; height: 0; }}
-.sp-peers table {{ width: 100%; border-collapse: collapse; }}
-.sp-peers th {{
-    position: sticky; top: 0; z-index: 2;
-    background: #F4F5F8; font-size: 12px; font-weight: 600;
-    color: #5E6878; text-align: right; padding: 10px 16px;
-    border-top: 0; border-bottom: 1px solid #E3E6EB;
-    white-space: nowrap; cursor: pointer; user-select: none;
-}}
-.sp-peers th:hover {{ background: #E3E6EB; color: #0E1726; }}
-.sp-peers th.l {{ text-align: left; }}
-.sp-peers th .sort {{ margin-left: 4px; color: #4F46E5; font-size: 9px; }}
-.sp-peers td {{
-    padding: 12px 16px; text-align: right;
-    font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13.5px;
-    border-bottom: 1px solid #EDEFF3; white-space: nowrap;
-}}
-.sp-peers td.l {{ text-align: left; }}
-.sp-peers td.s {{ font-family: 'Geist', sans-serif; font-weight: 650; }}
-.sp-peers td.s a {{ color: #0E1726; text-decoration: none; }}
-.sp-peers td.s a:hover {{ color: #4338CA; }}
-.sp-peers .up {{ color: #067647; }}
-.sp-peers .down {{ color: #B42318; }}
-.sp-peers tbody tr:hover td {{ background: #F4F5F8; }}
-@media (max-width: 640px) {{
-    .sp-peers th, .sp-peers td {{ padding-left: 10px; padding-right: 10px; }}
-    .sp-peers th:first-child, .sp-peers td:first-child {{
-        position: sticky; left: 0; z-index: 3;
-        box-shadow: 6px 0 8px -8px rgba(14,23,38,.35);
-    }}
-    .sp-peers th:first-child {{ background: #F4F5F8; }}
-    .sp-peers td:first-child {{ background: #fff; }}
-}}
-</style>
-</head>
-<body>
-<section class="sp-card sp-peers" aria-label="Industry peers">
-<div class="tw"><table>
-<thead><tr>{"".join(headers)}</tr></thead>
-<tbody>{"".join(rows)}</tbody>
-</table></div>
-</section>
-<script>
-(function() {{
-    const table = document.querySelector('.sp-peers table');
-    if (!table) return;
-    const tbody = table.querySelector('tbody');
-    const headers = Array.from(table.querySelectorAll('thead th'));
-
-    headers.forEach((th, index) => {{
-        let direction = 0;
-        th.addEventListener('click', () => {{
-            direction = direction === 1 ? -1 : 1;
-            headers.forEach(h => {{
-                const old = h.querySelector('.sort');
-                if (old) old.remove();
-            }});
-            const marker = document.createElement('span');
-            marker.className = 'sort';
-            marker.textContent = direction === 1 ? '▲' : '▼';
-            th.appendChild(marker);
-
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            rows.sort((a, b) => {{
-                const ca = a.children[index];
-                const cb = b.children[index];
-                const va = ca ? ca.dataset.value ?? ca.innerText.trim() : '';
-                const vb = cb ? cb.dataset.value ?? cb.innerText.trim() : '';
-                const na = Number(va);
-                const nb = Number(vb);
-                const aBlank = va === '' || va === '—' || Number.isNaN(na) && va === '—';
-                const bBlank = vb === '' || vb === '—' || Number.isNaN(nb) && vb === '—';
-                if (aBlank || bBlank) {{
-                    return aBlank === bBlank ? 0 : aBlank ? 1 : -1;
-                }}
-                if (!Number.isNaN(na) && !Number.isNaN(nb)) {{
-                    return (na - nb) * direction;
-                }}
-                return va.localeCompare(vb) * direction;
-            }});
-            rows.forEach(row => tbody.appendChild(row));
-        }});
-    }});
-}})();
-</script>
-</body>
-</html>"""
-    st.iframe(page, height=min(600, 44 + 36 * len(frame)) + 10)
-
+def _peers_dialog(industry: str, frame: pd.DataFrame, adj_close: pd.DataFrame | None = None,
+                  highlight: str = "") -> None:
+    """Every ranked stock in the industry, in the Screener's table."""
+    st.caption(f"{industry}. Click a header to sort.")
+    render_screener_table(frame, adj_close, "Core", highlight=highlight)
 
 
 # ── 8. DATA CHECKS ───────────────────────────────────────────────────────────
@@ -993,8 +792,7 @@ def render_stock_view(
     _render_corporate_actions(sym)
 
     _html_block('<div class="sp-sec"><h2>Price and relative strength</h2>'
-                '<span>Drag to pan · 20 and 50-day EMA · volume · strength against the '
-                'Nifty 500 underneath</span></div>')
+                '<span>Drag to pan.</span></div>')
     render_stock_chart(
         sym,
         rank_df,
@@ -1007,7 +805,7 @@ def render_stock_view(
 
     _render_price_ladder(row, _year_low(sym, adj_close, low_prices))
     _render_gain_vs_pain(row, rank_df)
-    _render_peers(row, rank_df)
+    _render_peers(row, rank_df, adj_close)
     _render_data_health(row)
 
     render_data_quality_footer(

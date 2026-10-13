@@ -24,7 +24,6 @@ from src.core.config import (
     INDICES_URLS,
     MCAPS_FILE,
     PRICES_FILE,
-    STORAGE_MODE,
     TV_CLASSIFICATION_FILE,
 )
 from src.engine.corporate_actions import load_events
@@ -66,24 +65,21 @@ def _refused_refresh(wait: float) -> None:
     )
 
 
-# The page's four sections, in order: anchor id, number, title, what it is
-# for, and which pages a change reaches. One list feeds the index and the
-# section headers, so the two cannot disagree.
+# The page's four sections, in order: anchor id, title, one short line, and
+# which pages a change reaches (the heading's tooltip). One list feeds the
+# index and the section headers, so the two cannot disagree.
 _SECTIONS = [
     ("cfg-universe", "Universe",
-     "Which stocks are ranked. The app ranks the constituents of the indices chosen "
-     "here, from the official NSE lists.", "every page"),
+     "Which stocks are ranked, from the official NSE lists.", "every page"),
     ("cfg-score", "Momentum score",
-     "How much each lookback window counts in the composite score that sets every rank.",
+     "How much each lookback window counts.",
      "ranks on every page, and the backtest's starting weights"),
     ("cfg-limits", "Portfolio limits",
-     "The most a backtest may hold in one sector and one stock, and the least a stock "
-     "must trade to be bought. The model book on Portfolio and Actions keeps the track "
-     "record's own limits (5% a stock, 40% a sector, no floor).",
+     "The Backtest's caps and floor. The track record's own limits: 5% a stock, "
+     "40% a sector, no floor.",
      "the Backtest only"),
     ("cfg-health", "Data health",
-     "What the app corrected in the price history before ranking, and whether its data "
-     "files are in place.", "nothing; this section only reports"),
+     "Price corrections and data files.", "nothing; this section only reports"),
 ]
 
 
@@ -99,15 +95,26 @@ def _index_files_dialog() -> None:
             with open(path, "r", encoding="utf-8") as f:
                 lines = sum(1 for _ in f) - 1
             st.caption(
-                f"**{idx_name}**: `{lines}` constituents ({size/1024:.1f} KB) · {mtime}"
+                f"**{idx_name.title()}**: `{lines}` constituents ({size/1024:.1f} KB) · {mtime}"
             )
         else:
-            st.caption(f"**{idx_name}**: File missing at `{path}`")
+            st.caption(f"**{idx_name.title()}**: File missing at `{path}`")
 
 
-@st.dialog("Spike sessions, by date", width="large")
+@st.dialog("Corporate actions adjusted, by date", width="large")
 def _spike_sessions_dialog(rows: list[dict]) -> None:
-    """Read-only: every flagged session, newest first."""
+    """Read-only: every flagged session, newest first, and how each is handled."""
+    kit.caption(
+        "Each is neutralised in memory before ranking and in the backtest, by rescaling "
+        "the history before it. Stored prices are never edited, so a later correction "
+        "from the provider is not applied twice."
+    )
+    kit.caption(
+        "A split or bonus should have been adjusted away by the data provider and was not; "
+        "re-fetching fixes it. A possible demerger matches no standard ratio; providers "
+        "generally don't adjust for these because the parent's price genuinely falls while "
+        "shareholders receive stock in the new entity."
+    )
     render_saas_table(pd.DataFrame(rows))
 
 
@@ -135,12 +142,14 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
     attempt_fetched = sync_meta.get("last_attempt_fetched")
     attempt_errors = sync_meta.get("last_attempt_errors") or {}
 
-    st.html(
-        '<div class="cfg-stats">'
-        f'<div><span>Last synced</span><b>{html.escape(str(last_sync))}</b></div>'
-        f'<div><span>In the index files</span><b>{tot_stk} stocks</b></div>'
-        f'<div><span>Ranked now</span><b>{engine_stocks} stocks</b></div></div>'
-    )
+    sync_day, _, sync_time = str(last_sync).partition(", ")
+    tiles = [
+        kit.Reading("Last synced", sync_day, f"at {sync_time}" if sync_time else ""),
+        kit.Reading("In the index files", f"{tot_stk:,}", "stocks"),
+    ]
+    if engine_stocks != tot_stk:
+        tiles.append(kit.Reading("Ranked now", f"{engine_stocks:,}", "stocks"))
+    kit.readings(tiles, "Index sync")
     _freshness_table()
     if sync_ok is False:
         kit.note(
@@ -183,6 +192,7 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
         "Indices to rank",
         available_indices,
         default=curr_indices,
+        format_func=str.title,
         key="cfg_indices_multiselect",
     )
     if new_indices != curr_indices:
@@ -191,7 +201,9 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
         st.rerun()
 
     with st.container(horizontal=True, vertical_alignment="center", key="cfg_sync_row"):
-        if st.button("Sync from niftyindices.com", type="primary", key="btn_sync_indices"):
+        if st.button("Sync from niftyindices.com", type="primary", key="btn_sync_indices",
+                     help="Fetch the latest official constituent lists. One sync at a time, "
+                          "app-wide."):
             _wait = _claim_global_refresh()
             if _wait:
                 _refused_refresh(_wait)
@@ -231,9 +243,6 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
                 st.cache_resource.clear()  # the shared price frames (app.py _shared)
                 st.rerun()
 
-        st.html('<span class="pg-cap">Sync fetches the latest official constituent lists. '
-                "One sync at a time, app-wide.</span>")
-
     if st.button(f"Index files on disk ({len(INDICES_LOCAL)})", type="tertiary",
                  icon=":material/folder_open:", key="dlg_cfg_index_files"):
         _index_files_dialog()
@@ -248,6 +257,21 @@ _WINDOWS: list[tuple[str, str, float]] = [
     ("9M", "cfg_w4", DEFAULT_LOOKBACK_WEIGHTS[3]),
     ("12M", "cfg_w5", DEFAULT_LOOKBACK_WEIGHTS[4]),
 ]
+
+# What each window measures, shown as its slider's tooltip. Every window runs
+# from its calendar start to the latest close; none skips the latest month.
+# Session counts are approximate because the windows are calendar-anchored.
+_WINDOW_HELP = {
+    "1M": "1 calendar month to the latest close, about 21 sessions. "
+          "Recent acceleration; noisy on its own.",
+    "3M": "3 months to the latest close, about 63 sessions. The main swing of a "
+          "trend; more weight favours fast breakouts.",
+    "6M": "6 months to the latest close, about 126 sessions. An established trend.",
+    "9M": "9 months to the latest close, about 189 sessions. Persistence; more "
+          "weight favours slow, persistent trends.",
+    "12M": "12 months to the latest close, about 252 sessions. The long base; "
+           "guards against spikes.",
+}
 
 
 def _section_momentum_signal() -> None:
@@ -279,8 +303,7 @@ def _section_momentum_signal() -> None:
         + f'</div><div class="cfg-wbar">{segs}</div>'
     )
 
-    _defaults_txt = " / ".join(f"{w * 100:.0f}" for w in DEFAULT_LOOKBACK_WEIGHTS)
-    if st.button(f"Reset to defaults ({_defaults_txt})", key="cfg_w_reset"):
+    if st.button("Reset to defaults", key="cfg_w_reset"):
         # Write the mirror and DROP the widget's own state, so the sliders read
         # the restored value on the next run. Writing the widget key instead is
         # legal only above the widget, and was the shape that crashed the tab.
@@ -300,7 +323,7 @@ def _section_momentum_signal() -> None:
         # correct in the same frame.
         shown = col.slider(
             label, min_value=0.0, max_value=1.0,
-            value=float(current[key]), step=0.05, key=key,
+            value=float(current[key]), step=0.05, key=key, help=_WINDOW_HELP[label],
         )
         # Record it where eviction cannot reach it, so navigating to another
         # section no longer reverts a reader's own weights to the defaults.
@@ -321,24 +344,7 @@ def _section_momentum_signal() -> None:
             "until you set one — press **Reset to defaults** above."
         )
 
-    kit.caption(
-        "Weights are normalised to 100%. No window skips the most recent month: "
-        "each runs from its calendar start to the latest close."
-    )
-    st.html(
-        '<table class="cfg-guide"><thead><tr><th>Window</th><th>Period</th>'
-        '<th class="n">≈ sessions</th><th>What it captures</th></tr></thead><tbody>'
-        "<tr><td>1M</td><td>1 calendar month</td><td class='n'>21</td><td>Recent acceleration; noisy on its own</td></tr>"
-        "<tr><td>3M</td><td>3 months</td><td class='n'>63</td><td>The main swing of a trend</td></tr>"
-        "<tr><td>6M</td><td>6 months</td><td class='n'>126</td><td>An established trend</td></tr>"
-        "<tr><td>9M</td><td>9 months</td><td class='n'>189</td><td>Persistence</td></tr>"
-        "<tr><td>12M</td><td>12 months</td><td class='n'>252</td><td>The long base; guards against spikes</td></tr>"
-        "</tbody></table>"
-    )
-    kit.caption(
-        "More weight on 3M and 6M favours fast breakouts; more on 9M and 12M favours slow, "
-        "persistent trends. Session counts are approximate: windows are calendar-anchored."
-    )
+    kit.caption("Weights are normalised to 100%.")
 
 
 # Defaults for the on-demand Portfolio limits widgets. Same reason as the weight
@@ -383,8 +389,6 @@ def _section_portfolio_risk() -> None:
         value=_risk("cfg_stc"), key="cfg_stc",
     )
     remember("cfg_stc", int(new_stc))
-    kit.caption("Used by the Backtest. The model book on Portfolio and Actions keeps the "
-                "track record's 5% a stock and 40% a sector.")
     if new_stc > new_sc:
         kit.note(f"The stock cap ({new_stc}%) is above the sector cap ({new_sc}%).",
                  "No book can satisfy both; lower the stock cap.")
@@ -405,18 +409,23 @@ def _section_portfolio_risk() -> None:
     new_lf = st.toggle(
         "Liquidity floor",
         value=_risk("cfg_lf"), key="cfg_lf",
-        help="A stock whose 20-day average traded value is below the floor is not "
-             "bought at any rebalance in the Backtest. The model book on Portfolio and "
-             "Actions follows the track record, which has no floor.",
+        help="A stock whose 20-day average traded value (close × volume) is below "
+             "the floor is not bought at a Backtest rebalance.",
     )
     remember("cfg_lf", bool(new_lf))
-    kit.caption("20-day average traded value (close × volume). Off by default; "
-                "the track record is unaffected.")
     new_lfv = st.number_input(
         "Floor (₹ Cr a day)", min_value=1, max_value=500, step=1,
         value=int(_risk("cfg_lfv")), key="cfg_lfv", disabled=not new_lf, width=220,
     )
     remember("cfg_lfv", int(new_lfv))
+
+
+def _day(value) -> str:
+    """The log's ISO date as 01 Oct 2026; a dash when it is missing or unreadable."""
+    try:
+        return pd.Timestamp(value).strftime("%d %b %Y")
+    except (TypeError, ValueError):
+        return "—"
 
 
 def _section_data_health(rank_df: pd.DataFrame) -> None:
@@ -429,23 +438,17 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
     else:
         _split = sum(1 for e in _events if e.get("kind") == "split/bonus")
         _other = len(_events) - _split
-        st.html(
-            '<div class="cfg-stats">'
-            f'<div><span>Price jumps neutralised</span><b>{len(_events)}</b><em>sessions, before ranking</em></div>'
-            f'<div><span>Splits the provider missed</span><b>{_split}</b><em>a re-fetch fixes these</em></div>'
-            f'<div class="warn"><span>Possible demergers</span><b>{_other}</b><em>no standard ratio</em></div></div>'
-        )
-        kit.caption(
-            "Each is neutralised in memory before ranking and in the backtest, by rescaling "
-            "the history before it. Stored prices are never edited, so a later correction "
-            "from the provider is not applied twice."
-        )
+        kit.readings([
+            kit.Reading("Corporate actions adjusted", f"{len(_events)}", "sessions, before ranking"),
+            kit.Reading("Splits the provider missed", f"{_split}", "a re-fetch fixes these"),
+            kit.Reading("Possible demergers", f"{_other}", "no standard ratio", tone="warn"),
+        ], "Corporate actions")
         _rows = []
         for e in sorted(_events, key=lambda x: x.get("date", ""), reverse=True):
             _move = e.get("move")
             _rows.append(
                 {
-                    "Date": e.get("date", "—"),
+                    "Date": _day(e.get("date")),
                     "Symbol": e.get("symbol", "—"),
                     "Move": f"{_move * 100:+.1f}%" if _move is not None else "—",
                     # A null ratio in the log raised TypeError on the format
@@ -462,15 +465,9 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
                     ),
                 }
             )
-        if st.button(f"All {len(_events)} sessions, by date", type="tertiary",
+        if st.button("All sessions, by date", type="tertiary",
                      icon=":material/table_rows:", key="dlg_cfg_sessions"):
             _spike_sessions_dialog(_rows)
-        kit.caption(
-            "A split or bonus should have been adjusted away by the data provider and was not; "
-            "re-fetching fixes it. A possible demerger matches no standard ratio; providers "
-            "generally don't adjust for these because the parent's price genuinely falls while "
-            "shareholders receive stock in the new entity."
-        )
 
     st.html('<div class="cfg-sub">Data files</div>')
     cache_data = [
@@ -500,8 +497,9 @@ def _section(i: int):
     box = st.container(key=f"cfgsec_{anchor.split('-')[1]}")
     left, right = box.columns([1, 2.4], gap="large")
     left.html(
-        f'<div class="cfg-intro" id="{anchor}"><span>{i + 1}</span><h2>{html.escape(title)}</h2>'
-        f"<p>{html.escape(what)}</p><small>Changes: {html.escape(reaches)}</small></div>"
+        f'<div class="cfg-intro" id="{anchor}"><span>{i + 1}</span>'
+        f'<h2 title="Changes: {html.escape(reaches)}">{html.escape(title)}</h2>'
+        f"<p>{html.escape(what)}</p></div>"
     )
     return right
 
@@ -512,17 +510,10 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
     synced_stocks = sync_meta.get("total_stocks") or 0
     tot_stk = synced_stocks or len(rank_df)
     engine_stocks = len(rank_df)
-    mode_label = (
-        "Streamlit Cloud" if STORAGE_MODE == "streamlit-cloud" else "Local Production"
-    )
-
-    st.html(
-        '<div class="cfg-top"><div class="scr-head"><h1>Configuration</h1>'
-        "<p>Everything that decides the ranking and the backtest, on one page. The model "
-        "book on Portfolio and Actions keeps the track record's own settings. "
-        "Changes apply as you make them.</p></div>"
-        '<div class="cfg-pills">'
-        f'<span class="cfg-pill">{html.escape(mode_label)}</span></div></div>'
+    kit.page_head(
+        "Configuration",
+        "Changes apply as you make them. The model book on Portfolio and Actions keeps "
+        "the track record's own settings.",
     )
 
     # What is in effect, read the same way the rest of the app reads it.
@@ -531,20 +522,16 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
     norm = [w / tot for w in raw_w] if tot > 0 else list(DEFAULT_LOOKBACK_WEIGHTS)
     is_default = all(abs(a - b) < 1e-6 for a, b in zip(norm, DEFAULT_LOOKBACK_WEIGHTS))
     indices = st.session_state.get("cfg_indices", ["NIFTY TOTAL MARKET"])
-    n_events = len(load_events() or [])
     system_note = (f" · {SYSTEM_NAMES.get(st.session_state.get('cfg_system'), '')}"
                    if st.session_state.get("cfg_system", SYSTEM_750) != SYSTEM_750 else "")
-    rows = [
+    # The weights are shown once, by the bar in Momentum score; the count of
+    # corporate actions once, in Data health.
+    kit.kv_line([
         ("Universe", (" + ".join(i.title() for i in indices) or "—") + system_note),
-        ("Score weights 1M·3M·6M·9M·12M",
-         "·".join(f"{w * 100:.0f}" for w in norm) + (" (default)" if is_default else " (yours)")),
+        ("Score weights", "Default" if is_default else "Yours"),
         ("Backtest max per stock · per sector", f"{_risk('cfg_stc')}% · {_risk('cfg_sc')}%"),
         ("Backtest liquidity floor", f"₹{_risk('cfg_lfv')} Cr" if _risk("cfg_lf") else "Off"),
-        ("Corporate actions adjusted", f"{n_events}" if n_events else "None"),
-    ]
-    st.html('<div class="cfg-kv">' + "".join(
-        f"<div><span>{html.escape(k)}</span><b>{html.escape(v)}</b></div>" for k, v in rows
-    ) + "</div>")
+    ], lead="In effect")
 
     st.html(
         '<nav class="cfg-index" aria-label="Sections">'

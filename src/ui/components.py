@@ -6,7 +6,6 @@ Inspired by Investrack, Stockin.id, and Tickerboom financial terminal designs.
 import html
 import re
 from datetime import timedelta
-from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -82,7 +81,7 @@ def compute_signals(rank_df: pd.DataFrame) -> list[SignalAlert]:
         signals.append(
             SignalAlert(
                 icon="⚠️",
-                text=f"Only {len(qualified)} stocks pass both filters (the portfolio wants at least 20)",
+                text="Fewer than 20 pass both filters",
                 color="#B54708",
                 category="risk",
             )
@@ -426,25 +425,6 @@ def signal_chips_html(signals: list[SignalAlert]) -> str:
             if chips else "")
 
 
-def stat_pill(label: str, value: Any, color: str = "indigo") -> str:
-    """Helper to generate styled badge HTML."""
-    color_map = {
-        "indigo": ("#eef2ff", "#4f46e5", "#c7d2fe"),
-        "emerald": ("#E8F5EE", "#067647", "#a7f3d0"),
-        "rose": ("#FDEDEB", "#B42318", "#F3C7C1"),
-        "amber": ("#FEF6EA", "#B54708", "#F5D7A8"),
-        "sky": ("#f0f9ff", "#0284c7", "#bae6fd"),
-    }
-    bg, fg, bdr = color_map.get(color, color_map["indigo"])
-    return (
-        f'<span style="display: inline-flex; align-items: center; gap: 6px; border-radius: 6px; '
-        f"padding: 3px 10px; font-family: 'Geist Mono', monospace; font-size: 0.76rem; "
-        f'background-color: {bg}; color: {fg}; border: 1px solid {bdr}; font-weight: 500; margin: 2px 4px 2px 0;">'
-        f'{label}: <strong style="font-weight: 700;">{value}</strong></span>'
-    )
-
-
-
 # Sources whose age is worth stating, and how many trading days each may fall
 # behind before it is called stale. Market caps publish only after
 # the close, so being one trading day behind is their normal state, not a fault.
@@ -697,38 +677,6 @@ def age_phrase(item: dict) -> str:
     if behind == 1:
         return " · 1 trading day behind"
     return f" · {behind} trading days behind"
-
-
-def header_as_of() -> tuple[str, str]:
-    """The date for the header bar, and the colour to render it in.
-
-    This is the PRICE DATA's own as-of date. The header used to print
-    ``datetime.now()`` -- the server's wall clock, in the server's timezone,
-    stamped beside the market status where every reader takes it for the date
-    of the numbers next to it. It stayed reassuring no matter how old those
-    numbers were: a price cache stuck on 21 August still announced 31 August at
-    the top of the page, and the one honest indicator sat in a ribbon far below
-    the fold.
-
-    Two bugs in one line, in fact. ``datetime.now()`` is also naive server time,
-    which on Streamlit Cloud is UTC -- so for the five and a half hours each
-    evening when India is already on the next date, the header printed
-    YESTERDAY even when everything was working.
-    """
-    prices = next(
-        (i for i in data_freshness() if i["label"] == "Prices"), None
-    )
-    if prices is None or prices.get("date") is None:
-        # Better an admission than a date. The loaders stamp this on every
-        # return path; nothing arriving here means the pipeline did something
-        # unexpected, which is not the moment to print a confident date.
-        return "price date unknown", "#B54708"
-    cov = str(prices.get("coverage") or "").strip()
-    suffix = f" · {cov}" if cov else ""
-    return (
-        f"{prices['date'].strftime('%d %b %Y')}{suffix}{age_phrase(prices)}",
-        "#B54708" if prices["stale"] else "#5E6878",
-    )
 
 
 def render_freshness_ribbon() -> None:
