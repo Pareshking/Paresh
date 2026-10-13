@@ -115,15 +115,10 @@ def test_weight_change_reuses_period_z_scores_without_recompute() -> None:
 
 
 def test_decompose_fields_matches_extract_by_coverage_path() -> None:
-    # Build a synthetic MultiIndex matching yfinance's (Ticker, Field) layout.
+    # Build a synthetic MultiIndex in the (Ticker, Field) layout.
     import sys
-    import types
     import unittest.mock as mock
 
-    # price_loader imports yfinance at module level; stub it so the test can
-    # import the two pure functions without a live yfinance installation.
-    if "yfinance" not in sys.modules:
-        sys.modules["yfinance"] = types.ModuleType("yfinance")
     if "src.loaders.price_loader" in sys.modules:
         del sys.modules["src.loaders.price_loader"]
 
@@ -141,7 +136,7 @@ def test_decompose_fields_matches_extract_by_coverage_path() -> None:
     data = rng.uniform(100, 200, size=(5, len(cols)))
     df = pd.DataFrame(data, index=idx, columns=cols)
 
-    # Swap levels so it's (Field, Ticker) as yfinance sometimes returns
+    # Swap levels so it's (Field, Ticker), as a vendor sometimes returns
     df_swapped = df.swaplevel(axis=1).sort_index(axis=1)
 
     for raw in (df, df_swapped):

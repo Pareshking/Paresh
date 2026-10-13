@@ -6,6 +6,13 @@
 - Checked against independent references: of the 66,576 filled days a reference covers, 66,575 agree within 2% with at least one (SS 99.99%, TejHQ 99.98%, eod2 99.99%, Tijori 99.80%, Yahoo 99.37%); the one left is RAYMOND's demerger ex-date. 1,352 days come from BSE before a stock listed on NSE (ADVAIT, JAYKAY, SHUKRAPHAR and nine more), which no reference covers.
 - The 750's frame is unchanged, cell for cell. A stock that joins the Nano Cap list later is added by the daily sync, with no hand step.
 
+## 2026-10-13 — Yahoo removed: no code downloads from it, `yfinance` is no longer a dependency
+
+- Owner, 13 Oct: "Yahoo removal: remove it" (TODO S10). Nothing the app shows changes: the ranking, backtest, track record and benchmark already came from Screener, NSE and `data/benchmarks.csv` (since 2 Oct).
+- Removed: `yfinance` from `requirements.txt`; the Yahoo downloader and its price cache in `price_loader.py` (`fetch_price_history` and its helpers) and the snapshot seeding behind it (`price_store.py`); the Nano Cap Yahoo download (`extra_universe_loader.download`/`load_prices`, `scripts/sync_extra_yahoo.py`); the raw Yahoo R2 build (`r2/raw/yahoo.py`, `scripts/r2_build_yahoo_raw.py`, `r2_yahoo_raw_build.yml`, `r2_yahoo_raw_retry.yml`); two research scripts that downloaded ten years from Yahoo and their workflow (`v1_hypothesis_backtest.py`, `v1_recent6m_monthstart.py`, `v1-recent6m-monthstart.yml`).
+- `scripts/build_nse_index_prices.py` keeps NSE Indices' own history first and Screener's index chart second; the Yahoo fallback between them is gone. `scripts/full_validation.py` ranks the frame production ranks (`price_source.ranking_frames`).
+- Kept: `extract_ohlcv`, the benchmark and market-regime readers, and Yahoo as a stored audit reference (`reference/yahoo_close` on R2, read by `scripts/audit_long_prices.py`).
+
 ## 2026-10-13 — Sector map: how to read it, 1M or 3M, the heavy lifters; Big movers means big
 
 - Under the Sector leadership map, **How to read this** works one sector through with its own numbers: its stocks' average move against the Nifty 500 over the same closes (across), how many of its stocks are above their EMA (up), and what the line's direction means. It uses the sector you pick, else the first that beat the index on narrow breadth.

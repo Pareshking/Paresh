@@ -15,50 +15,17 @@ The source string says what was observed and at what coverage, so a wrong entry
 traces back to the run that made it instead of appearing as an anonymous date
 somebody once decided was closed. The exchange still outranks it: record_closed
 refuses any date NSE published a bhavcopy for.
+
+The loader-side volume test lived in the Yahoo price cache and was removed with
+it (TODO S10, 13 Oct 2026); the calendar's half below is still live.
 """
 
 import json
 
-import pandas as pd
 
 from src.loaders.trading_days import (
     load_closed, load_confirmed, record_closed, record_confirmed,
 )
-
-
-def _dead_session_frame(n_cols=120):
-    """Two live sessions and one on which nothing traded."""
-    idx = pd.to_datetime(["2026-05-27", "2026-05-28", "2026-05-29"])
-    cols = pd.MultiIndex.from_product(
-        [[f"S{i}" for i in range(n_cols)], ["Close", "Open", "High", "Low", "Volume"]]
-    )
-    df = pd.DataFrame(index=idx, columns=cols, dtype=float)
-    for i in range(n_cols):
-        s = f"S{i}"
-        df[(s, "Close")] = [100.0, 100.0, 101.0]
-        df[(s, "Open")] = [99.0, 100.0, 100.5]
-        df[(s, "High")] = [101.0, 100.0, 101.5]
-        df[(s, "Low")] = [98.0, 100.0, 100.0]
-        df[(s, "Volume")] = [5_000.0, 0.0, 6_000.0]   # the middle day: nobody traded
-    return df
-
-
-def test_the_loader_reports_which_dates_it_found(monkeypatch):
-    """A count cannot be recorded against anything; the dates can."""
-    from src.core import startup_metrics as m
-    from src.loaders import price_loader
-    import src.loaders.trading_days as td
-
-    monkeypatch.setattr(td, "load_confirmed", lambda path=None: set())
-    monkeypatch.setattr(td, "load_closed", lambda path=None: set())
-    m.reset_for_tests()
-
-    out = price_loader._drop_phantom_sessions(_dead_session_frame())
-    assert pd.Timestamp("2026-05-28") not in out.index
-
-    facts = m.snapshot().get("facts", {})
-    assert facts.get("price_zero_trade_dates") == "2026-05-28"
-    assert "2026-05-28:" in str(facts.get("price_zero_trade_coverage"))
 
 
 def test_a_finding_is_recorded_with_what_was_observed(tmp_path):
@@ -116,21 +83,3 @@ def test_learned_closures_and_human_ones_coexist(tmp_path):
     assert load_closed(path) == {"2026-09-14", "2026-05-28"}
 
 
-def test_a_live_session_is_never_learned_as_closed(monkeypatch):
-    """The false positive that would matter: real trading, recorded as a holiday."""
-    from src.core import startup_metrics as m
-    from src.loaders import price_loader
-    import src.loaders.trading_days as td
-
-    monkeypatch.setattr(td, "load_confirmed", lambda path=None: set())
-    monkeypatch.setattr(td, "load_closed", lambda path=None: set())
-    m.reset_for_tests()
-
-    df = _dead_session_frame()
-    for c in [c for c in df.columns if c[1] == "Volume"]:
-        df[c] = [5_000.0, 4_000.0, 6_000.0]      # every session traded
-    price_loader._drop_phantom_sessions(df)
-    facts = m.snapshot().get("facts", {})
-    assert not str(facts.get("price_zero_trade_dates") or ""), (
-        "a session with real volume was reported as a non-session"
-    )

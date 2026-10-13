@@ -1,36 +1,26 @@
-"""The extra universe for the app: its member list and its Yahoo prices.
+"""The extra universe for the app: its member list and market caps.
 
-Kept apart from the 750's loaders on purpose. The 750's price cache judges
-each session by how much of the universe has printed, and ~420 thinner stocks
-in that cache would move those judgements; the index loader fetches NSE's
+Kept apart from the 750's loaders on purpose: the index loader fetches NSE's
 live lists, and this list is our own. So the extra universe has its own list
-reader and its own price file (prices_extra.parquet, written nightly by
-scripts/sync_extra_yahoo.py), and nothing here touches the 750's.
+reader, and nothing here touches the 750's.
 
-The ranking itself still comes from the Screener store, which holds both
-universes; this Yahoo file supplies what Screener lacks (High, Low, Open) and
-the depth the backtest needs, exactly as the 750's Yahoo file does.
+Its prices come from the Screener store, which holds both universes, with NSE
+for what Screener lacks (src/loaders/price_source.py). The Yahoo download that
+used to sit here was removed (TODO S10, 13 Oct 2026).
 """
 
 from __future__ import annotations
 
-import io
 import os
 
 import pandas as pd
-import requests
 import streamlit as st
 
-from src.core.config import PRICE_SNAPSHOT_REPO, PRICE_SNAPSHOT_TAG, REPO_DATA_DIR
-from src.core.logger import logger
+from src.core.config import REPO_DATA_DIR
 from src.core.tickers import is_tradeable_symbol
 from src.engine import extra_universe as xu
-from src.loaders import app_source
 
 LIST_PATH = os.path.join(REPO_DATA_DIR, "indices", "ind_nanocap_list.csv")
-PRICES_EXTRA_URL = (f"https://github.com/{PRICE_SNAPSHOT_REPO}/releases/download/"
-                    f"{PRICE_SNAPSHOT_TAG}/prices_extra.parquet")
-BATCH = 100
 
 
 def members(path: str = LIST_PATH) -> pd.DataFrame:
@@ -134,70 +124,6 @@ def join_prices(core: pd.DataFrame | None, extra: pd.DataFrame | None,
     if not parts:
         return pd.DataFrame()
     return parts[0] if len(parts) == 1 else pd.concat(parts, axis=1).sort_index()
-
-
-# ── Yahoo prices ─────────────────────────────────────────────────────────────
-
-def strip_suffix(frame: pd.DataFrame) -> pd.DataFrame:
-    """(SYM.NS, field) columns -> (SYM, field), rows with no price at all dropped."""
-    if frame is None or frame.empty or not isinstance(frame.columns, pd.MultiIndex):
-        return pd.DataFrame()
-    frame = frame.copy()
-    frame.columns = pd.MultiIndex.from_tuples(
-        [(str(t).upper().removesuffix(".NS"), f) for t, f in frame.columns])
-    idx = pd.DatetimeIndex(frame.index)
-    if idx.tz is not None:
-        idx = idx.tz_localize(None)
-    frame.index = idx.normalize()
-    return frame.dropna(how="all").sort_index()
-
-
-def download(symbols: list[str], period: str = "2y", fetch=None) -> pd.DataFrame:
-    """Yahoo's history for `symbols`, 100 tickers a call."""
-    if fetch is None:
-        import yfinance as yf
-
-        def fetch(batch):
-            return yf.download(batch, period=period, progress=False,
-                               group_by="ticker", threads=True, auto_adjust=True)
-    parts = []
-    for start in range(0, len(symbols), BATCH):
-        got = strip_suffix(fetch([s + ".NS" for s in symbols[start:start + BATCH]]))
-        if not got.empty:
-            parts.append(got)
-    return pd.concat(parts, axis=1).sort_index() if parts else pd.DataFrame()
-
-
-def _published() -> pd.DataFrame | None:
-    """The nightly file from the GitHub release. None when it does not serve."""
-    try:
-        resp = requests.get(PRICES_EXTRA_URL, timeout=60)
-        if resp.status_code == 200:
-            app_source.record("prices_extra", "release")
-            return pd.read_parquet(io.BytesIO(resp.content))
-        logger.info("prices_extra release asset: HTTP %s", resp.status_code)
-    except Exception as exc:
-        logger.info("prices_extra release asset failed (%s).", type(exc).__name__)
-    return None
-
-
-@st.cache_data(show_spinner=False, ttl=3600)
-def load_prices(sym_key: str, _symbols: list[str]) -> pd.DataFrame:
-    """The extra universe's Yahoo OHLCV, one (symbol, field) column pair each.
-
-    The published nightly file when there is one; otherwise a direct Yahoo
-    download of the whole list (about a minute), so the page still works on
-    the day the list first appears.
-    """
-    symbols = list(_symbols)
-    frame = _published()
-    if frame is None or frame.empty:
-        logger.info("No published prices_extra; downloading %d symbols from Yahoo.", len(symbols))
-        frame = download(symbols)
-    if frame.empty:
-        return frame
-    keep = [c for c in frame.columns if c[0] in set(symbols)]
-    return frame.loc[:, keep]
 
 
 HISTORY_PATH = os.path.join(REPO_DATA_DIR, "nanocap_membership.json")

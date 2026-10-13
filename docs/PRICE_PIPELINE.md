@@ -454,4 +454,3 @@ Workflows on demand: `ss_sync.yml` (mode daily/backfill), `nse_collect.yml`
   weekday R2 lacks; done when a run reports 0 days to go.
 - Run the adjustment check across 2010–2026 on the full NSE history, then the
   long backtests.
-- Remove the dead Yahoo code and the `yfinance` dependency.

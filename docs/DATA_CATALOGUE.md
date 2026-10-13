@@ -74,7 +74,9 @@ Policy and recovery: `docs/R2_RECOVERY_AND_RETENTION.md`. Layout and rules
 filled with NSE's daily moves on Screener's level (7 Oct 2026; no dataset
 changes, the frame is built at run time from `prices/screener` and the
 committed `data/nse_prices`). Yahoo is no longer a source (owner, 2 Oct
-2026). SS is collected nightly and checked against the other two by the
+2026), and since 13 Oct 2026 no code downloads from it: `yfinance` is gone
+from `requirements.txt` (TODO S10). Yahoo survives only as the stored audit
+reference `reference/yahoo_close`. SS is collected nightly and checked against the other two by the
 three-source vote, with NSE's own record as judge; it is not yet wired into
 the app. Rules, the nightly run and the vote: `docs/PRICE_PIPELINE.md`.
 

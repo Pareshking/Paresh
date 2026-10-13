@@ -1,4 +1,4 @@
-"""The app's extra-universe loaders: member list, membership summary, prices."""
+"""The app's extra-universe loaders: member list and membership summary."""
 import json
 
 import pandas as pd
@@ -29,18 +29,9 @@ def test_membership_summary_names_the_newest_month(tmp_path):
     assert xl.membership_summary(str(tmp_path / "none.json")) == {}
 
 
-def test_prices_prefer_the_published_file_and_keep_only_members(monkeypatch):
-    cols = pd.MultiIndex.from_tuples([("ABC", "Close"), ("OTHER", "Close")])
-    published = pd.DataFrame(1.0, index=pd.bdate_range("2026-09-21", periods=3), columns=cols)
-    monkeypatch.setattr(xl, "_published", lambda: published)
-    monkeypatch.setattr(xl, "download", lambda s: (_ for _ in ()).throw(AssertionError("no Yahoo")))
-    out = xl.load_prices.__wrapped__("k", ["ABC"])
-    assert list(out.columns) == [("ABC", "Close")]
+def test_the_extra_universe_loader_downloads_nothing_from_yahoo():
+    from pathlib import Path
 
-
-def test_prices_fall_back_to_yahoo_when_nothing_is_published(monkeypatch):
-    cols = pd.MultiIndex.from_tuples([("ABC", "Close")])
-    fresh = pd.DataFrame(2.0, index=pd.bdate_range("2026-09-21", periods=2), columns=cols)
-    monkeypatch.setattr(xl, "_published", lambda: None)
-    monkeypatch.setattr(xl, "download", lambda s: fresh)
-    assert xl.load_prices.__wrapped__("k", ["ABC"]).iloc[0, 0] == 2.0
+    text = Path(xl.__file__).read_text(encoding="utf-8")
+    assert "yfinance" not in text and "yf.download" not in text
+    assert not hasattr(xl, "download") and not hasattr(xl, "load_prices")

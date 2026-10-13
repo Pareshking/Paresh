@@ -50,11 +50,10 @@ The 750 system's point-in-time membership is backed by the multi-index `data/mem
 
 ## Prices
 
-- The ranking reads Screener first, Yahoo for gaps (`price_source.keep_and_fill`).
-- The 750 come from the 750's price files; Nano Cap stocks from their own Yahoo
-  file (`prices_extra.parquet`, nightly). `extra_universe_loader.join_prices`
-  keeps one copy per stock: a stock that left the 750 for Nano Cap (HEG,
-  Sep 2026) is priced from the Nano Cap file, not the stale 750 copy.
+- The ranking reads Screener first, NSE for gaps (`price_source.ranking_frames`);
+  the Screener store holds the 750 and Nano Cap alike. Yahoo is not a source
+  (owner, 2 Oct 2026); the Nano Cap Yahoo file (`prices_extra.parquet`) and the
+  code that downloaded it were removed on 13 Oct 2026 (TODO S10).
 - Market caps: the 750's cache; the Nano Cap list's own figures for the rest.
 
 ## Nightly precompute
