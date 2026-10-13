@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-13 — /screener opens the Screener
+
+- Typing or bookmarking the address `/screener` showed "Page not found" before the Screener loaded. It now opens the Screener directly.
+
 ## 2026-10-13 — Less empty space, fewer cramped boxes
 
 - The figure strip under each page's title (Sectors, Actions, Breadth, Portfolio, Backtest) fills the row however many figures it has. It was a fixed six columns, so four figures left two empty columns and long industry names wrapped onto four lines. Names now read smaller, at most two lines; on a phone the figures sit two to a row.

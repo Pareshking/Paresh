@@ -1141,7 +1141,8 @@ def _page_guide() -> None:
 # them by name and tests/test_qa_tab_list_matches_the_app.py pins them, so a
 # rename here without one there is a failing build, not a silent drift.
 _PAGES = [
-    st.Page(_page_screener, title="Screener", url_path="screener", default=True),
+    # Served at "/" as the default page; "screener" is the redirect below.
+    st.Page(_page_screener, title="Screener", url_path="home", default=True),
     st.Page(_page_portfolio, title="Portfolio", url_path="portfolio"),
     st.Page(_page_actions, title="Actions", url_path="actions"),
     st.Page(_page_sectors, title="Sectors", url_path="sectors"),
@@ -1156,9 +1157,12 @@ _PAGES = [
 # Addresses that moved: Qualified and Exit Watch became Actions. A bookmark to
 # either still lands there. These are redirects, not pages -- they are left out
 # of _PAGES, so no menu shows them, and their titles are not the app's tabs.
-_MOVED = {"qualified": "Qualified", "exit-watch": "Exit Watch", "track-record": "Track Record"}
+_MOVED = {"qualified": "Qualified", "exit-watch": "Exit Watch", "track-record": "Track Record",
+          "screener": "Screener link"}
 # Where a moved address now lands (Actions unless listed): the record is part of Portfolio.
-_MOVED_TO = {"track-record": "Portfolio"}
+# The Screener is the default page, which Streamlit serves at "/" only, so a
+# typed or bookmarked /screener said "Page not found" first (13 Oct).
+_MOVED_TO = {"track-record": "Portfolio", "screener": "Screener"}
 
 
 def _moved_page(path: str):
