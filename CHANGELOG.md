@@ -13,6 +13,13 @@
 - `scripts/build_nse_index_prices.py` keeps NSE Indices' own history first and Screener's index chart second; the Yahoo fallback between them is gone. `scripts/full_validation.py` ranks the frame production ranks (`price_source.ranking_frames`).
 - Kept: `extract_ohlcv`, the benchmark and market-regime readers, and Yahoo as a stored audit reference (`reference/yahoo_close` on R2, read by `scripts/audit_long_prices.py`).
 
+## 2026-10-13 — The long price file keeps itself up to date, and its audits can fail it (S47)
+
+- NSE's yearly corporate-action list is imported every month (the 2nd, 21:13 UTC), last year and this year, instead of by hand (last done 2 Oct).
+- Once a month (the second Saturday) the long-file build reads every session and corporate-action day from R2 again instead of only the new ones, so a file revised after it was first read is picked up.
+- The audits now fail their job when a finding is worse than today's known count: a new fake move, a new level break where ours moved, a lost session, a new unpriced stock (`scripts/audit_limits.py`, each limit named with the run it comes from). The file is still published and the report uploaded first. The history audit runs monthly (the 3rd) with these limits.
+- A failed scheduled import or history audit opens an issue, as the long-file build already did.
+
 ## 2026-10-13 — Sector map: how to read it, 1M or 3M, the heavy lifters; Big movers means big
 
 - Under the Sector leadership map, **How to read this** works one sector through with its own numbers: its stocks' average move against the Nifty 500 over the same closes (across), how many of its stocks are above their EMA (up), and what the line's direction means. It uses the sector you pick, else the first that beat the index on narrow breadth.

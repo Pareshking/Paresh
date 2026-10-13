@@ -20,7 +20,10 @@ then reports:
 4. RENAMES. Automatic renames (nse_identity) joined, and those the continuity
    check refused.
 
-Writes report.md (also the job summary) and CSV detail to --out.
+Writes report.md (also the job summary), summary.json and CSV detail to --out.
+With --fail-on-limits the exit code is 1 when a count is worse than its known
+baseline (scripts/audit_limits.py, HISTORY_LIMITS; S47), after the report is
+written, so the job still publishes it.
 """
 
 from __future__ import annotations
@@ -36,11 +39,15 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from scripts import audit_limits  # noqa: E402
 from src.loaders import nse_adjusted as na  # noqa: E402
 from src.loaders import nse_bundle as nb  # noqa: E402
 from src.loaders import nse_history as nh  # noqa: E402
 
 CLOSED = "nse/closed_days"
+# A weekday becomes a known closed day only once NSE has had no bundle for it this
+# long (scripts/nse_collect.py CLOSED_AFTER_DAYS): a newer missing weekday is not yet a fault.
+SETTLE_DAYS = 7
 
 
 def weekdays(start: date, end: date) -> list[date]:
@@ -224,7 +231,10 @@ def write(result: dict, out: Path, since: date, until: date) -> str:
     (out / "report.md").write_text(text, encoding="utf-8")
     (out / "summary.json").write_text(json.dumps({
         "sessions": int(sum(result["per_year"])), "stocks": int(result["stocks"]),
-        "missing_weekdays": len(result["missing"]), "gap_days": int(len(result["gap_days"])),
+        "missing_weekdays": len(result["missing"]),
+        "missing_weekdays_settled": len([d for d in result["missing"]
+                                         if d <= until - timedelta(days=SETTLE_DAYS)]),
+        "gap_days": int(len(result["gap_days"])),
         "copied_sessions": int(len(result.get("copies", ()))),
         "calendar_flags": int(len(result.get("calendar", {}))),
         "actions": {k: int(n) for k, n in v["verdict"].value_counts().items()} if len(v) else {},
@@ -240,6 +250,8 @@ def main(argv=None) -> int:
     ap.add_argument("--until", type=date.fromisoformat, default=None)
     ap.add_argument("--out", type=Path, default=Path("reports/nse_audit"))
     ap.add_argument("--workers", type=int, default=16)
+    ap.add_argument("--fail-on-limits", action="store_true",
+                    help="exit 1 when a finding is worse than its baseline (scripts/audit_limits.py)")
     args = ap.parse_args(argv)
 
     from src.storage.r2 import R2Archive, R2Config
@@ -257,7 +269,13 @@ def main(argv=None) -> int:
     result = audit(prices, actions, held, closed, args.since, until)
     text = write(result, args.out, args.since, until)
     print(text)
-    return 0
+    return check_limits(args.out) if args.fail_on_limits else 0
+
+
+def check_limits(out: Path, log=print) -> int:
+    """1 when summary.json breaks a HISTORY_LIMITS limit (each line an ::error:: annotation)."""
+    docs = audit_limits.load([out / "summary.json"])
+    return audit_limits.report(audit_limits.check(docs, audit_limits.HISTORY_LIMITS), "NSE history", log)
 
 
 if __name__ == "__main__":

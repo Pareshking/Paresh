@@ -8,9 +8,17 @@ name: NSE long price file (backtests from 2010)
 # filled from BSE's raw closes (bse_daily.parquet on the release, refreshed by
 # bse_daily.yml; src/loaders/bse_fill.py, TODO S38) before any adjustment.
 # See scripts/build_nse_long_prices.py.
+#
+# Monthly full re-read (S47): the second Saturday's build (the 8th to the 14th)
+# reads every session and every corporate-action day from R2 again, ignoring
+# both packs, so a session or action file revised after it was first read is
+# picked up; it falls after the yearly-list import (the 2nd). After the audits
+# the job fails when a finding is worse than its known baseline
+# (scripts/audit_limits.py, LONG_LIMITS); the file is published and the audit
+# uploaded all the same, and scheduled_failure_alert.yml opens an issue.
 on:
   schedule:
-    # Saturdays 03:30 UTC: the week's sessions are on R2 (nse_collect, every 4 h).
+    # Saturdays 03:30 UTC (09:00 IST): the week's sessions are on R2 (nse_collect, every 4 h).
     - cron: '30 3 * * 6'
   workflow_dispatch:
     inputs:
@@ -18,7 +26,7 @@ on:
         description: "First session to read (YYYY-MM-DD)"
         default: "2008-01-01"
       full:
-        description: "Read every session from R2 again, not only those the raw pack lacks (yes/no)"
+        description: "Read every session and corporate-action day from R2 again, ignoring both packs (yes/no)"
         default: "no"
 
 permissions:
@@ -39,7 +47,16 @@ jobs:
       R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
       R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
       R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      FULL: ${{ inputs.full == 'yes' && 'yes' || 'no' }}
     steps:
+      - name: Monthly full re-read on the second Saturday
+        if: github.event_name == 'schedule'
+        run: |
+          day=$(date -u +%-d)
+          if [ "$day" -ge 8 ] && [ "$day" -le 14 ]; then
+            echo "FULL=yes" >> "$GITHUB_ENV"
+            echo "Second Saturday (day ${day}): every session and action day is read from R2 again."
+          fi
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
@@ -48,7 +65,7 @@ jobs:
       # The raw-history pack: every row the last build read, so only newer
       # sessions come from R2 (a full read is ~4,700 requests, ~35 minutes).
       - name: The raw-history pack from the last build
-        if: inputs.full != 'yes'
+        if: env.FULL != 'yes'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -71,7 +88,8 @@ jobs:
           ls -lh bse
       - name: Build
         run: |
-          # A missing pack (first run, or full=yes) reads every session.
+          # A missing pack (first run, full=yes, or the monthly full re-read) reads every session.
+          echo "Full re-read: ${FULL}"
           python scripts/build_nse_long_prices.py --since "${{ inputs.since || '2008-01-01' }}" --out data_cache/nse_long --pack pack/nse_raw_pack.parquet --actions-pack pack/nse_actions_pack.parquet --bse bse/bse_daily.parquet
           ls -lh data_cache/nse_long
           {
@@ -139,6 +157,11 @@ jobs:
               echo "### $f"; echo '```json'; cat "audit/$f"; echo '```'
             done
           } >> "$GITHUB_STEP_SUMMARY"
+      # S47: the audits above never fail the job (continue-on-error); this does,
+      # when a finding is worse than its baseline or an audit wrote no summary.
+      # The file is already published and the artifact below uploads regardless.
+      - name: Audit limits
+        run: python scripts/audit_limits.py long --audit audit --report data_cache/nse_long/nse_long_report.json
       - uses: actions/upload-artifact@v7
         if: always()
         with:
