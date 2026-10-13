@@ -33,7 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.core.config import BENCHMARK_SYMBOL  # noqa: E402
 from src.engine.backtester import run_backtest  # noqa: E402
-from src.engine.parity_audit import compare_monthly_ledger  # noqa: E402
+from src.engine.parity_audit import compare_monthly_ledger, load_accepted_drift  # noqa: E402
 from src.engine.track_record import (  # noqa: E402
     SHADOW_CONFIG,
     SHADOW_INCEPTION,
@@ -250,12 +250,12 @@ def main() -> int:
     # Read-only comparison of both frozen return series. Drift is diagnostic:
     # stored closed months remain authoritative and are never silently rewritten.
     parity = compare_monthly_ledger(
-        ledger, result["equity_curve"], result["benchmark"]
+        ledger, result["equity_curve"], result["benchmark"], accepted=load_accepted_drift()
     )
     counts = parity["counts"]
     print(
         "→ frozen-ledger parity: "
-        f"{counts['match']} match, {counts['drift']} drift, "
+        f"{counts['match']} match, {counts['accepted']} accepted, {counts['drift']} drift, "
         f"{counts['missing_recomputed_period']} missing periods, "
         f"{counts['not_comparable']} not comparable "
         f"(tolerance ±{parity['tolerance']:.4%})"
