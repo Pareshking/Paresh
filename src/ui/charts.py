@@ -418,12 +418,16 @@ def sector_colours(names) -> dict[str, str]:
 
 _LEADERSHIP_JS = r"""
 (function(){
-const rows=__ROWS__, span=__SPAN__, then=__THEN__, now=__NOW__;
+const rows=__ROWS__, span=__SPAN__, months=__MONTHS__, then=__THEN__, now=__NOW__;
 let focus=__FOCUS__;
 const e=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pct=v=>(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(1)+'%';
 const col=r=>r.c;
-const xs=rows.flatMap(r=>[r.x0,r.x1]);const xl=Math.max(2,Math.ceil(Math.max.apply(null,xs.map(Math.abs))+0.5));
+const xs=rows.flatMap(r=>[r.x0,r.x1]);
+// Fit the data, keeping 0 in view: one far dot (a 3-month swing) made a
+// symmetric axis squeeze every other line into the middle.
+const xmin=Math.min(-1,Math.floor(Math.min.apply(null,xs)-0.5)), xmax=Math.max(1,Math.ceil(Math.max.apply(null,xs)+0.5));
+const xspan=xmax-xmin, xtick=xspan>40?10:xspan>20?5:xspan>8?2:1;
 const series=rows.map(r=>({name:r.name,id:r.name,color:col(r),row:r,
   data:[{x:r.x0,y:r.y0,marker:{fillColor:'#FFFFFF',lineColor:col(r),lineWidth:2,radius:5,symbol:'circle'},dataLabels:{enabled:false}},
         {x:r.x1,y:r.y1,marker:{fillColor:col(r),lineColor:'#3C4657',lineWidth:1,radius:6,symbol:'circle'}}]}));
@@ -439,8 +443,8 @@ function paint(chart){
 const chart=Highcharts.chart('c',{chart:{type:'scatter',backgroundColor:'transparent',animation:false,spacing:[8,12,4,4],
   style:{fontFamily:'Geist,system-ui,sans-serif'},zooming:{type:'xy'}},
   credits:{enabled:false},accessibility:{enabled:false},title:{text:null},legend:{enabled:false},exporting:{enabled:false},
-  xAxis:{min:-xl,max:xl,tickInterval:xl>8?4:2,gridLineWidth:1,gridLineColor:'#F1F2F5',
-    title:{text:'1-month return vs Nifty 500 →',style:{color:'#5E6878',fontSize:'12px'}},
+  xAxis:{min:xmin,max:xmax,tickInterval:xtick,gridLineWidth:1,gridLineColor:'#F1F2F5',
+    title:{text:months+'-month return vs Nifty 500 →',style:{color:'#5E6878',fontSize:'12px'}},
     labels:{format:'{value}%',style:{color:'#5E6878',fontSize:'12px'}},plotLines:[{value:0,color:'#98A1AE',width:1,dashStyle:'Dash',zIndex:2}]},
   yAxis:{min:0,max:100,tickInterval:20,endOnTick:false,gridLineColor:'#EDEFF3',
     title:{text:'↑ Stocks above their '+span+'-day EMA',style:{color:'#5E6878',fontSize:'12px'}},
@@ -450,7 +454,8 @@ const chart=Highcharts.chart('c',{chart:{type:'scatter',backgroundColor:'transpa
       return '<b>'+e(r.full)+'</b> · '+r.stocks+' stocks<br>'+
       '<span style="opacity:.7">'+e(then)+'</span> '+pct(r.x0)+' vs Nifty 500 · '+r.a0+' of '+r.o0+' above<br>'+
       '<span style="opacity:.7">'+e(now)+'</span> <b>'+pct(r.x1)+'</b> vs Nifty 500 · <b>'+r.a1+' of '+r.o1+'</b> above<br>'+
-      '<span style="opacity:.7">Sector '+pct(r.ret)+', Nifty 500 '+pct(r.bench)+' this month</span>';}},
+      '<span style="opacity:.7">Sector '+pct(r.ret)+', Nifty 500 '+pct(r.bench)+(months===1?' this month':' in '+months+' months')+'</span>'+
+      (r.lead?'<br>Led by <b>'+e(r.lead)+'</b>':'');}},
   plotOptions:{series:{animation:false,dashStyle:'ShortDash',lineWidth:1.5,marker:{enabled:true},stickyTracking:false,findNearestPointBy:'xy',
     states:{hover:{lineWidthPlus:1.5},inactive:{opacity:0.18}},cursor:'pointer',
     dataLabels:{enabled:true,allowOverlap:false,crop:false,overflow:'allow',x:6,align:'left',verticalAlign:'middle',
@@ -481,10 +486,12 @@ def render_leadership_map(board: pd.DataFrame, span: int, focus: str | None = No
         "y0": round(r.y_then * 100, 1), "y1": round(r.y_now * 100, 1),
         "a0": int(r.above_then), "o0": int(r.obs_then), "a1": int(r.above_now), "o1": int(r.obs_now),
         "ret": round(r.ret_now * 100, 2), "bench": round(r.bench_now * 100, 2),
+        "lead": ", ".join(f"{sym} {v * 100:+.1f}%" for sym, v in (getattr(r, "Leaders", None) or [])[:2]),
     } for r in board.itertuples()]
+    months = int(board["Months"].iloc[0]) if "Months" in board.columns else 1
     then = f"{pd.Timestamp(board['Then'].iloc[0]):%d %b}"
     now = f"{pd.Timestamp(board['Now'].iloc[0]):%d %b}"
-    js = (_LEADERSHIP_JS.replace("__ROWS__", script_json(rows)).replace("__SPAN__", str(int(span)))
+    js = (_LEADERSHIP_JS.replace("__ROWS__", script_json(rows)).replace("__SPAN__", str(int(span))).replace("__MONTHS__", str(months))
           .replace("__THEN__", script_json(then)).replace("__NOW__", script_json(now))
           .replace("__FOCUS__", script_json(short.get(focus, focus) if focus else None)))
     page = (

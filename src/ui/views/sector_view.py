@@ -46,52 +46,123 @@ SHORT_NAMES = {
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def _leadership(prices_hash: str, _prices: pd.DataFrame, groups: tuple, span: int) -> pd.DataFrame:
+def _leadership(prices_hash: str, _prices: pd.DataFrame, groups: tuple, span: int,
+                months: int = 1) -> pd.DataFrame:
     bench = benchmark_store.history("max")
-    return sector_leadership(_prices, pd.Series(dict(groups)), bench, span)
+    return sector_leadership(_prices, pd.Series(dict(groups)), bench, span, months=months)
+
+
+LEAD_PERIODS = {"1M": 1, "3M": 3}
+
+
+def _ago(months: int) -> str:
+    return "a month ago" if months == 1 else f"{months} months ago"
 
 
 def render_leadership_section(rank_df: pd.DataFrame, adj_close: pd.DataFrame, col: str) -> None:
-    """Sector leadership: return against the Nifty 500 across, breadth up, a
-    month ago and today, one tab per EMA."""
+    """Sector leadership: return against the Nifty 500 across, breadth up, one
+    or three months ago and today, for the 20/50/100/200-day EMA."""
     if col not in rank_df.columns or adj_close is None or adj_close.empty:
         return
     groups = tuple(sorted(rank_df[["Symbol", col]].dropna().astype(str).itertuples(index=False, name=None)))
-    with kit.card("Sector leadership map", "sec_lead", "hollow dot a month ago · filled dot today"):
-        kit.caption("Right: beat the Nifty 500 over the month. Up: more of its stocks above the EMA. "
-                    "Each sector keeps its colour; tap one to pick it out.")
-        labels = [f"{n} EMA" for n in EMA_SPANS]
-        tabs = st.tabs(labels, default="200 EMA", key="sec_lead_ema", on_change="rerun")
-        opened = next((i for i, t in enumerate(tabs) if t.open), len(labels) - 1)
-        span = EMA_SPANS[opened]
-        board = _leadership(price_fingerprint(adj_close), adj_close, groups, span)
-        with tabs[opened]:
-            if board.empty:
-                st.info("Not enough price history to compare the two months.")
-                return
-            names = board.sort_values("Sector")["Sector"].tolist()
-            focus = st.selectbox("Pick out a sector", ["All sectors", *names], key="sec_lead_focus",
-                                 format_func=lambda n: SHORT_NAMES.get(n, n) if n != "All sectors" else n,
-                                 label_visibility="collapsed", width=240)
-            render_leadership_map(board, span, None if focus == "All sectors" else focus, SHORT_NAMES)
-            then, now = pd.Timestamp(board["Then"].iloc[0]), pd.Timestamp(board["Now"].iloc[0])
-            fell = int((board["y_now"] < board["y_then"]).sum())
-            ahead_narrow = board[(board["x_now"] > 0) & (board["y_now"] < 0.5)]
-            kit.caption(
-                f"{then:%d %b} to {now:%d %b}: breadth fell in {fell} of {len(board)} sectors."
-                + (f" Ahead of the Nifty 500 with under half above the {span}-day EMA: "
-                   f"{', '.join(SHORT_NAMES.get(n, n) for n in ahead_narrow['Sector'])}."
-                   if len(ahead_narrow) else "")
-            )
-            st.iframe(leadership_table_html(board, span), height=28 + 42 + len(board) * ROW_PX + 6)
-            kit.caption("Sector return is the equal-weighted mean of its stocks' price returns, not an "
-                        "NSE sector index; the share counts stocks with a close and an EMA that day. "
-                        "Click a header to sort.")
+    # Pills like the Rank by control at the top of the page, not underlined
+    # tabs (owner, 13 Oct): one row for the EMA, one for the period.
+    span = int(st.session_state.get("sec_lead_span") or 200)
+    months = LEAD_PERIODS.get(st.session_state.get("sec_lead_period") or "1M", 1)
+    with kit.card("Sector leadership map", "sec_lead", f"hollow dot {_ago(months)} · filled dot today"):
+        kit.caption(f"Right: beat the Nifty 500 over the {'month' if months == 1 else f'{months} months'}. "
+                    "Up: more of its stocks above the EMA. Each sector keeps its colour; tap one to pick it out.")
+        with st.container(horizontal=True, gap="small", vertical_alignment="center", key="sec_lead_controls"):
+            st.segmented_control("EMA", list(EMA_SPANS), default=200, required=True, key="sec_lead_span",
+                                 format_func=lambda n: f"{n} EMA", label_visibility="collapsed")
+            st.segmented_control("Period", list(LEAD_PERIODS), default="1M", required=True,
+                                 key="sec_lead_period", label_visibility="collapsed",
+                                 help="1M: each dot is a month apart. 3M: three months apart, "
+                                      "for the slower trend underneath.")
+        board = _leadership(price_fingerprint(adj_close), adj_close, groups, span, months)
+        if board.empty:
+            st.info("Not enough price history to compare the two periods.")
+            return
+        names = board.sort_values("Sector")["Sector"].tolist()
+        focus = st.selectbox("Pick out a sector", ["All sectors", *names], key="sec_lead_focus",
+                             format_func=lambda n: SHORT_NAMES.get(n, n) if n != "All sectors" else n,
+                             label_visibility="collapsed", width=240)
+        render_leadership_map(board, span, None if focus == "All sectors" else focus, SHORT_NAMES)
+        then, now = pd.Timestamp(board["Then"].iloc[0]), pd.Timestamp(board["Now"].iloc[0])
+        fell = int((board["y_now"] < board["y_then"]).sum())
+        ahead_narrow = board[(board["x_now"] > 0) & (board["y_now"] < 0.5)]
+        kit.caption(
+            f"{then:%d %b} to {now:%d %b}: breadth fell in {fell} of {len(board)} sectors."
+            + (f" Ahead of the Nifty 500 with under half above the {span}-day EMA: "
+               f"{', '.join(SHORT_NAMES.get(n, n) for n in ahead_narrow['Sector'])}."
+               if len(ahead_narrow) else "")
+        )
+        # How to read it, worked on one sector: the picked one, else the
+        # first that beat the index on narrow breadth, else the leader
+        # (owner, 13 Oct: "how to interpret it, with an example").
+        example = (focus if focus != "All sectors" else
+                   (ahead_narrow["Sector"].iloc[0] if len(ahead_narrow)
+                    else board.sort_values("x_now", ascending=False)["Sector"].iloc[0]))
+        with st.expander(f"How to read this · worked example: {SHORT_NAMES.get(example, example)}"):
+            st.markdown(leadership_explainer(board.set_index("Sector").loc[example], example, span))
+        st.iframe(leadership_table_html(board, span), height=28 + 42 + len(board) * ROW_PX + 6)
+        kit.caption("Sector return is the equal-weighted mean of its stocks' price returns, not an "
+                    "NSE sector index; the share counts stocks with a close and an EMA that day. "
+                    "Click a header to sort.")
 
 
 def _signed_pct(v: float) -> tuple[str, str]:
     cls = "pos" if v > 0 else "neg" if v < 0 else ""
     return cls, f"{'+' if v > 0 else '−' if v < 0 else ''}{abs(v) * 100:.1f}%"
+
+
+def _reading(dx: float, dy: float) -> str:
+    """What the line's direction says, in one sentence."""
+    if dx >= 0 and dy >= 0:
+        return "it beat the index and more of its stocks are in an uptrend: broad strength building."
+    if dx >= 0:
+        return ("it did better against the index, but fewer of its stocks are in an uptrend: "
+                "a few names are carrying it, so the lead is narrow.")
+    if dy >= 0:
+        return ("it did worse against the index, but more of its stocks are back above the line: "
+                "a possible early turn.")
+    return "it did worse against the index and fewer of its stocks are in an uptrend: weak and weakening."
+
+
+def _leaders_txt(leaders, n: int, sep: str = ", ") -> str:
+    """'NAZARA +35.4%, SUNTV +20.1%' from the engine's (symbol, return) pairs."""
+    return sep.join(f"{html.escape(sym)} {_signed_pct(ret)[1]}" for sym, ret in (leaders or [])[:n])
+
+
+def leadership_explainer(r: pd.Series, name: str, span: int) -> str:
+    """The method behind one sector's two dots, with its own numbers."""
+    then, now = pd.Timestamp(r["Then"]), pd.Timestamp(r["Now"])
+    m = int(r.get("Months", 1) or 1)
+    period = "month" if m == 1 else f"{m} months"
+    ret, bench, x1, x0 = r["ret_now"] * 100, r["bench_now"] * 100, r["x_now"] * 100, r["x_then"] * 100
+    y1, y0 = r["y_now"] * 100, r["y_then"] * 100
+    dx, dy = x1 - x0, y1 - y0
+    side = "right of" if x1 >= 0 else "left of"
+    half = "above" if y1 >= 50 else "below"
+    n = int(r["Stocks"])
+    lifts = "; ".join(
+        f"{html.escape(sym)} {rv * 100:+.1f}%, which adds {rv * 100 / n:+.2f} points to the sector's {ret:+.1f}%"
+        for sym, rv in (r.get("Leaders") or [])[:2])
+    return f"""**Across: did the sector beat the Nifty 500 over the {period}?**  
+Each of the {n} {html.escape(name)} stocks' price change from the {then:%d %b} close to the {now:%d %b} close, averaged with equal weight: **{ret:+.1f}%**. The Nifty 500 over the same closes: **{bench:+.1f}%**. The difference, {ret:+.2f} − ({bench:+.2f}) = **{x1:+.2f}%**, places the filled dot {side} the 0 line. The hollow dot is the same sum for the {period} before: {x0:+.1f}%.
+
+**Up: how many of its stocks are in an uptrend?**  
+A stock counts when its close is above its own {span}-day EMA (exponential average of its closes). Today {int(r['above_now'])} of {int(r['obs_now'])} = **{y1:.0f}%**; {_ago(m)} {int(r['above_then'])} of {int(r['obs_then'])} = {y0:.0f}%. Only stocks with a close and an EMA that day are counted; an EMA needs {int(span * 0.8)} sessions of prices, so a recent listing can be missing.
+
+**Heavy lifting**  
+With equal weight each stock adds its own return ÷ {n} to the sector's. The two largest over the {period}: {lifts or "none"}.
+
+**The line: hollow dot ({_ago(m)}) to filled dot (today)**  
+It moved {abs(dx):.1f} points {'right' if dx >= 0 else 'left'} and {abs(dy):.0f} points {'up' if dy >= 0 else 'down'}: {_reading(dx, dy)} Today it sits {side} 0 and {half} the 50% line.
+
+**The four directions**  
+Right and up: broad strength building. Right and down: beating the index on a few names. Left and up: lagging, but more stocks recovering. Left and down: weak and weakening. A longer line is a bigger change.
+"""
 
 
 def leadership_table_html(board: pd.DataFrame, span: int) -> str:
@@ -105,7 +176,9 @@ def leadership_table_html(board: pd.DataFrame, span: int) -> str:
                  f'<td class="c-stock" data-v="{name}"><a><span class="sym">'
                  f'<i class="dot" style="background:{colour[r.Sector]}"></i><span class="nm-full">{name}</span>'
                  f'<span class="nm-short">{html.escape(SHORT_NAMES.get(r.Sector, r.Sector))}</span></span>'
-                 f'<span class="sub">{int(r.Stocks)} stocks</span></a></td>']
+                 f'<span class="sub"><span class="nm-full">{int(r.Stocks)} stocks · led by {_leaders_txt(r.Leaders, 2)}</span>'
+                 f'<span class="nm-short">{html.escape(", ".join(sym for sym, _ in (r.Leaders or [])[:2]))}</span>'
+                 f'</span></a></td>']
         for x, a, o, y, extra in ((r.x_now, r.above_now, r.obs_now, r.y_now, ""),
                                   (r.x_then, r.above_then, r.obs_then, r.y_then, " d-only")):
             cls, txt = _signed_pct(x)
@@ -118,6 +191,7 @@ def leadership_table_html(board: pd.DataFrame, span: int) -> str:
                      '<span class="nm-full"> pts</span></span></td>')
         rows.append("<tr>" + "".join(cells) + "</tr>")
     then, now = pd.Timestamp(board["Then"].iloc[0]), pd.Timestamp(board["Now"].iloc[0])
+    ago_head = _ago(int(board["Months"].iloc[0])).capitalize()
     # (label, phone label, sort type, class, arrow)
     heads = [("#", "#", "num", "t-left on", "↓"), ("Sector", "Sector", "text", "t-left", "↕"),
              ("Vs Nifty 500", "Vs N500", "num", "", "↕"), (f"Above {span} EMA", "Above", "num", "", "↕"),
@@ -128,9 +202,9 @@ def leadership_table_html(board: pd.DataFrame, span: int) -> str:
                    for h, m, t, c, a in heads)
     groups = ('<tr class="grp-row"><th colspan="2" class="grp">Sector</th>'
               f'<th colspan="2" class="grp">Today · {now:%d %b}</th>'
-              f'<th colspan="2" class="grp d-only">A month ago · {then:%d %b}</th>'
+              f'<th colspan="2" class="grp d-only">{ago_head} · {then:%d %b}</th>'
               '<th class="grp">Change</th></tr>')
-    css = (TABLE_CSS + "table{min-width:0}.wrap{height:auto}"
+    css = (TABLE_CSS + "table{min-width:0}.wrap{height:auto}td.c-stock .sub{display:block}"
            "tbody tr:hover td{cursor:default}"
            ".dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;"
            "border:1px solid rgba(14,23,38,.25);vertical-align:0}"

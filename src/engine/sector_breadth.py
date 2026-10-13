@@ -11,8 +11,12 @@ Two readings per sector, a month apart:
 - y: the share of its stocks above their N-day EMA, out of the stocks that have
   both a close and an EMA that day (a stock with no print is not "below").
 
-"A month" is calendar: the last session on or before the same date a month
-earlier.
+A period is calendar months (1 or 3): the last session on or before the same
+date that many months earlier.
+
+Each sector also names the two stocks doing the heavy lifting: in an equal
+weight every stock adds its own return / N to the sector's, so the largest
+contributions are the largest returns over the latest period.
 """
 
 from __future__ import annotations
@@ -33,15 +37,16 @@ def _ret(frame: pd.DataFrame | pd.Series, a: pd.Timestamp, b: pd.Timestamp):
     return frame.loc[b] / frame.loc[a] - 1
 
 
-def leadership_dates(index: pd.DatetimeIndex) -> tuple[pd.Timestamp, pd.Timestamp, pd.Timestamp] | None:
-    """(two months back, one month back, today) as sessions in `index`."""
+def leadership_dates(index: pd.DatetimeIndex, months: int = 1
+                     ) -> tuple[pd.Timestamp, pd.Timestamp, pd.Timestamp] | None:
+    """(two periods back, one period back, today) as sessions in `index`."""
     if len(index) == 0:
         return None
     now = index[-1]
-    then = _session_on_or_before(index, now - pd.DateOffset(months=1))
+    then = _session_on_or_before(index, now - pd.DateOffset(months=months))
     if then is None:
         return None
-    before = _session_on_or_before(index, then - pd.DateOffset(months=1))
+    before = _session_on_or_before(index, then - pd.DateOffset(months=months))
     if before is None:
         return None
     return before, then, now
@@ -53,6 +58,7 @@ def sector_leadership(
     bench: pd.Series,
     span: int = 200,
     min_stocks: int = MIN_STOCKS,
+    months: int = 1,
 ) -> pd.DataFrame:
     """One row per sector: where it is today and where it was a month ago.
 
@@ -61,13 +67,13 @@ def sector_leadership(
     day ahead of the prices does not matter).
     """
     cols = ["Sector", "Stocks", "Then", "Now", "x_then", "x_now", "y_then", "y_now",
-            "above_then", "obs_then", "above_now", "obs_now", "ret_now", "bench_now"]
+            "above_then", "obs_then", "above_now", "obs_now", "ret_now", "bench_now", "Months", "Leaders"]
     if prices is None or prices.empty or groups is None or groups.empty:
         return pd.DataFrame(columns=cols)
     groups = groups.dropna().astype(str).str.strip()
     groups = groups[(groups != "") & groups.index.isin(prices.columns)]
     prices = prices[groups.index].sort_index()
-    dates = leadership_dates(prices.index)
+    dates = leadership_dates(prices.index, months)
     bench = pd.to_numeric(bench, errors="coerce").dropna().sort_index()
     if dates is None or bench.empty:
         return pd.DataFrame(columns=cols)
@@ -104,5 +110,8 @@ def sector_leadership(
             "above_then": int(a_t), "obs_then": int(o_t),
             "above_now": int(a_n), "obs_now": int(o_n),
             "ret_now": float(rn.mean()), "bench_now": float(bench_now),
+            "Months": int(months),
+            # The two largest contributions to the latest period's move.
+            "Leaders": [(str(k), float(v)) for k, v in rn.sort_values(ascending=False).head(2).items()],
         })
     return pd.DataFrame(rows, columns=cols)
