@@ -1610,6 +1610,13 @@ def inject_custom_css() -> None:
         }
         [data-testid="stBaseButton-primaryFormSubmit"] p,
         [data-testid="stBaseButton-primaryFormSubmit"] span { color: #FFFFFF !important; }
+        /* A popover's button carries its own test id, stPopoverButton, so the
+           rules above missed it: the Actions page's "Kite basket" read grey on
+           indigo (owner's phone, 13 Oct 2026). Every primary kind - button,
+           popover, download, form submit, link - carries kind="primary...". */
+        [kind^="primary"], [kind^="primary"] p,
+        [kind^="primary"] span { color: #FFFFFF !important; }
+        [kind^="primary"]:hover { color: #FFFFFF !important; }
 
         [data-baseweb="select"] > div {
             background-color: #ffffff !important;
