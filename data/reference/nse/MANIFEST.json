@@ -1,26 +1,26 @@
 {
-  "fetched_at_utc": "2026-10-12T09:46:17+00:00",
+  "fetched_at_utc": "2026-10-13T09:45:00+00:00",
   "files": {
     "symbolchange.csv": {
       "url": "https://nsearchives.nseindia.com/content/equities/symbolchange.csv",
-      "rows": 1066,
-      "sha256": "fee4e8b695629a60e0eaaad32a1239463609f0c7d2afced14549c039e8d18eff"
+      "rows": 1067,
+      "sha256": "3467c4caab1e24270d16fdd2e828cc298ae391022cbbd2c42d71292540c8f2ba"
     },
     "namechange.csv": {
       "url": "https://nsearchives.nseindia.com/content/equities/namechange.csv",
       "rows": 2328,
-      "sha256": "82baa0eceac9dfad1cddaa60419e97db3a9fa65c357d8179bb4b09e975f18661"
+      "sha256": "31992385918f71c84a1962fe27c8f681c2c0d950a989fc66e5adfa8f5c13c14c"
     },
     "equity_l.csv": {
       "url": "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv",
-      "rows": 2620,
-      "sha256": "617149fce76d0b73a02e1da44eb6cfaf88e936817d4a77fa9ed39411576de228"
+      "rows": 2606,
+      "sha256": "bf199940551b6b977afc88f5096b072cdd2663d600bd7abe75433723dc4535a8"
     },
     "corporate_actions_recent.json": {
       "url": "https://www.nseindia.com/api/corporates-corporateActions",
       "window_days": 45,
-      "rows": 544,
-      "sha256": "014b3083e8e747af81fb533a5d0bf3a80642779a30cbac5a4e2fb738ba88c2c8"
+      "rows": 510,
+      "sha256": "ac06c76c79ab5b6cc9034950244a6183b42eecbb168fd159fe3749757175e9c4"
     }
   }
 }
