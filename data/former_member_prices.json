@@ -1,5 +1,5 @@
 {
-  "fetched_on": "2026-10-04",
+  "fetched_on": "2026-10-12",
   "source": "Screener closes; NSE closes (split/bonus adjusted) where Screener has none",
   "by_source": {
     "screener": 250,
@@ -7,7 +7,7 @@
   },
   "symbols": 257,
   "first_session": "2024-09-30",
-  "last_session": "2026-10-01",
+  "last_session": "2026-10-09",
   "unavailable": [
     "ACCELYA",
     "ACLGATI",
