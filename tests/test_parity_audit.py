@@ -56,3 +56,50 @@ def test_monthly_parity_rejects_invalid_tolerance():
     curve = _curve([1.0, 1.1, 1.2])
     with pytest.raises(ValueError):
         compare_monthly_ledger(ledger, curve, curve, tolerance=-0.1)
+
+
+def _drifted():
+    # Stored Feb +20%, replay +10%: a 10 pp drift.
+    ledger = {"months": {"2026-01": {"strategy": 0.10, "benchmark": 0.05},
+                         "2026-02": {"strategy": 0.20, "benchmark": 0.02}}}
+    return ledger, _curve([1.0, 1.10, 1.21]), _curve([1.0, 1.05, 1.071])
+
+
+def test_an_accepted_drift_passes_and_is_reported():
+    ledger, strategy, benchmark = _drifted()
+    accepted = {"2026-02": {"strategy": {"stored": 0.20, "replay": 0.10}}}
+    report = compare_monthly_ledger(ledger, strategy, benchmark, accepted=accepted)
+    by_month = {row["month"]: row for row in report["rows"]}
+    assert by_month["2026-02"]["status"] == "accepted"
+    assert report["counts"]["accepted"] == 1 and report["counts"]["drift"] == 0
+    assert report["passed"] is True
+
+
+def test_a_further_move_of_an_accepted_month_fails_again():
+    ledger, strategy, benchmark = _drifted()
+    accepted = {"2026-02": {"strategy": {"stored": 0.20, "replay": 0.12}}}
+    report = compare_monthly_ledger(ledger, strategy, benchmark, accepted=accepted)
+    assert report["counts"]["drift"] == 1 and report["passed"] is False
+
+
+def test_a_changed_stored_value_is_not_covered():
+    ledger, strategy, benchmark = _drifted()
+    accepted = {"2026-02": {"strategy": {"stored": 0.21, "replay": 0.10}}}
+    report = compare_monthly_ledger(ledger, strategy, benchmark, accepted=accepted)
+    assert report["passed"] is False
+
+
+def test_the_benchmark_series_is_not_covered_by_a_strategy_acceptance():
+    ledger, strategy, benchmark = _drifted()
+    ledger["months"]["2026-02"]["benchmark"] = 0.50
+    accepted = {"2026-02": {"strategy": {"stored": 0.20, "replay": 0.10}}}
+    report = compare_monthly_ledger(ledger, strategy, benchmark, accepted=accepted)
+    by_month = {row["month"]: row for row in report["rows"]}
+    assert by_month["2026-02"]["status"] == "drift"
+    assert by_month["2026-02"]["drifted_series"] == ["benchmark"]
+
+
+def test_the_committed_list_holds_only_the_owner_accepted_months():
+    from src.engine.parity_audit import load_accepted_drift
+
+    assert sorted(load_accepted_drift()) == ["2026-01", "2026-02"]
