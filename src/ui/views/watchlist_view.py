@@ -37,12 +37,8 @@ def render_watchlist_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None 
     user_symbols = watchlist_store.symbols()
     matched = rank_df[rank_df["Symbol"].isin(user_symbols)].sort_values("Rank").copy()
 
-    count = f"{len(matched)} stock{'s' if len(matched) != 1 else ''}, ranked" if user_symbols else "Nothing saved yet"
-    actions = kit.page_head(
-        "Watchlist",
-        f"{count}. Saved in this browser only; add a stock from its page with \"Add to watchlist\".",
-        actions=True,
-    )
+    count = f"{len(matched)} stock{'s' if len(matched) != 1 else ''}" if user_symbols else "Nothing saved yet"
+    actions = kit.page_head("Watchlist", count, actions=True)
     if not matched.empty:
         actions.download_button("Export CSV", matched.to_csv(index=False).encode(),
                                 f"watchlist_momentum_{ist_now():%Y%m%d}.csv", "text/csv",
@@ -63,7 +59,7 @@ def render_watchlist_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None 
             label_visibility="collapsed",
         )
         st.button("Save watchlist", type="primary", key="wl_update_btn",
-                  on_click=_save_from_input)
+                  on_click=_save_from_input, help="Saved in this browser only.")
         if user_symbols:
             with st.popover("Remove a stock", icon=":material/remove_circle_outline:"):
                 st.pills("Remove", user_symbols, key="wl_remove_pick",
@@ -86,7 +82,7 @@ def render_watchlist_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None 
     if matched.empty:
         st.info("None of your symbols is in the ranked universe.")
     else:
-        with kit.card("Your stocks", "wl_list", "Same table as the Screener · click a row to open the stock"):
+        with kit.card("Your stocks", "wl_list"):
             render_screener_table(matched, adj_close, "Core")
 
     render_data_quality_footer(

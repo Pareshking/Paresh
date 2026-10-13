@@ -207,12 +207,19 @@ def render_rrg_view(
     adj_close: pd.DataFrame,
 ) -> None:
     """Relative rotation: the chart first and full width, controls in one row."""
-    head = kit.page_head(
-        "Relative rotation",
-        "Which industries are gaining strength against the market and which are fading. "
-        "They rotate clockwise: Improving → Leading → Weakening → Lagging.",
-        actions=True,
-    )
+    # The header names what is compared and against what. Both come from the
+    # controls drawn beside and under it, whose state is set before a rerun
+    # starts, so they are read here first.
+    scope_now = st.session_state.get("rrg_scope_pill") or "Sector Indices"
+    bm_choice = st.session_state.get("rrg_bm_choice") or BENCHMARK_OPTIONS[0]
+    bm_series = fetch_benchmark_history(period="5y", symbol=BENCHMARK_SYMBOLS[bm_choice])
+    bm_used = bm_choice if len(bm_series) > 20 else "equal-weighted universe (index unavailable)"
+    subject = "Industries"
+    if scope_now == "Top Stocks":
+        subject = "Top stocks"
+    elif scope_now == "TV Sectors" and "TV_Sector" in rank_df.columns:
+        subject = "TV sectors"
+    head = kit.page_head("Relative rotation", f"{subject} against the {bm_used}", actions=True)
     with head:
         scope_pill = st.segmented_control(
             "Compare",
@@ -232,12 +239,14 @@ def render_rrg_view(
         target_col = "TV_Sector"
 
     with settings:
-        bm_choice = st.selectbox(
+        # Its value was read above, for the header and the benchmark series.
+        st.selectbox(
             "Benchmark",
             BENCHMARK_OPTIONS,
             index=0,
             key="rrg_bm_choice",
-            help="Each industry's strength is measured against this index.",
+            help="Each industry's strength is measured against this index. "
+                 "On the chart, 100 on each axis is the average of those shown.",
         )
         tf_choice = st.segmented_control(
             "Timeframe",
@@ -264,10 +273,8 @@ def render_rrg_view(
         else:
             sel_date_str = adj_close.index[-1].strftime("%Y-%m-%d")
 
-    bm_series = fetch_benchmark_history(period="5y", symbol=BENCHMARK_SYMBOLS[bm_choice])
-    bm_used = bm_choice if len(bm_series) > 20 else "equal-weighted universe (index unavailable)"
     kit.caption(
-        f"Benchmark {bm_used} · {tf_choice.split()[0].lower()} · tail {tail_w}w · lookback "
+        f"{tf_choice.split()[0]} · tail {tail_w}w · lookback "
         f"{lookback_w}w · {pd.to_datetime(sel_date_str):%d %b %Y}"
     )
 
@@ -324,12 +331,12 @@ def render_rrg_view(
 
         with st.container(key="pgcard_rrg_chart"):
             with st.container(horizontal=True, vertical_alignment="center", key="rrg_selbar"):
-                counts = rrg_df["Quadrant"].value_counts()
                 for quad, cls in QUADRANTS:
                     st.button(
-                        f"{quad} · {int(counts.get(quad, 0))}",
+                        quad,
                         key=f"btn_rrg_{cls}_{target_col}",
-                        help=f"Show the top of {quad} (up to 8)",
+                        help=f"Show the top of {quad} (up to 8). They rotate clockwise: "
+                             "Improving → Leading → Weakening → Lagging.",
                         on_click=_set_rrg_quadrant,
                         args=(quad,),
                     )
@@ -354,12 +361,9 @@ def render_rrg_view(
                 highlight_industries=list(st.session_state.get(ms_key, [])),
                 current_date_str=sel_date_str,
             )
-            kit.caption(
-                f"Tails show the last {tail_w} weeks. Faded lines are the others; tap a dot to isolate it, "
-                "tap again to clear."
-            )
+            kit.caption("Tap a dot to isolate it.")
 
-        with kit.card("Quadrants", "rrg_quads", "RS · Momentum, 100 = benchmark"):
+        with kit.card("Quadrants", "rrg_quads", "RS · Momentum"):
             st.html(quadrant_lists_html(rrg_df, is_stocks=(target_col == "Symbol")))
             st.download_button(
                 "Export CSV",

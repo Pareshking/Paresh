@@ -581,7 +581,7 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
             '</div>'
         )
 
-    def card(title: str, subtitle: str, icon: str, tone: str, rows) -> str:
+    def card(title: str, icon: str, tone: str, rows) -> str:
         # A hidden checkbox holds the open/closed state; the "View all" button
         # under the rows is its label, so it works without JS.
         rows = list(rows)
@@ -606,16 +606,18 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
             + (f'<input type="checkbox" class="t50-toggle" id="{toggle_id}">' if more else '')
             + '<div class="t50-card-head"><div class="t50-card-heading">'
             f'<div class="t50-icon" aria-hidden="true">{icon}</div>'
-            f'<div><h2>{esc(title)}</h2><p>{esc(subtitle)}</p></div></div>'
+            f'<div><h2>{esc(title)}</h2></div></div>'
             '</div>' + body + '</section>'
         )
 
+    # One heading says when the three cards count from, so no card repeats it.
     html_out = (
+        '<div class="pg-card-h"><h2>Since last month-end</h2></div>'
         '<div id="t50-movement" class="t50-grid">'
-        + card("Biggest Jumps", "Largest rank improvements since last month-end", "↑", "jump", jumps.to_dict("records"))
-        + card("Entered top 50", "Newly entered in top 50 since last month-end", "★", "entered", entered.to_dict("records"))
-        + card("Left top 50", "Exited from top 50 since last month-end", "↓", "left", left.to_dict("records"))
-        + '</div><div class="t50-note">Rank change since the last month-end.</div>'
+        + card("Biggest jumps", "↑", "jump", jumps.to_dict("records"))
+        + card("Entered top 50", "★", "entered", entered.to_dict("records"))
+        + card("Left top 50", "↓", "left", left.to_dict("records"))
+        + '</div>'
     )
     st.html(html_out)
 
