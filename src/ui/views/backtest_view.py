@@ -23,6 +23,7 @@ from src.ui import page_kit as kit
 from src.ui.canonical_book import current_book
 from src.engine.extra_universe import SYSTEM_750
 from src.engine.systems import inception, ledger_path
+from src.engine.backtest_export import RunSpec, export_zip, rules_table, trades_table
 from src.engine.track_record import build_combined_grid, ledger_from_curves, load_ledger, summary_stats
 from src.ui.components import (
     gap_count, render_data_quality_footer, _render_calendar_returns, _render_yearly_summary,
@@ -391,9 +392,10 @@ def _backtest_tab(
         membership, months = history["membership"], history["months"]
         history_start = history["start"].start_time
         liquidity_floor_cr, traded_value = history["floor"], history["traded_value"]
+        price_basis = ("NSE closes, adjusted for splits, bonuses and demergers, for rights issues of "
+                       "index stocks, and for dividends of 10% or more of the price")
         kit.caption(
-            f"{history['name']}, point in time · Prices: NSE closes, adjusted for splits, bonuses "
-            "and demergers, and for rights issues of index stocks; no dividends · file built "
+            f"{history['name']}, point in time · Prices: {price_basis} · file built "
             f"{_day(history.get('built'))}, last session {_day(history.get('last_session'))}."
         )
     elif _nse is not None:
@@ -404,15 +406,17 @@ def _backtest_tab(
         if history_start is not None:
             months = max(months, int((pd.Period(adj_close.index[-1], freq="M")
                                       - pd.Period(history_start, freq="M")).n))
-        kit.caption(
-            "Prices: Personal closes, NSE only where Personal data is unavailable; no dividends."
+        price_basis = (
+            "Personal closes, NSE only where Personal data is unavailable; no dividends"
             if _nse_info.get("basis") == "screener_primary" else
-            "Prices: NSE closes, adjusted for splits, bonuses and demergers; no dividends."
+            "NSE closes, adjusted for splits, bonuses and demergers; no dividends"
         )
+        kit.caption(f"Prices: {price_basis}.")
     else:
         adj_close = former_members.with_former_members(adj_close, membership)
         _events = load_events()
-        kit.caption("Prices: Personal closes, adjusted for splits and bonuses; no dividends.")
+        price_basis = "Personal closes, adjusted for splits and bonuses; no dividends"
+        kit.caption(f"Prices: {price_basis}.")
     ph = f"{price_fingerprint(adj_close)}_{actions_digest(_events)}"
     if liquidity_floor_cr:
         kit.caption(f"Liquidity floor on: a stock is bought only while its 20-day average "
@@ -664,6 +668,42 @@ def _backtest_tab(
                 "After costs, from the first fill to the last completed month · CY Jan–Dec, "
                 "FY Apr–Mar · Alpha is strategy minus index each month, compounded per period."
             )
+
+    # One download (owner, 2026-10-08): the rules this run followed, and every
+    # trade it made. A CSV has no sheets, so it is a ZIP of two CSV files.
+    with kit.card("Download", "bt_export", "The rules this run used and every trade it made"):
+        try:
+            _trades = trades_table(bt_res.get("closed_trades"))
+            _universe = history["name"] if history else "Nifty Total Market (the live 750 system)"
+            _rules = rules_table(RunSpec(
+                mode=MODE_HISTORY if history else MODE_LIVE,
+                universe=_universe, benchmark=bench_name,
+                first_fill=eq.index[0] if len(eq) else None,
+                last_session=eq.index[-1] if len(eq) else None,
+                top_n=bt_n, rebal_freq=bt_rebal, buffer_n=int(keep_rank),
+                weight_method=bt_weight, cost_bps=cost_drag_bps,
+                stock_cap=stock_cap, sector_cap=sector_cap, weights=tuple(active_weights),
+                liquidity_floor_cr=float(liquidity_floor_cr or 0.0), price_basis=price_basis,
+                has_industry_map=bool(sec_map), stats=stats,
+                ema_period=int(ema_period), high_pct=high_pct, ath_pct=ath_pct,
+                ath_min_years=float(ath_min_years), score_method=score_method,
+                exit_ema_period=exit_rules["exit_ema_period"],
+                exit_high_pct=exit_rules["exit_high_pct"], exit_ath_pct=exit_rules["exit_ath_pct"],
+                generated=f"{ist_now():%Y-%m-%d %H:%M}",
+            ), _trades)
+            _slug = "".join(c if c.isalnum() else "_" for c in _universe).strip("_").lower()
+            _span = f"{eq.index[0]:%Y%m}_{eq.index[-1]:%Y%m}" if len(eq) else "empty"
+            st.download_button(
+                "Download rules + all trades (ZIP of 2 CSV files)",
+                export_zip(_rules, _trades), f"backtest_{_slug}_{_span}.zip", "application/zip",
+                key="dl_bt_export", icon=":material/download:",
+            )
+            _n_open = int((_trades["Status"] == "Open").sum()) if len(_trades) else 0
+            st.caption(f"{len(_trades)} trades ({len(_trades) - _n_open} closed, {_n_open} still open) "
+                       "in backtest_trades.csv; entry, exit, timing, sizing and cost rules, and what "
+                       "each trade column means, in backtest_rules.csv. Both open in Excel.")
+        except Exception as exc:  # the page must not fail because a download could not be built
+            st.caption(f"The download is unavailable for this run ({type(exc).__name__}: {exc}).")
 
     # The live book and the canonical account belong to the live system, not to
     # a study of another index or another decade.
