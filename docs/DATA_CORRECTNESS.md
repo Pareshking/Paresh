@@ -125,6 +125,8 @@ python scripts/audit_gaps_against_bse.py --long nse_long_close.parquet --pack ns
 | Future sessions (Actions' "sessions away", the next check and fill dates) skip NSE's published holidays, not only weekends | `nse_calendar.published_holidays()`, `actions_view.next_rebalance` |
 | Sector leadership map: a sector's return is the equal-weighted mean of its stocks' adjusted price returns, not an NSE sector index; its windows are calendar months (1 or 3), last session on or before; breadth counts stocks with a close and an EMA (EMA needs 0.8 x span sessions) | `src/engine/sector_breadth.py` |
 | Screener "Big movers" is a rank move of 150 places or more in a month (owner, 13 Oct 2026; 15 caught 630 of 750) | `ranking_view.BIG_MOVE_PLACES` |
+| The Backtest / Track Record blend keeps its 8 steps over 2% (Oct 2024 - Jul 2025: 5 weeks where Screener's close is BSE's, 3 demergers priced by a different factor) as they are; not spread across the week (owner, 13 Oct 2026, S58) | `nse_prices.blend_screener`, TODO S58 |
+| A demerger is **not** priced from the company's cost-of-acquisition split: that is a tax split by book value, not the market's (STLTECH 42% vs a 75% fall, ABFRL 76% vs 33%); the ex-date fall stays (13 Oct 2026) | TODO S58 |
 
 ## 5. Findings already explained: do not investigate these again
 
