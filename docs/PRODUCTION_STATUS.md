@@ -1,4 +1,10 @@
-# Production Status — 2026-10-02
+# Production Status — 2026-10-13
+
+## 2026-10-13 — Streamlit Cloud stopped pulling main; reboot fixed it
+
+- After #443 (`13f8d35`, 10:23 IST) Streamlit Cloud did not pull the next pushes for over an hour: #419, #447 and #448 were merged but not served. V1 Production QA said so ("Unexpected served revision 13f8d35 for 2e8f28f", run 38349735381).
+- How to tell: the page's hidden `umiya-startup-metrics` div carries `revision` and `loaded_revision`; both should equal main's head a few minutes after a merge.
+- Fix: **Manage app -> Reboot app** in the Streamlit Cloud dashboard (owner, 13 Oct). After it the app served `67ed04a`, and later merges deployed by themselves (`01c68e8`, `ad38fde`, `c368553`).
 
 ## 2026-10-02 — prices: no Yahoo, SS nightly, NSE history from 2010
 

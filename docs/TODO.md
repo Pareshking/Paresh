@@ -31,6 +31,19 @@ _Last updated: 2026-10-13_
 | 19 | Stocks listed under a year ago (KISSHT, CMRGREEN, BAGMANE) are never "near the 52-week high": no full year of highs | Owner: keep, or measure them against their high since listing | [x] 13 Oct, owner: keep 126 sessions (~6 months), the rule audit S3 set so the screener matches the backtester. No change. A stock gets a 52-week high once it has 126 sessions of prices (KISSHT 108, CMRGREEN 86 on 12 Oct) |
 | 20 | Sector leadership map (owner, 13 Oct): explain how to read it with an example; pill controls like the rest of Sectors; 1M and 3M periods; the two stocks doing the heavy lifting per sector | On the live page | [x] 13 Oct: "How to read this" works the picked sector through with its own numbers; EMA and period pills; leaders in the table and tooltip; checked at 1280 and 400 px |
 
+## Handover (2026-10-13) - start here
+
+Everything merged on 13 Oct is live (#444 - #451 and #419, #439 - #443; app at main's head). Every open row below was checked that day (#451). Next, in this order:
+
+1. **Due by date:** October frozen in all three ledgers, 1-5 Nov (`monthly_track_record`, automatic; check "Three systems" shows Oct 2026); the shadow record's first month (November), 1-5 Dec (item 9).
+2. **Owner to confirm:** no Streamlit "resource limits" email until 15 Oct (S61); `Memory peak ... at page:` lines in the Streamlit Cloud log (S67).
+3. **Work, waiting for the owner's go:** S24 more SS history runs (318 of 1,396 full); S47 schedule the yearly corporate-action import, a monthly full rebuild, an audit that can fail; S10 remove yfinance (3 files).
+4. **Owner decisions:** S52 keep or trim R2 `bse/daily` copies; S53 the four Screener weekly closes; S57 weekly fill for Nano Cap / Combined; S58 the 15 junctions over 2%.
+5. **Low:** S25, S35, S36, S37, S44 (small caps, 2010 - 2013 records); S60 trace the Jan/Feb 2026 drift stock by stock (accepted, for the record); S64 two more allocator runs.
+6. **Waiting on NSE:** S78 TRIVENIPT leaving the Total Market list.
+
+If a merge does not show on the site within minutes, compare the page's `revision` with main's head; a stuck deploy needs **Manage app -> Reboot app** (`docs/PRODUCTION_STATUS.md`, 13 Oct).
+
 ## Memory: Streamlit Cloud "over its resource limits" (8 Oct 2026)
 
 Measurements and reasons: `docs/MEMORY_AUDIT_2026-10-08.md`.

@@ -11,14 +11,13 @@ before then. For the model book or for the reader's own holdings.
 from __future__ import annotations
 
 import html
-import json
-from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
 from src.ui.system_param import stock_href
 from src.core.market_time import ist_now
+from src.loaders.nse_calendar import published_holidays
 from src.engine.exit_watch import (
     STATUS_LABEL,
     UNKNOWN,
@@ -69,20 +68,9 @@ def fill_due_note(as_of: pd.Timestamp, fill: pd.Timestamp, today: pd.Timestamp) 
     return ""
 
 
-# NSE's published trading holidays (data/reference/nse_trading_holidays.json,
-# from NSE's holiday master): a future session cannot be told from prices.
-_HOLIDAY_FILE = Path(__file__).resolve().parents[3] / "data" / "reference" / "nse_trading_holidays.json"
-
-
-def _nse_holidays() -> list[str]:
-    try:
-        return sorted(json.loads(_HOLIDAY_FILE.read_text(encoding="utf-8")).get("holidays", {}))
-    except (OSError, ValueError):
-        return []
-
-
 def _session() -> pd.offsets.CustomBusinessDay:
-    return pd.offsets.CustomBusinessDay(holidays=_nse_holidays())
+    # NSE's published holidays (data/reference/nse/holidays.csv, its holiday-master API).
+    return pd.offsets.CustomBusinessDay(holidays=published_holidays())
 
 
 def next_rebalance(as_of: pd.Timestamp) -> tuple[pd.Timestamp, pd.Timestamp]:
