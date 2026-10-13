@@ -81,8 +81,7 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, *,
     if embedded:
         actions = st.container(horizontal=True, vertical_alignment="center", key="qual_pool_bar")
         with actions:
-            kit.caption(f"The {top_n} best-ranked of the {len(passing)} stocks that pass both "
-                        "filters today: above their 50-day EMA and within 20% of their 52-week high.")
+            kit.caption("Best-ranked stocks passing both filters.")
     else:
         actions = kit.page_head(
             "Qualified",
@@ -105,31 +104,32 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, *,
                 "20% of its 52-week high.")
         return
 
-    bench = _benchmark_returns(_price_day())
-    _corr, corr_mean = correlation(adj_close, view["Symbol"].tolist())
-    avg3 = pd.to_numeric(view.get("3M Return"), errors="coerce").mean()
-    avg6 = pd.to_numeric(view.get("6M Return"), errors="coerce").mean()
-    kit.readings([
-        kit.Reading("Qualified", f"{len(view)}", f"of {len(passing)} that pass both filters"),
-        kit.Reading("Average 3M return", _pct(avg3),
-                    f"Nifty 500 {_pct(bench[3])} over the same 3 months" if 3 in bench else "calendar 3 months",
-                    _tone(avg3)),
-        kit.Reading("Average 6M return", _pct(avg6),
-                    f"Nifty 500 {_pct(bench[6])}" if 6 in bench else "calendar 6 months",
-                    _tone(avg6)),
-        kit.Reading("Average correlation", "—" if corr_mean is None else f"{corr_mean:.2f}", correlation_note(corr_mean)),
-    ], "Qualified list today")
+    if not embedded:
+        bench = _benchmark_returns(_price_day())
+        _corr, corr_mean = correlation(adj_close, view["Symbol"].tolist())
+        avg3 = pd.to_numeric(view.get("3M Return"), errors="coerce").mean()
+        avg6 = pd.to_numeric(view.get("6M Return"), errors="coerce").mean()
+        kit.readings([
+            kit.Reading("Qualified", f"{len(view)}", f"of {len(passing)} that pass both filters"),
+            kit.Reading("Average 3M return", _pct(avg3),
+                        f"Nifty 500 {_pct(bench[3])} over the same 3 months" if 3 in bench else "calendar 3 months",
+                        _tone(avg3)),
+            kit.Reading("Average 6M return", _pct(avg6),
+                        f"Nifty 500 {_pct(bench[6])}" if 6 in bench else "calendar 6 months",
+                        _tone(avg6)),
+            kit.Reading("Average correlation", "—" if corr_mean is None else f"{corr_mean:.2f}",
+                        correlation_note(corr_mean)),
+        ], "Qualified list today")
 
-    with kit.card("The list", "qual_list", "Same table as the Screener · click a row to open the stock"):
+    with kit.card("The list", "qual_list"):
         render_screener_table(view, adj_close, "Core")
 
-    with kit.card("Where they come from", "qual_ind", "by industry"):
+    with kit.card("Where they come from", "qual_ind"):
         rows = industry_rows(view)
         st.html(kit.bar_list(rows, scale=max(r[1] for r in rows)))
         top2 = sum(r[1] for r in rows[:2]) / len(view)
         if top2 >= 0.4:
-            kit.caption(f"{rows[0][0]} and {rows[1][0]} hold {top2:.0%} of the list; "
-                        "worth knowing before sizing a portfolio.")
+            kit.caption(f"{rows[0][0]} and {rows[1][0]}: {top2:.0%} of the list.")
 
     if embedded:
         return

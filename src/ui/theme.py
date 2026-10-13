@@ -867,7 +867,7 @@ def inject_custom_css() -> None:
         .ac-row { display: grid; align-items: center; gap: 16px; padding: 12px 16px; border-bottom: 1px solid #EDEFF3; }
         .ac-row:last-child { border-bottom: 0; }
         .ac-row.sell { grid-template-columns: 170px minmax(0, 1fr) 130px 80px; background: #FFFBFA; }
-        .ac-row.buy { grid-template-columns: 170px 80px minmax(0, 1fr) 110px 80px 80px 110px; background: #F7FCF9; }
+        .ac-row.buy { grid-template-columns: minmax(170px, 1fr) 80px 110px 80px 80px 110px; background: #F7FCF9; }
         .ac-row.ac-head { background: #F4F5F8 !important; padding-top: 9px; padding-bottom: 9px; font-size: 12px; font-weight: 600; color: #5E6878; }
         .ac-row .n { font-family: var(--font-mono); font-size: 13.5px; text-align: right; }
         .ac-row .ac-head .n, .ac-head .n { font-family: var(--font-ui); font-size: 12px; }
