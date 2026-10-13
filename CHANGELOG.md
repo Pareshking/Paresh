@@ -11,7 +11,7 @@
 ## 2026-10-13 — Sectors: 6M, Share passing and Top-50 count change the whole page
 
 - The Rank by buttons re-sorted only the leaderboard further down; the tiles (Leading, Rising, Weakest) and the Industry map always read the 3-month median, so on a phone nothing visible changed. They now follow the choice: with 6M median, Services leads (+17.9% in 6 months), 12 of 20 industries are rising and the map runs on the 6-month median. The subtitle names the measure.
-- Actions counted sessions to the next rebalance as weekdays: "14 sessions away" from 12 Oct, though NSE is shut on Tuesday 20 Oct (Dussehra). It now reads NSE's published holiday list (`data/reference/nse_trading_holidays.json`, from NSE's holiday master): 13 sessions. The check and fill dates skip holidays too (31 Mar 2026, Mahavir Jayanti, would have moved March's check to the 30th).
+- Actions counted sessions to the next rebalance as weekdays: "14 sessions away" from 12 Oct, though NSE is shut on Tuesday 20 Oct (Dussehra). It now reads NSE's published holiday list (`data/reference/nse/holidays.csv`, from NSE's holiday master, via `nse_calendar.published_holidays`): 13 sessions. The check and fill dates skip holidays too (31 Mar 2026, Mahavir Jayanti, would have moved March's check to the 30th).
 - The figures themselves were right: each industry's 3M and 6M median equals the same median computed from NSE's own closes over the same window (13 Jul and 13 Apr to 12 Oct).
 
 ## 2026-10-13 — /screener opens the Screener

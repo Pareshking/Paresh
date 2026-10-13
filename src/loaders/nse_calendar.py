@@ -45,6 +45,12 @@ def _lists() -> tuple[dict[date, str], set[date], set[date]]:
     return hol, muhurat, special
 
 
+def published_holidays() -> list[date]:
+    """NSE's published trading holidays (holidays.csv), for counting sessions
+    still to come; a future session cannot be told from prices."""
+    return sorted(_lists()[0])
+
+
 def not_a_session(day) -> str:
     """Why NSE cannot have traded on `day` ("" when it could)."""
     d = pd.Timestamp(day).date()
