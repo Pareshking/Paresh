@@ -257,7 +257,7 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
 
     actions = kit.page_head(
         "Sectors",
-        f"{len(board)} {'industries' if col == 'Industry' else 'groups'}",
+        f"{len(board)} {'industries' if col == 'Industry' else 'groups'} · ranked by {by}",
         actions=True,
     )
     with actions:
@@ -271,25 +271,35 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
         st.info("No industry has two or more ranked stocks to compare.")
         return
 
-    lead = board.sort_values("3M Return", ascending=False).iloc[0]
-    weak = board.sort_values("3M Return").iloc[0]
-    most = board.sort_values(["Top 50", "3M Return"], ascending=False).iloc[0]
-    rising = int((board["3M Return"] > 0).sum())
+    # The tiles and the map follow the measure picked above; they read 3M
+    # whatever was picked, so 6M, Share passing and Top-50 count changed only
+    # the leaderboard further down (owner, 13 Oct: "not showing correctly").
+    ret = "6M Return" if by == "6M median" else "3M Return"
+    span = "6M" if ret == "6M Return" else "3M"
+    metric = RANK_BY[by]
+    ranked = board.dropna(subset=[metric])
+    lead, weak = ranked.iloc[0], ranked.iloc[-1]
+    most = board.sort_values(["Top 50", ret], ascending=False).iloc[0]
+    rising = int((board[ret] > 0).sum())
     best_sym = (rank_df[rank_df[col] == most.Industry].sort_values("Rank")["Symbol"].head(1).tolist() or ["—"])[0]
+
+    def why(r) -> str:
+        if metric == "Pass %":
+            return f"{r['Pass %'] * 100:.0f}% pass both filters ({r.Pass} of {r.Stocks})"
+        if metric == "Top 50":
+            return f"{r['Top 50']} of the top 50 · median {span} {_pct(r[ret])}"
+        return f"median {_pct(r[ret])} in {span[0]} months · {r['Top 50']} of the top 50"
+
     kit.readings([
-        kit.Reading("Leading", lead.Industry,
-                    f"median {_pct(lead['3M Return'])} in 3 months · {lead['Top 50']} of the top 50",
-                    _tone(lead["3M Return"])),
-        kit.Reading("Rising", f"{rising} of {len(board)}", "median 3M above 0"),
+        kit.Reading("Leading", lead.Industry, why(lead), _tone(lead[ret]) if metric == ret else ""),
+        kit.Reading("Rising", f"{rising} of {len(board)}", f"median {span} above 0"),
         kit.Reading("Most in the top 50", most.Industry,
                     f"{most['Top 50']} stocks · best rank #{int(most.Best)} {best_sym}"),
-        kit.Reading("Weakest", weak.Industry,
-                    f"median {_pct(weak['3M Return'])} · {weak.Pass} of {weak.Stocks} pass both filters",
-                    _tone(weak["3M Return"])),
+        kit.Reading("Weakest", weak.Industry, why(weak), _tone(weak[ret]) if metric == ret else "down"),
     ], "Industries today")
 
     with kit.card("Industry map", "sec_map", "bubble size = stocks"):
-        render_industry_map(board)
+        render_industry_map(board, x_col=ret, x_label=f"Median {span[0]}-month return")
 
     with kit.card("Industry leaderboard", "sec_board"):
         st.html(board_html(board))

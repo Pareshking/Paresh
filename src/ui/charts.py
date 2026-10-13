@@ -353,19 +353,21 @@ def render_correlation_heatmap(corr: pd.DataFrame, syms: list[str]) -> None:
     st.iframe(page, height=height + 8)
 
 
-def render_industry_map(board: pd.DataFrame) -> None:
-    """Industries as bubbles: median 3M return across, share passing both filters up,
+def render_industry_map(board: pd.DataFrame, x_col: str = "3M Return",
+                        x_label: str = "Median 3-month return") -> None:
+    """Industries as bubbles: median return (`x_col`, 3M by default) across, share passing both filters up,
     size = number of stocks. Top-right is strong and broad; bottom-left is weak and narrow."""
     from src.ui.highcharts_lib import lib, script_json
 
-    need = {"Industry", "3M Return", "Pass %", "Stocks", "Top 50"}
+    need = {"Industry", x_col, "Pass %", "Stocks", "Top 50"}
+    x_tip = f"{x_col.split(' ')[0]} median"
     if board.empty or not need <= set(board.columns):
         return
     rows = []
     for _, r in board.iterrows():
-        if pd.isna(r["3M Return"]):
+        if pd.isna(r[x_col]):
             continue
-        rows.append({"name": str(r["Industry"]), "x": round(float(r["3M Return"]) * 100, 1),
+        rows.append({"name": str(r["Industry"]), "x": round(float(r[x_col]) * 100, 1),
                      "y": round(float(r["Pass %"]) * 100, 1), "z": int(r["Stocks"]),
                      "top50": int(r["Top 50"])})
     if len(rows) < 2:
@@ -381,12 +383,12 @@ def render_industry_map(board: pd.DataFrame) -> None:
         "Highcharts.chart('c',{chart:{type:'bubble',backgroundColor:'transparent',animation:false,spacing:[8,12,4,4],"
         "style:{fontFamily:'Geist,system-ui,sans-serif'},zooming:{type:null}},"
         "credits:{enabled:false},accessibility:{enabled:false},title:{text:null},legend:{enabled:false},exporting:{enabled:false},"
-        "xAxis:{maxPadding:0.06,title:{text:'Median 3-month return \\u2192',style:{color:'#5E6878',fontSize:'12px'}},gridLineWidth:0,"
+        "xAxis:{maxPadding:0.06,title:{text:" + script_json(x_label + " \u2192") + ",style:{color:'#5E6878',fontSize:'12px'}},gridLineWidth:0,"
         "labels:{format:'{value}%',style:{color:'#5E6878',fontSize:'12px'}},plotLines:[{value:0,color:'#98A1AE',width:1,dashStyle:'Dash'}]},"
         "yAxis:{title:{text:'\\u2191 Share passing both filters',style:{color:'#5E6878',fontSize:'12px'}},min:0,max:ymax,endOnTick:false,tickInterval:ymax>60?20:10,gridLineColor:'#EDEFF3',"
         "labels:{format:'{value}%',style:{color:'#5E6878',fontSize:'12px'}}},"
         "tooltip:{useHTML:true,backgroundColor:'rgba(15,23,42,.94)',borderWidth:0,shadow:false,style:{color:'#fff',fontSize:'12px'},"
-        "formatter:function(){const p=this.point;return '<b>'+e(p.name)+'</b><br>3M median <b>'+(p.x>0?'+':'')+p.x.toFixed(1)+'%</b>"
+        "formatter:function(){const p=this.point;return '<b>'+e(p.name)+'</b><br>" + x_tip + " <b>'+(p.x>0?'+':'')+p.x.toFixed(1)+'%</b>"
         "<br>Passing both <b>'+p.y.toFixed(0)+'%</b><br>'+p.z+' stocks \\u00b7 '+p.top50+' in the top 50';}},"
         "plotOptions:{bubble:{fillOpacity:0.62,minSize:10,maxSize:46,animation:false,marker:{lineWidth:1,lineColor:'#fff'},"
         "dataLabels:{enabled:true,allowOverlap:false,crop:false,overflow:'allow',style:{fontSize:'11px',fontWeight:'600',color:'#3C4657',textOutline:'2px #fff'},"
