@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-13 — Less empty space, fewer cramped boxes
+
+- The figure strip under each page's title (Sectors, Actions, Breadth, Portfolio, Backtest) fills the row however many figures it has. It was a fixed six columns, so four figures left two empty columns and long industry names wrapped onto four lines. Names now read smaller, at most two lines; on a phone the figures sit two to a row.
+- Screener: Biggest jumps, Entered top 50 and Left top 50 sit side by side on a wide screen, compact (about 1,000px shorter).
+- Figure boxes inside cards (Portfolio's month, alpha, drawdown; Backtest): values read at their intended size and the boxes are as tall as their text (74px, was 104px). A page-wide paragraph style had shrunk every value to 14px grey.
+- Portfolio: industry exposure runs in two columns; "How they move together" is a collapsed section, like Actions' Buy candidates, with the average in its heading.
+- Sectors leadership map: one soft colour per sector, the same on every EMA tab, instead of green and red; a one-line intro; the table sits under "Figures by sector", collapsed.
+
 ## 2026-10-13 — The track record keeps January and February 2026 as frozen
 
 - The owner keeps the 750's frozen January (-0.21%) and February (+0.70%) 2026 months, though today's replay, after the rights-issue fix (S56), gives +0.00% and +0.80%. The parity gate now lists these two as accepted (`src/engine/parity_accepted_drift.json`) and passes; any other drift, or a further move in these two, still fails it.

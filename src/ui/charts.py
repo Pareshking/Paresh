@@ -397,24 +397,32 @@ def render_industry_map(board: pd.DataFrame) -> None:
     st.iframe(page, height=428)
 
 
+# Twenty soft, distinct hues for the sector leadership map: pastel enough to
+# overlap, dark enough to read on white.
+SECTOR_SOFT_PALETTE = (
+    "#7FA8D9", "#EE8E8E", "#79C2A0", "#F2AE6B", "#AD95D8", "#E3C25E", "#6CC1C8",
+    "#E58FB7", "#A3BE7C", "#8E9EEB", "#F49F85", "#C29BCB", "#8CC4E8", "#C9A66B",
+    "#86B86F", "#E07A8A", "#7FA99B", "#B4A0E6", "#D49A6A", "#93A7BD",
+)
+
+
 _LEADERSHIP_JS = r"""
 (function(){
 const rows=__ROWS__, span=__SPAN__, then=__THEN__, now=__NOW__;
 let focus=__FOCUS__;
 const e=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pct=v=>(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(1)+'%';
-const col=r=>r.y1>r.y0+0.5?'#067647':r.y1<r.y0-0.5?'#B42318':'#5E6878';
-const FOCUS='#4F46E5';
+const col=r=>r.c;
 const xs=rows.flatMap(r=>[r.x0,r.x1]);const xl=Math.max(2,Math.ceil(Math.max.apply(null,xs.map(Math.abs))+0.5));
 const series=rows.map(r=>({name:r.name,id:r.name,color:col(r),row:r,
   data:[{x:r.x0,y:r.y0,marker:{fillColor:'#FFFFFF',lineColor:col(r),lineWidth:2,radius:5,symbol:'circle'},dataLabels:{enabled:false}},
-        {x:r.x1,y:r.y1,marker:{fillColor:col(r),lineColor:'#FFFFFF',lineWidth:1,radius:6,symbol:'circle'}}]}));
+        {x:r.x1,y:r.y1,marker:{fillColor:col(r),lineColor:'#3C4657',lineWidth:1,radius:6,symbol:'circle'}}]}));
 function paint(chart){
   chart.series.forEach(s=>{const on=!focus||s.name===focus,me=focus&&s.name===focus;
-    const c=me?FOCUS:s.options.row?col(s.options.row):'#5E6878';
-    s.update({opacity:on?1:0.14,lineWidth:me?3:1.5,zIndex:me?10:1,color:c,
+    const c=col(s.options.row);
+    s.update({opacity:on?1:0.12,lineWidth:me?3:1.6,zIndex:me?10:1,color:c,
       data:s.options.data.map((p,i)=>Object.assign({},p,{marker:Object.assign({},p.marker,i===0?{lineColor:c}:{fillColor:c})})),
-      dataLabels:{enabled:on,style:{fontWeight:me?'700':'600',color:me?'#312E81':'#3C4657'}}},false);});
+      dataLabels:{enabled:on,style:{fontWeight:me?'700':'600',color:'#1F2937'}}},false);});
   chart.redraw(false);
   const tag=document.getElementById('pin');tag.textContent=focus?'Showing '+focus+' · tap it again to show all':'Tap a sector to pick it out';
 }
@@ -448,15 +456,19 @@ def render_leadership_map(board: pd.DataFrame, span: int, focus: str | None = No
                           short: dict[str, str] | None = None) -> None:
     """Each sector a dashed line from a hollow dot (a month ago) to a filled dot
     (today): across is its 1-month return less the Nifty 500's, up is the share
-    of its stocks above their `span`-day EMA. Green lines gained breadth, red
-    lost it. Tapping a sector (or picking it above) dims the rest."""
+    of its stocks above their `span`-day EMA.
+    Tapping a sector (or picking it above) dims the rest."""
     from src.ui.highcharts_lib import lib, script_json
 
     if board.empty:
         return
     short = short or {}
+    # One soft colour per sector, fixed by name so it is the same on every
+    # tab (owner, 13 Oct: subtle colours, not green and red only).
+    order = {name: i for i, name in enumerate(sorted(board["Sector"]))}
     rows = [{
         "name": short.get(r.Sector, r.Sector), "full": r.Sector, "stocks": int(r.Stocks),
+        "c": SECTOR_SOFT_PALETTE[order[r.Sector] % len(SECTOR_SOFT_PALETTE)],
         "x0": round(r.x_then * 100, 2), "x1": round(r.x_now * 100, 2),
         "y0": round(r.y_then * 100, 1), "y1": round(r.y_now * 100, 1),
         "a0": int(r.above_then), "o0": int(r.obs_then), "a1": int(r.above_now), "o1": int(r.obs_now),

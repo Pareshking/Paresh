@@ -54,12 +54,8 @@ def render_leadership_section(rank_df: pd.DataFrame, adj_close: pd.DataFrame, co
         return
     groups = tuple(sorted(rank_df[["Symbol", col]].dropna().astype(str).itertuples(index=False, name=None)))
     with kit.card("Sector leadership map", "sec_lead", "hollow dot a month ago · filled dot today"):
-        kit.caption(
-            "Did the sector beat the Nifty 500 over the last month, and do most of its stocks agree? "
-            "Right means it did better than the Nifty 500, up means more of its stocks are above "
-            "their EMA. A sector can sit right of the line while most of its stocks fall: a few "
-            "strong names carry it. Green lines gained breadth over the month, red lost it."
-        )
+        kit.caption("Right: beat the Nifty 500 over the month. Up: more of its stocks above the EMA. "
+                    "Each sector keeps its colour; tap one to pick it out.")
         labels = [f"{n} EMA" for n in EMA_SPANS]
         tabs = st.tabs(labels, default="200 EMA", key="sec_lead_ema", on_change="rerun")
         opened = next((i for i, t in enumerate(tabs) if t.open), len(labels) - 1)
@@ -72,18 +68,16 @@ def render_leadership_section(rank_df: pd.DataFrame, adj_close: pd.DataFrame, co
             names = board.sort_values("Sector")["Sector"].tolist()
             focus = st.selectbox("Pick out a sector", ["All sectors", *names], key="sec_lead_focus",
                                  format_func=lambda n: SHORT_NAMES.get(n, n) if n != "All sectors" else n,
-                                 width=260)
+                                 label_visibility="collapsed", width=240)
             render_leadership_map(board, span, None if focus == "All sectors" else focus, SHORT_NAMES)
             then, now = pd.Timestamp(board["Then"].iloc[0]), pd.Timestamp(board["Now"].iloc[0])
             fell = int((board["y_now"] < board["y_then"]).sum())
             ahead_narrow = board[(board["x_now"] > 0) & (board["y_now"] < 0.5)]
             kit.caption(
-                f"{then:%d %b} to {now:%d %b}. Breadth fell in {fell} of {len(board)} sectors. "
-                + (f"{len(ahead_narrow)} beat the Nifty 500 with fewer than half their stocks above the "
-                   f"{span}-day EMA: {', '.join(SHORT_NAMES.get(n, n) for n in ahead_narrow['Sector'])}. "
+                f"{then:%d %b} to {now:%d %b}: breadth fell in {fell} of {len(board)} sectors."
+                + (f" Ahead of the Nifty 500 with under half above the {span}-day EMA: "
+                   f"{', '.join(SHORT_NAMES.get(n, n) for n in ahead_narrow['Sector'])}."
                    if len(ahead_narrow) else "")
-                + "Sector return is the equal-weighted mean of its stocks' price returns, not an NSE "
-                "sector index; the share counts stocks with a close and an EMA that day."
             )
             tbl = board.assign(**{
                 "Vs Nifty 500 now": board["x_now"] * 100,
@@ -92,7 +86,11 @@ def render_leadership_section(rank_df: pd.DataFrame, adj_close: pd.DataFrame, co
                 "Above EMA a month ago": board["above_then"].astype(str) + " of " + board["obs_then"].astype(str),
                 "Breadth change": (board["y_now"] - board["y_then"]) * 100,
             }).sort_values("Vs Nifty 500 now", ascending=False)
-            st.dataframe(
+            figures = st.expander("Figures by sector")
+            figures.caption("Sector return is the equal-weighted mean of its stocks' price returns, "
+                            "not an NSE sector index. The share counts stocks with a close and an EMA "
+                            "that day.")
+            figures.dataframe(
                 tbl[["Sector", "Stocks", "Vs Nifty 500 now", "Above EMA now", "Vs Nifty 500 a month ago",
                      "Above EMA a month ago", "Breadth change"]],
                 hide_index=True, width="stretch", height=35 * (len(tbl) + 1) + 3,
