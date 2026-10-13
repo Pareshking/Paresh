@@ -14,7 +14,10 @@ import streamlit as st
 
 from src.ui.system_param import stock_href
 from src.ui import page_kit as kit
-from src.ui.charts import render_industry_map
+from src.engine.pipeline import price_fingerprint
+from src.engine.sector_breadth import EMA_SPANS, sector_leadership
+from src.loaders import benchmark_store
+from src.ui.charts import render_industry_map, render_leadership_map
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
 from src.ui.screener_table import render_screener_table
 
@@ -26,6 +29,79 @@ RANK_BY = {
 }
 # A group of one is a stock, not an industry trend.
 MIN_STOCKS = 2
+# Labels on the leadership map; the tooltip keeps NSE's full name.
+SHORT_NAMES = {
+    "Automobile and Auto Components": "Auto",
+    "Fast Moving Consumer Goods": "FMCG",
+    "Information Technology": "IT",
+    "Media Entertainment & Publication": "Media",
+    "Oil Gas & Consumable Fuels": "Oil & Gas",
+    "Metals & Mining": "Metals",
+    "Construction Materials": "Cement & Materials",
+}
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def _leadership(prices_hash: str, _prices: pd.DataFrame, groups: tuple, span: int) -> pd.DataFrame:
+    bench = benchmark_store.history("max")
+    return sector_leadership(_prices, pd.Series(dict(groups)), bench, span)
+
+
+def render_leadership_section(rank_df: pd.DataFrame, adj_close: pd.DataFrame, col: str) -> None:
+    """Sector leadership: return against the Nifty 500 across, breadth up, a
+    month ago and today, one tab per EMA."""
+    if col not in rank_df.columns or adj_close is None or adj_close.empty:
+        return
+    groups = tuple(sorted(rank_df[["Symbol", col]].dropna().astype(str).itertuples(index=False, name=None)))
+    with kit.card("Sector leadership map", "sec_lead", "hollow dot a month ago · filled dot today"):
+        kit.caption(
+            "Did the sector beat the Nifty 500 over the last month, and do most of its stocks agree? "
+            "Right means it did better than the Nifty 500, up means more of its stocks are above "
+            "their EMA. A sector can sit right of the line while most of its stocks fall: a few "
+            "strong names carry it. Green lines gained breadth over the month, red lost it."
+        )
+        labels = [f"{n} EMA" for n in EMA_SPANS]
+        tabs = st.tabs(labels, default="200 EMA", key="sec_lead_ema", on_change="rerun")
+        opened = next((i for i, t in enumerate(tabs) if t.open), len(labels) - 1)
+        span = EMA_SPANS[opened]
+        board = _leadership(price_fingerprint(adj_close), adj_close, groups, span)
+        with tabs[opened]:
+            if board.empty:
+                st.info("Not enough price history to compare the two months.")
+                return
+            names = board.sort_values("Sector")["Sector"].tolist()
+            focus = st.selectbox("Pick out a sector", ["All sectors", *names], key="sec_lead_focus",
+                                 format_func=lambda n: SHORT_NAMES.get(n, n) if n != "All sectors" else n,
+                                 width=260)
+            render_leadership_map(board, span, None if focus == "All sectors" else focus, SHORT_NAMES)
+            then, now = pd.Timestamp(board["Then"].iloc[0]), pd.Timestamp(board["Now"].iloc[0])
+            fell = int((board["y_now"] < board["y_then"]).sum())
+            ahead_narrow = board[(board["x_now"] > 0) & (board["y_now"] < 0.5)]
+            kit.caption(
+                f"{then:%d %b} to {now:%d %b}. Breadth fell in {fell} of {len(board)} sectors. "
+                + (f"{len(ahead_narrow)} beat the Nifty 500 with fewer than half their stocks above the "
+                   f"{span}-day EMA: {', '.join(SHORT_NAMES.get(n, n) for n in ahead_narrow['Sector'])}. "
+                   if len(ahead_narrow) else "")
+                + "Sector return is the equal-weighted mean of its stocks' price returns, not an NSE "
+                "sector index; the share counts stocks with a close and an EMA that day."
+            )
+            tbl = board.assign(**{
+                "Vs Nifty 500 now": board["x_now"] * 100,
+                "Vs Nifty 500 a month ago": board["x_then"] * 100,
+                "Above EMA now": board["above_now"].astype(str) + " of " + board["obs_now"].astype(str),
+                "Above EMA a month ago": board["above_then"].astype(str) + " of " + board["obs_then"].astype(str),
+                "Breadth change": (board["y_now"] - board["y_then"]) * 100,
+            }).sort_values("Vs Nifty 500 now", ascending=False)
+            st.dataframe(
+                tbl[["Sector", "Stocks", "Vs Nifty 500 now", "Above EMA now", "Vs Nifty 500 a month ago",
+                     "Above EMA a month ago", "Breadth change"]],
+                hide_index=True, width="stretch", height=35 * (len(tbl) + 1) + 3,
+                column_config={
+                    "Vs Nifty 500 now": st.column_config.NumberColumn(format="%+.1f%%"),
+                    "Vs Nifty 500 a month ago": st.column_config.NumberColumn(format="%+.1f%%"),
+                    "Breadth change": st.column_config.NumberColumn(format="%+.0f pts"),
+                },
+            )
 
 
 def _leader_link(sym: str) -> str:
@@ -180,6 +256,8 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
                             label_visibility="collapsed")
         members = rank_df[rank_df[col] == pick].sort_values("Rank")
         render_screener_table(members, adj_close, "Core")
+
+    render_leadership_section(rank_df, adj_close, col)
 
     render_data_quality_footer(
         total_stocks=len(rank_df),
