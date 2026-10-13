@@ -124,9 +124,68 @@ def since_start() -> float:
     return round(_now() - MODULE_IMPORT_MONOTONIC, 3)
 
 
+# ── Memory (ported from #417, bounded) ─────────────────────────────────────
+# A checkpoint runs at every stage boundary on every rerun of every session,
+# for the life of the process. #417 appended each one to a list in _facts with
+# no limit -- growing memory in a memory fix, and inflating the hidden div on
+# every page. Kept here: the first MEMORY_COLD_CHECKPOINTS (the cold start,
+# which the probe reads), the latest per label, and the process peak.
+MEMORY_COLD_CHECKPOINTS = 64
+MEMORY_MAX_LABELS = 64
+# One log line each time the process peak (VmHWM) has risen this much since
+# the last line, so Streamlit Cloud's log shows when and where memory grew
+# without a line per rerun.
+MEMORY_LOG_STEP_BYTES = 50 * 1024 * 1024
+_memory_logged_peak = 0
+
+
+def _process_memory() -> dict:
+    """VmRSS (resident now) and VmHWM (peak), in bytes, from /proc. {} off Linux."""
+    out: dict[str, int] = {}
+    try:
+        with open("/proc/self/status", encoding="utf-8") as fh:
+            for line in fh:
+                if line.startswith(("VmRSS:", "VmHWM:")):
+                    key, raw = line.split(":", 1)
+                    parts = raw.split()
+                    if parts and parts[0].isdigit():
+                        out[key] = int(parts[0]) * 1024
+    except OSError:
+        pass
+    return out
+
+
+def memory_checkpoint(label: str) -> dict:
+    """Record resident and peak memory at `label`. Observation only."""
+    global _memory_logged_peak
+    values: dict[str, object] = {"label": label, "at_s": since_start(), **_process_memory()}
+    peak = values.get("VmHWM")
+    log_it = False
+    with _LOCK:
+        cold = _facts.setdefault("memory_checkpoints", [])
+        if len(cold) < MEMORY_COLD_CHECKPOINTS:
+            cold.append(values)
+        latest = _facts.setdefault("memory_latest", {})
+        if label in latest or len(latest) < MEMORY_MAX_LABELS:
+            latest[label] = values
+        if isinstance(peak, int):
+            _facts["memory_peak_bytes"] = max(peak, int(_facts.get("memory_peak_bytes", 0) or 0))
+            if peak >= _memory_logged_peak + MEMORY_LOG_STEP_BYTES:
+                _memory_logged_peak = peak
+                log_it = True
+    if log_it:
+        import logging
+
+        logging.getLogger("nse_momentum").info(
+            "Memory peak %d MB at %s (resident now %d MB, %.0fs after start).",
+            peak // 2**20, label, int(values.get("VmRSS", 0)) // 2**20, values["at_s"],
+        )
+    return values
+
+
 @contextmanager
 def stage(name: str):
-    """Time a named startup stage.
+    """Time a named startup stage, and record memory at its two ends.
 
     Only the FIRST execution is kept: that is the cold one. Later executions
     just bump ``repeats`` so a forced refresh is visible without overwriting
@@ -134,10 +193,12 @@ def stage(name: str):
     """
     started_at = since_start()
     t0 = _now()
+    memory_checkpoint(f"{name}:start")
     try:
         yield
     finally:
         duration = round(_now() - t0, 3)
+        memory_checkpoint(f"{name}:end")
         with _LOCK:
             existing = _stages.get(name)
             if existing is None:
@@ -263,6 +324,8 @@ def public_snapshot() -> dict:
 
 
 def reset_for_tests() -> None:
+    global _memory_logged_peak
+    _memory_logged_peak = 0
     with _LOCK:
         _stages.clear()
         _counters.clear()

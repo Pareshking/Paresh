@@ -22,6 +22,9 @@ codeFont = "'Geist Mono':https://fonts.googleapis.com/css2?family=Geist+Mono:wgh
 [server]
 headless = true
 enableXsrfProtection = true
+# The only uploader is the Actions page's holdings CSV, a few KB. The default
+# 200 MB would let one upload sit in the server's memory beside every session.
+maxUploadSize = 5
 
 [browser]
 gatherUsageStats = false

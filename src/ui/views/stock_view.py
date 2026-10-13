@@ -268,7 +268,7 @@ def _render_verdict(row: pd.Series) -> None:
         f'<div class="sv-side"><em class="{"pass" if above else "fail"}">{ema_status}</em>'
         f'<span>CMP</span><b>{_money(cmp_v)}</b></div></div>'
         f'<div class="sv-card high">'
-        f'<div class="sv-main"><span class="sv-k">52W High</span>'
+        f'<div class="sv-main"><span class="sv-k">52W high</span>'
         f'<strong>{_html.escape(hi_value)}</strong>'
         f'<b class="sv-price">{_money(hi)}</b></div>'
         f'<div class="sv-side"><em class="{"pass" if near else "fail"}">{hi_status}</em>'
@@ -331,11 +331,11 @@ def _render_price_ladder(row: pd.Series, year_low: float | None = None) -> None:
         # Keep the section visible without inventing a range position.
         fallback_items = []
         if hi is not None:
-            fallback_items.append(f'<span><b>52W High</b><strong>{_money(hi)}</strong></span>')
+            fallback_items.append(f'<span><b>52W high</b><strong>{_money(hi)}</strong></span>')
         if ema_val is not None:
             fallback_items.append(f'<span><b>50D EMA</b><strong>{_money(ema_val)}</strong></span>')
         if line is not None:
-            fallback_items.append(f'<span><b>-20% 52W High</b><strong>{_money(line)}</strong></span>')
+            fallback_items.append(f'<span><b>−20% from 52W high</b><strong>{_money(line)}</strong></span>')
         if not fallback_items:
             return
         _html_block(
@@ -374,13 +374,13 @@ def _render_price_ladder(row: pd.Series, year_low: float | None = None) -> None:
         '<div class="sp-range-clean">'
         '<div class="sp-range-labels">'
         f'<div class="sp-range-label low">'
-        f'<span class="sp-range-k"><i></i>52W Low</span><b>{_money(year_low)}</b></div>'
+        f'<span class="sp-range-k"><i></i>52W low</span><b>{_money(year_low)}</b></div>'
         f'<div class="sp-range-label threshold">'
-        f'<span class="sp-range-k"><i></i>-20% 52W High</span><b>{_money(line)}</b></div>'
+        f'<span class="sp-range-k"><i></i>−20% from 52W high</span><b>{_money(line)}</b></div>'
         f'<div class="sp-range-label ema">'
         f'<span class="sp-range-k"><i></i>50D EMA</span><b>{_money(ema_val)}</b></div>'
         f'<div class="sp-range-label high">'
-        f'<span class="sp-range-k"><i></i>52W High</span><b>{_money(hi)}</b></div>'
+        f'<span class="sp-range-k"><i></i>52W high</span><b>{_money(hi)}</b></div>'
         '</div>'
         '<div class="sp-range-track" aria-hidden="true">'
         f'<span class="sp-range-segment muted" style="left:0%;width:{ema_x:.1f}%"></span>'
@@ -536,8 +536,9 @@ def _render_gain_vs_pain(row: pd.Series, rank_df: pd.DataFrame) -> None:
         '<div class="gp-row gp-hdr"><span>Window</span><span class="r">Max drawdown</span><span></span>'
         '<span>Return</span><span class="r">Sharpe</span><span class="r">Among all</span></div>'
         f'{"".join(rows_html)}'
-        f'<div class="gp-foot">{_html.escape(note)}Price return, excludes dividends. Sharpe is '
-        'annualised, one dot per full point. "Among all" ranks the return against every '
+        f'<div class="gp-foot">{_html.escape(note)}Price return, no dividends. Sharpe is the '
+        "window's return over its volatility, as the ranking scores it (not annualised), one "
+        'dot per full point. "Among all" ranks the return against every '
         'ranked stock.</div></section>'
     )
 
@@ -662,7 +663,7 @@ def _factsheet_dialog(row: dict) -> None:
             kit.Metric("Rank", f"#{int(_num(r.get('Rank')))}" if _num(r.get("Rank")) is not None else "—"),
             kit.Metric("Score", _ratio(r.get("Score"), 3)),
             kit.Metric("From 52W high", _pct(r.get("% High"))),
-            kit.Metric("vs 50 EMA", _pct(r.get("% 50 EMA"))),
+            kit.Metric("vs 50D EMA", _pct(r.get("% 50 EMA"))),
         ], key="fs_trend")
         kit.metric_row([
             kit.Metric("Price", _money(r.get("CMP"), 2)),
@@ -672,7 +673,7 @@ def _factsheet_dialog(row: dict) -> None:
             kit.Metric("Chandelier exit", _money(r.get("Chand Exit"), 2)),
         ], key="fs_levels")
         with st.container(horizontal=True, vertical_alignment="center", gap="small"):
-            for label, col in (("Above 50 EMA", "Above 50 EMA"),
+            for label, col in (("Above 50D EMA", "Above 50 EMA"),
                                ("Near 52W high", "Near 52W High"),
                                ("At all-time high", "At ATH")):
                 kit.badge(label, "up" if _flag(r, col) else "")

@@ -181,3 +181,29 @@ def test_no_trades_still_gives_the_rules_and_an_empty_trades_file():
     assert r.loc[r.Item == "Trades in trades file", "Value"].iloc[0] == "0"
     z = zipfile.ZipFile(io.BytesIO(export_zip(r, empty)))
     assert len(pd.read_csv(io.BytesIO(z.read("backtest_trades.csv")), encoding="utf-8-sig")) == 0
+
+
+def test_rules_follow_the_keep_rules_ath_rule_and_score_the_run_was_given():
+    # The settings form takes keep rules, an ATH rule and the score since this
+    # export was written; the rules file must describe those, not the defaults.
+    px, res = _run()
+    spec = _spec(res, ema_period=50, high_pct=0.8, ath_pct=0.9, ath_min_years=5.0,
+                 exit_ema_period=100, exit_high_pct=0.7, score_method="return")
+    r = rules_table(spec, trades_table(res["closed_trades"]))
+    text = {(a, b): c + " " + d for a, b, c, d in r[["Section", "Item", "Value", "Note"]].itertuples(index=False)}
+    assert "50-session EMA" in text[("Entry rules", "2. Trend filter")]
+    assert "100-session EMA" in text[("Exit rules", "Reason: Trend Breakdown")]
+    assert "70%" in text[("Exit rules", "Reason: Failed 52W High Filter")]
+    assert "90%" in text[("Entry rules", "All-time-high filter")] and "5 years" in text[("Entry rules", "All-time-high filter")]
+    assert "90%" in text[("Exit rules", "Reason: Failed ATH Filter")]
+    assert "plain returns" in text[("Entry rules", "5. Rank")]
+
+
+def test_without_keep_rules_the_exit_rules_repeat_the_buy_rules():
+    px, res = _run()
+    r = rules_table(_spec(res, ema_period=50, high_pct=0.8), trades_table(res["closed_trades"]))
+    items = dict(zip(r["Item"], r["Value"]))
+    assert "50-session EMA" in items["Reason: Trend Breakdown"]
+    assert "80%" in items["Reason: Failed 52W High Filter"]
+    assert "All-time-high filter" not in items and "Reason: Failed ATH Filter" not in items
+    assert "Sharpe" in r.set_index("Item").loc["5. Rank", "Note"]

@@ -17,6 +17,9 @@ from src.engine.extra_universe import SYSTEM_750, SYSTEM_NAMES, SYSTEMS
 from src.engine.model_record import record_run
 from src.engine.systems import inception, ledger_path, membership_for
 from src.engine.track_record import (
+    SHADOW_INCEPTION,
+    SHADOW_LEDGER_PATH,
+    SHADOW_NAME,
     load_ledger,
     summary_stats,
 )
@@ -24,7 +27,6 @@ from src.ui import page_kit as kit
 from src.ui.theme import render_saas_table
 
 
-@st.cache_data(show_spinner=False, ttl=3600)
 def _comparison_price_frame(system: str, selected_system: str, _fallback: pd.DataFrame) -> pd.DataFrame:
     """Build the MTD price frame from the system's own canonical universe.
 
@@ -42,38 +44,60 @@ def _comparison_price_frame(system: str, selected_system: str, _fallback: pd.Dat
     # validated price frame already consumed by record_run(). This keeps the
     # headline MTD and the side-by-side MTD numerically identical. Other systems
     # still resolve their own independent canonical price frame below.
+    #
+    # Returned directly, never through a cache: this branch used to sit inside
+    # an st.cache_data keyed on the two system names only, so after the prices
+    # moved on the comparison kept serving the frame it had pickled, for up to
+    # an hour (and held a 28 MB copy of it).
     if system == selected_system:
         return _fallback
-    history = membership_for(system)
-    if not history:
-        return pd.DataFrame()
     try:
-        from src.loaders import price_source
+        from src.loaders import screener_cache
 
-        chosen = price_source.from_screener(price_source.fetch_screener_store())
-        if chosen is None or chosen.close.empty:
+        store, revision = screener_cache.configured()
+        if store is None:
             return pd.DataFrame()
-
-        # Keep every symbol appearing in the system's membership timeline.
-        # record_run() itself applies the point-in-time membership and former-
-        # member logic, so the price frame should not be narrowed to the
-        # currently selected Portfolio's symbols.
-        symbols = set()
-        baseline = history.get("baseline") or {}
-        symbols.update(str(s).upper() for s in (baseline.get("symbols") or []))
-        for change in history.get("changes") or []:
-            symbols.update(str(s).upper() for s in (change.get("add") or []))
-            symbols.update(str(s).upper() for s in (change.get("remove") or []))
-        if not symbols:
-            return pd.DataFrame()
-
-        available = [c for c in chosen.close.columns
-                     if str(c).upper() in symbols]
-        return chosen.close.loc[:, available] if available else pd.DataFrame()
+        frame = _system_prices(system, revision, store)
     except Exception:
         # A missing canonical source is a data condition, not permission to
         # substitute the currently selected system's prices.
         return pd.DataFrame()
+    return frame.copy(deep=False)
+
+
+@st.cache_resource(show_spinner=False, ttl=3600, max_entries=4)
+def _system_prices(system: str, store_revision: str, _store: pd.DataFrame) -> pd.DataFrame:
+    """One system's closes from the shared Screener store, once per revision.
+
+    The store is the app's own (src/loaders/screener_cache.py), not a second
+    download; callers get a shallow copy, which pandas copy-on-write keeps
+    from reaching this one.
+    """
+    history = membership_for(system)
+    if not history:
+        return pd.DataFrame()
+    from src.loaders import price_source
+
+    chosen = price_source.from_screener(_store)
+    if chosen is None or chosen.close.empty:
+        return pd.DataFrame()
+
+    # Keep every symbol appearing in the system's membership timeline.
+    # record_run() itself applies the point-in-time membership and former-
+    # member logic, so the price frame should not be narrowed to the
+    # currently selected Portfolio's symbols.
+    symbols = set()
+    baseline = history.get("baseline") or {}
+    symbols.update(str(s).upper() for s in (baseline.get("symbols") or []))
+    for change in history.get("changes") or []:
+        symbols.update(str(s).upper() for s in (change.get("add") or []))
+        symbols.update(str(s).upper() for s in (change.get("remove") or []))
+    if not symbols:
+        return pd.DataFrame()
+
+    available = [c for c in chosen.close.columns
+                 if str(c).upper() in symbols]
+    return chosen.close.loc[:, available] if available else pd.DataFrame()
 
 
 def _record_mtd(
@@ -118,13 +142,21 @@ def _tone(v: float | None) -> str:
     return "up" if v > 0 else "down" if v < 0 else ""
 
 
+def _day(v) -> str:
+    """A date as the rest of the site writes it (01 Oct 2026); a dash when absent."""
+    try:
+        return f"{pd.Timestamp(v):%d %b %Y}" if v else "—"
+    except (TypeError, ValueError):
+        return str(v)
+
+
 def month_cards_html(months: dict, mtd_period, mtd_val, mtd_bench) -> str:
     """One card per month: its return, the index's, and ahead or behind."""
     cards = []
     for key, e in sorted(months.items()):
         s, b = e.get("strategy"), e.get("benchmark")
         gap = "" if s is None or b is None else (
-            f" · {'ahead' if s >= b else 'behind'} {abs(s - b) * 100:.1f} pts")
+            f" · {'ahead' if s >= b else 'behind'} {abs(s - b) * 100:.1f}%")
         tag = "recorded" if e.get("origin") == "recorded" else "backfilled"
         cards.append(
             f'<div class="mo {_tone(s)}"><span class="mo-h">{pd.Period(key, freq="M").strftime("%b %Y")}'
@@ -177,10 +209,10 @@ def _render_rank_months(books: dict) -> None:
     with kit.card(
         f"Ranks by month · {pd.Period(month, freq='M').strftime('%B %Y')}",
         "tr_ranks",
-        f"{a.get('start')} → {a.get('end')} · {end_word}",
+        f"{_day(a.get('start'))} → {_day(a.get('end'))} · {end_word}",
     ):
         show = df.copy()
-        for col in ("Above EMA start", "Above EMA end", "In index end"):
+        for col in ("Above 50D EMA start", "Above 50D EMA end", "In index end"):
             if col in show.columns:
                 show[col] = show[col].map({True: "Yes", False: "No"}).fillna("—")
 
@@ -189,8 +221,8 @@ def _render_rank_months(books: dict) -> None:
         # of the Portfolio page.
         preferred = [
             "Symbol", "Rank at start", "Rank at end", "Weight %",
-            "% of 52w high start", "% of 52w high end",
-            "Above EMA start", "Above EMA end", "In index end",
+            "% of 52W high start", "% of 52W high end",
+            "Above 50D EMA start", "Above 50D EMA end", "In index end",
         ]
         cols = [c for c in preferred if c in show.columns]
         rest = [c for c in show.columns if c not in cols]
@@ -255,7 +287,7 @@ def render_record_sections(
             f"{_fill:%B %Y} has a new book but no return yet.",
             f"It was signalled on {pd.Timestamp(lm['signal_date']):%d %b} and bought at the "
             f"{_fill:%d %b} close ({lm.get('n_bought', 0)} bought, {lm.get('n_sold', 0)} sold, "
-            f"{lm.get('n_held', 0)} kept). Month-to-date starts accruing the next session. "
+            f"{lm.get('n_held', 0)} held). Month-to-date starts accruing the next session. "
             "See Ranks by month for the book and its ranks.",
         )
 
@@ -263,8 +295,11 @@ def render_record_sections(
     beat = stats["beat_rate"]
     n_beat = None if beat is None else round(beat * stats["months"])
     kit.readings([
+        # The system's own start, not "YTD" (owner, 12 Oct 2026): Nano Cap and
+        # Combined start in Oct 2026, and from Jan 2027 the 750's record is no
+        # longer one calendar year.
         kit.Reading("Since inception", _pct(stats["total_return"]),
-                    "after costs · YTD",
+                    f"after costs · since {start.strftime('%b %Y')}",
                     _tone(stats["total_return"])),
         kit.Reading("Nifty 500", _pct(stats["bench_return"]), "price index", _tone(stats["bench_return"])),
         kit.Reading("Ahead of the index", _pct(stats["alpha"]),
@@ -304,7 +339,7 @@ def render_record_sections(
     if len(stats.get("configs", [])) > 1:
         kit.note("More than one strategy configuration.",
                  f"({', '.join(stats['configs'])}) Months under different settings are not one "
-                 "continuous series; Provenance shows where it changes.")
+                 "continuous series.")
 
     _render_rank_months(
         (record_run(adj_close, benchmark_close, system).get("month_books") or {})
@@ -317,19 +352,24 @@ def render_record_sections(
 def comparison_frame(
     ledgers: dict[str, dict],
     live_meta: dict[str, dict] | None = None,
+    shadow: dict | None = None,
 ) -> pd.DataFrame:
     """Calendar-style monthly returns for all three systems.
 
     A system is blank before its own inception. Its current-month cell uses
     that system's live MTD record, so the table never hides an active month
     merely because it has not been frozen yet.
+
+    `shadow`, the Recommendation's ledger, adds a row of its frozen months
+    only: it has no month to date, so the page runs no backtest for it.
     """
     live_meta = live_meta or {}
     frozen = {
         sys_id: ledgers.get(sys_id, {}).get("months", {})
         for sys_id in SYSTEMS
     }
-    keys = sorted({k for months in frozen.values() for k in months})
+    shadow_months = (shadow or {}).get("months", {})
+    keys = sorted({k for months in [*frozen.values(), shadow_months] for k in months})
     current_periods = [
         pd.Period(meta["mtd_period"], freq="M")
         for meta in live_meta.values()
@@ -368,6 +408,12 @@ def comparison_frame(
                 else:
                     row[p.strftime("%b").upper()] = None
             rows.append(row)
+        if shadow is not None:
+            row = {"SYSTEM": SHADOW_NAME, "YEAR": str(year)}
+            for p in year_periods:
+                entry = shadow_months.get(str(p)) if p >= SHADOW_INCEPTION else None
+                row[p.strftime("%b").upper()] = entry.get("strategy") if entry else None
+            rows.append(row)
 
     columns = ["SYSTEM", "YEAR"] + [p.strftime("%b").upper() for p in periods]
     return pd.DataFrame(rows)[columns]
@@ -396,7 +442,11 @@ def render_comparison(
                 # unavailable until that system's price history can be replayed.
                 live_meta[sys_id] = {}
 
-    table = comparison_frame(ledgers, live_meta)
+    try:
+        shadow = load_ledger(SHADOW_LEDGER_PATH, SHADOW_INCEPTION)
+    except (ValueError, OSError):
+        shadow = {}
+    table = comparison_frame(ledgers, live_meta, shadow)
     with kit.card(
         "Three systems, side by side",
         "tr_compare",
@@ -406,4 +456,7 @@ def render_comparison(
             st.info("Nothing recorded yet.")
         else:
             render_saas_table(grid_display(table))
+            st.caption(f"{SHADOW_NAME}: 30 holdings · keep while in the top 90 · 200D EMA, "
+                       f"on the Nifty 750, from {SHADOW_INCEPTION.strftime('%b %Y')}; "
+                       "not traded, frozen months only")
 

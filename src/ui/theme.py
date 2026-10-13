@@ -435,6 +435,8 @@ def inject_custom_css() -> None:
         .hdr-pill .hdr-dot { width: 8px; height: 8px; border-radius: 50%; background: #067647; }
         .hdr-pill-warn { background: #FEF6EA; color: #7A2E0E; }
         .hdr-pill-warn .hdr-dot { background: #B54708; }
+        .stale-notice { margin: 6px 0 2px; padding: 9px 14px; border-radius: 10px; background: #FEF6EA; border: 1px solid #F7D9B0; color: #7A2E0E; font-size: 13.5px; font-weight: 600; line-height: 1.4; }
+        .stale-notice-info { background: #F4F6F9; border-color: #E3E6EB; color: #3B4655; font-weight: 500; }
 
         /* Compact market snapshot: same footprint as the legacy market line,
            but with a stronger visual hierarchy and the same design language as
@@ -675,8 +677,6 @@ def inject_custom_css() -> None:
         .t50-icon { flex:0 0 52px; width:52px; height:52px; display:grid; place-items:center; border-radius:10px; background:#12A05C; color:#FFFFFF; font-size:29px; font-weight:700; line-height:1; }
         .t50-card h2 { margin:0 !important; padding:0 !important; color:#0E1726 !important; font-family:var(--font-ui) !important; font-size:23px !important; font-weight:750 !important; letter-spacing:-0.02em !important; }
         .t50-card p { margin:4px 0 0 !important; color:#526070 !important; font-size:13.5px !important; line-height:1.35 !important; }
-        .t50-view-all { flex:0 0 auto; display:inline-flex; align-items:center; gap:10px; min-height:42px; padding:0 17px; border-radius:10px; background:#FFFFFF; border:1px solid #D9E0E7; color:#0E1726 !important; text-decoration:none !important; font-size:13.5px; font-weight:700; box-shadow:0 1px 2px rgba(14,23,38,0.04); }
-        .t50-view-all:hover { background:#F7F8FA; border-color:#C7CFD9; }
         .t50-table-wrap { width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
         .t50-table { width:100%; min-width:0; display:grid; font-family:var(--font-ui); }
         .t50-col-head, .t50-row { display:grid; grid-template-columns:52px minmax(150px,1.5fr) 1fr 1fr 0.9fr; align-items:center; column-gap:14px; padding:0 20px; }
@@ -688,19 +688,39 @@ def inject_custom_css() -> None:
         .t50-stock:hover { color:#4338CA !important; text-decoration:underline !important; }
         .t50-cell { min-width:0; } .t50-change,.t50-rank,.t50-return { font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
         .t50-delta { font-weight:750; } .t50-delta.positive { color:#12A05C; } .t50-delta.negative { color:#B42318; } .t50-delta.flat { color:#667080; }
-        .t50-return { font-weight:700; color:#12A05C; } .t50-trend { display:flex; align-items:center; height:36px; color:#12A05C; }
+        .t50-return { font-weight:700; color:#12A05C; } .t50-return.negative { color:#B42318; } .t50-return.flat { color:#667080; } .t50-trend { display:flex; align-items:center; height:36px; color:#12A05C; }
         .t50-trend svg { width:132px; height:34px; display:block; } .t50-no-trend { color:#98A2B3; }
         .t50-entered .t50-card-head { background:#F3F7FF; border-bottom-color:#DDE8FF; } .t50-entered .t50-icon { background:#2563EB; }
-        .t50-left .t50-card-head { background:#FFF5F4; border-bottom-color:#F3D8D4; } .t50-left .t50-icon { background:#B42318; } .t50-left .t50-return { color:#B42318; }
-        .t50-more { margin:0; border-top:1px solid #EDEFF3; } .t50-more summary { list-style:none; cursor:pointer; min-height:46px; padding:0 20px; display:flex; align-items:center; justify-content:center; gap:8px; color:#0E1726; font-size:13.5px; font-weight:700; }
-        .t50-more summary::-webkit-details-marker { display:none; } .t50-more summary span { font-size:17px; } .t50-more[open] summary { border-bottom:1px solid #EDEFF3; }
+        .t50-left .t50-card-head { background:#FFF5F4; border-bottom-color:#F3D8D4; } .t50-left .t50-icon { background:#B42318; }
+        .t50-table:has(.t50-extra) .t50-row:last-child { border-bottom:1px solid #EDEFF3; }
+        .t50-more { margin:0; border-top:0; cursor:pointer; min-height:46px; padding:0 20px; display:flex; align-items:center; justify-content:center; gap:8px; color:#0E1726; font-size:13.5px; font-weight:700; }
+        .t50-more:hover { background:#FAFBFC; } .t50-more span span { font-size:17px; }
+        .t50-toggle { position:absolute; opacity:0; width:1px; height:1px; pointer-events:none; }
+        .t50-extra, .t50-when-open { display:none; }
+        .t50-toggle:checked ~ .t50-table-wrap .t50-extra { display:grid; }
+        .t50-toggle:checked ~ .t50-more .t50-when-closed { display:none; }
+        .t50-toggle:checked ~ .t50-more .t50-when-open { display:inline; }
+        .t50-toggle:focus-visible ~ .t50-more { outline:2px solid #4338CA; outline-offset:-2px; }
         .t50-note { margin:6px 2px 0; color:#667080; font-size:12px; line-height:1.4; }
         @media (max-width:640px) {
             .t50-grid { gap:10px; } .t50-card { border-radius:14px; } .t50-card-head { min-height:78px; padding:14px; gap:10px; }
             .t50-card-heading { gap:10px; } .t50-icon { flex-basis:44px; width:44px; height:44px; border-radius:9px; font-size:24px; }
             .t50-card h2 { font-size:19px !important; } .t50-card p { font-size:12.5px !important; }
-            .t50-view-all { min-height:38px; padding:0 11px; font-size:12px; gap:6px; } .t50-col-head,.t50-row { padding:0 10px; column-gap:6px; grid-template-columns:28px minmax(120px,1.7fr) 72px 62px 58px; }
+            .t50-col-head,.t50-row { padding:0 10px; column-gap:6px; grid-template-columns:28px minmax(120px,1.7fr) 72px 62px 58px; }
             .t50-col-head { min-height:38px; font-size:11px; } .t50-row { min-height:50px; font-size:12px; } .t50-table { min-width:0; } .t50-change,.t50-rank,.t50-return { font-size:11px; } .t50-num { font-size:11px; }
+        }
+        /* Wide screens: the three movers cards side by side, compact, not
+           three full-width tables of five rows each (owner, 13 Oct). */
+        @media (min-width: 1100px) {
+            .t50-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:14px; align-items:start; }
+            .t50-card-head { min-height:0; padding:12px 16px; }
+            .t50-icon { flex-basis:34px; width:34px; height:34px; border-radius:8px; font-size:19px; }
+            .t50-card h2 { font-size:17px !important; }
+            .t50-card p { font-size:12px !important; margin-top:2px !important; }
+            .t50-col-head, .t50-row { grid-template-columns:22px minmax(0,1.5fr) 1fr 0.8fr 0.9fr; column-gap:8px; padding:0 14px; }
+            .t50-col-head { min-height:34px; font-size:11.5px; }
+            .t50-row { min-height:40px; font-size:13px; }
+            .t50-more { min-height:38px; font-size:13px; }
         }
         .st-key-scr_toolbar { gap: 10px !important; }
         .st-key-scr_toolbar [data-testid="stPopoverButton"] { height: 40px !important; }
@@ -739,19 +759,21 @@ def inject_custom_css() -> None:
         }
 
         /* ── Page kit (src/ui/page_kit.py): every other page ───────────── */
-        /* Portfolio KPI strip: centered, icon-free frozen design.
-           Desktop keeps six equal cards; tablet uses a 2x3 grid; phone stacks
-           one card per row. */
+        /* Page KPI strip: centered, icon-free. However many tiles a page
+           has (4 on Sectors, Actions, Breadth; 6 on Portfolio, Backtest),
+           they share the row: a fixed 6-column grid left two empty columns
+           beside four tiles, and squeezed long names into 4-line tiles
+           (owner, 13 Oct). Narrower screens wrap to as many as fit. */
         .mkt-strip.pg-strip {
-            grid-template-columns: repeat(6, minmax(0, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
         }
         .mkt-strip.pg-strip .ms-tile {
             align-items: center;
             justify-content: center;
             text-align: center;
             min-width: 0;
-            min-height: 152px;
-            padding: 18px 16px;
+            gap: 4px;
+            padding: 14px 16px;
         }
         .mkt-strip.pg-strip .ms-k,
         .mkt-strip.pg-strip .ms-v,
@@ -759,28 +781,25 @@ def inject_custom_css() -> None:
             text-align: center;
             width: 100%;
         }
-        .mkt-strip.pg-strip .ms-k { font-size: 14px; }
-        .mkt-strip.pg-strip .ms-v { font-size: 28px; }
-        .mkt-strip.pg-strip .ms-s { font-size: 14px; }
-        .mkt-strip.pg-strip .ms-s:empty { display: none; }
-
-        @media (min-width: 641px) and (max-width: 1279px) {
-            .mkt-strip.pg-strip {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
+        .mkt-strip.pg-strip .ms-k { font-size: 13px; }
+        .mkt-strip.pg-strip .ms-v { font-size: 26px; }
+        /* A name, not a figure (an industry): smaller, at most two lines. */
+        .mkt-strip.pg-strip .ms-v.ms-name {
+            font-size: 19px; line-height: 1.2;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
+        .mkt-strip.pg-strip .ms-s { font-size: 12.5px; line-height: 1.35; color: #5E6878; }
+        .mkt-strip.pg-strip .ms-s:empty { display: none; }
 
         @media (max-width: 640px) {
             .mkt-strip.pg-strip {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr 1fr;
             }
-            .mkt-strip.pg-strip .ms-tile {
-                min-height: 126px;
-                padding: 18px 14px;
-            }
-            .mkt-strip.pg-strip .ms-k { font-size: 13px; }
-            .mkt-strip.pg-strip .ms-v { font-size: 24px; }
-            .mkt-strip.pg-strip .ms-s { font-size: 13px; }
+            .mkt-strip.pg-strip .ms-tile { padding: 12px 10px; }
+            .mkt-strip.pg-strip .ms-k { font-size: 12px; }
+            .mkt-strip.pg-strip .ms-v { font-size: 21px; }
+            .mkt-strip.pg-strip .ms-v.ms-name { font-size: 16px; }
+            .mkt-strip.pg-strip .ms-s { font-size: 11.5px; }
         }
         .mkt-strip .warn { color: #B54708; }
         .pg-note {
@@ -800,7 +819,13 @@ def inject_custom_css() -> None:
         .pg-card-h span { font-size: 12.5px; color: #5E6878; }
         .pg-cap { margin: 0; font-size: 12.5px; line-height: 1.5; color: #5E6878; }
         .pg-bars { display: flex; flex-direction: column; gap: 4px; }
-        .pg-bar { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 150px; align-items: center; gap: 12px; min-height: 30px; }
+        .pg-bar { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(56px, auto); align-items: center; gap: 12px; min-height: 30px; }
+        /* A long list (Portfolio's industries) runs in two columns on a wide
+           card instead of one tall column with a half-empty row each. */
+        @media (min-width: 1000px) {
+            .pg-bars:has(> .pg-bar:nth-child(7)) { display: block; columns: 2; column-gap: 40px; }
+            .pg-bars:has(> .pg-bar:nth-child(7)) .pg-bar { break-inside: avoid; margin-bottom: 4px; }
+        }
         .pg-bar-l { font-size: 13.5px; color: #0E1726; }
         .pg-bar-t { position: relative; height: 10px; border-radius: 5px; background: #EDEFF3; }
         .pg-bar-t i { position: absolute; left: 0; top: 0; height: 10px; border-radius: 5px; background: #4F46E5; }
@@ -1422,6 +1447,10 @@ def inject_custom_css() -> None:
         [class*="st-key-mrow_"] { align-items: stretch; }
         [class*="st-key-mrow_"] > [data-testid="stMetric"],
         [class*="st-key-mrow_"] > div { flex: 1 1 180px; min-width: 0; }
+        /* Figures in a card: as tall as their text, not a 90px box (owner, 13 Oct). */
+        [class*="st-key-mrow_"] [data-testid="stMetric"] { padding: 10px 14px !important; }
+        [class*="st-key-mrow_"] [data-testid="stMetric"] > div { padding: 0 !important; }
+        [class*="st-key-mrow_"] [data-testid="stMetricValue"] { font-size: 20px !important; line-height: 1.2 !important; }
 
         .pg-callout {
             border-left: 3px solid var(--c-border-strong);
@@ -1485,6 +1514,14 @@ def inject_custom_css() -> None:
             font-size: 1.6rem !important;
             font-weight: 700 !important;
             color: #0E1726 !important;
+        }
+
+        /* The page-wide paragraph rule reached the <p> inside a metric's label
+           and value, leaving every value 14px grey under a 90px box. */
+        [data-testid="stMetricLabel"] p,
+        [data-testid="stMetricValue"] p {
+            font: inherit !important; color: inherit !important; letter-spacing: inherit !important;
+            margin: 0 !important;
         }
 
         [data-testid="stMetricDelta"] {
@@ -1592,6 +1629,24 @@ def inject_custom_css() -> None:
            their labels grey on indigo. */
         [data-testid="stBaseButton-primary"] p,
         [data-testid="stBaseButton-primary"] span { color: #FFFFFF !important; }
+        /* A form's submit button (the Backtest page's Apply) is its own kind,
+           stBaseButton-primaryFormSubmit, and the rules above missed it: its
+           label read dark on indigo (owner's phone, 9 Oct 2026). */
+        [data-testid="stBaseButton-primaryFormSubmit"] {
+            background-color: #4F46E5 !important; border-color: #4F46E5 !important; color: #FFFFFF !important;
+        }
+        [data-testid="stBaseButton-primaryFormSubmit"]:hover {
+            background-color: #4338CA !important; border-color: #4338CA !important; color: #FFFFFF !important;
+        }
+        [data-testid="stBaseButton-primaryFormSubmit"] p,
+        [data-testid="stBaseButton-primaryFormSubmit"] span { color: #FFFFFF !important; }
+        /* A popover's button carries its own test id, stPopoverButton, so the
+           rules above missed it: the Actions page's "Kite basket" read grey on
+           indigo (owner's phone, 13 Oct 2026). Every primary kind - button,
+           popover, download, form submit, link - carries kind="primary...". */
+        [kind^="primary"], [kind^="primary"] p,
+        [kind^="primary"] span { color: #FFFFFF !important; }
+        [kind^="primary"]:hover { color: #FFFFFF !important; }
 
         [data-baseweb="select"] > div {
             background-color: #ffffff !important;
@@ -1854,14 +1909,22 @@ def render_saas_table(
                     f'<td class="td-center"><span class="badge-pill {status_class}">{_esc(status_str)}</span></td>'
                 )
             elif "ACTION" in c_str:
+                # Every Action column is a record of trades, so it says what
+                # happened: Bought / Sold / Held (owner, 12 Oct 2026). Plans
+                # (the Actions page, filters) say Buy / Sell / Hold. The
+                # engine's own codes ("🟢 BUY (Entry)", "⚪ HELD") are unchanged.
                 act_str = str(val).upper()
-                if "BUY" in act_str:
+                if "BUY" in act_str or "BOUGHT" in act_str:
                     cells_html.append(
-                        '<td class="td-center"><span class="badge-pill badge-green">🟢 BUY</span></td>'
+                        '<td class="td-center"><span class="badge-pill badge-green">🟢 Bought</span></td>'
                     )
-                elif "SELL" in act_str:
+                elif "SELL" in act_str or "SOLD" in act_str:
                     cells_html.append(
-                        '<td class="td-center"><span class="badge-pill badge-red">🔴 SELL</span></td>'
+                        '<td class="td-center"><span class="badge-pill badge-red">🔴 Sold</span></td>'
+                    )
+                elif any(w in act_str for w in ("HOLD", "HELD", "RETAINED")):
+                    cells_html.append(
+                        '<td class="td-center"><span class="badge-pill badge-neutral">⚪ Held</span></td>'
                     )
                 else:
                     cells_html.append(

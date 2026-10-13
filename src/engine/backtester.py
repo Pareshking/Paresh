@@ -19,7 +19,7 @@ import streamlit as st
 from src.core.config import MOMENTUM_WINDOWS, RISK_FREE_RATE
 from src.engine.calendar_momentum import anchor_frame, period_sharpe_at, winsorised_z
 from src.engine.corporate_actions import adjust_prices
-from src.engine import liquidity
+from src.engine import compute_gate, liquidity
 from src.engine.membership import members_on
 from src.engine.portfolio import apply_caps
 
@@ -39,7 +39,32 @@ def _rolling_high_at(prices: pd.DataFrame, idx: int) -> pd.Series:
     few operations on this small window. Only the 252-row slice is materialised.
     """
     window = prices.iloc[max(0, idx - 251) : idx + 1]
-    return window.rolling(252, min_periods=126).max().iloc[-1]
+    # .copy(): a row of a one-dtype frame is a VIEW, and it kept the whole
+    # 252-row rolled frame alive. run_backtest keeps one of these per signal
+    # date (_high_at_cache), so the History-from-2010 run held ~200 of them,
+    # ~580 MB, to keep ~3 MB of values -- the backtest that took production
+    # down on 8 Oct 2026. Same values; tests/test_memory_guardrails.py.
+    return window.rolling(252, min_periods=126).max().iloc[-1].copy()
+
+
+def ath_history(prices: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
+    """(whole history on file, first date on file) for each column.
+
+    A stock whose first price comes after the frame's first week began trading
+    inside the file, so its all-time high on file is its real one. A stock
+    priced from the start may have peaked before the file begins.
+    """
+    first_pos = prices.notna().to_numpy().argmax(axis=0)
+    full = pd.Series(first_pos > 5, index=prices.columns)
+    first = pd.Series(pd.DatetimeIndex(prices.index)[first_pos], index=prices.columns)
+    return full, first
+
+
+def ath_trusted(history: tuple[pd.Series, pd.Series], on, min_years: float) -> pd.Series:
+    """Which columns the all-time-high rule applies to on `on` (owner, 9 Oct 2026)."""
+    full, first = history
+    age_days = (pd.Timestamp(on) - first).dt.days
+    return full | (age_days >= float(min_years) * 365.25)
 
 
 def completed_month_window(
@@ -69,6 +94,7 @@ def _calendar_period_sharpe(
     months: int,
     *,
     prices_anchor: pd.DataFrame | None = None,
+    metric: str = "sharpe",
 ) -> tuple[pd.Series, int]:
     """V1 period-scale Sharpe -- the screener's definition, not a copy of it.
 
@@ -80,7 +106,7 @@ def _calendar_period_sharpe(
     put its gaps where both engines returned NaN.
     """
     return period_sharpe_at(
-        prices, log_returns, end_idx, months, prices_anchor=prices_anchor
+        prices, log_returns, end_idx, months, prices_anchor=prices_anchor, metric=metric
     )
 
 
@@ -122,6 +148,7 @@ def _composite_z_score(
     windows: Sequence[int],
     weights: Sequence[float],
     prices_anchor: pd.DataFrame | None = None,
+    metric: str = "sharpe",
 ) -> pd.Series:
     """Canonical multi-window composite z-score used by every ranking method.
 
@@ -144,7 +171,7 @@ def _composite_z_score(
             continue
         raw_mom, _ = _calendar_period_sharpe(
             prices, log_returns, start_idx, int(w_period),
-            prices_anchor=prices_anchor,
+            prices_anchor=prices_anchor, metric=metric,
         )
         # winsorise -> z -> clamp, the documented pipeline, applied by the same
         # function the screener uses. Z-scoring first and clipping afterwards is
@@ -298,6 +325,8 @@ def _exit_reason(
     index_mask: pd.Series | None = None,
     liq_mask: pd.Series | None = None,
     signal_date: Any = None,
+    near_ath: pd.Series | None = None,
+    ath_pct: float | None = None,
 ) -> str:
     """Why a held name is being sold, in the order the filters actually bind.
 
@@ -313,6 +342,8 @@ def _exit_reason(
         return f"Trend Breakdown (< {ema_period} EMA)"
     if not near_high.get(symbol, False):
         return f"Failed 52W High Filter (< {high_pct*100:.0f}%)"
+    if near_ath is not None and not bool(near_ath.get(symbol, False)):
+        return f"Failed ATH Filter (< {(ath_pct or 0)*100:.0f}% of all-time high)"
     if index_mask is not None and not bool(index_mask.get(symbol, False)):
         when = f" on {pd.Timestamp(signal_date):%d %b %Y}" if signal_date is not None else ""
         return f"Not in the index{when}"
@@ -455,6 +486,38 @@ def _step_portfolio_allocation(
 
     friction_drag = turnover_period * (cost_bps / 10000.0)
     return full_w, turnover_period, friction_drag
+
+
+def _book_return(
+    weights: pd.Series,
+    prices_ff: pd.DataFrame,
+    fill_idx: int,
+    from_idx: int,
+    to_idx: int,
+) -> float:
+    """A buy-and-hold book's return between two sessions after its fill.
+
+    Valued exactly as the daily accrual loop values it: the weight the caps left
+    uninvested is cash at 0%, and each name is worth its fill weight times its
+    price growth since the fill. A name unpriced at the fill or on the day keeps
+    its weight unchanged, as it does there.
+    """
+    held = weights[weights != 0.0]
+    if held.empty or to_idx <= from_idx:
+        return 0.0
+    w = held.to_numpy(dtype=float)
+    cash = max(1.0 - float(w.sum()), 0.0)
+    base = prices_ff.iloc[fill_idx].reindex(held.index).to_numpy(dtype=float)
+    ok = np.isfinite(base) & (base > 0)
+
+    def value(idx: int) -> float:
+        px = prices_ff.iloc[idx].reindex(held.index).to_numpy(dtype=float)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            growth = np.where(ok & np.isfinite(px), px / base, 1.0)
+        return cash + float((w * growth).sum())
+
+    start = value(from_idx)
+    return value(to_idx) / start - 1.0 if start > 0 else 0.0
 
 
 def _drift_holdings(
@@ -761,7 +824,13 @@ def _calculate_backtest_metrics(
 # callers identify through `prices_hash`. The decorator was lost in the
 # 2026-09-17 refactor that split this function into stages, after which every
 # rerun of the Backtest and Track Record pages re-ran the whole walk-forward.
-@st.cache_data(show_spinner=False, ttl=3600)
+# Bounded: a parameter sweep stores one entry per combination (up to 1,920,
+# three times over with the holdout), each kept for an hour with no ceiling.
+# A sweep reads each result as it lands, so evicting old ones costs it nothing.
+# Gated UNDER the cache: only a miss queues behind another reader's run
+# (src/engine/compute_gate.py, TODO S65).
+@st.cache_data(show_spinner=False, ttl=3600, max_entries=64)
+@compute_gate.serialised
 def run_backtest(
     prices_hash: str,
     _adj_close: pd.DataFrame,
@@ -784,10 +853,39 @@ def run_backtest(
     liquidity_floor_cr: float = 0.0,
     _traded_value: pd.DataFrame | None = None,
     history_start: pd.Timestamp | None = None,
+    score_method: str = "sharpe",
+    ath_pct: float | None = None,
+    exit_ema_period: int | None = None,
+    exit_high_pct: float | None = None,
+    exit_ath_pct: float | None = None,
+    ath_min_years: float = 3.0,
 ) -> dict[str, Any] | None:
     """
     Executes a walk-forward momentum backtest with zero look-ahead bias and friction modeling.
+
+    ``ath_min_years``: see _ath_trusted below.
+    ``score_method`` "sharpe" (the live system) or "return" (each window's
+    plain log return, same windows and anchors). ``ath_pct``, when set, also
+    requires the close to be at least that fraction of the stock's highest
+    close on file up to the signal date (0.80 = within 20% of it). Both are
+    Backtest-page research options (owner, 9 Oct 2026); the defaults are the
+    live system and leave every result unchanged.
     """
+    if score_method not in ("sharpe", "return"):
+        raise ValueError(f"score_method must be 'sharpe' or 'return', not {score_method!r}")
+    if ath_pct is not None and not (0.0 < float(ath_pct) <= 1.0):
+        raise ValueError(f"ath_pct must be in (0, 1], not {ath_pct!r}")
+    for _name, _v in (("exit_high_pct", exit_high_pct), ("exit_ath_pct", exit_ath_pct)):
+        if _v is not None and not (0.0 < float(_v) <= 1.0):
+            raise ValueError(f"{_name} must be in (0, 1], not {_v!r}")
+    if not (0.0 <= float(ath_min_years) <= 30.0):
+        raise ValueError(f"ath_min_years must be between 0 and 30, not {ath_min_years!r}")
+    if exit_ema_period is not None and int(exit_ema_period) < 2:
+        raise ValueError(f"exit_ema_period must be at least 2, not {exit_ema_period!r}")
+    # Separate rules for KEEPING a holding (owner, 9 Oct 2026). A stock not held
+    # must pass the entry rules; a held one stays eligible while it passes these.
+    # All None: one set of rules for both, exactly as before.
+    _exit_rules = any(v is not None for v in (exit_ema_period, exit_high_pct, exit_ath_pct))
     WINDOWS = MOMENTUM_WINDOWS
     prices = _adj_close.dropna(axis=1, how="all").copy()
 
@@ -878,6 +976,21 @@ def run_backtest(
     # matrix. In History from 2010 that matrix adds tens of MB at 750 symbols and thousands of sessions,
     # before counting pandas temporaries and Streamlit cache copies. Compute the exact rolling maximum only on signal rows.
     ema = prices.ewm(span=ema_period).mean()
+    # The all-time-high rule only where the high on file can be trusted (owner,
+    # 9 Oct 2026). The file starts on a fixed date (History: 1 Jan 2008), so a
+    # stock already trading then has its real peak possibly before it: 44% of
+    # the names with prices before 2011 have their "high on file" in Jan 2008.
+    # Such a stock is held to the rule only after `ath_min_years` of prices on
+    # file; one that began trading after the file's first week has its whole
+    # history here and is held to it at once. Untrusted = the rule does not apply.
+    _ath_on = ath_pct is not None or exit_ath_pct is not None
+    if _ath_on:
+        _ath_hist = ath_history(prices)
+
+    def _ath_trusted(idx: int) -> pd.Series:
+        return ath_trusted(_ath_hist, prices.index[idx], ath_min_years)
+    ema_exit = (prices.ewm(span=int(exit_ema_period)).mean()
+                if exit_ema_period is not None and int(exit_ema_period) != int(ema_period) else ema)
     _high_at_cache: dict[int, pd.Series] = {}
 
     def _high_at(idx: int) -> pd.Series:
@@ -948,6 +1061,22 @@ def run_backtest(
         above_ema = _p > _ema
         near_high = _p >= _hi * high_pct
         valid = above_ema & near_high & (_p > 0)
+        # Highest close on file up to the signal date -- never a later one.
+        _ath = prices.iloc[: start_idx + 1].max() if _ath_on else None
+        _ath_ok = _ath_trusted(start_idx) if _ath_on else None
+        near_ath = ((_p >= _ath * ath_pct) | ~_ath_ok) if ath_pct is not None else None
+        if near_ath is not None:
+            valid &= near_ath
+        # The masks _exit_reason explains a sale with: the keep rules when set.
+        keep_ema, keep_high, keep_ath = above_ema, near_high, near_ath
+        if _exit_rules:
+            keep_ema = _p > ema_exit.iloc[start_idx]
+            keep_high = _p >= _hi * (exit_high_pct if exit_high_pct is not None else high_pct)
+            keep_ath = ((_p >= _ath * exit_ath_pct) | ~_ath_ok) if exit_ath_pct is not None else near_ath
+            keep = keep_ema & keep_high & (_p > 0)
+            if keep_ath is not None:
+                keep &= keep_ath
+            valid = valid | (keep & prices.columns.isin(prev_holdings))
 
         # ── Point-In-Time Universe ───────────────────────────────────────────
         # Restrict to the stocks that were IN the index on the signal date. A
@@ -978,7 +1107,7 @@ def run_backtest(
         # nobody asked, and each branch was its own untested scoring path.
         composite_score = _composite_z_score(
             prices, log_ret, start_idx, WINDOWS, norm_w if norm_w else [0.2] * 5,
-            prices_anchor=prices_anchor,
+            prices_anchor=prices_anchor, metric=score_method,
         )
         score = composite_score[valid & composite_score.notna()]
 
@@ -1043,9 +1172,10 @@ def run_backtest(
         for s in exits:
             p_exit = _fill_price(prices, s, fwd_start)
             reason = _exit_reason(
-                s, full_ranked, above_ema, near_high,
-                ema_period, high_pct, effective_buffer,
+                s, full_ranked, keep_ema, keep_high,
+                exit_ema_period or ema_period, exit_high_pct or high_pct, effective_buffer,
                 index_mask=idx_mask, liq_mask=liq_mask, signal_date=dates[start_idx],
+                near_ath=keep_ath, ath_pct=exit_ath_pct or ath_pct,
             )
 
             pos = open_positions.pop(s, None)
@@ -1068,7 +1198,7 @@ def run_backtest(
 
             closed_trades.append(
                 {
-                    "Month": f"{p_start_dt:%b-%Y}" if p_start_dt else "—",
+                    "Month": f"{p_start_dt:%b %Y}" if p_start_dt else "—",
                     "Symbol": s,
                     "Entry Date": f"{entry_dt:%d %b %Y}" if entry_dt else "—",
                     "Entry Price": p_entry,
@@ -1362,6 +1492,20 @@ def run_backtest(
         p_above_ema = _pp > _pema
         p_near_high = _pp >= _phi * high_pct
         p_valid = p_above_ema & p_near_high & (_pp > 0)
+        _path = prices.iloc[: rebal_idx + 1].max() if _ath_on else None
+        _path_ok = _ath_trusted(rebal_idx) if _ath_on else None
+        p_near_ath = ((_pp >= _path * ath_pct) | ~_path_ok) if ath_pct is not None else None
+        if p_near_ath is not None:
+            p_valid &= p_near_ath
+        p_keep_ema, p_keep_high, p_keep_ath = p_above_ema, p_near_high, p_near_ath
+        if _exit_rules:
+            p_keep_ema = _pp > ema_exit.iloc[rebal_idx]
+            p_keep_high = _pp >= _phi * (exit_high_pct if exit_high_pct is not None else high_pct)
+            p_keep_ath = ((_pp >= _path * exit_ath_pct) | ~_path_ok) if exit_ath_pct is not None else p_near_ath
+            p_keep = p_keep_ema & p_keep_high & (_pp > 0)
+            if p_keep_ath is not None:
+                p_keep &= p_keep_ath
+            p_valid = p_valid | (p_keep & prices.columns.isin(prev_holdings))
         p_idx_mask = _index_mask(_membership, prices.columns, prices.index[rebal_idx])
         if p_idx_mask is not None:
             p_valid &= p_idx_mask
@@ -1372,7 +1516,7 @@ def run_backtest(
 
         p_score = _composite_z_score(
             prices, log_ret, rebal_idx, WINDOWS, norm_w if norm_w else [0.2] * 5,
-            prices_anchor=prices_anchor,
+            prices_anchor=prices_anchor, metric=score_method,
         )
         p_ranked = p_score[p_valid & p_score.notna()].sort_values(ascending=False)
         live_ranks = {s: p_ranked.index.get_loc(s) + 1 for s in p_ranked.index}
@@ -1412,10 +1556,12 @@ def run_backtest(
                         "Return %": _round_trip_return(entry_price, exit_price),
                         "Weight %": 0.0,
                         "Reason": _exit_reason(
-                            s, p_ranked, p_above_ema, p_near_high,
-                            ema_period, high_pct, effective_buffer,
+                            s, p_ranked, p_keep_ema, p_keep_high,
+                            exit_ema_period or ema_period, exit_high_pct or high_pct,
+                            effective_buffer,
                             index_mask=p_idx_mask, liq_mask=p_liq,
                             signal_date=prices.index[rebal_idx],
+                            near_ath=p_keep_ath, ath_pct=exit_ath_pct or ath_pct,
                         ),
                     }
                 )
@@ -1530,9 +1676,9 @@ def run_backtest(
         )
 
     # ── Month-To-Date ────────────────────────────────────────────────────────
-    # Measure it the way the engine accrues everywhere else: from the CLOSE the
-    # book was filled at, on the book actually held this month. That is the
-    # rebalanced book from its fill date whenever the fill lands in this month.
+    # Measure it the way the engine accrues everywhere else: each book from the
+    # CLOSE it was filled at. When this month's fill has happened, that is the
+    # old book to the fill and the rebalanced book after it (below).
     mtd_period = as_of_dt.to_period("M")
     mtd_holdings: Sequence[str] = book
     mtd_wts = book_wts
@@ -1572,6 +1718,28 @@ def run_backtest(
         mtd_turnover = float((_new_full - _standing).abs().sum() / 2.0)
         mtd_cost = mtd_turnover * (cost_bps / 10000.0)
 
+    # The sessions before this month's fill (owner, 12 Oct 2026). A month that
+    # holds a rebalance used to be marked from the FILL close, so the session
+    # the old book earned on the fill day -- 30 Sep close to 1 Oct close, say --
+    # sat in neither the frozen month before (which ends at its last close) nor
+    # this one, for the strategy and the index alike, until the month froze:
+    # on 12 Oct 2026 the record's Nifty 500 read -7.6% against -8.5% measured
+    # from the first fill. The frozen month comes off the daily curve, where
+    # that session belongs to the old book. Mark the live month the same way:
+    # the old book from the previous month's last close to the fill, then the
+    # new book from the fill. A system's first month has no old book: both
+    # legs, and the index, start at the fill, as its frozen month does.
+    pre_fill = 0.0
+    mtd_from_idx = mtd_base_idx
+    if (
+        mtd_basis == "rebalanced book"
+        and prev_fill_idx is not None
+        and 0 <= prior_close_idx < mtd_base_idx
+        and prev_fill_idx <= prior_close_idx
+    ):
+        pre_fill = _book_return(prev_weights, prices_ff, prev_fill_idx, prior_close_idx, mtd_base_idx)
+        mtd_from_idx = prior_close_idx
+
     strategy_mtd: float | None = None
     benchmark_mtd: float | None = None
     if mtd_base_idx is not None and mtd_base_idx < as_of_idx:
@@ -1589,10 +1757,10 @@ def run_backtest(
                 acc += w * r
                 priced += w
         # Net, like every frozen month it will sit beside.
-        strategy_mtd = (acc - mtd_cost) if priced > 0 else None
+        strategy_mtd = ((1.0 + pre_fill) * (1.0 + acc - mtd_cost) - 1.0) if priced > 0 else None
 
         if benchmark_level is not None:
-            b0 = benchmark_level.iloc[mtd_base_idx]
+            b0 = benchmark_level.iloc[mtd_from_idx]
             b1 = benchmark_level.iloc[as_of_idx]
             if pd.notna(b0) and pd.notna(b1) and float(b0) > 0:
                 benchmark_mtd = float(b1) / float(b0) - 1.0
@@ -1602,8 +1770,9 @@ def run_backtest(
         "as_of": as_of_dt,
         "mtd_period": str(mtd_period),
         "mtd_from": (
-            prices.index[mtd_base_idx] if mtd_base_idx is not None else None
+            prices.index[mtd_from_idx] if mtd_from_idx is not None else None
         ),
+        "mtd_pre_fill": pre_fill,
         "mtd_basis": mtd_basis,
         "strategy_mtd": strategy_mtd,
         "mtd_cost": mtd_cost,

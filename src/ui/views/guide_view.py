@@ -49,7 +49,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                     End-to-End Quantitative Investment Pipeline
                 </div>
                 <span style="font-family:'Geist Mono',monospace; font-size:12px; color:#3C4657; background:#F4F5F8; border:1px solid #E3E6EB; padding:3px 10px; border-radius:6px; font-weight:700;">
-                    Live figures on the Backtest tab · none quoted here
+                    Live figures on the Backtest page · none quoted here
                 </span>
             </div>
 
@@ -62,12 +62,12 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
                     <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#067647;">STEP 02</div>
                     <div style="font-weight:600; font-size:13px; color:#0E1726; margin-top:2px;">Trend Gating</div>
-                    <div style="font-size:13px; color:#5E6878; line-height:1.5; margin-top:4px;">CMP &gt; 50 EMA and within 20% of 52W High to eliminate stage-4 downtrends and structural laggards.</div>
+                    <div style="font-size:13px; color:#5E6878; line-height:1.5; margin-top:4px;">Price above its 50-day EMA and within 20% of its 52-week high, to eliminate stage-4 downtrends and structural laggards.</div>
                 </div>
                 <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
                     <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#B54708;">STEP 03</div>
                     <div style="font-weight:600; font-size:13px; color:#0E1726; margin-top:2px;">Factor Scoring</div>
-                    <div style="font-size:13px; color:#5E6878; line-height:1.5; margin-top:4px;">Sharpe multi-window (1M/3M/6M/9M/12M) normalized via ±3σ Winsorized Gaussian Z-scores.</div>
+                    <div style="font-size:13px; color:#5E6878; line-height:1.5; margin-top:4px;">Sharpe multi-window (1M/3M/6M/9M/12M) normalised via ±3σ winsorised z-scores.</div>
                 </div>
                 <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
                     <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#7c3aed;">STEP 04</div>
@@ -98,8 +98,8 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                     <div style="font-size:13px; color:#3C4657; line-height:1.6;">
                         • <strong>Multi-Horizon Blend</strong>: five calendar horizons — 1M (10%), 3M (30%), 6M (30%), 9M (20%), 12M (10%).<br>
                         • <strong>Anti-Whipsaw</strong>: a two-week speculative spike scores well on 1M and is outvoted by a weak 6M/12M base.<br>
-                        • <strong>Customisable</strong>: the weights are sliders in the <em>Configuration</em> tab.<br>
-                        • <strong>Turnover</strong>: the persistence buffer damps churn. The realised figure for your settings is on the Backtest tab, under Avg Period Turnover — no number is quoted here, because it depends on your settings and your window.
+                        • <strong>Customisable</strong>: the weights are sliders on the <em>Configuration</em> page.<br>
+                        • <strong>Turnover</strong>: the persistence buffer damps churn. The realised figure for your settings is on the Backtest page (turnover, under Months ahead of index) — no number is quoted here, because it depends on your settings and your window.
                     </div>
                 </div>
                 <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:14px;">
@@ -134,10 +134,10 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 </div>
                 <div>
                     <div style="color:#0E1726; font-weight:600; font-size:13px; margin-bottom:4px;">
-                        2. ±3σ Winsorized Z-Score Normalization
+                        2. ±3σ Winsorised Z-Score Normalisation
                     </div>
                     <div style="color:#3C4657; font-size:13px; line-height:1.6;">
-                        Raw factor metrics across the universe are Winsorized at ±3σ to neutralize extreme distribution outliers before Gaussian standardization (Z ~ N(0, 1)):
+                        Raw factor metrics across the universe are winsorised at ±3σ to neutralise extreme distribution outliers before Gaussian standardization (Z ~ N(0, 1)):
                         <div style="font-family:'Geist Mono',monospace; font-size:12px; background-color:#F4F5F8; border:1px solid #E3E6EB; border-radius:6px; padding:6px 10px; margin-top:8px; font-weight:600; color:#1F2A3A;">
                             Score = 0.10·Z(1M) + 0.30·Z(3M) + 0.30·Z(6M) + 0.20·Z(9M) + 0.10·Z(12M)
                         </div>
@@ -150,8 +150,8 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                     <div style="color:#3C4657; font-size:13px; line-height:1.6;">
                         Stocks must satisfy strict quantitative criteria to enter qualified model portfolios:
                         <ul style="margin:6px 0 0 16px; padding:0; line-height:1.6; font-size:13px;">
-                            <li><strong>CMP &gt; 50 EMA</strong> (Primary medium-term uptrend regime filter)</li>
-                            <li><strong>CMP &ge; 80% of 52W High</strong> (Within 20% of 52-week High)</li>
+                            <li><strong>CMP &gt; 50D EMA</strong> (Primary medium-term uptrend regime filter)</li>
+                            <li><strong>CMP &ge; 80% of 52W high</strong> (within 20% of the 52-week high)</li>
                             <li>Microstructure liquidity gating to eliminate friction slippage</li>
                         </ul>
                     </div>
@@ -186,7 +186,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                         Equal Weighting Allocation ($w_i = 1/N$)
                     </div>
                     <div style="color:#3C4657; font-size:13px; line-height:1.6;">
-                        Allocates a uniform 5.00% capital weight across the Top 20 qualified holdings. Maximizes gross upside in broad-based bull markets where momentum breadth is strong and uniform across sectors.
+                        Allocates a uniform 5.00% capital weight across the Top 20 qualified holdings. Maximises gross upside in broad-based bull markets where momentum breadth is strong and uniform across sectors.
                     </div>
                 </div>
                 <div>
@@ -198,7 +198,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                         <div style="font-family:'Geist Mono',monospace; font-size:12px; background-color:#F4F5F8; border:1px solid #E3E6EB; border-radius:6px; padding:6px 10px; margin-top:8px; font-weight:600; color:#1F2A3A;">
                             w_i = (1 / &sigma;_i) / &sum;(1 / &sigma;_j)
                         </div>
-                        Reduces overall portfolio volatility and minimizes maximum drawdowns during choppy or high-VIX environments.
+                        Reduces overall portfolio volatility and minimises maximum drawdowns during choppy or high-VIX environments.
                     </div>
                 </div>
             </div>
@@ -220,7 +220,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
             {
                 "Strategy Model": "Composite Sharpe (System-1)",
                 "Lookback Windows": "1M, 3M, 6M, 9M, 12M calendar",
-                "Config Weights": "YES (Customizable)",
+                "Config Weights": "YES (Customisable)",
                 "Risk Adjustment": "Period volatility",
                 "Market Beta": "Included",
                 "Best Regime": "Steady Secular Bull Runs",
@@ -284,7 +284,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                   window, so this is a *period* risk-adjusted statistic. It is
                   not comparable with an institutional annualised Sharpe.
                 * **Config Weights**: the active weights from the
-                  **Configuration** tab (10/30/30/20/10 by default).
+                  **Configuration** page (10/30/30/20/10 by default).
                 * **R-squared is not used anywhere in System-1.**
                 """)
 
@@ -294,7 +294,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 
                 **Mathematical Formulation (Julius de Kempenaer Algorithm):**
                 1. **Relative Strength Line**: $\text{RS}(t) = \frac{P_{\text{Sector}}(t)}{P_{\text{Benchmark}}(t)} \times 100$
-                2. **JdK RS-Ratio (Trend)**: Exponential smoothing normalized around 100:
+                2. **JdK RS-Ratio (Trend)**: Exponential smoothing normalised around 100:
                    $$\text{RS-Ratio} = 100 + 6.5 \times z\text{-Score}\left(\frac{\text{EMA}(\text{RS}, 6)}{\text{SMA}(\text{EMA}(\text{RS}, 6), 12)}\right)$$
                 3. **JdK RS-Momentum (Velocity)**: Rate of change of RS-Ratio:
                    $$\text{RS-Momentum} = 100 + 6.5 \times z\text{-Score}\left(\frac{\text{RS-Ratio}(t)}{\text{RS-Ratio}(t-5)}\right)$$
@@ -314,7 +314,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
             <div style="background:#ffffff; border:1px solid #E3E6EB; border-top:3px solid #067647; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                     <span style="font-weight:700; font-size:14px; color:#067647;">BULLISH EXPANSION</span>
-                    <span style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#067647; background:#E8F5EE; padding:2px 7px; border-radius:4px;">NIFTY &gt; 50 EMA</span>
+                    <span style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#067647; background:#E8F5EE; padding:2px 7px; border-radius:4px;">NIFTY 500 &gt; 200D AVERAGE</span>
                 </div>
                 <div style="font-size:13px; color:#3C4657; line-height:1.6;">
                     <div><strong>Model:</strong> Composite Sharpe</div>
@@ -351,7 +351,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                     <div><strong>Weighting:</strong> Inverse Volatility</div>
                     <div><strong>Target Allocation:</strong> 70% Equity (30% Cash)</div>
                     <div style="margin-top:6px; color:#5E6878;">
-                        Enable Inverse-Volatility Parity weighting in Portfolio tab to limit drawdown exposure.
+                        Inverse-volatility weighting can be tried in the Backtest settings; the live book is equal weight.
                     </div>
                 </div>
             </div>
@@ -359,14 +359,14 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
             <div style="background:#ffffff; border:1px solid #E3E6EB; border-top:3px solid #B42318; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                     <span style="font-weight:700; font-size:14px; color:#B42318;">BEARISH DEFENSIVE</span>
-                    <span style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#B42318; background:#FDEDEB; padding:2px 7px; border-radius:4px;">NIFTY &lt; 50 EMA</span>
+                    <span style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#B42318; background:#FDEDEB; padding:2px 7px; border-radius:4px;">NIFTY 500 &lt; 200D AVERAGE</span>
                 </div>
                 <div style="font-size:13px; color:#3C4657; line-height:1.6;">
                     <div><strong>Mode:</strong> Capital protection</div>
                     <div><strong>Priority:</strong> Cash preservation</div>
                     <div><strong>Target Allocation:</strong> 40% Equity (60% Cash)</div>
                     <div style="margin-top:6px; color:#5E6878;">
-                        Exit all stocks that violate trailing stops. Do not add new positions until Nifty closes above 50 EMA.
+                        Sell only what the monthly rebalance sells: the model has no stops. Add no new positions until the Nifty 500 closes back above its 200-day average (the regime in the header).
                     </div>
                 </div>
             </div>
@@ -385,7 +385,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px;">
                 <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
                     <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#4f46e5;">STEP 1: EXPORT BASKET</div>
-                    <div style="font-size:13px; color:#3C4657; margin-top:4px;">Navigate to the <strong>Portfolio</strong> tab, review target weights, and click <strong>Download Zerodha Kite Basket CSV</strong>.</div>
+                    <div style="font-size:13px; color:#3C4657; margin-top:4px;">Open the <strong>Actions</strong> page, review the orders, and click <strong>Kite basket</strong>.</div>
                 </div>
                 <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
                     <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#067647;">STEP 2: IMPORT TO KITE</div>
@@ -393,7 +393,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 </div>
                 <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
                     <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#B54708;">STEP 3: EXECUTE IN 1-CLICK</div>
-                    <div style="font-size:13px; color:#3C4657; margin-top:4px;">Execute the entire basket between 09:20 AM and 09:30 AM on the 1st trading day of the month using Market/Limit orders.</div>
+                    <div style="font-size:13px; color:#3C4657; margin-top:4px;">Place the basket on the first trading day of the month. The model fills at that day's close, so orders near the close follow it most closely.</div>
                 </div>
                 <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
                     <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#7c3aed;">STEP 4: HOLD TO THE NEXT REBALANCE</div>
@@ -411,7 +411,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                     Are the backtest's returns after tax?
                 </div>
                 <div style="font-size:13px; color:#3C4657; line-height:1.6;">
-                    <strong>No.</strong> "Net" on the Backtest tab means net of the modelled transaction-cost drag only. No tax is deducted anywhere in this application. That matters here more than in a buy-and-hold model: monthly rebalancing realises gains inside twelve months, so in India they are short-term capital gains, and the after-tax outcome is materially below every figure shown. Treat all returns on every tab as <strong>pre-tax</strong>.
+                    <strong>No.</strong> "Net" on the Backtest page means net of the modelled transaction-cost drag only. No tax is deducted anywhere in this application. That matters here more than in a buy-and-hold model: monthly rebalancing realises gains inside twelve months, so in India they are short-term capital gains, and the after-tax outcome is materially below every figure shown. Treat all returns on every page as <strong>pre-tax</strong>.
                 </div>
             </div>
 
@@ -453,7 +453,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
 
             <div style="background:#ffffff; border:1px solid #E3E6EB; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
                 <div style="font-weight:700; font-size:14px; color:#0E1726; margin-bottom:6px;">
-                    How does the 30 bps Friction Drag model work in Backtesting?
+                    How are trading costs modelled in the backtest?
                 </div>
                 <div style="font-size:13px; color:#3C4657; line-height:1.6;">
                     Every simulated trade deducts a <strong>30 basis point (0.30%) round-trip cost</strong> covering brokerage, exchange turnover and SEBI fees, GST on those fees, stamp duty, STT and bid-ask slippage — the <em>transaction</em> taxes and frictions paid on the trade itself. <strong>Capital-gains tax is a different thing and is not modelled anywhere in this application: every return shown is pre-tax.</strong> A monthly-rebalanced book realises gains inside twelve months, so in India they are short-term.

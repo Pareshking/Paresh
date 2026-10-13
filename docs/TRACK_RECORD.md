@@ -274,3 +274,31 @@ would show different books, when Actions' planner disagrees with the executed
 rebalance, or when the research defaults stop reproducing the account. A failure
 after a scheduled sync opens an issue. A failing `ledger_parity` after a vendor
 restatement is expected: the stored value stands until the owner decides to rebuild.
+
+---
+
+## 9. Shadow record: the Recommendation
+
+Owner, 2026-10-12 (TODO 6 and 9; `docs/REGIME_SETTINGS_2026-10-12.md`): the
+settings research's Recommendation is recorded forward beside the live system,
+never traded, so that it is judged on months nobody could tune it on.
+
+| | |
+|---|---|
+| Configuration | `SHADOW_CONFIG` (`src/engine/track_record.py`): `TRACK_RECORD_CONFIG` with 30 holdings, keep while in the top 90 (`buffer_n` 90) and a 200-day EMA; everything else as the live record, including the hard caps (12 names an industry at 30) |
+| Universe | the Nifty 750, on its point-in-time membership and price basis |
+| Ledger | `data/track_record_shadow.json`, its own fingerprint |
+| First month | November 2026: the book signalled at the 30 Oct close, filled 2 Nov. Like Nano Cap's first month it starts at the fill, so 2 Nov itself is in no month |
+| Frozen by | `monthly_track_record.yml`, "Freeze the shadow record" (`update_track_record.py --shadow`), after the live records; a failure only warns |
+| Shown | a row in "Three systems, side by side", frozen months only: no month to date, so the page runs no extra backtest |
+
+The live records, Actions and Portfolio are untouched by it. Review after 12
+months (Nov 2027): turnover about half the live record's, max drawdown no worse,
+return not clearly behind. A year's return cannot separate the two settings; the
+review asks whether the Recommendation behaves live as it did in the backtest.
+A switch, if the owner makes one, happens at a 1 January boundary.
+
+Rehearsed on 12 Oct 2026 as a dry run with the start moved to September 2026:
+a 30-stock book, survivorship-free, September +0.19% against the Nifty 500's
+-5.43% (the live record froze +0.17%; its September starts at the August close,
+so its index month includes 1 Sep).

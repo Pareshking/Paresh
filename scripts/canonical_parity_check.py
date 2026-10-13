@@ -50,7 +50,7 @@ from src.engine.actions import plan_rebalance  # noqa: E402
 from src.engine.backtester import run_backtest  # noqa: E402
 from src.engine.extra_universe import SYSTEM_750  # noqa: E402
 from src.engine.model_record import record_sector_map  # noqa: E402
-from src.engine.parity_audit import compare_monthly_ledger  # noqa: E402
+from src.engine.parity_audit import compare_monthly_ledger, load_accepted_drift  # noqa: E402
 from src.engine.track_record import (  # noqa: E402
     LEDGER_PATH, TRACK_RECORD_CONFIG, config_fingerprint, months_to_cover,
 )
@@ -201,9 +201,13 @@ def main() -> int:
            as_of=res.get("live_meta", {}).get("as_of"))
 
     # 2. Frozen months against the live replay.
-    rep = compare_monthly_ledger(ledger, res["equity_curve"], res["benchmark"])
+    # Drifts the owner accepted (docs/TODO.md item 12) pass; any other fails.
+    accepted = load_accepted_drift()
+    rep = compare_monthly_ledger(ledger, res["equity_curve"], res["benchmark"], accepted=accepted)
     record("ledger_parity", bool(rep["passed"]), counts=rep["counts"],
-           max_drift_pp=max((abs(r.get("strategy_drift") or 0) for r in rep["rows"]), default=0) * 100)
+           max_drift_pp=max((abs(r.get("strategy_drift") or 0) for r in rep["rows"]
+                             if r["status"] != "accepted"), default=0) * 100,
+           accepted=[r["month"] for r in rep["rows"] if r["status"] == "accepted"])
 
     # 3. Struck under today's pinned config.
     membership = systems.membership_for(SYSTEM_750)
@@ -270,7 +274,7 @@ def main() -> int:
             _membership=membership, backtest_months=months_to_cover(basis.index[-1], start),
             stateful_history=True, history_start=start.start_time, _actions=[],
         )
-        rr = compare_monthly_ledger(ledger, r["equity_curve"], r["benchmark"])
+        rr = compare_monthly_ledger(ledger, r["equity_curve"], r["benchmark"], accepted=accepted)
         record("research_default", bool(rr["passed"]), counts=rr["counts"])
 
     Path(args.report).write_text(json.dumps(checks, indent=1, default=str), encoding="utf-8")

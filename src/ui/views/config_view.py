@@ -20,7 +20,6 @@ from src.core.config import (
     DEFAULT_LOOKBACK_WEIGHTS,
     DEFAULT_SECTOR_CAP,
     DEFAULT_STOCK_CAP,
-    DEFAULT_TARGET_VOL,
     INDICES_LOCAL,
     INDICES_URLS,
     MCAPS_FILE,
@@ -78,9 +77,10 @@ _SECTIONS = [
      "How much each lookback window counts in the composite score that sets every rank.",
      "ranks on every page, and the backtest's starting weights"),
     ("cfg-limits", "Portfolio limits",
-     "The most the model book may hold in one sector and one stock, whether it "
-     "holds cash to damp volatility, and the least a stock must trade to be bought.",
-     "Portfolio and Backtest"),
+     "The most a backtest may hold in one sector and one stock, and the least a stock "
+     "must trade to be bought. The model book on Portfolio and Actions keeps the track "
+     "record's own limits (5% a stock, 40% a sector, no floor).",
+     "the Backtest only"),
     ("cfg-health", "Data health",
      "What the app corrected in the price history before ranking, and whether its data "
      "files are in place.", "nothing; this section only reports"),
@@ -202,6 +202,7 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
                     st.session_state["force_refresh"] = True
                     st.session_state.pop("data_loaded_key", None)
                     st.cache_data.clear()
+                    st.cache_resource.clear()  # the shared price frames (app.py _shared)
                     if res.get("last_attempt_ok"):
                         n = res["total_stocks"]
                         _sync_status.update(
@@ -227,6 +228,7 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
                 st.session_state["force_refresh"] = True
                 st.session_state.pop("data_loaded_key", None)
                 st.cache_data.clear()
+                st.cache_resource.clear()  # the shared price frames (app.py _shared)
                 st.rerun()
 
         st.html('<span class="pg-cap">Sync fetches the latest official constituent lists. '
@@ -339,20 +341,20 @@ def _section_momentum_signal() -> None:
     )
 
 
-# Defaults for the on-demand Portfolio Risk widgets. Same reason as the weight
+# Defaults for the on-demand Portfolio limits widgets. Same reason as the weight
 # sliders: the left-nav renders one section per run, Streamlit evicts widget
 # state for anything it did not render last time, and a slider with a key but no
 # value then falls back to its `min_value`. Here that is silently DESTRUCTIVE
 # rather than merely visible -- a 30% sector cap would come back as 15% and a 5%
 # stock cap as 2%, both of them plausible numbers that now genuinely bind the
-# portfolio and the backtest.
+# backtest. (The model book on Portfolio and Actions is pinned to the record's
+# limits and reads none of these.)
 # key -> (default, minimum, maximum). Ranges live here so the resolver rejects
 # an out-of-range stored value the same way the widget would.
+# Volatility targeting was removed (owner, 12 Oct 2026): no page used it.
 _RISK_SETTINGS: dict[str, tuple] = {
     "cfg_sc": (round(DEFAULT_SECTOR_CAP * 100), 15, 50),
     "cfg_stc": (round(DEFAULT_STOCK_CAP * 100), 2, 15),
-    "cfg_vt": (False, None, None),
-    "cfg_vtv": (round(DEFAULT_TARGET_VOL * 100), 10, 40),
     "cfg_lf": (False, None, None),
     "cfg_lfv": (DEFAULT_FLOOR_CR, 1, 500),
 }
@@ -368,8 +370,8 @@ def _section_portfolio_risk() -> None:
     # Same exposure as the weight sliders, and worse in consequence: an evicted
     # weight comes back as an obvious 0.00, but an evicted cap comes back as a
     # PLAUSIBLE number -- a 30% sector cap as 15%, a 5% stock cap as 2% -- and
-    # both genuinely bind the portfolio and the backtest. Every widget below is
-    # handed an explicit resolved value and mirrored afterwards.
+    # both genuinely bind the backtest. Every widget below is handed an
+    # explicit resolved value and mirrored afterwards.
     lc, rc = st.columns(2, gap="large", vertical_alignment="top")
     new_sc = lc.slider(
         "Most in one sector (%)", min_value=15, max_value=50, step=5,
@@ -381,34 +383,21 @@ def _section_portfolio_risk() -> None:
         value=_risk("cfg_stc"), key="cfg_stc",
     )
     remember("cfg_stc", int(new_stc))
+    kit.caption("Used by the Backtest. The model book on Portfolio and Actions keeps the "
+                "track record's 5% a stock and 40% a sector.")
     if new_stc > new_sc:
         kit.note(f"The stock cap ({new_stc}%) is above the sector cap ({new_sc}%).",
                  "No book can satisfy both; lower the stock cap.")
     else:
-        # The Portfolio page's holdings count (20 unless the reader changed it).
-        # A cap at or below 1/n admits exactly one fully invested book.
-        n_hold = int(st.session_state.get("port_top_n", 20) or 20)
+        # The Backtest's holdings count (20 unless the reader changed it): the
+        # caps act there. A cap at or below 1/n admits one fully invested book.
+        n_hold = int(st.session_state.get("bt_top_n", 20) or 20)
         if new_stc * n_hold <= 100:
             kit.note(
-                f"At {new_stc}% per stock and {n_hold} holdings, every stock sits at the cap.",
+                f"At {new_stc}% per stock and {n_hold} backtest holdings, every stock sits at the cap.",
                 "Equal weight and inverse volatility then give the same book. Raise it to "
                 f"{100 // n_hold + 2}% or more for the weighting to matter.",
             )
-
-    st.html('<div class="cfg-rule"></div>')
-    new_vt = st.toggle(
-        "Volatility targeting",
-        value=_risk("cfg_vt"), key="cfg_vt",
-        help="When on, the Portfolio page holds cash to keep the book near a target yearly volatility.",
-    )
-    remember("cfg_vt", bool(new_vt))
-    kit.caption("On: the Portfolio page holds cash to keep the book near the target below. "
-                "Off: fully invested.")
-    new_vtv = st.slider(
-        "Target yearly volatility (%)", min_value=10, max_value=40, step=5,
-        value=_risk("cfg_vtv"), key="cfg_vtv", disabled=not new_vt,
-    )
-    remember("cfg_vtv", int(new_vtv))
 
     # Owner, 2026-09-27: off by default; every system; the track record's
     # pinned configuration never uses it (src/engine/liquidity.py).
@@ -417,7 +406,8 @@ def _section_portfolio_risk() -> None:
         "Liquidity floor",
         value=_risk("cfg_lf"), key="cfg_lf",
         help="A stock whose 20-day average traded value is below the floor is not "
-             "bought -- on the Portfolio page today, and at each rebalance in the Backtest.",
+             "bought at any rebalance in the Backtest. The model book on Portfolio and "
+             "Actions follows the track record, which has no floor.",
     )
     remember("cfg_lf", bool(new_lf))
     kit.caption("20-day average traded value (close × volume). Off by default; "
@@ -517,7 +507,7 @@ def _section(i: int):
 
 
 def render_config_view(rank_df: pd.DataFrame) -> None:
-    """Everything that decides the ranking and the book, on one page."""
+    """Everything that decides the ranking and the backtest, on one page."""
     sync_meta = get_sync_metadata()
     synced_stocks = sync_meta.get("total_stocks") or 0
     tot_stk = synced_stocks or len(rank_df)
@@ -528,7 +518,8 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
 
     st.html(
         '<div class="cfg-top"><div class="scr-head"><h1>Configuration</h1>'
-        "<p>Everything that decides the ranking and the book, on one page. "
+        "<p>Everything that decides the ranking and the backtest, on one page. The model "
+        "book on Portfolio and Actions keeps the track record's own settings. "
         "Changes apply as you make them.</p></div>"
         '<div class="cfg-pills">'
         f'<span class="cfg-pill">{html.escape(mode_label)}</span></div></div>'
@@ -540,7 +531,6 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
     norm = [w / tot for w in raw_w] if tot > 0 else list(DEFAULT_LOOKBACK_WEIGHTS)
     is_default = all(abs(a - b) < 1e-6 for a, b in zip(norm, DEFAULT_LOOKBACK_WEIGHTS))
     indices = st.session_state.get("cfg_indices", ["NIFTY TOTAL MARKET"])
-    vt_on = bool(_risk("cfg_vt"))
     n_events = len(load_events() or [])
     system_note = (f" · {SYSTEM_NAMES.get(st.session_state.get('cfg_system'), '')}"
                    if st.session_state.get("cfg_system", SYSTEM_750) != SYSTEM_750 else "")
@@ -548,9 +538,8 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
         ("Universe", (" + ".join(i.title() for i in indices) or "—") + system_note),
         ("Score weights 1M·3M·6M·9M·12M",
          "·".join(f"{w * 100:.0f}" for w in norm) + (" (default)" if is_default else " (yours)")),
-        ("Max per stock · per sector", f"{_risk('cfg_stc')}% · {_risk('cfg_sc')}%"),
-        ("Volatility target", f"{_risk('cfg_vtv')}%" if vt_on else "Off"),
-        ("Liquidity floor", f"₹{_risk('cfg_lfv')} Cr" if _risk("cfg_lf") else "Off"),
+        ("Backtest max per stock · per sector", f"{_risk('cfg_stc')}% · {_risk('cfg_sc')}%"),
+        ("Backtest liquidity floor", f"₹{_risk('cfg_lfv')} Cr" if _risk("cfg_lf") else "Off"),
         ("Corporate actions adjusted", f"{n_events}" if n_events else "None"),
     ]
     st.html('<div class="cfg-kv">' + "".join(

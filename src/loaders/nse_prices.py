@@ -39,7 +39,9 @@ from src.loaders import nse_adjusted as na
 DIR = Path(__file__).resolve().parents[2] / "data" / "nse_prices"
 BASIS = "nse_as_published"
 BASIS_SCREENER = "screener_primary"
-ACTION_COLS = ["symbol", "series", "kind", "ex_date", "purpose", "price_factor"]
+# face_value prices a rights issue (nse_adjusted._rights: issue price = face value
+# + premium). A file written before it was kept reads it as missing (S56).
+ACTION_COLS = ["symbol", "series", "kind", "ex_date", "purpose", "price_factor", "face_value"]
 
 
 # ── reading what is committed ────────────────────────────────────────────────
@@ -54,6 +56,7 @@ def load(directory: Path = DIR) -> dict[str, Any] | None:
     except (OSError, ValueError):
         return None
     closes.index = pd.DatetimeIndex(closes.index)
+    actions = actions.reindex(columns=list(dict.fromkeys([*ACTION_COLS, *actions.columns])))
     return {"closes": closes.astype(float), "actions": actions, "notes": notes}
 
 

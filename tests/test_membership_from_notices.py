@@ -223,10 +223,24 @@ def test_nothing_is_left_unexplained_and_the_one_ticker_change_is_recorded():
         assert "TSFINV" in members_on(HISTORY, day) and "SUNDARMHLD" not in members_on(HISTORY, day)
 
 
+# A demerged company NSE carries above the 750: included as a DUMMY placeholder at the
+# demerger, it keeps its slot once listed until NSE's exclusion notice (as Allcargo Global,
+# ind_prs20072026.pdf). The placeholder is not recorded, so its listing reads as an addition.
+DEMERGED_EXTRAS = {
+    # ind_prs17072026.pdf: DUMMYTRVN in Nifty Total Market from 2026-07-22; listed as
+    # TRIVENIPT in NSE's list file of 2026-10-09.
+    "TRIVENIPT",
+}
+
+
 def test_the_list_is_750_names_on_every_date_it_changes():
     # Tata Motors DVR was an additional security above the 750 until NSE removed it on 2024-08-30.
     dates = [HISTORY["baseline"]["date"]] + [c["date"] for c in HISTORY["changes"]]
-    sizes = {d: len(members_on(HISTORY, d)) - sum(s.endswith("DVR") for s in members_on(HISTORY, d)) for d in dates}
+    sizes = {
+        d: len(m) - sum(s.endswith("DVR") for s in m) - len(m & DEMERGED_EXTRAS)
+        for d in dates
+        for m in [set(members_on(HISTORY, d))]
+    }
     assert set(sizes.values()) == {750}, sizes
 
 

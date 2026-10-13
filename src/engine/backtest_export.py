@@ -83,6 +83,12 @@ class RunSpec:
     has_industry_map: bool
     ema_period: int | None = None   # None: the engine's own default
     high_pct: float | None = None   # None: the engine's own default
+    ath_pct: float | None = None    # None: no all-time-high rule
+    ath_min_years: float = 3.0
+    exit_ema_period: int | None = None   # None: the buy rule
+    exit_high_pct: float | None = None
+    exit_ath_pct: float | None = None
+    score_method: str = "sharpe"
     stats: dict[str, Any] = field(default_factory=dict)
     generated: str = ""          # IST time stamp, supplied by the caller
 
@@ -151,6 +157,10 @@ def rules_table(spec: RunSpec, trades: pd.DataFrame) -> pd.DataFrame:
     """Section, Item, Value, Note: the run's rules in the order a reader asks about them."""
     ema = int(spec.ema_period if spec.ema_period is not None else _engine_default("ema_period"))
     high = float(spec.high_pct if spec.high_pct is not None else _engine_default("high_pct"))
+    # Keep rules: blank keeps the buy rule, as on the settings form.
+    x_ema = int(spec.exit_ema_period) if spec.exit_ema_period is not None else ema
+    x_high = float(spec.exit_high_pct) if spec.exit_high_pct is not None else high
+    x_ath = spec.exit_ath_pct if spec.exit_ath_pct is not None else spec.ath_pct
     s = spec.stats or {}
     horizons = list(MOMENTUM_WINDOWS)
     wsum = sum(spec.weights) or 1.0
@@ -202,11 +212,15 @@ def rules_table(spec: RunSpec, trades: pd.DataFrame) -> pd.DataFrame:
         add("Entry rules", "1. In the index on T", spec.universe, "Membership on the signal date")
     add("Entry rules", "2. Trend filter", f"Close above its {ema}-session EMA", "Evaluated on T")
     add("Entry rules", "3. 52-week-high filter", f"Close at least {_pct(high)} of the 252-session high", "Evaluated on T")
+    if spec.ath_pct is not None:
+        add("Entry rules", "All-time-high filter", f"Close at least {_pct(spec.ath_pct)} of the highest close on file",
+            f"Applied once a stock has {spec.ath_min_years:g} years of prices on file")
     add("Entry rules", "4. Liquidity floor",
         f"20-day average traded value of Rs {spec.liquidity_floor_cr:g} Cr or more" if spec.liquidity_floor_cr else "None",
         "On the value known at T" if spec.liquidity_floor_cr else "Switched off for this run")
     add("Entry rules", "5. Rank", "Composite momentum score, best first",
-        f"Z-scored returns over {', '.join(str(m) + 'M' for m in horizons)} blended with weights {weights_txt}")
+        ("Z-scored Sharpe ratios" if spec.score_method == "sharpe" else "Z-scored plain returns")
+        + f" over {', '.join(str(m) + 'M' for m in horizons)} blended with weights {weights_txt}")
     add("Entry rules", "6. Select", f"Top {spec.top_n} by rank",
         "A stock already held keeps its place while it ranks inside the buffer (next row)")
     add("Entry rules", "Buffer zone", f"Top {spec.buffer_n} ({spec.buffer_n / spec.top_n:.1f}x holdings)",
@@ -223,8 +237,10 @@ def rules_table(spec: RunSpec, trades: pd.DataFrame) -> pd.DataFrame:
         "There is no stop-loss, profit target or intra-period exit in this backtest")
     add("Exit rules", "Reason: Rank Dropped", f"Ranked outside the top {spec.buffer_n}",
         "Still passes every filter, but has fallen past the buffer")
-    add("Exit rules", "Reason: Trend Breakdown", f"Closed below its {ema}-session EMA on T")
-    add("Exit rules", "Reason: Failed 52W High Filter", f"Closed below {_pct(high)} of its 52-week high on T")
+    add("Exit rules", "Reason: Trend Breakdown", f"Closed below its {x_ema}-session EMA on T")
+    add("Exit rules", "Reason: Failed 52W High Filter", f"Closed below {_pct(x_high)} of its 52-week high on T")
+    if x_ath is not None:
+        add("Exit rules", "Reason: Failed ATH Filter", f"Closed below {_pct(x_ath)} of its highest close on file, on T")
     add("Exit rules", "Reason: Not in the index", "No longer in the index on T",
         "The row names the date")
     add("Exit rules", "Reason: Below the liquidity floor", "20-day average traded value under the floor on T"

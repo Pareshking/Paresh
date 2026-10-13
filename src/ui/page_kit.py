@@ -43,11 +43,17 @@ def page_head(title: str, sub: str, *, actions: bool = False):
                            key=f"pg_actions_{_slug(title)}")
 
 
+def _name_class(value: str) -> str:
+    """A tile value that is a name (an industry), not a figure, reads smaller."""
+    return " ms-name" if sum(c.isalpha() for c in value) > 8 else ""
+
+
 def readings(tiles: list[Reading], label: str) -> None:
     """The strip of big figures under the header."""
     cells = "".join(
         f'<div class="ms-tile"><span class="ms-k">{html.escape(t.label)}</span>'
-        f'<span class="ms-v {t.tone}">{html.escape(t.value)}</span>'
+        f'<span class="ms-v {t.tone}{_name_class(t.value)}" title="{html.escape(t.value)}">'
+        f'{html.escape(t.value)}</span>'
         + (f'<span class="ms-s">{html.escape(t.note)}</span>' if t.note else "")
         + "</div>"
         for t in tiles
@@ -211,10 +217,10 @@ def stock_grid_config(columns, *, score_range: tuple[float, float] | None = None
         "% High": cc.NumberColumn("From 52W high", format="%.1f%%",
                                   help="Distance of the price from its 52-week high"),
         "% ATH": cc.NumberColumn("From ATH", format="%.1f%%"),
-        "% 50 EMA": cc.NumberColumn("vs 50 EMA", format="%+.1f%%"),
+        "% 50 EMA": cc.NumberColumn("vs 50D EMA", format="%+.1f%%"),
         "Max DD 12M": cc.NumberColumn("Max DD 12M", format="%.1f%%"),
         "Market Cap (Cr)": cc.NumberColumn("Mkt cap (₹ Cr)", format="%,.0f"),
-        "Above 50 EMA": cc.CheckboxColumn("Above 50 EMA", width="small"),
+        "Above 50 EMA": cc.CheckboxColumn("Above 50D EMA", width="small"),
         "Near 52W High": cc.CheckboxColumn("Near 52W high", width="small"),
         "At ATH": cc.CheckboxColumn("At ATH", width="small"),
         "Score": cc.ProgressColumn("Score", format="%.2f",

@@ -5,7 +5,7 @@ adjustment automatic. Owner, 2026-10-02: "all the adjustment should be
 automatic and no manual work, we have 3 source and those can give hints to
 each other along with official read from NSE."
 
-_Last updated: 2026-10-07_
+_Last updated: 2026-10-10_
 
 ## The three sources and NSE's own record
 
@@ -29,6 +29,23 @@ source for now.** SS is collected and checked every night, not ranked on.
 Measured 2 Oct on a year of 192 stocks: SS and Screener identical to the paisa
 on 187. Screener's volume is NSE + BSE (exact on 99.9% of 1,165 stocks); SS's
 is NSE's exactly.
+
+## The Screener night (`screener_sync.yml`, 00:15 IST) and when it is late
+
+- **A new index member Screener has no history for** (TRIVENIPT, listed 9 Oct
+  2026) is recorded in `data/screener_pending_history.json` with the day it was
+  first missed. It does not stop the night: every other stock is fetched and
+  published, then the run fails at its last step, so the failure alert issue
+  opens, and the site names the stock under the header. Until 10 Oct one such
+  stock stopped the whole night, and no stock got 9 Oct (owner, 10 Oct:
+  "continue, still alert"). A member that **had** history and lost it still
+  stops the night (exit 3).
+- **Prices are behind** when a session's closes are missing at 09:00 IST the
+  next day (`market_time.last_due_session`; weekends and NSE's holiday list
+  skipped). A session held back while Screener is still publishing it is
+  waiting, not missing. Then the header pill turns amber and a line under the
+  header says which session is missing, on every page. The old rule, one trading
+  day behind counts as current, let 8 Oct read as current all of 10 Oct.
 
 ## The nightly run (`ss_sync.yml`, weekdays 22:02 IST)
 

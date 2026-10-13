@@ -44,5 +44,6 @@ def test_backtest_separates_canonical_account_from_configurable_research():
     assert re.search(r'kit\.card\(\s*"Canonical account performance"', source)
     assert "load_ledger(ledger_path(SYSTEM_750), inception(SYSTEM_750))" in source
     assert "current_book(" in source
-    assert "Historical performance, trade history and parameter sweeps below use " in source
+    assert "not the Backtest settings." in source
+    assert "not these settings" in source
     assert 'kit.readings([' in source

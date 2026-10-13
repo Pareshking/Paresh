@@ -56,8 +56,10 @@ def test_portfolio_table_variant_is_scoped_to_portfolio():
 def test_portfolio_is_one_flowing_page_with_no_history_tabs():
     source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
     assert "history_tab" not in source and "segmented_control" not in source
-    for card in ("Equity & drawdown", "Calendar returns", "Trades", "Rebalances", "Industry exposure", "How they move together"):
+    for card in ("Equity & drawdown", "Calendar returns", "Trades", "Rebalances", "Industry exposure"):
         assert f'kit.card("{card}"' in source
+    # The correlation heatmap is a collapsed section, like Actions' Buy candidates.
+    assert "with st.expander(_corr_label, expanded=False):" in source
     # Equity and drawdown share one card, so one tab fewer.
     assert "drawdown=dd_d.tolist()" in source and "kit.drawdown_chart(" not in source
     assert 'Latest portfolio activity' not in source
@@ -168,8 +170,8 @@ def test_record_caption_and_correlation_card_wording():
     assert "largest fall from a peak" in record and "if elapsed >= 1:" in record
     source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
     assert "1.00 = move exactly together" not in source
-    card = source[source.index('kit.card("How they move together"') - 400:source.index('kit.card("How they move together"')]
-    assert "correlation_note(_corr_mean)" in card
+    head = source[source.index("_corr_label = ("):source.index("with st.expander(_corr_label")]
+    assert "How they move together" in head and "correlation_note(_corr_mean)" in head
 
 
 def test_header_uses_full_navigation_on_desktop_and_menu_on_narrow_viewports():
@@ -182,13 +184,44 @@ def test_header_uses_full_navigation_on_desktop_and_menu_on_narrow_viewports():
     assert "padding-right: 60px !important" in theme
 
 
-def test_track_record_copy_uses_percent_alpha_and_ytd():
+def test_track_record_copy_uses_percent_alpha_and_its_own_start():
     source = (ROOT / "src/ui/views/track_record_view.py").read_text(encoding="utf-8")
-    assert '"after costs · YTD"' in source
+    # Owner, 12 Oct 2026: "since <start>", not "YTD", which is wrong for a system
+    # that started mid-year and for any record longer than one calendar year.
+    assert "f\"after costs · since {start.strftime('%b %Y')}\"" in source
+    assert '"after costs · YTD"' not in source
     assert 'kit.Reading("Ahead of the index", _pct(stats["alpha"]),' in source
     assert 'replace("%", " pts")' not in source
     assert "Each system starts on its own date" not in source
     assert "A dash means the system had not started yet" not in source
+
+
+def test_one_word_for_one_thing_across_pages():
+    # Owner, 12 Oct 2026: "Max drawdown"; records say Bought / Sold / Held and
+    # plans Buy / Sell / Hold; "52W high" and "50D EMA" in labels; the book's
+    # columns as on Portfolio; "Nifty 500", not "NIFTY 500", on the page.
+    views = ROOT / "src/ui/views"
+    backtest = (views / "backtest_view.py").read_text(encoding="utf-8")
+    assert 'kit.Reading("Max drawdown"' in backtest and '"Worst fall"' not in backtest
+    assert 'kit.Reading("Ahead of the index"' in backtest
+    assert '"Price Now": "Current Price", "Return %": "P&L %"' in backtest
+    assert '["All", "Buy", "Sell", "Hold"]' in backtest and '"🟢 BOUGHT", "🔴 SOLD"' not in backtest
+    assert "Portfolio risk" not in backtest and "Filter " not in backtest
+    theme = THEME.read_text(encoding="utf-8")
+    assert "🟢 Bought" in theme and "🔴 Sold" in theme and "⚪ Held" in theme
+    assert "🟢 BUY</span>" not in theme
+    assert 'f"NIFTY 500 ' not in PORTFOLIO_VIEW.read_text(encoding="utf-8")
+    assert ">NIFTY 500<" not in (ROOT / "src/ui/components.py").read_text(encoding="utf-8")
+    stock = (views / "stock_view.py").read_text(encoding="utf-8")
+    assert "52W High</" not in stock and "vs 50 EMA" not in stock
+    assert "Momentum Signal" not in (ROOT / "app.py").read_text(encoding="utf-8")
+
+
+def test_backtest_alpha_is_a_percent_like_track_record():
+    # Owner, 12 Oct 2026: the Backtest headline alpha reads as Track Record's does.
+    source = (ROOT / "src/ui/views/backtest_view.py").read_text(encoding="utf-8")
+    assert "f\"{stats['alpha']:+.1%}\"" in source
+    assert " pts\"" not in source
 
 
 def test_production_qa_does_not_wait_for_the_removed_live_month_note():

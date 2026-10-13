@@ -5,6 +5,7 @@ Inspired by Investrack, Stockin.id, and Tickerboom financial terminal designs.
 
 import html
 import re
+from datetime import timedelta
 from typing import Any
 
 import pandas as pd
@@ -89,6 +90,88 @@ def compute_signals(rank_df: pd.DataFrame) -> list[SignalAlert]:
 
     return signals
 
+
+
+YEARLY_MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+                 "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
+
+
+def yearly_summary(grid: pd.DataFrame) -> pd.DataFrame:
+    """One row per year: strategy, benchmark and alpha for the calendar year.
+
+    Read straight from the grid's CY RETURN cells, so every number here is the
+    one printed in that year's block below (owner, 9 Oct 2026). Nothing is
+    recomputed. `months` counts the strategy's months with a return, so a year
+    the window starts or ends inside reads as part of a year, not a whole one.
+    """
+    columns = ["YEAR", "STRATEGY", "BENCHMARK", "ALPHA", "MONTHS", "FIRST", "LAST"]
+    if grid is None or grid.empty or "CY RETURN" not in grid.columns:
+        return pd.DataFrame(columns=columns)
+    rows = []
+    for year, block in grid.groupby("YEAR", sort=True):
+        by = {str(s).lower(): r for s, r in zip(block["SERIES"], block.to_dict("records"))}
+        strat = by.get("strategy")
+        alpha = by.get("alpha")
+        bench = next((r for s, r in by.items() if s not in ("strategy", "alpha")), None)
+        if strat is None:
+            continue
+        held = [m for m in YEARLY_MONTHS if m in strat and strat[m] is not None and pd.notna(strat[m])]
+        rows.append({
+            "YEAR": int(year),
+            "STRATEGY": strat.get("CY RETURN"),
+            "BENCHMARK": bench.get("CY RETURN") if bench is not None else None,
+            "ALPHA": alpha.get("CY RETURN") if alpha is not None else None,
+            "MONTHS": len(held),
+            "FIRST": held[0] if held else None,
+            "LAST": held[-1] if held else None,
+        })
+    return pd.DataFrame(rows, columns=columns)
+
+
+def _render_yearly_summary(grid: pd.DataFrame, bench_name: str) -> None:
+    """The year-by-year block above the monthly grids (presentation only).
+
+    Laid out like the monthly blocks below it (owner, 9 Oct 2026): Strategy,
+    the index and Alpha as rows, one column per year; a year the window only
+    partly covers names its months under the year.
+    """
+    table = yearly_summary(grid)
+    if table.empty:
+        return
+
+    def cell(value):
+        if value is None or pd.isna(value):
+            return '<td class="cr-empty">—</td>'
+        number = float(value)
+        tone = "positive" if number > 0 else "negative" if number < 0 else "flat"
+        return f'<td class="cr-value {tone}">{number:+.1%}</td>'
+
+    heads = []
+    for row in table.itertuples(index=False):
+        span = ("" if row.MONTHS == 12 else
+                f"{row.FIRST.title()}–{row.LAST.title()}" if row.MONTHS > 1 else
+                (row.FIRST or "").title())
+        sub = f'<span class="cr-part">{html.escape(span)}</span>' if span else ""
+        heads.append(f"<th>{row.YEAR}{sub}</th>")
+    series = [("Strategy", "strategy", "STRATEGY"), (bench_name, "benchmark", "BENCHMARK"),
+              ("Alpha", "alpha", "ALPHA")]
+    body = "".join(
+        f'<tr><th scope="row" class="cr-series {klass}">{html.escape(label)}</th>'
+        + "".join(cell(v) for v in table[col]) + "</tr>"
+        for label, klass, col in series
+    )
+    st.html(
+        '<section class="cr-year cr-yearly"><div class="cr-year-head">'
+        '<div><span class="cr-kicker">YEAR BY YEAR</span><h3>Calendar years</h3></div>'
+        '<span class="cr-year-note">The CY column of each year below</span>'
+        '</div><div class="cr-scroll"><table class="cr-table cr-yearly-table">'
+        f'<thead><tr><th class="cr-series-head">Series</th>{"".join(heads)}</tr></thead>'
+        f'<tbody>{body}</tbody></table></div></section>'
+        '<style>.cr-yearly{margin-bottom:14px}'
+        f'.cr-yearly-table{{min-width:{120 + 74 * len(table)}px}}'
+        '.cr-yearly-table .cr-part{display:block;font-weight:600;letter-spacing:0;'
+        'text-transform:none;color:#8a93a6;font-size:9px;margin-top:2px}</style>'
+    )
 
 
 def _render_calendar_returns(grid: pd.DataFrame) -> None:
@@ -244,7 +327,7 @@ def render_header_kpi_bar(
             <span class="{regime_cls} mkt-regime"><span class="mkt-dot">●</span>{html.escape(regime.status.value.title())}</span>
         </div>
         <div class="mkt-item mkt-index">
-            <span class="mkt-label">NIFTY 500</span>
+            <span class="mkt-label">Nifty 500</span>
             <strong>{regime.current_price:,.0f}</strong>
         </div>
         <div class="mkt-item mkt-distance">
@@ -259,7 +342,7 @@ def render_header_kpi_bar(
             <span class="mkt-label">Above 50D EMA</span>
             <strong>{above_ema} <em>({pct_above_ema:.0f}%)</em></strong>
         </div>
-        {"" if near_high is None else f'<div class="mkt-item"><span class="mkt-label">Within 20% 52W High</span><strong>{near_high} <em>({near_high / total_stocks * 100 if total_stocks else 0:.0f}%)</em></strong></div>'}
+        {"" if near_high is None else f'<div class="mkt-item"><span class="mkt-label">Within 20% of 52W high</span><strong>{near_high} <em>({near_high / total_stocks * 100 if total_stocks else 0:.0f}%)</em></strong></div>'}
     </div>
     """
 
@@ -321,6 +404,14 @@ def render_header_kpi_bar(
                         _state = "navon" if _p is active_page else "navoff"
                         with st.container(key=f"{_state}_system_{_i}", width="stretch"):
                             st.page_link(_p)
+    # Every page draws this header, so a failed background update shows on all
+    # of them, phone included (the pill above shrinks to a date there).
+    notice = stale_prices_notice()
+    if notice:
+        st.html(f'<div class="stale-notice" role="alert">&#9888;&#65039; {html.escape(notice)}</div>')
+    pending = pending_history_notice()
+    if pending:
+        st.html(f'<div class="stale-notice stale-notice-info" role="status">{html.escape(pending)}</div>')
     st.html(market_html)
 
 
@@ -509,7 +600,64 @@ def data_freshness() -> list[dict]:
                 "phrase": " · still publishing",
                 "source": "deferred",
             })
+
+    # Prices are judged against the session they should hold by now, not by a
+    # flat one-day allowance: on Saturday 10 Oct the 9 Oct sync had failed and
+    # 8 Oct read as current all day. A session held back while Screener is
+    # still publishing it is waiting, not missing.
+    if prices is not None and prices.get("date") is not None:
+        from src.core.market_time import last_due_session
+
+        due = last_due_session()
+        held = next((i["date"] for i in items if i.get("source") == "deferred"), None)
+        if due is not None:
+            missing = prices["date"] < due and not (held is not None and held >= due)
+            prices["stale"] = missing
+            prices["due"] = due if missing else None
     return items
+
+
+def pending_history_notice(path=None) -> str:
+    """One line naming the index members Screener has no history for yet ("" when none).
+
+    Written by the nightly Screener sync (``data/screener_pending_history.json``),
+    which also fails its run while the list is non-empty.
+    """
+    import json
+    from datetime import date as _date
+    from pathlib import Path
+
+    target = Path(path) if path else Path(__file__).resolve().parents[2] / "data" / "screener_pending_history.json"
+    try:
+        pending = json.loads(target.read_text(encoding="utf-8")).get("symbols") or {}
+    except (OSError, ValueError, AttributeError):
+        return ""
+    if not pending:
+        return ""
+    parts = []
+    for sym, since in sorted(pending.items()):
+        try:
+            parts.append(f"{sym} (since {_date.fromisoformat(str(since)).strftime('%d %b')})")
+        except ValueError:
+            parts.append(str(sym))
+    return "No price history for new index member" + ("s " if len(parts) > 1 else " ") + ", ".join(parts)
+
+
+def stale_prices_notice() -> str:
+    """One line naming the session the prices lack, or "" when they are current."""
+    try:
+        prices = next((i for i in data_freshness() if i.get("label") == "Prices"), None)
+    except Exception:
+        return ""
+    if not prices or not prices.get("stale") or prices.get("date") is None:
+        return ""
+    have = prices["date"].strftime("%d %b")
+    due = prices.get("due")
+    if due is None:
+        return f"Prices stop at {have} and are behind. A background price update has failed or is late."
+    return (f"Prices stop at {have}; {due.strftime('%d %b')}'s closes were due by "
+            f"{(due + timedelta(days=1)).strftime('%d %b')}, 09:00 IST. "
+            "The nightly price update has failed or is late, so rankings use the older prices.")
 
 
 def age_phrase(item: dict) -> str:

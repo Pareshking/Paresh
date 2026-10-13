@@ -1,10 +1,114 @@
 # Changelog
 
-## 2026-10-08 — Backtest: download the rules and every trade
+## 2026-10-13 — Backtest: download the rules and every trade
 
 - The Backtest tab (Live and History from 2010) has a Download card under the calendar returns: one ZIP of two CSV files. `backtest_trades.csv` has every position, closed or still open, in entry order, with sector, signal and fill dates, entry rank and weight, exit rank and reason, mark for open trades, holding days and price return. `backtest_rules.csv` has the run's entry, exit, timing, sizing and cost rules, the price basis, how much of the run used point-in-time membership, and what each trade column means. It is written from the settings of the run itself.
 - The trade records gain sector, signal dates and entry rank, weight and exit rank (`closed_trades` in `backtester.py`); nothing already on the page changes.
 - The History tab's price caption said "no dividends"; the long file has taken out dividends of 10% or more since #370, so it now says so.
+
+## 2026-10-13 — Less empty space, fewer cramped boxes
+
+- The figure strip under each page's title (Sectors, Actions, Breadth, Portfolio, Backtest) fills the row however many figures it has. It was a fixed six columns, so four figures left two empty columns and long industry names wrapped onto four lines. Names now read smaller, at most two lines; on a phone the figures sit two to a row.
+- Screener: Biggest jumps, Entered top 50 and Left top 50 sit side by side on a wide screen, compact (about 1,000px shorter).
+- Figure boxes inside cards (Portfolio's month, alpha, drawdown; Backtest): values read at their intended size and the boxes are as tall as their text (74px, was 104px). A page-wide paragraph style had shrunk every value to 14px grey.
+- Portfolio: industry exposure runs in two columns; "How they move together" is a collapsed section, like Actions' Buy candidates, with the average in its heading.
+- Sectors leadership map: one soft colour per sector, the same on every EMA tab, instead of green and red; a one-line intro; its table is drawn like "Stocks in an industry" (sortable headers, each sector's map colour as a dot, today and a month ago grouped; on a phone, short names and today's columns).
+
+## 2026-10-13 — The track record keeps January and February 2026 as frozen
+
+- The owner keeps the 750's frozen January (-0.21%) and February (+0.70%) 2026 months, though today's replay, after the rights-issue fix (S56), gives +0.00% and +0.80%. The parity gate now lists these two as accepted (`src/engine/parity_accepted_drift.json`) and passes; any other drift, or a further move in these two, still fails it.
+
+## 2026-10-13 — Sectors: a leadership map, a month ago and today
+
+- At the bottom of **Sectors**, each NSE industry (of the 750) is a line from a hollow dot (a month ago) to a filled dot (today). Across: the industry's 1-month return less the Nifty 500's. Up: the share of its stocks above their EMA, in tabs for the 20, 50, 100 and 200-day EMA. It shows a sector beating the index while most of its stocks fall.
+- Pick a sector above the map, or tap it, to dim the rest. A table under the map gives each figure as counts ("14 of 43 above").
+- The sector return is the equal-weighted mean of its stocks' price returns, not an NSE sector index.
+
+## 2026-10-13 — Primary popover buttons read white on indigo
+
+- The Actions page's **Kite basket** label read grey on indigo, hard to see on a phone. A popover's button has its own test id, so the rule that whitens primary-button labels missed it. Every primary button (plain, popover, download, form submit) is now matched by its kind, so the label is white on all of them.
+
+## 2026-10-12 — NSE's prices take rights issues into account
+
+- The NSE closes the app keeps as its middle price source (Screener first, NSE second) moved raw across rights issues: 14 since Sep 2024, HCC -23% on 5 Dec 2025, as if holders had lost it. Their corporate-action file was written before rights rows were kept and had no face value to price them. It now keeps the face value, and each monthly update re-reads every corporate action from NSE's files on R2. The 13 rights issues with an NSE close before them now match the long price file's adjustment to four decimals (S56).
+- Frozen track-record months are not rewritten; any month whose replay now differs is listed for the owner.
+
+## 2026-10-12 — The Recommendation is recorded forward, beside the live system
+
+- From November 2026 the Recommendation (live weights, 30 holdings, keep while in the top 90, 200D EMA) keeps its own monthly record on the Nifty 750, frozen like the others on the 1st-5th of each month (`data/track_record_shadow.json`). It is never traded: Actions, Portfolio and the live records are unchanged (owner, 12 Oct).
+- "Three systems, side by side" gains a row, **Recommendation (shadow)**, with its frozen months; the first, November, appears after it is frozen in early December.
+
+## 2026-10-12 — One Nifty 500 figure on Portfolio; the live month counts its fill day
+
+- Portfolio showed the Nifty 500 since inception twice, -8.4% in the top row and -7.6% in the record, for the same months. Both were off by a day. The top row counted from the 31 Dec close, a day before the first book was bought (+0.16%). The record's running month started at the 1 Oct fill close, so 1 Oct itself, earned by the September book (the index fell 0.97% that day), was in neither September nor October until October was frozen. Now the running month runs from the last close of the month before, with the old book to the fill and the new book after it, exactly as the month will be frozen; the top row counts from the first fill. Both rows read the same figure (-8.5% on 12 Oct), and the strategy's month to date includes its fill day too.
+- On the fill day itself the record still says the month "has a new book but no return yet"; the old book's fill-day move shows from the next session.
+- Since inception reads "after costs · since Jan 2026" (each system's own start) instead of "after costs · YTD", which was wrong for Nano Cap and Combined (started Oct 2026) and would be for the 750 from January 2027.
+
+## 2026-10-12 — Backtest names the recommended settings
+
+- Backtest settings open with one line: **Recommendation: 30 holdings · keep while in the top 90 · 200D EMA · within 20% of the 52W high · live lookback weights.** These beat the live settings on all five indexes tested (Nifty 500, 100, Midcap 150, Smallcap 250, Total Market; research of 12 Oct, `scripts/research_regime_sweep.py`). A note only: the page's defaults, the track record and the model book are unchanged (owner).
+
+## 2026-10-12 — The Kite basket is sized on your capital; Configuration says where its limits act
+
+- The Kite basket on Actions sized every buy order on ₹10 lakh, half the model book's ₹20 lakh, since 30 Sep: it read a capital box Portfolio no longer has. The Kite basket button now opens a capital box, starting at Portfolio's ₹20 lakh, so the model book's basket matches Portfolio and your own holdings can be sized on your account. The value is kept while you move between pages.
+- Configuration said its stock and sector caps, volatility target and liquidity floor changed the Portfolio page. They do not: since 30 Sep Portfolio and Actions show the track record's model book on its own limits (5% a stock, 40% a sector, no floor). The section now says the limits act on the Backtest only, and its summary reads "Backtest max per stock · per sector" and "Backtest liquidity floor".
+- Volatility targeting is gone from Configuration (owner): no page used it.
+
+## 2026-10-12 — One word for one thing on every page
+
+- The same thing now has the same name everywhere (owner's choices, 12 Oct): **Max drawdown** (Backtest said "Worst fall"); **Ahead of the index**, in % (Backtest said "Ahead of Nifty 500", the month cards said "pts"); **Nifty 500**, not "NIFTY 500" (header, Portfolio); **52W high** and **50D EMA** in labels, "52-week high" and "50-day EMA" in sentences.
+- Trade tables say what happened: **Bought / Sold / Held** on Portfolio's rebalances, Backtest's rebalance log and this month's changes, and Ranks by month ("Retained" is now "Held"). Plans and filters say **Buy / Sell / Hold**, as Actions does. Before, one book was written five ways (BUY, 🟢 BOUGHT, bought, Retained, kept).
+- Backtest's current book uses Portfolio's column names (Current Price, P&L %, Holding Days, Sector / Industry) and tiles (MTD return); its filters read Month, Outcome, Action and Rebalance, as on Portfolio, not "Filter Month".
+- Dates read 01 Oct 2026 everywhere: no more "1 Oct" on Actions, "Oct-2026" in the trade month, or 2026-10-10 in the History caption and Ranks by month.
+- Links to places that moved: Configuration → "Momentum score" and "Portfolio limits" (were "Momentum Signal", "Portfolio risk"); the Guide's Kite basket is on Actions, not Portfolio; Guide "tabs" are pages; a note pointing to a Provenance section that does not exist is gone. The Backtest help no longer names Screener as a source ("Personal").
+- Wrong statements fixed: the stock page called its Sharpe annualised (it is the window's, as the ranking scores it); the Guide gave the market regime as Nifty above its 50 EMA (the header uses the Nifty 500 against its 200-day average), told bear-market readers to exit on trailing stops (the model has none), and to trade at 09:20 (the model fills at the close). Breadth's events table said "52W High" whatever window was picked. History's growth chart called a Nifty 50 benchmark "Nifty 500".
+- British spelling throughout (realised, initialise, normalised, winsorised).
+
+## 2026-10-12 — Backtest: the headline figures in one row, a line each
+
+- The six headline figures sit in one row of six, as on Portfolio, instead of two half-empty rows of three whose notes ran to two or three lines. Each note is now one short line: "+3258.0% before costs", "Nifty 500 +10.3%", "±0.25 · Sortino 1.04", "Calmar 0.53", "70% up · turnover 50%". The cost and the window were already in the Tested line; the risk-free rate and how each ratio is made are under Method.
+- "Ahead of Nifty 500" is a percent, as on Track Record: +1972.2% rather than +1972.2 pts. The number is the same, the strategy's total return minus the index's.
+- "Annualised" no longer says "not a CAGR" over 16 years: over a year or more it is one. Under a year it still says it is a part-year scaled up ("scaled up from 0.7 yrs"), and the Calmar, which divides that figure, is left out.
+- "Equal weight made no difference to this run" no longer shows on every equal-weight run: equal weight is the one book the cap allows, so the note is shown only for another scheme.
+- Shorter notes and captions elsewhere on the page (canonical account, current book, calendar returns, cash and survivorship notes); nothing they said is gone.
+
+## 2026-10-10 — A failed price update shows on the site, and one new stock no longer holds back the night
+
+- The site showed 8 Oct prices all of Saturday 10 Oct with a green status. The night's Screener update had stopped because TRIVENIPT, listed on 9 Oct, has no Screener page yet, so no stock got 9 Oct; and one trading day behind counted as current. Now prices are behind when a session's closes are missing at 09:00 IST the next day (weekends and NSE holidays skipped), and every page says so under the header, phone included: "Prices stop at 08 Oct; 09 Oct's closes were due by 10 Oct, 09:00 IST."
+- A new index member Screener has no history for no longer stops the update for every other stock. It is named under the header ("No price history for new index member TRIVENIPT (since 10 Oct)"), and the night's run still fails, so the failure alert on GitHub opens. A stock that had history and lost it still stops the night.
+
+## 2026-10-10 — Ranking: "View all" on the top-50 cards opens and closes the list
+
+- On the Biggest Jumps, Entered top 50 and Left top 50 cards, "View all" used to open the rest of the list under itself: the button stayed above the new rows, the column header was repeated, and a second "View all" in the card's header did nothing. Each card now has one button, under its rows: it opens the full list in the same table, then reads "Show less" and closes it again.
+- A stock's 1M % on the Left top 50 card was always red, gains included (ACMESOLAR +1.9%). Now gains are green and losses red on every card.
+
+## 2026-10-09 — Backtest: settings with Apply, more entry rules, year-by-year; the queued message says whose run it is
+
+- Backtest settings are one panel with an Apply button: nothing runs until Apply, so changing five weights runs one backtest, not five. History's index, start and end month and traded-value floor are in the same panel. It is a full-width section rather than a pop-up, so it reads on a phone.
+- The parameter sweep is gone from the Backtest page (owner): it was heavy for a shared server and easy to fit to luck; single what-ifs are the Apply form's job. Before it left, it was fixed to test what the page shows (below), which is why its earlier "winners" on History from 2010 should not be relied on.
+- The all-time-high rule says where the price history starts ("ATH since Jan 2008") and applies to a stock only once it has 3 years of prices on file (adjustable): a stock already trading in January 2008 may have peaked before the file begins. A stock that listed later is held to it at once.
+- The parameter sweep tests what the page shows. It used to ignore the page's window, index, floor and keep-rank: a sweep on History from 2010 scored only the last 6 months against the Nifty 750's members, so its "best" settings were chosen on April-September 2026. It now runs the page's own window and list (its holdout halves are about 100 months each), and it is slower for it: about 2 minutes for 3 combinations on History.
+- Rules to keep a holding can differ from the rules to buy it (EMA, 52-week high, all-time high; blank keeps the buy rule), and holdings, the keep-while-ranked-within number and the rebalance interval take any number (for example 23 holdings kept while ranked within 77).
+- New entry and exit rules for research: the EMA a stock must close above (any period, 50 by default), how far below its 52-week high it may be (20% by default), an optional all-time-high rule (within X% of the highest close on file), and the score as Sharpe (the live system) or the plain lookback return. With the defaults every result is unchanged.
+- Calendar returns opens with a year-by-year block laid out like the monthly ones (Strategy, the index and Alpha as rows, one column per year): with the months covered when a year is only partly in the window ("Jan–Sep"). Every number is the CY figure of that year's block below it, so the two never disagree.
+- With one reader the Backtest page could say "Another reader's backtest is computing" when no one else was there: changing a setting abandons the page's run, but a backtest already under way cannot be stopped and finishes first. The message is now amber and says "Your previous settings are still computing" when it is the reader's own earlier run.
+
+## 2026-10-08 — History from 2010: memory no longer climbs with every change
+
+- Changing History-from-2010 settings (index, floor, rebalance, holdings, lookback weights) made the app a little bigger each time, by 70-130 MB, until Streamlit Cloud stopped it. Each backtest's memory was freed but never handed back to the system. The app now hands it back after every page (about 5 ms). The same series of changes now stays near 500 MB instead of climbing past 900 MB. Results are unchanged.
+
+## 2026-10-08 — Backtests: the crash fixed, one at a time, a sweep ceiling
+
+- The History-from-2010 backtest took the app down on 8 Oct: to keep each month's 52-week highs (about 3 MB in all) it kept the whole 252-day calculation window behind every one, about 580 MB. One reader opening History now peaks at 751 MB instead of 1,156 MB. Results are unchanged.
+- Only one backtest computes at a time across the server. Another reader's new backtest shows "Backtest running: request queued" and starts when the first finishes; a result already computed is shown at once. The parameter sweep runs at most 50 combinations from the page (it was 400).
+- The app writes a line to its log each time its memory peak rises by 50 MB, naming the page, so production memory can be read from the Streamlit Cloud log.
+
+## 2026-10-08 — Memory: the app stays inside Streamlit Cloud's limit
+
+- Streamlit Cloud restricted the app for using too much memory. Each rerun of each session had been unpickling its own copy of the same price frames (~130 MB a click), and every weight setting a reader tried kept a 56 MB engine for an hour with no ceiling. The price frames are now one shared copy, and the engine and backtest caches have a size limit. With 4 readers at once, peak memory fell from 1.9 GB to 1.4 GB and the Screener answers in 4 s instead of 18 s. Rankings and prices are unchanged (`docs/MEMORY_AUDIT_2026-10-08.md`).
+- Every cold start had been skipping the R2 copy of the ranking for the release file because of an import race between two threads; fixed.
+- Holdings CSV uploads are limited to 5 MB.
+- The ranking engine is now shared between readers too (each gets its own view of it), and the Track Record comparison prices the other systems from the app's own Screener copy instead of downloading it again; with 4 readers on Portfolio, peak memory 1.44 GB -> 1.05 GB. The comparison's own system could be shown a price frame up to an hour old after new prices arrived; fixed.
 
 ## 2026-10-07 — Long-file build: corporate actions read in parallel and from a pack
 

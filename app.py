@@ -30,6 +30,7 @@ import threading
 from contextlib import contextmanager
 
 from src.core import code_reload as _code_reload
+from src.core.memory import release_freed_memory
 
 if not hasattr(_code_reload, "app_import_guard"):
     _code_reload = importlib.reload(_code_reload)
@@ -57,7 +58,6 @@ with app_import_guard():
         DEFAULT_LOOKBACK_WEIGHTS,
         DEFAULT_SECTOR_CAP,
         DEFAULT_STOCK_CAP,
-        DEFAULT_TARGET_VOL,
         MCAP_PR_FILE,
         MCAPS_FILE,
         PRICES_FILE,
@@ -80,7 +80,17 @@ with app_import_guard():
         get_market_regime,
     )
     from src.loaders.tv_loader import load_tv_classification
-    
+    from src.loaders.screener_cache import fetch_screener_store as _fetch_screener_store
+    # Imported HERE, on the script thread, before load_all_data's thread pool.
+    # The pool's ranking download imported src.storage.reader lazily while
+    # the script thread imported it through r2_streamlit, and Python's import
+    # lock raised _DeadlockError on the race: every cold start logged "R2
+    # rankings unavailable (_DeadlockError ...)" and fell back to the release
+    # file. Already in sys.modules, the lazy imports below are lookups.
+    from src.storage import reader as _r2_reader  # noqa: F401
+    from src.loaders import ranking_store as _ranking_store  # noqa: F401
+    from r2.consumers import r2_streamlit as _r2_streamlit  # noqa: F401
+
     # UI Design System, Components & Views
     from src.ui.ema_utils import count_above_ema
     from src.ui.components import (
@@ -168,7 +178,7 @@ if total_w <= 0:
         "All five momentum lookback weights were zero, which cannot rank "
         "anything. Ranking is using the defaults "
         f"({' · '.join(f'{w:.0%}' for w in DEFAULT_LOOKBACK_WEIGHTS)}). "
-        "Set them in **Configuration → Momentum Signal**."
+        "Set them in **Configuration → Momentum score**."
     )
 weights = tuple(w / total_w for w in raw_w)
 # What the engine is handed, observable from outside: the Configuration panel
@@ -178,8 +188,6 @@ metrics.note("ranking_weights", [round(w, 6) for w in weights])
 # Defaults from config, the same constants the Configuration tab renders with.
 sector_cap = resolve("cfg_sc", round(DEFAULT_SECTOR_CAP * 100), lo=15, hi=50) / 100.0
 stock_cap = resolve("cfg_stc", round(DEFAULT_STOCK_CAP * 100), lo=2, hi=15) / 100.0
-vol_target_on = resolve("cfg_vt", False)
-vol_target_val = resolve("cfg_vtv", round(DEFAULT_TARGET_VOL * 100), lo=10, hi=40) / 100.0
 # The liquidity floor, ₹ Cr of 20-day average traded value; 0 when off.
 liquidity_floor_cr = (float(resolve("cfg_lfv", liquidity.DEFAULT_FLOOR_CR, lo=1, hi=500))
                       if resolve("cfg_lf", False) else 0.0)
@@ -200,8 +208,23 @@ def load_mcaps_cached(sym_key: str, _symbols: list[str]) -> pd.Series:
     return fetch_market_caps(list(_symbols), force_refresh=False)
 
 
-@st.cache_data(show_spinner=False, ttl=3600)
-def _adjust_for_corporate_actions(
+def _shared(frame):
+    """A per-rerun view of a frame held by st.cache_resource.
+
+    st.cache_data pickles its value and unpickles a fresh copy on EVERY hit:
+    for the price frames that was ~130 MB allocated and ~2 s of CPU on every
+    rerun of every session, measured with memray on 2026-10-08, and it is what
+    took the process over Streamlit Cloud's memory limit with a few readers
+    at once. st.cache_resource hands out the one stored object instead, so
+    each rerun gets a shallow copy: free, and under pandas 3 copy-on-write any
+    write to it copies the touched block and never reaches the shared frame
+    (raw numpy writes raise instead). tests/test_shared_price_cache.py.
+    """
+    return None if frame is None else frame.copy(deep=False)
+
+
+@st.cache_resource(show_spinner=False, ttl=3600, max_entries=4)
+def _adjusted_frames_shared(
     price_hash: str, events_key: str, _frames: dict, _events: list
 ) -> tuple[dict, list]:
     """Neutralise flagged splits and demergers before the engine reads a price.
@@ -232,6 +255,15 @@ def _adjust_for_corporate_actions(
             ", ".join(sorted({str(e.get("symbol")) for e in applied})),
         )
     return adjusted, applied
+
+
+def _adjust_for_corporate_actions(
+    price_hash: str, events_key: str, _frames: dict, _events: list
+) -> tuple[dict, list]:
+    """_adjusted_frames_shared, as private copies for this rerun."""
+    adjusted, applied = _adjusted_frames_shared(price_hash, events_key, _frames, _events)
+    return ({k: _shared(v) for k, v in adjusted.items()},
+            [dict(e) for e in applied])
 
 
 # Ten minutes, not an hour, and the reason is NEGATIVE caching.
@@ -438,62 +470,53 @@ def _precomputed_ranking(
     return frame
 
 
-@st.cache_data(show_spinner=False, ttl=3600)
-def _fetch_screener_store(source_key: str):
-    """Read Screener history, optionally from an immutable archive pin.
+def _price_inputs_key() -> str:
+    """When the NSE fill's inputs last changed: data/nse_prices and data/reference.
 
-    The second return value is the source revision identity used to memoise
-    shaping. For R2 it is the immutable SHA; for the legacy HTTPS path the
-    existing one-hour cache TTL remains the freshness boundary.
+    middle_close and the weekly splice read these committed files, and the
+    nightly sync rewrites them under a running process, so the shared price
+    frames are keyed on them as well as on the Screener revision. A stat of a
+    few dozen files; nothing is read.
     """
-    from r2.consumers import r2_streamlit
-    from src.loaders import price_source as _ps
+    from pathlib import Path
 
-    if r2_streamlit.enabled():
+    parts = []
+    for folder in ("nse_prices", "reference"):
+        root = Path(__file__).resolve().parent / "data" / folder
         try:
-            frame, pin = r2_streamlit.read_configured_screener()
-        except Exception as exc:
-            logger.error("Configured immutable Screener read failed: %s", type(exc).__name__)
-            metrics.note("screener_store_fetch", f"r2_error_{type(exc).__name__}")
-            raise RuntimeError("Configured immutable Screener read failed; refusing source fallback") from exc
-        metrics.note("screener_store_source", "r2")
-        metrics.note("screener_store_as_of", pin.as_of)
-        metrics.note("screener_store_revision", pin.revision_sha256)
-        logger.info(
-            "Screener ranking store: source=object_storage dataset=%s as_of=%s revision=%s",
-            pin.dataset,
-            pin.as_of,
-            pin.revision_sha256,
-        )
-        return frame, pin.revision_sha256
-
-    frame = _ps.fetch_screener_store()
-    logger.info("Screener ranking store: source=published_screener_https")
-    # The HTTPS file has no immutable revision, so derive one from its content.
-    # A constant here let _shape_screener_store pair a re-fetched store with
-    # the shape of the previous one for up to an hour (two independent TTLs).
-    if frame is None:
-        return None, "published_screener_https:none"
-    digest = (
-        int(pd.util.hash_pandas_object(frame, index=True).sum())
-        + int(pd.util.hash_pandas_object(frame.columns.to_frame(index=False), index=False).sum())
-    ) & 0xFFFFFFFFFFFFFFFF
-    return frame, f"published_screener_https:{digest:016x}"
+            for path in sorted(root.iterdir()):
+                st_ = path.stat()
+                parts.append(f"{folder}/{path.name}:{st_.st_mtime_ns}:{st_.st_size}")
+        except OSError:
+            parts.append(f"{folder}:missing")
+    return "|".join(parts)
 
 
-@st.cache_data(show_spinner=False, ttl=3600)
-def _shape_screener_store(store_revision: str, _store: pd.DataFrame):
-    """Memoise the expensive Screener MultiIndex shaping across reruns.
+@st.cache_resource(show_spinner=False, ttl=3600, max_entries=4)
+def _resolved_prices_shared(store_revision: str, symbols_key: str, inputs_key: str,
+                            _store: pd.DataFrame | None, _symbols: list[str]):
+    """Shape the store and fill it from NSE, once per revision, universe and NSE files.
 
-    The store itself is already cached by _fetch_screener_store. R2 supplies
-    an immutable revision SHA, so this transform is invalidated whenever the
-    published dataset changes without hashing the entire DataFrame on every
-    rerun.
+    This used to run on every rerun: the shaped store came back as a 35 MB
+    cache_data copy and the NSE fill and weekly splice rebuilt ~50 MB more,
+    every click, in every session. Shared now; _resolve_price_source hands
+    each rerun shallow copies. keep_and_fill rewrites the PriceFrames it is
+    given, which is why from_screener is called here, on a private object,
+    and never on one another session can see.
     """
+    from src.loaders import nse_prices as _nse
     from src.loaders import price_source as _ps
 
     metrics.incr("memo_miss_screener_shape")
-    return _ps.from_screener(_store)
+    chosen = _ps.from_screener(_store) if _store is not None else None
+    deep = None
+    if chosen is not None:
+        keep = [c for c in chosen.close.columns if c in set(_symbols)]
+        deep = chosen.close[keep].copy() if keep else None
+    src = _ps.frames_from(chosen, _symbols, _nse.middle_close(_symbols))
+    if src is not None and deep is None:
+        deep = src.close
+    return chosen is not None, src, deep
 
 
 def _resolve_price_source(symbols):
@@ -508,27 +531,34 @@ def _resolve_price_source(symbols):
     years): the backtest and the track record want depth, not the ranking's
     400-day fill window.
     """
+    import copy
+
     from r2.consumers import r2_streamlit
-    from src.loaders import nse_prices as _nse
     from src.loaders import price_source as _ps
 
     _ps.preferred()  # reports a stale UMIYA_PRICE_SOURCE setting
+    # Memory at each boundary (ported from #417). After #420 the shaping, the
+    # NSE fill and the deep history all happen inside _resolved_prices_shared,
+    # once per data state, so a warm rerun shows ~0 between these two points.
+    metrics.memory_checkpoint("resolve_price_source:before_screener")
     store_result = _fetch_screener_store(r2_streamlit.configuration_key())
-    chosen = None
-    if store_result is not None:
-        store, store_revision = store_result
-        if store is not None:
-            chosen = _shape_screener_store(store_revision, store)
-    if chosen is None and r2_streamlit.enabled():
+    store, store_revision = store_result if store_result is not None else (None, "none")
+    metrics.memory_checkpoint("resolve_price_source:after_screener_fetch")
+    symbols = list(symbols)
+    usable, src, deep = _resolved_prices_shared(
+        store_revision, _symbols_hash(symbols), _price_inputs_key(), store, symbols,
+    )
+    metrics.memory_checkpoint("resolve_price_source:after_resolved_prices")
+    if not usable and r2_streamlit.enabled():
         raise RuntimeError("Configured immutable Screener dataset is not usable")
-    deep = None
-    if chosen is not None:
-        keep = [c for c in chosen.close.columns if c in set(symbols)]
-        deep = chosen.close[keep].copy() if keep else None
-    src = _ps.frames_from(chosen, symbols, _nse.middle_close(symbols))
-    if src is not None and deep is None:
-        deep = src.close
-    return src, deep
+    if src is not None:
+        src = copy.copy(src)  # the dataclass is rewritten below, never the shared one
+        for name in ("adj_close", "close", "high", "low", "volume"):
+            setattr(src, name, _shared(getattr(src, name)))
+        src.notes = list(src.notes)
+        if src.weekly_fill is not None:
+            src.weekly_fill = dict(src.weekly_fill)
+    return src, _shared(deep)
 
 
 @st.cache_data(show_spinner=False, ttl=86400)
@@ -538,7 +568,18 @@ def _load_tv_cached() -> dict:
     return load_tv_classification()
 
 
-@st.cache_data(show_spinner=False, ttl=3600)
+# Bounded. Unbounded, every weight vector anyone tried stayed for an hour:
+# the ranking cache held the whole engine with the ranking, 56 MB an entry,
+# and five slider moves took the process from 117 MB of cache to 449 MB
+# (measured 2026-10-08).
+#
+# Shared, not copied (TODO S62). As cache_data every hit unpickled a private
+# ~106 MB engine for each session on each rerun. One engine per price state is
+# built here and never handed out: _ranked_shared ranks on a view of it, and
+# run_momentum_pipeline gives each rerun a view of that (pipeline.engine_view),
+# because rank_with_weights writes weights, momentum_scores and diagnostics on
+# the engine it is given and the Portfolio page reads them.
+@st.cache_resource(show_spinner=False, ttl=3600, max_entries=2)
 def _run_engine_base(
     price_hash: str,
     index_hash: str,
@@ -568,8 +609,8 @@ def _run_engine_base(
     )
 
 
-@st.cache_data(show_spinner=False, ttl=3600)
-def run_momentum_pipeline(
+@st.cache_resource(show_spinner=False, ttl=3600, max_entries=4)
+def _ranked_shared(
     base_hash: str,
     weights: tuple[float, ...],
     _calc,
@@ -584,9 +625,27 @@ def run_momentum_pipeline(
     # base_hash, which also misses _run_engine_base first.
     metrics.incr("memo_miss_quant_engine")
     return pipeline.rank_with_weights(
-        _calc, weights, _index_info, _market_caps, _close_prices, _high_prices,
-        intraday=intraday,
+        pipeline.engine_view(_calc), weights, _index_info, _market_caps,
+        _close_prices, _high_prices, intraday=intraday,
     )
+
+
+def run_momentum_pipeline(
+    base_hash: str,
+    weights: tuple[float, ...],
+    _calc,
+    _index_info: pd.DataFrame,
+    _market_caps: pd.Series,
+    _close_prices: pd.DataFrame,
+    _high_prices: pd.DataFrame,
+    intraday: bool = True,
+):
+    """_ranked_shared, as this rerun's own engine view and ranking table."""
+    calc, rank_df = _ranked_shared(
+        base_hash, weights, _calc, _index_info, _market_caps,
+        _close_prices, _high_prices, intraday=intraday,
+    )
+    return pipeline.engine_view(calc), _shared(rank_df)
 
 
 def _system_universe(system: str, indices: list[str]) -> pd.DataFrame:
@@ -608,6 +667,8 @@ def load_all_data(indices: list[str], system: str = SYSTEM_750):
     force = st.session_state.pop("force_refresh", False)
     if force:
         st.cache_data.clear()
+        # The price frames live in cache_resource now (_shared); a refresh drops them too.
+        st.cache_resource.clear()
 
     # Snapshot cache presence BEFORE any fetch, so "was this container cold?"
     # is answered with evidence rather than inferred from a deploy happening.
@@ -854,7 +915,7 @@ def _emit_startup_metrics(outcome: str) -> None:
 
 if not data:
     st.error(
-        "❌ Failed to initialize market data. Please verify your internet connection or reload."
+        "❌ Failed to initialise market data. Please verify your internet connection or reload."
     )
     _emit_startup_metrics("data_init_failed")
     st.stop()
@@ -1006,16 +1067,8 @@ def _page_rrg() -> None:
 
 
 def _page_portfolio() -> None:
-    render_portfolio_view(
-        calc=get_calc(),
-        rank_df=rank_df,
-        sector_cap=sector_cap,
-        stock_cap=stock_cap,
-        vol_target_on=vol_target_on,
-        vol_target_val=vol_target_val,
-        liquidity_floor_cr=liquidity_floor_cr,
-        traded_value=_traded_value(),
-    )
+    # The pinned model book: no Configuration limits reach it.
+    render_portfolio_view(calc=get_calc(), rank_df=rank_df)
 
 
 def _page_watchlist() -> None:
@@ -1148,6 +1201,14 @@ watchlist_store.sync()
 
 
 _nav.run()
+# Which page took the process to its peak: the log line memory_checkpoint
+# writes when the peak climbs 50 MB names this label.
+metrics.memory_checkpoint(f"page:{_nav.url_path or 'screener'}")
+# Hand the page's freed memory back (src/core/memory.py): without it every
+# History change left 70-130 MB in the thread's malloc arena for good.
+_trim_s = release_freed_memory()
+if _trim_s is not None:
+    metrics.note("malloc_trim_last_s", round(_trim_s, 4))
 
 # ── Cold-start telemetry ─────────────────────────────────────────────────────
 # Hidden, inert element carrying this process's startup measurements so a

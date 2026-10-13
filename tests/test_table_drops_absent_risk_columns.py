@@ -99,7 +99,7 @@ def test_stock_page_drops_the_atr_tiles_when_there_is_no_atr(monkeypatch):
         "ATH Date": "2018-10-16", "52W High Date": "2026-09-07", "% 50 EMA": -2.0,
     }))
     html = "".join(captured)
-    assert "52W High" in html, "the tiles that do not need ATR must survive"
+    assert "52W high" in html, "the tiles that do not need ATR must survive"
     for label in ("Stop Loss", "Chandelier Exit", "2×ATR"):
         assert label not in html, f"'{label}' rendered with no ATR behind it"
 

@@ -93,6 +93,19 @@ TRACK_RECORD_CONFIG: dict[str, Any] = {
 }
 
 
+# The Recommendation, recorded forward beside the live system and never traded
+# (owner, 12 Oct 2026, TODO 6 and 9; docs/REGIME_SETTINGS_2026-10-12.md): the
+# live record's setup with 30 holdings, keep while in the top 90 and a 200-day
+# EMA. On the Nifty 750, from the book signalled at the 30 Oct 2026 close.
+# Reviewed after 12 months: turnover about half the live record's, max drawdown
+# no worse, return not clearly behind. The live record is not changed by it.
+SHADOW_CONFIG: dict[str, Any] = {**TRACK_RECORD_CONFIG, "top_n": 30, "buffer_n": 90,
+                                 "ema_period": 200}
+SHADOW_INCEPTION = pd.Period("2026-11", freq="M")
+SHADOW_LEDGER_PATH = LEDGER_PATH.with_name("track_record_shadow.json")
+SHADOW_NAME = "Recommendation (shadow)"
+
+
 # ── Ledger I/O ───────────────────────────────────────────────────────────────
 
 def ledger_inception(ledger: dict[str, Any] | None) -> pd.Period:
@@ -117,7 +130,9 @@ def empty_ledger(inception: pd.Period = INCEPTION) -> dict[str, Any]:
 
 def _current_month() -> pd.Period:
     """Current UTC calendar month used only to classify missing ledgers."""
-    return pd.Timestamp.now(tz="UTC").to_period("M")
+    # The UTC wall clock, made naive first: to_period on an aware timestamp warns
+    # that it drops the timezone (log, 7 Oct 2026); the month is the same.
+    return pd.Timestamp.now(tz="UTC").tz_localize(None).to_period("M")
 
 
 def load_ledger(path: Path | str = LEDGER_PATH,
@@ -131,9 +146,12 @@ def load_ledger(path: Path | str = LEDGER_PATH,
     p = Path(path)
     if not p.exists():
         expected_start = pd.Period(inception, freq="M") if inception is not None else None
-        if expected_start is not None and _current_month() < expected_start:
+        # No ledger is expected until the first month has closed and been frozen
+        # (1st - 5th of the next month): Nano Cap and Combined started in Oct 2026
+        # and warned every day of October.
+        if expected_start is not None and _current_month() <= expected_start:
             logger.info(
-                "Track-record ledger %s has not started yet; first month is %s.",
+                "Track-record ledger %s has no frozen month yet; first month is %s.",
                 p,
                 expected_start,
             )

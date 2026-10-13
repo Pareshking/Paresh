@@ -1,0 +1,15 @@
+{
+  "_doc": "Frozen months whose drift against today's replay the owner has accepted. A drift passes the parity gate only if the stored value is the one below and the replay is within tolerance of the accepted replay; any other or further drift still fails. See docs/TODO.md item 12.",
+  "months": {
+    "2026-01": {
+      "strategy": {"stored": -0.002123, "replay": 0.000047},
+      "reason": "Replay moved after S56 (#435, rights-issue adjustment of NSE prices); cause not traced stock by stock",
+      "decided": "2026-10-13, owner: keep the frozen month"
+    },
+    "2026-02": {
+      "strategy": {"stored": 0.006951, "replay": 0.008013},
+      "reason": "Replay moved after S56 (#435, rights-issue adjustment of NSE prices); cause not traced stock by stock",
+      "decided": "2026-10-13, owner: keep the frozen month"
+    }
+  }
+}

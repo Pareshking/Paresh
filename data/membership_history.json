@@ -2092,6 +2092,22 @@
             "TSFINV",
             "VARROC"
           ]
+        },
+        {
+          "date": "2026-10-10",
+          "added": [
+            "TRIVENIPT"
+          ],
+          "removed": []
+        },
+        {
+          "date": "2026-10-13",
+          "added": [
+            "PFIZER"
+          ],
+          "removed": [
+            "CCAVENUE"
+          ]
         }
       ]
     },
@@ -8188,6 +8204,22 @@
             "TSFINV",
             "VARROC"
           ]
+        },
+        {
+          "date": "2026-10-10",
+          "added": [
+            "TRIVENIPT"
+          ],
+          "removed": []
+        },
+        {
+          "date": "2026-10-13",
+          "added": [
+            "PFIZER"
+          ],
+          "removed": [
+            "CCAVENUE"
+          ]
         }
       ]
     },
@@ -11564,7 +11596,7 @@
       ]
     }
   },
-  "index": "NIFTY TOTAL MARKET",
+  "index": "nifty_total_market",
   "baseline": {
     "date": "2021-10-29",
     "symbols": [
@@ -13654,6 +13686,22 @@
         "TRIVENI",
         "TSFINV",
         "VARROC"
+      ]
+    },
+    {
+      "date": "2026-10-10",
+      "added": [
+        "TRIVENIPT"
+      ],
+      "removed": []
+    },
+    {
+      "date": "2026-10-13",
+      "added": [
+        "PFIZER"
+      ],
+      "removed": [
+        "CCAVENUE"
       ]
     }
   ],

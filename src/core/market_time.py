@@ -149,6 +149,33 @@ def session_is_downloadable(day: date, *, now: datetime | None = None) -> bool:
     return reference.time() >= DOWNLOAD_SETTLES
 
 
+# ── When the published prices should reach a session ────────────────────────
+#
+# The nightly Screener sync is scheduled for 00:15 IST (18:45 UTC) and GitHub's
+# scheduler has started it as late as 05:50 IST, about 40 minutes a run. By
+# 09:00 IST the next day a session's closes are overdue, not merely late. A flat
+# "one trading day behind is fine" let 8 Oct prices read as current all of
+# Saturday 10 Oct after the 9 Oct sync failed.
+PRICES_DUE = time(9, 0)
+
+
+def last_due_session(*, now: datetime | None = None) -> date | None:
+    """The newest session whose closes the published prices should hold by now.
+
+    Weekends and NSE's published holidays (``nse_calendar``) are not sessions.
+    None when no candidate in the window qualifies: "cannot tell".
+    """
+    from src.loaders.nse_calendar import not_a_session
+
+    reference = now or ist_now()
+    for day in recent_trading_days(count=10, as_of=reference.date(), max_lookback_days=30):
+        if not_a_session(day):
+            continue
+        if reference >= datetime.combine(day + timedelta(days=1), PRICES_DUE, tzinfo=INDIA_TZ):
+            return day
+    return None
+
+
 def last_downloadable_session(*, now: datetime | None = None) -> date | None:
     """The newest session whose bar the vendor can be expected to have settled.
 
