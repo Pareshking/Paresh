@@ -4,6 +4,12 @@
 
 - Typing or bookmarking the address `/screener` showed "Page not found" before the Screener loaded. It now opens the Screener directly.
 
+## 2026-10-13 — Backtest: download the rules and every trade
+
+- The Backtest tab (Live and History from 2010) has a Download card under the calendar returns: one ZIP of two CSV files. `backtest_trades.csv` has every position, closed or still open, in entry order, with sector, signal and fill dates, entry rank and weight, exit rank and reason, mark for open trades, holding days and price return. `backtest_rules.csv` has the run's entry, exit, timing, sizing and cost rules, the price basis, how much of the run used point-in-time membership, and what each trade column means. It is written from the settings of the run itself.
+- The trade records gain sector, signal dates and entry rank, weight and exit rank (`closed_trades` in `backtester.py`); nothing already on the page changes.
+- The History tab's price caption said "no dividends"; the long file has taken out dividends of 10% or more since #370, so it now says so.
+
 ## 2026-10-13 — Less empty space, fewer cramped boxes
 
 - The figure strip under each page's title (Sectors, Actions, Breadth, Portfolio, Backtest) fills the row however many figures it has. It was a fixed six columns, so four figures left two empty columns and long industry names wrapped onto four lines. Names now read smaller, at most two lines; on a phone the figures sit two to a row.
