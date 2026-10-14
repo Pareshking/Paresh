@@ -1,14 +1,7 @@
 {
- "fetched_at_utc": "2026-10-13T09:45:00+00:00",
+ "fetched_at_utc": "2026-10-14T08:02:02+00:00",
  "new": {
-  "symbolchange.csv": [
-   {
-    "company": "Nabkisan Finance Limited",
-    "old_symbol": "ORG965",
-    "new_symbol": "NABKISAN",
-    "date": "12-OCT-2026"
-   }
-  ],
+  "symbolchange.csv": [],
   "namechange.csv": [],
   "equity_l.csv": [],
   "corporate_actions": [
@@ -16,17 +9,33 @@
     "bcEndDate": "-",
     "bcStartDate": "-",
     "caBroadcastDate": null,
-    "comp": "Ola Electric Mobility Limited",
-    "exDate": "13-Oct-2026",
-    "faceVal": "10",
+    "comp": "Vedanta Limited",
+    "exDate": "14-Oct-2026",
+    "faceVal": "1",
     "ind": "-",
-    "isin": "INE0LXG01040",
+    "isin": "INE205A01025",
     "ndEndDate": "-",
     "ndStartDate": "-",
-    "recDate": "13-Oct-2026",
+    "recDate": "14-Oct-2026",
     "series": "EQ",
-    "subject": "Rights 2:25 @ Premium Rs 17/-",
-    "symbol": "OLAELEC"
+    "subject": "Interim Dividend - Rs 5 Per Share",
+    "symbol": "VEDL"
+   },
+   {
+    "bcEndDate": "-",
+    "bcStartDate": "-",
+    "caBroadcastDate": null,
+    "comp": "Tata Consultancy Services Limited",
+    "exDate": "14-Oct-2026",
+    "faceVal": "1",
+    "ind": "-",
+    "isin": "INE467B01029",
+    "ndEndDate": "-",
+    "ndStartDate": "-",
+    "recDate": "14-Oct-2026",
+    "series": "EQ",
+    "subject": "Interim Dividend - Rs 12 Per Share",
+    "symbol": "TCS"
    }
   ]
  },
@@ -36,17 +45,33 @@
     "bcEndDate": "-",
     "bcStartDate": "-",
     "caBroadcastDate": null,
-    "comp": "Ola Electric Mobility Limited",
-    "exDate": "13-Oct-2026",
-    "faceVal": "10",
+    "comp": "Vedanta Limited",
+    "exDate": "14-Oct-2026",
+    "faceVal": "1",
     "ind": "-",
-    "isin": "INE0LXG01040",
+    "isin": "INE205A01025",
     "ndEndDate": "-",
     "ndStartDate": "-",
-    "recDate": "13-Oct-2026",
+    "recDate": "14-Oct-2026",
     "series": "EQ",
-    "subject": "Rights 2:25 @ Premium Rs 17/-",
-    "symbol": "OLAELEC"
+    "subject": "Interim Dividend - Rs 5 Per Share",
+    "symbol": "VEDL"
+   },
+   {
+    "bcEndDate": "-",
+    "bcStartDate": "-",
+    "caBroadcastDate": null,
+    "comp": "Tata Consultancy Services Limited",
+    "exDate": "14-Oct-2026",
+    "faceVal": "1",
+    "ind": "-",
+    "isin": "INE467B01029",
+    "ndEndDate": "-",
+    "ndStartDate": "-",
+    "recDate": "14-Oct-2026",
+    "series": "EQ",
+    "subject": "Interim Dividend - Rs 12 Per Share",
+    "symbol": "TCS"
    }
   ]
  }
