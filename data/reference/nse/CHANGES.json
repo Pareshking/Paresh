@@ -1,78 +1,77 @@
 {
- "fetched_at_utc": "2026-10-14T08:02:02+00:00",
+ "fetched_at_utc": "2026-10-15T07:44:04+00:00",
  "new": {
-  "symbolchange.csv": [],
+  "symbolchange.csv": [
+   {
+    "company": "Tikona Communication Limited",
+    "old_symbol": "GFSTEELS",
+    "new_symbol": "TIKONA",
+    "date": "15-OCT-2026"
+   }
+  ],
   "namechange.csv": [],
-  "equity_l.csv": [],
+  "equity_l.csv": [
+   {
+    "SYMBOL": "TIKONA",
+    "NAME OF COMPANY": "Tikona Communication Limited",
+    "SERIES": "BE",
+    "DATE OF LISTING": "22-JUL-2019",
+    "PAID UP VALUE": "4",
+    "MARKET LOT": "1",
+    "ISIN NUMBER": "INE534A01028",
+    "FACE VALUE": "4"
+   }
+  ],
   "corporate_actions": [
    {
     "bcEndDate": "-",
     "bcStartDate": "-",
     "caBroadcastDate": null,
-    "comp": "Vedanta Limited",
-    "exDate": "14-Oct-2026",
-    "faceVal": "1",
+    "comp": "Shraddha Prime Projects Limited",
+    "exDate": "15-Oct-2026",
+    "faceVal": "10",
     "ind": "-",
-    "isin": "INE205A01025",
+    "isin": "INE311M01018",
     "ndEndDate": "-",
     "ndStartDate": "-",
-    "recDate": "14-Oct-2026",
+    "recDate": "15-Oct-2026",
     "series": "EQ",
-    "subject": "Interim Dividend - Rs 5 Per Share",
-    "symbol": "VEDL"
+    "subject": "Rights 3:20 @ Premium Rs 150/-",
+    "symbol": "SHRADDHA"
    },
    {
     "bcEndDate": "-",
     "bcStartDate": "-",
     "caBroadcastDate": null,
-    "comp": "Tata Consultancy Services Limited",
-    "exDate": "14-Oct-2026",
-    "faceVal": "1",
+    "comp": "Shivam Autotech Limited",
+    "exDate": "15-Oct-2026",
+    "faceVal": "2",
     "ind": "-",
-    "isin": "INE467B01029",
+    "isin": "INE637H01016",
     "ndEndDate": "-",
     "ndStartDate": "-",
-    "recDate": "14-Oct-2026",
+    "recDate": "15-Oct-2026",
     "series": "EQ",
-    "subject": "Interim Dividend - Rs 12 Per Share",
-    "symbol": "TCS"
+    "subject": "Rights 19:25 @ Premium Rs 10/-",
+    "symbol": "SHIVAMAUTO"
+   },
+   {
+    "bcEndDate": "-",
+    "bcStartDate": "-",
+    "caBroadcastDate": null,
+    "comp": "Anand Rathi Wealth Limited",
+    "exDate": "15-Oct-2026",
+    "faceVal": "5",
+    "ind": "-",
+    "isin": "INE463V01026",
+    "ndEndDate": "-",
+    "ndStartDate": "-",
+    "recDate": "15-Oct-2026",
+    "series": "EQ",
+    "subject": "Interim Dividend - Rs 4 Per Share",
+    "symbol": "ANANDRATHI"
    }
   ]
  },
- "touching_members": {
-  "corporate_actions": [
-   {
-    "bcEndDate": "-",
-    "bcStartDate": "-",
-    "caBroadcastDate": null,
-    "comp": "Vedanta Limited",
-    "exDate": "14-Oct-2026",
-    "faceVal": "1",
-    "ind": "-",
-    "isin": "INE205A01025",
-    "ndEndDate": "-",
-    "ndStartDate": "-",
-    "recDate": "14-Oct-2026",
-    "series": "EQ",
-    "subject": "Interim Dividend - Rs 5 Per Share",
-    "symbol": "VEDL"
-   },
-   {
-    "bcEndDate": "-",
-    "bcStartDate": "-",
-    "caBroadcastDate": null,
-    "comp": "Tata Consultancy Services Limited",
-    "exDate": "14-Oct-2026",
-    "faceVal": "1",
-    "ind": "-",
-    "isin": "INE467B01029",
-    "ndEndDate": "-",
-    "ndStartDate": "-",
-    "recDate": "14-Oct-2026",
-    "series": "EQ",
-    "subject": "Interim Dividend - Rs 12 Per Share",
-    "symbol": "TCS"
-   }
-  ]
- }
+ "touching_members": {}
 }
