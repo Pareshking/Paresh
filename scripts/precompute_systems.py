@@ -15,8 +15,8 @@ The frame, as the app builds it (app.load_all_data):
 
 Runs after scripts/sync_data.py in the daily sync; writes
 data_cache/rankings_<system>.parquet for the publish steps.
-Strictly an accelerator: a failure here costs a slower first load, nothing
-else.
+A failure costs a slower first load in the app, and fails the daily sync at
+its last step (S85), after everything else is published.
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from scripts.sync_data import _precompute_rankings  # noqa: E402
+from scripts.sync_data import _precompute_rankings, record_precompute_failure  # noqa: E402
 from src.engine.extra_universe import SYSTEM_COMBINED, SYSTEM_NANO  # noqa: E402
 from src.loaders import extra_universe_loader as xl  # noqa: E402
 from src.loaders.indices_loader import fetch_indices_data  # noqa: E402
@@ -68,6 +68,7 @@ def main() -> int:
             run(system)
         except Exception as exc:
             print(f"[{system}] precompute skipped: {type(exc).__name__}: {exc}")
+            record_precompute_failure(system, exc, asset_name(system))
     return 0
 
 

@@ -413,3 +413,16 @@ jobs:
           echo "::error::Could not push the data sync after 5 attempts."
           exit 1
 
+      # Last, after everything else is published and committed: a ranking that
+      # could not be precomputed fails the run, so the failure alert fires.
+      # 2026-10-14 (S85): the 750's precompute raised, the job stayed green and
+      # re-uploaded the 13 Oct table, and the app computed the ranking itself
+      # on every cold start the next day without anyone being told.
+      - name: Fail when a ranking was not precomputed
+        run: |
+          F="${{ github.workspace }}/data_cache/precompute_failures.txt"
+          if [ -s "$F" ]; then
+            while IFS= read -r line; do echo "::error::Not precomputed: $line"; done < "$F"
+            exit 1
+          fi
+          echo "Every ranking was precomputed."
