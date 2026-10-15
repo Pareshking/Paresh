@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-15 — Site down on 14-15 Oct: one new listing's prices; fixed, and a new store is now checked before it goes live
+
+- From 22:35 UTC on 14 Oct every page failed with "Encountered all NA values". That night's Screener update gave TRIVENIPT (Triveni Power Transmission, listed after its demerger) its first close, on 14 Oct; NSE's only close for it is on 12 Oct. The check that compares NSE's prices with Screener's before NSE fills a gap had no shared day to compare, and raised. No price was wrong.
+- A stock the two sources share no day for is now left out of the NSE fill, so it keeps Screener's own closes. For every other stock the price frame is identical, cell for cell (checked on the 14 Oct store: 1,199 stocks).
+- The NSE fill is optional. If it ever raises again, the ranking goes ahead on Screener's prices, says so in its notes, and logs the error, instead of failing every page.
+- The nightly Screener job now runs the app's own price shaping on the new store before publishing it. If that fails, neither copy is published: the site keeps the last good prices and the failure alert fires. Run on the 14 Oct store with the old code, it refuses the store with the same error.
+
 ## 2026-10-13 — Long file rebuilt in full every Saturday; old BSE copies trimmed to two
 
 - The Saturday long-file build now reads every session and corporate-action day from R2 again every week, not only on the second Saturday (owner). Each build adjusts NSE's raw closes from scratch, with every action counted once, so a full rebuild cannot apply an adjustment twice.

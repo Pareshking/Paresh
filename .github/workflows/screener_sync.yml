@@ -125,8 +125,25 @@ jobs:
           path: data_cache/
           key: screener-data-${{ runner.os }}-${{ github.run_id }}
 
-      - name: Publish screener history
+      # Run the app's own price shaping on the new store before anyone can
+      # read it (2026-10-14: a store the row check passed took the site down).
+      # A failure here holds back both publishes below; the site keeps the
+      # last good store and the failure alert fires.
+      - name: Check the app can rank on the new store
+        id: ranking_check
         if: always()
+        env:
+          PYTHONPATH: .
+        run: |
+          STORE="data_cache/screener_prices.parquet"
+          if [ ! -f "$STORE" ]; then
+            echo "No screener store was produced; nothing to check."
+            exit 0
+          fi
+          python scripts/check_ranking_frames.py --store "$STORE"
+
+      - name: Publish screener history
+        if: always() && steps.ranking_check.outcome != 'failure'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

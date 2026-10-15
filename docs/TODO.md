@@ -4,7 +4,7 @@ The one list of what is still open. Tick an item when it is done and verified,
 with the date and the PR or run that proves it; move it to **Done** at the
 bottom. Add anything promised in a conversation here the same day.
 
-_Last updated: 2026-10-13_
+_Last updated: 2026-10-15_
 
 ## Now
 
@@ -41,6 +41,7 @@ Everything merged on 13 Oct is live (#444 - #451 and #419, #439 - #443; app at m
 4. **Owner decisions:** none open (S58 decided 13 Oct: leave the eight). Demerger factor stays the ex-date close over the last close (owner, 13 Oct: the opening price was proposed, then not adopted).
 5. **Low:** S25, S35, S36, S37, S44 (small caps, 2010 - 2013 records); S60 trace the Jan/Feb 2026 drift stock by stock (accepted, for the record);
 6. **Waiting on NSE:** S78 TRIVENIPT leaving the Total Market list.
+7. **15 Oct outage (S80):** merge the fix; then S81 (8 stocks Screener stops on 29 Sep) and S82 (gate on the NSE file's writer).
 
 If a merge does not show on the site within minutes, compare the page's `revision` with main's head; a stuck deploy needs **Manage app -> Reboot app** (`docs/PRODUCTION_STATUS.md`, 13 Oct).
 
@@ -69,6 +70,9 @@ Measurements and reasons: `docs/MEMORY_AUDIT_2026-10-08.md`.
 | S77 | The all-time-high rule: label where the price history starts, and apply it only once a stock has N years of prices on file (owner, 9 Oct). 44% of stocks priced before 2011 have their 'high on file' in Jan 2008, the file's first month, so their real peak may be earlier | Summary shows 'ATH since <month>, applied from N yrs on file'; a stock that listed after the file starts is held to the rule at once | [x] 9 Oct, this PR: ath_min_years (default 3, a form input); 2010 Nifty 500 within 20% of ATH: +2,188% with no minimum, +2,114% with 3 years |
 | S78 | TRIVENIPT, a demerged company NSE carries above the 750, made the membership test fail (751 on 2026-10-10). The test now allows it, citing NSE's notice | NSE's exclusion notice for Triveni Power Transmission read, and the daily sync records it leaving the Total Market list; then remove it from `DEMERGED_EXTRAS` in `tests/test_membership_from_notices.py`. The next demerger listing fails the test the same way: add it with its notice | [ ] test fixed 10 Oct (#425); waiting on NSE's exclusion |
 | S79 | The 9 Oct Screener night stopped on TRIVENIPT (no Screener page yet), so the site stayed on 8 Oct all of 10 Oct with a green status (owner, 10 Oct: continue, still alert, and show failures on the site) | The next Screener night publishes 9 Oct for every other stock while TRIVENIPT is pending; the site shows the amber line while prices are behind and the pending line while a member waits | [x] 10 Oct, #426 merged; manual run 38021175396 on e4203e1: TRIVENIPT pending (0/1 forced), 750/751 of the 750 with history, 429/429 extras served, store 1,795 -> 1,796 sessions to 2026-10-09 (1,179/1,207 symbols that day, as on 5-8 Oct), release and R2 published, last step failed as designed. Site lines not yet seen in production |
+| S80 | Site down from 22:35 UTC on 14 Oct: every page load raised `ValueError: Encountered all NA values` in `nse_adjusted.level_drift` (Streamlit log, 34 tracebacks). The 22:35 Screener night gave TRIVENIPT its first close (14 Oct); NSE's only TRIVENIPT close is 12 Oct, so the two shared no day and `idxmax` raised on the empty column (pandas 3 raises; pandas 2 warned). The NSE step ran outside `middle_close`'s "never take the app down" guard, and the 750 re-raises. The nightly precompute (`sync_data.py`) calls the same function | Live site loads on the 14 Oct store; `level_drift` gives a stock with no shared day no row (so NSE does not fill it); an NSE step that raises is skipped with a log line, a note and `PriceFrames.middle_errors`, never the ranking; `screener_sync.yml` runs `scripts/check_ranking_frames.py` on the new store and publishes neither the release nor R2 if it fails | [ ] 15 Oct, PR on `ccr-6c8d60cd-uzlr0s`: on the published 14 Oct store the gate fails on main's code (the same error) and passes on the fix; the other 1,199 stocks' frame identical cell for cell; tests fail on main, pass on the fix (2,361 + new). Left: merge, then the site loads and the next Screener night's gate step is green |
+| S81 | The same no-shared-day shape holds for 8 stocks outside the 750 in the 14 Oct store (BHARATRAS, INDIANHUME, KCP, LANDMARK, RAMKY, SAGCEM, SAKSOFT, SHK): Screener's last close 29 Sep, NSE's first in our file 5 Oct. S80 stops them crashing anything; why Screener stops on 29 Sep for them is not investigated | Each of the 8 explained (Screener page, BSE bhavcopy for the gap), or listed in `DATA_CORRECTNESS.md` section 5 | [ ] found 15 Oct |
+| S82 | Run the publish gate (`scripts/check_ranking_frames.py`) also where `data/nse_prices` is rewritten (`monthly_track_record.yml`), the other input of the same step. S80's runtime guard already keeps the app up if it raises there | The workflow runs the gate against the published Screener store before committing the NSE file | [ ] promised 15 Oct |
 
 ## Prices: SS, three-source check, NSE history (2 Oct 2026)
 

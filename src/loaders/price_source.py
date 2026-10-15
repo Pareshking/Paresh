@@ -73,6 +73,9 @@ class PriceFrames:
     notes: list[str] = field(default_factory=list)
     # What fill_weekly_from_nse did (None when it did not run).
     weekly_fill: dict | None = None
+    # NSE fill steps that raised and were skipped ("step: Error: message").
+    # Empty when NSE behaved; the publish gate fails on anything here.
+    middle_errors: list[str] = field(default_factory=list)
 
     @property
     def high_basis(self) -> str:
@@ -556,6 +559,17 @@ def splice_weekly(close: pd.DataFrame, screener: pd.DataFrame,
     return out.mask(mask, fill), report
 
 
+def _middle_failed(chosen: PriceFrames, step: str, exc: Exception) -> None:
+    """Record an NSE step keep_and_fill skipped: log, metric, note, gate."""
+    what = f"{step}: {type(exc).__name__}: {exc}"
+    logger.exception("%s skipped; ranking on Screener without it.", step)
+    metrics.note("price_nse_step_failed", what)
+    chosen.middle_errors = list(chosen.middle_errors) + [what]
+    chosen.notes = list(chosen.notes) + [
+        f"{step} skipped after an error ({type(exc).__name__}); these prices are "
+        "Screener's alone for the gaps NSE would have filled"]
+
+
 def keep_and_fill(chosen: PriceFrames, symbols, backup_close: pd.DataFrame | None,
                   middle_close: pd.DataFrame | None = None, *,
                   weekly_fill: bool | None = None) -> PriceFrames:
@@ -573,11 +587,26 @@ def keep_and_fill(chosen: PriceFrames, symbols, backup_close: pd.DataFrame | Non
     close = chosen.close[keep]
     screener_only = close
     mid_cells, mid_added = 0, []
-    middle = eligible_middle(close, middle_close)
-    if middle is not None:
-        close, mid_cells, mid_added = fill_from_backup(close, middle)
+    # NSE only fills what Screener lacks, so a fault in it must cost the fill,
+    # never the ranking: on 2026-10-14 one new listing made level_drift raise
+    # and every page load failed until the code was fixed. A skipped step is
+    # logged, noted on the frames and fails the publish gate
+    # (scripts/check_ranking_frames.py), so it is loud, not silent.
+    try:
+        middle = eligible_middle(close, middle_close)
+        if middle is not None:
+            close, mid_cells, mid_added = fill_from_backup(close, middle)
+    except Exception as exc:  # noqa: BLE001
+        _middle_failed(chosen, "NSE gap fill", exc)
+        close, mid_cells, mid_added = screener_only, 0, []
+    weekly = None
     if weekly_fill and middle_close is not None and not middle_close.empty:
-        close, weekly = splice_weekly(close, screener_only, middle_close)
+        try:
+            close, weekly = splice_weekly(close, screener_only, middle_close)
+        except Exception as exc:  # noqa: BLE001
+            _middle_failed(chosen, "NSE weekly splice", exc)
+            weekly = None
+    if weekly is not None:
         chosen.weekly_fill = weekly
         if weekly["cells"]:
             metrics.note("price_weekly_nse_cells", weekly["cells"])
