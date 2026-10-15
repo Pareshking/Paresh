@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-15 — Pinch to zoom works on tables and the RRG chart again
+
+- On a phone, a pinch that started on a table (Screener, Portfolio and the other tables) or on the RRG chart did nothing: their touch rule allowed scrolling but not zooming (the RRG one since this morning's swipe change). Pinching now zooms the page there too; scrolling and the RRG sideways swipe are unchanged.
+- To try on Android after release; if it misbehaves, this change is reverted (owner, 15 Oct).
+
 ## 2026-10-15 — RRG: a wider chart you swipe on a phone; names stay inside the chart
 
 - On a phone the Relative rotation chart is now drawn 760 px wide and 600 px tall and opens on the 100 / 100 crossing; swipe it sideways to reach every quadrant (owner: "larger chart, I will slide the page"). Swiping up or down still scrolls the page. Before, it was squeezed into the screen width with names cut off and overlapping.

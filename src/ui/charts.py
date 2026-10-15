@@ -147,10 +147,10 @@ html,body{background:transparent;height:100%;overflow:hidden;font-family:'Geist'
 #c{width:100%}
 /* On a phone the chart is drawn wider than the screen and swiped sideways
    (owner, 15 Oct: "larger chart, I will slide the page"). */
-/* The page keeps vertical swipes (pan-y); a sideways drag is moved by the
+/* The page keeps vertical swipes and pinch-zoom; a sideways drag is moved by the
    script below, never by the browser, so reaching the edge cannot turn into
    the browser's swipe-back (it did, in a touch test, with native scrolling). */
-#scroller{width:100%;overflow:hidden;touch-action:pan-y}
+#scroller{width:100%;overflow:hidden;touch-action:pan-y pinch-zoom}
 #hint{display:none;font-size:11px;color:#5E6878;text-align:center;padding:2px 0 0}
 body.wide #hint{display:block}
 #controls{display:flex;gap:8px;align-items:center;justify-content:center;padding:6px 4px 2px;flex-wrap:wrap}
