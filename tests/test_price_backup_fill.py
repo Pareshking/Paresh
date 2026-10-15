@@ -76,3 +76,34 @@ def test_without_a_middle_source_the_order_is_unchanged():
     a = ps.keep_and_fill(_frames(primary.copy()), ["A"], yahoo).close
     b = ps.keep_and_fill(_frames(primary.copy()), ["A"], yahoo, None).close
     assert a.equals(b) and a.loc[IDX[2], "A"] == 102 * 98.8 / 96.9
+
+
+def test_a_new_listing_with_no_shared_day_is_not_filled_and_does_not_raise():
+    # The 2026-10-14 outage: NSE's only close for NEW predates Screener's first.
+    idx = pd.bdate_range("2026-08-03", periods=30)
+    primary = pd.DataFrame({"OK": 100.0 * 1.001 ** np.arange(30), "NEW": np.nan}, index=idx)
+    primary.iloc[20, 0] = np.nan
+    primary.iloc[-2:, 1] = [700.0, 710.0]
+    nse = primary.copy()
+    nse["OK"] = 100.0 * 1.001 ** np.arange(30)
+    nse["NEW"] = np.nan
+    nse.iloc[-3, 1] = 684.0
+    out = ps.keep_and_fill(_frames(primary), ["OK", "NEW"], None, nse, weekly_fill=False)
+    assert out.middle_errors == []
+    assert np.isclose(out.close["OK"].iloc[20], nse["OK"].iloc[20])   # OK still filled from NSE
+    assert out.close["NEW"].notna().sum() == 2                        # NEW: Screener's two closes only
+
+
+def test_a_failing_nse_step_costs_the_fill_not_the_ranking(monkeypatch):
+    primary = pd.DataFrame({"A": [100, 102, np.nan, 104, 105.0]}, index=IDX)
+    nse = pd.DataFrame({"A": [100, 102, 103, 104, 105.0]}, index=IDX)
+
+    def boom(*_a, **_k):
+        raise ValueError("Encountered all NA values")
+
+    monkeypatch.setattr(ps, "eligible_middle", boom)
+    monkeypatch.setattr(ps, "splice_weekly", boom)
+    out = ps.keep_and_fill(_frames(primary.copy()), ["A"], None, nse, weekly_fill=True)
+    assert out.close.equals(primary)                       # Screener's prices, untouched
+    assert [e.split(":")[0] for e in out.middle_errors] == ["NSE gap fill", "NSE weekly splice"]
+    assert any("skipped after an error" in n for n in out.notes)

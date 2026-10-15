@@ -298,3 +298,16 @@ def test_a_rights_premium_is_not_read_as_a_dividend():
     close = _closes(JMC=[175.0, 172.55, 167.5])
     f, _ = na.action_factors(close, _dividend("JMC", close.index[2], "Rht1:5@Prem-Rs100/Div-Rs2bc Dates And Purpose Revised"))
     assert (f == 1.0).all().all()
+
+
+def test_level_drift_skips_a_stock_the_sources_share_no_day_for():
+    # 2026-10-14: TRIVENIPT's one NSE close fell before its first Screener
+    # close; idxmax raised on the all-NA column and the app went down.
+    idx = pd.bdate_range("2026-10-05", periods=6)
+    nse = pd.DataFrame({"OLD": 100.0, "NEW": np.nan}, index=idx)
+    nse.loc[idx[3], "NEW"] = 684.0
+    screener = nse.copy()
+    screener["NEW"] = np.nan
+    screener.loc[idx[4]:, "NEW"] = [700.0, 710.0]
+    d = na.level_drift(nse, screener)
+    assert d.index.tolist() == ["OLD"] and d.loc["OLD", "max_drift"] == 0

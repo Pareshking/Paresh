@@ -440,10 +440,15 @@ def level_drift(nse_close: pd.DataFrame, other_close: pd.DataFrame,
     ratio = a / b
     med = ratio.median()
     dev = (ratio / med - 1).abs()
+    # A stock the two sources share no day for (a new listing whose first
+    # Screener close is after NSE's last, 2026-10-14) has nothing to measure:
+    # it gets no row, so no caller treats it as checked. idxmax raises on an
+    # all-NA column in pandas 3, which took the whole app down that night.
+    measured = dev.columns[dev.notna().any()]
     out = pd.DataFrame({
         "median_ratio": med,
         "max_drift": dev.max(),
-        "worst_date": dev.idxmax(),
+        "worst_date": dev[measured].idxmax().reindex(dev.columns),
         "days": ratio.notna().sum(),
     })
     return out.dropna(subset=["max_drift"]).sort_values("max_drift", ascending=False)

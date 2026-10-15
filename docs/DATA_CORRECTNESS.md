@@ -321,6 +321,11 @@ are `nse_index_rebuild/wayback_check.py` and NSE's `IndexInclExcl.xls`.
   `concat` with an empty frame makes float columns `object`, after which
   `to_csv(float_format=...)` skips them (S28: 19384.30 written as 19384.3).
   The laptop's pandas 2.3 hides both: test with the version in `requirements.txt`.
+- In pandas 3, `idxmax` / `idxmin` **raise** on an all-NA column (pandas 2
+  warned and gave NaN). Two price series that share no day (a new listing, a
+  stock one source stopped on) give exactly that column; it took the site down
+  on 14-15 Oct 2026 (S80). Take them over the columns with a value
+  (`dev[dev.columns[dev.notna().any()]].idxmax()`), as `level_drift` now does.
 - A corporate action can reach the build twice, once at its date with day and
   month swapped (a Bc row read day first). `repair_swapped_dates` only catches a
   swap far from the file's day; `drop_swapped_twins` lets the yearly list's date
