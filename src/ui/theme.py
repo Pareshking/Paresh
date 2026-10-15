@@ -2163,8 +2163,7 @@ body::-webkit-scrollbar,
 .saas-table-wrapper {{
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
-    /* pinch-zoom too: without it a pinch that starts on a table did nothing (owner, 15 Oct). */
-    touch-action: pan-x pan-y pinch-zoom;
+    touch-action: pan-x pan-y;
 }}
 
 /* Portfolio: sign colours only; type weight follows the other tables. */
