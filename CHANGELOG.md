@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-15 — RRG: a wider chart you swipe on a phone; names stay inside the chart
+
+- On a phone the Relative rotation chart is now drawn 760 px wide and 600 px tall and opens on the 100 / 100 crossing; swipe it sideways to reach every quadrant (owner: "larger chart, I will slide the page"). Swiping up or down still scrolls the page. Before, it was squeezed into the screen width with names cut off and overlapping.
+- An industry's name stays inside the chart: near the right edge it sits on the dot's left. On desktop this brings back Media Entertainment (cut off) and Oil Gas (hidden).
+- Quadrant titles are smaller and in the far corners, out of the way of the dots.
+- A finger drag no longer zooms the chart.
+
 ## 2026-10-15 — Site down on 14-15 Oct: one new listing's prices; fixed, and a new store is now checked before it goes live
 
 - From 22:35 UTC on 14 Oct every page failed with "Encountered all NA values". That night's Screener update gave TRIVENIPT (Triveni Power Transmission, listed after its demerger) its first close, on 14 Oct; NSE's only close for it is on 12 Oct. The check that compares NSE's prices with Screener's before NSE fills a gap had no shared day to compare, and raised. No price was wrong.

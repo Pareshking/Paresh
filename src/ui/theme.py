@@ -1313,7 +1313,7 @@ def inject_custom_css() -> None:
         [class*="st-key-del_rrg_"] button { background: #FFFFFF !important; border: 1px solid #E3E6EB !important; }
         /* Phone rules come after the base ones so they win at equal specificity. */
         @media (max-width: 760px) {
-            .st-key-rrg_frame iframe { height: 480px !important; }
+            .st-key-rrg_frame iframe { height: 600px !important; }
             .st-key-rrg_frame .stElementContainer { height: auto !important; flex: 0 0 auto !important; }
             /* One row that scrolls sideways, so the chart starts sooner. */
             .st-key-rrg_selbar { flex-wrap: nowrap !important; overflow-x: auto !important; padding-bottom: 4px; }
