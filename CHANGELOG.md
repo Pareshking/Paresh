@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-15 — A nightly ranking that fails is no longer silent
+
+- On 14 Oct the nightly job could not build the 750 and Combined rankings (the same error that took the site down), but it still showed green and published the 13 Oct ranking again. The app then computed the ranking itself on every fresh start on 15 Oct, which is why memory and CPU stayed high. A manual run on the fixed code published all three rankings on 14 Oct prices at 11:39 UTC.
+- Now a ranking that cannot be built is not republished from the day before, and the nightly job fails at its last step (after everything else is published), so the failure alert fires.
+
 ## 2026-10-15 — RRG: a wider chart you swipe on a phone; names stay inside the chart
 
 - On a phone the Relative rotation chart is now drawn 760 px wide and 600 px tall and opens on the 100 / 100 crossing; swipe it sideways to reach every quadrant (owner: "larger chart, I will slide the page"). Swiping up or down still scrolls the page. Before, it was squeezed into the screen width with names cut off and overlapping.

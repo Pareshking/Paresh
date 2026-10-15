@@ -19,6 +19,43 @@ from src.loaders.mcap_loader import fetch_market_caps
 from src.loaders.tv_loader import reconcile_and_update_tv_classification
 
 
+# Rankings that could not be precomputed this run, one line each, in the
+# data cache. The daily sync's last step fails the run when it is not empty.
+PRECOMPUTE_FAILURES = "precompute_failures.txt"
+
+
+def _cache_dir() -> str:
+    from src.core.config import PRICES_FILE
+    return os.path.dirname(PRICES_FILE)
+
+
+def clear_precompute_failures() -> None:
+    """Start the run with no failures: the data cache is restored from the last run."""
+    path = os.path.join(_cache_dir(), PRECOMPUTE_FAILURES)
+    if os.path.exists(path):
+        os.remove(path)
+
+
+def record_precompute_failure(name: str, exc: Exception, out_name: str | None = None) -> None:
+    """A ranking that was not precomputed: drop its old table, note it for the last step.
+
+    2026-10-14: the 750's precompute raised, the job printed "skipped" and
+    stayed green, and the publish step re-uploaded the 13 Oct table restored
+    with the data cache, so nobody was told and the app computed the ranking
+    itself all the next day (S85). The old table is removed so it is not
+    published again as if it were new.
+    """
+    from src.core.config import RANKINGS_SNAPSHOT_ASSET
+    here = _cache_dir()
+    stale = os.path.join(here, out_name or RANKINGS_SNAPSHOT_ASSET)
+    if os.path.exists(stale):
+        os.remove(stale)
+    os.makedirs(here, exist_ok=True)
+    with open(os.path.join(here, PRECOMPUTE_FAILURES), "a", encoding="utf-8") as fh:
+        fh.write(f"{name}: {type(exc).__name__}: {exc}\n")
+    print(f"::error::{name} ranking not precomputed: {type(exc).__name__}: {exc}")
+
+
 def _precompute_rankings(symbols, universe_df, mcaps, out_name=None) -> None:
     """Rank the Screener frame the app will rank, and stamp it with its own contract.
 
@@ -297,12 +334,14 @@ def run_daily_sync() -> None:
     # where nobody is waiting. The frame is price_source.ranking_frames -- the
     # same call the app makes -- so production's fingerprint check matches.
     print("\n--- 5d. Precomputing the Ranking ---")
+    clear_precompute_failures()
     try:
         _precompute_rankings(symbols, universe_df, mcaps)
     except Exception as exc:
-        # Strictly an accelerator. Production computes the ranking itself when
-        # this is missing, which is what it did before this step existed.
+        # Production computes the ranking itself when this is missing, so the
+        # rest of the sync goes on; the run fails at its last step (S85).
         print(f"Ranking precompute skipped: {type(exc).__name__}: {exc}")
+        record_precompute_failure("750", exc)
 
     print(
         f"\n[{datetime.now():%Y-%m-%d %H:%M:%S}] All daily sync tasks completed successfully!"
