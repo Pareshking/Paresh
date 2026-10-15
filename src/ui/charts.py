@@ -145,6 +145,14 @@ def _build_rrg_html(data_json: str) -> str:
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:transparent;height:100%;overflow:hidden;font-family:'Geist',system-ui,sans-serif}
 #c{width:100%}
+/* On a phone the chart is drawn wider than the screen and swiped sideways
+   (owner, 15 Oct: "larger chart, I will slide the page"). */
+/* The page keeps vertical swipes (pan-y); a sideways drag is moved by the
+   script below, never by the browser, so reaching the edge cannot turn into
+   the browser's swipe-back (it did, in a touch test, with native scrolling). */
+#scroller{width:100%;overflow:hidden;touch-action:pan-y}
+#hint{display:none;font-size:11px;color:#5E6878;text-align:center;padding:2px 0 0}
+body.wide #hint{display:block}
 #controls{display:flex;gap:8px;align-items:center;justify-content:center;padding:6px 4px 2px;flex-wrap:wrap}
 .ctrl-btn{background:#F1F3F6;border:1px solid #E3E6EB;border-radius:6px;padding:4px 14px;font-size:12px;
   cursor:pointer;color:#3C4657;font-family:inherit}
@@ -153,7 +161,8 @@ html,body{background:transparent;height:100%;overflow:hidden;font-family:'Geist'
 #scrub{width:180px;accent-color:#4F46E5;cursor:pointer}
 #frame-lbl{font-size:12px;color:#5E6878;font-family:'Geist Mono',monospace;min-width:58px;text-align:center}
 </style>"""
-    _BODY = """<div id="c"></div>
+    _BODY = """<div id="scroller"><div id="c"></div></div>
+<div id="hint">&#8592; swipe the chart to see every quadrant &#8594;</div>
 <div id="controls">
   <button class="ctrl-btn" id="btn-play">&#9654; Play</button>
   <input type="range" id="scrub" min="0" value="100">
@@ -188,8 +197,11 @@ function pts(s, f){
 function seriesFor(s){
   const on = shown(s) && (selected===null || selected===s.industry);
   const d = pts(s, frame), last = d.length-1;
+  // A name to the right of a dot near the right edge ran off the chart
+  // (Media Entertainment, 15 Oct): there it goes on the dot's left instead.
+  const flip = d[last].x > minX + 0.62 * (maxX - minX);
   d[last] = {x:d[last].x, y:d[last].y, marker:{enabled:true, radius:on?8:4, fillColor:s.color, lineColor:'#fff', lineWidth:2},
-    dataLabels:{enabled:on, format:esc(s.industry), align:'left', x:10, y:-6, allowOverlap:false, crop:false, overflow:'allow',
+    dataLabels:{enabled:on, format:esc(s.industry), align:flip?'right':'left', x:flip?-10:10, y:-6, allowOverlap:false, crop:true, overflow:'justify',
       style:{color:s.color, fontSize:'11px', fontWeight:'600', textOutline:'2px #fff'}}};
   return {name:s.industry, data:d, color:s.color, lineWidth:on?2:1, opacity:on?1:0.14, type:'line',
     marker:{enabled:on, radius:3, symbol:'circle'}, states:{inactive:{opacity:on?1:0.14}, hover:{lineWidthPlus:0}},
@@ -202,17 +214,27 @@ function quadrants(chart){
   QUADS.forEach(q=>{
     const x0=X.toPixels(q.x0,false), x1=X.toPixels(q.x1,false), y0=Y.toPixels(q.y1,false), y1=Y.toPixels(q.y0,false);
     chart.renderer.rect(x0,y0,x1-x0,y1-y0).attr({fill:q.c,zIndex:0}).add(g);
-    chart.renderer.text(q.n, q.ax==='left'?x0+10:x1-10, q.ay==='top'?y0+22:y1-12)
-      .attr({align:q.ax==='left'?'left':'right',zIndex:1}).css({color:q.t,fontSize:'13px',fontWeight:'700',opacity:.85}).add(g);
+    chart.renderer.text(q.n.toUpperCase(), q.ax==='left'?x0+6:x1-6, q.ay==='top'?y0+14:y1-6)
+      .attr({align:q.ax==='left'?'left':'right',zIndex:0}).css({color:q.t,fontSize:'10.5px',fontWeight:'700',letterSpacing:'.06em',opacity:.7}).add(g);
   });
 }
 let chart;
+const WIDE_BELOW = 600, WIDE_W = 760;   // px: under this frame width, draw WIDE_W and swipe
 function build(){
-  const ctrlH = document.getElementById('controls').getBoundingClientRect().height + 6;
+  const wide = window.innerWidth < WIDE_BELOW;
+  document.body.classList.toggle('wide', wide);
+  const ctrlH = document.getElementById('controls').getBoundingClientRect().height
+    + document.getElementById('hint').getBoundingClientRect().height + 6;
   const h = Math.max(300, window.innerHeight - ctrlH);
-  document.getElementById('c').style.height = h + 'px';
+  const w = wide ? WIDE_W : window.innerWidth;
+  const c = document.getElementById('c');
+  c.style.height = h + 'px';
+  c.style.width = wide ? WIDE_W + 'px' : '100%';
   chart = Highcharts.chart('c', {
-    chart:{height:h, backgroundColor:'transparent', style:{fontFamily:"Geist,system-ui,sans-serif"}, animation:false, spacing:[8,8,4,4],
+    // No zoom or pan: a finger drag must scroll the page or the swipe strip,
+    // not zoom the chart (a phone swipe showed "Reset zoom", 15 Oct).
+    chart:{height:h, width:w, backgroundColor:'transparent', style:{fontFamily:"Geist,system-ui,sans-serif"}, animation:false, spacing:[8,8,4,4],
+      zooming:{type:undefined, pinchType:undefined, singleTouch:false, mouseWheel:{enabled:false}}, panning:{enabled:false},
       events:{render:function(){quadrants(this);}}},
     credits:{enabled:false}, accessibility:{enabled:false}, title:{text:null}, legend:{enabled:false}, exporting:{enabled:false},
     xAxis:{min:minX, max:maxX, startOnTick:false, endOnTick:false, gridLineWidth:0, lineColor:'#E3E6EB', tickColor:'#E3E6EB',
@@ -220,7 +242,7 @@ function build(){
       plotLines:[{value:100, color:'#0E1726', width:1, zIndex:3}]},
     yAxis:{min:minY, max:maxY, startOnTick:false, endOnTick:false, gridLineWidth:0, title:{text:'↑ Momentum', style:{color:'#5E6878', fontSize:'12px'}},
       labels:{style:{color:'#5E6878', fontSize:'12px'}}, plotLines:[{value:100, color:'#0E1726', width:1, zIndex:3}]},
-    tooltip:{useHTML:true, outside:false, backgroundColor:'rgba(15,23,42,.94)', borderWidth:0, shadow:false, style:{color:'#fff', fontSize:'12px'},
+    tooltip:{useHTML:true, outside:false, followTouchMove:false, backgroundColor:'rgba(15,23,42,.94)', borderWidth:0, shadow:false, style:{color:'#fff', fontSize:'12px'},
       formatter:function(){
         const s=this.series.options.custom.s;
         return '<b style="color:#fff">'+esc(s.industry)+'</b><br>Quadrant: <b>'+esc(s.quadrant)+'</b><br>RS: <b>'+this.x.toFixed(2)+
@@ -229,6 +251,11 @@ function build(){
       point:{events:{click:function(){const n=this.series.name; selected=(selected===n)?null:n; draw();}}}}},
     series: DATA.sectors.map(seriesFor)
   });
+  // Open on the 100 / 100 crossing, so each quadrant is one swipe away.
+  if(wide){
+    const sc = document.getElementById('scroller');
+    sc.scrollLeft = Math.max(0, chart.xAxis[0].toPixels(100, false) - window.innerWidth / 2);
+  }
 }
 function draw(){
   DATA.sectors.forEach((s,i)=>{
@@ -252,7 +279,26 @@ btnPlay.addEventListener('click',function(){
 });
 scrub.addEventListener('input',function(){stop(); frame=parseInt(scrub.value); updateLabel(); draw();});
 document.getElementById('btn-rst').addEventListener('click',function(){stop(); frame=maxFrames-1; scrub.value=maxFrames-1; selected=null; updateLabel(); draw();});
-window.addEventListener('resize',function(){chart.destroy(); build();});
+(function(){                         // sideways drag on the wide chart
+  const sc = document.getElementById('scroller');
+  let x0 = null, y0 = 0, l0 = 0, sideways = null;
+  sc.addEventListener('touchstart', e => {
+    if(!document.body.classList.contains('wide') || e.touches.length !== 1) { x0 = null; return; }
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; l0 = sc.scrollLeft; sideways = null;
+  }, {passive:true});
+  sc.addEventListener('touchmove', e => {
+    if(x0 === null) return;
+    const dx = e.touches[0].clientX - x0, dy = e.touches[0].clientY - y0;
+    if(sideways === null && Math.abs(dx) + Math.abs(dy) > 6) sideways = Math.abs(dx) > Math.abs(dy);
+    if(sideways) sc.scrollLeft = l0 - dx;
+  }, {passive:true});
+  sc.addEventListener('touchend', () => { x0 = null; }, {passive:true});
+})();
+let lastW = window.innerWidth;
+window.addEventListener('resize',function(){
+  if(window.innerWidth === lastW) return;
+  lastW = window.innerWidth; chart.destroy(); build();
+});
 build(); updateLabel();
 """
     return ("<!DOCTYPE html><html><head><meta charset='utf-8'>" + _CSS + "</head><body>" + _BODY
