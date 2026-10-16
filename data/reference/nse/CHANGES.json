@@ -1,77 +1,126 @@
 {
- "fetched_at_utc": "2026-10-15T07:44:04+00:00",
+ "fetched_at_utc": "2026-10-16T07:32:14+00:00",
  "new": {
-  "symbolchange.csv": [
-   {
-    "company": "Tikona Communication Limited",
-    "old_symbol": "GFSTEELS",
-    "new_symbol": "TIKONA",
-    "date": "15-OCT-2026"
-   }
-  ],
+  "symbolchange.csv": [],
   "namechange.csv": [],
-  "equity_l.csv": [
-   {
-    "SYMBOL": "TIKONA",
-    "NAME OF COMPANY": "Tikona Communication Limited",
-    "SERIES": "BE",
-    "DATE OF LISTING": "22-JUL-2019",
-    "PAID UP VALUE": "4",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE534A01028",
-    "FACE VALUE": "4"
-   }
-  ],
+  "equity_l.csv": [],
   "corporate_actions": [
    {
     "bcEndDate": "-",
     "bcStartDate": "-",
     "caBroadcastDate": null,
-    "comp": "Shraddha Prime Projects Limited",
-    "exDate": "15-Oct-2026",
+    "comp": "Bansal Wire Industries Limited",
+    "exDate": "16-Oct-2026",
+    "faceVal": "1",
+    "ind": "-",
+    "isin": "INE0B9K01025",
+    "ndEndDate": "-",
+    "ndStartDate": "-",
+    "recDate": "16-Oct-2026",
+    "series": "EQ",
+    "subject": "Face Value Split (Sub-Division) - From Rs 5/- Per Share To Re 1/- Per Share",
+    "symbol": "BANSALWIRE"
+   },
+   {
+    "bcEndDate": "-",
+    "bcStartDate": "-",
+    "caBroadcastDate": null,
+    "comp": "Canara Robeco Asset Management Company Limited",
+    "exDate": "16-Oct-2026",
     "faceVal": "10",
     "ind": "-",
-    "isin": "INE311M01018",
+    "isin": "INE218I01013",
     "ndEndDate": "-",
     "ndStartDate": "-",
-    "recDate": "15-Oct-2026",
+    "recDate": "16-Oct-2026",
     "series": "EQ",
-    "subject": "Rights 3:20 @ Premium Rs 150/-",
-    "symbol": "SHRADDHA"
+    "subject": "Interim Dividend - Rs 2 Per Share",
+    "symbol": "CRAMC"
    },
    {
     "bcEndDate": "-",
     "bcStartDate": "-",
     "caBroadcastDate": null,
-    "comp": "Shivam Autotech Limited",
-    "exDate": "15-Oct-2026",
+    "comp": "HCL Technologies Limited",
+    "exDate": "16-Oct-2026",
     "faceVal": "2",
     "ind": "-",
-    "isin": "INE637H01016",
+    "isin": "INE860A01027",
     "ndEndDate": "-",
     "ndStartDate": "-",
-    "recDate": "15-Oct-2026",
+    "recDate": "16-Oct-2026",
     "series": "EQ",
-    "subject": "Rights 19:25 @ Premium Rs 10/-",
-    "symbol": "SHIVAMAUTO"
+    "subject": "Interim Dividend - Rs 12 Per Share",
+    "symbol": "HCLTECH"
    },
    {
     "bcEndDate": "-",
     "bcStartDate": "-",
     "caBroadcastDate": null,
-    "comp": "Anand Rathi Wealth Limited",
-    "exDate": "15-Oct-2026",
+    "comp": "Hindustan Composites Limited",
+    "exDate": "16-Oct-2026",
     "faceVal": "5",
     "ind": "-",
-    "isin": "INE463V01026",
+    "isin": "INE310C01011",
     "ndEndDate": "-",
     "ndStartDate": "-",
-    "recDate": "15-Oct-2026",
+    "recDate": "16-Oct-2026",
     "series": "EQ",
-    "subject": "Interim Dividend - Rs 4 Per Share",
-    "symbol": "ANANDRATHI"
+    "subject": "Special Dividend - Rs 21 Per Share",
+    "symbol": "HINDCOMPOS"
    }
   ]
  },
- "touching_members": {}
+ "touching_members": {
+  "corporate_actions": [
+   {
+    "bcEndDate": "-",
+    "bcStartDate": "-",
+    "caBroadcastDate": null,
+    "comp": "Bansal Wire Industries Limited",
+    "exDate": "16-Oct-2026",
+    "faceVal": "1",
+    "ind": "-",
+    "isin": "INE0B9K01025",
+    "ndEndDate": "-",
+    "ndStartDate": "-",
+    "recDate": "16-Oct-2026",
+    "series": "EQ",
+    "subject": "Face Value Split (Sub-Division) - From Rs 5/- Per Share To Re 1/- Per Share",
+    "symbol": "BANSALWIRE"
+   },
+   {
+    "bcEndDate": "-",
+    "bcStartDate": "-",
+    "caBroadcastDate": null,
+    "comp": "Canara Robeco Asset Management Company Limited",
+    "exDate": "16-Oct-2026",
+    "faceVal": "10",
+    "ind": "-",
+    "isin": "INE218I01013",
+    "ndEndDate": "-",
+    "ndStartDate": "-",
+    "recDate": "16-Oct-2026",
+    "series": "EQ",
+    "subject": "Interim Dividend - Rs 2 Per Share",
+    "symbol": "CRAMC"
+   },
+   {
+    "bcEndDate": "-",
+    "bcStartDate": "-",
+    "caBroadcastDate": null,
+    "comp": "HCL Technologies Limited",
+    "exDate": "16-Oct-2026",
+    "faceVal": "2",
+    "ind": "-",
+    "isin": "INE860A01027",
+    "ndEndDate": "-",
+    "ndStartDate": "-",
+    "recDate": "16-Oct-2026",
+    "series": "EQ",
+    "subject": "Interim Dividend - Rs 12 Per Share",
+    "symbol": "HCLTECH"
+   }
+  ]
+ }
 }
