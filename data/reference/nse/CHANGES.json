@@ -1,10 +1,125 @@
 {
- "fetched_at_utc": "2026-10-20T07:56:01+00:00",
+ "fetched_at_utc": "2026-10-21T07:59:58+00:00",
  "new": {
   "symbolchange.csv": [],
   "namechange.csv": [],
-  "equity_l.csv": [],
-  "corporate_actions": []
+  "equity_l.csv": [
+   {
+    "SYMBOL": "HDFIRE",
+    "NAME OF COMPANY": "HD Fire Protect Limited",
+    "SERIES": "EQ",
+    "DATE OF LISTING": "21-OCT-2026",
+    "PAID UP VALUE": "5",
+    "MARKET LOT": "1",
+    "ISIN NUMBER": "INE18AK01028",
+    "FACE VALUE": "5"
+   },
+   {
+    "SYMBOL": "IIRM",
+    "NAME OF COMPANY": "IIRM Holdings India Limited",
+    "SERIES": "EQ",
+    "DATE OF LISTING": "22-OCT-2026",
+    "PAID UP VALUE": "5",
+    "MARKET LOT": "1",
+    "ISIN NUMBER": "INE670C01026",
+    "FACE VALUE": "5"
+   },
+   {
+    "SYMBOL": "OLAELEC-RE",
+    "NAME OF COMPANY": "Ola Electric Mobility Ltd-RE",
+    "SERIES": "BE",
+    "DATE OF LISTING": "22-OCT-2026",
+    "PAID UP VALUE": "10",
+    "MARKET LOT": "1",
+    "ISIN NUMBER": "INE0LXG20016",
+    "FACE VALUE": "10"
+   }
+  ],
+  "corporate_actions": [
+   {
+    "bcEndDate": "-",
+    "bcStartDate": "-",
+    "caBroadcastDate": null,
+    "comp": "Mangalore Refinery and Petrochemicals Limited",
+    "exDate": "21-Oct-2026",
+    "faceVal": "10",
+    "ind": "-",
+    "isin": "INE103A01014",
+    "ndEndDate": "-",
+    "ndStartDate": "-",
+    "recDate": "21-Oct-2026",
+    "series": "EQ",
+    "subject": "Interim Dividend - Rs 3 Per Share",
+    "symbol": "MRPL"
+   },
+   {
+    "bcEndDate": "-",
+    "bcStartDate": "-",
+    "caBroadcastDate": null,
+    "comp": "ICICI Prudential Asset Management Company Limited",
+    "exDate": "21-Oct-2026",
+    "faceVal": "1",
+    "ind": "-",
+    "isin": "INE346A01027",
+    "ndEndDate": "-",
+    "ndStartDate": "-",
+    "recDate": "21-Oct-2026",
+    "series": "EQ",
+    "subject": "Interim Dividend - Rs 30 Per Share",
+    "symbol": "ICICIAMC"
+   },
+   {
+    "bcEndDate": "-",
+    "bcStartDate": "-",
+    "caBroadcastDate": null,
+    "comp": "Elecon Engineering Company Limited",
+    "exDate": "21-Oct-2026",
+    "faceVal": "1",
+    "ind": "-",
+    "isin": "INE205B01023",
+    "ndEndDate": "-",
+    "ndStartDate": "-",
+    "recDate": "21-Oct-2026",
+    "series": "EQ",
+    "subject": "Interim Dividend - Re 0.50 Per Share",
+    "symbol": "ELECON"
+   }
+  ]
  },
- "touching_members": {}
+ "touching_members": {
+  "corporate_actions": [
+   {
+    "bcEndDate": "-",
+    "bcStartDate": "-",
+    "caBroadcastDate": null,
+    "comp": "Mangalore Refinery and Petrochemicals Limited",
+    "exDate": "21-Oct-2026",
+    "faceVal": "10",
+    "ind": "-",
+    "isin": "INE103A01014",
+    "ndEndDate": "-",
+    "ndStartDate": "-",
+    "recDate": "21-Oct-2026",
+    "series": "EQ",
+    "subject": "Interim Dividend - Rs 3 Per Share",
+    "symbol": "MRPL"
+   },
+   {
+    "bcEndDate": "-",
+    "bcStartDate": "-",
+    "caBroadcastDate": null,
+    "comp": "ICICI Prudential Asset Management Company Limited",
+    "exDate": "21-Oct-2026",
+    "faceVal": "1",
+    "ind": "-",
+    "isin": "INE346A01027",
+    "ndEndDate": "-",
+    "ndStartDate": "-",
+    "recDate": "21-Oct-2026",
+    "series": "EQ",
+    "subject": "Interim Dividend - Rs 30 Per Share",
+    "symbol": "ICICIAMC"
+   }
+  ]
+ }
 }
