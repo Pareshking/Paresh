@@ -29,8 +29,8 @@
       "time": "2026-10-24T06:43:14.878940"
     }
   },
-  "last_attempt": "24 Oct 2026, 22:01",
-  "last_attempt_timestamp": "2026-10-24T22:01:16.376090",
+  "last_attempt": "25 Oct 2026, 07:14",
+  "last_attempt_timestamp": "2026-10-25T07:14:29.686005",
   "last_attempt_fetched": 0,
   "last_attempt_errors": {
     "NIFTY 50": "Live fetch failed; using existing fallback",
