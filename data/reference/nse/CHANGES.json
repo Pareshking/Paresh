@@ -1,168 +1,18 @@
 {
- "fetched_at_utc": "2026-10-26T08:08:06+00:00",
+ "fetched_at_utc": "2026-10-27T08:23:27+00:00",
  "new": {
   "symbolchange.csv": [],
   "namechange.csv": [],
   "equity_l.csv": [
    {
-    "SYMBOL": "BGLOBAL",
-    "NAME OF COMPANY": "Bharatiya Global Infomedia Limited",
-    "SERIES": "BZ",
-    "DATE OF LISTING": "28-JUL-2011",
-    "PAID UP VALUE": "10",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE224M01013",
-    "FACE VALUE": "10"
-   },
-   {
-    "SYMBOL": "CEREBRAINT",
-    "NAME OF COMPANY": "Cerebra Integrated Technologies Limited",
-    "SERIES": "BZ",
-    "DATE OF LISTING": "26-JUN-2013",
-    "PAID UP VALUE": "10",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE345B01019",
-    "FACE VALUE": "10"
-   },
-   {
-    "SYMBOL": "CLCIND",
-    "NAME OF COMPANY": "CLC Industries Limited",
+    "SYMBOL": "SHIVAM-RE1",
+    "NAME OF COMPANY": "Shivam Autotech Ltd-RE",
     "SERIES": "BE",
-    "DATE OF LISTING": "20-DEC-2006",
-    "PAID UP VALUE": "10",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE376C01038",
-    "FACE VALUE": "10"
-   },
-   {
-    "SYMBOL": "CMICABLES",
-    "NAME OF COMPANY": "CMI Limited",
-    "SERIES": "BZ",
-    "DATE OF LISTING": "29-NOV-2016",
-    "PAID UP VALUE": "10",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE981B01011",
-    "FACE VALUE": "10"
-   },
-   {
-    "SYMBOL": "EDUCOMP",
-    "NAME OF COMPANY": "Educomp Solutions Limited",
-    "SERIES": "BZ",
-    "DATE OF LISTING": "13-JAN-2006",
+    "DATE OF LISTING": "28-OCT-2026",
     "PAID UP VALUE": "2",
     "MARKET LOT": "1",
-    "ISIN NUMBER": "INE216H01027",
+    "ISIN NUMBER": "INE637H20024",
     "FACE VALUE": "2"
-   },
-   {
-    "SYMBOL": "IMPEXFERRO",
-    "NAME OF COMPANY": "Impex Ferro Tech Limited",
-    "SERIES": "BZ",
-    "DATE OF LISTING": "03-FEB-2005",
-    "PAID UP VALUE": "10",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE691G01015",
-    "FACE VALUE": "10"
-   },
-   {
-    "SYMBOL": "KHAZANCHI",
-    "NAME OF COMPANY": "Khazanchi Jewellers Limited",
-    "SERIES": "EQ",
-    "DATE OF LISTING": "27-OCT-2026",
-    "PAID UP VALUE": "10",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE0OWC01011",
-    "FACE VALUE": "10"
-   },
-   {
-    "SYMBOL": "LASA",
-    "NAME OF COMPANY": "Lasa Supergenerics Limited",
-    "SERIES": "BE",
-    "DATE OF LISTING": "21-SEP-2017",
-    "PAID UP VALUE": "10",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE670X01014",
-    "FACE VALUE": "10"
-   },
-   {
-    "SYMBOL": "NAGAFERT",
-    "NAME OF COMPANY": "Nagarjuna Fertilizers and Chemicals Limited",
-    "SERIES": "BZ",
-    "DATE OF LISTING": "15-JUN-2016",
-    "PAID UP VALUE": "1",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE454M01024",
-    "FACE VALUE": "1"
-   },
-   {
-    "SYMBOL": "ORTEL",
-    "NAME OF COMPANY": "Ortel Communications Limited",
-    "SERIES": "BZ",
-    "DATE OF LISTING": "19-MAR-2015",
-    "PAID UP VALUE": "10",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE849L01019",
-    "FACE VALUE": "10"
-   },
-   {
-    "SYMBOL": "RAJVIR",
-    "NAME OF COMPANY": "Rajvir Industries Limited",
-    "SERIES": "BZ",
-    "DATE OF LISTING": "20-SEP-2005",
-    "PAID UP VALUE": "10",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE011H01014",
-    "FACE VALUE": "10"
-   },
-   {
-    "SYMBOL": "SELMC",
-    "NAME OF COMPANY": "SEL Manufacturing Company Limited",
-    "SERIES": "BE",
-    "DATE OF LISTING": "26-OCT-2021",
-    "PAID UP VALUE": "10",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE105I01020",
-    "FACE VALUE": "10"
-   },
-   {
-    "SYMBOL": "SKIL",
-    "NAME OF COMPANY": "SKIL Infrastructure Limited",
-    "SERIES": "BZ",
-    "DATE OF LISTING": "09-OCT-1996",
-    "PAID UP VALUE": "10",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE429F01012",
-    "FACE VALUE": "10"
-   },
-   {
-    "SYMBOL": "SPELS",
-    "NAME OF COMPANY": "SPEL Semiconductor Limited",
-    "SERIES": "BE",
-    "DATE OF LISTING": "17-AUG-2026",
-    "PAID UP VALUE": "10",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE252A01019",
-    "FACE VALUE": "10"
-   },
-   {
-    "SYMBOL": "SUDARSHAN",
-    "NAME OF COMPANY": "Sudarshan Pharma Industries Limited",
-    "SERIES": "EQ",
-    "DATE OF LISTING": "27-OCT-2026",
-    "PAID UP VALUE": "1",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE00TV01023",
-    "FACE VALUE": "1"
-   },
-   {
-    "SYMBOL": "UNIVAFOODS",
-    "NAME OF COMPANY": "Univa Foods Limited",
-    "SERIES": "BE",
-    "DATE OF LISTING": "03-APR-1996",
-    "PAID UP VALUE": "10",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE275F01019",
-    "FACE VALUE": "10"
    }
   ],
   "corporate_actions": [
@@ -170,65 +20,53 @@
     "bcEndDate": "-",
     "bcStartDate": "-",
     "caBroadcastDate": null,
-    "comp": "Government of India",
-    "exDate": "26-Oct-2026",
+    "comp": "Anantam Highways Trust",
+    "exDate": "27-Oct-2026",
     "faceVal": "100",
     "ind": "-",
-    "isin": "IN0020260017",
+    "isin": "INE1UA823019",
     "ndEndDate": "-",
     "ndStartDate": "-",
-    "recDate": "26-Oct-2026",
-    "series": "GS",
-    "subject": "Interest Payment",
-    "symbol": "750GS2056"
+    "recDate": "27-Oct-2026",
+    "series": "IV",
+    "subject": "Distribution - Rs 2.75 Per Unit Consist Of Re 0.60821 Per Unit As Interest/ Re 0.34940 Per Unit As Dividend/ Rs 1.78940 Per Unit As Capital Repayment/Re 0.00299 Per Unit As Other Income",
+    "symbol": "ANANTAM"
    },
    {
     "bcEndDate": "-",
     "bcStartDate": "-",
     "caBroadcastDate": null,
-    "comp": "Hexaware Technologies Limited",
-    "exDate": "26-Oct-2026",
-    "faceVal": "1",
+    "comp": "L&T Technology Services Limited",
+    "exDate": "27-Oct-2026",
+    "faceVal": "2",
     "ind": "-",
-    "isin": "INE093A01041",
+    "isin": "INE010V01017",
     "ndEndDate": "-",
     "ndStartDate": "-",
-    "recDate": "26-Oct-2026",
+    "recDate": "27-Oct-2026",
     "series": "EQ",
-    "subject": "Interim Dividend - Rs 9.50 Per Share",
-    "symbol": "HEXT"
+    "subject": "Interim Dividend - Rs 20 Per Share",
+    "symbol": "LTTS"
    }
   ]
  },
  "touching_members": {
-  "equity_l.csv": [
-   {
-    "SYMBOL": "EDUCOMP",
-    "NAME OF COMPANY": "Educomp Solutions Limited",
-    "SERIES": "BZ",
-    "DATE OF LISTING": "13-JAN-2006",
-    "PAID UP VALUE": "2",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE216H01027",
-    "FACE VALUE": "2"
-   }
-  ],
   "corporate_actions": [
    {
     "bcEndDate": "-",
     "bcStartDate": "-",
     "caBroadcastDate": null,
-    "comp": "Hexaware Technologies Limited",
-    "exDate": "26-Oct-2026",
-    "faceVal": "1",
+    "comp": "L&T Technology Services Limited",
+    "exDate": "27-Oct-2026",
+    "faceVal": "2",
     "ind": "-",
-    "isin": "INE093A01041",
+    "isin": "INE010V01017",
     "ndEndDate": "-",
     "ndStartDate": "-",
-    "recDate": "26-Oct-2026",
+    "recDate": "27-Oct-2026",
     "series": "EQ",
-    "subject": "Interim Dividend - Rs 9.50 Per Share",
-    "symbol": "HEXT"
+    "subject": "Interim Dividend - Rs 20 Per Share",
+    "symbol": "LTTS"
    }
   ]
  }
