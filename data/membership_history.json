@@ -2108,6 +2108,15 @@
           "removed": [
             "CCAVENUE"
           ]
+        },
+        {
+          "date": "2026-10-28",
+          "added": [
+            "ICICILIFE"
+          ],
+          "removed": [
+            "ICICIPRULI"
+          ]
         }
       ]
     },
@@ -4435,6 +4444,15 @@
             "POWERINDIA",
             "SJVN",
             "TATAELXSI"
+          ]
+        },
+        {
+          "date": "2026-10-28",
+          "added": [
+            "ICICILIFE"
+          ],
+          "removed": [
+            "ICICIPRULI"
           ]
         }
       ]
@@ -13702,6 +13720,15 @@
       ],
       "removed": [
         "CCAVENUE"
+      ]
+    },
+    {
+      "date": "2026-10-28",
+      "added": [
+        "ICICILIFE"
+      ],
+      "removed": [
+        "ICICIPRULI"
       ]
     }
   ],
