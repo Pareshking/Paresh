@@ -1,18 +1,38 @@
 {
- "fetched_at_utc": "2026-10-27T08:23:27+00:00",
+ "fetched_at_utc": "2026-10-28T08:59:32+00:00",
  "new": {
   "symbolchange.csv": [],
   "namechange.csv": [],
   "equity_l.csv": [
    {
-    "SYMBOL": "SHIVAM-RE1",
-    "NAME OF COMPANY": "Shivam Autotech Ltd-RE",
-    "SERIES": "BE",
-    "DATE OF LISTING": "28-OCT-2026",
+    "SYMBOL": "BONDADA",
+    "NAME OF COMPANY": "Bondada Engineering Limited",
+    "SERIES": "EQ",
+    "DATE OF LISTING": "29-OCT-2026",
     "PAID UP VALUE": "2",
     "MARKET LOT": "1",
-    "ISIN NUMBER": "INE637H20024",
+    "ISIN NUMBER": "INE0Q8P01029",
     "FACE VALUE": "2"
+   },
+   {
+    "SYMBOL": "JPL",
+    "NAME OF COMPANY": "Jio Platforms Limited",
+    "SERIES": "EQ",
+    "DATE OF LISTING": "28-OCT-2026",
+    "PAID UP VALUE": "10",
+    "MARKET LOT": "1",
+    "ISIN NUMBER": "INE0BJO01010",
+    "FACE VALUE": "10"
+   },
+   {
+    "SYMBOL": "PARASHLTH",
+    "NAME OF COMPANY": "Paras Healthcare Limited",
+    "SERIES": "EQ",
+    "DATE OF LISTING": "28-OCT-2026",
+    "PAID UP VALUE": "1",
+    "MARKET LOT": "1",
+    "ISIN NUMBER": "INE661T01029",
+    "FACE VALUE": "1"
    }
   ],
   "corporate_actions": [
@@ -20,33 +40,49 @@
     "bcEndDate": "-",
     "bcStartDate": "-",
     "caBroadcastDate": null,
-    "comp": "Anantam Highways Trust",
-    "exDate": "27-Oct-2026",
-    "faceVal": "100",
+    "comp": "Cyient Limited",
+    "exDate": "28-Oct-2026",
+    "faceVal": "5",
     "ind": "-",
-    "isin": "INE1UA823019",
+    "isin": "INE136B01020",
     "ndEndDate": "-",
     "ndStartDate": "-",
-    "recDate": "27-Oct-2026",
-    "series": "IV",
-    "subject": "Distribution - Rs 2.75 Per Unit Consist Of Re 0.60821 Per Unit As Interest/ Re 0.34940 Per Unit As Dividend/ Rs 1.78940 Per Unit As Capital Repayment/Re 0.00299 Per Unit As Other Income",
-    "symbol": "ANANTAM"
+    "recDate": "28-Oct-2026",
+    "series": "EQ",
+    "subject": "Interim Dividend - Rs 12 Per Share",
+    "symbol": "CYIENT"
    },
    {
     "bcEndDate": "-",
     "bcStartDate": "-",
     "caBroadcastDate": null,
-    "comp": "L&T Technology Services Limited",
-    "exDate": "27-Oct-2026",
-    "faceVal": "2",
+    "comp": "Automobile Corporation of Goa Limited",
+    "exDate": "28-Oct-2026",
+    "faceVal": "10",
     "ind": "-",
-    "isin": "INE010V01017",
+    "isin": "INE451C01013",
     "ndEndDate": "-",
     "ndStartDate": "-",
-    "recDate": "27-Oct-2026",
+    "recDate": "28-Oct-2026",
     "series": "EQ",
-    "subject": "Interim Dividend - Rs 20 Per Share",
-    "symbol": "LTTS"
+    "subject": "Buy Back",
+    "symbol": "ACGL"
+   },
+   {
+    "bcEndDate": "-",
+    "bcStartDate": "-",
+    "caBroadcastDate": null,
+    "comp": "Nippon Life India Asset Management Limited",
+    "exDate": "28-Oct-2026",
+    "faceVal": "10",
+    "ind": "-",
+    "isin": "INE298J01013",
+    "ndEndDate": "-",
+    "ndStartDate": "-",
+    "recDate": "28-Oct-2026",
+    "series": "EQ",
+    "subject": "Interim Dividend - Rs 9.50 Per Share",
+    "symbol": "NAM-INDIA"
    }
   ]
  },
@@ -56,17 +92,33 @@
     "bcEndDate": "-",
     "bcStartDate": "-",
     "caBroadcastDate": null,
-    "comp": "L&T Technology Services Limited",
-    "exDate": "27-Oct-2026",
-    "faceVal": "2",
+    "comp": "Cyient Limited",
+    "exDate": "28-Oct-2026",
+    "faceVal": "5",
     "ind": "-",
-    "isin": "INE010V01017",
+    "isin": "INE136B01020",
     "ndEndDate": "-",
     "ndStartDate": "-",
-    "recDate": "27-Oct-2026",
+    "recDate": "28-Oct-2026",
     "series": "EQ",
-    "subject": "Interim Dividend - Rs 20 Per Share",
-    "symbol": "LTTS"
+    "subject": "Interim Dividend - Rs 12 Per Share",
+    "symbol": "CYIENT"
+   },
+   {
+    "bcEndDate": "-",
+    "bcStartDate": "-",
+    "caBroadcastDate": null,
+    "comp": "Nippon Life India Asset Management Limited",
+    "exDate": "28-Oct-2026",
+    "faceVal": "10",
+    "ind": "-",
+    "isin": "INE298J01013",
+    "ndEndDate": "-",
+    "ndStartDate": "-",
+    "recDate": "28-Oct-2026",
+    "series": "EQ",
+    "subject": "Interim Dividend - Rs 9.50 Per Share",
+    "symbol": "NAM-INDIA"
    }
   ]
  }
