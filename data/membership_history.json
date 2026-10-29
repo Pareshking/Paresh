@@ -2117,6 +2117,13 @@
           "removed": [
             "ICICIPRULI"
           ]
+        },
+        {
+          "date": "2026-10-30",
+          "added": [],
+          "removed": [
+            "TRIVENIPT"
+          ]
         }
       ]
     },
@@ -8238,6 +8245,13 @@
           "removed": [
             "CCAVENUE"
           ]
+        },
+        {
+          "date": "2026-10-30",
+          "added": [],
+          "removed": [
+            "TRIVENIPT"
+          ]
         }
       ]
     },
@@ -13729,6 +13743,13 @@
       ],
       "removed": [
         "ICICIPRULI"
+      ]
+    },
+    {
+      "date": "2026-10-30",
+      "added": [],
+      "removed": [
+        "TRIVENIPT"
       ]
     }
   ],
