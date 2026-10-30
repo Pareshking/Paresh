@@ -1259,6 +1259,7 @@ LIQUIDETF,DSP BLACKROCK LIQUID  ETF,DSP LIQUID ETF,25-SEP-2018
 LIQUIDIETF,ICICI Prudential Mutual Fund - ICICI Prudential Liquid ETF - NO NA,ICICI Prudential S&P BSE Liquid Rate ETF,01-JUL-2022
 LIQUIDIETF,ICICI Prudential S&P BSE Liquid Rate ETF,ICICI Prudential BSE Liquid Rate ETF,02-JUL-2024
 LIQUIDIETF,ICICI Prudential BSE Liquid Rate ETF,ICICI Prudential BSE Liquid Rate ETF- IDCW,26-MAR-2025
+LIQUIDSBI,SBI Mutual Fund - SBI NIFTY 1D Rate ETF,SBI Nifty 1D Rate Liquid ETF - IDCW,30-OCT-2026
 LLOYDSENGG,Lloyds Steels Industries Limited,LLOYDS ENGINEERING WORKS LIMITED,16-OCT-2023
 LMW,Lakshmi Machine Works Limited,LMW Limited,10-OCT-2024
 LODHA,Macrotech Developers Limited,Lodha Developers Limited,11-JUL-2025
@@ -1318,8 +1319,8 @@ MONSANTO,Monsanto Chemicals Of India Ltd.,Monsanto India Limited,02-AUG-2000
 MOTHERSON,Motherson Sumi Systems Limited,Samvardhana Motherson International Limited,09-JUN-2022
 MPHASIS,Mphasis BFL Limited,MphasiS Limited,26-DEC-2006
 MPSLTD,Macmillan India Limited,MPS Limited,11-SEP-2009
-NACLIND,Nagarjuna Agrichem Limited,Nacl Industries Limited,29-SEP-2017
 NACLIND,Nagarjuna Agrichem Limited,NACL Industries Limited,29-SEP-2017
+NACLIND,Nagarjuna Agrichem Limited,Nacl Industries Limited,29-SEP-2017
 NAHARPOLY,Nahar Investments and Holding Limited,Nahar Poly Films Limited,15-JUN-2011
 NAM-INDIA,Reliance Nippon Life Asset Management Limited,Nippon Life India Asset Management Limited,23-JAN-2020
 NAMAN,Naman In-Store (India) Limited,Naman Industries Proxima Limited,02-JAN-2026
@@ -1906,6 +1907,15 @@ SAREGAMA,The Gramophone Company of India Limited,SAREGAMA INDIA LIMITED,02-JAN-2
 SASKEN,Sasken Communication Technologies Limited,Sasken Technologies Limited,08-MAR-2017
 SATKARTAR,Sat Kartar Shopping Limited,Sat Kartar Life Limited,23-APR-2026
 SAURASHCEM,Saurashtra Cement & Chemical Industries Ltd,Saurashtra Cement Limited,11-AUG-1999
+SBI10YGILT,SBI Mutual Fund - SBI-ETF 10 YEAR GILT,SBI Nifty 10 yr Benchmark G-Sec ETF,30-OCT-2026
+SBIBANKNIF,SBI-ETF Nifty Bank,SBI Nifty Bank ETF,30-OCT-2026
+SBICONS,SBI Mutual Fund - SBI ETF Consumption,SBI Nifty Consumption ETF,30-OCT-2026
+SBIGOLD,SBI-ETF Gold,SBI Gold ETF,30-OCT-2026
+SBIIT,SBI Mutual Fund-SBI ETF IT,SBI Nifty IT ETF,30-OCT-2026
+SBINEXT50,SBI-ETF Nifty Next 50,SBI Nifty Next 50 ETF,30-OCT-2026
+SBINIFTY50,SBI-ETF Nifty 50,SBI Nifty 50 ETF,30-OCT-2026
+SBIPVTBNK,SBI Mutual Fund - SBI ETF Private Bank - SBI ETF Private Bank,SBI Nifty Private Bank ETF,30-OCT-2026
+SBIQUALITY,SBI Mutual Fund - SBI - ETF Quality - SBI-ETF Quality,SBI Nifty 200 Quality 30 ETF,30-OCT-2026
 SBIVALETF,SBI Mutual Fund - SBI Nifty200 Value 30 ETF SBI Nifty200 Value 30 ETF,SBI Mutual Fund - SBI Nifty200 Value 30 ETF,29-MAY-2026
 SBNPPFTP07,Sundaram BNP Paribas FTP-Ser R-18Mths -Dividend Payout Option,Sundaram Mutual Fund - Sundaram FTP R - Dividend Payout Option,26-NOV-2010
 SBNPPFTP08,Sundaram BNP Paribas FTP-Ser R-18Mths-Growth Option,Sundaram Mutual Fund - Sundaram FTP R - Growth Option,26-NOV-2010
