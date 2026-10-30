@@ -134,6 +134,7 @@ ANUHPHR,Health Technology,Pharmaceuticals: Major
 ANUP,Producer Manufacturing,Industrial Machinery
 ANURAS,Health Technology,Pharmaceuticals: Major
 ANYA,Process Industries,Chemicals: Agricultural
+AONESTEELS,Non-Energy Minerals,Steel
 APARINDS,Electronic Technology,Electronic Equipment/Instruments
 APCL,Non-Energy Minerals,Construction Materials
 APCOTEXIND,Process Industries,Chemicals: Specialty
@@ -337,6 +338,8 @@ BLUSPRING,Commercial Services,Miscellaneous Commercial Services
 BMWVENTLTD,Distribution Services,Wholesale Distributors
 BODALCHEM,Process Industries,Industrial Specialties
 BOMDYEING,Process Industries,Textiles
+BONDADA,Industrial Services,Engineering & Construction
+BONFIG,Producer Manufacturing,Industrial Machinery
 BORANA,Process Industries,Textiles
 BOROLTD,Producer Manufacturing,Miscellaneous Manufacturing
 BORORENEW,Process Industries,Industrial Specialties
@@ -702,6 +705,7 @@ FRESHARA,Consumer Non-Durables,Food: Specialty/Candy
 FROG,Electronic Technology,Telecommunications Equipment
 FSL,Commercial Services,Miscellaneous Commercial Services
 FUSION,Finance,Finance/Rental/Leasing
+FUSIONCX,Commercial Services,Miscellaneous Commercial Services
 FWSTC,Commercial Services,Miscellaneous Commercial Services
 GABRIEL,Producer Manufacturing,Auto Parts: OEM
 GAEL,Consumer Non-Durables,Food: Specialty/Candy
@@ -855,6 +859,7 @@ HDBFS,Finance,Finance/Rental/Leasing
 HDFCAMC,Finance,Investment Managers
 HDFCBANK,Finance,Major Banks
 HDFCLIFE,Finance,Life/Health Insurance
+HDFIRE,Producer Manufacturing,Industrial Machinery
 HDIL,Finance,Real Estate Development
 HECPROJECT,Industrial Services,Engineering & Construction
 HEG,Electronic Technology,Electronic Components
@@ -1074,6 +1079,7 @@ JNKINDIA,Producer Manufacturing,Building Products
 JNPR,Utilities,Alternative Power Generation
 JOCIL,Process Industries,Chemicals: Specialty
 JPASSOCIAT,Producer Manufacturing,Industrial Conglomerates
+JPL,Communications,Wireless Telecommunications
 JPOLYINVST,Finance,Investment Managers
 JPPOWER,Utilities,Electric Utilities
 JSFB,Finance,Regional Banks
@@ -1370,6 +1376,7 @@ MOLDTECH,Industrial Services,Engineering & Construction
 MOLDTKPAC,Producer Manufacturing,Miscellaneous Manufacturing
 MONARCH,Finance,Investment Banks/Brokers
 MONEYBOXX,Finance,Regional Banks
+MONEYVIEW,Finance,Finance/Rental/Leasing
 MONOLITH,Non-Energy Minerals,Construction Materials
 MONTECARLO,Consumer Non-Durables,Apparel/Footwear
 MOREPENLAB,Health Technology,Pharmaceuticals: Major
@@ -1517,6 +1524,7 @@ ORCHPHARMA,Health Technology,Pharmaceuticals: Major
 ORIANA,Industrial Services,Engineering & Construction
 ORICONENT,Producer Manufacturing,Miscellaneous Manufacturing
 ORIENTBELL,Producer Manufacturing,Building Products
+ORIENTCABL,Producer Manufacturing,Electrical Products
 ORIENTCEM,Non-Energy Minerals,Construction Materials
 ORIENTCER,Non-Energy Minerals,Aluminum
 ORIENTELEC,Consumer Durables,Electronics/Appliances
@@ -1545,6 +1553,7 @@ PARACABLES,Producer Manufacturing,Electrical Products
 PARADEEP,Process Industries,Chemicals: Agricultural
 PARAGMILK,Consumer Non-Durables,Food: Meat/Fish/Dairy
 PARAS,Electronic Technology,Aerospace & Defense
+PARASHLTH,Health Services,Hospital/Nursing Management
 PARIN,Consumer Durables,Home Furnishings
 PARKHOSPS,Health Services,Hospital/Nursing Management
 PARKHOTELS,Consumer Services,Hotels/Resorts/Cruise lines
@@ -1784,6 +1793,7 @@ RUBYMILLS,Process Industries,Textiles
 RUCHINFRA,Transportation,Other Transportation
 RUCHIRA,Process Industries,Pulp & Paper
 RUDRA,Non-Energy Minerals,Steel
+RUNWALENTR,Finance,Real Estate Development
 RUPA,Consumer Non-Durables,Apparel/Footwear
 RUSHIL,Non-Energy Minerals,Forest Products
 RUSTOMJEE,Finance,Real Estate Development
@@ -1966,6 +1976,7 @@ SMARTWORKS,Finance,Real Estate Development
 SMCGLOBAL,Finance,Investment Banks/Brokers
 SMLMAH,Consumer Durables,Motor Vehicles
 SMSPHARMA,Health Technology,Pharmaceuticals: Major
+SMT,Health Technology,Medical Specialties
 SNOWMAN,Commercial Services,Miscellaneous Commercial Services
 SOBHA,Finance,Real Estate Development
 SOFTTECH,Technology Services,Packaged Software
@@ -2171,6 +2182,7 @@ TMPV,Consumer Durables,Motor Vehicles
 TNPETRO,Process Industries,Chemicals: Specialty
 TNPL,Process Industries,Pulp & Paper
 TOLINS,Consumer Durables,Automotive Aftermarket
+TONBO,Electronic Technology,Aerospace & Defense
 TORNTPHARM,Health Technology,Pharmaceuticals: Major
 TORNTPOWER,Utilities,Electric Utilities
 TOTAL,Transportation,Air Freight/Couriers
@@ -2378,6 +2390,7 @@ ZEEMEDIA,Consumer Services,Broadcasting
 ZENITHEXPO,Consumer Non-Durables,Apparel/Footwear
 ZENSARTECH,Technology Services,Packaged Software
 ZENTEC,Technology Services,Information Technology Services
+ZETWERK,Producer Manufacturing,Metal Fabrication
 ZFCVINDIA,Producer Manufacturing,Auto Parts: OEM
 ZIMLAB,Health Technology,Pharmaceuticals: Generic
 ZODIAC,Producer Manufacturing,Building Products
