@@ -1,5 +1,5 @@
 {
-  "fetched_at_utc": "2026-10-31T08:54:00+00:00",
+  "fetched_at_utc": "2026-11-01T09:45:00+00:00",
   "files": {
     "symbolchange.csv": {
       "url": "https://nsearchives.nseindia.com/content/equities/symbolchange.csv",
@@ -19,8 +19,8 @@
     "corporate_actions_recent.json": {
       "url": "https://www.nseindia.com/api/corporates-corporateActions",
       "window_days": 45,
-      "rows": 327,
-      "sha256": "94891a1b22d88a98b9a4c5e6be482ae1b5591012dc7be9c9409f715fc6f923ab"
+      "rows": 297,
+      "sha256": "ab8e940bd9cd13810c6499afb80b1bd6964ec5ee6a09f8ebbc7e0d82530df627"
     }
   }
 }
