@@ -1,13 +1,13 @@
 {
-  "fetched_on": "2026-10-12",
+  "fetched_on": "2026-11-01",
   "source": "Screener closes; NSE closes (split/bonus adjusted) where Screener has none",
   "by_source": {
-    "screener": 250,
+    "screener": 251,
     "nse": 7
   },
-  "symbols": 257,
+  "symbols": 258,
   "first_session": "2024-09-30",
-  "last_session": "2026-10-09",
+  "last_session": "2026-10-30",
   "unavailable": [
     "ACCELYA",
     "ACLGATI",
@@ -123,6 +123,7 @@
     "TINPLATE",
     "TIRUMALCHM",
     "TNPL",
+    "TRIVENIPT",
     "TV18BRDCST",
     "TVTODAY",
     "UJJIVAN",
