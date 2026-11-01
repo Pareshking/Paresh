@@ -17,8 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Parse official announcement text
@@ -40,7 +40,7 @@ jobs:
         run: python freeze_history.py --check
       - name: Retain unresolved-event audit
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nse-index-membership-open-issues
           path: nse_index_rebuild/open_issues.csv
