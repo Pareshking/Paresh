@@ -13,7 +13,7 @@ streamlit==1.65.0
 # of 2.0.0 / 1.24.0 claimed support for versions nothing ever ran. Dependabot
 # (monthly, increase-if-necessary) opens a PR for each new release; bump
 # deliberately and let CI plus V1 Production QA confirm it.
-pandas==3.0.6
+pandas==3.1.0
 numpy==2.4.6
 # scikit-learn was declared here and imported NOWHERE -- `grep -rn sklearn`
 # across the repository returns this line and nothing else. Carrying it cost
