@@ -2124,6 +2124,14 @@
           "removed": [
             "TRIVENIPT"
           ]
+        },
+        {
+          "date": "2026-11-04",
+          "added": [
+            "ENNATURE",
+            "IGLSPIRITS"
+          ],
+          "removed": []
         }
       ]
     },
@@ -8252,6 +8260,14 @@
           "removed": [
             "TRIVENIPT"
           ]
+        },
+        {
+          "date": "2026-11-04",
+          "added": [
+            "ENNATURE",
+            "IGLSPIRITS"
+          ],
+          "removed": []
         }
       ]
     },
@@ -13751,6 +13767,14 @@
       "removed": [
         "TRIVENIPT"
       ]
+    },
+    {
+      "date": "2026-11-04",
+      "added": [
+        "ENNATURE",
+        "IGLSPIRITS"
+      ],
+      "removed": []
     }
   ],
   "aliases": {
