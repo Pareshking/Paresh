@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "inception": "2026-10",
+  "benchmark": "^CRSLDX",
+  "months": {
+    "2026-10": {
+      "strategy": -0.0572,
+      "benchmark": 0.001745,
+      "alpha": -0.058945,
+      "origin": "recorded",
+      "universe": "point_in_time",
+      "finalized_on": "2026-11-03",
+      "config": "4cc739e503d7",
+      "data_as_of": "2026-11-03"
+    }
+  },
+  "price_basis": "screener_primary"
+}
