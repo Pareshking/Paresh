@@ -628,6 +628,7 @@ ENDURANCE,Producer Manufacturing,Metal Fabrication
 ENFUSE,Technology Services,Information Technology Services
 ENGINERSIN,Industrial Services,Engineering & Construction
 ENIL,Consumer Services,Broadcasting
+ENNATURE,Health Technology,Pharmaceuticals: Major
 ENRIN,Producer Manufacturing,Electrical Products
 ENTERO,Distribution Services,Medical Distributors
 ENVIRO,Producer Manufacturing,Industrial Machinery
@@ -942,6 +943,7 @@ IGARASHI,Producer Manufacturing,Auto Parts: OEM
 IGCL,Process Industries,Chemicals: Agricultural
 IGIL,Commercial Services,Miscellaneous Commercial Services
 IGL,Utilities,Gas Distributors
+IGLSPIRITS,Fast Moving Consumer Goods,Fast Moving Consumer Goods
 IGPL,Process Industries,Chemicals: Specialty
 IIFL,Finance,Finance/Rental/Leasing
 IIFLCAPS,Finance,Investment Banks/Brokers
@@ -2401,5 +2403,3 @@ ZUARI,Process Industries,Chemicals: Agricultural
 ZUARIIND,Process Industries,Agricultural Commodities/Milling
 ZYDUSLIFE,Health Technology,Pharmaceuticals: Major
 ZYDUSWELL,Consumer Non-Durables,Food: Major Diversified
-ENNATURE,Healthcare,Healthcare
-IGLSPIRITS,Fast Moving Consumer Goods,Fast Moving Consumer Goods
