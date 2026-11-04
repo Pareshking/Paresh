@@ -1,4 +1,7 @@
 {
   "note": "Index members with no Screener price history yet; written by scripts/sync_screener.py.",
-  "symbols": {}
+  "symbols": {
+    "ENNATURE": "2026-11-04",
+    "IGLSPIRITS": "2026-11-04"
+  }
 }
