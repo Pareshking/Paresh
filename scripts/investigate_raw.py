@@ -69,7 +69,7 @@ def main() -> int:
         acts = read_actions(reader, archive, a - timedelta(days=40), b + timedelta(days=40))
         if len(acts):
             acts = acts[acts["symbol"].isin(syms)]
-            cols = [c for c in ("symbol", "ex_date", "purpose", "kind", "price_factor", "source") if c in acts.columns]
+            cols = [c for c in ("symbol", "ex_date", "purpose", "kind", "price_factor", "face_value", "source") if c in acts.columns]
             print(acts[cols].to_string(index=False) if len(acts) else "no actions filed")
         if len(px) and len(acts) and label.startswith("S108"):
             # What the pipeline itself does with these rows: the verdict and
@@ -80,6 +80,8 @@ def main() -> int:
             moved = acts.copy()
             moved["symbol"] = moved["symbol"].replace({"CCAVENUE": "INFIBEAM"})
             try:
+                # The rights terms the pipeline reads: ratio, face value + premium.
+                print(na._rights(moved).to_string(index=False))
                 factors, verdicts = na.action_factors(wide, moved)
                 print(verdicts.to_string(index=False) if len(verdicts) else "no verdicts")
                 print("factors != 1:", factors[(factors.fillna(1) != 1).any(axis=1)].to_string())
