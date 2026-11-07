@@ -31,6 +31,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 from pathlib import Path
@@ -64,21 +65,41 @@ def missing_weekdays(held: set[date], closed: set[date], start: date, end: date)
     return [d for d in weekdays(start, end) if d not in held and d not in closed]
 
 
+RETRIES, RETRY_PAUSE_S = 3, 5
+
+
 def read_history(reader, days: list[date], workers: int = 16, log=print) -> pd.DataFrame:
     """Every session's price rows (stock series only, the columns the audit needs)."""
     def one(d):
         p = reader.read_parquet(reader.resolve_current(nh.R2_PRICES, as_of=d.isoformat()))
         return p[p["series"].isin(na.PRICE_SERIES)][nh.KEEP]
 
-    frames, bad = [], []
+    frames, failed = [], []
     with ThreadPoolExecutor(max_workers=workers) as pool:
         for i, (d, fut) in enumerate(zip(days, [pool.submit(one, d) for d in days])):
             try:
                 frames.append(fut.result())
-            except Exception as exc:  # noqa: BLE001
-                bad.append(f"{d}: {type(exc).__name__}")
+            except Exception:  # noqa: BLE001
+                failed.append(d)
             if (i + 1) % 500 == 0:
                 log(f"  read {i + 1}/{len(days)} sessions")
+    # Read again one at a time, with a pause: on 7 Nov 2026 the Saturday full
+    # re-read lost 6 scattered sessions of 4,742 to ClientError under 16
+    # parallel reads (R2 throttling) and the build refused to publish.
+    bad = []
+    for attempt in range(1, RETRIES + 1):
+        if not failed:
+            break
+        log(f"  retry {attempt}/{RETRIES}: {len(failed)} sessions, one at a time")
+        time.sleep(RETRY_PAUSE_S * attempt)
+        again, bad = [], []
+        for d in failed:
+            try:
+                frames.append(one(d))
+            except Exception as exc:  # noqa: BLE001
+                again.append(d)
+                bad.append(f"{d}: {type(exc).__name__}")
+        failed = again
     if bad:
         log(f"  unreadable: {len(bad)} {bad[:5]}")
     return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=nh.KEEP)
