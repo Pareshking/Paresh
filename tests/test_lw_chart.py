@@ -16,13 +16,13 @@ def test_series_points_scales_fractions_to_percent():
     assert day == "2026-01-01" and abs(value + 11.9) < 1e-9
 
 
-def test_the_document_carries_the_library_and_the_data_and_no_cdn():
+def test_the_document_loads_the_library_and_carries_the_data():
     html = lw.chart_html([{"height": 200, "series": [
         {"name": "Strategy", "type": "line", "fmt": "rupee",
          "data": [("2026-01-01", 2e6), ("2026-02-01", 2.1e6)]}]}])
-    assert "TradingView Lightweight Charts" in html          # vendored, inlined
+    assert "app/static/lightweight-charts.standalone.production.js" in html   # served once (F60)
     assert '"value":2100000.0' in html and "Strategy" in html
-    assert "cdn" not in html.split("</script>")[1].lower()   # nothing loaded from the network
+    assert "TradingView Lightweight Charts" not in html     # no longer inlined
     assert "subscribeCrosshairMove" in html                  # the hover legend
 
 
@@ -41,7 +41,9 @@ def test_nothing_is_drawn_for_a_single_point(monkeypatch):
 
 def test_the_library_is_v5_and_the_logo_is_off():
     html = lw.chart_html([{"series": [{"name": "x", "data": [("2026-01-01", 1.0), ("2026-01-02", 2.0)]}]}])
-    assert "Lightweight Charts™ v5." in html
+    from src.ui.highcharts_lib import _STATIC
+    lib = (_STATIC / "lightweight-charts.standalone.production.js").read_text(encoding="utf-8")
+    assert "Lightweight Charts™ v5." in lib and "lightweight-charts@5" in html
     assert "attributionLogo:false" in html
     # v4's per-type factories are gone in v5; every series goes through addSeries
     assert not any(f"add{t}Series(" in html.split("const SPEC=")[1]

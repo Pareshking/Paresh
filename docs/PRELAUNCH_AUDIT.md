@@ -12,6 +12,16 @@ TODO row S94 tracks this file; each item is closed here with its commit.
 3. **Foundations are right:** figures reconcile almost everywhere, the palette survives colour blindness, nothing scrolls sideways at 320 px, fonts load. What remains is consolidation: one tile, one table, one type scale, one formatter, a max-width.
 4. **About 12 focused sessions to launch-ready (all P0 and P1), about 15 for everything.**
 
+## Launched (7 Nov, 16:10 UTC)
+
+Merged as 3d1651e (#472) on the owner's word. Live check: the new pages are served,
+Source Serif 4 loads, no exceptions, Dashboard / Breadth / Sectors load in 6-20 s. The
+R2 index file is still weekly until the first nightly run after the merge (00:12 UTC);
+the index strip holds back the size indices until then. Found live and fixed in #474:
+size against the Nifty 500 compared different dates (Microcap 250 +7.0 against +3.7).
+Open after launch: F60 speed (done in PR #474: one shared library with a pinned CDN fallback; a check on Cloud after merge is still needed), the full
+type scale, screen reader and Safari/iOS checks, the 1 Dec rebalance (S95).
+
 ## Since 11:30 (7 Nov, 14:25 UTC)
 
 - The owner's S97 answers built: Screener 50 rows + Show all (wheel moves the page), menu
@@ -41,7 +51,7 @@ test that went out with it; fixed in 97fd85d).
 | Done | F1-F8, F10, F15-F17, F19-F30, F32, F33, F35, F36, F40-F46, F48-F51, F54-F56, F58, F59, F64, F66, F69 (Sharpe basis), F70 (costs one wording), F77 (no colour literals outside tokens, with a test; the sector palette is V14), F72, F74, F18 (tests on the shared 1M session and daily index closes, test_dashboard and test_nse_index_prices); decision 5 (Sectors one ranking and one map, Backtest research only) |
 | Partly done | F39 (nothing under 12px; 24 sizes down to 22, the six-step scale not done), F12 closed (Traced 7 Nov from the files: 754 = NSE's Total Market file = the 750 + ENNATURE and IGLSPIRITS (India Glycols' demerger, listed 4 Nov, carried above the 750 until NSE's exclusion notice) + two unlisted placeholders DUMMYHEG and DUMMYINXGN; 752 = point-in-time membership on 6 Nov and the footer's price coverage = the 750 + ENNATURE and IGLSPIRITS; 750 ranked = the 752 members less ENNATURE and IGLSPIRITS, which have two sessions of prices: momentum.MIN_OBSERVATIONS (63) excludes a stock from the ranking until it has 63 real prices (momentum.py:502 drops unscored rows). Deliberate; they become rankable about 63 sessions after listing, if still members. The six short-history stocks the footer counts have 63 or more but under 126. Configuration's note now says so. Closed 7 Nov), F11 (Portfolio chart now ends on the headline value; levels unsigned), F27 (skip link done; roving focus in the 750-row table open), F34 (right-edge fade done; the inner scroll is S97b), F47 (₹ price axis and month-only date ticks done; % axes keep one decimal), F53 (Backtest is research only; its own layout untouched), F52 (Three systems table aligned and toned; rest of the lower half follows the shared table and grid) |
 | Decided by the owner (S97) | F13 keep "Personal"; F31 regroup (done); F34 50 rows + Show all (done); F38 1,240px and 16px (done); alpha stays %; V14 keep the 20 sector hues |
-| Open | F9, F14 (log wording comes from stored data), F37, F57, F60-F63 (speed; F60 plan: serve the chart libraries once from Streamlit's static folder instead of inlining 0.2-0.5 MB per frame, but how relative URLs resolve in Streamlit Cloud's frame must be checked on Cloud first, or every chart goes blank), F65, F67, F68, F71, F73, F76, F78 (polish); F75 not possible without script injection (Streamlit renders no main landmark; the skip link covers the need) |
+| Open | F9, F14 (log wording comes from stored data), F37, F57, F61-F63 (speed); F60 done in PR #474 (libraries served from `static/`, pinned jsDelivr copy if `app/static/` does not load, so a wrong path on Cloud costs speed, not charts; tested locally with the folder blocked; a Cloud check after merge is open), F65, F67, F68, F71, F73, F76, F78 (polish); F75 not possible without script injection (Streamlit renders no main landmark; the skip link covers the need) |
 
 Commits, in order: fef5a0c F25/F26 · fe3a09a F51 · bd28c0a F42/F50/F5/F10/F45 ·
 36912b2 F49/dates · f4cb21f F43 · 2f84512 F27-F29 · 898a207 F8/F15-F17/F46/F54 ·

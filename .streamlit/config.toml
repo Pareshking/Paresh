@@ -22,6 +22,9 @@ codeFont = "'IBM Plex Mono':https://fonts.googleapis.com/css2?family=IBM+Plex+Mo
 
 [server]
 headless = true
+# The chart libraries are served once from ./static (audit F60) instead of
+# being copied into every chart frame.
+enableStaticServing = true
 enableXsrfProtection = true
 # The only uploader is the Actions page's holdings CSV, a few KB. The default
 # 200 MB would let one upload sit in the server's memory beside every session.
