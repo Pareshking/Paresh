@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-07 — Breadth: the charts behind each answer
+
+- Under each question, "Behind the answer": two charts, each headed by a sentence saying what it shows. Taking part: the Nifty 500 above the share of stocks above their 200D EMA on one time axis, and net new 52W highs week by week. Uptrend: the Nifty 500's month-end closes against its 10-month average, and each size index against the Nifty 500 over the year.
+- Fixed: net new 52W highs counted a stock once for every day it set a high in the week (bars reached +140%); each stock now counts once. This week reads +2.3% of stocks, not +8.5%, and votes "between", not "broad".
+
 ## 2026-11-07 — Editorial type on every page
 
 - The Dashboard has a strip of the indices under its headline: the Nifty 500, Nifty 50, Midcap 150, Smallcap 250 and Microcap 250, each with the day's move, its last three months as a line and its move over a month, from NSE's index closes. On 6 Nov the day's moves match tipsheet's own strip to within 0.03 points (theirs is total return).

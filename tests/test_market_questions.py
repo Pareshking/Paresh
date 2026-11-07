@@ -135,7 +135,7 @@ def test_net_new_highs_uses_a_calendar_year_on_sparse_history():
     rising = pd.Series(np.linspace(100, 300, len(idx)), index=idx)
     prices = pd.DataFrame({f"S{i}": rising for i in range(10)})
     nnh = mq._net_new_highs(prices)
-    assert nnh.loc["2023-06-02"] == pytest.approx(500.0)      # 10 new highs a row, summed over 5 rows, / 10 stocks
+    assert nnh.loc["2023-06-02"] == pytest.approx(100.0)      # all 10 stocks made a new high this week, each counted once
     assert nnh.dropna().index[0] < pd.Timestamp("2023-02-01")  # readings start a year in, not years in
 
 

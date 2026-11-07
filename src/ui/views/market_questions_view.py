@@ -323,10 +323,133 @@ def size_trend_html(bench: pd.Series, size: dict[str, pd.Series]) -> str:
             'the average of the last ten. Points are per cent.</p>')
 
 
+@st.cache_data(show_spinner=False, ttl=3600)
+def _chart_series(_key: str, _prices: pd.DataFrame, _bench: pd.Series):
+    """The series behind the Breadth charts, computed once per price set."""
+    share200 = mq._share_above_ema(_prices, 200).dropna()
+    nnh = mq._net_new_highs(_prices).dropna()
+    weekly = nnh.groupby(nnh.index.to_period("W-FRI")).last()
+    weekly.index = weekly.index.to_timestamp(how="end").normalize()
+    return share200, weekly
+
+
+def _pts(s: pd.Series, since: pd.Timestamp | None = None) -> list[tuple[str, float]]:
+    from src.ui import lw_chart as lw
+    s = s.dropna()
+    if since is not None:
+        s = s.loc[since:]
+    return lw.series_points(s.index, s.values)
+
+
+def _moved(v: float) -> str:
+    return f"rose {abs(v):.1f}%" if v > 0 else f"fell {abs(v):.1f}%" if v < 0 else "was flat"
+
+
+def _chart_head(title: str, note: str) -> None:
+    st.html(f'<div class="qp-ch"><h3 class="qp-ch-h">{html.escape(title)}</h3>'
+            f'<p class="qp-note" style="margin:0 0 4px">{html.escape(note)}</p></div>')
+
+
+def _breadth_charts(bench: pd.Series, share200: pd.Series, weekly: pd.Series) -> None:
+    from src.ui import lw_chart as lw
+    if share200.empty:
+        return
+    end = share200.index[-1]
+    since = end - pd.DateOffset(years=3)
+    y0 = mq._on_or_before(bench.dropna().index, end - pd.DateOffset(years=1))
+    b1 = mq._on_or_before(bench.dropna().index, end)
+    s0 = mq._on_or_before(share200.index, end - pd.DateOffset(years=1))
+    left, right = st.columns(2, gap="large")
+    with left:
+        if y0 is not None and b1 is not None and s0 is not None:
+            ret = (float(bench.loc[b1]) / float(bench.loc[y0]) - 1) * 100
+            _chart_head(f"Over the year the Nifty 500 {_moved(ret)}; the share of stocks above their "
+                        f"200D EMA went from {share200.loc[s0]:.0f}% to {share200.iloc[-1]:.0f}%",
+                        "The index above, the share of the ranked stocks above their own 200D EMA below, "
+                        "on one time axis. When the index rises while the lower line falls, fewer stocks "
+                        "are carrying it. Three years; NSE closes.")
+        lw.render([
+            {"height": 170, "series": [{"name": "Nifty 500", "type": "line", "color": lw.INK, "fmt": "num",
+                                        "data": _pts(bench, since)}]},
+            {"height": 130, "series": [{"name": "Above 200D EMA", "type": "line", "color": "var(--c-up)",
+                                        "fmt": "share", "range": [0, 100], "data": _pts(share200, since)}],
+             "levels": [{"value": 60, "color": lw.GREEN, "title": "60%"},
+                        {"value": 40, "color": lw.RED, "title": "40%"}]},
+        ], key="q_breadth_index")
+    with right:
+        if not weekly.empty:
+            w = weekly.loc[since:]
+            a = mq._on_or_before(weekly.index, end - pd.DateOffset(years=1))
+            _chart_head(f"Net new 52W highs this week: {_fmt.signed(weekly.iloc[-1], 1)}% of stocks"
+                        + (f"; a year ago {_fmt.signed(weekly.loc[a], 1)}%" if a is not None else ""),
+                        "Each week, the stocks that made a new 52-week high in the last five sessions less "
+                        "those that made a new low, each counted once, as a share of the stocks that could "
+                        "make one. Above zero, more stocks are making highs.")
+            lw.render([{"height": 300, "series": [{
+                "name": "Net new highs", "type": "histogram", "fmt": "share1",
+                "colors": ["var(--c-up)" if v >= 0 else "var(--c-down)" for v in w.values],
+                "data": _pts(w)}]}], key="q_breadth_nnh")
+
+
+def _trend_charts(bench: pd.Series, size: dict[str, pd.Series]) -> None:
+    from src.ui import lw_chart as lw
+    b = bench.dropna()
+    m = b.groupby(b.index.to_period("M")).last()
+    # Completed months only, as the rule and the heading read them: the month
+    # in progress drew as a "30 Nov" close.
+    if b.index[-1] < b.index[-1].to_period("M").to_timestamp(how="end").normalize():
+        m = m.iloc[:-1]
+    m.index = m.index.to_timestamp(how="end").normalize()
+    avg = m.rolling(10).mean()
+    since = b.index[-1] - pd.DateOffset(years=3)
+    gap = mq.ten_month_gap(b, b.index[-1])
+    left, right = st.columns(2, gap="large")
+    with left:
+        if gap is not None:
+            _chart_head(f"The Nifty 500's last month-end close is {abs(gap):.1f}% "
+                        f"{'above' if gap >= 0 else 'below'} its 10-month average",
+                        "Month-end closes against the average of the last ten. Above the average the "
+                        "10-month rule reads up. Three years; NSE closes, price only.")
+        lw.render([{"height": 300, "series": [
+            {"name": "Nifty 500, month end", "type": "line", "color": lw.INK, "fmt": "num", "data": _pts(m, since)},
+            {"name": "10-month average", "type": "line", "color": lw.GREY, "fmt": "num", "data": _pts(avg, since)},
+        ]}], key="q_trend_10m")
+    with right:
+        rel = {}
+        for name, s in size.items():
+            s = s.dropna()
+            start = s.index[-1] - pd.DateOffset(years=1)
+            s0 = mq._on_or_before(s.index, start)
+            b0 = mq._on_or_before(b.index, start)
+            if s0 is None or b0 is None:
+                continue
+            bb = b.reindex(s.loc[s0:].index, method="ffill")
+            rel[name] = (s.loc[s0:] / float(s.loc[s0])) / (bb / float(b.loc[b0])) * 100
+        if rel:
+            last = {k: float(v.dropna().iloc[-1]) - 100 for k, v in rel.items() if len(v.dropna())}
+            best, worst = max(last, key=last.get), min(last, key=last.get)
+            _chart_head(f"Over the year, {best} did best against the Nifty 500 ({_fmt.signed(last[best], 1)} pts) and "
+                        f"{worst} worst ({_fmt.signed(last[worst], 1)} pts)",
+                        "Each size index divided by the Nifty 500, set to 100 a year ago; above 100 it has "
+                        "done better. NSE index closes, price only.")
+            colours = [lw.INK, "var(--c-up)", "var(--c-caution)", "var(--c-teal)", "var(--c-violet)"]
+            lw.render([{"height": 300, "levels": [{"value": 100, "color": lw.GREY, "title": "100"}],
+                        "series": [{"name": k, "type": "line", "color": colours[i % len(colours)], "fmt": "num",
+                                    "data": _pts(v)} for i, (k, v) in enumerate(rel.items())]}],
+                      key="q_trend_size")
+
+
+_CHART_CSS = """<style>
+.qp-ch-h{font-family:var(--font-serif,serif)!important;font-weight:500!important;font-size:19px!important;
+  line-height:1.3!important;color:var(--c-ink)!important;margin:6px 0 4px!important;padding:0!important;max-width:30em}
+.qp-behind{font-family:var(--font-serif,serif);font-weight:400;font-size:26px;color:var(--c-ink);margin:8px 0 0}
+</style>"""
+
+
 def render_breadth_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: pd.Series | None,
                              size: dict[str, pd.Series]) -> bool:
-    """The Breadth page's two questions. Returns False when there is not
-    enough data to answer them."""
+    """The Breadth page's two questions, each followed by the charts behind
+    its answer. Returns False when there is not enough data to answer them."""
     if prices is None or prices.empty or bench is None or bench.dropna().empty:
         return False
     syms = [s for s in rank_df["Symbol"] if s in prices.columns]
@@ -334,20 +457,23 @@ def render_breadth_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench:
     industry = rank_df.drop_duplicates("Symbol").set_index("Symbol").get("Industry", pd.Series(dtype=str))
     key = "|".join([price_fingerprint(px), str(bench.dropna().index[-1]), ",".join(sorted(size))])
     breadth, trend, _ = _answers(key, px, industry, bench.dropna(), size)
-    parts = [_CSS, _PAGE_CSS, '<nav class="qp-nav" aria-label="On this page">'
-             '<a href="#q-breadth">Are most stocks taking part?</a>'
-             '<a href="#q-trend">Is the market in an uptrend?</a><a href="#q-charts">Today\'s charts</a></nav>']
+    st.html(_CSS + _PAGE_CSS + _CHART_CSS + '<nav class="qp-nav" aria-label="On this page">'
+            '<a href="#q-breadth">Are most stocks taking part?</a>'
+            '<a href="#q-trend">Is the market in an uptrend?</a><a href="#q-charts">Today\'s charts</a></nav>')
     if breadth is not None:
-        parts.append(question_section_html(breadth, "breadth", "q-breadth"))
+        st.html(question_section_html(breadth, "breadth", "q-breadth")
+                + '<p class="qp-behind">Behind the answer</p>')
+        share200, weekly = _chart_series(key, px, bench.dropna())
+        _breadth_charts(bench.dropna(), share200, weekly)
     if trend is not None:
         sec = question_section_html(trend, "trend", "q-trend")
         table = size_trend_html(bench, size)
         if table:
             sec = sec.replace("</section>", "<h3 style='margin-top:14px'>By size</h3>" + table + "</section>")
-        parts.append(sec)
-    parts.append('<p class="qp-note" style="margin-bottom:18px">Counted over the stocks ranked today, so '
-                 'readings a year back leave out stocks that have since left the index.</p>')
-    st.html("".join(parts))
+        st.html(sec + '<p class="qp-behind">Behind the answer</p>')
+        _trend_charts(bench.dropna(), size)
+    st.html('<p class="qp-note" style="margin:10px 0 18px">Counted over the stocks ranked today, so '
+            'readings a year back leave out stocks that have since left the index.</p>')
     return breadth is not None or trend is not None
 
 
