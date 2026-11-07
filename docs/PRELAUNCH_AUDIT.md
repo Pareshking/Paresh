@@ -12,20 +12,25 @@ TODO row S94 tracks this file; each item is closed here with its commit.
 3. **Foundations are right:** figures reconcile almost everywhere, the palette survives colour blindness, nothing scrolls sideways at 320 px, fonts load. What remains is consolidation: one tile, one table, one type scale, one formatter, a max-width.
 4. **About 12 focused sessions to launch-ready (all P0 and P1), about 15 for everything.**
 
-## Progress (7 Nov, after the owner's decisions)
+## Progress (7 Nov, 11:30 UTC)
 
-Done beyond the P0 table below: F5/F6 one number style (lakh/crore, sign before ₹,
-true minus; 684013d), F7 "Trend: up" against the 200-day EMA (32e3e66), desktop
-quick links per decision 6 (a9ee708), the model and ranks-by-month scoring the
-day's index members (S95; 21fca6f, c2bb87c). Later on 7 Nov: every P0 closed. F25 ARIA tables and F26 chart
-text (fef5a0c); F51 Guide (fe3a09a); F42 one tile, F50 Configuration, F45 radii and
-shadows, F10 no part-year annualising, the rest of F5 true minus (bd28c0a); F49
-stock page and one date style (36912b2); F43 month grid. F11 Portfolio chart vs
-headline reconciled. Parked for the owner: F13 "Personal" as the public name of
-the price source (a deliberate choice in components.py). F27 skip link, F28 focus ring, F29 contrast done (roving focus in the 750-row
-table still open). F8 one EMA figure, F15 Leading, F16 52W/EMA names (Screener item 9), F17
-wrapping, F46 table emoji, F54 Actions done. F33 Dashboard links onward, F36 search labels done. F32 sticky phone header done. F35 filters kept on Back (in the address) done; F31's regroup not done: the owner
-chose the old menu groups. F30 tap targets (38–44px measured on an iPhone 13 viewport) done. F44 one table style, F40 weights, F48 footer line, F41 Mono only in dense tables, F47 ₹ price axis, F56 RRG lists, Breadth event words, unsigned levels in tables, decision 5 (Sectors one ranking and one map, Backtest research only) done; F38 parked (S97f). Next: F34 (parked: see TODO), F12–F14, Phase 3 type scale and table style, Phase 4 P1 pages.
+**All 17 P0 are fixed.** Every change was checked on the local app with the real
+6 Nov store (desktop 1440 px, and an iPhone 13 viewport where it matters),
+2447 tests pass, and CI was green on each pushed head except 0c1f937 (a failing
+test that went out with it; fixed in 97fd85d).
+
+| State | Items |
+|---|---|
+| Done | F1-F8, F10, F15-F17, F19-F30, F32, F33, F35, F36, F40-F46, F48-F51, F54-F56, F58; decision 5 (Sectors one ranking and one map, Backtest research only) |
+| Partly done | F11 (Portfolio chart now ends on the headline value; levels unsigned), F27 (skip link done; roving focus in the 750-row table open), F34 (right-edge fade done; the inner scroll is S97b), F47 (₹ price axis done; other axes unchanged), F53 (Backtest is research only; its own layout untouched) |
+| Parked for the owner (TODO S97) | F13 "Personal" as the public source name, F31 regrouped menu (owner chose the old groups), F34 rest (50 rows + Show all), F38 page width and phone gutter, alpha in points (owner chose %) |
+| Open | F9, F12, F14 (log wording comes from stored data), F18, F37, F39 (type scale), F52, F57, F59, F60-F63 (speed), F64-F78 (polish) |
+
+Commits, in order: fef5a0c F25/F26 · fe3a09a F51 · bd28c0a F42/F50/F5/F10/F45 ·
+36912b2 F49/dates · f4cb21f F43 · 2f84512 F27-F29 · 898a207 F8/F15-F17/F46/F54 ·
+e5de325 F33/F36 · 91c1646 F32 · 0c1f937+97fd85d F35 · c7c82d6 F30 · 021763a F44 ·
+a65c3f8 decision 5 · 9c6f0b5 F40/F48 · fe9f9ad F41 · ab21cbb F47 · 7bc597e F56 ·
+4bc3321 · bbbb800 F34 part.
 
 ## Status of the P0s
 
