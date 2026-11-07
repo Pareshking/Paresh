@@ -361,3 +361,110 @@ def test_nses_abbreviated_rights_wording_is_read(text, new, held, premium):
 
 def test_a_word_containing_right_is_not_a_rights_issue():
     assert nb.classify_purpose("Copyright Assignment")["kind"] != "rights"
+
+
+def test_recent_weekend_days_are_the_saturdays_and_sundays_only():
+    # Monday 9 Nov 2026: the last three days hold Sunday 8 and Saturday 7.
+    assert nc.recent_weekend_days(3, date(2026, 11, 9)) == [date(2026, 11, 8), date(2026, 11, 7)]
+    assert nc.recent_weekend_days(3, date(2026, 11, 11)) == []
+    assert nc.recent_weekend_days(0, date(2026, 11, 8)) == []
+
+
+def test_every_run_asks_for_recent_weekend_days():
+    # pyyaml is test-only: nse_collect.yml installs requirements + pytest, the full
+    # validation adds pyyaml (as tests/test_r2_final_acceptance_contract.py does).
+    yaml = pytest.importorskip("yaml")
+
+    spec = yaml.safe_load((Path(__file__).resolve().parents[1]
+                           / ".github/workflows/nse_collect.yml").read_text())
+    crons = [c["cron"] for c in spec.get("on", spec.get(True))["schedule"]]
+    step = next(s for s in spec["jobs"]["collect"]["steps"] if s.get("name") == "Collect and check")
+    assert "--weekends \"$WEEKENDS\"" in step["run"] and step["env"]["WEEKENDS"] == "10"
+    assert "41 3 * * *" in crons
+    assert all(c.endswith("1-5") for c in crons if c != "41 3 * * *")
+
+
+def test_announced_sessions_in_the_window_are_asked_for():
+    ann = [date(2026, 2, 1), date(2026, 11, 8), date(2027, 1, 1)]
+    # Monday 9 Nov: the Diwali Sunday on NSE's list is due; February is outside the window,
+    # a future date is not asked.
+    assert nc.recent_announced_sessions(date(2026, 11, 9), announced=ann) == [date(2026, 11, 8)]
+    assert nc.recent_announced_sessions(date(2026, 11, 30), announced=ann) == []
+
+
+def test_nse_lists_the_2026_muhurat_and_budget_sunday():
+    from src.loaders import nse_calendar
+
+    got = set(nse_calendar.announced_sessions())
+    assert {date(2026, 2, 1), date(2026, 11, 8)} <= got
+
+
+def test_the_daily_run_asks_every_recent_day_except_those_on_r2_or_recorded_closed(monkeypatch):
+    """No holiday list needed: a day with no bundle becomes 'absent', then closed."""
+    import datetime as dt
+    import sys
+    import types
+
+    today = date(2026, 11, 9)  # Monday
+    on_r2 = {date(2026, 11, 6), date(2026, 11, 5), date(2026, 11, 4), date(2026, 11, 3),
+             date(2026, 11, 2), date(2026, 10, 30)}
+    recorded_closed = {date(2026, 11, 1)}  # a Sunday asked a week ago, no bundle
+
+    class Archive:
+        def list_keys(self, prefix):
+            days = recorded_closed if "closed_days" in prefix else on_r2
+            return [f"{prefix}{d.isoformat()}/current.json" for d in days]
+
+    r2 = types.SimpleNamespace(R2Archive=lambda cfg: Archive(),
+                               R2Config=types.SimpleNamespace(from_env=lambda: None))
+    monkeypatch.setitem(sys.modules, "src.storage.r2", r2)
+    monkeypatch.setitem(sys.modules, "scripts.r2_publish", types.SimpleNamespace(publish=None))
+    monkeypatch.setattr(nc, "ist_now", lambda: dt.datetime(2026, 11, 9, 9, 0))
+    monkeypatch.setattr(nc.nse_calendar, "announced_sessions", lambda: [])
+    asked = []
+
+    def fake_collect(days, **kw):
+        asked.extend(days)
+        return {"published": [], "absent": list(days), "failed": [], "blocked": False,
+                "closed": [], "out_of_time": False}
+
+    monkeypatch.setattr(nc, "collect", fake_collect)
+    assert nc.main(["--recent", "7", "--weekends", "10", "--delay", "0"]) == 0
+    # Seven weekdays back from Monday 9 Nov reach 30 Oct; only 9 Nov is not on R2.
+    assert set(asked) == {today,                                  # weekday not on R2
+                          date(2026, 11, 8), date(2026, 11, 7),   # the weekend just gone
+                          date(2026, 10, 31)}                     # the Saturday before
+    assert date(2026, 11, 1) not in asked                         # recorded closed: not asked
+
+
+def test_the_update_adds_a_late_weekend_session_and_keeps_stored_closes(monkeypatch):
+    """A Sunday session that reached R2 after Monday was appended is added later."""
+    import scripts.sync_nse_prices as sync
+    from src.loaders import nse_prices as npx
+
+    idx = pd.DatetimeIndex(["2026-11-05", "2026-11-06", "2026-11-09"])  # Sunday 8 Nov missing
+    closes = pd.DataFrame({"AAA": [100.0, 101.0, 103.0]}, index=idx)
+    monkeypatch.setattr(npx, "load", lambda *a, **k: {"closes": closes, "actions": pd.DataFrame(),
+                                                       "notes": {}})
+    monkeypatch.setattr(sync.nh, "weekdays", lambda a, b: [date(2026, 11, 10)])
+    seen = {}
+
+    def read_r2(since, until):
+        seen["since"] = since
+        rows = [("2026-11-08", 102.0), ("2026-11-09", 999.0), ("2026-11-10", 104.0)]
+        return pd.DataFrame({"date": [d for d, _ in rows], "symbol": "AAA", "series": "EQ",
+                             "close": [c for _, c in rows]}), pd.DataFrame(), []
+
+    monkeypatch.setattr(sync.nh, "read_r2", read_r2)
+    monkeypatch.setattr(sync, "needed", lambda notes: ["AAA"])
+    monkeypatch.setattr(sync, "refresh", lambda *a, **k: 0)
+    written = {}
+    monkeypatch.setattr(sync, "write", lambda c, a, *x: written.update(closes=c))
+    monkeypatch.setattr(sync.na, "wide", lambda p: {"close": p.pivot(index="date", columns="symbol",
+                                                                      values="close")})
+    assert sync.update(0.0, "r2") == 0
+    assert seen["since"] == date(2026, 11, 9) - pd.Timedelta(days=sync.R2_LOOKBACK_DAYS)
+    out = written["closes"]["AAA"]
+    assert out.loc["2026-11-08"] == 102.0          # the late Sunday is added
+    assert out.loc["2026-11-09"] == 103.0          # a stored close is never replaced
+    assert out.loc["2026-11-10"] == 104.0

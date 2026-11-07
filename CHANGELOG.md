@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-07 — Portfolio, Backtest and Actions open faster; scheduled jobs that never worked stopped
+
+- Portfolio rebuilt its NSE price frame from the committed file on every visit, twice (the book and the month-to-date), about 1.5 s each. That frame is now kept until the file, the prices, the membership or the Screener store changes. Measured locally, cold / repeat visit: Portfolio 17.7 / 8.2 s -> 8.5 / 2.4 s; Backtest 6.0 / 4.6 -> 2.7 / 1.7 s; Actions repeat 3.1 -> 1.5 s. The book, weights and record are identical to the decimal.
+- The NSE daily download ran every four hours for a backfill to 2010 that finished in October. It now runs on trading-day evenings (with two retries) and once a day. Every run asks for each recent weekday and weekend day it does not have yet, so a Muhurat, Budget Sunday or special Saturday session is collected without knowing the holiday calendar in advance; a day with no data is simply recorded as closed. Before, a weekend session was missed unless someone typed in the date, and one that arrived after the next Monday was never added to the NSE price file.
+- Two weekly R2 checks that had not succeeded since September (cost observability: a setup error on every run; final acceptance: re-checking fixed 22 Sep evidence and timing out) no longer run on a schedule; both can still be run by hand. The weekly recovery audit, which had started timing out, has more time. A job that times out now raises the failure alert; before, timeouts were silent.
+- The full test suite now runs every night on the newest data, so a data change that breaks a check (as the 752-name Nifty 750 did on 4 Nov) is reported the same night.
+- Nifty 750 membership: ENNATURE and IGLSPIRITS, India Glycols' two demerged companies, listed 4 Nov, are counted as companies NSE carries above the 750 until its exclusion notice (like TRIVENIPT).
+
 ## 2026-10-15 — A nightly ranking that fails is no longer silent
 
 - On 14 Oct the nightly job could not build the 750 and Combined rankings (the same error that took the site down), but it still showed green and published the 13 Oct ranking again. The app then computed the ranking itself on every fresh start on 15 Oct, which is why memory and CPU stayed high. A manual run on the fixed code published all three rankings on 14 Oct prices at 11:39 UTC.

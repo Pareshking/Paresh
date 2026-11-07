@@ -4,16 +4,30 @@ name: NSE daily bundle collection
 # (unadjusted OHLC), corporate actions and market caps, plus a check of
 # where Screener disagrees with it. See scripts/nse_collect.py.
 #
-# Every four hours: the newest days first, then older ones back to January
-# 2010 (owner, 2026-10-02: "bhav copy download starting today back to 2010";
-# NSE's archive serves the same bundle back to 4 Jan 2010), 2.5 s apart --
-# about 18 s a day with publishing. A scheduled run spends at most 50
-# minutes; a manual run can spend up to 330. A refusal from NSE ends the
-# run quietly and the next run resumes. Holidays are remembered in
-# nse/closed_days, so each is asked once.
+# The newest days first, then any older one missing back to January 2010
+# (owner, 2026-10-02: "bhav copy download starting today back to 2010"; NSE's
+# archive serves the same bundle back to 4 Jan 2010), 2.5 s apart -- about 18 s
+# a day with publishing. A scheduled run spends at most 50 minutes; a manual run
+# can spend up to 330. A refusal from NSE ends the run quietly and the next run
+# resumes. Holidays are remembered in nse/closed_days, so each is asked once.
+#
+# When (audit A7, 7 Nov 2026). It ran every four hours while the backfill to 2010
+# was being fetched; that finished ("0 days to go" since late October), and the
+# runs between evenings re-read the same seven days. NSE had the 4 Nov bundle up
+# by 12:18 UTC (17:48 IST). Trading days: 12:41 UTC, and 14:41 and 16:11 UTC in
+# case NSE is late -- all before ss_sync's three-source check (16:32) and
+# daily_sync (17:30, and again after the Screener sync), which read these days
+# from R2. Every run, and daily at 03:41 UTC: every weekday (--recent 7) and
+# weekend day (--weekends 10) not yet on R2 and not recorded closed. No holiday list is
+# needed: a day with no bundle is logged "absent", and once a week old it is
+# recorded in nse/closed_days and never asked again. NSE's announced sessions
+# (holiday list's Muhurat, special_sessions.csv) are also asked by date.
 on:
   schedule:
-    - cron: "25 */4 * * *"
+    - cron: "41 12 * * 1-5"
+    - cron: "41 14 * * 1-5"
+    - cron: "11 16 * * 1-5"
+    - cron: "41 3 * * *"
   workflow_dispatch:
     inputs:
       backfill:
@@ -80,8 +94,13 @@ jobs:
           MINUTES: ${{ inputs.minutes || '50' }}
           SINCE: ${{ inputs.since || '2010-01-01' }}
           DATES: ${{ inputs.dates || '' }}
+          # Every run also asks for every weekend day of the last 10 days not yet on R2
+          # or recorded closed: a Muhurat, Budget or special session is collected the
+          # next run without knowing the holiday list in advance (a dropped run cannot
+          # delay it past the next).
+          WEEKENDS: '10'
         run: |
           [ "${MINUTES%.*}" -gt 330 ] && MINUTES=330
           python scripts/nse_collect.py --recent 7 --backfill "$BACKFILL" --since "$SINCE" \
-            --max-minutes "$MINUTES" --dates "$DATES" \
+            --max-minutes "$MINUTES" --dates "$DATES" --weekends "$WEEKENDS" \
             --check --screener screener_prices.parquet
