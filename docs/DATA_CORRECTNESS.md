@@ -368,6 +368,22 @@ the join for each. A general rule (use the new symbol's first prev_close at a jo
 would need prev_close in the join; not done.
 
 
+### A rights issue priced on a wrong face value (S108, fixed by rule 8 Nov 2026)
+
+The 7 Nov rebuild's audit found INFIBEAM (and CCAVENUE, the same series under the
+list's later symbol) stepping -15.7% on 26 Jun 2025 where MarketLens and SS step -7.6%.
+NSE's raw rows: 21.20 -> 17.49; the action "Rights 67:267 @ Premium Rs 9/-". NSE's
+yearly list gives that one row face value Rs 10; all its other rows since the 2017 split
+(Rs 10 -> Re 1) say 1.0. The issue price is face value + premium, so the pipeline read
+Rs 19 (x0.979) where the issue was at Rs 10 (x0.894) -- Rs 10 per share, Re 1 face +
+Rs 9 premium, as the company's terms were reported (Entrepreneur India, Angel One,
+YourStory). A notes.json correction would not do: `uncovered()` skips a correction
+when a factor is already applied that day. The rule (`nse_adjusted._settled_face_value`):
+a face value changes only through a split or consolidation, so a rights row that
+contradicts the stock's latest earlier row, with neither between, takes the earlier
+value. `scripts/rights_face_values.py` lists every rights row the rule changes.
+
+
 ### FII flows: NSDL's FPI daily record (S106, 7 Nov 2026)
 
 Source of record for foreign portfolio flows: NSDL's FPI daily trends
