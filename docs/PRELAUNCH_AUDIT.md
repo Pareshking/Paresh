@@ -54,6 +54,13 @@ from daily index closes (d5fdc55, live after the next nightly run; F18 adds the 
 
 ## Decisions for the owner
 
+Owner's answers, 7 Nov 2026: 1 every rank from the Screener's ranking; 2 yes
+(lakh/crore); 3 yes (keep blue/rust); 4 yes (Sans figures, Mono only in dense
+tables); 5 yes (keep 11 pages, remove duplicate blocks); 6 keep four pages
+inline on desktop beside the menu; 7 the brand stays "Paresh Patel"; 8 yes
+("Trend: up"); 9 yes (unpark Screener items 13 and 9). Still open: the model's
+own scoring (S95) and alpha as % or points (owner chose % on 12 Oct).
+
 | # | Decision | Recommendation |
 |---|---|---|
 | 1 | Qualified rank (F1): with the index-membership gate (ACUTAAS 44) or without (45)? | The gate the model uses on the rebalance day, confirmed in the backtester; one function for every page; label "Rank 47 of 750" and "#45 qualified". This month's sell does not change. |
