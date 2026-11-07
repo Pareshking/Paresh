@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import inspect
-import re
 
 import pandas as pd
 import pytest
@@ -40,10 +39,11 @@ def test_canonical_account_stats_use_frozen_ledger_and_live_mark():
 
 
 def test_backtest_separates_canonical_account_from_configurable_research():
+    """Owner's decision 5 (7 Nov): Backtest is research runs only. The live
+    account, today's book and this month's changes are Portfolio's; Backtest
+    points there instead of repeating them under its own settings."""
     source = inspect.getsource(backtest_view._backtest_tab)
-    assert re.search(r'kit\.card\(\s*"Canonical account performance"', source)
-    assert "load_ledger(ledger_path(SYSTEM_750), inception(SYSTEM_750))" in source
-    assert "current_book(" in source
-    assert "not the Backtest settings." in source
-    assert "not these settings" in source
-    assert 'kit.readings([' in source
+    assert "Canonical account performance" not in source
+    assert "current_book(" not in source
+    assert '"Current book"' not in source and "\"This month's changes\"" not in source
+    assert 'page_href("portfolio")' in source

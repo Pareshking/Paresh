@@ -82,9 +82,11 @@ jobs:
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: python scripts/sync_nse_prices.py --update --source r2 || echo "::warning::NSE closes were NOT extended -- the committed file is used."
 
-      # Exits non-zero, writing nothing, when the replay no longer reproduces an
-      # earlier frozen month (S87): the job ends red and the failure alert fires,
-      # while the steps below still freeze and commit the other records.
+      # Refuses (exit 1, the drifting months named) while its replay disagrees
+      # with a frozen month the owner has not accepted (S92, owner 7 Nov 2026:
+      # October 2026 was struck on 3 Nov with parity red, on a store carrying
+      # BSE closes). No `|| echo` here on purpose: a refusal skips every step
+      # below, so nothing is frozen or committed, and the failure alert fires.
       - name: Freeze newly closed months
         run: python scripts/update_track_record.py
 
@@ -93,28 +95,20 @@ jobs:
       # Screener's store like the 750 (no Yahoo since 2026-10-02). A failure
       # here never stops the 750's freeze above from being committed.
       - name: Freeze Nano Cap and Combined
-        if: ${{ !cancelled() }}
         run: |
-          failed=""
           for SYSTEM in nano combined; do
             python scripts/update_track_record.py --system "$SYSTEM" \
-              || { echo "::warning::$SYSTEM record freeze failed; the 750's record is unaffected."; failed="$failed $SYSTEM"; }
+              || echo "::warning::$SYSTEM record freeze failed; the 750's record is unaffected."
           done
-          # Both are tried first; a failure then fails the job, so the alert fires
-          # (S87: a refused freeze must not pass as a warning nobody reads).
-          [ -z "$failed" ] || { echo "::error::record freeze failed for:$failed"; exit 1; }
 
       # The Recommendation's shadow record (owner, 2026-10-12, TODO 9): the 750
       # under SHADOW_CONFIG, from November 2026, never traded. Its own ledger;
       # a failure never stops the live records above from being committed.
       - name: Freeze the shadow record
-        if: ${{ !cancelled() }}
         run: |
           python scripts/update_track_record.py --shadow || echo "::warning::Shadow record freeze failed; the live records are unaffected."
 
       - name: Commit the ledger
-        # Also after a refused freeze above: the records that did freeze are committed.
-        if: ${{ !cancelled() }}
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'

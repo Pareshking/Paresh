@@ -89,3 +89,29 @@ def test_a_month_with_a_book_but_no_return_yet_is_named_on_the_portfolio_calenda
     note = pv._calendar_note(labels, "2026-10", "mtd", pending=True)
     assert "Oct MTD has no return yet" in note and "MTD" in note
     assert pv._calendar_note(labels, "2026-10", "mtd") == ""   # owner, 7 Oct: no note for a live month
+
+
+def test_ranks_are_scored_among_that_days_index_members_only():
+    """Owner, 7 Nov 2026: every rank comes from the Screener, which scores its
+    750 members. A stock outside the index must not move the members' scores."""
+    import numpy as np
+    import pandas as pd
+    from src.engine import rank_history as rh
+
+    idx = pd.bdate_range("2025-01-01", periods=320)
+    rng = np.random.default_rng(1)
+    cols = [f"M{i}" for i in range(12)] + ["GONE"]
+    px = pd.DataFrame(100 * np.exp(np.cumsum(rng.normal(0.001, 0.02, (len(idx), len(cols))), axis=0)),
+                      index=idx, columns=cols)
+    px["GONE"] = 100 * np.exp(np.linspace(0, 3, len(idx)))   # a runaway former member
+    day = idx[-1]
+
+    members = {"baseline": {"date": "2024-01-01", "symbols": cols[:-1]}, "changes": []}
+    with_gone = rh.snapshots(px, [day])
+    only = rh.snapshots(px, [day], membership=members)
+    alone = rh.snapshots(px[cols[:-1]], [day])
+    a = only.set_index("symbol")["score"].dropna()
+    b = alone.set_index("symbol")["score"]
+    assert np.allclose(a.reindex(b.index), b)
+    assert pd.isna(only.set_index("symbol").at["GONE", "score"])
+    assert not np.allclose(with_gone.set_index("symbol")["score"].reindex(b.index), b)

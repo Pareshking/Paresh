@@ -27,11 +27,21 @@ class Reading:
     tone: str = ""  # "", "up", "down" or "warn"
 
 
+def sentence(text: str) -> str:
+    """First letter capitalised, the rest as written (owner, 7 Nov: labels and
+    asides began in lower case). Not str.capitalize(), which would lower
+    "200D EMA" and "Nifty"."""
+    text = str(text or "")
+    # Only when the text starts with a letter: "2 holdings would be sold" keeps
+    # its lower case after the figure.
+    return text[:1].upper() + text[1:] if text[:1].isalpha() else text
+
+
 def page_head(title: str, sub: str, *, actions: bool = False):
     """Title and one plain sentence. With actions=True, returns a container on
     the right for the page's main buttons (a download, a picker)."""
     head = (f'<div class="scr-head"><h1>{html.escape(title)}</h1>'
-            f'<p>{html.escape(sub)}</p></div>')
+            f'<p>{html.escape(sentence(sub))}</p></div>')
     if not actions:
         st.html(head)
         return None
@@ -53,11 +63,18 @@ def readings(tiles: list[Reading], label: str) -> None:
         f'<div class="ms-tile"><span class="ms-k">{html.escape(t.label)}</span>'
         f'<span class="ms-v {t.tone}{_name_class(t.value)}" title="{html.escape(t.value)}">'
         f'{html.escape(t.value)}</span>'
-        + (f'<span class="ms-s">{html.escape(t.note)}</span>' if t.note else "")
+        + (f'<span class="ms-s">{html.escape(sentence(t.note))}</span>' if t.note else "")
         + "</div>"
         for t in tiles
     )
     st.html(f'<section class="mkt-strip pg-strip" aria-label="{html.escape(label)}">{cells}</section>')
+
+
+def empty(lead: str, text: str = "") -> None:
+    """An empty state in the page's own voice (audit F59): a plain line under a
+    rule, not a coloured alert box."""
+    st.html(f'<div class="pg-empty" role="status"><b>{html.escape(lead)}</b>'
+            + (f" {html.escape(text)}" if text else "") + "</div>")
 
 
 def note(lead: str, text: str = "") -> None:
@@ -71,7 +88,7 @@ def card(title: str, key: str, aside: str = "") -> Iterator[None]:
     """A white card with a heading; anything drawn inside lands in it."""
     with st.container(key=f"pgcard_{key}"):
         st.html(f'<div class="pg-card-h"><h2>{html.escape(title)}</h2>'
-                + (f'<span>{html.escape(aside)}</span>' if aside else "") + "</div>")
+                + (f'<span>{html.escape(sentence(aside))}</span>' if aside else "") + "</div>")
         yield
 
 
@@ -104,16 +121,29 @@ class Metric:
     help: str | None = None
 
 
-def pct(x: float | None, signed: bool = True) -> str:
-    """A fraction as a percentage for display; an em dash when it is not a
-    finite number. Formatting only: no figure is computed here."""
+def _finite(x) -> float | None:
     try:
         v = float(x)  # type: ignore[arg-type]
     except (TypeError, ValueError):
+        return None
+    return v if math.isfinite(v) else None
+
+
+def signed_number(v: float, digits: int = 1, plus: bool = True) -> str:
+    """Rounded first, then signed with a true minus (U+2212): never "-0.0"."""
+    r = round(v, digits)
+    sign = ("+" if plus else "") if r > 0 else "\u2212" if r < 0 else ""
+    return f"{sign}{abs(r):.{digits}f}"
+
+
+def pct(x: float | None, signed: bool = True) -> str:
+    """A fraction as a percentage for display; an em dash when it is not a
+    finite number. Formatting only: no figure is computed here."""
+    v = _finite(x)
+    if v is None:
         return "\u2014"
-    if not math.isfinite(v):
-        return "\u2014"
-    return f"{v:+.1%}" if signed else f"{v:.1%}"
+    return f"{signed_number(100 * v, plus=signed)}%"
+
 
 
 def metric_tile(m: Metric) -> None:
@@ -154,7 +184,13 @@ def tradingview_url(symbol: str) -> str:
 
 
 def caption(text: str) -> None:
-    st.html(f'<p class="pg-cap">{html.escape(text)}</p>')
+    st.html(f'<p class="pg-cap">{html.escape(sentence(text))}</p>')
+
+
+def caption_link(text: str, href: str, label: str) -> None:
+    """A caption that ends in a link onward (audit F33): "… on Actions →"."""
+    st.html(f'<p class="pg-cap">{html.escape(text)} '
+            f'<a class="pg-onward" href="{html.escape(href)}" target="_self">{html.escape(label)} →</a></p>')
 
 
 def kv_line(pairs: list[tuple[str, str]], lead: str = "") -> None:
@@ -214,3 +250,65 @@ def growth_chart(
         None if not benchmark else [float(v) * 100.0 for v in benchmark],
         names=names, key=f"growth_{key}", fmt="num",
     )
+
+
+# ── Editorial type (owner, 7 Nov) ──────────────────────────────────────────
+# A serif for page titles, question headings, verdicts and headline figures;
+# Plex Sans stays for body text and Plex Mono for dense tables. Loaded once by
+# app.py for every page (prototyped on the Dashboard and Breadth, then rolled
+# out on the owner's word). Source Serif 4 (SIL Open Font
+# Licence), not tipsheet's own face, so the site keeps its own identity.
+EDITORIAL_FONT = ("https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500"
+                  "&display=swap")
+_EDITORIAL_CSS = """<style>
+@import url('""" + EDITORIAL_FONT + """');
+:root{--font-serif:'Source Serif 4','Source Serif Pro',Georgia,'Times New Roman',serif}
+.scr-head h1{font-family:var(--font-serif)!important;font-weight:400!important;font-size:52px!important;
+  line-height:1.06!important;letter-spacing:-0.6px!important;max-width:16em}
+.scr-head p{font-size:17px!important;line-height:1.55!important;max-width:42em;color:var(--c-text_2)!important}
+.scr-kicker{font-size:13px;color:var(--c-muted);margin:0 0 8px}
+body .qp h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:40px!important;
+  line-height:1.1!important;letter-spacing:-0.4px!important;margin-bottom:6px!important}
+body .qp-v{font-family:var(--font-serif);font-weight:400;font-size:36px;letter-spacing:-0.3px}
+body .qp-s{font-size:17px;max-width:38em}
+body .qp h3{font-size:15px!important}
+body .qp li{font-size:15px}
+body .qp td.big{font-family:var(--font-serif);font-size:22px;font-weight:400;line-height:1.1}
+body .qp td.big span.sub{font-family:var(--font-ui);font-size:12px;color:var(--c-muted);line-height:1.45;display:inline-block;margin-top:2px}
+body .mq h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:24px!important;line-height:1.15!important}
+body .mq-v{font-family:var(--font-serif);font-weight:400;font-size:32px;letter-spacing:-0.3px}
+body .mq-s{font-size:15px}
+.pg-card-h h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:24px!important}
+.br-charts-h{font-family:var(--font-serif)!important;font-weight:400!important;font-size:32px!important}
+.rng{position:relative;width:170px;height:14px;display:inline-block;vertical-align:middle}
+.rng i.t{position:absolute;left:0;right:0;top:6px;height:2px;background:var(--c-rule)}
+.rng i.m{position:absolute;top:4px;height:6px;border-radius:3px;background:var(--c-down_tint)}
+.rng i.d{position:absolute;top:1px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--c-ink)}
+.rng i.d.up{background:var(--c-up)}.rng i.d.down{background:var(--c-down)}
+/* Headline figures and the other titles, site-wide */
+body .mkt-strip.pg-strip .ms-v, body [class*="st-key-mrow_"] [data-testid="stMetricValue"]{
+  font-family:var(--font-serif)!important;font-weight:400!important;font-size:30px!important;letter-spacing:-0.3px!important}
+body .mkt-strip.pg-strip .ms-v.ms-name{font-size:22px!important}
+body h1.sp-name{font-family:var(--font-serif)!important;font-weight:400!important;font-size:44px!important;letter-spacing:-0.5px!important}
+body .sp-price{font-family:var(--font-serif);font-weight:400;font-size:38px}
+body .sp-rank-big span{font-family:var(--font-serif);font-weight:400;font-size:56px}
+body .gd h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:28px!important;border-top-color:var(--c-ink)}
+body .cfg-intro h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:24px!important}
+body .cr-year-head h3{font-family:var(--font-serif);font-weight:400;font-size:22px}
+body .gd p,body .gd li,body .gd dd{font-size:16px!important}
+@media (max-width:900px){.scr-head h1{font-size:36px!important}.qp h2{font-size:30px!important}.rng{width:110px}}
+</style>"""
+
+
+def editorial_style() -> None:
+    # @import inside the style: st.html drops <link> elements.
+    st.html(_EDITORIAL_CSS)
+
+
+def headline(kicker: str, title: str, sub: str = "") -> None:
+    """A page that opens with a sentence of news, not a page name: a small
+    kicker ("Dashboard · closes of 6 Nov"), the sentence as the title, then
+    the detail."""
+    st.html(f'<div class="scr-head"><p class="scr-kicker">{html.escape(kicker)}</p>'
+            f'<h1>{html.escape(title)}</h1>'
+            + (f'<p>{html.escape(sentence(sub))}</p>' if sub else "") + "</div>")

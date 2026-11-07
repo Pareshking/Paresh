@@ -9,8 +9,8 @@ import time
 import pandas as pd
 import streamlit as st
 
+from src.ui.widget_state import mirror_key, remember
 from src.ui.system_param import keep_system_only, stock_href
-from src.ui.widget_state import remember, resolve
 
 from src.core.config import SHORT_FORMS
 from src.core.market_time import ist_now
@@ -23,6 +23,7 @@ from src.ui.components import (
 )
 from src.ui.views.stock_view import render_stock_view
 from src.engine.breadth import new_extreme_counts
+from src.engine.calendar_momentum import calendar_start_positions
 from src.ui.screener_table import INDEX_NAMES, column_count, render_screener_table
 
 # Stored in session state by `rank_density_mode`, so these strings are an
@@ -30,12 +31,102 @@ from src.ui.screener_table import INDEX_NAMES, column_count, render_screener_tab
 # All three draw the one table in src/ui/screener_table.py; they differ only
 # in which columns they show.
 _DENSITY_OPTIONS = ["Executive (11)", "Core (17)", "Full Quant (35)"]
+# Full Quant is the default on desktop and phone (owner, 7 Nov); the phone
+# keeps every column and scrolls sideways.
+_DEFAULT_DENSITY = _DENSITY_OPTIONS[2]
 
 # "Big movers": rank moved this many places in a month, up or down. 15 caught
 # 630 of 750 (the median stock moves ~58 places a month); 150 is about the
 # biggest sixth (owner, 13 Oct).
 BIG_MOVE_PLACES = 150
 
+
+
+
+# The Screener's filters also live in the address (audit F35). A stock link is
+# a plain anchor, so opening a stock reloads the app in a new session and the
+# session's state is gone; the browser's Back returns to the address the
+# filters were written to, and they are read back from it.
+_PRESET_CODES = {"All Universe": "all", "Top 50 Qualified": "top50q",
+                 "Top 50 Not Qualified": "top50nq", "Passed Filters": "pass",
+                 "Momentum Movers": "movers", "High Volume": "volume"}
+_DENSITY_CODES = {"Executive (11)": "exec", "Core (17)": "core", "Full Quant (35)": "full"}
+_URL_KEYS = {"rank_quick_pills": "view", "rank_index_filter": "idx",
+             "rank_only_passing": "pass", "rank_density_mode": "cols"}
+
+
+def _from_url(key: str):
+    raw = st.query_params.get(_URL_KEYS[key])
+    if raw is None:
+        return None
+    raw = str(raw)
+    if key == "rank_quick_pills":
+        return next((k for k, c in _PRESET_CODES.items() if c == raw), None)
+    if key == "rank_density_mode":
+        return next((k for k, c in _DENSITY_CODES.items() if c == raw), None)
+    if key == "rank_index_filter":
+        return [t for t in raw.split(",") if t]
+    if key == "rank_only_passing":
+        return raw == "1"
+    return None
+
+
+def _to_url(key: str, value) -> str | None:
+    """The address form of a filter, or None for its default (left out)."""
+    if key == "rank_quick_pills":
+        return None if value in (None, "All Universe") else _PRESET_CODES.get(value)
+    if key == "rank_density_mode":
+        return None if value in (None, _DEFAULT_DENSITY) else _DENSITY_CODES.get(value)
+    if key == "rank_index_filter":
+        return ",".join(value) if value else None
+    if key == "rank_only_passing":
+        return "1" if value else None
+    return None
+
+
+def _sync_url(values: dict) -> None:
+    """Write changed filters to the address; one write per change, since each
+    write is a browser history entry."""
+    for key, value in values.items():
+        name, want = _URL_KEYS[key], _to_url(key, value)
+        have = st.query_params.get(name)
+        if want != (None if have is None else str(have)):
+            if want is None:
+                del st.query_params[name]
+            else:
+                st.query_params[name] = want
+
+
+def _kept(key: str, default, options: list | None = None):
+    """A Screener filter's value: the widget's, else the address's, else its
+    session mirror, else the default. A stored value no longer among the
+    options falls back to the default."""
+    if key in st.session_state:
+        value = st.session_state[key]
+    else:
+        from_url = _from_url(key)
+        value = from_url if from_url is not None else st.session_state.get(mirror_key(key), default)
+    if options is not None and value is not None and value not in options:
+        return default
+    return value
+
+_SEARCH_KINDS = {"[STOCK] ": "", "[INDEX] ": "index", "[INDUSTRY] ": "industry",
+                 "[SECTOR] ": "sector", "[TV_INDUSTRY] ": "sub-industry"}
+
+
+def search_label(value: str) -> str:
+    """What the search list shows for an option (audit F36). The value keeps its
+    bracketed kind, which the handlers read; the reader sees "LAURUSLABS ·
+    Healthcare" and "Healthcare · industry", not "[STOCK]" or "[INDUSTRY]"."""
+    for tag, kind in _SEARCH_KINDS.items():
+        if value.startswith(tag):
+            rest = value[len(tag):]
+            if not kind:
+                sym, _, ind = rest.partition(" — ")
+                ind = ind.strip()
+                return sym if ind in ("", "nan", "<NA>", "None") else f"{sym} · {ind}"
+            return f"{rest} · {kind}"
+    return value
 
 def _frame_key(df: pd.DataFrame) -> str:
     """Content fingerprint of a display frame: shape, columns and every cell.
@@ -172,6 +263,8 @@ def render_ranking_view(
                 keep_system_only()
                 st.rerun()
 
+        # The tab names the stock, not "Screener" (pre-launch audit, WCAG 2.4.2).
+        st.set_page_config(page_title=f"{requested} · Paresh Patel")
         render_stock_view(
             requested,
             rank_df,
@@ -319,13 +412,14 @@ def render_ranking_view(
             placeholder="Search stock, industry or index",
             key="rank_search_predictive",
             label_visibility="collapsed",
+            format_func=search_label,
             on_change=_open_searched_stock,
             width=260,
         )
         filt = st.pills(
             "Presets",
             list(preset_counts),
-            default="All Universe",
+            default=_kept("rank_quick_pills", "All Universe", list(preset_counts)),
             format_func=lambda o: f"{preset_names[o]} {preset_counts[o]}",
             key="rank_quick_pills",
             label_visibility="collapsed",
@@ -345,31 +439,16 @@ def render_ranking_view(
                 "Index",
                 list(index_names),
                 selection_mode="multi",
+                default=[t for t in (_kept("rank_index_filter", []) or []) if t in index_names],
                 format_func=lambda t: index_names.get(t, t),
                 key="rank_index_filter",
             )
             only_passing = st.toggle("Only stocks that pass both filters",
+                                     value=bool(_kept("rank_only_passing", False)),
                                      key="rank_only_passing")
-            # Explicit index, resolved through the mirror. Under st.navigation
-            # only the active page runs, so this key is discarded the moment
-            # the reader looks at another page -- without it their chosen sort
-            # silently reverts to "Rank".
-            _SORT_OPTIONS = [
-                "Rank", "3M Return", "6M Return", "3M Sharpe", "% High", "Market Cap (Cr)",
-            ]
-            # A short fixed list, so a segmented control rather than a dropdown.
-            # Still resolved through the mirror: the key is discarded when the
-            # reader visits another page, and `default` is what brings it back.
-            # required=True means a click on the chosen one cannot clear it.
-            sort_by = st.segmented_control(
-                "Sort by",
-                _SORT_OPTIONS,
-                default=_SORT_OPTIONS[resolve("rank_sort_by_idx", 0, lo=0,
-                                              hi=len(_SORT_OPTIONS) - 1)],
-                required=True,
-                key="rank_sort_by",
-            ) or _SORT_OPTIONS[0]
-            remember("rank_sort_by_idx", _SORT_OPTIONS.index(sort_by))
+            # No "Sort by" here: the column headers are the one sort (owner,
+            # 7 Nov). A second, server-side sort disagreed with the headers
+            # after a click, and the export followed it rather than the screen.
 
             # The option VALUES are fixed strings: they are what session state
             # stores, and a stored value that vanishes from the list on the
@@ -382,15 +461,23 @@ def render_ranking_view(
             density_mode = st.segmented_control(
                 "Columns",
                 _DENSITY_OPTIONS,
-                default=_DENSITY_OPTIONS[1],
+                default=_kept("rank_density_mode", _DEFAULT_DENSITY, list(_DENSITY_OPTIONS)),
                 format_func=_density_label,
                 key="rank_density_mode",
             )
-            st.caption("Click a column header in the table to sort by it too.")
+            st.caption("Click a column header to sort the table.")
             st.button("Reset", key="rank_filters_reset", type="tertiary",
                       on_click=_reset_screener_filters)
+    # Mirrors that outlive the widgets, so the filters are still set after a
+    # visit to a stock page and Back (audit F35): Streamlit drops a widget's
+    # state on any run that does not draw it, and the stock page does not.
+    _filters = {"rank_quick_pills": filt, "rank_index_filter": index_pick,
+                "rank_only_passing": only_passing, "rank_density_mode": density_mode}
+    for _k, _v in _filters.items():
+        remember(_k, _v)
+    _sync_url(_filters)
     if not density_mode:
-        density_mode = _DENSITY_OPTIONS[1]
+        density_mode = _DEFAULT_DENSITY
 
     view = rank_df.copy()
     # Sessions at a new 52-week high in the last month and three: a stock that
@@ -469,11 +556,13 @@ def render_ranking_view(
             to_bool_mask(view.get("Above 50 EMA")) & to_bool_mask(view.get("Near 52W High"))
         ]
 
-    asc = sort_by == "Rank"
-    if sort_by in view.columns and not (filt == "Momentum Movers" and sort_by == "Rank"):
-        view = view.sort_values(sort_by, ascending=asc)
-
-    render_screener_table(view, adj_close, density_mode)
+    # Rows arrive in rank order, except Big movers, which lists the biggest
+    # rank changes first; the table's header arrow says which.
+    movers = filt == "Momentum Movers" and "Rank Δ 1M" in view.columns
+    if not movers:
+        view = view.sort_values("Rank", kind="stable")
+    render_screener_table(view, adj_close, density_mode,
+                          sort_key="d1m" if movers else "rank", sort_desc=movers, page_rows=50)
 
     # Export EVERY column the ranking carries, not just the ones on screen.
     # DISPLAY_COLS is a screen-layout decision -- it drops Score, the raw
@@ -492,7 +581,9 @@ def render_ranking_view(
         key="dl_rank_csv",
         icon=":material/download:",
         help=f"The {len(view)} stocks shown, with all {len(export_cols)} ranking "
-             f"columns, including the ones not in the table.",
+             f"columns, including the ones not in the table. Rows are in "
+             f"{'rank-change' if movers else 'rank'} order: a column header you "
+             f"click re-sorts the table on screen, not the file.",
         width="stretch",
     )
 
@@ -510,11 +601,13 @@ def render_ranking_view(
 def _reset_screener_filters() -> None:
     # Popped, not assigned: each of these widgets passes its own default, and
     # a session-state value on top of a default makes Streamlit print a
-    # warning on the page. The sort's mirror goes back to Rank as well.
-    for key in ("rank_index_filter", "rank_only_passing", "rank_sort_by",
+    # warning on the page.
+    for key in ("rank_index_filter", "rank_only_passing",
                 "rank_density_mode", "rank_quick_pills"):
         st.session_state.pop(key, None)
-    remember("rank_sort_by_idx", 0)
+        st.session_state.pop(mirror_key(key), None)
+        if _URL_KEYS[key] in st.query_params:
+            del st.query_params[_URL_KEYS[key]]
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -523,7 +616,11 @@ def _new_high_counts(_key: str, _prices: pd.DataFrame) -> pd.DataFrame:
 
 
 def top50_changes(rank_df: pd.DataFrame):
-    """Stocks that entered and left the top 50 since last month, by rank."""
+    """Stocks that entered and left the top 50 in the last calendar month, by rank.
+
+    "Rank (-1M)" is the rank on the first session on or after the same date a
+    month back (`calendar_start_positions`), not the last month-end.
+    """
     if "Rank (-1M)" not in rank_df.columns:
         return None, None
     prev = pd.to_numeric(rank_df["Rank (-1M)"], errors="coerce")
@@ -534,7 +631,7 @@ def top50_changes(rank_df: pd.DataFrame):
 
 
 def biggest_jumps(rank_df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
-    """The n stocks that climbed most places since last month-end."""
+    """The n stocks that climbed most places in the last calendar month."""
     if "Rank (-1M)" not in rank_df.columns:
         return rank_df.iloc[0:0]
     prev = pd.to_numeric(rank_df["Rank (-1M)"], errors="coerce")
@@ -542,6 +639,16 @@ def biggest_jumps(rank_df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
     gain = (prev - now)
     out = rank_df.assign(Places_gained=gain, Rank_last_month=prev)[gain > 0]
     return out.sort_values("Places_gained", ascending=False).head(n)
+
+
+def _movers_heading(adj_close: pd.DataFrame | None) -> str:
+    """ "Since 6 Oct (one month)": the session the 1M rank change counts from."""
+    if adj_close is None or len(adj_close.index) == 0:
+        return "In the last month"
+    idx = pd.DatetimeIndex(adj_close.index)
+    pos = int(calendar_start_positions(idx, 1)[-1])
+    start = idx[min(pos, len(idx) - 1)]
+    return f"Since {start.day} {start:%b} (one month)"
 
 
 def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None = None) -> None:
@@ -561,7 +668,10 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
         # Ranking returns are stored as decimal fractions (e.g. 0.284 = 28.4%),
         # matching the screener table's canonical percentage formatter.
         val = pd.to_numeric(pd.Series([row.get("1M Return")]), errors="coerce").iloc[0]
-        return "—" if pd.isna(val) else f"{float(val) * 100:+.1f}%"
+        if pd.isna(val):
+            return "—"
+        v = round(float(val) * 100, 1)
+        return f"{'+' if v > 0 else '−' if v < 0 else ''}{abs(v):.1f}%"
 
     def rank_change(row) -> int | None:
         prev = pd.to_numeric(pd.Series([row.get("Rank (-1M)")]), errors="coerce").iloc[0]
@@ -572,17 +682,18 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
         delta = rank_change(row)
         delta_html = "—" if delta is None else (
             f'<span class="t50-delta {"positive" if delta > 0 else ("negative" if delta < 0 else "flat")}">'
-            f'{"+" if delta > 0 else ""}{delta}</span>'
+            f'{"+" if delta > 0 else "−" if delta < 0 else ""}{abs(delta)}</span>'
         )
         ret = fmt_return(row)
-        ret_tone = "negative" if ret.startswith("-") else ("flat" if ret == "—" else "positive")
+        ret_tone = ("negative" if ret.startswith("−") else "positive" if ret.startswith("+")
+                    else "flat")
         return (
-            f'<div class="t50-row{" t50-extra" if extra else ""}">'
-            f'<span class="t50-num">{i}</span>'
-            f'<span class="t50-stock-cell">{stock_link(row["Symbol"])}</span>'
-            f'<span class="t50-cell t50-change">{delta_html}</span>'
-            f'<span class="t50-cell t50-rank">{int(row["Rank"])}</span>'
-            f'<span class="t50-cell t50-return {ret_tone}">{esc(ret)}</span>'
+            f'<div class="t50-row{" t50-extra" if extra else ""}" role="row">'
+            f'<span class="t50-num" role="cell">{i}</span>'
+            f'<span class="t50-stock-cell" role="rowheader">{stock_link(row["Symbol"])}</span>'
+            f'<span class="t50-cell t50-change" role="cell">{delta_html}</span>'
+            f'<span class="t50-cell t50-rank" role="cell">{int(row["Rank"])}</span>'
+            f'<span class="t50-cell t50-return {ret_tone}" role="cell">{esc(ret)}</span>'
             '</div>'
         )
 
@@ -597,10 +708,11 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
             '<span class="t50-when-open">Show less <span>↑</span></span>'
         )
         head = (
-            '<div class="t50-col-head"><span>#</span><span>Stock</span><span>Rank change</span>'
-            '<span>New rank</span><span>1M %</span></div>'
+            '<div class="t50-col-head" role="row"><span role="columnheader">#</span>'
+            '<span role="columnheader">Stock</span><span role="columnheader">Rank change</span>'
+            '<span role="columnheader">New rank</span><span role="columnheader">1M %</span></div>'
         )
-        body = '<div class="t50-table-wrap"><div class="t50-table">' + head
+        body = f'<div class="t50-table-wrap"><div class="t50-table" role="table" aria-label="{esc(title)}">' + head
         body += "".join(row_html(i, row) for i, row in enumerate(rows[:5], 1))
         body += "".join(row_html(i, row, extra=True) for i, row in enumerate(rows[5:], 6))
         body += '</div></div>'
@@ -616,8 +728,11 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
         )
 
     # One heading says when the three cards count from, so no card repeats it.
+    # The ranks are compared with a calendar month back (6 Nov against the
+    # first session on or after 6 Oct), not with the last month-end, so the
+    # heading names that date (owner, 7 Nov).
     html_out = (
-        '<div class="pg-card-h"><h2>Since last month-end</h2></div>'
+        f'<div class="pg-card-h"><h2>{esc(_movers_heading(adj_close))}</h2></div>'
         '<div id="t50-movement" class="t50-grid">'
         + card("Biggest jumps", "↑", "jump", jumps.to_dict("records"))
         + card("Entered top 50", "★", "entered", entered.to_dict("records"))

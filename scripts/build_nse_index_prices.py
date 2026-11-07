@@ -67,6 +67,18 @@ def _fetch_official(name: str, start: date, end: date) -> pd.DataFrame:
     return pd.DataFrame(out)
 
 
+DAILY_DAYS = 400
+
+
+def _merge_daily(weekly: pd.Series, daily: pd.Series | None) -> pd.Series:
+    """The long weekly series, with the daily closes over the span they cover."""
+    if daily is None or daily.empty:
+        return weekly
+    daily = daily.sort_index()
+    older = weekly[weekly.index < daily.index.min()]
+    return pd.concat([older, daily]).sort_index()
+
+
 def _fetch_screener(name_key: str, name: str, start: date, end: date) -> pd.DataFrame:
     slugs = {
         "nifty50": "NIFTY",
@@ -84,6 +96,12 @@ def _fetch_screener(name_key: str, name: str, start: date, end: date) -> pd.Data
     if got is None:
         raise RuntimeError(f"Screener returned no history for {name}")
     close, _ = got
+    # Screener's chart is weekly over ten years but daily over the last 400
+    # days, so the ten-year series alone left the latest year weekly: the
+    # dashboard's 1M window opened on 9 Oct, not the 6 Oct every other page
+    # uses (pre-launch audit, 7 Nov 2026). Daily closes win where both exist.
+    recent = fetch_series(cid, session, days=DAILY_DAYS)
+    close = _merge_daily(close, recent[0] if recent is not None else None)
     frame = pd.DataFrame({"date": close.index, "close": close.values})
     frame["date"] = pd.to_datetime(frame["date"]).dt.normalize()
     frame = frame[(frame["date"].dt.date >= start) & (frame["date"].dt.date <= end)]

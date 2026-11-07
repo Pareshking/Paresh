@@ -11,15 +11,19 @@ import html
 import numpy as np
 import pandas as pd
 import streamlit as st
+from src.ui import formats as _fmt
 
 from src.ui.system_param import stock_href
 from src.ui import page_kit as kit
 from src.engine.pipeline import price_fingerprint
 from src.engine.sector_breadth import EMA_SPANS, sector_leadership
 from src.loaders import benchmark_store
-from src.ui.charts import render_industry_map, render_leadership_map, sector_colours
+from src.engine import size_leadership as sl
+from src.loaders.index_levels import fetch_index_levels, nse_benchmarks
+from src.ui.views.market_questions_view import render_leaders_section, size_closes
+from src.ui.charts import render_leadership_map, sector_colours
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
-from src.ui.screener_table import _CSS as TABLE_CSS, _JS as TABLE_JS, ROW_PX, render_screener_table
+from src.ui.screener_table import _CSS as TABLE_CSS, _JS as TABLE_JS, render_screener_table
 
 RANK_BY = {
     "3M median": "3M Return",
@@ -37,7 +41,6 @@ SHORT_NAMES = {
     "Media Entertainment & Publication": "Media",
     "Oil Gas & Consumable Fuels": "Oil & Gas",
     "Metals & Mining": "Metals",
-    "Construction Materials": "Cement & Materials",
     "Consumer Durables": "Cons. Durables",
     "Consumer Services": "Cons. Services",
     "Financial Services": "Financials",
@@ -92,7 +95,7 @@ def render_leadership_section(rank_df: pd.DataFrame, adj_close: pd.DataFrame, co
         fell = int((board["y_now"] < board["y_then"]).sum())
         ahead_narrow = board[(board["x_now"] > 0) & (board["y_now"] < 0.5)]
         kit.caption(
-            f"{then:%d %b} to {now:%d %b}: breadth fell in {fell} of {len(board)} sectors."
+            f"{then:%-d %b} to {now:%-d %b}: breadth fell in {fell} of {len(board)} sectors."
             + (f" Ahead of the Nifty 500 with under half above the {span}-day EMA: "
                f"{', '.join(SHORT_NAMES.get(n, n) for n in ahead_narrow['Sector'])}."
                if len(ahead_narrow) else "")
@@ -105,10 +108,15 @@ def render_leadership_section(rank_df: pd.DataFrame, adj_close: pd.DataFrame, co
                     else board.sort_values("x_now", ascending=False)["Sector"].iloc[0]))
         with st.expander(f"How to read this · worked example: {SHORT_NAMES.get(example, example)}"):
             st.markdown(leadership_explainer(board.set_index("Sector").loc[example], example, span))
-        st.iframe(leadership_table_html(board, span), height=28 + 42 + len(board) * ROW_PX + 6)
-        kit.caption("Sector return is the equal-weighted mean of its stocks' price returns, not an "
-                    "NSE sector index; the share counts stocks with a close and an EMA that day. "
-                    "Click a header to sort.")
+        # The sortable sector table that sat here was a second ranking of the
+        # same sectors (owner's decision 5, 7 Nov); the map's figures are in
+        # its text alternative and the worked example above.
+        # Two statistics on one page, each named (pre-launch audit F4): this
+        # map's mean over its own dates, the board's median over 3 months.
+        kit.caption(f"Here a sector's return is the equal-weighted mean of its stocks' price "
+                    f"returns from {then:%-d %b} to {now:%-d %b}, not an NSE sector index; the board "
+                    "above ranks by the median 3-month return. The share counts stocks with a "
+                    "close and an EMA that day.")
 
 
 def _signed_pct(v: float) -> tuple[str, str]:
@@ -146,10 +154,10 @@ def leadership_explainer(r: pd.Series, name: str, span: int) -> str:
     half = "above" if y1 >= 50 else "below"
     n = int(r["Stocks"])
     lifts = "; ".join(
-        f"{html.escape(sym)} {rv * 100:+.1f}%, which adds {rv * 100 / n:+.2f} points to the sector's {ret:+.1f}%"
+        f"{html.escape(sym)} {_fmt.pct(rv * 100, fraction=False)}, which adds {_fmt.signed(rv * 100 / n, 2)} points to the sector's {_fmt.pct(ret, fraction=False)}"
         for sym, rv in (r.get("Leaders") or [])[:2])
     return f"""**Across: did the sector beat the Nifty 500 over the {period}?**  
-Each of the {n} {html.escape(name)} stocks' price change from the {then:%d %b} close to the {now:%d %b} close, averaged with equal weight: **{ret:+.1f}%**. The Nifty 500 over the same closes: **{bench:+.1f}%**. The difference, {ret:+.2f} − ({bench:+.2f}) = **{x1:+.2f}%**, places the filled dot {side} the 0 line. The hollow dot is the same sum for the {period} before: {x0:+.1f}%.
+Each of the {n} {html.escape(name)} stocks' price change from the {then:%-d %b} close to the {now:%-d %b} close, averaged with equal weight: **{_fmt.pct(ret, fraction=False)}**. The Nifty 500 over the same closes: **{_fmt.pct(bench, fraction=False)}**. The difference, {_fmt.signed(ret, 2)} − ({_fmt.signed(bench, 2)}) = **{_fmt.signed(x1, 2)}%**, places the filled dot {side} the 0 line. The hollow dot is the same sum for the {period} before: {_fmt.pct(x0, fraction=False)}.
 
 **Up: how many of its stocks are in an uptrend?**  
 A stock counts when its close is above its own {span}-day EMA (exponential average of its closes). Today {int(r['above_now'])} of {int(r['obs_now'])} = **{y1:.0f}%**; {_ago(m)} {int(r['above_then'])} of {int(r['obs_then'])} = {y0:.0f}%. Only stocks with a close and an EMA that day are counted; an EMA needs {int(span * 0.8)} sessions of prices, so a recent listing can be missing.
@@ -201,14 +209,14 @@ def leadership_table_html(board: pd.DataFrame, span: int) -> str:
                    f'<span class="nm-short">{html.escape(m)}</span><span class="ar">{a}</span></th>'
                    for h, m, t, c, a in heads)
     groups = ('<tr class="grp-row"><th colspan="2" class="grp">Sector</th>'
-              f'<th colspan="2" class="grp">Today · {now:%d %b}</th>'
-              f'<th colspan="2" class="grp d-only">{ago_head} · {then:%d %b}</th>'
+              f'<th colspan="2" class="grp">Today · {now:%-d %b}</th>'
+              f'<th colspan="2" class="grp d-only">{ago_head} · {then:%-d %b}</th>'
               '<th class="grp">Change</th></tr>')
     css = (TABLE_CSS + "table{min-width:0}.wrap{height:auto}td.c-stock .sub{display:block}"
            "tbody tr:hover td{cursor:default}"
            ".dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;"
            "border:1px solid rgba(14,23,38,.25);vertical-align:0}"
-           "td .pc{display:inline-block;min-width:38px;margin-left:8px;color:#5E6878;font-weight:500}"
+           "td .pc{display:inline-block;min-width:38px;margin-left:8px;color:var(--c-muted);font-weight:500}"
            ".nm-short{display:none}"
            "@media (max-width:640px){td .pc{display:none}.nm-full{display:none}.nm-short{display:inline}"
            "th,td{padding:0 6px}td{font-size:12.5px}th:nth-child(1),td.c-rank{width:26px;min-width:26px}"
@@ -216,9 +224,9 @@ def leadership_table_html(board: pd.DataFrame, span: int) -> str:
            "td.c-stock .sub{display:block}"
            "td.c-stock .sym{display:block;max-width:104px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"
            "thead th .ar{display:none}}")
-    return ("<!DOCTYPE html><html><head><meta charset='utf-8'>"
-            "<link href='https://fonts.googleapis.com/css2?family=Geist:wght@400..700&"
-            "family=Geist+Mono:wght@400..700&display=swap' rel='stylesheet'>"
+    return ("<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Sector leadership table</title>"
+            "<link href='https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&"
+            "family=IBM+Plex+Mono:wght@400;500;600&display=swap' rel='stylesheet'>"
             f"<style>{css}</style></head><body><div class='wrap'><table>"
             f"<thead>{groups}<tr class=\"hdr\">{head}</tr></thead><tbody>{''.join(rows)}</tbody>"
             f"</table></div><script>const SYS='';{TABLE_JS}</script></body></html>")
@@ -292,29 +300,34 @@ def board_html(board: pd.DataFrame) -> str:
         leads = "".join(_leader_link(s) for s in r["Leaders"][:2])
         rows.append(
             f'<div class="ib-row" role="row">'
-            f'<span class="ib-n">{i}</span>'
-            f'<span class="ib-name"><b>{html.escape(r["Industry"])}</b>'
+            f'<span class="ib-n" role="cell">{i}</span>'
+            f'<span class="ib-name" role="rowheader"><b>{html.escape(r["Industry"])}</b>'
             f'<small>{r["Stocks"]} stocks · {r["EMA %"] * 100:.0f}% above 50-day EMA · {r["Top 50"]} in top 50</small></span>'
-            f'<span class="ib-num ib-d">{r["Stocks"]}</span>'
-            f'<span class="ib-3m"><b class="{_tone(v)}">{_pct(v)}</b>'
-            f'<span class="ib-bar"><i class="{_tone(v)}" style="{side};width:{w:.1f}%"></i><em></em></span></span>'
-            f'<span class="ib-num ib-d {_tone(r["6M Return"])}">{_pct(r["6M Return"])}</span>'
-            f'<span class="ib-num ib-d">{r["EMA %"] * 100:.0f}%</span>'
-            f'<span class="ib-num ib-d">{r["Near %"] * 100:.0f}%</span>'
-            f'<span class="ib-num ib-d">{r["Pass"]}</span>'
-            f'<span class="ib-num ib-d">{r["Top 50"]}</span>'
-            f'<span class="ib-leads ib-d">{leads}</span></div>'
+            f'<span class="ib-num ib-d" role="cell">{r["Stocks"]}</span>'
+            f'<span class="ib-3m" role="cell"><b class="{_tone(v)}">{_pct(v)}</b>'
+            f'<span class="ib-bar" aria-hidden="true"><i class="{_tone(v)}" style="{side};width:{w:.1f}%"></i><em></em></span></span>'
+            f'<span class="ib-num ib-d {_tone(r["6M Return"])}" role="cell">{_pct(r["6M Return"])}</span>'
+            f'<span class="ib-num ib-d" role="cell">{r["EMA %"] * 100:.0f}%</span>'
+            f'<span class="ib-num ib-d" role="cell">{r["Near %"] * 100:.0f}%</span>'
+            f'<span class="ib-num ib-d" role="cell">{r["Pass"]}</span>'
+            f'<span class="ib-num ib-d" role="cell">{r["Top 50"]}</span>'
+            f'<span class="ib-leads ib-d" role="cell">{leads}</span></div>'
         )
-    head = ('<div class="ib-row ib-head" role="row"><span>#</span><span>Industry</span>'
-            '<span class="ib-num ib-d">Stocks</span><span class="ib-3m">3M (median)</span>'
-            '<span class="ib-num ib-d">6M</span><span class="ib-num ib-d" title="Share above their 50-day EMA">Above EMA</span>'
-            '<span class="ib-num ib-d" title="Share within 20% of their 52-week high">Near high</span><span class="ib-num ib-d">Pass both</span>'
-            '<span class="ib-num ib-d">Top 50</span><span class="ib-d">Leaders</span></div>')
+    head = ('<div class="ib-row ib-head" role="row"><span role="columnheader">#</span><span role="columnheader">Industry</span>'
+            '<span role="columnheader" class="ib-num ib-d">Stocks</span><span role="columnheader" class="ib-3m">3M (median)</span>'
+            '<span role="columnheader" class="ib-num ib-d">6M</span><span role="columnheader" class="ib-num ib-d" title="Share above their 50-day EMA">Above 50D EMA</span>'
+            '<span role="columnheader" class="ib-num ib-d" title="Share within 20% of their 52-week high">Near 52W high</span><span role="columnheader" class="ib-num ib-d">Pass both</span>'
+            '<span role="columnheader" class="ib-num ib-d">Top 50</span><span role="columnheader" class="ib-d">Leaders</span></div>')
     return f'<div class="ib" role="table" aria-label="Industry leaderboard">{head}{"".join(rows)}</div>'
 
 
-def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
-    """Industries ranked, then the stocks of the one picked."""
+def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
+                       history_prices: pd.DataFrame | None = None,
+                       benchmark_close: pd.Series | None = None) -> None:
+    """"What is leading?" first (owner, 7 Nov: tipsheet's question pages as the
+    model): size, industries by six months and one month, month by month
+    against the Nifty 500, what would change it. Then the leaderboard, the
+    stocks of one industry and the leadership map."""
     has_tv = [c for c in ("TV_Industry", "TV_Sector") if c in rank_df.columns]
     tax = {"NSE industry": "Industry"}
     if "TV_Industry" in has_tv:
@@ -345,36 +358,19 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
         st.info("No industry has two or more ranked stocks to compare.")
         return
 
-    # The tiles and the map follow the measure picked above; they read 3M
-    # whatever was picked, so 6M, Share passing and Top-50 count changed only
-    # the leaderboard further down (owner, 13 Oct: "not showing correctly").
-    ret = "6M Return" if by == "6M median" else "3M Return"
-    span = "6M" if ret == "6M Return" else "3M"
-    metric = RANK_BY[by]
-    ranked = board.dropna(subset=[metric])
-    lead, weak = ranked.iloc[0], ranked.iloc[-1]
-    most = board.sort_values(["Top 50", ret], ascending=False).iloc[0]
-    rising = int((board[ret] > 0).sum())
-    best_sym = (rank_df[rank_df[col] == most.Industry].sort_values("Rank")["Symbol"].head(1).tolist() or ["—"])[0]
+    # What is leading, in full; the four tiles that sat here repeated the
+    # leaderboard below and this section.
+    levels, nbench = fetch_index_levels(), nse_benchmarks()
+    size_ok = False
+    if levels is not None and nbench is not None and "nifty50" in nbench:
+        size_ok, _ = sl.cross_check(levels, nbench["nifty50"])
+    nifty500 = (benchmark_close if benchmark_close is not None and len(benchmark_close)
+                else (nbench or {}).get("nifty500"))
+    render_leaders_section(rank_df, history_prices if history_prices is not None else adj_close,
+                           nifty500, size_closes(levels, size_ok))
 
-    def why(r) -> str:
-        if metric == "Pass %":
-            return f"{r['Pass %'] * 100:.0f}% pass both filters ({r.Pass} of {r.Stocks})"
-        if metric == "Top 50":
-            return f"{r['Top 50']} of the top 50 · median {span} {_pct(r[ret])}"
-        return f"median {_pct(r[ret])} in {span[0]} months · {r['Top 50']} of the top 50"
-
-    kit.readings([
-        kit.Reading("Leading", lead.Industry, why(lead), _tone(lead[ret]) if metric == ret else ""),
-        kit.Reading("Rising", f"{rising} of {len(board)}", f"median {span} above 0"),
-        kit.Reading("Most in the top 50", most.Industry,
-                    f"{most['Top 50']} stocks · best rank #{int(most.Best)} {best_sym}"),
-        kit.Reading("Weakest", weak.Industry, why(weak), _tone(weak[ret]) if metric == ret else "down"),
-    ], "Industries today")
-
-    with kit.card("Industry map", "sec_map", "bubble size = stocks"):
-        render_industry_map(board, x_col=ret, x_label=f"Median {span[0]}-month return")
-
+    # One ranking and one map on this page (owner's decision 5, 7 Nov): the
+    # industry bubble map repeated the board below it and is gone.
     with kit.card("Industry leaderboard", "sec_board"):
         st.html(board_html(board))
         if singles:

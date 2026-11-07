@@ -38,7 +38,7 @@ on:
   workflow_dispatch:
   # Daily on main, after the night's syncs (audit A6, 7 Nov 2026). The syncs commit
   # data/ with [skip ci], so a data change that breaks a data test turned nothing
-  # red: the 752-name Nifty 750 (S86) sat on main for four days unseen. A failure
+  # red: the 752-name Nifty 750 (S88) sat on main for four days unseen. A failure
   # here reaches the scheduled-failure issue.
   schedule:
     - cron: "23 23 * * *"

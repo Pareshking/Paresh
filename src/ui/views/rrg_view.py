@@ -267,7 +267,7 @@ def render_rrg_view(
                 "As of",
                 options=date_options,
                 value=date_options[-1],
-                format_func=lambda x: f"{pd.to_datetime(x):%d %b %Y}",
+                format_func=lambda x: f"{pd.to_datetime(x):%-d %b %Y}",
                 key="rrg_timeline_scrub",
             )
         else:
@@ -275,7 +275,7 @@ def render_rrg_view(
 
     kit.caption(
         f"{tf_choice.split()[0]} · tail {tail_w}w · lookback "
-        f"{lookback_w}w · {pd.to_datetime(sel_date_str):%d %b %Y}"
+        f"{lookback_w}w · {pd.to_datetime(sel_date_str):%-d %b %Y}"
     )
 
     ph = f"{sel_date_str}_{price_fingerprint(adj_close)}_{bm_choice}_{tf_choice}_{target_col}"

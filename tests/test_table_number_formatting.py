@@ -62,7 +62,7 @@ def test_day_pnl_percent_is_scaled(monkeypatch):
         pd.DataFrame({"Symbol": ["SIGMAADV"], "Day P&L %": [-0.9]}),
         monkeypatch,
     )
-    assert "-0.9%" in html
+    assert "−0.9%" in html
     assert "-90.0%" not in html
 
 
@@ -75,12 +75,12 @@ def test_a_multibagger_is_not_printed_as_a_rounding_error(monkeypatch):
 
 def test_a_total_loss_keeps_its_sign_and_scale(monkeypatch):
     html = _render(pd.DataFrame({"Symbol": ["X"], "Return %": [-0.4271]}), monkeypatch)
-    assert "-42.7%" in html
+    assert "−42.7%" in html
 
 
 def test_a_small_drawdown_is_not_inflated_a_hundredfold(monkeypatch):
     html = _render(pd.DataFrame({"Symbol": ["X"], "Max DD 3M": [-0.8]}), monkeypatch)
-    assert "-0.8%" in html
+    assert "\u22120.8%" in html  # true minus (owner, 7 Nov 2026)
     assert "-80.0%" not in html
 
 
@@ -111,7 +111,7 @@ def test_aggregate_money_stays_whole(monkeypatch):
     html = _render(
         pd.DataFrame({"Symbol": ["X"], "Actual Value (₹)": [1234567.89]}), monkeypatch
     )
-    assert "₹1,234,568" in html
+    assert "₹12,34,568" in html  # Indian grouping (owner, 7 Nov 2026)
 
 
 # ── The two renderers must agree ────────────────────────────────────────────
@@ -158,7 +158,7 @@ def test_mtd_is_a_signed_coloured_fraction(monkeypatch):
     # 2026-09-27: MTD % printed raw ("0.1%" for +10%) with no sign or colour,
     # because the column had no unit and no return styling.
     out = _render(pd.DataFrame({"MTD %": [0.1, -0.023]}), monkeypatch)
-    assert "+10.0%" in out and "-2.3%" in out
+    assert "+10.0%" in out and "−2.3%" in out
     assert "ret-pos" in out and "ret-neg" in out
 
 

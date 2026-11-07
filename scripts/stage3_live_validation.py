@@ -62,7 +62,7 @@ def main() -> None:
 
     # At least 750, not exactly: NSE carries names above the 750 at times (a demerged
     # company until its exclusion notice), and once one has enough history it ranks
-    # (owner, 7 Nov 2026: no limit when the list comes from NSE's files; S86).
+    # (owner, 7 Nov 2026: no limit when the list comes from NSE's files; S88).
     if len(snapshot.rows) < 750:
         raise AssertionError(
             f"live Stage-2 snapshot has {len(snapshot.rows)} rows, fewer than 750"

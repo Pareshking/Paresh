@@ -126,6 +126,10 @@ def _open_custom_popover(frame) -> bool:
     if button is None:
         try:
             candidate = frame.get_by_role("button", name="☰", exact=True).first
+            if not candidate.count():
+                # Since 7 Nov 2026 the button is the Material "menu" icon,
+                # announced as "menu" (pre-launch audit F23).
+                candidate = frame.get_by_role("button", name="menu").first
             if candidate.count():
                 button = candidate
         except Exception:
@@ -298,6 +302,7 @@ def open_page(frame, name: str, page=None) -> str:
 
     if page is not None:
         routes = {
+            "Dashboard": "dashboard",
             "Screener": "screener",
             "Actions": "actions",
             "Sectors": "sectors",

@@ -1,26 +1,30 @@
 [theme]
-# "Clear Ledger": the light design the owner approved. The same tokens are
-# repeated as CSS variables in src/ui/theme.py for the custom HTML.
+# "Paper B · Ledger", white ground (owner, 7 Nov 2026): ink on white, IBM Plex
+# Sans and Mono, blue for up and rust for down, thin rules instead of boxes.
+# The same tokens are repeated as CSS variables in src/ui/theme.py.
 base = "light"
-primaryColor = "#4F46E5"
-backgroundColor = "#F6F7F9"
-secondaryBackgroundColor = "#FFFFFF"
-textColor = "#0E1726"
-linkColor = "#4338CA"
-linkUnderline = false
-borderColor = "#D0D5DD"
+primaryColor = "#1C1B19"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F7F7F5"
+textColor = "#1C1B19"
+linkColor = "#1C1B19"
+linkUnderline = true
+borderColor = "#D6D6D2"
 showWidgetBorder = true
-baseRadius = "10px"
-greenColor = "#067647"
-redColor = "#B42318"
+baseRadius = "4px"
+greenColor = "#1D5FA6"
+redColor = "#A4441A"
 orangeColor = "#B54708"
-dataframeHeaderBackgroundColor = "#F4F5F8"
-font = "Geist:https://fonts.googleapis.com/css2?family=Geist:wght@400..700&display=swap, sans-serif"
-headingFont = "'Bricolage Grotesque':https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap, sans-serif"
-codeFont = "'Geist Mono':https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400..700&display=swap, monospace"
+dataframeHeaderBackgroundColor = "#F7F7F5"
+font = "'IBM Plex Sans':https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap, sans-serif"
+headingFont = "'IBM Plex Sans':https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap, sans-serif"
+codeFont = "'IBM Plex Mono':https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap, monospace"
 
 [server]
 headless = true
+# The chart libraries are served once from ./static (audit F60) instead of
+# being copied into every chart frame.
+enableStaticServing = true
 enableXsrfProtection = true
 # The only uploader is the Actions page's holdings CSV, a few KB. The default
 # 200 MB would let one upload sit in the server's memory beside every session.

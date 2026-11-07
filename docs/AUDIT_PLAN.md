@@ -52,7 +52,7 @@ Streamlit Cloud is slower and smaller.
   committed by `monthly_track_record` on 3 Nov (b9591f8, 9b83d9c).
   Not checked: the "Three systems" view on the live site.
 - **Shadow record's first month (Nov):** due 1-5 Dec; not yet due.
-- **New data finding, S86:** the Nifty 750 membership reads **752** from
+- **New data finding, S88 (numbered S86 here before the merge with main):** the Nifty 750 membership reads **752** from
   2026-11-04. The nightly added ENNATURE and IGLSPIRITS (both in NSE's
   `equity_l.csv` from 04-NOV-2026, series BE, and in the Total Market list
   file, 754 rows) with no removal. Same shape as TRIVENIPT (S78): probably
@@ -89,7 +89,7 @@ new period).
 
 ### 0.3 Tests
 
-`python -m pytest tests -q`: **2,364 passed, 1 failed (S86) in 164 s**, peak
+`python -m pytest tests -q`: **2,364 passed, 1 failed (S88) in 164 s**, peak
 memory 478 MB. Slowest: `test_s56_rights_actions` 18 s, one
 `test_screener_restatement` case 12 s, the parametrised restatement cases
 2-5 s each. Not a bottleneck.
@@ -156,4 +156,4 @@ Actions minutes are free, so the order now follows what readers and data
 feel: **7 + 6 (Portfolio, memory growth) → 5 (engine behind Portfolio and
 Backtest) → 3 (the two R2 jobs that never succeed, bootstrap on a daily
 schedule) → 1 (ss_sync's 1,000-session page per stock) → 8 → 2 → 4 → 9.**
-S86 is data, so it goes first in `TODO.md`, outside this audit.
+S88 and S89 are data, so they went first in `TODO.md`, outside this audit.

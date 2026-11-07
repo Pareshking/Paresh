@@ -24,6 +24,7 @@ from src.engine.track_record import (
     summary_stats,
 )
 from src.ui import page_kit as kit
+from src.ui import formats as _fmt
 from src.ui.theme import render_saas_table
 
 
@@ -117,7 +118,7 @@ def _pct(v: float | int | None) -> str:
     if v is None or pd.isna(v):
         return "—"
     try:
-        return f"{float(v) * 100:+.1f}%"
+        return f"{_fmt.pct(float(v) * 100, fraction=False)}"
     except (TypeError, ValueError):
         return "—"
 
@@ -145,7 +146,7 @@ def _tone(v: float | None) -> str:
 def _day(v) -> str:
     """A date as the rest of the site writes it (01 Oct 2026); a dash when absent."""
     try:
-        return f"{pd.Timestamp(v):%d %b %Y}" if v else "—"
+        return f"{pd.Timestamp(v):%-d %b %Y}" if v else "—"
     except (TypeError, ValueError):
         return str(v)
 
@@ -165,7 +166,7 @@ def month_cards_html(months: dict, mtd_period, mtd_val, mtd_bench) -> str:
         )
     if mtd_period is not None and mtd_val is not None:
         cards.append(
-            f'<div class="mo live"><span class="mo-h" style="color:#3730A3">{mtd_period.strftime("%b %Y")} · so far</span>'
+            f'<div class="mo live"><span class="mo-h" style="color:var(--c-ink)">{mtd_period.strftime("%b %Y")} · so far</span>'
             f'<span class="mo-v {_tone(mtd_val)}">{_pct(mtd_val).replace("-", "−")}</span>'
             f'<span class="mo-s">Nifty 500 {_pct(mtd_bench).replace("-", "−")} · moves every session until the month closes</span></div>'
         )
@@ -271,8 +272,8 @@ def render_record_sections(
         _fill = pd.Timestamp(lm["fill_date"])
         kit.note(
             f"{_fill:%B %Y} has a new book but no return yet.",
-            f"It was signalled on {pd.Timestamp(lm['signal_date']):%d %b} and bought at the "
-            f"{_fill:%d %b} close ({lm.get('n_bought', 0)} bought, {lm.get('n_sold', 0)} sold, "
+            f"It was signalled on {pd.Timestamp(lm['signal_date']):%-d %b} and bought at the "
+            f"{_fill:%-d %b} close ({lm.get('n_bought', 0)} bought, {lm.get('n_sold', 0)} sold, "
             f"{lm.get('n_held', 0)} held). Month-to-date starts accruing the next session. "
             "See Ranks by month for the book and its ranks.",
         )

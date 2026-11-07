@@ -76,6 +76,12 @@ Mumbai, February 23, 2026
 def test_the_parser_reads_dates_and_the_right_section_only():
     assert pin.issued_on(NOTICE) == date(2026, 2, 23)
     assert pin.effective_dates(NOTICE) == [date(2026, 3, 30)]
+
+
+def test_an_effective_date_without_a_space_after_the_comma_is_read():
+    # ind_prs26082026_1.pdf writes "September 02,2026"; it parsed as no date.
+    text = "effective from September 02,2026 (close of September 01,2026)"
+    assert pin.effective_dates(text)[0] == date(2026, 9, 2)
     assert pin.sections(NOTICE, "Nifty 500") == {
         "excluded": ["AKUMS", "M&M"], "included": ["CPPLUS", "NAM-INDIA"]}
     assert pin.sections(NOTICE, "Nifty 100") == {"excluded": ["HAVELLS"]}
@@ -225,11 +231,15 @@ def test_nothing_is_left_unexplained_and_the_one_ticker_change_is_recorded():
 
 # The list is NSE's, not a number (owner, 7 Nov 2026: "we should have no limits if it
 # comes from NSE indices CSVs"). NSE carries companies above the 750 at times: a demerged
-# company until its exclusion notice (TRIVENIPT from 9 Oct 2026; ENNATURE and IGLSPIRITS,
-# India Glycols' demerger, from 3 Nov), and Tata Motors DVR until 30 Aug 2024. A test of
-# "exactly 750 plus a hand-kept list" failed on correct data on 4 Nov (S86), so it checks
-# NSE's file instead: the latest recorded membership is NSE's Nifty Total Market list,
-# name for name, without its DUMMY placeholders (the record skips those).
+# company until its exclusion notice, and Tata Motors DVR until 30 Aug 2024. Examples:
+#   TRIVENIPT: ind_prs17072026.pdf, DUMMYTRVN in Nifty Total Market from 2026-07-22,
+#     listed as TRIVENIPT in NSE's list file of 2026-10-09.
+#   ENNATURE, IGLSPIRITS: ind_prs26082026_1.pdf, India Glycols' demerger, DUMMYINGL1 and
+#     DUMMYINGL2 from 2026-09-02, listed (series BE) in NSE's list file of 2026-11-04 (S88).
+# A test of "exactly 750 plus a hand-kept list" failed on correct data on 4 Nov (S88) and
+# needed editing for every demerger, so it checks NSE's own file instead: the latest
+# recorded membership is NSE's Nifty Total Market list, name for name, without its DUMMY
+# placeholders (the record skips those), and no date falls below 750.
 TOTAL_MARKET_FILE = ROOT / "data" / "indices" / "ind_niftytotalmarket_list.csv"
 
 

@@ -110,6 +110,7 @@ with app_import_guard():
     from src.ui.views.guide_view import render_guide_view
     from src.ui.views.portfolio_view import render_portfolio_view
     from src.ui.views.actions_view import render_actions_view
+    from src.ui.views.dashboard_view import render_dashboard_view
     from src.ui.views.ranking_view import render_ranking_view
     from src.ui.views.rrg_view import render_rrg_view
     from src.ui.views.sector_view import render_sector_view
@@ -130,6 +131,9 @@ if _code_reloaded:
 
 # Inject Pure Paper White Design System
 inject_custom_css()
+# Editorial type on every page (owner, 7 Nov: prototype seen, "continue").
+from src.ui.page_kit import editorial_style as _editorial_style  # noqa: E402
+_editorial_style()
 
 # Seed freshness dates from committed repo files so the ribbon always has
 # something to show even before the loaders run (or on warm-cache reruns
@@ -1047,6 +1051,13 @@ def _record_start() -> str:
 
 
 
+def _page_dashboard() -> None:
+    # The home page (owner, 7 Nov 2026): book at risk, next rebalance, size
+    # leadership, sector leaders. The same book and plan as Actions.
+    render_dashboard_view(rank_df, deep_adj_close, fetch_benchmark_history(period="5y"),
+                          system=system)
+
+
 def _page_screener() -> None:
     # What is ranked comes last, under the top-50 moves (owner, 2026-09-27).
     render_ranking_view(
@@ -1058,7 +1069,8 @@ def _page_screener() -> None:
 
 
 def _page_sectors() -> None:
-    render_sector_view(rank_df, adj_close)
+    render_sector_view(rank_df, adj_close, history_prices=deep_adj_close,
+                       benchmark_close=fetch_benchmark_history(period="5y"))
 
 
 def _page_rrg() -> None:
@@ -1079,7 +1091,8 @@ def _page_watchlist() -> None:
 
 
 def _page_breadth() -> None:
-    render_breadth_view(rank_df, adj_close)
+    render_breadth_view(rank_df, adj_close, history_prices=deep_adj_close,
+                        benchmark_close=fetch_benchmark_history(period="5y"))
 
 
 def _page_backtest() -> None:
@@ -1144,13 +1157,16 @@ def _page_guide() -> None:
 # them by name and tests/test_qa_tab_list_matches_the_app.py pins them, so a
 # rename here without one there is a failing build, not a silent drift.
 _PAGES = [
-    # Served at "/" as the default page; "screener" is the redirect below.
-    st.Page(_page_screener, title="Screener", url_path="home", default=True),
+    # The Dashboard is the home page, served at "/" (owner, 7 Nov 2026);
+    # "dashboard" is the redirect below. The Screener has its own address.
+    # In the menu's groups (owner, 7 Nov): My book, then Market, then Method.
+    st.Page(_page_dashboard, title="Dashboard", url_path="home", default=True),
     st.Page(_page_portfolio, title="Portfolio", url_path="portfolio"),
     st.Page(_page_actions, title="Actions", url_path="actions"),
+    st.Page(_page_watchlist, title="Watchlist", url_path="watchlist"),
+    st.Page(_page_screener, title="Screener", url_path="screener"),
     st.Page(_page_sectors, title="Sectors", url_path="sectors"),
     st.Page(_page_rrg, title="RRG", url_path="rrg"),
-    st.Page(_page_watchlist, title="Watchlist", url_path="watchlist"),
     st.Page(_page_breadth, title="Market Breadth", url_path="breadth"),
     st.Page(_page_backtest, title="Backtest", url_path="backtest"),
     st.Page(_page_configuration, title="Configuration", url_path="configuration"),
@@ -1161,11 +1177,11 @@ _PAGES = [
 # either still lands there. These are redirects, not pages -- they are left out
 # of _PAGES, so no menu shows them, and their titles are not the app's tabs.
 _MOVED = {"qualified": "Qualified", "exit-watch": "Exit Watch", "track-record": "Track Record",
-          "screener": "Screener link"}
+          "dashboard": "Dashboard link"}
 # Where a moved address now lands (Actions unless listed): the record is part of Portfolio.
-# The Screener is the default page, which Streamlit serves at "/" only, so a
-# typed or bookmarked /screener said "Page not found" first (13 Oct).
-_MOVED_TO = {"track-record": "Portfolio", "screener": "Screener"}
+# The Dashboard is the default page, which Streamlit serves at "/" only, so a
+# typed /dashboard is a redirect to it (as /screener was until 7 Nov).
+_MOVED_TO = {"track-record": "Portfolio", "dashboard": "Dashboard"}
 
 
 def _moved_page(path: str):
@@ -1177,14 +1193,22 @@ def _moved_page(path: str):
 
 # position="hidden" keeps Streamlit's own navigation out of the hidden header.
 _nav = st.navigation(_PAGES + [_moved_page(p) for p in _MOVED], position="hidden")
+# Each page names itself in the browser tab ("Actions · Paresh Patel");
+# every tab read "Paresh Patel" (pre-launch audit, WCAG 2.4.2).
+_page_name = getattr(_nav, "title", None)   # a test stubs Page without one
+st.set_page_config(page_title=f"{_page_name} · Paresh Patel" if _page_name else "Paresh Patel")
 
 # The stock page is a route of the Screener (?stock=SYMBOL). Links to it are
 # relative, so one clicked on another page -- a sector leader on Sectors --
 # arrives as /sectors?stock=X, and that page has no idea what to do with it:
 # the click reloaded Sectors. Send any stock request to the Screener.
-if st.query_params.get("stock") and _nav.title != _PAGES[0].title:
-    st.switch_page(_PAGES[0], query_params={"stock": st.query_params["stock"],
-                                            **system_param.url_params()})
+# The Screener is not the first page since the Dashboard became home, so it is
+# found by name (only when a stock is asked for, as before).
+if st.query_params.get("stock"):
+    _screener_page = next(p for p in _PAGES if p.title == "Screener")
+    if _nav.title != _screener_page.title:
+        st.switch_page(_screener_page, query_params={"stock": st.query_params["stock"],
+                                                     **system_param.url_params()})
 
 # ── Top Header KPI Bar & Alerts ──────────────────────────────────────────────
 total_stocks = len(rank_df)
@@ -1210,7 +1234,7 @@ watchlist_store.sync()
 _nav.run()
 # Which page took the process to its peak: the log line memory_checkpoint
 # writes when the peak climbs 50 MB names this label.
-metrics.memory_checkpoint(f"page:{_nav.url_path or 'screener'}")
+metrics.memory_checkpoint(f"page:{_nav.url_path or 'dashboard'}")
 # Hand the page's freed memory back (src/core/memory.py): without it every
 # History change left 70-130 MB in the thread's malloc arena for good.
 _trim_s = release_freed_memory()

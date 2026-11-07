@@ -22,7 +22,9 @@ MONTHS = {m: i for i, m in enumerate(
      "September", "October", "November", "December"], start=1)}
 
 _DATE = (r"(January|February|March|April|May|June|July|August|September|"
-         r"October|November|December)\s+(\d{1,2}),?\s+(\d{4})")
+         r"October|November|December)\s+(\d{1,2})(?:,\s*|\s+)(\d{4})")
+# NSE sometimes leaves out the space after the comma ("September 02,2026" in
+# ind_prs26082026_1.pdf), which the old ",?\s+" read as no date at all.
 _EFFECTIVE = re.compile(
     r"(?:effective\s+from|w\.e\.f\.?|with\s+effect\s+from)\s+" + _DATE, re.I)
 _ISSUED = re.compile(r"Mumbai,\s+" + _DATE, re.I)

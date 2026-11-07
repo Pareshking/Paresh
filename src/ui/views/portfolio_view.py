@@ -24,6 +24,7 @@ from src.ui.charts import render_correlation_heatmap
 from src.ui.theme import render_saas_table
 from src.ui.views.qualified_view import correlation, correlation_note
 from src.ui.views.track_record_view import render_record_sections
+from src.ui import formats as _fmt
 
 PORTFOLIO_STARTING_CAPITAL = MODEL_BOOK_CAPITAL
 
@@ -218,6 +219,21 @@ def build_portfolio_tracker(
     if fill_px.notna().any():
         base = _capital_before_fill(fill)
         size_px = fill_px.where(fill_px.notna(), out["Entry Price"])
+        # The curve holds month-ends, so `base` is the account before the last
+        # close of the old book and before the fill's trading costs. Sized on
+        # it, the book held more than the ledger's account (at ₹1 crore, cash
+        # read -₹34,041; at ₹20 lakh, rounding down to whole shares hid it).
+        # The account at the fill is today's ledger value over the book's
+        # growth since the fill at its target weights.
+        w = out["Target Weight %"] / 100.0
+        now_px = out["Current Price"]
+        ok = size_px.gt(0) & now_px.gt(0)
+        # Only when the curve's last point is today's value (after the fill).
+        if (not curve.empty and curve.index[-1] >= fill and ok.all()
+                and 0 < w.sum() <= 1.0 + 1e-9):
+            growth = float((w * now_px / size_px).sum()) + (1.0 - float(w.sum()))
+            if growth > 0:
+                base = float(curve.iloc[-1]) / growth
         out["Shares"] = (
             (base * out["Target Weight %"] / 100.0) / size_px.replace(0, np.nan)
         ).fillna(0.0).apply(np.floor).astype(int)
@@ -478,6 +494,12 @@ def _daily_with_live(history: dict, table: pd.DataFrame, prices: pd.DataFrame | 
             shares = table.set_index("Symbol")["Shares"].reindex(px.columns).fillna(0.0)
             cash = float(value) - float(current)
             live = (px * shares).sum(axis=1) + cash
+            # The table marks today's holdings at their current price, the
+            # store at its adjusted close; the two differ in the paise, which
+            # read as ₹28,27,941 under the chart against ₹28,27,942 above it
+            # (audit F11). Today's point is the account value itself.
+            if px.index[-1] == prices.index[-1]:
+                live.iloc[-1] = float(value)
             eq = pd.concat([eq, live])
             if benchmark_close is not None and len(benchmark_close):
                 bc = pd.to_numeric(benchmark_close, errors="coerce").dropna()
@@ -489,7 +511,7 @@ def _daily_with_live(history: dict, table: pd.DataFrame, prices: pd.DataFrame | 
 
 
 def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
-    """Render the canonical ₹20 lakh model portfolio as a portfolio dashboard.
+    """Render the canonical ₹1 crore model portfolio as a portfolio dashboard.
 
     It takes no Configuration limits: the book is the track record's, run on
     its pinned settings (TRACK_RECORD_CONFIG), whatever the sliders say.
@@ -580,8 +602,8 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
     kit.readings([
         kit.Reading(
             "Portfolio value",
-            f"₹{value:,.0f}",
-            f"Invested: ₹{capital:,.0f}",
+            _fmt.inr(value),
+            f"Invested: {_fmt.inr(capital)}",
         ),
         kit.Reading(
             "Since inception",
@@ -591,17 +613,17 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
         ),
         kit.Reading(
             "Unrealised P&L",
-            "—" if not np.isfinite(pnl_pct) else f"{pnl_pct:+.1f}%",
+            "—" if not np.isfinite(pnl_pct) else f"{_fmt.pct(pnl_pct, fraction=False)}",
             "",
             "" if not np.isfinite(pnl_pct) else ("up" if pnl >= 0 else "down"),
         ),
         kit.Reading(
             "Day P&L",
-            "—" if not np.isfinite(day_pnl_pct) else f"{day_pnl_pct:+.1f}%",
+            "—" if not np.isfinite(day_pnl_pct) else f"{_fmt.pct(day_pnl_pct, fraction=False)}",
             f"Nifty 500 {kit.pct(benchmark_day_pct)}",
             "up" if day_pnl_pct >= 0 else "down",
         ),
-        kit.Reading("Cash / realised balance", f"₹{cash:,.0f}"),
+        kit.Reading("Cash / realised balance", _fmt.inr(cash)),
         kit.Reading(
             "MTD return",
             kit.pct(strategy_mtd),
@@ -619,7 +641,7 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
     ]
     current_view = table[[c for c in display_cols if c in table.columns]].copy()
     if "Entry Date" in current_view.columns:
-        current_view["Entry Date"] = pd.to_datetime(current_view["Entry Date"], errors="coerce").dt.strftime("%d %b %Y").fillna("—")
+        current_view["Entry Date"] = pd.to_datetime(current_view["Entry Date"], errors="coerce").dt.strftime("%-d %b %Y").fillna("—")
     for col in ("P&L %", "Weight %", "Target Weight %", "Weight Drift %", "1M Return"):
         if col in current_view.columns:
             current_view[col] = pd.to_numeric(current_view[col], errors="coerce")
@@ -667,7 +689,10 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
                 kit.Metric(f"{month} strategy", kit.pct(strategy_mtd)),
                 kit.Metric(f"{month} Nifty 500", kit.pct(benchmark_mtd)),
                 kit.Metric(f"{month} alpha", kit.pct(mtd_gap)),
-                kit.Metric("Max drawdown", kit.pct(float(dd_d.min()), signed=False)),
+                # Daily closes, the drawdown line drawn below. The record's line
+                # under the calendar gives the month-end figure (-9.9% against
+                # this -13.5% on 6 Nov): both right, so each names its basis.
+                kit.Metric("Max drawdown, daily", kit.pct(float(dd_d.min()), signed=False)),
             ], key="pf_equity")
             kit.equity_chart(
                 eq_d.index, eq_d.tolist(),

@@ -6,6 +6,16 @@ Stock chart and the Relative Rotation Graph, both Highcharts.
 import json
 import pandas as pd
 import streamlit as st
+from src.ui import formats as _fmt
+from src.ui.tokens import FONTS, resolve
+
+# Each chart is its own document, so it loads the theme's fonts itself.
+_HEAD = "<!DOCTYPE html><html lang='en'><head><title>Chart</title><meta charset='utf-8'><link rel='stylesheet' href='" + FONTS["google_css"] + "'>"
+
+
+def _titled(title: str) -> str:
+    """The frame head with a title that says what the chart is (audit F22/F26)."""
+    return _HEAD.replace("<title>Chart</title>", f"<title>{title}</title>")
 
 
 
@@ -132,7 +142,7 @@ def _script_json(obj) -> str:
     )
 
 
-def _build_rrg_html(data_json: str) -> str:
+def _build_rrg_html(data_json: str, summary: str = "") -> str:
     """The Relative Rotation Graph as a self-contained Highcharts page.
 
     One line series per industry (its trail, ending in a larger dot), quadrants
@@ -143,7 +153,7 @@ def _build_rrg_html(data_json: str) -> str:
 
     _CSS = """<style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{background:transparent;height:100%;overflow:hidden;font-family:'Geist',system-ui,sans-serif}
+html,body{background:transparent;height:100%;overflow:hidden;font-family:'IBM Plex Sans',system-ui,sans-serif}
 #c{width:100%}
 /* On a phone the chart is drawn wider than the screen and swiped sideways
    (owner, 15 Oct: "larger chart, I will slide the page"). */
@@ -151,21 +161,25 @@ html,body{background:transparent;height:100%;overflow:hidden;font-family:'Geist'
    script below, never by the browser, so reaching the edge cannot turn into
    the browser's swipe-back (it did, in a touch test, with native scrolling). */
 #scroller{width:100%;overflow:hidden;touch-action:pan-y}
-#hint{display:none;font-size:11px;color:#5E6878;text-align:center;padding:2px 0 0}
+#hint{display:none;font-size: 12px;color:var(--c-faint);text-align:center;padding:2px 0 0}
 body.wide #hint{display:block}
 #controls{display:flex;gap:8px;align-items:center;justify-content:center;padding:6px 4px 2px;flex-wrap:wrap}
-.ctrl-btn{background:#F1F3F6;border:1px solid #E3E6EB;border-radius:6px;padding:4px 14px;font-size:12px;
-  cursor:pointer;color:#3C4657;font-family:inherit}
-.ctrl-btn:hover{background:#E3E6EB}
-.ctrl-btn.active{background:#4F46E5;color:#fff;border-color:#4F46E5}
-#scrub{width:180px;accent-color:#4F46E5;cursor:pointer}
-#frame-lbl{font-size:12px;color:#5E6878;font-family:'Geist Mono',monospace;min-width:58px;text-align:center}
+.ctrl-btn{background:transparent;border:1px solid var(--c-rule);border-radius:4px;padding:3px 12px;font-size:12px;
+  cursor:pointer;color:var(--c-text_2);font-family:inherit}
+.ctrl-btn:hover{border-color:var(--c-rule_strong);color:var(--c-ink)}
+.ctrl-btn.active{background:var(--c-ink);color:#fff;border-color:var(--c-ink)}
+#scrub{width:180px;cursor:pointer;-webkit-appearance:none;appearance:none;background:transparent;height:16px}
+#scrub::-webkit-slider-runnable-track{height:2px;background:var(--c-rule_strong);border-radius:1px}
+#scrub::-moz-range-track{height:2px;background:var(--c-rule_strong);border-radius:1px}
+#scrub::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;margin-top:-5px;border-radius:50%;background:var(--c-ink);border:2px solid var(--c-white)}
+#scrub::-moz-range-thumb{width:10px;height:10px;border-radius:50%;background:var(--c-ink);border:2px solid var(--c-white)}
+#frame-lbl{font-size:12px;color:var(--c-muted_2);font-family:'IBM Plex Mono',monospace;min-width:58px;text-align:center}
 </style>"""
-    _BODY = """<div id="scroller"><div id="c"></div></div>
+    _BODY = """<div id="scroller" aria-hidden="true"><div id="c"></div></div>
 <div id="hint">&#8592; swipe the chart to see every quadrant &#8594;</div>
 <div id="controls">
   <button class="ctrl-btn" id="btn-play">&#9654; Play</button>
-  <input type="range" id="scrub" min="0" value="100">
+  <input type="range" id="scrub" min="0" value="100" aria-label="Week shown">
   <span id="frame-lbl">Current</span>
   <button class="ctrl-btn" id="btn-rst">&#8635; Reset</button>
 </div>"""
@@ -184,10 +198,10 @@ let frame = maxFrames - 1, playing = false, playTimer = null, selected = null;
 const btnPlay = document.getElementById('btn-play'), scrub = document.getElementById('scrub'), lbl = document.getElementById('frame-lbl');
 scrub.max = maxFrames - 1; scrub.value = maxFrames - 1;
 const QUADS = [
-  {n:'Improving', x0:minX, x1:100, y0:100, y1:maxY, c:'rgba(79,70,229,.07)', t:'#4F46E5', ax:'left', ay:'top'},
-  {n:'Leading',   x0:100, x1:maxX, y0:100, y1:maxY, c:'rgba(6,118,71,.08)',  t:'#067647', ax:'right', ay:'top'},
-  {n:'Lagging',   x0:minX, x1:100, y0:minY, y1:100, c:'rgba(180,35,24,.07)', t:'#B42318', ax:'left', ay:'bottom'},
-  {n:'Weakening', x0:100, x1:maxX, y0:minY, y1:100, c:'rgba(181,71,8,.08)',  t:'#B54708', ax:'right', ay:'bottom'}];
+  {n:'Improving', x0:minX, x1:100, y0:100, y1:maxY, c:'var(--c-fill_soft)',    t:'var(--c-muted)', ax:'left', ay:'top'},
+  {n:'Leading',   x0:100, x1:maxX, y0:100, y1:maxY, c:'var(--c-up_tint_3)',    t:'var(--c-up)', ax:'right', ay:'top'},
+  {n:'Lagging',   x0:minX, x1:100, y0:minY, y1:100, c:'var(--c-down_tint_2)',  t:'var(--c-down)', ax:'left', ay:'bottom'},
+  {n:'Weakening', x0:100, x1:maxX, y0:minY, y1:100, c:'var(--c-caution_tint)', t:'var(--c-caution)', ax:'right', ay:'bottom'}];
 function pts(s, f){
   const n = s.trail_r.length;
   if(!n) return [{x:s.rs_ratio, y:s.rs_momentum}];
@@ -200,11 +214,11 @@ function seriesFor(s){
   // A name to the right of a dot near the right edge ran off the chart
   // (Media Entertainment, 15 Oct): there it goes on the dot's left instead.
   const flip = d[last].x > minX + 0.62 * (maxX - minX);
-  d[last] = {x:d[last].x, y:d[last].y, marker:{enabled:true, radius:on?8:4, fillColor:s.color, lineColor:'#fff', lineWidth:2},
+  d[last] = {x:d[last].x, y:d[last].y, marker:{enabled:true, radius:on?5:3, fillColor:s.color, lineColor:'var(--c-white)', lineWidth:1.5},
     dataLabels:{enabled:on, format:esc(s.industry), align:flip?'right':'left', x:flip?-10:10, y:-6, allowOverlap:false, crop:true, overflow:'justify',
-      style:{color:s.color, fontSize:'11px', fontWeight:'600', textOutline:'2px #fff'}}};
-  return {name:s.industry, data:d, color:s.color, lineWidth:on?2:1, opacity:on?1:0.14, type:'line',
-    marker:{enabled:on, radius:3, symbol:'circle'}, states:{inactive:{opacity:on?1:0.14}, hover:{lineWidthPlus:0}},
+      style:{color:s.color, fontSize:'11px', fontWeight:'600', textOutline:'2px var(--c-white)'}}};
+  return {name:s.industry, data:d, color:s.color, lineWidth:on?1.5:1, opacity:on?1:0.14, type:'line',
+    marker:{enabled:on, radius:1.8, symbol:'circle', lineWidth:0}, states:{inactive:{opacity:on?1:0.14}, hover:{lineWidthPlus:0}},
     custom:{s:s}, enableMouseTracking:on};
 }
 function quadrants(chart){
@@ -215,7 +229,7 @@ function quadrants(chart){
     const x0=X.toPixels(q.x0,false), x1=X.toPixels(q.x1,false), y0=Y.toPixels(q.y1,false), y1=Y.toPixels(q.y0,false);
     chart.renderer.rect(x0,y0,x1-x0,y1-y0).attr({fill:q.c,zIndex:0}).add(g);
     chart.renderer.text(q.n.toUpperCase(), q.ax==='left'?x0+6:x1-6, q.ay==='top'?y0+14:y1-6)
-      .attr({align:q.ax==='left'?'left':'right',zIndex:0}).css({color:q.t,fontSize:'10.5px',fontWeight:'700',letterSpacing:'.06em',opacity:.7}).add(g);
+      .attr({align:q.ax==='left'?'left':'right',zIndex:0}).css({color:q.t,fontSize:'10px',fontWeight:'600',letterSpacing:'.08em',opacity:.85}).add(g);
   });
 }
 let chart;
@@ -233,19 +247,19 @@ function build(){
   chart = Highcharts.chart('c', {
     // No zoom or pan: a finger drag must scroll the page or the swipe strip,
     // not zoom the chart (a phone swipe showed "Reset zoom", 15 Oct).
-    chart:{height:h, width:w, backgroundColor:'transparent', style:{fontFamily:"Geist,system-ui,sans-serif"}, animation:false, spacing:[8,8,4,4],
+    chart:{height:h, width:w, backgroundColor:'transparent', style:{fontFamily:"IBM Plex Sans,system-ui,sans-serif"}, animation:false, spacing:[8,8,4,4],
       zooming:{type:undefined, pinchType:undefined, singleTouch:false, mouseWheel:{enabled:false}}, panning:{enabled:false},
       events:{render:function(){quadrants(this);}}},
     credits:{enabled:false}, accessibility:{enabled:false}, title:{text:null}, legend:{enabled:false}, exporting:{enabled:false},
-    xAxis:{min:minX, max:maxX, startOnTick:false, endOnTick:false, gridLineWidth:0, lineColor:'#E3E6EB', tickColor:'#E3E6EB',
-      title:{text:'RS →', style:{color:'#5E6878', fontSize:'12px'}}, labels:{style:{color:'#5E6878', fontSize:'12px'}},
-      plotLines:[{value:100, color:'#0E1726', width:1, zIndex:3}]},
-    yAxis:{min:minY, max:maxY, startOnTick:false, endOnTick:false, gridLineWidth:0, title:{text:'↑ Momentum', style:{color:'#5E6878', fontSize:'12px'}},
-      labels:{style:{color:'#5E6878', fontSize:'12px'}}, plotLines:[{value:100, color:'#0E1726', width:1, zIndex:3}]},
-    tooltip:{useHTML:true, outside:false, followTouchMove:false, backgroundColor:'rgba(15,23,42,.94)', borderWidth:0, shadow:false, style:{color:'#fff', fontSize:'12px'},
+    xAxis:{min:minX, max:maxX, startOnTick:false, endOnTick:false, gridLineWidth:0, lineWidth:0, tickLength:0,
+      title:{text:'RS →', style:{color:'var(--c-muted_2)', fontSize:'11px'}}, labels:{style:{color:'var(--c-muted_2)', fontSize:'11px'}},
+      plotLines:[{value:100, color:'var(--c-rule_strong)', width:1, zIndex:3}]},
+    yAxis:{min:minY, max:maxY, startOnTick:false, endOnTick:false, gridLineWidth:0, title:{text:'↑ Momentum', style:{color:'var(--c-muted_2)', fontSize:'11px'}},
+      labels:{style:{color:'var(--c-muted_2)', fontSize:'11px'}}, plotLines:[{value:100, color:'var(--c-rule_strong)', width:1, zIndex:3}]},
+    tooltip:{useHTML:true, outside:false, followTouchMove:false, backgroundColor:'var(--c-white)',borderColor:'var(--c-rule)',borderWidth:1,borderRadius:3,shadow:false,padding:8,style:{color:'var(--c-ink)',fontSize:'12px',lineHeight:'17px'},
       formatter:function(){
         const s=this.series.options.custom.s;
-        return '<b style="color:#fff">'+esc(s.industry)+'</b><br>Quadrant: <b>'+esc(s.quadrant)+'</b><br>RS: <b>'+this.x.toFixed(2)+
+        return '<b>'+esc(s.industry)+'</b><br>Quadrant: <b>'+esc(s.quadrant)+'</b><br>RS: <b>'+this.x.toFixed(2)+
           '</b><br>Momentum: <b>'+this.y.toFixed(2)+'</b><br>Stocks: '+s.stocks;}},
     plotOptions:{series:{animation:false, turboThreshold:0, stickyTracking:false, cursor:'pointer', states:{inactive:{enabled:true}},
       point:{events:{click:function(){const n=this.series.name; selected=(selected===n)?null:n; draw();}}}}},
@@ -301,8 +315,33 @@ window.addEventListener('resize',function(){
 });
 build(); updateLabel();
 """
-    return ("<!DOCTYPE html><html><head><meta charset='utf-8'>" + _CSS + "</head><body>" + _BODY
+    from src.ui.highcharts_lib import text_alternative
+    return (_titled("Relative rotation graph") + _CSS + "</head><body>" + text_alternative(summary) + _BODY
             + "<script>" + _lib() + "</script><script>" + _JS + "</script></body></html>")
+
+
+def rrg_summary(sectors: list[dict]) -> str:
+    """The industries named under each quadrant, for a screen reader (audit F26)."""
+    by: dict[str, list[str]] = {}
+    for s in sorted(sectors, key=lambda s: -s["rs_ratio"]):
+        by.setdefault(s["quadrant"], []).append(s["industry"])
+    order = ["Leading", "Weakening", "Lagging", "Improving"]
+    keys = [q for q in order if q in by] + [q for q in by if q not in order]
+    return " ".join(f"{q}: {', '.join(by[q])}." for q in keys)
+
+
+def correlation_summary(sub: pd.DataFrame) -> str:
+    """The most and least alike pair among the stocks shown (audit F26)."""
+    names = list(sub.index)
+    pairs = [(float(sub.iat[i, j]), names[i], names[j])
+             for i in range(len(names)) for j in range(i + 1, len(names))
+             if pd.notna(sub.iat[i, j])]
+    if not pairs:
+        return f"Correlation of {len(names)} stocks."
+    hi, lo = max(pairs), min(pairs)
+    return (f"Correlation of daily returns of {len(names)} stocks. Most alike: {hi[1]} and {hi[2]} "
+            f"({_fmt.signed(hi[0], 2, plus=False)}). Least alike: {lo[1]} and {lo[2]} "
+            f"({_fmt.signed(lo[0], 2, plus=False)}).")
 
 
 def render_rrg_chart(
@@ -314,12 +353,6 @@ def render_rrg_chart(
     if rrg_df.empty:
         st.info("Not enough historical data to compute Relative Rotation Graph.")
         return
-
-    VIBRANT_PALETTE = [
-        "#ec4899", "#2563eb", "#067647", "#0891b2", "#8b5cf6",
-        "#B54708", "#B42318", "#067647", "#ea580c", "#6366f1",
-        "#0284c7", "#9333ea", "#5E6878",
-    ]
 
     sectors_data = []
     for idx, (_, row) in enumerate(rrg_df.iterrows()):
@@ -337,7 +370,7 @@ def render_rrg_chart(
             "stocks": int(row.get("Stocks", 0)),
             "trail_r": [float(x) for x in trail_r],
             "trail_m": [float(x) for x in trail_m],
-            "color": VIBRANT_PALETTE[idx % len(VIBRANT_PALETTE)],
+            "color": CATEGORICAL[idx % len(CATEGORICAL)],
         })
 
     payload = _script_json({
@@ -349,7 +382,7 @@ def render_rrg_chart(
     # Sized by the page's stylesheet (.st-key-rrg_frame): tall on desktop, near
     # square on a phone. The chart inside fills whatever height it is given.
     with st.container(key="rrg_frame"):
-        st.iframe(_build_rrg_html(payload), height=780)
+        st.iframe(resolve(_build_rrg_html(payload, rrg_summary(sectors_data))), height=780)
 
 
 def render_correlation_heatmap(corr: pd.DataFrame, syms: list[str]) -> None:
@@ -358,7 +391,7 @@ def render_correlation_heatmap(corr: pd.DataFrame, syms: list[str]) -> None:
     Darker indigo = move together more; the tooltip names both stocks and the
     value, and cells carry the number when there is room for it.
     """
-    from src.ui.highcharts_lib import lib, script_json
+    from src.ui.highcharts_lib import lib, script_json, text_alternative
 
     syms = [s for s in syms if s in corr.index]
     if len(syms) < 2:
@@ -373,37 +406,38 @@ def render_correlation_heatmap(corr: pd.DataFrame, syms: list[str]) -> None:
     n = len(syms)
     height = min(720, 90 + 26 * n)
     page = (
-        "<!DOCTYPE html><html><head><meta charset='utf-8'><style>*{box-sizing:border-box;margin:0}"
-        "html,body{background:transparent;font-family:'Geist',system-ui,sans-serif}</style></head>"
-        "<body><div id='c' style='width:100%;height:" + str(height) + "px'></div><script>"
+        _titled("Correlation of the holdings") + "<style>*{box-sizing:border-box;margin:0}"
+        "html,body{background:transparent;font-family:'IBM Plex Sans',system-ui,sans-serif}</style></head>"
+        "<body>" + text_alternative(correlation_summary(sub)) +
+        "<div id='c' aria-hidden='true' style='width:100%;height:" + str(height) + "px'></div><script>"
         + lib("highcharts-heatmap.js") + "</script><script>(function(){"
         "const syms=" + script_json(syms) + ", data=" + script_json(data) + ";"
         "const wide=document.getElementById('c').clientWidth/syms.length>=30;"
         "Highcharts.chart('c',{chart:{type:'heatmap',backgroundColor:'transparent',spacing:[4,4,4,4],"
-        "style:{fontFamily:'Geist,system-ui,sans-serif'},animation:false},"
+        "style:{fontFamily:'IBM Plex Sans,system-ui,sans-serif'},animation:false},"
         "credits:{enabled:false},accessibility:{enabled:false},title:{text:null},legend:{enabled:true,"
-        "align:'right',layout:'vertical',verticalAlign:'middle',symbolHeight:150,itemStyle:{color:'#5E6878',fontSize:'11px'}},"
+        "align:'right',layout:'vertical',verticalAlign:'middle',symbolHeight:150,itemStyle:{color:'var(--c-muted_2)',fontSize:'11px'}},"
         "exporting:{enabled:false},"
-        "xAxis:{categories:syms,opposite:true,labels:{rotation:-60,style:{color:'#3C4657',fontSize:'11px'}},lineWidth:0,tickLength:0},"
-        "yAxis:{categories:syms,reversed:true,title:{text:null},labels:{style:{color:'#3C4657',fontSize:'11px'}},gridLineWidth:0},"
-        "colorAxis:{min:-0.2,max:1,startOnTick:false,endOnTick:false,tickPositions:[0,0.25,0.5,0.75,1],labels:{format:'{value:.2f}',style:{color:'#5E6878',fontSize:'11px'}},stops:[[0,'#F4F5F8'],[0.17,'#FFFFFF'],[0.6,'#A5A0F0'],[1,'#4338CA']]},"
-        "tooltip:{useHTML:true,backgroundColor:'rgba(15,23,42,.94)',borderWidth:0,shadow:false,style:{color:'#fff',fontSize:'12px'},"
+        "xAxis:{categories:syms,opposite:true,labels:{rotation:-60,style:{color:'var(--c-muted)',fontSize:'11px'}},lineWidth:0,tickLength:0},"
+        "yAxis:{categories:syms,reversed:true,title:{text:null},labels:{style:{color:'var(--c-muted)',fontSize:'11px'}},gridLineWidth:0},"
+        "colorAxis:{min:-0.2,max:1,startOnTick:false,endOnTick:false,tickPositions:[0,0.25,0.5,0.75,1],labels:{format:'{value:.2f}',style:{color:'var(--c-muted_2)',fontSize:'11px'}},stops:[[0,'var(--c-subtle)'],[0.17,'var(--c-white)'],[0.6,'var(--c-up_line_2)'],[1,'var(--c-up_dark)']]},"
+        "tooltip:{useHTML:true,backgroundColor:'var(--c-white)',borderColor:'var(--c-rule)',borderWidth:1,borderRadius:3,shadow:false,padding:8,style:{color:'var(--c-ink)',fontSize:'12px',lineHeight:'17px'},"
         "formatter:function(){const s=this.series.xAxis.categories,t=this.series.yAxis.categories;"
         "const e=v=>String(v).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));"
         "return '<b>'+e(t[this.point.y])+' \\u00d7 '+e(s[this.point.x])+'</b><br>Correlation <b>'+this.point.value.toFixed(2)+'</b>';}},"
-        "plotOptions:{heatmap:{borderWidth:1,borderColor:'#fff',animation:false}},"
-        "series:[{name:'Correlation',data:data,dataLabels:{enabled:wide,style:{fontSize:'10px',fontWeight:'500',textOutline:'none'},"
+        "plotOptions:{heatmap:{borderWidth:1,borderColor:'var(--c-white)',animation:false}},"
+        "series:[{name:'Correlation',data:data,dataLabels:{enabled:wide,style:{fontSize:'10px',fontWeight:'400',fontFamily:'IBM Plex Mono,monospace',textOutline:'none'},"
         "formatter:function(){return this.point.value.toFixed(2);}}}]});"
         "})();</script></body></html>"
     )
-    st.iframe(page, height=height + 8)
+    st.iframe(resolve(page), height=height + 8)
 
 
 def render_industry_map(board: pd.DataFrame, x_col: str = "3M Return",
                         x_label: str = "Median 3-month return") -> None:
     """Industries as bubbles: median return (`x_col`, 3M by default) across, share passing both filters up,
     size = number of stocks. Top-right is strong and broad; bottom-left is weak and narrow."""
-    from src.ui.highcharts_lib import lib, script_json
+    from src.ui.highcharts_lib import lib, script_json, text_alternative
 
     need = {"Industry", x_col, "Pass %", "Stocks", "Top 50"}
     x_tip = f"{x_col.split(' ')[0]} median"
@@ -419,46 +453,51 @@ def render_industry_map(board: pd.DataFrame, x_col: str = "3M Return",
     if len(rows) < 2:
         return
     page = (
-        "<!DOCTYPE html><html><head><meta charset='utf-8'><style>*{box-sizing:border-box;margin:0}"
-        "html,body{background:transparent;font-family:'Geist',system-ui,sans-serif}</style></head>"
-        "<body><div id='c' style='width:100%;height:420px'></div><script>"
+        _titled("Industry map") + "<style>*{box-sizing:border-box;margin:0}"
+        "html,body{background:transparent;font-family:'IBM Plex Sans',system-ui,sans-serif}</style></head>"
+        "<body>" + text_alternative(" ".join(
+            f"{r['name']}: {x_label.lower()} {_fmt.pct(r['x'], fraction=False)}, "
+            f"{_fmt.pct(r['y'], signed_=False, fraction=False)} pass both filters, {r['z']} stocks."
+            for r in rows)) +
+        "<div id='c' aria-hidden='true' style='width:100%;height:420px'></div><script>"
         + lib("highcharts-more.js") + "</script><script>(function(){"
         "const rows=" + script_json(rows) + ";"
         "const e=v=>String(v).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));"
-        "const xmax=Math.max.apply(null,rows.map(r=>r.x));const ymax=Math.min(100,Math.max(10,Math.ceil(Math.max.apply(null,rows.map(r=>r.y))*1.15/10)*10));const top5=new Set(rows.slice().sort((a,b)=>b.x-a.x).slice(0,5).map(r=>r.name));const col=r=>r.x>=0?'#067647':'#B42318';"
+        "const xmax=Math.max.apply(null,rows.map(r=>r.x));const ymax=Math.min(100,Math.max(10,Math.ceil(Math.max.apply(null,rows.map(r=>r.y))*1.15/10)*10));const top5=new Set(rows.slice().sort((a,b)=>b.x-a.x).slice(0,5).map(r=>r.name));const col=r=>r.x>=0?'var(--c-up)':'var(--c-down)';"
         "Highcharts.chart('c',{chart:{type:'bubble',backgroundColor:'transparent',animation:false,spacing:[8,12,4,4],"
-        "style:{fontFamily:'Geist,system-ui,sans-serif'},zooming:{type:null}},"
+        "style:{fontFamily:'IBM Plex Sans,system-ui,sans-serif'},zooming:{type:null}},"
         "credits:{enabled:false},accessibility:{enabled:false},title:{text:null},legend:{enabled:false},exporting:{enabled:false},"
-        "xAxis:{maxPadding:0.06,title:{text:" + script_json(x_label + " \u2192") + ",style:{color:'#5E6878',fontSize:'12px'}},gridLineWidth:0,"
-        "labels:{format:'{value}%',style:{color:'#5E6878',fontSize:'12px'}},plotLines:[{value:0,color:'#98A1AE',width:1,dashStyle:'Dash'}]},"
-        "yAxis:{title:{text:'\\u2191 Share passing both filters',style:{color:'#5E6878',fontSize:'12px'}},min:0,max:ymax,endOnTick:false,tickInterval:ymax>60?20:10,gridLineColor:'#EDEFF3',"
-        "labels:{format:'{value}%',style:{color:'#5E6878',fontSize:'12px'}}},"
-        "tooltip:{useHTML:true,backgroundColor:'rgba(15,23,42,.94)',borderWidth:0,shadow:false,style:{color:'#fff',fontSize:'12px'},"
+        "xAxis:{maxPadding:0.06,title:{text:" + script_json(x_label + " \u2192") + ",style:{color:'var(--c-muted_2)',fontSize:'11px'}},gridLineWidth:0,"
+        "labels:{format:'{value}%',style:{color:'var(--c-muted_2)',fontSize:'11px'}},lineWidth:0,tickLength:0,plotLines:[{value:0,color:'var(--c-rule_strong)',width:1}]},"
+        "yAxis:{title:{text:'\\u2191 Share passing both filters',style:{color:'var(--c-muted_2)',fontSize:'11px'}},min:0,max:ymax,endOnTick:false,tickInterval:ymax>60?20:10,gridLineColor:'var(--c-grid)',"
+        "labels:{format:'{value}%',style:{color:'var(--c-muted_2)',fontSize:'11px'}}},"
+        "tooltip:{useHTML:true,backgroundColor:'var(--c-white)',borderColor:'var(--c-rule)',borderWidth:1,borderRadius:3,shadow:false,padding:8,style:{color:'var(--c-ink)',fontSize:'12px',lineHeight:'17px'},"
         "formatter:function(){const p=this.point;return '<b>'+e(p.name)+'</b><br>" + x_tip + " <b>'+(p.x>0?'+':'')+p.x.toFixed(1)+'%</b>"
         "<br>Passing both <b>'+p.y.toFixed(0)+'%</b><br>'+p.z+' stocks \\u00b7 '+p.top50+' in the top 50';}},"
-        "plotOptions:{bubble:{fillOpacity:0.62,minSize:10,maxSize:46,animation:false,marker:{lineWidth:1,lineColor:'#fff'},"
-        "dataLabels:{enabled:true,allowOverlap:false,crop:false,overflow:'allow',style:{fontSize:'11px',fontWeight:'600',color:'#3C4657',textOutline:'2px #fff'},"
+        "plotOptions:{bubble:{fillOpacity:0.38,minSize:8,maxSize:40,animation:false,marker:{lineWidth:1},"
+        "dataLabels:{enabled:true,allowOverlap:false,crop:false,overflow:'allow',style:{fontSize:'11px',fontWeight:'500',color:'var(--c-text_2)',textOutline:'2px var(--c-white)'},"
         "formatter:function(){return e(this.point.name);}}}},"
         "series:[{data:rows.map(r=>({name:r.name,x:r.x,y:r.y,z:r.z,top50:r.top50,color:col(r),labelrank:(top5.has(r.name)?1e6:0)+(r.x>=0?1000:0)+r.z,dataLabels:{allowOverlap:top5.has(r.name),align:(r.x>=(xmax*0.7)?'right':'center'),x:(r.x>=(xmax*0.7)?-14:0)}}))}]});"
         "})();</script></body></html>"
     )
-    st.iframe(page, height=428)
+    st.iframe(resolve(page), height=428)
 
 
-# Twenty soft, distinct hues for the sector leadership map: pastel enough to
-# overlap, dark enough to read on white.
-SECTOR_SOFT_PALETTE = (
-    "#7FA8D9", "#EE8E8E", "#79C2A0", "#F2AE6B", "#AD95D8", "#E3C25E", "#6CC1C8",
-    "#E58FB7", "#A3BE7C", "#8E9EEB", "#F49F85", "#C29BCB", "#8CC4E8", "#C9A66B",
-    "#86B86F", "#E07A8A", "#7FA99B", "#B4A0E6", "#D49A6A", "#93A7BD",
+# Twenty muted, distinct hues for the categorical charts (the RRG's
+# industries, the sector leadership map and its table): mid-tones that sit
+# with the Ledger ink, greys, blue and rust, dark enough to read on white.
+CATEGORICAL = (
+    "#4F79A8", "#B9643F", "#4E9384", "#8268A9", "#B08D3E", "#6F98BC", "#AE5F74",
+    "#76955C", "#8D7462", "#3F8297", "#C2875A", "#717CB0", "#99628A", "#628F6B",
+    "#A9776A", "#5A7590", "#9C9053", "#86789E", "#B86F66", "#668785",
 )
-
+SECTOR_SOFT_PALETTE = CATEGORICAL
 
 
 def sector_colours(names) -> dict[str, str]:
     """One soft colour per sector, fixed by name so the map, its table and
     every EMA tab agree (owner, 13 Oct: subtle colours, not green and red)."""
-    return {name: SECTOR_SOFT_PALETTE[i % len(SECTOR_SOFT_PALETTE)]
+    return {name: CATEGORICAL[i % len(CATEGORICAL)]
             for i, name in enumerate(sorted(set(names)))}
 
 
@@ -475,37 +514,37 @@ const xs=rows.flatMap(r=>[r.x0,r.x1]);
 const xmin=Math.min(-1,Math.floor(Math.min.apply(null,xs)-0.5)), xmax=Math.max(1,Math.ceil(Math.max.apply(null,xs)+0.5));
 const xspan=xmax-xmin, xtick=xspan>40?10:xspan>20?5:xspan>8?2:1;
 const series=rows.map(r=>({name:r.name,id:r.name,color:col(r),row:r,
-  data:[{x:r.x0,y:r.y0,marker:{fillColor:'#FFFFFF',lineColor:col(r),lineWidth:2,radius:5,symbol:'circle'},dataLabels:{enabled:false}},
-        {x:r.x1,y:r.y1,marker:{fillColor:col(r),lineColor:'#3C4657',lineWidth:1,radius:6,symbol:'circle'}}]}));
+  data:[{x:r.x0,y:r.y0,marker:{fillColor:'var(--c-white)',lineColor:col(r),lineWidth:1.5,radius:3.5,symbol:'circle'},dataLabels:{enabled:false}},
+        {x:r.x1,y:r.y1,marker:{fillColor:col(r),lineColor:'var(--c-white)',lineWidth:1,radius:4.5,symbol:'circle'}}]}));
 function paint(chart){
   chart.series.forEach(s=>{const on=!focus||s.name===focus,me=focus&&s.name===focus;
     const c=col(s.options.row);
-    s.update({opacity:on?1:0.12,lineWidth:me?3:1.6,zIndex:me?10:1,color:c,
+    s.update({opacity:on?1:0.12,lineWidth:me?2:1.2,zIndex:me?10:1,color:c,
       data:s.options.data.map((p,i)=>Object.assign({},p,{marker:Object.assign({},p.marker,i===0?{lineColor:c}:{fillColor:c})})),
-      dataLabels:{enabled:on,style:{fontWeight:me?'700':'600',color:'#1F2937'}}},false);});
+      dataLabels:{enabled:on,style:{fontWeight:me?'600':'500',color:me?'var(--c-ink)':'var(--c-text_2)'}}},false);});
   chart.redraw(false);
   const tag=document.getElementById('pin');tag.textContent=focus?'Showing '+focus+' · tap it again to show all':'Tap a sector to pick it out';
 }
 const chart=Highcharts.chart('c',{chart:{type:'scatter',backgroundColor:'transparent',animation:false,spacing:[8,12,4,4],
-  style:{fontFamily:'Geist,system-ui,sans-serif'},zooming:{type:'xy'}},
+  style:{fontFamily:'IBM Plex Sans,system-ui,sans-serif'},zooming:{type:'xy'}},
   credits:{enabled:false},accessibility:{enabled:false},title:{text:null},legend:{enabled:false},exporting:{enabled:false},
-  xAxis:{min:xmin,max:xmax,tickInterval:xtick,gridLineWidth:1,gridLineColor:'#F1F2F5',
-    title:{text:months+'-month return vs Nifty 500 →',style:{color:'#5E6878',fontSize:'12px'}},
-    labels:{format:'{value}%',style:{color:'#5E6878',fontSize:'12px'}},plotLines:[{value:0,color:'#98A1AE',width:1,dashStyle:'Dash',zIndex:2}]},
-  yAxis:{min:0,max:100,tickInterval:20,endOnTick:false,gridLineColor:'#EDEFF3',
-    title:{text:'↑ Stocks above their '+span+'-day EMA',style:{color:'#5E6878',fontSize:'12px'}},
-    labels:{format:'{value}%',style:{color:'#5E6878',fontSize:'12px'}},plotLines:[{value:50,color:'#98A1AE',width:1,dashStyle:'Dash',zIndex:2}]},
-  tooltip:{useHTML:true,backgroundColor:'rgba(15,23,42,.94)',borderWidth:0,shadow:false,style:{color:'#fff',fontSize:'12px'},
+  xAxis:{min:xmin,max:xmax,tickInterval:xtick,gridLineWidth:0,lineWidth:0,tickLength:0,
+    title:{text:months+'-month return vs Nifty 500 →',style:{color:'var(--c-muted_2)',fontSize:'11px'}},
+    labels:{format:'{value}%',style:{color:'var(--c-muted_2)',fontSize:'11px'}},plotLines:[{value:0,color:'var(--c-rule_strong)',width:1,zIndex:2}]},
+  yAxis:{min:0,max:100,tickInterval:20,endOnTick:false,gridLineColor:'var(--c-grid)',
+    title:{text:'↑ Stocks above their '+span+'-day EMA',style:{color:'var(--c-muted_2)',fontSize:'11px'}},
+    labels:{format:'{value}%',style:{color:'var(--c-muted_2)',fontSize:'11px'}},plotLines:[{value:50,color:'var(--c-rule_strong)',width:1,dashStyle:'Dash',zIndex:2}]},
+  tooltip:{useHTML:true,backgroundColor:'var(--c-white)',borderColor:'var(--c-rule)',borderWidth:1,borderRadius:3,shadow:false,padding:8,style:{color:'var(--c-ink)',fontSize:'12px',lineHeight:'17px'},
     formatter:function(){const r=this.series.options.row;
       return '<b>'+e(r.full)+'</b> · '+r.stocks+' stocks<br>'+
       '<span style="opacity:.7">'+e(then)+'</span> '+pct(r.x0)+' vs Nifty 500 · '+r.a0+' of '+r.o0+' above<br>'+
       '<span style="opacity:.7">'+e(now)+'</span> <b>'+pct(r.x1)+'</b> vs Nifty 500 · <b>'+r.a1+' of '+r.o1+'</b> above<br>'+
       '<span style="opacity:.7">Sector '+pct(r.ret)+', Nifty 500 '+pct(r.bench)+(months===1?' this month':' in '+months+' months')+'</span>'+
       (r.lead?'<br>Led by <b>'+e(r.lead)+'</b>':'');}},
-  plotOptions:{series:{animation:false,dashStyle:'ShortDash',lineWidth:1.5,marker:{enabled:true},stickyTracking:false,findNearestPointBy:'xy',
+  plotOptions:{series:{animation:false,dashStyle:'ShortDash',lineWidth:1.2,marker:{enabled:true},stickyTracking:false,findNearestPointBy:'xy',
     states:{hover:{lineWidthPlus:1.5},inactive:{opacity:0.18}},cursor:'pointer',
     dataLabels:{enabled:true,allowOverlap:false,crop:false,overflow:'allow',x:6,align:'left',verticalAlign:'middle',
-      style:{fontSize:'11px',fontWeight:'600',color:'#3C4657',textOutline:'2px #fff'},formatter:function(){return e(this.series.name);}},
+      style:{fontSize:'11px',fontWeight:'500',color:'var(--c-text_2)',textOutline:'2px var(--c-white)'},formatter:function(){return e(this.series.name);}},
     point:{events:{click:function(){focus=focus===this.series.name?null:this.series.name;paint(this.series.chart);}}}}},
   series:series});
 paint(chart);
@@ -519,7 +558,7 @@ def render_leadership_map(board: pd.DataFrame, span: int, focus: str | None = No
     (today): across is its 1-month return less the Nifty 500's, up is the share
     of its stocks above their `span`-day EMA.
     Tapping a sector (or picking it above) dims the rest."""
-    from src.ui.highcharts_lib import lib, script_json
+    from src.ui.highcharts_lib import lib, script_json, text_alternative
 
     if board.empty:
         return
@@ -532,19 +571,24 @@ def render_leadership_map(board: pd.DataFrame, span: int, focus: str | None = No
         "y0": round(r.y_then * 100, 1), "y1": round(r.y_now * 100, 1),
         "a0": int(r.above_then), "o0": int(r.obs_then), "a1": int(r.above_now), "o1": int(r.obs_now),
         "ret": round(r.ret_now * 100, 2), "bench": round(r.bench_now * 100, 2),
-        "lead": ", ".join(f"{sym} {v * 100:+.1f}%" for sym, v in (getattr(r, "Leaders", None) or [])[:2]),
+        "lead": ", ".join(f"{sym} {_fmt.pct(v * 100, fraction=False)}" for sym, v in (getattr(r, "Leaders", None) or [])[:2]),
     } for r in board.itertuples()]
     months = int(board["Months"].iloc[0]) if "Months" in board.columns else 1
-    then = f"{pd.Timestamp(board['Then'].iloc[0]):%d %b}"
-    now = f"{pd.Timestamp(board['Now'].iloc[0]):%d %b}"
+    then = f"{pd.Timestamp(board['Then'].iloc[0]):%-d %b}"
+    now = f"{pd.Timestamp(board['Now'].iloc[0]):%-d %b}"
     js = (_LEADERSHIP_JS.replace("__ROWS__", script_json(rows)).replace("__SPAN__", str(int(span))).replace("__MONTHS__", str(months))
           .replace("__THEN__", script_json(then)).replace("__NOW__", script_json(now))
           .replace("__FOCUS__", script_json(short.get(focus, focus) if focus else None)))
     page = (
-        "<!DOCTYPE html><html><head><meta charset='utf-8'><style>*{box-sizing:border-box;margin:0}"
-        "html,body{background:transparent;font-family:'Geist',system-ui,sans-serif}"
-        "#pin{font-size:12px;color:#5E6878;padding:2px 4px 6px}</style></head>"
-        "<body><div id='pin'></div><div id='c' style='width:100%;height:500px'></div><script>"
+        _titled("Sector leadership map") + "<style>*{box-sizing:border-box;margin:0}"
+        "html,body{background:transparent;font-family:'IBM Plex Sans',system-ui,sans-serif}"
+        "#pin{font-size:12px;color:var(--c-faint);padding:2px 4px 6px}</style></head>"
+        "<body>" + text_alternative(" ".join(
+            f"{r['full']}: {months}-month return {_fmt.pct(r['ret'], fraction=False)} against the Nifty 500's "
+            f"{_fmt.pct(r['bench'], fraction=False)}; {_fmt.pct(r['y1'], signed_=False, fraction=False)} above their "
+            f"{span}-day EMA ({_fmt.pct(r['y0'], signed_=False, fraction=False)} on {then})."
+            for r in rows)) +
+        "<div id='pin'></div><div id='c' aria-hidden='true' style='width:100%;height:500px'></div><script>"
         + lib() + "</script><script>" + js + "</script></body></html>"
     )
-    st.iframe(page, height=530)
+    st.iframe(resolve(page), height=530)

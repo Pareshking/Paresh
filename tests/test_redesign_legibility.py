@@ -52,12 +52,12 @@ def _contrast(fg: str, bg: str) -> float:
 
 
 # Every colour the redesign sets text in, and the surfaces it sets it on.
+# Paper B · Ledger, white ground (owner, 7 Nov 2026).
 TEXT_COLOURS = {
-    "ink": "#0E1726", "secondary": "#3C4657", "muted": "#5E6878",
-    "quiet": "#667080", "gain": "#067647", "loss": "#B42318",
-    "caution": "#B54708", "link": "#4338CA",
+    "ink": "#1C1B19", "secondary": "#3A3A37", "muted": "#5F5F5B",
+    "gain": "#1D5FA6", "loss": "#A4441A", "caution": "#B54708",
 }
-SURFACES = {"card": "#FFFFFF", "page": "#F6F7F9", "subtle": "#F4F5F8"}
+SURFACES = {"page": "#FFFFFF", "subtle": "#F7F7F5", "fill": "#F2F2EF"}
 
 
 @pytest.mark.parametrize("fg", TEXT_COLOURS)
@@ -68,8 +68,8 @@ def test_every_text_colour_meets_4_5_to_1(fg, bg):
 
 
 def test_the_chips_keep_their_contrast_on_their_tints():
-    pairs = [("#067647", "#E8F5EE"), ("#B42318", "#FDEDEB"), ("#3730A3", "#EEF0FF"),
-             ("#054F31", "#E8F5EE"), ("#7A2E0E", "#FEF6EA")]
+    pairs = [("#1D5FA6", "#EAF1F8"), ("#A4441A", "#F8ECE5"), ("#1C1B19", "#F2F2EF"),
+             ("#154A82", "#EAF1F8"), ("#7A2E0E", "#FEF6EA")]
     for fg, bg in pairs:
         assert _contrast(fg, bg) >= 4.5, f"{fg} on {bg}: {_contrast(fg, bg):.2f}:1"
 
