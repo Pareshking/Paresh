@@ -145,10 +145,13 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
     sync_day, _, sync_time = str(last_sync).partition(", ")
     tiles = [
         kit.Reading("Last synced", sync_day, f"at {sync_time}" if sync_time else ""),
-        kit.Reading("In the index files", f"{tot_stk:,}", "stocks"),
+        # Each count says what it counts (audit F12): the header's Universe
+        # is the ranked figure; the index lists can hold a few more names.
+        kit.Reading("In the index files", f"{tot_stk:,}", "unique stocks across the synced lists"),
     ]
     if engine_stocks != tot_stk:
-        tiles.append(kit.Reading("Ranked now", f"{engine_stocks:,}", "stocks"))
+        tiles.append(kit.Reading("Ranked now", f"{engine_stocks:,}",
+                                 "the header's Universe: stocks in today's ranking"))
     kit.readings(tiles, "Index sync")
     _freshness_table()
     if sync_ok is False:
