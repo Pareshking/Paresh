@@ -197,7 +197,7 @@ def _held_since(book: pd.DataFrame | None, sym: str) -> str:
     if book is None or book.empty or "Entry Date" not in book.columns:
         return ""
     d = pd.to_datetime(book.loc[book["Symbol"] == sym, "Entry Date"], errors="coerce")
-    return "" if d.empty or pd.isna(d.iloc[0]) else f"held since {_day(d.iloc[0])}"
+    return "" if d.empty or pd.isna(d.iloc[0]) else f"Held since {_day(d.iloc[0])}"
 
 
 def sells_html(a: pd.DataFrame, sells: list[str], since: dict[str, float], entries) -> str:

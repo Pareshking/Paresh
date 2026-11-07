@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-07 — Sentence case; column headings on Sectors' groups
+
+- Labels, card notes, tile notes and captions start with a capital everywhere ("Least room first", "Held since 2 Nov", "Today · A month ago"), set once in the shared components.
+- Sectors' four industry groups have column headings (Industry; 6M · 1M, pts) and a line saying what the figures are.
+
 ## 2026-11-07 — Sectors answers "What is leading?"
 
 - Sectors opens with the answer: the size index furthest ahead over six months, and the industries ahead over both six months and one month; then the size indices against the Nifty 500 (6 months, 1 month).

@@ -19,8 +19,8 @@ from src.ui import formats as _fmt
 from src.ui.system_param import page_href
 
 _VOTE_WORD = {
-    "breadth": {mq.UP: "broad", mq.MID: "between", mq.DOWN: "narrow"},
-    "trend": {mq.UP: "up", mq.MID: "between", mq.DOWN: "down"},
+    "breadth": {mq.UP: "Broad", mq.MID: "Between", mq.DOWN: "Narrow"},
+    "trend": {mq.UP: "Up", mq.MID: "Between", mq.DOWN: "Down"},
 }
 
 _CSS = """<style>
@@ -72,7 +72,7 @@ def _scale(a: mq.Answer) -> str:
     return (f'<div class="mq-scale" aria-hidden="true"><span class="bar"></span>{dots}</div>'
             f'<div class="mq-ends" aria-hidden="true"><span>{html.escape(a.words[0])}</span>'
             f'<span>{html.escape(a.words[2])}</span><span>{html.escape(a.words[4])}</span></div>'
-            '<p class="mq-key">● today · ○ a month ago · dashed: a year ago</p>')
+            '<p class="mq-key">● Today · ○ A month ago · dashed ring: A year ago</p>')
 
 
 def _tone(a: mq.Answer) -> str:
@@ -111,7 +111,7 @@ def _leaders_html(ld: mq.Leaders, href: str) -> str:
     groups = []
     for g in ("ahead on both", "gaining", "fading", "behind on both"):
         names = sec[sec["group"] == g]["Industry"].tolist()
-        shown = (", ".join(names[:3]) + (f" and {len(names) - 3} more" if len(names) > 3 else "")) if names else "none"
+        shown = (", ".join(names[:3]) + (f" and {len(names) - 3} more" if len(names) > 3 else "")) if names else "None"
         groups.append(f'<tr><td>{g.capitalize()}</td><td style="text-align:left">'
                       f'{len(names)} · {html.escape(shown)}</td></tr>')
     return (
@@ -202,7 +202,7 @@ def _changes_html(a: mq.Answer, kind: str) -> str:
     words = _VOTE_WORD[kind]
     li = []
     for m, then, now in items:
-        moved = "" if _vote_of(m, then) == m.vote else f", now {words[m.vote]}"
+        moved = "" if _vote_of(m, then) == m.vote else f", now {words[m.vote].lower()}"
         li.append(f"<li><b>{html.escape(m.name)}</b>: {_num(then, m.unit)} a month ago, "
                   f"{_num(now, m.unit)} now{moved}.</li>")
     was = mq.word_for(a.score_month_ago, a.words) if a.score_month_ago is not None else None
@@ -327,6 +327,7 @@ _SECTOR_CSS = """<style>
 .qp-quad b.up{color:var(--c-up)}.qp-quad b.down{color:var(--c-down)}
 .qp-quad p{font-size:13px;line-height:1.5;color:var(--c-text_2);margin:0 0 3px;display:flex;justify-content:space-between;gap:8px}
 .qp-quad p span:last-child{font-variant-numeric:tabular-nums;color:var(--c-muted);white-space:nowrap}
+.qp-quad p.qh{font-size:12px;color:var(--c-muted);border-bottom:1px solid var(--c-rule);padding-bottom:3px;margin-bottom:5px}
 .qp-heat{overflow-x:auto}
 .qp-heat table{min-width:900px}
 .qp-heat td{font-size:12.5px;padding:6px 4px;text-align:center}
@@ -372,9 +373,13 @@ def leaders_section_html(ld: mq.Leaders, months: pd.DataFrame) -> str:
     for key, title, tone in _QUADS:
         g = sec[sec["group"] == key]
         items = "".join(f'<p><span>{html.escape(r.Industry)}</span><span>{_num(r.rel_6m, "pts")} · '
-                        f'{_num(r.rel_1m, "pts")}</span></p>' for r in g.itertuples()) or "<p><span>none</span></p>"
-        quads.append(f'<div><b class="{tone}">{html.escape(title)} ({len(g)})</b>{items}</div>')
+                        f'{_num(r.rel_1m, "pts")}</span></p>' for r in g.itertuples()) or "<p><span>None</span></p>"
+        quads.append(f'<div><b class="{tone}">{html.escape(title)} ({len(g)})</b>'
+                     '<p class="qh"><span>Industry</span><span>6M · 1M, pts</span></p>'
+                     f'{items}</div>')
     quad_html = ('<h3>Industries by six months and one month</h3>'
+                 '<p class="qp-note" style="margin:0 0 6px">Each figure is the median stock\'s return less '
+                 'the Nifty 500\'s, in points: over six months, then over one month.</p>'
                  f'<div class="qp-quad">{"".join(quads)}</div>')
 
     heat_html = ""

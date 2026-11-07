@@ -27,11 +27,20 @@ class Reading:
     tone: str = ""  # "", "up", "down" or "warn"
 
 
+def sentence(text: str) -> str:
+    """First letter capitalised, the rest as written (owner, 7 Nov: labels and
+    asides began in lower case). Not str.capitalize(), which would lower
+    "200D EMA" and "Nifty"."""
+    text = str(text or "")
+    i = next((k for k, ch in enumerate(text) if ch.isalpha()), None)
+    return text if i is None else text[:i] + text[i].upper() + text[i + 1:]
+
+
 def page_head(title: str, sub: str, *, actions: bool = False):
     """Title and one plain sentence. With actions=True, returns a container on
     the right for the page's main buttons (a download, a picker)."""
     head = (f'<div class="scr-head"><h1>{html.escape(title)}</h1>'
-            f'<p>{html.escape(sub)}</p></div>')
+            f'<p>{html.escape(sentence(sub))}</p></div>')
     if not actions:
         st.html(head)
         return None
@@ -53,7 +62,7 @@ def readings(tiles: list[Reading], label: str) -> None:
         f'<div class="ms-tile"><span class="ms-k">{html.escape(t.label)}</span>'
         f'<span class="ms-v {t.tone}{_name_class(t.value)}" title="{html.escape(t.value)}">'
         f'{html.escape(t.value)}</span>'
-        + (f'<span class="ms-s">{html.escape(t.note)}</span>' if t.note else "")
+        + (f'<span class="ms-s">{html.escape(sentence(t.note))}</span>' if t.note else "")
         + "</div>"
         for t in tiles
     )
@@ -78,7 +87,7 @@ def card(title: str, key: str, aside: str = "") -> Iterator[None]:
     """A white card with a heading; anything drawn inside lands in it."""
     with st.container(key=f"pgcard_{key}"):
         st.html(f'<div class="pg-card-h"><h2>{html.escape(title)}</h2>'
-                + (f'<span>{html.escape(aside)}</span>' if aside else "") + "</div>")
+                + (f'<span>{html.escape(sentence(aside))}</span>' if aside else "") + "</div>")
         yield
 
 
@@ -174,7 +183,7 @@ def tradingview_url(symbol: str) -> str:
 
 
 def caption(text: str) -> None:
-    st.html(f'<p class="pg-cap">{html.escape(text)}</p>')
+    st.html(f'<p class="pg-cap">{html.escape(sentence(text))}</p>')
 
 
 def caption_link(text: str, href: str, label: str) -> None:
