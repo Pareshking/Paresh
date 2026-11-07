@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-07 — Screener: where each stock stands against the book
+
+- New columns: **Qualified #** (place among the stocks that pass both filters, the list the model book buys from, the same number Actions uses) and, in Full Quant, **Score** (the composite the ranking is sorted by).
+- Stocks in the model book carry a **Held** tag. In rank order, lines mark the 20th qualified stock (the book buys the top 20) and the 40th (it keeps a holding while in the top 40).
+- A failed filter says by how much: "✗ −8.7%" below the 50D EMA, "✗ −22%" below the 52W high (the filter is within 20%).
+- "High volume" is now **Volume spike**: it was always one day's volume at 1.5x its 20-day average. One caption under the chips explains them.
+
 ## 2026-11-07 — Fonts served by the site
 
 - IBM Plex Sans, IBM Plex Mono and Source Serif 4 are now served from the site itself (`static/fonts`, SIL Open Font Licence) instead of Google Fonts. A page and its chart frames made about 9 requests to Google per visit; now none. Text looks the same. This does not lower the server's memory: the font files (377 KB, Latin and Latin Extended) are cached by the browser after the first visit (audit F61).
