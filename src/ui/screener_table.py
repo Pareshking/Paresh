@@ -326,6 +326,9 @@ _CSS = """
 *{box-sizing:border-box}
 body{margin:0;font-family:'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--c-ink);background:transparent;-webkit-font-smoothing:antialiased}
 .wrap{height:100vh;overflow:auto;background:var(--c-white);border:0;border-top:1px solid var(--c-ink);border-radius:0}
+.edge{position:fixed;top:0;right:0;width:32px;height:100vh;pointer-events:none;z-index:6;background:linear-gradient(to right,rgba(255,255,255,0),var(--c-white));opacity:0;transition:opacity .15s}
+.edge.on{opacity:1}
+tr[data-stock]{cursor:pointer}
 table{border-collapse:separate;border-spacing:0;width:100%;min-width:1180px}
 thead th{position:sticky;top:0;z-index:3;background:var(--c-subtle);border-bottom:1px solid var(--c-rule);height:42px;padding:0 10px;
   font-size:12px;font-weight:600;color:var(--c-muted);text-align:right;white-space:nowrap;cursor:pointer;user-select:none}
@@ -396,6 +399,12 @@ tbody tr.hl td{background:var(--c-subtle)}
 # If the parent is ever cross-origin the injection throws, and allow-popups
 # opens the stock in a new tab instead.
 _JS = """
+// More columns to the right: a fade on the right edge while there are
+// (audit F34: "VOL..." and "TECHNIC..." were cut with no cue).
+(function(){const w=document.querySelector('.wrap'),e=document.querySelector('.edge');
+  if(!w||!e)return;
+  function upd(){e.classList.toggle('on',w.scrollLeft+w.clientWidth<w.scrollWidth-2);}
+  w.addEventListener('scroll',upd,{passive:true});window.addEventListener('resize',upd);upd();})();
 function openStock(sym){
   const search='?stock='+encodeURIComponent(sym)+SYS;
   try{const host=window.parent;const s=host.document.createElement('script');
@@ -500,7 +509,7 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
         "<link rel='preconnect' href='https://fonts.googleapis.com'>"
         "<link href='https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&"
         "family=IBM+Plex+Mono:wght@400;500;600&display=swap' rel='stylesheet'>"
-        f"<style>{_CSS}@media (min-width:641px){{table{{min-width:{max(1180, len(cols) * 92)}px}}}}{extra}</style></head><body><div class='wrap{wide_cls}'><table>"
+        f"<style>{_CSS}@media (min-width:641px){{table{{min-width:{max(1180, len(cols) * 92)}px}}}}{extra}</style></head><body><div class='edge' aria-hidden='true'></div><div class='wrap{wide_cls}'><table>"
         f"<thead>{group_row}<tr class=\"hdr\">{head}</tr></thead><tbody>{body_html}</tbody></table></div>"
         f"<script>const SYS={json.dumps(system_suffix())};{_JS}</script></body></html>"
     )
