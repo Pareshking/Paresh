@@ -371,7 +371,9 @@ def test_recent_weekend_days_are_the_saturdays_and_sundays_only():
 
 
 def test_the_daily_run_asks_for_weekend_sessions_and_the_evening_runs_do_not():
-    import yaml
+    # pyyaml is test-only: nse_collect.yml installs requirements + pytest, the full
+    # validation adds pyyaml (as tests/test_r2_final_acceptance_contract.py does).
+    yaml = pytest.importorskip("yaml")
 
     spec = yaml.safe_load((Path(__file__).resolve().parents[1]
                            / ".github/workflows/nse_collect.yml").read_text())
