@@ -9,6 +9,7 @@
 - The Screener table fades at its right edge while more columns lie to the right, and the pointer shows a row opens its stock.
 - Breadth's list of new highs and lows reads "New 52W high" and "New 52W low" without emoji; the rotation graph's quadrant lists lose their tinted cards.
 - Levels and shares in tables (weight, turnover, % of the 52W high) no longer carry a plus sign; changes (drift, distance from the EMA) still do.
+- No text below 12px anywhere (labels at 8.5–11.5px were raised), and near-duplicate sizes folded together (13→13.5, 14.5→14, 16→15, 19→18).
 - Readers whose system asks for less motion get no transitions or animations.
 - Share prices carry paise everywhere: the Screener's price and stop-loss columns and every level on the stock page (₹2,340.00, 52W high ₹2,406.00).
 - Plain counts are no longer coloured as warnings: Actions' Hold count, Breadth's share in the neutral band and Configuration's possible demergers read in ink; Sell and Buy keep their colours.

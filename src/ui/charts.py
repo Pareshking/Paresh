@@ -161,7 +161,7 @@ html,body{background:transparent;height:100%;overflow:hidden;font-family:'IBM Pl
    script below, never by the browser, so reaching the edge cannot turn into
    the browser's swipe-back (it did, in a touch test, with native scrolling). */
 #scroller{width:100%;overflow:hidden;touch-action:pan-y}
-#hint{display:none;font-size:11px;color:var(--c-faint);text-align:center;padding:2px 0 0}
+#hint{display:none;font-size: 12px;color:var(--c-faint);text-align:center;padding:2px 0 0}
 body.wide #hint{display:block}
 #controls{display:flex;gap:8px;align-items:center;justify-content:center;padding:6px 4px 2px;flex-wrap:wrap}
 .ctrl-btn{background:transparent;border:1px solid var(--c-rule);border-radius:4px;padding:3px 12px;font-size:12px;

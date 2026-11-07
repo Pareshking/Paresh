@@ -334,12 +334,12 @@ table{border-collapse:separate;border-spacing:0;width:100%;min-width:1180px}
 thead th{position:sticky;top:0;z-index:3;background:var(--c-subtle);border-bottom:1px solid var(--c-rule);height:42px;padding:0 10px;
   font-size:12px;font-weight:600;color:var(--c-muted);text-align:right;white-space:nowrap;cursor:pointer;user-select:none}
 thead th.t-left{text-align:left}
-thead th{text-transform:uppercase;letter-spacing:.04em;font-size:11.5px}
-thead tr.grp-row th{font-size:11px}
+thead th{text-transform:uppercase;letter-spacing:.04em;font-size: 12px}
+thead tr.grp-row th{font-size: 12px}
 td.n.pos,td.n.neg{font-weight:600}
-thead tr.grp-row th{top:0;height:28px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;text-align:center;color:var(--c-muted);border-bottom:1px solid var(--c-rule);border-left:1px solid var(--c-rule);cursor:default}
+thead tr.grp-row th{top:0;height:28px;font-size: 12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;text-align:center;color:var(--c-muted);border-bottom:1px solid var(--c-rule);border-left:1px solid var(--c-rule);cursor:default}
 thead tr.grp-row + tr.hdr th{top:28px}
-.tag{display:inline-block;font-size:11.5px;font-weight:600;padding:0;border-radius:0;background:transparent;color:var(--c-text_2);border:0}
+.tag{display:inline-block;font-size: 12px;font-weight:600;padding:0;border-radius:0;background:transparent;color:var(--c-text_2);border:0}
 td.c-tick{text-align:center}
 td.c-stock .sub{display:none}
 .wide .m-only{display:none!important}
@@ -369,10 +369,10 @@ td.c-stock .sub{font-size:12px;color:var(--c-muted);overflow:hidden;text-overflo
 td.c-path{padding-left:14px}
 td.c-flt{text-align:left}
 .pass{font-size:12px;font-weight:600;color:var(--c-up)}.fail{font-size:12px;font-weight:600;color:var(--c-muted)}
-.ath{margin-left:6px;font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px;background:var(--c-fill);color:var(--c-ink)}
+.ath{margin-left:6px;font-size: 12px;font-weight:700;padding:2px 6px;border-radius:6px;background:var(--c-fill);color:var(--c-ink)}
 .m-only{display:none}
 tbody tr.hl td{background:var(--c-subtle)}
-.me{margin-left:6px;font-style:normal;font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px;background:var(--c-fill);color:var(--c-ink)}
+.me{margin-left:6px;font-style:normal;font-size: 12px;font-weight:700;padding:2px 6px;border-radius:6px;background:var(--c-fill);color:var(--c-ink)}
 @media (max-width:640px){
   table{min-width:0}
   th,td{padding:0 8px}

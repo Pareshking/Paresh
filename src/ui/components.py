@@ -171,7 +171,7 @@ def _render_yearly_summary(grid: pd.DataFrame, bench_name: str) -> None:
         '<style>.cr-yearly{margin-bottom:14px}'
         f'.cr-yearly-table{{min-width:{120 + 74 * len(table)}px}}'
         '.cr-yearly-table .cr-part{display:block;font-weight:600;letter-spacing:0;'
-        'text-transform:none;color:var(--c-faint);font-size:9px;margin-top:2px}</style>'
+        'text-transform:none;color:var(--c-faint);font-size: 12px;margin-top:2px}</style>'
     )
 
 
@@ -244,7 +244,7 @@ def _render_calendar_returns(grid: pd.DataFrame) -> None:
       .cr-year-note { color:var(--c-muted); font-size:12.5px; text-align:right; }
       .cr-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
       .cr-table { border-collapse:collapse; width:100%;
-        min-width:980px; font-size:13px; font-variant-numeric:tabular-nums; }
+        min-width:980px; font-size: 13.5px; font-variant-numeric:tabular-nums; }
       .cr-table th,.cr-table td { padding:8px 8px; text-align:right;
         border-bottom:1px solid var(--c-rule); white-space:nowrap; }
       .cr-table thead th { background:transparent; color:var(--c-muted); font-size:12px;
@@ -252,7 +252,7 @@ def _render_calendar_returns(grid: pd.DataFrame) -> None:
       .cr-table thead th:first-child { text-align:left; padding-left:0; }
       .cr-table tbody tr:last-child th,.cr-table tbody tr:last-child td { border-bottom:0; }
       .cr-series { text-align:left !important; padding-left:0 !important;
-        font-size:13px; font-weight:600; color:var(--c-ink); min-width:86px; border-left:0 !important; }
+        font-size: 13.5px; font-weight:600; color:var(--c-ink); min-width:86px; border-left:0 !important; }
       .cr-series.benchmark { color:var(--c-text_2); font-weight:500; }
       .cr-value { font-weight:500; }
       .cr-value.positive { color:var(--c-up); }

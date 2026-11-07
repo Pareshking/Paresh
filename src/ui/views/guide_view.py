@@ -33,7 +33,7 @@ _CSS = """<style>
 .gd ol,.gd ul{margin:0 0 10px;padding-left:20px}
 .gd li{margin:2px 0}
 .gd b{color:var(--c-ink);font-weight:600}
-.gd pre{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:13px;line-height:1.6;
+.gd pre{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size: 13.5px;line-height:1.6;
     color:var(--c-ink);background:var(--c-subtle);border-left:2px solid var(--c-rule_strong);
     padding:8px 12px;margin:6px 0 12px;white-space:pre-wrap}
 .gd dl{margin:0}
