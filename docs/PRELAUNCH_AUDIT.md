@@ -24,7 +24,8 @@ stock page and one date style (36912b2); F43 month grid. F11 Portfolio chart vs
 headline reconciled. Parked for the owner: F13 "Personal" as the public name of
 the price source (a deliberate choice in components.py). F27 skip link, F28 focus ring, F29 contrast done (roving focus in the 750-row
 table still open). F8 one EMA figure, F15 Leading, F16 52W/EMA names (Screener item 9), F17
-wrapping, F46 table emoji, F54 Actions done. F33 Dashboard links onward, F36 search labels done. F32 sticky phone header done. Next: F30, F31 menu regroup, F34, F35, F12–F14, Phase 3 type scale and table style, Phase 4 P1 pages.
+wrapping, F46 table emoji, F54 Actions done. F33 Dashboard links onward, F36 search labels done. F32 sticky phone header done. F35 filters kept on Back (in the address) done; F31's regroup not done: the owner
+chose the old menu groups. Next: F30, F34, F12–F14, Phase 3 type scale and table style, Phase 4 P1 pages.
 
 ## Status of the P0s
 

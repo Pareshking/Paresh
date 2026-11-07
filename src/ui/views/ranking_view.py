@@ -9,6 +9,7 @@ import time
 import pandas as pd
 import streamlit as st
 
+from src.ui.widget_state import mirror_key, remember
 from src.ui.system_param import keep_system_only, stock_href
 
 from src.core.config import SHORT_FORMS
@@ -37,6 +38,74 @@ _DENSITY_OPTIONS = ["Executive (11)", "Core (17)", "Full Quant (35)"]
 BIG_MOVE_PLACES = 150
 
 
+
+
+# The Screener's filters also live in the address (audit F35). A stock link is
+# a plain anchor, so opening a stock reloads the app in a new session and the
+# session's state is gone; the browser's Back returns to the address the
+# filters were written to, and they are read back from it.
+_PRESET_CODES = {"All Universe": "all", "Top 50 Qualified": "top50q",
+                 "Top 50 Not Qualified": "top50nq", "Passed Filters": "pass",
+                 "Momentum Movers": "movers", "High Volume": "volume"}
+_DENSITY_CODES = {"Executive (11)": "exec", "Core (17)": "core", "Full Quant (35)": "full"}
+_URL_KEYS = {"rank_quick_pills": "view", "rank_index_filter": "idx",
+             "rank_only_passing": "pass", "rank_density_mode": "cols"}
+
+
+def _from_url(key: str):
+    raw = st.query_params.get(_URL_KEYS[key])
+    if raw is None:
+        return None
+    raw = str(raw)
+    if key == "rank_quick_pills":
+        return next((k for k, c in _PRESET_CODES.items() if c == raw), None)
+    if key == "rank_density_mode":
+        return next((k for k, c in _DENSITY_CODES.items() if c == raw), None)
+    if key == "rank_index_filter":
+        return [t for t in raw.split(",") if t]
+    if key == "rank_only_passing":
+        return raw == "1"
+    return None
+
+
+def _to_url(key: str, value) -> str | None:
+    """The address form of a filter, or None for its default (left out)."""
+    if key == "rank_quick_pills":
+        return None if value in (None, "All Universe") else _PRESET_CODES.get(value)
+    if key == "rank_density_mode":
+        return None if value in (None, _DENSITY_OPTIONS[1]) else _DENSITY_CODES.get(value)
+    if key == "rank_index_filter":
+        return ",".join(value) if value else None
+    if key == "rank_only_passing":
+        return "1" if value else None
+    return None
+
+
+def _sync_url(values: dict) -> None:
+    """Write changed filters to the address; one write per change, since each
+    write is a browser history entry."""
+    for key, value in values.items():
+        name, want = _URL_KEYS[key], _to_url(key, value)
+        have = st.query_params.get(name)
+        if want != (None if have is None else str(have)):
+            if want is None:
+                del st.query_params[name]
+            else:
+                st.query_params[name] = want
+
+
+def _kept(key: str, default, options: list | None = None):
+    """A Screener filter's value: the widget's, else the address's, else its
+    session mirror, else the default. A stored value no longer among the
+    options falls back to the default."""
+    if key in st.session_state:
+        value = st.session_state[key]
+    else:
+        from_url = _from_url(key)
+        value = from_url if from_url is not None else st.session_state.get(mirror_key(key), default)
+    if options is not None and value is not None and value not in options:
+        return default
+    return value
 
 _SEARCH_KINDS = {"[STOCK] ": "", "[INDEX] ": "index", "[INDUSTRY] ": "industry",
                  "[SECTOR] ": "sector", "[TV_INDUSTRY] ": "sub-industry"}
@@ -347,7 +416,7 @@ def render_ranking_view(
         filt = st.pills(
             "Presets",
             list(preset_counts),
-            default="All Universe",
+            default=_kept("rank_quick_pills", "All Universe", list(preset_counts)),
             format_func=lambda o: f"{preset_names[o]} {preset_counts[o]}",
             key="rank_quick_pills",
             label_visibility="collapsed",
@@ -367,10 +436,12 @@ def render_ranking_view(
                 "Index",
                 list(index_names),
                 selection_mode="multi",
+                default=[t for t in (_kept("rank_index_filter", []) or []) if t in index_names],
                 format_func=lambda t: index_names.get(t, t),
                 key="rank_index_filter",
             )
             only_passing = st.toggle("Only stocks that pass both filters",
+                                     value=bool(_kept("rank_only_passing", False)),
                                      key="rank_only_passing")
             # No "Sort by" here: the column headers are the one sort (owner,
             # 7 Nov). A second, server-side sort disagreed with the headers
@@ -387,13 +458,21 @@ def render_ranking_view(
             density_mode = st.segmented_control(
                 "Columns",
                 _DENSITY_OPTIONS,
-                default=_DENSITY_OPTIONS[1],
+                default=_kept("rank_density_mode", _DENSITY_OPTIONS[1], list(_DENSITY_OPTIONS)),
                 format_func=_density_label,
                 key="rank_density_mode",
             )
             st.caption("Click a column header to sort the table.")
             st.button("Reset", key="rank_filters_reset", type="tertiary",
                       on_click=_reset_screener_filters)
+    # Mirrors that outlive the widgets, so the filters are still set after a
+    # visit to a stock page and Back (audit F35): Streamlit drops a widget's
+    # state on any run that does not draw it, and the stock page does not.
+    _filters = {"rank_quick_pills": filt, "rank_index_filter": index_pick,
+                "rank_only_passing": only_passing, "rank_density_mode": density_mode}
+    for _k, _v in _filters.items():
+        remember(_k, _v)
+    _sync_url(_filters)
     if not density_mode:
         density_mode = _DENSITY_OPTIONS[1]
 
@@ -523,6 +602,7 @@ def _reset_screener_filters() -> None:
     for key in ("rank_index_filter", "rank_only_passing",
                 "rank_density_mode", "rank_quick_pills"):
         st.session_state.pop(key, None)
+        st.session_state.pop(mirror_key(key), None)
 
 
 @st.cache_data(show_spinner=False, ttl=3600)

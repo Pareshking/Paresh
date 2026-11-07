@@ -9,6 +9,7 @@
 - No emoji in tables: Bought, Sold, Held, Yes, No and the rotation quadrants are plain words.
 - Industry names under a stock wrap instead of being cut mid-word.
 - The Guide says the Kite basket holds the buys only; sells are placed by hand.
+- The Screener's filters (preset, indices, pass-both, columns) are kept in the address, so Back from a stock page returns to the same filtered list, and a filtered list can be bookmarked or shared.
 - On a phone or tablet the header (name, date, menu) stays at the top as the page scrolls, and the menu fits the screen.
 - Dashboard blocks link onward: the book at risk and the next rebalance to Actions, the industries to Sectors.
 - The Screener's search list reads "LAURUSLABS · Healthcare" and "Healthcare · industry", not "[STOCK]" and "[INDUSTRY]".
