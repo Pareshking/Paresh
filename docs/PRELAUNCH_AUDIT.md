@@ -12,6 +12,16 @@ TODO row S94 tracks this file; each item is closed here with its commit.
 3. **Foundations are right:** figures reconcile almost everywhere, the palette survives colour blindness, nothing scrolls sideways at 320 px, fonts load. What remains is consolidation: one tile, one table, one type scale, one formatter, a max-width.
 4. **About 12 focused sessions to launch-ready (all P0 and P1), about 15 for everything.**
 
+## Launched (7 Nov, 16:10 UTC)
+
+Merged as 3d1651e (#472) on the owner's word. Live check: the new pages are served,
+Source Serif 4 loads, no exceptions, Dashboard / Breadth / Sectors load in 6-20 s. The
+R2 index file is still weekly until the first nightly run after the merge (00:12 UTC);
+the index strip holds back the size indices until then. Found live and fixed in #474:
+size against the Nifty 500 compared different dates (Microcap 250 +7.0 against +3.7).
+Open after launch: F60 speed (needs a Cloud test of a shared chart library), the full
+type scale, screen reader and Safari/iOS checks, the 1 Dec rebalance (S95).
+
 ## Since 11:30 (7 Nov, 14:25 UTC)
 
 - The owner's S97 answers built: Screener 50 rows + Show all (wheel moves the page), menu
