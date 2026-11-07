@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-07 — Library updates
+
+- streamlit 1.66.1, pandas 3.1.0, numpy 2.5.4, pyarrow 26.0.0, and the last workflow still on older GitHub Actions moved to checkout/setup-python/upload-artifact v7 (owner). Nothing a reader sees changes: on the same pinned inputs the 750 ranking, the 12-month backtest and the track-record parity report are identical, and eight pages screenshot pixel-identical.
+- The monthly freeze now checks that the app can rank with the NSE closes it has just written before it freezes or commits anything (S82).
+
 ## 2026-11-07 — Portfolio: a ₹1 crore model book
 
 - The model book on Portfolio now starts at ₹1 crore instead of ₹20 lakh (owner, 7 Nov). Every return is unchanged (since inception +41.4%, November +2.3%); rupee figures are five times larger and share counts are whole shares of the larger book. The Kite basket on Actions starts at the same ₹1 crore.

@@ -4,7 +4,7 @@
 # Production confirmed 1.63.0 is what this deployment already resolves to, so
 # this pin changes nothing today and stops the next silent swap. To upgrade:
 # bump here, let V1 Production QA verify against the live app, then keep it.
-streamlit==1.65.0
+streamlit==1.66.1
 # The numeric stack and the data clients are pinned for the same reason as
 # streamlit: a floor like `pandas>=2.0.0` let every container boot pick up
 # whatever was newest that day, while CI had only ever tested one version.
@@ -13,8 +13,8 @@ streamlit==1.65.0
 # of 2.0.0 / 1.24.0 claimed support for versions nothing ever ran. Dependabot
 # (monthly, increase-if-necessary) opens a PR for each new release; bump
 # deliberately and let CI plus V1 Production QA confirm it.
-pandas==3.0.6
-numpy==2.4.6
+pandas==3.1.0
+numpy==2.5.4
 # scikit-learn was declared here and imported NOWHERE -- `grep -rn sklearn`
 # across the repository returns this line and nothing else. Carrying it cost
 # the cold start a ~30 MB wheel plus joblib and threadpoolctl on every container
@@ -33,7 +33,13 @@ requests==2.34.2
 # nothing would ever have prompted a re-look. An exact pin is a line with a
 # reason and a way out: when arrow#50471 closes, bump this deliberately and
 # let the QA run confirm it.
-pyarrow==24.0.0
+#
+# 7 Nov 2026 (owner): bumped to 26.0.0 with streamlit 1.66.1, pandas 3.1.0 and
+# numpy 2.5.4. On the same pinned inputs (scripts/audit_baseline.py) the 750
+# ranking and the 12-month backtest are identical to the last digit, the
+# canonical parity report is identical, and eight pages screenshot
+# pixel-identical. Check Streamlit Cloud's boot log keeps 26.0.0.
+pyarrow==26.0.0
 # S3-compatible Cloudflare R2 archive adapter. Left as a range on purpose:
 # boto3 releases almost daily, its S3 API is stable within a major, and the
 # R2 read-path gate re-runs on main whenever this file changes.
