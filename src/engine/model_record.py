@@ -186,7 +186,9 @@ def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
 
     closed_trades = result.get("closed_trades")
     if isinstance(closed_trades, pd.DataFrame) and "Exit Date" in closed_trades.columns:
-        exit_date = pd.to_datetime(closed_trades["Exit Date"], errors="coerce")
+        # "06 Nov 2026", "—" or "Not exited (mark ...)": parsed one by one
+        # ("mixed"), as before, without pandas' format warning in the log.
+        exit_date = pd.to_datetime(closed_trades["Exit Date"], format="mixed", errors="coerce")
         result["closed_trades"] = closed_trades.loc[
             exit_date.ge(start.start_time) | exit_date.isna()
         ].reset_index(drop=True)
@@ -253,7 +255,7 @@ def with_live_month(result: dict) -> dict:
     if isinstance(closed, pd.DataFrame) and not closed.empty:
         status = closed["Status"] if "Status" in closed.columns else pd.Series("", index=closed.index)
         keep = closed.loc[status != "Open"]
-        exits = pd.to_datetime(keep.get("Exit Date"), errors="coerce")
+        exits = pd.to_datetime(keep.get("Exit Date"), format="mixed", errors="coerce")
         keep = keep.loc[~(exits == fill)]
     extra = []
     for r in changes.loc[changes["Action"] == "🔴 SOLD"].to_dict("records"):
