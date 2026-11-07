@@ -20,7 +20,7 @@ def test_the_kite_basket_starts_at_portfolios_capital(monkeypatch):
     from src.ui import widget_state
     from src.ui.views import actions_view, portfolio_view
 
-    assert portfolio_view.PORTFOLIO_STARTING_CAPITAL == MODEL_BOOK_CAPITAL == 2_000_000
+    assert portfolio_view.PORTFOLIO_STARTING_CAPITAL == MODEL_BOOK_CAPITAL == 10_000_000
     monkeypatch.setattr(widget_state.st, "session_state", {})
     assert actions_view.kite_capital() == MODEL_BOOK_CAPITAL
     monkeypatch.setattr(widget_state.st, "session_state", {"ac_kite_capital__v": 500_000})

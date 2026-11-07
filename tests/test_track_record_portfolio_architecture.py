@@ -523,3 +523,23 @@ def test_daily_path_without_a_replay_falls_back_to_month_ends():
 
     out = _daily_path(None, {"2026-01": {"strategy": 0.02}}, "strategy", 100.0)
     assert out.iloc[-1] == pytest.approx(102.0) and len(out) == 2
+
+
+def test_shares_are_sized_on_the_account_at_the_fill_so_cash_is_never_negative():
+    # Month-end curve: 1,000,000 before the fill; the ledger's live point
+    # (after the old book's last day and the fill's costs) reads 1,188,000.
+    # The book has since risen 20% (100 -> 120), so the account at the fill
+    # was 990,000 and the shares are sized on that, not on 1,000,000.
+    book = _book()
+    book["Weight %"] = 50.0                     # fully invested, two names
+    book["Price Now"] = 120.0
+    book.attrs["fill_date"] = "2026-03-02"
+    syms = book["Symbol"].tolist()
+    prices = pd.DataFrame({s: [100.0] for s in syms}, index=pd.to_datetime(["2026-03-02"]))
+    ranking = _ranking()
+    equity = pd.Series([1_000_000.0, 1_188_000.0], index=pd.to_datetime(["2026-02-28", "2026-03-31"]))
+    out = build_portfolio_tracker(book, ranking, 1_000_000, prices, equity_curve=equity)
+    w = out["Target Weight %"] / 100.0
+    expect = (990_000 * w / 100.0).apply(np.floor).astype(int)
+    assert out["Shares"].tolist() == expect.tolist()
+    assert 1_188_000 - float(out["Current Value (₹)"].sum()) >= 0
