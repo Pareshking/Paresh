@@ -169,7 +169,6 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     held = a[a["Symbol"].isin(plan.holds)]
     n_watch = int(held["status"].eq(WATCH).sum())
 
-    kit.editorial_style()   # the type prototype (owner, 7 Nov): Dashboard and Breadth only
     _title, _sub = headline_parts(mtd, bench_mtd, n_watch, len(plan.sells), check)
     kit.headline(f"Dashboard · closes of {as_of:%-d %b %Y}", _title, _sub)
 

@@ -252,11 +252,11 @@ def growth_chart(
     )
 
 
-# ── Editorial type (prototype, owner 7 Nov) ────────────────────────────────
+# ── Editorial type (owner, 7 Nov) ──────────────────────────────────────────
 # A serif for page titles, question headings, verdicts and headline figures;
-# Plex Sans stays for body text and Plex Mono for dense tables. Called by the
-# pages in the prototype only (Dashboard, Breadth), so the rest of the site is
-# unchanged until the owner has seen it. Source Serif 4 (SIL Open Font
+# Plex Sans stays for body text and Plex Mono for dense tables. Loaded once by
+# app.py for every page (prototyped on the Dashboard and Breadth, then rolled
+# out on the owner's word). Source Serif 4 (SIL Open Font
 # Licence), not tipsheet's own face, so the site keeps its own identity.
 EDITORIAL_FONT = ("https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500"
                   "&display=swap")
@@ -285,6 +285,17 @@ body .mq-s{font-size:15px}
 .rng i.m{position:absolute;top:4px;height:6px;border-radius:3px;background:var(--c-down_tint)}
 .rng i.d{position:absolute;top:1px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--c-ink)}
 .rng i.d.up{background:var(--c-up)}.rng i.d.down{background:var(--c-down)}
+/* Headline figures and the other titles, site-wide */
+body .mkt-strip.pg-strip .ms-v, body [class*="st-key-mrow_"] [data-testid="stMetricValue"]{
+  font-family:var(--font-serif)!important;font-weight:400!important;font-size:30px!important;letter-spacing:-0.3px!important}
+body .mkt-strip.pg-strip .ms-v.ms-name{font-size:22px!important}
+body h1.sp-name{font-family:var(--font-serif)!important;font-weight:400!important;font-size:44px!important;letter-spacing:-0.5px!important}
+body .sp-price{font-family:var(--font-serif);font-weight:400;font-size:38px}
+body .sp-rank-big span{font-family:var(--font-serif);font-weight:400;font-size:56px}
+body .gd h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:28px!important;border-top-color:var(--c-ink)}
+body .cfg-intro h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:24px!important}
+body .cr-year-head h3{font-family:var(--font-serif);font-weight:400;font-size:22px}
+body .gd p,body .gd li,body .gd dd{font-size:16px!important}
 @media (max-width:900px){.scr-head h1{font-size:36px!important}.qp h2{font-size:30px!important}.rng{width:110px}}
 </style>"""
 

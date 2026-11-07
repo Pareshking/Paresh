@@ -89,7 +89,6 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     model): are most stocks taking part, and is the market in an uptrend; each
     with its verdict, evidence, what changed and what would change it. Then
     today's charts and the stocks making new highs and lows."""
-    kit.editorial_style()   # the type prototype (owner, 7 Nov): Dashboard and Breadth only
     kit.page_head("Market breadth",
                   "Two questions, answered from the ranked stocks and NSE's index closes; then today's charts.")
     levels, bench = fetch_index_levels(), nse_benchmarks()

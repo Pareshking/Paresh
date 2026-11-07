@@ -131,6 +131,9 @@ if _code_reloaded:
 
 # Inject Pure Paper White Design System
 inject_custom_css()
+# Editorial type on every page (owner, 7 Nov: prototype seen, "continue").
+from src.ui.page_kit import editorial_style as _editorial_style  # noqa: E402
+_editorial_style()
 
 # Seed freshness dates from committed repo files so the ribbon always has
 # something to show even before the loaders run (or on warm-cache reruns

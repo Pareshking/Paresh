@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-07 — Editorial type on every page
+
+- Rolled out on the owner's word after the prototype: page titles, section and card headings, verdicts, headline figures in tiles, the stock page's name, price and rank, the Guide's and Configuration's headings and the calendar years are in Source Serif 4; the Guide's text is 16px.
+
 ## 2026-11-07 — Editorial type, prototype on the Dashboard and Breadth
 
 - A serif (Source Serif 4) for page titles, question headings, verdicts and headline figures, prose at 17px in a reading column; Plex Sans stays for text and Plex Mono for dense tables. Only the Dashboard and Breadth use it until the owner has seen it.
