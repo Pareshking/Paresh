@@ -1,9 +1,11 @@
 name: R2 Cost Observability
 
 on:
+  # No schedule (audit A3, 7 Nov 2026): it failed every scheduled run since 28 Sep
+  # (`ModuleNotFoundError: No module named 'src'`: no PYTHONPATH), and the daily
+  # r2_archive_inventory.yml already reports storage per dataset from list sizes.
+  # Kept for a manual request/storage estimate.
   workflow_dispatch:
-  schedule:
-    - cron: "41 4 * * 1"
 
 permissions:
   contents: read
@@ -16,7 +18,10 @@ concurrency:
 jobs:
   cost-observability:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # One HEAD per manifest revision: about 10 minutes on 28 Sep, more since.
+    timeout-minutes: 30
+    env:
+      PYTHONPATH: .
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7

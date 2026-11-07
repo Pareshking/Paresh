@@ -15,8 +15,11 @@ on:
         description: "64-character immutable revision SHA"
         required: true
         default: "f01555ee9afa74a0f6c0c8bd5e8e451b88bd7390c79ca8367cf0ff904244b6e6"
-  schedule:
-    - cron: "53 4 * * 1"
+  # No schedule (audit A3, 7 Nov 2026): the acceptance of the 22 Sep R2 evidence is
+  # done (docs/R2_ENGINEERING_LOOP.md, "R2 acceptance is complete"). Weekly, it re-proved
+  # the same fixed date and timed out at 20 minutes on every run since 5 Oct, because its
+  # recovery step reads the whole bucket; r2_recovery_audit.yml runs that check weekly.
+  # Run it by hand to re-prove the acceptance.
 
 permissions:
   contents: read
