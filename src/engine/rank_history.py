@@ -53,7 +53,19 @@ def snapshots(prices: pd.DataFrame, dates: Sequence[pd.Timestamp], *, membership
         idx_mask = _index_mask(membership, prices.columns, day)
         in_idx = idx_mask if idx_mask is not None else pd.Series(True, index=prices.columns)
         qualifies = above & near & (p > 0) & in_idx
-        score = _composite_z_score(prices, log_ret, pos, MOMENTUM_WINDOWS, weights, prices_anchor=anchor)
+        # Scored among that day's index members only, as the Screener scores
+        # its 750 (owner, 7 Nov 2026: "any rank used must be originated from
+        # screener"). Scoring the whole frame -- which carries the stocks that
+        # have since left the index -- moved every z-score a little and swapped
+        # neighbours: ACUTAAS ranked 44th of the qualified here and 45th on the
+        # Screener on 6 Nov (62 adjacent swaps; same set of 239, same gates).
+        if idx_mask is not None:
+            members = idx_mask[idx_mask.astype(bool)].index.intersection(prices.columns)
+            score = _composite_z_score(prices[members], log_ret[members], pos, MOMENTUM_WINDOWS,
+                                       weights, prices_anchor=anchor[members]).reindex(prices.columns)
+        else:
+            score = _composite_z_score(prices, log_ret, pos, MOMENTUM_WINDOWS, weights,
+                                       prices_anchor=anchor)
         ranked = score[qualifies & score.notna()].sort_values(ascending=False)
         rank = pd.Series(np.arange(1, len(ranked) + 1), index=ranked.index, dtype=float)
         frame = pd.DataFrame({
