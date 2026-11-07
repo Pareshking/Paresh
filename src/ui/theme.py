@@ -409,7 +409,7 @@ def inject_custom_css() -> None:
         .hdr-pill .hdr-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c-up); }
         .hdr-pill-warn { background: var(--c-caution_tint); color: var(--c-caution_ink); }
         .hdr-pill-warn .hdr-dot { background: var(--c-caution); }
-        .stale-notice { margin: 6px 0 2px; padding: 9px 14px; border-radius: 4px; background: var(--c-caution_tint); border: 1px solid #F7D9B0; color: var(--c-caution_ink); font-size: 13.5px; font-weight: 600; line-height: 1.4; }
+        .stale-notice { margin: 6px 0 2px; padding: 9px 14px; border-radius: 4px; background: var(--c-caution_tint); border: 1px solid var(--c-caution_line); color: var(--c-caution_ink); font-size: 13.5px; font-weight: 600; line-height: 1.4; }
         .stale-notice-info { background: var(--c-subtle); border-color: var(--c-rule); color: var(--c-text_2); font-weight: 500; }
 
         /* Compact market snapshot: same footprint as the legacy market line,
@@ -864,7 +864,7 @@ def inject_custom_css() -> None:
         .t50-chip {
             display: inline-flex; align-items: center; gap: 7px; min-height: 30px;
             padding: 4px 10px 4px 6px; border-radius: 4px;
-            background: var(--c-fill); color: #172554 !important;
+            background: var(--c-fill); color: var(--c-ink) !important;
             text-decoration: none !important; font-size: 12.5px; font-weight: 700;
             white-space: nowrap; border: 1px solid var(--c-rule);
             transition: background .15s ease, border-color .15s ease, transform .15s ease;
@@ -1018,7 +1018,7 @@ def inject_custom_css() -> None:
             border: 0 !important; background: transparent !important; padding: 0 !important;
             min-height: 32px !important; color: var(--c-ink) !important; font-weight: 600 !important;
         }
-        .st-key-stock_page_back button:hover { color: #312E81 !important; text-decoration: underline; }
+        .st-key-stock_page_back button:hover { color: var(--c-ink) !important; text-decoration: underline; }
         .sp-card { background: var(--c-white); border: 1px solid var(--c-rule); border-radius: 18px; padding: 20px 22px; }
         .sp-card h2, .sp-sec h2 {
             margin: 0 !important; padding: 0 !important; font-family: var(--font-ui) !important;
@@ -1061,7 +1061,7 @@ def inject_custom_css() -> None:
         .sp-facts b { font-family: var(--font-mono); font-weight: 600; color: var(--c-ink); }
         .sp-verdict { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto 1fr; border-radius: 4px; margin-bottom: 14px; border: 1px solid; overflow: hidden; }
         .sp-verdict.pass { background: var(--c-up_tint_2); border-color: var(--c-up_line_2); }
-        .sp-verdict.part { background: #FEF8EE; border-color: var(--c-caution_line); }
+        .sp-verdict.part { background: var(--c-caution_tint); border-color: var(--c-caution_line); }
         .sp-verdict.fail { background: var(--c-down_tint_2); border-color: var(--c-down_line_3); }
         .sv-head { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid rgba(14, 23, 38, 0.08); }
         .sv-head-mark { width: 38px; height: 38px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--c-white); font-weight: 700; font-size: 18px; background: var(--c-up); }
@@ -1069,7 +1069,7 @@ def inject_custom_css() -> None:
         .sv-head b { display: block; font-family: var(--font-ui); font-size: 14px; line-height: 1.2; font-weight: 700; color: var(--c-ink); }
         .sv-head i { display: block; margin-top: 2px; font-family: var(--font-ui); font-style: normal; font-size: 12px; line-height: 1.25; color: var(--c-text_2); }
         .sv-state { margin-left: auto; padding: 9px 18px; border-radius: 4px; background: var(--c-up_tint); color: var(--c-up); font-weight: 700; font-size: 13.5px; }
-        .sp-verdict.part .sv-state { background: #FEF0D5; color: #9A6700; } .sp-verdict.fail .sv-state { background: var(--c-down_line); color: var(--c-down); }
+        .sp-verdict.part .sv-state { background: var(--c-caution_tint); color: var(--c-caution); } .sp-verdict.fail .sv-state { background: var(--c-down_line); color: var(--c-down); }
         .sv-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 18px 20px; min-width: 0; }
         .sv-card + .sv-card { border-left: 1px solid rgba(14, 23, 38, 0.08); }
         .sv-main { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
@@ -1080,7 +1080,7 @@ def inject_custom_css() -> None:
         .sv-side { min-width: 72px; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; padding-left: 14px; border-left: 1px solid rgba(14, 23, 38, 0.08); }
         .sv-side em { font-style: normal; font-size: 13.5px; font-weight: 700; padding: 8px 14px; border-radius: 4px; background: var(--c-up_tint); color: var(--c-up); }
         .sv-side em.fail { background: var(--c-down_line); color: var(--c-down); }
-        .sv-side em.bonus { background: #FFF0C9; color: #A66A00; }
+        .sv-side em.bonus { background: var(--c-caution_tint); color: var(--c-caution); }
         .sv-side span { font-size: 12px; color: var(--c-muted); }
         .sv-side b { font-family: var(--font-mono); font-size: 14px; font-weight: 600; color: var(--c-text_2); text-align: right; }
         .sp-notice { background: var(--c-caution_tint); border: 1px solid var(--c-caution_line); border-radius: 4px; padding: 16px 20px; margin-bottom: 14px; color: var(--c-caution_ink); }
@@ -2526,7 +2526,7 @@ body::-webkit-scrollbar,
     border-radius: 4px;
 }}
 .badge-green {{ background: var(--c-up_tint); color: var(--c-up); border: 1px solid var(--c-up_line_2); }}
-.badge-yellow {{ background: #fefce8; color: #a16207; border: 1px solid #fef08a; }}
+.badge-yellow {{ background: var(--c-caution_tint); color: var(--c-caution); border: 1px solid var(--c-caution_line); }}
 .badge-red {{ background: var(--c-down_tint); color: var(--c-down_dark); border: 1px solid var(--c-down_line_3); }}
 .badge-blue {{ background: var(--c-up_tint_2); color: var(--c-up_dark); border: 1px solid var(--c-up_line_2); }}
 .badge-neutral {{ background: var(--c-subtle); color: var(--c-muted); border: 1px solid var(--c-rule); }}

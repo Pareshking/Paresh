@@ -83,3 +83,19 @@ def test_every_text_grey_is_readable_on_white_and_the_subtle_fill():
     for name in ("ink", "ink_2", "text_2", "muted", "muted_2", "faint", "up", "down", "caution"):
         for ground in ("white", "subtle"):
             assert _contrast(PALETTE[name], PALETTE[ground]) >= 4.5, (name, ground)
+
+
+def test_no_colour_literals_outside_the_tokens():
+    """Audit F77: every colour is a token, so one file changes the theme. The
+    sector palette in charts.py is its own named list and is exempt."""
+    import re
+    from pathlib import Path
+    ui = Path(__file__).resolve().parent.parent / "src" / "ui"
+    offenders = []
+    for f in ui.rglob("*.py"):
+        if f.name in ("tokens.py", "charts.py"):
+            continue
+        for n, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
+            if re.search(r"#[0-9A-Fa-f]{6}\b", line) and "noqa: colour" not in line:
+                offenders.append(f"{f.name}:{n}")
+    assert not offenders, offenders
