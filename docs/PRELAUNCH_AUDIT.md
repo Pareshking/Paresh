@@ -12,6 +12,23 @@ TODO row S94 tracks this file; each item is closed here with its commit.
 3. **Foundations are right:** figures reconcile almost everywhere, the palette survives colour blindness, nothing scrolls sideways at 320 px, fonts load. What remains is consolidation: one tile, one table, one type scale, one formatter, a max-width.
 4. **About 12 focused sessions to launch-ready (all P0 and P1), about 15 for everything.**
 
+## Since 11:30 (7 Nov, 14:25 UTC)
+
+- The owner's S97 answers built: Screener 50 rows + Show all (wheel moves the page), menu
+  grouped My book / Market / Method, 1,240px pages and a 16px phone gutter (1a2f9c5).
+- Question pages (S98, owner: "go for it"): the Dashboard answers three questions (e8cff18);
+  Breadth answers "Are most stocks taking part?" and "Is the market in an uptrend?" with
+  what changed and what would change the answer, and a size-index trend table (fc9e3a5);
+  Sectors answers "What is leading?" with industries in four groups and a month-by-month
+  grid of runs (47d426b). On 6 Nov the trend verdict matched tipsheet's independent page.
+- Sentence case through the shared components; column headings on Sectors' groups (f247ed5).
+- Editorial type prototype (owner: "I am with you"): Source Serif 4 for titles, verdicts and
+  headline figures, 17px prose, a news headline on the Dashboard, range bars with
+  percentiles in Breadth's evidence; Dashboard and Breadth only (9df73cf). Waiting on the
+  owner: roll out to every page, or adjust first.
+- Fixed with it: the deep price history is sparse in early years, so 52W windows are a
+  calendar year, readings need enough stocks, and a missing day takes the week's last price.
+
 ## Progress (7 Nov, 11:30 UTC)
 
 **All 17 P0 are fixed.** Every change was checked on the local app with the real
