@@ -121,14 +121,42 @@ def assess(rank_df: pd.DataFrame, symbols: list[str], rules: Rules = Rules()) ->
                .sort_values(["_o", "_t"]).drop(columns=["_o", "_t"]).reset_index(drop=True))
 
 
-def _tightness(row, rules: Rules) -> float:
-    """The smallest room left on any rule, on one scale, for sorting."""
-    vals = [row.get("EMA cushion"), row.get("High cushion")]
+# The three rules are put on one scale to order the holds: a full rank buffer
+# (40 places) counts as a 20% fall, the same scale the Actions page draws its
+# rank bar on. PVRINOX, 24 places inside the buffer (= 12.0%), therefore sorts
+# ahead of LAURUSLABS at a 12.6% EMA cushion (6 Nov), which read as out of
+# order while the page said "clear of all three" for both (owner, 7 Nov).
+RANK_SCALE = 0.20
+
+
+def _rooms(row, rules: Rules) -> list[tuple[float, str, str]]:
+    """(room on the common scale, rule, room as the reader sees it) per rule."""
+    out = []
     room = row.get("Rank room")
     if room is not None and pd.notna(room):
-        vals.append(float(room) / rules.buffer_n * 0.2)
-    vals = [float(v) for v in vals if v is not None and pd.notna(v)]
-    return min(vals) if vals else 9.0
+        out.append((float(room) / rules.buffer_n * RANK_SCALE, "rank buffer",
+                    f"{int(room)} places"))
+    for col, rule in (("EMA cushion", "50D EMA"),
+                      ("High cushion", f"−{(1 - rules.high_pct):.0%} line")):
+        v = row.get(col)
+        if v is not None and pd.notna(v):
+            out.append((float(v), rule, f"{float(v) * 100:.1f}%"))
+    return out
+
+
+def nearest_rule(row, rules: Rules = Rules()) -> str:
+    """The rule with the least room, and that room: "rank buffer · 24 places"."""
+    rooms = _rooms(row, rules)
+    if not rooms:
+        return ""
+    _, rule, room = min(rooms, key=lambda t: t[0])
+    return f"{rule} · {room}"
+
+
+def _tightness(row, rules: Rules) -> float:
+    """The smallest room left on any rule, on one scale, for sorting."""
+    rooms = _rooms(row, rules)
+    return min(t[0] for t in rooms) if rooms else 9.0
 
 
 def parse_holdings(text: str) -> list[tuple[str, float | None]]:

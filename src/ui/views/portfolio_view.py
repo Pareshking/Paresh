@@ -667,7 +667,10 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
                 kit.Metric(f"{month} strategy", kit.pct(strategy_mtd)),
                 kit.Metric(f"{month} Nifty 500", kit.pct(benchmark_mtd)),
                 kit.Metric(f"{month} alpha", kit.pct(mtd_gap)),
-                kit.Metric("Max drawdown", kit.pct(float(dd_d.min()), signed=False)),
+                # Daily closes, the drawdown line drawn below. The record's line
+                # under the calendar gives the month-end figure (-9.9% against
+                # this -13.5% on 6 Nov): both right, so each names its basis.
+                kit.Metric("Max drawdown, daily", kit.pct(float(dd_d.min()), signed=False)),
             ], key="pf_equity")
             kit.equity_chart(
                 eq_d.index, eq_d.tolist(),

@@ -61,8 +61,8 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 </div>
                 <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
                     <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#067647;">STEP 02</div>
-                    <div style="font-weight:600; font-size:13px; color:#0E1726; margin-top:2px;">Trend Gating</div>
-                    <div style="font-size:13px; color:#5E6878; line-height:1.5; margin-top:4px;">Price above its 50-day EMA and within 20% of its 52-week high, to eliminate stage-4 downtrends and structural laggards.</div>
+                    <div style="font-weight:600; font-size:13px; color:#0E1726; margin-top:2px;">Trend filters</div>
+                    <div style="font-size:13px; color:#5E6878; line-height:1.5; margin-top:4px;">Price above its 50-day EMA and within 20% of its 52-week high. A stock that fails either is not bought, and a holding that fails one is sold at the next rebalance. No liquidity filter is applied.</div>
                 </div>
                 <div style="background:#F4F5F8; border:1px solid #E3E6EB; border-radius:8px; padding:12px;">
                     <div style="font-family:'Geist Mono',monospace; font-size:11px; font-weight:700; color:#B54708;">STEP 03</div>
@@ -145,14 +145,14 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                 </div>
                 <div>
                     <div style="color:#0E1726; font-weight:600; font-size:13px; margin-bottom:4px;">
-                        3. Trend & Liquidity Gating
+                        3. Trend filters
                     </div>
                     <div style="color:#3C4657; font-size:13px; line-height:1.6;">
                         Stocks must satisfy strict quantitative criteria to enter qualified model portfolios:
                         <ul style="margin:6px 0 0 16px; padding:0; line-height:1.6; font-size:13px;">
                             <li><strong>CMP &gt; 50D EMA</strong> (Primary medium-term uptrend regime filter)</li>
                             <li><strong>CMP &ge; 80% of 52W high</strong> (within 20% of the 52-week high)</li>
-                            <li>Microstructure liquidity gating to eliminate friction slippage</li>
+                            <li>No liquidity filter: the liquidity floor is off (owner's choice), and the record does not use one</li>
                         </ul>
                     </div>
                 </div>
@@ -183,22 +183,22 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
                 <div>
                     <div style="color:#0E1726; font-weight:600; font-size:13px; margin-bottom:4px;">
-                        Equal Weighting Allocation ($w_i = 1/N$)
+                        Equal Weighting Allocation (w<sub>i</sub> = 1/N)
                     </div>
                     <div style="color:#3C4657; font-size:13px; line-height:1.6;">
-                        Allocates a uniform 5.00% capital weight across the Top 20 qualified holdings. Maximises gross upside in broad-based bull markets where momentum breadth is strong and uniform across sectors.
+                        Allocates a uniform 5.00% capital weight across the Top 20 qualified holdings. This is the weighting the model book and its record use.
                     </div>
                 </div>
                 <div>
                     <div style="color:#0E1726; font-weight:600; font-size:13px; margin-bottom:4px;">
-                        Inverse-Volatility Parity ($w_i \\propto 1/\\sigma_i$)
+                        Inverse-Volatility Parity (w<sub>i</sub> &prop; 1/&sigma;<sub>i</sub>)
                     </div>
                     <div style="color:#3C4657; font-size:13px; line-height:1.6;">
                         Weights each asset inversely proportional to its annualised 63-session standard deviation:
                         <div style="font-family:'Geist Mono',monospace; font-size:12px; background-color:#F4F5F8; border:1px solid #E3E6EB; border-radius:6px; padding:6px 10px; margin-top:8px; font-weight:600; color:#1F2A3A;">
                             w_i = (1 / &sigma;_i) / &sum;(1 / &sigma;_j)
                         </div>
-                        Reduces overall portfolio volatility and minimises maximum drawdowns during choppy or high-VIX environments.
+                        Gives calmer stocks more weight. Whether that lowers volatility or drawdown depends on the period: compare both on the Backtest page.
                     </div>
                 </div>
             </div>

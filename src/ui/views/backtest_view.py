@@ -838,19 +838,20 @@ def _backtest_tab(
                             (pd.to_datetime(live_book["Entry Date"], errors="coerce")
                              == _fill).sum()
                         )
-                    # The book's month so far: each name's MTD at its rebalance
-                    # weight (weights drift with prices; close enough to read).
-                    _mtd = live_book.get("MTD %", pd.Series(dtype=float))
-                    _w = live_book.get("Weight %", pd.Series(dtype=float))
-                    _ok = _mtd.notna() & _w.notna()
-                    book_mtd = (float((_mtd[_ok] * _w[_ok]).sum() / _w[_ok].sum() * 100)
-                                if _ok.any() and _w[_ok].sum() > 0 else float("nan"))
+                    # The account's month so far, the figure Portfolio shows as
+                    # "MTD return" (engine live_meta["strategy_mtd"]: the old book
+                    # up to the rebalance fill, then the new one, after costs).
+                    # This used to be today's holdings' MTD at their weights,
+                    # +3.2% against the account's +2.3% on 6 Nov: it left out the
+                    # 9 names sold on 2 Nov and the rebalance costs (owner, 7 Nov).
+                    _acct = pd.to_numeric(lmeta.get("strategy_mtd"), errors="coerce")
+                    book_mtd = float(_acct) * 100 if pd.notna(_acct) else float("nan")
                     kit.readings([
                         kit.Reading("Holdings", f"{len(live_book)}", f"{n_new} added this month"),
                         kit.Reading(
                             "MTD return",
                             "—" if book_mtd != book_mtd else f"{book_mtd:+.1f}%",
-                            "by weight",
+                            "the account, as on Portfolio",
                             "" if book_mtd != book_mtd else ("up" if book_mtd >= 0 else "down"),
                         ),
                         kit.Reading("In profit", f"{n_up}", "marked at the latest close", "up" if n_up else ""),

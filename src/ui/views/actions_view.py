@@ -19,12 +19,14 @@ from src.ui.system_param import stock_href
 from src.core.market_time import ist_now
 from src.loaders.nse_calendar import published_holidays
 from src.engine.exit_watch import (
+    RANK_SCALE,
     STATUS_LABEL,
     UNKNOWN,
     WATCH,
     Rules,
     assess,
     holdings_from_kite_csv,
+    nearest_rule,
     parse_holdings,
     qualified_ranks,
 )
@@ -140,7 +142,7 @@ def rows_html(a: pd.DataFrame, since: dict[str, float], rules: Rules) -> str:
             f'<small>{html.escape(str(r.get("Industry") or ""))}</small></span>'
             f'<span class="xw-pill {status}">{STATUS_LABEL[status]}</span>'
             f"{rank_cell}{ema_cell}{hi_cell}"
-            f'<span class="xw-why">{html.escape(r["why"] or "clear of all three")}</span>'
+            f'<span class="xw-why">{html.escape(r["why"] or "clear; nearest: " + nearest_rule(r, rules))}</span>'
             f'<span class="xw-ret {ret_cls}">{ret_txt}</span></div>'
         )
     head = ('<div class="xw-row xw-head"><span>Holding</span><span>At the next rebalance</span>'
@@ -350,6 +352,9 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         holds = a[a["Symbol"].isin(plan.holds) | (a["status"] == UNKNOWN)]
         with kit.card("Hold", "ac_hold", "closest to a sale first"):
             st.html(rows_html(holds, since, rules))
+            kit.caption("Order: least room on any rule first. A full rank buffer "
+                        f"({rules.buffer_n} places) counts as a {RANK_SCALE:.0%} fall, "
+                        "as the bars are drawn.")
 
     with st.expander("Buy candidates · the qualified list", expanded=False):
         render_qualified_view(rank_df, adj_close, embedded=True)

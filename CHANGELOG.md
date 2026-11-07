@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-07 — Five figures that disagreed or misled, corrected
+
+- Actions, Hold: the order was right but looked wrong (PVRINOX above LAURUSLABS though its EMA cushion is larger). Holds are ordered by the least room on any rule, with a full rank buffer of 40 places counted as a 20% fall, as the bars are drawn; PVRINOX's 24 places count as 12.0%, under LAURUSLABS's 12.6%. Every row now names its nearest rule ("rank buffer · 24 places") instead of "clear of all three", and a caption states the scale.
+- Backtest, current book: "MTD return" showed +3.2% "by weight" against Portfolio's +2.3% for the same book. It averaged today's holdings and left out the 9 stocks sold on 2 Nov and the rebalance costs. It now shows the account's figure, the same one as Portfolio.
+- Portfolio: the "Max drawdown" card (−13.5%) is labelled "daily"; the −9.9% under the calendar is on month-end values. Both are right; each now names its basis.
+- Configuration: "Price History: Missing" is gone. The app ranks from the published price store, not that file; the table no longer shows server paths.
+- Guide: no longer claims a liquidity filter (the floor is off) or that a weighting "maximises upside" or "minimises drawdowns"; the formulas read as text, not raw LaTeX.
+
 ## 2026-11-07 — Screener: headers over the right columns, one sort, clearer colours and phone list
 
 - The group labels above the table sit over their own columns. In Core and Executive "3M" covered 3M and 6M returns and "12M" sat over the 3-month drawdown; these views now group the columns as Returns and Risk. In Full Quant, "Rank dynamics" no longer sticks over Symbol when the table scrolls sideways.

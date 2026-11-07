@@ -23,7 +23,6 @@ from src.core.config import (
     INDICES_LOCAL,
     INDICES_URLS,
     MCAPS_FILE,
-    PRICES_FILE,
     TV_CLASSIFICATION_FILE,
 )
 from src.engine.corporate_actions import load_events
@@ -470,24 +469,33 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
             _spike_sessions_dialog(_rows)
 
     st.html('<div class="cfg-sub">Data files</div>')
+    # Local copies on this server only. "Price History" (data/prices.parquet)
+    # was listed here as "Missing" while prices were current: the app ranks
+    # from the published price store (R2), and nothing reads that file except
+    # a cold-start probe (owner, 7 Nov). It is gone from the table, the status
+    # says what an absent file means, and server paths are not shown.
+    # (dataset, file, what it means when the file is absent). Market caps are a
+    # server cache, rebuilt from the repo's nse_market_caps.csv; the industry
+    # file ships with the repo, so its absence is a real fault.
     cache_data = [
-        ("Price History", PRICES_FILE),
-        ("Market Caps", MCAPS_FILE),
-        ("TV Classification", TV_CLASSIFICATION_FILE),
+        ("Market Caps", MCAPS_FILE, "Not cached; rebuilt when needed"),
+        ("TV Classification", TV_CLASSIFICATION_FILE, "Missing"),
     ]
     cache_rows = []
-    for label, path in cache_data:
+    for label, path, absent in cache_data:
         exists = os.path.exists(path)
         size_mb = os.path.getsize(path) / (1024 * 1024) if exists else 0
         cache_rows.append(
             {
                 "Dataset": label,
-                "Status": "Present" if exists else "Missing",
+                "Local copy": "Present" if exists else absent,
                 "Size": f"{size_mb:.1f} MB" if exists else "—",
-                "Path": path,
+                "File": os.path.basename(path),
             }
         )
     render_saas_table(pd.DataFrame(cache_rows))
+    st.caption("Prices come from the published price store, not a local file; "
+               "their date and coverage are in the line at the foot of the page.")
 
 
 
