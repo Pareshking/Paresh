@@ -515,6 +515,39 @@ def _run_text(n: int) -> str:
     return f"{abs(n)} {'ahead' if n > 0 else 'behind'}"
 
 
+def _rel_bars_html(sec: pd.DataFrame) -> str:
+    """Each industry's six months against the Nifty 500 as a bar from zero,
+    with a dot for the last month: the quadrants as a picture."""
+    if sec is None or sec.empty:
+        return ""
+    lim = max(5.0, float(sec[["rel_6m", "rel_1m"]].abs().max().max()))
+    x = lambda v: 50 + max(-50.0, min(50.0, v / lim * 50))  # noqa: E731
+    rows = []
+    for r in sec.sort_values("rel_6m", ascending=False).itertuples():
+        left, width = (50, x(r.rel_6m) - 50) if r.rel_6m >= 0 else (x(r.rel_6m), 50 - x(r.rel_6m))
+        tone = "up" if r.rel_6m >= 0 else "down"
+        rows.append(
+            f'<div class="rb-row"><span class="rb-n">{html.escape(r.Industry)}</span>'
+            f'<span class="rb-t"><i class="rb-z"></i><i class="rb-b {tone}" style="left:{left:.1f}%;width:{width:.1f}%"></i>'
+            f'<i class="rb-d" style="left:{x(r.rel_1m):.1f}%" title="Last month {_num(r.rel_1m, "pts")}"></i></span>'
+            f'<span class="rb-v">{_num(r.rel_6m, "pts")}<small> · {_num(r.rel_1m, "pts")}</small></span></div>')
+    return ('<h3 style="margin-top:6px">Six months against the Nifty 500, and the last month</h3>'
+            '<p class="qp-note" style="margin:0 0 8px">Bars: the median stock\'s six-month return less the '
+            'Nifty 500\'s. Rings: the last month. Right of the line is ahead of the index.</p>'
+            '<style>.rb-row{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr) 120px;gap:12px;'
+            'align-items:center;padding:3px 0;font-size:13.5px}.rb-n{color:var(--c-text_2);white-space:nowrap;'
+            'overflow:hidden;text-overflow:ellipsis}.rb-t{position:relative;height:14px}'
+            '.rb-z{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--c-rule_strong)}'
+            '.rb-b{position:absolute;top:3px;height:8px;border-radius:1px}.rb-b.up{background:var(--c-up)}'
+            '.rb-b.down{background:var(--c-down)}.rb-d{position:absolute;top:1px;width:12px;height:12px;'
+            'margin-left:-6px;border-radius:50%;border:2px solid var(--c-ink);background:var(--c-white);box-sizing:border-box}'
+            '.rb-v{text-align:right;font-variant-numeric:tabular-nums;color:var(--c-ink)}'
+            '.rb-v small{color:var(--c-muted);font-size:12px}'
+            '@media (max-width:700px){.rb-row{grid-template-columns:110px minmax(0,1fr) 84px}}</style>'
+            f'<div role="img" aria-label="Industries by six months against the Nifty 500, with the last month">'
+            f'{"".join(rows)}</div>')
+
+
 def leaders_section_html(ld: mq.Leaders, months: pd.DataFrame) -> str:
     sec = ld.sectors
     both = sec[sec["group"] == "ahead on both"]["Industry"].head(3).tolist()
@@ -536,10 +569,11 @@ def leaders_section_html(ld: mq.Leaders, months: pd.DataFrame) -> str:
         quads.append(f'<div><b class="{tone}">{html.escape(title)} ({len(g)})</b>'
                      '<p class="qh"><span>Industry</span><span>6M · 1M, pts</span></p>'
                      f'{items}</div>')
+    bars_html = _rel_bars_html(sec)
     quad_html = ('<h3>Industries by six months and one month</h3>'
                  '<p class="qp-note" style="margin:0 0 6px">Each figure is the median stock\'s return less '
                  'the Nifty 500\'s, in points: over six months, then over one month.</p>'
-                 f'<div class="qp-quad">{"".join(quads)}</div>')
+                 f'<div class="qp-quad">{"".join(quads)}</div>' + bars_html)
 
     heat_html = ""
     if months is not None and not months.empty:
