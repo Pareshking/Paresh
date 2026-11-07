@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-07 — Guide rewritten
+
+- One reading column with plain headings and formulas as text; no tabs, boxes or marketing headings. Every statement checked against the code, including the record's caps (5% a stock, 40% an industry, at most 8 of 20 from one industry), which the old Guide left out.
+- Removed: the "market regime playbooks". They gave equity and cash allocations (100%, 85%, 70%, 40%) that the model never applies; the model holds 20 stocks in every market. Also removed: the claim that inverse volatility cuts drawdown, and quadrant colours that no longer match the graph.
+- Moved here from the Guide, what was taken out of the engine earlier and why: single-window Sharpe, multi-window pure Sharpe, exponential regression, residual alpha, industry-relative and momentum acceleration scores (none fed the rank, each added columns and failure modes); mean-variance optimisation (it fell back to equal weight on any error while still calling itself MVO); R-squared (never part of the score).
+
 ## 2026-11-07 — Screen readers: tables and charts
 
 - The book at risk, the exit watch, the movers cards and the industry leaderboard read as tables to a screen reader (row by row, with column names). They look the same.
