@@ -60,13 +60,17 @@ def main() -> None:
         taxonomy=TAXONOMY,
     )
 
-    if len(snapshot.rows) != 750:
+    # At least 750, not exactly: NSE carries names above the 750 at times (a demerged
+    # company until its exclusion notice), and once one has enough history it ranks
+    # (owner, 7 Nov 2026: no limit when the list comes from NSE's files; S86).
+    if len(snapshot.rows) < 750:
         raise AssertionError(
-            f"live Stage-2 snapshot row count changed: {len(snapshot.rows)} != 750"
+            f"live Stage-2 snapshot has {len(snapshot.rows)} rows, fewer than 750"
         )
-    if len(context.rows) != 750:
+    if len(context.rows) != len(snapshot.rows):
         raise AssertionError(
-            f"live Stage-3 hierarchy row count changed: {len(context.rows)} != 750"
+            f"live Stage-3 hierarchy has {len(context.rows)} rows for "
+            f"{len(snapshot.rows)} ranked symbols"
         )
 
     rank_by_symbol = {
@@ -75,7 +79,7 @@ def main() -> None:
     score_by_symbol = {
         str(row["Symbol"]).strip().upper(): float(row["Score"]) for row in snapshot.rows
     }
-    if len(rank_by_symbol) != 750:
+    if len(rank_by_symbol) != len(snapshot.rows):
         raise AssertionError("live ranking contains duplicate symbols")
 
     top25 = sorted(context.rows, key=lambda r: rank_by_symbol[r.symbol])[:25]

@@ -229,31 +229,40 @@ def test_nothing_is_left_unexplained_and_the_one_ticker_change_is_recorded():
         assert "TSFINV" in members_on(HISTORY, day) and "SUNDARMHLD" not in members_on(HISTORY, day)
 
 
-# A demerged company NSE carries above the 750: included as a DUMMY placeholder at the
-# demerger, it keeps its slot once listed until NSE's exclusion notice (as Allcargo Global,
-# ind_prs20072026.pdf). The placeholder is not recorded, so its listing reads as an addition.
-DEMERGED_EXTRAS = {
-    # ind_prs17072026.pdf: DUMMYTRVN in Nifty Total Market from 2026-07-22; listed as
-    # TRIVENIPT in NSE's list file of 2026-10-09.
-    "TRIVENIPT",
-    # ind_prs26082026_1.pdf: India Glycols' demerger. Ennature Bio Pharma (DUMMYINGL1) and
-    # IGL Spirits (DUMMYINGL2) in Nifty Total Market from 2026-09-02; both listed as ENNATURE
-    # and IGLSPIRITS (series BE) in NSE's list file of 2026-11-04 (owner, 7 Nov: two new
-    # additions). They read as two additions with no removal until NSE's exclusion notice.
-    "ENNATURE",
-    "IGLSPIRITS",
-}
+# The list is NSE's, not a number (owner, 7 Nov 2026: "we should have no limits if it
+# comes from NSE indices CSVs"). NSE carries companies above the 750 at times: a demerged
+# company until its exclusion notice (TRIVENIPT from 9 Oct 2026; ENNATURE and IGLSPIRITS,
+# India Glycols' demerger, from 3 Nov), and Tata Motors DVR until 30 Aug 2024. A test of
+# "exactly 750 plus a hand-kept list" failed on correct data on 4 Nov (S86), so it checks
+# NSE's file instead: the latest recorded membership is NSE's Nifty Total Market list,
+# name for name, without its DUMMY placeholders (the record skips those).
+# Notices: TRIVENIPT ind_prs17072026.pdf (DUMMYTRVN from 2026-07-22); ENNATURE and
+# IGLSPIRITS ind_prs26082026_1.pdf (DUMMYINGL1/2 from 2026-09-02).
+TOTAL_MARKET_FILE = ROOT / "data" / "indices" / "ind_niftytotalmarket_list.csv"
 
 
-def test_the_list_is_750_names_on_every_date_it_changes():
-    # Tata Motors DVR was an additional security above the 750 until NSE removed it on 2024-08-30.
+def _nse_list_names() -> set[str]:
+    import csv
+
+    with open(TOTAL_MARKET_FILE, newline="", encoding="utf-8") as fh:
+        return {r["Symbol"].strip() for r in csv.DictReader(fh)
+                if r.get("Symbol") and not r["Symbol"].startswith("DUMMY")}
+
+
+def test_the_latest_membership_is_nses_list_name_for_name():
+    latest = max([HISTORY["baseline"]["date"]] + [c["date"] for c in HISTORY["changes"]])
+    recorded = set(members_on(HISTORY, latest))
+    nse = _nse_list_names()
+    assert recorded == nse, {"recorded_not_on_nse_list": sorted(recorded - nse),
+                             "on_nse_list_not_recorded": sorted(nse - recorded)}
+
+
+def test_no_date_has_fewer_than_750_names():
+    # A floor, not a cap: NSE adds names above the 750 but never runs the index short.
+    # Fewer than 750 on any date is a lost or partial sync, never NSE.
     dates = [HISTORY["baseline"]["date"]] + [c["date"] for c in HISTORY["changes"]]
-    sizes = {
-        d: len(m) - sum(s.endswith("DVR") for s in m) - len(m & DEMERGED_EXTRAS)
-        for d in dates
-        for m in [set(members_on(HISTORY, d))]
-    }
-    assert set(sizes.values()) == {750}, sizes
+    short = {d: n for d in dates if (n := len(set(members_on(HISTORY, d)))) < 750}
+    assert not short, short
 
 
 def test_the_30_sep_notice_matches_what_the_daily_sync_recorded_for_that_day():

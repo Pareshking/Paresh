@@ -380,3 +380,18 @@ def test_the_daily_run_asks_for_weekend_sessions_and_the_evening_runs_do_not():
     assert "--weekends \"$WEEKENDS\"" in step["run"]
     assert "'41 3 * * *'" in step["env"]["WEEKENDS"] and "41 3 * * *" in crons
     assert all(c.endswith("1-5") for c in crons if c != "41 3 * * *")
+
+
+def test_announced_sessions_in_the_window_are_asked_for():
+    ann = [date(2026, 2, 1), date(2026, 11, 8), date(2027, 1, 1)]
+    # Monday 9 Nov: the Diwali Sunday on NSE's list is due; February is outside the window,
+    # a future date is not asked.
+    assert nc.recent_announced_sessions(date(2026, 11, 9), announced=ann) == [date(2026, 11, 8)]
+    assert nc.recent_announced_sessions(date(2026, 11, 30), announced=ann) == []
+
+
+def test_nse_lists_the_2026_muhurat_and_budget_sunday():
+    from src.loaders import nse_calendar
+
+    got = set(nse_calendar.announced_sessions())
+    assert {date(2026, 2, 1), date(2026, 11, 8)} <= got
