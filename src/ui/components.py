@@ -703,30 +703,28 @@ def render_freshness_ribbon() -> None:
     # Stale first: the thing a reader needs to notice should not be third.
     items = sorted(items, key=lambda i: (not i["stale"],))
 
-    chips_html = ""
+    # One quiet line, not pills (audit F48, F46): "Prices: 6 Nov · 752/752 ·
+    # latest session · Market caps: …". A stale source leads, in amber; no
+    # emoji.
+    parts = []
     for item in items:
-        color = C.caution if item["stale"] else C.up
-        icon = "&#9888;&#65039;" if item["stale"] else "&#9679;"
         age = age_phrase(item)
         label = html.escape(str(item["label"]))
         as_of = html.escape(str(item["as_of"]))
         cov = str(item.get("coverage") or "").strip()
         if cov:
             as_of = f"{as_of} · {html.escape(cov)}"
-        chips_html += (
-            f'<div style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; '
-            f'border-radius: 8px; background-color: {color}12; border: 1px solid {color}2E; '
-            f"font-family: var(--font-ui); font-size: 12.5px; color: {color}; "
-            f'font-weight: 600; white-space: nowrap; flex-shrink: 0;">'
-            f"<span>{icon}</span><span>{label}: {as_of}{age}</span></div>"
-        )
+        # Amber for a stale source, Ledger blue for a current one (owner, 7 Nov).
+        color = C.caution if item["stale"] else C.up
+        weight = 600 if item["stale"] else 500
+        parts.append(f'<span style="color: {color}; font-weight: {weight};">{label}: {as_of}{age}</span>')
 
+    sep = '<span aria-hidden="true" style="color: var(--c-faint);">·</span>'
     st.markdown(
-        '<div role="status" aria-label="Data freshness" style="display: flex; align-items: center; '
-        "gap: 8px; overflow-x: auto; padding: 14px 0 4px; border-top: 1px solid var(--c-rule); "
-        "margin-top: 22px; margin-bottom: 2px; "
-        'scrollbar-width: thin; scrollbar-color: var(--c-rule_strong) transparent;">'
-        f"{chips_html}</div>",
+        '<div role="status" aria-label="Data freshness" style="display: flex; flex-wrap: wrap; '
+        "align-items: baseline; gap: 4px 10px; padding: 14px 0 4px; border-top: 1px solid var(--c-rule); "
+        'margin-top: 22px; margin-bottom: 2px; font-family: var(--font-ui); font-size: 12.5px;">'
+        f"{sep.join(parts)}</div>",
         unsafe_allow_html=True,
     )
 

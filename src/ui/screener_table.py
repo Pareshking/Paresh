@@ -358,7 +358,7 @@ thead tr.grp-row th.pin{position:sticky;left:0;z-index:5;border-left:0;box-shado
 .lbl-m{display:none}
 td.c-rank{font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600}
 td.c-stock a{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;line-height:1.2;text-decoration:none;color:inherit}
-td.c-stock .sym{font-weight:650;font-size:14px;color:var(--c-ink)}
+td.c-stock .sym{font-weight: 600;font-size:14px;color:var(--c-ink)}
 td.c-stock .sub{font-size:12px;color:var(--c-muted);overflow:hidden;text-overflow:ellipsis;max-width:340px}
 .chip{display:inline-block;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;font-weight:600;padding:0;border-radius:0;background:transparent!important}
 .chip.up{background:var(--c-up_tint);color:var(--c-up)}.chip.down{background:var(--c-down_tint);color:var(--c-down)}.chip.flat{background:var(--c-fill);color:var(--c-muted)}
