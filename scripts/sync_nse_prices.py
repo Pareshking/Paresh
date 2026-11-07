@@ -197,6 +197,14 @@ def merge_sessions(closes: pd.DataFrame, actions: pd.DataFrame, prices: pd.DataF
     return merged, acts, int(len(merged) - len(closes))
 
 
+# R2 sessions this many days before the file's last are read again on every update
+# (audit A7, 7 Nov 2026): a weekend session (Muhurat, a Budget Sunday) that reached R2
+# after the following Monday was appended was skipped for good, since only days after
+# the last one on file were read. Sessions already on file keep their stored closes
+# (merge_sessions); only a date the file lacks is added.
+R2_LOOKBACK_DAYS = 14
+
+
 def update(pause: float, source: str = "r2") -> int:
     data = npx.load()
     if data is None:
@@ -207,12 +215,16 @@ def update(pause: float, source: str = "r2") -> int:
     days = sorted(set(nh.weekdays(last + timedelta(days=1), date.today()))
                   | {d for d in special(notes) if d > last})
     if not days:
+        # A weekend session that reaches R2 now is picked up by the next update with a
+        # new weekday, which reads R2_LOOKBACK_DAYS back.
         print(f"up to date ({last})")
         return refresh() if source == "r2" else 0
     if source == "r2":
-        # The collector keeps every session on R2 (nse_collect.yml); read them there.
+        # The collector keeps every session on R2 (nse_collect.yml); read them there,
+        # from R2_LOOKBACK_DAYS before the last one on file (weekends included).
         try:
-            prices, new_actions, bad = nh.read_r2(days[0], days[-1])
+            prices, new_actions, bad = nh.read_r2(last - timedelta(days=R2_LOOKBACK_DAYS),
+                                                  max(date.today(), last))
         except Exception as exc:  # noqa: BLE001  no credentials, no network: keep the file
             print(f"R2 unreadable ({type(exc).__name__}: {exc}); committed file kept")
             return 1
@@ -231,6 +243,9 @@ def update(pause: float, source: str = "r2") -> int:
         print("no new sessions; committed file kept")
         return 0
     merged, acts, added = merge_sessions(closes, actions, prices, new_actions, notes)
+    if added == 0:
+        print(f"up to date ({last}); no session on R2 the file lacks")
+        return refresh() if source == "r2" else 0
     write(merged, acts)
     print(f"appended {added} sessions; file now ends {merged.index[-1]:%Y-%m-%d}")
     if source == "r2":
