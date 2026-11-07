@@ -37,7 +37,7 @@ from src.loaders.index_levels import fetch_index_levels, nse_benchmarks
 from src.ui import page_kit as kit
 from src.ui.canonical_book import current_book
 from src.ui.components import gap_count, render_data_quality_footer
-from src.ui.system_param import stock_href
+from src.ui.system_param import page_href, stock_href
 from src.ui.views.actions_view import _day, _sessions_between, next_rebalance
 from src.ui.views.sector_view import industry_board
 
@@ -161,9 +161,9 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
 
     with top_l, kit.card("Book at risk", "db_risk", "least room first"):
         st.html(_at_risk_html(a, rules))
-        kit.caption(f"Room is how far the price can fall, or the rank slip, before a rule is "
-                    f"broken; a full rank buffer ({rules.buffer_n} places) counts as a "
-                    f"{RANK_SCALE:.0%} fall. All {len(symbols)} holdings are on Actions.")
+        kit.caption_link(f"Room is how far the price can fall, or the rank slip, before a rule is "
+                         f"broken; a full rank buffer ({rules.buffer_n} places) counts as a "
+                         f"{RANK_SCALE:.0%} fall.", page_href("actions"), f"All {len(symbols)} holdings on Actions")
 
     n_sess = _sessions_between(as_of, check)
     with top_r, kit.card("Next rebalance", "db_next", "if the month ended today"):
@@ -176,7 +176,8 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
             f'<dt>Buy</dt><dd>{_names(plan.buys)}</dd>'
             f'<dt>Next in line</dt><dd>{_names(plan.next_in_line)}</dd>'
             '</dl>')
-        kit.caption("The same plan as Actions, from today's ranking and the model book's rules.")
+        kit.caption_link("The same plan as Actions, from today's ranking and the model book's rules.",
+                         page_href("actions"), "Actions")
 
     with low_r, kit.card("Industries by 3M median return", "db_sectors"):
         board, _ = industry_board(rank_df)
@@ -188,7 +189,7 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
             f'<td class="db-n">{int(r["Top 50"]) if pd.notna(r.get("Top 50")) else "—"} in the top 50</td></tr>'
             for _, r in top.iterrows())
         st.html(f'<table class="db-sectors"><tbody>{rows}</tbody></table>')
-        kit.caption("As ranked on Sectors; the full board is there.")
+        kit.caption_link("As ranked on Sectors.", page_href("sectors"), "The full board")
 
     levels, bench = fetch_index_levels(), nse_benchmarks()
     with low_l, kit.card("Size leadership", "db_size", "price return, NSE index closes"):

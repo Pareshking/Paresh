@@ -43,6 +43,12 @@ def suffix(system: str | None = None) -> str:
     return "" if system == SYSTEM_750 else f"&{PARAM}={quote(system, safe='')}"
 
 
+def page_href(path: str) -> str:
+    """A page's relative address, keeping the system ("actions", "actions?system=nano")."""
+    tail = suffix()
+    return path + (f"?{tail[1:]}" if tail else "")
+
+
 def stock_href(sym: str) -> str:
     """The link to a stock's page, keeping the system.
 

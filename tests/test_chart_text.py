@@ -66,3 +66,11 @@ def test_portfolio_curve_ends_on_the_account_value_shown_above_it():
                                  value=1_050.0, current=1_000.0)
     assert out.iloc[-1] == 1_050.0
     assert out.iloc[-2] == 10.0 * 100 + 50.0
+
+
+def test_search_list_shows_plain_labels():
+    from src.ui.views.ranking_view import search_label
+    assert search_label("[STOCK] LAURUSLABS — Healthcare") == "LAURUSLABS · Healthcare"
+    assert search_label("[STOCK] NEWCO — nan") == "NEWCO"
+    assert search_label("[INDUSTRY] Healthcare") == "Healthcare · industry"
+    assert search_label("[INDEX] Nifty 50") == "Nifty 50 · index"

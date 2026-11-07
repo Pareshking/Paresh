@@ -170,6 +170,12 @@ def caption(text: str) -> None:
     st.html(f'<p class="pg-cap">{html.escape(text)}</p>')
 
 
+def caption_link(text: str, href: str, label: str) -> None:
+    """A caption that ends in a link onward (audit F33): "… on Actions →"."""
+    st.html(f'<p class="pg-cap">{html.escape(text)} '
+            f'<a class="pg-onward" href="{html.escape(href)}" target="_self">{html.escape(label)} →</a></p>')
+
+
 def kv_line(pairs: list[tuple[str, str]], lead: str = "") -> None:
     """Settings in effect as one line of "name value" pairs; wraps on a phone."""
     cells = "".join(f"<span>{html.escape(k)} <b>{html.escape(v)}</b></span>" for k, v in pairs)

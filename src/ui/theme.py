@@ -1459,6 +1459,9 @@ def inject_custom_css() -> None:
 
         .sr-only { position: absolute !important; width: 1px; height: 1px; overflow: hidden;
             clip: rect(0 0 0 0); white-space: nowrap; padding: 0 !important; border: 0 !important; }
+        .pg-onward { color: var(--c-ink) !important; text-decoration: none !important;
+            border-bottom: 1px solid var(--c-rule_strong); white-space: nowrap; }
+        .pg-onward:hover { border-bottom-color: var(--c-ink); }
         .skip-link { position: absolute; left: 16px; top: -60px; z-index: 1000; padding: 8px 14px;
             background: var(--c-ink); color: var(--c-white) !important; font-size: 14px; text-decoration: none !important; }
         .skip-link:focus { top: 8px; }

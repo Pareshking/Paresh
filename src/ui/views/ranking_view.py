@@ -37,6 +37,25 @@ _DENSITY_OPTIONS = ["Executive (11)", "Core (17)", "Full Quant (35)"]
 BIG_MOVE_PLACES = 150
 
 
+
+_SEARCH_KINDS = {"[STOCK] ": "", "[INDEX] ": "index", "[INDUSTRY] ": "industry",
+                 "[SECTOR] ": "sector", "[TV_INDUSTRY] ": "sub-industry"}
+
+
+def search_label(value: str) -> str:
+    """What the search list shows for an option (audit F36). The value keeps its
+    bracketed kind, which the handlers read; the reader sees "LAURUSLABS ·
+    Healthcare" and "Healthcare · industry", not "[STOCK]" or "[INDUSTRY]"."""
+    for tag, kind in _SEARCH_KINDS.items():
+        if value.startswith(tag):
+            rest = value[len(tag):]
+            if not kind:
+                sym, _, ind = rest.partition(" — ")
+                ind = ind.strip()
+                return sym if ind in ("", "nan", "<NA>", "None") else f"{sym} · {ind}"
+            return f"{rest} · {kind}"
+    return value
+
 def _frame_key(df: pd.DataFrame) -> str:
     """Content fingerprint of a display frame: shape, columns and every cell.
 
@@ -321,6 +340,7 @@ def render_ranking_view(
             placeholder="Search stock, industry or index",
             key="rank_search_predictive",
             label_visibility="collapsed",
+            format_func=search_label,
             on_change=_open_searched_stock,
             width=260,
         )
