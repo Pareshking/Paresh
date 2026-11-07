@@ -8,6 +8,8 @@ on:
     paths:
       - .github/workflows/investigate_raw.yml
       - scripts/investigate_raw.py
+      - scripts/rights_face_values.py
+      - src/loaders/nse_adjusted.py
   workflow_dispatch:
 
 permissions:
@@ -33,3 +35,14 @@ jobs:
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: python scripts/investigate_raw.py
+      # S108: every rights row whose face value the new rule changes, from
+      # NSE's yearly lists on the release (read-only).
+      - name: Rights rows whose face value the S108 rule changes
+        env:
+          PYTHONPATH: .
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p refs
+          gh release download data-latest --repo "$GITHUB_REPOSITORY" --dir refs --pattern ref_nse_action_list_api_2008_2026.zip
+          unzip -q -o -j refs/ref_nse_action_list_api_2008_2026.zip -d refs/actions
+          python scripts/rights_face_values.py --actions refs/actions
