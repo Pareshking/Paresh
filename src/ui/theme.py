@@ -1519,6 +1519,23 @@ def inject_custom_css() -> None:
         .ib-head { background: transparent !important; }
         .ib-row { padding-left: 0 !important; padding-right: 0 !important; }
 
+        /* Plex Mono only in dense tables (owner's decision 4, audit F41):
+           tiles, legends, bars, lists and the stock page read figures in
+           Plex Sans with tabular digits. The Screener, the shared table, the
+           leaderboard's numeric columns and the peers table keep Mono. */
+        [data-testid="stMetricLabel"], [data-testid="stMetricValue"], [data-testid="stMetricDelta"],
+        .t50-num, .t50-change, .t50-rank, .t50-return, .pg-bar-v, .gc-legend b, .mo-v,
+        .ib-n, .ib-3m b, .sp-ladder .lv, .gp-dd .lbl, .gp-ret .lbl, .gp-sh b, .rq-i b,
+        .db-rule, .db-size td b, .db-size td, .db-sectors td {
+            font-family: var(--font-ui) !important; font-variant-numeric: tabular-nums;
+        }
+        [data-testid="stMetric"] [data-testid="stMetricLabel"],
+        [data-testid="stMetric"] [data-testid="stMetricValue"],
+        [data-testid="stMetric"] [data-testid="stMetricDelta"] {
+            font-family: var(--font-ui) !important; text-transform: none !important; letter-spacing: 0 !important;
+        }
+        [class*="st-key-mrow_"] [data-testid="stMetricLabel"] { display: flex !important; justify-content: center !important; }
+
         /* Visible focus everywhere (audit F28): one 2px ink ring for links,
            buttons, tabs, pills, sliders and anything focusable by keyboard. */
         a:focus-visible, button:focus-visible, [role="tab"]:focus-visible,

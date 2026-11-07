@@ -3,6 +3,7 @@
 ## 2026-11-07 — No repeated blocks (owner's decision 5)
 
 - The data-freshness line at the foot of each page is plain text instead of four pills, with no emoji; a late source still leads, in amber.
+- Figures outside the dense tables (tiles, chart legends, bars, lists, the stock page) are in Plex Sans with even-width digits; Plex Mono stays in the Screener and other dense tables (owner's decision 4). The small figure rows under charts now match the headline tiles: sentence-case labels, centred.
 - Only the font weights the site loads are used (400–700); 650, 750 and 800 were being faked by the browser.
 
 - Sectors: one ranking and one map. The industry bubble map (it repeated the leaderboard) and the sortable sector table under the leadership map (a second ranking of the same sectors) are gone; the map's figures are in its text alternative and worked example. The leaderboard loses its box.
