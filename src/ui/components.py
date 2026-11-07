@@ -364,8 +364,10 @@ def render_header_kpi_bar(
         if nav_pages:
             # The only navigation, on every screen (owner, 7 Nov: "a hamburger
             # menu only", the menu's old style). The desktop link row is gone.
+            # ":material/menu:" draws the same three bars and is announced as
+            # "menu"; the "☰" glyph was read as "trigram for heaven" (audit F23).
             with st.popover(
-                    "☰",
+                    ":material/menu:",
                     type="tertiary",
                     help="Open navigation",
                     width=320,

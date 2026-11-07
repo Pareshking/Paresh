@@ -219,7 +219,7 @@ def leadership_table_html(board: pd.DataFrame, span: int) -> str:
            "td.c-stock .sub{display:block}"
            "td.c-stock .sym{display:block;max-width:104px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"
            "thead th .ar{display:none}}")
-    return ("<!DOCTYPE html><html><head><meta charset='utf-8'>"
+    return ("<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Sector leadership table</title>"
             "<link href='https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&"
             "family=IBM+Plex+Mono:wght@400;500;600&display=swap' rel='stylesheet'>"
             f"<style>{css}</style></head><body><div class='wrap'><table>"

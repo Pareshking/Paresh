@@ -2148,7 +2148,7 @@ def render_saas_table(
         rows_html.append(f'<tr class="screener-row">{"".join(cells_html)}</tr>')
 
     saas_page_html = f"""<!DOCTYPE html>
-<html>
+<html lang="en"><title>Table</title>
 <head>
 <meta charset="utf-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">

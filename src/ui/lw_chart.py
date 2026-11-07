@@ -113,7 +113,7 @@ def chart_html(panes: list[dict]) -> str:
         for p in panes
     ]
     return (
-        "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' "
+        "<!DOCTYPE html><html lang='en'><head><title>Chart</title><meta charset='utf-8'><meta name='viewport' "
         "content='width=device-width,initial-scale=1'>"
         "<link rel='stylesheet' href='" + FONTS["google_css"] + "'><style>"
         "*{box-sizing:border-box}html,body{margin:0;background:transparent;"

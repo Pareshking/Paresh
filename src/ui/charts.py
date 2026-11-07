@@ -9,7 +9,7 @@ import streamlit as st
 from src.ui.tokens import FONTS, resolve
 
 # Each chart is its own document, so it loads the theme's fonts itself.
-_HEAD = "<!DOCTYPE html><html><head><meta charset='utf-8'><link rel='stylesheet' href='" + FONTS["google_css"] + "'>"
+_HEAD = "<!DOCTYPE html><html lang='en'><head><title>Chart</title><meta charset='utf-8'><link rel='stylesheet' href='" + FONTS["google_css"] + "'>"
 
 
 
@@ -173,7 +173,7 @@ body.wide #hint{display:block}
 <div id="hint">&#8592; swipe the chart to see every quadrant &#8594;</div>
 <div id="controls">
   <button class="ctrl-btn" id="btn-play">&#9654; Play</button>
-  <input type="range" id="scrub" min="0" value="100">
+  <input type="range" id="scrub" min="0" value="100" aria-label="Week shown">
   <span id="frame-lbl">Current</span>
   <button class="ctrl-btn" id="btn-rst">&#8635; Reset</button>
 </div>"""

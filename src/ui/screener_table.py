@@ -485,7 +485,7 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
     if wide:
         extra += "@media (max-width:640px){table{min-width:%dpx}}" % (len(cols) * 92)
     return (
-        "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+        "<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Ranking table</title>"
         "<link rel='preconnect' href='https://fonts.googleapis.com'>"
         "<link href='https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&"
         "family=IBM+Plex+Mono:wght@400;500;600&display=swap' rel='stylesheet'>"
