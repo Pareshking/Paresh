@@ -12,6 +12,7 @@ on:
       - Canonical parity gate
       - Daily NSE Momentum Data Sync
       - FII and DII flows (daily)
+      - NSDL FPI daily (official FII history)
       - Momentum health (monthly)
       - Monthly Track Record Freeze
       - NSE daily bundle collection
