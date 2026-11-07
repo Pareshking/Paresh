@@ -2,16 +2,24 @@
 
 One HTML table serves the desktop and the phone. It lives in an st.iframe so
 it can sort by column and keep its header and first two columns pinned; below
-640px its own CSS turns it into the compact phone list (rank, stock, 12-month
-line, price and 3M), because Streamlit cannot tell Python how wide the screen
-is.
+640px its own CSS turns it into the compact phone list (rank, stock and its
+industry, a 60-session line, price and 3M), because Streamlit cannot tell
+Python how wide the screen is.
 
 Every row of the view is in the table -- sorting a page of 25 would sort the
 wrong 25 -- and the frame is tall enough to show about 25 rows at once; the
 rest scroll inside it.
 
 Three column sets are drawn from one registry: Executive, Core and Full Quant.
-The sector, index and company name sit under the symbol in every one of them.
+The phone list shows the industry under the symbol; on a desktop the Index and
+Industry columns carry it.
+
+Colour follows one rule: a figure whose SIGN is the signal (a return, a
+Sharpe, the distance from the 50 EMA, a rank change) is green above zero and
+red below, and always carries a + or − so the colour is never the only cue. A
+distance from a peak (drawdown, % from the 52-week high or the all-time high)
+is never above zero, so colouring it would paint the whole column red: it is
+plain. Pass and fail are ✓ and ✗, not coloured dots.
 """
 from __future__ import annotations
 
@@ -106,6 +114,43 @@ def column_count(density: str, available=None) -> int:
     return len(columns_for(density, available))
 
 
+def column_groups(keys: list[str]) -> list[tuple[str, int, bool]]:
+    """The group row over `keys`: (label, colspan, pinned), left to right.
+
+    Built from RUNS of neighbouring columns. Counting each group's columns
+    wherever they sit put "3M" over 3M and 6M Ret and "12M" over Max DD 3M in
+    Core, whose order is r1 r3 r6 r12 dd3 (owner, 7 Nov). Where a view shows
+    only part of the per-window groups (Executive, Core), those columns are
+    grouped as Returns and Risk instead. Rank and Symbol are pinned when the
+    table scrolls sideways, so their group label is its own pinned cell.
+    """
+    group_of = {k: label for label, ks in _QUANT_GROUPS for k in ks}
+    windowed = {label: ks for label, ks in _QUANT_GROUPS if "momentum" in label}
+    partial = any(not set(ks) <= set(keys) for ks in windowed.values())
+
+    def label(k: str) -> str:
+        g = group_of.get(k, "")
+        if g in windowed and partial:
+            return "Returns" if k.startswith("r") else "Risk"
+        return g
+
+    pin = 2 if list(keys[:2]) == ["rank", "stock"] else 0
+    out: list[tuple[str, int, bool]] = []
+    if pin:
+        out.append((label("rank"), pin, True))
+    for i, k in enumerate(keys[pin:], pin):
+        lab = label(k)
+        # The pinned cell already names the Identity group, so the rest of it
+        # (CMP) is an unlabelled cell rather than the same word twice.
+        if pin and i == pin and lab == label("rank"):
+            lab = ""
+        if out and not out[-1][2] and out[-1][0] == lab:
+            out[-1] = (lab, out[-1][1] + 1, False)
+        else:
+            out.append((lab, 1, False))
+    return out
+
+
 @st.cache_data(show_spinner=False, ttl=3600)
 def _year_paths(window_key: str, _prices: pd.DataFrame) -> dict[str, tuple[str, bool]]:
     """Each symbol's last year of closes as a polyline, built once per window.
@@ -137,12 +182,33 @@ def _num(v) -> float | None:
     return None if np.isnan(f) else f
 
 
+def _signed(v: float, digits: int = 1, plus: bool = True) -> str:
+    """A number with a true minus sign (U+2212), and + when `plus`."""
+    r = round(v, digits)
+    sign = "+" if (r > 0 and plus) else "−" if r < 0 else ""
+    return f"{sign}{abs(r):.{digits}f}"
+
+
+def _peak_cell(v: float | None, title: str = "") -> str:
+    """% below a peak: plain, never coloured; "New high" at the peak itself."""
+    if v is None:
+        return '<td class="n muted" data-v="">—</td>'
+    txt = "New high" if v >= 0 else f"{_signed(v, plus=False)}%"
+    return f'<td class="n" data-v="{v}"{title}>{txt}</td>'
+
+
 def _pct_cell(v: float | None, cls_extra: str = "") -> tuple[str, str]:
     if v is None:
         return f'<td class="n muted {cls_extra}" data-v="">—</td>', ""
     cls = "pos" if v > 0 else "neg" if v < 0 else ""
     txt = f"{'+' if v > 0 else '−' if v < 0 else ''}{abs(v) * 100:.1f}%"
     return f'<td class="n {cls} {cls_extra}" data-v="{v:.6f}">{txt}</td>', txt
+
+
+def _tick(on: bool, yes: str = "Yes", no: str = "No") -> str:
+    """Pass or fail as a glyph that does not need colour vision to read."""
+    return (f'<span class="tick yes" title="{yes}">✓</span>' if on
+            else f'<span class="tick no" title="{no}">✗</span>')
 
 
 def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
@@ -154,7 +220,10 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     tag = str(row.get("Indices") or "").split(",")[0].strip()
     # Sector and index first, company last: the symbol already names the
     # stock, and the name is the part that can be cut off when it is long.
-    sub = " · ".join(p for p in (ind, INDEX_NAMES.get(tag, tag), name) if p and p != "nan")
+    # The phone list's only line under the symbol, cut to ~130px: the
+    # industry alone fits, where "industry · index · company" was cut in the
+    # middle of the index name. The company name is the link's tooltip.
+    sub = ind if ind and ind != "nan" else ""
     rank = _num(row.get("Rank"))
     cmp_v = _num(row.get("CMP"))
     r3 = _num(row.get("3M Return"))
@@ -164,7 +233,7 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
                      f'{int(rank) if rank is not None else "—"}</td>')
     cells["stock"] = (
         f'<td class="c-stock" data-v="{sym_s}"><a href="{stock_href(sym)}" '
-        f'data-stock="{sym_s}" title="Open {sym_s}"><span class="sym">{sym_s}'
+        f'data-stock="{sym_s}" title="Open {_esc(name) if name and name != "nan" else sym_s}"><span class="sym">{sym_s}'
         f'{"<em class=me>This stock</em>" if is_hl else ""}</span>'
         f'<span class="sub">{_esc(sub)}</span></a></td>'
     )
@@ -188,22 +257,23 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     for w in PERIOD_WINDOWS:
         cells[f"r{w}"] = _pct_cell(_num(row.get(f"{w}M Return")))[0]
         sh = _num(row.get(f"{w}M Sharpe"))
-        cells[f"sh{w}"] = (f'<td class="n sharpe" data-v="{"" if sh is None else sh}">'
-                           f'{"—" if sh is None else f"{sh:.2f}"}</td>')
+        sh_cls = "" if sh is None else "pos" if sh > 0 else "neg" if sh < 0 else ""
+        cells[f"sh{w}"] = (f'<td class="n {sh_cls}" data-v="{"" if sh is None else sh}">'
+                           f'{"—" if sh is None else _signed(sh, 2, plus=False)}</td>')
         dd = _num(row.get(f"Max DD {w}M"))
-        cells[f"dd{w}"] = (f'<td class="n neg" data-v="{"" if dd is None else dd}">'
-                           f'{"—" if dd is None else f"−{abs(dd):.1f}%"}</td>')
+        cells[f"dd{w}"] = (f'<td class="n" data-v="{"" if dd is None else dd}">'
+                           f'{"—" if dd is None else _signed(-abs(dd), plus=False) + "%"}</td>')
     ath_v = _num(row.get("% ATH"))
     peak = str(row.get("ATH Date") or "").strip()
     ath_title = f' title="Peak printed {_esc(peak)}"' if peak else ""
-    cells["ath"] = (f'<td class="n" data-v="{"" if ath_v is None else ath_v}"{ath_title}>'
-                    f'{"—" if ath_v is None else f"{ath_v:.1f}%"}</td>')
+    cells["ath"] = _peak_cell(ath_v, ath_title)
     em = _num(row.get("% 50 EMA"))
-    cells["ema"] = (f'<td class="n {"" if em is None else "pos" if em > 0 else "neg"}" '
-                    f'data-v="{"" if em is None else em}">{"—" if em is None else f"{em:+.1f}%"}</td>')
+    cells["ema"] = (f'<td class="n {"" if em is None else "pos" if em > 0 else "neg" if em < 0 else ""}" '
+                    f'data-v="{"" if em is None else em}">{"—" if em is None else _signed(em) + "%"}</td>')
     vol = str(row.get("Volume") or "Normal")
-    vchip = ("🔥 High" if vol == "High" else "⚡ Surge" if vol == "Surge"
-             else '<span class="muted">• Normal</span>')
+    vchip = ('<span class="vol">High</span>' if vol == "High"
+             else '<span class="vol">Surge</span>' if vol == "Surge"
+             else '<span class="muted">Normal</span>')
     cells["vol"] = f'<td data-v="{_esc(vol)}">{vchip}</td>'
     for key, col in (("stop", "Stop Loss"), ("chand", "Chand Exit")):
         v = _num(row.get(col))
@@ -215,8 +285,9 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     carried = CARRIED_MARK in gap
     gap_title = (' title="No price on the ranking date; ranked on its last print"'
                  if carried else "")
-    cells["gap"] = (f'<td data-v="{1 if "🔴" in gap else 0}"{gap_title}>'
-                    f'{"🔴" if "🔴" in gap else "🟢"}{CARRIED_MARK if carried else ""}</td>')
+    has_gap = "🔴" in gap
+    cells["gap"] = (f'<td class="c-tick" data-v="{1 if has_gap else 0}"{gap_title}>'
+                    f'{_tick(not has_gap, "No gap", "Gap")}{CARRIED_MARK if carried else ""}</td>')
     ff = _num(row.get("FFill %"))
     cells["ffill"] = f'<td class="n" data-v="{0 if ff is None else ff}">{0 if ff is None else ff:.1f}%</td>'
     hz = _num(row.get("Horizons Scored"))
@@ -232,14 +303,12 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     cells["ind"] = f'<td data-v="{_esc(ind_full)}" title="{_esc(ind_full)}">{_esc(ind_txt) or "—"}</td>'
     for key, col in (("above", "Above 50 EMA"), ("near", "Near 52W High"), ("athf", "At ATH")):
         on = is_tick_true(row.get(col))
-        cells[key] = f'<td class="c-tick" data-v="{int(on)}">{"🟢" if on else "⚪"}</td>'
+        cells[key] = f'<td class="c-tick" data-v="{int(on)}">{_tick(on)}</td>'
     for key, col in (("nh1", "New Highs 1M"), ("nh3", "New Highs 3M")):
         n = _num(row.get(col))
         cells[key] = (f'<td class="n" data-v="{"" if n is None else n}">'
                       f'{"—" if n is None else int(n)}</td>')
-    hi = _num(row.get("% High"))
-    cells["hi"] = (f'<td class="n" data-v="{"" if hi is None else hi}">'
-                   f'{"—" if hi is None else f"{hi:.1f}%"}</td>')
+    cells["hi"] = _peak_cell(_num(row.get("% High")))
     poly, up = paths.get(sym, ("", True))
     cells["spark"] = (
         f'<td class="c-path"><svg width="88" height="26" viewBox="0 0 88 26" aria-hidden="true">'
@@ -261,7 +330,6 @@ thead th{position:sticky;top:0;z-index:3;background:#F4F5F8;border-bottom:1px so
 thead th.t-left{text-align:left}
 thead th{text-transform:uppercase;letter-spacing:.04em;font-size:11.5px}
 thead tr.grp-row th{font-size:11px}
-td.sharpe{color:#067647;font-weight:600}
 td.n.pos,td.n.neg{font-weight:600}
 thead tr.grp-row th{top:0;height:28px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;text-align:center;color:#5E6878;border-bottom:1px solid #E3E6EB;border-left:1px solid #E3E6EB;cursor:default}
 thead tr.grp-row + tr.hdr th{top:28px}
@@ -278,10 +346,14 @@ tbody tr:nth-child(even) td{background:#FAFBFC}
 tbody tr:hover td{background:#F1F0FF;cursor:pointer}
 td.n{text-align:right;font-family:'Geist Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
 .pos{color:#067647}.neg{color:#B42318}.muted{color:#667080}
-th:nth-child(1),td.c-rank{position:sticky;left:0;z-index:2;width:52px;min-width:52px;text-align:left}
-thead th:nth-child(1){z-index:4}
-th:nth-child(2),td.c-stock{position:sticky;left:52px;z-index:2;text-align:left;max-width:380px;box-shadow:1px 0 0 #EDEFF3}
-thead th:nth-child(2){z-index:4}
+tr.hdr th:nth-child(1),td.c-rank{position:sticky;left:0;z-index:2;width:52px;min-width:52px;text-align:left}
+thead tr.hdr th:nth-child(1){z-index:4}
+tr.hdr th:nth-child(2),td.c-stock{position:sticky;left:52px;z-index:2;text-align:left;max-width:380px;box-shadow:1px 0 0 #EDEFF3}
+thead tr.hdr th:nth-child(2){z-index:4}
+thead tr.grp-row th.pin{position:sticky;left:0;z-index:5;border-left:0;box-shadow:1px 0 0 #E3E6EB}
+.tick{font-weight:700;font-size:14px}.tick.yes{color:#067647}.tick.no{color:#667080}
+.vol{font-weight:600}
+.lbl-m{display:none}
 td.c-rank{font-family:'Geist Mono',ui-monospace,monospace;font-weight:600}
 td.c-stock a{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;line-height:1.2;text-decoration:none;color:inherit}
 td.c-stock .sym{font-weight:650;font-size:14px;color:#0E1726}
@@ -300,8 +372,8 @@ tbody tr.hl td{background:#F4F3FF}
   th,td{padding:0 8px}
   td{height:""" + str(PHONE_ROW_PX) + """px}
   .d-only{display:none}
-  th:nth-child(1),td.c-rank{width:34px;min-width:34px}
-  th:nth-child(2),td.c-stock{left:34px;box-shadow:none;max-width:150px}
+  tr.hdr th:nth-child(1),td.c-rank{width:34px;min-width:34px}
+  tr.hdr th:nth-child(2),td.c-stock{left:34px;box-shadow:none;max-width:150px}
   td.c-stock .sym{font-size:14px}
   td.c-stock .sub{display:block;font-size:12px;max-width:130px}
   .wide td.c-stock .sub{display:none}
@@ -310,6 +382,7 @@ tbody tr.hl td{background:#F4F3FF}
   td.c-path{padding-left:0}
   td.c-path svg{width:54px}
   th .lbl-d{display:none}
+  th .lbl-m{display:inline}
   td.c-price{line-height:1.25}
   .m-only{display:block;font-size:12px;font-weight:600}
 }
@@ -356,11 +429,13 @@ ths.forEach(function(th,i){
 
 
 def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
-               highlight: str = "") -> str:
+               highlight: str = "", sort_key: str = "rank", sort_desc: bool = False) -> str:
     """The whole table document, for st.iframe. Split out so tests can read it.
 
     `highlight` is a symbol whose row is tinted and tagged "This stock" (the
-    stock page's peers)."""
+    stock page's peers). `sort_key`/`sort_desc` name the column the rows
+    arrive sorted by, so its header carries the arrow: the column headers are
+    the page's one sort control."""
     cols = columns_for(density, view.columns)
     paths: dict = {}
     if prices_df is not None and not prices_df.empty:
@@ -371,29 +446,28 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
     wide = len(cols) > len(_CORE_KEYS)
     phone_keep = {"rank", "stock", "spark", "price"}
     head_cells = []
+    if sort_key not in {c[0] for c in cols}:
+        sort_key, sort_desc = "rank", False
     for k, label, t in cols:
         cls = ("t-left " if (k in ("rank", "stock") or t == "text") else "") + (
             "" if (k in phone_keep or wide) else "d-only")
-        if k == "rank":
+        on = k == sort_key
+        if on:
             cls += " on"
-        arrow = ('<span class="ar">' + ("↑" if k == "rank" else "↕") + "</span>") if t else ""
-        dir_attr = ' data-dir="asc"' if k == "rank" else ""
-        head_cells.append(
-            f'<th class="{cls.strip()}" data-type="{t or ""}"{dir_attr}>'
-            f'<span class="{"lbl-d" if k == "spark" else ""}">{_esc(label)}</span>{arrow}</th>'
-        )
+        arrow = ('<span class="ar">' + (("↓" if sort_desc else "↑") if on else "↕")
+                 + "</span>") if t else ""
+        dir_attr = f' data-dir="{"desc" if sort_desc else "asc"}"' if on else ""
+        # The trend column's header is "60D" on a phone, where the full label
+        # does not fit; it was blank there.
+        text = (f'<span class="lbl-d">{_esc(label)}</span><span class="lbl-m">60D</span>'
+                if k == "spark" else f"<span>{_esc(label)}</span>")
+        head_cells.append(f'<th class="{cls.strip()}" data-type="{t or ""}"{dir_attr}>{text}{arrow}</th>')
     head = "".join(head_cells)
-    group_row = ""
-    if True:
-        present = [c[0] for c in cols]
-        parts = []
-        for label, keys in _QUANT_GROUPS:
-            n = sum(1 for k in keys if k in present)
-            if n:
-                # A momentum group cut down to one column keeps just its window.
-                shown = label.split(" ")[0] if (n < len(keys) and "momentum" in label) else label
-                parts.append(f'<th colspan="{n}" class="grp">{_esc(shown)}</th>')
-        group_row = '<tr class="grp-row">' + "".join(parts) + "</tr>"
+    parts = [
+        f'<th colspan="{n}" class="grp{" pin" if pinned else ""}">{_esc(label)}</th>'
+        for label, n, pinned in column_groups([c[0] for c in cols])
+    ]
+    group_row = '<tr class="grp-row">' + "".join(parts) + "</tr>"
     body = []
     for row in view.to_dict("records"):
         tr = _row_html(row, cols, paths, highlight)
@@ -422,11 +496,13 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
 
 
 def render_screener_table(view: pd.DataFrame, prices_df: pd.DataFrame | None,
-                          density: str, *, highlight: str = "") -> None:
+                          density: str, *, highlight: str = "", sort_key: str = "rank",
+                          sort_desc: bool = False) -> None:
     if view.empty:
         st.info("No stocks match these filters. Clear the search or pick another preset.")
         return
     rows = min(len(view), VISIBLE_ROWS)
     height = 44 + rows * ROW_PX + 4 + 28
-    st.iframe(table_html(view, prices_df, density, highlight), height=height)
+    st.iframe(table_html(view, prices_df, density, highlight, sort_key, sort_desc),
+              height=height)
 

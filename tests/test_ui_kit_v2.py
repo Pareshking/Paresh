@@ -62,7 +62,6 @@ MIGRATED = {
     "rrg_tf_choice": "rrg_view.py",
     "qual_top_n": "qualified_view.py",
     "sector_rank_by": "sector_view.py",
-    "rank_sort_by": "ranking_view.py",
     "cfg_system_radio": "config_view.py",
 }
 
@@ -146,13 +145,12 @@ def test_the_stock_page_offers_a_factsheet_that_opens_without_error():
     assert not at.exception, [e.value for e in at.exception]
 
 
-def test_the_sort_picker_keeps_its_key_and_survives_a_click():
+def test_the_screener_has_one_sort_the_column_headers():
+    """The popover's "Sort by" was a second sort that disagreed with the
+    headers after a click (owner, 7 Nov): it is gone, and the page still runs."""
     at = AppTest.from_file(PROBE, default_timeout=180).run()
-    ctl = at.segmented_control(key="rank_sort_by")
-    assert ctl.value == "Rank"
-    ctl.set_value("3M Return").run()
     assert not at.exception
-    assert at.segmented_control(key="rank_sort_by").value == "3M Return"
+    assert not [c for c in at.segmented_control if c.key == "rank_sort_by"]
 
 
 def test_the_stock_dialogs_are_module_level():

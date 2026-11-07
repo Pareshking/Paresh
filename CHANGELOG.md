@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-07 — Screener: headers over the right columns, one sort, clearer colours and phone list
+
+- The group labels above the table sit over their own columns. In Core and Executive "3M" covered 3M and 6M returns and "12M" sat over the 3-month drawdown; these views now group the columns as Returns and Risk. In Full Quant, "Rank dynamics" no longer sticks over Symbol when the table scrolls sideways.
+- The block under the table is headed "Since 6 Oct (one month)" (the session the 1M rank change counts from), not "Since last month-end", which it never measured.
+- The column headers are the only way to sort: the "Sort by" buttons in Filters & sort are gone. Big movers opens sorted by rank change, and its header says so. Export CSV says the file is in rank order (rank-change order for Big movers).
+- Colour follows one rule. Returns, Sharpe, % from the 50 EMA and rank changes are green above zero and red below, always with + or −. Drawdowns and % below a high are plain. A negative Sharpe used to show green. Every minus is a true minus, a stock at its high reads "New high", and pass/fail is ✓ / ✗ instead of coloured dots.
+- On a phone the preset chips and the market strip fade at the right edge to show they scroll, the line under each symbol is its industry, and the trend column is headed 60D. The strip no longer puts a red tint behind "Bullish" and "3.1% above".
+
 ## 2026-10-15 — A nightly ranking that fails is no longer silent
 
 - On 14 Oct the nightly job could not build the 750 and Combined rankings (the same error that took the site down), but it still showed green and published the 13 Oct ranking again. The app then computed the ranking itself on every fresh start on 15 Oct, which is why memory and CPU stayed high. A manual run on the fixed code published all three rankings on 14 Oct prices at 11:39 UTC.

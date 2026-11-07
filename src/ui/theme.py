@@ -508,6 +508,14 @@ def inject_custom_css() -> None:
                 -webkit-overflow-scrolling: touch;
             }
             .mkt-snapshot::-webkit-scrollbar { display: none !important; }
+            /* The strip scrolls sideways with its scrollbar hidden, so the
+               right edge fades to say there is more; the end padding lets the
+               last item scroll clear of the fade. */
+            .mkt-snapshot {
+                -webkit-mask-image: linear-gradient(to right, #000 86%, transparent);
+                mask-image: linear-gradient(to right, #000 86%, transparent);
+                padding-right: 36px;
+            }
 
             .mkt-item {
                 flex: 0 0 auto;
@@ -522,10 +530,11 @@ def inject_custom_css() -> None:
                 justify-content: center;
             }
 
+            /* No tint: a fixed red here painted "Bullish" and "3.1% above"
+               red on a phone (owner, 7 Nov); the text colour carries the sign. */
             .mkt-regime-item {
                 padding-left: 9px;
                 padding-right: 10px;
-                background: #FDEDEB;
             }
             .mkt-regime {
                 gap: 4px;
@@ -558,7 +567,6 @@ def inject_custom_css() -> None:
                 flex-direction: row;
                 align-items: center;
                 justify-content: center;
-                background: #FDEDEB;
             }
             .mkt-distance .mkt-label {
                 display: inline;
@@ -756,6 +764,12 @@ def inject_custom_css() -> None:
             .ms-v { font-size: 20px; }
             .ms-s { font-size: 12px; }
             .st-key-scr_toolbar [data-testid="stSelectbox"] { width: 100% !important; }
+            /* The preset chips scroll sideways too (stPills below): same fade. */
+            .st-key-scr_toolbar [data-testid="stPills"] {
+                -webkit-mask-image: linear-gradient(to right, #000 86%, transparent);
+                mask-image: linear-gradient(to right, #000 86%, transparent);
+                padding-right: 36px !important;
+            }
         }
 
         /* ── Page kit (src/ui/page_kit.py): every other page ───────────── */

@@ -10,7 +10,6 @@ import pandas as pd
 import streamlit as st
 
 from src.ui.system_param import keep_system_only, stock_href
-from src.ui.widget_state import remember, resolve
 
 from src.core.config import SHORT_FORMS
 from src.core.market_time import ist_now
@@ -23,6 +22,7 @@ from src.ui.components import (
 )
 from src.ui.views.stock_view import render_stock_view
 from src.engine.breadth import new_extreme_counts
+from src.engine.calendar_momentum import calendar_start_positions
 from src.ui.screener_table import INDEX_NAMES, column_count, render_screener_table
 
 # Stored in session state by `rank_density_mode`, so these strings are an
@@ -350,26 +350,9 @@ def render_ranking_view(
             )
             only_passing = st.toggle("Only stocks that pass both filters",
                                      key="rank_only_passing")
-            # Explicit index, resolved through the mirror. Under st.navigation
-            # only the active page runs, so this key is discarded the moment
-            # the reader looks at another page -- without it their chosen sort
-            # silently reverts to "Rank".
-            _SORT_OPTIONS = [
-                "Rank", "3M Return", "6M Return", "3M Sharpe", "% High", "Market Cap (Cr)",
-            ]
-            # A short fixed list, so a segmented control rather than a dropdown.
-            # Still resolved through the mirror: the key is discarded when the
-            # reader visits another page, and `default` is what brings it back.
-            # required=True means a click on the chosen one cannot clear it.
-            sort_by = st.segmented_control(
-                "Sort by",
-                _SORT_OPTIONS,
-                default=_SORT_OPTIONS[resolve("rank_sort_by_idx", 0, lo=0,
-                                              hi=len(_SORT_OPTIONS) - 1)],
-                required=True,
-                key="rank_sort_by",
-            ) or _SORT_OPTIONS[0]
-            remember("rank_sort_by_idx", _SORT_OPTIONS.index(sort_by))
+            # No "Sort by" here: the column headers are the one sort (owner,
+            # 7 Nov). A second, server-side sort disagreed with the headers
+            # after a click, and the export followed it rather than the screen.
 
             # The option VALUES are fixed strings: they are what session state
             # stores, and a stored value that vanishes from the list on the
@@ -386,7 +369,7 @@ def render_ranking_view(
                 format_func=_density_label,
                 key="rank_density_mode",
             )
-            st.caption("Click a column header in the table to sort by it too.")
+            st.caption("Click a column header to sort the table.")
             st.button("Reset", key="rank_filters_reset", type="tertiary",
                       on_click=_reset_screener_filters)
     if not density_mode:
@@ -469,11 +452,13 @@ def render_ranking_view(
             to_bool_mask(view.get("Above 50 EMA")) & to_bool_mask(view.get("Near 52W High"))
         ]
 
-    asc = sort_by == "Rank"
-    if sort_by in view.columns and not (filt == "Momentum Movers" and sort_by == "Rank"):
-        view = view.sort_values(sort_by, ascending=asc)
-
-    render_screener_table(view, adj_close, density_mode)
+    # Rows arrive in rank order, except Big movers, which lists the biggest
+    # rank changes first; the table's header arrow says which.
+    movers = filt == "Momentum Movers" and "Rank Δ 1M" in view.columns
+    if not movers:
+        view = view.sort_values("Rank", kind="stable")
+    render_screener_table(view, adj_close, density_mode,
+                          sort_key="d1m" if movers else "rank", sort_desc=movers)
 
     # Export EVERY column the ranking carries, not just the ones on screen.
     # DISPLAY_COLS is a screen-layout decision -- it drops Score, the raw
@@ -492,7 +477,9 @@ def render_ranking_view(
         key="dl_rank_csv",
         icon=":material/download:",
         help=f"The {len(view)} stocks shown, with all {len(export_cols)} ranking "
-             f"columns, including the ones not in the table.",
+             f"columns, including the ones not in the table. Rows are in "
+             f"{'rank-change' if movers else 'rank'} order: a column header you "
+             f"click re-sorts the table on screen, not the file.",
         width="stretch",
     )
 
@@ -510,11 +497,10 @@ def render_ranking_view(
 def _reset_screener_filters() -> None:
     # Popped, not assigned: each of these widgets passes its own default, and
     # a session-state value on top of a default makes Streamlit print a
-    # warning on the page. The sort's mirror goes back to Rank as well.
-    for key in ("rank_index_filter", "rank_only_passing", "rank_sort_by",
+    # warning on the page.
+    for key in ("rank_index_filter", "rank_only_passing",
                 "rank_density_mode", "rank_quick_pills"):
         st.session_state.pop(key, None)
-    remember("rank_sort_by_idx", 0)
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -523,7 +509,11 @@ def _new_high_counts(_key: str, _prices: pd.DataFrame) -> pd.DataFrame:
 
 
 def top50_changes(rank_df: pd.DataFrame):
-    """Stocks that entered and left the top 50 since last month, by rank."""
+    """Stocks that entered and left the top 50 in the last calendar month, by rank.
+
+    "Rank (-1M)" is the rank on the first session on or after the same date a
+    month back (`calendar_start_positions`), not the last month-end.
+    """
     if "Rank (-1M)" not in rank_df.columns:
         return None, None
     prev = pd.to_numeric(rank_df["Rank (-1M)"], errors="coerce")
@@ -534,7 +524,7 @@ def top50_changes(rank_df: pd.DataFrame):
 
 
 def biggest_jumps(rank_df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
-    """The n stocks that climbed most places since last month-end."""
+    """The n stocks that climbed most places in the last calendar month."""
     if "Rank (-1M)" not in rank_df.columns:
         return rank_df.iloc[0:0]
     prev = pd.to_numeric(rank_df["Rank (-1M)"], errors="coerce")
@@ -542,6 +532,16 @@ def biggest_jumps(rank_df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
     gain = (prev - now)
     out = rank_df.assign(Places_gained=gain, Rank_last_month=prev)[gain > 0]
     return out.sort_values("Places_gained", ascending=False).head(n)
+
+
+def _movers_heading(adj_close: pd.DataFrame | None) -> str:
+    """ "Since 6 Oct (one month)": the session the 1M rank change counts from."""
+    if adj_close is None or len(adj_close.index) == 0:
+        return "In the last month"
+    idx = pd.DatetimeIndex(adj_close.index)
+    pos = int(calendar_start_positions(idx, 1)[-1])
+    start = idx[min(pos, len(idx) - 1)]
+    return f"Since {start.day} {start:%b} (one month)"
 
 
 def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None = None) -> None:
@@ -561,7 +561,10 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
         # Ranking returns are stored as decimal fractions (e.g. 0.284 = 28.4%),
         # matching the screener table's canonical percentage formatter.
         val = pd.to_numeric(pd.Series([row.get("1M Return")]), errors="coerce").iloc[0]
-        return "—" if pd.isna(val) else f"{float(val) * 100:+.1f}%"
+        if pd.isna(val):
+            return "—"
+        v = round(float(val) * 100, 1)
+        return f"{'+' if v > 0 else '−' if v < 0 else ''}{abs(v):.1f}%"
 
     def rank_change(row) -> int | None:
         prev = pd.to_numeric(pd.Series([row.get("Rank (-1M)")]), errors="coerce").iloc[0]
@@ -572,10 +575,11 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
         delta = rank_change(row)
         delta_html = "—" if delta is None else (
             f'<span class="t50-delta {"positive" if delta > 0 else ("negative" if delta < 0 else "flat")}">'
-            f'{"+" if delta > 0 else ""}{delta}</span>'
+            f'{"+" if delta > 0 else "−" if delta < 0 else ""}{abs(delta)}</span>'
         )
         ret = fmt_return(row)
-        ret_tone = "negative" if ret.startswith("-") else ("flat" if ret == "—" else "positive")
+        ret_tone = ("negative" if ret.startswith("−") else "positive" if ret.startswith("+")
+                    else "flat")
         return (
             f'<div class="t50-row{" t50-extra" if extra else ""}">'
             f'<span class="t50-num">{i}</span>'
@@ -616,8 +620,11 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
         )
 
     # One heading says when the three cards count from, so no card repeats it.
+    # The ranks are compared with a calendar month back (6 Nov against the
+    # first session on or after 6 Oct), not with the last month-end, so the
+    # heading names that date (owner, 7 Nov).
     html_out = (
-        '<div class="pg-card-h"><h2>Since last month-end</h2></div>'
+        f'<div class="pg-card-h"><h2>{esc(_movers_heading(adj_close))}</h2></div>'
         '<div id="t50-movement" class="t50-grid">'
         + card("Biggest jumps", "↑", "jump", jumps.to_dict("records"))
         + card("Entered top 50", "★", "entered", entered.to_dict("records"))
