@@ -181,6 +181,13 @@ Result of 3 Oct 2026 (426 gaps of 5+ sessions, 131 stocks): 147 NSE-only gaps
 match). Only DYNAMATECH and ZODIACLOTH (9 sessions each, Aug 2013, Nifty 500)
 overlap index membership. The file, with each gap, is `bse_gap_verify.csv`.
 
+Update 8 Nov 2026 (S35): the build's BSE fill now gives every gap a verdict
+(`bse_fill_gaps.csv` in `long_price_audit_latest.zip`): of 411 gaps, 150 are
+suspensions BSE shows too and 24 are filled; the other 237 were checked against
+every index's point-in-time membership, and only the three Aug 2013 Nifty 500
+gaps above overlap (DYNAMATECH twice, ZODIACLOTH). All three end before
+30 Aug 2013, the month's last session, so no month-end close is missing.
+
 **The 26 Oct 2023 - 17 Apr 2026 gap (GOODYEAR, NOVARTIND, KENNAMET, KIRLFER,
 GRAUWEIL; FORCEMOT to 14 Feb 2024).** NSE withdrew dealings in securities
 under "Permitted to Trade" with effect from 26 Oct 2023 (circular
