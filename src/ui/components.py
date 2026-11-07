@@ -348,7 +348,7 @@ def render_header_kpi_bar(
         r"[^A-Za-z0-9_-]", "_", str(getattr(active_page, "url_path", "") or "home"))
     with st.container(key="app_header_shell", width="stretch", horizontal=True,
                       vertical_alignment="center", gap="small", wrap=False):
-        # The brand is the way home: a page link to the Screener, so it opens
+        # The brand is the way home: a page link to the Dashboard, so it opens
         # in place like every other page link (and clears ?stock=). Named
         # exactly "Paresh Patel", as the owner asked.
         if nav_pages:
@@ -370,19 +370,19 @@ def render_header_kpi_bar(
                     key=f"app_nav_menu_{_page_slug}",
                 ):
                     st.markdown("**Research**")
-                    for _i, _p in enumerate(nav_pages[:5]):
+                    for _i, _p in enumerate(nav_pages[:6]):
                         _state = "navon" if _p is active_page else "navoff"
                         with st.container(key=f"{_state}_research_{_i}", width="stretch"):
                             st.page_link(_p)
 
                     st.markdown("**Monitoring**")
-                    for _i, _p in enumerate(nav_pages[5:9], start=5):
+                    for _i, _p in enumerate(nav_pages[6:10], start=6):
                         _state = "navon" if _p is active_page else "navoff"
                         with st.container(key=f"{_state}_monitoring_{_i}", width="stretch"):
                             st.page_link(_p)
 
                     st.markdown("**System**")
-                    for _i, _p in enumerate(nav_pages[9:], start=9):
+                    for _i, _p in enumerate(nav_pages[10:], start=10):
                         _state = "navon" if _p is active_page else "navoff"
                         with st.container(key=f"{_state}_system_{_i}", width="stretch"):
                             st.page_link(_p)

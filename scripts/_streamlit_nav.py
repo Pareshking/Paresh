@@ -298,6 +298,7 @@ def open_page(frame, name: str, page=None) -> str:
 
     if page is not None:
         routes = {
+            "Dashboard": "dashboard",
             "Screener": "screener",
             "Actions": "actions",
             "Sectors": "sectors",

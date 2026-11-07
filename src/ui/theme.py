@@ -142,7 +142,6 @@ def inject_custom_css() -> None:
             --c-accent-text: var(--c-ink);
             --c-bull-tint: var(--c-up_tint);
             --c-bear-tint: var(--c-down_tint);
-            --c-caution: var(--c-caution);
             --font-ui: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             --font-display: var(--font-ui);
             --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -1692,6 +1691,43 @@ def inject_custom_css() -> None:
             border: 1px solid var(--c-ink) !important; }
         .hdr-pill, .sig-chip { border-radius: 4px !important; }
         [data-testid="stExpander"] details { border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
+
+        /* ── Dashboard (src/ui/views/dashboard_view.py) ── */
+        .db-risk { display: grid; font-size: 13.5px; }
+        .db-risk-row { display: grid; grid-template-columns: minmax(150px,1.3fr) 150px minmax(180px,1.4fr) 1fr;
+            align-items: center; column-gap: 16px; min-height: 40px; border-bottom: 1px solid var(--c-rule_soft); }
+        .db-risk-row.db-head { min-height: 32px; font-size: 12px; font-weight: 600; color: var(--c-muted);
+            border-bottom: 1px solid var(--c-rule); }
+        .db-sym a { font-weight: 650; color: var(--c-ink) !important; text-decoration: none; }
+        .db-sym small { display: block; font-size: 12px; color: var(--c-muted); }
+        .db-status { font-size: 12.5px; font-weight: 600; color: var(--c-text_2); }
+        .db-risk-row.watch .db-status { color: var(--c-caution); }
+        .db-risk-row.sell .db-status { color: var(--c-down); }
+        .db-rule { font-family: var(--font-mono); font-size: 12.5px; color: var(--c-text_2); }
+        .db-bar { display: block; height: 6px; background: var(--c-fill); }
+        .db-bar i { display: block; height: 100%; background: var(--c-ink); }
+        .db-risk-row.watch .db-bar i { background: var(--c-caution); }
+        .db-risk-row.sell .db-bar i { background: var(--c-down); }
+        .db-kv { display: grid; grid-template-columns: 120px 1fr; gap: 6px 16px; margin: 0 !important; padding: 0 !important; font-size: 14px; }
+        .db-kv dt { color: var(--c-muted); font-weight: 600; }
+        .db-kv dd { margin: 0; color: var(--c-ink); }
+        .db-kv a, .db-sectors a { color: var(--c-ink) !important; }
+        .db-lede { margin: 0 0 8px; font-size: 15px; color: var(--c-ink); }
+        .db-size, .db-sectors { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+        .db-size th, .db-size td, .db-sectors th, .db-sectors td { padding: 8px 10px 8px 0;
+            border-bottom: 1px solid var(--c-rule_soft); text-align: right; font-weight: 400; }
+        .db-size th:first-child, .db-sectors th { text-align: left; font-weight: 600; color: var(--c-ink); }
+        .db-size thead th { font-size: 12px; font-weight: 600; color: var(--c-muted); border-bottom: 1px solid var(--c-rule); }
+        .db-size thead th small, .db-size td small { display: block; font-size: 11.5px; font-weight: 400; color: var(--c-muted); }
+        .db-size td b, .db-size td, .db-sectors td { font-family: var(--font-mono); }
+        .db-size tr.db-base th, .db-size tr.db-base td { color: var(--c-muted); }
+        .db-size .up, .db-sectors .up { color: var(--c-up); } .db-size .down, .db-sectors .down { color: var(--c-down); }
+        @media (max-width: 640px) {
+            .db-risk-row { grid-template-columns: 1fr auto; row-gap: 2px; padding: 6px 0; }
+            .db-risk-row.db-head { display: none; }
+            .db-rule { grid-column: 1 / -1; } .db-bar { grid-column: 1 / -1; }
+            .db-kv { grid-template-columns: 1fr; }
+        }
         </style>
         """),
         unsafe_allow_html=True,

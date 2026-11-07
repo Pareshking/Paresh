@@ -143,7 +143,7 @@ DEPLOY_WAIT_S = int(os.getenv("UMIYA_DEPLOY_WAIT_S", "300"))
 METRICS_WAIT_S = int(os.getenv("UMIYA_METRICS_WAIT_S", "180"))
 
 TABS = [
-    "Screener", "Portfolio", "Actions", "Sectors", "RRG",
+    "Dashboard", "Screener", "Portfolio", "Actions", "Sectors", "RRG",
     "Watchlist", "Market Breadth", "Backtest", "Configuration",
     "Guide",
 ]

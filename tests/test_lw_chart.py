@@ -46,3 +46,11 @@ def test_the_library_is_v5_and_the_logo_is_off():
     # v4's per-type factories are gone in v5; every series goes through addSeries
     assert not any(f"add{t}Series(" in html.split("const SPEC=")[1]
                    for t in ("Line", "Area", "Histogram", "Baseline", "Candlestick"))
+
+
+def test_a_pane_never_draws_two_lines_in_one_colour():
+    """Breadth passes ink twice in its palette; the second line takes a spare."""
+    out = lw._distinct([{"name": "a", "color": lw.INK}, {"name": "b", "color": lw.GREY},
+                        {"name": "c", "color": lw.INK}])
+    colours = [s["color"] for s in out]
+    assert len(set(colours)) == 3 and colours[:2] == [lw.INK, lw.GREY]

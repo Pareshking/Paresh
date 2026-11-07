@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-07 — Dashboard home page; charts in the tipsheet style
+
+- The site opens on a Dashboard (the Screener moves to /screener and second in the menu). One line says how the book is doing this month against the Nifty 500, how many holdings are close to a rule or would be sold, and when the next rebalance is. Below it: the book at risk (least room first, each with its nearest rule), the next rebalance if the month ended today (the same plan as Actions), size leadership and the five leading industries (as ranked on Sectors).
+- Size leadership: Nifty 50, Midcap 150, Smallcap 250 and Microcap 250 against the Nifty 500 over 1, 3 and 6 months, from NSE's index closes (the nightly index file on R2). Shown only when that file's Nifty 50 equals NSE's own daily close; otherwise the page says why it is left out.
+- Charts: a one-line legend above the plot, a faint horizontal grid only, small grey axis labels, sparse dates, thin lines with a dot on the latest point, a flat pale fill for drawdowns, white tooltips. No figure changed.
+- Fixed: the caution colour (amber) was invisible everywhere for a few hours after the theme moved to one file.
+
 ## 2026-11-07 — New look: Paper B · Ledger, white ground
 
 - The owner chose "Paper B · Ledger" on a white ground. Every page now uses IBM Plex Sans, with IBM Plex Mono for figures, ink on white, and neutral greys with no warm tint.

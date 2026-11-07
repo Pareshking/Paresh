@@ -25,6 +25,15 @@ def test_every_colour_name_the_ui_uses_is_in_the_palette():
             assert n in PALETTE, (p.name, n)
 
 
+def test_no_theme_variable_is_defined_as_itself():
+    # theme.py once had "--c-caution: var(--c-caution);" after the move to tokens:
+    # a self-reference is invalid CSS, so every caution colour on the site was
+    # transparent (the dashboard's Watch bar showed it, 7 Nov).
+    for p in UI:
+        src = p.read_text(encoding="utf-8")
+        assert not re.search(r"--c-([a-z0-9_-]+):\s*var\(--c-\1\)", src), p.name
+
+
 def test_no_palette_colour_is_written_out_by_hand_in_the_ui():
     by_hex = {v.upper() for v in PALETTE.values()}
     for p in UI:

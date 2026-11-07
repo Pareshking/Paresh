@@ -41,9 +41,9 @@ import streamlit as st
 UP = C.up
 DOWN = C.down
 INK = C.ink
-GRID = C.fill
+GRID = C.grid
 MUTED = C.muted
-MA_COLOURS = {"20 EMA": "#0ea5e9", "50 EMA": C.muted, "200 SMA": C.caution}
+MA_COLOURS = {"20 EMA": C.teal, "50 EMA": C.faint, "200 SMA": C.caution}
 
 # Half the sessions must carry a real range before the price is drawn as
 # candles. A single surviving high does not earn candle bodies for the other
@@ -144,16 +144,16 @@ def _base_chart(height: int) -> dict:
         "height": height,
         "layout": {
             "background": {"type": "solid", "color": C.white},
-            "textColor": C.text_2,
+            "textColor": C.muted_2,
             "attributionLogo": False,
             "fontFamily": "IBM Plex Mono, monospace",
         },
         "grid": {
-            "vertLines": {"color": GRID},
+            "vertLines": {"visible": False},
             "horzLines": {"color": GRID},
         },
-        "rightPriceScale": {"borderColor": C.rule},
-        "timeScale": {"borderColor": C.rule, "timeVisible": False},
+        "rightPriceScale": {"borderVisible": False},
+        "timeScale": {"borderVisible": False, "timeVisible": False},
         "crosshair": {"mode": 1},
     }
 

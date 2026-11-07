@@ -40,6 +40,9 @@ PALETTE: dict[str, str] = {
     "down_line": "#F5E2D8", "down_line_2": "#EED6C9", "down_line_3": "#EAC9B8", "down_line_4": "#E4BBA6",
     # caution (stale data, warnings)
     "caution": "#B54708", "caution_ink": "#7A2E0E", "caution_tint": "#FEF6EA", "caution_line": "#F5D7A8",
+    # charts: two series hues that are neither up, down nor caution (the
+    # 20-day EMA, the Nifty 500 overlay, a third breadth line); the faint grid
+    "teal": "#3E8A83", "violet": "#6E5A9E", "grid": "#F0F0ED",
 }
 
 FONTS: dict[str, str] = {

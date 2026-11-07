@@ -31,9 +31,11 @@ from src.ui import lw_chart
 UP = C.up
 DOWN = C.down
 INK = C.ink
-GRID = C.fill
+GRID = C.grid
 MUTED = C.muted
-MA_COLOURS = {"20 EMA": "#0ea5e9", "50 EMA": C.muted, "200 SMA": C.caution}
+MA_COLOURS = {"20 EMA": C.teal, "50 EMA": C.muted_2, "200 SMA": C.caution, "Nifty 500": C.violet}
+# Volume is context, not a signal: pale tints of the up and down colours.
+VOL_UP, VOL_DOWN = C.up_line, C.down_line_2
 
 # Half the sessions must carry a real range before the price is drawn as
 # candles. A single surviving high does not earn candle bodies for the other
@@ -124,7 +126,7 @@ def _volume(idx, vol, rising) -> list[dict]:
         rows.append({
             "time": t,
             "value": float(v),
-            "color": "rgba(5,150,105,0.5)" if bool(up) else "rgba(225,29,72,0.4)",
+            "color": VOL_UP if bool(up) else VOL_DOWN,
         })
     return rows
 
@@ -186,12 +188,12 @@ def build_panes(
         data = _tuples(idx, _align(values).values)
         if data:
             series.append({"name": name, "type": "line", "color": MA_COLOURS.get(name, MUTED),
-                           "width": 2, "fmt": "num", "data": data})
+                           "width": 1.5, "fmt": "num", "data": data})
 
     vol_rows = _volume(idx, _align(volume).values, _rising(close, o).values)
     if vol_rows:
         series.append({"name": "Volume", "type": "histogram", "volume": True, "fmt": "int",
-                       "color": "rgba(5,150,105,0.5)",
+                       "color": VOL_UP,
                        "data": [(r["time"], r["value"]) for r in vol_rows],
                        "colors": [r["color"] for r in vol_rows]})
 
@@ -199,7 +201,7 @@ def build_panes(
     rs_rows = _tuples(idx, _align(rs).values) if rs is not None else []
     if rs_rows:
         panes.append({"height": 120, "series": [
-            {"name": "RS vs Nifty 500", "type": "line", "color": C.muted, "width": 2,
+            {"name": "RS vs Nifty 500", "type": "line", "color": C.up, "width": 1.5,
              "fmt": "num", "data": rs_rows}]})
     return panes, bool(vol_rows)
 

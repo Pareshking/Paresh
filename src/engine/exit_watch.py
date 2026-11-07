@@ -153,6 +153,12 @@ def nearest_rule(row, rules: Rules = Rules()) -> str:
     return f"{rule} · {room}"
 
 
+def least_room(row, rules: Rules = Rules()) -> float | None:
+    """The least room on any rule on the common scale (a fraction of price)."""
+    rooms = _rooms(row, rules)
+    return min(t[0] for t in rooms) if rooms else None
+
+
 def _tightness(row, rules: Rules) -> float:
     """The smallest room left on any rule, on one scale, for sorting."""
     rooms = _rooms(row, rules)
