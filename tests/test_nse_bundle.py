@@ -361,3 +361,22 @@ def test_nses_abbreviated_rights_wording_is_read(text, new, held, premium):
 
 def test_a_word_containing_right_is_not_a_rights_issue():
     assert nb.classify_purpose("Copyright Assignment")["kind"] != "rights"
+
+
+def test_recent_weekend_days_are_the_saturdays_and_sundays_only():
+    # Monday 9 Nov 2026: the last three days hold Sunday 8 and Saturday 7.
+    assert nc.recent_weekend_days(3, date(2026, 11, 9)) == [date(2026, 11, 8), date(2026, 11, 7)]
+    assert nc.recent_weekend_days(3, date(2026, 11, 11)) == []
+    assert nc.recent_weekend_days(0, date(2026, 11, 8)) == []
+
+
+def test_the_daily_run_asks_for_weekend_sessions_and_the_evening_runs_do_not():
+    import yaml
+
+    spec = yaml.safe_load((Path(__file__).resolve().parents[1]
+                           / ".github/workflows/nse_collect.yml").read_text())
+    crons = [c["cron"] for c in spec.get("on", spec.get(True))["schedule"]]
+    step = next(s for s in spec["jobs"]["collect"]["steps"] if s.get("name") == "Collect and check")
+    assert "--weekends \"$WEEKENDS\"" in step["run"]
+    assert "'41 3 * * *'" in step["env"]["WEEKENDS"] and "41 3 * * *" in crons
+    assert all(c.endswith("1-5") for c in crons if c != "41 3 * * *")

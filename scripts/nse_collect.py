@@ -1,8 +1,9 @@
 """Collect NSE's daily bundle into R2, one file per trading day, and check it.
 
-Record only: nothing here feeds the app yet. Screener stays the price the
-ranking uses (owner, 2026-09-27) until NSE's record is complete and has been
-compared against it.
+What it feeds (7 Nov 2026): scripts/sync_nse_prices.py --update reads these
+sessions from R2 into data/nse_prices (daily_sync), which the track record and
+the ranking's middle source use, and ss_sync's three-source check judges with
+them. Screener stays the price the ranking uses first (owner, 2026-09-27).
 
 Three datasets, each one small file per trading day, written once through the
 same immutable publisher as every other archive dataset:
@@ -82,6 +83,17 @@ def recent_weekdays(n: int, today: date) -> list[date]:
             out.append(d)
         d -= timedelta(days=1)
     return out
+
+
+def recent_weekend_days(n: int, today: date) -> list[date]:
+    """Saturdays and Sundays among the last `n` days up to `today`, newest first.
+
+    NSE sometimes trades on a weekend (Muhurat at Diwali, special Saturday
+    sessions), and its special-session list is only known after the fact, so the
+    daily run asks for recent weekend days too: an absent one costs one request.
+    """
+    return [today - timedelta(days=k) for k in range(n)
+            if (today - timedelta(days=k)).weekday() >= 5]
 
 
 def load_calendar(path: str | None) -> list[date]:
@@ -232,6 +244,9 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--recent", type=int, default=0)
+    ap.add_argument("--weekends", type=int, default=0,
+                    help="also ask for Saturdays and Sundays among the last N days "
+                         "(weekend special sessions, e.g. Muhurat)")
     ap.add_argument("--backfill", type=int, default=0)
     ap.add_argument("--calendar", help="parquet whose index lists trading sessions "
                                        "(default: weekdays, less known closed days)")
@@ -265,7 +280,7 @@ def main(argv: list[str] | None = None) -> int:
                     break
         probe(datetime.strptime(p, "%Y-%m-%d").date(), fetch)
         time.sleep(args.delay)
-    if not (args.recent or args.backfill or args.check or args.dates.strip()):
+    if not (args.recent or args.weekends or args.backfill or args.check or args.dates.strip()):
         return 0
 
     from scripts.r2_publish import publish
@@ -277,6 +292,7 @@ def main(argv: list[str] | None = None) -> int:
           + (f", {min(have)} to {max(have)}" if have else ""))
 
     days = [d for d in recent_weekdays(args.recent, today) if d not in have] if args.recent else []
+    days += [d for d in recent_weekend_days(args.weekends, today) if d not in have and d not in days]
     extra = [date.fromisoformat(x) for x in args.dates.replace(",", " ").split()]
     days += [d for d in extra if d not in have and d not in days]
     if args.backfill:
