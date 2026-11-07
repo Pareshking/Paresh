@@ -225,7 +225,7 @@ def test_one_word_for_one_thing_across_pages():
 def test_backtest_alpha_is_a_percent_like_track_record():
     # Owner, 12 Oct 2026: the Backtest headline alpha reads as Track Record's does.
     source = (ROOT / "src/ui/views/backtest_view.py").read_text(encoding="utf-8")
-    assert "f\"{stats['alpha']:+.1%}\"" in source
+    assert "f\"{_fmt.pct(stats['alpha'])}\"" in source
     assert " pts\"" not in source
 
 

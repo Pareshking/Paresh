@@ -20,6 +20,7 @@ from src.loaders.price_loader import fetch_benchmark_history
 from src.loaders import former_members, nse_prices
 from src.loaders.ranking_store import actions_digest
 from src.ui import page_kit as kit
+from src.ui import formats as _fmt
 from src.ui.canonical_book import current_book
 from src.engine.extra_universe import SYSTEM_750
 from src.engine.systems import inception, ledger_path
@@ -30,6 +31,11 @@ from src.ui.components import (
 )
 from src.ui.theme import render_saas_table
 
+
+
+def _months_txt(years: float) -> str:
+    n = max(1, int(round(years * 12)))
+    return f"{n} month" + ("" if n == 1 else "s")
 
 def _canonical_account_stats(ledger: dict, live_meta: dict | None) -> dict:
     """Summarise the canonical account using Track Record's frozen months and live mark."""
@@ -47,7 +53,7 @@ def _canonical_account_stats(ledger: dict, live_meta: dict | None) -> dict:
 
 
 def _pct_or_dash(value) -> str:
-    return "—" if value is None or pd.isna(value) else f"{float(value):+.1%}"
+    return "—" if value is None or pd.isna(value) else f"{_fmt.pct(float(value))}"
 
 
 def _day(value) -> str:
@@ -629,16 +635,19 @@ def _backtest_tab(
     # that figure) is left out.
     _yrs = stats.get("window_years", 0) or 0
     kit.readings([
-        kit.Reading("Strategy return", f"{stats['total_return']:+.1%}",
-                    f"{stats['gross_return']:+.1%} before costs", _tone(stats["total_return"])),
-        kit.Reading("Annualised", f"{stats['ann_return']:+.1%}",
-                    f"{bench_name} {stats['ann_bench']:+.1%}" if _yrs >= 1
-                    else f"scaled up from {_yrs:.1f} yrs", _tone(stats["ann_return"])),
-        kit.Reading("Ahead of the index", f"{stats['alpha']:+.1%}",
-                    f"{bench_name} {stats['bench_return']:+.1%}", _tone(stats["alpha"])),
+        kit.Reading("Strategy return", f"{_fmt.pct(stats['total_return'])}",
+                    f"{_fmt.pct(stats['gross_return'])} before costs", _tone(stats["total_return"])),
+        # Under a year there is no annual figure to show: scaling a part-year
+        # up invents one (audit F10).
+        kit.Reading("Annualised", f"{_fmt.pct(stats['ann_return'])}" if _yrs >= 1 else "—",
+                    f"{bench_name} {_fmt.pct(stats['ann_bench'])}" if _yrs >= 1
+                    else f"needs 12 months; this is {_months_txt(_yrs)}",
+                    _tone(stats["ann_return"]) if _yrs >= 1 else ""),
+        kit.Reading("Ahead of the index", f"{_fmt.pct(stats['alpha'])}",
+                    f"{bench_name} {_fmt.pct(stats['bench_return'])}", _tone(stats["alpha"])),
         kit.Reading("Sharpe", f"{stats['sharpe']:.2f}",
                     (f"{sharpe_se_txt.strip()} · " if sharpe_se_txt else "") + f"Sortino {sortino_txt}"),
-        kit.Reading("Max drawdown", f"{stats['max_drawdown']:.1%}",
+        kit.Reading("Max drawdown", _fmt.pct(stats['max_drawdown']),
                     f"Calmar {stats['calmar']:.2f}" if _yrs >= 1 else "peak to trough",
                     "down" if stats["max_drawdown"] < 0 else ""),
         kit.Reading("Months ahead of index", f"{stats.get('beat_rate', 0):.0%}",
@@ -857,13 +866,13 @@ def _backtest_tab(
                         kit.Reading("Holdings", f"{len(live_book)}", f"{n_new} added this month"),
                         kit.Reading(
                             "MTD return",
-                            "—" if book_mtd != book_mtd else f"{book_mtd:+.1f}%",
+                            "—" if book_mtd != book_mtd else f"{_fmt.pct(book_mtd, fraction=False)}",
                             "the account, as on Portfolio",
                             "" if book_mtd != book_mtd else ("up" if book_mtd >= 0 else "down"),
                         ),
                         kit.Reading("In profit", f"{n_up}", "marked at the latest close", "up" if n_up else ""),
                         kit.Reading("In loss", f"{n_dn}", "", "down" if n_dn else ""),
-                        kit.Reading("Average P&L", f"{avg_r:+.1f}%", "per holding", "up" if avg_r >= 0 else "down"),
+                        kit.Reading("Average P&L", f"{_fmt.pct(avg_r, fraction=False)}", "per holding", "up" if avg_r >= 0 else "down"),
                     ], "Current book")
                     render_saas_table(lb)
                     st.download_button(

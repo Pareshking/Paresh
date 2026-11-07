@@ -571,7 +571,7 @@ def render_leadership_map(board: pd.DataFrame, span: int, focus: str | None = No
         "y0": round(r.y_then * 100, 1), "y1": round(r.y_now * 100, 1),
         "a0": int(r.above_then), "o0": int(r.obs_then), "a1": int(r.above_now), "o1": int(r.obs_now),
         "ret": round(r.ret_now * 100, 2), "bench": round(r.bench_now * 100, 2),
-        "lead": ", ".join(f"{sym} {v * 100:+.1f}%" for sym, v in (getattr(r, "Leaders", None) or [])[:2]),
+        "lead": ", ".join(f"{sym} {_fmt.pct(v * 100, fraction=False)}" for sym, v in (getattr(r, "Leaders", None) or [])[:2]),
     } for r in board.itertuples()]
     months = int(board["Months"].iloc[0]) if "Months" in board.columns else 1
     then = f"{pd.Timestamp(board['Then'].iloc[0]):%-d %b}"

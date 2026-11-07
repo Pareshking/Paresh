@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 from src.ui.tokens import resolve
+from src.ui import formats as _fmt
 
 from src.ui.system_param import stock_href
 from src.ui import page_kit as kit
@@ -149,10 +150,10 @@ def leadership_explainer(r: pd.Series, name: str, span: int) -> str:
     half = "above" if y1 >= 50 else "below"
     n = int(r["Stocks"])
     lifts = "; ".join(
-        f"{html.escape(sym)} {rv * 100:+.1f}%, which adds {rv * 100 / n:+.2f} points to the sector's {ret:+.1f}%"
+        f"{html.escape(sym)} {_fmt.pct(rv * 100, fraction=False)}, which adds {_fmt.signed(rv * 100 / n, 2)} points to the sector's {_fmt.pct(ret, fraction=False)}"
         for sym, rv in (r.get("Leaders") or [])[:2])
     return f"""**Across: did the sector beat the Nifty 500 over the {period}?**  
-Each of the {n} {html.escape(name)} stocks' price change from the {then:%d %b} close to the {now:%d %b} close, averaged with equal weight: **{ret:+.1f}%**. The Nifty 500 over the same closes: **{bench:+.1f}%**. The difference, {ret:+.2f} − ({bench:+.2f}) = **{x1:+.2f}%**, places the filled dot {side} the 0 line. The hollow dot is the same sum for the {period} before: {x0:+.1f}%.
+Each of the {n} {html.escape(name)} stocks' price change from the {then:%d %b} close to the {now:%d %b} close, averaged with equal weight: **{_fmt.pct(ret, fraction=False)}**. The Nifty 500 over the same closes: **{_fmt.pct(bench, fraction=False)}**. The difference, {_fmt.signed(ret, 2)} − ({_fmt.signed(bench, 2)}) = **{_fmt.signed(x1, 2)}%**, places the filled dot {side} the 0 line. The hollow dot is the same sum for the {period} before: {_fmt.pct(x0, fraction=False)}.
 
 **Up: how many of its stocks are in an uptrend?**  
 A stock counts when its close is above its own {span}-day EMA (exponential average of its closes). Today {int(r['above_now'])} of {int(r['obs_now'])} = **{y1:.0f}%**; {_ago(m)} {int(r['above_then'])} of {int(r['obs_then'])} = {y0:.0f}%. Only stocks with a close and an EMA that day are counted; an EMA needs {int(span * 0.8)} sessions of prices, so a recent listing can be missing.

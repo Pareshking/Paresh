@@ -598,13 +598,13 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
         ),
         kit.Reading(
             "Unrealised P&L",
-            "—" if not np.isfinite(pnl_pct) else f"{pnl_pct:+.1f}%",
+            "—" if not np.isfinite(pnl_pct) else f"{_fmt.pct(pnl_pct, fraction=False)}",
             "",
             "" if not np.isfinite(pnl_pct) else ("up" if pnl >= 0 else "down"),
         ),
         kit.Reading(
             "Day P&L",
-            "—" if not np.isfinite(day_pnl_pct) else f"{day_pnl_pct:+.1f}%",
+            "—" if not np.isfinite(day_pnl_pct) else f"{_fmt.pct(day_pnl_pct, fraction=False)}",
             f"Nifty 500 {kit.pct(benchmark_day_pct)}",
             "up" if day_pnl_pct >= 0 else "down",
         ),

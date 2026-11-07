@@ -293,7 +293,7 @@ def _render_corporate_actions(symbol: str) -> None:
     lines = []
     for e in sorted(events, key=lambda x: x.get("date", "")):
         move = e.get("move")
-        move_str = f"{move * 100:+.1f}%" if move is not None else "a large amount"
+        move_str = f"{_fmt.pct(move * 100, fraction=False)}" if move is not None else "a large amount"
         kind = e.get("looks_like") or e.get("kind") or "corporate action"
         day = _date_label(e.get("date")) or str(e.get("date", "—"))
         lines.append(

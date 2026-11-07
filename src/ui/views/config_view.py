@@ -13,6 +13,7 @@ import pandas as pd
 import streamlit as st
 
 from src.ui import page_kit as kit
+from src.ui import formats as _fmt
 from src.ui import system_param
 from src.engine.liquidity import DEFAULT_FLOOR_CR
 
@@ -290,7 +291,8 @@ def _section_momentum_signal() -> None:
 
     # The split as a bar, labelled. "Weight vector:" is also what the
     # production QA probe reads back off the page, so the wording stays.
-    shades = ("var(--c-rule_strong)", "#818CF8", "var(--c-ink)", "var(--c-ink)", "#1E1B4B")
+    # Ink only, one step per window (Ledger: colour is kept for up and down).
+    shades = ("var(--c-rule)", "var(--c-rule_strong)", "var(--c-muted)", "var(--c-text_2)", "var(--c-ink)")
     segs = "".join(
         f'<span style="width:{w * 100:.2f}%;background:{c};color:{"var(--c-ink)" if i < 2 else "var(--c-white)"}">'
         f"{html.escape(lbl)} {w:.0%}</span>"
@@ -449,7 +451,7 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
                 {
                     "Date": _day(e.get("date")),
                     "Symbol": e.get("symbol", "—"),
-                    "Move": f"{_move * 100:+.1f}%" if _move is not None else "—",
+                    "Move": f"{_fmt.pct(_move * 100, fraction=False)}" if _move is not None else "—",
                     # A null ratio in the log raised TypeError on the format
                     # and took the Configuration page down.
                     "Ratio": (

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-07 — One figure tile, one minus, no part-year annualising
+
+- Every row of headline figures (Portfolio, Backtest, Actions, Sectors, Configuration and the rest) is drawn the same way: between two hairlines, cells split by a hairline, centred, no boxes or shadows.
+- Configuration and Backtest's settings line lose their rounded boxes and tinted panels; the score-weight bar is shades of ink, not indigo. Corners are 4px everywhere and decorative shadows are gone.
+- Every negative figure uses a true minus (−8.4%, not -8.4%), including Portfolio's P&L tiles, Backtest's figures and the Sectors worked example.
+- Backtest shows no annualised return for a window under a year ("needs 12 months; this is 10 months") instead of scaling a part-year up.
+
 ## 2026-11-07 — Guide rewritten
 
 - One reading column with plain headings and formulas as text; no tabs, boxes or marketing headings. Every statement checked against the code, including the record's caps (5% a stock, 40% an industry, at most 8 of 20 from one industry), which the old Guide left out.

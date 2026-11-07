@@ -24,6 +24,7 @@ from src.engine.track_record import (
     summary_stats,
 )
 from src.ui import page_kit as kit
+from src.ui import formats as _fmt
 from src.ui.theme import render_saas_table
 
 
@@ -117,7 +118,7 @@ def _pct(v: float | int | None) -> str:
     if v is None or pd.isna(v):
         return "—"
     try:
-        return f"{float(v) * 100:+.1f}%"
+        return f"{_fmt.pct(float(v) * 100, fraction=False)}"
     except (TypeError, ValueError):
         return "—"
 
