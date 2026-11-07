@@ -16,6 +16,8 @@ Order, top to bottom:
 
 from __future__ import annotations
 
+from src.ui.tokens import C
+
 import html as _html
 from urllib.parse import quote as _quote
 
@@ -32,14 +34,14 @@ from src.ui.components import gap_count, render_data_quality_footer, to_bool_mas
 from src.ui.screener_table import render_screener_table
 
 # ── Palette tokens ───────────────────────────────────────────────────────────
-POS   = "#1D5FA6"
-NEG   = "#A4441A"
-WARN  = "#B54708"
-ACC   = "#1C1B19"
-INK   = "#1C1B19"
-SUB   = "#3A3A37"
-MUTED = "#5F5F5B"
-LINE  = "#E6E6E3"
+POS   = C.up
+NEG   = C.down
+WARN  = C.caution
+ACC   = C.ink
+INK   = C.ink
+SUB   = C.text_2
+MUTED = C.muted
+LINE  = C.rule
 
 PERIODS = (1, 3, 6, 9, 12)
 _LONG = {1: "1 month", 3: "3 months", 6: "6 months", 9: "9 months", 12: "12 months"}
@@ -345,9 +347,9 @@ def _render_price_ladder(row: pd.Series, year_low: float | None = None) -> None:
             + '</div></section>'
             '<style>'
             '.sp-range-fallback{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}'
-            '.sp-range-fallback span{display:flex;flex-direction:column;gap:3px;min-width:120px;padding:10px 12px;border-radius:10px;background:#FFFFFF;}'
-            '.sp-range-fallback b{font-size:12px;color:#5F5F5B;}'
-            '.sp-range-fallback strong{font-family:var(--font-mono);font-size:16px;color:#1C1B19;}'
+            '.sp-range-fallback span{display:flex;flex-direction:column;gap:3px;min-width:120px;padding:10px 12px;border-radius:10px;background:var(--c-white);}'
+            '.sp-range-fallback b{font-size:12px;color:var(--c-muted);}'
+            '.sp-range-fallback strong{font-family:var(--font-mono);font-size:16px;color:var(--c-ink);}'
             '</style>'
             '</section>'
         )
@@ -402,20 +404,20 @@ def _render_price_ladder(row: pd.Series, year_low: float | None = None) -> None:
         '.sp-range-label.low .sp-range-k i{background:#FF6267;}'
         '.sp-range-label.threshold .sp-range-k{color:#D99B00;}'
         '.sp-range-label.threshold .sp-range-k i{background:#F4B400;}'
-        '.sp-range-label.ema .sp-range-k{color:#1C1B19;}'
-        '.sp-range-label.ema .sp-range-k i{background:#1C1B19;}'
-        '.sp-range-label.high .sp-range-k{color:#1D5FA6;}'
-        '.sp-range-label.high .sp-range-k i{background:#1D5FA6;}'
-        '.sp-range-label b{display:block;margin-top:4px;font-family:var(--font-mono);font-size:17px;line-height:1;color:#1C1B19;font-weight:700;white-space:nowrap;}'
+        '.sp-range-label.ema .sp-range-k{color:var(--c-ink);}'
+        '.sp-range-label.ema .sp-range-k i{background:var(--c-ink);}'
+        '.sp-range-label.high .sp-range-k{color:var(--c-up);}'
+        '.sp-range-label.high .sp-range-k i{background:var(--c-up);}'
+        '.sp-range-label b{display:block;margin-top:4px;font-family:var(--font-mono);font-size:17px;line-height:1;color:var(--c-ink);font-weight:700;white-space:nowrap;}'
         '.sp-range-track{position:relative;height:18px;margin:0 10px;}'
         '.sp-range-segment{position:absolute;top:4px;height:10px;border-radius:5px;}'
-        '.sp-range-segment.muted{background:#EEEEEB;}'
+        '.sp-range-segment.muted{background:var(--c-rule_soft);}'
         '.sp-range-segment.positive{background:#58D6A1;}'
         '.sp-range-dot{position:absolute;top:0;width:18px;height:18px;margin-left:-9px;border:3px solid #fff;border-radius:50%;box-sizing:border-box;}'
         '.sp-range-dot.low{background:#FF6267;box-shadow:0 0 0 1px #FF6267;}'
-        '.sp-range-dot.ema{background:#1C1B19;box-shadow:0 0 0 1px #1C1B19;}'
+        '.sp-range-dot.ema{background:var(--c-ink);box-shadow:0 0 0 1px var(--c-ink);}'
         '.sp-range-dot.threshold{background:#F4B400;box-shadow:0 0 0 1px #F4B400;}'
-        '.sp-range-dot.high{background:#1D5FA6;box-shadow:0 0 0 1px #1D5FA6;}'
+        '.sp-range-dot.high{background:var(--c-up);box-shadow:0 0 0 1px var(--c-up);}'
         '@media (max-width:640px){'
         '.sp-price-position{padding:14px 12px;border-radius:16px;}'
         '.sp-range-clean{margin-top:20px;padding:0;}'

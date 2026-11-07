@@ -11,6 +11,7 @@ import html
 import numpy as np
 import pandas as pd
 import streamlit as st
+from src.ui.tokens import resolve
 
 from src.ui.system_param import stock_href
 from src.ui import page_kit as kit
@@ -105,7 +106,7 @@ def render_leadership_section(rank_df: pd.DataFrame, adj_close: pd.DataFrame, co
                     else board.sort_values("x_now", ascending=False)["Sector"].iloc[0]))
         with st.expander(f"How to read this · worked example: {SHORT_NAMES.get(example, example)}"):
             st.markdown(leadership_explainer(board.set_index("Sector").loc[example], example, span))
-        st.iframe(leadership_table_html(board, span), height=28 + 42 + len(board) * ROW_PX + 6)
+        st.iframe(resolve(leadership_table_html(board, span)), height=28 + 42 + len(board) * ROW_PX + 6)
         kit.caption("Sector return is the equal-weighted mean of its stocks' price returns, not an "
                     "NSE sector index; the share counts stocks with a close and an EMA that day. "
                     "Click a header to sort.")
@@ -208,7 +209,7 @@ def leadership_table_html(board: pd.DataFrame, span: int) -> str:
            "tbody tr:hover td{cursor:default}"
            ".dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;"
            "border:1px solid rgba(14,23,38,.25);vertical-align:0}"
-           "td .pc{display:inline-block;min-width:38px;margin-left:8px;color:#5F5F5B;font-weight:500}"
+           "td .pc{display:inline-block;min-width:38px;margin-left:8px;color:var(--c-muted);font-weight:500}"
            ".nm-short{display:none}"
            "@media (max-width:640px){td .pc{display:none}.nm-full{display:none}.nm-short{display:inline}"
            "th,td{padding:0 6px}td{font-size:12.5px}th:nth-child(1),td.c-rank{width:26px;min-width:26px}"

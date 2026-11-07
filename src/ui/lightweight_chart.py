@@ -31,17 +31,19 @@ Plotly renderer already fell back to.
 
 from __future__ import annotations
 
+from src.ui.tokens import C
+
 import pandas as pd
 
 import streamlit as st
 
 # Palette shared with the rest of the app.
-UP = "#1D5FA6"
-DOWN = "#A4441A"
-INK = "#1C1B19"
-GRID = "#F2F2EF"
-MUTED = "#5F5F5B"
-MA_COLOURS = {"20 EMA": "#0ea5e9", "50 EMA": "#5F5F5B", "200 SMA": "#B54708"}
+UP = C.up
+DOWN = C.down
+INK = C.ink
+GRID = C.fill
+MUTED = C.muted
+MA_COLOURS = {"20 EMA": "#0ea5e9", "50 EMA": C.muted, "200 SMA": C.caution}
 
 # Half the sessions must carry a real range before the price is drawn as
 # candles. A single surviving high does not earn candle bodies for the other
@@ -141,8 +143,8 @@ def _base_chart(height: int) -> dict:
     return {
         "height": height,
         "layout": {
-            "background": {"type": "solid", "color": "#ffffff"},
-            "textColor": "#3A3A37",
+            "background": {"type": "solid", "color": C.white},
+            "textColor": C.text_2,
             "attributionLogo": False,
             "fontFamily": "IBM Plex Mono, monospace",
         },
@@ -150,8 +152,8 @@ def _base_chart(height: int) -> dict:
             "vertLines": {"color": GRID},
             "horzLines": {"color": GRID},
         },
-        "rightPriceScale": {"borderColor": "#E6E6E3"},
-        "timeScale": {"borderColor": "#E6E6E3", "timeVisible": False},
+        "rightPriceScale": {"borderColor": C.rule},
+        "timeScale": {"borderColor": C.rule, "timeVisible": False},
         "crosshair": {"mode": 1},
     }
 
@@ -278,7 +280,7 @@ def render_lightweight_chart(
     if rs_rows:
         rs_chart = _base_chart(120)
         rs_chart["rightPriceScale"] = {
-            "borderColor": "#E6E6E3",
+            "borderColor": C.rule,
             "autoScale": True,
             "scaleMargins": {"top": 0.1, "bottom": 0.1},
         }
@@ -288,7 +290,7 @@ def render_lightweight_chart(
                 "type": "Line",
                 "data": rs_rows,
                 "options": {
-                    "color": "#5F5F5B", "lineWidth": 2,
+                    "color": C.muted, "lineWidth": 2,
                     "priceLineVisible": False,
                     "title": "RS vs Nifty 500",
                     "lastValueVisible": True,

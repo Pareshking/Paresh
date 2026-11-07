@@ -43,41 +43,41 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
     if section_tab == "Methodology Framework":
         # 1. Visual 5-Step Pipeline Card
         pipeline_html = """
-        <div style="background:#ffffff; border:1px solid #E6E6E3; border-radius:12px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,0.02); margin-bottom:16px; font-family:'IBM Plex Sans',sans-serif;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #F2F2EF; padding-bottom:10px;">
-                <div style="font-size:14px; font-weight:700; color:#1C1B19;">
+        <div style="background:var(--c-white); border:1px solid var(--c-rule); border-radius:12px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,0.02); margin-bottom:16px; font-family:'IBM Plex Sans',sans-serif;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--c-fill); padding-bottom:10px;">
+                <div style="font-size:14px; font-weight:700; color:var(--c-ink);">
                     End-to-End Quantitative Investment Pipeline
                 </div>
-                <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#3A3A37; background:#F7F7F5; border:1px solid #E6E6E3; padding:3px 10px; border-radius:6px; font-weight:700;">
+                <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--c-text_2); background:var(--c-subtle); border:1px solid var(--c-rule); padding:3px 10px; border-radius:6px; font-weight:700;">
                     Live figures on the Backtest page · none quoted here
                 </span>
             </div>
 
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px;">
-                <div style="background:#F7F7F5; border:1px solid #E6E6E3; border-radius:8px; padding:12px;">
-                    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:#1C1B19;">STEP 01</div>
-                    <div style="font-weight:600; font-size:13px; color:#1C1B19; margin-top:2px;">Universe Ingestion</div>
-                    <div style="font-size:13px; color:#5F5F5B; line-height:1.5; margin-top:4px;">~750 Nifty Total Market constituents, using Personal price history for ranking and official NSE history where Personal has none, with flagged split/bonus discontinuities neutralised in memory at read time.</div>
+                <div style="background:var(--c-subtle); border:1px solid var(--c-rule); border-radius:8px; padding:12px;">
+                    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:var(--c-ink);">STEP 01</div>
+                    <div style="font-weight:600; font-size:13px; color:var(--c-ink); margin-top:2px;">Universe Ingestion</div>
+                    <div style="font-size:13px; color:var(--c-muted); line-height:1.5; margin-top:4px;">~750 Nifty Total Market constituents, using Personal price history for ranking and official NSE history where Personal has none, with flagged split/bonus discontinuities neutralised in memory at read time.</div>
                 </div>
-                <div style="background:#F7F7F5; border:1px solid #E6E6E3; border-radius:8px; padding:12px;">
-                    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:#1D5FA6;">STEP 02</div>
-                    <div style="font-weight:600; font-size:13px; color:#1C1B19; margin-top:2px;">Trend filters</div>
-                    <div style="font-size:13px; color:#5F5F5B; line-height:1.5; margin-top:4px;">Price above its 50-day EMA and within 20% of its 52-week high. A stock that fails either is not bought, and a holding that fails one is sold at the next rebalance. No liquidity filter is applied.</div>
+                <div style="background:var(--c-subtle); border:1px solid var(--c-rule); border-radius:8px; padding:12px;">
+                    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:var(--c-up);">STEP 02</div>
+                    <div style="font-weight:600; font-size:13px; color:var(--c-ink); margin-top:2px;">Trend filters</div>
+                    <div style="font-size:13px; color:var(--c-muted); line-height:1.5; margin-top:4px;">Price above its 50-day EMA and within 20% of its 52-week high. A stock that fails either is not bought, and a holding that fails one is sold at the next rebalance. No liquidity filter is applied.</div>
                 </div>
-                <div style="background:#F7F7F5; border:1px solid #E6E6E3; border-radius:8px; padding:12px;">
-                    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:#B54708;">STEP 03</div>
-                    <div style="font-weight:600; font-size:13px; color:#1C1B19; margin-top:2px;">Factor Scoring</div>
-                    <div style="font-size:13px; color:#5F5F5B; line-height:1.5; margin-top:4px;">Sharpe multi-window (1M/3M/6M/9M/12M) normalised via ±3σ winsorised z-scores.</div>
+                <div style="background:var(--c-subtle); border:1px solid var(--c-rule); border-radius:8px; padding:12px;">
+                    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:var(--c-caution);">STEP 03</div>
+                    <div style="font-weight:600; font-size:13px; color:var(--c-ink); margin-top:2px;">Factor Scoring</div>
+                    <div style="font-size:13px; color:var(--c-muted); line-height:1.5; margin-top:4px;">Sharpe multi-window (1M/3M/6M/9M/12M) normalised via ±3σ winsorised z-scores.</div>
                 </div>
-                <div style="background:#F7F7F5; border:1px solid #E6E6E3; border-radius:8px; padding:12px;">
-                    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:#5F5F5B;">STEP 04</div>
-                    <div style="font-weight:600; font-size:13px; color:#1C1B19; margin-top:2px;">Portfolio Sizing</div>
-                    <div style="font-size:13px; color:#5F5F5B; line-height:1.5; margin-top:4px;">Top N equal or inverse-vol weighting, projected onto the configured stock and sector caps, with a rank-persistence buffer (2.0× by default) to damp turnover.</div>
+                <div style="background:var(--c-subtle); border:1px solid var(--c-rule); border-radius:8px; padding:12px;">
+                    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:var(--c-muted);">STEP 04</div>
+                    <div style="font-weight:600; font-size:13px; color:var(--c-ink); margin-top:2px;">Portfolio Sizing</div>
+                    <div style="font-size:13px; color:var(--c-muted); line-height:1.5; margin-top:4px;">Top N equal or inverse-vol weighting, projected onto the configured stock and sector caps, with a rank-persistence buffer (2.0× by default) to damp turnover.</div>
                 </div>
-                <div style="background:#F7F7F5; border:1px solid #E6E6E3; border-radius:8px; padding:12px;">
-                    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:#5F5F5B;">STEP 05</div>
-                    <div style="font-weight:600; font-size:13px; color:#1C1B19; margin-top:2px;">Execution</div>
-                    <div style="font-size:13px; color:#5F5F5B; line-height:1.5; margin-top:4px;">Trade at the next session after the month-end signal; exits happen at the rebalance. 1-Click Zerodha Kite Basket CSV export.</div>
+                <div style="background:var(--c-subtle); border:1px solid var(--c-rule); border-radius:8px; padding:12px;">
+                    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:var(--c-muted);">STEP 05</div>
+                    <div style="font-weight:600; font-size:13px; color:var(--c-ink); margin-top:2px;">Execution</div>
+                    <div style="font-size:13px; color:var(--c-muted); line-height:1.5; margin-top:4px;">Trade at the next session after the month-end signal; exits happen at the rebalance. 1-Click Zerodha Kite Basket CSV export.</div>
                 </div>
             </div>
         </div>
@@ -86,27 +86,27 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
 
         # 2. What System-1 is, and what was deliberately removed
         comparison_card_html = """
-        <div style="padding:18px; background-color:#ffffff; border:1px solid #E6E6E3; border-radius:12px; font-family:'IBM Plex Sans',sans-serif; font-size:13px; color:#3A3A37; line-height:1.65; box-shadow:0 1px 3px rgba(0,0,0,0.02); margin-bottom:16px;">
-            <div style="font-size:14px; font-weight:700; color:#1C1B19; margin-bottom:10px;">
+        <div style="padding:18px; background-color:var(--c-white); border:1px solid var(--c-rule); border-radius:12px; font-family:'IBM Plex Sans',sans-serif; font-size:13px; color:var(--c-text_2); line-height:1.65; box-shadow:0 1px 3px rgba(0,0,0,0.02); margin-bottom:16px;">
+            <div style="font-size:14px; font-weight:700; color:var(--c-ink); margin-bottom:10px;">
                 System-1 Composite Sharpe — the only ranking engine
             </div>
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px;">
-                <div style="background:#F7F7F5; border:1px solid #E6E6E3; border-radius:8px; padding:14px;">
-                    <div style="font-weight:700; font-size:13px; color:#1C1B19; margin-bottom:6px;">
+                <div style="background:var(--c-subtle); border:1px solid var(--c-rule); border-radius:8px; padding:14px;">
+                    <div style="font-weight:700; font-size:13px; color:var(--c-ink); margin-bottom:6px;">
                         What it does
                     </div>
-                    <div style="font-size:13px; color:#3A3A37; line-height:1.6;">
+                    <div style="font-size:13px; color:var(--c-text_2); line-height:1.6;">
                         • <strong>Multi-Horizon Blend</strong>: five calendar horizons — 1M (10%), 3M (30%), 6M (30%), 9M (20%), 12M (10%).<br>
                         • <strong>Anti-Whipsaw</strong>: a two-week speculative spike scores well on 1M and is outvoted by a weak 6M/12M base.<br>
                         • <strong>Customisable</strong>: the weights are sliders on the <em>Configuration</em> page.<br>
                         • <strong>Turnover</strong>: the persistence buffer damps churn. The realised figure for your settings is on the Backtest page (turnover, under Months ahead of index) — no number is quoted here, because it depends on your settings and your window.
                     </div>
                 </div>
-                <div style="background:#F7F7F5; border:1px solid #E6E6E3; border-radius:8px; padding:14px;">
-                    <div style="font-weight:700; font-size:13px; color:#5F5F5B; margin-bottom:6px;">
+                <div style="background:var(--c-subtle); border:1px solid var(--c-rule); border-radius:8px; padding:14px;">
+                    <div style="font-weight:700; font-size:13px; color:var(--c-muted); margin-bottom:6px;">
                         What was removed, and why
                     </div>
-                    <div style="font-size:13px; color:#3A3A37; line-height:1.6;">
+                    <div style="font-size:13px; color:var(--c-text_2); line-height:1.6;">
                         • <strong>Single-Window Sharpe, Multi-Window Pure Sharpe, Vectorised Exp-Regression, Residual Alpha, Industry-Relative, Momentum Acceleration</strong> — none ever fed the composite Rank. Each added columns and its own failure modes.<br>
                         • <strong>Mean-Variance Optimisation</strong> — it degraded to Equal Weight on any exception while still reporting itself as MVO.<br>
                         • <strong>R-squared</strong> — not part of System-1 and not used to scale its score.<br>
@@ -119,35 +119,35 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
 
         # 3. Detailed 4-Pillar Mathematical Breakdown (100% Standardized 13px/14px Typography)
         methodology_html = """
-        <div style="padding:20px; background-color:#ffffff; border:1px solid #E6E6E3; border-radius:12px; font-family:'IBM Plex Sans',sans-serif; font-size:13px; color:#3A3A37; line-height:1.65; box-shadow:0 1px 3px rgba(0,0,0,0.02); margin-bottom:16px;">
-            <div style="font-size:14px; font-weight:700; color:#1C1B19; margin-bottom:14px;">
+        <div style="padding:20px; background-color:var(--c-white); border:1px solid var(--c-rule); border-radius:12px; font-family:'IBM Plex Sans',sans-serif; font-size:13px; color:var(--c-text_2); line-height:1.65; box-shadow:0 1px 3px rgba(0,0,0,0.02); margin-bottom:16px;">
+            <div style="font-size:14px; font-weight:700; color:var(--c-ink); margin-bottom:14px;">
                 Quantitative Mathematical Formulations & Parameter Dependencies
             </div>
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
                 <div>
-                    <div style="color:#1C1B19; font-weight:600; font-size:13px; margin-bottom:4px;">
+                    <div style="color:var(--c-ink); font-weight:600; font-size:13px; margin-bottom:4px;">
                         1. Multi-Window Sharpe Factor (10/30/30/20/10)
                     </div>
-                    <div style="color:#3A3A37; font-size:13px; line-height:1.6;">
+                    <div style="color:var(--c-text_2); font-size:13px; line-height:1.6;">
                         Combines 5 rolling lookbacks: <strong>1M (10%)</strong>, <strong>3M (30%)</strong>, <strong>6M (30%)</strong>, <strong>9M (20%)</strong>, and <strong>12M (10%)</strong>. Each window calculates the approved period risk-adjusted momentum statistic: log return divided by period volatility using all valid daily observations in the calendar-defined horizon.
                     </div>
                 </div>
                 <div>
-                    <div style="color:#1C1B19; font-weight:600; font-size:13px; margin-bottom:4px;">
+                    <div style="color:var(--c-ink); font-weight:600; font-size:13px; margin-bottom:4px;">
                         2. ±3σ Winsorised Z-Score Normalisation
                     </div>
-                    <div style="color:#3A3A37; font-size:13px; line-height:1.6;">
+                    <div style="color:var(--c-text_2); font-size:13px; line-height:1.6;">
                         Raw factor metrics across the universe are winsorised at ±3σ to neutralise extreme distribution outliers before Gaussian standardization (Z ~ N(0, 1)):
-                        <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; background-color:#F7F7F5; border:1px solid #E6E6E3; border-radius:6px; padding:6px 10px; margin-top:8px; font-weight:600; color:#2B2A27;">
+                        <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; background-color:var(--c-subtle); border:1px solid var(--c-rule); border-radius:6px; padding:6px 10px; margin-top:8px; font-weight:600; color:var(--c-ink_2);">
                             Score = 0.10·Z(1M) + 0.30·Z(3M) + 0.30·Z(6M) + 0.20·Z(9M) + 0.10·Z(12M)
                         </div>
                     </div>
                 </div>
                 <div>
-                    <div style="color:#1C1B19; font-weight:600; font-size:13px; margin-bottom:4px;">
+                    <div style="color:var(--c-ink); font-weight:600; font-size:13px; margin-bottom:4px;">
                         3. Trend filters
                     </div>
-                    <div style="color:#3A3A37; font-size:13px; line-height:1.6;">
+                    <div style="color:var(--c-text_2); font-size:13px; line-height:1.6;">
                         Stocks must satisfy strict quantitative criteria to enter qualified model portfolios:
                         <ul style="margin:6px 0 0 16px; padding:0; line-height:1.6; font-size:13px;">
                             <li><strong>CMP &gt; 50D EMA</strong> (Primary medium-term uptrend regime filter)</li>
@@ -157,10 +157,10 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
                     </div>
                 </div>
                 <div>
-                    <div style="color:#1C1B19; font-weight:600; font-size:13px; margin-bottom:4px;">
+                    <div style="color:var(--c-ink); font-weight:600; font-size:13px; margin-bottom:4px;">
                         4. Turnover Buffer & Execution Framework
                     </div>
-                    <div style="color:#3A3A37; font-size:13px; line-height:1.6;">
+                    <div style="color:var(--c-text_2); font-size:13px; line-height:1.6;">
                         Walk-forward monthly calendar rebalancing with causal execution (Rank at T → Trade at T+1):
                         <ul style="margin:6px 0 0 16px; padding:0; line-height:1.6; font-size:13px;">
                             <li><strong>Top 20 Holdings</strong> (Equal-Weighted or Inverse-Vol Sizing)</li>
@@ -176,26 +176,26 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
 
         # 4. Position Sizing & Risk Management Architecture Card
         sizing_risk_html = """
-        <div style="padding:20px; background-color:#ffffff; border:1px solid #E6E6E3; border-radius:12px; font-family:'IBM Plex Sans',sans-serif; font-size:13px; color:#3A3A37; line-height:1.65; box-shadow:0 1px 3px rgba(0,0,0,0.02); margin-bottom:16px;">
-            <div style="font-size:14px; font-weight:700; color:#1C1B19; margin-bottom:14px;">
+        <div style="padding:20px; background-color:var(--c-white); border:1px solid var(--c-rule); border-radius:12px; font-family:'IBM Plex Sans',sans-serif; font-size:13px; color:var(--c-text_2); line-height:1.65; box-shadow:0 1px 3px rgba(0,0,0,0.02); margin-bottom:16px;">
+            <div style="font-size:14px; font-weight:700; color:var(--c-ink); margin-bottom:14px;">
                 Position Sizing Models
             </div>
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
                 <div>
-                    <div style="color:#1C1B19; font-weight:600; font-size:13px; margin-bottom:4px;">
+                    <div style="color:var(--c-ink); font-weight:600; font-size:13px; margin-bottom:4px;">
                         Equal Weighting Allocation (w<sub>i</sub> = 1/N)
                     </div>
-                    <div style="color:#3A3A37; font-size:13px; line-height:1.6;">
+                    <div style="color:var(--c-text_2); font-size:13px; line-height:1.6;">
                         Allocates a uniform 5.00% capital weight across the Top 20 qualified holdings. This is the weighting the model book and its record use.
                     </div>
                 </div>
                 <div>
-                    <div style="color:#1C1B19; font-weight:600; font-size:13px; margin-bottom:4px;">
+                    <div style="color:var(--c-ink); font-weight:600; font-size:13px; margin-bottom:4px;">
                         Inverse-Volatility Parity (w<sub>i</sub> &prop; 1/&sigma;<sub>i</sub>)
                     </div>
-                    <div style="color:#3A3A37; font-size:13px; line-height:1.6;">
+                    <div style="color:var(--c-text_2); font-size:13px; line-height:1.6;">
                         Weights each asset inversely proportional to its annualised 63-session standard deviation:
-                        <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; background-color:#F7F7F5; border:1px solid #E6E6E3; border-radius:6px; padding:6px 10px; margin-top:8px; font-weight:600; color:#2B2A27;">
+                        <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; background-color:var(--c-subtle); border:1px solid var(--c-rule); border-radius:6px; padding:6px 10px; margin-top:8px; font-weight:600; color:var(--c-ink_2);">
                             w_i = (1 / &sigma;_i) / &sum;(1 / &sigma;_j)
                         </div>
                         Gives calmer stocks more weight. Whether that lowers volatility or drawdown depends on the period: compare both on the Backtest page.
@@ -210,7 +210,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
     elif section_tab == "Strategy Comparison Matrix":
         st.markdown(
             """
-            <div style="font-family:'IBM Plex Sans',sans-serif; font-size:14px; font-weight:700; color:#1C1B19; margin-bottom:8px;">
+            <div style="font-family:'IBM Plex Sans',sans-serif; font-size:14px; font-weight:700; color:var(--c-ink); margin-bottom:8px;">
                 Strategy Components
             </div>
             """,
@@ -311,61 +311,61 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
     elif section_tab == "Market Regime Playbooks":
         playbook_html = """
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-bottom:16px; font-family:'IBM Plex Sans',sans-serif;">
-            <div style="background:#ffffff; border:1px solid #E6E6E3; border-top:3px solid #1D5FA6; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
+            <div style="background:var(--c-white); border:1px solid var(--c-rule); border-top:3px solid var(--c-up); border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="font-weight:700; font-size:14px; color:#1D5FA6;">BULLISH EXPANSION</span>
-                    <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:#1D5FA6; background:#EAF1F8; padding:2px 7px; border-radius:4px;">NIFTY 500 &gt; 200D AVERAGE</span>
+                    <span style="font-weight:700; font-size:14px; color:var(--c-up);">BULLISH EXPANSION</span>
+                    <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:var(--c-up); background:var(--c-up_tint); padding:2px 7px; border-radius:4px;">NIFTY 500 &gt; 200D AVERAGE</span>
                 </div>
-                <div style="font-size:13px; color:#3A3A37; line-height:1.6;">
+                <div style="font-size:13px; color:var(--c-text_2); line-height:1.6;">
                     <div><strong>Model:</strong> Composite Sharpe</div>
                     <div><strong>Weight tilt:</strong> Short windows (1M / 3M)</div>
                     <div><strong>Target Allocation:</strong> 100% Equity (0% Cash)</div>
-                    <div style="margin-top:6px; color:#5F5F5B;">
+                    <div style="margin-top:6px; color:var(--c-muted);">
                         Lean the composite on short horizons to catch breakouts early and compound aggressively.
                     </div>
                 </div>
             </div>
 
-            <div style="background:#ffffff; border:1px solid #E6E6E3; border-top:3px solid #5F5F5B; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
+            <div style="background:var(--c-white); border:1px solid var(--c-rule); border-top:3px solid var(--c-muted); border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="font-weight:700; font-size:14px; color:#5F5F5B;">RANGE-BOUND / NEUTRAL</span>
-                    <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:#5F5F5B; background:#f0f9ff; padding:2px 7px; border-radius:4px;">BREADTH 40–55%</span>
+                    <span style="font-weight:700; font-size:14px; color:var(--c-muted);">RANGE-BOUND / NEUTRAL</span>
+                    <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:var(--c-muted); background:#f0f9ff; padding:2px 7px; border-radius:4px;">BREADTH 40–55%</span>
                 </div>
-                <div style="font-size:13px; color:#3A3A37; line-height:1.6;">
+                <div style="font-size:13px; color:var(--c-text_2); line-height:1.6;">
                     <div><strong>Model:</strong> Composite Sharpe</div>
                     <div><strong>Weight tilt:</strong> Mid windows (6M / 9M)</div>
                     <div><strong>Target Allocation:</strong> 85% Equity (15% Cash)</div>
-                    <div style="margin-top:6px; color:#5F5F5B;">
+                    <div style="margin-top:6px; color:var(--c-muted);">
                         Lean the composite on mid-horizon windows, where choppy tape produces fewer false breakouts than short ones.
                     </div>
                 </div>
             </div>
 
-            <div style="background:#ffffff; border:1px solid #E6E6E3; border-top:3px solid #B54708; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
+            <div style="background:var(--c-white); border:1px solid var(--c-rule); border-top:3px solid var(--c-caution); border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="font-weight:700; font-size:14px; color:#B54708;">VOLATILE / HIGH VIX</span>
-                    <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:#B54708; background:#FEF6EA; padding:2px 7px; border-radius:4px;">VIX &gt; 18</span>
+                    <span style="font-weight:700; font-size:14px; color:var(--c-caution);">VOLATILE / HIGH VIX</span>
+                    <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:var(--c-caution); background:var(--c-caution_tint); padding:2px 7px; border-radius:4px;">VIX &gt; 18</span>
                 </div>
-                <div style="font-size:13px; color:#3A3A37; line-height:1.6;">
+                <div style="font-size:13px; color:var(--c-text_2); line-height:1.6;">
                     <div><strong>Model:</strong> Composite Sharpe</div>
                     <div><strong>Weighting:</strong> Inverse Volatility</div>
                     <div><strong>Target Allocation:</strong> 70% Equity (30% Cash)</div>
-                    <div style="margin-top:6px; color:#5F5F5B;">
+                    <div style="margin-top:6px; color:var(--c-muted);">
                         Inverse-volatility weighting can be tried in the Backtest settings; the live book is equal weight.
                     </div>
                 </div>
             </div>
 
-            <div style="background:#ffffff; border:1px solid #E6E6E3; border-top:3px solid #A4441A; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
+            <div style="background:var(--c-white); border:1px solid var(--c-rule); border-top:3px solid var(--c-down); border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="font-weight:700; font-size:14px; color:#A4441A;">BEARISH DEFENSIVE</span>
-                    <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:#A4441A; background:#F8ECE5; padding:2px 7px; border-radius:4px;">NIFTY 500 &lt; 200D AVERAGE</span>
+                    <span style="font-weight:700; font-size:14px; color:var(--c-down);">BEARISH DEFENSIVE</span>
+                    <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:var(--c-down); background:var(--c-down_tint); padding:2px 7px; border-radius:4px;">NIFTY 500 &lt; 200D AVERAGE</span>
                 </div>
-                <div style="font-size:13px; color:#3A3A37; line-height:1.6;">
+                <div style="font-size:13px; color:var(--c-text_2); line-height:1.6;">
                     <div><strong>Mode:</strong> Capital protection</div>
                     <div><strong>Priority:</strong> Cash preservation</div>
                     <div><strong>Target Allocation:</strong> 40% Equity (60% Cash)</div>
-                    <div style="margin-top:6px; color:#5F5F5B;">
+                    <div style="margin-top:6px; color:var(--c-muted);">
                         Sell only what the monthly rebalance sells: the model has no stops. Add no new positions until the Nifty 500 closes back above its 200-day average (the regime in the header).
                     </div>
                 </div>
@@ -378,26 +378,26 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
     else:
         # Step-by-Step Zerodha Kite Execution Card
         zerodha_guide_html = """
-        <div style="padding:18px; background-color:#ffffff; border:1px solid #E6E6E3; border-radius:12px; font-family:'IBM Plex Sans',sans-serif; font-size:13px; color:#3A3A37; line-height:1.65; box-shadow:0 1px 3px rgba(0,0,0,0.02); margin-bottom:16px;">
-            <div style="font-size:14px; font-weight:700; color:#1C1B19; margin-bottom:12px;">
+        <div style="padding:18px; background-color:var(--c-white); border:1px solid var(--c-rule); border-radius:12px; font-family:'IBM Plex Sans',sans-serif; font-size:13px; color:var(--c-text_2); line-height:1.65; box-shadow:0 1px 3px rgba(0,0,0,0.02); margin-bottom:16px;">
+            <div style="font-size:14px; font-weight:700; color:var(--c-ink); margin-bottom:12px;">
                 Zerodha Kite 1-Click Basket Execution Playbook
             </div>
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px;">
-                <div style="background:#F7F7F5; border:1px solid #E6E6E3; border-radius:8px; padding:12px;">
-                    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:#1C1B19;">STEP 1: EXPORT BASKET</div>
-                    <div style="font-size:13px; color:#3A3A37; margin-top:4px;">Open the <strong>Actions</strong> page, review the orders, and click <strong>Kite basket</strong>.</div>
+                <div style="background:var(--c-subtle); border:1px solid var(--c-rule); border-radius:8px; padding:12px;">
+                    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:var(--c-ink);">STEP 1: EXPORT BASKET</div>
+                    <div style="font-size:13px; color:var(--c-text_2); margin-top:4px;">Open the <strong>Actions</strong> page, review the orders, and click <strong>Kite basket</strong>.</div>
                 </div>
-                <div style="background:#F7F7F5; border:1px solid #E6E6E3; border-radius:8px; padding:12px;">
-                    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:#1D5FA6;">STEP 2: IMPORT TO KITE</div>
-                    <div style="font-size:13px; color:#3A3A37; margin-top:4px;">Open <strong>Zerodha Kite Web</strong> $\to$ Navigate to <em>Orders &gt; Baskets</em> $\to$ Click <em>New Basket</em> $\to$ Click <strong>Import CSV</strong>.</div>
+                <div style="background:var(--c-subtle); border:1px solid var(--c-rule); border-radius:8px; padding:12px;">
+                    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:var(--c-up);">STEP 2: IMPORT TO KITE</div>
+                    <div style="font-size:13px; color:var(--c-text_2); margin-top:4px;">Open <strong>Zerodha Kite Web</strong> $\to$ Navigate to <em>Orders &gt; Baskets</em> $\to$ Click <em>New Basket</em> $\to$ Click <strong>Import CSV</strong>.</div>
                 </div>
-                <div style="background:#F7F7F5; border:1px solid #E6E6E3; border-radius:8px; padding:12px;">
-                    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:#B54708;">STEP 3: EXECUTE IN 1-CLICK</div>
-                    <div style="font-size:13px; color:#3A3A37; margin-top:4px;">Place the basket on the first trading day of the month. The model fills at that day's close, so orders near the close follow it most closely.</div>
+                <div style="background:var(--c-subtle); border:1px solid var(--c-rule); border-radius:8px; padding:12px;">
+                    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:var(--c-caution);">STEP 3: EXECUTE IN 1-CLICK</div>
+                    <div style="font-size:13px; color:var(--c-text_2); margin-top:4px;">Place the basket on the first trading day of the month. The model fills at that day's close, so orders near the close follow it most closely.</div>
                 </div>
-                <div style="background:#F7F7F5; border:1px solid #E6E6E3; border-radius:8px; padding:12px;">
-                    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:#5F5F5B;">STEP 4: HOLD TO THE NEXT REBALANCE</div>
-                    <div style="font-size:13px; color:#3A3A37; margin-top:4px;">No stop orders. The Actions page lists what to sell at the next month-end signal: holdings whose rank left the buffer or that failed a filter.</div>
+                <div style="background:var(--c-subtle); border:1px solid var(--c-rule); border-radius:8px; padding:12px;">
+                    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:var(--c-muted);">STEP 4: HOLD TO THE NEXT REBALANCE</div>
+                    <div style="font-size:13px; color:var(--c-text_2); margin-top:4px;">No stop orders. The Actions page lists what to sell at the next month-end signal: holdings whose rank left the buffer or that failed a filter.</div>
                 </div>
             </div>
         </div>
@@ -406,56 +406,56 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
 
         faq_html = """
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:12px; margin-bottom:16px; font-family:'IBM Plex Sans',sans-serif;">
-            <div style="background:#ffffff; border:1px solid #E6E6E3; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
-                <div style="font-weight:700; font-size:14px; color:#1C1B19; margin-bottom:6px;">
+            <div style="background:var(--c-white); border:1px solid var(--c-rule); border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
+                <div style="font-weight:700; font-size:14px; color:var(--c-ink); margin-bottom:6px;">
                     Are the backtest's returns after tax?
                 </div>
-                <div style="font-size:13px; color:#3A3A37; line-height:1.6;">
+                <div style="font-size:13px; color:var(--c-text_2); line-height:1.6;">
                     <strong>No.</strong> "Net" on the Backtest page means net of the modelled transaction-cost drag only. No tax is deducted anywhere in this application. That matters here more than in a buy-and-hold model: monthly rebalancing realises gains inside twelve months, so in India they are short-term capital gains, and the after-tax outcome is materially below every figure shown. Treat all returns on every page as <strong>pre-tax</strong>.
                 </div>
             </div>
 
-            <div style="background:#ffffff; border:1px solid #E6E6E3; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
-                <div style="font-weight:700; font-size:14px; color:#1C1B19; margin-bottom:6px;">
+            <div style="background:var(--c-white); border:1px solid var(--c-rule); border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
+                <div style="font-weight:700; font-size:14px; color:var(--c-ink); margin-bottom:6px;">
                     When should I rebalance my portfolio?
                 </div>
-                <div style="font-size:13px; color:#3A3A37; line-height:1.6;">
+                <div style="font-size:13px; color:var(--c-text_2); line-height:1.6;">
                     Rebalance on the <strong>first trading day of every calendar month</strong> (or every 21 trading days). Avoid intra-month changes: the strategy has no stops, so a holding waits for the next rebalance.
                 </div>
             </div>
 
-            <div style="background:#ffffff; border:1px solid #E6E6E3; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
-                <div style="font-weight:700; font-size:14px; color:#1C1B19; margin-bottom:6px;">
+            <div style="background:var(--c-white); border:1px solid var(--c-rule); border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
+                <div style="font-weight:700; font-size:14px; color:var(--c-ink); margin-bottom:6px;">
                     Why is stock #14 not in the Top 20 Portfolio?
                 </div>
-                <div style="font-size:13px; color:#3A3A37; line-height:1.6;">
+                <div style="font-size:13px; color:var(--c-text_2); line-height:1.6;">
                     Existing holdings are retained while their rank stays inside the persistence buffer — 2.0× the book size by default, so Top 20 holds to rank 40. This damps brokerage friction, impact slippage and realised capital-gains events. <strong>Note that the backtest models transaction costs only; no tax is deducted anywhere in this application.</strong>
                 </div>
             </div>
 
-            <div style="background:#ffffff; border:1px solid #E6E6E3; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
-                <div style="font-weight:700; font-size:14px; color:#1C1B19; margin-bottom:6px;">
+            <div style="background:var(--c-white); border:1px solid var(--c-rule); border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
+                <div style="font-weight:700; font-size:14px; color:var(--c-ink); margin-bottom:6px;">
                     How does JdK Relative Rotation Graph (RRG ®) work?
                 </div>
-                <div style="font-size:13px; color:#3A3A37; line-height:1.6;">
+                <div style="font-size:13px; color:var(--c-text_2); line-height:1.6;">
                     RRG tracks clockwise rotation across 4 quadrants: <strong>Improving (Blue)</strong> $\to$ <strong>Leading (Green)</strong> $\to$ <strong>Weakening (Yellow)</strong> $\to$ <strong>Lagging (Red)</strong>. Sectors rotating into <em>Leading</em> offer the strongest multi-month tailwinds.
                 </div>
             </div>
 
-            <div style="background:#ffffff; border:1px solid #E6E6E3; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
-                <div style="font-weight:700; font-size:14px; color:#1C1B19; margin-bottom:6px;">
+            <div style="background:var(--c-white); border:1px solid var(--c-rule); border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
+                <div style="font-weight:700; font-size:14px; color:var(--c-ink); margin-bottom:6px;">
                     What is the difference between Equal Weighting and Inverse-Volatility Parity?
                 </div>
-                <div style="font-size:13px; color:#3A3A37; line-height:1.6;">
+                <div style="font-size:13px; color:var(--c-text_2); line-height:1.6;">
                     <strong>Equal Weighting</strong> gives each stock a flat 5.0% allocation (ideal for strong bull markets). <strong>Inverse-Volatility Parity</strong> weights stocks by $1/\\sigma$, allocating smaller sizes to high-beta volatile stocks and larger sizes to low-volatility compounders, cutting portfolio drawdown.
                 </div>
             </div>
 
-            <div style="background:#ffffff; border:1px solid #E6E6E3; border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
-                <div style="font-weight:700; font-size:14px; color:#1C1B19; margin-bottom:6px;">
+            <div style="background:var(--c-white); border:1px solid var(--c-rule); border-radius:10px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
+                <div style="font-weight:700; font-size:14px; color:var(--c-ink); margin-bottom:6px;">
                     How are trading costs modelled in the backtest?
                 </div>
-                <div style="font-size:13px; color:#3A3A37; line-height:1.6;">
+                <div style="font-size:13px; color:var(--c-text_2); line-height:1.6;">
                     Every simulated trade deducts a <strong>30 basis point (0.30%) round-trip cost</strong> covering brokerage, exchange turnover and SEBI fees, GST on those fees, stamp duty, STT and bid-ask slippage — the <em>transaction</em> taxes and frictions paid on the trade itself. <strong>Capital-gains tax is a different thing and is not modelled anywhere in this application: every return shown is pre-tax.</strong> A monthly-rebalanced book realises gains inside twelve months, so in India they are short-term.
                 </div>
             </div>

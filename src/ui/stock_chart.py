@@ -19,6 +19,8 @@ app always drew for a close-only source.
 
 from __future__ import annotations
 
+from src.ui.tokens import C
+
 import pandas as pd
 
 import streamlit as st
@@ -26,12 +28,12 @@ import streamlit as st
 from src.ui import lw_chart
 
 # Palette shared with the rest of the app.
-UP = "#1D5FA6"
-DOWN = "#A4441A"
-INK = "#1C1B19"
-GRID = "#F2F2EF"
-MUTED = "#5F5F5B"
-MA_COLOURS = {"20 EMA": "#0ea5e9", "50 EMA": "#5F5F5B", "200 SMA": "#B54708"}
+UP = C.up
+DOWN = C.down
+INK = C.ink
+GRID = C.fill
+MUTED = C.muted
+MA_COLOURS = {"20 EMA": "#0ea5e9", "50 EMA": C.muted, "200 SMA": C.caution}
 
 # Half the sessions must carry a real range before the price is drawn as
 # candles. A single surviving high does not earn candle bodies for the other
@@ -197,7 +199,7 @@ def build_panes(
     rs_rows = _tuples(idx, _align(rs).values) if rs is not None else []
     if rs_rows:
         panes.append({"height": 120, "series": [
-            {"name": "RS vs Nifty 500", "type": "line", "color": "#5F5F5B", "width": 2,
+            {"name": "RS vs Nifty 500", "type": "line", "color": C.muted, "width": 2,
              "fmt": "num", "data": rs_rows}]})
     return panes, bool(vol_rows)
 

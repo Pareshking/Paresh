@@ -2,6 +2,7 @@
 Reusable UI Components and Widgets for NSE Momentum Dashboard.
 Inspired by Investrack, Stockin.id, and Tickerboom financial terminal designs.
 """
+from src.ui.tokens import C
 
 import html
 import re
@@ -82,7 +83,7 @@ def compute_signals(rank_df: pd.DataFrame) -> list[SignalAlert]:
             SignalAlert(
                 icon="⚠️",
                 text="Fewer than 20 pass both filters",
-                color="#B54708",
+                color=C.caution,
                 category="risk",
             )
         )
@@ -169,7 +170,7 @@ def _render_yearly_summary(grid: pd.DataFrame, bench_name: str) -> None:
         '<style>.cr-yearly{margin-bottom:14px}'
         f'.cr-yearly-table{{min-width:{120 + 74 * len(table)}px}}'
         '.cr-yearly-table .cr-part{display:block;font-weight:600;letter-spacing:0;'
-        'text-transform:none;color:#8A8A85;font-size:9px;margin-top:2px}</style>'
+        'text-transform:none;color:var(--c-faint);font-size:9px;margin-top:2px}</style>'
     )
 
 
@@ -228,40 +229,40 @@ def _render_calendar_returns(grid: pd.DataFrame) -> None:
 
     st.html("""
     <style>
-      .cr-wrap { display:grid; gap:14px; font-family:inherit; color:#1C1B19; }
-      .cr-year { background:#fff; border:1px solid #E6E6E3; border-radius:13px;
+      .cr-wrap { display:grid; gap:14px; font-family:inherit; color:var(--c-ink); }
+      .cr-year { background:#fff; border:1px solid var(--c-rule); border-radius:13px;
         overflow:hidden; box-shadow:0 2px 8px rgba(20,32,54,.035); }
       .cr-year-head { display:flex; align-items:center; justify-content:space-between;
-        gap:12px; padding:13px 16px; background:linear-gradient(110deg,#FAFAF8,#fff);
-        border-bottom:1px solid #EEEEEB; }
+        gap:12px; padding:13px 16px; background:linear-gradient(110deg,var(--c-fill_soft),#fff);
+        border-bottom:1px solid var(--c-rule_soft); }
       .cr-kicker { display:block; font-size:9px; font-weight:800; letter-spacing:.13em;
-        color:#5F5F5B; }
+        color:var(--c-muted); }
       .cr-year-head h3 { margin:2px 0 0; font-size:21px; line-height:1.2;
-        letter-spacing:-.04em; color:#1C1B19; font-weight:750; }
-      .cr-year-note { color:#6E6E69; font-size:11px; text-align:right; }
+        letter-spacing:-.04em; color:var(--c-ink); font-weight:750; }
+      .cr-year-note { color:var(--c-muted_2); font-size:11px; text-align:right; }
       .cr-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
       .cr-table { border-collapse:separate; border-spacing:0; width:100%;
         min-width:980px; font-size:11px; font-variant-numeric:tabular-nums; }
       .cr-table th,.cr-table td { padding:10px 8px; text-align:center;
-        border-bottom:1px solid #EEEEEB; white-space:nowrap; }
-      .cr-table thead th { background:#FAFAF8; color:#5F5F5B; font-size:9px;
+        border-bottom:1px solid var(--c-rule_soft); white-space:nowrap; }
+      .cr-table thead th { background:var(--c-fill_soft); color:var(--c-muted); font-size:9px;
         font-weight:800; letter-spacing:.045em; }
       .cr-table thead th:first-child { text-align:left; padding-left:15px; }
       .cr-table tbody tr:last-child th,.cr-table tbody tr:last-child td { border-bottom:0; }
-      .cr-table tbody tr:hover { background:#FFFFFF; }
+      .cr-table tbody tr:hover { background:var(--c-white); }
       .cr-series { text-align:left !important; padding-left:15px !important;
-        font-size:11px; font-weight:750; color:#2B2A27; min-width:86px; }
-      .cr-series.strategy { border-left:3px solid #1C1B19; }
-      .cr-series.benchmark { border-left:3px solid #8A8A85; }
+        font-size:11px; font-weight:750; color:var(--c-ink_2); min-width:86px; }
+      .cr-series.strategy { border-left:3px solid var(--c-ink); }
+      .cr-series.benchmark { border-left:3px solid var(--c-faint); }
       .cr-series.alpha { border-left:3px solid #d97706; }
       .cr-value { font-weight:650; }
-      .cr-value.positive { color:#1D5FA6; }
-      .cr-value.negative { color:#A4441A; }
-      .cr-value.flat,.cr-empty { color:#8A8A85; }
-      .cr-empty { background:#FFFFFF; }
-      .cr-summary-head { background:#F2F2EF !important; color:#4542a7 !important; }
-      .cr-summary { background:#FAFAF8; font-weight:800; }
-      .cr-table td.cr-summary { border-left:1px solid #EEEEEB; }
+      .cr-value.positive { color:var(--c-up); }
+      .cr-value.negative { color:var(--c-down); }
+      .cr-value.flat,.cr-empty { color:var(--c-faint); }
+      .cr-empty { background:var(--c-white); }
+      .cr-summary-head { background:var(--c-fill) !important; color:#4542a7 !important; }
+      .cr-summary { background:var(--c-fill_soft); font-weight:800; }
+      .cr-table td.cr-summary { border-left:1px solid var(--c-rule_soft); }
       @media(max-width:640px) {
         .cr-year-head { padding:11px 12px; }
         .cr-year-head h3 { font-size:19px; }
@@ -272,14 +273,6 @@ def _render_calendar_returns(grid: pd.DataFrame) -> None:
     </style>
     """)
     st.html('<div class="cr-wrap">' + "".join(blocks) + '</div>')
-
-# Every primary page is directly reachable on desktop. The compact
-# popover remains the mobile/tablet navigation for the pages that do not fit.
-_TOP_ROW_PAGES = tuple(p for p in (
-    "Screener", "Portfolio", "Actions", "Sectors", "RRG", "Watchlist",
-    "Market Breadth", "Backtest", "Configuration", "Guide",
-))
-
 
 def _status_pill_html() -> str:
     """Green "Prices · closes of 25 Sep", or amber naming the stale source."""
@@ -363,22 +356,12 @@ def render_header_kpi_bar(
                 st.page_link(nav_pages[0], label="Paresh Patel")
         else:
             st.html('<span class="hdr-title">Paresh Patel</span>', width="content")
-        if nav_pages:
-            # Desktop shows the complete primary navigation directly. CSS hides
-            # this row below 900px, where the compact popover takes over.
-            with st.container(key="app_toplinks", horizontal=True,
-                              vertical_alignment="center", gap=None, width="stretch"):
-                for _i, _p in enumerate(nav_pages):
-                    if getattr(_p, "title", "") not in _TOP_ROW_PAGES:
-                        continue
-                    _state = "navon" if _p is active_page else "navoff"
-                    with st.container(key=f"{_state}_top_{_i}", width="content"):
-                        st.page_link(_p)
         pill = _status_pill_html()
         if pill:
             st.html(pill, width="content")
         if nav_pages:
-            # Mobile/tablet only. Desktop CSS hides the popover trigger.
+            # The only navigation, on every screen (owner, 7 Nov: "a hamburger
+            # menu only", the menu's old style). The desktop link row is gone.
             with st.popover(
                     "☰",
                     type="tertiary",
@@ -701,7 +684,7 @@ def render_freshness_ribbon() -> None:
 
     chips_html = ""
     for item in items:
-        color = "#B54708" if item["stale"] else "#1D5FA6"
+        color = C.caution if item["stale"] else C.up
         icon = "&#9888;&#65039;" if item["stale"] else "&#9679;"
         age = age_phrase(item)
         label = html.escape(str(item["label"]))
@@ -719,9 +702,9 @@ def render_freshness_ribbon() -> None:
 
     st.markdown(
         '<div role="status" aria-label="Data freshness" style="display: flex; align-items: center; '
-        "gap: 8px; overflow-x: auto; padding: 14px 0 4px; border-top: 1px solid #E6E6E3; "
+        "gap: 8px; overflow-x: auto; padding: 14px 0 4px; border-top: 1px solid var(--c-rule); "
         "margin-top: 22px; margin-bottom: 2px; "
-        'scrollbar-width: thin; scrollbar-color: #D6D6D2 transparent;">'
+        'scrollbar-width: thin; scrollbar-color: var(--c-rule_strong) transparent;">'
         f"{chips_html}</div>",
         unsafe_allow_html=True,
     )
@@ -780,17 +763,17 @@ def render_data_quality_footer(
     # the established "Personal" name whenever Screener contributes.
     _public_where = "Personal" if "screener" in _where.lower() else _where
     source_note = (
-        f'<span style="color: #8A8A85;">·</span><span>Data from: '
-        f'<strong style="color: #1C1B19;">{html.escape(_public_where)}</strong></span>'
+        f'<span style="color: var(--c-faint);">·</span><span>Data from: '
+        f'<strong style="color: var(--c-ink);">{html.escape(_public_where)}</strong></span>'
         if _public_where else ""
     )
     footer_html = f"""
-    <div style="display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding: 6px 0 24px; font-family: var(--font-ui); font-size: 12.5px; color: #5F5F5B;">
-        <span>Gap-filled over 10% (12 months): <strong style="color: {"#B54708" if gap_count else "#1C1B19"};">{gap_count}</strong></span>
-        <span style="color: #8A8A85;">·</span>
-        <span>Short history (under 126 sessions): <strong style="color: #1C1B19;">{short_count}</strong></span>
+    <div style="display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding: 6px 0 24px; font-family: var(--font-ui); font-size: 12.5px; color: var(--c-muted);">
+        <span>Gap-filled over 10% (12 months): <strong style="color: {"var(--c-caution)" if gap_count else "var(--c-ink)"};">{gap_count}</strong></span>
+        <span style="color: var(--c-faint);">·</span>
+        <span>Short history (under 126 sessions): <strong style="color: var(--c-ink);">{short_count}</strong></span>
         {source_note}
-        <span style="margin-left: auto; color: #3A3A37;">© Paresh Patel</span>
+        <span style="margin-left: auto; color: var(--c-text_2);">© Paresh Patel</span>
     </div>
     """
     st.html(footer_html)

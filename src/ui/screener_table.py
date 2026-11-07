@@ -30,6 +30,7 @@ from html import escape as _esc
 import numpy as np
 import pandas as pd
 import streamlit as st
+from src.ui.tokens import resolve
 
 from src.ui.system_param import stock_href
 from src.ui.system_param import suffix as system_suffix
@@ -312,7 +313,7 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     poly, up = paths.get(sym, ("", True))
     cells["spark"] = (
         f'<td class="c-path"><svg width="88" height="26" viewBox="0 0 88 26" aria-hidden="true">'
-        f'<polyline fill="none" stroke="{"#1D5FA6" if up else "#A4441A"}" stroke-width="1.7" '
+        f'<polyline fill="none" stroke="{"var(--c-up)" if up else "var(--c-down)"}" stroke-width="1.7" '
         f'stroke-linejoin="round" stroke-linecap="round" points="{poly}"/></svg></td>'
         if poly else '<td class="c-path muted">—</td>'
     )
@@ -322,50 +323,50 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
 
 _CSS = """
 *{box-sizing:border-box}
-body{margin:0;font-family:'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif;color:#1C1B19;background:transparent;-webkit-font-smoothing:antialiased}
-.wrap{height:100vh;overflow:auto;background:#FFFFFF;border:0;border-top:1px solid #1C1B19;border-radius:0}
+body{margin:0;font-family:'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--c-ink);background:transparent;-webkit-font-smoothing:antialiased}
+.wrap{height:100vh;overflow:auto;background:var(--c-white);border:0;border-top:1px solid var(--c-ink);border-radius:0}
 table{border-collapse:separate;border-spacing:0;width:100%;min-width:1180px}
-thead th{position:sticky;top:0;z-index:3;background:#F7F7F5;border-bottom:1px solid #E6E6E3;height:42px;padding:0 10px;
-  font-size:12px;font-weight:600;color:#5F5F5B;text-align:right;white-space:nowrap;cursor:pointer;user-select:none}
+thead th{position:sticky;top:0;z-index:3;background:var(--c-subtle);border-bottom:1px solid var(--c-rule);height:42px;padding:0 10px;
+  font-size:12px;font-weight:600;color:var(--c-muted);text-align:right;white-space:nowrap;cursor:pointer;user-select:none}
 thead th.t-left{text-align:left}
 thead th{text-transform:uppercase;letter-spacing:.04em;font-size:11.5px}
 thead tr.grp-row th{font-size:11px}
 td.n.pos,td.n.neg{font-weight:600}
-thead tr.grp-row th{top:0;height:28px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;text-align:center;color:#5F5F5B;border-bottom:1px solid #E6E6E3;border-left:1px solid #E6E6E3;cursor:default}
+thead tr.grp-row th{top:0;height:28px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;text-align:center;color:var(--c-muted);border-bottom:1px solid var(--c-rule);border-left:1px solid var(--c-rule);cursor:default}
 thead tr.grp-row + tr.hdr th{top:28px}
-.tag{display:inline-block;font-size:11.5px;font-weight:600;padding:0;border-radius:0;background:transparent;color:#3A3A37;border:0}
+.tag{display:inline-block;font-size:11.5px;font-weight:600;padding:0;border-radius:0;background:transparent;color:var(--c-text_2);border:0}
 td.c-tick{text-align:center}
 td.c-stock .sub{display:none}
 .wide .m-only{display:none!important}
 thead th[data-type=""]{cursor:default}
-thead th .ar{color:#8A8A85;margin-left:3px}
-thead th.on{color:#1C1B19}
-thead th.on .ar{color:#1C1B19}
-td{height:""" + str(ROW_PX) + """px;padding:0 10px;border-bottom:1px solid #EEEEEB;font-size:13.5px;white-space:nowrap;background:#FFFFFF}
-tbody tr:hover td{background:#F7F7F5;cursor:pointer}
+thead th .ar{color:var(--c-faint);margin-left:3px}
+thead th.on{color:var(--c-ink)}
+thead th.on .ar{color:var(--c-ink)}
+td{height:""" + str(ROW_PX) + """px;padding:0 10px;border-bottom:1px solid var(--c-rule_soft);font-size:13.5px;white-space:nowrap;background:var(--c-white)}
+tbody tr:hover td{background:var(--c-subtle);cursor:pointer}
 td.n{text-align:right;font-family:'IBM Plex Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
-.pos{color:#1D5FA6}.neg{color:#A4441A}.muted{color:#5F5F5B}
+.pos{color:var(--c-up)}.neg{color:var(--c-down)}.muted{color:var(--c-muted)}
 tr.hdr th:nth-child(1),td.c-rank{position:sticky;left:0;z-index:2;width:52px;min-width:52px;text-align:left}
 thead tr.hdr th:nth-child(1){z-index:4}
-tr.hdr th:nth-child(2),td.c-stock{position:sticky;left:52px;z-index:2;text-align:left;max-width:380px;box-shadow:1px 0 0 #EEEEEB}
+tr.hdr th:nth-child(2),td.c-stock{position:sticky;left:52px;z-index:2;text-align:left;max-width:380px;box-shadow:1px 0 0 var(--c-rule_soft)}
 thead tr.hdr th:nth-child(2){z-index:4}
-thead tr.grp-row th.pin{position:sticky;left:0;z-index:5;border-left:0;box-shadow:1px 0 0 #E6E6E3}
-.tick{font-weight:700;font-size:14px}.tick.yes{color:#1D5FA6}.tick.no{color:#5F5F5B}
+thead tr.grp-row th.pin{position:sticky;left:0;z-index:5;border-left:0;box-shadow:1px 0 0 var(--c-rule)}
+.tick{font-weight:700;font-size:14px}.tick.yes{color:var(--c-up)}.tick.no{color:var(--c-muted)}
 .vol{font-weight:600}
 .lbl-m{display:none}
 td.c-rank{font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600}
 td.c-stock a{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;line-height:1.2;text-decoration:none;color:inherit}
-td.c-stock .sym{font-weight:650;font-size:14px;color:#1C1B19}
-td.c-stock .sub{font-size:12px;color:#5F5F5B;overflow:hidden;text-overflow:ellipsis;max-width:340px}
+td.c-stock .sym{font-weight:650;font-size:14px;color:var(--c-ink)}
+td.c-stock .sub{font-size:12px;color:var(--c-muted);overflow:hidden;text-overflow:ellipsis;max-width:340px}
 .chip{display:inline-block;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;font-weight:600;padding:0;border-radius:0;background:transparent!important}
-.chip.up{background:#EAF1F8;color:#1D5FA6}.chip.down{background:#F8ECE5;color:#A4441A}.chip.flat{background:#F2F2EF;color:#5F5F5B}
+.chip.up{background:var(--c-up_tint);color:var(--c-up)}.chip.down{background:var(--c-down_tint);color:var(--c-down)}.chip.flat{background:var(--c-fill);color:var(--c-muted)}
 td.c-path{padding-left:14px}
 td.c-flt{text-align:left}
-.pass{font-size:12px;font-weight:600;color:#1D5FA6}.fail{font-size:12px;font-weight:600;color:#5F5F5B}
-.ath{margin-left:6px;font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px;background:#F2F2EF;color:#1C1B19}
+.pass{font-size:12px;font-weight:600;color:var(--c-up)}.fail{font-size:12px;font-weight:600;color:var(--c-muted)}
+.ath{margin-left:6px;font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px;background:var(--c-fill);color:var(--c-ink)}
 .m-only{display:none}
-tbody tr.hl td{background:#F7F7F5}
-.me{margin-left:6px;font-style:normal;font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px;background:#F2F2EF;color:#1C1B19}
+tbody tr.hl td{background:var(--c-subtle)}
+.me{margin-left:6px;font-style:normal;font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px;background:var(--c-fill);color:var(--c-ink)}
 @media (max-width:640px){
   table{min-width:0}
   th,td{padding:0 8px}
@@ -502,6 +503,6 @@ def render_screener_table(view: pd.DataFrame, prices_df: pd.DataFrame | None,
         return
     rows = min(len(view), VISIBLE_ROWS)
     height = 44 + rows * ROW_PX + 4 + 28
-    st.iframe(table_html(view, prices_df, density, highlight, sort_key, sort_desc),
+    st.iframe(resolve(table_html(view, prices_df, density, highlight, sort_key, sort_desc)),
               height=height)
 

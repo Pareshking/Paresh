@@ -290,9 +290,9 @@ def _section_momentum_signal() -> None:
 
     # The split as a bar, labelled. "Weight vector:" is also what the
     # production QA probe reads back off the page, so the wording stays.
-    shades = ("#D6D6D2", "#818CF8", "#1C1B19", "#1C1B19", "#1E1B4B")
+    shades = ("var(--c-rule_strong)", "#818CF8", "var(--c-ink)", "var(--c-ink)", "#1E1B4B")
     segs = "".join(
-        f'<span style="width:{w * 100:.2f}%;background:{c};color:{"#1C1B19" if i < 2 else "#FFFFFF"}">'
+        f'<span style="width:{w * 100:.2f}%;background:{c};color:{"var(--c-ink)" if i < 2 else "var(--c-white)"}">'
         f"{html.escape(lbl)} {w:.0%}</span>"
         for i, ((lbl, _k, _d), w, c) in enumerate(zip(_WINDOWS, norm_w, shades)) if w > 0
     )

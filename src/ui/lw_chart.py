@@ -10,9 +10,9 @@ when the pointer is away). Panes stack, share one time axis and one crosshair.
 
 A pane is a dict:
     {"height": 260,
-     "series": [{"name": "Strategy", "type": "line", "color": "#1C1B19",
+     "series": [{"name": "Strategy", "type": "line", "color": "var(--c-ink)",
                  "fmt": "rupee", "data": [("2026-01-31", 2_000_000.0), ...]}],
-     "levels": [{"value": 60, "color": "#1D5FA6", "title": "60%"}]}
+     "levels": [{"value": 60, "color": "var(--c-up)", "title": "60%"}]}
 Series types: line, area, histogram, baseline (fills above/below zero), candlestick
 (rows of (t, o, h, l, c); "up"/"down" colours; the legend reads the close).
 A histogram with "volume": True sits on its own hidden scale in the bottom fifth of
@@ -29,10 +29,11 @@ from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+from src.ui.tokens import resolve
 
 _VENDOR = Path(__file__).parent / "vendor" / "lightweight-charts.standalone.production.js"
 
-INDIGO, GREY, INK, AMBER, GREEN, RED = "#1C1B19", "#8A8A85", "#1C1B19", "#B54708", "#1D5FA6", "#A4441A"
+INDIGO, GREY, INK, AMBER, GREEN, RED = "var(--c-ink)", "var(--c-faint)", "var(--c-ink)", "var(--c-caution)", "var(--c-up)", "var(--c-down)"
 GAP_PX = 6
 LEGEND_PX = 0
 
@@ -95,11 +96,11 @@ def chart_html(panes: list[dict]) -> str:
         "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' "
         "content='width=device-width,initial-scale=1'><style>"
         "*{box-sizing:border-box}html,body{margin:0;background:transparent;"
-        "font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;color:#1C1B19}"
+        "font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--c-ink)}"
         ".pane{position:relative;width:100%;margin-bottom:" + str(GAP_PX) + "px}"
         ".lg{position:absolute;left:8px;top:4px;z-index:5;font-size:12px;line-height:1.5;"
         "pointer-events:none;display:flex;flex-wrap:wrap;gap:2px 14px;max-width:calc(100% - 70px)}"
-        ".lg .d{color:#5F5F5B;font-weight:600}"
+        ".lg .d{color:var(--c-muted);font-weight:600}"
         ".lg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}"
         ".lg b{font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600}"
         "</style></head><body><div id='root'></div><script>"
@@ -123,18 +124,18 @@ const fmts={
 };
 const charts=[], legends=[], seriesByPane=[];
 let syncing=false;
-function colorOf(s){return s.color||'#1C1B19';}
+function colorOf(s){return s.color||'var(--c-ink)';}
 SPEC.forEach((p,pi)=>{
   const wrap=document.createElement('div');wrap.className='pane';wrap.style.height=p.height+'px';
   const lg=document.createElement('div');lg.className='lg';wrap.appendChild(lg);
   root.appendChild(wrap);
   const chart=LightweightCharts.createChart(wrap,{
     width:wrap.clientWidth,height:p.height,
-    layout:{background:{type:'solid',color:'transparent'},textColor:'#5F5F5B',fontFamily:"IBM Plex Sans,system-ui,sans-serif",fontSize:12,attributionLogo:false},
-    grid:{vertLines:{visible:false},horzLines:{color:'#EEEEEB'}},
+    layout:{background:{type:'solid',color:'transparent'},textColor:'var(--c-muted)',fontFamily:"IBM Plex Sans,system-ui,sans-serif",fontSize:12,attributionLogo:false},
+    grid:{vertLines:{visible:false},horzLines:{color:'var(--c-rule_soft)'}},
     rightPriceScale:{borderVisible:false,scaleMargins:{top:(p.top!==null&&p.top!==undefined)?p.top:0.16,bottom:p.series.some(x=>x.volume)?0.24:0.06}},
     timeScale:{visible:pi===SPEC.length-1,borderVisible:false,timeVisible:false,fixLeftEdge:true,fixRightEdge:true,rightOffset:0},
-    crosshair:{mode:0,vertLine:{color:'#8A8A85',width:1,style:3,labelBackgroundColor:'#1C1B19'},horzLine:{color:'#8A8A85',width:1,style:3,labelBackgroundColor:'#1C1B19'}},
+    crosshair:{mode:0,vertLine:{color:'var(--c-faint)',width:1,style:3,labelBackgroundColor:'var(--c-ink)'},horzLine:{color:'var(--c-faint)',width:1,style:3,labelBackgroundColor:'var(--c-ink)'}},
     handleScroll:{mouseWheel:false,pressedMouseMove:true,horzTouchDrag:true,vertTouchDrag:false},
     handleScale:{mouseWheel:false,pinch:true,axisPressedMouseMove:false},
     localization:{priceFormatter:p.series.length&&p.series[0].fmt?fmts[p.series[0].fmt]||undefined:undefined},
@@ -145,7 +146,7 @@ SPEC.forEach((p,pi)=>{
     const f=fmts[s.fmt||'num'];
     const pf={type:'custom',formatter:f,minMove:0.01};
     if(s.type==='candlestick'){
-      ser=chart.addSeries(LightweightCharts.CandlestickSeries,{upColor:s.up||'#1D5FA6',downColor:s.down||'#A4441A',borderUpColor:s.up||'#1D5FA6',borderDownColor:s.down||'#A4441A',wickUpColor:s.up||'#1D5FA6',wickDownColor:s.down||'#A4441A',priceFormat:pf,priceLineVisible:false,lastValueVisible:false});
+      ser=chart.addSeries(LightweightCharts.CandlestickSeries,{upColor:s.up||'var(--c-up)',downColor:s.down||'var(--c-down)',borderUpColor:s.up||'var(--c-up)',borderDownColor:s.down||'var(--c-down)',wickUpColor:s.up||'var(--c-up)',wickDownColor:s.down||'var(--c-down)',priceFormat:pf,priceLineVisible:false,lastValueVisible:false});
     }else if(s.type==='histogram'&&s.volume){
       ser=chart.addSeries(LightweightCharts.HistogramSeries,{color:colorOf(s),priceFormat:pf,priceScaleId:'vol',priceLineVisible:false,lastValueVisible:false});
       chart.priceScale('vol').applyOptions({scaleMargins:{top:0.8,bottom:0},visible:false});
@@ -155,9 +156,9 @@ SPEC.forEach((p,pi)=>{
       ser=chart.addSeries(LightweightCharts.AreaSeries,{lineColor:colorOf(s),topColor:colorOf(s)+'33',bottomColor:colorOf(s)+'05',lineWidth:2,priceFormat:pf,priceLineVisible:false,lastValueVisible:false});
     }else if(s.type==='baseline'){
       ser=chart.addSeries(LightweightCharts.BaselineSeries,{baseValue:{type:'price',price:s.base||0},
-        topLineColor:s.color||'#1D5FA6',bottomLineColor:s.negColor||'#A4441A',
-        topFillColor1:(s.color||'#1D5FA6')+'33',topFillColor2:(s.color||'#1D5FA6')+'05',
-        bottomFillColor1:(s.negColor||'#A4441A')+'05',bottomFillColor2:(s.negColor||'#A4441A')+'33',
+        topLineColor:s.color||'var(--c-up)',bottomLineColor:s.negColor||'var(--c-down)',
+        topFillColor1:(s.color||'var(--c-up)')+'33',topFillColor2:(s.color||'var(--c-up)')+'05',
+        bottomFillColor1:(s.negColor||'var(--c-down)')+'05',bottomFillColor2:(s.negColor||'var(--c-down)')+'33',
         lineWidth:2,priceFormat:pf,priceLineVisible:false,lastValueVisible:false});
     }else{
       ser=chart.addSeries(LightweightCharts.LineSeries,{color:colorOf(s),lineWidth:s.width||2,priceFormat:pf,priceLineVisible:false,lastValueVisible:false,crosshairMarkerRadius:4});
@@ -167,7 +168,7 @@ SPEC.forEach((p,pi)=>{
     ss.push(ser);
   });
   (p.levels||[]).forEach(l=>{
-    if(ss.length)ss[0].createPriceLine({price:l.value,color:l.color||'#8A8A85',lineWidth:1,lineStyle:2,axisLabelVisible:true,title:''});
+    if(ss.length)ss[0].createPriceLine({price:l.value,color:l.color||'var(--c-faint)',lineWidth:1,lineStyle:2,axisLabelVisible:true,title:''});
   });
   chart.timeScale().fitContent();
   charts.push(chart);legends.push(lg);seriesByPane.push(ss);
@@ -236,4 +237,4 @@ def render(panes: list[dict], key: str | None = None) -> None:
     if not live:
         return
     height = sum(int(p.get("height", 240)) + GAP_PX for p in live) + 4
-    st.iframe(chart_html(live), height=height)
+    st.iframe(resolve(chart_html(live)), height=height)

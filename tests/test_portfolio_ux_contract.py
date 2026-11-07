@@ -174,14 +174,15 @@ def test_record_caption_and_correlation_card_wording():
     assert "How they move together" in head and "correlation_note(_corr_mean)" in head
 
 
-def test_header_uses_full_navigation_on_desktop_and_menu_on_narrow_viewports():
+def test_the_menu_button_is_the_only_navigation_on_every_screen():
+    # Owner, 7 Nov 2026: "a hamburger menu only", in the menu's old style.
     components = (ROOT / "src/ui/components.py").read_text(encoding="utf-8")
     theme = THEME.read_text(encoding="utf-8")
-    assert '"Market Breadth", "Backtest", "Configuration", "Guide"' in components
-    assert '[class*="st-key-app_nav_menu_"] { display: none !important; }' in theme
-    assert "@media (max-width: 1100px)" in theme
-    assert ".st-key-app_toplinks { display: none !important; }" in theme
-    assert "padding-right: 60px !important" in theme
+    assert "app_toplinks" not in components and "app_toplinks" not in theme
+    assert 'key=f"app_nav_menu_{_page_slug}"' in components
+    assert '[class*="st-key-app_nav_menu_"] { display: none !important; }' not in theme
+    for group in ("**Research**", "**Monitoring**", "**System**"):
+        assert group in components
 
 
 def test_track_record_copy_uses_percent_alpha_and_its_own_start():

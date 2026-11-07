@@ -5,6 +5,8 @@
 - The owner chose "Paper B · Ledger" on a white ground. Every page now uses IBM Plex Sans, with IBM Plex Mono for figures, ink on white, and neutral greys with no warm tint.
 - Up is blue and down is rust, always with + or −. Selection and the active page are ink, so blue only ever means up. The old green, red and indigo are gone everywhere they were used, including charts.
 - Cards are thin rules, not boxes: no shadows, square corners, chips at 4px. The Screener table drops its zebra stripes and its rows are 36px on desktop (44px on a phone, for touch).
+- The theme now lives in one file, `src/ui/tokens.py`: every colour and font, by name. Change a value there and the whole site follows, the Screener table and the charts included.
+- Navigation is the menu button (☰) on every screen, in its old style (Research, Monitoring, System); the row of page links on desktop is gone.
 - The dashboard home page is designed but not built yet.
 
 ## 2026-11-07 — Five figures that disagreed or misled, corrected
