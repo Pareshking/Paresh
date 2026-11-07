@@ -680,6 +680,12 @@ def market_strip_html(series: dict[str, pd.Series]) -> str:
         s = s.dropna().sort_index()
         if len(s) < 25:
             continue
+        # The day's move needs the last two closes to be neighbouring sessions:
+        # the nightly index file was weekly before d5fdc55, and a week's move
+        # must not be shown as a day's. Four calendar days covers a weekend
+        # and a holiday.
+        if (s.index[-1] - s.index[-2]).days > 4:
+            continue
         day = (float(s.iloc[-1]) / float(s.iloc[-2]) - 1) * 100
         m0 = mq._on_or_before(s.index, s.index[-1] - pd.DateOffset(months=1))
         month = None if m0 is None else (float(s.iloc[-1]) / float(s.loc[m0]) - 1) * 100

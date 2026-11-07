@@ -152,3 +152,9 @@ def test_market_strip_reads_the_day_and_the_month_and_draws_an_image_line():
     out = market_strip_html({"Nifty 500": s})
     assert "+1.00%" in out and 'src="data:image/svg+xml;base64,' in out and "<svg" not in out
     assert "Nifty 500: +1.00% on the day" in out
+
+
+def test_market_strip_never_shows_a_weeks_move_as_a_day():
+    from src.ui.views.market_questions_view import market_strip_html
+    weekly = pd.Series(np.linspace(100, 110, 30), index=pd.date_range(end="2026-11-06", periods=30, freq="W-FRI"))
+    assert market_strip_html({"Midcap 150": weekly}) == ""
