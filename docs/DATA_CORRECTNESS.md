@@ -366,3 +366,18 @@ changes the to-do named (SEINV -> PAISALO 2018, NANDANEXIM -> NDL 2013) are
 continuous. Fixed in `data/nse_prices/notes.json`: a rename and a x10 correction before
 the join for each. A general rule (use the new symbol's first prev_close at a join)
 would need prev_close in the join; not done.
+
+
+### FII flows: NSDL's FPI daily record (S106, 7 Nov 2026)
+
+Source of record for foreign portfolio flows: NSDL's FPI daily trends
+(fpi.nsdl.co.in/web/Reports/Archive.aspx), custodians' reports, a reporting date
+covering the previous trading day. NSE and MSEI publish only the latest provisional
+day. NSDL refuses this Claude session's connections but answers GitHub's runners;
+`scripts/nsdl_fpi.py` runs there (`.github/workflows/nsdl_fpi.yml`) and writes
+`data/nsdl_fpi_daily.csv` (equity: stock exchange purchases, sales, net; primary
+market net; equity net in Rs crore and US$ million). Backfilled 1 Jan 2016 - 6 Nov
+2026, 2,622 reporting days. Checked against an independent source: calendar 2024
+sums to Rs 427 Cr and 2023 to Rs 1,71,107 Cr; BDO India (January 2025, citing NSDL)
+reports Rs 427 Cr and Rs 1.71 lakh Cr. NSE's provisional figure for a day and
+NSDL's for the next reporting date are different measures and are not compared.

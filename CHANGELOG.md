@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-08 — Flows from NSDL's record, back to 2016
+
+- The Flows panel now draws foreign investors' equity flows from NSDL's confirmed FPI record (custodians' reports), backfilled from January 2016 and added to each weekday: the last 20 reporting days' total, the last 12 months as monthly bars. To 6 Nov 2026: +Rs 35,410 Cr over 20 days, -Rs 2,78,785 Cr over 12 months. Checked: 2024 sums to Rs 427 Cr and 2023 to Rs 1.71 lakh Cr, as NSDL's published annual figures (BDO India, Jan 2025). Domestic institutions (DII) come from NSE's daily figures from 6 Nov 2026, shown once five sessions are in.
+- Price history: three renames that were 1:10 consolidations at an ISIN change are now joined (NANDAN, SEINVEST, SIGNET), with NSE's evidence in `notes.json`; the long file picks them up at its next rebuild.
+
 ## 2026-11-08 — Flows: the trend, not one day
 
 - The Flows panel no longer leads with a single day's FII and DII figures (owner: one day's flow is misleading). Until five sessions are collected it says how many are in and lists them small; from five it leads with the total over the last 20 sessions (or all of them, while fewer) with a bar for each day. NSE and MSEI publish only the latest day, so the history grows from 6 Nov 2026; the daily job now also records whether GitHub's runner can reach NSDL, whose FPI record goes back years.
