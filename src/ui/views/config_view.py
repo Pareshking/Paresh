@@ -143,6 +143,10 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
     attempt_errors = sync_meta.get("last_attempt_errors") or {}
 
     sync_day, _, sync_time = str(last_sync).partition(", ")
+    # The stored string is "07 Nov 2026"; the site writes "7 Nov 2026" (F5).
+    _d = pd.to_datetime(sync_day, format="%d %b %Y", errors="coerce")
+    if pd.notna(_d):
+        sync_day = f"{_d:%-d %b %Y}"
     tiles = [
         kit.Reading("Last synced", sync_day, f"at {sync_time}" if sync_time else ""),
         # Each count says what it counts (audit F12): the header's Universe
