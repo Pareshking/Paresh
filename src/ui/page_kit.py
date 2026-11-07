@@ -60,6 +60,13 @@ def readings(tiles: list[Reading], label: str) -> None:
     st.html(f'<section class="mkt-strip pg-strip" aria-label="{html.escape(label)}">{cells}</section>')
 
 
+def empty(lead: str, text: str = "") -> None:
+    """An empty state in the page's own voice (audit F59): a plain line under a
+    rule, not a coloured alert box."""
+    st.html(f'<div class="pg-empty" role="status"><b>{html.escape(lead)}</b>'
+            + (f" {html.escape(text)}" if text else "") + "</div>")
+
+
 def note(lead: str, text: str = "") -> None:
     """The page's one amber note: a bold first line, then the detail."""
     st.html(f'<div class="pg-note" role="note"><b>{html.escape(lead)}</b>'

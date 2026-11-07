@@ -4,6 +4,7 @@
 
 - The data-freshness line at the foot of each page is plain text instead of four pills, with no emoji; a late source still leads, in amber.
 - Figures outside the dense tables (tiles, chart legends, bars, lists, the stock page) are in Plex Sans with even-width digits; Plex Mono stays in the Screener and other dense tables (owner's decision 4). The small figure rows under charts now match the headline tiles: sentence-case labels, centred.
+- Watchlist: an empty list says so in a plain line, not a blue alert box.
 - A first click on a figure's column header sorts it largest first; Rank still starts from 1.
 - The Screener table fades at its right edge while more columns lie to the right, and the pointer shows a row opens its stock.
 - Breadth's list of new highs and lows reads "New 52W high" and "New 52W low" without emoji; the rotation graph's quadrant lists lose their tinted cards.

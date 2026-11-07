@@ -21,10 +21,10 @@ test that went out with it; fixed in 97fd85d).
 
 | State | Items |
 |---|---|
-| Done | F1-F8, F10, F15-F17, F19-F30, F32, F33, F35, F36, F40-F46, F48-F51, F54-F56, F58, F72; decision 5 (Sectors one ranking and one map, Backtest research only) |
+| Done | F1-F8, F10, F15-F17, F19-F30, F32, F33, F35, F36, F40-F46, F48-F51, F54-F56, F58, F59, F72; decision 5 (Sectors one ranking and one map, Backtest research only) |
 | Partly done | F11 (Portfolio chart now ends on the headline value; levels unsigned), F27 (skip link done; roving focus in the 750-row table open), F34 (right-edge fade done; the inner scroll is S97b), F47 (₹ price axis done; other axes unchanged), F53 (Backtest is research only; its own layout untouched) |
 | Parked for the owner (TODO S97) | F13 "Personal" as the public source name, F31 regrouped menu (owner chose the old groups), F34 rest (50 rows + Show all), F38 page width and phone gutter, alpha in points (owner chose %) |
-| Open | F9, F12, F14 (log wording comes from stored data), F18, F37, F39 (type scale), F52, F57, F59, F60-F63 (speed), F64-F71, F73-F78 (polish) |
+| Open | F9, F12, F14 (log wording comes from stored data), F18, F37, F39 (type scale), F52, F57, F60-F63 (speed), F64-F71, F73-F78 (polish) |
 
 Commits, in order: fef5a0c F25/F26 · fe3a09a F51 · bd28c0a F42/F50/F5/F10/F45 ·
 36912b2 F49/dates · f4cb21f F43 · 2f84512 F27-F29 · 898a207 F8/F15-F17/F46/F54 ·

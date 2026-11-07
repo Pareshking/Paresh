@@ -1463,6 +1463,8 @@ def inject_custom_css() -> None:
             text-decoration: underline !important; text-decoration-color: var(--c-rule_strong) !important;
             text-underline-offset: 3px; }
         .pg-onward:hover { text-decoration-color: var(--c-ink) !important; }
+        .pg-empty { padding: 18px 0; border-top: 1px solid var(--c-rule); font-size: 15px; color: var(--c-text_2); }
+        .pg-empty b { color: var(--c-ink); font-weight: 600; }
         .skip-link { position: absolute; left: 16px; top: -60px; z-index: 1000; padding: 8px 14px;
             background: var(--c-ink); color: var(--c-white) !important; font-size: 14px; text-decoration: none !important; }
         .skip-link:focus { top: 8px; }
