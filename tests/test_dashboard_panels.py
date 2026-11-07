@@ -75,3 +75,13 @@ def test_the_collector_refuses_a_row_that_does_not_add_up():
 def test_percentiles_read_as_ordinals():
     assert [dp.ordinal(n) for n in (1, 2, 3, 4, 11, 12, 13, 21, 42, 100)] == [
         "1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "21st", "42nd", "100th"]
+
+
+def test_nsdl_flows_lead_with_twenty_days_and_twelve_months():
+    days = pd.bdate_range("2025-11-03", "2026-11-06")
+    nsdl = pd.DataFrame({"date": days.strftime("%Y-%m-%d"), "equity_net": 100.0})
+    out = dp.nsdl_flows_html(nsdl, _flows(1))
+    assert "last 20 reporting days" in out and "₹2,000 Cr</b> net bought" in out
+    assert "12 months" in out and "DII: 1 session collected from NSE" in out
+    assert "data:image/svg+xml;base64," in out
+    assert dp.nsdl_flows_html(nsdl.head(3), None) is None

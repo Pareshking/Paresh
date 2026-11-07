@@ -22,6 +22,7 @@ from src.ui.tokens import C
 ROOT = Path(__file__).resolve().parents[3]
 MOMENTUM_FILE = ROOT / "data" / "momentum_health.csv"
 FLOWS_FILE = ROOT / "data" / "fii_dii_flows.csv"
+NSDL_FILE = ROOT / "data" / "nsdl_fpi_daily.csv"
 IIMA_CHECK = "correlation 0.83 with IIM Ahmedabad's momentum factor, Feb 2010 to Dec 2025"
 
 
@@ -153,6 +154,52 @@ def flows_html(flows: pd.DataFrame | None) -> str | None:
             f'<p class="db-note">Bars: each session, FII/FPI above, DII below.</p>{since}')
 
 
+def _month_bars_svg(values: list[float], width: int = 300, height: int = 64) -> str:
+    return _bars_svg(values, width, height)
+
+
+def nsdl_flows_html(nsdl: pd.DataFrame | None, nse: pd.DataFrame | None) -> str | None:
+    """Foreign flows from NSDL's confirmed record: the last 20 reporting days'
+    equity net, the last 12 months as bars; domestic (DII) from our NSE
+    collection once it has TREND_MIN sessions (NSDL reports only foreign)."""
+    if nsdl is None or len(nsdl) < TREND_MIN:
+        return None
+    n = nsdl.copy()
+    n["date"] = pd.to_datetime(n["date"])
+    n = n.sort_values("date")
+    last = n["date"].iloc[-1]
+    k = min(len(n), TREND_WINDOW)
+    recent = float(n["equity_net"].tail(k).sum())
+    months = n.set_index("date")["equity_net"].resample("ME").sum().tail(12)
+    word, tone = ("bought", "up") if recent > 0 else ("sold", "down")
+    rows = (f'<dt>FII/FPI</dt><dd><b class="{tone}">{fmt.inr(abs(recent))} Cr</b> net {word}, '
+            f'last {k} reporting days</dd>')
+    year = float(months.sum())
+    rows += (f'<dt>12 months</dt><dd><b class="{"up" if year > 0 else "down"}">{fmt.inr(year, plus=True)} Cr</b> '
+             f'since {months.index[0]:%b %Y}</dd>')
+    dii_line = ""
+    if nse is not None and not nse.empty:
+        f = nse.copy()
+        f["date"] = pd.to_datetime(f["date"])
+        d = f[f["category"] == "DII"].sort_values("date")
+        if len(d) >= TREND_MIN:
+            m = min(len(d), TREND_WINDOW)
+            tot = float(d["net"].tail(m).sum())
+            rows += (f'<dt>DII</dt><dd><b class="{"up" if tot > 0 else "down"}">{fmt.inr(abs(tot))} Cr</b> net '
+                     f'{"bought" if tot > 0 else "sold"}, last {m} sessions (NSE)</dd>')
+        else:
+            dii_line = (f'<p class="db-note">DII: {len(d)} session{"s" if len(d) != 1 else ""} collected from NSE '
+                        f'since {d["date"].min():%-d %b} (NSDL reports foreign investors only); its trend shows from '
+                        f'{TREND_MIN}.</p>' if len(d) else "")
+    img = _month_bars_svg(months.tolist())
+    alt = (f"FPI equity net per month, {months.index[0]:%b %Y} to {months.index[-1]:%b %Y}: from "
+           f"{fmt.inr(months.min())} to {fmt.inr(months.max())} Cr.")
+    return (f'<p class="db-lede">Foreign portfolio investors in equity, NSDL, to {last:%-d %b %Y}.</p>'
+            f'<dl class="db-kv">{rows}</dl>'
+            f'<img src="{img}" alt="{html.escape(alt)}" width="300" height="64" style="max-width:100%;margin-top:8px">'
+            f'<p class="db-note">Bars: net per month, last 12 months.</p>{dii_line}')
+
+
 def render(kit, left, right) -> None:
     """The two cards, momentum health on the left, flows on the right."""
     with left, kit.card("Momentum health", "db_mh", "top fifth minus bottom fifth"):
@@ -166,8 +213,16 @@ def render(kit, left, right) -> None:
                         "spread is the next month's return of the top fifth minus the bottom fifth. "
                         f"Bars: the last 24 months. Checked: {IIMA_CHECK}. How momentum has been "
                         "paying, not a forecast.")
-    with right, kit.card("Flows", "db_flows", "FII and DII, NSE"):
-        out = flows_html(_load(FLOWS_FILE))
+    with right, kit.card("Flows", "db_flows", "foreign and domestic institutions"):
+        nse = _load(FLOWS_FILE)
+        out = nsdl_flows_html(_load(NSDL_FILE), nse)
+        if out is not None:
+            st.html(out)
+            kit.caption("NSDL's confirmed FPI figures (custodians' reports, a reporting date covers the "
+                        "previous trading day), equity, stock exchange and primary market. DII from NSE's "
+                        "provisional daily figures, collected each evening from 6 Nov 2026.")
+            return
+        out = flows_html(nse)
         if out is None:
             kit.caption("Flows are not available right now.")
         else:
