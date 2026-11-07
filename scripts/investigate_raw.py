@@ -22,7 +22,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 # (label, symbols, first day, last day)
 EVENTS = [
-    ("S44 ANDHRAPAP rights 3:11 at Rs 50, ex 23 Feb 2010", ["ANDHRAPAP"], date(2010, 2, 12), date(2010, 3, 5)),
+    ("S44 ANDHRAPAP (APPAPER in 2010) rights 3:11 at Rs 50, ex 23 Feb 2010", ["APPAPER", "ANDHRAPAP"], date(2010, 2, 12), date(2010, 3, 5)),
     # S25: the refused joins are ISIN changes (face value) between two symbols
     # (data/reference ISIN history), not the later renames on the change list.
     ("S25 NANDAN (INE875G01022, last 6 Mar 2012) -> NANDANEXIM (INE875G01030, from 23 Mar 2012)",
