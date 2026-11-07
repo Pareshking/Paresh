@@ -185,7 +185,8 @@ def test_the_menu_button_is_the_only_navigation_on_every_screen():
     assert "@media (max-width: 1023px) { .st-key-app_quicklinks { display: none !important; } }" in theme
     assert 'key=f"app_nav_menu_{_page_slug}"' in components
     assert '[class*="st-key-app_nav_menu_"] { display: none !important; }' not in theme
-    for group in ("**Research**", "**Monitoring**", "**System**"):
+    # Regrouped by the owner on 7 Nov (audit decision 6's second half).
+    for group in ('("My book",', '("Market",', '("Method",'):
         assert group in components
 
 

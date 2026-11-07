@@ -413,6 +413,10 @@ tbody tr.hl td{background:var(--c-subtle)}
 # If the parent is ever cross-origin the injection throws, and allow-popups
 # opens the stock in a new tab instead.
 _JS = """
+// "Show all": the rest of the rows, and the table scrolls in its frame again.
+(function(){const b=document.getElementById('showall');if(!b)return;
+  b.addEventListener('click',function(){const w=document.querySelector('.wrap');
+    w.classList.remove('paged');b.remove();w.dispatchEvent(new Event('scroll'));});})();
 // More columns to the right: a fade on the right edge while there are
 // (audit F34: "VOL..." and "TECHNIC..." were cut with no cue).
 (function(){const w=document.querySelector('.wrap'),e=document.querySelector('.edge');
@@ -464,7 +468,8 @@ ths.forEach(function(th,i){
 
 
 def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
-               highlight: str = "", sort_key: str = "rank", sort_desc: bool = False) -> str:
+               highlight: str = "", sort_key: str = "rank", sort_desc: bool = False,
+               page_rows: int | None = None) -> str:
     """The whole table document, for st.iframe. Split out so tests can read it.
 
     `highlight` is a symbol whose row is tinted and tagged "This stock" (the
@@ -520,6 +525,21 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
     else:
         extra = ""
     wide_cls = " wide" if wide else ""
+    # The first `page_rows` rows, the rest a click away (owner, 7 Nov: the
+    # table scrolled inside its frame, so the wheel never reached the page).
+    # Every row stays in the table, so a header sort ranks all of them and
+    # the first `page_rows` of that order show.
+    paged = bool(page_rows) and len(view) > int(page_rows)
+    if paged:
+        wide_cls += " paged"
+    more = (f'<button class="more" id="showall" type="button">Show all {len(view):,}</button>'
+            if paged else "")
+    paged_css = (f".paged tbody tr:nth-child(n+{int(page_rows) + 1}){{display:none}}"
+                 ".wrap.paged{height:auto;overflow-y:visible}"
+                 ".more{display:block;margin:10px 0 2px;padding:8px 14px;font:inherit;font-size:13.5px;"
+                 "color:var(--c-ink);background:var(--c-white);border:1px solid var(--c-rule_strong);"
+                 "border-radius:4px;cursor:pointer}.more:hover{border-color:var(--c-ink)}"
+                 ".more:focus-visible{outline:2px solid var(--c-ink);outline-offset:2px}") if paged else ""
     if wide:
         extra += "@media (max-width:640px){table{min-width:%dpx}}" % (len(cols) * 92)
     return (
@@ -527,20 +547,25 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
         "<link rel='preconnect' href='https://fonts.googleapis.com'>"
         "<link href='https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&"
         "family=IBM+Plex+Mono:wght@400;500;600&display=swap' rel='stylesheet'>"
-        f"<style>{_CSS}@media (min-width:641px){{table{{min-width:{max(1180, len(cols) * 92)}px}}}}{extra}</style></head><body><div class='edge' aria-hidden='true'></div><div class='wrap{wide_cls}'><table>"
-        f"<thead>{group_row}<tr class=\"hdr\">{head}</tr></thead><tbody>{body_html}</tbody></table></div>"
+        f"<style>{_CSS}@media (min-width:641px){{table{{min-width:{max(1180, len(cols) * 92)}px}}}}{extra}{paged_css}</style></head><body><div class='edge' aria-hidden='true'></div><div class='wrap{wide_cls}'><table>"
+        f"<thead>{group_row}<tr class=\"hdr\">{head}</tr></thead><tbody>{body_html}</tbody></table></div>{more}"
         f"<script>const SYS={json.dumps(system_suffix())};{_JS}</script></body></html>"
     )
 
 
 def render_screener_table(view: pd.DataFrame, prices_df: pd.DataFrame | None,
                           density: str, *, highlight: str = "", sort_key: str = "rank",
-                          sort_desc: bool = False) -> None:
+                          sort_desc: bool = False, page_rows: int | None = None) -> None:
     if view.empty:
         st.info("No stocks match these filters. Clear the search or pick another preset.")
         return
-    rows = min(len(view), VISIBLE_ROWS)
-    height = 44 + rows * ROW_PX + 4 + 28
-    st.iframe(resolve(table_html(view, prices_df, density, highlight, sort_key, sort_desc)),
+    if page_rows and len(view) > page_rows:
+        # Tall enough for the first rows and the button: the page scrolls,
+        # not the table, until the reader asks for all of them.
+        height = 44 + 28 + page_rows * ROW_PX + 4 + 56
+    else:
+        rows = min(len(view), VISIBLE_ROWS)
+        height = 44 + rows * ROW_PX + 4 + 28
+    st.iframe(resolve(table_html(view, prices_df, density, highlight, sort_key, sort_desc, page_rows)),
               height=height)
 

@@ -559,7 +559,7 @@ def render_ranking_view(
     if not movers:
         view = view.sort_values("Rank", kind="stable")
     render_screener_table(view, adj_close, density_mode,
-                          sort_key="d1m" if movers else "rank", sort_desc=movers)
+                          sort_key="d1m" if movers else "rank", sort_desc=movers, page_rows=50)
 
     # Export EVERY column the ranking carries, not just the ones on screen.
     # DISPLAY_COLS is a screen-layout decision -- it drops Score, the raw

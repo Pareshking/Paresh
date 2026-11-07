@@ -248,7 +248,10 @@ def inject_custom_css() -> None:
         .main .block-container, [data-testid="stMainBlockContainer"], [data-testid="block-container"] {
             /* Use the full width already granted by Streamlit's native
                layout="wide" setting. All pages share this global container. */
-            max-width: 100% !important;
+            /* One reading width on wide screens (owner, 7 Nov, audit F38):
+               1,240px of content, centred; the Screener table scrolls
+               sideways inside it, with a fade at its edge. */
+            max-width: calc(1240px + 3rem) !important;
             width: 100% !important;
             margin-left: auto !important;
             margin-right: auto !important;
@@ -274,8 +277,10 @@ def inject_custom_css() -> None:
             .main .block-container,
             [data-testid="stMainBlockContainer"],
             [data-testid="block-container"] {
-                padding-left: 0.5rem !important;
-                padding-right: 0.5rem !important;
+                /* 16px a side (owner, 7 Nov, audit F38): text no longer
+                   touches the bezel; it was 8px. */
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
             }
 
             /* Tab bar: scroll horizontally instead of squishing 10 tabs into 375px. */

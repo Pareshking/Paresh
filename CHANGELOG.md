@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-07 — Owner's answers: Screener paging, menu groups, page width
+
+- The Screener shows the first 50 rows and a "Show all 750" button. The mouse wheel over the table now scrolls the page (it scrolled the table inside its frame). Every row stays in the table, so a click on a header sorts all 750 and the first 50 of that order show.
+- The menu is grouped by what you are doing: My book (Dashboard, Portfolio, Actions, Watchlist), Market (Screener, Sectors, RRG, Market Breadth), Method (Backtest, Configuration, Guide).
+- Pages are at most 1,240px wide, centred, on wide screens; phones get a 16px margin each side (was 8px).
+- Kept as they are, by the owner: "Personal" as the price source's name, alpha in %, the 20 soft sector colours on the leadership map.
+
 ## 2026-11-07 — Dashboard answers three questions about the market
 
 - "Are most stocks taking part?", "Is the market in an uptrend?" and "What is leading?" sit under the book's line, tipsheet's question pages as the model and the app's own data as the source.

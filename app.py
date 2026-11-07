@@ -1154,13 +1154,14 @@ def _page_guide() -> None:
 _PAGES = [
     # The Dashboard is the home page, served at "/" (owner, 7 Nov 2026);
     # "dashboard" is the redirect below. The Screener has its own address.
+    # In the menu's groups (owner, 7 Nov): My book, then Market, then Method.
     st.Page(_page_dashboard, title="Dashboard", url_path="home", default=True),
-    st.Page(_page_screener, title="Screener", url_path="screener"),
     st.Page(_page_portfolio, title="Portfolio", url_path="portfolio"),
     st.Page(_page_actions, title="Actions", url_path="actions"),
+    st.Page(_page_watchlist, title="Watchlist", url_path="watchlist"),
+    st.Page(_page_screener, title="Screener", url_path="screener"),
     st.Page(_page_sectors, title="Sectors", url_path="sectors"),
     st.Page(_page_rrg, title="RRG", url_path="rrg"),
-    st.Page(_page_watchlist, title="Watchlist", url_path="watchlist"),
     st.Page(_page_breadth, title="Market Breadth", url_path="breadth"),
     st.Page(_page_backtest, title="Backtest", url_path="backtest"),
     st.Page(_page_configuration, title="Configuration", url_path="configuration"),

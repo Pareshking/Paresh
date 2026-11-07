@@ -291,6 +291,11 @@ def _status_pill_html() -> str:
             f'<span><span class="hdr-pill-lead">{html.escape(lead)}</span>{html.escape(tail)}</span></span>')
 
 
+_MENU_GROUPS = (
+    ("My book", ("Dashboard", "Portfolio", "Actions", "Watchlist")),
+    ("Market", ("Screener", "Sectors", "RRG", "Market Breadth")),
+    ("Method", ("Backtest", "Configuration", "Guide")),
+)
 _QUICK_PAGES = ("Dashboard", "Actions", "Screener", "Portfolio")
 
 
@@ -389,22 +394,27 @@ def render_header_kpi_bar(
                     width=320,
                     key=f"app_nav_menu_{_page_slug}",
                 ):
-                    st.markdown("**Research**")
-                    for _i, _p in enumerate(nav_pages[:6]):
+                    # Regrouped by what the reader is doing (owner, 7 Nov, audit
+                    # decision): their book, the market, and how it works. Pages
+                    # are picked by title, so a reordered page list cannot
+                    # move a page into the wrong group.
+                    _by_title = {getattr(x, "title", ""): x for x in nav_pages}
+                    _placed = set()
+                    for _group, _titles in _MENU_GROUPS:
+                        _pages = [_by_title[t] for t in _titles if t in _by_title]
+                        if not _pages:
+                            continue
+                        st.markdown(f"**{_group}**")
+                        for _p in _pages:
+                            _placed.add(id(_p))
+                            _state = "navon" if _p is active_page else "navoff"
+                            with st.container(key=f"{_state}_{_group.lower().replace(' ', '_')}_{getattr(_p, 'url_path', '') or 'home'}",
+                                              width="stretch"):
+                                st.page_link(_p)
+                    _rest = [x for x in nav_pages if id(x) not in _placed]
+                    for _p in _rest:  # a page added later still shows
                         _state = "navon" if _p is active_page else "navoff"
-                        with st.container(key=f"{_state}_research_{_i}", width="stretch"):
-                            st.page_link(_p)
-
-                    st.markdown("**Monitoring**")
-                    for _i, _p in enumerate(nav_pages[6:10], start=6):
-                        _state = "navon" if _p is active_page else "navoff"
-                        with st.container(key=f"{_state}_monitoring_{_i}", width="stretch"):
-                            st.page_link(_p)
-
-                    st.markdown("**System**")
-                    for _i, _p in enumerate(nav_pages[10:], start=10):
-                        _state = "navon" if _p is active_page else "navoff"
-                        with st.container(key=f"{_state}_system_{_i}", width="stretch"):
+                        with st.container(key=f"{_state}_more_{getattr(_p, 'url_path', '') or 'home'}", width="stretch"):
                             st.page_link(_p)
     # Every page draws this header, so a failed background update shows on all
     # of them, phone included (the pill above shrinks to a date there).
