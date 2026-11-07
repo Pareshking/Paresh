@@ -1187,6 +1187,10 @@ def _moved_page(path: str):
 
 # position="hidden" keeps Streamlit's own navigation out of the hidden header.
 _nav = st.navigation(_PAGES + [_moved_page(p) for p in _MOVED], position="hidden")
+# Each page names itself in the browser tab ("Actions · Paresh Patel");
+# every tab read "Paresh Patel" (pre-launch audit, WCAG 2.4.2).
+_page_name = getattr(_nav, "title", None)   # a test stubs Page without one
+st.set_page_config(page_title=f"{_page_name} · Paresh Patel" if _page_name else "Paresh Patel")
 
 # The stock page is a route of the Screener (?stock=SYMBOL). Links to it are
 # relative, so one clicked on another page -- a sector leader on Sectors --

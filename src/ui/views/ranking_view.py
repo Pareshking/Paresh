@@ -172,6 +172,8 @@ def render_ranking_view(
                 keep_system_only()
                 st.rerun()
 
+        # The tab names the stock, not "Screener" (pre-launch audit, WCAG 2.4.2).
+        st.set_page_config(page_title=f"{requested} · Paresh Patel")
         render_stock_view(
             requested,
             rank_df,
