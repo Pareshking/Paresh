@@ -2066,6 +2066,10 @@ def render_saas_table(
             ]
         ):
             headers_html.append(f'<th class="th-left">{_esc(str(col))}</th>')
+        elif not pd.api.types.is_numeric_dtype(df[col]):
+            # A text column's cells sit left (the generic cell below), so its
+            # heading does too; it sat right over left-aligned text (F44).
+            headers_html.append(f'<th class="th-left">{_esc(str(col))}</th>')
         else:
             headers_html.append(f'<th class="th-right">{_esc(str(col))}</th>')
 
@@ -2466,6 +2470,19 @@ body::-webkit-scrollbar,
 .ret-neg {{ color: var(--c-down_dark); font-weight: 700; }}
 .td-sharpe {{ color: var(--c-up); font-weight: 600; }}
 .text-muted {{ color: var(--c-muted); }}
+/* One table style (audit F44): as the Screener's. No box: a rule above, the
+   header on white under a darker rule, 40px rows on hairlines, status as a
+   coloured word rather than a filled pill, weights 500/600. */
+.saas-table-wrapper {{ border: 0; border-top: 1px solid var(--c-rule_strong); border-radius: 0; background: transparent; padding: 0; }}
+.saas-table thead tr th {{ background: var(--c-white); font-weight: 500; height: 36px; border-bottom: 1px solid var(--c-rule_strong); }}
+.saas-table thead tr th:hover {{ background-color: var(--c-white) !important; color: var(--c-ink) !important; }}
+@media (max-width: 640px) {{ .saas-table thead th:first-child {{ background: var(--c-white); }} }}
+.saas-table td {{ height: 40px; border-bottom: 1px solid var(--c-rule); background: transparent; }}
+.saas-table th:first-child, .saas-table td:first-child {{ padding-left: 0; }}
+.stock-ticker {{ font-weight: 600; }}
+.badge-pill {{ font-family: 'IBM Plex Sans', sans-serif; padding: 0; border: 0 !important; background: transparent !important; font-weight: 600; }}
+.badge-yellow {{ color: var(--c-caution); }}
+.ret-pos, .ret-neg {{ font-weight: 600; }}
 </style>
 </head>
 <body>

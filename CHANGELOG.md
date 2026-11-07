@@ -9,6 +9,7 @@
 - No emoji in tables: Bought, Sold, Held, Yes, No and the rotation quadrants are plain words.
 - Industry names under a stock wrap instead of being cut mid-word.
 - The Guide says the Kite basket holds the buys only; sells are placed by hand.
+- Every other table (Portfolio's book, Configuration, Backtest's trades and the rest) is drawn like the Screener's: no box, a rule above, white headings, hairline rows; status badges are coloured words; a text column's heading sits over its text.
 - The Screener's filters (preset, indices, pass-both, columns) are kept in the address, so Back from a stock page returns to the same filtered list, and a filtered list can be bookmarked or shared.
 - On touch screens stock links and small controls (the × on a chosen index, the ? help icons) are easier to hit: 38–44px instead of 15–22px.
 - On a phone or tablet the header (name, date, menu) stays at the top as the page scrolls, and the menu fits the screen.
