@@ -37,9 +37,11 @@ def test_the_actions_page_no_longer_says_clear_of_all_three():
 
 
 def test_backtest_mtd_is_the_accounts_not_a_weighted_holdings_average():
+    # Since 7 Nov (decision 5) Backtest shows no live month at all: the
+    # account's MTD is Portfolio's alone, so no weighted average can creep back.
     src = (VIEWS / "backtest_view.py").read_text(encoding="utf-8")
-    assert 'lmeta.get("strategy_mtd")' in src
     assert '"by weight"' not in src
+    assert "This month's changes" not in src
 
 
 def test_portfolio_drawdown_names_its_basis():

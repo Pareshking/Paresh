@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-07 — No repeated blocks (owner's decision 5)
+
+- Sectors: one ranking and one map. The industry bubble map (it repeated the leaderboard) and the sortable sector table under the leadership map (a second ranking of the same sectors) are gone; the map's figures are in its text alternative and worked example. The leaderboard loses its box.
+- Backtest: research runs only. The live account, today's book and this month's changes are no longer repeated there; a line points to Portfolio.
+
 ## 2026-11-07 — Names, Actions, emoji
 
 - One name for the 52-week measure: "From 52W high" for the distance and "Near 52W high" for the filter, on the Screener, Sectors and in the header; "50D EMA" in Screener headings.

@@ -11,7 +11,6 @@ import html
 import numpy as np
 import pandas as pd
 import streamlit as st
-from src.ui.tokens import resolve
 from src.ui import formats as _fmt
 
 from src.ui.system_param import stock_href
@@ -19,9 +18,9 @@ from src.ui import page_kit as kit
 from src.engine.pipeline import price_fingerprint
 from src.engine.sector_breadth import EMA_SPANS, sector_leadership
 from src.loaders import benchmark_store
-from src.ui.charts import render_industry_map, render_leadership_map, sector_colours
+from src.ui.charts import render_leadership_map, sector_colours
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
-from src.ui.screener_table import _CSS as TABLE_CSS, _JS as TABLE_JS, ROW_PX, render_screener_table
+from src.ui.screener_table import _CSS as TABLE_CSS, _JS as TABLE_JS, render_screener_table
 
 RANK_BY = {
     "3M median": "3M Return",
@@ -106,13 +105,15 @@ def render_leadership_section(rank_df: pd.DataFrame, adj_close: pd.DataFrame, co
                     else board.sort_values("x_now", ascending=False)["Sector"].iloc[0]))
         with st.expander(f"How to read this · worked example: {SHORT_NAMES.get(example, example)}"):
             st.markdown(leadership_explainer(board.set_index("Sector").loc[example], example, span))
-        st.iframe(resolve(leadership_table_html(board, span)), height=28 + 42 + len(board) * ROW_PX + 6)
+        # The sortable sector table that sat here was a second ranking of the
+        # same sectors (owner's decision 5, 7 Nov); the map's figures are in
+        # its text alternative and the worked example above.
         # Two statistics on one page, each named (pre-launch audit F4): this
         # map's mean over its own dates, the board's median over 3 months.
         kit.caption(f"Here a sector's return is the equal-weighted mean of its stocks' price "
                     f"returns from {then:%-d %b} to {now:%-d %b}, not an NSE sector index; the board "
                     "above ranks by the median 3-month return. The share counts stocks with a "
-                    "close and an EMA that day. Click a header to sort.")
+                    "close and an EMA that day.")
 
 
 def _signed_pct(v: float) -> tuple[str, str]:
@@ -376,9 +377,8 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
         kit.Reading("Weakest", weak.Industry, why(weak), _tone(weak[ret]) if metric == ret else "down"),
     ], "Industries today")
 
-    with kit.card("Industry map", "sec_map", "bubble size = stocks"):
-        render_industry_map(board, x_col=ret, x_label=f"Median {span[0]}-month return")
-
+    # One ranking and one map on this page (owner's decision 5, 7 Nov): the
+    # industry bubble map repeated the board below it and is gone.
     with kit.card("Industry leaderboard", "sec_board"):
         st.html(board_html(board))
         if singles:

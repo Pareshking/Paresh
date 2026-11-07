@@ -209,7 +209,6 @@ def test_one_word_for_one_thing_across_pages():
     backtest = (views / "backtest_view.py").read_text(encoding="utf-8")
     assert 'kit.Reading("Max drawdown"' in backtest and '"Worst fall"' not in backtest
     assert 'kit.Reading("Ahead of the index"' in backtest
-    assert '"Price Now": "Current Price", "Return %": "P&L %"' in backtest
     assert '["All", "Buy", "Sell", "Hold"]' in backtest and '"🟢 BOUGHT", "🔴 SOLD"' not in backtest
     assert "Portfolio risk" not in backtest and "Filter " not in backtest
     theme = THEME.read_text(encoding="utf-8")

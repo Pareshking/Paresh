@@ -1514,6 +1514,11 @@ def inject_custom_css() -> None:
             [data-testid="stTooltipIcon"] { padding: 12px; margin: -12px; }
         }
 
+        /* Sectors' leaderboard in Ledger: no box, a rule above. */
+        .ib { border: 0 !important; border-radius: 0 !important; border-top: 1px solid var(--c-rule_strong) !important; background: transparent !important; }
+        .ib-head { background: transparent !important; }
+        .ib-row { padding-left: 0 !important; padding-right: 0 !important; }
+
         /* Visible focus everywhere (audit F28): one 2px ink ring for links,
            buttons, tabs, pills, sliders and anything focusable by keyboard. */
         a:focus-visible, button:focus-visible, [role="tab"]:focus-visible,
