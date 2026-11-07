@@ -16,7 +16,7 @@ TODO row S94 tracks this file; each item is closed here with its commit.
 
 | ID | P0 | Status |
 |---|---|---|
-| F1 | ACUTAAS shown at three ranks (47 overall; 45 "qualified" on Actions/Dashboard; 44 in Portfolio's ranks-by-month, which adds an index-membership gate) | Owner decision 1 |
+| F1 | ACUTAAS shown at three ranks (47 overall; 45 "qualified" on Actions/Dashboard; 44 in Portfolio's ranks-by-month, re-scored by the backtester) | Owner, 7 Nov: "any rank used must be originated from screener". Qualified rank = place among the Screener's rows passing both filters (ACUTAAS 45). Being traced: why the backtester orders one stock differently (not index membership: all 44 above it were members on 4 Nov), and whether the model's own picks use the Screener's ranking |
 | F2 | Alpha caption says "compounded"; it is plain subtraction, shown as % instead of points | Open |
 | F3 | Backtest current book shows 5.0% weight on every row; Portfolio 4.7–5.6% | Open |
 | F4 | Sectors: median on the board, mean on the map; "Cement & Materials" vs "Construction Materials" | Open |
