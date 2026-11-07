@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-07 — Screener frame lighter
+
+- The Screener's 60-day lines are sent as a short list of heights and drawn in the browser, the rows on screen first: the table's frame is 2.0 MB instead of 2.4 MB, and the lines look the same (audit F62).
+- Momentum health reads "42nd percentile", not "42th".
+
 ## 2026-11-07 — Dashboard: momentum health and flows
 
 - **Momentum health**: how momentum itself has been paying. Each month-end the Nifty 500's members are ranked by this site's score, and the next month's return of the top fifth minus the bottom fifth is that month's spread. The panel shows the last 12 months' sum (+8.9 points to October 2026), its percentile since 2010 (42nd, about usual), the last 24 months as bars, and a flag in a crash month. Checked against IIM Ahmedabad's independent Indian momentum factor: correlation 0.83 month by month, Feb 2010 to Dec 2025 (`docs/MOMENTUM_HEALTH.md`). Rebuilt monthly by a checked job.
