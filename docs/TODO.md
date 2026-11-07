@@ -48,6 +48,7 @@ website's menu. Plan, Block 0 measurements and the revised order:
 | A4 | Block 1: `ss_sync` is 61% of Actions time (~4.6 h a night): every stock fetches a 1,000-session page for one new day, plus 35 five-minute rests | Can SS serve a shorter page? If yes, the same pace per request with fewer bytes, same three-source result | [ ] |
 | A5 | Failure rates: `canonical_parity` 62 of 224 runs, `screener_sync` 7 of 31, `v1-production-qa` 25 of 140 (8 Oct - 7 Nov) | Each failure class named; real faults fixed, noise removed | [ ] |
 | A6 | The nightly's data commits carry `[skip ci]`, so a data change that breaks a data test (S86) turns nothing red | A scheduled run of the data tests on main (or the sync running them) that alerts on failure | [ ] |
+| A7 | `nse_collect` runs every 4 h (cron `25 */4`) for a backfill to 2010 that is finished: 6 Nov log "NSE_BACKFILL since 2010-01-01: 0 days to go ... published=0". GitHub ran 104 of ~180 scheduled runs, hours late (6 Nov: 06:59, 15:59, 21:36 UTC), so when today's bundle reaches R2 is luck, while `daily_sync` (17:30 UTC) and `ss_sync`'s three-source check read it. The script's docstring ("Record only: nothing here feeds the app yet") is out of date | Owner's yes; runs on trading-day evenings after NSE publishes, with a retry, and the nightly reads its result in order (chained, not by clock); weekend special sessions still collected; a week of runs shows each trading day on R2 before `daily_sync` reads it | [ ] 7 Nov: measured, proposal to owner |
 
 ## Handover (2026-10-13) - start here
 
