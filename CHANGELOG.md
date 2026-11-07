@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-07 — Names, Actions, emoji
+
+- One name for the 52-week measure: "From 52W high" for the distance and "Near 52W high" for the filter, on the Screener, Sectors and in the header; "50D EMA" in Screener headings.
+- A holding close to its 50D EMA reads "can fall 2.8% to its 50D EMA", the same figure as its cushion; it read "2.9% above" beside "2.8% cushion".
+- "Leading" is kept for the rotation graph: Sectors' first figure is "Top industry" and the Dashboard's list is "Industries by 3M median return".
+- Actions: the sell, buy and hold lists are open rows with the status as a coloured word, read as tables by screen readers; a negative return in the buy list is no longer drawn in blue.
+- No emoji in tables: Bought, Sold, Held, Yes, No and the rotation quadrants are plain words.
+- Industry names under a stock wrap instead of being cut mid-word.
+- The Guide says the Kite basket holds the buys only; sells are placed by hand.
+
 ## 2026-11-07 — Keyboard and contrast
 
 - A "Skip to content" link is the first stop for the keyboard on every page; it jumps past the header and market line.

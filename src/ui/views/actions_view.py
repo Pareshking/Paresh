@@ -202,42 +202,48 @@ def _held_since(book: pd.DataFrame | None, sym: str) -> str:
 
 def sells_html(a: pd.DataFrame, sells: list[str], since: dict[str, float], entries) -> str:
     by = a.set_index("Symbol")
-    rows = []
+    # Column names for a screen reader only: the list reads as rows by eye.
+    rows = ['<div class="ac-row sell sr-only" role="row"><span role="columnheader">Holding</span>'
+            '<span role="columnheader">Reason</span><span role="columnheader">Held</span>'
+            '<span role="columnheader">Since entry</span></div>']
     for s in sells:
         why = by.loc[s, "why"] if s in by.index else ""
         ret = since.get(s)
-        ret_txt = "—" if ret is None or pd.isna(ret) else f"{'+' if ret >= 0 else '−'}{abs(ret) * 100:.1f}%"
         cls = "" if ret is None or pd.isna(ret) else ("up" if ret >= 0 else "down")
         rows.append(
-            f'<div class="ac-row sell"><span class="xw-s"><a href="{stock_href(s)}" target="_self">'
+            f'<div class="ac-row sell" role="row"><span class="xw-s" role="rowheader"><a href="{stock_href(s)}" target="_self">'
             f'{html.escape(s)}</a><small>{html.escape(str(by.loc[s, "Industry"]) if s in by.index else "")}</small></span>'
-            f'<span class="ac-why"><b>Sell</b> · {html.escape(why)}</span>'
-            f'<span class="ac-when">{html.escape(entries(s))}</span>'
-            f'<span class="xw-ret {cls}">{ret_txt}</span></div>')
-    return f'<div class="xw">{"".join(rows)}</div>'
+            f'<span class="ac-why" role="cell"><b>Sell</b> · {html.escape(why)}</span>'
+            f'<span class="ac-when" role="cell">{html.escape(entries(s))}</span>'
+            f'<span class="xw-ret {cls}" role="cell">{_fmt.pct(ret)}</span></div>')
+    return f'<div class="xw" role="table" aria-label="Sell">{"".join(rows)}</div>'
 
 
 def buys_html(rank_df: pd.DataFrame, buys: list[str], qrank: pd.Series) -> str:
     by = rank_df.drop_duplicates("Symbol").set_index("Symbol")
 
-    def pct(v):
+    def ret_cell(v) -> str:
         v = pd.to_numeric(v, errors="coerce")
-        return "—" if pd.isna(v) else f"{'+' if v >= 0 else '−'}{abs(v) * 100:.1f}%"
+        tone = "" if pd.isna(v) else ("up" if v >= 0 else "down")
+        return f'<span class="n {tone}" role="cell">{_fmt.pct(v)}</span>'
 
-    rows = ['<div class="ac-row buy ac-head"><span>Stock</span><span>Qualified</span>'
-            '<span class="n">Price</span><span class="n">3M</span><span class="n">6M</span>'
-            '<span class="n">From 52W high</span></div>']
+    rows = ['<div class="ac-row buy ac-head" role="row"><span role="columnheader">Stock</span>'
+            '<span role="columnheader">Qualified</span>'
+            '<span class="n" role="columnheader">Price</span><span class="n" role="columnheader">3M</span>'
+            '<span class="n" role="columnheader">6M</span>'
+            '<span class="n" role="columnheader">From 52W high</span></div>']
     for s in buys:
         r = by.loc[s]
         hi = pd.to_numeric(r.get("% High"), errors="coerce")
-        hi_txt = "—" if pd.isna(hi) else ("At high" if hi > -0.05 else f"−{abs(hi):.1f}%")
+        hi_txt = "—" if pd.isna(hi) else ("At high" if hi > -0.05 else _fmt.pct(hi, fraction=False))
         rows.append(
-            f'<div class="ac-row buy"><span class="xw-s"><a href="{stock_href(s)}" target="_self">'
+            f'<div class="ac-row buy" role="row"><span class="xw-s" role="rowheader"><a href="{stock_href(s)}" target="_self">'
             f'{html.escape(s)}</a><small>{html.escape(str(r.get("Industry") or ""))}</small></span>'
-            f'<span class="n">#{int(qrank.get(s, 0))}</span>'
-            f'<span class="n">{_fmt.inr(r.get("CMP"), 2)}</span><span class="n up">{pct(r.get("3M Return"))}</span>'
-            f'<span class="n up">{pct(r.get("6M Return"))}</span><span class="n">{hi_txt}</span></div>')
-    return f'<div class="xw">{"".join(rows)}</div>'
+            f'<span class="n" role="cell">#{int(qrank.get(s, 0))}</span>'
+            f'<span class="n" role="cell">{_fmt.inr(r.get("CMP"), 2)}</span>'
+            f'{ret_cell(r.get("3M Return"))}{ret_cell(r.get("6M Return"))}'
+            f'<span class="n" role="cell">{hi_txt}</span></div>')
+    return f'<div class="xw" role="table" aria-label="Buy">{"".join(rows)}</div>'
 
 
 def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,

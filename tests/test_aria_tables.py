@@ -89,3 +89,22 @@ def test_industry_board_is_a_table():
         "Near 52W High": [True, False, False, False],
     }))
     _check(sector_view.board_html(board))
+
+
+def test_a_watched_holding_reads_one_number_for_its_ema_room():
+    """F8: "2.9% above its 50-day EMA" sat beside "2.8% cushion" in one row."""
+    rows = [{"Symbol": "S", "Rank": 1, "Above 50 EMA": True, "Near 52W High": True,
+             "% 50 EMA": 100 * (1 / (1 - 0.028) - 1), "% High": 0.0, "Industry": "X"}]
+    a = assess(pd.DataFrame(rows), ["S"], Rules())
+    assert a.iloc[0]["why"] == "can fall 2.8% to its 50D EMA"
+
+
+def test_actions_sell_and_buy_lists_are_tables():
+    a = _assessed()
+    _check(actions_view.sells_html(a, ["S1"], {"S1": -0.05}, lambda s: "held since 1 Oct"))
+    rank_df = pd.DataFrame({"Symbol": ["B1"], "Industry": ["X"], "CMP": [100.0],
+                            "3M Return": [-0.02], "6M Return": [0.10], "% High": [-3.0]})
+    out = _check(actions_view.buys_html(rank_df, ["B1"], pd.Series({"B1": 6})))
+    assert out
+    html_out = actions_view.buys_html(rank_df, ["B1"], pd.Series({"B1": 6}))
+    assert 'class="n down" role="cell">−2.0%' in html_out    # a fall is not drawn as a rise

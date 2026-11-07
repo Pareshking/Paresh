@@ -339,7 +339,7 @@ def render_header_kpi_bar(
             <span class="mkt-label">Above 50D EMA</span>
             <strong>{above_ema} <em>({pct_above_ema:.0f}%)</em></strong>
         </div>
-        {"" if near_high is None else f'<div class="mkt-item"><span class="mkt-label">Within 20% of 52W high</span><strong>{near_high} <em>({near_high / total_stocks * 100 if total_stocks else 0:.0f}%)</em></strong></div>'}
+        {"" if near_high is None else f'<div class="mkt-item"><span class="mkt-label" title="Within 20% of the 52-week high">Near 52W high</span><strong>{near_high} <em>({near_high / total_stocks * 100 if total_stocks else 0:.0f}%)</em></strong></div>'}
     </div>
     """
 

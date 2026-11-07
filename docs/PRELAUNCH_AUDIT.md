@@ -23,7 +23,8 @@ shadows, F10 no part-year annualising, the rest of F5 true minus (bd28c0a); F49
 stock page and one date style (36912b2); F43 month grid. F11 Portfolio chart vs
 headline reconciled. Parked for the owner: F13 "Personal" as the public name of
 the price source (a deliberate choice in components.py). F27 skip link, F28 focus ring, F29 contrast done (roving focus in the 750-row
-table still open). Next: F16/F17 names, F30–F36, Phase 3 type scale and table style, Phase 4 P1 pages.
+table still open). F8 one EMA figure, F15 Leading, F16 52W/EMA names (Screener item 9), F17
+wrapping, F46 table emoji, F54 Actions done. Next: F30–F36, F12–F14, Phase 3 type scale and table style, Phase 4 P1 pages.
 
 ## Status of the P0s
 

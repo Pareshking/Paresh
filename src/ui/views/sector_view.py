@@ -312,7 +312,7 @@ def board_html(board: pd.DataFrame) -> str:
     head = ('<div class="ib-row ib-head" role="row"><span role="columnheader">#</span><span role="columnheader">Industry</span>'
             '<span role="columnheader" class="ib-num ib-d">Stocks</span><span role="columnheader" class="ib-3m">3M (median)</span>'
             '<span role="columnheader" class="ib-num ib-d">6M</span><span role="columnheader" class="ib-num ib-d" title="Share above their 50-day EMA">Above 50D EMA</span>'
-            '<span role="columnheader" class="ib-num ib-d" title="Share within 20% of their 52-week high">Near high</span><span role="columnheader" class="ib-num ib-d">Pass both</span>'
+            '<span role="columnheader" class="ib-num ib-d" title="Share within 20% of their 52-week high">Near 52W high</span><span role="columnheader" class="ib-num ib-d">Pass both</span>'
             '<span role="columnheader" class="ib-num ib-d">Top 50</span><span role="columnheader" class="ib-d">Leaders</span></div>')
     return f'<div class="ib" role="table" aria-label="Industry leaderboard">{head}{"".join(rows)}</div>'
 
@@ -369,7 +369,7 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
         return f"median {_pct(r[ret])} in {span[0]} months · {r['Top 50']} of the top 50"
 
     kit.readings([
-        kit.Reading("Leading", lead.Industry, why(lead), _tone(lead[ret]) if metric == ret else ""),
+        kit.Reading("Top industry", lead.Industry, why(lead), _tone(lead[ret]) if metric == ret else ""),
         kit.Reading("Rising", f"{rising} of {len(board)}", f"median {span} above 0"),
         kit.Reading("Most in the top 50", most.Industry,
                     f"{most['Top 50']} stocks · best rank #{int(most.Best)} {best_sym}"),

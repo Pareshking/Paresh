@@ -829,7 +829,7 @@ def inject_custom_css() -> None:
         .xw-s { display: flex; flex-direction: column; min-width: 0; }
         .xw-s a { font-size: 14px; font-weight: 700; color: var(--c-ink) !important; text-decoration: none !important; }
         .xw-s a:hover { color: var(--c-ink) !important; }
-        .xw-s small { font-size: 12px; color: var(--c-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .xw-s small { font-size: 12px; color: var(--c-muted); white-space: normal; line-height: 1.3; }
         .xw-pill { justify-self: start; font-size: 12px; font-weight: 650; padding: 3px 10px; border-radius: 4px; white-space: nowrap; }
         .xw-pill.sell { background: var(--c-down_tint); color: var(--c-down); }
         .xw-pill.watch { background: var(--c-caution_tint); color: var(--c-caution_ink); }
@@ -1457,10 +1457,31 @@ def inject_custom_css() -> None:
         [class*="st-key-mrow_"] [data-testid="stMetric"] > div { padding: 0 !important; }
         [class*="st-key-mrow_"] [data-testid="stMetricValue"] { font-size: 20px !important; line-height: 1.2 !important; }
 
+        .sr-only { position: absolute !important; width: 1px; height: 1px; overflow: hidden;
+            clip: rect(0 0 0 0); white-space: nowrap; padding: 0 !important; border: 0 !important; }
         .skip-link { position: absolute; left: 16px; top: -60px; z-index: 1000; padding: 8px 14px;
             background: var(--c-ink); color: var(--c-white) !important; font-size: 14px; text-decoration: none !important; }
         .skip-link:focus { top: 8px; }
         .skip-target { display: block; height: 0; outline: 0 !important; }
+        /* Actions' exit watch in Ledger (audit F54): open rows, no box, no
+           zebra, status as a coloured word, not a filled chip. */
+        .xw { border: 0; border-radius: 0; border-top: 1px solid var(--c-rule_strong); }
+        .xw-row:nth-child(odd):not(.xw-head) { background: transparent; }
+        .xw-head { background: transparent !important; }
+        .xw-row { padding-left: 0 !important; padding-right: 0 !important; }
+        .xw-pill, .xw-pill.sell, .xw-pill.watch, .xw-pill.clear, .xw-pill.unknown { background: transparent; padding: 0; font-weight: 600; }
+        .xw-pill.watch { color: var(--c-caution); }
+        .xw-s a { font-weight: 600; }
+        .xw-g b { font-family: var(--font-ui); font-variant-numeric: tabular-nums; }
+        .xw-ret { font-family: var(--font-ui); font-variant-numeric: tabular-nums; }
+
+        .ac-row.buy, .ac-row.sell { background: transparent; padding-left: 0; padding-right: 0; }
+        .ac-row { border-bottom-color: var(--c-rule); }
+        .ac-row.ac-head { background: transparent !important; }
+        .ac-row .n { font-family: var(--font-ui); font-variant-numeric: tabular-nums; }
+        .ac-row .down { color: var(--c-down); }
+        .ac-why b { font-weight: 600; }
+
         /* Visible focus everywhere (audit F28): one 2px ink ring for links,
            buttons, tabs, pills, sliders and anything focusable by keyboard. */
         a:focus-visible, button:focus-visible, [role="tab"]:focus-visible,
@@ -1822,7 +1843,7 @@ def inject_custom_css() -> None:
             border-bottom: 1px solid var(--c-rule); }
         .db-sym { line-height: 1.2; }
         .db-sym a { font-weight: 650; color: var(--c-ink) !important; text-decoration: none; }
-        .db-sym small { display: block; font-size: 11.5px; color: var(--c-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .db-sym small { display: block; font-size: 12px; color: var(--c-muted); white-space: normal; line-height: 1.3; }
         .db-status { font-size: 12px; font-weight: 600; color: var(--c-text_2); }
         .db-risk-row.watch .db-status { color: var(--c-caution); }
         .db-risk-row.sell .db-status { color: var(--c-down); }
@@ -2052,14 +2073,8 @@ def render_saas_table(
                     "Lagging": "badge-red",
                     "Improving": "badge-blue",
                 }.get(q_val, "badge-neutral")
-                q_ico = {
-                    "Leading": "🟢",
-                    "Weakening": "🟡",
-                    "Lagging": "🔴",
-                    "Improving": "🔵",
-                }.get(q_val, "⚪")
                 cells_html.append(
-                    f'<td class="td-center"><span class="badge-pill {q_badge}">{q_ico} {_esc(q_val)}</span></td>'
+                    f'<td class="td-center"><span class="badge-pill {q_badge}">{_esc(q_val)}</span></td>'
                 )
             elif "STATUS" in c_str:
                 status_str = str(val).strip()
@@ -2079,15 +2094,15 @@ def render_saas_table(
                 act_str = str(val).upper()
                 if "BUY" in act_str or "BOUGHT" in act_str:
                     cells_html.append(
-                        '<td class="td-center"><span class="badge-pill badge-green">🟢 Bought</span></td>'
+                        '<td class="td-center"><span class="badge-pill badge-green">Bought</span></td>'
                     )
                 elif "SELL" in act_str or "SOLD" in act_str:
                     cells_html.append(
-                        '<td class="td-center"><span class="badge-pill badge-red">🔴 Sold</span></td>'
+                        '<td class="td-center"><span class="badge-pill badge-red">Sold</span></td>'
                     )
                 elif any(w in act_str for w in ("HOLD", "HELD", "RETAINED")):
                     cells_html.append(
-                        '<td class="td-center"><span class="badge-pill badge-neutral">⚪ Held</span></td>'
+                        '<td class="td-center"><span class="badge-pill badge-neutral">Held</span></td>'
                     )
                 else:
                     cells_html.append(
@@ -2254,7 +2269,7 @@ def render_saas_table(
                 cells_html.append(f'<td class="td-left td-sector">{_esc(str(val))}</td>')
             elif isinstance(val, bool):
                 cells_html.append(
-                    f'<td class="td-center">{"🟢 Yes" if val else "⚪ No"}</td>'
+                    f'<td class="td-center">{"Yes" if val else "No"}</td>'
                 )
             else:
                 cells_html.append(f'<td class="td-left">{_esc(str(val))}</td>')

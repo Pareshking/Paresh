@@ -139,7 +139,8 @@ through them clockwise. The graph is a picture of rotation; it does not feed the
 <h2 id="acting">Acting on it</h2>
 <ol>
 <li>After the month's last close, open <b>Actions</b>: it lists what to sell and what to buy.</li>
-<li>Download the Kite basket there and import it in Zerodha Kite under Orders, Baskets, Import.</li>
+<li>Place the sells by hand, in full. Then download the Kite basket there (buy orders only, each at its
+target weight of the capital you enter) and import it in Zerodha Kite under Orders, Baskets, Import.</li>
 <li>Place the orders on the next session. The record fills at that session's close, so orders near
 the close follow it most closely.</li>
 <li>Hold until the next month-end. <b>Actions</b> shows during the month how close each holding is to

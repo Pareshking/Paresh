@@ -72,7 +72,7 @@ def _participation_word(val: float) -> tuple[str, str]:
 
 def _ratio_word(ratio: float) -> tuple[str, str]:
     if ratio > 2:
-        return "highs outnumber lows: broadening", "up"
+        return "more new highs than new lows", "up"
     if ratio < 1:
         return "below 1 = the market is narrowing", "down" if ratio < 0.5 else "warn"
     return "roughly balanced", "warn"

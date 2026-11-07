@@ -178,7 +178,7 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
             '</dl>')
         kit.caption("The same plan as Actions, from today's ranking and the model book's rules.")
 
-    with low_r, kit.card("Sector leaders", "db_sectors", "median 3M return"):
+    with low_r, kit.card("Industries by 3M median return", "db_sectors"):
         board, _ = industry_board(rank_df)
         top = (board.sort_values("3M Return", ascending=False).head(5)
                if not board.empty else board)
@@ -188,7 +188,7 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
             f'<td class="db-n">{int(r["Top 50"]) if pd.notna(r.get("Top 50")) else "—"} in the top 50</td></tr>'
             for _, r in top.iterrows())
         st.html(f'<table class="db-sectors"><tbody>{rows}</tbody></table>')
-        kit.caption("As ranked on Sectors (3M median); the full board is there.")
+        kit.caption("As ranked on Sectors; the full board is there.")
 
     levels, bench = fetch_index_levels(), nse_benchmarks()
     with low_l, kit.card("Size leadership", "db_size", "price return, NSE index closes"):

@@ -213,7 +213,9 @@ def test_one_word_for_one_thing_across_pages():
     assert '["All", "Buy", "Sell", "Hold"]' in backtest and '"🟢 BOUGHT", "🔴 SOLD"' not in backtest
     assert "Portfolio risk" not in backtest and "Filter " not in backtest
     theme = THEME.read_text(encoding="utf-8")
-    assert "🟢 Bought" in theme and "🔴 Sold" in theme and "⚪ Held" in theme
+    # The words are the owner's (12 Oct); the emoji went with audit F46 (7 Nov).
+    assert ">Bought<" in theme and ">Sold<" in theme and ">Held<" in theme
+    assert "🟢 Bought" not in theme and "🔴 Sold" not in theme
     assert "🟢 BUY</span>" not in theme
     assert 'f"NIFTY 500 ' not in PORTFOLIO_VIEW.read_text(encoding="utf-8")
     assert ">NIFTY 500<" not in (ROOT / "src/ui/components.py").read_text(encoding="utf-8")

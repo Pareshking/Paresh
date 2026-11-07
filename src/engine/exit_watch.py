@@ -101,9 +101,11 @@ def assess(rank_df: pd.DataFrame, symbols: list[str], rules: Rules = Rules()) ->
             if room is not None and room <= WATCH_RANK_PLACES:
                 close.append(f"#{q} · {room} places from the buffer")
             if pd.notna(ema_c) and ema_c < WATCH_EMA_CUSHION:
-                close.append(f"{ema_pct:.1f}% above its 50-day EMA")
+                # The fall that reaches the EMA, the same figure as the cushion
+                # beside it (it read "2.9% above" next to "2.8% cushion"; F8).
+                close.append(f"can fall {ema_c * 100:.1f}% to its 50D EMA")
             if pd.notna(hi_c) and hi_c < WATCH_HIGH_CUSHION:
-                close.append(f"{hi_c * 100:.1f}% from the −{(1 - rules.high_pct):.0%} line")
+                close.append(f"can fall {hi_c * 100:.1f}% to the −{(1 - rules.high_pct):.0%} line")
             status, why = (WATCH, "; ".join(close)) if close else (CLEAR, "")
         rows.append({
             "Symbol": sym, "Industry": r.get("Industry"), "Rank": r.get("Rank"),
