@@ -194,6 +194,17 @@ _PAGE_CSS = """<style>
 .qp-nav{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13.5px;margin:0 0 14px}
 .qp-nav a{color:var(--c-ink)!important;text-decoration:underline;text-decoration-color:var(--c-rule_strong);text-underline-offset:3px}
 @media (max-width:900px){.qp-top{grid-template-columns:1fr}.qp td.rule,.qp th.rule{display:none}}
+/* Phone: each evidence row stacks, the measure on a line of its own, then
+   the bar, the figure and the vote (the four columns did not fit 375px). */
+@media (max-width:700px){
+  .qp table.ev thead{display:none}
+  .qp table.ev tr{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 12px;
+    align-items:center;border-bottom:1px solid var(--c-rule);padding:8px 0}
+  .qp table.ev td{border:0;padding:0}
+  .qp table.ev td:first-child{grid-column:1 / -1}
+  .qp table.ev td:nth-child(2){text-align:left!important}
+  .rng{width:100%!important;max-width:160px}
+}
 </style>"""
 
 
@@ -280,7 +291,7 @@ def question_section_html(a: mq.Answer, kind: str, anchor: str) -> str:
         f'<p class="qp-v {_tone(a)}">{html.escape(a.verdict)}</p><p class="qp-s">{html.escape(a.sentence)}</p>'
         f'{_scale(a)}</div><div><h3>What has changed</h3>{_changes_html(a, kind)}'
         f'<h3>What would change the answer</h3>{_would_html(a)}</div></div>'
-        '<table><thead><tr><th scope="col">The evidence</th><th scope="col" style="text-align:center">'
+        '<table class="ev"><thead><tr><th scope="col">The evidence</th><th scope="col" style="text-align:center">'
         'Where today sits, lowest to highest</th><th scope="col">Now</th><th scope="col">Vote</th></tr></thead>'
         f'<tbody>{"".join(rows)}</tbody></table>'
         '<p class="qp-note">Each measure votes by its cut-offs; primary measures count twice. The bar runs from '
