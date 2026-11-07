@@ -9,6 +9,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from src.core.config import RISK_FREE_RATE
 from src.core.config import DEFAULT_TRANSACTION_COST_BPS
 from src.core.market_time import ist_now
 from src.engine.backtester import DEFAULT_BACKTEST_MONTHS, run_backtest
@@ -641,8 +642,11 @@ def _backtest_tab(
                     _tone(stats["ann_return"]) if _yrs >= 1 else ""),
         kit.Reading("Ahead of the index", f"{_fmt.pct(stats['alpha'])}",
                     f"{bench_name} {_fmt.pct(stats['bench_return'])}", _tone(stats["alpha"])),
+        # Its basis on the tile (audit F69): daily returns, annualised, over the
+        # risk-free rate the engine uses.
         kit.Reading("Sharpe", f"{stats['sharpe']:.2f}",
-                    (f"{sharpe_se_txt.strip()} · " if sharpe_se_txt else "") + f"Sortino {sortino_txt}"),
+                    f"daily, annualised, over {RISK_FREE_RATE:.1%} · "
+                    + (f"{sharpe_se_txt.strip()} · " if sharpe_se_txt else "") + f"Sortino {sortino_txt}"),
         kit.Reading("Max drawdown", _fmt.pct(stats['max_drawdown']),
                     f"Calmar {stats['calmar']:.2f}" if _yrs >= 1 else "peak to trough",
                     "down" if stats["max_drawdown"] < 0 else ""),
