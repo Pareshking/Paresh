@@ -351,18 +351,34 @@ _store_memo: dict[str, Any] = {"at": 0.0, "frame": None}
 
 
 def screener_store() -> pd.DataFrame | None:
-    """The published Screener history (R2, else the release), memoised for an hour. None if unreachable."""
+    """The published Screener history, memoised for an hour. None if unreachable.
+
+    The app's own copy first (screener_cache: the configured R2 pin, read once
+    per process), so the basis frame prices from the revision the ranking
+    uses and the store is not downloaded and held twice (A2, 8 Nov: a cold
+    Backtest page read it in both places, ~1 s each; S63 is the same fault in
+    the track-record comparison). Outside the app, or when that read fails,
+    the release copy as before.
+    """
     import time
 
     now = time.time()
     if _store_memo["frame"] is not None and now - _store_memo["at"] < _STORE_TTL_S:
         return _store_memo["frame"]
+    frame = None
     try:
-        from src.loaders import price_source
+        from src.loaders import screener_cache
 
-        frame = price_source.fetch_screener_store()
-    except Exception:  # noqa: BLE001  the caller falls back to NSE's own closes
+        frame, _ = screener_cache.configured()
+    except Exception:  # noqa: BLE001  the release copy below
         frame = None
+    if frame is None:
+        try:
+            from src.loaders import price_source
+
+            frame = price_source.fetch_screener_store()
+        except Exception:  # noqa: BLE001  the caller falls back to NSE's own closes
+            frame = None
     if frame is not None:
         _store_memo.update(at=now, frame=frame)
     return frame
