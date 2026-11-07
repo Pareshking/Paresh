@@ -6,6 +6,7 @@
 - Configuration and Backtest's settings line lose their rounded boxes and tinted panels; the score-weight bar is shades of ink, not indigo. Corners are 4px everywhere and decorative shadows are gone.
 - Every negative figure uses a true minus (−8.4%, not -8.4%), including Portfolio's P&L tiles, Backtest's figures and the Sectors worked example.
 - The stock page drops its rounded cards and tinted verdict panel for the same open, ruled layout as the rest of the site; figures in Plex Sans.
+- Calendar returns (Portfolio, Backtest) in the same open style: no box, shadow, gradient or indigo, and no text below 12px.
 - Dates read "6 Nov", not "06 Nov", everywhere.
 - Backtest shows no annualised return for a window under a year ("needs 12 months; this is 10 months") instead of scaling a part-year up.
 

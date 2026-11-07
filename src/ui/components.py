@@ -229,48 +229,42 @@ def _render_calendar_returns(grid: pd.DataFrame) -> None:
             f'<tbody>{"".join(rows)}</tbody></table></div></section>'
         )
 
+    # Ledger (audit F43): no box, shadow or gradient; the year under an ink
+    # rule, 12px text at least, figures in tabular Sans, colour only for up
+    # and down. One grid for Portfolio and Backtest.
     st.html("""
     <style>
-      .cr-wrap { display:grid; gap:14px; font-family:inherit; color:var(--c-ink); }
-      .cr-year { background:#fff; border:1px solid var(--c-rule); border-radius:13px;
-        overflow:hidden; box-shadow:0 2px 8px rgba(20,32,54,.035); }
-      .cr-year-head { display:flex; align-items:center; justify-content:space-between;
-        gap:12px; padding:13px 16px; background:linear-gradient(110deg,var(--c-fill_soft),#fff);
-        border-bottom:1px solid var(--c-rule_soft); }
-      .cr-kicker { display:block; font-size:9px; font-weight:800; letter-spacing:.13em;
-        color:var(--c-muted); }
-      .cr-year-head h3 { margin:2px 0 0; font-size:21px; line-height:1.2;
-        letter-spacing:-.04em; color:var(--c-ink); font-weight:750; }
-      .cr-year-note { color:var(--c-muted_2); font-size:11px; text-align:right; }
+      .cr-wrap { display:grid; gap:22px; font-family:inherit; color:var(--c-ink); }
+      .cr-year { background:transparent; border:0; border-top:1px solid var(--c-ink); border-radius:0; }
+      .cr-year-head { display:flex; align-items:baseline; justify-content:space-between;
+        gap:12px; padding:10px 0 6px; background:transparent; border:0; }
+      .cr-kicker { display:none; }
+      .cr-year-head h3 { margin:0; font-size:17px; line-height:1.2; letter-spacing:0;
+        color:var(--c-ink); font-weight:600; font-variant-numeric:tabular-nums; }
+      .cr-year-note { color:var(--c-muted); font-size:12.5px; text-align:right; }
       .cr-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
-      .cr-table { border-collapse:separate; border-spacing:0; width:100%;
-        min-width:980px; font-size:11px; font-variant-numeric:tabular-nums; }
-      .cr-table th,.cr-table td { padding:10px 8px; text-align:center;
-        border-bottom:1px solid var(--c-rule_soft); white-space:nowrap; }
-      .cr-table thead th { background:var(--c-fill_soft); color:var(--c-muted); font-size:9px;
-        font-weight:800; letter-spacing:.045em; }
-      .cr-table thead th:first-child { text-align:left; padding-left:15px; }
+      .cr-table { border-collapse:collapse; width:100%;
+        min-width:980px; font-size:13px; font-variant-numeric:tabular-nums; }
+      .cr-table th,.cr-table td { padding:8px 8px; text-align:right;
+        border-bottom:1px solid var(--c-rule); white-space:nowrap; }
+      .cr-table thead th { background:transparent; color:var(--c-muted); font-size:12px;
+        font-weight:500; letter-spacing:0; border-bottom:1px solid var(--c-rule_strong); }
+      .cr-table thead th:first-child { text-align:left; padding-left:0; }
       .cr-table tbody tr:last-child th,.cr-table tbody tr:last-child td { border-bottom:0; }
-      .cr-table tbody tr:hover { background:var(--c-white); }
-      .cr-series { text-align:left !important; padding-left:15px !important;
-        font-size:11px; font-weight:750; color:var(--c-ink_2); min-width:86px; }
-      .cr-series.strategy { border-left:3px solid var(--c-ink); }
-      .cr-series.benchmark { border-left:3px solid var(--c-faint); }
-      .cr-series.alpha { border-left:3px solid #d97706; }
-      .cr-value { font-weight:650; }
+      .cr-series { text-align:left !important; padding-left:0 !important;
+        font-size:13px; font-weight:600; color:var(--c-ink); min-width:86px; border-left:0 !important; }
+      .cr-series.benchmark { color:var(--c-text_2); font-weight:500; }
+      .cr-value { font-weight:500; }
       .cr-value.positive { color:var(--c-up); }
       .cr-value.negative { color:var(--c-down); }
       .cr-value.flat,.cr-empty { color:var(--c-faint); }
-      .cr-empty { background:var(--c-white); }
-      .cr-summary-head { background:var(--c-fill) !important; color:#4542a7 !important; }
-      .cr-summary { background:var(--c-fill_soft); font-weight:800; }
-      .cr-table td.cr-summary { border-left:1px solid var(--c-rule_soft); }
+      .cr-summary-head { background:var(--c-subtle) !important; color:var(--c-ink) !important; font-weight:600 !important; }
+      .cr-summary { background:var(--c-subtle); font-weight:600; }
+      .cr-table td.cr-summary { border-left:1px solid var(--c-rule); }
       @media(max-width:640px) {
-        .cr-year-head { padding:11px 12px; }
-        .cr-year-head h3 { font-size:19px; }
-        .cr-year-note { max-width:130px; font-size:10px; }
+        .cr-year-note { max-width:150px; font-size:12px; }
         .cr-table { min-width:940px; }
-        .cr-table th,.cr-table td { padding:10px 7px; }
+        .cr-table th,.cr-table td { padding:8px 7px; }
       }
     </style>
     """)

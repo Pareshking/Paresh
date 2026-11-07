@@ -17,9 +17,13 @@ TODO row S94 tracks this file; each item is closed here with its commit.
 Done beyond the P0 table below: F5/F6 one number style (lakh/crore, sign before ₹,
 true minus; 684013d), F7 "Trend: up" against the 200-day EMA (32e3e66), desktop
 quick links per decision 6 (a9ee708), the model and ranks-by-month scoring the
-day's index members (S95; 21fca6f, c2bb87c). Next: F25 real tables, F26 chart text
-alternatives, dates (rest of F5), F16/F17 names, then Phase 3 (design system) and
-Phase 4 (stock page, Configuration, Guide first).
+day's index members (S95; 21fca6f, c2bb87c). Later on 7 Nov: every P0 closed. F25 ARIA tables and F26 chart
+text (fef5a0c); F51 Guide (fe3a09a); F42 one tile, F50 Configuration, F45 radii and
+shadows, F10 no part-year annualising, the rest of F5 true minus (bd28c0a); F49
+stock page and one date style (36912b2); F43 month grid. F11 Portfolio chart vs
+headline reconciled. Parked for the owner: F13 "Personal" as the public name of
+the price source (a deliberate choice in components.py). Next: F16/F17 names,
+F27–F36, Phase 3 type scale and table style, Phase 4 P1 pages.
 
 ## Status of the P0s
 
@@ -38,7 +42,7 @@ Phase 4 (stock page, Configuration, Guide first).
 | F25 | Lists built from divs (Dashboard risk, Actions, movers, Sectors board) | **Done**: ARIA table roles on the grid lists (look unchanged); a test checks every row has as many cells as headers |
 | F26 | Charts have no text alternative | **Done**: every chart frame carries its content in words (first, last, low, high per series; RRG quadrants; correlation extremes; each industry and sector) and a descriptive title; the drawing is aria-hidden |
 | F42 | Five different figure-tile designs | **Done**: one tile for kit.readings and st.metric rows (hairlines, centred per the owner's 13 Oct choice, Plex Sans 600 tabular) |
-| F43 | Calendar-returns card still old theme (shadow, gradient, indigo) | Open |
+| F43 | Calendar-returns card still old theme (shadow, gradient, indigo) | **Done**: one Ledger grid for Portfolio and Backtest; no box, shadow, gradient or indigo; nothing under 12px |
 | F49 | Stock page is the old card layout recoloured | **Done**: cards open under an ink rule, verdict a ruled band without tint, Sans tabular figures, words-not-chips for pass/fail |
 | F50 | Configuration looks like the old SaaS theme | **Done**: open sections under an ink rule, plain link index, ink-only weight bar; "Personal" label parked for the owner (F13) |
 | F51 | Guide is boxed cards and marketing headings | **Done** fe3a09a: one reading column, checked against the code; regime playbooks removed; removed-engine list moved to CHANGELOG |
