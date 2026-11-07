@@ -51,6 +51,14 @@ def published_holidays() -> list[date]:
     return sorted(_lists()[0])
 
 
+def announced_sessions() -> list[date]:
+    """Holiday or weekend sessions NSE announced: its holiday list's Muhurat days
+    and data/reference/nse/special_sessions.csv. The collector asks for these by
+    date, since a weekday walk never reaches a Sunday (scripts/nse_collect.py)."""
+    _hol, muhurat, special = _lists()
+    return sorted(muhurat | special)
+
+
 def not_a_session(day) -> str:
     """Why NSE cannot have traded on `day` ("" when it could)."""
     d = pd.Timestamp(day).date()

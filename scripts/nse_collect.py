@@ -43,7 +43,7 @@ import requests
 
 from src.core.market_time import ist_now
 from src.engine import source_check
-from src.loaders import nse_bundle
+from src.loaders import nse_bundle, nse_calendar
 
 DATASETS = {
     "prices": ("nse/prices_daily", "archive/nse/prices_daily"),
@@ -94,6 +94,19 @@ def recent_weekend_days(n: int, today: date) -> list[date]:
     """
     return [today - timedelta(days=k) for k in range(n)
             if (today - timedelta(days=k)).weekday() >= 5]
+
+
+ANNOUNCED_WINDOW_DAYS = 14
+
+
+def recent_announced_sessions(today: date, window: int = ANNOUNCED_WINDOW_DAYS,
+                              announced: list[date] | None = None) -> list[date]:
+    """Sessions NSE announced (Muhurat, a Budget Sunday, special Saturdays) in the
+    last `window` days up to `today`, newest first. --recent walks weekdays only,
+    so without this a Sunday Muhurat was never collected unless typed in by hand."""
+    days = nse_calendar.announced_sessions() if announced is None else announced
+    lo = today - timedelta(days=window)
+    return sorted((d for d in days if lo <= d <= today), reverse=True)
 
 
 def load_calendar(path: str | None) -> list[date]:
@@ -292,6 +305,8 @@ def main(argv: list[str] | None = None) -> int:
           + (f", {min(have)} to {max(have)}" if have else ""))
 
     days = [d for d in recent_weekdays(args.recent, today) if d not in have] if args.recent else []
+    if args.recent:
+        days += [d for d in recent_announced_sessions(today) if d not in have and d not in days]
     days += [d for d in recent_weekend_days(args.weekends, today) if d not in have and d not in days]
     extra = [date.fromisoformat(x) for x in args.dates.replace(",", " ").split()]
     days += [d for d in extra if d not in have and d not in days]
