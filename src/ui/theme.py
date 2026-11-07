@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src.ui.tokens import css_root, resolve
+from src.ui.tokens import FONTS, css_root, resolve
 from src.ui import formats as _fmt
 
 
@@ -127,9 +127,7 @@ def inject_custom_css() -> None:
         # st.html would add another empty block above the header.
         clean_html(f"<style>{css_root()}</style>"
                    '<a class="skip-link" href="#content">Skip to content</a>' + """
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+        <style>@import url('""" + FONTS["font_css"] + """');</style>
 
         <style>
         /* ── Design tokens: "Clear Ledger", light only ──────────────────
@@ -2388,9 +2386,7 @@ def render_saas_table(
 <html lang="en"><title>Table</title>
 <head>
 <meta charset="utf-8">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="{FONTS["font_css"]}" rel="stylesheet">
 <style>
 * {{ box-sizing: border-box; margin: 0; padding: 0; }}
 body {{

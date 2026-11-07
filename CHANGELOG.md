@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-07 — Fonts served by the site
+
+- IBM Plex Sans, IBM Plex Mono and Source Serif 4 are now served from the site itself (`static/fonts`, SIL Open Font Licence) instead of Google Fonts. A page and its chart frames made about 9 requests to Google per visit; now none. Text looks the same. This does not lower the server's memory: the font files (377 KB, Latin and Latin Extended) are cached by the browser after the first visit (audit F61).
+
 ## 2026-11-07 — Library updates
 
 - streamlit 1.66.1, pandas 3.1.0, numpy 2.5.4, pyarrow 26.0.0, and the last workflow still on older GitHub Actions moved to checkout/setup-python/upload-artifact v7 (owner). Nothing a reader sees changes: on the same pinned inputs the 750 ranking, the 12-month backtest and the track-record parity report are identical, and eight pages screenshot pixel-identical.

@@ -544,9 +544,7 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
         extra += "@media (max-width:640px){table{min-width:%dpx}}" % (len(cols) * 92)
     return (
         "<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Ranking table</title>"
-        "<link rel='preconnect' href='https://fonts.googleapis.com'>"
-        "<link href='https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&"
-        "family=IBM+Plex+Mono:wght@400;500;600&display=swap' rel='stylesheet'>"
+        "<link href='app/static/fonts.css' rel='stylesheet'>"
         f"<style>{_CSS}@media (min-width:641px){{table{{min-width:{max(1180, len(cols) * 92)}px}}}}{extra}{paged_css}</style></head><body><div class='edge' aria-hidden='true'></div><div class='wrap{wide_cls}'><table>"
         f"<thead>{group_row}<tr class=\"hdr\">{head}</tr></thead><tbody>{body_html}</tbody></table></div>{more}"
         f"<script>const SYS={json.dumps(system_suffix())};{_JS}</script></body></html>"

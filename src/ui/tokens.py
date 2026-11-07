@@ -48,8 +48,10 @@ PALETTE: dict[str, str] = {
 FONTS: dict[str, str] = {
     "ui": "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     "mono": "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-    "google_css": ("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700"
-                   "&family=IBM+Plex+Mono:wght@400;500;600&display=swap"),
+    # Self-hosted (audit F61): static/fonts.css, served by Streamlit's static
+    # folder. Relative, so it resolves against the app page, from srcdoc frames
+    # too (locally /app/static/, on Streamlit Cloud /~/+/app/static/).
+    "font_css": "app/static/fonts.css",
 }
 
 C = SimpleNamespace(**PALETTE)

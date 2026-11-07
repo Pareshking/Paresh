@@ -10,7 +10,7 @@ from src.ui import formats as _fmt
 from src.ui.tokens import FONTS, resolve
 
 # Each chart is its own document, so it loads the theme's fonts itself.
-_HEAD = "<!DOCTYPE html><html lang='en'><head><title>Chart</title><meta charset='utf-8'><link rel='stylesheet' href='" + FONTS["google_css"] + "'>"
+_HEAD = "<!DOCTYPE html><html lang='en'><head><title>Chart</title><meta charset='utf-8'><link rel='stylesheet' href='" + FONTS["font_css"] + "'>"
 
 
 def _titled(title: str) -> str:

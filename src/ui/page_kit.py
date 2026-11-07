@@ -258,8 +258,7 @@ def growth_chart(
 # app.py for every page (prototyped on the Dashboard and Breadth, then rolled
 # out on the owner's word). Source Serif 4 (SIL Open Font
 # Licence), not tipsheet's own face, so the site keeps its own identity.
-EDITORIAL_FONT = ("https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500"
-                  "&display=swap")
+EDITORIAL_FONT = "app/static/fonts.css"   # self-hosted with the other faces (audit F61)
 _EDITORIAL_CSS = """<style>
 @import url('""" + EDITORIAL_FONT + """');
 :root{--font-serif:'Source Serif 4','Source Serif Pro',Georgia,'Times New Roman',serif}

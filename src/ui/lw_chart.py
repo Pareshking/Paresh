@@ -165,7 +165,7 @@ def chart_html(panes: list[dict]) -> str:
     return (
         "<!DOCTYPE html><html lang='en'><head><title>" + _html.escape(title) + "</title><meta charset='utf-8'><meta name='viewport' "
         "content='width=device-width,initial-scale=1'>"
-        "<link rel='stylesheet' href='" + FONTS["google_css"] + "'><style>"
+        "<link rel='stylesheet' href='" + FONTS["font_css"] + "'><style>"
         "*{box-sizing:border-box}html,body{margin:0;background:transparent;"
         "font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--c-ink)}"
         ".pane{position:relative;width:100%;margin-bottom:" + str(GAP_PX) + "px}"
