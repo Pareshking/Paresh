@@ -41,7 +41,7 @@ def test_former_members_still_get_a_label():
 
 
 def test_record_run_passes_the_caps_and_a_sector_map():
-    src = inspect.getsource(model_record.record_run)
+    src = inspect.getsource(model_record.record_run_uncached)
     assert 'sector_cap=cfg["sector_cap"]' in src
     assert 'stock_cap=cfg["stock_cap"]' in src
     assert "sector_map=record_sector_map(" in src

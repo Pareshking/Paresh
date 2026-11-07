@@ -132,3 +132,13 @@ def offline_market_data(monkeypatch):
     monkeypatch.setattr(tv_loader, "load_tv_classification", lambda *a, **k: {})
     monkeypatch.setattr(ranking_store, "fetch_snapshot", lambda *a, **k: (None, None))
     return {"symbols": symbols, "idx_info": idx_info, "prices": raw, "store": store}
+
+
+@pytest.fixture(autouse=True)
+def _fresh_record_memo():
+    """record_run's per-render memo (model_record._RUN_MEMO) starts empty in every test."""
+    from src.engine import model_record
+
+    model_record._RUN_MEMO.clear()
+    yield
+    model_record._RUN_MEMO.clear()
