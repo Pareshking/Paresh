@@ -10,9 +10,12 @@ joined on the dates they share, and each window opens on the first shared
 session on or after the same date one, three or six months back (the rule the
 ranking's own windows use, `calendar_start_positions`). The index-level file
 falls back to Screener's index chart when niftyindices.com refuses the nightly
-job, and that chart is weekly before the latest year, so a window can open a
-few days after its calendar date; the start dates are returned so the page
-can say which session each window counts from.
+job (it refused every night checked, 5-7 Nov 2026). That chart is weekly over
+ten years and daily over the last 400 days; until 7 Nov the job kept only the
+weekly series, so 1M opened on 9 Oct while every other page used 6 Oct. The
+job now merges the daily closes in (scripts/build_nse_index_prices.py). The
+start dates are returned so the page says which session each window counts
+from.
 
 `cross_check` compares the file's Nifty 50 with NSE's own daily closes in
 `data/benchmarks.csv`. The dashboard shows the table only when they agree.
