@@ -59,7 +59,7 @@ def test_peers_table_formats_float32_prices(monkeypatch):
                             "CMP": np.array([1234.5677, 99.0], dtype="float32")})
     html = _peers_html(monkeypatch, rank_df, "AAA")
     # The raw float stays in the sort key (data-v), never in the text shown.
-    assert "₹1,234.57" in html and ">1234.5" not in html   # paise since 7 Nov (F66)
+    assert '<span class="px-d">₹1,234.57</span><span class="px-m">₹1,235</span>' in html and ">1234.5" not in html   # paise since 7 Nov (F66)
 
 
 def test_peers_tag_this_stock_even_below_the_top_eight(monkeypatch):

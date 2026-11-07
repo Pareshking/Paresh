@@ -191,6 +191,15 @@ def _signed(v: float, digits: int = 1, plus: bool = True) -> str:
     return f"{sign}{abs(r):.{digits}f}"
 
 
+def _price_html(v: float | None) -> str:
+    """The price with paise, and beside it the price rounded to the rupee for
+    the phone's compact list (rounded, not cut: ₹2,373.50 reads ₹2,374)."""
+    if v is None:
+        return "—"
+    return (f'<span class="px-d">{_fmt.inr(v, 2)}</span>'
+            f'<span class="px-m">{_fmt.inr(v)}</span>')
+
+
 def _peak_cell(v: float | None, title: str = "") -> str:
     """% below a peak: plain, never coloured; "New high" at the peak itself."""
     if v is None:
@@ -243,7 +252,9 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     r3_cls = "" if r3 is None else ("pos" if r3 > 0 else "neg" if r3 < 0 else "")
     cells["price"] = (
         f'<td class="n c-price" data-v="{cmp_v if cmp_v is not None else ""}">'
-        f'{_fmt.inr(cmp_v, 2) if cmp_v is not None else "—"}'
+        # Paise on a desktop (audit F66); the phone's compact list hides them,
+        # where the extra three characters pushed the trend line off.
+        f'{_price_html(cmp_v)}'
         f'<span class="m-only {r3_cls}">{r3_txt} 3M</span></td>'
     )
     for key, col in (("d1m", "Rank Δ 1M"), ("d3m", "Rank Δ 3M")):
@@ -371,6 +382,8 @@ td.c-flt{text-align:left}
 .pass{font-size:12px;font-weight:600;color:var(--c-up)}.fail{font-size:12px;font-weight:600;color:var(--c-muted)}
 .ath{margin-left:6px;font-size: 12px;font-weight:700;padding:2px 6px;border-radius:6px;background:var(--c-fill);color:var(--c-ink)}
 .m-only{display:none}
+.px-m{display:none}
+@media (max-width:640px){.wrap:not(.wide) .px-d{display:none}.wrap:not(.wide) .px-m{display:inline}}
 tbody tr.hl td{background:var(--c-subtle)}
 .me{margin-left:6px;font-style:normal;font-size: 12px;font-weight:700;padding:2px 6px;border-radius:6px;background:var(--c-fill);color:var(--c-ink)}
 @media (max-width:640px){
