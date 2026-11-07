@@ -44,8 +44,15 @@ def suffix(system: str | None = None) -> str:
 
 
 def stock_href(sym: str) -> str:
-    """The relative link to a stock's page, keeping the system."""
-    return f"?stock={quote(str(sym), safe='')}{suffix()}"
+    """The link to a stock's page, keeping the system.
+
+    Straight to the Screener's own address ("screener?stock=X", relative so
+    Streamlit Cloud's /~/+/ prefix is kept). A bare "?stock=X" from Sectors,
+    Actions or the Dashboard landed on that page first and app.py redirected
+    it, and the Back button replayed the redirect: three Backs stayed on the
+    stock (pre-launch audit U1, 7 Nov 2026).
+    """
+    return f"screener?stock={quote(str(sym), safe='')}{suffix()}"
 
 
 def url_params() -> dict[str, str]:

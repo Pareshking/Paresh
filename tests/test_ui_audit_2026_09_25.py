@@ -8,14 +8,14 @@ def test_table_link_survives_an_ampersand_ticker():
     """?stock=M&M parsed as stock "M" -- the link opened the wrong page."""
     row = {"Symbol": "M&M", "Industry": "Autos <b>", "Rank": 1}
     html = screener_table._row_html(row, screener_table.columns_for("Core"), {})
-    assert 'href="?stock=M%26M"' in html
+    assert 'href="screener?stock=M%26M"' in html
     assert 'data-stock="M&amp;M"' in html
     assert "Autos &lt;b&gt;" in html
 
 
 def test_sector_leader_link_survives_an_ampersand_ticker():
     html = sector_view._leader_link("J&KBANK")
-    assert 'href="?stock=J%26KBANK"' in html
+    assert 'href="screener?stock=J%26KBANK"' in html
     assert ">J&amp;KBANK</a>" in html
 
 
