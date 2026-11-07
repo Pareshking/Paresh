@@ -442,7 +442,7 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
         kit.readings([
             kit.Reading("Corporate actions adjusted", f"{len(_events)}", "sessions, before ranking"),
             kit.Reading("Splits the provider missed", f"{_split}", "a re-fetch fixes these"),
-            kit.Reading("Possible demergers", f"{_other}", "no standard ratio", tone="warn"),
+            kit.Reading("Possible demergers", f"{_other}", "no standard ratio"),
         ], "Corporate actions")
         _rows = []
         for e in sorted(_events, key=lambda x: x.get("date", ""), reverse=True):

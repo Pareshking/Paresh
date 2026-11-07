@@ -67,7 +67,8 @@ def _participation_word(val: float) -> tuple[str, str]:
         return "strong participation", "up"
     if val <= 40:
         return "below 40% reads as weak", "down"
-    return "neutral", "warn"
+    # A count in the middle band is not a warning (audit F64): plain ink.
+    return "neutral", ""
 
 
 def _ratio_word(ratio: float) -> tuple[str, str]:
