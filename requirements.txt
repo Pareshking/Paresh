@@ -40,7 +40,7 @@ requests==2.34.2
 # production ran 24 anyway; the pin says what production runs. Checked with
 # streamlit 1.66.1, pandas 3.1.0, numpy 2.5.4: suite, audit baseline and
 # parity unchanged.
-pyarrow==24.0.0
+pyarrow==26.0.1
 # S3-compatible Cloudflare R2 archive adapter. Left as a range on purpose:
 # boto3 releases almost daily, its S3 API is stable within a major, and the
 # R2 read-path gate re-runs on main whenever this file changes.
