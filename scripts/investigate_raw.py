@@ -24,7 +24,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 EVENTS = [
     ("S44 ANDHRAPAP rights 3:11 at Rs 50, ex 23 Feb 2010", ["ANDHRAPAP"], date(2010, 2, 12), date(2010, 3, 5)),
 ]
-RENAMES = ["SEINVEST", "NANDAN", "SIGNET"]
+RENAMES_TO = ["PAISALO", "NDL", "SIGIND"]   # S25, looked up by the new ticker
 
 
 def main() -> int:
@@ -40,11 +40,13 @@ def main() -> int:
     held = sorted(nh.r2_days(archive, nh.R2_PRICES))
     ch = symbol_changes()
     events = list(EVENTS)
-    for old in RENAMES:
-        rows = ch[ch["old"] == old]
+    for new in RENAMES_TO:
+        rows = ch[ch["new"] == new]
+        if rows.empty:
+            print(f"S25: no symbol-change row for {new} (an ISIN-matched rename); not looked up")
         for _, r in rows.iterrows():
             d = r["date"].date()
-            events.append((f"S25 rename {old} -> {r['new']} on {d}", [old, r["new"]],
+            events.append((f"S25 rename {r['old']} -> {new} on {d}", [r["old"], new],
                            d - timedelta(days=14), d + timedelta(days=14)))
     pd.set_option("display.width", 200)
     for label, syms, a, b in events:
