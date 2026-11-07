@@ -1,0 +1,35 @@
+name: Investigate NSE raw rows (diagnostic)
+
+# Prints NSE's raw rows around dated events for docs/TODO.md S25 and S44, which
+# need R2 (unreachable from the Claude session). Read-only; runs on pull
+# requests that touch it, and by hand.
+on:
+  pull_request:
+    paths:
+      - .github/workflows/investigate_raw.yml
+      - scripts/investigate_raw.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  investigate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Print raw rows
+        env:
+          PYTHONPATH: .
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: python scripts/investigate_raw.py
