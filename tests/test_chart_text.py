@@ -89,3 +89,16 @@ def test_screener_filters_round_trip_through_the_address():
     # Defaults stay out of the address.
     assert rv._to_url("rank_quick_pills", "All Universe") is None
     assert rv._to_url("rank_density_mode", "Core (17)") is None
+
+
+def test_preformatted_percentages_read_as_figures_in_the_shared_table(monkeypatch):
+    from src.ui import theme
+    out = []
+    monkeypatch.setattr(theme.st, "iframe", lambda html, **k: out.append(html), raising=False)
+    monkeypatch.setattr(theme.st, "html", lambda html, **k: out.append(html), raising=False)
+    df = pd.DataFrame({"SYSTEM": ["Nifty 750", "Nano Cap"], "JAN": ["+3.4%", "−1.2%"]})
+    theme.render_saas_table(df)
+    page = "".join(out)
+    assert '<th class="th-left">SYSTEM</th>' in page and '<th class="th-right">JAN</th>' in page
+    assert '<td class="td-right ret-pos">+3.4%</td>' in page
+    assert '<td class="td-right ret-neg">−1.2%</td>' in page

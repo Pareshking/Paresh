@@ -2047,6 +2047,17 @@ _PER_SHARE_PRICE_KEYS = ("CMP", "PRICE", "STOP LOSS", "CHAND", "ENTRY", "EXIT")
 _AGGREGATE_MONEY_KEYS = ("VALUE", "CAPITAL", "MCAP", "P&L", "DAY P&L")
 
 
+_PCT_TEXT = re.compile(r"[+−-]?\d[\d,]*(?:\.\d+)?%")
+
+
+def _is_pct_text_column(col: pd.Series) -> bool:
+    """A text column holding only percentages (and dashes): it reads as figures."""
+    if pd.api.types.is_numeric_dtype(col):
+        return False
+    vals = [str(v).strip() for v in col.dropna() if str(v).strip() not in ("", "—", "-")]
+    return bool(vals) and all(_PCT_TEXT.fullmatch(v) for v in vals)
+
+
 def render_saas_table(
     df: pd.DataFrame,
     max_height: int | None = None,
@@ -2105,6 +2116,8 @@ def render_saas_table(
             ]
         ):
             headers_html.append(f'<th class="th-left">{_esc(str(col))}</th>')
+        elif _is_pct_text_column(df[col]):
+            headers_html.append(f'<th class="th-right">{_esc(str(col))}</th>')
         elif not pd.api.types.is_numeric_dtype(df[col]):
             # A text column's cells sit left (the generic cell below), so its
             # heading does too; it sat right over left-aligned text (F44).
@@ -2114,6 +2127,7 @@ def render_saas_table(
 
     portfolio_class = "portfolio" if variant == "portfolio" else ""
     rows_html = []
+    pct_text_cols = {c for c in df.columns if _is_pct_text_column(df[c])}
     # Plain dicts rather than iterrows(): a Series per row is ~3.4x the cost
     # over a large frame and nothing here needs one. Unlike the screener table
     # this renderer takes arbitrary frames, some of which are homogeneously
@@ -2133,6 +2147,9 @@ def render_saas_table(
 
             if pd.isna(val) or val is None or str(val).strip() in ("", "nan", "None"):
                 cells_html.append('<td class="td-center text-muted">—</td>')
+                continue
+            if col in pct_text_cols and str(val).strip() in ("—", "-"):
+                cells_html.append('<td class="td-right text-muted">—</td>')
                 continue
 
             # Special column formatting
@@ -2348,6 +2365,12 @@ def render_saas_table(
                 cells_html.append(
                     f'<td class="td-center">{"Yes" if val else "No"}</td>'
                 )
+            elif isinstance(val, str) and _PCT_TEXT.fullmatch(val.strip()):
+                # A percentage formatted upstream ("+3.4%", "−1.2%"): a figure,
+                # so right-aligned and toned by its sign like any other return.
+                t = val.strip()
+                tone = "ret-pos" if t.startswith("+") else "ret-neg" if t.startswith(("−", "-")) else ""
+                cells_html.append(f'<td class="td-right {tone}">{_esc(t)}</td>')
             else:
                 cells_html.append(f'<td class="td-left">{_esc(str(val))}</td>')
 
