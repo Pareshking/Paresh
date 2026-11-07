@@ -39,7 +39,7 @@ from src.ui.canonical_book import current_book
 from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.system_param import page_href, stock_href
 from src.ui.views.actions_view import _day, _sessions_between, next_rebalance
-from src.ui.views.market_questions_view import render_market_questions, size_closes
+from src.ui.views.market_questions_view import market_strip_html, render_market_questions, size_closes
 
 AT_RISK_ROWS = 8
 
@@ -180,6 +180,10 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         size_ok, _ = sl.cross_check(levels, bench["nifty50"])
     nifty500 = (benchmark_close if benchmark_close is not None and len(benchmark_close)
                 else (bench or {}).get("nifty500"))
+    _strip = {"Nifty 500": nifty500} if nifty500 is not None else {}
+    _strip.update(size_closes(levels, size_ok))
+    if _strip:
+        st.html(market_strip_html(_strip))
     render_market_questions(rank_df, adj_close, nifty500, size_closes(levels, size_ok))
 
     # Two columns, each a stack, so a short block never leaves a hole beside

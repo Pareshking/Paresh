@@ -2,6 +2,8 @@
 
 ## 2026-11-07 — Editorial type on every page
 
+- The Dashboard has a strip of the indices under its headline: the Nifty 500, Nifty 50, Midcap 150, Smallcap 250 and Microcap 250, each with the day's move, its last three months as a line and its move over a month, from NSE's index closes. On 6 Nov the day's moves match tipsheet's own strip to within 0.03 points (theirs is total return).
+
 - Rolled out on the owner's word after the prototype: page titles, section and card headings, verdicts, headline figures in tiles, the stock page's name, price and rank, the Guide's and Configuration's headings and the calendar years are in Source Serif 4; the Guide's text is 16px.
 
 ## 2026-11-07 — Editorial type, prototype on the Dashboard and Breadth

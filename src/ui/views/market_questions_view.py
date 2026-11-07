@@ -7,6 +7,7 @@ on hover), what changed, and a link to the page that owns the detail.
 """
 from __future__ import annotations
 
+import base64
 import html
 
 import pandas as pd
@@ -16,6 +17,7 @@ from src.engine import market_questions as mq
 from src.engine import size_leadership as sl
 from src.engine.pipeline import price_fingerprint
 from src.ui import formats as _fmt
+from src.ui.tokens import C
 from src.ui.system_param import page_href
 
 _VOTE_WORD = {
@@ -478,3 +480,55 @@ def render_leaders_section(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: p
         return False
     st.html(leaders_section_html(leaders, months))
     return True
+
+
+# ── The market strip: each index's day, its last three months, its month ────
+
+def _spark(s: pd.Series, w: int = 120, h: int = 28) -> str:
+    v = s.dropna().iloc[-63:]
+    if len(v) < 5:
+        return ""
+    lo, hi = float(v.min()), float(v.max())
+    span = (hi - lo) or 1.0
+    pts = " ".join(f"{i * (w - 2) / (len(v) - 1) + 1:.1f},{h - 2 - (x - lo) / span * (h - 4):.1f}"
+                   for i, x in enumerate(v))
+    # st.html strips inline <svg>, so the line travels as an image; an image
+    # cannot read CSS variables, so the colour is the token's value.
+    tone = C.up if v.iloc[-1] >= v.iloc[0] else C.down
+    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">'
+           f'<polyline fill="none" stroke="{tone}" stroke-width="1.3" points="{pts}"/></svg>')
+    data = base64.b64encode(svg.encode()).decode()
+    return f'<img src="data:image/svg+xml;base64,{data}" width="{w}" height="{h}" alt="">'
+
+
+def market_strip_html(series: dict[str, pd.Series]) -> str:
+    """Nifty 500 and the size indices: the latest day's move, a three-month
+    line, the move over a calendar month. From NSE's index closes."""
+    cells = []
+    for name, s in series.items():
+        s = s.dropna().sort_index()
+        if len(s) < 25:
+            continue
+        day = (float(s.iloc[-1]) / float(s.iloc[-2]) - 1) * 100
+        m0 = mq._on_or_before(s.index, s.index[-1] - pd.DateOffset(months=1))
+        month = None if m0 is None else (float(s.iloc[-1]) / float(s.loc[m0]) - 1) * 100
+        cells.append(
+            f'<div class="ix"><span class="ix-n">{html.escape(name)}</span>'
+            f'<span class="ix-v {_t(round(day, 2))}">{_fmt.signed(day, 2)}%</span>{_spark(s)}'
+            f'<span class="ix-s">1M {_num(month, "pts").replace("pts", "")}%</span>'
+            f'<span class="sr">{html.escape(name)}: {_fmt.signed(day, 2)}% on the day, '
+            f'{_num(month, "pts")}% over a month.</span></div>')
+    if not cells:
+        return ""
+    when = max(s.dropna().index[-1] for s in series.values() if len(s.dropna()))
+    return ("<style>.ixs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));"
+            "border-top:1px solid var(--c-rule);border-bottom:1px solid var(--c-rule);margin:6px 0 4px}"
+            ".ix{display:flex;flex-direction:column;gap:2px;padding:10px 14px 10px 0;border-right:1px solid var(--c-rule)}"
+            ".ix:last-child{border-right:0}.ix-n{font-size:13px;color:var(--c-muted)}"
+            ".ix-v{font-family:var(--font-serif,serif);font-size:28px;line-height:1.1;color:var(--c-ink)}"
+            ".ix-v.up{color:var(--c-up)}.ix-v.down{color:var(--c-down)}.ix-s{font-size:12px;color:var(--c-muted)}"
+            ".ix .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}"
+            ".ixs-note{font-size:12px;color:var(--c-muted);margin:0 0 14px}</style>"
+            f'<div class="ixs" role="group" aria-label="The indices today">{"".join(cells)}</div>'
+            f'<p class="ixs-note">NSE index closes to {when:%-d %b %Y}; the lines are the last three months, '
+            'price only.</p>')
