@@ -138,19 +138,22 @@ def join_landed(frame: pd.DataFrame, landed: dict[str, str], *, product: bool = 
     product=True multiplies (adjustment factors: the new symbol's later splits
     reach back into the old symbol's years); otherwise the old values fill in.
     """
-    out = frame.copy()
+    # Columns in a dict, one frame at the end: inserting and dropping columns
+    # one by one fragmented the frame (pandas PerformanceWarning on every
+    # production run, 7 Nov). Same columns, same order, same values.
+    cols = {c: frame[c] for c in frame.columns}
     for old in landed:
-        if old not in out.columns:
+        if old not in cols:
             continue
         to = landed_in(landed, old)
-        if to not in out.columns:
-            out[to] = out[old]
+        if to not in cols:
+            cols[to] = cols[old]
         elif product:
-            out[to] = out[to].fillna(1.0) * out[old].fillna(1.0)
+            cols[to] = cols[to].fillna(1.0) * cols[old].fillna(1.0)
         else:
-            out[to] = out[to].combine_first(out[old])
-        out = out.drop(columns=[old])
-    return out
+            cols[to] = cols[to].combine_first(cols[old])
+        del cols[old]
+    return pd.DataFrame(cols, index=frame.index, columns=list(cols)) if cols else frame.iloc[:, :0].copy()
 
 
 def chain_raw(close: pd.DataFrame, factors: pd.DataFrame, renames: dict[str, Any] | None,

@@ -34,12 +34,13 @@ requests==2.34.2
 # reason and a way out: when arrow#50471 closes, bump this deliberately and
 # let the QA run confirm it.
 #
-# 7 Nov 2026 (owner): bumped to 26.0.0 with streamlit 1.66.1, pandas 3.1.0 and
-# numpy 2.5.4. On the same pinned inputs (scripts/audit_baseline.py) the 750
-# ranking and the 12-month backtest are identical to the last digit, the
-# canonical parity report is identical, and eight pages screenshot
-# pixel-identical. Check Streamlit Cloud's boot log keeps 26.0.0.
-pyarrow==26.0.0
+# 7 Nov 2026: bumped to 26.0.0 and back the same evening. Streamlit Cloud's
+# boot log: "Detected pyarrow 26.0.0 (known segfault, apache/arrow#50471).
+# Replacing with pyarrow<25." It treats every version from 25 as bad, so
+# production ran 24 anyway; the pin says what production runs. Checked with
+# streamlit 1.66.1, pandas 3.1.0, numpy 2.5.4: suite, audit baseline and
+# parity unchanged.
+pyarrow==24.0.0
 # S3-compatible Cloudflare R2 archive adapter. Left as a range on purpose:
 # boto3 releases almost daily, its S3 API is stable within a major, and the
 # R2 read-path gate re-runs on main whenever this file changes.
