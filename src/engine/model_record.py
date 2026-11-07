@@ -89,8 +89,43 @@ def _align_benchmark_to_price_as_of(
     return prices.loc[:common_as_of], bench.loc[:common_as_of]
 
 
+# One render asks for the same record up to three times (Portfolio: the
+# month-to-date, the month books and the current book; A1, 8 Nov: ~0.2 s each,
+# warm). The answer is kept for the exact frame objects it was computed from,
+# held by weak reference: a new or rebuilt frame is a different object and
+# recomputes, and nothing here keeps a frame alive. Callers get their own dict.
+# Entries expire after _RUN_MEMO_TTL_S, so a memo spans one render, never the
+# hour a cached frame object can live.
+_RUN_MEMO: list[tuple] = []
+_RUN_MEMO_SIZE = 4
+_RUN_MEMO_TTL_S = 60.0
+
+
 def record_run(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
                system: str = SYSTEM_750) -> dict:
+    """record_run_uncached, reused for the same frame objects (see _RUN_MEMO)."""
+    import time
+    import weakref
+
+    now = time.monotonic()
+    _RUN_MEMO[:] = [e for e in _RUN_MEMO if now - e[4] < _RUN_MEMO_TTL_S]
+    for ref_p, ref_b, sys_id, result, _at in _RUN_MEMO:
+        if (sys_id == system and ref_p() is adj_close
+                and (ref_b() if ref_b is not None else None) is benchmark_close):
+            return dict(result)
+    result = record_run_uncached(adj_close, benchmark_close, system)
+    try:
+        ref_p = weakref.ref(adj_close)
+        ref_b = weakref.ref(benchmark_close) if benchmark_close is not None else None
+    except TypeError:  # not weak-referenceable (None or a plain object): no memo
+        return result
+    _RUN_MEMO.insert(0, (ref_p, ref_b, system, result, now))
+    del _RUN_MEMO[_RUN_MEMO_SIZE:]
+    return dict(result)
+
+
+def record_run_uncached(adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
+                        system: str = SYSTEM_750) -> dict:
     """The strategy under the RECORD's pinned configuration, through today.
 
     One cached run serves the month-to-date here and the model book on the
