@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-07 — Dashboard answers three questions about the market
+
+- "Are most stocks taking part?", "Is the market in an uptrend?" and "What is leading?" sit under the book's line, tipsheet's question pages as the model and the app's own data as the source.
+- Each gives a verdict in a word or two, one sentence, a five-band scale marking today, a month ago and a year ago, and the measures that vote: now, a year ago, the vote in words, the cut-off on hover. Primary measures count twice.
+- Breadth: stocks above their 200D and 50D EMA, stocks ahead of the Nifty 500 over a year, net new 52W highs this week, the median stock against the index. Trend: the Nifty 500 against its 10-month average (completed months) and its 200D EMA, its distance from the 52W high, the 10-month rule for the Nifty 50, Midcap 150, Smallcap 250 and Microcap 250, and the share of stocks above their 200D EMA. Leading: the size index furthest ahead over six months, and NSE industries grouped by six months and one month against the Nifty 500.
+- On 6 Nov the trend reads "No clear trend", as tipsheet's independent page does, and 45% of stocks beat the Nifty 500 over the year (tipsheet: 43%).
+- No forward returns or "what history says": the store does not reach back far enough to test them, and the site makes no outcome claims. A past verdict shows only when most of its measures can be read that far back.
+- The industries list that sat lower on the Dashboard is folded into "What is leading?".
+
 ## 2026-11-07 — No repeated blocks (owner's decision 5)
 
 - The data-freshness line at the foot of each page is plain text instead of four pills, with no emoji; a late source still leads, in amber.

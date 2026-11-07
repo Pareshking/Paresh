@@ -39,7 +39,7 @@ from src.ui.canonical_book import current_book
 from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.system_param import page_href, stock_href
 from src.ui.views.actions_view import _day, _sessions_between, next_rebalance
-from src.ui.views.sector_view import industry_board
+from src.ui.views.market_questions_view import render_market_questions, size_closes
 
 AT_RISK_ROWS = 8
 
@@ -149,15 +149,25 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
 
     kit.page_head("Dashboard", answer_line(mtd, bench_mtd, n_watch, len(plan.sells), check))
 
+    # The market in three questions, under the book's own line (owner, 7 Nov:
+    # tipsheet's question pages as the model, from the data the app holds).
+    levels, bench = fetch_index_levels(), nse_benchmarks()
+    size_ok = False
+    if levels is not None and bench is not None and "nifty50" in bench:
+        size_ok, _ = sl.cross_check(levels, bench["nifty50"])
+    nifty500 = (benchmark_close if benchmark_close is not None and len(benchmark_close)
+                else (bench or {}).get("nifty500"))
+    render_market_questions(rank_df, adj_close, nifty500, size_closes(levels, size_ok))
+
     # Two columns, each a stack, so a short block never leaves a hole beside
     # a long one (owner, 7 Nov: "unnecessary white spaces and large gaps").
-    # Left: the book's risk, then the next rebalance; right: sector leaders,
-    # then size leadership. A phone shows the left stack first, which is the
-    # order of importance.
+    # Left: the book's risk; right: the next rebalance, then size leadership
+    # (industries are in "What is leading?" above). A phone shows the left
+    # stack first, which is the order of importance.
     page = st.container(key="db_page")
     left, right = page.columns([1.45, 1], gap="large")
-    top_l, top_r = left, left
-    low_l, low_r = right, right
+    top_l, top_r = left, right
+    low_l = right
 
     with top_l, kit.card("Book at risk", "db_risk", "least room first"):
         st.html(_at_risk_html(a, rules))
@@ -179,19 +189,6 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         kit.caption_link("The same plan as Actions, from today's ranking and the model book's rules.",
                          page_href("actions"), "Actions")
 
-    with low_r, kit.card("Industries by 3M median return", "db_sectors"):
-        board, _ = industry_board(rank_df)
-        top = (board.sort_values("3M Return", ascending=False).head(5)
-               if not board.empty else board)
-        rows = "".join(
-            f'<tr><th>{html.escape(str(r["Industry"]))}</th>'
-            f'<td class="{_tone(r["3M Return"])}">{_pct(r["3M Return"])}</td>'
-            f'<td class="db-n">{int(r["Top 50"]) if pd.notna(r.get("Top 50")) else "—"} in the top 50</td></tr>'
-            for _, r in top.iterrows())
-        st.html(f'<table class="db-sectors"><tbody>{rows}</tbody></table>')
-        kit.caption_link("As ranked on Sectors.", page_href("sectors"), "The full board")
-
-    levels, bench = fetch_index_levels(), nse_benchmarks()
     with low_l, kit.card("Size leadership", "db_size", "price return, NSE index closes"):
         res = None
         if levels is None or bench is None or "nifty500" not in bench or "nifty50" not in bench:

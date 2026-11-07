@@ -1,0 +1,89 @@
+"""The Dashboard's three market questions: each rule on small frames."""
+import numpy as np
+import pandas as pd
+import pytest
+
+from src.engine import market_questions as mq
+
+
+def _days(n, end="2026-11-06"):
+    return pd.bdate_range(end=end, periods=n)
+
+
+def test_the_ten_month_rule_ignores_the_month_in_progress():
+    idx = pd.date_range("2025-01-01", "2026-11-06", freq="B")
+    s = pd.Series(100.0, index=idx)
+    s[s.index >= "2026-11-01"] = 200.0            # a jump in November only
+    # October's close against Jan-Oct: flat, though November's prices doubled.
+    assert mq.ten_month_gap(s, idx[-1]) == pytest.approx(0.0)
+    s2 = s.copy()
+    s2[(s2.index >= "2026-10-01") & (s2.index < "2026-11-01")] = 110.0
+    # October at 110 against an average of (9 x 100 + 110) / 10 = 101.
+    assert mq.ten_month_gap(s2, idx[-1]) == pytest.approx((110 / 101 - 1) * 100)
+
+
+def test_votes_and_the_five_words():
+    words = ("Strong downtrend", "Downtrend", "No clear trend", "Uptrend", "Strong uptrend")
+    assert mq.word_for(0.7, words) == "Strong uptrend"
+    assert mq.word_for(0.3, words) == "Uptrend"
+    assert mq.word_for(0.0, words) == "No clear trend"
+    assert mq.word_for(-0.3, words) == "Downtrend"
+    assert mq.word_for(-0.9, words) == "Strong downtrend"
+    assert mq._vote(61, 60, 40) == mq.UP and mq._vote(40, 60, 40) == mq.DOWN and mq._vote(50, 60, 40) == mq.MID
+
+
+def test_primary_measures_count_twice():
+    up = mq._measure("a", "pct", [70, 70, 70], 60, 40, "", primary=True)
+    down = mq._measure("b", "pct", [30, 30, 30], 60, 40, "")
+    assert mq._score([up, down], "now") == pytest.approx((2 - 1) / 3)
+    # a past reading is voted by the same cut-offs
+    m = mq._measure("c", "pct", [70, 30, None], 60, 40, "")
+    assert mq._score([m], "month_ago") == -1 and mq._score([m], "year_ago") is None
+
+
+def test_breadth_answer_counts_the_stocks_ahead_of_the_index():
+    idx = _days(400)
+    rising = pd.Series(np.linspace(100, 200, len(idx)), index=idx)
+    falling = pd.Series(np.linspace(200, 100, len(idx)), index=idx)
+    prices = pd.DataFrame({"A": rising, "B": rising, "C": rising, "D": falling})
+    bench = pd.Series(np.linspace(100, 120, len(idx)), index=idx)
+    a = mq.breadth_answer(prices, bench)
+    beat = next(m for m in a.measures if m.name.startswith("Stocks ahead"))
+    assert beat.now == pytest.approx(75.0) and beat.vote == mq.UP
+    a200 = next(m for m in a.measures if "200D" in m.name)
+    assert a200.now == pytest.approx(75.0)
+    assert a.verdict in ("Broad", "Very broad")
+
+
+def test_leaders_groups_industries_by_six_months_and_one_month():
+    idx = _days(200)
+    n = len(idx)
+    up_all = np.linspace(100, 160, n)
+    late_turn = np.r_[np.linspace(100, 60, n - 22), np.linspace(60, 70, 22)]
+    flat = np.full(n, 100.0)
+    cols = {}
+    for i in range(5):
+        cols[f"L{i}"] = up_all
+        cols[f"G{i}"] = late_turn
+    prices = pd.DataFrame(cols, index=idx)
+    industry = pd.Series({**{f"L{i}": "Leaders" for i in range(5)}, **{f"G{i}": "Turning" for i in range(5)}})
+    out = mq.leaders_answer(prices, industry, pd.Series(flat, index=idx), None)
+    g = out.sectors.set_index("Industry")["group"]
+    assert g["Leaders"] == "ahead on both" and g["Turning"] == "gaining"
+    assert "1 of 2 industries" in out.sentence and "Leaders" in out.sentence
+
+
+def test_a_past_verdict_needs_most_of_the_weight():
+    a = mq._measure("a", "pct", [70, 70, None], 60, 40, "", primary=True)
+    b = mq._measure("b", "pct", [70, 70, None], 60, 40, "", primary=True)
+    c = mq._measure("c", "pct", [70, 70, 70], 60, 40, "")
+    # a year ago only c (1 of 5 weight) is known: no verdict, not "strongly up"
+    assert mq._score([a, b, c], "year_ago") is None
+    assert mq._score([a, b, c], "month_ago") == 1
+
+
+def test_sentences_keep_their_capitals():
+    m = [mq._measure("Stocks above their 200D EMA", "pct", [43, 40, 60], 60, 40, ""),
+         mq._measure("Stocks ahead of the Nifty 500 over a year", "pct", [45, 47, None], 55, 45, "")]
+    text = mq._breadth_sentence("Narrow", m)
+    assert text == "43% of the ranked stocks are above their 200D EMA and 45% beat the Nifty 500 over the year."
