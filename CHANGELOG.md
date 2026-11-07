@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-07 — Sectors answers "What is leading?"
+
+- Sectors opens with the answer: the size index furthest ahead over six months, and the industries ahead over both six months and one month; then the size indices against the Nifty 500 (6 months, 1 month).
+- Industries in four groups: ahead on both, gaining (ahead over the month only), fading (ahead over six months only), behind on both, each with its two figures.
+- Month by month against the Nifty 500: each industry's median stock less the index, for the last 12 completed months and the month so far, shaded by size, with its current run ("4 behind") and its 12-month total; the longest current run is named above it.
+- What would change the answer: the industries nearest to moving ahead over six months, and those nearest to falling behind.
+- The leaderboard, the stocks of one industry and the leadership map follow. The four figure tiles that repeated the leaderboard are gone.
+
 ## 2026-11-07 — Breadth answers two questions
 
 - Market breadth now opens with "Are most stocks taking part?" and "Is the market in an uptrend?". Each has its verdict, the scale (today, a month ago, a year ago), what has changed over the month, what would change the answer (the measures one step from another verdict, with the reading each would need), and the evidence with every cut-off written out.

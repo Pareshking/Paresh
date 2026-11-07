@@ -18,6 +18,9 @@ from src.ui import page_kit as kit
 from src.engine.pipeline import price_fingerprint
 from src.engine.sector_breadth import EMA_SPANS, sector_leadership
 from src.loaders import benchmark_store
+from src.engine import size_leadership as sl
+from src.loaders.index_levels import fetch_index_levels, nse_benchmarks
+from src.ui.views.market_questions_view import render_leaders_section, size_closes
 from src.ui.charts import render_leadership_map, sector_colours
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
 from src.ui.screener_table import _CSS as TABLE_CSS, _JS as TABLE_JS, render_screener_table
@@ -318,8 +321,13 @@ def board_html(board: pd.DataFrame) -> str:
     return f'<div class="ib" role="table" aria-label="Industry leaderboard">{head}{"".join(rows)}</div>'
 
 
-def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
-    """Industries ranked, then the stocks of the one picked."""
+def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
+                       history_prices: pd.DataFrame | None = None,
+                       benchmark_close: pd.Series | None = None) -> None:
+    """"What is leading?" first (owner, 7 Nov: tipsheet's question pages as the
+    model): size, industries by six months and one month, month by month
+    against the Nifty 500, what would change it. Then the leaderboard, the
+    stocks of one industry and the leadership map."""
     has_tv = [c for c in ("TV_Industry", "TV_Sector") if c in rank_df.columns]
     tax = {"NSE industry": "Industry"}
     if "TV_Industry" in has_tv:
@@ -350,32 +358,16 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
         st.info("No industry has two or more ranked stocks to compare.")
         return
 
-    # The tiles and the map follow the measure picked above; they read 3M
-    # whatever was picked, so 6M, Share passing and Top-50 count changed only
-    # the leaderboard further down (owner, 13 Oct: "not showing correctly").
-    ret = "6M Return" if by == "6M median" else "3M Return"
-    span = "6M" if ret == "6M Return" else "3M"
-    metric = RANK_BY[by]
-    ranked = board.dropna(subset=[metric])
-    lead, weak = ranked.iloc[0], ranked.iloc[-1]
-    most = board.sort_values(["Top 50", ret], ascending=False).iloc[0]
-    rising = int((board[ret] > 0).sum())
-    best_sym = (rank_df[rank_df[col] == most.Industry].sort_values("Rank")["Symbol"].head(1).tolist() or ["—"])[0]
-
-    def why(r) -> str:
-        if metric == "Pass %":
-            return f"{r['Pass %'] * 100:.0f}% pass both filters ({r.Pass} of {r.Stocks})"
-        if metric == "Top 50":
-            return f"{r['Top 50']} of the top 50 · median {span} {_pct(r[ret])}"
-        return f"median {_pct(r[ret])} in {span[0]} months · {r['Top 50']} of the top 50"
-
-    kit.readings([
-        kit.Reading("Top industry", lead.Industry, why(lead), _tone(lead[ret]) if metric == ret else ""),
-        kit.Reading("Rising", f"{rising} of {len(board)}", f"median {span} above 0"),
-        kit.Reading("Most in the top 50", most.Industry,
-                    f"{most['Top 50']} stocks · best rank #{int(most.Best)} {best_sym}"),
-        kit.Reading("Weakest", weak.Industry, why(weak), _tone(weak[ret]) if metric == ret else "down"),
-    ], "Industries today")
+    # What is leading, in full; the four tiles that sat here repeated the
+    # leaderboard below and this section.
+    levels, nbench = fetch_index_levels(), nse_benchmarks()
+    size_ok = False
+    if levels is not None and nbench is not None and "nifty50" in nbench:
+        size_ok, _ = sl.cross_check(levels, nbench["nifty50"])
+    nifty500 = (benchmark_close if benchmark_close is not None and len(benchmark_close)
+                else (nbench or {}).get("nifty500"))
+    render_leaders_section(rank_df, history_prices if history_prices is not None else adj_close,
+                           nifty500, size_closes(levels, size_ok))
 
     # One ranking and one map on this page (owner's decision 5, 7 Nov): the
     # industry bubble map repeated the board below it and is gone.

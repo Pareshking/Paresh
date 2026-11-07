@@ -108,3 +108,19 @@ def test_changes_are_largest_first_against_each_measures_band():
                          mq._measure("y", "pts", [5, -5, None], 5, -5, "")],
                    ("a", "b", "c", "d", "e"), lambda w, m: "")
     assert [m.name for m, _, _ in mq.changes(a)] == ["y", "x"]
+
+
+def test_industry_months_counts_the_current_run_and_marks_the_month_to_date():
+    idx = pd.bdate_range("2025-10-01", "2026-11-06")
+    bench = pd.Series(100.0, index=idx)
+    # "Ahead" gains 1% a month from June; flat before. "Behind" loses 1% a month all year.
+    month_no = (idx.year - 2025) * 12 + idx.month
+    ahead = pd.Series(np.where(idx >= "2026-06-01", 1.01 ** (month_no - month_no[idx >= "2026-06-01"][0]), 1.0), index=idx)
+    behind = pd.Series(0.99 ** (month_no - month_no[0]), index=idx)
+    prices = pd.DataFrame({**{f"A{i}": ahead for i in range(5)}, **{f"B{i}": behind for i in range(5)}})
+    industry = pd.Series({**{f"A{i}": "Ahead" for i in range(5)}, **{f"B{i}": "Behind" for i in range(5)}})
+    out = mq.industry_months(prices, industry, bench)
+    assert out.columns[-3] == "Nov MTD" and list(out.columns[-2:]) == ["run", "total"]
+    assert out.loc["Ahead", "run"] == 4          # Jul, Aug, Sep, Oct ahead (June's first close is the base)
+    assert out.loc["Behind", "run"] <= -11
+    assert out.index[0] == "Ahead"

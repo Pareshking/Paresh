@@ -316,3 +316,129 @@ def render_breadth_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench:
                  'readings a year back leave out stocks that have since left the index.</p>')
     st.html("".join(parts))
     return breadth is not None or trend is not None
+
+
+# ── Sectors: "What is leading?" in full ─────────────────────────────────────
+
+_SECTOR_CSS = """<style>
+.qp-quad{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0 24px;margin:4px 0 14px}
+.qp-quad div{border-top:1px solid var(--c-rule_strong);padding-top:8px}
+.qp-quad b{display:block;font-size:13.5px;font-weight:600;color:var(--c-ink);margin-bottom:4px}
+.qp-quad b.up{color:var(--c-up)}.qp-quad b.down{color:var(--c-down)}
+.qp-quad p{font-size:13px;line-height:1.5;color:var(--c-text_2);margin:0 0 3px;display:flex;justify-content:space-between;gap:8px}
+.qp-quad p span:last-child{font-variant-numeric:tabular-nums;color:var(--c-muted);white-space:nowrap}
+.qp-heat{overflow-x:auto}
+.qp-heat table{min-width:900px}
+.qp-heat td{font-size:12.5px;padding:6px 4px;text-align:center}
+.qp-heat th{text-align:center;padding:6px 4px}
+.qp-heat td:first-child,.qp-heat th:first-child{text-align:left;white-space:nowrap;padding-right:10px}
+.qp-heat td.u2{background:var(--c-up_line_2);color:var(--c-ink)}.qp-heat td.u1{background:var(--c-up_tint)}
+.qp-heat td.d1{background:var(--c-down_tint)}.qp-heat td.d2{background:var(--c-down_line_3);color:var(--c-ink)}
+.qp-heat td.mtd{border-left:1px dashed var(--c-rule_strong)}
+.qp-heat td.run,.qp-heat td.tot{text-align:right;font-weight:600}
+@media (max-width:900px){.qp-quad{grid-template-columns:1fr 1fr;gap:12px 16px}}
+</style>"""
+
+_QUADS = (("ahead on both", "Ahead on both", "up"), ("gaining", "Gaining: ahead over the month", "up"),
+          ("fading", "Fading: ahead over six months only", "down"), ("behind on both", "Behind on both", "down"))
+
+
+def _heat_cls(v: float) -> str:
+    if not pd.notna(v):
+        return ""
+    return "u2" if v >= 4 else "u1" if v > 0 else "d2" if v <= -4 else "d1" if v < 0 else ""
+
+
+def _run_text(n: int) -> str:
+    if not n:
+        return "—"
+    return f"{abs(n)} {'ahead' if n > 0 else 'behind'}"
+
+
+def leaders_section_html(ld: mq.Leaders, months: pd.DataFrame) -> str:
+    sec = ld.sectors
+    both = sec[sec["group"] == "ahead on both"]["Industry"].head(3).tolist()
+    best = max((x for x in ld.size if x[1] is not None), key=lambda x: x[1], default=None)
+    verdict = "; ".join([x for x in [best[0] if best else "", ", ".join(both)] if x]) or "No clear leader"
+
+    size_rows = "".join(
+        f'<tr><td>{html.escape(n)}</td><td class="{_t(r6)}">{_num(r6, "pts")}</td>'
+        f'<td class="{_t(r1)}">{_num(r1, "pts")}</td></tr>' for n, r6, r1 in ld.size)
+    size_html = ('<h3>By size, against the Nifty 500</h3><table><thead><tr><th scope="col">Index</th>'
+                 '<th scope="col">6 months</th><th scope="col">1 month</th></tr></thead>'
+                 f'<tbody>{size_rows}</tbody></table>') if size_rows else ""
+
+    quads = []
+    for key, title, tone in _QUADS:
+        g = sec[sec["group"] == key]
+        items = "".join(f'<p><span>{html.escape(r.Industry)}</span><span>{_num(r.rel_6m, "pts")} · '
+                        f'{_num(r.rel_1m, "pts")}</span></p>' for r in g.itertuples()) or "<p><span>none</span></p>"
+        quads.append(f'<div><b class="{tone}">{html.escape(title)} ({len(g)})</b>{items}</div>')
+    quad_html = ('<h3>Industries by six months and one month</h3>'
+                 f'<div class="qp-quad">{"".join(quads)}</div>')
+
+    heat_html = ""
+    if months is not None and not months.empty:
+        cols = [c for c in months.columns if c not in ("run", "total")]
+        longest = months["run"].abs().max()
+        lead_run = months[months["run"].abs() == longest]
+        run_line = ""
+        if longest and len(lead_run):
+            n = int(lead_run["run"].iloc[0])
+            run_line = (f'<p class="qp-s">{html.escape(lead_run.index[0])} has {"beaten" if n > 0 else "trailed"} '
+                        f'the Nifty 500 in each of the last {abs(n)} completed months, the longest current run.</p>')
+        head = "".join(f'<th scope="col">{html.escape(c.replace(" 20", " ’"))}</th>' for c in cols)
+        body = []
+        for name, r in months.iterrows():
+            cells = "".join(
+                f'<td class="{_heat_cls(r[c])}{" mtd" if c.endswith("MTD") else ""}">'
+                f'{"—" if not pd.notna(r[c]) else _fmt.signed(r[c], 1)}</td>' for c in cols)
+            body.append(f'<tr><td>{html.escape(name)}</td>{cells}<td class="run">{_run_text(int(r["run"]))}</td>'
+                        f'<td class="tot {_t(r["total"])}">{_num(r["total"], "pts")}</td></tr>')
+        heat_html = ('<h3>Month by month against the Nifty 500</h3>' + run_line +
+                     '<div class="qp-heat"><table><thead><tr><th scope="col">Industry</th>' + head +
+                     '<th scope="col">Run</th><th scope="col">12 months</th></tr></thead>'
+                     f'<tbody>{"".join(body)}</tbody></table></div>'
+                     '<p class="qp-note">Each cell is the median stock\'s return in that month less the '
+                     'Nifty 500\'s, in points; deeper shades are 4 points or more. The last column before Run '
+                     'is the month so far. Run counts completed months in a row on the same side.</p>')
+
+    sw = mq.nearest_switches(sec)
+    sw_items = []
+    if sw["entrants"]:
+        sw_items.append("<li>Nearest to moving ahead over six months: " + "; ".join(
+            f"<b>{html.escape(n)}</b> {_num(v, 'pts')}" for n, v in sw["entrants"]) + ".</li>")
+    if sw["exits"]:
+        sw_items.append("<li>Nearest to falling behind: " + "; ".join(
+            f"<b>{html.escape(n)}</b> {_num(v, 'pts')}" for n, v in sw["exits"]) + ".</li>")
+    would = f'<h3>What would change the answer</h3><ul>{"".join(sw_items)}</ul>' if sw_items else ""
+
+    return (_CSS + _PAGE_CSS + _SECTOR_CSS +
+            '<section class="qp" aria-labelledby="q-lead"><h2 id="q-lead">What is leading?</h2>'
+            f'<div class="qp-top"><div><p class="qp-v">{html.escape(verdict)}</p>'
+            f'<p class="qp-s">{html.escape(ld.sentence)}</p>{size_html}</div>'
+            f'<div>{would}</div></div>{quad_html}{heat_html}'
+            '<p class="qp-note">Industries are NSE\'s, at least five stocks each, counted over the stocks '
+            'ranked today; points are the median stock\'s return less the Nifty 500\'s.</p></section>')
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def _leaders_full(_key: str, _prices: pd.DataFrame, _industry: pd.Series, _bench: pd.Series,
+                  _size: dict[str, pd.Series]):
+    return (mq.leaders_answer(_prices, _industry, _bench, _size),
+            mq.industry_months(_prices, _industry, _bench))
+
+
+def render_leaders_section(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: pd.Series | None,
+                           size: dict[str, pd.Series]) -> bool:
+    if prices is None or prices.empty or bench is None or bench.dropna().empty:
+        return False
+    syms = [s for s in rank_df["Symbol"] if s in prices.columns]
+    px = prices[syms]
+    industry = rank_df.drop_duplicates("Symbol").set_index("Symbol").get("Industry", pd.Series(dtype=str))
+    key = "|".join([price_fingerprint(px), str(bench.dropna().index[-1]), ",".join(sorted(size)), "full"])
+    leaders, months = _leaders_full(key, px, industry, bench.dropna(), size)
+    if leaders is None:
+        return False
+    st.html(leaders_section_html(leaders, months))
+    return True

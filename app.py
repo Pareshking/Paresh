@@ -1066,7 +1066,8 @@ def _page_screener() -> None:
 
 
 def _page_sectors() -> None:
-    render_sector_view(rank_df, adj_close)
+    render_sector_view(rank_df, adj_close, history_prices=deep_adj_close,
+                       benchmark_close=fetch_benchmark_history(period="5y"))
 
 
 def _page_rrg() -> None:

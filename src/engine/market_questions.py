@@ -412,3 +412,74 @@ def what_would_change(a: Answer) -> dict[str, list[tuple[Measure, float]]]:
     for side in out:
         out[side].sort(key=lambda t: abs(t[1] - t[0].now))
     return out
+
+
+# ── Industry runs: month by month against the Nifty 500 ────────────────────
+
+def industry_months(prices: pd.DataFrame, industry: pd.Series, bench: pd.Series,
+                    months: int = 12, min_stocks: int = 5) -> pd.DataFrame:
+    """Each industry's median stock return less the Nifty 500's, per calendar
+    month, for the last `months` completed months and the month to date
+    (points). Columns are month labels ("Nov 2025" … "Nov 2026 MTD"), plus
+    "run" (completed months in a row ahead, +n, or behind, -n, ending with the
+    last completed month) and "total" (the completed months' points summed),
+    sorted by total."""
+    if prices is None or prices.empty or bench is None or bench.dropna().empty:
+        return pd.DataFrame()
+    px = prices.sort_index()
+    b = bench.dropna().sort_index()
+    last = px.index[-1]
+    month_ends = px.groupby(px.index.to_period("M")).apply(lambda f: f.index[-1])
+    cur = last.to_period("M")
+    done = [p for p in month_ends.index if p < cur][-(months + 1):]   # +1 for the opening close
+    if len(done) < 2:
+        return pd.DataFrame()
+    periods = done[1:] + [cur]
+    ends = [month_ends[p] for p in done] + [last]
+    groups = industry.dropna().astype(str)
+    groups = groups[groups.index.isin(px.columns)]
+    rows = {}
+    for name, syms in groups.groupby(groups).groups.items():
+        syms = list(syms)
+        if len(syms) < min_stocks:
+            continue
+        vals = []
+        for t0, t1 in zip(ends[:-1], ends[1:]):
+            r = (px.loc[t1, syms] / px.loc[t0, syms] - 1).dropna()
+            b0, b1 = _on_or_before(b.index, t0), _on_or_before(b.index, t1)
+            if r.empty or b0 is None or b1 is None:
+                vals.append(np.nan)
+            else:
+                vals.append((float(r.median()) - float(b.loc[b1] / b.loc[b0] - 1)) * 100)
+        rows[name] = vals
+    labels = [p.strftime("%b %Y") for p in periods[:-1]] + [periods[-1].strftime("%b") + " MTD"]
+    out = pd.DataFrame.from_dict(rows, orient="index", columns=labels)
+    complete = out.iloc[:, :-1]
+
+    def run(row) -> int:
+        n, sign = 0, 0
+        for v in reversed(row.tolist()):
+            if not np.isfinite(v) or v == 0:
+                break
+            s = 1 if v > 0 else -1
+            if sign and s != sign:
+                break
+            sign, n = s, n + 1
+        return sign * n
+
+    out["run"] = complete.apply(run, axis=1)
+    out["total"] = complete.sum(axis=1, min_count=1)
+    return out.sort_values("total", ascending=False)
+
+
+def nearest_switches(sectors: pd.DataFrame, k: int = 3) -> dict[str, list[tuple[str, float]]]:
+    """Industries nearest to changing group: behind over six months but within
+    reach of ahead (entrants), and ahead but near to falling behind (exits),
+    by their six-month figure."""
+    if sectors is None or sectors.empty:
+        return {"entrants": [], "exits": []}
+    s = sectors.dropna(subset=["rel_6m"])
+    ent = s[s["rel_6m"] <= 0].sort_values("rel_6m", ascending=False).head(k)
+    ext = s[s["rel_6m"] > 0].sort_values("rel_6m").head(k)
+    return {"entrants": list(zip(ent["Industry"], ent["rel_6m"])),
+            "exits": list(zip(ext["Industry"], ext["rel_6m"]))}
