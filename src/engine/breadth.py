@@ -185,7 +185,7 @@ def get_recent_hl_events(
             records.append(
                 {
                     "Date": dt_str,
-                    "Event": f"🟢 {span} high",
+                    "Event": f"New {span} high",
                     "Symbol": sym,
                     "Industry": ind_map.get(sym, "—"),
                     "CMP": cmp_val,
@@ -204,7 +204,7 @@ def get_recent_hl_events(
             records.append(
                 {
                     "Date": dt_str,
-                    "Event": f"🔴 {span} low",
+                    "Event": f"New {span} low",
                     "Symbol": sym,
                     "Industry": ind_map.get(sym, "—"),
                     "CMP": cmp_val,

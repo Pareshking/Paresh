@@ -1536,6 +1536,15 @@ def inject_custom_css() -> None:
         }
         [class*="st-key-mrow_"] [data-testid="stMetricLabel"] { display: flex !important; justify-content: center !important; }
 
+        /* RRG quadrant lists in Ledger (audit F56): open columns under a rule,
+           the quadrant's name in its colour, no tinted header or box. */
+        .rq { border: 0 !important; border-radius: 0 !important; border-top: 1px solid var(--c-rule_strong) !important; background: transparent !important; }
+        .rq.lead .rq-h, .rq.imp .rq-h, .rq.weak .rq-h, .rq.lag .rq-h { background: transparent !important; }
+        .rq-h { padding: 10px 0 !important; }
+        .rq-h b { font-weight: 600; }
+        .rq-i { margin: 0 !important; }
+        @media (max-width: 760px) { .rq-grid { grid-template-columns: 1fr 1fr !important; } }
+
         /* Visible focus everywhere (audit F28): one 2px ink ring for links,
            buttons, tabs, pills, sliders and anything focusable by keyboard. */
         a:focus-visible, button:focus-visible, [role="tab"]:focus-visible,
@@ -2279,10 +2288,12 @@ def render_saas_table(
                             "add it to FRACTION_PERCENT_COLUMNS or SCALED_PERCENT_COLUMNS."
                         )
                     as_fraction = unit == "fraction"
-                    if as_fraction:
-                        cells_html.append(f'<td class="td-right {clr}">{_fmt.pct(val)}</td>')
-                    else:
-                        cells_html.append(f'<td class="td-right {clr}">{_fmt.pct(val, fraction=False)}</td>')
+                    # A level or a share (weight, turnover, % of the 52W high)
+                    # takes no "+"; a change or a distance (drift, vs EMA) does.
+                    # A minus always shows (audit F11/F64: "+5.0%" weights).
+                    signed_ = any(w in c_str for w in ("DRIFT", "EMA", "VS ", "ALPHA", "CHG", "Δ"))
+                    cells_html.append(f'<td class="td-right {clr}">'
+                                      f'{_fmt.pct(val, signed_=signed_, fraction=as_fraction)}</td>')
                 # 3. Currency / Prices (e.g. CMP, Entry Price, Exit Price, Value, Capital)
                 elif any(
                     w in c_str for w in _PER_SHARE_PRICE_KEYS + _AGGREGATE_MONEY_KEYS
