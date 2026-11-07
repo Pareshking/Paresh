@@ -89,8 +89,8 @@ def assess(rank_df: pd.DataFrame, symbols: list[str], rules: Rules = Rules()) ->
 
         broken, close = [], []
         if not e_ok:
-            broken.append(f"{abs(ema_pct):.1f}% below its 50-day EMA" if pd.notna(ema_pct)
-                          else "below its 50-day EMA")
+            broken.append(f"{abs(ema_pct):.1f}% below its 50D EMA" if pd.notna(ema_pct)
+                          else "below its 50D EMA")
         if not n_ok:
             broken.append(f"more than {(1 - rules.high_pct):.0%} below its 52-week high")
         if e_ok and n_ok and room is not None and room < 0:
