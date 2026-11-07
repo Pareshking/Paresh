@@ -207,12 +207,20 @@ function asDate(t){
   if(typeof t==='number')return new Date(t*1000);
   return new Date(String(t)+'T00:00:00');
 }
-// Sparse, plain date ticks: "Jan 26 · May · Sep".
+// Sparse, plain date ticks: "Jan 26 · May · Sep". Day ticks ("11 Jun") only
+// on a chart shorter than about two and a half months; on a longer one they
+// sat between the month names as a second kind of tick (audit F47/V13).
+const SPAN_DAYS=(function(){
+  let lo=Infinity,hi=-Infinity;
+  SPEC.forEach(p=>p.series.forEach(s=>{const d=s.data;if(!d.length)return;
+    const a=asDate(d[0].time),b=asDate(d[d.length-1].time);
+    if(!isNaN(a))lo=Math.min(lo,+a);if(!isNaN(b))hi=Math.max(hi,+b);}));
+  return isFinite(lo)&&isFinite(hi)?(hi-lo)/864e5:0;})();
 function tick(t,type){
   const d=asDate(t);if(isNaN(d))return null;
   if(type===0)return MON[d.getMonth()]+' '+String(d.getFullYear()).slice(2);
   if(type===1)return MON[d.getMonth()];
-  if(type===2)return d.getDate()+' '+MON[d.getMonth()];
+  if(type===2)return SPAN_DAYS<75?d.getDate()+' '+MON[d.getMonth()]:'';
   return null;
 }
 const charts=[], legends=[], seriesByPane=[], plots=[], dots=[];
