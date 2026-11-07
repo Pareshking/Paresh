@@ -27,7 +27,11 @@ scripts/sync_nse_prices.py builds and extends them.
 """
 from __future__ import annotations
 
+import copy
+import hashlib
 import json
+import threading
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -407,9 +411,77 @@ def blend_screener(base: pd.DataFrame, store: pd.DataFrame | None, extra: Iterab
     return result.astype("float32"), report
 
 
+# basis_frame is called on every Portfolio, Actions and Backtest render (twice on
+# Portfolio: the book and the month-to-date) and rebuilt the same frame from the
+# committed NSE file each time: ~1.5 s of a warm Portfolio render (audit A1,
+# 7 Nov 2026). The memo key holds everything the result depends on, so any change
+# -- the NSE files, the price frame, the membership, the window, the Screener
+# store -- misses and recomputes. A hit hands back a copy: no caller can alter
+# the memo. Two entries: one per live system a reader is likely to switch between.
+_BASIS_MEMO: "OrderedDict[tuple, tuple[pd.DataFrame | None, dict[str, Any], Any]]" = OrderedDict()
+_BASIS_MEMO_SIZE = 2
+_BASIS_LOCK = threading.Lock()
+
+
+def _file_stamp(directory: Path) -> tuple:
+    stamp = []
+    for name in ("closes.parquet", "actions.parquet", "notes.json"):
+        try:
+            st = (Path(directory) / name).stat()
+            stamp.append((name, st.st_mtime_ns, st.st_size))
+        except OSError:
+            stamp.append((name, None, None))
+    return tuple(stamp)
+
+
+def _basis_key(other: pd.DataFrame, history: dict | None, months: int, directory: Path,
+               until: pd.Timestamp | None) -> tuple:
+    from src.engine.pipeline import price_fingerprint
+
+    hist = hashlib.sha256(json.dumps(history, sort_keys=True, default=str).encode()).hexdigest()
+    return (str(Path(directory).resolve()), _file_stamp(directory), price_fingerprint(other),
+            tuple(map(str, other.columns)), hist, int(months),
+            None if until is None else str(pd.Timestamp(until)))
+
+
+def _copy_result(frame: pd.DataFrame | None, report: dict[str, Any]
+                 ) -> tuple[pd.DataFrame | None, dict[str, Any]]:
+    return (None if frame is None else frame.copy()), copy.deepcopy(report)
+
+
 def basis_frame(other: pd.DataFrame, history: dict | None, *, months: int,
                 directory: Path = DIR, until: pd.Timestamp | None = None,
                 screener: pd.DataFrame | str | None = "auto") -> tuple[pd.DataFrame | None, dict[str, Any]]:
+    """basis_frame_uncached, memoised; see _BASIS_MEMO. Same arguments, same result."""
+    if other is None or other.empty:
+        return _basis_frame_uncached(other, history, months=months, directory=directory,
+                                     until=until, screener=screener)
+    store = screener_store() if isinstance(screener, str) and screener == "auto" else screener
+    try:
+        key = _basis_key(other, history, months, directory, until)
+    except Exception:  # noqa: BLE001  an unhashable input: compute, never fail on the memo
+        return _basis_frame_uncached(other, history, months=months, directory=directory,
+                                     until=until, screener=store)
+    with _BASIS_LOCK:
+        hit = _BASIS_MEMO.get(key)
+        # The store is compared by identity: a refreshed store is a new object.
+        if hit is not None and hit[2] is store:
+            _BASIS_MEMO.move_to_end(key)
+            return _copy_result(hit[0], hit[1])
+    frame, report = _basis_frame_uncached(other, history, months=months, directory=directory,
+                                          until=until, screener=store)
+    with _BASIS_LOCK:
+        _BASIS_MEMO[key] = (frame, report, store)
+        _BASIS_MEMO.move_to_end(key)
+        while len(_BASIS_MEMO) > _BASIS_MEMO_SIZE:
+            _BASIS_MEMO.popitem(last=False)
+    return _copy_result(frame, report)
+
+
+def _basis_frame_uncached(other: pd.DataFrame, history: dict | None, *, months: int,
+                          directory: Path = DIR, until: pd.Timestamp | None = None,
+                          screener: pd.DataFrame | str | None = "auto"
+                          ) -> tuple[pd.DataFrame | None, dict[str, Any]]:
     """The record's price frame: NSE as published, for the 750 and the names it dropped.
 
     `other` is the alternative source's adjusted closes (Yahoo's); it fills the
