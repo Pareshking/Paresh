@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-07 — Keyboard and contrast
+
+- A "Skip to content" link is the first stop for the keyboard on every page; it jumps past the header and market line.
+- Every link, button, tab and slider shows a 2px ink ring when focused by keyboard.
+- The faint grey used for small text is darker (#70706B): 5.0:1 on white, up from 3.5:1. A test keeps every text colour at 4.5:1 or better.
+- The stale-prices warning no longer starts with an emoji.
+
 ## 2026-11-07 — One figure tile, one minus, no part-year annualising
 
 - Every row of headline figures (Portfolio, Backtest, Actions, Sectors, Configuration and the rest) is drawn the same way: between two hairlines, cells split by a hairline, centred, no boxes or shadows.

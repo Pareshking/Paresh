@@ -410,11 +410,12 @@ def render_header_kpi_bar(
     # of them, phone included (the pill above shrinks to a date there).
     notice = stale_prices_notice()
     if notice:
-        st.html(f'<div class="stale-notice" role="alert">&#9888;&#65039; {html.escape(notice)}</div>')
+        st.html(f'<div class="stale-notice" role="alert">{html.escape(notice)}</div>')
     pending = pending_history_notice()
     if pending:
         st.html(f'<div class="stale-notice stale-notice-info" role="status">{html.escape(pending)}</div>')
-    st.html(market_html)
+    # The skip link's target sits in the same element, so it adds no block.
+    st.html(market_html + '<span id="content" class="skip-target" tabindex="-1"></span>')
 
 
 def signal_chips_html(signals: list[SignalAlert]) -> str:

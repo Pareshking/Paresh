@@ -123,7 +123,10 @@ def inject_custom_css() -> None:
     # in the same element: a markdown element of its own added an empty
     # block (about 14px) at the top of every page.
     st.markdown(
-        clean_html(f"<style>{css_root()}</style>" + """
+        # The skip link rides in this element too (audit F27): its own
+        # st.html would add another empty block above the header.
+        clean_html(f"<style>{css_root()}</style>"
+                   '<a class="skip-link" href="#content">Skip to content</a>' + """
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -1453,6 +1456,18 @@ def inject_custom_css() -> None:
         [class*="st-key-mrow_"] [data-testid="stMetric"] { padding: 10px 14px !important; }
         [class*="st-key-mrow_"] [data-testid="stMetric"] > div { padding: 0 !important; }
         [class*="st-key-mrow_"] [data-testid="stMetricValue"] { font-size: 20px !important; line-height: 1.2 !important; }
+
+        .skip-link { position: absolute; left: 16px; top: -60px; z-index: 1000; padding: 8px 14px;
+            background: var(--c-ink); color: var(--c-white) !important; font-size: 14px; text-decoration: none !important; }
+        .skip-link:focus { top: 8px; }
+        .skip-target { display: block; height: 0; outline: 0 !important; }
+        /* Visible focus everywhere (audit F28): one 2px ink ring for links,
+           buttons, tabs, pills, sliders and anything focusable by keyboard. */
+        a:focus-visible, button:focus-visible, [role="tab"]:focus-visible,
+        [role="button"]:focus-visible, [role="slider"]:focus-visible, summary:focus-visible,
+        [tabindex]:not([tabindex="-1"]):focus-visible, input:focus-visible, select:focus-visible {
+            outline: 2px solid var(--c-ink) !important; outline-offset: 2px !important;
+        }
 
         /* ── One figure tile (audit F42) ───────────────────────────────
            kit.readings strips and st.metric rows draw the same tile: open,

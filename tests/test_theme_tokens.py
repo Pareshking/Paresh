@@ -64,3 +64,22 @@ def test_framed_documents_are_sent_resolved(module):
     src = (ROOT / "src" / "ui" / f"{module}.py").read_text(encoding="utf-8")
     calls = re.findall(r"st\.iframe\((.*)", src)
     assert calls and all(c.startswith("resolve(") for c in calls), calls
+
+
+def _lum(h: str) -> float:
+    c = [int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+    c = [x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4 for x in c]
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+
+
+def _contrast(a: str, b: str) -> float:
+    x, y = sorted((_lum(a), _lum(b)), reverse=True)
+    return (x + 0.05) / (y + 0.05)
+
+
+def test_every_text_grey_is_readable_on_white_and_the_subtle_fill():
+    """WCAG AA for small text, 4.5:1 (audit F29): the faint grey was 3.5:1."""
+    from src.ui.tokens import PALETTE
+    for name in ("ink", "ink_2", "text_2", "muted", "muted_2", "faint", "up", "down", "caution"):
+        for ground in ("white", "subtle"):
+            assert _contrast(PALETTE[name], PALETTE[ground]) >= 4.5, (name, ground)

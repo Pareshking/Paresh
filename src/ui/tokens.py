@@ -26,7 +26,7 @@ from types import SimpleNamespace
 PALETTE: dict[str, str] = {
     # ink and text
     "ink": "#1C1B19", "ink_2": "#2B2A27", "text_2": "#3A3A37",
-    "muted": "#5F5F5B", "muted_2": "#6E6E69", "faint": "#8A8A85",
+    "muted": "#5F5F5B", "muted_2": "#6E6E69", "faint": "#70706B",
     # ground and surfaces
     "ground": "#FFFFFF", "white": "#FFFFFF",
     "subtle": "#F7F7F5", "fill": "#F2F2EF", "fill_soft": "#FAFAF8",
