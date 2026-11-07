@@ -297,6 +297,9 @@ def _status_pill_html() -> str:
             f'<span><span class="hdr-pill-lead">{html.escape(lead)}</span>{html.escape(tail)}</span></span>')
 
 
+_QUICK_PAGES = ("Dashboard", "Actions", "Screener", "Portfolio")
+
+
 # The header states the index's trend, not a market call (owner, 7 Nov 2026):
 # "Trend: up" when the Nifty 500 is above its 200-day EMA. "Bullish" read as
 # a verdict and sat beside Breadth's "neutral" for the same market.
@@ -364,6 +367,19 @@ def render_header_kpi_bar(
                 st.page_link(nav_pages[0], label="Paresh Patel")
         else:
             st.html('<span class="hdr-title">Paresh Patel</span>', width="content")
+        if nav_pages:
+            # Owner, 7 Nov 2026 (audit decision 6): on a desktop the four pages
+            # read most often sit beside the menu; the menu keeps all eleven.
+            # CSS hides this row below 1024 px, where the menu alone shows.
+            with st.container(key="app_quicklinks", horizontal=True,
+                              vertical_alignment="center", gap=None, width="content"):
+                for _title in _QUICK_PAGES:
+                    _p = next((x for x in nav_pages if getattr(x, "title", "") == _title), None)
+                    if _p is None:
+                        continue
+                    _state = "navon" if _p is active_page else "navoff"
+                    with st.container(key=f"{_state}_quick_{_title.lower()}", width="content"):
+                        st.page_link(_p)
         pill = _status_pill_html()
         if pill:
             st.html(pill, width="content")

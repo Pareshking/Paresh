@@ -179,6 +179,10 @@ def test_the_menu_button_is_the_only_navigation_on_every_screen():
     components = (ROOT / "src/ui/components.py").read_text(encoding="utf-8")
     theme = THEME.read_text(encoding="utf-8")
     assert "app_toplinks" not in components and "app_toplinks" not in theme
+    # Owner, 7 Nov 2026 (audit decision 6): four quick links beside the menu on
+    # a desktop, hidden below 1024 px; the menu still lists every page.
+    assert '_QUICK_PAGES = ("Dashboard", "Actions", "Screener", "Portfolio")' in components
+    assert "@media (max-width: 1023px) { .st-key-app_quicklinks { display: none !important; } }" in theme
     assert 'key=f"app_nav_menu_{_page_slug}"' in components
     assert '[class*="st-key-app_nav_menu_"] { display: none !important; }' not in theme
     for group in ("**Research**", "**Monitoring**", "**System**"):

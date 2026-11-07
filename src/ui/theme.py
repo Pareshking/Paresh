@@ -1694,6 +1694,18 @@ def inject_custom_css() -> None:
         .hdr-pill, .sig-chip { border-radius: 4px !important; }
         [data-testid="stExpander"] details { border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
 
+        /* ── Desktop quick links beside the menu (owner, 7 Nov 2026) ── */
+        .st-key-app_quicklinks { gap: 2px !important; margin-left: auto !important; }
+        .st-key-app_quicklinks [data-testid="stPageLink"] a {
+            padding: 6px 10px !important; border-radius: 0 !important; background: transparent !important;
+            border-bottom: 2px solid transparent !important; text-decoration: none !important; }
+        .st-key-app_quicklinks [data-testid="stPageLink"] a p { font-size: 14px !important; font-weight: 500 !important;
+            color: var(--c-text_2) !important; }
+        .st-key-app_quicklinks [class*="st-key-navon_"] [data-testid="stPageLink"] a { border-bottom-color: var(--c-ink) !important; }
+        .st-key-app_quicklinks [class*="st-key-navon_"] [data-testid="stPageLink"] a p { color: var(--c-ink) !important; font-weight: 600 !important; }
+        .st-key-app_quicklinks [data-testid="stPageLink"] a:hover p { color: var(--c-ink) !important; }
+        @media (max-width: 1023px) { .st-key-app_quicklinks { display: none !important; } }
+
         /* ── Dashboard (src/ui/views/dashboard_view.py) ──────────────
            Two columns on a desktop, one on a phone; tight vertical rhythm
            (owner, 7 Nov: "unnecessary white spaces and large gaps"). */
