@@ -449,10 +449,6 @@ tbody tr.hl td{background:var(--c-subtle)}
 # If the parent is ever cross-origin the injection throws, and allow-popups
 # opens the stock in a new tab instead.
 _JS = """
-// "Show all": the rest of the rows, and the table scrolls in its frame again.
-(function(){const b=document.getElementById('showall');if(!b)return;
-  b.addEventListener('click',function(){const w=document.querySelector('.wrap');
-    w.classList.remove('paged');b.remove();w.dispatchEvent(new Event('scroll'));});})();
 // More columns to the right: a fade on the right edge while there are
 // (audit F34: "VOL..." and "TECHNIC..." were cut with no cue).
 (function(){const w=document.querySelector('.wrap'),e=document.querySelector('.edge');
@@ -520,7 +516,7 @@ ths.forEach(function(th,i){
 
 def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
                highlight: str = "", sort_key: str = "rank", sort_desc: bool = False,
-               page_rows: int | None = None) -> str:
+               page_rows: int | None = None, full: bool = False) -> str:
     """The whole table document, for st.iframe. Split out so tests can read it.
 
     `highlight` is a symbol whose row is tinted and tagged "This stock" (the
@@ -584,14 +580,16 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
     paged = bool(page_rows) and len(view) > int(page_rows)
     if paged:
         wide_cls += " paged"
-    more = (f'<button class="more" id="showall" type="button">Show all {len(view):,}</button>'
-            if paged else "")
+    # The rest of the rows are behind a Streamlit button under the frame
+    # (render_screener_table), which redraws the frame at full height: an
+    # in-frame "Show all" turned the table into a ~1,900px box scrolling
+    # inside the scrolling page, and on a phone a swipe moved the page, not
+    # the box (owner, 8 Nov: blank space after row 750).
+    more = ""
     paged_css = (f".paged tbody tr:nth-child(n+{int(page_rows) + 1}){{display:none}}"
-                 ".wrap.paged{height:auto;overflow-y:visible}"
-                 ".more{display:block;margin:10px 0 2px;padding:8px 14px;font:inherit;font-size:13.5px;"
-                 "color:var(--c-ink);background:var(--c-white);border:1px solid var(--c-rule_strong);"
-                 "border-radius:4px;cursor:pointer}.more:hover{border-color:var(--c-ink)}"
-                 ".more:focus-visible{outline:2px solid var(--c-ink);outline-offset:2px}") if paged else ""
+                 ".wrap.paged{height:auto;overflow-y:visible}") if paged else ""
+    if full:
+        paged_css += ".wrap{height:auto;overflow-y:visible}"
     if wide:
         extra += "@media (max-width:640px){table{min-width:%dpx}}" % (len(cols) * 92)
     return (
@@ -603,19 +601,33 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
     )
 
 
+SHOW_ALL_KEY = "scr_show_all"
+
+
 def render_screener_table(view: pd.DataFrame, prices_df: pd.DataFrame | None,
                           density: str, *, highlight: str = "", sort_key: str = "rank",
                           sort_desc: bool = False, page_rows: int | None = None) -> None:
     if view.empty:
         st.info("No stocks match these filters. Clear the search or pick another preset.")
         return
-    if page_rows and len(view) > page_rows:
-        # Tall enough for the first rows and the button: the page scrolls,
-        # not the table, until the reader asks for all of them.
-        height = 44 + 28 + page_rows * ROW_PX + 4 + 56
-    else:
-        rows = min(len(view), VISIBLE_ROWS)
-        height = 44 + rows * ROW_PX + 4 + 28
+    head_px = 44 + 28 + 6
+    if page_rows:
+        # The Screener: the frame is as tall as the rows it shows, so only the
+        # page scrolls (never a box inside it). The first `page_rows`, then
+        # every row once the reader asks; each frame fits its rows exactly.
+        show_all = bool(st.session_state.get(SHOW_ALL_KEY)) or len(view) <= page_rows
+        n = len(view) if show_all else page_rows
+        st.iframe(resolve(table_html(view, prices_df, density, highlight, sort_key, sort_desc,
+                                     None if show_all else page_rows, full=True)),
+                  height=head_px + n * ROW_PX)
+        if len(view) > page_rows:
+            label = f"Show first {page_rows}" if show_all else f"Show all {len(view):,}"
+            if st.button(label, key="scr_show_all_btn", type="secondary"):
+                st.session_state[SHOW_ALL_KEY] = not show_all
+                st.rerun()
+        return
+    rows = min(len(view), VISIBLE_ROWS)
+    height = 44 + rows * ROW_PX + 4 + 28
     st.iframe(resolve(table_html(view, prices_df, density, highlight, sort_key, sort_desc, page_rows)),
               height=height)
 

@@ -619,6 +619,7 @@ def _reset_screener_filters() -> None:
         st.session_state.pop(mirror_key(key), None)
         if _URL_KEYS[key] in st.query_params:
             del st.query_params[_URL_KEYS[key]]
+    st.session_state.pop("scr_show_all", None)
 
 
 @st.cache_data(show_spinner=False, ttl=3600)

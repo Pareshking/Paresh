@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-08 — Screener: no blank space after "Show all"
+
+- On a phone, "Show all" turned the table into a box of about 1,900 px that scrolled inside the scrolling page; a swipe moved the page rather than the box, and the end of the list showed blank space (owner, 8 Nov). "Show all" is now a button under the table that redraws it at its full height, so only the page scrolls; "Show first 50" goes back.
+- pyarrow is pinned back to 24.0.0: Streamlit Cloud replaces 26.0.0 with a version below 25 at every start (apache/arrow#50471), so production was running 24 regardless. The combination it runs (pyarrow 24 with pandas 3.1.0, numpy 2.5.4, streamlit 1.66.1) was checked: suite, audit baseline and parity unchanged.
+- The NSE price join no longer fragments its frame (a pandas warning on every load).
+
 ## 2026-11-07 — Screener frame lighter
 
 - The Screener's 60-day lines are sent as a short list of heights and drawn in the browser, the rows on screen first: the table's frame is 2.0 MB instead of 2.4 MB, and the lines look the same (audit F62).

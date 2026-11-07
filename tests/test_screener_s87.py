@@ -31,3 +31,17 @@ def test_held_tag_cut_line_and_failed_filters_say_how_much():
     assert "3.2% below its 50D EMA" in bbb and "−3.2%" in bbb
     assert "28.4% below its 52W high; the filter is within 20%" in bbb and "−28%" in bbb
     assert "Held" not in bbb
+
+
+def test_the_screener_frame_never_scrolls_inside_the_page():
+    # Owner, 8 Nov: blank space after row 750 on a phone. "Show all" is a
+    # Streamlit button that redraws the frame at full height; the frame
+    # carries no button of its own and its table does not scroll vertically.
+    rows = pd.concat([_rows()] * 30, ignore_index=True)
+    rows["Symbol"] = [f"S{i}" for i in range(len(rows))]
+    rows["Rank"] = range(1, len(rows) + 1)
+    paged = st_.table_html(rows, None, "Core (17)", page_rows=50, full=True)
+    full = st_.table_html(rows, None, "Core (17)", full=True)
+    assert 'id="showall"' not in paged and 'id="showall"' not in full
+    assert ".wrap{height:auto;overflow-y:visible}" in full
+    assert "nth-child(n+51){display:none}" in paged and "nth-child(n+51)" not in full
