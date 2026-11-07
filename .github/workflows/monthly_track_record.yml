@@ -82,6 +82,11 @@ jobs:
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: python scripts/sync_nse_prices.py --update --source r2 || echo "::warning::NSE closes were NOT extended -- the committed file is used."
 
+      # Refuses (exit 1, the drifting months named) while its replay disagrees
+      # with a frozen month the owner has not accepted (S92, owner 7 Nov 2026:
+      # October 2026 was struck on 3 Nov with parity red, on a store carrying
+      # BSE closes). No `|| echo` here on purpose: a refusal skips every step
+      # below, so nothing is frozen or committed, and the failure alert fires.
       - name: Freeze newly closed months
         run: python scripts/update_track_record.py
 

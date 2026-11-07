@@ -20,16 +20,20 @@ from src.loaders.price_loader import fetch_benchmark_history
 from src.loaders import former_members, nse_prices
 from src.loaders.ranking_store import actions_digest
 from src.ui import page_kit as kit
-from src.ui.canonical_book import current_book
-from src.engine.extra_universe import SYSTEM_750
-from src.engine.systems import inception, ledger_path
+from src.ui import formats as _fmt
+from src.ui.system_param import page_href
 from src.engine.backtest_export import RunSpec, export_zip, rules_table, trades_table
-from src.engine.track_record import build_combined_grid, ledger_from_curves, load_ledger, summary_stats
+from src.engine.track_record import build_combined_grid, ledger_from_curves, summary_stats
 from src.ui.components import (
     gap_count, render_data_quality_footer, _render_calendar_returns, _render_yearly_summary,
 )
 from src.ui.theme import render_saas_table
 
+
+
+def _months_txt(years: float) -> str:
+    n = max(1, int(round(years * 12)))
+    return f"{n} month" + ("" if n == 1 else "s")
 
 def _canonical_account_stats(ledger: dict, live_meta: dict | None) -> dict:
     """Summarise the canonical account using Track Record's frozen months and live mark."""
@@ -47,13 +51,13 @@ def _canonical_account_stats(ledger: dict, live_meta: dict | None) -> dict:
 
 
 def _pct_or_dash(value) -> str:
-    return "—" if value is None or pd.isna(value) else f"{float(value):+.1%}"
+    return "—" if value is None or pd.isna(value) else f"{_fmt.pct(float(value))}"
 
 
 def _day(value) -> str:
     """A date as the rest of the site writes it (01 Oct 2026); a dash when absent."""
     try:
-        return f"{pd.Timestamp(value):%d %b %Y}" if value else "—"
+        return f"{pd.Timestamp(value):%-d %b %Y}" if value else "—"
     except (TypeError, ValueError):
         return str(value)
 
@@ -379,9 +383,7 @@ def _backtest_tab(
     # for up to an hour.
     # Score on the index as it stood: the stocks it once held and has since
     # dropped need prices too, or the pool is only the survivors.
-    # Preserve the original app price frame for the canonical live-book adapter.
     # The exploratory backtest may replace adj_close with an alternate price basis below.
-    canonical_adj_close = adj_close
     membership = membership if membership is not None else load_history_or_none()
     # Prices as NSE published them (loaders/nse_prices.py): a past month ranks
     # on what was known then, not on a vendor's later restatement. Where the
@@ -531,8 +533,8 @@ def _backtest_tab(
     # part-month return is never shown beside whole ones.
     _eq_idx = bt_res["equity_curve"].index
     bt_window_label = (
-        f"{_eq_idx[0]:{'%d %b' if _eq_idx[0].year == _eq_idx[-1].year else '%d %b %Y'}} "
-        f"to {_eq_idx[-1]:%d %b %Y}"
+        f"{_eq_idx[0]:{'%-d %b' if _eq_idx[0].year == _eq_idx[-1].year else '%-d %b %Y'}} "
+        f"to {_eq_idx[-1]:%-d %b %Y}"
         if len(_eq_idx)
         else f"last {months} completed month{'s' if months != 1 else ''}"
     )
@@ -629,16 +631,19 @@ def _backtest_tab(
     # that figure) is left out.
     _yrs = stats.get("window_years", 0) or 0
     kit.readings([
-        kit.Reading("Strategy return", f"{stats['total_return']:+.1%}",
-                    f"{stats['gross_return']:+.1%} before costs", _tone(stats["total_return"])),
-        kit.Reading("Annualised", f"{stats['ann_return']:+.1%}",
-                    f"{bench_name} {stats['ann_bench']:+.1%}" if _yrs >= 1
-                    else f"scaled up from {_yrs:.1f} yrs", _tone(stats["ann_return"])),
-        kit.Reading("Ahead of the index", f"{stats['alpha']:+.1%}",
-                    f"{bench_name} {stats['bench_return']:+.1%}", _tone(stats["alpha"])),
+        kit.Reading("Strategy return", f"{_fmt.pct(stats['total_return'])}",
+                    f"{_fmt.pct(stats['gross_return'])} before costs", _tone(stats["total_return"])),
+        # Under a year there is no annual figure to show: scaling a part-year
+        # up invents one (audit F10).
+        kit.Reading("Annualised", f"{_fmt.pct(stats['ann_return'])}" if _yrs >= 1 else "—",
+                    f"{bench_name} {_fmt.pct(stats['ann_bench'])}" if _yrs >= 1
+                    else f"needs 12 months; this is {_months_txt(_yrs)}",
+                    _tone(stats["ann_return"]) if _yrs >= 1 else ""),
+        kit.Reading("Ahead of the index", f"{_fmt.pct(stats['alpha'])}",
+                    f"{bench_name} {_fmt.pct(stats['bench_return'])}", _tone(stats["alpha"])),
         kit.Reading("Sharpe", f"{stats['sharpe']:.2f}",
                     (f"{sharpe_se_txt.strip()} · " if sharpe_se_txt else "") + f"Sortino {sortino_txt}"),
-        kit.Reading("Max drawdown", f"{stats['max_drawdown']:.1%}",
+        kit.Reading("Max drawdown", _fmt.pct(stats['max_drawdown']),
                     f"Calmar {stats['calmar']:.2f}" if _yrs >= 1 else "peak to trough",
                     "down" if stats["max_drawdown"] < 0 else ""),
         kit.Reading("Months ahead of index", f"{stats.get('beat_rate', 0):.0%}",
@@ -666,7 +671,8 @@ def _backtest_tab(
             _render_calendar_returns(_grid)
             st.caption(
                 "After costs, from the first fill to the last completed month · CY Jan–Dec, "
-                "FY Apr–Mar · Alpha is strategy minus index each month, compounded per period."
+                "FY Apr–Mar · Alpha is the strategy's return minus the index's over the same period "
+                "(a difference, not compounded)."
             )
 
     # One download (owner, 2026-10-08): the rules this run followed, and every
@@ -704,11 +710,7 @@ def _backtest_tab(
         except Exception as exc:  # the page must not fail because a download could not be built
             st.caption(f"The download is unavailable for this run ({type(exc).__name__}: {exc}).")
 
-    # The live book and the canonical account belong to the live system, not to
-    # a study of another index or another decade.
-    _views = (["Month by month", "Every trade", "Rebalance log", "Method"] if history else
-              ["Current book", "This month's changes", "Month by month", "Every trade",
-               "Rebalance log", "Method"])
+    _views = ["Month by month", "Every trade", "Rebalance log", "Method"]
     view = st.segmented_control(
         "Backtest detail",
         _views,
@@ -717,210 +719,12 @@ def _backtest_tab(
         label_visibility="collapsed",
     ) or _views[0]
 
-    # ── Current Book & This Month's Changes ──────────────────────────────────
-    # The tables below stop at the last completed month, which is right for
-    # PERFORMANCE and wrong for a person holding the portfolio. They need
-    # today's book and this month's trades, so that is what this section is,
-    # and it is deliberately first on the page.
-    #
-    # "Today's book" means AFTER this month's rebalance. That rebalance is
-    # signalled on the last session of last month and fills on the first of
-    # this one, so by the time anyone reads this it has already executed --
-    # showing the pre-rebalance book here would be showing last month's
-    # portfolio under the heading "current".
-    # Current holdings and the current rebalance are not an exploratory
-    # backtest result. They must be the exact pinned Track Record replay that
-    # Actions and Portfolio consume, regardless of the controls selected above.
-    # Keep the configurable run for historical performance/trades only.
-    canonical_result: dict = {}
-    live_book = pd.DataFrame()
-    # History mode studies another index or decade: no live book or account.
+    # Backtest is research runs only (owner's decision 5, 7 Nov): the live
+    # record's account, today's book and this month's changes are Portfolio's
+    # and Actions', and this page no longer repeats them.
     if not history:
-        try:
-            live_book, canonical_result = current_book(
-                canonical_adj_close, benchmark_close, SYSTEM_750
-            )
-        except (ValueError, KeyError) as exc:
-            st.error(f"Canonical model book is unavailable: {exc}")
-            live_book = pd.DataFrame()
-    changes = canonical_result.get("month_changes", pd.DataFrame())
-    lmeta = canonical_result.get("live_meta", {}) or {}
-
-    if not history:
-        # Account performance is not the configurable research simulation above.
-        # Use the exact same frozen ledger and current live mark as Track Record.
-        try:
-            account_ledger = load_ledger(ledger_path(SYSTEM_750), inception(SYSTEM_750))
-            account_stats = _canonical_account_stats(account_ledger, lmeta)
-            with kit.card(
-                "Canonical account performance",
-                "bt_canonical_account",
-                "the Track Record account since Jan 2026, not these settings",
-            ):
-                kit.readings([
-                    kit.Reading(
-                        "Since inception",
-                        _pct_or_dash(account_stats.get("total_return")),
-                        "after costs · latest month live",
-                        "up" if account_stats.get("total_return", 0) >= 0 else "down",
-                    ),
-                    kit.Reading(
-                        "Nifty 500",
-                        _pct_or_dash(account_stats.get("bench_return")),
-                        "price index",
-                        "up" if account_stats.get("bench_return", 0) >= 0 else "down",
-                    ),
-                    kit.Reading(
-                        "Ahead of the index",
-                        _pct_or_dash(account_stats.get("alpha")),
-                        "strategy minus index",
-                        "up" if account_stats.get("alpha", 0) >= 0 else "down",
-                    ),
-                ], "Canonical account")
-        except (ValueError, KeyError, TypeError) as exc:
-            st.error(f"Canonical account performance is unavailable: {exc}")
-
-    if view in ("Current book", "This month's changes"):
-        _as_of = lmeta.get("as_of")
-        _sig = lmeta.get("signal_date")
-        _fill = lmeta.get("fill_date")
-        with kit.card(view, "bt_live"):
-            kit.caption(
-                "The canonical book, as on Actions and Portfolio"
-                + (f", marked {_as_of:%d %b %Y}" if _as_of is not None else "")
-                + " · not the Backtest settings."
-            )
-
-            if lmeta.get("rebalanced"):
-                n_b = lmeta.get("n_bought", 0)
-                n_s = lmeta.get("n_sold", 0)
-                n_h = lmeta.get("n_held", 0)
-                kit.caption(
-                    f"{_fill:%d %b} rebalance: {n_s} sold · {n_b} bought · {n_h} held"
-                    + (" · nothing changed" if n_b == 0 and n_s == 0 else "")
-                )
-            else:
-                kit.caption("No rebalance yet this month; the next signal is at the month's last close.")
-
-            live_sub = "holdings" if view == "Current book" else "changes"
-
-            def _fmt_dates(frame: pd.DataFrame) -> pd.DataFrame:
-                out = frame.copy()
-                if "Entry Date" in out.columns:
-                    out["Entry Date"] = pd.to_datetime(
-                        out["Entry Date"], errors="coerce"
-                    ).dt.strftime("%d %b %Y").fillna("—")
-                return out
-
-            if live_sub == "holdings":
-                if live_book.empty:
-                    st.info("No open positions.")
-                else:
-                    lb = _fmt_dates(live_book)
-                    _order = ["Symbol", "Price Now", "Return %", "MTD %", "Weight %", "Entry Date",
-                              "Entry Price", "Holding (Days)", "Rank at Entry",
-                              "Rank at Rebalance", "Industry"]
-                    lb = lb[[c for c in _order if c in lb.columns]
-                            + [c for c in lb.columns if c not in _order]]
-                    # Portfolio's names for the same book (owner, 12 Oct 2026). Its
-                    # "P&L %" is in percent units, this frame's "Return %" a fraction.
-                    if "Return %" in lb.columns:
-                        lb["Return %"] = pd.to_numeric(lb["Return %"], errors="coerce") * 100
-                    lb = lb.rename(columns={"Price Now": "Current Price", "Return %": "P&L %",
-                                            "Holding (Days)": "Holding Days",
-                                            "Industry": "Sector / Industry"})
-                    n_up = int((live_book["Return %"] > 0).sum())
-                    n_dn = int((live_book["Return %"] < 0).sum())
-                    avg_r = float(live_book["Return %"].mean(skipna=True) * 100)
-                    n_new = 0
-                    if _fill is not None and "Entry Date" in live_book.columns:
-                        n_new = int(
-                            (pd.to_datetime(live_book["Entry Date"], errors="coerce")
-                             == _fill).sum()
-                        )
-                    # The book's month so far: each name's MTD at its rebalance
-                    # weight (weights drift with prices; close enough to read).
-                    _mtd = live_book.get("MTD %", pd.Series(dtype=float))
-                    _w = live_book.get("Weight %", pd.Series(dtype=float))
-                    _ok = _mtd.notna() & _w.notna()
-                    book_mtd = (float((_mtd[_ok] * _w[_ok]).sum() / _w[_ok].sum() * 100)
-                                if _ok.any() and _w[_ok].sum() > 0 else float("nan"))
-                    kit.readings([
-                        kit.Reading("Holdings", f"{len(live_book)}", f"{n_new} added this month"),
-                        kit.Reading(
-                            "MTD return",
-                            "—" if book_mtd != book_mtd else f"{book_mtd:+.1f}%",
-                            "by weight",
-                            "" if book_mtd != book_mtd else ("up" if book_mtd >= 0 else "down"),
-                        ),
-                        kit.Reading("In profit", f"{n_up}", "marked at the latest close", "up" if n_up else ""),
-                        kit.Reading("In loss", f"{n_dn}", "", "down" if n_dn else ""),
-                        kit.Reading("Average P&L", f"{avg_r:+.1f}%", "per holding", "up" if avg_r >= 0 else "down"),
-                    ], "Current book")
-                    render_saas_table(lb)
-                    st.download_button(
-                        "Export holdings CSV",
-                        lb.to_csv(index=False).encode(),
-                        f"current_book_{ist_now():%Y%m%d}.csv",
-                        "text/csv",
-                        key="dl_bt_live_book_csv",
-                    )
-
-            else:
-                if changes.empty:
-                    st.info(
-                        "No changes to show. The list appears once the month's "
-                        "rebalance has run."
-                    )
-                else:
-                    ch = _fmt_dates(changes)
-                    act_filter = st.pills(
-                        "Action",
-                        ["All", "Buy", "Sell", "Hold"],
-                        default="All",
-                        key="bt_changes_action_filter",
-                        label_visibility="collapsed",
-                    )
-                    _codes = {"Buy": "🟢 BOUGHT", "Sell": "🔴 SOLD", "Hold": "⚪ HELD"}
-                    if act_filter in _codes:
-                        ch = ch[ch["Action"] == _codes[act_filter]]
-                    st.caption(
-                        "What the "
-                        + (f"{_fill:%d %b %Y} " if _fill is not None else "")
-                        + "rebalance did. **Return %** on a Sold row is the "
-                        "realised round trip; on a Bought or Held row it is "
-                        "unrealised, marked at the latest close."
-                    )
-                    _not_in = (changes[changes["Reason"].astype(str).str.startswith("Not in the index")]
-                               if "Reason" in changes.columns else changes.iloc[0:0])
-                    if not _not_in.empty:
-                        _mem = membership if membership is not None else load_history_or_none()
-                        _since = ((_mem or {}).get("baseline") or {}).get("date")
-                        _entered = pd.to_datetime(_not_in["Entry Date"], errors="coerce")
-                        _early = (_not_in[_entered < pd.Timestamp(_since)]
-                                  if _since else _not_in.iloc[0:0])
-                        kit.note(
-                            f"{len(_not_in)} sold "
-                            f"{'name was' if len(_not_in) == 1 else 'names were'} not in the "
-                            f"index on the {_sig:%d %b %Y} signal date: "
-                            f"{', '.join(_not_in['Symbol'].astype(str))}.",
-                            (f"{', '.join(_early['Symbol'].astype(str))} entered the book before "
-                             f"the index record begins ({_day(_since)}), when the backtest scored on "
-                             "today's constituent list, so they were picked with hindsight. "
-                             "This is the first rebalance scored on the index as it stood, and "
-                             "it sells them."
-                             if not _early.empty else
-                             "They have left the index list, so the rules sell them."),
-                        )
-                    render_saas_table(ch)
-                    st.download_button(
-                        "Export changes CSV",
-                        _fmt_dates(changes).to_csv(index=False).encode(),
-                        f"month_changes_{ist_now():%Y%m%d}.csv",
-                        "text/csv",
-                        key="dl_bt_changes_csv",
-                    )
-
+        kit.caption_link("These are this run's results. The live record, today's book and this "
+                         "month's changes are on Portfolio.", page_href("portfolio"), "Portfolio")
 
     # ── Monthly Performance Breakdown & Rebalance Tradebook ──────────────────
     if view in ("Month by month", "Every trade", "Rebalance log"):
@@ -938,10 +742,10 @@ def _backtest_tab(
                     if "Period Start" in m_df.columns:
                         m_df["Period Start"] = pd.to_datetime(
                             m_df["Period Start"]
-                        ).dt.strftime("%d %b %Y")
+                        ).dt.strftime("%-d %b %Y")
                     if "Period End" in m_df.columns:
                         m_df["Period End"] = pd.to_datetime(m_df["Period End"]).dt.strftime(
-                            "%d %b %Y"
+                            "%-d %b %Y"
                         )
 
                     disp_cols = [

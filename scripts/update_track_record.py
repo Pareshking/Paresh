@@ -34,12 +34,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.core.config import BENCHMARK_SYMBOL  # noqa: E402
 from src.engine.backtester import run_backtest  # noqa: E402
 from src.engine.parity_audit import compare_monthly_ledger, load_accepted_drift  # noqa: E402
+from src.engine.parity_audit import freeze_refusal  # noqa: E402
 from src.engine.track_record import (  # noqa: E402
     SHADOW_CONFIG,
     SHADOW_INCEPTION,
     SHADOW_LEDGER_PATH,
     TRACK_RECORD_CONFIG,
-    config_fingerprint,
+    config_fingerprint_for_month,
     finalize_months,
     load_ledger,
     months_to_cover,
@@ -211,8 +212,11 @@ def main() -> int:
           f"{n_before}-stock frame; unpriceable: "
           f"{', '.join(unpriceable) or 'none'}")
 
-    fingerprint = config_fingerprint(**cfg)
-    print(f"  config fingerprint: {fingerprint}")
+    # Per month: a forward-dated rule (members_only_scoring_from) is part of
+    # the fingerprint only of the months it governs (track_record.config_for_month).
+    def fingerprint(period):
+        return config_fingerprint_for_month(cfg, period)
+    print(f"  config fingerprint (current month): {fingerprint(pd.Period(as_of, freq='M'))}")
 
     result = run_backtest(
         f"trackrecord_{system}{'_shadow' if args.shadow else ''}_{as_of:%Y%m%d}_{months}",
@@ -225,6 +229,7 @@ def main() -> int:
         config_weights=cfg["config_weights"],
         cost_bps=cfg["cost_bps"],
         buffer_n=cfg["buffer_n"],
+        members_only_scoring_from=cfg.get("members_only_scoring_from"),
         stock_cap=cfg["stock_cap"],
         sector_cap=cfg["sector_cap"],
         sector_map=record_sector_map(adj_close.columns),
@@ -247,10 +252,11 @@ def main() -> int:
     before = len(ledger.get("months", {}))
     prior_months = dict(ledger.get("months", {}))
 
-    # Read-only comparison of both frozen return series. Drift is diagnostic:
-    # stored closed months remain authoritative and are never silently rewritten.
+    # Read-only comparison of both frozen return series. Stored closed months
+    # remain authoritative and are never silently rewritten; a red comparison
+    # (a drift not accepted) stops a new month being struck below (S92).
     parity = compare_monthly_ledger(
-        ledger, result["equity_curve"], result["benchmark"], accepted=load_accepted_drift()
+        ledger, result["equity_curve"], result["benchmark"], accepted=load_accepted_drift(system=system)
     )
     counts = parity["counts"]
     print(
@@ -288,6 +294,15 @@ def main() -> int:
         pit_from=pit_from,
         force=args.force,
     )
+
+    # S92 (owner, 7 Nov 2026): no month is struck while the replay disagrees
+    # with a frozen month the owner has not accepted. October 2026 was struck
+    # on 3 Nov with September already drifting here, on a Screener store that
+    # carried BSE closes (S89). A --force rebuild is the deliberate exception.
+    refusal = freeze_refusal(parity)
+    if refusal and added and not args.force:
+        print(f"✗ refusing to freeze {', '.join(added)}: {refusal}")
+        return 1
 
     if args.force and added:
         # A rebuild replaces frozen numbers, so the file says so: when, which

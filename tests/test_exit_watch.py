@@ -31,7 +31,7 @@ def test_the_buffer_counts_only_stocks_that_pass_both_filters():
 
 def test_statuses_follow_the_three_rules():
     a = assess(_table(), ["A", "B", "C", "D", "E", "ZZZ"], Rules(buffer_n=3)).set_index("Symbol")
-    assert a.loc["D", "status"] == SELL and "below its 50-day EMA" in a.loc["D", "why"]
+    assert a.loc["D", "status"] == SELL and "below its 50D EMA" in a.loc["D", "why"]
     assert a.loc["E", "status"] == SELL and "past the top 3" in a.loc["E", "why"]
     # B: 2% above its EMA is inside the 3% watch margin.
     assert a.loc["B", "status"] == WATCH

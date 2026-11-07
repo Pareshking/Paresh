@@ -829,6 +829,35 @@ def _calculate_backtest_metrics(
 # A sweep reads each result as it lands, so evicting old ones costs it nothing.
 # Gated UNDER the cache: only a miss queues behind another reader's run
 # (src/engine/compute_gate.py, TODO S65).
+# Owner, 7 Nov 2026: "any rank used must be originated from screener". The
+# Screener scores the index members of the day; the model scored its whole
+# frame, which carries the stocks that have left the index (so it can price
+# what it once held), and filtered membership after scoring. The extra names
+# moved every z-score a little and swapped close neighbours (ACUTAAS 44th of
+# the qualified in the model, 45th on the Screener, 6 Nov). From the signal of
+# this date the model scores the members of the day only, as the Screener
+# does; earlier signals keep the old scoring so every frozen month replays
+# unchanged (owner chose "from the next rebalance", TODO S95). Over the 11
+# rebalances to 30 Oct 2026 the members-only scoring would have changed two
+# books by one name (31 Dec 2025, 31 Aug 2026).
+MEMBERS_ONLY_SCORING_FROM = "2026-11-30"
+
+
+def _signal_scores(prices, log_ret, idx, windows, weights, *, anchor, metric, members,
+                   on, members_from):
+    """The composite z-score at one signal, among the day's members once the
+    members-only rule applies (MEMBERS_ONLY_SCORING_FROM), else the whole frame."""
+    if (members is not None and members_from
+            and pd.Timestamp(on).normalize() >= pd.Timestamp(members_from)):
+        cols = members[members.astype(bool)].index.intersection(prices.columns)
+        return _composite_z_score(
+            prices[cols], log_ret[cols], idx, windows, weights,
+            prices_anchor=None if anchor is None else anchor[cols], metric=metric,
+        ).reindex(prices.columns)
+    return _composite_z_score(prices, log_ret, idx, windows, weights,
+                              prices_anchor=anchor, metric=metric)
+
+
 @st.cache_data(show_spinner=False, ttl=3600, max_entries=64)
 @compute_gate.serialised
 def run_backtest(
@@ -859,6 +888,7 @@ def run_backtest(
     exit_high_pct: float | None = None,
     exit_ath_pct: float | None = None,
     ath_min_years: float = 3.0,
+    members_only_scoring_from: str | None = MEMBERS_ONLY_SCORING_FROM,
 ) -> dict[str, Any] | None:
     """
     Executes a walk-forward momentum backtest with zero look-ahead bias and friction modeling.
@@ -1105,9 +1135,10 @@ def run_backtest(
         # relative, acceleration, exp regression, raw return -- were removed:
         # backtesting a ranking the screener never shows answers a question
         # nobody asked, and each branch was its own untested scoring path.
-        composite_score = _composite_z_score(
+        composite_score = _signal_scores(
             prices, log_ret, start_idx, WINDOWS, norm_w if norm_w else [0.2] * 5,
-            prices_anchor=prices_anchor, metric=score_method,
+            anchor=prices_anchor, metric=score_method, members=idx_mask,
+            on=dates[start_idx], members_from=members_only_scoring_from,
         )
         score = composite_score[valid & composite_score.notna()]
 
@@ -1514,9 +1545,10 @@ def run_backtest(
         if p_liq is not None:
             p_valid &= p_liq
 
-        p_score = _composite_z_score(
+        p_score = _signal_scores(
             prices, log_ret, rebal_idx, WINDOWS, norm_w if norm_w else [0.2] * 5,
-            prices_anchor=prices_anchor, metric=score_method,
+            anchor=prices_anchor, metric=score_method, members=p_idx_mask,
+            on=prices.index[rebal_idx], members_from=members_only_scoring_from,
         )
         p_ranked = p_score[p_valid & p_score.notna()].sort_values(ascending=False)
         live_ranks = {s: p_ranked.index.get_loc(s) + 1 for s in p_ranked.index}

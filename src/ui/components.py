@@ -2,6 +2,8 @@
 Reusable UI Components and Widgets for NSE Momentum Dashboard.
 Inspired by Investrack, Stockin.id, and Tickerboom financial terminal designs.
 """
+from src.ui.tokens import C
+from src.ui import page_kit as _kit
 
 import html
 import re
@@ -82,7 +84,7 @@ def compute_signals(rank_df: pd.DataFrame) -> list[SignalAlert]:
             SignalAlert(
                 icon="⚠️",
                 text="Fewer than 20 pass both filters",
-                color="#B54708",
+                color=C.caution,
                 category="risk",
             )
         )
@@ -143,7 +145,7 @@ def _render_yearly_summary(grid: pd.DataFrame, bench_name: str) -> None:
             return '<td class="cr-empty">—</td>'
         number = float(value)
         tone = "positive" if number > 0 else "negative" if number < 0 else "flat"
-        return f'<td class="cr-value {tone}">{number:+.1%}</td>'
+        return f'<td class="cr-value {tone}">{_kit.pct(number)}</td>'
 
     heads = []
     for row in table.itertuples(index=False):
@@ -169,7 +171,7 @@ def _render_yearly_summary(grid: pd.DataFrame, bench_name: str) -> None:
         '<style>.cr-yearly{margin-bottom:14px}'
         f'.cr-yearly-table{{min-width:{120 + 74 * len(table)}px}}'
         '.cr-yearly-table .cr-part{display:block;font-weight:600;letter-spacing:0;'
-        'text-transform:none;color:#8a93a6;font-size:9px;margin-top:2px}</style>'
+        'text-transform:none;color:var(--c-faint);font-size: 12px;margin-top:2px}</style>'
     )
 
 
@@ -194,7 +196,8 @@ def _render_calendar_returns(grid: pd.DataFrame) -> None:
         number = float(value)
         tone = "positive" if number > 0 else "negative" if number < 0 else "flat"
         extra = " cr-summary" if summary else ""
-        return f'<td class="cr-value {tone}{extra}">{number:+.1%}</td>'
+        shown = _kit.pct(number)
+        return f'<td class="cr-value {tone}{extra}">{shown}</td>'
 
     blocks = []
     for year, year_df in grid.groupby("YEAR", sort=True):
@@ -226,60 +229,46 @@ def _render_calendar_returns(grid: pd.DataFrame) -> None:
             f'<tbody>{"".join(rows)}</tbody></table></div></section>'
         )
 
+    # Ledger (audit F43): no box, shadow or gradient; the year under an ink
+    # rule, 12px text at least, figures in tabular Sans, colour only for up
+    # and down. One grid for Portfolio and Backtest.
     st.html("""
     <style>
-      .cr-wrap { display:grid; gap:14px; font-family:inherit; color:#172033; }
-      .cr-year { background:#fff; border:1px solid #e2e7ef; border-radius:13px;
-        overflow:hidden; box-shadow:0 2px 8px rgba(20,32,54,.035); }
-      .cr-year-head { display:flex; align-items:center; justify-content:space-between;
-        gap:12px; padding:13px 16px; background:linear-gradient(110deg,#f7f8ff,#fff);
-        border-bottom:1px solid #e8ebf2; }
-      .cr-kicker { display:block; font-size:9px; font-weight:800; letter-spacing:.13em;
-        color:#68738a; }
-      .cr-year-head h3 { margin:2px 0 0; font-size:21px; line-height:1.2;
-        letter-spacing:-.04em; color:#172033; font-weight:750; }
-      .cr-year-note { color:#778196; font-size:11px; text-align:right; }
+      .cr-wrap { display:grid; gap:22px; font-family:inherit; color:var(--c-ink); }
+      .cr-year { background:transparent; border:0; border-top:1px solid var(--c-ink); border-radius:0; }
+      .cr-year-head { display:flex; align-items:baseline; justify-content:space-between;
+        gap:12px; padding:10px 0 6px; background:transparent; border:0; }
+      .cr-kicker { display:none; }
+      .cr-year-head h3 { margin:0; font-size:17px; line-height:1.2; letter-spacing:0;
+        color:var(--c-ink); font-weight:600; font-variant-numeric:tabular-nums; }
+      .cr-year-note { color:var(--c-muted); font-size:12.5px; text-align:right; }
       .cr-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
-      .cr-table { border-collapse:separate; border-spacing:0; width:100%;
-        min-width:980px; font-size:11px; font-variant-numeric:tabular-nums; }
-      .cr-table th,.cr-table td { padding:10px 8px; text-align:center;
-        border-bottom:1px solid #edf0f5; white-space:nowrap; }
-      .cr-table thead th { background:#f8f9fc; color:#6b7486; font-size:9px;
-        font-weight:800; letter-spacing:.045em; }
-      .cr-table thead th:first-child { text-align:left; padding-left:15px; }
+      .cr-table { border-collapse:collapse; width:100%;
+        min-width:980px; font-size: 13.5px; font-variant-numeric:tabular-nums; }
+      .cr-table th,.cr-table td { padding:8px 8px; text-align:right;
+        border-bottom:1px solid var(--c-rule); white-space:nowrap; }
+      .cr-table thead th { background:transparent; color:var(--c-muted); font-size:12px;
+        font-weight:500; letter-spacing:0; border-bottom:1px solid var(--c-rule_strong); }
+      .cr-table thead th:first-child { text-align:left; padding-left:0; }
       .cr-table tbody tr:last-child th,.cr-table tbody tr:last-child td { border-bottom:0; }
-      .cr-table tbody tr:hover { background:#fafbff; }
-      .cr-series { text-align:left !important; padding-left:15px !important;
-        font-size:11px; font-weight:750; color:#253047; min-width:86px; }
-      .cr-series.strategy { border-left:3px solid #4f46e5; }
-      .cr-series.benchmark { border-left:3px solid #94a3b8; }
-      .cr-series.alpha { border-left:3px solid #d97706; }
-      .cr-value { font-weight:650; }
-      .cr-value.positive { color:#087443; }
-      .cr-value.negative { color:#b42318; }
-      .cr-value.flat,.cr-empty { color:#a0a8b7; }
-      .cr-empty { background:#fbfcfe; }
-      .cr-summary-head { background:#eef1ff !important; color:#4542a7 !important; }
-      .cr-summary { background:#f7f8ff; font-weight:800; }
-      .cr-table td.cr-summary { border-left:1px solid #e8eaff; }
+      .cr-series { text-align:left !important; padding-left:0 !important;
+        font-size: 13.5px; font-weight:600; color:var(--c-ink); min-width:86px; border-left:0 !important; }
+      .cr-series.benchmark { color:var(--c-text_2); font-weight:500; }
+      .cr-value { font-weight:500; }
+      .cr-value.positive { color:var(--c-up); }
+      .cr-value.negative { color:var(--c-down); }
+      .cr-value.flat,.cr-empty { color:var(--c-faint); }
+      .cr-summary-head { background:var(--c-subtle) !important; color:var(--c-ink) !important; font-weight:600 !important; }
+      .cr-summary { background:var(--c-subtle); font-weight:600; }
+      .cr-table td.cr-summary { border-left:1px solid var(--c-rule); }
       @media(max-width:640px) {
-        .cr-year-head { padding:11px 12px; }
-        .cr-year-head h3 { font-size:19px; }
-        .cr-year-note { max-width:130px; font-size:10px; }
+        .cr-year-note { max-width:150px; font-size:12px; }
         .cr-table { min-width:940px; }
-        .cr-table th,.cr-table td { padding:10px 7px; }
+        .cr-table th,.cr-table td { padding:8px 7px; }
       }
     </style>
     """)
     st.html('<div class="cr-wrap">' + "".join(blocks) + '</div>')
-
-# Every primary page is directly reachable on desktop. The compact
-# popover remains the mobile/tablet navigation for the pages that do not fit.
-_TOP_ROW_PAGES = tuple(p for p in (
-    "Screener", "Portfolio", "Actions", "Sectors", "RRG", "Watchlist",
-    "Market Breadth", "Backtest", "Configuration", "Guide",
-))
-
 
 def _status_pill_html() -> str:
     """Green "Prices · closes of 25 Sep", or amber naming the stale source."""
@@ -300,6 +289,15 @@ def _status_pill_html() -> str:
     # The lead words drop on a phone; the date and the colour carry it there.
     return (f'<span class="{cls}" title="{html.escape(lead + tail)}"><span class="hdr-dot"></span>'
             f'<span><span class="hdr-pill-lead">{html.escape(lead)}</span>{html.escape(tail)}</span></span>')
+
+
+_QUICK_PAGES = ("Dashboard", "Actions", "Screener", "Portfolio")
+
+
+# The header states the index's trend, not a market call (owner, 7 Nov 2026):
+# "Trend: up" when the Nifty 500 is above its 200-day EMA. "Bullish" read as
+# a verdict and sat beside Breadth's "neutral" for the same market.
+_TREND_LABEL = {MarketRegime.BULLISH: "Trend: up", MarketRegime.BEARISH: "Trend: down"}
 
 
 def render_header_kpi_bar(
@@ -323,7 +321,7 @@ def render_header_kpi_bar(
     market_html = f"""
     <div role="status" aria-label="Market status dashboard" class="mkt-snapshot">
         <div class="mkt-item mkt-regime-item">
-            <span class="{regime_cls} mkt-regime"><span class="mkt-dot">●</span>{html.escape(regime.status.value.title())}</span>
+            <span class="{regime_cls} mkt-regime"><span class="mkt-dot" aria-hidden="true">●</span>{html.escape(_TREND_LABEL.get(regime.status, regime.status.value.title()))}</span>
         </div>
         <div class="mkt-item mkt-index">
             <span class="mkt-label">Nifty 500</span>
@@ -331,7 +329,7 @@ def render_header_kpi_bar(
         </div>
         <div class="mkt-item mkt-distance">
             <strong class="{'mkt-up' if dist >= 0 else 'mkt-down'}">{dist_text}</strong>
-            <span class="mkt-label">200D average</span>
+            <span class="mkt-label">200D EMA</span>
         </div>
         <div class="mkt-item">
             <span class="mkt-label">Universe</span>
@@ -341,7 +339,7 @@ def render_header_kpi_bar(
             <span class="mkt-label">Above 50D EMA</span>
             <strong>{above_ema} <em>({pct_above_ema:.0f}%)</em></strong>
         </div>
-        {"" if near_high is None else f'<div class="mkt-item"><span class="mkt-label">Within 20% of 52W high</span><strong>{near_high} <em>({near_high / total_stocks * 100 if total_stocks else 0:.0f}%)</em></strong></div>'}
+        {"" if near_high is None else f'<div class="mkt-item"><span class="mkt-label" title="Within 20% of the 52-week high">Near 52W high</span><strong>{near_high} <em>({near_high / total_stocks * 100 if total_stocks else 0:.0f}%)</em></strong></div>'}
     </div>
     """
 
@@ -355,7 +353,7 @@ def render_header_kpi_bar(
         r"[^A-Za-z0-9_-]", "_", str(getattr(active_page, "url_path", "") or "home"))
     with st.container(key="app_header_shell", width="stretch", horizontal=True,
                       vertical_alignment="center", gap="small", wrap=False):
-        # The brand is the way home: a page link to the Screener, so it opens
+        # The brand is the way home: a page link to the Dashboard, so it opens
         # in place like every other page link (and clears ?stock=). Named
         # exactly "Paresh Patel", as the owner asked.
         if nav_pages:
@@ -364,42 +362,47 @@ def render_header_kpi_bar(
         else:
             st.html('<span class="hdr-title">Paresh Patel</span>', width="content")
         if nav_pages:
-            # Desktop shows the complete primary navigation directly. CSS hides
-            # this row below 900px, where the compact popover takes over.
-            with st.container(key="app_toplinks", horizontal=True,
-                              vertical_alignment="center", gap=None, width="stretch"):
-                for _i, _p in enumerate(nav_pages):
-                    if getattr(_p, "title", "") not in _TOP_ROW_PAGES:
+            # Owner, 7 Nov 2026 (audit decision 6): on a desktop the four pages
+            # read most often sit beside the menu; the menu keeps all eleven.
+            # CSS hides this row below 1024 px, where the menu alone shows.
+            with st.container(key="app_quicklinks", horizontal=True,
+                              vertical_alignment="center", gap=None, width="content"):
+                for _title in _QUICK_PAGES:
+                    _p = next((x for x in nav_pages if getattr(x, "title", "") == _title), None)
+                    if _p is None:
                         continue
                     _state = "navon" if _p is active_page else "navoff"
-                    with st.container(key=f"{_state}_top_{_i}", width="content"):
+                    with st.container(key=f"{_state}_quick_{_title.lower()}", width="content"):
                         st.page_link(_p)
         pill = _status_pill_html()
         if pill:
             st.html(pill, width="content")
         if nav_pages:
-            # Mobile/tablet only. Desktop CSS hides the popover trigger.
+            # The only navigation, on every screen (owner, 7 Nov: "a hamburger
+            # menu only", the menu's old style). The desktop link row is gone.
+            # ":material/menu:" draws the same three bars and is announced as
+            # "menu"; the "☰" glyph was read as "trigram for heaven" (audit F23).
             with st.popover(
-                    "☰",
+                    ":material/menu:",
                     type="tertiary",
                     help="Open navigation",
                     width=320,
                     key=f"app_nav_menu_{_page_slug}",
                 ):
                     st.markdown("**Research**")
-                    for _i, _p in enumerate(nav_pages[:5]):
+                    for _i, _p in enumerate(nav_pages[:6]):
                         _state = "navon" if _p is active_page else "navoff"
                         with st.container(key=f"{_state}_research_{_i}", width="stretch"):
                             st.page_link(_p)
 
                     st.markdown("**Monitoring**")
-                    for _i, _p in enumerate(nav_pages[5:9], start=5):
+                    for _i, _p in enumerate(nav_pages[6:10], start=6):
                         _state = "navon" if _p is active_page else "navoff"
                         with st.container(key=f"{_state}_monitoring_{_i}", width="stretch"):
                             st.page_link(_p)
 
                     st.markdown("**System**")
-                    for _i, _p in enumerate(nav_pages[9:], start=9):
+                    for _i, _p in enumerate(nav_pages[10:], start=10):
                         _state = "navon" if _p is active_page else "navoff"
                         with st.container(key=f"{_state}_system_{_i}", width="stretch"):
                             st.page_link(_p)
@@ -407,11 +410,12 @@ def render_header_kpi_bar(
     # of them, phone included (the pill above shrinks to a date there).
     notice = stale_prices_notice()
     if notice:
-        st.html(f'<div class="stale-notice" role="alert">&#9888;&#65039; {html.escape(notice)}</div>')
+        st.html(f'<div class="stale-notice" role="alert">{html.escape(notice)}</div>')
     pending = pending_history_notice()
     if pending:
         st.html(f'<div class="stale-notice stale-notice-info" role="status">{html.escape(pending)}</div>')
-    st.html(market_html)
+    # The skip link's target sits in the same element, so it adds no block.
+    st.html(market_html + '<span id="content" class="skip-target" tabindex="-1"></span>')
 
 
 def signal_chips_html(signals: list[SignalAlert]) -> str:
@@ -498,7 +502,7 @@ def data_freshness() -> list[dict]:
         stale = behind is None or behind > tolerance
         items.append({
             "label": label,
-            "as_of": as_of.strftime("%d %b"),
+            "as_of": as_of.strftime("%-d %b"),
             # The date itself, for callers that need a different format or the
             # year. Re-parsing "28 Aug" to get it back is how a second, subtly
             # different notion of the as-of date gets born.
@@ -567,7 +571,7 @@ def data_freshness() -> list[dict]:
             cov = str(facts.get("price_deferred_coverage") or "").strip()
             items.append({
                 "label": "Latest session",
-                "as_of": _d.strftime("%d %b"),
+                "as_of": _d.strftime("%-d %b"),
                 "date": _d,
                 "behind": 0,
                 "is_today": _d == ist_today(),
@@ -617,7 +621,7 @@ def pending_history_notice(path=None) -> str:
     parts = []
     for sym, since in sorted(pending.items()):
         try:
-            parts.append(f"{sym} (since {_date.fromisoformat(str(since)).strftime('%d %b')})")
+            parts.append(f"{sym} (since {_date.fromisoformat(str(since)).strftime('%-d %b')})")
         except ValueError:
             parts.append(str(sym))
     return "No price history for new index member" + ("s " if len(parts) > 1 else " ") + ", ".join(parts)
@@ -631,12 +635,12 @@ def stale_prices_notice() -> str:
         return ""
     if not prices or not prices.get("stale") or prices.get("date") is None:
         return ""
-    have = prices["date"].strftime("%d %b")
+    have = prices["date"].strftime("%-d %b")
     due = prices.get("due")
     if due is None:
         return f"Prices stop at {have} and are behind. A background price update has failed or is late."
-    return (f"Prices stop at {have}; {due.strftime('%d %b')}'s closes were due by "
-            f"{(due + timedelta(days=1)).strftime('%d %b')}, 09:00 IST. "
+    return (f"Prices stop at {have}; {due.strftime('%-d %b')}'s closes were due by "
+            f"{(due + timedelta(days=1)).strftime('%-d %b')}, 09:00 IST. "
             "The nightly price update has failed or is late, so rankings use the older prices.")
 
 
@@ -699,30 +703,28 @@ def render_freshness_ribbon() -> None:
     # Stale first: the thing a reader needs to notice should not be third.
     items = sorted(items, key=lambda i: (not i["stale"],))
 
-    chips_html = ""
+    # One quiet line, not pills (audit F48, F46): "Prices: 6 Nov · 752/752 ·
+    # latest session · Market caps: …". A stale source leads, in amber; no
+    # emoji.
+    parts = []
     for item in items:
-        color = "#B54708" if item["stale"] else "#067647"
-        icon = "&#9888;&#65039;" if item["stale"] else "&#9679;"
         age = age_phrase(item)
         label = html.escape(str(item["label"]))
         as_of = html.escape(str(item["as_of"]))
         cov = str(item.get("coverage") or "").strip()
         if cov:
             as_of = f"{as_of} · {html.escape(cov)}"
-        chips_html += (
-            f'<div style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; '
-            f'border-radius: 8px; background-color: {color}12; border: 1px solid {color}2E; '
-            f"font-family: var(--font-ui); font-size: 12.5px; color: {color}; "
-            f'font-weight: 600; white-space: nowrap; flex-shrink: 0;">'
-            f"<span>{icon}</span><span>{label}: {as_of}{age}</span></div>"
-        )
+        # Amber for a stale source, Ledger blue for a current one (owner, 7 Nov).
+        color = C.caution if item["stale"] else C.up
+        weight = 600 if item["stale"] else 500
+        parts.append(f'<span style="color: {color}; font-weight: {weight};">{label}: {as_of}{age}</span>')
 
+    sep = '<span aria-hidden="true" style="color: var(--c-faint);">·</span>'
     st.markdown(
-        '<div role="status" aria-label="Data freshness" style="display: flex; align-items: center; '
-        "gap: 8px; overflow-x: auto; padding: 14px 0 4px; border-top: 1px solid #E3E6EB; "
-        "margin-top: 22px; margin-bottom: 2px; "
-        'scrollbar-width: thin; scrollbar-color: #D0D5DD transparent;">'
-        f"{chips_html}</div>",
+        '<div role="status" aria-label="Data freshness" style="display: flex; flex-wrap: wrap; '
+        "align-items: baseline; gap: 4px 10px; padding: 14px 0 4px; border-top: 1px solid var(--c-rule); "
+        'margin-top: 22px; margin-bottom: 2px; font-family: var(--font-ui); font-size: 12.5px;">'
+        f"{sep.join(parts)}</div>",
         unsafe_allow_html=True,
     )
 
@@ -780,17 +782,17 @@ def render_data_quality_footer(
     # the established "Personal" name whenever Screener contributes.
     _public_where = "Personal" if "screener" in _where.lower() else _where
     source_note = (
-        f'<span style="color: #A5ACB8;">·</span><span>Data from: '
-        f'<strong style="color: #0E1726;">{html.escape(_public_where)}</strong></span>'
+        f'<span style="color: var(--c-faint);">·</span><span>Data from: '
+        f'<strong style="color: var(--c-ink);">{html.escape(_public_where)}</strong></span>'
         if _public_where else ""
     )
     footer_html = f"""
-    <div style="display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding: 6px 0 24px; font-family: var(--font-ui); font-size: 12.5px; color: #5E6878;">
-        <span>Gap-filled over 10% (12 months): <strong style="color: {"#B54708" if gap_count else "#0E1726"};">{gap_count}</strong></span>
-        <span style="color: #A5ACB8;">·</span>
-        <span>Short history (under 126 sessions): <strong style="color: #0E1726;">{short_count}</strong></span>
+    <div style="display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding: 6px 0 24px; font-family: var(--font-ui); font-size: 12.5px; color: var(--c-muted);">
+        <span>Gap-filled over 10% (12 months): <strong style="color: {"var(--c-caution)" if gap_count else "var(--c-ink)"};">{gap_count}</strong></span>
+        <span style="color: var(--c-faint);">·</span>
+        <span>Short history (under 126 sessions): <strong style="color: var(--c-ink);">{short_count}</strong></span>
         {source_note}
-        <span style="margin-left: auto; color: #3C4657;">© Paresh Patel</span>
+        <span style="margin-left: auto; color: var(--c-text_2);">© Paresh Patel</span>
     </div>
     """
     st.html(footer_html)

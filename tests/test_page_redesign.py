@@ -39,7 +39,7 @@ def test_industry_board_escapes_names_and_links_leaders_in_place():
     board, _ = sector_view.industry_board(df)
     out = sector_view.board_html(board)
     assert "<b>Metals</b>" not in out and "&lt;b&gt;Metals&lt;/b&gt;" in out
-    assert 'href="?stock=J%26K" target="_self"' in out
+    assert 'href="screener?stock=J%26K" target="_self"' in out
 
 
 def test_month_cards_say_ahead_or_behind_and_mark_backfilled_months():

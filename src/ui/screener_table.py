@@ -2,16 +2,24 @@
 
 One HTML table serves the desktop and the phone. It lives in an st.iframe so
 it can sort by column and keep its header and first two columns pinned; below
-640px its own CSS turns it into the compact phone list (rank, stock, 12-month
-line, price and 3M), because Streamlit cannot tell Python how wide the screen
-is.
+640px its own CSS turns it into the compact phone list (rank, stock and its
+industry, a 60-session line, price and 3M), because Streamlit cannot tell
+Python how wide the screen is.
 
 Every row of the view is in the table -- sorting a page of 25 would sort the
 wrong 25 -- and the frame is tall enough to show about 25 rows at once; the
 rest scroll inside it.
 
 Three column sets are drawn from one registry: Executive, Core and Full Quant.
-The sector, index and company name sit under the symbol in every one of them.
+The phone list shows the industry under the symbol; on a desktop the Index and
+Industry columns carry it.
+
+Colour follows one rule: a figure whose SIGN is the signal (a return, a
+Sharpe, the distance from the 50 EMA, a rank change) is green above zero and
+red below, and always carries a + or − so the colour is never the only cue. A
+distance from a peak (drawdown, % from the 52-week high or the all-time high)
+is never above zero, so colouring it would paint the whole column red: it is
+plain. Pass and fail are ✓ and ✗, not coloured dots.
 """
 from __future__ import annotations
 
@@ -22,10 +30,12 @@ from html import escape as _esc
 import numpy as np
 import pandas as pd
 import streamlit as st
+from src.ui.tokens import resolve
 
 from src.ui.system_param import stock_href
 from src.ui.system_param import suffix as system_suffix
 from src.ui.theme import _spark_window_key, is_tick_true
+from src.ui import formats as _fmt
 
 # Readable names for the index tags the ranking stores.
 INDEX_NAMES = {
@@ -43,9 +53,9 @@ _ALL = {
     "d1m": ("1M Δ", "num"), "d3m": ("3M Δ", "num"),
     "idx": ("Index", "text"), "ind": ("Industry", "text"),
     "mcap": ("MCAP (Cr)", "num"),
-    "hi": ("% 52W HI", "num"), "ath": ("% ATH", "num"), "ema": ("% 50 EMA", "num"),
+    "hi": ("From 52W high", "num"), "ath": ("% ATH", "num"), "ema": ("vs 50D EMA", "num"),
     "vol": ("Volume", "text"),
-    "above": ("> 50 EMA", "num"), "near": ("Near 52W", "num"), "athf": ("At ATH", "num"),
+    "above": ("Above 50D EMA", "num"), "near": ("Near 52W high", "num"), "athf": ("At ATH", "num"),
     "nh1": ("New Highs 1M", "num"), "nh3": ("New Highs 3M", "num"),
     "stop": ("Stop Loss", "num"), "chand": ("Chand Exit", "num"),
     "gap": ("Gap", "text"), "ffill": ("FFill %", "num"), "hz": ("Horizons", "num"),
@@ -86,8 +96,8 @@ _RISK_KEYS = ("stop", "chand")
 # an em dash on every row; they are dropped with their headers.
 _ATR_COLUMNS = ("ATR", "ATR %", "Stop Loss", "Chand Exit")
 
-ROW_PX = 44
-PHONE_ROW_PX = 44
+ROW_PX = 36   # Ledger density (owner, 7 Nov); the phone list keeps 44 for touch
+PHONE_ROW_PX = 36   # Ledger density (owner, 7 Nov); the phone list keeps 44 for touch
 VISIBLE_ROWS = 25
 
 
@@ -104,6 +114,43 @@ def columns_for(density: str, available=None) -> list[tuple[str, str, str | None
 
 def column_count(density: str, available=None) -> int:
     return len(columns_for(density, available))
+
+
+def column_groups(keys: list[str]) -> list[tuple[str, int, bool]]:
+    """The group row over `keys`: (label, colspan, pinned), left to right.
+
+    Built from RUNS of neighbouring columns. Counting each group's columns
+    wherever they sit put "3M" over 3M and 6M Ret and "12M" over Max DD 3M in
+    Core, whose order is r1 r3 r6 r12 dd3 (owner, 7 Nov). Where a view shows
+    only part of the per-window groups (Executive, Core), those columns are
+    grouped as Returns and Risk instead. Rank and Symbol are pinned when the
+    table scrolls sideways, so their group label is its own pinned cell.
+    """
+    group_of = {k: label for label, ks in _QUANT_GROUPS for k in ks}
+    windowed = {label: ks for label, ks in _QUANT_GROUPS if "momentum" in label}
+    partial = any(not set(ks) <= set(keys) for ks in windowed.values())
+
+    def label(k: str) -> str:
+        g = group_of.get(k, "")
+        if g in windowed and partial:
+            return "Returns" if k.startswith("r") else "Risk"
+        return g
+
+    pin = 2 if list(keys[:2]) == ["rank", "stock"] else 0
+    out: list[tuple[str, int, bool]] = []
+    if pin:
+        out.append((label("rank"), pin, True))
+    for i, k in enumerate(keys[pin:], pin):
+        lab = label(k)
+        # The pinned cell already names the Identity group, so the rest of it
+        # (CMP) is an unlabelled cell rather than the same word twice.
+        if pin and i == pin and lab == label("rank"):
+            lab = ""
+        if out and not out[-1][2] and out[-1][0] == lab:
+            out[-1] = (lab, out[-1][1] + 1, False)
+        else:
+            out.append((lab, 1, False))
+    return out
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -137,12 +184,42 @@ def _num(v) -> float | None:
     return None if np.isnan(f) else f
 
 
+def _signed(v: float, digits: int = 1, plus: bool = True) -> str:
+    """A number with a true minus sign (U+2212), and + when `plus`."""
+    r = round(v, digits)
+    sign = "+" if (r > 0 and plus) else "−" if r < 0 else ""
+    return f"{sign}{abs(r):.{digits}f}"
+
+
+def _price_html(v: float | None) -> str:
+    """The price with paise, and beside it the price rounded to the rupee for
+    the phone's compact list (rounded, not cut: ₹2,373.50 reads ₹2,374)."""
+    if v is None:
+        return "—"
+    return (f'<span class="px-d">{_fmt.inr(v, 2)}</span>'
+            f'<span class="px-m">{_fmt.inr(v)}</span>')
+
+
+def _peak_cell(v: float | None, title: str = "") -> str:
+    """% below a peak: plain, never coloured; "New high" at the peak itself."""
+    if v is None:
+        return '<td class="n muted" data-v="">—</td>'
+    txt = "New high" if v >= 0 else f"{_signed(v, plus=False)}%"
+    return f'<td class="n" data-v="{v}"{title}>{txt}</td>'
+
+
 def _pct_cell(v: float | None, cls_extra: str = "") -> tuple[str, str]:
     if v is None:
         return f'<td class="n muted {cls_extra}" data-v="">—</td>', ""
     cls = "pos" if v > 0 else "neg" if v < 0 else ""
     txt = f"{'+' if v > 0 else '−' if v < 0 else ''}{abs(v) * 100:.1f}%"
     return f'<td class="n {cls} {cls_extra}" data-v="{v:.6f}">{txt}</td>', txt
+
+
+def _tick(on: bool, yes: str = "Yes", no: str = "No") -> str:
+    """Pass or fail as a glyph that does not need colour vision to read."""
+    return (f'<span class="tick yes" title="{yes}">✓</span>' if on
+            else f'<span class="tick no" title="{no}">✗</span>')
 
 
 def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
@@ -154,7 +231,10 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     tag = str(row.get("Indices") or "").split(",")[0].strip()
     # Sector and index first, company last: the symbol already names the
     # stock, and the name is the part that can be cut off when it is long.
-    sub = " · ".join(p for p in (ind, INDEX_NAMES.get(tag, tag), name) if p and p != "nan")
+    # The phone list's only line under the symbol, cut to ~130px: the
+    # industry alone fits, where "industry · index · company" was cut in the
+    # middle of the index name. The company name is the link's tooltip.
+    sub = ind if ind and ind != "nan" else ""
     rank = _num(row.get("Rank"))
     cmp_v = _num(row.get("CMP"))
     r3 = _num(row.get("3M Return"))
@@ -164,7 +244,7 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
                      f'{int(rank) if rank is not None else "—"}</td>')
     cells["stock"] = (
         f'<td class="c-stock" data-v="{sym_s}"><a href="{stock_href(sym)}" '
-        f'data-stock="{sym_s}" title="Open {sym_s}"><span class="sym">{sym_s}'
+        f'data-stock="{sym_s}" title="Open {_esc(name) if name and name != "nan" else sym_s}"><span class="sym">{sym_s}'
         f'{"<em class=me>This stock</em>" if is_hl else ""}</span>'
         f'<span class="sub">{_esc(sub)}</span></a></td>'
     )
@@ -172,7 +252,9 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     r3_cls = "" if r3 is None else ("pos" if r3 > 0 else "neg" if r3 < 0 else "")
     cells["price"] = (
         f'<td class="n c-price" data-v="{cmp_v if cmp_v is not None else ""}">'
-        f'{"₹" + format(cmp_v, ",.0f") if cmp_v is not None else "—"}'
+        # Paise on a desktop (audit F66); the phone's compact list hides them,
+        # where the extra three characters pushed the trend line off.
+        f'{_price_html(cmp_v)}'
         f'<span class="m-only {r3_cls}">{r3_txt} 3M</span></td>'
     )
     for key, col in (("d1m", "Rank Δ 1M"), ("d3m", "Rank Δ 3M")):
@@ -184,39 +266,41 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
             cells[key] = f'<td class="n" data-v="{d}"><span class="chip {chip[0]}">{chip[1]}</span></td>'
     mc = _num(row.get("Market Cap (Cr)"))
     cells["mcap"] = (f'<td class="n" data-v="{"" if mc is None else mc}">'
-                     f'{"—" if mc is None else "₹" + format(mc, ",.0f")}</td>')
+                     f'{"—" if mc is None else _fmt.inr(mc)}</td>')
     for w in PERIOD_WINDOWS:
         cells[f"r{w}"] = _pct_cell(_num(row.get(f"{w}M Return")))[0]
         sh = _num(row.get(f"{w}M Sharpe"))
-        cells[f"sh{w}"] = (f'<td class="n sharpe" data-v="{"" if sh is None else sh}">'
-                           f'{"—" if sh is None else f"{sh:.2f}"}</td>')
+        sh_cls = "" if sh is None else "pos" if sh > 0 else "neg" if sh < 0 else ""
+        cells[f"sh{w}"] = (f'<td class="n {sh_cls}" data-v="{"" if sh is None else sh}">'
+                           f'{"—" if sh is None else _signed(sh, 2, plus=False)}</td>')
         dd = _num(row.get(f"Max DD {w}M"))
-        cells[f"dd{w}"] = (f'<td class="n neg" data-v="{"" if dd is None else dd}">'
-                           f'{"—" if dd is None else f"−{abs(dd):.1f}%"}</td>')
+        cells[f"dd{w}"] = (f'<td class="n" data-v="{"" if dd is None else dd}">'
+                           f'{"—" if dd is None else _signed(-abs(dd), plus=False) + "%"}</td>')
     ath_v = _num(row.get("% ATH"))
     peak = str(row.get("ATH Date") or "").strip()
     ath_title = f' title="Peak printed {_esc(peak)}"' if peak else ""
-    cells["ath"] = (f'<td class="n" data-v="{"" if ath_v is None else ath_v}"{ath_title}>'
-                    f'{"—" if ath_v is None else f"{ath_v:.1f}%"}</td>')
+    cells["ath"] = _peak_cell(ath_v, ath_title)
     em = _num(row.get("% 50 EMA"))
-    cells["ema"] = (f'<td class="n {"" if em is None else "pos" if em > 0 else "neg"}" '
-                    f'data-v="{"" if em is None else em}">{"—" if em is None else f"{em:+.1f}%"}</td>')
+    cells["ema"] = (f'<td class="n {"" if em is None else "pos" if em > 0 else "neg" if em < 0 else ""}" '
+                    f'data-v="{"" if em is None else em}">{"—" if em is None else _signed(em) + "%"}</td>')
     vol = str(row.get("Volume") or "Normal")
-    vchip = ("🔥 High" if vol == "High" else "⚡ Surge" if vol == "Surge"
-             else '<span class="muted">• Normal</span>')
+    vchip = ('<span class="vol">High</span>' if vol == "High"
+             else '<span class="vol">Surge</span>' if vol == "Surge"
+             else '<span class="muted">Normal</span>')
     cells["vol"] = f'<td data-v="{_esc(vol)}">{vchip}</td>'
     for key, col in (("stop", "Stop Loss"), ("chand", "Chand Exit")):
         v = _num(row.get(col))
         cells[key] = (f'<td class="n" data-v="{"" if v is None else v}">'
-                      f'{"—" if v is None else "₹" + format(v, ",.0f")}</td>')
+                      f'{"—" if v is None else _fmt.inr(v, 2)}</td>')
     from src.engine.momentum import CARRIED_MARK
 
     gap = str(row.get("Data Gap") or "🟢")
     carried = CARRIED_MARK in gap
     gap_title = (' title="No price on the ranking date; ranked on its last print"'
                  if carried else "")
-    cells["gap"] = (f'<td data-v="{1 if "🔴" in gap else 0}"{gap_title}>'
-                    f'{"🔴" if "🔴" in gap else "🟢"}{CARRIED_MARK if carried else ""}</td>')
+    has_gap = "🔴" in gap
+    cells["gap"] = (f'<td class="c-tick" data-v="{1 if has_gap else 0}"{gap_title}>'
+                    f'{_tick(not has_gap, "No gap", "Gap")}{CARRIED_MARK if carried else ""}</td>')
     ff = _num(row.get("FFill %"))
     cells["ffill"] = f'<td class="n" data-v="{0 if ff is None else ff}">{0 if ff is None else ff:.1f}%</td>'
     hz = _num(row.get("Horizons Scored"))
@@ -232,18 +316,16 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     cells["ind"] = f'<td data-v="{_esc(ind_full)}" title="{_esc(ind_full)}">{_esc(ind_txt) or "—"}</td>'
     for key, col in (("above", "Above 50 EMA"), ("near", "Near 52W High"), ("athf", "At ATH")):
         on = is_tick_true(row.get(col))
-        cells[key] = f'<td class="c-tick" data-v="{int(on)}">{"🟢" if on else "⚪"}</td>'
+        cells[key] = f'<td class="c-tick" data-v="{int(on)}">{_tick(on)}</td>'
     for key, col in (("nh1", "New Highs 1M"), ("nh3", "New Highs 3M")):
         n = _num(row.get(col))
         cells[key] = (f'<td class="n" data-v="{"" if n is None else n}">'
                       f'{"—" if n is None else int(n)}</td>')
-    hi = _num(row.get("% High"))
-    cells["hi"] = (f'<td class="n" data-v="{"" if hi is None else hi}">'
-                   f'{"—" if hi is None else f"{hi:.1f}%"}</td>')
+    cells["hi"] = _peak_cell(_num(row.get("% High")))
     poly, up = paths.get(sym, ("", True))
     cells["spark"] = (
         f'<td class="c-path"><svg width="88" height="26" viewBox="0 0 88 26" aria-hidden="true">'
-        f'<polyline fill="none" stroke="{"#067647" if up else "#B42318"}" stroke-width="1.7" '
+        f'<polyline fill="none" stroke="{"var(--c-up)" if up else "var(--c-down)"}" stroke-width="1.7" '
         f'stroke-linejoin="round" stroke-linecap="round" points="{poly}"/></svg></td>'
         if poly else '<td class="c-path muted">—</td>'
     )
@@ -253,55 +335,64 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
 
 _CSS = """
 *{box-sizing:border-box}
-body{margin:0;font-family:'Geist',-apple-system,'Segoe UI',Roboto,sans-serif;color:#0E1726;background:transparent;-webkit-font-smoothing:antialiased}
-.wrap{height:100vh;overflow:auto;background:#FFFFFF;border:1px solid #E3E6EB;border-radius:16px}
+body{margin:0;font-family:'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--c-ink);background:transparent;-webkit-font-smoothing:antialiased}
+.wrap{height:100vh;overflow:auto;background:var(--c-white);border:0;border-top:1px solid var(--c-ink);border-radius:0}
+.edge{position:fixed;top:0;right:0;width:32px;height:100vh;pointer-events:none;z-index:6;background:linear-gradient(to right,rgba(255,255,255,0),var(--c-white));opacity:0;transition:opacity .15s}
+.edge.on{opacity:1}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+tr[data-stock]{cursor:pointer}
 table{border-collapse:separate;border-spacing:0;width:100%;min-width:1180px}
-thead th{position:sticky;top:0;z-index:3;background:#F4F5F8;border-bottom:1px solid #E3E6EB;height:42px;padding:0 10px;
-  font-size:12px;font-weight:600;color:#5E6878;text-align:right;white-space:nowrap;cursor:pointer;user-select:none}
+thead th{position:sticky;top:0;z-index:3;background:var(--c-subtle);border-bottom:1px solid var(--c-rule);height:42px;padding:0 10px;
+  font-size:12px;font-weight:600;color:var(--c-muted);text-align:right;white-space:nowrap;cursor:pointer;user-select:none}
 thead th.t-left{text-align:left}
-thead th{text-transform:uppercase;letter-spacing:.04em;font-size:11.5px}
-thead tr.grp-row th{font-size:11px}
-td.sharpe{color:#067647;font-weight:600}
+thead th{text-transform:uppercase;letter-spacing:.04em;font-size: 12px}
+thead tr.grp-row th{font-size: 12px}
 td.n.pos,td.n.neg{font-weight:600}
-thead tr.grp-row th{top:0;height:28px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;text-align:center;color:#5E6878;border-bottom:1px solid #E3E6EB;border-left:1px solid #E3E6EB;cursor:default}
+thead tr.grp-row th{top:0;height:28px;font-size: 12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;text-align:center;color:var(--c-muted);border-bottom:1px solid var(--c-rule);border-left:1px solid var(--c-rule);cursor:default}
 thead tr.grp-row + tr.hdr th{top:28px}
-.tag{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 6px;border-radius:6px;background:#F1F3F6;color:#3C4657;border:1px solid #E3E6EB}
+.tag{display:inline-block;font-size: 12px;font-weight:600;padding:0;border-radius:0;background:transparent;color:var(--c-text_2);border:0}
 td.c-tick{text-align:center}
 td.c-stock .sub{display:none}
 .wide .m-only{display:none!important}
 thead th[data-type=""]{cursor:default}
-thead th .ar{color:#A5ACB8;margin-left:3px}
-thead th.on{color:#0E1726}
-thead th.on .ar{color:#4F46E5}
-td{height:""" + str(ROW_PX) + """px;padding:0 10px;border-bottom:1px solid #EDEFF3;font-size:13.5px;white-space:nowrap;background:#FFFFFF}
-tbody tr:nth-child(even) td{background:#FAFBFC}
-tbody tr:hover td{background:#F1F0FF;cursor:pointer}
-td.n{text-align:right;font-family:'Geist Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
-.pos{color:#067647}.neg{color:#B42318}.muted{color:#667080}
-th:nth-child(1),td.c-rank{position:sticky;left:0;z-index:2;width:52px;min-width:52px;text-align:left}
-thead th:nth-child(1){z-index:4}
-th:nth-child(2),td.c-stock{position:sticky;left:52px;z-index:2;text-align:left;max-width:380px;box-shadow:1px 0 0 #EDEFF3}
-thead th:nth-child(2){z-index:4}
-td.c-rank{font-family:'Geist Mono',ui-monospace,monospace;font-weight:600}
+thead th .ar{color:var(--c-faint);margin-left:3px}
+thead th:focus-visible{outline:2px solid var(--c-ink);outline-offset:-2px}
+thead th.on{color:var(--c-ink)}
+thead th.on .ar{color:var(--c-ink)}
+td{height:""" + str(ROW_PX) + """px;padding:0 10px;border-bottom:1px solid var(--c-rule_soft);font-size:13.5px;white-space:nowrap;background:var(--c-white)}
+tbody tr:hover td{background:var(--c-subtle);cursor:pointer}
+td.n{text-align:right;font-family:'IBM Plex Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+.pos{color:var(--c-up)}.neg{color:var(--c-down)}.muted{color:var(--c-muted)}
+tr.hdr th:nth-child(1),td.c-rank{position:sticky;left:0;z-index:2;width:52px;min-width:52px;text-align:left}
+thead tr.hdr th:nth-child(1){z-index:4}
+tr.hdr th:nth-child(2),td.c-stock{position:sticky;left:52px;z-index:2;text-align:left;max-width:380px;box-shadow:1px 0 0 var(--c-rule_soft)}
+thead tr.hdr th:nth-child(2){z-index:4}
+thead tr.grp-row th.pin{position:sticky;left:0;z-index:5;border-left:0;box-shadow:1px 0 0 var(--c-rule)}
+.tick{font-weight:700;font-size:14px}.tick.yes{color:var(--c-up)}.tick.no{color:var(--c-muted)}
+.vol{font-weight:600}
+.lbl-m{display:none}
+td.c-rank{font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600}
 td.c-stock a{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;line-height:1.2;text-decoration:none;color:inherit}
-td.c-stock .sym{font-weight:650;font-size:14px;color:#0E1726}
-td.c-stock .sub{font-size:12px;color:#5E6878;overflow:hidden;text-overflow:ellipsis;max-width:340px}
-.chip{display:inline-block;font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;font-weight:600;padding:2px 7px;border-radius:7px}
-.chip.up{background:#E8F5EE;color:#067647}.chip.down{background:#FDEDEB;color:#B42318}.chip.flat{background:#F1F3F6;color:#5E6878}
+td.c-stock .sym{font-weight: 600;font-size:14px;color:var(--c-ink)}
+td.c-stock .sub{font-size:12px;color:var(--c-muted);overflow:hidden;text-overflow:ellipsis;max-width:340px}
+.chip{display:inline-block;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;font-weight:600;padding:0;border-radius:0;background:transparent!important}
+.chip.up{background:var(--c-up_tint);color:var(--c-up)}.chip.down{background:var(--c-down_tint);color:var(--c-down)}.chip.flat{background:var(--c-fill);color:var(--c-muted)}
 td.c-path{padding-left:14px}
 td.c-flt{text-align:left}
-.pass{font-size:12px;font-weight:600;color:#067647}.fail{font-size:12px;font-weight:600;color:#667080}
-.ath{margin-left:6px;font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px;background:#EEF0FF;color:#3730A3}
+.pass{font-size:12px;font-weight:600;color:var(--c-up)}.fail{font-size:12px;font-weight:600;color:var(--c-muted)}
+.ath{margin-left:6px;font-size: 12px;font-weight:700;padding:2px 6px;border-radius:6px;background:var(--c-fill);color:var(--c-ink)}
 .m-only{display:none}
-tbody tr.hl td{background:#F4F3FF}
-.me{margin-left:6px;font-style:normal;font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px;background:#EEF0FF;color:#3730A3}
+.px-m{display:none}
+@media (max-width:640px){.wrap:not(.wide) .px-d{display:none}.wrap:not(.wide) .px-m{display:inline}}
+tbody tr.hl td{background:var(--c-subtle)}
+.me{margin-left:6px;font-style:normal;font-size: 12px;font-weight:700;padding:2px 6px;border-radius:6px;background:var(--c-fill);color:var(--c-ink)}
 @media (max-width:640px){
   table{min-width:0}
   th,td{padding:0 8px}
   td{height:""" + str(PHONE_ROW_PX) + """px}
   .d-only{display:none}
-  th:nth-child(1),td.c-rank{width:34px;min-width:34px}
-  th:nth-child(2),td.c-stock{left:34px;box-shadow:none;max-width:150px}
+  tr.hdr th:nth-child(1),td.c-rank{width:34px;min-width:34px}
+  tr.hdr th:nth-child(2),td.c-stock{left:34px;box-shadow:none;max-width:150px}
   td.c-stock .sym{font-size:14px}
   td.c-stock .sub{display:block;font-size:12px;max-width:130px}
   .wide td.c-stock .sub{display:none}
@@ -310,6 +401,7 @@ tbody tr.hl td{background:#F4F3FF}
   td.c-path{padding-left:0}
   td.c-path svg{width:54px}
   th .lbl-d{display:none}
+  th .lbl-m{display:inline}
   td.c-price{line-height:1.25}
   .m-only{display:block;font-size:12px;font-weight:600}
 }
@@ -321,6 +413,12 @@ tbody tr.hl td{background:#F4F3FF}
 # If the parent is ever cross-origin the injection throws, and allow-popups
 # opens the stock in a new tab instead.
 _JS = """
+// More columns to the right: a fade on the right edge while there are
+// (audit F34: "VOL..." and "TECHNIC..." were cut with no cue).
+(function(){const w=document.querySelector('.wrap'),e=document.querySelector('.edge');
+  if(!w||!e)return;
+  function upd(){e.classList.toggle('on',w.scrollLeft+w.clientWidth<w.scrollWidth-2);}
+  w.addEventListener('scroll',upd,{passive:true});window.addEventListener('resize',upd);upd();})();
 function openStock(sym){
   const search='?stock='+encodeURIComponent(sym)+SYS;
   try{const host=window.parent;const s=host.document.createElement('script');
@@ -335,12 +433,22 @@ document.addEventListener('click',function(ev){
   ev.preventDefault();openStock(tr.getAttribute('data-stock'));
 });
 const ths=document.querySelectorAll('thead tr.hdr th');const tbody=document.querySelector('tbody');
+// Sortable from the keyboard too (pre-launch audit F20, WCAG 2.1.1/4.1.2):
+// each sortable header is focusable, sorts on Enter or Space, and says how
+// it is sorted (aria-sort); the arrow glyph is decoration.
+function ariaSort(d){return d==='asc'?'ascending':d==='desc'?'descending':'none';}
 ths.forEach(function(th,i){
   const type=th.getAttribute('data-type');if(!type)return;
+  th.tabIndex=0;
+  th.setAttribute('aria-sort',ariaSort(th.getAttribute('data-dir')));
+  const ar=th.querySelector('.ar');if(ar)ar.setAttribute('aria-hidden','true');
+  th.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();th.click();}});
   th.addEventListener('click',function(){
-    const dir=th.getAttribute('data-dir')==='asc'?'desc':'asc';
-    ths.forEach(function(o){o.removeAttribute('data-dir');o.classList.remove('on');const a=o.querySelector('.ar');if(a&&o.getAttribute('data-type'))a.textContent='↕';});
+    const cur=th.getAttribute('data-dir');
+    const dir=cur?(cur==='asc'?'desc':'asc'):(th.getAttribute('data-first')||'asc');
+    ths.forEach(function(o){o.removeAttribute('data-dir');o.classList.remove('on');const a=o.querySelector('.ar');if(a&&o.getAttribute('data-type')){a.textContent='↕';o.setAttribute('aria-sort','none');}});
     th.setAttribute('data-dir',dir);th.classList.add('on');th.querySelector('.ar').textContent=dir==='asc'?'↑':'↓';
+    th.setAttribute('aria-sort',ariaSort(dir));
     const rows=Array.from(tbody.rows);
     rows.sort(function(a,b){
       const va=a.cells[i].getAttribute('data-v'),vb=b.cells[i].getAttribute('data-v');
@@ -356,11 +464,13 @@ ths.forEach(function(th,i){
 
 
 def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
-               highlight: str = "") -> str:
+               highlight: str = "", sort_key: str = "rank", sort_desc: bool = False) -> str:
     """The whole table document, for st.iframe. Split out so tests can read it.
 
     `highlight` is a symbol whose row is tinted and tagged "This stock" (the
-    stock page's peers)."""
+    stock page's peers). `sort_key`/`sort_desc` name the column the rows
+    arrive sorted by, so its header carries the arrow: the column headers are
+    the page's one sort control."""
     cols = columns_for(density, view.columns)
     paths: dict = {}
     if prices_df is not None and not prices_df.empty:
@@ -371,29 +481,31 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
     wide = len(cols) > len(_CORE_KEYS)
     phone_keep = {"rank", "stock", "spark", "price"}
     head_cells = []
+    if sort_key not in {c[0] for c in cols}:
+        sort_key, sort_desc = "rank", False
     for k, label, t in cols:
         cls = ("t-left " if (k in ("rank", "stock") or t == "text") else "") + (
             "" if (k in phone_keep or wide) else "d-only")
-        if k == "rank":
+        on = k == sort_key
+        if on:
             cls += " on"
-        arrow = ('<span class="ar">' + ("↑" if k == "rank" else "↕") + "</span>") if t else ""
-        dir_attr = ' data-dir="asc"' if k == "rank" else ""
-        head_cells.append(
-            f'<th class="{cls.strip()}" data-type="{t or ""}"{dir_attr}>'
-            f'<span class="{"lbl-d" if k == "spark" else ""}">{_esc(label)}</span>{arrow}</th>'
-        )
+        arrow = ('<span class="ar">' + (("↓" if sort_desc else "↑") if on else "↕")
+                 + "</span>") if t else ""
+        dir_attr = f' data-dir="{"desc" if sort_desc else "asc"}"' if on else ""
+        # The trend column's header is "60D" on a phone, where the full label
+        # does not fit; it was blank there.
+        text = (f'<span class="lbl-d">{_esc(label)}</span><span class="lbl-m">60D</span>'
+                if k == "spark" else f"<span>{_esc(label)}</span>")
+        # A first click sorts a figure largest first (audit F72: returns opened
+        # worst first); a rank, where 1 is best, still opens ascending.
+        first = ' data-first="asc"' if (t != "num" or k == "rank") else ' data-first="desc"'
+        head_cells.append(f'<th class="{cls.strip()}" data-type="{t or ""}"{first}{dir_attr}>{text}{arrow}</th>')
     head = "".join(head_cells)
-    group_row = ""
-    if True:
-        present = [c[0] for c in cols]
-        parts = []
-        for label, keys in _QUANT_GROUPS:
-            n = sum(1 for k in keys if k in present)
-            if n:
-                # A momentum group cut down to one column keeps just its window.
-                shown = label.split(" ")[0] if (n < len(keys) and "momentum" in label) else label
-                parts.append(f'<th colspan="{n}" class="grp">{_esc(shown)}</th>')
-        group_row = '<tr class="grp-row">' + "".join(parts) + "</tr>"
+    parts = [
+        f'<th colspan="{n}" class="grp{" pin" if pinned else ""}">{_esc(label)}</th>'
+        for label, n, pinned in column_groups([c[0] for c in cols])
+    ]
+    group_row = '<tr class="grp-row">' + "".join(parts) + "</tr>"
     body = []
     for row in view.to_dict("records"):
         tr = _row_html(row, cols, paths, highlight)
@@ -411,22 +523,24 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
     if wide:
         extra += "@media (max-width:640px){table{min-width:%dpx}}" % (len(cols) * 92)
     return (
-        "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+        "<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Ranking table</title>"
         "<link rel='preconnect' href='https://fonts.googleapis.com'>"
-        "<link href='https://fonts.googleapis.com/css2?family=Geist:wght@400..700&"
-        "family=Geist+Mono:wght@400..700&display=swap' rel='stylesheet'>"
-        f"<style>{_CSS}@media (min-width:641px){{table{{min-width:{max(1180, len(cols) * 92)}px}}}}{extra}</style></head><body><div class='wrap{wide_cls}'><table>"
+        "<link href='https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&"
+        "family=IBM+Plex+Mono:wght@400;500;600&display=swap' rel='stylesheet'>"
+        f"<style>{_CSS}@media (min-width:641px){{table{{min-width:{max(1180, len(cols) * 92)}px}}}}{extra}</style></head><body><div class='edge' aria-hidden='true'></div><div class='wrap{wide_cls}'><table>"
         f"<thead>{group_row}<tr class=\"hdr\">{head}</tr></thead><tbody>{body_html}</tbody></table></div>"
         f"<script>const SYS={json.dumps(system_suffix())};{_JS}</script></body></html>"
     )
 
 
 def render_screener_table(view: pd.DataFrame, prices_df: pd.DataFrame | None,
-                          density: str, *, highlight: str = "") -> None:
+                          density: str, *, highlight: str = "", sort_key: str = "rank",
+                          sort_desc: bool = False) -> None:
     if view.empty:
         st.info("No stocks match these filters. Clear the search or pick another preset.")
         return
     rows = min(len(view), VISIBLE_ROWS)
     height = 44 + rows * ROW_PX + 4 + 28
-    st.iframe(table_html(view, prices_df, density, highlight), height=height)
+    st.iframe(resolve(table_html(view, prices_df, density, highlight, sort_key, sort_desc)),
+              height=height)
 

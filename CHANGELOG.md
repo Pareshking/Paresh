@@ -1,5 +1,109 @@
 # Changelog
 
+## 2026-11-07 — No repeated blocks (owner's decision 5)
+
+- The data-freshness line at the foot of each page is plain text instead of four pills, with no emoji; a late source still leads, in amber.
+- Figures outside the dense tables (tiles, chart legends, bars, lists, the stock page) are in Plex Sans with even-width digits; Plex Mono stays in the Screener and other dense tables (owner's decision 4). The small figure rows under charts now match the headline tiles: sentence-case labels, centred.
+- Watchlist: an empty list says so in a plain line, not a blue alert box.
+- A first click on a figure's column header sorts it largest first; Rank still starts from 1.
+- The Screener table fades at its right edge while more columns lie to the right, and the pointer shows a row opens its stock.
+- Breadth's list of new highs and lows reads "New 52W high" and "New 52W low" without emoji; the rotation graph's quadrant lists lose their tinted cards.
+- Levels and shares in tables (weight, turnover, % of the 52W high) no longer carry a plus sign; changes (drift, distance from the EMA) still do.
+- No text below 12px anywhere (labels at 8.5–11.5px were raised), and near-duplicate sizes folded together (13→13.5, 14.5→14, 16→15, 19→18).
+- Readers whose system asks for less motion get no transitions or animations.
+- Share prices carry paise everywhere: the Screener's price and stop-loss columns and every level on the stock page (₹2,340.00, 52W high ₹2,406.00).
+- Plain counts are no longer coloured as warnings: Actions' Hold count, Breadth's share in the neutral band and Configuration's possible demergers read in ink; Sell and Buy keep their colours.
+- Chart date axes show month names only ("Jun · Jul · Aug"), with the year at the turn of the year; day ticks appear only on charts shorter than about ten weeks.
+- The stock chart's price axis and legend read in rupees with paise (₹2,340.00), grouped the Indian way.
+- Only the font weights the site loads are used (400–700); 650, 750 and 800 were being faked by the browser.
+
+- Sectors: one ranking and one map. The industry bubble map (it repeated the leaderboard) and the sortable sector table under the leadership map (a second ranking of the same sectors) are gone; the map's figures are in its text alternative and worked example. The leaderboard loses its box.
+- Backtest: research runs only. The live account, today's book and this month's changes are no longer repeated there; a line points to Portfolio.
+
+## 2026-11-07 — Names, Actions, emoji
+
+- One name for the 52-week measure: "From 52W high" for the distance and "Near 52W high" for the filter, on the Screener, Sectors and in the header; "50D EMA" in Screener headings.
+- A holding close to its 50D EMA reads "can fall 2.8% to its 50D EMA", the same figure as its cushion; it read "2.9% above" beside "2.8% cushion".
+- "Leading" is kept for the rotation graph: Sectors' first figure is "Top industry" and the Dashboard's list is "Industries by 3M median return".
+- Actions: the sell, buy and hold lists are open rows with the status as a coloured word, read as tables by screen readers; a negative return in the buy list is no longer drawn in blue.
+- No emoji in tables: Bought, Sold, Held, Yes, No and the rotation quadrants are plain words.
+- Industry names under a stock wrap instead of being cut mid-word.
+- The Guide says the Kite basket holds the buys only; sells are placed by hand.
+- Every other table (Portfolio's book, Configuration, Backtest's trades and the rest) is drawn like the Screener's: no box, a rule above, white headings, hairline rows; status badges are coloured words; a text column's heading sits over its text.
+- The Screener's filters (preset, indices, pass-both, columns) are kept in the address, so Back from a stock page returns to the same filtered list, and a filtered list can be bookmarked or shared.
+- On touch screens stock links and small controls (the × on a chosen index, the ? help icons) are easier to hit: 38–44px instead of 15–22px.
+- On a phone or tablet the header (name, date, menu) stays at the top as the page scrolls, and the menu fits the screen.
+- Dashboard blocks link onward: the book at risk and the next rebalance to Actions, the industries to Sectors.
+- The Screener's search list reads "LAURUSLABS · Healthcare" and "Healthcare · industry", not "[STOCK]" and "[INDUSTRY]".
+
+## 2026-11-07 — Keyboard and contrast
+
+- A "Skip to content" link is the first stop for the keyboard on every page; it jumps past the header and market line.
+- Every link, button, tab and slider shows a 2px ink ring when focused by keyboard.
+- The faint grey used for small text is darker (#70706B): 5.0:1 on white, up from 3.5:1. A test keeps every text colour at 4.5:1 or better.
+- The stale-prices warning no longer starts with an emoji.
+
+## 2026-11-07 — One figure tile, one minus, no part-year annualising
+
+- Every row of headline figures (Portfolio, Backtest, Actions, Sectors, Configuration and the rest) is drawn the same way: between two hairlines, cells split by a hairline, centred, no boxes or shadows.
+- Configuration and Backtest's settings line lose their rounded boxes and tinted panels; the score-weight bar is shades of ink, not indigo. Corners are 4px everywhere and decorative shadows are gone.
+- Every negative figure uses a true minus (−8.4%, not -8.4%), including Portfolio's P&L tiles, Backtest's figures and the Sectors worked example.
+- The stock page drops its rounded cards and tinted verdict panel for the same open, ruled layout as the rest of the site; figures in Plex Sans.
+- Calendar returns (Portfolio, Backtest) in the same open style: no box, shadow, gradient or indigo, and no text below 12px.
+- Dates read "6 Nov", not "06 Nov", everywhere.
+- Backtest shows no annualised return for a window under a year ("needs 12 months; this is 10 months") instead of scaling a part-year up.
+
+## 2026-11-07 — Guide rewritten
+
+- One reading column with plain headings and formulas as text; no tabs, boxes or marketing headings. Every statement checked against the code, including the record's caps (5% a stock, 40% an industry, at most 8 of 20 from one industry), which the old Guide left out.
+- Removed: the "market regime playbooks". They gave equity and cash allocations (100%, 85%, 70%, 40%) that the model never applies; the model holds 20 stocks in every market. Also removed: the claim that inverse volatility cuts drawdown, and quadrant colours that no longer match the graph.
+- Moved here from the Guide, what was taken out of the engine earlier and why: single-window Sharpe, multi-window pure Sharpe, exponential regression, residual alpha, industry-relative and momentum acceleration scores (none fed the rank, each added columns and failure modes); mean-variance optimisation (it fell back to equal weight on any error while still calling itself MVO); R-squared (never part of the score).
+
+## 2026-11-07 — Screen readers: tables and charts
+
+- The book at risk, the exit watch, the movers cards and the industry leaderboard read as tables to a screen reader (row by row, with column names). They look the same.
+- Every chart says what it shows in words: each line's first and last value with dates, its low and high; the rotation graph's industries by quadrant; the most and least alike holdings; each industry and sector with its figures.
+- Chart legends group rupees the Indian way (₹28,27,942) and write a minus as −, like the rest of the site; dates read "Sep" and "6 Oct".
+- Portfolio's chart ended ₹1 below the value above it (₹28,27,941 against ₹28,27,942): today's point is now the account value itself.
+
+## 2026-11-07 — One ranking everywhere
+
+- Every rank on the site comes from the Screener's ranking (owner). Portfolio's "Ranks by month" now scores each date's index members only, as the Screener does, so a stock has the same qualified rank on every page (ACUTAAS 45th, not 44th).
+- The model follows the same rule from the 30 Nov 2026 rebalance. Months already in the record are unchanged; had the rule applied from the start, two of eleven books would have differed by one stock.
+- Stock links open the stock page directly, so Back returns to the page you came from; each browser tab names its page; the alpha caption says what alpha is (a difference, not compounded).
+
+## 2026-11-07 — Dashboard home page; charts in the tipsheet style
+
+- The site opens on a Dashboard (the Screener moves to /screener and second in the menu). One line says how the book is doing this month against the Nifty 500, how many holdings are close to a rule or would be sold, and when the next rebalance is. Below it: the book at risk (least room first, each with its nearest rule), the next rebalance if the month ended today (the same plan as Actions), size leadership and the five leading industries (as ranked on Sectors).
+- Size leadership: Nifty 50, Midcap 150, Smallcap 250 and Microcap 250 against the Nifty 500 over 1, 3 and 6 months, from NSE's index closes (the nightly index file on R2). Shown only when that file's Nifty 50 equals NSE's own daily close; otherwise the page says why it is left out.
+- Charts: a one-line legend above the plot, a faint horizontal grid only, small grey axis labels, sparse dates, thin lines with a dot on the latest point, a flat pale fill for drawdowns, white tooltips. No figure changed.
+- Fixed: the caution colour (amber) was invisible everywhere for a few hours after the theme moved to one file.
+
+## 2026-11-07 — New look: Paper B · Ledger, white ground
+
+- The owner chose "Paper B · Ledger" on a white ground. Every page now uses IBM Plex Sans, with IBM Plex Mono for figures, ink on white, and neutral greys with no warm tint.
+- Up is blue and down is rust, always with + or −. Selection and the active page are ink, so blue only ever means up. The old green, red and indigo are gone everywhere they were used, including charts.
+- Cards are thin rules, not boxes: no shadows, square corners, chips at 4px. The Screener table drops its zebra stripes and its rows are 36px on desktop (44px on a phone, for touch).
+- The theme now lives in one file, `src/ui/tokens.py`: every colour and font, by name. Change a value there and the whole site follows, the Screener table and the charts included.
+- Navigation is the menu button (☰) on every screen, in its old style (Research, Monitoring, System); the row of page links on desktop is gone.
+- The dashboard home page is designed but not built yet.
+
+## 2026-11-07 — Five figures that disagreed or misled, corrected
+
+- Actions, Hold: the order was right but looked wrong (PVRINOX above LAURUSLABS though its EMA cushion is larger). Holds are ordered by the least room on any rule, with a full rank buffer of 40 places counted as a 20% fall, as the bars are drawn; PVRINOX's 24 places count as 12.0%, under LAURUSLABS's 12.6%. Every row now names its nearest rule ("rank buffer · 24 places") instead of "clear of all three", and a caption states the scale.
+- Backtest, current book: "MTD return" showed +3.2% "by weight" against Portfolio's +2.3% for the same book. It averaged today's holdings and left out the 9 stocks sold on 2 Nov and the rebalance costs. It now shows the account's figure, the same one as Portfolio.
+- Portfolio: the "Max drawdown" card (−13.5%) is labelled "daily"; the −9.9% under the calendar is on month-end values. Both are right; each now names its basis.
+- Configuration: "Price History: Missing" is gone. The app ranks from the published price store, not that file; the table no longer shows server paths.
+- Guide: no longer claims a liquidity filter (the floor is off) or that a weighting "maximises upside" or "minimises drawdowns"; the formulas read as text, not raw LaTeX.
+
+## 2026-11-07 — Screener: headers over the right columns, one sort, clearer colours and phone list
+
+- The group labels above the table sit over their own columns. In Core and Executive "3M" covered 3M and 6M returns and "12M" sat over the 3-month drawdown; these views now group the columns as Returns and Risk. In Full Quant, "Rank dynamics" no longer sticks over Symbol when the table scrolls sideways.
+- The block under the table is headed "Since 6 Oct (one month)" (the session the 1M rank change counts from), not "Since last month-end", which it never measured.
+- The column headers are the only way to sort: the "Sort by" buttons in Filters & sort are gone. Big movers opens sorted by rank change, and its header says so. Export CSV says the file is in rank order (rank-change order for Big movers).
+- Colour follows one rule. Returns, Sharpe, % from the 50 EMA and rank changes are green above zero and red below, always with + or −. Drawdowns and % below a high are plain. A negative Sharpe used to show green. Every minus is a true minus, a stock at its high reads "New high", and pass/fail is ✓ / ✗ instead of coloured dots.
+- On a phone the preset chips and the market strip fade at the right edge to show they scroll, the line under each symbol is its industry, and the trend column is headed 60D. The strip no longer puts a red tint behind "Bullish" and "3.1% above".
+
 ## 2026-10-15 — A nightly ranking that fails is no longer silent
 
 - On 14 Oct the nightly job could not build the 750 and Combined rankings (the same error that took the site down), but it still showed green and published the 13 Oct ranking again. The app then computed the ranking itself on every fresh start on 15 Oct, which is why memory and CPU stayed high. A manual run on the fixed code published all three rankings on 14 Oct prices at 11:39 UTC.

@@ -16,6 +16,8 @@ Order, top to bottom:
 
 from __future__ import annotations
 
+from src.ui.tokens import C
+
 import html as _html
 from urllib.parse import quote as _quote
 
@@ -30,16 +32,17 @@ from src.engine.momentum import CARRIED_MARK
 from src.ui.charts import render_stock_chart
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
 from src.ui.screener_table import render_screener_table
+from src.ui import formats as _fmt
 
 # ── Palette tokens ───────────────────────────────────────────────────────────
-POS   = "#067647"
-NEG   = "#B42318"
-WARN  = "#B54708"
-ACC   = "#4F46E5"
-INK   = "#0E1726"
-SUB   = "#3C4657"
-MUTED = "#5E6878"
-LINE  = "#E3E6EB"
+POS   = C.up
+NEG   = C.down
+WARN  = C.caution
+ACC   = C.ink
+INK   = C.ink
+SUB   = C.text_2
+MUTED = C.muted
+LINE  = C.rule
 
 PERIODS = (1, 3, 6, 9, 12)
 _LONG = {1: "1 month", 3: "3 months", 6: "6 months", 9: "9 months", 12: "12 months"}
@@ -63,9 +66,11 @@ def _num(value) -> float | None:
         return None
 
 
-def _money(value, decimals: int = 0) -> str:
+def _money(value, decimals: int = 2) -> str:
+    # A share price and its levels (52W high, EMA, the -20% line) carry paise,
+    # as the Screener's price does (audit F66).
     v = _num(value)
-    return f"₹{v:,.{decimals}f}" if v is not None else "—"
+    return _fmt.inr(v, decimals) if v is not None else "—"
 
 
 def _pct(value, decimals: int = 1, signed: bool = True) -> str:
@@ -103,7 +108,7 @@ def _date_label(raw) -> str:
     if raw is None or str(raw).strip() in ("", "nan", "NaT", "None"):
         return ""
     try:
-        return pd.Timestamp(str(raw)[:10]).strftime("%d %b %Y")
+        return pd.Timestamp(str(raw)[:10]).strftime("%-d %b %Y")
     except (ValueError, TypeError):
         return ""
 
@@ -145,9 +150,9 @@ def _render_identity(row: pd.Series, total_stocks: int) -> None:
 
     day = _price_day()
     mcap = _num(row.get("Market Cap (Cr)"))
-    close_bits = [f"Close · {day:%a %d %b %Y}" if day is not None else "Close"]
+    close_bits = [f"Close · {day:%a %-d %b %Y}" if day is not None else "Close"]
     if mcap is not None:
-        close_bits.append(f"Market cap ₹{mcap:,.0f} Cr")
+        close_bits.append(f"Market cap {_fmt.inr(mcap)} Cr")
 
     changes = ""
     for m in (1, 3, 12):
@@ -290,7 +295,7 @@ def _render_corporate_actions(symbol: str) -> None:
     lines = []
     for e in sorted(events, key=lambda x: x.get("date", "")):
         move = e.get("move")
-        move_str = f"{move * 100:+.1f}%" if move is not None else "a large amount"
+        move_str = f"{_fmt.pct(move * 100, fraction=False)}" if move is not None else "a large amount"
         kind = e.get("looks_like") or e.get("kind") or "corporate action"
         day = _date_label(e.get("date")) or str(e.get("date", "—"))
         lines.append(
@@ -345,9 +350,9 @@ def _render_price_ladder(row: pd.Series, year_low: float | None = None) -> None:
             + '</div></section>'
             '<style>'
             '.sp-range-fallback{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}'
-            '.sp-range-fallback span{display:flex;flex-direction:column;gap:3px;min-width:120px;padding:10px 12px;border-radius:10px;background:#F6F7F9;}'
-            '.sp-range-fallback b{font-size:12px;color:#5E6878;}'
-            '.sp-range-fallback strong{font-family:var(--font-mono);font-size:16px;color:#0E1726;}'
+            '.sp-range-fallback span{display:flex;flex-direction:column;gap:3px;min-width:120px;padding:10px 12px;border-radius:10px;background:var(--c-white);}'
+            '.sp-range-fallback b{font-size:12px;color:var(--c-muted);}'
+            '.sp-range-fallback strong{font-family:var(--font-mono);font-size: 15px;color:var(--c-ink);}'
             '</style>'
             '</section>'
         )
@@ -396,33 +401,33 @@ def _render_price_ladder(row: pd.Series, year_low: float | None = None) -> None:
         '.sp-range-clean{margin-top:22px;padding:0 2px 2px;}'
         '.sp-range-labels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;align-items:start;height:62px;}'
         '.sp-range-label{text-align:center;min-width:0;}'
-        '.sp-range-k{display:flex;align-items:center;justify-content:center;gap:5px;font-family:var(--font-ui);font-size:13px;line-height:1.2;font-weight:600;white-space:normal;}'
+        '.sp-range-k{display:flex;align-items:center;justify-content:center;gap:5px;font-family:var(--font-ui);font-size:12.5px;line-height:1.2;font-weight:500;white-space:normal;}'
         '.sp-range-k i{display:inline-block;flex:0 0 8px;width:8px;height:8px;border-radius:50%;}'
-        '.sp-range-label.low .sp-range-k{color:#FF6267;}'
-        '.sp-range-label.low .sp-range-k i{background:#FF6267;}'
-        '.sp-range-label.threshold .sp-range-k{color:#D99B00;}'
-        '.sp-range-label.threshold .sp-range-k i{background:#F4B400;}'
-        '.sp-range-label.ema .sp-range-k{color:#4F46E5;}'
-        '.sp-range-label.ema .sp-range-k i{background:#4F46E5;}'
-        '.sp-range-label.high .sp-range-k{color:#067647;}'
-        '.sp-range-label.high .sp-range-k i{background:#067647;}'
-        '.sp-range-label b{display:block;margin-top:4px;font-family:var(--font-mono);font-size:17px;line-height:1;color:#0E1726;font-weight:700;white-space:nowrap;}'
+        '.sp-range-label.low .sp-range-k{color:var(--c-down);}'
+        '.sp-range-label.low .sp-range-k i{background:var(--c-down);}'
+        '.sp-range-label.threshold .sp-range-k{color:var(--c-caution);}'
+        '.sp-range-label.threshold .sp-range-k i{background:var(--c-caution);}'
+        '.sp-range-label.ema .sp-range-k{color:var(--c-ink);}'
+        '.sp-range-label.ema .sp-range-k i{background:var(--c-ink);}'
+        '.sp-range-label.high .sp-range-k{color:var(--c-up);}'
+        '.sp-range-label.high .sp-range-k i{background:var(--c-up);}'
+        '.sp-range-label b{display:block;margin-top:5px;font-family:var(--font-mono);font-size: 15px;line-height:1;color:var(--c-ink);font-weight:500;white-space:nowrap;}'
         '.sp-range-track{position:relative;height:18px;margin:0 10px;}'
-        '.sp-range-segment{position:absolute;top:4px;height:10px;border-radius:5px;}'
-        '.sp-range-segment.muted{background:#EDEFF3;}'
-        '.sp-range-segment.positive{background:#58D6A1;}'
-        '.sp-range-dot{position:absolute;top:0;width:18px;height:18px;margin-left:-9px;border:3px solid #fff;border-radius:50%;box-sizing:border-box;}'
-        '.sp-range-dot.low{background:#FF6267;box-shadow:0 0 0 1px #FF6267;}'
-        '.sp-range-dot.ema{background:#4F46E5;box-shadow:0 0 0 1px #4F46E5;}'
-        '.sp-range-dot.threshold{background:#F4B400;box-shadow:0 0 0 1px #F4B400;}'
-        '.sp-range-dot.high{background:#067647;box-shadow:0 0 0 1px #067647;}'
+        '.sp-range-segment{position:absolute;top:7px;height:4px;border-radius:2px;}'
+        '.sp-range-segment.muted{background:var(--c-rule);}'
+        '.sp-range-segment.positive{background:var(--c-up_line_2);}'
+        '.sp-range-dot{position:absolute;top:4px;width:10px;height:10px;margin-left:-5px;border:1.5px solid var(--c-white);border-radius:50%;box-sizing:border-box;}'
+        '.sp-range-dot.low{background:var(--c-down);}'
+        '.sp-range-dot.ema{background:var(--c-ink);}'
+        '.sp-range-dot.threshold{background:var(--c-caution);}'
+        '.sp-range-dot.high{background:var(--c-up);}'
         '@media (max-width:640px){'
         '.sp-price-position{padding:14px 12px;border-radius:16px;}'
         '.sp-range-clean{margin-top:20px;padding:0;}'
         '.sp-range-labels{gap:4px;height:68px;}'
         '.sp-range-k{font-size:12.5px;line-height:1.15;gap:4px;}'
         '.sp-range-k i{flex-basis:7px;width:7px;height:7px;}'
-        '.sp-range-label b{font-size:17px;margin-top:4px;}'
+        '.sp-range-label b{font-size:15px;margin-top:4px;}'
         '.sp-range-track{margin:0 8px;height:18px;}'
         '}'
         '</style>'

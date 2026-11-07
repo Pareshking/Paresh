@@ -142,8 +142,45 @@ jobs:
           fi
           python scripts/check_ranking_frames.py --store "$STORE"
 
-      - name: Publish screener history
+      # S92 (owner, 7 Nov 2026): from the 26 Oct to the 5 Nov nights the
+      # published store carried BSE's closes for ~43 stocks, and the next day's
+      # three-source check (ss_sync.yml) outvoted Screener on all of them. Run
+      # that vote here, on the NEW store, before it is published: more than
+      # SCREENER_OUTVOTE_LIMIT stocks outvoted (10; src/engine/reconcile.py)
+      # holds back both publishes below, the last published store stays and the
+      # failure alert fires. No SS store to vote with: a warning, not a hold.
+      - name: Three-source vote on the new store (SS, Screener, NSE)
+        id: outvote_check
         if: always() && steps.ranking_check.outcome != 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONPATH: .
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          SCREENER_OUTVOTE_LIMIT: ${{ vars.SCREENER_OUTVOTE_LIMIT }}
+        run: |
+          STORE="data_cache/screener_prices.parquet"
+          if [ ! -f "$STORE" ]; then
+            echo "No screener store was produced; nothing to vote on."
+            exit 0
+          fi
+          mkdir -p /tmp/ss
+          if gh release download data-latest --repo "$GITHUB_REPOSITORY" \
+               --pattern 'ss_*' --dir /tmp/ss --clobber; then
+            # The release names them ss_prices_*.parquet / ss_manifest.json; the
+            # store reads prices_*.parquet / manifest.json (as in ss_sync.yml).
+            (cd /tmp/ss && for f in ss_prices_*.parquet; do [ -f "$f" ] && mv "$f" "${f#ss_}"; done
+             [ -f ss_manifest.json ] && mv ss_manifest.json manifest.json || true)
+          else
+            echo "::warning::SS's store could not be downloaded; the vote will be skipped."
+          fi
+          python scripts/check_screener_outvotes.py --store "$STORE" --ss /tmp/ss
+
+      - name: Publish screener history
+        if: always() && steps.ranking_check.outcome != 'failure' && steps.outvote_check.outcome != 'failure'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

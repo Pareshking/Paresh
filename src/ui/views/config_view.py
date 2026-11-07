@@ -13,6 +13,7 @@ import pandas as pd
 import streamlit as st
 
 from src.ui import page_kit as kit
+from src.ui import formats as _fmt
 from src.ui import system_param
 from src.engine.liquidity import DEFAULT_FLOOR_CR
 
@@ -23,7 +24,6 @@ from src.core.config import (
     INDICES_LOCAL,
     INDICES_URLS,
     MCAPS_FILE,
-    PRICES_FILE,
     TV_CLASSIFICATION_FILE,
 )
 from src.engine.corporate_actions import load_events
@@ -90,7 +90,7 @@ def _index_files_dialog() -> None:
         if os.path.exists(path):
             size = os.path.getsize(path)
             mtime = datetime.fromtimestamp(os.path.getmtime(path)).strftime(
-                "%d %b %Y, %H:%M"
+                "%-d %b %Y, %H:%M"
             )
             with open(path, "r", encoding="utf-8") as f:
                 lines = sum(1 for _ in f) - 1
@@ -143,12 +143,19 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
     attempt_errors = sync_meta.get("last_attempt_errors") or {}
 
     sync_day, _, sync_time = str(last_sync).partition(", ")
+    # The stored string is "07 Nov 2026"; the site writes "7 Nov 2026" (F5).
+    _d = pd.to_datetime(sync_day, format="%d %b %Y", errors="coerce")
+    if pd.notna(_d):
+        sync_day = f"{_d:%-d %b %Y}"
     tiles = [
         kit.Reading("Last synced", sync_day, f"at {sync_time}" if sync_time else ""),
-        kit.Reading("In the index files", f"{tot_stk:,}", "stocks"),
+        # Each count says what it counts (audit F12): the header's Universe
+        # is the ranked figure; the index lists can hold a few more names.
+        kit.Reading("In the index files", f"{tot_stk:,}", "unique stocks across the synced lists"),
     ]
     if engine_stocks != tot_stk:
-        tiles.append(kit.Reading("Ranked now", f"{engine_stocks:,}", "stocks"))
+        tiles.append(kit.Reading("Ranked now", f"{engine_stocks:,}",
+                                 "the header's Universe: stocks in today's ranking"))
     kit.readings(tiles, "Index sync")
     _freshness_table()
     if sync_ok is False:
@@ -291,9 +298,10 @@ def _section_momentum_signal() -> None:
 
     # The split as a bar, labelled. "Weight vector:" is also what the
     # production QA probe reads back off the page, so the wording stays.
-    shades = ("#C7D2FE", "#818CF8", "#4F46E5", "#3730A3", "#1E1B4B")
+    # Ink only, one step per window (Ledger: colour is kept for up and down).
+    shades = ("var(--c-rule)", "var(--c-rule_strong)", "var(--c-muted)", "var(--c-text_2)", "var(--c-ink)")
     segs = "".join(
-        f'<span style="width:{w * 100:.2f}%;background:{c};color:{"#0E1726" if i < 2 else "#FFFFFF"}">'
+        f'<span style="width:{w * 100:.2f}%;background:{c};color:{"var(--c-ink)" if i < 2 else "var(--c-white)"}">'
         f"{html.escape(lbl)} {w:.0%}</span>"
         for i, ((lbl, _k, _d), w, c) in enumerate(zip(_WINDOWS, norm_w, shades)) if w > 0
     )
@@ -423,7 +431,7 @@ def _section_portfolio_risk() -> None:
 def _day(value) -> str:
     """The log's ISO date as 01 Oct 2026; a dash when it is missing or unreadable."""
     try:
-        return pd.Timestamp(value).strftime("%d %b %Y")
+        return pd.Timestamp(value).strftime("%-d %b %Y")
     except (TypeError, ValueError):
         return "—"
 
@@ -441,7 +449,7 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
         kit.readings([
             kit.Reading("Corporate actions adjusted", f"{len(_events)}", "sessions, before ranking"),
             kit.Reading("Splits the provider missed", f"{_split}", "a re-fetch fixes these"),
-            kit.Reading("Possible demergers", f"{_other}", "no standard ratio", tone="warn"),
+            kit.Reading("Possible demergers", f"{_other}", "no standard ratio"),
         ], "Corporate actions")
         _rows = []
         for e in sorted(_events, key=lambda x: x.get("date", ""), reverse=True):
@@ -450,7 +458,7 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
                 {
                     "Date": _day(e.get("date")),
                     "Symbol": e.get("symbol", "—"),
-                    "Move": f"{_move * 100:+.1f}%" if _move is not None else "—",
+                    "Move": f"{_fmt.pct(_move * 100, fraction=False)}" if _move is not None else "—",
                     # A null ratio in the log raised TypeError on the format
                     # and took the Configuration page down.
                     "Ratio": (
@@ -470,24 +478,33 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
             _spike_sessions_dialog(_rows)
 
     st.html('<div class="cfg-sub">Data files</div>')
+    # Local copies on this server only. "Price History" (data/prices.parquet)
+    # was listed here as "Missing" while prices were current: the app ranks
+    # from the published price store (R2), and nothing reads that file except
+    # a cold-start probe (owner, 7 Nov). It is gone from the table, the status
+    # says what an absent file means, and server paths are not shown.
+    # (dataset, file, what it means when the file is absent). Market caps are a
+    # server cache, rebuilt from the repo's nse_market_caps.csv; the industry
+    # file ships with the repo, so its absence is a real fault.
     cache_data = [
-        ("Price History", PRICES_FILE),
-        ("Market Caps", MCAPS_FILE),
-        ("TV Classification", TV_CLASSIFICATION_FILE),
+        ("Market Caps", MCAPS_FILE, "Not cached; rebuilt when needed"),
+        ("TV Classification", TV_CLASSIFICATION_FILE, "Missing"),
     ]
     cache_rows = []
-    for label, path in cache_data:
+    for label, path, absent in cache_data:
         exists = os.path.exists(path)
         size_mb = os.path.getsize(path) / (1024 * 1024) if exists else 0
         cache_rows.append(
             {
                 "Dataset": label,
-                "Status": "Present" if exists else "Missing",
+                "Local copy": "Present" if exists else absent,
                 "Size": f"{size_mb:.1f} MB" if exists else "—",
-                "Path": path,
+                "File": os.path.basename(path),
             }
         )
     render_saas_table(pd.DataFrame(cache_rows))
+    st.caption("Prices come from the published price store, not a local file; "
+               "their date and coverage are in the line at the foot of the page.")
 
 
 

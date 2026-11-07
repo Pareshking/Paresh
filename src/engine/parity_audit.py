@@ -21,12 +21,21 @@ DEFAULT_TOLERANCE = 5e-4  # 0.05 percentage points
 ACCEPTED_DRIFT_PATH = Path(__file__).with_name("parity_accepted_drift.json")
 
 
-def load_accepted_drift(path: Path = ACCEPTED_DRIFT_PATH) -> dict[str, Any]:
-    """The accepted drifts by month; empty when the file is absent."""
+def load_accepted_drift(path: Path = ACCEPTED_DRIFT_PATH, system: str = "750") -> dict[str, Any]:
+    """The accepted drifts by month for one record; empty when the file is absent.
+
+    The Nifty 750's are under "months" (the original layout); every other
+    record's under "systems" -> <system> -> "months", so an entry accepted for
+    one record can never pass another's month (owner, 7 Nov 2026: Nano Cap's
+    October accepted like the 750's).
+    """
     try:
-        return json.loads(Path(path).read_text(encoding="utf-8")).get("months", {})
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
     except FileNotFoundError:
         return {}
+    if system == "750":
+        return data.get("months", {})
+    return data.get("systems", {}).get(system, {}).get("months", {})
 
 
 def _is_accepted(entry: Any, stored: float, current: float, tolerance: float) -> bool:
@@ -121,3 +130,34 @@ def compare_monthly_ledger(
                   and counts["not_comparable"] == 0,
         "rows": rows,
     }
+
+
+# Statuses that make the comparison red (the parity gate's `ledger_parity`).
+_RED = ("drift", "missing_recomputed_period", "not_comparable")
+
+
+def freeze_refusal(report: dict[str, Any]) -> str | None:
+    """Why the month freeze must not strike a month, or None when it may.
+
+    `report` is compare_monthly_ledger's, with the accepted drifts passed in.
+    Any month the comparison marks red (a drift not accepted, a month the
+    replay cannot cover, a row with nothing to compare) refuses the freeze:
+    a replay that disagrees with the frozen months is a replay on different
+    data, and the month about to be struck would be struck on it (S89/S92:
+    October 2026 was frozen on 3 Nov on a store carrying BSE closes, with
+    September already drifting). Accepted drifts (status "accepted") pass.
+    """
+    red = [row for row in report.get("rows", []) if row.get("status") in _RED]
+    if not red:
+        return None
+    parts = []
+    for row in red:
+        if row["status"] == "drift":
+            parts.append(row["month"] + " (" + ", ".join(
+                f"{name} {row[f'{name}_drift'] * 100:+.3f} pp"
+                for name in row.get("drifted_series", [])) + ")")
+        else:
+            parts.append(f"{row['month']} ({row['status'].replace('_', ' ')})")
+    return ("ledger parity is red for " + "; ".join(parts)
+            + ": no month frozen (accept the drift in parity_accepted_drift.json, "
+            "or fix the prices, then re-run)")

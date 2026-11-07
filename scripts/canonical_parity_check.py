@@ -52,7 +52,7 @@ from src.engine.extra_universe import SYSTEM_750  # noqa: E402
 from src.engine.model_record import record_sector_map  # noqa: E402
 from src.engine.parity_audit import compare_monthly_ledger, load_accepted_drift  # noqa: E402
 from src.engine.track_record import (  # noqa: E402
-    LEDGER_PATH, TRACK_RECORD_CONFIG, config_fingerprint, months_to_cover,
+    LEDGER_PATH, TRACK_RECORD_CONFIG, config_fingerprint, config_fingerprint_for_month, months_to_cover,
 )
 from src.loaders import nse_prices  # noqa: E402
 from src.loaders import price_source as ps  # noqa: E402
@@ -217,9 +217,14 @@ def main() -> int:
     cfg = dict(TRACK_RECORD_CONFIG)
     if basis is not None:
         cfg["prices"] = info["basis"]
+    # Each frozen month against the configuration that governed it: a
+    # forward-dated rule (members_only_scoring_from, owner 7 Nov 2026) is not
+    # part of the months before it (track_record.config_for_month).
     fp = config_fingerprint(**cfg)
+    mismatched = {k: m.get("config") for k, m in ledger["months"].items()
+                  if m.get("config") != config_fingerprint_for_month(cfg, k)}
     stored = sorted({m.get("config") for m in ledger["months"].values()})
-    record("ledger_config", stored == [fp], current=fp, ledger=stored)
+    record("ledger_config", not mismatched, current=fp, ledger=stored, mismatched=mismatched)
 
     # 4. Hard caps at every rebalance.
     books = res.get("month_books") or {}

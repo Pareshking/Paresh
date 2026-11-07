@@ -60,6 +60,13 @@ def readings(tiles: list[Reading], label: str) -> None:
     st.html(f'<section class="mkt-strip pg-strip" aria-label="{html.escape(label)}">{cells}</section>')
 
 
+def empty(lead: str, text: str = "") -> None:
+    """An empty state in the page's own voice (audit F59): a plain line under a
+    rule, not a coloured alert box."""
+    st.html(f'<div class="pg-empty" role="status"><b>{html.escape(lead)}</b>'
+            + (f" {html.escape(text)}" if text else "") + "</div>")
+
+
 def note(lead: str, text: str = "") -> None:
     """The page's one amber note: a bold first line, then the detail."""
     st.html(f'<div class="pg-note" role="note"><b>{html.escape(lead)}</b>'
@@ -104,16 +111,29 @@ class Metric:
     help: str | None = None
 
 
-def pct(x: float | None, signed: bool = True) -> str:
-    """A fraction as a percentage for display; an em dash when it is not a
-    finite number. Formatting only: no figure is computed here."""
+def _finite(x) -> float | None:
     try:
         v = float(x)  # type: ignore[arg-type]
     except (TypeError, ValueError):
+        return None
+    return v if math.isfinite(v) else None
+
+
+def signed_number(v: float, digits: int = 1, plus: bool = True) -> str:
+    """Rounded first, then signed with a true minus (U+2212): never "-0.0"."""
+    r = round(v, digits)
+    sign = ("+" if plus else "") if r > 0 else "\u2212" if r < 0 else ""
+    return f"{sign}{abs(r):.{digits}f}"
+
+
+def pct(x: float | None, signed: bool = True) -> str:
+    """A fraction as a percentage for display; an em dash when it is not a
+    finite number. Formatting only: no figure is computed here."""
+    v = _finite(x)
+    if v is None:
         return "\u2014"
-    if not math.isfinite(v):
-        return "\u2014"
-    return f"{v:+.1%}" if signed else f"{v:.1%}"
+    return f"{signed_number(100 * v, plus=signed)}%"
+
 
 
 def metric_tile(m: Metric) -> None:
@@ -155,6 +175,12 @@ def tradingview_url(symbol: str) -> str:
 
 def caption(text: str) -> None:
     st.html(f'<p class="pg-cap">{html.escape(text)}</p>')
+
+
+def caption_link(text: str, href: str, label: str) -> None:
+    """A caption that ends in a link onward (audit F33): "… on Actions →"."""
+    st.html(f'<p class="pg-cap">{html.escape(text)} '
+            f'<a class="pg-onward" href="{html.escape(href)}" target="_self">{html.escape(label)} →</a></p>')
 
 
 def kv_line(pairs: list[tuple[str, str]], lead: str = "") -> None:
