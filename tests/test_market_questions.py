@@ -158,3 +158,13 @@ def test_market_strip_never_shows_a_weeks_move_as_a_day():
     from src.ui.views.market_questions_view import market_strip_html
     weekly = pd.Series(np.linspace(100, 110, 30), index=pd.date_range(end="2026-11-06", periods=30, freq="W-FRI"))
     assert market_strip_html({"Midcap 150": weekly}) == ""
+
+
+def test_size_against_the_index_uses_the_same_dates_for_both():
+    # A weekly size index ending a week before the daily Nifty 500: the
+    # comparison must end on the size index's last close for both series.
+    daily = pd.bdate_range("2026-01-01", "2026-11-06")
+    bench = pd.Series(100.0, index=daily)
+    bench[bench.index > "2026-10-30"] = 110.0          # a jump after the weekly file ends
+    weekly = pd.Series(100.0, index=pd.date_range("2026-01-02", "2026-10-30", freq="W-FRI"))
+    assert mq._rel(weekly, bench, daily[-1], 6) == pytest.approx(0.0)

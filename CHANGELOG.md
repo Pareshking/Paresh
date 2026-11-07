@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-07 — Size against the Nifty 500 on the same dates
+
+- "What is leading?" compared each size index with the Nifty 500 up to each series' own last close. While the nightly index file is still weekly it ends earlier than the Nifty 500, so the two windows differed: the live site read Microcap 250 +7.0 points over six months against +3.7 on the same dates. Both now end on the size index's last close.
+
 ## 2026-11-07 — Breadth: the charts behind each answer
 
 - Sectors: under the four groups, every industry as a bar for its six months against the Nifty 500 with a ring for the last month, so the groups can be seen at a glance.

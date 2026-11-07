@@ -351,13 +351,23 @@ class Leaders:
 
 
 def _rel(close: pd.Series, bench: pd.Series, when: pd.Timestamp, months: int) -> float | None:
+    """The index's return less the Nifty 500's over the SAME dates: both end on
+    the index's own last close on or before `when` and start on its close a
+    calendar span earlier. On 7 Nov the R2 index file was still weekly and
+    ended on an earlier day than the Nifty 500; comparing each series to its
+    own last close mixed two windows (Microcap 250 read +7.0 pts, +3.7 on
+    the same dates)."""
     s, b = close.dropna(), bench.dropna()
-    t1s, t1b = _on_or_before(s.index, when), _on_or_before(b.index, when)
-    start = when - pd.DateOffset(months=months)
-    t0s, t0b = _on_or_before(s.index, start), _on_or_before(b.index, start)
-    if None in (t1s, t1b, t0s, t0b):
+    t1 = _on_or_before(s.index, when)
+    if t1 is None:
         return None
-    return (float(s.loc[t1s] / s.loc[t0s]) - float(b.loc[t1b] / b.loc[t0b])) * 100
+    t0 = _on_or_before(s.index, t1 - pd.DateOffset(months=months))
+    if t0 is None:
+        return None
+    b1, b0 = _on_or_before(b.index, t1), _on_or_before(b.index, t0)
+    if b1 is None or b0 is None or (t1 - b1).days > 4 or (t0 - b0).days > 4:
+        return None
+    return (float(s.loc[t1] / s.loc[t0]) - float(b.loc[b1] / b.loc[b0])) * 100
 
 
 def leaders_answer(prices: pd.DataFrame, industry: pd.Series, bench: pd.Series,
