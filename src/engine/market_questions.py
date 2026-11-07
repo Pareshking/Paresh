@@ -363,3 +363,52 @@ def _answer(question, ms, words, sentence) -> Answer:
     word = word_for(s_now, words)
     return Answer(question, word, sentence(word, ms), s_now if s_now is not None else 0.0,
                   s_m, s_y, ms, words)
+
+
+# ── What changed, and what would change the answer ─────────────────────────
+
+def changes(a: Answer) -> list[tuple[Measure, float, float]]:
+    """Each measure's move over the month (month ago, now), largest first,
+    measured against the width of its own cut-off band so a share and a count
+    compare fairly."""
+    out = []
+    for m in a.measures:
+        if m.now is None or m.month_ago is None:
+            continue
+        width = abs(m.up_at - m.down_at) or 1.0
+        out.append((m, m.month_ago, m.now, abs(m.now - m.month_ago) / width))
+    out.sort(key=lambda t: -t[3])
+    return [(m, then, now) for m, then, now, _ in out]
+
+
+def _replace_vote(ms: list[Measure], i: int, value: float) -> list[Measure]:
+    m = ms[i]
+    moved = Measure(m.name, m.unit, value, m.month_ago, m.year_ago,
+                    _vote(value, m.up_at, m.down_at), m.rule, m.up_at, m.down_at, m.primary)
+    return ms[:i] + [moved] + ms[i + 1:]
+
+
+def what_would_change(a: Answer) -> dict[str, list[tuple[Measure, float]]]:
+    """The single measures whose next step would change the verdict word, each
+    with the cut-off it would have to cross: {"higher": [...], "lower": [...]},
+    nearest first. A step is one vote: down -> between (past the lower
+    cut-off), between -> up (at the upper one), and the same way down."""
+    eps = 1e-9
+    out: dict[str, list[tuple[Measure, float]]] = {"higher": [], "lower": []}
+    for i, m in enumerate(a.measures or []):
+        if m.now is None:
+            continue
+        steps = []
+        if m.vote == DOWN:
+            steps.append(("higher", m.down_at, m.down_at + eps))
+        elif m.vote == MID:
+            steps += [("higher", m.up_at, m.up_at), ("lower", m.down_at, m.down_at)]
+        if m.vote == UP:
+            steps.append(("lower", m.up_at, m.up_at - eps))
+        for side, cutoff, value in steps:
+            moved = _replace_vote(a.measures, i, value)
+            if word_for(_score(moved, "now"), a.words) != a.verdict:
+                out[side].append((m, cutoff))
+    for side in out:
+        out[side].sort(key=lambda t: abs(t[1] - t[0].now))
+    return out

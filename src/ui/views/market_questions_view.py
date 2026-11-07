@@ -166,3 +166,153 @@ def render_market_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: 
     st.html(_CSS + f'<div class="mq-grid">{"".join(cols)}</div>'
             '<p class="mq-note">Counted over the stocks ranked today, so readings a year back leave out '
             'stocks that have since left the index. Each vote\'s cut-off shows on hover.</p>')
+
+
+# ── Full question sections, for the pages that own the detail ───────────────
+
+_PAGE_CSS = """<style>
+.qp{border-top:1px solid var(--c-ink);padding:14px 0 6px;margin:0 0 22px}
+.qp h2{font-size:20px!important;font-weight:600!important;color:var(--c-ink)!important;margin:0 0 10px!important;padding:0!important;letter-spacing:0!important;scroll-margin-top:72px}
+.qp-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 40px;margin-bottom:14px}
+.qp-v{font-size:30px;font-weight:600;line-height:1.1;margin:0 0 6px;color:var(--c-ink)}
+.qp-v.up{color:var(--c-up)}.qp-v.down{color:var(--c-down)}
+.qp-s{font-size:15px;line-height:1.55;color:var(--c-text_2);margin:0 0 12px}
+.qp h3{font-size:14px!important;font-weight:600!important;color:var(--c-ink)!important;margin:0 0 6px!important;padding:0!important}
+.qp ul{margin:0 0 12px;padding-left:18px}.qp li{font-size:14px;line-height:1.55;color:var(--c-text_2);margin:2px 0}
+.qp li b{color:var(--c-ink);font-weight:600}
+.qp table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums;margin:4px 0 6px}
+.qp th{font-size:12px;font-weight:500;color:var(--c-muted);text-align:right;padding:6px 0 6px 12px;border-bottom:1px solid var(--c-rule_strong);white-space:nowrap}
+.qp th:first-child,.qp th.l{text-align:left;padding-left:0}
+.qp td{padding:8px 0 8px 12px;border-bottom:1px solid var(--c-rule);text-align:right;vertical-align:top;color:var(--c-ink)}
+.qp td:first-child{text-align:left;padding-left:0}
+.qp td.rule{text-align:left;color:var(--c-muted);font-size:12.5px}
+.qp td.up{color:var(--c-up);font-weight:600}.qp td.down{color:var(--c-down);font-weight:600}.qp td.mid{color:var(--c-muted)}
+.qp-tag{font-size:12px;color:var(--c-muted);margin-left:6px}
+.qp-note{font-size:12.5px;color:var(--c-muted);margin:6px 0 0}
+.qp-nav{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13.5px;margin:0 0 14px}
+.qp-nav a{color:var(--c-ink)!important;text-decoration:underline;text-decoration-color:var(--c-rule_strong);text-underline-offset:3px}
+@media (max-width:900px){.qp-top{grid-template-columns:1fr}.qp td.rule,.qp th.rule{display:none}}
+</style>"""
+
+
+def _changes_html(a: mq.Answer, kind: str) -> str:
+    items = mq.changes(a)[:3]
+    if not items:
+        return "<ul><li>A month-ago reading is not available.</li></ul>"
+    words = _VOTE_WORD[kind]
+    li = []
+    for m, then, now in items:
+        moved = "" if _vote_of(m, then) == m.vote else f", now {words[m.vote]}"
+        li.append(f"<li><b>{html.escape(m.name)}</b>: {_num(then, m.unit)} a month ago, "
+                  f"{_num(now, m.unit)} now{moved}.</li>")
+    was = mq.word_for(a.score_month_ago, a.words) if a.score_month_ago is not None else None
+    head = (f"<li>The answer a month ago: <b>{html.escape(was.lower())}</b>.</li>" if was else "")
+    return "<ul>" + head + "".join(li) + "</ul>"
+
+
+def _vote_of(m: mq.Measure, v: float) -> str:
+    return mq._vote(v, m.up_at, m.down_at)
+
+
+def _would_html(a: mq.Answer) -> str:
+    ww = mq.what_would_change(a)
+    i = a.words.index(a.verdict) if a.verdict in a.words else 2
+    li = []
+    for side, step in (("higher", 1), ("lower", -1)):
+        if not ww[side] or not 0 <= i + step < len(a.words):
+            continue
+        target = a.words[i + step].lower()
+        bits = [f"{html.escape(m.name)} {_move_words(m, side)} {_num(c, m.unit)} "
+                f"(now {_num(m.now, m.unit)})" for m, c in ww[side][:2]]
+        li.append(f"<li>To <b>{html.escape(target)}</b>: {'; or '.join(bits)}.</li>")
+    if not li:
+        li.append("<li>No single measure moving one step would change the answer; it would take two or more.</li>")
+    return "<ul>" + "".join(li) + "</ul>"
+
+
+def _move_words(m: mq.Measure, side: str) -> str:
+    """The cut-offs are inclusive (at the upper one is up, at the lower one is
+    down), so leaving a vote means crossing past it, reaching one means at."""
+    if side == "higher":
+        return "rising above" if m.vote == mq.DOWN else "reaching"
+    return "falling below" if m.vote == mq.UP else "falling to"
+
+
+def question_section_html(a: mq.Answer, kind: str, anchor: str) -> str:
+    words = _VOTE_WORD[kind]
+    rows = "".join(
+        f'<tr><td>{html.escape(m.name)}{"<span class=qp-tag>primary</span>" if m.primary else ""}</td>'
+        f'<td class="rule">{html.escape(m.rule)}</td>'
+        f'<td>{_num(m.year_ago, m.unit)}</td><td>{_num(m.month_ago, m.unit)}</td>'
+        f'<td>{_num(m.now, m.unit)}</td><td class="{m.vote}">{words[m.vote]}</td></tr>'
+        for m in a.measures)
+    return (
+        f'<section class="qp" aria-labelledby="{anchor}"><h2 id="{anchor}">{html.escape(a.question)}</h2>'
+        '<div class="qp-top"><div>'
+        f'<p class="qp-v {_tone(a)}">{html.escape(a.verdict)}</p><p class="qp-s">{html.escape(a.sentence)}</p>'
+        f'{_scale(a)}</div><div><h3>What has changed</h3>{_changes_html(a, kind)}'
+        f'<h3>What would change the answer</h3>{_would_html(a)}</div></div>'
+        '<table><thead><tr><th scope="col">The evidence</th><th scope="col" class="l rule">Cut-offs</th>'
+        '<th scope="col">A year ago</th><th scope="col">A month ago</th><th scope="col">Now</th>'
+        f'<th scope="col">Vote</th></tr></thead><tbody>{rows}</tbody></table>'
+        '<p class="qp-note">Each measure votes by its cut-offs; primary measures count twice. '
+        'The verdict is at an end when the weighted vote is 0.6 or more either way, leaning at 0.25.</p>'
+        '</section>')
+
+
+def size_trend_html(bench: pd.Series, size: dict[str, pd.Series]) -> str:
+    """The Nifty 500 and each size index against its 10-month average and 200D
+    EMA, and its distance from the 52W high: now and a month ago."""
+    series = {"Nifty 500": bench.dropna(), **{k: v.dropna() for k, v in size.items()}}
+    d = mq.anchor_dates(series["Nifty 500"].index)
+    rows = []
+    for name, s in series.items():
+        if len(s) < 60:
+            continue
+        cells = []
+        for f in (mq.ten_month_gap, mq.ema_gap, mq.from_high):
+            for k in ("month_ago", "now"):
+                v = f(s, d[k])
+                r = None if v is None else round(v, 1)   # tone what is shown: "0.0" is neither
+                tone = "" if r is None or f is mq.from_high else ("up" if r > 0 else "down" if r < 0 else "")
+                cells.append(f'<td class="{tone}">{_num(v, "pts")}</td>')
+        rows.append(f"<tr><td>{html.escape(name)}</td>{''.join(cells)}</tr>")
+    if not rows:
+        return ""
+    return ('<table><thead><tr><th scope="col" rowspan="2">Index</th>'
+            '<th scope="colgroup" colspan="2">Against its 10-month average</th>'
+            '<th scope="colgroup" colspan="2">Against its 200D EMA</th>'
+            '<th scope="colgroup" colspan="2">From its 52W high</th></tr>'
+            '<tr><th scope="col">A month ago</th><th scope="col">Now</th><th scope="col">A month ago</th>'
+            '<th scope="col">Now</th><th scope="col">A month ago</th><th scope="col">Now</th></tr></thead>'
+            f'<tbody>{"".join(rows)}</tbody></table>'
+            '<p class="qp-note">The 10-month rule reads completed months: the last month-end close against '
+            'the average of the last ten. Points are per cent.</p>')
+
+
+def render_breadth_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: pd.Series | None,
+                             size: dict[str, pd.Series]) -> bool:
+    """The Breadth page's two questions. Returns False when there is not
+    enough data to answer them."""
+    if prices is None or prices.empty or bench is None or bench.dropna().empty:
+        return False
+    syms = [s for s in rank_df["Symbol"] if s in prices.columns]
+    px = prices[syms]
+    industry = rank_df.drop_duplicates("Symbol").set_index("Symbol").get("Industry", pd.Series(dtype=str))
+    key = "|".join([price_fingerprint(px), str(bench.dropna().index[-1]), ",".join(sorted(size))])
+    breadth, trend, _ = _answers(key, px, industry, bench.dropna(), size)
+    parts = [_CSS, _PAGE_CSS, '<nav class="qp-nav" aria-label="On this page">'
+             '<a href="#q-breadth">Are most stocks taking part?</a>'
+             '<a href="#q-trend">Is the market in an uptrend?</a><a href="#q-charts">Today\'s charts</a></nav>']
+    if breadth is not None:
+        parts.append(question_section_html(breadth, "breadth", "q-breadth"))
+    if trend is not None:
+        sec = question_section_html(trend, "trend", "q-trend")
+        table = size_trend_html(bench, size)
+        if table:
+            sec = sec.replace("</section>", "<h3 style='margin-top:14px'>By size</h3>" + table + "</section>")
+        parts.append(sec)
+    parts.append('<p class="qp-note" style="margin-bottom:18px">Counted over the stocks ranked today, so '
+                 'readings a year back leave out stocks that have since left the index.</p>')
+    st.html("".join(parts))
+    return breadth is not None or trend is not None

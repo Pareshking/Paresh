@@ -1087,7 +1087,8 @@ def _page_watchlist() -> None:
 
 
 def _page_breadth() -> None:
-    render_breadth_view(rank_df, adj_close)
+    render_breadth_view(rank_df, adj_close, history_prices=deep_adj_close,
+                        benchmark_close=fetch_benchmark_history(period="5y"))
 
 
 def _page_backtest() -> None:

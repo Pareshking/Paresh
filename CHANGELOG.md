@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-07 — Breadth answers two questions
+
+- Market breadth now opens with "Are most stocks taking part?" and "Is the market in an uptrend?". Each has its verdict, the scale (today, a month ago, a year ago), what has changed over the month, what would change the answer (the measures one step from another verdict, with the reading each would need), and the evidence with every cut-off written out.
+- The trend section ends with the size indices side by side: the Nifty 500, Nifty 50, Midcap 150, Smallcap 250 and Microcap 250 against their 10-month average and 200D EMA, and their distance from the 52W high, a month ago and now.
+- Today's charts follow, with their period and settings beside the heading. The figure tiles that repeated the evidence are gone.
+
 ## 2026-11-07 — Owner's answers: Screener paging, menu groups, page width
 
 - The Screener shows the first 50 rows and a "Show all 750" button. The mouse wheel over the table now scrolls the page (it scrolled the table inside its frame). Every row stays in the table, so a click on a header sorts all 750 and the first 50 of that order show.

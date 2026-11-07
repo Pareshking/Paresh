@@ -87,3 +87,24 @@ def test_sentences_keep_their_capitals():
          mq._measure("Stocks ahead of the Nifty 500 over a year", "pct", [45, 47, None], 55, 45, "")]
     text = mq._breadth_sentence("Narrow", m)
     assert text == "43% of the ranked stocks are above their 200D EMA and 45% beat the Nifty 500 over the year."
+
+
+def test_what_would_change_names_the_measures_one_step_from_another_word():
+    words = ("Very narrow", "Narrow", "About usual", "Broad", "Very broad")
+    ms = [mq._measure("p", "pct", [41, 50, 60], 60, 40, "", primary=True),     # between
+          mq._measure("q", "pct", [30, 50, 60], 55, 45, "", primary=True),     # down
+          mq._measure("r", "pct", [50, 50, 60], 60, 40, "")]                  # between
+    a = mq._answer("Q", ms, words, lambda w, m: "")
+    assert a.verdict == "Narrow"                         # score (0 - 2 + 0) / 5 = -0.4
+    lower = {m.name: c for m, c in mq.what_would_change(a)["lower"]}
+    higher = {m.name: c for m, c in mq.what_would_change(a)["higher"]}
+    assert lower == {"p": 40, "r": 40}                   # p down: -0.8; r down: -0.6; both very narrow
+    assert higher["q"] == 45                              # q back between -> 0, about usual
+    assert "p" in higher                                  # p up -> 0, about usual
+
+
+def test_changes_are_largest_first_against_each_measures_band():
+    a = mq._answer("Q", [mq._measure("x", "pct", [50, 48, None], 60, 40, ""),
+                         mq._measure("y", "pts", [5, -5, None], 5, -5, "")],
+                   ("a", "b", "c", "d", "e"), lambda w, m: "")
+    assert [m.name for m, _, _ in mq.changes(a)] == ["y", "x"]

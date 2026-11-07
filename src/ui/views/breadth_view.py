@@ -17,6 +17,9 @@ from src.ui import lw_chart as lw
 from src.ui import page_kit as kit
 from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.theme import render_saas_table
+from src.engine import size_leadership as sl
+from src.loaders.index_levels import fetch_index_levels, nse_benchmarks
+from src.ui.views.market_questions_view import render_breadth_questions, size_closes
 
 
 def index_members(rank_df: pd.DataFrame, index_name: str) -> list[str]:
@@ -79,11 +82,26 @@ def _ratio_word(ratio: float) -> tuple[str, str]:
     return "roughly balanced", "warn"
 
 
-def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
-    """How many stocks are taking part: trend participation, and new highs
-    against new lows."""
-    actions = kit.page_head("Market breadth", "", actions=True)
-    with actions:
+def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
+                        history_prices: pd.DataFrame | None = None,
+                        benchmark_close: pd.Series | None = None) -> None:
+    """Two questions first (owner, 7 Nov: tipsheet's question pages as the
+    model): are most stocks taking part, and is the market in an uptrend; each
+    with its verdict, evidence, what changed and what would change it. Then
+    today's charts and the stocks making new highs and lows."""
+    kit.page_head("Market breadth",
+                  "Two questions, answered from the ranked stocks and NSE's index closes; then today's charts.")
+    levels, bench = fetch_index_levels(), nse_benchmarks()
+    size_ok = False
+    if levels is not None and bench is not None and "nifty50" in bench:
+        size_ok, _ = sl.cross_check(levels, bench["nifty50"])
+    nifty500 = (benchmark_close if benchmark_close is not None and len(benchmark_close)
+                else (bench or {}).get("nifty500"))
+    render_breadth_questions(rank_df, history_prices if history_prices is not None else adj_close,
+                             nifty500, size_closes(levels, size_ok))
+
+    with st.container(key="br_chart_head", horizontal=True, vertical_alignment="center", gap="small"):
+        st.html('<h2 id="q-charts" class="br-charts-h">Today\'s charts</h2>', width="stretch")
         history_days = st.segmented_control(
             "Period", [63, 126, 252], default=126, required=True,
             format_func=lambda x: {63: "3M", 126: "6M", 252: "1Y"}[x],
@@ -115,47 +133,8 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
         ph, adj_close, tuple(sel_mas), lookback=history_days, ma_type=ma_type
     )
     hl_df = compute_hl_timeseries(ph, adj_close, window=hl_window, lookback=history_days)
-    hl_name = {52: "52-day", 126: "126-day", 252: "52-week"}[hl_window]
 
-    tiles: list[kit.Reading] = []
-    for ma_lbl in sel_mas:
-        if breadth_df.empty or ma_lbl not in breadth_df.columns:
-            continue
-        if ma_type == "EMA" and ma_lbl == "50D":
-            continue  # the market line's "Above 50-day EMA"; the chart still plots it
-        label = f"Above {ma_lbl.replace('D', '-day')} {ma_type}"
-        val = breadth_df[ma_lbl].iloc[-1]
-        if pd.isna(val):
-            # No symbol had both a price and an MA on this session -- a holiday
-            # row, a pre-close fetch, or a frame shorter than the MA's
-            # min_periods. `int(nan)` once took the whole page down here.
-            tiles.append(kit.Reading(label, "—", "no prices on this session"))
-            continue
-        # The denominator comes from the engine: stocks that have both a price
-        # and an average on this session, not the full column count.
-        n_obs = breadth_df.get(f"{ma_lbl}{OBSERVED_SUFFIX}")
-        n_observed = (
-            int(n_obs.iloc[-1])
-            if n_obs is not None and pd.notna(n_obs.iloc[-1])
-            else len(adj_close.columns)
-        )
-        word, tone = _participation_word(val)
-        tiles.append(kit.Reading(label, f"{val:.0f}%",
-                                 f"{int(round(val / 100 * n_observed))} stocks · {word}", tone))
-    if not hl_df.empty:
-        today_h = int(hl_df["New Highs"].iloc[-1])
-        today_l = int(hl_df["New Lows"].iloc[-1])
-        ratio = today_h / max(today_l, 1)
-        word, tone = _ratio_word(ratio)
-        tiles += [
-            kit.Reading(f"New {hl_name} highs", f"{today_h}", "", "up" if today_h else ""),
-            kit.Reading(f"New {hl_name} lows", f"{today_l}",
-                        "more lows than highs" if today_l > today_h else "",
-                        "down" if today_l else ""),
-            kit.Reading("Highs ÷ lows", f"{ratio:.1f}×", word, tone),
-        ]
-    if tiles:
-        kit.readings(tiles, "Breadth today")
+    # The figure tiles that sat here repeated the evidence table above.
 
     if not breadth_df.empty:
         if bview == "Universe":
