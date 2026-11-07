@@ -430,7 +430,8 @@ ths.forEach(function(th,i){
   const ar=th.querySelector('.ar');if(ar)ar.setAttribute('aria-hidden','true');
   th.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();th.click();}});
   th.addEventListener('click',function(){
-    const dir=th.getAttribute('data-dir')==='asc'?'desc':'asc';
+    const cur=th.getAttribute('data-dir');
+    const dir=cur?(cur==='asc'?'desc':'asc'):(th.getAttribute('data-first')||'asc');
     ths.forEach(function(o){o.removeAttribute('data-dir');o.classList.remove('on');const a=o.querySelector('.ar');if(a&&o.getAttribute('data-type')){a.textContent='↕';o.setAttribute('aria-sort','none');}});
     th.setAttribute('data-dir',dir);th.classList.add('on');th.querySelector('.ar').textContent=dir==='asc'?'↑':'↓';
     th.setAttribute('aria-sort',ariaSort(dir));
@@ -481,7 +482,10 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
         # does not fit; it was blank there.
         text = (f'<span class="lbl-d">{_esc(label)}</span><span class="lbl-m">60D</span>'
                 if k == "spark" else f"<span>{_esc(label)}</span>")
-        head_cells.append(f'<th class="{cls.strip()}" data-type="{t or ""}"{dir_attr}>{text}{arrow}</th>')
+        # A first click sorts a figure largest first (audit F72: returns opened
+        # worst first); a rank, where 1 is best, still opens ascending.
+        first = ' data-first="asc"' if (t != "num" or k == "rank") else ' data-first="desc"'
+        head_cells.append(f'<th class="{cls.strip()}" data-type="{t or ""}"{first}{dir_attr}>{text}{arrow}</th>')
     head = "".join(head_cells)
     parts = [
         f'<th colspan="{n}" class="grp{" pin" if pinned else ""}">{_esc(label)}</th>'

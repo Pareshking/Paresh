@@ -139,3 +139,11 @@ def test_headers_sort_from_the_keyboard_and_say_how_they_are_sorted():
     for needle in ("th.tabIndex=0", "aria-sort", "e.key==='Enter'||e.key===' '",
                    "thead th:focus-visible"):
         assert needle in html, needle
+
+
+def test_a_first_click_sorts_returns_largest_first_and_rank_from_one():
+    """Audit F72: a return column opened worst first."""
+    out = _html("Core")
+    firsts = {label: d for d, label in re.findall(r'data-first="(asc|desc)"[^>]*><span>([^<]+)</span>', out)}
+    assert firsts["Rank"] == "asc"
+    assert any(d == "desc" for label, d in firsts.items() if "RET" in label.upper() or "1M" in label)
