@@ -59,3 +59,8 @@ def test_the_collector_refuses_a_row_that_does_not_add_up():
     bad = [dict(ok[0], netValue="9"), ok[1]]
     assert any("is not net" in b for b in c.parse(bad, now)[1])
     assert any("missing categories" in b for b in c.parse(ok[:1], now)[1])
+
+
+def test_percentiles_read_as_ordinals():
+    assert [dp.ordinal(n) for n in (1, 2, 3, 4, 11, 12, 13, 21, 42, 100)] == [
+        "1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "21st", "42nd", "100th"]

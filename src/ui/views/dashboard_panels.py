@@ -37,6 +37,12 @@ def _load(path: Path) -> pd.DataFrame | None:
     return _read(str(path), path.stat().st_mtime) if path.exists() else None
 
 
+def ordinal(n: int) -> str:
+    """1st, 2nd, 3rd, 4th, 11th, 12th, 13th, 21st, 42nd."""
+    suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
 def percentile_word(p: float) -> str:
     return ("weak" if p < 20 else "below usual" if p < 40 else "about usual" if p < 60
             else "above usual" if p < 80 else "strong")
@@ -68,11 +74,11 @@ def momentum_health_html(spreads: pd.DataFrame | None) -> str | None:
     t12, last = h["trailing_12m"], h["month_spread"]
     word = percentile_word(h["percentile"])
     lede = (f"Over the last 12 months the top fifth of our ranking beat the bottom fifth by "
-            f"{fmt.signed(t12)} points: {word} ({h['percentile']:.0f}th percentile since 2010). "
+            f"{fmt.signed(t12)} points: {word} ({ordinal(round(h['percentile']))} percentile since 2010). "
             f"{month:%B}: {fmt.signed(last)} points.")
     if t12 < 0:
         lede = (f"Over the last 12 months the top fifth of our ranking trailed the bottom fifth by "
-                f"{fmt.signed(abs(t12), plus=False)} points: {word} ({h['percentile']:.0f}th percentile "
+                f"{fmt.signed(abs(t12), plus=False)} points: {word} ({ordinal(round(h['percentile']))} percentile "
                 f"since 2010). {month:%B}: {fmt.signed(last)} points.")
     crash = (f'<p class="db-flag">{month:%B} was in the worst 10% of months since 2010: momentum '
              "stocks fell well behind the laggards.</p>") if h["crash"] else ""

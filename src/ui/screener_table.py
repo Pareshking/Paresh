@@ -162,9 +162,12 @@ def column_groups(keys: list[str]) -> list[tuple[str, int, bool]]:
 
 @st.cache_data(show_spinner=False, ttl=3600)
 def _year_paths(window_key: str, _prices: pd.DataFrame) -> dict[str, tuple[str, bool]]:
-    """Each symbol's last year of closes as a polyline, built once per window.
+    """Each symbol's closes over the window (the last 60 sessions, the "60D"
+    column) as the line's heights, built once per window.
 
-    About 50 points: one per week is as much as an 88px line can show.
+    At most about 50 points, as much as an 88px line can show. Sent as
+    whole-pixel heights ("12,10,13,...") and drawn by the table's script
+    (audit F62): the 750 inline polylines were 563 KB of a 2.4 MB frame.
     """
     out: dict[str, tuple[str, bool]] = {}
     step = max(1, len(_prices) // 50)
@@ -175,11 +178,8 @@ def _year_paths(window_key: str, _prices: pd.DataFrame) -> dict[str, tuple[str, 
         pts = np.append(s[::step], s[-1]) if (len(s) - 1) % step else s[::step]
         lo, hi = float(pts.min()), float(pts.max())
         span = (hi - lo) or 1.0
-        n = len(pts) - 1
-        poly = " ".join(
-            f"{2 + i * 84 / n:.1f},{24 - (v - lo) / span * 21:.1f}" for i, v in enumerate(pts)
-        )
-        out[str(col)] = (poly, bool(s[-1] >= s[0]))
+        ys = ",".join(str(int(round(24 - (v - lo) / span * 21))) for v in pts)
+        out[str(col)] = (ys, bool(s[-1] >= s[0]))
     return out
 
 
@@ -358,12 +358,8 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
                       f'{"—" if n is None else int(n)}</td>')
     cells["hi"] = _peak_cell(_num(row.get("% High")))
     poly, up = paths.get(sym, ("", True))
-    cells["spark"] = (
-        f'<td class="c-path"><svg width="88" height="26" viewBox="0 0 88 26" aria-hidden="true">'
-        f'<polyline fill="none" stroke="{"var(--c-up)" if up else "var(--c-down)"}" stroke-width="1.7" '
-        f'stroke-linejoin="round" stroke-linecap="round" points="{poly}"/></svg></td>'
-        if poly else '<td class="c-path muted">—</td>'
-    )
+    cells["spark"] = (f'<td class="c-path{"" if up else " dn"}" data-p="{poly}"></td>'
+                      if poly else '<td class="c-path muted">—</td>')
     classes = " ".join(c for c in ("hl" if is_hl else "", "cut" if qr in (BUY_CUT, KEEP_CUT) else "") if c)
     hl = f' class="{classes}"' if classes else ""
     return f'<tr data-stock="{sym_s}"{hl}>' + "".join(cells[c[0]] for c in cols) + "</tr>"
@@ -476,6 +472,17 @@ document.addEventListener('click',function(ev){
   if(ev.target.closest('a')&&(ev.metaKey||ev.ctrlKey||ev.shiftKey||ev.button===1))return;
   ev.preventDefault();openStock(tr.getAttribute('data-stock'));
 });
+// Sparklines from their heights (audit F62): the rows on screen first, the
+// rest when the browser is idle.
+function drawSpark(td){const p=td.getAttribute('data-p');if(!p)return;const y=p.split(',');const n=y.length-1;
+  let pts='';for(let i=0;i<=n;i++){pts+=(2+i*84/n).toFixed(1)+','+y[i]+' ';}
+  td.innerHTML='<svg width="88" height="26" viewBox="0 0 88 26" aria-hidden="true"><polyline fill="none" stroke="'
+    +(td.classList.contains('dn')?'var(--c-down)':'var(--c-up)')+'" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round" points="'+pts+'"/></svg>';
+  td.removeAttribute('data-p');}
+(function(){const cells=Array.from(document.querySelectorAll('td.c-path[data-p]'));
+  cells.slice(0,60).forEach(drawSpark);let i=60;
+  function more(){const end=Math.min(i+120,cells.length);for(;i<end;i++)drawSpark(cells[i]);if(i<cells.length)(window.requestIdleCallback||setTimeout)(more);}
+  more();})();
 const ths=document.querySelectorAll('thead tr.hdr th');const tbody=document.querySelector('tbody');const tbl=document.querySelector('table');
 // Sortable from the keyboard too (pre-launch audit F20, WCAG 2.1.1/4.1.2):
 // each sortable header is focusable, sorts on Enter or Space, and says how

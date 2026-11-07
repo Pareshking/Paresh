@@ -193,8 +193,13 @@ them in between (checked 2 Jan 2024); BSE traded them throughout (Goodyear
 12,215 shares in 930 trades on 2 Jan 2024). So: not a download defect, not a
 halt of the company. Force Motors was in Total Market and Microcap 250 (not
 Nifty 500 until 30 Sep 2025; Kirloskar Ferrous was the Nifty 500 member). Not
-read: the circular itself, or an NSE notice of reinstatement; the resumption
-dates (14 Feb 2024 for FORCEMOT, 20 Apr 2026 for the rest) are from NSE's files.
+read until 7 Nov 2026: the circular itself and FORCEMOT's return. The circular
+(NSE/CML/58560, 25 Sep 2023) lists ten securities withdrawn "w.e.f. October 26,
+2023", these six among them. FORCEMOT came back by NSE/CML/60618 of 12 Feb 2024
+("Listing of Equity Shares of Force Motors Limited (New Listing)", effective
+14 Feb 2024, attached to the company's BSE filing of 13 Feb 2024), the date in
+NSE's files. The other five's April 2026 notice is not found; Goodyear's own
+governance report for 31 Mar 2026 gives its NSE symbol as "NOTLISTED".
 
 Mid-2013 has 77 one-month NSE-only gaps (MAITHANALL, IOLCP, SAKSOFT, NEXTMEDIA
 ...): NSE's own bhavcopy for 20 Aug 2013 has no row for them in any series, so
@@ -334,3 +339,14 @@ are `nse_index_rebuild/wayback_check.py` and NSE's `IndexInclExcl.xls`.
   month swapped (a Bc row read day first). `repair_swapped_dates` only catches a
   swap far from the file's day; `drop_swapped_twins` lets the yearly list's date
   win. Check a new step against NSE's list before trusting it (ALLCARGO, HCG).
+
+
+### Eight small caps whose Screener closes stop on 29 Sep 2026 (S81, explained 7 Nov 2026)
+
+BHARATRAS, INDIANHUME, KCP, LANDMARK, RAMKY, SAGCEM, SAKSOFT and SHK left the Nano Cap
+list at its 30 Sep 2026 rebuild (`data/nanocap_membership.json`), and the nightly
+Screener sync fetches current members only, so their Screener closes end on 29 Sep.
+RAMKY rejoined on 30 Oct and its closes resumed. Not a download fault. No record is
+affected: Nano Cap's record starts in October 2026, and none has been a Total Market
+member since 2022-2025. A stock that leaves and rejoins gets its whole history back
+from Screener on rejoining (RAMKY: 744 closes from 2016).
