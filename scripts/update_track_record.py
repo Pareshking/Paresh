@@ -40,7 +40,7 @@ from src.engine.track_record import (  # noqa: E402
     SHADOW_INCEPTION,
     SHADOW_LEDGER_PATH,
     TRACK_RECORD_CONFIG,
-    config_fingerprint,
+    config_fingerprint_for_month,
     finalize_months,
     load_ledger,
     months_to_cover,
@@ -212,8 +212,11 @@ def main() -> int:
           f"{n_before}-stock frame; unpriceable: "
           f"{', '.join(unpriceable) or 'none'}")
 
-    fingerprint = config_fingerprint(**cfg)
-    print(f"  config fingerprint: {fingerprint}")
+    # Per month: a forward-dated rule (members_only_scoring_from) is part of
+    # the fingerprint only of the months it governs (track_record.config_for_month).
+    def fingerprint(period):
+        return config_fingerprint_for_month(cfg, period)
+    print(f"  config fingerprint (current month): {fingerprint(pd.Period(as_of, freq='M'))}")
 
     result = run_backtest(
         f"trackrecord_{system}{'_shadow' if args.shadow else ''}_{as_of:%Y%m%d}_{months}",
@@ -226,6 +229,7 @@ def main() -> int:
         config_weights=cfg["config_weights"],
         cost_bps=cfg["cost_bps"],
         buffer_n=cfg["buffer_n"],
+        members_only_scoring_from=cfg.get("members_only_scoring_from"),
         stock_cap=cfg["stock_cap"],
         sector_cap=cfg["sector_cap"],
         sector_map=record_sector_map(adj_close.columns),

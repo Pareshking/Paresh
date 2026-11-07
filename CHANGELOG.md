@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-07 — One ranking everywhere
+
+- Every rank on the site comes from the Screener's ranking (owner). Portfolio's "Ranks by month" now scores each date's index members only, as the Screener does, so a stock has the same qualified rank on every page (ACUTAAS 45th, not 44th).
+- The model follows the same rule from the 30 Nov 2026 rebalance. Months already in the record are unchanged; had the rule applied from the start, two of eleven books would have differed by one stock.
+- Stock links open the stock page directly, so Back returns to the page you came from; each browser tab names its page; the alpha caption says what alpha is (a difference, not compounded).
+
 ## 2026-11-07 — Dashboard home page; charts in the tipsheet style
 
 - The site opens on a Dashboard (the Screener moves to /screener and second in the menu). One line says how the book is doing this month against the Nifty 500, how many holdings are close to a rule or would be sold, and when the next rebalance is. Below it: the book at risk (least room first, each with its nearest rule), the next rebalance if the month ended today (the same plan as Actions), size leadership and the five leading industries (as ranked on Sectors).
