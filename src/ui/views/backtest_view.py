@@ -249,7 +249,7 @@ def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float,
             weighting = c4.selectbox("Weighting", ["Equal Weight", "Inverse Volatility"],
                                      index=0, key="bt_weight_scheme")
             cost = st.number_input(
-                "Trading cost (bps per unit of turnover)", min_value=0.0, max_value=300.0,
+                "Trading cost (bps a round trip)", min_value=0.0, max_value=300.0,
                 value=float(DEFAULT_TRANSACTION_COST_BPS), step=1.0, key="bt_cost",
                 help="Round-trip cost (STT + stamp duty + brokerage + slippage). "
                      "Standard NSE equity is about 25-35 bps.")
@@ -547,7 +547,7 @@ def _backtest_tab(
         f"<span>{html.escape(bt_window_label)}</span>"
         f"<span>Holdings <b>{bt_n}</b></span><span>Rebalance <b>{_rebal_txt}</b></span>"
         f"<span>Weighting <b>{html.escape(bt_weight.lower())}</b></span>"
-        f"<span>Costs <b>{cost_drag_bps:.0f} bps</b></span>"
+        f"<span>Costs <b>{cost_drag_bps:.0f} bps</b> a round trip</span>"
         f"<span>Keep while in top <b>{keep_rank}</b></span>"
         f"<span>Buy above <b>{ema_period}D EMA</b></span>"
         f"<span>Buy within <b>{(1 - high_pct):.1%}</b> of 52W high</span>"
@@ -938,7 +938,7 @@ def _backtest_tab(
             "**Fill-to-fill accounting**: every period runs from one fill to the next, which is why a period's end date is the following "
             "period's start date. Each stock's realised return is exactly its exit fill divided by its entry fill, and the per-period "
             "strategy return is those same fills weighted — the tradebook and the equity curve are one calculation, not two.\n\n"
-            f"**Transaction Cost Drag**: Deducts **{cost_drag_bps:.0f} bps** per unit of turnover (reflecting STT, Exchange fees, GST, Stamp duty, and slippage).\n\n"
+            f"**Transaction Cost Drag**: Deducts **{cost_drag_bps:.0f} bps a round trip**, charged on one-way turnover (selling one unit and buying another costs it once), reflecting STT, Exchange fees, GST, Stamp duty and slippage.\n\n"
             f"**Rank Persistence Buffer**: Top **{keep_rank}** buffer zone prevents unnecessary trading when stocks oscillate around the rank threshold.\n\n"
             f"**Ratios**: Sharpe is the annualised mean daily return less a **{_rf:.1%}** risk-free rate, over "
             "annualised volatility, ± one standard error; Sortino divides the same excess by the downside "

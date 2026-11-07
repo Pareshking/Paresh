@@ -131,7 +131,7 @@ def test_rules_state_the_settings_the_run_was_given_not_defaults():
     assert "0%" in flat[("Entry rules", "3. 52-week-high filter")]
     assert flat[("Entry rules", "6. Select")] == "Top 4 by rank"
     assert flat[("Entry rules", "Buffer zone")].startswith("Top 6")
-    assert flat[("Costs", "Trading cost")] == "30 bps per unit of turnover"
+    assert flat[("Costs", "Trading cost")] == "30 bps a round trip, on one-way turnover"
     assert flat[("Run", "Trades in trades file")] == str(len(t))
     assert flat[("Run", "First fill date")] == t["Entry date"].min()
     assert "1M 10%" in r.loc[r.Item == "5. Rank", "Note"].iloc[0]

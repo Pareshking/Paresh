@@ -256,7 +256,7 @@ def rules_table(spec: RunSpec, trades: pd.DataFrame) -> pd.DataFrame:
     add("Sizing", "Cash", f"Up to {_pct(cash, 1)} of the book" if cash > 1e-6 else "None",
         "Weight the caps cannot place is held as cash at 0%")
 
-    add("Costs", "Trading cost", f"{spec.cost_bps:g} bps per unit of turnover",
+    add("Costs", "Trading cost", f"{spec.cost_bps:g} bps a round trip, on one-way turnover",
         "Turnover is half the sum of the weight changes at a rebalance, so establishing a book costs half of this")
     add("Costs", "Where it is charged", "On the portfolio return at each rebalance, not per trade",
         "Price return % in the trades file is before costs")
