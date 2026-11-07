@@ -297,6 +297,12 @@ def _status_pill_html() -> str:
             f'<span><span class="hdr-pill-lead">{html.escape(lead)}</span>{html.escape(tail)}</span></span>')
 
 
+# The header states the index's trend, not a market call (owner, 7 Nov 2026):
+# "Trend: up" when the Nifty 500 is above its 200-day EMA. "Bullish" read as
+# a verdict and sat beside Breadth's "neutral" for the same market.
+_TREND_LABEL = {MarketRegime.BULLISH: "Trend: up", MarketRegime.BEARISH: "Trend: down"}
+
+
 def render_header_kpi_bar(
     regime: RegimeData,
     total_stocks: int,
@@ -318,7 +324,7 @@ def render_header_kpi_bar(
     market_html = f"""
     <div role="status" aria-label="Market status dashboard" class="mkt-snapshot">
         <div class="mkt-item mkt-regime-item">
-            <span class="{regime_cls} mkt-regime"><span class="mkt-dot">●</span>{html.escape(regime.status.value.title())}</span>
+            <span class="{regime_cls} mkt-regime"><span class="mkt-dot" aria-hidden="true">●</span>{html.escape(_TREND_LABEL.get(regime.status, regime.status.value.title()))}</span>
         </div>
         <div class="mkt-item mkt-index">
             <span class="mkt-label">Nifty 500</span>
@@ -326,7 +332,7 @@ def render_header_kpi_bar(
         </div>
         <div class="mkt-item mkt-distance">
             <strong class="{'mkt-up' if dist >= 0 else 'mkt-down'}">{dist_text}</strong>
-            <span class="mkt-label">200D average</span>
+            <span class="mkt-label">200D EMA</span>
         </div>
         <div class="mkt-item">
             <span class="mkt-label">Universe</span>
