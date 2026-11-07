@@ -12,6 +12,15 @@ TODO row S94 tracks this file; each item is closed here with its commit.
 3. **Foundations are right:** figures reconcile almost everywhere, the palette survives colour blindness, nothing scrolls sideways at 320 px, fonts load. What remains is consolidation: one tile, one table, one type scale, one formatter, a max-width.
 4. **About 12 focused sessions to launch-ready (all P0 and P1), about 15 for everything.**
 
+## Progress (7 Nov, after the owner's decisions)
+
+Done beyond the P0 table below: F5/F6 one number style (lakh/crore, sign before ₹,
+true minus; 684013d), F7 "Trend: up" against the 200-day EMA (32e3e66), desktop
+quick links per decision 6 (a9ee708), the model and ranks-by-month scoring the
+day's index members (S95; 21fca6f, c2bb87c). Next: F25 real tables, F26 chart text
+alternatives, dates (rest of F5), F16/F17 names, then Phase 3 (design system) and
+Phase 4 (stock page, Configuration, Guide first).
+
 ## Status of the P0s
 
 | ID | P0 | Status |
