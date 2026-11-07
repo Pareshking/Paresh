@@ -1548,6 +1548,11 @@ def inject_custom_css() -> None:
         .rq-i { margin: 0 !important; }
         @media (max-width: 760px) { .rq-grid { grid-template-columns: 1fr 1fr !important; } }
 
+        /* Readers who ask their system for less motion get none (audit F74). */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+        }
+
         /* Visible focus everywhere (audit F28): one 2px ink ring for links,
            buttons, tabs, pills, sliders and anything focusable by keyboard. */
         a:focus-visible, button:focus-visible, [role="tab"]:focus-visible,

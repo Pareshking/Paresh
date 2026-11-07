@@ -328,6 +328,7 @@ body{margin:0;font-family:'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-s
 .wrap{height:100vh;overflow:auto;background:var(--c-white);border:0;border-top:1px solid var(--c-ink);border-radius:0}
 .edge{position:fixed;top:0;right:0;width:32px;height:100vh;pointer-events:none;z-index:6;background:linear-gradient(to right,rgba(255,255,255,0),var(--c-white));opacity:0;transition:opacity .15s}
 .edge.on{opacity:1}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 tr[data-stock]{cursor:pointer}
 table{border-collapse:separate;border-spacing:0;width:100%;min-width:1180px}
 thead th{position:sticky;top:0;z-index:3;background:var(--c-subtle);border-bottom:1px solid var(--c-rule);height:42px;padding:0 10px;
