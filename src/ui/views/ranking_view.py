@@ -603,6 +603,8 @@ def _reset_screener_filters() -> None:
                 "rank_density_mode", "rank_quick_pills"):
         st.session_state.pop(key, None)
         st.session_state.pop(mirror_key(key), None)
+        if _URL_KEYS[key] in st.query_params:
+            del st.query_params[_URL_KEYS[key]]
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
