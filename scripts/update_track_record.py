@@ -71,6 +71,29 @@ def record_setup(system: str, shadow: bool = False,
             dict(TRACK_RECORD_CONFIG))
 
 
+def unaccepted_drift(parity: dict) -> list[str]:
+    """Frozen months the replay no longer reproduces, with no accepted-drift entry."""
+    return [row["month"] for row in parity.get("rows", []) if row.get("status") == "drift"]
+
+
+def refuse_to_freeze(parity: dict, added: list[str], force: bool) -> list[str]:
+    """The drifted months that forbid striking `added` (empty: go ahead).
+
+    S87 (7 Nov 2026): on 3 Nov the freeze printed "drift 2026-09: strategy +0.17%
+    -> +0.34% -- stored value stands" and then struck October from that same
+    replay. The replay had a different September book from the one frozen (the
+    published Screener store carried BSE's closes for ~55 stocks from ~24 Oct to
+    5 Nov), so October was struck on a book nobody held, and it stopped
+    reproducing when the store went back to NSE's closes. A replay that no longer
+    reproduces a frozen month is not fit to strike the next one. A frozen month
+    is permanent; a freeze that waits a day costs nothing. --force (a deliberate,
+    logged rebuild) is not stopped.
+    """
+    if force or not added:
+        return []
+    return unaccepted_drift(parity)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--system", default=SYSTEM_750, choices=list(SYSTEMS))
@@ -288,6 +311,15 @@ def main() -> int:
         pit_from=pit_from,
         force=args.force,
     )
+
+    blocked_by = refuse_to_freeze(parity, added, args.force)
+    if blocked_by:
+        print(f"::error::Not freezing {', '.join(added)}: the replay no longer reproduces the "
+              f"frozen {', '.join(blocked_by)} (drift above). Striking a new month from it would "
+              "freeze a book that was never held. Find the cause, then either record the drift "
+              "in src/engine/parity_accepted_drift.json (owner) or rebuild with --force --note. "
+              "Nothing written.")
+        return 3
 
     if args.force and added:
         # A rebuild replaces frozen numbers, so the file says so: when, which
