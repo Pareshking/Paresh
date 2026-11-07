@@ -37,6 +37,9 @@ class Measure:
     up_at: float = 0.0
     down_at: float = 0.0
     primary: bool = False
+    # Where today sits in the measure's own history (the store's span):
+    # (low, 25th pct, 75th pct, high, percentile of today, first date).
+    history: tuple | None = None
 
 
 @dataclass(frozen=True)
@@ -91,10 +94,24 @@ def _score(measures: list[Measure], which: str) -> float | None:
     return None if weight == 0 or weight < 0.6 * full else total / weight
 
 
-def _measure(name, unit, values, up_at, down_at, rule, primary=False) -> Measure:
+def history_stats(series: pd.Series | None, now: float | None) -> tuple | None:
+    """Low, middle half and high of a measure over its history, and today's
+    percentile in it. None under a year of readings: too short to say."""
+    if series is None or now is None:
+        return None
+    s = pd.to_numeric(series, errors="coerce").dropna()
+    if len(s) < 200 and not (len(s) >= 12 and isinstance(s.index, pd.DatetimeIndex)
+                             and (s.index[-1] - s.index[0]).days >= 330):
+        return None
+    pct = float((s <= now).mean() * 100)
+    return (float(s.min()), float(s.quantile(0.25)), float(s.quantile(0.75)), float(s.max()),
+            pct, pd.Timestamp(s.index[0]) if isinstance(s.index, pd.DatetimeIndex) else None)
+
+
+def _measure(name, unit, values, up_at, down_at, rule, primary=False, history=None) -> Measure:
     now, month, year = values
     return Measure(name, unit, now, month, year, _vote(now, up_at, down_at), rule,
-                   up_at, down_at, primary)
+                   up_at, down_at, primary, history_stats(history, now))
 
 
 def _f(x) -> float | None:
@@ -107,23 +124,51 @@ def _f(x) -> float | None:
 
 # ── Are most stocks taking part? ────────────────────────────────────────────
 
+def _enough(counts: pd.Series) -> pd.Series:
+    """True where a reading rests on enough stocks: at least 40% of the most
+    ever counted, and at least 100. The early years of the history hold a few
+    dozen names, whose shares swing from 0% to 100% and are not the market."""
+    peak = float(counts.max() or 0)
+    floor = max(min(100.0, 0.5 * peak), 0.4 * peak)
+    return counts >= floor
+
+
 def _share_above_ema(prices: pd.DataFrame, span: int) -> pd.Series:
     ema = prices.ewm(span=span, min_periods=max(int(span * 0.8), 5)).mean()
     observed = prices.notna() & ema.notna()
-    return (prices > ema).where(observed).astype(float).mean(axis=1) * 100
+    share = (prices > ema).where(observed).astype(float).mean(axis=1) * 100
+    return share.where(_enough(observed.sum(axis=1)))
 
 
-def _net_new_highs(prices: pd.DataFrame, window: int = 252, days: int = 5) -> pd.Series:
+def _net_new_highs(prices: pd.DataFrame, days: int = 5) -> pd.Series:
     """Net new 52-week highs as a share of the stocks that can make one, summed
-    over the last `days` sessions (a week): one day's count is noisy."""
-    min_p = max(int(window * 0.6), 20)
-    hi = prices.rolling(window, min_periods=min_p).max()
-    lo = prices.rolling(window, min_periods=min_p).min()
+    over the last `days` rows (a week). The 52 weeks are a calendar window, not
+    252 rows: the deep price history holds fewer rows a year in its early
+    years, and a row count read those years as too short (no reading at all)."""
+    hi = prices.rolling("365D", min_periods=20).max()
+    lo = prices.rolling("365D", min_periods=20).min()
+    # a stock needs most of a year of prices before it can set a 52W extreme
+    first = prices.apply(lambda c: c.first_valid_index())
+    old_enough = pd.DataFrame({c: prices.index >= (first[c] + pd.Timedelta(days=330)) if pd.notna(first[c])
+                               else np.zeros(len(prices), bool) for c in prices.columns}, index=prices.index)
     tol = prices * 0.001
-    can = prices.notna() & hi.notna() & lo.notna()
+    can = prices.notna() & hi.notna() & lo.notna() & old_enough
     net = ((prices >= hi - tol) & can).sum(axis=1) - ((prices <= lo + tol) & can).sum(axis=1)
-    n = can.sum(axis=1).replace(0, np.nan)
-    return (net.rolling(days, min_periods=1).sum() / n) * 100
+    counts = can.sum(axis=1)
+    n = counts.replace(0, np.nan)
+    return ((net.rolling(days, min_periods=1).sum() / n) * 100).where(_enough(counts))
+
+
+def _beat_series(prices: pd.DataFrame, bench: pd.Series) -> tuple[pd.Series, pd.Series]:
+    """The two year-long measures at each month end: share of stocks ahead of
+    the Nifty 500 over the year, and the median stock less the index (pts)."""
+    ends = prices.groupby(prices.index.to_period("M")).apply(lambda f: f.index[-1]).tolist()
+    share, gap = {}, {}
+    for t in ends:
+        a, b = _beat_index_12m(prices, bench, t)
+        if a is not None:
+            share[t], gap[t] = a, b
+    return pd.Series(share, dtype=float), pd.Series(gap, dtype=float)
 
 
 def _beat_index_12m(prices: pd.DataFrame, bench: pd.Series, when: pd.Timestamp | None) -> tuple[float | None, float | None]:
@@ -139,8 +184,13 @@ def _beat_index_12m(prices: pd.DataFrame, bench: pd.Series, when: pd.Timestamp |
     if b0 is None or b1 is None:
         return None, None
     rb = float(b.loc[b1] / b.loc[b0] - 1)
-    r = (prices.loc[when] / prices.loc[start] - 1).dropna()
-    if r.empty:
+    # Each stock's last price in the week to each date: the history holds
+    # dates on which few or no stocks have a price (4 Nov 2024 has none).
+    week = pd.Timedelta(days=7)
+    p1 = prices.loc[when - week:when].ffill().iloc[-1]
+    p0 = prices.loc[start - week:start].ffill().iloc[-1]
+    r = (p1 / p0 - 1).dropna()
+    if len(r) < max(min(100, 0.5 * prices.shape[1]), 0.2 * prices.shape[1]):
         return None, None
     return float((r > rb).mean() * 100), float((r.median() - rb) * 100)
 
@@ -157,17 +207,18 @@ def breadth_answer(prices: pd.DataFrame, bench: pd.Series) -> Answer | None:
         return None if t is None else _f(s.get(t))
 
     beat = {k: _beat_index_12m(prices, bench, d[k]) for k in d}
+    beat_share, beat_gap = _beat_series(prices, bench)
     ms = [
         _measure("Stocks above their 200D EMA", "pct", [at(a200, k) for k in d], 60, 40,
-                 "60% or more is broad, 40% or less is narrow", primary=True),
+                 "60% or more is broad, 40% or less is narrow", primary=True, history=a200.iloc[200:]),
         _measure("Stocks ahead of the Nifty 500 over a year", "pct", [beat[k][0] for k in d], 55, 45,
-                 "55% or more is broad, 45% or less is narrow", primary=True),
+                 "55% or more is broad, 45% or less is narrow", primary=True, history=beat_share),
         _measure("Stocks above their 50D EMA", "pct", [at(a50, k) for k in d], 60, 40,
-                 "60% or more is broad, 40% or less is narrow"),
+                 "60% or more is broad, 40% or less is narrow", history=a50.iloc[50:]),
         _measure("Net new 52W highs this week, share of stocks", "pts", [at(nnh, k) for k in d], 5, -5,
-                 "+5 or more is broad, −5 or less is narrow"),
+                 "+5 or more is broad, −5 or less is narrow", history=nnh),
         _measure("Median stock less the Nifty 500, a year", "pts", [beat[k][1] for k in d], 3, -3,
-                 "+3 pts or more is broad, −3 or less is narrow"),
+                 "+3 pts or more is broad, −3 or less is narrow", history=beat_gap),
     ]
     return _answer("Are most stocks taking part?", ms,
                    ("Very narrow", "Narrow", "About usual", "Broad", "Very broad"),
@@ -228,6 +279,23 @@ def from_high(close: pd.Series, when: pd.Timestamp | None) -> float | None:
     return (float(s.iloc[-1]) / float(s.max()) - 1) * 100
 
 
+def _ten_month_series(close: pd.Series) -> pd.Series:
+    """The 10-month rule's reading at each month end, in percent."""
+    m = close.dropna().groupby(close.dropna().index.to_period("M")).last()
+    m.index = m.index.to_timestamp(how="end").normalize()
+    return ((m / m.rolling(10).mean() - 1) * 100).dropna()
+
+
+def _ema_gap_series(close: pd.Series, span: int = 200) -> pd.Series:
+    s = close.dropna()
+    return ((s / s.ewm(span=span, min_periods=int(span * 0.8)).mean() - 1) * 100).dropna()
+
+
+def _from_high_series(close: pd.Series) -> pd.Series:
+    s = close.dropna()
+    return ((s / s.rolling(252, min_periods=200).max() - 1) * 100).dropna()
+
+
 def trend_answer(bench: pd.Series, size_closes: dict[str, pd.Series] | None,
                  share_above_200: pd.Series | None) -> Answer | None:
     if bench is None or bench.dropna().empty:
@@ -237,11 +305,11 @@ def trend_answer(bench: pd.Series, size_closes: dict[str, pd.Series] | None,
     keys = list(d)
     ms = [
         _measure("Nifty 500 against its 10-month average", "pts", [ten_month_gap(b, d[k]) for k in keys],
-                 0.0001, -0.0001, "above is up, below is down", primary=True),
+                 0.0001, -0.0001, "above is up, below is down", primary=True, history=_ten_month_series(b)),
         _measure("Nifty 500 against its 200D EMA", "pts", [ema_gap(b, d[k]) for k in keys],
-                 0.0001, -0.0001, "above is up, below is down", primary=True),
+                 0.0001, -0.0001, "above is up, below is down", primary=True, history=_ema_gap_series(b)),
         _measure("Nifty 500 from its 52W high", "pts", [from_high(b, d[k]) for k in keys],
-                 -5, -15, "within 5% is up, 15% or more below is down"),
+                 -5, -15, "within 5% is up, 15% or more below is down", history=_from_high_series(b)),
     ]
     for name, s in (size_closes or {}).items():
         s = s.dropna().sort_index()
@@ -249,13 +317,13 @@ def trend_answer(bench: pd.Series, size_closes: dict[str, pd.Series] | None,
             continue
         ms.append(_measure(f"{name} against its 10-month average", "pts",
                            [ten_month_gap(s, d[k]) for k in keys], 0.0001, -0.0001,
-                           "above is up, below is down"))
+                           "above is up, below is down", history=_ten_month_series(s)))
     if share_above_200 is not None and not share_above_200.dropna().empty:
         s = share_above_200.dropna()
         ms.append(_measure("Stocks above their 200D EMA", "pct",
                            [_f(s.get(_on_or_before(s.index, d[k]))) if d[k] is not None and
                             _on_or_before(s.index, d[k]) is not None else None for k in keys],
-                           60, 40, "60% or more is up, 40% or less is down"))
+                           60, 40, "60% or more is up, 40% or less is down", history=s.iloc[200:]))
     return _answer("Is the market in an uptrend?", ms,
                    ("Strong downtrend", "Downtrend", "No clear trend", "Uptrend", "Strong uptrend"),
                    lambda word, m: _trend_sentence(word, ms))

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-07 — Editorial type, prototype on the Dashboard and Breadth
+
+- A serif (Source Serif 4) for page titles, question headings, verdicts and headline figures, prose at 17px in a reading column; Plex Sans stays for text and Plex Mono for dense tables. Only the Dashboard and Breadth use it until the owner has seen it.
+- The Dashboard opens with the month's news as its title: "The book rose 2.3% this month; the Nifty 500 rose 7.1%", the risk and the next rebalance beneath.
+- Breadth's evidence rows show where today sits in the measure's own history: a bar from the lowest to the highest reading, the middle half shaded, today's percentile and the year-ago reading under the figure.
+- Fixed: net new 52W highs and the year-long measures had no year-ago reading on the app's deep price history, which holds fewer rows a year in its early years; the 52 weeks are now a calendar window, a reading needs enough stocks behind it, and a missing day takes each stock's last price that week.
+
 ## 2026-11-07 — Sentence case; column headings on Sectors' groups
 
 - Labels, card notes, tile notes and captions start with a capital everywhere ("Least room first", "Held since 2 Nov", "Today · A month ago"), set once in the shared components.

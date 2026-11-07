@@ -76,6 +76,28 @@ def answer_line(mtd, bench_mtd, n_watch: int, n_sell: int, check: pd.Timestamp) 
     return "; ".join(parts) + "."
 
 
+def headline_parts(mtd, bench_mtd, n_watch: int, n_sell: int, check: pd.Timestamp) -> tuple[str, str]:
+    """The page's news, as tipsheet opens a page: the month's result as the
+    title, the risk and the next date beneath it. Same figures as answer_line."""
+    def moved(v) -> str:
+        r = round(float(v) * 100, 1)
+        return f"rose {abs(r):.1f}%" if r > 0 else f"fell {abs(r):.1f}%" if r < 0 else "was flat"
+    if mtd is not None and pd.notna(mtd):
+        title = f"The book {moved(mtd)} this month"
+        if bench_mtd is not None and pd.notna(bench_mtd):
+            title += f"; the Nifty 500 {moved(bench_mtd)}"
+    else:
+        title = "The book this month"
+    risk = []
+    if n_sell:
+        risk.append(f"{n_sell} holding{'s' if n_sell != 1 else ''} would be sold if the month ended today")
+    if n_watch:
+        risk.append(f"{n_watch} {'is' if n_watch == 1 else 'are'} close to a rule")
+    sub = ("; ".join(risk) if risk else "No holding is close to a rule") + \
+        f"; the next rebalance is {_day(check, weekday=True)}."
+    return title, sub
+
+
 def _at_risk_html(a: pd.DataFrame, rules: Rules) -> str:
     rows = a[a["status"] != UNKNOWN].copy()
     rows["_room"] = [least_room(r, rules) for _, r in rows.iterrows()]
@@ -147,7 +169,9 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     held = a[a["Symbol"].isin(plan.holds)]
     n_watch = int(held["status"].eq(WATCH).sum())
 
-    kit.page_head("Dashboard", answer_line(mtd, bench_mtd, n_watch, len(plan.sells), check))
+    kit.editorial_style()   # the type prototype (owner, 7 Nov): Dashboard and Breadth only
+    _title, _sub = headline_parts(mtd, bench_mtd, n_watch, len(plan.sells), check)
+    kit.headline(f"Dashboard · closes of {as_of:%-d %b %Y}", _title, _sub)
 
     # The market in three questions, under the book's own line (owner, 7 Nov:
     # tipsheet's question pages as the model, from the data the app holds).

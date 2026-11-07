@@ -32,8 +32,9 @@ def sentence(text: str) -> str:
     asides began in lower case). Not str.capitalize(), which would lower
     "200D EMA" and "Nifty"."""
     text = str(text or "")
-    i = next((k for k, ch in enumerate(text) if ch.isalpha()), None)
-    return text if i is None else text[:i] + text[i].upper() + text[i + 1:]
+    # Only when the text starts with a letter: "2 holdings would be sold" keeps
+    # its lower case after the figure.
+    return text[:1].upper() + text[1:] if text[:1].isalpha() else text
 
 
 def page_head(title: str, sub: str, *, actions: bool = False):
@@ -249,3 +250,54 @@ def growth_chart(
         None if not benchmark else [float(v) * 100.0 for v in benchmark],
         names=names, key=f"growth_{key}", fmt="num",
     )
+
+
+# ── Editorial type (prototype, owner 7 Nov) ────────────────────────────────
+# A serif for page titles, question headings, verdicts and headline figures;
+# Plex Sans stays for body text and Plex Mono for dense tables. Called by the
+# pages in the prototype only (Dashboard, Breadth), so the rest of the site is
+# unchanged until the owner has seen it. Source Serif 4 (SIL Open Font
+# Licence), not tipsheet's own face, so the site keeps its own identity.
+EDITORIAL_FONT = ("https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500"
+                  "&display=swap")
+_EDITORIAL_CSS = """<style>
+@import url('""" + EDITORIAL_FONT + """');
+:root{--font-serif:'Source Serif 4','Source Serif Pro',Georgia,'Times New Roman',serif}
+.scr-head h1{font-family:var(--font-serif)!important;font-weight:400!important;font-size:52px!important;
+  line-height:1.06!important;letter-spacing:-0.6px!important;max-width:16em}
+.scr-head p{font-size:17px!important;line-height:1.55!important;max-width:42em;color:var(--c-text_2)!important}
+.scr-kicker{font-size:13px;color:var(--c-muted);margin:0 0 8px}
+body .qp h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:40px!important;
+  line-height:1.1!important;letter-spacing:-0.4px!important;margin-bottom:6px!important}
+body .qp-v{font-family:var(--font-serif);font-weight:400;font-size:36px;letter-spacing:-0.3px}
+body .qp-s{font-size:17px;max-width:38em}
+body .qp h3{font-size:15px!important}
+body .qp li{font-size:15px}
+body .qp td.big{font-family:var(--font-serif);font-size:22px;font-weight:400;line-height:1.1}
+body .qp td.big span.sub{font-family:var(--font-ui);font-size:12px;color:var(--c-muted);line-height:1.45;display:inline-block;margin-top:2px}
+body .mq h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:24px!important;line-height:1.15!important}
+body .mq-v{font-family:var(--font-serif);font-weight:400;font-size:32px;letter-spacing:-0.3px}
+body .mq-s{font-size:15px}
+.pg-card-h h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:24px!important}
+.br-charts-h{font-family:var(--font-serif)!important;font-weight:400!important;font-size:32px!important}
+.rng{position:relative;width:170px;height:14px;display:inline-block;vertical-align:middle}
+.rng i.t{position:absolute;left:0;right:0;top:6px;height:2px;background:var(--c-rule)}
+.rng i.m{position:absolute;top:4px;height:6px;border-radius:3px;background:var(--c-down_tint)}
+.rng i.d{position:absolute;top:1px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--c-ink)}
+.rng i.d.up{background:var(--c-up)}.rng i.d.down{background:var(--c-down)}
+@media (max-width:900px){.scr-head h1{font-size:36px!important}.qp h2{font-size:30px!important}.rng{width:110px}}
+</style>"""
+
+
+def editorial_style() -> None:
+    # @import inside the style: st.html drops <link> elements.
+    st.html(_EDITORIAL_CSS)
+
+
+def headline(kicker: str, title: str, sub: str = "") -> None:
+    """A page that opens with a sentence of news, not a page name: a small
+    kicker ("Dashboard · closes of 6 Nov"), the sentence as the title, then
+    the detail."""
+    st.html(f'<div class="scr-head"><p class="scr-kicker">{html.escape(kicker)}</p>'
+            f'<h1>{html.escape(title)}</h1>'
+            + (f'<p>{html.escape(sentence(sub))}</p>' if sub else "") + "</div>")

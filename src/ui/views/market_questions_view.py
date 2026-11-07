@@ -238,26 +238,57 @@ def _move_words(m: mq.Measure, side: str) -> str:
     return "falling below" if m.vote == mq.UP else "falling to"
 
 
+def _range_html(m: mq.Measure) -> str:
+    h = m.history
+    if not h or m.now is None:
+        return '<span class="qp-note">Under a year of history</span>'
+    lo, q1, q3, hi, _pct, _since = h
+    span = (hi - lo) or 1.0
+    x = lambda v: max(0.0, min(100.0, (v - lo) / span * 100))  # noqa: E731
+    return (f'<span class="rng" title="Lowest {_num(lo, m.unit)}, highest {_num(hi, m.unit)}; '
+            f'the shaded part is the middle half"><i class="t"></i>'
+            f'<i class="m" style="left:{x(q1):.1f}%;width:{max(1.0, x(q3) - x(q1)):.1f}%"></i>'
+            f'<i class="d {m.vote}" style="left:{x(m.now):.1f}%"></i></span>')
+
+
+def _ordinal(n: float) -> str:
+    k = int(round(n))
+    suf = "th" if 10 <= k % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(k % 10, "th")
+    return f"{k}{suf}"
+
+
 def question_section_html(a: mq.Answer, kind: str, anchor: str) -> str:
     words = _VOTE_WORD[kind]
-    rows = "".join(
-        f'<tr><td>{html.escape(m.name)}{"<span class=qp-tag>primary</span>" if m.primary else ""}</td>'
-        f'<td class="rule">{html.escape(m.rule)}</td>'
-        f'<td>{_num(m.year_ago, m.unit)}</td><td>{_num(m.month_ago, m.unit)}</td>'
-        f'<td>{_num(m.now, m.unit)}</td><td class="{m.vote}">{words[m.vote]}</td></tr>'
-        for m in a.measures)
+    rows = []
+    for m in a.measures:
+        sub = []
+        if m.history:
+            since = m.history[5]
+            sub.append(f"{_ordinal(m.history[4])} percentile" + (f" since {since:%b %Y}" if since is not None else ""))
+        sub.append(f"A year ago {_num(m.year_ago, m.unit)}")
+        rows.append(
+            f'<tr><td>{html.escape(m.name)}<br><span class="qp-note" style="margin:0">'
+            f'{"Primary. " if m.primary else ""}{html.escape(sentence_case(m.rule))}</span></td>'
+            f'<td style="text-align:center">{_range_html(m)}</td>'
+            f'<td class="big">{_num(m.now, m.unit)}<br><span class="sub">{"<br>".join(sub)}</span></td>'
+            f'<td class="{m.vote}">{words[m.vote]}</td></tr>')
     return (
         f'<section class="qp" aria-labelledby="{anchor}"><h2 id="{anchor}">{html.escape(a.question)}</h2>'
         '<div class="qp-top"><div>'
         f'<p class="qp-v {_tone(a)}">{html.escape(a.verdict)}</p><p class="qp-s">{html.escape(a.sentence)}</p>'
         f'{_scale(a)}</div><div><h3>What has changed</h3>{_changes_html(a, kind)}'
         f'<h3>What would change the answer</h3>{_would_html(a)}</div></div>'
-        '<table><thead><tr><th scope="col">The evidence</th><th scope="col" class="l rule">Cut-offs</th>'
-        '<th scope="col">A year ago</th><th scope="col">A month ago</th><th scope="col">Now</th>'
-        f'<th scope="col">Vote</th></tr></thead><tbody>{rows}</tbody></table>'
-        '<p class="qp-note">Each measure votes by its cut-offs; primary measures count twice. '
-        'The verdict is at an end when the weighted vote is 0.6 or more either way, leaning at 0.25.</p>'
+        '<table><thead><tr><th scope="col">The evidence</th><th scope="col" style="text-align:center">'
+        'Where today sits, lowest to highest</th><th scope="col">Now</th><th scope="col">Vote</th></tr></thead>'
+        f'<tbody>{"".join(rows)}</tbody></table>'
+        '<p class="qp-note">Each measure votes by its cut-offs; primary measures count twice. The bar runs from '
+        'the lowest reading in the price history the site holds to the highest; the shaded part is the middle '
+        'half. The verdict is at an end when the weighted vote is 0.6 or more either way, leaning at 0.25.</p>'
         '</section>')
+
+
+def sentence_case(text: str) -> str:
+    return text[:1].upper() + text[1:] if text else text
 
 
 def size_trend_html(bench: pd.Series, size: dict[str, pd.Series]) -> str:

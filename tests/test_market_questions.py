@@ -124,3 +124,21 @@ def test_industry_months_counts_the_current_run_and_marks_the_month_to_date():
     assert out.loc["Ahead", "run"] == 4          # Jul, Aug, Sep, Oct ahead (June's first close is the base)
     assert out.loc["Behind", "run"] <= -11
     assert out.index[0] == "Ahead"
+
+
+def test_net_new_highs_uses_a_calendar_year_on_sparse_history():
+    # Weekly rows for two years, then daily: a 252-row window would span
+    # years in the weekly part; a 365-day window does not.
+    weekly = pd.date_range("2022-01-07", "2024-01-05", freq="W-FRI")
+    daily = pd.bdate_range("2024-01-08", "2025-06-30")
+    idx = weekly.append(daily)
+    rising = pd.Series(np.linspace(100, 300, len(idx)), index=idx)
+    prices = pd.DataFrame({f"S{i}": rising for i in range(10)})
+    nnh = mq._net_new_highs(prices)
+    assert nnh.loc["2023-06-02"] == pytest.approx(500.0)      # 10 new highs a row, summed over 5 rows, / 10 stocks
+    assert nnh.dropna().index[0] < pd.Timestamp("2023-02-01")  # readings start a year in, not years in
+
+
+def test_a_reading_needs_enough_stocks():
+    counts = pd.Series([30, 60, 400, 750])
+    assert mq._enough(counts).tolist() == [False, False, True, True]
