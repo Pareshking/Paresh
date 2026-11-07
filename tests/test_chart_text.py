@@ -81,14 +81,14 @@ def test_screener_filters_round_trip_through_the_address():
 
     from src.ui.views import ranking_view as rv
     values = {"rank_quick_pills": "Passed Filters", "rank_index_filter": ["N50", "MID150"],
-              "rank_only_passing": True, "rank_density_mode": "Full Quant (35)"}
+              "rank_only_passing": True, "rank_density_mode": "Core (17)"}
     url = {rv._URL_KEYS[k]: rv._to_url(k, v) for k, v in values.items()}
-    assert url == {"view": "pass", "idx": "N50,MID150", "pass": "1", "cols": "full"}
+    assert url == {"view": "pass", "idx": "N50,MID150", "pass": "1", "cols": "core"}
     with mock.patch.object(rv.st, "query_params", url):
         assert {k: rv._from_url(k) for k in values} == values
     # Defaults stay out of the address.
     assert rv._to_url("rank_quick_pills", "All Universe") is None
-    assert rv._to_url("rank_density_mode", "Core (17)") is None
+    assert rv._to_url("rank_density_mode", "Full Quant (35)") is None   # the default (owner, 7 Nov)
 
 
 def test_preformatted_percentages_read_as_figures_in_the_shared_table(monkeypatch):

@@ -236,7 +236,7 @@ an explicit, audited rebuild is requested.
 
 These are different, valid measures and must not be presented as interchangeable:
 
-- **Portfolio value / since-inception return:** the ₹20 lakh starting account
+- **Portfolio value / since-inception return:** the ₹1 crore starting account (₹20 lakh until 7 Nov 2026)
   compounded by the canonical net portfolio-return series, including realized
   results, cash/unallocated capital and modeled trading costs.
 - **Current-book unrealized P&L:** the marked value of positions currently held
@@ -246,7 +246,7 @@ These are different, valid measures and must not be presented as interchangeable
   before that fill, then mark current weights against the latest account equity.
   Cash / realised balance is account equity less current position market value;
   do not reset it to starting capital after sells or pretend each rebalance began
-  with the original ₹20 lakh.
+  with the original ₹1 crore.
 - **Day P&L:** the change in the current held positions between the two marks,
   using unchanged share quantities for that interval.
 - **Monthly return:** a net account-level period return from the canonical

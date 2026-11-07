@@ -54,7 +54,7 @@ BUFFER_HELP = "Counts only stocks that pass both filters, the same count the str
 
 
 def kite_capital() -> int:
-    """The capital the Kite basket is sized on: the reader's, else Portfolio's ₹20 lakh."""
+    """The capital the Kite basket is sized on: the reader's, else Portfolio's ₹1 crore."""
     return resolve(KITE_CAPITAL_KEY, int(MODEL_BOOK_CAPITAL), lo=KITE_MIN_CAPITAL, hi=KITE_MAX_CAPITAL)
 
 

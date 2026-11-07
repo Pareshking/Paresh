@@ -219,6 +219,21 @@ def build_portfolio_tracker(
     if fill_px.notna().any():
         base = _capital_before_fill(fill)
         size_px = fill_px.where(fill_px.notna(), out["Entry Price"])
+        # The curve holds month-ends, so `base` is the account before the last
+        # close of the old book and before the fill's trading costs. Sized on
+        # it, the book held more than the ledger's account (at ₹1 crore, cash
+        # read -₹34,041; at ₹20 lakh, rounding down to whole shares hid it).
+        # The account at the fill is today's ledger value over the book's
+        # growth since the fill at its target weights.
+        w = out["Target Weight %"] / 100.0
+        now_px = out["Current Price"]
+        ok = size_px.gt(0) & now_px.gt(0)
+        # Only when the curve's last point is today's value (after the fill).
+        if (not curve.empty and curve.index[-1] >= fill and ok.all()
+                and 0 < w.sum() <= 1.0 + 1e-9):
+            growth = float((w * now_px / size_px).sum()) + (1.0 - float(w.sum()))
+            if growth > 0:
+                base = float(curve.iloc[-1]) / growth
         out["Shares"] = (
             (base * out["Target Weight %"] / 100.0) / size_px.replace(0, np.nan)
         ).fillna(0.0).apply(np.floor).astype(int)
@@ -496,7 +511,7 @@ def _daily_with_live(history: dict, table: pd.DataFrame, prices: pd.DataFrame | 
 
 
 def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
-    """Render the canonical ₹20 lakh model portfolio as a portfolio dashboard.
+    """Render the canonical ₹1 crore model portfolio as a portfolio dashboard.
 
     It takes no Configuration limits: the book is the track record's, run on
     its pinned settings (TRACK_RECORD_CONFIG), whatever the sliders say.

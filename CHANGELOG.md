@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-07 — Portfolio: a ₹1 crore model book
+
+- The model book on Portfolio now starts at ₹1 crore instead of ₹20 lakh (owner, 7 Nov). Every return is unchanged (since inception +41.4%, November +2.3%); rupee figures are five times larger and share counts are whole shares of the larger book. The Kite basket on Actions starts at the same ₹1 crore.
+- Fixed: Portfolio sized the current book on the account at the month-end before the fill, not at the fill, which left out the old book's last day and the fill's trading costs. At ₹1 crore that read as cash of −₹34,041; at ₹20 lakh, rounding down to whole shares hid it. The book is now sized on the account at the fill (today's ledger value over the book's growth since the fill), so cash is only the rounding left over: ₹19,065.
+
+## 2026-11-07 — Screener opens on Full Quant
+
+- The Screener's Columns control now starts on Full Quant (every column) on desktop and phone, instead of Core. On a phone the table keeps Rank and Symbol fixed and scrolls sideways. Executive and Core are one tap away; a link with `cols=core` or `cols=exec` still opens those.
+
 ## 2026-11-07 — Chart pages load faster
 
 - Every chart frame used to carry its own copy of the chart library, 0.2 to 0.5 MB each, never cached. The libraries are now served once from the app (`static/`) and cached by the browser, with a pinned copy from jsDelivr if that address does not load (audit F60).
