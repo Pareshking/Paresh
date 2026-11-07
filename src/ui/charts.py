@@ -143,7 +143,7 @@ def _build_rrg_html(data_json: str) -> str:
 
     _CSS = """<style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{background:transparent;height:100%;overflow:hidden;font-family:'Geist',system-ui,sans-serif}
+html,body{background:transparent;height:100%;overflow:hidden;font-family:'IBM Plex Sans',system-ui,sans-serif}
 #c{width:100%}
 /* On a phone the chart is drawn wider than the screen and swiped sideways
    (owner, 15 Oct: "larger chart, I will slide the page"). */
@@ -151,15 +151,15 @@ html,body{background:transparent;height:100%;overflow:hidden;font-family:'Geist'
    script below, never by the browser, so reaching the edge cannot turn into
    the browser's swipe-back (it did, in a touch test, with native scrolling). */
 #scroller{width:100%;overflow:hidden;touch-action:pan-y}
-#hint{display:none;font-size:11px;color:#5E6878;text-align:center;padding:2px 0 0}
+#hint{display:none;font-size:11px;color:#5F5F5B;text-align:center;padding:2px 0 0}
 body.wide #hint{display:block}
 #controls{display:flex;gap:8px;align-items:center;justify-content:center;padding:6px 4px 2px;flex-wrap:wrap}
-.ctrl-btn{background:#F1F3F6;border:1px solid #E3E6EB;border-radius:6px;padding:4px 14px;font-size:12px;
-  cursor:pointer;color:#3C4657;font-family:inherit}
-.ctrl-btn:hover{background:#E3E6EB}
-.ctrl-btn.active{background:#4F46E5;color:#fff;border-color:#4F46E5}
-#scrub{width:180px;accent-color:#4F46E5;cursor:pointer}
-#frame-lbl{font-size:12px;color:#5E6878;font-family:'Geist Mono',monospace;min-width:58px;text-align:center}
+.ctrl-btn{background:#F2F2EF;border:1px solid #E6E6E3;border-radius:6px;padding:4px 14px;font-size:12px;
+  cursor:pointer;color:#3A3A37;font-family:inherit}
+.ctrl-btn:hover{background:#E6E6E3}
+.ctrl-btn.active{background:#1C1B19;color:#fff;border-color:#1C1B19}
+#scrub{width:180px;accent-color:#1C1B19;cursor:pointer}
+#frame-lbl{font-size:12px;color:#5F5F5B;font-family:'IBM Plex Mono',monospace;min-width:58px;text-align:center}
 </style>"""
     _BODY = """<div id="scroller"><div id="c"></div></div>
 <div id="hint">&#8592; swipe the chart to see every quadrant &#8594;</div>
@@ -184,9 +184,9 @@ let frame = maxFrames - 1, playing = false, playTimer = null, selected = null;
 const btnPlay = document.getElementById('btn-play'), scrub = document.getElementById('scrub'), lbl = document.getElementById('frame-lbl');
 scrub.max = maxFrames - 1; scrub.value = maxFrames - 1;
 const QUADS = [
-  {n:'Improving', x0:minX, x1:100, y0:100, y1:maxY, c:'rgba(79,70,229,.07)', t:'#4F46E5', ax:'left', ay:'top'},
-  {n:'Leading',   x0:100, x1:maxX, y0:100, y1:maxY, c:'rgba(6,118,71,.08)',  t:'#067647', ax:'right', ay:'top'},
-  {n:'Lagging',   x0:minX, x1:100, y0:minY, y1:100, c:'rgba(180,35,24,.07)', t:'#B42318', ax:'left', ay:'bottom'},
+  {n:'Improving', x0:minX, x1:100, y0:100, y1:maxY, c:'rgba(79,70,229,.07)', t:'#1C1B19', ax:'left', ay:'top'},
+  {n:'Leading',   x0:100, x1:maxX, y0:100, y1:maxY, c:'rgba(6,118,71,.08)',  t:'#1D5FA6', ax:'right', ay:'top'},
+  {n:'Lagging',   x0:minX, x1:100, y0:minY, y1:100, c:'rgba(180,35,24,.07)', t:'#A4441A', ax:'left', ay:'bottom'},
   {n:'Weakening', x0:100, x1:maxX, y0:minY, y1:100, c:'rgba(181,71,8,.08)',  t:'#B54708', ax:'right', ay:'bottom'}];
 function pts(s, f){
   const n = s.trail_r.length;
@@ -233,15 +233,15 @@ function build(){
   chart = Highcharts.chart('c', {
     // No zoom or pan: a finger drag must scroll the page or the swipe strip,
     // not zoom the chart (a phone swipe showed "Reset zoom", 15 Oct).
-    chart:{height:h, width:w, backgroundColor:'transparent', style:{fontFamily:"Geist,system-ui,sans-serif"}, animation:false, spacing:[8,8,4,4],
+    chart:{height:h, width:w, backgroundColor:'transparent', style:{fontFamily:"IBM Plex Sans,system-ui,sans-serif"}, animation:false, spacing:[8,8,4,4],
       zooming:{type:undefined, pinchType:undefined, singleTouch:false, mouseWheel:{enabled:false}}, panning:{enabled:false},
       events:{render:function(){quadrants(this);}}},
     credits:{enabled:false}, accessibility:{enabled:false}, title:{text:null}, legend:{enabled:false}, exporting:{enabled:false},
-    xAxis:{min:minX, max:maxX, startOnTick:false, endOnTick:false, gridLineWidth:0, lineColor:'#E3E6EB', tickColor:'#E3E6EB',
-      title:{text:'RS →', style:{color:'#5E6878', fontSize:'12px'}}, labels:{style:{color:'#5E6878', fontSize:'12px'}},
-      plotLines:[{value:100, color:'#0E1726', width:1, zIndex:3}]},
-    yAxis:{min:minY, max:maxY, startOnTick:false, endOnTick:false, gridLineWidth:0, title:{text:'↑ Momentum', style:{color:'#5E6878', fontSize:'12px'}},
-      labels:{style:{color:'#5E6878', fontSize:'12px'}}, plotLines:[{value:100, color:'#0E1726', width:1, zIndex:3}]},
+    xAxis:{min:minX, max:maxX, startOnTick:false, endOnTick:false, gridLineWidth:0, lineColor:'#E6E6E3', tickColor:'#E6E6E3',
+      title:{text:'RS →', style:{color:'#5F5F5B', fontSize:'12px'}}, labels:{style:{color:'#5F5F5B', fontSize:'12px'}},
+      plotLines:[{value:100, color:'#1C1B19', width:1, zIndex:3}]},
+    yAxis:{min:minY, max:maxY, startOnTick:false, endOnTick:false, gridLineWidth:0, title:{text:'↑ Momentum', style:{color:'#5F5F5B', fontSize:'12px'}},
+      labels:{style:{color:'#5F5F5B', fontSize:'12px'}}, plotLines:[{value:100, color:'#1C1B19', width:1, zIndex:3}]},
     tooltip:{useHTML:true, outside:false, followTouchMove:false, backgroundColor:'rgba(15,23,42,.94)', borderWidth:0, shadow:false, style:{color:'#fff', fontSize:'12px'},
       formatter:function(){
         const s=this.series.options.custom.s;
@@ -316,9 +316,9 @@ def render_rrg_chart(
         return
 
     VIBRANT_PALETTE = [
-        "#ec4899", "#2563eb", "#067647", "#0891b2", "#8b5cf6",
-        "#B54708", "#B42318", "#067647", "#ea580c", "#6366f1",
-        "#0284c7", "#9333ea", "#5E6878",
+        "#ec4899", "#1D5FA6", "#1D5FA6", "#0891b2", "#8b5cf6",
+        "#B54708", "#A4441A", "#1D5FA6", "#ea580c", "#6366f1",
+        "#5F5F5B", "#9333ea", "#5F5F5B",
     ]
 
     sectors_data = []
@@ -374,19 +374,19 @@ def render_correlation_heatmap(corr: pd.DataFrame, syms: list[str]) -> None:
     height = min(720, 90 + 26 * n)
     page = (
         "<!DOCTYPE html><html><head><meta charset='utf-8'><style>*{box-sizing:border-box;margin:0}"
-        "html,body{background:transparent;font-family:'Geist',system-ui,sans-serif}</style></head>"
+        "html,body{background:transparent;font-family:'IBM Plex Sans',system-ui,sans-serif}</style></head>"
         "<body><div id='c' style='width:100%;height:" + str(height) + "px'></div><script>"
         + lib("highcharts-heatmap.js") + "</script><script>(function(){"
         "const syms=" + script_json(syms) + ", data=" + script_json(data) + ";"
         "const wide=document.getElementById('c').clientWidth/syms.length>=30;"
         "Highcharts.chart('c',{chart:{type:'heatmap',backgroundColor:'transparent',spacing:[4,4,4,4],"
-        "style:{fontFamily:'Geist,system-ui,sans-serif'},animation:false},"
+        "style:{fontFamily:'IBM Plex Sans,system-ui,sans-serif'},animation:false},"
         "credits:{enabled:false},accessibility:{enabled:false},title:{text:null},legend:{enabled:true,"
-        "align:'right',layout:'vertical',verticalAlign:'middle',symbolHeight:150,itemStyle:{color:'#5E6878',fontSize:'11px'}},"
+        "align:'right',layout:'vertical',verticalAlign:'middle',symbolHeight:150,itemStyle:{color:'#5F5F5B',fontSize:'11px'}},"
         "exporting:{enabled:false},"
-        "xAxis:{categories:syms,opposite:true,labels:{rotation:-60,style:{color:'#3C4657',fontSize:'11px'}},lineWidth:0,tickLength:0},"
-        "yAxis:{categories:syms,reversed:true,title:{text:null},labels:{style:{color:'#3C4657',fontSize:'11px'}},gridLineWidth:0},"
-        "colorAxis:{min:-0.2,max:1,startOnTick:false,endOnTick:false,tickPositions:[0,0.25,0.5,0.75,1],labels:{format:'{value:.2f}',style:{color:'#5E6878',fontSize:'11px'}},stops:[[0,'#F4F5F8'],[0.17,'#FFFFFF'],[0.6,'#A5A0F0'],[1,'#4338CA']]},"
+        "xAxis:{categories:syms,opposite:true,labels:{rotation:-60,style:{color:'#3A3A37',fontSize:'11px'}},lineWidth:0,tickLength:0},"
+        "yAxis:{categories:syms,reversed:true,title:{text:null},labels:{style:{color:'#3A3A37',fontSize:'11px'}},gridLineWidth:0},"
+        "colorAxis:{min:-0.2,max:1,startOnTick:false,endOnTick:false,tickPositions:[0,0.25,0.5,0.75,1],labels:{format:'{value:.2f}',style:{color:'#5F5F5B',fontSize:'11px'}},stops:[[0,'#F7F7F5'],[0.17,'#FFFFFF'],[0.6,'#A5A0F0'],[1,'#1C1B19']]},"
         "tooltip:{useHTML:true,backgroundColor:'rgba(15,23,42,.94)',borderWidth:0,shadow:false,style:{color:'#fff',fontSize:'12px'},"
         "formatter:function(){const s=this.series.xAxis.categories,t=this.series.yAxis.categories;"
         "const e=v=>String(v).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));"
@@ -420,24 +420,24 @@ def render_industry_map(board: pd.DataFrame, x_col: str = "3M Return",
         return
     page = (
         "<!DOCTYPE html><html><head><meta charset='utf-8'><style>*{box-sizing:border-box;margin:0}"
-        "html,body{background:transparent;font-family:'Geist',system-ui,sans-serif}</style></head>"
+        "html,body{background:transparent;font-family:'IBM Plex Sans',system-ui,sans-serif}</style></head>"
         "<body><div id='c' style='width:100%;height:420px'></div><script>"
         + lib("highcharts-more.js") + "</script><script>(function(){"
         "const rows=" + script_json(rows) + ";"
         "const e=v=>String(v).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));"
-        "const xmax=Math.max.apply(null,rows.map(r=>r.x));const ymax=Math.min(100,Math.max(10,Math.ceil(Math.max.apply(null,rows.map(r=>r.y))*1.15/10)*10));const top5=new Set(rows.slice().sort((a,b)=>b.x-a.x).slice(0,5).map(r=>r.name));const col=r=>r.x>=0?'#067647':'#B42318';"
+        "const xmax=Math.max.apply(null,rows.map(r=>r.x));const ymax=Math.min(100,Math.max(10,Math.ceil(Math.max.apply(null,rows.map(r=>r.y))*1.15/10)*10));const top5=new Set(rows.slice().sort((a,b)=>b.x-a.x).slice(0,5).map(r=>r.name));const col=r=>r.x>=0?'#1D5FA6':'#A4441A';"
         "Highcharts.chart('c',{chart:{type:'bubble',backgroundColor:'transparent',animation:false,spacing:[8,12,4,4],"
-        "style:{fontFamily:'Geist,system-ui,sans-serif'},zooming:{type:null}},"
+        "style:{fontFamily:'IBM Plex Sans,system-ui,sans-serif'},zooming:{type:null}},"
         "credits:{enabled:false},accessibility:{enabled:false},title:{text:null},legend:{enabled:false},exporting:{enabled:false},"
-        "xAxis:{maxPadding:0.06,title:{text:" + script_json(x_label + " \u2192") + ",style:{color:'#5E6878',fontSize:'12px'}},gridLineWidth:0,"
-        "labels:{format:'{value}%',style:{color:'#5E6878',fontSize:'12px'}},plotLines:[{value:0,color:'#98A1AE',width:1,dashStyle:'Dash'}]},"
-        "yAxis:{title:{text:'\\u2191 Share passing both filters',style:{color:'#5E6878',fontSize:'12px'}},min:0,max:ymax,endOnTick:false,tickInterval:ymax>60?20:10,gridLineColor:'#EDEFF3',"
-        "labels:{format:'{value}%',style:{color:'#5E6878',fontSize:'12px'}}},"
+        "xAxis:{maxPadding:0.06,title:{text:" + script_json(x_label + " \u2192") + ",style:{color:'#5F5F5B',fontSize:'12px'}},gridLineWidth:0,"
+        "labels:{format:'{value}%',style:{color:'#5F5F5B',fontSize:'12px'}},plotLines:[{value:0,color:'#8A8A85',width:1,dashStyle:'Dash'}]},"
+        "yAxis:{title:{text:'\\u2191 Share passing both filters',style:{color:'#5F5F5B',fontSize:'12px'}},min:0,max:ymax,endOnTick:false,tickInterval:ymax>60?20:10,gridLineColor:'#EEEEEB',"
+        "labels:{format:'{value}%',style:{color:'#5F5F5B',fontSize:'12px'}}},"
         "tooltip:{useHTML:true,backgroundColor:'rgba(15,23,42,.94)',borderWidth:0,shadow:false,style:{color:'#fff',fontSize:'12px'},"
         "formatter:function(){const p=this.point;return '<b>'+e(p.name)+'</b><br>" + x_tip + " <b>'+(p.x>0?'+':'')+p.x.toFixed(1)+'%</b>"
         "<br>Passing both <b>'+p.y.toFixed(0)+'%</b><br>'+p.z+' stocks \\u00b7 '+p.top50+' in the top 50';}},"
         "plotOptions:{bubble:{fillOpacity:0.62,minSize:10,maxSize:46,animation:false,marker:{lineWidth:1,lineColor:'#fff'},"
-        "dataLabels:{enabled:true,allowOverlap:false,crop:false,overflow:'allow',style:{fontSize:'11px',fontWeight:'600',color:'#3C4657',textOutline:'2px #fff'},"
+        "dataLabels:{enabled:true,allowOverlap:false,crop:false,overflow:'allow',style:{fontSize:'11px',fontWeight:'600',color:'#3A3A37',textOutline:'2px #fff'},"
         "formatter:function(){return e(this.point.name);}}}},"
         "series:[{data:rows.map(r=>({name:r.name,x:r.x,y:r.y,z:r.z,top50:r.top50,color:col(r),labelrank:(top5.has(r.name)?1e6:0)+(r.x>=0?1000:0)+r.z,dataLabels:{allowOverlap:top5.has(r.name),align:(r.x>=(xmax*0.7)?'right':'center'),x:(r.x>=(xmax*0.7)?-14:0)}}))}]});"
         "})();</script></body></html>"
@@ -476,25 +476,25 @@ const xmin=Math.min(-1,Math.floor(Math.min.apply(null,xs)-0.5)), xmax=Math.max(1
 const xspan=xmax-xmin, xtick=xspan>40?10:xspan>20?5:xspan>8?2:1;
 const series=rows.map(r=>({name:r.name,id:r.name,color:col(r),row:r,
   data:[{x:r.x0,y:r.y0,marker:{fillColor:'#FFFFFF',lineColor:col(r),lineWidth:2,radius:5,symbol:'circle'},dataLabels:{enabled:false}},
-        {x:r.x1,y:r.y1,marker:{fillColor:col(r),lineColor:'#3C4657',lineWidth:1,radius:6,symbol:'circle'}}]}));
+        {x:r.x1,y:r.y1,marker:{fillColor:col(r),lineColor:'#3A3A37',lineWidth:1,radius:6,symbol:'circle'}}]}));
 function paint(chart){
   chart.series.forEach(s=>{const on=!focus||s.name===focus,me=focus&&s.name===focus;
     const c=col(s.options.row);
     s.update({opacity:on?1:0.12,lineWidth:me?3:1.6,zIndex:me?10:1,color:c,
       data:s.options.data.map((p,i)=>Object.assign({},p,{marker:Object.assign({},p.marker,i===0?{lineColor:c}:{fillColor:c})})),
-      dataLabels:{enabled:on,style:{fontWeight:me?'700':'600',color:'#1F2937'}}},false);});
+      dataLabels:{enabled:on,style:{fontWeight:me?'700':'600',color:'#2B2A27'}}},false);});
   chart.redraw(false);
   const tag=document.getElementById('pin');tag.textContent=focus?'Showing '+focus+' · tap it again to show all':'Tap a sector to pick it out';
 }
 const chart=Highcharts.chart('c',{chart:{type:'scatter',backgroundColor:'transparent',animation:false,spacing:[8,12,4,4],
-  style:{fontFamily:'Geist,system-ui,sans-serif'},zooming:{type:'xy'}},
+  style:{fontFamily:'IBM Plex Sans,system-ui,sans-serif'},zooming:{type:'xy'}},
   credits:{enabled:false},accessibility:{enabled:false},title:{text:null},legend:{enabled:false},exporting:{enabled:false},
-  xAxis:{min:xmin,max:xmax,tickInterval:xtick,gridLineWidth:1,gridLineColor:'#F1F2F5',
-    title:{text:months+'-month return vs Nifty 500 →',style:{color:'#5E6878',fontSize:'12px'}},
-    labels:{format:'{value}%',style:{color:'#5E6878',fontSize:'12px'}},plotLines:[{value:0,color:'#98A1AE',width:1,dashStyle:'Dash',zIndex:2}]},
-  yAxis:{min:0,max:100,tickInterval:20,endOnTick:false,gridLineColor:'#EDEFF3',
-    title:{text:'↑ Stocks above their '+span+'-day EMA',style:{color:'#5E6878',fontSize:'12px'}},
-    labels:{format:'{value}%',style:{color:'#5E6878',fontSize:'12px'}},plotLines:[{value:50,color:'#98A1AE',width:1,dashStyle:'Dash',zIndex:2}]},
+  xAxis:{min:xmin,max:xmax,tickInterval:xtick,gridLineWidth:1,gridLineColor:'#F2F2EF',
+    title:{text:months+'-month return vs Nifty 500 →',style:{color:'#5F5F5B',fontSize:'12px'}},
+    labels:{format:'{value}%',style:{color:'#5F5F5B',fontSize:'12px'}},plotLines:[{value:0,color:'#8A8A85',width:1,dashStyle:'Dash',zIndex:2}]},
+  yAxis:{min:0,max:100,tickInterval:20,endOnTick:false,gridLineColor:'#EEEEEB',
+    title:{text:'↑ Stocks above their '+span+'-day EMA',style:{color:'#5F5F5B',fontSize:'12px'}},
+    labels:{format:'{value}%',style:{color:'#5F5F5B',fontSize:'12px'}},plotLines:[{value:50,color:'#8A8A85',width:1,dashStyle:'Dash',zIndex:2}]},
   tooltip:{useHTML:true,backgroundColor:'rgba(15,23,42,.94)',borderWidth:0,shadow:false,style:{color:'#fff',fontSize:'12px'},
     formatter:function(){const r=this.series.options.row;
       return '<b>'+e(r.full)+'</b> · '+r.stocks+' stocks<br>'+
@@ -505,7 +505,7 @@ const chart=Highcharts.chart('c',{chart:{type:'scatter',backgroundColor:'transpa
   plotOptions:{series:{animation:false,dashStyle:'ShortDash',lineWidth:1.5,marker:{enabled:true},stickyTracking:false,findNearestPointBy:'xy',
     states:{hover:{lineWidthPlus:1.5},inactive:{opacity:0.18}},cursor:'pointer',
     dataLabels:{enabled:true,allowOverlap:false,crop:false,overflow:'allow',x:6,align:'left',verticalAlign:'middle',
-      style:{fontSize:'11px',fontWeight:'600',color:'#3C4657',textOutline:'2px #fff'},formatter:function(){return e(this.series.name);}},
+      style:{fontSize:'11px',fontWeight:'600',color:'#3A3A37',textOutline:'2px #fff'},formatter:function(){return e(this.series.name);}},
     point:{events:{click:function(){focus=focus===this.series.name?null:this.series.name;paint(this.series.chart);}}}}},
   series:series});
 paint(chart);
@@ -542,8 +542,8 @@ def render_leadership_map(board: pd.DataFrame, span: int, focus: str | None = No
           .replace("__FOCUS__", script_json(short.get(focus, focus) if focus else None)))
     page = (
         "<!DOCTYPE html><html><head><meta charset='utf-8'><style>*{box-sizing:border-box;margin:0}"
-        "html,body{background:transparent;font-family:'Geist',system-ui,sans-serif}"
-        "#pin{font-size:12px;color:#5E6878;padding:2px 4px 6px}</style></head>"
+        "html,body{background:transparent;font-family:'IBM Plex Sans',system-ui,sans-serif}"
+        "#pin{font-size:12px;color:#5F5F5B;padding:2px 4px 6px}</style></head>"
         "<body><div id='pin'></div><div id='c' style='width:100%;height:500px'></div><script>"
         + lib() + "</script><script>" + js + "</script></body></html>"
     )

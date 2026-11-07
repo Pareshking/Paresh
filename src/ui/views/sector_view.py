@@ -208,7 +208,7 @@ def leadership_table_html(board: pd.DataFrame, span: int) -> str:
            "tbody tr:hover td{cursor:default}"
            ".dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;"
            "border:1px solid rgba(14,23,38,.25);vertical-align:0}"
-           "td .pc{display:inline-block;min-width:38px;margin-left:8px;color:#5E6878;font-weight:500}"
+           "td .pc{display:inline-block;min-width:38px;margin-left:8px;color:#5F5F5B;font-weight:500}"
            ".nm-short{display:none}"
            "@media (max-width:640px){td .pc{display:none}.nm-full{display:none}.nm-short{display:inline}"
            "th,td{padding:0 6px}td{font-size:12.5px}th:nth-child(1),td.c-rank{width:26px;min-width:26px}"
@@ -217,8 +217,8 @@ def leadership_table_html(board: pd.DataFrame, span: int) -> str:
            "td.c-stock .sym{display:block;max-width:104px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"
            "thead th .ar{display:none}}")
     return ("<!DOCTYPE html><html><head><meta charset='utf-8'>"
-            "<link href='https://fonts.googleapis.com/css2?family=Geist:wght@400..700&"
-            "family=Geist+Mono:wght@400..700&display=swap' rel='stylesheet'>"
+            "<link href='https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&"
+            "family=IBM+Plex+Mono:wght@400;500;600&display=swap' rel='stylesheet'>"
             f"<style>{css}</style></head><body><div class='wrap'><table>"
             f"<thead>{groups}<tr class=\"hdr\">{head}</tr></thead><tbody>{''.join(rows)}</tbody>"
             f"</table></div><script>const SYS='';{TABLE_JS}</script></body></html>")

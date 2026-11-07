@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-07 — New look: Paper B · Ledger, white ground
+
+- The owner chose "Paper B · Ledger" on a white ground. Every page now uses IBM Plex Sans, with IBM Plex Mono for figures, ink on white, and neutral greys with no warm tint.
+- Up is blue and down is rust, always with + or −. Selection and the active page are ink, so blue only ever means up. The old green, red and indigo are gone everywhere they were used, including charts.
+- Cards are thin rules, not boxes: no shadows, square corners, chips at 4px. The Screener table drops its zebra stripes and its rows are 36px on desktop (44px on a phone, for touch).
+- The dashboard home page is designed but not built yet.
+
 ## 2026-11-07 — Five figures that disagreed or misled, corrected
 
 - Actions, Hold: the order was right but looked wrong (PVRINOX above LAURUSLABS though its EMA cushion is larger). Holds are ordered by the least room on any rule, with a full rank buffer of 40 places counted as a 20% fall, as the bars are drawn; PVRINOX's 24 places count as 12.0%, under LAURUSLABS's 12.6%. Every row now names its nearest rule ("rank buffer · 24 places") instead of "clear of all three", and a caption states the scale.

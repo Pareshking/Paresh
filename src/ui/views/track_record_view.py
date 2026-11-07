@@ -165,7 +165,7 @@ def month_cards_html(months: dict, mtd_period, mtd_val, mtd_bench) -> str:
         )
     if mtd_period is not None and mtd_val is not None:
         cards.append(
-            f'<div class="mo live"><span class="mo-h" style="color:#3730A3">{mtd_period.strftime("%b %Y")} · so far</span>'
+            f'<div class="mo live"><span class="mo-h" style="color:#1C1B19">{mtd_period.strftime("%b %Y")} · so far</span>'
             f'<span class="mo-v {_tone(mtd_val)}">{_pct(mtd_val).replace("-", "−")}</span>'
             f'<span class="mo-s">Nifty 500 {_pct(mtd_bench).replace("-", "−")} · moves every session until the month closes</span></div>'
         )
