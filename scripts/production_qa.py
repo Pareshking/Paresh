@@ -279,6 +279,30 @@ def read_revision(page, wait_s: int = 0) -> tuple[str | None, str]:
     return rev, "ok"
 
 
+NAV_WAIT_S = 20.0
+_NAV_CONTROLS = ('[data-testid="stPageLink"], [data-testid="stTopNavLink"], '
+                 '[data-testid="stSidebarNavLink"], [data-testid="stPopover"] button')
+
+
+def wait_for_navigation(page, frame, budget_s: float = NAV_WAIT_S):
+    """The app frame once it shows a navigation control, or the last frame seen.
+
+    Re-acquires the frame on each poll: after a page change Community Cloud can
+    replace the app's iframe, and a stale handle reads an empty document.
+    """
+    deadline = time.perf_counter() + budget_s
+    while True:
+        try:
+            frame = app_frame(page)
+            if frame.locator(_NAV_CONTROLS).count() > 0:
+                return frame
+        except Exception:
+            pass
+        if time.perf_counter() >= deadline:
+            return frame
+        page.wait_for_timeout(500)
+
+
 def app_frame(page):
     """Return the frame that actually hosts the Streamlit app.
 
@@ -1219,6 +1243,14 @@ def main() -> None:
                         # Reachability, not re-rendering. `missing_pages` opens
                         # the overflow dropdowns before concluding anything, so
                         # a page collapsed into one counts as present.
+                        # The previous viewport's walk ends on a navigation, so
+                        # the app frame can still be reloading here: on
+                        # 2026-11-07 (run 42395732641) 1024x768 and 375x812
+                        # read zero links in 0.0s and reported all eleven pages
+                        # unreachable, then passed on every later run. Wait for
+                        # the navigation to be drawn first; a frame that never
+                        # draws it still fails below.
+                        frame = wait_for_navigation(page, frame)
                         unreachable = missing_pages(frame, TABS, page)
                         vp["pages_unreachable"] = unreachable
                         if unreachable:
