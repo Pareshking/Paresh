@@ -3,6 +3,7 @@ Reusable UI Components and Widgets for NSE Momentum Dashboard.
 Inspired by Investrack, Stockin.id, and Tickerboom financial terminal designs.
 """
 from src.ui.tokens import C
+from src.ui import page_kit as _kit
 
 import html
 import re
@@ -144,7 +145,7 @@ def _render_yearly_summary(grid: pd.DataFrame, bench_name: str) -> None:
             return '<td class="cr-empty">—</td>'
         number = float(value)
         tone = "positive" if number > 0 else "negative" if number < 0 else "flat"
-        return f'<td class="cr-value {tone}">{number:+.1%}</td>'
+        return f'<td class="cr-value {tone}">{_kit.pct(number)}</td>'
 
     heads = []
     for row in table.itertuples(index=False):
@@ -195,7 +196,8 @@ def _render_calendar_returns(grid: pd.DataFrame) -> None:
         number = float(value)
         tone = "positive" if number > 0 else "negative" if number < 0 else "flat"
         extra = " cr-summary" if summary else ""
-        return f'<td class="cr-value {tone}{extra}">{number:+.1%}</td>'
+        shown = _kit.pct(number)
+        return f'<td class="cr-value {tone}{extra}">{shown}</td>'
 
     blocks = []
     for year, year_df in grid.groupby("YEAR", sort=True):

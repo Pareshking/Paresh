@@ -104,16 +104,29 @@ class Metric:
     help: str | None = None
 
 
-def pct(x: float | None, signed: bool = True) -> str:
-    """A fraction as a percentage for display; an em dash when it is not a
-    finite number. Formatting only: no figure is computed here."""
+def _finite(x) -> float | None:
     try:
         v = float(x)  # type: ignore[arg-type]
     except (TypeError, ValueError):
+        return None
+    return v if math.isfinite(v) else None
+
+
+def signed_number(v: float, digits: int = 1, plus: bool = True) -> str:
+    """Rounded first, then signed with a true minus (U+2212): never "-0.0"."""
+    r = round(v, digits)
+    sign = ("+" if plus else "") if r > 0 else "\u2212" if r < 0 else ""
+    return f"{sign}{abs(r):.{digits}f}"
+
+
+def pct(x: float | None, signed: bool = True) -> str:
+    """A fraction as a percentage for display; an em dash when it is not a
+    finite number. Formatting only: no figure is computed here."""
+    v = _finite(x)
+    if v is None:
         return "\u2014"
-    if not math.isfinite(v):
-        return "\u2014"
-    return f"{v:+.1%}" if signed else f"{v:.1%}"
+    return f"{signed_number(100 * v, plus=signed)}%"
+
 
 
 def metric_tile(m: Metric) -> None:

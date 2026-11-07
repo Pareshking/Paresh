@@ -666,7 +666,8 @@ def _backtest_tab(
             _render_calendar_returns(_grid)
             st.caption(
                 "After costs, from the first fill to the last completed month · CY Jan–Dec, "
-                "FY Apr–Mar · Alpha is strategy minus index each month, compounded per period."
+                "FY Apr–Mar · Alpha is the strategy's return minus the index's over the same period "
+                "(a difference, not compounded)."
             )
 
     # One download (owner, 2026-10-08): the rules this run followed, and every

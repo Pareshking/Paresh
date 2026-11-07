@@ -17,8 +17,10 @@ VIEWS = ROOT / "src" / "ui" / "views"
 
 def test_pct_formats_fractions_and_dashes_non_finite():
     assert kit.pct(0.123) == "+12.3%"
-    assert kit.pct(-0.05) == "-5.0%"
-    assert kit.pct(-0.05, signed=False) == "-5.0%"
+    # True minus (owner, 7 Nov 2026: "every minus is a true minus").
+    assert kit.pct(-0.05) == "\u22125.0%"
+    assert kit.pct(-0.05, signed=False) == "\u22125.0%"
+    assert kit.pct(-0.0004) == "0.0%"  # rounded first: never "-0.0%"
     assert kit.pct(0.05, signed=False) == "5.0%"
     for bad in (None, float("nan"), float("inf"), "x"):
         assert kit.pct(bad) == "—"
