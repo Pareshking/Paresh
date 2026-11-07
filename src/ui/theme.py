@@ -1485,6 +1485,22 @@ def inject_custom_css() -> None:
         .ac-row .down { color: var(--c-down); }
         .ac-why b { font-weight: 600; }
 
+        /* Phone and tablet: the header (brand, date, menu) stays at the top
+           while the page scrolls (audit F32); the market line scrolls away.
+           Sticky goes on the header's own box and on a wrapper Streamlit may
+           put round it, so the parent that bounds it is the page's block. */
+        @media (max-width: 1023px) {
+            .st-key-app_header_shell,
+            [data-testid="stLayoutWrapper"]:has(> .st-key-app_header_shell),
+            [data-testid="stElementContainer"]:has(> .st-key-app_header_shell) {
+                position: sticky !important; top: 0 !important; z-index: 60 !important;
+            }
+            .st-key-app_header_shell { background: var(--c-white) !important; }
+            [data-testid="stPopoverBody"]:has([class*="st-key-navoff_"], [class*="st-key-navon_"]) {
+                max-height: calc(100vh - 80px) !important; overflow-y: auto !important;
+            }
+        }
+
         /* Visible focus everywhere (audit F28): one 2px ink ring for links,
            buttons, tabs, pills, sliders and anything focusable by keyboard. */
         a:focus-visible, button:focus-visible, [role="tab"]:focus-visible,
