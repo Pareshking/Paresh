@@ -18,7 +18,7 @@ Series types: line, area, histogram, baseline (fills above/below zero), candlest
 A histogram with "volume": True sits on its own hidden scale in the bottom fifth of
 the pane; an optional "colors" list colours each bar.
 fmt: pct (value is already in percent, signed), share (percent, unsigned, whole),
-share1 (percent, unsigned, one decimal),
+share1 (percent, unsigned, one decimal), price (₹, two decimals: a share price),
 num, int, rupee. A series may set "range": [lo, hi] to pin the value axis.
 A series may set "abs": True to show magnitudes in the legend (new lows are
 drawn below zero but read as positive counts).
@@ -111,6 +111,8 @@ def _value(v: float, fmt: str | None) -> str:
         return _fmt.pct(v, signed_=False, fraction=False)
     if fmt == "rupee":
         return _fmt.inr(v)
+    if fmt == "price":
+        return _fmt.inr(v, 2)
     if fmt == "int":
         r = round(v)
         return (_fmt.MINUS if r < 0 else "") + _fmt.indian_group(abs(r))
@@ -194,6 +196,7 @@ const fmts={
   num:v=>(v<0?'−':'')+Math.abs(v).toFixed(2),
   int:v=>(Math.round(v)<0?'−':'')+Math.abs(Math.round(v)).toLocaleString('en-IN'),
   rupee:v=>(Math.round(v)<0?'−':'')+'₹'+Math.abs(Math.round(v)).toLocaleString('en-IN'),
+  price:v=>(v<0?'−':'')+'₹'+Math.abs(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}),
   share:v=>v.toFixed(0)+'%',
   share1:v=>v.toFixed(1)+'%',
 };

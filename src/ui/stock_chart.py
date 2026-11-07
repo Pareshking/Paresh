@@ -171,7 +171,7 @@ def build_panes(
                 for r in _candles(idx, o.values, h.values, lo.values, close.values)]
         if not rows:
             raise ChartUnavailable("no candle rows")
-        price = {"name": "Price", "type": "candlestick", "color": INK, "up": UP, "down": DOWN, "fmt": "num",
+        price = {"name": "Price", "type": "candlestick", "color": INK, "up": UP, "down": DOWN, "fmt": "price",
                  "data": rows}
     else:
         rows = _tuples(idx, close.values)
@@ -180,7 +180,7 @@ def build_panes(
         # Dark and heavier than the overlays: the price is the subject. It does not
         # change colour with the session; without an open there is no up or down
         # bar, and a line that switched would assert something the source lacks.
-        price = {"name": "Price", "type": "line", "color": INK, "width": 2, "fmt": "num",
+        price = {"name": "Price", "type": "line", "color": INK, "width": 2, "fmt": "price",
                  "data": rows}
 
     series: list[dict] = [price]
@@ -188,7 +188,7 @@ def build_panes(
         data = _tuples(idx, _align(values).values)
         if data:
             series.append({"name": name, "type": "line", "color": MA_COLOURS.get(name, MUTED),
-                           "width": 1.5, "fmt": "num", "data": data})
+                           "width": 1.5, "fmt": "price", "data": data})
 
     vol_rows = _volume(idx, _align(volume).values, _rising(close, o).values)
     if vol_rows:
