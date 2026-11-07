@@ -60,20 +60,18 @@ def probe(date: str) -> None:
             continue
         if any(k in tag for k in ("name=", "__doPostBack", "onclick")):
             print(re.sub(r"\s+", " ", tag)[:220])
-    form = hidden_fields(arch)
-    names = re.findall(r'<input[^>]*type="(?:submit|button|image)"[^>]*name="([^"]*)"[^>]*value="([^"]*)"', arch, re.I)
-    print("=== submit buttons:", names)
-    form.update({"txtDate": date, "hdnDate": date})
-    btn = next((n for n, v in names if "view" in v.lower()), None)
-    if btn:
-        form[btn] = dict(names)[btn]
-    else:
-        target = re.search(r"__doPostBack\('([^']*)'[^)]*\)[^>]*>\s*View Report", arch)
-        form["__EVENTTARGET"] = target.group(1) if target else ""
-    r = s.post(BASE + "Archive.aspx", data=form, timeout=60)
-    print(f"=== Archive POST {date}: HTTP {r.status_code}, {len(r.text)} bytes, button={btn}")
-    for row in table_rows(r.text, 80):
-        print(" | ".join(row))
+    for name in ("fnVal", "datepicker", "dateFormat"):
+        for m in re.finditer(name, arch):
+            print(f"--- near {name}:", re.sub(r"\s+", " ", arch[max(0, m.start() - 80): m.start() + 300])[:380])
+            break
+    for fmt in (date, "2026-10-31", "31/10/2026"):
+        form = hidden_fields(arch)
+        form.update({"__EVENTTARGET": "btnSubmit1", "__EVENTARGUMENT": "", "hdnDate": fmt, "txtDate": fmt, "hdnFlag": "1"})
+        r = s.post(BASE + "Archive.aspx", data=form, timeout=60)
+        rows = table_rows(r.text, 80)
+        print(f"=== Archive POST hdnDate={fmt}: HTTP {r.status_code}, {len(r.text)} bytes, {len(rows)} rows")
+        for row in rows[:45]:
+            print(" | ".join(row))
 
 
 def main() -> int:
