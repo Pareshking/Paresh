@@ -66,10 +66,8 @@ def render_watchlist_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None 
                          on_change=_remove_picked, label_visibility="collapsed")
 
     if not user_symbols:
-        st.info(
-            "Your watchlist is empty. Type symbols above and save, or open any stock and "
-            "press \"Add to watchlist\"."
-        )
+        kit.empty("Nothing saved yet.",
+                  "Type symbols above and save, or open any stock and press \"Add to watchlist\".")
         return
 
     missing = set(user_symbols) - set(rank_df["Symbol"])
@@ -80,7 +78,7 @@ def render_watchlist_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None 
         kit.note(f"{len(missing)} not found among the {len(rank_df)} ranked stocks:", ", ".join(shown))
 
     if matched.empty:
-        st.info("None of your symbols is in the ranked universe.")
+        kit.empty("None of your symbols is in the ranked universe.")
     else:
         with kit.card("Your stocks", "wl_list"):
             render_screener_table(matched, adj_close, "Core")

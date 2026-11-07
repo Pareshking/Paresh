@@ -301,7 +301,12 @@ def test_the_price_basis_is_in_the_config_fingerprint():
 def test_the_committed_ledger_is_one_basis_one_config_and_says_so():
     led = json.loads((systems.ledger_path("750")).read_text())
     assert led["price_basis"] == "screener_primary"
-    assert {m["config"] for m in led["months"].values()} == {config_fingerprint(**TRACK_RECORD_CONFIG)}
+    # Each month under the configuration that governed it: the forward-dated
+    # members-only scoring rule (from the 30 Nov 2026 signal) is not part of
+    # the months before it.
+    from src.engine.track_record import config_fingerprint_for_month
+    for k, m in led["months"].items():
+        assert m["config"] == config_fingerprint_for_month(TRACK_RECORD_CONFIG, k), k
     strategy = [r for r in led["rebuilds"] if r.get("kind") != "benchmark_correction"]
     assert strategy[-1]["prices"] == "screener_primary"
     assert strategy[-1]["former_members_unpriceable"] == []

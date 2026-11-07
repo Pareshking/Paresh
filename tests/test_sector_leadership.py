@@ -76,7 +76,7 @@ def test_the_worked_example_states_the_sectors_own_numbers_and_direction():
                    "y_now": 13 / 40, "y_then": 14 / 39, "above_now": 13, "obs_now": 40,
                    "above_then": 14, "obs_then": 39})
     text = leadership_explainer(r, "Information Technology", 200)
-    assert "-1.60 − (-4.60) = **+3.00%**" in text
+    assert "−1.60 − (−4.60) = **+3.00%**" in text
     assert "13 of 40 = **32%**" in text and "14 of 39 = 36%" in text
     assert "moved 6.3 points right and 3 points down" in text
     assert "the lead is narrow" in text and "200-day EMA" in text and "160 sessions" in text

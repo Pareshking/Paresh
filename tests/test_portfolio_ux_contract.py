@@ -174,14 +174,20 @@ def test_record_caption_and_correlation_card_wording():
     assert "How they move together" in head and "correlation_note(_corr_mean)" in head
 
 
-def test_header_uses_full_navigation_on_desktop_and_menu_on_narrow_viewports():
+def test_the_menu_button_is_the_only_navigation_on_every_screen():
+    # Owner, 7 Nov 2026: "a hamburger menu only", in the menu's old style.
     components = (ROOT / "src/ui/components.py").read_text(encoding="utf-8")
     theme = THEME.read_text(encoding="utf-8")
-    assert '"Market Breadth", "Backtest", "Configuration", "Guide"' in components
-    assert '[class*="st-key-app_nav_menu_"] { display: none !important; }' in theme
-    assert "@media (max-width: 1100px)" in theme
-    assert ".st-key-app_toplinks { display: none !important; }" in theme
-    assert "padding-right: 60px !important" in theme
+    assert "app_toplinks" not in components and "app_toplinks" not in theme
+    # Owner, 7 Nov 2026 (audit decision 6): four quick links beside the menu on
+    # a desktop, hidden below 1024 px; the menu still lists every page.
+    assert '_QUICK_PAGES = ("Dashboard", "Actions", "Screener", "Portfolio")' in components
+    assert "@media (max-width: 1023px) { .st-key-app_quicklinks { display: none !important; } }" in theme
+    assert 'key=f"app_nav_menu_{_page_slug}"' in components
+    assert '[class*="st-key-app_nav_menu_"] { display: none !important; }' not in theme
+    # Regrouped by the owner on 7 Nov (audit decision 6's second half).
+    for group in ('("My book",', '("Market",', '("Method",'):
+        assert group in components
 
 
 def test_track_record_copy_uses_percent_alpha_and_its_own_start():
@@ -204,11 +210,12 @@ def test_one_word_for_one_thing_across_pages():
     backtest = (views / "backtest_view.py").read_text(encoding="utf-8")
     assert 'kit.Reading("Max drawdown"' in backtest and '"Worst fall"' not in backtest
     assert 'kit.Reading("Ahead of the index"' in backtest
-    assert '"Price Now": "Current Price", "Return %": "P&L %"' in backtest
     assert '["All", "Buy", "Sell", "Hold"]' in backtest and '"🟢 BOUGHT", "🔴 SOLD"' not in backtest
     assert "Portfolio risk" not in backtest and "Filter " not in backtest
     theme = THEME.read_text(encoding="utf-8")
-    assert "🟢 Bought" in theme and "🔴 Sold" in theme and "⚪ Held" in theme
+    # The words are the owner's (12 Oct); the emoji went with audit F46 (7 Nov).
+    assert ">Bought<" in theme and ">Sold<" in theme and ">Held<" in theme
+    assert "🟢 Bought" not in theme and "🔴 Sold" not in theme
     assert "🟢 BUY</span>" not in theme
     assert 'f"NIFTY 500 ' not in PORTFOLIO_VIEW.read_text(encoding="utf-8")
     assert ">NIFTY 500<" not in (ROOT / "src/ui/components.py").read_text(encoding="utf-8")
@@ -220,7 +227,7 @@ def test_one_word_for_one_thing_across_pages():
 def test_backtest_alpha_is_a_percent_like_track_record():
     # Owner, 12 Oct 2026: the Backtest headline alpha reads as Track Record's does.
     source = (ROOT / "src/ui/views/backtest_view.py").read_text(encoding="utf-8")
-    assert "f\"{stats['alpha']:+.1%}\"" in source
+    assert "f\"{_fmt.pct(stats['alpha'])}\"" in source
     assert " pts\"" not in source
 
 

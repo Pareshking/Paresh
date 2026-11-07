@@ -7,6 +7,7 @@ personal use; see src/ui/vendor/HIGHCHARTS_LICENSE.txt.
 """
 from __future__ import annotations
 
+import html
 import json
 from pathlib import Path
 
@@ -28,3 +29,10 @@ def lib(*modules: str) -> str:
 def script_json(obj) -> str:
     # "</" would close the <script> block that carries the data.
     return json.dumps(obj, separators=(",", ":")).replace("</", "<\\/")
+
+
+def text_alternative(text: str) -> str:
+    """The chart in words for a screen reader, hidden from sight (audit F26).
+    The drawing itself is marked aria-hidden by the caller."""
+    return ("<p style='position:absolute;width:1px;height:1px;overflow:hidden;"
+            "clip:rect(0 0 0 0);white-space:nowrap'>" + html.escape(text) + "</p>")

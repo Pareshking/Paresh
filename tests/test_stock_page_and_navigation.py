@@ -117,7 +117,7 @@ def test_screener_row_links_to_the_stock_page():
     rank_df, px = _rank_df()
     html = screener_table.table_html(rank_df, px, "Core (17)")
     sym = rank_df.iloc[0]["Symbol"]
-    assert f'href="?stock={sym}"' in html
+    assert f'href="screener?stock={sym}"' in html
     assert f'<tr data-stock="{sym}">' in html
 
 
@@ -174,7 +174,7 @@ def test_table_symbol_opens_the_stock_page_by_injecting_into_the_host():
     rank_df, px = _rank_df()
     html = screener_table.table_html(rank_df, px, "Full Quant (35)")
     # A real href survives for middle-click and "copy link address"...
-    assert 'href="?stock=' in html
+    assert 'href="screener?stock=' in html
     # ...and the symbol carries the payload the delegated handler reads.
     assert 'data-stock="' in html
     # The handler builds a script IN THE PARENT DOCUMENT and appends it there.

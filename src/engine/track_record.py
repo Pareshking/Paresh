@@ -64,6 +64,11 @@ TRACK_RECORD_CONFIG: dict[str, Any] = {
     "config_weights": [0.10, 0.30, 0.30, 0.20, 0.10],
     "cost_bps": 30.0,
     "buffer_n": 40,
+    # From this signal the model scores the day's index members only, as the
+    # Screener does (owner, 7 Nov 2026; backtester.MEMBERS_ONLY_SCORING_FROM).
+    # A forward-dated rule: months it does not govern keep their fingerprint
+    # (config_fingerprint_for_month), so no frozen month changes regime.
+    "members_only_scoring_from": "2026-11-30",
     # Position and industry caps (owner, 2026-10-02), HARD: no stock above 5%
     # and no NSE industry above 40% of the book at any rebalance. Enforced at
     # selection (at most 8 of 20 names per industry; the rest go to the
@@ -186,6 +191,25 @@ def config_fingerprint(**params: Any) -> str:
     return hashlib.sha256(blob.encode()).hexdigest()[:12]
 
 
+# Rules that start on a signal date. A month governed by an earlier signal was
+# not struck under them, so they are left out of that month's fingerprint.
+FORWARD_DATED_KEYS = ("members_only_scoring_from",)
+
+
+def config_for_month(cfg: dict[str, Any], period) -> dict[str, Any]:
+    """The configuration that governed one calendar month.
+
+    A month is governed by the signal on the last session of the month
+    before, so a rule dated D governs the months that start after D."""
+    start = pd.Period(period, freq="M").start_time.normalize()
+    return {k: v for k, v in cfg.items()
+            if not (k in FORWARD_DATED_KEYS and v and start <= pd.Timestamp(v).normalize())}
+
+
+def config_fingerprint_for_month(cfg: dict[str, Any], period) -> str:
+    return config_fingerprint(**config_for_month(cfg, period))
+
+
 # ── Deriving calendar-month returns ──────────────────────────────────────────
 
 def calendar_month_returns(curve: pd.Series) -> pd.Series:
@@ -249,7 +273,7 @@ def finalize_months(
     ledger: dict[str, Any],
     strategy_curve: pd.Series,
     benchmark_curve: pd.Series,
-    fingerprint: str,
+    fingerprint: Any,
     as_of: pd.Timestamp,
     data_as_of: pd.Timestamp | None = None,
     pit_from: str | None = None,
@@ -316,7 +340,7 @@ def finalize_months(
             "origin": origin,
             "universe": universe,
             "finalized_on": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-            "config": fingerprint,
+            "config": fingerprint(period) if callable(fingerprint) else fingerprint,
             "data_as_of": (
                 pd.Timestamp(data_as_of).strftime("%Y-%m-%d")
                 if data_as_of is not None

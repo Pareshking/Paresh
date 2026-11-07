@@ -139,7 +139,7 @@ def test_ribbon_marks_stale_amber_and_current_green(monkeypatch):
 
     html_out = captured[0]
     assert "#B54708" in html_out   # amber, the stale source
-    assert "#067647" in html_out   # green, the current one
+    assert "#1D5FA6" in html_out   # Ledger blue (owner, 7 Nov), the current one
 
 
 def test_ribbon_says_today_rather_than_zero_days(monkeypatch):

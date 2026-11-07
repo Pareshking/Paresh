@@ -11,9 +11,14 @@ def test_track_record_updater_reports_strategy_and_benchmark_parity():
     assert "missing recomputed data" in source
 
 
-def test_parity_diagnostics_do_not_block_append_only_ledger_updates():
+def test_a_red_parity_refuses_the_freeze_before_anything_is_written():
+    # S92 (owner, 7 Nov 2026): parity was diagnostic only until October 2026 was
+    # struck on a store carrying BSE closes. Now a red comparison refuses a new
+    # month, before save_ledger, except in a deliberate --force rebuild.
     source = Path("scripts/update_track_record.py").read_text(encoding="utf-8")
     audit_section = source.split("# Read-only comparison of both frozen return series.", 1)[1]
-    assert "if not parity" not in audit_section
-    assert 'parity["passed"]' not in audit_section
     assert "ledger, added, skipped = finalize_months(" in audit_section
+    guard = audit_section.index("refusal = freeze_refusal(parity)")
+    assert guard < audit_section.index("save_ledger(ledger, ledger_file)")
+    assert guard < audit_section.index('if args.dry_run:')
+    assert "if refusal and added and not args.force:" in audit_section

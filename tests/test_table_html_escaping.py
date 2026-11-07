@@ -129,13 +129,13 @@ def test_symbol_link_target_is_url_encoded(captured):
     """The href carries the symbol, so it must not be able to grow attributes."""
     html = screener_table.table_html(_screener_row(Symbol='A" onclick="alert(1)'), None, "Full Quant (35)")
     assert "onclick" not in [a for a in _parsed(html).attrs]
-    assert '<a href="?stock=A%22%20onclick%3D%22alert%281%29"' in html
+    assert '<a href="screener?stock=A%22%20onclick%3D%22alert%281%29"' in html
 
 
 def test_ordinary_symbols_still_render_and_link(captured):
     """Escaping must be invisible to the alphanumeric tickers that exist today."""
     html = screener_table.table_html(_screener_row(Symbol="RELIANCE"), None, "Full Quant (35)")
-    assert 'href="?stock=RELIANCE"' in html
+    assert 'href="screener?stock=RELIANCE"' in html
     assert 'data-stock="RELIANCE"' in html
     assert ">RELIANCE</span>" in html
 

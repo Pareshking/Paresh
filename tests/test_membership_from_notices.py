@@ -76,6 +76,12 @@ Mumbai, February 23, 2026
 def test_the_parser_reads_dates_and_the_right_section_only():
     assert pin.issued_on(NOTICE) == date(2026, 2, 23)
     assert pin.effective_dates(NOTICE) == [date(2026, 3, 30)]
+
+
+def test_an_effective_date_without_a_space_after_the_comma_is_read():
+    # ind_prs26082026_1.pdf writes "September 02,2026"; it parsed as no date.
+    text = "effective from September 02,2026 (close of September 01,2026)"
+    assert pin.effective_dates(text)[0] == date(2026, 9, 2)
     assert pin.sections(NOTICE, "Nifty 500") == {
         "excluded": ["AKUMS", "M&M"], "included": ["CPPLUS", "NAM-INDIA"]}
     assert pin.sections(NOTICE, "Nifty 100") == {"excluded": ["HAVELLS"]}
@@ -230,6 +236,12 @@ DEMERGED_EXTRAS = {
     # ind_prs17072026.pdf: DUMMYTRVN in Nifty Total Market from 2026-07-22; listed as
     # TRIVENIPT in NSE's list file of 2026-10-09.
     "TRIVENIPT",
+    # ind_prs26082026_1.pdf: India Glycols' demerger. Ennature Bio Pharma (DUMMYINGL1) and
+    # IGL Spirits (DUMMYINGL2) in Nifty Total Market from 2026-09-02; both listed as ENNATURE
+    # and IGLSPIRITS (series BE) in NSE's list file of 2026-11-04 (owner, 7 Nov: two new
+    # additions). They read as two additions with no removal until NSE's exclusion notice.
+    "ENNATURE",
+    "IGLSPIRITS",
 }
 
 

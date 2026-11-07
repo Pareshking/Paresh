@@ -46,9 +46,9 @@ def test_the_session_wins_over_the_address_once_chosen(fake):
 def test_stock_links_carry_a_non_default_system_only(fake):
     st = fake()
     st.session_state["cfg_system"] = "750"
-    assert sp.stock_href("M&M") == "?stock=M%26M"
+    assert sp.stock_href("M&M") == "screener?stock=M%26M"
     st.session_state["cfg_system"] = "nano"
-    assert sp.stock_href("ABB") == "?stock=ABB&sys=nano"
+    assert sp.stock_href("ABB") == "screener?stock=ABB&sys=nano"
 
 
 def test_sync_and_back_keep_only_the_system(fake):

@@ -117,6 +117,19 @@ def main() -> int:
     if len(nav) < MIN_NAV_LINKS:
         _fail(f"{len(nav)} navigation links, expected at least {MIN_NAV_LINKS}")
 
+    # The first page is the Dashboard since 7 Nov 2026 (owner): check it drew
+    # its book block, then open the Screener by its menu link for the table.
+    html_text = " ".join(str(getattr(e.proto, "body", "")) for e in _elements(at, "html"))
+    print(f"Dashboard drawn: {'Book at risk' in html_text}")
+    if "Book at risk" not in html_text:
+        _fail("the Dashboard (first page) did not draw its Book at risk block")
+    screener = [e for e in nav if e.proto.label == "Screener"]
+    if not screener:
+        _fail("no Screener link in the navigation")
+    at._page_hash = screener[0].proto.page_script_hash
+    at.run(timeout=900)
+    _check_clean(at, "Screener")
+
     # One table now, for desktop and phone: every row of the universe is in
     # it, so column sorting sees all of them.
     frames = _elements(at, "iframe")

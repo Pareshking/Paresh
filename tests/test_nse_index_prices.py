@@ -81,3 +81,19 @@ def test_there_is_no_yahoo_fallback():
     text = Path(mod.__file__).read_text(encoding="utf-8")
     assert "yfinance" not in text and "yf." not in text
     assert not hasattr(mod, "_fetch_yahoo")
+
+
+def test_the_latest_year_is_daily_where_screener_gives_daily_closes():
+    """Screener's ten-year chart is weekly; its 400-day chart daily (7 Nov 2026)."""
+    import pandas as pd
+    from scripts import build_nse_index_prices as mod
+
+    weekly = pd.Series([1.0, 2.0, 3.0, 4.0],
+                       index=pd.to_datetime(["2025-09-05", "2025-09-12", "2026-10-02", "2026-10-09"]))
+    daily = pd.Series([3.0, 3.1, 3.2, 4.0],
+                      index=pd.to_datetime(["2026-10-02", "2026-10-05", "2026-10-06", "2026-10-09"]))
+    merged = mod._merge_daily(weekly, daily)
+    assert list(merged.index.strftime("%Y-%m-%d")) == [
+        "2025-09-05", "2025-09-12", "2026-10-02", "2026-10-05", "2026-10-06", "2026-10-09"]
+    assert merged["2026-10-06"] == 3.2
+    assert mod._merge_daily(weekly, None).equals(weekly)

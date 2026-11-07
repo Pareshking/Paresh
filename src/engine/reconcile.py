@@ -430,3 +430,56 @@ def reconcile(ss: pd.DataFrame, screener: pd.DataFrame | None, nse: pd.DataFrame
         pd.DataFrame(columns=["symbol", "date", "shift", "action"])
     return Reconciled(close=close, votes=votes, rights=rights, drifts=drifts,
                       filled=pd.DataFrame(filled, columns=["date", "symbol", "source"]))
+
+
+# ── Publication guard for Screener's store (S92) ─────────────────────────────
+
+# The most stocks the vote may outvote Screener on, in the window below, before
+# the nightly Screener sync refuses to publish its store. Owner, 7 Nov: approved;
+# threshold set by Claude, owner may change. What it rests on (S89/S92): the
+# nightly reports (ss_sync.yml, 45-day window) outvoted Screener on 4 to 6 stocks
+# on every night from 13 to 24 Oct and on 5 on 6 and 7 Nov (INA, JAYKAY,
+# NATCOPHARM, ...), and on 39 to 53 (DIACABS, SKYGOLD, ...) on every night from
+# 28 Oct to 5 Nov, when the published store carried BSE's closes.
+# Override with the environment variable SCREENER_OUTVOTE_LIMIT (a repository
+# variable of that name reaches screener_sync.yml).
+SCREENER_OUTVOTE_LIMIT = 10
+SCREENER_OUTVOTE_LIMIT_ENV = "SCREENER_OUTVOTE_LIMIT"
+
+
+def outvote_limit(environ: dict | None = None) -> int:
+    """SCREENER_OUTVOTE_LIMIT, or the environment's override when it is an integer >= 0."""
+    import os
+
+    raw = str((os.environ if environ is None else environ).get(SCREENER_OUTVOTE_LIMIT_ENV, "")).strip()
+    if not raw:
+        return SCREENER_OUTVOTE_LIMIT
+    value = int(raw)            # a typo must fail the run, not silently loosen the guard
+    if value < 0:
+        raise ValueError(f"{SCREENER_OUTVOTE_LIMIT_ENV} must be >= 0, got {value}")
+    return value
+
+
+def outvoted_names(votes: pd.DataFrame, source: str = "screener",
+                   since: pd.Timestamp | None = None) -> list[str]:
+    """The stocks on which the vote outvoted `source` (two of three against it),
+    on sessions from `since` on (every session when None), sorted."""
+    if votes is None or votes.empty:
+        return []
+    hit = (votes["verdict"] == "majority") & (votes["odd"] == source)
+    if since is not None:
+        hit &= pd.to_datetime(votes["date"]) >= pd.Timestamp(since)
+    return sorted(set(votes.loc[hit, "symbol"].astype(str)))
+
+
+def publish_refusal(names: list[str], limit: int = SCREENER_OUTVOTE_LIMIT) -> str | None:
+    """Why the Screener store must not be published, or None when it may.
+
+    Refused only when MORE than `limit` stocks were outvoted: a few a month is
+    the normal run of late restatements and odd ticks; dozens at once is the
+    store carrying another exchange's closes (S89).
+    """
+    if len(names) <= limit:
+        return None
+    return (f"the vote outvoted Screener on {len(names)} stocks (more than {limit}): "
+            + ", ".join(names))
