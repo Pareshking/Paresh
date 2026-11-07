@@ -31,7 +31,6 @@ on:
       - R2 session continuity audit
       - SS price sync (gentle)
       - Screener daily price sync (overnight)
-      - SS price sync (gentle)
       - V1 Production QA
       - Weekly Full Sync (Friday night)
     types: [completed]
@@ -52,7 +51,8 @@ jobs:
       (github.event.workflow_run.event == 'schedule' ||
        github.event.workflow_run.event == 'workflow_run') &&
       (github.event.workflow_run.conclusion == 'failure' ||
-       github.event.workflow_run.conclusion == 'timed_out')
+       github.event.workflow_run.conclusion == 'timed_out' ||
+       github.event.workflow_run.conclusion == 'cancelled')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -62,8 +62,29 @@ jobs:
       RUN_URL: ${{ github.event.workflow_run.html_url }}
       CONCLUSION: ${{ github.event.workflow_run.conclusion }}
       SHA: ${{ github.event.workflow_run.head_sha }}
+      STARTED: ${{ github.event.workflow_run.run_started_at }}
+      UPDATED: ${{ github.event.workflow_run.updated_at }}
     steps:
+      # A job that hits its timeout-minutes ends "cancelled", not "timed_out": the
+      # weekly R2 acceptance and recovery audit timed out that way for a month with
+      # no alert (audit A3, 7 Nov 2026). A queued run replaced by a newer one is also
+      # "cancelled", but it never ran: only a cancelled run that ran 5+ minutes alerts.
+      - name: Skip a cancelled run that never ran
+        id: gate
+        run: |
+          set -euo pipefail
+          alert=yes
+          if [ "${CONCLUSION}" = "cancelled" ]; then
+            ran=$(( $(date -d "${UPDATED}" +%s) - $(date -d "${STARTED}" +%s) ))
+            if [ "${ran}" -lt 300 ]; then alert=no; else CONCLUSION="cancelled after ${ran}s (likely its timeout)"; fi
+          fi
+          echo "alert=${alert}" >> "$GITHUB_OUTPUT"
+          echo "conclusion=${CONCLUSION}" >> "$GITHUB_OUTPUT"
+          echo "alert=${alert} (${CONCLUSION})"
       - name: Open or update the failure issue
+        if: steps.gate.outputs.alert == 'yes'
+        env:
+          CONCLUSION: ${{ steps.gate.outputs.conclusion }}
         run: |
           set -euo pipefail
           gh label create scheduled-failure --color B60205 \

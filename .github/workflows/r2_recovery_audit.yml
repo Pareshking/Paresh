@@ -22,7 +22,10 @@ concurrency:
 jobs:
   recovery:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    # Reads every immutable revision in the bucket, so it grows with the archive:
+    # 7 min on 28 Sep, 31-38 min in October, cancelled at 40 on 2 Nov (audit A3,
+    # 7 Nov 2026). 90 is a stopgap; bounding what it reads is TODO A3.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
