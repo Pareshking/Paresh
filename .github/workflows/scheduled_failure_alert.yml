@@ -32,6 +32,7 @@ on:
       - SS price sync (gentle)
       - Screener daily price sync (overnight)
       - V1 Production QA
+      - V1 Full Validation
       - Weekly Full Sync (Friday night)
     types: [completed]
 
