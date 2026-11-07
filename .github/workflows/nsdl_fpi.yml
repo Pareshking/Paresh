@@ -1,0 +1,67 @@
+name: NSDL FPI daily (official FII history)
+
+# S106 (owner, 8 Nov 2026: one day's FII flow is misleading; collect history).
+# NSDL's FPI reports are the official record of foreign portfolio flows, from
+# custodians (T+1); NSE and MSEI publish only the latest provisional day.
+# NSDL refuses the Claude session but answers GitHub's runners.
+#   pull_request: backfill every month from Jan 2016 and commit the file to
+#                 the PR branch (once; later runs only add what is missing)
+#   schedule:     each weekday, the newest reporting dates
+#   dispatch:     a backfill from a chosen month
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nsdl_fpi.yml
+      - scripts/nsdl_fpi.py
+  schedule:
+    - cron: '17 4 * * 1-6'
+    - cron: '17 13 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      since:
+        description: "Backfill from this month (YYYY-MM)"
+        default: "2016-01"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nsdl-fpi-${{ github.head_ref || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+      - run: pip install requests
+      - name: Backfill (pull request or dispatch)
+        if: github.event_name != 'schedule'
+        run: |
+          SINCE="${{ github.event.inputs.since || '2016-01' }}"
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ -f data/nsdl_fpi_daily.csv ]; then
+            SINCE=$(tail -1 data/nsdl_fpi_daily.csv | cut -c1-7)
+          fi
+          python scripts/nsdl_fpi.py --backfill "$SINCE" --latest
+      - name: Newest reporting dates
+        if: github.event_name == 'schedule'
+        run: python scripts/nsdl_fpi.py --latest
+      - name: Commit
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/nsdl_fpi_daily.csv
+          if git diff --staged --quiet; then echo "Unchanged."; exit 0; fi
+          git commit -m "chore(data): NSDL FPI daily [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git push; then echo "Pushed."; exit 0; fi
+            git pull --rebase || { git rebase --abort; exit 1; }
+            sleep $((i * 5))
+          done
+          exit 1

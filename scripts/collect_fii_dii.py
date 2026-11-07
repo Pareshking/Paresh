@@ -10,7 +10,9 @@ buy, sell, net in Rs crore, fetched_at). Refuses to write (exit 1) when a row's 
 minus sell differs from its net by more than Rs 1 crore, a category is missing, or
 the date is in the future. A date already stored is left as it is (NSE's figures
 are provisional; the first reading is kept and the file says so). NSDL, the
-cross-check S91 names, refuses connections from GitHub's and Claude's runners.
+cross-check S91 names, refused connections from the Claude session that
+built this (7 Nov 2026); whether GitHub's runners can reach it is logged by
+the workflow's NSDL step.
 """
 from __future__ import annotations
 

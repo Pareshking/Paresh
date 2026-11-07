@@ -96,6 +96,18 @@
   "PROVOGUE": {
    "new_symbol": "PROVOGE",
    "evidence": "isin_history.csv: PROVOGUE INE968G01025 to 2012-03-06, PROVOGE INE968G01033 from 2012-03-26 (issuer prefix INE968G01). In no NSE symbol-change list (bhavcopy check, 2026-10-02)"
+  },
+  "NANDAN": {
+   "new_symbol": "NDL",
+   "evidence": "NANDAN (ISIN INE875G01022, last session 6 Mar 2012, close 2.30) became NANDANEXIM (INE875G01030, first session 23 Mar 2012; NSE's prev_close that day 23.00 = 2.30 x 10), later NDL (21 Nov 2013, continuous). NSE's Bc file: 'CONSOLIDATION RE1 TO RS10' for NANDAN, its ex-date unparsed so never applied. The ISIN change is the face value change. GitHub job investigate_raw, run 42413127097 (7 Nov 2026), reading R2 nse/prices_daily and NSE's corporate-action files. S25"
+  },
+  "SEINVEST": {
+   "new_symbol": "PAISALO",
+   "evidence": "SEINVEST (ISIN INE420C01034, last session 3 Oct 2011, close 10.10) became SEINV (first session 17 Oct 2011; NSE's prev_close that day 101.00 = 10.10 x 10), later PAISALO (24 Jan 2018, continuous: 352.20 then 332.20). A 1:10 consolidation with the ISIN change; no corporate-action row on NSE's lists. GitHub job investigate_raw, run 42413127097 (7 Nov 2026), reading R2 nse/prices_daily and NSE's corporate-action files. S25"
+  },
+  "SIGNET": {
+   "new_symbol": "SIGIND",
+   "evidence": "SIGNET (ISIN INE529F01027, last session 10 Aug 2018, close 6.50) became SIGIND (INE529F01035, first session 29 Aug 2018; NSE's prev_close that day 65.00 = 6.50 x 10). A 1:10 consolidation (face value Re 1 to Rs 10, reversing the 2015 split) with the ISIN change; no corporate-action row. GitHub job investigate_raw, run 42413127097 (7 Nov 2026), reading R2 nse/prices_daily and NSE's corporate-action files. S25"
   }
  },
  "corrections": [
@@ -272,6 +284,30 @@
    "before": "2024-04-10",
    "factor": 0.5,
    "evidence": "1:1 bonus (1 new Re 1 share per Re 1 share held), record date Wed 10 Apr 2024, during NSE's withdrawal of dealings (26 Oct 2023 - 17 Apr 2026), so no NSE list carries it. BSE bhavcopy, code 505710 (GRAUER& WEIL): close 194.70 on 9 Apr 2024, 97.85 on 10 Apr 2024 (1,104,170 shares, 8,968 trades), 96.55 on 12 Apr; NSE's first close after the gap (20 Apr 2026) meets BSE's post-bonus level within 0.8%. Company's record-date notice quoted by goodreturns.in (8 Apr 2024: 'Bonus Equity Shares ... in the ratio of 1:1', record date 10 Apr 2024); BSE filing of 15 Apr 2024 (board approved allotment of 22,67,05,750 bonus shares, 1:1; seen in a search snippet, PDF not read). Screener's history and Tijori's raw series both apply it on 10 Apr 2024: 9 Apr 2024 reads 97.35 (194.70 / 2) and 20 Oct 2023 reads 60.15 against NSE's raw 120.55; Yahoo, eod2, MarketLens and TejHQ have no row in the gap (Yahoo flat at 115.60). Found when NSE-only gaps were filled from BSE (S38, 2026-10-07)"
+  },
+  {
+   "symbol": "NDL",
+   "before": "2012-03-23",
+   "factor": 10.0,
+   "evidence": "1:10 consolidation (Re 1 to Rs 10) at NANDAN's change to NANDANEXIM: NSE's first NANDANEXIM session (23 Mar 2012) has prev_close 23.00 against NANDAN's last close 2.30 (6 Mar 2012); NSE's Bc file carries 'CONSOLIDATION RE1 TO RS10' with no parseable ex-date. GitHub job investigate_raw, run 42413127097 (7 Nov 2026), reading R2 nse/prices_daily and NSE's corporate-action files. S25"
+  },
+  {
+   "symbol": "PAISALO",
+   "before": "2011-10-17",
+   "factor": 10.0,
+   "evidence": "1:10 consolidation at SEINVEST's change to SEINV: NSE's first SEINV session (17 Oct 2011) has prev_close 101.00 against SEINVEST's last close 10.10 (3 Oct 2011); ISIN INE420C01034 replaced. GitHub job investigate_raw, run 42413127097 (7 Nov 2026), reading R2 nse/prices_daily and NSE's corporate-action files. S25"
+  },
+  {
+   "symbol": "SIGIND",
+   "before": "2018-08-29",
+   "factor": 10.0,
+   "evidence": "1:10 consolidation at SIGNET's change to SIGIND: NSE's first SIGIND session (29 Aug 2018) has prev_close 65.00 against SIGNET's last close 6.50 (10 Aug 2018); ISIN INE529F01027 replaced by INE529F01035. GitHub job investigate_raw, run 42413127097 (7 Nov 2026), reading R2 nse/prices_daily and NSE's corporate-action files. S25"
+  },
+  {
+   "symbol": "ANDHRAPAP",
+   "before": "2010-02-23",
+   "factor": 0.879044,
+   "evidence": "Rights issue of Andhra Pradesh Paper Mills (APPAPER in 2010): 3 new shares for every 11 held at Rs 50 (Rs 10 + Rs 40 premium), record date 24 Feb 2010, ex 23 Feb 2010, per the final letter of offer filed with the exchanges on 18 Mar 2010 (SEBI filings, sebi.gov.in/filings/rights-issues/mar-2010/andhra-paper-mills-ltd_2418.html). NSE's Bc file: 'RIGHTS-EQ3:11 & 1WRNT:1EQ' under APPAPER, no price, so the pipeline could not price it ('no terms'). NSE's raw closes (R2, GitHub job investigate_raw run 42413718298, 7 Nov 2026): 114.80 on 22 Feb, 91.40 on 23 Feb (prev_close 114.80, unadjusted). Factor = rights_factor(114.80, 50, 3, 11) = (11 x 114.80 + 3 x 50) / (14 x 114.80) = 0.879044 (TERP 100.91). Not adjusted: the 1 detachable warrant per new share, which a rights formula does not value; the rest of the day's fall (about 8 pts) stays as a price move. S44"
   }
  ],
  "special_sessions": {
