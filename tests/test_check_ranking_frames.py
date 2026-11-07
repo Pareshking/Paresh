@@ -52,3 +52,12 @@ def test_a_skipped_nse_step_is_refused(monkeypatch):
 def test_a_missing_store_is_refused(monkeypatch):
     monkeypatch.setattr(screener_loader, "load_store", lambda _p: pd.DataFrame())
     assert gate.check("missing.parquet")
+
+
+def test_published_mode_checks_a_store_handed_in(monkeypatch):
+    # S82: the monthly freeze checks the published store against the NSE file
+    # it has just rewritten; check() takes that store directly.
+    calls = {}
+    monkeypatch.setattr(screener_loader, "load_store", lambda p: calls.setdefault("read", p))
+    assert gate.check(None, pd.DataFrame()) == ["store published is missing or unreadable"]
+    assert "read" not in calls

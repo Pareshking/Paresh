@@ -19,7 +19,7 @@ Source Serif 4 loads, no exceptions, Dashboard / Breadth / Sectors load in 6-20 
 R2 index file is still weekly until the first nightly run after the merge (00:12 UTC);
 the index strip holds back the size indices until then. Found live and fixed in #474:
 size against the Nifty 500 compared different dates (Microcap 250 +7.0 against +3.7).
-Open after launch: F60 speed (done in PR #474: one shared library with a pinned CDN fallback; a check on Cloud after merge is still needed), the full
+Open after launch: the full
 type scale, screen reader and Safari/iOS checks, the 1 Dec rebalance (S95).
 
 ## Since 11:30 (7 Nov, 14:25 UTC)

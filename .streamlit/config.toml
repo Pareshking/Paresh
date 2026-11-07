@@ -16,9 +16,11 @@ greenColor = "#1D5FA6"
 redColor = "#A4441A"
 orangeColor = "#B54708"
 dataframeHeaderBackgroundColor = "#F7F7F5"
-font = "'IBM Plex Sans':https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap, sans-serif"
-headingFont = "'IBM Plex Sans':https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap, sans-serif"
-codeFont = "'IBM Plex Mono':https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap, monospace"
+# Names only: the faces are self-hosted in static/fonts.css (audit F61), loaded
+# by the app's own CSS; a Google URL here made the page ask Google as well.
+font = "'IBM Plex Sans', sans-serif"
+headingFont = "'IBM Plex Sans', sans-serif"
+codeFont = "'IBM Plex Mono', monospace"
 
 [server]
 headless = true

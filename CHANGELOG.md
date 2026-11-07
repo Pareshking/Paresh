@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-11-07 — Dashboard: momentum health and flows
+
+- **Momentum health**: how momentum itself has been paying. Each month-end the Nifty 500's members are ranked by this site's score, and the next month's return of the top fifth minus the bottom fifth is that month's spread. The panel shows the last 12 months' sum (+8.9 points to October 2026), its percentile since 2010 (42nd, about usual), the last 24 months as bars, and a flag in a crash month. Checked against IIM Ahmedabad's independent Indian momentum factor: correlation 0.83 month by month, Feb 2010 to Dec 2025 (`docs/MOMENTUM_HEALTH.md`). Rebuilt monthly by a checked job.
+- **Flows**: NSE's provisional FII/FPI and DII cash-market net buying for the day, collected each trading evening by a checked job. NSE keeps no history of these, so the record starts on 6 Nov 2026 and grows from there.
+
+## 2026-11-07 — Screener: where each stock stands against the book
+
+- New columns: **Qualified #** (place among the stocks that pass both filters, the list the model book buys from, the same number Actions uses) and, in Full Quant, **Score** (the composite the ranking is sorted by).
+- Stocks in the model book carry a **Held** tag. In rank order, lines mark the 20th qualified stock (the book buys the top 20) and the 40th (it keeps a holding while in the top 40).
+- A failed filter says by how much: "✗ −8.7%" below the 50D EMA, "✗ −22%" below the 52W high (the filter is within 20%).
+- "High volume" is now **Volume spike**: it was always one day's volume at 1.5x its 20-day average. One caption under the chips explains them.
+
+## 2026-11-07 — Fonts served by the site
+
+- IBM Plex Sans, IBM Plex Mono and Source Serif 4 are now served from the site itself (`static/fonts`, SIL Open Font Licence) instead of Google Fonts. A page and its chart frames made about 9 requests to Google per visit; now none. Text looks the same. This does not lower the server's memory: the font files (377 KB, Latin and Latin Extended) are cached by the browser after the first visit (audit F61).
+
+## 2026-11-07 — Library updates
+
+- streamlit 1.66.1, pandas 3.1.0, numpy 2.5.4, pyarrow 26.0.0, and the last workflow still on older GitHub Actions moved to checkout/setup-python/upload-artifact v7 (owner). Nothing a reader sees changes: on the same pinned inputs the 750 ranking, the 12-month backtest and the track-record parity report are identical, and eight pages screenshot pixel-identical.
+- From the earlier audit (#471): Portfolio, Backtest and Actions no longer rebuild the NSE price frame on every visit (about 2-3x faster locally, numbers identical); two scheduled data jobs that never succeeded are manual only; NSE's daily files are collected on trading-day evenings and weekend sessions are picked up; the full validation runs daily; the Total Market check follows NSE's own list.
+- The monthly freeze now checks that the app can rank with the NSE closes it has just written before it freezes or commits anything (S82).
+
 ## 2026-11-07 — Portfolio: a ₹1 crore model book
 
 - The model book on Portfolio now starts at ₹1 crore instead of ₹20 lakh (owner, 7 Nov). Every return is unchanged (since inception +41.4%, November +2.3%); rupee figures are five times larger and share counts are whole shares of the larger book. The Kite basket on Actions starts at the same ₹1 crore.

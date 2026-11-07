@@ -226,6 +226,7 @@ def render_ranking_view(
     open_prices: pd.DataFrame | None = None,
     regime=None,
     footnote=None,
+    book_symbols=None,
 ) -> None:
     """The Screener: market strip, search and presets, the ranking table, and
     this month's top-50 moves. ?stock=SYMBOL opens that stock's page instead.
@@ -392,7 +393,7 @@ def render_ranking_view(
         "All Universe": "All", "Top 50 Qualified": "Top 50 qualified",
         "Top 50 Not Qualified": "Top 50 not qualified",
         "Passed Filters": "Pass both filters", "Momentum Movers": "Big movers",
-        "High Volume": "High volume",
+        "High Volume": "Volume spike",
     }
 
     def _open_searched_stock() -> None:
@@ -478,8 +479,18 @@ def render_ranking_view(
     _sync_url(_filters)
     if not density_mode:
         density_mode = _DEFAULT_DENSITY
+    # One line for the chips and marks (S87 item 9).
+    st.caption("Qualified: above the 50D EMA and within 20% of the 52W high. The book buys the "
+               "top 20 qualified and keeps a holding while it is in the top 40; lines mark those "
+               "places in rank order. Big movers: rank moved 150+ places in a month. Volume spike: "
+               "today's volume 1.5x or more its 20-day average. Held: in the model book.")
 
     view = rank_df.copy()
+    # S87 (owner, 7 Nov): place among the qualified (the list the book buys
+    # from, as on Actions) and the model book's holdings, marked "Held".
+    from src.engine.exit_watch import qualified_ranks
+    view["Qualified Rank"] = view["Symbol"].map(qualified_ranks(rank_df))
+    view["Held"] = view["Symbol"].isin(set(book_symbols or ()))
     # Sessions at a new 52-week high in the last month and three: a stock that
     # keeps making them is strong.
     _nh = _new_high_counts(f"{adj_close.index[-1]}_{adj_close.shape}", adj_close)

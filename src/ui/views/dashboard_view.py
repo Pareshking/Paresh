@@ -238,6 +238,11 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                         + "; bold figures are against the Nifty 500, small ones the index's own move. "
                         + f"{why}. Source: " + ", ".join(res.sources) + ".")
 
+    # S91 (owner, 7 Nov: "build it"): momentum health under the book's risk,
+    # flows under size leadership.
+    from src.ui.views import dashboard_panels
+    dashboard_panels.render(kit, top_l, low_l)
+
     render_data_quality_footer(
         total_stocks=len(rank_df),
         gap_count=gap_count(rank_df),

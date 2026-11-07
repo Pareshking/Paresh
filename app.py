@@ -1058,6 +1058,19 @@ def _page_dashboard() -> None:
                           system=system)
 
 
+def _screener_book() -> list[str]:
+    # The model book for the Screener's "Held" marks (S87): the same cached
+    # record run as the Dashboard (same arguments, so one computation serves
+    # both). A failure here costs the marks, never the Screener.
+    try:
+        from src.ui.canonical_book import current_book
+        book, _ = current_book(deep_adj_close, fetch_benchmark_history(period="5y"), system)
+        return [] if book is None or book.empty else book["Symbol"].tolist()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Screener: model book unavailable for the Held marks (%s).", type(exc).__name__)
+        return []
+
+
 def _page_screener() -> None:
     # What is ranked comes last, under the top-50 moves (owner, 2026-09-27).
     render_ranking_view(
@@ -1065,6 +1078,7 @@ def _page_screener() -> None:
         open_prices=data.get("open_prices"),
         regime=regime_data,
         footnote=_system_line,
+        book_symbols=_screener_book(),
     )
 
 

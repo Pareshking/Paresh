@@ -48,9 +48,16 @@ INDEX_NAMES = {
 # phone list keeps only rank, stock, path and the price cell, which carries the
 # 3M return under the price.
 PERIOD_WINDOWS = (1, 3, 6, 9, 12)
+# The model book's lines (TRACK_RECORD_CONFIG: top_n 20, buffer_n 40,
+# high_pct 0.80), drawn under those qualified places in rank order.
+BUY_CUT, KEEP_CUT, NEAR_HIGH_GAP_PCT = 20, 40, 20
 _ALL = {
     "rank": ("Rank", "num"), "stock": ("Symbol", "text"), "price": ("CMP", "num"),
     "d1m": ("1M Δ", "num"), "d3m": ("3M Δ", "num"),
+    # S87 (owner, 7 Nov): place among the stocks that pass both filters (the
+    # list the book buys from: top 20, kept while in the top 40) and the
+    # composite score the ranking is sorted by.
+    "qrank": ("Qualified #", "num"), "score": ("Score", "num"),
     "idx": ("Index", "text"), "ind": ("Industry", "text"),
     "mcap": ("MCAP (Cr)", "num"),
     "hi": ("From 52W high", "num"), "ath": ("% ATH", "num"), "ema": ("vs 50D EMA", "num"),
@@ -71,19 +78,19 @@ for _w in PERIOD_WINDOWS:
 # a quant-view statistic (not comparable like a return) and the drawdown shown
 # outside Quant is the 3M one.
 _QUANT_KEYS = (
-    ("rank", "stock", "price", "d1m", "d3m", "idx", "ind", "mcap")
+    ("rank", "stock", "price", "qrank", "score", "d1m", "d3m", "idx", "ind", "mcap")
     + tuple(f"{k}{w}" for w in PERIOD_WINDOWS for k in ("r", "sh", "dd"))
     + ("hi", "ath", "ema", "vol", "above", "near", "athf", "nh1", "nh3", "stop", "chand",
        "gap", "ffill", "hz", "spark")
 )
-_CORE_KEYS = ("rank", "stock", "price", "d1m", "d3m", "idx", "ind", "mcap",
+_CORE_KEYS = ("rank", "stock", "price", "qrank", "d1m", "d3m", "idx", "ind", "mcap",
               "r1", "r3", "r6", "r12", "dd3", "hi", "ema", "vol", "above", "near", "spark")
-_EXEC_KEYS = ("rank", "stock", "price", "d1m", "idx", "ind", "r3", "r12", "dd3",
+_EXEC_KEYS = ("rank", "stock", "price", "qrank", "d1m", "idx", "ind", "r3", "r12", "dd3",
               "hi", "ema", "above", "near", "spark")
 # Group labels over the columns, in order.
 _QUANT_GROUPS = (
     ("Identity", ("rank", "stock", "price")),
-    ("Rank dynamics", ("d1m", "d3m")),
+    ("Rank dynamics", ("qrank", "score", "d1m", "d3m")),
     ("Classification", ("idx", "ind", "mcap")),
     *((f"{w}M factor momentum", (f"r{w}", f"sh{w}", f"dd{w}")) for w in PERIOD_WINDOWS),
     ("Technicals & filters", ("hi", "ath", "ema", "vol", "above", "near", "athf", "nh1", "nh3")),
@@ -242,10 +249,21 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
 
     cells["rank"] = (f'<td class="c-rank" data-v="{rank if rank is not None else ""}">'
                      f'{int(rank) if rank is not None else "—"}</td>')
+    qr = _num(row.get("Qualified Rank"))
+    cut_note = ("" if qr is None else
+                " title=\"The book buys from the top 20 qualified\"" if qr == BUY_CUT else
+                " title=\"The book keeps a holding while it is in the top 40 qualified\"" if qr == KEEP_CUT else "")
+    cells["qrank"] = (f'<td class="n" data-v="{"" if qr is None else qr}"{cut_note}>'
+                      f'{"—" if qr is None else int(qr)}</td>')
+    sc = _num(row.get("Score"))
+    cells["score"] = (f'<td class="n" data-v="{"" if sc is None else sc}">'
+                      f'{"—" if sc is None else f"{sc:.2f}"}</td>')
+    held = bool(row.get("Held"))
     cells["stock"] = (
         f'<td class="c-stock" data-v="{sym_s}"><a href="{stock_href(sym)}" '
         f'data-stock="{sym_s}" title="Open {_esc(name) if name and name != "nan" else sym_s}"><span class="sym">{sym_s}'
-        f'{"<em class=me>This stock</em>" if is_hl else ""}</span>'
+        f'{"<em class=me>This stock</em>" if is_hl else ""}'
+        f'{"<em class=held title=\'In the model book\'>Held</em>" if held else ""}</span>'
         f'<span class="sub">{_esc(sub)}</span></a></td>'
     )
     r3_txt = "—" if r3 is None else f"{'+' if r3 > 0 else '−' if r3 < 0 else ''}{abs(r3) * 100:.1f}%"
@@ -284,9 +302,10 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     cells["ema"] = (f'<td class="n {"" if em is None else "pos" if em > 0 else "neg" if em < 0 else ""}" '
                     f'data-v="{"" if em is None else em}">{"—" if em is None else _signed(em) + "%"}</td>')
     vol = str(row.get("Volume") or "Normal")
-    vchip = ('<span class="vol">High</span>' if vol == "High"
-             else '<span class="vol">Surge</span>' if vol == "Surge"
-             else '<span class="muted">Normal</span>')
+    # "High" is one day's volume at 1.5x or more its 20-day average
+    # (momentum.py): a spike, not a high-volume stock (S87 item 3).
+    vchip = ('<span class="vol" title="Today\'s volume 1.5x or more its 20-day average">Spike</span>'
+             if vol == "High" else '<span class="muted">Normal</span>')
     cells["vol"] = f'<td data-v="{_esc(vol)}">{vchip}</td>'
     for key, col in (("stop", "Stop Loss"), ("chand", "Chand Exit")):
         v = _num(row.get(col))
@@ -314,9 +333,25 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     ind_full = str(row.get("Industry") or "").strip()
     ind_txt = ind_full if len(ind_full) <= 21 else ind_full[:20] + "…"
     cells["ind"] = f'<td data-v="{_esc(ind_full)}" title="{_esc(ind_full)}">{_esc(ind_txt) or "—"}</td>'
+    # A failed filter says by how much (S87 item 6): the distance below the
+    # 50D EMA, and below the 52W high against the within-20% rule.
+    hi_v = _num(row.get("% High"))
+    miss = {
+        "above": (None if em is None or em >= 0 else
+                  (f"{abs(em):.1f}% below its 50D EMA", f"−{abs(em):.1f}%")),
+        "near": (None if hi_v is None else
+                 (f"{abs(hi_v):.1f}% below its 52W high; the filter is within {NEAR_HIGH_GAP_PCT}%",
+                  f"−{abs(hi_v):.0f}%")),
+    }
     for key, col in (("above", "Above 50 EMA"), ("near", "Near 52W High"), ("athf", "At ATH")):
         on = is_tick_true(row.get(col))
-        cells[key] = f'<td class="c-tick" data-v="{int(on)}">{_tick(on)}</td>'
+        why = None if on else miss.get(key)
+        if why:
+            cells[key] = (f'<td class="c-tick" data-v="{int(on)}" title="{_esc(why[0])}">'
+                          f'<span class="tick no" aria-hidden="true">✗</span>'
+                          f'<span class="miss">{why[1]}</span><span class="sr">{_esc(why[0])}</span></td>')
+        else:
+            cells[key] = f'<td class="c-tick" data-v="{int(on)}">{_tick(on)}</td>'
     for key, col in (("nh1", "New Highs 1M"), ("nh3", "New Highs 3M")):
         n = _num(row.get(col))
         cells[key] = (f'<td class="n" data-v="{"" if n is None else n}">'
@@ -329,7 +364,8 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
         f'stroke-linejoin="round" stroke-linecap="round" points="{poly}"/></svg></td>'
         if poly else '<td class="c-path muted">—</td>'
     )
-    hl = ' class="hl"' if is_hl else ""
+    classes = " ".join(c for c in ("hl" if is_hl else "", "cut" if qr in (BUY_CUT, KEEP_CUT) else "") if c)
+    hl = f' class="{classes}"' if classes else ""
     return f'<tr data-stock="{sym_s}"{hl}>' + "".join(cells[c[0]] for c in cols) + "</tr>"
 
 
@@ -370,6 +406,10 @@ thead tr.hdr th:nth-child(2){z-index:4}
 thead tr.grp-row th.pin{position:sticky;left:0;z-index:5;border-left:0;box-shadow:1px 0 0 var(--c-rule)}
 .tick{font-weight:700;font-size:14px}.tick.yes{color:var(--c-up)}.tick.no{color:var(--c-muted)}
 .vol{font-weight:600}
+.miss{margin-left:4px;font-size:12px;color:var(--c-muted);font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.held{margin-left:6px;font-style:normal;font-size:11px;font-weight:600;padding:1px 5px;border-radius:4px;border:1px solid var(--c-ink);color:var(--c-ink)}
+table.byrank tr.cut td{box-shadow:inset 0 -2px 0 var(--c-ink)}
 .lbl-m{display:none}
 td.c-rank{font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600}
 td.c-stock a{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;line-height:1.2;text-decoration:none;color:inherit}
@@ -436,7 +476,7 @@ document.addEventListener('click',function(ev){
   if(ev.target.closest('a')&&(ev.metaKey||ev.ctrlKey||ev.shiftKey||ev.button===1))return;
   ev.preventDefault();openStock(tr.getAttribute('data-stock'));
 });
-const ths=document.querySelectorAll('thead tr.hdr th');const tbody=document.querySelector('tbody');
+const ths=document.querySelectorAll('thead tr.hdr th');const tbody=document.querySelector('tbody');const tbl=document.querySelector('table');
 // Sortable from the keyboard too (pre-launch audit F20, WCAG 2.1.1/4.1.2):
 // each sortable header is focusable, sorts on Enter or Space, and says how
 // it is sorted (aria-sort); the arrow glyph is decoration.
@@ -462,6 +502,10 @@ ths.forEach(function(th,i){
       return dir==='asc'?va.localeCompare(vb):vb.localeCompare(va);
     });
     rows.forEach(function(r){tbody.appendChild(r);});
+    // The lines under the 20th and 40th qualified stock mean something only
+    // in rank order.
+    const lab=(th.textContent||'');
+    tbl.classList.toggle('byrank',dir==='asc'&&(lab.indexOf('Rank')===0||lab.indexOf('Qualified')===0));
   });
 });
 """
@@ -525,6 +569,7 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
     else:
         extra = ""
     wide_cls = " wide" if wide else ""
+    by_rank = ' class="byrank"' if sort_key in ("rank", "qrank") and not sort_desc else ""
     # The first `page_rows` rows, the rest a click away (owner, 7 Nov: the
     # table scrolled inside its frame, so the wheel never reached the page).
     # Every row stays in the table, so a header sort ranks all of them and
@@ -544,10 +589,8 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
         extra += "@media (max-width:640px){table{min-width:%dpx}}" % (len(cols) * 92)
     return (
         "<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Ranking table</title>"
-        "<link rel='preconnect' href='https://fonts.googleapis.com'>"
-        "<link href='https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&"
-        "family=IBM+Plex+Mono:wght@400;500;600&display=swap' rel='stylesheet'>"
-        f"<style>{_CSS}@media (min-width:641px){{table{{min-width:{max(1180, len(cols) * 92)}px}}}}{extra}{paged_css}</style></head><body><div class='edge' aria-hidden='true'></div><div class='wrap{wide_cls}'><table>"
+        "<link href='app/static/fonts.css' rel='stylesheet'>"
+        f"<style>{_CSS}@media (min-width:641px){{table{{min-width:{max(1180, len(cols) * 92)}px}}}}{extra}{paged_css}</style></head><body><div class='edge' aria-hidden='true'></div><div class='wrap{wide_cls}'><table{by_rank}>"
         f"<thead>{group_row}<tr class=\"hdr\">{head}</tr></thead><tbody>{body_html}</tbody></table></div>{more}"
         f"<script>const SYS={json.dumps(system_suffix())};{_JS}</script></body></html>"
     )

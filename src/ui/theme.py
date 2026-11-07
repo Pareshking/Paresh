@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src.ui.tokens import css_root, resolve
+from src.ui.tokens import FONTS, css_root, resolve
 from src.ui import formats as _fmt
 
 
@@ -127,9 +127,7 @@ def inject_custom_css() -> None:
         # st.html would add another empty block above the header.
         clean_html(f"<style>{css_root()}</style>"
                    '<a class="skip-link" href="#content">Skip to content</a>' + """
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+        <style>@import url('""" + FONTS["font_css"] + """');</style>
 
         <style>
         /* ── Design tokens: "Clear Ledger", light only ──────────────────
@@ -1936,6 +1934,14 @@ def inject_custom_css() -> None:
         .db-kv dd { margin: 0 !important; color: var(--c-ink); }
         .db-kv a, .db-sectors a { color: var(--c-ink) !important; }
         .db-lede { margin: 0 0 4px; font-size: 14px; color: var(--c-ink); }
+        /* S91 panels: momentum health and flows */
+        .db-big { font-family: var(--font-serif, Georgia, serif); font-size: 36px; line-height: 1.1; color: var(--c-ink); margin: 0 0 6px; }
+        .db-big span { font-family: inherit; font-size: 14px; color: var(--c-muted); margin-left: 6px; }
+        .db-big.up, .db-kv b.up { color: var(--c-up); }
+        .db-big.down, .db-kv b.down { color: var(--c-down); }
+        .db-flag { margin: 4px 0; font-size: 13.5px; font-weight: 600; color: var(--c-down); }
+        .db-note { margin: 6px 0 0; font-size: 13px; color: var(--c-muted); }
+        .db-mh img { display: block; margin-top: 8px; }
         .db-size, .db-sectors { width: 100%; border-collapse: collapse; font-size: 13.5px; }
         .db-size th, .db-size td, .db-sectors th, .db-sectors td { padding: 6px 8px 6px 0;
             border-bottom: 1px solid var(--c-rule_soft); text-align: right; font-weight: 400; }
@@ -2388,9 +2394,7 @@ def render_saas_table(
 <html lang="en"><title>Table</title>
 <head>
 <meta charset="utf-8">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="{FONTS["font_css"]}" rel="stylesheet">
 <style>
 * {{ box-sizing: border-box; margin: 0; padding: 0; }}
 body {{
