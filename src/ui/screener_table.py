@@ -243,7 +243,7 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     r3_cls = "" if r3 is None else ("pos" if r3 > 0 else "neg" if r3 < 0 else "")
     cells["price"] = (
         f'<td class="n c-price" data-v="{cmp_v if cmp_v is not None else ""}">'
-        f'{_fmt.inr(cmp_v) if cmp_v is not None else "—"}'
+        f'{_fmt.inr(cmp_v, 2) if cmp_v is not None else "—"}'
         f'<span class="m-only {r3_cls}">{r3_txt} 3M</span></td>'
     )
     for key, col in (("d1m", "Rank Δ 1M"), ("d3m", "Rank Δ 3M")):
@@ -280,7 +280,7 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     for key, col in (("stop", "Stop Loss"), ("chand", "Chand Exit")):
         v = _num(row.get(col))
         cells[key] = (f'<td class="n" data-v="{"" if v is None else v}">'
-                      f'{"—" if v is None else _fmt.inr(v)}</td>')
+                      f'{"—" if v is None else _fmt.inr(v, 2)}</td>')
     from src.engine.momentum import CARRIED_MARK
 
     gap = str(row.get("Data Gap") or "🟢")

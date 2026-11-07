@@ -66,7 +66,9 @@ def _num(value) -> float | None:
         return None
 
 
-def _money(value, decimals: int = 0) -> str:
+def _money(value, decimals: int = 2) -> str:
+    # A share price and its levels (52W high, EMA, the -20% line) carry paise,
+    # as the Screener's price does (audit F66).
     v = _num(value)
     return _fmt.inr(v, decimals) if v is not None else "—"
 

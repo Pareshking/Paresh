@@ -9,6 +9,7 @@
 - The Screener table fades at its right edge while more columns lie to the right, and the pointer shows a row opens its stock.
 - Breadth's list of new highs and lows reads "New 52W high" and "New 52W low" without emoji; the rotation graph's quadrant lists lose their tinted cards.
 - Levels and shares in tables (weight, turnover, % of the 52W high) no longer carry a plus sign; changes (drift, distance from the EMA) still do.
+- Share prices carry paise everywhere: the Screener's price and stop-loss columns and every level on the stock page (₹2,340.00, 52W high ₹2,406.00).
 - Plain counts are no longer coloured as warnings: Actions' Hold count, Breadth's share in the neutral band and Configuration's possible demergers read in ink; Sell and Buy keep their colours.
 - Chart date axes show month names only ("Jun · Jul · Aug"), with the year at the turn of the year; day ticks appear only on charts shorter than about ten weeks.
 - The stock chart's price axis and legend read in rupees with paise (₹2,340.00), grouped the Indian way.
