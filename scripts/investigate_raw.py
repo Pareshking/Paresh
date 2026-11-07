@@ -23,8 +23,16 @@ sys.path.insert(0, str(ROOT / "scripts"))
 # (label, symbols, first day, last day)
 EVENTS = [
     ("S44 ANDHRAPAP rights 3:11 at Rs 50, ex 23 Feb 2010", ["ANDHRAPAP"], date(2010, 2, 12), date(2010, 3, 5)),
+    # S25: the refused joins are ISIN changes (face value) between two symbols
+    # (data/reference ISIN history), not the later renames on the change list.
+    ("S25 NANDAN (INE875G01022, last 6 Mar 2012) -> NANDANEXIM (INE875G01030, from 23 Mar 2012)",
+     ["NANDAN", "NANDANEXIM", "NDL"], date(2012, 2, 27), date(2012, 3, 30)),
+    ("S25 SEINVEST (INE420C01034, last 3 Oct 2011) -> SEINV (from 17 Oct 2011)",
+     ["SEINVEST", "SEINV", "PAISALO"], date(2011, 9, 26), date(2011, 10, 24)),
+    ("S25 SIGNET (INE529F01027, last 10 Aug 2018) -> SIGIND (INE529F01035, from 3 Sep 2018)",
+     ["SIGNET", "SIGIND"], date(2018, 8, 3), date(2018, 9, 10)),
 ]
-RENAMES_TO = ["PAISALO", "NDL", "SIGIND"]   # S25, looked up by the new ticker
+RENAMES_TO: list[str] = []   # the ISIN-change windows above replace the change-list lookup
 
 
 def main() -> int:
