@@ -17,9 +17,11 @@ name: NSE daily bundle collection
 # by 12:18 UTC (17:48 IST). Trading days: 12:41 UTC, and 14:41 and 16:11 UTC in
 # case NSE is late -- all before ss_sync's three-source check (16:32) and
 # daily_sync (17:30, and again after the Screener sync), which read these days
-# from R2. Every day at 03:41 UTC: anything a missed run left (--recent 7) and
-# the last three days' weekend sessions (--weekends 3: Muhurat, special
-# Saturdays; NSE's special-session list is only known after the fact).
+# from R2. Every run, and daily at 03:41 UTC: every weekday (--recent 7) and
+# weekend day (--weekends 10) not yet on R2 and not recorded closed. No holiday list is
+# needed: a day with no bundle is logged "absent", and once a week old it is
+# recorded in nse/closed_days and never asked again. NSE's announced sessions
+# (holiday list's Muhurat, special_sessions.csv) are also asked by date.
 on:
   schedule:
     - cron: "41 12 * * 1-5"
@@ -92,8 +94,11 @@ jobs:
           MINUTES: ${{ inputs.minutes || '50' }}
           SINCE: ${{ inputs.since || '2010-01-01' }}
           DATES: ${{ inputs.dates || '' }}
-          # The daily 03:41 run also asks for the last three days' weekend sessions.
-          WEEKENDS: ${{ github.event.schedule == '41 3 * * *' && '3' || '0' }}
+          # Every run also asks for every weekend day of the last 10 days not yet on R2
+          # or recorded closed: a Muhurat, Budget or special session is collected the
+          # next run without knowing the holiday list in advance (a dropped run cannot
+          # delay it past the next).
+          WEEKENDS: '10'
         run: |
           [ "${MINUTES%.*}" -gt 330 ] && MINUTES=330
           python scripts/nse_collect.py --recent 7 --backfill "$BACKFILL" --since "$SINCE" \

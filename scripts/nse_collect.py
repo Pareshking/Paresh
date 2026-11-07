@@ -304,10 +304,15 @@ def main(argv: list[str] | None = None) -> int:
     print(f"NSE_ARCHIVE holds {len(have)} days"
           + (f", {min(have)} to {max(have)}" if have else ""))
 
-    days = [d for d in recent_weekdays(args.recent, today) if d not in have] if args.recent else []
+    # Days NSE has already been asked for and had no bundle a week later (holidays,
+    # weekends): never asked again. No holiday list is needed for this: a day with no
+    # bundle is "absent", and after CLOSED_AFTER_DAYS it is recorded closed.
+    closed = present_dates(archive, DATASETS["closed_days"][0]) if (args.recent or args.weekends) else set()
+    skip = have | closed
+    days = [d for d in recent_weekdays(args.recent, today) if d not in skip] if args.recent else []
     if args.recent:
-        days += [d for d in recent_announced_sessions(today) if d not in have and d not in days]
-    days += [d for d in recent_weekend_days(args.weekends, today) if d not in have and d not in days]
+        days += [d for d in recent_announced_sessions(today) if d not in skip and d not in days]
+    days += [d for d in recent_weekend_days(args.weekends, today) if d not in skip and d not in days]
     extra = [date.fromisoformat(x) for x in args.dates.replace(",", " ").split()]
     days += [d for d in extra if d not in have and d not in days]
     if args.backfill:
