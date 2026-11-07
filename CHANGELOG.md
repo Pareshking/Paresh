@@ -3,6 +3,7 @@
 ## 2026-11-07 — Library updates
 
 - streamlit 1.66.1, pandas 3.1.0, numpy 2.5.4, pyarrow 26.0.0, and the last workflow still on older GitHub Actions moved to checkout/setup-python/upload-artifact v7 (owner). Nothing a reader sees changes: on the same pinned inputs the 750 ranking, the 12-month backtest and the track-record parity report are identical, and eight pages screenshot pixel-identical.
+- From the earlier audit (#471): Portfolio, Backtest and Actions no longer rebuild the NSE price frame on every visit (about 2-3x faster locally, numbers identical); two scheduled data jobs that never succeeded are manual only; NSE's daily files are collected on trading-day evenings and weekend sessions are picked up; the full validation runs daily; the Total Market check follows NSE's own list.
 - The monthly freeze now checks that the app can rank with the NSE closes it has just written before it freezes or commits anything (S82).
 
 ## 2026-11-07 — Portfolio: a ₹1 crore model book
