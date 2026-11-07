@@ -92,31 +92,65 @@ def momentum_health_html(spreads: pd.DataFrame | None) -> str | None:
             f'<img src="{img}" alt="{html.escape(alt)}" width="300" height="64" style="max-width:100%"></div>')
 
 
+TREND_MIN, TREND_WINDOW = 5, 20
+
+
+def _pair_bars_svg(fii: list[float], dii: list[float], width: int = 300, height: int = 76) -> str:
+    """Daily net flows as two rows of bars on one scale (FII above, DII below)."""
+    top = max([abs(v) for v in fii + dii] + [1e-9])
+    row, w = height / 2, width / max(len(fii), 1)
+    parts = []
+    for r, vals in enumerate((fii, dii)):
+        mid = row * r + row / 2
+        parts.append(f'<line x1="0" x2="{width}" y1="{mid}" y2="{mid}" stroke="{C.rule}" stroke-width="1"/>')
+        for i, v in enumerate(vals):
+            h = abs(v) / top * (row / 2 - 2)
+            y = mid - h if v >= 0 else mid
+            parts.append(f'<rect x="{i * w + 1:.1f}" y="{y:.1f}" width="{max(w - 2, 1):.1f}" height="{max(h, 0.5):.1f}" '
+                         f'fill="{C.up if v >= 0 else C.down}"/>')
+    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+           f'viewBox="0 0 {width} {height}">{"".join(parts)}</svg>')
+    return "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()
+
+
 def flows_html(flows: pd.DataFrame | None) -> str | None:
+    """The trend in FII and DII net buying, never one day on its own (owner,
+    8 Nov: one day's flow is misleading). Under TREND_MIN sessions the panel
+    says how many are in and lists them small; from TREND_MIN it leads with
+    the total over the last TREND_WINDOW sessions (or all, while fewer) and
+    draws each day as a bar."""
     if flows is None or flows.empty:
         return None
     f = flows.copy()
     f["date"] = pd.to_datetime(f["date"])
-    last_day = f["date"].max()
-    day = f[f["date"] == last_day].set_index("category")["net"]
+    wide = f.pivot_table(index="date", columns="category", values="net", aggfunc="last").sort_index()
+    fii = wide.get("FII/FPI", pd.Series(0.0, index=wide.index)).fillna(0.0)
+    dii = wide.get("DII", pd.Series(0.0, index=wide.index)).fillna(0.0)
+    days, first = len(wide), wide.index[0]
+    if days < TREND_MIN:
+        listed = "".join(f"<li>{d:%-d %b}: FII/FPI {fmt.inr(fii[d], plus=True)} Cr, DII {fmt.inr(dii[d], plus=True)} Cr</li>"
+                         for d in wide.index)
+        return (f'<p class="db-lede">Collecting: {days} session{"s" if days != 1 else ""} since {first:%-d %b %Y}. '
+                f'One day\'s flow swings widely and says little on its own, so the trend shows from '
+                f'{TREND_MIN} sessions.</p><ul class="db-note">{listed}</ul>')
+    n = min(days, TREND_WINDOW)
+    f_n, d_n = fii.tail(n), dii.tail(n)
 
-    def side(cat: str, label: str) -> str:
-        v = day.get(cat)
-        if v is None or pd.isna(v):
-            return f"<dt>{label}</dt><dd>—</dd>"
-        word = "bought" if v > 0 else "sold"
-        tone = "up" if v > 0 else "down"
-        return (f'<dt>{label}</dt><dd><b class="{tone}">{fmt.inr(abs(v))} Cr</b> net {word}</dd>')
+    def side(label: str, total: float) -> str:
+        word, tone = ("bought", "up") if total > 0 else ("sold", "down")
+        return f'<dt>{label}</dt><dd><b class="{tone}">{fmt.inr(abs(total))} Cr</b> net {word}</dd>'
 
-    rows = side("FII/FPI", "FII/FPI") + side("DII", "DII")
-    days = f["date"].nunique()
+    img = _pair_bars_svg(f_n.tolist(), d_n.tolist())
+    alt = (f"Daily net flows, last {n} sessions: FII/FPI from {fmt.inr(f_n.min())} to {fmt.inr(f_n.max())} Cr; "
+           f"DII from {fmt.inr(d_n.min())} to {fmt.inr(d_n.max())} Cr.")
     since = ""
-    if days > 1:
-        tot = f.groupby("category")["net"].sum()
-        since = (f'<p class="db-note">Since {f["date"].min():%-d %b} ({days} sessions): foreign '
-                 f'{fmt.inr(tot.get("FII/FPI", 0), plus=True)} Cr, domestic {fmt.inr(tot.get("DII", 0), plus=True)} Cr.</p>')
-    return (f'<p class="db-lede">Cash market, {last_day:%-d %b %Y} (provisional).</p>'
-            f'<dl class="db-kv">{rows}</dl>{since}')
+    if days > n:
+        since = (f'<p class="db-note">Since {first:%-d %b %Y} ({days} sessions): FII/FPI '
+                 f'{fmt.inr(fii.sum(), plus=True)} Cr, DII {fmt.inr(dii.sum(), plus=True)} Cr.</p>')
+    return (f'<p class="db-lede">Cash market, last {n} sessions to {wide.index[-1]:%-d %b %Y} (provisional).</p>'
+            f'<dl class="db-kv">{side("FII/FPI", float(f_n.sum()))}{side("DII", float(d_n.sum()))}</dl>'
+            f'<img src="{img}" alt="{html.escape(alt)}" width="300" height="76" style="max-width:100%;margin-top:8px">'
+            f'<p class="db-note">Bars: each session, FII/FPI above, DII below.</p>{since}')
 
 
 def render(kit, left, right) -> None:
@@ -138,5 +172,6 @@ def render(kit, left, right) -> None:
             kit.caption("Flows are not available right now.")
         else:
             st.html(out)
-            kit.caption("NSE's provisional figures for the day, collected each trading evening. NSE "
-                        "keeps no history of these, so the record starts on 6 Nov 2026.")
+            kit.caption("NSE's provisional figures, collected each trading evening. NSE and MSEI publish "
+                        "only the latest day, so this history starts on 6 Nov 2026 and grows by one "
+                        "session a day; NSDL's longer record is being tried as a source.")

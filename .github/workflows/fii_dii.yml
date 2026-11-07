@@ -34,6 +34,18 @@ jobs:
         env:
           PYTHONPATH: .
         run: python scripts/collect_fii_dii.py
+      # Owner, 8 Nov: one day's flow is misleading; the panel needs history.
+      # NSE and MSEI publish only the latest day. NSDL's FPI reports go back
+      # years but refused the Claude session that built this; record whether
+      # GitHub's runner reaches them (never fails the job).
+      - name: Can this runner reach NSDL's FPI reports?
+        continue-on-error: true
+        run: |
+          for u in https://www.fpi.nsdl.co.in/web/Reports/Latest.aspx https://www.fpi.nsdl.co.in/web/Reports/Archive.aspx; do
+            code=$(curl -sS -m 30 -A 'Mozilla/5.0' -o /tmp/nsdl.html -w '%{http_code} %{size_download}' "$u" 2>&1 || true)
+            echo "NSDL $u -> $code"
+            grep -o '<title>[^<]*' /tmp/nsdl.html 2>/dev/null | head -1 || true
+          done
       - name: Commit
         run: |
           git config --global user.name 'github-actions[bot]'

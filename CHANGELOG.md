@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-08 — Flows: the trend, not one day
+
+- The Flows panel no longer leads with a single day's FII and DII figures (owner: one day's flow is misleading). Until five sessions are collected it says how many are in and lists them small; from five it leads with the total over the last 20 sessions (or all of them, while fewer) with a bar for each day. NSE and MSEI publish only the latest day, so the history grows from 6 Nov 2026; the daily job now also records whether GitHub's runner can reach NSDL, whose FPI record goes back years.
+
 ## 2026-11-08 — Screener: no blank space after "Show all"
 
 - On a phone, "Show all" turned the table into a box of about 1,900 px that scrolled inside the scrolling page; a swipe moved the page rather than the box, and the end of the list showed blank space (owner, 8 Nov). "Show all" is now a button under the table that redraws it at its full height, so only the page scrolls; "Show first 50" goes back.

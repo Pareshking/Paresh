@@ -33,16 +33,27 @@ def test_momentum_panel_text_and_image():
     assert "percentile since 2010" in out and "October: +0.5 points" in out
 
 
-def test_flows_panel_reads_the_latest_day_and_the_running_total():
-    f = pd.DataFrame([
-        {"date": "2026-11-06", "category": "FII/FPI", "buy": 1, "sell": 1, "net": 13749.82},
-        {"date": "2026-11-06", "category": "DII", "buy": 1, "sell": 1, "net": -5968.7},
-        {"date": "2026-11-09", "category": "FII/FPI", "buy": 1, "sell": 1, "net": -1000.0},
-        {"date": "2026-11-09", "category": "DII", "buy": 1, "sell": 1, "net": 2000.0},
-    ])
-    out = dp.flows_html(f)
-    assert "9 Nov 2026 (provisional)" in out and "₹1,000 Cr</b> net sold" in out
-    assert "Since 6 Nov (2 sessions): foreign +₹12,750 Cr, domestic −₹3,969 Cr" in out
+def _flows(n):
+    days = pd.bdate_range("2026-11-06", periods=n)
+    rows = []
+    for k, d in enumerate(days):
+        rows += [{"date": d.date().isoformat(), "category": "FII/FPI", "buy": 1, "sell": 1, "net": 1000.0 * (k + 1)},
+                 {"date": d.date().isoformat(), "category": "DII", "buy": 1, "sell": 1, "net": -500.0}]
+    return pd.DataFrame(rows)
+
+
+def test_flows_never_lead_with_one_day():
+    out = dp.flows_html(_flows(1))
+    assert "Collecting: 1 session since 6 Nov 2026" in out and "net bought" not in out
+
+
+def test_flows_lead_with_the_total_from_five_sessions():
+    out = dp.flows_html(_flows(5))
+    assert "last 5 sessions to 12 Nov 2026" in out
+    assert "₹15,000 Cr</b> net bought" in out and "₹2,500 Cr</b> net sold" in out     # 1+2+3+4+5 thousand; 5 x 500
+    assert "data:image/svg+xml;base64," in out and "Since" not in out
+    out = dp.flows_html(_flows(25))
+    assert "last 20 sessions" in out and "Since 6 Nov 2026 (25 sessions)" in out
 
 
 def test_the_collector_refuses_a_row_that_does_not_add_up():
