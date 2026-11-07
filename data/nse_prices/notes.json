@@ -302,6 +302,12 @@
    "before": "2018-08-29",
    "factor": 10.0,
    "evidence": "1:10 consolidation at SIGNET's change to SIGIND: NSE's first SIGIND session (29 Aug 2018) has prev_close 65.00 against SIGNET's last close 6.50 (10 Aug 2018); ISIN INE529F01027 replaced by INE529F01035. GitHub job investigate_raw, run 42413127097 (7 Nov 2026), reading R2 nse/prices_daily and NSE's corporate-action files. S25"
+  },
+  {
+   "symbol": "ANDHRAPAP",
+   "before": "2010-02-23",
+   "factor": 0.879044,
+   "evidence": "Rights issue of Andhra Pradesh Paper Mills (APPAPER in 2010): 3 new shares for every 11 held at Rs 50 (Rs 10 + Rs 40 premium), record date 24 Feb 2010, ex 23 Feb 2010, per the final letter of offer filed with the exchanges on 18 Mar 2010 (SEBI filings, sebi.gov.in/filings/rights-issues/mar-2010/andhra-paper-mills-ltd_2418.html). NSE's Bc file: 'RIGHTS-EQ3:11 & 1WRNT:1EQ' under APPAPER, no price, so the pipeline could not price it ('no terms'). NSE's raw closes (R2, GitHub job investigate_raw run 42413718298, 7 Nov 2026): 114.80 on 22 Feb, 91.40 on 23 Feb (prev_close 114.80, unadjusted). Factor = rights_factor(114.80, 50, 3, 11) = (11 x 114.80 + 3 x 50) / (14 x 114.80) = 0.879044 (TERP 100.91). Not adjusted: the 1 detachable warrant per new share, which a rights formula does not value; the rest of the day's fall (about 8 pts) stays as a price move. S44"
   }
  ],
  "special_sessions": {
