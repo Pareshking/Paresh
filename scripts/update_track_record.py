@@ -34,6 +34,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.core.config import BENCHMARK_SYMBOL  # noqa: E402
 from src.engine.backtester import run_backtest  # noqa: E402
 from src.engine.parity_audit import compare_monthly_ledger, load_accepted_drift  # noqa: E402
+from src.engine.parity_audit import freeze_refusal  # noqa: E402
 from src.engine.track_record import (  # noqa: E402
     SHADOW_CONFIG,
     SHADOW_INCEPTION,
@@ -247,8 +248,9 @@ def main() -> int:
     before = len(ledger.get("months", {}))
     prior_months = dict(ledger.get("months", {}))
 
-    # Read-only comparison of both frozen return series. Drift is diagnostic:
-    # stored closed months remain authoritative and are never silently rewritten.
+    # Read-only comparison of both frozen return series. Stored closed months
+    # remain authoritative and are never silently rewritten; a red comparison
+    # (a drift not accepted) stops a new month being struck below (S92).
     parity = compare_monthly_ledger(
         ledger, result["equity_curve"], result["benchmark"], accepted=load_accepted_drift()
     )
@@ -288,6 +290,15 @@ def main() -> int:
         pit_from=pit_from,
         force=args.force,
     )
+
+    # S92 (owner, 7 Nov 2026): no month is struck while the replay disagrees
+    # with a frozen month the owner has not accepted. October 2026 was struck
+    # on 3 Nov with September already drifting here, on a Screener store that
+    # carried BSE closes (S89). A --force rebuild is the deliberate exception.
+    refusal = freeze_refusal(parity)
+    if refusal and added and not args.force:
+        print(f"✗ refusing to freeze {', '.join(added)}: {refusal}")
+        return 1
 
     if args.force and added:
         # A rebuild replaces frozen numbers, so the file says so: when, which

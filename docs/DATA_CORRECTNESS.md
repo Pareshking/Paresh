@@ -128,6 +128,7 @@ python scripts/audit_gaps_against_bse.py --long nse_long_close.parquet --pack ns
 | The Backtest / Track Record blend keeps its 8 steps over 2% (Oct 2024 - Jul 2025: 5 weeks where Screener's close is BSE's, 3 demergers priced by a different factor) as they are; not spread across the week (owner, 13 Oct 2026, S58) | `nse_prices.blend_screener`, TODO S58 |
 | A demerger is **not** priced from the company's cost-of-acquisition split: that is a tax split by book value, not the market's (STLTECH 42% vs a 75% fall, ABFRL 76% vs 33%); the ex-date fall stays (13 Oct 2026) | TODO S58 |
 | A demerger stays priced at the ex-date **close** over the last close, not the ex-date open (owner, 13 Oct 2026: the open was proposed and not adopted) | `nse_adjusted.action_factors` |
+| No month is frozen while the freeze's own replay disagrees with a frozen month the owner has not accepted; and the Screener night does not publish a store the three-source vote outvotes on more than 10 stocks over its 45 days (owner, 7 Nov 2026, S92, after October 2026 was struck on a store carrying BSE closes, S89; the 10 set by Claude, owner may change) | `parity_audit.freeze_refusal`, `reconcile.SCREENER_OUTVOTE_LIMIT`, `scripts/check_screener_outvotes.py` |
 
 ## 5. Findings already explained: do not investigate these again
 
