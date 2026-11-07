@@ -1501,6 +1501,19 @@ def inject_custom_css() -> None:
             }
         }
 
+        /* Touch screens (audit F30): stock links and small controls get a hit
+           area of at least 40px; padding with an equal negative margin leaves
+           the layout as it is. */
+        @media (pointer: coarse) {
+            .db-sym a, .xw-s a, .t50-stock, .ib-leads a, .pg-onward, .db-kv a {
+                display: inline-block; padding: 11px 0; margin: -11px 0;
+            }
+            [data-baseweb="tag"] [role="presentation"], [data-baseweb="tag"] span[aria-hidden] {
+                padding: 10px; margin: -10px -6px -10px 0;
+            }
+            [data-testid="stTooltipIcon"] { padding: 12px; margin: -12px; }
+        }
+
         /* Visible focus everywhere (audit F28): one 2px ink ring for links,
            buttons, tabs, pills, sliders and anything focusable by keyboard. */
         a:focus-visible, button:focus-visible, [role="tab"]:focus-visible,
