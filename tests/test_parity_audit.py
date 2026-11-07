@@ -104,3 +104,7 @@ def test_the_committed_list_holds_only_the_owner_accepted_months():
 
     # 2026-10: owner, 7 Nov 2026, kept the frozen -4.25% (S89).
     assert sorted(load_accepted_drift()) == ["2026-01", "2026-02", "2026-10"]
+    # Each record has its own accepted months: Nano Cap's October is not the 750's.
+    assert sorted(load_accepted_drift(system="nano")) == ["2026-10"]
+    assert load_accepted_drift(system="nano")["2026-10"]["strategy"]["stored"] == -0.0572
+    assert load_accepted_drift(system="combined") == {}

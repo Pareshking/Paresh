@@ -21,12 +21,21 @@ DEFAULT_TOLERANCE = 5e-4  # 0.05 percentage points
 ACCEPTED_DRIFT_PATH = Path(__file__).with_name("parity_accepted_drift.json")
 
 
-def load_accepted_drift(path: Path = ACCEPTED_DRIFT_PATH) -> dict[str, Any]:
-    """The accepted drifts by month; empty when the file is absent."""
+def load_accepted_drift(path: Path = ACCEPTED_DRIFT_PATH, system: str = "750") -> dict[str, Any]:
+    """The accepted drifts by month for one record; empty when the file is absent.
+
+    The Nifty 750's are under "months" (the original layout); every other
+    record's under "systems" -> <system> -> "months", so an entry accepted for
+    one record can never pass another's month (owner, 7 Nov 2026: Nano Cap's
+    October accepted like the 750's).
+    """
     try:
-        return json.loads(Path(path).read_text(encoding="utf-8")).get("months", {})
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
     except FileNotFoundError:
         return {}
+    if system == "750":
+        return data.get("months", {})
+    return data.get("systems", {}).get(system, {}).get("months", {})
 
 
 def _is_accepted(entry: Any, stored: float, current: float, tolerance: float) -> bool:

@@ -96,7 +96,7 @@ def _run_freeze(monkeypatch, tmp_path, jan_replay: float, accepted: dict, *extra
     monkeypatch.setattr(mod.former_members, "with_former_members", lambda frame, _m: frame)
     monkeypatch.setattr(mod.former_members, "unavailable", lambda: [])
     monkeypatch.setattr(mod, "record_sector_map", lambda _c: {})
-    monkeypatch.setattr(mod, "load_accepted_drift", lambda: accepted)
+    monkeypatch.setattr(mod, "load_accepted_drift", lambda **_kw: accepted)
     monkeypatch.setattr(mod, "run_backtest", lambda *a, **k: {
         "stats": {}, "equity_curve": _curve(jan_replay, 0.03), "benchmark": _curve(0.01, 0.0)})
     ledger = tmp_path / "track_record.json"

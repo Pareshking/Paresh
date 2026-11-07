@@ -252,7 +252,7 @@ def main() -> int:
     # remain authoritative and are never silently rewritten; a red comparison
     # (a drift not accepted) stops a new month being struck below (S92).
     parity = compare_monthly_ledger(
-        ledger, result["equity_curve"], result["benchmark"], accepted=load_accepted_drift()
+        ledger, result["equity_curve"], result["benchmark"], accepted=load_accepted_drift(system=system)
     )
     counts = parity["counts"]
     print(

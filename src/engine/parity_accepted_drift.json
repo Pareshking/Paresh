@@ -25,5 +25,19 @@
       "reason": "Frozen on 3 Nov while the published Screener store carried BSE closes for ~43 stocks (26 Oct to 5 Nov Screener nights); on BSE's 31 Aug closes SKYGOLD (806.50 vs NSE 807.10) won a near-tie with AETHER, so September and October held a different book. Today's replay on NSE closes (NSE bhavcopy matches the store to the paisa) gives -4.0215%. See docs/TODO.md S89",
       "decided": "2026-11-07, owner: keep the frozen month (-4.25%), accept the drift"
     }
+  },
+  "systems": {
+    "nano": {
+      "months": {
+        "2026-10": {
+          "strategy": {
+            "stored": -0.0572,
+            "replay": -0.06101
+          },
+          "reason": "Nano Cap's frozen October differs from today's replay by -0.38 pp (found 7 Nov while building S92). Not traced stock by stock; likely the same Screener store carrying BSE closes 26 Oct-5 Nov (S89). See docs/TODO.md S93",
+          "decided": "2026-11-07, owner: follow the Nifty 750 (keep the frozen month, accept the drift)"
+        }
+      }
+    }
   }
 }
