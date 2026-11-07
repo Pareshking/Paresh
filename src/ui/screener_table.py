@@ -340,6 +340,7 @@ td.c-stock .sub{display:none}
 .wide .m-only{display:none!important}
 thead th[data-type=""]{cursor:default}
 thead th .ar{color:var(--c-faint);margin-left:3px}
+thead th:focus-visible{outline:2px solid var(--c-ink);outline-offset:-2px}
 thead th.on{color:var(--c-ink)}
 thead th.on .ar{color:var(--c-ink)}
 td{height:""" + str(ROW_PX) + """px;padding:0 10px;border-bottom:1px solid var(--c-rule_soft);font-size:13.5px;white-space:nowrap;background:var(--c-white)}
@@ -408,12 +409,21 @@ document.addEventListener('click',function(ev){
   ev.preventDefault();openStock(tr.getAttribute('data-stock'));
 });
 const ths=document.querySelectorAll('thead tr.hdr th');const tbody=document.querySelector('tbody');
+// Sortable from the keyboard too (pre-launch audit F20, WCAG 2.1.1/4.1.2):
+// each sortable header is focusable, sorts on Enter or Space, and says how
+// it is sorted (aria-sort); the arrow glyph is decoration.
+function ariaSort(d){return d==='asc'?'ascending':d==='desc'?'descending':'none';}
 ths.forEach(function(th,i){
   const type=th.getAttribute('data-type');if(!type)return;
+  th.tabIndex=0;
+  th.setAttribute('aria-sort',ariaSort(th.getAttribute('data-dir')));
+  const ar=th.querySelector('.ar');if(ar)ar.setAttribute('aria-hidden','true');
+  th.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();th.click();}});
   th.addEventListener('click',function(){
     const dir=th.getAttribute('data-dir')==='asc'?'desc':'asc';
-    ths.forEach(function(o){o.removeAttribute('data-dir');o.classList.remove('on');const a=o.querySelector('.ar');if(a&&o.getAttribute('data-type'))a.textContent='↕';});
+    ths.forEach(function(o){o.removeAttribute('data-dir');o.classList.remove('on');const a=o.querySelector('.ar');if(a&&o.getAttribute('data-type')){a.textContent='↕';o.setAttribute('aria-sort','none');}});
     th.setAttribute('data-dir',dir);th.classList.add('on');th.querySelector('.ar').textContent=dir==='asc'?'↑':'↓';
+    th.setAttribute('aria-sort',ariaSort(dir));
     const rows=Array.from(tbody.rows);
     rows.sort(function(a,b){
       const va=a.cells[i].getAttribute('data-v'),vb=b.cells[i].getAttribute('data-v');

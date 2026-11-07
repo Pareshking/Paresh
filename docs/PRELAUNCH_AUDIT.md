@@ -21,11 +21,11 @@ TODO row S94 tracks this file; each item is closed here with its commit.
 | F3 | Backtest current book shows 5.0% weight on every row; Portfolio 4.7–5.6% | **Done**: "Target weight %", duplicate entry weight dropped |
 | F4 | Sectors: median on the board, mean on the map; "Cement & Materials" vs "Construction Materials" | **Done**: NSE's name only, "Above 50D EMA", the map caption names its mean and dates and the board's median |
 | F19 | Back button trapped the reader on a stock page (redirect replayed) | **Done** f6ba815 |
-| F20 | Sortable headers not usable by keyboard, no aria-sort | Open |
+| F20 | Sortable headers not usable by keyboard, no aria-sort | **Done**: focusable headers, Enter/Space, aria-sort (Screener, sector table, peers) |
 | F21 | Every tab titled "Paresh Patel" | **Done** 1c18c7a |
-| F22 | Frame documents have no lang or title | Open |
-| F23 | Menu button's accessible name is "☰" | Open |
-| F24 | RRG week slider has no label | Open |
+| F22 | Frame documents have no lang or title | **Done** 123e381 |
+| F23 | Menu button's accessible name is "☰" | **Done** 123e381 |
+| F24 | RRG week slider has no label | **Done** 123e381 |
 | F25 | Lists built from divs (Dashboard risk, Actions, movers, Sectors board) | Open |
 | F26 | Charts have no text alternative | Open |
 | F42 | Five different figure-tile designs | Open |

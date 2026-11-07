@@ -131,3 +131,11 @@ def test_the_movers_heading_names_the_session_a_month_back():
     # 6 Oct is a holiday in this calendar: the next session is named.
     assert rv._movers_heading(px.drop(pd.Timestamp("2026-10-06"))) == "Since 7 Oct (one month)"
     assert rv._movers_heading(None) == "In the last month"
+
+
+def test_headers_sort_from_the_keyboard_and_say_how_they_are_sorted():
+    """Pre-launch audit F20 (WCAG 2.1.1/4.1.2), owner unparked item 13."""
+    html = _html("Core (17)")
+    for needle in ("th.tabIndex=0", "aria-sort", "e.key==='Enter'||e.key===' '",
+                   "thead th:focus-visible"):
+        assert needle in html, needle
