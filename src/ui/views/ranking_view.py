@@ -31,6 +31,9 @@ from src.ui.screener_table import INDEX_NAMES, column_count, render_screener_tab
 # All three draw the one table in src/ui/screener_table.py; they differ only
 # in which columns they show.
 _DENSITY_OPTIONS = ["Executive (11)", "Core (17)", "Full Quant (35)"]
+# Full Quant is the default on desktop and phone (owner, 7 Nov); the phone
+# keeps every column and scrolls sideways.
+_DEFAULT_DENSITY = _DENSITY_OPTIONS[2]
 
 # "Big movers": rank moved this many places in a month, up or down. 15 caught
 # 630 of 750 (the median stock moves ~58 places a month); 150 is about the
@@ -73,7 +76,7 @@ def _to_url(key: str, value) -> str | None:
     if key == "rank_quick_pills":
         return None if value in (None, "All Universe") else _PRESET_CODES.get(value)
     if key == "rank_density_mode":
-        return None if value in (None, _DENSITY_OPTIONS[1]) else _DENSITY_CODES.get(value)
+        return None if value in (None, _DEFAULT_DENSITY) else _DENSITY_CODES.get(value)
     if key == "rank_index_filter":
         return ",".join(value) if value else None
     if key == "rank_only_passing":
@@ -458,7 +461,7 @@ def render_ranking_view(
             density_mode = st.segmented_control(
                 "Columns",
                 _DENSITY_OPTIONS,
-                default=_kept("rank_density_mode", _DENSITY_OPTIONS[1], list(_DENSITY_OPTIONS)),
+                default=_kept("rank_density_mode", _DEFAULT_DENSITY, list(_DENSITY_OPTIONS)),
                 format_func=_density_label,
                 key="rank_density_mode",
             )
@@ -474,7 +477,7 @@ def render_ranking_view(
         remember(_k, _v)
     _sync_url(_filters)
     if not density_mode:
-        density_mode = _DENSITY_OPTIONS[1]
+        density_mode = _DEFAULT_DENSITY
 
     view = rank_df.copy()
     # Sessions at a new 52-week high in the last month and three: a stock that

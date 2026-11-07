@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-07 — Screener opens on Full Quant
+
+- The Screener's Columns control now starts on Full Quant (every column) on desktop and phone, instead of Core. On a phone the table keeps Rank and Symbol fixed and scrolls sideways. Executive and Core are one tap away; a link with `cols=core` or `cols=exec` still opens those.
+
 ## 2026-11-07 — Chart pages load faster
 
 - Every chart frame used to carry its own copy of the chart library, 0.2 to 0.5 MB each, never cached. The libraries are now served once from the app (`static/`) and cached by the browser, with a pinned copy from jsDelivr if that address does not load (audit F60).
