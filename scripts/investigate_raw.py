@@ -31,6 +31,9 @@ EVENTS = [
      ["SEINVEST", "SEINV", "PAISALO"], date(2011, 9, 26), date(2011, 10, 24)),
     ("S25 SIGNET (INE529F01027, last 10 Aug 2018) -> SIGIND (INE529F01035, from 3 Sep 2018)",
      ["SIGNET", "SIGIND"], date(2018, 8, 3), date(2018, 9, 10)),
+    # S108: the 7 Nov long-file audit's new break: our series -15.7% on 26 Jun
+    # 2025 where MarketLens and SS move -7.6% (INFIBEAM, now CCAVENUE).
+    ("S108 INFIBEAM / CCAVENUE, 26 Jun 2025", ["INFIBEAM", "CCAVENUE"], date(2025, 6, 18), date(2025, 7, 3)),
 ]
 RENAMES_TO: list[str] = []   # the ISIN-change windows above replace the change-list lookup
 
