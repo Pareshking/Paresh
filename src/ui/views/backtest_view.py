@@ -827,7 +827,13 @@ def _backtest_tab(
                     # "P&L %" is in percent units, this frame's "Return %" a fraction.
                     if "Return %" in lb.columns:
                         lb["Return %"] = pd.to_numeric(lb["Return %"], errors="coerce") * 100
-                    lb = lb.rename(columns={"Price Now": "Current Price", "Return %": "P&L %",
+                    # The record's weight is the target set at the rebalance (5.0% each
+                    # of 20); Portfolio shows the weight at today's prices. Same book,
+                    # so the column says which one it is (pre-launch audit F3), and the
+                    # entry weight -- the same number -- is not shown twice.
+                    lb = lb.drop(columns=["Entry Weight %"], errors="ignore")
+                    lb = lb.rename(columns={"Weight %": "Target weight %",
+                                            "Price Now": "Current Price", "Return %": "P&L %",
                                             "Holding (Days)": "Holding Days",
                                             "Industry": "Sector / Industry"})
                     n_up = int((live_book["Return %"] > 0).sum())

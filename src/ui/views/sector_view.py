@@ -38,7 +38,6 @@ SHORT_NAMES = {
     "Media Entertainment & Publication": "Media",
     "Oil Gas & Consumable Fuels": "Oil & Gas",
     "Metals & Mining": "Metals",
-    "Construction Materials": "Cement & Materials",
     "Consumer Durables": "Cons. Durables",
     "Consumer Services": "Cons. Services",
     "Financial Services": "Financials",
@@ -107,9 +106,12 @@ def render_leadership_section(rank_df: pd.DataFrame, adj_close: pd.DataFrame, co
         with st.expander(f"How to read this · worked example: {SHORT_NAMES.get(example, example)}"):
             st.markdown(leadership_explainer(board.set_index("Sector").loc[example], example, span))
         st.iframe(resolve(leadership_table_html(board, span)), height=28 + 42 + len(board) * ROW_PX + 6)
-        kit.caption("Sector return is the equal-weighted mean of its stocks' price returns, not an "
-                    "NSE sector index; the share counts stocks with a close and an EMA that day. "
-                    "Click a header to sort.")
+        # Two statistics on one page, each named (pre-launch audit F4): this
+        # map's mean over its own dates, the board's median over 3 months.
+        kit.caption(f"Here a sector's return is the equal-weighted mean of its stocks' price "
+                    f"returns from {then:%d %b} to {now:%d %b}, not an NSE sector index; the board "
+                    "above ranks by the median 3-month return. The share counts stocks with a "
+                    "close and an EMA that day. Click a header to sort.")
 
 
 def _signed_pct(v: float) -> tuple[str, str]:
@@ -308,7 +310,7 @@ def board_html(board: pd.DataFrame) -> str:
         )
     head = ('<div class="ib-row ib-head" role="row"><span>#</span><span>Industry</span>'
             '<span class="ib-num ib-d">Stocks</span><span class="ib-3m">3M (median)</span>'
-            '<span class="ib-num ib-d">6M</span><span class="ib-num ib-d" title="Share above their 50-day EMA">Above EMA</span>'
+            '<span class="ib-num ib-d">6M</span><span class="ib-num ib-d" title="Share above their 50-day EMA">Above 50D EMA</span>'
             '<span class="ib-num ib-d" title="Share within 20% of their 52-week high">Near high</span><span class="ib-num ib-d">Pass both</span>'
             '<span class="ib-num ib-d">Top 50</span><span class="ib-d">Leaders</span></div>')
     return f'<div class="ib" role="table" aria-label="Industry leaderboard">{head}{"".join(rows)}</div>'
